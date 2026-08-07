@@ -15,9 +15,10 @@ interface Props {
   open: boolean;
   onClose: () => void;
   editing?: Building | null;
+  onSaved?: (b: Building) => void;
 }
 
-export function BuildingFormModal({ open, onClose, editing }: Props) {
+export function BuildingFormModal({ open, onClose, editing, onSaved }: Props) {
   const { data: me } = useMe();
   const { data: buildingTypes = [] } = useBuildingTypes();
   const createBuilding = useCreateBuilding();
@@ -75,10 +76,13 @@ export function BuildingFormModal({ open, onClose, editing }: Props) {
   ];
 
   const onSubmit = async (values: BuildingFormValues) => {
+    if (!me?.orgId) {
+      toast.error("조직 정보를 불러올 수 없습니다. 다시 로그인해 주세요.");
+      return;
+    }
     try {
-      const orgId = me?.orgId ?? 0;
       const payload = {
-        orgId,
+        orgId: me.orgId,
         code: values.code,
         name: values.name,
         address: values.address,
@@ -92,9 +96,11 @@ export function BuildingFormModal({ open, onClose, editing }: Props) {
         memo: values.memo,
       };
       if (editing) {
-        await updateBuilding.mutateAsync({ id: editing.id, input: payload });
+        const saved = await updateBuilding.mutateAsync({ id: editing.id, input: payload });
+        onSaved?.(saved);
       } else {
-        await createBuilding.mutateAsync(payload);
+        const saved = await createBuilding.mutateAsync(payload);
+        onSaved?.(saved);
       }
       onClose();
     } catch (err: unknown) {

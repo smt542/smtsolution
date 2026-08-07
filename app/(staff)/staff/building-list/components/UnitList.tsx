@@ -15,6 +15,7 @@ const COLUMNS = [
   { key: "dong", label: "동" },
   { key: "areaPyeong", label: "면적(평)" },
   { key: "roomCount", label: "방 수" },
+  { key: "actions", label: "" },
 ];
 
 export function UnitList({ buildingId }: Props) {
@@ -29,25 +30,41 @@ export function UnitList({ buildingId }: Props) {
     [units]
   );
 
+  const openCreate = () => {
+    setEditing(null);
+    setModalOpen(true);
+  };
+
+  const openEdit = (unit: Unit) => {
+    setEditing(unit);
+    setModalOpen(true);
+  };
+
+  // Row click selects the unit to reveal OccupancyList — does NOT open the modal
+  const handleRowClick = (row: Record<string, React.ReactNode>) => {
+    const unit = unitById[row._id as number] ?? null;
+    setSelectedUnit(unit);
+  };
+
   const rows: Record<string, React.ReactNode>[] = units.map((u) => ({
     _id: u.id,
     unitNo: u.unitNo,
     dong: u.dong ?? "-",
     areaPyeong: u.areaPyeong ?? "-",
     roomCount: u.roomCount != null ? String(u.roomCount) : "-",
+    actions: (
+      <button
+        className="rounded px-2 py-0.5 text-xs font-medium text-brand hover:underline"
+        onClick={(e) => {
+          e.stopPropagation();
+          openEdit(u);
+        }}
+        aria-label={`${u.unitNo} 수정`}
+      >
+        수정
+      </button>
+    ),
   }));
-
-  const openCreate = () => {
-    setEditing(null);
-    setModalOpen(true);
-  };
-
-  const handleRowClick = (row: Record<string, React.ReactNode>) => {
-    const unit = unitById[row._id as number] ?? null;
-    setSelectedUnit(unit);
-    setEditing(unit);
-    setModalOpen(true);
-  };
 
   return (
     <div className="flex flex-col gap-4">

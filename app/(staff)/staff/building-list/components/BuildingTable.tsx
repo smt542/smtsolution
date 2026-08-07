@@ -43,21 +43,23 @@ export function BuildingTable({ search, onSearchChange, selectedId, onSelect }: 
     ownerName: b.ownerName ?? "-",
   }));
 
-  if (isLoading) return <Spinner />;
-  if (!isLoading && buildings.length === 0)
-    return <EmptyState message="등록된 건물이 없습니다." />;
-
   return (
     <div className="flex flex-col gap-2">
       <SearchBar value={search} onChange={onSearchChange} placeholder="건물명 또는 주소 검색" />
-      <DataTable
-        columns={COLUMNS}
-        rows={rows}
-        onRowClick={(row) => {
-          const b = buildingById[row._id as number];
-          if (b) onSelect(b);
-        }}
-      />
+      {isLoading ? (
+        <Spinner />
+      ) : buildings.length === 0 ? (
+        <EmptyState message="등록된 건물이 없습니다." />
+      ) : (
+        <DataTable
+          columns={COLUMNS}
+          rows={rows}
+          onRowClick={(row) => {
+            const b = buildingById[row._id as number];
+            if (b) onSelect(b);
+          }}
+        />
+      )}
     </div>
   );
 }

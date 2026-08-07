@@ -112,6 +112,18 @@ const mockUnits = [
   },
 ];
 
+const mockOccupancies = [
+  {
+    id: 201,
+    unitId: 101,
+    tenantName: "김입주",
+    phone: "010-9999-8888",
+    status: "occupied",
+    moveInDate: "2024-01-01",
+    moveOutDate: null,
+  },
+];
+
 const mockBuildingTypes = [{ id: 1, orgId: 10, label: "빌라", sortOrder: 1 }];
 
 const mockMutate = { mutateAsync: vi.fn(), isPending: false };
@@ -128,7 +140,7 @@ function setupMocks() {
     error: null,
   } as any);
   vi.mocked(useOccupancies).mockReturnValue({
-    data: [],
+    data: mockOccupancies,
     isLoading: false,
     error: null,
   } as any);
@@ -186,6 +198,35 @@ describe("BuildingListPage", () => {
     fireEvent.click(btn);
     await waitFor(() => {
       expect(screen.getByText("건물 등록")).toBeInTheDocument();
+    });
+  });
+
+  it("clicking a unit row renders OccupancyList and does NOT open unit edit modal", async () => {
+    render(<BuildingListPage />);
+    // First select a building to reveal the unit list
+    fireEvent.click(screen.getByText("그린빌라"));
+    await waitFor(() => expect(screen.getByText("101호")).toBeInTheDocument());
+
+    // Click the unit row — should show the occupancy tenant name
+    fireEvent.click(screen.getByText("101호"));
+    await waitFor(() => {
+      expect(screen.getByText("김입주")).toBeInTheDocument();
+    });
+
+    // The unit edit modal must NOT be open (modal title "호실 수정" must not appear)
+    expect(screen.queryByText("호실 수정")).toBeNull();
+  });
+
+  it("clicking unit 수정 button opens the unit edit modal", async () => {
+    render(<BuildingListPage />);
+    fireEvent.click(screen.getByText("그린빌라"));
+    await waitFor(() => expect(screen.getByText("101호")).toBeInTheDocument());
+
+    const editBtn = screen.getByRole("button", { name: /101호 수정/ });
+    fireEvent.click(editBtn);
+    // UnitFormModal title is "호실 수정" when editing
+    await waitFor(() => {
+      expect(screen.getByText("호실 수정")).toBeInTheDocument();
     });
   });
 });

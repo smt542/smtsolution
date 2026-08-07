@@ -61,6 +61,7 @@ export default function BuildingListPage() {
         open={modalOpen}
         onClose={closeModal}
         editing={editingBuilding}
+        onSaved={(b) => setSelectedBuilding(b)}
       />
     </div>
   );

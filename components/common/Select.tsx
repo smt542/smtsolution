@@ -1,14 +1,14 @@
 import React from "react";
 
-export function Select({
-  options,
-  className = "",
-  ...props
-}: React.SelectHTMLAttributes<HTMLSelectElement> & {
-  options: { value: string; label: string }[];
-}) {
+export const Select = React.forwardRef<
+  HTMLSelectElement,
+  React.SelectHTMLAttributes<HTMLSelectElement> & {
+    options: { value: string; label: string }[];
+  }
+>(function Select({ options, className = "", ...props }, ref) {
   return (
     <select
+      ref={ref}
       className={`h-11 w-full rounded-xl border border-line bg-bg px-4 text-sm text-t1 focus:border-brand focus:outline-none disabled:opacity-70 ${className}`}
       {...props}
     >
@@ -19,4 +19,4 @@ export function Select({
       ))}
     </select>
   );
-}
+});
