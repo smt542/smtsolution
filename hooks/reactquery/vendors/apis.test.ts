@@ -85,4 +85,24 @@ describe("vendors apis", () => {
 
     expect(result).toMatchObject({ orgId:9, entityType:"vendor", entityId:42, kind:"contract" });
   });
+
+  it("uploadVendorAttachment: insert 실패 시 storage 객체 삭제(보상) 후 throw", async () => {
+    const vendorId = 42;
+    const orgId = 9;
+    const file = new File(["content"], "contract.pdf", { type: "application/pdf" });
+
+    uploadMock.mockResolvedValue({ error: null });
+    removeMock.mockResolvedValue({ error: null });
+
+    const single = vi.fn().mockResolvedValue({ data: null, error: { message: "boom" } });
+    const sel = vi.fn(() => ({ single }));
+    const ins = vi.fn(() => ({ select: sel }));
+    from.mockReturnValue({ insert: ins });
+
+    await expect(uploadVendorAttachment({ vendorId, orgId, file })).rejects.toThrow("boom");
+
+    expect(removeMock).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.stringMatching(new RegExp(`^${orgId}/vendor/${vendorId}/`))])
+    );
+  });
 });

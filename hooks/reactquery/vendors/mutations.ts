@@ -19,10 +19,10 @@ export function useDeleteVendor() {
 
 export function useUploadVendorAttachment() {
   const qc = useQueryClient();
-  return useMutation({ mutationFn: (args: { vendorId: number; orgId: number; file: File }) => uploadVendorAttachment(args), onSuccess: () => qc.invalidateQueries({ queryKey: vendorKeys.all }) });
+  return useMutation({ mutationFn: (args: { vendorId: number; orgId: number; file: File }) => uploadVendorAttachment(args), onSuccess: (_data, vars) => qc.invalidateQueries({ queryKey: vendorKeys.attachments(vars.vendorId) }) });
 }
 
 export function useDeleteVendorAttachment() {
   const qc = useQueryClient();
-  return useMutation({ mutationFn: (args: { id: number; path: string }) => deleteVendorAttachment(args), onSuccess: () => qc.invalidateQueries({ queryKey: vendorKeys.all }) });
+  return useMutation({ mutationFn: (args: { id: number; path: string; vendorId: number }) => deleteVendorAttachment(args), onSuccess: (_data, vars) => qc.invalidateQueries({ queryKey: vendorKeys.attachments(vars.vendorId) }) });
 }

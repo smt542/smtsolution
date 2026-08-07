@@ -46,10 +46,12 @@ export async function deleteVendor(id: number): Promise<void> {
 export async function uploadVendorAttachment({ vendorId, orgId, file }: { vendorId: number; orgId: number; file: File }): Promise<VendorAttachment> {
   const sb = createClient();
   const path = `${orgId}/vendor/${vendorId}/${crypto.randomUUID()}-${file.name}`;
-  const { error: uploadError } = await sb.storage.from("attachments").upload(path, file);
-  if (uploadError) throw new Error(uploadError.message);
-  const { data, error } = await sb.from("attachments").insert({ org_id: orgId, entity_type: "vendor", entity_id: vendorId, kind: "contract", file_url: path, file_name: file.name }).select().single();
-  if (error) throw new Error(error.message);
+  const { error: upErr } = await sb.storage.from("attachments").upload(path, file);
+  if (upErr) throw new Error(upErr.message);
+  const { data, error } = await sb.from("attachments")
+    .insert({ org_id: orgId, entity_type: "vendor", entity_id: vendorId, kind: "contract", file_url: path, file_name: file.name })
+    .select().single();
+  if (error) { await sb.storage.from("attachments").remove([path]); throw new Error(error.message); }
   return rowToAttachment(data);
 }
 
@@ -59,7 +61,7 @@ export async function listVendorAttachments(vendorId: number): Promise<VendorAtt
   return (data ?? []).map(rowToAttachment);
 }
 
-export async function deleteVendorAttachment({ id, path }: { id: number; path: string }): Promise<void> {
+export async function deleteVendorAttachment({ id, path, vendorId }: { id: number; path: string; vendorId: number }): Promise<void> {
   const sb = createClient();
   const { error: storageError } = await sb.storage.from("attachments").remove([path]);
   if (storageError) throw new Error(storageError.message);
