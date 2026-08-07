@@ -46,6 +46,7 @@ P1a는 세 staff 화면을 **풀스택(SQL 마이그레이션 + reactquery 훅 +
 | 8 | 인원 | `occupancies.resident_count` |
 | 9 | units/occupancies RLS | **부모 FK 경유**(org_id 비정규화 없이) |
 | 10 | 권한 | P1a는 활성 org 구성원 전체 CRUD, 세분 권한은 P1b |
+| 11 | 디자인 | **`.dc.html`(Claude Design HTML export)에서 토큰 추출 → Tailwind/공통 프리미티브**, 화면별 픽셀 매칭. Claude Design→Claude Code 네이티브 handoff는 향후(사용자 조사) |
 
 ---
 
@@ -285,6 +286,12 @@ P0 컨벤션(apis/keys/queries/mutations/index). snake_case DB ↔ camelCase 앱
 
 P0 미들웨어가 `/staff/*` 인증 가드. 각 페이지는 `page.tsx` + `components/`.
 
+### 7.0 디자인 시스템 (`.dc.html` 기반) — 화면 구현 선행
+프로토타입 `.dc.html`(Claude Design standalone HTML export)을 **시각 정답지**로 삼아 토큰·공통 프리미티브를 먼저 구성한다. (네이티브 handoff는 향후; 지금은 HTML에서 수동 추출.)
+- **토큰(globals.css / Tailwind v4 `@theme`):** 색 `--blue:#14A497`·`--blue-d:#0E8677`·`--blue-t:#E2F5F1`·`--bg:#F2F4F6`·`--surface:#fff`·`--line:#E8EBEE`·`--t1:#191F28`~`--t4:#B0B8C1`·`--red:#F04452`; 폰트 **Pretendard**(CDN); radius 12–14px; 공통 간격/그림자.
+- **공통 프리미티브(`components/common/`):** Button·Input·Select·Checkbox·Card/Panel·Modal·Tabs·Table·SidebarList·SearchBar·EmptyState·LoadingSpinner — DC 룩 일치.
+- 각 화면(7.1–7.3)은 이 프리미티브를 조합해 와이어프레임과 픽셀 매칭.
+
 ### 7.1 building-list
 - 좌: 건물 리스트(검색 name/address, 컬럼 코드·건물명·유형·주소·건물주·담당자·등록일, `＋ 건물 등록`).
 - 우: 선택 건물 상세 + **호실/입주자 패널**(호실 리스트 + 선택 호실의 입주자, `＋ 호수·입주민 등록`).
@@ -325,6 +332,7 @@ P0 미들웨어가 `/staff/*` 인증 가드. 각 페이지는 `page.tsx` + `comp
 ---
 
 ## 11. 열린 항목 / 향후
+- **Claude Design → Claude Code 네이티브 handoff** 도입(사용자 조사 중). 도입 시 §7.0 디자인 시스템/화면 비주얼을 handoff 산출물로 대체·보강 가능.
 - 담당자 텍스트 → 직원 계정 FK(P1b 이후).
 - building_owners(임대인) 테이블(임대 정산 단계).
 - units 부과/고지/검침 설정 컬럼(P2/P3).
