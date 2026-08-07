@@ -3,15 +3,18 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { loginSchema, type LoginFormValues } from "@/components/forms/schema/auth";
+import { z } from "zod";
+import { loginSchema } from "@/components/forms/schema/auth";
 import { useLogin } from "@/hooks/reactquery/auth";
 import { AUTO_LOGIN_KEY } from "@/lib/auth/sessionPersistence";
+
+type LoginFormInput = z.input<typeof loginSchema>;
 
 export function LoginForm() {
   const router = useRouter();
   const login = useLogin();
   const [serverError, setServerError] = useState("");
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: { username: "", password: "", autoLogin: false },
   });
@@ -19,7 +22,7 @@ export function LoginForm() {
   const onSubmit = handleSubmit(async (values) => {
     setServerError("");
     try {
-      await login.mutateAsync(values);
+      await login.mutateAsync({ username: values.username, password: values.password, autoLogin: values.autoLogin ?? false });
       if (values.autoLogin) localStorage.setItem(AUTO_LOGIN_KEY, "1");
       else localStorage.removeItem(AUTO_LOGIN_KEY);
       router.push("/staff/receipt-management");
