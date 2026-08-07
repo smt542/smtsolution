@@ -66,7 +66,7 @@ language sql stable security definer set search_path = public as $$
   join organizations o on o.id = m.org_id
   join profiles p on p.user_id = m.user_id
   where m.user_id = auth.uid()
-  order by (o.status = 'active') desc
+  order by (o.status = 'active') desc, m.created_at
   limit 1
 $$;
 
@@ -74,6 +74,7 @@ create or replace function record_login(p_ip text default null)
 returns void language plpgsql security definer set search_path = public as $$
 declare v_org bigint;
 begin
+  if auth.uid() is null then return; end if;
   select m.org_id into v_org from org_members m
     join organizations o on o.id = m.org_id
     where m.user_id = auth.uid()
@@ -81,6 +82,7 @@ begin
   insert into audit_log(org_id, actor_id, action, ip)
   values (v_org, auth.uid(), 'LOGIN', nullif(p_ip,'')::inet);
 end $$;
+revoke execute on function record_login(text) from anon;
 
 -- ===== RLS =====
 alter table organizations enable row level security;
@@ -101,6 +103,7 @@ create policy profile_select on profiles for select using (
   user_id = (select auth.uid())
   or user_id in (select m.user_id from org_members m where m.org_id in (select my_org_ids()))
 );
-create policy profile_update_self on profiles for update
-  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+-- profiles UPDATE 정책 없음(의도적): P0에는 self-service 프로필 편집 UI가 없고,
+-- RLS는 컬럼을 제한 못 해 username/is_active/must_change_password 자가변경 위험이 있음.
+-- 프로필 발급·수정은 service_role(시드/관리 스크립트)만. P1 staff-management에서 컬럼 GRANT/트리거로 안전 개방.
 create policy audit_select on audit_log for select using (org_id in (select my_org_ids()));

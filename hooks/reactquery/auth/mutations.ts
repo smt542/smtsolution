@@ -17,7 +17,7 @@ export function useLogin() {
       if (!ctx) return bail(NO_ACCESS);
       if (!ctx.isActive) return bail(INACTIVE);
       if (ctx.orgStatus !== "active") return bail(SUSPENDED);
-      await recordLogin();
+      await recordLogin().catch(() => {});
       return ctx;
     },
     onSuccess: (ctx) => { qc.setQueryData(authKeys.me(), ctx); },
@@ -28,6 +28,6 @@ export function useLogout() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: logout,
-    onSuccess: () => { qc.setQueryData(authKeys.me(), null); qc.clear(); },
+    onSuccess: () => { qc.clear(); },
   });
 }

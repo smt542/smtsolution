@@ -8,7 +8,7 @@ export function AuthBoot() {
     const autoLogin = localStorage.getItem(AUTO_LOGIN_KEY) === "1";
     const sessionAlive = sessionStorage.getItem(SESSION_ALIVE_KEY) === "1";
     if (shouldSignOutOnBoot(autoLogin, sessionAlive)) {
-      createClient().auth.signOut();
+      void createClient().auth.signOut().catch(() => {});
     }
     sessionStorage.setItem(SESSION_ALIVE_KEY, "1");
   }, []);

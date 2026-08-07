@@ -21,6 +21,7 @@ const INVALID_CREDS = "아이디 또는 비밀번호가 올바르지 않습니�
 export async function login(input: LoginInput): Promise<void> {
   const supabase = createClient();
   const email = usernameToEmail(input.username);
+  // autoLogin은 세션 지속을 직접 바꾸지 않음 — AuthBoot가 부팅 시 처리(설계).
   const { error } = await supabase.auth.signInWithPassword({ email, password: input.password });
   if (error) throw new Error(INVALID_CREDS);
 }

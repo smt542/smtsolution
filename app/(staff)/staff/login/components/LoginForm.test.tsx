@@ -7,6 +7,7 @@ const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 const mutateAsync = vi.fn();
 vi.mock("@/hooks/reactquery/auth", () => ({ useLogin: () => ({ mutateAsync, isPending: false }) }));
+vi.mock("sonner", () => ({ toast: { info: vi.fn(), error: vi.fn(), success: vi.fn() } }));
 
 import { LoginForm } from "./LoginForm";
 
@@ -56,5 +57,15 @@ describe("LoginForm", () => {
     await userEvent.type(screen.getByLabelText("비밀번호"), "pw123456");
     await userEvent.click(screen.getByRole("button", { name: "로그인" }));
     expect(localStorage.getItem("erp_login_auto")).toBeNull();
+  });
+
+  it("mustChangePassword면 안내 토스트", async () => {
+    const { toast } = await import("sonner");
+    mutateAsync.mockResolvedValue({ mustChangePassword: true });
+    render(<LoginForm />);
+    await userEvent.type(screen.getByLabelText("아이디"), "hong");
+    await userEvent.type(screen.getByLabelText("비밀번호"), "pw123456");
+    await userEvent.click(screen.getByRole("button", { name: "로그인" }));
+    expect((toast.info as unknown as ReturnType<typeof vi.fn>)).toHaveBeenCalled();
   });
 });

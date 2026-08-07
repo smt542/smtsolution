@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { z } from "zod";
+import { toast } from "sonner";
 import { loginSchema } from "@/components/forms/schema/auth";
 import { useLogin } from "@/hooks/reactquery/auth";
 import { AUTO_LOGIN_KEY } from "@/lib/auth/sessionPersistence";
@@ -22,9 +23,10 @@ export function LoginForm() {
   const onSubmit = handleSubmit(async (values) => {
     setServerError("");
     try {
-      await login.mutateAsync({ username: values.username, password: values.password, autoLogin: values.autoLogin ?? false });
+      const ctx = await login.mutateAsync({ username: values.username, password: values.password, autoLogin: values.autoLogin ?? false });
       if (values.autoLogin) localStorage.setItem(AUTO_LOGIN_KEY, "1");
       else localStorage.removeItem(AUTO_LOGIN_KEY);
+      if (ctx?.mustChangePassword) toast.info("비밀번호 변경이 필요합니다. 관리자 안내에 따라 변경해 주세요.");
       router.push("/staff/receipt-management");
     } catch (e) {
       setServerError(e instanceof Error ? e.message : "잠시 후 다시 시도해 주세요.");
