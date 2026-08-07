@@ -38,12 +38,12 @@ describe("LoginForm", () => {
     expect(await screen.findByText("아이디 또는 비밀번호가 올바르지 않습니다.")).toBeInTheDocument();
   });
 
-  it("자동로그인 체크 시 플래그 저장, 미체크 시 저장 안 함", async () => {
+  it("자동로그인 체크 시 localStorage에 '1' 저장", async () => {
     mutateAsync.mockResolvedValue({});
     render(<LoginForm />);
     await userEvent.type(screen.getByLabelText("아이디"), "hong");
     await userEvent.type(screen.getByLabelText("비밀번호"), "pw123456");
-    await userEvent.click(screen.getByRole("checkbox"));
+    await userEvent.click(screen.getByLabelText("자동 로그인"));
     await userEvent.click(screen.getByRole("button", { name: "로그인" }));
     expect(localStorage.getItem("erp_login_auto")).toBe("1");
   });
