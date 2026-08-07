@@ -58,6 +58,12 @@ export async function listOccupancies(unitId: number): Promise<Occupancy[]> {
   return (data ?? []).map(rowToOccupancy);
 }
 
+export async function getOccupancy(id: number): Promise<Occupancy> {
+  const { data, error } = await createClient().from("occupancies").select("*").eq("id", id).single();
+  if (error) throw new Error(error.message);
+  return rowToOccupancy(data);
+}
+
 export async function createOccupancy(input: OccupancyInput): Promise<Occupancy> {
   const { data, error } = await createClient().from("occupancies").insert(inputToRow(input)).select().single();
   if (error) throw new Error(error.message);

@@ -48,6 +48,12 @@ export async function listUnits(buildingId: number): Promise<Unit[]> {
   return (data ?? []).map(rowToUnit);
 }
 
+export async function getUnit(id: number): Promise<Unit> {
+  const { data, error } = await createClient().from("units").select("*").eq("id", id).single();
+  if (error) throw new Error(error.message);
+  return rowToUnit(data);
+}
+
 export async function createUnit(input: UnitInput): Promise<Unit> {
   const { data, error } = await createClient().from("units").insert(inputToRow(input)).select().single();
   if (error) throw new Error(error.message);
