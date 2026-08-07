@@ -44,3 +44,6 @@ next-env.d.ts
 # local agent state
 .omc/
 .env.local
+
+# agent worktrees
+.claude/worktrees/
