@@ -44,7 +44,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "설정",
     items: [
-      { label: "계정·직원 관리", href: "/staff/accounts", module: "accounts", built: false, icon: "M12 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM4 20a8 8 0 0 1 16 0" },
+      { label: "계정·직원 관리", href: "/staff/accounts", module: "accounts", built: true, icon: "M12 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM4 20a8 8 0 0 1 16 0" },
       { label: "협력업체", href: "/staff/vendor-management", module: "settings", built: true, icon: "M3 7h18v13H3zM8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M12 12v4M10 14h4" },
       { label: "셋업·기타 설정", href: "/staff/setup", module: "settings", built: false, icon: "M12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6zM12 3v3M12 18v3M3 12h3M18 12h3M6 6l2 2M16 16l2 2M18 6l-2 2M8 16l-2 2" },
     ],
