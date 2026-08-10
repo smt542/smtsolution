@@ -4,6 +4,8 @@ import { loginEmail } from "@/lib/auth/email";
 export type OrgMemberRole =
   | "platform_admin" | "org_owner" | "manager" | "staff" | "field" | "tenant";
 
+export type StaffType = "manager_staff" | "field_staff" | "support_staff" | "tenant";
+
 export interface LoginInput { companyCode: string; username: string; password: string; autoLogin: boolean }
 
 export interface MyContext {
@@ -14,6 +16,8 @@ export interface MyContext {
   fullName: string;
   isActive: boolean;
   mustChangePassword: boolean;
+  /** 계정 유형(PRD "유형"). role과 직교. */
+  staffType: StaffType;
   /** Module permission keys granted to this user (empty for org_owner who has all). */
   permissions: string[];
 }
@@ -47,6 +51,7 @@ export async function getMyContext(): Promise<MyContext | null> {
     fullName: row.full_name,
     isActive: row.is_active,
     mustChangePassword: row.must_change_password,
+    staffType: row.staff_type,
     permissions: Array.isArray(row.permissions) ? row.permissions : [],
   };
 }

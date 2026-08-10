@@ -47,6 +47,7 @@ function makeMe(overrides: Partial<MyContext>): { data: MyContext } {
     fullName: "테스트",
     isActive: true,
     mustChangePassword: false,
+    staffType: "manager_staff",
     permissions: [],
     ...overrides,
   };
