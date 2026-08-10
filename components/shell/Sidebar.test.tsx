@@ -7,7 +7,7 @@ import type { MyContext } from "@/hooks/reactquery/auth/apis";
 
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
-  usePathname: vi.fn(() => "/staff/building-list"),
+  usePathname: vi.fn(() => "/staff/buildings"),
   useRouter: vi.fn(() => ({ push: vi.fn() })),
 }));
 
@@ -83,7 +83,7 @@ describe("Sidebar", () => {
     expect(screen.queryByText("계정·직원 관리")).toBeNull();
   });
 
-  it("Test C: active item on /staff/building-list has aria-current=page", () => {
+  it("Test C: active item on /staff/buildings has aria-current=page", () => {
     mockUseMe.mockReturnValue(
       makeMe({ role: "org_owner", permissions: [] })
     );

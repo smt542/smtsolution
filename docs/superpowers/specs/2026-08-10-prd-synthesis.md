@@ -3,7 +3,8 @@
 > **작성일**: 2026-08-10  
 > **출처**: `docs/prototype/prd/*.md` 21개 파일 전체 독해 후 합성  
 > **용도**: 구현 기준 단일 참조. PRD 원본은 수정하지 않음.  
-> **범위**: Staff(사무실 PC 데스크톱 웹) 우선. 모바일·세입자 앱은 별도 범위로 요약만 포함.
+> **범위**: Staff(사무실 PC 데스크톱 웹) 우선. 모바일·세입자 앱은 별도 범위로 요약만 포함.  
+> **갱신 2026-08-10**: §A(우리 라우트·구현 상태)·§A.2·§D.1을 셸 정렬(커밋 44ce033: nav→PRD GNB, 로그인→대시보드, 권한키 11개)과 라우트 리네임(`building-list→buildings`, `fee-item→management-fee`, `receipt-management→receipts`) 반영해 최신화. §B·§C·§E(PRD 정본 내용)는 원본 유지.
 
 ---
 
@@ -15,44 +16,48 @@ PRD의 `진입: GNB > …` 줄과 라우트를 취합하여 도출한 **정식 �
 
 ### A.1 Staff GNB (사무실 PC 웹)
 
-| 그룹 | 메뉴 레이블 | PRD 라우트 | 우리 `/staff/` 라우트 | PRD 파일 | 구현됨? |
+| 그룹 | 메뉴 레이블 | PRD 라우트 | 우리 `/staff/` 라우트 | PRD 파일 | 구현 상태 |
 |---|---|---|---|---|---|
-| *(루트)* | 대시보드 | `/` | `/staff/` (또는 루트 후 리다이렉트) | `dashboard.md` | **NO** |
-| **건물·입주자** | 건물 목록 | `/buildings` | `/staff/building-list` | `building-list.md` | **YES** (부분) |
-| 건물·입주자 | 건물 상세·등록 | `/buildings/new`, `/buildings/:id` | `/staff/building-list` 내 패널 | `building-detail.md` | **YES** (패널형으로 구현, PRD는 별도 페이지) |
+| *(루트)* | 대시보드 | `/` | `/staff` | `dashboard.md` | **placeholder** (nav O, 실데이터 X — P8) |
+| **건물·입주자** | 건물 목록 | `/buildings` | `/staff/buildings` | `building-list.md` | **부분** (마스터데이터 수준) |
+| 건물·입주자 | 건물 상세·등록 | `/buildings/new`, `/buildings/:id` | `/staff/buildings` 내 패널 | `building-detail.md` | **부분** (패널형; PRD는 별도 페이지·5섹션 — P3) |
 | 건물·입주자 | 입주자 목록 | `/buildings/:id` (탭) | 동일 패널 내 | `tenant-list.md` | **부분** |
-| 건물·입주자 | 입주자 상세·등록 | `/buildings/:id/tenants/new`, `/buildings/:id/tenants/:tenantId` | 미구현 | `tenant-detail.md` | **NO** |
-| **부과** | 전기·수도·가스 지침·부과 | `/utilities` | `/staff/metering` (미구현) | `utility-charge.md` | **NO** |
-| 부과 | 관리비 부과 셋팅 | `/management-fee` | `/staff/fee-item` | `management-fee-setting.md` | **부분** (항목관리만, 부과확정 미구현) |
-| 부과 | 고지서 발행·출력 | `/bill` | `/staff/billing` (미구현) | `bill-publish.md` | **NO** |
-| **수납·미납** | 수납처리·자동이체 | `/payment` | `/staff/payment` (미구현) | `payment-processing.md` | **NO** |
-| 수납·미납 | 수납관리·민원접수 | `/receipts` | `/staff/receipt-management` | `receipt-management.md` | **부분** (골격만) |
-| 수납·미납 | 미납관리 | `/overdue` | `/staff/overdue` (미구현) | `overdue-management.md` | **NO** |
-| **이사** | 이사정산 | `/moving-settlement` | `/staff/move-settle` (미구현) | `moving-settlement.md` | **NO** |
-| **메시징** | 문자·알림톡 발송 | `/messaging` | `/staff/messaging` (미구현) | `messaging.md` | **NO** |
-| **계정·직원** | 계정·직원 관리 | `/accounts` | `/staff/staff-management` (미구현) | `staff-management.md` | **NO** |
-| **셋업** | 셋업·기타 설정 | `/setup` | `/staff/setup` (미구현) | `setup.md` | **NO** |
-| 셋업 | 협력업체 | *(PRD: `/setup` 시스템설정 탭 내)* | `/staff/vendor-management` | — | **YES** (독립 화면으로 구현, PRD 위치와 불일치) |
+| 건물·입주자 | 입주자 상세·등록 | `/buildings/:id/tenants/new`, `/buildings/:id/tenants/:tenantId` | 미구현 | `tenant-detail.md` | **NO** (P3) |
+| **부과** | 전기·수도·가스 지침·부과 | `/utilities` | `/staff/utilities` | `utility-charge.md` | **NO** (nav만, 준비중 — P5) |
+| 부과 | 관리비 부과 셋팅 | `/management-fee` | `/staff/management-fee` | `management-fee-setting.md` | **부분** (부과항목 관리만, 부과확정 미구현 — P5) |
+| 부과 | 고지서 발행·출력 | `/bill` | `/staff/bill` | `bill-publish.md` | **NO** (nav만, 준비중 — P5) |
+| **수납·미납** | 수납처리·자동이체 | `/payment` | `/staff/payment` | `payment-processing.md` | **NO** (nav만, 준비중 — P6) |
+| 수납·미납 | 수납관리·민원접수 | `/receipts` | `/staff/receipts` | `receipt-management.md` | **placeholder** (nav O, 화면 미구현 — P6) |
+| 수납·미납 | 미납관리 | `/overdue` | `/staff/overdue` | `overdue-management.md` | **NO** (nav만, 준비중 — P6) |
+| **이사** | 이사정산 | `/moving-settlement` | `/staff/moving-settlement` | `moving-settlement.md` | **NO** (nav만, 준비중 — P7) |
+| **메시징** | 문자·알림톡 발송 | `/messaging` | `/staff/messaging` | `messaging.md` | **NO** (nav만, 준비중 — P4) |
+| **계정·직원** | 계정·직원 관리 | `/accounts` | `/staff/accounts` | `staff-management.md` | **NO** (nav만, 준비중 — P2) |
+| **셋업** | 셋업·기타 설정 | `/setup` | `/staff/setup` | `setup.md` | **NO** (nav만, 준비중 — P2) |
+| 셋업 | 협력업체 | *(PRD: `/setup` 시스템설정 탭 내)* | `/staff/vendor-management` | — | **YES** (독립 화면; P2에서 `/setup` 탭 이관 예정) |
 
-> **주의**: PRD상 협력업체 관리는 `/setup` > 시스템 설정 탭에 포함되나, 현재 코드는 독립 GNB 메뉴 `/staff/vendor-management`로 분리 구현됨. 추후 정렬 필요.
+> **주의**: PRD상 협력업체 관리는 `/setup` > 시스템 설정 탭에 포함되나, 현재 코드는 독립 GNB 메뉴 `/staff/vendor-management`로 분리 구현됨. `/setup`(P2) 구현 시 해당 탭으로 이관 예정 — 그때까지 독립 메뉴 유지(navItems.ts 주석 명시).
 
-### A.2 현재 navItems.ts 대비 PRD 정본 차이
+### A.2 현재 navItems.ts 정합 상태 (갱신 2026-08-10)
 
-| navItems.ts 레이블 | PRD 정본 레이블 | 정합 여부 |
-|---|---|---|
-| 건물·입주자 → `/staff/building-list` | 건물 목록 → `/buildings` | OK (prefix 차이만) |
-| 지침·부과 → `/staff/metering` | 전기·수도·가스 지침·부과 → `/utilities` | OK |
-| 관리비 셋팅 → `/staff/fee-item` | 관리비 부과 셋팅 → `/management-fee` | OK (레이블 불일치, 정비 필요) |
-| 고지서 발행 → `/staff/billing` | 고지서 발행·출력 → `/bill` | OK |
-| 수납·민원 → `/staff/receipt-management` | 수납관리·민원접수 → `/receipts` | OK |
-| 수납처리 → `/staff/payment` | 수납처리·자동이체 → `/payment` | OK |
-| 미납관리 → `/staff/overdue` | 미납관리 → `/overdue` | OK |
-| 이사정산 → `/staff/move-settle` | 이사정산 → `/moving-settlement` | OK |
-| 셋업 설정 → `/staff/setup` | 셋업·기타 설정 → `/setup` | OK |
-| 계정·권한 → `/staff/staff-management` | 계정·직원 관리 → `/accounts` | 레이블·라우트 불일치 |
-| 협력업체 → `/staff/vendor-management` | *(setup 탭 내)* | 위치 불일치 |
-| *(없음)* | 문자·알림톡 발송 → `/messaging` | **GNB 항목 누락** |
-| *(없음)* | 대시보드 → `/` | **GNB 항목 누락** |
+`components/shell/navItems.ts`는 PRD 정본 GNB와 라우트·레이블·권한키 기준 **정합 완료**(커밋 44ce033 nav 정렬 + 라우트 리네임). 실제 그룹은 3개(대시보드 / 관리업무 / 설정)로, PRD의 세분 그룹(부과·수납·미납·이사·메시징)을 "관리업무"로 통합함.
+
+| PRD 정본 메뉴 | navItems 라우트 | module 키 | 정합 |
+|---|---|---|---|
+| 대시보드 | `/staff` | *(게이트 없음)* | OK |
+| 건물 목록 | `/staff/buildings` | `buildings` | OK |
+| 전기·수도·가스 지침·부과 | `/staff/utilities` | `utilities` | OK |
+| 관리비 부과 셋팅 | `/staff/management-fee` | `billing` | OK |
+| 고지서 발행·출력 | `/staff/bill` | `bill_publish` | OK |
+| 수납처리·자동이체 | `/staff/payment` | `payment` | OK |
+| 수납관리·민원접수 | `/staff/receipts` | `payment` | OK |
+| 미납관리 | `/staff/overdue` | `overdue` | OK |
+| 이사정산 | `/staff/moving-settlement` | `moving` | OK |
+| 문자·알림톡 발송 | `/staff/messaging` | `messaging` | OK |
+| 계정·직원 관리 | `/staff/accounts` | `accounts` | OK |
+| 셋업·기타 설정 | `/staff/setup` | `settings` | OK |
+| 협력업체 | `/staff/vendor-management` | `settings` | **위치 불일치** — PRD는 `/setup` 시스템설정 탭. P2 이관 예정 |
+
+> **built 플래그**: 대시보드·건물·입주자·관리비 부과셋팅·수납·민원·협력업체 = `built:true`(진입 가능), 나머지 = `built:false`("준비중" 비활성). 단 수납·민원(`/staff/receipts`)·대시보드는 built:true이나 화면은 placeholder(실구현 P6·P8) — 진입은 되나 내용은 뼈대뿐.
 
 ---
 
@@ -287,23 +292,26 @@ PRD의 `진입: GNB > …` 줄과 라우트를 취합하여 도출한 **정식 �
 
 ## D. Gap Analysis vs 우리 코드
 
-### D.1 구현 완료 화면 (및 불일치 사항)
+### D.1 구현 완료·부분 화면 (및 불일치 — 갱신 2026-08-10)
+
+> 셸(nav·라우트·로그인 리다이렉트·권한키 11개)은 **정렬 완료**(커밋 44ce033 + 라우트 리네임). 아래는 화면 단위 실제 구현 상태.
 
 | 화면 | 우리 라우트 | 상태 | 불일치·메모 |
 |---|---|---|---|
-| 로그인 | `/staff/login` | 구현됨 | 로그인 후 **`receipt-management`으로** 리다이렉트 → PRD 기준 **`/`(대시보드)**로 변경 필요 |
-| 건물 목록 | `/staff/building-list` | 구현됨 | PRD는 건물 목록·상세·입주자 목록이 계층적 별도 라우트; 우리는 단일 페이지+패널 형태 — 라우팅 구조 정비 필요 |
-| 건물 상세 | `/staff/building-list` (패널) | 부분 구현 | PRD는 `/buildings/:id` 별도 페이지. 5개 섹션 중 기본정보만 구현(추정); 고객번호·협력업체·참고사항 미확인 |
-| 입주자 목록 | `/staff/building-list` (패널 내) | 부분 구현 | PRD는 건물 상세 내 탭. 출력 버튼(입주자카드·관리비부과내역서) 미구현 |
-| 관리비 항목 관리 | `/staff/fee-item` | 부분 구현 | PRD(`/management-fee`)는 부과 셋팅+항목관리 통합 화면. 우리는 항목 관리만 분리 구현. 부과 확정·세대별 금액 테이블 미구현 |
-| 수납관리·민원접수 | `/staff/receipt-management` | 골격만 | 수납현황+민원접수 통합 화면, 민원접수 영역·AS접수현황 팝업·문자발송 버튼 미구현 |
-| 협력업체 관리 | `/staff/vendor-management` | 구현됨 | **PRD 위치 불일치**: PRD는 `/setup` > 시스템설정 탭에 포함. 현재 독립 GNB로 분리 구현됨 → 통합 또는 유지 결정 필요 |
+| 로그인 | `/staff/login` | 구현됨 | 로그인 후 **`/staff`(대시보드)** 리다이렉트로 정렬 완료 (`LoginForm.tsx`) |
+| 대시보드 | `/staff` | placeholder | 카드 3개 뼈대만. 실데이터·입주예정 팝업은 P8 |
+| 건물 목록 | `/staff/buildings` | 부분 | 단일 페이지+패널. PRD 계층 라우트(`/buildings/:id/…`)로 P3 재구성 |
+| 건물 상세 | `/staff/buildings` (패널) | 부분 | 기본정보·유닛·입주 수준. PRD 5섹션(고객번호·협력업체·참고사항 등) 미완 — P3 |
+| 입주자 목록 | `/staff/buildings` (패널) | 부분 | 출력 버튼(입주자카드·부과내역서) 미구현 — P3 |
+| 관리비 부과셋팅 | `/staff/management-fee` | 부분 | 부과항목 관리만. 세대별 금액·부과 확정 미구현 — P5 |
+| 수납관리·민원 | `/staff/receipts` | placeholder | 화면 미구현. 수납현황·민원·AS팝업·문자발송 — P6 |
+| 협력업체 관리 | `/staff/vendor-management` | 구현됨 | **PRD 위치 불일치**: `/setup` 시스템설정 탭 소속 → P2에서 이관 |
 
 ### D.2 미구현 화면 (전체)
 
 | 화면 | PRD 라우트 | 파일 |
 |---|---|---|
-| 대시보드 | `/` | `dashboard.md` |
+| 대시보드 *(placeholder 있음)* | `/` | `dashboard.md` |
 | 입주자 상세·등록 | `/buildings/:id/tenants/:id` | `tenant-detail.md` |
 | 전기·수도·가스 지침·부과 | `/utilities` | `utility-charge.md` |
 | 고지서 발행·출력 | `/bill` | `bill-publish.md` |
