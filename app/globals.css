@@ -1,43 +1,68 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
 @theme {
-  --color-brand: #14A497;
-  --color-brand-dark: #0E8677;
-  --color-brand-tint: #E2F5F1;
+  /* ===== 홈지기 디자인 토큰 (프로토타입 기준) ===== */
+
+  /* primary = blue */
+  --color-blue: #3182F6;
+  --color-blue-d: #1B64DA;
+  --color-blue-t: #EAF2FE;
+  --color-blue-t2: #F4F8FF;
+
+  /* brand alias → blue (기존 `brand` 참조 호환) */
+  --color-brand: #3182F6;
+  --color-brand-dark: #1B64DA;
+  --color-brand-tint: #EAF2FE;
+
+  /* surfaces */
   --color-bg: #F2F4F6;
   --color-surface: #ffffff;
+  --color-background: #ffffff;
+  --color-foreground: #191F28;
   --color-line: #E8EBEE;
+  --color-line2: #F1F3F5;
+
+  /* text scale */
   --color-t1: #191F28;
   --color-t2: #4E5968;
   --color-t3: #8B95A1;
   --color-t4: #B0B8C1;
-  --color-danger: #F04452;
-  --radius-field: 13px;
-  --font-sans: 'Pretendard', -apple-system, system-ui, sans-serif;
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* status */
+  --color-green: #12B886;
+  --color-green-t: #E6F8F1;
+  --color-red: #F04452;
+  --color-red-t: #FDECEE;
+  --color-amber: #FF922B;
+  --color-amber-t: #FFF3E6;
+  --color-danger: #F04452; /* 기존 `danger` alias */
+
+  /* radii */
+  --radius-btn: 13px;
+  --radius-in: 12px;
+  --radius-card: 16px;
+  --radius-panel: 16px;
+  --radius-pill: 999px;
+  --radius-field: 13px; /* 기존 `radius-field` alias */
+
+  /* shadows */
+  --shadow-pri: 0 8px 16px -6px rgba(49, 130, 246, 0.5);
+  --shadow-card: 0 1px 3px rgba(23, 31, 40, 0.05);
+  --shadow-pop: 0 22px 60px -20px rgba(23, 31, 40, 0.28);
+
+  /* font (Pretendard 유지) */
+  --font-sans: 'Pretendard Variable', 'Pretendard', -apple-system, system-ui, sans-serif;
 }
 
 body {
   background: var(--color-bg);
   color: var(--color-t1);
   font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 금액·날짜 등 숫자 정렬용 */
+.num {
+  font-variant-numeric: tabular-nums;
 }

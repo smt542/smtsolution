@@ -60,7 +60,7 @@ export function LoginForm() {
         <div role="alert" className="rounded-lg bg-red-50 px-3 py-2.5 text-sm font-bold text-red-500">{serverError}</div>
       )}
       <button type="submit" disabled={login.isPending}
-        className="h-12 rounded-xl bg-teal-600 font-bold text-white disabled:opacity-70">
+        className="h-12 rounded-xl bg-blue font-bold text-white shadow-pri disabled:opacity-70">
         {login.isPending ? "로그인 중…" : "로그인"}
       </button>
     </form>

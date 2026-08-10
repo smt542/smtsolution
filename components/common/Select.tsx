@@ -9,7 +9,7 @@ export const Select = React.forwardRef<
   return (
     <select
       ref={ref}
-      className={`h-11 w-full rounded-xl border border-line bg-bg px-4 text-sm text-t1 focus:border-brand focus:outline-none disabled:opacity-70 ${className}`}
+      className={`h-11 w-full rounded-xl border border-line bg-surface px-4 text-sm text-t1 focus:border-brand focus:outline-none disabled:opacity-70 ${className}`}
       {...props}
     >
       {options.map((o) => (
