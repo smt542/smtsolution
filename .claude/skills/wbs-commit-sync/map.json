@@ -22,8 +22,8 @@
     {
       "page_id": "77f82598-e591-4575-8a31-c06573e5835a",
       "page_title": "현장관리자_관리비 부과 세팅",
-      "keywords": ["fee-item", "feeItem", "부과 세팅", "관리비 부과"],
-      "paths": ["fee-item", "feeItems"]
+      "keywords": ["fee-item", "feeItem", "management-fee", "부과 세팅", "관리비 부과"],
+      "paths": ["management-fee", "fee-item", "feeItems"]
     },
     {
       "page_id": "47f45195-2d4c-4157-a0bd-f39438bb740e",
