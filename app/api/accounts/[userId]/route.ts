@@ -21,7 +21,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ userId
   const inOrg = Array.isArray(accounts) && accounts.some((a: { user_id: string }) => a.user_id === userId);
   if (!inOrg) return NextResponse.json({ error: "대상 계정을 찾을 수 없습니다." }, { status: 404 });
 
-  const { password } = (await req.json().catch(() => ({}))) ?? {};
+  const { password } = await req.json().catch(() => ({}));
   if (!password) return NextResponse.json({ error: "비밀번호를 입력해 주세요." }, { status: 422 });
 
   const admin = createAdminClient();
