@@ -49,3 +49,8 @@ export function hasModule(ctx: MyContext | null | undefined, key: ModuleKey): bo
 export function canManageAccounts(ctx: MyContext | null | undefined): boolean {
   return hasModule(ctx, "accounts");
 }
+
+/** 셋업 설정 변경 가능? (마스터 또는 settings 권한 보유) */
+export function canManageSettings(ctx: MyContext | null | undefined): boolean {
+  return hasModule(ctx, "settings");
+}
