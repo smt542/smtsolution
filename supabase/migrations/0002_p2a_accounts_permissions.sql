@@ -46,7 +46,7 @@ insert into staff_roles (org_id, label, sort_order)
 create or replace function current_user_org()
 returns bigint language sql stable security definer set search_path = public as $$
   select m.org_id from org_members m join organizations o on o.id = m.org_id
-  where m.user_id = auth.uid() order by (o.status = 'active') desc, m.created_at limit 1;
+  where m.user_id = auth.uid() and o.status = 'active' order by m.created_at limit 1;
 $$;
 
 -- ===== get_my_context 재정의(권한·유형 반환) =====
@@ -127,8 +127,8 @@ begin
   update org_members set role = p_role, staff_type = p_staff_type,
     feature_permissions = coalesce(p_permissions,'[]'::jsonb)
     where user_id = p_user_id and org_id = v_org;
-  delete from org_member_roles where user_id = p_user_id and org_id = v_org;
   if p_role_ids is not null then
+    delete from org_member_roles where user_id = p_user_id and org_id = v_org;
     insert into org_member_roles(org_id,user_id,role_id) select v_org,p_user_id,unnest(p_role_ids); end if;
   insert into audit_log(org_id, actor_id, action, table_name, row_pk, after)
     values (v_org, auth.uid(), 'PERMISSION_CHANGE', 'org_members', p_user_id::text,
@@ -151,8 +151,8 @@ begin
     where user_id = p_user_id;
   update org_members set staff_type = p_staff_type, affiliation = nullif(p_affiliation,'')
     where user_id = p_user_id and org_id = v_org;
-  delete from org_member_roles where user_id = p_user_id and org_id = v_org;
   if p_role_ids is not null then
+    delete from org_member_roles where user_id = p_user_id and org_id = v_org;
     insert into org_member_roles(org_id,user_id,role_id) select v_org,p_user_id,unnest(p_role_ids); end if;
   insert into audit_log(org_id, actor_id, action, table_name, row_pk)
     values (v_org, auth.uid(), 'ACCOUNT_UPDATE', 'profiles', p_user_id::text);

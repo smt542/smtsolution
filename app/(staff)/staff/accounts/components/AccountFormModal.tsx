@@ -83,11 +83,11 @@ export function AccountFormModal({
     } else if (editing) {
       await onUpdateBasic(editing.userId, {
         fullName: v.fullName, phone: v.phone || undefined, phoneSub: v.phoneSub || undefined,
-        staffType: v.staffType, affiliation: v.affiliation || undefined, roleIds: v.roleIds,
+        staffType: v.staffType, affiliation: v.affiliation || undefined, roleIds: null,
       });
       if (canEditPermissions && showPermissions) {
         await onUpdatePermissions(editing.userId, {
-          role, staffType: v.staffType, permissions: v.permissions, roleIds: v.roleIds,
+          role, staffType: v.staffType, permissions: v.permissions, roleIds: null,
         });
       }
     }
@@ -165,9 +165,18 @@ export function AccountFormModal({
           {/* 담당역할 */}
           <div>
             <label className="mb-1 block text-xs font-semibold text-t3">담당역할</label>
-            <Controller control={control} name="roleIds" render={({ field }) => (
-              <StaffRoleSelect roles={roles} value={field.value} onChange={field.onChange} />
-            )} />
+            {isEdit ? (
+              <>
+                <p className="text-sm text-t2">
+                  {editing?.roleLabels?.length ? editing.roleLabels.join(", ") : "-"}
+                </p>
+                <p className="mt-1 text-xs text-t4">담당역할 변경은 준비 중입니다.</p>
+              </>
+            ) : (
+              <Controller control={control} name="roleIds" render={({ field }) => (
+                <StaffRoleSelect roles={roles} value={field.value} onChange={field.onChange} />
+              )} />
+            )}
           </div>
 
           {/* 마스터 + 권한 (manager_staff) */}

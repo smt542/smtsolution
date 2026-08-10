@@ -15,10 +15,10 @@ export interface AccountCreateInput {
 }
 export interface AccountBasicInput {
   fullName: string; phone?: string; phoneSub?: string;
-  staffType: StaffType; affiliation?: string; roleIds: number[];
+  staffType: StaffType; affiliation?: string; roleIds: number[] | null;
 }
 export interface PermissionInput {
-  role: OrgMemberRole; staffType: StaffType; permissions: string[]; roleIds: number[];
+  role: OrgMemberRole; staffType: StaffType; permissions: string[]; roleIds: number[] | null;
 }
 
 const rowToAccount = (r: any): Account => ({

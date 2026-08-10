@@ -37,4 +37,19 @@ describe("AccountFormModal", () => {
     render(<AccountFormModal {...baseProps} editing={tenant} />);
     expect(screen.getByText(/입주자 상세에서/)).toBeInTheDocument();
   });
+
+  it("수정 모드: 담당역할은 읽기전용(StaffRoleSelect 미렌더, 안내문 노출)", () => {
+    const staff: Account = {
+      userId: "s1", username: "staff1", fullName: "홍직원", phone: null, phoneSub: null,
+      role: "staff", staffType: "manager_staff", affiliation: null, isActive: true,
+      permissions: [], roleLabels: ["검침전용역할", "청소전용역할"],
+    };
+    render(<AccountFormModal {...baseProps} editing={staff} />);
+    // 읽기전용 텍스트로 현재 역할 표시
+    expect(screen.getByText("검침전용역할, 청소전용역할")).toBeInTheDocument();
+    expect(screen.getByText(/담당역할 변경은 준비 중입니다/)).toBeInTheDocument();
+    // StaffRoleSelect는 렌더되지 않으므로 해당 역할 레이블 체크박스 없음
+    expect(screen.queryByRole("checkbox", { name: "검침전용역할" })).toBeNull();
+    expect(screen.queryByRole("checkbox", { name: "청소전용역할" })).toBeNull();
+  });
 });

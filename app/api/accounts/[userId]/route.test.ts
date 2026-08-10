@@ -77,4 +77,18 @@ describe("PATCH /api/accounts/:userId", () => {
     expect(res.status).toBe(422);
     expect(updateUserById).not.toHaveBeenCalled();
   });
+
+  it("비밀번호 너무 짧음(3자 미만) → 422 + updateUserById 미호출", async () => {
+    createClient.mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }) },
+      rpc: ctxRpc({ org_id: 1, role: "org_owner", permissions: [] }, [{ user_id: "target-uid" }]),
+    });
+    const updateUserById = vi.fn().mockResolvedValue({ error: null });
+    createAdminClient.mockReturnValue({ auth: { admin: { updateUserById } } });
+    const res = await PATCH(req({ password: "1" }), { params });
+    expect(res.status).toBe(422);
+    const body = await res.json();
+    expect(body.error).toMatch(/4자 이상/);
+    expect(updateUserById).not.toHaveBeenCalled();
+  });
 });
