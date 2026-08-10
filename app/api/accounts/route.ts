@@ -1,0 +1,59 @@
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { loginEmail } from "@/lib/auth/email";
+
+export async function POST(req: Request) {
+  const supabase = await createClient();
+
+  // 1) 인증
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData?.user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+
+  // 2) 인가
+  const { data: ctxRows } = await supabase.rpc("get_my_context");
+  const ctx = Array.isArray(ctxRows) ? ctxRows[0] : ctxRows;
+  if (!ctx) return NextResponse.json({ error: "조직 정보를 찾을 수 없습니다." }, { status: 403 });
+  const isMaster = ctx.role === "org_owner" || ctx.role === "platform_admin";
+  const perms: string[] = Array.isArray(ctx.permissions) ? ctx.permissions : [];
+  if (!isMaster && !perms.includes("accounts"))
+    return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+
+  // 3) 검증
+  const body = await req.json().catch(() => null);
+  const { username, password, fullName, phone, phoneSub, role, staffType, permissions, affiliation, roleIds } = body ?? {};
+  if (!username || !password || !fullName || !staffType)
+    return NextResponse.json({ error: "필수 항목이 누락되었습니다." }, { status: 422 });
+
+  // 4) 회사코드(slug)
+  const { data: org } = await supabase.from("organizations").select("slug").eq("id", ctx.org_id).single();
+  if (!org?.slug)
+    return NextResponse.json({ error: "회사코드(slug)가 설정되지 않았습니다." }, { status: 409 });
+
+  // 5) auth 사용자 생성
+  const admin = createAdminClient();
+  const email = loginEmail(org.slug, username);
+  const { data: created, error: createErr } = await admin.auth.admin.createUser({
+    email, password, email_confirm: true,
+  });
+  if (createErr || !created?.user) {
+    const dup = /already|exists|registered/i.test(createErr?.message ?? "");
+    return NextResponse.json(
+      { error: dup ? "이미 존재하는 아이디입니다." : "계정 생성에 실패했습니다." },
+      { status: dup ? 409 : 500 });
+  }
+
+  // 6) 행 삽입(RPC, 원자·감사·비마스터 역할축소는 RPC 내부에서)
+  const { error: rpcErr } = await supabase.rpc("provision_member", {
+    p_user_id: created.user.id, p_username: username, p_full_name: fullName,
+    p_phone: phone ?? null, p_phone_sub: phoneSub ?? null,
+    p_role: role ?? "staff", p_staff_type: staffType,
+    p_permissions: permissions ?? [], p_affiliation: affiliation ?? null,
+    p_role_ids: roleIds ?? null,
+  });
+  if (rpcErr) {
+    await admin.auth.admin.deleteUser(created.user.id); // 롤백(고아 방지)
+    return NextResponse.json({ error: "계정 정보 저장에 실패했습니다." }, { status: 500 });
+  }
+  return NextResponse.json({ userId: created.user.id }, { status: 201 });
+}
