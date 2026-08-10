@@ -5,7 +5,7 @@ export interface Unit {
   buildingId: number;
   unitNo: string;
   dong?: string | null;
-  areaPyeong?: string | null;
+  areaPyeong?: number | null;
   roomCount?: number | null;
   elecCustomerNo?: string | null;
   elecMeterNo?: string | null;
@@ -17,7 +17,7 @@ export interface UnitInput {
   buildingId: number;
   unitNo: string;
   dong?: string;
-  areaPyeong?: string;
+  areaPyeong?: number;
   roomCount?: number;
   elecCustomerNo?: string;
   elecMeterNo?: string;
@@ -27,7 +27,7 @@ export interface UnitInput {
 
 const rowToUnit = (r: any): Unit => ({
   id: r.id, buildingId: r.building_id, unitNo: r.unit_no, dong: r.dong,
-  areaPyeong: r.area_pyeong, roomCount: r.room_count,
+  areaPyeong: r.area_pyeong != null ? Number(r.area_pyeong) : null, roomCount: r.room_count,
   elecCustomerNo: r.elec_customer_no, elecMeterNo: r.elec_meter_no,
   waterCustomerNo: r.water_customer_no, memo: r.memo,
 });

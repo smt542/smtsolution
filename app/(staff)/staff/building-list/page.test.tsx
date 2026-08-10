@@ -229,4 +229,115 @@ describe("BuildingListPage", () => {
       expect(screen.getByText("호실 수정")).toBeInTheDocument();
     });
   });
+
+  // --- New tests: delete affordances ---
+
+  it("clicking building 삭제 shows confirm dialog with cascade warning", async () => {
+    render(<BuildingListPage />);
+    fireEvent.click(screen.getByText("그린빌라"));
+    await waitFor(() => expect(screen.getByText("건물 상세")).toBeInTheDocument());
+
+    // Use getAllByRole and pick the first 삭제 button (building detail panel)
+    const deleteBtns = screen.getAllByRole("button", { name: /삭제/ });
+    fireEvent.click(deleteBtns[0]);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/이 건물의 호실·입주자도 함께 삭제됩니다/)
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("confirming building delete calls useDeleteBuilding().mutateAsync", async () => {
+    const mutateAsync = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(useDeleteBuilding).mockReturnValue({
+      mutateAsync,
+      isPending: false,
+    } as any);
+
+    render(<BuildingListPage />);
+    fireEvent.click(screen.getByText("그린빌라"));
+    await waitFor(() => expect(screen.getByText("건물 상세")).toBeInTheDocument());
+
+    // Click the first 삭제 button (building detail panel)
+    const deleteBtns = screen.getAllByRole("button", { name: /삭제/ });
+    fireEvent.click(deleteBtns[0]);
+    await waitFor(() =>
+      expect(screen.getByText(/이 건물의 호실·입주자도 함께 삭제됩니다/)).toBeInTheDocument()
+    );
+
+    // Click 확인 in the confirm modal
+    fireEvent.click(screen.getByRole("button", { name: "확인" }));
+
+    await waitFor(() => {
+      expect(mutateAsync).toHaveBeenCalledWith(1);
+    });
+  });
+
+  it("clicking unit 삭제 shows confirm dialog", async () => {
+    render(<BuildingListPage />);
+    fireEvent.click(screen.getByText("그린빌라"));
+    await waitFor(() => expect(screen.getByText("101호")).toBeInTheDocument());
+
+    const deleteBtn = screen.getByRole("button", { name: /101호 삭제/ });
+    fireEvent.click(deleteBtn);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/이 호실의 입주자 정보도 함께 삭제됩니다/)
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("confirming unit delete calls useDeleteUnit().mutateAsync", async () => {
+    const mutateAsync = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(useDeleteUnit).mockReturnValue({
+      mutateAsync,
+      isPending: false,
+    } as any);
+
+    render(<BuildingListPage />);
+    fireEvent.click(screen.getByText("그린빌라"));
+    await waitFor(() => expect(screen.getByText("101호")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: /101호 삭제/ }));
+    await waitFor(() =>
+      expect(screen.getByText(/이 호실의 입주자 정보도 함께 삭제됩니다/)).toBeInTheDocument()
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "확인" }));
+
+    await waitFor(() => {
+      expect(mutateAsync).toHaveBeenCalledWith(101);
+    });
+  });
+
+  // --- New tests: missing form fields ---
+
+  it("unit form modal contains 면적 field", async () => {
+    render(<BuildingListPage />);
+    fireEvent.click(screen.getByText("그린빌라"));
+    await waitFor(() => expect(screen.getByText("101호")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: /101호 수정/ }));
+    await waitFor(() => expect(screen.getByText("호실 수정")).toBeInTheDocument());
+
+    expect(screen.getByText("면적(평)", { selector: "label" })).toBeInTheDocument();
+  });
+
+  it("occupancy form modal contains 보증금 and 인원 fields", async () => {
+    render(<BuildingListPage />);
+    fireEvent.click(screen.getByText("그린빌라"));
+    await waitFor(() => expect(screen.getByText("101호")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByText("101호"));
+    await waitFor(() => expect(screen.getByText("김입주")).toBeInTheDocument());
+
+    // Open the create occupancy modal via the + 입주 등록 button
+    fireEvent.click(screen.getByRole("button", { name: /입주 등록/ }));
+    await waitFor(() => expect(screen.getByText("입주 정보 등록")).toBeInTheDocument());
+
+    expect(screen.getByText("보증금")).toBeInTheDocument();
+    expect(screen.getByText("인원")).toBeInTheDocument();
+  });
 });

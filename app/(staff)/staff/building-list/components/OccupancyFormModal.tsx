@@ -43,9 +43,12 @@ export function OccupancyFormModal({ open, onClose, unitId, editing }: Props) {
           tenantName: editing.tenantName ?? "",
           payerName: editing.payerName ?? "",
           phone: editing.phone ?? "",
+          residentCount: editing.residentCount ?? undefined,
           vehicleNo: editing.vehicleNo ?? "",
           moveInDate: editing.moveInDate ?? "",
           moveOutDate: editing.moveOutDate ?? "",
+          deposit: editing.deposit ?? undefined,
+          monthlyRent: editing.monthlyRent ?? undefined,
           status: editing.status,
           memo: editing.memo ?? "",
         }
@@ -60,9 +63,12 @@ export function OccupancyFormModal({ open, onClose, unitId, editing }: Props) {
               tenantName: editing.tenantName ?? "",
               payerName: editing.payerName ?? "",
               phone: editing.phone ?? "",
+              residentCount: editing.residentCount ?? undefined,
               vehicleNo: editing.vehicleNo ?? "",
               moveInDate: editing.moveInDate ?? "",
               moveOutDate: editing.moveOutDate ?? "",
+              deposit: editing.deposit ?? undefined,
+              monthlyRent: editing.monthlyRent ?? undefined,
               status: editing.status,
               memo: editing.memo ?? "",
             }
@@ -73,7 +79,6 @@ export function OccupancyFormModal({ open, onClose, unitId, editing }: Props) {
 
   const onSubmit = async (values: OccupancyFormOutput) => {
     try {
-      // deposit/monthlyRent in schema are number but OccupancyInput expects string
       const mapped = {
         tenantName: values.tenantName,
         payerName: values.payerName,
@@ -82,8 +87,8 @@ export function OccupancyFormModal({ open, onClose, unitId, editing }: Props) {
         vehicleNo: values.vehicleNo,
         moveInDate: values.moveInDate,
         moveOutDate: values.moveOutDate,
-        deposit: values.deposit != null ? String(values.deposit) : undefined,
-        monthlyRent: values.monthlyRent != null ? String(values.monthlyRent) : undefined,
+        deposit: values.deposit,
+        monthlyRent: values.monthlyRent,
         status: values.status,
         memo: values.memo,
       };
@@ -114,6 +119,18 @@ export function OccupancyFormModal({ open, onClose, unitId, editing }: Props) {
           <Input {...register("phone")} placeholder="010-0000-0000" />
         </div>
         <div>
+          <label className="mb-1 block text-xs font-semibold text-t2">인원</label>
+          <Input
+            type="number"
+            {...register("residentCount", { valueAsNumber: true })}
+            placeholder="예: 2"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-semibold text-t2">차량번호</label>
+          <Input {...register("vehicleNo")} placeholder="예: 12가3456" />
+        </div>
+        <div>
           <label className="mb-1 block text-xs font-semibold text-t2">입주 상태</label>
           <Select options={STATUS_OPTIONS} {...register("status")} />
         </div>
@@ -124,6 +141,26 @@ export function OccupancyFormModal({ open, onClose, unitId, editing }: Props) {
         <div>
           <label className="mb-1 block text-xs font-semibold text-t2">퇴거일</label>
           <Input type="date" {...register("moveOutDate")} />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-semibold text-t2">보증금</label>
+          <Input
+            type="number"
+            {...register("deposit", { valueAsNumber: true })}
+            placeholder="예: 5000000"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-semibold text-t2">월세</label>
+          <Input
+            type="number"
+            {...register("monthlyRent", { valueAsNumber: true })}
+            placeholder="예: 300000"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-semibold text-t2">메모</label>
+          <Input {...register("memo")} placeholder="메모" />
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="ghost" onClick={onClose}>

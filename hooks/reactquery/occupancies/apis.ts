@@ -12,8 +12,8 @@ export interface Occupancy {
   vehicleNo?: string | null;
   moveInDate?: string | null;
   moveOutDate?: string | null;
-  deposit?: string | null;
-  monthlyRent?: string | null;
+  deposit?: number | null;
+  monthlyRent?: number | null;
   status: OccupancyStatus;
   memo?: string | null;
 }
@@ -27,8 +27,8 @@ export interface OccupancyInput {
   vehicleNo?: string;
   moveInDate?: string;
   moveOutDate?: string;
-  deposit?: string;
-  monthlyRent?: string;
+  deposit?: number;
+  monthlyRent?: number;
   status?: OccupancyStatus;
   memo?: string;
 }
@@ -37,7 +37,7 @@ const rowToOccupancy = (r: any): Occupancy => ({
   id: r.id, unitId: r.unit_id, tenantName: r.tenant_name, payerName: r.payer_name,
   phone: r.phone, residentCount: r.resident_count, vehicleNo: r.vehicle_no,
   moveInDate: r.move_in_date, moveOutDate: r.move_out_date,
-  deposit: r.deposit, monthlyRent: r.monthly_rent,
+  deposit: r.deposit != null ? Number(r.deposit) : null, monthlyRent: r.monthly_rent != null ? Number(r.monthly_rent) : null,
   status: r.status, memo: r.memo,
 });
 

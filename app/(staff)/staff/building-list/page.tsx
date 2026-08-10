@@ -28,6 +28,10 @@ export default function BuildingListPage() {
     setEditingBuilding(null);
   };
 
+  const handleBuildingDeleted = () => {
+    setSelectedBuilding(null);
+  };
+
   return (
     <div className="flex h-full min-h-screen flex-col gap-4 p-6">
       <div className="flex items-center justify-between">
@@ -51,7 +55,11 @@ export default function BuildingListPage() {
         {/* Right: Detail panel + Unit list */}
         {selectedBuilding && (
           <div className="flex flex-1 flex-col gap-4">
-            <BuildingDetailPanel building={selectedBuilding} onEdit={openEdit} />
+            <BuildingDetailPanel
+              building={selectedBuilding}
+              onEdit={openEdit}
+              onDeleted={handleBuildingDeleted}
+            />
             <UnitList buildingId={selectedBuilding.id} />
           </div>
         )}

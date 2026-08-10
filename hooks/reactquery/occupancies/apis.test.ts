@@ -10,7 +10,7 @@ describe("occupancies apis", () => {
     from.mockReturnValue({ select: () => ({ eq }) });
     const r = await listOccupancies(5);
     expect(eq).toHaveBeenCalledWith("unit_id", 5);
-    expect(r[0]).toMatchObject({ id:1, unitId:5, tenantName:"홍길동", payerName:"홍길순", phone:"010-1234-5678", residentCount:3, vehicleNo:"12가3456", moveInDate:"2024-01-01", moveOutDate:null, deposit:"5000000", monthlyRent:"500000", status:"occupied", memo:"비고" });
+    expect(r[0]).toMatchObject({ id:1, unitId:5, tenantName:"홍길동", payerName:"홍길순", phone:"010-1234-5678", residentCount:3, vehicleNo:"12가3456", moveInDate:"2024-01-01", moveOutDate:null, deposit:5000000, monthlyRent:500000, status:"occupied", memo:"비고" });
   });
   it("createOccupancy: unit_id 포함 insert", async () => {
     const single = vi.fn().mockResolvedValue({ data:{ id:2, unit_id:5, tenant_name:"김철수", status:"occupied" }, error:null });

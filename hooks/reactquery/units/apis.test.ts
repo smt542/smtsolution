@@ -10,7 +10,7 @@ describe("units apis", () => {
     from.mockReturnValue({ select: () => ({ eq }) });
     const r = await listUnits(10);
     expect(eq).toHaveBeenCalledWith("building_id", 10);
-    expect(r[0]).toMatchObject({ id:1, buildingId:10, unitNo:"101", dong:"A동", areaPyeong:"25.50", roomCount:2, elecCustomerNo:"E001", elecMeterNo:"M001", waterCustomerNo:"W001", memo:"메모" });
+    expect(r[0]).toMatchObject({ id:1, buildingId:10, unitNo:"101", dong:"A동", areaPyeong:25.5, roomCount:2, elecCustomerNo:"E001", elecMeterNo:"M001", waterCustomerNo:"W001", memo:"메모" });
   });
   it("createUnit: building_id 포함 insert", async () => {
     const single = vi.fn().mockResolvedValue({ data:{ id:2, building_id:10, unit_no:"102" }, error:null });
