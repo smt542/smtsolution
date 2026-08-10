@@ -34,7 +34,7 @@ export function AccountTable({ accounts, onRowClick, onToggleActive }: Props) {
   ];
 
   const rows = accounts.map((a) => ({
-    name: <span onClick={() => onRowClick(a)}>{a.fullName}</span>,
+    name: <span>{a.fullName}</span>,
     type: typeLabel(a),
     username: a.username,
     phone: a.phone ?? "-",
