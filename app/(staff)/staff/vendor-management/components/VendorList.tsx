@@ -35,16 +35,16 @@ export function VendorList({ vendors, categories, isLoading, onRowClick }: Props
     return <EmptyState message="등록된 업체가 없습니다" />;
   }
 
-  // Build rows as Record<string, ReactNode> — no non-ReactNode values
+  // Build rows — include hidden _id so click resolution is id-based (not name-based)
   const rows = vendors.map((v) => ({
+    _id: v.id,
     category: v.categoryId != null ? (categoryMap[v.categoryId] ?? "-") : "-",
     name: v.name,
     phone: v.phone ?? "-",
   }));
 
   const handleRowClick = (row: Record<string, React.ReactNode>) => {
-    // Identify the vendor by matching name (name is unique enough for UI lookup)
-    const vendor = vendors.find((v) => v.name === row.name);
+    const vendor = vendors.find((v) => v.id === (row._id as number));
     if (vendor) onRowClick(vendor);
   };
 

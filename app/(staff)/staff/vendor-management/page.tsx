@@ -10,11 +10,13 @@ import {
   useVendorCategories,
   useCreateVendorCategory,
   useRenameVendorCategory,
+  useDeleteVendorCategory,
 } from "@/hooks/reactquery/vendorCategories";
 import {
   useVendors,
   useCreateVendor,
   useUpdateVendor,
+  useDeleteVendor,
   useVendorAttachments,
   useUploadVendorAttachment,
   useDeleteVendorAttachment,
@@ -81,8 +83,10 @@ export default function VendorManagementPage() {
 
   const createCategory = useCreateVendorCategory();
   const renameCategory = useRenameVendorCategory();
+  const deleteCategory = useDeleteVendorCategory();
   const createVendor = useCreateVendor();
   const updateVendor = useUpdateVendor();
+  const deleteVendor = useDeleteVendor();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
@@ -119,6 +123,23 @@ export default function VendorManagementPage() {
     }
   };
 
+  const handleDeleteCategory = async (id: number) => {
+    try {
+      await deleteCategory.mutateAsync(id);
+      if (selectedCategoryId === id) setSelectedCategoryId(null);
+    } catch (e: any) {
+      toast.error(e.message ?? "구분 삭제 실패");
+    }
+  };
+
+  const handleDeleteVendor = async (id: number) => {
+    try {
+      await deleteVendor.mutateAsync(id);
+    } catch (e: any) {
+      toast.error(e.message ?? "업체 삭제 실패");
+    }
+  };
+
   const handleSubmit = async (values: VendorFormOutput) => {
     if (!orgId) { toast.error("인증 정보가 없습니다"); return; }
     try {
@@ -145,6 +166,7 @@ export default function VendorManagementPage() {
           onSelect={setSelectedCategoryId}
           onAddCategory={handleAddCategory}
           onRenameCategory={handleRenameCategory}
+          onDeleteCategory={handleDeleteCategory}
         />
       </aside>
 
@@ -182,6 +204,7 @@ export default function VendorManagementPage() {
               categories={categories}
               onSubmit={handleSubmit}
               isPending={createVendor.isPending || updateVendor.isPending}
+              onDeleteVendor={handleDeleteVendor}
               attachments={attachments}
               onUploadAttachment={onUpload}
               onDeleteAttachment={onDelete}

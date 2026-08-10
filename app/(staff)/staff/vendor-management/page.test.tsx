@@ -205,4 +205,83 @@ describe("VendorManagementPage", () => {
       expect(renameMutate).toHaveBeenCalledWith({ id: 1, label: "전기설비" });
     });
   });
+
+  it("duplicate name: clicking the SECOND vendor with the same name opens the modal for the SECOND vendor", async () => {
+    const dupVendors = [
+      { id: 20, orgId: 10, name: "중복업체", phone: "02-0000-0001", bankAccount: null, memo: null, categoryId: 1 },
+      { id: 21, orgId: 10, name: "중복업체", phone: "02-0000-0002", bankAccount: null, memo: null, categoryId: 2 },
+    ];
+    vi.mocked(useVendors).mockReturnValue({ data: dupVendors, isLoading: false } as any);
+    vi.mocked(useVendorAttachments).mockReturnValue({ data: [], isLoading: false } as any);
+
+    render(<VendorManagementPage />);
+
+    // Both rows have the same name — get all cells with that text and click the second one
+    const cells = screen.getAllByText("중복업체");
+    expect(cells.length).toBe(2);
+    fireEvent.click(cells[1]!);
+
+    await waitFor(() => {
+      expect(screen.getByText("업체 수정")).toBeInTheDocument();
+    });
+
+    // The edit modal should show the second vendor's phone
+    expect(screen.getByDisplayValue("02-0000-0002")).toBeInTheDocument();
+  });
+
+  it("vendor delete: opening edit modal, clicking 삭제, confirming calls useDeleteVendor().mutateAsync", async () => {
+    const deleteMutate = vi.fn().mockResolvedValue({});
+    vi.mocked(useDeleteVendor).mockReturnValue({ mutateAsync: deleteMutate, isPending: false } as any);
+
+    render(<VendorManagementPage />);
+
+    // Open edit modal for first vendor
+    fireEvent.click(screen.getByText("한국전력"));
+    await waitFor(() => expect(screen.getByText("업체 수정")).toBeInTheDocument());
+
+    // Click the 삭제 button in the modal footer
+    const deleteBtn = screen.getByRole("button", { name: "삭제" });
+    fireEvent.click(deleteBtn);
+
+    // Confirm dialog appears
+    await waitFor(() => expect(screen.getByText("이 거래처를 삭제할까요?")).toBeInTheDocument());
+
+    // Click confirm 삭제
+    const confirmBtns = screen.getAllByRole("button", { name: "삭제" });
+    const confirmBtn = confirmBtns[confirmBtns.length - 1]!;
+    fireEvent.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(deleteMutate).toHaveBeenCalledWith(10);
+    });
+  });
+
+  it("category delete: clicking × on a category, confirming calls useDeleteVendorCategory().mutateAsync; × absent on 전체", async () => {
+    const deleteCatMutate = vi.fn().mockResolvedValue({});
+    vi.mocked(useDeleteVendorCategory).mockReturnValue({ mutateAsync: deleteCatMutate, isPending: false } as any);
+
+    render(<VendorManagementPage />);
+
+    // The × button for 전기 (id=1) should be present
+    const deleteBtn = screen.getByRole("button", { name: "전기 구분 삭제" });
+    expect(deleteBtn).toBeInTheDocument();
+
+    // 전체 must NOT have a delete button
+    expect(screen.queryByRole("button", { name: "전체 구분 삭제" })).toBeNull();
+
+    fireEvent.click(deleteBtn);
+
+    // Confirm dialog appears
+    await waitFor(() =>
+      expect(screen.getByText("이 구분을 삭제하면 소속 업체는 미분류가 됩니다. 삭제할까요?")).toBeInTheDocument()
+    );
+
+    // Confirm
+    const confirmBtns = screen.getAllByRole("button", { name: "삭제" });
+    fireEvent.click(confirmBtns[confirmBtns.length - 1]!);
+
+    await waitFor(() => {
+      expect(deleteCatMutate).toHaveBeenCalledWith(1);
+    });
+  });
 });

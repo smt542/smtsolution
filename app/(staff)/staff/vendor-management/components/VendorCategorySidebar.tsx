@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { Button, Input } from "@/components/common";
+import { Button, Input, Modal } from "@/components/common";
 import type { VendorCategory } from "@/hooks/reactquery/vendorCategories";
 import type { Vendor } from "@/hooks/reactquery/vendors";
 
@@ -11,6 +11,7 @@ interface Props {
   onSelect: (id: number | null) => void;
   onAddCategory: (label: string) => Promise<void>;
   onRenameCategory: (id: number, label: string) => Promise<void>;
+  onDeleteCategory?: (id: number) => Promise<void>;
 }
 
 export function VendorCategorySidebar({
@@ -20,11 +21,13 @@ export function VendorCategorySidebar({
   onSelect,
   onAddCategory,
   onRenameCategory,
+  onDeleteCategory,
 }: Props) {
   const [adding, setAdding] = useState(false);
   const [newLabel, setNewLabel] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingLabel, setEditingLabel] = useState("");
+  const [deletingCategory, setDeletingCategory] = useState<VendorCategory | null>(null);
 
   // Count vendors per category
   const countMap = React.useMemo(() => {
@@ -128,14 +131,29 @@ export function VendorCategorySidebar({
                   />
                 </div>
               ) : (
-                <button
-                  onClick={() => onSelect(c.id)}
-                  onDoubleClick={() => startRename(c.id, c.label)}
-                  className={itemCls(active)}
-                >
-                  <span>{c.label}</span>
-                  <span className={countCls(active)}>{count}</span>
-                </button>
+                <div className="group relative">
+                  <button
+                    onClick={() => onSelect(c.id)}
+                    onDoubleClick={() => startRename(c.id, c.label)}
+                    className={itemCls(active)}
+                  >
+                    <span>{c.label}</span>
+                    <span className={countCls(active)}>{count}</span>
+                  </button>
+                  {onDeleteCategory && (
+                    <button
+                      type="button"
+                      aria-label={`${c.label} 구분 삭제`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeletingCategory(c);
+                      }}
+                      className="absolute right-1 top-1/2 -translate-y-1/2 hidden rounded px-1 text-xs text-danger group-hover:block"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
               )}
             </li>
           );
@@ -173,6 +191,34 @@ export function VendorCategorySidebar({
           ＋ 구분 추가
         </Button>
       )}
+
+      {/* Category delete confirm modal */}
+      <Modal
+        open={deletingCategory !== null}
+        onClose={() => setDeletingCategory(null)}
+        title="구분 삭제"
+      >
+        <p className="text-sm text-t2">
+          이 구분을 삭제하면 소속 업체는 미분류가 됩니다. 삭제할까요?
+        </p>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={() => setDeletingCategory(null)}>
+            취소
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            onClick={async () => {
+              if (!deletingCategory || !onDeleteCategory) return;
+              const id = deletingCategory.id;
+              setDeletingCategory(null);
+              await onDeleteCategory(id);
+            }}
+          >
+            삭제
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -20,6 +20,7 @@ interface Props {
   categories: VendorCategory[];
   onSubmit: (values: VendorFormOutput) => Promise<void>;
   isPending: boolean;
+  onDeleteVendor?: (id: number) => Promise<void>;
   // Attachment props (only used when editing an existing vendor)
   attachments?: VendorAttachment[];
   onUploadAttachment?: (file: File) => Promise<void>;
@@ -33,11 +34,13 @@ export function VendorFormModal({
   categories,
   onSubmit,
   isPending,
+  onDeleteVendor,
   attachments = [],
   onUploadAttachment,
   onDeleteAttachment,
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const categoryOptions = [
     { value: "", label: "구분 없음" },
@@ -188,15 +191,55 @@ export function VendorFormModal({
           </div>
         )}
 
-        <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="ghost" onClick={onClose}>
-            취소
-          </Button>
-          <Button type="submit" variant="primary" disabled={isPending}>
-            {isPending ? "저장 중…" : editing ? "수정" : "추가"}
-          </Button>
+        <div className="flex items-center justify-between pt-2">
+          {editing && onDeleteVendor ? (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setConfirmDelete(true)}
+              className="text-danger"
+            >
+              삭제
+            </Button>
+          ) : (
+            <span />
+          )}
+          <div className="flex gap-2">
+            <Button type="button" variant="ghost" onClick={onClose}>
+              취소
+            </Button>
+            <Button type="submit" variant="primary" disabled={isPending}>
+              {isPending ? "저장 중…" : editing ? "수정" : "추가"}
+            </Button>
+          </div>
         </div>
       </form>
+
+      {/* Delete confirm modal */}
+      <Modal
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        title="거래처 삭제"
+      >
+        <p className="text-sm text-t2">이 거래처를 삭제할까요?</p>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={() => setConfirmDelete(false)}>
+            취소
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            onClick={async () => {
+              if (!editing || !onDeleteVendor) return;
+              setConfirmDelete(false);
+              onClose();
+              await onDeleteVendor(editing.id);
+            }}
+          >
+            삭제
+          </Button>
+        </div>
+      </Modal>
     </Modal>
   );
 }
