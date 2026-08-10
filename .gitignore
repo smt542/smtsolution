@@ -47,3 +47,7 @@ next-env.d.ts
 
 # agent worktrees
 .claude/worktrees/
+
+# prototype heavy exports (PRD .md는 docs/prototype/prd/ 에 보존)
+docs/prototype/*.zip
+docs/prototype/_erp/
