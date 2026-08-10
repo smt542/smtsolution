@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "page_id": "4d7cdba4-a331-4d33-99d0-3340238abb6d",
+      "page_title": "현장관리자_협력업체 관리",
+      "keywords": ["vendor-management", "vendor", "협력업체", "거래처", "구분"],
+      "paths": ["vendor", "vendors"]
+    },
+    {
+      "page_id": "da78a684-9202-44b9-837c-bbfdcc2a5af9",
+      "page_title": "현장관리자_건물·입주자 관리",
+      "keywords": ["building-list", "building", "건물", "호실", "입주자", "입주민"],
+      "paths": ["building", "buildings"]
+    },
+    {
+      "page_id": "58325ff2-e84d-4768-8e8a-8c5e849a6cdd",
+      "page_title": "현장관리자_프로필_계정·직원",
+      "keywords": ["staff-management", "staff", "계정", "권한", "직원"],
+      "paths": ["staff-management", "account", "accounts"]
+    },
+    {
+      "page_id": "77f82598-e591-4575-8a31-c06573e5835a",
+      "page_title": "현장관리자_관리비 부과 세팅",
+      "keywords": ["fee-item", "feeItem", "부과 세팅", "관리비 부과"],
+      "paths": ["fee-item", "feeItems"]
+    },
+    {
+      "page_id": "47f45195-2d4c-4157-a0bd-f39438bb740e",
+      "page_title": "현장관리자_로그인",
+      "keywords": ["login", "로그인", "AuthBoot"],
+      "paths": ["login"]
+    }
+  ]
+}
