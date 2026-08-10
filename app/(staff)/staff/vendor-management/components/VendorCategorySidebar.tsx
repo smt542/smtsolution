@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { SidebarList, Button, Input } from "@/components/common";
+import { Button, Input } from "@/components/common";
 import type { VendorCategory } from "@/hooks/reactquery/vendorCategories";
 import type { Vendor } from "@/hooks/reactquery/vendors";
 
@@ -19,9 +19,12 @@ export function VendorCategorySidebar({
   selectedId,
   onSelect,
   onAddCategory,
+  onRenameCategory,
 }: Props) {
   const [adding, setAdding] = useState(false);
   const [newLabel, setNewLabel] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingLabel, setEditingLabel] = useState("");
 
   // Count vendors per category
   const countMap = React.useMemo(() => {
@@ -36,23 +39,6 @@ export function VendorCategorySidebar({
 
   const activeStr = selectedId === null ? "__all__" : String(selectedId);
 
-  const items = [
-    { id: "__all__", label: "전체", count: allVendors.length },
-    ...categories.map((c) => ({
-      id: String(c.id),
-      label: c.label,
-      count: countMap[c.id] ?? 0,
-    })),
-  ];
-
-  const handleSelect = (id: string) => {
-    if (id === "__all__") {
-      onSelect(null);
-    } else {
-      onSelect(Number(id));
-    }
-  };
-
   const handleAddSubmit = async () => {
     const label = newLabel.trim();
     if (!label) return;
@@ -61,7 +47,7 @@ export function VendorCategorySidebar({
     setAdding(false);
   };
 
-  const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleAddKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       await handleAddSubmit();
     } else if (e.key === "Escape") {
@@ -70,16 +56,98 @@ export function VendorCategorySidebar({
     }
   };
 
+  const startRename = (id: number, currentLabel: string) => {
+    setEditingId(id);
+    setEditingLabel(currentLabel);
+  };
+
+  const commitRename = async (id: number, originalLabel: string) => {
+    const trimmed = editingLabel.trim();
+    setEditingId(null);
+    setEditingLabel("");
+    if (trimmed && trimmed !== originalLabel) {
+      await onRenameCategory(id, trimmed);
+    }
+  };
+
+  const handleRenameKeyDown = async (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    id: number,
+    originalLabel: string
+  ) => {
+    if (e.key === "Enter") {
+      await commitRename(id, originalLabel);
+    } else if (e.key === "Escape") {
+      setEditingId(null);
+      setEditingLabel("");
+    }
+  };
+
+  const isActive = (id: string) => activeStr === id;
+
+  const itemCls = (active: boolean) =>
+    `flex w-full items-center justify-between rounded-xl px-4 py-2 text-sm font-bold transition-colors ${
+      active ? "bg-brand text-white" : "text-t2 hover:bg-bg"
+    }`;
+
+  const countCls = (active: boolean) =>
+    `text-xs ${active ? "text-white/80" : "text-t4"}`;
+
   return (
     <div className="flex flex-col gap-2">
-      <SidebarList items={items} active={activeStr} onSelect={handleSelect} />
+      <ul className="flex flex-col gap-1">
+        {/* "전체" item — single-click only, no rename */}
+        <li key="__all__">
+          <button
+            onClick={() => onSelect(null)}
+            className={itemCls(isActive("__all__"))}
+          >
+            <span>전체</span>
+            <span className={countCls(isActive("__all__"))}>{allVendors.length}</span>
+          </button>
+        </li>
+
+        {/* Real category items — double-click label to rename */}
+        {categories.map((c) => {
+          const active = isActive(String(c.id));
+          const count = countMap[c.id] ?? 0;
+          const isEditing = editingId === c.id;
+
+          return (
+            <li key={c.id}>
+              {isEditing ? (
+                <div className="flex gap-1 px-1 py-1">
+                  <Input
+                    value={editingLabel}
+                    onChange={(e) => setEditingLabel(e.target.value)}
+                    onKeyDown={(e) => handleRenameKeyDown(e, c.id, c.label)}
+                    onBlur={() => commitRename(c.id, c.label)}
+                    aria-label="구분 이름 변경"
+                    autoFocus
+                    className="text-sm"
+                  />
+                </div>
+              ) : (
+                <button
+                  onClick={() => onSelect(c.id)}
+                  onDoubleClick={() => startRename(c.id, c.label)}
+                  className={itemCls(active)}
+                >
+                  <span>{c.label}</span>
+                  <span className={countCls(active)}>{count}</span>
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
 
       {adding ? (
         <div className="flex gap-1 px-1">
           <Input
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
-            onKeyDown={handleKeyDown}
+            onKeyDown={handleAddKeyDown}
             placeholder="구분명"
             autoFocus
             className="text-sm"

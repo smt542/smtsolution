@@ -179,4 +179,30 @@ describe("VendorManagementPage", () => {
     expect(fileInput).not.toBeNull();
     expect(fileInput).toHaveAttribute("accept", "image/*");
   });
+
+  it("double-clicking a category label shows rename input and submitting calls mutateAsync", async () => {
+    const renameMutate = vi.fn().mockResolvedValue({});
+    vi.mocked(useRenameVendorCategory).mockReturnValue({ mutateAsync: renameMutate, isPending: false } as any);
+
+    render(<VendorManagementPage />);
+
+    // Double-click the "전기" category button to enter rename mode
+    const sidebarButtons = screen.getAllByRole("button");
+    const dengiBtn = sidebarButtons.find((b) => b.textContent?.startsWith("전기"));
+    expect(dengiBtn).toBeDefined();
+    fireEvent.dblClick(dengiBtn!);
+
+    // Rename input should appear
+    const renameInput = await screen.findByRole("textbox", { name: "구분 이름 변경" });
+    expect(renameInput).toBeInTheDocument();
+    expect((renameInput as HTMLInputElement).value).toBe("전기");
+
+    // Clear and type a new name, then press Enter
+    fireEvent.change(renameInput, { target: { value: "전기설비" } });
+    fireEvent.keyDown(renameInput, { key: "Enter" });
+
+    await waitFor(() => {
+      expect(renameMutate).toHaveBeenCalledWith({ id: 1, label: "전기설비" });
+    });
+  });
 });
