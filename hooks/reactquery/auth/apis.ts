@@ -1,10 +1,10 @@
 import { createClient } from "@/lib/supabase/client";
-import { usernameToEmail } from "@/lib/auth/email";
+import { loginEmail } from "@/lib/auth/email";
 
 export type OrgMemberRole =
   | "platform_admin" | "org_owner" | "manager" | "staff" | "field" | "tenant";
 
-export interface LoginInput { username: string; password: string; autoLogin: boolean }
+export interface LoginInput { companyCode: string; username: string; password: string; autoLogin: boolean }
 
 export interface MyContext {
   orgId: number;
@@ -20,7 +20,7 @@ const INVALID_CREDS = "아이디 또는 비밀번호가 올바르지 않습니�
 
 export async function login(input: LoginInput): Promise<void> {
   const supabase = createClient();
-  const email = usernameToEmail(input.username);
+  const email = loginEmail(input.companyCode, input.username);
   // autoLogin은 세션 지속을 직접 바꾸지 않음 — AuthBoot가 부팅 시 처리(설계).
   const { error } = await supabase.auth.signInWithPassword({ email, password: input.password });
   if (error) throw new Error(INVALID_CREDS);

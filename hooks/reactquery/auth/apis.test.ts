@@ -15,16 +15,16 @@ beforeEach(() => {
 });
 
 describe("login", () => {
-  it("아이디를 합성 이메일로 바꿔 signInWithPassword 호출", async () => {
+  it("회사코드+아이디를 합성 이메일로 바꿔 signInWithPassword 호출", async () => {
     signInWithPassword.mockResolvedValue({ data: {}, error: null });
-    await login({ username: "hong", password: "pw", autoLogin: false });
+    await login({ companyCode: "demo", username: "hong", password: "pw", autoLogin: false });
     expect(signInWithPassword).toHaveBeenCalledWith({
-      email: "hong@staff.gwanribiseo.app", password: "pw",
+      email: "demo.hong@staff.gwanribiseo.app", password: "pw",
     });
   });
   it("실패 시 일반 메시지로 throw", async () => {
     signInWithPassword.mockResolvedValue({ data: null, error: { message: "Invalid" } });
-    await expect(login({ username: "hong", password: "x", autoLogin: false }))
+    await expect(login({ companyCode: "demo", username: "hong", password: "x", autoLogin: false }))
       .rejects.toThrow("아이디 또는 비밀번호가 올바르지 않습니다.");
   });
 });

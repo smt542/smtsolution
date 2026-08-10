@@ -19,7 +19,7 @@ function inputToRow(i: Partial<BuildingInput>): Record<string, unknown> {
 
 export async function listBuildings(search?: string): Promise<Building[]> {
   const sb = createClient();
-  let q = sb.from("buildings").select("*");
+  let q = sb.from("buildings").select("*").is("deleted_at", null);
   if (search) q = q.or(`name.ilike.%${search}%,address.ilike.%${search}%`);
   const { data, error } = await q.order("code");
   if (error) throw new Error(error.message);
@@ -37,7 +37,8 @@ export async function updateBuilding(id: number, input: Partial<BuildingInput>):
   const { data, error } = await createClient().from("buildings").update(inputToRow(input)).eq("id", id).select().single();
   if (error) throw new Error(error.message); return rowToBuilding(data);
 }
+// 소프트삭제: 건물 + 하위 호실·입주까지 한 트랜잭션에서 deleted_at 세팅(RPC)
 export async function deleteBuilding(id: number): Promise<void> {
-  const { error } = await createClient().from("buildings").delete().eq("id", id);
+  const { error } = await createClient().rpc("soft_delete_building", { p_id: id });
   if (error) throw new Error(error.message);
 }

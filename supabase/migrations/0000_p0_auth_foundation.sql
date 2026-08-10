@@ -18,9 +18,13 @@ create trigger trg_org_updated before update on organizations
   for each row execute function set_updated_at();
 
 -- ===== profiles (auth.users 1:1) =====
+-- username은 "org 내에서만" 유일하다(전역 유일 아님). 멀티테넌트에서 여러 관리회사가
+-- 같은 아이디(admin 등)를 쓸 수 있어야 하므로 전역 UNIQUE를 걸지 않는다.
+-- org 내 유일성은 로그인 이메일 {회사코드}.{username}@도메인 의 auth.users.email 전역 유일성으로 보장하고,
+-- 계정 발급 시(P1b Edge Function)에도 org 내 중복을 확인한다.
 create table profiles (
   user_id              uuid primary key references auth.users(id) on delete cascade,
-  username             text not null unique,
+  username             text not null,
   full_name            text not null,
   phone                text,
   is_active            boolean not null default true,

@@ -53,7 +53,7 @@ function inputToRow(i: Partial<OccupancyInput>): Record<string, unknown> {
 }
 
 export async function listOccupancies(unitId: number): Promise<Occupancy[]> {
-  const { data, error } = await createClient().from("occupancies").select("*").eq("unit_id", unitId).order("id");
+  const { data, error } = await createClient().from("occupancies").select("*").eq("unit_id", unitId).is("deleted_at", null).order("id");
   if (error) throw new Error(error.message);
   return (data ?? []).map(rowToOccupancy);
 }
@@ -76,7 +76,8 @@ export async function updateOccupancy(id: number, input: Partial<OccupancyInput>
   return rowToOccupancy(data);
 }
 
+// 소프트삭제: 물리 DELETE 대신 deleted_at 세팅(입주 이력 보존)
 export async function deleteOccupancy(id: number): Promise<void> {
-  const { error } = await createClient().from("occupancies").delete().eq("id", id);
+  const { error } = await createClient().from("occupancies").update({ deleted_at: new Date().toISOString() }).eq("id", id);
   if (error) throw new Error(error.message);
 }

@@ -17,13 +17,13 @@ export function LoginForm() {
   const [serverError, setServerError] = useState("");
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormInput>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { username: "", password: "", autoLogin: false },
+    defaultValues: { companyCode: "", username: "", password: "", autoLogin: false },
   });
 
   const onSubmit = handleSubmit(async (values) => {
     setServerError("");
     try {
-      const ctx = await login.mutateAsync({ username: values.username, password: values.password, autoLogin: values.autoLogin ?? false });
+      const ctx = await login.mutateAsync({ companyCode: values.companyCode, username: values.username, password: values.password, autoLogin: values.autoLogin ?? false });
       if (values.autoLogin) localStorage.setItem(AUTO_LOGIN_KEY, "1");
       else localStorage.removeItem(AUTO_LOGIN_KEY);
       if (ctx?.mustChangePassword) toast.info("비밀번호 변경이 필요합니다. 관리자 안내에 따라 변경해 주세요.");
@@ -35,6 +35,12 @@ export function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+      <div className="flex flex-col gap-1">
+        <label htmlFor="companyCode" className="text-sm font-bold text-gray-500">회사코드</label>
+        <input id="companyCode" autoComplete="organization" placeholder="회사코드를 입력해 주세요"
+          className="h-12 rounded-xl border px-3.5" {...register("companyCode")} />
+        {errors.companyCode && <p className="text-sm text-red-500">{errors.companyCode.message}</p>}
+      </div>
       <div className="flex flex-col gap-1">
         <label htmlFor="username" className="text-sm font-bold text-gray-500">아이디</label>
         <input id="username" autoComplete="username" placeholder="아이디를 입력해 주세요"

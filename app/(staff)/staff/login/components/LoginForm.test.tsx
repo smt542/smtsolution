@@ -17,22 +17,25 @@ describe("LoginForm", () => {
   it("빈 제출 시 검증 메시지", async () => {
     render(<LoginForm />);
     await userEvent.click(screen.getByRole("button", { name: "로그인" }));
-    expect(await screen.findByText("아이디를 입력해 주세요")).toBeInTheDocument();
+    expect(await screen.findByText("회사코드를 입력해 주세요")).toBeInTheDocument();
+    expect(screen.getByText("아이디를 입력해 주세요")).toBeInTheDocument();
   });
 
   it("정상 입력 → mutateAsync 호출 후 이동", async () => {
     mutateAsync.mockResolvedValue({});
     render(<LoginForm />);
+    await userEvent.type(screen.getByLabelText("회사코드"), "demo");
     await userEvent.type(screen.getByLabelText("아이디"), "hong");
     await userEvent.type(screen.getByLabelText("비밀번호"), "pw123456");
     await userEvent.click(screen.getByRole("button", { name: "로그인" }));
-    expect(mutateAsync).toHaveBeenCalledWith({ username: "hong", password: "pw123456", autoLogin: false });
+    expect(mutateAsync).toHaveBeenCalledWith({ companyCode: "demo", username: "hong", password: "pw123456", autoLogin: false });
     expect(push).toHaveBeenCalledWith("/staff/receipt-management");
   });
 
   it("로그인 실패 시 에러 배너", async () => {
     mutateAsync.mockRejectedValue(new Error("아이디 또는 비밀번호가 올바르지 않습니다."));
     render(<LoginForm />);
+    await userEvent.type(screen.getByLabelText("회사코드"), "demo");
     await userEvent.type(screen.getByLabelText("아이디"), "hong");
     await userEvent.type(screen.getByLabelText("비밀번호"), "bad");
     await userEvent.click(screen.getByRole("button", { name: "로그인" }));
@@ -42,6 +45,7 @@ describe("LoginForm", () => {
   it("자동로그인 체크 시 localStorage에 '1' 저장", async () => {
     mutateAsync.mockResolvedValue({});
     render(<LoginForm />);
+    await userEvent.type(screen.getByLabelText("회사코드"), "demo");
     await userEvent.type(screen.getByLabelText("아이디"), "hong");
     await userEvent.type(screen.getByLabelText("비밀번호"), "pw123456");
     await userEvent.click(screen.getByLabelText("자동 로그인"));
@@ -53,6 +57,7 @@ describe("LoginForm", () => {
     mutateAsync.mockResolvedValue({});
     localStorage.setItem("erp_login_auto", "1");
     render(<LoginForm />);
+    await userEvent.type(screen.getByLabelText("회사코드"), "demo");
     await userEvent.type(screen.getByLabelText("아이디"), "hong");
     await userEvent.type(screen.getByLabelText("비밀번호"), "pw123456");
     await userEvent.click(screen.getByRole("button", { name: "로그인" }));
@@ -63,6 +68,7 @@ describe("LoginForm", () => {
     const { toast } = await import("sonner");
     mutateAsync.mockResolvedValue({ mustChangePassword: true });
     render(<LoginForm />);
+    await userEvent.type(screen.getByLabelText("회사코드"), "demo");
     await userEvent.type(screen.getByLabelText("아이디"), "hong");
     await userEvent.type(screen.getByLabelText("비밀번호"), "pw123456");
     await userEvent.click(screen.getByRole("button", { name: "로그인" }));

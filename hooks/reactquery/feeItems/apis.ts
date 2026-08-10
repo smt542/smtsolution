@@ -24,7 +24,7 @@ function inputToRow(i: Partial<FeeItemInput>): Record<string, unknown> {
 }
 
 export async function listFeeItems(typeId: number): Promise<FeeItem[]> {
-  const { data, error } = await createClient().from("fee_items").select("*").eq("type_id", typeId).order("sort_order");
+  const { data, error } = await createClient().from("fee_items").select("*").eq("type_id", typeId).is("deleted_at", null).order("sort_order");
   if (error) throw new Error(error.message);
   return (data ?? []).map(rowToFeeItem);
 }
@@ -41,9 +41,10 @@ export async function updateFeeItem(id: number, input: Partial<FeeItemInput>): P
   return rowToFeeItem(data);
 }
 
+// 소프트삭제: 필수 항목은 거부, 그 외엔 deleted_at 세팅(부과 이력 보존)
 export async function deleteFeeItem({ id, isRequired }: { id: number; isRequired: boolean }): Promise<void> {
   if (isRequired) throw new Error("필수 항목은 삭제할 수 없습니다");
-  const { error } = await createClient().from("fee_items").delete().eq("id", id);
+  const { error } = await createClient().from("fee_items").update({ deleted_at: new Date().toISOString() }).eq("id", id);
   if (error) throw new Error(error.message);
 }
 

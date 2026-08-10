@@ -43,7 +43,7 @@ function inputToRow(i: Partial<UnitInput>): Record<string, unknown> {
 }
 
 export async function listUnits(buildingId: number): Promise<Unit[]> {
-  const { data, error } = await createClient().from("units").select("*").eq("building_id", buildingId).order("unit_no");
+  const { data, error } = await createClient().from("units").select("*").eq("building_id", buildingId).is("deleted_at", null).order("unit_no");
   if (error) throw new Error(error.message);
   return (data ?? []).map(rowToUnit);
 }
@@ -66,7 +66,8 @@ export async function updateUnit(id: number, input: Partial<UnitInput>): Promise
   return rowToUnit(data);
 }
 
+// 소프트삭제: 호실 + 하위 입주까지 deleted_at 세팅(RPC)
 export async function deleteUnit(id: number): Promise<void> {
-  const { error } = await createClient().from("units").delete().eq("id", id);
+  const { error } = await createClient().rpc("soft_delete_unit", { p_id: id });
   if (error) throw new Error(error.message);
 }

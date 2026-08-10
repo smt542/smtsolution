@@ -25,7 +25,7 @@ describe("useLogin", () => {
     api.getMyContext.mockResolvedValue({ orgId: 1, role: "staff", orgStatus: "active", username: "hong", fullName: "홍", isActive: true, mustChangePassword: false });
     api.recordLogin.mockResolvedValue(undefined);
     const { result } = renderHook(() => useLogin(), { wrapper });
-    await result.current.mutateAsync({ username: "hong", password: "pw", autoLogin: false });
+    await result.current.mutateAsync({ companyCode: "demo", username: "hong", password: "pw", autoLogin: false });
     expect(api.recordLogin).toHaveBeenCalled();
   });
 
@@ -33,7 +33,7 @@ describe("useLogin", () => {
     api.login.mockResolvedValue(undefined);
     api.getMyContext.mockResolvedValue(null);
     const { result } = renderHook(() => useLogin(), { wrapper });
-    await expect(result.current.mutateAsync({ username: "x", password: "y", autoLogin: false }))
+    await expect(result.current.mutateAsync({ companyCode: "demo", username: "x", password: "y", autoLogin: false }))
       .rejects.toThrow("접근 권한이 없는 계정입니다.");
     expect(signOut).toHaveBeenCalled();
   });
@@ -42,7 +42,7 @@ describe("useLogin", () => {
     api.login.mockResolvedValue(undefined);
     api.getMyContext.mockResolvedValue({ orgId: 1, role: "staff", orgStatus: "suspended", username: "h", fullName: "홍", isActive: true, mustChangePassword: false });
     const { result } = renderHook(() => useLogin(), { wrapper });
-    await expect(result.current.mutateAsync({ username: "x", password: "y", autoLogin: false }))
+    await expect(result.current.mutateAsync({ companyCode: "demo", username: "x", password: "y", autoLogin: false }))
       .rejects.toThrow("정지되었거나 사용할 수 없는 조직입니다.");
     expect(signOut).toHaveBeenCalled();
   });

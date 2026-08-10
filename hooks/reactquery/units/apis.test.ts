@@ -1,15 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 const from = vi.fn();
-vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ from }) }));
-import { listUnits, createUnit, updateUnit } from "./apis";
+const rpc = vi.fn();
+vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ from, rpc }) }));
+import { listUnits, createUnit, updateUnit, deleteUnit } from "./apis";
 beforeEach(() => vi.clearAllMocks());
 describe("units apis", () => {
-  it("listUnits: building_id로 필터, snake→camel 매핑", async () => {
+  it("listUnits: building_id로 필터, snake→camel 매핑, 소프트삭제 제외", async () => {
     const resolve = vi.fn().mockResolvedValue({ data: [{ id:1, building_id:10, unit_no:"101", dong:"A동", area_pyeong:"25.50", room_count:2, elec_customer_no:"E001", elec_meter_no:"M001", water_customer_no:"W001", memo:"메모" }], error:null });
-    const eq = vi.fn(() => ({ order: resolve }));
+    const is = vi.fn(() => ({ order: resolve }));
+    const eq = vi.fn(() => ({ is }));
     from.mockReturnValue({ select: () => ({ eq }) });
     const r = await listUnits(10);
     expect(eq).toHaveBeenCalledWith("building_id", 10);
+    expect(is).toHaveBeenCalledWith("deleted_at", null);
     expect(r[0]).toMatchObject({ id:1, buildingId:10, unitNo:"101", dong:"A동", areaPyeong:25.5, roomCount:2, elecCustomerNo:"E001", elecMeterNo:"M001", waterCustomerNo:"W001", memo:"메모" });
   });
   it("createUnit: building_id 포함 insert", async () => {
@@ -25,5 +28,10 @@ describe("units apis", () => {
     from.mockReturnValue({ update: upd });
     await updateUnit(1, { unitNo:"101동" });
     expect(upd).toHaveBeenCalledWith({ unit_no:"101동" });
+  });
+  it("deleteUnit: soft_delete_unit RPC 호출(물리삭제 X)", async () => {
+    rpc.mockResolvedValue({ error: null });
+    await deleteUnit(1);
+    expect(rpc).toHaveBeenCalledWith("soft_delete_unit", { p_id: 1 });
   });
 });
