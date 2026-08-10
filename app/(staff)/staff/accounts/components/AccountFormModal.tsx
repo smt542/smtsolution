@@ -3,7 +3,7 @@ import React from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Modal, Input, Select, Button } from "@/components/common";
-import { accountCreateSchema, accountEditSchema, STAFF_TYPES } from "@/components/forms/schema/account";
+import { accountCreateSchema, accountEditSchema } from "@/components/forms/schema/account";
 import { PermissionChecklist } from "./PermissionChecklist";
 import { StaffRoleSelect } from "./StaffRoleSelect";
 import type { StaffRole } from "@/hooks/reactquery/staffRoles";
