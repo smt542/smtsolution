@@ -1,0 +1,8 @@
+{
+  "bucket_id": "9514ec1f-cb2d-4cfa-9ee6-6aff04127c73",
+  "bucket_name": "주택관리ERP",
+  "branches": ["master", "rosefish", "fulmar", "angelshark"],
+  "ask_when_ambiguous": true,
+  "tracks": ["dev"],
+  "auto_complete": false
+}
