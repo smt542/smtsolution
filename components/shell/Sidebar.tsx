@@ -104,18 +104,21 @@ export function Sidebar() {
       <div className="flex-1 flex flex-col overflow-y-auto">
         {NAV_GROUPS.map((group) => {
           const visible = group.items.filter((item) =>
-            hasModule(me ?? null, item.module)
+            !item.module || hasModule(me ?? null, item.module)
           );
           if (visible.length === 0) return null;
 
           return (
             <div key={group.label}>
-              <div className="text-[11px] font-bold text-t4 tracking-[0.04em] px-3 pt-3 pb-1.5">
-                {group.label}
-              </div>
+              {group.label && (
+                <div className="text-[11px] font-bold text-t4 tracking-[0.04em] px-3 pt-3 pb-1.5">
+                  {group.label}
+                </div>
+              )}
               <nav className="flex flex-col gap-0.5">
                 {visible.map((item) => {
-                  const active = pathname.startsWith(item.href);
+                  const active =
+                    item.href === "/staff" ? pathname === "/staff" : pathname.startsWith(item.href);
                   return (
                     <NavItemRow key={item.href} item={item} active={active} />
                   );

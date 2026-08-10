@@ -60,7 +60,7 @@ describe("Sidebar", () => {
     vi.clearAllMocks();
   });
 
-  it("Test A: org_owner sees all items including 건물·입주자 and 계정·권한", () => {
+  it("Test A: org_owner sees all items including 건물·입주자 and 계정·직원 관리", () => {
     mockUseMe.mockReturnValue(
       makeMe({ role: "org_owner", permissions: [] })
     );
@@ -68,10 +68,10 @@ describe("Sidebar", () => {
     render(<Sidebar />);
 
     expect(screen.getByText("건물·입주자")).toBeInTheDocument();
-    expect(screen.getByText("계정·권한")).toBeInTheDocument();
+    expect(screen.getByText("계정·직원 관리")).toBeInTheDocument();
   });
 
-  it("Test B: manager with only buildings permission sees 건물·입주자 but not 계정·권한", () => {
+  it("Test B: manager with only buildings permission sees 건물·입주자 but not 계정·직원 관리", () => {
     mockUseMe.mockReturnValue(
       makeMe({ role: "manager", permissions: ["buildings"] })
     );
@@ -79,7 +79,7 @@ describe("Sidebar", () => {
     render(<Sidebar />);
 
     expect(screen.getByText("건물·입주자")).toBeInTheDocument();
-    expect(screen.queryByText("계정·권한")).toBeNull();
+    expect(screen.queryByText("계정·직원 관리")).toBeNull();
   });
 
   it("Test C: active item on /staff/building-list has aria-current=page", () => {

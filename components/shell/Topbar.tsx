@@ -11,7 +11,9 @@ interface TopbarProps {
 function findPageTitle(pathname: string): string {
   for (const group of NAV_GROUPS) {
     for (const item of group.items) {
-      if (pathname.startsWith(item.href)) return item.label;
+      const match =
+        item.href === "/staff" ? pathname === "/staff" : pathname.startsWith(item.href);
+      if (match) return item.label;
     }
   }
   return "관리비서";

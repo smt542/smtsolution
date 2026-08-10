@@ -29,7 +29,7 @@ describe("LoginForm", () => {
     await userEvent.type(screen.getByLabelText("비밀번호"), "pw123456");
     await userEvent.click(screen.getByRole("button", { name: "로그인" }));
     expect(mutateAsync).toHaveBeenCalledWith({ companyCode: "demo", username: "hong", password: "pw123456", autoLogin: false });
-    expect(push).toHaveBeenCalledWith("/staff/receipt-management");
+    expect(push).toHaveBeenCalledWith("/staff");
   });
 
   it("로그인 실패 시 에러 배너", async () => {

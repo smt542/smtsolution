@@ -14,7 +14,7 @@ export async function middleware(request: NextRequest) {
   }
   if (isLogin && user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/staff/receipt-management";
+    url.pathname = "/staff";
     return NextResponse.redirect(url);
   }
   return response;
