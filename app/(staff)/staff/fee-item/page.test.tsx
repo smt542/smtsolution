@@ -1,5 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Mock next/navigation
@@ -53,6 +54,10 @@ const mockBuildingTypes = [
   { id: 2, orgId: 10, label: "빌딩", sortOrder: 1 },
 ];
 
+const mockBuildingTypesSingle = [
+  { id: 1, orgId: 10, label: "빌라", sortOrder: 0 },
+];
+
 const mockFeeItemsType1 = [
   {
     id: 1, orgId: 10, typeId: 1, name: "전기", rounding: "round",
@@ -81,9 +86,9 @@ const mockFeeItemsType2 = [
 
 const mockMutate = { mutateAsync: vi.fn().mockResolvedValue({}), isPending: false };
 
-function setupMocks(activeTypeId = 1) {
+function setupMocks(types = mockBuildingTypes) {
   vi.mocked(useBuildingTypes).mockReturnValue({
-    data: mockBuildingTypes,
+    data: types,
     isLoading: false,
   } as any);
 
@@ -106,6 +111,7 @@ function setupMocks(activeTypeId = 1) {
 describe("FeeItemPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockMutate.mutateAsync.mockResolvedValue({});
     setupMocks();
   });
 
@@ -179,5 +185,64 @@ describe("FeeItemPage", () => {
 
     expect(elecIdx).toBeLessThan(mgmtIdx);
     expect(suIdx).toBeLessThan(mgmtIdx);
+  });
+
+  // E — new tests for Tabs rename/delete UI
+
+  it("double-clicking active type tab label shows a rename input and submitting calls rename mutation", async () => {
+    const user = userEvent.setup();
+    const renameMutateAsync = vi.fn().mockResolvedValue({});
+    vi.mocked(useRenameBuildingType).mockReturnValue({ mutateAsync: renameMutateAsync, isPending: false } as any);
+
+    render(<FeeItemPage />);
+
+    // Double-click the "빌라" tab label
+    const billaTab = screen.getByText("빌라");
+    await user.dblClick(billaTab);
+
+    // Rename input should appear
+    const renameInput = screen.getByRole("textbox", { name: "유형 이름 변경" });
+    expect(renameInput).toBeInTheDocument();
+
+    // Clear and type a new name
+    await user.clear(renameInput);
+    await user.type(renameInput, "아파트");
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => {
+      expect(renameMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ label: "아파트" })
+      );
+    });
+  });
+
+  it("clicking × delete button calls delete mutation when >1 type exists", async () => {
+    const deleteMutateAsync = vi.fn().mockResolvedValue({});
+    vi.mocked(useDeleteBuildingType).mockReturnValue({ mutateAsync: deleteMutateAsync, isPending: false } as any);
+
+    render(<FeeItemPage />);
+
+    // × button should appear next to each tab (>1 type)
+    const deleteButtons = screen.getAllByRole("button", { name: "유형 삭제" });
+    expect(deleteButtons.length).toBeGreaterThan(0);
+
+    fireEvent.click(deleteButtons[0]);
+
+    await waitFor(() => {
+      expect(deleteMutateAsync).toHaveBeenCalled();
+    });
+  });
+
+  it("clicking × delete button is blocked when only ONE type exists", async () => {
+    setupMocks(mockBuildingTypesSingle);
+    const deleteMutateAsync = vi.fn().mockResolvedValue({});
+    vi.mocked(useDeleteBuildingType).mockReturnValue({ mutateAsync: deleteMutateAsync, isPending: false } as any);
+
+    render(<FeeItemPage />);
+
+    // With only 1 type, BuildingTypeTabs passes undefined for onDelete → no × button rendered
+    const deleteButtons = screen.queryAllByRole("button", { name: "유형 삭제" });
+    expect(deleteButtons.length).toBe(0);
+    expect(deleteMutateAsync).not.toHaveBeenCalled();
   });
 });

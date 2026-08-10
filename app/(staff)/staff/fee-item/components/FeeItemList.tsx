@@ -43,9 +43,7 @@ export function FeeItemList({ items, isLoading, onEdit, onDelete, onMoveUp, onMo
         </tr>
       </thead>
       <tbody>
-        {ordered.map((item, idx) => {
-          const isFirst = idx === 0;
-          const isLast = idx === ordered.length - 1;
+        {ordered.map((item) => {
           // within required group: only move among required; within optional: only among optional
           const groupItems = item.isRequired ? required : optional;
           const groupIdx = groupItems.findIndex((g) => g.id === item.id);

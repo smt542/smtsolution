@@ -7,7 +7,9 @@ import { Modal, Input, Select, Button } from "@/components/common";
 import { feeItemSchema } from "@/components/forms/schema/feeItem";
 import type { FeeItem } from "@/hooks/reactquery/feeItems";
 
-// Use the output type so defaults (rounding/dailyProration/carryOver) are non-optional
+// Input type (before Zod coercion) for useForm; resolver produces Output
+type FeeItemInput = z.input<typeof feeItemSchema>;
+// Output type (after Zod parse) for the submit callback
 type FormValues = z.output<typeof feeItemSchema>;
 
 const ROUNDING_OPTIONS = [
@@ -42,12 +44,12 @@ export function FeeItemFormModal({ open, onClose, editing, onSubmit, isPending }
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(feeItemSchema) as any,
+  } = useForm<FeeItemInput, unknown, FormValues>({
+    resolver: zodResolver(feeItemSchema),
     defaultValues: editing
       ? {
           name: editing.name,
-          rounding: editing.rounding as FormValues["rounding"],
+          rounding: editing.rounding as FeeItemInput["rounding"],
           dailyProration: editing.dailyProration,
           carryOver: editing.carryOver,
         }
@@ -60,7 +62,7 @@ export function FeeItemFormModal({ open, onClose, editing, onSubmit, isPending }
         editing
           ? {
               name: editing.name,
-              rounding: editing.rounding as FormValues["rounding"],
+              rounding: editing.rounding as FeeItemInput["rounding"],
               dailyProration: editing.dailyProration,
               carryOver: editing.carryOver,
             }

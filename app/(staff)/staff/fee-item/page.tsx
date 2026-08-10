@@ -2,9 +2,9 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/common";
-import { BuildingTypeTabs } from "@/components/FeeItem/BuildingTypeTabs";
-import { FeeItemList } from "@/components/FeeItem/FeeItemList";
-import { FeeItemFormModal } from "@/components/FeeItem/FeeItemFormModal";
+import { BuildingTypeTabs } from "./components/BuildingTypeTabs";
+import { FeeItemList } from "./components/FeeItemList";
+import { FeeItemFormModal } from "./components/FeeItemFormModal";
 import { useBuildingTypes, useCreateBuildingType, useRenameBuildingType, useDeleteBuildingType } from "@/hooks/reactquery/buildingTypes";
 import { useFeeItems, useCreateFeeItem, useUpdateFeeItem, useDeleteFeeItem, useReorderFeeItems } from "@/hooks/reactquery/feeItems";
 import { useMe } from "@/hooks/reactquery/auth";
