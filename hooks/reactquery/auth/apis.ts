@@ -14,6 +14,8 @@ export interface MyContext {
   fullName: string;
   isActive: boolean;
   mustChangePassword: boolean;
+  /** Module permission keys granted to this user (empty for org_owner who has all). */
+  permissions: string[];
 }
 
 const INVALID_CREDS = "아이디 또는 비밀번호가 올바르지 않습니다.";
@@ -45,6 +47,7 @@ export async function getMyContext(): Promise<MyContext | null> {
     fullName: row.full_name,
     isActive: row.is_active,
     mustChangePassword: row.must_change_password,
+    permissions: Array.isArray(row.permissions) ? row.permissions : [],
   };
 }
 
