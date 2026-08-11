@@ -35,7 +35,7 @@ vi.mock("sonner", () => ({
   toast: { error: vi.fn(), success: vi.fn() },
 }));
 
-import VendorManagementPage from "./page";
+import { VendorManagementSection } from "./VendorManagementSection";
 import {
   useVendorCategories,
   useCreateVendorCategory,
@@ -92,7 +92,7 @@ describe("VendorManagementPage", () => {
   });
 
   it('renders sidebar with "전체" and sample categories', () => {
-    render(<VendorManagementPage />);
+    render(<VendorManagementSection />);
     // "전체" only appears in sidebar
     expect(screen.getByText("전체")).toBeInTheDocument();
     // categories appear in sidebar — use getAllByText since "전기" may also appear in the vendor table column
@@ -101,13 +101,13 @@ describe("VendorManagementPage", () => {
   });
 
   it("renders vendor list with sample vendors", () => {
-    render(<VendorManagementPage />);
+    render(<VendorManagementSection />);
     expect(screen.getByText("한국전력")).toBeInTheDocument();
     expect(screen.getByText("서울수도")).toBeInTheDocument();
   });
 
   it("selecting a category calls useVendors with that categoryId", async () => {
-    render(<VendorManagementPage />);
+    render(<VendorManagementSection />);
     // Click the sidebar button for "전기" — find via SidebarList buttons (ul > li > button)
     const sidebarButtons = screen.getAllByRole("button");
     const dengiBtn = sidebarButtons.find((b) => b.textContent?.startsWith("전기"));
@@ -120,7 +120,7 @@ describe("VendorManagementPage", () => {
   });
 
   it('selecting "전체" calls useVendors with undefined categoryId', async () => {
-    render(<VendorManagementPage />);
+    render(<VendorManagementSection />);
     // Click 전기 first to set categoryId, then 전체 to clear it
     const sidebarButtons = screen.getAllByRole("button");
     const dengiBtn = sidebarButtons.find((b) => b.textContent?.startsWith("전기"));
@@ -133,12 +133,12 @@ describe("VendorManagementPage", () => {
   });
 
   it('renders ＋ 업체 추가 button', () => {
-    render(<VendorManagementPage />);
+    render(<VendorManagementSection />);
     expect(screen.getByRole("button", { name: /업체 추가/ })).toBeInTheDocument();
   });
 
   it("clicking ＋ 업체 추가 opens the modal", async () => {
-    render(<VendorManagementPage />);
+    render(<VendorManagementSection />);
     fireEvent.click(screen.getByRole("button", { name: /업체 추가/ }));
     await waitFor(() => {
       expect(screen.getByText("업체 추가")).toBeInTheDocument();
@@ -147,7 +147,7 @@ describe("VendorManagementPage", () => {
 
   it("업체명 is required — submitting empty name shows validation error", async () => {
     const user = userEvent.setup();
-    render(<VendorManagementPage />);
+    render(<VendorManagementSection />);
     fireEvent.click(screen.getByRole("button", { name: /업체 추가/ }));
     await waitFor(() => expect(screen.getByText("업체 추가")).toBeInTheDocument());
 
@@ -161,7 +161,7 @@ describe("VendorManagementPage", () => {
   });
 
   it("clicking a vendor row opens edit modal", async () => {
-    render(<VendorManagementPage />);
+    render(<VendorManagementSection />);
     fireEvent.click(screen.getByText("한국전력"));
     await waitFor(() => {
       expect(screen.getByText("업체 수정")).toBeInTheDocument();
@@ -169,7 +169,7 @@ describe("VendorManagementPage", () => {
   });
 
   it("edit modal shows a file input for 계약서 사진", async () => {
-    render(<VendorManagementPage />);
+    render(<VendorManagementSection />);
     fireEvent.click(screen.getByText("한국전력"));
     await waitFor(() => {
       expect(screen.getByText("업체 수정")).toBeInTheDocument();
@@ -184,7 +184,7 @@ describe("VendorManagementPage", () => {
     const renameMutate = vi.fn().mockResolvedValue({});
     vi.mocked(useRenameVendorCategory).mockReturnValue({ mutateAsync: renameMutate, isPending: false } as any);
 
-    render(<VendorManagementPage />);
+    render(<VendorManagementSection />);
 
     // Double-click the "전기" category button to enter rename mode
     const sidebarButtons = screen.getAllByRole("button");
@@ -214,7 +214,7 @@ describe("VendorManagementPage", () => {
     vi.mocked(useVendors).mockReturnValue({ data: dupVendors, isLoading: false } as any);
     vi.mocked(useVendorAttachments).mockReturnValue({ data: [], isLoading: false } as any);
 
-    render(<VendorManagementPage />);
+    render(<VendorManagementSection />);
 
     // Both rows have the same name — get all cells with that text and click the second one
     const cells = screen.getAllByText("중복업체");
@@ -233,7 +233,7 @@ describe("VendorManagementPage", () => {
     const deleteMutate = vi.fn().mockResolvedValue({});
     vi.mocked(useDeleteVendor).mockReturnValue({ mutateAsync: deleteMutate, isPending: false } as any);
 
-    render(<VendorManagementPage />);
+    render(<VendorManagementSection />);
 
     // Open edit modal for first vendor
     fireEvent.click(screen.getByText("한국전력"));
@@ -260,7 +260,7 @@ describe("VendorManagementPage", () => {
     const deleteCatMutate = vi.fn().mockResolvedValue({});
     vi.mocked(useDeleteVendorCategory).mockReturnValue({ mutateAsync: deleteCatMutate, isPending: false } as any);
 
-    render(<VendorManagementPage />);
+    render(<VendorManagementSection />);
 
     // The × button for 전기 (id=1) should be present
     const deleteBtn = screen.getByRole("button", { name: "전기 구분 삭제" });
