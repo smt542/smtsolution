@@ -27,13 +27,13 @@ export const PLATFORM_NAV_ITEMS: PlatformNavItem[] = [
   {
     label: "포인트 관리",
     href: "/platform-admin/points",
-    description: "포인트 정책·원장",
+    description: "조직별 잔액·충전",
     icon: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM9 8h4a2 2 0 0 1 0 4H9V8zm0 4h5a2 2 0 0 1 0 4H9v-4z",
   },
   {
-    label: "결제·구독",
+    label: "청구 관리",
     href: "/platform-admin/billing",
-    description: "요금제와 결제 현황",
+    description: "포인트 충전 결제 내역",
     icon: "M3 6h18v12H3V6zm0 4h18M7 15h4",
   },
 ];

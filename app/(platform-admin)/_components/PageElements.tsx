@@ -24,7 +24,7 @@ export function DataScopeNotice() {
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 h-4 w-4 flex-none" aria-hidden="true">
         <circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" />
       </svg>
-      <p>현재 DB의 <code className="font-bold">my_org_ids()</code> RLS 정책에 따라 로그인 계정이 조회할 수 있는 활성 조직만 표시됩니다.</p>
+      <p><code className="font-bold">platform_admin</code> 권한으로 전체 관리회사(테넌트) 데이터를 조회·관리합니다.</p>
     </div>
   );
 }
