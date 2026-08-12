@@ -17,6 +17,8 @@ export const MODULE_KEYS = [
   "messaging",    // 문자 발송
   "accounts",     // 계정 관리
   "settings",     // 설정 변경(셋업)
+  "notices",      // 공지 관리
+  "complaints",   // 민원·AS 관리
 ] as const;
 export type ModuleKey = (typeof MODULE_KEYS)[number];
 
@@ -32,6 +34,8 @@ export const MODULE_LABELS: Record<ModuleKey, string> = {
   messaging: "문자 발송",
   accounts: "계정 관리",
   settings: "설정 변경",
+  notices: "공지 관리",
+  complaints: "민원·AS",
 };
 
 export function isMaster(role?: string | null): boolean {
