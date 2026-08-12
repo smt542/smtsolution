@@ -27,7 +27,7 @@
   - **섹션3 계량기·계좌**: 계량기(수도·전기·가스 각 계량기번호+고객번호), 계좌(수도·전기·가스·관리비 각 은행·계좌·예금주+CMS회원번호).
   - **섹션4 임대차**: 보증금·월세·계약시작·계약종료·만료알림 Y/N + **이전 전출자 이력(읽기전용, 퇴실일 내림차순)**.
   - **섹션5 시설정보**: 자유 텍스트 멀티라인.
-- **DB(`0005`)**: `occupancies` 확장 + `unit_meters`·`unit_accounts`·`lease_contracts`·`occupancy_history` + `occupancies.room_type_id` FK. 통합저장 `save_unit_occupancy`·목록 `list_tenants` RPC. `tenants` module RLS.
+- **DB(`0006`)**: `occupancies` 확장 + `unit_meters`·`unit_accounts`·`lease_contracts`·`occupancy_history` + `occupancies.room_type_id` FK. 통합저장 `save_unit_occupancy`·목록 `list_tenants` RPC. `tenants` module RLS.
 - reactquery 도메인(units·occupancies 개편 + 신규 4종), zod, 컴포넌트, 입주자카드 출력, 테스트, 검증 SQL(`p3b_checks.sql`).
 
 **Out of scope (후속)**
@@ -58,7 +58,7 @@
 
 ---
 
-## 3. DB 스키마 — `supabase/migrations/0005_p3b_tenants.sql`
+## 3. DB 스키마 — `supabase/migrations/0006_p3b_tenants.sql`
 
 > P0·P1a(`units`·`occupancies`·`attachments`), P2a(`current_user_org`·`current_user_has_module`), P2b(`room_types`), P3a(`buildings` module RLS 패턴)에 의존. 단일 파일.
 
@@ -275,21 +275,21 @@ create policy occ_write on occupancies for all
 - **컴포넌트(RTL)**: `layout` 탭 전환, `TenantList`(더블클릭·빈/공실 표시·등록 네비), `TenantForm`(필수 검증·섹션 배열 행·저장 payload·이탈 확인), `LeaseSection` 이력 읽기전용.
 - **RLS·RPC(SQL, `p3b_checks.sql`)**: `tenants` 없는 구성원 units/occupancies/신규4 **SELECT 가능·쓰기 거부**; 보유·마스터 쓰기 가능. `save_unit_occupancy` 신규 호실+입주+자식 upsert, 타 org 호실 거부. 신규 테이블 타 org 격리.
 - **정적**: `tsc --noEmit` + `npm run lint`.
-- **라이브 미적용**: 원격 미접속 → vitest+tsc+verify SQL 정적. 적용·E2E는 사용자 PC(순서 0004→0005).
+- **라이브 미적용**: 원격 미접속 → vitest+tsc+verify SQL 정적. 적용·E2E는 사용자 PC(순서 0004→0006).
 
 ---
 
 ## 10. 마이그레이션 / 환경
 
-- `supabase/migrations/0005_p3b_tenants.sql`(§3·§4·§5) + `supabase/verify/p3b_checks.sql`.
+- `supabase/migrations/0006_p3b_tenants.sql`(§3·§4·§5) + `supabase/verify/p3b_checks.sql`.
 - 신규 env 없음. Storage `attachments` 재사용(세대 첨부 시).
-- 적용(사용자): `0005` 실행 → `p3b_checks.sql`. **DB pending-user**, 순서 …0003→0004→0005.
+- 적용(사용자): `0006` 실행 → `p3b_checks.sql`. **DB pending-user**, 순서 …0003→0004→0006.
 
 ---
 
 ## 11. plan 단계화 (단일 plan, 3그룹)
 
-1. **그룹1 — DB·데이터층**: `0005`(occupancies 확장·신규4·RLS·`save_unit_occupancy`·`list_tenants`·레거시 이관) + `p3b_checks.sql` → units/occupancies 개편 + 신규 도메인 4종 + `getUnitOccupancyFull`·`listTenants`·`saveUnitOccupancy` + zod.
+1. **그룹1 — DB·데이터층**: `0006`(occupancies 확장·신규4·RLS·`save_unit_occupancy`·`list_tenants`·레거시 이관) + `p3b_checks.sql` → units/occupancies 개편 + 신규 도메인 4종 + `getUnitOccupancyFull`·`listTenants`·`saveUnitOccupancy` + zod.
 2. **그룹2 — 목록·탭**: `[id]/layout.tsx` 탭 + `[id]/tenants/page.tsx` + `TenantList`.
 3. **그룹3 — 상세폼·출력**: `/new`·`/[tenantId]` + `TenantForm` 5섹션(이력 읽기전용 포함) + 입주자카드 라우트·`exceljs`.
 
