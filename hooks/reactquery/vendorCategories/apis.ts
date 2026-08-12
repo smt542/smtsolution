@@ -3,7 +3,9 @@ import { createClient } from "@/lib/supabase/client";
 export interface VendorCategory { id: number; orgId: number; label: string; sortOrder: number; }
 export interface VendorCategoryInput { orgId: number; label: string; sortOrder?: number; }
 
-const rowToCategory = (r: any): VendorCategory => ({ id: r.id, orgId: r.org_id, label: r.label, sortOrder: r.sort_order });
+type VendorCategoryRow = { id: number; org_id: number; label: string; sort_order: number };
+
+const rowToCategory = (r: VendorCategoryRow): VendorCategory => ({ id: r.id, orgId: r.org_id, label: r.label, sortOrder: r.sort_order });
 
 function inputToRow(i: Partial<VendorCategoryInput>): Record<string, unknown> {
   const r: Record<string, unknown> = {};

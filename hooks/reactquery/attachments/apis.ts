@@ -6,7 +6,12 @@ export interface Attachment {
   kind: string; fileUrl: string; fileName: string; createdAt: string;
 }
 
-const toAtt = (r: any): Attachment => ({
+type AttachmentRow = {
+  id: number; org_id: number; entity_type: string; entity_id: number;
+  kind: string; file_url: string; file_name: string; created_at: string;
+};
+
+const toAtt = (r: AttachmentRow): Attachment => ({
   id: r.id, orgId: r.org_id, entityType: r.entity_type, entityId: r.entity_id,
   kind: r.kind, fileUrl: r.file_url, fileName: r.file_name, createdAt: r.created_at,
 });

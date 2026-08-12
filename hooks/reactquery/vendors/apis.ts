@@ -5,8 +5,17 @@ export interface VendorInput { orgId: number; name: string; phone?: string; bank
 
 export interface VendorAttachment { id: number; orgId: number; entityType: string; entityId: number; kind: string; fileUrl: string; fileName: string; createdAt: string; }
 
-const rowToVendor = (r: any): Vendor => ({ id: r.id, orgId: r.org_id, name: r.name, phone: r.phone, bankAccount: r.bank_account, memo: r.memo, categoryId: r.category_id });
-const rowToAttachment = (r: any): VendorAttachment => ({ id: r.id, orgId: r.org_id, entityType: r.entity_type, entityId: r.entity_id, kind: r.kind, fileUrl: r.file_url, fileName: r.file_name, createdAt: r.created_at });
+type VendorRow = {
+  id: number; org_id: number; name: string; phone: string | null;
+  bank_account: string | null; memo: string | null; category_id: number | null;
+};
+type VendorAttachmentRow = {
+  id: number; org_id: number; entity_type: string; entity_id: number;
+  kind: string; file_url: string; file_name: string; created_at: string;
+};
+
+const rowToVendor = (r: VendorRow): Vendor => ({ id: r.id, orgId: r.org_id, name: r.name, phone: r.phone, bankAccount: r.bank_account, memo: r.memo, categoryId: r.category_id });
+const rowToAttachment = (r: VendorAttachmentRow): VendorAttachment => ({ id: r.id, orgId: r.org_id, entityType: r.entity_type, entityId: r.entity_id, kind: r.kind, fileUrl: r.file_url, fileName: r.file_name, createdAt: r.created_at });
 
 function inputToRow(i: Partial<VendorInput>): Record<string, unknown> {
   const r: Record<string, unknown> = {};
@@ -19,9 +28,9 @@ function inputToRow(i: Partial<VendorInput>): Record<string, unknown> {
 export async function listVendors(categoryId?: number, search?: string): Promise<Vendor[]> {
   const sb = createClient();
   let q = sb.from("vendors").select("*");
-  if (categoryId !== undefined) q = (q as any).eq("category_id", categoryId);
-  if (search) q = (q as any).or(`name.ilike.%${search}%,phone.ilike.%${search}%,memo.ilike.%${search}%`);
-  const { data, error } = await (q as any).order("name");
+  if (categoryId !== undefined) q = q.eq("category_id", categoryId);
+  if (search) q = q.or(`name.ilike.%${search}%,phone.ilike.%${search}%,memo.ilike.%${search}%`);
+  const { data, error } = await q.order("name");
   if (error) throw new Error(error.message);
   return (data ?? []).map(rowToVendor);
 }
@@ -61,7 +70,7 @@ export async function listVendorAttachments(vendorId: number): Promise<VendorAtt
   return (data ?? []).map(rowToAttachment);
 }
 
-export async function deleteVendorAttachment({ id, path, vendorId }: { id: number; path: string; vendorId: number }): Promise<void> {
+export async function deleteVendorAttachment({ id, path }: { id: number; path: string; vendorId: number }): Promise<void> {
   const sb = createClient();
   const { error: storageError } = await sb.storage.from("attachments").remove([path]);
   if (storageError) throw new Error(storageError.message);

@@ -19,20 +19,20 @@ describe("BuildingList", () => {
       data: { rows: [{ id: 5, code: "B0005", name: "가나빌", address: "서울", managerUserId: null, meterUserId: null,
         cleaningUserId: null, managerName: "김관리", meterName: null, cleaningName: null, totalUnits: 3, occupiedUnits: 2, minMeterDay: 5 }], total: 1 },
       isLoading: false, isError: false,
-    } as any);
+    } as unknown as ReturnType<typeof useBuildingList>);
     render(<BuildingList />);
     fireEvent.doubleClick(screen.getByText("가나빌"));
     expect(push).toHaveBeenCalledWith("/staff/buildings/5");
   });
 
   it("결과 없음 안내", () => {
-    vi.mocked(useBuildingList).mockReturnValue({ data: { rows: [], total: 0 }, isLoading: false, isError: false } as any);
+    vi.mocked(useBuildingList).mockReturnValue({ data: { rows: [], total: 0 }, isLoading: false, isError: false } as unknown as ReturnType<typeof useBuildingList>);
     render(<BuildingList />);
     expect(screen.getByText(/조건에 맞는 건물이 없습니다|등록된 건물이 없습니다/)).toBeInTheDocument();
   });
 
   it("등록 버튼 → /new 이동", () => {
-    vi.mocked(useBuildingList).mockReturnValue({ data: { rows: [], total: 0 }, isLoading: false, isError: false } as any);
+    vi.mocked(useBuildingList).mockReturnValue({ data: { rows: [], total: 0 }, isLoading: false, isError: false } as unknown as ReturnType<typeof useBuildingList>);
     render(<BuildingList />);
     fireEvent.click(screen.getByRole("button", { name: /건물 등록/ }));
     expect(push).toHaveBeenCalledWith("/staff/buildings/new");

@@ -9,7 +9,7 @@ vi.mock("@/lib/supabase/admin", () => ({ createAdminClient }));
 
 import { POST } from "./route";
 
-function serverClient({ user, ctx }: { user: any; ctx: any }) {
+function serverClient({ user, ctx }: { user: unknown; ctx: unknown }) {
   return {
     auth: { getUser: vi.fn().mockResolvedValue({ data: { user }, error: null }) },
     rpc: vi.fn().mockImplementation((name: string) =>
@@ -21,7 +21,7 @@ function serverClient({ user, ctx }: { user: any; ctx: any }) {
     })),
   };
 }
-function req(body: any) {
+function req(body: unknown) {
   return new Request("http://localhost/api/accounts", {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
   });

@@ -27,9 +27,9 @@ function ConnectedMasterEditor({ title, useList, useCreate, useRename, useRemove
     <MasterListEditor
       title={title}
       items={items.map((i) => ({ id: i.id, label: i.label }))}
-      onAdd={async (label) => { if (!orgId) return; try { await create.mutateAsync({ orgId, label }); } catch (e: any) { toast.error(e.message ?? "추가 실패"); } }}
-      onRename={async (id, label) => { try { await rename.mutateAsync({ id, label }); } catch (e: any) { toast.error(e.message ?? "수정 실패"); } }}
-      onDelete={async (id) => { try { await remove.mutateAsync(id); } catch (e: any) { toast.error(e.message ?? "삭제 실패"); } }}
+      onAdd={async (label) => { if (!orgId) return; try { await create.mutateAsync({ orgId, label }); } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); } }}
+      onRename={async (id, label) => { try { await rename.mutateAsync({ id, label }); } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); } }}
+      onDelete={async (id) => { try { await remove.mutateAsync(id); } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); } }}
     />
   );
 }

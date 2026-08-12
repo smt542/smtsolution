@@ -3,7 +3,9 @@ import { createClient } from "@/lib/supabase/client";
 export interface LabelMasterRow { id: number; orgId: number; label: string; sortOrder: number; }
 export interface LabelMasterInput { orgId: number; label: string; sortOrder?: number; }
 
-const toRow = (r: any): LabelMasterRow => ({ id: r.id, orgId: r.org_id, label: r.label, sortOrder: r.sort_order });
+type LabelMasterDbRow = { id: number; org_id: number; label: string; sort_order: number };
+
+const toRow = (r: LabelMasterDbRow): LabelMasterRow => ({ id: r.id, orgId: r.org_id, label: r.label, sortOrder: r.sort_order });
 
 export function makeLabelMasterApis(table: string) {
   return {

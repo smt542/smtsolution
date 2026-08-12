@@ -90,22 +90,22 @@ function setupMocks(types = mockBuildingTypes) {
   vi.mocked(useBuildingTypes).mockReturnValue({
     data: types,
     isLoading: false,
-  } as any);
+  } as unknown as ReturnType<typeof useBuildingTypes>);
 
   vi.mocked(useFeeItems).mockImplementation((typeId: number) => ({
     data: typeId === 1 ? mockFeeItemsType1 : typeId === 2 ? mockFeeItemsType2 : [],
     isLoading: false,
-  } as any));
+  } as unknown as ReturnType<typeof useFeeItems>));
 
-  vi.mocked(useMe).mockReturnValue({ data: { orgId: 10 } } as any);
+  vi.mocked(useMe).mockReturnValue({ data: { orgId: 10 } } as unknown as ReturnType<typeof useMe>);
 
-  vi.mocked(useCreateBuildingType).mockReturnValue(mockMutate as any);
-  vi.mocked(useRenameBuildingType).mockReturnValue(mockMutate as any);
-  vi.mocked(useDeleteBuildingType).mockReturnValue(mockMutate as any);
-  vi.mocked(useCreateFeeItem).mockReturnValue(mockMutate as any);
-  vi.mocked(useUpdateFeeItem).mockReturnValue(mockMutate as any);
-  vi.mocked(useDeleteFeeItem).mockReturnValue(mockMutate as any);
-  vi.mocked(useReorderFeeItems).mockReturnValue(mockMutate as any);
+  vi.mocked(useCreateBuildingType).mockReturnValue(mockMutate as unknown as ReturnType<typeof useCreateBuildingType>);
+  vi.mocked(useRenameBuildingType).mockReturnValue(mockMutate as unknown as ReturnType<typeof useRenameBuildingType>);
+  vi.mocked(useDeleteBuildingType).mockReturnValue(mockMutate as unknown as ReturnType<typeof useDeleteBuildingType>);
+  vi.mocked(useCreateFeeItem).mockReturnValue(mockMutate as unknown as ReturnType<typeof useCreateFeeItem>);
+  vi.mocked(useUpdateFeeItem).mockReturnValue(mockMutate as unknown as ReturnType<typeof useUpdateFeeItem>);
+  vi.mocked(useDeleteFeeItem).mockReturnValue(mockMutate as unknown as ReturnType<typeof useDeleteFeeItem>);
+  vi.mocked(useReorderFeeItems).mockReturnValue(mockMutate as unknown as ReturnType<typeof useReorderFeeItems>);
 }
 
 describe("FeeItemPage", () => {
@@ -192,7 +192,7 @@ describe("FeeItemPage", () => {
   it("double-clicking active type tab label shows a rename input and submitting calls rename mutation", async () => {
     const user = userEvent.setup();
     const renameMutateAsync = vi.fn().mockResolvedValue({});
-    vi.mocked(useRenameBuildingType).mockReturnValue({ mutateAsync: renameMutateAsync, isPending: false } as any);
+    vi.mocked(useRenameBuildingType).mockReturnValue({ mutateAsync: renameMutateAsync, isPending: false } as unknown as ReturnType<typeof useRenameBuildingType>);
 
     render(<FeeItemPage />);
 
@@ -218,7 +218,7 @@ describe("FeeItemPage", () => {
 
   it("clicking × delete button calls delete mutation when >1 type exists", async () => {
     const deleteMutateAsync = vi.fn().mockResolvedValue({});
-    vi.mocked(useDeleteBuildingType).mockReturnValue({ mutateAsync: deleteMutateAsync, isPending: false } as any);
+    vi.mocked(useDeleteBuildingType).mockReturnValue({ mutateAsync: deleteMutateAsync, isPending: false } as unknown as ReturnType<typeof useDeleteBuildingType>);
 
     render(<FeeItemPage />);
 
@@ -236,7 +236,7 @@ describe("FeeItemPage", () => {
   it("clicking × delete button is blocked when only ONE type exists", async () => {
     setupMocks(mockBuildingTypesSingle);
     const deleteMutateAsync = vi.fn().mockResolvedValue({});
-    vi.mocked(useDeleteBuildingType).mockReturnValue({ mutateAsync: deleteMutateAsync, isPending: false } as any);
+    vi.mocked(useDeleteBuildingType).mockReturnValue({ mutateAsync: deleteMutateAsync, isPending: false } as unknown as ReturnType<typeof useDeleteBuildingType>);
 
     render(<FeeItemPage />);
 

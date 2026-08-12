@@ -9,7 +9,7 @@ vi.mock("@/lib/supabase/admin", () => ({ createAdminClient }));
 
 import { PATCH } from "./route";
 
-function ctxRpc(ctx: any, accounts: any[]) {
+function ctxRpc(ctx: unknown, accounts: unknown[]) {
   return vi.fn().mockImplementation((name: string) =>
     name === "get_my_context"
       ? Promise.resolve({ data: ctx ? [ctx] : [], error: null })
@@ -18,7 +18,7 @@ function ctxRpc(ctx: any, accounts: any[]) {
       : Promise.resolve({ error: null }));
 }
 const params = Promise.resolve({ userId: "target-uid" });
-function req(body: any) {
+function req(body: unknown) {
   return new Request("http://localhost/api/accounts/target-uid", {
     method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
   });

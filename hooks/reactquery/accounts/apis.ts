@@ -21,7 +21,14 @@ export interface PermissionInput {
   role: OrgMemberRole; staffType: StaffType; permissions: string[]; roleIds: number[] | null;
 }
 
-const rowToAccount = (r: any): Account => ({
+type AccountRow = {
+  user_id: string; username: string; full_name: string;
+  phone: string | null; phone_sub: string | null;
+  role: OrgMemberRole; staff_type: StaffType; affiliation: string | null;
+  is_active: boolean; permissions: unknown; role_labels: unknown;
+};
+
+const rowToAccount = (r: AccountRow): Account => ({
   userId: r.user_id, username: r.username, fullName: r.full_name,
   phone: r.phone, phoneSub: r.phone_sub, role: r.role, staffType: r.staff_type,
   affiliation: r.affiliation, isActive: r.is_active,

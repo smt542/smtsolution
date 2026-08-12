@@ -21,7 +21,7 @@ export function AccountSettingsTab() {
 
   useEffect(() => {
     if (!config) return;
-    setF({
+    setF.call(undefined, {
       mgmtBank1: config.mgmtBank1 ?? "", mgmtAcct1: config.mgmtAcct1 ?? "", mgmtHolder1: config.mgmtHolder1 ?? "", mgmtPrint1: config.mgmtPrint1,
       mgmtBank2: config.mgmtBank2 ?? "", mgmtAcct2: config.mgmtAcct2 ?? "", mgmtHolder2: config.mgmtHolder2 ?? "", mgmtPrint2: config.mgmtPrint2,
       settleBank: config.settleBank ?? "", settleAcct: config.settleAcct ?? "", settleHolder: config.settleHolder ?? "",
@@ -32,7 +32,7 @@ export function AccountSettingsTab() {
   const save = async () => {
     if (!me?.orgId) { toast.error("인증 정보가 없습니다"); return; }
     try { await upsert.mutateAsync({ orgId: me.orgId, patch: { ...f } }); toast.success("저장되었습니다"); }
-    catch (e: any) { toast.error(e.message ?? "저장 실패"); }
+    catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
   };
 
   return (

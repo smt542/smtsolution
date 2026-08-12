@@ -15,10 +15,10 @@ import {
   useAccounts, useCreateAccount, useUpdateAccountBasic, useUpdatePermissions, useSetActive, useResetPassword,
 } from "@/hooks/reactquery/accounts";
 import { useStaffRoles } from "@/hooks/reactquery/staffRoles";
-import { useMe } from "@/hooks/reactquery/auth";
+import { useMe, type MyContext } from "@/hooks/reactquery/auth";
 
 const mutate = { mutateAsync: vi.fn(), isPending: false };
-const master = {
+const master: MyContext = {
   orgId: 1, role: "org_owner", orgStatus: "active", username: "boss", fullName: "이관리",
   isActive: true, mustChangePassword: false, staffType: "manager_staff", permissions: [],
 };
@@ -27,15 +27,15 @@ const sampleAccounts = [{
   role: "staff", staffType: "manager_staff", affiliation: null, isActive: true, permissions: [], roleLabels: [],
 }];
 
-function setup(me: any = master) {
-  vi.mocked(useMe).mockReturnValue({ data: me } as any);
-  vi.mocked(useAccounts).mockReturnValue({ data: sampleAccounts, isLoading: false } as any);
-  vi.mocked(useStaffRoles).mockReturnValue({ data: [] } as any);
-  vi.mocked(useCreateAccount).mockReturnValue(mutate as any);
-  vi.mocked(useUpdateAccountBasic).mockReturnValue(mutate as any);
-  vi.mocked(useUpdatePermissions).mockReturnValue(mutate as any);
-  vi.mocked(useSetActive).mockReturnValue(mutate as any);
-  vi.mocked(useResetPassword).mockReturnValue(mutate as any);
+function setup(me: MyContext = master) {
+  vi.mocked(useMe).mockReturnValue({ data: me } as unknown as ReturnType<typeof useMe>);
+  vi.mocked(useAccounts).mockReturnValue({ data: sampleAccounts, isLoading: false } as unknown as ReturnType<typeof useAccounts>);
+  vi.mocked(useStaffRoles).mockReturnValue({ data: [] } as unknown as ReturnType<typeof useStaffRoles>);
+  vi.mocked(useCreateAccount).mockReturnValue(mutate as unknown as ReturnType<typeof useCreateAccount>);
+  vi.mocked(useUpdateAccountBasic).mockReturnValue(mutate as unknown as ReturnType<typeof useUpdateAccountBasic>);
+  vi.mocked(useUpdatePermissions).mockReturnValue(mutate as unknown as ReturnType<typeof useUpdatePermissions>);
+  vi.mocked(useSetActive).mockReturnValue(mutate as unknown as ReturnType<typeof useSetActive>);
+  vi.mocked(useResetPassword).mockReturnValue(mutate as unknown as ReturnType<typeof useResetPassword>);
 }
 
 beforeEach(() => { vi.clearAllMocks(); setup(); });

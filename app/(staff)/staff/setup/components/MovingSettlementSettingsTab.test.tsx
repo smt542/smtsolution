@@ -17,13 +17,13 @@ const upsertMut = vi.fn().mockResolvedValue({});
 const createMut = vi.fn().mockResolvedValue({});
 beforeEach(() => {
   vi.clearAllMocks(); upsertMut.mockResolvedValue({}); createMut.mockResolvedValue({});
-  vi.mocked(useMe).mockReturnValue({ data: { orgId: 9 } } as any);
-  vi.mocked(useUpsertSetupConfig).mockReturnValue({ mutateAsync: upsertMut, isPending: false } as any);
-  vi.mocked(useSetupConfig).mockReturnValue({ data: { waterUnitReflect: true, electricUnitReflect: false, vacancyPaymentMode: "auto" } } as any);
-  vi.mocked(sci.useSettlementCheckItems).mockReturnValue({ data: [{ id: 1, orgId: 9, label: "도배", sortOrder: 0 }] } as any);
-  vi.mocked(sci.useCreateSettlementCheckItem).mockReturnValue({ mutateAsync: createMut, isPending: false } as any);
-  vi.mocked(sci.useRenameSettlementCheckItem).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as any);
-  vi.mocked(sci.useDeleteSettlementCheckItem).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as any);
+  vi.mocked(useMe).mockReturnValue({ data: { orgId: 9 } } as unknown as ReturnType<typeof useMe>);
+  vi.mocked(useUpsertSetupConfig).mockReturnValue({ mutateAsync: upsertMut, isPending: false } as unknown as ReturnType<typeof useUpsertSetupConfig>);
+  vi.mocked(useSetupConfig).mockReturnValue({ data: { waterUnitReflect: true, electricUnitReflect: false, vacancyPaymentMode: "auto" } } as unknown as ReturnType<typeof useSetupConfig>);
+  vi.mocked(sci.useSettlementCheckItems).mockReturnValue({ data: [{ id: 1, orgId: 9, label: "도배", sortOrder: 0 }] } as unknown as ReturnType<typeof sci.useSettlementCheckItems>);
+  vi.mocked(sci.useCreateSettlementCheckItem).mockReturnValue({ mutateAsync: createMut, isPending: false } as unknown as ReturnType<typeof sci.useCreateSettlementCheckItem>);
+  vi.mocked(sci.useRenameSettlementCheckItem).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as unknown as ReturnType<typeof sci.useRenameSettlementCheckItem>);
+  vi.mocked(sci.useDeleteSettlementCheckItem).mockReturnValue({ mutateAsync: vi.fn(), isPending: false } as unknown as ReturnType<typeof sci.useDeleteSettlementCheckItem>);
 });
 
 describe("MovingSettlementSettingsTab", () => {

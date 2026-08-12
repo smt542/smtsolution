@@ -70,18 +70,18 @@ const mockAttachments = [
 const mockMutate = { mutateAsync: vi.fn().mockResolvedValue({}), isPending: false };
 
 function setupMocks() {
-  vi.mocked(useVendorCategories).mockReturnValue({ data: mockCategories, isLoading: false } as any);
-  vi.mocked(useVendors).mockReturnValue({ data: mockVendors, isLoading: false } as any);
-  vi.mocked(useVendorAttachments).mockReturnValue({ data: mockAttachments, isLoading: false } as any);
-  vi.mocked(useMe).mockReturnValue({ data: { orgId: 10 } } as any);
-  vi.mocked(useCreateVendorCategory).mockReturnValue(mockMutate as any);
-  vi.mocked(useRenameVendorCategory).mockReturnValue(mockMutate as any);
-  vi.mocked(useDeleteVendorCategory).mockReturnValue(mockMutate as any);
-  vi.mocked(useCreateVendor).mockReturnValue(mockMutate as any);
-  vi.mocked(useUpdateVendor).mockReturnValue(mockMutate as any);
-  vi.mocked(useDeleteVendor).mockReturnValue(mockMutate as any);
-  vi.mocked(useUploadVendorAttachment).mockReturnValue(mockMutate as any);
-  vi.mocked(useDeleteVendorAttachment).mockReturnValue(mockMutate as any);
+  vi.mocked(useVendorCategories).mockReturnValue({ data: mockCategories, isLoading: false } as unknown as ReturnType<typeof useVendorCategories>);
+  vi.mocked(useVendors).mockReturnValue({ data: mockVendors, isLoading: false } as unknown as ReturnType<typeof useVendors>);
+  vi.mocked(useVendorAttachments).mockReturnValue({ data: mockAttachments, isLoading: false } as unknown as ReturnType<typeof useVendorAttachments>);
+  vi.mocked(useMe).mockReturnValue({ data: { orgId: 10 } } as unknown as ReturnType<typeof useMe>);
+  vi.mocked(useCreateVendorCategory).mockReturnValue(mockMutate as unknown as ReturnType<typeof useCreateVendorCategory>);
+  vi.mocked(useRenameVendorCategory).mockReturnValue(mockMutate as unknown as ReturnType<typeof useRenameVendorCategory>);
+  vi.mocked(useDeleteVendorCategory).mockReturnValue(mockMutate as unknown as ReturnType<typeof useDeleteVendorCategory>);
+  vi.mocked(useCreateVendor).mockReturnValue(mockMutate as unknown as ReturnType<typeof useCreateVendor>);
+  vi.mocked(useUpdateVendor).mockReturnValue(mockMutate as unknown as ReturnType<typeof useUpdateVendor>);
+  vi.mocked(useDeleteVendor).mockReturnValue(mockMutate as unknown as ReturnType<typeof useDeleteVendor>);
+  vi.mocked(useUploadVendorAttachment).mockReturnValue(mockMutate as unknown as ReturnType<typeof useUploadVendorAttachment>);
+  vi.mocked(useDeleteVendorAttachment).mockReturnValue(mockMutate as unknown as ReturnType<typeof useDeleteVendorAttachment>);
 }
 
 describe("VendorManagementPage", () => {
@@ -182,7 +182,7 @@ describe("VendorManagementPage", () => {
 
   it("double-clicking a category label shows rename input and submitting calls mutateAsync", async () => {
     const renameMutate = vi.fn().mockResolvedValue({});
-    vi.mocked(useRenameVendorCategory).mockReturnValue({ mutateAsync: renameMutate, isPending: false } as any);
+    vi.mocked(useRenameVendorCategory).mockReturnValue({ mutateAsync: renameMutate, isPending: false } as unknown as ReturnType<typeof useRenameVendorCategory>);
 
     render(<VendorManagementSection />);
 
@@ -211,8 +211,8 @@ describe("VendorManagementPage", () => {
       { id: 20, orgId: 10, name: "중복업체", phone: "02-0000-0001", bankAccount: null, memo: null, categoryId: 1 },
       { id: 21, orgId: 10, name: "중복업체", phone: "02-0000-0002", bankAccount: null, memo: null, categoryId: 2 },
     ];
-    vi.mocked(useVendors).mockReturnValue({ data: dupVendors, isLoading: false } as any);
-    vi.mocked(useVendorAttachments).mockReturnValue({ data: [], isLoading: false } as any);
+    vi.mocked(useVendors).mockReturnValue({ data: dupVendors, isLoading: false } as unknown as ReturnType<typeof useVendors>);
+    vi.mocked(useVendorAttachments).mockReturnValue({ data: [], isLoading: false } as unknown as ReturnType<typeof useVendorAttachments>);
 
     render(<VendorManagementSection />);
 
@@ -231,7 +231,7 @@ describe("VendorManagementPage", () => {
 
   it("vendor delete: opening edit modal, clicking 삭제, confirming calls useDeleteVendor().mutateAsync", async () => {
     const deleteMutate = vi.fn().mockResolvedValue({});
-    vi.mocked(useDeleteVendor).mockReturnValue({ mutateAsync: deleteMutate, isPending: false } as any);
+    vi.mocked(useDeleteVendor).mockReturnValue({ mutateAsync: deleteMutate, isPending: false } as unknown as ReturnType<typeof useDeleteVendor>);
 
     render(<VendorManagementSection />);
 
@@ -258,7 +258,7 @@ describe("VendorManagementPage", () => {
 
   it("category delete: clicking × on a category, confirming calls useDeleteVendorCategory().mutateAsync; × absent on 전체", async () => {
     const deleteCatMutate = vi.fn().mockResolvedValue({});
-    vi.mocked(useDeleteVendorCategory).mockReturnValue({ mutateAsync: deleteCatMutate, isPending: false } as any);
+    vi.mocked(useDeleteVendorCategory).mockReturnValue({ mutateAsync: deleteCatMutate, isPending: false } as unknown as ReturnType<typeof useDeleteVendorCategory>);
 
     render(<VendorManagementSection />);
 

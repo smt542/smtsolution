@@ -3,7 +3,9 @@ import { createClient } from "@/lib/supabase/client";
 export interface StaffRole { id: number; orgId: number; label: string; sortOrder: number; }
 export interface StaffRoleInput { orgId: number; label: string; sortOrder?: number; }
 
-const rowTo = (r: any): StaffRole => ({ id: r.id, orgId: r.org_id, label: r.label, sortOrder: r.sort_order });
+type StaffRoleRow = { id: number; org_id: number; label: string; sort_order: number };
+
+const rowTo = (r: StaffRoleRow): StaffRole => ({ id: r.id, orgId: r.org_id, label: r.label, sortOrder: r.sort_order });
 
 export async function listStaffRoles(): Promise<StaffRole[]> {
   const { data, error } = await createClient()

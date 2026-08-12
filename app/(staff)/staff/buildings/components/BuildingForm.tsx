@@ -43,26 +43,26 @@ export function BuildingForm({ buildingId }: { buildingId?: number }) {
   // 수정 모드: 로드된 데이터 → 폼 상태
   useEffect(() => {
     if (!full) return;
-    setBasic({
+    setBasic.call(undefined, {
       code: full.code, name: full.name, address: full.address ?? "",
       managerUserId: full.managerUserId, meterUserId: full.meterUserId, cleaningUserId: full.cleaningUserId,
     });
-    setFacilities(full.facilities);
-    setMemo(full.memo ?? "");
-    setCustomerNumbers(full.customerNumbers.map((c) => ({
+    setFacilities.call(undefined, full.facilities);
+    setMemo.call(undefined, full.memo ?? "");
+    setCustomerNumbers.call(undefined, full.customerNumbers.map((c) => ({
       _key: rowKey("cn"), id: c.id, kind: c.kind, customerNo: c.customerNo, meterDay: c.meterDay,
       billingBasis: c.billingBasis, printOnBill: c.printOnBill, holderName: c.holderName ?? "",
     })));
     const vendorIds = full.vendors.map((v) => v.id);
     (async () => {
       const atts = await listAttachmentsByEntities("building_vendor", vendorIds);
-      setVendors(full.vendors.map((v) => ({
+      setVendors.call(undefined, full.vendors.map((v) => ({
         _key: rowKey("vn"), id: v.id, vendorType: v.vendorType, name: v.name,
         phone: v.phone ?? "", memo: v.memo ?? "", pendingFiles: [],
         existing: atts.filter((a) => a.entityId === v.id).map((a) => ({ id: a.id, path: a.fileUrl, name: a.fileName })),
       })));
     })();
-    setDirty(false);
+    setDirty.call(undefined, false);
   }, [full]);
 
   const mark = <T,>(setter: (v: T) => void) => (v: T) => { setter(v); setDirty(true); };

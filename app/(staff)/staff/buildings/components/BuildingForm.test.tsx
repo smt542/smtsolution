@@ -8,7 +8,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace }) }));
 
 const saveMutate = vi.fn();
 vi.mock("@/hooks/reactquery/buildings", async () => {
-  const actual = await vi.importActual<any>("@/hooks/reactquery/buildings");
+  const actual = await vi.importActual<typeof import("@/hooks/reactquery/buildings")>("@/hooks/reactquery/buildings");
   return {
     ...actual,
     useSaveBuilding: () => ({ mutateAsync: saveMutate }),
