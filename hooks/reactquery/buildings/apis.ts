@@ -89,6 +89,13 @@ export async function listBuildings(params: BuildingListParams = {}): Promise<Bu
   return { rows, total };
 }
 
+// 전체 건물 목록(드롭다운용) — org 범위는 RLS로 격리
+export async function listAllBuildings(): Promise<Building[]> {
+  const { data, error } = await createClient().from("buildings").select("*").is("deleted_at", null).order("name");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(rowToBuilding);
+}
+
 export interface BuildingFull extends Building {
   customerNumbers: BuildingCustomerNumber[];
   vendors: BuildingVendor[];

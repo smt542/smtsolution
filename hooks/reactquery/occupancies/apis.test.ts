@@ -1,39 +1,38 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+const rpc = vi.fn();
 const from = vi.fn();
-vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ from }) }));
-import { listOccupancies, createOccupancy, updateOccupancy, deleteOccupancy } from "./apis";
+vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ rpc, from }) }));
+vi.mock("@/hooks/reactquery/unitMeters", () => ({ listMetersByUnit: vi.fn(async () => []) }));
+vi.mock("@/hooks/reactquery/unitAccounts", () => ({ listAccountsByUnit: vi.fn(async () => []) }));
+vi.mock("@/hooks/reactquery/leaseContracts", () => ({ getLeaseByOccupancy: vi.fn(async () => null) }));
+vi.mock("@/hooks/reactquery/occupancyHistory", () => ({ listHistoryByUnit: vi.fn(async () => []) }));
+import { listTenants, saveUnitOccupancy } from "./apis";
 beforeEach(() => vi.clearAllMocks());
-describe("occupancies apis", () => {
-  it("listOccupancies: unit_id로 필터, snake→camel 매핑, 소프트삭제 제외", async () => {
-    const resolve = vi.fn().mockResolvedValue({ data: [{ id:1, unit_id:5, tenant_name:"홍길동", payer_name:"홍길순", phone:"010-1234-5678", resident_count:3, vehicle_no:"12가3456", move_in_date:"2024-01-01", move_out_date:null, deposit:"5000000", monthly_rent:"500000", status:"occupied", memo:"비고" }], error:null });
-    const is = vi.fn(() => ({ order: resolve }));
-    const eq = vi.fn(() => ({ is }));
-    from.mockReturnValue({ select: () => ({ eq }) });
-    const r = await listOccupancies(5);
-    expect(eq).toHaveBeenCalledWith("unit_id", 5);
-    expect(is).toHaveBeenCalledWith("deleted_at", null);
-    expect(r[0]).toMatchObject({ id:1, unitId:5, tenantName:"홍길동", payerName:"홍길순", phone:"010-1234-5678", residentCount:3, vehicleNo:"12가3456", moveInDate:"2024-01-01", moveOutDate:null, deposit:5000000, monthlyRent:500000, status:"occupied", memo:"비고" });
+
+describe("occupancies hub apis", () => {
+  it("listTenants: list_tenants RPC + 매핑", async () => {
+    rpc.mockResolvedValue({ data: [{ unit_id:3, occupancy_id:9, unit_no:"101", tenant_name:"김입주", room_type_label:"원룸", resident_count:2, move_in_date:"2026-01-01", is_vacant:false, is_overdue:false }], error:null });
+    const r = await listTenants(7);
+    expect(rpc).toHaveBeenCalledWith("list_tenants", { p_building_id: 7 });
+    expect(r[0]).toMatchObject({ unitId:3, occupancyId:9, unitNo:"101", tenantName:"김입주", roomTypeLabel:"원룸", isVacant:false });
   });
-  it("createOccupancy: unit_id 포함 insert", async () => {
-    const single = vi.fn().mockResolvedValue({ data:{ id:2, unit_id:5, tenant_name:"김철수", status:"occupied" }, error:null });
-    const sel = vi.fn(() => ({ single })); const ins = vi.fn(() => ({ select: sel }));
-    from.mockReturnValue({ insert: ins });
-    await createOccupancy({ unitId:5, tenantName:"김철수" });
-    expect(ins).toHaveBeenCalledWith(expect.objectContaining({ unit_id:5, tenant_name:"김철수" }));
-  });
-  it("updateOccupancy: 부분 업데이트는 제공된 필드만 전송", async () => {
-    const single = vi.fn().mockResolvedValue({ data:{ id:1, unit_id:5, tenant_name:"수정됨", status:"occupied" }, error:null });
-    const sel = vi.fn(() => ({ single })); const eq = vi.fn(() => ({ select: sel })); const upd = vi.fn(() => ({ eq }));
-    from.mockReturnValue({ update: upd });
-    await updateOccupancy(1, { status:"moving_out" });
-    expect(upd).toHaveBeenCalledWith({ status:"moving_out" });
-  });
-  it("deleteOccupancy: deleted_at 세팅(소프트삭제)", async () => {
-    const eq = vi.fn().mockResolvedValue({ error: null });
-    const upd = vi.fn(() => ({ eq }));
-    from.mockReturnValue({ update: upd });
-    await deleteOccupancy(1);
-    expect(upd).toHaveBeenCalledWith(expect.objectContaining({ deleted_at: expect.any(String) }));
-    expect(eq).toHaveBeenCalledWith("id", 1);
+  it("saveUnitOccupancy: RPC payload(snake) + 결과 파싱", async () => {
+    rpc.mockResolvedValue({ data: { unit_id:3, occupancy_id:9 }, error:null });
+    const res = await saveUnitOccupancy({
+      buildingId:7, unitId:null, occupancyId:null,
+      unit:{ unitNo:"101" },
+      occupancy:{ tenantName:"김입주", payerName:"김입주", phone:"010", roomTypeId:1, moveInDate:"2026-01-01", status:"occupied",
+        billingEnabled:true, printEnabled:true, lateFeeEnabled:true, singlePrint:false },
+      meters:[{ utility:"water", meterNo:"M1", customerNo:"C1" }],
+      accounts:[{ kind:"mgmt", bank:"국민", account:"111", holder:"김" }],
+      lease:{ deposit:1000000, monthlyRent:500000, expiryAlert:false },
+    });
+    expect(rpc).toHaveBeenCalledWith("save_unit_occupancy", expect.objectContaining({ p_building_id:7, p_unit_id:null }));
+    const args = rpc.mock.calls[0][1];
+    expect(args.p_occupancy).toMatchObject({ tenant_name:"김입주", phone:"010", room_type_id:1, billing_enabled:true });
+    expect(args.p_meters[0]).toMatchObject({ utility:"water", meter_no:"M1", customer_no:"C1" });
+    expect(args.p_accounts[0]).toMatchObject({ kind:"mgmt", bank:"국민" });
+    expect(args.p_lease).toMatchObject({ deposit:1000000, monthly_rent:500000 });
+    expect(res).toEqual({ unitId:3, occupancyId:9 });
   });
 });
