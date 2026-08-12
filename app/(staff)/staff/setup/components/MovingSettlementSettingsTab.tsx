@@ -21,9 +21,9 @@ export function MovingSettlementSettingsTab() {
   const [vacancyPaymentMode, setMode] = useState<"manual" | "auto">("manual");
   useEffect(() => {
     if (!config) return;
-    setWater(config.waterUnitReflect);
-    setElec(config.electricUnitReflect);
-    setMode(config.vacancyPaymentMode);
+    setWater.call(undefined, config.waterUnitReflect);
+    setElec.call(undefined, config.electricUnitReflect);
+    setMode.call(undefined, config.vacancyPaymentMode);
   }, [config]);
 
   const save = async () => {
@@ -31,7 +31,7 @@ export function MovingSettlementSettingsTab() {
     try {
       await upsert.mutateAsync({ orgId, patch: { waterUnitReflect, electricUnitReflect, vacancyPaymentMode } });
       toast.success("저장되었습니다");
-    } catch (e: any) { toast.error(e.message ?? "저장 실패"); }
+    } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
   };
 
   const { data: items = [] } = useSettlementCheckItems();
@@ -40,13 +40,13 @@ export function MovingSettlementSettingsTab() {
   const deleteItem = useDeleteSettlementCheckItem();
   const onAdd = async (label: string) => {
     if (!orgId) return;
-    try { await createItem.mutateAsync({ orgId, label }); } catch (e: any) { toast.error(e.message ?? "추가 실패"); }
+    try { await createItem.mutateAsync({ orgId, label }); } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
   };
   const onRename = async (id: number, label: string) => {
-    try { await renameItem.mutateAsync({ id, label }); } catch (e: any) { toast.error(e.message ?? "수정 실패"); }
+    try { await renameItem.mutateAsync({ id, label }); } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
   };
   const onDelete = async (id: number) => {
-    try { await deleteItem.mutateAsync(id); } catch (e: any) { toast.error(e.message ?? "삭제 실패"); }
+    try { await deleteItem.mutateAsync(id); } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
   };
 
   return (

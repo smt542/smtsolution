@@ -13,7 +13,9 @@ export type FacilitiesMap = Record<FacilityKey, FacilityFlag>;
 export function emptyFacilities(): FacilitiesMap {
   return Object.fromEntries(FACILITY_KEYS.map((k) => [k, { on: false, memo: "" }])) as FacilitiesMap;
 }
-function toFacilities(raw: any): FacilitiesMap {
+type FacilitiesRow = Partial<Record<FacilityKey, Partial<FacilityFlag> | null>> | null;
+
+function toFacilities(raw: FacilitiesRow): FacilitiesMap {
   const base = emptyFacilities();
   if (raw && typeof raw === "object") {
     for (const k of FACILITY_KEYS) {
@@ -29,7 +31,14 @@ export interface Building {
   managerUserId: string | null; meterUserId: string | null; cleaningUserId: string | null;
   facilities: FacilitiesMap; memo: string | null;
 }
-const rowToBuilding = (r: any): Building => ({
+type BuildingRow = {
+  id: number; org_id: number; code: string; name: string; address: string | null; type_id: number | null;
+  owner_name: string | null; owner_phone: string | null; entrance_password: string | null;
+  manager_user_id: string | null; meter_user_id: string | null; cleaning_user_id: string | null;
+  facilities: FacilitiesRow; memo: string | null;
+};
+
+const rowToBuilding = (r: BuildingRow): Building => ({
   id: r.id, orgId: r.org_id, code: r.code, name: r.name, address: r.address, typeId: r.type_id,
   ownerName: r.owner_name, ownerPhone: r.owner_phone, entrancePassword: r.entrance_password,
   managerUserId: r.manager_user_id, meterUserId: r.meter_user_id, cleaningUserId: r.cleaning_user_id,
@@ -42,7 +51,14 @@ export interface BuildingDirectoryRow {
   managerName: string | null; meterName: string | null; cleaningName: string | null;
   totalUnits: number; occupiedUnits: number; minMeterDay: number | null;
 }
-const rowToDirectory = (r: any): BuildingDirectoryRow => ({
+type BuildingDirectoryDbRow = {
+  id: number; code: string; name: string; address: string | null;
+  manager_user_id: string | null; meter_user_id: string | null; cleaning_user_id: string | null;
+  manager_name: string | null; meter_name: string | null; cleaning_name: string | null;
+  total_units: unknown; occupied_units: unknown; min_meter_day: number | null;
+};
+
+const rowToDirectory = (r: BuildingDirectoryDbRow): BuildingDirectoryRow => ({
   id: r.id, code: r.code, name: r.name, address: r.address,
   managerUserId: r.manager_user_id, meterUserId: r.meter_user_id, cleaningUserId: r.cleaning_user_id,
   managerName: r.manager_name, meterName: r.meter_name, cleaningName: r.cleaning_name,
@@ -103,6 +119,8 @@ export interface SaveBuildingPayload {
   customerNumbers: CustomerNumberPayload[]; vendors: VendorPayload[];
 }
 export interface SaveBuildingResult { buildingId: number; vendors: { clientKey: string; id: number }[]; }
+type SaveBuildingVendorRow = { client_key: string; id: number };
+type SaveBuildingRow = { building_id: number; vendors?: SaveBuildingVendorRow[] | null };
 
 export async function saveBuilding(p: SaveBuildingPayload): Promise<SaveBuildingResult> {
   const { data, error } = await createClient().rpc("save_building", {
@@ -127,8 +145,8 @@ export async function saveBuilding(p: SaveBuildingPayload): Promise<SaveBuilding
   });
   if (error) throw new Error(error.message);
   return {
-    buildingId: (data as any).building_id,
-    vendors: ((data as any).vendors ?? []).map((x: any) => ({ clientKey: x.client_key, id: x.id })),
+    buildingId: (data as SaveBuildingRow).building_id,
+    vendors: ((data as SaveBuildingRow).vendors ?? []).map((x: SaveBuildingVendorRow) => ({ clientKey: x.client_key, id: x.id })),
   };
 }
 

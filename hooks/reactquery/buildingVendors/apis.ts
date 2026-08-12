@@ -13,7 +13,12 @@ export interface BuildingVendor {
   sortOrder: number;
 }
 
-export const toBuildingVendor = (r: any): BuildingVendor => ({
+type BuildingVendorRow = {
+  id: number; building_id: number; vendor_type: VendorType;
+  name: string; phone: string | null; memo: string | null; sort_order: number;
+};
+
+export const toBuildingVendor = (r: BuildingVendorRow): BuildingVendor => ({
   id: r.id, buildingId: r.building_id, vendorType: r.vendor_type,
   name: r.name, phone: r.phone, memo: r.memo, sortOrder: r.sort_order,
 });

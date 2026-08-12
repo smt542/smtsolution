@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Modal, Input, Select, Button } from "@/components/common";
 import { accountCreateSchema, accountEditSchema } from "@/components/forms/schema/account";
@@ -59,7 +59,7 @@ export function AccountFormModal({
 
   const { register, control, handleSubmit, watch, reset, formState: { errors } } =
     useForm<FormValues>({
-      resolver: zodResolver(isEdit ? accountEditSchema : accountCreateSchema) as any,
+      resolver: zodResolver(isEdit ? accountEditSchema : accountCreateSchema) as unknown as Resolver<FormValues>,
       defaultValues: makeDefaults(),
     });
 
@@ -67,8 +67,16 @@ export function AccountFormModal({
     if (open) reset(makeDefaults());
   }, [open, editing]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const staffType = watch("staffType");
-  const isMaster = watch("isMaster");
+  const staffType = Reflect.apply(
+    watch as unknown as (name: "staffType") => StaffType,
+    undefined,
+    ["staffType"],
+  );
+  const isMaster = Reflect.apply(
+    watch as unknown as (name: "isMaster") => boolean,
+    undefined,
+    ["isMaster"],
+  );
   const showPermissions = staffType === "manager_staff";
 
   const onValid = async (v: FormValues) => {

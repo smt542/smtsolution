@@ -33,7 +33,14 @@ export interface OccupancyInput {
   memo?: string;
 }
 
-const rowToOccupancy = (r: any): Occupancy => ({
+type OccupancyRow = {
+  id: number; unit_id: number; tenant_name: string | null; payer_name: string | null;
+  phone: string | null; resident_count: number | null; vehicle_no: string | null;
+  move_in_date: string | null; move_out_date: string | null;
+  deposit: unknown; monthly_rent: unknown; status: OccupancyStatus; memo: string | null;
+};
+
+const rowToOccupancy = (r: OccupancyRow): Occupancy => ({
   id: r.id, unitId: r.unit_id, tenantName: r.tenant_name, payerName: r.payer_name,
   phone: r.phone, residentCount: r.resident_count, vehicleNo: r.vehicle_no,
   moveInDate: r.move_in_date, moveOutDate: r.move_out_date,

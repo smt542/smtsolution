@@ -21,10 +21,10 @@ function AttachmentLoader({ repairId, children }: {
   const del = useDeleteRepairAttachment();
   const onUpload = async (file: File) => {
     if (!orgId) { toast.error("인증 정보가 없습니다"); return; }
-    try { await upload.mutateAsync({ repairId, orgId, file }); } catch (e: any) { toast.error(e.message ?? "업로드 실패"); }
+    try { await upload.mutateAsync({ repairId, orgId, file }); } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
   };
   const onDelete = async (a: RepairAttachment) => {
-    try { await del.mutateAsync({ id: a.id, path: a.fileUrl, repairId }); } catch (e: any) { toast.error(e.message ?? "삭제 실패"); }
+    try { await del.mutateAsync({ id: a.id, path: a.fileUrl, repairId }); } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
   };
   return <>{children({ attachments, onUpload, onDelete })}</>;
 }
@@ -64,9 +64,9 @@ export function LongTermRepairTab() {
         await create.mutateAsync({ orgId, buildingId, ...payload });
       }
       setOpen(false);
-    } catch (e: any) { toast.error(e.message ?? "저장 실패"); }
+    } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
   };
-  const remove = async (id: number) => { try { await del.mutateAsync(id); } catch (e: any) { toast.error(e.message ?? "삭제 실패"); } };
+  const remove = async (id: number) => { try { await del.mutateAsync(id); } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); } };
 
   return (
     <div className="flex flex-col gap-4">

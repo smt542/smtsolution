@@ -25,7 +25,13 @@ export interface UnitInput {
   memo?: string;
 }
 
-const rowToUnit = (r: any): Unit => ({
+type UnitRow = {
+  id: number; building_id: number; unit_no: string; dong: string | null;
+  area_pyeong: unknown; room_count: number | null; elec_customer_no: string | null;
+  elec_meter_no: string | null; water_customer_no: string | null; memo: string | null;
+};
+
+const rowToUnit = (r: UnitRow): Unit => ({
   id: r.id, buildingId: r.building_id, unitNo: r.unit_no, dong: r.dong,
   areaPyeong: r.area_pyeong != null ? Number(r.area_pyeong) : null, roomCount: r.room_count,
   elecCustomerNo: r.elec_customer_no, elecMeterNo: r.elec_meter_no,

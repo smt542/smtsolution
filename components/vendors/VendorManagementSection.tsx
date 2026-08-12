@@ -49,16 +49,16 @@ function AttachmentLoader({
     if (!orgId) { toast.error("인증 정보가 없습니다"); return; }
     try {
       await upload.mutateAsync({ vendorId, orgId, file });
-    } catch (e: any) {
-      toast.error(e.message ?? "파일 업로드 실패");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
     }
   };
 
   const onDelete = async (att: VendorAttachment) => {
     try {
       await deleteAtt.mutateAsync({ id: att.id, path: att.fileUrl, vendorId });
-    } catch (e: any) {
-      toast.error(e.message ?? "파일 삭제 실패");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -110,16 +110,16 @@ export function VendorManagementSection() {
     if (!orgId) { toast.error("인증 정보가 없습니다"); return; }
     try {
       await createCategory.mutateAsync({ orgId, label });
-    } catch (e: any) {
-      toast.error(e.message ?? "구분 추가 실패");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
     }
   };
 
   const handleRenameCategory = async (id: number, label: string) => {
     try {
       await renameCategory.mutateAsync({ id, label });
-    } catch (e: any) {
-      toast.error(e.message ?? "구분 이름 변경 실패");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -127,16 +127,16 @@ export function VendorManagementSection() {
     try {
       await deleteCategory.mutateAsync(id);
       if (selectedCategoryId === id) setSelectedCategoryId(null);
-    } catch (e: any) {
-      toast.error(e.message ?? "구분 삭제 실패");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
     }
   };
 
   const handleDeleteVendor = async (id: number) => {
     try {
       await deleteVendor.mutateAsync(id);
-    } catch (e: any) {
-      toast.error(e.message ?? "업체 삭제 실패");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -148,8 +148,8 @@ export function VendorManagementSection() {
       } else {
         await createVendor.mutateAsync({ ...values, orgId });
       }
-    } catch (e: any) {
-      toast.error(e.message ?? "저장 실패");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
       throw e;
     }
   };

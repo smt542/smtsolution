@@ -20,7 +20,17 @@ export interface SetupConfig {
 }
 export type SetupConfigPatch = Partial<Omit<SetupConfig, "orgId">>;
 
-const rowToConfig = (r: any): SetupConfig => ({
+type SetupConfigRow = {
+  org_id: number; customer_notice: string | null; unit_label_default: "code" | "name";
+  late_fee_merge: boolean; print_utility_cutoff: boolean; print_water_unit_price: boolean;
+  print_billing_period: boolean; print_delta: boolean; show_as_on_main: boolean; cutoff_months: number | null;
+  mgmt_bank1: string | null; mgmt_acct1: string | null; mgmt_holder1: string | null; mgmt_print1: boolean;
+  mgmt_bank2: string | null; mgmt_acct2: string | null; mgmt_holder2: string | null; mgmt_print2: boolean;
+  settle_bank: string | null; settle_acct: string | null; settle_holder: string | null;
+  water_unit_reflect: boolean; electric_unit_reflect: boolean; vacancy_payment_mode: "manual" | "auto";
+};
+
+const rowToConfig = (r: SetupConfigRow): SetupConfig => ({
   orgId: r.org_id, customerNotice: r.customer_notice, unitLabelDefault: r.unit_label_default,
   lateFeeMerge: r.late_fee_merge, printUtilityCutoff: r.print_utility_cutoff,
   printWaterUnitPrice: r.print_water_unit_price, printBillingPeriod: r.print_billing_period,

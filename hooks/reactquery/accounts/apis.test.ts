@@ -33,7 +33,7 @@ describe("accounts apis", () => {
   });
 
   it("createAccount: POST /api/accounts 실패 시 에러 메시지 throw", async () => {
-    global.fetch = vi.fn().mockResolvedValue({ ok: false, json: async () => ({ error: "이미 존재하는 아이디입니다." }) }) as any;
+    global.fetch = vi.fn().mockResolvedValue({ ok: false, json: async () => ({ error: "이미 존재하는 아이디입니다." }) }) as unknown as typeof fetch;
     await expect(createAccount({
       username: "kim", password: "pw", fullName: "김", role: "staff",
       staffType: "manager_staff", permissions: [], roleIds: [],

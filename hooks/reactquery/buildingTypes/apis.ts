@@ -3,7 +3,9 @@ import { createClient } from "@/lib/supabase/client";
 export interface BuildingType { id: number; orgId: number; label: string; sortOrder: number; }
 export interface BuildingTypeInput { orgId: number; label: string; sortOrder?: number; }
 
-const rowToBuildingType = (r: any): BuildingType => ({
+type BuildingTypeRow = { id: number; org_id: number; label: string; sort_order: number };
+
+const rowToBuildingType = (r: BuildingTypeRow): BuildingType => ({
   id: r.id, orgId: r.org_id, label: r.label, sortOrder: r.sort_order,
 });
 

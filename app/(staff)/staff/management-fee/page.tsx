@@ -58,16 +58,16 @@ export default function FeeItemPage() {
     if (!orgId) { toast.error("인증 정보가 없습니다"); return; }
     try {
       await createType.mutateAsync({ orgId, label });
-    } catch (e: any) {
-      toast.error(e.message ?? "유형 추가 실패");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
     }
   };
 
   const handleRenameType = async (id: number, label: string) => {
     try {
       await renameType.mutateAsync({ id, label });
-    } catch (e: any) {
-      toast.error(e.message ?? "유형 이름 변경 실패");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -80,8 +80,8 @@ export default function FeeItemPage() {
       await deleteType.mutateAsync(id);
       // If deleted active tab, reset to first remaining
       if (id === resolvedTypeId) setActiveTypeId(null);
-    } catch (e: any) {
-      toast.error(e.message ?? "유형 삭제 실패");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -92,8 +92,8 @@ export default function FeeItemPage() {
     }
     try {
       await deleteItem.mutateAsync({ id: item.id, isRequired: item.isRequired });
-    } catch (e: any) {
-      toast.error(e.message ?? "항목 삭제 실패");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -110,8 +110,8 @@ export default function FeeItemPage() {
     const orderedIds = [...required, ...optional].map((i) => i.id);
     try {
       await reorderItems.mutateAsync(orderedIds);
-    } catch (e: any) {
-      toast.error(e.message ?? "순서 변경 실패");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -128,8 +128,8 @@ export default function FeeItemPage() {
     const orderedIds = [...required, ...optional].map((i) => i.id);
     try {
       await reorderItems.mutateAsync(orderedIds);
-    } catch (e: any) {
-      toast.error(e.message ?? "순서 변경 실패");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -153,8 +153,8 @@ export default function FeeItemPage() {
           carryOver: values.carryOver ?? false,
         });
       }
-    } catch (e: any) {
-      toast.error(e.message ?? "저장 실패");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
       throw e;
     }
   };

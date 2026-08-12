@@ -3,7 +3,9 @@ import { createClient } from "@/lib/supabase/client";
 export interface QuickMessage { id: number; orgId: number; title: string; body: string; sortOrder: number; }
 export interface QuickMessageInput { orgId: number; title: string; body: string; sortOrder?: number; }
 
-const toRow = (r: any): QuickMessage => ({ id: r.id, orgId: r.org_id, title: r.title, body: r.body, sortOrder: r.sort_order });
+type QuickMessageRow = { id: number; org_id: number; title: string; body: string; sort_order: number };
+
+const toRow = (r: QuickMessageRow): QuickMessage => ({ id: r.id, orgId: r.org_id, title: r.title, body: r.body, sortOrder: r.sort_order });
 
 function inputToRow(i: Partial<QuickMessageInput>): Record<string, unknown> {
   const r: Record<string, unknown> = {};
