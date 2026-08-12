@@ -1,0 +1,109 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const from = vi.fn();
+vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ from }) }));
+
+import { createNotice, deleteNotice, listNotices, updateNotice } from "./apis";
+
+const row = {
+  id: 3,
+  org_id: 9,
+  building_id: null,
+  title: "정기 소독 안내",
+  content: "오전 10시에 소독합니다.",
+  notice_type: "important",
+  published_at: "2026-08-12T01:00:00.000Z",
+  expires_at: null,
+  created_by: null,
+  created_at: "2026-08-11T01:00:00.000Z",
+  updated_at: "2026-08-11T01:00:00.000Z",
+};
+
+beforeEach(() => vi.clearAllMocks());
+
+function listBuilder(result = { data: [row], error: null }) {
+  const builder: Record<string, unknown> = {
+    then: (resolve: (value: typeof result) => unknown) => Promise.resolve(resolve(result)),
+  };
+  for (const method of ["select", "is", "eq", "gt", "lte", "or", "order"]) {
+    builder[method] = vi.fn(() => builder);
+  }
+  return builder as Record<"select" | "is" | "eq" | "gt" | "lte" | "or" | "order", ReturnType<typeof vi.fn>>;
+}
+
+describe("notices apis", () => {
+  it("listNotices: soft delete 제외, 필터 적용, snake_case 매핑", async () => {
+    const builder = listBuilder();
+    from.mockReturnValue(builder);
+
+    const result = await listNotices({ buildingId: null, noticeType: "important", search: "소독" });
+
+    expect(from).toHaveBeenCalledWith("notices");
+    expect(builder.is).toHaveBeenCalledWith("deleted_at", null);
+    expect(builder.is).toHaveBeenCalledWith("building_id", null);
+    expect(builder.eq).toHaveBeenCalledWith("notice_type", "important");
+    expect(builder.or).toHaveBeenCalledWith("title.ilike.%소독%,content.ilike.%소독%");
+    expect(result[0]).toMatchObject({
+      id: 3,
+      orgId: 9,
+      buildingId: null,
+      title: "정기 소독 안내",
+      noticeType: "important",
+    });
+  });
+
+  it("createNotice: 폼 입력을 DB 컬럼으로 변환", async () => {
+    const single = vi.fn().mockResolvedValue({ data: row, error: null });
+    const select = vi.fn(() => ({ single }));
+    const insert = vi.fn(() => ({ select }));
+    from.mockReturnValue({ insert });
+
+    await createNotice({
+      orgId: 9,
+      buildingId: null,
+      title: "정기 소독 안내",
+      content: "오전 10시에 소독합니다.",
+      noticeType: "important",
+      publishedAt: "2026-08-12T01:00:00.000Z",
+      expiresAt: null,
+    });
+
+    expect(insert).toHaveBeenCalledWith({
+      org_id: 9,
+      building_id: null,
+      title: "정기 소독 안내",
+      content: "오전 10시에 소독합니다.",
+      notice_type: "important",
+      published_at: "2026-08-12T01:00:00.000Z",
+      expires_at: null,
+    });
+  });
+
+  it("updateNotice: 제공된 필드만 갱신", async () => {
+    const single = vi.fn().mockResolvedValue({ data: { ...row, title: "변경" }, error: null });
+    const select = vi.fn(() => ({ single }));
+    const activeOnly = vi.fn(() => ({ select }));
+    const eq = vi.fn(() => ({ is: activeOnly }));
+    const update = vi.fn(() => ({ eq }));
+    from.mockReturnValue({ update });
+
+    await updateNotice(3, { title: "변경" });
+
+    expect(update).toHaveBeenCalledWith({ title: "변경" });
+    expect(eq).toHaveBeenCalledWith("id", 3);
+    expect(activeOnly).toHaveBeenCalledWith("deleted_at", null);
+  });
+
+  it("deleteNotice: delete 대신 deleted_at을 갱신", async () => {
+    const activeOnly = vi.fn().mockResolvedValue({ error: null });
+    const eq = vi.fn(() => ({ is: activeOnly }));
+    const update = vi.fn(() => ({ eq }));
+    from.mockReturnValue({ update });
+
+    await deleteNotice(3);
+
+    expect(update).toHaveBeenCalledWith({ deleted_at: expect.any(String) });
+    expect(eq).toHaveBeenCalledWith("id", 3);
+    expect(activeOnly).toHaveBeenCalledWith("deleted_at", null);
+  });
+});
