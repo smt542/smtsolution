@@ -132,8 +132,10 @@ begin
               nullif(p_unit->>'area_pyeong','')::numeric, nullif(p_unit->>'room_count','')::int)
       returning id into v_unit_id;
   else
-    update units set unit_no = coalesce(p_unit->>'unit_no', unit_no), dong = p_unit->>'dong',
-      area_pyeong = nullif(p_unit->>'area_pyeong','')::numeric, room_count = nullif(p_unit->>'room_count','')::int
+    update units set unit_no = coalesce(p_unit->>'unit_no', unit_no),
+      dong = coalesce(p_unit->>'dong', dong),
+      area_pyeong = coalesce(nullif(p_unit->>'area_pyeong','')::numeric, area_pyeong),
+      room_count = coalesce(nullif(p_unit->>'room_count','')::int, room_count)
       where id = v_unit_id and building_id = p_building_id;
     if not found then raise exception 'unit not in building'; end if;
   end if;
