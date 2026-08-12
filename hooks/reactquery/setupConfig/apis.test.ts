@@ -28,7 +28,7 @@ describe("setupConfig apis", () => {
   it("upsertSetupConfig: org_id + 제공 필드만 + onConflict org_id", async () => {
     const single = vi.fn().mockResolvedValue({ data:{ org_id:9, unit_label_default:"code" }, error:null });
     const sel = vi.fn(() => ({ single }));
-    const ups = vi.fn((_row?: unknown, _opts?: unknown) => ({ select: sel }));
+    const ups = vi.fn(() => ({ select: sel }));
     from.mockReturnValue({ upsert: ups });
     await upsertSetupConfig(9, { customerNotice:"x", mgmtPrint1:false });
     expect(ups).toHaveBeenCalledWith(
@@ -36,6 +36,6 @@ describe("setupConfig apis", () => {
       { onConflict: "org_id" }
     );
     // 제공 안 한 필드는 빠져야
-    expect(ups.mock.calls[0][0]).not.toHaveProperty("cutoff_months");
+    expect((ups.mock.calls[0] as unknown[])[0]).not.toHaveProperty("cutoff_months");
   });
 });
