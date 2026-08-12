@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { Button, EmptyState, Spinner } from "@/components/common";
+import { EmptyState, Spinner } from "@/components/common";
 import type { FeeItem } from "@/hooks/reactquery/feeItems";
 
 const ROUNDING_LABEL: Record<string, string> = {

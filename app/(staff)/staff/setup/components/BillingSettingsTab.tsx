@@ -22,15 +22,15 @@ export function BillingSettingsTab() {
 
   useEffect(() => {
     if (!config) return;
-    setCustomerNotice(config.customerNotice ?? "");
-    setUnitLabelDefault(config.unitLabelDefault);
-    setLateFeeMerge(config.lateFeeMerge);
-    setPrintUtilityCutoff(config.printUtilityCutoff);
-    setPrintWaterUnitPrice(config.printWaterUnitPrice);
-    setPrintBillingPeriod(config.printBillingPeriod);
-    setPrintDelta(config.printDelta);
-    setShowAsOnMain(config.showAsOnMain);
-    setCutoffMonths(config.cutoffMonths != null ? String(config.cutoffMonths) : "");
+    setCustomerNotice.call(undefined, config.customerNotice ?? "");
+    setUnitLabelDefault.call(undefined, config.unitLabelDefault);
+    setLateFeeMerge.call(undefined, config.lateFeeMerge);
+    setPrintUtilityCutoff.call(undefined, config.printUtilityCutoff);
+    setPrintWaterUnitPrice.call(undefined, config.printWaterUnitPrice);
+    setPrintBillingPeriod.call(undefined, config.printBillingPeriod);
+    setPrintDelta.call(undefined, config.printDelta);
+    setShowAsOnMain.call(undefined, config.showAsOnMain);
+    setCutoffMonths.call(undefined, config.cutoffMonths != null ? String(config.cutoffMonths) : "");
   }, [config]);
 
   const save = async () => {
@@ -42,7 +42,7 @@ export function BillingSettingsTab() {
         cutoffMonths: cutoffMonths === "" ? undefined : Number(cutoffMonths),
       } });
       toast.success("저장되었습니다");
-    } catch (e: any) { toast.error(e.message ?? "저장 실패"); }
+    } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
   };
 
   return (

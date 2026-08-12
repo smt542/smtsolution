@@ -15,7 +15,13 @@ export interface BuildingCustomerNumber {
   sortOrder: number;
 }
 
-export const toCustomerNumber = (r: any): BuildingCustomerNumber => ({
+type BuildingCustomerNumberRow = {
+  id: number; building_id: number; kind: CustomerNumberKind; customer_no: string;
+  meter_day: number | null; billing_basis: "prev" | "current"; print_on_bill: boolean;
+  holder_name: string | null; sort_order: number;
+};
+
+export const toCustomerNumber = (r: BuildingCustomerNumberRow): BuildingCustomerNumber => ({
   id: r.id, buildingId: r.building_id, kind: r.kind, customerNo: r.customer_no,
   meterDay: r.meter_day, billingBasis: r.billing_basis, printOnBill: r.print_on_bill,
   holderName: r.holder_name, sortOrder: r.sort_order,

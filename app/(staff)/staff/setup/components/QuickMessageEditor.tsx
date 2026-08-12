@@ -33,10 +33,10 @@ export function QuickMessageEditor() {
         await create.mutateAsync({ orgId, title, body });
       }
       setOpen(false);
-    } catch (e: any) { toast.error(e.message ?? "저장 실패"); }
+    } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
   };
   const remove = async (id: number) => {
-    try { await del.mutateAsync(id); } catch (e: any) { toast.error(e.message ?? "삭제 실패"); }
+    try { await del.mutateAsync(id); } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
   };
 
   return (

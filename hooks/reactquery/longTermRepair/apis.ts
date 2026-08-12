@@ -30,7 +30,17 @@ export interface RepairAttachment {
   createdAt: string;
 }
 
-const toRepair = (r: any): LongTermRepair => ({
+type LongTermRepairRow = {
+  id: number; org_id: number; building_id: number; work_name: string;
+  work_date: string | null; amount: number | null; memo: string | null;
+};
+
+type RepairAttachmentRow = {
+  id: number; org_id: number; entity_type: string; entity_id: number;
+  kind: string; file_url: string; file_name: string; created_at: string;
+};
+
+const toRepair = (r: LongTermRepairRow): LongTermRepair => ({
   id: r.id,
   orgId: r.org_id,
   buildingId: r.building_id,
@@ -40,7 +50,7 @@ const toRepair = (r: any): LongTermRepair => ({
   memo: r.memo,
 });
 
-const toAtt = (r: any): RepairAttachment => ({
+const toAtt = (r: RepairAttachmentRow): RepairAttachment => ({
   id: r.id,
   orgId: r.org_id,
   entityType: r.entity_type,

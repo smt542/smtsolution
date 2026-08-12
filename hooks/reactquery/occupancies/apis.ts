@@ -13,7 +13,14 @@ export interface Occupancy {
   status: OccupancyStatus; billingEnabled: boolean; printEnabled: boolean; lateFeeEnabled: boolean;
   singlePrint: boolean; billingNote: string | null; settlementNote: string | null; facilityNote: string | null;
 }
-const rowToOccupancy = (r: any): Occupancy => ({
+type OccupancyRow = {
+  id: number; unit_id: number; tenant_name: string | null; payer_name: string | null;
+  phone: string | null; phone2: string | null; phone3: string | null; vehicle_no: string | null;
+  resident_count: number | null; room_type_id: number | null; move_in_date: string | null; move_out_date: string | null;
+  status: OccupancyStatus; billing_enabled: boolean; print_enabled: boolean; late_fee_enabled: boolean;
+  single_print: boolean; billing_note: string | null; settlement_note: string | null; facility_note: string | null;
+};
+const rowToOccupancy = (r: OccupancyRow): Occupancy => ({
   id: r.id, unitId: r.unit_id, tenantName: r.tenant_name, payerName: r.payer_name,
   phone: r.phone, phone2: r.phone2, phone3: r.phone3, vehicleNo: r.vehicle_no,
   residentCount: r.resident_count, roomTypeId: r.room_type_id, moveInDate: r.move_in_date, moveOutDate: r.move_out_date,
@@ -26,7 +33,12 @@ export interface TenantListRow {
   roomTypeLabel: string | null; residentCount: number | null; moveInDate: string | null;
   isVacant: boolean; isOverdue: boolean;
 }
-const rowToTenant = (r: any): TenantListRow => ({
+type TenantRow = {
+  unit_id: number; occupancy_id: number | null; unit_no: string; tenant_name: string | null;
+  room_type_label: string | null; resident_count: number | null; move_in_date: string | null;
+  is_vacant: boolean; is_overdue: boolean;
+};
+const rowToTenant = (r: TenantRow): TenantListRow => ({
   unitId: r.unit_id, occupancyId: r.occupancy_id, unitNo: r.unit_no, tenantName: r.tenant_name,
   roomTypeLabel: r.room_type_label, residentCount: r.resident_count, moveInDate: r.move_in_date,
   isVacant: r.is_vacant, isOverdue: r.is_overdue,
@@ -72,6 +84,12 @@ export async function getUnitOccupancyFull(unitId: number): Promise<UnitOccupanc
   return { unit: rowToUnit(u), occupancy, meters, accounts, lease, history };
 }
 
+export async function listOccupancies(unitId: number): Promise<Occupancy[]> {
+  const { data, error } = await createClient().from("occupancies").select("*").eq("unit_id", unitId).is("deleted_at", null).order("id");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(rowToOccupancy);
+}
+
 export async function saveUnitOccupancy(p: SaveUnitOccupancyPayload): Promise<SaveUnitOccupancyResult> {
   const { data, error } = await createClient().rpc("save_unit_occupancy", {
     p_building_id: p.buildingId,
@@ -92,5 +110,6 @@ export async function saveUnitOccupancy(p: SaveUnitOccupancyPayload): Promise<Sa
     p_lease: p.lease ? { deposit: p.lease.deposit ?? null, monthly_rent: p.lease.monthlyRent ?? null, start_date: p.lease.startDate ?? null, end_date: p.lease.endDate ?? null, expiry_alert: p.lease.expiryAlert } : null,
   });
   if (error) throw new Error(error.message);
-  return { unitId: (data as any).unit_id, occupancyId: (data as any).occupancy_id };
+  const result = data as { unit_id: number; occupancy_id: number };
+  return { unitId: result.unit_id, occupancyId: result.occupancy_id };
 }

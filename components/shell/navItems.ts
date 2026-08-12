@@ -35,10 +35,11 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "관리비 부과셋팅", href: "/staff/management-fee", module: "billing", built: true, icon: "M4 8h9M18 8h2M4 16h2M11 16h9M15 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM10 16a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" },
       { label: "고지서 발행", href: "/staff/bill", module: "bill_publish", built: false, icon: "M5 3h14a2 2 0 0 1 2 2v16H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM9 8h6M9 12h6M9 16h4" },
       { label: "수납처리", href: "/staff/payment", module: "payment", built: false, icon: "M3 6h18a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2zM3 10h18M7 15h4" },
-      { label: "수납·민원", href: "/staff/receipts", module: "payment", built: true, icon: "M4 5h16v10H9l-4 4z" },
-      { label: "미납관리", href: "/staff/overdue", module: "overdue", built: false, icon: "M12 3a9 9 0 1 1 0 18A9 9 0 0 1 12 3zM12 8v5M12 16h.01" },
+      { label: "민원·AS 접수", href: "/staff/receipts", module: "complaints", built: true, icon: "M4 5h16v10H9l-4 4z" },
+      { label: "미납관리", href: "/staff/overdue", module: "overdue", built: true, icon: "M12 3a9 9 0 1 1 0 18A9 9 0 0 1 12 3zM12 8v5M12 16h.01" },
       { label: "이사정산", href: "/staff/moving-settlement", module: "moving", built: false, icon: "M3 8l9-4 9 4-9 4-9-4zM3 8v8l9 4 9-4V8" },
       { label: "문자·알림톡", href: "/staff/messaging", module: "messaging", built: false, icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" },
+      { label: "공지 관리", href: "/staff/notices", module: "notices", built: true, icon: "M3 11l18-5v12L3 14v-3zM7 15v3a2 2 0 0 0 4 0v-2" },
     ],
   },
   {

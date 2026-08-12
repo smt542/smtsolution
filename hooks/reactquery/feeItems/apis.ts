@@ -9,7 +9,12 @@ export interface FeeItemInput {
   dailyProration: boolean; carryOver: boolean; isRequired: boolean; sortOrder?: number;
 }
 
-const rowToFeeItem = (r: any): FeeItem => ({
+type FeeItemRow = {
+  id: number; org_id: number; type_id: number; name: string; rounding: string;
+  daily_proration: boolean; carry_over: boolean; is_required: boolean; sort_order: number;
+};
+
+const rowToFeeItem = (r: FeeItemRow): FeeItem => ({
   id: r.id, orgId: r.org_id, typeId: r.type_id, name: r.name, rounding: r.rounding,
   dailyProration: r.daily_proration, carryOver: r.carry_over, isRequired: r.is_required, sortOrder: r.sort_order,
 });

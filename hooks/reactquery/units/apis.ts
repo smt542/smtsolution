@@ -7,3 +7,8 @@ export async function getUnit(id: number): Promise<Unit> {
   if (error) throw new Error(error.message);
   return rowToUnit(data);
 }
+export async function listUnits(buildingId: number): Promise<Unit[]> {
+  const { data, error } = await createClient().from("units").select("*").eq("building_id", buildingId).is("deleted_at", null).order("unit_no");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(rowToUnit);
+}

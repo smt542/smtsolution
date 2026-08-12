@@ -12,22 +12,22 @@ const mutateAsync = vi.fn().mockResolvedValue({});
 beforeEach(() => {
   vi.clearAllMocks();
   mutateAsync.mockResolvedValue({});
-  vi.mocked(useMe).mockReturnValue({ data: { orgId: 9 } } as any);
-  vi.mocked(useUpsertSetupConfig).mockReturnValue({ mutateAsync, isPending: false } as any);
+  vi.mocked(useMe).mockReturnValue({ data: { orgId: 9 } } as unknown as ReturnType<typeof useMe>);
+  vi.mocked(useUpsertSetupConfig).mockReturnValue({ mutateAsync, isPending: false } as unknown as ReturnType<typeof useUpsertSetupConfig>);
 });
 
 describe("BillingSettingsTab", () => {
   it("config 값으로 폼 초기화", () => {
     vi.mocked(useSetupConfig).mockReturnValue({ data: { customerNotice:"안내문", unitLabelDefault:"name",
       lateFeeMerge:false, printUtilityCutoff:false, printWaterUnitPrice:false, printBillingPeriod:false,
-      printDelta:false, showAsOnMain:false, cutoffMonths:3 } } as any);
+      printDelta:false, showAsOnMain:false, cutoffMonths:3 } } as unknown as ReturnType<typeof useSetupConfig>);
     render(<BillingSettingsTab />);
     expect(screen.getByLabelText("고객 안내사항")).toHaveValue("안내문");
     expect(screen.getByLabelText("세대 표기 방식 기본값")).toHaveValue("name");
     expect(screen.getByLabelText("단수 개월 수")).toHaveValue(3);
   });
   it("저장: upsert(orgId, patch) + 성공 토스트", async () => {
-    vi.mocked(useSetupConfig).mockReturnValue({ data: null } as any);
+    vi.mocked(useSetupConfig).mockReturnValue({ data: null } as unknown as ReturnType<typeof useSetupConfig>);
     render(<BillingSettingsTab />);
     fireEvent.change(screen.getByLabelText("고객 안내사항"), { target: { value: "새 안내" } });
     fireEvent.click(screen.getByRole("button", { name: "저장" }));

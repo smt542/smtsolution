@@ -1,6 +1,6 @@
 // app/(staff)/staff/setup/page.tsx
 "use client";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useMe } from "@/hooks/reactquery/auth";
 import { canManageSettings } from "@/lib/auth/permissions";
@@ -21,7 +21,7 @@ const TAB_DEFS = [
 type TabKey = (typeof TAB_DEFS)[number]["id"];
 const TAB_IDS: readonly string[] = TAB_DEFS.map((t) => t.id);
 
-export default function SetupPage() {
+function SetupContent() {
   const { data: me } = useMe();
   const sp = useSearchParams();
   const initial = sp.get("tab");
@@ -50,5 +50,13 @@ export default function SetupPage() {
         {tab === "repair" && <LongTermRepairTab />}
       </div>
     </div>
+  );
+}
+
+export default function SetupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SetupContent />
+    </Suspense>
   );
 }

@@ -2,6 +2,11 @@ import { createClient } from "@/lib/supabase/server";
 import { rowsToXlsxBuffer } from "@/lib/export/xlsx";
 
 const VENDOR_NONE = "";
+type BuildingExportRow = {
+  name: string; address: string | null; manager_name: string | null;
+  meter_name: string | null; cleaning_name: string | null; min_meter_day: number | null;
+  total_units: unknown; occupied_units: unknown;
+};
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -19,7 +24,7 @@ export async function GET(request: Request) {
   });
   if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
 
-  let rows = (data ?? []) as any[];
+  let rows = (data ?? []) as BuildingExportRow[];
   // 검침담당자 필터가 있으면 검침일(min_meter_day) 오름차순
   if (meter) rows = [...rows].sort((a, b) => (a.min_meter_day ?? 99) - (b.min_meter_day ?? 99));
 
