@@ -30,6 +30,18 @@
       "page_title": "현장관리자_로그인",
       "keywords": ["login", "로그인", "AuthBoot"],
       "paths": ["login"]
+    },
+    {
+      "page_id": "79e65f81-34ba-4ee8-9469-f067906ac883",
+      "page_title": "현장관리자_프로필_셋업 설정",
+      "keywords": ["setup", "셋업", "셋업·기타 설정", "setupConfig", "고지서 설정", "계좌 설정", "이사정산 설정", "시스템 설정", "settlementCheckItems", "roomTypes", "quickMessages"],
+      "paths": ["setup", "setupConfig", "settlementCheckItems", "roomTypes", "septicVendors", "asCategories", "cleaningTeams", "quickMessages"]
+    },
+    {
+      "page_id": "13d957e6-6280-4421-9058-084bf02d735c",
+      "page_title": "현장관리자_장기수선비 관리",
+      "keywords": ["장기수선비", "longTermRepair", "long_term_repair"],
+      "paths": ["longTermRepair"]
     }
   ]
 }
