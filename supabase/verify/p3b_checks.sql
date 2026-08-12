@@ -15,6 +15,8 @@ end $$;
 do $$ begin
   perform 1 from pg_policies where tablename='occupancies' and policyname='occ_write' and qual like '%current_user_has_module%';
   if not found then raise exception 'occ_write must gate by tenants module'; end if;
+  perform 1 from pg_policies where tablename='units' and policyname='unit_write' and qual like '%current_user_has_module%';
+  if not found then raise exception 'unit_write must gate by tenants module'; end if;
   perform 1 from pg_proc where proname in ('save_unit_occupancy','list_tenants');
   if (select count(*) from pg_proc where proname in ('save_unit_occupancy','list_tenants')) <> 2
     then raise exception 'P3b RPC missing'; end if;
