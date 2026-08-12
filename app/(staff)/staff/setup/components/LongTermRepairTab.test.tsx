@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: () => ({ data: { orgId: 9 } }) }));
-vi.mock("@/hooks/reactquery/buildings", () => ({ useBuildings: () => ({ data: [{ id: 3, name: "행복빌라" }] }) }));
+vi.mock("@/hooks/reactquery/buildings", () => ({ useBuildingList: () => ({ data: { rows: [{ id: 3, name: "행복빌라" }], total: 1 } }) }));
 const createMut = vi.fn().mockResolvedValue({});
 const repairsMock = vi.fn();
 vi.mock("@/hooks/reactquery/longTermRepair", () => ({
