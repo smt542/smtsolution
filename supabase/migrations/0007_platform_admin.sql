@@ -1,8 +1,8 @@
--- 0006_platform_admin.sql
+-- 0007_platform_admin.sql
 -- 통합관리자(platform-admin) 콘솔 — Scope A(cross-org SaaS 운영자).
 -- 발송 크레딧(포인트) 원장 + platform_admin cross-org RLS 예외(기존 staff 정책 불변).
 -- 의존: P0(organizations, org_members, profiles, auth.users, my_org_ids, org_member_role/org_status enum).
--- ⚠ 순번: 0004(P3a)·0005(공지/AS) 다음. 라이브 적용은 0004 머지 후 0004→0005→0006 순.
+-- ⚠ 순번: 0004(P3a 건물)·0005(공지/AS)·0006(P3b 입주자) 다음 = 0007. 적용 순서 0004→0005→0006→0007.
 
 -- ── platform_admin 판별 (security definer: org_members RLS 우회, my_org_ids와 동일 패턴) ──
 create or replace function current_user_is_platform_admin() returns boolean
