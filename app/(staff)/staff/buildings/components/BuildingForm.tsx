@@ -8,7 +8,9 @@ import {
   useSaveBuilding, useStaffOptions, useBuildingFull, emptyFacilities, type FacilitiesMap, type SaveBuildingPayload,
 } from "@/hooks/reactquery/buildings";
 import { uploadAttachment, deleteAttachment, listAttachmentsByEntities } from "@/hooks/reactquery/attachments";
-import { buildingBasicSchema, customerNumberSchema, buildingVendorSchema } from "@/components/forms/schema/building";
+import { buildingBasicSchema } from "@/components/forms/schema/building";
+import { customerNumberSchema } from "@/components/forms/schema/buildingCustomerNumber";
+import { buildingVendorSchema } from "@/components/forms/schema/buildingVendor";
 import { BasicInfoSection, type BasicInfoValue } from "./sections/BasicInfoSection";
 import { FacilitiesSection } from "./sections/FacilitiesSection";
 import { CustomerNumberSection, type CustomerRow } from "./sections/CustomerNumberSection";
