@@ -1,5 +1,5 @@
 export const occupancyKeys = {
   all: ["occupancies"] as const,
-  list: (unitId: number) => ["occupancies", "list", unitId] as const,
-  one: (id: number) => ["occupancies", id] as const,
+  tenantList: (buildingId: number) => ["occupancies", "tenants", buildingId] as const,
+  full: (unitId: number) => ["occupancies", "full", unitId] as const,
 };
