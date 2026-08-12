@@ -42,6 +42,36 @@
       "page_title": "현장관리자_장기수선비 관리",
       "keywords": ["장기수선비", "longTermRepair", "long_term_repair"],
       "paths": ["longTermRepair"]
+    },
+    {
+      "page_id": "c041ad89-6415-4e94-bfd3-227244754c72",
+      "page_title": "현장관리자_미납 관리",
+      "keywords": ["overdue", "미납", "미납관리", "채권"],
+      "paths": ["overdue"]
+    },
+    {
+      "page_id": "9a75b820-b59e-43b0-a7ae-58eac3590b4d",
+      "page_title": "통합관리자_포인트 관리",
+      "keywords": ["PointChargeModal", "포인트 관리 화면"],
+      "paths": ["points"]
+    },
+    {
+      "page_id": "284ff719-88fb-4f55-9636-461b31a60e1b",
+      "page_title": "통합관리자_청구 관리",
+      "keywords": ["충전 결제 내역", "청구 관리 화면"],
+      "paths": ["billing"]
+    },
+    {
+      "page_id": "f6285bde-d230-438e-bb85-8882790c05fd",
+      "page_title": "통합관리자_테넌트 관리",
+      "keywords": ["테넌트 관리", "조직 상태"],
+      "paths": ["organizations"]
+    },
+    {
+      "page_id": "a1e8d169-5cf5-4e23-9e55-9839ba3f6ed8",
+      "page_title": "통합관리자_대시보드",
+      "keywords": ["통합관리자 대시보드", "플랫폼 현황", "총 포인트 잔액"],
+      "paths": []
     }
   ]
 }
