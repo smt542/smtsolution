@@ -51,8 +51,8 @@ function patchToRow(patch: SetupConfigPatch): Record<string, unknown> {
   return r;
 }
 
-export async function getSetupConfig(): Promise<SetupConfig | null> {
-  const { data, error } = await createClient().from("setup_config").select("*").maybeSingle();
+export async function getSetupConfig(orgId: number): Promise<SetupConfig | null> {
+  const { data, error } = await createClient().from("setup_config").select("*").eq("org_id", orgId).maybeSingle();
   if (error) throw new Error(error.message);
   return data ? rowToConfig(data) : null;
 }

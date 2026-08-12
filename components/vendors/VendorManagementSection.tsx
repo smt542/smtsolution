@@ -155,7 +155,7 @@ export function VendorManagementSection() {
   };
 
   return (
-    <div className="flex min-h-screen gap-6 p-6">
+    <div className="flex gap-6">
       {/* Left sidebar */}
       <aside className="w-52 shrink-0">
         <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-t4">구분</h2>
@@ -173,7 +173,7 @@ export function VendorManagementSection() {
       {/* Right content */}
       <div className="flex flex-1 flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-extrabold text-t1">업체 관리</h1>
+          <h2 className="text-2xl font-extrabold text-t1">업체 관리</h2>
           <Button variant="primary" onClick={openCreate}>
             ＋ 업체 추가
           </Button>

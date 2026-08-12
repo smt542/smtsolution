@@ -15,7 +15,7 @@ const EMPTY: F = { mgmtBank1:"", mgmtAcct1:"", mgmtHolder1:"", mgmtPrint1:true,
 
 export function AccountSettingsTab() {
   const { data: me } = useMe();
-  const { data: config } = useSetupConfig();
+  const { data: config } = useSetupConfig(me?.orgId);
   const upsert = useUpsertSetupConfig();
   const [f, setF] = useState<F>(EMPTY);
 

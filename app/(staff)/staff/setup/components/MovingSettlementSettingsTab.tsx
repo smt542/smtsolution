@@ -13,7 +13,7 @@ import { MasterListEditor } from "./MasterListEditor";
 export function MovingSettlementSettingsTab() {
   const { data: me } = useMe();
   const orgId = me?.orgId;
-  const { data: config } = useSetupConfig();
+  const { data: config } = useSetupConfig(me?.orgId);
   const upsert = useUpsertSetupConfig();
 
   const [waterUnitReflect, setWater] = useState(false);

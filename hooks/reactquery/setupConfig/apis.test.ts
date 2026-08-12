@@ -7,8 +7,8 @@ beforeEach(() => vi.clearAllMocks());
 describe("setupConfig apis", () => {
   it("getSetupConfig: 행 없으면 null", async () => {
     const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
-    from.mockReturnValue({ select: () => ({ maybeSingle }) });
-    expect(await getSetupConfig()).toBeNull();
+    from.mockReturnValue({ select: () => ({ eq: () => ({ maybeSingle }) }) });
+    expect(await getSetupConfig(9)).toBeNull();
   });
 
   it("getSetupConfig: snake→camel(불리언·계좌·enum)", async () => {
@@ -19,8 +19,8 @@ describe("setupConfig apis", () => {
       settle_bank:"신한", settle_acct:"222", settle_holder:"관리단", water_unit_reflect:true,
       electric_unit_reflect:false, vacancy_payment_mode:"auto" };
     const maybeSingle = vi.fn().mockResolvedValue({ data: row, error: null });
-    from.mockReturnValue({ select: () => ({ maybeSingle }) });
-    const c = await getSetupConfig();
+    from.mockReturnValue({ select: () => ({ eq: () => ({ maybeSingle }) }) });
+    const c = await getSetupConfig(9);
     expect(c).toMatchObject({ orgId:9, unitLabelDefault:"name", lateFeeMerge:true, printWaterUnitPrice:true,
       cutoffMonths:3, mgmtBank1:"국민", mgmtPrint2:false, settleHolder:"관리단", vacancyPaymentMode:"auto" });
   });

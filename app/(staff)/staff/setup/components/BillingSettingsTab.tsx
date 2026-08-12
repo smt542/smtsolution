@@ -7,7 +7,7 @@ import { useSetupConfig, useUpsertSetupConfig } from "@/hooks/reactquery/setupCo
 
 export function BillingSettingsTab() {
   const { data: me } = useMe();
-  const { data: config } = useSetupConfig();
+  const { data: config } = useSetupConfig(me?.orgId);
   const upsert = useUpsertSetupConfig();
 
   const [customerNotice, setCustomerNotice] = useState("");
