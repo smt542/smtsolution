@@ -1,13 +1,16 @@
+// components/common/DataTable.tsx
 import React from "react";
 
 export function DataTable({
   columns,
   rows,
   onRowClick,
+  onRowDoubleClick,
 }: {
   columns: { key: string; label: string }[];
   rows: Record<string, React.ReactNode>[];
   onRowClick?: (row: Record<string, React.ReactNode>) => void;
+  onRowDoubleClick?: (row: Record<string, React.ReactNode>) => void;
 }) {
   return (
     <div className="overflow-x-auto rounded-xl border border-line">
@@ -15,10 +18,7 @@ export function DataTable({
         <thead>
           <tr className="border-b border-line bg-bg">
             {columns.map((col) => (
-              <th
-                key={col.key}
-                className="px-4 py-3 text-left font-bold text-t2"
-              >
+              <th key={col.key} className="px-4 py-3 text-left font-bold text-t2">
                 {col.label}
               </th>
             ))}
@@ -29,8 +29,9 @@ export function DataTable({
             <tr
               key={i}
               onClick={() => onRowClick?.(row)}
+              onDoubleClick={() => onRowDoubleClick?.(row)}
               className={`border-b border-line last:border-0 ${
-                onRowClick ? "cursor-pointer hover:bg-bg" : ""
+                onRowClick || onRowDoubleClick ? "cursor-pointer hover:bg-bg" : ""
               }`}
             >
               {columns.map((col) => (

@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { toast } from "sonner";
 import { Button, Select, Input, Modal } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
-import { useBuildings } from "@/hooks/reactquery/buildings";
+import { useBuildingList } from "@/hooks/reactquery/buildings";
 import {
   useRepairsByBuilding, useCreateRepair, useUpdateRepair, useDeleteRepair,
   useRepairAttachments, useUploadRepairAttachment, useDeleteRepairAttachment,
@@ -32,7 +32,8 @@ function AttachmentLoader({ repairId, children }: {
 export function LongTermRepairTab() {
   const { data: me } = useMe();
   const orgId = me?.orgId;
-  const { data: buildings = [] } = useBuildings();
+  const { data: buildingList } = useBuildingList({ pageSize: 1000 });
+  const buildings = buildingList?.rows ?? [];
   const [buildingId, setBuildingId] = useState<number | null>(null);
   const { data: repairs = [] } = useRepairsByBuilding(buildingId ?? undefined);
 
