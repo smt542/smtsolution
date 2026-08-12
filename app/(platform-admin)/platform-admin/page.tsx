@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Spinner } from "@/components/common";
-import { usePlatformOverview } from "@/hooks/reactquery/platform";
+import { usePlatformOverview, usePlatformOrganizations, usePlatformTransactions } from "@/hooks/reactquery/platform";
 import { DataScopeNotice, PageHeader, QueryError } from "../_components/PageElements";
 
 const SUMMARY_CARDS = [
@@ -31,6 +31,9 @@ const SUMMARY_CARDS = [
 
 export default function PlatformDashboardPage() {
   const { data, isPending, isError, refetch } = usePlatformOverview();
+  const orgs = usePlatformOrganizations();
+  const recent = usePlatformTransactions({ type: "charge" });
+  const totalBalance = (orgs.data ?? []).reduce((s, o) => s + o.pointBalance, 0);
 
   return (
     <div className="mx-auto w-full max-w-7xl p-5 sm:p-6 lg:p-8">
@@ -50,7 +53,7 @@ export default function PlatformDashboardPage() {
         ) : isError || !data ? (
           <QueryError onRetry={() => void refetch()} />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {SUMMARY_CARDS.map((card) => (
               <article key={card.key} className="rounded-2xl border border-line bg-surface p-5 shadow-card">
                 <div className="flex items-start justify-between gap-4">
@@ -67,6 +70,11 @@ export default function PlatformDashboardPage() {
                 </div>
               </article>
             ))}
+            <article className="rounded-2xl border border-line bg-surface p-5 shadow-card">
+              <div className="text-sm font-bold text-t2">총 포인트 잔액</div>
+              <div className="mt-3 text-[32px] font-extrabold leading-none text-t1 num">{totalBalance.toLocaleString("ko-KR")}</div>
+              <div className="mt-2 text-xs text-t4">전 조직 합계(sum of points)</div>
+            </article>
           </div>
         )}
       </section>
@@ -77,6 +85,19 @@ export default function PlatformDashboardPage() {
           <QuickLink href="/platform-admin/organizations" title="조직 목록 보기" description="조직 상태와 건물·계정 수 확인" />
           <QuickLink href="/platform-admin/accounts" title="계정 목록 보기" description="조직별 소속 계정과 활성 상태 확인" />
         </div>
+      </section>
+
+      <section className="mt-6 rounded-2xl border border-line bg-surface p-5 shadow-card">
+        <h3 className="text-base font-extrabold text-t1">최근 충전</h3>
+        <ul className="mt-4 divide-y divide-line">
+          {(recent.data ?? []).slice(0, 5).map((t) => (
+            <li key={t.id} className="flex items-center justify-between py-3 text-sm">
+              <span className="font-bold text-t1">{t.organizationName}</span>
+              <span className="text-green font-bold num">+{t.points.toLocaleString("ko-KR")} P</span>
+            </li>
+          ))}
+          {(recent.data ?? []).length === 0 && <li className="py-3 text-sm text-t3">최근 충전 내역이 없습니다.</li>}
+        </ul>
       </section>
     </div>
   );
