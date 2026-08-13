@@ -97,7 +97,7 @@ export default function FeeItemPage() {
 
   const handleConfirm = async () => {
     if (!buildingId) return;
-    if (Object.keys(chargeDrafts).length > 0) { toast.info("먼저 [저장]으로 임시 저장해 주세요."); return; }
+    if (Object.keys(chargeDrafts).length > 0 || Object.keys(noteDrafts).length > 0) { toast.info("먼저 [저장]으로 임시 저장해 주세요."); return; }
     if (!window.confirm("당월 관리비를 부과 확정하시겠습니까?")) return;
     try {
       const r = await confirmBilling.mutateAsync({ buildingId, period });
@@ -105,8 +105,8 @@ export default function FeeItemPage() {
     } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
   };
 
-  const selectBuilding = (v: string) => { setBuildingId(v ? Number(v) : null); setChargeDrafts({}); };
-  const changeMonth = (v: string) => { setPeriod(fromMonthInput(v)); setChargeDrafts({}); };
+  const selectBuilding = (v: string) => { setBuildingId(v ? Number(v) : null); setChargeDrafts({}); setNoteDrafts({}); };
+  const changeMonth = (v: string) => { setPeriod(fromMonthInput(v)); setChargeDrafts({}); setNoteDrafts({}); };
 
   return (
     <div className="flex min-h-screen flex-col gap-5 p-4 sm:p-6">
