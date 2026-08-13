@@ -5,7 +5,7 @@ import { Button, Select, EmptyState, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useBuildingTypes } from "@/hooks/reactquery/buildingTypes";
-import { useBilling, useSaveBillingCharges } from "@/hooks/reactquery/billing";
+import { useBilling, useSaveBillingCharges, useConfirmBilling } from "@/hooks/reactquery/billing";
 import { hasModule } from "@/lib/auth/permissions";
 import { pivotBillingRows, type BillingUnitRow } from "@/lib/billing/pivot";
 import { currentPeriod, toMonthInput, fromMonthInput } from "@/lib/billing/period";
@@ -26,6 +26,7 @@ export default function FeeItemPage() {
 
   const billingQuery = useBilling(buildingId, period);
   const saveCharges = useSaveBillingCharges();
+  const confirmBilling = useConfirmBilling();
 
   if (me === undefined) return null;
   if (!hasModule(me, "billing")) {
@@ -78,6 +79,16 @@ export default function FeeItemPage() {
     }
   };
 
+  const handleConfirm = async () => {
+    if (!buildingId) return;
+    if (Object.keys(chargeDrafts).length > 0) { toast.info("먼저 [저장]으로 임시 저장해 주세요."); return; }
+    if (!window.confirm("당월 관리비를 부과 확정하시겠습니까?")) return;
+    try {
+      const r = await confirmBilling.mutateAsync({ buildingId, period });
+      toast.success(`부과가 확정되었습니다. (${r.unitCount}세대 · ${r.total.toLocaleString("ko-KR")}원)`);
+    } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
+  };
+
   const selectBuilding = (v: string) => { setBuildingId(v ? Number(v) : null); setChargeDrafts({}); };
   const changeMonth = (v: string) => { setPeriod(fromMonthInput(v)); setChargeDrafts({}); };
 
@@ -121,7 +132,10 @@ export default function FeeItemPage() {
             <Button variant="ghost" onClick={handleSave} disabled={!buildingId || saveCharges.isPending}>
               저장
             </Button>
-            {/* [부과 확정] 버튼은 Task 11에서 추가 */}
+            <Button variant="primary" onClick={handleConfirm}
+              disabled={!buildingId || confirmBilling.isPending || units.length === 0}>
+              부과 확정
+            </Button>
           </div>
         </div>
       </section>

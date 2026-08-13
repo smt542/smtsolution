@@ -23,7 +23,7 @@ const mut = { mutateAsync: vi.fn().mockResolvedValue({}), isPending: false };
 import FeeItemPage from "./page";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
-import { useBilling, useSaveBillingCharges } from "@/hooks/reactquery/billing";
+import { useBilling, useSaveBillingCharges, useConfirmBilling } from "@/hooks/reactquery/billing";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -50,6 +50,23 @@ describe("management-fee page (billing)", () => {
     expect(screen.getByRole("button", { name: "항목관리" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "저장" })).toBeInTheDocument();
   });
+  it("부과 확정 클릭 시 확인 후 confirmBilling 호출", async () => {
+    const confirmMut = { mutateAsync: vi.fn().mockResolvedValue({ unitCount: 2, total: 60000 }), isPending: false };
+    vi.mocked(useConfirmBilling).mockReturnValue(confirmMut as never);
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.mocked(useBilling).mockReturnValue({ data: [{
+      unitId: 1, unitNo: "101", dong: null, roomTypeLabel: "원룸", occupancyId: 5, tenantName: "홍",
+      moveInDate: "2026-07-01", isVacant: false, feeItemId: 10, feeItemName: "관리비",
+      carryOver: false, dailyProration: false, rounding: "round", isRequired: true, sortOrder: 0,
+      charged: true, amount: 30000, confirmedAt: null, confirmedByName: null, totalAmount: null,
+      billingNote: null, unitNotice: null, isDirty: false,
+    }], isLoading: false, error: null } as never);
+    render(<FeeItemPage />);
+    fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
+    fireEvent.click(screen.getByRole("button", { name: "부과 확정" }));
+    await waitFor(() => expect(confirmMut.mutateAsync).toHaveBeenCalledWith({ buildingId: 7, period: expect.any(String) }));
+  });
+
   it("건물 선택 시 세대 그리드 로드(useBilling)", async () => {
     vi.mocked(useBilling).mockReturnValue({ data: [{
       unit_id: 1, unit_no: "101", dong: null, room_type_label: "원룸", occupancy_id: 5, tenant_name: "홍",
