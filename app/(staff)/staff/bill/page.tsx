@@ -1,235 +1,215 @@
 "use client";
-
-import { useMemo, useState } from "react";
-import { Button, EmptyState, Select, Spinner } from "@/components/common";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Select } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
-import { useBilling } from "@/hooks/reactquery/billing";
+import { hasModule } from "@/lib/auth/permissions";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
-import { hasModule } from "@/lib/auth/permissions";
-import { buildBillDocument } from "@/lib/billing/billDoc";
-import { currentPeriod, fromMonthInput, toMonthInput } from "@/lib/billing/period";
-import { pivotBillingRows } from "@/lib/billing/pivot";
-import { BillPreview } from "./components/BillPreview";
+import {
+  useBillTargets,
+  useBillDocuments,
+  useIssueBills,
+} from "@/hooks/reactquery/bill";
+import {
+  currentPeriod,
+  toMonthInput,
+  fromMonthInput,
+} from "@/lib/billing/period";
+import { printableAccounts } from "@/lib/bill/document";
+import type { MessageRecipient } from "@/lib/messaging/preset";
+import { MessagingModal } from "@/app/(staff)/staff/messaging/components/MessagingModal";
 import { BillTargetTable } from "./components/BillTargetTable";
+import { BillPrintView } from "./components/BillPrintView";
 
 export default function BillPage() {
   const { data: me } = useMe();
-  const buildingsQuery = useBuildings();
+  const { data: buildings } = useBuildings();
+  const { data: config } = useSetupConfig(me?.orgId);
+
   const [buildingId, setBuildingId] = useState<number | null>(null);
   const [period, setPeriod] = useState(() => currentPeriod());
-  const [issueType, setIssueType] = useState<"giro" | "a4">("a4");
-  const [labelMode, setLabelMode] = useState<"code" | "name">("name");
+  const [labelMode, setLabelMode] = useState<"code" | "name">("code");
   const [dueDate, setDueDate] = useState("");
-  const [cutoff, setCutoff] = useState<Set<number>>(new Set());
-  const [selected, setSelected] = useState<Set<number>>(new Set());
-  const billingQuery = useBilling(buildingId, period);
-  const { data: setup } = useSetupConfig(me?.orgId);
+  const [selected, setSelected] = useState<number[]>([]);
+  const [sendOpen, setSendOpen] = useState(false);
 
-  const buildings = buildingsQuery.data ?? [];
-  const { units, columns } = useMemo(
-    () => pivotBillingRows(billingQuery.data ?? []),
-    [billingQuery.data],
-  );
-  const confirmedUnits = useMemo(
-    () => units.filter((unit) => unit.confirmedAt != null && !unit.isVacant),
-    [units],
-  );
-  const docs = useMemo(
-    () =>
-      confirmedUnits
-        .filter((unit) => selected.has(unit.unitId))
-        .map((unit) =>
-          buildBillDocument(unit, columns, setup ?? null, period, {
-            labelMode,
-            dueDate: dueDate || undefined,
-            showCutoff: cutoff.has(unit.unitId),
-          }),
-        ),
-    [columns, confirmedUnits, cutoff, dueDate, labelMode, period, selected, setup],
-  );
-
-  const selectBuilding = (value: string) => {
-    setBuildingId(value ? Number(value) : null);
-    setSelected(new Set());
-    setCutoff(new Set());
-  };
-
-  const changePeriod = (value: string) => {
-    setPeriod(fromMonthInput(value));
-    setSelected(new Set());
-    setCutoff(new Set());
-  };
-
-  const toggle = (unitId: number) => {
-    setSelected((current) => {
-      const next = new Set(current);
-      if (next.has(unitId)) next.delete(unitId);
-      else next.add(unitId);
-      return next;
-    });
-  };
-
-  const toggleAll = (checked: boolean) => {
-    setSelected(checked ? new Set(confirmedUnits.map((unit) => unit.unitId)) : new Set());
-  };
-
-  const toggleCutoff = (checked: boolean) => {
-    setCutoff((current) => {
-      const next = new Set(current);
-      for (const unit of confirmedUnits) {
-        if (!selected.has(unit.unitId)) continue;
-        if (checked) next.add(unit.unitId);
-        else next.delete(unit.unitId);
-      }
-      return next;
-    });
-  };
-
-  const allSelectedShowCutoff = docs.length > 0 && docs.every((doc) => doc.showCutoff);
-
-  if (me === undefined) return null;
-  if (!hasModule(me, "bill_publish")) {
-    return (
-      <div className="p-6">
-        <EmptyState message="이 화면에 접근할 권한이 없습니다. (고지서 발행 권한 필요)" />
-      </div>
-    );
+  // setup 기본 세대표기 반영(렌더-중 이전값 비교 — set-state-in-effect 회피)
+  const [prevDefault, setPrevDefault] = useState<string | undefined>(undefined);
+  if (config && config.unitLabelDefault !== prevDefault) {
+    setPrevDefault(config.unitLabelDefault as string);
+    setLabelMode(config.unitLabelDefault as "code" | "name");
   }
 
+  const { data: targets, isLoading } = useBillTargets(buildingId, period);
+  const { data: documents } = useBillDocuments(buildingId, period, selected);
+  const issue = useIssueBills();
+
+  if (!hasModule(me, "bill_publish")) {
+    return <div className="p-8 text-t2">접근할 권한이 없습니다.</div>;
+  }
+
+  const building =
+    (buildings ?? []).find((b) => b.id === buildingId) ?? null;
+  const rows = targets ?? [];
+
+  const toggle = (id: number) =>
+    setSelected((s) =>
+      s.includes(id) ? s.filter((x) => x !== id) : [...s, id],
+    );
+  const toggleAll = () =>
+    setSelected((s) =>
+      s.length === rows.length ? [] : rows.map((r) => r.unitId),
+    );
+
+  const onPrint = async () => {
+    if (!buildingId || selected.length === 0) return;
+    if (!documents || documents.length === 0) {
+      toast.error(
+        "고지서 데이터를 불러오는 중입니다. 잠시 후 다시 시도해 주세요.",
+      );
+      return;
+    }
+    try {
+      await issue.mutateAsync({
+        buildingId,
+        period,
+        unitIds: selected,
+        issueType: "a4",
+        dueDate: dueDate || null,
+        unitLabelMode: labelMode,
+      });
+      window.print();
+      toast.success(`${selected.length}세대 고지서를 발행했습니다`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "발행에 실패했습니다.");
+    }
+  };
+
+  const recipients: MessageRecipient[] = rows
+    .filter((t) => selected.includes(t.unitId))
+    .map((t) => ({
+      name: t.tenantName,
+      phone: t.phone,
+      unitNo: t.unitNo,
+      kind: "tenant" as const,
+      ref: {
+        occupancyId: t.occupancyId ?? undefined,
+        buildingId: buildingId ?? undefined,
+      },
+    }));
+
   return (
-    <div className="bill-workspace space-y-4 p-6">
-      <div className="no-print space-y-4">
-        <h1 className="text-lg font-bold text-t1">고지서 발행·출력</h1>
+    <>
+    <div className="flex flex-col gap-4 p-6 print:hidden">
+      <h1 className="text-lg font-extrabold text-t1">고지서 발행</h1>
 
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="w-full sm:w-64">
-            <span className="mb-1.5 block text-xs font-bold text-t2">건물 선택</span>
-            <Select
-              aria-label="건물 선택"
-              value={buildingId?.toString() ?? ""}
-              onChange={(event) => selectBuilding(event.target.value)}
-              disabled={buildingsQuery.isLoading}
-              options={[
-                {
-                  value: "",
-                  label: buildingsQuery.isLoading
-                    ? "건물 불러오는 중"
-                    : "건물을 선택해 주세요",
-                },
-                ...buildings.map((building) => ({
-                  value: String(building.id),
-                  label: building.name,
-                })),
-              ]}
-            />
-          </label>
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="flex flex-col gap-1 text-sm text-t2">
+          건물
+          <Select
+            aria-label="건물 선택"
+            value={buildingId != null ? String(buildingId) : ""}
+            onChange={(e) => {
+              setBuildingId(e.target.value ? Number(e.target.value) : null);
+              setSelected([]);
+            }}
+            options={[
+              { value: "", label: "건물을 선택해 주세요" },
+              ...(buildings ?? []).map((b) => ({
+                value: String(b.id),
+                label: b.name,
+              })),
+            ]}
+          />
+        </label>
 
-          <label className="w-40">
-            <span className="mb-1.5 block text-xs font-bold text-t2">부과월</span>
-            <input
-              type="month"
-              aria-label="부과월"
-              className="h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm"
-              value={toMonthInput(period)}
-              max={toMonthInput(currentPeriod())}
-              onChange={(event) => event.target.value && changePeriod(event.target.value)}
-            />
-          </label>
-        </div>
+        <label className="flex flex-col gap-1 text-sm text-t2">
+          부과월
+          <input
+            type="month"
+            aria-label="부과월"
+            value={toMonthInput(period)}
+            onChange={(e) => {
+              setPeriod(fromMonthInput(e.target.value));
+              setSelected([]);
+            }}
+            className="rounded-xl border border-line bg-surface p-2 text-sm text-t1"
+          />
+        </label>
 
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="w-36">
-            <span className="mb-1.5 block text-xs font-bold text-t2">발행유형</span>
-            <Select
-              aria-label="발행유형"
-              value={issueType}
-              onChange={(event) => setIssueType(event.target.value as "giro" | "a4")}
-              options={[
-                { value: "a4", label: "A4" },
-                { value: "giro", label: "지로" },
-              ]}
-            />
-          </label>
+        <label className="flex flex-col gap-1 text-sm text-t2">
+          세대 표기
+          <Select
+            aria-label="세대 표기"
+            value={labelMode}
+            onChange={(e) => setLabelMode(e.target.value as "code" | "name")}
+            options={[
+              { value: "code", label: "코드출력" },
+              { value: "name", label: "이름출력" },
+            ]}
+          />
+        </label>
 
-          <label className="w-36">
-            <span className="mb-1.5 block text-xs font-bold text-t2">세대 표기</span>
-            <Select
-              aria-label="세대 표기"
-              value={labelMode}
-              onChange={(event) => setLabelMode(event.target.value as "code" | "name")}
-              options={[
-                { value: "name", label: "이름 출력" },
-                { value: "code", label: "코드 출력" },
-              ]}
-            />
-          </label>
-
-          <label className="w-44">
-            <span className="mb-1.5 block text-xs font-bold text-t2">납기일</span>
-            <input
-              type="date"
-              aria-label="납기일"
-              className="h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm"
-              value={dueDate}
-              onChange={(event) => setDueDate(event.target.value)}
-            />
-          </label>
-
-          <label className="flex h-11 items-center gap-2 rounded-xl border border-line bg-surface px-3 text-sm text-t2">
-            <input
-              type="checkbox"
-              aria-label="단전·단수 예고 표시"
-              checked={allSelectedShowCutoff}
-              disabled={docs.length === 0}
-              onChange={(event) => toggleCutoff(event.target.checked)}
-            />
-            단전·단수 예고 표시
-          </label>
-
-          <Button onClick={() => window.print()} disabled={docs.length === 0}>
-            인쇄
-          </Button>
-        </div>
-
-        {buildingId == null && <EmptyState message="건물을 선택해 주세요." />}
-
-        {buildingId != null && billingQuery.isLoading && (
-          <div className="py-10 text-center">
-            <Spinner />
-          </div>
-        )}
-
-        {buildingId != null && billingQuery.error != null && (
-          <EmptyState message="불러오지 못했습니다. 다시 시도해 주세요." />
-        )}
-
-        {buildingId != null &&
-          !billingQuery.isLoading &&
-          billingQuery.error == null &&
-          confirmedUnits.length === 0 && (
-            <EmptyState message="부과 확정된 세대가 없습니다. 부과 확정 화면에서 먼저 확정해 주세요." />
-          )}
-
-        {buildingId != null &&
-          !billingQuery.isLoading &&
-          billingQuery.error == null &&
-          confirmedUnits.length > 0 && (
-            <div className="overflow-x-auto">
-              <BillTargetTable
-                units={confirmedUnits}
-                columns={columns}
-                period={period}
-                labelMode={labelMode}
-                selected={selected}
-                onToggle={toggle}
-                onToggleAll={toggleAll}
-              />
-            </div>
-          )}
+        <label className="flex flex-col gap-1 text-sm text-t2">
+          납기일
+          <input
+            type="date"
+            aria-label="납기일"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            className="rounded-xl border border-line bg-surface p-2 text-sm text-t1"
+          />
+        </label>
       </div>
 
-      {docs.length > 0 && <BillPreview docs={docs} issueType={issueType} />}
+      {!buildingId ? (
+        <div className="rounded-xl border border-line bg-surface p-8 text-center text-t2">
+          건물을 선택해 주세요.
+        </div>
+      ) : isLoading ? (
+        <div className="p-8 text-center text-t2">불러오는 중…</div>
+      ) : (
+        <BillTargetTable
+          targets={rows}
+          unitLabelMode={labelMode}
+          selected={selected}
+          onToggle={toggle}
+          onToggleAll={toggleAll}
+          onPrint={onPrint}
+          onSend={() => setSendOpen(true)}
+        />
+      )}
+
+      <MessagingModal
+        open={sendOpen}
+        onClose={() => setSendOpen(false)}
+        preset={{
+          context: "고지서",
+          channel: "sms",
+          body: "관리비 고지서를 안내드립니다.",
+          recipients,
+        }}
+        onSent={(r) => {
+          setSendOpen(false);
+          toast.success(`${r.count}세대에 발송(stub)했습니다`);
+        }}
+      />
     </div>
+
+      {/* 인쇄 뷰는 print:hidden 컨테이너 밖(형제)에 둔다 — 인쇄 시 화면 UI만 숨기고 이 뷰만 노출.
+          안에 두면 조상의 display:none이 print:block을 덮어 A4가 백지로 인쇄됨. */}
+      {building && documents && (
+        <BillPrintView
+          buildingName={building.name}
+          period={period}
+          unitLabelMode={labelMode}
+          dueDate={dueDate || null}
+          accounts={printableAccounts(config)}
+          customerNotice={config?.customerNotice ?? null}
+          documents={documents}
+        />
+      )}
+    </>
   );
 }

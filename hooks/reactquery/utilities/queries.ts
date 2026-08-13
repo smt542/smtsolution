@@ -1,5 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { listUtilityRows, listMeterHistory, type UtilityType } from "./apis";
+import {
+  getUtilityConfirmation,
+  listMeterHistory,
+  listUtilityPrices,
+  listUtilityRows,
+  type UtilityType,
+} from "./apis";
 import { utilityKeys } from "./keys";
 
 export function useUtilityRows(
@@ -23,5 +29,28 @@ export function useMeterHistory(
     queryKey: utilityKeys.history(unitId, utilityType, period),
     queryFn: () => listMeterHistory(unitId as number, utilityType, period),
     enabled: unitId !== null,
+  });
+}
+
+export function useUtilityPrices(
+  buildingId: number | null,
+  utilityType: UtilityType,
+) {
+  return useQuery({
+    queryKey: utilityKeys.prices(buildingId, utilityType),
+    queryFn: () => listUtilityPrices(buildingId as number, utilityType),
+    enabled: buildingId !== null,
+  });
+}
+
+export function useUtilityConfirmation(
+  buildingId: number | null,
+  utilityType: UtilityType,
+  period: string,
+) {
+  return useQuery({
+    queryKey: utilityKeys.confirmation(buildingId, utilityType, period),
+    queryFn: () => getUtilityConfirmation(buildingId as number, utilityType, period),
+    enabled: buildingId !== null,
   });
 }

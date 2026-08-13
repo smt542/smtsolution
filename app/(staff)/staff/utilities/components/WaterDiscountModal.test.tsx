@@ -27,6 +27,8 @@ const baseRow: UtilityUnitRow = {
   previousReading: null,
   currentReading: null,
   usage: null,
+  unitPrice: null,
+  resolvedUnitPrice: null,
   automaticCharge: null,
   manualCharge: null,
   note: null,

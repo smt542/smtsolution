@@ -7,7 +7,10 @@ import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import {
   useUtilityRows,
+  useUtilityConfirmation,
+  useConfirmUtilities,
   useSaveMeterReadings,
+  ledgerDownloadUrl,
   type UtilityType,
   type UtilityUnitRow,
 } from "@/hooks/reactquery/utilities";
@@ -16,6 +19,7 @@ import { UtilityHistoryModal } from "./components/UtilityHistoryModal";
 import { WaterDiscountModal } from "./components/WaterDiscountModal";
 import { UtilitySummaryCards } from "./components/UtilitySummaryCards";
 import { UtilityTable, type UtilityDraft } from "./components/UtilityTable";
+import { UnitPriceModal } from "./components/UnitPriceModal";
 
 const TYPE_TABS: { id: UtilityType; label: string }[] = [
   { id: "water", label: "수도" },
@@ -60,8 +64,11 @@ export default function UtilitiesPage() {
   const [drafts, setDrafts] = useState<Record<string, UtilityDraft>>({});
   const [historyRow, setHistoryRow] = useState<UtilityUnitRow | null>(null);
   const [discountRow, setDiscountRow] = useState<UtilityUnitRow | null>(null);
+  const [priceModalOpen, setPriceModalOpen] = useState(false);
   const period = `${referenceDate.slice(0, 7)}-01`;
   const rowsQuery = useUtilityRows(buildingId, utilityType, period);
+  const confirmationQuery = useUtilityConfirmation(buildingId, utilityType, period);
+  const confirmUtilities = useConfirmUtilities();
   const saveMeter = useSaveMeterReadings();
 
   if (me === undefined) return null;
@@ -80,6 +87,7 @@ export default function UtilitiesPage() {
     rows.map((row) => [row.unitId, drafts[`${scopeKey}:${row.unitId}`] ?? initialDraft(row)]),
   );
   const activeRows = rows.filter((row) => !isVacant(row));
+  const confirmation = confirmationQuery.data ?? null;
   const completed = activeRows.filter(
     (row) => scopedDrafts[row.unitId].currentReading.trim() !== "",
   ).length;
@@ -106,12 +114,14 @@ export default function UtilitiesPage() {
     setBuildingId(value ? Number(value) : null);
     setHistoryRow(null);
     setDiscountRow(null);
+    setPriceModalOpen(false);
   };
 
   const selectUtilityType = (id: string) => {
     setUtilityType(id as UtilityType);
     setHistoryRow(null);
     setDiscountRow(null);
+    setPriceModalOpen(false);
   };
 
   const openHistory = () => {
@@ -146,9 +156,39 @@ export default function UtilitiesPage() {
     );
   };
 
+  const confirmCharges = async () => {
+    if (buildingId === null) return;
+    const verb = confirmation ? "재확정" : "부과 확정";
+    if (!window.confirm(
+      `당월 ${TYPE_LABELS[utilityType]} 요금을 ${verb}하시겠습니까? 부과 계산으로 저장된 요금이 확정됩니다.`,
+    )) return;
+
+    try {
+      const result = await confirmUtilities.mutateAsync({
+        buildingId,
+        utilityType,
+        period,
+      });
+      toast.success(
+        `부과가 확정되었습니다. (${result.unitCount}세대 · ${result.total.toLocaleString("ko-KR")}원)`,
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "부과 확정에 실패했습니다.");
+    }
+  };
+
   const exportLedger = () => {
-    // TODO(export): [건물명]_[유형]_검침대장_YYYYMM.xlsx 서버 생성 API를 연결한다.
-    toast.info("검침대장 엑셀 내보내기는 서버 생성 기능 연동 후 제공됩니다.");
+    if (buildingId === null) return;
+    try {
+      const anchor = document.createElement("a");
+      anchor.href = ledgerDownloadUrl(buildingId, utilityType, period);
+      anchor.download = "";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+    } catch {
+      toast.error("검침대장을 다운로드하지 못했습니다.");
+    }
   };
 
   return (
@@ -182,6 +222,13 @@ export default function UtilitiesPage() {
           </div>
 
           <div className="flex w-full flex-wrap justify-end gap-2 xl:w-auto">
+            <Button
+              variant="ghost"
+              onClick={() => setPriceModalOpen(true)}
+              disabled={!buildingId}
+            >
+              단가 설정
+            </Button>
             <Button variant="ghost" onClick={openHistory} disabled={!buildingId}>
               6개월 이력
             </Button>
@@ -193,6 +240,12 @@ export default function UtilitiesPage() {
               disabled={!buildingId || rows.length === 0 || saveMeter.isPending}
             >
               부과 계산
+            </Button>
+            <Button
+              onClick={confirmCharges}
+              disabled={!buildingId || activeRows.length === 0 || confirmUtilities.isPending}
+            >
+              {confirmation ? "재확정" : "부과 확정"}
             </Button>
           </div>
         </div>
@@ -262,6 +315,35 @@ export default function UtilitiesPage() {
             expectedCharge={expectedCharge}
           />
 
+          {confirmationQuery.error && (
+            <section className="rounded-xl border border-red/20 bg-red-t px-4 py-3 text-sm font-semibold text-red">
+              확정 상태를 불러오지 못했습니다. 다시 조회해 주세요.
+            </section>
+          )}
+
+          {confirmation && (
+            <section className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface px-4 py-3 shadow-card">
+              <span className="rounded-lg bg-green-t px-2.5 py-1 text-xs font-bold text-green">
+                부과 확정
+              </span>
+              <span className="text-xs font-semibold text-t3">
+                {new Date(confirmation.confirmedAt).toLocaleString("ko-KR")} ·{" "}
+                {confirmation.confirmedByName ?? "확정자 미상"} ·{" "}
+                {confirmation.unitCount.toLocaleString("ko-KR")}세대 ·{" "}
+                {confirmation.totalAmount.toLocaleString("ko-KR")}원
+              </span>
+            </section>
+          )}
+
+          {confirmation?.isDirty && (
+            <div
+              role="alert"
+              className="rounded-xl border border-amber/30 bg-amber-t px-4 py-3 text-sm font-bold text-amber"
+            >
+              확정 후 수정됨 — 재확정 필요
+            </div>
+          )}
+
           <section className="overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
             <div className="flex flex-wrap items-center gap-2 border-b border-line2 px-5 py-4">
               <h2 className="text-base font-extrabold text-t1">
@@ -275,7 +357,7 @@ export default function UtilitiesPage() {
               </span>
             </div>
             <div className="border-b border-line2 bg-amber-t px-5 py-3 text-xs font-semibold text-t2">
-              검침 데이터 연동 전으로 입력값은 임시 표시됩니다. 할인·고정 사용량·층별 단가는 후속 설정 연동 후 계산됩니다.
+              단가가 설정된 세대는 부과 계산 시 자동요금이 저장됩니다. 단가를 해석할 수 없는 세대는 수동 입력 요금을 사용해 주세요.
             </div>
             <UtilityTable
               rows={rows}
@@ -304,6 +386,13 @@ export default function UtilitiesPage() {
           onClose={() => setDiscountRow(null)}
         />
       )}
+
+      <UnitPriceModal
+        open={priceModalOpen}
+        buildingId={buildingId}
+        utilityType={utilityType}
+        onClose={() => setPriceModalOpen(false)}
+      />
     </div>
   );
 }

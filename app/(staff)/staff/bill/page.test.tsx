@@ -1,169 +1,65 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { BillingFlatRow } from "@/lib/billing/pivot";
+// app/(staff)/staff/bill/page.test.tsx
+import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
-vi.mock("@/hooks/reactquery/buildings", () => ({ useBuildings: vi.fn() }));
-vi.mock("@/hooks/reactquery/billing", () => ({ useBilling: vi.fn() }));
-vi.mock("@/hooks/reactquery/setupConfig", () => ({ useSetupConfig: vi.fn() }));
-vi.mock("./components/BillPreview", () => ({
-  BillPreview: ({
-    docs,
-    issueType,
-  }: {
-    docs: Array<{ title: string; dueDate: string | null; showCutoff: boolean }>;
-    issueType: string;
-  }) => (
-    <div data-testid="bill-preview" data-issue-type={issueType}>
-      {docs.map((doc) => `${doc.title}:${doc.dueDate}:${doc.showCutoff}`).join(",")}
-    </div>
-  ),
+vi.mock("@/hooks/reactquery/buildings", () => ({
+  useBuildings: () => ({ data: [{ id: 7, name: "행복빌라" }] }),
 }));
+vi.mock("@/hooks/reactquery/setupConfig", () => ({
+  useSetupConfig: () => ({
+    data: { unitLabelDefault: "code", mgmtPrint1: false, mgmtPrint2: false },
+  }),
+}));
+vi.mock("@/hooks/reactquery/bill", () => ({
+  useBillTargets: vi.fn(() => ({ data: [], isLoading: false })),
+  useBillDocuments: () => ({ data: [] }),
+  useIssueBills: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}));
+vi.mock(
+  "@/app/(staff)/staff/messaging/components/MessagingModal",
+  () => ({ MessagingModal: () => null }),
+);
 
 import BillPage from "./page";
 import { useMe } from "@/hooks/reactquery/auth";
-import { useBuildings } from "@/hooks/reactquery/buildings";
-import { useBilling } from "@/hooks/reactquery/billing";
-import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
+import { useBillTargets } from "@/hooks/reactquery/bill";
 
-const baseRow: BillingFlatRow = {
-  unitId: 1,
-  unitNo: "101",
-  dong: null,
-  roomTypeLabel: null,
-  occupancyId: 5,
-  tenantName: "홍길동",
-  moveInDate: "2026-07-01",
-  isVacant: false,
-  feeItemId: 10,
-  feeItemName: "관리비",
-  carryOver: false,
-  dailyProration: false,
-  rounding: "raw",
-  isRequired: true,
-  sortOrder: 0,
-  charged: true,
-  amount: 30_000,
-  confirmedAt: "2026-08-13T00:00:00Z",
-  confirmedByName: "관리자",
-  totalAmount: 30_000,
-  billingNote: null,
-  unitNotice: null,
-  isDirty: false,
-};
+beforeEach(() => vi.clearAllMocks());
 
-function billingRow(overrides: Partial<BillingFlatRow> = {}): BillingFlatRow {
-  return { ...baseRow, ...overrides };
-}
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  vi.mocked(useMe).mockReturnValue({
-    data: { orgId: 10, role: "org_owner", permissions: [] },
-  } as never);
-  vi.mocked(useBuildings).mockReturnValue({
-    data: [
-      { id: 7, name: "가나빌", typeId: 1 },
-      { id: 8, name: "다라빌", typeId: 2 },
-    ],
-    isLoading: false,
-  } as never);
-  vi.mocked(useBilling).mockReturnValue({ data: [], isLoading: false, error: null } as never);
-  vi.mocked(useSetupConfig).mockReturnValue({ data: null } as never);
-});
-
-describe("bill page", () => {
-  it("bill_publish 권한이 없으면 접근을 차단한다", () => {
+describe("BillPage 게이트", () => {
+  it("bill_publish 권한 없으면 차단", () => {
     vi.mocked(useMe).mockReturnValue({
-      data: { orgId: 10, role: "staff", permissions: [] },
-    } as never);
-
+      data: { role: "field_staff", permissions: [] },
+    } as unknown as ReturnType<typeof useMe>);
     render(<BillPage />);
-
-    expect(screen.getByText(/권한이 없습니다/)).toBeInTheDocument();
+    expect(screen.getByText(/접근할 권한이 없습니다/)).toBeInTheDocument();
   });
 
-  it("권한이 있고 건물을 선택하지 않았으면 선택 안내를 표시한다", () => {
+  it("권한 있으면 건물 선택 노출·초기 안내", () => {
+    vi.mocked(useMe).mockReturnValue({
+      data: { role: "staff", orgId: 1, permissions: ["bill_publish"] },
+    } as unknown as ReturnType<typeof useMe>);
     render(<BillPage />);
-
-    expect(screen.getByLabelText("건물 선택")).toBeInTheDocument();
-    expect(screen.getByText("건물을 선택해 주세요.", { selector: "p" })).toBeInTheDocument();
+    // select option + empty-state div 모두 "건물을 선택" 텍스트 포함 — 하나 이상 존재하면 충분
+    expect(screen.getAllByText(/건물을 선택/).length).toBeGreaterThan(0);
   });
 
-  it("건물을 선택했지만 부과 확정 세대가 없으면 미확정 안내를 표시한다", () => {
-    vi.mocked(useBilling).mockReturnValue({
-      data: [billingRow({ confirmedAt: null, confirmedByName: null, totalAmount: null })],
+  it("건물 선택 후 확정 세대 없으면 빈 안내", () => {
+    vi.mocked(useMe).mockReturnValue({
+      data: { role: "staff", orgId: 1, permissions: ["bill_publish"] },
+    } as unknown as ReturnType<typeof useMe>);
+    vi.mocked(useBillTargets).mockReturnValue({
+      data: [],
       isLoading: false,
-      error: null,
-    } as never);
-
+    } as unknown as ReturnType<typeof useBillTargets>);
     render(<BillPage />);
-    fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
-
-    expect(screen.getByText(/부과 확정된 세대가 없습니다/)).toBeInTheDocument();
-  });
-
-  it("확정되었고 공실이 아닌 세대만 발행 대상 목록에 표시한다", () => {
-    vi.mocked(useBilling).mockReturnValue({
-      data: [
-        billingRow(),
-        billingRow({ unitId: 2, unitNo: "102", tenantName: "미확정", confirmedAt: null }),
-        billingRow({ unitId: 3, unitNo: "103", tenantName: "공실", isVacant: true }),
-      ],
-      isLoading: false,
-      error: null,
-    } as never);
-
-    render(<BillPage />);
-    fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
-
-    expect(screen.getByLabelText("101 선택")).toBeInTheDocument();
-    expect(screen.queryByLabelText("102 선택")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("103 선택")).not.toBeInTheDocument();
-  });
-
-  it("건물이나 부과월을 변경하면 세대 선택을 초기화한다", () => {
-    vi.mocked(useBilling).mockReturnValue({
-      data: [billingRow()],
-      isLoading: false,
-      error: null,
-    } as never);
-
-    render(<BillPage />);
-    const buildingSelect = screen.getByLabelText("건물 선택");
-    fireEvent.change(buildingSelect, { target: { value: "7" } });
-    fireEvent.click(screen.getByLabelText("101 선택"));
-    expect(screen.getByLabelText("101 선택")).toBeChecked();
-
-    fireEvent.change(buildingSelect, { target: { value: "8" } });
-    expect(screen.getByLabelText("101 선택")).not.toBeChecked();
-
-    fireEvent.click(screen.getByLabelText("101 선택"));
-    fireEvent.change(screen.getByLabelText("부과월"), { target: { value: "2026-07" } });
-    expect(screen.getByLabelText("101 선택")).not.toBeChecked();
-  });
-
-  it("출력 옵션을 문서에 반영하고 인쇄 버튼으로 브라우저 인쇄를 호출한다", () => {
-    vi.mocked(useBilling).mockReturnValue({
-      data: [billingRow()],
-      isLoading: false,
-      error: null,
-    } as never);
-    const printSpy = vi.spyOn(window, "print").mockImplementation(() => {});
-
-    render(<BillPage />);
-    fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
-    fireEvent.click(screen.getByLabelText("전체 선택"));
-    fireEvent.change(screen.getByLabelText("발행유형"), { target: { value: "giro" } });
-    fireEvent.change(screen.getByLabelText("세대 표기"), { target: { value: "code" } });
-    fireEvent.change(screen.getByLabelText("납기일"), { target: { value: "2026-08-25" } });
-    fireEvent.click(screen.getByLabelText("단전·단수 예고 표시"));
-
-    expect(screen.getByTestId("bill-preview")).toHaveAttribute("data-issue-type", "giro");
-    expect(screen.getByTestId("bill-preview")).toHaveTextContent("101:2026-08-25:true");
-
-    fireEvent.click(screen.getByRole("button", { name: "인쇄" }));
-    expect(printSpy).toHaveBeenCalledOnce();
-    printSpy.mockRestore();
+    // 건물 선택
+    fireEvent.change(screen.getByRole("combobox", { name: /건물 선택/ }), {
+      target: { value: "7" },
+    });
+    expect(
+      screen.getByText(/부과 확정된 세대가 없습니다/),
+    ).toBeInTheDocument();
   });
 });

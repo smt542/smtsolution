@@ -9,6 +9,11 @@ vi.mock("@/hooks/reactquery/utilities", () => ({
   useSaveMeterReadings: vi.fn(),
   useSaveWaterDiscount: vi.fn(),
   useDeleteWaterDiscount: vi.fn(),
+  useUtilityPrices: vi.fn(),
+  useSaveUtilityUnitPrices: vi.fn(),
+  useUtilityConfirmation: vi.fn(),
+  useConfirmUtilities: vi.fn(),
+  ledgerDownloadUrl: vi.fn(),
 }));
 vi.mock("sonner", () => ({
   toast: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
@@ -23,6 +28,11 @@ import {
   useSaveMeterReadings,
   useSaveWaterDiscount,
   useDeleteWaterDiscount,
+  useUtilityPrices,
+  useSaveUtilityUnitPrices,
+  useUtilityConfirmation,
+  useConfirmUtilities,
+  ledgerDownloadUrl,
 } from "@/hooks/reactquery/utilities";
 import UtilitiesPage from "./page";
 
@@ -45,7 +55,9 @@ const rows = [
     previousReading: null,
     currentReading: null,
     usage: null,
-    automaticCharge: null,
+    unitPrice: 850,
+    resolvedUnitPrice: 900,
+    automaticCharge: 12000,
     manualCharge: null,
     note: null,
     processedAt: null,
@@ -65,6 +77,8 @@ const rows = [
     previousReading: null,
     currentReading: null,
     usage: null,
+    unitPrice: null,
+    resolvedUnitPrice: null,
     automaticCharge: null,
     manualCharge: null,
     note: null,
@@ -76,6 +90,7 @@ const rows = [
 
 const refetch = vi.fn();
 const saveMutate = vi.fn();
+const confirmMutateAsync = vi.fn();
 
 function setupMocks() {
   vi.mocked(useMe).mockReturnValue({
@@ -110,6 +125,33 @@ function setupMocks() {
     mutate: vi.fn(),
     isPending: false,
   } as never);
+  vi.mocked(useUtilityPrices).mockReturnValue({
+    data: [{
+      customerNumberId: 11,
+      customerNo: "W-APT",
+      holderName: "주택용",
+      sortOrder: 0,
+      unitPrice: 850,
+    }],
+    isLoading: false,
+    error: null,
+  } as never);
+  vi.mocked(useSaveUtilityUnitPrices).mockReturnValue({
+    mutate: vi.fn(),
+    isPending: false,
+  } as never);
+  vi.mocked(useUtilityConfirmation).mockReturnValue({
+    data: null,
+    isLoading: false,
+    error: null,
+  } as never);
+  vi.mocked(useConfirmUtilities).mockReturnValue({
+    mutateAsync: confirmMutateAsync,
+    isPending: false,
+  } as never);
+  vi.mocked(ledgerDownloadUrl).mockReturnValue(
+    "/api/utilities/ledger?buildingId=1&utility=water&period=2026-08-01",
+  );
 }
 
 function selectBuilding() {
@@ -120,6 +162,7 @@ function selectBuilding() {
 
 describe("UtilitiesPage", () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
     vi.clearAllMocks();
     setupMocks();
   });
@@ -163,6 +206,24 @@ describe("UtilitiesPage", () => {
     expect(completedCard).toHaveTextContent("1");
   });
 
+  it("스냅샷 단가·자동요금을 표시하고 수동요금을 예상 부과에 우선한다", () => {
+    render(<UtilitiesPage />);
+    selectBuilding();
+
+    expect(screen.getByRole("columnheader", { name: "단가" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "자동요금" })).toBeInTheDocument();
+    expect(screen.getByText("850")).toBeInTheDocument();
+    const expectedCard = screen.getByText("예상 부과").parentElement;
+    expect(expectedCard).toHaveTextContent("12,000원");
+
+    fireEvent.change(screen.getByLabelText("101호 수동 입력 요금"), {
+      target: { value: "15000" },
+    });
+    expect(expectedCard).toHaveTextContent("15,000원");
+    expect(screen.getByText(/단가를 해석할 수 없는 세대는 수동 입력 요금/)).toBeInTheDocument();
+    expect(screen.queryByText(/단가 미연동/)).not.toBeInTheDocument();
+  });
+
   it("전기 탭으로 전환하면 전기 유형·기준월로 조회 키를 사용한다", async () => {
     render(<UtilitiesPage />);
     selectBuilding();
@@ -196,6 +257,52 @@ describe("UtilitiesPage", () => {
     expect(screen.getByLabelText("할인 금액")).toBeInTheDocument();
   });
 
+  it("단가 설정 버튼으로 현재 유형의 고객번호별 단가 모달을 연다", () => {
+    render(<UtilitiesPage />);
+    selectBuilding();
+    fireEvent.click(screen.getByRole("button", { name: "단가 설정" }));
+
+    expect(screen.getByText("수도 단가 설정")).toBeInTheDocument();
+    expect(screen.getByLabelText("W-APT 단가")).toHaveValue(850);
+  });
+
+  it("부과 확정 확인 후 현재 건물·유형·월을 확정한다", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    confirmMutateAsync.mockResolvedValue({ unitCount: 1, total: 12000 });
+    render(<UtilitiesPage />);
+    selectBuilding();
+
+    fireEvent.click(screen.getByRole("button", { name: "부과 확정" }));
+
+    await waitFor(() => expect(confirmMutateAsync).toHaveBeenCalledWith({
+      buildingId: 1,
+      utilityType: "water",
+      period: expect.stringMatching(/^\d{4}-\d{2}-01$/),
+    }));
+    expect(toast.success).toHaveBeenCalledWith(expect.stringContaining("1세대"));
+  });
+
+  it("확정 배지와 확정 후 수정 dirty 경고를 표시한다", () => {
+    vi.mocked(useUtilityConfirmation).mockReturnValue({
+      data: {
+        confirmedAt: "2026-08-13T02:00:00Z",
+        confirmedByName: "김관리",
+        unitCount: 1,
+        totalAmount: 12000,
+        isDirty: true,
+      },
+      isLoading: false,
+      error: null,
+    } as never);
+    render(<UtilitiesPage />);
+    selectBuilding();
+
+    const confirmationStatus = screen.getByText(/김관리/);
+    expect(confirmationStatus).toHaveTextContent("12,000원");
+    expect(screen.getByText("확정 후 수정됨 — 재확정 필요")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "재확정" })).toBeInTheDocument();
+  });
+
   it("부과 계산은 입력된 당월 지침을 save_meter_readings로 저장한다", () => {
     render(<UtilitiesPage />);
     selectBuilding();
@@ -223,13 +330,23 @@ describe("UtilitiesPage", () => {
     expect(toast.error).toHaveBeenCalledWith("입력된 당월 지침이 없습니다.");
   });
 
-  it("검침대장 다운은 서버 생성 안내를 표시한다", () => {
+  it("검침대장 다운은 현재 범위의 서버 생성 URL로 다운로드한다", () => {
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => {});
     render(<UtilitiesPage />);
     selectBuilding();
     fireEvent.click(screen.getByRole("button", { name: "검침대장 다운" }));
 
-    expect(toast.info).toHaveBeenCalledWith(
-      "검침대장 엑셀 내보내기는 서버 생성 기능 연동 후 제공됩니다.",
+    expect(ledgerDownloadUrl).toHaveBeenCalledWith(
+      1,
+      "water",
+      expect.stringMatching(/^\d{4}-\d{2}-01$/),
+    );
+    expect(click).toHaveBeenCalledTimes(1);
+    const anchor = click.mock.instances[0] as HTMLAnchorElement;
+    expect(anchor.getAttribute("href")).toBe(
+      "/api/utilities/ledger?buildingId=1&utility=water&period=2026-08-01",
     );
   });
 });

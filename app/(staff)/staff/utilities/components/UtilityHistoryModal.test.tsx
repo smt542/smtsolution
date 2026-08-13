@@ -11,8 +11,8 @@ describe("UtilityHistoryModal", () => {
   it("meter_readings 이력의 부과액·전월 대비 증감을 표시한다", () => {
     vi.mocked(useMeterHistory).mockReturnValue({
       data: [
-        { period: "2026-08-01", charge: 12000, unitPrice: null },
-        { period: "2026-07-01", charge: 9000, unitPrice: null },
+        { period: "2026-08-01", charge: 12000, unitPrice: 850 },
+        { period: "2026-07-01", charge: 9000, unitPrice: 800 },
       ],
       isLoading: false,
       error: null,
@@ -31,6 +31,8 @@ describe("UtilityHistoryModal", () => {
     expect(screen.getByText("101호 수도 6개월 이력")).toBeInTheDocument();
     expect(screen.getByText("12,000")).toBeInTheDocument();
     expect(screen.getByText("+3,000")).toBeInTheDocument();
+    expect(screen.getByText("단가 증감")).toBeInTheDocument();
+    expect(screen.getByText("+50")).toBeInTheDocument();
   });
 
   it("이력이 없으면 안내 문구를 표시한다", () => {

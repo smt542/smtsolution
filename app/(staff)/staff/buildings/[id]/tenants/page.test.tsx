@@ -9,12 +9,12 @@ import { useMe } from "@/hooks/reactquery/auth";
 beforeEach(() => vi.clearAllMocks());
 describe("TenantsPage 게이트", () => {
   it("tenants 권한 없으면 차단", () => {
-    vi.mocked(useMe).mockReturnValue({ data: { role: "field_staff", permissions: [] } } as any);
+    vi.mocked(useMe).mockReturnValue({ data: { role: "field_staff", permissions: [] } } as unknown as ReturnType<typeof useMe>);
     render(<TenantsPage />);
     expect(screen.getByText(/접근할 권한이 없습니다/)).toBeInTheDocument();
   });
   it("tenants 권한 있으면 목록(buildingId 전달)", () => {
-    vi.mocked(useMe).mockReturnValue({ data: { role: "staff", permissions: ["tenants"] } } as any);
+    vi.mocked(useMe).mockReturnValue({ data: { role: "staff", permissions: ["tenants"] } } as unknown as ReturnType<typeof useMe>);
     render(<TenantsPage />);
     expect(screen.getByText("TENANTS 7")).toBeInTheDocument();
   });

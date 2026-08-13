@@ -1,95 +1,31 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
-import type { BillingColumn, BillingUnitRow } from "@/lib/billing/pivot";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
 import { BillTargetTable } from "./BillTargetTable";
+import type { BillTarget } from "@/hooks/reactquery/bill";
 
-const columns: BillingColumn[] = [
-  {
-    feeItemId: 10,
-    name: "관리비",
-    carryOver: false,
-    dailyProration: false,
-    rounding: "raw",
-    isRequired: true,
-    sortOrder: 0,
-  },
-];
-
-const unit: BillingUnitRow = {
-  unitId: 1,
-  unitNo: "101",
-  dong: null,
-  roomTypeLabel: null,
-  occupancyId: 5,
-  tenantName: "홍길동",
-  moveInDate: "2026-07-01",
-  isVacant: false,
-  confirmedAt: "2026-08-13T00:00:00Z",
-  confirmedByName: "관리자",
-  totalAmount: 30_000,
-  billingNote: null,
-  unitNotice: null,
-  isDirty: false,
-  charges: { 10: { charged: true, amount: 30_000 } },
-};
-
-const defaultProps = {
-  units: [unit],
-  columns,
-  period: "2026-08-01",
-  labelMode: "name" as const,
-  selected: new Set<number>(),
-  onToggle: vi.fn(),
-  onToggleAll: vi.fn(),
-};
+const t = (o: Partial<BillTarget>): BillTarget => ({
+  unitId: 1, unitNo: "101", dong: null, occupancyId: 5, tenantName: "홍길동", phone: "010",
+  totalAmount: 30000, autoDebit: false, issueType: null, dueDate: null, sendStatus: null, issuedAt: null, ...o,
+});
 
 describe("BillTargetTable", () => {
-  it("세대 행과 합계 및 입주자명을 표시한다", () => {
-    render(<BillTargetTable {...defaultProps} />);
-
-    expect(screen.getByText("홍길동")).toBeInTheDocument();
-    expect(screen.getByText("30,000")).toBeInTheDocument();
+  it("빈 목록은 안내 문구", () => {
+    render(<BillTargetTable targets={[]} unitLabelMode="code" selected={[]} onToggle={() => {}} onToggleAll={() => {}} onPrint={() => {}} onSend={() => {}} />);
+    expect(screen.getByText(/부과 확정된 세대가 없습니다/)).toBeInTheDocument();
   });
-
-  it("labelMode이 code이면 입주자 표시 열에 호실 코드를 표시한다", () => {
-    render(<BillTargetTable {...defaultProps} labelMode="code" />);
-
-    expect(screen.getAllByText("101")).toHaveLength(2);
-    expect(screen.queryByText("홍길동")).not.toBeInTheDocument();
-  });
-
-  it("개별 체크박스를 클릭하면 해당 unitId를 전달한다", () => {
+  it("세대 행·발행상태 표시, 체크 시 onToggle", () => {
     const onToggle = vi.fn();
-    render(<BillTargetTable {...defaultProps} onToggle={onToggle} />);
-
+    render(<BillTargetTable targets={[t({ issuedAt: "2026-08-13T00:00:00Z", autoDebit: true })]} unitLabelMode="code"
+      selected={[]} onToggle={onToggle} onToggleAll={() => {}} onPrint={() => {}} onSend={() => {}} />);
+    expect(screen.getByText("101")).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: "자동이체" })).toBeInTheDocument();
+    expect(screen.getByText("발행")).toBeInTheDocument();
     fireEvent.click(screen.getByLabelText("101 선택"));
-
     expect(onToggle).toHaveBeenCalledWith(1);
   });
-
-  it("전체 선택 체크박스를 클릭하면 변경된 체크 상태를 전달한다", () => {
-    const onToggleAll = vi.fn();
-    render(<BillTargetTable {...defaultProps} onToggleAll={onToggleAll} />);
-
-    fireEvent.click(screen.getByLabelText("전체 선택"));
-
-    expect(onToggleAll).toHaveBeenCalledWith(true);
-  });
-
-  it("서버 합계가 없으면 실제 ChargeLine 형식으로 합계를 계산한다", () => {
-    render(
-      <BillTargetTable
-        {...defaultProps}
-        units={[{ ...unit, totalAmount: null, charges: { 10: { charged: true, amount: 12_345 } } }]}
-      />,
-    );
-
-    expect(screen.getByText("12,345")).toBeInTheDocument();
-  });
-
-  it("모든 세대가 선택된 경우 전체 선택 체크박스를 체크한다", () => {
-    render(<BillTargetTable {...defaultProps} selected={new Set([1])} />);
-
-    expect(screen.getByLabelText("전체 선택")).toBeChecked();
+  it("선택 0이면 인쇄·발송 비활성", () => {
+    render(<BillTargetTable targets={[t({})]} unitLabelMode="code" selected={[]} onToggle={() => {}} onToggleAll={() => {}} onPrint={() => {}} onSend={() => {}} />);
+    expect(screen.getByRole("button", { name: "A4 인쇄" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "문자 발송" })).toBeDisabled();
   });
 });
