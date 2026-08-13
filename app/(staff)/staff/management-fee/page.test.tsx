@@ -1,248 +1,77 @@
+// app/(staff)/staff/management-fee/page.test.tsx
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Mock next/navigation
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
-  useSearchParams: () => ({ get: () => null }),
-}));
-
-// Mock hooks
+vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
+vi.mock("@/hooks/reactquery/buildings", () => ({ useBuildings: vi.fn() }));
 vi.mock("@/hooks/reactquery/buildingTypes", () => ({
-  useBuildingTypes: vi.fn(),
-  useCreateBuildingType: vi.fn(),
-  useRenameBuildingType: vi.fn(),
-  useDeleteBuildingType: vi.fn(),
+  useBuildingTypes: vi.fn(() => ({ data: [{ id: 1, orgId: 10, label: "원룸텔", sortOrder: 0 }] })),
+  useCreateBuildingType: vi.fn(), useRenameBuildingType: vi.fn(), useDeleteBuildingType: vi.fn(),
 }));
-
 vi.mock("@/hooks/reactquery/feeItems", () => ({
-  useFeeItems: vi.fn(),
-  useCreateFeeItem: vi.fn(),
-  useUpdateFeeItem: vi.fn(),
-  useDeleteFeeItem: vi.fn(),
-  useReorderFeeItems: vi.fn(),
+  useFeeItems: vi.fn(() => ({ data: [], isLoading: false })),
+  useCreateFeeItem: vi.fn(() => mut), useUpdateFeeItem: vi.fn(() => mut),
+  useDeleteFeeItem: vi.fn(() => mut), useReorderFeeItems: vi.fn(() => mut),
 }));
-
-vi.mock("@/hooks/reactquery/auth", () => ({
-  useMe: vi.fn(),
+vi.mock("@/hooks/reactquery/billing", () => ({
+  useBilling: vi.fn(), useSaveBillingCharges: vi.fn(() => mut), useConfirmBilling: vi.fn(() => mut),
 }));
+vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() } }));
 
-vi.mock("sonner", () => ({
-  toast: { error: vi.fn(), success: vi.fn() },
-}));
-
+const mut = { mutateAsync: vi.fn().mockResolvedValue({}), isPending: false };
 import FeeItemPage from "./page";
-import {
-  useBuildingTypes,
-  useCreateBuildingType,
-  useRenameBuildingType,
-  useDeleteBuildingType,
-} from "@/hooks/reactquery/buildingTypes";
-import {
-  useFeeItems,
-  useCreateFeeItem,
-  useUpdateFeeItem,
-  useDeleteFeeItem,
-  useReorderFeeItems,
-} from "@/hooks/reactquery/feeItems";
 import { useMe } from "@/hooks/reactquery/auth";
+import { useBuildings } from "@/hooks/reactquery/buildings";
+import { useBilling, useSaveBillingCharges } from "@/hooks/reactquery/billing";
 
-const mockBuildingTypes = [
-  { id: 1, orgId: 10, label: "빌라", sortOrder: 0 },
-  { id: 2, orgId: 10, label: "빌딩", sortOrder: 1 },
-];
+beforeEach(() => {
+  vi.clearAllMocks();
+  mut.mutateAsync.mockResolvedValue({});
+  vi.mocked(useMe).mockReturnValue({ data: { orgId: 10, role: "org_owner", permissions: [] } } as never);
+  vi.mocked(useBuildings).mockReturnValue({ data: [{ id: 7, name: "가나빌", typeId: 1 }], isLoading: false } as never);
+  vi.mocked(useBilling).mockReturnValue({ data: [], isLoading: false, error: null } as never);
+  vi.mocked(useSaveBillingCharges).mockReturnValue(mut as never);
+});
 
-const mockBuildingTypesSingle = [
-  { id: 1, orgId: 10, label: "빌라", sortOrder: 0 },
-];
-
-const mockFeeItemsType1 = [
-  {
-    id: 1, orgId: 10, typeId: 1, name: "전기", rounding: "round",
-    dailyProration: true, carryOver: false, isRequired: true, sortOrder: 0,
-  },
-  {
-    id: 2, orgId: 10, typeId: 1, name: "수도", rounding: "round",
-    dailyProration: true, carryOver: false, isRequired: true, sortOrder: 1,
-  },
-  {
-    id: 3, orgId: 10, typeId: 1, name: "관리비", rounding: "round",
-    dailyProration: false, carryOver: false, isRequired: false, sortOrder: 2,
-  },
-];
-
-const mockFeeItemsType2 = [
-  {
-    id: 10, orgId: 10, typeId: 2, name: "가스", rounding: "up",
-    dailyProration: false, carryOver: false, isRequired: true, sortOrder: 0,
-  },
-  {
-    id: 11, orgId: 10, typeId: 2, name: "주차비", rounding: "down",
-    dailyProration: false, carryOver: false, isRequired: false, sortOrder: 1,
-  },
-];
-
-const mockMutate = { mutateAsync: vi.fn().mockResolvedValue({}), isPending: false };
-
-function setupMocks(types = mockBuildingTypes) {
-  vi.mocked(useBuildingTypes).mockReturnValue({
-    data: types,
-    isLoading: false,
-  } as unknown as ReturnType<typeof useBuildingTypes>);
-
-  vi.mocked(useFeeItems).mockImplementation((typeId: number) => ({
-    data: typeId === 1 ? mockFeeItemsType1 : typeId === 2 ? mockFeeItemsType2 : [],
-    isLoading: false,
-  } as unknown as ReturnType<typeof useFeeItems>));
-
-  vi.mocked(useMe).mockReturnValue({ data: { orgId: 10 } } as unknown as ReturnType<typeof useMe>);
-
-  vi.mocked(useCreateBuildingType).mockReturnValue(mockMutate as unknown as ReturnType<typeof useCreateBuildingType>);
-  vi.mocked(useRenameBuildingType).mockReturnValue(mockMutate as unknown as ReturnType<typeof useRenameBuildingType>);
-  vi.mocked(useDeleteBuildingType).mockReturnValue(mockMutate as unknown as ReturnType<typeof useDeleteBuildingType>);
-  vi.mocked(useCreateFeeItem).mockReturnValue(mockMutate as unknown as ReturnType<typeof useCreateFeeItem>);
-  vi.mocked(useUpdateFeeItem).mockReturnValue(mockMutate as unknown as ReturnType<typeof useUpdateFeeItem>);
-  vi.mocked(useDeleteFeeItem).mockReturnValue(mockMutate as unknown as ReturnType<typeof useDeleteFeeItem>);
-  vi.mocked(useReorderFeeItems).mockReturnValue(mockMutate as unknown as ReturnType<typeof useReorderFeeItems>);
-}
-
-describe("FeeItemPage", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockMutate.mutateAsync.mockResolvedValue({});
-    setupMocks();
-  });
-
-  it("renders building-type tabs 빌라 and 빌딩", () => {
+describe("management-fee page (billing)", () => {
+  it("billing 권한 없으면 접근 차단", () => {
+    vi.mocked(useMe).mockReturnValue({ data: { orgId: 10, role: "staff", permissions: [] } } as never);
     render(<FeeItemPage />);
-    expect(screen.getByText("빌라")).toBeInTheDocument();
-    expect(screen.getByText("빌딩")).toBeInTheDocument();
+    expect(screen.getByText(/권한이 없습니다/)).toBeInTheDocument();
   });
-
-  it("renders fee items for the first tab by default", () => {
+  it("건물 미선택 시 안내", () => {
     render(<FeeItemPage />);
-    expect(screen.getByText("전기")).toBeInTheDocument();
-    expect(screen.getByText("수도")).toBeInTheDocument();
-    expect(screen.getByText("관리비")).toBeInTheDocument();
+    expect(screen.getByText(/건물을 선택/)).toBeInTheDocument();
   });
-
-  it("switching to 빌딩 tab loads that type's items", async () => {
+  it("건물 선택 드롭다운과 항목관리·저장 버튼", () => {
     render(<FeeItemPage />);
-    fireEvent.click(screen.getByText("빌딩"));
-    await waitFor(() => {
-      expect(screen.getByText("가스")).toBeInTheDocument();
-      expect(screen.getByText("주차비")).toBeInTheDocument();
-    });
+    expect(screen.getByLabelText("건물 선택")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "항목관리" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "저장" })).toBeInTheDocument();
   });
-
-  it("renders ＋ 항목 추가 button", () => {
+  it("건물 선택 시 세대 그리드 로드(useBilling)", async () => {
+    vi.mocked(useBilling).mockReturnValue({ data: [{
+      unit_id: 1, unit_no: "101", dong: null, room_type_label: "원룸", occupancy_id: 5, tenant_name: "홍",
+      move_in_date: "2026-07-01", is_vacant: false, fee_item_id: 10, fee_item_name: "관리비",
+      carry_over: false, daily_proration: false, rounding: "round", is_required: true, sort_order: 0,
+      charged: true, amount: 30000, confirmed_at: null, confirmed_by_name: null, total_amount: null,
+      billing_note: null, unit_notice: null, is_dirty: false,
+    }].map(camel), isLoading: false, error: null } as never);
     render(<FeeItemPage />);
-    expect(screen.getByRole("button", { name: /항목 추가/ })).toBeInTheDocument();
-  });
-
-  it("clicking ＋ 항목 추가 opens the fee item form modal", async () => {
-    render(<FeeItemPage />);
-    fireEvent.click(screen.getByRole("button", { name: /항목 추가/ }));
-    await waitFor(() => {
-      expect(screen.getByText("항목 추가")).toBeInTheDocument();
-    });
-  });
-
-  it("required item (전기) does NOT show a delete button", () => {
-    render(<FeeItemPage />);
-    // The required item row must not contain a delete button
-    // We look for delete buttons associated with required items
-    const rows = screen.getAllByRole("row");
-    const electricRow = rows.find((r) => r.textContent?.includes("전기"));
-    expect(electricRow).toBeDefined();
-    // No delete button within the required row
-    const deleteBtn = electricRow?.querySelector("button[data-delete]");
-    expect(deleteBtn).toBeNull();
-  });
-
-  it("non-required item (관리비) shows a delete button", () => {
-    render(<FeeItemPage />);
-    // Find delete button for 관리비 row
-    const deleteBtn = screen.getByRole("button", { name: /관리비 삭제/ });
-    expect(deleteBtn).toBeInTheDocument();
-  });
-
-  it("required items are pinned at the top above non-required items", () => {
-    render(<FeeItemPage />);
-    const rows = screen.getAllByRole("row").filter((r) => r.textContent?.trim());
-    const names = rows.map((r) => {
-      if (r.textContent?.includes("전기")) return "전기";
-      if (r.textContent?.includes("수도")) return "수도";
-      if (r.textContent?.includes("관리비")) return "관리비";
-      return null;
-    }).filter(Boolean);
-
-    const elecIdx = names.indexOf("전기");
-    const suIdx = names.indexOf("수도");
-    const mgmtIdx = names.indexOf("관리비");
-
-    expect(elecIdx).toBeLessThan(mgmtIdx);
-    expect(suIdx).toBeLessThan(mgmtIdx);
-  });
-
-  // E — new tests for Tabs rename/delete UI
-
-  it("double-clicking active type tab label shows a rename input and submitting calls rename mutation", async () => {
-    const user = userEvent.setup();
-    const renameMutateAsync = vi.fn().mockResolvedValue({});
-    vi.mocked(useRenameBuildingType).mockReturnValue({ mutateAsync: renameMutateAsync, isPending: false } as unknown as ReturnType<typeof useRenameBuildingType>);
-
-    render(<FeeItemPage />);
-
-    // Double-click the "빌라" tab label
-    const billaTab = screen.getByText("빌라");
-    await user.dblClick(billaTab);
-
-    // Rename input should appear
-    const renameInput = screen.getByRole("textbox", { name: "유형 이름 변경" });
-    expect(renameInput).toBeInTheDocument();
-
-    // Clear and type a new name
-    await user.clear(renameInput);
-    await user.type(renameInput, "아파트");
-    await user.keyboard("{Enter}");
-
-    await waitFor(() => {
-      expect(renameMutateAsync).toHaveBeenCalledWith(
-        expect.objectContaining({ label: "아파트" })
-      );
-    });
-  });
-
-  it("clicking × delete button calls delete mutation when >1 type exists", async () => {
-    const deleteMutateAsync = vi.fn().mockResolvedValue({});
-    vi.mocked(useDeleteBuildingType).mockReturnValue({ mutateAsync: deleteMutateAsync, isPending: false } as unknown as ReturnType<typeof useDeleteBuildingType>);
-
-    render(<FeeItemPage />);
-
-    // × button should appear next to each tab (>1 type)
-    const deleteButtons = screen.getAllByRole("button", { name: "유형 삭제" });
-    expect(deleteButtons.length).toBeGreaterThan(0);
-
-    fireEvent.click(deleteButtons[0]);
-
-    await waitFor(() => {
-      expect(deleteMutateAsync).toHaveBeenCalled();
-    });
-  });
-
-  it("clicking × delete button is blocked when only ONE type exists", async () => {
-    setupMocks(mockBuildingTypesSingle);
-    const deleteMutateAsync = vi.fn().mockResolvedValue({});
-    vi.mocked(useDeleteBuildingType).mockReturnValue({ mutateAsync: deleteMutateAsync, isPending: false } as unknown as ReturnType<typeof useDeleteBuildingType>);
-
-    render(<FeeItemPage />);
-
-    // With only 1 type, BuildingTypeTabs passes undefined for onDelete → no × button rendered
-    const deleteButtons = screen.queryAllByRole("button", { name: "유형 삭제" });
-    expect(deleteButtons.length).toBe(0);
-    expect(deleteMutateAsync).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
+    await waitFor(() => expect(screen.getByText("101")).toBeInTheDocument());
   });
 });
+
+// useBilling은 이미 camelCase(BillingFlatRow)를 반환하므로 테스트 헬퍼로 매핑
+function camel(r: Record<string, unknown>) {
+  return {
+    unitId: r.unit_id, unitNo: r.unit_no, dong: r.dong, roomTypeLabel: r.room_type_label,
+    occupancyId: r.occupancy_id, tenantName: r.tenant_name, moveInDate: r.move_in_date, isVacant: r.is_vacant,
+    feeItemId: r.fee_item_id, feeItemName: r.fee_item_name, carryOver: r.carry_over, dailyProration: r.daily_proration,
+    rounding: r.rounding, isRequired: r.is_required, sortOrder: r.sort_order, charged: r.charged, amount: r.amount,
+    confirmedAt: r.confirmed_at, confirmedByName: r.confirmed_by_name, totalAmount: r.total_amount,
+    billingNote: r.billing_note, unitNotice: r.unit_notice, isDirty: r.is_dirty,
+  };
+}

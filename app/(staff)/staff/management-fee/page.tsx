@@ -1,200 +1,177 @@
 "use client";
 import React, { useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/common";
-import { BuildingTypeTabs } from "./components/BuildingTypeTabs";
-import { FeeItemList } from "./components/FeeItemList";
-import { FeeItemFormModal } from "./components/FeeItemFormModal";
-import { useBuildingTypes, useCreateBuildingType, useRenameBuildingType, useDeleteBuildingType } from "@/hooks/reactquery/buildingTypes";
-import { useFeeItems, useCreateFeeItem, useUpdateFeeItem, useDeleteFeeItem, useReorderFeeItems } from "@/hooks/reactquery/feeItems";
+import { Button, Select, EmptyState, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
-import type { FeeItem } from "@/hooks/reactquery/feeItems";
-import { feeItemSchema } from "@/components/forms/schema/feeItem";
-import { z } from "zod";
-type FeeItemFormValues = z.output<typeof feeItemSchema>;
+import { useBuildings } from "@/hooks/reactquery/buildings";
+import { useBuildingTypes } from "@/hooks/reactquery/buildingTypes";
+import { useBilling, useSaveBillingCharges } from "@/hooks/reactquery/billing";
+import { hasModule } from "@/lib/auth/permissions";
+import { pivotBillingRows, type BillingUnitRow } from "@/lib/billing/pivot";
+import { currentPeriod, toMonthInput, fromMonthInput } from "@/lib/billing/period";
+import { BillingTable } from "./components/BillingTable";
+import { ItemManageModal } from "./components/ItemManageModal";
+
+type ChargeDraft = { charged: boolean; amount: number };
 
 export default function FeeItemPage() {
   const { data: me } = useMe();
-  const orgId = me?.orgId;
+  const buildingsQuery = useBuildings();
+  const { data: buildingTypes = [] } = useBuildingTypes();
 
-  const { data: buildingTypes = [], isLoading: typesLoading } = useBuildingTypes();
-  const [activeTypeId, setActiveTypeId] = useState<number | null>(null);
+  const [buildingId, setBuildingId] = useState<number | null>(null);
+  const [period, setPeriod] = useState<string>(() => currentPeriod());
+  const [chargeDrafts, setChargeDrafts] = useState<Record<string, ChargeDraft>>({});
+  const [itemModalOpen, setItemModalOpen] = useState(false);
 
-  // Resolve active type: use state if valid, else first type
-  const resolvedTypeId =
-    activeTypeId && buildingTypes.some((t) => t.id === activeTypeId)
-      ? activeTypeId
-      : (buildingTypes[0]?.id ?? null);
+  const billingQuery = useBilling(buildingId, period);
+  const saveCharges = useSaveBillingCharges();
 
-  const { data: feeItems = [], isLoading: itemsLoading } = useFeeItems(resolvedTypeId ?? 0);
+  if (me === undefined) return null;
+  if (!hasModule(me, "billing")) {
+    return (
+      <div className="p-6">
+        <EmptyState message="이 화면에 접근할 권한이 없습니다. (부과 확정 권한 필요)" />
+      </div>
+    );
+  }
 
-  const createType = useCreateBuildingType();
-  const renameType = useRenameBuildingType();
-  const deleteType = useDeleteBuildingType();
-  const createItem = useCreateFeeItem();
-  const updateItem = useUpdateFeeItem();
-  const deleteItem = useDeleteFeeItem();
-  const reorderItems = useReorderFeeItems();
+  const buildings = buildingsQuery.data ?? [];
+  const selectedBuilding = buildings.find((b) => b.id === buildingId) ?? null;
+  const buildingType = buildingTypes.find((t) => t.id === selectedBuilding?.typeId) ?? null;
 
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<FeeItem | null>(null);
+  const { units: serverUnits, columns } = pivotBillingRows(billingQuery.data ?? []);
+  // draft 오버레이
+  const units: BillingUnitRow[] = serverUnits.map((u) => ({
+    ...u,
+    charges: Object.fromEntries(
+      columns.map((c) => {
+        const key = `${u.unitId}:${c.feeItemId}`;
+        return [c.feeItemId, chargeDrafts[key] ?? u.charges[c.feeItemId] ?? { charged: true, amount: 0 }];
+      })
+    ),
+  }));
 
-  const openCreate = () => {
-    setEditingItem(null);
-    setModalOpen(true);
+  const onChargeChange = (unitId: number, feeItemId: number, patch: Partial<ChargeDraft>) => {
+    const key = `${unitId}:${feeItemId}`;
+    const current =
+      chargeDrafts[key] ??
+      serverUnits.find((u) => u.unitId === unitId)?.charges[feeItemId] ??
+      { charged: true, amount: 0 };
+    setChargeDrafts((d) => ({ ...d, [key]: { ...current, ...patch } }));
   };
 
-  const openEdit = (item: FeeItem) => {
-    setEditingItem(item);
-    setModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setModalOpen(false);
-    setEditingItem(null);
-  };
-
-  const handleAddType = async (label: string) => {
-    if (!orgId) { toast.error("인증 정보가 없습니다"); return; }
+  const handleSave = async () => {
+    if (!buildingId) return;
+    const charges = Object.entries(chargeDrafts).map(([key, v]) => {
+      const [unitId, feeItemId] = key.split(":").map(Number);
+      const occ = serverUnits.find((u) => u.unitId === unitId)?.occupancyId ?? null;
+      return { unitId, feeItemId, charged: v.charged, amount: v.amount, occupancyId: occ };
+    });
+    if (charges.length === 0) { toast.info("변경된 금액이 없습니다."); return; }
     try {
-      await createType.mutateAsync({ orgId, label });
+      await saveCharges.mutateAsync({ buildingId, period, charges, notes: [] });
+      setChargeDrafts({});
+      toast.success("임시 저장되었습니다.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
     }
   };
 
-  const handleRenameType = async (id: number, label: string) => {
-    try {
-      await renameType.mutateAsync({ id, label });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
-    }
-  };
-
-  const handleDeleteType = async (id: number) => {
-    if (buildingTypes.length <= 1) {
-      toast.error("최소 1개의 유형이 필요합니다");
-      return;
-    }
-    try {
-      await deleteType.mutateAsync(id);
-      // If deleted active tab, reset to first remaining
-      if (id === resolvedTypeId) setActiveTypeId(null);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
-    }
-  };
-
-  const handleDeleteItem = async (item: FeeItem) => {
-    if (item.isRequired) {
-      toast.error("필수 항목은 삭제할 수 없습니다");
-      return;
-    }
-    try {
-      await deleteItem.mutateAsync({ id: item.id, isRequired: item.isRequired });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
-    }
-  };
-
-  const handleMoveUp = async (item: FeeItem) => {
-    const group = item.isRequired
-      ? feeItems.filter((i) => i.isRequired)
-      : feeItems.filter((i) => !i.isRequired);
-    const idx = group.findIndex((i) => i.id === item.id);
-    if (idx <= 0) return;
-    const newGroup = [...group];
-    [newGroup[idx - 1], newGroup[idx]] = [newGroup[idx], newGroup[idx - 1]];
-    const required = item.isRequired ? newGroup : feeItems.filter((i) => i.isRequired);
-    const optional = item.isRequired ? feeItems.filter((i) => !i.isRequired) : newGroup;
-    const orderedIds = [...required, ...optional].map((i) => i.id);
-    try {
-      await reorderItems.mutateAsync(orderedIds);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
-    }
-  };
-
-  const handleMoveDown = async (item: FeeItem) => {
-    const group = item.isRequired
-      ? feeItems.filter((i) => i.isRequired)
-      : feeItems.filter((i) => !i.isRequired);
-    const idx = group.findIndex((i) => i.id === item.id);
-    if (idx >= group.length - 1) return;
-    const newGroup = [...group];
-    [newGroup[idx], newGroup[idx + 1]] = [newGroup[idx + 1], newGroup[idx]];
-    const required = item.isRequired ? newGroup : feeItems.filter((i) => i.isRequired);
-    const optional = item.isRequired ? feeItems.filter((i) => !i.isRequired) : newGroup;
-    const orderedIds = [...required, ...optional].map((i) => i.id);
-    try {
-      await reorderItems.mutateAsync(orderedIds);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
-    }
-  };
-
-  const handleSubmit = async (values: FeeItemFormValues) => {
-    if (!orgId) { toast.error("인증 정보가 없습니다"); return; }
-    if (!resolvedTypeId) { toast.error("유형을 선택해 주세요"); return; }
-    try {
-      if (editingItem) {
-        await updateItem.mutateAsync({
-          id: editingItem.id,
-          input: { ...values, orgId, typeId: resolvedTypeId, isRequired: editingItem.isRequired },
-        });
-      } else {
-        await createItem.mutateAsync({
-          ...values,
-          orgId,
-          typeId: resolvedTypeId,
-          isRequired: false,
-          rounding: values.rounding ?? "round",
-          dailyProration: values.dailyProration ?? false,
-          carryOver: values.carryOver ?? false,
-        });
-      }
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
-      throw e;
-    }
-  };
+  const selectBuilding = (v: string) => { setBuildingId(v ? Number(v) : null); setChargeDrafts({}); };
+  const changeMonth = (v: string) => { setPeriod(fromMonthInput(v)); setChargeDrafts({}); };
 
   return (
-    <div className="flex min-h-screen flex-col gap-0 p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-extrabold text-t1">부과항목 관리</h1>
-        <Button variant="primary" onClick={openCreate} disabled={!resolvedTypeId}>
-          ＋ 항목 추가
-        </Button>
+    <div className="flex min-h-screen flex-col gap-5 p-4 sm:p-6">
+      <div>
+        <p className="text-xs font-semibold text-t3">관리업무 · 부과 확정</p>
+        <h1 className="mt-1 text-2xl font-extrabold text-t1">관리비 부과 셋팅</h1>
       </div>
 
-      <BuildingTypeTabs
-        types={buildingTypes}
-        activeId={resolvedTypeId}
-        onChange={setActiveTypeId}
-        onAdd={handleAddType}
-        onRename={handleRenameType}
-        onDelete={handleDeleteType}
-      />
+      <section className="rounded-2xl border border-line bg-surface p-4 shadow-card">
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="w-full sm:w-64">
+            <span className="mb-1.5 block text-xs font-bold text-t2">건물 선택</span>
+            <Select
+              aria-label="건물 선택"
+              value={buildingId?.toString() ?? ""}
+              onChange={(e) => selectBuilding(e.target.value)}
+              disabled={buildingsQuery.isLoading}
+              options={[
+                { value: "", label: buildingsQuery.isLoading ? "불러오는 중" : "-- 선택 --" },
+                ...buildings.map((b) => ({ value: String(b.id), label: b.name })),
+              ]}
+            />
+          </label>
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-t2">부과 월</span>
+            <input
+              type="month"
+              aria-label="부과 월"
+              value={toMonthInput(period)}
+              max={toMonthInput(currentPeriod())}
+              onChange={(e) => e.target.value && changeMonth(e.target.value)}
+              className="h-9 rounded-lg border border-line bg-surface px-3 text-sm font-semibold text-t1 focus:border-blue focus:outline-none"
+            />
+          </label>
+          <div className="flex w-full flex-wrap justify-end gap-2 xl:w-auto xl:flex-1">
+            <Button variant="ghost" onClick={() => setItemModalOpen(true)} disabled={!selectedBuilding?.typeId}>
+              항목관리
+            </Button>
+            <Button variant="ghost" onClick={handleSave} disabled={!buildingId || saveCharges.isPending}>
+              저장
+            </Button>
+            {/* [부과 확정] 버튼은 Task 11에서 추가 */}
+          </div>
+        </div>
+      </section>
 
-      <div className="mt-4">
-        <FeeItemList
-          items={feeItems}
-          isLoading={itemsLoading || typesLoading}
-          onEdit={openEdit}
-          onDelete={handleDeleteItem}
-          onMoveUp={handleMoveUp}
-          onMoveDown={handleMoveDown}
+      {!buildingId && (
+        <section className="rounded-2xl border border-line bg-surface shadow-card">
+          <EmptyState message="건물을 선택해 주세요" />
+        </section>
+      )}
+      {buildingId && billingQuery.isLoading && (
+        <section className="rounded-2xl border border-line bg-surface py-16 shadow-card">
+          <Spinner />
+          <p className="text-center text-sm text-t3">불러오는 중입니다.</p>
+        </section>
+      )}
+      {buildingId && billingQuery.error && (
+        <section className="rounded-2xl border border-red/20 bg-red-t p-8 text-center">
+          <p className="text-sm font-semibold text-red">오류가 발생했습니다. 다시 시도해 주세요.</p>
+          <Button className="mt-3" variant="ghost" onClick={() => billingQuery.refetch()}>
+            다시 시도
+          </Button>
+        </section>
+      )}
+      {buildingId && !billingQuery.isLoading && !billingQuery.error && units.length === 0 && (
+        <section className="rounded-2xl border border-line bg-surface shadow-card">
+          <EmptyState message="등록된 세대가 없습니다" />
+        </section>
+      )}
+      {buildingId && !billingQuery.isLoading && !billingQuery.error && units.length > 0 && (
+        <section className="overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
+          <BillingTable
+            units={units}
+            columns={columns}
+            period={period}
+            onChargeChange={onChargeChange}
+            onRowClick={() => { /* Task 12: 이력 모달 */ }}
+            onNoteClick={() => { /* Task 13: 메모 모달 */ }}
+          />
+        </section>
+      )}
+
+      {selectedBuilding?.typeId && buildingType && me?.orgId && (
+        <ItemManageModal
+          open={itemModalOpen}
+          onClose={() => setItemModalOpen(false)}
+          orgId={me.orgId}
+          typeId={selectedBuilding.typeId}
+          typeLabel={buildingType.label}
         />
-      </div>
-
-      <FeeItemFormModal
-        open={modalOpen}
-        onClose={closeModal}
-        editing={editingItem}
-        onSubmit={handleSubmit}
-        isPending={createItem.isPending || updateItem.isPending}
-      />
+      )}
     </div>
   );
 }
