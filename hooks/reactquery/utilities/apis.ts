@@ -21,6 +21,8 @@ export interface UtilityUnitRow {
   previousReading: number | null;
   currentReading: number | null;
   usage: number | null;
+  unitPrice: number | null;
+  resolvedUnitPrice: number | null;
   automaticCharge: number | null;
   manualCharge: number | null;
   note: string | null;
@@ -49,6 +51,7 @@ interface UtilityRowRpc {
   note: string | null;
   processed_at: string | null;
   discount_type: string | null;
+  resolved_unit_price: number | null;
 }
 
 function rpcToUtilityRow(r: UtilityRowRpc): UtilityUnitRow {
@@ -65,6 +68,8 @@ function rpcToUtilityRow(r: UtilityRowRpc): UtilityUnitRow {
     previousReading: r.previous_reading,
     currentReading: r.current_reading,
     usage: r.usage,
+    unitPrice: r.unit_price,
+    resolvedUnitPrice: r.resolved_unit_price,
     automaticCharge: r.calc_charge,
     manualCharge: r.manual_charge,
     note: r.note,
@@ -98,6 +103,7 @@ export interface SaveMeterReadingsInput {
 export interface SaveMeterReadingsResult {
   saved: number;
   period: string;
+  totalCalc?: number;
 }
 
 export async function saveMeterReadings(
@@ -110,8 +116,144 @@ export async function saveMeterReadings(
     p_rows: input.rows,
   });
   if (error) throw new Error(error.message);
-  const d = data as { saved: number; period: string };
-  return { saved: d.saved, period: d.period };
+  const d = data as { saved: number; period: string; total_calc?: number };
+  return {
+    saved: d.saved,
+    period: d.period,
+    ...(d.total_calc === undefined ? {} : { totalCalc: d.total_calc }),
+  };
+}
+
+interface UtilityPriceRpc {
+  customer_number_id: number;
+  customer_no: string;
+  holder_name: string | null;
+  sort_order: number;
+  unit_price: number | null;
+}
+
+export interface UtilityPriceRow {
+  customerNumberId: number;
+  customerNo: string;
+  holderName: string | null;
+  sortOrder: number;
+  unitPrice: number | null;
+}
+
+export async function listUtilityPrices(
+  buildingId: number,
+  utilityType: UtilityType,
+): Promise<UtilityPriceRow[]> {
+  const { data, error } = await createClient().rpc("list_utility_prices", {
+    p_building_id: buildingId,
+    p_utility: dbUtility(utilityType),
+  });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as UtilityPriceRpc[]).map((row) => ({
+    customerNumberId: row.customer_number_id,
+    customerNo: row.customer_no,
+    holderName: row.holder_name,
+    sortOrder: row.sort_order,
+    unitPrice: row.unit_price,
+  }));
+}
+
+export interface SaveUtilityUnitPricesInput {
+  buildingId: number;
+  utilityType: UtilityType;
+  prices: { customer_number_id: number; unit_price: number }[];
+}
+
+export interface SaveUtilityUnitPricesResult {
+  saved: number;
+}
+
+export async function saveUtilityUnitPrices(
+  input: SaveUtilityUnitPricesInput,
+): Promise<SaveUtilityUnitPricesResult> {
+  const { data, error } = await createClient().rpc("save_utility_unit_prices", {
+    p_building_id: input.buildingId,
+    p_utility: dbUtility(input.utilityType),
+    p_prices: input.prices,
+  });
+  if (error) throw new Error(error.message);
+  return { saved: (data as { saved: number }).saved };
+}
+
+export interface ConfirmUtilitiesInput {
+  buildingId: number;
+  utilityType: UtilityType;
+  period: string;
+}
+
+export interface ConfirmUtilitiesResult {
+  unitCount: number;
+  total: number;
+}
+
+export async function confirmUtilities(
+  input: ConfirmUtilitiesInput,
+): Promise<ConfirmUtilitiesResult> {
+  const { data, error } = await createClient().rpc("confirm_utilities", {
+    p_building_id: input.buildingId,
+    p_utility: dbUtility(input.utilityType),
+    p_period: input.period,
+  });
+  if (error) throw new Error(error.message);
+  const result = data as { unit_count: number; total: number };
+  return { unitCount: result.unit_count, total: result.total };
+}
+
+interface UtilityConfirmationRpc {
+  confirmed_at: string;
+  confirmed_by_name: string | null;
+  unit_count: number;
+  total_amount: number;
+  is_dirty: boolean;
+}
+
+export interface UtilityConfirmation {
+  confirmedAt: string;
+  confirmedByName: string | null;
+  unitCount: number;
+  totalAmount: number;
+  isDirty: boolean;
+}
+
+export async function getUtilityConfirmation(
+  buildingId: number,
+  utilityType: UtilityType,
+  period: string,
+): Promise<UtilityConfirmation | null> {
+  const { data, error } = await createClient().rpc("list_utility_confirmation", {
+    p_building_id: buildingId,
+    p_utility: dbUtility(utilityType),
+    p_period: period,
+  });
+  if (error) throw new Error(error.message);
+  const row = ((data ?? []) as UtilityConfirmationRpc[])[0];
+  return row
+    ? {
+        confirmedAt: row.confirmed_at,
+        confirmedByName: row.confirmed_by_name,
+        unitCount: row.unit_count,
+        totalAmount: row.total_amount,
+        isDirty: row.is_dirty,
+      }
+    : null;
+}
+
+export function ledgerDownloadUrl(
+  buildingId: number,
+  utilityType: UtilityType,
+  period: string,
+): string {
+  const params = new URLSearchParams({
+    buildingId: String(buildingId),
+    utility: dbUtility(utilityType),
+    period,
+  });
+  return `/api/utilities/ledger?${params.toString()}`;
 }
 
 export type WaterDiscountType = "recipient" | "multichild" | "other";
@@ -169,5 +311,9 @@ export async function listMeterHistory(
       calc_charge: number | null;
       unit_price: number | null;
     }[]
-  ).map((r) => ({ period: r.period, charge: r.calc_charge ?? r.manual_charge, unitPrice: r.unit_price }));
+  ).map((r) => ({
+    period: r.period,
+    charge: r.manual_charge ?? r.calc_charge,
+    unitPrice: r.unit_price,
+  }));
 }

@@ -4,9 +4,27 @@ const rpc = vi.fn();
 const from = vi.fn();
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ rpc, from }) }));
 
+const invalidateQueries = vi.fn();
+vi.mock("@tanstack/react-query", () => ({
+  useQueryClient: () => ({ invalidateQueries }),
+  useMutation: (options: unknown) => options,
+}));
+
 import {
-  dbUtility, listUtilityRows, saveMeterReadings, saveWaterDiscount, deleteWaterDiscount, listMeterHistory,
+  confirmUtilities,
+  dbUtility,
+  deleteWaterDiscount,
+  getUtilityConfirmation,
+  ledgerDownloadUrl,
+  listMeterHistory,
+  listUtilityPrices,
+  listUtilityRows,
+  saveMeterReadings,
+  saveUtilityUnitPrices,
+  saveWaterDiscount,
 } from "./apis";
+import { utilityKeys } from "./keys";
+import { useConfirmUtilities, useSaveUtilityUnitPrices } from "./mutations";
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -23,6 +41,7 @@ describe("utilities apis", () => {
       occupancy_status: "occupied", move_in_date: "2026-08-01", customer_no: "E-101", meter_no: "M-101",
       previous_reading: 100, current_reading: 158, usage: 58, unit_price: null, calc_charge: null,
       discount_amount: null, manual_charge: null, note: null, processed_at: null, discount_type: null,
+      resolved_unit_price: 125.5,
     }], error: null });
 
     const rows = await listUtilityRows(3, "electricity", "2026-08-01");
@@ -32,8 +51,22 @@ describe("utilities apis", () => {
       unitId: 101, unitNo: "101호", dong: "A동", occupancyId: 9, tenantName: "홍길동",
       occupancyStatus: "occupied", customerNumber: "E-101", meterNumber: "M-101",
       previousReading: 100, currentReading: 158, usage: 58, automaticCharge: null,
-      discountType: null, discountAmount: null,
+      unitPrice: null, resolvedUnitPrice: 125.5, discountType: null, discountAmount: null,
     });
+  });
+
+  it("listUtilityRows: 스냅샷 단가와 현재 해석 단가를 각각 매핑", async () => {
+    rpc.mockResolvedValue({ data: [{
+      unit_id: 101, unit_no: "101호", dong: null, occupancy_id: 9, tenant_name: "홍길동",
+      occupancy_status: "occupied", move_in_date: null, customer_no: "W-101", meter_no: null,
+      previous_reading: 100, current_reading: 110, usage: 10, unit_price: 850, calc_charge: 8500,
+      discount_amount: 0, manual_charge: null, note: null, processed_at: null, discount_type: null,
+      resolved_unit_price: 900,
+    }], error: null });
+
+    const [row] = await listUtilityRows(3, "water", "2026-08-01");
+
+    expect(row).toMatchObject({ unitPrice: 850, resolvedUnitPrice: 900, automaticCharge: 8500 });
   });
 
   it("listUtilityRows: 수도 할인 세대 매핑", async () => {
@@ -42,6 +75,7 @@ describe("utilities apis", () => {
       occupancy_status: "occupied", move_in_date: null, customer_no: "W-201", meter_no: null,
       previous_reading: null, current_reading: null, usage: null, unit_price: null, calc_charge: null,
       discount_amount: 3000, manual_charge: null, note: null, processed_at: null, discount_type: "recipient",
+      resolved_unit_price: null,
     }], error: null });
     const [row] = await listUtilityRows(3, "water", "2026-08-01");
     expect(row).toMatchObject({ discountType: "recipient", discountAmount: 3000 });
@@ -81,7 +115,7 @@ describe("utilities apis", () => {
 
   it("listMeterHistory: 유형(elec) + period 이하 6건 + charge=calc?? manual", async () => {
     const limit = vi.fn().mockResolvedValue({ data: [
-      { period: "2026-08-01", manual_charge: 12000, calc_charge: null, unit_price: null },
+      { period: "2026-08-01", manual_charge: 12000, calc_charge: 10000, unit_price: 1000 },
       { period: "2026-07-01", manual_charge: null, calc_charge: 9000, unit_price: 900 },
     ], error: null });
     const order = vi.fn(() => ({ limit }));
@@ -93,9 +127,120 @@ describe("utilities apis", () => {
     expect(from).toHaveBeenCalledWith("meter_readings");
     expect(eq2).toHaveBeenCalledWith("utility", "elec");
     expect(hist).toEqual([
-      { period: "2026-08-01", charge: 12000, unitPrice: null },
+      { period: "2026-08-01", charge: 12000, unitPrice: 1000 },
       { period: "2026-07-01", charge: 9000, unitPrice: 900 },
     ]);
+  });
+
+  it("단가 목록을 조회하고 snake_case를 매핑한다", async () => {
+    rpc.mockResolvedValue({ data: [{
+      customer_number_id: 11,
+      customer_no: "E-1",
+      holder_name: "상가용",
+      sort_order: 2,
+      unit_price: 125.5,
+    }], error: null });
+
+    await expect(listUtilityPrices(3, "electricity")).resolves.toEqual([{
+      customerNumberId: 11,
+      customerNo: "E-1",
+      holderName: "상가용",
+      sortOrder: 2,
+      unitPrice: 125.5,
+    }]);
+    expect(rpc).toHaveBeenCalledWith("list_utility_prices", {
+      p_building_id: 3,
+      p_utility: "elec",
+    });
+  });
+
+  it("고객번호별 단가를 원자 저장한다", async () => {
+    rpc.mockResolvedValue({ data: { saved: 1 }, error: null });
+
+    await expect(saveUtilityUnitPrices({
+      buildingId: 3,
+      utilityType: "electricity",
+      prices: [{ customer_number_id: 11, unit_price: 125.5 }],
+    })).resolves.toEqual({ saved: 1 });
+    expect(rpc).toHaveBeenCalledWith("save_utility_unit_prices", {
+      p_building_id: 3,
+      p_utility: "elec",
+      p_prices: [{ customer_number_id: 11, unit_price: 125.5 }],
+    });
+  });
+
+  it("공과금 부과확정 결과를 camelCase로 매핑한다", async () => {
+    rpc.mockResolvedValue({ data: { unit_count: 2, total: 60000 }, error: null });
+
+    await expect(confirmUtilities({
+      buildingId: 3,
+      utilityType: "gas",
+      period: "2026-08-01",
+    })).resolves.toEqual({ unitCount: 2, total: 60000 });
+    expect(rpc).toHaveBeenCalledWith("confirm_utilities", {
+      p_building_id: 3,
+      p_utility: "gas",
+      p_period: "2026-08-01",
+    });
+  });
+
+  it("확정상태 1행을 매핑하고 0행은 null을 반환한다", async () => {
+    rpc
+      .mockResolvedValueOnce({ data: [{
+        confirmed_at: "2026-08-13T00:00:00Z",
+        confirmed_by_name: "관리자",
+        unit_count: 2,
+        total_amount: 60000,
+        is_dirty: true,
+      }], error: null })
+      .mockResolvedValueOnce({ data: [], error: null });
+
+    await expect(getUtilityConfirmation(3, "water", "2026-08-01")).resolves.toEqual({
+      confirmedAt: "2026-08-13T00:00:00Z",
+      confirmedByName: "관리자",
+      unitCount: 2,
+      totalAmount: 60000,
+      isDirty: true,
+    });
+    await expect(getUtilityConfirmation(3, "gas", "2026-08-01")).resolves.toBeNull();
+  });
+
+  it("검침대장 URL에 건물·DB 유형·월을 직렬화한다", () => {
+    expect(ledgerDownloadUrl(3, "electricity", "2026-08-01")).toBe(
+      "/api/utilities/ledger?buildingId=3&utility=elec&period=2026-08-01",
+    );
+  });
+
+  it("단가 저장 성공 시 단가와 해당 건물·유형 행을 무효화한다", () => {
+    const input = {
+      buildingId: 3,
+      utilityType: "water" as const,
+      prices: [{ customer_number_id: 11, unit_price: 850 }],
+    };
+    const mutation = useSaveUtilityUnitPrices() as unknown as {
+      onSuccess: (result: { saved: number }, variables: typeof input) => void;
+    };
+
+    mutation.onSuccess({ saved: 1 }, input);
+
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: utilityKeys.prices(3, "water") });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: utilityKeys.rowsScope(3, "water") });
+  });
+
+  it("확정 성공 시 확정상태와 해당 월 행을 무효화한다", () => {
+    const input = { buildingId: 3, utilityType: "gas" as const, period: "2026-08-01" };
+    const mutation = useConfirmUtilities() as unknown as {
+      onSuccess: (result: { unitCount: number; total: number }, variables: typeof input) => void;
+    };
+
+    mutation.onSuccess({ unitCount: 2, total: 60000 }, input);
+
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: utilityKeys.confirmation(3, "gas", "2026-08-01"),
+    });
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: utilityKeys.rows(3, "gas", "2026-08-01"),
+    });
   });
 
   it("RPC 오류를 전달한다", async () => {
