@@ -86,6 +86,7 @@ returns int language sql immutable as $$
     else round(p_value)            -- 'round','raw',기타 → 반올림
   end::int;
 $$;
+revoke execute on function round_charge(numeric, text) from anon;
 
 -- ===== 세대×항목 조회 (당월 초안 + 전월 이월 prefill + 확정상태 + is_dirty) =====
 create or replace function list_billing(p_building_id bigint, p_period date)
