@@ -89,6 +89,7 @@ const rows = [
 
 const refetch = vi.fn();
 const saveMutate = vi.fn();
+const confirmMutateAsync = vi.fn();
 
 function setupMocks() {
   vi.mocked(useMe).mockReturnValue({
@@ -144,7 +145,7 @@ function setupMocks() {
     error: null,
   } as never);
   vi.mocked(useConfirmUtilities).mockReturnValue({
-    mutateAsync: vi.fn(),
+    mutateAsync: confirmMutateAsync,
     isPending: false,
   } as never);
 }
@@ -157,6 +158,7 @@ function selectBuilding() {
 
 describe("UtilitiesPage", () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
     vi.clearAllMocks();
     setupMocks();
   });
@@ -258,6 +260,43 @@ describe("UtilitiesPage", () => {
 
     expect(screen.getByText("수도 단가 설정")).toBeInTheDocument();
     expect(screen.getByLabelText("W-APT 단가")).toHaveValue(850);
+  });
+
+  it("부과 확정 확인 후 현재 건물·유형·월을 확정한다", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    confirmMutateAsync.mockResolvedValue({ unitCount: 1, total: 12000 });
+    render(<UtilitiesPage />);
+    selectBuilding();
+
+    fireEvent.click(screen.getByRole("button", { name: "부과 확정" }));
+
+    await waitFor(() => expect(confirmMutateAsync).toHaveBeenCalledWith({
+      buildingId: 1,
+      utilityType: "water",
+      period: expect.stringMatching(/^\d{4}-\d{2}-01$/),
+    }));
+    expect(toast.success).toHaveBeenCalledWith(expect.stringContaining("1세대"));
+  });
+
+  it("확정 배지와 확정 후 수정 dirty 경고를 표시한다", () => {
+    vi.mocked(useUtilityConfirmation).mockReturnValue({
+      data: {
+        confirmedAt: "2026-08-13T02:00:00Z",
+        confirmedByName: "김관리",
+        unitCount: 1,
+        totalAmount: 12000,
+        isDirty: true,
+      },
+      isLoading: false,
+      error: null,
+    } as never);
+    render(<UtilitiesPage />);
+    selectBuilding();
+
+    const confirmationStatus = screen.getByText(/김관리/);
+    expect(confirmationStatus).toHaveTextContent("12,000원");
+    expect(screen.getByText("확정 후 수정됨 — 재확정 필요")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "재확정" })).toBeInTheDocument();
   });
 
   it("부과 계산은 입력된 당월 지침을 save_meter_readings로 저장한다", () => {

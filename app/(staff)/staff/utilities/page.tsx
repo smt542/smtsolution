@@ -7,6 +7,8 @@ import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import {
   useUtilityRows,
+  useUtilityConfirmation,
+  useConfirmUtilities,
   useSaveMeterReadings,
   type UtilityType,
   type UtilityUnitRow,
@@ -64,6 +66,8 @@ export default function UtilitiesPage() {
   const [priceModalOpen, setPriceModalOpen] = useState(false);
   const period = `${referenceDate.slice(0, 7)}-01`;
   const rowsQuery = useUtilityRows(buildingId, utilityType, period);
+  const confirmationQuery = useUtilityConfirmation(buildingId, utilityType, period);
+  const confirmUtilities = useConfirmUtilities();
   const saveMeter = useSaveMeterReadings();
 
   if (me === undefined) return null;
@@ -82,6 +86,7 @@ export default function UtilitiesPage() {
     rows.map((row) => [row.unitId, drafts[`${scopeKey}:${row.unitId}`] ?? initialDraft(row)]),
   );
   const activeRows = rows.filter((row) => !isVacant(row));
+  const confirmation = confirmationQuery.data ?? null;
   const completed = activeRows.filter(
     (row) => scopedDrafts[row.unitId].currentReading.trim() !== "",
   ).length;
@@ -150,6 +155,27 @@ export default function UtilitiesPage() {
     );
   };
 
+  const confirmCharges = async () => {
+    if (buildingId === null) return;
+    const verb = confirmation ? "재확정" : "부과 확정";
+    if (!window.confirm(
+      `당월 ${TYPE_LABELS[utilityType]} 요금을 ${verb}하시겠습니까? 부과 계산으로 저장된 요금이 확정됩니다.`,
+    )) return;
+
+    try {
+      const result = await confirmUtilities.mutateAsync({
+        buildingId,
+        utilityType,
+        period,
+      });
+      toast.success(
+        `부과가 확정되었습니다. (${result.unitCount}세대 · ${result.total.toLocaleString("ko-KR")}원)`,
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "부과 확정에 실패했습니다.");
+    }
+  };
+
   const exportLedger = () => {
     // TODO(export): [건물명]_[유형]_검침대장_YYYYMM.xlsx 서버 생성 API를 연결한다.
     toast.info("검침대장 엑셀 내보내기는 서버 생성 기능 연동 후 제공됩니다.");
@@ -204,6 +230,12 @@ export default function UtilitiesPage() {
               disabled={!buildingId || rows.length === 0 || saveMeter.isPending}
             >
               부과 계산
+            </Button>
+            <Button
+              onClick={confirmCharges}
+              disabled={!buildingId || activeRows.length === 0 || confirmUtilities.isPending}
+            >
+              {confirmation ? "재확정" : "부과 확정"}
             </Button>
           </div>
         </div>
@@ -272,6 +304,35 @@ export default function UtilitiesPage() {
             missing={Math.max(0, activeRows.length - completed)}
             expectedCharge={expectedCharge}
           />
+
+          {confirmationQuery.error && (
+            <section className="rounded-xl border border-red/20 bg-red-t px-4 py-3 text-sm font-semibold text-red">
+              확정 상태를 불러오지 못했습니다. 다시 조회해 주세요.
+            </section>
+          )}
+
+          {confirmation && (
+            <section className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-surface px-4 py-3 shadow-card">
+              <span className="rounded-lg bg-green-t px-2.5 py-1 text-xs font-bold text-green">
+                부과 확정
+              </span>
+              <span className="text-xs font-semibold text-t3">
+                {new Date(confirmation.confirmedAt).toLocaleString("ko-KR")} ·{" "}
+                {confirmation.confirmedByName ?? "확정자 미상"} ·{" "}
+                {confirmation.unitCount.toLocaleString("ko-KR")}세대 ·{" "}
+                {confirmation.totalAmount.toLocaleString("ko-KR")}원
+              </span>
+            </section>
+          )}
+
+          {confirmation?.isDirty && (
+            <div
+              role="alert"
+              className="rounded-xl border border-amber/30 bg-amber-t px-4 py-3 text-sm font-bold text-amber"
+            >
+              확정 후 수정됨 — 재확정 필요
+            </div>
+          )}
 
           <section className="overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
             <div className="flex flex-wrap items-center gap-2 border-b border-line2 px-5 py-4">
