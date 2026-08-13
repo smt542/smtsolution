@@ -7,12 +7,11 @@ import { useMe } from "@/hooks/reactquery/auth";
 import {
   useOverdueBuildings,
   useOverdueHouseholds,
-  usePrepareOverdueMessage,
   type OverdueHousehold,
-  type OverdueMessageDraft,
 } from "@/hooks/reactquery/overdue";
 import { hasModule } from "@/lib/auth/permissions";
-import { MessagingPreviewModal } from "./components/MessagingPreviewModal";
+import type { MessageRecipient } from "@/lib/messaging/preset";
+import { MessagingModal } from "../messaging/components/MessagingModal";
 import { OverdueDetailModal } from "./components/OverdueDetailModal";
 import { OverdueTable } from "./components/OverdueTable";
 import { OverdueToolbar } from "./components/OverdueToolbar";
@@ -20,6 +19,8 @@ import {
   downloadOverdueLedger,
   isDebtCollectionTarget,
 } from "./utils";
+
+const OVERDUE_MESSAGE_BODY = "미납 관리비를 확인해 주세요.";
 
 export default function OverduePage() {
   const { data: me, isLoading: isMeLoading } = useMe();
@@ -33,7 +34,8 @@ export default function OverduePage() {
   const [debtFilterEnabled, setDebtFilterEnabled] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [detailHousehold, setDetailHousehold] = useState<OverdueHousehold | null>(null);
-  const [messageDraft, setMessageDraft] = useState<OverdueMessageDraft | null>(null);
+  const [messageRecipients, setMessageRecipients] = useState<MessageRecipient[]>([]);
+  const [isMessagingOpen, setIsMessagingOpen] = useState(false);
 
   const {
     data: households = [],
@@ -41,7 +43,6 @@ export default function OverduePage() {
     error: householdsError,
     refetch,
   } = useOverdueHouseholds(canAccess ? selectedBuildingId : null);
-  const prepareMessage = usePrepareOverdueMessage();
 
   const selectedBuilding = buildings.find((building) => building.id === selectedBuildingId) ?? null;
   const debtTargetCount = useMemo(
@@ -59,6 +60,8 @@ export default function OverduePage() {
     setDebtFilterEnabled(false);
     setSelectedIds(new Set());
     setDetailHousehold(null);
+    setMessageRecipients([]);
+    setIsMessagingOpen(false);
   };
 
   const toggleDebtFilter = () => {
@@ -105,14 +108,15 @@ export default function OverduePage() {
     }
   };
 
-  const openMessagingPreview = async () => {
-    const recipients = visibleHouseholds
+  const openMessagingModal = () => {
+    const recipients: MessageRecipient[] = visibleHouseholds
       .filter((row) => selectedIds.has(row.occupancyId))
       .map((row) => ({
-        occupancyId: row.occupancyId,
+        name: row.tenantName ?? null,
+        phone: row.phone ?? null,
         unitNo: [row.dong, row.unitNo].filter(Boolean).join(" "),
-        tenantName: row.tenantName,
-        phone: row.phone,
+        kind: "tenant",
+        ref: { occupancyId: row.occupancyId },
       }));
 
     if (recipients.length === 0) {
@@ -120,12 +124,8 @@ export default function OverduePage() {
       return;
     }
 
-    try {
-      const draft = await prepareMessage.mutateAsync(recipients);
-      setMessageDraft(draft);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "문자 발송 준비 중 오류가 발생했습니다.");
-    }
+    setMessageRecipients(recipients);
+    setIsMessagingOpen(true);
   };
 
   if (isMeLoading) {
@@ -164,8 +164,8 @@ export default function OverduePage() {
           </Button>
           <Button
             variant="primary"
-            onClick={openMessagingPreview}
-            disabled={!selectedBuilding || isHouseholdsLoading || prepareMessage.isPending}
+            onClick={openMessagingModal}
+            disabled={!selectedBuilding || isHouseholdsLoading}
           >
             독촉 문자 발송{selectedCount > 0 ? ` (${selectedCount})` : ""}
           </Button>
@@ -238,7 +238,20 @@ export default function OverduePage() {
       </section>
 
       <OverdueDetailModal household={detailHousehold} onClose={() => setDetailHousehold(null)} />
-      <MessagingPreviewModal draft={messageDraft} onClose={() => setMessageDraft(null)} />
+      <MessagingModal
+        open={isMessagingOpen}
+        preset={{
+          context: "독촉",
+          channel: "sms",
+          body: OVERDUE_MESSAGE_BODY,
+          recipients: messageRecipients,
+        }}
+        onClose={() => setIsMessagingOpen(false)}
+        onSent={(result) => {
+          toast.success(`독촉 문자가 발송되었습니다 (성공 ${result.count}건 / 실패 0건)`);
+          setIsMessagingOpen(false);
+        }}
+      />
     </div>
   );
 }

@@ -1,12 +1,34 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { MessagingPreset } from "@/lib/messaging/preset";
+
+const { messagingModalSpy } = vi.hoisted(() => ({
+  messagingModalSpy: vi.fn(),
+}));
 
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
 vi.mock("@/hooks/reactquery/overdue", () => ({
   useOverdueBuildings: vi.fn(),
   useOverdueHouseholds: vi.fn(),
-  usePrepareOverdueMessage: vi.fn(),
+}));
+vi.mock("../messaging/components/MessagingModal", () => ({
+  MessagingModal: (props: {
+    open: boolean;
+    preset?: MessagingPreset;
+    onClose: () => void;
+    onSent?: (result: { logId: number; count: number }) => void;
+  }) => {
+    messagingModalSpy(props);
+    return props.open ? (
+      <button
+        type="button"
+        onClick={() => props.onSent?.({ logId: 91, count: 1 })}
+      >
+        테스트 발송 완료
+      </button>
+    ) : null;
+  },
 }));
 vi.mock("sonner", () => ({
   toast: { info: vi.fn(), success: vi.fn(), error: vi.fn() },
@@ -21,7 +43,6 @@ import { useMe } from "@/hooks/reactquery/auth";
 import {
   useOverdueBuildings,
   useOverdueHouseholds,
-  usePrepareOverdueMessage,
 } from "@/hooks/reactquery/overdue";
 import { toast } from "sonner";
 import { downloadOverdueLedger } from "./utils";
@@ -83,12 +104,6 @@ const households = [
   },
 ] as const;
 
-const mutateAsync = vi.fn(async (recipients) => ({
-  status: "unavailable",
-  template: "overdue-reminder",
-  recipients,
-}));
-
 function setup({ allowed = true } = {}) {
   vi.mocked(useMe).mockReturnValue({
     data: allowed
@@ -105,10 +120,6 @@ function setup({ allowed = true } = {}) {
     isLoading: false,
     error: null,
     refetch: vi.fn(),
-  } as never);
-  vi.mocked(usePrepareOverdueMessage).mockReturnValue({
-    mutateAsync,
-    isPending: false,
   } as never);
 }
 
@@ -167,20 +178,46 @@ describe("OverduePage", () => {
     selectBuilding();
     fireEvent.click(screen.getByRole("button", { name: "독촉 문자 발송" }));
     expect(toast.info).toHaveBeenCalledWith("문자를 받을 세대를 선택해 주세요.");
-    expect(mutateAsync).not.toHaveBeenCalled();
+    expect(messagingModalSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({ open: true }),
+    );
   });
 
-  it("선택 세대를 안전한 문자 발송 준비 모달로 전달한다", async () => {
+  it("선택 세대를 독촉 프리셋으로 공용 문자 발송 모달에 전달한다", () => {
     render(<OverduePage />);
     selectBuilding();
     fireEvent.click(screen.getByRole("checkbox", { name: "101호 선택" }));
     fireEvent.click(screen.getByRole("button", { name: "독촉 문자 발송 (1)" }));
 
-    await waitFor(() => expect(screen.getByText("문자 발송 준비 중")).toBeInTheDocument());
-    expect(screen.getByText(/실제 문자는 발송되지 않았습니다/)).toBeInTheDocument();
-    expect(mutateAsync).toHaveBeenCalledWith([
-      expect.objectContaining({ occupancyId: 31, unitNo: "101호", tenantName: "김입주" }),
-    ]);
+    expect(screen.getByRole("button", { name: "테스트 발송 완료" })).toBeInTheDocument();
+    expect(messagingModalSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        open: true,
+        preset: {
+          context: "독촉",
+          channel: "sms",
+          body: "미납 관리비를 확인해 주세요.",
+          recipients: [
+            {
+              name: "김입주",
+              phone: "010-1111-2222",
+              unitNo: "101호",
+              kind: "tenant",
+              ref: { occupancyId: 31 },
+            },
+          ],
+        },
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "테스트 발송 완료" }));
+
+    expect(toast.success).toHaveBeenCalledWith(
+      "독촉 문자가 발송되었습니다 (성공 1건 / 실패 0건)",
+    );
+    expect(messagingModalSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ open: false }),
+    );
   });
 
   it("미납대장 출력은 현재 필터 결과와 건물명을 다운로드 함수에 전달한다", () => {
