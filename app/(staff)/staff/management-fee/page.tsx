@@ -12,6 +12,7 @@ import { currentPeriod, toMonthInput, fromMonthInput } from "@/lib/billing/perio
 import { BillingTable } from "./components/BillingTable";
 import { ItemManageModal } from "./components/ItemManageModal";
 import { BillingHistoryModal } from "./components/BillingHistoryModal";
+import { BillingNoteModal } from "./components/BillingNoteModal";
 
 type ChargeDraft = { charged: boolean; amount: number };
 
@@ -23,6 +24,8 @@ export default function FeeItemPage() {
   const [buildingId, setBuildingId] = useState<number | null>(null);
   const [period, setPeriod] = useState<string>(() => currentPeriod());
   const [chargeDrafts, setChargeDrafts] = useState<Record<string, ChargeDraft>>({});
+  const [noteDrafts, setNoteDrafts] = useState<Record<number, { billingNote: string; unitNotice: string }>>({});
+  const [noteUnit, setNoteUnit] = useState<number | null>(null);
   const [itemModalOpen, setItemModalOpen] = useState(false);
   const [historyUnit, setHistoryUnit] = useState<{ id: number; no: string } | null>(null);
 
@@ -44,16 +47,21 @@ export default function FeeItemPage() {
   const buildingType = buildingTypes.find((t) => t.id === selectedBuilding?.typeId) ?? null;
 
   const { units: serverUnits, columns } = pivotBillingRows(billingQuery.data ?? []);
-  // draft 오버레이
-  const units: BillingUnitRow[] = serverUnits.map((u) => ({
-    ...u,
-    charges: Object.fromEntries(
-      columns.map((c) => {
-        const key = `${u.unitId}:${c.feeItemId}`;
-        return [c.feeItemId, chargeDrafts[key] ?? u.charges[c.feeItemId] ?? { charged: true, amount: 0 }];
-      })
-    ),
-  }));
+  // draft 오버레이 (charge + note)
+  const units: BillingUnitRow[] = serverUnits.map((u) => {
+    const noteDraft = noteDrafts[u.unitId];
+    return {
+      ...u,
+      billingNote: noteDraft ? noteDraft.billingNote : u.billingNote,
+      unitNotice: noteDraft ? noteDraft.unitNotice : u.unitNotice,
+      charges: Object.fromEntries(
+        columns.map((c) => {
+          const key = `${u.unitId}:${c.feeItemId}`;
+          return [c.feeItemId, chargeDrafts[key] ?? u.charges[c.feeItemId] ?? { charged: true, amount: 0 }];
+        })
+      ),
+    };
+  });
 
   const onChargeChange = (unitId: number, feeItemId: number, patch: Partial<ChargeDraft>) => {
     const key = `${unitId}:${feeItemId}`;
@@ -71,10 +79,16 @@ export default function FeeItemPage() {
       const occ = serverUnits.find((u) => u.unitId === unitId)?.occupancyId ?? null;
       return { unitId, feeItemId, charged: v.charged, amount: v.amount, occupancyId: occ };
     });
-    if (charges.length === 0) { toast.info("변경된 금액이 없습니다."); return; }
+    const notes = Object.entries(noteDrafts).map(([unitId, v]) => ({
+      unitId: Number(unitId),
+      billingNote: v.billingNote || null,
+      unitNotice: v.unitNotice || null,
+    }));
+    if (charges.length === 0 && notes.length === 0) { toast.info("변경된 내용이 없습니다."); return; }
     try {
-      await saveCharges.mutateAsync({ buildingId, period, charges, notes: [] });
+      await saveCharges.mutateAsync({ buildingId, period, charges, notes });
       setChargeDrafts({});
+      setNoteDrafts({});
       toast.success("임시 저장되었습니다.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
@@ -174,7 +188,7 @@ export default function FeeItemPage() {
             period={period}
             onChargeChange={onChargeChange}
             onRowClick={(unitId) => { const u = units.find((x) => x.unitId === unitId); if (u) setHistoryUnit({ id: unitId, no: u.unitNo }); }}
-            onNoteClick={() => { /* Task 13: 메모 모달 */ }}
+            onNoteClick={(unitId) => setNoteUnit(unitId)}
           />
         </section>
       )}
@@ -196,6 +210,23 @@ export default function FeeItemPage() {
         period={period}
         onClose={() => setHistoryUnit(null)}
       />
+
+      {(() => {
+        const u = units.find((x) => x.unitId === noteUnit);
+        return (
+          <BillingNoteModal
+            open={noteUnit != null}
+            unitNo={u?.unitNo ?? ""}
+            billingNote={u?.billingNote ?? ""}
+            unitNotice={u?.unitNotice ?? ""}
+            onClose={() => setNoteUnit(null)}
+            onSave={(v) => {
+              if (noteUnit != null) setNoteDrafts((d) => ({ ...d, [noteUnit]: v }));
+              setNoteUnit(null);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }
