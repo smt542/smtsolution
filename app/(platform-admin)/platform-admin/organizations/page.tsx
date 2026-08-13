@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { EmptyState, SearchBar, Spinner } from "@/components/common";
 import { toast } from "sonner";
@@ -82,7 +83,12 @@ export default function PlatformOrganizationsPage() {
                 {filtered.map((organization) => (
                   <tr key={organization.id} className="border-b border-line last:border-0 hover:bg-bg/50">
                     <td className="px-5 py-4">
-                      <div className="font-bold text-t1">{organization.name}</div>
+                      <Link
+                        href={`/platform-admin/organizations/${organization.id}`}
+                        className="font-bold text-t1 hover:text-blue hover:underline"
+                      >
+                        {organization.name}
+                      </Link>
                       <div className="mt-1 text-xs text-t3">{organization.slug ?? "회사코드 미설정"}</div>
                     </td>
                     <td className="px-4 py-4">

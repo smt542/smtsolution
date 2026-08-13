@@ -5,4 +5,7 @@ export const platformKeys = {
   accounts: () => [...platformKeys.all, "accounts"] as const,
   transactions: (opts?: { type?: "charge" | "usage" }) =>
     [...platformKeys.all, "transactions", opts?.type ?? "all"] as const,
+  orgBuildings: (orgId: number) => [...platformKeys.all, "org-buildings", orgId] as const,
+  buildingTenants: (buildingId: number) => [...platformKeys.all, "building-tenants", buildingId] as const,
+  unit: (unitId: number) => [...platformKeys.all, "unit", unitId] as const,
 };
