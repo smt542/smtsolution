@@ -1,13 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { response, user } = await updateSession(request);
   const { pathname } = request.nextUrl;
   const isLogin = pathname === "/staff/login";
   const isStaff = pathname.startsWith("/staff");
+  const isPlatformAdmin = pathname.startsWith("/platform-admin");
 
-  if (isStaff && !isLogin && !user) {
+  if (((isStaff && !isLogin) || isPlatformAdmin) && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/staff/login";
     return NextResponse.redirect(url);
@@ -20,4 +21,6 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
-export const config = { matcher: ["/staff/:path*"] };
+export const config = {
+  matcher: ["/staff/:path*", "/platform-admin/:path*"],
+};

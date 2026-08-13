@@ -21,8 +21,8 @@ describe("LoginForm", () => {
     expect(screen.getByText("아이디를 입력해 주세요")).toBeInTheDocument();
   });
 
-  it("정상 입력 → mutateAsync 호출 후 이동", async () => {
-    mutateAsync.mockResolvedValue({});
+  it("일반 직원 로그인 성공 시 직원 화면으로 이동", async () => {
+    mutateAsync.mockResolvedValue({ role: "staff" });
     render(<LoginForm />);
     await userEvent.type(screen.getByLabelText("회사코드"), "demo");
     await userEvent.type(screen.getByLabelText("아이디"), "hong");
@@ -30,6 +30,17 @@ describe("LoginForm", () => {
     await userEvent.click(screen.getByRole("button", { name: "로그인" }));
     expect(mutateAsync).toHaveBeenCalledWith({ companyCode: "demo", username: "hong", password: "pw123456", autoLogin: false });
     expect(push).toHaveBeenCalledWith("/staff");
+  });
+
+  it("통합관리자 로그인 성공 시 통합관리자 콘솔로 이동", async () => {
+    mutateAsync.mockResolvedValue({ role: "platform_admin" });
+    render(<LoginForm />);
+    await userEvent.type(screen.getByLabelText("회사코드"), "demo");
+    await userEvent.type(screen.getByLabelText("아이디"), "admin");
+    await userEvent.type(screen.getByLabelText("비밀번호"), "pw123456");
+    await userEvent.click(screen.getByRole("button", { name: "로그인" }));
+
+    expect(push).toHaveBeenCalledWith("/platform-admin");
   });
 
   it("로그인 실패 시 에러 배너", async () => {
