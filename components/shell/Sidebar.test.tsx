@@ -94,4 +94,27 @@ describe("Sidebar", () => {
     const link = screen.getByRole("link", { name: /건물·입주자/ });
     expect(link).toHaveAttribute("aria-current", "page");
   });
+
+  it("platform_admin에게 통합관리자 콘솔 링크를 노출한다", () => {
+    mockUseMe.mockReturnValue(
+      makeMe({ role: "platform_admin", permissions: [] })
+    );
+
+    render(<Sidebar />);
+
+    expect(screen.getByRole("link", { name: "통합관리자 콘솔" })).toHaveAttribute(
+      "href",
+      "/platform-admin"
+    );
+  });
+
+  it("platform_admin이 아닌 사용자에게 통합관리자 콘솔 링크를 숨긴다", () => {
+    mockUseMe.mockReturnValue(
+      makeMe({ role: "org_owner", permissions: [] })
+    );
+
+    render(<Sidebar />);
+
+    expect(screen.queryByRole("link", { name: "통합관리자 콘솔" })).not.toBeInTheDocument();
+  });
 });

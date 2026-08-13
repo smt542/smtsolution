@@ -11,10 +11,10 @@ beforeEach(() => vi.clearAllMocks());
 
 describe("occupancies hub apis", () => {
   it("listTenants: list_tenants RPC + 매핑", async () => {
-    rpc.mockResolvedValue({ data: [{ unit_id:3, occupancy_id:9, unit_no:"101", tenant_name:"김입주", room_type_label:"원룸", resident_count:2, move_in_date:"2026-01-01", is_vacant:false, is_overdue:false }], error:null });
+    rpc.mockResolvedValue({ data: [{ unit_id:3, occupancy_id:9, unit_no:"101", tenant_name:"김입주", phone:"010-1111-2222", room_type_label:"원룸", resident_count:2, move_in_date:"2026-01-01", is_vacant:false, is_overdue:false }], error:null });
     const r = await listTenants(7);
     expect(rpc).toHaveBeenCalledWith("list_tenants", { p_building_id: 7 });
-    expect(r[0]).toMatchObject({ unitId:3, occupancyId:9, unitNo:"101", tenantName:"김입주", roomTypeLabel:"원룸", isVacant:false });
+    expect(r[0]).toMatchObject({ unitId:3, occupancyId:9, unitNo:"101", tenantName:"김입주", phone:"010-1111-2222", roomTypeLabel:"원룸", isVacant:false });
   });
   it("saveUnitOccupancy: RPC payload(snake) + 결과 파싱", async () => {
     rpc.mockResolvedValue({ data: { unit_id:3, occupancy_id:9 }, error:null });

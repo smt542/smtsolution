@@ -15,4 +15,11 @@ describe("navItems P2b", () => {
       built: true,
     });
   });
+  it("문자·알림톡 발송은 messaging 권한으로 활성화", () => {
+    expect(all.find((i) => i.href === "/staff/messaging")).toMatchObject({
+      label: "문자·알림톡 발송",
+      module: "messaging",
+      built: true,
+    });
+  });
 });

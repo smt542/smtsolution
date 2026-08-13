@@ -197,11 +197,11 @@ revoke execute on function save_unit_occupancy(bigint,bigint,bigint,jsonb,jsonb,
 -- ===== 목록 RPC =====
 create or replace function list_tenants(p_building_id bigint)
 returns table(
-  unit_id bigint, occupancy_id bigint, unit_no text, tenant_name text,
+  unit_id bigint, occupancy_id bigint, unit_no text, tenant_name text, phone text,
   room_type_label text, resident_count int, move_in_date date,
   is_vacant boolean, is_overdue boolean
 ) language sql stable security definer set search_path = public as $$
-  select u.id, o.id, u.unit_no, o.tenant_name, rt.label, o.resident_count, o.move_in_date,
+  select u.id, o.id, u.unit_no, o.tenant_name, o.phone, rt.label, o.resident_count, o.move_in_date,
     coalesce(o.status = 'vacant', true) as is_vacant,
     false as is_overdue
   from units u
@@ -214,4 +214,5 @@ returns table(
   where u.building_id = p_building_id and u.deleted_at is null
   order by u.unit_no
 $$;
-revoke execute on function list_tenants(bigint) from anon;
+revoke execute on function list_tenants(bigint) from public, anon;
+grant execute on function list_tenants(bigint) to authenticated;
