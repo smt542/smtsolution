@@ -25,6 +25,19 @@ do $$ begin
         'mid_moveout_settlement','list_settlements'
       ) and p.prosecdef) <> 5
     then raise exception 'P7a security-definer RPC missing'; end if;
+  if exists (
+    select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+    where n.nspname='public' and p.proname in (
+      'get_settlement_context','save_moving_settlement','complete_moving_settlement',
+      'mid_moveout_settlement','list_settlements'
+    ) and has_function_privilege('anon', p.oid, 'EXECUTE')
+  ) then raise exception 'P7a RPC must not be executable by anon'; end if;
+  if (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+      where n.nspname='public' and p.proname in (
+        'get_settlement_context','save_moving_settlement','complete_moving_settlement',
+        'mid_moveout_settlement','list_settlements'
+      ) and has_function_privilege('authenticated', p.oid, 'EXECUTE')) <> 5
+    then raise exception 'P7a RPC must be executable by authenticated'; end if;
 end $$;
 -- 수동: moving 미보유 구성원 moving_settlements SELECT 가능·INSERT 거부; moving 보유·마스터 save/complete/mid 성공;
 --       get_settlement_context 최신 draft/saved·계좌 스냅샷·체크리스트·검침 3종 확인;

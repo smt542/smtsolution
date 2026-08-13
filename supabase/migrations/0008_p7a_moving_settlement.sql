@@ -150,7 +150,8 @@ begin
     'meter_summary', v_meter_summary
   );
 end $$;
-revoke execute on function get_settlement_context(bigint) from anon;
+revoke execute on function get_settlement_context(bigint) from public, anon;
+grant execute on function get_settlement_context(bigint) to authenticated;
 
 -- ===== 정산 저장 RPC(원자적) =====
 create or replace function save_moving_settlement(
@@ -250,7 +251,8 @@ begin
 
   return jsonb_build_object('settlement_id', v_settlement_id, 'settlement_amount', v_amount);
 end $$;
-revoke execute on function save_moving_settlement(bigint,bigint,bigint,jsonb,jsonb) from anon;
+revoke execute on function save_moving_settlement(bigint,bigint,bigint,jsonb,jsonb) from public, anon;
+grant execute on function save_moving_settlement(bigint,bigint,bigint,jsonb,jsonb) to authenticated;
 
 -- ===== 정산완료 + 공실 처리 RPC =====
 create or replace function complete_moving_settlement(p_settlement_id bigint)
@@ -297,7 +299,8 @@ begin
   -- 수도지침은 다음 월 list_utility_rows가 전월 current를 previous로 읽으므로 별도 이월 write가 없다.
   return jsonb_build_object('ok', true);
 end $$;
-revoke execute on function complete_moving_settlement(bigint) from anon;
+revoke execute on function complete_moving_settlement(bigint) from public, anon;
+grant execute on function complete_moving_settlement(bigint) to authenticated;
 
 -- ===== 중도퇴실 처리 RPC =====
 create or replace function mid_moveout_settlement(p_settlement_id bigint)
@@ -328,7 +331,8 @@ begin
 
   return jsonb_build_object('ok', true);
 end $$;
-revoke execute on function mid_moveout_settlement(bigint) from anon;
+revoke execute on function mid_moveout_settlement(bigint) from public, anon;
+grant execute on function mid_moveout_settlement(bigint) to authenticated;
 
 -- ===== 날짜범위 정산 이력 RPC =====
 create or replace function list_settlements(
@@ -348,4 +352,5 @@ create or replace function list_settlements(
   where s.move_out_date between p_from and p_to
   order by u.unit_no, s.created_at desc
 $$;
-revoke execute on function list_settlements(bigint,date,date) from anon;
+revoke execute on function list_settlements(bigint,date,date) from public, anon;
+grant execute on function list_settlements(bigint,date,date) to authenticated;
