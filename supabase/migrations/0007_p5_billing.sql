@@ -206,7 +206,7 @@ begin
   if not exists (select 1 from buildings where id = p_building_id and org_id = v_org) then
     raise exception 'building not in org'; end if;
 
-  v_days := extract(day from (p_period + interval '1 month - 1 day'))::int;
+  v_days := extract(day from ((p_period + interval '1 month')::date - 1))::int;
 
   for v_unit in
     select u.id as unit_id, occ.id as occ_id, occ.tenant_name, occ.move_in_date, occ.status
@@ -220,7 +220,7 @@ begin
     if coalesce(v_unit.status = 'vacant', true) then continue; end if;  -- 공실 제외
 
     if v_unit.move_in_date is not null
-       and v_unit.move_in_date between p_period and (p_period + interval '1 month - 1 day')::date then
+       and v_unit.move_in_date between p_period and ((p_period + interval '1 month')::date - 1) then
       v_occupied := ((p_period + interval '1 month')::date - v_unit.move_in_date);  -- 입주일 포함
     else
       v_occupied := v_days;
