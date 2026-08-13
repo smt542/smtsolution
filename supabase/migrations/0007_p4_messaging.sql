@@ -41,13 +41,51 @@ begin
     raise exception 'forbidden: messaging required';
   end if;
 
-  v_recipient_count := jsonb_array_length(coalesce(p_recipients, '[]'::jsonb));
+  if p_channel is distinct from 'sms' then
+    raise exception 'invalid channel: sms required';
+  end if;
+  if p_body is null or btrim(p_body) = '' then
+    raise exception 'invalid body: nonempty text required';
+  end if;
+  if p_recipients is null or jsonb_typeof(p_recipients) <> 'array' then
+    raise exception 'invalid recipients: nonempty JSON array required';
+  end if;
+  if jsonb_array_length(p_recipients) = 0 then
+    raise exception 'invalid recipients: nonempty JSON array required';
+  end if;
+  if exists (
+    select 1
+    from jsonb_array_elements(p_recipients) as r(recipient)
+    where jsonb_typeof(r.recipient->'phone') is distinct from 'string'
+  ) then
+    raise exception 'invalid recipients: every recipient phone must be a string';
+  end if;
+  if exists (
+    select 1
+    from jsonb_array_elements(p_recipients) as r(recipient)
+    where regexp_replace(r.recipient->>'phone', '[^0-9]', '', 'g') = ''
+  ) then
+    raise exception 'invalid recipients: every recipient phone must contain digits';
+  end if;
+  if exists (
+    select 1
+    from (
+      select regexp_replace(r.recipient->>'phone', '[^0-9]', '', 'g') as normalized_phone
+      from jsonb_array_elements(p_recipients) as r(recipient)
+    ) as phones
+    group by phones.normalized_phone
+    having count(*) > 1
+  ) then
+    raise exception 'invalid recipients: duplicate normalized phone';
+  end if;
+
+  v_recipient_count := jsonb_array_length(p_recipients);
   select coalesce(
     jsonb_agg(r.recipient || jsonb_build_object('result', 'stub') order by r.ordinality),
     '[]'::jsonb
   )
   into v_recipients
-  from jsonb_array_elements(coalesce(p_recipients, '[]'::jsonb))
+  from jsonb_array_elements(p_recipients)
     with ordinality as r(recipient, ordinality);
 
   insert into message_logs(
@@ -65,11 +103,17 @@ revoke execute on function send_messages(text,text,text,jsonb) from anon;
 -- ===== 발송 이력 목록 RPC =====
 create or replace function list_message_logs(p_limit int default 50)
 returns setof message_logs
-language sql stable security definer set search_path = public as $$
-  select ml.*
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not current_user_has_module('messaging') then
+    raise exception 'forbidden: messaging required';
+  end if;
+
+  return query select ml.*
   from message_logs ml
   where ml.org_id in (select my_org_ids())
   order by ml.sent_at desc
-  limit p_limit
+  limit p_limit;
+end
 $$;
 revoke execute on function list_message_logs(int) from anon;
