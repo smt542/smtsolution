@@ -32,6 +32,7 @@ beforeEach(() => {
   vi.mocked(useBuildings).mockReturnValue({ data: [{ id: 7, name: "가나빌", typeId: 1 }], isLoading: false } as never);
   vi.mocked(useBilling).mockReturnValue({ data: [], isLoading: false, error: null } as never);
   vi.mocked(useSaveBillingCharges).mockReturnValue(mut as never);
+  vi.mocked(useConfirmBilling).mockReturnValue(mut as never);
 });
 
 describe("management-fee page (billing)", () => {
