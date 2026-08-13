@@ -1,7 +1,7 @@
 # 관리비서 — P5b 공과금 단가·자동요금·부과확정·검침대장(`/staff/utilities`) 설계 (spec)
 
 - **작성일:** 2026-08-13
-- **스택:** Next.js 16(App Router) + Supabase(PostgreSQL·Auth) + React Query + TailwindCSS + exceljs(신규)
+- **스택:** Next.js 16(App Router) + Supabase(PostgreSQL·Auth) + React Query + TailwindCSS + 기존 `lib/export/xlsx`(`rowsToXlsxBuffer`) 재사용
 - **기준 정본:** `docs/prototype/prd/utility-charge.md`, `docs/superpowers/specs/2026-08-12-p5a-utilities-meter-design.md`(§11 열린 항목)
 - **로드맵:** P5(검침·부과·고지서) 중 `/staff/utilities`의 **후속 슬라이스** — P5a(검침·지침)가 남긴 `단가·자동요금·부과확정·검침대장 엑셀`을 채운다.
 - **선행:** P0(`profiles`·`audit_log`·`set_updated_at`), P2a(`current_user_org`·`current_user_has_module`·`my_org_ids`), P3a(`building_customer_numbers`), P3b(`unit_meters`·`occupancies`), P5a(`meter_readings`·`water_discounts`·`list_utility_rows`·`save_meter_readings`), P5(`round_charge` — `0012`).
@@ -38,7 +38,7 @@ P5a에서 `/staff/utilities`의 **검침 슬라이스**(세대·유형·월별 �
   - RLS(신규 2테이블, `utilities` 모듈 쓰기 게이트) + `supabase/verify/p5b_checks.sql`
 - **데이터층**(`hooks/reactquery/utilities/`): `listUtilityPrices`·`saveUtilityUnitPrices`·`confirmUtilities`·`getUtilityConfirmation`·`ledgerDownloadUrl` + keys/queries/mutations + 테스트.
 - **UI**(`/staff/utilities`): `단가 설정` 모달(신규 `UnitPriceModal`), `부과 확정` 플로우(확인 팝업·확정 배지·is_dirty 경고), `자동요금`·`단가` 컬럼 실데이터, `검침대장 다운` 실제 다운로드.
-- **검침대장 엑셀**: 서버 Route Handler(`app/(staff)/staff/utilities/ledger/route.ts`) + `exceljs`.
+- **검침대장 엑셀**: 서버 Route Handler(`app/api/utilities/ledger/route.ts`, 기존 `app/api/buildings/export/route.ts` 패턴) + 기존 `lib/export/xlsx.rowsToXlsxBuffer` 재사용.
 - 테스트(vitest+RTL) + 정적(tsc·lint).
 
 **Out of scope (후속)**
@@ -62,7 +62,7 @@ P5a에서 `/staff/utilities`의 **검침 슬라이스**(세대·유형·월별 �
 | 6 | 유효요금 | `coalesce(manual_charge, calc_charge)` — 수동요금 우선 | PRD "수동 입력값 우선" · 기존 요약 로직 |
 | 7 | 부과확정 | **공과금 자체 확정** `utility_confirmations`(건물×유형×월 잠금·합계·확정자) | 사용자 확정 T1 |
 | 8 | 확정 후 편집 | **하드 잠금 없음**. `is_dirty`(확정 후 수정 감지)로 표시 + **재확정** 가능 | `confirm_billing`(0012) 선례 일치 · 정정 허용 |
-| 9 | 검침대장 | **서버 Route Handler + exceljs**, 파일명 `[건물명]_[유형]_검침대장_YYYYMM.xlsx` | PRD "서버사이드 생성" · 한글 파일명 RFC 5987 |
+| 9 | 검침대장 | **서버 Route Handler**(`app/api/utilities/ledger`) + **기존 `rowsToXlsxBuffer` 재사용**(신규 의존성 없음), 파일명 `[건물명]_[유형]_검침대장_YYYYMM.xlsx` | 기존 `buildings/export` 선례 · 한글 파일명 RFC 5987 |
 | 10 | 마이그 번호 | `0014`(master 최신 `0013`×2 다음). 신규 2테이블·RPC 확장 단일 파일 | 0013 중복 회피 |
 | 11 | 금액·단가 타입 | 단가 `numeric(12,2)`, 요금·할인 `integer`(원), 합계 `bigint` | P5a §2-G 계승 |
 
@@ -243,13 +243,13 @@ v_calc  := case
 
 ---
 
-## 8. 검침대장 엑셀 — Route Handler
+## 8. 검침대장 엑셀 — Route Handler (기존 `buildings/export` 선례 그대로)
 
-- **경로:** `app/(staff)/staff/utilities/ledger/route.ts` (`GET`), 쿼리 `buildingId`·`utility`·`period`.
-- **동작:** 서버 Supabase 클라이언트(세션 쿠키 → RLS 적용)로 `list_utility_rows` 호출 → `exceljs`로 워크북 생성(헤더: 호실·입주자·전월지침·당월지침·사용량·단가·자동요금·수동요금·할인·적요·처리일) → `Response`(`Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, `Content-Disposition: attachment; filename*=UTF-8''<encoded>`).
-- **파일명:** `[건물명]_[유형라벨]_검침대장_YYYYMM.xlsx`(한글 → `encodeURIComponent`, RFC 5987).
-- **권한:** 세션 없음/`utilities` 없음 → 403. 타 org 건물 → RLS로 빈 결과.
-- **의존성:** `exceljs`(신규, `package.json`).
+- **경로:** `app/api/utilities/ledger/route.ts` (`GET`), 쿼리 `buildingId`·`utility`·`period`. 기존 `app/api/buildings/export/route.ts`와 동일 컨벤션(`export async function GET(request: Request)`).
+- **동작:** `@/lib/supabase/server`의 `createClient()`(세션 쿠키 → RLS)로 `list_utility_rows` 호출 → 컬럼 정의 + row 매핑 → **`rowsToXlsxBuffer(columns, rows)`**(`@/lib/export/xlsx`) → `Response`(`Content-Type: …spreadsheetml.sheet`, `Content-Disposition: attachment; filename="…"; filename*=UTF-8''<encoded>`). 헤더: 호실·입주자·전월지침·당월지침·사용량·단가·자동요금·수동요금·할인·적요·처리일.
+- **파일명:** `[건물명]_[유형라벨]_검침대장_YYYYMM.xlsx`(한글 → `encodeURIComponent`, RFC 5987; `buildings/export`의 `filename*` 패턴). 건물명은 `list_utility_rows`에 없으므로 `buildings` 최소 조회 1회 또는 쿼리 파라미터로 전달.
+- **권한:** 세션 없음/타 org 건물 → RLS로 빈 결과.
+- **의존성:** **없음**(기존 `rowsToXlsxBuffer` 재사용).
 
 ---
 
@@ -267,7 +267,7 @@ v_calc  := case
 ## 10. 마이그레이션 / 환경
 
 - `supabase/migrations/0014_p5b_utility_pricing.sql`(§3·§4·§5) + `supabase/verify/p5b_checks.sql`.
-- 신규 의존성 `exceljs`(`package.json`·`package-lock.json`). 신규 env 없음.
+- **신규 의존성 없음**(엑셀은 기존 `lib/export/xlsx.rowsToXlsxBuffer` 재사용). 신규 env 없음.
 - **master 마이그 중복 주의**: `0013_p5_bill_publish.sql` + `0013_platform_drilldown.sql` 병존(기존). 본 슬라이스는 `0014`로 회피. 라이브 적용 순서는 파일명 정렬(`0013_p5_…` → `0013_platform_…` → `0014_…`).
 - 적용(사용자): `0014` 실행 → `p5b_checks.sql`.
 
@@ -278,7 +278,7 @@ v_calc  := case
 1. **그룹1 — DB·데이터층**: `0014`(2테이블·RLS·`list_utility_prices`·`save_utility_unit_prices`·`confirm_utilities`·`list_utility_confirmation`·`list_utility_rows`/`save_meter_readings` 확장) + `p5b_checks.sql` → `apis.ts`(신규 함수·`resolvedUnitPrice`·매퍼) + keys/queries/mutations + `apis.test.ts`.
 2. **그룹2 — 단가·계산**: `UnitPriceModal` + 테이블 `단가`·`자동요금` 실컬럼 + 요약/이력 실데이터 + 안내배너 정리 + 관련 테스트.
 3. **그룹3 — 부과확정**: `부과 확정` 확인팝업·`confirm_utilities` 배선·확정 배지·`is_dirty` 경고 + 테스트.
-4. **그룹4 — 검침대장 엑셀**: `ledger/route.ts` + `exceljs` + `exportLedger` 실다운로드 배선 + 라우트 테스트.
+4. **그룹4 — 검침대장 엑셀**: `app/api/utilities/ledger/route.ts`(`rowsToXlsxBuffer` 재사용) + `exportLedger` 실다운로드 배선 + 라우트 테스트.
 
 ---
 
