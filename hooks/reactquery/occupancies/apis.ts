@@ -29,17 +29,17 @@ const rowToOccupancy = (r: OccupancyRow): Occupancy => ({
 });
 
 export interface TenantListRow {
-  unitId: number; occupancyId: number | null; unitNo: string; tenantName: string | null;
+  unitId: number; occupancyId: number | null; unitNo: string; tenantName: string | null; phone: string | null;
   roomTypeLabel: string | null; residentCount: number | null; moveInDate: string | null;
   isVacant: boolean; isOverdue: boolean;
 }
 type TenantRow = {
-  unit_id: number; occupancy_id: number | null; unit_no: string; tenant_name: string | null;
+  unit_id: number; occupancy_id: number | null; unit_no: string; tenant_name: string | null; phone: string | null;
   room_type_label: string | null; resident_count: number | null; move_in_date: string | null;
   is_vacant: boolean; is_overdue: boolean;
 };
 const rowToTenant = (r: TenantRow): TenantListRow => ({
-  unitId: r.unit_id, occupancyId: r.occupancy_id, unitNo: r.unit_no, tenantName: r.tenant_name,
+  unitId: r.unit_id, occupancyId: r.occupancy_id, unitNo: r.unit_no, tenantName: r.tenant_name, phone: r.phone,
   roomTypeLabel: r.room_type_label, residentCount: r.resident_count, moveInDate: r.move_in_date,
   isVacant: r.is_vacant, isOverdue: r.is_overdue,
 });
