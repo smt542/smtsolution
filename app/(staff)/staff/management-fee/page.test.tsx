@@ -16,6 +16,7 @@ vi.mock("@/hooks/reactquery/feeItems", () => ({
 }));
 vi.mock("@/hooks/reactquery/billing", () => ({
   useBilling: vi.fn(), useSaveBillingCharges: vi.fn(() => mut), useConfirmBilling: vi.fn(() => mut),
+  useBillingHistory: vi.fn(() => ({ data: [], isLoading: false })),
 }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() } }));
 

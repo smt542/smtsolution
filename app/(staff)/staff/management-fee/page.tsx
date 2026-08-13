@@ -11,6 +11,7 @@ import { pivotBillingRows, type BillingUnitRow } from "@/lib/billing/pivot";
 import { currentPeriod, toMonthInput, fromMonthInput } from "@/lib/billing/period";
 import { BillingTable } from "./components/BillingTable";
 import { ItemManageModal } from "./components/ItemManageModal";
+import { BillingHistoryModal } from "./components/BillingHistoryModal";
 
 type ChargeDraft = { charged: boolean; amount: number };
 
@@ -23,6 +24,7 @@ export default function FeeItemPage() {
   const [period, setPeriod] = useState<string>(() => currentPeriod());
   const [chargeDrafts, setChargeDrafts] = useState<Record<string, ChargeDraft>>({});
   const [itemModalOpen, setItemModalOpen] = useState(false);
+  const [historyUnit, setHistoryUnit] = useState<{ id: number; no: string } | null>(null);
 
   const billingQuery = useBilling(buildingId, period);
   const saveCharges = useSaveBillingCharges();
@@ -171,7 +173,7 @@ export default function FeeItemPage() {
             columns={columns}
             period={period}
             onChargeChange={onChargeChange}
-            onRowClick={() => { /* Task 12: 이력 모달 */ }}
+            onRowClick={(unitId) => { const u = units.find((x) => x.unitId === unitId); if (u) setHistoryUnit({ id: unitId, no: u.unitNo }); }}
             onNoteClick={() => { /* Task 13: 메모 모달 */ }}
           />
         </section>
@@ -186,6 +188,14 @@ export default function FeeItemPage() {
           typeLabel={buildingType.label}
         />
       )}
+
+      <BillingHistoryModal
+        open={!!historyUnit}
+        unitId={historyUnit?.id ?? null}
+        unitNo={historyUnit?.no ?? ""}
+        period={period}
+        onClose={() => setHistoryUnit(null)}
+      />
     </div>
   );
 }
