@@ -81,6 +81,31 @@ const accounts = [
   },
 ];
 
+const occupancies = [
+  {
+    id: 101,
+    unitId: 11,
+    tenantName: "김입주",
+    payerName: "김입주",
+    phone: "010-1000-0000",
+    phone2: null,
+    phone3: null,
+    vehicleNo: null,
+    residentCount: 1,
+    roomTypeId: 1,
+    moveInDate: "2026-01-01",
+    moveOutDate: null,
+    status: "occupied",
+    billingEnabled: true,
+    printEnabled: true,
+    lateFeeEnabled: true,
+    singlePrint: false,
+    billingNote: null,
+    settlementNote: null,
+    facilityNote: null,
+  },
+];
+
 const confirmSpy = vi.spyOn(window, "confirm");
 
 beforeEach(() => {
@@ -96,30 +121,7 @@ beforeEach(() => {
     isLoading: false,
   } as unknown as ReturnType<typeof useTenantList>);
   vi.mocked(useOccupancies).mockReturnValue({
-    data: [
-      {
-        id: 101,
-        unitId: 11,
-        tenantName: "김입주",
-        payerName: "김입주",
-        phone: "010-1000-0000",
-        phone2: null,
-        phone3: null,
-        vehicleNo: null,
-        residentCount: 1,
-        roomTypeId: 1,
-        moveInDate: "2026-01-01",
-        moveOutDate: null,
-        status: "occupied",
-        billingEnabled: true,
-        printEnabled: true,
-        lateFeeEnabled: true,
-        singlePrint: false,
-        billingNote: null,
-        settlementNote: null,
-        facilityNote: null,
-      },
-    ],
+    data: occupancies,
     isLoading: false,
   } as unknown as ReturnType<typeof useOccupancies>);
   vi.mocked(useAccounts).mockReturnValue({
@@ -228,6 +230,76 @@ describe("MessagingComposer", () => {
       expect(toast.success).toHaveBeenCalledWith("발송(임시) 완료 · 1명"),
     );
     expect(onSent).toHaveBeenCalledWith({ logId: 55, count: 1 });
+  });
+
+  it("중복된 정규화 전화번호를 한 명으로 표시하고 한 번만 발송", async () => {
+    render(
+      <MessagingComposer
+        preset={{
+          context: "manual",
+          body: "중복 수신처 확인",
+          recipients: [
+            {
+              name: "첫 번째 수신처",
+              phone: "010-5555-1234",
+              kind: "tenant",
+              ref: { occupancyId: 101 },
+            },
+            {
+              name: "두 번째 수신처",
+              phone: "010-5555-1234",
+              kind: "staff",
+              ref: { userId: "staff-duplicate" },
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getAllByText("1명").length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "발송" }));
+
+    await waitFor(() =>
+      expect(confirmSpy).toHaveBeenCalledWith("1명에게 발송하시겠습니까?"),
+    );
+    expect(mutateAsync).toHaveBeenCalledWith({
+      channel: "sms",
+      body: "중복 수신처 확인",
+      context: "manual",
+      recipients: [
+        {
+          name: "첫 번째 수신처",
+          phone: "010-5555-1234",
+          kind: "tenant",
+          ref: { occupancyId: 101 },
+        },
+      ],
+    });
+  });
+
+  it("정확한 occupancy 이력이 없으면 다른 이력의 전화번호를 사용하지 않음", () => {
+    vi.mocked(useOccupancies).mockReturnValue({
+      data: [
+        {
+          ...occupancies[0],
+          id: 100,
+          phone: "010-9999-0000",
+        },
+      ],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useOccupancies>);
+
+    render(<MessagingComposer />);
+    fireEvent.change(screen.getByLabelText("건물 선택"), {
+      target: { value: "7" },
+    });
+
+    expect(
+      screen.getByLabelText("101호 · 김입주 · 연락처 없음"),
+    ).toBeDisabled();
+    expect(screen.queryByText("010-9999-0000")).not.toBeInTheDocument();
+    expect(screen.getAllByText("0명").length).toBeGreaterThan(0);
   });
 
   it("수신처 또는 본문이 비어 있으면 안내하고 발송하지 않음", () => {

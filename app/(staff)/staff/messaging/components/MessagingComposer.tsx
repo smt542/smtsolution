@@ -14,7 +14,6 @@ import { useQuickMessages } from "@/hooks/reactquery/quickMessages";
 import { useSendMessages } from "@/hooks/reactquery/messaging";
 import {
   buildSendPayload,
-  validRecipients,
   type MessageRecipient,
   type MessagingPreset,
 } from "@/lib/messaging/preset";
@@ -49,9 +48,7 @@ function TenantRecipientOption({
   onToggle: (recipient: MessageRecipient) => void;
 }) {
   const { data: occupancies = [], isLoading } = useOccupancies(tenant.unitId);
-  const occupancy =
-    occupancies.find((item) => item.id === tenant.occupancyId) ??
-    occupancies[occupancies.length - 1];
+  const occupancy = occupancies.find((item) => item.id === tenant.occupancyId);
   const recipient: MessageRecipient = {
     name: tenant.tenantName,
     phone: occupancy?.phone ?? null,
@@ -100,7 +97,17 @@ export function MessagingComposer({
     () => new Set(recipients.map(recipientKey)),
     [recipients],
   );
-  const validCount = validRecipients(recipients).length;
+  const sendPayload = useMemo(
+    () =>
+      buildSendPayload({
+        channel: "sms",
+        body,
+        context: preset?.context ?? "manual",
+        recipients,
+      }),
+    [body, preset?.context, recipients],
+  );
+  const validCount = sendPayload.recipients.length;
   const activeAccounts = accounts.filter((account) => account.isActive);
   const occupiedTenants = tenants.filter(
     (tenant) => !tenant.isVacant && tenant.occupancyId !== null,
@@ -137,15 +144,8 @@ export function MessagingComposer({
     }
     if (!window.confirm(`${validCount}명에게 발송하시겠습니까?`)) return;
 
-    const payload = buildSendPayload({
-      channel: "sms",
-      body,
-      context: preset?.context ?? "manual",
-      recipients,
-    });
-
     try {
-      const result = await sendMessages.mutateAsync(payload);
+      const result = await sendMessages.mutateAsync(sendPayload);
       toast.success(`발송(임시) 완료 · ${result.count}명`);
       onSent?.(result);
     } catch (error) {
