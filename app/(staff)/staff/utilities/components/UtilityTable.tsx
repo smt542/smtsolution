@@ -57,7 +57,7 @@ export function UtilityTable({
 }: UtilityTableProps) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[1240px] border-collapse text-sm">
+      <table className="w-full min-w-[1360px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-line bg-[#FBFCFD] text-left text-xs font-bold text-t3">
             <th className="px-4 py-3">호실명</th>
@@ -65,7 +65,8 @@ export function UtilityTable({
             <th className="px-4 py-3 text-right">전월 지침값</th>
             <th className="px-4 py-3 text-right">당월 지침값</th>
             <th className="px-4 py-3 text-right">사용량</th>
-            <th className="px-4 py-3 text-right">자동 계산 요금</th>
+            <th className="px-4 py-3 text-right">단가</th>
+            <th className="px-4 py-3 text-right">자동요금</th>
             <th className="px-4 py-3 text-right">수동 입력 요금</th>
             <th className="px-4 py-3">적요</th>
             <th className="px-4 py-3">부과 처리일</th>
@@ -78,6 +79,7 @@ export function UtilityTable({
             const draft = drafts[row.unitId];
             const usage = usageFor(row, draft);
             const invalidUsage = usage !== null && usage < 0;
+            const displayUnitPrice = row.unitPrice ?? row.resolvedUnitPrice;
 
             return (
               <tr
@@ -155,6 +157,9 @@ export function UtilityTable({
                   }`}
                 >
                   {invalidUsage ? "확인 필요" : formatNumber(usage)}
+                </td>
+                <td className="num px-4 py-3 text-right text-t3">
+                  {formatNumber(displayUnitPrice)}
                 </td>
                 <td className="num px-4 py-3 text-right">
                   {formatNumber(row.automaticCharge)}

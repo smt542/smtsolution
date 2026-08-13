@@ -286,7 +286,7 @@ export default function UtilitiesPage() {
               </span>
             </div>
             <div className="border-b border-line2 bg-amber-t px-5 py-3 text-xs font-semibold text-t2">
-              검침 데이터 연동 전으로 입력값은 임시 표시됩니다. 할인·고정 사용량·층별 단가는 후속 설정 연동 후 계산됩니다.
+              단가가 설정된 세대는 부과 계산 시 자동요금이 저장됩니다. 단가를 해석할 수 없는 세대는 수동 입력 요금을 사용해 주세요.
             </div>
             <UtilityTable
               rows={rows}

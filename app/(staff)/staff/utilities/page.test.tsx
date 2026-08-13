@@ -54,7 +54,9 @@ const rows = [
     previousReading: null,
     currentReading: null,
     usage: null,
-    automaticCharge: null,
+    unitPrice: 850,
+    resolvedUnitPrice: 900,
+    automaticCharge: 12000,
     manualCharge: null,
     note: null,
     processedAt: null,
@@ -74,6 +76,8 @@ const rows = [
     previousReading: null,
     currentReading: null,
     usage: null,
+    unitPrice: null,
+    resolvedUnitPrice: null,
     automaticCharge: null,
     manualCharge: null,
     note: null,
@@ -194,6 +198,24 @@ describe("UtilitiesPage", () => {
     expect(screen.getByLabelText("101호 당월 지침값")).toHaveValue(358);
     const completedCard = screen.getByText("당월 입력").parentElement;
     expect(completedCard).toHaveTextContent("1");
+  });
+
+  it("스냅샷 단가·자동요금을 표시하고 수동요금을 예상 부과에 우선한다", () => {
+    render(<UtilitiesPage />);
+    selectBuilding();
+
+    expect(screen.getByRole("columnheader", { name: "단가" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "자동요금" })).toBeInTheDocument();
+    expect(screen.getByText("850")).toBeInTheDocument();
+    const expectedCard = screen.getByText("예상 부과").parentElement;
+    expect(expectedCard).toHaveTextContent("12,000원");
+
+    fireEvent.change(screen.getByLabelText("101호 수동 입력 요금"), {
+      target: { value: "15000" },
+    });
+    expect(expectedCard).toHaveTextContent("15,000원");
+    expect(screen.getByText(/단가를 해석할 수 없는 세대는 수동 입력 요금/)).toBeInTheDocument();
+    expect(screen.queryByText(/단가 미연동/)).not.toBeInTheDocument();
   });
 
   it("전기 탭으로 전환하면 전기 유형·기준월로 조회 키를 사용한다", async () => {
