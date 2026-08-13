@@ -12,6 +12,11 @@ interface UtilityTableProps {
   referenceDate: string;
   onDraftChange: (unitId: number, patch: Partial<UtilityDraft>) => void;
   onRowClick: (row: UtilityUnitRow) => void;
+  onDiscountClick?: (row: UtilityUnitRow) => void;
+}
+
+function discountLabel(type: string): string {
+  return type === "recipient" ? "수급자" : type === "multichild" ? "다자녀" : "할인";
 }
 
 function isVacant(row: UtilityUnitRow): boolean {
@@ -48,6 +53,7 @@ export function UtilityTable({
   referenceDate,
   onDraftChange,
   onRowClick,
+  onDiscountClick,
 }: UtilityTableProps) {
   return (
     <div className="overflow-x-auto">
@@ -104,6 +110,24 @@ export function UtilityTable({
                       <span className="rounded-md bg-blue-t px-2 py-0.5 text-[11px] font-bold text-blue-d">
                         신규
                       </span>
+                    )}
+                    {row.discountType && row.discountAmount != null && (
+                      <span className="rounded-md bg-blue-t px-2 py-0.5 text-[11px] font-bold text-blue-d">
+                        {discountLabel(row.discountType)} −{row.discountAmount.toLocaleString("ko-KR")}
+                      </span>
+                    )}
+                    {onDiscountClick && !vacant && (
+                      <button
+                        type="button"
+                        aria-label={`${row.unitNo} 수도 할인 설정`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onDiscountClick(row);
+                        }}
+                        className="rounded-md border border-line px-2 py-0.5 text-[11px] font-bold text-t2 hover:bg-bg"
+                      >
+                        할인
+                      </button>
                     )}
                   </div>
                 </td>

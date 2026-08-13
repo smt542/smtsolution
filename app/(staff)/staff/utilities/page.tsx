@@ -7,11 +7,13 @@ import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import {
   useUtilityRows,
+  useSaveMeterReadings,
   type UtilityType,
   type UtilityUnitRow,
 } from "@/hooks/reactquery/utilities";
 import { hasModule } from "@/lib/auth/permissions";
 import { UtilityHistoryModal } from "./components/UtilityHistoryModal";
+import { WaterDiscountModal } from "./components/WaterDiscountModal";
 import { UtilitySummaryCards } from "./components/UtilitySummaryCards";
 import { UtilityTable, type UtilityDraft } from "./components/UtilityTable";
 
@@ -57,7 +59,10 @@ export default function UtilitiesPage() {
   const [referenceDate, setReferenceDate] = useState(localDateString);
   const [drafts, setDrafts] = useState<Record<string, UtilityDraft>>({});
   const [historyRow, setHistoryRow] = useState<UtilityUnitRow | null>(null);
-  const rowsQuery = useUtilityRows(buildingId, utilityType);
+  const [discountRow, setDiscountRow] = useState<UtilityUnitRow | null>(null);
+  const period = `${referenceDate.slice(0, 7)}-01`;
+  const rowsQuery = useUtilityRows(buildingId, utilityType, period);
+  const saveMeter = useSaveMeterReadings();
 
   if (me === undefined) return null;
   if (!hasModule(me, "utilities")) {
@@ -100,11 +105,13 @@ export default function UtilitiesPage() {
   const selectBuilding = (value: string) => {
     setBuildingId(value ? Number(value) : null);
     setHistoryRow(null);
+    setDiscountRow(null);
   };
 
   const selectUtilityType = (id: string) => {
     setUtilityType(id as UtilityType);
     setHistoryRow(null);
+    setDiscountRow(null);
   };
 
   const openHistory = () => {
@@ -117,9 +124,26 @@ export default function UtilitiesPage() {
   };
 
   const calculateCharges = () => {
-    // TODO(meter): 당월 지침을 meter_readings에 저장하고 전월 지침·단가로 요금을 계산한다.
-    // TODO(p3a): 할인·고정 사용량·층별 단가 설정과 부과 원장 확정 로직을 연결한다.
-    toast.info("검침 저장·요금 계산은 검침 데이터 연동 후 제공됩니다.");
+    const payloadRows = activeRows
+      .map((row) => ({ row, draft: scopedDrafts[row.unitId] }))
+      .filter(({ draft }) => draft.currentReading.trim() !== "")
+      .map(({ row, draft }) => ({
+        unit_id: row.unitId,
+        current_reading: draft.currentReading.trim(),
+        manual_charge: draft.manualCharge.trim(),
+        note: draft.note.trim(),
+      }));
+    if (payloadRows.length === 0) {
+      toast.error("입력된 당월 지침이 없습니다.");
+      return;
+    }
+    saveMeter.mutate(
+      { buildingId: buildingId as number, utilityType, period, rows: payloadRows },
+      {
+        onSuccess: (res) => toast.success(`${res.saved}개 세대 검침을 저장했습니다.`),
+        onError: () => toast.error("검침 저장에 실패했습니다."),
+      },
+    );
   };
 
   const exportLedger = () => {
@@ -164,7 +188,10 @@ export default function UtilitiesPage() {
             <Button variant="ghost" onClick={exportLedger} disabled={!buildingId}>
               검침대장 다운
             </Button>
-            <Button onClick={calculateCharges} disabled={!buildingId || rows.length === 0}>
+            <Button
+              onClick={calculateCharges}
+              disabled={!buildingId || rows.length === 0 || saveMeter.isPending}
+            >
               부과 계산
             </Button>
           </div>
@@ -256,6 +283,7 @@ export default function UtilitiesPage() {
               referenceDate={referenceDate}
               onDraftChange={updateDraft}
               onRowClick={setHistoryRow}
+              onDiscountClick={utilityType === "water" ? setDiscountRow : undefined}
             />
           </section>
         </>
@@ -268,6 +296,14 @@ export default function UtilitiesPage() {
         referenceDate={referenceDate}
         onClose={() => setHistoryRow(null)}
       />
+
+      {discountRow && (
+        <WaterDiscountModal
+          open
+          row={discountRow}
+          onClose={() => setDiscountRow(null)}
+        />
+      )}
     </div>
   );
 }

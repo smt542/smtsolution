@@ -3,7 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
 vi.mock("@/hooks/reactquery/buildings", () => ({ useBuildings: vi.fn() }));
-vi.mock("@/hooks/reactquery/utilities", () => ({ useUtilityRows: vi.fn() }));
+vi.mock("@/hooks/reactquery/utilities", () => ({
+  useUtilityRows: vi.fn(),
+  useMeterHistory: vi.fn(),
+  useSaveMeterReadings: vi.fn(),
+  useSaveWaterDiscount: vi.fn(),
+  useDeleteWaterDiscount: vi.fn(),
+}));
 vi.mock("sonner", () => ({
   toast: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
 }));
@@ -11,7 +17,13 @@ vi.mock("sonner", () => ({
 import { toast } from "sonner";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
-import { useUtilityRows } from "@/hooks/reactquery/utilities";
+import {
+  useUtilityRows,
+  useMeterHistory,
+  useSaveMeterReadings,
+  useSaveWaterDiscount,
+  useDeleteWaterDiscount,
+} from "@/hooks/reactquery/utilities";
 import UtilitiesPage from "./page";
 
 const buildings = [
@@ -37,6 +49,8 @@ const rows = [
     manualCharge: null,
     note: null,
     processedAt: null,
+    discountType: null,
+    discountAmount: null,
   },
   {
     unitId: 201,
@@ -55,10 +69,13 @@ const rows = [
     manualCharge: null,
     note: null,
     processedAt: null,
+    discountType: null,
+    discountAmount: null,
   },
 ];
 
 const refetch = vi.fn();
+const saveMutate = vi.fn();
 
 function setupMocks() {
   vi.mocked(useMe).mockReturnValue({
@@ -75,6 +92,23 @@ function setupMocks() {
     isLoading: false,
     error: null,
     refetch,
+  } as never);
+  vi.mocked(useMeterHistory).mockReturnValue({
+    data: [],
+    isLoading: false,
+    error: null,
+  } as never);
+  vi.mocked(useSaveMeterReadings).mockReturnValue({
+    mutate: saveMutate,
+    isPending: false,
+  } as never);
+  vi.mocked(useSaveWaterDiscount).mockReturnValue({
+    mutate: vi.fn(),
+    isPending: false,
+  } as never);
+  vi.mocked(useDeleteWaterDiscount).mockReturnValue({
+    mutate: vi.fn(),
+    isPending: false,
   } as never);
 }
 
@@ -129,13 +163,17 @@ describe("UtilitiesPage", () => {
     expect(completedCard).toHaveTextContent("1");
   });
 
-  it("전기 탭으로 전환하면 전기 유형 조회 키를 사용한다", async () => {
+  it("전기 탭으로 전환하면 전기 유형·기준월로 조회 키를 사용한다", async () => {
     render(<UtilitiesPage />);
     selectBuilding();
     fireEvent.click(screen.getByRole("button", { name: "전기" }));
 
     await waitFor(() => {
-      expect(useUtilityRows).toHaveBeenLastCalledWith(1, "electricity");
+      expect(useUtilityRows).toHaveBeenLastCalledWith(
+        1,
+        "electricity",
+        expect.stringMatching(/^\d{4}-\d{2}-01$/),
+      );
     });
     expect(screen.getByText("세대별 전기 지침")).toBeInTheDocument();
   });
@@ -147,19 +185,49 @@ describe("UtilitiesPage", () => {
 
     expect(screen.getByText("101호 수도 6개월 이력")).toBeInTheDocument();
     expect(screen.getByText("전월 대비 증감")).toBeInTheDocument();
-    expect(screen.getByText("단가 증감")).toBeInTheDocument();
   });
 
-  it("미연동 계산과 내보내기는 명확한 안내를 표시한다", () => {
+  it("수도 탭에서 세대 할인 버튼으로 할인 설정 모달을 연다", () => {
     render(<UtilitiesPage />);
     selectBuilding();
+    fireEvent.click(screen.getByLabelText("101호 수도 할인 설정"));
 
+    expect(screen.getByLabelText("할인 구분")).toBeInTheDocument();
+    expect(screen.getByLabelText("할인 금액")).toBeInTheDocument();
+  });
+
+  it("부과 계산은 입력된 당월 지침을 save_meter_readings로 저장한다", () => {
+    render(<UtilitiesPage />);
+    selectBuilding();
+    fireEvent.change(screen.getByLabelText("101호 당월 지침값"), {
+      target: { value: "158" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "부과 계산" }));
+
+    expect(saveMutate).toHaveBeenCalledTimes(1);
+    const [payload] = saveMutate.mock.calls[0];
+    expect(payload).toMatchObject({
+      buildingId: 1,
+      utilityType: "water",
+      rows: [{ unit_id: 101, current_reading: "158", manual_charge: "", note: "" }],
+    });
+    expect(payload.period).toMatch(/^\d{4}-\d{2}-01$/);
+  });
+
+  it("입력된 지침이 없으면 저장하지 않고 안내한다", () => {
+    render(<UtilitiesPage />);
+    selectBuilding();
+    fireEvent.click(screen.getByRole("button", { name: "부과 계산" }));
+
+    expect(saveMutate).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith("입력된 당월 지침이 없습니다.");
+  });
+
+  it("검침대장 다운은 서버 생성 안내를 표시한다", () => {
+    render(<UtilitiesPage />);
+    selectBuilding();
     fireEvent.click(screen.getByRole("button", { name: "검침대장 다운" }));
 
-    expect(toast.info).toHaveBeenCalledWith(
-      "검침 저장·요금 계산은 검침 데이터 연동 후 제공됩니다.",
-    );
     expect(toast.info).toHaveBeenCalledWith(
       "검침대장 엑셀 내보내기는 서버 생성 기능 연동 후 제공됩니다.",
     );
