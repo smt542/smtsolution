@@ -39,7 +39,7 @@ create index on billing_confirmations (unit_id, period);
 create table billing_history (
   id bigint generated always as identity primary key,
   unit_id bigint not null references units(id) on delete cascade,
-  period date not null,
+  period date not null,  -- 매월 1일(RPC가 보장; 직접 쓰기 없음)
   occupancy_id bigint references occupancies(id) on delete set null,
   tenant_name text,
   total_amount integer not null,
@@ -113,7 +113,7 @@ returns table(
       o.unit_id, o.id as occupancy_id, o.tenant_name, o.move_in_date, o.status, o.room_type_id
     from occupancies o join u on u.id = o.unit_id
     where o.deleted_at is null
-    order by o.unit_id, o.created_at desc
+    order by o.unit_id, o.created_at desc, o.id desc
   )
   select
     u.id, u.unit_no, u.dong, rt.label,
@@ -152,7 +152,7 @@ language sql stable security definer set search_path = public as $$
   where bh.unit_id = p_unit_id
     and bh.period <= p_period
     and bh.period > (p_period - (p_months || ' months')::interval)::date
-  order by bh.period desc, bh.confirmed_at desc
+  order by bh.period desc, bh.confirmed_at desc, bh.id desc
 $$;
 revoke execute on function list_billing_history(bigint, date, int) from anon;
 
@@ -178,7 +178,9 @@ begin
               coalesce((v_item->>'charged')::boolean, true),
               coalesce((v_item->>'amount')::int, 0))
       on conflict (unit_id, fee_item_id, period) do update
-        set charged = excluded.charged, amount = excluded.amount, occupancy_id = excluded.occupancy_id;
+        set charged = excluded.charged, amount = excluded.amount, occupancy_id = excluded.occupancy_id
+        where fee_item_charges.charged is distinct from excluded.charged
+           or fee_item_charges.amount  is distinct from excluded.amount;
   end loop;
 
   for v_item in select value from jsonb_array_elements(coalesce(p_notes, '[]'::jsonb)) loop
@@ -213,7 +215,7 @@ begin
     from units u
     left join lateral (
       select * from occupancies o where o.unit_id = u.id and o.deleted_at is null
-      order by o.created_at desc limit 1
+      order by o.created_at desc, o.id desc limit 1
     ) occ on true
     where u.building_id = p_building_id and u.deleted_at is null
   loop

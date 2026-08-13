@@ -49,6 +49,10 @@ export function BillingTable({ units, columns, period, onChargeChange, onRowClic
         <tbody>
           {units.map((u) => {
             const mid = isMidMoveIn(u.moveInDate, period);
+            const displayTotal =
+              u.confirmedAt && !u.isDirty && u.totalAmount != null
+                ? u.totalAmount
+                : rowTotal(u, columns, period);
             return (
               <tr
                 key={u.unitId}
@@ -75,7 +79,7 @@ export function BillingTable({ units, columns, period, onChargeChange, onRowClic
                   )}
                 </td>
                 <td className="px-3 py-2 text-right font-extrabold text-t1">
-                  {won(rowTotal(u, columns, period))}
+                  {won(displayTotal)}
                 </td>
                 {columns.map((c) => {
                   const cell = u.charges[c.feeItemId] ?? { charged: true, amount: 0 };

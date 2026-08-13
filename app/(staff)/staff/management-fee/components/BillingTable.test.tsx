@@ -55,4 +55,17 @@ describe("BillingTable", () => {
       onChargeChange={vi.fn()} onRowClick={vi.fn()} onNoteClick={vi.fn()} />);
     expect(screen.getByText("재확정 필요")).toBeInTheDocument();
   });
+  it("확정·non-dirty 세대는 charges 재계산 아닌 totalAmount 스냅샷을 합계로 표시", () => {
+    // charges 합계는 30000+5000=35000 이지만 totalAmount=99000(스냅샷)이 표시되어야 한다
+    const confirmedUnit = unit({
+      confirmedAt: "2026-08-13T00:00:00Z",
+      isDirty: false,
+      totalAmount: 99000,
+      charges: { 10: { charged: true, amount: 30000 }, 11: { charged: true, amount: 5000 } },
+    });
+    render(<BillingTable units={[confirmedUnit]} columns={columns} period="2026-08-01"
+      onChargeChange={vi.fn()} onRowClick={vi.fn()} onNoteClick={vi.fn()} />);
+    expect(screen.getByText("99,000")).toBeInTheDocument();
+    expect(screen.queryByText("35,000")).not.toBeInTheDocument();
+  });
 });
