@@ -9,6 +9,7 @@ import {
   calculateSettlementAmount,
   completeMovingSettlement,
   getSettlementContext,
+  listSettlementInquiries,
   listSettlements,
   midMoveoutSettlement,
   saveMovingSettlement,
@@ -228,6 +229,82 @@ describe("moving settlement apis", () => {
       processedAt: "2026-08-13T03:00:00Z",
       createdAt: "2026-08-13T01:00:00Z",
     }]);
+  });
+
+  it("listSettlementInquiries: 유형·필터·페이지를 RPC에 전달하고 합계와 행을 매핑한다", async () => {
+    rpc.mockResolvedValue({
+      data: [{
+        settlement_id: 31,
+        building_id: 3,
+        building_name: "해오름",
+        unit_id: 101,
+        occupancy_id: 9,
+        dong: "A동",
+        unit_no: "101호",
+        tenant_name: "홍길동",
+        status: "completed",
+        move_out_date: "2026-08-13",
+        mgmt_fee_prorated: 125806,
+        water_charge: 12000,
+        elec_charge: 23000,
+        gas_charge: 8000,
+        elec_paid_date: "2026-08-12",
+        gas_paid_date: null,
+        repair_amount: 50000,
+        settlement_amount: 218806,
+        processed_at: "2026-08-13T03:00:00Z",
+        created_at: "2026-08-13T01:00:00Z",
+        total_count: 27,
+      }],
+      error: null,
+    });
+
+    const result = await listSettlementInquiries({
+      type: "electric",
+      buildingId: 3,
+      from: "2026-08-01",
+      to: "2026-08-31",
+      search: "홍길동",
+      status: "completed",
+      page: 2,
+      pageSize: 20,
+    });
+
+    expect(rpc).toHaveBeenCalledWith("list_settlement_inquiries", {
+      p_type: "elec",
+      p_building_id: 3,
+      p_from: "2026-08-01",
+      p_to: "2026-08-31",
+      p_search: "홍길동",
+      p_status: "completed",
+      p_limit: 20,
+      p_offset: 20,
+    });
+    expect(result).toEqual({
+      total: 27,
+      rows: [{
+        settlementId: 31,
+        buildingId: 3,
+        buildingName: "해오름",
+        unitId: 101,
+        occupancyId: 9,
+        dong: "A동",
+        unitNo: "101호",
+        tenantName: "홍길동",
+        status: "completed",
+        moveOutDate: "2026-08-13",
+        mgmtFeeProrated: 125806,
+        waterCharge: 12000,
+        elecCharge: 23000,
+        gasCharge: 8000,
+        elecPaidDate: "2026-08-12",
+        gasPaidDate: null,
+        repairAmount: 50000,
+        settlementAmount: 218806,
+        processedAt: "2026-08-13T03:00:00Z",
+        createdAt: "2026-08-13T01:00:00Z",
+      }],
+    });
   });
 
   it("calculateSettlementAmount: null을 0으로 보고 다섯 금액을 합산한다", () => {

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { EmptyState, Select, Spinner } from "@/components/common";
 import type { MovingSettlementValues } from "@/components/forms/schema/movingSettlement";
@@ -154,9 +155,27 @@ export default function MovingSettlementPage() {
 
   return (
     <div className="flex min-h-screen flex-col gap-5 p-4 sm:p-6">
-      <div>
-        <p className="text-xs font-semibold text-t3">관리업무 · 이사정산</p>
-        <h1 className="mt-1 text-2xl font-extrabold text-t1">이사정산</h1>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold text-t3">관리업무 · 이사정산</p>
+          <h1 className="mt-1 text-2xl font-extrabold text-t1">이사정산</h1>
+        </div>
+        <nav aria-label="이사조회 바로가기" className="flex flex-wrap gap-2">
+          {[
+            ["water", "수도 조회"],
+            ["electric", "전기 조회"],
+            ["gas", "가스 조회"],
+            ["all", "전체 조회"],
+          ].map(([type, label]) => (
+            <Link
+              key={type}
+              href={`/staff/moving-settlement/inquiries/${type}`}
+              className="inline-flex h-10 items-center rounded-xl border border-line bg-white px-3 text-sm font-bold text-t2 hover:bg-bg"
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
       </div>
 
       <section className="rounded-2xl border border-line bg-surface p-4 shadow-card">

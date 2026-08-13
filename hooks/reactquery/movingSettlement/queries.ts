@@ -1,5 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { getSettlementContext, listSettlements } from "./apis";
+import {
+  getSettlementContext,
+  listSettlementInquiries,
+  listSettlements,
+  type SettlementInquiryParams,
+} from "./apis";
 import { movingSettlementKeys } from "./keys";
 
 export function useSettlementContext(unitId: number | null) {
@@ -19,5 +24,13 @@ export function useSettlementList(
     queryKey: movingSettlementKeys.list(buildingId, from, to),
     queryFn: () => listSettlements(buildingId as number, from, to),
     enabled: buildingId !== null && from !== "" && to !== "",
+  });
+}
+
+export function useSettlementInquiry(params: SettlementInquiryParams) {
+  return useQuery({
+    queryKey: movingSettlementKeys.inquiry(params),
+    queryFn: () => listSettlementInquiries(params),
+    enabled: params.from !== "" && params.to !== "" && params.from <= params.to,
   });
 }

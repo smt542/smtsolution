@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import type { SettlementInquiryType } from "./inquiryTypes";
 
 export type RepairAttribution = "owner" | "manager" | "office";
 export type SettlementStatus = "draft" | "saved" | "mid_moveout" | "completed";
@@ -110,6 +111,45 @@ export interface SettlementListRow {
   createdAt: string;
 }
 
+export interface SettlementInquiryParams {
+  type: SettlementInquiryType;
+  buildingId?: number;
+  from: string;
+  to: string;
+  search?: string;
+  status?: SettlementStatus;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface SettlementInquiryRow {
+  settlementId: number;
+  buildingId: number;
+  buildingName: string;
+  unitId: number;
+  occupancyId: number | null;
+  dong: string | null;
+  unitNo: string;
+  tenantName: string | null;
+  status: SettlementStatus;
+  moveOutDate: string | null;
+  mgmtFeeProrated: number | null;
+  waterCharge: number | null;
+  elecCharge: number | null;
+  gasCharge: number | null;
+  elecPaidDate: string | null;
+  gasPaidDate: string | null;
+  repairAmount: number | null;
+  settlementAmount: number | null;
+  processedAt: string | null;
+  createdAt: string;
+}
+
+export interface SettlementInquiryResult {
+  rows: SettlementInquiryRow[];
+  total: number;
+}
+
 interface MovingSettlementRpc {
   id: number;
   unit_id: number;
@@ -173,6 +213,30 @@ interface SettlementListRpc {
   move_out_date: string | null;
   processed_at: string | null;
   created_at: string;
+}
+
+interface SettlementInquiryRpc {
+  settlement_id: number;
+  building_id: number;
+  building_name: string;
+  unit_id: number;
+  occupancy_id: number | null;
+  dong: string | null;
+  unit_no: string;
+  tenant_name: string | null;
+  status: SettlementStatus;
+  move_out_date: string | null;
+  mgmt_fee_prorated: number | null;
+  water_charge: number | null;
+  elec_charge: number | null;
+  gas_charge: number | null;
+  elec_paid_date: string | null;
+  gas_paid_date: string | null;
+  repair_amount: number | null;
+  settlement_amount: number | null;
+  processed_at: string | null;
+  created_at: string;
+  total_count: unknown;
 }
 
 function rpcToMovingSettlement(r: MovingSettlementRpc): MovingSettlement {
@@ -280,6 +344,31 @@ function rpcToSettlementListRow(r: SettlementListRpc): SettlementListRow {
   };
 }
 
+function rpcToSettlementInquiryRow(r: SettlementInquiryRpc): SettlementInquiryRow {
+  return {
+    settlementId: r.settlement_id,
+    buildingId: r.building_id,
+    buildingName: r.building_name,
+    unitId: r.unit_id,
+    occupancyId: r.occupancy_id,
+    dong: r.dong,
+    unitNo: r.unit_no,
+    tenantName: r.tenant_name,
+    status: r.status,
+    moveOutDate: r.move_out_date,
+    mgmtFeeProrated: r.mgmt_fee_prorated,
+    waterCharge: r.water_charge,
+    elecCharge: r.elec_charge,
+    gasCharge: r.gas_charge,
+    elecPaidDate: r.elec_paid_date,
+    gasPaidDate: r.gas_paid_date,
+    repairAmount: r.repair_amount,
+    settlementAmount: r.settlement_amount,
+    processedAt: r.processed_at,
+    createdAt: r.created_at,
+  };
+}
+
 export function calculateSettlementAmount(values: Pick<
   SaveSettlementData,
   "mgmtFeeProrated" | "waterCharge" | "elecCharge" | "gasCharge" | "repairAmount"
@@ -354,4 +443,27 @@ export async function listSettlements(
   });
   if (error) throw new Error(error.message);
   return ((data ?? []) as SettlementListRpc[]).map(rpcToSettlementListRow);
+}
+
+export async function listSettlementInquiries(
+  params: SettlementInquiryParams,
+): Promise<SettlementInquiryResult> {
+  const page = params.page ?? 1;
+  const pageSize = params.pageSize ?? 20;
+  const { data, error } = await createClient().rpc("list_settlement_inquiries", {
+    p_type: params.type === "electric" ? "elec" : params.type,
+    p_building_id: params.buildingId ?? null,
+    p_from: params.from,
+    p_to: params.to,
+    p_search: params.search?.trim() || null,
+    p_status: params.status ?? null,
+    p_limit: pageSize,
+    p_offset: (page - 1) * pageSize,
+  });
+  if (error) throw new Error(error.message);
+  const rpcRows = (data ?? []) as SettlementInquiryRpc[];
+  return {
+    rows: rpcRows.map(rpcToSettlementInquiryRow),
+    total: rpcRows.length > 0 ? Number(rpcRows[0].total_count) : 0,
+  };
 }

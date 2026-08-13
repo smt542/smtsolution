@@ -70,6 +70,15 @@ describe("MovingSettlementPage", () => {
   it("건물·호실 선택 뒤 context를 표시한다", async () => {
     render(<MovingSettlementPage />);
 
+    expect(screen.getByRole("link", { name: "수도 조회" })).toHaveAttribute(
+      "href",
+      "/staff/moving-settlement/inquiries/water",
+    );
+    expect(screen.getByRole("link", { name: "전체 조회" })).toHaveAttribute(
+      "href",
+      "/staff/moving-settlement/inquiries/all",
+    );
+
     fireEvent.change(screen.getByLabelText("건물 선택"), {
       target: { value: "3" },
     });
