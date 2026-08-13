@@ -8,7 +8,6 @@ const { mutateAsync } = vi.hoisted(() => ({
 vi.mock("@/hooks/reactquery/buildings", () => ({ useBuildings: vi.fn() }));
 vi.mock("@/hooks/reactquery/occupancies", () => ({
   useTenantList: vi.fn(),
-  useOccupancies: vi.fn(),
 }));
 vi.mock("@/hooks/reactquery/accounts", () => ({ useAccounts: vi.fn() }));
 vi.mock("@/hooks/reactquery/quickMessages", () => ({
@@ -24,10 +23,7 @@ vi.mock("sonner", () => ({
 import { toast } from "sonner";
 import { useAccounts } from "@/hooks/reactquery/accounts";
 import { useBuildings } from "@/hooks/reactquery/buildings";
-import {
-  useOccupancies,
-  useTenantList,
-} from "@/hooks/reactquery/occupancies";
+import { useTenantList } from "@/hooks/reactquery/occupancies";
 import { useQuickMessages } from "@/hooks/reactquery/quickMessages";
 import { useSendMessages } from "@/hooks/reactquery/messaging";
 import { MessagingComposer } from "./MessagingComposer";
@@ -57,6 +53,7 @@ const tenants = [
     occupancyId: 101,
     unitNo: "101호",
     tenantName: "김입주",
+    phone: "010-1000-0000",
     roomTypeLabel: "원룸",
     residentCount: 1,
     moveInDate: "2026-01-01",
@@ -81,31 +78,6 @@ const accounts = [
   },
 ];
 
-const occupancies = [
-  {
-    id: 101,
-    unitId: 11,
-    tenantName: "김입주",
-    payerName: "김입주",
-    phone: "010-1000-0000",
-    phone2: null,
-    phone3: null,
-    vehicleNo: null,
-    residentCount: 1,
-    roomTypeId: 1,
-    moveInDate: "2026-01-01",
-    moveOutDate: null,
-    status: "occupied",
-    billingEnabled: true,
-    printEnabled: true,
-    lateFeeEnabled: true,
-    singlePrint: false,
-    billingNote: null,
-    settlementNote: null,
-    facilityNote: null,
-  },
-];
-
 const confirmSpy = vi.spyOn(window, "confirm");
 
 beforeEach(() => {
@@ -120,10 +92,6 @@ beforeEach(() => {
     data: tenants,
     isLoading: false,
   } as unknown as ReturnType<typeof useTenantList>);
-  vi.mocked(useOccupancies).mockReturnValue({
-    data: occupancies,
-    isLoading: false,
-  } as unknown as ReturnType<typeof useOccupancies>);
   vi.mocked(useAccounts).mockReturnValue({
     data: accounts,
     isLoading: false,
@@ -247,7 +215,7 @@ describe("MessagingComposer", () => {
             },
             {
               name: "두 번째 수신처",
-              phone: "010-5555-1234",
+              phone: "01055551234",
               kind: "staff",
               ref: { userId: "staff-duplicate" },
             },
@@ -278,17 +246,11 @@ describe("MessagingComposer", () => {
     });
   });
 
-  it("정확한 occupancy 이력이 없으면 다른 이력의 전화번호를 사용하지 않음", () => {
-    vi.mocked(useOccupancies).mockReturnValue({
-      data: [
-        {
-          ...occupancies[0],
-          id: 100,
-          phone: "010-9999-0000",
-        },
-      ],
+  it("목록 RPC가 현재 입주자의 전화번호를 주지 않으면 수신처를 비활성화", () => {
+    vi.mocked(useTenantList).mockReturnValue({
+      data: [{ ...tenants[0], phone: null }],
       isLoading: false,
-    } as unknown as ReturnType<typeof useOccupancies>);
+    } as unknown as ReturnType<typeof useTenantList>);
 
     render(<MessagingComposer />);
     fireEvent.change(screen.getByLabelText("건물 선택"), {
@@ -298,7 +260,6 @@ describe("MessagingComposer", () => {
     expect(
       screen.getByLabelText("101호 · 김입주 · 연락처 없음"),
     ).toBeDisabled();
-    expect(screen.queryByText("010-9999-0000")).not.toBeInTheDocument();
     expect(screen.getAllByText("0명").length).toBeGreaterThan(0);
   });
 

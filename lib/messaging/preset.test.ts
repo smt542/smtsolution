@@ -8,13 +8,13 @@ import {
 
 const recipients: MessageRecipient[] = [
   { name: "Tenant A", phone: "010-1111-2222", kind: "tenant" },
-  { name: "Tenant B", phone: "010-1111-2222", kind: "tenant" },
+  { name: "Tenant B", phone: "01011112222", kind: "tenant" },
   { name: "Owner", phone: null, kind: "owner" },
   { name: "Staff", phone: null, kind: "staff" },
 ];
 
 describe("dedupeRecipients", () => {
-  it("collapses duplicate phones and preserves every null-phone recipient", () => {
+  it("collapses normalized duplicate phones and preserves every null-phone recipient", () => {
     expect(dedupeRecipients(recipients)).toEqual([
       recipients[0],
       recipients[2],
@@ -28,6 +28,7 @@ describe("validRecipients", () => {
     const input: MessageRecipient[] = [
       ...recipients,
       { name: "Vendor", phone: "", kind: "vendor" },
+      { name: "Etc", phone: "---", kind: "etc" },
     ];
 
     expect(validRecipients(input)).toEqual([recipients[0], recipients[1]]);

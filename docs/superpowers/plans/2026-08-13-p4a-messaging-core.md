@@ -15,7 +15,7 @@
 - 채널 P4a=`'sms'`만. 발송=**stub**(`message_logs.result='stub'`, 실발송 없음).
 - 프리셋 수신처=**해결된 리스트**(`MessageRecipient[]`). 6개 호출부 공통 계약.
 - 데이터 계층 패턴: 도메인 폴더 `apis.ts`(+snake↔camel 매퍼)·`keys.ts`·`queries.ts`·`mutations.ts`·`index.ts`. RPC 호출 `createClient().rpc("fn",{p_arg})`→`{data,error}`, 에러 throw.
-- RLS: 신규 테이블 SELECT org 개방(`org_id in (select my_org_ids())`), 쓰기는 definer RPC만(직접 write policy 없음).
+- RLS: 신규 이력 SELECT는 org 범위와 `messaging` 모듈을 함께 검사하고, 쓰기는 definer RPC만 허용한다(직접 write policy 없음).
 - 금액/카운트 integer. Tailwind는 globals.css 실존 토큰만(없으면 기존 컴포넌트가 쓰는 토큰으로 대체).
 - 커밋(Claude): 한국어 conventional + 끝에 `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`.
 - DB 라이브 미적용(원격 미접속). SQL 검증=정적(`p4_checks.sql`)+Claude 리뷰. 마이그 번호 0007(적용 시 0009+ 재번호).
@@ -24,7 +24,7 @@
 ---
 
 ## File Structure
-- `supabase/migrations/0007_p4_messaging.sql` (create) · `supabase/verify/p4_checks.sql` (create)
+- `supabase/migrations/0010_p4_messaging.sql` (create) · `supabase/verify/p4_checks.sql` (create)
 - `lib/messaging/preset.ts` (+`.test.ts`) — 공유 타입 + 순수 헬퍼(dedup·count·payload)
 - `hooks/reactquery/messaging/{apis.ts,keys.ts,queries.ts,mutations.ts,index.ts,apis.test.ts}` (create)
 - `app/(staff)/staff/messaging/page.tsx` (+`page.test.tsx`) (create)
@@ -37,14 +37,14 @@
 
 ## Group 1 — DB · 계약 · 데이터층
 
-### Task 1: 마이그레이션 0007 (message_logs + RLS + RPC) + verify
-**Files:** Create `supabase/migrations/0007_p4_messaging.sql`, `supabase/verify/p4_checks.sql`
+### Task 1: 마이그레이션 0010 (message_logs + RLS + RPC) + verify
+**Files:** Create `supabase/migrations/0010_p4_messaging.sql`, `supabase/verify/p4_checks.sql`
 **Interfaces (produces):**
 - table `message_logs(id, org_id, channel, body, context, recipient_count, recipients jsonb, result, sent_by, sent_at, created_at)` — spec §3 DDL 그대로.
 - `send_messages(p_channel text, p_body text, p_context text, p_recipients jsonb) → jsonb {log_id, count}` (definer, `messaging` 게이팅, anon revoke).
 - `list_message_logs(p_limit int default 50) → setof message_logs` (definer, org, sent_at desc, anon revoke).
 
-**작성 지침(codex):** spec §3의 DDL을 정확히 작성. `send_messages`: `current_user_org()` null 체크 → `current_user_has_module('messaging')` 아니면 `raise exception 'forbidden: messaging required'` → `p_recipients`의 각 원소에 `result:'stub'` 부여(jsonb 가공) → `message_logs` 1행 insert(`channel=p_channel, body=p_body, context=coalesce(p_context,'manual'), recipient_count=jsonb_array_length(coalesce(p_recipients,'[]')), recipients=<result 부여된 배열>, result='stub', sent_by=auth.uid()`) → `return jsonb_build_object('log_id', <id>, 'count', recipient_count)`. RLS: `ml_select`(org 개방)만, write policy 없음. 0006 `list_tenants`/save RPC의 definer·revoke 패턴 참고.
+**작성 지침(codex):** spec §3의 DDL을 정확히 작성. `send_messages`: `current_user_org()` null 체크 → `current_user_has_module('messaging')` 아니면 `raise exception 'forbidden: messaging required'` → `p_recipients`의 각 원소에 `result:'stub'` 부여(jsonb 가공) → `message_logs` 1행 insert(`channel=p_channel, body=p_body, context=coalesce(p_context,'manual'), recipient_count=jsonb_array_length(coalesce(p_recipients,'[]')), recipients=<result 부여된 배열>, result='stub', sent_by=auth.uid()`) → `return jsonb_build_object('log_id', <id>, 'count', recipient_count)`. RLS: `ml_select`은 org 범위와 `messaging` 모듈을 함께 검사하고, write policy는 두지 않는다. 0006 `list_tenants`/save RPC의 definer·revoke 패턴 참고.
 `p4_checks.sql`: message_logs 존재, `ml_select` 존재, message_logs에 SELECT 외 policy 없음(`cmd<>'SELECT'` 시 raise), `send_messages`·`list_message_logs` 존재.
 
 **수용조건:** DDL이 spec과 일치, send_messages가 모듈 게이팅+stub 기록, billing_history류처럼 직접 write 불가. (DB 미연결→정적; codex는 SQL 문법만 육안 확인, vitest/tsc 불필요.)

@@ -1,5 +1,31 @@
 -- P4a: 문자·알림 공용 모듈 코어
 
+-- ===== 문자 수신처 조회 보강 =====
+-- 0006이 이미 적용된 환경에서도 Composer가 세대별 추가 조회 없이 현재 입주자의
+-- 전화번호를 받을 수 있도록 기존 목록 RPC의 반환 계약을 확장한다.
+drop function if exists list_tenants(bigint);
+create function list_tenants(p_building_id bigint)
+returns table(
+  unit_id bigint, occupancy_id bigint, unit_no text, tenant_name text, phone text,
+  room_type_label text, resident_count int, move_in_date date,
+  is_vacant boolean, is_overdue boolean
+) language sql stable security definer set search_path = public as $$
+  select u.id, o.id, u.unit_no, o.tenant_name, o.phone, rt.label, o.resident_count, o.move_in_date,
+    coalesce(o.status = 'vacant', true) as is_vacant,
+    false as is_overdue
+  from units u
+  join buildings b on b.id = u.building_id and b.org_id = current_user_org()
+  left join lateral (
+    select * from occupancies oc where oc.unit_id = u.id and oc.deleted_at is null
+    order by oc.created_at desc limit 1
+  ) o on true
+  left join room_types rt on rt.id = o.room_type_id
+  where u.building_id = p_building_id and u.deleted_at is null
+  order by u.unit_no
+$$;
+revoke execute on function list_tenants(bigint) from public, anon;
+grant execute on function list_tenants(bigint) to authenticated;
+
 -- ===== 발송 이력 =====
 create table message_logs (
   id bigint generated always as identity primary key,
@@ -20,7 +46,10 @@ create index on message_logs (org_id, sent_at desc);
 alter table message_logs enable row level security;
 
 create policy ml_select on message_logs for select
-  using (org_id in (select my_org_ids()));
+  using (
+    org_id in (select my_org_ids())
+    and current_user_has_module('messaging')
+  );
 
 -- ===== 발송 RPC(stub) =====
 create or replace function send_messages(
@@ -98,7 +127,8 @@ begin
 
   return jsonb_build_object('log_id', v_log_id, 'count', v_recipient_count);
 end $$;
-revoke execute on function send_messages(text,text,text,jsonb) from anon;
+revoke execute on function send_messages(text,text,text,jsonb) from public, anon;
+grant execute on function send_messages(text,text,text,jsonb) to authenticated;
 
 -- ===== 발송 이력 목록 RPC =====
 create or replace function list_message_logs(p_limit int default 50)
@@ -113,7 +143,8 @@ begin
   from message_logs ml
   where ml.org_id in (select my_org_ids())
   order by ml.sent_at desc
-  limit p_limit;
+  limit greatest(1, least(coalesce(p_limit, 50), 100));
 end
 $$;
-revoke execute on function list_message_logs(int) from anon;
+revoke execute on function list_message_logs(int) from public, anon;
+grant execute on function list_message_logs(int) to authenticated;

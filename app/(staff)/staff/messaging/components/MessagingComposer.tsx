@@ -6,7 +6,6 @@ import { Button, Checkbox, Panel, Select } from "@/components/common";
 import { useAccounts } from "@/hooks/reactquery/accounts";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import {
-  useOccupancies,
   useTenantList,
   type TenantListRow,
 } from "@/hooks/reactquery/occupancies";
@@ -47,11 +46,9 @@ function TenantRecipientOption({
   selectedKeys: Set<string>;
   onToggle: (recipient: MessageRecipient) => void;
 }) {
-  const { data: occupancies = [], isLoading } = useOccupancies(tenant.unitId);
-  const occupancy = occupancies.find((item) => item.id === tenant.occupancyId);
   const recipient: MessageRecipient = {
     name: tenant.tenantName,
-    phone: occupancy?.phone ?? null,
+    phone: tenant.phone,
     unitNo: tenant.unitNo,
     kind: "tenant",
     ref: {
@@ -59,15 +56,13 @@ function TenantRecipientOption({
       buildingId,
     },
   };
-  const phoneLabel = isLoading
-    ? "연락처 확인 중"
-    : recipient.phone ?? "연락처 없음";
+  const phoneLabel = recipient.phone ?? "연락처 없음";
 
   return (
     <Checkbox
       label={`${tenant.unitNo} · ${tenant.tenantName ?? "입주자 미등록"} · ${phoneLabel}`}
       checked={selectedKeys.has(recipientKey(recipient))}
-      disabled={isLoading || !recipient.phone}
+      disabled={!recipient.phone}
       onChange={() => onToggle(recipient)}
     />
   );

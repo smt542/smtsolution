@@ -26,6 +26,10 @@ interface SendPayload {
   recipients: MessageRecipient[];
 }
 
+function normalizePhone(phone: string): string {
+  return phone.replace(/\D/g, "");
+}
+
 export function dedupeRecipients(
   recipients: MessageRecipient[],
 ): MessageRecipient[] {
@@ -36,11 +40,12 @@ export function dedupeRecipients(
       return true;
     }
 
-    if (seenPhones.has(recipient.phone)) {
+    const normalizedPhone = normalizePhone(recipient.phone);
+    if (seenPhones.has(normalizedPhone)) {
       return false;
     }
 
-    seenPhones.add(recipient.phone);
+    seenPhones.add(normalizedPhone);
     return true;
   });
 }
@@ -50,7 +55,7 @@ export function validRecipients(
 ): MessageRecipient[] {
   return recipients.filter(
     (recipient): recipient is MessageRecipient & { phone: string } =>
-      recipient.phone !== null && recipient.phone !== "",
+      recipient.phone !== null && normalizePhone(recipient.phone).length > 0,
   );
 }
 

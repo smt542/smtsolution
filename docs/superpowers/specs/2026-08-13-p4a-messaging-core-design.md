@@ -37,9 +37,9 @@
 | A | 발송 방식 | **RPC stub**(`result='stub'`), 실 NCP는 P4d 드롭인 교체 |
 | B | 이력 저장 | `message_logs` **배치 1행 + `recipients` jsonb**(per-수신처 결과 포함) |
 | C | 권한 | 화면·RPC 모두 `messaging`. 현장직원 독립진입 차단은 P4a에선 화면 게이트로 단순화 |
-| D | 마이그 번호 | 브랜치 최신+1(`0007`), 라이브(0008까지 적용) 대비 **적용 시 0009+ 재번호**(P5와 동일 정책) |
+| D | 마이그 번호 | 원격 0009까지 적용된 상태를 기준으로 `0010` 사용(P5와 동일 정책) |
 
-## 3. DB 스키마 — `supabase/migrations/0007_p4_messaging.sql`
+## 3. DB 스키마 — `supabase/migrations/0010_p4_messaging.sql`
 ```sql
 create table message_logs (
   id bigint generated always as identity primary key,
@@ -56,7 +56,7 @@ create table message_logs (
 );
 create index on message_logs (org_id, sent_at desc);
 ```
-RLS: `ml_select` org 개방(`org_id in (select my_org_ids())`), 직접 쓰기 policy 없음(INSERT는 definer RPC만). `quick_messages`는 기존.
+RLS: `ml_select`은 호출자 org와 `messaging` 모듈을 함께 검사하고, 직접 쓰기 policy는 두지 않는다(INSERT는 definer RPC만). `quick_messages`는 기존.
 
 RPC(definer, `messaging` 게이팅, anon revoke):
 - `send_messages(p_channel text, p_body text, p_context text, p_recipients jsonb) → jsonb {log_id, count}` — org·모듈 검증 후 `message_logs` 1행 insert(각 recipient에 `result:'stub'` 부여), 반환. (실발송 없음.)
@@ -103,7 +103,7 @@ export interface MessagingPreset {
 - **정적**: `npx vitest run`, `tsc --noEmit`, `npm run lint`. (codex 워커가 vitest/tsc 실행, Claude가 커밋 전 확인.)
 
 ## 9. 마이그레이션 / 환경
-- `0007_p4_messaging.sql` + `supabase/verify/p4_checks.sql`. 신규 env 없음(실 NCP 키는 P4d). 적용(사용자 PC): 라이브 0008까지 적용됨 → **0009+로 재번호 후** 적용.
+- `0010_p4_messaging.sql` + `supabase/verify/p4_checks.sql`. 신규 env 없음(실 NCP 키는 P4d). 원격 0009 다음 번호로 적용.
 
 ## 10. plan 단계화 (단일 plan, codex 실행)
 1. **그룹1 — DB·계약·데이터층**: `0007`(message_logs·RLS·send_messages·list) + `p4_checks.sql` + `lib/messaging/preset.ts`(+테스트) + `hooks/reactquery/messaging/*`(+apis 테스트).

@@ -17,9 +17,9 @@ do $$ begin
     and policyname = 'ml_select'
     and cmd = 'SELECT'
     and coalesce(qual, '') like '%my_org_ids%'
-    and coalesce(qual, '') not like '%current_user_has_module%';
+    and coalesce(qual, '') like '%current_user_has_module%';
   if not found then
-    raise exception 'ml_select must allow org-wide SELECT without a module gate';
+    raise exception 'ml_select must scope by org and gate by messaging module';
   end if;
 end $$;
 
@@ -39,6 +39,7 @@ do $$
 declare
   v_send regprocedure := to_regprocedure('public.send_messages(text,text,text,jsonb)');
   v_list regprocedure := to_regprocedure('public.list_message_logs(integer)');
+  v_tenants regprocedure := to_regprocedure('public.list_tenants(bigint)');
   v_send_def text;
   v_list_def text;
   v_insert_pos int;
@@ -49,6 +50,10 @@ begin
   end if;
   if v_list is null then
     raise exception 'list_message_logs missing';
+  end if;
+  if v_tenants is null
+     or position('phone text' in lower(pg_get_function_result(v_tenants))) = 0 then
+    raise exception 'list_tenants must return the current occupancy phone';
   end if;
 
   v_send_def := regexp_replace(lower(pg_get_functiondef(v_send)), '[[:space:]]+', '', 'g');
@@ -101,5 +106,18 @@ begin
   if position('current_user_has_module(''messaging'')' in v_list_def) = 0
      or position('current_user_has_module(''messaging'')' in v_list_def) > v_list_query_pos then
     raise exception 'list_message_logs must gate by messaging module';
+  end if;
+  if position('greatest(1,least(coalesce(p_limit,50),100))' in v_list_def) = 0 then
+    raise exception 'list_message_logs must clamp the requested limit';
+  end if;
+  if has_function_privilege('anon', v_send, 'EXECUTE')
+     or has_function_privilege('anon', v_list, 'EXECUTE')
+     or has_function_privilege('anon', v_tenants, 'EXECUTE') then
+    raise exception 'P4 RPCs must not be executable by anon';
+  end if;
+  if not has_function_privilege('authenticated', v_send, 'EXECUTE')
+     or not has_function_privilege('authenticated', v_list, 'EXECUTE')
+     or not has_function_privilege('authenticated', v_tenants, 'EXECUTE') then
+    raise exception 'P4 RPCs must be executable by authenticated';
   end if;
 end $$;
