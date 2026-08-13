@@ -4,7 +4,7 @@
 
 **Goal:** `/management-fee`를 건물 중심으로 재구성하여 세대별 관리비 항목 금액 입력 → 월 단위 부과 확정(재확정 가능) → 6개월 이력을 완성한다.
 
-**Architecture:** 신규 테이블 3종(`fee_item_charges`·`billing_confirmations`·`billing_history`, 마이그 0007)과 definer RPC 4종으로 원자적 저장·확정을 처리. 계산(이월·일할·합계)은 `lib/billing` 순수 함수 + SQL `round_charge`로 이중화(공식 일치). UI는 기존 reactquery 도메인 패턴(`hooks/reactquery/billing`)과 utilities/buildings 컴포넌트 패턴을 계승.
+**Architecture:** 신규 테이블 3종(`fee_item_charges`·`billing_confirmations`·`billing_history`, 마이그 0012)과 definer RPC 4종으로 원자적 저장·확정을 처리. 계산(이월·일할·합계)은 `lib/billing` 순수 함수 + SQL `round_charge`로 이중화(공식 일치). UI는 기존 reactquery 도메인 패턴(`hooks/reactquery/billing`)과 utilities/buildings 컴포넌트 패턴을 계승.
 
 **Tech Stack:** Next.js 16(App Router, `"use client"`) · Supabase(PostgreSQL·Auth) · React Query(@tanstack) · TailwindCSS · Vitest + Testing Library · zod.
 
@@ -19,7 +19,7 @@
 - **우수리(rounding)** 도메인: `up`(올림)·`round`(반올림)·`down`(버림)·`raw`(반올림). SQL `round_charge`와 TS `effectiveAmount`의 매핑이 **반드시 일치**.
 - **데이터 계층 패턴**: 도메인 폴더 = `apis.ts`(fn+type+snake↔camel 매퍼)·`keys.ts`·`queries.ts`·`mutations.ts`·`index.ts`(배럴 `export *`). RPC 호출은 `createClient().rpc("fn", { p_arg })` → `{ data, error }`, 에러 시 throw.
 - **Next 주의(AGENTS.md)**: 클라이언트 페이지·컴포넌트는 `"use client"`. `<input type="month">`·모달·`usePathname` 등 Next/React API는 구현 전 `node_modules/next/dist/docs/` 확인.
-- **DB 적용**: 원격 미접속 → 라이브 적용/E2E는 사용자 PC(순서 …0006→0007). 이 세션 검증은 **정적**: `npx vitest run`, `npx tsc --noEmit`, `npm run lint`, verify SQL 파일 작성.
+- **DB 적용**: 운영 이력 정합성 복구 후 `0012`로 적용. 적용 전 dry-run은 0012 한 건만 확인하고, 적용 후 `p5_checks.sql`을 실행한다.
 - **커밋**: 한국어 conventional(`feat`/`fix`/`docs`/`test`/`refactor`). **모든 커밋 메시지 끝에** 다음 트레일러(빈 줄 뒤)를 붙인다:
   `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>`
 - **WBS 동기화**: 화면 코드를 건드린 커밋 직후 `wbs-commit-sync`(dev 트랙만, 완료 자동변경 금지). SQL/lib/hooks 전용 커밋은 대상 아님.
@@ -29,7 +29,7 @@
 ## File Structure
 
 **생성**
-- `supabase/migrations/0007_p5_billing.sql` — 3테이블·인덱스·트리거·RLS·RPC 4종·`round_charge`.
+- `supabase/migrations/0012_p5_billing.sql` — 3테이블·인덱스·트리거·RLS·RPC 4종·`round_charge`.
 - `supabase/verify/p5_checks.sql` — 스키마·정책·RPC 존재 검증(사용자 PC psql).
 - `lib/billing/period.ts` (+ `.test.ts`) — 월(period) 변환·현재월·미래판정.
 - `lib/billing/proration.ts` (+ `.test.ts`) — 일할계산·우수리(`effectiveAmount`).
@@ -54,10 +54,10 @@
 
 ## Group 1 — DB · 데이터층
 
-### Task 1: 마이그레이션 0007 — 테이블·인덱스·트리거·RLS
+### Task 1: 마이그레이션 0012 — 테이블·인덱스·트리거·RLS
 
 **Files:**
-- Create: `supabase/migrations/0007_p5_billing.sql`
+- Create: `supabase/migrations/0012_p5_billing.sql`
 
 **Interfaces:**
 - Produces: 테이블 `fee_item_charges(unit_id,fee_item_id,period,occupancy_id,charged,amount)` · `billing_confirmations(unit_id,period,occupancy_id,total_amount,billing_note,unit_notice,confirmed_at,confirmed_by)` · `billing_history(unit_id,period,occupancy_id,tenant_name,total_amount,items,confirmed_at,confirmed_by)`. Task 2·3 RPC가 이 테이블에 기록.
@@ -65,7 +65,7 @@
 - [ ] **Step 1: 마이그레이션 파일 작성(테이블·트리거·RLS)**
 
 ```sql
--- 0007_p5_billing.sql
+-- 0012_p5_billing.sql
 -- P5: 부과 확정 슬라이스 (fee_item_charges / billing_confirmations / billing_history)
 -- 의존: P0(profiles·audit_log·set_updated_at), P1a(units·fee_items.carry_over),
 --       P2a(current_user_org·current_user_has_module·my_org_ids), P3b(occupancies)
@@ -153,16 +153,16 @@ create policy bh_select on billing_history for select
 - [ ] **Step 3: 커밋**
 
 ```bash
-git add supabase/migrations/0007_p5_billing.sql
+git add supabase/migrations/0012_p5_billing.sql
 git commit -m "feat(db): P5 부과 테이블 3종+RLS (0007) — fee_item_charges·billing_confirmations·billing_history"
 ```
 
 ---
 
-### Task 2: 마이그레이션 0007 — 읽기 RPC (`round_charge`·`list_billing`·`list_billing_history`)
+### Task 2: 마이그레이션 0012 — 읽기 RPC (`round_charge`·`list_billing`·`list_billing_history`)
 
 **Files:**
-- Modify: `supabase/migrations/0007_p5_billing.sql` (append)
+- Modify: `supabase/migrations/0012_p5_billing.sql` (append)
 
 **Interfaces:**
 - Produces:
@@ -259,16 +259,16 @@ revoke execute on function list_billing_history(bigint, date, int) from anon;
 - [ ] **Step 3: 커밋**
 
 ```bash
-git add supabase/migrations/0007_p5_billing.sql
+git add supabase/migrations/0012_p5_billing.sql
 git commit -m "feat(db): P5 읽기 RPC — round_charge·list_billing(이월 prefill·is_dirty)·list_billing_history"
 ```
 
 ---
 
-### Task 3: 마이그레이션 0007 — 쓰기 RPC (`save_billing_charges`·`confirm_billing`) + verify SQL
+### Task 3: 마이그레이션 0012 — 쓰기 RPC (`save_billing_charges`·`confirm_billing`) + verify SQL
 
 **Files:**
-- Modify: `supabase/migrations/0007_p5_billing.sql` (append)
+- Modify: `supabase/migrations/0012_p5_billing.sql` (append)
 - Create: `supabase/verify/p5_checks.sql`
 
 **Interfaces:**
@@ -421,7 +421,7 @@ Run: `npx tsc --noEmit`
 Expected: PASS (SQL 변경은 tsc 무관, 리포지토리 컴파일 정상 확인용)
 
 ```bash
-git add supabase/migrations/0007_p5_billing.sql supabase/verify/p5_checks.sql
+git add supabase/migrations/0012_p5_billing.sql supabase/verify/p5_checks.sql
 git commit -m "feat(db): P5 쓰기 RPC(save_billing_charges·confirm_billing)+감사 + p5_checks 검증"
 ```
 

@@ -22,7 +22,7 @@
 
 **In scope**
 - **`/management-fee` 재구성(건물 중심)**: 상단 액션(건물 선택 · 월 선택기[당월 기본] · [항목관리] 모달 · [저장] · [부과 확정]) + 세대별 부과 설정 테이블 + 6개월 이력 모달 + 세대별 월 메모(부과 참조사항·호실 공지).
-- **DB(`0007`)**: `fee_item_charges`(세대×항목×월 금액, 초안)·`billing_confirmations`(세대×월 헤더, 초안/확정 공용)·`billing_history`(append-only 확정 원장). `billing` module RLS. RPC 4종.
+- **DB(`0012`)**: `fee_item_charges`(세대×항목×월 금액, 초안)·`billing_confirmations`(세대×월 헤더, 초안/확정 공용)·`billing_history`(append-only 확정 원장). `billing` module RLS. RPC 4종.
 - **계산 규칙**: 이월(carry-over) 전월 자동표시, 중간입주 일할계산, 합계 관리비, 공실 제외, 우수리(`fee_items.rounding`).
 - **데이터 계층**: `hooks/reactquery/billing/{apis,mutations}.ts` + 순수 계산 `lib/billing/`.
 - **페이지·컴포넌트**: `page.tsx` 재작성 + `BillingTable`·`BillingHistoryModal`·`BillingNoteModal` + 기존 `FeeItemList`/`FeeItemFormModal` 모달 재사용. 권한 게이트 `billing`.
@@ -59,7 +59,7 @@
 
 ---
 
-## 3. DB 스키마 — `supabase/migrations/0007_p5_billing.sql`
+## 3. DB 스키마 — `supabase/migrations/0012_p5_billing.sql`
 
 > P0(`audit_log`·`profiles`·`set_updated_at`), P1a(`units`·`fee_items`), P2a(헬퍼), P3b(`occupancies`)에 의존. 단일 파일. `fee_items.carry_over`는 이미 존재(0001) → 스키마 변경 없음.
 
@@ -301,21 +301,21 @@ create policy bh_select on billing_history for select
 - **컴포넌트(RTL)**: `page`(권한 게이트·건물 미선택 안내·월 변경), `BillingTable`(금액 입력·부과 체크·합계 재계산·공실 비활성·이월 표시·중간입주 강조), `BillingHistoryModal`(6개월·전월대비), `BillingNoteModal`(저장), 항목관리 모달 재사용(유형 스코프).
 - **RLS·RPC(SQL, `supabase/verify/p5_checks.sql`)**: `billing` 없는 구성원 3테이블 **SELECT 가능·쓰기 거부**; 보유·마스터 쓰기 가능. `billing_history` 직접 INSERT 거부(RPC만). `save_billing_charges` upsert·타 org 거부. `confirm_billing` history 누적·재확정 시 confirmations update + history append·audit 기록. `list_billing` 이월 prefill·공실 판정·is_dirty.
 - **정적**: `tsc --noEmit` + `npm run lint`.
-- **라이브 미적용**: 원격 미접속 → vitest+tsc+verify SQL 정적. 적용·E2E는 사용자 PC(순서 …0006→0007).
+- **운영 적용**: 마이그레이션 이력 정합성 복구 후 `0012`로 적용하고 `p5_checks.sql`로 검증한다.
 
 ---
 
 ## 10. 마이그레이션 / 환경
 
-- `supabase/migrations/0007_p5_billing.sql`(§3·§4·§5) + `supabase/verify/p5_checks.sql`.
+- `supabase/migrations/0012_p5_billing.sql`(§3·§4·§5) + `supabase/verify/p5_checks.sql`.
 - 신규 env 없음. `fee_items.carry_over` 기존 활용(스키마 변경 없음).
-- 적용(사용자): `0007` 실행 → `p5_checks.sql`. **DB pending-user**, 순서 …0005→0006→0007.
+- 적용: `0012` 실행 → `p5_checks.sql`. 운영 이력 순서 …0010→0011→0012.
 
 ---
 
 ## 11. plan 단계화 (단일 plan, 3그룹)
 
-1. **그룹1 — DB·데이터층**: `0007`(3테이블·RLS·트리거·RPC 4종) + `p5_checks.sql` → `lib/billing/*` 순수 계산 + `hooks/reactquery/billing/{apis,mutations}` + 매퍼/pivot + zod(charges/notes).
+1. **그룹1 — DB·데이터층**: `0012`(3테이블·RLS·트리거·RPC 4종) + `p5_checks.sql` → `lib/billing/*` 순수 계산 + `hooks/reactquery/billing/{apis,mutations}` + 매퍼/pivot + zod(charges/notes).
 2. **그룹2 — 테이블·저장**: `page.tsx` 재구성(상단 액션·상태) + `BillingTable`(입력·합계·이월·일할·공실) + 항목관리 모달 재배선 + `saveBillingCharges` 배선.
 3. **그룹3 — 확정·이력·메모**: [부과 확정] 플로우(확인 팝업·`confirmBilling`·배지·재확정) + `BillingHistoryModal` + `BillingNoteModal`.
 

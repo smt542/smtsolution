@@ -1,4 +1,4 @@
--- 0007_p5_billing.sql
+-- 0012_p5_billing.sql
 -- P5: 부과 확정 슬라이스 (fee_item_charges / billing_confirmations / billing_history)
 -- 의존: P0(profiles·audit_log·set_updated_at), P1a(units·fee_items.carry_over),
 --       P2a(current_user_org·current_user_has_module·my_org_ids), P3b(occupancies)
@@ -86,7 +86,8 @@ returns int language sql immutable as $$
     else round(p_value)            -- 'round','raw',기타 → 반올림
   end::int;
 $$;
-revoke execute on function round_charge(numeric, text) from anon;
+revoke execute on function round_charge(numeric, text) from public, anon;
+grant execute on function round_charge(numeric, text) to authenticated;
 
 -- ===== 세대×항목 조회 (당월 초안 + 전월 이월 prefill + 확정상태 + is_dirty) =====
 create or replace function list_billing(p_building_id bigint, p_period date)
@@ -139,7 +140,8 @@ returns table(
   left join profiles pr on pr.user_id = bc.confirmed_by
   order by u.unit_no, fi.sort_order
 $$;
-revoke execute on function list_billing(bigint, date) from anon;
+revoke execute on function list_billing(bigint, date) from public, anon;
+grant execute on function list_billing(bigint, date) to authenticated;
 
 -- ===== 6개월 이력 (기간별 최신 확정행) =====
 create or replace function list_billing_history(p_unit_id bigint, p_period date, p_months int default 6)
@@ -154,45 +156,90 @@ language sql stable security definer set search_path = public as $$
     and bh.period > (p_period - (p_months || ' months')::interval)::date
   order by bh.period desc, bh.confirmed_at desc, bh.id desc
 $$;
-revoke execute on function list_billing_history(bigint, date, int) from anon;
+revoke execute on function list_billing_history(bigint, date, int) from public, anon;
+grant execute on function list_billing_history(bigint, date, int) to authenticated;
 
 -- ===== 초안 저장 (charges·notes upsert) =====
 create or replace function save_billing_charges(
   p_building_id bigint, p_period date, p_charges jsonb, p_notes jsonb
 ) returns void language plpgsql security definer set search_path = public as $$
-declare v_org bigint; v_item jsonb;
+declare
+  v_org bigint;
+  v_item jsonb;
+  v_unit_id bigint;
+  v_fee_item_id bigint;
+  v_occupancy_id bigint;
 begin
   v_org := current_user_org();
   if v_org is null then raise exception 'no org for caller'; end if;
   if not current_user_has_module('billing') then raise exception 'forbidden: billing required'; end if;
   if not exists (select 1 from buildings where id = p_building_id and org_id = v_org) then
     raise exception 'building not in org'; end if;
-  if p_period <> date_trunc('month', p_period)::date then raise exception 'period must be first of month'; end if;
+  if p_period is null or p_period <> date_trunc('month', p_period)::date then
+    raise exception 'period must be first of month'; end if;
+  if p_period > date_trunc('month', now() at time zone 'Asia/Seoul')::date then
+    raise exception 'future period is not allowed'; end if;
+  if jsonb_typeof(coalesce(p_charges, '[]'::jsonb)) is distinct from 'array' then
+    raise exception 'charges must be an array'; end if;
+  if jsonb_typeof(coalesce(p_notes, '[]'::jsonb)) is distinct from 'array' then
+    raise exception 'notes must be an array'; end if;
 
   for v_item in select value from jsonb_array_elements(coalesce(p_charges, '[]'::jsonb)) loop
-    if not exists (select 1 from units u where u.id = (v_item->>'unit_id')::bigint and u.building_id = p_building_id) then
+    if jsonb_typeof(v_item) is distinct from 'object' then
+      raise exception 'charge entries must be objects'; end if;
+    v_unit_id := nullif(v_item->>'unit_id', '')::bigint;
+    v_fee_item_id := nullif(v_item->>'fee_item_id', '')::bigint;
+    if v_unit_id is null or not exists (
+      select 1 from units u
+      where u.id = v_unit_id and u.building_id = p_building_id and u.deleted_at is null
+    ) then
       raise exception 'unit % not in building', v_item->>'unit_id'; end if;
+    if v_fee_item_id is null or not exists (
+      select 1
+      from fee_items fi
+      join buildings b on b.id = p_building_id
+      where fi.id = v_fee_item_id
+        and fi.org_id = v_org
+        and fi.type_id = b.type_id
+        and fi.deleted_at is null
+    ) then
+      raise exception 'fee item % not available for building', v_item->>'fee_item_id'; end if;
+    select o.id into v_occupancy_id
+    from occupancies o
+    where o.unit_id = v_unit_id and o.deleted_at is null
+    order by o.created_at desc, o.id desc
+    limit 1;
     insert into fee_item_charges(unit_id, fee_item_id, period, occupancy_id, charged, amount)
-      values ((v_item->>'unit_id')::bigint, (v_item->>'fee_item_id')::bigint, p_period,
-              nullif(v_item->>'occupancy_id','')::bigint,
+      values (v_unit_id, v_fee_item_id, p_period,
+              v_occupancy_id,
               coalesce((v_item->>'charged')::boolean, true),
               coalesce((v_item->>'amount')::int, 0))
       on conflict (unit_id, fee_item_id, period) do update
         set charged = excluded.charged, amount = excluded.amount, occupancy_id = excluded.occupancy_id
         where fee_item_charges.charged is distinct from excluded.charged
-           or fee_item_charges.amount  is distinct from excluded.amount;
+           or fee_item_charges.amount is distinct from excluded.amount
+           or fee_item_charges.occupancy_id is distinct from excluded.occupancy_id;
   end loop;
 
   for v_item in select value from jsonb_array_elements(coalesce(p_notes, '[]'::jsonb)) loop
-    if not exists (select 1 from units u where u.id = (v_item->>'unit_id')::bigint and u.building_id = p_building_id) then
+    if jsonb_typeof(v_item) is distinct from 'object' then
+      raise exception 'note entries must be objects'; end if;
+    v_unit_id := nullif(v_item->>'unit_id', '')::bigint;
+    if v_unit_id is null or not exists (
+      select 1 from units u
+      where u.id = v_unit_id and u.building_id = p_building_id and u.deleted_at is null
+    ) then
       raise exception 'unit % not in building', v_item->>'unit_id'; end if;
     insert into billing_confirmations(unit_id, period, billing_note, unit_notice)
-      values ((v_item->>'unit_id')::bigint, p_period, v_item->>'billing_note', v_item->>'unit_notice')
+      values (v_unit_id, p_period, v_item->>'billing_note', v_item->>'unit_notice')
       on conflict (unit_id, period) do update
-        set billing_note = excluded.billing_note, unit_notice = excluded.unit_notice;
+        set billing_note = excluded.billing_note, unit_notice = excluded.unit_notice
+        where billing_confirmations.billing_note is distinct from excluded.billing_note
+           or billing_confirmations.unit_notice is distinct from excluded.unit_notice;
   end loop;
 end $$;
-revoke execute on function save_billing_charges(bigint, date, jsonb, jsonb) from anon;
+revoke execute on function save_billing_charges(bigint, date, jsonb, jsonb) from public, anon;
+grant execute on function save_billing_charges(bigint, date, jsonb, jsonb) to authenticated;
 
 -- ===== 부과 확정 (건물 전체, 재확정 가능) =====
 create or replace function confirm_billing(p_building_id bigint, p_period date)
@@ -207,6 +254,10 @@ begin
   if not current_user_has_module('billing') then raise exception 'forbidden: billing required'; end if;
   if not exists (select 1 from buildings where id = p_building_id and org_id = v_org) then
     raise exception 'building not in org'; end if;
+  if p_period is null or p_period <> date_trunc('month', p_period)::date then
+    raise exception 'period must be first of month'; end if;
+  if p_period > date_trunc('month', now() at time zone 'Asia/Seoul')::date then
+    raise exception 'future period is not allowed'; end if;
 
   v_days := extract(day from ((p_period + interval '1 month')::date - 1))::int;
 
@@ -230,10 +281,22 @@ begin
 
     v_items := '[]'::jsonb; v_total := 0;
     for v_item in
-      select fic.fee_item_id, fi.name, fic.amount, fi.daily_proration, fi.rounding
-      from fee_item_charges fic
-      join fee_items fi on fi.id = fic.fee_item_id
-      where fic.unit_id = v_unit.unit_id and fic.period = p_period and fic.charged = true
+      select
+        fi.id as fee_item_id,
+        fi.name,
+        coalesce(fic.amount, case when fi.carry_over then prev.amount else 0 end, 0) as amount,
+        fi.daily_proration,
+        fi.rounding
+      from buildings b
+      join fee_items fi
+        on fi.type_id = b.type_id and fi.org_id = v_org and fi.deleted_at is null
+      left join fee_item_charges fic
+        on fic.unit_id = v_unit.unit_id and fic.fee_item_id = fi.id and fic.period = p_period
+      left join fee_item_charges prev
+        on prev.unit_id = v_unit.unit_id and prev.fee_item_id = fi.id
+       and prev.period = (p_period - interval '1 month')::date
+      where b.id = p_building_id and coalesce(fic.charged, true)
+      order by fi.sort_order, fi.id
     loop
       if v_item.daily_proration and v_occupied < v_days then
         v_amt := round_charge(v_item.amount::numeric * v_occupied / v_days, v_item.rounding);
@@ -262,4 +325,5 @@ begin
 
   return jsonb_build_object('unit_count', v_count, 'total', v_grand);
 end $$;
-revoke execute on function confirm_billing(bigint, date) from anon;
+revoke execute on function confirm_billing(bigint, date) from public, anon;
+grant execute on function confirm_billing(bigint, date) to authenticated;
