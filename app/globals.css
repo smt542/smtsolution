@@ -66,3 +66,43 @@ body {
 .num {
   font-variant-numeric: tabular-nums;
 }
+
+@page bill {
+  size: A4;
+  margin: 12mm;
+}
+
+@media print {
+  /* 고지서 화면에서만 앱 셸과 조작 UI를 숨긴다. */
+  body:has(.bill-print) aside,
+  body:has(.bill-print) header,
+  body:has(.bill-print) nav,
+  body:has(.bill-print) .no-print {
+    display: none !important;
+  }
+
+  body:has(.bill-print),
+  body:has(.bill-print) main {
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  body:has(.bill-print) .bill-workspace {
+    padding: 0 !important;
+  }
+
+  body:has(.bill-print) .bill-print {
+    display: block !important;
+  }
+
+  body:has(.bill-print) .bill-page {
+    page: bill;
+    break-after: page;
+    border: 0 !important;
+    padding: 0 !important;
+  }
+
+  body:has(.bill-print) .bill-page:last-child {
+    break-after: auto;
+  }
+}

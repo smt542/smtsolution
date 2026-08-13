@@ -5,11 +5,26 @@ import type { BillingFlatRow } from "@/lib/billing/pivot";
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
 vi.mock("@/hooks/reactquery/buildings", () => ({ useBuildings: vi.fn() }));
 vi.mock("@/hooks/reactquery/billing", () => ({ useBilling: vi.fn() }));
+vi.mock("@/hooks/reactquery/setupConfig", () => ({ useSetupConfig: vi.fn() }));
+vi.mock("./components/BillPreview", () => ({
+  BillPreview: ({
+    docs,
+    issueType,
+  }: {
+    docs: Array<{ title: string; dueDate: string | null; showCutoff: boolean }>;
+    issueType: string;
+  }) => (
+    <div data-testid="bill-preview" data-issue-type={issueType}>
+      {docs.map((doc) => `${doc.title}:${doc.dueDate}:${doc.showCutoff}`).join(",")}
+    </div>
+  ),
+}));
 
 import BillPage from "./page";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useBilling } from "@/hooks/reactquery/billing";
+import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
 
 const baseRow: BillingFlatRow = {
   unitId: 1,
@@ -54,6 +69,7 @@ beforeEach(() => {
     isLoading: false,
   } as never);
   vi.mocked(useBilling).mockReturnValue({ data: [], isLoading: false, error: null } as never);
+  vi.mocked(useSetupConfig).mockReturnValue({ data: null } as never);
 });
 
 describe("bill page", () => {
@@ -125,5 +141,29 @@ describe("bill page", () => {
     fireEvent.click(screen.getByLabelText("101 선택"));
     fireEvent.change(screen.getByLabelText("부과월"), { target: { value: "2026-07" } });
     expect(screen.getByLabelText("101 선택")).not.toBeChecked();
+  });
+
+  it("출력 옵션을 문서에 반영하고 인쇄 버튼으로 브라우저 인쇄를 호출한다", () => {
+    vi.mocked(useBilling).mockReturnValue({
+      data: [billingRow()],
+      isLoading: false,
+      error: null,
+    } as never);
+    const printSpy = vi.spyOn(window, "print").mockImplementation(() => {});
+
+    render(<BillPage />);
+    fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
+    fireEvent.click(screen.getByLabelText("전체 선택"));
+    fireEvent.change(screen.getByLabelText("발행유형"), { target: { value: "giro" } });
+    fireEvent.change(screen.getByLabelText("세대 표기"), { target: { value: "code" } });
+    fireEvent.change(screen.getByLabelText("납기일"), { target: { value: "2026-08-25" } });
+    fireEvent.click(screen.getByLabelText("단전·단수 예고 표시"));
+
+    expect(screen.getByTestId("bill-preview")).toHaveAttribute("data-issue-type", "giro");
+    expect(screen.getByTestId("bill-preview")).toHaveTextContent("101:2026-08-25:true");
+
+    fireEvent.click(screen.getByRole("button", { name: "인쇄" }));
+    expect(printSpy).toHaveBeenCalledOnce();
+    printSpy.mockRestore();
   });
 });
