@@ -6,6 +6,13 @@ import { useMe } from "@/hooks/reactquery/auth";
 import { hasModule } from "@/lib/auth/permissions";
 import { NAV_GROUPS, type NavItem } from "./navItems";
 
+const PLATFORM_ADMIN_ITEM: NavItem = {
+  label: "통합관리자 콘솔",
+  href: "/platform-admin",
+  built: true,
+  icon: "M4 4h6v6H4V4zM14 4h6v6h-6V4zM4 14h6v6H4v-6zM14 14h6v6h-6v-6z",
+};
+
 /* ── role label ─────────────────────────────────────────────────────────── */
 function roleLabel(role: string): string {
   switch (role) {
@@ -102,6 +109,14 @@ export function Sidebar() {
 
       {/* Nav groups */}
       <div className="flex-1 flex flex-col overflow-y-auto">
+        {me?.role === "platform_admin" && (
+          <nav className="flex flex-col gap-0.5">
+            <NavItemRow
+              item={PLATFORM_ADMIN_ITEM}
+              active={pathname.startsWith(PLATFORM_ADMIN_ITEM.href)}
+            />
+          </nav>
+        )}
         {NAV_GROUPS.map((group) => {
           const visible = group.items.filter((item) =>
             !item.module || hasModule(me ?? null, item.module)
