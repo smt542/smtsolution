@@ -344,7 +344,8 @@ describe("UtilitiesPage", () => {
       expect.stringMatching(/^\d{4}-\d{2}-01$/),
     );
     expect(click).toHaveBeenCalledTimes(1);
-    expect(click.mock.instances[0].getAttribute("href")).toBe(
+    const anchor = click.mock.instances[0] as HTMLAnchorElement;
+    expect(anchor.getAttribute("href")).toBe(
       "/api/utilities/ledger?buildingId=1&utility=water&period=2026-08-01",
     );
   });

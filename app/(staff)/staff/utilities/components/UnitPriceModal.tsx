@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button, Modal, Spinner } from "@/components/common";
 import {
@@ -31,23 +31,25 @@ export function UnitPriceModal({
   const [drafts, setDrafts] = useState<Record<number, string>>({});
   const prices = pricesQuery.data ?? [];
 
-  useEffect(() => {
-    setDrafts(Object.fromEntries(
-      prices.map((row) => [
-        row.customerNumberId,
-        row.unitPrice === null ? "" : String(row.unitPrice),
-      ]),
-    ));
-  }, [pricesQuery.data]);
-
   const setPrice = (customerNumberId: number, value: string) => {
     setDrafts((current) => ({ ...current, [customerNumberId]: value }));
+  };
+
+  const priceText = (customerNumberId: number, unitPrice: number | null) =>
+    drafts[customerNumberId] ?? (unitPrice === null ? "" : String(unitPrice));
+
+  const close = () => {
+    setDrafts({});
+    onClose();
   };
 
   const submit = () => {
     if (buildingId === null) return;
     const filled = prices
-      .map((row) => ({ row, value: (drafts[row.customerNumberId] ?? "").trim() }))
+      .map((row) => ({
+        row,
+        value: priceText(row.customerNumberId, row.unitPrice).trim(),
+      }))
       .filter(({ value }) => value !== "");
     const invalid = filled.some(({ value }) => {
       const parsed = Number(value);
@@ -74,7 +76,7 @@ export function UnitPriceModal({
       {
         onSuccess: (result) => {
           toast.success(`${result.saved}개 고객번호 단가를 저장했습니다.`);
-          onClose();
+          close();
         },
         onError: (error) => {
           toast.error(error instanceof Error ? error.message : "단가 저장에 실패했습니다.");
@@ -86,7 +88,7 @@ export function UnitPriceModal({
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={close}
       title={`${TYPE_LABELS[utilityType]} 단가 설정`}
     >
       <p className="mb-4 text-sm text-t3">
@@ -130,7 +132,7 @@ export function UnitPriceModal({
                 type="number"
                 min="0"
                 step="0.01"
-                value={drafts[row.customerNumberId] ?? ""}
+                value={priceText(row.customerNumberId, row.unitPrice)}
                 placeholder="단가"
                 onChange={(event) => setPrice(row.customerNumberId, event.target.value)}
                 className="num h-10 w-full rounded-lg border border-line bg-surface px-3 text-right text-sm font-bold text-t1 focus:border-brand focus:outline-none"
@@ -141,7 +143,7 @@ export function UnitPriceModal({
       )}
 
       <div className="mt-6 flex justify-end gap-2">
-        <Button variant="ghost" onClick={onClose}>취소</Button>
+        <Button variant="ghost" onClick={close}>취소</Button>
         <Button
           onClick={submit}
           disabled={savePrices.isPending || prices.length === 0}
