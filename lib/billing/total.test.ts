@@ -16,4 +16,7 @@ describe("billing/total", () => {
     ];
     expect(unitTotal(lines, "2026-08-16", "2026-08-01")).toBe(26000);
   });
+  it("빈 입력은 0", () => {
+    expect(unitTotal([], null, "2026-08-01")).toBe(0);
+  });
 });

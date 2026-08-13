@@ -12,6 +12,7 @@ describe("billing/proration", () => {
   it("daysInMonth", () => {
     expect(daysInMonth("2026-02-01")).toBe(28);
     expect(daysInMonth("2026-08-01")).toBe(31);
+    expect(daysInMonth("2024-02-01")).toBe(29); // 윤년
   });
   it("occupiedDays: 중간입주는 입주일 포함, 아니면 월 전체", () => {
     expect(occupiedDays("2026-08-16", "2026-08-01")).toBe(16); // 16~31 = 16일
