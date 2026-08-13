@@ -100,6 +100,7 @@ export default function BillPage() {
     }));
 
   return (
+    <>
     <div className="flex flex-col gap-4 p-6 print:hidden">
       <h1 className="text-lg font-extrabold text-t1">고지서 발행</h1>
 
@@ -180,18 +181,6 @@ export default function BillPage() {
         />
       )}
 
-      {building && documents && (
-        <BillPrintView
-          buildingName={building.name}
-          period={period}
-          unitLabelMode={labelMode}
-          dueDate={dueDate || null}
-          accounts={printableAccounts(config)}
-          customerNotice={config?.customerNotice ?? null}
-          documents={documents}
-        />
-      )}
-
       <MessagingModal
         open={sendOpen}
         onClose={() => setSendOpen(false)}
@@ -207,5 +196,20 @@ export default function BillPage() {
         }}
       />
     </div>
+
+      {/* 인쇄 뷰는 print:hidden 컨테이너 밖(형제)에 둔다 — 인쇄 시 화면 UI만 숨기고 이 뷰만 노출.
+          안에 두면 조상의 display:none이 print:block을 덮어 A4가 백지로 인쇄됨. */}
+      {building && documents && (
+        <BillPrintView
+          buildingName={building.name}
+          period={period}
+          unitLabelMode={labelMode}
+          dueDate={dueDate || null}
+          accounts={printableAccounts(config)}
+          customerNotice={config?.customerNotice ?? null}
+          documents={documents}
+        />
+      )}
+    </>
   );
 }

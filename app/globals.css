@@ -1,6 +1,11 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 @import "tailwindcss";
 
+/* 인쇄 시 토스트(sonner)가 고지서 위에 찍히지 않도록 숨김 */
+@media print {
+  [data-sonner-toaster] { display: none !important; }
+}
+
 @theme {
   /* ===== 홈지기 디자인 토큰 (프로토타입 기준) ===== */
 
