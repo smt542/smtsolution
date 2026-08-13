@@ -61,7 +61,7 @@ create policy pt_platform on point_transactions for all
 ```
 
 ### 3.4 마이그레이션 순번
-신규 `00XX_platform_admin.sql`. 현재 `0004`(P3a)·`0005`(공지/AS) → **`0006` 예약**(세션 간 순번 조율 필요).
+`supabase/migrations/0011_platform_admin.sql`. 운영 이력 `0007`(P5a)·`0008`(P7a)·`0009`(P7b)·`0010`(P4a) 다음 번호로 적용한다.
 
 ## 4. 화면 (6)
 
