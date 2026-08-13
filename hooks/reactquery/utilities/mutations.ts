@@ -1,10 +1,13 @@
-// TODO(p3a): 부과 원장(billing_confirmations) 스키마가 확정되면 계산 결과 확정 mutation을 P5 /management-fee에 추가한다.
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+  confirmUtilities,
   saveMeterReadings,
+  saveUtilityUnitPrices,
   saveWaterDiscount,
   deleteWaterDiscount,
+  type ConfirmUtilitiesInput,
   type SaveMeterReadingsInput,
+  type SaveUtilityUnitPricesInput,
   type SaveWaterDiscountInput,
 } from "./apis";
 import { utilityKeys } from "./keys";
@@ -30,5 +33,39 @@ export function useDeleteWaterDiscount() {
   return useMutation({
     mutationFn: (unitId: number) => deleteWaterDiscount(unitId),
     onSuccess: () => qc.invalidateQueries({ queryKey: utilityKeys.all }),
+  });
+}
+
+export function useSaveUtilityUnitPrices() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: SaveUtilityUnitPricesInput) => saveUtilityUnitPrices(input),
+    onSuccess: (_result, input) => {
+      qc.invalidateQueries({
+        queryKey: utilityKeys.prices(input.buildingId, input.utilityType),
+      });
+      qc.invalidateQueries({
+        queryKey: utilityKeys.rowsScope(input.buildingId, input.utilityType),
+      });
+    },
+  });
+}
+
+export function useConfirmUtilities() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ConfirmUtilitiesInput) => confirmUtilities(input),
+    onSuccess: (_result, input) => {
+      qc.invalidateQueries({
+        queryKey: utilityKeys.confirmation(
+          input.buildingId,
+          input.utilityType,
+          input.period,
+        ),
+      });
+      qc.invalidateQueries({
+        queryKey: utilityKeys.rows(input.buildingId, input.utilityType, input.period),
+      });
+    },
   });
 }
