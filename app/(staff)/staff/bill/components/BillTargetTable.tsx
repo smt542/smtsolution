@@ -46,12 +46,12 @@ export function BillTargetTable({
         <thead>
           <tr className="text-t2">
             <th className="p-2">
-              <Checkbox label="전체 선택" checked={allChecked} onChange={onToggleAll} />
+              <Checkbox label="" aria-label="전체 선택" checked={allChecked} onChange={onToggleAll} />
             </th>
             <th className="p-2 text-left">호실</th>
             <th className="p-2 text-left">입주자명</th>
             <th className="p-2 text-right">총액</th>
-            <th className="p-2">이체</th>
+            <th className="p-2">자동이체</th>
             <th className="p-2">발행상태</th>
           </tr>
         </thead>
@@ -60,7 +60,8 @@ export function BillTargetTable({
             <tr key={row.unitId} className="border-t border-line">
               <td className="p-2">
                 <Checkbox
-                  label={`${row.unitNo} 선택`}
+                  label=""
+                  aria-label={`${row.unitNo} 선택`}
                   checked={selected.includes(row.unitId)}
                   onChange={() => onToggle(row.unitId)}
                 />

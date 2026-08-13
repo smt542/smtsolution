@@ -18,7 +18,7 @@ describe("BillTargetTable", () => {
     render(<BillTargetTable targets={[t({ issuedAt: "2026-08-13T00:00:00Z", autoDebit: true })]} unitLabelMode="code"
       selected={[]} onToggle={onToggle} onToggleAll={() => {}} onPrint={() => {}} onSend={() => {}} />);
     expect(screen.getByText("101")).toBeInTheDocument();
-    expect(screen.getByText("자동이체")).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: "자동이체" })).toBeInTheDocument();
     expect(screen.getByText("발행")).toBeInTheDocument();
     fireEvent.click(screen.getByLabelText("101 선택"));
     expect(onToggle).toHaveBeenCalledWith(1);
