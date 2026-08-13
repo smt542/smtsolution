@@ -22,4 +22,11 @@ describe("navItems P2b", () => {
       built: true,
     });
   });
+  it("고지서 발행은 bill_publish 권한으로 활성화(built:true)", () => {
+    expect(all.find((i) => i.href === "/staff/bill")).toMatchObject({
+      label: "고지서 발행",
+      module: "bill_publish",
+      built: true,
+    });
+  });
 });
