@@ -6,6 +6,7 @@ import {
   listPointTransactions,
   type PointTxType,
 } from "./apis";
+import { getOrgBuildings, getBuildingTenants, getUnitOccupancy } from "./drilldown";
 import { platformKeys } from "./keys";
 
 export function usePlatformOverview() {
@@ -33,5 +34,29 @@ export function usePlatformTransactions(opts?: { type?: PointTxType }) {
   return useQuery({
     queryKey: platformKeys.transactions(opts),
     queryFn: () => listPointTransactions(opts),
+  });
+}
+
+export function useOrgBuildings(orgId: number) {
+  return useQuery({
+    queryKey: platformKeys.orgBuildings(orgId),
+    queryFn: () => getOrgBuildings(orgId),
+    enabled: Number.isFinite(orgId) && orgId > 0,
+  });
+}
+
+export function useBuildingTenants(buildingId: number) {
+  return useQuery({
+    queryKey: platformKeys.buildingTenants(buildingId),
+    queryFn: () => getBuildingTenants(buildingId),
+    enabled: Number.isFinite(buildingId) && buildingId > 0,
+  });
+}
+
+export function useUnitOccupancy(unitId: number) {
+  return useQuery({
+    queryKey: platformKeys.unit(unitId),
+    queryFn: () => getUnitOccupancy(unitId),
+    enabled: Number.isFinite(unitId) && unitId > 0,
   });
 }
