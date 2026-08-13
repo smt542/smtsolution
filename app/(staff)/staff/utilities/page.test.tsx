@@ -32,6 +32,7 @@ import {
   useSaveUtilityUnitPrices,
   useUtilityConfirmation,
   useConfirmUtilities,
+  ledgerDownloadUrl,
 } from "@/hooks/reactquery/utilities";
 import UtilitiesPage from "./page";
 
@@ -148,6 +149,9 @@ function setupMocks() {
     mutateAsync: confirmMutateAsync,
     isPending: false,
   } as never);
+  vi.mocked(ledgerDownloadUrl).mockReturnValue(
+    "/api/utilities/ledger?buildingId=1&utility=water&period=2026-08-01",
+  );
 }
 
 function selectBuilding() {
@@ -326,13 +330,22 @@ describe("UtilitiesPage", () => {
     expect(toast.error).toHaveBeenCalledWith("입력된 당월 지침이 없습니다.");
   });
 
-  it("검침대장 다운은 서버 생성 안내를 표시한다", () => {
+  it("검침대장 다운은 현재 범위의 서버 생성 URL로 다운로드한다", () => {
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => {});
     render(<UtilitiesPage />);
     selectBuilding();
     fireEvent.click(screen.getByRole("button", { name: "검침대장 다운" }));
 
-    expect(toast.info).toHaveBeenCalledWith(
-      "검침대장 엑셀 내보내기는 서버 생성 기능 연동 후 제공됩니다.",
+    expect(ledgerDownloadUrl).toHaveBeenCalledWith(
+      1,
+      "water",
+      expect.stringMatching(/^\d{4}-\d{2}-01$/),
+    );
+    expect(click).toHaveBeenCalledTimes(1);
+    expect(click.mock.instances[0].getAttribute("href")).toBe(
+      "/api/utilities/ledger?buildingId=1&utility=water&period=2026-08-01",
     );
   });
 });

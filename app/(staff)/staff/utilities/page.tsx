@@ -10,6 +10,7 @@ import {
   useUtilityConfirmation,
   useConfirmUtilities,
   useSaveMeterReadings,
+  ledgerDownloadUrl,
   type UtilityType,
   type UtilityUnitRow,
 } from "@/hooks/reactquery/utilities";
@@ -177,8 +178,17 @@ export default function UtilitiesPage() {
   };
 
   const exportLedger = () => {
-    // TODO(export): [건물명]_[유형]_검침대장_YYYYMM.xlsx 서버 생성 API를 연결한다.
-    toast.info("검침대장 엑셀 내보내기는 서버 생성 기능 연동 후 제공됩니다.");
+    if (buildingId === null) return;
+    try {
+      const anchor = document.createElement("a");
+      anchor.href = ledgerDownloadUrl(buildingId, utilityType, period);
+      anchor.download = "";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+    } catch {
+      toast.error("검침대장을 다운로드하지 못했습니다.");
+    }
   };
 
   return (
