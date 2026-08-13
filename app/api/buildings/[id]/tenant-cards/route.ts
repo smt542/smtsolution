@@ -2,6 +2,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { rowsToXlsxBuffer } from "@/lib/export/xlsx";
 
+type TenantCardRow = {
+  unit_no: string;
+  is_vacant: boolean;
+  tenant_name: string | null;
+  room_type_label: string | null;
+  resident_count: number | null;
+  move_in_date: string | null;
+};
+
 export async function GET(request: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
   const buildingId = Number(id);
@@ -9,7 +18,7 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
   const { data, error } = await sb.rpc("list_tenants", { p_building_id: buildingId });
   if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
 
-  const table = (data ?? []).map((r: any) => ({
+  const table = ((data ?? []) as TenantCardRow[]).map((r) => ({
     unitNo: r.unit_no,
     tenant: r.is_vacant ? "공실" : (r.tenant_name ?? ""),
     roomType: r.room_type_label ?? "",

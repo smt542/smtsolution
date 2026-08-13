@@ -1,6 +1,6 @@
 // app/(staff)/staff/buildings/[id]/components/TenantForm.tsx
 "use client";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/common";
@@ -36,14 +36,17 @@ export function TenantForm({ buildingId, unitId }: { buildingId: number; unitId?
   const [occupancyId, setOccupancyId] = useState<number | null>(null);
   const [dirty, setDirty] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof TenantBasicValue, string>>>({});
+  const [prevFull, setPrevFull] = useState(full);
 
   const roomTypeOptions = useMemo(
     () => [{ value: "", label: "선택" }, ...(roomTypes ?? []).map((r) => ({ value: String(r.id), label: r.label }))],
     [roomTypes],
   );
 
-  useEffect(() => {
-    if (!full) return;
+  // full(조회 결과)이 새로 도착/변경될 때 폼 상태를 하이드레이션.
+  // effect 대신 렌더 중 이전값 비교(React 권장 패턴) — cascading render 회피.
+  if (full && full !== prevFull) {
+    setPrevFull(full);
     const o = full.occupancy;
     setBasic({
       unitNo: full.unit.unitNo, tenantName: o?.tenantName ?? "", payerName: o?.payerName ?? "", phone: o?.phone ?? "",
@@ -62,7 +65,7 @@ export function TenantForm({ buildingId, unitId }: { buildingId: number; unitId?
     setAccounts(emptyAccounts().map((a) => { const f = full.accounts.find((x) => x.kind === a.kind); return f ? { kind: a.kind, bank: f.bank ?? "", account: f.account ?? "", holder: f.holder ?? "", cmsMemberNo: f.cmsMemberNo ?? "" } : a; }));
     setLease(full.lease ? { deposit: full.lease.deposit, monthlyRent: full.lease.monthlyRent, startDate: full.lease.startDate ?? "", endDate: full.lease.endDate ?? "", expiryAlert: full.lease.expiryAlert } : { deposit: null, monthlyRent: null, startDate: "", endDate: "", expiryAlert: false });
     setDirty(false);
-  }, [full]);
+  }
 
   const mark = <T,>(setter: (v: T) => void) => (v: T) => { setter(v); setDirty(true); };
   const patchBasic = (p: Partial<TenantBasicValue>) => { setBasic((b) => ({ ...b, ...p })); setDirty(true); };
