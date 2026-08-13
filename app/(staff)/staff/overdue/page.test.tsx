@@ -104,11 +104,21 @@ const households = [
   },
 ] as const;
 
-function setup({ allowed = true } = {}) {
+function setup({
+  allowed = true,
+  canMessage = true,
+}: {
+  allowed?: boolean;
+  canMessage?: boolean;
+} = {}) {
   vi.mocked(useMe).mockReturnValue({
-    data: allowed
-      ? { role: "staff", permissions: ["overdue"] }
-      : { role: "staff", permissions: [] },
+    data: {
+      role: "staff",
+      permissions: [
+        ...(allowed ? ["overdue"] : []),
+        ...(canMessage ? ["messaging"] : []),
+      ],
+    },
     isLoading: false,
   } as never);
   vi.mocked(useOverdueBuildings).mockReturnValue({
@@ -150,6 +160,22 @@ describe("OverduePage", () => {
     expect(screen.queryByRole("heading", { name: "미납관리" })).not.toBeInTheDocument();
   });
 
+  it("overdue 권한만 있으면 독촉 문자 발송 액션을 사용할 수 없다", () => {
+    setup({ canMessage: false });
+    render(<OverduePage />);
+    selectBuilding();
+    fireEvent.click(screen.getByRole("checkbox", { name: "101호 선택" }));
+
+    const sendButton = screen.getByRole("button", {
+      name: "독촉 문자 발송 (1)",
+    });
+    expect(sendButton).toBeDisabled();
+    expect(sendButton).toHaveAttribute("title", "문자 발송 권한이 필요합니다.");
+    expect(messagingModalSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({ open: true }),
+    );
+  });
+
   it("건물 선택 후 세대 목록을 표시하고 채권 필터를 AND 조건으로 적용한다", () => {
     render(<OverduePage />);
     selectBuilding();
@@ -183,7 +209,8 @@ describe("OverduePage", () => {
     );
   });
 
-  it("선택 세대를 독촉 프리셋으로 공용 문자 발송 모달에 전달한다", () => {
+  it("overdue와 messaging 권한이 모두 있으면 독촉 발송 모달을 연다", () => {
+    setup({ allowed: true, canMessage: true });
     render(<OverduePage />);
     selectBuilding();
     fireEvent.click(screen.getByRole("checkbox", { name: "101호 선택" }));
@@ -213,7 +240,7 @@ describe("OverduePage", () => {
     fireEvent.click(screen.getByRole("button", { name: "테스트 발송 완료" }));
 
     expect(toast.success).toHaveBeenCalledWith(
-      "독촉 문자가 발송되었습니다 (성공 1건 / 실패 0건)",
+      "독촉 문자 임시 발송 기록 1건을 생성했습니다. 실제 문자는 발송되지 않았습니다.",
     );
     expect(messagingModalSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({ open: false }),

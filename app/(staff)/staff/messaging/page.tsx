@@ -30,7 +30,7 @@ export default function MessagingPage() {
 }
 
 function MessagingWorkspace() {
-  const { data: logs = [], isLoading } = useMessageLogs();
+  const { data: logs = [], isLoading, error, refetch } = useMessageLogs();
 
   return (
     <div className="flex min-h-screen flex-col gap-6 p-6">
@@ -42,7 +42,12 @@ function MessagingWorkspace() {
       </header>
 
       <MessagingComposer />
-      <MessageLogList logs={logs} isLoading={isLoading} />
+      <MessageLogList
+        logs={logs}
+        isLoading={isLoading}
+        error={error}
+        onRetry={() => void refetch()}
+      />
     </div>
   );
 }

@@ -25,6 +25,7 @@ const OVERDUE_MESSAGE_BODY = "미납 관리비를 확인해 주세요.";
 export default function OverduePage() {
   const { data: me, isLoading: isMeLoading } = useMe();
   const canAccess = hasModule(me, "overdue");
+  const canSendMessages = hasModule(me, "messaging");
   const {
     data: buildings = [],
     isLoading: isBuildingsLoading,
@@ -109,6 +110,11 @@ export default function OverduePage() {
   };
 
   const openMessagingModal = () => {
+    if (!canSendMessages) {
+      toast.info("문자 발송 권한이 필요합니다.");
+      return;
+    }
+
     const recipients: MessageRecipient[] = visibleHouseholds
       .filter((row) => selectedIds.has(row.occupancyId))
       .map((row) => ({
@@ -165,7 +171,8 @@ export default function OverduePage() {
           <Button
             variant="primary"
             onClick={openMessagingModal}
-            disabled={!selectedBuilding || isHouseholdsLoading}
+            disabled={!selectedBuilding || isHouseholdsLoading || !canSendMessages}
+            title={!canSendMessages ? "문자 발송 권한이 필요합니다." : undefined}
           >
             독촉 문자 발송{selectedCount > 0 ? ` (${selectedCount})` : ""}
           </Button>
@@ -248,7 +255,9 @@ export default function OverduePage() {
         }}
         onClose={() => setIsMessagingOpen(false)}
         onSent={(result) => {
-          toast.success(`독촉 문자가 발송되었습니다 (성공 ${result.count}건 / 실패 0건)`);
+          toast.success(
+            `독촉 문자 임시 발송 기록 ${result.count}건을 생성했습니다. 실제 문자는 발송되지 않았습니다.`,
+          );
           setIsMessagingOpen(false);
         }}
       />

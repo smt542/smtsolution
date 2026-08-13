@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MyContext } from "@/hooks/reactquery/auth";
 import type { MessageLog } from "@/hooks/reactquery/messaging";
@@ -55,14 +55,18 @@ const logs: MessageLog[] = [
   },
 ];
 
+const refetchLogs = vi.fn();
+
 function setup({
   me = allowedUser,
   messageLogs = logs,
   isLogsLoading = false,
+  logsError = null,
 }: {
   me?: MyContext | null;
   messageLogs?: MessageLog[];
   isLogsLoading?: boolean;
+  logsError?: Error | null;
 } = {}) {
   vi.mocked(useMe).mockReturnValue({
     data: me,
@@ -71,6 +75,8 @@ function setup({
   vi.mocked(useMessageLogs).mockReturnValue({
     data: messageLogs,
     isLoading: isLogsLoading,
+    error: logsError,
+    refetch: refetchLogs,
   } as unknown as ReturnType<typeof useMessageLogs>);
 }
 
@@ -99,21 +105,39 @@ describe("MessagingPage", () => {
     expect(screen.getByTestId("messaging-composer")).toBeInTheDocument();
     expect(useMessageLogs).toHaveBeenCalledWith();
     expect(screen.getByText("user-1")).toBeInTheDocument();
+    expect(
+      screen.getByRole("columnheader", { name: "발송자 ID" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("2026. 08. 13. 10:30")).toBeInTheDocument();
     expect(screen.getByText("2명")).toBeInTheDocument();
     expect(screen.getByText("SMS")).toBeInTheDocument();
     expect(screen.getByText("8월 관리비 납부를 부탁드립니다.")).toBeInTheDocument();
     expect(screen.getByText("stub")).toBeInTheDocument();
   });
+
+  it("발송 이력 조회 오류를 표시하고 재시도하면 쿼리를 다시 요청한다", () => {
+    setup({ messageLogs: [], logsError: new Error("network error") });
+    render(<MessagingPage />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "발송 이력을 불러오지 못했습니다.",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    expect(refetchLogs).toHaveBeenCalledOnce();
+  });
 });
 
 describe("MessageLogList", () => {
   it("로딩 상태와 빈 상태를 표시한다", () => {
-    const { rerender } = render(<MessageLogList logs={[]} isLoading />);
+    const onRetry = vi.fn();
+    const { rerender } = render(
+      <MessageLogList logs={[]} isLoading onRetry={onRetry} />,
+    );
     expect(
       screen.getByText("발송 이력을 불러오는 중입니다."),
     ).toBeInTheDocument();
 
-    rerender(<MessageLogList logs={[]} />);
+    rerender(<MessageLogList logs={[]} onRetry={onRetry} />);
     expect(screen.getByText("발송 이력이 없습니다.")).toBeInTheDocument();
   });
 });

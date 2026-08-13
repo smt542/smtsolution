@@ -1,9 +1,11 @@
-import { DataTable, EmptyState, Panel, Spinner } from "@/components/common";
+import { Button, DataTable, EmptyState, Panel, Spinner } from "@/components/common";
 import type { MessageLog } from "@/hooks/reactquery/messaging";
 
 export interface MessageLogListProps {
   logs: MessageLog[];
   isLoading?: boolean;
+  error?: unknown;
+  onRetry: () => void;
 }
 
 function formatSentAt(value: string): string {
@@ -17,6 +19,7 @@ function formatSentAt(value: string): string {
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
+    timeZone: "Asia/Seoul",
   }).format(date);
 }
 
@@ -30,6 +33,8 @@ function summarizeBody(body: string): string {
 export function MessageLogList({
   logs,
   isLoading = false,
+  error,
+  onRetry,
 }: MessageLogListProps) {
   if (isLoading) {
     return (
@@ -44,6 +49,25 @@ export function MessageLogList({
     );
   }
 
+  if (error) {
+    return (
+      <Panel title="발송 이력">
+        <div role="alert" className="py-8 text-center">
+          <p className="font-bold text-t1">발송 이력을 불러오지 못했습니다.</p>
+          <p className="mt-1 text-sm text-t3">잠시 후 다시 시도해 주세요.</p>
+          <Button
+            type="button"
+            variant="ghost"
+            className="mt-4"
+            onClick={onRetry}
+          >
+            다시 시도
+          </Button>
+        </div>
+      </Panel>
+    );
+  }
+
   if (logs.length === 0) {
     return (
       <Panel title="발송 이력">
@@ -53,7 +77,7 @@ export function MessageLogList({
   }
 
   const columns = [
-    { key: "sender", label: "발송자" },
+    { key: "sender", label: "발송자 ID" },
     { key: "sentAt", label: "발송 일시" },
     { key: "recipientCount", label: "수신처 수" },
     { key: "channel", label: "채널" },
