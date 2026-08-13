@@ -9,6 +9,11 @@ vi.mock("@/hooks/reactquery/utilities", () => ({
   useSaveMeterReadings: vi.fn(),
   useSaveWaterDiscount: vi.fn(),
   useDeleteWaterDiscount: vi.fn(),
+  useUtilityPrices: vi.fn(),
+  useSaveUtilityUnitPrices: vi.fn(),
+  useUtilityConfirmation: vi.fn(),
+  useConfirmUtilities: vi.fn(),
+  ledgerDownloadUrl: vi.fn(),
 }));
 vi.mock("sonner", () => ({
   toast: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
@@ -23,6 +28,10 @@ import {
   useSaveMeterReadings,
   useSaveWaterDiscount,
   useDeleteWaterDiscount,
+  useUtilityPrices,
+  useSaveUtilityUnitPrices,
+  useUtilityConfirmation,
+  useConfirmUtilities,
 } from "@/hooks/reactquery/utilities";
 import UtilitiesPage from "./page";
 
@@ -110,6 +119,30 @@ function setupMocks() {
     mutate: vi.fn(),
     isPending: false,
   } as never);
+  vi.mocked(useUtilityPrices).mockReturnValue({
+    data: [{
+      customerNumberId: 11,
+      customerNo: "W-APT",
+      holderName: "주택용",
+      sortOrder: 0,
+      unitPrice: 850,
+    }],
+    isLoading: false,
+    error: null,
+  } as never);
+  vi.mocked(useSaveUtilityUnitPrices).mockReturnValue({
+    mutate: vi.fn(),
+    isPending: false,
+  } as never);
+  vi.mocked(useUtilityConfirmation).mockReturnValue({
+    data: null,
+    isLoading: false,
+    error: null,
+  } as never);
+  vi.mocked(useConfirmUtilities).mockReturnValue({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  } as never);
 }
 
 function selectBuilding() {
@@ -194,6 +227,15 @@ describe("UtilitiesPage", () => {
 
     expect(screen.getByLabelText("할인 구분")).toBeInTheDocument();
     expect(screen.getByLabelText("할인 금액")).toBeInTheDocument();
+  });
+
+  it("단가 설정 버튼으로 현재 유형의 고객번호별 단가 모달을 연다", () => {
+    render(<UtilitiesPage />);
+    selectBuilding();
+    fireEvent.click(screen.getByRole("button", { name: "단가 설정" }));
+
+    expect(screen.getByText("수도 단가 설정")).toBeInTheDocument();
+    expect(screen.getByLabelText("W-APT 단가")).toHaveValue(850);
   });
 
   it("부과 계산은 입력된 당월 지침을 save_meter_readings로 저장한다", () => {

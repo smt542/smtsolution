@@ -16,6 +16,7 @@ import { UtilityHistoryModal } from "./components/UtilityHistoryModal";
 import { WaterDiscountModal } from "./components/WaterDiscountModal";
 import { UtilitySummaryCards } from "./components/UtilitySummaryCards";
 import { UtilityTable, type UtilityDraft } from "./components/UtilityTable";
+import { UnitPriceModal } from "./components/UnitPriceModal";
 
 const TYPE_TABS: { id: UtilityType; label: string }[] = [
   { id: "water", label: "수도" },
@@ -60,6 +61,7 @@ export default function UtilitiesPage() {
   const [drafts, setDrafts] = useState<Record<string, UtilityDraft>>({});
   const [historyRow, setHistoryRow] = useState<UtilityUnitRow | null>(null);
   const [discountRow, setDiscountRow] = useState<UtilityUnitRow | null>(null);
+  const [priceModalOpen, setPriceModalOpen] = useState(false);
   const period = `${referenceDate.slice(0, 7)}-01`;
   const rowsQuery = useUtilityRows(buildingId, utilityType, period);
   const saveMeter = useSaveMeterReadings();
@@ -106,12 +108,14 @@ export default function UtilitiesPage() {
     setBuildingId(value ? Number(value) : null);
     setHistoryRow(null);
     setDiscountRow(null);
+    setPriceModalOpen(false);
   };
 
   const selectUtilityType = (id: string) => {
     setUtilityType(id as UtilityType);
     setHistoryRow(null);
     setDiscountRow(null);
+    setPriceModalOpen(false);
   };
 
   const openHistory = () => {
@@ -182,6 +186,13 @@ export default function UtilitiesPage() {
           </div>
 
           <div className="flex w-full flex-wrap justify-end gap-2 xl:w-auto">
+            <Button
+              variant="ghost"
+              onClick={() => setPriceModalOpen(true)}
+              disabled={!buildingId}
+            >
+              단가 설정
+            </Button>
             <Button variant="ghost" onClick={openHistory} disabled={!buildingId}>
               6개월 이력
             </Button>
@@ -304,6 +315,13 @@ export default function UtilitiesPage() {
           onClose={() => setDiscountRow(null)}
         />
       )}
+
+      <UnitPriceModal
+        open={priceModalOpen}
+        buildingId={buildingId}
+        utilityType={utilityType}
+        onClose={() => setPriceModalOpen(false)}
+      />
     </div>
   );
 }
