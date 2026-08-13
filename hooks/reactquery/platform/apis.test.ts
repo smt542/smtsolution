@@ -99,11 +99,13 @@ describe("platform admin apis", () => {
     });
   });
 
-  it("대시보드는 DB count와 삭제되지 않은 건물 조건을 사용한다", async () => {
+  it("대시보드는 활성 조직 count와 삭제되지 않은 건물 조건을 사용한다", async () => {
+    const organizationEq = vi.fn().mockResolvedValue({ count: 1, error: null });
+    const organizationSelect = vi.fn(() => ({ eq: organizationEq }));
     const buildingIs = vi.fn().mockResolvedValue({ count: 9, error: null });
     from.mockImplementation((table: string) => {
       if (table === "organizations") {
-        return { select: vi.fn().mockResolvedValue({ count: 2, error: null }) };
+        return { select: organizationSelect };
       }
       if (table === "org_members") {
         return { select: vi.fn().mockResolvedValue({ count: 15, error: null }) };
@@ -112,10 +114,12 @@ describe("platform admin apis", () => {
     });
 
     await expect(getPlatformOverview()).resolves.toEqual({
-      organizationCount: 2,
+      activeOrganizationCount: 1,
       accountCount: 15,
       buildingCount: 9,
     });
+    expect(organizationSelect).toHaveBeenCalledWith("id", { count: "exact", head: true });
+    expect(organizationEq).toHaveBeenCalledWith("status", "active");
     expect(buildingIs).toHaveBeenCalledWith("deleted_at", null);
   });
 

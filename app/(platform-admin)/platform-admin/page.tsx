@@ -7,8 +7,8 @@ import { DataScopeNotice, PageHeader, QueryError } from "../_components/PageElem
 
 const SUMMARY_CARDS = [
   {
-    key: "organizationCount" as const,
-    label: "조회 가능 조직",
+    key: "activeOrganizationCount" as const,
+    label: "활성 조직",
     description: "RLS 범위의 활성 조직",
     color: "bg-blue-t text-blue",
     icon: "M4 21h16M6 21V7l6-3 6 3v14M9 10h2m2 0h2m-6 4h2m2 0h2",
@@ -33,7 +33,7 @@ export default function PlatformDashboardPage() {
   const { data, isPending, isError, refetch } = usePlatformOverview();
   const orgs = usePlatformOrganizations();
   const recent = usePlatformTransactions({ type: "charge" });
-  const totalBalance = (orgs.data ?? []).reduce((s, o) => s + o.pointBalance, 0);
+  const totalBalance = orgs.data?.reduce((sum, organization) => sum + organization.pointBalance, 0) ?? null;
 
   return (
     <div className="mx-auto w-full max-w-7xl p-5 sm:p-6 lg:p-8">
@@ -70,10 +70,25 @@ export default function PlatformDashboardPage() {
                 </div>
               </article>
             ))}
-            <article className="rounded-2xl border border-line bg-surface p-5 shadow-card">
+            <article
+              aria-label="총 포인트 잔액"
+              className="rounded-2xl border border-line bg-surface p-5 shadow-card"
+            >
               <div className="text-sm font-bold text-t2">총 포인트 잔액</div>
-              <div className="mt-3 text-[32px] font-extrabold leading-none text-t1 num">{totalBalance.toLocaleString("ko-KR")}</div>
-              <div className="mt-2 text-xs text-t4">전 조직 합계(sum of points)</div>
+              {orgs.isPending ? (
+                <div role="status" aria-label="조직 포인트 잔액을 불러오는 중" className="mt-3">
+                  <Spinner />
+                </div>
+              ) : orgs.isError || totalBalance === null ? (
+                <div className="mt-3">
+                  <QueryError onRetry={() => void orgs.refetch()} />
+                </div>
+              ) : (
+                <>
+                  <div className="mt-3 text-[32px] font-extrabold leading-none text-t1 num">{totalBalance.toLocaleString("ko-KR")}</div>
+                  <div className="mt-2 text-xs text-t4">전 조직 합계(sum of points)</div>
+                </>
+              )}
             </article>
           </div>
         )}
@@ -87,17 +102,27 @@ export default function PlatformDashboardPage() {
         </div>
       </section>
 
-      <section className="mt-6 rounded-2xl border border-line bg-surface p-5 shadow-card">
+      <section aria-label="최근 충전" className="mt-6 rounded-2xl border border-line bg-surface p-5 shadow-card">
         <h3 className="text-base font-extrabold text-t1">최근 충전</h3>
-        <ul className="mt-4 divide-y divide-line">
-          {(recent.data ?? []).slice(0, 5).map((t) => (
-            <li key={t.id} className="flex items-center justify-between py-3 text-sm">
-              <span className="font-bold text-t1">{t.organizationName}</span>
-              <span className="text-green font-bold num">+{t.points.toLocaleString("ko-KR")} P</span>
-            </li>
-          ))}
-          {(recent.data ?? []).length === 0 && <li className="py-3 text-sm text-t3">최근 충전 내역이 없습니다.</li>}
-        </ul>
+        {recent.isPending ? (
+          <div role="status" aria-label="최근 충전 내역을 불러오는 중" className="mt-4">
+            <Spinner />
+          </div>
+        ) : recent.isError || !recent.data ? (
+          <div className="mt-4">
+            <QueryError onRetry={() => void recent.refetch()} />
+          </div>
+        ) : (
+          <ul className="mt-4 divide-y divide-line">
+            {recent.data.slice(0, 5).map((t) => (
+              <li key={t.id} className="flex items-center justify-between py-3 text-sm">
+                <span className="font-bold text-t1">{t.organizationName}</span>
+                <span className="text-green font-bold num">+{t.points.toLocaleString("ko-KR")} P</span>
+              </li>
+            ))}
+            {recent.data.length === 0 && <li className="py-3 text-sm text-t3">최근 충전 내역이 없습니다.</li>}
+          </ul>
+        )}
       </section>
     </div>
   );

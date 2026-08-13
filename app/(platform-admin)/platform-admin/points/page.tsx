@@ -21,7 +21,7 @@ export default function PlatformPointsPage() {
   const txQuery = usePlatformTransactions();
   const charge = useChargePoints();
 
-  const organizations = orgsQuery.data ?? [];
+  const organizations = useMemo(() => orgsQuery.data ?? [], [orgsQuery.data]);
   const filtered = useMemo(() => {
     const kw = search.trim().toLocaleLowerCase("ko-KR");
     if (!kw) return organizations;

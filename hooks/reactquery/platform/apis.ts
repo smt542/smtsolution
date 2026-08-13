@@ -26,7 +26,7 @@ export interface ChargePointsInput {
 }
 
 export interface PlatformOverview {
-  organizationCount: number;
+  activeOrganizationCount: number;
   accountCount: number;
   buildingCount: number;
 }
@@ -111,8 +111,11 @@ function sumPointsByOrganization(
  */
 export async function getPlatformOverview(): Promise<PlatformOverview> {
   const supabase = createClient();
-  const [organizations, accounts, buildings] = await Promise.all([
-    supabase.from("organizations").select("id", { count: "exact", head: true }),
+  const [activeOrganizations, accounts, buildings] = await Promise.all([
+    supabase
+      .from("organizations")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "active"),
     supabase.from("org_members").select("user_id", { count: "exact", head: true }),
     supabase
       .from("buildings")
@@ -120,12 +123,12 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
       .is("deleted_at", null),
   ]);
 
-  if (organizations.error) throw new Error(organizations.error.message);
+  if (activeOrganizations.error) throw new Error(activeOrganizations.error.message);
   if (accounts.error) throw new Error(accounts.error.message);
   if (buildings.error) throw new Error(buildings.error.message);
 
   return {
-    organizationCount: organizations.count ?? 0,
+    activeOrganizationCount: activeOrganizations.count ?? 0,
     accountCount: accounts.count ?? 0,
     buildingCount: buildings.count ?? 0,
   };
