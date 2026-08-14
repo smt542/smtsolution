@@ -1,0 +1,72 @@
+import { createClient } from "@/lib/supabase/client";
+import { computeUnpaid, derivePayStatus, type PayStatus } from "@/lib/payments/status";
+
+export type PaymentMethod = "cash" | "transfer" | "auto_debit" | "giro" | "card" | "other";
+export type PaymentKind = "full" | "principal" | "partial";
+export type { PayStatus };
+
+export interface PaymentRow {
+  unitId: number; unitNo: string; dong: string | null;
+  occupancyId: number | null; tenantName: string | null; isVacant: boolean;
+  isAutoDebit: boolean; dueDate: string | null;
+  charged: number | null; paid: number; unpaid: number | null; payStatus: PayStatus;
+}
+export interface PaymentBalance { charged: number | null; paid: number; unpaid: number | null; }
+export interface RecordPaymentInput {
+  unitId: number; period: string; amount: number;
+  method: PaymentMethod; kind: PaymentKind; memo?: string | null; paidAt?: string | null;
+}
+export interface UnitPayment {
+  id: number; amount: number; method: PaymentMethod; kind: PaymentKind;
+  memo: string | null; paidAt: string; status: "active" | "canceled"; createdAt: string;
+}
+
+type PaymentRowDb = {
+  unit_id: number; unit_no: string; dong: string | null; occupancy_id: number | null;
+  tenant_name: string | null; is_vacant: boolean; is_auto_debit: boolean;
+  due_date: string | null; charged: number | null; paid: number;
+};
+type BalanceDb = { charged: number | null; paid: number; unpaid: number | null };
+type UnitPaymentDb = {
+  id: number; amount: number; method: PaymentMethod; kind: PaymentKind;
+  memo: string | null; paid_at: string; status: "active" | "canceled"; created_at: string;
+};
+
+export async function listPaymentRows(buildingId: number, period: string): Promise<PaymentRow[]> {
+  const { data, error } = await createClient().rpc("list_payment_rows", { p_building_id: buildingId, p_period: period });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as PaymentRowDb[]).map((r) => ({
+    unitId: r.unit_id, unitNo: r.unit_no, dong: r.dong,
+    occupancyId: r.occupancy_id, tenantName: r.tenant_name, isVacant: r.is_vacant,
+    isAutoDebit: r.is_auto_debit, dueDate: r.due_date,
+    charged: r.charged, paid: r.paid,
+    unpaid: computeUnpaid(r.charged, r.paid), payStatus: derivePayStatus(r.charged, r.paid),
+  }));
+}
+
+export async function recordPayment(input: RecordPaymentInput): Promise<PaymentBalance> {
+  const { data, error } = await createClient().rpc("record_payment", {
+    p_unit_id: input.unitId, p_period: input.period, p_amount: input.amount,
+    p_method: input.method, p_kind: input.kind,
+    p_memo: input.memo ?? null, p_paid_at: input.paidAt ?? null,
+  });
+  if (error) throw new Error(error.message);
+  const r = data as BalanceDb;
+  return { charged: r.charged, paid: r.paid, unpaid: r.unpaid };
+}
+
+export async function cancelPayment(paymentId: number): Promise<PaymentBalance> {
+  const { data, error } = await createClient().rpc("cancel_payment", { p_payment_id: paymentId });
+  if (error) throw new Error(error.message);
+  const r = data as BalanceDb;
+  return { charged: r.charged, paid: r.paid, unpaid: r.unpaid };
+}
+
+export async function listUnitPayments(unitId: number, period: string): Promise<UnitPayment[]> {
+  const { data, error } = await createClient().rpc("list_unit_payments", { p_unit_id: unitId, p_period: period });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as UnitPaymentDb[]).map((r) => ({
+    id: r.id, amount: r.amount, method: r.method, kind: r.kind,
+    memo: r.memo, paidAt: r.paid_at, status: r.status, createdAt: r.created_at,
+  }));
+}
