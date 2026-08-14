@@ -1,6 +1,8 @@
 import { z } from "zod";
 export const occupancyBasicSchema = z.object({
   unitNo: z.string().min(1, "호실명을 입력해 주세요"),
+  floor: z.number().int("층은 정수로 입력해 주세요").min(-2147483648).max(2147483647).nullable().optional(),
+  usageType: z.enum(["residential", "commercial"]).default("residential"),
   tenantName: z.string().min(1, "이름을 입력해 주세요"),
   payerName: z.string().min(1, "입금자명을 입력해 주세요"),
   phone: z.string().min(1, "연락처를 입력해 주세요"),

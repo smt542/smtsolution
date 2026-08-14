@@ -20,7 +20,7 @@ describe("occupancies hub apis", () => {
     rpc.mockResolvedValue({ data: { unit_id:3, occupancy_id:9 }, error:null });
     const res = await saveUnitOccupancy({
       buildingId:7, unitId:null, occupancyId:null,
-      unit:{ unitNo:"101" },
+      unit:{ unitNo:"101", floor:3, usageType:"commercial" },
       occupancy:{ tenantName:"김입주", payerName:"김입주", phone:"010", roomTypeId:1, moveInDate:"2026-01-01", status:"occupied",
         billingEnabled:true, printEnabled:true, lateFeeEnabled:true, singlePrint:false },
       meters:[{ utility:"water", meterNo:"M1", customerNo:"C1" }],
@@ -29,6 +29,7 @@ describe("occupancies hub apis", () => {
     });
     expect(rpc).toHaveBeenCalledWith("save_unit_occupancy", expect.objectContaining({ p_building_id:7, p_unit_id:null }));
     const args = rpc.mock.calls[0][1];
+    expect(args.p_unit).toMatchObject({ unit_no:"101", floor:3, usage_type:"commercial" });
     expect(args.p_occupancy).toMatchObject({ tenant_name:"김입주", phone:"010", room_type_id:1, billing_enabled:true });
     expect(args.p_meters[0]).toMatchObject({ utility:"water", meter_no:"M1", customer_no:"C1" });
     expect(args.p_accounts[0]).toMatchObject({ kind:"mgmt", bank:"국민" });
