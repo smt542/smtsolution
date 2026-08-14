@@ -72,6 +72,30 @@
       "page_title": "통합관리자_대시보드",
       "keywords": ["통합관리자 대시보드", "플랫폼 현황", "총 포인트 잔액"],
       "paths": []
+    },
+    {
+      "page_id": "474841e8-9581-4215-a1e7-1ef37430d147",
+      "page_title": "사무실 관리자_전기공과금",
+      "keywords": ["utilities", "공과금", "검침", "meter", "단가", "unit-price", "검침대장", "자동요금"],
+      "paths": ["utilities"]
+    },
+    {
+      "page_id": "d1c637a3-4324-4582-b140-054506aea104",
+      "page_title": "사무실 관리자_수도공과금",
+      "keywords": ["utilities", "공과금", "검침", "meter", "단가", "unit-price", "검침대장", "자동요금", "수도 할인", "water"],
+      "paths": ["utilities"]
+    },
+    {
+      "page_id": "4247dba3-7880-4902-8f91-c12067ac05a0",
+      "page_title": "사무실 관리자_가스공과금",
+      "keywords": ["utilities", "공과금", "검침", "meter", "단가", "unit-price", "검침대장", "자동요금"],
+      "paths": ["utilities"]
+    },
+    {
+      "page_id": "c305f155-f9a1-4559-9ec9-e7900875c494",
+      "page_title": "사무실 관리자_서류 발행·출력",
+      "keywords": ["bill", "고지서", "발행", "인쇄", "고지서 발행", "billDoc", "BillPreview"],
+      "paths": ["bill"]
     }
   ]
 }
