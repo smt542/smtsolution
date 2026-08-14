@@ -3,7 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const rpc = vi.fn();
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ rpc }) }));
 
-import { listPaymentRows, recordPayment, cancelPayment } from "./apis";
+import {
+  cancelPayment,
+  listBankPayments,
+  listPaymentRows,
+  recordBankPayments,
+  recordPayment,
+} from "./apis";
 
 beforeEach(() => rpc.mockReset());
 
@@ -34,6 +40,41 @@ describe("listPaymentRows", () => {
   it("error는 throw", async () => {
     rpc.mockResolvedValue({ data: null, error: { message: "boom" } });
     await expect(listPaymentRows(1, "2026-08-01")).rejects.toThrow("boom");
+  });
+});
+
+describe("listPaymentRows payerNo/payerName", () => {
+  it("payer_no·payer_name 매핑", async () => {
+    rpc.mockResolvedValue({ data: [{
+      unit_id: 1, unit_no: "101", dong: "A", occupancy_id: 9, tenant_name: "김철수",
+      is_vacant: false, is_auto_debit: false, due_date: null, charged: 10000, paid: 0,
+      payer_no: "C-100", payer_name: "김납부",
+    }], error: null });
+    const rows = await listPaymentRows(1, "2026-08-01");
+    expect(rows[0]).toMatchObject({ payerNo: "C-100", payerName: "김납부" });
+  });
+});
+
+describe("recordBankPayments", () => {
+  it("entries를 snake로 전달하고 결과 반환", async () => {
+    rpc.mockResolvedValue({ data: { recorded: 2, skipped: 1 }, error: null });
+    const res = await recordBankPayments(3, "2026-08-01", [
+      { unitId: 11, amount: 5000, paidAt: "2026-08-10", memo: "홍길동" },
+    ]);
+    expect(rpc).toHaveBeenCalledWith("record_bank_payments", {
+      p_building_id: 3, p_period: "2026-08-01",
+      p_entries: [{ unit_id: 11, amount: 5000, paid_at: "2026-08-10", memo: "홍길동" }],
+    });
+    expect(res).toEqual({ recorded: 2, skipped: 1 });
+  });
+});
+
+describe("listBankPayments", () => {
+  it("기존 은행수납 반환", async () => {
+    rpc.mockResolvedValue({ data: [{ unit_id: 11, amount: 5000, paid_at: "2026-08-10" }], error: null });
+    const refs = await listBankPayments(3, "2026-08-01");
+    expect(rpc).toHaveBeenCalledWith("list_bank_payments", { p_building_id: 3, p_period: "2026-08-01" });
+    expect(refs[0]).toEqual({ unitId: 11, amount: 5000, paidAt: "2026-08-10" });
   });
 });
 

@@ -9,6 +9,7 @@ export interface PaymentRow {
   unitId: number; unitNo: string; dong: string | null;
   occupancyId: number | null; tenantName: string | null; isVacant: boolean;
   isAutoDebit: boolean; dueDate: string | null;
+  payerNo: string | null; payerName: string | null;
   charged: number | null; paid: number; unpaid: number | null; payStatus: PayStatus;
 }
 export interface PaymentBalance { charged: number | null; paid: number; unpaid: number | null; }
@@ -20,11 +21,14 @@ export interface UnitPayment {
   id: number; amount: number; method: PaymentMethod; kind: PaymentKind;
   memo: string | null; paidAt: string; status: "active" | "canceled"; createdAt: string;
 }
+export interface BankPaymentEntry { unitId: number; amount: number; paidAt: string | null; memo?: string | null; }
+export interface BankPaymentRef { unitId: number; amount: number; paidAt: string; }
 
 type PaymentRowDb = {
   unit_id: number; unit_no: string; dong: string | null; occupancy_id: number | null;
   tenant_name: string | null; is_vacant: boolean; is_auto_debit: boolean;
   due_date: string | null; charged: number | null; paid: number;
+  payer_no: string | null; payer_name: string | null;
 };
 type BalanceDb = { charged: number | null; paid: number; unpaid: number | null };
 type UnitPaymentDb = {
@@ -39,6 +43,7 @@ export async function listPaymentRows(buildingId: number, period: string): Promi
     unitId: r.unit_id, unitNo: r.unit_no, dong: r.dong,
     occupancyId: r.occupancy_id, tenantName: r.tenant_name, isVacant: r.is_vacant,
     isAutoDebit: r.is_auto_debit, dueDate: r.due_date,
+    payerNo: r.payer_no, payerName: r.payer_name,
     charged: r.charged, paid: r.paid,
     unpaid: computeUnpaid(r.charged, r.paid), payStatus: derivePayStatus(r.charged, r.paid),
   }));
@@ -69,4 +74,23 @@ export async function listUnitPayments(unitId: number, period: string): Promise<
     id: r.id, amount: r.amount, method: r.method, kind: r.kind,
     memo: r.memo, paidAt: r.paid_at, status: r.status, createdAt: r.created_at,
   }));
+}
+
+export async function recordBankPayments(
+  buildingId: number, period: string, entries: BankPaymentEntry[],
+): Promise<{ recorded: number; skipped: number }> {
+  const { data, error } = await createClient().rpc("record_bank_payments", {
+    p_building_id: buildingId, p_period: period,
+    p_entries: entries.map((e) => ({ unit_id: e.unitId, amount: e.amount, paid_at: e.paidAt ?? null, memo: e.memo ?? null })),
+  });
+  if (error) throw new Error(error.message);
+  const r = data as { recorded: number; skipped: number };
+  return { recorded: r.recorded, skipped: r.skipped };
+}
+
+export async function listBankPayments(buildingId: number, period: string): Promise<BankPaymentRef[]> {
+  const { data, error } = await createClient().rpc("list_bank_payments", { p_building_id: buildingId, p_period: period });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as { unit_id: number; amount: number; paid_at: string }[])
+    .map((r) => ({ unitId: r.unit_id, amount: r.amount, paidAt: r.paid_at }));
 }
