@@ -1,11 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   confirmUtilities,
+  saveScopedPrices,
   saveMeterReadings,
   saveUtilityUnitPrices,
   saveWaterDiscount,
   deleteWaterDiscount,
   type ConfirmUtilitiesInput,
+  type SaveScopedPricesInput,
   type SaveMeterReadingsInput,
   type SaveUtilityUnitPricesInput,
   type SaveWaterDiscountInput,
@@ -43,6 +45,22 @@ export function useSaveUtilityUnitPrices() {
     onSuccess: (_result, input) => {
       qc.invalidateQueries({
         queryKey: utilityKeys.prices(input.buildingId, input.utilityType),
+      });
+      qc.invalidateQueries({
+        queryKey: utilityKeys.rowsScope(input.buildingId, input.utilityType),
+      });
+    },
+  });
+}
+
+export function useSaveScopedPrices() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: SaveScopedPricesInput) =>
+      saveScopedPrices(input.buildingId, input.utilityType, input.rows),
+    onSuccess: (_result, input) => {
+      qc.invalidateQueries({
+        queryKey: utilityKeys.scopedPrices(input.buildingId, input.utilityType),
       });
       qc.invalidateQueries({
         queryKey: utilityKeys.rowsScope(input.buildingId, input.utilityType),

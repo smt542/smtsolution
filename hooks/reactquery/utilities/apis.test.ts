@@ -8,6 +8,7 @@ const invalidateQueries = vi.fn();
 vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ invalidateQueries }),
   useMutation: (options: unknown) => options,
+  useQuery: (options: unknown) => options,
 }));
 
 import {
@@ -17,14 +18,21 @@ import {
   getUtilityConfirmation,
   ledgerDownloadUrl,
   listMeterHistory,
+  listScopedPrices,
   listUtilityPrices,
   listUtilityRows,
+  saveScopedPrices,
   saveMeterReadings,
   saveUtilityUnitPrices,
   saveWaterDiscount,
 } from "./apis";
 import { utilityKeys } from "./keys";
-import { useConfirmUtilities, useSaveUtilityUnitPrices } from "./mutations";
+import {
+  useConfirmUtilities,
+  useSaveScopedPrices,
+  useSaveUtilityUnitPrices,
+} from "./mutations";
+import { useScopedPrices } from "./queries";
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -169,6 +177,46 @@ describe("utilities apis", () => {
     });
   });
 
+  it("용도 기본 단가와 용도·층 단가를 원자 저장한 뒤 훅으로 조회한다", async () => {
+    type StoredScopedPrice = {
+      building_id: number;
+      utility: string;
+      usage_type: "residential" | "commercial";
+      floor: number | null;
+      unit_price: number;
+    };
+    let storedRows: StoredScopedPrice[] = [];
+    const upsert = vi.fn(async (rows: StoredScopedPrice[]) => {
+      storedRows = rows;
+      return { error: null };
+    });
+    const utilityEq = vi.fn(async (_column: string, utility: string) => ({
+      data: storedRows.filter((row) => row.utility === utility),
+      error: null,
+    }));
+    const buildingEq = vi.fn(() => ({ eq: utilityEq }));
+    const select = vi.fn(() => ({ eq: buildingEq }));
+    from.mockReturnValue({ upsert, select });
+
+    const rows = [
+      { usage_type: "residential" as const, floor: null, unit_price: 850 },
+      { usage_type: "commercial" as const, floor: 2, unit_price: 920.5 },
+    ];
+    await expect(saveScopedPrices(3, "electricity", rows)).resolves.toEqual({ saved: 2 });
+
+    const query = useScopedPrices(3, "electricity") as unknown as {
+      queryFn: () => Promise<typeof rows>;
+    };
+    await expect(query.queryFn()).resolves.toEqual(rows);
+    expect(upsert).toHaveBeenCalledWith(
+      rows.map((row) => ({ building_id: 3, utility: "elec", ...row })),
+      { onConflict: "building_id,utility,usage_type,floor" },
+    );
+    expect(buildingEq).toHaveBeenCalledWith("building_id", 3);
+    expect(utilityEq).toHaveBeenCalledWith("utility", "elec");
+    expect(listScopedPrices).toBeTypeOf("function");
+  });
+
   it("공과금 부과확정 결과를 camelCase로 매핑한다", async () => {
     rpc.mockResolvedValue({ data: { unit_count: 2, total: 60000 }, error: null });
 
@@ -225,6 +273,26 @@ describe("utilities apis", () => {
 
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: utilityKeys.prices(3, "water") });
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: utilityKeys.rowsScope(3, "water") });
+  });
+
+  it("용도/층별 단가 저장 성공 시 scoped 단가와 해당 건물·유형 행을 무효화한다", () => {
+    const input = {
+      buildingId: 3,
+      utilityType: "electricity" as const,
+      rows: [{ usage_type: "commercial" as const, floor: 2, unit_price: 920.5 }],
+    };
+    const mutation = useSaveScopedPrices() as unknown as {
+      onSuccess: (result: { saved: number }, variables: typeof input) => void;
+    };
+
+    mutation.onSuccess({ saved: 1 }, input);
+
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: utilityKeys.scopedPrices(3, "electricity"),
+    });
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: utilityKeys.rowsScope(3, "electricity"),
+    });
   });
 
   it("확정 성공 시 확정상태와 해당 월 행을 무효화한다", () => {

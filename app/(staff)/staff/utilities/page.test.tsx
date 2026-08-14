@@ -11,6 +11,8 @@ vi.mock("@/hooks/reactquery/utilities", () => ({
   useDeleteWaterDiscount: vi.fn(),
   useUtilityPrices: vi.fn(),
   useSaveUtilityUnitPrices: vi.fn(),
+  useScopedPrices: vi.fn(),
+  useSaveScopedPrices: vi.fn(),
   useUtilityConfirmation: vi.fn(),
   useConfirmUtilities: vi.fn(),
   ledgerDownloadUrl: vi.fn(),
@@ -30,6 +32,8 @@ import {
   useDeleteWaterDiscount,
   useUtilityPrices,
   useSaveUtilityUnitPrices,
+  useScopedPrices,
+  useSaveScopedPrices,
   useUtilityConfirmation,
   useConfirmUtilities,
   ledgerDownloadUrl,
@@ -137,6 +141,15 @@ function setupMocks() {
     error: null,
   } as never);
   vi.mocked(useSaveUtilityUnitPrices).mockReturnValue({
+    mutate: vi.fn(),
+    isPending: false,
+  } as never);
+  vi.mocked(useScopedPrices).mockReturnValue({
+    data: [],
+    isLoading: false,
+    error: null,
+  } as never);
+  vi.mocked(useSaveScopedPrices).mockReturnValue({
     mutate: vi.fn(),
     isPending: false,
   } as never);

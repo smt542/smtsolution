@@ -180,6 +180,64 @@ export async function saveUtilityUnitPrices(
   return { saved: (data as { saved: number }).saved };
 }
 
+export type ScopedUsageType = "residential" | "commercial";
+
+export interface ScopedPriceRow {
+  usage_type: ScopedUsageType;
+  floor: number | null;
+  unit_price: number;
+}
+
+export async function listScopedPrices(
+  buildingId: number,
+  utilityType: UtilityType,
+): Promise<ScopedPriceRow[]> {
+  const { data, error } = await createClient()
+    .from("utility_scoped_prices")
+    .select("usage_type, floor, unit_price")
+    .eq("building_id", buildingId)
+    .eq("utility", dbUtility(utilityType));
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as ScopedPriceRow[]).map((row) => ({
+    usage_type: row.usage_type,
+    floor: row.floor,
+    unit_price: Number(row.unit_price),
+  }));
+}
+
+export interface SaveScopedPricesResult {
+  saved: number;
+}
+
+export async function saveScopedPrices(
+  buildingId: number,
+  utilityType: UtilityType,
+  rows: ScopedPriceRow[],
+): Promise<SaveScopedPricesResult> {
+  if (rows.length === 0) return { saved: 0 };
+
+  const { error } = await createClient()
+    .from("utility_scoped_prices")
+    .upsert(
+      rows.map((row) => ({
+        building_id: buildingId,
+        utility: dbUtility(utilityType),
+        usage_type: row.usage_type,
+        floor: row.floor,
+        unit_price: row.unit_price,
+      })),
+      { onConflict: "building_id,utility,usage_type,floor" },
+    );
+  if (error) throw new Error(error.message);
+  return { saved: rows.length };
+}
+
+export interface SaveScopedPricesInput {
+  buildingId: number;
+  utilityType: UtilityType;
+  rows: ScopedPriceRow[];
+}
+
 export interface ConfirmUtilitiesInput {
   buildingId: number;
   utilityType: UtilityType;

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getUtilityConfirmation,
   listMeterHistory,
+  listScopedPrices,
   listUtilityPrices,
   listUtilityRows,
   type UtilityType,
@@ -39,6 +40,17 @@ export function useUtilityPrices(
   return useQuery({
     queryKey: utilityKeys.prices(buildingId, utilityType),
     queryFn: () => listUtilityPrices(buildingId as number, utilityType),
+    enabled: buildingId !== null,
+  });
+}
+
+export function useScopedPrices(
+  buildingId: number | null,
+  utilityType: UtilityType,
+) {
+  return useQuery({
+    queryKey: utilityKeys.scopedPrices(buildingId, utilityType),
+    queryFn: () => listScopedPrices(buildingId as number, utilityType),
     enabled: buildingId !== null,
   });
 }
