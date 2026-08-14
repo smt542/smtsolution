@@ -15,6 +15,7 @@ interface PaymentAmountModalProps {
   row: PaymentRow;
   kind: PaymentKind;
   defaultAmount: number;
+  defaultMethod?: PaymentMethod;
   isPending: boolean;
   onClose: () => void;
   onSubmit: (value: {
@@ -35,12 +36,13 @@ function PaymentAmountForm({
   row,
   kind,
   defaultAmount,
+  defaultMethod,
   isPending,
   onClose,
   onSubmit,
 }: Omit<PaymentAmountModalProps, "open">) {
   const [amountInput, setAmountInput] = useState(String(defaultAmount));
-  const [method, setMethod] = useState<PaymentMethod>("transfer");
+  const [method, setMethod] = useState<PaymentMethod>(defaultMethod ?? "transfer");
   const [memo, setMemo] = useState("");
   const [paidAt, setPaidAt] = useState(today);
   const amount = kind === "partial" ? Number(amountInput) : defaultAmount;
@@ -150,6 +152,7 @@ export function PaymentAmountModal(props: PaymentAmountModalProps) {
       row={props.row}
       kind={props.kind}
       defaultAmount={props.defaultAmount}
+      defaultMethod={props.defaultMethod}
       isPending={props.isPending}
       onClose={props.onClose}
       onSubmit={props.onSubmit}

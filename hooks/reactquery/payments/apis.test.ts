@@ -7,12 +7,28 @@ import {
   cancelPayment,
   cmsDownloadUrl,
   listBankPayments,
+  listGiroPayments,
   listPaymentRows,
   recordBankPayments,
   recordPayment,
 } from "./apis";
 
 beforeEach(() => rpc.mockReset());
+
+describe("listGiroPayments", () => {
+  it("giro 원장 행 매핑", async () => {
+    rpc.mockResolvedValue({ data: [{
+      id: 5, unit_no: "101", dong: "A", tenant_name: "김철수",
+      amount: 30000, paid_at: "2026-08-10", status: "active", memo: "지로",
+    }], error: null });
+    const rows = await listGiroPayments(3, "2026-08-01");
+    expect(rpc).toHaveBeenCalledWith("list_giro_payments", { p_building_id: 3, p_period: "2026-08-01" });
+    expect(rows[0]).toEqual({
+      id: 5, unitNo: "101", dong: "A", tenantName: "김철수",
+      amount: 30000, paidAt: "2026-08-10", status: "active", memo: "지로",
+    });
+  });
+});
 
 describe("cmsDownloadUrl", () => {
   it("buildingId·period 쿼리스트링", () => {

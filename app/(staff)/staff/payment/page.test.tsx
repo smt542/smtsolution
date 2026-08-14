@@ -5,10 +5,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
 vi.mock("@/hooks/reactquery/buildings", () => ({ useBuildings: vi.fn() }));
 vi.mock("@/hooks/reactquery/payments", () => ({
+  cmsDownloadUrl: vi.fn(() => "/api/payment/cms"),
   usePaymentRows: vi.fn(),
   useRecordPayment: vi.fn(),
   useCancelPayment: vi.fn(),
   useUnitPayments: vi.fn(),
+  useGiroPayments: vi.fn(),
 }));
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
@@ -19,6 +21,7 @@ import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import {
   useCancelPayment,
+  useGiroPayments,
   usePaymentRows,
   useRecordPayment,
   useUnitPayments,
@@ -79,6 +82,7 @@ function setup(me: any = master) {
   vi.mocked(useRecordPayment).mockReturnValue(mutation(recordPaymentAsync));
   vi.mocked(useCancelPayment).mockReturnValue(mutation(cancelPaymentAsync));
   vi.mocked(useUnitPayments).mockReturnValue({ data: [], isLoading: false } as any);
+  vi.mocked(useGiroPayments).mockReturnValue({ data: [], isLoading: false } as any);
 }
 
 beforeEach(() => {
@@ -131,5 +135,25 @@ describe("PaymentProcessingPage", () => {
       ),
     );
     expect(usePaymentRows).toHaveBeenCalledWith(2, currentPeriod());
+  });
+
+  it("지로 액션은 전액 수납 모달의 방법을 giro로 프리셋", async () => {
+    render(<PaymentProcessingPage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "지로" }));
+    expect(screen.getByLabelText("수납방법")).toHaveValue("giro");
+    fireEvent.click(screen.getByRole("button", { name: "수납 처리" }));
+
+    await waitFor(() =>
+      expect(recordPaymentAsync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          unitId: 21,
+          period: currentPeriod(),
+          amount: 60_000,
+          method: "giro",
+          kind: "full",
+        }),
+      ),
+    );
   });
 });

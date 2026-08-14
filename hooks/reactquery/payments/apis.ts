@@ -21,6 +21,10 @@ export interface UnitPayment {
   id: number; amount: number; method: PaymentMethod; kind: PaymentKind;
   memo: string | null; paidAt: string; status: "active" | "canceled"; createdAt: string;
 }
+export interface GiroPayment {
+  id: number; unitNo: string; dong: string | null; tenantName: string | null;
+  amount: number; paidAt: string; status: "active" | "canceled"; memo: string | null;
+}
 export interface BankPaymentEntry { unitId: number; amount: number; paidAt: string | null; memo?: string | null; }
 export interface BankPaymentRef { unitId: number; amount: number; paidAt: string; }
 
@@ -34,6 +38,10 @@ type BalanceDb = { charged: number | null; paid: number; unpaid: number | null }
 type UnitPaymentDb = {
   id: number; amount: number; method: PaymentMethod; kind: PaymentKind;
   memo: string | null; paid_at: string; status: "active" | "canceled"; created_at: string;
+};
+type GiroPaymentDb = {
+  id: number; unit_no: string; dong: string | null; tenant_name: string | null;
+  amount: number; paid_at: string; status: "active" | "canceled"; memo: string | null;
 };
 
 export async function listPaymentRows(buildingId: number, period: string): Promise<PaymentRow[]> {
@@ -73,6 +81,15 @@ export async function listUnitPayments(unitId: number, period: string): Promise<
   return ((data ?? []) as UnitPaymentDb[]).map((r) => ({
     id: r.id, amount: r.amount, method: r.method, kind: r.kind,
     memo: r.memo, paidAt: r.paid_at, status: r.status, createdAt: r.created_at,
+  }));
+}
+
+export async function listGiroPayments(buildingId: number, period: string): Promise<GiroPayment[]> {
+  const { data, error } = await createClient().rpc("list_giro_payments", { p_building_id: buildingId, p_period: period });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as GiroPaymentDb[]).map((r) => ({
+    id: r.id, unitNo: r.unit_no, dong: r.dong, tenantName: r.tenant_name,
+    amount: r.amount, paidAt: r.paid_at, status: r.status, memo: r.memo,
   }));
 }
 

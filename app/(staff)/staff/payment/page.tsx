@@ -11,11 +11,13 @@ import {
   usePaymentRows,
   useRecordPayment,
   type PaymentKind,
+  type PaymentMethod,
   type PaymentRow,
 } from "@/hooks/reactquery/payments";
 import { hasModule } from "@/lib/auth/permissions";
 import { currentPeriod, fromMonthInput, toMonthInput } from "@/lib/billing/period";
 import { BankImportModal } from "./components/BankImportModal";
+import { GiroLedgerModal } from "./components/GiroLedgerModal";
 import { PaymentAmountModal } from "./components/PaymentAmountModal";
 import { PaymentHistoryModal } from "./components/PaymentHistoryModal";
 import { PaymentTable } from "./components/PaymentTable";
@@ -23,6 +25,7 @@ import { PaymentTable } from "./components/PaymentTable";
 type AmountModalState = {
   row: PaymentRow;
   kind: PaymentKind;
+  method?: PaymentMethod;
 };
 
 function errorMessage(error: unknown, fallback: string) {
@@ -37,6 +40,7 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
   const [amountModal, setAmountModal] = useState<AmountModalState | null>(null);
   const [historyUnitId, setHistoryUnitId] = useState<number | null>(null);
   const [bankOpen, setBankOpen] = useState(false);
+  const [giroOpen, setGiroOpen] = useState(false);
 
   const organizationBuildings = useMemo(
     () => buildings.filter((building) => building.orgId === orgId),
@@ -65,9 +69,13 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
     );
   }, [rows, search]);
 
-  const openAction = (row: PaymentRow, action: PaymentKind | "cancel") => {
+  const openAction = (row: PaymentRow, action: PaymentKind | "cancel" | "giro") => {
     if (action === "cancel") {
       setHistoryUnitId(row.unitId);
+      return;
+    }
+    if (action === "giro") {
+      setAmountModal({ row, kind: "full", method: "giro" });
       return;
     }
     setAmountModal({ row, kind: action });
@@ -123,6 +131,14 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={selectedBuildingId === null}
+            onClick={() => setGiroOpen(true)}
+          >
+            지로 원장
+          </Button>
           <Button
             type="button"
             variant="ghost"
@@ -221,6 +237,7 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
           row={amountModal.row}
           kind={amountModal.kind}
           defaultAmount={defaultAmount}
+          defaultMethod={amountModal.method ?? "transfer"}
           isPending={recordPayment.isPending}
           onClose={() => setAmountModal(null)}
           onSubmit={submitPayment}
@@ -234,6 +251,17 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
           period={period}
           isPending={cancelPayment.isPending}
           onClose={() => setHistoryUnitId(null)}
+          onCancel={cancelRecordedPayment}
+        />
+      )}
+
+      {giroOpen && selectedBuildingId !== null && (
+        <GiroLedgerModal
+          open
+          buildingId={selectedBuildingId}
+          period={period}
+          isPending={cancelPayment.isPending}
+          onClose={() => setGiroOpen(false)}
           onCancel={cancelRecordedPayment}
         />
       )}
