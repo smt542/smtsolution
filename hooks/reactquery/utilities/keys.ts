@@ -12,6 +12,8 @@ export const utilityKeys = {
     ["utilities", "prices", buildingId, utilityType] as const,
   scopedPrices: (buildingId: number | null, utilityType: UtilityType) =>
     ["utilities", "scoped-prices", buildingId, utilityType] as const,
+  fixedUsages: (buildingId: number | null, utilityType: UtilityType) =>
+    ["utilities", "fixed-usages", buildingId, utilityType] as const,
   confirmation: (buildingId: number | null, utilityType: UtilityType, period: string) =>
     ["utilities", "confirmation", buildingId, utilityType, period] as const,
 };

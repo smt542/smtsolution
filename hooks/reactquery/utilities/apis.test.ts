@@ -12,11 +12,13 @@ vi.mock("@tanstack/react-query", () => ({
 }));
 
 import {
+  clearFixedUsage,
   confirmUtilities,
   dbUtility,
   deleteWaterDiscount,
   getUtilityConfirmation,
   ledgerDownloadUrl,
+  listFixedUsages,
   listMeterHistory,
   listScopedPrices,
   listUtilityPrices,
@@ -25,14 +27,17 @@ import {
   saveMeterReadings,
   saveUtilityUnitPrices,
   saveWaterDiscount,
+  setFixedUsage,
 } from "./apis";
 import { utilityKeys } from "./keys";
 import {
+  useClearFixedUsage,
   useConfirmUtilities,
   useSaveScopedPrices,
   useSaveUtilityUnitPrices,
+  useSetFixedUsage,
 } from "./mutations";
-import { useScopedPrices } from "./queries";
+import { useFixedUsages, useScopedPrices } from "./queries";
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -119,6 +124,62 @@ describe("utilities apis", () => {
     from.mockReturnValue({ delete: del });
     await deleteWaterDiscount(101);
     expect(eq).toHaveBeenCalledWith("unit_id", 101);
+  });
+
+  it("건물·유형별 고정 사용량을 unit_meters에서 조회하고 숫자로 매핑한다", async () => {
+    const not = vi.fn().mockResolvedValue({
+      data: [{ unit_id: 101, fixed_usage: "12.50", units: { building_id: 3 } }],
+      error: null,
+    });
+    const is = vi.fn(() => ({ not }));
+    const buildingEq = vi.fn(() => ({ is }));
+    const utilityEq = vi.fn(() => ({ eq: buildingEq }));
+    const select = vi.fn(() => ({ eq: utilityEq }));
+    from.mockReturnValue({ select });
+
+    await expect(listFixedUsages(3, "electricity")).resolves.toEqual([
+      { unitId: 101, fixedUsage: 12.5 },
+    ]);
+
+    expect(from).toHaveBeenCalledWith("unit_meters");
+    expect(select).toHaveBeenCalledWith(
+      "unit_id, fixed_usage, units!inner(building_id)",
+    );
+    expect(utilityEq).toHaveBeenCalledWith("utility", "elec");
+    expect(buildingEq).toHaveBeenCalledWith("units.building_id", 3);
+    expect(is).toHaveBeenCalledWith("units.deleted_at", null);
+    expect(not).toHaveBeenCalledWith("fixed_usage", "is", null);
+
+    const query = useFixedUsages(3, "electricity") as unknown as {
+      queryKey: readonly unknown[];
+    };
+    expect(query.queryKey).toEqual(utilityKeys.fixedUsages(3, "electricity"));
+  });
+
+  it("고정 사용량은 세대·유형 키로 설정하고 null로 해제한다", async () => {
+    const upsert = vi.fn().mockResolvedValue({ error: null });
+    from.mockReturnValueOnce({ upsert });
+
+    await setFixedUsage({
+      buildingId: 3,
+      unitId: 101,
+      utilityType: "electricity",
+      fixedUsage: 12.5,
+    });
+    expect(upsert).toHaveBeenCalledWith(
+      { unit_id: 101, utility: "elec", fixed_usage: 12.5 },
+      { onConflict: "unit_id,utility" },
+    );
+
+    const utilityEq = vi.fn().mockResolvedValue({ error: null });
+    const unitEq = vi.fn(() => ({ eq: utilityEq }));
+    const update = vi.fn(() => ({ eq: unitEq }));
+    from.mockReturnValueOnce({ update });
+
+    await clearFixedUsage({ buildingId: 3, unitId: 101, utilityType: "gas" });
+    expect(update).toHaveBeenCalledWith({ fixed_usage: null });
+    expect(unitEq).toHaveBeenCalledWith("unit_id", 101);
+    expect(utilityEq).toHaveBeenCalledWith("utility", "gas");
   });
 
   it("listMeterHistory: 유형(elec) + period 이하 6건 + charge=calc?? manual", async () => {
@@ -289,6 +350,46 @@ describe("utilities apis", () => {
 
     expect(invalidateQueries).toHaveBeenCalledWith({
       queryKey: utilityKeys.scopedPrices(3, "electricity"),
+    });
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: utilityKeys.rowsScope(3, "electricity"),
+    });
+  });
+
+  it("고정 사용량 설정·해제 성공 시 고정 사용량과 해당 행 범위를 무효화한다", () => {
+    const setInput = {
+      buildingId: 3,
+      unitId: 101,
+      utilityType: "electricity" as const,
+      fixedUsage: 12.5,
+    };
+    const setMutation = useSetFixedUsage() as unknown as {
+      onSuccess: (result: void, variables: typeof setInput) => void;
+    };
+
+    setMutation.onSuccess(undefined, setInput);
+
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: utilityKeys.fixedUsages(3, "electricity"),
+    });
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: utilityKeys.rowsScope(3, "electricity"),
+    });
+
+    vi.clearAllMocks();
+    const clearInput = {
+      buildingId: 3,
+      unitId: 101,
+      utilityType: "electricity" as const,
+    };
+    const clearMutation = useClearFixedUsage() as unknown as {
+      onSuccess: (result: void, variables: typeof clearInput) => void;
+    };
+
+    clearMutation.onSuccess(undefined, clearInput);
+
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: utilityKeys.fixedUsages(3, "electricity"),
     });
     expect(invalidateQueries).toHaveBeenCalledWith({
       queryKey: utilityKeys.rowsScope(3, "electricity"),
