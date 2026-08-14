@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { listPaymentRows, listUnitPayments } from "./apis";
+import { listBankPayments, listPaymentRows, listUnitPayments } from "./apis";
 import { paymentKeys } from "./keys";
 
 export function usePaymentRows(buildingId: number | null, period: string) {
@@ -14,5 +14,12 @@ export function useUnitPayments(unitId: number | null, period: string) {
     queryKey: paymentKeys.unit(unitId ?? 0, period),
     queryFn: () => listUnitPayments(unitId as number, period),
     enabled: unitId !== null && Boolean(period),
+  });
+}
+export function useBankPayments(buildingId: number | null, period: string) {
+  return useQuery({
+    queryKey: paymentKeys.bank(buildingId ?? 0, period),
+    queryFn: () => listBankPayments(buildingId as number, period),
+    enabled: buildingId !== null && Boolean(period),
   });
 }

@@ -14,6 +14,7 @@ import {
 } from "@/hooks/reactquery/payments";
 import { hasModule } from "@/lib/auth/permissions";
 import { currentPeriod, fromMonthInput, toMonthInput } from "@/lib/billing/period";
+import { BankImportModal } from "./components/BankImportModal";
 import { PaymentAmountModal } from "./components/PaymentAmountModal";
 import { PaymentHistoryModal } from "./components/PaymentHistoryModal";
 import { PaymentTable } from "./components/PaymentTable";
@@ -34,6 +35,7 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
   const [search, setSearch] = useState("");
   const [amountModal, setAmountModal] = useState<AmountModalState | null>(null);
   const [historyUnitId, setHistoryUnitId] = useState<number | null>(null);
+  const [bankOpen, setBankOpen] = useState(false);
 
   const organizationBuildings = useMemo(
     () => buildings.filter((building) => building.orgId === orgId),
@@ -111,12 +113,21 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
 
   return (
     <div className="flex min-h-screen flex-col gap-5 p-4 sm:p-6">
-      <header>
-        <p className="text-xs font-semibold text-t3">관리업무 · 수납 처리</p>
-        <h1 className="mt-1 text-2xl font-extrabold text-t1">수납 처리</h1>
-        <p className="mt-2 text-sm text-t2">
-          월별 부과와 수납 현황을 확인하고 수납 등록 또는 취소를 처리합니다.
-        </p>
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold text-t3">관리업무 · 수납 처리</p>
+          <h1 className="mt-1 text-2xl font-extrabold text-t1">수납 처리</h1>
+          <p className="mt-2 text-sm text-t2">
+            월별 부과와 수납 현황을 확인하고 수납 등록 또는 취소를 처리합니다.
+          </p>
+        </div>
+        <Button
+          type="button"
+          disabled={selectedBuildingId === null}
+          onClick={() => setBankOpen(true)}
+        >
+          엑셀 업로드
+        </Button>
       </header>
 
       <section
@@ -207,6 +218,16 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
           isPending={cancelPayment.isPending}
           onClose={() => setHistoryUnitId(null)}
           onCancel={cancelRecordedPayment}
+        />
+      )}
+
+      {bankOpen && selectedBuildingId !== null && (
+        <BankImportModal
+          open
+          buildingId={selectedBuildingId}
+          period={period}
+          rows={rows}
+          onClose={() => setBankOpen(false)}
         />
       )}
     </div>

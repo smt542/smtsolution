@@ -4,7 +4,7 @@ import React from "react";
 import { Input } from "@/components/common";
 
 export interface MeterRow { utility: "water" | "elec" | "gas"; meterNo: string; customerNo: string; }
-export interface AccountRow { kind: "water" | "elec" | "gas" | "mgmt"; bank: string; account: string; holder: string; cmsMemberNo: string; }
+export interface AccountRow { kind: "water" | "elec" | "gas" | "mgmt"; bank: string; account: string; holder: string; cmsMemberNo: string; payerNo: string; }
 export const METER_LABELS: Record<MeterRow["utility"], string> = { water: "수도", elec: "전기", gas: "가스" };
 export const ACCOUNT_LABELS: Record<AccountRow["kind"], string> = { water: "수도", elec: "전기", gas: "가스", mgmt: "관리비" };
 
@@ -40,7 +40,10 @@ export function MetersAccountsSection({
             <div className="col-span-3"><Input aria-label={`${ACCOUNT_LABELS[a.kind]} 은행`} placeholder="은행" value={a.bank} onChange={(e) => patchAccount(a.kind, { bank: e.target.value })} /></div>
             <div className="col-span-3"><Input aria-label={`${ACCOUNT_LABELS[a.kind]} 계좌번호`} placeholder="계좌번호" value={a.account} onChange={(e) => patchAccount(a.kind, { account: e.target.value })} /></div>
             <div className="col-span-2"><Input aria-label={`${ACCOUNT_LABELS[a.kind]} 예금주`} placeholder="예금주" value={a.holder} onChange={(e) => patchAccount(a.kind, { holder: e.target.value })} /></div>
-            <div className="col-span-2"><Input aria-label={`${ACCOUNT_LABELS[a.kind]} CMS`} placeholder="CMS회원번호" value={a.cmsMemberNo} onChange={(e) => patchAccount(a.kind, { cmsMemberNo: e.target.value })} /></div>
+            <div className="col-span-2 flex flex-col gap-2">
+              <Input aria-label={`${ACCOUNT_LABELS[a.kind]} CMS`} placeholder="CMS회원번호" value={a.cmsMemberNo} onChange={(e) => patchAccount(a.kind, { cmsMemberNo: e.target.value })} />
+              {a.kind === "mgmt" && <Input aria-label={`${ACCOUNT_LABELS[a.kind]} 수납 고객번호`} placeholder="은행 매칭용 고객번호" value={a.payerNo} onChange={(e) => patchAccount(a.kind, { payerNo: e.target.value })} />}
+            </div>
           </div>
         ))}
       </div>
