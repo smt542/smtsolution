@@ -2,7 +2,7 @@ import { Button, EmptyState, Spinner } from "@/components/common";
 import type { PaymentKind, PaymentRow } from "@/hooks/reactquery/payments";
 import { PAY_STATUS_LABEL, PAY_STATUS_STYLE } from "../constants";
 
-type PaymentAction = PaymentKind | "cancel";
+type PaymentAction = PaymentKind | "cancel" | "giro";
 
 interface PaymentTableProps {
   rows: PaymentRow[];
@@ -109,6 +109,15 @@ export function PaymentTable({ rows, isLoading, onAction }: PaymentTableProps) {
                       onClick={() => onAction(row, "partial")}
                     >
                       분할
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="h-9 px-3 text-xs"
+                      disabled={paid || unbilled}
+                      onClick={() => onAction(row, "giro")}
+                    >
+                      지로
                     </Button>
                     <Button
                       type="button"
