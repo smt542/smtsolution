@@ -20,15 +20,20 @@ begin
     raise exception 'building not in org'; end if;
 
   if v_unit_id is null then
-    insert into units(building_id, unit_no, dong, area_pyeong, room_count)
+    insert into units(building_id, unit_no, dong, area_pyeong, room_count, floor, usage_type)
       values (p_building_id, p_unit->>'unit_no', p_unit->>'dong',
-              nullif(p_unit->>'area_pyeong','')::numeric, nullif(p_unit->>'room_count','')::int)
+              nullif(p_unit->>'area_pyeong','')::numeric, nullif(p_unit->>'room_count','')::int,
+              nullif(p_unit->>'floor','')::int,
+              coalesce(nullif(p_unit->>'usage_type',''), 'residential'))
       returning id into v_unit_id;
   else
     update units set unit_no = coalesce(p_unit->>'unit_no', unit_no),
       dong = coalesce(p_unit->>'dong', dong),
       area_pyeong = coalesce(nullif(p_unit->>'area_pyeong','')::numeric, area_pyeong),
-      room_count = coalesce(nullif(p_unit->>'room_count','')::int, room_count)
+      room_count = coalesce(nullif(p_unit->>'room_count','')::int, room_count),
+      floor = case when p_unit ? 'floor' then nullif(p_unit->>'floor','')::int else floor end,
+      usage_type = case when p_unit ? 'usage_type'
+        then coalesce(nullif(p_unit->>'usage_type',''), 'residential') else usage_type end
       where id = v_unit_id and building_id = p_building_id;
     if not found then raise exception 'unit not in building'; end if;
   end if;
