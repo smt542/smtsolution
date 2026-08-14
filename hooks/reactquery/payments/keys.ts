@@ -3,4 +3,5 @@ export const paymentKeys = {
   rows: (buildingId: number, period: string) => ["payments", "rows", buildingId, period] as const,
   unit: (unitId: number, period: string) => ["payments", "unit", unitId, period] as const,
   bank: (buildingId: number, period: string) => ["payments", "bank", buildingId, period] as const,
+  giro: (buildingId: number, period: string) => ["payments", "giro", buildingId, period] as const,
 };
