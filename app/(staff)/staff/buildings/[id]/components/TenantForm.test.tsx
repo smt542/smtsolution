@@ -30,6 +30,7 @@ describe("TenantForm 등록", () => {
     fireEvent.change(screen.getByLabelText("룸타입"), { target: { value: "1" } });
     fireEvent.change(screen.getByLabelText("연락처1"), { target: { value: "010" } });
     fireEvent.change(screen.getByLabelText("입주일"), { target: { value: "2026-01-01" } });
+    fireEvent.change(screen.getByLabelText("관리비 수납 고객번호"), { target: { value: "PAYER-1" } });
     fireEvent.click(screen.getByRole("button", { name: "저장" }));
     await waitFor(() => expect(saveMutate).toHaveBeenCalled());
     const payload = saveMutate.mock.calls[0][0];
@@ -38,6 +39,7 @@ describe("TenantForm 등록", () => {
     expect(payload.occupancy).toMatchObject({ tenantName: "김입주", roomTypeId: 1, moveInDate: "2026-01-01", status: "occupied" });
     expect(payload.meters).toHaveLength(3);
     expect(payload.accounts).toHaveLength(4);
+    expect(payload.accounts.find((account: { kind: string }) => account.kind === "mgmt")?.payerNo).toBe("PAYER-1");
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/staff/buildings/7/tenants/3"));
   });
 
