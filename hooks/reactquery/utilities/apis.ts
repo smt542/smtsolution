@@ -98,7 +98,7 @@ export interface SaveMeterReadingsInput {
   buildingId: number;
   utilityType: UtilityType;
   period: string;
-  rows: { unit_id: number; current_reading: string; manual_charge: string; note: string }[];
+  rows: { unit_id: number; current_reading?: string; manual_charge: string; note: string }[];
 }
 export interface SaveMeterReadingsResult {
   saved: number;
@@ -178,6 +178,128 @@ export async function saveUtilityUnitPrices(
   });
   if (error) throw new Error(error.message);
   return { saved: (data as { saved: number }).saved };
+}
+
+export type ScopedUsageType = "residential" | "commercial";
+
+export interface ScopedPriceRow {
+  usage_type: ScopedUsageType;
+  floor: number | null;
+  unit_price: number;
+}
+
+export async function listScopedPrices(
+  buildingId: number,
+  utilityType: UtilityType,
+): Promise<ScopedPriceRow[]> {
+  const { data, error } = await createClient()
+    .from("utility_scoped_prices")
+    .select("usage_type, floor, unit_price")
+    .eq("building_id", buildingId)
+    .eq("utility", dbUtility(utilityType));
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as ScopedPriceRow[]).map((row) => ({
+    usage_type: row.usage_type,
+    floor: row.floor,
+    unit_price: Number(row.unit_price),
+  }));
+}
+
+export interface SaveScopedPricesResult {
+  saved: number;
+}
+
+export async function saveScopedPrices(
+  buildingId: number,
+  utilityType: UtilityType,
+  rows: ScopedPriceRow[],
+): Promise<SaveScopedPricesResult> {
+  if (rows.length === 0) return { saved: 0 };
+
+  const { error } = await createClient()
+    .from("utility_scoped_prices")
+    .upsert(
+      rows.map((row) => ({
+        building_id: buildingId,
+        utility: dbUtility(utilityType),
+        usage_type: row.usage_type,
+        floor: row.floor,
+        unit_price: row.unit_price,
+      })),
+      { onConflict: "building_id,utility,usage_type,floor" },
+    );
+  if (error) throw new Error(error.message);
+  return { saved: rows.length };
+}
+
+export interface SaveScopedPricesInput {
+  buildingId: number;
+  utilityType: UtilityType;
+  rows: ScopedPriceRow[];
+}
+
+export interface FixedUsageRow {
+  unitId: number;
+  fixedUsage: number;
+}
+
+interface FixedUsageDbRow {
+  unit_id: number;
+  fixed_usage: number | string;
+}
+
+export async function listFixedUsages(
+  buildingId: number,
+  utilityType: UtilityType,
+): Promise<FixedUsageRow[]> {
+  const { data, error } = await createClient()
+    .from("unit_meters")
+    .select("unit_id, fixed_usage, units!inner(building_id)")
+    .eq("utility", dbUtility(utilityType))
+    .eq("units.building_id", buildingId)
+    .is("units.deleted_at", null)
+    .not("fixed_usage", "is", null);
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as unknown as FixedUsageDbRow[]).map((row) => ({
+    unitId: row.unit_id,
+    fixedUsage: Number(row.fixed_usage),
+  }));
+}
+
+export interface SetFixedUsageInput {
+  buildingId: number;
+  unitId: number;
+  utilityType: UtilityType;
+  fixedUsage: number;
+}
+
+export async function setFixedUsage(input: SetFixedUsageInput): Promise<void> {
+  const { error } = await createClient()
+    .from("unit_meters")
+    .upsert(
+      {
+        unit_id: input.unitId,
+        utility: dbUtility(input.utilityType),
+        fixed_usage: input.fixedUsage,
+      },
+      { onConflict: "unit_id,utility" },
+    );
+  if (error) throw new Error(error.message);
+}
+
+export interface ClearFixedUsageInput {
+  buildingId: number;
+  unitId: number;
+  utilityType: UtilityType;
+}
+
+export async function clearFixedUsage(input: ClearFixedUsageInput): Promise<void> {
+  const { error } = await createClient()
+    .from("unit_meters")
+    .update({ fixed_usage: null })
+    .eq("unit_id", input.unitId)
+    .eq("utility", dbUtility(input.utilityType));
+  if (error) throw new Error(error.message);
 }
 
 export interface ConfirmUtilitiesInput {

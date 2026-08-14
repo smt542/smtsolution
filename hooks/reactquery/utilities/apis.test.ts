@@ -8,23 +8,36 @@ const invalidateQueries = vi.fn();
 vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ invalidateQueries }),
   useMutation: (options: unknown) => options,
+  useQuery: (options: unknown) => options,
 }));
 
 import {
+  clearFixedUsage,
   confirmUtilities,
   dbUtility,
   deleteWaterDiscount,
   getUtilityConfirmation,
   ledgerDownloadUrl,
+  listFixedUsages,
   listMeterHistory,
+  listScopedPrices,
   listUtilityPrices,
   listUtilityRows,
+  saveScopedPrices,
   saveMeterReadings,
   saveUtilityUnitPrices,
   saveWaterDiscount,
+  setFixedUsage,
 } from "./apis";
 import { utilityKeys } from "./keys";
-import { useConfirmUtilities, useSaveUtilityUnitPrices } from "./mutations";
+import {
+  useClearFixedUsage,
+  useConfirmUtilities,
+  useSaveScopedPrices,
+  useSaveUtilityUnitPrices,
+  useSetFixedUsage,
+} from "./mutations";
+import { useFixedUsages, useScopedPrices } from "./queries";
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -113,6 +126,62 @@ describe("utilities apis", () => {
     expect(eq).toHaveBeenCalledWith("unit_id", 101);
   });
 
+  it("건물·유형별 고정 사용량을 unit_meters에서 조회하고 숫자로 매핑한다", async () => {
+    const not = vi.fn().mockResolvedValue({
+      data: [{ unit_id: 101, fixed_usage: "12.50", units: { building_id: 3 } }],
+      error: null,
+    });
+    const is = vi.fn(() => ({ not }));
+    const buildingEq = vi.fn(() => ({ is }));
+    const utilityEq = vi.fn(() => ({ eq: buildingEq }));
+    const select = vi.fn(() => ({ eq: utilityEq }));
+    from.mockReturnValue({ select });
+
+    await expect(listFixedUsages(3, "electricity")).resolves.toEqual([
+      { unitId: 101, fixedUsage: 12.5 },
+    ]);
+
+    expect(from).toHaveBeenCalledWith("unit_meters");
+    expect(select).toHaveBeenCalledWith(
+      "unit_id, fixed_usage, units!inner(building_id)",
+    );
+    expect(utilityEq).toHaveBeenCalledWith("utility", "elec");
+    expect(buildingEq).toHaveBeenCalledWith("units.building_id", 3);
+    expect(is).toHaveBeenCalledWith("units.deleted_at", null);
+    expect(not).toHaveBeenCalledWith("fixed_usage", "is", null);
+
+    const query = useFixedUsages(3, "electricity") as unknown as {
+      queryKey: readonly unknown[];
+    };
+    expect(query.queryKey).toEqual(utilityKeys.fixedUsages(3, "electricity"));
+  });
+
+  it("고정 사용량은 세대·유형 키로 설정하고 null로 해제한다", async () => {
+    const upsert = vi.fn().mockResolvedValue({ error: null });
+    from.mockReturnValueOnce({ upsert });
+
+    await setFixedUsage({
+      buildingId: 3,
+      unitId: 101,
+      utilityType: "electricity",
+      fixedUsage: 12.5,
+    });
+    expect(upsert).toHaveBeenCalledWith(
+      { unit_id: 101, utility: "elec", fixed_usage: 12.5 },
+      { onConflict: "unit_id,utility" },
+    );
+
+    const utilityEq = vi.fn().mockResolvedValue({ error: null });
+    const unitEq = vi.fn(() => ({ eq: utilityEq }));
+    const update = vi.fn(() => ({ eq: unitEq }));
+    from.mockReturnValueOnce({ update });
+
+    await clearFixedUsage({ buildingId: 3, unitId: 101, utilityType: "gas" });
+    expect(update).toHaveBeenCalledWith({ fixed_usage: null });
+    expect(unitEq).toHaveBeenCalledWith("unit_id", 101);
+    expect(utilityEq).toHaveBeenCalledWith("utility", "gas");
+  });
+
   it("listMeterHistory: 유형(elec) + period 이하 6건 + charge=calc?? manual", async () => {
     const limit = vi.fn().mockResolvedValue({ data: [
       { period: "2026-08-01", manual_charge: 12000, calc_charge: 10000, unit_price: 1000 },
@@ -167,6 +236,46 @@ describe("utilities apis", () => {
       p_utility: "elec",
       p_prices: [{ customer_number_id: 11, unit_price: 125.5 }],
     });
+  });
+
+  it("용도 기본 단가와 용도·층 단가를 원자 저장한 뒤 훅으로 조회한다", async () => {
+    type StoredScopedPrice = {
+      building_id: number;
+      utility: string;
+      usage_type: "residential" | "commercial";
+      floor: number | null;
+      unit_price: number;
+    };
+    let storedRows: StoredScopedPrice[] = [];
+    const upsert = vi.fn(async (rows: StoredScopedPrice[]) => {
+      storedRows = rows;
+      return { error: null };
+    });
+    const utilityEq = vi.fn(async (_column: string, utility: string) => ({
+      data: storedRows.filter((row) => row.utility === utility),
+      error: null,
+    }));
+    const buildingEq = vi.fn(() => ({ eq: utilityEq }));
+    const select = vi.fn(() => ({ eq: buildingEq }));
+    from.mockReturnValue({ upsert, select });
+
+    const rows = [
+      { usage_type: "residential" as const, floor: null, unit_price: 850 },
+      { usage_type: "commercial" as const, floor: 2, unit_price: 920.5 },
+    ];
+    await expect(saveScopedPrices(3, "electricity", rows)).resolves.toEqual({ saved: 2 });
+
+    const query = useScopedPrices(3, "electricity") as unknown as {
+      queryFn: () => Promise<typeof rows>;
+    };
+    await expect(query.queryFn()).resolves.toEqual(rows);
+    expect(upsert).toHaveBeenCalledWith(
+      rows.map((row) => ({ building_id: 3, utility: "elec", ...row })),
+      { onConflict: "building_id,utility,usage_type,floor" },
+    );
+    expect(buildingEq).toHaveBeenCalledWith("building_id", 3);
+    expect(utilityEq).toHaveBeenCalledWith("utility", "elec");
+    expect(listScopedPrices).toBeTypeOf("function");
   });
 
   it("공과금 부과확정 결과를 camelCase로 매핑한다", async () => {
@@ -225,6 +334,66 @@ describe("utilities apis", () => {
 
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: utilityKeys.prices(3, "water") });
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: utilityKeys.rowsScope(3, "water") });
+  });
+
+  it("용도/층별 단가 저장 성공 시 scoped 단가와 해당 건물·유형 행을 무효화한다", () => {
+    const input = {
+      buildingId: 3,
+      utilityType: "electricity" as const,
+      rows: [{ usage_type: "commercial" as const, floor: 2, unit_price: 920.5 }],
+    };
+    const mutation = useSaveScopedPrices() as unknown as {
+      onSuccess: (result: { saved: number }, variables: typeof input) => void;
+    };
+
+    mutation.onSuccess({ saved: 1 }, input);
+
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: utilityKeys.scopedPrices(3, "electricity"),
+    });
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: utilityKeys.rowsScope(3, "electricity"),
+    });
+  });
+
+  it("고정 사용량 설정·해제 성공 시 고정 사용량과 해당 행 범위를 무효화한다", () => {
+    const setInput = {
+      buildingId: 3,
+      unitId: 101,
+      utilityType: "electricity" as const,
+      fixedUsage: 12.5,
+    };
+    const setMutation = useSetFixedUsage() as unknown as {
+      onSuccess: (result: void, variables: typeof setInput) => void;
+    };
+
+    setMutation.onSuccess(undefined, setInput);
+
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: utilityKeys.fixedUsages(3, "electricity"),
+    });
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: utilityKeys.rowsScope(3, "electricity"),
+    });
+
+    vi.clearAllMocks();
+    const clearInput = {
+      buildingId: 3,
+      unitId: 101,
+      utilityType: "electricity" as const,
+    };
+    const clearMutation = useClearFixedUsage() as unknown as {
+      onSuccess: (result: void, variables: typeof clearInput) => void;
+    };
+
+    clearMutation.onSuccess(undefined, clearInput);
+
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: utilityKeys.fixedUsages(3, "electricity"),
+    });
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: utilityKeys.rowsScope(3, "electricity"),
+    });
   });
 
   it("확정 성공 시 확정상태와 해당 월 행을 무효화한다", () => {
