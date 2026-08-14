@@ -6,13 +6,18 @@ export interface UtilityDraft {
   note: string;
 }
 
+export interface UtilityTableRow extends UtilityUnitRow {
+  fixedUsage: number | null;
+}
+
 interface UtilityTableProps {
-  rows: UtilityUnitRow[];
+  rows: UtilityTableRow[];
   drafts: Record<number, UtilityDraft>;
   referenceDate: string;
   onDraftChange: (unitId: number, patch: Partial<UtilityDraft>) => void;
   onRowClick: (row: UtilityUnitRow) => void;
   onDiscountClick?: (row: UtilityUnitRow) => void;
+  onFixedUsageClick?: (row: UtilityTableRow) => void;
 }
 
 function discountLabel(type: string): string {
@@ -41,7 +46,8 @@ function formatNumber(value: number | null): string {
   return value === null ? "—" : value.toLocaleString("ko-KR");
 }
 
-function usageFor(row: UtilityUnitRow, draft: UtilityDraft): number | null {
+function usageFor(row: UtilityTableRow, draft: UtilityDraft): number | null {
+  if (row.fixedUsage !== null) return row.fixedUsage;
   const current = parseOptionalNumber(draft.currentReading);
   if (current === null || row.previousReading === null) return row.usage;
   return current - row.previousReading;
@@ -54,6 +60,7 @@ export function UtilityTable({
   onDraftChange,
   onRowClick,
   onDiscountClick,
+  onFixedUsageClick,
 }: UtilityTableProps) {
   return (
     <div className="overflow-x-auto">
@@ -78,7 +85,8 @@ export function UtilityTable({
             const isNew = !vacant && isNewOccupancy(row.moveInDate, referenceDate);
             const draft = drafts[row.unitId];
             const usage = usageFor(row, draft);
-            const invalidUsage = usage !== null && usage < 0;
+            const hasFixedUsage = row.fixedUsage !== null;
+            const invalidUsage = !hasFixedUsage && usage !== null && usage < 0;
             const displayUnitPrice = row.unitPrice ?? row.resolvedUnitPrice;
 
             return (
@@ -131,6 +139,19 @@ export function UtilityTable({
                         할인
                       </button>
                     )}
+                    {onFixedUsageClick && !vacant && (
+                      <button
+                        type="button"
+                        aria-label={`${row.unitNo} 고정 사용량 설정`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onFixedUsageClick(row);
+                        }}
+                        className="rounded-md border border-line px-2 py-0.5 text-[11px] font-bold text-t2 hover:bg-bg"
+                      >
+                        고정량
+                      </button>
+                    )}
                   </div>
                 </td>
                 <td className="num px-4 py-3 text-right text-t3">
@@ -143,8 +164,8 @@ export function UtilityTable({
                     min="0"
                     step="0.01"
                     value={draft.currentReading}
-                    disabled={vacant}
-                    placeholder="입력"
+                    disabled={vacant || hasFixedUsage}
+                    placeholder={hasFixedUsage ? "고정" : "입력"}
                     onChange={(event) =>
                       onDraftChange(row.unitId, { currentReading: event.target.value })
                     }
@@ -156,7 +177,14 @@ export function UtilityTable({
                     invalidUsage ? "text-red" : "text-t1"
                   }`}
                 >
-                  {invalidUsage ? "확인 필요" : formatNumber(usage)}
+                  <div className="flex items-center justify-end gap-2">
+                    {hasFixedUsage && (
+                      <span className="rounded-md bg-amber-t px-2 py-0.5 text-[11px] font-bold text-amber">
+                        고정
+                      </span>
+                    )}
+                    <span>{invalidUsage ? "확인 필요" : formatNumber(usage)}</span>
+                  </div>
                 </td>
                 <td className="num px-4 py-3 text-right text-t3">
                   {formatNumber(displayUnitPrice)}

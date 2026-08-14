@@ -7,6 +7,7 @@ import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import {
   useUtilityRows,
+  useFixedUsages,
   useUtilityConfirmation,
   useConfirmUtilities,
   useSaveMeterReadings,
@@ -16,9 +17,14 @@ import {
 } from "@/hooks/reactquery/utilities";
 import { hasModule } from "@/lib/auth/permissions";
 import { UtilityHistoryModal } from "./components/UtilityHistoryModal";
+import { FixedUsageModal } from "./components/FixedUsageModal";
 import { WaterDiscountModal } from "./components/WaterDiscountModal";
 import { UtilitySummaryCards } from "./components/UtilitySummaryCards";
-import { UtilityTable, type UtilityDraft } from "./components/UtilityTable";
+import {
+  UtilityTable,
+  type UtilityDraft,
+  type UtilityTableRow,
+} from "./components/UtilityTable";
 import { UnitPriceModal } from "./components/UnitPriceModal";
 
 const TYPE_TABS: { id: UtilityType; label: string }[] = [
@@ -64,9 +70,11 @@ export default function UtilitiesPage() {
   const [drafts, setDrafts] = useState<Record<string, UtilityDraft>>({});
   const [historyRow, setHistoryRow] = useState<UtilityUnitRow | null>(null);
   const [discountRow, setDiscountRow] = useState<UtilityUnitRow | null>(null);
+  const [fixedUsageRow, setFixedUsageRow] = useState<UtilityTableRow | null>(null);
   const [priceModalOpen, setPriceModalOpen] = useState(false);
   const period = `${referenceDate.slice(0, 7)}-01`;
   const rowsQuery = useUtilityRows(buildingId, utilityType, period);
+  const fixedUsagesQuery = useFixedUsages(buildingId, utilityType);
   const confirmationQuery = useUtilityConfirmation(buildingId, utilityType, period);
   const confirmUtilities = useConfirmUtilities();
   const saveMeter = useSaveMeterReadings();
@@ -81,7 +89,15 @@ export default function UtilitiesPage() {
   }
 
   const buildings = buildingsQuery.data ?? [];
-  const rows = rowsQuery.data ?? [];
+  const fixedUsages = new Map(
+    (fixedUsagesQuery.data ?? []).map((row) => [row.unitId, row.fixedUsage]),
+  );
+  const rows: UtilityTableRow[] = (rowsQuery.data ?? []).map((row) => ({
+    ...row,
+    fixedUsage: fixedUsages.get(row.unitId) ?? null,
+  }));
+  const rowsLoading = rowsQuery.isLoading || fixedUsagesQuery.isLoading;
+  const rowsError = rowsQuery.error ?? fixedUsagesQuery.error;
   const scopeKey = `${buildingId ?? "none"}:${utilityType}`;
   const scopedDrafts: Record<number, UtilityDraft> = Object.fromEntries(
     rows.map((row) => [row.unitId, drafts[`${scopeKey}:${row.unitId}`] ?? initialDraft(row)]),
@@ -89,7 +105,7 @@ export default function UtilitiesPage() {
   const activeRows = rows.filter((row) => !isVacant(row));
   const confirmation = confirmationQuery.data ?? null;
   const completed = activeRows.filter(
-    (row) => scopedDrafts[row.unitId].currentReading.trim() !== "",
+    (row) => row.fixedUsage !== null || scopedDrafts[row.unitId].currentReading.trim() !== "",
   ).length;
   const expectedCharge = activeRows.reduce((sum, row) => {
     const manual = scopedDrafts[row.unitId].manualCharge.trim();
@@ -114,6 +130,7 @@ export default function UtilitiesPage() {
     setBuildingId(value ? Number(value) : null);
     setHistoryRow(null);
     setDiscountRow(null);
+    setFixedUsageRow(null);
     setPriceModalOpen(false);
   };
 
@@ -121,6 +138,7 @@ export default function UtilitiesPage() {
     setUtilityType(id as UtilityType);
     setHistoryRow(null);
     setDiscountRow(null);
+    setFixedUsageRow(null);
     setPriceModalOpen(false);
   };
 
@@ -136,10 +154,15 @@ export default function UtilitiesPage() {
   const calculateCharges = () => {
     const payloadRows = activeRows
       .map((row) => ({ row, draft: scopedDrafts[row.unitId] }))
-      .filter(({ draft }) => draft.currentReading.trim() !== "")
+      .filter(
+        ({ row, draft }) =>
+          row.fixedUsage !== null || draft.currentReading.trim() !== "",
+      )
       .map(({ row, draft }) => ({
         unit_id: row.unitId,
-        current_reading: draft.currentReading.trim(),
+        ...(row.fixedUsage === null
+          ? { current_reading: draft.currentReading.trim() }
+          : {}),
         manual_charge: draft.manualCharge.trim(),
         note: draft.note.trim(),
       }));
@@ -282,31 +305,38 @@ export default function UtilitiesPage() {
         </section>
       )}
 
-      {buildingId && rowsQuery.isLoading && (
+      {buildingId && rowsLoading && (
         <section className="rounded-2xl border border-line bg-surface py-16 shadow-card">
           <Spinner />
           <p className="text-center text-sm text-t3">세대 목록을 불러오는 중입니다.</p>
         </section>
       )}
 
-      {buildingId && rowsQuery.error && (
+      {buildingId && rowsError && (
         <section className="rounded-2xl border border-red/20 bg-red-t p-8 text-center">
           <p className="text-sm font-semibold text-red">
             오류가 발생했습니다. 다시 시도해 주세요.
           </p>
-          <Button className="mt-3" variant="ghost" onClick={() => rowsQuery.refetch()}>
+          <Button
+            className="mt-3"
+            variant="ghost"
+            onClick={() => {
+              rowsQuery.refetch();
+              fixedUsagesQuery.refetch();
+            }}
+          >
             다시 시도
           </Button>
         </section>
       )}
 
-      {buildingId && !rowsQuery.isLoading && !rowsQuery.error && rows.length === 0 && (
+      {buildingId && !rowsLoading && !rowsError && rows.length === 0 && (
         <section className="rounded-2xl border border-line bg-surface shadow-card">
           <EmptyState message="등록된 세대가 없습니다" />
         </section>
       )}
 
-      {buildingId && !rowsQuery.isLoading && !rowsQuery.error && rows.length > 0 && (
+      {buildingId && !rowsLoading && !rowsError && rows.length > 0 && (
         <>
           <UtilitySummaryCards
             total={rows.length}
@@ -366,6 +396,7 @@ export default function UtilitiesPage() {
               onDraftChange={updateDraft}
               onRowClick={setHistoryRow}
               onDiscountClick={utilityType === "water" ? setDiscountRow : undefined}
+              onFixedUsageClick={setFixedUsageRow}
             />
           </section>
         </>
@@ -384,6 +415,19 @@ export default function UtilitiesPage() {
           open
           row={discountRow}
           onClose={() => setDiscountRow(null)}
+        />
+      )}
+
+      {fixedUsageRow && buildingId !== null && (
+        <FixedUsageModal
+          open
+          buildingId={buildingId}
+          unitId={fixedUsageRow.unitId}
+          unitNo={fixedUsageRow.unitNo}
+          utility={utilityType}
+          currentFixedUsage={fixedUsageRow.fixedUsage}
+          onSaved={() => setFixedUsageRow(null)}
+          onClose={() => setFixedUsageRow(null)}
         />
       )}
 

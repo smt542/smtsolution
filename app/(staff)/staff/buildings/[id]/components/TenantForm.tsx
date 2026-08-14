@@ -27,7 +27,7 @@ export function TenantForm({ buildingId, unitId }: { buildingId: number; unitId?
   const { data: roomTypes } = useRoomTypes();
   const { data: full } = useUnitOccupancyFull(unitId ?? 0);
 
-  const [basic, setBasic] = useState<TenantBasicValue>({ unitNo: "", tenantName: "", payerName: "", phone: "", phone2: "", phone3: "", vehicleNo: "", residentCount: null, roomTypeId: null, moveInDate: "" });
+  const [basic, setBasic] = useState<TenantBasicValue>({ unitNo: "", floor: null, usageType: "residential", tenantName: "", payerName: "", phone: "", phone2: "", phone3: "", vehicleNo: "", residentCount: null, roomTypeId: null, moveInDate: "" });
   const [billing, setBilling] = useState<TenantBillingValue>({ isVacant: false, moveOutDate: "", billingEnabled: true, printEnabled: true, lateFeeEnabled: true, singlePrint: false, billingNote: "", settlementNote: "" });
   const [meters, setMeters] = useState<MeterRow[]>(emptyMeters());
   const [accounts, setAccounts] = useState<AccountRow[]>(emptyAccounts());
@@ -49,7 +49,8 @@ export function TenantForm({ buildingId, unitId }: { buildingId: number; unitId?
     setPrevFull(full);
     const o = full.occupancy;
     setBasic({
-      unitNo: full.unit.unitNo, tenantName: o?.tenantName ?? "", payerName: o?.payerName ?? "", phone: o?.phone ?? "",
+      unitNo: full.unit.unitNo, floor: full.unit.floor, usageType: full.unit.usageType,
+      tenantName: o?.tenantName ?? "", payerName: o?.payerName ?? "", phone: o?.phone ?? "",
       phone2: o?.phone2 ?? "", phone3: o?.phone3 ?? "", vehicleNo: o?.vehicleNo ?? "", residentCount: o?.residentCount ?? null,
       roomTypeId: o?.roomTypeId ?? null, moveInDate: o?.moveInDate ?? "",
     });
@@ -73,7 +74,8 @@ export function TenantForm({ buildingId, unitId }: { buildingId: number; unitId?
 
   const onSave = async () => {
     const parsed = occupancyBasicSchema.safeParse({
-      unitNo: basic.unitNo, tenantName: basic.tenantName, payerName: basic.payerName, phone: basic.phone,
+      unitNo: basic.unitNo, floor: basic.floor, usageType: basic.usageType,
+      tenantName: basic.tenantName, payerName: basic.payerName, phone: basic.phone,
       phone2: basic.phone2, phone3: basic.phone3, vehicleNo: basic.vehicleNo, residentCount: basic.residentCount,
       roomTypeId: basic.roomTypeId ?? 0, moveInDate: basic.moveInDate,
     });
@@ -85,7 +87,7 @@ export function TenantForm({ buildingId, unitId }: { buildingId: number; unitId?
     setErrors({});
     const payload: SaveUnitOccupancyPayload = {
       buildingId, unitId: unitId ?? null, occupancyId,
-      unit: { unitNo: basic.unitNo },
+      unit: { unitNo: basic.unitNo, floor: basic.floor, usageType: basic.usageType },
       occupancy: {
         tenantName: basic.tenantName, payerName: basic.payerName, phone: basic.phone, phone2: basic.phone2, phone3: basic.phone3,
         vehicleNo: basic.vehicleNo, residentCount: basic.residentCount, roomTypeId: basic.roomTypeId, moveInDate: basic.moveInDate,

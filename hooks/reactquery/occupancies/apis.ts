@@ -3,7 +3,7 @@ import { listMetersByUnit, type UnitMeter } from "@/hooks/reactquery/unitMeters"
 import { listAccountsByUnit, type UnitAccount } from "@/hooks/reactquery/unitAccounts";
 import { getLeaseByOccupancy, type LeaseContract } from "@/hooks/reactquery/leaseContracts";
 import { listHistoryByUnit, type OccupancyHistory } from "@/hooks/reactquery/occupancyHistory";
-import { rowToUnit, type Unit } from "@/hooks/reactquery/units";
+import { rowToUnit, type Unit, type UnitUsageType } from "@/hooks/reactquery/units";
 
 export type OccupancyStatus = "occupied" | "vacant" | "moving_out";
 export interface Occupancy {
@@ -50,7 +50,10 @@ export interface UnitOccupancyFull {
 }
 export interface SaveUnitOccupancyPayload {
   buildingId: number; unitId?: number | null; occupancyId?: number | null;
-  unit: { unitNo: string; dong?: string | null; areaPyeong?: number | null; roomCount?: number | null };
+  unit: {
+    unitNo: string; dong?: string | null; areaPyeong?: number | null; roomCount?: number | null;
+    floor: number | null; usageType: UnitUsageType;
+  };
   occupancy: {
     tenantName: string; payerName: string; phone: string; phone2?: string | null; phone3?: string | null;
     vehicleNo?: string | null; residentCount?: number | null; roomTypeId: number | null; moveInDate: string;
@@ -95,7 +98,10 @@ export async function saveUnitOccupancy(p: SaveUnitOccupancyPayload): Promise<Sa
     p_building_id: p.buildingId,
     p_unit_id: p.unitId ?? null,
     p_occupancy_id: p.occupancyId ?? null,
-    p_unit: { unit_no: p.unit.unitNo, dong: p.unit.dong ?? null, area_pyeong: p.unit.areaPyeong ?? null, room_count: p.unit.roomCount ?? null },
+    p_unit: {
+      unit_no: p.unit.unitNo, dong: p.unit.dong ?? null, area_pyeong: p.unit.areaPyeong ?? null,
+      room_count: p.unit.roomCount ?? null, floor: p.unit.floor, usage_type: p.unit.usageType,
+    },
     p_occupancy: {
       tenant_name: p.occupancy.tenantName, payer_name: p.occupancy.payerName, phone: p.occupancy.phone,
       phone2: p.occupancy.phone2 ?? null, phone3: p.occupancy.phone3 ?? null, vehicle_no: p.occupancy.vehicleNo ?? null,

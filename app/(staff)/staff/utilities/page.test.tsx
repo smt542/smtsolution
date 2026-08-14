@@ -5,12 +5,17 @@ vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
 vi.mock("@/hooks/reactquery/buildings", () => ({ useBuildings: vi.fn() }));
 vi.mock("@/hooks/reactquery/utilities", () => ({
   useUtilityRows: vi.fn(),
+  useFixedUsages: vi.fn(),
   useMeterHistory: vi.fn(),
   useSaveMeterReadings: vi.fn(),
   useSaveWaterDiscount: vi.fn(),
   useDeleteWaterDiscount: vi.fn(),
+  useSetFixedUsage: vi.fn(),
+  useClearFixedUsage: vi.fn(),
   useUtilityPrices: vi.fn(),
   useSaveUtilityUnitPrices: vi.fn(),
+  useScopedPrices: vi.fn(),
+  useSaveScopedPrices: vi.fn(),
   useUtilityConfirmation: vi.fn(),
   useConfirmUtilities: vi.fn(),
   ledgerDownloadUrl: vi.fn(),
@@ -24,12 +29,17 @@ import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import {
   useUtilityRows,
+  useFixedUsages,
   useMeterHistory,
   useSaveMeterReadings,
   useSaveWaterDiscount,
   useDeleteWaterDiscount,
+  useSetFixedUsage,
+  useClearFixedUsage,
   useUtilityPrices,
   useSaveUtilityUnitPrices,
+  useScopedPrices,
+  useSaveScopedPrices,
   useUtilityConfirmation,
   useConfirmUtilities,
   ledgerDownloadUrl,
@@ -108,6 +118,12 @@ function setupMocks() {
     error: null,
     refetch,
   } as never);
+  vi.mocked(useFixedUsages).mockReturnValue({
+    data: [],
+    isLoading: false,
+    error: null,
+    refetch,
+  } as never);
   vi.mocked(useMeterHistory).mockReturnValue({
     data: [],
     isLoading: false,
@@ -125,6 +141,14 @@ function setupMocks() {
     mutate: vi.fn(),
     isPending: false,
   } as never);
+  vi.mocked(useSetFixedUsage).mockReturnValue({
+    mutate: vi.fn(),
+    isPending: false,
+  } as never);
+  vi.mocked(useClearFixedUsage).mockReturnValue({
+    mutate: vi.fn(),
+    isPending: false,
+  } as never);
   vi.mocked(useUtilityPrices).mockReturnValue({
     data: [{
       customerNumberId: 11,
@@ -137,6 +161,15 @@ function setupMocks() {
     error: null,
   } as never);
   vi.mocked(useSaveUtilityUnitPrices).mockReturnValue({
+    mutate: vi.fn(),
+    isPending: false,
+  } as never);
+  vi.mocked(useScopedPrices).mockReturnValue({
+    data: [],
+    isLoading: false,
+    error: null,
+  } as never);
+  vi.mocked(useSaveScopedPrices).mockReturnValue({
     mutate: vi.fn(),
     isPending: false,
   } as never);
@@ -255,6 +288,40 @@ describe("UtilitiesPage", () => {
 
     expect(screen.getByLabelText("할인 구분")).toBeInTheDocument();
     expect(screen.getByLabelText("할인 금액")).toBeInTheDocument();
+  });
+
+  it("고정 사용량 세대는 지침 입력을 막고 저장 payload에서 current_reading을 생략한다", () => {
+    vi.mocked(useFixedUsages).mockReturnValue({
+      data: [{ unitId: 101, fixedUsage: 12.5 }],
+      isLoading: false,
+      error: null,
+      refetch,
+    } as never);
+    render(<UtilitiesPage />);
+    selectBuilding();
+
+    expect(screen.getByText("고정")).toBeInTheDocument();
+    expect(screen.getByText("12.5")).toBeInTheDocument();
+    expect(screen.getByLabelText("101호 당월 지침값")).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "부과 계산" }));
+
+    expect(saveMutate).toHaveBeenCalledTimes(1);
+    const [payload] = saveMutate.mock.calls[0];
+    expect(payload.rows).toEqual([
+      { unit_id: 101, manual_charge: "", note: "" },
+    ]);
+  });
+
+  it("세대별 고정량 버튼으로 고정 사용량 설정 모달을 연다", () => {
+    render(<UtilitiesPage />);
+    selectBuilding();
+    fireEvent.click(screen.getByLabelText("101호 고정 사용량 설정"));
+
+    expect(
+      screen.getByRole("heading", { name: "101호 고정 사용량 설정" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("고정 사용량")).toBeInTheDocument();
   });
 
   it("단가 설정 버튼으로 현재 유형의 고객번호별 단가 모달을 연다", () => {
