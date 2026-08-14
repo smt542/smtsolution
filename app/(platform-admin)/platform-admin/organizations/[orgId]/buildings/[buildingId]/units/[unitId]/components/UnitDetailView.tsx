@@ -57,18 +57,11 @@ export function UnitDetailView({ orgId, buildingId, unitId }: { orgId: number; b
               <p className="text-sm text-t3">현재 입주 정보가 없습니다(공실).</p>
             ) : (
               <dl className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                <Field label="입주자명" value={o.tenantName} />
-                <Field label="납부자명" value={o.payerName} />
-                <Field label="연락처" value={o.phone} />
                 <Field label="상태" value={STATUS_LABEL[o.status] ?? o.status} />
                 <Field label="거주인원" value={o.residentCount} />
                 <Field label="룸타입" value={o.roomTypeLabel} />
                 <Field label="입주일" value={o.moveInDate} />
                 <Field label="퇴거일" value={o.moveOutDate} />
-                <Field label="차량번호" value={o.vehicleNo} />
-                <Field label="부가연락처" value={o.phone2} />
-                <Field label="비고(부과)" value={o.billingNote} />
-                <Field label="비고(시설)" value={o.facilityNote} />
               </dl>
             )}
           </section>

@@ -30,11 +30,12 @@ export async function getOrgBuildings(orgId: number): Promise<OrgBuildingsResult
 }
 
 // ── 건물 → 입주민(세대 + 최신 입주) ──
+// ⚠️ 통합관리자(본사)는 입주자 개인정보를 열람하지 않는다(운영 메타데이터만).
+//    성명·연락처·납부자·차량 등 PII는 조회/노출하지 않고, 세대 운영 상태(상태·거주인원·입주일)만 다룬다.
 export interface PlatformTenantRow {
   unitId: number;
   occupancyId: number | null;
   unitNo: string;
-  tenantName: string | null;
   residentCount: number | null;
   moveInDate: string | null;
   isVacant: boolean;
@@ -51,7 +52,6 @@ interface UnitRow {
 interface TenantOccRow {
   id: number;
   unit_id: number;
-  tenant_name: string | null;
   resident_count: number | null;
   move_in_date: string | null;
   status: OccupancyStatus;
@@ -76,7 +76,7 @@ export async function getBuildingTenants(buildingId: number): Promise<BuildingTe
   if (unitIds.length > 0) {
     const occRes = await supabase
       .from("occupancies")
-      .select("id, unit_id, tenant_name, resident_count, move_in_date, status")
+      .select("id, unit_id, resident_count, move_in_date, status")
       .in("unit_id", unitIds)
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
@@ -93,7 +93,6 @@ export async function getBuildingTenants(buildingId: number): Promise<BuildingTe
       unitId: u.id,
       occupancyId: o?.id ?? null,
       unitNo: u.unit_no,
-      tenantName: o?.tenant_name ?? null,
       residentCount: o?.resident_count ?? null,
       moveInDate: o?.move_in_date ?? null,
       isVacant: o ? o.status === "vacant" : true,
@@ -105,21 +104,14 @@ export async function getBuildingTenants(buildingId: number): Promise<BuildingTe
 }
 
 // ── 세대 → 상세(읽기전용) ──
+// ⚠️ 통합관리자는 개인정보(성명·연락처·납부자·차량·비고)를 열람하지 않는다. 운영 메타만 반환한다.
 export interface PlatformUnitOccupancy {
   occupancyId: number;
-  tenantName: string | null;
-  payerName: string | null;
-  phone: string | null;
-  phone2: string | null;
-  phone3: string | null;
-  vehicleNo: string | null;
   residentCount: number | null;
   roomTypeLabel: string | null;
   moveInDate: string | null;
   moveOutDate: string | null;
   status: OccupancyStatus;
-  billingNote: string | null;
-  facilityNote: string | null;
 }
 export interface PlatformUnitDetail {
   unitId: number;
@@ -143,19 +135,11 @@ interface UnitFullRow {
 }
 interface OccFullRow {
   id: number;
-  tenant_name: string | null;
-  payer_name: string | null;
-  phone: string | null;
-  phone2: string | null;
-  phone3: string | null;
-  vehicle_no: string | null;
   resident_count: number | null;
   room_type_id: number | null;
   move_in_date: string | null;
   move_out_date: string | null;
   status: OccupancyStatus;
-  billing_note: string | null;
-  facility_note: string | null;
 }
 
 export async function getUnitOccupancy(unitId: number): Promise<PlatformUnitDetail> {
@@ -172,7 +156,7 @@ export async function getUnitOccupancy(unitId: number): Promise<PlatformUnitDeta
     supabase.from("buildings").select("id, name, org_id").eq("id", unit.building_id).single(),
     supabase
       .from("occupancies")
-      .select("id, tenant_name, payer_name, phone, phone2, phone3, vehicle_no, resident_count, room_type_id, move_in_date, move_out_date, status, billing_note, facility_note")
+      .select("id, resident_count, room_type_id, move_in_date, move_out_date, status")
       .eq("unit_id", unitId)
       .is("deleted_at", null)
       .order("created_at", { ascending: false })
@@ -205,19 +189,11 @@ export async function getUnitOccupancy(unitId: number): Promise<PlatformUnitDeta
     orgName: (orgRes.data as { name: string }).name,
     occupancy: occ == null ? null : {
       occupancyId: occ.id,
-      tenantName: occ.tenant_name,
-      payerName: occ.payer_name,
-      phone: occ.phone,
-      phone2: occ.phone2,
-      phone3: occ.phone3,
-      vehicleNo: occ.vehicle_no,
       residentCount: occ.resident_count,
       roomTypeLabel,
       moveInDate: occ.move_in_date,
       moveOutDate: occ.move_out_date,
       status: occ.status,
-      billingNote: occ.billing_note,
-      facilityNote: occ.facility_note,
     },
   };
 }

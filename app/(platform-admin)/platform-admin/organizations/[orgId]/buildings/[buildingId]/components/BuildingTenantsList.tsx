@@ -39,7 +39,6 @@ export function BuildingTenantsList({ orgId, buildingId }: { orgId: number; buil
           <DataTable
             columns={[
               { key: "unitNo", label: "호실" },
-              { key: "tenantName", label: "입주자" },
               { key: "residents", label: "거주인원" },
               { key: "moveIn", label: "입주일" },
               { key: "vacancy", label: "상태" },
@@ -47,7 +46,6 @@ export function BuildingTenantsList({ orgId, buildingId }: { orgId: number; buil
             rows={(data?.tenants ?? []).map((t) => ({
               _id: t.unitId,
               unitNo: t.unitNo,
-              tenantName: t.tenantName ?? "—",
               residents: t.residentCount ?? "—",
               moveIn: t.moveInDate ?? "—",
               vacancy: t.isVacant ? "공실" : "입주",

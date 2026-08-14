@@ -11,7 +11,7 @@ beforeEach(() => vi.clearAllMocks());
 const DATA = {
   org: { id: 3, name: "가나관리" },
   building: { id: 7, name: "가나빌" },
-  tenants: [{ unitId: 11, occupancyId: 22, unitNo: "101", tenantName: "홍길동", residentCount: 2, moveInDate: "2026-01-01", isVacant: false }],
+  tenants: [{ unitId: 11, occupancyId: 22, unitNo: "101", residentCount: 2, moveInDate: "2026-01-01", isVacant: false }],
 };
 
 describe("BuildingTenantsList", () => {
@@ -23,8 +23,9 @@ describe("BuildingTenantsList", () => {
   it("목록 + 행 클릭 시 세대 상세로", () => {
     vi.mocked(useBuildingTenants).mockReturnValue({ isPending: false, isError: false, data: DATA } as never);
     render(<BuildingTenantsList orgId={3} buildingId={7} />);
-    expect(screen.getByText("홍길동")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("홍길동"));
+    expect(screen.getByText("101")).toBeInTheDocument();
+    expect(screen.queryByText("홍길동")).not.toBeInTheDocument(); // 통합관리자는 입주자명 미열람
+    fireEvent.click(screen.getByText("101"));
     expect(push).toHaveBeenCalledWith("/platform-admin/organizations/3/buildings/7/units/11");
   });
 });
