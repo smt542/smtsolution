@@ -6,6 +6,7 @@ import { Button, EmptyState, SearchBar, Select, Spinner } from "@/components/com
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import {
+  cmsDownloadUrl,
   useCancelPayment,
   usePaymentRows,
   useRecordPayment,
@@ -121,13 +122,29 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
             월별 부과와 수납 현황을 확인하고 수납 등록 또는 취소를 처리합니다.
           </p>
         </div>
-        <Button
-          type="button"
-          disabled={selectedBuildingId === null}
-          onClick={() => setBankOpen(true)}
-        >
-          엑셀 업로드
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={selectedBuildingId === null}
+            onClick={() => {
+              if (selectedBuildingId === null) return;
+              const anchor = document.createElement("a");
+              anchor.href = cmsDownloadUrl(selectedBuildingId, period);
+              anchor.rel = "noopener";
+              anchor.click();
+            }}
+          >
+            자동이체 세대 다운
+          </Button>
+          <Button
+            type="button"
+            disabled={selectedBuildingId === null}
+            onClick={() => setBankOpen(true)}
+          >
+            엑셀 업로드
+          </Button>
+        </div>
       </header>
 
       <section

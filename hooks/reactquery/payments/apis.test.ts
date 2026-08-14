@@ -5,6 +5,7 @@ vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ rpc }) }));
 
 import {
   cancelPayment,
+  cmsDownloadUrl,
   listBankPayments,
   listPaymentRows,
   recordBankPayments,
@@ -12,6 +13,14 @@ import {
 } from "./apis";
 
 beforeEach(() => rpc.mockReset());
+
+describe("cmsDownloadUrl", () => {
+  it("buildingId·period 쿼리스트링", () => {
+    expect(cmsDownloadUrl(7, "2026-08-01")).toBe(
+      "/api/payment/cms?buildingId=7&period=2026-08-01",
+    );
+  });
+});
 
 describe("listPaymentRows", () => {
   it("row를 camelCase + unpaid/payStatus로 매핑", async () => {

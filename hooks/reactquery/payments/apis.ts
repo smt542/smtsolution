@@ -94,3 +94,8 @@ export async function listBankPayments(buildingId: number, period: string): Prom
   return ((data ?? []) as { unit_id: number; amount: number; paid_at: string }[])
     .map((r) => ({ unitId: r.unit_id, amount: r.amount, paidAt: r.paid_at }));
 }
+
+export function cmsDownloadUrl(buildingId: number, period: string): string {
+  const params = new URLSearchParams({ buildingId: String(buildingId), period });
+  return `/api/payment/cms?${params.toString()}`;
+}
