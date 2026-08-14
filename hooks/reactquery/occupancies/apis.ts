@@ -58,7 +58,7 @@ export interface SaveUnitOccupancyPayload {
     lateFeeEnabled: boolean; singlePrint: boolean; billingNote?: string | null; settlementNote?: string | null; facilityNote?: string | null;
   };
   meters: { utility: string; meterNo?: string | null; customerNo?: string | null }[];
-  accounts: { kind: string; bank?: string | null; account?: string | null; holder?: string | null; cmsMemberNo?: string | null }[];
+  accounts: { kind: string; bank?: string | null; account?: string | null; holder?: string | null; cmsMemberNo?: string | null; payerNo?: string | null }[];
   lease: { deposit?: number | null; monthlyRent?: number | null; startDate?: string | null; endDate?: string | null; expiryAlert: boolean } | null;
 }
 export interface SaveUnitOccupancyResult { unitId: number; occupancyId: number; }
@@ -106,7 +106,7 @@ export async function saveUnitOccupancy(p: SaveUnitOccupancyPayload): Promise<Sa
       billing_note: p.occupancy.billingNote ?? null, settlement_note: p.occupancy.settlementNote ?? null, facility_note: p.occupancy.facilityNote ?? null,
     },
     p_meters: p.meters.map((m) => ({ utility: m.utility, meter_no: m.meterNo ?? null, customer_no: m.customerNo ?? null })),
-    p_accounts: p.accounts.map((a) => ({ kind: a.kind, bank: a.bank ?? null, account: a.account ?? null, holder: a.holder ?? null, cms_member_no: a.cmsMemberNo ?? null })),
+    p_accounts: p.accounts.map((a) => ({ kind: a.kind, bank: a.bank ?? null, account: a.account ?? null, holder: a.holder ?? null, cms_member_no: a.cmsMemberNo ?? null, payer_no: a.payerNo ?? null })),
     p_lease: p.lease ? { deposit: p.lease.deposit ?? null, monthly_rent: p.lease.monthlyRent ?? null, start_date: p.lease.startDate ?? null, end_date: p.lease.endDate ?? null, expiry_alert: p.lease.expiryAlert } : null,
   });
   if (error) throw new Error(error.message);

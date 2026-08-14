@@ -17,8 +17,8 @@ const emptyMeters = (): MeterRow[] => [
   { utility: "water", meterNo: "", customerNo: "" }, { utility: "elec", meterNo: "", customerNo: "" }, { utility: "gas", meterNo: "", customerNo: "" },
 ];
 const emptyAccounts = (): AccountRow[] => [
-  { kind: "water", bank: "", account: "", holder: "", cmsMemberNo: "" }, { kind: "elec", bank: "", account: "", holder: "", cmsMemberNo: "" },
-  { kind: "gas", bank: "", account: "", holder: "", cmsMemberNo: "" }, { kind: "mgmt", bank: "", account: "", holder: "", cmsMemberNo: "" },
+  { kind: "water", bank: "", account: "", holder: "", cmsMemberNo: "", payerNo: "" }, { kind: "elec", bank: "", account: "", holder: "", cmsMemberNo: "", payerNo: "" },
+  { kind: "gas", bank: "", account: "", holder: "", cmsMemberNo: "", payerNo: "" }, { kind: "mgmt", bank: "", account: "", holder: "", cmsMemberNo: "", payerNo: "" },
 ];
 
 export function TenantForm({ buildingId, unitId }: { buildingId: number; unitId?: number }) {
@@ -62,7 +62,7 @@ export function TenantForm({ buildingId, unitId }: { buildingId: number; unitId?
     setFacilityNote(o?.facilityNote ?? "");
     setOccupancyId(o?.id ?? null);
     setMeters(emptyMeters().map((m) => { const f = full.meters.find((x) => x.utility === m.utility); return f ? { utility: m.utility, meterNo: f.meterNo ?? "", customerNo: f.customerNo ?? "" } : m; }));
-    setAccounts(emptyAccounts().map((a) => { const f = full.accounts.find((x) => x.kind === a.kind); return f ? { kind: a.kind, bank: f.bank ?? "", account: f.account ?? "", holder: f.holder ?? "", cmsMemberNo: f.cmsMemberNo ?? "" } : a; }));
+    setAccounts(emptyAccounts().map((a) => { const f = full.accounts.find((x) => x.kind === a.kind); return f ? { kind: a.kind, bank: f.bank ?? "", account: f.account ?? "", holder: f.holder ?? "", cmsMemberNo: f.cmsMemberNo ?? "", payerNo: f.payerNo ?? "" } : a; }));
     setLease(full.lease ? { deposit: full.lease.deposit, monthlyRent: full.lease.monthlyRent, startDate: full.lease.startDate ?? "", endDate: full.lease.endDate ?? "", expiryAlert: full.lease.expiryAlert } : { deposit: null, monthlyRent: null, startDate: "", endDate: "", expiryAlert: false });
     setDirty(false);
   }

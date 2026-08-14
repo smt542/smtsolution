@@ -24,14 +24,14 @@ describe("occupancies hub apis", () => {
       occupancy:{ tenantName:"김입주", payerName:"김입주", phone:"010", roomTypeId:1, moveInDate:"2026-01-01", status:"occupied",
         billingEnabled:true, printEnabled:true, lateFeeEnabled:true, singlePrint:false },
       meters:[{ utility:"water", meterNo:"M1", customerNo:"C1" }],
-      accounts:[{ kind:"mgmt", bank:"국민", account:"111", holder:"김" }],
+      accounts:[{ kind:"mgmt", bank:"국민", account:"111", holder:"김", cmsMemberNo:"CMS1", payerNo:"PAYER1" }],
       lease:{ deposit:1000000, monthlyRent:500000, expiryAlert:false },
     });
     expect(rpc).toHaveBeenCalledWith("save_unit_occupancy", expect.objectContaining({ p_building_id:7, p_unit_id:null }));
     const args = rpc.mock.calls[0][1];
     expect(args.p_occupancy).toMatchObject({ tenant_name:"김입주", phone:"010", room_type_id:1, billing_enabled:true });
     expect(args.p_meters[0]).toMatchObject({ utility:"water", meter_no:"M1", customer_no:"C1" });
-    expect(args.p_accounts[0]).toMatchObject({ kind:"mgmt", bank:"국민" });
+    expect(args.p_accounts[0]).toMatchObject({ kind:"mgmt", bank:"국민", cms_member_no:"CMS1", payer_no:"PAYER1" });
     expect(args.p_lease).toMatchObject({ deposit:1000000, monthly_rent:500000 });
     expect(res).toEqual({ unitId:3, occupancyId:9 });
   });
