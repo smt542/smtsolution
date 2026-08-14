@@ -1,5 +1,5 @@
 -- P5c Task 4: persist unit floor/usage_type through the tenant hub save RPC.
--- Depends on 0015_p5c_utility_mixeduse.sql.
+-- Depends on 0016_p5c_utility_mixeduse.sql.
 
 create or replace function save_unit_occupancy(
   p_building_id bigint, p_unit_id bigint, p_occupancy_id bigint,

@@ -31,7 +31,7 @@
 - 세입자앱/현장 모바일 노출.
 - 기존 고객번호별 단가 테이블의 통합 리팩터(회귀 위험 회피).
 
-## 3. 데이터 모델 변경 (마이그 `0015_p5c_utility_mixeduse.sql`)
+## 3. 데이터 모델 변경 (마이그 `0016_p5c_utility_mixeduse.sql`)
 
 ### 3.1 `units` 확장
 ```
@@ -134,7 +134,7 @@ calc_charge := max(0, round_charge(usage * price, 'round') - discount)
 
 ## 9. 마이그레이션·롤아웃
 
-- 신규 `0015_p5c_utility_mixeduse.sql`(0014 다음. 0013은 기존 번호중복 존재하므로 0015로 건너뜀).
+- 신규 `0016_p5c_utility_mixeduse.sql`(0014 다음. 0013은 기존 번호중복 존재하므로 0015로 건너뜀).
 - `supabase_migrations.schema_migrations`에 version/name 기록 필요(CLI `db push` 재적용 방지, P5a와 동일 운영).
 - 라이브 적용은 사용자 PC에서 Management API/PAT로 수행(기존 운영 방식). 상세 [[supabase-connection]].
 

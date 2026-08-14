@@ -12,7 +12,7 @@
 
 - DB 유형값은 **`water`/`elec`/`gas`**(UI는 `electricity`↔`elec`를 `dbUtility()`로 매핑). 신규 코드도 DB층은 `elec`.
 - `usage_type` 도메인 = **`residential`|`commercial`** (CHECK 강제, 기본 `residential`).
-- 마이그 번호 = **`0015`** (0014 다음. 0013 번호중복 존재하므로 0014 다음은 0015).
+- 마이그 번호 = **`0016`·`0017`** (origin/master의 `0015_p6_payments`가 0015 선점 → P5c는 0016·0017로 재번호. 0013도 번호중복 존재).
 - 기존 P5b 단가 경로(`utility_unit_prices`, 고객번호 fallback) **회귀 금지** — 신규는 공존.
 - 라이브 DB 적용은 **사용자 PC에서 수동**(Management API/PAT). 워커는 마이그 파일·검증 스크립트만 작성, `db push`/네트워크 금지.
 - 게이트: 각 태스크 종료 시 관련 `vitest` pass · `npx tsc --noEmit` 0 · `npm run lint` 0.
@@ -24,7 +24,7 @@
 ## File Structure
 
 **신규**
-- `supabase/migrations/0015_p5c_utility_mixeduse.sql` — 스키마 3변경 + `utility_scoped_prices` + RLS + `save_meter_readings` 재정의 + floor 백필.
+- `supabase/migrations/0016_p5c_utility_mixeduse.sql` — 스키마 3변경 + `utility_scoped_prices` + RLS + `save_meter_readings` 재정의 + floor 백필.
 - `verify/p5c_checks.sql` — 정적 검증(테이블·컬럼·정책·유니크 존재).
 - `app/(staff)/staff/utilities/components/FixedUsageModal.tsx` — 상가 고정사용량 설정 모달(수도할인 모달 패턴).
 
@@ -41,7 +41,7 @@
 ## Task 1: 마이그 0015 — 스키마 3변경 + `save_meter_readings` 확장 + 백필
 
 **Files:**
-- Create: `supabase/migrations/0015_p5c_utility_mixeduse.sql`
+- Create: `supabase/migrations/0016_p5c_utility_mixeduse.sql`
 - Create: `verify/p5c_checks.sql`
 - Read first: `supabase/migrations/0014_p5b_utility_pricing.sql`(특히 `utility_unit_prices` RLS 정책과 `save_meter_readings` 본문 ~L255-378), `supabase/migrations/0007_p5a_utilities.sql`, `supabase/migrations/0006_p3b_tenants.sql`.
 - Test: 기존 RPC 테스트 파일을 grep으로 찾아 그 하니스를 미러(`rg -l "save_meter_readings|list_utility_rows" --glob '*.test.*'`). 없으면 가장 가까운 RPC 통합테스트 패턴을 따라 신규.
@@ -53,7 +53,7 @@
   `0014_p5b_utility_pricing.sql`를 읽어 `save_meter_readings`의 단가 해석 블록(세대 커스텀 → 건물 유일 단가 → null)과 `utility_unit_prices`의 `enable row level security`·`create policy` 문을 파악한다. 신규 정책은 이 패턴을 building_id 직결로 미러한다.
 
 - [ ] **Step 2: 마이그 스키마 부분 작성**
-  `0015_p5c_utility_mixeduse.sql`에 스키마 변경을 작성:
+  `0016_p5c_utility_mixeduse.sql`에 스키마 변경을 작성:
   ```sql
   alter table units
     add column if not exists floor int,
@@ -133,7 +133,7 @@
 - [ ] **Step 10: 게이트 + 커밋**
   Run: `npx tsc --noEmit` → 0, `npm run lint` → 0.
   ```bash
-  git add supabase/migrations/0015_p5c_utility_mixeduse.sql verify/p5c_checks.sql <테스트>
+  git add supabase/migrations/0016_p5c_utility_mixeduse.sql verify/p5c_checks.sql <테스트>
   git commit -m "feat(utilities): P5c 마이그 0015 용도/층 단가·고정사용량 + save_meter_readings 확장"
   ```
 

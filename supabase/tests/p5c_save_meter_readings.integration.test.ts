@@ -2,7 +2,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 // Opt-in live integration test. The staff account must belong to an active org
-// and have the utilities module. Apply migration 0015 before running it.
+// and have the utilities module. Apply migration 0016 before running it.
 const liveConfig = {
   url: process.env.P5C_TEST_SUPABASE_URL ?? "",
   anonKey: process.env.P5C_TEST_SUPABASE_ANON_KEY ?? "",
