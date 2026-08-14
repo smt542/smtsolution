@@ -11,10 +11,15 @@ import { AUTO_LOGIN_KEY } from "@/lib/auth/sessionPersistence";
 
 type LoginFormInput = z.input<typeof loginSchema>;
 
+const fieldBase =
+  "h-12 rounded-[13px] border border-line bg-white text-[14.5px] font-medium text-t1 outline-none transition focus:border-[#14A497] focus:ring-4 focus:ring-[#14A497]/15";
+const labelClass = "text-[12.5px] font-bold text-t3";
+
 export function LoginForm() {
   const router = useRouter();
   const login = useLogin();
   const [serverError, setServerError] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: { companyCode: "", username: "", password: "", autoLogin: false },
@@ -34,33 +39,51 @@ export function LoginForm() {
   });
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
-      <div className="flex flex-col gap-1">
-        <label htmlFor="companyCode" className="text-sm font-bold text-gray-500">회사코드</label>
+    <form onSubmit={onSubmit} className="flex flex-col gap-3.5" noValidate>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="companyCode" className={labelClass}>회사코드</label>
         <input id="companyCode" autoComplete="organization" placeholder="회사코드를 입력해 주세요"
-          className="h-12 rounded-xl border px-3.5" {...register("companyCode")} />
-        {errors.companyCode && <p className="text-sm text-red-500">{errors.companyCode.message}</p>}
+          className={`${fieldBase} px-3.5`} {...register("companyCode")} />
+        {errors.companyCode && <p className="text-sm text-red">{errors.companyCode.message}</p>}
       </div>
-      <div className="flex flex-col gap-1">
-        <label htmlFor="username" className="text-sm font-bold text-gray-500">아이디</label>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="username" className={labelClass}>아이디</label>
         <input id="username" autoComplete="username" placeholder="아이디를 입력해 주세요"
-          className="h-12 rounded-xl border px-3.5" {...register("username")} />
-        {errors.username && <p className="text-sm text-red-500">{errors.username.message}</p>}
+          className={`${fieldBase} px-3.5`} {...register("username")} />
+        {errors.username && <p className="text-sm text-red">{errors.username.message}</p>}
       </div>
-      <div className="flex flex-col gap-1">
-        <label htmlFor="password" className="text-sm font-bold text-gray-500">비밀번호</label>
-        <input id="password" type="password" autoComplete="current-password" placeholder="비밀번호를 입력해 주세요"
-          className="h-12 rounded-xl border px-3.5" {...register("password")} />
-        {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="password" className={labelClass}>비밀번호</label>
+        <div className="relative flex items-center">
+          <input id="password" type={showPw ? "text" : "password"} autoComplete="current-password" placeholder="비밀번호를 입력해 주세요"
+            className={`${fieldBase} w-full pl-3.5 pr-12`} {...register("password")} />
+          <button type="button" aria-label="비밀번호 보기" onClick={() => setShowPw((v) => !v)}
+            className={`absolute right-2 flex h-8 w-8 items-center justify-center rounded-[9px] ${showPw ? "text-[#14A497]" : "text-t4"}`}>
+            {showPw ? (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
+                <path d="M3 3l18 18" />
+                <path d="M10.6 10.6a2.8 2.8 0 0 0 3.8 3.8" />
+                <path d="M9.4 5.2A9.3 9.3 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4" />
+                <path d="M6.2 6.2A17 17 0 0 0 2 12s3.6 7 10 7a9.3 9.3 0 0 0 3-.5" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
+                <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" />
+                <circle cx="12" cy="12" r="2.8" />
+              </svg>
+            )}
+          </button>
+        </div>
+        {errors.password && <p className="text-sm text-red">{errors.password.message}</p>}
       </div>
-      <label className="flex items-center gap-2 text-sm text-gray-600">
-        <input type="checkbox" {...register("autoLogin")} /> 자동 로그인
+      <label className="flex items-center gap-2 text-[13.5px] font-semibold text-t2">
+        <input type="checkbox" className="h-[18px] w-[18px] accent-[#14A497]" {...register("autoLogin")} /> 자동 로그인
       </label>
       {serverError && (
-        <div role="alert" className="rounded-lg bg-red-50 px-3 py-2.5 text-sm font-bold text-red-500">{serverError}</div>
+        <div role="alert" className="rounded-[11px] bg-red-t px-3 py-2.5 text-sm font-bold text-red">{serverError}</div>
       )}
       <button type="submit" disabled={login.isPending}
-        className="h-12 rounded-xl bg-blue font-bold text-white shadow-pri disabled:opacity-70">
+        className="mt-1.5 h-[50px] rounded-[14px] bg-[#14A497] text-[15px] font-extrabold text-white transition hover:bg-[#0E8677] disabled:opacity-70">
         {login.isPending ? "로그인 중…" : "로그인"}
       </button>
     </form>
