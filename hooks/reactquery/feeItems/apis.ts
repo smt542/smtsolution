@@ -9,9 +9,39 @@ export interface FeeItemInput {
   dailyProration: boolean; carryOver: boolean; isRequired: boolean; sortOrder?: number;
 }
 
+export interface FeeItemLookupFilters {
+  typeId?: number | null;
+  required?: boolean | null;
+  q?: string;
+}
+
+export interface FeeItemLookupRow {
+  id: number;
+  typeId: number;
+  typeLabel: string;
+  name: string;
+  rounding: string;
+  dailyProration: boolean;
+  carryOver: boolean;
+  isRequired: boolean;
+  sortOrder: number;
+}
+
 type FeeItemRow = {
   id: number; org_id: number; type_id: number; name: string; rounding: string;
   daily_proration: boolean; carry_over: boolean; is_required: boolean; sort_order: number;
+};
+
+type FeeItemLookupDbRow = {
+  id: number;
+  type_id: number;
+  name: string;
+  rounding: string;
+  daily_proration: boolean;
+  carry_over: boolean;
+  is_required: boolean;
+  sort_order: number;
+  building_types: { label: string } | null;
 };
 
 const rowToFeeItem = (r: FeeItemRow): FeeItem => ({
@@ -32,6 +62,32 @@ export async function listFeeItems(typeId: number): Promise<FeeItem[]> {
   const { data, error } = await createClient().from("fee_items").select("*").eq("type_id", typeId).is("deleted_at", null).order("sort_order");
   if (error) throw new Error(error.message);
   return (data ?? []).map(rowToFeeItem);
+}
+
+export async function listAllFeeItems(filters: FeeItemLookupFilters): Promise<FeeItemLookupRow[]> {
+  let query = createClient()
+    .from("fee_items")
+    .select(
+      "id, type_id, name, rounding, daily_proration, carry_over, is_required, sort_order, building_types!inner(id, label)",
+    )
+    .is("deleted_at", null);
+  if (filters.typeId != null) query = query.eq("type_id", filters.typeId);
+  if (filters.required != null) query = query.eq("is_required", filters.required);
+  const q = filters.q?.trim();
+  if (q) query = query.ilike("name", `%${q}%`);
+  const { data, error } = await query.order("type_id").order("sort_order");
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as unknown as FeeItemLookupDbRow[]).map((r) => ({
+    id: r.id,
+    typeId: r.type_id,
+    typeLabel: r.building_types?.label ?? "",
+    name: r.name,
+    rounding: r.rounding,
+    dailyProration: r.daily_proration,
+    carryOver: r.carry_over,
+    isRequired: r.is_required,
+    sortOrder: r.sort_order,
+  }));
 }
 
 export async function createFeeItem(input: FeeItemInput): Promise<FeeItem> {

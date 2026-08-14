@@ -1,8 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 const from = vi.fn();
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ from }) }));
-import { listFeeItems, createFeeItem, updateFeeItem, deleteFeeItem } from "./apis";
+import { listAllFeeItems, listFeeItems, createFeeItem, updateFeeItem, deleteFeeItem } from "./apis";
 beforeEach(() => vi.clearAllMocks());
+
+function mockLookupQuery(data: unknown[] = []) {
+  const query: {
+    is: ReturnType<typeof vi.fn>;
+    eq: ReturnType<typeof vi.fn>;
+    ilike: ReturnType<typeof vi.fn>;
+    order: ReturnType<typeof vi.fn>;
+  } = {
+    is: vi.fn(),
+    eq: vi.fn(),
+    ilike: vi.fn(),
+    order: vi.fn(),
+  };
+  query.is.mockReturnValue(query);
+  query.eq.mockReturnValue(query);
+  query.ilike.mockReturnValue(query);
+  query.order.mockReturnValueOnce(query).mockResolvedValueOnce({ data, error: null });
+  const select = vi.fn(() => query);
+  from.mockReturnValue({ select });
+  return { query, select };
+}
+
 describe("feeItems apis", () => {
   it("listFeeItems: snake→camel 매핑, 소프트삭제 제외", async () => {
     const order = vi.fn().mockResolvedValue({
@@ -41,5 +63,116 @@ describe("feeItems apis", () => {
     await deleteFeeItem({ id:2, isRequired:false });
     expect(upd).toHaveBeenCalledWith(expect.objectContaining({ deleted_at: expect.any(String) }));
     expect(eq).toHaveBeenCalledWith("id", 2);
+  });
+});
+
+describe("listAllFeeItems", () => {
+  it("applies deleted_at and ordering without optional filters", async () => {
+    const { query, select } = mockLookupQuery();
+
+    await listAllFeeItems({});
+
+    expect(from).toHaveBeenCalledWith("fee_items");
+    expect(select).toHaveBeenCalledWith(
+      "id, type_id, name, rounding, daily_proration, carry_over, is_required, sort_order, building_types!inner(id, label)",
+    );
+    expect(query.is).toHaveBeenCalledWith("deleted_at", null);
+    expect(query.eq).not.toHaveBeenCalled();
+    expect(query.ilike).not.toHaveBeenCalled();
+    expect(query.order.mock.calls).toEqual([["type_id"], ["sort_order"]]);
+  });
+
+  it("applies the building-type filter", async () => {
+    const { query } = mockLookupQuery();
+
+    await listAllFeeItems({ typeId: 7 });
+
+    expect(query.eq).toHaveBeenCalledWith("type_id", 7);
+  });
+
+  it.each([true, false])("applies the required=%s filter", async (required) => {
+    const { query } = mockLookupQuery();
+
+    await listAllFeeItems({ required });
+
+    expect(query.eq).toHaveBeenCalledWith("is_required", required);
+  });
+
+  it.each([null, undefined])("does not filter is_required for %s", async (required) => {
+    const { query } = mockLookupQuery();
+
+    await listAllFeeItems({ required });
+
+    expect(query.eq).not.toHaveBeenCalledWith("is_required", expect.anything());
+  });
+
+  it("trims q and applies the item-name ilike filter", async () => {
+    const { query } = mockLookupQuery();
+
+    await listAllFeeItems({ q: "  관리  " });
+
+    expect(query.ilike).toHaveBeenCalledWith("name", "%관리%");
+  });
+
+  it.each(["", "   "])("does not apply ilike for an empty query", async (q) => {
+    const { query } = mockLookupQuery();
+
+    await listAllFeeItems({ q });
+
+    expect(query.ilike).not.toHaveBeenCalled();
+  });
+
+  it("maps joined database rows to the lookup view model", async () => {
+    mockLookupQuery([
+      {
+        id: 1,
+        type_id: 7,
+        name: "일반관리비",
+        rounding: "round",
+        daily_proration: false,
+        carry_over: true,
+        is_required: true,
+        sort_order: 0,
+        building_types: { label: "원룸텔" },
+      },
+      {
+        id: 2,
+        type_id: 8,
+        name: "청소비",
+        rounding: "raw",
+        daily_proration: true,
+        carry_over: false,
+        is_required: false,
+        sort_order: 1,
+        building_types: null,
+      },
+    ]);
+
+    const result = await listAllFeeItems({});
+
+    expect(result).toEqual([
+      {
+        id: 1,
+        typeId: 7,
+        typeLabel: "원룸텔",
+        name: "일반관리비",
+        rounding: "round",
+        dailyProration: false,
+        carryOver: true,
+        isRequired: true,
+        sortOrder: 0,
+      },
+      {
+        id: 2,
+        typeId: 8,
+        typeLabel: "",
+        name: "청소비",
+        rounding: "raw",
+        dailyProration: true,
+        carryOver: false,
+        isRequired: false,
+        sortOrder: 1,
+      },
+    ]);
   });
 });
