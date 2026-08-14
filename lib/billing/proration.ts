@@ -1,9 +1,11 @@
 export type Rounding = "up" | "round" | "down" | "raw";
 
 export function roundCharge(value: number, r: Rounding): number {
-  if (r === "up") return Math.ceil(value);
-  if (r === "down") return Math.floor(value);
-  return Math.round(value); // round, raw
+  // 계산규칙 1.2: 절상·4사5입·절하는 10원 단위, 그대로(raw)는 반올림 미적용
+  if (r === "raw") return value;
+  if (r === "up") return Math.ceil(value / 10) * 10;
+  if (r === "down") return Math.floor(value / 10) * 10;
+  return Math.round(value / 10) * 10; // 4사5입(10원 단위)
 }
 
 export function daysInMonth(period: string): number {
@@ -30,5 +32,6 @@ export function effectiveAmount(
   const total = daysInMonth(period);
   const occ = occupiedDays(moveInDate, period);
   if (occ >= total) return base;
-  return roundCharge((base * occ) / total, meta.rounding);
+  // 계산규칙 1.1: 일할 분모는 그 달 일수와 무관하게 고정 30일
+  return roundCharge((base * occ) / 30, meta.rounding);
 }
