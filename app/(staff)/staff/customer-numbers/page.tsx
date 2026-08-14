@@ -32,6 +32,16 @@ function useDebouncedValue(value: string, delay: number) {
   return debouncedValue;
 }
 
+function customerNumberExportUrl(filters: CustomerNumberFilters) {
+  const params = new URLSearchParams();
+  if (filters.buildingId != null) params.set("buildingId", String(filters.buildingId));
+  if (filters.kind) params.set("kind", filters.kind);
+  const q = filters.q?.trim();
+  if (q) params.set("q", q);
+  const query = params.toString();
+  return `/api/customer-numbers/export${query ? `?${query}` : ""}`;
+}
+
 function CustomerNumberLookup() {
   const router = useRouter();
   const [buildingId, setBuildingId] = useState<number | null>(null);
@@ -55,6 +65,15 @@ function CustomerNumberLookup() {
     void lookupQuery.refetch();
   };
 
+  const exportCustomerNumbers = () => {
+    const anchor = document.createElement("a");
+    anchor.href = customerNumberExportUrl(filters);
+    anchor.download = "";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  };
+
   return (
     <div className="flex min-h-screen flex-col gap-5 p-4 sm:p-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
@@ -68,8 +87,7 @@ function CustomerNumberLookup() {
         <Button
           type="button"
           variant="ghost"
-          disabled
-          title="엑셀 다운로드는 다음 작업에서 지원됩니다."
+          onClick={exportCustomerNumbers}
         >
           엑셀 다운로드
         </Button>

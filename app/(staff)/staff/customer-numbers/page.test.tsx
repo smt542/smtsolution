@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const push = vi.fn();
@@ -100,5 +100,36 @@ describe("CustomerNumberLookupPage", () => {
     render(<CustomerNumberLookupPage />);
 
     expect(screen.getByText("조건에 맞는 고객번호가 없습니다")).toBeInTheDocument();
+  });
+
+  it("엑셀 다운로드에 현재 건물·유형·검색 필터를 직렬화한다", () => {
+    vi.useFakeTimers();
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => {});
+
+    try {
+      render(<CustomerNumberLookupPage />);
+      fireEvent.change(screen.getByLabelText("건물 필터"), {
+        target: { value: "11" },
+      });
+      fireEvent.change(screen.getByLabelText("유형 필터"), {
+        target: { value: "gas" },
+      });
+      fireEvent.change(screen.getByLabelText("고객번호 또는 명의자 검색"), {
+        target: { value: " 김 명의 " },
+      });
+      act(() => vi.advanceTimersByTime(300));
+
+      fireEvent.click(screen.getByRole("button", { name: "엑셀 다운로드" }));
+
+      expect(click).toHaveBeenCalledTimes(1);
+      const anchor = click.mock.instances[0] as HTMLAnchorElement;
+      expect(anchor.getAttribute("href")).toBe(
+        "/api/customer-numbers/export?buildingId=11&kind=gas&q=%EA%B9%80+%EB%AA%85%EC%9D%98",
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
