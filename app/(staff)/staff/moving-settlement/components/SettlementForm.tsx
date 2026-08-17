@@ -16,8 +16,8 @@ export function calculateProratedMgmtFee(
   const [year, month, day] = moveOutDate.split("-").map(Number);
   if (!year || !month || !day) return 0;
 
-  const daysInMonth = new Date(year, month, 0).getDate();
-  return Math.round((monthly * day) / daysInMonth);
+  // 계산규칙 1.1: 일할 분모는 그 달 일수와 무관하게 고정 30일 (year·month는 위 유효성 검증에만 사용)
+  return Math.round((monthly * day) / 30);
 }
 
 function numberValue(raw: string): number | null {

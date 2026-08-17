@@ -11,10 +11,10 @@ describe("billing/total", () => {
   });
   it("일할 항목은 프로레이션 후 합산", () => {
     const lines = [
-      line({ amount: 31000, dailyProration: true }), // 16/31 → 16000
+      line({ amount: 31000, dailyProration: true }), // 16/30 → 16530 (4사5입 10원)
       line({ amount: 10000 }),                         // 고정
     ];
-    expect(unitTotal(lines, "2026-08-16", "2026-08-01")).toBe(26000);
+    expect(unitTotal(lines, "2026-08-16", "2026-08-01")).toBe(26530);
   });
   it("빈 입력은 0", () => {
     expect(unitTotal([], null, "2026-08-01")).toBe(0);

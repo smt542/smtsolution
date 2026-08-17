@@ -51,6 +51,9 @@ next-env.d.ts
 # wbs-commit-sync 로컬 워터마크(커밋 안 함)
 .wbs/
 
+# 명세↔구현 갭분석 임시 작업폴더(docs/*.zip 압축 해제본)
+.gap-work/
+
 # prototype heavy exports (PRD .md는 docs/prototype/prd/ 에 보존)
 docs/prototype/*.zip
 docs/prototype/_erp/

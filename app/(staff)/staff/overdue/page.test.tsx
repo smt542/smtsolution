@@ -98,7 +98,7 @@ const households = [
     memo: null,
     unitMemo: null,
     overdueMonths: 2,
-    overdueAmount: 120_000,
+    overdueAmount: 90_000,
     lastPaymentDate: null,
     billingAvailable: true,
   },

@@ -49,8 +49,10 @@ describe("getBuildingTenants", () => {
     expect(r.org).toMatchObject({ id: 3, name: "가나관리" });
     expect(r.building).toMatchObject({ id: 7, name: "가나빌" });
     expect(r.tenants).toHaveLength(2);
-    expect(r.tenants[0]).toMatchObject({ unitId: 11, occupancyId: 22, tenantName: "홍길동", isVacant: false });
-    expect(r.tenants[1]).toMatchObject({ unitId: 12, occupancyId: null, tenantName: null, isVacant: true });
+    expect(r.tenants[0]).toMatchObject({ unitId: 11, occupancyId: 22, residentCount: 2, isVacant: false });
+    expect(r.tenants[1]).toMatchObject({ unitId: 12, occupancyId: null, isVacant: true });
+    // 통합관리자는 입주자 개인정보(성명 등)를 받지 않는다
+    expect(r.tenants[0]).not.toHaveProperty("tenantName");
   });
 });
 
@@ -70,7 +72,10 @@ describe("getUnitOccupancy", () => {
     });
     const r = await getUnitOccupancy(11);
     expect(r).toMatchObject({ unitId: 11, unitNo: "101", buildingName: "가나빌", orgName: "가나관리" });
-    expect(r.occupancy).toMatchObject({ occupancyId: 22, tenantName: "홍길동", roomTypeLabel: "원룸", status: "occupied" });
+    expect(r.occupancy).toMatchObject({ occupancyId: 22, roomTypeLabel: "원룸", status: "occupied" });
+    // 통합관리자는 개인정보(성명·연락처·차량 등)를 받지 않는다
+    expect(r.occupancy).not.toHaveProperty("tenantName");
+    expect(r.occupancy).not.toHaveProperty("phone");
   });
 
   it("입주 없으면 occupancy=null(룸타입 조회 안 함)", async () => {

@@ -33,9 +33,10 @@ const household = {
 } satisfies OverdueHousehold;
 
 describe("overdue utils", () => {
-  it("채권 대상은 3개월 이상 AND 10만원 이상이어야 한다", () => {
+  it("채권 대상은 2개월 이상 AND 10만원 이상이어야 한다", () => {
     expect(isDebtCollectionTarget(household)).toBe(true);
-    expect(isDebtCollectionTarget({ ...household, overdueMonths: 2 })).toBe(false);
+    expect(isDebtCollectionTarget({ ...household, overdueMonths: 2 })).toBe(true);
+    expect(isDebtCollectionTarget({ ...household, overdueMonths: 1 })).toBe(false);
     expect(isDebtCollectionTarget({ ...household, overdueAmount: 99_999 })).toBe(false);
   });
 
