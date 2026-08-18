@@ -28,4 +28,11 @@ describe("navItems P2b", () => {
       built: true,
     });
   });
+  it("장기수선비 관리는 기존 setup과 같은 settings 권한으로 활성화", () => {
+    expect(all.find((i) => i.href === "/staff/long-term-repair")).toMatchObject({
+      label: "장기수선비 관리",
+      module: "settings",
+      built: true,
+    });
+  });
 });

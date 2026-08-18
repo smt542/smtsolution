@@ -1,7 +1,7 @@
 // app/(staff)/staff/setup/page.tsx
 "use client";
-import { Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMe } from "@/hooks/reactquery/auth";
 import { canManageSettings } from "@/lib/auth/permissions";
 import { Tabs } from "@/components/common";
@@ -9,14 +9,12 @@ import { BillingSettingsTab } from "./components/BillingSettingsTab";
 import { AccountSettingsTab } from "./components/AccountSettingsTab";
 import { MovingSettlementSettingsTab } from "./components/MovingSettlementSettingsTab";
 import { SystemSettingsTab } from "./components/SystemSettingsTab";
-import { LongTermRepairTab } from "./components/LongTermRepairTab";
 
 const TAB_DEFS = [
   { id: "billing", label: "고지서 설정" },
   { id: "accounts", label: "계좌 설정" },
   { id: "settlement", label: "이사정산 설정" },
   { id: "system", label: "시스템 설정" },
-  { id: "repair", label: "장기수선비" },
 ] as const;
 type TabKey = (typeof TAB_DEFS)[number]["id"];
 const TAB_IDS: readonly string[] = TAB_DEFS.map((t) => t.id);
@@ -24,10 +22,17 @@ const TAB_IDS: readonly string[] = TAB_DEFS.map((t) => t.id);
 function SetupContent() {
   const { data: me } = useMe();
   const sp = useSearchParams();
+  const router = useRouter();
   const initial = sp.get("tab");
   const [tab, setTab] = useState<TabKey>(
     initial && TAB_IDS.includes(initial) ? (initial as TabKey) : "billing",
   );
+
+  useEffect(() => {
+    if (initial === "repair") router.replace("/staff/long-term-repair");
+  }, [initial, router]);
+
+  if (initial === "repair") return null;
 
   if (me === undefined) return null; // 로딩
   if (!canManageSettings(me)) {
@@ -47,7 +52,6 @@ function SetupContent() {
         {tab === "accounts" && <AccountSettingsTab />}
         {tab === "settlement" && <MovingSettlementSettingsTab />}
         {tab === "system" && <SystemSettingsTab />}
-        {tab === "repair" && <LongTermRepairTab />}
       </div>
     </div>
   );

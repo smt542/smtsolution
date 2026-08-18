@@ -1,136 +1,98 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const uploadMock = vi.fn();
-const removeMock = vi.fn();
-const createSignedUrlMock = vi.fn();
-const from = vi.fn();
+const rpc = vi.fn();
 
 vi.mock("@/lib/supabase/client", () => ({
-  createClient: () => ({
-    from,
-    storage: {
-      from: () => ({
-        upload: uploadMock,
-        remove: removeMock,
-        createSignedUrl: createSignedUrlMock,
-      }),
-    },
-  }),
+  createClient: () => ({ rpc }),
 }));
 
-import {
-  listRepairsByBuilding,
-  createRepair,
-  deleteRepair,
-  uploadRepairAttachment,
-} from "./apis";
+import { getLedgerOpeningBalance, listLedgerByBuilding, monthDateRange, saveLedger } from "./apis";
 
 beforeEach(() => vi.clearAllMocks());
 
-describe("longTermRepair apis", () => {
-  it("listByBuilding: building_id·deleted_at null·work_date desc + 매핑", async () => {
-    const order = vi.fn().mockResolvedValue({
-      data: [
-        {
-          id: 1,
-          org_id: 9,
-          building_id: 3,
-          work_name: "방수",
-          work_date: "2026-05-01",
-          amount: 500000,
-          memo: null,
-        },
-      ],
-      error: null,
-    });
-    const is = vi.fn(() => ({ order }));
-    const eq = vi.fn(() => ({ is }));
-    from.mockReturnValue({ select: () => ({ eq }) });
-
-    const r = await listRepairsByBuilding(3);
-
-    expect(eq).toHaveBeenCalledWith("building_id", 3);
-    expect(r[0]).toMatchObject({
-      id: 1,
-      orgId: 9,
-      buildingId: 3,
-      workName: "방수",
-      workDate: "2026-05-01",
-      amount: 500000,
+describe("longTermRepair ledger apis", () => {
+  it("월 범위를 월초부터 월말까지 변환한다", () => {
+    expect(monthDateRange("2026-01", "2026-02")).toEqual({
+      startDate: "2026-01-01",
+      endDate: "2026-02-28",
     });
   });
 
-  it("create: snake row insert", async () => {
-    const single = vi.fn().mockResolvedValue({
-      data: {
-        id: 2,
+  it("서버 누적잔액 원장을 조회하고 숫자 필드를 매핑한다", async () => {
+    rpc.mockResolvedValue({
+      data: [{
+        id: 1,
         org_id: 9,
         building_id: 3,
-        work_name: "도장",
-        work_date: null,
-        amount: null,
+        entry_date: "2026-05-01",
+        entry_no: "001",
+        fund_note: "정기 적립",
+        deposit: "500000",
+        withdrawal: "100000",
+        running_balance: "400000",
         memo: null,
-      },
+        created_at: "2026-05-01T00:00:00Z",
+        updated_at: "2026-05-01T00:00:00Z",
+      }],
       error: null,
     });
-    const ins = vi.fn(() => ({ select: () => ({ single }) }));
-    from.mockReturnValue({ insert: ins });
 
-    await createRepair({ orgId: 9, buildingId: 3, workName: "도장" });
+    const result = await listLedgerByBuilding(3, "2026-05", "2026-05");
 
-    expect(ins).toHaveBeenCalledWith(
-      expect.objectContaining({
-        org_id: 9,
-        building_id: 3,
-        work_name: "도장",
-      })
-    );
-  });
-
-  it("delete: soft(deleted_at)", async () => {
-    const eq = vi.fn().mockResolvedValue({ error: null });
-    const upd = vi.fn(() => ({ eq }));
-    from.mockReturnValue({ update: upd });
-
-    await deleteRepair(5);
-
-    expect(upd).toHaveBeenCalledWith(
-      expect.objectContaining({ deleted_at: expect.any(String) })
-    );
-  });
-
-  it("uploadRepairAttachment: long_term_repair 경로·엔티티로 저장", async () => {
-    uploadMock.mockResolvedValue({ error: null });
-    const single = vi.fn().mockResolvedValue({
-      data: {
-        id: 10,
-        org_id: 9,
-        entity_type: "long_term_repair",
-        entity_id: 2,
-        kind: "repair",
-        file_url: "9/long_term_repair/2/x.pdf",
-        file_name: "x.pdf",
-        created_at: "t",
-      },
-      error: null,
+    expect(rpc).toHaveBeenCalledWith("list_long_term_repair_ledger", {
+      p_building_id: 3,
+      p_start_date: "2026-05-01",
+      p_end_date: "2026-05-31",
     });
-    const ins = vi.fn(() => ({ select: () => ({ single }) }));
-    from.mockReturnValue({ insert: ins });
+    expect(result[0]).toMatchObject({
+      buildingId: 3,
+      entryNo: "001",
+      fundNote: "정기 적립",
+      deposit: 500000,
+      withdrawal: 100000,
+      balance: 400000,
+    });
+  });
 
-    const file = new File(["c"], "x.pdf", { type: "application/pdf" });
-    await uploadRepairAttachment({ repairId: 2, orgId: 9, file });
+  it("화면 원장 변경분을 저장 RPC 형식으로 변환한다", async () => {
+    rpc.mockResolvedValue({ data: null, error: null });
 
-    expect(uploadMock).toHaveBeenCalledWith(
-      expect.stringMatching(/^9\/long_term_repair\/2\//),
-      file
-    );
-    expect(ins).toHaveBeenCalledWith(
-      expect.objectContaining({
-        entity_type: "long_term_repair",
-        entity_id: 2,
-        kind: "repair",
-        org_id: 9,
-      })
-    );
+    await saveLedger({
+      buildingId: 3,
+      rows: [{
+        id: 7,
+        entryDate: "2026-06-01",
+        entryNo: "002",
+        fundNote: "옥상 공사",
+        deposit: 0,
+        withdrawal: 350000,
+        memo: "완료",
+      }],
+      deletedIds: [5],
+    });
+
+    expect(rpc).toHaveBeenCalledWith("save_long_term_repair_ledger", {
+      p_building_id: 3,
+      p_rows: [{
+        id: 7,
+        entry_date: "2026-06-01",
+        entry_no: "002",
+        fund_note: "옥상 공사",
+        deposit: 0,
+        withdrawal: 350000,
+        memo: "완료",
+      }],
+      p_deleted_ids: [5],
+    });
+  });
+
+  it("조회 시작일 이전의 기초잔액을 숫자로 조회한다", async () => {
+    rpc.mockResolvedValue({ data: "125000", error: null });
+
+    await expect(getLedgerOpeningBalance(3, "2026-05")).resolves.toBe(125000);
+    expect(rpc).toHaveBeenCalledWith("get_long_term_repair_ledger_opening_balance", {
+      p_building_id: 3,
+      p_start_date: "2026-05-01",
+    });
   });
 });

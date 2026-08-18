@@ -6,13 +6,13 @@ export function useUploadAttachment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: uploadAttachment,
-    onSuccess: (a) => qc.invalidateQueries({ queryKey: attachmentKeys.byEntity(a.entityType, a.entityId) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: attachmentKeys.all }),
   });
 }
-export function useDeleteAttachment(entityType: string, entityId: number) {
+export function useDeleteAttachment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: deleteAttachment,
-    onSuccess: () => qc.invalidateQueries({ queryKey: attachmentKeys.byEntity(entityType, entityId) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: attachmentKeys.all }),
   });
 }

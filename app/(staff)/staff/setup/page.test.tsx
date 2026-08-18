@@ -4,13 +4,16 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const getMock = vi.fn<(k: string) => string | null>(() => null);
-vi.mock("next/navigation", () => ({ useSearchParams: () => ({ get: getMock }) }));
+const replaceMock = vi.fn();
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => ({ get: getMock }),
+  useRouter: () => ({ replace: replaceMock }),
+}));
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
 vi.mock("./components/BillingSettingsTab", () => ({ BillingSettingsTab: () => <div>TAB_BILLING</div> }));
 vi.mock("./components/AccountSettingsTab", () => ({ AccountSettingsTab: () => <div>TAB_ACCOUNTS</div> }));
 vi.mock("./components/MovingSettlementSettingsTab", () => ({ MovingSettlementSettingsTab: () => <div>TAB_SETTLEMENT</div> }));
 vi.mock("./components/SystemSettingsTab", () => ({ SystemSettingsTab: () => <div>TAB_SYSTEM</div> }));
-vi.mock("./components/LongTermRepairTab", () => ({ LongTermRepairTab: () => <div>TAB_REPAIR</div> }));
 
 import SetupPage from "./page";
 import { useMe } from "@/hooks/reactquery/auth";
@@ -50,5 +53,15 @@ describe("SetupPage", () => {
     render(<SetupPage />);
     fireEvent.click(screen.getByRole("button", { name: "시스템 설정" }));
     expect(screen.getByText("TAB_SYSTEM")).toBeInTheDocument();
+  });
+
+  it("기존 ?tab=repair 링크는 독립 장기수선비 화면으로 전환", () => {
+    getMock.mockReturnValue("repair");
+    vi.mocked(useMe).mockReturnValue({ data: { role: "org_owner", permissions: [] } } as unknown as ReturnType<typeof useMe>);
+
+    render(<SetupPage />);
+
+    expect(replaceMock).toHaveBeenCalledWith("/staff/long-term-repair");
+    expect(screen.queryByText("TAB_BILLING")).toBeNull();
   });
 });
