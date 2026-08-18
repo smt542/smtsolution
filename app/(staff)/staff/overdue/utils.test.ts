@@ -44,7 +44,16 @@ describe("overdue utils", () => {
     const csv = createOverdueLedgerCsv([household]);
     expect(csv).toContain("건물명,호실명,입주자명");
     expect(csv).toContain('"그린,빌라",A동 101호,김입주');
-    expect(csv).toContain("3,100000,2026-04-30,확정 부과 있음");
+    expect(csv).toContain("3,100000,0,2026-04-30,확정 부과 있음");
+  });
+
+  it("CSV 헤더와 본문에 연체료를 포함한다", () => {
+    const csv = createOverdueLedgerCsv([
+      { ...household, lateFeeAmount: 3_400 },
+    ]);
+
+    expect(csv).toContain("연체료");
+    expect(csv).toContain("100000,3400,2026-04-30");
   });
 
   it("건물명과 조회 월로 안전한 파일명을 만든다", () => {

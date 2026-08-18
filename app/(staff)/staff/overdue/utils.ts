@@ -32,6 +32,7 @@ export function createOverdueLedgerCsv(rows: OverdueHousehold[]): string {
     "연락처",
     "연체 개월수",
     "미납금액",
+    "연체료",
     "최근 납부일",
     "데이터 상태",
   ];
@@ -42,6 +43,7 @@ export function createOverdueLedgerCsv(rows: OverdueHousehold[]): string {
     row.phone ?? "",
     row.overdueMonths,
     row.overdueAmount,
+    row.lateFeeAmount ?? 0,
     row.lastPaymentDate ?? "",
     row.billingAvailable ? "확정 부과 있음" : "확정 부과 없음",
   ]);
