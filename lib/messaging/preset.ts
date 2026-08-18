@@ -1,4 +1,5 @@
-export type MessageChannel = "sms";
+export type MessageChannel = "sms" | "alimtalk";
+export type SendMode = "auto" | "sms" | "alimtalk";
 
 export interface MessageRecipient {
   name: string | null;
@@ -15,6 +16,8 @@ export interface MessageRecipient {
 export interface MessagingPreset {
   context: string;
   channel?: MessageChannel;
+  mode?: SendMode;
+  templateId?: number | null;
   body?: string;
   recipients?: MessageRecipient[];
 }
@@ -64,4 +67,9 @@ export function buildSendPayload(payload: SendPayload): SendPayload {
     ...payload,
     recipients: validRecipients(dedupeRecipients(payload.recipients)),
   };
+}
+
+export interface ResolvedRecipient extends MessageRecipient {
+  channel: MessageChannel;
+  renderedBody: string;
 }

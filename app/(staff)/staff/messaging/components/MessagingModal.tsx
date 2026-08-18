@@ -19,7 +19,11 @@ export function MessagingModal({
 }: MessagingModalProps) {
   return (
     <Modal open={open} onClose={onClose} title="문자 발송">
-      <MessagingComposer preset={preset} onSent={onSent} />
+      <MessagingComposer
+        preset={preset}
+        onSent={onSent}
+        initialMode="sms"
+      />
     </Modal>
   );
 }

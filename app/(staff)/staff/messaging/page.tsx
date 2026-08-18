@@ -1,11 +1,25 @@
 "use client";
 
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { EmptyState, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
-import { useMessageLogs } from "@/hooks/reactquery/messaging";
 import { hasModule } from "@/lib/auth/permissions";
-import { MessageLogList } from "./components/MessageLogList";
+import { HistoryTab } from "./components/HistoryTab";
 import { MessagingComposer } from "./components/MessagingComposer";
+import { TemplatesTab } from "./components/TemplatesTab";
+
+type MessagingTab = "send" | "templates" | "history";
+
+const TABS: { id: MessagingTab; label: string }[] = [
+  { id: "send", label: "발송" },
+  { id: "templates", label: "템플릿" },
+  { id: "history", label: "내역" },
+];
+
+function parseTab(value: string | null): MessagingTab {
+  return value === "templates" || value === "history" ? value : "send";
+}
 
 export default function MessagingPage() {
   const { data: me, isLoading } = useMe();
@@ -26,11 +40,24 @@ export default function MessagingPage() {
     );
   }
 
-  return <MessagingWorkspace />;
+  return (
+    <Suspense
+      fallback={
+        <div className="p-6">
+          <Spinner />
+        </div>
+      }
+    >
+      <MessagingWorkspace />
+    </Suspense>
+  );
 }
 
 function MessagingWorkspace() {
-  const { data: logs = [], isLoading, error, refetch } = useMessageLogs();
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState<MessagingTab>(() =>
+    parseTab(searchParams.get("tab")),
+  );
 
   return (
     <div className="flex min-h-screen flex-col gap-6 p-6">
@@ -41,13 +68,41 @@ function MessagingWorkspace() {
         </p>
       </header>
 
-      <MessagingComposer />
-      <MessageLogList
-        logs={logs}
-        isLoading={isLoading}
-        error={error}
-        onRetry={() => void refetch()}
-      />
+      <div
+        role="tablist"
+        aria-label="메시징 메뉴"
+        className="flex border-b border-line"
+      >
+        {TABS.map((item) => (
+          <button
+            key={item.id}
+            id={`messaging-tab-${item.id}`}
+            type="button"
+            role="tab"
+            aria-selected={tab === item.id}
+            aria-controls={`messaging-panel-${item.id}`}
+            tabIndex={tab === item.id ? 0 : -1}
+            onClick={() => setTab(item.id)}
+            className={`px-5 py-3 text-sm font-bold ${
+              tab === item.id
+                ? "border-b-2 border-brand text-brand"
+                : "text-t3 hover:text-t1"
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      <div
+        id={`messaging-panel-${tab}`}
+        role="tabpanel"
+        aria-labelledby={`messaging-tab-${tab}`}
+      >
+        {tab === "send" && <MessagingComposer initialMode="auto" />}
+        {tab === "templates" && <TemplatesTab />}
+        {tab === "history" && <HistoryTab />}
+      </div>
     </div>
   );
 }

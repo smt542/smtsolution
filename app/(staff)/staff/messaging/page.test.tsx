@@ -2,12 +2,19 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MyContext } from "@/hooks/reactquery/auth";
 import type { MessageLog } from "@/hooks/reactquery/messaging";
-import type { MessagingPreset } from "@/lib/messaging/preset";
+import type { MessagingPreset, SendMode } from "@/lib/messaging/preset";
 
-const { composerSpy } = vi.hoisted(() => ({
+const { composerSpy, navigationState } = vi.hoisted(() => ({
   composerSpy: vi.fn(),
+  navigationState: { tab: null as string | null },
 }));
 
+vi.mock("next/navigation", () => ({
+  useSearchParams: () =>
+    new URLSearchParams(
+      navigationState.tab ? { tab: navigationState.tab } : undefined,
+    ),
+}));
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
 vi.mock("@/hooks/reactquery/messaging", () => ({
   useMessageLogs: vi.fn(),
@@ -15,11 +22,15 @@ vi.mock("@/hooks/reactquery/messaging", () => ({
 vi.mock("./components/MessagingComposer", () => ({
   MessagingComposer: (props: {
     preset?: MessagingPreset;
+    initialMode?: SendMode;
     onSent?: (result: { logId: number; count: number }) => void;
   }) => {
     composerSpy(props);
     return <div data-testid="messaging-composer">COMPOSER</div>;
   },
+}));
+vi.mock("./components/TemplatesTab", () => ({
+  TemplatesTab: () => <button type="button">새 템플릿</button>,
 }));
 
 import { useMe } from "@/hooks/reactquery/auth";
@@ -52,6 +63,7 @@ const logs: MessageLog[] = [
     result: "stub",
     sentBy: "user-1",
     sentAt: "2026-08-13T01:30:00.000Z",
+    templateId: null,
   },
 ];
 
@@ -82,6 +94,7 @@ function setup({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  navigationState.tab = null;
   setup();
 });
 
@@ -96,13 +109,26 @@ describe("MessagingPage", () => {
     expect(useMessageLogs).not.toHaveBeenCalled();
   });
 
-  it("Composer와 useMessageLogs 기반 발송 이력을 렌더한다", () => {
+  it("발송·템플릿·내역 탭을 렌더하고 전환한다", () => {
     render(<MessagingPage />);
 
     expect(
       screen.getByRole("heading", { name: "문자·알림톡 발송" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "발송" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByRole("tab", { name: "템플릿" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "내역" })).toBeInTheDocument();
     expect(screen.getByTestId("messaging-composer")).toBeInTheDocument();
+    expect(composerSpy).toHaveBeenCalledWith({ initialMode: "auto" });
+    expect(useMessageLogs).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("tab", { name: "템플릿" }));
+    expect(screen.getByRole("button", { name: "새 템플릿" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "내역" }));
     expect(useMessageLogs).toHaveBeenCalledWith();
     expect(screen.getByText("user-1")).toBeInTheDocument();
     expect(
@@ -110,7 +136,7 @@ describe("MessagingPage", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("2026. 08. 13. 10:30")).toBeInTheDocument();
     expect(screen.getByText("2명")).toBeInTheDocument();
-    expect(screen.getByText("SMS")).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: "SMS" })).toBeInTheDocument();
     expect(screen.getByText("8월 관리비 납부를 부탁드립니다.")).toBeInTheDocument();
     expect(screen.getByText("stub")).toBeInTheDocument();
   });
@@ -118,12 +144,26 @@ describe("MessagingPage", () => {
   it("발송 이력 조회 오류를 표시하고 재시도하면 쿼리를 다시 요청한다", () => {
     setup({ messageLogs: [], logsError: new Error("network error") });
     render(<MessagingPage />);
+    fireEvent.click(screen.getByRole("tab", { name: "내역" }));
 
     expect(screen.getByRole("alert")).toHaveTextContent(
       "발송 이력을 불러오지 못했습니다.",
     );
     fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
     expect(refetchLogs).toHaveBeenCalledOnce();
+  });
+
+  it("tab 쿼리로 초기 탭을 선택한다", () => {
+    navigationState.tab = "history";
+
+    render(<MessagingPage />);
+
+    expect(screen.getByRole("tab", { name: "내역" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByText("user-1")).toBeInTheDocument();
+    expect(screen.queryByTestId("messaging-composer")).not.toBeInTheDocument();
   });
 });
 
@@ -168,6 +208,10 @@ describe("MessagingModal", () => {
     );
 
     expect(screen.getByTestId("messaging-composer")).toBeInTheDocument();
-    expect(composerSpy).toHaveBeenCalledWith({ preset, onSent });
+    expect(composerSpy).toHaveBeenCalledWith({
+      preset,
+      onSent,
+      initialMode: "sms",
+    });
   });
 });
