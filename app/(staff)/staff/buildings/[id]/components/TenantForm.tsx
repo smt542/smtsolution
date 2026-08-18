@@ -30,7 +30,7 @@ export function TenantForm({ buildingId, unitId }: { buildingId: number; unitId?
   const { data: roomTypes } = useRoomTypes();
   const { data: full } = useUnitOccupancyFull(unitId ?? 0);
 
-  const [basic, setBasic] = useState<TenantBasicValue>({ unitNo: "", floor: null, usageType: "residential", tenantName: "", payerName: "", phone: "", phone2: "", phone3: "", vehicleNo: "", residentCount: null, roomTypeId: null, moveInDate: "" });
+  const [basic, setBasic] = useState<TenantBasicValue>({ unitNo: "", floor: null, usageType: "residential", tenantName: "", payerName: "", phone: "", phone2: "", phone3: "", faxNumber: "", vehicleNo: "", residentCount: null, roomTypeId: null, moveInDate: "" });
   const [billing, setBilling] = useState<TenantBillingValue>({ billingEnabled: true, lateFeeEnabled: true, singlePrint: false, transferMethod: "none", billingNote: "", settlementNote: "" });
   const [bill, setBill] = useState<TenantBillValue>({ printEnabled: true, billNameDisplay: "name", billDelivery: "post", billAuth: false });
   const [meters, setMeters] = useState<MeterRow[]>(emptyMeters());
@@ -55,7 +55,7 @@ export function TenantForm({ buildingId, unitId }: { buildingId: number; unitId?
     setBasic({
       unitNo: full.unit.unitNo, floor: full.unit.floor, usageType: full.unit.usageType,
       tenantName: o?.tenantName ?? "", payerName: o?.payerName ?? "", phone: o?.phone ?? "",
-      phone2: o?.phone2 ?? "", phone3: o?.phone3 ?? "", vehicleNo: o?.vehicleNo ?? "", residentCount: o?.residentCount ?? null,
+      phone2: o?.phone2 ?? "", phone3: o?.phone3 ?? "", faxNumber: o?.faxNumber ?? "", vehicleNo: o?.vehicleNo ?? "", residentCount: o?.residentCount ?? null,
       roomTypeId: o?.roomTypeId ?? null, moveInDate: o?.moveInDate ?? "",
     });
     setBilling({
@@ -84,7 +84,7 @@ export function TenantForm({ buildingId, unitId }: { buildingId: number; unitId?
     const parsed = occupancyBasicSchema.safeParse({
       unitNo: basic.unitNo, floor: basic.floor, usageType: basic.usageType,
       tenantName: basic.tenantName, payerName: basic.payerName, phone: basic.phone,
-      phone2: basic.phone2, phone3: basic.phone3, vehicleNo: basic.vehicleNo, residentCount: basic.residentCount,
+      phone2: basic.phone2, phone3: basic.phone3, faxNumber: basic.faxNumber, vehicleNo: basic.vehicleNo, residentCount: basic.residentCount,
       roomTypeId: basic.roomTypeId ?? 0, moveInDate: basic.moveInDate,
     });
     if (!parsed.success) {
@@ -97,7 +97,7 @@ export function TenantForm({ buildingId, unitId }: { buildingId: number; unitId?
       buildingId, unitId: unitId ?? null, occupancyId,
       unit: { unitNo: basic.unitNo, floor: basic.floor, usageType: basic.usageType },
       occupancy: {
-        tenantName: basic.tenantName, payerName: basic.payerName, phone: basic.phone, phone2: basic.phone2, phone3: basic.phone3,
+        tenantName: basic.tenantName, payerName: basic.payerName, phone: basic.phone, phone2: basic.phone2, phone3: basic.phone3, faxNumber: basic.faxNumber,
         vehicleNo: basic.vehicleNo, residentCount: basic.residentCount, roomTypeId: basic.roomTypeId, moveInDate: basic.moveInDate,
         moveOutDate: full?.occupancy?.moveOutDate ?? null, status: full?.occupancy?.status ?? "occupied",
         billingEnabled: billing.billingEnabled, printEnabled: bill.printEnabled, lateFeeEnabled: billing.lateFeeEnabled,

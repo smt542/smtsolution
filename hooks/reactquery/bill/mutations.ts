@@ -1,11 +1,33 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { issueBills, type IssueBillsPayload } from "./apis";
+import {
+  issueBills,
+  recordBillDelivery,
+  sendBillFaxes,
+  type IssueBillsPayload,
+  type RecordBillDeliveryPayload,
+} from "./apis";
 import { billKeys } from "./keys";
 
 export function useIssueBills() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (p: IssueBillsPayload) => issueBills(p),
+    onSuccess: () => qc.invalidateQueries({ queryKey: billKeys.all }),
+  });
+}
+
+export function useRecordBillDelivery() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (p: RecordBillDeliveryPayload) => recordBillDelivery(p),
+    onSuccess: () => qc.invalidateQueries({ queryKey: billKeys.all }),
+  });
+}
+
+export function useSendBillFaxes() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (p: Omit<RecordBillDeliveryPayload, "issueType" | "sendStatus">) => sendBillFaxes(p),
     onSuccess: () => qc.invalidateQueries({ queryKey: billKeys.all }),
   });
 }

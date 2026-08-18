@@ -8,6 +8,7 @@ export const occupancyBasicSchema = z.object({
   phone: z.string().min(1, "연락처를 입력해 주세요"),
   phone2: z.string().optional(),
   phone3: z.string().optional(),
+  faxNumber: z.string().optional(),
   vehicleNo: z.string().optional(),
   residentCount: z.number().int().min(0).nullable().optional(),
   roomTypeId: z.number().int().positive({ message: "룸타입을 선택해 주세요" }),

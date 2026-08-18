@@ -28,4 +28,9 @@ describe("BillPrintView", () => {
       accounts={[]} customerNotice={null} documents={[doc]} />);
     expect(screen.getByText(/홍길동/)).toBeInTheDocument();
   });
+  it("선택 세대에만 단전·단수 예고를 출력", () => {
+    render(<BillPrintView buildingName="B" period="2026-08-01" unitLabelMode="code" dueDate={null}
+      accounts={[]} customerNotice={null} documents={[doc]} waterCutoffUnitIds={[1]} />);
+    expect(screen.getByText("[단전·단수 예고]")).toBeInTheDocument();
+  });
 });

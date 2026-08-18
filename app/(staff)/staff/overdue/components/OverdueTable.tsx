@@ -16,6 +16,8 @@ export function OverdueTable({
   onRowClick: (row: OverdueHousehold) => void;
 }) {
   const allSelected = rows.length > 0 && rows.every((row) => selectedIds.has(row.occupancyId));
+  const totalOverdueAmount = rows.reduce((sum, row) => sum + row.overdueAmount, 0);
+  const totalLateFeeAmount = rows.reduce((sum, row) => sum + (row.lateFeeAmount ?? 0), 0);
 
   const stopRowClick = (event: MouseEvent<HTMLInputElement>) => event.stopPropagation();
   const openWithKeyboard = (event: KeyboardEvent<HTMLTableRowElement>, row: OverdueHousehold) => {
@@ -27,7 +29,7 @@ export function OverdueTable({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[840px] text-sm">
+      <table className="w-full min-w-[960px] text-sm">
         <thead>
           <tr className="border-b border-line bg-bg/80 text-left text-t2">
             <th scope="col" className="w-14 px-5 py-3.5">
@@ -44,6 +46,7 @@ export function OverdueTable({
             <th scope="col" className="px-3 py-3.5 font-bold">연락처</th>
             <th scope="col" className="px-3 py-3.5 text-right font-bold">연체 개월수</th>
             <th scope="col" className="px-3 py-3.5 text-right font-bold">미납금액</th>
+            <th scope="col" className="px-3 py-3.5 text-right font-bold">연체료</th>
             <th scope="col" className="px-5 py-3.5 font-bold">최근 납부일</th>
           </tr>
         </thead>
@@ -80,11 +83,28 @@ export function OverdueTable({
                 <td className={`num px-3 py-4 text-right font-bold ${row.billingAvailable ? "text-red" : "text-t3"}`}>
                   {formatWon(row.overdueAmount)}
                 </td>
+                <td className="num px-3 py-4 text-right font-bold text-t1">
+                  {formatWon(row.lateFeeAmount ?? 0)}
+                </td>
                 <td className="num px-5 py-4 text-t3">{formatDate(row.lastPaymentDate)}</td>
               </tr>
             );
           })}
         </tbody>
+        <tfoot>
+          <tr className="border-t border-line bg-bg/80 font-bold text-t1">
+            <th scope="row" colSpan={5} className="px-5 py-3 text-left">
+              합계 ({rows.length}세대)
+            </th>
+            <td className="num px-3 py-3 text-right">
+              {formatWon(totalOverdueAmount)}
+            </td>
+            <td className="num px-3 py-3 text-right">
+              {formatWon(totalLateFeeAmount)}
+            </td>
+            <td className="px-5 py-3" />
+          </tr>
+        </tfoot>
       </table>
     </div>
   );

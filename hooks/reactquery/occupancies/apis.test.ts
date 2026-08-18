@@ -24,14 +24,14 @@ describe("occupancies hub apis", () => {
     const res = await saveUnitOccupancy({
       buildingId:7, unitId:null, occupancyId:null,
       unit:{ unitNo:"101", floor:3, usageType:"commercial" },
-      occupancy:{ tenantName:"김입주", payerName:"김입주", phone:"010", roomTypeId:1, moveInDate:"2026-01-01", status:"occupied",
+      occupancy:{ tenantName:"김입주", payerName:"김입주", phone:"010", faxNumber:"02-1234", roomTypeId:1, moveInDate:"2026-01-01", status:"occupied",
         billingEnabled:true, printEnabled:true, lateFeeEnabled:true, singlePrint:false,
         transferMethod:"auto_transfer", billNameDisplay:"name", billDelivery:"alimtalk", billAuth:true },
       meters:[{ utility:"water", meterNo:"M1", customerNo:"C1" }],
       accounts:[{ kind:"mgmt", bank:"국민", account:"111", holder:"김", cmsMemberNo:"CMS1", payerNo:"PAYER1" }],
       lease:{ deposit:1000000, monthlyRent:500000, expiryAlert:false },
     });
-    expect(rpc).toHaveBeenCalledWith("save_unit_occupancy", expect.objectContaining({ p_building_id:7, p_unit_id:null }));
+    expect(rpc).toHaveBeenCalledWith("save_unit_occupancy_with_fax", expect.objectContaining({ p_building_id:7, p_unit_id:null }));
     const args = rpc.mock.calls[0][1];
     expect(args.p_unit).toMatchObject({ unit_no:"101", floor:3, usage_type:"commercial" });
     expect(args.p_occupancy).toMatchObject({
@@ -40,6 +40,7 @@ describe("occupancies hub apis", () => {
     });
     expect(args.p_meters[0]).toMatchObject({ utility:"water", meter_no:"M1", customer_no:"C1" });
     expect(args.p_accounts[0]).toMatchObject({ kind:"mgmt", bank:"국민", cms_member_no:"CMS1", payer_no:"PAYER1" });
+    expect(args.p_fax_number).toBe("02-1234");
     expect(args.p_lease).toMatchObject({ deposit:1000000, monthly_rent:500000 });
     expect(res).toEqual({ unitId:3, occupancyId:9 });
   });
@@ -52,7 +53,7 @@ describe("occupancies hub apis", () => {
     });
     const occupancySingle = vi.fn().mockResolvedValue({
       data: {
-        id: 9, unit_id: 3, tenant_name: "김입주", payer_name: "김입주", phone: "010", phone2: null, phone3: null,
+        id: 9, unit_id: 3, tenant_name: "김입주", payer_name: "김입주", phone: "010", phone2: null, phone3: null, fax_number: "02-1234",
         vehicle_no: null, resident_count: 1, room_type_id: 1, move_in_date: "2026-01-01", move_out_date: null,
         status: "occupied", billing_enabled: true, print_enabled: true, late_fee_enabled: true, single_print: false,
         billing_note: null, settlement_note: null, facility_note: null, transfer_method: "giro",
@@ -67,7 +68,7 @@ describe("occupancies hub apis", () => {
     const result = await getUnitOccupancyFull(3);
     expect(rpc).toHaveBeenNthCalledWith(1, "execute_due_move_outs");
     expect(result.occupancy).toMatchObject({
-      transferMethod: "giro", billNameDisplay: "code", billDelivery: "alimtalk", billAuth: true,
+      transferMethod: "giro", billNameDisplay: "code", billDelivery: "alimtalk", billAuth: true, faxNumber: "02-1234",
       moveOutScheduledDate: "2026-08-31",
     });
   });

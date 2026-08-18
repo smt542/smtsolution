@@ -11,7 +11,7 @@ export type BillNameDisplay = "none" | "name" | "code";
 export type BillDelivery = "post" | "alimtalk";
 export interface Occupancy {
   id: number; unitId: number; tenantName: string | null; payerName: string | null;
-  phone: string | null; phone2: string | null; phone3: string | null; vehicleNo: string | null;
+  phone: string | null; phone2: string | null; phone3: string | null; faxNumber: string | null; vehicleNo: string | null;
   residentCount: number | null; roomTypeId: number | null; moveInDate: string | null; moveOutDate: string | null;
   status: OccupancyStatus; billingEnabled: boolean; printEnabled: boolean; lateFeeEnabled: boolean;
   singlePrint: boolean; billingNote: string | null; settlementNote: string | null; facilityNote: string | null;
@@ -20,7 +20,7 @@ export interface Occupancy {
 }
 type OccupancyRow = {
   id: number; unit_id: number; tenant_name: string | null; payer_name: string | null;
-  phone: string | null; phone2: string | null; phone3: string | null; vehicle_no: string | null;
+  phone: string | null; phone2: string | null; phone3: string | null; fax_number: string | null; vehicle_no: string | null;
   resident_count: number | null; room_type_id: number | null; move_in_date: string | null; move_out_date: string | null;
   status: OccupancyStatus; billing_enabled: boolean; print_enabled: boolean; late_fee_enabled: boolean;
   single_print: boolean; billing_note: string | null; settlement_note: string | null; facility_note: string | null;
@@ -29,7 +29,7 @@ type OccupancyRow = {
 };
 const rowToOccupancy = (r: OccupancyRow): Occupancy => ({
   id: r.id, unitId: r.unit_id, tenantName: r.tenant_name, payerName: r.payer_name,
-  phone: r.phone, phone2: r.phone2, phone3: r.phone3, vehicleNo: r.vehicle_no,
+  phone: r.phone, phone2: r.phone2, phone3: r.phone3, faxNumber: r.fax_number, vehicleNo: r.vehicle_no,
   residentCount: r.resident_count, roomTypeId: r.room_type_id, moveInDate: r.move_in_date, moveOutDate: r.move_out_date,
   status: r.status, billingEnabled: r.billing_enabled, printEnabled: r.print_enabled, lateFeeEnabled: r.late_fee_enabled,
   singlePrint: r.single_print, billingNote: r.billing_note, settlementNote: r.settlement_note, facilityNote: r.facility_note,
@@ -64,7 +64,7 @@ export interface SaveUnitOccupancyPayload {
     floor: number | null; usageType: UnitUsageType;
   };
   occupancy: {
-    tenantName: string; payerName: string; phone: string; phone2?: string | null; phone3?: string | null;
+    tenantName: string; payerName: string; phone: string; phone2?: string | null; phone3?: string | null; faxNumber?: string | null;
     vehicleNo?: string | null; residentCount?: number | null; roomTypeId: number | null; moveInDate: string;
     moveOutDate?: string | null; status: OccupancyStatus; billingEnabled: boolean; printEnabled: boolean;
     lateFeeEnabled: boolean; singlePrint: boolean; billingNote?: string | null; settlementNote?: string | null; facilityNote?: string | null;
@@ -113,7 +113,7 @@ export async function listOccupancies(unitId: number): Promise<Occupancy[]> {
 }
 
 export async function saveUnitOccupancy(p: SaveUnitOccupancyPayload): Promise<SaveUnitOccupancyResult> {
-  const { data, error } = await createClient().rpc("save_unit_occupancy", {
+  const { data, error } = await createClient().rpc("save_unit_occupancy_with_fax", {
     p_building_id: p.buildingId,
     p_unit_id: p.unitId ?? null,
     p_occupancy_id: p.occupancyId ?? null,
@@ -136,6 +136,7 @@ export async function saveUnitOccupancy(p: SaveUnitOccupancyPayload): Promise<Sa
     p_meters: p.meters.map((m) => ({ utility: m.utility, meter_no: m.meterNo ?? null, customer_no: m.customerNo ?? null })),
     p_accounts: p.accounts.map((a) => ({ kind: a.kind, bank: a.bank ?? null, account: a.account ?? null, holder: a.holder ?? null, cms_member_no: a.cmsMemberNo ?? null, payer_no: a.payerNo ?? null })),
     p_lease: p.lease ? { deposit: p.lease.deposit ?? null, monthly_rent: p.lease.monthlyRent ?? null, start_date: p.lease.startDate ?? null, end_date: p.lease.endDate ?? null, expiry_alert: p.lease.expiryAlert } : null,
+    p_fax_number: p.occupancy.faxNumber ?? null,
   });
   if (error) throw new Error(error.message);
   const result = data as { unit_id: number; occupancy_id: number };

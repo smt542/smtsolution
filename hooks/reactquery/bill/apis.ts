@@ -4,14 +4,19 @@ import type { BillItem, BillNameDisplay } from "@/lib/bill/document";
 export interface BillTarget {
   unitId: number; unitNo: string; dong: string | null; occupancyId: number | null;
   tenantName: string | null; payerName: string | null; payerNo: string | null;
-  billNameDisplay: BillNameDisplay; phone: string | null;
+  billNameDisplay: BillNameDisplay; phone: string | null; secondaryPhone: string | null; faxNumber: string | null;
   totalAmount: number; autoDebit: boolean;
   issueType: string | null; dueDate: string | null; sendStatus: string | null; issuedAt: string | null;
+  singlePrint: boolean; waterCutoff: boolean; scheduledAt: string | null; messageScheduleId: number | null;
+  kakaoSendStatus: string | null; faxSendStatus: string | null;
 }
 type BillTargetDbRow = {
   unit_id: number; unit_no: string; dong: string | null; occupancy_id: number | null;
-  tenant_name: string | null; phone: string | null; total_amount: number; auto_debit: boolean;
+  tenant_name: string | null; phone: string | null; phone2: string | null; fax_number: string | null;
+  total_amount: number; auto_debit: boolean;
   issue_type: string | null; due_date: string | null; send_status: string | null; issued_at: string | null;
+  single_print: boolean; water_cutoff: boolean; scheduled_at: string | null; message_schedule_id: number | null;
+  kakao_send_status: string | null; fax_send_status: string | null;
 };
 type BillTargetEnrichment = Pick<BillTarget, "payerName" | "payerNo" | "billNameDisplay">;
 const defaultTargetEnrichment: BillTargetEnrichment = {
@@ -24,9 +29,12 @@ const rowToTarget = (
   enrichment: BillTargetEnrichment = defaultTargetEnrichment,
 ): BillTarget => ({
   unitId: r.unit_id, unitNo: r.unit_no, dong: r.dong, occupancyId: r.occupancy_id,
-  tenantName: r.tenant_name, phone: r.phone, ...enrichment,
+  tenantName: r.tenant_name, phone: r.phone, secondaryPhone: r.phone2, faxNumber: r.fax_number, ...enrichment,
   totalAmount: r.total_amount, autoDebit: r.auto_debit,
   issueType: r.issue_type, dueDate: r.due_date, sendStatus: r.send_status, issuedAt: r.issued_at,
+  singlePrint: r.single_print, waterCutoff: r.water_cutoff,
+  scheduledAt: r.scheduled_at, messageScheduleId: r.message_schedule_id,
+  kakaoSendStatus: r.kakao_send_status, faxSendStatus: r.fax_send_status,
 });
 
 export interface BillDocument {
@@ -108,16 +116,54 @@ export async function getBillDocuments(buildingId: number, period: string, unitI
 
 export interface IssueBillsPayload {
   buildingId: number; period: string; unitIds: number[]; issueType: string; dueDate: string | null; unitLabelMode: "code" | "name";
+  waterCutoffUnitIds?: number[];
 }
 
 export async function issueBills(p: IssueBillsPayload): Promise<{ count: number }> {
   const { data, error } = await createClient().rpc("issue_bills", {
     p_building_id: p.buildingId, p_period: p.period, p_unit_ids: p.unitIds,
     p_issue_type: p.issueType, p_due_date: p.dueDate, p_unit_label_mode: p.unitLabelMode,
+    ...(p.waterCutoffUnitIds === undefined ? {} : { p_water_cutoff_unit_ids: p.waterCutoffUnitIds }),
   });
   if (error) throw new Error(error.message);
   const r = (data ?? { count: 0 }) as { count: number };
   return { count: r.count };
+}
+
+export type BillDeliveryStatus = "scheduled" | "sent" | "failed";
+
+export interface RecordBillDeliveryPayload {
+  buildingId: number;
+  period: string;
+  unitIds: number[];
+  issueType: "kakao" | "fax";
+  sendStatus: BillDeliveryStatus;
+  messageLogId?: number | null;
+  messageScheduleId?: number | null;
+  scheduledAt?: string | null;
+}
+
+export async function recordBillDelivery(p: RecordBillDeliveryPayload): Promise<{ count: number }> {
+  const { data, error } = await createClient().rpc("record_bill_delivery", {
+    p_building_id: p.buildingId,
+    p_period: p.period,
+    p_unit_ids: p.unitIds,
+    p_issue_type: p.issueType,
+    p_send_status: p.sendStatus,
+    p_message_log_id: p.messageLogId ?? null,
+    p_message_schedule_id: p.messageScheduleId ?? null,
+    p_scheduled_at: p.scheduledAt ?? null,
+  });
+  if (error) throw new Error(error.message);
+  const result = (data ?? { count: 0 }) as { count: number };
+  return { count: result.count };
+}
+
+// 팩스 공급사 랜딩 전까지 동일한 발송 트리거 계약으로 성공 상태를 기록하는 스텁이다.
+export async function sendBillFaxes(
+  p: Omit<RecordBillDeliveryPayload, "issueType" | "sendStatus">,
+): Promise<{ count: number }> {
+  return recordBillDelivery({ ...p, issueType: "fax", sendStatus: "sent" });
 }
 
 export async function getOrganizationName(orgId: number): Promise<string | null> {

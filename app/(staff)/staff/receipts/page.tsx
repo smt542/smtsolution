@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button, EmptyState, Input, SearchBar, Select, Spinner } from "@/components/common";
 import { useAccounts } from "@/hooks/reactquery/accounts";
@@ -23,24 +23,27 @@ import {
   type ComplaintStatus,
 } from "@/hooks/reactquery/complaints";
 import { hasModule } from "@/lib/auth/permissions";
+import type { MessagingPreset } from "@/lib/messaging/preset";
+import { MessagingModal } from "../messaging/components/MessagingModal";
 import {
   COMPLAINT_STATUS_LABEL,
   COMPLAINT_STATUS_OPTIONS,
   COMPLAINT_STATUS_STYLE,
+  endOfDayIso,
+  startOfDayIso,
 } from "./constants";
 import { ComplaintDetailModal } from "./components/ComplaintDetailModal";
 import { ComplaintFormModal } from "./components/ComplaintFormModal";
 import { ComplaintTable } from "./components/ComplaintTable";
+import { PaymentStatusSection } from "./components/PaymentStatusSection";
 
-function startOfDayIso(value: string) {
-  return value ? new Date(`${value}T00:00:00`).toISOString() : undefined;
-}
-
-function endOfDayIso(value: string) {
-  return value ? new Date(`${value}T23:59:59.999`).toISOString() : undefined;
-}
-
-function ComplaintManagement({ orgId }: { orgId: number }) {
+function ComplaintManagement({
+  orgId,
+  canSendMessages,
+}: {
+  orgId: number;
+  canSendMessages: boolean;
+}) {
   const [search, setSearch] = useState("");
   const [buildingFilter, setBuildingFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -50,8 +53,9 @@ function ComplaintManagement({ orgId }: { orgId: number }) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Complaint | null>(null);
+  const [messagingPreset, setMessagingPreset] = useState<MessagingPreset | null>(null);
 
-  const { data: buildings = [] } = useBuildings();
+  const { data: buildings = [], isLoading: isBuildingsLoading } = useBuildings();
   const { data: categories = [] } = useAsCategories();
   const { data: assignees = [] } = useAccounts({ type: "field_staff" });
   const {
@@ -215,9 +219,27 @@ function ComplaintManagement({ orgId }: { orgId: number }) {
     }
   };
 
-  // TODO(messaging): 공용 발송 모듈 완성 시 담당 기사와 민원·AS 안내 프리셋을 전달한다.
-  const messageAssignee = () => {
-    toast.info("담당 기사 문자 발송 연동은 준비 중입니다.");
+  const messageAssignee = (complaint: Complaint) => {
+    if (!canSendMessages) {
+      toast.info("문자 발송 권한이 필요합니다.");
+      return;
+    }
+    const assignee = assignees.find((account) => account.userId === complaint.assignedTo);
+    if (!assignee?.phone) {
+      toast.info("담당 기사 연락처가 등록되어 있지 않습니다.");
+      return;
+    }
+    setMessagingPreset({
+      context: "민원·AS 안내",
+      channel: "sms",
+      body: `민원·AS 안내: ${complaint.title}${complaint.content ? `\n${complaint.content}` : ""}`,
+      recipients: [{
+        name: assignee.fullName,
+        phone: assignee.phone,
+        kind: "staff",
+        ref: { userId: assignee.userId },
+      }],
+    });
   };
 
   const hasFilters =
@@ -235,7 +257,14 @@ function ComplaintManagement({ orgId }: { orgId: number }) {
 
   return (
     <div className="flex min-h-screen flex-col gap-5 p-6">
-      {/* TODO(payment): 수납 현황·영수증·고지서 발송은 P6 결제/수납 모듈에서 구현한다. */}
+      <PaymentStatusSection
+        buildings={buildings.filter((building) => building.orgId === orgId)}
+        isBuildingsLoading={isBuildingsLoading}
+        canSendMessages={canSendMessages}
+      />
+
+      <div className="my-2 border-t border-line" />
+
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-t1">민원·AS 접수</h1>
@@ -386,6 +415,18 @@ function ComplaintManagement({ orgId }: { orgId: number }) {
           onMessageAssignee={messageAssignee}
         />
       )}
+
+      {messagingPreset && (
+        <MessagingModal
+          open
+          preset={messagingPreset}
+          onClose={() => setMessagingPreset(null)}
+          onSent={(result) => {
+            toast.success(`문자가 발송되었습니다. (성공 ${result.count}건)`);
+            setMessagingPreset(null);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -402,5 +443,12 @@ export default function ReceiptManagementPage() {
     );
   }
 
-  return <ComplaintManagement orgId={me.orgId} />;
+  return (
+    <Suspense fallback={<Spinner />}>
+      <ComplaintManagement
+        orgId={me.orgId}
+        canSendMessages={hasModule(me, "messaging")}
+      />
+    </Suspense>
+  );
 }

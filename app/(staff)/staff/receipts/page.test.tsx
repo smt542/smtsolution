@@ -8,6 +8,16 @@ vi.mock("@/hooks/reactquery/units", () => ({ useUnits: vi.fn() }));
 vi.mock("@/hooks/reactquery/occupancies", () => ({ useOccupancies: vi.fn() }));
 vi.mock("@/hooks/reactquery/asCategories", () => ({ useAsCategories: vi.fn() }));
 vi.mock("@/hooks/reactquery/accounts", () => ({ useAccounts: vi.fn() }));
+vi.mock("./components/PaymentStatusSection", () => ({
+  PaymentStatusSection: () => <section><h1>수납관리·민원접수</h1><p>수납현황</p><button type="button">AS접수현황</button></section>,
+}));
+vi.mock("../messaging/components/MessagingModal", () => ({
+  MessagingModal: ({ preset }: any) => (
+    <div data-testid="messaging-preset">
+      {preset.context}:{preset.recipients[0]?.name}:{preset.recipients[0]?.phone}
+    </div>
+  ),
+}));
 vi.mock("@/hooks/reactquery/complaints", () => ({
   useComplaints: vi.fn(),
   useComplaintResolutions: vi.fn(),
@@ -199,6 +209,9 @@ describe("ReceiptManagementPage", () => {
 
   it("상태 요약과 실제 민원·AS 목록을 표시", () => {
     render(<ReceiptManagementPage />);
+    expect(screen.getByRole("heading", { name: "수납관리·민원접수" })).toBeInTheDocument();
+    expect(screen.getByText("수납현황")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "AS접수현황" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "민원·AS 접수" })).toBeInTheDocument();
     expect(screen.getByText("욕실 수전 누수")).toBeInTheDocument();
     expect(screen.getByText("공용등 교체")).toBeInTheDocument();
@@ -298,5 +311,15 @@ describe("ReceiptManagementPage", () => {
       id: 91,
       complaintId: 11,
     }));
+  });
+
+  it("담당 기사 문자 전송은 공용 메시징 프리셋을 연다", () => {
+    render(<ReceiptManagementPage />);
+    fireEvent.click(screen.getByText("욕실 수전 누수"));
+    fireEvent.click(screen.getByRole("button", { name: "담당 기사 문자 전송" }));
+
+    expect(screen.getByTestId("messaging-preset")).toHaveTextContent(
+      "민원·AS 안내:박기사:010-2222-3333",
+    );
   });
 });

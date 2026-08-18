@@ -4,15 +4,22 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button, EmptyState, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
+import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
 import {
   useOverdueBuildings,
   useOverdueHouseholds,
+  useOverduePeriods,
   type OverdueHousehold,
   type OverdueScope,
 } from "@/hooks/reactquery/overdue";
 import { hasModule } from "@/lib/auth/permissions";
+import {
+  computeLateFee,
+  type OverduePeriodInput,
+} from "@/lib/billing/lateFee";
 import type { MessageRecipient } from "@/lib/messaging/preset";
 import { MessagingModal } from "../messaging/components/MessagingModal";
+import { LateFeeRateModal } from "./components/LateFeeRateModal";
 import { OverdueDetailModal } from "./components/OverdueDetailModal";
 import { OverdueTable } from "./components/OverdueTable";
 import { OverdueToolbar } from "./components/OverdueToolbar";
@@ -27,6 +34,7 @@ export default function OverduePage() {
   const { data: me, isLoading: isMeLoading } = useMe();
   const canAccess = hasModule(me, "overdue");
   const canSendMessages = hasModule(me, "messaging");
+  const canEditLateFeeRate = hasModule(me, "billing");
   const {
     data: buildings = [],
     isLoading: isBuildingsLoading,
@@ -43,26 +51,72 @@ export default function OverduePage() {
   const [detailHousehold, setDetailHousehold] = useState<OverdueHousehold | null>(null);
   const [messageRecipients, setMessageRecipients] = useState<MessageRecipient[]>([]);
   const [isMessagingOpen, setIsMessagingOpen] = useState(false);
+  const [isRateModalOpen, setIsRateModalOpen] = useState(false);
+
+  const overdueQuery = {
+    year: targetPeriod.year,
+    month: targetPeriod.month,
+    scope,
+  };
 
   const {
     data: households = [],
     isLoading: isHouseholdsLoading,
     error: householdsError,
     refetch,
-  } = useOverdueHouseholds(canAccess ? selectedBuildingId : null, {
-    year: targetPeriod.year,
-    month: targetPeriod.month,
-    scope,
-  });
+  } = useOverdueHouseholds(canAccess ? selectedBuildingId : null, overdueQuery);
+  const { data: overduePeriods = [] } = useOverduePeriods(
+    canAccess ? selectedBuildingId : null,
+    overdueQuery,
+  );
+  const { data: lateFeeRateTiers = [] } = useLateFeeRateTiers(me?.orgId ?? null);
+
+  const rowsWithLateFee = useMemo(() => {
+    if (households.length === 0) return households;
+
+    const periodsByHousehold = new Map<string, OverduePeriodInput[]>();
+    for (const period of overduePeriods) {
+      const key = `${period.occupancyId}:${period.unitId}`;
+      const householdPeriods = periodsByHousehold.get(key) ?? [];
+      householdPeriods.push({
+        period: period.period as OverduePeriodInput["period"],
+        unpaidPrincipal: period.unpaidPrincipal,
+        dueDate: period.dueDate,
+      });
+      periodsByHousehold.set(key, householdPeriods);
+    }
+
+    return households.map((household) => {
+      const result = computeLateFee(
+        periodsByHousehold.get(`${household.occupancyId}:${household.unitId}`) ?? [],
+        lateFeeRateTiers,
+        targetPeriod.year,
+        targetPeriod.month,
+      );
+      return {
+        ...household,
+        lateFeeAmount: result.totalLateFee,
+        lateFeeByPeriod: result.byPeriod,
+      };
+    });
+  }, [
+    households,
+    lateFeeRateTiers,
+    overduePeriods,
+    targetPeriod.month,
+    targetPeriod.year,
+  ]);
 
   const selectedBuilding = buildings.find((building) => building.id === selectedBuildingId) ?? null;
   const debtTargetCount = useMemo(
-    () => households.filter(isDebtCollectionTarget).length,
-    [households],
+    () => rowsWithLateFee.filter(isDebtCollectionTarget).length,
+    [rowsWithLateFee],
   );
   const visibleHouseholds = useMemo(
-    () => debtFilterEnabled ? households.filter(isDebtCollectionTarget) : households,
-    [debtFilterEnabled, households],
+    () => debtFilterEnabled
+      ? rowsWithLateFee.filter(isDebtCollectionTarget)
+      : rowsWithLateFee,
+    [debtFilterEnabled, rowsWithLateFee],
   );
   const selectedCount = visibleHouseholds.filter((row) => selectedIds.has(row.occupancyId)).length;
 
@@ -94,7 +148,7 @@ export default function OverduePage() {
     setDebtFilterEnabled(nextEnabled);
     setSelectedIds(
       nextEnabled
-        ? new Set(households.filter(isDebtCollectionTarget).map((row) => row.occupancyId))
+        ? new Set(rowsWithLateFee.filter(isDebtCollectionTarget).map((row) => row.occupancyId))
         : new Set(),
     );
   };
@@ -185,6 +239,14 @@ export default function OverduePage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {canEditLateFeeRate && (
+            <Button
+              variant="ghost"
+              onClick={() => setIsRateModalOpen(true)}
+            >
+              연체료 요율 설정
+            </Button>
+          )}
           <Button
             variant="ghost"
             onClick={exportLedger}
@@ -270,6 +332,13 @@ export default function OverduePage() {
         )}
       </section>
 
+      {canEditLateFeeRate && me?.orgId != null && (
+        <LateFeeRateModal
+          open={isRateModalOpen}
+          orgId={me.orgId}
+          onClose={() => setIsRateModalOpen(false)}
+        />
+      )}
       <OverdueDetailModal household={detailHousehold} onClose={() => setDetailHousehold(null)} />
       <MessagingModal
         open={isMessagingOpen}

@@ -8,6 +8,7 @@ interface PaymentTableProps {
   rows: PaymentRow[];
   isLoading: boolean;
   onAction: (row: PaymentRow, action: PaymentAction) => void;
+  onStatement: (row: PaymentRow) => void;
 }
 
 function formatAmount(amount: number | null) {
@@ -18,7 +19,7 @@ function formatUnit(row: PaymentRow) {
   return row.dong ? `${row.dong} ${row.unitNo}` : row.unitNo;
 }
 
-export function PaymentTable({ rows, isLoading, onAction }: PaymentTableProps) {
+export function PaymentTable({ rows, isLoading, onAction, onStatement }: PaymentTableProps) {
   if (isLoading) return <Spinner />;
   if (rows.length === 0) {
     return <EmptyState message="조건에 맞는 수납 내역이 없습니다" />;
@@ -26,7 +27,7 @@ export function PaymentTable({ rows, isLoading, onAction }: PaymentTableProps) {
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-line bg-surface">
-      <table className="w-full min-w-[1180px] text-sm">
+      <table className="w-full min-w-[1280px] text-sm">
         <thead>
           <tr className="border-b border-line bg-bg text-left text-xs font-bold text-t3">
             <th className="px-4 py-3">호실</th>
@@ -123,9 +124,17 @@ export function PaymentTable({ rows, isLoading, onAction }: PaymentTableProps) {
                       type="button"
                       variant="ghost"
                       className="h-9 px-3 text-xs"
+                      onClick={() => onStatement(row)}
+                    >
+                      명세서
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="h-9 px-3 text-xs"
                       onClick={() => onAction(row, "cancel")}
                     >
-                      취소
+                      이력
                     </Button>
                   </div>
                 </td>

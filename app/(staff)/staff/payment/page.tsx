@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Button, EmptyState, SearchBar, Select, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
+import { useBillOrganizationName } from "@/hooks/reactquery/bill";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import {
   cmsDownloadUrl,
@@ -13,13 +15,17 @@ import {
   type PaymentKind,
   type PaymentMethod,
   type PaymentRow,
+  type UnitPayment,
 } from "@/hooks/reactquery/payments";
 import { hasModule } from "@/lib/auth/permissions";
+import { PROGRAM_COMPANY_NAME } from "@/lib/bill/document";
 import { currentPeriod, fromMonthInput, toMonthInput } from "@/lib/billing/period";
 import { BankImportModal } from "./components/BankImportModal";
 import { GiroLedgerModal } from "./components/GiroLedgerModal";
 import { PaymentAmountModal } from "./components/PaymentAmountModal";
 import { PaymentHistoryModal } from "./components/PaymentHistoryModal";
+import { PaymentReceiptModal } from "./components/PaymentReceiptModal";
+import { PaymentStatementModal } from "./components/PaymentStatementModal";
 import { PaymentTable } from "./components/PaymentTable";
 
 type AmountModalState = {
@@ -28,17 +34,59 @@ type AmountModalState = {
   method?: PaymentMethod;
 };
 
+type ReceiptState = {
+  row: PaymentRow;
+  payment: UnitPayment;
+};
+
+type PaymentDeepLinkView = "history" | "statement" | "receipt";
+
+type PaymentDeepLink = {
+  buildingId: number | null;
+  unitId: number | null;
+  period: string | null;
+  view: PaymentDeepLinkView | null;
+};
+
+function positiveInteger(value: string | null) {
+  if (!value || !/^\d+$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function paymentPeriod(value: string | null) {
+  if (!value) return null;
+  const match = /^(\d{4})-(0[1-9]|1[0-2])(?:-01)?$/.exec(value);
+  return match ? `${match[1]}-${match[2]}-01` : null;
+}
+
+export function parsePaymentDeepLink(searchParams: Pick<URLSearchParams, "get">): PaymentDeepLink {
+  const view = searchParams.get("view");
+  return {
+    buildingId: positiveInteger(searchParams.get("buildingId")),
+    unitId: positiveInteger(searchParams.get("unitId")),
+    period: paymentPeriod(searchParams.get("period")),
+    view: view === "history" || view === "statement" || view === "receipt" ? view : null,
+  };
+}
+
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
 function PaymentProcessing({ orgId }: { orgId: number }) {
+  const searchParams = useSearchParams();
+  const deepLink = parsePaymentDeepLink(searchParams);
   const { data: buildings = [], isLoading: areBuildingsLoading } = useBuildings();
-  const [buildingId, setBuildingId] = useState<number | null>(null);
-  const [period, setPeriod] = useState(() => currentPeriod());
+  const { data: organizationName } = useBillOrganizationName(orgId);
+  const [buildingId, setBuildingId] = useState<number | null>(() => deepLink.buildingId);
+  const [period, setPeriod] = useState(() => deepLink.period ?? currentPeriod());
   const [search, setSearch] = useState("");
   const [amountModal, setAmountModal] = useState<AmountModalState | null>(null);
-  const [historyUnitId, setHistoryUnitId] = useState<number | null>(null);
+  const [historyRow, setHistoryRow] = useState<PaymentRow | null>(null);
+  const [statementState, setStatementState] = useState<{ unitId: number | null } | null>(null);
+  const [receiptState, setReceiptState] = useState<ReceiptState | null>(null);
+  const [deepLinkDismissed, setDeepLinkDismissed] = useState(false);
   const [bankOpen, setBankOpen] = useState(false);
   const [giroOpen, setGiroOpen] = useState(false);
 
@@ -46,7 +94,12 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
     () => buildings.filter((building) => building.orgId === orgId),
     [buildings, orgId],
   );
-  const selectedBuildingId = buildingId ?? organizationBuildings[0]?.id ?? null;
+  const requestedBuilding = organizationBuildings.find((building) => building.id === buildingId);
+  const selectedBuildingId = requestedBuilding?.id ?? organizationBuildings[0]?.id ?? null;
+  const selectedBuilding = organizationBuildings.find(
+    (building) => building.id === selectedBuildingId,
+  ) ?? null;
+  const companyName = organizationName ?? PROGRAM_COMPANY_NAME;
   const {
     data: rows = [],
     isLoading: areRowsLoading,
@@ -55,6 +108,24 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
   } = usePaymentRows(selectedBuildingId, period);
   const recordPayment = useRecordPayment();
   const cancelPayment = useCancelPayment();
+  const deepLinkedRow = !deepLinkDismissed
+    && selectedBuildingId === deepLink.buildingId
+    && deepLink.unitId !== null
+    ? rows.find((row) => row.unitId === deepLink.unitId) ?? null
+    : null;
+  const activeHistoryRow = historyRow ?? (
+    deepLink.view === "history" || deepLink.view === "receipt" ? deepLinkedRow : null
+  );
+  const activeStatementState = statementState ?? (
+    deepLink.view === "statement" && deepLinkedRow
+      ? { unitId: deepLinkedRow.unitId }
+      : null
+  );
+  const deepLinkUnavailable = !deepLinkDismissed
+    && Boolean(deepLink.view && deepLink.buildingId && deepLink.unitId)
+    && !areBuildingsLoading
+    && !areRowsLoading
+    && !deepLinkedRow;
 
   const filteredRows = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase("ko-KR");
@@ -71,7 +142,7 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
 
   const openAction = (row: PaymentRow, action: PaymentKind | "cancel" | "giro") => {
     if (action === "cancel") {
-      setHistoryUnitId(row.unitId);
+      setHistoryRow(row);
       return;
     }
     if (action === "giro") {
@@ -121,7 +192,8 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
     : 0;
 
   return (
-    <div className="flex min-h-screen flex-col gap-5 p-4 sm:p-6">
+    <>
+      <div className="flex min-h-screen flex-col gap-5 p-4 print:hidden sm:p-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold text-t3">관리업무 · 수납 처리</p>
@@ -131,6 +203,14 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={selectedBuildingId === null}
+            onClick={() => setStatementState({ unitId: null })}
+          >
+            수납명세서 출력
+          </Button>
           <Button
             type="button"
             variant="ghost"
@@ -174,7 +254,10 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
               aria-label="건물 선택"
               value={selectedBuildingId?.toString() ?? ""}
               disabled={areBuildingsLoading || organizationBuildings.length === 0}
-              onChange={(event) => setBuildingId(Number(event.target.value))}
+              onChange={(event) => {
+                setBuildingId(Number(event.target.value));
+                setDeepLinkDismissed(true);
+              }}
               options={
                 organizationBuildings.length > 0
                   ? organizationBuildings.map((building) => ({
@@ -193,7 +276,10 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
               aria-label="부과월"
               value={toMonthInput(period)}
               onChange={(event) => {
-                if (event.target.value) setPeriod(fromMonthInput(event.target.value));
+                if (event.target.value) {
+                  setPeriod(fromMonthInput(event.target.value));
+                  setDeepLinkDismissed(true);
+                }
               }}
               className="h-11 w-full rounded-xl border border-line bg-surface px-4 text-sm text-t1 focus:border-brand focus:outline-none"
             />
@@ -209,6 +295,12 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
           </label>
         </div>
       </section>
+
+      {deepLinkUnavailable && (
+        <p role="alert" className="rounded-xl border border-amber/20 bg-amber-t px-4 py-3 text-sm font-semibold text-amber">
+          요청한 건물·호실의 수납 자료를 찾을 수 없습니다. 조회 조건을 확인해 주세요.
+        </p>
+      )}
 
       {isRowsError ? (
         <section className="rounded-2xl border border-red/20 bg-red-t p-8 text-center">
@@ -228,6 +320,7 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
           rows={filteredRows}
           isLoading={areBuildingsLoading || areRowsLoading}
           onAction={openAction}
+          onStatement={(row) => setStatementState({ unitId: row.unitId })}
         />
       )}
 
@@ -244,14 +337,22 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
         />
       )}
 
-      {historyUnitId !== null && (
+      {activeHistoryRow !== null && (
         <PaymentHistoryModal
           open
-          unitId={historyUnitId}
+          unitId={activeHistoryRow.unitId}
           period={period}
           isPending={cancelPayment.isPending}
-          onClose={() => setHistoryUnitId(null)}
+          onClose={() => {
+            setHistoryRow(null);
+            setDeepLinkDismissed(true);
+          }}
           onCancel={cancelRecordedPayment}
+          onReceipt={(payment) => {
+            setReceiptState({ row: activeHistoryRow, payment });
+            setHistoryRow(null);
+            setDeepLinkDismissed(true);
+          }}
         />
       )}
 
@@ -275,7 +376,33 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
           onClose={() => setBankOpen(false)}
         />
       )}
-    </div>
+      </div>
+
+      {activeStatementState && selectedBuilding && (
+        <PaymentStatementModal
+          building={selectedBuilding}
+          companyName={companyName}
+          currentPeriod={period}
+          currentRows={rows}
+          initialUnitId={activeStatementState.unitId}
+          onClose={() => {
+            setStatementState(null);
+            setDeepLinkDismissed(true);
+          }}
+        />
+      )}
+
+      {receiptState && selectedBuilding && (
+        <PaymentReceiptModal
+          building={selectedBuilding}
+          companyName={companyName}
+          row={receiptState.row}
+          payment={receiptState.payment}
+          period={period}
+          onClose={() => setReceiptState(null)}
+        />
+      )}
+    </>
   );
 }
 
@@ -291,5 +418,9 @@ export default function PaymentProcessingPage() {
     );
   }
 
-  return <PaymentProcessing orgId={me.orgId} />;
+  return (
+    <Suspense fallback={<Spinner />}>
+      <PaymentProcessing orgId={me.orgId} />
+    </Suspense>
+  );
 }
