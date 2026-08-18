@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button, EmptyState, SearchBar, Select, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
+import { useBillOrganizationName } from "@/hooks/reactquery/bill";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import {
   cmsDownloadUrl,
@@ -13,13 +14,17 @@ import {
   type PaymentKind,
   type PaymentMethod,
   type PaymentRow,
+  type UnitPayment,
 } from "@/hooks/reactquery/payments";
 import { hasModule } from "@/lib/auth/permissions";
+import { PROGRAM_COMPANY_NAME } from "@/lib/bill/document";
 import { currentPeriod, fromMonthInput, toMonthInput } from "@/lib/billing/period";
 import { BankImportModal } from "./components/BankImportModal";
 import { GiroLedgerModal } from "./components/GiroLedgerModal";
 import { PaymentAmountModal } from "./components/PaymentAmountModal";
 import { PaymentHistoryModal } from "./components/PaymentHistoryModal";
+import { PaymentReceiptModal } from "./components/PaymentReceiptModal";
+import { PaymentStatementModal } from "./components/PaymentStatementModal";
 import { PaymentTable } from "./components/PaymentTable";
 
 type AmountModalState = {
@@ -28,17 +33,25 @@ type AmountModalState = {
   method?: PaymentMethod;
 };
 
+type ReceiptState = {
+  row: PaymentRow;
+  payment: UnitPayment;
+};
+
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
 function PaymentProcessing({ orgId }: { orgId: number }) {
   const { data: buildings = [], isLoading: areBuildingsLoading } = useBuildings();
+  const { data: organizationName } = useBillOrganizationName(orgId);
   const [buildingId, setBuildingId] = useState<number | null>(null);
   const [period, setPeriod] = useState(() => currentPeriod());
   const [search, setSearch] = useState("");
   const [amountModal, setAmountModal] = useState<AmountModalState | null>(null);
-  const [historyUnitId, setHistoryUnitId] = useState<number | null>(null);
+  const [historyRow, setHistoryRow] = useState<PaymentRow | null>(null);
+  const [statementState, setStatementState] = useState<{ unitId: number | null } | null>(null);
+  const [receiptState, setReceiptState] = useState<ReceiptState | null>(null);
   const [bankOpen, setBankOpen] = useState(false);
   const [giroOpen, setGiroOpen] = useState(false);
 
@@ -47,6 +60,10 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
     [buildings, orgId],
   );
   const selectedBuildingId = buildingId ?? organizationBuildings[0]?.id ?? null;
+  const selectedBuilding = organizationBuildings.find(
+    (building) => building.id === selectedBuildingId,
+  ) ?? null;
+  const companyName = organizationName ?? PROGRAM_COMPANY_NAME;
   const {
     data: rows = [],
     isLoading: areRowsLoading,
@@ -71,7 +88,7 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
 
   const openAction = (row: PaymentRow, action: PaymentKind | "cancel" | "giro") => {
     if (action === "cancel") {
-      setHistoryUnitId(row.unitId);
+      setHistoryRow(row);
       return;
     }
     if (action === "giro") {
@@ -121,7 +138,8 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
     : 0;
 
   return (
-    <div className="flex min-h-screen flex-col gap-5 p-4 sm:p-6">
+    <>
+      <div className="flex min-h-screen flex-col gap-5 p-4 print:hidden sm:p-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold text-t3">관리업무 · 수납 처리</p>
@@ -131,6 +149,14 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={selectedBuildingId === null}
+            onClick={() => setStatementState({ unitId: null })}
+          >
+            수납명세서 출력
+          </Button>
           <Button
             type="button"
             variant="ghost"
@@ -228,6 +254,7 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
           rows={filteredRows}
           isLoading={areBuildingsLoading || areRowsLoading}
           onAction={openAction}
+          onStatement={(row) => setStatementState({ unitId: row.unitId })}
         />
       )}
 
@@ -244,14 +271,18 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
         />
       )}
 
-      {historyUnitId !== null && (
+      {historyRow !== null && (
         <PaymentHistoryModal
           open
-          unitId={historyUnitId}
+          unitId={historyRow.unitId}
           period={period}
           isPending={cancelPayment.isPending}
-          onClose={() => setHistoryUnitId(null)}
+          onClose={() => setHistoryRow(null)}
           onCancel={cancelRecordedPayment}
+          onReceipt={(payment) => {
+            setReceiptState({ row: historyRow, payment });
+            setHistoryRow(null);
+          }}
         />
       )}
 
@@ -275,7 +306,30 @@ function PaymentProcessing({ orgId }: { orgId: number }) {
           onClose={() => setBankOpen(false)}
         />
       )}
-    </div>
+      </div>
+
+      {statementState && selectedBuilding && (
+        <PaymentStatementModal
+          building={selectedBuilding}
+          companyName={companyName}
+          currentPeriod={period}
+          currentRows={rows}
+          initialUnitId={statementState.unitId}
+          onClose={() => setStatementState(null)}
+        />
+      )}
+
+      {receiptState && selectedBuilding && (
+        <PaymentReceiptModal
+          building={selectedBuilding}
+          companyName={companyName}
+          row={receiptState.row}
+          payment={receiptState.payment}
+          period={period}
+          onClose={() => setReceiptState(null)}
+        />
+      )}
+    </>
   );
 }
 

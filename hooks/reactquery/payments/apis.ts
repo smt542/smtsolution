@@ -83,6 +83,55 @@ export async function listUnitPayments(unitId: number, period: string): Promise<
     memo: r.memo, paidAt: r.paid_at, status: r.status, createdAt: r.created_at,
   }));
 }
+export interface BuildingPaymentDate {
+  unitId: number;
+  period: string;
+  paidAt: string;
+}
+
+export async function getPaymentReceiverName(paymentId: number): Promise<string | null> {
+  const supabase = createClient();
+  const { data: payment, error: paymentError } = await supabase
+    .from("payments")
+    .select("created_by")
+    .eq("id", paymentId)
+    .maybeSingle();
+  if (paymentError) throw new Error(paymentError.message);
+  if (!payment?.created_by) return null;
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("user_id", payment.created_by)
+    .maybeSingle();
+  if (profileError) throw new Error(profileError.message);
+  return profile?.full_name ?? null;
+}
+
+export async function listBuildingPaymentDates(
+  buildingId: number,
+  startPeriod: string,
+  endPeriod: string,
+): Promise<BuildingPaymentDate[]> {
+  const { data, error } = await createClient()
+    .from("payments")
+    .select("unit_id, period, paid_at, units!inner(building_id)")
+    .eq("units.building_id", buildingId)
+    .eq("status", "active")
+    .gte("period", startPeriod)
+    .lte("period", endPeriod)
+    .order("paid_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as unknown as Array<{
+    unit_id: number;
+    period: string;
+    paid_at: string;
+  }>).map((row) => ({
+    unitId: row.unit_id,
+    period: row.period,
+    paidAt: row.paid_at,
+  }));
+}
 
 export async function listGiroPayments(buildingId: number, period: string): Promise<GiroPayment[]> {
   const { data, error } = await createClient().rpc("list_giro_payments", { p_building_id: buildingId, p_period: period });

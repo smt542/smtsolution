@@ -4,12 +4,27 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
 vi.mock("@/hooks/reactquery/buildings", () => ({ useBuildings: vi.fn() }));
+vi.mock("@/hooks/reactquery/bill", () => ({
+  useBillOrganizationName: vi.fn(() => ({ data: "한빛관리" })),
+  useBillDocuments: vi.fn(() => ({ data: [], isLoading: false, isError: false })),
+  getBillDocuments: vi.fn(),
+  billKeys: { documents: vi.fn(() => ["bill", "documents"]) },
+}));
 vi.mock("@/hooks/reactquery/payments", () => ({
   cmsDownloadUrl: vi.fn(() => "/api/payment/cms"),
+  listPaymentRows: vi.fn(),
+  listBuildingPaymentDates: vi.fn(),
+  listUnitPayments: vi.fn(),
+  paymentKeys: {
+    rows: vi.fn(() => ["payments", "rows"]),
+    unit: vi.fn(() => ["payments", "unit"]),
+    statementDates: vi.fn(() => ["payments", "statement-dates"]),
+  },
   usePaymentRows: vi.fn(),
   useRecordPayment: vi.fn(),
   useCancelPayment: vi.fn(),
   useUnitPayments: vi.fn(),
+  usePaymentReceiver: vi.fn(() => ({ data: "이관리", isLoading: false, isError: false })),
   useGiroPayments: vi.fn(),
 }));
 vi.mock("sonner", () => ({
