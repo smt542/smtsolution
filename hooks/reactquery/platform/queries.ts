@@ -7,6 +7,11 @@ import {
   type PointTxType,
 } from "./apis";
 import { getOrgBuildings, getBuildingTenants, getUnitOccupancy } from "./drilldown";
+import {
+  listMessagePointRates,
+  listPointReservations,
+  type PointReservationStatus,
+} from "./pointBilling";
 import { platformKeys } from "./keys";
 
 export function usePlatformOverview() {
@@ -19,7 +24,7 @@ export function usePlatformOverview() {
 export function usePlatformOrganizations() {
   return useQuery({
     queryKey: platformKeys.organizations(),
-    queryFn: listPlatformOrganizations,
+    queryFn: () => listPlatformOrganizations({ includeDeleted: true }),
   });
 }
 
@@ -34,6 +39,20 @@ export function usePlatformTransactions(opts?: { type?: PointTxType }) {
   return useQuery({
     queryKey: platformKeys.transactions(opts),
     queryFn: () => listPointTransactions(opts),
+  });
+}
+
+export function useMessagePointRates(includeHistory = false) {
+  return useQuery({
+    queryKey: platformKeys.messagePointRates(includeHistory),
+    queryFn: () => listMessagePointRates(includeHistory),
+  });
+}
+
+export function usePointReservations(status?: PointReservationStatus) {
+  return useQuery({
+    queryKey: platformKeys.pointReservations(status),
+    queryFn: () => listPointReservations(status),
   });
 }
 

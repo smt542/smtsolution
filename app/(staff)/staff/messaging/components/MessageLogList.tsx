@@ -82,6 +82,7 @@ export function MessageLogList({
     { key: "recipientCount", label: "수신처 수" },
     { key: "channel", label: "채널" },
     { key: "body", label: "본문 요약" },
+    { key: "points", label: "포인트" },
     { key: "result", label: "결과" },
   ];
   const rows = logs.map((log) => ({
@@ -90,6 +91,7 @@ export function MessageLogList({
     recipientCount: `${log.recipientCount}명`,
     channel: log.channel.toUpperCase(),
     body: <span title={log.body}>{summarizeBody(log.body)}</span>,
+    points: <PointStatus log={log} />,
     result: (
       <span className="rounded-lg bg-brand/10 px-2.5 py-1 text-xs font-bold text-brand">
         {log.result}
@@ -102,4 +104,23 @@ export function MessageLogList({
       <DataTable columns={columns} rows={rows} />
     </Panel>
   );
+}
+
+function PointStatus({ log }: { log: MessageLog }) {
+  if (log.pointStatus === "settled") {
+    return <span className="font-bold text-t1">차감 {log.chargedPoints.toLocaleString("ko-KR")} P</span>;
+  }
+  if (log.pointStatus === "reserved") {
+    return <span className="font-bold text-amber">예약 {log.estimatedPoints.toLocaleString("ko-KR")} P</span>;
+  }
+  if (log.pointStatus === "reconcile_required") {
+    return <span className="font-bold text-danger">확인 필요</span>;
+  }
+  if (log.pointStatus === "released") {
+    return <span className="text-t3">예약 해제 · 0 P</span>;
+  }
+  if (log.pointStatus === "quoted") {
+    return <span className="text-t3">예상 {log.estimatedPoints.toLocaleString("ko-KR")} P · 차감 없음</span>;
+  }
+  return <span className="text-t4">—</span>;
 }

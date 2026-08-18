@@ -64,6 +64,9 @@ const logs: MessageLog[] = [
     sentBy: "user-1",
     sentAt: "2026-08-13T01:30:00.000Z",
     templateId: null,
+    estimatedPoints: 1,
+    chargedPoints: 0,
+    pointStatus: "quoted",
   },
 ];
 

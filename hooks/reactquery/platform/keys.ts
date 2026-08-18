@@ -1,10 +1,16 @@
+import type { PointTxType } from "./apis";
+
 export const platformKeys = {
   all: ["platform-admin"] as const,
   overview: () => [...platformKeys.all, "overview"] as const,
   organizations: () => [...platformKeys.all, "organizations"] as const,
   accounts: () => [...platformKeys.all, "accounts"] as const,
-  transactions: (opts?: { type?: "charge" | "usage" }) =>
+  transactions: (opts?: { type?: PointTxType }) =>
     [...platformKeys.all, "transactions", opts?.type ?? "all"] as const,
+  messagePointRates: (includeHistory = false) =>
+    [...platformKeys.all, "message-point-rates", includeHistory] as const,
+  pointReservations: (status?: string) =>
+    [...platformKeys.all, "point-reservations", status ?? "all"] as const,
   orgBuildings: (orgId: number) => [...platformKeys.all, "org-buildings", orgId] as const,
   buildingTenants: (buildingId: number) => [...platformKeys.all, "building-tenants", buildingId] as const,
   unit: (unitId: number) => [...platformKeys.all, "unit", unitId] as const,

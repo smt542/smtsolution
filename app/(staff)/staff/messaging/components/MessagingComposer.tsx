@@ -7,6 +7,7 @@ import { useAccounts } from "@/hooks/reactquery/accounts";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates";
 import {
+  useMessagePointQuote,
   useSendMessages,
   useTenantAlimtalkConsent,
   type SendMessagesResult,
@@ -26,6 +27,7 @@ import {
   type ResolvedRecipient,
   type SendMode,
 } from "@/lib/messaging/preset";
+import { MessagePointQuoteCard } from "./MessagePointQuoteCard";
 
 export interface MessagingComposerProps {
   preset?: MessagingPreset;
@@ -144,6 +146,19 @@ export function MessagingComposer({
     () => validRecipients(dedupeRecipients(recipients)),
     [recipients],
   );
+  const quoteInput = useMemo(
+    () =>
+      validRecipientList.length > 0 &&
+      (mode === "sms" || effectiveTemplateId !== null)
+        ? {
+            mode,
+            recipients: validRecipientList,
+            templateId: mode === "sms" ? null : effectiveTemplateId,
+          }
+        : null,
+    [effectiveTemplateId, mode, validRecipientList],
+  );
+  const pointQuote = useMessagePointQuote(quoteInput);
   const recipientPreviews = useMemo(
     () =>
       validRecipientList.map((recipient) => {
@@ -178,6 +193,15 @@ export function MessagingComposer({
       ),
     [recipientPreviews],
   );
+  const submissionRecipients = useMemo<ResolvedRecipient[]>(
+    () =>
+      recipientPreviews.map(({ recipient, channel, renderedBody }) => ({
+        ...recipient,
+        channel: channel ?? (mode === "sms" ? "sms" : "alimtalk"),
+        renderedBody,
+      })),
+    [mode, recipientPreviews],
+  );
   const previewByRecipient = useMemo(
     () =>
       new Map(
@@ -188,17 +212,23 @@ export function MessagingComposer({
       ),
     [recipientPreviews],
   );
-  const validCount = sendRecipients.length;
-  const excludedCount = validRecipientList.length - validCount;
+  const validCount = pointQuote.data?.recipientCount ?? sendRecipients.length;
+  const excludedCount =
+    pointQuote.data?.excludedCount ?? validRecipientList.length - sendRecipients.length;
   const activeAccounts = accounts.filter((account) => account.isActive);
   const occupiedTenants = tenants.filter(
     (tenant) => !tenant.isVacant && tenant.occupancyId !== null,
   );
+  const quoteAllowsSend =
+    pointQuote.data !== undefined &&
+    !pointQuote.isFetching &&
+    (pointQuote.data.billingMode === "stub" || pointQuote.data.sufficient);
   const canSend =
     validCount > 0 &&
     effectiveBody.trim().length > 0 &&
     (mode === "sms" || effectiveTemplateId !== null) &&
-    (sendTiming === "now" || scheduledAt.length > 0);
+    (sendTiming === "now" || scheduledAt.length > 0) &&
+    quoteAllowsSend;
 
   const toggleRecipient = (recipient: MessageRecipient) => {
     const key = recipientKey(recipient);
@@ -247,6 +277,22 @@ export function MessagingComposer({
       toast.info("알림톡 수신에 동의한 수신처가 없습니다.");
       return;
     }
+    if (pointQuote.isPending || pointQuote.isFetching) {
+      toast.info("포인트 견적을 계산하고 있습니다.");
+      return;
+    }
+    if (pointQuote.error || !pointQuote.data) {
+      toast.error(
+        pointQuote.error instanceof Error
+          ? pointQuote.error.message
+          : "포인트 견적을 확인해 주세요.",
+      );
+      return;
+    }
+    if (pointQuote.data.billingMode === "live" && !pointQuote.data.sufficient) {
+      toast.error("가용 포인트가 부족합니다.");
+      return;
+    }
     let scheduledIso: string | null = null;
     if (sendTiming === "scheduled") {
       const scheduledTime = new Date(scheduledAt);
@@ -257,7 +303,10 @@ export function MessagingComposer({
       scheduledIso = scheduledTime.toISOString();
     }
     const actionLabel = sendTiming === "scheduled" ? "예약 발송" : "발송";
-    if (!window.confirm(`${validCount}명에게 ${actionLabel}하시겠습니까?`)) return;
+    const pointNotice = pointQuote.data.billingMode === "stub"
+      ? `${validCount}명 · 예상 ${pointQuote.data.estimatedPoints.toLocaleString("ko-KR")} P (테스트 모드에서는 차감 없음)`
+      : `${validCount}명 · ${pointQuote.data.estimatedPoints.toLocaleString("ko-KR")} P가 차감됩니다`;
+    if (!window.confirm(`${pointNotice}\n${actionLabel}하시겠습니까?`)) return;
 
     try {
       const result = await sendMessages.mutateAsync({
@@ -265,7 +314,7 @@ export function MessagingComposer({
         body: effectiveBody,
         context: preset?.context ?? "manual",
         templateId: mode === "sms" ? null : effectiveTemplateId,
-        recipients: sendRecipients,
+        recipients: submissionRecipients,
         scheduledAt: scheduledIso,
       });
       if (sendTiming === "scheduled") {
@@ -515,6 +564,14 @@ export function MessagingComposer({
             알림톡 미동의 수신처 {excludedCount}명은 제외됩니다.
           </p>
         )}
+
+        <MessagePointQuoteCard
+          quote={pointQuote.data}
+          isLoading={
+            quoteInput !== null && (pointQuote.isPending || pointQuote.isFetching)
+          }
+          error={pointQuote.error}
+        />
 
         <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
           <label>
