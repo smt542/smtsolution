@@ -1,10 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
-import { listMessageLogs } from "./apis";
+import { listMessageLogs, listTenantAlimtalkConsent } from "./apis";
 import { messagingKeys } from "./keys";
 
 export function useMessageLogs(limit?: number) {
   return useQuery({
     queryKey: messagingKeys.logs(limit),
     queryFn: () => listMessageLogs(limit),
+  });
+}
+
+export function useTenantAlimtalkConsent(buildingId: number) {
+  return useQuery({
+    queryKey: messagingKeys.consent(buildingId),
+    queryFn: () => listTenantAlimtalkConsent(buildingId),
+    enabled: buildingId > 0,
   });
 }

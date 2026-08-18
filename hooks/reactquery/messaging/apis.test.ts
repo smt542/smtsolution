@@ -1,94 +1,34 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-
+import { describe, it, expect, vi, beforeEach } from "vitest";
 const rpc = vi.fn();
-vi.mock("@/lib/supabase/client", () => ({
-  createClient: () => ({ rpc }),
-}));
-
-import { listMessageLogs, sendMessages } from "./apis";
-
+vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ rpc }) }));
+import { sendMessages, listTenantAlimtalkConsent } from "./apis";
 beforeEach(() => vi.clearAllMocks());
 
-describe("messaging apis", () => {
-  it("sendMessages: calls send_messages with snake-case arguments", async () => {
-    const recipients = [
-      {
-        name: "Kim",
-        phone: "010-1234-5678",
-        unitNo: "101",
-        kind: "tenant" as const,
-        ref: { occupancyId: 9 },
-      },
-    ];
-    rpc.mockResolvedValue({ data: { log_id: 17, count: 1 }, error: null });
-
-    const result = await sendMessages({
-      channel: "sms",
-      body: "Payment reminder",
-      context: "overdue",
-      recipients,
-    });
-
-    expect(rpc).toHaveBeenCalledWith("send_messages", {
-      p_channel: "sms",
-      p_body: "Payment reminder",
-      p_context: "overdue",
-      p_recipients: recipients,
-    });
-    expect(result).toEqual({ logId: 17, count: 1 });
-  });
-
-  it("listMessageLogs: maps snake-case rows and recipients to camel case", async () => {
-    const recipients = [
-      {
-        name: "Lee",
-        phone: "010-9876-5432",
-        unitNo: "202",
-        kind: "owner",
-        ref: { buildingId: 4 },
-        result: "stub",
-      },
-    ];
-    rpc.mockResolvedValue({
-      data: [
-        {
-          id: 21,
-          org_id: 3,
-          channel: "sms",
-          body: "Notice",
-          context: "manual",
-          recipient_count: 1,
-          recipients,
-          result: "stub",
-          sent_by: "user-1",
-          sent_at: "2026-08-13T01:02:03.000Z",
-        },
+describe("messaging apis (P4b)", () => {
+  it("sendMessages: rpc send_messages 5-arg(mode·template·recipients)", async () => {
+    rpc.mockResolvedValue({ data: { log_id: 7, count: 2 }, error: null });
+    const out = await sendMessages({
+      mode: "auto", body: "#{이름}님", context: "manual", templateId: 5,
+      recipients: [
+        { name: "A", phone: "0101", kind: "tenant", channel: "alimtalk", renderedBody: "A님", ref: { occupancyId: 11 } },
+        { name: "B", phone: "0102", kind: "owner", channel: "sms", renderedBody: "B님" },
       ],
-      error: null,
     });
-
-    const result = await listMessageLogs(25);
-
-    expect(rpc).toHaveBeenCalledWith("list_message_logs", { p_limit: 25 });
-    expect(result).toEqual([
-      {
-        id: 21,
-        orgId: 3,
-        channel: "sms",
-        body: "Notice",
-        context: "manual",
-        recipientCount: 1,
-        recipients,
-        result: "stub",
-        sentBy: "user-1",
-        sentAt: "2026-08-13T01:02:03.000Z",
-      },
-    ]);
+    expect(out).toEqual({ logId: 7, count: 2 });
+    expect(rpc).toHaveBeenCalledWith("send_messages", expect.objectContaining({
+      p_channel: "auto", p_body: "#{이름}님", p_context: "manual", p_template_id: 5,
+      p_recipients: expect.any(Array),
+    }));
   });
-
-  it("throws RPC errors", async () => {
+  it("listTenantAlimtalkConsent: rpc·snake→camel", async () => {
+    rpc.mockResolvedValue({ data: [{ occupancy_id: 11, alimtalk_opt_in: true, sms_opt_in: false }], error: null });
+    const r = await listTenantAlimtalkConsent(3);
+    expect(rpc).toHaveBeenCalledWith("list_tenant_alimtalk_consent", { p_building_id: 3 });
+    expect(r[0]).toEqual({ occupancyId: 11, alimtalkOptIn: true, smsOptIn: false });
+  });
+  it("sendMessages: rpc 에러 전파", async () => {
     rpc.mockResolvedValue({ data: null, error: { message: "forbidden" } });
-
-    await expect(listMessageLogs()).rejects.toThrow("forbidden");
+    await expect(sendMessages({ mode: "sms", body: "x", context: "manual", templateId: null, recipients: [{ name:"A", phone:"1", kind:"tenant", channel:"sms", renderedBody:"x" }] }))
+      .rejects.toThrow("forbidden");
   });
 });
