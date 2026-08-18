@@ -3,6 +3,7 @@ import {
   buildSendPayload,
   dedupeRecipients,
   type MessageRecipient,
+  type SendMode,
   validRecipients,
 } from "./preset";
 
@@ -53,5 +54,25 @@ describe("buildSendPayload", () => {
       context: "overdue",
       recipients: [recipients[0]],
     });
+  });
+});
+
+describe("preset SendMode/채널 확장", () => {
+  it("SendMode 타입이 auto/sms/alimtalk 허용", () => {
+    const modes: SendMode[] = ["auto", "sms", "alimtalk"];
+    expect(modes).toHaveLength(3);
+  });
+  it("buildSendPayload: 유효 수신처만·중복 제거는 유지", () => {
+    const out = buildSendPayload({
+      channel: "sms",
+      body: "본문",
+      context: "manual",
+      recipients: [
+        { name: "A", phone: "010-1", kind: "tenant" },
+        { name: "A2", phone: "0101", kind: "tenant" },
+        { name: "B", phone: null, kind: "owner" },
+      ],
+    });
+    expect(out.recipients).toHaveLength(1);
   });
 });
