@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
-import type { OrgMemberRole } from "@/hooks/reactquery/auth";
+import type { OrgMemberRole, StaffType } from "@/hooks/reactquery/auth";
 
 export type OrganizationStatus = "active" | "suspended" | "trial";
 
@@ -51,6 +51,8 @@ export interface PlatformAccount {
   username: string | null;
   fullName: string | null;
   role: OrgMemberRole;
+  staffType: StaffType;
+  permissions: string[];
   isActive: boolean | null;
   createdAt: string;
 }
@@ -69,6 +71,8 @@ interface MemberRow {
   org_id: number;
   user_id: string;
   role: OrgMemberRole;
+  staff_type: StaffType;
+  feature_permissions: unknown;
   created_at: string;
 }
 
@@ -184,7 +188,7 @@ export async function listPlatformAccounts(): Promise<PlatformAccount[]> {
     supabase.from("organizations").select("id, name"),
     supabase
       .from("org_members")
-      .select("org_id, user_id, role, created_at")
+      .select("org_id, user_id, role, staff_type, feature_permissions, created_at")
       .order("created_at", { ascending: false }),
   ]);
 
@@ -218,6 +222,8 @@ export async function listPlatformAccounts(): Promise<PlatformAccount[]> {
       username: profile?.username ?? null,
       fullName: profile?.full_name ?? null,
       role: row.role,
+      staffType: row.staff_type,
+      permissions: Array.isArray(row.feature_permissions) ? row.feature_permissions : [],
       isActive: profile?.is_active ?? null,
       createdAt: row.created_at,
     };

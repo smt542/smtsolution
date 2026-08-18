@@ -18,9 +18,15 @@ begin
     if not current_user_is_master() then raise exception 'forbidden: master only'; end if;
     v_org := current_user_org();              -- 기존 staff 경로
   end if;
-  -- platform_admin 자가승격 차단: platform_admin 부여는 platform_admin만
-  if p_role = 'platform_admin' and not v_is_pa then
-    raise exception 'forbidden: platform_admin assignment requires platform_admin';
+  -- platform_admin 부여/해제는 platform_admin만 가능(자가승격·임의 강등 차단)
+  if not v_is_pa and (
+    p_role = 'platform_admin'
+    or exists (
+      select 1 from org_members
+      where user_id = p_user_id and org_id = v_org and role = 'platform_admin'
+    )
+  ) then
+    raise exception 'forbidden: platform_admin role changes require platform_admin';
   end if;
   if not exists (select 1 from org_members where user_id = p_user_id and org_id = v_org) then
     raise exception 'target not in org'; end if;

@@ -78,7 +78,14 @@ describe("platform admin apis", () => {
         return {
           select: () => ({
             order: vi.fn().mockResolvedValue({
-              data: [{ org_id: 7, user_id: "u1", role: "platform_admin", created_at: "2026-02-01T00:00:00Z" }],
+              data: [{
+                org_id: 7,
+                user_id: "u1",
+                role: "platform_admin",
+                staff_type: "manager_staff",
+                feature_permissions: ["accounts"],
+                created_at: "2026-02-01T00:00:00Z",
+              }],
               error: null,
             }),
           }),
@@ -97,6 +104,8 @@ describe("platform admin apis", () => {
       username: "master",
       fullName: "김관리",
       role: "platform_admin",
+      staffType: "manager_staff",
+      permissions: ["accounts"],
       isActive: true,
       createdAt: "2026-02-01T00:00:00Z",
     });
