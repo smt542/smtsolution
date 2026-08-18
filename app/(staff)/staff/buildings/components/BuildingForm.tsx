@@ -7,7 +7,7 @@ import { useMe } from "@/hooks/reactquery/auth";
 import {
   useSaveBuilding, useStaffOptions, useBuildingFull, emptyFacilities, type FacilitiesMap, type SaveBuildingPayload,
 } from "@/hooks/reactquery/buildings";
-import { uploadAttachment, deleteAttachment, listAttachmentsByEntities } from "@/hooks/reactquery/attachments";
+import { uploadAttachment, deleteAttachment, listAttachmentsByEntities, attachmentSignedUrl } from "@/hooks/reactquery/attachments";
 import { buildingBasicSchema } from "@/components/forms/schema/building";
 import { customerNumberSchema } from "@/components/forms/schema/buildingCustomerNumber";
 import { buildingVendorSchema } from "@/components/forms/schema/buildingVendor";
@@ -147,6 +147,15 @@ export function BuildingForm({ buildingId }: { buildingId?: number }) {
     }
   };
 
+  const onViewExisting = async (path: string) => {
+    try {
+      const url = await attachmentSignedUrl(path);
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "파일을 열 수 없습니다.");
+    }
+  };
+
   const onLeave = () => {
     if (dirty && !window.confirm("저장하지 않고 나가시겠습니까?")) return;
     router.push("/staff/buildings");
@@ -166,7 +175,7 @@ export function BuildingForm({ buildingId }: { buildingId?: number }) {
       <BasicInfoSection value={basic} onChange={patchBasic} staffOptions={staffOptions} errors={errors} />
       <FacilitiesSection value={facilities} onChange={mark(setFacilities)} />
       <CustomerNumberSection rows={customerNumbers} onChange={mark(setCustomerNumbers)} />
-      <VendorSection rows={vendors} onChange={mark(setVendors)} onDeleteExisting={onDeleteExisting} />
+      <VendorSection rows={vendors} onChange={mark(setVendors)} onDeleteExisting={onDeleteExisting} onViewExisting={onViewExisting} />
       <MemoSection value={memo} onChange={mark(setMemo)} />
     </div>
   );

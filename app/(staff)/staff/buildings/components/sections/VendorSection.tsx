@@ -23,11 +23,12 @@ let seq = 0;
 const newKey = () => `vn-new-${seq++}`;
 
 export function VendorSection({
-  rows, onChange, onDeleteExisting,
+  rows, onChange, onDeleteExisting, onViewExisting,
 }: {
   rows: VendorRow[];
   onChange: (rows: VendorRow[]) => void;
   onDeleteExisting: (attId: number, path: string) => void;
+  onViewExisting: (path: string) => void;
 }) {
   const visible = rows.filter((r) => !r._deleted);
   const patch = (key: string, p: Partial<VendorRow>) => onChange(rows.map((r) => (r._key === key ? { ...r, ...p } : r)));
@@ -72,7 +73,14 @@ export function VendorSection({
                   <ul className="flex flex-col gap-1">
                     {r.existing.map((f) => (
                       <li key={f.id} className="flex items-center gap-2 text-sm text-t2">
-                        <span>{f.name}</span>
+                        <button
+                          type="button"
+                          aria-label={`${f.name} 원본 보기`}
+                          className="truncate text-left text-brand hover:underline"
+                          onClick={() => onViewExisting(f.path)}
+                        >
+                          {f.name}
+                        </button>
                         <button type="button" className="text-danger" onClick={() => onDeleteExisting(f.id, f.path)}>삭제</button>
                       </li>
                     ))}
