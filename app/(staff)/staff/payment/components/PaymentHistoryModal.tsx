@@ -15,6 +15,7 @@ interface PaymentHistoryModalProps {
   isPending: boolean;
   onClose: () => void;
   onCancel: (paymentId: number) => void;
+  onReceipt: (payment: UnitPayment) => void;
 }
 
 export function PaymentHistoryModal({
@@ -24,6 +25,7 @@ export function PaymentHistoryModal({
   isPending,
   onClose,
   onCancel,
+  onReceipt,
 }: PaymentHistoryModalProps) {
   const { data: payments = [], isLoading } = useUnitPayments(unitId, period);
 
@@ -74,15 +76,25 @@ export function PaymentHistoryModal({
                     )}
                   </div>
                   {!canceled && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="h-9 shrink-0 px-3 text-xs"
-                      disabled={isPending}
-                      onClick={() => handleCancel(payment)}
-                    >
-                      취소
-                    </Button>
+                    <div className="flex shrink-0 gap-1.5">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="h-9 px-3 text-xs"
+                        onClick={() => onReceipt(payment)}
+                      >
+                        영수증
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="h-9 px-3 text-xs"
+                        disabled={isPending}
+                        onClick={() => handleCancel(payment)}
+                      >
+                        취소
+                      </Button>
+                    </div>
                   )}
                 </div>
               </li>

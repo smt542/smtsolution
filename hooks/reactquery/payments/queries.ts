@@ -1,5 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { listBankPayments, listGiroPayments, listPaymentRows, listUnitPayments } from "./apis";
+import {
+  getPaymentReceiverName,
+  listBankPayments,
+  listGiroPayments,
+  listPaymentRows,
+  listUnitPayments,
+} from "./apis";
 import { paymentKeys } from "./keys";
 
 export function usePaymentRows(buildingId: number | null, period: string) {
@@ -14,6 +20,13 @@ export function useUnitPayments(unitId: number | null, period: string) {
     queryKey: paymentKeys.unit(unitId ?? 0, period),
     queryFn: () => listUnitPayments(unitId as number, period),
     enabled: unitId !== null && Boolean(period),
+  });
+}
+export function usePaymentReceiver(paymentId: number | null) {
+  return useQuery({
+    queryKey: paymentKeys.receiver(paymentId ?? 0),
+    queryFn: () => getPaymentReceiverName(paymentId as number),
+    enabled: paymentId !== null,
   });
 }
 export function useBankPayments(buildingId: number | null, period: string) {
