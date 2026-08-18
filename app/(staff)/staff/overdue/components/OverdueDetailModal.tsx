@@ -70,6 +70,42 @@ export function OverdueDetailModal({
           <DetailField label="데이터 상태" value={household.billingAvailable ? "확정 부과 있음" : "확정 부과 없음"} />
         </DetailSection>
 
+        {household.lateFeeByPeriod && household.lateFeeByPeriod.length > 0 && (
+          <section className="rounded-xl border border-line bg-bg/60 p-4">
+            <h3 className="text-sm font-extrabold text-t1">연체료 내역</h3>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[360px] text-sm">
+                <thead>
+                  <tr className="text-left text-t3">
+                    <th scope="col" className="py-1 font-semibold">월분</th>
+                    <th scope="col" className="py-1 text-right font-semibold">연체개월</th>
+                    <th scope="col" className="py-1 text-right font-semibold">누적요율</th>
+                    <th scope="col" className="py-1 text-right font-semibold">연체료</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {household.lateFeeByPeriod.map((row) => (
+                    <tr key={row.period} className="border-t border-line2">
+                      <td className="py-2">{row.period.slice(0, 7)}</td>
+                      <td className="py-2 text-right">{row.months}개월</td>
+                      <td className="py-2 text-right">{row.cumulativeRatePct.toFixed(1)}%</td>
+                      <td className="py-2 text-right">{formatWon(row.lateFee)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="border-t border-line font-bold">
+                    <th scope="row" colSpan={3} className="py-2 text-left">합계</th>
+                    <td className="py-2 text-right">
+                      {formatWon(household.lateFeeAmount ?? 0)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </section>
+        )}
+
         {(household.memo || household.unitMemo) && (
           <DetailSection title="관리 메모">
             <DetailField label="입주 메모" value={household.memo || "—"} />
