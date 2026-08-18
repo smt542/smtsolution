@@ -134,14 +134,25 @@ export function PaymentStatusSection({
     [filteredRows],
   );
 
-  const feeItems = useMemo(() => {
-    const amounts = new Map<string, number>();
-    for (const item of data.feeItems) {
-      if (buildingFilter && item.buildingId !== Number(buildingFilter)) continue;
-      amounts.set(item.feeItemName, (amounts.get(item.feeItemName) ?? 0) + item.amount);
-    }
-    return [...amounts.entries()].sort(([a], [b]) => a.localeCompare(b, "ko-KR"));
-  }, [buildingFilter, data.feeItems]);
+  const buildingSummaries = useMemo(() => {
+    const visibleBuildingIds = new Set(filteredRows.map((row) => row.buildingId));
+    return buildings
+      .filter((building) => visibleBuildingIds.has(building.id))
+      .map((building) => {
+        const rows = filteredRows.filter((row) => row.buildingId === building.id);
+        const feeItems = data.feeItems
+          .filter((item) => item.buildingId === building.id)
+          .sort((a, b) => a.feeItemName.localeCompare(b.feeItemName, "ko-KR"));
+        return {
+          building,
+          households: rows.length,
+          charged: rows.reduce((sum, row) => sum + (row.charged ?? 0), 0),
+          paid: rows.reduce((sum, row) => sum + row.paid, 0),
+          unpaid: rows.reduce((sum, row) => sum + (row.unpaid ?? 0), 0),
+          feeItems,
+        };
+      });
+  }, [buildings, data.feeItems, filteredRows]);
 
   const hasFilters = Boolean(search || buildingFilter || unitSearch || tenantSearch || statusFilter);
 
@@ -260,22 +271,55 @@ export function PaymentStatusSection({
         ))}
       </div>
 
-      <div className="rounded-2xl border border-line bg-surface px-4 py-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-extrabold text-t2">
-            {buildingFilter
-              ? `${buildings.find((building) => building.id === Number(buildingFilter))?.name ?? "선택 건물"} ${toMonthInput(period)}`
-              : `전체 건물 ${toMonthInput(period)}`} 항목별 부과
-          </span>
-          {feeItems.length > 0 ? feeItems.map(([name, amount]) => (
-            <span key={name} className="rounded-full bg-blue-t2 px-2.5 py-1 text-xs font-bold text-blue">
-              {name} {formatCurrency(amount)}
-            </span>
-          )) : (
-            <span className="text-xs text-t4">확정된 항목별 부과가 없습니다.</span>
-          )}
-        </div>
-      </div>
+      {buildingSummaries.length > 0 && (
+        <section
+          aria-label="빌라별 월간 수납 요약"
+          className="overflow-hidden rounded-2xl border border-line bg-surface"
+        >
+          <div className="border-b border-line px-4 py-3">
+            <p className="text-sm font-extrabold text-t1">빌라별 월간 수납 요약</p>
+            <p className="mt-0.5 text-xs text-t3">{toMonthInput(period)} 조회 결과와 관리비 항목별 부과금액입니다.</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[980px] text-sm">
+              <thead>
+                <tr className="border-b border-line bg-bg text-left text-xs font-bold text-t3">
+                  <th className="px-4 py-3">건물명</th>
+                  <th className="px-4 py-3 text-right">조회 세대</th>
+                  <th className="px-4 py-3 text-right">총부과금액</th>
+                  <th className="px-4 py-3 text-right">수납금액</th>
+                  <th className="px-4 py-3 text-right">미납금액</th>
+                  <th className="px-4 py-3">항목별 부과</th>
+                </tr>
+              </thead>
+              <tbody>
+                {buildingSummaries.map((summary) => (
+                  <tr key={summary.building.id} className="border-b border-line last:border-0">
+                    <td className="px-4 py-4 font-extrabold text-t1">{summary.building.name}</td>
+                    <td className="px-4 py-4 text-right font-semibold text-t2 num">
+                      {summary.households.toLocaleString("ko-KR")}세대
+                    </td>
+                    <td className="px-4 py-4 text-right font-semibold text-t1 num">{formatCurrency(summary.charged)}</td>
+                    <td className="px-4 py-4 text-right text-t2 num">{formatCurrency(summary.paid)}</td>
+                    <td className="px-4 py-4 text-right font-bold text-red num">{formatCurrency(summary.unpaid)}</td>
+                    <td className="px-4 py-4">
+                      <div className="flex flex-wrap gap-1.5">
+                        {summary.feeItems.length > 0 ? summary.feeItems.map((item) => (
+                          <span key={item.feeItemId} className="rounded-full bg-blue-t2 px-2.5 py-1 text-xs font-bold text-blue">
+                            {item.feeItemName} {formatCurrency(item.amount)}
+                          </span>
+                        )) : (
+                          <span className="text-xs text-t4">확정된 항목별 부과가 없습니다.</span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       {isBuildingsLoading || isLoading ? (
         <Spinner />

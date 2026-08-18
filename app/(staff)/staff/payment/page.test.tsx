@@ -2,21 +2,54 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const { useSearchParamsMock } = vi.hoisted(() => ({
+  useSearchParamsMock: vi.fn(),
+}));
+
+vi.mock("next/navigation", () => ({
+  useSearchParams: useSearchParamsMock,
+}));
+
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
 vi.mock("@/hooks/reactquery/buildings", () => ({ useBuildings: vi.fn() }));
+vi.mock("@/hooks/reactquery/bill", () => ({
+  useBillOrganizationName: vi.fn(() => ({ data: "한빛관리" })),
+  useBillDocuments: vi.fn(() => ({ data: [], isLoading: false, isError: false })),
+  getBillDocuments: vi.fn(),
+  billKeys: { documents: vi.fn(() => ["bill", "documents"]) },
+}));
 vi.mock("@/hooks/reactquery/payments", () => ({
   cmsDownloadUrl: vi.fn(() => "/api/payment/cms"),
+  listPaymentRows: vi.fn(),
+  listBuildingPaymentDates: vi.fn(),
+  listUnitPayments: vi.fn(),
+  paymentKeys: {
+    rows: vi.fn(() => ["payments", "rows"]),
+    unit: vi.fn(() => ["payments", "unit"]),
+    statementDates: vi.fn(() => ["payments", "statement-dates"]),
+  },
   usePaymentRows: vi.fn(),
   useRecordPayment: vi.fn(),
   useCancelPayment: vi.fn(),
   useUnitPayments: vi.fn(),
+  usePaymentReceiver: vi.fn(() => ({ data: "이관리", isLoading: false, isError: false })),
   useGiroPayments: vi.fn(),
 }));
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
+vi.mock("./components/PaymentHistoryModal", () => ({
+  PaymentHistoryModal: ({ unitId }: { unitId: number }) => (
+    <div role="dialog" aria-label="수납 이력">수납 이력 세대:{unitId}</div>
+  ),
+}));
+vi.mock("./components/PaymentStatementModal", () => ({
+  PaymentStatementModal: ({ initialUnitId }: { initialUnitId: number | null }) => (
+    <div role="dialog" aria-label="수납명세서 미리보기">명세서 세대:{initialUnitId}</div>
+  ),
+}));
 
-import PaymentProcessingPage from "./page";
+import PaymentProcessingPage, { parsePaymentDeepLink } from "./page";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import {
@@ -87,6 +120,7 @@ function setup(me: any = master) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  useSearchParamsMock.mockReturnValue(new URLSearchParams());
   recordPaymentAsync.mockResolvedValue({ charged: 100_000, paid: 100_000, unpaid: 0 });
   cancelPaymentAsync.mockResolvedValue({ charged: 100_000, paid: 0, unpaid: 100_000 });
   setup();
@@ -155,5 +189,43 @@ describe("PaymentProcessingPage", () => {
         }),
       ),
     );
+  });
+
+  it("receipts 명세서 딥링크의 건물·월·세대를 복원한다", async () => {
+    useSearchParamsMock.mockReturnValue(new URLSearchParams({
+      buildingId: "2",
+      unitId: "21",
+      period: "2026-08-01",
+      view: "statement",
+    }));
+
+    render(<PaymentProcessingPage />);
+
+    expect(usePaymentRows).toHaveBeenCalledWith(2, "2026-08-01");
+    expect(await screen.findByRole("dialog", { name: "수납명세서 미리보기" }))
+      .toHaveTextContent("명세서 세대:21");
+  });
+
+  it("receipts 영수증 딥링크는 개별 수납 건 선택을 위해 이력을 연다", async () => {
+    useSearchParamsMock.mockReturnValue(new URLSearchParams({
+      buildingId: "2",
+      unitId: "21",
+      period: "2026-08-01",
+      view: "receipt",
+    }));
+
+    render(<PaymentProcessingPage />);
+
+    expect(await screen.findByRole("dialog", { name: "수납 이력" }))
+      .toHaveTextContent("수납 이력 세대:21");
+  });
+
+  it("잘못된 딥링크 값은 사용하지 않는다", () => {
+    expect(parsePaymentDeepLink(new URLSearchParams({
+      buildingId: "-1",
+      unitId: "abc",
+      period: "2026-13-01",
+      view: "javascript:alert(1)",
+    }))).toEqual({ buildingId: null, unitId: null, period: null, view: null });
   });
 });

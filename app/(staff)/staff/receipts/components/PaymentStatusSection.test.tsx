@@ -67,6 +67,8 @@ describe("PaymentStatusSection", () => {
 
     expect(screen.getByText("김입주")).toBeInTheDocument();
     expect(screen.getAllByText("120,000원").length).toBeGreaterThan(0);
+    expect(screen.getByRole("region", { name: "빌라별 월간 수납 요약" })).toBeInTheDocument();
+    expect(screen.getAllByText("1세대").length).toBeGreaterThan(1);
     expect(screen.getByText("일반관리비 120,000원")).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("수납 호실 검색"), { target: { value: "999" } });
