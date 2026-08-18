@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import type { LateFeePeriodResult } from "@/lib/billing/lateFee";
 
 export interface OverdueBuilding {
   id: number;
@@ -45,6 +46,8 @@ export interface OverdueHousehold {
   overdueAmount: number;
   lastPaymentDate: string | null;
   billingAvailable: boolean;
+  lateFeeAmount?: number;
+  lateFeeByPeriod?: LateFeePeriodResult[];
 }
 
 interface BuildingRow {
