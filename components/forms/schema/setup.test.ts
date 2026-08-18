@@ -4,7 +4,6 @@ import {
   setupSettlementSchema,
   labelMasterSchema,
   quickMessageSchema,
-  longTermRepairSchema,
 } from "./setup";
 
 describe("setup schemas", () => {
@@ -70,16 +69,6 @@ describe("setup schemas", () => {
     );
     expect(
       quickMessageSchema.safeParse({ title: "인사", body: "내용" }).success
-    ).toBe(true);
-  });
-  it("longTermRepair: workName 필수, amount 음수 불가", () => {
-    expect(longTermRepairSchema.safeParse({ workName: "" }).success).toBe(false);
-    expect(
-      longTermRepairSchema.safeParse({ workName: "방수공사", amount: -1 }).success
-    ).toBe(false);
-    expect(
-      longTermRepairSchema.safeParse({ workName: "방수공사", amount: 500000 })
-        .success
     ).toBe(true);
   });
 });

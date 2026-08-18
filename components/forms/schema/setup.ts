@@ -41,16 +41,8 @@ export const quickMessageSchema = z.object({
   body: z.string().min(1, "내용을 입력해 주세요"),
 });
 
-export const longTermRepairSchema = z.object({
-  workName: z.string().min(1, "공사명을 입력해 주세요"),
-  workDate: z.string().optional(),
-  amount: z.number().int().min(0).optional(),
-  memo: z.string().optional(),
-});
-
 export type SetupBillingValues = z.infer<typeof setupBillingSchema>;
 export type SetupAccountsValues = z.infer<typeof setupAccountsSchema>;
 export type SetupSettlementValues = z.infer<typeof setupSettlementSchema>;
 export type LabelMasterValues = z.infer<typeof labelMasterSchema>;
 export type QuickMessageValues = z.infer<typeof quickMessageSchema>;
-export type LongTermRepairValues = z.infer<typeof longTermRepairSchema>;

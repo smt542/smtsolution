@@ -10,7 +10,7 @@ vi.mock("@/lib/supabase/client", () => ({
     storage: { from: () => ({ upload: uploadMock, remove: removeMock, createSignedUrl: createSignedUrlMock }) },
   }),
 }));
-import { uploadAttachment, listAttachments } from "./apis";
+import { uploadAttachment, listAttachments, listAttachmentsByEntities } from "./apis";
 beforeEach(() => vi.clearAllMocks());
 
 describe("attachments apis", () => {
@@ -37,5 +37,16 @@ describe("attachments apis", () => {
     await listAttachments("building_vendor", 7);
     expect(eq1).toHaveBeenCalledWith("entity_type", "building_vendor");
     expect(eq2).toHaveBeenCalledWith("entity_id", 7);
+  });
+
+  it("listAttachmentsByEntities: 원장 여러 행을 한 번에 조회", async () => {
+    const inFilter = vi.fn().mockResolvedValue({ data: [], error: null });
+    const eq = vi.fn(() => ({ in: inFilter }));
+    from.mockReturnValue({ select: () => ({ eq }) });
+
+    await listAttachmentsByEntities("long_term_repair_ledger", [7, 9]);
+
+    expect(eq).toHaveBeenCalledWith("entity_type", "long_term_repair_ledger");
+    expect(inFilter).toHaveBeenCalledWith("entity_id", [7, 9]);
   });
 });

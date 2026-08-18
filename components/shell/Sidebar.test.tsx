@@ -81,6 +81,18 @@ describe("Sidebar", () => {
 
     expect(screen.getByText("건물·입주자")).toBeInTheDocument();
     expect(screen.queryByText("계정·직원 관리")).toBeNull();
+    expect(screen.queryByText("장기수선비 관리")).toBeNull();
+  });
+
+  it("settings 권한 직원에게 장기수선비 관리 링크를 노출한다", () => {
+    mockUseMe.mockReturnValue(makeMe({ role: "manager", permissions: ["settings"] }));
+
+    render(<Sidebar />);
+
+    expect(screen.getByRole("link", { name: /장기수선비 관리/ })).toHaveAttribute(
+      "href",
+      "/staff/long-term-repair",
+    );
   });
 
   it("Test C: active item on /staff/buildings has aria-current=page", () => {
