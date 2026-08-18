@@ -40,6 +40,8 @@ export interface PlatformOrganization {
   accountCount: number;
   buildingCount: number;
   pointBalance: number; // sum(points)
+  phone: string | null;
+  deletedAt: string | null;
 }
 
 export interface PlatformAccount {
@@ -59,6 +61,8 @@ interface OrganizationRow {
   slug: string | null;
   status: OrganizationStatus;
   created_at: string;
+  phone: string | null;
+  deleted_at: string | null;
 }
 
 interface MemberRow {
@@ -140,7 +144,7 @@ export async function listPlatformOrganizations(
   const supabase = createClient();
   let orgQuery = supabase
     .from("organizations")
-    .select("id, name, slug, status, created_at");
+    .select("id, name, slug, status, created_at, phone, deleted_at");
   if (!opts.includeDeleted) orgQuery = orgQuery.is("deleted_at", null);
   const [organizations, members, buildings, points] = await Promise.all([
     orgQuery.order("created_at", { ascending: false }),
@@ -169,6 +173,8 @@ export async function listPlatformOrganizations(
     accountCount: accountCounts.get(row.id) ?? 0,
     buildingCount: buildingCounts.get(row.id) ?? 0,
     pointBalance: pointBalances.get(row.id) ?? 0,
+    phone: row.phone ?? null,
+    deletedAt: row.deleted_at ?? null,
   }));
 }
 

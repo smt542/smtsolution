@@ -19,7 +19,7 @@ export function usePlatformOverview() {
 export function usePlatformOrganizations() {
   return useQuery({
     queryKey: platformKeys.organizations(),
-    queryFn: () => listPlatformOrganizations(),
+    queryFn: () => listPlatformOrganizations({ includeDeleted: true }),
   });
 }
 
