@@ -20,7 +20,7 @@
       "paths": ["staff-management", "account", "accounts"]
     },
     {
-      "page_id": "77f82598-e591-4575-8a31-c06573e5835a",
+      "page_id": "95cd4e94-ef52-4491-8c69-93bbb0123d4c",
       "page_title": "현장관리자_관리비 부과 세팅",
       "keywords": ["fee-item", "feeItem", "management-fee", "부과 세팅", "관리비 부과"],
       "paths": ["management-fee", "fee-item", "feeItems"]
