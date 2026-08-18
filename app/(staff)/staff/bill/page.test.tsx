@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
 vi.mock("@/hooks/reactquery/buildings", () => ({
-  useBuildings: () => ({ data: [{ id: 7, name: "행복빌라" }] }),
+  useBuildings: () => ({ data: [{ id: 7, orgId: 1, code: "B007", name: "행복빌라", address: "서울시" }], isLoading: false }),
 }));
 vi.mock("@/hooks/reactquery/setupConfig", () => ({
   useSetupConfig: () => ({
@@ -14,7 +14,11 @@ vi.mock("@/hooks/reactquery/setupConfig", () => ({
 vi.mock("@/hooks/reactquery/bill", () => ({
   useBillTargets: vi.fn(() => ({ data: [], isLoading: false })),
   useBillDocuments: () => ({ data: [] }),
+  useBillOrganizationName: () => ({ data: "한빛관리" }),
   useIssueBills: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  billKeys: { targets: vi.fn(), documents: vi.fn() },
+  listBillTargets: vi.fn(),
+  getBillDocuments: vi.fn(),
 }));
 vi.mock(
   "@/app/(staff)/staff/messaging/components/MessagingModal",
@@ -36,13 +40,16 @@ describe("BillPage 게이트", () => {
     expect(screen.getByText(/접근할 권한이 없습니다/)).toBeInTheDocument();
   });
 
-  it("권한 있으면 건물 선택 노출·초기 안내", () => {
+  it("권한 있으면 문서 카드 랜딩 노출", () => {
     vi.mocked(useMe).mockReturnValue({
       data: { role: "staff", orgId: 1, permissions: ["bill_publish"] },
     } as unknown as ReturnType<typeof useMe>);
     render(<BillPage />);
-    // select option + empty-state div 모두 "건물을 선택" 텍스트 포함 — 하나 이상 존재하면 충분
-    expect(screen.getAllByText(/건물을 선택/).length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: "서류 발행·출력" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /지로 고지서/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /조정명세서/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /자동이체 세대 출력/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /팩스 발송/ })).toBeInTheDocument();
   });
 
   it("건물 선택 후 확정 세대 없으면 빈 안내", () => {
@@ -54,7 +61,7 @@ describe("BillPage 게이트", () => {
       isLoading: false,
     } as unknown as ReturnType<typeof useBillTargets>);
     render(<BillPage />);
-    // 건물 선택
+    fireEvent.click(screen.getByRole("button", { name: /A4 관리비 고지서/ }));
     fireEvent.change(screen.getByRole("combobox", { name: /건물 선택/ }), {
       target: { value: "7" },
     });

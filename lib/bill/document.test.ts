@@ -1,6 +1,15 @@
 // lib/bill/document.test.ts
 import { describe, it, expect } from "vitest";
-import { unitLabel, buildQrPayload, printableAccounts, billDocumentTotal, BILL_QR_PLACEHOLDER_BASE } from "./document";
+import {
+  BILL_QR_PLACEHOLDER_BASE,
+  billDocumentTotal,
+  buildAdjustmentRows,
+  buildQrPayload,
+  formatBillAmount,
+  giroDocumentAmount,
+  printableAccounts,
+  unitLabel,
+} from "./document";
 
 describe("bill/document", () => {
   it("unitLabel: name 모드는 입주자명, 없으면 코드 폴백", () => {
@@ -24,5 +33,32 @@ describe("bill/document", () => {
       { feeItemId: 1, name: "관리비", charged: true, amount: 30000 },
       { feeItemId: 2, name: "수도", charged: false, amount: 5000 },
     ])).toBe(30000);
+  });
+  it("지로 금액은 확정 totalAmount를 사용하고 원화로 포맷", () => {
+    const document = {
+      totalAmount: 35400,
+      items: [{ feeItemId: 1, name: "관리비", charged: true, amount: 30000 }],
+    };
+    expect(giroDocumentAmount(document)).toBe(35400);
+    expect(formatBillAmount(giroDocumentAmount(document))).toBe("35,400원");
+  });
+  it("조정명세서는 전월·당월 확정액과 항목 증감을 계산", () => {
+    const common = { unitId: 1, unitNo: "101", dong: null, tenantName: "홍길동", autoDebit: true };
+    const rows = buildAdjustmentRows(
+      [{ ...common, totalAmount: 38000, items: [
+        { feeItemId: 1, name: "관리비", charged: true, amount: 30000 },
+        { feeItemId: 2, name: "수도", charged: true, amount: 8000 },
+      ] }],
+      [{ ...common, totalAmount: 35000, items: [
+        { feeItemId: 1, name: "관리비", charged: true, amount: 30000 },
+        { feeItemId: 2, name: "수도", charged: true, amount: 5000 },
+      ] }],
+    );
+    expect(rows[0]).toMatchObject({ previousTotal: 35000, currentTotal: 38000, totalDelta: 3000 });
+    expect(rows[0].lines.find((line) => line.feeItemId === 2)).toMatchObject({
+      previousAmount: 5000,
+      currentAmount: 8000,
+      delta: 3000,
+    });
   });
 });

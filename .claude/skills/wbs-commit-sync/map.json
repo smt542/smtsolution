@@ -44,8 +44,8 @@
       "paths": ["longTermRepair"]
     },
     {
-      "page_id": "c041ad89-6415-4e94-bfd3-227244754c72",
-      "page_title": "현장관리자_미납 관리",
+      "page_id": "cd008220-2e74-4edc-b81b-50bf98ebb805",
+      "page_title": "사무실 관리자_미납 관리",
       "keywords": ["overdue", "미납", "미납관리", "채권"],
       "paths": ["overdue"]
     },
