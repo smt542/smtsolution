@@ -4,6 +4,7 @@ import {
   buildOutputQrPayload,
   formatBillAmount,
   giroDocumentAmount,
+  unitLabel,
   type PrintableAccount,
 } from "@/lib/bill/document";
 import { QrCode } from "./QrCode";
@@ -46,7 +47,18 @@ export function GiroPrintView({
     <div className="space-y-5 text-black" data-testid="giro-print-view">
       {documents.map(({ building, document, target, dueDate }) => {
         const amount = giroDocumentAmount(document);
-        const householdName = target.payerName?.trim() || target.tenantName?.trim() || "이름 미등록";
+        const householdName = unitLabel(
+          target.billNameDisplay,
+          document.unitNo,
+          target.tenantName,
+          target.payerName,
+          target.payerNo,
+        );
+        const nameDisplayLabel = {
+          none: "이름 미출력",
+          name: "이름 출력",
+          code: "코드번호 출력",
+        }[target.billNameDisplay];
         return (
           <article
             key={`${building.id}-${document.unitId}`}
@@ -75,7 +87,7 @@ export function GiroPrintView({
                   <dt className="border-b border-r border-slate-400 bg-slate-100 p-2 font-bold">호수</dt>
                   <dd className="border-b border-slate-400 p-2 font-black">{document.dong ? `${document.dong} ` : ""}{document.unitNo}호</dd>
                   <dt className="border-r border-slate-400 bg-slate-100 p-2 font-bold">세대주</dt>
-                  <dd className="p-2">{householdName}</dd>
+                  <dd className="p-2" data-testid={`giro-household-name-${document.unitId}`}>{householdName}</dd>
                 </dl>
                 <dl className="grid grid-cols-[72px_1fr]">
                   <dt className="border-b border-r border-slate-400 bg-slate-100 p-2 font-bold">핸드폰</dt>
@@ -136,8 +148,7 @@ export function GiroPrintView({
               )}
               <footer className="mt-5 flex justify-between border-t border-black pt-3 text-[10px]">
                 <span>발행 회사 · <strong>{companyName}</strong></span>
-                <span>이름 출력</span>
-                {/* TODO(tenant-form-fields): occupancy 이름 출력 유형 필드가 합쳐지면 세대별 설정을 연결한다. */}
+                <span>{nameDisplayLabel}</span>
               </footer>
             </div>
           </article>

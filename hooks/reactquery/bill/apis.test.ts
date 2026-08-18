@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 const rpc = vi.fn();
 const occupancyIn = vi.fn();
+const unitAccountIn = vi.fn();
 const organizationMaybeSingle = vi.fn();
 const from = vi.fn((table: string) => {
   if (table === "occupancies") return { select: () => ({ in: occupancyIn }) };
+  if (table === "unit_accounts") return { select: () => ({ eq: () => ({ in: unitAccountIn }) }) };
   if (table === "organizations") return { select: () => ({ eq: () => ({ maybeSingle: organizationMaybeSingle }) }) };
   throw new Error(`unexpected table ${table}`);
 });
@@ -11,7 +13,8 @@ vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ rpc, from }) })
 import { listBillTargets, getBillDocuments, getOrganizationName, issueBills } from "./apis";
 beforeEach(() => {
   vi.clearAllMocks();
-  occupancyIn.mockResolvedValue({ data: [{ id: 5, payer_name: "김납부" }], error: null });
+  occupancyIn.mockResolvedValue({ data: [{ id: 5, payer_name: "김납부", bill_name_display: "code" }], error: null });
+  unitAccountIn.mockResolvedValue({ data: [{ unit_id: 1, payer_no: "P-101" }], error: null });
   organizationMaybeSingle.mockResolvedValue({ data: { name: "한빛관리" }, error: null });
 });
 
@@ -23,7 +26,19 @@ describe("bill apis", () => {
     }], error: null });
     const r = await listBillTargets(7, "2026-08-01");
     expect(rpc).toHaveBeenCalledWith("list_bill_targets", { p_building_id: 7, p_period: "2026-08-01" });
-    expect(r[0]).toMatchObject({ unitId: 1, tenantName: "홍", payerName: "김납부", totalAmount: 30000, autoDebit: true, issueType: "a4", issuedAt: "2026-08-13T00:00:00Z" });
+    expect(occupancyIn).toHaveBeenCalledWith("id", [5]);
+    expect(unitAccountIn).toHaveBeenCalledWith("unit_id", [1]);
+    expect(r[0]).toMatchObject({
+      unitId: 1,
+      tenantName: "홍",
+      payerName: "김납부",
+      payerNo: "P-101",
+      billNameDisplay: "code",
+      totalAmount: 30000,
+      autoDebit: true,
+      issueType: "a4",
+      issuedAt: "2026-08-13T00:00:00Z",
+    });
   });
   it("getBillDocuments: unit_ids 전송·items 매핑", async () => {
     rpc.mockResolvedValue({ data: [{

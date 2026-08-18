@@ -5,7 +5,8 @@ import type { BillTarget } from "@/hooks/reactquery/bill";
 
 const t = (o: Partial<BillTarget>): BillTarget => ({
   unitId: 1, unitNo: "101", dong: null, occupancyId: 5, tenantName: "홍길동", payerName: "홍길동", phone: "010",
-  totalAmount: 30000, autoDebit: false, issueType: null, dueDate: null, sendStatus: null, issuedAt: null, ...o,
+  payerNo: null, billNameDisplay: "name", totalAmount: 30000, autoDebit: false,
+  issueType: null, dueDate: null, sendStatus: null, issuedAt: null, ...o,
 });
 
 describe("BillTargetTable", () => {

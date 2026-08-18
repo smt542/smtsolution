@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/client";
-import type { BillItem } from "@/lib/bill/document";
+import type { BillItem, BillNameDisplay } from "@/lib/bill/document";
 
 export interface BillTarget {
   unitId: number; unitNo: string; dong: string | null; occupancyId: number | null;
-  tenantName: string | null; payerName: string | null; phone: string | null;
+  tenantName: string | null; payerName: string | null; payerNo: string | null;
+  billNameDisplay: BillNameDisplay; phone: string | null;
   totalAmount: number; autoDebit: boolean;
   issueType: string | null; dueDate: string | null; sendStatus: string | null; issuedAt: string | null;
 }
@@ -12,9 +13,18 @@ type BillTargetDbRow = {
   tenant_name: string | null; phone: string | null; total_amount: number; auto_debit: boolean;
   issue_type: string | null; due_date: string | null; send_status: string | null; issued_at: string | null;
 };
-const rowToTarget = (r: BillTargetDbRow, payerName: string | null = null): BillTarget => ({
+type BillTargetEnrichment = Pick<BillTarget, "payerName" | "payerNo" | "billNameDisplay">;
+const defaultTargetEnrichment: BillTargetEnrichment = {
+  payerName: null,
+  payerNo: null,
+  billNameDisplay: "name",
+};
+const rowToTarget = (
+  r: BillTargetDbRow,
+  enrichment: BillTargetEnrichment = defaultTargetEnrichment,
+): BillTarget => ({
   unitId: r.unit_id, unitNo: r.unit_no, dong: r.dong, occupancyId: r.occupancy_id,
-  tenantName: r.tenant_name, payerName, phone: r.phone,
+  tenantName: r.tenant_name, phone: r.phone, ...enrichment,
   totalAmount: r.total_amount, autoDebit: r.auto_debit,
   issueType: r.issue_type, dueDate: r.due_date, sendStatus: r.send_status, issuedAt: r.issued_at,
 });
@@ -40,26 +50,54 @@ export async function listBillTargets(buildingId: number, period: string): Promi
   const { data, error } = await supabase.rpc("list_bill_targets", { p_building_id: buildingId, p_period: period });
   if (error) throw new Error(error.message);
   const rows = (data ?? []) as BillTargetDbRow[];
-  const occupancyIds = rows
-    .map((row) => row.occupancy_id)
-    .filter((id): id is number => id !== null);
-  if (occupancyIds.length === 0) return rows.map((row) => rowToTarget(row));
+  if (rows.length === 0) return [];
 
-  // payer_name is an existing occupancy field. Keep this enrichment separate from
-  // the bill RPC so this branch does not depend on the parallel notice-form columns.
-  const occupancyResult = await supabase
-    .from("occupancies")
-    .select("id, payer_name")
-    .in("id", occupancyIds);
-  if (occupancyResult.error) throw new Error(occupancyResult.error.message);
-  const payerNames = new Map<number, string | null>(
-    ((occupancyResult.data ?? []) as { id: number; payer_name: string | null }[])
-      .map((row) => [row.id, row.payer_name]),
+  const occupancyIds = [...new Set(rows
+    .map((row) => row.occupancy_id)
+    .filter((id): id is number => id !== null))];
+  const unitIds = [...new Set(rows.map((row) => row.unit_id))];
+
+  type OccupancyBillFields = {
+    id: number;
+    payer_name: string | null;
+    bill_name_display: BillNameDisplay | null;
+  };
+  let occupancyRows: OccupancyBillFields[] = [];
+  if (occupancyIds.length > 0) {
+    // Keep occupancy-owned print fields as a separate enrichment so the bill RPC
+    // remains compatible with already-deployed versions.
+    const occupancyResult = await supabase
+      .from("occupancies")
+      .select("id, payer_name, bill_name_display")
+      .in("id", occupancyIds);
+    if (occupancyResult.error) throw new Error(occupancyResult.error.message);
+    occupancyRows = (occupancyResult.data ?? []) as OccupancyBillFields[];
+  }
+
+  const accountResult = await supabase
+    .from("unit_accounts")
+    .select("unit_id, payer_no")
+    .eq("kind", "mgmt")
+    .in("unit_id", unitIds);
+  if (accountResult.error) throw new Error(accountResult.error.message);
+
+  const occupancyFields = new Map<number, Omit<OccupancyBillFields, "id">>(
+    occupancyRows.map(({ id, ...fields }) => [id, fields]),
   );
-  return rows.map((row) => rowToTarget(
-    row,
-    row.occupancy_id === null ? null : (payerNames.get(row.occupancy_id) ?? null),
-  ));
+  const payerNumbers = new Map<number, string | null>(
+    ((accountResult.data ?? []) as { unit_id: number; payer_no: string | null }[])
+      .map((row) => [row.unit_id, row.payer_no]),
+  );
+  return rows.map((row) => {
+    const occupancy = row.occupancy_id === null
+      ? undefined
+      : occupancyFields.get(row.occupancy_id);
+    return rowToTarget(row, {
+      payerName: occupancy?.payer_name ?? null,
+      billNameDisplay: occupancy?.bill_name_display ?? "name",
+      payerNo: payerNumbers.get(row.unit_id) ?? null,
+    });
+  });
 }
 
 export async function getBillDocuments(buildingId: number, period: string, unitIds: number[]): Promise<BillDocument[]> {
