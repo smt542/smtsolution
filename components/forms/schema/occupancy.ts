@@ -16,10 +16,15 @@ export const occupancyBasicSchema = z.object({
 export const occupancyBillingSchema = z.object({
   status: z.enum(["occupied", "vacant", "moving_out"]),
   moveOutDate: z.string().optional(),
+  moveOutScheduledDate: z.string().optional(),
   billingEnabled: z.boolean(),
   printEnabled: z.boolean(),
   lateFeeEnabled: z.boolean(),
   singlePrint: z.boolean(),
+  transferMethod: z.enum(["giro", "transfer", "auto_transfer", "deposit", "none"]).default("none"),
+  billNameDisplay: z.enum(["none", "name", "code"]).default("name"),
+  billDelivery: z.enum(["post", "alimtalk"]).default("post"),
+  billAuth: z.boolean().default(false),
   billingNote: z.string().optional(),
   settlementNote: z.string().optional(),
 });

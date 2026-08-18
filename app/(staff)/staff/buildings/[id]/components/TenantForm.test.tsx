@@ -5,10 +5,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const push = vi.fn(); const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace }) }));
 const saveMutate = vi.fn();
+const executeMoveOutMutate = vi.fn();
+const scheduleMoveOutMutate = vi.fn();
+const cancelMoveOutMutate = vi.fn();
 let fullData: unknown;
 vi.mock("@/hooks/reactquery/occupancies", () => ({
   useSaveUnitOccupancy: () => ({ mutateAsync: saveMutate, isPending: false }),
   useUnitOccupancyFull: () => ({ data: fullData }),
+  useExecuteMoveOut: () => ({ mutateAsync: executeMoveOutMutate, isPending: false }),
+  useScheduleMoveOut: () => ({ mutateAsync: scheduleMoveOutMutate, isPending: false }),
+  useCancelMoveOutSchedule: () => ({ mutateAsync: cancelMoveOutMutate, isPending: false }),
 }));
 vi.mock("@/hooks/reactquery/roomTypes", () => ({ useRoomTypes: () => ({ data: [{ id: 1, label: "원룸" }] }) }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
@@ -37,6 +43,9 @@ describe("TenantForm 등록", () => {
     expect(payload.buildingId).toBe(7);
     expect(payload.unit).toEqual({ unitNo: "101", floor: null, usageType: "residential" });
     expect(payload.occupancy).toMatchObject({ tenantName: "김입주", roomTypeId: 1, moveInDate: "2026-01-01", status: "occupied" });
+    expect(payload.occupancy).toMatchObject({
+      transferMethod: "none", printEnabled: true, billNameDisplay: "name", billDelivery: "post", billAuth: false,
+    });
     expect(payload.meters).toHaveLength(3);
     expect(payload.accounts).toHaveLength(4);
     expect(payload.accounts.find((account: { kind: string }) => account.kind === "mgmt")?.payerNo).toBe("PAYER-1");
@@ -51,7 +60,8 @@ describe("TenantForm 등록", () => {
         id:9, unitId:3, tenantName:"김입주", payerName:"김입주", phone:"010", phone2:null, phone3:null,
         vehicleNo:null, residentCount:1, roomTypeId:1, moveInDate:"2026-01-01", moveOutDate:null,
         status:"occupied", billingEnabled:true, printEnabled:true, lateFeeEnabled:true, singlePrint:false,
-        billingNote:null, settlementNote:null, facilityNote:null,
+        billingNote:null, settlementNote:null, facilityNote:null, transferMethod:"auto_transfer",
+        billNameDisplay:"code", billDelivery:"alimtalk", billAuth:true, moveOutScheduledDate:"2026-12-31",
       },
       meters: [], accounts: [], lease: null, history: [],
     };
@@ -61,6 +71,9 @@ describe("TenantForm 등록", () => {
     await waitFor(() => {
       expect(screen.getByLabelText("용도")).toHaveValue("residential");
       expect(screen.getByLabelText("층")).toHaveValue(3);
+      expect(screen.getByLabelText("이체 방식")).toHaveValue("auto_transfer");
+      expect(screen.getByLabelText("고지서 발송")).toHaveValue("alimtalk");
+      expect(screen.getByText("2026-12-31 자동 퇴실 예정")).toBeInTheDocument();
     });
 
     fireEvent.change(screen.getByLabelText("용도"), { target: { value: "commercial" } });
