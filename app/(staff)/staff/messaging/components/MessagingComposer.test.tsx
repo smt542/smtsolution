@@ -13,8 +13,12 @@ vi.mock("@/hooks/reactquery/accounts", () => ({ useAccounts: vi.fn() }));
 vi.mock("@/hooks/reactquery/quickMessages", () => ({
   useQuickMessages: vi.fn(),
 }));
+vi.mock("@/hooks/reactquery/messageTemplates", () => ({
+  useMessageTemplates: vi.fn(),
+}));
 vi.mock("@/hooks/reactquery/messaging", () => ({
   useSendMessages: vi.fn(),
+  useTenantAlimtalkConsent: vi.fn(),
 }));
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), info: vi.fn(), error: vi.fn() },
@@ -25,7 +29,11 @@ import { useAccounts } from "@/hooks/reactquery/accounts";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useTenantList } from "@/hooks/reactquery/occupancies";
 import { useQuickMessages } from "@/hooks/reactquery/quickMessages";
-import { useSendMessages } from "@/hooks/reactquery/messaging";
+import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates";
+import {
+  useSendMessages,
+  useTenantAlimtalkConsent,
+} from "@/hooks/reactquery/messaging";
 import { MessagingComposer } from "./MessagingComposer";
 
 const buildings = [
@@ -107,6 +115,24 @@ beforeEach(() => {
       },
     ],
   } as unknown as ReturnType<typeof useQuickMessages>);
+  vi.mocked(useMessageTemplates).mockReturnValue({
+    data: [
+      {
+        id: 5,
+        orgId: 1,
+        title: "납부 안내",
+        body: "#{이름}님 #{호실} #{건물명} 관리비를 확인해 주세요.",
+        sortOrder: 0,
+      },
+    ],
+    isLoading: false,
+  } as unknown as ReturnType<typeof useMessageTemplates>);
+  vi.mocked(useTenantAlimtalkConsent).mockReturnValue({
+    data: [
+      { occupancyId: 101, alimtalkOptIn: true, smsOptIn: true },
+    ],
+    isLoading: false,
+  } as unknown as ReturnType<typeof useTenantAlimtalkConsent>);
   vi.mocked(useSendMessages).mockReturnValue({
     mutateAsync,
     isPending: false,
@@ -115,9 +141,9 @@ beforeEach(() => {
 
 describe("MessagingComposer", () => {
   it("SMS 채널과 세대·건물주·직원 수신처를 표시하고 선택 수를 갱신", () => {
-    render(<MessagingComposer />);
+    render(<MessagingComposer initialMode="sms" />);
 
-    expect(screen.getByText("SMS")).toBeInTheDocument();
+    expect(screen.getByLabelText("발송 모드")).toHaveValue("sms");
     expect(screen.getByRole("heading", { name: "세대" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "건물주" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "직원" })).toBeInTheDocument();
@@ -134,7 +160,7 @@ describe("MessagingComposer", () => {
   });
 
   it("본문을 입력하고 자주 보내는 문구를 삽입", () => {
-    render(<MessagingComposer />);
+    render(<MessagingComposer initialMode="sms" />);
 
     fireEvent.change(screen.getByLabelText("본문"), {
       target: { value: "안녕하세요." },
@@ -152,6 +178,7 @@ describe("MessagingComposer", () => {
     const onSent = vi.fn();
     render(
       <MessagingComposer
+        initialMode="sms"
         preset={{
           context: "독촉",
           body: "미납 관리비를 확인해 주세요.",
@@ -181,9 +208,10 @@ describe("MessagingComposer", () => {
       expect(confirmSpy).toHaveBeenCalledWith("1명에게 발송하시겠습니까?"),
     );
     expect(mutateAsync).toHaveBeenCalledWith({
-      channel: "sms",
+      mode: "sms",
       body: "미납 관리비를 확인해 주세요.",
       context: "독촉",
+      templateId: null,
       recipients: [
         {
           name: "김입주",
@@ -191,6 +219,8 @@ describe("MessagingComposer", () => {
           unitNo: "101호",
           kind: "tenant",
           ref: { occupancyId: 101 },
+          channel: "sms",
+          renderedBody: "미납 관리비를 확인해 주세요.",
         },
       ],
     });
@@ -203,6 +233,7 @@ describe("MessagingComposer", () => {
   it("중복된 정규화 전화번호를 한 명으로 표시하고 한 번만 발송", async () => {
     render(
       <MessagingComposer
+        initialMode="sms"
         preset={{
           context: "manual",
           body: "중복 수신처 확인",
@@ -232,15 +263,18 @@ describe("MessagingComposer", () => {
       expect(confirmSpy).toHaveBeenCalledWith("1명에게 발송하시겠습니까?"),
     );
     expect(mutateAsync).toHaveBeenCalledWith({
-      channel: "sms",
+      mode: "sms",
       body: "중복 수신처 확인",
       context: "manual",
+      templateId: null,
       recipients: [
         {
           name: "첫 번째 수신처",
           phone: "010-5555-1234",
           kind: "tenant",
           ref: { occupancyId: 101 },
+          channel: "sms",
+          renderedBody: "중복 수신처 확인",
         },
       ],
     });
@@ -252,7 +286,7 @@ describe("MessagingComposer", () => {
       isLoading: false,
     } as unknown as ReturnType<typeof useTenantList>);
 
-    render(<MessagingComposer />);
+    render(<MessagingComposer initialMode="sms" />);
     fireEvent.change(screen.getByLabelText("건물 선택"), {
       target: { value: "7" },
     });
@@ -264,7 +298,7 @@ describe("MessagingComposer", () => {
   });
 
   it("수신처 또는 본문이 비어 있으면 안내하고 발송하지 않음", () => {
-    render(<MessagingComposer />);
+    render(<MessagingComposer initialMode="sms" />);
 
     fireEvent.click(screen.getByRole("button", { name: "발송" }));
     expect(toast.info).toHaveBeenCalledWith("수신처를 선택해 주세요.");
@@ -273,6 +307,107 @@ describe("MessagingComposer", () => {
     fireEvent.click(screen.getByRole("button", { name: "발송" }));
     expect(toast.info).toHaveBeenCalledWith("본문을 입력해 주세요.");
     expect(confirmSpy).not.toHaveBeenCalled();
+    expect(mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("자동 모드에서 템플릿 미선택이면 발송을 비활성화한다", () => {
+    render(
+      <MessagingComposer
+        initialMode="auto"
+        preset={{
+          context: "manual",
+          body: "본문",
+          recipients: [
+            {
+              name: "김입주",
+              phone: "010-1000-0000",
+              unitNo: "101호",
+              kind: "tenant",
+              ref: { occupancyId: 101 },
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByLabelText("발송 모드")).toHaveValue("auto");
+    expect(screen.getByRole("button", { name: "발송" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+  });
+
+  it("템플릿 본문을 편집 가능한 본문에 채우고 수신처별 예상 채널과 렌더 결과를 발송한다", async () => {
+    render(<MessagingComposer initialMode="auto" />);
+
+    fireEvent.change(screen.getByLabelText("건물 선택"), {
+      target: { value: "7" },
+    });
+    fireEvent.change(screen.getByLabelText("알림톡 템플릿"), {
+      target: { value: "5" },
+    });
+    fireEvent.click(screen.getByLabelText(/101호 · 김입주/));
+
+    expect(screen.getByLabelText("본문")).toHaveValue(
+      "#{이름}님 #{호실} #{건물명} 관리비를 확인해 주세요.",
+    );
+    expect(screen.getByText("예상 알림톡")).toBeInTheDocument();
+    expect(
+      screen.getByText("김입주님 101호 그린빌라 관리비를 확인해 주세요."),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "발송" }));
+
+    await waitFor(() =>
+      expect(mutateAsync).toHaveBeenCalledWith({
+        mode: "auto",
+        body: "#{이름}님 #{호실} #{건물명} 관리비를 확인해 주세요.",
+        context: "manual",
+        templateId: 5,
+        recipients: [
+          {
+            name: "김입주",
+            phone: "010-1000-0000",
+            unitNo: "101호",
+            kind: "tenant",
+            ref: { occupancyId: 101, buildingId: 7 },
+            channel: "alimtalk",
+            renderedBody:
+              "김입주님 101호 그린빌라 관리비를 확인해 주세요.",
+          },
+        ],
+      }),
+    );
+  });
+
+  it("알림톡 모드에서 미동의 수신처를 경고하고 적격자가 없으면 차단한다", () => {
+    vi.mocked(useTenantAlimtalkConsent).mockReturnValue({
+      data: [{ occupancyId: 101, alimtalkOptIn: false, smsOptIn: true }],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useTenantAlimtalkConsent>);
+
+    render(<MessagingComposer initialMode="alimtalk" />);
+    fireEvent.change(screen.getByLabelText("건물 선택"), {
+      target: { value: "7" },
+    });
+    fireEvent.change(screen.getByLabelText("알림톡 템플릿"), {
+      target: { value: "5" },
+    });
+    fireEvent.click(screen.getByLabelText(/101호 · 김입주/));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "알림톡 미동의 수신처 1명은 제외됩니다.",
+    );
+    expect(screen.getByText("예상 제외")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "발송" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "발송" }));
+    expect(toast.info).toHaveBeenCalledWith(
+      "알림톡 수신에 동의한 수신처가 없습니다.",
+    );
     expect(mutateAsync).not.toHaveBeenCalled();
   });
 });

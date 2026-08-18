@@ -5,20 +5,30 @@ import { toast } from "sonner";
 import { Button, Checkbox, Panel, Select } from "@/components/common";
 import { useAccounts } from "@/hooks/reactquery/accounts";
 import { useBuildings } from "@/hooks/reactquery/buildings";
+import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates";
+import {
+  useSendMessages,
+  useTenantAlimtalkConsent,
+} from "@/hooks/reactquery/messaging";
 import {
   useTenantList,
   type TenantListRow,
 } from "@/hooks/reactquery/occupancies";
 import { useQuickMessages } from "@/hooks/reactquery/quickMessages";
-import { useSendMessages } from "@/hooks/reactquery/messaging";
+import { renderTemplate } from "@/lib/messaging/render";
 import {
-  buildSendPayload,
+  dedupeRecipients,
+  validRecipients,
+  type MessageChannel,
   type MessageRecipient,
   type MessagingPreset,
+  type ResolvedRecipient,
+  type SendMode,
 } from "@/lib/messaging/preset";
 
 export interface MessagingComposerProps {
   preset?: MessagingPreset;
+  initialMode?: SendMode;
   onSent?: (result: { logId: number; count: number }) => void;
 }
 
@@ -69,12 +79,19 @@ function TenantRecipientOption({
 }
 export function MessagingComposer({
   preset,
+  initialMode,
   onSent,
 }: MessagingComposerProps) {
   const [selectedBuildingId, setSelectedBuildingId] = useState(0);
   const [recipients, setRecipients] = useState<MessageRecipient[]>(() => [
     ...(preset?.recipients ?? []),
   ]);
+  const [mode, setMode] = useState<SendMode>(
+    initialMode ?? preset?.mode ?? "auto",
+  );
+  const [templateId, setTemplateId] = useState<number | null>(
+    preset?.templateId ?? null,
+  );
   const [body, setBody] = useState(preset?.body ?? "");
   const [quickMessageId, setQuickMessageId] = useState("");
 
@@ -83,6 +100,10 @@ export function MessagingComposer({
     useTenantList(selectedBuildingId);
   const { data: accounts = [], isLoading: isAccountsLoading } = useAccounts();
   const { data: quickMessages = [] } = useQuickMessages();
+  const { data: templates = [], isLoading: isTemplatesLoading } =
+    useMessageTemplates();
+  const { data: tenantConsents = [] } =
+    useTenantAlimtalkConsent(selectedBuildingId);
   const sendMessages = useSendMessages();
 
   const selectedBuilding = buildings.find(
@@ -92,22 +113,74 @@ export function MessagingComposer({
     () => new Set(recipients.map(recipientKey)),
     [recipients],
   );
-  const sendPayload = useMemo(
+  const consentByOccupancy = useMemo(
     () =>
-      buildSendPayload({
-        channel: "sms",
-        body,
-        context: preset?.context ?? "manual",
-        recipients,
-      }),
-    [body, preset?.context, recipients],
+      new Map(
+        tenantConsents.map((consent) => [
+          consent.occupancyId,
+          consent.alimtalkOptIn,
+        ]),
+      ),
+    [tenantConsents],
   );
-  const validCount = sendPayload.recipients.length;
+  const validRecipientList = useMemo(
+    () => validRecipients(dedupeRecipients(recipients)),
+    [recipients],
+  );
+  const recipientPreviews = useMemo(
+    () =>
+      validRecipientList.map((recipient) => {
+        const occupancyId = recipient.ref?.occupancyId;
+        const hasAlimtalkConsent =
+          occupancyId !== undefined &&
+          consentByOccupancy.get(occupancyId) === true;
+        const channel: MessageChannel | null =
+          mode === "sms"
+            ? "sms"
+            : hasAlimtalkConsent
+              ? "alimtalk"
+              : mode === "alimtalk"
+                ? null
+                : "sms";
+        const renderedBody = renderTemplate(body, {
+          이름: recipient.name ?? "",
+          호실: recipient.unitNo ?? "",
+          건물명: selectedBuilding?.name ?? "",
+        });
+
+        return { recipient, channel, renderedBody };
+      }),
+    [body, consentByOccupancy, mode, selectedBuilding?.name, validRecipientList],
+  );
+  const sendRecipients = useMemo<ResolvedRecipient[]>(
+    () =>
+      recipientPreviews.flatMap(({ recipient, channel, renderedBody }) =>
+        channel === null
+          ? []
+          : [{ ...recipient, channel, renderedBody }],
+      ),
+    [recipientPreviews],
+  );
+  const previewByRecipient = useMemo(
+    () =>
+      new Map(
+        recipientPreviews.map((preview) => [
+          recipientKey(preview.recipient),
+          preview,
+        ]),
+      ),
+    [recipientPreviews],
+  );
+  const validCount = sendRecipients.length;
+  const excludedCount = validRecipientList.length - validCount;
   const activeAccounts = accounts.filter((account) => account.isActive);
   const occupiedTenants = tenants.filter(
     (tenant) => !tenant.isVacant && tenant.occupancyId !== null,
   );
-  const canSend = validCount > 0 && body.trim().length > 0;
+  const canSend =
+    validCount > 0 &&
+    body.trim().length > 0 &&
+    (mode === "sms" || templateId !== null);
 
   const toggleRecipient = (recipient: MessageRecipient) => {
     const key = recipientKey(recipient);
@@ -128,8 +201,15 @@ export function MessagingComposer({
     setQuickMessageId("");
   };
 
+  const selectTemplate = (value: string) => {
+    const nextTemplateId = Number(value) || null;
+    setTemplateId(nextTemplateId);
+    const template = templates.find((item) => item.id === nextTemplateId);
+    if (template) setBody(template.body);
+  };
+
   const send = async () => {
-    if (validCount === 0) {
+    if (validRecipientList.length === 0) {
       toast.info("수신처를 선택해 주세요.");
       return;
     }
@@ -137,10 +217,24 @@ export function MessagingComposer({
       toast.info("본문을 입력해 주세요.");
       return;
     }
+    if (mode !== "sms" && templateId === null) {
+      toast.info("알림톡 템플릿을 선택해 주세요.");
+      return;
+    }
+    if (mode === "alimtalk" && validCount === 0) {
+      toast.info("알림톡 수신에 동의한 수신처가 없습니다.");
+      return;
+    }
     if (!window.confirm(`${validCount}명에게 발송하시겠습니까?`)) return;
 
     try {
-      const result = await sendMessages.mutateAsync(sendPayload);
+      const result = await sendMessages.mutateAsync({
+        mode,
+        body,
+        context: preset?.context ?? "manual",
+        templateId: mode === "sms" ? null : templateId,
+        recipients: sendRecipients,
+      });
       toast.success(`발송(임시) 완료 · ${result.count}명`);
       onSent?.(result);
     } catch (error) {
@@ -170,12 +264,21 @@ export function MessagingComposer({
     >
       <div className="flex flex-col gap-6">
         <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <span className="mb-1.5 block text-xs font-bold text-t2">채널</span>
-            <div className="flex h-11 items-center rounded-xl border border-line bg-bg px-4 text-sm font-bold text-t1">
-              SMS
-            </div>
-          </div>
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-t2">
+              발송 모드
+            </span>
+            <Select
+              aria-label="발송 모드"
+              value={mode}
+              onChange={(event) => setMode(event.target.value as SendMode)}
+              options={[
+                { value: "auto", label: "자동" },
+                { value: "sms", label: "SMS" },
+                { value: "alimtalk", label: "알림톡" },
+              ]}
+            />
+          </label>
           <label>
             <span className="mb-1.5 block text-xs font-bold text-t2">
               건물 선택
@@ -197,6 +300,27 @@ export function MessagingComposer({
             />
           </label>
         </div>
+
+        {mode !== "sms" && (
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-t2">
+              알림톡 템플릿
+            </span>
+            <Select
+              aria-label="알림톡 템플릿"
+              value={templateId === null ? "" : String(templateId)}
+              disabled={isTemplatesLoading}
+              onChange={(event) => selectTemplate(event.target.value)}
+              options={[
+                { value: "", label: "템플릿을 선택해 주세요" },
+                ...templates.map((template) => ({
+                  value: String(template.id),
+                  label: template.title,
+                })),
+              ]}
+            />
+          </label>
+        )}
 
         <div className="grid gap-4 lg:grid-cols-3">
           <section
@@ -297,18 +421,57 @@ export function MessagingComposer({
           <section aria-label="선택된 수신처">
             <h4 className="mb-2 text-xs font-bold text-t2">선택된 수신처</h4>
             <div className="flex flex-wrap gap-2">
-              {recipients.map((recipient, index) => (
-                <span
-                  key={`${recipientKey(recipient)}:${index}`}
-                  className="rounded-lg bg-bg px-2.5 py-1 text-xs text-t2"
-                >
-                  {recipient.unitNo ? `${recipient.unitNo} · ` : ""}
-                  {recipient.name ?? "이름 없음"}
-                  {recipient.phone ? ` · ${recipient.phone}` : " · 연락처 없음"}
-                </span>
-              ))}
+              {recipients.map((recipient, index) => {
+                const preview = previewByRecipient.get(recipientKey(recipient));
+                const channelLabel =
+                  preview?.channel === "alimtalk"
+                    ? "예상 알림톡"
+                    : preview?.channel === "sms"
+                      ? "예상 SMS"
+                      : "예상 제외";
+
+                return (
+                  <div
+                    key={`${recipientKey(recipient)}:${index}`}
+                    className="rounded-lg bg-bg px-2.5 py-2 text-xs text-t2"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span>
+                        {recipient.unitNo ? `${recipient.unitNo} · ` : ""}
+                        {recipient.name ?? "이름 없음"}
+                        {recipient.phone
+                          ? ` · ${recipient.phone}`
+                          : " · 연락처 없음"}
+                      </span>
+                      <span
+                        className={`rounded-md px-2 py-0.5 font-bold ${
+                          preview?.channel === null || !preview
+                            ? "bg-danger/10 text-danger"
+                            : "bg-brand/10 text-brand"
+                        }`}
+                      >
+                        {channelLabel}
+                      </span>
+                    </div>
+                    {preview && (
+                      <p className="mt-1 max-w-xl whitespace-pre-wrap text-t3">
+                        {preview.renderedBody}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </section>
+        )}
+
+        {mode === "alimtalk" && excludedCount > 0 && (
+          <p
+            role="alert"
+            className="rounded-xl bg-danger/10 px-4 py-3 text-sm font-bold text-danger"
+          >
+            알림톡 미동의 수신처 {excludedCount}명은 제외됩니다.
+          </p>
         )}
 
         <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
@@ -343,7 +506,7 @@ export function MessagingComposer({
 
         <div className="flex items-center justify-between border-t border-line pt-4">
           <p className="text-sm text-t3">
-            연락처가 있는 수신처 <strong className="text-t1">{validCount}명</strong>
+            발송 가능한 수신처 <strong className="text-t1">{validCount}명</strong>
           </p>
           <Button
             type="button"
