@@ -1,5 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { listMessageLogs, listTenantAlimtalkConsent } from "./apis";
+import {
+  listMessageLogs,
+  listTenantAlimtalkConsent,
+  quoteMessagePoints,
+  type MessagePointQuoteInput,
+} from "./apis";
 import { messagingKeys } from "./keys";
 
 export function useMessageLogs(limit?: number) {
@@ -14,5 +19,13 @@ export function useTenantAlimtalkConsent(buildingId: number) {
     queryKey: messagingKeys.consent(buildingId),
     queryFn: () => listTenantAlimtalkConsent(buildingId),
     enabled: buildingId > 0,
+  });
+}
+
+export function useMessagePointQuote(input: MessagePointQuoteInput | null) {
+  return useQuery({
+    queryKey: messagingKeys.pointQuote(input),
+    queryFn: () => quoteMessagePoints(input as MessagePointQuoteInput),
+    enabled: input !== null,
   });
 }

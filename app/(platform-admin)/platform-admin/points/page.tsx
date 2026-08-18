@@ -4,9 +4,14 @@ import { useMemo, useState } from "react";
 import { EmptyState, Spinner, Button, SearchBar } from "@/components/common";
 import {
   useAdjustPoints,
+  useMessagePointRates,
   usePlatformOrganizations,
   usePlatformTransactions,
+  usePointReservations,
   useChargePoints,
+  useReleaseStalePointReservation,
+  useSetMessagePointRates,
+  type PointReservation,
   type PointTxType,
 } from "@/hooks/reactquery/platform";
 import type { PointAdjustmentFormValues } from "@/components/forms/schema/pointAdjustment";
@@ -14,6 +19,8 @@ import { toast } from "sonner";
 import { PageHeader, QueryError, StatusBadge } from "../../_components/PageElements";
 import { PointChargeModal } from "./components/PointChargeModal";
 import { PointAdjustmentModal } from "./components/PointAdjustmentModal";
+import { MessagePointRateModal } from "./components/MessagePointRateModal";
+import { ReservationReleaseModal } from "./components/ReservationReleaseModal";
 
 const dateFmt = new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" });
 const num = (n: number) => n.toLocaleString("ko-KR");
@@ -22,10 +29,16 @@ export default function PlatformPointsPage() {
   const [search, setSearch] = useState("");
   const [chargeModalOpen, setChargeModalOpen] = useState(false);
   const [adjustmentModalOpen, setAdjustmentModalOpen] = useState(false);
+  const [rateModalOpen, setRateModalOpen] = useState(false);
+  const [releaseTarget, setReleaseTarget] = useState<PointReservation | null>(null);
   const orgsQuery = usePlatformOrganizations();
   const txQuery = usePlatformTransactions();
+  const ratesQuery = useMessagePointRates();
+  const reservationsQuery = usePointReservations();
   const charge = useChargePoints();
   const adjustment = useAdjustPoints();
+  const setRates = useSetMessagePointRates();
+  const releaseReservation = useReleaseStalePointReservation();
 
   const organizations = useMemo(
     () => (orgsQuery.data ?? []).filter((organization) => !organization.deletedAt),
@@ -36,6 +49,15 @@ export default function PlatformPointsPage() {
     if (!kw) return organizations;
     return organizations.filter((o) => o.name.toLocaleLowerCase("ko-KR").includes(kw));
   }, [organizations, search]);
+  const activeRates = useMemo(
+    () => new Map((ratesQuery.data ?? []).filter((rate) => rate.isActive).map((rate) => [rate.channel, rate.points])),
+    [ratesQuery.data],
+  );
+  const activeReservations = useMemo(
+    () => (reservationsQuery.data ?? []).filter((reservation) =>
+      reservation.status === "reserved" || reservation.status === "reconcile_required"),
+    [reservationsQuery.data],
+  );
 
   const handleCharge = async (values: { orgId: number; points: number; amountKrw: number; memo?: string }) => {
     try {
@@ -57,9 +79,57 @@ export default function PlatformPointsPage() {
     }
   };
 
+  const handleRates = async (values: { smsPoints: number; alimtalkPoints: number }) => {
+    try {
+      await setRates.mutateAsync(values);
+      toast.success("메시지 포인트 단가를 변경했습니다.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "단가 변경에 실패했습니다.");
+      throw error;
+    }
+  };
+
+  const handleRelease = async (reason: string) => {
+    if (!releaseTarget) return;
+    try {
+      await releaseReservation.mutateAsync({ id: releaseTarget.id, reason });
+      toast.success("포인트 예약을 해제했습니다.");
+      setReleaseTarget(null);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "예약 해제에 실패했습니다.");
+      throw error;
+    }
+  };
+
   return (
     <div className="mx-auto w-full max-w-7xl p-5 sm:p-6 lg:p-8">
       <PageHeader eyebrow="POINTS" title="포인트 관리" description="조직별 발송 크레딧(포인트) 잔액과 충전·사용·조정 내역을 관리합니다." />
+
+      <section className="mt-6 rounded-2xl border border-line bg-surface p-4 shadow-card">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-base font-extrabold text-t1">메시지 채널 단가</h3>
+            <p className="mt-1 text-xs text-t3">새 견적부터 현재 활성 단가가 적용됩니다.</p>
+          </div>
+          <Button
+            variant="ghost"
+            onClick={() => setRateModalOpen(true)}
+            disabled={ratesQuery.isPending || ratesQuery.isError}
+          >
+            단가 설정
+          </Button>
+        </div>
+        {ratesQuery.isPending ? (
+          <div className="py-6"><Spinner /></div>
+        ) : ratesQuery.isError ? (
+          <div className="mt-3"><QueryError onRetry={() => void ratesQuery.refetch()} /></div>
+        ) : (
+          <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+            <RateSummary label="SMS" points={activeRates.get("sms") ?? 0} />
+            <RateSummary label="알림톡" points={activeRates.get("alimtalk") ?? 0} />
+          </dl>
+        )}
+      </section>
 
       {/* 잔액 목록 */}
       <section className="mt-6 rounded-2xl border border-line bg-surface shadow-card">
@@ -82,10 +152,13 @@ export default function PlatformPointsPage() {
           <EmptyState message={search ? "검색 결과가 없습니다" : "조회 가능한 조직이 없습니다"} />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px] text-sm">
+            <table className="w-full min-w-[760px] text-sm">
               <thead>
                 <tr className="border-b border-line bg-bg/70 text-left text-xs font-bold text-t3">
-                  <th className="px-5 py-3">조직</th><th className="px-4 py-3">상태</th><th className="px-5 py-3 text-right">포인트 잔액</th>
+                  <th className="px-5 py-3">조직</th><th className="px-4 py-3">상태</th>
+                  <th className="px-4 py-3 text-right">원장 잔액</th>
+                  <th className="px-4 py-3 text-right">예약</th>
+                  <th className="px-5 py-3 text-right">가용 잔액</th>
                 </tr>
               </thead>
               <tbody>
@@ -93,9 +166,69 @@ export default function PlatformPointsPage() {
                   <tr key={o.id} className="border-b border-line last:border-0 hover:bg-bg/50">
                     <td className="px-5 py-4 font-bold text-t1">{o.name}</td>
                     <td className="px-4 py-4"><StatusBadge status={o.status} /></td>
-                    <td className="px-5 py-4 text-right font-extrabold text-t1 num">{num(o.pointBalance)} P</td>
+                    <td className="px-4 py-4 text-right text-t2 num">{num(o.ledgerBalance)} P</td>
+                    <td className="px-4 py-4 text-right text-amber num">{num(o.reservedPoints)} P</td>
+                    <td className="px-5 py-4 text-right font-extrabold text-t1 num">{num(o.availablePoints)} P</td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="mt-6 rounded-2xl border border-line bg-surface shadow-card">
+        <div className="border-b border-line p-4">
+          <h3 className="text-base font-extrabold text-t1">활성 메시지 포인트 예약</h3>
+          <p className="mt-1 text-xs text-t3">
+            만료만으로 자동 해제하지 않습니다. 공급자 상태 확인이 필요한 예약은 수동 검토하세요.
+          </p>
+        </div>
+        {activeReservations.some((reservation) => reservation.status === "reconcile_required") && (
+          <p className="m-4 rounded-xl bg-danger/10 px-4 py-3 text-sm font-extrabold text-danger">
+            공급자 결과 확인이 필요한 예약이 있습니다.
+          </p>
+        )}
+        {reservationsQuery.isPending ? (
+          <div className="py-12"><Spinner /></div>
+        ) : reservationsQuery.isError ? (
+          <div className="p-4"><QueryError onRetry={() => void reservationsQuery.refetch()} /></div>
+        ) : activeReservations.length === 0 ? (
+          <EmptyState message="활성 예약이 없습니다" />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[920px] text-sm">
+              <thead>
+                <tr className="border-b border-line bg-bg/70 text-left text-xs font-bold text-t3">
+                  <th className="px-5 py-3">조직</th>
+                  <th className="px-4 py-3">상태</th>
+                  <th className="px-4 py-3 text-right">예약 포인트</th>
+                  <th className="px-4 py-3">생성</th>
+                  <th className="px-4 py-3">만료 기준</th>
+                  <th className="px-5 py-3 text-right">운영</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activeReservations.map((reservation) => {
+                  return (
+                    <tr key={reservation.id} className="border-b border-line last:border-0">
+                      <td className="px-5 py-4 font-bold text-t1">{reservation.organizationName}</td>
+                      <td className="px-4 py-4"><ReservationStatus status={reservation.status} /></td>
+                      <td className="px-4 py-4 text-right font-bold num">{num(reservation.reservedPoints)} P</td>
+                      <td className="px-4 py-4 text-t3">{formatAge(reservation.ageSeconds)} 전</td>
+                      <td className="px-4 py-4 text-t3 num">{dateFmt.format(new Date(reservation.expiresAt))}</td>
+                      <td className="px-5 py-4 text-right">
+                        <Button
+                          variant="ghost"
+                          disabled={!reservation.isReleasable}
+                          onClick={() => setReleaseTarget(reservation)}
+                        >
+                          수동 해제
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -153,8 +286,52 @@ export default function PlatformPointsPage() {
         onSubmit={handleAdjustment}
         isPending={adjustment.isPending}
       />
+      <MessagePointRateModal
+        open={rateModalOpen}
+        onClose={() => setRateModalOpen(false)}
+        smsPoints={activeRates.get("sms") ?? 1}
+        alimtalkPoints={activeRates.get("alimtalk") ?? 1}
+        onSubmit={handleRates}
+        isPending={setRates.isPending}
+      />
+      {releaseTarget && (
+        <ReservationReleaseModal
+          key={releaseTarget.id}
+          reservation={releaseTarget}
+          onClose={() => setReleaseTarget(null)}
+          onSubmit={handleRelease}
+          isPending={releaseReservation.isPending}
+        />
+      )}
     </div>
   );
+}
+
+function RateSummary({ label, points }: { label: string; points: number }) {
+  return (
+    <div className="rounded-xl bg-bg px-4 py-3">
+      <dt className="text-xs font-bold text-t3">{label}</dt>
+      <dd className="mt-1 text-lg font-extrabold text-t1">건당 {num(points)} P</dd>
+    </div>
+  );
+}
+
+function ReservationStatus({ status }: { status: PointReservation["status"] }) {
+  const view = status === "reconcile_required"
+    ? { label: "확인 필요", className: "bg-red-t text-red" }
+    : { label: "예약", className: "bg-amber-t text-amber" };
+  return (
+    <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${view.className}`}>
+      {view.label}
+    </span>
+  );
+}
+
+function formatAge(seconds: number): string {
+  if (seconds < 60) return `${seconds}초`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}분`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}시간`;
+  return `${Math.floor(seconds / 86400)}일`;
 }
 
 const TRANSACTION_BADGES: Record<PointTxType, { label: string; className: string }> = {

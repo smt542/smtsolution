@@ -15,8 +15,8 @@ vi.mock("@/hooks/reactquery/platform", () => ({
 }));
 
 const organizations = [
-  { id: 1, name: "한빛", pointBalance: 700, status: "active", slug: null, createdAt: "", accountCount: 0, buildingCount: 0 },
-  { id: 2, name: "새봄", pointBalance: 500, status: "trial", slug: null, createdAt: "", accountCount: 0, buildingCount: 0 },
+  { id: 1, name: "한빛", pointBalance: 700, ledgerBalance: 700, reservedPoints: 0, availablePoints: 700, status: "active", slug: null, createdAt: "", accountCount: 0, buildingCount: 0 },
+  { id: 2, name: "새봄", pointBalance: 500, ledgerBalance: 500, reservedPoints: 0, availablePoints: 500, status: "trial", slug: null, createdAt: "", accountCount: 0, buildingCount: 0 },
 ];
 const transactions = [
   { id: 9, orgId: 1, organizationName: "한빛", type: "charge", points: 1000, amountKrw: 110000, memo: null, createdBy: null, createdByName: null, createdAt: "2026-08-02T00:00:00Z" },

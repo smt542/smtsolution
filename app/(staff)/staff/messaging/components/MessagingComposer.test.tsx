@@ -17,6 +17,7 @@ vi.mock("@/hooks/reactquery/messageTemplates", () => ({
   useMessageTemplates: vi.fn(),
 }));
 vi.mock("@/hooks/reactquery/messaging", () => ({
+  useMessagePointQuote: vi.fn(),
   useSendMessages: vi.fn(),
   useTenantAlimtalkConsent: vi.fn(),
 }));
@@ -31,6 +32,7 @@ import { useTenantList } from "@/hooks/reactquery/occupancies";
 import { useQuickMessages } from "@/hooks/reactquery/quickMessages";
 import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates";
 import {
+  useMessagePointQuote,
   useSendMessages,
   useTenantAlimtalkConsent,
 } from "@/hooks/reactquery/messaging";
@@ -137,6 +139,31 @@ beforeEach(() => {
     mutateAsync,
     isPending: false,
   } as unknown as ReturnType<typeof useSendMessages>);
+  vi.mocked(useMessagePointQuote).mockImplementation((input) => ({
+    data: input
+      ? {
+          recipientCount: input.recipients.length,
+          excludedCount: 0,
+          channelCounts: {
+            sms: input.mode === "sms" ? input.recipients.length : 0,
+            alimtalk: input.mode === "sms" ? 0 : input.recipients.length,
+          },
+          rateSnapshot: {
+            sms: { rateId: 1, points: 1 },
+            alimtalk: { rateId: 2, points: 1 },
+          },
+          ledgerBalance: 100,
+          reservedPoints: 0,
+          availablePoints: 100,
+          estimatedPoints: input.recipients.length,
+          sufficient: true,
+          billingMode: "stub",
+        }
+      : undefined,
+    isPending: false,
+    isFetching: false,
+    error: null,
+  }) as unknown as ReturnType<typeof useMessagePointQuote>);
 });
 
 describe("MessagingComposer", () => {
@@ -205,7 +232,9 @@ describe("MessagingComposer", () => {
     fireEvent.click(screen.getByRole("button", { name: "발송" }));
 
     await waitFor(() =>
-      expect(confirmSpy).toHaveBeenCalledWith("1명에게 발송하시겠습니까?"),
+      expect(confirmSpy).toHaveBeenCalledWith(
+        "1명 · 예상 1 P (테스트 모드에서는 차감 없음)\n발송하시겠습니까?",
+      ),
     );
     expect(mutateAsync).toHaveBeenCalledWith({
       mode: "sms",
@@ -261,7 +290,9 @@ describe("MessagingComposer", () => {
     fireEvent.click(screen.getByRole("button", { name: "발송" }));
 
     await waitFor(() =>
-      expect(confirmSpy).toHaveBeenCalledWith("1명에게 발송하시겠습니까?"),
+      expect(confirmSpy).toHaveBeenCalledWith(
+        "1명 · 예상 1 P (테스트 모드에서는 차감 없음)\n발송하시겠습니까?",
+      ),
     );
     expect(mutateAsync).toHaveBeenCalledWith({
       mode: "sms",
@@ -416,6 +447,12 @@ describe("MessagingComposer", () => {
       data: [{ occupancyId: 101, alimtalkOptIn: false, smsOptIn: true }],
       isLoading: false,
     } as unknown as ReturnType<typeof useTenantAlimtalkConsent>);
+    vi.mocked(useMessagePointQuote).mockReturnValue({
+      data: undefined,
+      isPending: false,
+      isFetching: false,
+      error: new Error("발송 가능한 수신처가 없습니다."),
+    } as unknown as ReturnType<typeof useMessagePointQuote>);
 
     render(<MessagingComposer initialMode="alimtalk" />);
     fireEvent.change(screen.getByLabelText("건물 선택"), {
@@ -426,9 +463,9 @@ describe("MessagingComposer", () => {
     });
     fireEvent.click(screen.getByLabelText(/101호 · 김입주/));
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "알림톡 미동의 수신처 1명은 제외됩니다.",
-    );
+    expect(
+      screen.getByText("알림톡 미동의 수신처 1명은 제외됩니다."),
+    ).toBeInTheDocument();
     expect(screen.getByText("예상 제외")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "발송" })).toHaveAttribute(
       "aria-disabled",

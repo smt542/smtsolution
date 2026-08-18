@@ -49,7 +49,10 @@ export interface PlatformOrganization {
   createdAt: string;
   accountCount: number;
   buildingCount: number;
-  pointBalance: number; // sum(points)
+  pointBalance: number; // ledgerBalance 호환 별칭
+  ledgerBalance: number;
+  reservedPoints: number;
+  availablePoints: number;
   phone: string | null;
   deletedAt: string | null;
 }
@@ -104,22 +107,19 @@ interface PointTxRow {
   created_at: string;
 }
 
+interface PointBalanceRow {
+  org_id: number;
+  ledger_balance: number;
+  reserved_points: number;
+  available_points: number;
+}
+
 function countByOrganization(rows: Array<{ org_id: number }> | null): Map<number, number> {
   const counts = new Map<number, number>();
   for (const row of rows ?? []) {
     counts.set(row.org_id, (counts.get(row.org_id) ?? 0) + 1);
   }
   return counts;
-}
-
-function sumPointsByOrganization(
-  rows: Array<{ org_id: number; points: number }> | null,
-): Map<number, number> {
-  const totals = new Map<number, number>();
-  for (const row of rows ?? []) {
-    totals.set(row.org_id, (totals.get(row.org_id) ?? 0) + row.points);
-  }
-  return totals;
 }
 
 /**
@@ -160,22 +160,22 @@ export async function listPlatformOrganizations(
     .from("organizations")
     .select("id, name, slug, status, created_at, phone, deleted_at");
   if (!opts.includeDeleted) orgQuery = orgQuery.is("deleted_at", null);
-  const [organizations, members, buildings, points] = await Promise.all([
+  const [organizations, members, buildings, balances] = await Promise.all([
     orgQuery.order("created_at", { ascending: false }),
     supabase.from("org_members").select("org_id"),
     supabase.from("buildings").select("org_id").is("deleted_at", null),
-    supabase.from("point_transactions").select("org_id, points"),
+    supabase.rpc("platform_list_point_balances"),
   ]);
 
   if (organizations.error) throw new Error(organizations.error.message);
   if (members.error) throw new Error(members.error.message);
   if (buildings.error) throw new Error(buildings.error.message);
-  if (points.error) throw new Error(points.error.message);
+  if (balances.error) throw new Error(balances.error.message);
 
   const accountCounts = countByOrganization(members.data);
   const buildingCounts = countByOrganization(buildings.data);
-  const pointBalances = sumPointsByOrganization(
-    points.data as Array<{ org_id: number; points: number }> | null,
+  const pointBalances = new Map(
+    ((balances.data ?? []) as PointBalanceRow[]).map((row) => [row.org_id, row]),
   );
 
   return ((organizations.data ?? []) as OrganizationRow[]).map((row) => ({
@@ -186,7 +186,10 @@ export async function listPlatformOrganizations(
     createdAt: row.created_at,
     accountCount: accountCounts.get(row.id) ?? 0,
     buildingCount: buildingCounts.get(row.id) ?? 0,
-    pointBalance: pointBalances.get(row.id) ?? 0,
+    pointBalance: pointBalances.get(row.id)?.ledger_balance ?? 0,
+    ledgerBalance: pointBalances.get(row.id)?.ledger_balance ?? 0,
+    reservedPoints: pointBalances.get(row.id)?.reserved_points ?? 0,
+    availablePoints: pointBalances.get(row.id)?.available_points ?? 0,
     phone: row.phone ?? null,
     deletedAt: row.deleted_at ?? null,
   }));
@@ -291,26 +294,22 @@ export async function listPointTransactions(
 }
 
 export async function chargePoints(input: ChargePointsInput): Promise<void> {
+  if (!Number.isInteger(input.points) || input.points <= 0) {
+    throw new Error("충전 포인트는 1 이상의 정수여야 합니다.");
+  }
+  if (!Number.isInteger(input.amountKrw) || input.amountKrw < 0) {
+    throw new Error("결제금액은 0 이상의 정수여야 합니다.");
+  }
   const supabase = createClient();
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-  if (userError) throw new Error(userError.message);
-
-  const { error } = await supabase.from("point_transactions").insert({
-    org_id: input.orgId,
-    type: "charge",
-    points: input.points,
-    amount_krw: input.amountKrw,
-    memo: input.memo ?? null,
-    created_by: userData.user?.id ?? null,
+  const { data, error } = await supabase.rpc("platform_record_point_charge", {
+    p_org_id: input.orgId,
+    p_points: input.points,
+    p_amount_krw: input.amountKrw,
+    p_memo: input.memo?.trim() || null,
   });
   if (error) throw new Error(error.message);
+  assertPointOperationResult(data);
 }
-
-const ADJUSTMENT_KIND_LABELS: Record<PointAdjustmentKind, string> = {
-  correction: "정정",
-  deduction: "차감",
-  refund: "환불",
-};
 
 export async function adjustPoints(input: AdjustPointsInput): Promise<void> {
   if (!Number.isInteger(input.points) || input.points === 0) {
@@ -323,18 +322,34 @@ export async function adjustPoints(input: AdjustPointsInput): Promise<void> {
   if (!memo) throw new Error("조정 사유를 입력해 주세요.");
 
   const supabase = createClient();
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-  if (userError) throw new Error(userError.message);
-
-  const { error } = await supabase.from("point_transactions").insert({
-    org_id: input.orgId,
-    type: "adjustment",
-    points: input.points,
-    amount_krw: input.kind === "refund" ? input.amountKrw ?? null : null,
-    memo: `[${ADJUSTMENT_KIND_LABELS[input.kind]}] ${memo}`,
-    created_by: userData.user?.id ?? null,
+  const { data, error } = await supabase.rpc("platform_record_point_adjustment", {
+    p_org_id: input.orgId,
+    p_kind: input.kind,
+    p_points: input.points,
+    p_amount_krw: input.kind === "refund" ? input.amountKrw ?? null : null,
+    p_memo: memo,
   });
   if (error) throw new Error(error.message);
+  assertPointOperationResult(data);
+}
+
+function assertPointOperationResult(data: unknown): void {
+  const result = data as {
+    ok?: boolean;
+    code?: string;
+    reserved_points?: number;
+  } | null;
+  if (result?.ok) return;
+
+  if (result?.code === "POINTS_RESERVED") {
+    throw new Error(
+      `활성 메시지 예약 ${Number(result.reserved_points ?? 0).toLocaleString("ko-KR")} P를 침범해 조정할 수 없습니다.`,
+    );
+  }
+  if (result?.code === "INSUFFICIENT_POINTS") {
+    throw new Error("보유 포인트보다 많이 차감할 수 없습니다.");
+  }
+  throw new Error("포인트 원장 기록에 실패했습니다.");
 }
 
 export async function updateOrganizationStatus(

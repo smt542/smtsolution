@@ -17,6 +17,15 @@ export interface MessageLog {
   sentBy: string | null;
   sentAt: string;
   templateId: number | null;
+  estimatedPoints: number;
+  chargedPoints: number;
+  pointStatus:
+    | "none"
+    | "quoted"
+    | "reserved"
+    | "settled"
+    | "released"
+    | "reconcile_required";
 }
 
 export interface SendMessagesInput {
@@ -34,6 +43,37 @@ export interface SendMessagesResult {
   status: "sent" | "scheduled";
   scheduledAt: string | null;
   recipients: ResolvedRecipient[];
+  estimatedPoints: number | null;
+  billingMode: "stub" | "live";
+}
+
+export interface MessagePointQuoteInput {
+  mode: SendMode;
+  recipients: MessageRecipient[];
+  templateId: number | null;
+}
+
+export interface MessagePointQuote {
+  recipientCount: number;
+  excludedCount: number;
+  channelCounts: { sms: number; alimtalk: number };
+  rateSnapshot: {
+    sms: { rateId: number; points: number };
+    alimtalk: { rateId: number; points: number };
+  };
+  ledgerBalance: number;
+  reservedPoints: number;
+  availablePoints: number;
+  estimatedPoints: number;
+  sufficient: boolean;
+  billingMode: "stub" | "live";
+}
+
+export class MessagePointQuoteError extends Error {
+  constructor(public readonly code: string, message: string) {
+    super(message);
+    this.name = "MessagePointQuoteError";
+  }
 }
 
 type MessageLogRow = {
@@ -48,6 +88,9 @@ type MessageLogRow = {
   sent_by: string | null;
   sent_at: string;
   template_id: number | null;
+  estimated_points?: number;
+  charged_points?: number;
+  point_status?: MessageLog["pointStatus"];
 };
 
 const rowToMessageLog = (row: MessageLogRow): MessageLog => ({
@@ -62,7 +105,71 @@ const rowToMessageLog = (row: MessageLogRow): MessageLog => ({
   sentBy: row.sent_by,
   sentAt: row.sent_at,
   templateId: row.template_id,
+  estimatedPoints: row.estimated_points ?? 0,
+  chargedPoints: row.charged_points ?? 0,
+  pointStatus: row.point_status ?? "none",
 });
+
+export async function quoteMessagePoints(
+  input: MessagePointQuoteInput,
+): Promise<MessagePointQuote> {
+  const { data, error } = await createClient().rpc("quote_message_points", {
+    p_mode: input.mode,
+    p_recipients: input.recipients,
+    p_template_id: input.templateId,
+  });
+  if (error) throw new Error(error.message);
+
+  const result = data as {
+    ok?: boolean;
+    code?: string;
+    message?: string;
+    counts?: { total?: number; sms?: number; alimtalk?: number };
+    excluded_count?: number;
+    rate_snapshot?: {
+      sms?: { id?: number; points?: number };
+      alimtalk?: { id?: number; points?: number };
+    };
+    ledger_balance?: number;
+    reserved_points?: number;
+    available_points?: number;
+    estimated_points?: number;
+    sufficient?: boolean;
+    billing_mode?: "stub" | "live";
+  } | null;
+
+  if (!result?.ok) {
+    throw new MessagePointQuoteError(
+      result?.code ?? "QUOTE_FAILED",
+      result?.message ?? "메시지 포인트 견적을 계산하지 못했습니다.",
+    );
+  }
+
+  return {
+    recipientCount: Number(result.counts?.total ?? 0),
+    excludedCount: Number(result.excluded_count ?? 0),
+    channelCounts: {
+      sms: Number(result.counts?.sms ?? 0),
+      alimtalk: Number(result.counts?.alimtalk ?? 0),
+    },
+    rateSnapshot: {
+      sms: {
+        rateId: Number(result.rate_snapshot?.sms?.id ?? 0),
+        points: Number(result.rate_snapshot?.sms?.points ?? 0),
+      },
+      alimtalk: {
+        rateId: Number(result.rate_snapshot?.alimtalk?.id ?? 0),
+        points: Number(result.rate_snapshot?.alimtalk?.points ?? 0),
+      },
+    },
+    ledgerBalance: Number(result.ledger_balance ?? 0),
+    reservedPoints: Number(result.reserved_points ?? 0),
+    availablePoints: Number(result.available_points ?? 0),
+    estimatedPoints: Number(result.estimated_points ?? 0),
+    sufficient: Boolean(result.sufficient),
+    billingMode: result.billing_mode ?? "stub",
+  };
+}
 
 export async function sendMessages(
   input: SendMessagesInput,
@@ -84,6 +191,8 @@ export async function sendMessages(
       status: "scheduled",
       scheduledAt: result.scheduled_at,
       recipients: input.recipients,
+      estimatedPoints: null,
+      billingMode: "stub",
     };
   }
 
@@ -95,13 +204,21 @@ export async function sendMessages(
     p_template_id: input.templateId,
   });
   if (error) throw new Error(error.message);
-  const result = data as { log_id: number; count: number };
+  const result = data as {
+    log_id: number;
+    count: number;
+    recipients?: ResolvedRecipient[];
+    estimated_points?: number;
+    billing_mode?: "stub" | "live";
+  };
   return {
     logId: result.log_id,
     count: result.count,
     status: "sent",
     scheduledAt: null,
-    recipients: input.recipients,
+    recipients: result.recipients ?? input.recipients,
+    estimatedPoints: result.estimated_points ?? null,
+    billingMode: result.billing_mode ?? "stub",
   };
 }
 

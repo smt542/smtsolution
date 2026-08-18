@@ -21,6 +21,11 @@ import {
 } from "./accounts";
 import type { OrgMemberRole, StaffType } from "@/hooks/reactquery/auth";
 import { platformKeys } from "./keys";
+import {
+  releaseStalePointReservation,
+  setMessagePointRates,
+  type SetMessagePointRatesInput,
+} from "./pointBilling";
 
 export function useChargePoints() {
   const queryClient = useQueryClient();
@@ -50,6 +55,29 @@ export function useAdjustPoints() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: platformKeys.organizations() });
       void queryClient.invalidateQueries({ queryKey: [...platformKeys.all, "transactions"] });
+    },
+  });
+}
+
+export function useSetMessagePointRates() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: SetMessagePointRatesInput) => setMessagePointRates(input),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: platformKeys.messagePointRates() }),
+  });
+}
+
+export function useReleaseStalePointReservation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
+      releaseStalePointReservation(id, reason),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: [...platformKeys.all, "point-reservations"],
+      });
+      void queryClient.invalidateQueries({ queryKey: platformKeys.organizations() });
     },
   });
 }
