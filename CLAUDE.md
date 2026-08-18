@@ -1,5 +1,11 @@
 @AGENTS.md
 
+## PRD 문서 우선 참조 (수정 전 필독)
+화면·기능을 수정하기 전, `docs/prototype/prd/`에서 **해당 화면에 대응하는 PRD 문서를 먼저 읽는다**(이 디렉터리가 기획 정본). 파일명이 화면과 1:1로 매핑된다 — 예: 고지서 발행=`bill-publish.md`, 관리비 세팅=`management-fee-setting.md`, 공과금=`utility-charge.md`, 수납=`payment-processing.md`, 미납=`overdue-management.md`, 입주자=`tenant-list.md`·`tenant-detail.md`·`tenant-app.md`, 건물=`building-list.md`·`building-detail.md`, 세입자앱/모바일=`mobile-*.md`, 문자·알림톡=`messaging.md`, 퇴실정산=`moving-settlement.md`, 셋업=`setup.md`, 대시보드=`dashboard.md`, 직원=`staff-management.md`, 영수/민원=`receipt-management.md`.
+
+- 전체를 매번 읽지 말고 **수정 대상 화면의 문서만** 참조한다. 구현이 PRD와 어긋나면 진행 전 사용자에게 확인한다.
+- codex에 구현을 위임할 때는 위임 프롬프트에 해당 PRD 문서 경로를 포함해 워커가 직접 읽게 한다.
+
 ## Codex 우선 위임 (토큰 절감·빠른 개발)
 무거운 컨텍스트 작업은 **codex CLI(headless 워커)에 우선 위임**해 Claude 컨텍스트를 가볍게 유지한다. Claude=오케스트레이터, codex=워커.
 
