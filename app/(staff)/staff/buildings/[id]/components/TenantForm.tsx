@@ -9,9 +9,12 @@ import { useRoomTypes } from "@/hooks/reactquery/roomTypes";
 import { occupancyBasicSchema } from "@/components/forms/schema/occupancy";
 import { BasicInfoSection, type TenantBasicValue } from "./tenant-sections/BasicInfoSection";
 import { BillingSettingsSection, type TenantBillingValue } from "./tenant-sections/BillingSettingsSection";
+import { BillStatementSection, type TenantBillValue } from "./tenant-sections/BillStatementSection";
 import { MetersAccountsSection, type MeterRow, type AccountRow } from "./tenant-sections/MetersAccountsSection";
 import { LeaseSection, type TenantLeaseValue } from "./tenant-sections/LeaseSection";
 import { FacilityNoteSection } from "./tenant-sections/FacilityNoteSection";
+import { MoveOutControl } from "./tenant-sections/MoveOutControl";
+import { OccupancyHistorySection } from "./tenant-sections/OccupancyHistorySection";
 
 const emptyMeters = (): MeterRow[] => [
   { utility: "water", meterNo: "", customerNo: "" }, { utility: "elec", meterNo: "", customerNo: "" }, { utility: "gas", meterNo: "", customerNo: "" },
@@ -28,7 +31,8 @@ export function TenantForm({ buildingId, unitId }: { buildingId: number; unitId?
   const { data: full } = useUnitOccupancyFull(unitId ?? 0);
 
   const [basic, setBasic] = useState<TenantBasicValue>({ unitNo: "", floor: null, usageType: "residential", tenantName: "", payerName: "", phone: "", phone2: "", phone3: "", vehicleNo: "", residentCount: null, roomTypeId: null, moveInDate: "" });
-  const [billing, setBilling] = useState<TenantBillingValue>({ isVacant: false, moveOutDate: "", billingEnabled: true, printEnabled: true, lateFeeEnabled: true, singlePrint: false, billingNote: "", settlementNote: "" });
+  const [billing, setBilling] = useState<TenantBillingValue>({ billingEnabled: true, lateFeeEnabled: true, singlePrint: false, transferMethod: "none", billingNote: "", settlementNote: "" });
+  const [bill, setBill] = useState<TenantBillValue>({ printEnabled: true, billNameDisplay: "name", billDelivery: "post", billAuth: false });
   const [meters, setMeters] = useState<MeterRow[]>(emptyMeters());
   const [accounts, setAccounts] = useState<AccountRow[]>(emptyAccounts());
   const [lease, setLease] = useState<TenantLeaseValue>({ deposit: null, monthlyRent: null, startDate: "", endDate: "", expiryAlert: false });
@@ -55,10 +59,13 @@ export function TenantForm({ buildingId, unitId }: { buildingId: number; unitId?
       roomTypeId: o?.roomTypeId ?? null, moveInDate: o?.moveInDate ?? "",
     });
     setBilling({
-      isVacant: o?.status === "vacant", moveOutDate: o?.moveOutDate ?? "",
-      billingEnabled: o?.billingEnabled ?? true, printEnabled: o?.printEnabled ?? true,
-      lateFeeEnabled: o?.lateFeeEnabled ?? true, singlePrint: o?.singlePrint ?? false,
+      billingEnabled: o?.billingEnabled ?? true, lateFeeEnabled: o?.lateFeeEnabled ?? true,
+      singlePrint: o?.singlePrint ?? false, transferMethod: o?.transferMethod ?? "none",
       billingNote: o?.billingNote ?? "", settlementNote: o?.settlementNote ?? "",
+    });
+    setBill({
+      printEnabled: o?.printEnabled ?? true, billNameDisplay: o?.billNameDisplay ?? "name",
+      billDelivery: o?.billDelivery ?? "post", billAuth: o?.billAuth ?? false,
     });
     setFacilityNote(o?.facilityNote ?? "");
     setOccupancyId(o?.id ?? null);
@@ -71,6 +78,7 @@ export function TenantForm({ buildingId, unitId }: { buildingId: number; unitId?
   const mark = <T,>(setter: (v: T) => void) => (v: T) => { setter(v); setDirty(true); };
   const patchBasic = (p: Partial<TenantBasicValue>) => { setBasic((b) => ({ ...b, ...p })); setDirty(true); };
   const patchBilling = (p: Partial<TenantBillingValue>) => { setBilling((b) => ({ ...b, ...p })); setDirty(true); };
+  const patchBill = (p: Partial<TenantBillValue>) => { setBill((b) => ({ ...b, ...p })); setDirty(true); };
 
   const onSave = async () => {
     const parsed = occupancyBasicSchema.safeParse({
@@ -91,9 +99,12 @@ export function TenantForm({ buildingId, unitId }: { buildingId: number; unitId?
       occupancy: {
         tenantName: basic.tenantName, payerName: basic.payerName, phone: basic.phone, phone2: basic.phone2, phone3: basic.phone3,
         vehicleNo: basic.vehicleNo, residentCount: basic.residentCount, roomTypeId: basic.roomTypeId, moveInDate: basic.moveInDate,
-        moveOutDate: billing.moveOutDate || null, status: billing.isVacant ? "vacant" : "occupied",
-        billingEnabled: billing.billingEnabled, printEnabled: billing.printEnabled, lateFeeEnabled: billing.lateFeeEnabled,
+        moveOutDate: full?.occupancy?.moveOutDate ?? null, status: full?.occupancy?.status ?? "occupied",
+        billingEnabled: billing.billingEnabled, printEnabled: bill.printEnabled, lateFeeEnabled: billing.lateFeeEnabled,
         singlePrint: billing.singlePrint, billingNote: billing.billingNote, settlementNote: billing.settlementNote, facilityNote,
+        transferMethod: billing.transferMethod, billNameDisplay: bill.billNameDisplay,
+        billDelivery: bill.billDelivery, billAuth: bill.billAuth,
+        moveOutScheduledDate: full?.occupancy?.moveOutScheduledDate ?? null,
       },
       meters, accounts,
       lease: { deposit: lease.deposit, monthlyRent: lease.monthlyRent, startDate: lease.startDate || null, endDate: lease.endDate || null, expiryAlert: lease.expiryAlert },
@@ -121,10 +132,24 @@ export function TenantForm({ buildingId, unitId }: { buildingId: number; unitId?
           <Button variant="primary" onClick={onSave} disabled={save.isPending}>저장</Button>
         </div>
       </div>
-      <BasicInfoSection value={basic} onChange={patchBasic} roomTypeOptions={roomTypeOptions} errors={errors} />
+      <BasicInfoSection
+        value={basic}
+        onChange={patchBasic}
+        roomTypeOptions={roomTypeOptions}
+        errors={errors}
+        moveOutControl={unitId && occupancyId ? (
+          <MoveOutControl
+            occupancyId={occupancyId}
+            scheduledDate={full?.occupancy?.moveOutScheduledDate ?? null}
+            isVacant={full?.occupancy?.status === "vacant"}
+          />
+        ) : undefined}
+      />
       <BillingSettingsSection value={billing} onChange={patchBilling} />
       <MetersAccountsSection meters={meters} accounts={accounts} onMeters={mark(setMeters)} onAccounts={mark(setAccounts)} />
-      <LeaseSection value={lease} onChange={mark((v: Partial<TenantLeaseValue>) => setLease((l) => ({ ...l, ...v })))} history={full?.history ?? []} />
+      <BillStatementSection value={bill} onChange={patchBill} />
+      {unitId && <OccupancyHistorySection history={full?.history ?? []} />}
+      <LeaseSection value={lease} onChange={mark((v: Partial<TenantLeaseValue>) => setLease((l) => ({ ...l, ...v })))} />
       <FacilityNoteSection value={facilityNote} onChange={mark(setFacilityNote)} />
     </div>
   );

@@ -3,13 +3,13 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { BillingSettingsSection } from "./BillingSettingsSection";
-const base = { isVacant:false, moveOutDate:"", billingEnabled:true, printEnabled:true, lateFeeEnabled:true, singlePrint:false, billingNote:"", settlementNote:"" };
+const base = { billingEnabled:true, lateFeeEnabled:true, singlePrint:false, transferMethod:"none" as const, billingNote:"", settlementNote:"" };
 describe("BillingSettingsSection", () => {
-  it("공실 체크 → onChange({isVacant:true})", () => {
+  it("이체 방식을 enum 값으로 변경한다", () => {
     const onChange = vi.fn();
     render(<BillingSettingsSection value={base} onChange={onChange} />);
-    fireEvent.click(screen.getByLabelText("공실 처리"));
-    expect(onChange).toHaveBeenCalledWith({ isVacant: true });
+    fireEvent.change(screen.getByLabelText("이체 방식"), { target: { value: "auto_transfer" } });
+    expect(onChange).toHaveBeenCalledWith({ transferMethod: "auto_transfer" });
   });
   it("적요 입력 → onChange({billingNote})", () => {
     const onChange = vi.fn();

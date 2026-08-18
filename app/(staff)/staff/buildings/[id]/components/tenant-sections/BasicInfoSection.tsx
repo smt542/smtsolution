@@ -15,12 +15,13 @@ const usageTypeOptions = [
 ];
 
 export function BasicInfoSection({
-  value, onChange, roomTypeOptions, errors,
+  value, onChange, roomTypeOptions, errors, moveOutControl,
 }: {
   value: TenantBasicValue;
   onChange: (patch: Partial<TenantBasicValue>) => void;
   roomTypeOptions: Opt[];
   errors?: Partial<Record<keyof TenantBasicValue, string>>;
+  moveOutControl?: React.ReactNode;
 }) {
   const field = (label: string, key: keyof TenantBasicValue, required = false) => (
     <label className="flex flex-col gap-1">
@@ -68,6 +69,7 @@ export function BasicInfoSection({
           {errors?.moveInDate && <span className="text-xs text-danger">{errors.moveInDate}</span>}
         </label>
       </div>
+      {moveOutControl}
     </section>
   );
 }
