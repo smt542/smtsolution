@@ -1,4 +1,4 @@
--- 0026_overdue_late_fees.sql
+-- 0031_overdue_late_fees.sql
 -- 연체료 요율표(org 단위) + 세대×월분별 미납/납기 조회 RPC
 -- 의존: P1a(units, occupancies), buildings(org_id), P5(billing_confirmations),
 --       P6(payments), 0024(billing_period_settings)
