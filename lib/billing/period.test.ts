@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { currentPeriod, toMonthInput, fromMonthInput, prevPeriod, isFuturePeriod } from "./period";
+import { currentPeriod, toMonthInput, fromMonthInput, prevPeriod, defaultChargePeriod, isFuturePeriod } from "./period";
 
 describe("billing/period", () => {
   it("currentPeriod: 해당월 1일", () => {
@@ -12,6 +12,16 @@ describe("billing/period", () => {
   it("prevPeriod: 1월 전월은 전년 12월", () => {
     expect(prevPeriod("2026-01-01")).toBe("2025-12-01");
     expect(prevPeriod("2026-08-01")).toBe("2026-07-01");
+  });
+  it("defaultChargePeriod: 전월 16일부터 당월 15일까지", () => {
+    expect(defaultChargePeriod("2026-08-01")).toEqual({
+      chargeStartDate: "2026-07-16",
+      chargeEndDate: "2026-08-15",
+    });
+    expect(defaultChargePeriod("2026-01-01")).toEqual({
+      chargeStartDate: "2025-12-16",
+      chargeEndDate: "2026-01-15",
+    });
   });
   it("isFuturePeriod: 다음달은 미래", () => {
     const now = new Date(2026, 7, 13);

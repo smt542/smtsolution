@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { listBilling, listBillingHistory } from "./apis";
+import { getBillingPeriodSetting, listBilling, listBillingHistory } from "./apis";
 import { billingKeys } from "./keys";
 
 export function useBilling(buildingId: number | null, period: string) {
@@ -14,5 +14,12 @@ export function useBillingHistory(unitId: number | null, period: string, months 
     queryKey: billingKeys.history(unitId ?? 0, period),
     queryFn: () => listBillingHistory(unitId as number, period, months),
     enabled: !!unitId,
+  });
+}
+export function useBillingPeriodSetting(buildingId: number | null, period: string) {
+  return useQuery({
+    queryKey: billingKeys.periodSetting(buildingId ?? 0, period),
+    queryFn: () => getBillingPeriodSetting(buildingId as number, period),
+    enabled: !!buildingId,
   });
 }

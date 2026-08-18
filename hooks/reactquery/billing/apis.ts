@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import type { BillingFlatRow } from "@/lib/billing/pivot";
+import { defaultChargePeriod } from "@/lib/billing/period";
 
 type BillingFlatDbRow = {
   unit_id: number; unit_no: string; dong: string | null; room_type_label: string | null;
@@ -69,4 +70,79 @@ export async function confirmBilling(buildingId: number, period: string): Promis
   if (error) throw new Error(error.message);
   const r = data as { unit_count: number; total: number };
   return { unitCount: r.unit_count, total: r.total };
+}
+
+export interface BillingPeriodSetting {
+  buildingId: number;
+  period: string;
+  chargeStartDate: string;
+  chargeEndDate: string;
+  dueDate: string | null;
+  isSaved: boolean;
+}
+
+type BillingPeriodSettingDbRow = {
+  building_id: number;
+  period: string;
+  charge_start_date: string;
+  charge_end_date: string;
+  due_date: string | null;
+};
+
+const rowToPeriodSetting = (row: BillingPeriodSettingDbRow): BillingPeriodSetting => ({
+  buildingId: row.building_id,
+  period: row.period,
+  chargeStartDate: row.charge_start_date,
+  chargeEndDate: row.charge_end_date,
+  dueDate: row.due_date,
+  isSaved: true,
+});
+
+export function defaultBillingPeriodSetting(buildingId: number, period: string): BillingPeriodSetting {
+  return {
+    buildingId,
+    period,
+    ...defaultChargePeriod(period),
+    dueDate: null,
+    isSaved: false,
+  };
+}
+
+export async function getBillingPeriodSetting(buildingId: number, period: string): Promise<BillingPeriodSetting> {
+  const { data, error } = await createClient()
+    .from("billing_period_settings")
+    .select("building_id, period, charge_start_date, charge_end_date, due_date")
+    .eq("building_id", buildingId)
+    .eq("period", period)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data
+    ? rowToPeriodSetting(data as BillingPeriodSettingDbRow)
+    : defaultBillingPeriodSetting(buildingId, period);
+}
+
+export interface SaveBillingPeriodSettingPayload {
+  buildingId: number;
+  period: string;
+  chargeStartDate: string;
+  chargeEndDate: string;
+  dueDate: string | null;
+}
+
+export async function saveBillingPeriodSetting(
+  payload: SaveBillingPeriodSettingPayload,
+): Promise<BillingPeriodSetting> {
+  const { data, error } = await createClient()
+    .from("billing_period_settings")
+    .upsert({
+      building_id: payload.buildingId,
+      period: payload.period,
+      charge_start_date: payload.chargeStartDate,
+      charge_end_date: payload.chargeEndDate,
+      due_date: payload.dueDate,
+    }, { onConflict: "building_id,period" })
+    .select("building_id, period, charge_start_date, charge_end_date, due_date")
+    .single();
+  if (error) throw new Error(error.message);
+  return rowToPeriodSetting(data as BillingPeriodSettingDbRow);
 }

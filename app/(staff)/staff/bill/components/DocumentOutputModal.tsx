@@ -13,6 +13,10 @@ import {
   type BillDocument,
   type BillTarget,
 } from "@/hooks/reactquery/bill";
+import {
+  billingKeys,
+  getBillingPeriodSetting,
+} from "@/hooks/reactquery/billing";
 import { cmsDownloadUrl } from "@/hooks/reactquery/payments";
 import { currentPeriod, prevPeriod } from "@/lib/billing/period";
 import type { PrintableAccount } from "@/lib/bill/document";
@@ -52,10 +56,11 @@ function mergeGiroDocuments(
   building: Building,
   documents: BillDocument[],
   targets: BillTarget[],
+  dueDate: string | null,
 ): GiroOutputDocument[] {
   return documents.flatMap((document) => {
     const target = targets.find((candidate) => candidate.unitId === document.unitId);
-    return target ? [{ building, document, target }] : [];
+    return target ? [{ building, document, target, dueDate }] : [];
   });
 }
 
@@ -113,6 +118,13 @@ export function DocumentOutputModal({
       enabled: type === "adjustment",
     })),
   });
+  const periodSettingQueries = useQueries({
+    queries: selectedBuildings.map((building) => ({
+      queryKey: billingKeys.periodSetting(building.id, period),
+      queryFn: () => getBillingPeriodSetting(building.id, period),
+      enabled: type === "giro",
+    })),
+  });
 
   const currentTargetsByBuilding = selectedBuildings.map((building, index) => ({
     building,
@@ -139,7 +151,12 @@ export function DocumentOutputModal({
   });
 
   const allGiroDocuments = currentTargetsByBuilding.flatMap(({ building, targets }, index) =>
-    mergeGiroDocuments(building, currentDocumentQueries[index]?.data ?? [], targets),
+    mergeGiroDocuments(
+      building,
+      currentDocumentQueries[index]?.data ?? [],
+      targets,
+      periodSettingQueries[index]?.data?.dueDate ?? null,
+    ),
   );
   const effectiveIndividualId = individualUnitId !== null
     && allGiroDocuments.some(({ document }) => document.unitId === individualUnitId)
@@ -160,6 +177,7 @@ export function DocumentOutputModal({
   const allQueries = [
     ...currentTargetQueries,
     ...currentDocumentQueries,
+    ...(type === "giro" ? periodSettingQueries : []),
     ...(type === "adjustment" ? [...previousTargetQueries, ...previousDocumentQueries] : []),
   ];
   const isLoading = needsCurrentBilling && allQueries.some((query) => query.isLoading || query.isFetching);
@@ -181,7 +199,7 @@ export function DocumentOutputModal({
     if (!hasPrintableData) return;
     if (type === "giro") {
       try {
-        for (const building of selectedBuildings) {
+        for (const [buildingIndex, building] of selectedBuildings.entries()) {
           const unitIds = giroDocuments
             .filter((entry) => entry.building.id === building.id)
             .map((entry) => entry.document.unitId);
@@ -191,8 +209,7 @@ export function DocumentOutputModal({
               period,
               unitIds,
               issueType: "giro",
-              // TODO(management-fee-setting): 월분 납기일이 구현되면 전달한다.
-              dueDate: null,
+              dueDate: periodSettingQueries[buildingIndex]?.data?.dueDate ?? null,
               // TODO(tenant-form-fields): 세대별 이름 출력 유형이 구현되면 개별 값을 적용한다.
               unitLabelMode: "name",
             });

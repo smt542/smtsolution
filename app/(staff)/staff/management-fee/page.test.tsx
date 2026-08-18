@@ -1,6 +1,6 @@
 // app/(staff)/staff/management-fee/page.test.tsx
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
@@ -17,23 +17,45 @@ vi.mock("@/hooks/reactquery/feeItems", () => ({
 vi.mock("@/hooks/reactquery/billing", () => ({
   useBilling: vi.fn(), useSaveBillingCharges: vi.fn(() => mut), useConfirmBilling: vi.fn(() => mut),
   useBillingHistory: vi.fn(() => ({ data: [], isLoading: false })),
+  useBillingPeriodSetting: vi.fn(), useSaveBillingPeriodSetting: vi.fn(() => periodMut),
+  defaultBillingPeriodSetting: vi.fn((buildingId: number, period: string) => ({
+    buildingId, period, chargeStartDate: "2026-07-16", chargeEndDate: "2026-08-15",
+    dueDate: null, isSaved: false,
+  })),
 }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() } }));
 
 const mut = { mutateAsync: vi.fn().mockResolvedValue({}), isPending: false };
+const periodMut = { mutateAsync: vi.fn().mockResolvedValue({}), isPending: false };
 import FeeItemPage from "./page";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
-import { useBilling, useSaveBillingCharges, useConfirmBilling } from "@/hooks/reactquery/billing";
+import {
+  useBilling,
+  useSaveBillingCharges,
+  useConfirmBilling,
+  useBillingPeriodSetting,
+  useSaveBillingPeriodSetting,
+} from "@/hooks/reactquery/billing";
 
 beforeEach(() => {
   vi.clearAllMocks();
   mut.mutateAsync.mockResolvedValue({});
+  periodMut.mutateAsync.mockResolvedValue({});
   vi.mocked(useMe).mockReturnValue({ data: { orgId: 10, role: "org_owner", permissions: [] } } as never);
   vi.mocked(useBuildings).mockReturnValue({ data: [{ id: 7, name: "가나빌", typeId: 1 }], isLoading: false } as never);
   vi.mocked(useBilling).mockReturnValue({ data: [], isLoading: false, error: null } as never);
   vi.mocked(useSaveBillingCharges).mockReturnValue(mut as never);
   vi.mocked(useConfirmBilling).mockReturnValue(mut as never);
+  vi.mocked(useBillingPeriodSetting).mockReturnValue({
+    data: {
+      buildingId: 7, period: "2026-08-01", chargeStartDate: "2026-07-16",
+      chargeEndDate: "2026-08-15", dueDate: null, isSaved: false,
+    },
+    isLoading: false,
+    isError: false,
+  } as never);
+  vi.mocked(useSaveBillingPeriodSetting).mockReturnValue(periodMut as never);
 });
 
 describe("management-fee page (billing)", () => {
@@ -80,6 +102,27 @@ describe("management-fee page (billing)", () => {
     render(<FeeItemPage />);
     fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
     await waitFor(() => expect(screen.getByText("101")).toBeInTheDocument());
+  });
+
+  it("건물·월분의 기본 부과기준일을 표시하고 수정한 납기일을 저장", async () => {
+    render(<FeeItemPage />);
+    fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
+
+    const schedule = screen.getByRole("group", { name: "부과 일정 설정" });
+    expect(within(schedule).getByLabelText("부과기준일 시작일")).toHaveValue("2026-07-16");
+    expect(within(schedule).getByLabelText("부과기준일 종료일")).toHaveValue("2026-08-15");
+
+    fireEvent.click(within(schedule).getByRole("button", { name: "수정" }));
+    fireEvent.change(within(schedule).getByLabelText("납기일"), { target: { value: "2026-08-25" } });
+    fireEvent.click(within(schedule).getByRole("button", { name: "저장" }));
+
+    await waitFor(() => expect(periodMut.mutateAsync).toHaveBeenCalledWith({
+      buildingId: 7,
+      period: expect.stringMatching(/^\d{4}-\d{2}-01$/),
+      chargeStartDate: "2026-07-16",
+      chargeEndDate: "2026-08-15",
+      dueDate: "2026-08-25",
+    }));
   });
 });
 

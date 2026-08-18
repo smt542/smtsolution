@@ -16,6 +16,15 @@ export function prevPeriod(period: Period): Period {
   const d = new Date(y, m - 2, 1); // m-2: 0-based 전월
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`;
 }
+export function defaultChargePeriod(period: Period): {
+  chargeStartDate: string;
+  chargeEndDate: string;
+} {
+  return {
+    chargeStartDate: `${prevPeriod(period).slice(0, 7)}-16`,
+    chargeEndDate: `${period.slice(0, 7)}-15`,
+  };
+}
 export function isFuturePeriod(period: Period, now: Date = new Date()): boolean {
   return period > currentPeriod(now);
 }
