@@ -210,7 +210,8 @@ export function DocumentOutputModal({
               unitIds,
               issueType: "giro",
               dueDate: periodSettingQueries[buildingIndex]?.data?.dueDate ?? null,
-              // TODO(tenant-form-fields): 세대별 이름 출력 유형이 구현되면 개별 값을 적용한다.
+              // issue_bills records one legacy batch-wide mode; the rendered giro
+              // uses each target's billNameDisplay independently.
               unitLabelMode: "name",
             });
           }

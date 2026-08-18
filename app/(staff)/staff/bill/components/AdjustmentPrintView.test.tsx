@@ -12,7 +12,8 @@ const bundle = {
   previous: [{ ...commonDocument, totalAmount: 35000, items: [{ feeItemId: 1, name: "수도", charged: true, amount: 5000 }] }],
   targets: [{
     unitId: 11, unitNo: "101", dong: null, occupancyId: 21, tenantName: "홍길동", payerName: "김납부", phone: "010",
-    totalAmount: 38000, autoDebit: true, issueType: null, dueDate: null, sendStatus: null, issuedAt: null,
+    payerNo: "P-101", billNameDisplay: "name", totalAmount: 38000, autoDebit: true,
+    issueType: null, dueDate: null, sendStatus: null, issuedAt: null,
   }],
 } as AdjustmentBuildingDocuments;
 

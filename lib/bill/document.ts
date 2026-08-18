@@ -2,9 +2,18 @@
 export const BILL_QR_PLACEHOLDER_BASE = "https://bill.example.com/apply";
 export const PROGRAM_COMPANY_NAME = "관리비서";
 
-export function unitLabel(mode: "code" | "name", unitNo: string, tenantName: string | null): string {
-  if (mode === "name" && tenantName && tenantName.trim()) return tenantName;
-  return unitNo;
+export type BillNameDisplay = "none" | "name" | "code";
+
+export function unitLabel(
+  mode: BillNameDisplay,
+  unitNo: string,
+  tenantName: string | null,
+  payerName: string | null = null,
+  payerNo: string | null = null,
+): string {
+  if (mode === "none") return "";
+  if (mode === "code") return payerNo?.trim() || unitNo;
+  return payerName?.trim() || tenantName?.trim() || unitNo;
 }
 
 export function buildQrPayload(unitId: number, period: string, base?: string | null): string {

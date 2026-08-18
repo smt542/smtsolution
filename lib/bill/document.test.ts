@@ -12,11 +12,13 @@ import {
 } from "./document";
 
 describe("bill/document", () => {
-  it("unitLabel: name 모드는 입주자명, 없으면 코드 폴백", () => {
-    expect(unitLabel("code", "101", "홍길동")).toBe("101");
-    expect(unitLabel("name", "101", "홍길동")).toBe("홍길동");
-    expect(unitLabel("name", "101", null)).toBe("101");
-    expect(unitLabel("name", "101", "  ")).toBe("101");
+  it("unitLabel: 세대별 이름 출력 유형과 폴백을 적용", () => {
+    expect(unitLabel("none", "101", "홍길동", "김납부", "P-101")).toBe("");
+    expect(unitLabel("name", "101", "홍길동", "김납부", "P-101")).toBe("김납부");
+    expect(unitLabel("name", "101", "홍길동", "  ")).toBe("홍길동");
+    expect(unitLabel("name", "101", "  ", null)).toBe("101");
+    expect(unitLabel("code", "101", "홍길동", "김납부", "P-101")).toBe("P-101");
+    expect(unitLabel("code", "101", "홍길동", "김납부", "  ")).toBe("101");
   });
   it("buildQrPayload: base 없으면 플레이스홀더", () => {
     expect(buildQrPayload(7, "2026-08-01")).toBe(`${BILL_QR_PLACEHOLDER_BASE}?unit=7&period=2026-08-01`);
