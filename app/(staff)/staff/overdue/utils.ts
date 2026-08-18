@@ -43,7 +43,7 @@ export function createOverdueLedgerCsv(rows: OverdueHousehold[]): string {
     row.overdueMonths,
     row.overdueAmount,
     row.lastPaymentDate ?? "",
-    row.billingAvailable ? "청구·수납 연동" : "청구·수납 연동 예정",
+    row.billingAvailable ? "확정 부과 있음" : "확정 부과 없음",
   ]);
 
   return [headers, ...body].map((line) => line.map(csvCell).join(",")).join("\r\n");

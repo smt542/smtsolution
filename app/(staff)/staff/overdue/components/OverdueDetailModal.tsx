@@ -67,7 +67,7 @@ export function OverdueDetailModal({
           <DetailField label="연체 개월수" value={`${household.overdueMonths}개월`} />
           <DetailField label="미납금액" value={formatWon(household.overdueAmount)} />
           <DetailField label="최근 납부일" value={formatDate(household.lastPaymentDate)} />
-          <DetailField label="데이터 상태" value={household.billingAvailable ? "청구·수납 연동" : "청구·수납 연동 예정"} />
+          <DetailField label="데이터 상태" value={household.billingAvailable ? "확정 부과 있음" : "확정 부과 없음"} />
         </DetailSection>
 
         {(household.memo || household.unitMemo) && (

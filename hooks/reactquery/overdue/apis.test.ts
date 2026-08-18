@@ -1,9 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const from = vi.fn();
-vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ from }) }));
+const rpc = vi.fn();
+vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ from, rpc }) }));
 
-import { listOverdueBuildings, listOverdueHouseholds } from "./apis";
+import {
+  listOverdueBuildings,
+  listOverdueHouseholds,
+  resolveOverdueQuery,
+} from "./apis";
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -25,7 +30,7 @@ describe("overdue apis", () => {
     expect(order).toHaveBeenCalledWith("code");
   });
 
-  it("occupancies와 units/buildings를 조인하고 없는 청구값은 명시적 placeholder로 매핑한다", async () => {
+  it("occupancy 정보에 RPC 미납 집계를 occupancy/unit 기준으로 병합한다", async () => {
     const query = {
       select: vi.fn(),
       eq: vi.fn(),
@@ -61,14 +66,35 @@ describe("overdue apis", () => {
       error: null,
     });
     from.mockReturnValue(query);
+    rpc.mockResolvedValue({
+      data: [{
+        occupancy_id: 31,
+        unit_id: 21,
+        overdue_amount: "135000",
+        overdue_months: 2,
+        last_payment_date: "2026-08-12",
+        billing_available: true,
+      }],
+      error: null,
+    });
 
-    const result = await listOverdueHouseholds(1);
+    const result = await listOverdueHouseholds(1, {
+      year: 2026,
+      month: 8,
+      scope: "current",
+    });
 
     expect(from).toHaveBeenCalledWith("occupancies");
     expect(query.select.mock.calls[0][0]).toContain("units!inner");
     expect(query.select.mock.calls[0][0]).toContain("buildings!inner");
     expect(query.eq).toHaveBeenCalledWith("units.building_id", 1);
     expect(query.eq).toHaveBeenCalledWith("status", "occupied");
+    expect(rpc).toHaveBeenCalledWith("list_overdue_aggregates", {
+      p_building_id: 1,
+      p_target_year: 2026,
+      p_target_month: 8,
+      p_scope: "current",
+    });
     expect(result[0]).toMatchObject({
       occupancyId: 31,
       buildingId: 1,
@@ -77,10 +103,21 @@ describe("overdue apis", () => {
       unitNo: "101호",
       areaPyeong: 18.5,
       tenantName: "김입주",
-      overdueMonths: 0,
-      overdueAmount: 0,
-      lastPaymentDate: null,
-      billingAvailable: false,
+      overdueMonths: 2,
+      overdueAmount: 135_000,
+      lastPaymentDate: "2026-08-12",
+      billingAvailable: true,
+    });
+  });
+
+  it("생략되거나 잘못된 조회 조건은 현재 연월과 전체 범위로 정규화한다", () => {
+    const now = new Date(2026, 7, 18);
+
+    expect(resolveOverdueQuery({}, now)).toEqual({ year: 2026, month: 8, scope: "all" });
+    expect(resolveOverdueQuery({ year: 0, month: 13 }, now)).toEqual({
+      year: 2026,
+      month: 8,
+      scope: "all",
     });
   });
 });

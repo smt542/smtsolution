@@ -8,6 +8,7 @@ import {
   useOverdueBuildings,
   useOverdueHouseholds,
   type OverdueHousehold,
+  type OverdueScope,
 } from "@/hooks/reactquery/overdue";
 import { hasModule } from "@/lib/auth/permissions";
 import type { MessageRecipient } from "@/lib/messaging/preset";
@@ -32,6 +33,11 @@ export default function OverduePage() {
   } = useOverdueBuildings(canAccess);
 
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | null>(null);
+  const [targetPeriod, setTargetPeriod] = useState(() => {
+    const now = new Date();
+    return { year: now.getFullYear(), month: now.getMonth() + 1 };
+  });
+  const [scope, setScope] = useState<OverdueScope>("all");
   const [debtFilterEnabled, setDebtFilterEnabled] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [detailHousehold, setDetailHousehold] = useState<OverdueHousehold | null>(null);
@@ -43,7 +49,11 @@ export default function OverduePage() {
     isLoading: isHouseholdsLoading,
     error: householdsError,
     refetch,
-  } = useOverdueHouseholds(canAccess ? selectedBuildingId : null);
+  } = useOverdueHouseholds(canAccess ? selectedBuildingId : null, {
+    year: targetPeriod.year,
+    month: targetPeriod.month,
+    scope,
+  });
 
   const selectedBuilding = buildings.find((building) => building.id === selectedBuildingId) ?? null;
   const debtTargetCount = useMemo(
@@ -56,13 +66,27 @@ export default function OverduePage() {
   );
   const selectedCount = visibleHouseholds.filter((row) => selectedIds.has(row.occupancyId)).length;
 
-  const changeBuilding = (buildingId: number | null) => {
-    setSelectedBuildingId(buildingId);
+  const resetResultState = () => {
     setDebtFilterEnabled(false);
     setSelectedIds(new Set());
     setDetailHousehold(null);
     setMessageRecipients([]);
     setIsMessagingOpen(false);
+  };
+
+  const changeBuilding = (buildingId: number | null) => {
+    setSelectedBuildingId(buildingId);
+    resetResultState();
+  };
+
+  const changePeriod = (year: number, month: number) => {
+    setTargetPeriod({ year, month });
+    resetResultState();
+  };
+
+  const changeScope = (nextScope: OverdueScope) => {
+    setScope(nextScope);
+    resetResultState();
   };
 
   const toggleDebtFilter = () => {
@@ -183,6 +207,11 @@ export default function OverduePage() {
         buildings={buildings}
         selectedBuildingId={selectedBuildingId}
         onBuildingChange={changeBuilding}
+        targetYear={targetPeriod.year}
+        targetMonth={targetPeriod.month}
+        scope={scope}
+        onPeriodChange={changePeriod}
+        onScopeChange={changeScope}
         debtFilterEnabled={debtFilterEnabled}
         onToggleDebtFilter={toggleDebtFilter}
         disabled={isBuildingsLoading}
@@ -236,9 +265,6 @@ export default function OverduePage() {
           <div className="border-t border-line2 bg-bg/60 px-5 py-4">
             <p className="text-xs font-semibold leading-5 text-t3">
               연체 2개월 이상 세대는 3개월째 고지서에 “단전·단수 예고”가 자동 인쇄됩니다.
-            </p>
-            <p className="mt-1 text-xs font-semibold leading-5 text-amber">
-              현재 청구·수납 원장이 없어 연체 개월수, 미납금액, 최근 납부일은 0 또는 빈 값으로 표시됩니다.
             </p>
           </div>
         )}

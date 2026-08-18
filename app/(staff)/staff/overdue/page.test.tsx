@@ -189,6 +189,30 @@ describe("OverduePage", () => {
     expect(screen.getByRole("button", { name: "채권 관리 필터" })).toHaveAttribute("aria-pressed", "true");
   });
 
+  it("조회 연월과 전체·당계 범위를 미납 조회 훅에 전달한다", () => {
+    render(<OverduePage />);
+    selectBuilding();
+
+    fireEvent.change(screen.getByLabelText("조회 기간"), {
+      target: { value: "2026-07" },
+    });
+    expect(useOverdueHouseholds).toHaveBeenLastCalledWith(1, {
+      year: 2026,
+      month: 7,
+      scope: "all",
+    });
+
+    fireEvent.change(screen.getByRole("combobox", { name: "범위" }), {
+      target: { value: "current" },
+    });
+    expect(useOverdueHouseholds).toHaveBeenLastCalledWith(1, {
+      year: 2026,
+      month: 7,
+      scope: "current",
+    });
+    expect(screen.getByText("연체 2개월 이상 AND 미납 10만원 이상")).toBeInTheDocument();
+  });
+
   it("전체 선택과 개별 선택을 문자 수신 대상에 반영한다", () => {
     render(<OverduePage />);
     selectBuilding();
