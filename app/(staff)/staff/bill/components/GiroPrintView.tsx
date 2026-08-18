@@ -12,6 +12,7 @@ export interface GiroOutputDocument {
   building: Building;
   document: BillDocument;
   target: BillTarget;
+  dueDate: string | null;
 }
 
 export interface GiroStampOptions {
@@ -43,7 +44,7 @@ export function GiroPrintView({
 }: GiroPrintViewProps) {
   return (
     <div className="space-y-5 text-black" data-testid="giro-print-view">
-      {documents.map(({ building, document, target }) => {
+      {documents.map(({ building, document, target, dueDate }) => {
         const amount = giroDocumentAmount(document);
         const householdName = target.payerName?.trim() || target.tenantName?.trim() || "이름 미등록";
         return (
@@ -125,8 +126,7 @@ export function GiroPrintView({
                 </div>
                 <div>
                   <p className="font-black">납기일</p>
-                  {/* TODO(management-fee-setting): 월분 납기일 설정이 구현되면 연결한다. */}
-                  <p className="mt-1">________________</p>
+                  <p className="mt-1">{dueDate ?? "________________"}</p>
                 </div>
               </div>
               {(customerNotice || document.unitNotice) && (

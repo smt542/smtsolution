@@ -1,5 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { saveBillingCharges, confirmBilling, type SaveBillingChargesPayload } from "./apis";
+import {
+  saveBillingCharges,
+  confirmBilling,
+  saveBillingPeriodSetting,
+  type SaveBillingChargesPayload,
+  type SaveBillingPeriodSettingPayload,
+} from "./apis";
 import { billingKeys } from "./keys";
 
 export function useSaveBillingCharges() {
@@ -14,5 +20,17 @@ export function useConfirmBilling() {
   return useMutation({
     mutationFn: ({ buildingId, period }: { buildingId: number; period: string }) => confirmBilling(buildingId, period),
     onSuccess: () => qc.invalidateQueries({ queryKey: billingKeys.all }),
+  });
+}
+export function useSaveBillingPeriodSetting() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: SaveBillingPeriodSettingPayload) => saveBillingPeriodSetting(payload),
+    onSuccess: (setting) => {
+      qc.setQueryData(
+        billingKeys.periodSetting(setting.buildingId, setting.period),
+        setting,
+      );
+    },
   });
 }

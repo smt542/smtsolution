@@ -1,7 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 const rpc = vi.fn();
-vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ rpc }) }));
-import { listBilling, listBillingHistory, saveBillingCharges, confirmBilling } from "./apis";
+const from = vi.fn();
+vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ rpc, from }) }));
+import {
+  listBilling,
+  listBillingHistory,
+  saveBillingCharges,
+  confirmBilling,
+  getBillingPeriodSetting,
+  saveBillingPeriodSetting,
+} from "./apis";
 beforeEach(() => vi.clearAllMocks());
 
 describe("billing apis", () => {
@@ -47,5 +55,74 @@ describe("billing apis", () => {
   it("에러 시 throw", async () => {
     rpc.mockResolvedValue({ data: null, error: { message: "boom" } });
     await expect(listBilling(7, "2026-08-01")).rejects.toThrow("boom");
+  });
+
+  it("getBillingPeriodSetting: 미저장 월분은 전월 16일~당월 15일과 빈 납기일", async () => {
+    const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+    const secondEq = vi.fn(() => ({ maybeSingle }));
+    const firstEq = vi.fn(() => ({ eq: secondEq }));
+    from.mockReturnValue({ select: () => ({ eq: firstEq }) });
+
+    await expect(getBillingPeriodSetting(7, "2026-08-01")).resolves.toEqual({
+      buildingId: 7,
+      period: "2026-08-01",
+      chargeStartDate: "2026-07-16",
+      chargeEndDate: "2026-08-15",
+      dueDate: null,
+      isSaved: false,
+    });
+  });
+
+  it("getBillingPeriodSetting: 저장된 건물·월분의 날짜와 납기일을 로드", async () => {
+    const maybeSingle = vi.fn().mockResolvedValue({ data: {
+      building_id: 7,
+      period: "2026-08-01",
+      charge_start_date: "2026-07-17",
+      charge_end_date: "2026-08-16",
+      due_date: "2026-08-25",
+    }, error: null });
+    const secondEq = vi.fn(() => ({ maybeSingle }));
+    const firstEq = vi.fn(() => ({ eq: secondEq }));
+    from.mockReturnValue({ select: () => ({ eq: firstEq }) });
+
+    await expect(getBillingPeriodSetting(7, "2026-08-01")).resolves.toMatchObject({
+      buildingId: 7,
+      period: "2026-08-01",
+      chargeStartDate: "2026-07-17",
+      chargeEndDate: "2026-08-16",
+      dueDate: "2026-08-25",
+      isSaved: true,
+    });
+  });
+
+  it("saveBillingPeriodSetting: 건물·월분별 날짜를 upsert하고 저장값을 반환", async () => {
+    const row = {
+      building_id: 7,
+      period: "2026-08-01",
+      charge_start_date: "2026-07-17",
+      charge_end_date: "2026-08-16",
+      due_date: "2026-08-25",
+    };
+    const single = vi.fn().mockResolvedValue({ data: row, error: null });
+    const select = vi.fn(() => ({ single }));
+    const upsert = vi.fn(() => ({ select }));
+    from.mockReturnValue({ upsert });
+
+    const result = await saveBillingPeriodSetting({
+      buildingId: 7,
+      period: "2026-08-01",
+      chargeStartDate: "2026-07-17",
+      chargeEndDate: "2026-08-16",
+      dueDate: "2026-08-25",
+    });
+
+    expect(upsert).toHaveBeenCalledWith({
+      building_id: 7,
+      period: "2026-08-01",
+      charge_start_date: "2026-07-17",
+      charge_end_date: "2026-08-16",
+      due_date: "2026-08-25",
+    }, { onConflict: "building_id,period" });
+    expect(result).toMatchObject({ dueDate: "2026-08-25", isSaved: true });
   });
 });

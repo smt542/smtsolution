@@ -13,6 +13,7 @@ import { BillingTable } from "./components/BillingTable";
 import { ItemManageModal } from "./components/ItemManageModal";
 import { BillingHistoryModal } from "./components/BillingHistoryModal";
 import { BillingNoteModal } from "./components/BillingNoteModal";
+import { BillingPeriodSettingsBar } from "./components/BillingPeriodSettingsBar";
 
 type ChargeDraft = { charged: boolean; amount: number };
 
@@ -154,6 +155,9 @@ export default function FeeItemPage() {
             </Button>
           </div>
         </div>
+        {buildingId && (
+          <BillingPeriodSettingsBar key={`${buildingId}:${period}`} buildingId={buildingId} period={period} />
+        )}
       </section>
 
       {!buildingId && (

@@ -14,6 +14,7 @@ const entry = {
     phone: "010-1234-5678", totalAmount: 35400, autoDebit: true, issueType: null, dueDate: null,
     sendStatus: null, issuedAt: null,
   },
+  dueDate: "2026-08-25",
 } as GiroOutputDocument;
 
 describe("GiroPrintView", () => {
@@ -27,6 +28,7 @@ describe("GiroPrintView", () => {
     expect(screen.getByText("재발행")).toBeInTheDocument();
     expect(screen.getByText("단수")).toBeInTheDocument();
     expect(screen.getAllByText(/자동이체/).length).toBeGreaterThan(0);
+    expect(screen.getByText("2026-08-25")).toBeInTheDocument();
     expect(screen.getByLabelText("고지서 QR")).toBeInTheDocument();
   });
 });
