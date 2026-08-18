@@ -9,5 +9,11 @@ export const overdueKeys = {
     month = new Date().getMonth() + 1,
     scope: OverdueScope = "all",
   ) => ["overdue", "households", buildingId, year, month, scope] as const,
+  periods: (
+    buildingId: number,
+    year = new Date().getFullYear(),
+    month = new Date().getMonth() + 1,
+    scope: OverdueScope = "all",
+  ) => ["overdue", "periods", buildingId, year, month, scope] as const,
 };
 
