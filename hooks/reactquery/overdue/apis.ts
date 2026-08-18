@@ -7,6 +7,20 @@ export interface OverdueBuilding {
   address?: string | null;
 }
 
+export type OverdueScope = "all" | "current";
+
+export interface OverdueQueryParams {
+  year?: number;
+  month?: number;
+  scope?: OverdueScope;
+}
+
+export interface ResolvedOverdueQuery {
+  year: number;
+  month: number;
+  scope: OverdueScope;
+}
+
 export interface OverdueHousehold {
   occupancyId: number;
   buildingId: number;
@@ -71,12 +85,65 @@ interface OccupancyRow {
   units: EmbeddedUnitRow | EmbeddedUnitRow[] | null;
 }
 
+interface OverdueAggregateRow {
+  occupancy_id: number;
+  unit_id: number;
+  overdue_amount: number | string;
+  overdue_months: number | string;
+  last_payment_date: string | null;
+  billing_available: boolean;
+}
+
+interface OverdueAggregate {
+  occupancyId: number;
+  unitId: number;
+  overdueAmount: number;
+  overdueMonths: number;
+  lastPaymentDate: string | null;
+  billingAvailable: boolean;
+}
+
 function firstRelation<T>(value: T | T[] | null): T | null {
   if (Array.isArray(value)) return value[0] ?? null;
   return value;
 }
 
-function rowToHousehold(row: OccupancyRow): OverdueHousehold | null {
+export function resolveOverdueQuery(
+  params: OverdueQueryParams = {},
+  now = new Date(),
+): ResolvedOverdueQuery {
+  const year = Number.isInteger(params.year) && (params.year ?? 0) >= 1 && (params.year ?? 0) <= 9999
+    ? params.year as number
+    : now.getFullYear();
+  const month = Number.isInteger(params.month) && (params.month ?? 0) >= 1 && (params.month ?? 0) <= 12
+    ? params.month as number
+    : now.getMonth() + 1;
+  return {
+    year,
+    month,
+    scope: params.scope === "current" ? "current" : "all",
+  };
+}
+
+function aggregateKey(occupancyId: number, unitId: number): string {
+  return `${occupancyId}:${unitId}`;
+}
+
+function rowToAggregate(row: OverdueAggregateRow): OverdueAggregate {
+  return {
+    occupancyId: row.occupancy_id,
+    unitId: row.unit_id,
+    overdueAmount: Number(row.overdue_amount),
+    overdueMonths: Number(row.overdue_months),
+    lastPaymentDate: row.last_payment_date,
+    billingAvailable: row.billing_available,
+  };
+}
+
+function rowToHousehold(
+  row: OccupancyRow,
+  aggregate?: OverdueAggregate,
+): OverdueHousehold | null {
   const unit = firstRelation(row.units);
   const building = unit ? firstRelation(unit.buildings) : null;
   if (!unit || !building) return null;
@@ -101,13 +168,10 @@ function rowToHousehold(row: OccupancyRow): OverdueHousehold | null {
     status: row.status,
     memo: row.memo,
     unitMemo: unit.memo,
-    // TODO(billing): 청구/수납 스키마가 생기면 연체 집계 결과로 교체한다.
-    overdueMonths: 0,
-    // TODO(billing): 청구/수납 스키마가 생기면 미납 원장 합계로 교체한다.
-    overdueAmount: 0,
-    // TODO(billing): payments 연동 후 실제 최근 납부일을 제공한다.
-    lastPaymentDate: null,
-    billingAvailable: false,
+    overdueMonths: aggregate?.overdueMonths ?? 0,
+    overdueAmount: aggregate?.overdueAmount ?? 0,
+    lastPaymentDate: aggregate?.lastPaymentDate ?? null,
+    billingAvailable: aggregate?.billingAvailable ?? false,
   };
 }
 
@@ -127,8 +191,13 @@ export async function listOverdueBuildings(): Promise<OverdueBuilding[]> {
   }));
 }
 
-export async function listOverdueHouseholds(buildingId: number): Promise<OverdueHousehold[]> {
-  const { data, error } = await createClient()
+export async function listOverdueHouseholds(
+  buildingId: number,
+  params: OverdueQueryParams = {},
+): Promise<OverdueHousehold[]> {
+  const query = resolveOverdueQuery(params);
+  const client = createClient();
+  const occupanciesRequest = client
     .from("occupancies")
     .select(`
       id,
@@ -162,9 +231,36 @@ export async function listOverdueHouseholds(buildingId: number): Promise<Overdue
     .is("units.deleted_at", null)
     .order("id");
 
-  if (error) throw new Error(error.message);
-  return ((data ?? []) as unknown as OccupancyRow[])
-    .map(rowToHousehold)
+  const aggregatesRequest = client.rpc("list_overdue_aggregates", {
+    p_building_id: buildingId,
+    p_target_year: query.year,
+    p_target_month: query.month,
+    p_scope: query.scope,
+  });
+
+  const [occupanciesResponse, aggregatesResponse] = await Promise.all([
+    occupanciesRequest,
+    aggregatesRequest,
+  ]);
+
+  if (occupanciesResponse.error) throw new Error(occupanciesResponse.error.message);
+  if (aggregatesResponse.error) throw new Error(aggregatesResponse.error.message);
+
+  const aggregates = new Map(
+    ((aggregatesResponse.data ?? []) as OverdueAggregateRow[]).map((row) => {
+      const aggregate = rowToAggregate(row);
+      return [aggregateKey(aggregate.occupancyId, aggregate.unitId), aggregate] as const;
+    }),
+  );
+
+  return ((occupanciesResponse.data ?? []) as unknown as OccupancyRow[])
+    .map((row) => {
+      const unit = firstRelation(row.units);
+      const aggregate = unit
+        ? aggregates.get(aggregateKey(row.id, unit.id))
+        : undefined;
+      return rowToHousehold(row, aggregate);
+    })
     .filter((row): row is OverdueHousehold => row !== null);
 }
 
