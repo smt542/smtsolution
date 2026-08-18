@@ -8,6 +8,7 @@ import {
   listOverdueBuildings,
   listOverdueHouseholds,
   resolveOverdueQuery,
+  rowToOverduePeriod,
 } from "./apis";
 
 beforeEach(() => vi.clearAllMocks());
@@ -118,6 +119,24 @@ describe("overdue apis", () => {
       year: 2026,
       month: 8,
       scope: "all",
+    });
+  });
+
+  it("월분별 RPC 행을 snake case에서 camel case로 변환한다", () => {
+    expect(
+      rowToOverduePeriod({
+        occupancy_id: 11,
+        unit_id: 22,
+        period: "2026-03-01",
+        unpaid_principal: 100_000,
+        due_date: "2026-03-31",
+      }),
+    ).toEqual({
+      occupancyId: 11,
+      unitId: 22,
+      period: "2026-03-01",
+      unpaidPrincipal: 100_000,
+      dueDate: "2026-03-31",
     });
   });
 });

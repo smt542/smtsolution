@@ -3,14 +3,29 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MessagingPreset } from "@/lib/messaging/preset";
 
-const { messagingModalSpy } = vi.hoisted(() => ({
+const { lateFeeRateModalSpy, messagingModalSpy } = vi.hoisted(() => ({
+  lateFeeRateModalSpy: vi.fn(),
   messagingModalSpy: vi.fn(),
 }));
 
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
+vi.mock("@/hooks/reactquery/lateFeeTiers", () => ({
+  useLateFeeRateTiers: vi.fn(),
+}));
 vi.mock("@/hooks/reactquery/overdue", () => ({
   useOverdueBuildings: vi.fn(),
   useOverdueHouseholds: vi.fn(),
+  useOverduePeriods: vi.fn(),
+}));
+vi.mock("./components/LateFeeRateModal", () => ({
+  LateFeeRateModal: (props: {
+    open: boolean;
+    orgId: number;
+    onClose: () => void;
+  }) => {
+    lateFeeRateModalSpy(props);
+    return props.open ? <p>테스트 요율 모달</p> : null;
+  },
 }));
 vi.mock("../messaging/components/MessagingModal", () => ({
   MessagingModal: (props: {
@@ -40,9 +55,11 @@ vi.mock("./utils", async () => {
 
 import OverduePage from "./page";
 import { useMe } from "@/hooks/reactquery/auth";
+import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
 import {
   useOverdueBuildings,
   useOverdueHouseholds,
+  useOverduePeriods,
 } from "@/hooks/reactquery/overdue";
 import { toast } from "sonner";
 import { downloadOverdueLedger } from "./utils";
@@ -107,16 +124,43 @@ const households = [
 function setup({
   allowed = true,
   canMessage = true,
+  canEditLateFeeRate = false,
+  periods = [],
+  tiers = [],
 }: {
   allowed?: boolean;
   canMessage?: boolean;
+  canEditLateFeeRate?: boolean;
+  periods?: Array<{
+    occupancyId: number;
+    unitId: number;
+    period: string;
+    unpaidPrincipal: number;
+    dueDate: string;
+  }>;
+  tiers?: Array<{
+    id: number;
+    orgId: number;
+    tierOrder: number;
+    fromMonth: number;
+    toMonth: number | null;
+    monthlyRate: number;
+  }>;
 } = {}) {
   vi.mocked(useMe).mockReturnValue({
     data: {
+      orgId: 3,
       role: "staff",
+      orgStatus: "active",
+      username: "staff1",
+      fullName: "담당자",
+      isActive: true,
+      mustChangePassword: false,
+      staffType: "manager_staff",
       permissions: [
         ...(allowed ? ["overdue"] : []),
         ...(canMessage ? ["messaging"] : []),
+        ...(canEditLateFeeRate ? ["billing"] : []),
       ],
     },
     isLoading: false,
@@ -130,6 +174,16 @@ function setup({
     isLoading: false,
     error: null,
     refetch: vi.fn(),
+  } as never);
+  vi.mocked(useOverduePeriods).mockReturnValue({
+    data: periods,
+    isLoading: false,
+    error: null,
+  } as never);
+  vi.mocked(useLateFeeRateTiers).mockReturnValue({
+    data: tiers,
+    isLoading: false,
+    error: null,
   } as never);
 }
 
@@ -161,7 +215,7 @@ describe("OverduePage", () => {
   });
 
   it("overdue 권한만 있으면 독촉 문자 발송 액션을 사용할 수 없다", () => {
-    setup({ canMessage: false });
+    setup({ canMessage: false, canEditLateFeeRate: false });
     render(<OverduePage />);
     selectBuilding();
     fireEvent.click(screen.getByRole("checkbox", { name: "101호 선택" }));
@@ -173,6 +227,23 @@ describe("OverduePage", () => {
     expect(sendButton).toHaveAttribute("title", "문자 발송 권한이 필요합니다.");
     expect(messagingModalSpy).not.toHaveBeenCalledWith(
       expect.objectContaining({ open: true }),
+    );
+  });
+
+  it("billing 권한이 있을 때만 연체료 요율 설정 모달을 연다", () => {
+    setup({ canEditLateFeeRate: false });
+    const { unmount } = render(<OverduePage />);
+    expect(screen.queryByRole("button", { name: "연체료 요율 설정" })).not.toBeInTheDocument();
+    expect(lateFeeRateModalSpy).not.toHaveBeenCalled();
+    unmount();
+
+    setup({ canEditLateFeeRate: true });
+    render(<OverduePage />);
+    fireEvent.click(screen.getByRole("button", { name: "연체료 요율 설정" }));
+
+    expect(screen.getByText("테스트 요율 모달")).toBeInTheDocument();
+    expect(lateFeeRateModalSpy).toHaveBeenLastCalledWith(
+      expect.objectContaining({ open: true, orgId: 3 }),
     );
   });
 
@@ -201,6 +272,11 @@ describe("OverduePage", () => {
       month: 7,
       scope: "all",
     });
+    expect(useOverduePeriods).toHaveBeenLastCalledWith(1, {
+      year: 2026,
+      month: 7,
+      scope: "all",
+    });
 
     fireEvent.change(screen.getByRole("combobox", { name: "범위" }), {
       target: { value: "current" },
@@ -210,7 +286,40 @@ describe("OverduePage", () => {
       month: 7,
       scope: "current",
     });
+    expect(useOverduePeriods).toHaveBeenLastCalledWith(1, {
+      year: 2026,
+      month: 7,
+      scope: "current",
+    });
     expect(screen.getByText("연체 2개월 이상 AND 미납 10만원 이상")).toBeInTheDocument();
+  });
+
+  it("월분별 미납 원금과 요율표로 계산한 연체료를 표와 상세에 반영한다", () => {
+    setup({
+      periods: [
+        {
+          occupancyId: 31,
+          unitId: 21,
+          period: "2026-03-01",
+          unpaidPrincipal: 100_000,
+          dueDate: "2026-03-31",
+        },
+      ],
+      tiers: [
+        { id: 1, orgId: 3, tierOrder: 1, fromMonth: 0, toMonth: 1, monthlyRate: 1 },
+        { id: 2, orgId: 3, tierOrder: 2, fromMonth: 1, toMonth: 3, monthlyRate: 1.2 },
+      ],
+    });
+    render(<OverduePage />);
+    selectBuilding();
+    fireEvent.change(screen.getByLabelText("조회 기간"), {
+      target: { value: "2026-06" },
+    });
+
+    expect(screen.getAllByText("3,400원")).toHaveLength(2);
+    fireEvent.click(screen.getByText("101호"));
+    expect(screen.getByText("연체료 내역")).toBeInTheDocument();
+    expect(screen.getAllByText("3,400원")).toHaveLength(4);
   });
 
   it("전체 선택과 개별 선택을 문자 수신 대상에 반영한다", () => {
@@ -276,7 +385,13 @@ describe("OverduePage", () => {
     selectBuilding();
     fireEvent.click(screen.getByRole("button", { name: "채권 관리 필터" }));
     fireEvent.click(screen.getByRole("button", { name: "미납대장 출력" }));
-    expect(downloadOverdueLedger).toHaveBeenCalledWith("그린빌라", [households[0]]);
+    expect(downloadOverdueLedger).toHaveBeenCalledWith("그린빌라", [
+      expect.objectContaining({
+        ...households[0],
+        lateFeeAmount: 0,
+        lateFeeByPeriod: [],
+      }),
+    ]);
     expect(toast.success).toHaveBeenCalledWith("그린빌라_미납대장_202608.csv 파일을 저장했습니다.");
   });
 

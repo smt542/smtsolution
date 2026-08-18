@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   listOverdueBuildings,
   listOverdueHouseholds,
+  listOverduePeriods,
   resolveOverdueQuery,
   type OverdueQueryParams,
 } from "./apis";
@@ -28,6 +29,23 @@ export function useOverdueHouseholds(
       query.scope,
     ),
     queryFn: () => listOverdueHouseholds(buildingId as number, query),
+    enabled: buildingId !== null,
+  });
+}
+
+export function useOverduePeriods(
+  buildingId: number | null,
+  params: OverdueQueryParams = {},
+) {
+  const query = resolveOverdueQuery(params);
+  return useQuery({
+    queryKey: overdueKeys.periods(
+      buildingId ?? 0,
+      query.year,
+      query.month,
+      query.scope,
+    ),
+    queryFn: () => listOverduePeriods(buildingId as number, query),
     enabled: buildingId !== null,
   });
 }

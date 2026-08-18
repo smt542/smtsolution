@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import type { LateFeePeriodResult } from "@/lib/billing/lateFee";
 
 export interface OverdueBuilding {
   id: number;
@@ -45,6 +46,8 @@ export interface OverdueHousehold {
   overdueAmount: number;
   lastPaymentDate: string | null;
   billingAvailable: boolean;
+  lateFeeAmount?: number;
+  lateFeeByPeriod?: LateFeePeriodResult[];
 }
 
 interface BuildingRow {
@@ -103,6 +106,22 @@ interface OverdueAggregate {
   billingAvailable: boolean;
 }
 
+export interface OverduePeriodRow {
+  occupancyId: number;
+  unitId: number;
+  period: string;
+  unpaidPrincipal: number;
+  dueDate: string;
+}
+
+interface OverduePeriodRpcRow {
+  occupancy_id: number;
+  unit_id: number;
+  period: string;
+  unpaid_principal: number;
+  due_date: string;
+}
+
 function firstRelation<T>(value: T | T[] | null): T | null {
   if (Array.isArray(value)) return value[0] ?? null;
   return value;
@@ -137,6 +156,18 @@ function rowToAggregate(row: OverdueAggregateRow): OverdueAggregate {
     overdueMonths: Number(row.overdue_months),
     lastPaymentDate: row.last_payment_date,
     billingAvailable: row.billing_available,
+  };
+}
+
+export function rowToOverduePeriod(
+  row: OverduePeriodRpcRow,
+): OverduePeriodRow {
+  return {
+    occupancyId: row.occupancy_id,
+    unitId: row.unit_id,
+    period: row.period,
+    unpaidPrincipal: Number(row.unpaid_principal),
+    dueDate: row.due_date,
   };
 }
 
@@ -262,5 +293,21 @@ export async function listOverdueHouseholds(
       return rowToHousehold(row, aggregate);
     })
     .filter((row): row is OverdueHousehold => row !== null);
+}
+
+export async function listOverduePeriods(
+  buildingId: number,
+  params: OverdueQueryParams = {},
+): Promise<OverduePeriodRow[]> {
+  const query = resolveOverdueQuery(params);
+  const { data, error } = await createClient().rpc("list_overdue_periods", {
+    p_building_id: buildingId,
+    p_target_year: query.year,
+    p_target_month: query.month,
+    p_scope: query.scope,
+  });
+
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as OverduePeriodRpcRow[]).map(rowToOverduePeriod);
 }
 
