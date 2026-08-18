@@ -11,6 +11,7 @@ import {
   listPlatformAccounts,
   listPlatformOrganizations,
   listPointTransactions,
+  adjustPoints,
   chargePoints,
   updateOrganizationStatus,
   updatePlatformOrganization,
@@ -242,6 +243,39 @@ describe("platform admin apis", () => {
 
     expect(update).toHaveBeenCalledWith({ status: "suspended" });
     expect(eq).toHaveBeenCalledWith("id", 7);
+  });
+
+  it("adjustPoints는 조정 구분과 로그인 사용자를 adjustment 원장에 기록한다", async () => {
+    const insert = vi.fn().mockResolvedValue({ error: null });
+    const getUser = vi.fn().mockResolvedValue({ data: { user: { id: "op-1" } }, error: null });
+    authClient.auth = { getUser };
+    from.mockImplementation((table: string) => {
+      if (table === "point_transactions") return { insert };
+      return { select: vi.fn() };
+    });
+
+    await adjustPoints({
+      orgId: 3,
+      kind: "refund",
+      points: -500,
+      amountKrw: 5500,
+      memo: "중복 충전 환불",
+    });
+
+    expect(insert).toHaveBeenCalledWith({
+      org_id: 3,
+      type: "adjustment",
+      points: -500,
+      amount_krw: 5500,
+      memo: "[환불] 중복 충전 환불",
+      created_by: "op-1",
+    });
+  });
+
+  it("adjustPoints는 차감에 양수 포인트를 허용하지 않는다", async () => {
+    await expect(
+      adjustPoints({ orgId: 3, kind: "deduction", points: 500, memo: "오지급 회수" }),
+    ).rejects.toThrow("차감·환불 포인트는 음수여야 합니다.");
   });
 
   it("listPlatformOrganizations는 기본적으로 deleted_at is null만 조회한다", async () => {

@@ -3,7 +3,9 @@ import type { OrgMemberRole, StaffType } from "@/hooks/reactquery/auth";
 
 export type OrganizationStatus = "active" | "suspended" | "trial";
 
-export type PointTxType = "charge" | "usage";
+export type PointTxType = "charge" | "usage" | "adjustment";
+
+export type PointAdjustmentKind = "correction" | "deduction" | "refund";
 
 export interface PointTransaction {
   id: number;
@@ -23,6 +25,14 @@ export interface ChargePointsInput {
   points: number;   // > 0
   amountKrw: number; // >= 0
   memo?: string | null;
+}
+
+export interface AdjustPointsInput {
+  orgId: number;
+  kind: PointAdjustmentKind;
+  points: number; // correction: +/-; deduction/refund: negative
+  amountKrw?: number | null; // refund only
+  memo: string;
 }
 
 export interface PlatformOverview {
@@ -291,6 +301,37 @@ export async function chargePoints(input: ChargePointsInput): Promise<void> {
     points: input.points,
     amount_krw: input.amountKrw,
     memo: input.memo ?? null,
+    created_by: userData.user?.id ?? null,
+  });
+  if (error) throw new Error(error.message);
+}
+
+const ADJUSTMENT_KIND_LABELS: Record<PointAdjustmentKind, string> = {
+  correction: "정정",
+  deduction: "차감",
+  refund: "환불",
+};
+
+export async function adjustPoints(input: AdjustPointsInput): Promise<void> {
+  if (!Number.isInteger(input.points) || input.points === 0) {
+    throw new Error("조정 포인트는 0이 아닌 정수여야 합니다.");
+  }
+  if (input.kind !== "correction" && input.points >= 0) {
+    throw new Error("차감·환불 포인트는 음수여야 합니다.");
+  }
+  const memo = input.memo.trim();
+  if (!memo) throw new Error("조정 사유를 입력해 주세요.");
+
+  const supabase = createClient();
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError) throw new Error(userError.message);
+
+  const { error } = await supabase.from("point_transactions").insert({
+    org_id: input.orgId,
+    type: "adjustment",
+    points: input.points,
+    amount_krw: input.kind === "refund" ? input.amountKrw ?? null : null,
+    memo: `[${ADJUSTMENT_KIND_LABELS[input.kind]}] ${memo}`,
     created_by: userData.user?.id ?? null,
   });
   if (error) throw new Error(error.message);

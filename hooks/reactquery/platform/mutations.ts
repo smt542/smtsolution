@@ -1,10 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+  adjustPoints,
   chargePoints,
   updateOrganizationStatus,
   createPlatformOrganization,
   updatePlatformOrganization,
   setPlatformOrganizationDeleted,
+  type AdjustPointsInput,
   type ChargePointsInput,
   type OrganizationStatus,
   type CreateOrgInput,
@@ -38,6 +40,17 @@ export function useUpdateOrganizationStatus() {
       updateOrganizationStatus(id, status),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: platformKeys.organizations() }),
+  });
+}
+
+export function useAdjustPoints() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: AdjustPointsInput) => adjustPoints(input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: platformKeys.organizations() });
+      void queryClient.invalidateQueries({ queryKey: [...platformKeys.all, "transactions"] });
+    },
   });
 }
 

@@ -3,25 +3,34 @@
 import { useMemo, useState } from "react";
 import { EmptyState, Spinner, Button, SearchBar } from "@/components/common";
 import {
+  useAdjustPoints,
   usePlatformOrganizations,
   usePlatformTransactions,
   useChargePoints,
+  type PointTxType,
 } from "@/hooks/reactquery/platform";
+import type { PointAdjustmentFormValues } from "@/components/forms/schema/pointAdjustment";
 import { toast } from "sonner";
 import { PageHeader, QueryError, StatusBadge } from "../../_components/PageElements";
 import { PointChargeModal } from "./components/PointChargeModal";
+import { PointAdjustmentModal } from "./components/PointAdjustmentModal";
 
 const dateFmt = new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" });
 const num = (n: number) => n.toLocaleString("ko-KR");
 
 export default function PlatformPointsPage() {
   const [search, setSearch] = useState("");
-  const [modalOpen, setModalOpen] = useState(false);
+  const [chargeModalOpen, setChargeModalOpen] = useState(false);
+  const [adjustmentModalOpen, setAdjustmentModalOpen] = useState(false);
   const orgsQuery = usePlatformOrganizations();
   const txQuery = usePlatformTransactions();
   const charge = useChargePoints();
+  const adjustment = useAdjustPoints();
 
-  const organizations = useMemo(() => orgsQuery.data ?? [], [orgsQuery.data]);
+  const organizations = useMemo(
+    () => (orgsQuery.data ?? []).filter((organization) => !organization.deletedAt),
+    [orgsQuery.data],
+  );
   const filtered = useMemo(() => {
     const kw = search.trim().toLocaleLowerCase("ko-KR");
     if (!kw) return organizations;
@@ -38,9 +47,19 @@ export default function PlatformPointsPage() {
     }
   };
 
+  const handleAdjustment = async (values: PointAdjustmentFormValues) => {
+    try {
+      await adjustment.mutateAsync(values);
+      toast.success("포인트 조정을 기록했습니다.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "포인트 조정에 실패했습니다.");
+      throw error;
+    }
+  };
+
   return (
     <div className="mx-auto w-full max-w-7xl p-5 sm:p-6 lg:p-8">
-      <PageHeader eyebrow="POINTS" title="포인트 관리" description="조직별 발송 크레딧(포인트) 잔액과 충전·사용 내역을 관리합니다." />
+      <PageHeader eyebrow="POINTS" title="포인트 관리" description="조직별 발송 크레딧(포인트) 잔액과 충전·사용·조정 내역을 관리합니다." />
 
       {/* 잔액 목록 */}
       <section className="mt-6 rounded-2xl border border-line bg-surface shadow-card">
@@ -51,7 +70,8 @@ export default function PlatformPointsPage() {
           </div>
           <div className="flex w-full gap-2 sm:w-auto">
             <div className="w-full sm:w-64"><SearchBar value={search} onChange={setSearch} placeholder="조직명 검색" /></div>
-            <Button variant="primary" onClick={() => setModalOpen(true)} disabled={organizations.length === 0}>충전 기록</Button>
+            <Button variant="ghost" onClick={() => setAdjustmentModalOpen(true)} disabled={organizations.length === 0}>포인트 조정</Button>
+            <Button variant="primary" onClick={() => setChargeModalOpen(true)} disabled={organizations.length === 0}>충전 기록</Button>
           </div>
         </div>
         {orgsQuery.isPending ? (
@@ -84,7 +104,7 @@ export default function PlatformPointsPage() {
 
       {/* 내역 */}
       <section className="mt-6 rounded-2xl border border-line bg-surface shadow-card">
-        <div className="border-b border-line p-4"><h3 className="text-base font-extrabold text-t1">충전·사용 내역</h3></div>
+        <div className="border-b border-line p-4"><h3 className="text-base font-extrabold text-t1">충전·사용·조정 내역</h3></div>
         {txQuery.isPending ? (
           <div className="py-16"><Spinner /></div>
         ) : txQuery.isError ? (
@@ -106,9 +126,7 @@ export default function PlatformPointsPage() {
                     <td className="px-5 py-4 text-t2 num">{dateFmt.format(new Date(t.createdAt))}</td>
                     <td className="px-4 py-4 text-t1">{t.organizationName}</td>
                     <td className="px-4 py-4">
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${t.type === "charge" ? "bg-green-t text-green" : "bg-amber-t text-amber"}`}>
-                        {t.type === "charge" ? "충전" : "사용"}
-                      </span>
+                      <TransactionTypeBadge type={t.type} />
                     </td>
                     <td className={`px-4 py-4 text-right font-bold num ${t.points >= 0 ? "text-green" : "text-red"}`}>{t.points >= 0 ? "+" : ""}{num(t.points)}</td>
                     <td className="px-4 py-4 text-t3">{t.memo ?? "—"}</td>
@@ -122,12 +140,34 @@ export default function PlatformPointsPage() {
       </section>
 
       <PointChargeModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        open={chargeModalOpen}
+        onClose={() => setChargeModalOpen(false)}
         organizations={organizations}
         onSubmit={handleCharge}
         isPending={charge.isPending}
       />
+      <PointAdjustmentModal
+        open={adjustmentModalOpen}
+        onClose={() => setAdjustmentModalOpen(false)}
+        organizations={organizations}
+        onSubmit={handleAdjustment}
+        isPending={adjustment.isPending}
+      />
     </div>
+  );
+}
+
+const TRANSACTION_BADGES: Record<PointTxType, { label: string; className: string }> = {
+  charge: { label: "충전", className: "bg-green-t text-green" },
+  usage: { label: "사용", className: "bg-amber-t text-amber" },
+  adjustment: { label: "조정", className: "bg-blue-t text-blue" },
+};
+
+function TransactionTypeBadge({ type }: { type: PointTxType }) {
+  const badge = TRANSACTION_BADGES[type];
+  return (
+    <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${badge.className}`}>
+      {badge.label}
+    </span>
   );
 }
