@@ -1,8 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 const rpc = vi.fn();
-vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ rpc }) }));
-import { listBillTargets, getBillDocuments, issueBills } from "./apis";
-beforeEach(() => vi.clearAllMocks());
+const occupancyIn = vi.fn();
+const organizationMaybeSingle = vi.fn();
+const from = vi.fn((table: string) => {
+  if (table === "occupancies") return { select: () => ({ in: occupancyIn }) };
+  if (table === "organizations") return { select: () => ({ eq: () => ({ maybeSingle: organizationMaybeSingle }) }) };
+  throw new Error(`unexpected table ${table}`);
+});
+vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ rpc, from }) }));
+import { listBillTargets, getBillDocuments, getOrganizationName, issueBills } from "./apis";
+beforeEach(() => {
+  vi.clearAllMocks();
+  occupancyIn.mockResolvedValue({ data: [{ id: 5, payer_name: "김납부" }], error: null });
+  organizationMaybeSingle.mockResolvedValue({ data: { name: "한빛관리" }, error: null });
+});
 
 describe("bill apis", () => {
   it("listBillTargets: list_bill_targets 호출·snake→camel", async () => {
@@ -12,7 +23,7 @@ describe("bill apis", () => {
     }], error: null });
     const r = await listBillTargets(7, "2026-08-01");
     expect(rpc).toHaveBeenCalledWith("list_bill_targets", { p_building_id: 7, p_period: "2026-08-01" });
-    expect(r[0]).toMatchObject({ unitId: 1, tenantName: "홍", totalAmount: 30000, autoDebit: true, issueType: "a4", issuedAt: "2026-08-13T00:00:00Z" });
+    expect(r[0]).toMatchObject({ unitId: 1, tenantName: "홍", payerName: "김납부", totalAmount: 30000, autoDebit: true, issueType: "a4", issuedAt: "2026-08-13T00:00:00Z" });
   });
   it("getBillDocuments: unit_ids 전송·items 매핑", async () => {
     rpc.mockResolvedValue({ data: [{
@@ -32,5 +43,9 @@ describe("bill apis", () => {
   it("에러 시 throw", async () => {
     rpc.mockResolvedValue({ data: null, error: { message: "boom" } });
     await expect(listBillTargets(7, "2026-08-01")).rejects.toThrow("boom");
+  });
+  it("회사명은 현재 조직의 organizations.name을 조회", async () => {
+    await expect(getOrganizationName(3)).resolves.toBe("한빛관리");
+    expect(from).toHaveBeenCalledWith("organizations");
   });
 });
