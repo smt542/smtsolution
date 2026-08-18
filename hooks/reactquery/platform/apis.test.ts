@@ -13,6 +13,8 @@ import {
   listPointTransactions,
   chargePoints,
   updateOrganizationStatus,
+  updatePlatformOrganization,
+  setPlatformOrganizationDeleted,
 } from "./apis";
 
 beforeEach(() => vi.clearAllMocks());
@@ -21,15 +23,16 @@ describe("platform admin apis", () => {
   it("조직별 실제 계정·건물 수를 집계하고 snake_case를 변환한다", async () => {
     from.mockImplementation((table: string) => {
       if (table === "organizations") {
+        const order = vi.fn().mockResolvedValue({
+          data: [
+            { id: 1, name: "한빛관리", slug: "hanbit", status: "active", created_at: "2026-01-02T00:00:00Z" },
+            { id: 2, name: "새봄관리", slug: null, status: "trial", created_at: "2026-01-01T00:00:00Z" },
+          ],
+          error: null,
+        });
         return {
           select: () => ({
-            order: vi.fn().mockResolvedValue({
-              data: [
-                { id: 1, name: "한빛관리", slug: "hanbit", status: "active", created_at: "2026-01-02T00:00:00Z" },
-                { id: 2, name: "새봄관리", slug: null, status: "trial", created_at: "2026-01-01T00:00:00Z" },
-              ],
-              error: null,
-            }),
+            is: vi.fn(() => ({ order })),
           }),
         };
       }
@@ -126,15 +129,16 @@ describe("platform admin apis", () => {
   it("조직 목록에 포인트 잔액(sum(points))을 집계한다", async () => {
     from.mockImplementation((table: string) => {
       if (table === "organizations") {
+        const order = vi.fn().mockResolvedValue({
+          data: [
+            { id: 1, name: "한빛관리", slug: "hanbit", status: "active", created_at: "2026-01-02T00:00:00Z" },
+            { id: 2, name: "새봄관리", slug: null, status: "trial", created_at: "2026-01-01T00:00:00Z" },
+          ],
+          error: null,
+        });
         return {
           select: () => ({
-            order: vi.fn().mockResolvedValue({
-              data: [
-                { id: 1, name: "한빛관리", slug: "hanbit", status: "active", created_at: "2026-01-02T00:00:00Z" },
-                { id: 2, name: "새봄관리", slug: null, status: "trial", created_at: "2026-01-01T00:00:00Z" },
-              ],
-              error: null,
-            }),
+            is: vi.fn(() => ({ order })),
           }),
         };
       }
@@ -229,5 +233,35 @@ describe("platform admin apis", () => {
 
     expect(update).toHaveBeenCalledWith({ status: "suspended" });
     expect(eq).toHaveBeenCalledWith("id", 7);
+  });
+
+  it("listPlatformOrganizations는 기본적으로 deleted_at is null만 조회한다", async () => {
+    const order = vi.fn().mockResolvedValue({ data: [], error: null });
+    const is = vi.fn(() => ({ order }));
+    from.mockImplementation((table: string) => {
+      if (table === "organizations") return { select: () => ({ is }) };
+      if (table === "org_members") return { select: vi.fn().mockResolvedValue({ data: [], error: null }) };
+      if (table === "point_transactions") return { select: vi.fn().mockResolvedValue({ data: [], error: null }) };
+      return { select: () => ({ is: vi.fn().mockResolvedValue({ data: [], error: null }) }) };
+    });
+    await listPlatformOrganizations();
+    expect(is).toHaveBeenCalledWith("deleted_at", null);
+  });
+
+  it("updatePlatformOrganization은 name/slug/phone을 update한다", async () => {
+    const eq = vi.fn().mockResolvedValue({ error: null });
+    const update = vi.fn(() => ({ eq }));
+    from.mockImplementation(() => ({ update }));
+    await updatePlatformOrganization(7, { name: "새이름", slug: "newslug", phone: "021234" });
+    expect(update).toHaveBeenCalledWith({ name: "새이름", slug: "newslug", phone: "021234" });
+    expect(eq).toHaveBeenCalledWith("id", 7);
+  });
+
+  it("setPlatformOrganizationDeleted(false)는 deleted_at을 null로 되돌린다", async () => {
+    const eq = vi.fn().mockResolvedValue({ error: null });
+    const update = vi.fn(() => ({ eq }));
+    from.mockImplementation(() => ({ update }));
+    await setPlatformOrganizationDeleted(7, false);
+    expect(update).toHaveBeenCalledWith({ deleted_at: null });
   });
 });

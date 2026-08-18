@@ -134,13 +134,16 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
   };
 }
 
-export async function listPlatformOrganizations(): Promise<PlatformOrganization[]> {
+export async function listPlatformOrganizations(
+  opts: { includeDeleted?: boolean } = {},
+): Promise<PlatformOrganization[]> {
   const supabase = createClient();
+  let orgQuery = supabase
+    .from("organizations")
+    .select("id, name, slug, status, created_at");
+  if (!opts.includeDeleted) orgQuery = orgQuery.is("deleted_at", null);
   const [organizations, members, buildings, points] = await Promise.all([
-    supabase
-      .from("organizations")
-      .select("id, name, slug, status, created_at")
-      .order("created_at", { ascending: false }),
+    orgQuery.order("created_at", { ascending: false }),
     supabase.from("org_members").select("org_id"),
     supabase.from("buildings").select("org_id").is("deleted_at", null),
     supabase.from("point_transactions").select("org_id, points"),
@@ -288,6 +291,45 @@ export async function updateOrganizationStatus(
   const { error } = await createClient()
     .from("organizations")
     .update({ status })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export interface CreateOrgInput {
+  name: string; slug: string; phone?: string | null;
+  owner: { username: string; fullName: string; phone?: string | null };
+}
+
+export interface CreateOrgResult {
+  organization: { id: number; name: string; slug: string | null };
+  owner: { username: string; tempPassword: string };
+}
+
+export async function createPlatformOrganization(input: CreateOrgInput): Promise<CreateOrgResult> {
+  const res = await fetch("/api/platform/organizations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json?.error ?? "조직 생성에 실패했습니다.");
+  return json as CreateOrgResult;
+}
+
+export interface UpdateOrgInput { name: string; slug: string; phone?: string | null }
+
+export async function updatePlatformOrganization(id: number, input: UpdateOrgInput): Promise<void> {
+  const { error } = await createClient()
+    .from("organizations")
+    .update({ name: input.name, slug: input.slug || null, phone: input.phone || null })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function setPlatformOrganizationDeleted(id: number, deleted: boolean): Promise<void> {
+  const { error } = await createClient()
+    .from("organizations")
+    .update({ deleted_at: deleted ? new Date().toISOString() : null })
     .eq("id", id);
   if (error) throw new Error(error.message);
 }
