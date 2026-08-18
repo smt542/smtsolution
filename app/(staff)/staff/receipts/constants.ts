@@ -43,3 +43,11 @@ export function formatUnitLabel(unit?: {
   if (!unit?.unitNo) return "공용·호실 미지정";
   return unit.dong ? `${unit.dong} ${unit.unitNo}` : unit.unitNo;
 }
+
+export function startOfDayIso(value: string) {
+  return value ? new Date(`${value}T00:00:00+09:00`).toISOString() : undefined;
+}
+
+export function endOfDayIso(value: string) {
+  return value ? new Date(`${value}T23:59:59.999+09:00`).toISOString() : undefined;
+}
