@@ -12,7 +12,9 @@ import {
   useBillOrganizationName,
   useBillTargets,
   useIssueBills,
+  useRecordBillDelivery,
 } from "@/hooks/reactquery/bill";
+import { useCancelScheduledMessage } from "@/hooks/reactquery/messaging";
 import { currentPeriod, fromMonthInput, toMonthInput } from "@/lib/billing/period";
 import { printableAccounts, PROGRAM_COMPANY_NAME } from "@/lib/bill/document";
 import type { MessageRecipient } from "@/lib/messaging/preset";
@@ -35,12 +37,19 @@ function LegacyA4Workspace({ buildings, config, onBack }: LegacyA4WorkspaceProps
   const [dueDate, setDueDate] = useState("");
   const [selected, setSelected] = useState<number[]>([]);
   const [sendOpen, setSendOpen] = useState(false);
+  const [waterCutoffOverrides, setWaterCutoffOverrides] = useState<Record<number, boolean>>({});
 
-  const { data: targets, isLoading } = useBillTargets(buildingId, period);
+  const { data: targets, isLoading, refetch: refetchTargets } = useBillTargets(buildingId, period);
   const { data: documents } = useBillDocuments(buildingId, period, selected);
   const issue = useIssueBills();
+  const recordDelivery = useRecordBillDelivery();
+  const cancelSchedule = useCancelScheduledMessage();
   const building = buildings.find((candidate) => candidate.id === buildingId) ?? null;
-  const rows = targets ?? [];
+  const rows = (targets ?? []).map((target) => ({
+    ...target,
+    waterCutoff: waterCutoffOverrides[target.unitId] ?? target.waterCutoff,
+  }));
+  const waterCutoffUnitIds = rows.filter((target) => target.waterCutoff).map((target) => target.unitId);
 
   const toggle = (id: number) => setSelected((current) =>
     current.includes(id) ? current.filter((value) => value !== id) : [...current, id],
@@ -63,6 +72,7 @@ function LegacyA4Workspace({ buildings, config, onBack }: LegacyA4WorkspaceProps
         issueType: "a4",
         dueDate: dueDate || null,
         unitLabelMode: labelMode,
+        waterCutoffUnitIds: waterCutoffUnitIds.filter((unitId) => selected.includes(unitId)),
       });
       window.print();
       toast.success(`${selected.length}세대 고지서를 발행했습니다`);
@@ -73,16 +83,47 @@ function LegacyA4Workspace({ buildings, config, onBack }: LegacyA4WorkspaceProps
 
   const recipients: MessageRecipient[] = rows
     .filter((target) => selected.includes(target.unitId))
-    .map((target) => ({
-      name: target.tenantName,
-      phone: target.phone,
-      unitNo: target.unitNo,
-      kind: "tenant" as const,
-      ref: {
-        occupancyId: target.occupancyId ?? undefined,
-        buildingId: buildingId ?? undefined,
+    .flatMap((target) => [
+      {
+        name: target.tenantName,
+        phone: target.phone,
+        phoneType: "primary" as const,
+        unitNo: target.unitNo,
+        kind: "tenant" as const,
+        ref: {
+          occupancyId: target.occupancyId ?? undefined,
+          unitId: target.unitId,
+          buildingId: buildingId ?? undefined,
+        },
       },
-    }));
+      ...(target.secondaryPhone ? [{
+        name: target.tenantName,
+        phone: target.secondaryPhone,
+        phoneType: "secondary" as const,
+        unitNo: target.unitNo,
+        kind: "tenant" as const,
+        ref: {
+          occupancyId: target.occupancyId ?? undefined,
+          unitId: target.unitId,
+          buildingId: buildingId ?? undefined,
+        },
+      }] : []),
+    ]);
+
+  const cancelSelectedSchedules = async () => {
+    const scheduleIds = [...new Set(rows
+      .filter((target) => selected.includes(target.unitId) && target.sendStatus === "scheduled")
+      .map((target) => target.messageScheduleId)
+      .filter((id): id is number => id !== null))];
+    if (scheduleIds.length === 0) return;
+    try {
+      for (const scheduleId of scheduleIds) await cancelSchedule.mutateAsync(scheduleId);
+      await refetchTargets();
+      toast.success("예약이 취소되었습니다.");
+    } catch {
+      toast.error("예약 취소에 실패했습니다. 다시 시도해 주세요.");
+    }
+  };
 
   return (
     <>
@@ -104,6 +145,7 @@ function LegacyA4Workspace({ buildings, config, onBack }: LegacyA4WorkspaceProps
               onChange={(event) => {
                 setBuildingId(event.target.value ? Number(event.target.value) : null);
                 setSelected([]);
+                setWaterCutoffOverrides({});
               }}
               options={[
                 { value: "", label: "건물을 선택해 주세요" },
@@ -121,6 +163,7 @@ function LegacyA4Workspace({ buildings, config, onBack }: LegacyA4WorkspaceProps
               onChange={(event) => {
                 setPeriod(fromMonthInput(event.target.value));
                 setSelected([]);
+                setWaterCutoffOverrides({});
               }}
               className="h-11 rounded-xl border border-line bg-surface px-3 text-sm text-t1"
             />
@@ -153,18 +196,59 @@ function LegacyA4Workspace({ buildings, config, onBack }: LegacyA4WorkspaceProps
             selected={selected}
             onToggle={toggle}
             onToggleAll={toggleAll}
+            onWaterCutoffChange={(unitId, checked) => setWaterCutoffOverrides((current) => ({ ...current, [unitId]: checked }))}
             onPrint={() => void print()}
             onSend={() => setSendOpen(true)}
+            onCancelSchedule={() => void cancelSelectedSchedules()}
+            isCancellingSchedule={cancelSchedule.isPending}
           />
         )}
 
         <MessagingModal
           open={sendOpen}
           onClose={() => setSendOpen(false)}
-          preset={{ context: "고지서", channel: "sms", body: "관리비 고지서를 안내드립니다.", recipients }}
-          onSent={(result) => {
-            setSendOpen(false);
-            toast.success(`${result.count}세대에 발송(stub)했습니다`);
+          preset={{
+            context: "고지서",
+            buildingId: buildingId ?? undefined,
+            channel: "alimtalk",
+            mode: "alimtalk",
+            templateTitle: "고지서",
+            recipients,
+          }}
+          onSent={async (result) => {
+            if (!buildingId) return;
+            const deliveredUnitIds = [...new Set(result.recipients
+              .map((recipient) => recipient.ref?.unitId)
+              .filter((unitId): unitId is number => unitId !== undefined))];
+            try {
+              await recordDelivery.mutateAsync({
+                buildingId,
+                period,
+                unitIds: deliveredUnitIds,
+                issueType: "kakao",
+                sendStatus: result.status,
+                messageLogId: result.status === "sent" ? result.logId : null,
+                messageScheduleId: result.status === "scheduled" ? result.logId : null,
+                scheduledAt: result.scheduledAt,
+              });
+              setSendOpen(false);
+            } catch {
+              toast.error("발송 상태를 저장하지 못했습니다.");
+            }
+          }}
+          onFailed={async () => {
+            if (!buildingId) return;
+            try {
+              await recordDelivery.mutateAsync({
+                buildingId,
+                period,
+                unitIds: selected,
+                issueType: "kakao",
+                sendStatus: "failed",
+              });
+            } catch {
+              // 원 발송 오류 토스트를 유지하고 상태 기록 실패는 별도 전파하지 않는다.
+            }
           }}
         />
       </div>
@@ -178,6 +262,7 @@ function LegacyA4Workspace({ buildings, config, onBack }: LegacyA4WorkspaceProps
           accounts={printableAccounts(config)}
           customerNotice={config?.customerNotice ?? null}
           documents={documents}
+          waterCutoffUnitIds={waterCutoffUnitIds.filter((unitId) => selected.includes(unitId))}
         />
       )}
     </>

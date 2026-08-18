@@ -3,7 +3,7 @@ import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { BasicInfoSection } from "./BasicInfoSection";
-const base = { unitNo:"", floor:null, usageType:"residential" as const, tenantName:"", payerName:"", phone:"", phone2:"", phone3:"", vehicleNo:"", residentCount:null, roomTypeId:null, moveInDate:"" };
+const base = { unitNo:"", floor:null, usageType:"residential" as const, tenantName:"", payerName:"", phone:"", phone2:"", phone3:"", faxNumber:"", vehicleNo:"", residentCount:null, roomTypeId:null, moveInDate:"" };
 describe("tenant BasicInfoSection", () => {
   it("이름 입력 → onChange({tenantName})", () => {
     const onChange = vi.fn();
@@ -30,5 +30,11 @@ describe("tenant BasicInfoSection", () => {
     render(<BasicInfoSection value={{ ...base, floor: 3 }} onChange={onChange} roomTypeOptions={[]} />);
     fireEvent.change(screen.getByLabelText("층"), { target: { value: "" } });
     expect(onChange).toHaveBeenCalledWith({ floor: null });
+  });
+  it("팩스번호를 입주자 기본 정보에서 수정한다", () => {
+    const onChange = vi.fn();
+    render(<BasicInfoSection value={base} onChange={onChange} roomTypeOptions={[]} />);
+    fireEvent.change(screen.getByLabelText("팩스번호"), { target: { value: "02-1234-5678" } });
+    expect(onChange).toHaveBeenCalledWith({ faxNumber: "02-1234-5678" });
   });
 });

@@ -4,10 +4,12 @@ export type SendMode = "auto" | "sms" | "alimtalk";
 export interface MessageRecipient {
   name: string | null;
   phone: string | null;
+  phoneType?: "primary" | "secondary";
   unitNo?: string | null;
   kind: "tenant" | "owner" | "staff" | "vendor" | "etc";
   ref?: {
     occupancyId?: number;
+    unitId?: number;
     buildingId?: number;
     userId?: string;
   };
@@ -15,9 +17,11 @@ export interface MessageRecipient {
 
 export interface MessagingPreset {
   context: string;
+  buildingId?: number;
   channel?: MessageChannel;
   mode?: SendMode;
   templateId?: number | null;
+  templateTitle?: string;
   body?: string;
   recipients?: MessageRecipient[];
 }

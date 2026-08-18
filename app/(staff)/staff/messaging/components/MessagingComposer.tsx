@@ -9,6 +9,7 @@ import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates";
 import {
   useSendMessages,
   useTenantAlimtalkConsent,
+  type SendMessagesResult,
 } from "@/hooks/reactquery/messaging";
 import {
   useTenantList,
@@ -29,12 +30,13 @@ import {
 export interface MessagingComposerProps {
   preset?: MessagingPreset;
   initialMode?: SendMode;
-  onSent?: (result: { logId: number; count: number }) => void;
+  onSent?: (result: SendMessagesResult) => void | Promise<void>;
+  onFailed?: (error: unknown) => void | Promise<void>;
 }
 
 function recipientKey(recipient: MessageRecipient): string {
   if (recipient.ref?.occupancyId !== undefined) {
-    return `tenant:${recipient.ref.occupancyId}`;
+    return `tenant:${recipient.ref.occupancyId}:${recipient.phone ?? ""}`;
   }
   if (recipient.ref?.buildingId !== undefined && recipient.kind === "owner") {
     return `owner:${recipient.ref.buildingId}`;
@@ -81,8 +83,11 @@ export function MessagingComposer({
   preset,
   initialMode,
   onSent,
+  onFailed,
 }: MessagingComposerProps) {
-  const [selectedBuildingId, setSelectedBuildingId] = useState(0);
+  const [selectedBuildingId, setSelectedBuildingId] = useState(
+    preset?.buildingId ?? preset?.recipients?.[0]?.ref?.buildingId ?? 0,
+  );
   const [recipients, setRecipients] = useState<MessageRecipient[]>(() => [
     ...(preset?.recipients ?? []),
   ]);
@@ -93,7 +98,10 @@ export function MessagingComposer({
     preset?.templateId ?? null,
   );
   const [body, setBody] = useState(preset?.body ?? "");
+  const [bodyTouched, setBodyTouched] = useState(false);
   const [quickMessageId, setQuickMessageId] = useState("");
+  const [sendTiming, setSendTiming] = useState<"now" | "scheduled">("now");
+  const [scheduledAt, setScheduledAt] = useState("");
 
   const { data: buildings = [], isLoading: isBuildingsLoading } = useBuildings();
   const { data: tenants = [], isLoading: isTenantsLoading } =
@@ -105,6 +113,15 @@ export function MessagingComposer({
   const { data: tenantConsents = [] } =
     useTenantAlimtalkConsent(selectedBuildingId);
   const sendMessages = useSendMessages();
+
+  const presetTemplate = useMemo(() => {
+    const title = preset?.templateTitle?.trim();
+    if (!title) return undefined;
+    return templates.find((template) => template.title === title)
+      ?? templates.find((template) => template.title.includes(title));
+  }, [preset?.templateTitle, templates]);
+  const effectiveTemplateId = templateId ?? presetTemplate?.id ?? null;
+  const effectiveBody = bodyTouched ? body : (body || presetTemplate?.body || "");
 
   const selectedBuilding = buildings.find(
     (building) => building.id === selectedBuildingId,
@@ -142,7 +159,7 @@ export function MessagingComposer({
               : mode === "alimtalk"
                 ? null
                 : "sms";
-        const renderedBody = renderTemplate(body, {
+        const renderedBody = renderTemplate(effectiveBody, {
           이름: recipient.name ?? "",
           호실: recipient.unitNo ?? "",
           건물명: selectedBuilding?.name ?? "",
@@ -150,7 +167,7 @@ export function MessagingComposer({
 
         return { recipient, channel, renderedBody };
       }),
-    [body, consentByOccupancy, mode, selectedBuilding?.name, validRecipientList],
+    [consentByOccupancy, effectiveBody, mode, selectedBuilding?.name, validRecipientList],
   );
   const sendRecipients = useMemo<ResolvedRecipient[]>(
     () =>
@@ -179,8 +196,9 @@ export function MessagingComposer({
   );
   const canSend =
     validCount > 0 &&
-    body.trim().length > 0 &&
-    (mode === "sms" || templateId !== null);
+    effectiveBody.trim().length > 0 &&
+    (mode === "sms" || effectiveTemplateId !== null) &&
+    (sendTiming === "now" || scheduledAt.length > 0);
 
   const toggleRecipient = (recipient: MessageRecipient) => {
     const key = recipientKey(recipient);
@@ -198,6 +216,7 @@ export function MessagingComposer({
     setBody((current) =>
       current.trim().length > 0 ? `${current}\n${message.body}` : message.body,
     );
+    setBodyTouched(true);
     setQuickMessageId("");
   };
 
@@ -205,7 +224,10 @@ export function MessagingComposer({
     const nextTemplateId = Number(value) || null;
     setTemplateId(nextTemplateId);
     const template = templates.find((item) => item.id === nextTemplateId);
-    if (template) setBody(template.body);
+    if (template) {
+      setBody(template.body);
+      setBodyTouched(true);
+    }
   };
 
   const send = async () => {
@@ -213,11 +235,11 @@ export function MessagingComposer({
       toast.info("수신처를 선택해 주세요.");
       return;
     }
-    if (body.trim().length === 0) {
+    if (effectiveBody.trim().length === 0) {
       toast.info("본문을 입력해 주세요.");
       return;
     }
-    if (mode !== "sms" && templateId === null) {
+    if (mode !== "sms" && effectiveTemplateId === null) {
       toast.info("알림톡 템플릿을 선택해 주세요.");
       return;
     }
@@ -225,21 +247,41 @@ export function MessagingComposer({
       toast.info("알림톡 수신에 동의한 수신처가 없습니다.");
       return;
     }
-    if (!window.confirm(`${validCount}명에게 발송하시겠습니까?`)) return;
+    let scheduledIso: string | null = null;
+    if (sendTiming === "scheduled") {
+      const scheduledTime = new Date(scheduledAt);
+      if (!scheduledAt || Number.isNaN(scheduledTime.getTime()) || scheduledTime.getTime() <= Date.now()) {
+        toast.info("현재 이후의 예약 일시를 선택해 주세요.");
+        return;
+      }
+      scheduledIso = scheduledTime.toISOString();
+    }
+    const actionLabel = sendTiming === "scheduled" ? "예약 발송" : "발송";
+    if (!window.confirm(`${validCount}명에게 ${actionLabel}하시겠습니까?`)) return;
 
     try {
       const result = await sendMessages.mutateAsync({
         mode,
-        body,
+        body: effectiveBody,
         context: preset?.context ?? "manual",
-        templateId: mode === "sms" ? null : templateId,
+        templateId: mode === "sms" ? null : effectiveTemplateId,
         recipients: sendRecipients,
+        scheduledAt: scheduledIso,
       });
-      toast.success(`발송(임시) 완료 · ${result.count}명`);
-      onSent?.(result);
+      if (sendTiming === "scheduled") {
+        toast.success(`예약이 등록되었습니다(${scheduledAt.replace("T", " ")})`);
+      } else if (preset?.context === "고지서") {
+        toast.success("발송이 완료되었습니다");
+      } else {
+        toast.success(`발송(임시) 완료 · ${result.count}명`);
+      }
+      await onSent?.(result);
     } catch (error) {
+      await onFailed?.(error);
       toast.error(
-        error instanceof Error ? error.message : "발송하지 못했습니다.",
+        preset?.context === "고지서"
+          ? "발송에 실패했습니다. 다시 시도해 주세요."
+          : error instanceof Error ? error.message : "발송하지 못했습니다.",
       );
     }
   };
@@ -308,7 +350,7 @@ export function MessagingComposer({
             </span>
             <Select
               aria-label="알림톡 템플릿"
-              value={templateId === null ? "" : String(templateId)}
+              value={effectiveTemplateId === null ? "" : String(effectiveTemplateId)}
               disabled={isTemplatesLoading}
               onChange={(event) => selectTemplate(event.target.value)}
               options={[
@@ -479,8 +521,11 @@ export function MessagingComposer({
             <span className="mb-1.5 block text-xs font-bold text-t2">본문</span>
             <textarea
               aria-label="본문"
-              value={body}
-              onChange={(event) => setBody(event.target.value)}
+              value={effectiveBody}
+              onChange={(event) => {
+                setBody(event.target.value);
+                setBodyTouched(true);
+              }}
               placeholder="발송할 문자 내용을 입력해 주세요."
               className="min-h-36 w-full rounded-xl border border-line bg-surface p-4 text-sm text-t1 placeholder:text-t4 focus:border-brand focus:outline-none"
             />
@@ -504,6 +549,33 @@ export function MessagingComposer({
           </label>
         </div>
 
+        <div className="grid gap-4 rounded-xl border border-line p-4 sm:grid-cols-2">
+          <label>
+            <span className="mb-1.5 block text-xs font-bold text-t2">발송 시점</span>
+            <Select
+              aria-label="발송 시점"
+              value={sendTiming}
+              onChange={(event) => setSendTiming(event.target.value as "now" | "scheduled")}
+              options={[
+                { value: "now", label: "즉시 발송" },
+                { value: "scheduled", label: "예약 발송" },
+              ]}
+            />
+          </label>
+          {sendTiming === "scheduled" && (
+            <label>
+              <span className="mb-1.5 block text-xs font-bold text-t2">예약 발송 일시</span>
+              <input
+                type="datetime-local"
+                aria-label="예약 발송 일시"
+                value={scheduledAt}
+                onChange={(event) => setScheduledAt(event.target.value)}
+                className="h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm text-t1 focus:border-brand focus:outline-none"
+              />
+            </label>
+          )}
+        </div>
+
         <div className="flex items-center justify-between border-t border-line pt-4">
           <p className="text-sm text-t3">
             발송 가능한 수신처 <strong className="text-t1">{validCount}명</strong>
@@ -515,7 +587,7 @@ export function MessagingComposer({
             aria-disabled={!canSend || sendMessages.isPending}
             className={!canSend ? "opacity-70" : ""}
           >
-            {sendMessages.isPending ? "발송 중…" : "발송"}
+            {sendMessages.isPending ? "발송 중…" : sendTiming === "scheduled" ? "예약 발송" : "발송"}
           </Button>
         </div>
       </div>

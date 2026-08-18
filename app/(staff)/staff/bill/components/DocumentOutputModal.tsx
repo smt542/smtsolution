@@ -10,6 +10,8 @@ import {
   getBillDocuments,
   listBillTargets,
   useIssueBills,
+  useRecordBillDelivery,
+  useSendBillFaxes,
   type BillDocument,
   type BillTarget,
 } from "@/hooks/reactquery/bill";
@@ -52,6 +54,13 @@ function outputPeriod(year: number, month: number) {
   return `${year}-${String(month).padStart(2, "0")}-01`;
 }
 
+function sendStatusLabel(target: BillTarget) {
+  if (target.faxSendStatus === "scheduled") return "예약";
+  if (target.faxSendStatus === "sent") return "발송 완료";
+  if (target.faxSendStatus === "failed") return "발송 실패";
+  return "미발송";
+}
+
 function mergeGiroDocuments(
   building: Building,
   documents: BillDocument[],
@@ -84,14 +93,20 @@ export function DocumentOutputModal({
   const [zoom, setZoom] = useState(80);
   const [stamps, setStamps] = useState<GiroStampOptions>({
     reissue: false,
-    waterCutoff: false,
+    waterCutoffUnitIds: [],
     autoDebit: true,
   });
+  const [waterCutoffOverrides, setWaterCutoffOverrides] = useState<Record<number, boolean>>({});
+  const [selectedFaxUnitIds, setSelectedFaxUnitIds] = useState<number[]>([]);
+  const [faxError, setFaxError] = useState(false);
   const issueBills = useIssueBills();
+  const sendFaxes = useSendBillFaxes();
+  const recordDelivery = useRecordBillDelivery();
 
   const period = outputPeriod(year, month);
   const previousPeriod = prevPeriod(period);
-  const needsCurrentBilling = type === "giro" || type === "adjustment";
+  const needsCurrentBilling = type === "giro" || type === "adjustment" || type === "fax";
+  const needsDocuments = type === "giro" || type === "adjustment";
   const selectedBuildings = useMemo(
     () => buildings.filter((building) => selectedBuildingIds.includes(building.id)),
     [buildings, selectedBuildingIds],
@@ -139,7 +154,7 @@ export function DocumentOutputModal({
     queries: currentTargetsByBuilding.map(({ building, targets }) => ({
       queryKey: billKeys.documents(building.id, period, targets.map((target) => target.unitId)),
       queryFn: () => getBillDocuments(building.id, period, targets.map((target) => target.unitId)),
-      enabled: needsCurrentBilling && targets.length > 0,
+      enabled: needsDocuments && targets.length > 0,
     })),
   });
   const previousDocumentQueries = useQueries({
@@ -173,10 +188,19 @@ export function DocumentOutputModal({
       previous: previousDocumentQueries[index]?.data ?? [],
     }),
   );
+  const allFaxTargets = currentTargetsByBuilding.flatMap(({ building, targets }) =>
+    targets.map((target) => ({ building, target })),
+  );
+  const faxReadyTargets = allFaxTargets.filter(({ target }) => Boolean(target.faxNumber));
+  const allFaxReadySelected = faxReadyTargets.length > 0
+    && faxReadyTargets.every(({ target }) => selectedFaxUnitIds.includes(target.unitId));
+  const waterCutoffUnitIds = allGiroDocuments
+    .filter(({ target }) => waterCutoffOverrides[target.unitId] ?? target.waterCutoff)
+    .map(({ document }) => document.unitId);
 
   const allQueries = [
     ...currentTargetQueries,
-    ...currentDocumentQueries,
+    ...(needsDocuments ? currentDocumentQueries : []),
     ...(type === "giro" ? periodSettingQueries : []),
     ...(type === "adjustment" ? [...previousTargetQueries, ...previousDocumentQueries] : []),
   ];
@@ -193,6 +217,7 @@ export function DocumentOutputModal({
         : [...selected, buildingId],
     );
     setIndividualUnitId(null);
+    setSelectedFaxUnitIds([]);
   };
 
   const print = async () => {
@@ -213,6 +238,7 @@ export function DocumentOutputModal({
               // issue_bills records one legacy batch-wide mode; the rendered giro
               // uses each target's billNameDisplay independently.
               unitLabelMode: "name",
+              waterCutoffUnitIds: waterCutoffUnitIds.filter((unitId) => unitIds.includes(unitId)),
             });
           }
         }
@@ -224,6 +250,46 @@ export function DocumentOutputModal({
     window.print();
   };
 
+  const sendFax = async () => {
+    const selectedTargets = allFaxTargets.filter(({ target }) =>
+      selectedFaxUnitIds.includes(target.unitId) && Boolean(target.faxNumber),
+    );
+    if (selectedTargets.length === 0) {
+      toast.info("팩스번호가 등록된 세대를 선택해 주세요.");
+      return;
+    }
+    setFaxError(false);
+    let hasFailure = false;
+    for (const building of selectedBuildings) {
+      const unitIds = selectedTargets
+        .filter((entry) => entry.building.id === building.id)
+        .map((entry) => entry.target.unitId);
+      if (unitIds.length === 0) continue;
+      try {
+          await sendFaxes.mutateAsync({ buildingId: building.id, period, unitIds });
+      } catch {
+        hasFailure = true;
+        try {
+          await recordDelivery.mutateAsync({
+            buildingId: building.id,
+            period,
+            unitIds,
+            issueType: "fax",
+            sendStatus: "failed",
+          });
+        } catch {
+          // 원 발송 실패를 우선 노출한다.
+        }
+      }
+    }
+    if (hasFailure) {
+      setFaxError(true);
+      toast.error("발송에 실패했습니다. 다시 시도해 주세요.");
+    } else {
+      toast.success("발송이 완료되었습니다");
+    }
+  };
+
   const preview = type === "giro" ? (
     <GiroPrintView
       companyName={companyName}
@@ -231,7 +297,7 @@ export function DocumentOutputModal({
       documents={giroDocuments}
       accounts={accounts}
       customerNotice={customerNotice}
-      stamps={stamps}
+      stamps={{ ...stamps, waterCutoffUnitIds }}
     />
   ) : type === "adjustment" ? (
     <AdjustmentPrintView companyName={companyName} period={period} buildings={adjustmentBuildings} />
@@ -254,11 +320,19 @@ export function DocumentOutputModal({
               <div className="grid grid-cols-2 gap-3">
                 <label className="space-y-1.5 text-xs font-bold text-t2">
                   출력 연도
-                  <Select aria-label="출력 연도" value={String(year)} onChange={(event) => setYear(Number(event.target.value))} options={YEARS.map((value) => ({ value: String(value), label: `${value}년` }))} />
+                  <Select aria-label="출력 연도" value={String(year)} onChange={(event) => {
+                    setYear(Number(event.target.value));
+                    setSelectedFaxUnitIds([]);
+                    setWaterCutoffOverrides({});
+                  }} options={YEARS.map((value) => ({ value: String(value), label: `${value}년` }))} />
                 </label>
                 <label className="space-y-1.5 text-xs font-bold text-t2">
                   월분
-                  <Select aria-label="월분" value={String(month)} onChange={(event) => setMonth(Number(event.target.value))} options={MONTHS.map((value) => ({ value: String(value), label: `${value}월` }))} />
+                  <Select aria-label="월분" value={String(month)} onChange={(event) => {
+                    setMonth(Number(event.target.value));
+                    setSelectedFaxUnitIds([]);
+                    setWaterCutoffOverrides({});
+                  }} options={MONTHS.map((value) => ({ value: String(value), label: `${value}월` }))} />
                 </label>
               </div>
 
@@ -278,6 +352,7 @@ export function DocumentOutputModal({
                     ? selectedBuildingIds.filter((id) => !visibleIds.includes(id))
                     : [...new Set([...selectedBuildingIds, ...visibleIds])]);
                   setIndividualUnitId(null);
+                  setSelectedFaxUnitIds([]);
                 }}>
                   {visibleBuildings.every((building) => selectedBuildingIds.includes(building.id)) ? "검색 결과 해제" : "검색 결과 전체"}
                 </button>
@@ -331,8 +406,28 @@ export function DocumentOutputModal({
                     <p className="text-xs font-bold text-t2">스탬프 표시</p>
                     <div className="mt-2 flex flex-wrap gap-3">
                       <Checkbox label="재발행" checked={stamps.reissue} onChange={(event) => setStamps((value) => ({ ...value, reissue: event.target.checked }))} />
-                      <Checkbox label="단수" checked={stamps.waterCutoff} onChange={(event) => setStamps((value) => ({ ...value, waterCutoff: event.target.checked }))} />
                       <Checkbox label="자동이체" checked={stamps.autoDebit} onChange={(event) => setStamps((value) => ({ ...value, autoDebit: event.target.checked }))} />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-t2">세대별 단수 표기</p>
+                    <p className="mt-1 text-[11px] leading-4 text-t3">입주자 정보의 단수 출력 여부를 기본값으로 사용하며, 변경은 이번 회차에만 적용됩니다.</p>
+                    <div className="mt-2 max-h-44 space-y-1 overflow-y-auto rounded-xl border border-line bg-surface p-2">
+                      {allGiroDocuments.map(({ building, document, target }) => {
+                        const checked = waterCutoffOverrides[target.unitId] ?? target.waterCutoff;
+                        return (
+                          <Checkbox
+                            key={`${building.id}-${document.unitId}`}
+                            label={`${building.name} · ${document.unitNo}호`}
+                            checked={checked}
+                            onChange={(event) => setWaterCutoffOverrides((current) => ({
+                              ...current,
+                              [target.unitId]: event.target.checked,
+                            }))}
+                            className="rounded-lg p-2 hover:bg-bg"
+                          />
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -376,10 +471,49 @@ export function DocumentOutputModal({
                     </div>
                   </div>
                 ) : (
-                  <div className="mx-auto max-w-xl rounded-2xl border border-dashed border-line bg-surface p-10 text-center shadow-card">
-                    <span className="rounded-full bg-bg px-3 py-1 text-xs font-bold text-t3">연동 준비 중</span>
-                    <h3 className="mt-4 text-lg font-extrabold text-t1">팩스 발송은 이번 범위에 포함되지 않습니다.</h3>
-                    <p className="mt-2 text-sm text-t2">건물 및 월 선택 UI만 제공하며 실제 외부 팩스 전송은 후속 연동에서 지원합니다.</p>
+                  <div className="mx-auto max-w-3xl rounded-2xl border border-line bg-surface p-6 shadow-card">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-lg font-extrabold text-t1">세대별 팩스 발송</h3>
+                        <p className="mt-1 text-sm text-t2">입주자 정보에 등록된 팩스번호로 선택 세대를 일괄 발송합니다.</p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        disabled={faxReadyTargets.length === 0}
+                        onClick={() => setSelectedFaxUnitIds(allFaxReadySelected
+                          ? []
+                          : faxReadyTargets.map(({ target }) => target.unitId))}
+                      >
+                        {allFaxReadySelected ? "전체 해제" : "팩스 등록 세대 전체 선택"}
+                      </Button>
+                    </div>
+                    {faxError && (
+                      <div role="alert" className="mt-4 flex items-center justify-between gap-3 rounded-xl bg-danger/10 px-4 py-3 text-sm font-bold text-danger">
+                        <span>발송에 실패했습니다. 다시 시도해 주세요.</span>
+                        <Button type="button" variant="ghost" onClick={() => void sendFax()}>재시도</Button>
+                      </div>
+                    )}
+                    {allFaxTargets.length === 0 ? (
+                      <p className="mt-6 rounded-xl bg-bg p-6 text-center text-sm text-t3">선택한 월에 확정된 부과 자료가 없습니다.</p>
+                    ) : (
+                      <div className="mt-5 max-h-[52vh] divide-y divide-line overflow-y-auto rounded-xl border border-line">
+                        {allFaxTargets.map(({ building, target }) => (
+                          <div key={`${building.id}-${target.unitId}`} className="grid grid-cols-[minmax(0,1fr)_140px_90px] items-center gap-3 p-3 text-sm">
+                            <Checkbox
+                              label={`${building.name} · ${target.unitNo}호 · ${target.tenantName ?? "입주자 미등록"}`}
+                              checked={selectedFaxUnitIds.includes(target.unitId)}
+                              disabled={!target.faxNumber}
+                              onChange={() => setSelectedFaxUnitIds((current) => current.includes(target.unitId)
+                                ? current.filter((unitId) => unitId !== target.unitId)
+                                : [...current, target.unitId])}
+                            />
+                            <span className={target.faxNumber ? "text-t1" : "font-bold text-danger"}>{target.faxNumber ?? "팩스번호 미등록"}</span>
+                            <span className="text-center text-xs font-bold text-t2">{sendStatusLabel(target)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -395,7 +529,11 @@ export function DocumentOutputModal({
                   {issueBills.isPending ? "발행 중…" : "인쇄"}
                 </Button>
               )}
-              {type === "fax" && <Button type="button" disabled>팩스 발송 준비 중</Button>}
+              {type === "fax" && (
+                <Button type="button" onClick={() => void sendFax()} disabled={selectedFaxUnitIds.length === 0 || sendFaxes.isPending}>
+                  {sendFaxes.isPending ? "팩스 발송 중…" : `선택 ${selectedFaxUnitIds.length}세대 팩스 발송`}
+                </Button>
+              )}
             </div>
           </footer>
         </div>

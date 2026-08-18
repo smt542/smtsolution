@@ -25,6 +25,15 @@ export interface SendMessagesInput {
   context: string;
   templateId: number | null;
   recipients: ResolvedRecipient[];
+  scheduledAt?: string | null;
+}
+
+export interface SendMessagesResult {
+  logId: number;
+  count: number;
+  status: "sent" | "scheduled";
+  scheduledAt: string | null;
+  recipients: ResolvedRecipient[];
 }
 
 type MessageLogRow = {
@@ -57,7 +66,27 @@ const rowToMessageLog = (row: MessageLogRow): MessageLog => ({
 
 export async function sendMessages(
   input: SendMessagesInput,
-): Promise<{ logId: number; count: number }> {
+): Promise<SendMessagesResult> {
+  if (input.scheduledAt) {
+    const { data, error } = await createClient().rpc("schedule_messages", {
+      p_channel: input.mode,
+      p_body: input.body,
+      p_context: input.context,
+      p_recipients: input.recipients,
+      p_template_id: input.templateId,
+      p_scheduled_at: input.scheduledAt,
+    });
+    if (error) throw new Error(error.message);
+    const result = data as { schedule_id: number; count: number; scheduled_at: string };
+    return {
+      logId: result.schedule_id,
+      count: result.count,
+      status: "scheduled",
+      scheduledAt: result.scheduled_at,
+      recipients: input.recipients,
+    };
+  }
+
   const { data, error } = await createClient().rpc("send_messages", {
     p_channel: input.mode,
     p_body: input.body,
@@ -67,7 +96,20 @@ export async function sendMessages(
   });
   if (error) throw new Error(error.message);
   const result = data as { log_id: number; count: number };
-  return { logId: result.log_id, count: result.count };
+  return {
+    logId: result.log_id,
+    count: result.count,
+    status: "sent",
+    scheduledAt: null,
+    recipients: input.recipients,
+  };
+}
+
+export async function cancelScheduledMessage(scheduleId: number): Promise<void> {
+  const { error } = await createClient().rpc("cancel_scheduled_message", {
+    p_schedule_id: scheduleId,
+  });
+  if (error) throw new Error(error.message);
 }
 
 export interface TenantConsent { occupancyId: number; alimtalkOptIn: boolean; smsOptIn: boolean; }
