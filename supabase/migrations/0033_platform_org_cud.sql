@@ -1,7 +1,7 @@
--- 0032_platform_org_cud.sql
+-- 0033_platform_org_cud.sql
 -- 통합관리자 조직 CUD(P1): organizations 컬럼 + 조직생성 RPC + provision_member cross-org 확장.
 -- 의존: 0000(organizations, audit_log), 0002(provision_member, current_user_org 등), 0011(current_user_is_platform_admin).
--- 번호: origin/master max=0031(overdue_late_fees) 확인 후 0032 배정.
+-- 번호: 최초 0032 배정했으나 origin/master에 0032_bill_fax_suspend가 병렬 머지되어 0033으로 리네임.
 
 -- ── organizations 컬럼 ──
 alter table organizations add column if not exists deleted_at timestamptz;
