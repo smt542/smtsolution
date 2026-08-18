@@ -5,7 +5,7 @@ import type { UnitUsageType } from "@/hooks/reactquery/units";
 
 export interface TenantBasicValue {
   unitNo: string; floor: number | null; usageType: UnitUsageType;
-  tenantName: string; payerName: string; phone: string; phone2: string; phone3: string;
+  tenantName: string; payerName: string; phone: string; phone2: string; phone3: string; faxNumber: string;
   vehicleNo: string; residentCount: number | null; roomTypeId: number | null; moveInDate: string;
 }
 type Opt = { value: string; label: string };
@@ -62,6 +62,7 @@ export function BasicInfoSection({
         {field("연락처1", "phone", true)}
         {field("연락처2", "phone2")}
         {field("연락처3", "phone3")}
+        {field("팩스번호", "faxNumber")}
         {field("차량번호", "vehicleNo")}
         <label className="flex flex-col gap-1">
           <span className="text-sm text-t2">입주일 *</span>

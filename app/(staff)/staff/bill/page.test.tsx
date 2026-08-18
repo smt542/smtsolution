@@ -16,9 +16,14 @@ vi.mock("@/hooks/reactquery/bill", () => ({
   useBillDocuments: () => ({ data: [] }),
   useBillOrganizationName: () => ({ data: "한빛관리" }),
   useIssueBills: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useRecordBillDelivery: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useSendBillFaxes: () => ({ mutateAsync: vi.fn(), isPending: false }),
   billKeys: { targets: vi.fn(), documents: vi.fn() },
   listBillTargets: vi.fn(),
   getBillDocuments: vi.fn(),
+}));
+vi.mock("@/hooks/reactquery/messaging", () => ({
+  useCancelScheduledMessage: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 vi.mock(
   "@/app/(staff)/staff/messaging/components/MessagingModal",

@@ -21,7 +21,7 @@ const entry = {
 describe("GiroPrintView", () => {
   it("QR·회사명·세대 연락처·자동이체·스탬프·확정 금액을 출력", () => {
     render(<GiroPrintView companyName="한빛관리" period="2026-08-01" documents={[entry]} accounts={[]} customerNotice={null}
-      stamps={{ reissue: true, waterCutoff: true, autoDebit: true }} />);
+      stamps={{ reissue: true, waterCutoffUnitIds: [11], autoDebit: true }} />);
     expect(screen.getAllByText("한빛관리").length).toBeGreaterThan(0);
     expect(screen.getByText("김납부")).toBeInTheDocument();
     expect(screen.getByText("010-1234-5678")).toBeInTheDocument();
@@ -44,7 +44,7 @@ describe("GiroPrintView", () => {
       target: { ...entry.target, billNameDisplay, payerNo },
     };
     render(<GiroPrintView companyName="한빛관리" period="2026-08-01" documents={[document]} accounts={[]} customerNotice={null}
-      stamps={{ reissue: false, waterCutoff: false, autoDebit: false }} />);
+      stamps={{ reissue: false, waterCutoffUnitIds: [], autoDebit: false }} />);
     expect(screen.getByTestId("giro-household-name-11").textContent).toBe(expected);
     expect(screen.getByText(modeLabel)).toBeInTheDocument();
   });

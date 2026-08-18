@@ -41,7 +41,7 @@ const groups: DocumentCardGroup[] = [
     title: "발송",
     description: "외부 채널을 통한 문서 발송 기능입니다.",
     cards: [
-      { type: "fax" as const, icon: "↗", title: "팩스 발송", description: "외부 팩스 연동 예정", badge: "준비 중" },
+      { type: "fax" as const, icon: "↗", title: "팩스 발송", description: "팩스번호가 등록된 선택 세대 일괄 발송" },
     ],
   },
 ];

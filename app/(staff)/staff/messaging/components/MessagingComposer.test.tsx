@@ -91,7 +91,7 @@ const confirmSpy = vi.spyOn(window, "confirm");
 beforeEach(() => {
   vi.clearAllMocks();
   confirmSpy.mockReturnValue(true);
-  mutateAsync.mockResolvedValue({ logId: 55, count: 1 });
+  mutateAsync.mockResolvedValue({ logId: 55, count: 1, status: "sent", scheduledAt: null, recipients: [] });
   vi.mocked(useBuildings).mockReturnValue({
     data: buildings,
     isLoading: false,
@@ -223,11 +223,12 @@ describe("MessagingComposer", () => {
           renderedBody: "미납 관리비를 확인해 주세요.",
         },
       ],
+      scheduledAt: null,
     });
     await waitFor(() =>
       expect(toast.success).toHaveBeenCalledWith("발송(임시) 완료 · 1명"),
     );
-    expect(onSent).toHaveBeenCalledWith({ logId: 55, count: 1 });
+    expect(onSent).toHaveBeenCalledWith({ logId: 55, count: 1, status: "sent", scheduledAt: null, recipients: [] });
   });
 
   it("중복된 정규화 전화번호를 한 명으로 표시하고 한 번만 발송", async () => {
@@ -277,6 +278,7 @@ describe("MessagingComposer", () => {
           renderedBody: "중복 수신처 확인",
         },
       ],
+      scheduledAt: null,
     });
   });
 
@@ -376,8 +378,37 @@ describe("MessagingComposer", () => {
               "김입주님 101호 그린빌라 관리비를 확인해 주세요.",
           },
         ],
+        scheduledAt: null,
       }),
     );
+  });
+
+  it("예약 날짜·시간을 공용 API에 전달하고 지정 형식 토스트를 표시", async () => {
+    mutateAsync.mockResolvedValueOnce({
+      logId: 77,
+      count: 1,
+      status: "scheduled",
+      scheduledAt: "2099-08-20T00:30:00.000Z",
+      recipients: [],
+    });
+    render(
+      <MessagingComposer
+        initialMode="sms"
+        preset={{
+          context: "고지서",
+          body: "관리비 고지서입니다.",
+          recipients: [{ name: "김입주", phone: "010-1000-0000", kind: "tenant" }],
+        }}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("발송 시점"), { target: { value: "scheduled" } });
+    fireEvent.change(screen.getByLabelText("예약 발송 일시"), { target: { value: "2099-08-20T09:30" } });
+    fireEvent.click(screen.getByRole("button", { name: "예약 발송" }));
+
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
+      scheduledAt: new Date("2099-08-20T09:30").toISOString(),
+    })));
+    expect(toast.success).toHaveBeenCalledWith("예약이 등록되었습니다(2099-08-20 09:30)");
   });
 
   it("알림톡 모드에서 미동의 수신처를 경고하고 적격자가 없으면 차단한다", () => {

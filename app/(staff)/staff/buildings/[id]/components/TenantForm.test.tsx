@@ -35,6 +35,7 @@ describe("TenantForm 등록", () => {
     fireEvent.change(screen.getByLabelText("입금자명"), { target: { value: "김입주" } });
     fireEvent.change(screen.getByLabelText("룸타입"), { target: { value: "1" } });
     fireEvent.change(screen.getByLabelText("연락처1"), { target: { value: "010" } });
+    fireEvent.change(screen.getByLabelText("팩스번호"), { target: { value: "02-1234-5678" } });
     fireEvent.change(screen.getByLabelText("입주일"), { target: { value: "2026-01-01" } });
     fireEvent.change(screen.getByLabelText("관리비 수납 고객번호"), { target: { value: "PAYER-1" } });
     fireEvent.click(screen.getByRole("button", { name: "저장" }));
@@ -42,7 +43,7 @@ describe("TenantForm 등록", () => {
     const payload = saveMutate.mock.calls[0][0];
     expect(payload.buildingId).toBe(7);
     expect(payload.unit).toEqual({ unitNo: "101", floor: null, usageType: "residential" });
-    expect(payload.occupancy).toMatchObject({ tenantName: "김입주", roomTypeId: 1, moveInDate: "2026-01-01", status: "occupied" });
+    expect(payload.occupancy).toMatchObject({ tenantName: "김입주", roomTypeId: 1, moveInDate: "2026-01-01", status: "occupied", faxNumber: "02-1234-5678" });
     expect(payload.occupancy).toMatchObject({
       transferMethod: "none", printEnabled: true, billNameDisplay: "name", billDelivery: "post", billAuth: false,
     });
@@ -57,7 +58,7 @@ describe("TenantForm 등록", () => {
     const loaded = {
       unit: { id:3, buildingId:7, unitNo:"301", dong:null, areaPyeong:null, roomCount:null, floor:3, usageType:"residential", memo:null },
       occupancy: {
-        id:9, unitId:3, tenantName:"김입주", payerName:"김입주", phone:"010", phone2:null, phone3:null,
+        id:9, unitId:3, tenantName:"김입주", payerName:"김입주", phone:"010", phone2:null, phone3:null, faxNumber:"02-5555-0000",
         vehicleNo:null, residentCount:1, roomTypeId:1, moveInDate:"2026-01-01", moveOutDate:null,
         status:"occupied", billingEnabled:true, printEnabled:true, lateFeeEnabled:true, singlePrint:false,
         billingNote:null, settlementNote:null, facilityNote:null, transferMethod:"auto_transfer",

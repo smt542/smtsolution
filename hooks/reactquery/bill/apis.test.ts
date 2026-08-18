@@ -10,7 +10,7 @@ const from = vi.fn((table: string) => {
   throw new Error(`unexpected table ${table}`);
 });
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ rpc, from }) }));
-import { listBillTargets, getBillDocuments, getOrganizationName, issueBills } from "./apis";
+import { listBillTargets, getBillDocuments, getOrganizationName, issueBills, recordBillDelivery, sendBillFaxes } from "./apis";
 beforeEach(() => {
   vi.clearAllMocks();
   occupancyIn.mockResolvedValue({ data: [{ id: 5, payer_name: "김납부", bill_name_display: "code" }], error: null });
@@ -21,8 +21,10 @@ beforeEach(() => {
 describe("bill apis", () => {
   it("listBillTargets: list_bill_targets 호출·snake→camel", async () => {
     rpc.mockResolvedValue({ data: [{
-      unit_id: 1, unit_no: "101", dong: null, occupancy_id: 5, tenant_name: "홍", phone: "010",
+      unit_id: 1, unit_no: "101", dong: null, occupancy_id: 5, tenant_name: "홍", phone: "010", phone2: "0102", fax_number: "02-1111",
       total_amount: 30000, auto_debit: true, issue_type: "a4", due_date: "2026-08-25", send_status: "none", issued_at: "2026-08-13T00:00:00Z",
+      single_print: true, water_cutoff: false, scheduled_at: null, message_schedule_id: null,
+      kakao_send_status: null, fax_send_status: "sent",
     }], error: null });
     const r = await listBillTargets(7, "2026-08-01");
     expect(rpc).toHaveBeenCalledWith("list_bill_targets", { p_building_id: 7, p_period: "2026-08-01" });
@@ -38,6 +40,11 @@ describe("bill apis", () => {
       autoDebit: true,
       issueType: "a4",
       issuedAt: "2026-08-13T00:00:00Z",
+      secondaryPhone: "0102",
+      faxNumber: "02-1111",
+      singlePrint: true,
+      waterCutoff: false,
+      faxSendStatus: "sent",
     });
   });
   it("getBillDocuments: unit_ids 전송·items 매핑", async () => {
@@ -54,6 +61,28 @@ describe("bill apis", () => {
     const r = await issueBills({ buildingId: 7, period: "2026-08-01", unitIds: [1, 2, 3], issueType: "a4", dueDate: "2026-08-25", unitLabelMode: "code" });
     expect(rpc).toHaveBeenCalledWith("issue_bills", { p_building_id: 7, p_period: "2026-08-01", p_unit_ids: [1, 2, 3], p_issue_type: "a4", p_due_date: "2026-08-25", p_unit_label_mode: "code" });
     expect(r).toEqual({ count: 3 });
+  });
+  it("issueBills: 회차별 단수 세대를 명시", async () => {
+    rpc.mockResolvedValue({ data: { count: 2 }, error: null });
+    await issueBills({
+      buildingId: 7, period: "2026-08-01", unitIds: [1, 2], issueType: "giro",
+      dueDate: null, unitLabelMode: "name", waterCutoffUnitIds: [2],
+    });
+    expect(rpc).toHaveBeenCalledWith("issue_bills", expect.objectContaining({ p_water_cutoff_unit_ids: [2] }));
+  });
+  it("카톡 상태 기록과 팩스 스텁을 공용 bill delivery RPC로 전달", async () => {
+    rpc.mockResolvedValue({ data: { count: 1 }, error: null });
+    await recordBillDelivery({
+      buildingId: 7, period: "2026-08-01", unitIds: [1], issueType: "kakao",
+      sendStatus: "scheduled", messageScheduleId: 9, scheduledAt: "2026-08-20T00:00:00Z",
+    });
+    expect(rpc).toHaveBeenCalledWith("record_bill_delivery", expect.objectContaining({
+      p_issue_type: "kakao", p_send_status: "scheduled", p_message_schedule_id: 9,
+    }));
+    await sendBillFaxes({ buildingId: 7, period: "2026-08-01", unitIds: [1] });
+    expect(rpc).toHaveBeenLastCalledWith("record_bill_delivery", expect.objectContaining({
+      p_issue_type: "fax", p_send_status: "sent",
+    }));
   });
   it("에러 시 throw", async () => {
     rpc.mockResolvedValue({ data: null, error: { message: "boom" } });

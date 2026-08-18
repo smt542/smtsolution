@@ -12,9 +12,10 @@ export interface BillPrintViewProps {
   customerNotice: string | null;
   documents: BillDocument[];
   qrBase?: string | null;
+  waterCutoffUnitIds?: number[];
 }
 
-export function BillPrintView({ buildingName, period, unitLabelMode, dueDate, accounts, customerNotice, documents, qrBase }: BillPrintViewProps) {
+export function BillPrintView({ buildingName, period, unitLabelMode, dueDate, accounts, customerNotice, documents, qrBase, waterCutoffUnitIds = [] }: BillPrintViewProps) {
   const ym = `${period.slice(0, 4)}년 ${period.slice(5, 7)}월`;
   return (
     <div className="hidden print:block" data-testid="bill-print">
@@ -30,6 +31,7 @@ export function BillPrintView({ buildingName, period, unitLabelMode, dueDate, ac
             <div className="mt-2 text-sm">
               세대: {unitLabel(unitLabelMode, d.unitNo, d.tenantName)}
               {d.autoDebit && <span className="ml-2 font-bold">[자동이체]</span>}
+              {waterCutoffUnitIds.includes(d.unitId) && <span className="ml-2 font-bold text-blue-700">[단전·단수 예고]</span>}
             </div>
             <table className="mt-4 w-full text-sm">
               <tbody>

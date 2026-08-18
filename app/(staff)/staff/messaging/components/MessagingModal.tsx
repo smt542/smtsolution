@@ -2,13 +2,15 @@
 
 import { Modal } from "@/components/common";
 import type { MessagingPreset } from "@/lib/messaging/preset";
+import type { SendMessagesResult } from "@/hooks/reactquery/messaging";
 import { MessagingComposer } from "./MessagingComposer";
 
 export interface MessagingModalProps {
   open: boolean;
   preset?: MessagingPreset;
   onClose: () => void;
-  onSent?: (result: { logId: number; count: number }) => void;
+  onSent?: (result: SendMessagesResult) => void | Promise<void>;
+  onFailed?: (error: unknown) => void | Promise<void>;
 }
 
 export function MessagingModal({
@@ -16,13 +18,15 @@ export function MessagingModal({
   preset,
   onClose,
   onSent,
+  onFailed,
 }: MessagingModalProps) {
   return (
-    <Modal open={open} onClose={onClose} title="문자 발송">
+    <Modal open={open} onClose={onClose} title={preset?.channel === "alimtalk" ? "카톡 고지서 발송" : "문자 발송"}>
       <MessagingComposer
         preset={preset}
         onSent={onSent}
-        initialMode="sms"
+        onFailed={onFailed}
+        initialMode={preset?.mode ?? preset?.channel ?? "sms"}
       />
     </Modal>
   );
