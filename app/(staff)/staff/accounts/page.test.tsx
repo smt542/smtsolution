@@ -6,7 +6,6 @@ vi.mock("@/hooks/reactquery/accounts", () => ({
   useAccounts: vi.fn(), useCreateAccount: vi.fn(), useUpdateAccountBasic: vi.fn(),
   useUpdatePermissions: vi.fn(), useSetActive: vi.fn(), useResetPassword: vi.fn(),
 }));
-vi.mock("@/hooks/reactquery/staffRoles", () => ({ useStaffRoles: vi.fn() }));
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
@@ -14,10 +13,13 @@ import AccountsPage from "./page";
 import {
   useAccounts, useCreateAccount, useUpdateAccountBasic, useUpdatePermissions, useSetActive, useResetPassword,
 } from "@/hooks/reactquery/accounts";
-import { useStaffRoles } from "@/hooks/reactquery/staffRoles";
 import { useMe, type MyContext } from "@/hooks/reactquery/auth";
 
-const mutate = { mutateAsync: vi.fn(), isPending: false };
+const createMutateAsync = vi.fn();
+const basicMutateAsync = vi.fn();
+const permissionMutateAsync = vi.fn();
+const activeMutateAsync = vi.fn();
+const resetPasswordMutateAsync = vi.fn();
 const master: MyContext = {
   orgId: 1, role: "org_owner", orgStatus: "active", username: "boss", fullName: "이관리",
   isActive: true, mustChangePassword: false, staffType: "manager_staff", permissions: [],
@@ -44,12 +46,16 @@ const sampleAccounts = [
 function setup(me: MyContext = master) {
   vi.mocked(useMe).mockReturnValue({ data: me } as unknown as ReturnType<typeof useMe>);
   vi.mocked(useAccounts).mockReturnValue({ data: sampleAccounts, isLoading: false } as unknown as ReturnType<typeof useAccounts>);
-  vi.mocked(useStaffRoles).mockReturnValue({ data: [] } as unknown as ReturnType<typeof useStaffRoles>);
-  vi.mocked(useCreateAccount).mockReturnValue(mutate as unknown as ReturnType<typeof useCreateAccount>);
-  vi.mocked(useUpdateAccountBasic).mockReturnValue(mutate as unknown as ReturnType<typeof useUpdateAccountBasic>);
-  vi.mocked(useUpdatePermissions).mockReturnValue(mutate as unknown as ReturnType<typeof useUpdatePermissions>);
-  vi.mocked(useSetActive).mockReturnValue(mutate as unknown as ReturnType<typeof useSetActive>);
-  vi.mocked(useResetPassword).mockReturnValue(mutate as unknown as ReturnType<typeof useResetPassword>);
+  createMutateAsync.mockResolvedValue({ userId: "new-user" });
+  basicMutateAsync.mockResolvedValue(undefined);
+  permissionMutateAsync.mockResolvedValue(undefined);
+  activeMutateAsync.mockResolvedValue(undefined);
+  resetPasswordMutateAsync.mockResolvedValue(undefined);
+  vi.mocked(useCreateAccount).mockReturnValue({ mutateAsync: createMutateAsync, isPending: false } as unknown as ReturnType<typeof useCreateAccount>);
+  vi.mocked(useUpdateAccountBasic).mockReturnValue({ mutateAsync: basicMutateAsync, isPending: false } as unknown as ReturnType<typeof useUpdateAccountBasic>);
+  vi.mocked(useUpdatePermissions).mockReturnValue({ mutateAsync: permissionMutateAsync, isPending: false } as unknown as ReturnType<typeof useUpdatePermissions>);
+  vi.mocked(useSetActive).mockReturnValue({ mutateAsync: activeMutateAsync, isPending: false } as unknown as ReturnType<typeof useSetActive>);
+  vi.mocked(useResetPassword).mockReturnValue({ mutateAsync: resetPasswordMutateAsync, isPending: false } as unknown as ReturnType<typeof useResetPassword>);
 }
 
 beforeEach(() => { vi.clearAllMocks(); setup(); });
@@ -88,7 +94,20 @@ describe("AccountsPage", () => {
   it("+ 계정 등록 클릭 시 모달 오픈", async () => {
     render(<AccountsPage />);
     fireEvent.click(screen.getByRole("button", { name: /계정 등록/ }));
-    await waitFor(() => expect(screen.getByText("계정 등록", { selector: "h2, h3" })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("heading", { name: "사무실 관리자 등록" })).toBeInTheDocument());
+  });
+
+  it("수정 모드에서 입력한 PIN을 reset mutation으로 전달", async () => {
+    render(<AccountsPage />);
+    fireEvent.click(screen.getByText("김직원"));
+    await screen.findByRole("heading", { name: "사무실 관리자 수정" });
+
+    fireEvent.change(screen.getByLabelText("비밀번호"), { target: { value: "4321" } });
+    fireEvent.submit(screen.getByRole("button", { name: "저장" }).closest("form")!);
+
+    await waitFor(() => expect(resetPasswordMutateAsync).toHaveBeenCalledWith({
+      userId: "u1", password: "4321",
+    }));
   });
 
   it("accounts 권한 없는 사용자는 권한없음 안내", () => {

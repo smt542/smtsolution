@@ -8,17 +8,24 @@ const base = {
   phoneSub: z.string().optional(),
   staffType: z.enum(STAFF_TYPES),
   isMaster: z.boolean().default(false),
+  isActive: z.boolean().default(true),
   affiliation: z.string().optional(),
   permissions: z.array(z.string()).default([]),
   roleIds: z.array(z.number()).default([]),
 };
 
+const pinSchema = z.string().regex(/^\d{4}$/, "비밀번호는 숫자 4자리를 입력해 주세요");
+
 export const accountCreateSchema = z.object({
   username: z.string().min(1, "아이디를 입력해 주세요"),
-  password: z.string().min(4, "비밀번호는 4자 이상 입력해 주세요"),
+  password: pinSchema,
   ...base,
 });
-export const accountEditSchema = z.object({ ...base });
+export const accountEditSchema = z.object({
+  username: z.string().optional(),
+  password: z.union([z.literal(""), pinSchema]).optional(),
+  ...base,
+});
 
 export type AccountCreateValues = z.infer<typeof accountCreateSchema>;
 export type AccountEditValues = z.infer<typeof accountEditSchema>;

@@ -6,11 +6,13 @@ export function Modal({
   onClose,
   title,
   children,
+  className = "max-w-md",
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  className?: string;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -33,7 +35,7 @@ export function Modal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl bg-surface p-6"
+        className={`w-full rounded-2xl bg-surface p-6 ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-extrabold">{title}</h2>

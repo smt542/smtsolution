@@ -6,10 +6,9 @@ import { useMe } from "@/hooks/reactquery/auth";
 import { canManageAccounts, isMaster } from "@/lib/auth/permissions";
 import type { StaffType } from "@/hooks/reactquery/auth";
 import {
-  useAccounts, useCreateAccount, useUpdateAccountBasic, useUpdatePermissions, useSetActive,
+  useAccounts, useCreateAccount, useUpdateAccountBasic, useUpdatePermissions, useSetActive, useResetPassword,
   type Account, type AccountCreateInput, type AccountBasicInput, type PermissionInput,
 } from "@/hooks/reactquery/accounts";
-import { useStaffRoles } from "@/hooks/reactquery/staffRoles";
 import { AccountTable } from "./components/AccountTable";
 import { AccountFormModal } from "./components/AccountFormModal";
 
@@ -32,11 +31,11 @@ export default function AccountsPage() {
   const [editing, setEditing] = useState<Account | null>(null);
 
   const { data: accounts = [] } = useAccounts({ search: search || undefined });
-  const { data: roles = [] } = useStaffRoles();
   const createM = useCreateAccount();
   const basicM = useUpdateAccountBasic();
   const permM = useUpdatePermissions();
   const activeM = useSetActive();
+  const resetPasswordM = useResetPassword();
 
   if (!canManageAccounts(me)) {
     return (
@@ -53,7 +52,11 @@ export default function AccountsPage() {
   const closeModal = () => { setModalOpen(false); setEditing(null); };
 
   const onCreate = async (input: AccountCreateInput) => {
-    try { await createM.mutateAsync(input); toast.success("저장되었습니다"); }
+    try {
+      const created = await createM.mutateAsync(input);
+      toast.success("저장되었습니다");
+      return created;
+    }
     catch (e) { toast.error(e instanceof Error ? e.message : "오류가 발생했습니다"); throw e; }
   };
   const onUpdateBasic = async (userId: string, input: AccountBasicInput) => {
@@ -64,9 +67,26 @@ export default function AccountsPage() {
     try { await permM.mutateAsync({ userId, input }); }
     catch (e) { toast.error(e instanceof Error ? e.message : "권한 변경 실패"); throw e; }
   };
-  const onToggleActive = async (a: Account) => {
-    try { await activeM.mutateAsync({ userId: a.userId, active: !a.isActive }); toast.success("변경되었습니다"); }
-    catch (e) { toast.error(e instanceof Error ? e.message : "오류가 발생했습니다"); }
+  const onResetPassword = async (userId: string, password: string) => {
+    try {
+      await resetPasswordM.mutateAsync({ userId, password });
+      toast.success("변경되었습니다");
+    }
+    catch (e) { toast.error(e instanceof Error ? e.message : "오류가 발생했습니다"); throw e; }
+  };
+  const onSetActive = async (userId: string, active: boolean) => {
+    try {
+      await activeM.mutateAsync({ userId, active });
+      toast.success("변경되었습니다");
+    }
+    catch (e) { toast.error(e instanceof Error ? e.message : "오류가 발생했습니다"); throw e; }
+  };
+  const onToggleActive = async (account: Account) => {
+    try {
+      await onSetActive(account.userId, !account.isActive);
+    } catch {
+      // onSetActive shows the error toast.
+    }
   };
 
   return (
@@ -108,12 +128,17 @@ export default function AccountsPage() {
         open={modalOpen}
         onClose={closeModal}
         editing={editing}
-        roles={roles}
+        createStaffType={tab === "field" ? "field_staff" : "manager_staff"}
         canEditPermissions={isMaster(me?.role)}
         onCreate={onCreate}
         onUpdateBasic={onUpdateBasic}
         onUpdatePermissions={onUpdatePermissions}
-        isPending={createM.isPending || basicM.isPending || permM.isPending}
+        onResetPassword={onResetPassword}
+        onSetActive={onSetActive}
+        isPending={
+          createM.isPending || basicM.isPending || permM.isPending
+          || resetPasswordM.isPending || activeM.isPending
+        }
       />
     </div>
   );
