@@ -1,0 +1,201 @@
+.detail {
+  display: grid;
+  gap: 14px;
+}
+
+.hero,
+.card {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 1px 3px rgba(25, 31, 40, 0.06);
+}
+
+.hero {
+  padding: 22px 20px 18px;
+}
+
+.unit {
+  margin: 0;
+  color: var(--t2);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.tenant {
+  margin: 4px 0 0;
+  color: var(--t3);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.hero h1 {
+  margin: 8px 0 20px;
+  font-size: 24px;
+  letter-spacing: -0.04em;
+}
+
+.amounts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.amounts div {
+  min-width: 0;
+  padding: 12px 8px;
+  border-radius: 14px;
+  background: var(--bg);
+  text-align: center;
+}
+
+.amounts span,
+.amounts b {
+  display: block;
+}
+
+.amounts span {
+  color: var(--t3);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.amounts b {
+  margin-top: 5px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.amounts .unpaid {
+  background: var(--blue-t2);
+  color: var(--blue-d);
+}
+
+.due {
+  margin: 16px 2px 0;
+  padding-top: 15px;
+  border-top: 1px solid var(--line2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.due span {
+  color: var(--t3);
+  font-weight: 700;
+}
+
+.card {
+  padding: 20px;
+}
+
+.card h2 {
+  margin: 0 0 14px;
+  font-size: 16px;
+  letter-spacing: -0.02em;
+}
+
+.items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.items li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line2);
+  font-size: 14px;
+}
+
+.items li:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.items span {
+  color: var(--t2);
+}
+
+.account {
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.account div {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.account dt {
+  color: var(--t3);
+  font-weight: 700;
+}
+
+.account dd {
+  margin: 0;
+  font-weight: 700;
+  word-break: break-all;
+}
+
+.copyActions {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 8px;
+}
+
+.copyButton {
+  min-height: 46px;
+  border: 0;
+  border-radius: 13px;
+  background: var(--blue-t);
+  color: var(--blue-d);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.copyButton.primary {
+  background: var(--blue);
+  color: #fff;
+}
+
+.copyButton:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.empty {
+  margin: 0;
+  padding: 16px 0;
+  color: var(--t3);
+  font-size: 13px;
+  text-align: center;
+}
+
+.state {
+  min-height: 300px;
+  padding: 44px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.state b {
+  font-size: 20px;
+}
+
+.state span {
+  margin-top: 8px;
+  color: var(--t3);
+  font-size: 14px;
+}

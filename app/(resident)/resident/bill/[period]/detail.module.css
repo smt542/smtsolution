@@ -1,0 +1,114 @@
+.page {
+  flex: 1;
+  min-height: 0;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  flex: none;
+  min-height: 58px;
+  padding: calc(env(safe-area-inset-top) + 8px) 14px 8px;
+  background: #fff;
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+}
+
+.header button {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--t2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.header button:hover {
+  background: var(--blue-t2);
+  color: var(--blue-d);
+}
+
+.header svg {
+  width: 22px;
+  height: 22px;
+}
+
+.header h1 {
+  margin: 0;
+  text-align: center;
+  font-size: 17px;
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 20px calc(24px + env(safe-area-inset-bottom));
+}
+
+.shareButton,
+.center button {
+  width: 100%;
+  min-height: 50px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--blue);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.shareButton {
+  margin-top: 14px;
+}
+
+.shareButton:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.shareError {
+  margin: 9px 0 0;
+  color: var(--red);
+  font-size: 12px;
+  text-align: center;
+}
+
+.center,
+.empty {
+  flex: 1;
+  min-height: 260px;
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--t3);
+  font-size: 14px;
+}
+
+.center b,
+.empty b {
+  color: var(--t1);
+  font-size: 18px;
+}
+
+.empty span {
+  margin-top: 8px;
+}
+
+.center button {
+  width: auto;
+  min-height: 42px;
+  margin-top: 16px;
+  padding: 0 18px;
+}

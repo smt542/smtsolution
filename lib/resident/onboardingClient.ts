@@ -60,6 +60,12 @@ let identity: KakaoIdentity | null = null;
 let activeCandidate: Candidate | null = null;
 let pending: PendingInfo | null = null;
 
+export function resetOnboardingSession(): void {
+  identity = null;
+  activeCandidate = null;
+  pending = null;
+}
+
 // real: POST /api/resident/kakao/stub (replace with real Kakao OAuth later)
 export async function kakaoStubLogin(
   input: Partial<KakaoIdentity> = {},
@@ -165,9 +171,7 @@ export function getPendingInfo(): PendingInfo | null {
 }
 
 export async function logout(): Promise<void> {
-  identity = null;
-  activeCandidate = null;
-  pending = null;
+  resetOnboardingSession();
   try {
     await createClient().auth.signOut();
   } catch {

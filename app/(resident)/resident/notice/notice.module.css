@@ -1,0 +1,173 @@
+.page {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.header {
+  flex: none;
+  min-height: 58px;
+  padding: env(safe-area-inset-top) 16px 0;
+  background: #fff;
+  display: grid;
+  grid-template-columns: 42px 1fr 42px;
+  align-items: center;
+}
+
+.header a {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  color: var(--t1);
+}
+
+.header svg {
+  width: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 18px;
+  text-align: center;
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 20px 28px;
+}
+
+.list {
+  overflow: hidden;
+  display: block;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(25, 31, 40, 0.06);
+}
+
+.list > a {
+  position: relative;
+  display: block;
+  min-height: 86px;
+  padding: 17px 46px 17px 18px;
+  border-bottom: 1px solid var(--line2);
+  color: var(--t1);
+  text-decoration: none;
+}
+
+.list > a:last-child {
+  border-bottom: 0;
+}
+
+.list strong {
+  display: block;
+  margin-top: 9px;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.rowTop {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.rowTop time {
+  color: var(--t3);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.badge {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.normal {
+  background: var(--bg);
+  color: var(--t2);
+}
+
+.important {
+  background: var(--amber-t);
+  color: var(--amber);
+}
+
+.urgent {
+  background: color-mix(in srgb, var(--red) 10%, white);
+  color: var(--red);
+}
+
+.chevron {
+  position: absolute;
+  top: 50%;
+  right: 17px;
+  width: 18px;
+  transform: translateY(-50%);
+  fill: none;
+  stroke: var(--t4);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.center,
+.empty {
+  flex: 1;
+  min-height: 0;
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--t3);
+  font-size: 13px;
+}
+
+.center b,
+.empty b {
+  color: var(--t1);
+  font-size: 17px;
+}
+
+.empty span {
+  margin-top: 7px;
+}
+
+.center button {
+  height: 42px;
+  margin-top: 16px;
+  padding: 0 17px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--blue);
+  color: #fff;
+  font: inherit;
+  font-weight: 800;
+}
+
+.spinner {
+  width: 27px;
+  height: 27px;
+  margin-bottom: 12px;
+  border: 3px solid var(--blue-t);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
