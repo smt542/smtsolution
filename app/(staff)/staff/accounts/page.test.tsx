@@ -22,10 +22,24 @@ const master: MyContext = {
   orgId: 1, role: "org_owner", orgStatus: "active", username: "boss", fullName: "이관리",
   isActive: true, mustChangePassword: false, staffType: "manager_staff", permissions: [],
 };
-const sampleAccounts = [{
-  userId: "u1", username: "kim", fullName: "김직원", phone: "010", phoneSub: null,
-  role: "staff", staffType: "manager_staff", affiliation: null, isActive: true, permissions: [], roleLabels: [],
-}];
+const sampleAccounts = [
+  {
+    userId: "u1", username: "kim", fullName: "김직원", phone: "010", phoneSub: null,
+    role: "staff", staffType: "manager_staff", affiliation: null, isActive: true, permissions: [], roleLabels: [],
+  },
+  {
+    userId: "u2", username: "field", fullName: "박현장", phone: "011", phoneSub: null,
+    role: "field", staffType: "field_staff", affiliation: null, isActive: true, permissions: [], roleLabels: [],
+  },
+  {
+    userId: "u3", username: "support", fullName: "이청소", phone: "012", phoneSub: null,
+    role: "staff", staffType: "support_staff", affiliation: null, isActive: true, permissions: [], roleLabels: [],
+  },
+  {
+    userId: "u4", username: "tenant", fullName: "최입주", phone: "013", phoneSub: null,
+    role: "tenant", staffType: "tenant", affiliation: null, isActive: true, permissions: [], roleLabels: [],
+  },
+];
 
 function setup(me: MyContext = master) {
   vi.mocked(useMe).mockReturnValue({ data: me } as unknown as ReturnType<typeof useMe>);
@@ -41,10 +55,34 @@ function setup(me: MyContext = master) {
 beforeEach(() => { vi.clearAllMocks(); setup(); });
 
 describe("AccountsPage", () => {
-  it("계정 목록 + 등록 버튼 렌더", () => {
+  it("3개 탭과 계정 목록 + 등록 버튼 렌더", () => {
     render(<AccountsPage />);
+    expect(screen.getByRole("button", { name: "사무실 관리자" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "현장 관리자" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "입주자" })).toBeInTheDocument();
     expect(screen.getByText("김직원")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /계정 등록/ })).toBeInTheDocument();
+  });
+
+  it("탭별 staff_type을 정확히 필터링", () => {
+    render(<AccountsPage />);
+
+    expect(screen.getByText("김직원")).toBeInTheDocument();
+    expect(screen.queryByText("박현장")).not.toBeInTheDocument();
+    expect(screen.getByText("1개")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "현장 관리자" }));
+    expect(screen.queryByText("김직원")).not.toBeInTheDocument();
+    expect(screen.getByText("박현장")).toBeInTheDocument();
+    expect(screen.getByText("이청소")).toBeInTheDocument();
+    expect(screen.queryByText("최입주")).not.toBeInTheDocument();
+    expect(screen.getByText("2개")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "입주자" }));
+    expect(screen.queryByText("박현장")).not.toBeInTheDocument();
+    expect(screen.queryByText("이청소")).not.toBeInTheDocument();
+    expect(screen.getByText("최입주")).toBeInTheDocument();
+    expect(screen.getByText("1개")).toBeInTheDocument();
   });
 
   it("+ 계정 등록 클릭 시 모달 오픈", async () => {

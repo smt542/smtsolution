@@ -12,11 +12,18 @@ const accounts: Account[] = [
 ];
 
 describe("AccountTable", () => {
-  it("이름·유형 라벨 렌더 + 마스터 표기", () => {
+  it("설계 순서의 6개 컬럼과 마스킹 비밀번호를 렌더", () => {
     render(<AccountTable accounts={accounts} onRowClick={() => {}} onToggleActive={() => {}} />);
+    expect(screen.getAllByRole("columnheader").map((header) => header.textContent)).toEqual([
+      "이름", "아이디", "비밀번호", "연락처", "유형", "상태",
+    ]);
     expect(screen.getByText("김직원")).toBeInTheDocument();
     expect(screen.getByText("이관리")).toBeInTheDocument();
-    expect(screen.getByText("관리자")).toBeInTheDocument(); // org_owner → 관리자
+    expect(screen.getByText("마스터")).toBeInTheDocument();
+    expect(screen.getByText("일반")).toBeInTheDocument();
+    expect(screen.getAllByText("●●●●")).toHaveLength(2);
+    expect(screen.getByText("활성화")).toBeInTheDocument();
+    expect(screen.getByText("비활성화")).toBeInTheDocument();
   });
 
   it("행 클릭 시 onRowClick", () => {
@@ -29,7 +36,7 @@ describe("AccountTable", () => {
   it("상태 버튼 클릭 시 onToggleActive", () => {
     const onToggleActive = vi.fn();
     render(<AccountTable accounts={accounts} onRowClick={() => {}} onToggleActive={onToggleActive} />);
-    fireEvent.click(screen.getByRole("button", { name: /김직원 비활성/ }));
+    fireEvent.click(screen.getByRole("button", { name: "김직원 비활성화" }));
     expect(onToggleActive).toHaveBeenCalledWith(expect.objectContaining({ userId: "u1" }));
   });
 });
