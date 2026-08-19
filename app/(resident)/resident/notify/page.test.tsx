@@ -15,15 +15,27 @@ const nav = vi.hoisted(() => {
 
 vi.mock("next/navigation", () => ({ useRouter: () => nav.router }));
 
+vi.mock("@/lib/resident/onboardingClient", () => ({
+  kakaoStubLogin: vi.fn().mockResolvedValue({ ok: true }),
+  automatch: vi.fn(),
+  getActiveCandidate: vi.fn(),
+  getSession: vi.fn(),
+  confirm: vi.fn().mockResolvedValue({ status: "linked" }),
+  requestClaim: vi.fn().mockResolvedValue({ status: "pending" }),
+  searchBuildings: vi.fn().mockResolvedValue([]),
+  myLink: vi.fn(),
+  getPendingInfo: vi.fn(),
+  logout: vi.fn().mockResolvedValue(undefined),
+}));
+
 import ResidentNotifyPage from "./page";
 
 beforeEach(() => {
-  nav.push.mockClear();
-  nav.replace.mockClear();
+  vi.clearAllMocks();
 });
 
 describe("ResidentNotifyPage", () => {
-  it("starts with alerts enabled and supports forward and back navigation", async () => {
+  it("starts enabled and supports forward and back navigation", async () => {
     const user = userEvent.setup();
     render(<ResidentNotifyPage />);
 

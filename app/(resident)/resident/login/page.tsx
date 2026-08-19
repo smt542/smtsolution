@@ -4,10 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import {
-  DEMO_UNMATCHED_IDENTITY,
-  kakaoStubLogin,
-} from "@/lib/resident/onboardingClient";
+import { kakaoStubLogin } from "@/lib/resident/onboardingClient";
 
 import styles from "./login.module.css";
 
@@ -29,12 +26,6 @@ export default function ResidentLoginPage() {
   const continueWithMatchedIdentity = async () => {
     setSheetOpen(false);
     await kakaoStubLogin();
-    router.push("/resident/auth");
-  };
-
-  const continueWithUnmatchedIdentity = async () => {
-    setSheetOpen(false);
-    await kakaoStubLogin(DEMO_UNMATCHED_IDENTITY);
     router.push("/resident/auth");
   };
 
@@ -126,13 +117,6 @@ export default function ResidentLoginPage() {
             onClick={continueWithMatchedIdentity}
           >
             계속하기
-          </button>
-          <button
-            type="button"
-            className={styles.sheetAlt}
-            onClick={continueWithUnmatchedIdentity}
-          >
-            테스트: 세대 정보 없음으로 진행
           </button>
         </div>
       </div>

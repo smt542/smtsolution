@@ -96,8 +96,8 @@ export default function ResidentHomePage() {
     }, 1600);
   };
 
-  const confirmLogout = () => {
-    logout();
+  const confirmLogout = async () => {
+    await logout();
     router.push("/resident/login");
   };
 

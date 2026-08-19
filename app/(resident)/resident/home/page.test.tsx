@@ -2,14 +2,6 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  automatch,
-  confirm,
-  getSession,
-  kakaoStubLogin,
-  logout,
-} from "@/lib/resident/onboardingClient";
-
 const nav = vi.hoisted(() => {
   const push = vi.fn();
   const replace = vi.fn();
@@ -23,23 +15,38 @@ const nav = vi.hoisted(() => {
 
 vi.mock("next/navigation", () => ({ useRouter: () => nav.router }));
 
+vi.mock("@/lib/resident/onboardingClient", () => ({
+  kakaoStubLogin: vi.fn().mockResolvedValue({ ok: true }),
+  automatch: vi.fn(),
+  getActiveCandidate: vi.fn(),
+  getSession: vi.fn(),
+  confirm: vi.fn().mockResolvedValue({ status: "linked" }),
+  requestClaim: vi.fn().mockResolvedValue({ status: "pending" }),
+  searchBuildings: vi.fn().mockResolvedValue([]),
+  myLink: vi.fn(),
+  getPendingInfo: vi.fn(),
+  logout: vi.fn().mockResolvedValue(undefined),
+}));
+
+import * as client from "@/lib/resident/onboardingClient";
+import type { MyLink } from "@/lib/resident/onboardingClient";
+
 import ResidentHomePage from "./page";
 
-async function arrangeLinkedHousehold() {
-  await kakaoStubLogin();
-  const [candidate] = await automatch();
-  await confirm(candidate.occupancyId);
-}
+const link: MyLink = {
+  buildingName: "그린빌라",
+  unitNo: "201호",
+  tenantName: "박정호",
+};
 
 beforeEach(() => {
-  logout();
-  nav.push.mockClear();
-  nav.replace.mockClear();
+  vi.clearAllMocks();
+  vi.mocked(client.myLink).mockResolvedValue(link);
+  vi.mocked(client.logout).mockResolvedValue(undefined);
 });
 
 describe("ResidentHomePage", () => {
   it("shows the linked household and a coming-soon toast without navigating", async () => {
-    await arrangeLinkedHousehold();
     const user = userEvent.setup();
     render(<ResidentHomePage />);
 
@@ -54,8 +61,7 @@ describe("ResidentHomePage", () => {
     expect(nav.push).not.toHaveBeenCalled();
   });
 
-  it("cancels logout without clearing the resident session", async () => {
-    await arrangeLinkedHousehold();
+  it("cancels the logout modal without signing out", async () => {
     const user = userEvent.setup();
     render(<ResidentHomePage />);
 
@@ -65,14 +71,15 @@ describe("ResidentHomePage", () => {
     const dialog = screen.getByRole("dialog", {
       name: "로그아웃 하시겠습니까?",
     });
+    const openClassName = dialog.className;
     await user.click(within(dialog).getByRole("button", { name: "닫기" }));
 
-    expect(getSession()).not.toBeNull();
+    expect(client.logout).not.toHaveBeenCalled();
     expect(nav.push).not.toHaveBeenCalled();
+    expect(dialog.className).not.toBe(openClassName);
   });
 
-  it("confirms logout, clears the session, and returns to login", async () => {
-    await arrangeLinkedHousehold();
+  it("awaits logout confirmation and returns to login", async () => {
     const user = userEvent.setup();
     render(<ResidentHomePage />);
 
@@ -86,11 +93,14 @@ describe("ResidentHomePage", () => {
       within(dialog).getByRole("button", { name: "로그아웃" }),
     );
 
-    expect(getSession()).toBeNull();
-    expect(nav.push).toHaveBeenCalledWith("/resident/login");
+    await waitFor(() => {
+      expect(client.logout).toHaveBeenCalledOnce();
+      expect(nav.push).toHaveBeenCalledWith("/resident/login");
+    });
   });
 
   it("redirects to login when no household is linked", async () => {
+    vi.mocked(client.myLink).mockResolvedValue(null);
     render(<ResidentHomePage />);
 
     await waitFor(() => {

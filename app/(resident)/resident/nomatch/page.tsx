@@ -46,8 +46,8 @@ export default function ResidentNomatchPage() {
 
   if (!maskedPhone) return null;
 
-  const retryLogin = () => {
-    logout();
+  const retryLogin = async () => {
+    await logout();
     router.push("/resident/login");
   };
 

@@ -1,12 +1,6 @@
 import { act, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  DEMO_UNMATCHED_IDENTITY,
-  kakaoStubLogin,
-  logout,
-} from "@/lib/resident/onboardingClient";
-
 const nav = vi.hoisted(() => {
   const push = vi.fn();
   const replace = vi.fn();
@@ -20,13 +14,43 @@ const nav = vi.hoisted(() => {
 
 vi.mock("next/navigation", () => ({ useRouter: () => nav.router }));
 
+vi.mock("@/lib/resident/onboardingClient", () => ({
+  kakaoStubLogin: vi.fn().mockResolvedValue({ ok: true }),
+  automatch: vi.fn(),
+  getActiveCandidate: vi.fn(),
+  getSession: vi.fn(),
+  confirm: vi.fn().mockResolvedValue({ status: "linked" }),
+  requestClaim: vi.fn().mockResolvedValue({ status: "pending" }),
+  searchBuildings: vi.fn().mockResolvedValue([]),
+  myLink: vi.fn(),
+  getPendingInfo: vi.fn(),
+  logout: vi.fn().mockResolvedValue(undefined),
+}));
+
+import * as client from "@/lib/resident/onboardingClient";
+import type { Candidate, KakaoIdentity } from "@/lib/resident/onboardingClient";
+
 import ResidentAuthPage from "./page";
 
+const identity: KakaoIdentity = {
+  kakaoId: "kakao-7788",
+  name: "박정호",
+  phone: "010-2000-7788",
+};
+
+const candidate: Candidate = {
+  occupancyId: 123,
+  buildingId: 5,
+  buildingName: "그린빌라",
+  unitNo: "201호",
+  orgId: 7,
+};
+
 beforeEach(() => {
-  logout();
-  nav.push.mockClear();
-  nav.replace.mockClear();
   vi.useFakeTimers();
+  vi.clearAllMocks();
+  vi.mocked(client.getSession).mockReturnValue(null);
+  vi.mocked(client.automatch).mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -38,21 +62,25 @@ describe("ResidentAuthPage", () => {
     render(<ResidentAuthPage />);
 
     expect(nav.replace).toHaveBeenCalledWith("/resident/login");
+    expect(client.automatch).not.toHaveBeenCalled();
   });
 
   it("routes a matched session to household verification", async () => {
-    await kakaoStubLogin();
+    vi.mocked(client.getSession).mockReturnValue({ identity });
+    vi.mocked(client.automatch).mockResolvedValue([candidate]);
     render(<ResidentAuthPage />);
 
     await act(async () => {
       await vi.runAllTimersAsync();
     });
 
+    expect(client.automatch).toHaveBeenCalledOnce();
     expect(nav.replace).toHaveBeenCalledWith("/resident/verify");
   });
 
   it("routes an unmatched session to the no-match screen", async () => {
-    await kakaoStubLogin(DEMO_UNMATCHED_IDENTITY);
+    vi.mocked(client.getSession).mockReturnValue({ identity });
+    vi.mocked(client.automatch).mockResolvedValue([]);
     render(<ResidentAuthPage />);
 
     await act(async () => {

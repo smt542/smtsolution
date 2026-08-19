@@ -1,30 +1,46 @@
+// Resident onboarding client — thin facade over the real O1 resident hooks
+// (hooks/reactquery/residentClaims/apis.ts). Screens import ONLY from here so the
+// data layer stays swappable. This layer also keeps the small amount of transient
+// client-side state O1 does not expose to residents (the Kakao identity from stub
+// login, the cached automatch candidate, and the just-submitted claim shown on the
+// pending screen).
+//
+// HYBRID scope note: O1's resident RPCs return leaner data than the prototype UI.
+// Fields the prototype showed but O1 does not provide to residents (masked name /
+// phone / move-in date / management org on verify, and org contact on pending) are
+// intentionally dropped here and tracked as an O1-extension backlog. See
+// [[resident-onboarding-status]].
+
+import { createClient } from "@/lib/supabase/client";
+import {
+  residentAutomatch,
+  residentConfirm,
+  residentMyLink,
+  residentRequestClaim,
+  residentSearchBuildings,
+  stubResidentKakaoLogin,
+} from "@/hooks/reactquery/residentClaims";
+
 export type KakaoIdentity = {
   kakaoId: string;
   name: string;
   phone: string;
-  kakaoName?: string;
 };
 
+// Trimmed to what O1 `resident_automatch` actually returns (building + unit + ids).
 export type Candidate = {
-  occupancyId: string;
-  buildingId: string;
+  occupancyId: number;
+  buildingId: number;
   buildingName: string;
   unitNo: string;
-  orgId: string;
-  orgName: string;
-  tenantName: string;
-  tenantNameMasked: string;
-  phoneMasked: string;
-  moveInDate: string;
+  orgId: number;
 };
 
 export type Building = {
-  id: string;
+  id: number;
   name: string;
   address: string;
 };
-
-export type ClaimKind = "unit" | "search";
 
 export type MyLink = {
   buildingName: string;
@@ -32,209 +48,129 @@ export type MyLink = {
   tenantName: string;
 };
 
+// Sourced from the just-submitted claim (O1 has no resident-facing "my pending
+// claim" query, and request_claim returns void). No org contact — backlog.
 export type PendingInfo = {
   buildingName: string;
   unitNo: string;
   requestedAt: string;
-  orgName: string;
-  orgPhone: string;
 };
 
-export const DEMO_MATCHED_IDENTITY: KakaoIdentity = {
-  kakaoId: "kko_match_7788",
-  name: "박정호",
-  phone: "010-2000-7788",
-  kakaoName: "박정호",
-};
-
-export const DEMO_UNMATCHED_IDENTITY: KakaoIdentity = {
-  kakaoId: "kko_new_0001",
-  name: "김세입",
-  phone: "010-8842-1150",
-};
-
-const BUILDINGS: Building[] = [
-  {
-    id: "bld_greenvilla",
-    name: "그린빌라",
-    address: "대전 유성구 봉명동 123-4",
-  },
-  { id: "bld_1", name: "중앙타워", address: "대전 서구 둔산동 55-1" },
-  { id: "bld_2", name: "라온아파트", address: "대전 중구 대흥동 200" },
-  {
-    id: "bld_3",
-    name: "햇살하이츠",
-    address: "대전 유성구 봉명동 987-65",
-  },
-  { id: "bld_4", name: "새봄하우스", address: "대전 중구 괴정동 77-2" },
-  { id: "bld_5", name: "봄내스퀘어", address: "대전 유성구 노은동 44-2" },
-  { id: "bld_6", name: "하나로타워", address: "대전 서구 갈마동 812" },
-  { id: "bld_7", name: "해든하우스", address: "대전 대덕구 오정동 55" },
-  { id: "bld_8", name: "미래스퀘어", address: "대전 서구 둔산동 1102" },
-  { id: "bld_9", name: "정든빌라", address: "대전 중구 태평동 77-9" },
-  { id: "bld_10", name: "수정하이츠", address: "대전 유성구 지족동 210" },
-  { id: "bld_11", name: "청솔아파트", address: "대전 서구 월평동 305" },
-  {
-    id: "bld_12",
-    name: "다온레지던스",
-    address: "대전 유성구 봉명동 501",
-  },
-  { id: "bld_13", name: "세종스테이", address: "세종 나성동 12-3" },
-  { id: "bld_14", name: "온샘빌라", address: "대전 대덕구 법동 88-1" },
-  { id: "bld_15", name: "루미에르타워", address: "대전 서구 만년동 21" },
-  { id: "bld_16", name: "가온아파트", address: "대전 중구 문화동 402" },
-  { id: "bld_17", name: "별하우스", address: "대전 유성구 관평동 77" },
-];
-
-const MATCHED_CANDIDATE: Candidate = {
-  occupancyId: "occ_greenvilla_201",
-  buildingId: "bld_greenvilla",
-  buildingName: "그린빌라",
-  unitNo: "201호",
-  orgId: "org_smile",
-  orgName: "스마일종합관리",
-  tenantName: "박정호",
-  tenantNameMasked: "박O호",
-  phoneMasked: "010-****-7788",
-  moveInDate: "2024.03.02",
-};
-
-const MATCHED_ORG_PHONE = "042-822-4410";
-
-let session: { identity: KakaoIdentity } | null = null;
-let linkedHousehold: MyLink | null = null;
-let pendingInfo: PendingInfo | null = null;
+let identity: KakaoIdentity | null = null;
 let activeCandidate: Candidate | null = null;
+let pending: PendingInfo | null = null;
 
+// real: POST /api/resident/kakao/stub (replace with real Kakao OAuth later)
 export async function kakaoStubLogin(
   input: Partial<KakaoIdentity> = {},
 ): Promise<{ ok: true }> {
-  session = {
-    identity: {
-      ...DEMO_MATCHED_IDENTITY,
-      ...input,
-    },
+  const result = await stubResidentKakaoLogin({
+    kakaoId: input.kakaoId,
+    name: input.name,
+    phone: input.phone,
+  });
+
+  identity = {
+    kakaoId: result.kakaoId,
+    name: result.name,
+    phone: result.phone,
   };
-  linkedHousehold = null;
-  pendingInfo = null;
   activeCandidate = null;
+  pending = null;
 
   return { ok: true };
 }
 
+// real: rpc resident_automatch
 export async function automatch(): Promise<Candidate[]> {
-  const identity = session?.identity;
-  const isMatched =
-    identity?.kakaoId === DEMO_MATCHED_IDENTITY.kakaoId ||
-    identity?.phone === DEMO_MATCHED_IDENTITY.phone;
+  const candidates = (await residentAutomatch()).map((row) => ({
+    occupancyId: row.occupancyId,
+    buildingId: row.buildingId,
+    buildingName: row.buildingName,
+    unitNo: row.unitNo,
+    orgId: row.orgId,
+  }));
 
-  activeCandidate = isMatched ? MATCHED_CANDIDATE : null;
-  return activeCandidate ? [activeCandidate] : [];
-}
-
-export async function confirm(
-  occupancyId: string,
-): Promise<{ status: "linked" }> {
-  if (!session) {
-    throw new Error("A resident session is required to confirm an occupancy.");
-  }
-
-  const candidate =
-    activeCandidate?.occupancyId === occupancyId
-      ? activeCandidate
-      : occupancyId === MATCHED_CANDIDATE.occupancyId
-        ? MATCHED_CANDIDATE
-        : null;
-
-  if (!candidate) {
-    throw new Error("The requested occupancy is not available for confirmation.");
-  }
-
-  linkedHousehold = {
-    buildingName: candidate.buildingName,
-    unitNo: candidate.unitNo,
-    tenantName: candidate.tenantName,
-  };
-  pendingInfo = null;
-
-  return { status: "linked" };
-}
-
-export async function requestClaim(input: {
-  buildingId?: string;
-  unitText?: string;
-  kind: ClaimKind;
-}): Promise<{ status: "pending" }> {
-  if (!session) {
-    throw new Error("A resident session is required to request a claim.");
-  }
-
-  const buildingName =
-    input.kind === "unit"
-      ? (BUILDINGS.find((building) => building.id === input.buildingId)?.name ?? "")
-      : "";
-  const unitDigits = input.unitText?.replace(/[^0-9]/g, "") ?? "";
-  const unitNo = input.kind === "unit" && unitDigits ? `${unitDigits}호` : "";
-
-  pendingInfo = {
-    buildingName,
-    unitNo,
-    requestedAt: new Date().toISOString(),
-    orgName: MATCHED_CANDIDATE.orgName,
-    orgPhone: MATCHED_ORG_PHONE,
-  };
-
-  return { status: "pending" };
-}
-
-export async function myLink(): Promise<MyLink | null> {
-  return linkedHousehold;
-}
-
-// Mock-only support helpers. Revisit each helper when swapping in the O1 client.
-export async function searchBuildings(query: string): Promise<Building[]> {
-  const normalizedQuery = query.trim().toLowerCase();
-  const matches = normalizedQuery
-    ? BUILDINGS.filter((building) =>
-        `${building.name} ${building.address}`
-          .toLowerCase()
-          .includes(normalizedQuery),
-      )
-    : BUILDINGS;
-
-  return matches.map((building) => ({ ...building }));
-}
-
-export function getSession(): { identity: KakaoIdentity } | null {
-  return session;
+  activeCandidate = candidates[0] ?? null;
+  return candidates;
 }
 
 export function getActiveCandidate(): Candidate | null {
   return activeCandidate;
 }
 
-export function getPendingInfo(): PendingInfo | null {
-  return pendingInfo;
-}
-
-export async function approveMockPending(): Promise<{ status: "linked" }> {
-  if (!session || !pendingInfo) {
-    throw new Error("A resident session and pending claim are required for approval.");
-  }
-
-  linkedHousehold = {
-    buildingName: pendingInfo.buildingName,
-    unitNo: pendingInfo.unitNo,
-    tenantName: session.identity.name,
-  };
-  pendingInfo = null;
-
+// real: rpc resident_confirm
+export async function confirm(
+  occupancyId: number,
+): Promise<{ status: "linked" }> {
+  await residentConfirm(occupancyId);
+  pending = null;
   return { status: "linked" };
 }
 
-export function logout(): void {
-  session = null;
-  linkedHousehold = null;
-  pendingInfo = null;
+// real: rpc resident_request_claim (building_id is required; buildingName is kept
+// only for the local pending display).
+export async function requestClaim(input: {
+  buildingId: number;
+  unitText: string;
+  buildingName: string;
+}): Promise<{ status: "pending" }> {
+  await residentRequestClaim({
+    buildingId: input.buildingId,
+    unitText: input.unitText,
+  });
+
+  const digits = input.unitText.replace(/[^0-9]/g, "");
+  pending = {
+    buildingName: input.buildingName,
+    unitNo: digits ? `${digits}호` : input.unitText,
+    requestedAt: new Date().toISOString(),
+  };
+
+  return { status: "pending" };
+}
+
+// real: rpc resident_my_link
+export async function myLink(): Promise<MyLink | null> {
+  const link = await residentMyLink();
+  if (!link) return null;
+
+  return {
+    buildingName: link.buildingName ?? "",
+    unitNo: link.unitNo ?? "",
+    tenantName: link.tenantName ?? "",
+  };
+}
+
+// real: rpc resident_search_buildings
+export async function searchBuildings(query: string): Promise<Building[]> {
+  const rows = await residentSearchBuildings(query.trim() || undefined);
+  return rows.map((row) => ({
+    id: row.buildingId,
+    name: row.name,
+    address: row.address ?? "",
+  }));
+}
+
+// Client-side session flag from the current run's stub login. Screens guard on this
+// synchronously. NOTE: a hard refresh clears it (onboarding restarts) even though the
+// Supabase cookie may still be valid — acceptable for the stub phase; revisit with
+// real Kakao OAuth.
+export function getSession(): { identity: KakaoIdentity } | null {
+  return identity ? { identity } : null;
+}
+
+export function getPendingInfo(): PendingInfo | null {
+  return pending;
+}
+
+export async function logout(): Promise<void> {
+  identity = null;
   activeCandidate = null;
+  pending = null;
+  try {
+    await createClient().auth.signOut();
+  } catch {
+    // best-effort sign-out; client state is already cleared
+  }
 }

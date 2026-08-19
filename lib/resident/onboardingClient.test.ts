@@ -1,10 +1,27 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const supabase = vi.hoisted(() => ({
+  signOut: vi.fn(async () => ({ error: null })),
+}));
+
+vi.mock("@/hooks/reactquery/residentClaims", () => ({
+  stubResidentKakaoLogin: vi.fn(),
+  residentAutomatch: vi.fn(),
+  residentConfirm: vi.fn(),
+  residentRequestClaim: vi.fn(),
+  residentMyLink: vi.fn(),
+  residentSearchBuildings: vi.fn(),
+}));
+
+vi.mock("@/lib/supabase/client", () => ({
+  createClient: () => ({ auth: { signOut: supabase.signOut } }),
+}));
+
+import * as api from "@/hooks/reactquery/residentClaims";
 
 import {
-  approveMockPending,
   automatch,
   confirm,
-  DEMO_UNMATCHED_IDENTITY,
   getActiveCandidate,
   getPendingInfo,
   getSession,
@@ -15,102 +32,153 @@ import {
   searchBuildings,
 } from "./onboardingClient";
 
-beforeEach(() => {
-  logout();
+const loginResult = {
+  userId: "resident-user-1",
+  kakaoId: "kakao-7788",
+  name: "박정호",
+  phone: "010-2000-7788",
+};
+
+const automatchRow = {
+  orgId: 7,
+  buildingId: 5,
+  buildingName: "그린빌라",
+  unitId: 20,
+  unitNo: "201호",
+  occupancyId: 123,
+};
+
+beforeEach(async () => {
+  vi.clearAllMocks();
+  vi.mocked(api.stubResidentKakaoLogin).mockResolvedValue(loginResult);
+  vi.mocked(api.residentAutomatch).mockResolvedValue([]);
+  vi.mocked(api.residentConfirm).mockResolvedValue(undefined);
+  vi.mocked(api.residentRequestClaim).mockResolvedValue(undefined);
+  vi.mocked(api.residentMyLink).mockResolvedValue(null);
+  vi.mocked(api.residentSearchBuildings).mockResolvedValue([]);
+  await logout();
 });
 
 describe("resident onboarding client", () => {
-  it("automatches the seeded household for the default Kakao identity", async () => {
-    await kakaoStubLogin();
+  it("stores the identity returned by the O1 Kakao stub login", async () => {
+    await expect(kakaoStubLogin()).resolves.toEqual({ ok: true });
+
+    expect(api.stubResidentKakaoLogin).toHaveBeenCalledWith({
+      kakaoId: undefined,
+      name: undefined,
+      phone: undefined,
+    });
+    expect(getSession()).toEqual({
+      identity: {
+        kakaoId: loginResult.kakaoId,
+        name: loginResult.name,
+        phone: loginResult.phone,
+      },
+    });
+  });
+
+  it("maps O1 automatch rows and caches the first candidate", async () => {
+    vi.mocked(api.residentAutomatch).mockResolvedValue([automatchRow]);
 
     const candidates = await automatch();
 
-    expect(candidates).toHaveLength(1);
-    expect(candidates[0]).toMatchObject({
+    expect(candidates).toEqual([
+      {
+        occupancyId: 123,
+        buildingId: 5,
+        buildingName: "그린빌라",
+        unitNo: "201호",
+        orgId: 7,
+      },
+    ]);
+    expect(getActiveCandidate()).toEqual(candidates[0]);
+  });
+
+  it("confirms an occupancy through O1", async () => {
+    await expect(confirm(123)).resolves.toEqual({ status: "linked" });
+
+    expect(api.residentConfirm).toHaveBeenCalledWith(123);
+  });
+
+  it("submits a required-building claim and caches its pending display", async () => {
+    await expect(
+      requestClaim({
+        buildingId: 5,
+        unitText: "201",
+        buildingName: "그린빌라",
+      }),
+    ).resolves.toEqual({ status: "pending" });
+
+    expect(api.residentRequestClaim).toHaveBeenCalledWith({
+      buildingId: 5,
+      unitText: "201",
+    });
+    expect(getPendingInfo()).toEqual({
+      buildingName: "그린빌라",
+      unitNo: "201호",
+      requestedAt: expect.any(String),
+    });
+    expect(Number.isNaN(Date.parse(getPendingInfo()?.requestedAt ?? ""))).toBe(
+      false,
+    );
+  });
+
+  it("maps the current O1 link and preserves a null response", async () => {
+    vi.mocked(api.residentMyLink)
+      .mockResolvedValueOnce({
+        claimId: 44,
+        orgId: 7,
+        buildingId: 5,
+        buildingName: "그린빌라",
+        unitId: 20,
+        unitNo: "201호",
+        occupancyId: 123,
+        tenantName: "박정호",
+        occupancyPhone: "010-2000-7788",
+        linkedAt: "2026-08-19T03:00:00.000Z",
+      })
+      .mockResolvedValueOnce(null);
+
+    await expect(myLink()).resolves.toEqual({
       buildingName: "그린빌라",
       unitNo: "201호",
       tenantName: "박정호",
     });
-    expect(getActiveCandidate()).toEqual(candidates[0]);
+    await expect(myLink()).resolves.toBeNull();
   });
 
-  it("does not automatch the unmatched demo identity", async () => {
-    await kakaoStubLogin(DEMO_UNMATCHED_IDENTITY);
-
-    await expect(automatch()).resolves.toEqual([]);
-    expect(getActiveCandidate()).toBeNull();
-  });
-
-  it("links the matched household after confirmation", async () => {
-    await kakaoStubLogin();
-    const [candidate] = await automatch();
-
-    await expect(confirm(candidate.occupancyId)).resolves.toEqual({
-      status: "linked",
-    });
-    await expect(myLink()).resolves.toEqual({
-      buildingName: candidate.buildingName,
-      unitNo: candidate.unitNo,
-      tenantName: candidate.tenantName,
-    });
-  });
-
-  it("stores unit and search claim details", async () => {
-    await kakaoStubLogin();
-
-    await requestClaim({
-      buildingId: "bld_greenvilla",
-      unitText: "201",
-      kind: "unit",
-    });
-
-    expect(getPendingInfo()).toMatchObject({
-      buildingName: "그린빌라",
-      unitNo: "201호",
-      orgName: "스마일종합관리",
-      orgPhone: "042-822-4410",
-    });
-
-    await requestClaim({ kind: "search" });
-
-    expect(getPendingInfo()).toMatchObject({
-      buildingName: "",
-      unitNo: "",
-      orgName: "스마일종합관리",
-      orgPhone: "042-822-4410",
-    });
-  });
-
-  it("returns all buildings for an empty query and filters by substring", async () => {
-    const allBuildings = await searchBuildings("");
-    const filteredBuildings = await searchBuildings("그린");
-
-    expect(allBuildings.length).toBeGreaterThan(1);
-    expect(filteredBuildings.length).toBeLessThan(allBuildings.length);
-    expect(filteredBuildings).toEqual([
-      expect.objectContaining({ id: "bld_greenvilla", name: "그린빌라" }),
+  it("maps O1 building results and normalizes a null address", async () => {
+    vi.mocked(api.residentSearchBuildings).mockResolvedValue([
+      {
+        buildingId: 5,
+        orgId: 7,
+        name: "그린빌라",
+        address: null,
+      },
     ]);
+
+    await expect(searchBuildings("그린")).resolves.toEqual([
+      { id: 5, name: "그린빌라", address: "" },
+    ]);
+    expect(api.residentSearchBuildings).toHaveBeenCalledWith("그린");
   });
 
-  it("approves a pending claim and logout clears all resident state", async () => {
+  it("clears all facade state and signs out of Supabase", async () => {
+    vi.mocked(api.residentAutomatch).mockResolvedValue([automatchRow]);
     await kakaoStubLogin();
+    await automatch();
     await requestClaim({
-      buildingId: "bld_greenvilla",
+      buildingId: 5,
       unitText: "201",
-      kind: "unit",
-    });
-
-    await approveMockPending();
-
-    await expect(myLink()).resolves.toMatchObject({
       buildingName: "그린빌라",
-      unitNo: "201호",
     });
+    supabase.signOut.mockClear();
 
-    logout();
+    await logout();
 
     expect(getSession()).toBeNull();
-    await expect(myLink()).resolves.toBeNull();
     expect(getPendingInfo()).toBeNull();
+    expect(getActiveCandidate()).toBeNull();
+    expect(supabase.signOut).toHaveBeenCalledOnce();
   });
 });

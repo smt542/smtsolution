@@ -2,13 +2,6 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  kakaoStubLogin,
-  logout,
-  myLink,
-  requestClaim,
-} from "@/lib/resident/onboardingClient";
-
 const nav = vi.hoisted(() => {
   const push = vi.fn();
   const replace = vi.fn();
@@ -22,32 +15,47 @@ const nav = vi.hoisted(() => {
 
 vi.mock("next/navigation", () => ({ useRouter: () => nav.router }));
 
+vi.mock("@/lib/resident/onboardingClient", () => ({
+  kakaoStubLogin: vi.fn().mockResolvedValue({ ok: true }),
+  automatch: vi.fn(),
+  getActiveCandidate: vi.fn(),
+  getSession: vi.fn(),
+  confirm: vi.fn().mockResolvedValue({ status: "linked" }),
+  requestClaim: vi.fn().mockResolvedValue({ status: "pending" }),
+  searchBuildings: vi.fn().mockResolvedValue([]),
+  myLink: vi.fn(),
+  getPendingInfo: vi.fn(),
+  logout: vi.fn().mockResolvedValue(undefined),
+}));
+
+import * as client from "@/lib/resident/onboardingClient";
+import type { PendingInfo } from "@/lib/resident/onboardingClient";
+
 import ResidentPendingPage from "./page";
 
-async function arrangePendingClaim() {
-  await kakaoStubLogin();
-  await requestClaim({
-    buildingId: "bld_greenvilla",
-    unitText: "201",
-    kind: "unit",
-  });
-}
+const pendingInfo: PendingInfo = {
+  buildingName: "그린빌라",
+  unitNo: "201호",
+  requestedAt: "2026-08-19T12:34:00",
+};
 
 beforeEach(() => {
-  logout();
-  nav.push.mockClear();
-  nav.replace.mockClear();
+  vi.clearAllMocks();
+  vi.mocked(client.getPendingInfo).mockReturnValue(pendingInfo);
 });
 
 describe("ResidentPendingPage", () => {
-  it("shows the requested household and returns to login", async () => {
-    await arrangePendingClaim();
+  it("shows the request without org contact or mock approval actions", async () => {
     const user = userEvent.setup();
     render(<ResidentPendingPage />);
 
     expect(await screen.findByText("그린빌라 201호")).toBeInTheDocument();
-    expect(screen.getByText(/042-822-4410/)).toBeInTheDocument();
+    expect(screen.getByText("2026.08.19 12:34")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "전화" })).not.toBeInTheDocument();
+    expect(screen.queryByText(/승인되었다고 가정/)).not.toBeInTheDocument();
 
+    const buttons = screen.getAllByRole("button");
+    expect(buttons).toHaveLength(1);
     await user.click(
       screen.getByRole("button", { name: "로그인 화면으로" }),
     );
@@ -55,26 +63,12 @@ describe("ResidentPendingPage", () => {
     expect(nav.push).toHaveBeenCalledWith("/resident/login");
   });
 
-  it("approves the pending claim and opens the resident home", async () => {
-    await arrangePendingClaim();
-    const user = userEvent.setup();
+  it("redirects to login when there is no pending request", async () => {
+    vi.mocked(client.getPendingInfo).mockReturnValue(null);
     render(<ResidentPendingPage />);
-
-    await user.click(
-      await screen.findByRole("button", {
-        name: "테스트: 승인되었다고 가정하고 홈으로",
-      }),
-    );
 
     await waitFor(() => {
-      expect(nav.push).toHaveBeenCalledWith("/resident/home");
+      expect(nav.replace).toHaveBeenCalledWith("/resident/login");
     });
-    await expect(myLink()).resolves.not.toBeNull();
-  });
-
-  it("redirects to login when there is no pending claim", () => {
-    render(<ResidentPendingPage />);
-
-    expect(nav.replace).toHaveBeenCalledWith("/resident/login");
   });
 });

@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import {
-  approveMockPending,
   getPendingInfo,
   type PendingInfo,
 } from "@/lib/resident/onboardingClient";
@@ -57,12 +56,6 @@ export default function ResidentPendingPage() {
   const household =
     `${pendingInfo.buildingName} ${pendingInfo.unitNo}`.trim() ||
     "건물 확인 요청";
-  const phoneHref = `tel:${pendingInfo.orgPhone.replace(/\D/g, "")}`;
-
-  const approvePending = async () => {
-    await approveMockPending();
-    router.push("/resident/home");
-  };
 
   return (
     <>
@@ -102,27 +95,6 @@ export default function ResidentPendingPage() {
             </b>
           </div>
         </div>
-        <div className={styles.call}>
-          <div className={styles.ci}>
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              aria-hidden="true"
-            >
-              <path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1.1 1A16 16 0 0 1 4 5.1 1 1 0 0 1 5 4z" />
-            </svg>
-          </div>
-          <div className={styles.ct}>
-            <b>급하면 바로 문의하세요</b>
-            <span className={styles.num}>
-              {pendingInfo.orgName} · {pendingInfo.orgPhone}
-            </span>
-          </div>
-          <a href={phoneHref}>전화</a>
-        </div>
       </div>
       <div className={styles.foot}>
         <button
@@ -131,13 +103,6 @@ export default function ResidentPendingPage() {
           onClick={() => router.push("/resident/login")}
         >
           로그인 화면으로
-        </button>
-        <button
-          type="button"
-          className={`${styles.btn} ${styles.alt}`}
-          onClick={approvePending}
-        >
-          테스트: 승인되었다고 가정하고 홈으로
         </button>
       </div>
     </>

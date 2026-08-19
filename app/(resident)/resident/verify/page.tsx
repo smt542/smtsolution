@@ -112,18 +112,13 @@ export default function ResidentVerifyPage() {
     router.push("/resident/notify");
   };
 
-  const requestSearchClaim = async () => {
-    await requestClaim({ kind: "search" });
-    router.push("/resident/pending");
-  };
-
   const requestUnitClaim = async () => {
     if (!selectedBuilding || !unitValue) return;
 
     await requestClaim({
       buildingId: selectedBuilding.id,
       unitText: unitValue,
-      kind: "unit",
+      buildingName: selectedBuilding.name,
     });
     router.push("/resident/pending");
   };
@@ -162,29 +157,24 @@ export default function ResidentVerifyPage() {
         <div className={styles.card}>
           <div className={styles.who}>
             <div className={styles.ava}>
-              {candidate.tenantNameMasked.slice(0, 1)}
+              <svg
+                viewBox="0 0 24 24"
+                width="24"
+                height="24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16" />
+                <path d="M3 21h18M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2" />
+              </svg>
             </div>
             <div>
-              <b>{candidate.tenantNameMasked} 님</b>
-              <span className={styles.num}>{candidate.phoneMasked}</span>
-            </div>
-          </div>
-          <div className={styles.rows}>
-            <div className={styles.r}>
-              <span>건물</span>
               <b>{candidate.buildingName}</b>
-            </div>
-            <div className={styles.r}>
-              <span>호수</span>
-              <b className={styles.num}>{candidate.unitNo}</b>
-            </div>
-            <div className={styles.r}>
-              <span>입주일</span>
-              <b className={styles.num}>{candidate.moveInDate}</b>
-            </div>
-            <div className={styles.r}>
-              <span>관리주체</span>
-              <b>{candidate.orgName}</b>
+              <span className={styles.num}>{candidate.unitNo}</span>
             </div>
           </div>
         </div>
@@ -362,14 +352,6 @@ export default function ResidentVerifyPage() {
                     건물명이 정확하지 않아도 괜찮아요.
                     <br />동 이름이나 주소 일부로 다시 찾아보세요.
                   </span>
-                  <button
-                    id="rvAsk"
-                    type="button"
-                    className={styles.ebtn}
-                    onClick={requestSearchClaim}
-                  >
-                    관리사무소에 확인 요청
-                  </button>
                 </div>
               )}
             </div>

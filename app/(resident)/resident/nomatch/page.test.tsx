@@ -2,13 +2,6 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  DEMO_UNMATCHED_IDENTITY,
-  getSession,
-  kakaoStubLogin,
-  logout,
-} from "@/lib/resident/onboardingClient";
-
 const nav = vi.hoisted(() => {
   const push = vi.fn();
   const replace = vi.fn();
@@ -22,40 +15,50 @@ const nav = vi.hoisted(() => {
 
 vi.mock("next/navigation", () => ({ useRouter: () => nav.router }));
 
+vi.mock("@/lib/resident/onboardingClient", () => ({
+  kakaoStubLogin: vi.fn().mockResolvedValue({ ok: true }),
+  automatch: vi.fn(),
+  getActiveCandidate: vi.fn(),
+  getSession: vi.fn(),
+  confirm: vi.fn().mockResolvedValue({ status: "linked" }),
+  requestClaim: vi.fn().mockResolvedValue({ status: "pending" }),
+  searchBuildings: vi.fn().mockResolvedValue([]),
+  myLink: vi.fn(),
+  getPendingInfo: vi.fn(),
+  logout: vi.fn().mockResolvedValue(undefined),
+}));
+
+import * as client from "@/lib/resident/onboardingClient";
+import type { KakaoIdentity } from "@/lib/resident/onboardingClient";
+
 import ResidentNomatchPage from "./page";
 
-beforeEach(async () => {
-  logout();
-  nav.push.mockClear();
-  nav.replace.mockClear();
-  await kakaoStubLogin(DEMO_UNMATCHED_IDENTITY);
+const identity: KakaoIdentity = {
+  kakaoId: "kakao-new",
+  name: "김세입",
+  phone: "010-8842-1150",
+};
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(client.getSession).mockReturnValue({ identity });
+  vi.mocked(client.logout).mockResolvedValue(undefined);
 });
 
 describe("ResidentNomatchPage", () => {
-  it("explains no-match reasons and retries with a cleared session", async () => {
+  it("shows a masked phone and awaits logout before retrying", async () => {
     const user = userEvent.setup();
     render(<ResidentNomatchPage />);
 
-    expect(
-      await screen.findByText("010-****-1150"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("관리사무소에 등록된 번호가 다를 수 있어요"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("입주 등록이 아직 안 됐을 수 있어요"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText("세대주 명의가 가족일 수 있어요"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("010-****-1150")).toBeInTheDocument();
 
     await user.click(
       screen.getByRole("button", { name: "다른 카카오 계정으로 로그인" }),
     );
 
     await waitFor(() => {
+      expect(client.logout).toHaveBeenCalledOnce();
       expect(nav.push).toHaveBeenCalledWith("/resident/login");
     });
-    expect(getSession()).toBeNull();
   });
 });
