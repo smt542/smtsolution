@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<style>  :root{--blue:#14A497;--blue-d:#0E8677;--blue-t:#E2F5F1;--blue-t2:#EFFBF8;--bg:#F2F4F6;--line:#E8EBEE;--line2:#F1F3F5;--t1:#191F28;--t2:#4E5968;--t3:#8B95A1;--t4:#B0B8C1}
+  *{box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  body{margin:0;max-width:100%;background:#e7eaee;font-family:'Pretendard',-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--t1)}
+  a{color:var(--blue);text-decoration:none}a:hover{color:var(--blue-d)}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  .screen{background:#fff;overflow:hidden;position:relative;height:100dvh;max-height:100dvh;width:100%;max-width:440px;margin:0 auto;display:flex;flex-direction:column}
+  .hdr{flex:none;display:flex;align-items:center;padding:calc(env(safe-area-inset-top) + 12px) 12px 4px}
+  .bk{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--t2)}
+  .bk:hover{background:var(--bg);color:var(--t2)}
+  .bk svg{width:22px;height:22px}
+  .body{flex:1;min-height:0;overflow:auto;padding:10px 28px 8px}
+  .h1{font-size:24px;font-weight:800;letter-spacing:-.03em;line-height:1.38;margin:8px 0 0;animation:rise .5s cubic-bezier(.22,.61,.36,1) both}
+  .lead{font-size:14.5px;font-weight:600;color:var(--t3);line-height:1.62;margin-top:10px;animation:rise .5s .06s cubic-bezier(.22,.61,.36,1) both}
+  .items{margin-top:24px;animation:rise .5s .12s cubic-bezier(.22,.61,.36,1) both}
+  .it{display:flex;align-items:flex-start;gap:13px;padding:17px 0;border-bottom:1px solid var(--line2)}
+  .it:last-child{border-bottom:0}
+  .ic{width:42px;height:42px;flex:none;border-radius:14px;background:var(--blue-t2);color:var(--blue-d);display:flex;align-items:center;justify-content:center}
+  .ic svg{width:21px;height:21px}
+  .tx{flex:1;min-width:0}
+  .tx b{display:block;font-size:15.5px;font-weight:700;letter-spacing:-.01em}
+  .tx span{display:block;font-size:13px;font-weight:500;color:var(--t3);line-height:1.6;margin-top:4px}
+  .sw{flex:none;width:50px;height:30px;border-radius:999px;background:var(--line);position:relative;cursor:pointer;transition:background .18s ease;margin-top:5px}
+  .sw i{position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 2px 5px rgba(23,31,40,.2);transition:transform .18s cubic-bezier(.22,.61,.36,1)}
+  .sw.on{background:var(--blue)}
+  .sw.on i{transform:translateX(20px)}
+  .note{margin-top:18px;padding:14px 15px;border-radius:13px;background:var(--bg);font-size:12.5px;font-weight:600;color:var(--t3);line-height:1.65;animation:rise .5s .18s cubic-bezier(.22,.61,.36,1) both}
+  .foot{flex:none;padding:14px 28px calc(env(safe-area-inset-bottom) + 24px);display:flex;flex-direction:column;gap:10px}
+  .btn{width:100%;height:56px;border:0;border-radius:16px;font:inherit;font-size:16.5px;font-weight:700;letter-spacing:-.02em;cursor:pointer;transition:transform .12s ease}
+  .btn:active{transform:scale(.985)}
+  .btn.pri{background:var(--blue);color:#fff}
+  .btn.pri:hover{background:var(--blue-d)}
+  .btn.alt{background:transparent;color:var(--t3);height:44px;font-size:14px;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+  .btn.alt:hover{color:var(--t2)}
+</style>
+</helmet>
+<div class="screen">
+  <div class="hdr"><a class="bk" href="../resident-verify/resident-verify.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></a></div>
+  <div class="body">
+    <h1 class="h1">알림을 받아보세요</h1>
+    <p class="lead">관리비가 확정되거나 건물 공지가 올라오면<br>카카오톡으로 바로 알려드려요.</p>
+    <div class="items">
+      <div class="it">
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h10l4 4v10H5z"></path><path d="M8 12h8M8 16h5"></path></svg></div>
+        <div class="tx"><b>알림톡 받기</b><span>관리비 발행과 건물 공지를 알려드려요</span></div>
+        <div class="sw on" data-k="all"><i></i></div>
+      </div>
+    </div>
+    <div class="note">알림은 언제든 내 정보에서 다시 끄고 켤 수 있어요.</div>
+  </div>
+  <div class="foot">
+    <button type="button" class="btn pri" id="rnOk">시작하기</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount(){ setTimeout(()=>this.boot(),40); }
+  boot(){
+    const $=(id)=>document.getElementById(id);
+    if(!$('rnOk')||document.body.__rnW)return; document.body.__rnW=1;
+    document.querySelectorAll('.sw').forEach(sw=>sw.addEventListener('click',()=>sw.classList.toggle('on')));
+    const go=(all)=>{ const on={};
+      document.querySelectorAll('.sw').forEach(sw=>{ const v=all?sw.classList.contains('on'):false;
+        on.bill=v; on.notice=v; });
+      try{ localStorage.setItem('res_notify',JSON.stringify(on)); }catch(_){}
+      location.href='../resident-home/resident-home.dc.html'; };
+    $('rnOk').addEventListener('click',()=>go(true));
+  }
+}
+</script>
+</body>
+</html>

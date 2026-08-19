@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<style>  :root{--blue:#14A497;--blue-d:#0E8677;--blue-t:#E2F5F1;--blue-t2:#EFFBF8;--bg:#F2F4F6;--line:#E8EBEE;--line2:#F1F3F5;--t1:#191F28;--t2:#4E5968;--t3:#8B95A1;--t4:#B0B8C1;--amber:#FF922B;--amber-t:#FFF3E6}
+  *{box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  body{margin:0;max-width:100%;background:#e7eaee;font-family:'Pretendard',-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--t1)}
+  a{color:var(--blue);text-decoration:none}a:hover{color:var(--blue-d)}
+  .num{font-variant-numeric:tabular-nums}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  @keyframes pop{from{opacity:0;transform:scale(.86)}to{opacity:1;transform:none}}
+  @keyframes pulse{0%,100%{transform:scale(1);opacity:.55}50%{transform:scale(1.35);opacity:0}}
+  .screen{background:#fff;overflow:hidden;position:relative;height:100dvh;max-height:100dvh;width:100%;max-width:440px;margin:0 auto;display:flex;flex-direction:column}
+  .body{flex:1;min-height:0;overflow:auto;padding:calc(env(safe-area-inset-top) + 46px) 28px 8px;display:flex;flex-direction:column;align-items:center;text-align:center}
+  .ring{position:relative;width:64px;height:64px;animation:pop .45s cubic-bezier(.22,.61,.36,1) both}
+  .ring .wave{position:absolute;inset:0;border-radius:50%;background:var(--blue-t);animation:pulse 2.4s ease-out infinite}
+  .ring .core{position:absolute;inset:0;border-radius:50%;background:var(--blue-t);color:var(--blue-d);display:flex;align-items:center;justify-content:center}
+  .ring svg{width:29px;height:29px}
+  .h1{font-size:24px;font-weight:800;letter-spacing:-.03em;line-height:1.38;margin:20px 0 0;animation:rise .5s .06s cubic-bezier(.22,.61,.36,1) both}
+  .lead{font-size:14.5px;font-weight:600;color:var(--t3);line-height:1.62;margin-top:10px;animation:rise .5s .1s cubic-bezier(.22,.61,.36,1) both}
+  .card{width:100%;margin-top:26px;border:1px solid var(--line);border-radius:18px;padding:6px 16px;text-align:left;animation:rise .5s .16s cubic-bezier(.22,.61,.36,1) both}
+  .r{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 0;border-bottom:1px solid var(--line2);font-size:13.5px;font-weight:600;color:var(--t3)}
+  .r:last-child{border-bottom:0}
+  .r b{font-size:14px;font-weight:700;color:var(--t1)}
+  .badge{font-size:11.5px;font-weight:800;padding:4px 9px;border-radius:8px;background:var(--amber-t);color:var(--amber)}
+  .steps{width:100%;margin-top:14px;padding:16px;border-radius:16px;background:var(--bg);text-align:left;animation:rise .5s .22s cubic-bezier(.22,.61,.36,1) both}
+  .s{display:flex;gap:11px;align-items:flex-start}
+  .s+.s{margin-top:14px}
+  .s .d{width:18px;height:18px;flex:none;border-radius:50%;border:2px solid var(--line);background:#fff;margin-top:1px;display:flex;align-items:center;justify-content:center}
+  .s.done .d{border-color:var(--blue);background:var(--blue);color:#fff}
+  .s .d svg{width:11px;height:11px;opacity:0}
+  .s.done .d svg{opacity:1}
+  .s b{display:block;font-size:14px;font-weight:700}
+  .s span{display:block;font-size:12.5px;font-weight:500;color:var(--t3);line-height:1.6;margin-top:3px}
+  .s.now b{color:var(--blue-d)}
+  .call{width:100%;display:flex;align-items:center;gap:12px;margin-top:14px;padding:15px 16px;border-radius:16px;border:1px solid var(--line);text-align:left;animation:rise .5s .28s cubic-bezier(.22,.61,.36,1) both}
+  .call .ci{width:38px;height:38px;flex:none;border-radius:13px;background:var(--bg);color:var(--blue);display:flex;align-items:center;justify-content:center}
+  .call .ci svg{width:19px;height:19px}
+  .call .ct{flex:1;min-width:0}
+  .call .ct b{display:block;font-size:14.5px;font-weight:700}
+  .call .ct span{display:block;font-size:12.5px;font-weight:600;color:var(--t3);margin-top:3px}
+  .call a{flex:none;height:38px;padding:0 14px;border-radius:12px;background:#fff;border:1px solid var(--line);font-size:13.5px;font-weight:700;color:var(--t2);display:inline-flex;align-items:center}
+  .foot{flex:none;padding:14px 28px calc(env(safe-area-inset-bottom) + 24px);display:flex;flex-direction:column;gap:10px}
+  .btn{width:100%;height:56px;border:0;border-radius:16px;font:inherit;font-size:16.5px;font-weight:700;letter-spacing:-.02em;cursor:pointer;transition:transform .12s ease}
+  .btn:active{transform:scale(.985)}
+  .btn.pri{background:var(--blue);color:#fff}
+  .btn.pri:hover{background:var(--blue-d)}
+  .btn.sec{background:var(--bg);color:var(--t2)}
+  .btn.sec:hover{background:#E8EBEE}
+  .btn.alt{background:transparent;color:var(--t4);height:40px;font-size:13px;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+  .btn.alt:hover{color:var(--t3)}
+  .toast{display:none;position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:#191F28;color:#fff;font-size:14px;font-weight:700;padding:13px 20px;border-radius:13px;z-index:90;white-space:nowrap}
+</style>
+</helmet>
+<div class="screen">
+  <div class="body">
+    <div class="ring"><div class="wave"></div><div class="core"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.5V12l3 2"></path></svg></div></div>
+    <h1 class="h1">확인 요청을 보냈어요</h1>
+    <p class="lead">관리사무소에서 세대를 확인하면<br>알림으로 알려드려요. 보통 1영업일 안에 처리돼요.</p>
+    <div class="card">
+      <div class="r"><span>요청 세대</span><b id="rpUnit">그린빌라 201호</b></div>
+      <div class="r"><span>요청 일시</span><b class="num" id="rpAt">2026.08.07 15:53</b></div>
+    </div>
+    <div class="call">
+      <div class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1.1 1A16 16 0 0 1 4 5.1 1 1 0 0 1 5 4z"></path></svg></div>
+      <div class="ct"><b>급하면 바로 문의하세요</b><span class="num">스마일종합관리 · 042-822-4410</span></div>
+      <a href="tel:0428224410">전화</a>
+    </div>
+  </div>
+  <div class="foot">
+    <button type="button" class="btn pri" id="rpLogin">로그인 화면으로</button>
+    <button type="button" class="btn alt" id="rpApprove">테스트: 승인되었다고 가정하고 홈으로</button>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount(){ setTimeout(()=>this.boot(),40); }
+  boot(){
+    const $=(id)=>document.getElementById(id);
+    if(!$('rpApprove')||document.body.__rpW)return; document.body.__rpW=1;
+    const p2=(n)=>String(n).padStart(2,'0');
+    let P=null; try{ P=JSON.parse(localStorage.getItem('res_pending')||'null'); }catch(_){}
+    if(P){
+      $('rpUnit').textContent=P.b?(P.b+' '+(P.h||'')).trim():'건물 확인 요청';
+      const d=new Date(P.at||Date.now());
+      $('rpAt').textContent=d.getFullYear()+'.'+p2(d.getMonth()+1)+'.'+p2(d.getDate())+' '+p2(d.getHours())+':'+p2(d.getMinutes());
+    }
+    $('rpLogin').addEventListener('click',()=>{ location.href='../resident-login/resident-login.dc.html'; });
+    $('rpApprove').addEventListener('click',()=>{
+      try{ localStorage.setItem('res_unit',JSON.stringify({b:(P&&P.b)||'그린빌라',h:(P&&P.h)||'201호',n:'박정호'}));
+        localStorage.removeItem('res_pending'); localStorage.setItem('res_case','ok'); }catch(_){}
+      location.href='../resident-notify/resident-notify.dc.html'; });
+  }
+}
+</script>
+</body>
+</html>
