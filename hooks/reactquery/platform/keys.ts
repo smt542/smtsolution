@@ -5,6 +5,7 @@ export const platformKeys = {
   overview: () => [...platformKeys.all, "overview"] as const,
   organizations: () => [...platformKeys.all, "organizations"] as const,
   accounts: () => [...platformKeys.all, "accounts"] as const,
+  settings: () => [...platformKeys.all, "settings"] as const,
   transactions: (opts?: { type?: PointTxType }) =>
     [...platformKeys.all, "transactions", opts?.type ?? "all"] as const,
   messagePointRates: (includeHistory = false) =>

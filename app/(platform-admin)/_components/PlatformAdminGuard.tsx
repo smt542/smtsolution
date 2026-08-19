@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
-import { isMaster } from "@/lib/auth/permissions";
 
 export function PlatformAdminGuard({ children }: { children: React.ReactNode }) {
   const { data: me, isPending, isError, refetch } = useMe();
@@ -38,17 +37,17 @@ export function PlatformAdminGuard({ children }: { children: React.ReactNode }) 
     return (
       <GuardMessage
         title="로그인이 필요합니다"
-        description="직원 로그인 후 플랫폼 관리 화면에 다시 접속해 주세요."
-        action={<GuardLink href="/staff/login">로그인으로 이동</GuardLink>}
+        description="본사 관리자 로그인 후 플랫폼 관리 화면에 다시 접속해 주세요."
+        action={<GuardLink href="/platform-admin/login">로그인으로 이동</GuardLink>}
       />
     );
   }
 
-  if (!isMaster(me.role)) {
+  if (me.role !== "platform_admin") {
     return (
       <GuardMessage
         title="플랫폼 관리 권한이 없습니다"
-        description="마스터 계정만 이 화면에 접근할 수 있습니다."
+        description="본사 관리자 계정만 이 화면에 접근할 수 있습니다."
         action={<GuardLink href="/staff">직원 화면으로 돌아가기</GuardLink>}
       />
     );
