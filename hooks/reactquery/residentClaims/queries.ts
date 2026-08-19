@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { listResidentClaims, residentAutomatch, residentMyLink } from "./apis";
+import { listResidentClaims, residentAutomatch, residentMyLink, residentSearchBuildings } from "./apis";
 import type { ResidentClaimStatus } from "./apis";
 import { residentClaimKeys } from "./keys";
 
@@ -21,5 +21,12 @@ export function useResidentClaims(status?: ResidentClaimStatus) {
   return useQuery({
     queryKey: residentClaimKeys.list(status),
     queryFn: () => listResidentClaims(status),
+  });
+}
+
+export function useResidentBuildingSearch(q?: string) {
+  return useQuery({
+    queryKey: residentClaimKeys.buildingSearch(q),
+    queryFn: () => residentSearchBuildings(q),
   });
 }

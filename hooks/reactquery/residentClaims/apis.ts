@@ -228,3 +228,30 @@ export async function rejectResidentClaim(claimId: number): Promise<void> {
   });
   if (error) throw new Error(error.message);
 }
+
+export interface ResidentBuildingOption {
+  buildingId: number;
+  orgId: number;
+  name: string;
+  address: string | null;
+}
+
+type ResidentBuildingRow = {
+  building_id: number;
+  org_id: number;
+  name: string;
+  address: string | null;
+};
+
+export async function residentSearchBuildings(q?: string): Promise<ResidentBuildingOption[]> {
+  const { data, error } = await createClient().rpc("resident_search_buildings", {
+    p_q: q ?? null,
+  });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as ResidentBuildingRow[]).map((row) => ({
+    buildingId: row.building_id,
+    orgId: row.org_id,
+    name: row.name,
+    address: row.address,
+  }));
+}

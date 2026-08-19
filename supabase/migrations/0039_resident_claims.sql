@@ -489,3 +489,30 @@ revoke execute on function approve_res_claim(bigint, bigint) from anon, public;
 grant execute on function approve_res_claim(bigint, bigint) to authenticated;
 revoke execute on function reject_res_claim(bigint) from anon, public;
 grant execute on function reject_res_claim(bigint) to authenticated;
+
+-- ===== Resident building search (manual claim: resident is not org-scoped, so buildings RLS does not apply) =====
+create function resident_search_buildings(p_q text default null)
+returns table (
+  building_id bigint,
+  org_id bigint,
+  name text,
+  address text
+)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select b.id, b.org_id, b.name, b.address
+  from buildings b
+  where b.deleted_at is null
+    and (
+      nullif(btrim(coalesce(p_q, '')), '') is null
+      or b.name ilike '%' || btrim(p_q) || '%'
+      or b.address ilike '%' || btrim(p_q) || '%'
+    )
+  order by b.name
+  limit 50;
+$$;
+revoke execute on function resident_search_buildings(text) from anon, public;
+grant execute on function resident_search_buildings(text) to authenticated;

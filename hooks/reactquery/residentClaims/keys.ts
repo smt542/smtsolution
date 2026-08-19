@@ -10,4 +10,5 @@ export const residentClaimKeys = {
     "list",
     status ?? "all",
   ] as const,
+  buildingSearch: (q?: string) => ["residentClaims", "buildingSearch", q ?? ""] as const,
 };
