@@ -27,7 +27,7 @@ function req(body: unknown) {
   });
 }
 const validBody = {
-  username: "kim", password: "pw12", fullName: "김직원",
+  username: "kim", password: "1234", fullName: "김직원",
   role: "staff", staffType: "manager_staff", permissions: [], roleIds: [],
 };
 
@@ -69,10 +69,22 @@ describe("POST /api/accounts", () => {
     const res = await POST(req(validBody));
     expect(res.status).toBe(201);
     expect(createUser).toHaveBeenCalledWith(expect.objectContaining({
-      email: "demo.kim@staff.gwanribiseo.app", password: "pw12", email_confirm: true,
+      email: "demo.kim@staff.gwanribiseo.app", password: "1234", email_confirm: true,
     }));
     expect(rpc).toHaveBeenCalledWith("provision_member", expect.objectContaining({
       p_user_id: "new-uid", p_username: "kim", p_staff_type: "manager_staff",
     }));
+  });
+
+  it.each(["12a4", "123", "12345"])("숫자 4자리가 아닌 password %s → 422", async (password) => {
+    createClient.mockResolvedValue(serverClient({
+      user: { id: "u1" }, ctx: { org_id: 1, role: "org_owner", permissions: [] },
+    }));
+    const createUser = vi.fn();
+    createAdminClient.mockReturnValue({ auth: { admin: { createUser } } });
+
+    const res = await POST(req({ ...validBody, password }));
+    expect(res.status).toBe(422);
+    expect(createUser).not.toHaveBeenCalled();
   });
 });

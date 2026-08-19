@@ -22,8 +22,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ userId
   if (!inOrg) return NextResponse.json({ error: "대상 계정을 찾을 수 없습니다." }, { status: 404 });
 
   const { password } = await req.json().catch(() => ({}));
-  if (!password || String(password).length < 4)
-    return NextResponse.json({ error: "비밀번호는 4자 이상 입력해 주세요." }, { status: 422 });
+  if (typeof password !== "string" || !/^\d{4}$/.test(password))
+    return NextResponse.json({ error: "비밀번호는 숫자 4자리를 입력해 주세요." }, { status: 422 });
 
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.updateUserById(userId, { password });

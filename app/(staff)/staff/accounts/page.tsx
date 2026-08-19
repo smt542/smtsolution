@@ -6,36 +6,36 @@ import { useMe } from "@/hooks/reactquery/auth";
 import { canManageAccounts, isMaster } from "@/lib/auth/permissions";
 import type { StaffType } from "@/hooks/reactquery/auth";
 import {
-  useAccounts, useCreateAccount, useUpdateAccountBasic, useUpdatePermissions, useSetActive,
+  useAccounts, useCreateAccount, useUpdateAccountBasic, useUpdatePermissions, useSetActive, useResetPassword,
   type Account, type AccountCreateInput, type AccountBasicInput, type PermissionInput,
 } from "@/hooks/reactquery/accounts";
-import { useStaffRoles } from "@/hooks/reactquery/staffRoles";
 import { AccountTable } from "./components/AccountTable";
 import { AccountFormModal } from "./components/AccountFormModal";
 
 const TABS = [
-  { id: "all", label: "전체" }, { id: "admin", label: "관리자" }, { id: "staff", label: "직원" },
-  { id: "field", label: "현장직원" }, { id: "support", label: "스태프" }, { id: "tenant", label: "입주자" },
+  { id: "office", label: "사무실 관리자" },
+  { id: "field", label: "현장 관리자" },
+  { id: "tenant", label: "입주자" },
 ];
-const TYPE_BY_TAB: Record<string, StaffType | undefined> = {
-  all: undefined, admin: "manager_staff", staff: "manager_staff",
-  field: "field_staff", support: "support_staff", tenant: "tenant",
+const TYPES_BY_TAB: Record<string, StaffType[]> = {
+  office: ["manager_staff"],
+  field: ["field_staff", "support_staff"],
+  tenant: ["tenant"],
 };
 
 export default function AccountsPage() {
   const { data: me } = useMe();
-  const [tab, setTab] = useState("all");
+  const [tab, setTab] = useState("office");
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Account | null>(null);
 
-  const type = TYPE_BY_TAB[tab];
-  const { data: accounts = [] } = useAccounts({ search: search || undefined, type });
-  const { data: roles = [] } = useStaffRoles();
+  const { data: accounts = [] } = useAccounts({ search: search || undefined });
   const createM = useCreateAccount();
   const basicM = useUpdateAccountBasic();
   const permM = useUpdatePermissions();
   const activeM = useSetActive();
+  const resetPasswordM = useResetPassword();
 
   if (!canManageAccounts(me)) {
     return (
@@ -45,16 +45,18 @@ export default function AccountsPage() {
     );
   }
 
-  // 관리자/직원 탭은 role로 클라이언트 세분 필터
-  const filtered = accounts.filter((a) =>
-    tab === "admin" ? isMaster(a.role) : tab === "staff" ? !isMaster(a.role) : true);
+  const filtered = accounts.filter((account) => TYPES_BY_TAB[tab].includes(account.staffType));
 
   const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (a: Account) => { setEditing(a); setModalOpen(true); };
   const closeModal = () => { setModalOpen(false); setEditing(null); };
 
   const onCreate = async (input: AccountCreateInput) => {
-    try { await createM.mutateAsync(input); toast.success("저장되었습니다"); }
+    try {
+      const created = await createM.mutateAsync(input);
+      toast.success("저장되었습니다");
+      return created;
+    }
     catch (e) { toast.error(e instanceof Error ? e.message : "오류가 발생했습니다"); throw e; }
   };
   const onUpdateBasic = async (userId: string, input: AccountBasicInput) => {
@@ -65,40 +67,78 @@ export default function AccountsPage() {
     try { await permM.mutateAsync({ userId, input }); }
     catch (e) { toast.error(e instanceof Error ? e.message : "권한 변경 실패"); throw e; }
   };
-  const onToggleActive = async (a: Account) => {
-    try { await activeM.mutateAsync({ userId: a.userId, active: !a.isActive }); toast.success("변경되었습니다"); }
-    catch (e) { toast.error(e instanceof Error ? e.message : "오류가 발생했습니다"); }
+  const onResetPassword = async (userId: string, password: string) => {
+    try {
+      await resetPasswordM.mutateAsync({ userId, password });
+      toast.success("변경되었습니다");
+    }
+    catch (e) { toast.error(e instanceof Error ? e.message : "오류가 발생했습니다"); throw e; }
+  };
+  const onSetActive = async (userId: string, active: boolean) => {
+    try {
+      await activeM.mutateAsync({ userId, active });
+      toast.success("변경되었습니다");
+    }
+    catch (e) { toast.error(e instanceof Error ? e.message : "오류가 발생했습니다"); throw e; }
+  };
+  const onToggleActive = async (account: Account) => {
+    try {
+      await onSetActive(account.userId, !account.isActive);
+    } catch {
+      // onSetActive shows the error toast.
+    }
   };
 
   return (
     <div className="flex h-full min-h-screen flex-col gap-4 p-6">
-      <div className="flex items-center justify-between">
+      <div>
         <h1 className="text-2xl font-extrabold text-t1">계정·직원 관리</h1>
-        <Button variant="primary" onClick={openCreate}>+ 계정 등록</Button>
       </div>
 
       <Tabs tabs={TABS} active={tab} onChange={setTab} />
 
-      <div className="max-w-md">
-        <SearchBar value={search} onChange={setSearch} placeholder="이름·아이디·연락처 검색" />
-      </div>
+      <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
+        <div className="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-extrabold text-t1">계정 목록</h2>
+            <span className="rounded-lg bg-bg px-2.5 py-1 text-xs font-bold text-t3">
+              {filtered.length}개
+            </span>
+          </div>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <div className="w-full sm:w-72">
+              <SearchBar value={search} onChange={setSearch} placeholder="이름·아이디·연락처 검색" />
+            </div>
+            <Button type="button" variant="primary" onClick={openCreate} className="shrink-0">
+              ＋ 계정 등록
+            </Button>
+          </div>
+        </div>
 
-      {filtered.length === 0 ? (
-        <EmptyState message="조건에 맞는 계정이 없습니다" />
-      ) : (
-        <AccountTable accounts={filtered} onRowClick={openEdit} onToggleActive={onToggleActive} />
-      )}
+        <div className="min-h-0 flex-1 overflow-auto p-4">
+          {filtered.length === 0 ? (
+            <EmptyState message="조건에 맞는 계정이 없습니다" />
+          ) : (
+            <AccountTable accounts={filtered} onRowClick={openEdit} onToggleActive={onToggleActive} />
+          )}
+        </div>
+      </section>
 
       <AccountFormModal
         open={modalOpen}
         onClose={closeModal}
         editing={editing}
-        roles={roles}
+        createStaffType={tab === "field" ? "field_staff" : "manager_staff"}
         canEditPermissions={isMaster(me?.role)}
         onCreate={onCreate}
         onUpdateBasic={onUpdateBasic}
         onUpdatePermissions={onUpdatePermissions}
-        isPending={createM.isPending || basicM.isPending || permM.isPending}
+        onResetPassword={onResetPassword}
+        onSetActive={onSetActive}
+        isPending={
+          createM.isPending || basicM.isPending || permM.isPending
+          || resetPasswordM.isPending || activeM.isPending
+        }
       />
     </div>
   );

@@ -24,6 +24,8 @@ export async function POST(req: Request) {
   const { username, password, fullName, phone, phoneSub, role, staffType, permissions, affiliation, roleIds } = body ?? {};
   if (!username || !password || !fullName || !staffType)
     return NextResponse.json({ error: "필수 항목이 누락되었습니다." }, { status: 422 });
+  if (typeof password !== "string" || !/^\d{4}$/.test(password))
+    return NextResponse.json({ error: "비밀번호는 숫자 4자리를 입력해 주세요." }, { status: 422 });
 
   // 4) 회사코드(slug)
   const { data: org } = await supabase.from("organizations").select("slug").eq("id", ctx.org_id).single();
