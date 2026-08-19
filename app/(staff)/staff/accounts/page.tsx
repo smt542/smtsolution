@@ -11,6 +11,7 @@ import {
 } from "@/hooks/reactquery/accounts";
 import { AccountTable } from "./components/AccountTable";
 import { AccountFormModal } from "./components/AccountFormModal";
+import { ResidentClaimsPanel } from "./components/ResidentClaimsPanel";
 
 const TABS = [
   { id: "office", label: "사무실 관리자" },
@@ -20,7 +21,6 @@ const TABS = [
 const TYPES_BY_TAB: Record<string, StaffType[]> = {
   office: ["manager_staff"],
   field: ["field_staff", "support_staff"],
-  tenant: ["tenant"],
 };
 
 export default function AccountsPage() {
@@ -45,7 +45,9 @@ export default function AccountsPage() {
     );
   }
 
-  const filtered = accounts.filter((account) => TYPES_BY_TAB[tab].includes(account.staffType));
+  const filtered = tab === "tenant"
+    ? []
+    : accounts.filter((account) => TYPES_BY_TAB[tab].includes(account.staffType));
 
   const openCreate = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (a: Account) => { setEditing(a); setModalOpen(true); };
@@ -97,49 +99,55 @@ export default function AccountsPage() {
 
       <Tabs tabs={TABS} active={tab} onChange={setTab} />
 
-      <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
-        <div className="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-extrabold text-t1">계정 목록</h2>
-            <span className="rounded-lg bg-bg px-2.5 py-1 text-xs font-bold text-t3">
-              {filtered.length}개
-            </span>
-          </div>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-            <div className="w-full sm:w-72">
-              <SearchBar value={search} onChange={setSearch} placeholder="이름·아이디·연락처 검색" />
+      {tab === "tenant" ? (
+        <ResidentClaimsPanel />
+      ) : (
+        <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
+          <div className="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-extrabold text-t1">계정 목록</h2>
+              <span className="rounded-lg bg-bg px-2.5 py-1 text-xs font-bold text-t3">
+                {filtered.length}개
+              </span>
             </div>
-            <Button type="button" variant="primary" onClick={openCreate} className="shrink-0">
-              ＋ 계정 등록
-            </Button>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              <div className="w-full sm:w-72">
+                <SearchBar value={search} onChange={setSearch} placeholder="이름·아이디·연락처 검색" />
+              </div>
+              <Button type="button" variant="primary" onClick={openCreate} className="shrink-0">
+                ＋ 계정 등록
+              </Button>
+            </div>
           </div>
-        </div>
 
-        <div className="min-h-0 flex-1 overflow-auto p-4">
-          {filtered.length === 0 ? (
-            <EmptyState message="조건에 맞는 계정이 없습니다" />
-          ) : (
-            <AccountTable accounts={filtered} onRowClick={openEdit} onToggleActive={onToggleActive} />
-          )}
-        </div>
-      </section>
+          <div className="min-h-0 flex-1 overflow-auto p-4">
+            {filtered.length === 0 ? (
+              <EmptyState message="조건에 맞는 계정이 없습니다" />
+            ) : (
+              <AccountTable accounts={filtered} onRowClick={openEdit} onToggleActive={onToggleActive} />
+            )}
+          </div>
+        </section>
+      )}
 
-      <AccountFormModal
-        open={modalOpen}
-        onClose={closeModal}
-        editing={editing}
-        createStaffType={tab === "field" ? "field_staff" : "manager_staff"}
-        canEditPermissions={isMaster(me?.role)}
-        onCreate={onCreate}
-        onUpdateBasic={onUpdateBasic}
-        onUpdatePermissions={onUpdatePermissions}
-        onResetPassword={onResetPassword}
-        onSetActive={onSetActive}
-        isPending={
-          createM.isPending || basicM.isPending || permM.isPending
-          || resetPasswordM.isPending || activeM.isPending
-        }
-      />
+      {tab !== "tenant" && (
+        <AccountFormModal
+          open={modalOpen}
+          onClose={closeModal}
+          editing={editing}
+          createStaffType={tab === "field" ? "field_staff" : "manager_staff"}
+          canEditPermissions={isMaster(me?.role)}
+          onCreate={onCreate}
+          onUpdateBasic={onUpdateBasic}
+          onUpdatePermissions={onUpdatePermissions}
+          onResetPassword={onResetPassword}
+          onSetActive={onSetActive}
+          isPending={
+            createM.isPending || basicM.isPending || permM.isPending
+            || resetPasswordM.isPending || activeM.isPending
+          }
+        />
+      )}
     </div>
   );
 }
