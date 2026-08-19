@@ -55,24 +55,32 @@
 
 ---
 
-## 3. 페이지별 권한 칩 taxonomy (프로토타입 line 548 원문)
+## 3. 페이지별 권한 칩 taxonomy — 확정 (Option 1: 프로토타입 칩 + 수납·공지·민원 3칩 추가)
 
-| 그룹 | 칩 라벨 | 매핑(제안, 기존 `MODULE_KEYS` 우선) |
+2026-08-19 사용자 확정. 프로토타입 칩(그룹·라벨)을 그대로 쓰되, 프로토타입이 누락한 `payment`·`notices`·`complaints`도 **칩으로 노출**해 권한 세분을 유지한다. 라벨은 기존 `MODULE_LABELS` 사용.
+
+| 그룹 | 칩 라벨 | feature_permissions 키 |
 |---|---|---|
-| 관리업무 | 건물·입주자 관리 | `buildings` + `tenants` |
+| 관리업무 | 건물·입주자 관리 | `buildings` + `tenants` (한 칩이 두 키 동시 토글) |
 | | 관리비 부과 세팅 | `billing` |
-| | 항목등록 관리 | (신규 `fee_items` 또는 `settings`에 포함 — Phase 2 확정) |
+| | 항목등록 관리 | `fee_items` (**신규 키**) |
 | | 서류 발행·출력 | `bill_publish` |
 | | 미납 관리 | `overdue` |
-| | 협력업체 관리 | (신규 `vendors`) |
-| | 장기수선비 관리 | (신규 `long_term_repair`) |
+| | 협력업체 관리 | `vendors` (**신규 키**) |
+| | 장기수선비 관리 | `long_term_repair` (**신규 키**) |
 | | 문자·알림톡 관리 | `messaging` |
+| | 수납 관리 *(추가)* | `payment` |
+| | 공지 관리 *(추가)* | `notices` |
+| | 민원·AS *(추가)* | `complaints` |
 | 공과금 관리 | 공과금 관리 전체 | `utilities` |
 | 이사정산 | 이사정산 전체 | `moving` |
 | 설정 | 계정·직원 | `accounts` |
 | | 셋업 설정 | `settings` |
 
-> **Phase 2 미결(사용자 확정 필요):** 프로토타입 칩은 현재 13개 `MODULE_KEYS`보다 **coarse**하여 `payment`(수납)·`notices`(공지)·`complaints`(민원) 칩이 없다. 이 키들을 (a) 인접 칩에 번들, (b) 별도 칩 추가 중 택1. 신규 키(`vendors`·`long_term_repair`·`fee_items`)는 **권한 기록은 되나 각 화면 게이트 배선은 후속**(파급 최소화). Phase 2 착수 시 매핑표를 사용자와 확정한다.
+- `payment`·`notices`·`complaints`는 **이미 `MODULE_KEYS`에 존재** → 칩만 추가(라벨 = 기존 `MODULE_LABELS`: 수납 처리 / 공지 관리 / 민원·AS).
+- 신규 키 `fee_items`·`vendors`·`long_term_repair`만 `MODULE_KEYS`+`MODULE_LABELS`에 추가. **칩 토글·권한 기록은 즉시** 동작하되, 각 대상 화면의 게이트를 이 신규 키로 바꾸는 배선은 **후속**(현행 앱 전역 권한체크 파급 최소화 — 기존 화면은 종전 동작 유지).
+- 마스터(회원유형=마스터 → `role=org_owner`)는 전 권한 통과(`current_user_is_master`) → 칩 전체선택/비활성 표시.
+- 비마스터 직원은 칩 **조회만**(수정 불가) — 기존 `canEditPermissions` + RPC `admin_set_member_permissions`(master-only) 유지.
 
 ---
 
