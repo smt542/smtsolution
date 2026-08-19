@@ -7,22 +7,16 @@ export interface PlatformNavItem {
 
 export const PLATFORM_NAV_ITEMS: PlatformNavItem[] = [
   {
-    label: "플랫폼 현황",
+    label: "대시보드",
     href: "/platform-admin",
-    description: "조직·계정·건물 요약",
+    description: "HQ 핵심 지표·발송 비용",
     icon: "M4 13h6V4H4v9zm10 7h6V11h-6v9zM4 20h6v-3H4v3zm10-13h6V4h-6v3z",
   },
   {
-    label: "조직 관리",
+    label: "테넌트 관리",
     href: "/platform-admin/organizations",
-    description: "입점 조직 조회",
+    description: "입점 테넌트 조회",
     icon: "M3 21h18M5 21V7l7-4 7 4v14M9 10h2m2 0h2m-6 4h2m2 0h2m-6 4h6",
-  },
-  {
-    label: "계정 관리",
-    href: "/platform-admin/accounts",
-    description: "전체 소속 계정 조회",
-    icon: "M12 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM4 21a8 8 0 0 1 16 0",
   },
   {
     label: "포인트 관리",
@@ -33,8 +27,14 @@ export const PLATFORM_NAV_ITEMS: PlatformNavItem[] = [
   {
     label: "청구 관리",
     href: "/platform-admin/billing",
-    description: "포인트 충전 결제 내역",
+    description: "테넌트 발송 사용량·청구",
     icon: "M3 6h18v12H3V6zm0 4h18M7 15h4",
+  },
+  {
+    label: "계정·권한",
+    href: "/platform-admin/accounts",
+    description: "전체 계정·권한 조회",
+    icon: "M12 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM4 21a8 8 0 0 1 16 0",
   },
   {
     label: "설정",

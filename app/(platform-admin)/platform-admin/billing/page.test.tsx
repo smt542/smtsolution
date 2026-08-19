@@ -1,21 +1,58 @@
-import { it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
 import PlatformBillingPage from "./page";
 
-vi.mock("@/hooks/reactquery/platform", () => ({
-  usePlatformTransactions: () => ({
-    data: [
-      { id: 1, orgId: 1, organizationName: "한빛관리", type: "charge", points: 1000, amountKrw: 110000, memo: null, createdBy: "u1", createdByName: "김운영", createdAt: "2026-08-02T00:00:00Z" },
-    ],
-    isPending: false, isError: false, refetch: vi.fn(),
-  }),
+const hooks = vi.hoisted(() => ({
+  usePlatformOrgBilling: vi.fn(),
+  useMarkOrgBillingPaid: vi.fn(),
+  mutateAsync: vi.fn(),
 }));
 
-it("충전 결제 내역에 금액과 포인트를 표시한다", () => {
-  render(<PlatformBillingPage />);
-  expect(screen.getByText("한빛관리")).toBeInTheDocument();
-  // 누적 결제액(헤더)과 표 행에 동일 금액이 각각 렌더된다
-  expect(screen.getAllByText("110,000")).toHaveLength(2);
-  expect(screen.getByText(/1,000/)).toBeInTheDocument();
-  expect(screen.getByText("김운영")).toBeInTheDocument();
+vi.mock("@/hooks/reactquery/platform", () => ({
+  usePlatformOrgBilling: hooks.usePlatformOrgBilling,
+  useMarkOrgBillingPaid: hooks.useMarkOrgBillingPaid,
+}));
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+
+const rows = [
+  { orgId: 1, orgName: "한빛관리", orgEmail: "a@x.kr", status: "unpaid", alimtalkCount: 120, smsCount: 30, faxCount: 4, subtotalKrw: 20000, vatKrw: 2000, totalKrw: 22000, prevTotalKrw: 18000 },
+  { orgId: 2, orgName: "새봄관리", orgEmail: "b@x.kr", status: "paid", alimtalkCount: 80, smsCount: 10, faxCount: 0, subtotalKrw: 15000, vatKrw: 1500, totalKrw: 16500, prevTotalKrw: 16500 },
+  { orgId: 3, orgName: "가을관리", orgEmail: null, status: "none", alimtalkCount: 0, smsCount: 0, faxCount: 0, subtotalKrw: 0, vatKrw: 0, totalKrw: 0, prevTotalKrw: 0 },
+];
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  hooks.mutateAsync.mockResolvedValue(null);
+  hooks.usePlatformOrgBilling.mockReturnValue({ data: rows, isPending: false, isError: false, refetch: vi.fn() });
+  hooks.useMarkOrgBillingPaid.mockReturnValue({ mutateAsync: hooks.mutateAsync, isPending: false });
+});
+
+describe("PlatformBillingPage", () => {
+  it("테넌트별 청구액·상태를 표시한다", () => {
+    render(<PlatformBillingPage />);
+    expect(screen.getByRole("heading", { name: "청구 관리" })).toBeInTheDocument();
+    expect(screen.getByText("한빛관리")).toBeInTheDocument();
+    expect(screen.getByText("새봄관리")).toBeInTheDocument();
+    expect(screen.getByText("22,000")).toBeInTheDocument();
+    // 상태별 처리 버튼: 미입금→입금 처리, 입금→입금 취소, 청구 없음→버튼 없음
+    expect(screen.getByRole("button", { name: "입금 처리" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "입금 취소" })).toBeInTheDocument();
+  });
+
+  it("상태 탭으로 미입금만 거른다", () => {
+    render(<PlatformBillingPage />);
+    fireEvent.click(screen.getByRole("button", { name: "미입금" }));
+    expect(screen.getByText("한빛관리")).toBeInTheDocument();
+    expect(screen.queryByText("새봄관리")).not.toBeInTheDocument();
+    expect(screen.queryByText("가을관리")).not.toBeInTheDocument();
+  });
+
+  it("입금 처리 버튼이 mark-paid를 호출한다", async () => {
+    render(<PlatformBillingPage />);
+    fireEvent.click(screen.getByRole("button", { name: "미입금" }));
+    fireEvent.click(screen.getByRole("button", { name: "입금 처리" }));
+    expect(hooks.mutateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ orgId: 1, paid: true }),
+    );
+  });
 });

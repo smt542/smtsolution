@@ -6,6 +6,9 @@ export const platformKeys = {
   organizations: () => [...platformKeys.all, "organizations"] as const,
   accounts: () => [...platformKeys.all, "accounts"] as const,
   settings: () => [...platformKeys.all, "settings"] as const,
+  billing: (month: string) => [...platformKeys.all, "billing", month] as const,
+  overviewMetrics: (month: string) =>
+    [...platformKeys.all, "overview-metrics", month] as const,
   transactions: (opts?: { type?: PointTxType }) =>
     [...platformKeys.all, "transactions", opts?.type ?? "all"] as const,
   messagePointRates: (includeHistory = false) =>

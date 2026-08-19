@@ -1,143 +1,190 @@
 "use client";
 
-import Link from "next/link";
-import { Spinner } from "@/components/common";
-import { usePlatformOverview, usePlatformOrganizations, usePlatformTransactions } from "@/hooks/reactquery/platform";
+import { useMemo, useState } from "react";
+import { EmptyState, Spinner } from "@/components/common";
+import {
+  usePlatformOrgBilling,
+  usePlatformOverviewMetrics,
+} from "@/hooks/reactquery/platform";
 import { DataScopeNotice, PageHeader, QueryError } from "../_components/PageElements";
 
-const SUMMARY_CARDS = [
-  {
-    key: "activeOrganizationCount" as const,
-    label: "활성 조직",
-    description: "RLS 범위의 활성 조직",
-    color: "bg-blue-t text-blue",
-    icon: "M4 21h16M6 21V7l6-3 6 3v14M9 10h2m2 0h2m-6 4h2m2 0h2",
-  },
-  {
-    key: "accountCount" as const,
-    label: "소속 계정",
-    description: "조회 가능한 org_members",
-    color: "bg-green-t text-green",
-    icon: "M12 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM4 21a8 8 0 0 1 16 0",
-  },
-  {
-    key: "buildingCount" as const,
-    label: "운영 건물",
-    description: "삭제되지 않은 건물",
-    color: "bg-amber-t text-amber",
-    icon: "M5 21V5h14v16M9 9h2m2 0h2m-6 4h2m2 0h2m-6 4h6",
-  },
-];
+const num = (n: number) => n.toLocaleString("ko-KR");
+
+function currentMonthIso(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+}
+
+function shiftMonth(iso: string, delta: number): string {
+  const [year, month] = iso.split("-").map(Number);
+  const shifted = new Date(year, month - 1 + delta, 1);
+  return `${shifted.getFullYear()}-${String(shifted.getMonth() + 1).padStart(2, "0")}-01`;
+}
+
+function monthLabel(iso: string): string {
+  const [year, month] = iso.split("-").map(Number);
+  return `${year}년 ${month}월`;
+}
+
+function signed(n: number): string {
+  return `${n > 0 ? "+" : n < 0 ? "−" : ""}${num(Math.abs(n))}`;
+}
 
 export default function PlatformDashboardPage() {
-  const { data, isPending, isError, refetch } = usePlatformOverview();
-  const orgs = usePlatformOrganizations();
-  const recent = usePlatformTransactions({ type: "charge" });
-  const totalBalance = orgs.data?.reduce((sum, organization) => sum + organization.pointBalance, 0) ?? null;
+  const [month, setMonth] = useState(currentMonthIso);
+  const metricsQuery = usePlatformOverviewMetrics(month);
+  const billingQuery = usePlatformOrgBilling(month);
+
+  const metrics = metricsQuery.data;
+  const appRate = metrics && metrics.unitCount > 0
+    ? Math.round((metrics.linkedUnitCount / metrics.unitCount) * 100)
+    : 0;
+  const costDelta = metrics ? metrics.sendCostKrw - metrics.sendCostPrevKrw : 0;
+
+  const tenantRows = useMemo(
+    () => (billingQuery.data ?? []).filter(
+      (row) => row.alimtalkCount + row.smsCount + row.faxCount > 0,
+    ),
+    [billingQuery.data],
+  );
 
   return (
     <div className="mx-auto w-full max-w-7xl p-5 sm:p-6 lg:p-8">
-      <PageHeader
-        eyebrow="PLATFORM OVERVIEW"
-        title="플랫폼 운영 현황"
-        description="현재 계정에 허용된 조직, 계정, 건물 데이터를 한눈에 확인합니다."
-      />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <PageHeader
+          eyebrow="HQ CONSOLE"
+          title="대시보드"
+          description="계약 업체·관리 건물·입주자 앱 연결과 월 발송 비용을 한눈에 확인합니다."
+        />
+        <MonthStepper month={month} onChange={setMonth} />
+      </div>
 
       <div className="mt-5">
         <DataScopeNotice />
       </div>
 
-      <section className="mt-6" aria-label="플랫폼 요약">
-        {isPending ? (
+      <section className="mt-6" aria-label="핵심 지표">
+        {metricsQuery.isPending ? (
           <div className="rounded-2xl bg-white py-16"><Spinner /></div>
-        ) : isError || !data ? (
-          <QueryError onRetry={() => void refetch()} />
+        ) : metricsQuery.isError || !metrics ? (
+          <QueryError onRetry={() => void metricsQuery.refetch()} />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {SUMMARY_CARDS.map((card) => (
-              <article key={card.key} className="rounded-2xl border border-line bg-surface p-5 shadow-card">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="text-sm font-bold text-t2">{card.label}</div>
-                    <div className="mt-3 text-[32px] font-extrabold leading-none text-t1 num">{data[card.key].toLocaleString("ko-KR")}</div>
-                    <div className="mt-2 text-xs text-t4">{card.description}</div>
-                  </div>
-                  <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${card.color}`}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
-                      <path d={card.icon} />
-                    </svg>
-                  </div>
-                </div>
-              </article>
-            ))}
-            <article
-              aria-label="총 포인트 잔액"
-              className="rounded-2xl border border-line bg-surface p-5 shadow-card"
-            >
-              <div className="text-sm font-bold text-t2">총 포인트 잔액</div>
-              {orgs.isPending ? (
-                <div role="status" aria-label="조직 포인트 잔액을 불러오는 중" className="mt-3">
-                  <Spinner />
-                </div>
-              ) : orgs.isError || totalBalance === null ? (
-                <div className="mt-3">
-                  <QueryError onRetry={() => void orgs.refetch()} />
-                </div>
-              ) : (
-                <>
-                  <div className="mt-3 text-[32px] font-extrabold leading-none text-t1 num">{totalBalance.toLocaleString("ko-KR")}</div>
-                  <div className="mt-2 text-xs text-t4">전 조직 합계(sum of points)</div>
-                </>
-              )}
-            </article>
+            <KpiCard
+              label="계약 업체"
+              value={`${num(metrics.orgActive)}곳`}
+              sub={`정지 ${num(metrics.orgSuspended)} · 해지 ${num(metrics.orgTerminated)}`}
+              color="bg-blue-t text-blue"
+              icon="M4 21h16M6 21V7l6-3 6 3v14M9 10h2m2 0h2m-6 4h2m2 0h2"
+            />
+            <KpiCard
+              label="관리 건물"
+              value={`${num(metrics.buildingCount)}곳`}
+              sub={`이번 달 +${num(metrics.buildingAddedThisMonth)}곳`}
+              color="bg-green-t text-green"
+              icon="M5 21V5h14v16M9 9h2m2 0h2m-6 4h2m2 0h2m-6 4h6"
+            />
+            <KpiCard
+              label="총 입주자"
+              value={`${num(metrics.unitCount)}세대`}
+              sub={`앱 연결 ${num(metrics.linkedUnitCount)}세대 (${appRate}%)`}
+              color="bg-amber-t text-amber"
+              icon="M12 4a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM4 21a8 8 0 0 1 16 0"
+            />
+            <KpiCard
+              label={`${monthLabel(month).split(" ")[1]} 발송 비용`}
+              value={`${num(metrics.sendCostKrw)}원`}
+              sub={`전월 대비 ${signed(costDelta)}원`}
+              color="bg-blue-t text-blue"
+              icon="M3 6h18v12H3zM3 10h18M7 15h4"
+            />
           </div>
         )}
       </section>
 
-      <section className="mt-6 rounded-2xl border border-line bg-surface p-5 shadow-card">
-        <h3 className="text-base font-extrabold text-t1">빠른 이동</h3>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <QuickLink href="/platform-admin/organizations" title="조직 목록 보기" description="조직 상태와 건물·계정 수 확인" />
-          <QuickLink href="/platform-admin/accounts" title="계정 목록 보기" description="조직별 소속 계정과 활성 상태 확인" />
+      <section aria-label="테넌트별 발송 비용" className="mt-6 rounded-2xl border border-line bg-surface shadow-card">
+        <div className="flex items-center justify-between border-b border-line p-4">
+          <div>
+            <h3 className="text-base font-extrabold text-t1">테넌트별 발송 비용</h3>
+            <p className="mt-1 text-xs text-t3">{monthLabel(month)} · 발송량 기준 (부가세 제외)</p>
+          </div>
         </div>
-      </section>
-
-      <section aria-label="최근 충전" className="mt-6 rounded-2xl border border-line bg-surface p-5 shadow-card">
-        <h3 className="text-base font-extrabold text-t1">최근 충전</h3>
-        {recent.isPending ? (
-          <div role="status" aria-label="최근 충전 내역을 불러오는 중" className="mt-4">
-            <Spinner />
-          </div>
-        ) : recent.isError || !recent.data ? (
-          <div className="mt-4">
-            <QueryError onRetry={() => void recent.refetch()} />
-          </div>
+        {billingQuery.isPending ? (
+          <div className="py-16"><Spinner /></div>
+        ) : billingQuery.isError ? (
+          <div className="p-4"><QueryError onRetry={() => void billingQuery.refetch()} /></div>
+        ) : tenantRows.length === 0 ? (
+          <EmptyState message="발송 내역이 없습니다" />
         ) : (
-          <ul className="mt-4 divide-y divide-line">
-            {recent.data.slice(0, 5).map((t) => (
-              <li key={t.id} className="flex items-center justify-between py-3 text-sm">
-                <span className="font-bold text-t1">{t.organizationName}</span>
-                <span className="text-green font-bold num">+{t.points.toLocaleString("ko-KR")} P</span>
-              </li>
-            ))}
-            {recent.data.length === 0 && <li className="py-3 text-sm text-t3">최근 충전 내역이 없습니다.</li>}
-          </ul>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] text-sm">
+              <thead>
+                <tr className="border-b border-line bg-bg/70 text-left text-xs font-bold text-t3">
+                  <th className="px-5 py-3">업체명</th>
+                  <th className="px-4 py-3 text-right">알림톡</th>
+                  <th className="px-4 py-3 text-right">문자</th>
+                  <th className="px-4 py-3 text-right">팩스</th>
+                  <th className="px-5 py-3 text-right">합계(원)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tenantRows.map((row) => (
+                  <tr key={row.orgId} className="border-b border-line last:border-0 hover:bg-bg/50">
+                    <td className="px-5 py-4 font-bold text-t1">{row.orgName}</td>
+                    <td className="px-4 py-4 text-right text-t2 num">{num(row.alimtalkCount)}</td>
+                    <td className="px-4 py-4 text-right text-t2 num">{num(row.smsCount)}</td>
+                    <td className="px-4 py-4 text-right text-t2 num">{num(row.faxCount)}</td>
+                    <td className="px-5 py-4 text-right font-extrabold text-t1 num">{num(row.subtotalKrw)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
     </div>
   );
 }
 
-function QuickLink({ href, title, description }: { href: string; title: string; description: string }) {
+function MonthStepper({ month, onChange }: { month: string; onChange: (m: string) => void }) {
   return (
-    <Link href={href} className="group flex items-center justify-between rounded-2xl border border-line px-4 py-4 hover:border-[#B9D2FA] hover:bg-blue-t2">
-      <span>
-        <span className="block text-sm font-bold text-t1">{title}</span>
-        <span className="mt-1 block text-xs text-t3">{description}</span>
-      </span>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-t4 group-hover:text-blue" aria-hidden="true">
-        <path d="m9 18 6-6-6-6" />
-      </svg>
-    </Link>
+    <div className="flex items-center gap-1 rounded-xl border border-line bg-surface p-1">
+      <button
+        type="button"
+        aria-label="이전 달"
+        onClick={() => onChange(shiftMonth(month, -1))}
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-t3 hover:bg-bg hover:text-t1"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+      </button>
+      <span className="min-w-[92px] text-center text-sm font-extrabold text-t1">{monthLabel(month)}</span>
+      <button
+        type="button"
+        aria-label="다음 달"
+        onClick={() => onChange(shiftMonth(month, 1))}
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-t3 hover:bg-bg hover:text-t1"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+      </button>
+    </div>
+  );
+}
+
+function KpiCard({ label, value, sub, color, icon }: { label: string; value: string; sub: string; color: string; icon: string }) {
+  return (
+    <article className="rounded-2xl border border-line bg-surface p-5 shadow-card">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="text-sm font-bold text-t2">{label}</div>
+          <div className="mt-3 text-[28px] font-extrabold leading-none text-t1 num">{value}</div>
+          <div className="mt-2 text-xs text-t4">{sub}</div>
+        </div>
+        <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${color}`}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
+            <path d={icon} />
+          </svg>
+        </div>
+      </div>
+    </article>
   );
 }

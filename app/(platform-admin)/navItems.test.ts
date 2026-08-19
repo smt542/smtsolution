@@ -15,7 +15,7 @@ describe("platform admin navigation", () => {
   it("루트 메뉴는 하위 페이지에서 활성화되지 않는다", () => {
     expect(isPlatformNavActive("/platform-admin", "/platform-admin")).toBe(true);
     expect(isPlatformNavActive("/platform-admin/accounts", "/platform-admin")).toBe(false);
-    expect(platformPageTitle("/platform-admin/accounts")).toBe("계정 관리");
+    expect(platformPageTitle("/platform-admin/accounts")).toBe("계정·권한");
     expect(platformPageTitle("/platform-admin/settings")).toBe("설정");
   });
 });
