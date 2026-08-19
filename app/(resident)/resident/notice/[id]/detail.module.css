@@ -1,0 +1,120 @@
+.page {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+
+.header {
+  flex: none;
+  min-height: 58px;
+  padding: env(safe-area-inset-top) 16px 0;
+  border-bottom: 1px solid var(--line2);
+  display: grid;
+  grid-template-columns: 42px 1fr 42px;
+  align-items: center;
+}
+
+.header a {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  color: var(--t1);
+}
+
+.header svg {
+  width: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 18px;
+  text-align: center;
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.article {
+  padding: 28px 22px 48px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.normal { background: var(--bg); color: var(--t2); }
+.important { background: var(--amber-t); color: var(--amber); }
+.urgent { background: color-mix(in srgb, var(--red) 10%, white); color: var(--red); }
+
+.article h2 {
+  margin: 12px 0 0;
+  font-size: 23px;
+  line-height: 1.4;
+  letter-spacing: -0.035em;
+}
+
+.metadata {
+  margin: 10px 0 0;
+  display: flex;
+  gap: 6px;
+  color: var(--t3);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.content {
+  margin-top: 26px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line2);
+  color: var(--t2);
+  font-size: 15px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.center {
+  flex: 1;
+  min-height: 0;
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 13px;
+  color: var(--t3);
+  text-align: center;
+  font-size: 13px;
+}
+
+.center b { color: var(--t1); font-size: 17px; }
+
+.center button,
+.center a {
+  height: 42px;
+  padding: 0 17px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--blue);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  font: inherit;
+  font-weight: 800;
+  text-decoration: none;
+}

@@ -1,110 +1,96 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const nav = vi.hoisted(() => {
-  const push = vi.fn();
-  const replace = vi.fn();
+const guard = vi.hoisted(() => ({ useResidentGuard: vi.fn() }));
+const billing = vi.hoisted(() => ({ useResidentBillMonths: vi.fn() }));
+const notices = vi.hoisted(() => ({ useResidentNotices: vi.fn() }));
+const profiles = vi.hoisted(() => ({ useResidentProfile: vi.fn() }));
 
-  return {
-    push,
-    replace,
-    router: { push, replace, back: vi.fn(), prefetch: vi.fn() },
-  };
-});
-
-vi.mock("next/navigation", () => ({ useRouter: () => nav.router }));
-
-vi.mock("@/lib/resident/onboardingClient", () => ({
-  kakaoStubLogin: vi.fn().mockResolvedValue({ ok: true }),
-  automatch: vi.fn(),
-  getActiveCandidate: vi.fn(),
-  getSession: vi.fn(),
-  confirm: vi.fn().mockResolvedValue({ status: "linked" }),
-  requestClaim: vi.fn().mockResolvedValue({ status: "pending" }),
-  searchBuildings: vi.fn().mockResolvedValue([]),
-  myLink: vi.fn(),
-  getPendingInfo: vi.fn(),
-  logout: vi.fn().mockResolvedValue(undefined),
+vi.mock("next/navigation", () => ({ usePathname: () => "/resident/home" }));
+vi.mock("@/lib/resident/useResidentGuard", () => guard);
+vi.mock("@/hooks/reactquery/residentBilling", () => billing);
+vi.mock("@/hooks/reactquery/residentNotices", () => notices);
+vi.mock("@/hooks/reactquery/residentProfile", () => profiles);
+vi.mock("@/app/(resident)/_components/MoveOutSection", () => ({
+  default: () => <section aria-label="퇴실 신청">퇴실 신청 영역</section>,
 }));
-
-import * as client from "@/lib/resident/onboardingClient";
-import type { MyLink } from "@/lib/resident/onboardingClient";
 
 import ResidentHomePage from "./page";
 
-const link: MyLink = {
-  buildingName: "그린빌라",
-  unitNo: "201호",
-  tenantName: "박정호",
-};
+const queryBase = { error: null, isPending: false, refetch: vi.fn() };
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(client.myLink).mockResolvedValue(link);
-  vi.mocked(client.logout).mockResolvedValue(undefined);
+  guard.useResidentGuard.mockReturnValue({
+    loading: false,
+    link: { buildingName: "해오름빌라", unitNo: "201호", tenantName: "김주민" },
+    error: null,
+    retry: vi.fn(),
+  });
+  profiles.useResidentProfile.mockReturnValue({
+    ...queryBase,
+    data: {
+      tenantName: "김주민",
+      buildingName: "해오름빌라",
+      unitNo: "201호",
+      orgName: "해오름관리",
+    },
+  });
+  billing.useResidentBillMonths.mockReturnValue({
+    ...queryBase,
+    data: [
+      {
+        period: "2026-08-01",
+        totalAmount: 120000,
+        paidAmount: 20000,
+        unpaidAmount: 100000,
+        dueDate: "2026-08-25",
+      },
+      {
+        period: "2026-07-01",
+        totalAmount: 100000,
+        paidAmount: 100000,
+        unpaidAmount: 0,
+        dueDate: "2026-07-25",
+      },
+      {
+        period: "2026-06-01",
+        totalAmount: 90000,
+        paidAmount: 90000,
+        unpaidAmount: 0,
+        dueDate: "2026-06-25",
+      },
+    ],
+  });
+  notices.useResidentNotices.mockReturnValue({
+    ...queryBase,
+    data: [{ id: 7, title: "승강기 점검 안내", noticeType: "important" }],
+  });
 });
 
 describe("ResidentHomePage", () => {
-  it("shows the linked household and a coming-soon toast without navigating", async () => {
-    const user = userEvent.setup();
+  it("composes profile, current bill, trend, latest notice, move-out, and nav", () => {
     render(<ResidentHomePage />);
 
-    expect(await screen.findByText("그린빌라 201호")).toBeInTheDocument();
-    expect(screen.getByText("박정호 님")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: /관리비 확인/ }));
-
-    expect(screen.getByRole("status")).toHaveTextContent(
-      "관리비 확인 화면은 준비 중이에요",
-    );
-    expect(nav.push).not.toHaveBeenCalled();
+    expect(screen.getByText("해오름빌라 201호")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "김주민 님" })).toBeInTheDocument();
+    expect(screen.getByText("해오름관리")).toBeInTheDocument();
+    expect(screen.getAllByText("100,000원")).toHaveLength(2);
+    expect(screen.getByText("2026.08.25")).toBeInTheDocument();
+    expect(screen.getByText("최근 관리비 추이")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /승강기 점검 안내/ })).toHaveAttribute("href", "/resident/notice/7");
+    expect(screen.getByRole("link", { name: "상세 내역 보기" })).toHaveAttribute("href", "/resident/bill");
+    expect(screen.getByLabelText("퇴실 신청")).toBeInTheDocument();
+    expect(screen.getByRole("navigation")).toBeInTheDocument();
   });
 
-  it("cancels the logout modal without signing out", async () => {
-    const user = userEvent.setup();
+  it("shows empty billing and notice states without dropping the hub", () => {
+    billing.useResidentBillMonths.mockReturnValue({ ...queryBase, data: [] });
+    notices.useResidentNotices.mockReturnValue({ ...queryBase, data: [] });
     render(<ResidentHomePage />);
 
-    await screen.findByText("그린빌라 201호");
-    await user.click(screen.getAllByRole("button", { name: "로그아웃" })[0]);
-
-    const dialog = screen.getByRole("dialog", {
-      name: "로그아웃 하시겠습니까?",
-    });
-    const openClassName = dialog.className;
-    await user.click(within(dialog).getByRole("button", { name: "닫기" }));
-
-    expect(client.logout).not.toHaveBeenCalled();
-    expect(nav.push).not.toHaveBeenCalled();
-    expect(dialog.className).not.toBe(openClassName);
-  });
-
-  it("awaits logout confirmation and returns to login", async () => {
-    const user = userEvent.setup();
-    render(<ResidentHomePage />);
-
-    await screen.findByText("그린빌라 201호");
-    await user.click(screen.getAllByRole("button", { name: "로그아웃" })[0]);
-
-    const dialog = screen.getByRole("dialog", {
-      name: "로그아웃 하시겠습니까?",
-    });
-    await user.click(
-      within(dialog).getByRole("button", { name: "로그아웃" }),
-    );
-
-    await waitFor(() => {
-      expect(client.logout).toHaveBeenCalledOnce();
-      expect(nav.push).toHaveBeenCalledWith("/resident/login");
-    });
-  });
-
-  it("redirects to login when no household is linked", async () => {
-    vi.mocked(client.myLink).mockResolvedValue(null);
-    render(<ResidentHomePage />);
-
-    await waitFor(() => {
-      expect(nav.replace).toHaveBeenCalledWith("/resident/login");
-    });
+    expect(screen.getByText("부과 내역이 없어요.")).toBeInTheDocument();
+    expect(screen.getByText("새로운 공지가 없습니다.")).toBeInTheDocument();
+    expect(screen.getByText("표시할 관리비 추이가 없어요.")).toBeInTheDocument();
   });
 });
