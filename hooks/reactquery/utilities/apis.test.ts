@@ -16,7 +16,9 @@ import {
   confirmUtilities,
   dbUtility,
   deleteWaterDiscount,
+  getBillingPeriod,
   getUtilityConfirmation,
+  getUtilitySupplier,
   ledgerDownloadUrl,
   listFixedUsages,
   listMeterHistory,
@@ -24,7 +26,9 @@ import {
   listUtilityPrices,
   listUtilityRows,
   saveScopedPrices,
+  saveBillingPeriod,
   saveMeterReadings,
+  saveUtilitySupplier,
   saveUtilityUnitPrices,
   saveWaterDiscount,
   setFixedUsage,
@@ -33,15 +37,168 @@ import { utilityKeys } from "./keys";
 import {
   useClearFixedUsage,
   useConfirmUtilities,
+  useSaveBillingPeriod,
   useSaveScopedPrices,
+  useSaveUtilitySupplier,
   useSaveUtilityUnitPrices,
   useSetFixedUsage,
 } from "./mutations";
-import { useFixedUsages, useScopedPrices } from "./queries";
+import {
+  useBillingPeriod,
+  useFixedUsages,
+  useScopedPrices,
+  useUtilitySupplier,
+} from "./queries";
 
 beforeEach(() => vi.clearAllMocks());
 
 describe("utilities apis", () => {
+  it("gets and maps utility supplier details and exposes its query key", async () => {
+    const maybeSingle = vi.fn().mockResolvedValue({
+      data: {
+        id: 21,
+        building_id: 3,
+        utility: "gas",
+        company_name: "Seoul Gas",
+        phone: "02-1234-5678",
+        bank: "Utility Bank",
+        account_no: "100-200",
+        account_holder: "Seoul Gas Co.",
+        created_at: "2026-08-01T00:00:00Z",
+        updated_at: "2026-08-02T00:00:00Z",
+      },
+      error: null,
+    });
+    const utilityEq = vi.fn(() => ({ maybeSingle }));
+    const buildingEq = vi.fn(() => ({ eq: utilityEq }));
+    const select = vi.fn(() => ({ eq: buildingEq }));
+    from.mockReturnValue({ select });
+
+    await expect(getUtilitySupplier(3, "gas")).resolves.toEqual({
+      id: 21,
+      buildingId: 3,
+      utilityType: "gas",
+      companyName: "Seoul Gas",
+      phone: "02-1234-5678",
+      bank: "Utility Bank",
+      accountNo: "100-200",
+      accountHolder: "Seoul Gas Co.",
+      createdAt: "2026-08-01T00:00:00Z",
+      updatedAt: "2026-08-02T00:00:00Z",
+    });
+    expect(from).toHaveBeenCalledWith("building_utility_suppliers");
+    expect(buildingEq).toHaveBeenCalledWith("building_id", 3);
+    expect(utilityEq).toHaveBeenCalledWith("utility", "gas");
+
+    const query = useUtilitySupplier(3, "gas") as unknown as {
+      queryKey: readonly unknown[];
+    };
+    expect(query.queryKey).toEqual(utilityKeys.supplier(3, "gas"));
+  });
+
+  it("upserts utility supplier details and invalidates the supplier query", async () => {
+    const upsert = vi.fn().mockResolvedValue({ error: null });
+    from.mockReturnValue({ upsert });
+    const input = {
+      buildingId: 3,
+      utilityType: "gas" as const,
+      companyName: "Seoul Gas",
+      phone: "02-1234-5678",
+      bank: "Utility Bank",
+      accountNo: "100-200",
+      accountHolder: "Seoul Gas Co.",
+    };
+
+    await saveUtilitySupplier(input);
+    expect(upsert).toHaveBeenCalledWith(
+      {
+        building_id: 3,
+        utility: "gas",
+        company_name: "Seoul Gas",
+        phone: "02-1234-5678",
+        bank: "Utility Bank",
+        account_no: "100-200",
+        account_holder: "Seoul Gas Co.",
+      },
+      { onConflict: "building_id,utility" },
+    );
+
+    const mutation = useSaveUtilitySupplier() as unknown as {
+      onSuccess: (result: void, variables: typeof input) => void;
+    };
+    mutation.onSuccess(undefined, input);
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: utilityKeys.supplier(3, "gas"),
+    });
+  });
+
+  it("gets billing period dates and exposes the period query key", async () => {
+    const maybeSingle = vi.fn().mockResolvedValue({
+      data: {
+        charge_start_date: "2026-07-17",
+        charge_end_date: "2026-08-16",
+        due_date: "2026-08-25",
+      },
+      error: null,
+    });
+    const periodEq = vi.fn(() => ({ maybeSingle }));
+    const buildingEq = vi.fn(() => ({ eq: periodEq }));
+    from.mockReturnValue({ select: () => ({ eq: buildingEq }) });
+
+    await expect(getBillingPeriod(3, "2026-08-01")).resolves.toEqual({
+      chargeStartDate: "2026-07-17",
+      chargeEndDate: "2026-08-16",
+      dueDate: "2026-08-25",
+    });
+    expect(buildingEq).toHaveBeenCalledWith("building_id", 3);
+    expect(periodEq).toHaveBeenCalledWith("period", "2026-08-01");
+
+    const query = useBillingPeriod(3, "2026-08-01") as unknown as {
+      queryKey: readonly unknown[];
+    };
+    expect(query.queryKey).toEqual(utilityKeys.billingPeriod(3, "2026-08-01"));
+  });
+
+  it("saves billing charge dates without overwriting due_date and invalidates the query", async () => {
+    const upsert = vi.fn().mockResolvedValue({ error: null });
+    from.mockReturnValue({ upsert });
+    const input = {
+      buildingId: 3,
+      period: "2026-08-01",
+      chargeStartDate: "2026-07-17",
+      chargeEndDate: "2026-08-16",
+    };
+
+    await saveBillingPeriod(input);
+    expect(upsert).toHaveBeenCalledWith(
+      {
+        building_id: 3,
+        period: "2026-08-01",
+        charge_start_date: "2026-07-17",
+        charge_end_date: "2026-08-16",
+      },
+      { onConflict: "building_id,period" },
+    );
+
+    const mutation = useSaveBillingPeriod() as unknown as {
+      onSuccess: (result: void, variables: typeof input) => void;
+    };
+    mutation.onSuccess(undefined, input);
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: utilityKeys.billingPeriod(3, "2026-08-01"),
+    });
+  });
+
+  it("returns null when supplier and billing period rows are absent", async () => {
+    const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+    const secondEq = vi.fn(() => ({ maybeSingle }));
+    const firstEq = vi.fn(() => ({ eq: secondEq }));
+    from.mockReturnValue({ select: () => ({ eq: firstEq }) });
+
+    await expect(getUtilitySupplier(3, "gas")).resolves.toBeNull();
+    await expect(getBillingPeriod(3, "2026-08-01")).resolves.toBeNull();
+  });
+
   it("dbUtility: electricity→elec, 나머지 그대로", () => {
     expect(dbUtility("electricity")).toBe("elec");
     expect(dbUtility("water")).toBe("water");
@@ -128,7 +285,12 @@ describe("utilities apis", () => {
 
   it("건물·유형별 고정 사용량을 unit_meters에서 조회하고 숫자로 매핑한다", async () => {
     const not = vi.fn().mockResolvedValue({
-      data: [{ unit_id: 101, fixed_usage: "12.50", units: { building_id: 3 } }],
+      data: [{
+        unit_id: 101,
+        fixed_usage: "12.50",
+        fixed_usage_from: "2026-08-01",
+        units: { building_id: 3 },
+      }],
       error: null,
     });
     const is = vi.fn(() => ({ not }));
@@ -138,12 +300,12 @@ describe("utilities apis", () => {
     from.mockReturnValue({ select });
 
     await expect(listFixedUsages(3, "electricity")).resolves.toEqual([
-      { unitId: 101, fixedUsage: 12.5 },
+      { unitId: 101, fixedUsage: 12.5, fromMonth: "2026-08-01" },
     ]);
 
     expect(from).toHaveBeenCalledWith("unit_meters");
     expect(select).toHaveBeenCalledWith(
-      "unit_id, fixed_usage, units!inner(building_id)",
+      "unit_id, fixed_usage, fixed_usage_from, units!inner(building_id)",
     );
     expect(utilityEq).toHaveBeenCalledWith("utility", "elec");
     expect(buildingEq).toHaveBeenCalledWith("units.building_id", 3);
@@ -168,6 +330,25 @@ describe("utilities apis", () => {
     });
     expect(upsert).toHaveBeenCalledWith(
       { unit_id: 101, utility: "elec", fixed_usage: 12.5 },
+      { onConflict: "unit_id,utility" },
+    );
+
+    const gasUpsert = vi.fn().mockResolvedValue({ error: null });
+    from.mockReturnValueOnce({ upsert: gasUpsert });
+    await setFixedUsage({
+      buildingId: 3,
+      unitId: 102,
+      utilityType: "gas",
+      fixedUsage: 8,
+      fixedUsageFrom: "2026-09-01",
+    });
+    expect(gasUpsert).toHaveBeenCalledWith(
+      {
+        unit_id: 102,
+        utility: "gas",
+        fixed_usage: 8,
+        fixed_usage_from: "2026-09-01",
+      },
       { onConflict: "unit_id,utility" },
     );
 

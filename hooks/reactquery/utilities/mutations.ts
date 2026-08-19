@@ -2,17 +2,21 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   clearFixedUsage,
   confirmUtilities,
+  saveBillingPeriod,
   setFixedUsage,
   saveScopedPrices,
   saveMeterReadings,
   saveUtilityUnitPrices,
+  saveUtilitySupplier,
   saveWaterDiscount,
   deleteWaterDiscount,
   type ConfirmUtilitiesInput,
   type ClearFixedUsageInput,
+  type SaveBillingPeriodInput,
   type SaveScopedPricesInput,
   type SaveMeterReadingsInput,
   type SaveUtilityUnitPricesInput,
+  type SaveUtilitySupplierInput,
   type SaveWaterDiscountInput,
   type SetFixedUsageInput,
 } from "./apis";
@@ -67,6 +71,30 @@ export function useClearFixedUsage() {
       });
       qc.invalidateQueries({
         queryKey: utilityKeys.rowsScope(input.buildingId, input.utilityType),
+      });
+    },
+  });
+}
+
+export function useSaveUtilitySupplier() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: SaveUtilitySupplierInput) => saveUtilitySupplier(input),
+    onSuccess: (_result, input) => {
+      qc.invalidateQueries({
+        queryKey: utilityKeys.supplier(input.buildingId, input.utilityType),
+      });
+    },
+  });
+}
+
+export function useSaveBillingPeriod() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: SaveBillingPeriodInput) => saveBillingPeriod(input),
+    onSuccess: (_result, input) => {
+      qc.invalidateQueries({
+        queryKey: utilityKeys.billingPeriod(input.buildingId, input.period),
       });
     },
   });

@@ -14,6 +14,7 @@ interface FixedUsageModalProps {
   unitNo: string;
   utility: UtilityType;
   currentFixedUsage: number | null;
+  currentFixedUsageFrom?: string | null;
   onSaved: () => void;
   onClose: () => void;
 }
@@ -25,6 +26,7 @@ export function FixedUsageModal({
   unitNo,
   utility,
   currentFixedUsage,
+  currentFixedUsageFrom,
   onSaved,
   onClose,
 }: FixedUsageModalProps) {
@@ -32,6 +34,9 @@ export function FixedUsageModal({
   const clearFixedUsage = useClearFixedUsage();
   const [amount, setAmount] = useState(
     currentFixedUsage === null ? "" : String(currentFixedUsage),
+  );
+  const [fixedUsageFrom, setFixedUsageFrom] = useState(
+    utility === "gas" ? currentFixedUsageFrom?.slice(0, 7) ?? "" : "",
   );
   const hasFixedUsage = currentFixedUsage !== null;
   const isPending = setFixedUsage.isPending || clearFixedUsage.isPending;
@@ -43,7 +48,15 @@ export function FixedUsageModal({
       return;
     }
     setFixedUsage.mutate(
-      { buildingId, unitId, utilityType: utility, fixedUsage: parsed },
+      {
+        buildingId,
+        unitId,
+        utilityType: utility,
+        fixedUsage: parsed,
+        ...(utility === "gas"
+          ? { fixedUsageFrom: fixedUsageFrom ? `${fixedUsageFrom}-01` : null }
+          : {}),
+      },
       {
         onSuccess: () => {
           toast.success("고정 사용량을 저장했습니다.");
@@ -83,6 +96,18 @@ export function FixedUsageModal({
             className="num h-11 w-full rounded-xl border border-line bg-surface px-3 text-right text-sm font-bold text-t1 focus:border-blue focus:outline-none"
           />
         </label>
+        {utility === "gas" && (
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-bold text-t2">적용 시작월</span>
+            <input
+              aria-label="적용 시작월"
+              type="month"
+              value={fixedUsageFrom}
+              onChange={(event) => setFixedUsageFrom(event.target.value)}
+              className="h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm font-semibold text-t1 focus:border-blue focus:outline-none"
+            />
+          </label>
+        )}
         <p className="text-xs text-t4">
           설정하면 당월 지침값 대신 고정 사용량으로 부과 계산합니다.
         </p>

@@ -26,6 +26,13 @@ import {
   type UtilityTableRow,
 } from "./components/UtilityTable";
 import { UnitPriceModal } from "./components/UnitPriceModal";
+import { GasSupplierModal } from "./components/GasSupplierModal";
+import {
+  GasSummaryTable,
+  UNASSIGNED_GAS_LINE,
+} from "./components/GasSummaryTable";
+import { BillingPeriodBar } from "./components/BillingPeriodBar";
+import { GasLedgerModal } from "./components/GasLedgerModal";
 
 const TYPE_TABS: { id: UtilityType; label: string }[] = [
   { id: "water", label: "수도" },
@@ -72,6 +79,9 @@ export default function UtilitiesPage() {
   const [discountRow, setDiscountRow] = useState<UtilityUnitRow | null>(null);
   const [fixedUsageRow, setFixedUsageRow] = useState<UtilityTableRow | null>(null);
   const [priceModalOpen, setPriceModalOpen] = useState(false);
+  const [supplierModalOpen, setSupplierModalOpen] = useState(false);
+  const [ledgerModalOpen, setLedgerModalOpen] = useState(false);
+  const [gasLine, setGasLine] = useState("");
   const period = `${referenceDate.slice(0, 7)}-01`;
   const rowsQuery = useUtilityRows(buildingId, utilityType, period);
   const fixedUsagesQuery = useFixedUsages(buildingId, utilityType);
@@ -90,12 +100,18 @@ export default function UtilitiesPage() {
 
   const buildings = buildingsQuery.data ?? [];
   const fixedUsages = new Map(
-    (fixedUsagesQuery.data ?? []).map((row) => [row.unitId, row.fixedUsage]),
+    (fixedUsagesQuery.data ?? []).map((row) => [row.unitId, row]),
   );
-  const rows: UtilityTableRow[] = (rowsQuery.data ?? []).map((row) => ({
-    ...row,
-    fixedUsage: fixedUsages.get(row.unitId) ?? null,
-  }));
+  const rows: UtilityTableRow[] = (rowsQuery.data ?? []).map((row) => {
+    const fixedUsage = fixedUsages.get(row.unitId);
+    return {
+      ...row,
+      fixedUsage: fixedUsage?.fixedUsage ?? null,
+      ...(utilityType === "gas"
+        ? { fixedUsageFrom: fixedUsage?.fromMonth ?? null }
+        : {}),
+    };
+  });
   const rowsLoading = rowsQuery.isLoading || fixedUsagesQuery.isLoading;
   const rowsError = rowsQuery.error ?? fixedUsagesQuery.error;
   const scopeKey = `${buildingId ?? "none"}:${utilityType}`;
@@ -103,6 +119,11 @@ export default function UtilitiesPage() {
     rows.map((row) => [row.unitId, drafts[`${scopeKey}:${row.unitId}`] ?? initialDraft(row)]),
   );
   const activeRows = rows.filter((row) => !isVacant(row));
+  const visibleRows = utilityType !== "gas" || gasLine === ""
+    ? rows
+    : rows.filter((row) => gasLine === UNASSIGNED_GAS_LINE
+      ? row.customerNumber === null
+      : row.customerNumber === gasLine);
   const confirmation = confirmationQuery.data ?? null;
   const completed = activeRows.filter(
     (row) => row.fixedUsage !== null || scopedDrafts[row.unitId].currentReading.trim() !== "",
@@ -132,6 +153,9 @@ export default function UtilitiesPage() {
     setDiscountRow(null);
     setFixedUsageRow(null);
     setPriceModalOpen(false);
+    setSupplierModalOpen(false);
+    setLedgerModalOpen(false);
+    setGasLine("");
   };
 
   const selectUtilityType = (id: string) => {
@@ -140,6 +164,9 @@ export default function UtilitiesPage() {
     setDiscountRow(null);
     setFixedUsageRow(null);
     setPriceModalOpen(false);
+    setSupplierModalOpen(false);
+    setLedgerModalOpen(false);
+    setGasLine("");
   };
 
   const openHistory = () => {
@@ -214,6 +241,29 @@ export default function UtilitiesPage() {
     }
   };
 
+  const carryOverAll = () => {
+    if (utilityType !== "gas") return;
+    const carryRows = activeRows.filter((row) => (
+      row.fixedUsage === null
+      && row.previousReading !== null
+      && scopedDrafts[row.unitId].currentReading.trim() === ""
+    ));
+    if (carryRows.length > 0) {
+      setDrafts((current) => {
+        const next = { ...current };
+        carryRows.forEach((row) => {
+          const key = `${scopeKey}:${row.unitId}`;
+          next[key] = {
+            ...(current[key] ?? initialDraft(row)),
+            currentReading: String(row.previousReading),
+          };
+        });
+        return next;
+      });
+    }
+    toast.success(`${carryRows.length}개 세대를 전체 이월했습니다.`);
+  };
+
   return (
     <div className="flex min-h-screen flex-col gap-5 p-4 sm:p-6">
       <div>
@@ -245,6 +295,15 @@ export default function UtilitiesPage() {
           </div>
 
           <div className="flex w-full flex-wrap justify-end gap-2 xl:w-auto">
+            {utilityType === "gas" && (
+              <Button
+                variant="ghost"
+                onClick={() => setSupplierModalOpen(true)}
+                disabled={!buildingId}
+              >
+                가스 공급자정보
+              </Button>
+            )}
             <Button
               variant="ghost"
               onClick={() => setPriceModalOpen(true)}
@@ -258,6 +317,24 @@ export default function UtilitiesPage() {
             <Button variant="ghost" onClick={exportLedger} disabled={!buildingId}>
               검침대장 다운
             </Button>
+            {utilityType === "gas" && (
+              <Button
+                variant="ghost"
+                onClick={() => setLedgerModalOpen(true)}
+                disabled={!buildingId}
+              >
+                검침대장 출력
+              </Button>
+            )}
+            {utilityType === "gas" && (
+              <Button
+                variant="ghost"
+                onClick={carryOverAll}
+                disabled={!buildingId || rows.length === 0}
+              >
+                전체 이월
+              </Button>
+            )}
             <Button
               onClick={calculateCharges}
               disabled={!buildingId || rows.length === 0 || saveMeter.isPending}
@@ -289,6 +366,15 @@ export default function UtilitiesPage() {
           </div>
         )}
       </section>
+
+      {utilityType === "gas" && buildingId !== null && (
+        <BillingPeriodBar
+          key={`${buildingId}:${period}`}
+          buildingId={buildingId}
+          period={period}
+          canEdit={hasModule(me, "billing")}
+        />
+      )}
 
       {buildingsQuery.error && (
         <section className="rounded-2xl border border-red/20 bg-red-t p-6 text-center">
@@ -374,6 +460,15 @@ export default function UtilitiesPage() {
             </div>
           )}
 
+          {utilityType === "gas" && (
+            <GasSummaryTable
+              buildingId={buildingId}
+              rows={rows}
+              selectedLine={gasLine}
+              onLineChange={setGasLine}
+            />
+          )}
+
           <section className="overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
             <div className="flex flex-wrap items-center gap-2 border-b border-line2 px-5 py-4">
               <h2 className="text-base font-extrabold text-t1">
@@ -390,7 +485,7 @@ export default function UtilitiesPage() {
               단가가 설정된 세대는 부과 계산 시 자동요금이 저장됩니다. 단가를 해석할 수 없는 세대는 수동 입력 요금을 사용해 주세요.
             </div>
             <UtilityTable
-              rows={rows}
+              rows={utilityType === "gas" ? visibleRows : rows}
               drafts={scopedDrafts}
               referenceDate={referenceDate}
               onDraftChange={updateDraft}
@@ -426,6 +521,9 @@ export default function UtilitiesPage() {
           unitNo={fixedUsageRow.unitNo}
           utility={utilityType}
           currentFixedUsage={fixedUsageRow.fixedUsage}
+          currentFixedUsageFrom={
+            utilityType === "gas" ? fixedUsageRow.fixedUsageFrom ?? null : undefined
+          }
           onSaved={() => setFixedUsageRow(null)}
           onClose={() => setFixedUsageRow(null)}
         />
@@ -437,6 +535,24 @@ export default function UtilitiesPage() {
         utilityType={utilityType}
         onClose={() => setPriceModalOpen(false)}
       />
+
+      {utilityType === "gas" && buildingId !== null && supplierModalOpen && (
+        <GasSupplierModal
+          open
+          buildingId={buildingId}
+          onClose={() => setSupplierModalOpen(false)}
+        />
+      )}
+
+      {utilityType === "gas" && buildingId !== null && ledgerModalOpen && (
+        <GasLedgerModal
+          open
+          buildings={buildings}
+          currentBuildingId={buildingId}
+          period={period}
+          onClose={() => setLedgerModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

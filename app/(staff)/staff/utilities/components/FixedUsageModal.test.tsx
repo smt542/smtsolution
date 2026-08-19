@@ -80,4 +80,62 @@ describe("FixedUsageModal", () => {
       expect.anything(),
     );
   });
+
+  it("가스만 적용 시작월을 기존 값으로 표시하고 월초 날짜로 저장한다", () => {
+    render(
+      <FixedUsageModal
+        open
+        buildingId={3}
+        unitId={101}
+        unitNo="101호"
+        utility="gas"
+        currentFixedUsage={20}
+        currentFixedUsageFrom="2026-08-01"
+        onSaved={() => {}}
+        onClose={() => {}}
+      />,
+    );
+
+    expect(screen.getByLabelText("적용 시작월")).toHaveValue("2026-08");
+    fireEvent.change(screen.getByLabelText("적용 시작월"), {
+      target: { value: "2026-09" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+
+    expect(setMutate).toHaveBeenCalledWith(
+      {
+        buildingId: 3,
+        unitId: 101,
+        utilityType: "gas",
+        fixedUsage: 20,
+        fixedUsageFrom: "2026-09-01",
+      },
+      expect.anything(),
+    );
+  });
+
+  it("전기에는 적용 시작월을 표시하거나 payload에 추가하지 않는다", () => {
+    render(
+      <FixedUsageModal
+        open
+        buildingId={3}
+        unitId={101}
+        unitNo="101호"
+        utility="electricity"
+        currentFixedUsage={20}
+        currentFixedUsageFrom="2026-08-01"
+        onSaved={() => {}}
+        onClose={() => {}}
+      />,
+    );
+
+    expect(screen.queryByLabelText("적용 시작월")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    expect(setMutate.mock.calls[0][0]).toEqual({
+      buildingId: 3,
+      unitId: 101,
+      utilityType: "electricity",
+      fixedUsage: 20,
+    });
+  });
 });
