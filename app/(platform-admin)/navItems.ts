@@ -36,6 +36,12 @@ export const PLATFORM_NAV_ITEMS: PlatformNavItem[] = [
     description: "포인트 충전 결제 내역",
     icon: "M3 6h18v12H3V6zm0 4h18M7 15h4",
   },
+  {
+    label: "설정",
+    href: "/platform-admin/settings",
+    description: "HQ 발송단가·청구계좌·부가세",
+    icon: "M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0-5.5 1 2.2 2.4.7 2.1-1.1 1.7 1.7-1.1 2.1.7 2.4L21 12l-2.2 1-.7 2.4 1.1 2.1-1.7 1.7-2.1-1.1-2.4.7L12 21l-1-2.2-2.4-.7-2.1 1.1-1.7-1.7 1.1-2.1L5.2 13 3 12l2.2-1 .7-2.4-1.1-2.1 1.7-1.7 2.1 1.1 2.4-.7L12 3z",
+  },
 ];
 
 export function isPlatformNavActive(pathname: string, href: string): boolean {

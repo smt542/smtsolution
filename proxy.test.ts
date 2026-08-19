@@ -31,7 +31,7 @@ describe("proxy", () => {
     ).toBe(false);
   });
 
-  it("비로그인 platform-admin 요청을 직원 로그인으로 보낸다", async () => {
+  it("비로그인 platform-admin 요청을 통합관리자 로그인으로 보낸다", async () => {
     updateSession.mockResolvedValue({
       response: NextResponse.next(),
       user: null,
@@ -39,7 +39,27 @@ describe("proxy", () => {
 
     const response = await proxy(request("/platform-admin/organizations"));
 
-    expect(getRedirectUrl(response)).toBe("https://example.com/staff/login");
+    expect(getRedirectUrl(response)).toBe("https://example.com/platform-admin/login");
+  });
+
+  it("비로그인 통합관리자 로그인 페이지 요청은 통과시킨다", async () => {
+    const sessionResponse = NextResponse.next();
+    updateSession.mockResolvedValue({ response: sessionResponse, user: null });
+
+    const response = await proxy(request("/platform-admin/login"));
+
+    expect(response).toBe(sessionResponse);
+  });
+
+  it("로그인한 사용자의 통합관리자 로그인 페이지 요청은 통합관리자 화면으로 보낸다", async () => {
+    updateSession.mockResolvedValue({
+      response: NextResponse.next(),
+      user: { id: "platform-admin-user" },
+    });
+
+    const response = await proxy(request("/platform-admin/login"));
+
+    expect(getRedirectUrl(response)).toBe("https://example.com/platform-admin");
   });
 
   it("로그인한 platform-admin 요청은 세션 응답을 그대로 반환한다", async () => {
