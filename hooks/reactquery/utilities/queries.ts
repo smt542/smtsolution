@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import {
+  getBillingPeriod,
   getUtilityConfirmation,
+  getUtilitySupplier,
   listFixedUsages,
   listMeterHistory,
   listScopedPrices,
@@ -63,6 +65,25 @@ export function useFixedUsages(
   return useQuery({
     queryKey: utilityKeys.fixedUsages(buildingId, utilityType),
     queryFn: () => listFixedUsages(buildingId as number, utilityType),
+    enabled: buildingId !== null,
+  });
+}
+
+export function useUtilitySupplier(
+  buildingId: number | null,
+  utilityType: UtilityType,
+) {
+  return useQuery({
+    queryKey: utilityKeys.supplier(buildingId, utilityType),
+    queryFn: () => getUtilitySupplier(buildingId as number, utilityType),
+    enabled: buildingId !== null,
+  });
+}
+
+export function useBillingPeriod(buildingId: number | null, period: string) {
+  return useQuery({
+    queryKey: utilityKeys.billingPeriod(buildingId, period),
+    queryFn: () => getBillingPeriod(buildingId as number, period),
     enabled: buildingId !== null,
   });
 }

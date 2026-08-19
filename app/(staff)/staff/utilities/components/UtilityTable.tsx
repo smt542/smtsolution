@@ -8,6 +8,7 @@ export interface UtilityDraft {
 
 export interface UtilityTableRow extends UtilityUnitRow {
   fixedUsage: number | null;
+  fixedUsageFrom?: string | null;
 }
 
 interface UtilityTableProps {

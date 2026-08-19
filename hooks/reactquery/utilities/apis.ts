@@ -8,6 +8,96 @@ export function dbUtility(type: UtilityType): "water" | "elec" | "gas" {
   return type === "electricity" ? "elec" : type;
 }
 
+function utilityTypeFromDb(type: "water" | "elec" | "gas"): UtilityType {
+  return type === "elec" ? "electricity" : type;
+}
+
+export interface UtilitySupplierRow {
+  id: number;
+  buildingId: number;
+  utilityType: UtilityType;
+  companyName: string | null;
+  phone: string | null;
+  bank: string | null;
+  accountNo: string | null;
+  accountHolder: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface UtilitySupplierDbRow {
+  id: number;
+  building_id: number;
+  utility: "water" | "elec" | "gas";
+  company_name: string | null;
+  phone: string | null;
+  bank: string | null;
+  account_no: string | null;
+  account_holder: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getUtilitySupplier(
+  buildingId: number,
+  utilityType: UtilityType,
+): Promise<UtilitySupplierRow | null> {
+  const { data, error } = await createClient()
+    .from("building_utility_suppliers")
+    .select(
+      "id, building_id, utility, company_name, phone, bank, account_no, account_holder, created_at, updated_at",
+    )
+    .eq("building_id", buildingId)
+    .eq("utility", dbUtility(utilityType))
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+
+  const row = data as UtilitySupplierDbRow;
+  return {
+    id: row.id,
+    buildingId: row.building_id,
+    utilityType: utilityTypeFromDb(row.utility),
+    companyName: row.company_name,
+    phone: row.phone,
+    bank: row.bank,
+    accountNo: row.account_no,
+    accountHolder: row.account_holder,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export interface SaveUtilitySupplierInput {
+  buildingId: number;
+  utilityType: UtilityType;
+  companyName: string | null;
+  phone: string | null;
+  bank: string | null;
+  accountNo: string | null;
+  accountHolder: string | null;
+}
+
+export async function saveUtilitySupplier(
+  input: SaveUtilitySupplierInput,
+): Promise<void> {
+  const { error } = await createClient()
+    .from("building_utility_suppliers")
+    .upsert(
+      {
+        building_id: input.buildingId,
+        utility: dbUtility(input.utilityType),
+        company_name: input.companyName,
+        phone: input.phone,
+        bank: input.bank,
+        account_no: input.accountNo,
+        account_holder: input.accountHolder,
+      },
+      { onConflict: "building_id,utility" },
+    );
+  if (error) throw new Error(error.message);
+}
+
 export interface UtilityUnitRow {
   unitId: number;
   unitNo: string;
@@ -241,11 +331,13 @@ export interface SaveScopedPricesInput {
 export interface FixedUsageRow {
   unitId: number;
   fixedUsage: number;
+  fromMonth: string | null;
 }
 
 interface FixedUsageDbRow {
   unit_id: number;
   fixed_usage: number | string;
+  fixed_usage_from: string | null;
 }
 
 export async function listFixedUsages(
@@ -254,7 +346,7 @@ export async function listFixedUsages(
 ): Promise<FixedUsageRow[]> {
   const { data, error } = await createClient()
     .from("unit_meters")
-    .select("unit_id, fixed_usage, units!inner(building_id)")
+    .select("unit_id, fixed_usage, fixed_usage_from, units!inner(building_id)")
     .eq("utility", dbUtility(utilityType))
     .eq("units.building_id", buildingId)
     .is("units.deleted_at", null)
@@ -263,6 +355,7 @@ export async function listFixedUsages(
   return ((data ?? []) as unknown as FixedUsageDbRow[]).map((row) => ({
     unitId: row.unit_id,
     fixedUsage: Number(row.fixed_usage),
+    fromMonth: row.fixed_usage_from,
   }));
 }
 
@@ -271,6 +364,7 @@ export interface SetFixedUsageInput {
   unitId: number;
   utilityType: UtilityType;
   fixedUsage: number;
+  fixedUsageFrom?: string | null;
 }
 
 export async function setFixedUsage(input: SetFixedUsageInput): Promise<void> {
@@ -281,8 +375,66 @@ export async function setFixedUsage(input: SetFixedUsageInput): Promise<void> {
         unit_id: input.unitId,
         utility: dbUtility(input.utilityType),
         fixed_usage: input.fixedUsage,
+        ...(input.fixedUsageFrom === undefined
+          ? {}
+          : { fixed_usage_from: input.fixedUsageFrom }),
       },
       { onConflict: "unit_id,utility" },
+    );
+  if (error) throw new Error(error.message);
+}
+
+export interface BillingPeriodRow {
+  chargeStartDate: string;
+  chargeEndDate: string;
+  dueDate: string | null;
+}
+
+interface BillingPeriodDbRow {
+  charge_start_date: string;
+  charge_end_date: string;
+  due_date: string | null;
+}
+
+export async function getBillingPeriod(
+  buildingId: number,
+  period: string,
+): Promise<BillingPeriodRow | null> {
+  const { data, error } = await createClient()
+    .from("billing_period_settings")
+    .select("charge_start_date, charge_end_date, due_date")
+    .eq("building_id", buildingId)
+    .eq("period", period)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+
+  const row = data as BillingPeriodDbRow;
+  return {
+    chargeStartDate: row.charge_start_date,
+    chargeEndDate: row.charge_end_date,
+    dueDate: row.due_date,
+  };
+}
+
+export interface SaveBillingPeriodInput {
+  buildingId: number;
+  period: string;
+  chargeStartDate: string;
+  chargeEndDate: string;
+}
+
+export async function saveBillingPeriod(input: SaveBillingPeriodInput): Promise<void> {
+  const { error } = await createClient()
+    .from("billing_period_settings")
+    .upsert(
+      {
+        building_id: input.buildingId,
+        period: input.period,
+        charge_start_date: input.chargeStartDate,
+        charge_end_date: input.chargeEndDate,
+      },
+      { onConflict: "building_id,period" },
     );
   if (error) throw new Error(error.message);
 }
