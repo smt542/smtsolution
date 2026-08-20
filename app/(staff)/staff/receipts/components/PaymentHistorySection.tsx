@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button, Input, Modal, Panel, Select, Spinner } from "@/components/common";
-import { useCancelPayment, useRecordPayment } from "@/hooks/reactquery/payments";
+import { useCancelPayment, useRecordPayment, useRecordPaymentEdit } from "@/hooks/reactquery/payments";
 import type { PaymentKind, PaymentMethod, UnitPayment } from "@/hooks/reactquery/payments";
 import type { ReceiptPaymentRow } from "@/hooks/reactquery/receipts";
 import { toMonthInput } from "@/lib/billing/period";
@@ -81,6 +81,7 @@ export function PaymentHistorySection({
 }) {
   const qc = useQueryClient();
   const record = useRecordPayment();
+  const recordEdit = useRecordPaymentEdit();
   const cancel = useCancelPayment();
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -119,42 +120,30 @@ export function PaymentHistorySection({
       toast.error("수납액을 올바르게 입력하세요.");
       return;
     }
-    // 수정 = 기존 취소 + 재기록 (payments엔 update 경로가 없음). 취소·재기록을 분리 처리해
-    // 취소만 성공하고 재기록이 실패한 경우 운영자가 상황을 명확히 알 수 있게 한다.
+    // 수정 = record_payment_edit(취소+재기록 단일 트랜잭션), 추가 = record_payment.
     const isEdit = editingId !== null;
-    if (isEdit) {
-      try {
-        await cancel.mutateAsync(editingId);
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "기존 수납 취소에 실패했습니다.");
-        return;
-      }
-    }
+    const payload = {
+      unitId,
+      period,
+      amount,
+      fee: Number(form.fee) || 0,
+      method: form.method,
+      kind: form.kind,
+      paidAt: form.paidAt || null,
+      memo: form.memo || null,
+    };
     try {
-      await record.mutateAsync({
-        unitId,
-        period,
-        amount,
-        fee: Number(form.fee) || 0,
-        method: form.method,
-        kind: form.kind,
-        paidAt: form.paidAt || null,
-        memo: form.memo || null,
-      });
-    } catch (error) {
+      if (isEdit) {
+        await recordEdit.mutateAsync({ ...payload, oldPaymentId: editingId });
+      } else {
+        await record.mutateAsync(payload);
+      }
       await refreshSummary();
-      toast.error(
-        isEdit
-          ? "기존 수납은 취소되었으나 재기록에 실패했습니다. ‘수납 추가’로 다시 입력해 주세요."
-          : error instanceof Error
-            ? error.message
-            : "저장에 실패했습니다.",
-      );
-      return;
+      toast.success(isEdit ? "수납 내역을 수정했습니다." : "수납 내역을 추가했습니다.");
+      setFormOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "저장에 실패했습니다.");
     }
-    await refreshSummary();
-    toast.success(isEdit ? "수납 내역을 수정했습니다." : "수납 내역을 추가했습니다.");
-    setFormOpen(false);
   };
 
   const cancelRow = async (payment: UnitPayment) => {
@@ -382,7 +371,11 @@ export function PaymentHistorySection({
             <Button type="button" variant="ghost" onClick={() => setFormOpen(false)}>
               취소
             </Button>
-            <Button type="button" onClick={submit} disabled={record.isPending || cancel.isPending}>
+            <Button
+              type="button"
+              onClick={submit}
+              disabled={record.isPending || recordEdit.isPending || cancel.isPending}
+            >
               저장
             </Button>
           </div>

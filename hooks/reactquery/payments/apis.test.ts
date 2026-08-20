@@ -10,6 +10,7 @@ import {
   listGiroPayments,
   listPaymentRows,
   recordBankPayments,
+  recordPaymentEdit,
   recordPayment,
 } from "./apis";
 
@@ -120,5 +121,20 @@ describe("cancelPayment", () => {
     rpc.mockResolvedValue({ data: { ok: true, unit_id: 1, period: "2026-08-01", charged: 10000, paid: 0, unpaid: 10000 }, error: null });
     await cancelPayment(5);
     expect(rpc).toHaveBeenCalledWith("cancel_payment", { p_payment_id: 5 });
+  });
+});
+
+describe("recordPaymentEdit", () => {
+  it("record_payment_edit로 기존 취소+재기록을 원자 처리(p_old_payment_id·p_fee 포함)", async () => {
+    rpc.mockResolvedValue({ data: { ok: true, payment_id: 9, canceled_id: 5, charged: 10000, paid: 8000, unpaid: 2000 }, error: null });
+    const res = await recordPaymentEdit({
+      oldPaymentId: 5, unitId: 1, period: "2026-08-01", amount: 8000, fee: 500,
+      method: "transfer", kind: "partial", memo: "수정",
+    });
+    expect(rpc).toHaveBeenCalledWith("record_payment_edit", {
+      p_old_payment_id: 5, p_unit_id: 1, p_period: "2026-08-01", p_amount: 8000,
+      p_method: "transfer", p_kind: "partial", p_memo: "수정", p_paid_at: null, p_fee: 500,
+    });
+    expect(res).toMatchObject({ charged: 10000, paid: 8000, unpaid: 2000 });
   });
 });
