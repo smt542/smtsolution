@@ -1,0 +1,42 @@
+.shell {
+  --blue: #14A497;
+  --blue-d: #0E8677;
+  --blue-t: #E2F5F1;
+  --blue-t2: #EFFBF8;
+  --bg: #F2F4F6;
+  --line: #E8EBEE;
+  --line2: #F1F3F5;
+  --t1: #191F28;
+  --t2: #4E5968;
+  --t3: #8B95A1;
+  --t4: #B0B8C1;
+  --red: #F04452;
+  --red-t: #FDECEE;
+  --amber: #FF922B;
+  --amber-t: #FFF3E6;
+  --green: #12B886;
+  --green-t: #E6F8F1;
+  --violet: #7048E8;
+  --violet-t: #F0EBFF;
+
+  min-height: 100dvh;
+  background: #e7eaee;
+  color: var(--t1);
+  font-family: "Pretendard", -apple-system, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  justify-content: center;
+}
+
+.screen {
+  background: #fff;
+  width: 100%;
+  max-width: 440px;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}

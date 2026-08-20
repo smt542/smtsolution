@@ -1,0 +1,177 @@
+.wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+.logo {
+  padding: 34px 24px 0;
+  display: flex;
+  justify-content: center;
+}
+
+.logo img {
+  width: 168px;
+  height: auto;
+  object-fit: contain;
+}
+
+.form {
+  padding: 30px 24px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--t2);
+  margin-bottom: 8px;
+}
+
+.input {
+  width: 100%;
+  height: 54px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0 16px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--t1);
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-t);
+}
+
+.pwWrap {
+  position: relative;
+}
+
+.pwWrap .input {
+  padding-right: 52px;
+}
+
+.eye {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: transparent;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--t4);
+  cursor: pointer;
+}
+
+.eye.on {
+  color: var(--blue);
+}
+
+.eye svg {
+  width: 20px;
+  height: 20px;
+}
+
+.err {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--red);
+  background: var(--red-t);
+  border-radius: 11px;
+  padding: 11px 13px;
+  line-height: 1.5;
+}
+
+.auto {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 2px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.autoBox {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  border: 1.6px solid var(--line);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.autoBox.on {
+  background: var(--blue);
+  border-color: var(--blue);
+}
+
+.autoBox svg {
+  width: 13px;
+  height: 13px;
+  opacity: 0;
+}
+
+.autoBox.on svg {
+  opacity: 1;
+}
+
+.autoLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--t2);
+}
+
+.spacer {
+  flex: 1;
+  min-height: 24px;
+}
+
+.foot {
+  padding: 18px 24px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.submit {
+  height: 56px;
+  border: none;
+  border-radius: 15px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 10px 20px -8px rgba(20, 164, 151, 0.55);
+}
+
+.submit:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.help {
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--t4);
+  line-height: 1.7;
+}
