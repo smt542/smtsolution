@@ -51,7 +51,9 @@ interface PayForm {
 }
 
 function todayInput(): string {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 function emptyForm(): PayForm {
@@ -117,9 +119,18 @@ export function PaymentHistorySection({
       toast.error("수납액을 올바르게 입력하세요.");
       return;
     }
+    // 수정 = 기존 취소 + 재기록 (payments엔 update 경로가 없음). 취소·재기록을 분리 처리해
+    // 취소만 성공하고 재기록이 실패한 경우 운영자가 상황을 명확히 알 수 있게 한다.
+    const isEdit = editingId !== null;
+    if (isEdit) {
+      try {
+        await cancel.mutateAsync(editingId);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "기존 수납 취소에 실패했습니다.");
+        return;
+      }
+    }
     try {
-      // 수정 = 기존 취소 + 재기록 (payments엔 update 경로가 없음)
-      if (editingId !== null) await cancel.mutateAsync(editingId);
       await record.mutateAsync({
         unitId,
         period,
@@ -130,12 +141,20 @@ export function PaymentHistorySection({
         paidAt: form.paidAt || null,
         memo: form.memo || null,
       });
-      await refreshSummary();
-      toast.success(editingId !== null ? "수납 내역을 수정했습니다." : "수납 내역을 추가했습니다.");
-      setFormOpen(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "저장에 실패했습니다.");
+      await refreshSummary();
+      toast.error(
+        isEdit
+          ? "기존 수납은 취소되었으나 재기록에 실패했습니다. ‘수납 추가’로 다시 입력해 주세요."
+          : error instanceof Error
+            ? error.message
+            : "저장에 실패했습니다.",
+      );
+      return;
     }
+    await refreshSummary();
+    toast.success(isEdit ? "수납 내역을 수정했습니다." : "수납 내역을 추가했습니다.");
+    setFormOpen(false);
   };
 
   const cancelRow = async (payment: UnitPayment) => {
