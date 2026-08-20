@@ -1,0 +1,155 @@
+.root {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px 12px;
+}
+
+.back {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--t2);
+}
+
+.back svg {
+  width: 22px;
+  height: 22px;
+}
+
+.titleWrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sub {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t3);
+  margin-top: 2px;
+}
+
+.msBtn {
+  flex: none;
+  height: 36px;
+  padding: 0 13px;
+  border-radius: 11px;
+  background: var(--blue);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.pad {
+  padding: 16px 20px 24px;
+}
+
+.sectionTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--t1);
+  margin: 16px 2px 8px;
+}
+
+.sectionTitle:first-child {
+  margin-top: 0;
+}
+
+.sec {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 4px 16px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line2);
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.rowLabel {
+  flex: none;
+  width: 84px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--t1);
+}
+
+.rowValue {
+  flex: 1;
+  min-width: 0;
+  font-size: 14.5px;
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.uvac {
+  flex: 1;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--t4);
+}
+
+.muted {
+  flex: 1;
+  text-align: right;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--t3);
+}
+
+.tel {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--blue-d);
+  font-variant-numeric: tabular-nums;
+}
+
+.tel svg {
+  width: 14px;
+  height: 14px;
+  color: var(--blue);
+}

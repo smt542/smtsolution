@@ -1,0 +1,189 @@
+.root {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+
+.header {
+  padding: 16px 20px 12px;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.searchWrap {
+  padding: 0 20px 12px;
+  position: relative;
+}
+
+.searchIcon {
+  width: 18px;
+  height: 18px;
+  color: var(--t4);
+  position: absolute;
+  left: 34px;
+  top: 14px;
+}
+
+.search {
+  width: 100%;
+  height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0 14px 0 40px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--t1);
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.search:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-t);
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+  margin: 0 20px 4px;
+}
+
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 12px 0 11px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--t3);
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.tabOn {
+  color: var(--blue);
+  border-bottom-color: var(--blue);
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.list {
+  padding: 0 20px 18px;
+}
+
+.none {
+  text-align: center;
+  padding: 40px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--t3);
+}
+
+.bcard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--line);
+  padding: 16px 2px;
+  color: inherit;
+}
+
+.bcard:last-child {
+  border-bottom: 0;
+}
+
+.bmain {
+  flex: 1;
+  min-width: 0;
+}
+
+.bname {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--t1);
+}
+
+.baddr {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--t3);
+  margin-top: 5px;
+  line-height: 1.5;
+}
+
+.chev {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--t4);
+}
+
+.tcard {
+  border-bottom: 1px solid var(--line);
+  padding: 16px 2px;
+}
+
+.tcard:last-child {
+  border-bottom: 0;
+}
+
+.tname {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.taddr {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--t3);
+  margin-top: 5px;
+}
+
+.trow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 11px;
+}
+
+.trowLabel {
+  flex: none;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--t3);
+  width: 64px;
+}
+
+.tel {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--t2);
+  background: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.tel svg {
+  width: 14px;
+  height: 14px;
+  color: var(--blue);
+}

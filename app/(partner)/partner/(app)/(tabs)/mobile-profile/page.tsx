@@ -1,5 +1,18 @@
-import { PartnerPlaceholder } from "../../_Placeholder";
+import { createClient } from "@/lib/supabase/server";
 
-export default function PartnerProfilePage() {
-  return <PartnerPlaceholder title="프로필" desc="내 정보·로그아웃은 준비 중이에요" />;
+import { ProfileView } from "./ProfileView";
+
+export const dynamic = "force-dynamic";
+
+export default async function PartnerProfilePage() {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("partner_get_profile");
+  const p = (Array.isArray(data) ? data[0] : data) ?? null;
+  return (
+    <ProfileView
+      fullName={p?.full_name ?? ""}
+      username={p?.username ?? ""}
+      phone={p?.phone ?? ""}
+    />
+  );
 }
