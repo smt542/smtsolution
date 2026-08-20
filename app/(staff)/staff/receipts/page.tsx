@@ -139,7 +139,8 @@ function ReceiptWorkspace({ orgId, canSendMessages }: { orgId: number; canSendMe
   const [period, setPeriod] = useState(() => currentPeriod());
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | null>(() => {
     const raw = searchParams.get("buildingId");
-    return raw ? Number(raw) : null;
+    const parsed = raw ? Number(raw) : NaN;
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
   });
   const [selectedUnitId, setSelectedUnitId] = useState<number | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -211,7 +212,9 @@ function ReceiptWorkspace({ orgId, canSendMessages }: { orgId: number; canSendMe
             type="month"
             aria-label="조회월"
             value={toMonthInput(period)}
-            onChange={(event) => setPeriod(fromMonthInput(event.target.value))}
+            onChange={(event) => {
+              if (event.target.value) setPeriod(fromMonthInput(event.target.value));
+            }}
             className="h-10 rounded-xl border border-line bg-surface px-3 text-sm text-t1"
           />
           <Button type="button" onClick={() => setSearchOpen(true)}>
