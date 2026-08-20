@@ -1,23 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
+}));
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
 vi.mock("@/hooks/reactquery/buildings", () => ({ useBuildings: vi.fn() }));
 vi.mock("@/hooks/reactquery/units", () => ({ useUnits: vi.fn() }));
-vi.mock("@/hooks/reactquery/occupancies", () => ({ useOccupancies: vi.fn() }));
+vi.mock("@/hooks/reactquery/occupancies", () => ({ useUnitOccupancyFull: vi.fn() }));
+vi.mock("@/hooks/reactquery/payments", () => ({ useUnitPayments: vi.fn() }));
+vi.mock("@/hooks/reactquery/receipts", () => ({ useReceiptPaymentStatus: vi.fn() }));
 vi.mock("@/hooks/reactquery/asCategories", () => ({ useAsCategories: vi.fn() }));
 vi.mock("@/hooks/reactquery/accounts", () => ({ useAccounts: vi.fn() }));
-vi.mock("./components/PaymentStatusSection", () => ({
-  PaymentStatusSection: () => <section><h1>수납관리·민원접수</h1><p>수납현황</p><button type="button">AS접수현황</button></section>,
-}));
-vi.mock("../messaging/components/MessagingModal", () => ({
-  MessagingModal: ({ preset }: any) => (
-    <div data-testid="messaging-preset">
-      {preset.context}:{preset.recipients[0]?.name}:{preset.recipients[0]?.phone}
-    </div>
-  ),
-}));
+vi.mock("@/hooks/reactquery/movingSettlement", () => ({ useSettlementInquiry: vi.fn() }));
 vi.mock("@/hooks/reactquery/complaints", () => ({
   useComplaints: vi.fn(),
   useComplaintResolutions: vi.fn(),
@@ -29,297 +26,178 @@ vi.mock("@/hooks/reactquery/complaints", () => ({
   useUpdateComplaintResolution: vi.fn(),
   useDeleteComplaintResolution: vi.fn(),
 }));
-vi.mock("sonner", () => ({
-  toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
+vi.mock("../messaging/components/MessagingModal", () => ({
+  MessagingModal: () => <div data-testid="messaging-modal" />,
 }));
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 
 import ReceiptManagementPage from "./page";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useUnits } from "@/hooks/reactquery/units";
-import { useOccupancies } from "@/hooks/reactquery/occupancies";
+import { useUnitOccupancyFull } from "@/hooks/reactquery/occupancies";
+import { useUnitPayments } from "@/hooks/reactquery/payments";
+import { useReceiptPaymentStatus } from "@/hooks/reactquery/receipts";
 import { useAsCategories } from "@/hooks/reactquery/asCategories";
 import { useAccounts } from "@/hooks/reactquery/accounts";
+import { useSettlementInquiry } from "@/hooks/reactquery/movingSettlement";
 import {
   useComplaints,
-  useComplaintResolutions,
   useCreateComplaint,
-  useUpdateComplaint,
-  useUpdateComplaintStatus,
-  useDeleteComplaint,
   useCreateComplaintResolution,
-  useUpdateComplaintResolution,
+  useDeleteComplaint,
   useDeleteComplaintResolution,
+  useUpdateComplaint,
+  useUpdateComplaintResolution,
+  useUpdateComplaintStatus,
 } from "@/hooks/reactquery/complaints";
 
-const master = {
-  orgId: 7,
-  role: "org_owner",
-  orgStatus: "active",
-  username: "boss",
-  fullName: "이관리",
-  isActive: true,
-  mustChangePassword: false,
-  staffType: "manager_staff",
-  permissions: [],
-};
+const master = { orgId: 7, role: "org_owner", permissions: [] } as any;
 
 const buildings = [
-  { id: 2, orgId: 7, code: "001", name: "그린빌라", address: null },
-  { id: 3, orgId: 7, code: "002", name: "블루하우스", address: null },
+  {
+    id: 2,
+    orgId: 7,
+    code: "001",
+    name: "그린빌라",
+    address: "서울 강남 1",
+    ownerName: "김소유",
+    ownerPhone: "010-111-2222",
+    memo: "정문 비번 1234",
+  },
+  {
+    id: 3,
+    orgId: 7,
+    code: "002",
+    name: "블루하우스",
+    address: "서울 강북 2",
+    ownerName: null,
+    ownerPhone: null,
+    memo: null,
+  },
 ];
 const units = [
-  { id: 21, buildingId: 2, unitNo: "101호", dong: "A동" },
-  { id: 22, buildingId: 2, unitNo: "201호", dong: "A동" },
+  { id: 21, buildingId: 2, unitNo: "101호", dong: "A동", usageType: "residential" },
+  { id: 22, buildingId: 2, unitNo: "201호", dong: "A동", usageType: "residential" },
 ];
-const categories = [
-  { id: 4, orgId: 7, label: "수도", sortOrder: 1 },
-  { id: 5, orgId: 7, label: "전기", sortOrder: 2 },
-];
-const assignees = [
+const receiptRows = [
   {
-    userId: "worker-1",
-    username: "worker",
-    fullName: "박기사",
-    phone: "010-2222-3333",
-    phoneSub: null,
-    role: "field",
-    staffType: "field_staff",
-    affiliation: "그린빌라",
-    isActive: true,
-    permissions: [],
-    roleLabels: [],
-  },
-];
-const resolution = {
-  id: 91,
-  complaintId: 11,
-  resultContent: "수전 패킹 교체 완료",
-  resultNotes: "재방문 불필요",
-  resolvedBy: "worker-1",
-  resolvedAt: "2026-08-12T03:00:00.000Z",
-  createdAt: "2026-08-12T03:00:00.000Z",
-  updatedAt: "2026-08-12T03:00:00.000Z",
-};
-const complaints = [
-  {
-    id: 11,
-    orgId: 7,
-    buildingId: 2,
     unitId: 21,
-    categoryId: 4,
-    title: "욕실 수전 누수",
-    content: "물이 계속 떨어집니다.",
-    status: "pending",
-    reporterName: "김입주",
-    reporterPhone: "010-1234-5678",
-    assignedTo: "worker-1",
-    receivedAt: "2026-08-12T00:00:00.000Z",
-    completedAt: null,
-    createdAt: "2026-08-12T00:00:00.000Z",
+    buildingId: 2,
     buildingName: "그린빌라",
+    dong: "A동",
     unitNo: "101호",
-    unitDong: "A동",
-    categoryLabel: "수도",
-    resolutions: [resolution],
+    tenantName: "김입주",
+    phone: "010-1234-5678",
+    charged: 150000,
+    paid: 0,
+    unpaid: 150000,
+    dueDate: "2026-08-25",
+    payStatus: "unpaid",
+    occupancyId: 31,
+    isVacant: false,
   },
-  {
-    id: 12,
-    orgId: 7,
-    buildingId: 3,
-    unitId: null,
-    categoryId: 5,
-    title: "공용등 교체",
-    content: "현관 공용등이 꺼졌습니다.",
-    status: "completed",
-    reporterName: "최입주",
-    reporterPhone: "010-9876-5432",
-    assignedTo: null,
-    receivedAt: "2026-08-11T00:00:00.000Z",
-    completedAt: "2026-08-11T02:00:00.000Z",
-    createdAt: "2026-08-11T00:00:00.000Z",
-    buildingName: "블루하우스",
-    unitNo: null,
-    unitDong: null,
-    categoryLabel: "전기",
-    resolutions: [],
+];
+const occFull = {
+  unit: units[0],
+  occupancy: {
+    id: 31,
+    unitId: 21,
+    tenantName: "김입주",
+    payerName: "김입주",
+    phone: "010-1234-5678",
+    moveInDate: "2025-01-01",
+    moveOutDate: null,
+    billingNote: "적요메모",
+    settlementNote: null,
+    facilityNote: null,
+    transferMethod: "giro",
+    billDelivery: "post",
+    billingEnabled: true,
+    printEnabled: true,
+    status: "occupied",
   },
-] as any[];
+  meters: [],
+  accounts: [],
+  lease: null,
+  history: [],
+};
 
-const createComplaintAsync = vi.fn();
-const updateComplaintAsync = vi.fn();
-const updateStatusAsync = vi.fn();
-const deleteComplaintAsync = vi.fn();
-const createResolutionAsync = vi.fn();
-const updateResolutionAsync = vi.fn();
-const deleteResolutionAsync = vi.fn();
-
-function mutation(mutateAsync: ReturnType<typeof vi.fn>) {
-  return { mutateAsync, isPending: false } as any;
+function query(data: any) {
+  return { data, isLoading: false, isError: false, refetch: vi.fn() } as any;
+}
+function mutation() {
+  return { mutateAsync: vi.fn(), isPending: false } as any;
 }
 
 function setup(me: any = master) {
   vi.mocked(useMe).mockReturnValue({ data: me } as any);
-  vi.mocked(useBuildings).mockReturnValue({ data: buildings, isLoading: false } as any);
-  vi.mocked(useUnits).mockReturnValue({ data: units, isLoading: false } as any);
-  vi.mocked(useOccupancies).mockReturnValue({
-    data: [{ id: 31, unitId: 21, tenantName: "김입주", phone: "010-1234-5678", status: "occupied" }],
-    isLoading: false,
-  } as any);
-  vi.mocked(useAsCategories).mockReturnValue({ data: categories, isLoading: false } as any);
-  vi.mocked(useAccounts).mockReturnValue({ data: assignees, isLoading: false } as any);
-  vi.mocked(useComplaints).mockReturnValue({
-    data: complaints,
+  vi.mocked(useBuildings).mockReturnValue(query(buildings));
+  vi.mocked(useUnits).mockReturnValue(query(units));
+  vi.mocked(useUnitOccupancyFull).mockReturnValue(query(occFull));
+  vi.mocked(useUnitPayments).mockReturnValue(query([]));
+  vi.mocked(useReceiptPaymentStatus).mockReturnValue({
+    data: { rows: receiptRows, feeItems: [] },
     isLoading: false,
     isError: false,
     refetch: vi.fn(),
   } as any);
-  vi.mocked(useComplaintResolutions).mockReturnValue({
-    data: [resolution],
-    isLoading: false,
-  } as any);
-  vi.mocked(useCreateComplaint).mockReturnValue(mutation(createComplaintAsync));
-  vi.mocked(useUpdateComplaint).mockReturnValue(mutation(updateComplaintAsync));
-  vi.mocked(useUpdateComplaintStatus).mockReturnValue(mutation(updateStatusAsync));
-  vi.mocked(useDeleteComplaint).mockReturnValue(mutation(deleteComplaintAsync));
-  vi.mocked(useCreateComplaintResolution).mockReturnValue(mutation(createResolutionAsync));
-  vi.mocked(useUpdateComplaintResolution).mockReturnValue(mutation(updateResolutionAsync));
-  vi.mocked(useDeleteComplaintResolution).mockReturnValue(mutation(deleteResolutionAsync));
+  vi.mocked(useAsCategories).mockReturnValue(query([]));
+  vi.mocked(useAccounts).mockReturnValue(query([]));
+  vi.mocked(useComplaints).mockReturnValue(query([]));
+  vi.mocked(useSettlementInquiry).mockReturnValue(query([]));
+  vi.mocked(useCreateComplaint).mockReturnValue(mutation());
+  vi.mocked(useUpdateComplaint).mockReturnValue(mutation());
+  vi.mocked(useUpdateComplaintStatus).mockReturnValue(mutation());
+  vi.mocked(useDeleteComplaint).mockReturnValue(mutation());
+  vi.mocked(useCreateComplaintResolution).mockReturnValue(mutation());
+  vi.mocked(useUpdateComplaintResolution).mockReturnValue(mutation());
+  vi.mocked(useDeleteComplaintResolution).mockReturnValue(mutation());
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
-  createComplaintAsync.mockResolvedValue(complaints[0]);
-  updateComplaintAsync.mockResolvedValue(complaints[0]);
-  updateStatusAsync.mockResolvedValue({ ...complaints[0], status: "completed" });
-  deleteComplaintAsync.mockResolvedValue(undefined);
-  createResolutionAsync.mockResolvedValue(resolution);
-  updateResolutionAsync.mockResolvedValue(resolution);
-  deleteResolutionAsync.mockResolvedValue(undefined);
   setup();
 });
 
-describe("ReceiptManagementPage", () => {
-  it("complaints 권한이 없으면 데이터 화면 접근을 차단", () => {
-    setup({ ...master, role: "staff", permissions: [] });
+describe("ReceiptManagementPage (세대중심 재설계)", () => {
+  it("payment·complaints 권한이 모두 없으면 접근 차단", () => {
+    setup({ orgId: 7, role: "staff", permissions: [] });
     render(<ReceiptManagementPage />);
-    expect(screen.getByText("민원·AS 관리 권한이 없습니다")).toBeInTheDocument();
-    expect(useComplaints).not.toHaveBeenCalled();
+    expect(screen.getByText("수납관리·민원접수 권한이 없습니다")).toBeInTheDocument();
   });
 
-  it("상태 요약과 실제 민원·AS 목록을 표시", () => {
+  it("payment 권한만 있어도 접근 가능", () => {
+    setup({ orgId: 7, role: "staff", permissions: ["payment"] });
     render(<ReceiptManagementPage />);
     expect(screen.getByRole("heading", { name: "수납관리·민원접수" })).toBeInTheDocument();
-    expect(screen.getByText("수납현황")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "AS접수현황" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "민원·AS 접수" })).toBeInTheDocument();
-    expect(screen.getByText("욕실 수전 누수")).toBeInTheDocument();
-    expect(screen.getByText("공용등 교체")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /전체\s*2/ })).toBeInTheDocument();
   });
 
-  it("상태 필터를 복수 선택하고 통합검색으로 다시 좁힐 수 있음", () => {
+  it("셸·건물 목록·조회 버튼과 미선택 안내를 렌더", () => {
     render(<ReceiptManagementPage />);
-    fireEvent.click(screen.getByRole("button", { name: /미결\s*1/ }));
-    expect(screen.getByText("욕실 수전 누수")).toBeInTheDocument();
-    expect(screen.queryByText("공용등 교체")).toBeNull();
-
-    fireEvent.click(screen.getByRole("button", { name: /완결\s*1/ }));
-    expect(screen.getByText("공용등 교체")).toBeInTheDocument();
-
-    fireEvent.change(screen.getByPlaceholderText("건물·호실·신고자·접수내용 검색"), {
-      target: { value: "블루하우스" },
-    });
-    expect(screen.queryByText("욕실 수전 누수")).toBeNull();
-    expect(screen.getByText("공용등 교체")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "수납관리·민원접수" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "조회" })).toBeInTheDocument();
+    expect(screen.getByText("그린빌라")).toBeInTheDocument();
+    expect(screen.getByText("블루하우스")).toBeInTheDocument();
+    expect(screen.getByText("호수를 선택해 주세요")).toBeInTheDocument();
+    expect(screen.getByText("호실을 선택하면 입주자정보가 표시돼요")).toBeInTheDocument();
   });
 
-  it("건물·호실 선택 시 현재 입주자를 채우고 신규 접수", async () => {
+  it("건물 선택 시 호실 목록, 호실 선택 시 입주자정보 표시", () => {
     render(<ReceiptManagementPage />);
-    fireEvent.click(screen.getByRole("button", { name: /신규 접수/ }));
+    fireEvent.click(screen.getByText("그린빌라"));
+    expect(screen.getByText("A동 101호")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("건물"), { target: { value: "2" } });
-    fireEvent.change(screen.getByLabelText("호실"), { target: { value: "21" } });
-    await waitFor(() => expect(screen.getByLabelText("신고자 이름")).toHaveValue("김입주"));
-
-    fireEvent.change(screen.getByLabelText("AS 구분"), { target: { value: "4" } });
-    fireEvent.change(screen.getByLabelText("담당 기사"), { target: { value: "worker-1" } });
-    fireEvent.change(screen.getByLabelText("제목"), { target: { value: "싱크대 누수" } });
-    fireEvent.change(screen.getByLabelText("접수내용"), { target: { value: "배수관에서 물이 샙니다." } });
-    fireEvent.click(screen.getByRole("button", { name: "저장" }));
-
-    await waitFor(() => expect(createComplaintAsync).toHaveBeenCalledWith(expect.objectContaining({
-      orgId: 7,
-      buildingId: 2,
-      unitId: 21,
-      categoryId: 4,
-      reporterName: "김입주",
-      reporterPhone: "010-1234-5678",
-      assignedTo: "worker-1",
-      title: "싱크대 누수",
-      content: "배수관에서 물이 샙니다.",
-      status: "pending",
-    })));
+    fireEvent.click(screen.getByText("A동 101호"));
+    expect(screen.queryByText("호실을 선택하면 입주자정보가 표시돼요")).toBeNull();
+    expect(screen.getByText("입주자명")).toBeInTheDocument();
+    expect(screen.getByText("적요메모")).toBeInTheDocument();
   });
 
-  it("상세에서 상태 변경, 접수 수정, 소프트 삭제 동작을 호출", async () => {
+  it("조회 버튼이 통합검색 모달을 연다", () => {
     render(<ReceiptManagementPage />);
-    fireEvent.click(screen.getByText("욕실 수전 누수"));
-    expect(screen.getByRole("dialog", { name: "민원·AS 상세" })).toBeInTheDocument();
-
-    fireEvent.change(screen.getByLabelText("처리 상태"), { target: { value: "completed" } });
-    await waitFor(() => expect(updateStatusAsync).toHaveBeenCalledWith({ id: 11, status: "completed" }));
-
-    fireEvent.click(screen.getByRole("button", { name: "접수 정보 수정" }));
-    fireEvent.change(screen.getByLabelText("제목"), { target: { value: "욕실 수전 누수 재접수" } });
-    fireEvent.click(screen.getByRole("button", { name: "저장" }));
-    await waitFor(() => expect(updateComplaintAsync).toHaveBeenCalledWith(expect.objectContaining({
-      id: 11,
-      input: expect.objectContaining({ title: "욕실 수전 누수 재접수" }),
-    })));
-
-    fireEvent.click(screen.getByText("욕실 수전 누수"));
-    fireEvent.click(screen.getByRole("button", { name: "접수 삭제" }));
-    fireEvent.click(screen.getByRole("button", { name: "삭제 확인" }));
-    await waitFor(() => expect(deleteComplaintAsync).toHaveBeenCalledWith(11));
-  });
-
-  it("처리이력을 추가·수정·삭제", async () => {
-    render(<ReceiptManagementPage />);
-    fireEvent.click(screen.getByText("욕실 수전 누수"));
-
-    fireEvent.click(screen.getByRole("button", { name: /처리이력 추가/ }));
-    fireEvent.change(screen.getByLabelText("처리 결과"), { target: { value: "밸브 교체 완료" } });
-    fireEvent.click(screen.getByRole("button", { name: "처리이력 저장" }));
-    await waitFor(() => expect(createResolutionAsync).toHaveBeenCalledWith(expect.objectContaining({
-      complaintId: 11,
-      resultContent: "밸브 교체 완료",
-    })));
-
-    fireEvent.click(screen.getByRole("button", { name: "수정" }));
-    fireEvent.change(screen.getByLabelText("처리 결과"), { target: { value: "수전 전체 교체" } });
-    fireEvent.click(screen.getByRole("button", { name: "처리이력 저장" }));
-    await waitFor(() => expect(updateResolutionAsync).toHaveBeenCalledWith(expect.objectContaining({
-      id: 91,
-      complaintId: 11,
-      input: expect.objectContaining({ resultContent: "수전 전체 교체" }),
-    })));
-
-    fireEvent.click(screen.getByRole("button", { name: "삭제" }));
-    fireEvent.click(screen.getByRole("button", { name: "삭제 확인" }));
-    await waitFor(() => expect(deleteResolutionAsync).toHaveBeenCalledWith({
-      id: 91,
-      complaintId: 11,
-    }));
-  });
-
-  it("담당 기사 문자 전송은 공용 메시징 프리셋을 연다", () => {
-    render(<ReceiptManagementPage />);
-    fireEvent.click(screen.getByText("욕실 수전 누수"));
-    fireEvent.click(screen.getByRole("button", { name: "담당 기사 문자 전송" }));
-
-    expect(screen.getByTestId("messaging-preset")).toHaveTextContent(
-      "민원·AS 안내:박기사:010-2222-3333",
-    );
+    fireEvent.click(screen.getByRole("button", { name: "조회" }));
+    expect(screen.getByRole("heading", { name: "통합 조회" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /입금자명·전화·동호로 찾기/ })).toBeInTheDocument();
   });
 });
