@@ -133,7 +133,15 @@ function MonthlyChargeModal({
   );
 }
 
-function ReceiptWorkspace({ orgId, canSendMessages }: { orgId: number; canSendMessages: boolean }) {
+function ReceiptWorkspace({
+  orgId,
+  canSendMessages,
+  canEditPayment,
+}: {
+  orgId: number;
+  canSendMessages: boolean;
+  canEditPayment: boolean;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [period, setPeriod] = useState(() => currentPeriod());
@@ -261,6 +269,7 @@ function ReceiptWorkspace({ orgId, canSendMessages }: { orgId: number; canSendMe
           units={units}
           receiptRows={receiptRows}
           isUnitsLoading={isUnitsLoading}
+          canEdit={canEditPayment}
           selectedBuildingId={selectedBuildingId}
           selectedUnitId={selectedUnitId}
           onSelectBuilding={selectBuilding}
@@ -270,16 +279,22 @@ function ReceiptWorkspace({ orgId, canSendMessages }: { orgId: number; canSendMe
 
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           <PaymentHistorySection
+            key={`pay-${selectedUnitId ?? "none"}`}
             hasUnit={selectedUnitId !== null}
             isLoading={isPaymentsLoading || isReceiptLoading}
             payments={unitPayments}
             summary={selectedSummary}
             period={period}
+            unitId={selectedUnitId}
+            canEdit={canEditPayment}
+            canSendMessages={canSendMessages}
           />
           <TenantInfoSection
+            key={`tenant-${selectedUnitId ?? "none"}`}
             data={occFull}
             isLoading={isOccLoading}
             hasUnit={selectedUnitId !== null}
+            canEdit={canEditPayment}
           />
           <AsStatusSection
             orgId={orgId}
@@ -323,7 +338,11 @@ export default function ReceiptManagementPage() {
 
   return (
     <Suspense fallback={<Spinner />}>
-      <ReceiptWorkspace orgId={me.orgId} canSendMessages={hasModule(me, "messaging")} />
+      <ReceiptWorkspace
+        orgId={me.orgId}
+        canSendMessages={hasModule(me, "messaging")}
+        canEditPayment={hasModule(me, "payment")}
+      />
     </Suspense>
   );
 }

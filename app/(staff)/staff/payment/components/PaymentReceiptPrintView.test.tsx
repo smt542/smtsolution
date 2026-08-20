@@ -23,6 +23,7 @@ const row = {
 const payment: UnitPayment = {
   id: 31,
   amount: 60_000,
+  fee: 0,
   method: "transfer",
   kind: "partial",
   memo: "입금 확인",

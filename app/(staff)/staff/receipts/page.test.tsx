@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
@@ -10,8 +11,16 @@ vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
 vi.mock("@/hooks/reactquery/buildings", () => ({ useBuildings: vi.fn() }));
 vi.mock("@/hooks/reactquery/units", () => ({ useUnits: vi.fn() }));
 vi.mock("@/hooks/reactquery/occupancies", () => ({ useUnitOccupancyFull: vi.fn() }));
-vi.mock("@/hooks/reactquery/payments", () => ({ useUnitPayments: vi.fn() }));
-vi.mock("@/hooks/reactquery/receipts", () => ({ useReceiptPaymentStatus: vi.fn() }));
+vi.mock("@/hooks/reactquery/payments", () => ({
+  useUnitPayments: vi.fn(),
+  useRecordPayment: vi.fn(),
+  useCancelPayment: vi.fn(),
+}));
+vi.mock("@/hooks/reactquery/receipts", () => ({
+  useReceiptPaymentStatus: vi.fn(),
+  useSaveBuildingNotes: vi.fn(),
+  useSaveOccupancyFields: vi.fn(),
+}));
 vi.mock("@/hooks/reactquery/asCategories", () => ({ useAsCategories: vi.fn() }));
 vi.mock("@/hooks/reactquery/accounts", () => ({ useAccounts: vi.fn() }));
 vi.mock("@/hooks/reactquery/movingSettlement", () => ({ useSettlementInquiry: vi.fn() }));
@@ -36,8 +45,12 @@ import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useUnits } from "@/hooks/reactquery/units";
 import { useUnitOccupancyFull } from "@/hooks/reactquery/occupancies";
-import { useUnitPayments } from "@/hooks/reactquery/payments";
-import { useReceiptPaymentStatus } from "@/hooks/reactquery/receipts";
+import { useCancelPayment, useRecordPayment, useUnitPayments } from "@/hooks/reactquery/payments";
+import {
+  useReceiptPaymentStatus,
+  useSaveBuildingNotes,
+  useSaveOccupancyFields,
+} from "@/hooks/reactquery/receipts";
 import { useAsCategories } from "@/hooks/reactquery/asCategories";
 import { useAccounts } from "@/hooks/reactquery/accounts";
 import { useSettlementInquiry } from "@/hooks/reactquery/movingSettlement";
@@ -64,6 +77,7 @@ const buildings = [
     ownerName: "김소유",
     ownerPhone: "010-111-2222",
     memo: "정문 비번 1234",
+    billingNote: null,
   },
   {
     id: 3,
@@ -74,6 +88,7 @@ const buildings = [
     ownerName: null,
     ownerPhone: null,
     memo: null,
+    billingNote: null,
   },
 ];
 const units = [
@@ -115,6 +130,8 @@ const occFull = {
     billDelivery: "post",
     billingEnabled: true,
     printEnabled: true,
+    smsOptIn: false,
+    alimtalkOptIn: true,
     status: "occupied",
   },
   meters: [],
@@ -123,11 +140,23 @@ const occFull = {
   history: [],
 };
 
+const saveOccupancyFieldsAsync = vi.fn();
+const saveBuildingNotesAsync = vi.fn();
+
 function query(data: any) {
   return { data, isLoading: false, isError: false, refetch: vi.fn() } as any;
 }
 function mutation() {
   return { mutateAsync: vi.fn(), isPending: false } as any;
+}
+
+function renderPage() {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={client}>
+      <ReceiptManagementPage />
+    </QueryClientProvider>,
+  );
 }
 
 function setup(me: any = master) {
@@ -153,28 +182,40 @@ function setup(me: any = master) {
   vi.mocked(useCreateComplaintResolution).mockReturnValue(mutation());
   vi.mocked(useUpdateComplaintResolution).mockReturnValue(mutation());
   vi.mocked(useDeleteComplaintResolution).mockReturnValue(mutation());
+  vi.mocked(useRecordPayment).mockReturnValue(mutation());
+  vi.mocked(useCancelPayment).mockReturnValue(mutation());
+  vi.mocked(useSaveBuildingNotes).mockReturnValue({
+    mutateAsync: saveBuildingNotesAsync,
+    isPending: false,
+  } as any);
+  vi.mocked(useSaveOccupancyFields).mockReturnValue({
+    mutateAsync: saveOccupancyFieldsAsync,
+    isPending: false,
+  } as any);
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
+  saveOccupancyFieldsAsync.mockResolvedValue(undefined);
+  saveBuildingNotesAsync.mockResolvedValue(undefined);
   setup();
 });
 
 describe("ReceiptManagementPage (세대중심 재설계)", () => {
   it("payment·complaints 권한이 모두 없으면 접근 차단", () => {
     setup({ orgId: 7, role: "staff", permissions: [] });
-    render(<ReceiptManagementPage />);
+    renderPage();
     expect(screen.getByText("수납관리·민원접수 권한이 없습니다")).toBeInTheDocument();
   });
 
   it("payment 권한만 있어도 접근 가능", () => {
     setup({ orgId: 7, role: "staff", permissions: ["payment"] });
-    render(<ReceiptManagementPage />);
+    renderPage();
     expect(screen.getByRole("heading", { name: "수납관리·민원접수" })).toBeInTheDocument();
   });
 
   it("셸·건물 목록·조회 버튼과 미선택 안내를 렌더", () => {
-    render(<ReceiptManagementPage />);
+    renderPage();
     expect(screen.getByRole("heading", { name: "수납관리·민원접수" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "조회" })).toBeInTheDocument();
     expect(screen.getByText("그린빌라")).toBeInTheDocument();
@@ -184,7 +225,7 @@ describe("ReceiptManagementPage (세대중심 재설계)", () => {
   });
 
   it("건물 선택 시 호실 목록, 호실 선택 시 입주자정보 표시", () => {
-    render(<ReceiptManagementPage />);
+    renderPage();
     fireEvent.click(screen.getByText("그린빌라"));
     expect(screen.getByText("A동 101호")).toBeInTheDocument();
 
@@ -195,9 +236,24 @@ describe("ReceiptManagementPage (세대중심 재설계)", () => {
   });
 
   it("조회 버튼이 통합검색 모달을 연다", () => {
-    render(<ReceiptManagementPage />);
+    renderPage();
     fireEvent.click(screen.getByRole("button", { name: "조회" }));
     expect(screen.getByRole("heading", { name: "통합 조회" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /입금자명·전화·동호로 찾기/ })).toBeInTheDocument();
+  });
+
+  it("입주자정보 수정→저장 시 useSaveOccupancyFields 호출 (P2 편집)", async () => {
+    renderPage();
+    fireEvent.click(screen.getByText("그린빌라"));
+    fireEvent.click(screen.getByText("A동 101호"));
+
+    const header = screen.getByRole("heading", { name: "입주자정보" }).parentElement as HTMLElement;
+    fireEvent.click(within(header).getByRole("button", { name: "수정" }));
+    fireEvent.click(within(header).getByRole("button", { name: "저장" }));
+
+    await waitFor(() => expect(saveOccupancyFieldsAsync).toHaveBeenCalled());
+    expect(saveOccupancyFieldsAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ occupancyId: 31, tenantName: "김입주" }),
+    );
   });
 });

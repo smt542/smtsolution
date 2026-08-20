@@ -79,7 +79,7 @@ describe("DocumentOutputModal 팩스", () => {
         buildings={[{
           id: 7, orgId: 1, code: "B007", name: "행복빌라", address: null,
           typeId: null, ownerName: null, ownerPhone: null, entrancePassword: null,
-          managerUserId: null, meterUserId: null, cleaningUserId: null, facilities: emptyFacilities(), memo: null,
+          managerUserId: null, meterUserId: null, cleaningUserId: null, facilities: emptyFacilities(), memo: null, billingNote: null,
         }]}
         companyName="한빛관리"
         accounts={[]}

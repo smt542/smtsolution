@@ -109,7 +109,7 @@ describe("recordPayment", () => {
     const res = await recordPayment({ unitId: 1, period: "2026-08-01", amount: 6000, method: "transfer", kind: "partial", memo: "메모" });
     expect(rpc).toHaveBeenCalledWith("record_payment", {
       p_unit_id: 1, p_period: "2026-08-01", p_amount: 6000,
-      p_method: "transfer", p_kind: "partial", p_memo: "메모", p_paid_at: null,
+      p_method: "transfer", p_kind: "partial", p_memo: "메모", p_paid_at: null, p_fee: 0,
     });
     expect(res).toMatchObject({ charged: 10000, paid: 10000, unpaid: 0 });
   });

@@ -29,20 +29,20 @@ export interface Building {
   id: number; orgId: number; code: string; name: string; address: string | null; typeId: number | null;
   ownerName: string | null; ownerPhone: string | null; entrancePassword: string | null;
   managerUserId: string | null; meterUserId: string | null; cleaningUserId: string | null;
-  facilities: FacilitiesMap; memo: string | null;
+  facilities: FacilitiesMap; memo: string | null; billingNote: string | null;
 }
 type BuildingRow = {
   id: number; org_id: number; code: string; name: string; address: string | null; type_id: number | null;
   owner_name: string | null; owner_phone: string | null; entrance_password: string | null;
   manager_user_id: string | null; meter_user_id: string | null; cleaning_user_id: string | null;
-  facilities: FacilitiesRow; memo: string | null;
+  facilities: FacilitiesRow; memo: string | null; billing_note: string | null;
 };
 
 const rowToBuilding = (r: BuildingRow): Building => ({
   id: r.id, orgId: r.org_id, code: r.code, name: r.name, address: r.address, typeId: r.type_id,
   ownerName: r.owner_name, ownerPhone: r.owner_phone, entrancePassword: r.entrance_password,
   managerUserId: r.manager_user_id, meterUserId: r.meter_user_id, cleaningUserId: r.cleaning_user_id,
-  facilities: toFacilities(r.facilities), memo: r.memo,
+  facilities: toFacilities(r.facilities), memo: r.memo, billingNote: r.billing_note ?? null,
 });
 
 export interface BuildingDirectoryRow {

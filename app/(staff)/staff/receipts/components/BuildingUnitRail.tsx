@@ -1,19 +1,22 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { EmptyState, Spinner } from "@/components/common";
 import type { Building } from "@/hooks/reactquery/buildings";
+import { useSaveBuildingNotes } from "@/hooks/reactquery/receipts";
 import type { ReceiptPaymentRow } from "@/hooks/reactquery/receipts";
 import type { Unit } from "@/hooks/reactquery/units";
 import { unitLabel } from "../receiptFormat";
 
-type BuildingLite = Pick<Building, "id" | "name" | "code" | "address" | "memo">;
+type BuildingLite = Pick<Building, "id" | "name" | "code" | "address" | "memo" | "billingNote">;
 
 export function BuildingUnitRail({
   buildings,
   units,
   receiptRows,
   isUnitsLoading,
+  canEdit,
   selectedBuildingId,
   selectedUnitId,
   onSelectBuilding,
@@ -24,6 +27,7 @@ export function BuildingUnitRail({
   units: Unit[];
   receiptRows: ReceiptPaymentRow[];
   isUnitsLoading: boolean;
+  canEdit: boolean;
   selectedBuildingId: number | null;
   selectedUnitId: number | null;
   onSelectBuilding: (id: number) => void;
@@ -145,48 +149,124 @@ export function BuildingUnitRail({
         )}
       </div>
 
-      <BuildingNoteBlock building={selectedBuilding} />
+      <BuildingNoteBlock
+        key={selectedBuilding?.id ?? "none"}
+        building={selectedBuilding}
+        canEdit={canEdit}
+      />
     </aside>
   );
 }
 
-/** 수납 건물메모 / 부과시 참조사항 — P1 읽기 표시, 편집(수정→저장)은 P2. */
-function BuildingNoteBlock({ building }: { building: BuildingLite | null }) {
+/** 수납 건물메모(building.memo) / 부과시 참조사항(building.billingNote) — 수정→저장. */
+function BuildingNoteBlock({
+  building,
+  canEdit,
+}: {
+  building: BuildingLite | null;
+  canEdit: boolean;
+}) {
   const [tab, setTab] = useState<"memo" | "billing">("memo");
+  const [editing, setEditing] = useState(false);
+  const [memo, setMemo] = useState("");
+  const [billingNote, setBillingNote] = useState("");
+  const save = useSaveBuildingNotes();
+
+  const startEdit = () => {
+    setMemo(building?.memo ?? "");
+    setBillingNote(building?.billingNote ?? "");
+    setEditing(true);
+  };
+
+  const submit = async () => {
+    if (!building) return;
+    try {
+      await save.mutateAsync({ buildingId: building.id, memo, billingNote });
+      toast.success("건물 메모를 저장했습니다.");
+      setEditing(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "저장에 실패했습니다.");
+    }
+  };
+
+  const activeValue = editing
+    ? tab === "memo"
+      ? memo
+      : billingNote
+    : tab === "memo"
+      ? building?.memo ?? ""
+      : building?.billingNote ?? "";
+
   return (
     <div className="rounded-2xl border border-line bg-surface p-3">
-      <div className="mb-2 flex gap-1">
-        <button
-          type="button"
-          onClick={() => setTab("memo")}
-          className={`rounded-lg px-2.5 py-1 text-xs font-bold ${
-            tab === "memo" ? "bg-blue-t2 text-blue" : "text-t3 hover:bg-bg"
-          }`}
-        >
-          수납 건물 메모
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("billing")}
-          className={`rounded-lg px-2.5 py-1 text-xs font-bold ${
-            tab === "billing" ? "bg-blue-t2 text-blue" : "text-t3 hover:bg-bg"
-          }`}
-        >
-          부과시 참조사항
-        </button>
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex gap-1">
+          <button
+            type="button"
+            onClick={() => setTab("memo")}
+            className={`rounded-lg px-2.5 py-1 text-xs font-bold ${
+              tab === "memo" ? "bg-blue-t2 text-blue" : "text-t3 hover:bg-bg"
+            }`}
+          >
+            수납 건물 메모
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("billing")}
+            className={`rounded-lg px-2.5 py-1 text-xs font-bold ${
+              tab === "billing" ? "bg-blue-t2 text-blue" : "text-t3 hover:bg-bg"
+            }`}
+          >
+            부과시 참조사항
+          </button>
+        </div>
+        {building !== null && canEdit && (
+          editing ? (
+            <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={submit}
+                disabled={save.isPending}
+                className="rounded-lg bg-blue px-2 py-1 text-xs font-bold text-white disabled:opacity-60"
+              >
+                저장
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditing(false)}
+                className="rounded-lg border border-line px-2 py-1 text-xs font-bold text-t2 hover:bg-bg"
+              >
+                취소
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={startEdit}
+              className="rounded-lg border border-line px-2 py-1 text-xs font-bold text-t2 hover:bg-bg"
+            >
+              수정
+            </button>
+          )
+        )}
       </div>
       {building === null ? (
         <p className="px-1 py-4 text-center text-xs text-t4">건물을 선택하세요</p>
       ) : (
         <textarea
-          readOnly
-          value={tab === "memo" ? building.memo ?? "" : ""}
+          readOnly={!editing}
+          value={activeValue}
+          onChange={(e) => (tab === "memo" ? setMemo(e.target.value) : setBillingNote(e.target.value))}
           placeholder={
-            tab === "memo"
-              ? "등록된 메모가 없습니다"
-              : "부과시 참조사항은 다음 단계(P2)에서 연결됩니다"
+            editing
+              ? tab === "memo"
+                ? "수납 건물 메모 입력"
+                : "부과시 참조사항 입력"
+              : "등록된 내용이 없습니다"
           }
-          className="h-20 w-full resize-none rounded-xl border border-line bg-bg px-3 py-2 text-sm text-t2"
+          className={`h-20 w-full resize-none rounded-xl border px-3 py-2 text-sm ${
+            editing ? "border-blue bg-surface text-t1" : "border-line bg-bg text-t2"
+          }`}
         />
       )}
     </div>
