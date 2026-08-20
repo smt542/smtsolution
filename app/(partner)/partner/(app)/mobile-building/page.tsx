@@ -66,7 +66,12 @@ function BuildingDetailInner() {
         <BackIcon />
       </Link>
       <div className={styles.title}>{title}</div>
-      <Link href="/partner/mobile-meter" className={styles.meterBtn}>검침 자료</Link>
+      <Link
+        href={Number.isFinite(buildingId) ? `/partner/mobile-meter?id=${buildingId}` : "/partner/mobile-meter"}
+        className={styles.meterBtn}
+      >
+        검침 자료
+      </Link>
     </div>
   );
 
