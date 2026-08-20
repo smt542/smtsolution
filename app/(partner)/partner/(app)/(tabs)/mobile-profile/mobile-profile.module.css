@@ -1,0 +1,166 @@
+.root {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+
+.header {
+  padding: 22px 20px 16px;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 2px 20px 24px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 28px 18px;
+  text-align: center;
+}
+
+.avatar {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--blue-t);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--blue-d);
+  font-size: 25px;
+  font-weight: 800;
+}
+
+.name {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.phone {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--t3);
+  margin-top: 5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.rows {
+  width: 100%;
+  border-top: 1px solid var(--line2);
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rowLabel {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--t3);
+}
+
+.rowValue {
+  font-size: 14.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.logout {
+  margin-top: 16px;
+  width: 100%;
+  height: 52px;
+  border-radius: 15px;
+  border: 1px solid var(--line);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--t2);
+  cursor: pointer;
+}
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(23, 31, 40, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 95;
+  padding: 24px;
+}
+
+.dialog {
+  background: #fff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 330px;
+  padding: 22px 20px 16px;
+  text-align: center;
+}
+
+.dTitle {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.dDesc {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--t3);
+  line-height: 1.6;
+  margin-top: 8px;
+}
+
+.dActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.dBtn {
+  flex: 1;
+  height: 46px;
+  border: 0;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dCancel {
+  background: var(--bg);
+  color: var(--t2);
+}
+
+.dDanger {
+  background: var(--red);
+  color: #fff;
+}
