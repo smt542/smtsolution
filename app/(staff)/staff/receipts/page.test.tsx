@@ -38,6 +38,10 @@ vi.mock("@/hooks/reactquery/complaints", () => ({
 vi.mock("../messaging/components/MessagingModal", () => ({
   MessagingModal: () => <div data-testid="messaging-modal" />,
 }));
+vi.mock("./components/VillaPaymentModal", () => ({
+  VillaPaymentModal: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="villa-modal" /> : null,
+}));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 
 import ReceiptManagementPage from "./page";
@@ -255,5 +259,12 @@ describe("ReceiptManagementPage (세대중심 재설계)", () => {
     expect(saveOccupancyFieldsAsync).toHaveBeenCalledWith(
       expect.objectContaining({ occupancyId: 31, tenantName: "김입주" }),
     );
+  });
+
+  it("빌라 드롭다운이 빌라 수납 콘솔(VillaPaymentModal)을 연다 (P3a 흡수)", () => {
+    renderPage();
+    fireEvent.click(screen.getByText("그린빌라"));
+    fireEvent.click(screen.getByRole("button", { name: "빌라 부과금액" }));
+    expect(screen.getByTestId("villa-modal")).toBeInTheDocument();
   });
 });

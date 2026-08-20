@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Button, EmptyState, Modal, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
@@ -21,7 +21,8 @@ import { BuildingUnitRail } from "./components/BuildingUnitRail";
 import { PaymentHistorySection } from "./components/PaymentHistorySection";
 import { TenantInfoSection } from "./components/TenantInfoSection";
 import { UnifiedSearchModal } from "./components/UnifiedSearchModal";
-import { autoPayLink, formatCurrency, unitPaymentLink, villaPaymentLink } from "./receiptFormat";
+import { VillaPaymentModal, type VillaPaymentModalInit } from "./components/VillaPaymentModal";
+import { formatCurrency } from "./receiptFormat";
 
 type DropdownItem = { header: string } | { label: string; onClick: () => void };
 
@@ -142,7 +143,6 @@ function ReceiptWorkspace({
   canSendMessages: boolean;
   canEditPayment: boolean;
 }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [period, setPeriod] = useState(() => currentPeriod());
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | null>(() => {
@@ -153,6 +153,7 @@ function ReceiptWorkspace({
   const [selectedUnitId, setSelectedUnitId] = useState<number | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [monthlyOpen, setMonthlyOpen] = useState(false);
+  const [villa, setVilla] = useState<VillaPaymentModalInit | null>(null);
 
   const { data: buildings = [], isLoading: isBuildingsLoading } = useBuildings();
   const orgBuildings = useMemo(
@@ -190,23 +191,20 @@ function ReceiptWorkspace({
     setSelectedUnitId(unitId);
   };
 
-  const villaAction = (view: "amount" | "unpaid" | "paid") => () => {
+  const openVilla = (init: VillaPaymentModalInit) => {
     if (selectedBuildingId === null) {
       toast.info("건물을 먼저 선택하세요.");
       return;
     }
-    router.push(villaPaymentLink(selectedBuildingId, period, view));
+    setVilla(init);
   };
-  const unitAction = (view: "statement" | "receipt") => () => {
+  const openVillaUnit = (view: "statement" | "receipt") => {
     if (selectedBuildingId === null || selectedUnitId === null) {
       toast.info("호실을 먼저 선택하세요.");
       return;
     }
-    router.push(unitPaymentLink(selectedBuildingId, selectedUnitId, period, view));
+    setVilla({ view, unitId: selectedUnitId });
   };
-  const autoPayAction =
-    (giro: "pay" | "ledger" | "date" | "bank" | "bankForm") => () =>
-      router.push(autoPayLink(selectedBuildingId, period, giro));
 
   return (
     <div className="flex min-h-screen flex-col gap-4 p-6">
@@ -231,33 +229,39 @@ function ReceiptWorkspace({
           <Button type="button" variant="ghost" onClick={() => setMonthlyOpen(true)}>
             월별 부과금액
           </Button>
-          <Dropdown
-            label="빌라"
-            items={[
-              { label: "빌라 부과금액", onClick: villaAction("amount") },
-              { label: "빌라 미납내역", onClick: villaAction("unpaid") },
-              { label: "빌라 수납내역", onClick: villaAction("paid") },
-            ]}
-          />
-          <Dropdown
-            label="호실"
-            items={[
-              { label: "호실 명세서", onClick: unitAction("statement") },
-              { label: "영수증 출력", onClick: unitAction("receipt") },
-            ]}
-          />
-          <Dropdown
-            label="자동수납"
-            items={[
-              { header: "지로" },
-              { label: "지로수납처리", onClick: autoPayAction("pay") },
-              { label: "지로수납원장 보기", onClick: autoPayAction("ledger") },
-              { label: "지로처리일자 확인", onClick: autoPayAction("date") },
-              { header: "은행 입금" },
-              { label: "은행 입금내역 업로드", onClick: autoPayAction("bank") },
-              { label: "은행 양식 다운", onClick: autoPayAction("bankForm") },
-            ]}
-          />
+          {/* 빌라·호실·자동수납은 수납 콘솔(기록/취소 포함)이므로 payment 모듈 보유자만 노출 */}
+          {canEditPayment && (
+            <>
+              <Dropdown
+                label="빌라"
+                items={[
+                  { label: "빌라 부과금액", onClick: () => openVilla({ statusFilter: "all" }) },
+                  { label: "빌라 미납내역", onClick: () => openVilla({ statusFilter: "unpaid" }) },
+                  { label: "빌라 수납내역", onClick: () => openVilla({ statusFilter: "paid" }) },
+                ]}
+              />
+              <Dropdown
+                label="호실"
+                items={[
+                  { label: "호실 명세서", onClick: () => openVillaUnit("statement") },
+                  { label: "영수증 출력", onClick: () => openVillaUnit("receipt") },
+                ]}
+              />
+              {/* 지로처리일자 확인·은행 양식 다운은 전용 화면이 없어 지로원장/은행업로드 뷰로 임시 매핑 (P4 정리 예정) */}
+              <Dropdown
+                label="자동수납"
+                items={[
+                  { header: "지로" },
+                  { label: "지로수납처리", onClick: () => openVilla({ view: "table" }) },
+                  { label: "지로수납원장 보기", onClick: () => openVilla({ view: "giro" }) },
+                  { label: "지로처리일자 확인", onClick: () => openVilla({ view: "giro" }) },
+                  { header: "은행 입금" },
+                  { label: "은행 입금내역 업로드", onClick: () => openVilla({ view: "bank" }) },
+                  { label: "은행 양식 다운", onClick: () => openVilla({ view: "bank" }) },
+                ]}
+              />
+            </>
+          )}
         </div>
       </header>
 
@@ -320,6 +324,16 @@ function ReceiptWorkspace({
         rows={receiptRows}
         period={period}
       />
+      {villa && selectedBuilding && (
+        <VillaPaymentModal
+          open
+          building={selectedBuilding}
+          orgId={orgId}
+          period={period}
+          init={villa}
+          onClose={() => setVilla(null)}
+        />
+      )}
     </div>
   );
 }
