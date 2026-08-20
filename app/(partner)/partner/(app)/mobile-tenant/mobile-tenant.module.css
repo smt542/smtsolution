@@ -153,3 +153,206 @@
   height: 14px;
   color: var(--blue);
 }
+
+/* ===== 탭 ===== */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+  margin: 0 20px;
+}
+
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 12px 0 11px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--t3);
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.tabOn {
+  color: var(--blue);
+  border-bottom-color: var(--blue);
+}
+
+.count {
+  color: var(--t3);
+  font-weight: 700;
+}
+
+.padTight {
+  padding: 6px 20px 24px;
+}
+
+.none {
+  text-align: center;
+  padding: 40px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--t3);
+}
+
+/* ===== 수납정보 (월별 접기/펼치기) ===== */
+.pcell {
+  border-bottom: 1px solid var(--line);
+}
+
+.pcell:last-child {
+  border-bottom: 0;
+}
+
+.ptop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 15px 2px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ptopMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.pmonth {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--t1);
+  font-variant-numeric: tabular-nums;
+}
+
+.pdue {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--t3);
+  margin-top: 4px;
+}
+
+.pamt {
+  flex: none;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--blue-d);
+  font-variant-numeric: tabular-nums;
+}
+
+.pchev {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--t4);
+  transition: transform 0.18s ease;
+}
+
+.pcellOpen .pchev {
+  transform: rotate(180deg);
+}
+
+.pdet {
+  padding: 2px 0 16px;
+}
+
+.pdet .rowValue {
+  font-weight: 500;
+}
+
+.neg {
+  color: var(--red);
+}
+
+/* ===== 이사정산 카드 ===== */
+.mscard {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 15px 16px;
+  margin-bottom: 10px;
+}
+
+.mscard:last-child {
+  margin-bottom: 0;
+}
+
+.mstop {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.msname {
+  flex: none;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--t1);
+}
+
+.chip {
+  flex: none;
+  margin-left: auto;
+  font-size: 11.5px;
+  font-weight: 800;
+  padding: 4px 8px;
+  border-radius: 7px;
+}
+
+.chipOk {
+  color: var(--blue-d);
+  background: var(--blue-t);
+}
+
+.chipNo {
+  color: var(--red);
+  background: #fdecee;
+}
+
+.msamtRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.msamtLabel {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--t3);
+}
+
+.msamtVal {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--t1);
+  font-variant-numeric: tabular-nums;
+}
+
+.msmeta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.msmeta span {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--t3);
+}
+
+.msmeta b {
+  font-weight: 600;
+  color: var(--t2);
+  font-variant-numeric: tabular-nums;
+}
