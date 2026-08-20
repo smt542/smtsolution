@@ -229,33 +229,39 @@ function ReceiptWorkspace({
           <Button type="button" variant="ghost" onClick={() => setMonthlyOpen(true)}>
             월별 부과금액
           </Button>
-          <Dropdown
-            label="빌라"
-            items={[
-              { label: "빌라 부과금액", onClick: () => openVilla({ statusFilter: "all" }) },
-              { label: "빌라 미납내역", onClick: () => openVilla({ statusFilter: "unpaid" }) },
-              { label: "빌라 수납내역", onClick: () => openVilla({ statusFilter: "paid" }) },
-            ]}
-          />
-          <Dropdown
-            label="호실"
-            items={[
-              { label: "호실 명세서", onClick: () => openVillaUnit("statement") },
-              { label: "영수증 출력", onClick: () => openVillaUnit("receipt") },
-            ]}
-          />
-          <Dropdown
-            label="자동수납"
-            items={[
-              { header: "지로" },
-              { label: "지로수납처리", onClick: () => openVilla({ view: "table" }) },
-              { label: "지로수납원장 보기", onClick: () => openVilla({ view: "giro" }) },
-              { label: "지로처리일자 확인", onClick: () => openVilla({ view: "giro" }) },
-              { header: "은행 입금" },
-              { label: "은행 입금내역 업로드", onClick: () => openVilla({ view: "bank" }) },
-              { label: "은행 양식 다운", onClick: () => openVilla({ view: "bank" }) },
-            ]}
-          />
+          {/* 빌라·호실·자동수납은 수납 콘솔(기록/취소 포함)이므로 payment 모듈 보유자만 노출 */}
+          {canEditPayment && (
+            <>
+              <Dropdown
+                label="빌라"
+                items={[
+                  { label: "빌라 부과금액", onClick: () => openVilla({ statusFilter: "all" }) },
+                  { label: "빌라 미납내역", onClick: () => openVilla({ statusFilter: "unpaid" }) },
+                  { label: "빌라 수납내역", onClick: () => openVilla({ statusFilter: "paid" }) },
+                ]}
+              />
+              <Dropdown
+                label="호실"
+                items={[
+                  { label: "호실 명세서", onClick: () => openVillaUnit("statement") },
+                  { label: "영수증 출력", onClick: () => openVillaUnit("receipt") },
+                ]}
+              />
+              {/* 지로처리일자 확인·은행 양식 다운은 전용 화면이 없어 지로원장/은행업로드 뷰로 임시 매핑 (P4 정리 예정) */}
+              <Dropdown
+                label="자동수납"
+                items={[
+                  { header: "지로" },
+                  { label: "지로수납처리", onClick: () => openVilla({ view: "table" }) },
+                  { label: "지로수납원장 보기", onClick: () => openVilla({ view: "giro" }) },
+                  { label: "지로처리일자 확인", onClick: () => openVilla({ view: "giro" }) },
+                  { header: "은행 입금" },
+                  { label: "은행 입금내역 업로드", onClick: () => openVilla({ view: "bank" }) },
+                  { label: "은행 양식 다운", onClick: () => openVilla({ view: "bank" }) },
+                ]}
+              />
+            </>
+          )}
         </div>
       </header>
 
