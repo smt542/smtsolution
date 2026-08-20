@@ -17,13 +17,13 @@ import {
 } from "@/hooks/reactquery/payments";
 import { PROGRAM_COMPANY_NAME } from "@/lib/bill/document";
 import { toMonthInput } from "@/lib/billing/period";
-import { BankImportModal } from "../../payment/components/BankImportModal";
-import { GiroLedgerModal } from "../../payment/components/GiroLedgerModal";
-import { PaymentAmountModal } from "../../payment/components/PaymentAmountModal";
-import { PaymentHistoryModal } from "../../payment/components/PaymentHistoryModal";
-import { PaymentReceiptModal } from "../../payment/components/PaymentReceiptModal";
-import { PaymentStatementModal } from "../../payment/components/PaymentStatementModal";
-import { PaymentTable } from "../../payment/components/PaymentTable";
+import { BankImportModal } from "./payment/BankImportModal";
+import { GiroLedgerModal } from "./payment/GiroLedgerModal";
+import { PaymentAmountModal } from "./payment/PaymentAmountModal";
+import { PaymentHistoryModal } from "./payment/PaymentHistoryModal";
+import { PaymentReceiptModal } from "./payment/PaymentReceiptModal";
+import { PaymentStatementModal } from "./payment/PaymentStatementModal";
+import { PaymentTable } from "./payment/PaymentTable";
 
 export type VillaInitialView = "table" | "giro" | "bank" | "statement" | "receipt";
 export type VillaStatusFilter = "all" | "unpaid" | "paid";

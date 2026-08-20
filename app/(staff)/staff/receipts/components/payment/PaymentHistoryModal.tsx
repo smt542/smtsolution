@@ -5,8 +5,8 @@ import {
   useUnitPayments,
   type UnitPayment,
 } from "@/hooks/reactquery/payments";
-import { ComplaintDialog } from "../../receipts/components/ComplaintDialog";
-import { KIND_LABEL, METHOD_LABEL } from "../constants";
+import { ComplaintDialog } from "../ComplaintDialog";
+import { KIND_LABEL, METHOD_LABEL } from "./constants";
 
 interface PaymentHistoryModalProps {
   open: boolean;

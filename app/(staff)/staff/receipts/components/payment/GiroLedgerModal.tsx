@@ -2,7 +2,7 @@
 
 import { Button, EmptyState, Spinner } from "@/components/common";
 import { useGiroPayments, type GiroPayment } from "@/hooks/reactquery/payments";
-import { ComplaintDialog } from "../../receipts/components/ComplaintDialog";
+import { ComplaintDialog } from "../ComplaintDialog";
 
 interface GiroLedgerModalProps {
   open: boolean; buildingId: number; period: string;

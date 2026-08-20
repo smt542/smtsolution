@@ -1,6 +1,6 @@
 import { Button, EmptyState, Spinner } from "@/components/common";
 import type { PaymentKind, PaymentRow } from "@/hooks/reactquery/payments";
-import { PAY_STATUS_LABEL, PAY_STATUS_STYLE } from "../constants";
+import { PAY_STATUS_LABEL, PAY_STATUS_STYLE } from "./constants";
 
 type PaymentAction = PaymentKind | "cancel" | "giro";
 

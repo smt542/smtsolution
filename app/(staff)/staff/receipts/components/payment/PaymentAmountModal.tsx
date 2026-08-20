@@ -7,8 +7,8 @@ import type {
   PaymentMethod,
   PaymentRow,
 } from "@/hooks/reactquery/payments";
-import { ComplaintDialog } from "../../receipts/components/ComplaintDialog";
-import { KIND_LABEL, METHOD_OPTIONS } from "../constants";
+import { ComplaintDialog } from "../ComplaintDialog";
+import { KIND_LABEL, METHOD_OPTIONS } from "./constants";
 
 interface PaymentAmountModalProps {
   open: boolean;

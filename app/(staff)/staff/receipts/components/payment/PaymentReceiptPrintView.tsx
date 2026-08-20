@@ -1,6 +1,6 @@
 import type { Building } from "@/hooks/reactquery/buildings";
 import type { PaymentRow, UnitPayment } from "@/hooks/reactquery/payments";
-import { KIND_LABEL, METHOD_LABEL } from "../constants";
+import { KIND_LABEL, METHOD_LABEL } from "./constants";
 
 interface PaymentReceiptPrintViewProps {
   building: Building;
