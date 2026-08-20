@@ -10,6 +10,7 @@ const profileHooks = vi.hoisted(() => ({
 }));
 const signOut = vi.hoisted(() => vi.fn());
 const resetOnboardingSession = vi.hoisted(() => vi.fn());
+const withdrawMutateAsync = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
   usePathname: () => "/resident/me",
@@ -21,6 +22,12 @@ vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({ auth: { signOut } }),
 }));
 vi.mock("@/lib/resident/onboardingClient", () => ({ resetOnboardingSession }));
+vi.mock("@/hooks/reactquery/residentWithdrawal", () => ({
+  useWithdrawResident: () => ({
+    mutateAsync: withdrawMutateAsync,
+    isPending: false,
+  }),
+}));
 vi.mock("@/app/(resident)/_components/MoveOutSection", () => ({
   default: () => <section aria-label="퇴실 신청">퇴실 신청 영역</section>,
 }));
@@ -63,6 +70,7 @@ beforeEach(() => {
     error: null,
   });
   signOut.mockResolvedValue({ error: null });
+  withdrawMutateAsync.mockResolvedValue(undefined);
 });
 
 describe("ResidentMePage", () => {
@@ -104,5 +112,37 @@ describe("ResidentMePage", () => {
       expect(resetOnboardingSession).toHaveBeenCalledOnce();
       expect(nav.replace).toHaveBeenCalledWith("/resident/login");
     });
+  });
+
+  it("withdraws membership, signs out, clears onboarding state, and replaces to login", async () => {
+    const user = userEvent.setup();
+    render(<ResidentMePage />);
+
+    await user.click(screen.getByRole("button", { name: "회원 탈퇴" }));
+    const dialog = screen.getByRole("dialog", { name: "회원 탈퇴할까요?" });
+    await user.click(within(dialog).getByRole("button", { name: "회원 탈퇴" }));
+
+    await waitFor(() => {
+      expect(withdrawMutateAsync).toHaveBeenCalledOnce();
+      expect(signOut).toHaveBeenCalledOnce();
+      expect(resetOnboardingSession).toHaveBeenCalledOnce();
+      expect(nav.replace).toHaveBeenCalledWith("/resident/login");
+    });
+  });
+
+  it("keeps the resident on the page and shows an error when withdrawal fails", async () => {
+    withdrawMutateAsync.mockRejectedValueOnce(new Error("탈퇴에 실패했어요"));
+    const user = userEvent.setup();
+    render(<ResidentMePage />);
+
+    await user.click(screen.getByRole("button", { name: "회원 탈퇴" }));
+    const dialog = screen.getByRole("dialog", { name: "회원 탈퇴할까요?" });
+    await user.click(within(dialog).getByRole("button", { name: "회원 탈퇴" }));
+
+    await waitFor(() =>
+      expect(within(dialog).getByText("탈퇴에 실패했어요")).toBeInTheDocument(),
+    );
+    expect(signOut).not.toHaveBeenCalled();
+    expect(nav.replace).not.toHaveBeenCalled();
   });
 });
