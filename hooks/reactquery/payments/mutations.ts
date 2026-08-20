@@ -1,11 +1,18 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { cancelPayment, recordBankPayments, recordPayment, type BankPaymentEntry, type RecordPaymentInput } from "./apis";
+import { cancelPayment, recordBankPayments, recordPayment, recordPaymentEdit, type BankPaymentEntry, type RecordPaymentEditInput, type RecordPaymentInput } from "./apis";
 import { paymentKeys } from "./keys";
 
 export function useRecordPayment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: RecordPaymentInput) => recordPayment(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: paymentKeys.all }),
+  });
+}
+export function useRecordPaymentEdit() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: RecordPaymentEditInput) => recordPaymentEdit(input),
     onSuccess: () => qc.invalidateQueries({ queryKey: paymentKeys.all }),
   });
 }

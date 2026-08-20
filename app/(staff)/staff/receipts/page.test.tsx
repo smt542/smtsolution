@@ -14,6 +14,7 @@ vi.mock("@/hooks/reactquery/occupancies", () => ({ useUnitOccupancyFull: vi.fn()
 vi.mock("@/hooks/reactquery/payments", () => ({
   useUnitPayments: vi.fn(),
   useRecordPayment: vi.fn(),
+  useRecordPaymentEdit: vi.fn(),
   useCancelPayment: vi.fn(),
 }));
 vi.mock("@/hooks/reactquery/receipts", () => ({
@@ -49,7 +50,12 @@ import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useUnits } from "@/hooks/reactquery/units";
 import { useUnitOccupancyFull } from "@/hooks/reactquery/occupancies";
-import { useCancelPayment, useRecordPayment, useUnitPayments } from "@/hooks/reactquery/payments";
+import {
+  useCancelPayment,
+  useRecordPayment,
+  useRecordPaymentEdit,
+  useUnitPayments,
+} from "@/hooks/reactquery/payments";
 import {
   useReceiptPaymentStatus,
   useSaveBuildingNotes,
@@ -187,6 +193,7 @@ function setup(me: any = master) {
   vi.mocked(useUpdateComplaintResolution).mockReturnValue(mutation());
   vi.mocked(useDeleteComplaintResolution).mockReturnValue(mutation());
   vi.mocked(useRecordPayment).mockReturnValue(mutation());
+  vi.mocked(useRecordPaymentEdit).mockReturnValue(mutation());
   vi.mocked(useCancelPayment).mockReturnValue(mutation());
   vi.mocked(useSaveBuildingNotes).mockReturnValue({
     mutateAsync: saveBuildingNotesAsync,

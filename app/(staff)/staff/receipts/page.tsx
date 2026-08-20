@@ -22,6 +22,7 @@ import { PaymentHistorySection } from "./components/PaymentHistorySection";
 import { TenantInfoSection } from "./components/TenantInfoSection";
 import { UnifiedSearchModal } from "./components/UnifiedSearchModal";
 import { VillaPaymentModal, type VillaPaymentModalInit } from "./components/VillaPaymentModal";
+import { downloadBankTemplate } from "./components/payment/bankTemplate";
 import { formatCurrency } from "./receiptFormat";
 
 type DropdownItem = { header: string } | { label: string; onClick: () => void };
@@ -247,7 +248,7 @@ function ReceiptWorkspace({
                   { label: "영수증 출력", onClick: () => openVillaUnit("receipt") },
                 ]}
               />
-              {/* 지로처리일자 확인·은행 양식 다운은 전용 화면이 없어 지로원장/은행업로드 뷰로 임시 매핑 (P4 정리 예정) */}
+              {/* 지로처리일자 확인 = 지로원장(처리일자 포함) 뷰. 은행 양식 다운 = 업로드용 빈 xlsx 템플릿. */}
               <Dropdown
                 label="자동수납"
                 items={[
@@ -257,7 +258,7 @@ function ReceiptWorkspace({
                   { label: "지로처리일자 확인", onClick: () => openVilla({ view: "giro" }) },
                   { header: "은행 입금" },
                   { label: "은행 입금내역 업로드", onClick: () => openVilla({ view: "bank" }) },
-                  { label: "은행 양식 다운", onClick: () => openVilla({ view: "bank" }) },
+                  { label: "은행 양식 다운", onClick: () => void downloadBankTemplate() },
                 ]}
               />
             </>

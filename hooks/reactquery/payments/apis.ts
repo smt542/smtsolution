@@ -68,6 +68,23 @@ export async function recordPayment(input: RecordPaymentInput): Promise<PaymentB
   return { charged: r.charged, paid: r.paid, unpaid: r.unpaid };
 }
 
+export interface RecordPaymentEditInput extends RecordPaymentInput {
+  oldPaymentId: number;
+}
+
+/** 수납 수정 = 기존 취소 + 재기록을 단일 트랜잭션(record_payment_edit)으로 원자 처리. */
+export async function recordPaymentEdit(input: RecordPaymentEditInput): Promise<PaymentBalance> {
+  const { data, error } = await createClient().rpc("record_payment_edit", {
+    p_old_payment_id: input.oldPaymentId,
+    p_unit_id: input.unitId, p_period: input.period, p_amount: input.amount,
+    p_method: input.method, p_kind: input.kind,
+    p_memo: input.memo ?? null, p_paid_at: input.paidAt ?? null, p_fee: input.fee ?? 0,
+  });
+  if (error) throw new Error(error.message);
+  const r = data as BalanceDb;
+  return { charged: r.charged, paid: r.paid, unpaid: r.unpaid };
+}
+
 export async function cancelPayment(paymentId: number): Promise<PaymentBalance> {
   const { data, error } = await createClient().rpc("cancel_payment", { p_payment_id: paymentId });
   if (error) throw new Error(error.message);
