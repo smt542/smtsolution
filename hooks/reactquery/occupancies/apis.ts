@@ -17,6 +17,7 @@ export interface Occupancy {
   singlePrint: boolean; billingNote: string | null; settlementNote: string | null; facilityNote: string | null;
   transferMethod: TransferMethod; billNameDisplay: BillNameDisplay; billDelivery: BillDelivery; billAuth: boolean;
   moveOutScheduledDate: string | null;
+  smsOptIn: boolean; alimtalkOptIn: boolean;
 }
 type OccupancyRow = {
   id: number; unit_id: number; tenant_name: string | null; payer_name: string | null;
@@ -26,6 +27,7 @@ type OccupancyRow = {
   single_print: boolean; billing_note: string | null; settlement_note: string | null; facility_note: string | null;
   transfer_method: TransferMethod; bill_name_display: BillNameDisplay; bill_delivery: BillDelivery; bill_auth: boolean;
   move_out_scheduled_date: string | null;
+  sms_opt_in: boolean; alimtalk_opt_in: boolean;
 };
 const rowToOccupancy = (r: OccupancyRow): Occupancy => ({
   id: r.id, unitId: r.unit_id, tenantName: r.tenant_name, payerName: r.payer_name,
@@ -35,6 +37,7 @@ const rowToOccupancy = (r: OccupancyRow): Occupancy => ({
   singlePrint: r.single_print, billingNote: r.billing_note, settlementNote: r.settlement_note, facilityNote: r.facility_note,
   transferMethod: r.transfer_method, billNameDisplay: r.bill_name_display, billDelivery: r.bill_delivery, billAuth: r.bill_auth,
   moveOutScheduledDate: r.move_out_scheduled_date,
+  smsOptIn: r.sms_opt_in ?? false, alimtalkOptIn: r.alimtalk_opt_in ?? false,
 });
 
 export interface TenantListRow {

@@ -14,11 +14,11 @@ export interface PaymentRow {
 }
 export interface PaymentBalance { charged: number | null; paid: number; unpaid: number | null; }
 export interface RecordPaymentInput {
-  unitId: number; period: string; amount: number;
+  unitId: number; period: string; amount: number; fee?: number;
   method: PaymentMethod; kind: PaymentKind; memo?: string | null; paidAt?: string | null;
 }
 export interface UnitPayment {
-  id: number; amount: number; method: PaymentMethod; kind: PaymentKind;
+  id: number; amount: number; fee: number; method: PaymentMethod; kind: PaymentKind;
   memo: string | null; paidAt: string; status: "active" | "canceled"; createdAt: string;
 }
 export interface GiroPayment {
@@ -36,7 +36,7 @@ type PaymentRowDb = {
 };
 type BalanceDb = { charged: number | null; paid: number; unpaid: number | null };
 type UnitPaymentDb = {
-  id: number; amount: number; method: PaymentMethod; kind: PaymentKind;
+  id: number; amount: number; fee: number; method: PaymentMethod; kind: PaymentKind;
   memo: string | null; paid_at: string; status: "active" | "canceled"; created_at: string;
 };
 type GiroPaymentDb = {
@@ -61,7 +61,7 @@ export async function recordPayment(input: RecordPaymentInput): Promise<PaymentB
   const { data, error } = await createClient().rpc("record_payment", {
     p_unit_id: input.unitId, p_period: input.period, p_amount: input.amount,
     p_method: input.method, p_kind: input.kind,
-    p_memo: input.memo ?? null, p_paid_at: input.paidAt ?? null,
+    p_memo: input.memo ?? null, p_paid_at: input.paidAt ?? null, p_fee: input.fee ?? 0,
   });
   if (error) throw new Error(error.message);
   const r = data as BalanceDb;
@@ -79,7 +79,7 @@ export async function listUnitPayments(unitId: number, period: string): Promise<
   const { data, error } = await createClient().rpc("list_unit_payments", { p_unit_id: unitId, p_period: period });
   if (error) throw new Error(error.message);
   return ((data ?? []) as UnitPaymentDb[]).map((r) => ({
-    id: r.id, amount: r.amount, method: r.method, kind: r.kind,
+    id: r.id, amount: r.amount, fee: r.fee ?? 0, method: r.method, kind: r.kind,
     memo: r.memo, paidAt: r.paid_at, status: r.status, createdAt: r.created_at,
   }));
 }

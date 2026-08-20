@@ -180,10 +180,12 @@ export function AsStatusSection({
       toast.info("담당 기사 연락처가 등록되어 있지 않습니다.");
       return;
     }
+    // A/S 확인문자 = 상세폼 단문 방식(건물·호수·접수내용·전화)으로 단일화 — 3종 템플릿 모달 미사용.
+    const unit = formatUnitLabel({ unitNo: complaint.unitNo, dong: complaint.unitDong });
     setMessagingPreset({
-      context: "민원·AS 안내",
+      context: "A/S 확인",
       channel: "sms",
-      body: `민원·AS 안내: ${complaint.title}${complaint.content ? `\n${complaint.content}` : ""}`,
+      body: `[${complaint.buildingName ?? "건물"} ${unit}] A/S 접수 안내\n유형: ${complaint.categoryLabel ?? "-"}\n접수내용: ${complaint.content ?? complaint.title}\n입주자 연락처: ${complaint.reporterPhone ?? "-"}`,
       recipients: [
         {
           name: assignee.fullName,
