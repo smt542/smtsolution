@@ -20,7 +20,7 @@ import {
   type MatchedDeposit,
   type MatchUnit,
 } from "@/lib/payments/match";
-import { ComplaintDialog } from "../../receipts/components/ComplaintDialog";
+import { ComplaintDialog } from "../ComplaintDialog";
 
 interface BankImportModalProps {
   open: boolean;

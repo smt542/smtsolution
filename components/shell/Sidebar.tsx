@@ -119,7 +119,9 @@ export function Sidebar() {
         )}
         {NAV_GROUPS.map((group) => {
           const visible = group.items.filter((item) =>
-            !item.module || hasModule(me ?? null, item.module)
+            item.modules
+              ? item.modules.some((m) => hasModule(me ?? null, m))
+              : !item.module || hasModule(me ?? null, item.module),
           );
           if (visible.length === 0) return null;
 
