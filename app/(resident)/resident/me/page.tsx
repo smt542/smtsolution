@@ -10,6 +10,7 @@ import {
   useResidentProfile,
   useSetNotifyPrefs,
 } from "@/hooks/reactquery/residentProfile";
+import { useWithdrawResident } from "@/hooks/reactquery/residentWithdrawal";
 import { resetOnboardingSession } from "@/lib/resident/onboardingClient";
 import { useResidentGuard } from "@/lib/resident/useResidentGuard";
 import { createClient } from "@/lib/supabase/client";
@@ -23,10 +24,13 @@ export default function ResidentMePage() {
   const guard = useResidentGuard();
   const profileQuery = useResidentProfile();
   const notifyMutation = useSetNotifyPrefs();
+  const withdrawResident = useWithdrawResident();
   const [alimtalkWarningOpen, setAlimtalkWarningOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [withdrawalNotice, setWithdrawalNotice] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
 
   if (guard.loading || profileQuery.isPending) {
     return (
@@ -81,6 +85,29 @@ export default function ResidentMePage() {
       resetOnboardingSession();
       router.replace("/resident/login");
     }
+  };
+
+  const confirmWithdraw = async () => {
+    setWithdrawError(null);
+    setWithdrawing(true);
+    try {
+      await withdrawResident.mutateAsync();
+    } catch (error) {
+      setWithdrawing(false);
+      setWithdrawError(
+        error instanceof Error
+          ? error.message
+          : "회원 탈퇴를 처리하지 못했어요.",
+      );
+      return;
+    }
+    try {
+      await createClient().auth.signOut();
+    } catch {
+      // best-effort sign-out; the account link is already removed
+    }
+    resetOnboardingSession();
+    router.replace("/resident/login");
   };
 
   return (
@@ -173,22 +200,16 @@ export default function ResidentMePage() {
           <button type="button" onClick={() => setLogoutOpen(true)}>
             <span>로그아웃</span><b aria-hidden="true">›</b>
           </button>
-          {/* TODO: 실제 회원 및 개인정보 삭제 RPC는 후속 트랙에서 연결한다. */}
-          <a
-            href="#withdrawal"
+          <button
+            type="button"
             className={styles.withdrawal}
-            onClick={(event) => {
-              event.preventDefault();
-              setWithdrawalNotice(true);
+            onClick={() => {
+              setWithdrawError(null);
+              setWithdrawOpen(true);
             }}
           >
             회원 탈퇴
-          </a>
-          {withdrawalNotice ? (
-            <p className={styles.placeholder} role="status">
-              회원 탈퇴 기능은 준비 중이에요.
-            </p>
-          ) : null}
+          </button>
         </nav>
       </main>
 
@@ -230,6 +251,40 @@ export default function ResidentMePage() {
                 onClick={() => void confirmLogout()}
               >
                 {loggingOut ? "로그아웃 중..." : "로그아웃"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {withdrawOpen ? (
+        <div className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="withdraw-title">
+          <div className={styles.modalBody}>
+            <h2 id="withdraw-title">회원 탈퇴할까요?</h2>
+            <p>
+              연결된 세대 정보와 카카오 로그인 연결이 삭제돼요. 관리비·공지 등
+              세입자 서비스를 더 이상 이용할 수 없어요.
+            </p>
+            {withdrawError ? (
+              <p className={styles.error} role="alert">
+                {withdrawError}
+              </p>
+            ) : null}
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                onClick={() => setWithdrawOpen(false)}
+                disabled={withdrawing}
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                className={styles.danger}
+                disabled={withdrawing}
+                onClick={() => void confirmWithdraw()}
+              >
+                {withdrawing ? "처리 중..." : "회원 탈퇴"}
               </button>
             </div>
           </div>
