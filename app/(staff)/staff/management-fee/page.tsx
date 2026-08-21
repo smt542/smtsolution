@@ -136,7 +136,18 @@ export default function FeeItemPage() {
     } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
   };
 
-  const selectBuilding = (v: string) => { setBuildingId(v ? Number(v) : null); setChargeDrafts({}); setNoteDrafts({}); };
+  const selectBuilding = (v: string) => {
+    const id = v ? Number(v) : null;
+    if (id) {
+      const b = buildings.find((x) => x.id === id);
+      if (b?.setupConfirmRequired && !window.confirm("이 건물은 셋팅 시 확인이 필요합니다. 계속하시겠습니까?")) {
+        return; // §3.4 취소 → 선택 롤백
+      }
+    }
+    setBuildingId(id);
+    setChargeDrafts({});
+    setNoteDrafts({});
+  };
   const changeMonth = (v: string) => { setPeriod(fromMonthInput(v)); setChargeDrafts({}); setNoteDrafts({}); };
 
   return (

@@ -153,6 +153,34 @@ describe("management-fee page (billing)", () => {
       buildingId: 7, period: expect.stringMatching(/^\d{4}-\d{2}-01$/), unitIds: [3],
     }));
   });
+
+  it("§3.4 셋팅확인 건물 선택 시 window.confirm 취소하면 미로드", () => {
+    vi.mocked(useBuildings).mockReturnValue({
+      data: [{ id: 7, name: "가나빌", typeId: 1, setupConfirmRequired: true }], isLoading: false,
+    } as never);
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(<FeeItemPage />);
+    fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(screen.getByText(/건물을 선택/)).toBeInTheDocument();
+  });
+
+  it("§3.4 셋팅확인 건물 선택 확인하면 로드", async () => {
+    vi.mocked(useBuildings).mockReturnValue({
+      data: [{ id: 7, name: "가나빌", typeId: 1, setupConfirmRequired: true }], isLoading: false,
+    } as never);
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.mocked(useBilling).mockReturnValue({ data: [{
+      unitId: 1, unitNo: "101", dong: null, roomTypeLabel: "원룸", occupancyId: 5, tenantName: "홍",
+      moveInDate: "2026-07-01", isVacant: false, feeItemId: 10, feeItemName: "관리비",
+      carryOver: false, dailyProration: false, rounding: "round", isRequired: true, sortOrder: 0,
+      charged: true, amount: 30000, confirmedAt: null, confirmedByName: null, totalAmount: null,
+      billingNote: null, unitNotice: null, isDirty: false,
+    }], isLoading: false, error: null } as never);
+    render(<FeeItemPage />);
+    fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
+    await waitFor(() => expect(screen.getByText("101")).toBeInTheDocument());
+  });
 });
 
 // useBilling은 이미 camelCase(BillingFlatRow)를 반환하므로 테스트 헬퍼로 매핑
