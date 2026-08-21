@@ -16,6 +16,7 @@ vi.mock("@/hooks/reactquery/feeItems", () => ({
 }));
 vi.mock("@/hooks/reactquery/billing", () => ({
   useBilling: vi.fn(), useSaveBillingCharges: vi.fn(() => mut), useConfirmBilling: vi.fn(() => mut),
+  useUnchargedNewOccupancies: vi.fn(), useChargeNewOccupancies: vi.fn(() => mut),
   useBillingHistory: vi.fn(() => ({ data: [], isLoading: false })),
   useBillingPeriodSetting: vi.fn(), useSaveBillingPeriodSetting: vi.fn(() => periodMut),
   defaultBillingPeriodSetting: vi.fn((buildingId: number, period: string) => ({
@@ -36,6 +37,8 @@ import {
   useConfirmBilling,
   useBillingPeriodSetting,
   useSaveBillingPeriodSetting,
+  useUnchargedNewOccupancies,
+  useChargeNewOccupancies,
 } from "@/hooks/reactquery/billing";
 
 beforeEach(() => {
@@ -56,6 +59,8 @@ beforeEach(() => {
     isError: false,
   } as never);
   vi.mocked(useSaveBillingPeriodSetting).mockReturnValue(periodMut as never);
+  vi.mocked(useUnchargedNewOccupancies).mockReturnValue({ data: [], isLoading: false } as never);
+  vi.mocked(useChargeNewOccupancies).mockReturnValue(mut as never);
 });
 
 describe("management-fee page (billing)", () => {
@@ -122,6 +127,30 @@ describe("management-fee page (billing)", () => {
       chargeStartDate: "2026-07-16",
       chargeEndDate: "2026-08-15",
       dueDate: "2026-08-25",
+    }));
+  });
+
+  it("§3.3 감지 결과 있으면 신규입주 당월부과 팝업 자동 오픈", async () => {
+    vi.mocked(useUnchargedNewOccupancies).mockReturnValue({ data: [
+      { unitId: 3, unitNo: "301", dong: "A", tenantName: "김신규", moveInDate: "2026-08-20" },
+    ], isLoading: false } as never);
+    render(<FeeItemPage />);
+    fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
+    await waitFor(() => expect(screen.getByText("이번 달 관리비를 부과하시겠습니까?")).toBeInTheDocument());
+  });
+
+  it("§3.3 팝업 확인 시 chargeNewOccupancies 호출(체크 세대)", async () => {
+    const chargeMut = { mutateAsync: vi.fn().mockResolvedValue({ unitCount: 1, total: 30000 }), isPending: false };
+    vi.mocked(useChargeNewOccupancies).mockReturnValue(chargeMut as never);
+    vi.mocked(useUnchargedNewOccupancies).mockReturnValue({ data: [
+      { unitId: 3, unitNo: "301", dong: "A", tenantName: "김신규", moveInDate: "2026-08-20" },
+    ], isLoading: false } as never);
+    render(<FeeItemPage />);
+    fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
+    await screen.findByText("이번 달 관리비를 부과하시겠습니까?");
+    fireEvent.click(screen.getByRole("button", { name: "부과" }));
+    await waitFor(() => expect(chargeMut.mutateAsync).toHaveBeenCalledWith({
+      buildingId: 7, period: expect.stringMatching(/^\d{4}-\d{2}-01$/), unitIds: [3],
     }));
   });
 });
