@@ -1,15 +1,33 @@
 import { createClient } from "@/lib/supabase/client";
 
-export interface MessageTemplate { id: number; orgId: number; title: string; body: string; sortOrder: number; }
-export interface MessageTemplateInput { orgId: number; title: string; body: string; sortOrder?: number; }
+export interface TemplateButton { name: string; type: string; url?: string }
+export interface MessageTemplate {
+  id: number; orgId: number; title: string; body: string; sortOrder: number;
+  category: string | null; channelType: string; alimtalkTemplateCode: string | null; buttons: TemplateButton[];
+}
+export interface MessageTemplateInput {
+  orgId: number; title: string; body: string; sortOrder?: number;
+  category?: string | null; channelType?: string; alimtalkTemplateCode?: string | null; buttons?: TemplateButton[];
+}
 
-type Row = { id: number; org_id: number; title: string; body: string; sort_order: number };
-const toRow = (r: Row): MessageTemplate => ({ id: r.id, orgId: r.org_id, title: r.title, body: r.body, sortOrder: r.sort_order });
+type Row = {
+  id: number; org_id: number; title: string; body: string; sort_order: number;
+  category?: string | null; channel_type?: string | null; alimtalk_template_code?: string | null; buttons?: unknown;
+};
+const toRow = (r: Row): MessageTemplate => ({
+  id: r.id, orgId: r.org_id, title: r.title, body: r.body, sortOrder: r.sort_order,
+  category: r.category ?? null,
+  channelType: r.channel_type ?? "sms",
+  alimtalkTemplateCode: r.alimtalk_template_code ?? null,
+  buttons: Array.isArray(r.buttons) ? (r.buttons as TemplateButton[]) : [],
+});
 
 function inputToRow(i: Partial<MessageTemplateInput>): Record<string, unknown> {
   const r: Record<string, unknown> = {};
   const set = (k: string, v: unknown) => { if (v !== undefined) r[k] = v; };
   set("org_id", i.orgId); set("title", i.title); set("body", i.body); set("sort_order", i.sortOrder);
+  set("category", i.category); set("channel_type", i.channelType);
+  set("alimtalk_template_code", i.alimtalkTemplateCode); set("buttons", i.buttons);
   return r;
 }
 

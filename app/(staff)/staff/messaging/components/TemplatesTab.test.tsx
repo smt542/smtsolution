@@ -88,6 +88,10 @@ describe("TemplatesTab", () => {
         orgId: 9,
         title: "점검 안내",
         body: "#{이름}님 점검 예정입니다.",
+        category: null,
+        channelType: "sms",
+        alimtalkTemplateCode: null,
+        buttons: [],
       }),
     );
   });
@@ -109,6 +113,10 @@ describe("TemplatesTab", () => {
         input: {
           title: "미납 재안내",
           body: "#{이름}님 #{건물명} 관리비가 미납되었습니다.",
+          category: null,
+          channelType: "sms",
+          alimtalkTemplateCode: null,
+          buttons: [],
         },
       }),
     );

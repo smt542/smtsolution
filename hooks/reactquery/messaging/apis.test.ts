@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 const rpc = vi.fn();
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ rpc }) }));
 import {
   MessagePointQuoteError,
+  MessageSendError,
   cancelScheduledMessage,
   listMessageLogs,
   listTenantAlimtalkConsent,
@@ -10,13 +11,18 @@ import {
   sendMessages,
 } from "./apis";
 beforeEach(() => vi.clearAllMocks());
+afterEach(() => vi.unstubAllGlobals());
 
 describe("messaging apis (P4b)", () => {
-  it("sendMessages: rpc send_messages 5-arg(mode·template·recipients)", async () => {
-    rpc.mockResolvedValue({
-      data: { log_id: 7, count: 2, estimated_points: 2, billing_mode: "stub" },
-      error: null,
+  it("sendMessages: 즉시발송은 /api/messaging/send 라우트로 POST", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        billingMode: "live", messageLogId: 7, result: "sent", chargedPoints: 2,
+        recipients: [{ status: "success" }, { status: "success" }],
+      }),
     });
+    vi.stubGlobal("fetch", fetchMock);
     const out = await sendMessages({
       mode: "auto", body: "#{이름}님", context: "manual", templateId: 5,
       recipients: [
@@ -25,18 +31,14 @@ describe("messaging apis (P4b)", () => {
       ],
     });
     expect(out).toMatchObject({
-      logId: 7,
-      count: 2,
-      status: "sent",
-      scheduledAt: null,
-      estimatedPoints: 2,
-      billingMode: "stub",
+      logId: 7, status: "sent", scheduledAt: null, billingMode: "live", sendResult: "sent", chargedPoints: 2,
     });
-    expect(out.recipients).toHaveLength(2);
-    expect(rpc).toHaveBeenCalledWith("send_messages", expect.objectContaining({
-      p_channel: "auto", p_body: "#{이름}님", p_context: "manual", p_template_id: 5,
-      p_recipients: expect.any(Array),
-    }));
+    const [url, opts] = fetchMock.mock.calls[0];
+    expect(url).toBe("/api/messaging/send");
+    expect(opts.method).toBe("POST");
+    const sent = JSON.parse(opts.body);
+    expect(sent).toMatchObject({ mode: "auto", body: "#{이름}님", context: "manual", templateId: 5 });
+    expect(sent.recipients).toHaveLength(2);
   });
   it("예약 발송 등록과 취소 RPC를 호출", async () => {
     rpc.mockResolvedValueOnce({
@@ -60,10 +62,15 @@ describe("messaging apis (P4b)", () => {
     expect(rpc).toHaveBeenCalledWith("list_tenant_alimtalk_consent", { p_building_id: 3 });
     expect(r[0]).toEqual({ occupancyId: 11, alimtalkOptIn: true, smsOptIn: false });
   });
-  it("sendMessages: rpc 에러 전파", async () => {
-    rpc.mockResolvedValue({ data: null, error: { message: "forbidden" } });
-    await expect(sendMessages({ mode: "sms", body: "x", context: "manual", templateId: null, recipients: [{ name:"A", phone:"1", kind:"tenant", channel:"sms", renderedBody:"x" }] }))
-      .rejects.toThrow("forbidden");
+  it("sendMessages: 라우트 오류 코드 전파(포인트 부족 등)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false, status: 402,
+      json: async () => ({ error: "INSUFFICIENT_POINTS", required_points: 5, available_points: 0 }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const promise = sendMessages({ mode: "sms", body: "x", context: "manual", templateId: null, recipients: [{ name: "A", phone: "1", kind: "tenant", channel: "sms", renderedBody: "x" }] });
+    await expect(promise).rejects.toBeInstanceOf(MessageSendError);
+    await expect(promise).rejects.toMatchObject({ code: "INSUFFICIENT_POINTS" });
   });
 
   it("quoteMessagePoints: RPC 응답을 camelCase로 변환한다", async () => {
