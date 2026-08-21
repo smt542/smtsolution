@@ -255,9 +255,25 @@ describe("MessagingComposer", () => {
       scheduledAt: null,
     });
     await waitFor(() =>
-      expect(toast.success).toHaveBeenCalledWith("발송(임시) 완료 · 1명"),
+      expect(toast.success).toHaveBeenCalledWith("발송 완료 · 1명"),
     );
     expect(onSent).toHaveBeenCalledWith({ logId: 55, count: 1, status: "sent", scheduledAt: null, recipients: [] });
+  });
+
+  it("미설정(stub)이면 미발송 안내 토스트", async () => {
+    mutateAsync.mockResolvedValueOnce({ logId: 55, count: 1, status: "sent", scheduledAt: null, recipients: [], billingMode: "stub" });
+    render(
+      <MessagingComposer
+        initialMode="sms"
+        preset={{
+          context: "독촉",
+          body: "미납 관리비를 확인해 주세요.",
+          recipients: [{ name: "김입주", phone: "010-1000-0000", unitNo: "101호", kind: "tenant", ref: { occupancyId: 101 } }],
+        }}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "발송" }));
+    await waitFor(() => expect(toast.info).toHaveBeenCalledWith(expect.stringContaining("미발송")));
   });
 
   it("중복된 정규화 전화번호를 한 명으로 표시하고 한 번만 발송", async () => {

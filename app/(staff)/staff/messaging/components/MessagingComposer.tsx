@@ -10,6 +10,7 @@ import {
   useMessagePointQuote,
   useSendMessages,
   useTenantAlimtalkConsent,
+  MessageSendError,
   type SendMessagesResult,
 } from "@/hooks/reactquery/messaging";
 import {
@@ -319,18 +320,30 @@ export function MessagingComposer({
       });
       if (sendTiming === "scheduled") {
         toast.success(`예약이 등록되었습니다(${scheduledAt.replace("T", " ")})`);
-      } else if (preset?.context === "고지서") {
-        toast.success("발송이 완료되었습니다");
+      } else if (result.billingMode === "stub") {
+        toast.info(`미발송 · 발송 채널(NCP)이 설정되지 않았습니다 · ${result.count}명 저장됨`);
       } else {
-        toast.success(`발송(임시) 완료 · ${result.count}명`);
+        const per = result.perRecipient;
+        const okCount = per ? per.filter((r) => r.status === "success").length : result.count;
+        const failCount = per ? per.length - okCount : 0;
+        if (result.sendResult === "failed") {
+          toast.error(`발송 실패 · ${failCount || result.count}명`);
+        } else if (result.sendResult === "partial") {
+          toast.info(`일부 발송 · 성공 ${okCount} · 실패 ${failCount}`);
+        } else {
+          toast.success(preset?.context === "고지서" ? "발송이 완료되었습니다" : `발송 완료 · ${okCount}명`);
+        }
       }
       await onSent?.(result);
     } catch (error) {
       await onFailed?.(error);
+      const insufficient = error instanceof MessageSendError && error.code === "INSUFFICIENT_POINTS";
       toast.error(
-        preset?.context === "고지서"
-          ? "발송에 실패했습니다. 다시 시도해 주세요."
-          : error instanceof Error ? error.message : "발송하지 못했습니다.",
+        insufficient
+          ? "포인트가 부족합니다."
+          : preset?.context === "고지서"
+            ? "발송에 실패했습니다. 다시 시도해 주세요."
+            : error instanceof Error ? error.message : "발송하지 못했습니다.",
       );
     }
   };
