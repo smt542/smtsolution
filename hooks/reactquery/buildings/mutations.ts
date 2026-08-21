@@ -1,12 +1,19 @@
 // hooks/reactquery/buildings/mutations.ts
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { saveBuilding, deleteBuilding, type SaveBuildingPayload } from "./apis";
+import { saveBuilding, deleteBuilding, setBuildingSetupConfirm, type SaveBuildingPayload } from "./apis";
 import { buildingKeys } from "./keys";
 
 export function useSaveBuilding() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (p: SaveBuildingPayload) => saveBuilding(p),
+    onSuccess: () => qc.invalidateQueries({ queryKey: buildingKeys.all }),
+  });
+}
+export function useSetBuildingSetupConfirm() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, required }: { id: number; required: boolean }) => setBuildingSetupConfirm(id, required),
     onSuccess: () => qc.invalidateQueries({ queryKey: buildingKeys.all }),
   });
 }
