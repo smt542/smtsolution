@@ -33,8 +33,8 @@ describe("messageTemplates apis", () => {
     await createMessageTemplate({ orgId:9, title:"공지", body:"b", channelType:"alimtalk", alimtalkTemplateCode:"T2", buttons:[{ name:"보기", type:"WL", url:"https://y" }] });
     expect(ins).toHaveBeenCalledWith(expect.objectContaining({
       org_id:9, title:"공지", body:"b", channel_type:"alimtalk", alimtalk_template_code:"T2",
+      buttons: [{ name:"보기", type:"WL", url:"https://y" }],
     }));
-    expect(ins.mock.calls[0][0].buttons[0]).toMatchObject({ name:"보기", type:"WL" });
   });
   it("update: 제공 필드만", async () => {
     const single = vi.fn().mockResolvedValue({ data:{ id:1, org_id:9, title:"수정", body:"b", sort_order:0 }, error:null });
