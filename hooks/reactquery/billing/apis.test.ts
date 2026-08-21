@@ -9,6 +9,8 @@ import {
   confirmBilling,
   getBillingPeriodSetting,
   saveBillingPeriodSetting,
+  listUnchargedNewOccupancies,
+  chargeNewOccupancies,
 } from "./apis";
 beforeEach(() => vi.clearAllMocks());
 
@@ -124,5 +126,21 @@ describe("billing apis", () => {
       due_date: "2026-08-25",
     }, { onConflict: "building_id,period" });
     expect(result).toMatchObject({ dueDate: "2026-08-25", isSaved: true });
+  });
+
+  it("listUnchargedNewOccupancies: list_uncharged_new_occupancies 호출 + snake→camel", async () => {
+    rpc.mockResolvedValue({ data: [
+      { unit_id: 3, unit_no: "301", dong: "A", tenant_name: "김신규", move_in_date: "2026-08-20" },
+    ], error: null });
+    const r = await listUnchargedNewOccupancies(7, "2026-08-01");
+    expect(rpc).toHaveBeenCalledWith("list_uncharged_new_occupancies", { p_building_id: 7, p_period: "2026-08-01" });
+    expect(r[0]).toMatchObject({ unitId: 3, unitNo: "301", dong: "A", tenantName: "김신규", moveInDate: "2026-08-20" });
+  });
+
+  it("chargeNewOccupancies: charge_new_occupancies 호출 + 결과 매핑", async () => {
+    rpc.mockResolvedValue({ data: { unit_count: 2, total: 60000 }, error: null });
+    const r = await chargeNewOccupancies(7, "2026-08-01", [3, 4]);
+    expect(rpc).toHaveBeenCalledWith("charge_new_occupancies", { p_building_id: 7, p_period: "2026-08-01", p_unit_ids: [3, 4] });
+    expect(r).toEqual({ unitCount: 2, total: 60000 });
   });
 });

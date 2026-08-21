@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   saveBillingCharges,
   confirmBilling,
+  chargeNewOccupancies,
   saveBillingPeriodSetting,
   type SaveBillingChargesPayload,
   type SaveBillingPeriodSettingPayload,
@@ -19,6 +20,14 @@ export function useConfirmBilling() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ buildingId, period }: { buildingId: number; period: string }) => confirmBilling(buildingId, period),
+    onSuccess: () => qc.invalidateQueries({ queryKey: billingKeys.all }),
+  });
+}
+export function useChargeNewOccupancies() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ buildingId, period, unitIds }: { buildingId: number; period: string; unitIds: number[] }) =>
+      chargeNewOccupancies(buildingId, period, unitIds),
     onSuccess: () => qc.invalidateQueries({ queryKey: billingKeys.all }),
   });
 }
