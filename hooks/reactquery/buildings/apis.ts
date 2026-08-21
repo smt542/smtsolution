@@ -30,12 +30,14 @@ export interface Building {
   ownerName: string | null; ownerPhone: string | null; entrancePassword: string | null;
   managerUserId: string | null; meterUserId: string | null; cleaningUserId: string | null;
   facilities: FacilitiesMap; memo: string | null; billingNote: string | null;
+  setupConfirmRequired: boolean;
 }
 type BuildingRow = {
   id: number; org_id: number; code: string; name: string; address: string | null; type_id: number | null;
   owner_name: string | null; owner_phone: string | null; entrance_password: string | null;
   manager_user_id: string | null; meter_user_id: string | null; cleaning_user_id: string | null;
   facilities: FacilitiesRow; memo: string | null; billing_note: string | null;
+  setup_confirm_required: boolean | null;
 };
 
 const rowToBuilding = (r: BuildingRow): Building => ({
@@ -43,6 +45,7 @@ const rowToBuilding = (r: BuildingRow): Building => ({
   ownerName: r.owner_name, ownerPhone: r.owner_phone, entrancePassword: r.entrance_password,
   managerUserId: r.manager_user_id, meterUserId: r.meter_user_id, cleaningUserId: r.cleaning_user_id,
   facilities: toFacilities(r.facilities), memo: r.memo, billingNote: r.billing_note ?? null,
+  setupConfirmRequired: r.setup_confirm_required ?? false,
 });
 
 export interface BuildingDirectoryRow {
@@ -155,6 +158,12 @@ export async function saveBuilding(p: SaveBuildingPayload): Promise<SaveBuilding
     buildingId: (data as SaveBuildingRow).building_id,
     vendors: ((data as SaveBuildingRow).vendors ?? []).map((x: SaveBuildingVendorRow) => ({ clientKey: x.client_key, id: x.id })),
   };
+}
+
+// §3.4 관리비 셋팅 확인 플래그 토글 (shared save_building 미변경; 0092 전용 RPC)
+export async function setBuildingSetupConfirm(id: number, required: boolean): Promise<void> {
+  const { error } = await createClient().rpc("set_building_setup_confirm", { p_id: id, p_required: required });
+  if (error) throw new Error(error.message);
 }
 
 export async function deleteBuilding(id: number): Promise<void> {

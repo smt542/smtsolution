@@ -1,11 +1,17 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button, Select, EmptyState, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useBuildingTypes } from "@/hooks/reactquery/buildingTypes";
-import { useBilling, useSaveBillingCharges, useConfirmBilling } from "@/hooks/reactquery/billing";
+import {
+  useBilling,
+  useSaveBillingCharges,
+  useConfirmBilling,
+  useUnchargedNewOccupancies,
+  useChargeNewOccupancies,
+} from "@/hooks/reactquery/billing";
 import { hasModule } from "@/lib/auth/permissions";
 import { pivotBillingRows, type BillingUnitRow } from "@/lib/billing/pivot";
 import { currentPeriod, toMonthInput, fromMonthInput } from "@/lib/billing/period";
@@ -14,6 +20,7 @@ import { ItemManageModal } from "./components/ItemManageModal";
 import { BillingHistoryModal } from "./components/BillingHistoryModal";
 import { BillingNoteModal } from "./components/BillingNoteModal";
 import { BillingPeriodSettingsBar } from "./components/BillingPeriodSettingsBar";
+import { NewTenantChargeModal } from "./components/NewTenantChargeModal";
 
 type ChargeDraft = { charged: boolean; amount: number };
 
@@ -33,6 +40,20 @@ export default function FeeItemPage() {
   const billingQuery = useBilling(buildingId, period);
   const saveCharges = useSaveBillingCharges();
   const confirmBilling = useConfirmBilling();
+
+  // §3.3 부과확정 이후 등록된 미부과 신규 세대 감지 + 당월부과
+  const newOccQuery = useUnchargedNewOccupancies(buildingId, period);
+  const chargeNewOcc = useChargeNewOccupancies();
+  const [newTenantOpen, setNewTenantOpen] = useState(false);
+  const newOccUnits = newOccQuery.data ?? [];
+  const selectionKey = buildingId ? `${buildingId}:${period}` : null;
+  useEffect(() => {
+    // 진입(건물·월)마다 미부과 신규 세대가 있으면 자동 노출
+    if (selectionKey && newOccUnits.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setNewTenantOpen(true);
+    }
+  }, [selectionKey, newOccUnits.length]);
 
   if (me === undefined) return null;
   if (!hasModule(me, "billing")) {
@@ -106,7 +127,27 @@ export default function FeeItemPage() {
     } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
   };
 
-  const selectBuilding = (v: string) => { setBuildingId(v ? Number(v) : null); setChargeDrafts({}); setNoteDrafts({}); };
+  const handleChargeNewTenants = async (unitIds: number[]) => {
+    if (!buildingId) return;
+    try {
+      const r = await chargeNewOcc.mutateAsync({ buildingId, period, unitIds });
+      toast.success(`신규 입주 ${r.unitCount}세대 당월 부과 완료 (${r.total.toLocaleString("ko-KR")}원)`);
+      setNewTenantOpen(false);
+    } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
+  };
+
+  const selectBuilding = (v: string) => {
+    const id = v ? Number(v) : null;
+    if (id) {
+      const b = buildings.find((x) => x.id === id);
+      if (b?.setupConfirmRequired && !window.confirm("이 건물은 셋팅 시 확인이 필요합니다. 계속하시겠습니까?")) {
+        return; // §3.4 취소 → 선택 롤백
+      }
+    }
+    setBuildingId(id);
+    setChargeDrafts({});
+    setNoteDrafts({});
+  };
   const changeMonth = (v: string) => { setPeriod(fromMonthInput(v)); setChargeDrafts({}); setNoteDrafts({}); };
 
   return (
@@ -213,6 +254,14 @@ export default function FeeItemPage() {
         unitNo={historyUnit?.no ?? ""}
         period={period}
         onClose={() => setHistoryUnit(null)}
+      />
+
+      <NewTenantChargeModal
+        open={newTenantOpen}
+        units={newOccUnits}
+        pending={chargeNewOcc.isPending}
+        onConfirm={handleChargeNewTenants}
+        onClose={() => setNewTenantOpen(false)}
       />
 
       {(() => {

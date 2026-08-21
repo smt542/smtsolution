@@ -16,6 +16,7 @@ vi.mock("@/hooks/reactquery/feeItems", () => ({
 }));
 vi.mock("@/hooks/reactquery/billing", () => ({
   useBilling: vi.fn(), useSaveBillingCharges: vi.fn(() => mut), useConfirmBilling: vi.fn(() => mut),
+  useUnchargedNewOccupancies: vi.fn(), useChargeNewOccupancies: vi.fn(() => mut),
   useBillingHistory: vi.fn(() => ({ data: [], isLoading: false })),
   useBillingPeriodSetting: vi.fn(), useSaveBillingPeriodSetting: vi.fn(() => periodMut),
   defaultBillingPeriodSetting: vi.fn((buildingId: number, period: string) => ({
@@ -36,6 +37,8 @@ import {
   useConfirmBilling,
   useBillingPeriodSetting,
   useSaveBillingPeriodSetting,
+  useUnchargedNewOccupancies,
+  useChargeNewOccupancies,
 } from "@/hooks/reactquery/billing";
 
 beforeEach(() => {
@@ -56,6 +59,8 @@ beforeEach(() => {
     isError: false,
   } as never);
   vi.mocked(useSaveBillingPeriodSetting).mockReturnValue(periodMut as never);
+  vi.mocked(useUnchargedNewOccupancies).mockReturnValue({ data: [], isLoading: false } as never);
+  vi.mocked(useChargeNewOccupancies).mockReturnValue(mut as never);
 });
 
 describe("management-fee page (billing)", () => {
@@ -123,6 +128,58 @@ describe("management-fee page (billing)", () => {
       chargeEndDate: "2026-08-15",
       dueDate: "2026-08-25",
     }));
+  });
+
+  it("§3.3 감지 결과 있으면 신규입주 당월부과 팝업 자동 오픈", async () => {
+    vi.mocked(useUnchargedNewOccupancies).mockReturnValue({ data: [
+      { unitId: 3, unitNo: "301", dong: "A", tenantName: "김신규", moveInDate: "2026-08-20" },
+    ], isLoading: false } as never);
+    render(<FeeItemPage />);
+    fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
+    await waitFor(() => expect(screen.getByText("이번 달 관리비를 부과하시겠습니까?")).toBeInTheDocument());
+  });
+
+  it("§3.3 팝업 확인 시 chargeNewOccupancies 호출(체크 세대)", async () => {
+    const chargeMut = { mutateAsync: vi.fn().mockResolvedValue({ unitCount: 1, total: 30000 }), isPending: false };
+    vi.mocked(useChargeNewOccupancies).mockReturnValue(chargeMut as never);
+    vi.mocked(useUnchargedNewOccupancies).mockReturnValue({ data: [
+      { unitId: 3, unitNo: "301", dong: "A", tenantName: "김신규", moveInDate: "2026-08-20" },
+    ], isLoading: false } as never);
+    render(<FeeItemPage />);
+    fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
+    await screen.findByText("이번 달 관리비를 부과하시겠습니까?");
+    fireEvent.click(screen.getByRole("button", { name: "부과" }));
+    await waitFor(() => expect(chargeMut.mutateAsync).toHaveBeenCalledWith({
+      buildingId: 7, period: expect.stringMatching(/^\d{4}-\d{2}-01$/), unitIds: [3],
+    }));
+  });
+
+  it("§3.4 셋팅확인 건물 선택 시 window.confirm 취소하면 미로드", () => {
+    vi.mocked(useBuildings).mockReturnValue({
+      data: [{ id: 7, name: "가나빌", typeId: 1, setupConfirmRequired: true }], isLoading: false,
+    } as never);
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(<FeeItemPage />);
+    fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(screen.getByText(/건물을 선택/)).toBeInTheDocument();
+  });
+
+  it("§3.4 셋팅확인 건물 선택 확인하면 로드", async () => {
+    vi.mocked(useBuildings).mockReturnValue({
+      data: [{ id: 7, name: "가나빌", typeId: 1, setupConfirmRequired: true }], isLoading: false,
+    } as never);
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.mocked(useBilling).mockReturnValue({ data: [{
+      unitId: 1, unitNo: "101", dong: null, roomTypeLabel: "원룸", occupancyId: 5, tenantName: "홍",
+      moveInDate: "2026-07-01", isVacant: false, feeItemId: 10, feeItemName: "관리비",
+      carryOver: false, dailyProration: false, rounding: "round", isRequired: true, sortOrder: 0,
+      charged: true, amount: 30000, confirmedAt: null, confirmedByName: null, totalAmount: null,
+      billingNote: null, unitNotice: null, isDirty: false,
+    }], isLoading: false, error: null } as never);
+    render(<FeeItemPage />);
+    fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
+    await waitFor(() => expect(screen.getByText("101")).toBeInTheDocument());
   });
 });
 

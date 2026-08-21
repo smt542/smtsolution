@@ -6,7 +6,7 @@ vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ rpc, from }) })
 vi.mock("@/hooks/reactquery/buildingCustomerNumbers", () => ({ listCustomerNumbersByBuilding: vi.fn(async () => []) }));
 vi.mock("@/hooks/reactquery/buildingVendors", () => ({ listBuildingVendorsByBuilding: vi.fn(async () => []) }));
 
-import { listBuildings, saveBuilding, emptyFacilities } from "./apis";
+import { listBuildings, listAllBuildings, saveBuilding, setBuildingSetupConfirm, emptyFacilities } from "./apis";
 beforeEach(() => vi.clearAllMocks());
 
 describe("buildings apis", () => {
@@ -49,6 +49,31 @@ describe("buildings apis", () => {
     expect(args.p_customer_numbers[0]).toMatchObject({ kind: "water", customer_no: "C1", print_on_bill: true });
     expect(args.p_vendors[0]).toMatchObject({ client_key: "ck1", vendor_type: "elevator", name: "승강기업체" });
     expect(res).toEqual({ buildingId: 42, vendors: [{ clientKey: "ck1", id: 99 }] });
+  });
+
+  it("listAllBuildings: setup_confirm_required → setupConfirmRequired 매핑(누락 시 false)", async () => {
+    const base = {
+      org_id: 10, code: "B1", name: "가나빌", address: null, type_id: 1,
+      owner_name: null, owner_phone: null, entrance_password: null,
+      manager_user_id: null, meter_user_id: null, cleaning_user_id: null,
+      facilities: null, memo: null, billing_note: null,
+    };
+    const order = vi.fn().mockResolvedValue({ data: [
+      { id: 7, ...base, setup_confirm_required: true },
+      { id: 8, ...base },
+    ], error: null });
+    const is = vi.fn(() => ({ order }));
+    const select = vi.fn(() => ({ is }));
+    from.mockReturnValue({ select });
+    const r = await listAllBuildings();
+    expect(r[0]).toMatchObject({ id: 7, setupConfirmRequired: true });
+    expect(r[1]).toMatchObject({ id: 8, setupConfirmRequired: false });
+  });
+
+  it("setBuildingSetupConfirm: set_building_setup_confirm rpc(p_id/p_required)", async () => {
+    rpc.mockResolvedValue({ data: null, error: null });
+    await setBuildingSetupConfirm(7, true);
+    expect(rpc).toHaveBeenCalledWith("set_building_setup_confirm", { p_id: 7, p_required: true });
   });
 
   it("emptyFacilities: 9키 전부 {on:false, memo:''}", () => {

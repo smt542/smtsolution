@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import {
-  useSaveBuilding, useStaffOptions, useBuildingFull, emptyFacilities, type FacilitiesMap, type SaveBuildingPayload,
+  useSaveBuilding, useStaffOptions, useBuildingFull, useSetBuildingSetupConfirm,
+  emptyFacilities, type FacilitiesMap, type SaveBuildingPayload,
 } from "@/hooks/reactquery/buildings";
 import { uploadAttachment, deleteAttachment, listAttachmentsByEntities, attachmentSignedUrl } from "@/hooks/reactquery/attachments";
 import { buildingBasicSchema } from "@/components/forms/schema/building";
@@ -24,6 +25,7 @@ export function BuildingForm({ buildingId }: { buildingId?: number }) {
   const router = useRouter();
   const { data: me } = useMe();
   const save = useSaveBuilding();
+  const setConfirmFlag = useSetBuildingSetupConfirm();
   const { data: staff } = useStaffOptions();
   const { data: full } = useBuildingFull(buildingId ?? 0);
 
@@ -32,6 +34,7 @@ export function BuildingForm({ buildingId }: { buildingId?: number }) {
   const [customerNumbers, setCustomerNumbers] = useState<CustomerRow[]>([]);
   const [vendors, setVendors] = useState<VendorRow[]>([]);
   const [memo, setMemo] = useState("");
+  const [setupConfirmRequired, setSetupConfirmRequired] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof BasicInfoValue, string>>>({});
 
@@ -49,6 +52,7 @@ export function BuildingForm({ buildingId }: { buildingId?: number }) {
     });
     setFacilities.call(undefined, full.facilities);
     setMemo.call(undefined, full.memo ?? "");
+    setSetupConfirmRequired.call(undefined, full.setupConfirmRequired);
     setCustomerNumbers.call(undefined, full.customerNumbers.map((c) => ({
       _key: rowKey("cn"), id: c.id, kind: c.kind, customerNo: c.customerNo, meterDay: c.meterDay,
       billingBasis: c.billingBasis, printOnBill: c.printOnBill, holderName: c.holderName ?? "",
@@ -119,6 +123,10 @@ export function BuildingForm({ buildingId }: { buildingId?: number }) {
     };
     try {
       const res = await save.mutateAsync(payload);
+      // §3.4 관리비 셋팅 확인 플래그: 변경분만 별도 RPC로 저장(shared save_building 미변경)
+      if (setupConfirmRequired !== (full?.setupConfirmRequired ?? false)) {
+        await setConfirmFlag.mutateAsync({ id: res.buildingId, required: setupConfirmRequired });
+      }
       // 파일 후속 업로드: 신규 업체는 clientKey→id, 기존 업체는 v.id
       const keyToId = new Map(res.vendors.map((x) => [x.clientKey, x.id]));
       for (const v of vendors) {
@@ -177,6 +185,15 @@ export function BuildingForm({ buildingId }: { buildingId?: number }) {
       <CustomerNumberSection rows={customerNumbers} onChange={mark(setCustomerNumbers)} />
       <VendorSection rows={vendors} onChange={mark(setVendors)} onDeleteExisting={onDeleteExisting} onViewExisting={onViewExisting} />
       <MemoSection value={memo} onChange={mark(setMemo)} />
+      <label className="flex items-center gap-2 rounded-2xl border border-line bg-surface p-4 text-sm font-semibold text-t1 shadow-card">
+        <input
+          type="checkbox"
+          checked={setupConfirmRequired}
+          onChange={(e) => { setSetupConfirmRequired(e.target.checked); setDirty(true); }}
+          className="h-4 w-4"
+        />
+        관리비 셋팅 시 확인 필요
+      </label>
     </div>
   );
 }

@@ -7,6 +7,7 @@ const replace = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace }) }));
 
 const saveMutate = vi.fn();
+const setConfirmMutate = vi.fn();
 vi.mock("@/hooks/reactquery/buildings", async () => {
   const actual = await vi.importActual<typeof import("@/hooks/reactquery/buildings")>("@/hooks/reactquery/buildings");
   return {
@@ -14,6 +15,7 @@ vi.mock("@/hooks/reactquery/buildings", async () => {
     useSaveBuilding: () => ({ mutateAsync: saveMutate }),
     useStaffOptions: () => ({ data: [] }),
     useBuildingFull: () => ({ data: undefined, isLoading: false }),
+    useSetBuildingSetupConfirm: () => ({ mutateAsync: setConfirmMutate, isPending: false }),
   };
 });
 vi.mock("@/hooks/reactquery/attachments", () => ({
@@ -45,5 +47,30 @@ describe("BuildingForm 등록", () => {
     const payload = saveMutate.mock.calls[0][0];
     expect(payload).toMatchObject({ name: "가나빌", address: "서울" });
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/staff/buildings/42"));
+  });
+
+  it("§3.4 관리비 셋팅 확인 체크박스 렌더", () => {
+    render(<BuildingForm />);
+    expect(screen.getByLabelText("관리비 셋팅 시 확인 필요")).toBeInTheDocument();
+  });
+
+  it("§3.4 체크 후 저장 시 setBuildingSetupConfirm 호출(변경분)", async () => {
+    saveMutate.mockResolvedValue({ buildingId: 42, vendors: [] });
+    render(<BuildingForm />);
+    fireEvent.change(screen.getByLabelText("건물명"), { target: { value: "가나빌" } });
+    fireEvent.change(screen.getByLabelText("주소"), { target: { value: "서울" } });
+    fireEvent.click(screen.getByLabelText("관리비 셋팅 시 확인 필요"));
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    await waitFor(() => expect(setConfirmMutate).toHaveBeenCalledWith({ id: 42, required: true }));
+  });
+
+  it("§3.4 미체크(미변경) 시 setBuildingSetupConfirm 미호출", async () => {
+    saveMutate.mockResolvedValue({ buildingId: 42, vendors: [] });
+    render(<BuildingForm />);
+    fireEvent.change(screen.getByLabelText("건물명"), { target: { value: "가나빌" } });
+    fireEvent.change(screen.getByLabelText("주소"), { target: { value: "서울" } });
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
+    await waitFor(() => expect(saveMutate).toHaveBeenCalled());
+    expect(setConfirmMutate).not.toHaveBeenCalled();
   });
 });

@@ -72,6 +72,34 @@ export async function confirmBilling(buildingId: number, period: string): Promis
   return { unitCount: r.unit_count, total: r.total };
 }
 
+// ===== §3.3 신규 입주자 당월 부과 =====
+export interface NewOccupancy {
+  unitId: number; unitNo: string; dong: string | null; tenantName: string | null; moveInDate: string | null;
+}
+type NewOccupancyDbRow = {
+  unit_id: number; unit_no: string; dong: string | null; tenant_name: string | null; move_in_date: string | null;
+};
+const rowToNewOcc = (r: NewOccupancyDbRow): NewOccupancy => ({
+  unitId: r.unit_id, unitNo: r.unit_no, dong: r.dong, tenantName: r.tenant_name, moveInDate: r.move_in_date,
+});
+
+// 부과확정 이후 등록된 미부과 신규 세대 목록
+export async function listUnchargedNewOccupancies(buildingId: number, period: string): Promise<NewOccupancy[]> {
+  const { data, error } = await createClient().rpc("list_uncharged_new_occupancies", { p_building_id: buildingId, p_period: period });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as NewOccupancyDbRow[]).map(rowToNewOcc);
+}
+
+// 감지된 신규 세대 중 선택분만 당월 부과
+export async function chargeNewOccupancies(buildingId: number, period: string, unitIds: number[]): Promise<ConfirmBillingResult> {
+  const { data, error } = await createClient().rpc("charge_new_occupancies", {
+    p_building_id: buildingId, p_period: period, p_unit_ids: unitIds,
+  });
+  if (error) throw new Error(error.message);
+  const r = data as { unit_count: number; total: number };
+  return { unitCount: r.unit_count, total: r.total };
+}
+
 export interface BillingPeriodSetting {
   buildingId: number;
   period: string;
