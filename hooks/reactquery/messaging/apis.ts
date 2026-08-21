@@ -45,6 +45,10 @@ export interface SendMessagesResult {
   recipients: ResolvedRecipient[];
   estimatedPoints: number | null;
   billingMode: "stub" | "live";
+  /** 즉시발송 실경로 결과: 'sent'|'partial'|'failed'|'stub' */
+  sendResult?: string;
+  chargedPoints?: number;
+  perRecipient?: { status: string; reason?: string | null }[];
 }
 
 export interface MessagePointQuoteInput {
@@ -73,6 +77,13 @@ export class MessagePointQuoteError extends Error {
   constructor(public readonly code: string, message: string) {
     super(message);
     this.name = "MessagePointQuoteError";
+  }
+}
+
+export class MessageSendError extends Error {
+  constructor(public readonly code: string, message: string, public readonly detail?: unknown) {
+    super(message);
+    this.name = "MessageSendError";
   }
 }
 
@@ -196,29 +207,45 @@ export async function sendMessages(
     };
   }
 
-  const { data, error } = await createClient().rpc("send_messages", {
-    p_channel: input.mode,
-    p_body: input.body,
-    p_context: input.context,
-    p_recipients: input.recipients,
-    p_template_id: input.templateId,
+  // 즉시발송: 서비스롤 라우트(reserve→dispatch→settle). 미설정이면 라우트가 stub로 처리.
+  const res = await fetch("/api/messaging/send", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      mode: input.mode,
+      body: input.body,
+      context: input.context,
+      templateId: input.templateId,
+      recipients: input.recipients,
+    }),
   });
-  if (error) throw new Error(error.message);
-  const result = data as {
-    log_id: number;
-    count: number;
-    recipients?: ResolvedRecipient[];
-    estimated_points?: number;
-    billing_mode?: "stub" | "live";
-  };
+  const data = (await res.json().catch(() => null)) as {
+    billingMode?: "stub" | "live";
+    messageLogId?: number;
+    result?: string;
+    chargedPoints?: number;
+    recipients?: { status: string; reason?: string | null }[];
+    error?: string;
+    message?: string;
+  } | null;
+  if (!res.ok) {
+    throw new MessageSendError(
+      data?.error ?? "SEND_FAILED",
+      data?.message ?? "메시지 발송에 실패했습니다.",
+      data,
+    );
+  }
   return {
-    logId: result.log_id,
-    count: result.count,
+    logId: data?.messageLogId ?? 0,
+    count: input.recipients.length,
     status: "sent",
     scheduledAt: null,
-    recipients: result.recipients ?? input.recipients,
-    estimatedPoints: result.estimated_points ?? null,
-    billingMode: result.billing_mode ?? "stub",
+    recipients: input.recipients,
+    estimatedPoints: null,
+    billingMode: data?.billingMode ?? "stub",
+    sendResult: data?.result,
+    chargedPoints: data?.chargedPoints ?? 0,
+    perRecipient: data?.recipients ?? [],
   };
 }
 
