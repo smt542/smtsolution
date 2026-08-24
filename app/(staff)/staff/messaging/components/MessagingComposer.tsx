@@ -155,9 +155,10 @@ export function MessagingComposer({
             mode,
             recipients: validRecipientList,
             templateId: mode === "sms" ? null : effectiveTemplateId,
+            body: effectiveBody,
           }
         : null,
-    [effectiveTemplateId, mode, validRecipientList],
+    [effectiveBody, effectiveTemplateId, mode, validRecipientList],
   );
   const pointQuote = useMessagePointQuote(quoteInput);
   const recipientPreviews = useMemo(
@@ -320,31 +321,27 @@ export function MessagingComposer({
       });
       if (sendTiming === "scheduled") {
         toast.success(`예약이 등록되었습니다(${scheduledAt.replace("T", " ")})`);
-      } else if (result.billingMode === "stub") {
-        toast.info(`미발송 · 발송 채널(NCP)이 설정되지 않았습니다 · ${result.count}명 저장됨`);
+      } else if (preset?.context === "고지서") {
+        toast.success("발송을 접수했습니다. 결과 확인 중입니다.");
       } else {
-        const per = result.perRecipient;
-        const okCount = per ? per.filter((r) => r.status === "success").length : result.count;
-        const failCount = per ? per.length - okCount : 0;
-        if (result.sendResult === "failed") {
-          toast.error(`발송 실패 · ${failCount || result.count}명`);
-        } else if (result.sendResult === "partial") {
-          toast.info(`일부 발송 · 성공 ${okCount} · 실패 ${failCount}`);
-        } else {
-          toast.success(preset?.context === "고지서" ? "발송이 완료되었습니다" : `발송 완료 · ${okCount}명`);
-        }
+        // 접수 완료(결과는 재조회로 확정). 성공 확정 토스트를 표시하지 않는다.
+        toast.success(`발송을 접수했습니다 · ${result.queuedCount ?? result.count}건 · 결과 확인 중`);
       }
       await onSent?.(result);
     } catch (error) {
       await onFailed?.(error);
-      const insufficient = error instanceof MessageSendError && error.code === "INSUFFICIENT_POINTS";
-      toast.error(
-        insufficient
+      const code = error instanceof MessageSendError ? error.code : null;
+      const message =
+        code === "INSUFFICIENT_POINTS"
           ? "포인트가 부족합니다."
-          : preset?.context === "고지서"
-            ? "발송에 실패했습니다. 다시 시도해 주세요."
-            : error instanceof Error ? error.message : "발송하지 못했습니다.",
-      );
+          : code === "PROVIDER_NOT_CONFIGURED"
+            ? "발송 공급자가 설정되지 않아 발송할 수 없습니다."
+            : preset?.context === "고지서"
+              ? "발송에 실패했습니다. 다시 시도해 주세요."
+              : error instanceof Error
+                ? error.message
+                : "발송하지 못했습니다.";
+      toast.error(message);
     }
   };
 

@@ -14,12 +14,12 @@ beforeEach(() => vi.clearAllMocks());
 afterEach(() => vi.unstubAllGlobals());
 
 describe("messaging apis (P4b)", () => {
-  it("sendMessages: 즉시발송은 /api/messaging/send 라우트로 POST", async () => {
+  it("sendMessages: 즉시발송은 /api/messaging/send 라우트로 POST하고 queued를 반환", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
+      status: 202,
       json: async () => ({
-        billingMode: "live", messageLogId: 7, result: "sent", chargedPoints: 2,
-        recipients: [{ status: "success" }, { status: "success" }],
+        status: "queued", messageLogId: 7, queuedCount: 2, reservedPoints: 2,
       }),
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -31,7 +31,7 @@ describe("messaging apis (P4b)", () => {
       ],
     });
     expect(out).toMatchObject({
-      logId: 7, status: "sent", scheduledAt: null, billingMode: "live", sendResult: "sent", chargedPoints: 2,
+      logId: 7, status: "queued", scheduledAt: null, queuedCount: 2, reservedPoints: 2,
     });
     const [url, opts] = fetchMock.mock.calls[0];
     expect(url).toBe("/api/messaging/send");

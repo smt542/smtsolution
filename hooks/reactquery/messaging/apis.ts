@@ -40,15 +40,13 @@ export interface SendMessagesInput {
 export interface SendMessagesResult {
   logId: number;
   count: number;
-  status: "sent" | "scheduled";
+  /** queued=Popbill 접수 완료(결과 확인 중), scheduled=예약 등록 완료 */
+  status: "queued" | "scheduled";
   scheduledAt: string | null;
   recipients: ResolvedRecipient[];
-  estimatedPoints: number | null;
-  billingMode: "stub" | "live";
-  /** 즉시발송 실경로 결과: 'sent'|'partial'|'failed'|'stub' */
-  sendResult?: string;
-  chargedPoints?: number;
-  perRecipient?: { status: string; reason?: string | null }[];
+  /** 접수된 수신자 수(즉시발송). 성공 확정 수가 아니다. */
+  queuedCount?: number;
+  reservedPoints?: number;
 }
 
 export interface MessagePointQuoteInput {
@@ -212,12 +210,10 @@ export async function sendMessages(
       status: "scheduled",
       scheduledAt: result.scheduled_at,
       recipients: input.recipients,
-      estimatedPoints: null,
-      billingMode: "stub",
     };
   }
 
-  // 즉시발송: 서비스롤 라우트(reserve→dispatch→settle). 미설정이면 라우트가 stub로 처리.
+  // 즉시발송: 서비스롤 라우트(견적→예약→Popbill 접수→provider_pending). 접수만 확정하고 결과는 재조회로 확정.
   const res = await fetch("/api/messaging/send", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -230,11 +226,10 @@ export async function sendMessages(
     }),
   });
   const data = (await res.json().catch(() => null)) as {
-    billingMode?: "stub" | "live";
+    status?: string;
     messageLogId?: number;
-    result?: string;
-    chargedPoints?: number;
-    recipients?: { status: string; reason?: string | null }[];
+    queuedCount?: number;
+    reservedPoints?: number;
     error?: string;
     message?: string;
   } | null;
@@ -248,14 +243,11 @@ export async function sendMessages(
   return {
     logId: data?.messageLogId ?? 0,
     count: input.recipients.length,
-    status: "sent",
+    status: "queued",
     scheduledAt: null,
     recipients: input.recipients,
-    estimatedPoints: null,
-    billingMode: data?.billingMode ?? "stub",
-    sendResult: data?.result,
-    chargedPoints: data?.chargedPoints ?? 0,
-    perRecipient: data?.recipients ?? [],
+    queuedCount: data?.queuedCount ?? 0,
+    reservedPoints: data?.reservedPoints ?? 0,
   };
 }
 

@@ -20,6 +20,14 @@ vi.mock("@/hooks/reactquery/messaging", () => ({
   useMessagePointQuote: vi.fn(),
   useSendMessages: vi.fn(),
   useTenantAlimtalkConsent: vi.fn(),
+  MessageSendError: class MessageSendError extends Error {
+    code: string;
+    constructor(code: string, message: string) {
+      super(message);
+      this.code = code;
+      this.name = "MessageSendError";
+    }
+  },
 }));
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), info: vi.fn(), error: vi.fn() },
@@ -32,6 +40,7 @@ import { useTenantList } from "@/hooks/reactquery/occupancies";
 import { useQuickMessages } from "@/hooks/reactquery/quickMessages";
 import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates";
 import {
+  MessageSendError,
   useMessagePointQuote,
   useSendMessages,
   useTenantAlimtalkConsent,
@@ -93,7 +102,7 @@ const confirmSpy = vi.spyOn(window, "confirm");
 beforeEach(() => {
   vi.clearAllMocks();
   confirmSpy.mockReturnValue(true);
-  mutateAsync.mockResolvedValue({ logId: 55, count: 1, status: "sent", scheduledAt: null, recipients: [] });
+  mutateAsync.mockResolvedValue({ logId: 55, count: 1, status: "queued", scheduledAt: null, recipients: [], queuedCount: 1, reservedPoints: 1 });
   vi.mocked(useBuildings).mockReturnValue({
     data: buildings,
     isLoading: false,
@@ -146,10 +155,12 @@ beforeEach(() => {
           excludedCount: 0,
           channelCounts: {
             sms: input.mode === "sms" ? input.recipients.length : 0,
+            lms: 0,
             alimtalk: input.mode === "sms" ? 0 : input.recipients.length,
           },
           rateSnapshot: {
             sms: { rateId: 1, points: 1 },
+            lms: { rateId: 3, points: 3 },
             alimtalk: { rateId: 2, points: 1 },
           },
           ledgerBalance: 100,
@@ -255,13 +266,23 @@ describe("MessagingComposer", () => {
       scheduledAt: null,
     });
     await waitFor(() =>
-      expect(toast.success).toHaveBeenCalledWith("발송 완료 · 1명"),
+      expect(toast.success).toHaveBeenCalledWith("발송을 접수했습니다 · 1건 · 결과 확인 중"),
     );
-    expect(onSent).toHaveBeenCalledWith({ logId: 55, count: 1, status: "sent", scheduledAt: null, recipients: [] });
+    expect(onSent).toHaveBeenCalledWith({
+      logId: 55,
+      count: 1,
+      status: "queued",
+      scheduledAt: null,
+      recipients: [],
+      queuedCount: 1,
+      reservedPoints: 1,
+    });
   });
 
-  it("미설정(stub)이면 미발송 안내 토스트", async () => {
-    mutateAsync.mockResolvedValueOnce({ logId: 55, count: 1, status: "sent", scheduledAt: null, recipients: [], billingMode: "stub" });
+  it("공급자 미설정이면 PROVIDER_NOT_CONFIGURED 오류 토스트", async () => {
+    mutateAsync.mockRejectedValueOnce(
+      new MessageSendError("PROVIDER_NOT_CONFIGURED", "발송 공급자가 설정되지 않았습니다."),
+    );
     render(
       <MessagingComposer
         initialMode="sms"
@@ -273,7 +294,9 @@ describe("MessagingComposer", () => {
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: "발송" }));
-    await waitFor(() => expect(toast.info).toHaveBeenCalledWith(expect.stringContaining("미발송")));
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("발송 공급자가 설정되지 않아 발송할 수 없습니다."),
+    );
   });
 
   it("중복된 정규화 전화번호를 한 명으로 표시하고 한 번만 발송", async () => {

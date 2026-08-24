@@ -684,6 +684,7 @@ begin
   end if;
 
   for v_job in select value from jsonb_array_elements(p_jobs) loop
+    -- 재시도/replay 안전: 같은 request_num이면 재삽입하지 않고 기존 작업을 재사용한다.
     insert into public.provider_dispatch_jobs(
       org_id, provider, kind, product, reservation_id, message_log_id,
       schedule_id, request_num, status
@@ -691,11 +692,19 @@ begin
       v_reservation.org_id, 'popbill', 'message', v_job->>'product',
       p_reservation_id, v_reservation.message_log_id,
       nullif(v_job->>'schedule_id', '')::bigint, v_job->>'request_num', 'submitting'
-    ) returning id into v_job_id;
+    )
+    on conflict (request_num) do nothing
+    returning id into v_job_id;
+
+    if v_job_id is null then
+      select id into v_job_id from public.provider_dispatch_jobs
+      where request_num = v_job->>'request_num';
+    end if;
 
     insert into public.provider_dispatch_recipients(job_id, recipient_key, provider_ref_key, product)
     select v_job_id, rec.value->>'recipient_key', rec.value->>'provider_ref_key', v_job->>'product'
-    from jsonb_array_elements(v_job->'recipients') as rec(value);
+    from jsonb_array_elements(v_job->'recipients') as rec(value)
+    on conflict (job_id, recipient_key) do nothing;
 
     v_result := v_result || jsonb_build_object('request_num', v_job->>'request_num', 'job_id', v_job_id);
   end loop;
