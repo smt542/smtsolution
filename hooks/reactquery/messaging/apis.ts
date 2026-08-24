@@ -55,14 +55,17 @@ export interface MessagePointQuoteInput {
   mode: SendMode;
   recipients: MessageRecipient[];
   templateId: number | null;
+  /** 최종 렌더링 본문. SMS/LMS 제품을 서버에서 바이트로 판정하기 위해 전달한다. */
+  body?: string;
 }
 
 export interface MessagePointQuote {
   recipientCount: number;
   excludedCount: number;
-  channelCounts: { sms: number; alimtalk: number };
+  channelCounts: { sms: number; lms: number; alimtalk: number };
   rateSnapshot: {
     sms: { rateId: number; points: number };
+    lms: { rateId: number; points: number };
     alimtalk: { rateId: number; points: number };
   };
   ledgerBalance: number;
@@ -128,6 +131,7 @@ export async function quoteMessagePoints(
     p_mode: input.mode,
     p_recipients: input.recipients,
     p_template_id: input.templateId,
+    p_body: input.body ?? null,
   });
   if (error) throw new Error(error.message);
 
@@ -135,10 +139,11 @@ export async function quoteMessagePoints(
     ok?: boolean;
     code?: string;
     message?: string;
-    counts?: { total?: number; sms?: number; alimtalk?: number };
+    counts?: { total?: number; sms?: number; lms?: number; alimtalk?: number };
     excluded_count?: number;
     rate_snapshot?: {
       sms?: { id?: number; points?: number };
+      lms?: { id?: number; points?: number };
       alimtalk?: { id?: number; points?: number };
     };
     ledger_balance?: number;
@@ -161,12 +166,17 @@ export async function quoteMessagePoints(
     excludedCount: Number(result.excluded_count ?? 0),
     channelCounts: {
       sms: Number(result.counts?.sms ?? 0),
+      lms: Number(result.counts?.lms ?? 0),
       alimtalk: Number(result.counts?.alimtalk ?? 0),
     },
     rateSnapshot: {
       sms: {
         rateId: Number(result.rate_snapshot?.sms?.id ?? 0),
         points: Number(result.rate_snapshot?.sms?.points ?? 0),
+      },
+      lms: {
+        rateId: Number(result.rate_snapshot?.lms?.id ?? 0),
+        points: Number(result.rate_snapshot?.lms?.points ?? 0),
       },
       alimtalk: {
         rateId: Number(result.rate_snapshot?.alimtalk?.id ?? 0),

@@ -56,8 +56,11 @@ export function MessagePointQuoteCard({
         <div>
           <h4 className="text-sm font-extrabold text-t1">포인트 견적</h4>
           <p className="mt-1 text-xs text-t3">
-            SMS {quote.channelCounts.sms}건 × {points(quote.rateSnapshot.sms.points)} · 알림톡{" "}
-            {quote.channelCounts.alimtalk}건 × {points(quote.rateSnapshot.alimtalk.points)}
+            SMS {quote.channelCounts.sms}건 × {points(quote.rateSnapshot.sms.points)}
+            {quote.channelCounts.lms > 0 && (
+              <> · LMS {quote.channelCounts.lms}건 × {points(quote.rateSnapshot.lms.points)}</>
+            )}
+            {" · "}알림톡 {quote.channelCounts.alimtalk}건 × {points(quote.rateSnapshot.alimtalk.points)}
           </p>
         </div>
         <strong className="text-lg text-t1">예상 {points(quote.estimatedPoints)}</strong>

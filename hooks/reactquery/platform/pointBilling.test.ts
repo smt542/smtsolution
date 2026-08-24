@@ -38,7 +38,19 @@ describe("platform point billing apis", () => {
     });
   });
 
-  it("두 채널 단가를 한 RPC로 변경한다", async () => {
+  it("세 제품(SMS/LMS/알림톡) 단가를 한 RPC로 변경한다", async () => {
+    rpc.mockResolvedValue({ data: { ok: true }, error: null });
+
+    await setMessagePointRates({ smsPoints: 2, alimtalkPoints: 3, lmsPoints: 4 });
+
+    expect(rpc).toHaveBeenCalledWith("platform_set_message_point_rates", {
+      p_sms_points: 2,
+      p_alimtalk_points: 3,
+      p_lms_points: 4,
+    });
+  });
+
+  it("LMS 단가 미지정 시 p_lms_points는 null로 전달한다", async () => {
     rpc.mockResolvedValue({ data: { ok: true }, error: null });
 
     await setMessagePointRates({ smsPoints: 2, alimtalkPoints: 3 });
@@ -46,6 +58,7 @@ describe("platform point billing apis", () => {
     expect(rpc).toHaveBeenCalledWith("platform_set_message_point_rates", {
       p_sms_points: 2,
       p_alimtalk_points: 3,
+      p_lms_points: null,
     });
   });
 

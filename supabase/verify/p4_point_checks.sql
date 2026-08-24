@@ -177,6 +177,68 @@ begin
     raise exception 'service_role cannot execute claim_provider_dispatch_jobs';
   end if;
 
+  -- ===== LMS 견적 + provider_pending 정산(0096) =====
+  -- 세 제품(sms/lms/alimtalk) 단가 채널을 허용한다.
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.message_point_rates'::regclass
+      and conname = 'message_point_rates_channel_check'
+      and pg_get_constraintdef(oid) like '%lms%'
+  ) then
+    raise exception 'message_point_rates channel check missing lms';
+  end if;
+
+  -- 예약/로그 상태에 provider_pending 포함(접수만으로 확정되지 않음)
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.message_point_reservations'::regclass
+      and conname = 'message_point_reservations_status_check'
+      and pg_get_constraintdef(oid) like '%provider_pending%'
+  ) then
+    raise exception 'message_point_reservations status check missing provider_pending';
+  end if;
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.message_logs'::regclass
+      and conname = 'message_logs_point_status_check'
+      and pg_get_constraintdef(oid) like '%provider_pending%'
+  ) then
+    raise exception 'message_logs point_status check missing provider_pending';
+  end if;
+
+  if to_regprocedure('public.popbill_byte_length(text)') is null then
+    raise exception 'popbill_byte_length is missing';
+  end if;
+  if to_regprocedure('public.classify_message_product(text, text)') is null then
+    raise exception 'classify_message_product is missing';
+  end if;
+  if to_regprocedure('public.platform_set_message_point_rates(integer, integer, integer)') is null then
+    raise exception 'platform_set_message_point_rates lms overload is missing';
+  end if;
+
+  -- 접수/정산/작업생성 RPC는 service_role 전용
+  if to_regprocedure('public.settle_message_points_from_jobs(bigint)') is null then
+    raise exception 'settle_message_points_from_jobs is missing';
+  end if;
+  if has_function_privilege('authenticated', 'public.settle_message_points_from_jobs(bigint)', 'EXECUTE') then
+    raise exception 'authenticated must not execute settle_message_points_from_jobs';
+  end if;
+  if to_regprocedure('public.mark_message_reservation_provider_pending(bigint, jsonb)') is null then
+    raise exception 'mark_message_reservation_provider_pending is missing';
+  end if;
+  if has_function_privilege('authenticated', 'public.mark_message_reservation_provider_pending(bigint, jsonb)', 'EXECUTE') then
+    raise exception 'authenticated must not execute mark_message_reservation_provider_pending';
+  end if;
+  if to_regprocedure('public.create_provider_dispatch_jobs(bigint, jsonb)') is null then
+    raise exception 'create_provider_dispatch_jobs is missing';
+  end if;
+
+  -- provider 접수(receipt) 예약은 수동 만료 해제 후보에서 제외(가드가 provider_dispatch_jobs를 참조)
+  if pg_get_functiondef('public.platform_release_stale_reservation(bigint, text)'::regprocedure)
+     not like '%provider_dispatch_jobs%' then
+    raise exception 'platform_release_stale_reservation does not guard provider receipts';
+  end if;
+
   raise notice 'P4-point schema checks passed';
 end
 $$;

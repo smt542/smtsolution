@@ -77,16 +77,17 @@ describe("messaging apis (P4b)", () => {
     rpc.mockResolvedValue({
       data: {
         ok: true,
-        counts: { total: 3, sms: 2, alimtalk: 1 },
+        counts: { total: 4, sms: 2, lms: 1, alimtalk: 1 },
         excluded_count: 1,
         rate_snapshot: {
           sms: { id: 8, points: 1 },
+          lms: { id: 10, points: 3 },
           alimtalk: { id: 9, points: 2 },
         },
         ledger_balance: 100,
         reserved_points: 10,
         available_points: 90,
-        estimated_points: 4,
+        estimated_points: 7,
         sufficient: true,
         billing_mode: "stub",
       },
@@ -97,19 +98,21 @@ describe("messaging apis (P4b)", () => {
       mode: "auto" as const,
       recipients: [{ name: "A", phone: "0101", kind: "tenant" as const }],
       templateId: 5,
+      body: "안내 본문",
     };
     await expect(quoteMessagePoints(input)).resolves.toEqual({
-      recipientCount: 3,
+      recipientCount: 4,
       excludedCount: 1,
-      channelCounts: { sms: 2, alimtalk: 1 },
+      channelCounts: { sms: 2, lms: 1, alimtalk: 1 },
       rateSnapshot: {
         sms: { rateId: 8, points: 1 },
+        lms: { rateId: 10, points: 3 },
         alimtalk: { rateId: 9, points: 2 },
       },
       ledgerBalance: 100,
       reservedPoints: 10,
       availablePoints: 90,
-      estimatedPoints: 4,
+      estimatedPoints: 7,
       sufficient: true,
       billingMode: "stub",
     });
@@ -117,6 +120,7 @@ describe("messaging apis (P4b)", () => {
       p_mode: "auto",
       p_recipients: input.recipients,
       p_template_id: 5,
+      p_body: "안내 본문",
     });
   });
 
