@@ -22,6 +22,7 @@ const row = {
   id: 1,
   rate_krw_alimtalk: 8,
   rate_krw_sms: 12,
+  rate_krw_lms: 36,
   rate_krw_fax: 45,
   low_balance_threshold: 1000,
   billing_bank: "국민은행",
@@ -40,6 +41,7 @@ const row = {
 const input: PlatformSettingsInput = {
   rateKrwAlimtalk: 8,
   rateKrwSms: 12,
+  rateKrwLms: 36,
   rateKrwFax: 45,
   lowBalanceThreshold: 1000,
   billingBank: "국민은행",
@@ -82,6 +84,7 @@ describe("platform settings", () => {
     expect(rpc).toHaveBeenCalledWith("platform_update_settings", {
       p_rate_krw_alimtalk: 8,
       p_rate_krw_sms: 12,
+      p_rate_krw_lms: 36,
       p_rate_krw_fax: 45,
       p_low_balance_threshold: 1000,
       p_billing_bank: "국민은행",

@@ -74,3 +74,42 @@ begin
     end if;
   end loop;
 end $$;
+
+-- ===== Popbill 월 청구(0097): LMS 단가·성공건/성공페이지 스냅샷 =====
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'platform_settings' and column_name = 'rate_krw_lms'
+  ) then
+    raise exception 'platform_settings.rate_krw_lms is missing';
+  end if;
+
+  if (select count(*) from information_schema.columns
+      where table_schema = 'public' and table_name = 'platform_billing_invoices'
+        and column_name in ('lms_count', 'fax_page_count')) <> 2 then
+    raise exception 'platform_billing_invoices lms_count/fax_page_count columns are incomplete';
+  end if;
+  -- 기존 청구서 호환: fax_count 열은 유지되어야 한다.
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'platform_billing_invoices' and column_name = 'fax_count'
+  ) then
+    raise exception 'platform_billing_invoices fax_count compatibility column was dropped';
+  end if;
+
+  -- 사용량 헬퍼는 내부 전용(authenticated 실행 불가)
+  if to_regprocedure('public.platform_org_usage(date)') is null then
+    raise exception 'platform_org_usage is missing';
+  end if;
+  if has_function_privilege('authenticated', 'public.platform_org_usage(date)', 'EXECUTE') then
+    raise exception 'authenticated must not execute platform_org_usage directly';
+  end if;
+
+  -- 단가 setter에 LMS 인자 추가
+  if to_regprocedure('public.platform_update_settings(integer, integer, integer, integer, integer, text, text, text, text, text, text, integer, numeric, text)') is null then
+    raise exception 'platform_update_settings lms overload is missing';
+  end if;
+
+  raise notice 'Popbill platform billing checks passed';
+end $$;

@@ -12,7 +12,9 @@ export interface PlatformOrgBilling {
   status: PlatformOrgBillingStatus;
   alimtalkCount: number;
   smsCount: number;
+  lmsCount: number;
   faxCount: number;
+  faxPageCount: number;
   subtotalKrw: number;
   vatKrw: number;
   totalKrw: number;
@@ -38,7 +40,9 @@ export interface PlatformBillingInvoice {
   status: PlatformBillingInvoiceStatus;
   alimtalkCount: number;
   smsCount: number;
+  lmsCount: number;
   faxCount: number;
+  faxPageCount: number;
   subtotalKrw: number;
   vatKrw: number;
   totalKrw: number;
@@ -61,7 +65,9 @@ interface PlatformOrgBillingRow {
   status: PlatformOrgBillingStatus;
   alimtalk_count: number;
   sms_count: number;
+  lms_count: number;
   fax_count: number;
+  fax_page_count: number;
   subtotal_krw: number;
   vat_krw: number;
   total_krw: number;
@@ -87,7 +93,9 @@ interface PlatformBillingInvoiceRow {
   status: PlatformBillingInvoiceStatus | null;
   alimtalk_count: number | null;
   sms_count: number | null;
+  lms_count: number | null;
   fax_count: number | null;
+  fax_page_count: number | null;
   subtotal_krw: number | null;
   vat_krw: number | null;
   total_krw: number | null;
@@ -105,7 +113,9 @@ function mapOrgBilling(row: PlatformOrgBillingRow): PlatformOrgBilling {
     status: row.status,
     alimtalkCount: row.alimtalk_count,
     smsCount: row.sms_count,
+    lmsCount: row.lms_count,
     faxCount: row.fax_count,
+    faxPageCount: row.fax_page_count,
     subtotalKrw: Number(row.subtotal_krw),
     vatKrw: Number(row.vat_krw),
     totalKrw: Number(row.total_krw),
@@ -146,7 +156,9 @@ function mapBillingInvoice(row: PlatformBillingInvoiceRow): PlatformBillingInvoi
     status: row.status,
     alimtalkCount: row.alimtalk_count ?? 0,
     smsCount: row.sms_count ?? 0,
+    lmsCount: row.lms_count ?? 0,
     faxCount: row.fax_count ?? 0,
+    faxPageCount: row.fax_page_count ?? 0,
     subtotalKrw: Number(row.subtotal_krw ?? 0),
     vatKrw: Number(row.vat_krw ?? 0),
     totalKrw: Number(row.total_krw ?? 0),

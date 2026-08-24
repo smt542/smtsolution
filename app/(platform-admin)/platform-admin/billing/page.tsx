@@ -53,9 +53,10 @@ export default function PlatformBillingPage() {
       (acc, row) => ({
         alimtalk: acc.alimtalk + row.alimtalkCount,
         sms: acc.sms + row.smsCount,
-        fax: acc.fax + row.faxCount,
+        lms: acc.lms + row.lmsCount,
+        faxPages: acc.faxPages + row.faxPageCount,
       }),
-      { alimtalk: 0, sms: 0, fax: 0 },
+      { alimtalk: 0, sms: 0, lms: 0, faxPages: 0 },
     ),
     [rows],
   );
@@ -75,13 +76,14 @@ export default function PlatformBillingPage() {
   };
 
   const handleDownload = () => {
-    const header = ["업체명", "이메일", "알림톡", "문자", "팩스", "청구액", "전월비", "상태"];
+    const header = ["업체명", "이메일", "알림톡", "문자(SMS)", "장문(LMS)", "팩스(성공페이지)", "청구액", "전월비", "상태"];
     const body = filtered.map((row) => [
       row.orgName,
       row.orgEmail ?? "",
       row.alimtalkCount,
       row.smsCount,
-      row.faxCount,
+      row.lmsCount,
+      row.faxPageCount,
       row.totalKrw,
       row.totalKrw - row.prevTotalKrw,
       STATUS_TABS.find((t) => t.id === row.status)?.label ?? row.status,
@@ -109,10 +111,11 @@ export default function PlatformBillingPage() {
         <MonthStepper month={month} onChange={(m) => { setMonth(m); }} />
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+      <div className="mt-6 grid gap-4 sm:grid-cols-4">
         <SummaryCard label="알림톡" value={totals.alimtalk} />
-        <SummaryCard label="문자" value={totals.sms} />
-        <SummaryCard label="팩스" value={totals.fax} />
+        <SummaryCard label="문자(SMS)" value={totals.sms} />
+        <SummaryCard label="장문(LMS)" value={totals.lms} />
+        <SummaryCard label="팩스 성공 페이지" value={totals.faxPages} />
       </div>
 
       <section className="mt-6 rounded-2xl border border-line bg-surface shadow-card">
@@ -151,7 +154,8 @@ export default function PlatformBillingPage() {
                   <th className="px-4 py-3">이메일</th>
                   <th className="px-4 py-3 text-right">알림톡</th>
                   <th className="px-4 py-3 text-right">문자</th>
-                  <th className="px-4 py-3 text-right">팩스</th>
+                  <th className="px-4 py-3 text-right">장문</th>
+                  <th className="px-4 py-3 text-right">팩스 페이지</th>
                   <th className="px-4 py-3 text-right">청구액(원)</th>
                   <th className="px-4 py-3 text-right">전월비</th>
                   <th className="px-4 py-3">상태</th>
@@ -165,7 +169,8 @@ export default function PlatformBillingPage() {
                     <td className="px-4 py-4 text-t3">{row.orgEmail ?? "—"}</td>
                     <td className="px-4 py-4 text-right text-t2 num">{num(row.alimtalkCount)}</td>
                     <td className="px-4 py-4 text-right text-t2 num">{num(row.smsCount)}</td>
-                    <td className="px-4 py-4 text-right text-t2 num">{num(row.faxCount)}</td>
+                    <td className="px-4 py-4 text-right text-t2 num">{num(row.lmsCount)}</td>
+                    <td className="px-4 py-4 text-right text-t2 num">{num(row.faxPageCount)}</td>
                     <td className="px-4 py-4 text-right font-extrabold text-t1 num">{num(row.totalKrw)}</td>
                     <td className="px-4 py-4 text-right text-t3 num">{deltaLabel(row.totalKrw - row.prevTotalKrw)}</td>
                     <td className="px-4 py-4"><BillingStatusBadge status={row.status} /></td>

@@ -5,6 +5,7 @@ import { platformKeys } from "./keys";
 export interface PlatformSettingsInput {
   rateKrwAlimtalk: number;
   rateKrwSms: number;
+  rateKrwLms: number;
   rateKrwFax: number;
   lowBalanceThreshold: number;
   billingBank: string | null;
@@ -28,6 +29,7 @@ interface PlatformSettingsRow {
   id: number;
   rate_krw_alimtalk: number;
   rate_krw_sms: number;
+  rate_krw_lms: number;
   rate_krw_fax: number;
   low_balance_threshold: number;
   billing_bank: string | null;
@@ -47,6 +49,7 @@ const SETTINGS_COLUMNS = [
   "id",
   "rate_krw_alimtalk",
   "rate_krw_sms",
+  "rate_krw_lms",
   "rate_krw_fax",
   "low_balance_threshold",
   "billing_bank",
@@ -67,6 +70,7 @@ function mapSettings(row: PlatformSettingsRow): PlatformSettings {
     id: row.id,
     rateKrwAlimtalk: row.rate_krw_alimtalk,
     rateKrwSms: row.rate_krw_sms,
+    rateKrwLms: row.rate_krw_lms,
     rateKrwFax: row.rate_krw_fax,
     lowBalanceThreshold: row.low_balance_threshold,
     billingBank: row.billing_bank,
@@ -100,6 +104,7 @@ export async function updatePlatformSettings(
   const { data, error } = await createClient().rpc("platform_update_settings", {
     p_rate_krw_alimtalk: input.rateKrwAlimtalk,
     p_rate_krw_sms: input.rateKrwSms,
+    p_rate_krw_lms: input.rateKrwLms,
     p_rate_krw_fax: input.rateKrwFax,
     p_low_balance_threshold: input.lowBalanceThreshold,
     p_billing_bank: input.billingBank,
