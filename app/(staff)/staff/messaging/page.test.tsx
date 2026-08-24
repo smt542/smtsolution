@@ -118,6 +118,9 @@ describe("MessagingPage", () => {
     expect(
       screen.getByRole("heading", { name: "문자·알림톡 발송" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "예약분 지금 처리" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "발송" })).toHaveAttribute(
       "aria-selected",
       "true",
