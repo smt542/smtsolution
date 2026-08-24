@@ -3,6 +3,9 @@ import { drainSchedules } from "@/lib/messaging/drainSchedules";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
+// Popbill SDK·crypto 등 Node API를 사용하므로 Node 런타임을 명시한다.
+export const runtime = "nodejs";
+
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,

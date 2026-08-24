@@ -129,6 +129,11 @@ alter table public.message_logs add constraint message_logs_point_status_check
     'none', 'quoted', 'reserved', 'provider_pending', 'settled', 'released', 'reconcile_required'
   ));
 
+-- 예약 발송 스케줄 상태에 partial 추가(성공/실패 혼합 명시). 최종화는 재조회 정산이 담당한다.
+alter table public.message_schedules drop constraint if exists message_schedules_status_check;
+alter table public.message_schedules add constraint message_schedules_status_check
+  check (status in ('scheduled', 'sending', 'cancelled', 'sent', 'partial', 'failed'));
+
 -- ===== 견적 재구성: 제품(sms/lms/alimtalk) 차원 + 최종 본문 바이트 판정 =====
 drop function if exists public.resolve_message_point_quote(bigint, text, jsonb, bigint);
 create or replace function public.resolve_message_point_quote(
@@ -672,6 +677,8 @@ declare
   v_reservation public.message_point_reservations%rowtype;
   v_job jsonb;
   v_job_id bigint;
+  v_status text;
+  v_receipt text;
   v_result jsonb := '[]'::jsonb;
 begin
   if coalesce((select auth.role()), '') <> 'service_role' then
@@ -706,7 +713,13 @@ begin
     from jsonb_array_elements(v_job->'recipients') as rec(value)
     on conflict (job_id, recipient_key) do nothing;
 
-    v_result := v_result || jsonb_build_object('request_num', v_job->>'request_num', 'job_id', v_job_id);
+    select status, receipt_num into v_status, v_receipt
+    from public.provider_dispatch_jobs where id = v_job_id;
+
+    v_result := v_result || jsonb_build_object(
+      'request_num', v_job->>'request_num', 'job_id', v_job_id,
+      'status', v_status, 'receipt_num', v_receipt
+    );
   end loop;
 
   return jsonb_build_object('ok', true, 'jobs', v_result);
@@ -876,6 +889,15 @@ begin
     update public.message_logs
       set result = 'failed', charged_points = 0, point_status = 'released'
       where id = v_reservation.message_log_id;
+    -- 연결된 예약 스케줄/고지서를 실패로 최종화한다(즉시발송이면 매칭 0건).
+    update public.message_schedules
+      set status = 'failed'
+      where message_log_id = v_reservation.message_log_id and status = 'sending';
+    update public.bill_issues
+      set send_status = 'failed'
+      where message_schedule_id in (
+        select id from public.message_schedules where message_log_id = v_reservation.message_log_id
+      );
     return jsonb_build_object('ok', true, 'status', 'released', 'result', 'failed', 'charged_points', 0);
   end if;
 
@@ -895,6 +917,16 @@ begin
   update public.message_logs
     set result = v_log_result, charged_points = v_charged, point_status = 'settled'
     where id = v_reservation.message_log_id;
+
+  -- 연결된 예약 스케줄을 sent/partial로, 고지서는 sent로 최종화한다(즉시발송이면 매칭 0건).
+  update public.message_schedules
+    set status = case when v_log_result = 'sent' then 'sent' else 'partial' end
+    where message_log_id = v_reservation.message_log_id and status = 'sending';
+  update public.bill_issues
+    set send_status = 'sent'
+    where message_schedule_id in (
+      select id from public.message_schedules where message_log_id = v_reservation.message_log_id
+    );
 
   return jsonb_build_object('ok', true, 'status', 'settled', 'result', v_log_result,
     'charged_points', v_charged, 'released_points', v_reservation.reserved_points - v_charged);
@@ -1002,3 +1034,113 @@ end
 $$;
 revoke all on function public.platform_release_stale_reservation(bigint, text) from public, anon;
 grant execute on function public.platform_release_stale_reservation(bigint, text) to authenticated;
+
+-- ===== 예약 발송 재견적/예약 재정의(0094 대체) =====
+-- 변경점: (1) 최종 본문으로 sms/lms 판정, (2) provider_pending을 예약 합계에 포함,
+--        (3) 예약 생성 즉시 message_schedules.message_log_id 연결(재조회가 스케줄을 최종화 가능).
+create or replace function reserve_scheduled_message(p_schedule_id bigint)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare
+  v_row message_schedules%rowtype;
+  v_quote jsonb;
+  v_idem uuid;
+  v_hash text;
+  v_existing message_point_reservations%rowtype;
+  v_log_result text;
+  v_ledger bigint; v_reserved bigint; v_available bigint;
+  v_log_id bigint; v_reservation_id bigint; v_log_recipients jsonb;
+  v_tpl_code text := null; v_buttons jsonb := '[]'::jsonb;
+begin
+  if coalesce((select auth.role()), '') <> 'service_role' then
+    raise exception 'forbidden: service role required' using errcode = '42501';
+  end if;
+
+  select * into v_row from message_schedules where id = p_schedule_id;
+  if not found or v_row.status <> 'sending' then
+    return jsonb_build_object('ok', false, 'code', 'SCHEDULE_NOT_CLAIMED');
+  end if;
+
+  v_idem := md5('scheduled-message:' || p_schedule_id::text)::uuid;
+
+  v_quote := resolve_message_point_quote(v_row.org_id, v_row.channel, v_row.recipients, v_row.template_id, v_row.body);
+  if not coalesce((v_quote->>'ok')::boolean, false) then
+    return v_quote;  -- {ok:false, code}
+  end if;
+
+  if v_row.template_id is not null and exists (
+    select 1 from jsonb_array_elements(v_quote->'resolved_recipients') r(v)
+    where r.v->>'channel' = 'alimtalk'
+  ) then
+    select mt.alimtalk_template_code, coalesce(mt.buttons, '[]'::jsonb)
+      into v_tpl_code, v_buttons
+    from message_templates mt where mt.id = v_row.template_id;
+  end if;
+
+  select * into v_existing from message_point_reservations
+    where org_id = v_row.org_id and idempotency_key = v_idem;
+  if found then
+    if v_existing.status in ('settled', 'released') then
+      select result into v_log_result from message_logs where id = v_existing.message_log_id;
+      return jsonb_build_object(
+        'ok', true, 'replayed', true, 'reservation_status', v_existing.status,
+        'message_log_id', v_existing.message_log_id, 'log_result', coalesce(v_log_result, 'failed')
+      );
+    end if;
+    return jsonb_build_object(
+      'ok', true, 'replayed', true, 'reservation_status', v_existing.status,
+      'reservation_id', v_existing.id, 'message_log_id', v_existing.message_log_id,
+      'resolved_recipients', v_quote->'resolved_recipients',
+      'recipient_costs', v_quote->'recipient_costs',
+      'alimtalk_template_code', v_tpl_code, 'buttons', v_buttons
+    );
+  end if;
+
+  -- 잔액 하드스톱(provider_pending 포함)
+  select coalesce(sum(points), 0)::bigint into v_ledger
+    from point_transactions where org_id = v_row.org_id;
+  select coalesce(sum(reserved_points), 0)::bigint into v_reserved
+    from message_point_reservations
+    where org_id = v_row.org_id and status in ('reserved', 'provider_pending', 'reconcile_required');
+  v_available := v_ledger - v_reserved;
+  if v_available < (v_quote->>'estimated_points')::bigint then
+    return jsonb_build_object('ok', false, 'code', 'INSUFFICIENT_POINTS',
+      'required_points', (v_quote->>'estimated_points')::bigint, 'available_points', v_available);
+  end if;
+
+  v_hash := left(md5(v_row.channel || '|' || v_row.body || '|' || v_row.recipients::text), 128);
+
+  select coalesce(jsonb_agg(r.v || jsonb_build_object('result', 'queued') order by r.ord), '[]'::jsonb)
+    into v_log_recipients
+  from jsonb_array_elements(v_quote->'resolved_recipients') with ordinality as r(v, ord);
+
+  insert into message_logs(
+    org_id, channel, body, context, recipient_count, recipients, result,
+    sent_by, template_id, estimated_points, charged_points, point_status
+  ) values (
+    v_row.org_id, v_row.channel, v_row.body, coalesce(v_row.context, 'manual'),
+    (v_quote->'counts'->>'total')::integer, v_log_recipients, 'queued',
+    v_row.created_by, v_row.template_id, (v_quote->>'estimated_points')::integer, 0, 'reserved'
+  ) returning id into v_log_id;
+
+  insert into message_point_reservations(
+    org_id, message_log_id, idempotency_key, payload_hash, status,
+    reserved_points, charged_points, rate_snapshot, recipient_costs, requested_by, expires_at
+  ) values (
+    v_row.org_id, v_log_id, v_idem, v_hash, 'reserved',
+    (v_quote->>'estimated_points')::integer, 0, v_quote->'rate_snapshot',
+    v_quote->'recipient_costs', v_row.created_by, now() + interval '15 minutes'
+  ) returning id into v_reservation_id;
+
+  -- 재조회 정산이 원래 스케줄을 최종화할 수 있도록 로그를 즉시 연결한다.
+  update message_schedules set message_log_id = v_log_id where id = p_schedule_id;
+
+  return jsonb_build_object(
+    'ok', true, 'replayed', false, 'reservation_status', 'reserved',
+    'reservation_id', v_reservation_id, 'message_log_id', v_log_id,
+    'resolved_recipients', v_quote->'resolved_recipients',
+    'recipient_costs', v_quote->'recipient_costs',
+    'alimtalk_template_code', v_tpl_code, 'buttons', v_buttons
+  );
+end $$;
+revoke all on function reserve_scheduled_message(bigint) from public, anon, authenticated;
+grant execute on function reserve_scheduled_message(bigint) to service_role;

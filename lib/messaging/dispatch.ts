@@ -184,11 +184,75 @@ export async function dispatchMessages(
   const resolved = reserve.resolved_recipients ?? quote.resolved_recipients ?? [];
   const costs = reserve.recipient_costs ?? quote.recipient_costs ?? [];
 
-  // 3) 제품별 배치 계획
+  // 3~7) 배치 계획 → submitting 저장 → Popbill 접수 → provider_pending (예약/스케줄 공용)
+  const { queuedCount } = await submitReservationBatches(
+    deps.admin,
+    {
+      reservationId,
+      scheduleId: null,
+      body: input.body,
+      templateId: input.templateId,
+      resolved,
+      costs,
+    },
+    { submitBatch, loadAlimtalkTemplate: deps.loadAlimtalkTemplate },
+  );
+
+  return {
+    ok: true,
+    status: "queued",
+    logId: messageLogId,
+    reservationId,
+    queuedCount,
+    reservedPoints,
+  };
+}
+
+/** message_templates.buttons([{name,type,url}]) → Popbill 버튼({t,n,u1}) */
+export function toPopbillButtons(raw: unknown): PopbillKakaoButton[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((b): b is Record<string, unknown> => typeof b === "object" && b !== null)
+    .map((b) => ({
+      t: String(b.type ?? b.t ?? "WL"),
+      n: String(b.name ?? b.n ?? ""),
+      u1: b.url != null ? String(b.url) : b.u1 != null ? String(b.u1) : undefined,
+    }));
+}
+
+export interface SubmitReservationParams {
+  reservationId: number;
+  scheduleId?: number | null;
+  body: string;
+  templateId: number | null;
+  resolved: Array<Record<string, unknown>>;
+  costs: Array<Record<string, unknown>>;
+}
+export interface SubmitReservationDeps {
+  submitBatch?: (batch: MessageBatchInput, content: MessageContent) => Promise<ProviderSubmission>;
+  loadAlimtalkTemplate?: (templateId: number) => Promise<AlimtalkTemplateContent>;
+}
+interface CreatedJobRow {
+  request_num: string;
+  status?: string;
+  receipt_num?: string | null;
+}
+
+/**
+ * 예약(reservationId)의 수신자를 제품별 배치로 접수한다. 즉시/예약 발송 공용.
+ * 재claim/replay 안전: 이미 receipt를 받은 배치는 재발송하지 않고 접수 상태를 유지한다.
+ */
+export async function submitReservationBatches(
+  admin: SupabaseClientLike,
+  params: SubmitReservationParams,
+  deps: SubmitReservationDeps,
+): Promise<{ queuedCount: number; markStatus: string }> {
+  const submitBatch = deps.submitBatch ?? submitMessageBatch;
+
   const planRecipients: PlanRecipient[] = [];
-  for (let i = 0; i < costs.length; i += 1) {
-    const cost = costs[i];
-    const person = resolved[i] ?? {};
+  for (let i = 0; i < params.costs.length; i += 1) {
+    const cost = params.costs[i];
+    const person = params.resolved[i] ?? {};
     planRecipients.push({
       recipientKey: String(cost.recipient_key ?? ""),
       phone: normalizePhone(person.phone),
@@ -196,45 +260,51 @@ export async function dispatchMessages(
       product: (cost.product as PlanProduct) ?? "sms",
     });
   }
-  const plan = buildSubmissionPlan({ scope: "m", id: reservationId, recipients: planRecipients });
+  const plan = buildSubmissionPlan({ scope: "m", id: params.reservationId, recipients: planRecipients });
 
-  // 4) 알림톡 콘텐츠(템플릿/버튼) 로드
   let alimtalk: AlimtalkTemplateContent = { templateCode: null, buttons: [] };
-  if (plan.some((b) => b.product === "alimtalk") && input.templateId != null && deps.loadAlimtalkTemplate) {
-    alimtalk = await deps.loadAlimtalkTemplate(input.templateId);
+  if (plan.some((b) => b.product === "alimtalk") && params.templateId != null && deps.loadAlimtalkTemplate) {
+    alimtalk = await deps.loadAlimtalkTemplate(params.templateId);
   }
 
-  // 5) submitting 작업 저장
-  await rpcData(deps.admin, "create_provider_dispatch_jobs", {
-    p_reservation_id: reservationId,
+  const created = (await rpcData(admin, "create_provider_dispatch_jobs", {
+    p_reservation_id: params.reservationId,
     p_jobs: plan.map((b) => ({
       product: b.product,
       request_num: b.requestNum,
+      schedule_id: params.scheduleId ?? null,
       recipients: b.recipients.map((r) => ({
         recipient_key: r.recipientKey,
         provider_ref_key: r.providerRefKey,
       })),
     })),
-  });
+  })) as { jobs?: CreatedJobRow[] } | null;
+  const jobByReq = new Map((created?.jobs ?? []).map((j) => [j.request_num, j]));
 
-  // 6) 배치별 Popbill 접수
   const outcomes: Array<Record<string, unknown>> = [];
   let queuedCount = 0;
   for (const batch of plan) {
+    const info = jobByReq.get(batch.requestNum);
+    // 이미 접수번호가 있으면 재발송하지 않고 접수 상태를 유지한다(중복 발송 방지).
+    if (info?.receipt_num) {
+      outcomes.push({ request_num: batch.requestNum, outcome: "accepted", receipt_num: info.receipt_num });
+      queuedCount += batch.recipients.length;
+      continue;
+    }
+    // 이미 terminal/미확인으로 넘어간 작업은 그대로 둔다.
+    if (info?.status && info.status !== "submitting") {
+      continue;
+    }
     const content: MessageContent =
       batch.product === "alimtalk"
-        ? { body: input.body, templateCode: alimtalk.templateCode, buttons: alimtalk.buttons }
-        : { body: input.body };
+        ? { body: params.body, templateCode: alimtalk.templateCode, buttons: alimtalk.buttons }
+        : { body: params.body };
     try {
       const submission = await submitBatch(
         { product: batch.product, requestNum: batch.requestNum, recipients: batch.recipients },
         content,
       );
-      outcomes.push({
-        request_num: batch.requestNum,
-        outcome: "accepted",
-        receipt_num: submission.receiptNum,
-      });
+      outcomes.push({ request_num: batch.requestNum, outcome: "accepted", receipt_num: submission.receiptNum });
       queuedCount += batch.recipients.length;
     } catch (e) {
       const classified = classifySubmitError(e);
@@ -247,20 +317,12 @@ export async function dispatchMessages(
     }
   }
 
-  // 7) 접수 결과 반영 → provider_pending / reconcile_required / released
-  await rpcData(deps.admin, "mark_message_reservation_provider_pending", {
-    p_reservation_id: reservationId,
+  const mark = (await rpcData(admin, "mark_message_reservation_provider_pending", {
+    p_reservation_id: params.reservationId,
     p_outcomes: outcomes,
-  });
+  })) as { status?: string } | null;
 
-  return {
-    ok: true,
-    status: "queued",
-    logId: messageLogId,
-    reservationId,
-    queuedCount,
-    reservedPoints,
-  };
+  return { queuedCount, markStatus: mark?.status ?? "unknown" };
 }
 
 /** 실경로 진입 판단: 요청 채널(mode)에 해당하는 어댑터가 하나라도 설정됐는가. */
