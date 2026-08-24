@@ -239,6 +239,14 @@ begin
     raise exception 'platform_release_stale_reservation does not guard provider receipts';
   end if;
 
+  -- 결과 재조회·멱등 정산 RPC(0096)는 service_role 전용
+  if to_regprocedure('public.apply_provider_dispatch_results(bigint, jsonb, timestamptz)') is null then
+    raise exception 'apply_provider_dispatch_results is missing';
+  end if;
+  if has_function_privilege('authenticated', 'public.apply_provider_dispatch_results(bigint, jsonb, timestamptz)', 'EXECUTE') then
+    raise exception 'authenticated must not execute apply_provider_dispatch_results';
+  end if;
+
   raise notice 'P4-point schema checks passed';
 end
 $$;

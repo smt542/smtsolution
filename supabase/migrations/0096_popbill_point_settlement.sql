@@ -1144,3 +1144,93 @@ begin
 end $$;
 revoke all on function reserve_scheduled_message(bigint) from public, anon, authenticated;
 grant execute on function reserve_scheduled_message(bigint) to service_role;
+
+-- ===== 결과 반영(service_role, 멱등): 수신자 terminal 반영 + job 집계 + 예약 정산 =====
+-- p_results: [{ provider_ref_key, status: 'success'|'failed', code }]
+-- p_next_poll_at: pending 유지 시 다음 조회 시각(null이면 24시간 초과로 reconcile_required)
+create or replace function public.apply_provider_dispatch_results(
+  p_job_id bigint,
+  p_results jsonb,
+  p_next_poll_at timestamptz
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_job public.provider_dispatch_jobs%rowtype;
+  v_total integer;
+  v_pending integer;
+  v_success integer;
+  v_fail integer;
+  v_new_status text;
+  v_settled jsonb := null;
+  v_all_terminal boolean;
+begin
+  if coalesce((select auth.role()), '') <> 'service_role' then
+    raise exception 'forbidden: service role required' using errcode = '42501';
+  end if;
+
+  select * into v_job from public.provider_dispatch_jobs where id = p_job_id for update;
+  if not found then return jsonb_build_object('ok', false, 'code', 'JOB_NOT_FOUND'); end if;
+
+  -- 이미 terminal/미확인으로 넘어간 작업은 재처리하지 않는다(멱등).
+  if v_job.status <> 'pending' then
+    return jsonb_build_object('ok', true, 'replayed', true, 'job_status', v_job.status);
+  end if;
+
+  -- terminal 결과를 pending 수신자에만 반영(중복 polling 안전).
+  if p_results is not null and jsonb_typeof(p_results) = 'array' then
+    update public.provider_dispatch_recipients rec
+      set status = result.value->>'status',
+          result_code = result.value->>'code',
+          completed_at = now()
+    from jsonb_array_elements(p_results) as result(value)
+    where rec.job_id = p_job_id
+      and rec.provider_ref_key = result.value->>'provider_ref_key'
+      and rec.status = 'pending'
+      and result.value->>'status' in ('success', 'failed');
+  end if;
+
+  select count(*),
+    count(*) filter (where status = 'pending'),
+    count(*) filter (where status = 'success'),
+    count(*) filter (where status = 'failed')
+  into v_total, v_pending, v_success, v_fail
+  from public.provider_dispatch_recipients where job_id = p_job_id;
+
+  if v_pending = 0 then
+    v_new_status := case when v_fail = 0 then 'sent' when v_success = 0 then 'failed' else 'partial' end;
+    update public.provider_dispatch_jobs
+      set status = v_new_status, completed_at = now(), next_poll_at = null, lease_until = null
+      where id = p_job_id;
+  elsif p_next_poll_at is null then
+    v_new_status := 'reconcile_required';
+    update public.provider_dispatch_jobs
+      set status = 'reconcile_required', next_poll_at = null, lease_until = null
+      where id = p_job_id;
+  else
+    v_new_status := 'pending';
+    update public.provider_dispatch_jobs
+      set next_poll_at = p_next_poll_at, lease_until = null
+      where id = p_job_id;
+  end if;
+
+  -- 예약의 모든 job이 terminal이면 성공분만 멱등 정산한다.
+  if v_new_status in ('sent', 'partial', 'failed') and v_job.reservation_id is not null then
+    select not exists (
+      select 1 from public.provider_dispatch_jobs
+      where reservation_id = v_job.reservation_id and status not in ('sent', 'partial', 'failed')
+    ) into v_all_terminal;
+    if v_all_terminal then
+      v_settled := public.settle_message_points_from_jobs(v_job.reservation_id);
+    end if;
+  end if;
+
+  return jsonb_build_object('ok', true, 'job_status', v_new_status, 'settled', v_settled);
+end
+$$;
+revoke all on function public.apply_provider_dispatch_results(bigint, jsonb, timestamptz)
+  from public, anon, authenticated;
+grant execute on function public.apply_provider_dispatch_results(bigint, jsonb, timestamptz) to service_role;
