@@ -74,4 +74,17 @@ describe("buildSubmissionPlan", () => {
   it("빈 수신자는 빈 계획을 반환한다", () => {
     expect(buildSubmissionPlan({ scope: "m", id: 1, recipients: [] })).toEqual([]);
   });
+
+  it("수신자별 renderedBody를 배치 수신자에 보존한다", () => {
+    const withBodies: PlanRecipient[] = [
+      { recipientKey: "k1", phone: "01011110001", name: "A", product: "sms", renderedBody: "A님 관리비 3만원" },
+      { recipientKey: "k2", phone: "01011110002", name: "B", product: "sms", renderedBody: "B님 관리비 5만원" },
+    ];
+    const plan = buildSubmissionPlan({ scope: "m", id: 7, recipients: withBodies });
+    const sms = plan.find((b) => b.product === "sms");
+    expect(sms?.recipients.map((r) => r.renderedBody)).toEqual([
+      "A님 관리비 3만원",
+      "B님 관리비 5만원",
+    ]);
+  });
 });

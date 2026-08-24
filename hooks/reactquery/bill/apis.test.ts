@@ -80,6 +80,16 @@ describe("bill apis", () => {
       p_issue_type: "kakao", p_send_status: "scheduled", p_message_schedule_id: 9,
     }));
   });
+  it("즉시 카톡 접수는 queued 상태와 message_log_id로 기록한다(sent 아님)", async () => {
+    rpc.mockResolvedValue({ data: { count: 1 }, error: null });
+    await recordBillDelivery({
+      buildingId: 7, period: "2026-08-01", unitIds: [1], issueType: "kakao",
+      sendStatus: "queued", messageLogId: 42,
+    });
+    expect(rpc).toHaveBeenCalledWith("record_bill_delivery", expect.objectContaining({
+      p_issue_type: "kakao", p_send_status: "queued", p_message_log_id: 42,
+    }));
+  });
   it("팩스 발송은 fax bill_issue를 확보한 뒤 서버 라우트로 접수한다(가짜 sent 기록 없음)", async () => {
     rpc.mockResolvedValueOnce({ data: [{ bill_issue_id: 5, unit_id: 1 }], error: null });
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ queued: 1, failed: 0 }) });

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { dispatchMessages } from "./dispatch";
-import { PopbillSubmitError } from "@/lib/popbill/types";
+import { dispatchMessages, submitReservationBatches } from "./dispatch";
+import { PopbillSubmitError, type MessageBatchInput } from "@/lib/popbill/types";
 
 function makeClient(handlers: Record<string, (args: Record<string, unknown>) => unknown>) {
   return {
@@ -100,6 +100,76 @@ describe("dispatchMessages", () => {
     expect(submitBatch).toHaveBeenCalledTimes(1);
     const outcomes = markArgs[0].p_outcomes as Array<{ outcome: string }>;
     expect(outcomes[0].outcome).toBe("unknown");
+  });
+
+  it("submitReservationBatches: 즉시/예약 공용 경로에서 수신자별 renderedBody를 배치에 전달한다", async () => {
+    const admin = makeClient({
+      create_provider_dispatch_jobs: () => ({ ok: true }),
+      mark_message_reservation_provider_pending: () => ({ ok: true, status: "provider_pending" }),
+    });
+    const captured: MessageBatchInput[] = [];
+    const submitBatch = vi.fn(async (batch: MessageBatchInput) => {
+      captured.push(batch);
+      return { requestNum: batch.requestNum, receiptNum: "R", product: batch.product, recipients: [] };
+    });
+    await submitReservationBatches(
+      admin,
+      {
+        reservationId: 5,
+        scheduleId: null,
+        body: "공통본문",
+        templateId: null,
+        resolved: [
+          { phone: "010-1111-2222", name: "A", channel: "sms", product: "sms", renderedBody: "A님 3만원" },
+          { phone: "010-3333-4444", name: "B", channel: "sms", product: "sms", renderedBody: "B님 5만원" },
+        ],
+        costs: [
+          { recipient_key: "k1", product: "sms" },
+          { recipient_key: "k2", product: "sms" },
+        ],
+      },
+      { submitBatch },
+    );
+    expect(captured).toHaveLength(1);
+    expect(captured[0].recipients.map((r) => r.renderedBody)).toEqual(["A님 3만원", "B님 5만원"]);
+  });
+
+  it("submitReservationBatches: 제품이 다른 수신자(sms/lms)를 제품별 배치로 나누고 본문을 맞춰 접수한다", async () => {
+    const admin = makeClient({
+      create_provider_dispatch_jobs: () => ({ ok: true }),
+      mark_message_reservation_provider_pending: () => ({ ok: true, status: "provider_pending" }),
+    });
+    const captured: MessageBatchInput[] = [];
+    const submitBatch = vi.fn(async (batch: MessageBatchInput) => {
+      captured.push(batch);
+      return { requestNum: batch.requestNum, receiptNum: "R", product: batch.product, recipients: [] };
+    });
+    const longBody = "긴 본문".repeat(50);
+    await submitReservationBatches(
+      admin,
+      {
+        reservationId: 8,
+        scheduleId: null,
+        body: "공통본문",
+        templateId: null,
+        // 견적(resolve_message_point_quote)이 수신자별 renderedBody로 판정한 제품이 recipient_costs.product로 온다.
+        resolved: [
+          { phone: "010-1111-2222", name: "짧", channel: "sms", product: "sms", renderedBody: "짧은 본문" },
+          { phone: "010-3333-4444", name: "긴", channel: "sms", product: "lms", renderedBody: longBody },
+        ],
+        costs: [
+          { recipient_key: "k1", product: "sms" },
+          { recipient_key: "k2", product: "lms" },
+        ],
+      },
+      { submitBatch },
+    );
+    const sms = captured.find((b) => b.product === "sms");
+    const lms = captured.find((b) => b.product === "lms");
+    expect(sms?.recipients).toHaveLength(1);
+    expect(lms?.recipients).toHaveLength(1);
+    expect(sms?.recipients[0].renderedBody).toBe("짧은 본문");
+    expect(lms?.recipients[0].renderedBody).toBe(longBody);
   });
 
   it("포인트 부족 예약 실패는 402로 반환하고 접수하지 않는다", async () => {

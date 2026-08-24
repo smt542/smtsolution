@@ -245,11 +245,14 @@ export async function submitReservationBatches(
   for (let i = 0; i < params.costs.length; i += 1) {
     const cost = params.costs[i];
     const person = params.resolved[i] ?? {};
+    // 수신자별 최종 렌더 본문을 보존한다. 없으면 배치 공통 본문으로 대체된다(접수 시점 대체).
+    const rendered = person.renderedBody;
     planRecipients.push({
       recipientKey: String(cost.recipient_key ?? ""),
       phone: normalizePhone(person.phone),
       name: (person.name as string | null) ?? null,
       product: (cost.product as PlanProduct) ?? "sms",
+      renderedBody: typeof rendered === "string" && rendered.length > 0 ? rendered : null,
     });
   }
   const plan = buildSubmissionPlan({ scope: "m", id: params.reservationId, recipients: planRecipients });

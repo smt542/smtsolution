@@ -130,7 +130,13 @@ export async function issueBills(p: IssueBillsPayload): Promise<{ count: number 
   return { count: r.count };
 }
 
-export type BillDeliveryStatus = "scheduled" | "sent" | "failed";
+// queued=접수 완료(결과 확인 중), partial=일부 성공. 접수만으로 sent로 기록하지 않는다.
+export type BillDeliveryStatus =
+  | "scheduled"
+  | "queued"
+  | "sent"
+  | "partial"
+  | "failed";
 
 export interface RecordBillDeliveryPayload {
   buildingId: number;

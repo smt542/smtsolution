@@ -212,6 +212,12 @@ begin
   if to_regprocedure('public.classify_message_product(text, text)') is null then
     raise exception 'classify_message_product is missing';
   end if;
+  -- 견적은 공통 본문이 아니라 수신자별 최종 본문(renderedBody, 없으면 공통 p_body)으로 sms/lms를 판정해야 한다.
+  -- (recipient_costs.product가 실제 접수되는 수신자별 본문과 일치해야 함)
+  if pg_get_functiondef('public.resolve_message_point_quote(bigint,text,jsonb,bigint,text)'::regprocedure)
+     not like '%renderedBody%' then
+    raise exception 'resolve_message_point_quote does not classify per-recipient renderedBody';
+  end if;
   if to_regprocedure('public.platform_set_message_point_rates(integer, integer, integer)') is null then
     raise exception 'platform_set_message_point_rates lms overload is missing';
   end if;
@@ -245,6 +251,33 @@ begin
   end if;
   if has_function_privilege('authenticated', 'public.apply_provider_dispatch_results(bigint, jsonb, timestamptz)', 'EXECUTE') then
     raise exception 'authenticated must not execute apply_provider_dispatch_results';
+  end if;
+
+  -- ===== 카톡 고지서 접수는 queued로 기록하고 접수만으로 sent가 되지 않는다 =====
+  -- bill_issues 발송 상태에 queued/partial 허용(접수≠발송 성공)
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.bill_issues'::regclass
+      and conname = 'bill_issues_send_status_check'
+      and pg_get_constraintdef(oid) like '%queued%'
+      and pg_get_constraintdef(oid) like '%partial%'
+  ) then
+    raise exception 'bill_issues send_status check missing queued/partial';
+  end if;
+  -- record_bill_delivery가 queued/partial 접수 상태를 허용해야 한다(구 정의는 거절).
+  if pg_get_functiondef('public.record_bill_delivery(bigint,date,jsonb,text,text,bigint,bigint,timestamptz)'::regprocedure)
+     not like '%''queued''%' then
+    raise exception 'record_bill_delivery does not accept queued status';
+  end if;
+  -- 즉시 카톡 고지서는 message_log_id 연결을 요구해야 최종 정산이 확정할 수 있다.
+  if pg_get_functiondef('public.record_bill_delivery(bigint,date,jsonb,text,text,bigint,bigint,timestamptz)'::regprocedure)
+     not like '%queued delivery requires message log id%' then
+    raise exception 'record_bill_delivery does not require message_log_id for queued delivery';
+  end if;
+  -- settle_message_points_from_jobs는 즉시(message_log_id)·예약(message_schedule_id) 고지서를 모두 최종화해야 한다.
+  if pg_get_functiondef('public.settle_message_points_from_jobs(bigint)'::regprocedure)
+     not like '%or message_log_id = v_reservation.message_log_id%' then
+    raise exception 'settle_message_points_from_jobs does not finalize immediate bill_issues by message_log_id';
   end if;
 
   raise notice 'P4-point schema checks passed';

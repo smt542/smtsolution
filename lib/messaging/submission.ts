@@ -15,6 +15,8 @@ export interface PlanRecipient {
   phone: string;
   name?: string | null;
   product: PlanProduct;
+  /** 수신자별 최종 렌더 본문. 없으면 배치 공통 본문으로 대체된다. */
+  renderedBody?: string | null;
 }
 
 export interface SubmissionBatch {
@@ -26,6 +28,7 @@ export interface SubmissionBatch {
     providerRefKey: string;
     phone: string;
     name: string | null;
+    renderedBody: string | null;
   }>;
 }
 
@@ -72,6 +75,7 @@ export function buildSubmissionPlan(params: {
         providerRefKey: makeProviderRef(indexInChunk, r.recipientKey),
         phone: r.phone,
         name: r.name ?? null,
+        renderedBody: r.renderedBody ?? null,
       }));
       assertNoRefCollisions(recipients.map((r) => r.providerRefKey));
       batches.push({

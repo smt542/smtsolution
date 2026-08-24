@@ -158,7 +158,7 @@ declare
   v_lms_count integer;
   v_alimtalk_count integer;
   v_estimated_points bigint;
-  v_text_product text;
+  v_too_long_count integer;
   v_sms_rate_id bigint;   v_sms_points integer;
   v_lms_rate_id bigint;   v_lms_points integer;
   v_alimtalk_rate_id bigint; v_alimtalk_points integer;
@@ -251,13 +251,8 @@ begin
       'message', '다른 조직이거나 비활성인 직원 수신처가 포함되어 있습니다.');
   end if;
 
-  -- 최종 본문으로 문자 제품(sms/lms) 판정. 2000바이트 초과는 접수 전 거절.
-  v_text_product := public.classify_message_product(p_body);
-  if v_text_product = 'too_long' then
-    return jsonb_build_object('ok', false, 'code', 'MESSAGE_TOO_LONG',
-      'message', '본문이 2,000바이트를 초과했습니다. 내용을 줄여 주세요.');
-  end if;
-
+  -- 문자 제품(sms/lms) 판정은 아래 CTE에서 수신자별 최종 본문(renderedBody, 없으면 공통 p_body)으로 수행한다.
+  -- 2000바이트 초과 수신자는 집계 후 접수 전 거절한다.
   select rate.id, rate.points into v_sms_rate_id, v_sms_points
   from public.message_point_rates rate where rate.channel = 'sms' and rate.effective_to is null;
   select rate.id, rate.points into v_lms_rate_id, v_lms_points
@@ -300,10 +295,16 @@ begin
     from deduplicated
   ),
   producted as (
+    -- 수신자별 최종 본문(renderedBody 우선, 없으면 공통 p_body)으로 sms/lms를 판정한다.
+    -- recipient_costs.product가 실제 접수 본문과 일치하도록 per-recipient로 분류한다.
     select routed.*,
-      case when routed.resolved_channel = 'alimtalk' then 'alimtalk'
-           when routed.resolved_channel = 'sms' then v_text_product
-           else null end as product
+      case
+        when routed.resolved_channel = 'alimtalk' then 'alimtalk'
+        when routed.resolved_channel = 'sms'
+          then public.classify_message_product(
+                 coalesce(nullif(routed.value->>'renderedBody', ''), p_body))
+        else null
+      end as product
     from routed
   ),
   priced as (
@@ -339,10 +340,18 @@ begin
     count(*) filter (where priced.product = 'sms')::integer,
     count(*) filter (where priced.product = 'lms')::integer,
     count(*) filter (where priced.product = 'alimtalk')::integer,
-    coalesce(sum(priced.recipient_points), 0)::bigint
+    coalesce(sum(priced.recipient_points), 0)::bigint,
+    count(*) filter (where priced.product = 'too_long')::integer
   into v_resolved_recipients, v_recipient_costs, v_resolved_count,
-       v_sms_count, v_lms_count, v_alimtalk_count, v_estimated_points
+       v_sms_count, v_lms_count, v_alimtalk_count, v_estimated_points,
+       v_too_long_count
   from priced;
+
+  -- 어느 수신자의 최종 본문이든 2000바이트를 초과하면 접수 전 거절한다.
+  if v_too_long_count > 0 then
+    return jsonb_build_object('ok', false, 'code', 'MESSAGE_TOO_LONG',
+      'message', '본문이 2,000바이트를 초과했습니다. 내용을 줄여 주세요.');
+  end if;
 
   if v_resolved_count = 0 then
     return jsonb_build_object('ok', false, 'code', 'NO_ELIGIBLE_RECIPIENTS',
@@ -889,7 +898,7 @@ begin
     update public.message_logs
       set result = 'failed', charged_points = 0, point_status = 'released'
       where id = v_reservation.message_log_id;
-    -- 연결된 예약 스케줄/고지서를 실패로 최종화한다(즉시발송이면 매칭 0건).
+    -- 연결된 예약 스케줄(예약발송)·직접 message_log(즉시발송) 고지서를 실패로 최종화한다.
     update public.message_schedules
       set status = 'failed'
       where message_log_id = v_reservation.message_log_id and status = 'sending';
@@ -897,7 +906,8 @@ begin
       set send_status = 'failed'
       where message_schedule_id in (
         select id from public.message_schedules where message_log_id = v_reservation.message_log_id
-      );
+      )
+      or message_log_id = v_reservation.message_log_id;
     return jsonb_build_object('ok', true, 'status', 'released', 'result', 'failed', 'charged_points', 0);
   end if;
 
@@ -918,15 +928,17 @@ begin
     set result = v_log_result, charged_points = v_charged, point_status = 'settled'
     where id = v_reservation.message_log_id;
 
-  -- 연결된 예약 스케줄을 sent/partial로, 고지서는 sent로 최종화한다(즉시발송이면 매칭 0건).
+  -- 연결된 예약 스케줄(예약발송)·직접 message_log(즉시발송) 고지서를 sent/partial로 최종화한다.
+  -- 접수 시 queued였던 고지서는 provider terminal 결과가 확정된 뒤에만 최종 상태로 바뀐다(partial 보존).
   update public.message_schedules
     set status = case when v_log_result = 'sent' then 'sent' else 'partial' end
     where message_log_id = v_reservation.message_log_id and status = 'sending';
   update public.bill_issues
-    set send_status = 'sent'
+    set send_status = v_log_result
     where message_schedule_id in (
       select id from public.message_schedules where message_log_id = v_reservation.message_log_id
-    );
+    )
+    or message_log_id = v_reservation.message_log_id;
 
   return jsonb_build_object('ok', true, 'status', 'settled', 'result', v_log_result,
     'charged_points', v_charged, 'released_points', v_reservation.reserved_points - v_charged);

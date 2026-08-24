@@ -1,6 +1,11 @@
 // app/(staff)/staff/bill/page.test.tsx
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+const h = vi.hoisted(() => ({
+  recordMutateAsync: vi.fn(),
+  modal: { onSent: null as null | ((result: unknown) => void | Promise<void>) },
+}));
 
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
 vi.mock("@/hooks/reactquery/buildings", () => ({
@@ -16,7 +21,7 @@ vi.mock("@/hooks/reactquery/bill", () => ({
   useBillDocuments: () => ({ data: [] }),
   useBillOrganizationName: () => ({ data: "한빛관리" }),
   useIssueBills: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  useRecordBillDelivery: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useRecordBillDelivery: () => ({ mutateAsync: h.recordMutateAsync, isPending: false }),
   useSendBillFaxes: () => ({ mutateAsync: vi.fn(), isPending: false }),
   billKeys: { targets: vi.fn(), documents: vi.fn() },
   listBillTargets: vi.fn(),
@@ -27,7 +32,12 @@ vi.mock("@/hooks/reactquery/messaging", () => ({
 }));
 vi.mock(
   "@/app/(staff)/staff/messaging/components/MessagingModal",
-  () => ({ MessagingModal: () => null }),
+  () => ({
+    MessagingModal: (props: { onSent?: (result: unknown) => void | Promise<void> }) => {
+      h.modal.onSent = props.onSent ?? null;
+      return null;
+    },
+  }),
 );
 
 import BillPage from "./page";
@@ -55,6 +65,37 @@ describe("BillPage 게이트", () => {
     expect(screen.getByRole("button", { name: /조정명세서/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /자동이체 세대 출력/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /팩스 발송/ })).toBeInTheDocument();
+  });
+
+  it("즉시 카톡 고지서 접수는 sent가 아니라 queued로 기록하고 message_log_id를 연결한다", async () => {
+    h.recordMutateAsync.mockResolvedValue({ count: 1 });
+    vi.mocked(useMe).mockReturnValue({
+      data: { role: "staff", orgId: 1, permissions: ["bill_publish"] },
+    } as unknown as ReturnType<typeof useMe>);
+    render(<BillPage />);
+    fireEvent.click(screen.getByRole("button", { name: /A4 관리비 고지서/ }));
+    fireEvent.change(screen.getByRole("combobox", { name: /건물 선택/ }), {
+      target: { value: "7" },
+    });
+
+    expect(h.modal.onSent).toBeTypeOf("function");
+    await act(async () => {
+      await h.modal.onSent?.({
+        status: "queued",
+        logId: 42,
+        scheduledAt: null,
+        recipients: [{ ref: { unitId: 101 } }],
+      });
+    });
+
+    expect(h.recordMutateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        issueType: "kakao",
+        sendStatus: "queued",
+        messageLogId: 42,
+        messageScheduleId: null,
+      }),
+    );
   });
 
   it("건물 선택 후 확정 세대 없으면 빈 안내", () => {

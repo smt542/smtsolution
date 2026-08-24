@@ -12,10 +12,12 @@ export interface MessageBatchInput {
     providerRefKey: string;
     phone: string;
     name?: string | null;
+    /** 수신자별 최종 렌더 본문. 없으면 MessageContent.body(공통)로 대체된다. */
+    renderedBody?: string | null;
   }>;
 }
 
-/** 배치 공통 콘텐츠. 단일 최종 본문 모델(모든 수신자 동일 본문). */
+/** 배치 콘텐츠. body/subject는 공통 기본값이며, 수신자별 본문은 각 recipient.renderedBody가 우선한다. */
 export interface MessageContent {
   body: string;
   subject?: string | null;

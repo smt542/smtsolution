@@ -134,4 +134,78 @@ describe("submitMessageBatch", () => {
     ).rejects.toThrow();
     expect(sendATS_multi).not.toHaveBeenCalled();
   });
+
+  const twoRenderedSms = {
+    product: "sms" as const,
+    requestNum: "m2c0",
+    recipients: [
+      { recipientKey: "k1", providerRefKey: "r0", phone: "01011112222", name: "홍", renderedBody: "홍님 관리비 3만원" },
+      { recipientKey: "k2", providerRefKey: "r1", phone: "01033334444", name: "김", renderedBody: "김님 관리비 5만원" },
+    ],
+  };
+
+  it("sms 배치는 수신자별 renderedBody를 각 메시지 Contents로 보낸다", async () => {
+    sendSMS_multi.mockImplementation((...args: unknown[]) => {
+      (args[args.length - 2] as (r: string) => void)("RCPT-SMS2");
+    });
+    await submitMessageBatch(twoRenderedSms, { body: "공통본문" }, config);
+    const messages = sendSMS_multi.mock.calls[0][3] as Array<{ Contents: string }>;
+    expect(messages[0].Contents).toBe("홍님 관리비 3만원");
+    expect(messages[1].Contents).toBe("김님 관리비 5만원");
+  });
+
+  it("lms 배치는 수신자별 renderedBody를 각 메시지 Contents로 보낸다", async () => {
+    sendLMS_multi.mockImplementation((...args: unknown[]) => {
+      (args[args.length - 2] as (r: string) => void)("RCPT-LMS2");
+    });
+    await submitMessageBatch(
+      { ...twoRenderedSms, product: "lms", requestNum: "m2c1" },
+      { body: "공통본문", subject: "안내" },
+      config,
+    );
+    const messages = sendLMS_multi.mock.calls[0][4] as Array<{ Contents: string; Subject: string }>;
+    expect(messages[0].Contents).toBe("홍님 관리비 3만원");
+    expect(messages[1].Contents).toBe("김님 관리비 5만원");
+    expect(messages[0].Subject).toBe("안내");
+  });
+
+  it("renderedBody가 없으면 공통 본문으로 대체한다(하위 호환)", async () => {
+    sendSMS_multi.mockImplementation((...args: unknown[]) => {
+      (args[args.length - 2] as (r: string) => void)("RCPT-SMS3");
+    });
+    await submitMessageBatch(smsBatch, { body: "공통본문만" }, config);
+    const messages = sendSMS_multi.mock.calls[0][3] as Array<{ Contents: string }>;
+    expect(messages[0].Contents).toBe("공통본문만");
+    expect(messages[1].Contents).toBe("공통본문만");
+  });
+
+  it("alimtalk 배치는 수신자별 renderedBody를 각 msg로 보낸다", async () => {
+    sendATS_multi.mockImplementation((...args: unknown[]) => {
+      (args[args.length - 2] as (r: string) => void)("RCPT-ATS2");
+    });
+    await submitMessageBatch(
+      { ...twoRenderedSms, product: "alimtalk", requestNum: "m2c2" },
+      { body: "#{금액}원 청구", templateCode: "TPL_001" },
+      config,
+    );
+    const msgs = sendATS_multi.mock.calls[0][5] as Array<{ msg: string }>;
+    expect(msgs[0].msg).toBe("홍님 관리비 3만원");
+    expect(msgs[1].msg).toBe("김님 관리비 5만원");
+  });
+
+  it("알림톡은 특정 수신자의 renderedBody에 미치환 변수가 있으면 접수 전에 거절한다", async () => {
+    const batch = {
+      product: "alimtalk" as const,
+      requestNum: "m2c3",
+      recipients: [
+        { recipientKey: "k1", providerRefKey: "r0", phone: "01011112222", name: "홍", renderedBody: "홍님 관리비 3만원" },
+        { recipientKey: "k2", providerRefKey: "r1", phone: "01033334444", name: "김", renderedBody: "#{금액}원 청구" },
+      ],
+    };
+    // 공통 본문(content.body)에는 변수가 없어도 특정 수신자 본문이 미치환이면 거절해야 한다.
+    await expect(
+      submitMessageBatch(batch, { body: "치환완료 공통본문", templateCode: "TPL_001" }, config),
+    ).rejects.toThrow();
+    expect(sendATS_multi).not.toHaveBeenCalled();
+  });
 });

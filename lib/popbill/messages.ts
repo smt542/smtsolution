@@ -54,7 +54,7 @@ function submitSms(
   const messages = batch.recipients.map((r) => ({
     Receiver: r.phone,
     ReceiverName: r.name ?? undefined,
-    Contents: content.body,
+    Contents: r.renderedBody ?? content.body,
     interOPRefKey: r.providerRefKey,
   }));
   return new Promise<string>((resolve, reject) => {
@@ -86,7 +86,7 @@ function submitLms(
     Receiver: r.phone,
     ReceiverName: r.name ?? undefined,
     Subject: subject,
-    Contents: content.body,
+    Contents: r.renderedBody ?? content.body,
     interOPRefKey: r.providerRefKey,
   }));
   return new Promise<string>((resolve, reject) => {
@@ -117,23 +117,23 @@ function submitAlimtalk(
       new PopbillSubmitError("NO_TEMPLATE_CODE", "알림톡 템플릿 코드가 필요합니다."),
     );
   }
-  // 렌더 후에도 남은 #{변수}가 있으면 접수 전에 거절한다.
-  if (hasUnresolvedVariables(content.body)) {
-    return Promise.reject(
-      new PopbillSubmitError("UNRESOLVED_VARIABLES", "알림톡 본문에 치환되지 않은 변수가 있습니다."),
-    );
-  }
   const sender = requirePopbillSender(config, "alimtalk");
   const service = getKakaoService(config);
   const templateCode = content.templateCode;
   const msgs = batch.recipients.map((r) => ({
     rcv: r.phone,
     rcvnm: r.name ?? undefined,
-    msg: content.body,
+    msg: r.renderedBody ?? content.body,
     // 대체문자(altSendType/altmsg)는 비활성화한다. 실패 시 ERP가 임의로 SMS를 보내지 않는다.
     altmsg: "",
     interOPRefKey: r.providerRefKey,
   }));
+  // 렌더 후에도 남은 #{변수}가 있으면(수신자별 본문 기준) 접수 전에 거절한다.
+  if (msgs.some((m) => hasUnresolvedVariables(m.msg))) {
+    return Promise.reject(
+      new PopbillSubmitError("UNRESOLVED_VARIABLES", "알림톡 본문에 치환되지 않은 변수가 있습니다."),
+    );
+  }
   return new Promise<string>((resolve, reject) => {
     service.sendATS_multi(
       config.corpNum,

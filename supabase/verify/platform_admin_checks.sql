@@ -111,5 +111,15 @@ begin
     raise exception 'platform_update_settings lms overload is missing';
   end if;
 
+  -- 월 사용량은 terminal success 수신자와 terminal 팩스 job만 집계한다(queued/pending 접수 제외).
+  if pg_get_functiondef('public.platform_org_usage(date)'::regprocedure)
+     not like '%rec.status = ''success''%' then
+    raise exception 'platform_org_usage counts non-terminal message recipients (must count only success)';
+  end if;
+  if pg_get_functiondef('public.platform_org_usage(date)'::regprocedure)
+     not like '%job.status in (''sent'', ''partial'')%' then
+    raise exception 'platform_org_usage counts non-terminal fax jobs (must count only sent/partial)';
+  end if;
+
   raise notice 'Popbill platform billing checks passed';
 end $$;

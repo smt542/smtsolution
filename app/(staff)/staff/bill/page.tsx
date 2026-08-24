@@ -221,15 +221,15 @@ function LegacyA4Workspace({ buildings, config, onBack }: LegacyA4WorkspaceProps
               .map((recipient) => recipient.ref?.unitId)
               .filter((unitId): unitId is number => unitId !== undefined))];
             try {
-              // 카톡 고지서: 예약은 scheduled로, 즉시 접수(queued)는 발송 시도로 기록한다.
-              // 문자 결과의 최종 확정은 message_logs 재조회가 담당한다(고지서 팩스는 Task 8/9에서 세분화).
+              // 카톡 고지서: 예약은 scheduled로, 즉시 접수는 queued로 기록한다(접수≠발송 성공).
+              // 최종 확정(sent/partial/failed)은 message_logs 재조회 정산이 message_log_id 연결로 담당한다.
               const scheduled = result.status === "scheduled";
               await recordDelivery.mutateAsync({
                 buildingId,
                 period,
                 unitIds: deliveredUnitIds,
                 issueType: "kakao",
-                sendStatus: scheduled ? "scheduled" : "sent",
+                sendStatus: scheduled ? "scheduled" : "queued",
                 messageLogId: scheduled ? null : result.logId,
                 messageScheduleId: scheduled ? result.logId : null,
                 scheduledAt: result.scheduledAt,
