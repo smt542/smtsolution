@@ -10,11 +10,13 @@ import {
 } from "@react-pdf/renderer";
 import QRCode from "qrcode";
 import { formatBillAmount, PROGRAM_COMPANY_NAME, type FaxDocumentData } from "./document";
+import { NOTO_SANS_KR_WOFF_BASE64 } from "./fonts/notoSansKr";
 
 /**
  * 팩스용 A4 고지서 PDF 서버 렌더러 — **서버 전용, 메모리 버퍼만**.
  *
- * 한글 렌더링을 위해 재배포 가능한 Noto Sans KR(woff)을 애플리케이션에 포함해 등록한다.
+ * 한글 렌더링을 위해 재배포 가능한 Noto Sans KR(OFL) woff를 base64로 애플리케이션에 포함해 등록한다.
+ * (Turbopack는 .woff 모듈을 번들하지 못하므로 파일 경로 대신 임베드 Buffer를 사용한다.)
  * 생성된 PDF는 파일로 저장하지 않고 Buffer로만 반환한다.
  */
 
@@ -23,7 +25,7 @@ function ensureFont(): void {
   if (fontRegistered) return;
   Font.register({
     family: "NotoSansKR",
-    src: require.resolve("@fontsource/noto-sans-kr/files/noto-sans-kr-korean-400-normal.woff"),
+    src: `data:font/woff;base64,${NOTO_SANS_KR_WOFF_BASE64}`,
   });
   fontRegistered = true;
 }
