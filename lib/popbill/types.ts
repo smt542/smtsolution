@@ -33,7 +33,10 @@ export interface ProviderSubmission {
   recipients: Array<{ recipientKey: string; providerRefKey: string }>;
 }
 
-/** 정제된 공급자 오류. 비밀키·전체 응답·개인정보를 담지 않는다. */
+/**
+ * 정제된 공급자 확정 거절 오류. 비밀키·전체 응답·개인정보를 담지 않는다.
+ * SDK 오류 콜백과 로컬 검증(템플릿/변수/설정)은 **확정 실패**를 의미한다(unknown 아님).
+ */
 export class PopbillSubmitError extends Error {
   constructor(
     public readonly code: string,
@@ -42,4 +45,51 @@ export class PopbillSubmitError extends Error {
     super(message);
     this.name = "PopbillSubmitError";
   }
+}
+
+/**
+ * 접수 응답이 없는(전송/무응답 타임아웃) **불명확** 상태. 확정 실패가 아니다.
+ * 접수 여부를 알 수 없으므로 즉시 재발송하지 않고 reconcile_required로 남긴다.
+ */
+export class PopbillTimeoutError extends Error {
+  readonly code = "PROVIDER_TIMEOUT" as const;
+  constructor(message = "공급자 접수 응답이 없습니다(타임아웃).") {
+    super(message);
+    this.name = "PopbillTimeoutError";
+  }
+}
+
+/** 접수 어댑터 기본 타임아웃(ms). 네트워크 침묵으로 무한 대기하지 않도록 상한을 둔다. */
+export const DEFAULT_POPBILL_SUBMIT_TIMEOUT_MS = 30_000;
+
+/**
+ * Popbill SDK의 (success, error) 콜백을 Promise로 감싼다.
+ *  - bounded timeout으로 응답 없는 호출이 무한 대기하지 않게 한다(타임아웃=PopbillTimeoutError).
+ *  - settled 가드로 늦게 도착한 콜백이 이미 정산된 Promise를 이중 정산하지 못하게 한다.
+ */
+export function submitWithTimeout<T>(
+  executor: (resolve: (value: T) => void, reject: (error: unknown) => void) => void,
+  timeoutMs: number = DEFAULT_POPBILL_SUBMIT_TIMEOUT_MS,
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new PopbillTimeoutError());
+    }, timeoutMs);
+    const safeResolve = (value: T): void => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(value);
+    };
+    const safeReject = (error: unknown): void => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      reject(error);
+    };
+    executor(safeResolve, safeReject);
+  });
 }

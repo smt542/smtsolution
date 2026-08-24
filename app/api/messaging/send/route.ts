@@ -7,6 +7,9 @@ import type { SendMode, MessageRecipient } from "@/lib/messaging/preset";
 // Popbill SDK·crypto 등 Node API를 사용하므로 Node 런타임을 명시한다.
 export const runtime = "nodejs";
 
+/** 표준 UUID(8-4-4-4-12 hex, 대소문자 무시). DB uuid 컬럼과 멱등 replay의 기준 키다. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 interface SendBody {
   mode: SendMode;
   body: string;
@@ -43,6 +46,15 @@ export async function POST(request: Request): Promise<Response> {
   }
   const { mode, body, context, templateId, recipients } = input;
 
+  // 멱등 키 검증(접수/예약/provider 액션 전에 수행). 한 논리적 발송 시도를 식별한다.
+  const idempotencyKey = request.headers.get("idempotency-key");
+  if (!idempotencyKey) {
+    return json({ error: "IDEMPOTENCY_KEY_REQUIRED", message: "Idempotency-Key 헤더가 필요합니다." }, 400);
+  }
+  if (!UUID_RE.test(idempotencyKey)) {
+    return json({ error: "IDEMPOTENCY_KEY_INVALID", message: "Idempotency-Key는 UUID여야 합니다." }, 400);
+  }
+
   const sb = await createClient();
   const { data: userData } = await sb.auth.getUser();
   if (!userData?.user) return json({ error: "unauthenticated" }, 401);
@@ -76,7 +88,7 @@ export async function POST(request: Request): Promise<Response> {
   };
 
   const result = await dispatchMessages(
-    { orgId, userId, mode, body, context, templateId, recipients },
+    { orgId, userId, idempotencyKey, mode, body, context, templateId, recipients },
     { sb, admin, loadAlimtalkTemplate },
   );
 

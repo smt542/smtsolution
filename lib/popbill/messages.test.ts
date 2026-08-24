@@ -9,6 +9,7 @@ vi.mock("./sdk", () => ({
 }));
 
 import { submitMessageBatch } from "./messages";
+import { PopbillTimeoutError } from "./types";
 import type { PopbillConfig } from "./config";
 
 const config: PopbillConfig = {
@@ -207,5 +208,42 @@ describe("submitMessageBatch", () => {
       submitMessageBatch(batch, { body: "치환완료 공통본문", templateCode: "TPL_001" }, config),
     ).rejects.toThrow();
     expect(sendATS_multi).not.toHaveBeenCalled();
+  });
+});
+
+describe("submitMessageBatch 타임아웃/이중정산 가드", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("공급자 무응답(콜백 없음)은 PopbillTimeoutError로 거절해 무한 대기를 막는다", async () => {
+    vi.useFakeTimers();
+    sendSMS_multi.mockImplementation(() => {
+      // 성공/오류 콜백 어느 것도 호출하지 않는다(네트워크 침묵).
+    });
+    const promise = submitMessageBatch(smsBatch, { body: "x" }, config, { timeoutMs: 1000 });
+    const assertion = expect(promise).rejects.toBeInstanceOf(PopbillTimeoutError);
+    await vi.advanceTimersByTimeAsync(1000);
+    await assertion;
+  });
+
+  it("타임아웃 이후 도착한 지연 콜백은 Promise를 이중 정산하지 않는다", async () => {
+    vi.useFakeTimers();
+    let lateSuccess: ((r: string) => void) | undefined;
+    sendSMS_multi.mockImplementation((...args: unknown[]) => {
+      lateSuccess = args[args.length - 2] as (r: string) => void;
+    });
+    const promise = submitMessageBatch(smsBatch, { body: "x" }, config, { timeoutMs: 1000 });
+    const assertion = expect(promise).rejects.toBeInstanceOf(PopbillTimeoutError);
+    await vi.advanceTimersByTimeAsync(1000); // 타임아웃이 먼저 정산
+    lateSuccess?.("LATE-RCPT"); // 뒤늦은 성공 콜백은 무시되어야 한다
+    await assertion; // 여전히 타임아웃으로 reject(성공으로 뒤집히지 않음)
+  });
+
+  it("정상 접수는 타이머를 정리하고 receipt로 resolve한다", async () => {
+    vi.useFakeTimers();
+    sendSMS_multi.mockImplementation((...args: unknown[]) => {
+      (args[args.length - 2] as (r: string) => void)("RCPT-OK");
+    });
+    const out = await submitMessageBatch(smsBatch, { body: "x" }, config, { timeoutMs: 1000 });
+    expect(out.receiptNum).toBe("RCPT-OK");
   });
 });

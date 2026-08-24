@@ -1,6 +1,6 @@
 import { readPopbillConfig, requirePopbillSender, type PopbillConfig } from "./config";
 import { getFaxService } from "./sdk";
-import { PopbillSubmitError } from "./types";
+import { PopbillSubmitError, submitWithTimeout } from "./types";
 
 /**
  * Popbill 바이너리 팩스 접수 어댑터 — **서버 전용**.
@@ -24,20 +24,26 @@ export interface FaxSubmission {
   receiptNum: string;
 }
 
+/** 접수 어댑터 옵션. timeoutMs로 응답 없는 접수의 무한 대기를 막는다(테스트에서 주입 가능). */
+export interface FaxSubmitOptions {
+  timeoutMs?: number;
+}
+
 export function submitFax(
   input: FaxSubmitInput,
   config: PopbillConfig = readPopbillConfig(),
+  options: FaxSubmitOptions = {},
 ): Promise<FaxSubmission> {
-  return new Promise<FaxSubmission>((resolve, reject) => {
-    let sender: string;
-    try {
-      sender = requirePopbillSender(config, "fax");
-    } catch (e) {
-      reject(e);
-      return;
-    }
-    const service = getFaxService(config);
-    const receiver = input.receiver.replace(/\D/g, "");
+  // 설정 오류(발신번호 미등록)는 타임아웃 이전에 즉시 확정 실패로 거절한다.
+  let sender: string;
+  try {
+    sender = requirePopbillSender(config, "fax");
+  } catch (e) {
+    return Promise.reject(e);
+  }
+  const service = getFaxService(config);
+  const receiver = input.receiver.replace(/\D/g, "");
+  return submitWithTimeout<FaxSubmission>((resolve, reject) => {
     service.sendFaxBinary(
       config.corpNum,
       {
@@ -55,5 +61,5 @@ export function submitFax(
       (receiptNum) => resolve({ requestNum: input.requestNum, receiptNum }),
       (e) => reject(new PopbillSubmitError(String(e?.code ?? "PROVIDER_ERROR"), e?.message ?? "팩스 접수 오류")),
     );
-  });
+  }, options.timeoutMs);
 }

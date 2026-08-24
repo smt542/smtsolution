@@ -121,5 +121,12 @@ begin
     raise exception 'platform_org_usage counts non-terminal fax jobs (must count only sent/partial)';
   end if;
 
+  -- 신규 팩스 사용량은 각 job 자신의 접수 시각(submitted_at)으로 월을 귀속해야 한다.
+  -- bill_issues.issued_at 기준이면 재발행이 과거 성공 job을 다른 달로 옮기거나 확정 청구서를 이중 계상할 수 있다.
+  if pg_get_functiondef('public.platform_org_usage(date)'::regprocedure)
+     not like '%coalesce(job.submitted_at%' then
+    raise exception 'platform_org_usage must attribute new fax pages by job.submitted_at, not bill_issues.issued_at';
+  end if;
+
   raise notice 'Popbill platform billing checks passed';
 end $$;

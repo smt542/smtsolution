@@ -220,21 +220,21 @@ alter table public.bill_issues add constraint bill_issues_send_status_check
 -- 카톡·팩스 결과 기록 RPC를 queued/partial 상태까지 허용하도록 재정의한다(0032 대체).
 -- 즉시 카톡 접수는 queued로 기록하고 message_log_id를 반드시 연결한다(접수≠발송 성공).
 -- 최종 확정(sent/partial/failed)은 settle_message_points_from_jobs가 message_log_id로 담당한다.
-create or replace function record_bill_delivery(
+create or replace function public.record_bill_delivery(
   p_building_id bigint, p_period date, p_unit_ids jsonb,
   p_issue_type text, p_send_status text,
   p_message_log_id bigint default null,
   p_message_schedule_id bigint default null,
   p_scheduled_at timestamptz default null
-) returns jsonb language plpgsql security definer set search_path = public as $$
+) returns jsonb language plpgsql security definer set search_path = '' as $$
 declare
   v_org bigint; v_unit_id bigint; v_count int := 0;
   v_total int; v_occ_id bigint; v_auto boolean; v_fax text;
 begin
-  v_org := current_user_org();
+  v_org := public.current_user_org();
   if v_org is null then raise exception 'no org for caller'; end if;
-  if not current_user_has_module('bill_publish') then raise exception 'forbidden: bill_publish required'; end if;
-  if not exists (select 1 from buildings where id = p_building_id and org_id = v_org) then
+  if not public.current_user_has_module('bill_publish') then raise exception 'forbidden: bill_publish required'; end if;
+  if not exists (select 1 from public.buildings where id = p_building_id and org_id = v_org) then
     raise exception 'building not in org'; end if;
   if p_period is null or p_period <> date_trunc('month', p_period)::date then
     raise exception 'period must be first of month'; end if;
@@ -245,19 +245,19 @@ begin
   if p_send_status = 'queued' and p_message_log_id is null then
     raise exception 'queued delivery requires message log id'; end if;
   if p_message_log_id is not null and not exists (
-    select 1 from message_logs ml where ml.id = p_message_log_id and ml.org_id = v_org
+    select 1 from public.message_logs ml where ml.id = p_message_log_id and ml.org_id = v_org
   ) then raise exception 'message log not found in org'; end if;
   if p_message_schedule_id is not null and not exists (
-    select 1 from message_schedules ms
+    select 1 from public.message_schedules ms
     where ms.id = p_message_schedule_id and ms.org_id = v_org and ms.status = 'scheduled'
   ) then raise exception 'message schedule not found in org'; end if;
 
   for v_unit_id in select jsonb_array_elements_text(coalesce(p_unit_ids, '[]'::jsonb))::bigint loop
     select bc.total_amount, bc.occupancy_id, o.fax_number
       into v_total, v_occ_id, v_fax
-    from billing_confirmations bc
-    join units u on u.id = bc.unit_id and u.building_id = p_building_id and u.deleted_at is null
-    left join occupancies o on o.id = bc.occupancy_id
+    from public.billing_confirmations bc
+    join public.units u on u.id = bc.unit_id and u.building_id = p_building_id and u.deleted_at is null
+    left join public.occupancies o on o.id = bc.occupancy_id
     where bc.unit_id = v_unit_id and bc.period = p_period and bc.confirmed_at is not null;
     if not found then raise exception 'unit % not confirmed for period', v_unit_id; end if;
     if p_issue_type = 'fax' and p_send_status = 'sent' and nullif(btrim(v_fax), '') is null then
@@ -265,17 +265,17 @@ begin
     end if;
 
     v_auto := exists (
-      select 1 from unit_accounts ua
+      select 1 from public.unit_accounts ua
       where ua.unit_id = v_unit_id and ua.kind = 'mgmt' and nullif(ua.cms_member_no, '') is not null
     );
-    insert into bill_issues(
+    insert into public.bill_issues(
       unit_id, period, occupancy_id, issue_type, group_no, unit_label_mode,
       auto_debit, total_amount, send_status, scheduled_at,
       message_log_id, message_schedule_id, issued_by
     ) values (
       v_unit_id, p_period, v_occ_id, p_issue_type, 1, 'name',
       v_auto, coalesce(v_total, 0), p_send_status, p_scheduled_at,
-      p_message_log_id, p_message_schedule_id, auth.uid()
+      p_message_log_id, p_message_schedule_id, (select auth.uid())
     ) on conflict (unit_id, period, issue_type) do update
       set occupancy_id = excluded.occupancy_id,
           auto_debit = excluded.auto_debit,
@@ -289,8 +289,8 @@ begin
     v_count := v_count + 1;
   end loop;
 
-  insert into audit_log(org_id, actor_id, action, table_name, row_pk, after)
-    values (v_org, auth.uid(), 'BILL_DELIVERY', 'bill_issues', p_building_id::text,
+  insert into public.audit_log(org_id, actor_id, action, table_name, row_pk, after)
+    values (v_org, (select auth.uid()), 'BILL_DELIVERY', 'bill_issues', p_building_id::text,
       jsonb_build_object(
         'period', p_period, 'issue_type', p_issue_type,
         'send_status', p_send_status, 'count', v_count
@@ -298,8 +298,8 @@ begin
 
   return jsonb_build_object('count', v_count);
 end $$;
-revoke execute on function record_bill_delivery(bigint,date,jsonb,text,text,bigint,bigint,timestamptz) from public, anon;
-grant execute on function record_bill_delivery(bigint,date,jsonb,text,text,bigint,bigint,timestamptz) to authenticated;
+revoke execute on function public.record_bill_delivery(bigint,date,jsonb,text,text,bigint,bigint,timestamptz) from public, anon;
+grant execute on function public.record_bill_delivery(bigint,date,jsonb,text,text,bigint,bigint,timestamptz) to authenticated;
 
 -- 팩스 PDF 생성을 위한 서버 권위 데이터. 클라이언트가 보낸 금액/계좌/이름을 신뢰하지 않고
 -- 확정 관리비·조직 설정에서 다시 조회한다. 조직 소유·bill_publish 권한을 검증한다.

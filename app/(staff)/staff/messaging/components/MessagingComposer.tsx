@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button, Checkbox, Panel, Select } from "@/components/common";
 import { useAccounts } from "@/hooks/reactquery/accounts";
@@ -19,6 +19,11 @@ import {
 } from "@/hooks/reactquery/occupancies";
 import { useQuickMessages } from "@/hooks/reactquery/quickMessages";
 import { renderTemplate } from "@/lib/messaging/render";
+import {
+  newUuid,
+  resolveIdempotencyKey,
+  type IdempotencyState,
+} from "@/lib/messaging/idempotencyKey";
 import {
   dedupeRecipients,
   validRecipients,
@@ -147,20 +152,6 @@ export function MessagingComposer({
     () => validRecipients(dedupeRecipients(recipients)),
     [recipients],
   );
-  const quoteInput = useMemo(
-    () =>
-      validRecipientList.length > 0 &&
-      (mode === "sms" || effectiveTemplateId !== null)
-        ? {
-            mode,
-            recipients: validRecipientList,
-            templateId: mode === "sms" ? null : effectiveTemplateId,
-            body: effectiveBody,
-          }
-        : null,
-    [effectiveBody, effectiveTemplateId, mode, validRecipientList],
-  );
-  const pointQuote = useMessagePointQuote(quoteInput);
   const recipientPreviews = useMemo(
     () =>
       validRecipientList.map((recipient) => {
@@ -204,6 +195,40 @@ export function MessagingComposer({
       })),
     [mode, recipientPreviews],
   );
+  // 견적 입력은 수신자별 최종 렌더 본문(renderedBody)을 담는다. 서버가 이 본문으로 SMS/LMS를 판정해야
+  // 견적 건수·포인트가 예약·정산과 일치한다(공통 body 하나로 분류하면 개인화 시 어긋난다).
+  const quoteInput = useMemo(
+    () =>
+      validRecipientList.length > 0 &&
+      (mode === "sms" || effectiveTemplateId !== null)
+        ? {
+            mode,
+            recipients: submissionRecipients,
+            templateId: mode === "sms" ? null : effectiveTemplateId,
+            body: effectiveBody,
+          }
+        : null,
+    [effectiveBody, effectiveTemplateId, mode, submissionRecipients, validRecipientList.length],
+  );
+  const pointQuote = useMessagePointQuote(quoteInput);
+  // 멱등 키: 한 논리적 발송 시도를 식별한다. 초안이 실질적으로 바뀌면 서명이 달라져 회전하고,
+  // 같은 초안의 중복 클릭·재시도는 같은 키를 재사용한다. 성공 후에는 idemRef를 비워 회전한다.
+  const draftSignature = useMemo(
+    () =>
+      JSON.stringify({
+        mode,
+        body: effectiveBody,
+        templateId: effectiveTemplateId,
+        context: preset?.context ?? "manual",
+        recipients: submissionRecipients.map((recipient) => ({
+          phone: recipient.phone,
+          channel: recipient.channel,
+          body: recipient.renderedBody,
+        })),
+      }),
+    [effectiveBody, effectiveTemplateId, mode, preset?.context, submissionRecipients],
+  );
+  const idempotencyRef = useRef<IdempotencyState | null>(null);
   const previewByRecipient = useMemo(
     () =>
       new Map(
@@ -308,6 +333,10 @@ export function MessagingComposer({
     const pointNotice = `${validCount}명 · 예상 ${pointQuote.data.estimatedPoints.toLocaleString("ko-KR")} P (성공 발송분만 차감)`;
     if (!window.confirm(`${pointNotice}\n${actionLabel}하시겠습니까?`)) return;
 
+    // 같은 초안이면 같은 키(중복 클릭·재시도 안전), 초안이 바뀌면 회전한다.
+    const idempotency = resolveIdempotencyKey(idempotencyRef.current, draftSignature, newUuid);
+    idempotencyRef.current = idempotency;
+
     try {
       const result = await sendMessages.mutateAsync({
         mode,
@@ -316,7 +345,10 @@ export function MessagingComposer({
         templateId: mode === "sms" ? null : effectiveTemplateId,
         recipients: submissionRecipients,
         scheduledAt: scheduledIso,
+        idempotencyKey: idempotency.key,
       });
+      // 성공 접수 후에는 키를 회전해 다음 논리적 발송이 새 키를 쓰게 한다.
+      idempotencyRef.current = null;
       if (sendTiming === "scheduled") {
         toast.success(`예약이 등록되었습니다(${scheduledAt.replace("T", " ")})`);
       } else if (preset?.context === "고지서") {

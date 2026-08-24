@@ -1,10 +1,11 @@
-import { randomUUID, createHash } from "node:crypto";
+import { createHash } from "node:crypto";
 import type { PopbillKakaoButton } from "popbill";
 import { type SendMode, type MessageRecipient } from "./preset";
 import { isPopbillConfigured, PopbillNotConfiguredError } from "@/lib/popbill/config";
 import { submitMessageBatch } from "@/lib/popbill/messages";
 import {
   PopbillSubmitError,
+  PopbillTimeoutError,
   type MessageBatchInput,
   type MessageContent,
   type ProviderSubmission,
@@ -33,6 +34,11 @@ export interface AlimtalkTemplateContent {
 export interface DispatchMessagesInput {
   orgId: number;
   userId: string;
+  /**
+   * 한 논리적 발송 시도의 멱등 키(UUID). 라우트에서 검증한 Idempotency-Key 헤더를 그대로 전달한다.
+   * 동일 키의 재시도/중복 클릭은 reserve_message_points에서 기존 예약을 replay로 반환하고 재접수하지 않는다.
+   */
+  idempotencyKey: string;
   mode: SendMode;
   body: string;
   context: string;
@@ -76,6 +82,7 @@ interface ReserveData {
   ok?: boolean;
   code?: string;
   replayed?: boolean;
+  status?: string;
   reservation_id?: number;
   message_log_id?: number;
   reserved_points?: number;
@@ -104,15 +111,19 @@ function classifySubmitError(e: unknown): {
   code: string;
   message: string;
 } {
-  // 접수 호출 전 확정 실패(설정/템플릿/변수)는 failed로 반환 가능. 접수 호출 중 오류는
-  // 접수 여부가 불분명하므로 unknown(reconcile_required)으로 남겨 즉시 재발송을 막는다.
+  // 확정 거절(failed): 설정 누락, 로컬 검증(템플릿/변수), Popbill SDK 오류 콜백. 접수가 거부된 것이
+  // 확정이므로 예약 금액을 반환한다. 오직 전송/무응답 타임아웃만 접수 여부가 불분명한 unknown이며
+  // reconcile_required로 남겨 즉시 재발송하지 않는다.
   if (e instanceof PopbillNotConfiguredError) {
     return { outcome: "failed", code: e.code, message: "발신 설정이 없습니다." };
   }
-  if (e instanceof PopbillSubmitError) {
-    const preSend = e.code === "NO_TEMPLATE_CODE" || e.code === "UNRESOLVED_VARIABLES";
-    return { outcome: preSend ? "failed" : "unknown", code: e.code, message: e.message };
+  if (e instanceof PopbillTimeoutError) {
+    return { outcome: "unknown", code: e.code, message: e.message };
   }
+  if (e instanceof PopbillSubmitError) {
+    return { outcome: "failed", code: e.code, message: e.message };
+  }
+  // 예기치 못한 예외는 접수 여부가 불분명하므로 보수적으로 unknown(reconcile_required)으로 남긴다.
   return { outcome: "unknown", code: "SUBMIT_ERROR", message: "발송 접수 중 오류가 발생했습니다." };
 }
 
@@ -143,11 +154,11 @@ export async function dispatchMessages(
     return { ok: false, code: quote?.code ?? "QUOTE_FAILED", message: quote?.message, httpStatus: 400 };
   }
 
-  // 2) 예약(service_role) — 접수 전 하드스톱
+  // 2) 예약(service_role) — 접수 전 하드스톱. 멱등 키는 라우트에서 검증한 값을 그대로 쓴다.
   const reserve = (await rpcData(deps.admin, "reserve_message_points", {
     p_org_id: input.orgId,
     p_requested_by: input.userId,
-    p_idempotency_key: randomUUID(),
+    p_idempotency_key: input.idempotencyKey,
     p_payload_hash: createHash("sha256")
       .update(`${input.mode}|${input.body}|${JSON.stringify(input.recipients)}`)
       .digest("hex")
@@ -173,11 +184,33 @@ export async function dispatchMessages(
   const messageLogId = reserve.message_log_id as number;
   const reservedPoints = reserve.reserved_points ?? 0;
 
+  // 멱등 replay: 기존 예약이 있으면 절대 재접수/재마킹하지 않는다. 저장된 예약 상태로만 안전 응답한다.
+  // (동일 키의 중복 클릭·재시도·동시 호출이 두 번 발송하지 않게 한다.)
+  if (reserve.replayed) {
+    if (reserve.status === "released") {
+      // 이전 시도가 전부 확정 거절되어 반환됨 → 재발송 없이 동일한 안전 실패를 돌려준다.
+      return {
+        ok: false,
+        code: "SEND_REJECTED",
+        message: "발송이 확정 거절되었습니다.",
+        httpStatus: 502,
+      };
+    }
+    // reserved/provider_pending/reconcile_required/settled → 이미 처리 중이거나 완료. 접수 상태로 응답.
+    return {
+      ok: true,
+      status: "queued",
+      logId: messageLogId,
+      reservationId,
+      reservedPoints,
+    };
+  }
+
   const resolved = reserve.resolved_recipients ?? quote.resolved_recipients ?? [];
   const costs = reserve.recipient_costs ?? quote.recipient_costs ?? [];
 
   // 3~7) 배치 계획 → submitting 저장 → Popbill 접수 → provider_pending (예약/스케줄 공용)
-  const { queuedCount } = await submitReservationBatches(
+  const { queuedCount, markStatus } = await submitReservationBatches(
     deps.admin,
     {
       reservationId,
@@ -190,14 +223,43 @@ export async function dispatchMessages(
     { submitBatch, loadAlimtalkTemplate: deps.loadAlimtalkTemplate },
   );
 
-  return {
-    ok: true,
-    status: "queued",
-    logId: messageLogId,
-    reservationId,
-    queuedCount,
-    reservedPoints,
-  };
+  // 접수 receipt가 하나라도 있는 경우(provider_pending)에만 queued로 보고한다.
+  if (markStatus === "provider_pending") {
+    return {
+      ok: true,
+      status: "queued",
+      logId: messageLogId,
+      reservationId,
+      queuedCount,
+      reservedPoints,
+    };
+  }
+  // 전부 확정 거절(released) → 예약은 이미 반환됨. queued로 표기하지 않고 명확한 실패를 반환한다.
+  if (markStatus === "released") {
+    return {
+      ok: false,
+      code: "SEND_REJECTED",
+      message: "모든 발송이 확정 거절되었습니다.",
+      httpStatus: 502,
+      reservationId,
+    };
+  }
+  // 접수 receipt 없이 불명확(reconcile_required) → queued로 표기하지 않는다. 예약 금액은 유지되고
+  // 재조회/수동 확인 대상으로 남는다(즉시 재발송하지 않음).
+  if (markStatus === "reconcile_required") {
+    return {
+      ok: false,
+      code: "SEND_UNCONFIRMED",
+      message: "발송 접수 결과를 확인하지 못했습니다. 결과 확인 후 처리됩니다.",
+      httpStatus: 502,
+      reservationId,
+    };
+  }
+  // 알 수 없는 mark 상태: receipt가 있으면 queued, 없으면 보수적으로 실패로 응답한다.
+  if (queuedCount > 0) {
+    return { ok: true, status: "queued", logId: messageLogId, reservationId, queuedCount, reservedPoints };
+  }
+  return { ok: false, code: "SEND_FAILED", message: "발송을 접수하지 못했습니다.", httpStatus: 502, reservationId };
 }
 
 /** message_templates.buttons([{name,type,url}]) → Popbill 버튼({t,n,u1}) */

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { dispatchMessages, submitReservationBatches } from "./dispatch";
-import { PopbillSubmitError, type MessageBatchInput } from "@/lib/popbill/types";
+import { PopbillSubmitError, PopbillTimeoutError, type MessageBatchInput } from "@/lib/popbill/types";
 
 function makeClient(handlers: Record<string, (args: Record<string, unknown>) => unknown>) {
   return {
@@ -28,6 +28,7 @@ const twoSmsReserve = {
 const baseInput = {
   orgId: 10,
   userId: "u-1",
+  idempotencyKey: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
   mode: "sms" as const,
   body: "안녕하세요",
   context: "manual",
@@ -81,7 +82,7 @@ describe("dispatchMessages", () => {
     );
   });
 
-  it("접수 중 오류는 unknown(reconcile_required 후보)으로 남기고 즉시 재발송하지 않는다", async () => {
+  it("공급자 확정 거절(PopbillSubmitError)은 failed로 처리하고 전부 거절(released)이면 non-202 실패를 반환한다", async () => {
     const sb = makeClient({
       quote_message_points: () => ({ ok: true, rate_ids: { sms: 1 }, estimated_points: 2 }),
     });
@@ -91,15 +92,114 @@ describe("dispatchMessages", () => {
       create_provider_dispatch_jobs: () => ({ ok: true }),
       mark_message_reservation_provider_pending: (args) => {
         markArgs.push(args);
-        return { ok: true, status: "reconcile_required" };
+        return { ok: true, status: "released", failed: 1 };
       },
     });
-    const submitBatch = vi.fn().mockRejectedValue(new PopbillSubmitError("506", "타임아웃"));
+    const submitBatch = vi.fn().mockRejectedValue(new PopbillSubmitError("-99", "발신번호 미등록"));
     const out = await dispatchMessages(baseInput, { sb, admin, submitBatch, isConfigured: () => true });
-    expect(out).toMatchObject({ ok: true, status: "queued", queuedCount: 0 });
+    // 접수 receipt가 없으므로 queued로 보고하지 않고 명확한 실패를 반환한다.
+    expect(out).toMatchObject({ ok: false, code: "SEND_REJECTED", httpStatus: 502 });
+    expect(out.status).toBeUndefined();
+    const outcomes = markArgs[0].p_outcomes as Array<{ outcome: string }>;
+    expect(outcomes[0].outcome).toBe("failed");
+  });
+
+  it("전송 타임아웃(PopbillTimeoutError)은 unknown으로 남기고 receipt 없는 접수를 queued로 보고하지 않는다", async () => {
+    const sb = makeClient({
+      quote_message_points: () => ({ ok: true, rate_ids: { sms: 1 }, estimated_points: 2 }),
+    });
+    const markArgs: Record<string, unknown>[] = [];
+    const admin = makeClient({
+      reserve_message_points: () => twoSmsReserve,
+      create_provider_dispatch_jobs: () => ({ ok: true }),
+      mark_message_reservation_provider_pending: (args) => {
+        markArgs.push(args);
+        return { ok: true, status: "reconcile_required", unknown: 1 };
+      },
+    });
+    const submitBatch = vi.fn().mockRejectedValue(new PopbillTimeoutError());
+    const out = await dispatchMessages(baseInput, { sb, admin, submitBatch, isConfigured: () => true });
+    expect(out).toMatchObject({ ok: false, code: "SEND_UNCONFIRMED", httpStatus: 502 });
     expect(submitBatch).toHaveBeenCalledTimes(1);
     const outcomes = markArgs[0].p_outcomes as Array<{ outcome: string }>;
-    expect(outcomes[0].outcome).toBe("unknown");
+    expect(outcomes[0].outcome).toBe("unknown"); // 즉시 재발송하지 않고 reconcile 대상으로 남긴다
+  });
+
+  it("input.idempotencyKey를 reserve_message_points p_idempotency_key로 전달한다(per-call randomUUID 제거)", async () => {
+    const sb = makeClient({
+      quote_message_points: () => ({ ok: true, rate_ids: { sms: 1 }, estimated_points: 2 }),
+    });
+    let reserveArgs: Record<string, unknown> | null = null;
+    const admin = makeClient({
+      reserve_message_points: (args) => {
+        reserveArgs = args;
+        return twoSmsReserve;
+      },
+      create_provider_dispatch_jobs: () => ({ ok: true }),
+      mark_message_reservation_provider_pending: () => ({ ok: true, status: "provider_pending" }),
+    });
+    const submitBatch = vi.fn().mockResolvedValue({ requestNum: "m5c0", receiptNum: "R", product: "sms", recipients: [] });
+    await dispatchMessages(
+      { ...baseInput, idempotencyKey: "11111111-1111-4111-8111-111111111111" },
+      { sb, admin, submitBatch, isConfigured: () => true },
+    );
+    expect(reserveArgs!.p_idempotency_key).toBe("11111111-1111-4111-8111-111111111111");
+  });
+
+  it("동일 키 재시도(예약 replay)는 재접수/재마킹/재작업생성을 하지 않고 안전한 queued를 반환한다", async () => {
+    const sb = makeClient({
+      quote_message_points: () => ({ ok: true, rate_ids: { sms: 1 }, estimated_points: 2 }),
+    });
+    let reserveCalls = 0;
+    const admin = makeClient({
+      reserve_message_points: () => {
+        reserveCalls += 1;
+        return reserveCalls === 1
+          ? { ...twoSmsReserve, replayed: false }
+          : {
+              ok: true,
+              replayed: true,
+              status: "provider_pending",
+              reservation_id: 5,
+              message_log_id: 9,
+              reserved_points: 2,
+            };
+      },
+      create_provider_dispatch_jobs: () => ({ ok: true }),
+      mark_message_reservation_provider_pending: () => ({ ok: true, status: "provider_pending", accepted: 1 }),
+    });
+    const submitBatch = vi.fn().mockResolvedValue({ requestNum: "m5c0", receiptNum: "RCPT", product: "sms", recipients: [] });
+    const first = await dispatchMessages(baseInput, { sb, admin, submitBatch, isConfigured: () => true });
+    const second = await dispatchMessages(baseInput, { sb, admin, submitBatch, isConfigured: () => true });
+    expect(first).toMatchObject({ ok: true, status: "queued" });
+    expect(second).toMatchObject({ ok: true, status: "queued" });
+    // 정확히 한 번만 접수(submit)·마킹(mark)·작업생성(create)한다.
+    expect(submitBatch).toHaveBeenCalledTimes(1);
+    const rpcNames = (admin.rpc as unknown as { mock: { calls: [string, unknown][] } }).mock.calls.map((c) => c[0]);
+    expect(rpcNames.filter((n) => n === "mark_message_reservation_provider_pending")).toHaveLength(1);
+    expect(rpcNames.filter((n) => n === "create_provider_dispatch_jobs")).toHaveLength(1);
+  });
+
+  it("released 예약의 replay는 재발송 없이 동일한 안전 실패(SEND_REJECTED)를 반환한다", async () => {
+    const sb = makeClient({
+      quote_message_points: () => ({ ok: true, rate_ids: { sms: 1 }, estimated_points: 2 }),
+    });
+    const admin = makeClient({
+      reserve_message_points: () => ({
+        ok: true,
+        replayed: true,
+        status: "released",
+        reservation_id: 5,
+        message_log_id: 9,
+        reserved_points: 0,
+      }),
+      create_provider_dispatch_jobs: () => ({ ok: true }),
+      mark_message_reservation_provider_pending: () => ({ ok: true, status: "released" }),
+    });
+    const submitBatch = vi.fn();
+    const out = await dispatchMessages(baseInput, { sb, admin, submitBatch, isConfigured: () => true });
+    expect(out).toMatchObject({ ok: false, code: "SEND_REJECTED" });
+    expect(submitBatch).not.toHaveBeenCalled();
   });
 
   it("submitReservationBatches: 즉시/예약 공용 경로에서 수신자별 renderedBody를 배치에 전달한다", async () => {

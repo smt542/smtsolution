@@ -5,6 +5,7 @@ do $$
 declare
   v_count integer;
   v_config text;
+  v_search_path text[];
 begin
   if to_regclass('public.message_point_rates') is null then
     raise exception 'message_point_rates table is missing';
@@ -278,6 +279,19 @@ begin
   if pg_get_functiondef('public.settle_message_points_from_jobs(bigint)'::regprocedure)
      not like '%or message_log_id = v_reservation.message_log_id%' then
     raise exception 'settle_message_points_from_jobs does not finalize immediate bill_issues by message_log_id';
+  end if;
+
+  -- ===== SQL 위생: 재정의/신규 SECURITY DEFINER 함수는 search_path=''(빈 문자열)로 고정한다 =====
+  -- (fully-qualified public/auth 참조로 스키마 하이재킹을 막는다)
+  select proconfig into v_search_path from pg_proc
+  where oid = 'public.record_bill_delivery(bigint,date,jsonb,text,text,bigint,bigint,timestamptz)'::regprocedure;
+  if not ('search_path=' = any(coalesce(v_search_path, '{}'::text[]))) then
+    raise exception 'record_bill_delivery must fix search_path to empty string';
+  end if;
+  select proconfig into v_search_path from pg_proc
+  where oid = 'public.reserve_scheduled_message(bigint)'::regprocedure;
+  if not ('search_path=' = any(coalesce(v_search_path, '{}'::text[]))) then
+    raise exception 'reserve_scheduled_message must fix search_path to empty string';
   end if;
 
   raise notice 'P4-point schema checks passed';

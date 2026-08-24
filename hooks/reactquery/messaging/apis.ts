@@ -35,6 +35,8 @@ export interface SendMessagesInput {
   templateId: number | null;
   recipients: ResolvedRecipient[];
   scheduledAt?: string | null;
+  /** 한 논리적 즉시발송 시도의 멱등 키(UUID). Idempotency-Key 헤더로 전달한다. */
+  idempotencyKey?: string;
 }
 
 export interface SendMessagesResult {
@@ -211,9 +213,12 @@ export async function sendMessages(
   }
 
   // 즉시발송: 서비스롤 라우트(견적→예약→Popbill 접수→provider_pending). 접수만 확정하고 결과는 재조회로 확정.
+  // Idempotency-Key로 중복 클릭·재시도가 두 번 발송되지 않게 한다(라우트가 검증, 예약이 replay 처리).
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (input.idempotencyKey) headers["idempotency-key"] = input.idempotencyKey;
   const res = await fetch("/api/messaging/send", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers,
     body: JSON.stringify({
       mode: input.mode,
       body: input.body,

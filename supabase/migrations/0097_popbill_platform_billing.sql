@@ -151,7 +151,11 @@ as $$
     join public.units unit on unit.id = bi.unit_id
     join public.buildings building on building.id = unit.building_id
     where job.kind = 'fax' and job.status in ('sent', 'partial')
-      and bi.issued_at >= bounds.from_ts and bi.issued_at < bounds.to_ts
+      -- 각 팩스 job은 자기 자신의 접수 시각으로 귀속한다(bill_issues.issued_at 아님).
+      -- issued_at 기준이면 재발행이 issued_at을 갱신할 때 과거 성공 job이 늦은 달로 이동하거나
+      -- 이미 확정된 이전 청구서를 이중 계상할 수 있다. 재시도는 새 job(자체 submitted_at)이라 각자 달에 남는다.
+      and coalesce(job.submitted_at, job.completed_at, job.created_at) >= bounds.from_ts
+      and coalesce(job.submitted_at, job.completed_at, job.created_at) < bounds.to_ts
     group by building.org_id
   ),
   legacy_fax as (

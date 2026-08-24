@@ -4,10 +4,16 @@ import { readPopbillConfig, requirePopbillSender, type PopbillConfig } from "./c
 import { getKakaoService, getMessageService } from "./sdk";
 import {
   PopbillSubmitError,
+  submitWithTimeout,
   type MessageBatchInput,
   type MessageContent,
   type ProviderSubmission,
 } from "./types";
+
+/** 접수 어댑터 옵션. timeoutMs로 응답 없는 접수의 무한 대기를 막는다(테스트에서 주입 가능). */
+export interface SubmitOptions {
+  timeoutMs?: number;
+}
 
 /**
  * Popbill 문자(SMS/LMS)·알림톡 접수 어댑터 — **서버 전용**.
@@ -25,13 +31,14 @@ export async function submitMessageBatch(
   batch: MessageBatchInput,
   content: MessageContent,
   config: PopbillConfig = readPopbillConfig(),
+  options: SubmitOptions = {},
 ): Promise<ProviderSubmission> {
   const receiptNum =
     batch.product === "alimtalk"
-      ? await submitAlimtalk(batch, content, config)
+      ? await submitAlimtalk(batch, content, config, options)
       : batch.product === "lms"
-        ? await submitLms(batch, content, config)
-        : await submitSms(batch, content, config);
+        ? await submitLms(batch, content, config, options)
+        : await submitSms(batch, content, config, options);
 
   return {
     requestNum: batch.requestNum,
@@ -48,6 +55,7 @@ function submitSms(
   batch: MessageBatchInput,
   content: MessageContent,
   config: PopbillConfig,
+  options: SubmitOptions,
 ): Promise<string> {
   const sender = requirePopbillSender(config, "sms");
   const service = getMessageService(config);
@@ -57,7 +65,7 @@ function submitSms(
     Contents: r.renderedBody ?? content.body,
     interOPRefKey: r.providerRefKey,
   }));
-  return new Promise<string>((resolve, reject) => {
+  return submitWithTimeout<string>((resolve, reject) => {
     service.sendSMS_multi(
       config.corpNum,
       sender,
@@ -71,13 +79,14 @@ function submitSms(
       (receiptNum) => resolve(receiptNum),
       (err) => reject(toSubmitError(err)),
     );
-  });
+  }, options.timeoutMs);
 }
 
 function submitLms(
   batch: MessageBatchInput,
   content: MessageContent,
   config: PopbillConfig,
+  options: SubmitOptions,
 ): Promise<string> {
   const sender = requirePopbillSender(config, "lms");
   const service = getMessageService(config);
@@ -89,7 +98,7 @@ function submitLms(
     Contents: r.renderedBody ?? content.body,
     interOPRefKey: r.providerRefKey,
   }));
-  return new Promise<string>((resolve, reject) => {
+  return submitWithTimeout<string>((resolve, reject) => {
     service.sendLMS_multi(
       config.corpNum,
       sender,
@@ -104,13 +113,14 @@ function submitLms(
       (receiptNum) => resolve(receiptNum),
       (err) => reject(toSubmitError(err)),
     );
-  });
+  }, options.timeoutMs);
 }
 
 function submitAlimtalk(
   batch: MessageBatchInput,
   content: MessageContent,
   config: PopbillConfig,
+  options: SubmitOptions,
 ): Promise<string> {
   if (!content.templateCode) {
     return Promise.reject(
@@ -134,7 +144,7 @@ function submitAlimtalk(
       new PopbillSubmitError("UNRESOLVED_VARIABLES", "알림톡 본문에 치환되지 않은 변수가 있습니다."),
     );
   }
-  return new Promise<string>((resolve, reject) => {
+  return submitWithTimeout<string>((resolve, reject) => {
     service.sendATS_multi(
       config.corpNum,
       templateCode,
@@ -148,5 +158,5 @@ function submitAlimtalk(
       (receiptNum) => resolve(receiptNum),
       (err) => reject(toSubmitError(err)),
     );
-  });
+  }, options.timeoutMs);
 }

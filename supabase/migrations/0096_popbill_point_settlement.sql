@@ -1050,14 +1050,14 @@ grant execute on function public.platform_release_stale_reservation(bigint, text
 -- ===== 예약 발송 재견적/예약 재정의(0094 대체) =====
 -- 변경점: (1) 최종 본문으로 sms/lms 판정, (2) provider_pending을 예약 합계에 포함,
 --        (3) 예약 생성 즉시 message_schedules.message_log_id 연결(재조회가 스케줄을 최종화 가능).
-create or replace function reserve_scheduled_message(p_schedule_id bigint)
-returns jsonb language plpgsql security definer set search_path = public as $$
+create or replace function public.reserve_scheduled_message(p_schedule_id bigint)
+returns jsonb language plpgsql security definer set search_path = '' as $$
 declare
-  v_row message_schedules%rowtype;
+  v_row public.message_schedules%rowtype;
   v_quote jsonb;
   v_idem uuid;
   v_hash text;
-  v_existing message_point_reservations%rowtype;
+  v_existing public.message_point_reservations%rowtype;
   v_log_result text;
   v_ledger bigint; v_reserved bigint; v_available bigint;
   v_log_id bigint; v_reservation_id bigint; v_log_recipients jsonb;
@@ -1067,14 +1067,14 @@ begin
     raise exception 'forbidden: service role required' using errcode = '42501';
   end if;
 
-  select * into v_row from message_schedules where id = p_schedule_id;
+  select * into v_row from public.message_schedules where id = p_schedule_id;
   if not found or v_row.status <> 'sending' then
     return jsonb_build_object('ok', false, 'code', 'SCHEDULE_NOT_CLAIMED');
   end if;
 
   v_idem := md5('scheduled-message:' || p_schedule_id::text)::uuid;
 
-  v_quote := resolve_message_point_quote(v_row.org_id, v_row.channel, v_row.recipients, v_row.template_id, v_row.body);
+  v_quote := public.resolve_message_point_quote(v_row.org_id, v_row.channel, v_row.recipients, v_row.template_id, v_row.body);
   if not coalesce((v_quote->>'ok')::boolean, false) then
     return v_quote;  -- {ok:false, code}
   end if;
@@ -1085,14 +1085,14 @@ begin
   ) then
     select mt.alimtalk_template_code, coalesce(mt.buttons, '[]'::jsonb)
       into v_tpl_code, v_buttons
-    from message_templates mt where mt.id = v_row.template_id;
+    from public.message_templates mt where mt.id = v_row.template_id;
   end if;
 
-  select * into v_existing from message_point_reservations
+  select * into v_existing from public.message_point_reservations
     where org_id = v_row.org_id and idempotency_key = v_idem;
   if found then
     if v_existing.status in ('settled', 'released') then
-      select result into v_log_result from message_logs where id = v_existing.message_log_id;
+      select result into v_log_result from public.message_logs where id = v_existing.message_log_id;
       return jsonb_build_object(
         'ok', true, 'replayed', true, 'reservation_status', v_existing.status,
         'message_log_id', v_existing.message_log_id, 'log_result', coalesce(v_log_result, 'failed')
@@ -1109,9 +1109,9 @@ begin
 
   -- 잔액 하드스톱(provider_pending 포함)
   select coalesce(sum(points), 0)::bigint into v_ledger
-    from point_transactions where org_id = v_row.org_id;
+    from public.point_transactions where org_id = v_row.org_id;
   select coalesce(sum(reserved_points), 0)::bigint into v_reserved
-    from message_point_reservations
+    from public.message_point_reservations
     where org_id = v_row.org_id and status in ('reserved', 'provider_pending', 'reconcile_required');
   v_available := v_ledger - v_reserved;
   if v_available < (v_quote->>'estimated_points')::bigint then
@@ -1125,7 +1125,7 @@ begin
     into v_log_recipients
   from jsonb_array_elements(v_quote->'resolved_recipients') with ordinality as r(v, ord);
 
-  insert into message_logs(
+  insert into public.message_logs(
     org_id, channel, body, context, recipient_count, recipients, result,
     sent_by, template_id, estimated_points, charged_points, point_status
   ) values (
@@ -1134,7 +1134,7 @@ begin
     v_row.created_by, v_row.template_id, (v_quote->>'estimated_points')::integer, 0, 'reserved'
   ) returning id into v_log_id;
 
-  insert into message_point_reservations(
+  insert into public.message_point_reservations(
     org_id, message_log_id, idempotency_key, payload_hash, status,
     reserved_points, charged_points, rate_snapshot, recipient_costs, requested_by, expires_at
   ) values (
@@ -1144,7 +1144,7 @@ begin
   ) returning id into v_reservation_id;
 
   -- 재조회 정산이 원래 스케줄을 최종화할 수 있도록 로그를 즉시 연결한다.
-  update message_schedules set message_log_id = v_log_id where id = p_schedule_id;
+  update public.message_schedules set message_log_id = v_log_id where id = p_schedule_id;
 
   return jsonb_build_object(
     'ok', true, 'replayed', false, 'reservation_status', 'reserved',
@@ -1154,8 +1154,8 @@ begin
     'alimtalk_template_code', v_tpl_code, 'buttons', v_buttons
   );
 end $$;
-revoke all on function reserve_scheduled_message(bigint) from public, anon, authenticated;
-grant execute on function reserve_scheduled_message(bigint) to service_role;
+revoke all on function public.reserve_scheduled_message(bigint) from public, anon, authenticated;
+grant execute on function public.reserve_scheduled_message(bigint) to service_role;
 
 -- ===== 결과 반영(service_role, 멱등): 수신자 terminal 반영 + job 집계 + 예약 정산 =====
 -- p_results: [{ provider_ref_key, status: 'success'|'failed', code }]

@@ -15,10 +15,15 @@ vi.mock("@/lib/messaging/dispatch", () => ({
 
 import { POST } from "./route";
 
-function req(body: unknown): Request {
+const VALID_IDEM = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+
+function req(body: unknown, opts?: { idempotencyKey?: string | null }): Request {
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  const key = opts && "idempotencyKey" in opts ? opts.idempotencyKey : VALID_IDEM;
+  if (key != null) headers["idempotency-key"] = key;
   return new Request("http://x/api/messaging/send", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers,
     body: JSON.stringify(body),
   });
 }
@@ -66,6 +71,28 @@ describe("POST /api/messaging/send", () => {
     const res = await POST(req(payload));
     expect(res.status).toBe(403);
     expect(dispatchMessages).not.toHaveBeenCalled();
+  });
+
+  it("Idempotency-Key 헤더가 없으면 400이고 dispatch를 호출하지 않는다", async () => {
+    const res = await POST(req(payload, { idempotencyKey: null }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("IDEMPOTENCY_KEY_REQUIRED");
+    expect(dispatchMessages).not.toHaveBeenCalled();
+  });
+
+  it("Idempotency-Key가 UUID 형식이 아니면 400이고 dispatch를 호출하지 않는다", async () => {
+    const res = await POST(req(payload, { idempotencyKey: "not-a-uuid" }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("IDEMPOTENCY_KEY_INVALID");
+    expect(dispatchMessages).not.toHaveBeenCalled();
+  });
+
+  it("유효한 Idempotency-Key를 dispatchMessages input으로 전달한다", async () => {
+    await POST(req(payload));
+    expect(dispatchMessages).toHaveBeenCalledWith(
+      expect.objectContaining({ idempotencyKey: VALID_IDEM }),
+      expect.anything(),
+    );
   });
 
   it("접수 성공 → 202 queued", async () => {

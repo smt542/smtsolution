@@ -40,6 +40,22 @@ describe("messaging apis (P4b)", () => {
     expect(sent).toMatchObject({ mode: "auto", body: "#{이름}님", context: "manual", templateId: 5 });
     expect(sent.recipients).toHaveLength(2);
   });
+  it("sendMessages: 즉시발송은 Idempotency-Key 헤더를 전달한다", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 202,
+      json: async () => ({ status: "queued", messageLogId: 7, queuedCount: 1, reservedPoints: 1 }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    await sendMessages({
+      mode: "sms", body: "x", context: "manual", templateId: null,
+      recipients: [{ name: "A", phone: "1", kind: "tenant", channel: "sms", renderedBody: "x" }],
+      idempotencyKey: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    });
+    const [, opts] = fetchMock.mock.calls[0];
+    expect(opts.headers["idempotency-key"]).toBe("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
+  });
+
   it("예약 발송 등록과 취소 RPC를 호출", async () => {
     rpc.mockResolvedValueOnce({
       data: { schedule_id: 8, count: 1, scheduled_at: "2026-08-20T00:30:00Z" }, error: null,

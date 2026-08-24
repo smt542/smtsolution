@@ -263,6 +263,7 @@ describe("MessagingComposer", () => {
         },
       ],
       scheduledAt: null,
+      idempotencyKey: expect.any(String),
     });
     await waitFor(() =>
       expect(toast.success).toHaveBeenCalledWith("발송을 접수했습니다 · 1건 · 결과 확인 중"),
@@ -348,6 +349,7 @@ describe("MessagingComposer", () => {
         },
       ],
       scheduledAt: null,
+      idempotencyKey: expect.any(String),
     });
   });
 
@@ -448,6 +450,7 @@ describe("MessagingComposer", () => {
           },
         ],
         scheduledAt: null,
+        idempotencyKey: expect.any(String),
       }),
     );
   });
@@ -515,5 +518,92 @@ describe("MessagingComposer", () => {
       "알림톡 수신에 동의한 수신처가 없습니다.",
     );
     expect(mutateAsync).not.toHaveBeenCalled();
+  });
+
+  const singlePreset = {
+    context: "manual",
+    body: "본문",
+    recipients: [
+      {
+        name: "김입주",
+        phone: "010-1000-0000",
+        unitNo: "101호",
+        kind: "tenant" as const,
+        ref: { occupancyId: 101 },
+      },
+    ],
+  };
+
+  it("중복 클릭(동일 초안)은 같은 Idempotency-Key로 발송한다", async () => {
+    render(<MessagingComposer initialMode="sms" preset={singlePreset} />);
+    const button = screen.getByRole("button", { name: "발송" });
+    fireEvent.click(button);
+    fireEvent.click(button);
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(2));
+    const key1 = mutateAsync.mock.calls[0][0].idempotencyKey as string;
+    const key2 = mutateAsync.mock.calls[1][0].idempotencyKey as string;
+    expect(key1).toBeTruthy();
+    expect(key1).toBe(key2);
+  });
+
+  it("성공 발송 후에는 새 Idempotency-Key로 회전한다", async () => {
+    render(<MessagingComposer initialMode="sms" preset={singlePreset} />);
+    const button = screen.getByRole("button", { name: "발송" });
+    fireEvent.click(button);
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1));
+    fireEvent.click(button);
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(2));
+    const key1 = mutateAsync.mock.calls[0][0].idempotencyKey as string;
+    const key2 = mutateAsync.mock.calls[1][0].idempotencyKey as string;
+    expect(key1).toBeTruthy();
+    expect(key1).not.toBe(key2);
+  });
+
+  it("견적 입력에 수신자별 최종 renderedBody를 담아 SMS/LMS 판정을 접수와 일치시킨다(개인화 2명)", () => {
+    vi.mocked(useTenantList).mockReturnValue({
+      data: [
+        { ...tenants[0], unitId: 11, occupancyId: 101, unitNo: "101호", tenantName: "김일", phone: "010-1000-0001" },
+        { ...tenants[0], unitId: 12, occupancyId: 102, unitNo: "102호", tenantName: "이이", phone: "010-1000-0002" },
+      ],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useTenantList>);
+
+    render(<MessagingComposer initialMode="sms" />);
+    fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
+    fireEvent.change(screen.getByLabelText("본문"), {
+      target: { value: "#{이름}님 관리비 안내" },
+    });
+    fireEvent.click(screen.getByLabelText(/101호 · 김일/));
+    fireEvent.click(screen.getByLabelText(/102호 · 이이/));
+
+    const calls = vi.mocked(useMessagePointQuote).mock.calls;
+    const lastInput = calls[calls.length - 1][0];
+    expect(lastInput).not.toBeNull();
+    const bodies = (lastInput!.recipients as Array<{ renderedBody?: string }>).map(
+      (r) => r.renderedBody,
+    );
+    expect(bodies).toContain("김일님 관리비 안내");
+    expect(bodies).toContain("이이님 관리비 안내");
+  });
+
+  it("발송이 확정 거절되면 onFailed로 처리하고 onSent(=queued 기록)를 호출하지 않는다", async () => {
+    // 고지서 흐름: onSent가 record_bill_delivery(queued)를 기록하므로, 확정 거절 시 onSent가
+    // 호출되면 안 된다(receipt 없이 queued로 기록 금지). onFailed만 호출되어야 한다.
+    mutateAsync.mockRejectedValueOnce(
+      new MessageSendError("SEND_REJECTED", "모든 발송이 확정 거절되었습니다."),
+    );
+    const onSent = vi.fn();
+    const onFailed = vi.fn();
+    render(
+      <MessagingComposer
+        initialMode="sms"
+        preset={singlePreset}
+        onSent={onSent}
+        onFailed={onFailed}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "발송" }));
+    await waitFor(() => expect(onFailed).toHaveBeenCalledTimes(1));
+    expect(onSent).not.toHaveBeenCalled();
   });
 });
