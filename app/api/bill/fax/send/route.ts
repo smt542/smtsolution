@@ -4,9 +4,22 @@ import { isPopbillConfigured } from "@/lib/popbill/config";
 import { loadFaxDocumentData } from "@/lib/bill/faxData";
 import { renderFaxPdf } from "@/lib/bill/faxPdf";
 import { submitFax } from "@/lib/popbill/fax";
-import { PopbillSubmitError } from "@/lib/popbill/types";
+import { PopbillNotConfiguredError } from "@/lib/popbill/config";
+import { PopbillSubmitError, PopbillTimeoutError } from "@/lib/popbill/types";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
+
+/**
+ * 팩스 접수 오류 분류. 설정/사전(pre-provider) 오류와 SDK 오류 콜백은 **확정 실패(failed)**,
+ * 응답 없는 타임아웃/예기치 못한 post-boundary 오류만 **불명확(unknown)**으로 남긴다.
+ */
+function classifyFaxSubmitError(e: unknown): { outcome: "failed" | "unknown"; code: string } {
+  if (e instanceof PopbillNotConfiguredError) return { outcome: "failed", code: e.code };
+  if (e instanceof PopbillTimeoutError) return { outcome: "unknown", code: e.code };
+  if (e instanceof PopbillSubmitError) return { outcome: "failed", code: e.code };
+  // 접수 여부가 불분명한 예기치 못한 예외는 보수적으로 unknown(reconcile_required)으로 남긴다.
+  return { outcome: "unknown", code: "SUBMIT_ERROR" };
+}
 
 // @react-pdf/renderer·Popbill SDK 등 Node API를 사용하므로 Node 런타임을 명시한다.
 export const runtime = "nodejs";
@@ -102,9 +115,20 @@ export async function POST(request: Request): Promise<Response> {
     try {
       pdf = await renderFaxPdf(doc);
     } catch {
-      await markFaxResult(admin, { p_job_id: jobId, p_outcome: "failed", p_error_code: "PDF_RENDER_FAILED" });
-      failed += 1;
-      results.push({ billIssueId, status: "render_failed" });
+      const markErr = await markFaxResult(admin, {
+        p_job_id: jobId,
+        p_outcome: "failed",
+        p_error_code: "PDF_RENDER_FAILED",
+      });
+      if (markErr) {
+        // job이 failed로 반영되지 않아 submitting으로 잔류(ALREADY_IN_FLIGHT). terminal(render_failed)로
+        // 거짓 주장하지 않고 확인 대상(mark_failed)으로 남긴다(provider 접수는 하지 않았다).
+        reconcileRequired += 1;
+        results.push({ billIssueId, status: "mark_failed" });
+      } else {
+        failed += 1;
+        results.push({ billIssueId, status: "render_failed" });
+      }
       continue;
     }
 
@@ -122,14 +146,19 @@ export async function POST(request: Request): Promise<Response> {
       });
       receiptNum = submission.receiptNum;
     } catch (e) {
-      // 접수 응답 오류(SDK 콜백)=failed(확정 실패). 타임아웃/무응답=unknown(reconcile_required, 재발송 금지).
-      const outcome = e instanceof PopbillSubmitError ? "failed" : "unknown";
-      await markFaxResult(admin, {
+      // 설정/사전 오류·SDK 오류 콜백=failed(확정 실패). 타임아웃/예기치 못한 오류=unknown(reconcile_required, 재발송 금지).
+      const classified = classifyFaxSubmitError(e);
+      const markErr = await markFaxResult(admin, {
         p_job_id: jobId,
-        p_outcome: outcome,
-        p_error_code: e instanceof PopbillSubmitError ? e.code : "SUBMIT_ERROR",
+        p_outcome: classified.outcome,
+        p_error_code: classified.code,
       });
-      if (outcome === "failed") {
+      if (markErr) {
+        // provider 접수는 없었으나(failed/unknown 모두) mark 반영이 실패해 job이 submitting으로 잔류.
+        // terminal 상태로 거짓 주장하지 않고 확인 대상(mark_failed)으로 남긴다.
+        reconcileRequired += 1;
+        results.push({ billIssueId, status: "mark_failed" });
+      } else if (classified.outcome === "failed") {
         failed += 1;
         results.push({ billIssueId, status: "failed" });
       } else {
@@ -160,15 +189,30 @@ export async function POST(request: Request): Promise<Response> {
   return json({ queued, failed, skipped, reconcileRequired, results }, 202);
 }
 
-/** mark RPC를 호출하고 오류 메시지(있으면)를 반환한다. 오류를 던지지 않고 호출부가 보수적으로 처리하게 한다. */
+/**
+ * mark RPC를 호출한다. 성공이면 null, 실패면 사유 문자열을 반환한다(던지지 않는다).
+ * 실패는 **전송 오류(error)** 뿐 아니라 **응답 데이터의 실패**(`ok !== true`, 예: JOB_NOT_FOUND)도 포함한다 —
+ * 데이터 실패를 무시하면 반영되지 않은 상태를 성공(queued)으로 거짓 보고하게 된다.
+ * 전송 오류/예외는 유한 재시도(같은 mark만 재호출; provider 재접수 없음)로 일시 장애를 흡수한다.
+ */
 async function markFaxResult(
   admin: AdminClient,
   args: Record<string, unknown>,
+  attempts = 2,
 ): Promise<string | null> {
-  try {
-    const { error } = await admin.rpc("mark_fax_dispatch_result", args);
-    return error ? error.message : null;
-  } catch (e) {
-    return e instanceof Error ? e.message : "mark failed";
+  let lastError = "MARK_FAILED";
+  for (let attempt = 0; attempt < Math.max(1, attempts); attempt += 1) {
+    try {
+      const { data, error } = await admin.rpc("mark_fax_dispatch_result", args);
+      if (!error) {
+        const row = data as { ok?: boolean; code?: string } | null;
+        // 전송 오류가 없으면 데이터 응답이 확정적이다(성공이든 실패든). 여기서 재시도하지 않는다.
+        return row?.ok === true ? null : (row?.code ?? "MARK_FAILED");
+      }
+      lastError = error.message; // 전송 오류만 재시도 대상
+    } catch (e) {
+      lastError = e instanceof Error ? e.message : "mark failed";
+    }
   }
+  return lastError;
 }

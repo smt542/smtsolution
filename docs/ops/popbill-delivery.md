@@ -63,6 +63,9 @@ Popbill은 카카오 메시지 발송 대행사이므로 카카오비즈니스 �
 - **잔액**: Popbill 파트너/연동회원 잔액을 주기 점검. 부족 시 발송 실패.
 - **reconcile_required**: 관리업체 포인트 예약이 이 상태로 쌓이면 공급자 결과를 수동 확인(만료만으로 해제 금지).
 - **24시간 초과 pending**: 폴링이 확정하지 못한 작업. Popbill 콘솔에서 실제 상태 대조.
+- **submitting 잔류(mark_failed)**: 팩스 작업이 `submitting`으로 오래 남아 있으면 provider 접수는 됐을 수 있으나 DB
+  반영(mark)이 실패해 receipt가 기록되지 않은 상태일 수 있다(§7의 accepted-but-mark-failed 한계 참조). `request_num`으로
+  Popbill 결과를 대조해 수동 확정한다. 폴링은 `pending`만 claim하므로 `submitting` 잔류는 자동으로 진행되지 않는다.
 - **provider 오류 코드**: 저장된 오류 코드(예: 팩스 506/517)로 원인 파악. 로그·오류 응답에 비밀키·전체 응답·수신자 개인정보를 남기지 않는다.
 
 ## 6. 자격증명 취급·키 교체
@@ -80,7 +83,22 @@ Popbill은 카카오 메시지 발송 대행사이므로 카카오비즈니스 �
   초기값은 SMS KRW 단가로 시작하며 관리자가 조정한다. 이는 조직 포인트 단가와 별개다.)
 - **즉시 발송은 `Idempotency-Key`(UUID) 헤더가 필수**다. 동일 초안의 중복 클릭·재시도·동시 호출은 같은 키로
   묶여 예약이 replay되므로 **이중 발송·이중 차감이 발생하지 않는다**. 헤더 누락/비UUID는 접수 전에 400으로 거절한다.
-- **접수 오류 분류**: Popbill SDK 오류 콜백과 로컬 검증(설정/템플릿/미치환 변수)은 **확정 실패**로 처리해
-  예약 금액을 반환한다. 오직 전송/무응답 **타임아웃**만 `reconcile_required`(불명확)로 남기며 **즉시 재발송하지
-  않는다** — 접수번호/요청번호로 결과를 먼저 조회한다. 팩스도 동일: 렌더/생성 실패는 job을 즉시 실패 처리해
-  재시도를 허용하고, 접수는 됐으나 DB 반영이 실패하면 성공(queued)으로 표기하지 않고 확인 대상으로 남긴다.
+- **접수 오류 분류**: Popbill SDK 오류 콜백과 로컬 검증(**설정 누락**/템플릿/미치환 변수)은 **확정 실패**로 처리해
+  예약 금액을 반환한다(팩스 `PopbillNotConfiguredError`·발신번호 미등록 등 pre-provider 오류도 즉시 `failed`이며
+  `reconcile_required` 아님). 오직 전송/무응답 **타임아웃**과 예기치 못한 post-boundary 오류만
+  `reconcile_required`(불명확)로 남기며 **즉시 재발송하지 않는다** — 접수번호/요청번호로 결과를 먼저 조회한다.
+  팩스도 동일: 렌더/생성 실패는 job을 즉시 실패 처리해 재시도를 허용하고, 접수는 됐으나 DB 반영이 실패하면
+  성공(queued)으로 표기하지 않고 확인 대상으로 남긴다.
+- **즉시 발송 멱등 replay 결과**(같은 `Idempotency-Key` 재요청은 예약 상태에 따라 재접수 없이 응답한다):
+  `provider_pending`·`settled` → 안전한 **접수(queued)**(provider 재호출 없음), `reconcile_required` →
+  **`SEND_UNCONFIRMED`**(결과 확인 중, queued 아님), `released` → **`SEND_REJECTED`**(동일 안전 실패),
+  `reserved`(접수/mark 미완, 동시 요청 진행 중이거나 이전 시도 중단) → **`SEND_IN_PROGRESS`(409)** — 절대
+  재접수하지 않고 queued로도 표기하지 않는다. 클라이언트는 `SEND_IN_PROGRESS`·`SEND_UNCONFIRMED`를 **비종결
+  정보 응답**으로 다루어 성공/실패 콜백을 부르지 않고(고지서 흐름의 `record_bill_delivery(queued)` 기록 금지) 같은
+  키를 유지해 재시도한다. `SEND_REJECTED`만 확정 실패로 처리한다.
+- **accepted-but-mark-failed 한계(수동 재조회)**: 팩스가 provider에 **접수(receipt 발급)됐으나** `mark_fax_dispatch_result`
+  반영이 유한 재시도 후에도 실패하면(전송 오류 또는 `ok=false`) 라우트는 `queued`로 거짓 보고하지 않고 `mark_failed`
+  (확인 필요)로 응답하며 job은 `submitting`으로 남는다. 이 상태는 **자동 복구하지 않는다** — 폴링은 `pending`만
+  claim하고 `submitting` 재접수는 `ALREADY_IN_FLIGHT`로 막히므로, 운영자가 **job의 `request_num`으로 Popbill 결과를
+  대조**해 실제 접수번호/결과를 확인하고 수동으로 확정해야 한다. `request_num` 기반 광범위 자동 복구(RN recovery)는
+  이번 범위에 포함하지 않는다(향후 결정). mark 재시도는 **같은 mark 호출만** 반복하며 provider 재접수는 하지 않는다.

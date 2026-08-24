@@ -194,3 +194,96 @@ Popbill 리뷰 2차에서 지적된 블로커/개선 7건을 test-first로 반�
 - **환경 한계(유지)**: 로컬 DB/psql 미가용으로 마이그레이션·verify SQL은 **정적 작성·정적 assert만** 수행했다
   (`supabase db reset` + `p4_point_checks.sql`/`platform_admin_checks.sql` 실행은 DB 환경에서 필요). Popbill 테스트 자격증명
   smoke(SMS/LMS/알림톡/1p 팩스 접수→결과→정산)도 자격증명 미제공으로 **미수행**. DB 실행/실발송 성공을 주장하지 않는다.
+
+## 최종 리뷰 수정 (3차, base `cf261f5`, TDD red→green 7건)
+
+Popbill 리뷰 3차 지적 7건을 test-first로 반영했다. 각 항목은 실패 테스트 추가 → 실패 확인 → 최소 구현 →
+통과 순서로 진행했고 전체 검증을 재실행했다. DB/자격증명 부재 한계는 유지된다(실발송·DB 실행 미수행).
+
+### 재실행 검증 결과 (모두 통과, 3차 반영 후 기준값)
+
+| 명령 | 결과 |
+| --- | --- |
+| `npx vitest run` (npm test) | **961 passed, 9 skipped, 0 failed** (248 test files) — 3차 수정 테스트 +36 반영 |
+| `npm run lint` | **clean** (exit 0) |
+| `npx tsc --noEmit` | **0 errors** (exit 0) |
+| `npm run build` (next build) | **성공(exit 0)**, 신규 라우트 회귀 없음 |
+| `git diff --check` | clean(CRLF 경고만) |
+| NCP 런타임 검색(`NCP_\|ncloud\|sendNcp\|sendAlimtalk\|billingMode.*stub\|provider.*stub\|\bsens\b`, docs·zip 제외) | **0 matches** |
+| `git status --short` | 사용자 소유 untracked(debug.log, *.zip, docs/parallel-kickoff/*)만 — 스테이지/수정 안 함 |
+
+### 1) verify SQL search_path proconfig 오탐 수정
+- **문제**: `p4_point_checks.sql`가 `'search_path=' = any(proconfig)` 정확 일치로 검사했는데, PostgreSQL은
+  `SET search_path = ''`를 proconfig에 **따옴표 씌운 빈 문자열 `search_path=""`**로 저장한다(search_path는
+  GUC_LIST_QUOTE라 각 요소가 quote_identifier된다). 정확 일치는 하드닝된 함수에서도 항상 거짓이 되어 **오탐**한다.
+- **수정**: 세 개의 search_path assert(reserve_message_points·record_bill_delivery·reserve_scheduled_message)를
+  배열 겹침 `coalesce(proconfig,'{}') && array['search_path=','search_path=""']`으로 바꿔 따옴표 유무 양쪽(빈 문자열
+  고정)을 인정하고 search_path가 아예 없으면 실패하게 했다. 미사용 `v_config` 변수 제거.
+- **테스트**: `p4_point_checks.searchpath.test.ts`(PG 저장 표현 진리표 + verify SQL이 정확 일치 any()를 쓰지 않고
+  `search_path=""`를 인정하는지 정적 assert).
+
+### 2) 예약 replay 상태별 처리(reserved는 진행 중, 접수 아님)
+- **문제**: 멱등 replay 시 `released`를 제외한 모든 상태(`reserved` 포함)를 **queued**로 보고해, 접수(mark)가 아직
+  안 된 `reserved`(동시 요청 진행 중·이전 시도 중단)를 성공 접수로 오인할 수 있었다.
+- **수정**: `dispatchMessages` replay 분기를 상태별로 나눴다 — `provider_pending`/`settled` → 안전 queued(provider
+  재호출 없음), `reconcile_required` → **`SEND_UNCONFIRMED`**, `released` → **`SEND_REJECTED`**,
+  `reserved`/미지정 → **`SEND_IN_PROGRESS`(409)**(재접수·queued 표기 금지). 어떤 replay 경로도 submit/mark/create를
+  다시 하지 않는다.
+- **테스트**: `dispatch.test.ts`(reserved→SEND_IN_PROGRESS·재접수 없음, reconcile_required→SEND_UNCONFIRMED,
+  provider_pending/settled→안전 queued, 최초 접수 중 reserved replay는 submit/mark/create 정확히 1회).
+
+### 3) 클라이언트 비종결 결과 처리(SEND_IN_PROGRESS/SEND_UNCONFIRMED)
+- **문제**: `MessagingComposer`가 모든 오류를 `onFailed`+오류 토스트로 처리해, 진행 중/불명확 응답을 확정 실패로
+  잘못 다뤘다(고지서 흐름에서 `onFailed`가 불필요하게 호출됨).
+- **수정**: `SEND_IN_PROGRESS`·`SEND_UNCONFIRMED`를 **비종결 정보 응답**으로 분기 — `onSent`/`onFailed` 어느 것도
+  호출하지 않고 정보 토스트만 띄우며 **멱등 키를 유지**(회전 금지)해 같은 초안으로 안전 재시도한다. `SEND_REJECTED`는
+  기존대로 확정 실패(`onFailed`).
+- **테스트**: `MessagingComposer.test.tsx`(SEND_IN_PROGRESS→onSent/onFailed 미호출·키 유지·정보 토스트,
+  SEND_UNCONFIRMED 동일).
+
+### 4) 멱등 페이로드 material 필드 정합(서버 해시·클라이언트 서명 공용)
+- **문제**: 서버 해시가 `mode|body|recipients`만 덮어 **context·templateId 누락**, 클라이언트 서명은 수신자를
+  `phone/channel/body`로만 담아 **identity/ref 누락**. 수신자 identity가 바뀌어도 같은 키를 재사용할 위험(서버는
+  다른 해시로 IDEMPOTENCY_CONFLICT)이 있었다.
+- **수정**: 공용 순수 함수 `lib/messaging/sendSignature.ts`(`canonicalSendPayload`)를 신설해 **mode·body·context·
+  effective templateId·완전한 수신자(kind/name/phone/unitNo/ref/channel/renderedBody)**를 정규화한다. 서버 해시와
+  클라이언트 초안 서명이 이 단일 소스를 공유한다.
+- **테스트**: `sendSignature.test.ts`(각 material 필드 변경 시 서명 변경 — 특히 ref/identity), `dispatch.test.ts`
+  (서버 해시가 context·templateId·수신자 ref 변경을 반영).
+
+### 5) 팩스 라우트 mark 실패·분류·receiptless unknown
+- **수정**:
+  - **분류**: `PopbillNotConfiguredError`(발신번호 미등록 등 pre-provider 설정 오류)를 unknown이 아니라 **확정
+    failed**로 분류한다(`classifyFaxSubmitError`). 타임아웃/예기치 못한 post-boundary 오류만 unknown.
+  - **mark 응답 검사**: `markFaxResult`가 transport error뿐 아니라 **RPC 데이터의 `ok`/`code`**(예: JOB_NOT_FOUND)도
+    실패로 인식한다. transport 오류/예외는 **같은 mark만** 유한 재시도(provider 재접수 없음).
+  - **mark 실패 미무시**: 렌더 실패·접수 거절·타임아웃 분기에서 mark 실패 시 terminal(render_failed/failed/
+    reconcile_required)로 거짓 주장하지 않고 **`mark_failed`(reconcileRequired)**로 남긴다(job은 submitting 잔류).
+  - **마이그 0095**: `mark_fax_dispatch_result`의 **receiptless unknown 분기가 `bill_issues.send_status='queued'`로
+    표기하지 않도록** 제거했다. queued는 **accepted receipt**에만 쓴다(불명확은 job.reconcile_required가 원장).
+- **테스트**: `route.test.ts`(NotConfigured→failed, mark data.ok=false→queued 거짓보고 없음·mark_failed, 렌더/접수
+  실패+mark 실패→mark_failed·중복 접수 없음, mark 유한 재시도 성공), `0095_mark_fax_unknown.test.ts`(accepted에만
+  queued 정확히 1회·unknown 분기는 queued 미표기·reconcile_required 유지).
+
+### 6) submitWithTimeout 동기 예외 시 타이머 누수
+- **문제**: `submitWithTimeout`의 executor가 **동기적으로 throw**하면 Promise는 reject되지만 setTimeout이 정리되지
+  않아 누수됐다(settled 가드도 우회).
+- **수정**: `executor(...)`를 try/catch로 감싸 동기 throw를 `safeReject`로 넘겨 타이머를 clearTimeout한다.
+- **테스트**: `submitWithTimeout.test.ts`(동기 throw→그 오류로 reject + 남은 타이머 0, 타임아웃으로 뒤집히지 않음).
+
+### 7) 문서·범위(광범위 RN 복구 미구현)
+- **runbook**(`docs/ops/popbill-delivery.md`): 멱등 replay 결과표(provider_pending/settled/reconcile_required/
+  released/reserved), 클라이언트 비종결 처리, pre-provider 오류=failed 분류를 §7에 명시. **accepted-but-mark-failed
+  한계**(팩스가 provider에 접수됐으나 mark 반영이 재시도 후에도 실패하면 job이 submitting으로 남고 폴링은 pending만
+  claim하므로 자동 복구 안 됨 → 운영자가 `request_num`으로 Popbill 결과를 대조해 **수동 확정**)와 **모니터링 항목**을
+  추가했다. `request_num` 기반 **광범위 자동 복구(RN recovery)는 이번 범위에서 구현하지 않는다**(향후 결정)로 정확히
+  기술했다. mark 재시도는 같은 호출만 반복하며 provider 재접수는 하지 않는다.
+
+### 이번(3차) 수정으로 건드린 파일
+- 구현: `supabase/verify/p4_point_checks.sql`, `lib/messaging/dispatch.ts`, `lib/messaging/sendSignature.ts`(신규),
+  `app/(staff)/staff/messaging/components/MessagingComposer.tsx`, `app/api/bill/fax/send/route.ts`,
+  `lib/popbill/types.ts`, `supabase/migrations/0095_popbill_dispatch_foundation.sql`, `docs/ops/popbill-delivery.md`
+- 테스트: `supabase/verify/p4_point_checks.searchpath.test.ts`(신규), `lib/messaging/sendSignature.test.ts`(신규),
+  `lib/messaging/dispatch.test.ts`, `app/(staff)/staff/messaging/components/MessagingComposer.test.tsx`,
+  `app/api/bill/fax/send/route.test.ts`, `lib/popbill/submitWithTimeout.test.ts`(신규),
+  `supabase/migrations/0095_mark_fax_unknown.test.ts`(신규)

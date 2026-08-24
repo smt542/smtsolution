@@ -606,4 +606,56 @@ describe("MessagingComposer", () => {
     await waitFor(() => expect(onFailed).toHaveBeenCalledTimes(1));
     expect(onSent).not.toHaveBeenCalled();
   });
+
+  it("SEND_IN_PROGRESS는 비종결 정보 응답으로 onSent/onFailed 모두 호출하지 않고 키를 유지한다", async () => {
+    // 진행 중(reserved replay)은 성공도 실패도 아니다. 종결 콜백을 부르지 않고 같은 키로 재시도할 수 있어야 한다.
+    mutateAsync.mockRejectedValue(
+      new MessageSendError("SEND_IN_PROGRESS", "동일 요청이 처리 중입니다."),
+    );
+    const onSent = vi.fn();
+    const onFailed = vi.fn();
+    render(
+      <MessagingComposer
+        initialMode="sms"
+        preset={singlePreset}
+        onSent={onSent}
+        onFailed={onFailed}
+      />,
+    );
+    const button = screen.getByRole("button", { name: "발송" });
+    fireEvent.click(button);
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1));
+    fireEvent.click(button);
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(2));
+    expect(onSent).not.toHaveBeenCalled();
+    expect(onFailed).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(toast.info).toHaveBeenCalled();
+    const key1 = mutateAsync.mock.calls[0][0].idempotencyKey as string;
+    const key2 = mutateAsync.mock.calls[1][0].idempotencyKey as string;
+    expect(key1).toBeTruthy();
+    expect(key1).toBe(key2); // 비종결 → 멱등 키 유지(재시도 안전)
+  });
+
+  it("SEND_UNCONFIRMED도 비종결 정보 응답으로 onSent/onFailed를 호출하지 않는다", async () => {
+    mutateAsync.mockRejectedValueOnce(
+      new MessageSendError("SEND_UNCONFIRMED", "발송 접수 결과를 확인하지 못했습니다."),
+    );
+    const onSent = vi.fn();
+    const onFailed = vi.fn();
+    render(
+      <MessagingComposer
+        initialMode="sms"
+        preset={singlePreset}
+        onSent={onSent}
+        onFailed={onFailed}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "발송" }));
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1));
+    expect(onSent).not.toHaveBeenCalled();
+    expect(onFailed).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(toast.info).toHaveBeenCalled();
+  });
 });

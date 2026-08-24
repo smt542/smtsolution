@@ -24,6 +24,7 @@ import {
   resolveIdempotencyKey,
   type IdempotencyState,
 } from "@/lib/messaging/idempotencyKey";
+import { canonicalSendPayload } from "@/lib/messaging/sendSignature";
 import {
   dedupeRecipients,
   validRecipients,
@@ -213,18 +214,16 @@ export function MessagingComposer({
   const pointQuote = useMessagePointQuote(quoteInput);
   // 멱등 키: 한 논리적 발송 시도를 식별한다. 초안이 실질적으로 바뀌면 서명이 달라져 회전하고,
   // 같은 초안의 중복 클릭·재시도는 같은 키를 재사용한다. 성공 후에는 idemRef를 비워 회전한다.
+  // 초안 서명은 모든 material 필드(mode·body·context·effective templateId·완전한 수신자)를 담는다.
+  // 수신자 identity/ref가 바뀌면 서명이 달라져 키가 회전하므로, 대상이 바뀐 발송이 stale 키를 재사용하지 않는다.
   const draftSignature = useMemo(
     () =>
-      JSON.stringify({
+      canonicalSendPayload({
         mode,
         body: effectiveBody,
-        templateId: effectiveTemplateId,
         context: preset?.context ?? "manual",
-        recipients: submissionRecipients.map((recipient) => ({
-          phone: recipient.phone,
-          channel: recipient.channel,
-          body: recipient.renderedBody,
-        })),
+        templateId: effectiveTemplateId,
+        recipients: submissionRecipients,
       }),
     [effectiveBody, effectiveTemplateId, mode, preset?.context, submissionRecipients],
   );
@@ -359,8 +358,21 @@ export function MessagingComposer({
       }
       await onSent?.(result);
     } catch (error) {
-      await onFailed?.(error);
       const code = error instanceof MessageSendError ? error.code : null;
+      // 비종결(진행 중/결과 불명확) 응답은 성공도 확정 실패도 아니다. onSent/onFailed 어느 것도 부르지
+      // 않고(특히 고지서 흐름의 record_bill_delivery(queued) 기록 금지), 멱등 키를 유지해 같은 초안으로
+      // 안전하게 재시도할 수 있게 한다. 정보성 토스트만 띄운다.
+      if (code === "SEND_IN_PROGRESS" || code === "SEND_UNCONFIRMED") {
+        idempotencyRef.current = idempotency; // 성공 시에만 회전. 비종결은 키 유지.
+        toast.info(
+          code === "SEND_IN_PROGRESS"
+            ? "발송이 처리 중입니다. 잠시 후 결과를 확인해 주세요."
+            : "발송 접수 결과를 확인하는 중입니다. 잠시 후 다시 확인해 주세요.",
+        );
+        return;
+      }
+      // 확정 실패(SEND_REJECTED 등)만 종결 콜백을 호출한다.
+      await onFailed?.(error);
       const message =
         code === "INSUFFICIENT_POINTS"
           ? "포인트가 부족합니다."

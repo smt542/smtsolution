@@ -4,7 +4,6 @@
 do $$
 declare
   v_count integer;
-  v_config text;
   v_search_path text[];
 begin
   if to_regclass('public.message_point_rates') is null then
@@ -60,11 +59,14 @@ begin
     raise exception 'point_transactions append-only trigger is missing';
   end if;
 
-  select array_to_string(coalesce(proconfig, '{}'::text[]), ',')
-    into v_config
+  -- PostgreSQL은 SET search_path = '' 를 proconfig에 따옴표 씌운 빈 문자열 search_path="" 로 저장한다
+  -- (search_path는 GUC_LIST_QUOTE라 각 요소가 quote_identifier되고, 빈 문자열은 ""로 인용된다).
+  -- 정확 일치 'search_path='만 보면 하드닝된 함수에서도 오탐하므로 따옴표 유무 양쪽(빈 문자열 고정)을
+  -- 인정하고, search_path가 아예 없으면(missing) 실패한다.
+  select proconfig into v_search_path
   from pg_proc
   where oid = 'public.reserve_message_points(bigint,uuid,uuid,text,text,text,text,jsonb,bigint,jsonb,integer)'::regprocedure;
-  if v_config not like '%search_path=%' then
+  if not (coalesce(v_search_path, '{}'::text[]) && array['search_path=', 'search_path=""']) then
     raise exception 'reserve_message_points search_path is not fixed';
   end if;
 
@@ -283,14 +285,16 @@ begin
 
   -- ===== SQL 위생: 재정의/신규 SECURITY DEFINER 함수는 search_path=''(빈 문자열)로 고정한다 =====
   -- (fully-qualified public/auth 참조로 스키마 하이재킹을 막는다)
+  -- PG는 빈 search_path를 proconfig에 따옴표 씌운 search_path="" 로 저장하므로 정확 일치가 아니라
+  -- 따옴표 유무 양쪽을 인정하는 배열 겹침(&&) 검사로 확인한다(missing이면 실패).
   select proconfig into v_search_path from pg_proc
   where oid = 'public.record_bill_delivery(bigint,date,jsonb,text,text,bigint,bigint,timestamptz)'::regprocedure;
-  if not ('search_path=' = any(coalesce(v_search_path, '{}'::text[]))) then
+  if not (coalesce(v_search_path, '{}'::text[]) && array['search_path=', 'search_path=""']) then
     raise exception 'record_bill_delivery must fix search_path to empty string';
   end if;
   select proconfig into v_search_path from pg_proc
   where oid = 'public.reserve_scheduled_message(bigint)'::regprocedure;
-  if not ('search_path=' = any(coalesce(v_search_path, '{}'::text[]))) then
+  if not (coalesce(v_search_path, '{}'::text[]) && array['search_path=', 'search_path=""']) then
     raise exception 'reserve_scheduled_message must fix search_path to empty string';
   end if;
 

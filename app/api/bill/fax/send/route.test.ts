@@ -21,6 +21,7 @@ vi.mock("@/lib/popbill/fax", () => ({ submitFax: (...a: unknown[]) => submitFax(
 
 import { POST } from "./route";
 import { PopbillSubmitError, PopbillTimeoutError } from "@/lib/popbill/types";
+import { PopbillNotConfiguredError } from "@/lib/popbill/config";
 
 function req(body: unknown): Request {
   return new Request("http://x/api/bill/fax/send", {
@@ -158,5 +159,97 @@ describe("POST /api/bill/fax/send", () => {
       "mark_fax_dispatch_result",
       expect.objectContaining({ p_job_id: 1, p_outcome: "unknown" }),
     );
+  });
+
+  it("발신 설정 누락(PopbillNotConfiguredError)은 unknown이 아니라 failed(확정)로 처리한다", async () => {
+    // 설정/사전(pre-provider) 오류는 접수가 확정 거부된 것이므로 재조회 대상(unknown)이 아니라 즉시 failed다.
+    submitFax.mockRejectedValue(new PopbillNotConfiguredError("Popbill fax 발신 설정이 없습니다."));
+    const res = await POST(req({ billIssueIds: [5] }));
+    const json = await res.json();
+    expect(json.failed).toBe(1);
+    expect(json.reconcileRequired ?? 0).toBe(0);
+    expect(json.results[0].status).toBe("failed");
+    expect(adminRpc).toHaveBeenCalledWith(
+      "mark_fax_dispatch_result",
+      expect.objectContaining({ p_job_id: 1, p_outcome: "failed" }),
+    );
+  });
+
+  it("mark RPC가 data.ok=false를 반환하면(전송오류 아님) accepted를 queued로 거짓 보고하지 않는다", async () => {
+    adminRpc.mockImplementation((name: string) => {
+      if (name === "create_fax_dispatch_job") {
+        return Promise.resolve({ data: { ok: true, job_id: 1, request_num: "f5a0", provider_ref_key: "f5a0" }, error: null });
+      }
+      if (name === "mark_fax_dispatch_result") {
+        // 전송 오류는 없지만 RPC가 실패를 데이터로 알린다(예: JOB_NOT_FOUND).
+        return Promise.resolve({ data: { ok: false, code: "JOB_NOT_FOUND" }, error: null });
+      }
+      return Promise.resolve({ data: { ok: true }, error: null });
+    });
+    const res = await POST(req({ billIssueIds: [5] }));
+    const json = await res.json();
+    expect(submitFax).toHaveBeenCalledTimes(1);
+    expect(json.queued).toBe(0);
+    expect(json.results[0].status).toBe("mark_failed");
+  });
+
+  it("PDF 렌더 실패 후 mark까지 실패하면 terminal(render_failed)로 주장하지 않고 mark_failed로 남긴다", async () => {
+    renderFaxPdf.mockRejectedValue(new Error("render boom"));
+    adminRpc.mockImplementation((name: string) => {
+      if (name === "create_fax_dispatch_job") {
+        return Promise.resolve({ data: { ok: true, job_id: 1, request_num: "f5a0", provider_ref_key: "f5a0" }, error: null });
+      }
+      if (name === "mark_fax_dispatch_result") {
+        return Promise.resolve({ data: null, error: { message: "db down" } });
+      }
+      return Promise.resolve({ data: { ok: true }, error: null });
+    });
+    const res = await POST(req({ billIssueIds: [5] }));
+    const json = await res.json();
+    expect(submitFax).not.toHaveBeenCalled(); // provider 접수 없음(중복 전송 없음)
+    expect(json.results[0].status).toBe("mark_failed");
+    expect(json.failed).toBe(0);
+    expect(json.reconcileRequired).toBe(1);
+  });
+
+  it("접수 확정 실패(SubmitError) 후 mark까지 실패하면 terminal(failed)로 주장하지 않고 mark_failed로 남긴다", async () => {
+    submitFax.mockRejectedValue(new PopbillSubmitError("506", "발신번호 오류"));
+    adminRpc.mockImplementation((name: string) => {
+      if (name === "create_fax_dispatch_job") {
+        return Promise.resolve({ data: { ok: true, job_id: 1, request_num: "f5a0", provider_ref_key: "f5a0" }, error: null });
+      }
+      if (name === "mark_fax_dispatch_result") {
+        return Promise.resolve({ data: null, error: { message: "db down" } });
+      }
+      return Promise.resolve({ data: { ok: true }, error: null });
+    });
+    const res = await POST(req({ billIssueIds: [5] }));
+    const json = await res.json();
+    expect(submitFax).toHaveBeenCalledTimes(1);
+    expect(json.results[0].status).toBe("mark_failed");
+    expect(json.failed).toBe(0);
+    expect(json.reconcileRequired).toBe(1);
+  });
+
+  it("mark 전송 오류가 한 번 나도 유한 재시도로 중복 접수 없이 반영된다", async () => {
+    let markCalls = 0;
+    adminRpc.mockImplementation((name: string) => {
+      if (name === "create_fax_dispatch_job") {
+        return Promise.resolve({ data: { ok: true, job_id: 1, request_num: "f5a0", provider_ref_key: "f5a0" }, error: null });
+      }
+      if (name === "mark_fax_dispatch_result") {
+        markCalls += 1;
+        return markCalls === 1
+          ? Promise.resolve({ data: null, error: { message: "db blip" } })
+          : Promise.resolve({ data: { ok: true }, error: null });
+      }
+      return Promise.resolve({ data: { ok: true }, error: null });
+    });
+    const res = await POST(req({ billIssueIds: [5] }));
+    const json = await res.json();
+    expect(submitFax).toHaveBeenCalledTimes(1); // 재시도는 mark만, provider 재접수 없음
+    expect(markCalls).toBe(2);
+    expect(json.queued).toBe(1);
+    expect(json.results[0].status).toBe("queued");
   });
 });

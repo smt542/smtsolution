@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { dispatchMessages, submitReservationBatches } from "./dispatch";
+import { dispatchMessages, submitReservationBatches, type DispatchMessagesInput } from "./dispatch";
 import { PopbillSubmitError, PopbillTimeoutError, type MessageBatchInput } from "@/lib/popbill/types";
 
 function makeClient(handlers: Record<string, (args: Record<string, unknown>) => unknown>) {
@@ -283,5 +283,146 @@ describe("dispatchMessages", () => {
     const out = await dispatchMessages(baseInput, { sb, admin, submitBatch, isConfigured: () => true });
     expect(out).toMatchObject({ ok: false, code: "INSUFFICIENT_POINTS", httpStatus: 402 });
     expect(submitBatch).not.toHaveBeenCalled();
+  });
+});
+
+function rpcNamesOf(admin: ReturnType<typeof makeClient>): string[] {
+  return (admin.rpc as unknown as { mock: { calls: [string, unknown][] } }).mock.calls.map((c) => c[0]);
+}
+
+describe("dispatchMessages 예약 replay 상태별 처리", () => {
+  function replayClientsFor(status: string) {
+    const sb = makeClient({
+      quote_message_points: () => ({ ok: true, rate_ids: { sms: 1 }, estimated_points: 2 }),
+    });
+    const admin = makeClient({
+      reserve_message_points: () => ({
+        ok: true,
+        replayed: true,
+        status,
+        reservation_id: 5,
+        message_log_id: 9,
+        reserved_points: 2,
+      }),
+      create_provider_dispatch_jobs: () => ({ ok: true }),
+      mark_message_reservation_provider_pending: () => ({ ok: true, status: "provider_pending" }),
+    });
+    const submitBatch = vi.fn();
+    return { sb, admin, submitBatch };
+  }
+
+  it("reserved replay는 재접수 없이 SEND_IN_PROGRESS(409)를 반환하고 queued로 표기하지 않는다", async () => {
+    const { sb, admin, submitBatch } = replayClientsFor("reserved");
+    const out = await dispatchMessages(baseInput, { sb, admin, submitBatch, isConfigured: () => true });
+    expect(out).toMatchObject({ ok: false, code: "SEND_IN_PROGRESS", httpStatus: 409 });
+    expect(out.status).toBeUndefined();
+    expect(submitBatch).not.toHaveBeenCalled();
+    const names = rpcNamesOf(admin);
+    expect(names).not.toContain("create_provider_dispatch_jobs");
+    expect(names).not.toContain("mark_message_reservation_provider_pending");
+  });
+
+  it("reconcile_required replay는 SEND_UNCONFIRMED(502)를 반환하고 queued로 표기하지 않는다", async () => {
+    const { sb, admin, submitBatch } = replayClientsFor("reconcile_required");
+    const out = await dispatchMessages(baseInput, { sb, admin, submitBatch, isConfigured: () => true });
+    expect(out).toMatchObject({ ok: false, code: "SEND_UNCONFIRMED", httpStatus: 502 });
+    expect(out.status).toBeUndefined();
+    expect(submitBatch).not.toHaveBeenCalled();
+    const names = rpcNamesOf(admin);
+    expect(names).not.toContain("create_provider_dispatch_jobs");
+    expect(names).not.toContain("mark_message_reservation_provider_pending");
+  });
+
+  it("provider_pending replay는 provider 재호출 없이 안전한 queued를 반환한다", async () => {
+    const { sb, admin, submitBatch } = replayClientsFor("provider_pending");
+    const out = await dispatchMessages(baseInput, { sb, admin, submitBatch, isConfigured: () => true });
+    expect(out).toMatchObject({ ok: true, status: "queued", reservationId: 5 });
+    expect(submitBatch).not.toHaveBeenCalled();
+  });
+
+  it("settled replay는 provider 재호출 없이 안전한 queued를 반환한다", async () => {
+    const { sb, admin, submitBatch } = replayClientsFor("settled");
+    const out = await dispatchMessages(baseInput, { sb, admin, submitBatch, isConfigured: () => true });
+    expect(out).toMatchObject({ ok: true, status: "queued", reservationId: 5 });
+    expect(submitBatch).not.toHaveBeenCalled();
+  });
+
+  it("최초 접수 중 동일 키 재요청(reserved replay)은 재접수하지 않아 submit/mark/create가 정확히 1회다", async () => {
+    const sb = makeClient({
+      quote_message_points: () => ({ ok: true, rate_ids: { sms: 1 }, estimated_points: 2 }),
+    });
+    let reserveCalls = 0;
+    const admin = makeClient({
+      reserve_message_points: () => {
+        reserveCalls += 1;
+        return reserveCalls === 1
+          ? { ...twoSmsReserve, replayed: false }
+          : {
+              ok: true,
+              replayed: true,
+              status: "reserved",
+              reservation_id: 5,
+              message_log_id: 9,
+              reserved_points: 2,
+            };
+      },
+      create_provider_dispatch_jobs: () => ({ ok: true }),
+      mark_message_reservation_provider_pending: () => ({ ok: true, status: "provider_pending", accepted: 1 }),
+    });
+    const submitBatch = vi.fn().mockResolvedValue({ requestNum: "m5c0", receiptNum: "RCPT", product: "sms", recipients: [] });
+    const first = await dispatchMessages(baseInput, { sb, admin, submitBatch, isConfigured: () => true });
+    const second = await dispatchMessages(baseInput, { sb, admin, submitBatch, isConfigured: () => true });
+    expect(first).toMatchObject({ ok: true, status: "queued" });
+    expect(second).toMatchObject({ ok: false, code: "SEND_IN_PROGRESS", httpStatus: 409 });
+    expect(submitBatch).toHaveBeenCalledTimes(1);
+    const names = rpcNamesOf(admin);
+    expect(names.filter((n) => n === "mark_message_reservation_provider_pending")).toHaveLength(1);
+    expect(names.filter((n) => n === "create_provider_dispatch_jobs")).toHaveLength(1);
+  });
+});
+
+describe("dispatchMessages 서버 페이로드 해시(material 필드 전체)", () => {
+  async function hashFor(input: DispatchMessagesInput): Promise<string> {
+    let hash = "";
+    const sb = makeClient({
+      quote_message_points: () => ({ ok: true, rate_ids: { sms: 1 }, estimated_points: 2 }),
+    });
+    const admin = makeClient({
+      reserve_message_points: (args) => {
+        hash = String(args.p_payload_hash ?? "");
+        return twoSmsReserve;
+      },
+      create_provider_dispatch_jobs: () => ({ ok: true }),
+      mark_message_reservation_provider_pending: () => ({ ok: true, status: "provider_pending" }),
+    });
+    const submitBatch = vi.fn().mockResolvedValue({ requestNum: "m5c0", receiptNum: "R", product: "sms", recipients: [] });
+    await dispatchMessages(input, { sb, admin, submitBatch, isConfigured: () => true });
+    return hash;
+  }
+
+  it("동일 material 필드는 동일 해시다", async () => {
+    expect(await hashFor(baseInput)).toBe(await hashFor({ ...baseInput }));
+  });
+
+  it("context가 다르면 페이로드 해시가 다르다", async () => {
+    expect(await hashFor(baseInput)).not.toBe(await hashFor({ ...baseInput, context: "고지서" }));
+  });
+
+  it("effective templateId가 다르면 페이로드 해시가 다르다", async () => {
+    expect(await hashFor({ ...baseInput, mode: "auto", templateId: null })).not.toBe(
+      await hashFor({ ...baseInput, mode: "auto", templateId: 5 }),
+    );
+  });
+
+  it("수신자 identity(ref)가 다르면 전화/본문이 같아도 페이로드 해시가 다르다", async () => {
+    const a = {
+      ...baseInput,
+      recipients: [{ name: "A", phone: "010-1111-2222", kind: "tenant" as const, ref: { occupancyId: 1 } }],
+    };
+    const b = {
+      ...baseInput,
+      recipients: [{ name: "A", phone: "010-1111-2222", kind: "tenant" as const, ref: { occupancyId: 2 } }],
+    };
+    expect(await hashFor(a)).not.toBe(await hashFor(b));
   });
 });

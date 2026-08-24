@@ -11,6 +11,7 @@ import {
   type ProviderSubmission,
 } from "@/lib/popbill/types";
 import { buildSubmissionPlan, type PlanProduct, type PlanRecipient } from "./submission";
+import { canonicalSendPayload } from "./sendSignature";
 
 /**
  * === Popbill 접수 기반 즉시 발송 오케스트레이션 (provider-neutral) ===
@@ -159,8 +160,18 @@ export async function dispatchMessages(
     p_org_id: input.orgId,
     p_requested_by: input.userId,
     p_idempotency_key: input.idempotencyKey,
+    // 페이로드 해시는 모든 material 발송 필드(mode·body·context·effective templateId·완전한 수신자)를
+    // 덮는다. 수신자 identity/ref가 바뀌면 해시도 달라져, 같은 키로 stale 예약을 재사용하지 못한다.
     p_payload_hash: createHash("sha256")
-      .update(`${input.mode}|${input.body}|${JSON.stringify(input.recipients)}`)
+      .update(
+        canonicalSendPayload({
+          mode: input.mode,
+          body: input.body,
+          context: input.context,
+          templateId: input.templateId,
+          recipients: input.recipients,
+        }),
+      )
       .digest("hex")
       .slice(0, 128),
     p_mode: input.mode,
@@ -184,26 +195,50 @@ export async function dispatchMessages(
   const messageLogId = reserve.message_log_id as number;
   const reservedPoints = reserve.reserved_points ?? 0;
 
-  // 멱등 replay: 기존 예약이 있으면 절대 재접수/재마킹하지 않는다. 저장된 예약 상태로만 안전 응답한다.
-  // (동일 키의 중복 클릭·재시도·동시 호출이 두 번 발송하지 않게 한다.)
+  // 멱등 replay: 기존 예약이 있으면 절대 재접수/재마킹/재작업생성하지 않는다. 저장된 예약 상태로만
+  // 응답하며 어떤 경로도 provider를 다시 호출하지 않는다(중복 클릭·재시도·동시 호출의 이중 발송 방지).
   if (reserve.replayed) {
-    if (reserve.status === "released") {
-      // 이전 시도가 전부 확정 거절되어 반환됨 → 재발송 없이 동일한 안전 실패를 돌려준다.
-      return {
-        ok: false,
-        code: "SEND_REJECTED",
-        message: "발송이 확정 거절되었습니다.",
-        httpStatus: 502,
-      };
+    switch (reserve.status) {
+      case "released":
+        // 이전 시도가 전부 확정 거절되어 예약이 반환됨 → 재발송 없이 동일한 안전 실패.
+        return {
+          ok: false,
+          code: "SEND_REJECTED",
+          message: "발송이 확정 거절되었습니다.",
+          httpStatus: 502,
+          reservationId,
+        };
+      case "provider_pending":
+      case "settled":
+        // 접수 receipt가 있거나(provider_pending) 이미 최종 정산됨(settled) → 안전하게 queued(접수 상태)로 응답.
+        return {
+          ok: true,
+          status: "queued",
+          logId: messageLogId,
+          reservationId,
+          reservedPoints,
+        };
+      case "reconcile_required":
+        // 접수 결과가 불명확 → 아직 성공 접수(queued)로 표기하지 않는다. 재조회/수동 확인 대상.
+        return {
+          ok: false,
+          code: "SEND_UNCONFIRMED",
+          message: "발송 접수 결과를 확인하지 못했습니다. 결과 확인 후 처리됩니다.",
+          httpStatus: 502,
+          reservationId,
+        };
+      case "reserved":
+      default:
+        // 예약만 있고 접수(mark)가 아직 안 됨(동시 요청이 접수 중이거나 이전 시도가 중단됨). 절대
+        // 재접수하지 않고 queued로도 표기하지 않는다. 진행 중임을 알리는 비성공 응답(409)으로 남긴다.
+        return {
+          ok: false,
+          code: "SEND_IN_PROGRESS",
+          message: "동일 요청이 처리 중입니다. 잠시 후 결과를 확인해 주세요.",
+          httpStatus: 409,
+          reservationId,
+        };
     }
-    // reserved/provider_pending/reconcile_required/settled → 이미 처리 중이거나 완료. 접수 상태로 응답.
-    return {
-      ok: true,
-      status: "queued",
-      logId: messageLogId,
-      reservationId,
-      reservedPoints,
-    };
   }
 
   const resolved = reserve.resolved_recipients ?? quote.resolved_recipients ?? [];

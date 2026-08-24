@@ -455,9 +455,10 @@ begin
       where id = p_job_id;
     update public.bill_issues set send_status = 'queued' where id = v_job.bill_issue_id;
   elsif p_outcome = 'unknown' then
+    -- 접수 receipt가 없어 결과가 불명확하다. queued(성공 접수)로 표기하지 않는다 — queued는 accepted receipt를
+    -- 받은 경우에만 쓴다. job.reconcile_required가 재조회/수동 확인의 원장이며 bill_issues 상태는 건드리지 않는다.
     update public.provider_dispatch_jobs
       set status = 'reconcile_required', last_error_code = p_error_code where id = p_job_id;
-    update public.bill_issues set send_status = 'queued' where id = v_job.bill_issue_id;
   else
     update public.provider_dispatch_jobs
       set status = 'failed', completed_at = now(), last_error_code = p_error_code where id = p_job_id;

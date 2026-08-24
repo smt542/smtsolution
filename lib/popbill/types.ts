@@ -90,6 +90,12 @@ export function submitWithTimeout<T>(
       clearTimeout(timer);
       reject(error);
     };
-    executor(safeResolve, safeReject);
+    // executor가 동기적으로 throw하면 safeReject로 넘겨 타이머를 정리한다.
+    // (Promise 생성자만으로는 reject되지만 setTimeout이 정리되지 않아 누수된다.)
+    try {
+      executor(safeResolve, safeReject);
+    } catch (error) {
+      safeReject(error);
+    }
   });
 }
