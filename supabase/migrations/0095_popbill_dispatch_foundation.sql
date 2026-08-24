@@ -210,3 +210,173 @@ $$;
 revoke all on function public.claim_provider_dispatch_jobs(integer)
   from public, anon, authenticated;
 grant execute on function public.claim_provider_dispatch_jobs(integer) to service_role;
+
+-- ===== 고지서 팩스 상태 확장 + 서버 문서 로드(Task 8) =====
+-- 팩스/카톡 발송 상태에 queued|partial 추가. 과거 none/scheduled/sent/failed 행과 호환.
+alter table public.bill_issues drop constraint if exists bill_issues_send_status_check;
+alter table public.bill_issues add constraint bill_issues_send_status_check
+  check (send_status in ('none', 'scheduled', 'queued', 'sent', 'partial', 'failed'));
+
+-- 팩스 PDF 생성을 위한 서버 권위 데이터. 클라이언트가 보낸 금액/계좌/이름을 신뢰하지 않고
+-- 확정 관리비·조직 설정에서 다시 조회한다. 조직 소유·bill_publish 권한을 검증한다.
+create or replace function public.load_fax_document(p_bill_issue_id bigint)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_org bigint;
+  v_result jsonb;
+begin
+  v_org := public.current_user_org();
+  if v_org is null then
+    raise exception 'no org for caller' using errcode = '42501';
+  end if;
+  if not public.current_user_has_module('bill_publish') then
+    raise exception 'forbidden: bill_publish required' using errcode = '42501';
+  end if;
+
+  select jsonb_build_object(
+    'bill_issue_id', bi.id,
+    'org_id', b.org_id,
+    'company_name', org.name,
+    'building', jsonb_build_object('id', b.id, 'name', b.name, 'address', b.address),
+    'unit_id', u.id,
+    'unit_no', u.unit_no,
+    'dong', u.dong,
+    'period', to_char(bi.period, 'YYYY-MM'),
+    'tenant_name', o.tenant_name,
+    'payer_name', o.payer_name,
+    'payer_no', ua.payer_no,
+    'bill_name_display', coalesce(o.bill_name_display, bi.unit_label_mode, 'name'),
+    'phone', o.phone,
+    'fax_number', o.fax_number,
+    'auto_debit', bi.auto_debit,
+    'amount', bc.total_amount,
+    'items', coalesce(bh.items, '[]'::jsonb),
+    'unit_notice', bc.unit_notice,
+    'customer_notice', sc.customer_notice,
+    'due_date', to_char(bi.due_date, 'YYYY-MM-DD'),
+    'mgmt_bank1', sc.mgmt_bank1, 'mgmt_acct1', sc.mgmt_acct1, 'mgmt_holder1', sc.mgmt_holder1,
+    'mgmt_print1', coalesce(sc.mgmt_print1, false),
+    'mgmt_bank2', sc.mgmt_bank2, 'mgmt_acct2', sc.mgmt_acct2, 'mgmt_holder2', sc.mgmt_holder2,
+    'mgmt_print2', coalesce(sc.mgmt_print2, false)
+  )
+  into v_result
+  from public.bill_issues bi
+  join public.units u on u.id = bi.unit_id and u.deleted_at is null
+  join public.buildings b on b.id = u.building_id and b.org_id = v_org
+  join public.billing_confirmations bc
+    on bc.unit_id = u.id and bc.period = bi.period and bc.confirmed_at is not null
+  left join public.occupancies o on o.id = bi.occupancy_id
+  left join public.unit_accounts ua on ua.unit_id = u.id and ua.kind = 'mgmt'
+  left join lateral (
+    select h.items from public.billing_history h
+    where h.unit_id = u.id and h.period = bi.period
+    order by h.confirmed_at desc, h.id desc limit 1
+  ) bh on true
+  left join public.setup_config sc on sc.org_id = v_org
+  join public.organizations org on org.id = v_org
+  where bi.id = p_bill_issue_id and bi.issue_type = 'fax';
+
+  if v_result is null then
+    return jsonb_build_object('ok', false, 'code', 'BILL_ISSUE_NOT_FOUND');
+  end if;
+  return jsonb_build_object('ok', true) || v_result;
+end
+$$;
+revoke all on function public.load_fax_document(bigint) from public, anon;
+grant execute on function public.load_fax_document(bigint) to authenticated;
+
+-- ===== 팩스 작업 생성/접수 반영(service_role) =====
+-- 세대별(고지서별) 독립 작업. 재시도는 새 attempt(append-only)로 만든다(기존 작업 덮어쓰기 없음).
+create or replace function public.create_fax_dispatch_job(p_bill_issue_id bigint)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_org bigint;
+  v_attempt integer;
+  v_request text;
+  v_job_id bigint;
+begin
+  if coalesce((select auth.role()), '') <> 'service_role' then
+    raise exception 'forbidden: service role required' using errcode = '42501';
+  end if;
+
+  select b.org_id into v_org
+  from public.bill_issues bi
+  join public.units u on u.id = bi.unit_id
+  join public.buildings b on b.id = u.building_id
+  where bi.id = p_bill_issue_id and bi.issue_type = 'fax';
+  if v_org is null then
+    return jsonb_build_object('ok', false, 'code', 'BILL_ISSUE_NOT_FOUND');
+  end if;
+
+  select count(*) into v_attempt from public.provider_dispatch_jobs where bill_issue_id = p_bill_issue_id;
+  v_request := 'f' || p_bill_issue_id || 'a' || v_attempt;
+
+  insert into public.provider_dispatch_jobs(
+    org_id, provider, kind, product, bill_issue_id, request_num, status
+  ) values (
+    v_org, 'popbill', 'fax', 'fax', p_bill_issue_id, v_request, 'submitting'
+  ) returning id into v_job_id;
+
+  insert into public.provider_dispatch_recipients(job_id, recipient_key, provider_ref_key, product)
+    values (v_job_id, v_request, v_request, 'fax');
+
+  return jsonb_build_object('ok', true, 'job_id', v_job_id, 'request_num', v_request, 'provider_ref_key', v_request);
+end
+$$;
+revoke all on function public.create_fax_dispatch_job(bigint) from public, anon, authenticated;
+grant execute on function public.create_fax_dispatch_job(bigint) to service_role;
+
+-- 접수 결과 반영: accepted→pending(고지서 queued), unknown→reconcile_required(queued), failed→실패.
+create or replace function public.mark_fax_dispatch_result(
+  p_job_id bigint,
+  p_outcome text,
+  p_receipt_num text default null,
+  p_error_code text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_job public.provider_dispatch_jobs%rowtype;
+begin
+  if coalesce((select auth.role()), '') <> 'service_role' then
+    raise exception 'forbidden: service role required' using errcode = '42501';
+  end if;
+  select * into v_job from public.provider_dispatch_jobs where id = p_job_id for update;
+  if not found then return jsonb_build_object('ok', false, 'code', 'JOB_NOT_FOUND'); end if;
+
+  if p_outcome = 'accepted' then
+    update public.provider_dispatch_jobs
+      set receipt_num = p_receipt_num, status = 'pending', submitted_at = now(),
+          next_poll_at = now() + interval '1 minute', last_error_code = null, last_error_message = null
+      where id = p_job_id;
+    update public.bill_issues set send_status = 'queued' where id = v_job.bill_issue_id;
+  elsif p_outcome = 'unknown' then
+    update public.provider_dispatch_jobs
+      set status = 'reconcile_required', last_error_code = p_error_code where id = p_job_id;
+    update public.bill_issues set send_status = 'queued' where id = v_job.bill_issue_id;
+  else
+    update public.provider_dispatch_jobs
+      set status = 'failed', completed_at = now(), last_error_code = p_error_code where id = p_job_id;
+    update public.provider_dispatch_recipients
+      set status = 'failed', completed_at = now() where job_id = p_job_id and status = 'pending';
+    update public.bill_issues set send_status = 'failed' where id = v_job.bill_issue_id;
+  end if;
+
+  return jsonb_build_object('ok', true, 'outcome', p_outcome);
+end
+$$;
+revoke all on function public.mark_fax_dispatch_result(bigint, text, text, text)
+  from public, anon, authenticated;
+grant execute on function public.mark_fax_dispatch_result(bigint, text, text, text) to service_role;

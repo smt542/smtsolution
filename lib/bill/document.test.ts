@@ -4,12 +4,69 @@ import {
   BILL_QR_PLACEHOLDER_BASE,
   billDocumentTotal,
   buildAdjustmentRows,
+  buildFaxDocument,
   buildQrPayload,
   formatBillAmount,
   giroDocumentAmount,
   printableAccounts,
+  type FaxDocumentRow,
   unitLabel,
 } from "./document";
+
+describe("buildFaxDocument", () => {
+  const row: FaxDocumentRow = {
+    bill_issue_id: 5,
+    org_id: 10,
+    company_name: "한빛관리",
+    building: { id: 3, name: "그린빌라", address: "서울시 강남구" },
+    unit_id: 11,
+    unit_no: "101",
+    dong: "A",
+    period: "2026-08",
+    tenant_name: "홍길동",
+    payer_name: null,
+    payer_no: "P-101",
+    bill_name_display: "name",
+    phone: "010-1111-2222",
+    fax_number: "02-333-4444",
+    auto_debit: true,
+    amount: 123000,
+    items: [
+      { feeItemId: 1, name: "일반관리비", charged: true, amount: 100000 },
+      { feeItemId: 2, name: "청소비", charged: false, amount: 5000 },
+    ],
+    unit_notice: "세대 안내",
+    customer_notice: "공용 안내",
+    due_date: "2026-09-05",
+    mgmt_bank1: "국민", mgmt_acct1: "123-456", mgmt_holder1: "관리단", mgmt_print1: true,
+    mgmt_bank2: null, mgmt_acct2: null, mgmt_holder2: null, mgmt_print2: false,
+  };
+
+  it("서버 데이터 계약에 조직·건물·동호·기간·금액·계좌·안내·QR을 담는다", () => {
+    const doc = buildFaxDocument(row);
+    expect(doc.orgId).toBe(10);
+    expect(doc.companyName).toBe("한빛관리");
+    expect(doc.building).toEqual({ id: 3, name: "그린빌라", address: "서울시 강남구" });
+    expect(doc.unitNo).toBe("101");
+    expect(doc.dong).toBe("A");
+    expect(doc.period).toBe("2026-08");
+    expect(doc.amount).toBe(123000); // 확정 총액이 권위(항목 합산 아님)
+    expect(doc.householdName).toBe("홍길동"); // name 모드, payer 없음 → tenant
+    expect(doc.faxNumber).toBe("02-333-4444");
+    expect(doc.accounts).toEqual([{ bank: "국민", acct: "123-456", holder: "관리단" }]);
+    expect(doc.customerNotice).toBe("공용 안내");
+    expect(doc.unitNotice).toBe("세대 안내");
+    expect(doc.dueDate).toBe("2026-09-05");
+    expect(doc.qrPayload).toContain("document=giro");
+    expect(doc.qrPayload).toContain("ref=11");
+    // 미부과 항목은 제외
+    expect(doc.items.map((i) => i.feeItemId)).toEqual([1]);
+  });
+
+  it("회사명이 비면 프로그램 기본명으로 대체한다", () => {
+    expect(buildFaxDocument({ ...row, company_name: null }).companyName).toBe("관리비서");
+  });
+});
 
 describe("bill/document", () => {
   it("unitLabel: 세대별 이름 출력 유형과 폴백을 적용", () => {
