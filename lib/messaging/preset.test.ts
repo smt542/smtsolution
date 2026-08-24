@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildSendPayload,
   dedupeRecipients,
+  type MessageProduct,
   type MessageRecipient,
   type SendMode,
   validRecipients,
@@ -74,5 +75,9 @@ describe("preset SendMode/채널 확장", () => {
       ],
     });
     expect(out.recipients).toHaveLength(1);
+  });
+  it("MessageProduct 타입은 과금 제품 sms/lms/alimtalk를 포함한다", () => {
+    const products: MessageProduct[] = ["sms", "lms", "alimtalk"];
+    expect(products).toHaveLength(3);
   });
 });

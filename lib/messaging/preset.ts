@@ -1,5 +1,10 @@
 export type MessageChannel = "sms" | "alimtalk";
 export type SendMode = "auto" | "sms" | "alimtalk";
+/**
+ * 실제 과금 제품. UI 라우팅용 MessageChannel(sms|alimtalk)과 구분한다.
+ * lms는 사용자가 선택하는 채널이 아니라 렌더된 본문이 SMS 한도를 넘으면 자동 승격되는 제품이다.
+ */
+export type MessageProduct = "sms" | "lms" | "alimtalk";
 
 export interface MessageRecipient {
   name: string | null;
