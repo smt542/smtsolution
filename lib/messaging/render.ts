@@ -16,3 +16,8 @@ export function renderTemplate(body: string, vars: Record<string, string>): stri
     return Object.prototype.hasOwnProperty.call(vars, key) ? vars[key] : whole;
   });
 }
+
+/** 렌더 후에도 남아있는 미치환 #{키} 변수가 있는지 검사한다(공급자 접수 전 가드). */
+export function hasUnresolvedVariables(body: string): boolean {
+  return /#\{[^}]+\}/.test(body);
+}
