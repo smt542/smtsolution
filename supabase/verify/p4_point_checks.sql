@@ -100,6 +100,83 @@ begin
     raise exception 'message_logs result constraint was not expanded';
   end if;
 
+  -- ===== Popbill 발송 작업 기반(0095) =====
+  if to_regclass('public.provider_dispatch_jobs') is null then
+    raise exception 'provider_dispatch_jobs table is missing';
+  end if;
+  if to_regclass('public.provider_dispatch_recipients') is null then
+    raise exception 'provider_dispatch_recipients table is missing';
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.provider_dispatch_jobs'::regclass
+      and contype = 'u'
+      and conname = 'provider_dispatch_jobs_request_num_key'
+  ) then
+    raise exception 'provider_dispatch_jobs request_num uniqueness is missing';
+  end if;
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.provider_dispatch_jobs'::regclass
+      and contype = 'u'
+      and conname = 'provider_dispatch_jobs_receipt_num_key'
+  ) then
+    raise exception 'provider_dispatch_jobs receipt_num uniqueness is missing';
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.provider_dispatch_recipients'::regclass
+      and conname = 'provider_dispatch_recipients_ref_unique'
+  ) then
+    raise exception 'provider_dispatch_recipients ref uniqueness is missing';
+  end if;
+  -- provider_ref_key 20자 제한(결정적 interOPRefKey)
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.provider_dispatch_recipients'::regclass
+      and contype = 'c'
+      and pg_get_constraintdef(oid) like '%provider_ref_key%20%'
+  ) then
+    raise exception 'provider_dispatch_recipients provider_ref_key length limit is missing';
+  end if;
+
+  -- 허용 상태 체크 제약(접수만으로 sent가 되지 않도록 submitting/pending/reconcile_required 포함)
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.provider_dispatch_jobs'::regclass
+      and contype = 'c'
+      and pg_get_constraintdef(oid) like '%submitting%'
+      and pg_get_constraintdef(oid) like '%reconcile_required%'
+  ) then
+    raise exception 'provider_dispatch_jobs status check is missing';
+  end if;
+
+  if not (select relrowsecurity from pg_class where oid = 'public.provider_dispatch_jobs'::regclass) then
+    raise exception 'provider_dispatch_jobs RLS is disabled';
+  end if;
+  if not (select relrowsecurity from pg_class where oid = 'public.provider_dispatch_recipients'::regclass) then
+    raise exception 'provider_dispatch_recipients RLS is disabled';
+  end if;
+
+  if has_table_privilege('authenticated', 'public.provider_dispatch_jobs', 'INSERT')
+     or has_table_privilege('authenticated', 'public.provider_dispatch_jobs', 'UPDATE')
+     or has_table_privilege('anon', 'public.provider_dispatch_jobs', 'INSERT') then
+    raise exception 'provider_dispatch_jobs must not be directly writable by anon/authenticated';
+  end if;
+  if has_table_privilege('authenticated', 'public.provider_dispatch_recipients', 'INSERT')
+     or has_table_privilege('anon', 'public.provider_dispatch_recipients', 'INSERT') then
+    raise exception 'provider_dispatch_recipients must not be directly writable by anon/authenticated';
+  end if;
+
+  if has_function_privilege('authenticated', 'public.claim_provider_dispatch_jobs(integer)', 'EXECUTE') then
+    raise exception 'authenticated must not execute claim_provider_dispatch_jobs';
+  end if;
+  if not has_function_privilege('service_role', 'public.claim_provider_dispatch_jobs(integer)', 'EXECUTE') then
+    raise exception 'service_role cannot execute claim_provider_dispatch_jobs';
+  end if;
+
   raise notice 'P4-point schema checks passed';
 end
 $$;
