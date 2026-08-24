@@ -89,7 +89,6 @@ describe("messaging apis (P4b)", () => {
         available_points: 90,
         estimated_points: 7,
         sufficient: true,
-        billing_mode: "stub",
       },
       error: null,
     });
@@ -114,7 +113,6 @@ describe("messaging apis (P4b)", () => {
       availablePoints: 90,
       estimatedPoints: 7,
       sufficient: true,
-      billingMode: "stub",
     });
     expect(rpc).toHaveBeenCalledWith("quote_message_points", {
       p_mode: "auto",

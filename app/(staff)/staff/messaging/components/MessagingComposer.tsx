@@ -224,7 +224,7 @@ export function MessagingComposer({
   const quoteAllowsSend =
     pointQuote.data !== undefined &&
     !pointQuote.isFetching &&
-    (pointQuote.data.billingMode === "stub" || pointQuote.data.sufficient);
+    pointQuote.data.sufficient;
   const canSend =
     validCount > 0 &&
     effectiveBody.trim().length > 0 &&
@@ -291,7 +291,7 @@ export function MessagingComposer({
       );
       return;
     }
-    if (pointQuote.data.billingMode === "live" && !pointQuote.data.sufficient) {
+    if (!pointQuote.data.sufficient) {
       toast.error("가용 포인트가 부족합니다.");
       return;
     }
@@ -305,9 +305,7 @@ export function MessagingComposer({
       scheduledIso = scheduledTime.toISOString();
     }
     const actionLabel = sendTiming === "scheduled" ? "예약 발송" : "발송";
-    const pointNotice = pointQuote.data.billingMode === "stub"
-      ? `${validCount}명 · 예상 ${pointQuote.data.estimatedPoints.toLocaleString("ko-KR")} P (테스트 모드에서는 차감 없음)`
-      : `${validCount}명 · ${pointQuote.data.estimatedPoints.toLocaleString("ko-KR")} P가 차감됩니다`;
+    const pointNotice = `${validCount}명 · 예상 ${pointQuote.data.estimatedPoints.toLocaleString("ko-KR")} P (성공 발송분만 차감)`;
     if (!window.confirm(`${pointNotice}\n${actionLabel}하시겠습니까?`)) return;
 
     try {

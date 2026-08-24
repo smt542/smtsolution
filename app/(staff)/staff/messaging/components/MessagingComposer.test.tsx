@@ -168,7 +168,6 @@ beforeEach(() => {
           availablePoints: 100,
           estimatedPoints: input.recipients.length,
           sufficient: true,
-          billingMode: "stub",
         }
       : undefined,
     isPending: false,
@@ -244,7 +243,7 @@ describe("MessagingComposer", () => {
 
     await waitFor(() =>
       expect(confirmSpy).toHaveBeenCalledWith(
-        "1명 · 예상 1 P (테스트 모드에서는 차감 없음)\n발송하시겠습니까?",
+        "1명 · 예상 1 P (성공 발송분만 차감)\n발송하시겠습니까?",
       ),
     );
     expect(mutateAsync).toHaveBeenCalledWith({
@@ -330,7 +329,7 @@ describe("MessagingComposer", () => {
 
     await waitFor(() =>
       expect(confirmSpy).toHaveBeenCalledWith(
-        "1명 · 예상 1 P (테스트 모드에서는 차감 없음)\n발송하시겠습니까?",
+        "1명 · 예상 1 P (성공 발송분만 차감)\n발송하시겠습니까?",
       ),
     );
     expect(mutateAsync).toHaveBeenCalledWith({

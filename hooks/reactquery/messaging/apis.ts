@@ -71,7 +71,6 @@ export interface MessagePointQuote {
   availablePoints: number;
   estimatedPoints: number;
   sufficient: boolean;
-  billingMode: "stub" | "live";
 }
 
 export class MessagePointQuoteError extends Error {
@@ -149,7 +148,6 @@ export async function quoteMessagePoints(
     available_points?: number;
     estimated_points?: number;
     sufficient?: boolean;
-    billing_mode?: "stub" | "live";
   } | null;
 
   if (!result?.ok) {
@@ -186,7 +184,6 @@ export async function quoteMessagePoints(
     availablePoints: Number(result.available_points ?? 0),
     estimatedPoints: Number(result.estimated_points ?? 0),
     sufficient: Boolean(result.sufficient),
-    billingMode: result.billing_mode ?? "stub",
   };
 }
 
