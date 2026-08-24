@@ -222,7 +222,7 @@ export function MessagingComposer({
         mode,
         body: effectiveBody,
         context: preset?.context ?? "manual",
-        templateId: effectiveTemplateId,
+        templateId: mode === "sms" ? null : effectiveTemplateId,
         recipients: submissionRecipients,
       }),
     [effectiveBody, effectiveTemplateId, mode, preset?.context, submissionRecipients],
