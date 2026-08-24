@@ -79,10 +79,24 @@ describe("bill apis", () => {
     expect(rpc).toHaveBeenCalledWith("record_bill_delivery", expect.objectContaining({
       p_issue_type: "kakao", p_send_status: "scheduled", p_message_schedule_id: 9,
     }));
-    await sendBillFaxes({ buildingId: 7, period: "2026-08-01", unitIds: [1] });
-    expect(rpc).toHaveBeenLastCalledWith("record_bill_delivery", expect.objectContaining({
-      p_issue_type: "fax", p_send_status: "sent",
-    }));
+  });
+  it("팩스 발송은 fax bill_issue를 확보한 뒤 서버 라우트로 접수한다(가짜 sent 기록 없음)", async () => {
+    rpc.mockResolvedValueOnce({ data: [{ bill_issue_id: 5, unit_id: 1 }], error: null });
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ queued: 1, failed: 0 }) });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await sendBillFaxes({ buildingId: 7, period: "2026-08-01", unitIds: [1] });
+
+    expect(rpc).toHaveBeenCalledWith("resolve_fax_bill_issues", {
+      p_building_id: 7,
+      p_period: "2026-08-01",
+      p_unit_ids: [1],
+    });
+    expect(fetchMock).toHaveBeenCalledWith("/api/bill/fax/send", expect.objectContaining({ method: "POST" }));
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as { body: string }).body);
+    expect(body.billIssueIds).toEqual([5]);
+    expect(result).toEqual({ queued: 1, failed: 0 });
+    vi.unstubAllGlobals();
   });
   it("에러 시 throw", async () => {
     rpc.mockResolvedValue({ data: null, error: { message: "boom" } });

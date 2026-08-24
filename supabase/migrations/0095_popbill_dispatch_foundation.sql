@@ -317,6 +317,14 @@ begin
     return jsonb_build_object('ok', false, 'code', 'BILL_ISSUE_NOT_FOUND');
   end if;
 
+  -- 재시도는 terminal 실패 작업에만 허용한다. 진행 중(submitting/pending/reconcile_required)이면 중복 전송을 막는다.
+  if exists (
+    select 1 from public.provider_dispatch_jobs
+    where bill_issue_id = p_bill_issue_id and status in ('submitting', 'pending', 'reconcile_required')
+  ) then
+    return jsonb_build_object('ok', false, 'code', 'ALREADY_IN_FLIGHT');
+  end if;
+
   select count(*) into v_attempt from public.provider_dispatch_jobs where bill_issue_id = p_bill_issue_id;
   v_request := 'f' || p_bill_issue_id || 'a' || v_attempt;
 
@@ -380,3 +388,123 @@ $$;
 revoke all on function public.mark_fax_dispatch_result(bigint, text, text, text)
   from public, anon, authenticated;
 grant execute on function public.mark_fax_dispatch_result(bigint, text, text, text) to service_role;
+
+-- ===== 팩스 대상 bill_issue 확보(재조회 정산 대상 생성) =====
+-- 선택 세대에 대한 issue_type='fax' bill_issue를 upsert하고 id를 돌려준다. 미확정 세대는 건너뛴다.
+create or replace function public.resolve_fax_bill_issues(
+  p_building_id bigint, p_period date, p_unit_ids jsonb
+)
+returns table(bill_issue_id bigint, unit_id bigint)
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_org bigint;
+  v_unit bigint;
+  v_total integer;
+  v_occ bigint;
+  v_auto boolean;
+  v_id bigint;
+begin
+  v_org := public.current_user_org();
+  if v_org is null then
+    raise exception 'no org for caller' using errcode = '42501';
+  end if;
+  if not public.current_user_has_module('bill_publish') then
+    raise exception 'forbidden: bill_publish required' using errcode = '42501';
+  end if;
+  if not exists (select 1 from public.buildings where id = p_building_id and org_id = v_org) then
+    raise exception 'building not in org' using errcode = '42501';
+  end if;
+
+  for v_unit in select jsonb_array_elements_text(coalesce(p_unit_ids, '[]'::jsonb))::bigint loop
+    select bc.total_amount, bc.occupancy_id into v_total, v_occ
+    from public.billing_confirmations bc
+    join public.units u on u.id = bc.unit_id and u.building_id = p_building_id and u.deleted_at is null
+    where bc.unit_id = v_unit and bc.period = p_period and bc.confirmed_at is not null;
+    if not found then
+      continue;
+    end if;
+    v_auto := exists (
+      select 1 from public.unit_accounts ua
+      where ua.unit_id = v_unit and ua.kind = 'mgmt' and nullif(ua.cms_member_no, '') is not null
+    );
+    insert into public.bill_issues(
+      unit_id, period, occupancy_id, issue_type, group_no, unit_label_mode, auto_debit, total_amount, issued_by
+    ) values (
+      v_unit, p_period, v_occ, 'fax', 1, 'name', v_auto, coalesce(v_total, 0), (select auth.uid())
+    )
+    on conflict (unit_id, period, issue_type) do update
+      set total_amount = excluded.total_amount, occupancy_id = excluded.occupancy_id,
+          auto_debit = excluded.auto_debit, issued_by = excluded.issued_by, issued_at = now()
+    returning id into v_id;
+    bill_issue_id := v_id;
+    unit_id := v_unit;
+    return next;
+  end loop;
+end
+$$;
+revoke all on function public.resolve_fax_bill_issues(bigint, date, jsonb) from public, anon;
+grant execute on function public.resolve_fax_bill_issues(bigint, date, jsonb) to authenticated;
+
+-- ===== 팩스 결과 반영(service_role, 멱등): 페이지 수 기록 + 상태·고지서 최종화 =====
+create or replace function public.apply_fax_dispatch_result(
+  p_job_id bigint,
+  p_status text,
+  p_send_pages integer,
+  p_success_pages integer,
+  p_fail_pages integer,
+  p_charge_pages integer,
+  p_refund_pages integer,
+  p_next_poll_at timestamptz
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_job public.provider_dispatch_jobs%rowtype;
+begin
+  if coalesce((select auth.role()), '') <> 'service_role' then
+    raise exception 'forbidden: service role required' using errcode = '42501';
+  end if;
+  select * into v_job from public.provider_dispatch_jobs where id = p_job_id for update;
+  if not found then return jsonb_build_object('ok', false, 'code', 'JOB_NOT_FOUND'); end if;
+  if v_job.status <> 'pending' then
+    return jsonb_build_object('ok', true, 'replayed', true, 'job_status', v_job.status);
+  end if;
+
+  if p_status in ('sent', 'partial', 'failed') then
+    update public.provider_dispatch_jobs
+      set status = p_status, completed_at = now(), next_poll_at = null, lease_until = null,
+          send_page_count = p_send_pages, success_page_count = p_success_pages,
+          fail_page_count = p_fail_pages, charge_page_count = p_charge_pages, refund_page_count = p_refund_pages
+      where id = p_job_id;
+    update public.provider_dispatch_recipients
+      set status = case when p_status = 'failed' then 'failed' else 'success' end, completed_at = now()
+      where job_id = p_job_id and status = 'pending';
+    update public.bill_issues set send_status = p_status where id = v_job.bill_issue_id;
+  elsif p_next_poll_at is null then
+    update public.provider_dispatch_jobs
+      set status = 'reconcile_required', next_poll_at = null, lease_until = null,
+          send_page_count = p_send_pages, success_page_count = p_success_pages,
+          fail_page_count = p_fail_pages, charge_page_count = p_charge_pages, refund_page_count = p_refund_pages
+      where id = p_job_id;
+  else
+    update public.provider_dispatch_jobs
+      set next_poll_at = p_next_poll_at, lease_until = null,
+          send_page_count = p_send_pages, success_page_count = p_success_pages,
+          fail_page_count = p_fail_pages, charge_page_count = p_charge_pages, refund_page_count = p_refund_pages
+      where id = p_job_id;
+  end if;
+
+  return jsonb_build_object('ok', true, 'job_status',
+    case when p_status in ('sent', 'partial', 'failed') then p_status
+         when p_next_poll_at is null then 'reconcile_required' else 'pending' end);
+end
+$$;
+revoke all on function public.apply_fax_dispatch_result(bigint, text, integer, integer, integer, integer, integer, timestamptz)
+  from public, anon, authenticated;
+grant execute on function public.apply_fax_dispatch_result(bigint, text, integer, integer, integer, integer, integer, timestamptz) to service_role;

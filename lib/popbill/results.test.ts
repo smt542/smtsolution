@@ -2,14 +2,18 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const getMessages = vi.fn();
 const kakaoGetMessages = vi.fn();
+const getFaxResult = vi.fn();
 vi.mock("./sdk", () => ({
   getMessageService: () => ({ getMessages }),
   getKakaoService: () => ({ getMessages: kakaoGetMessages }),
+  getFaxService: () => ({ getFaxResult }),
 }));
 
 import {
   computeNextPollAt,
+  fetchFaxResult,
   fetchMessageResults,
+  normalizeFaxResult,
   normalizeMessageResult,
 } from "./results";
 import type { PopbillConfig } from "./config";
@@ -102,5 +106,44 @@ describe("fetchMessageResults", () => {
     const err = (await fetchMessageResults(config, "sms", "X").catch((e) => e)) as Error;
     expect(err).toBeInstanceOf(Error);
     expect(err.message).not.toContain("SECRET");
+  });
+});
+
+describe("normalizeFaxResult", () => {
+  it("state=3/성공 페이지만 있으면 success + 페이지 집계", () => {
+    const r = normalizeFaxResult([
+      { state: 3, result: 100, sendPageCnt: 2, successPageCnt: 2, failPageCnt: 0, chargePageCnt: 2, refundPageCnt: 0 },
+    ]);
+    expect(r).toMatchObject({ status: "success", sendPages: 2, successPages: 2, failPages: 0, chargePages: 2, refundPages: 0 });
+  });
+  it("성공·실패 페이지가 섞이면 partial", () => {
+    const r = normalizeFaxResult([
+      { state: 3, result: 517, sendPageCnt: 3, successPageCnt: 2, failPageCnt: 1, chargePageCnt: 2, refundPageCnt: 1 },
+    ]);
+    expect(r.status).toBe("partial");
+    expect(r.successPages).toBe(2);
+    expect(r.refundPages).toBe(1);
+  });
+  it("성공 페이지가 없으면 failed(코드 506 등)", () => {
+    const r = normalizeFaxResult([{ state: 3, result: 506, sendPageCnt: 1, successPageCnt: 0, failPageCnt: 1 }]);
+    expect(r.status).toBe("failed");
+    expect(r.code).toBe("506");
+  });
+  it("state<3 또는 빈 결과는 pending", () => {
+    expect(normalizeFaxResult([{ state: 1, result: 1 }]).status).toBe("pending");
+    expect(normalizeFaxResult([]).status).toBe("pending");
+  });
+});
+
+describe("fetchFaxResult", () => {
+  it("getFaxResult 응답을 집계한다", async () => {
+    getFaxResult.mockImplementation((...args: unknown[]) => {
+      (args[3] as (r: unknown[]) => void)([
+        { state: 3, result: 100, sendPageCnt: 1, successPageCnt: 1, failPageCnt: 0, chargePageCnt: 1, refundPageCnt: 0 },
+      ]);
+    });
+    const out = await fetchFaxResult(config, "FAX-1");
+    expect(out).toMatchObject({ status: "success", successPages: 1 });
+    expect(getFaxResult).toHaveBeenCalledWith("1234567890", "FAX-1", "u", expect.any(Function), expect.any(Function));
   });
 });

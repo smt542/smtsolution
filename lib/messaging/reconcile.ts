@@ -1,7 +1,9 @@
 import { readPopbillConfig, type PopbillConfig } from "@/lib/popbill/config";
 import {
   computeNextPollAt,
+  defaultFetchFax,
   defaultFetchResults,
+  type FaxResultSummary,
   type ProviderRecipientResult,
 } from "@/lib/popbill/results";
 import type { SupabaseClientLike } from "./dispatch";
@@ -34,6 +36,7 @@ export interface ReconcileDeps {
     receiptNum: string;
     kind: string;
   }) => Promise<ProviderRecipientResult[]>;
+  fetchFax?: (job: { receiptNum: string }) => Promise<FaxResultSummary>;
 }
 
 export interface ReconcileResult {
@@ -59,6 +62,7 @@ export async function reconcilePendingDeliveries(deps: ReconcileDeps): Promise<R
   const config = deps.config;
   const fetchResults =
     deps.fetchResults ?? ((job) => defaultFetchResults(job, config ?? readPopbillConfig()));
+  const fetchFax = deps.fetchFax ?? ((job) => defaultFetchFax(job, config ?? readPopbillConfig()));
 
   const jobs = (await rpcData(deps.admin, "claim_provider_dispatch_jobs", {
     p_limit: limit,
@@ -68,7 +72,37 @@ export async function reconcilePendingDeliveries(deps: ReconcileDeps): Promise<R
 
   for (const job of jobs ?? []) {
     result.processed += 1;
-    // 팩스(kind=fax)는 Task 9에서 처리한다. 여기서는 문자/알림톡만 확정한다.
+    const submittedAtBase = new Date(job.submitted_at ?? job.created_at);
+
+    if (job.kind === "fax") {
+      let fax: FaxResultSummary | null = null;
+      if (job.receipt_num) {
+        try {
+          fax = await fetchFax({ receiptNum: job.receipt_num });
+        } catch {
+          fax = null;
+        }
+      }
+      const faxNext = computeNextPollAt(submittedAtBase, now);
+      // 성공(success)→sent로 매핑. 미조회/조회실패는 pending으로 두어 재스케줄한다.
+      const faxStatus = fax ? (fax.status === "success" ? "sent" : fax.status) : "pending";
+      const faxApplied = (await rpcData(deps.admin, "apply_fax_dispatch_result", {
+        p_job_id: job.id,
+        p_status: faxStatus,
+        p_send_pages: fax?.sendPages ?? 0,
+        p_success_pages: fax?.successPages ?? 0,
+        p_fail_pages: fax?.failPages ?? 0,
+        p_charge_pages: fax?.chargePages ?? 0,
+        p_refund_pages: fax?.refundPages ?? 0,
+        p_next_poll_at: faxNext ? faxNext.toISOString() : null,
+      })) as { job_status?: string } | null;
+      const fs = faxApplied?.job_status;
+      if (fs === "sent" || fs === "partial" || fs === "failed") result.finalized += 1;
+      else if (fs === "reconcile_required") result.reconcileRequired += 1;
+      else result.pending += 1;
+      continue;
+    }
+
     if (job.kind !== "message") continue;
 
     let results: ProviderRecipientResult[] = [];

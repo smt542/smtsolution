@@ -94,15 +94,41 @@ describe("reconcilePendingDeliveries", () => {
     expect(calls.find((c) => c.fn === "apply_provider_dispatch_results")?.args.p_results).toEqual([]);
   });
 
-  it("팩스(kind=fax) 작업은 이 단계에서 건너뛴다", async () => {
+  it("팩스(kind=fax) 성공 결과를 페이지 수와 함께 반영한다(finalized)", async () => {
+    const fetchFax = vi.fn().mockResolvedValue({
+      status: "success",
+      sendPages: 1,
+      successPages: 1,
+      failPages: 0,
+      chargePages: 1,
+      refundPages: 0,
+      code: "100",
+    });
     const { admin, calls } = makeAdmin({
-      claim_provider_dispatch_jobs: () => [job({ kind: "fax", product: "fax" })],
+      claim_provider_dispatch_jobs: () => [job({ id: 2, kind: "fax", product: "fax", receipt_num: "FAX-1", reservation_id: null })],
+      apply_fax_dispatch_result: () => ({ ok: true, job_status: "sent" }),
     });
 
-    const result = await reconcilePendingDeliveries({ admin, now: NOW, fetchResults });
+    const result = await reconcilePendingDeliveries({ admin, now: NOW, fetchResults, fetchFax });
 
-    expect(result.processed).toBe(1);
+    expect(result).toMatchObject({ processed: 1, finalized: 1 });
+    expect(fetchFax).toHaveBeenCalledWith({ receiptNum: "FAX-1" });
     expect(fetchResults).not.toHaveBeenCalled();
-    expect(calls.some((c) => c.fn === "apply_provider_dispatch_results")).toBe(false);
+    const applyArgs = calls.find((c) => c.fn === "apply_fax_dispatch_result")?.args;
+    expect(applyArgs).toMatchObject({ p_job_id: 2, p_status: "sent", p_success_pages: 1, p_charge_pages: 1 });
+  });
+
+  it("팩스 부분 성공은 partial 상태로 반영한다", async () => {
+    const fetchFax = vi.fn().mockResolvedValue({
+      status: "partial", sendPages: 2, successPages: 1, failPages: 1, chargePages: 1, refundPages: 1, code: "517",
+    });
+    const { admin, calls } = makeAdmin({
+      claim_provider_dispatch_jobs: () => [job({ id: 3, kind: "fax", product: "fax", receipt_num: "FAX-2", reservation_id: null })],
+      apply_fax_dispatch_result: () => ({ ok: true, job_status: "partial" }),
+    });
+
+    const result = await reconcilePendingDeliveries({ admin, now: NOW, fetchResults, fetchFax });
+    expect(result.finalized).toBe(1);
+    expect(calls.find((c) => c.fn === "apply_fax_dispatch_result")?.args.p_status).toBe("partial");
   });
 });

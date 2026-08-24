@@ -51,6 +51,7 @@ export async function POST(request: Request): Promise<Response> {
   const admin = createAdminClient();
   let queued = 0;
   let failed = 0;
+  let skipped = 0;
   const results: Array<{ billIssueId: number; status: string }> = [];
 
   for (const billIssueId of billIssueIds) {
@@ -64,7 +65,15 @@ export async function POST(request: Request): Promise<Response> {
       // 세대별 독립 작업 생성(재시도는 새 attempt로 append-only).
       const created = (await admin
         .rpc("create_fax_dispatch_job", { p_bill_issue_id: billIssueId })
-        .then((r) => r.data)) as { ok?: boolean; job_id?: number; request_num?: string; provider_ref_key?: string } | null;
+        .then((r) => r.data)) as
+        | { ok?: boolean; code?: string; job_id?: number; request_num?: string; provider_ref_key?: string }
+        | null;
+      if (created?.code === "ALREADY_IN_FLIGHT") {
+        // 진행 중(pending/reconcile_required) 작업이 있으면 중복 전송하지 않는다.
+        skipped += 1;
+        results.push({ billIssueId, status: "already_in_flight" });
+        continue;
+      }
       if (!created?.ok || !created.request_num) {
         failed += 1;
         results.push({ billIssueId, status: "job_create_failed" });
@@ -111,5 +120,5 @@ export async function POST(request: Request): Promise<Response> {
     }
   }
 
-  return json({ queued, failed, results }, 202);
+  return json({ queued, failed, skipped, results }, 202);
 }

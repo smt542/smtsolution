@@ -10,7 +10,6 @@ import {
   getBillDocuments,
   listBillTargets,
   useIssueBills,
-  useRecordBillDelivery,
   useSendBillFaxes,
   type BillDocument,
   type BillTarget,
@@ -56,7 +55,9 @@ function outputPeriod(year: number, month: number) {
 
 function sendStatusLabel(target: BillTarget) {
   if (target.faxSendStatus === "scheduled") return "예약";
+  if (target.faxSendStatus === "queued") return "결과 확인 중";
   if (target.faxSendStatus === "sent") return "발송 완료";
+  if (target.faxSendStatus === "partial") return "일부 성공";
   if (target.faxSendStatus === "failed") return "발송 실패";
   return "미발송";
 }
@@ -101,7 +102,6 @@ export function DocumentOutputModal({
   const [faxError, setFaxError] = useState(false);
   const issueBills = useIssueBills();
   const sendFaxes = useSendBillFaxes();
-  const recordDelivery = useRecordBillDelivery();
 
   const period = outputPeriod(year, month);
   const previousPeriod = prevPeriod(period);
@@ -259,34 +259,33 @@ export function DocumentOutputModal({
       return;
     }
     setFaxError(false);
-    let hasFailure = false;
+    let hasError = false;
+    let totalQueued = 0;
+    let totalFailed = 0;
     for (const building of selectedBuildings) {
       const unitIds = selectedTargets
         .filter((entry) => entry.building.id === building.id)
         .map((entry) => entry.target.unitId);
       if (unitIds.length === 0) continue;
       try {
-          await sendFaxes.mutateAsync({ buildingId: building.id, period, unitIds });
+        const result = await sendFaxes.mutateAsync({ buildingId: building.id, period, unitIds });
+        totalQueued += result.queued;
+        totalFailed += result.failed;
       } catch {
-        hasFailure = true;
-        try {
-          await recordDelivery.mutateAsync({
-            buildingId: building.id,
-            period,
-            unitIds,
-            issueType: "fax",
-            sendStatus: "failed",
-          });
-        } catch {
-          // 원 발송 실패를 우선 노출한다.
-        }
+        // 접수 자체가 실패(설정 누락·네트워크 등). 상태 확정은 서버가 관리하므로 가짜 기록은 남기지 않는다.
+        hasError = true;
       }
     }
-    if (hasFailure) {
+    if (hasError || totalFailed > 0) {
       setFaxError(true);
-      toast.error("발송에 실패했습니다. 다시 시도해 주세요.");
+      toast.error(
+        totalQueued > 0
+          ? `일부만 접수되었습니다 · 접수 ${totalQueued} · 실패 ${totalFailed}`
+          : "발송에 실패했습니다. 실패 세대를 다시 선택해 재발송해 주세요.",
+      );
     } else {
-      toast.success("발송이 완료되었습니다");
+      // 접수 완료(결과 확인 중). 전송 완료로 표시하지 않는다.
+      toast.success("발송을 접수했습니다. 결과 확인 중입니다.");
     }
   };
 

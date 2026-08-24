@@ -159,11 +159,40 @@ export async function recordBillDelivery(p: RecordBillDeliveryPayload): Promise<
   return { count: result.count };
 }
 
-// 팩스 공급사 랜딩 전까지 동일한 발송 트리거 계약으로 성공 상태를 기록하는 스텁이다.
+export interface SendBillFaxesPayload {
+  buildingId: number;
+  period: string;
+  unitIds: number[];
+}
+
+/**
+ * 고지서 팩스 발송: 대상 fax bill_issue를 확보한 뒤 서버 라우트로 접수한다.
+ * 접수 결과({queued, failed})만 반환하며 성공 확정은 재조회 정산이 담당한다(가짜 sent 기록 없음).
+ */
 export async function sendBillFaxes(
-  p: Omit<RecordBillDeliveryPayload, "issueType" | "sendStatus">,
-): Promise<{ count: number }> {
-  return recordBillDelivery({ ...p, issueType: "fax", sendStatus: "sent" });
+  p: SendBillFaxesPayload,
+): Promise<{ queued: number; failed: number }> {
+  const { data, error } = await createClient().rpc("resolve_fax_bill_issues", {
+    p_building_id: p.buildingId,
+    p_period: p.period,
+    p_unit_ids: p.unitIds,
+  });
+  if (error) throw new Error(error.message);
+  const billIssueIds = ((data ?? []) as { bill_issue_id: number }[]).map((row) => row.bill_issue_id);
+  if (billIssueIds.length === 0) return { queued: 0, failed: 0 };
+
+  const res = await fetch("/api/bill/fax/send", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ billIssueIds }),
+  });
+  const result = (await res.json().catch(() => null)) as
+    | { queued?: number; failed?: number; error?: string; message?: string }
+    | null;
+  if (!res.ok) {
+    throw new Error(result?.message ?? result?.error ?? "팩스 발송에 실패했습니다.");
+  }
+  return { queued: result?.queued ?? 0, failed: result?.failed ?? 0 };
 }
 
 export async function getOrganizationName(orgId: number): Promise<string | null> {

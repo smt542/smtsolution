@@ -1,6 +1,6 @@
-import type { PopbillMessageResult } from "popbill";
+import type { PopbillFaxResult, PopbillMessageResult } from "popbill";
 import { readPopbillConfig, type PopbillConfig } from "./config";
-import { getKakaoService, getMessageService } from "./sdk";
+import { getFaxService, getKakaoService, getMessageService } from "./sdk";
 
 /**
  * Popbill 결과 조회·정규화 — **서버 전용**.
@@ -76,4 +76,60 @@ export function defaultFetchResults(job: {
 }, config?: PopbillConfig): Promise<ProviderRecipientResult[]> {
   const cfg = config ?? readPopbillConfig();
   return fetchMessageResults(cfg, job.product as "sms" | "lms" | "alimtalk", job.receiptNum);
+}
+
+// ===== 팩스 결과 =====
+export interface FaxResultSummary {
+  status: "success" | "partial" | "failed" | "pending";
+  sendPages: number;
+  successPages: number;
+  failPages: number;
+  chargePages: number;
+  refundPages: number;
+  code: string;
+}
+
+/**
+ * 팩스 결과 집계. state=3/result=100이 성공, 성공 페이지 기준으로 성공/부분/실패를 정한다.
+ * 실제 성공 페이지(successPages)만 월 청구 원장으로 사용하고, 과금/환불 페이지는 분석용으로 보존한다.
+ */
+export function normalizeFaxResult(results: PopbillFaxResult[] | null): FaxResultSummary {
+  const rows = results ?? [];
+  const sum = (field: keyof PopbillFaxResult) =>
+    rows.reduce((total, row) => total + Number(row[field] ?? 0), 0);
+  const summary = {
+    sendPages: sum("sendPageCnt"),
+    successPages: sum("successPageCnt"),
+    failPages: sum("failPageCnt"),
+    chargePages: sum("chargePageCnt"),
+    refundPages: sum("refundPageCnt"),
+    code: rows.length > 0 ? String(rows[0].result ?? "") : "",
+  };
+  if (rows.length === 0 || rows.some((row) => Number(row.state) < 3)) {
+    return { status: "pending", ...summary };
+  }
+  const status =
+    summary.successPages > 0 ? (summary.failPages > 0 ? "partial" : "success") : "failed";
+  return { status, ...summary };
+}
+
+/** 접수번호로 팩스 결과를 조회해 집계한다. */
+export function fetchFaxResult(config: PopbillConfig, receiptNum: string): Promise<FaxResultSummary> {
+  const userId = config.userId ?? "";
+  return new Promise((resolve, reject) => {
+    getFaxService(config).getFaxResult(
+      config.corpNum,
+      receiptNum,
+      userId,
+      (raw) => resolve(normalizeFaxResult(raw)),
+      (e) => reject(new Error(`provider fax result lookup failed (code ${e?.code ?? "?"})`)),
+    );
+  });
+}
+
+export function defaultFetchFax(
+  job: { receiptNum: string },
+  config?: PopbillConfig,
+): Promise<FaxResultSummary> {
+  return fetchFaxResult(config ?? readPopbillConfig(), job.receiptNum);
 }
