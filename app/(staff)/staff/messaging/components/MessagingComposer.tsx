@@ -57,6 +57,14 @@ function recipientKey(recipient: MessageRecipient): string {
   return `${recipient.kind}:${recipient.phone ?? ""}:${recipient.name ?? ""}`;
 }
 
+function toLocalDateTimeInput(value: string | undefined): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+}
+
 function TenantRecipientOption({
   buildingId,
   tenant,
@@ -110,8 +118,12 @@ export function MessagingComposer({
   const [body, setBody] = useState(preset?.body ?? "");
   const [bodyTouched, setBodyTouched] = useState(false);
   const [quickMessageId, setQuickMessageId] = useState("");
-  const [sendTiming, setSendTiming] = useState<"now" | "scheduled">("now");
-  const [scheduledAt, setScheduledAt] = useState("");
+  const [sendTiming, setSendTiming] = useState<"now" | "scheduled">(
+    preset?.scheduledAt ? "scheduled" : "now",
+  );
+  const [scheduledAt, setScheduledAt] = useState(() =>
+    toLocalDateTimeInput(preset?.scheduledAt),
+  );
 
   const { data: buildings = [], isLoading: isBuildingsLoading } = useBuildings();
   const { data: tenants = [], isLoading: isTenantsLoading } =
@@ -158,8 +170,9 @@ export function MessagingComposer({
       validRecipientList.map((recipient) => {
         const occupancyId = recipient.ref?.occupancyId;
         const hasAlimtalkConsent =
-          occupancyId !== undefined &&
-          consentByOccupancy.get(occupancyId) === true;
+          recipient.alimtalkOptIn ??
+          (occupancyId !== undefined &&
+            consentByOccupancy.get(occupancyId) === true);
         const channel: MessageChannel | null =
           mode === "sms"
             ? "sms"

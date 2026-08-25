@@ -9,6 +9,8 @@ export type MessageProduct = "sms" | "lms" | "alimtalk";
 export interface MessageRecipient {
   name: string | null;
   phone: string | null;
+  /** 이미 조회한 입주자 동의값. 없으면 composer가 occupancyId로 다시 조회한다. */
+  alimtalkOptIn?: boolean;
   phoneType?: "primary" | "secondary";
   unitNo?: string | null;
   kind: "tenant" | "owner" | "staff" | "vendor" | "etc";
@@ -31,6 +33,8 @@ export interface MessagingPreset {
   body?: string;
   recipients?: MessageRecipient[];
   commonVariables?: Record<string, string>;
+  /** 예약 발송 초기값(ISO 8601). 지정되면 composer가 예약 발송으로 열린다. */
+  scheduledAt?: string;
 }
 
 /**

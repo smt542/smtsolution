@@ -40,6 +40,8 @@ export function ComplaintDetailModal({
   onUpdateResolution,
   onDeleteResolution,
   onMessageAssignee,
+  onMessageResident,
+  residentMessageTitle,
 }: {
   open: boolean;
   complaint: Complaint | null;
@@ -57,6 +59,8 @@ export function ComplaintDetailModal({
   ) => Promise<void>;
   onDeleteResolution: (resolution: ComplaintResolution) => Promise<void>;
   onMessageAssignee: (complaint: Complaint) => void;
+  onMessageResident: (complaint: Complaint) => void;
+  residentMessageTitle?: string;
 }) {
   const complaintId = complaint?.id ?? 0;
   const { data: loadedResolutions, isLoading: resolutionsLoading } =
@@ -138,6 +142,14 @@ export function ComplaintDetailModal({
               onClick={() => onMessageAssignee(complaint)}
             >
               담당 기사 문자 전송
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              title={residentMessageTitle}
+              onClick={() => onMessageResident(complaint)}
+            >
+              입주자 안내
             </Button>
           </div>
         </div>

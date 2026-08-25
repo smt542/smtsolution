@@ -521,6 +521,31 @@ describe("MessagingComposer", () => {
     expect(toast.success).toHaveBeenCalledWith("예약이 등록되었습니다(2099-08-20 09:30)");
   });
 
+  it("preset 예약 일시를 초기값으로 사용해 schedule_messages 경로로 전달한다", async () => {
+    render(
+      <MessagingComposer
+        initialMode="sms"
+        preset={{
+          context: "공지",
+          body: "예약 공지입니다.",
+          scheduledAt: "2099-08-30T01:30:00.000Z",
+          recipients: [{ name: "김입주", phone: "010-1000-0000", kind: "tenant" }],
+        }}
+      />,
+    );
+
+    expect(screen.getByLabelText("발송 시점")).toHaveValue("scheduled");
+    expect(
+      (screen.getByLabelText("예약 발송 일시") as HTMLInputElement).value,
+    ).toMatch(/^2099-08-30T\d{2}:30$/);
+    fireEvent.click(screen.getByRole("button", { name: "예약 발송" }));
+
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
+      context: "공지",
+      scheduledAt: "2099-08-30T01:30:00.000Z",
+    })));
+  });
+
   it("알림톡 모드에서 미동의 수신처를 경고하고 적격자가 없으면 차단한다", () => {
     vi.mocked(useTenantAlimtalkConsent).mockReturnValue({
       data: [{ occupancyId: 101, alimtalkOptIn: false, smsOptIn: true }],

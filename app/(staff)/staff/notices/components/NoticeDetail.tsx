@@ -6,8 +6,16 @@ import { Button, Modal, Panel } from "@/components/common";
 import type { Building } from "@/hooks/reactquery/buildings";
 import { useDeleteNotice, type Notice } from "@/hooks/reactquery/notices";
 import {
+  useOrganizationTenantList,
+  useTenantList,
+} from "@/hooks/reactquery/occupancies";
+import { useOrgContact } from "@/hooks/reactquery/org/useOrgContact";
+import type { MessageRecipient, MessagingPreset } from "@/lib/messaging/preset";
+import { MessagingModal } from "../../messaging/components/MessagingModal";
+import {
   formatNoticeDate,
   getNoticeStatus,
+  getNoticeTemplateTitle,
   NOTICE_STATUS_LABELS,
   NOTICE_TYPE_LABELS,
 } from "../utils";
@@ -15,20 +23,91 @@ import {
 export function NoticeDetail({
   notice,
   buildings,
+  canSendMessages,
   onEdit,
   onDeleted,
 }: {
   notice: Notice;
   buildings: Building[];
+  canSendMessages: boolean;
   onEdit: () => void;
   onDeleted: () => void;
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [messageOpen, setMessageOpen] = useState(false);
+  const [messageRecipients, setMessageRecipients] = useState<MessageRecipient[]>([]);
   const deleteNotice = useDeleteNotice();
+  const { data: orgContact } = useOrgContact();
   const status = getNoticeStatus(notice);
   const buildingName = notice.buildingId === null
     ? "전체 공지"
     : (buildings.find((building) => building.id === notice.buildingId)?.name ?? "삭제된 건물");
+  const buildingTenants = useTenantList(notice.buildingId ?? 0);
+  const organizationTenants = useOrganizationTenantList(
+    notice.buildingId === null ? buildings.map((building) => building.id) : [],
+  );
+  const recipientsLoading = notice.buildingId === null
+    ? organizationTenants.isLoading
+    : buildingTenants.isLoading;
+
+  const openNoticeMessaging = () => {
+    if (!canSendMessages) {
+      toast.info("문자 발송 권한이 필요합니다.");
+      return;
+    }
+    if (recipientsLoading) {
+      toast.info("입주자 수신처를 불러오는 중입니다.");
+      return;
+    }
+
+    const rows = notice.buildingId === null
+      ? organizationTenants.data
+      : (buildingTenants.data ?? []).map((tenant) => ({
+          ...tenant,
+          buildingId: notice.buildingId as number,
+        }));
+    const buildingNames = new Map(buildings.map((building) => [building.id, building.name]));
+    const recipients: MessageRecipient[] = rows
+      .filter((tenant) => !tenant.isVacant && tenant.occupancyId !== null)
+      .map((tenant) => ({
+        name: tenant.tenantName,
+        phone: tenant.phone,
+        unitNo: tenant.unitNo,
+        kind: "tenant",
+        variables: {
+          공지제목: notice.title,
+          ...(notice.buildingId === null
+            ? { 건물명: buildingNames.get(tenant.buildingId) ?? "" }
+            : {}),
+        },
+        ref: {
+          occupancyId: tenant.occupancyId as number,
+          unitId: tenant.unitId,
+          buildingId: tenant.buildingId,
+        },
+      }));
+
+    if (recipients.length === 0) {
+      toast.info("공지를 받을 입주자가 없습니다.");
+      return;
+    }
+    setMessageRecipients(recipients);
+    setMessageOpen(true);
+  };
+
+  const messagingPreset: MessagingPreset = {
+    context: "공지",
+    buildingId: notice.buildingId ?? undefined,
+    channel: "alimtalk",
+    mode: "auto",
+    templateTitle: getNoticeTemplateTitle(notice.noticeType),
+    recipients: messageRecipients,
+    commonVariables: {
+      건물명: notice.buildingId === null ? "전체 공지" : buildingName,
+      관리사무소연락처: orgContact?.phone ?? "",
+    },
+    scheduledAt: status === "scheduled" ? notice.publishedAt ?? undefined : undefined,
+  };
 
   const handleDelete = async () => {
     try {
@@ -47,9 +126,14 @@ export function NoticeDetail({
         title="공지 상세"
         action={
           <div className="flex flex-wrap gap-2">
-            {/* TODO(messaging): 공지 유형별 메시지 템플릿과 입주자 수신 대상을 연동한다. */}
-            <Button type="button" variant="ghost" disabled title="메시지 기능 연동 예정">
-              알림 발송 준비 중
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={openNoticeMessaging}
+              disabled={!canSendMessages || recipientsLoading}
+              title={!canSendMessages ? "문자 발송 권한이 필요합니다." : undefined}
+            >
+              공지 알림 발송
             </Button>
             <Button type="button" variant="ghost" onClick={onEdit}>수정</Button>
             <Button type="button" variant="danger" onClick={() => setConfirmOpen(true)}>삭제</Button>
@@ -92,6 +176,18 @@ export function NoticeDetail({
           </Button>
         </div>
       </Modal>
+
+      {messageOpen && (
+        <MessagingModal
+          open
+          preset={messagingPreset}
+          onClose={() => setMessageOpen(false)}
+          onSent={(result) => {
+            toast.success(`공지 안내 ${result.count}건 발송을 접수했습니다.`);
+            setMessageOpen(false);
+          }}
+        />
+      )}
     </>
   );
 }

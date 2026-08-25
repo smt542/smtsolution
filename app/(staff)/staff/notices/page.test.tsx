@@ -4,11 +4,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
 vi.mock("@/hooks/reactquery/buildings", () => ({ useBuildings: vi.fn() }));
+vi.mock("@/hooks/reactquery/occupancies", () => ({
+  useTenantList: () => ({ data: [], isLoading: false, isError: false }),
+  useOrganizationTenantList: () => ({ data: [], isLoading: false, isError: false }),
+}));
+vi.mock("@/hooks/reactquery/org/useOrgContact", () => ({
+  useOrgContact: () => ({ data: { phone: "02-1234-5678" } }),
+}));
 vi.mock("@/hooks/reactquery/notices", () => ({
   useNotices: vi.fn(),
   useCreateNotice: vi.fn(),
   useUpdateNotice: vi.fn(),
   useDeleteNotice: vi.fn(),
+}));
+vi.mock("../messaging/components/MessagingModal", () => ({
+  MessagingModal: () => <div data-testid="messaging-modal" />,
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 

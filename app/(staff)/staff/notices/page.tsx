@@ -30,10 +30,21 @@ export default function NoticesPage() {
     return <div className="p-6"><EmptyState message="공지 관리 권한이 없습니다." /></div>;
   }
 
-  return <NoticesWorkspace orgId={meQuery.data!.orgId} />;
+  return (
+    <NoticesWorkspace
+      orgId={meQuery.data!.orgId}
+      canSendMessages={hasModule(meQuery.data, "messaging")}
+    />
+  );
 }
 
-function NoticesWorkspace({ orgId }: { orgId: number }) {
+function NoticesWorkspace({
+  orgId,
+  canSendMessages,
+}: {
+  orgId: number;
+  canSendMessages: boolean;
+}) {
   const [target, setTarget] = useState("all");
   const [noticeType, setNoticeType] = useState("all");
   const [status, setStatus] = useState("all");
@@ -119,7 +130,13 @@ function NoticesWorkspace({ orgId }: { orgId: number }) {
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(360px,0.9fr)_minmax(440px,1.1fr)]">
           <NoticeList notices={notices} buildings={buildings} selectedId={selectedNotice?.id ?? null} onSelect={(notice) => setSelectedId(notice.id)} />
           {selectedNotice ? (
-            <NoticeDetail notice={selectedNotice} buildings={buildings} onEdit={openEdit} onDeleted={() => setSelectedId(null)} />
+            <NoticeDetail
+              notice={selectedNotice}
+              buildings={buildings}
+              canSendMessages={canSendMessages}
+              onEdit={openEdit}
+              onDeleted={() => setSelectedId(null)}
+            />
           ) : (
             <div className="rounded-2xl border border-dashed border-line bg-surface">
               <EmptyState message="목록에서 공지를 선택하면 상세 내용을 확인할 수 있습니다." />
