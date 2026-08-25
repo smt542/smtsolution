@@ -586,6 +586,64 @@ describe("MessagingComposer", () => {
     expect(bodies).toContain("이이님 관리비 안내");
   });
 
+  it("공통 변수와 수신자별 변수를 우선순위대로 병합해 두 수신자의 본문을 완전히 렌더한다", () => {
+    render(
+      <MessagingComposer
+        initialMode="sms"
+        preset={{
+          context: "고지서",
+          body:
+            "[#{건물명}] #{이름} #{호수} 청구금액 #{청구금액}원 문의 #{관리사무소연락처}",
+          commonVariables: {
+            건물명: "공통 건물",
+            관리사무소연락처: "02-1234-5678",
+          },
+          recipients: [
+            {
+              name: "홍길동",
+              phone: "010-1000-0001",
+              unitNo: "1001",
+              kind: "tenant",
+              variables: { 건물명: "수신자 건물", 청구금액: "120,000" },
+              ref: { occupancyId: 101, buildingId: 7 },
+            },
+            {
+              name: "김철수",
+              phone: "010-1000-0002",
+              unitNo: "1002",
+              kind: "tenant",
+              variables: { 청구금액: "98,000" },
+              ref: { occupancyId: 102, buildingId: 7 },
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "[수신자 건물] 홍길동 1001 청구금액 120,000원 문의 02-1234-5678",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "[공통 건물] 김철수 1002 청구금액 98,000원 문의 02-1234-5678",
+      ),
+    ).toBeInTheDocument();
+
+    const calls = vi.mocked(useMessagePointQuote).mock.calls;
+    const lastInput = calls[calls.length - 1][0];
+    const renderedBodies = lastInput!.recipients.map(
+      (recipient) =>
+        (recipient as typeof recipient & { renderedBody: string }).renderedBody,
+    );
+    expect(renderedBodies).toEqual([
+      "[수신자 건물] 홍길동 1001 청구금액 120,000원 문의 02-1234-5678",
+      "[공통 건물] 김철수 1002 청구금액 98,000원 문의 02-1234-5678",
+    ]);
+    expect(renderedBodies.every((body) => !body.includes("#{"))).toBe(true);
+  });
+
   it("발송이 확정 거절되면 onFailed로 처리하고 onSent(=queued 기록)를 호출하지 않는다", async () => {
     // 고지서 흐름: onSent가 record_bill_delivery(queued)를 기록하므로, 확정 거절 시 onSent가
     // 호출되면 안 된다(receipt 없이 queued로 기록 금지). onFailed만 호출되어야 한다.

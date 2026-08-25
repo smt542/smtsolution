@@ -26,6 +26,7 @@ import {
 } from "@/lib/messaging/idempotencyKey";
 import { canonicalSendPayload } from "@/lib/messaging/sendSignature";
 import {
+  buildRecipientRenderVariables,
   dedupeRecipients,
   validRecipients,
   type MessageChannel,
@@ -168,15 +169,25 @@ export function MessagingComposer({
               : mode === "alimtalk"
                 ? null
                 : "sms";
-        const renderedBody = renderTemplate(effectiveBody, {
-          이름: recipient.name ?? "",
-          호실: recipient.unitNo ?? "",
-          건물명: selectedBuilding?.name ?? "",
-        });
+        const renderedBody = renderTemplate(
+          effectiveBody,
+          buildRecipientRenderVariables(
+            recipient,
+            preset?.commonVariables,
+            selectedBuilding?.name,
+          ),
+        );
 
         return { recipient, channel, renderedBody };
       }),
-    [consentByOccupancy, effectiveBody, mode, selectedBuilding?.name, validRecipientList],
+    [
+      consentByOccupancy,
+      effectiveBody,
+      mode,
+      preset?.commonVariables,
+      selectedBuilding?.name,
+      validRecipientList,
+    ],
   );
   const sendRecipients = useMemo<ResolvedRecipient[]>(
     () =>

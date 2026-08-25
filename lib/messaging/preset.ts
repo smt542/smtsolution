@@ -12,6 +12,7 @@ export interface MessageRecipient {
   phoneType?: "primary" | "secondary";
   unitNo?: string | null;
   kind: "tenant" | "owner" | "staff" | "vendor" | "etc";
+  variables?: Record<string, string>;
   ref?: {
     occupancyId?: number;
     unitId?: number;
@@ -29,6 +30,26 @@ export interface MessagingPreset {
   templateTitle?: string;
   body?: string;
   recipients?: MessageRecipient[];
+  commonVariables?: Record<string, string>;
+}
+
+/**
+ * 템플릿 기본값과 공통·수신자별 변수를 발송 렌더 우선순위로 병합한다.
+ * `호실`은 기존 수동 템플릿 호환용 별칭이며 `호수`와 같은 기본값을 쓴다.
+ */
+export function buildRecipientRenderVariables(
+  recipient: MessageRecipient,
+  commonVariables: Record<string, string> | undefined,
+  buildingName: string | null | undefined,
+): Record<string, string> {
+  return {
+    이름: recipient.name ?? "",
+    호수: recipient.unitNo ?? "",
+    호실: recipient.unitNo ?? "",
+    건물명: buildingName ?? "",
+    ...(commonVariables ?? {}),
+    ...(recipient.variables ?? {}),
+  };
 }
 
 interface SendPayload {
