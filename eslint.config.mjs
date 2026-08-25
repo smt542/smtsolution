@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Runtime tool artifacts (gstack headless-browser cache) — not source, and
+    // can be permission-locked (ESLint scandir EPERM). Never lint.
+    ".gstack/**",
   ]),
 ]);
 
