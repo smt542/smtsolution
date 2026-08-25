@@ -55,7 +55,9 @@ export default function PlatformPointsPage() {
   );
   const activeReservations = useMemo(
     () => (reservationsQuery.data ?? []).filter((reservation) =>
-      reservation.status === "reserved" || reservation.status === "reconcile_required"),
+      reservation.status === "reserved" ||
+      reservation.status === "provider_pending" ||
+      reservation.status === "reconcile_required"),
     [reservationsQuery.data],
   );
 
@@ -79,7 +81,7 @@ export default function PlatformPointsPage() {
     }
   };
 
-  const handleRates = async (values: { smsPoints: number; alimtalkPoints: number }) => {
+  const handleRates = async (values: { smsPoints: number; alimtalkPoints: number; lmsPoints?: number }) => {
     try {
       await setRates.mutateAsync(values);
       toast.success("메시지 포인트 단가를 변경했습니다.");
@@ -124,8 +126,9 @@ export default function PlatformPointsPage() {
         ) : ratesQuery.isError ? (
           <div className="mt-3"><QueryError onRetry={() => void ratesQuery.refetch()} /></div>
         ) : (
-          <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+          <dl className="mt-4 grid gap-3 sm:grid-cols-3">
             <RateSummary label="SMS" points={activeRates.get("sms") ?? 0} />
+            <RateSummary label="LMS" points={activeRates.get("lms") ?? 0} />
             <RateSummary label="알림톡" points={activeRates.get("alimtalk") ?? 0} />
           </dl>
         )}
@@ -291,6 +294,7 @@ export default function PlatformPointsPage() {
         onClose={() => setRateModalOpen(false)}
         smsPoints={activeRates.get("sms") ?? 1}
         alimtalkPoints={activeRates.get("alimtalk") ?? 1}
+        lmsPoints={activeRates.get("lms")}
         onSubmit={handleRates}
         isPending={setRates.isPending}
       />
@@ -319,7 +323,9 @@ function RateSummary({ label, points }: { label: string; points: number }) {
 function ReservationStatus({ status }: { status: PointReservation["status"] }) {
   const view = status === "reconcile_required"
     ? { label: "확인 필요", className: "bg-red-t text-red" }
-    : { label: "예약", className: "bg-amber-t text-amber" };
+    : status === "provider_pending"
+      ? { label: "발송 중", className: "bg-blue-t text-blue" }
+      : { label: "예약", className: "bg-amber-t text-amber" };
   return (
     <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${view.className}`}>
       {view.label}

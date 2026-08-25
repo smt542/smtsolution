@@ -60,7 +60,7 @@ const target = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  sendFax.mockResolvedValue({ count: 1 });
+  sendFax.mockResolvedValue({ queued: 1, failed: 0 });
   useQueries.mockImplementation(({ queries }: { queries: { queryKey: unknown[]; enabled?: boolean }[] }) =>
     queries.map((query) => ({
       data: query.queryKey[1] === "targets" ? [target] : [],
@@ -72,7 +72,7 @@ beforeEach(() => {
 });
 
 describe("DocumentOutputModal 팩스", () => {
-  it("팩스번호가 등록된 선택 세대를 일괄 발송하고 완료 토스트를 표시", async () => {
+  it("팩스번호가 등록된 선택 세대를 접수하고 결과 확인 중 토스트를 표시", async () => {
     render(
       <DocumentOutputModal
         type="fax"
@@ -97,6 +97,6 @@ describe("DocumentOutputModal 팩스", () => {
       period: expect.stringMatching(/^2026-\d{2}-01$/),
       unitIds: [11],
     }));
-    expect(toast.success).toHaveBeenCalledWith("발송이 완료되었습니다");
+    expect(toast.success).toHaveBeenCalledWith("발송을 접수했습니다. 결과 확인 중입니다.");
   });
 });

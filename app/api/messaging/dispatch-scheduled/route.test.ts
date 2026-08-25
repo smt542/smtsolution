@@ -28,10 +28,10 @@ beforeEach(() => {
   process.env.CRON_SECRET = "s3cr3t";
   drainSchedules.mockResolvedValue({
     claimed: 2,
-    sent: 1,
+    queued: 1,
     failed: 1,
     unconfigured: 0,
-    chargedPoints: 3,
+    finalized: 0,
   });
 });
 
@@ -87,6 +87,6 @@ describe("POST /api/messaging/dispatch-scheduled", () => {
   it("집계 JSON 반환", async () => {
     const response = await POST(request({ authorization: "Bearer s3cr3t" }));
 
-    expect(await response.json()).toMatchObject({ claimed: 2, sent: 1, failed: 1 });
+    expect(await response.json()).toMatchObject({ claimed: 2, queued: 1, failed: 1 });
   });
 });

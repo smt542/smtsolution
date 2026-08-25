@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button, Checkbox, Panel, Select } from "@/components/common";
 import { useAccounts } from "@/hooks/reactquery/accounts";
@@ -20,6 +20,13 @@ import {
 import { useQuickMessages } from "@/hooks/reactquery/quickMessages";
 import { renderTemplate } from "@/lib/messaging/render";
 import {
+  newUuid,
+  resolveIdempotencyKey,
+  type IdempotencyState,
+} from "@/lib/messaging/idempotencyKey";
+import { canonicalSendPayload } from "@/lib/messaging/sendSignature";
+import {
+  buildRecipientRenderVariables,
   dedupeRecipients,
   validRecipients,
   type MessageChannel,
@@ -48,6 +55,14 @@ function recipientKey(recipient: MessageRecipient): string {
     return `staff:${recipient.ref.userId}`;
   }
   return `${recipient.kind}:${recipient.phone ?? ""}:${recipient.name ?? ""}`;
+}
+
+function toLocalDateTimeInput(value: string | undefined): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
 }
 
 function TenantRecipientOption({
@@ -103,8 +118,12 @@ export function MessagingComposer({
   const [body, setBody] = useState(preset?.body ?? "");
   const [bodyTouched, setBodyTouched] = useState(false);
   const [quickMessageId, setQuickMessageId] = useState("");
-  const [sendTiming, setSendTiming] = useState<"now" | "scheduled">("now");
-  const [scheduledAt, setScheduledAt] = useState("");
+  const [sendTiming, setSendTiming] = useState<"now" | "scheduled">(
+    preset?.scheduledAt ? "scheduled" : "now",
+  );
+  const [scheduledAt, setScheduledAt] = useState(() =>
+    toLocalDateTimeInput(preset?.scheduledAt),
+  );
 
   const { data: buildings = [], isLoading: isBuildingsLoading } = useBuildings();
   const { data: tenants = [], isLoading: isTenantsLoading } =
@@ -120,8 +139,7 @@ export function MessagingComposer({
   const presetTemplate = useMemo(() => {
     const title = preset?.templateTitle?.trim();
     if (!title) return undefined;
-    return templates.find((template) => template.title === title)
-      ?? templates.find((template) => template.title.includes(title));
+    return templates.find((template) => template.title === title);
   }, [preset?.templateTitle, templates]);
   const effectiveTemplateId = templateId ?? presetTemplate?.id ?? null;
   const effectiveBody = bodyTouched ? body : (body || presetTemplate?.body || "");
@@ -147,26 +165,14 @@ export function MessagingComposer({
     () => validRecipients(dedupeRecipients(recipients)),
     [recipients],
   );
-  const quoteInput = useMemo(
-    () =>
-      validRecipientList.length > 0 &&
-      (mode === "sms" || effectiveTemplateId !== null)
-        ? {
-            mode,
-            recipients: validRecipientList,
-            templateId: mode === "sms" ? null : effectiveTemplateId,
-          }
-        : null,
-    [effectiveTemplateId, mode, validRecipientList],
-  );
-  const pointQuote = useMessagePointQuote(quoteInput);
   const recipientPreviews = useMemo(
     () =>
       validRecipientList.map((recipient) => {
         const occupancyId = recipient.ref?.occupancyId;
         const hasAlimtalkConsent =
-          occupancyId !== undefined &&
-          consentByOccupancy.get(occupancyId) === true;
+          recipient.alimtalkOptIn ??
+          (occupancyId !== undefined &&
+            consentByOccupancy.get(occupancyId) === true);
         const channel: MessageChannel | null =
           mode === "sms"
             ? "sms"
@@ -175,15 +181,25 @@ export function MessagingComposer({
               : mode === "alimtalk"
                 ? null
                 : "sms";
-        const renderedBody = renderTemplate(effectiveBody, {
-          이름: recipient.name ?? "",
-          호실: recipient.unitNo ?? "",
-          건물명: selectedBuilding?.name ?? "",
-        });
+        const renderedBody = renderTemplate(
+          effectiveBody,
+          buildRecipientRenderVariables(
+            recipient,
+            preset?.commonVariables,
+            selectedBuilding?.name,
+          ),
+        );
 
         return { recipient, channel, renderedBody };
       }),
-    [consentByOccupancy, effectiveBody, mode, selectedBuilding?.name, validRecipientList],
+    [
+      consentByOccupancy,
+      effectiveBody,
+      mode,
+      preset?.commonVariables,
+      selectedBuilding?.name,
+      validRecipientList,
+    ],
   );
   const sendRecipients = useMemo<ResolvedRecipient[]>(
     () =>
@@ -203,6 +219,38 @@ export function MessagingComposer({
       })),
     [mode, recipientPreviews],
   );
+  // 견적 입력은 수신자별 최종 렌더 본문(renderedBody)을 담는다. 서버가 이 본문으로 SMS/LMS를 판정해야
+  // 견적 건수·포인트가 예약·정산과 일치한다(공통 body 하나로 분류하면 개인화 시 어긋난다).
+  const quoteInput = useMemo(
+    () =>
+      validRecipientList.length > 0 &&
+      (mode === "sms" || effectiveTemplateId !== null)
+        ? {
+            mode,
+            recipients: submissionRecipients,
+            templateId: mode === "sms" ? null : effectiveTemplateId,
+            body: effectiveBody,
+          }
+        : null,
+    [effectiveBody, effectiveTemplateId, mode, submissionRecipients, validRecipientList.length],
+  );
+  const pointQuote = useMessagePointQuote(quoteInput);
+  // 멱등 키: 한 논리적 발송 시도를 식별한다. 초안이 실질적으로 바뀌면 서명이 달라져 회전하고,
+  // 같은 초안의 중복 클릭·재시도는 같은 키를 재사용한다. 성공 후에는 idemRef를 비워 회전한다.
+  // 초안 서명은 모든 material 필드(mode·body·context·effective templateId·완전한 수신자)를 담는다.
+  // 수신자 identity/ref가 바뀌면 서명이 달라져 키가 회전하므로, 대상이 바뀐 발송이 stale 키를 재사용하지 않는다.
+  const draftSignature = useMemo(
+    () =>
+      canonicalSendPayload({
+        mode,
+        body: effectiveBody,
+        context: preset?.context ?? "manual",
+        templateId: mode === "sms" ? null : effectiveTemplateId,
+        recipients: submissionRecipients,
+      }),
+    [effectiveBody, effectiveTemplateId, mode, preset?.context, submissionRecipients],
+  );
+  const idempotencyRef = useRef<IdempotencyState | null>(null);
   const previewByRecipient = useMemo(
     () =>
       new Map(
@@ -223,7 +271,7 @@ export function MessagingComposer({
   const quoteAllowsSend =
     pointQuote.data !== undefined &&
     !pointQuote.isFetching &&
-    (pointQuote.data.billingMode === "stub" || pointQuote.data.sufficient);
+    pointQuote.data.sufficient;
   const canSend =
     validCount > 0 &&
     effectiveBody.trim().length > 0 &&
@@ -290,7 +338,7 @@ export function MessagingComposer({
       );
       return;
     }
-    if (pointQuote.data.billingMode === "live" && !pointQuote.data.sufficient) {
+    if (!pointQuote.data.sufficient) {
       toast.error("가용 포인트가 부족합니다.");
       return;
     }
@@ -304,10 +352,12 @@ export function MessagingComposer({
       scheduledIso = scheduledTime.toISOString();
     }
     const actionLabel = sendTiming === "scheduled" ? "예약 발송" : "발송";
-    const pointNotice = pointQuote.data.billingMode === "stub"
-      ? `${validCount}명 · 예상 ${pointQuote.data.estimatedPoints.toLocaleString("ko-KR")} P (테스트 모드에서는 차감 없음)`
-      : `${validCount}명 · ${pointQuote.data.estimatedPoints.toLocaleString("ko-KR")} P가 차감됩니다`;
+    const pointNotice = `${validCount}명 · 예상 ${pointQuote.data.estimatedPoints.toLocaleString("ko-KR")} P (성공 발송분만 차감)`;
     if (!window.confirm(`${pointNotice}\n${actionLabel}하시겠습니까?`)) return;
+
+    // 같은 초안이면 같은 키(중복 클릭·재시도 안전), 초안이 바뀌면 회전한다.
+    const idempotency = resolveIdempotencyKey(idempotencyRef.current, draftSignature, newUuid);
+    idempotencyRef.current = idempotency;
 
     try {
       const result = await sendMessages.mutateAsync({
@@ -317,34 +367,46 @@ export function MessagingComposer({
         templateId: mode === "sms" ? null : effectiveTemplateId,
         recipients: submissionRecipients,
         scheduledAt: scheduledIso,
+        idempotencyKey: idempotency.key,
       });
+      // 성공 접수 후에는 키를 회전해 다음 논리적 발송이 새 키를 쓰게 한다.
+      idempotencyRef.current = null;
       if (sendTiming === "scheduled") {
         toast.success(`예약이 등록되었습니다(${scheduledAt.replace("T", " ")})`);
-      } else if (result.billingMode === "stub") {
-        toast.info(`미발송 · 발송 채널(NCP)이 설정되지 않았습니다 · ${result.count}명 저장됨`);
+      } else if (preset?.context === "고지서") {
+        toast.success("발송을 접수했습니다. 결과 확인 중입니다.");
       } else {
-        const per = result.perRecipient;
-        const okCount = per ? per.filter((r) => r.status === "success").length : result.count;
-        const failCount = per ? per.length - okCount : 0;
-        if (result.sendResult === "failed") {
-          toast.error(`발송 실패 · ${failCount || result.count}명`);
-        } else if (result.sendResult === "partial") {
-          toast.info(`일부 발송 · 성공 ${okCount} · 실패 ${failCount}`);
-        } else {
-          toast.success(preset?.context === "고지서" ? "발송이 완료되었습니다" : `발송 완료 · ${okCount}명`);
-        }
+        // 접수 완료(결과는 재조회로 확정). 성공 확정 토스트를 표시하지 않는다.
+        toast.success(`발송을 접수했습니다 · ${result.queuedCount ?? result.count}건 · 결과 확인 중`);
       }
       await onSent?.(result);
     } catch (error) {
+      const code = error instanceof MessageSendError ? error.code : null;
+      // 비종결(진행 중/결과 불명확) 응답은 성공도 확정 실패도 아니다. onSent/onFailed 어느 것도 부르지
+      // 않고(특히 고지서 흐름의 record_bill_delivery(queued) 기록 금지), 멱등 키를 유지해 같은 초안으로
+      // 안전하게 재시도할 수 있게 한다. 정보성 토스트만 띄운다.
+      if (code === "SEND_IN_PROGRESS" || code === "SEND_UNCONFIRMED") {
+        idempotencyRef.current = idempotency; // 성공 시에만 회전. 비종결은 키 유지.
+        toast.info(
+          code === "SEND_IN_PROGRESS"
+            ? "발송이 처리 중입니다. 잠시 후 결과를 확인해 주세요."
+            : "발송 접수 결과를 확인하는 중입니다. 잠시 후 다시 확인해 주세요.",
+        );
+        return;
+      }
+      // 확정 실패(SEND_REJECTED 등)만 종결 콜백을 호출한다.
       await onFailed?.(error);
-      const insufficient = error instanceof MessageSendError && error.code === "INSUFFICIENT_POINTS";
-      toast.error(
-        insufficient
+      const message =
+        code === "INSUFFICIENT_POINTS"
           ? "포인트가 부족합니다."
-          : preset?.context === "고지서"
-            ? "발송에 실패했습니다. 다시 시도해 주세요."
-            : error instanceof Error ? error.message : "발송하지 못했습니다.",
-      );
+          : code === "PROVIDER_NOT_CONFIGURED"
+            ? "발송 공급자가 설정되지 않아 발송할 수 없습니다."
+            : preset?.context === "고지서"
+              ? "발송에 실패했습니다. 다시 시도해 주세요."
+              : error instanceof Error
+                ? error.message
+                : "발송하지 못했습니다.";
+      toast.error(message);
     }
   };
 

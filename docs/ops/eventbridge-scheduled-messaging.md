@@ -284,15 +284,15 @@ curl --fail-with-body --silent --show-error \
   "$DISPATCH_URL"
 ~~~
 
-정상 응답 예:
+정상 응답 예(예약분은 Popbill에 **접수**만 하고 결과는 재조회로 확정한다):
 
 ~~~json
 {
   "claimed": 3,
-  "sent": 2,
+  "queued": 2,
   "failed": 1,
   "unconfigured": 0,
-  "chargedPoints": 6
+  "finalized": 0
 }
 ~~~
 
@@ -326,10 +326,31 @@ curl --fail-with-body --silent --show-error \
 ## 6. 운영 주의사항
 
 - 실 배선과 변경은 반드시 클라이언트 SSO 계정 **auraworks**에서 수행한다.
-- NCP SMS 또는 알림톡 키가 설정되지 않은 채널은 발송을 시도하지 않는다. 해당 예약과 연결된 고지서는 설계 결정 D5에 따라 failed로 마감되고 집계의 unconfigured에 포함된다.
+- Popbill 필수 설정(`POPBILL_*`)이나 해당 제품 발신번호가 없으면 예약분은 접수되지 않고 failed로 마감되며 집계의 unconfigured에 포함된다.
 - 한 번의 호출은 최대 50건을 claim한다. backlog가 있으면 다음 1분 tick이 이어서 처리한다.
 - CRON_SECRET을 교체할 때는 Amplify와 EventBridge Connection 또는 Lambda 값을 모두 바꾸고 재배포/재승인을 확인한다.
 - API destination은 공개 HTTPS와 공개적으로 신뢰되는 인증서가 필요하며 응답 제한은 5초다. 이 제한을 안정적으로 지키기 어렵다면 배선 B를 선택한다.
+
+## 7. 결과 재조회(Popbill 폴링)
+
+Popbill 접수 후 최종 결과(state=3/result=100)를 확정하려면 결과 재조회 라우트를 **동일한 CRON_SECRET**으로 주기 호출한다.
+
+~~~text
+POST https://<amplify-domain>/api/delivery/reconcile
+Authorization: Bearer <CRON_SECRET>
+~~~
+
+- 배선은 예약 발송과 동일하다(배선 A: EventBridge Rule + API destination, 또는 배선 B: Scheduler + Lambda). 같은 Connection/Secret을 재사용하고 별도 Rule/schedule을 추가한다.
+- 권장 주기: **rate(1 minute)**. 라우트 내부 backoff(최초 10분 1분·2시간까지 5분·24시간까지 30분)가 실제 조회 간격을 조절하므로 1분 tick으로 충분하다.
+- 정상 응답: `{ "processed": N, "pending": N, "finalized": N, "reconcileRequired": N }`.
+- 응답에는 집계만 담기며 수신자 개인정보·공급자 원본 응답은 포함하지 않는다.
+
+### 경보 기준
+
+- **reconcileRequired 증가**: 24시간 내 확정되지 않은 작업. Popbill 콘솔에서 실제 상태를 대조하고 포인트 예약(reconcile_required)을 수동 검토한다(만료만으로 해제 금지).
+- **pending 정체**: 특정 작업이 오래 pending이면 발신번호/템플릿 승인·잔액을 점검한다.
+- **Popbill 잔액 부족**: 파트너/연동회원 잔액을 주기 모니터링(부족 시 접수 실패).
+- 상세 운영 절차는 `docs/ops/popbill-delivery.md` 참고.
 
 ## 참고
 

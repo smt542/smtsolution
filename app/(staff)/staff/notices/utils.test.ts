@@ -1,9 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { getNoticeStatus, toDateTimeLocal, validateNoticeForm } from "./utils";
+import {
+  getNoticeStatus,
+  getNoticeTemplateTitle,
+  toDateTimeLocal,
+  validateNoticeForm,
+} from "./utils";
 
 const now = new Date("2026-08-12T03:00:00.000Z");
 
 describe("notice utils", () => {
+  it.each([
+    ["normal", "공지 안내(신규)"],
+    ["important", "공지 안내(중요)"],
+    ["urgent", "공지 안내(긴급)"],
+  ] as const)("%s 공지를 정확한 알림톡 템플릿 제목으로 매핑", (noticeType, title) => {
+    expect(getNoticeTemplateTitle(noticeType)).toBe(title);
+  });
+
   it.each([
     [{ publishedAt: null, expiresAt: null }, "draft"],
     [{ publishedAt: "2026-08-13T03:00:00.000Z", expiresAt: null }, "scheduled"],

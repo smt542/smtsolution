@@ -14,12 +14,12 @@ beforeEach(() => vi.clearAllMocks());
 afterEach(() => vi.unstubAllGlobals());
 
 describe("messaging apis (P4b)", () => {
-  it("sendMessages: 즉시발송은 /api/messaging/send 라우트로 POST", async () => {
+  it("sendMessages: 즉시발송은 /api/messaging/send 라우트로 POST하고 queued를 반환", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
+      status: 202,
       json: async () => ({
-        billingMode: "live", messageLogId: 7, result: "sent", chargedPoints: 2,
-        recipients: [{ status: "success" }, { status: "success" }],
+        status: "queued", messageLogId: 7, queuedCount: 2, reservedPoints: 2,
       }),
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -31,7 +31,7 @@ describe("messaging apis (P4b)", () => {
       ],
     });
     expect(out).toMatchObject({
-      logId: 7, status: "sent", scheduledAt: null, billingMode: "live", sendResult: "sent", chargedPoints: 2,
+      logId: 7, status: "queued", scheduledAt: null, queuedCount: 2, reservedPoints: 2,
     });
     const [url, opts] = fetchMock.mock.calls[0];
     expect(url).toBe("/api/messaging/send");
@@ -40,6 +40,22 @@ describe("messaging apis (P4b)", () => {
     expect(sent).toMatchObject({ mode: "auto", body: "#{이름}님", context: "manual", templateId: 5 });
     expect(sent.recipients).toHaveLength(2);
   });
+  it("sendMessages: 즉시발송은 Idempotency-Key 헤더를 전달한다", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 202,
+      json: async () => ({ status: "queued", messageLogId: 7, queuedCount: 1, reservedPoints: 1 }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    await sendMessages({
+      mode: "sms", body: "x", context: "manual", templateId: null,
+      recipients: [{ name: "A", phone: "1", kind: "tenant", channel: "sms", renderedBody: "x" }],
+      idempotencyKey: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    });
+    const [, opts] = fetchMock.mock.calls[0];
+    expect(opts.headers["idempotency-key"]).toBe("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb");
+  });
+
   it("예약 발송 등록과 취소 RPC를 호출", async () => {
     rpc.mockResolvedValueOnce({
       data: { schedule_id: 8, count: 1, scheduled_at: "2026-08-20T00:30:00Z" }, error: null,
@@ -77,18 +93,18 @@ describe("messaging apis (P4b)", () => {
     rpc.mockResolvedValue({
       data: {
         ok: true,
-        counts: { total: 3, sms: 2, alimtalk: 1 },
+        counts: { total: 4, sms: 2, lms: 1, alimtalk: 1 },
         excluded_count: 1,
         rate_snapshot: {
           sms: { id: 8, points: 1 },
+          lms: { id: 10, points: 3 },
           alimtalk: { id: 9, points: 2 },
         },
         ledger_balance: 100,
         reserved_points: 10,
         available_points: 90,
-        estimated_points: 4,
+        estimated_points: 7,
         sufficient: true,
-        billing_mode: "stub",
       },
       error: null,
     });
@@ -97,26 +113,28 @@ describe("messaging apis (P4b)", () => {
       mode: "auto" as const,
       recipients: [{ name: "A", phone: "0101", kind: "tenant" as const }],
       templateId: 5,
+      body: "안내 본문",
     };
     await expect(quoteMessagePoints(input)).resolves.toEqual({
-      recipientCount: 3,
+      recipientCount: 4,
       excludedCount: 1,
-      channelCounts: { sms: 2, alimtalk: 1 },
+      channelCounts: { sms: 2, lms: 1, alimtalk: 1 },
       rateSnapshot: {
         sms: { rateId: 8, points: 1 },
+        lms: { rateId: 10, points: 3 },
         alimtalk: { rateId: 9, points: 2 },
       },
       ledgerBalance: 100,
       reservedPoints: 10,
       availablePoints: 90,
-      estimatedPoints: 4,
+      estimatedPoints: 7,
       sufficient: true,
-      billingMode: "stub",
     });
     expect(rpc).toHaveBeenCalledWith("quote_message_points", {
       p_mode: "auto",
       p_recipients: input.recipients,
       p_template_id: 5,
+      p_body: "안내 본문",
     });
   });
 

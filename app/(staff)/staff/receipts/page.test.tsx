@@ -11,6 +11,9 @@ vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
 vi.mock("@/hooks/reactquery/buildings", () => ({ useBuildings: vi.fn() }));
 vi.mock("@/hooks/reactquery/units", () => ({ useUnits: vi.fn() }));
 vi.mock("@/hooks/reactquery/occupancies", () => ({ useUnitOccupancyFull: vi.fn() }));
+vi.mock("@/hooks/reactquery/org/useOrgContact", () => ({
+  useOrgContact: () => ({ data: { phone: "02-1234-5678" } }),
+}));
 vi.mock("@/hooks/reactquery/payments", () => ({
   useUnitPayments: vi.fn(),
   useRecordPayment: vi.fn(),

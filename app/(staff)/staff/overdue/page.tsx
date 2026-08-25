@@ -5,11 +5,14 @@ import { toast } from "sonner";
 import { Button, EmptyState, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
+import { useOrgContact } from "@/hooks/reactquery/org/useOrgContact";
+import { useStaffMintBillTokens } from "@/hooks/reactquery/residentBilling";
 import {
   useOverdueBuildings,
   useOverdueHouseholds,
   useOverduePeriods,
   type OverdueHousehold,
+  type OverduePeriodRow,
   type OverdueScope,
 } from "@/hooks/reactquery/overdue";
 import { hasModule } from "@/lib/auth/permissions";
@@ -18,6 +21,13 @@ import {
   type OverduePeriodInput,
 } from "@/lib/billing/lateFee";
 import type { MessageRecipient } from "@/lib/messaging/preset";
+import { residentOrigin } from "@/lib/messaging/residentOrigin";
+import {
+  formatDate,
+  formatKrw,
+  formatPeriodMonth,
+  formatUnit,
+} from "@/lib/messaging/vars";
 import { MessagingModal } from "../messaging/components/MessagingModal";
 import { LateFeeRateModal } from "./components/LateFeeRateModal";
 import { OverdueDetailModal } from "./components/OverdueDetailModal";
@@ -28,7 +38,20 @@ import {
   isDebtCollectionTarget,
 } from "./utils";
 
-const OVERDUE_MESSAGE_BODY = "미납 관리비를 확인해 주세요.";
+function latestOverduePeriod(
+  household: OverdueHousehold,
+  periods: OverduePeriodRow[],
+): OverduePeriodRow | undefined {
+  return periods.reduce<OverduePeriodRow | undefined>((latest, period) => {
+    if (
+      period.occupancyId !== household.occupancyId ||
+      period.unitId !== household.unitId
+    ) {
+      return latest;
+    }
+    return !latest || period.period > latest.period ? period : latest;
+  }, undefined);
+}
 
 export default function OverduePage() {
   const { data: me, isLoading: isMeLoading } = useMe();
@@ -70,6 +93,8 @@ export default function OverduePage() {
     overdueQuery,
   );
   const { data: lateFeeRateTiers = [] } = useLateFeeRateTiers(me?.orgId ?? null);
+  const { data: orgContact } = useOrgContact();
+  const mintBillTokens = useStaffMintBillTokens();
 
   const rowsWithLateFee = useMemo(() => {
     if (households.length === 0) return households;
@@ -187,29 +212,80 @@ export default function OverduePage() {
     }
   };
 
-  const openMessagingModal = () => {
+  const openMessagingModal = async () => {
     if (!canSendMessages) {
       toast.info("문자 발송 권한이 필요합니다.");
       return;
     }
 
-    const recipients: MessageRecipient[] = visibleHouseholds
-      .filter((row) => selectedIds.has(row.occupancyId))
-      .map((row) => ({
-        name: row.tenantName ?? null,
-        phone: row.phone ?? null,
-        unitNo: [row.dong, row.unitNo].filter(Boolean).join(" "),
-        kind: "tenant",
-        ref: { occupancyId: row.occupancyId },
-      }));
-
-    if (recipients.length === 0) {
+    const selectedRows = visibleHouseholds.filter((row) =>
+      selectedIds.has(row.occupancyId),
+    );
+    if (selectedRows.length === 0) {
       toast.info("문자를 받을 세대를 선택해 주세요.");
       return;
     }
 
-    setMessageRecipients(recipients);
-    setIsMessagingOpen(true);
+    const unitIdsByPeriod = new Map<string, number[]>();
+    for (const row of selectedRows) {
+      const latestPeriod = latestOverduePeriod(row, overduePeriods);
+      if (!latestPeriod) {
+        toast.error("미납 고지서 기준 월을 확인할 수 없습니다.");
+        return;
+      }
+      unitIdsByPeriod.set(latestPeriod.period, [
+        ...(unitIdsByPeriod.get(latestPeriod.period) ?? []),
+        row.unitId,
+      ]);
+    }
+
+    try {
+      const mintedGroups = await Promise.all(
+        [...unitIdsByPeriod].map(([period, unitIds]) =>
+          mintBillTokens.mutateAsync({ unitIds, period }),
+        ),
+      );
+      const tokenByUnitId = new Map(
+        mintedGroups.flat().map(({ unitId, token }) => [unitId, token]),
+      );
+      const origin = residentOrigin();
+      const recipients: MessageRecipient[] = selectedRows.map((row) => {
+        const latestPeriod = latestOverduePeriod(row, overduePeriods);
+        const token = tokenByUnitId.get(row.unitId);
+        if (!latestPeriod || !token) {
+          throw new Error("미납 고지서 상세 링크를 만들지 못했습니다.");
+        }
+        const unit = formatUnit(row.dong, row.unitNo);
+
+        return {
+          name: row.tenantName ?? null,
+          phone: row.phone ?? null,
+          unitNo: unit,
+          kind: "tenant",
+          variables: {
+            세대: unit,
+            미납금액: formatKrw(row.overdueAmount),
+            미납월: formatPeriodMonth(latestPeriod.period),
+            납기일: formatDate(latestPeriod.dueDate),
+            상세링크: `${origin}/r/${token}`,
+          },
+          ref: {
+            occupancyId: row.occupancyId,
+            unitId: row.unitId,
+            buildingId: row.buildingId,
+          },
+        };
+      });
+
+      setMessageRecipients(recipients);
+      setIsMessagingOpen(true);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "미납 고지서 상세 링크를 만들지 못했습니다.",
+      );
+    }
   };
 
   if (isMeLoading) {
@@ -256,8 +332,13 @@ export default function OverduePage() {
           </Button>
           <Button
             variant="primary"
-            onClick={openMessagingModal}
-            disabled={!selectedBuilding || isHouseholdsLoading || !canSendMessages}
+            onClick={() => void openMessagingModal()}
+            disabled={
+              !selectedBuilding ||
+              isHouseholdsLoading ||
+              !canSendMessages ||
+              mintBillTokens.isPending
+            }
             title={!canSendMessages ? "문자 발송 권한이 필요합니다." : undefined}
           >
             독촉 문자 발송{selectedCount > 0 ? ` (${selectedCount})` : ""}
@@ -344,15 +425,19 @@ export default function OverduePage() {
         open={isMessagingOpen}
         preset={{
           context: "독촉",
-          channel: "sms",
-          body: OVERDUE_MESSAGE_BODY,
+          buildingId: selectedBuildingId ?? undefined,
+          channel: "alimtalk",
+          mode: "auto",
+          templateTitle: "관리비 미납 안내",
           recipients: messageRecipients,
+          commonVariables: {
+            건물명: selectedBuilding?.name ?? "",
+            관리사무소연락처: orgContact?.phone ?? "",
+          },
         }}
         onClose={() => setIsMessagingOpen(false)}
         onSent={(result) => {
-          toast.success(
-            `독촉 문자 임시 발송 기록 ${result.count}건을 생성했습니다. 실제 문자는 발송되지 않았습니다.`,
-          );
+          toast.success(`독촉 안내 ${result.count}건 발송을 접수했습니다.`);
           setIsMessagingOpen(false);
         }}
       />

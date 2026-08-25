@@ -306,6 +306,12 @@ function ReceiptWorkspace({
             buildingId={selectedBuildingId}
             unitId={selectedUnitId}
             canSendMessages={canSendMessages}
+            resident={occFull?.occupancy ? {
+              occupancyId: occFull.occupancy.id,
+              name: occFull.occupancy.tenantName,
+              phone: occFull.occupancy.phone,
+              alimtalkOptIn: occFull.occupancy.alimtalkOptIn,
+            } : null}
           />
         </div>
       </div>

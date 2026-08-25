@@ -52,10 +52,13 @@ export interface SettlementContext {
     unitNo: string;
     dong: string | null;
     buildingId: number;
+    buildingName: string;
   };
   occupancy: {
     id: number;
     tenantName: string | null;
+    phone: string | null;
+    alimtalkOptIn: boolean;
     moveInDate: string | null;
     settlementNote: string | null;
     billingNote: string | null;
@@ -178,10 +181,18 @@ interface MovingSettlementRpc {
 }
 
 interface SettlementContextRpc {
-  unit: { id: number; unit_no: string; dong: string | null; building_id: number };
+  unit: {
+    id: number;
+    unit_no: string;
+    dong: string | null;
+    building_id: number;
+    building_name: string;
+  };
   occupancy: {
     id: number;
     tenant_name: string | null;
+    phone: string | null;
+    alimtalk_opt_in: boolean;
     move_in_date: string | null;
     settlement_note: string | null;
     billing_note: string | null;
@@ -275,11 +286,14 @@ function rpcToSettlementContext(r: SettlementContextRpc): SettlementContext {
       unitNo: r.unit.unit_no,
       dong: r.unit.dong,
       buildingId: r.unit.building_id,
+      buildingName: r.unit.building_name,
     },
     occupancy: r.occupancy
       ? {
           id: r.occupancy.id,
           tenantName: r.occupancy.tenant_name,
+          phone: r.occupancy.phone,
+          alimtalkOptIn: r.occupancy.alimtalk_opt_in,
           moveInDate: r.occupancy.move_in_date,
           settlementNote: r.occupancy.settlement_note,
           billingNote: r.occupancy.billing_note,

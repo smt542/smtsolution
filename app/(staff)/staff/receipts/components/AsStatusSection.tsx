@@ -21,6 +21,7 @@ import {
   type ComplaintResolutionInput,
   type ComplaintStatus,
 } from "@/hooks/reactquery/complaints";
+import { useOrgContact } from "@/hooks/reactquery/org/useOrgContact";
 import type { MessagingPreset } from "@/lib/messaging/preset";
 import { MessagingModal } from "../../messaging/components/MessagingModal";
 import {
@@ -42,11 +43,18 @@ export function AsStatusSection({
   buildingId,
   unitId,
   canSendMessages,
+  resident,
 }: {
   orgId: number;
   buildingId: number | null;
   unitId: number | null;
   canSendMessages: boolean;
+  resident: {
+    occupancyId: number;
+    name: string | null;
+    phone: string | null;
+    alimtalkOptIn: boolean;
+  } | null;
 }) {
   const [scope, setScope] = useState<"unit" | "building">("unit");
   const [resultFilter, setResultFilter] = useState<"" | ComplaintStatus>("");
@@ -61,6 +69,7 @@ export function AsStatusSection({
   const { data: complaints = [], isLoading } = useComplaints({
     buildingId: buildingId ?? undefined,
   });
+  const { data: orgContact } = useOrgContact();
 
   const createComplaint = useCreateComplaint();
   const updateComplaint = useUpdateComplaint();
@@ -194,6 +203,53 @@ export function AsStatusSection({
           ref: { userId: assignee.userId },
         },
       ],
+    });
+  };
+
+  const messageResident = (complaint: Complaint) => {
+    if (!canSendMessages) {
+      toast.info("문자 발송 권한이 필요합니다.");
+      return;
+    }
+    if (!resident?.occupancyId || !resident.phone) {
+      toast.info("입주자 연락처가 등록되어 있지 않습니다.");
+      return;
+    }
+
+    const assignee = assignees.find((account) => account.userId === complaint.assignedTo);
+    const unit = formatUnitLabel({ unitNo: complaint.unitNo, dong: complaint.unitDong });
+    const buildingName = complaint.buildingName
+      ?? buildings.find((building) => building.id === complaint.buildingId)?.name
+      ?? "";
+
+    setMessagingPreset({
+      context: "민원·AS",
+      buildingId: complaint.buildingId,
+      channel: "alimtalk",
+      mode: "auto",
+      templateTitle: "민원·AS 처리 안내",
+      recipients: [{
+        name: resident.name,
+        phone: resident.phone,
+        unitNo: unit,
+        kind: "tenant",
+        alimtalkOptIn: resident.alimtalkOptIn,
+        variables: {
+          세대: unit,
+          접수내용: complaint.content ?? complaint.title,
+          처리상태: COMPLAINT_STATUS_LABEL[complaint.status],
+          담당자: assignee?.fullName ?? "",
+        },
+        ref: {
+          occupancyId: resident.occupancyId,
+          unitId: complaint.unitId ?? undefined,
+          buildingId: complaint.buildingId,
+        },
+      }],
+      commonVariables: {
+        건물명: buildingName,
+        관리사무소연락처: orgContact?.phone ?? "",
+      },
     });
   };
 
@@ -339,6 +395,12 @@ export function AsStatusSection({
           onUpdateResolution={editResolution}
           onDeleteResolution={removeResolution}
           onMessageAssignee={messageAssignee}
+          onMessageResident={messageResident}
+          residentMessageTitle={
+            resident && !resident.alimtalkOptIn
+              ? "알림톡 미동의 시 SMS로 자동 전환됩니다."
+              : undefined
+          }
         />
       )}
 
@@ -348,7 +410,11 @@ export function AsStatusSection({
           preset={messagingPreset}
           onClose={() => setMessagingPreset(null)}
           onSent={(result) => {
-            toast.success(`문자가 발송되었습니다. (성공 ${result.count}건)`);
+            toast.success(
+              messagingPreset.context === "A/S 확인"
+                ? `문자가 발송되었습니다. (성공 ${result.count}건)`
+                : `입주자 안내 ${result.count}건 발송을 접수했습니다.`,
+            );
             setMessagingPreset(null);
           }}
         />

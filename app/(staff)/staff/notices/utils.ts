@@ -6,6 +6,16 @@ export const NOTICE_TYPE_LABELS: Record<NoticeType, string> = {
   urgent: "긴급",
 };
 
+export const NOTICE_TEMPLATE_TITLES: Record<NoticeType, string> = {
+  normal: "공지 안내(신규)",
+  important: "공지 안내(중요)",
+  urgent: "공지 안내(긴급)",
+};
+
+export function getNoticeTemplateTitle(noticeType: NoticeType): string {
+  return NOTICE_TEMPLATE_TITLES[noticeType];
+}
+
 export const NOTICE_STATUS_LABELS: Record<Exclude<NoticeStatus, "all">, string> = {
   draft: "초안",
   scheduled: "예약",

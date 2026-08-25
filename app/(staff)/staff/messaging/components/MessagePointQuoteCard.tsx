@@ -41,13 +41,13 @@ export function MessagePointQuoteCard({
   }
 
   const afterBalance = quote.availablePoints - quote.estimatedPoints;
-  const liveInsufficient = quote.billingMode === "live" && !quote.sufficient;
+  const insufficient = !quote.sufficient;
 
   return (
     <section
       aria-label="메시지 포인트 견적"
       className={`rounded-xl border p-4 ${
-        liveInsufficient
+        insufficient
           ? "border-danger/30 bg-danger/10"
           : "border-line bg-bg/60"
       }`}
@@ -56,8 +56,11 @@ export function MessagePointQuoteCard({
         <div>
           <h4 className="text-sm font-extrabold text-t1">포인트 견적</h4>
           <p className="mt-1 text-xs text-t3">
-            SMS {quote.channelCounts.sms}건 × {points(quote.rateSnapshot.sms.points)} · 알림톡{" "}
-            {quote.channelCounts.alimtalk}건 × {points(quote.rateSnapshot.alimtalk.points)}
+            SMS {quote.channelCounts.sms}건 × {points(quote.rateSnapshot.sms.points)}
+            {quote.channelCounts.lms > 0 && (
+              <> · LMS {quote.channelCounts.lms}건 × {points(quote.rateSnapshot.lms.points)}</>
+            )}
+            {" · "}알림톡 {quote.channelCounts.alimtalk}건 × {points(quote.rateSnapshot.alimtalk.points)}
           </p>
         </div>
         <strong className="text-lg text-t1">예상 {points(quote.estimatedPoints)}</strong>
@@ -67,7 +70,7 @@ export function MessagePointQuoteCard({
         <PointValue label="원장 잔액" value={quote.ledgerBalance} />
         <PointValue label="예약" value={quote.reservedPoints} />
         <PointValue label="가용 잔액" value={quote.availablePoints} />
-        <PointValue label="예상 발송 후" value={afterBalance} danger={liveInsufficient} />
+        <PointValue label="예상 발송 후" value={afterBalance} danger={insufficient} />
       </dl>
 
       {quote.excludedCount > 0 && (
@@ -76,15 +79,15 @@ export function MessagePointQuoteCard({
         </p>
       )}
 
-      {quote.billingMode === "stub" ? (
-        <p className="mt-3 rounded-lg bg-brand/10 px-3 py-2 text-xs font-extrabold text-brand">
-          테스트 발송 — 실제 전송 및 포인트 차감 없음
-        </p>
-      ) : liveInsufficient ? (
+      {insufficient ? (
         <p className="mt-3 text-xs font-extrabold text-danger">
           가용 포인트가 부족합니다. {points(quote.estimatedPoints)}가 필요합니다.
         </p>
-      ) : null}
+      ) : (
+        <p className="mt-3 rounded-lg bg-brand/10 px-3 py-2 text-xs font-bold text-brand">
+          접수 후 실제 성공 발송분만 포인트가 차감됩니다.
+        </p>
+      )}
     </section>
   );
 }

@@ -35,34 +35,37 @@ export interface SendMessagesInput {
   templateId: number | null;
   recipients: ResolvedRecipient[];
   scheduledAt?: string | null;
+  /** 한 논리적 즉시발송 시도의 멱등 키(UUID). Idempotency-Key 헤더로 전달한다. */
+  idempotencyKey?: string;
 }
 
 export interface SendMessagesResult {
   logId: number;
   count: number;
-  status: "sent" | "scheduled";
+  /** queued=Popbill 접수 완료(결과 확인 중), scheduled=예약 등록 완료 */
+  status: "queued" | "scheduled";
   scheduledAt: string | null;
   recipients: ResolvedRecipient[];
-  estimatedPoints: number | null;
-  billingMode: "stub" | "live";
-  /** 즉시발송 실경로 결과: 'sent'|'partial'|'failed'|'stub' */
-  sendResult?: string;
-  chargedPoints?: number;
-  perRecipient?: { status: string; reason?: string | null }[];
+  /** 접수된 수신자 수(즉시발송). 성공 확정 수가 아니다. */
+  queuedCount?: number;
+  reservedPoints?: number;
 }
 
 export interface MessagePointQuoteInput {
   mode: SendMode;
   recipients: MessageRecipient[];
   templateId: number | null;
+  /** 최종 렌더링 본문. SMS/LMS 제품을 서버에서 바이트로 판정하기 위해 전달한다. */
+  body?: string;
 }
 
 export interface MessagePointQuote {
   recipientCount: number;
   excludedCount: number;
-  channelCounts: { sms: number; alimtalk: number };
+  channelCounts: { sms: number; lms: number; alimtalk: number };
   rateSnapshot: {
     sms: { rateId: number; points: number };
+    lms: { rateId: number; points: number };
     alimtalk: { rateId: number; points: number };
   };
   ledgerBalance: number;
@@ -70,7 +73,6 @@ export interface MessagePointQuote {
   availablePoints: number;
   estimatedPoints: number;
   sufficient: boolean;
-  billingMode: "stub" | "live";
 }
 
 export class MessagePointQuoteError extends Error {
@@ -128,6 +130,7 @@ export async function quoteMessagePoints(
     p_mode: input.mode,
     p_recipients: input.recipients,
     p_template_id: input.templateId,
+    p_body: input.body ?? null,
   });
   if (error) throw new Error(error.message);
 
@@ -135,10 +138,11 @@ export async function quoteMessagePoints(
     ok?: boolean;
     code?: string;
     message?: string;
-    counts?: { total?: number; sms?: number; alimtalk?: number };
+    counts?: { total?: number; sms?: number; lms?: number; alimtalk?: number };
     excluded_count?: number;
     rate_snapshot?: {
       sms?: { id?: number; points?: number };
+      lms?: { id?: number; points?: number };
       alimtalk?: { id?: number; points?: number };
     };
     ledger_balance?: number;
@@ -146,7 +150,6 @@ export async function quoteMessagePoints(
     available_points?: number;
     estimated_points?: number;
     sufficient?: boolean;
-    billing_mode?: "stub" | "live";
   } | null;
 
   if (!result?.ok) {
@@ -161,12 +164,17 @@ export async function quoteMessagePoints(
     excludedCount: Number(result.excluded_count ?? 0),
     channelCounts: {
       sms: Number(result.counts?.sms ?? 0),
+      lms: Number(result.counts?.lms ?? 0),
       alimtalk: Number(result.counts?.alimtalk ?? 0),
     },
     rateSnapshot: {
       sms: {
         rateId: Number(result.rate_snapshot?.sms?.id ?? 0),
         points: Number(result.rate_snapshot?.sms?.points ?? 0),
+      },
+      lms: {
+        rateId: Number(result.rate_snapshot?.lms?.id ?? 0),
+        points: Number(result.rate_snapshot?.lms?.points ?? 0),
       },
       alimtalk: {
         rateId: Number(result.rate_snapshot?.alimtalk?.id ?? 0),
@@ -178,7 +186,6 @@ export async function quoteMessagePoints(
     availablePoints: Number(result.available_points ?? 0),
     estimatedPoints: Number(result.estimated_points ?? 0),
     sufficient: Boolean(result.sufficient),
-    billingMode: result.billing_mode ?? "stub",
   };
 }
 
@@ -202,15 +209,16 @@ export async function sendMessages(
       status: "scheduled",
       scheduledAt: result.scheduled_at,
       recipients: input.recipients,
-      estimatedPoints: null,
-      billingMode: "stub",
     };
   }
 
-  // 즉시발송: 서비스롤 라우트(reserve→dispatch→settle). 미설정이면 라우트가 stub로 처리.
+  // 즉시발송: 서비스롤 라우트(견적→예약→Popbill 접수→provider_pending). 접수만 확정하고 결과는 재조회로 확정.
+  // Idempotency-Key로 중복 클릭·재시도가 두 번 발송되지 않게 한다(라우트가 검증, 예약이 replay 처리).
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (input.idempotencyKey) headers["idempotency-key"] = input.idempotencyKey;
   const res = await fetch("/api/messaging/send", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers,
     body: JSON.stringify({
       mode: input.mode,
       body: input.body,
@@ -220,11 +228,10 @@ export async function sendMessages(
     }),
   });
   const data = (await res.json().catch(() => null)) as {
-    billingMode?: "stub" | "live";
+    status?: string;
     messageLogId?: number;
-    result?: string;
-    chargedPoints?: number;
-    recipients?: { status: string; reason?: string | null }[];
+    queuedCount?: number;
+    reservedPoints?: number;
     error?: string;
     message?: string;
   } | null;
@@ -238,14 +245,11 @@ export async function sendMessages(
   return {
     logId: data?.messageLogId ?? 0,
     count: input.recipients.length,
-    status: "sent",
+    status: "queued",
     scheduledAt: null,
     recipients: input.recipients,
-    estimatedPoints: null,
-    billingMode: data?.billingMode ?? "stub",
-    sendResult: data?.result,
-    chargedPoints: data?.chargedPoints ?? 0,
-    perRecipient: data?.recipients ?? [],
+    queuedCount: data?.queuedCount ?? 0,
+    reservedPoints: data?.reservedPoints ?? 0,
   };
 }
 

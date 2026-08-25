@@ -14,6 +14,7 @@ import { PageHeader, QueryError } from "../../_components/PageElements";
 interface SettingsDraft {
   rateKrwAlimtalk: string;
   rateKrwSms: string;
+  rateKrwLms: string;
   rateKrwFax: string;
   lowBalanceThreshold: string;
   billingBank: string;
@@ -30,6 +31,7 @@ interface SettingsDraft {
 const emptyDraft: SettingsDraft = {
   rateKrwAlimtalk: "0",
   rateKrwSms: "0",
+  rateKrwLms: "0",
   rateKrwFax: "0",
   lowBalanceThreshold: "0",
   billingBank: "",
@@ -123,11 +125,18 @@ export default function PlatformSettingsPage() {
                 onChange={(value) => change("rateKrwAlimtalk", value)}
               />
               <NumberSetting
-                label="문자"
+                label="문자(SMS)"
                 unit="원/건"
                 value={draft.rateKrwSms}
                 editing={isEditing}
                 onChange={(value) => change("rateKrwSms", value)}
+              />
+              <NumberSetting
+                label="장문(LMS)"
+                unit="원/건"
+                value={draft.rateKrwLms}
+                editing={isEditing}
+                onChange={(value) => change("rateKrwLms", value)}
               />
               <NumberSetting
                 label="팩스"
@@ -308,6 +317,7 @@ function toDraft(settings: PlatformSettings): SettingsDraft {
   return {
     rateKrwAlimtalk: String(settings.rateKrwAlimtalk),
     rateKrwSms: String(settings.rateKrwSms),
+    rateKrwLms: String(settings.rateKrwLms),
     rateKrwFax: String(settings.rateKrwFax),
     lowBalanceThreshold: String(settings.lowBalanceThreshold),
     billingBank: settings.billingBank ?? "",
@@ -326,6 +336,7 @@ function toInput(draft: SettingsDraft): PlatformSettingsInput {
   return {
     rateKrwAlimtalk: requiredNumber(draft.rateKrwAlimtalk, "알림톡", true),
     rateKrwSms: requiredNumber(draft.rateKrwSms, "문자", true),
+    rateKrwLms: requiredNumber(draft.rateKrwLms, "장문(LMS)", true),
     rateKrwFax: requiredNumber(draft.rateKrwFax, "팩스", true),
     lowBalanceThreshold: requiredNumber(draft.lowBalanceThreshold, "잔액 알림 기준", true),
     billingBank: nullableText(draft.billingBank),

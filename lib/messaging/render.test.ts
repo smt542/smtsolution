@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractVariables, renderTemplate } from "./render";
+import { extractVariables, hasUnresolvedVariables, renderTemplate } from "./render";
 
 describe("messaging render", () => {
   it("extractVariables: 중복 제거·공백 트림", () => {
@@ -16,5 +16,11 @@ describe("messaging render", () => {
   it("renderTemplate: 빈 vars·빈 본문", () => {
     expect(renderTemplate("고정문구", {})).toBe("고정문구");
     expect(renderTemplate("", { 이름: "x" })).toBe("");
+  });
+  it("hasUnresolvedVariables: 미치환 #{...} 감지", () => {
+    expect(hasUnresolvedVariables("#{이름}님")).toBe(true);
+    expect(hasUnresolvedVariables(renderTemplate("#{이름}님", { 이름: "홍길동" }))).toBe(false);
+    expect(hasUnresolvedVariables("고정문구 1,000원")).toBe(false);
+    expect(hasUnresolvedVariables("")).toBe(false);
   });
 });

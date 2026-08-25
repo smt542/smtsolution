@@ -5,6 +5,7 @@ import {
   sendBillFaxes,
   type IssueBillsPayload,
   type RecordBillDeliveryPayload,
+  type SendBillFaxesPayload,
 } from "./apis";
 import { billKeys } from "./keys";
 
@@ -27,7 +28,7 @@ export function useRecordBillDelivery() {
 export function useSendBillFaxes() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (p: Omit<RecordBillDeliveryPayload, "issueType" | "sendStatus">) => sendBillFaxes(p),
+    mutationFn: (p: SendBillFaxesPayload) => sendBillFaxes(p),
     onSuccess: () => qc.invalidateQueries({ queryKey: billKeys.all }),
   });
 }

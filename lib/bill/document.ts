@@ -67,6 +67,86 @@ export function formatBillAmount(amount: number): string {
   return `${amount.toLocaleString("ko-KR")}원`;
 }
 
+// ===== 팩스 문서 서버 데이터 계약 (load_fax_document RPC → 렌더러) =====
+/** load_fax_document RPC가 반환하는 원시 행(스네이크 케이스). */
+export interface FaxDocumentRow {
+  bill_issue_id: number;
+  org_id: number;
+  company_name: string | null;
+  building: { id: number; name: string; address: string | null };
+  unit_id: number;
+  unit_no: string;
+  dong: string | null;
+  period: string;
+  tenant_name: string | null;
+  payer_name: string | null;
+  payer_no: string | null;
+  bill_name_display: BillNameDisplay;
+  phone: string | null;
+  fax_number: string | null;
+  auto_debit: boolean;
+  amount: number;
+  items: BillItem[] | null;
+  unit_notice: string | null;
+  customer_notice: string | null;
+  due_date: string | null;
+  mgmt_bank1: string | null; mgmt_acct1: string | null; mgmt_holder1: string | null; mgmt_print1: boolean;
+  mgmt_bank2: string | null; mgmt_acct2: string | null; mgmt_holder2: string | null; mgmt_print2: boolean;
+}
+
+/** 팩스 PDF 렌더러가 사용하는 정규화된 문서 데이터. GiroPrintView와 동일한 핵심 값을 담는다. */
+export interface FaxDocumentData {
+  billIssueId: number;
+  orgId: number;
+  companyName: string;
+  building: { id: number; name: string; address: string | null };
+  unitId: number;
+  unitNo: string;
+  dong: string | null;
+  period: string;
+  householdName: string;
+  phone: string | null;
+  faxNumber: string | null;
+  autoDebit: boolean;
+  amount: number;
+  items: BillItem[];
+  accounts: PrintableAccount[];
+  customerNotice: string | null;
+  unitNotice: string | null;
+  dueDate: string | null;
+  qrPayload: string;
+}
+
+/** 서버 원시 행을 렌더러 계약으로 변환한다. 금액/계좌/이름은 서버 값만 사용한다(클라이언트 불신뢰). */
+export function buildFaxDocument(row: FaxDocumentRow): FaxDocumentData {
+  const items = (row.items ?? []).filter((item) => item.charged);
+  const accounts = printableAccounts({
+    mgmtBank1: row.mgmt_bank1, mgmtAcct1: row.mgmt_acct1, mgmtHolder1: row.mgmt_holder1, mgmtPrint1: row.mgmt_print1,
+    mgmtBank2: row.mgmt_bank2, mgmtAcct2: row.mgmt_acct2, mgmtHolder2: row.mgmt_holder2, mgmtPrint2: row.mgmt_print2,
+  });
+  return {
+    billIssueId: row.bill_issue_id,
+    orgId: row.org_id,
+    companyName: row.company_name?.trim() || PROGRAM_COMPANY_NAME,
+    building: row.building,
+    unitId: row.unit_id,
+    unitNo: row.unit_no,
+    dong: row.dong,
+    period: row.period,
+    householdName: unitLabel(row.bill_name_display, row.unit_no, row.tenant_name, row.payer_name, row.payer_no),
+    phone: row.phone,
+    faxNumber: row.fax_number,
+    autoDebit: row.auto_debit,
+    amount: giroDocumentAmount({ totalAmount: row.amount, items }),
+    items,
+    accounts,
+    customerNotice: row.customer_notice,
+    unitNotice: row.unit_notice,
+    dueDate: row.due_date,
+    qrPayload: buildOutputQrPayload("giro", row.unit_id, row.period),
+  };
+}
+
 export interface AdjustmentSource extends BillAmountSource {
   unitId: number;
   unitNo: string;

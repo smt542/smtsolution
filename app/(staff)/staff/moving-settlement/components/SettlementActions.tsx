@@ -12,15 +12,27 @@ import {
   useMidMoveout,
   useSaveSettlement,
   type SaveSettlementInput,
+  type SettlementContext,
 } from "@/hooks/reactquery/movingSettlement";
+import { useOrgContact } from "@/hooks/reactquery/org/useOrgContact";
+import { useMintSettlementShareToken } from "@/hooks/reactquery/residentSettlement";
+import { residentOrigin } from "@/lib/messaging/residentOrigin";
+import { formatDate, formatKrw, formatUnit } from "@/lib/messaging/vars";
+import { MessagingModal } from "../../messaging/components/MessagingModal";
 
 export function SettlementActions({
+  building,
+  unit,
+  occupancy,
   draft,
   input,
   settlementId,
   amount,
   onSaved,
 }: {
+  building: { id: number; name: string };
+  unit: SettlementContext["unit"];
+  occupancy: NonNullable<SettlementContext["occupancy"]>;
   draft: MovingSettlementValues;
   input: SaveSettlementInput;
   settlementId: number | null;
@@ -30,6 +42,10 @@ export function SettlementActions({
   const save = useSaveSettlement();
   const complete = useCompleteSettlement();
   const mid = useMidMoveout();
+  const mintShareToken = useMintSettlementShareToken();
+  const { data: orgContact } = useOrgContact();
+  const [messageOpen, setMessageOpen] = useState(false);
+  const [detailLink, setDetailLink] = useState("");
   const [completeOpen, setCompleteOpen] = useState(false);
   const pending = save.isPending || complete.isPending || mid.isPending;
 
@@ -91,11 +107,34 @@ export function SettlementActions({
   const exportStub = (label: string) =>
     toast.info(`${label} 출력은 엑셀 연동 후 제공됩니다.`);
 
+  const openSettlementMessaging = async () => {
+    if (settlementId === null) {
+      toast.error("먼저 계산+저장을 실행해 주세요.");
+      return;
+    }
+
+    try {
+      const token = await mintShareToken.mutateAsync(settlementId);
+      setDetailLink(`${residentOrigin()}/r/settlement/${token}`);
+      setMessageOpen(true);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "정산내역 상세 링크를 만들지 못했습니다.",
+      );
+    }
+  };
+
   return (
     <>
       <section className="flex flex-wrap justify-end gap-2 rounded-2xl border border-line bg-surface p-4 shadow-card">
-        <Button variant="ghost" onClick={() => exportStub("정산내역서")}>
-          출력
+        <Button
+          variant="ghost"
+          onClick={() => void openSettlementMessaging()}
+          disabled={mintShareToken.isPending}
+        >
+          정산내역서 전송
         </Button>
         <Button variant="ghost" onClick={() => exportStub("빈양식")}>
           빈양식
@@ -117,6 +156,40 @@ export function SettlementActions({
           정산완료+공실
         </Button>
       </section>
+
+      <MessagingModal
+        open={messageOpen}
+        preset={{
+          context: "이사정산",
+          buildingId: building.id,
+          channel: "alimtalk",
+          mode: "auto",
+          templateTitle: "이사정산 내역서",
+          recipients: [{
+            name: occupancy.tenantName,
+            phone: occupancy.phone,
+            unitNo: formatUnit(unit.dong, unit.unitNo),
+            kind: "tenant",
+            variables: {
+              퇴실일: formatDate(draft.moveOutDate),
+              정산구분: amount < 0 ? "환급" : "추가납부",
+              정산금액: formatKrw(amount),
+              세대: formatUnit(unit.dong, unit.unitNo),
+              상세링크: detailLink,
+            },
+            ref: { occupancyId: occupancy.id },
+          }],
+          commonVariables: {
+            건물명: building.name,
+            관리사무소연락처: orgContact?.phone ?? "",
+          },
+        }}
+        onClose={() => setMessageOpen(false)}
+        onSent={(result) => {
+          toast.success(`이사정산 내역서 ${result.count}건 발송을 접수했습니다.`);
+          setMessageOpen(false);
+        }}
+      />
 
       <Modal
         open={completeOpen}

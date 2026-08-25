@@ -8,19 +8,22 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 const adminRpc = vi.fn();
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ rpc: adminRpc }) }));
-const anyChannelConfigured = vi.fn();
-const dispatchOne = vi.fn();
+const dispatchMessages = vi.fn();
 vi.mock("@/lib/messaging/dispatch", () => ({
-  anyChannelConfigured: (...a: unknown[]) => anyChannelConfigured(...a),
-  dispatchOne: (...a: unknown[]) => dispatchOne(...a),
+  dispatchMessages: (...a: unknown[]) => dispatchMessages(...a),
 }));
 
 import { POST } from "./route";
 
-function req(body: unknown): Request {
+const VALID_IDEM = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+
+function req(body: unknown, opts?: { idempotencyKey?: string | null }): Request {
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  const key = opts && "idempotencyKey" in opts ? opts.idempotencyKey : VALID_IDEM;
+  if (key != null) headers["idempotency-key"] = key;
   return new Request("http://x/api/messaging/send", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers,
     body: JSON.stringify(body),
   });
 }
@@ -35,39 +38,19 @@ const payload = {
 
 beforeEach(() => {
   getUser.mockResolvedValue({ data: { user: { id: "u-1" } }, error: null });
-  serverRpc.mockImplementation((name: string) => {
-    if (name === "get_my_context") {
-      return Promise.resolve({ data: [{ org_id: 10, role: "org_owner", permissions: [] }], error: null });
-    }
-    if (name === "quote_message_points") {
-      return Promise.resolve({
-        data: {
-          ok: true,
-          resolved_recipients: [{ phone: "010-1111-2222", channel: "sms" }],
-          recipient_costs: [{ recipient_key: "key1", channel: "sms", rate_id: 1, points: 1 }],
-          rate_ids: { sms: 1, alimtalk: 2 },
-          estimated_points: 1,
-          counts: { total: 1 },
-        },
-        error: null,
-      });
-    }
-    if (name === "send_messages") {
-      return Promise.resolve({ data: { log_id: 7, count: 1 }, error: null });
-    }
-    return Promise.resolve({ data: null, error: null });
+  serverRpc.mockImplementation((name: string) =>
+    name === "get_my_context"
+      ? Promise.resolve({ data: [{ org_id: 10, role: "org_owner", permissions: [] }], error: null })
+      : Promise.resolve({ data: null, error: null }),
+  );
+  dispatchMessages.mockResolvedValue({
+    ok: true,
+    status: "queued",
+    logId: 9,
+    reservationId: 5,
+    queuedCount: 1,
+    reservedPoints: 1,
   });
-  adminRpc.mockImplementation((name: string) => {
-    if (name === "reserve_message_points") {
-      return Promise.resolve({ data: { ok: true, reservation_id: 5, message_log_id: 9, status: "reserved", reserved_points: 1 }, error: null });
-    }
-    if (name === "settle_message_points") {
-      return Promise.resolve({ data: { ok: true, status: "settled", result: "sent", charged_points: 1 }, error: null });
-    }
-    return Promise.resolve({ data: null, error: null });
-  });
-  anyChannelConfigured.mockReturnValue(true);
-  dispatchOne.mockResolvedValue({ status: "success", providerId: "p1" });
 });
 afterEach(() => vi.clearAllMocks());
 
@@ -76,6 +59,7 @@ describe("POST /api/messaging/send", () => {
     getUser.mockResolvedValue({ data: { user: null }, error: null });
     const res = await POST(req(payload));
     expect(res.status).toBe(401);
+    expect(dispatchMessages).not.toHaveBeenCalled();
   });
 
   it("messaging 권한 없으면 403", async () => {
@@ -86,65 +70,71 @@ describe("POST /api/messaging/send", () => {
     );
     const res = await POST(req(payload));
     expect(res.status).toBe(403);
+    expect(dispatchMessages).not.toHaveBeenCalled();
   });
 
-  it("미설정이면 stub 경로(send_messages 호출·reserve 미호출)", async () => {
-    anyChannelConfigured.mockReturnValue(false);
-    const res = await POST(req(payload));
-    const json = await res.json();
-    expect(res.status).toBe(200);
-    expect(json.billingMode).toBe("stub");
-    expect(json.messageLogId).toBe(7);
-    expect(serverRpc).toHaveBeenCalledWith("send_messages", expect.objectContaining({ p_channel: "sms" }));
-    expect(adminRpc).not.toHaveBeenCalled();
-    expect(dispatchOne).not.toHaveBeenCalled();
+  it("Idempotency-Key 헤더가 없으면 400이고 dispatch를 호출하지 않는다", async () => {
+    const res = await POST(req(payload, { idempotencyKey: null }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("IDEMPOTENCY_KEY_REQUIRED");
+    expect(dispatchMessages).not.toHaveBeenCalled();
   });
 
-  it("설정+충분 → quote→reserve→dispatch→settle, live 결과", async () => {
-    const res = await POST(req(payload));
-    const json = await res.json();
-    expect(res.status).toBe(200);
-    expect(json.billingMode).toBe("live");
-    expect(json.result).toBe("sent");
-    expect(json.chargedPoints).toBe(1);
-    expect(dispatchOne).toHaveBeenCalledWith(expect.objectContaining({ channel: "sms", phone: "010-1111-2222", body: "안녕하세요" }));
-    // settle는 quote recipient_costs의 recipient_key로 결과 전달
-    expect(adminRpc).toHaveBeenCalledWith("settle_message_points", expect.objectContaining({
-      p_reservation_id: 5,
-      p_results: [{ recipient_key: "key1", status: "success" }],
-    }));
+  it("Idempotency-Key가 UUID 형식이 아니면 400이고 dispatch를 호출하지 않는다", async () => {
+    const res = await POST(req(payload, { idempotencyKey: "not-a-uuid" }));
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("IDEMPOTENCY_KEY_INVALID");
+    expect(dispatchMessages).not.toHaveBeenCalled();
   });
 
-  it("reserve INSUFFICIENT_POINTS → 402, dispatch/settle 미호출", async () => {
-    adminRpc.mockImplementation((name: string) =>
-      name === "reserve_message_points"
-        ? Promise.resolve({ data: { ok: false, code: "INSUFFICIENT_POINTS", required_points: 5, available_points: 0 }, error: null })
-        : Promise.resolve({ data: null, error: null }),
+  it("유효한 Idempotency-Key를 dispatchMessages input으로 전달한다", async () => {
+    await POST(req(payload));
+    expect(dispatchMessages).toHaveBeenCalledWith(
+      expect.objectContaining({ idempotencyKey: VALID_IDEM }),
+      expect.anything(),
     );
+  });
+
+  it("접수 성공 → 202 queued", async () => {
+    const res = await POST(req(payload));
+    const json = await res.json();
+    expect(res.status).toBe(202);
+    expect(json).toMatchObject({
+      status: "queued",
+      messageLogId: 9,
+      reservationId: 5,
+      queuedCount: 1,
+      reservedPoints: 1,
+    });
+    // 접수만 되었으므로 sent/성공 확정 표기가 없어야 한다.
+    expect(json.result).toBeUndefined();
+    expect(json.sendResult).toBeUndefined();
+  });
+
+  it("설정 누락 → 503 PROVIDER_NOT_CONFIGURED", async () => {
+    dispatchMessages.mockResolvedValue({
+      ok: false,
+      code: "PROVIDER_NOT_CONFIGURED",
+      message: "발송 공급자가 설정되지 않았습니다.",
+      httpStatus: 503,
+    });
+    const res = await POST(req(payload));
+    const json = await res.json();
+    expect(res.status).toBe(503);
+    expect(json.error).toBe("PROVIDER_NOT_CONFIGURED");
+  });
+
+  it("포인트 부족 → 402, 코드 전파", async () => {
+    dispatchMessages.mockResolvedValue({
+      ok: false,
+      code: "INSUFFICIENT_POINTS",
+      httpStatus: 402,
+      detail: { required_points: 5, available_points: 0 },
+    });
     const res = await POST(req(payload));
     const json = await res.json();
     expect(res.status).toBe(402);
     expect(json.error).toBe("INSUFFICIENT_POINTS");
-    expect(dispatchOne).not.toHaveBeenCalled();
-  });
-
-  it("부분 실패 → settle에 success/failed 혼합 전달", async () => {
-    serverRpc.mockImplementation((name: string) => {
-      if (name === "get_my_context") return Promise.resolve({ data: [{ org_id: 10, role: "org_owner", permissions: [] }], error: null });
-      if (name === "quote_message_points") return Promise.resolve({ data: {
-        ok: true,
-        resolved_recipients: [{ phone: "010-1111-2222", channel: "sms" }, { phone: "010-3333-4444", channel: "sms" }],
-        recipient_costs: [{ recipient_key: "k1", channel: "sms" }, { recipient_key: "k2", channel: "sms" }],
-        rate_ids: { sms: 1, alimtalk: 2 }, estimated_points: 2, counts: { total: 2 },
-      }, error: null });
-      return Promise.resolve({ data: null, error: null });
-    });
-    dispatchOne
-      .mockResolvedValueOnce({ status: "success", providerId: "p1" })
-      .mockResolvedValueOnce({ status: "failed", reason: "sms_400" });
-    await POST(req(payload));
-    expect(adminRpc).toHaveBeenCalledWith("settle_message_points", expect.objectContaining({
-      p_results: [{ recipient_key: "k1", status: "success" }, { recipient_key: "k2", status: "failed" }],
-    }));
+    expect(json.required_points).toBe(5);
   });
 });

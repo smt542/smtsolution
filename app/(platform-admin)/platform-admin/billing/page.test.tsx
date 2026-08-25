@@ -15,9 +15,9 @@ vi.mock("@/hooks/reactquery/platform", () => ({
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 const rows = [
-  { orgId: 1, orgName: "한빛관리", orgEmail: "a@x.kr", status: "unpaid", alimtalkCount: 120, smsCount: 30, faxCount: 4, subtotalKrw: 20000, vatKrw: 2000, totalKrw: 22000, prevTotalKrw: 18000 },
-  { orgId: 2, orgName: "새봄관리", orgEmail: "b@x.kr", status: "paid", alimtalkCount: 80, smsCount: 10, faxCount: 0, subtotalKrw: 15000, vatKrw: 1500, totalKrw: 16500, prevTotalKrw: 16500 },
-  { orgId: 3, orgName: "가을관리", orgEmail: null, status: "none", alimtalkCount: 0, smsCount: 0, faxCount: 0, subtotalKrw: 0, vatKrw: 0, totalKrw: 0, prevTotalKrw: 0 },
+  { orgId: 1, orgName: "한빛관리", orgEmail: "a@x.kr", status: "unpaid", alimtalkCount: 120, smsCount: 30, lmsCount: 5, faxCount: 4, faxPageCount: 9, subtotalKrw: 20000, vatKrw: 2000, totalKrw: 22000, prevTotalKrw: 18000 },
+  { orgId: 2, orgName: "새봄관리", orgEmail: "b@x.kr", status: "paid", alimtalkCount: 80, smsCount: 10, lmsCount: 0, faxCount: 0, faxPageCount: 0, subtotalKrw: 15000, vatKrw: 1500, totalKrw: 16500, prevTotalKrw: 16500 },
+  { orgId: 3, orgName: "가을관리", orgEmail: null, status: "none", alimtalkCount: 0, smsCount: 0, lmsCount: 0, faxCount: 0, faxPageCount: 0, subtotalKrw: 0, vatKrw: 0, totalKrw: 0, prevTotalKrw: 0 },
 ];
 
 beforeEach(() => {
