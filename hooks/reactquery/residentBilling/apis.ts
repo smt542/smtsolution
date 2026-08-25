@@ -73,6 +73,23 @@ export interface ResidentBillDetail {
 export type ResidentBillDetailResult = ResidentBillDetail | null;
 export type ResidentBillTokenResult = string;
 
+export interface StaffMintBillTokensPayload {
+  unitIds: number[];
+  period: string;
+}
+
+export interface StaffBillTokenRow {
+  unit_id: number;
+  token: string;
+}
+
+export interface StaffBillToken {
+  unitId: number;
+  token: string;
+}
+
+export type StaffMintBillTokensResult = StaffBillToken[];
+
 export interface PublicBillItemRow {
   name: string;
   amount: number;
@@ -200,6 +217,20 @@ export async function residentGetOrCreateBillToken(
     throw new Error("관리비 공유 링크를 만들지 못했습니다.");
   }
   return data;
+}
+
+export async function staffMintBillTokens(
+  payload: StaffMintBillTokensPayload,
+): Promise<StaffMintBillTokensResult> {
+  const { data, error } = await createClient().rpc("staff_mint_bill_tokens", {
+    p_unit_ids: payload.unitIds,
+    p_period: payload.period,
+  });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as StaffBillTokenRow[]).map((row) => ({
+    unitId: row.unit_id,
+    token: row.token,
+  }));
 }
 
 export async function publicBillByToken(

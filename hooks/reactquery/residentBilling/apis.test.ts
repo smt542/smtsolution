@@ -8,6 +8,7 @@ import {
   residentBillDetail,
   residentBillMonths,
   residentGetOrCreateBillToken,
+  staffMintBillTokens,
 } from "./apis";
 
 beforeEach(() => {
@@ -101,6 +102,30 @@ describe("resident billing APIs", () => {
       "resident_get_or_create_bill_token",
       { p_period: "2026-08-01" },
     );
+  });
+
+  it("mints staff bill tokens in bulk and maps the RPC rows", async () => {
+    rpc.mockResolvedValue({
+      data: [
+        { unit_id: 11, token: "11111111-2222-4333-8444-555555555555" },
+        { unit_id: 12, token: "66666666-7777-4888-8999-000000000000" },
+      ],
+      error: null,
+    });
+
+    await expect(
+      staffMintBillTokens({
+        unitIds: [11, 12],
+        period: "2026-08-01",
+      }),
+    ).resolves.toEqual([
+      { unitId: 11, token: "11111111-2222-4333-8444-555555555555" },
+      { unitId: 12, token: "66666666-7777-4888-8999-000000000000" },
+    ]);
+    expect(rpc).toHaveBeenCalledWith("staff_mint_bill_tokens", {
+      p_unit_ids: [11, 12],
+      p_period: "2026-08-01",
+    });
   });
 
   it("passes p_token and maps public rows without resident PII", async () => {
