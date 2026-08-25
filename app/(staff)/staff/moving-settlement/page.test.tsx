@@ -3,6 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
 vi.mock("@/hooks/reactquery/buildings", () => ({ useBuildings: vi.fn() }));
+vi.mock("@/hooks/reactquery/org/useOrgContact", () => ({
+  useOrgContact: () => ({ data: { phone: "02-1234-5678" } }),
+}));
 vi.mock("@/hooks/reactquery/units", () => ({ useUnits: vi.fn() }));
 vi.mock("@/hooks/reactquery/movingSettlement", async (importOriginal) => {
   const actual = await importOriginal<
@@ -41,10 +44,18 @@ beforeEach(() => {
   } as never);
   vi.mocked(useSettlementContext).mockReturnValue({
     data: {
-      unit: { id: 101, unitNo: "101호", dong: "A동", buildingId: 3 },
+      unit: {
+        id: 101,
+        unitNo: "101호",
+        dong: "A동",
+        buildingId: 3,
+        buildingName: "해오름",
+      },
       occupancy: {
         id: 9,
         tenantName: "홍길동",
+        phone: "010-1234-5678",
+        alimtalkOptIn: true,
         moveInDate: "2025-08-01",
         settlementNote: null,
         billingNote: null,

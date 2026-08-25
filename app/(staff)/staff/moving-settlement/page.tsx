@@ -50,9 +50,11 @@ function nullableText(value: string | undefined): string | null {
 }
 
 function SettlementEditor({
+  building,
   context,
   occupancy,
 }: {
+  building: { id: number; name: string };
   context: SettlementContext;
   occupancy: NonNullable<SettlementContext["occupancy"]>;
 }) {
@@ -113,6 +115,9 @@ function SettlementEditor({
         }
       />
       <SettlementActions
+        building={building}
+        unit={context.unit}
+        occupancy={occupancy}
         draft={draft}
         input={saveInput}
         settlementId={activeSettlementId}
@@ -143,6 +148,8 @@ export default function MovingSettlementPage() {
   const buildings = buildingsQuery.data ?? [];
   const units = unitsQuery.data ?? [];
   const context = unitId === null ? undefined : contextQuery.data;
+  const selectedBuilding =
+    buildings.find((building) => building.id === buildingId) ?? null;
 
   const selectBuilding = (value: string) => {
     setBuildingId(value ? Number(value) : null);
@@ -233,9 +240,10 @@ export default function MovingSettlementPage() {
       {context && context.occupancy === null && (
         <EmptyState message="선택한 호실에 입주 정보가 없습니다." />
       )}
-      {context && context.occupancy && (
+      {context && context.occupancy && selectedBuilding && (
         <SettlementEditor
           key={`${context.unit.id}:${context.latestSettlement?.id ?? "new"}`}
+          building={selectedBuilding}
           context={context}
           occupancy={context.occupancy}
         />

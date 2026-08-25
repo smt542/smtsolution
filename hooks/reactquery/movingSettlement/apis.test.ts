@@ -21,10 +21,18 @@ describe("moving settlement apis", () => {
   it("getSettlementContext: 중첩 RPC 응답을 snake→camel로 매핑한다", async () => {
     rpc.mockResolvedValue({
       data: {
-        unit: { id: 101, unit_no: "101호", dong: "A동", building_id: 3 },
+        unit: {
+          id: 101,
+          unit_no: "101호",
+          dong: "A동",
+          building_id: 3,
+          building_name: "해오름",
+        },
         occupancy: {
           id: 9,
           tenant_name: "홍길동",
+          phone: "010-1234-5678",
+          alimtalk_opt_in: true,
           move_in_date: "2025-08-01",
           settlement_note: "열쇠 반납",
           billing_note: null,
@@ -70,10 +78,18 @@ describe("moving settlement apis", () => {
     const context = await getSettlementContext(101);
 
     expect(rpc).toHaveBeenCalledWith("get_settlement_context", { p_unit_id: 101 });
-    expect(context.unit).toEqual({ id: 101, unitNo: "101호", dong: "A동", buildingId: 3 });
+    expect(context.unit).toEqual({
+      id: 101,
+      unitNo: "101호",
+      dong: "A동",
+      buildingId: 3,
+      buildingName: "해오름",
+    });
     expect(context.occupancy).toMatchObject({
       id: 9,
       tenantName: "홍길동",
+      phone: "010-1234-5678",
+      alimtalkOptIn: true,
       moveInDate: "2025-08-01",
       settlementNote: "열쇠 반납",
       billingNote: null,

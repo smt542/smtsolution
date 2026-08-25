@@ -12,15 +12,25 @@ import {
   useMidMoveout,
   useSaveSettlement,
   type SaveSettlementInput,
+  type SettlementContext,
 } from "@/hooks/reactquery/movingSettlement";
+import { useOrgContact } from "@/hooks/reactquery/org/useOrgContact";
+import { formatDate, formatKrw, formatUnit } from "@/lib/messaging/vars";
+import { MessagingModal } from "../../messaging/components/MessagingModal";
 
 export function SettlementActions({
+  building,
+  unit,
+  occupancy,
   draft,
   input,
   settlementId,
   amount,
   onSaved,
 }: {
+  building: { id: number; name: string };
+  unit: SettlementContext["unit"];
+  occupancy: NonNullable<SettlementContext["occupancy"]>;
   draft: MovingSettlementValues;
   input: SaveSettlementInput;
   settlementId: number | null;
@@ -30,6 +40,8 @@ export function SettlementActions({
   const save = useSaveSettlement();
   const complete = useCompleteSettlement();
   const mid = useMidMoveout();
+  const { data: orgContact } = useOrgContact();
+  const [messageOpen, setMessageOpen] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
   const pending = save.isPending || complete.isPending || mid.isPending;
 
@@ -94,8 +106,8 @@ export function SettlementActions({
   return (
     <>
       <section className="flex flex-wrap justify-end gap-2 rounded-2xl border border-line bg-surface p-4 shadow-card">
-        <Button variant="ghost" onClick={() => exportStub("정산내역서")}>
-          출력
+        <Button variant="ghost" onClick={() => setMessageOpen(true)}>
+          정산내역서 전송
         </Button>
         <Button variant="ghost" onClick={() => exportStub("빈양식")}>
           빈양식
@@ -117,6 +129,39 @@ export function SettlementActions({
           정산완료+공실
         </Button>
       </section>
+
+      <MessagingModal
+        open={messageOpen}
+        preset={{
+          context: "이사정산",
+          buildingId: building.id,
+          channel: "alimtalk",
+          mode: "auto",
+          templateTitle: "이사정산 내역서",
+          recipients: [{
+            name: occupancy.tenantName,
+            phone: occupancy.phone,
+            unitNo: formatUnit(unit.dong, unit.unitNo),
+            kind: "tenant",
+            variables: {
+              퇴실일: formatDate(draft.moveOutDate),
+              정산구분: amount < 0 ? "환급" : "추가납부",
+              정산금액: formatKrw(amount),
+              세대: formatUnit(unit.dong, unit.unitNo),
+            },
+            ref: { occupancyId: occupancy.id },
+          }],
+          commonVariables: {
+            건물명: building.name,
+            관리사무소연락처: orgContact?.phone ?? "",
+          },
+        }}
+        onClose={() => setMessageOpen(false)}
+        onSent={(result) => {
+          toast.success(`이사정산 내역서 ${result.count}건 발송을 접수했습니다.`);
+          setMessageOpen(false);
+        }}
+      />
 
       <Modal
         open={completeOpen}
