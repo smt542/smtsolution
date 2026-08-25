@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MessagingPreset } from "@/lib/messaging/preset";
 import {
   buildRecipientRenderVariables,
@@ -10,6 +10,7 @@ const saveMutate = vi.fn();
 const completeMutate = vi.fn();
 const midMutate = vi.fn();
 const messagingModalSpy = vi.fn();
+const mintShareToken = vi.fn();
 
 vi.mock("@/hooks/reactquery/movingSettlement", () => ({
   useSaveSettlement: () => ({ mutate: saveMutate, isPending: false }),
@@ -21,6 +22,12 @@ vi.mock("sonner", () => ({
 }));
 vi.mock("@/hooks/reactquery/org/useOrgContact", () => ({
   useOrgContact: () => ({ data: { phone: "02-1234-5678" } }),
+}));
+vi.mock("@/hooks/reactquery/residentSettlement", () => ({
+  useMintSettlementShareToken: () => ({
+    mutateAsync: mintShareToken,
+    isPending: false,
+  }),
 }));
 vi.mock("../../messaging/components/MessagingModal", () => ({
   MessagingModal: (props: {
@@ -107,7 +114,13 @@ const renderActions = (amount = 218806) => render(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.stubEnv("NEXT_PUBLIC_RESIDENT_WEB_ORIGIN", "https://resident.example.com/");
+  mintShareToken.mockResolvedValue("settlement-token-31");
   vi.stubGlobal("confirm", vi.fn(() => true));
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe("SettlementActions", () => {
@@ -134,12 +147,12 @@ describe("SettlementActions", () => {
     expect(completeMutate).toHaveBeenCalledWith(31, expect.any(Object));
   });
 
-  it("퇴실자용 이사정산 내역서 preset을 정확한 템플릿과 완전한 변수로 구성한다", () => {
+  it("퇴실자용 이사정산 내역서에 공개 상세 링크를 포함해 완전히 렌더한다", async () => {
     renderActions();
 
     fireEvent.click(screen.getByRole("button", { name: "정산내역서 전송" }));
 
-    expect(screen.getByText("테스트 정산내역서 발송")).toBeInTheDocument();
+    expect(await screen.findByText("테스트 정산내역서 발송")).toBeInTheDocument();
     const openCall = [...messagingModalSpy.mock.calls]
       .reverse()
       .find(([props]) => props.open);
@@ -164,10 +177,12 @@ describe("SettlementActions", () => {
           정산구분: "추가납부",
           정산금액: "218,806",
           세대: "A동 101호",
+          상세링크: "https://resident.example.com/r/settlement/settlement-token-31",
         },
         ref: { occupancyId: 9 },
       }],
     });
+    expect(mintShareToken).toHaveBeenCalledWith(31);
 
     const templates = [{
       id: 303,
@@ -188,12 +203,32 @@ describe("SettlementActions", () => {
     ) ?? [];
     expect(renderedBodies).toHaveLength(1);
     expect(renderedBodies.every((body) => !body.includes("#{"))).toBe(true);
+    const renderedButtonUrls = preset?.recipients?.map((recipient) =>
+      renderTemplate(
+        "#{상세링크}",
+        buildRecipientRenderVariables(
+          recipient,
+          preset.commonVariables,
+          settlementContext.building.name,
+        ),
+      ),
+    ) ?? [];
+    expect(renderedButtonUrls).toEqual([
+      "https://resident.example.com/r/settlement/settlement-token-31",
+    ]);
+    expect(renderedButtonUrls.every((url) => !url.includes("#{"))).toBe(true);
   });
 
-  it("음수 정산금은 환급으로 파생한다", () => {
+  it("음수 정산금은 환급으로 파생한다", async () => {
     renderActions(-50000);
 
     fireEvent.click(screen.getByRole("button", { name: "정산내역서 전송" }));
+
+    await waitFor(() =>
+      expect(messagingModalSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ open: true }),
+      ),
+    );
 
     const openCall = [...messagingModalSpy.mock.calls]
       .reverse()
@@ -203,5 +238,20 @@ describe("SettlementActions", () => {
       정산구분: "환급",
       정산금액: "-50,000",
     });
+  });
+
+  it("정산 토큰 발급 실패 시 오류를 알리고 발송 모달을 열지 않는다", async () => {
+    const { toast } = await import("sonner");
+    mintShareToken.mockRejectedValueOnce(new Error("정산 토큰 발급 실패"));
+    renderActions();
+
+    fireEvent.click(screen.getByRole("button", { name: "정산내역서 전송" }));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("정산 토큰 발급 실패"),
+    );
+    expect(messagingModalSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({ open: true }),
+    );
   });
 });

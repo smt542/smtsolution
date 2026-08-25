@@ -6,6 +6,9 @@ vi.mock("@/hooks/reactquery/buildings", () => ({ useBuildings: vi.fn() }));
 vi.mock("@/hooks/reactquery/org/useOrgContact", () => ({
   useOrgContact: () => ({ data: { phone: "02-1234-5678" } }),
 }));
+vi.mock("@/hooks/reactquery/residentSettlement", () => ({
+  useMintSettlementShareToken: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}));
 vi.mock("@/hooks/reactquery/units", () => ({ useUnits: vi.fn() }));
 vi.mock("@/hooks/reactquery/movingSettlement", async (importOriginal) => {
   const actual = await importOriginal<

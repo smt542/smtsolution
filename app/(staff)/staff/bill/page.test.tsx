@@ -1,11 +1,13 @@
 // app/(staff)/staff/bill/page.test.tsx
-import { render, screen, fireEvent, act } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { MessagingPreset } from "@/lib/messaging/preset";
 
 const h = vi.hoisted(() => ({
   recordMutateAsync: vi.fn(),
+  mintMutateAsync: vi.fn(),
   modal: {
+    open: false,
     onSent: null as null | ((result: unknown) => void | Promise<void>),
     preset: undefined as MessagingPreset | undefined,
   },
@@ -43,13 +45,24 @@ vi.mock("@/hooks/reactquery/bill", () => ({
 vi.mock("@/hooks/reactquery/messaging", () => ({
   useCancelScheduledMessage: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
+vi.mock("@/hooks/reactquery/residentBilling", () => ({
+  useStaffMintBillTokens: () => ({
+    mutateAsync: h.mintMutateAsync,
+    isPending: false,
+  }),
+}));
+vi.mock("sonner", () => ({
+  toast: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
+}));
 vi.mock(
   "@/app/(staff)/staff/messaging/components/MessagingModal",
   () => ({
     MessagingModal: (props: {
+      open: boolean;
       preset?: MessagingPreset;
       onSent?: (result: unknown) => void | Promise<void>;
     }) => {
+      h.modal.open = props.open;
       h.modal.onSent = props.onSent ?? null;
       h.modal.preset = props.preset;
       return null;
@@ -62,11 +75,45 @@ import { useMe } from "@/hooks/reactquery/auth";
 import { useBillTargets } from "@/hooks/reactquery/bill";
 import { buildRecipientRenderVariables } from "@/lib/messaging/preset";
 import { renderTemplate } from "@/lib/messaging/render";
+import { toast } from "sonner";
+
+const billTarget = {
+  unitId: 101,
+  unitNo: "1001",
+  dong: "101",
+  occupancyId: 401,
+  tenantName: "김입주",
+  payerName: null,
+  payerNo: null,
+  billNameDisplay: "name",
+  phone: "010-1111-2222",
+  secondaryPhone: "010-3333-4444",
+  faxNumber: null,
+  totalAmount: 120_000,
+  autoDebit: false,
+  issueType: null,
+  dueDate: "2026-08-31",
+  sendStatus: null,
+  issuedAt: null,
+  singlePrint: false,
+  waterCutoff: false,
+  scheduledAt: null,
+  messageScheduleId: null,
+  kakaoSendStatus: null,
+  faxSendStatus: null,
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.stubEnv("NEXT_PUBLIC_RESIDENT_WEB_ORIGIN", "https://resident.example.com/");
+  h.mintMutateAsync.mockResolvedValue([{ unitId: 101, token: "bill-token-101" }]);
+  h.modal.open = false;
   h.modal.onSent = null;
   h.modal.preset = undefined;
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe("BillPage 게이트", () => {
@@ -139,36 +186,12 @@ describe("BillPage 게이트", () => {
     ).toBeInTheDocument();
   });
 
-  it("선택 세대별 고지서 변수를 채우고 정확한 알림톡 템플릿으로 완전히 렌더한다", () => {
+  it("선택 세대별 고지서 변수와 공개 상세 링크를 채워 알림톡을 완전히 렌더한다", async () => {
     vi.mocked(useMe).mockReturnValue({
       data: { role: "staff", orgId: 1, permissions: ["bill_publish"] },
     } as unknown as ReturnType<typeof useMe>);
     vi.mocked(useBillTargets).mockReturnValue({
-      data: [{
-        unitId: 101,
-        unitNo: "1001",
-        dong: "101",
-        occupancyId: 401,
-        tenantName: "김입주",
-        payerName: null,
-        payerNo: null,
-        billNameDisplay: "name",
-        phone: "010-1111-2222",
-        secondaryPhone: "010-3333-4444",
-        faxNumber: null,
-        totalAmount: 120_000,
-        autoDebit: false,
-        issueType: null,
-        dueDate: "2026-08-31",
-        sendStatus: null,
-        issuedAt: null,
-        singlePrint: false,
-        waterCutoff: false,
-        scheduledAt: null,
-        messageScheduleId: null,
-        kakaoSendStatus: null,
-        faxSendStatus: null,
-      }],
+      data: [billTarget],
       isLoading: false,
     } as unknown as ReturnType<typeof useBillTargets>);
 
@@ -184,6 +207,8 @@ describe("BillPage 게이트", () => {
       target: { value: "2026-09-05" },
     });
     fireEvent.click(screen.getByRole("button", { name: "카톡 고지서 발송" }));
+
+    await waitFor(() => expect(h.modal.open).toBe(true));
 
     const preset = h.modal.preset;
     expect(preset).toMatchObject({
@@ -204,6 +229,7 @@ describe("BillPage 게이트", () => {
         청구금액: "120,000",
         납기일: "2026-09-05",
         납부계좌: "국민은행 123-456-789",
+        상세링크: "https://resident.example.com/r/bill-token-101",
       },
       {
         세대: "101동 1001호",
@@ -211,8 +237,13 @@ describe("BillPage 게이트", () => {
         청구금액: "120,000",
         납기일: "2026-09-05",
         납부계좌: "국민은행 123-456-789",
+        상세링크: "https://resident.example.com/r/bill-token-101",
       },
     ]);
+    expect(h.mintMutateAsync).toHaveBeenCalledWith({
+      unitIds: [101],
+      period: expect.stringMatching(/^\d{4}-\d{2}-01$/),
+    });
 
     const templates = [{
       id: 301,
@@ -233,5 +264,44 @@ describe("BillPage 게이트", () => {
     ) ?? [];
     expect(renderedBodies).toHaveLength(2);
     expect(renderedBodies.every((body) => !body.includes("#{"))).toBe(true);
+    const renderedButtonUrls = preset?.recipients?.map((recipient) =>
+      renderTemplate(
+        "#{상세링크}",
+        buildRecipientRenderVariables(
+          recipient,
+          preset.commonVariables,
+          "행복빌라",
+        ),
+      ),
+    ) ?? [];
+    expect(renderedButtonUrls).toEqual([
+      "https://resident.example.com/r/bill-token-101",
+      "https://resident.example.com/r/bill-token-101",
+    ]);
+    expect(renderedButtonUrls.every((url) => !url.includes("#{"))).toBe(true);
+  });
+
+  it("고지서 토큰 발급 실패 시 오류를 알리고 발송 모달을 열지 않는다", async () => {
+    h.mintMutateAsync.mockRejectedValueOnce(new Error("고지서 토큰 발급 실패"));
+    vi.mocked(useMe).mockReturnValue({
+      data: { role: "staff", orgId: 1, permissions: ["bill_publish"] },
+    } as unknown as ReturnType<typeof useMe>);
+    vi.mocked(useBillTargets).mockReturnValue({
+      data: [billTarget],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useBillTargets>);
+
+    render(<BillPage />);
+    fireEvent.click(screen.getByRole("button", { name: /A4 관리비 고지서/ }));
+    fireEvent.change(screen.getByRole("combobox", { name: /건물 선택/ }), {
+      target: { value: "7" },
+    });
+    fireEvent.click(screen.getByRole("checkbox", { name: "1001 선택" }));
+    fireEvent.click(screen.getByRole("button", { name: "카톡 고지서 발송" }));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("고지서 토큰 발급 실패"),
+    );
+    expect(h.modal.open).toBe(false);
   });
 });

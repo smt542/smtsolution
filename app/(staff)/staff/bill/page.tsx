@@ -16,9 +16,11 @@ import {
 } from "@/hooks/reactquery/bill";
 import { useCancelScheduledMessage } from "@/hooks/reactquery/messaging";
 import { useOrgContact } from "@/hooks/reactquery/org/useOrgContact";
+import { useStaffMintBillTokens } from "@/hooks/reactquery/residentBilling";
 import { currentPeriod, fromMonthInput, toMonthInput } from "@/lib/billing/period";
 import { printableAccounts, PROGRAM_COMPANY_NAME } from "@/lib/bill/document";
 import type { MessageRecipient } from "@/lib/messaging/preset";
+import { residentOrigin } from "@/lib/messaging/residentOrigin";
 import {
   formatAccount,
   formatDate,
@@ -45,6 +47,7 @@ function LegacyA4Workspace({ buildings, config, onBack }: LegacyA4WorkspaceProps
   const [dueDate, setDueDate] = useState<string | null>(null);
   const [selected, setSelected] = useState<number[]>([]);
   const [sendOpen, setSendOpen] = useState(false);
+  const [messageRecipients, setMessageRecipients] = useState<MessageRecipient[]>([]);
   const [waterCutoffOverrides, setWaterCutoffOverrides] = useState<Record<number, boolean>>({});
 
   const { data: targets, isLoading, refetch: refetchTargets } = useBillTargets(buildingId, period);
@@ -52,6 +55,7 @@ function LegacyA4Workspace({ buildings, config, onBack }: LegacyA4WorkspaceProps
   const issue = useIssueBills();
   const recordDelivery = useRecordBillDelivery();
   const cancelSchedule = useCancelScheduledMessage();
+  const mintBillTokens = useStaffMintBillTokens();
   const { data: orgContact } = useOrgContact();
   const building = buildings.find((candidate) => candidate.id === buildingId) ?? null;
   const rows = (targets ?? []).map((target) => ({
@@ -130,6 +134,44 @@ function LegacyA4Workspace({ buildings, config, onBack }: LegacyA4WorkspaceProps
         }] : []),
       ];
     });
+
+  const openMessagingModal = async () => {
+    if (selected.length === 0) return;
+
+    try {
+      const mintedTokens = await mintBillTokens.mutateAsync({
+        unitIds: selected,
+        period,
+      });
+      const tokenByUnitId = new Map(
+        mintedTokens.map(({ unitId, token }) => [unitId, token]),
+      );
+      const origin = residentOrigin();
+      const linkedRecipients = recipients.map((recipient) => {
+        const unitId = recipient.ref?.unitId;
+        const token = unitId === undefined ? undefined : tokenByUnitId.get(unitId);
+        if (!token) {
+          throw new Error("고지서 상세 링크를 만들지 못했습니다.");
+        }
+        return {
+          ...recipient,
+          variables: {
+            ...recipient.variables,
+            상세링크: `${origin}/r/${token}`,
+          },
+        };
+      });
+
+      setMessageRecipients(linkedRecipients);
+      setSendOpen(true);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "고지서 상세 링크를 만들지 못했습니다.",
+      );
+    }
+  };
 
   const cancelSelectedSchedules = async () => {
     const scheduleIds = [...new Set(rows
@@ -219,7 +261,7 @@ function LegacyA4Workspace({ buildings, config, onBack }: LegacyA4WorkspaceProps
             onToggleAll={toggleAll}
             onWaterCutoffChange={(unitId, checked) => setWaterCutoffOverrides((current) => ({ ...current, [unitId]: checked }))}
             onPrint={() => void print()}
-            onSend={() => setSendOpen(true)}
+            onSend={() => void openMessagingModal()}
             onCancelSchedule={() => void cancelSelectedSchedules()}
             isCancellingSchedule={cancelSchedule.isPending}
           />
@@ -234,7 +276,7 @@ function LegacyA4Workspace({ buildings, config, onBack }: LegacyA4WorkspaceProps
             channel: "alimtalk",
             mode: "alimtalk",
             templateTitle: "관리비 고지서",
-            recipients,
+            recipients: sendOpen ? messageRecipients : recipients,
             commonVariables: {
               건물명: building?.name ?? "",
               관리사무소연락처: orgContact?.phone ?? "",

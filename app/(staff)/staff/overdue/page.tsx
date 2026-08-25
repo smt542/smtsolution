@@ -6,6 +6,7 @@ import { Button, EmptyState, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
 import { useOrgContact } from "@/hooks/reactquery/org/useOrgContact";
+import { useStaffMintBillTokens } from "@/hooks/reactquery/residentBilling";
 import {
   useOverdueBuildings,
   useOverdueHouseholds,
@@ -20,6 +21,7 @@ import {
   type OverduePeriodInput,
 } from "@/lib/billing/lateFee";
 import type { MessageRecipient } from "@/lib/messaging/preset";
+import { residentOrigin } from "@/lib/messaging/residentOrigin";
 import {
   formatDate,
   formatKrw,
@@ -92,6 +94,7 @@ export default function OverduePage() {
   );
   const { data: lateFeeRateTiers = [] } = useLateFeeRateTiers(me?.orgId ?? null);
   const { data: orgContact } = useOrgContact();
+  const mintBillTokens = useStaffMintBillTokens();
 
   const rowsWithLateFee = useMemo(() => {
     if (households.length === 0) return households;
@@ -209,16 +212,49 @@ export default function OverduePage() {
     }
   };
 
-  const openMessagingModal = () => {
+  const openMessagingModal = async () => {
     if (!canSendMessages) {
       toast.info("문자 발송 권한이 필요합니다.");
       return;
     }
 
-    const recipients: MessageRecipient[] = visibleHouseholds
-      .filter((row) => selectedIds.has(row.occupancyId))
-      .map((row) => {
+    const selectedRows = visibleHouseholds.filter((row) =>
+      selectedIds.has(row.occupancyId),
+    );
+    if (selectedRows.length === 0) {
+      toast.info("문자를 받을 세대를 선택해 주세요.");
+      return;
+    }
+
+    const unitIdsByPeriod = new Map<string, number[]>();
+    for (const row of selectedRows) {
+      const latestPeriod = latestOverduePeriod(row, overduePeriods);
+      if (!latestPeriod) {
+        toast.error("미납 고지서 기준 월을 확인할 수 없습니다.");
+        return;
+      }
+      unitIdsByPeriod.set(latestPeriod.period, [
+        ...(unitIdsByPeriod.get(latestPeriod.period) ?? []),
+        row.unitId,
+      ]);
+    }
+
+    try {
+      const mintedGroups = await Promise.all(
+        [...unitIdsByPeriod].map(([period, unitIds]) =>
+          mintBillTokens.mutateAsync({ unitIds, period }),
+        ),
+      );
+      const tokenByUnitId = new Map(
+        mintedGroups.flat().map(({ unitId, token }) => [unitId, token]),
+      );
+      const origin = residentOrigin();
+      const recipients: MessageRecipient[] = selectedRows.map((row) => {
         const latestPeriod = latestOverduePeriod(row, overduePeriods);
+        const token = tokenByUnitId.get(row.unitId);
+        if (!latestPeriod || !token) {
+          throw new Error("미납 고지서 상세 링크를 만들지 못했습니다.");
+        }
         const unit = formatUnit(row.dong, row.unitNo);
 
         return {
@@ -229,23 +265,27 @@ export default function OverduePage() {
           variables: {
             세대: unit,
             미납금액: formatKrw(row.overdueAmount),
-            미납월: formatPeriodMonth(latestPeriod?.period),
-            납기일: formatDate(latestPeriod?.dueDate),
+            미납월: formatPeriodMonth(latestPeriod.period),
+            납기일: formatDate(latestPeriod.dueDate),
+            상세링크: `${origin}/r/${token}`,
           },
           ref: {
             occupancyId: row.occupancyId,
+            unitId: row.unitId,
             buildingId: row.buildingId,
           },
         };
       });
 
-    if (recipients.length === 0) {
-      toast.info("문자를 받을 세대를 선택해 주세요.");
-      return;
+      setMessageRecipients(recipients);
+      setIsMessagingOpen(true);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "미납 고지서 상세 링크를 만들지 못했습니다.",
+      );
     }
-
-    setMessageRecipients(recipients);
-    setIsMessagingOpen(true);
   };
 
   if (isMeLoading) {
@@ -292,8 +332,13 @@ export default function OverduePage() {
           </Button>
           <Button
             variant="primary"
-            onClick={openMessagingModal}
-            disabled={!selectedBuilding || isHouseholdsLoading || !canSendMessages}
+            onClick={() => void openMessagingModal()}
+            disabled={
+              !selectedBuilding ||
+              isHouseholdsLoading ||
+              !canSendMessages ||
+              mintBillTokens.isPending
+            }
             title={!canSendMessages ? "문자 발송 권한이 필요합니다." : undefined}
           >
             독촉 문자 발송{selectedCount > 0 ? ` (${selectedCount})` : ""}

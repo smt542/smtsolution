@@ -11,6 +11,9 @@ vi.mock("@/hooks/reactquery/occupancies", () => ({
 vi.mock("@/hooks/reactquery/org/useOrgContact", () => ({
   useOrgContact: () => ({ data: { phone: "02-1234-5678" } }),
 }));
+vi.mock("@/hooks/reactquery/residentNotice", () => ({
+  useMintNoticeShareToken: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}));
 vi.mock("@/hooks/reactquery/notices", () => ({
   useNotices: vi.fn(),
   useCreateNotice: vi.fn(),

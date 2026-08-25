@@ -1,11 +1,12 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MessagingPreset } from "@/lib/messaging/preset";
 
-const { lateFeeRateModalSpy, messagingModalSpy } = vi.hoisted(() => ({
+const { lateFeeRateModalSpy, messagingModalSpy, mintBillTokens } = vi.hoisted(() => ({
   lateFeeRateModalSpy: vi.fn(),
   messagingModalSpy: vi.fn(),
+  mintBillTokens: vi.fn(),
 }));
 
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
@@ -19,6 +20,12 @@ vi.mock("@/hooks/reactquery/overdue", () => ({
   useOverdueBuildings: vi.fn(),
   useOverdueHouseholds: vi.fn(),
   useOverduePeriods: vi.fn(),
+}));
+vi.mock("@/hooks/reactquery/residentBilling", () => ({
+  useStaffMintBillTokens: () => ({
+    mutateAsync: mintBillTokens,
+    isPending: false,
+  }),
 }));
 vi.mock("./components/LateFeeRateModal", () => ({
   LateFeeRateModal: (props: {
@@ -200,7 +207,15 @@ function selectBuilding() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.stubEnv("NEXT_PUBLIC_RESIDENT_WEB_ORIGIN", "https://resident.example.com/");
+  mintBillTokens.mockImplementation(async ({ unitIds }: { unitIds: number[] }) =>
+    unitIds.map((unitId) => ({ unitId, token: `overdue-token-${unitId}` })),
+  );
   setup();
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe("OverduePage", () => {
@@ -347,7 +362,7 @@ describe("OverduePage", () => {
     );
   });
 
-  it("선택 세대별 최신 미납월 변수를 채우고 정확한 auto 알림톡 템플릿으로 완전히 렌더한다", () => {
+  it("선택 세대별 최신 미납월로 토큰을 발급하고 공개 상세 링크를 완전히 렌더한다", async () => {
     setup({
       allowed: true,
       canMessage: true,
@@ -388,7 +403,7 @@ describe("OverduePage", () => {
     fireEvent.click(screen.getByRole("checkbox", { name: "전체 세대 선택" }));
     fireEvent.click(screen.getByRole("button", { name: "독촉 문자 발송 (2)" }));
 
-    expect(screen.getByRole("button", { name: "테스트 발송 완료" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "테스트 발송 완료" })).toBeInTheDocument();
     const openCall = [...messagingModalSpy.mock.calls]
       .reverse()
       .find(([props]) => props.open);
@@ -416,8 +431,9 @@ describe("OverduePage", () => {
           미납금액: "200,000",
           미납월: "2026년 8월",
           납기일: "2026-08-31",
+          상세링크: "https://resident.example.com/r/overdue-token-21",
         },
-        ref: { occupancyId: 31, buildingId: 1 },
+        ref: { occupancyId: 31, unitId: 21, buildingId: 1 },
       },
       {
         name: "이입주",
@@ -429,10 +445,20 @@ describe("OverduePage", () => {
           미납금액: "90,000",
           미납월: "2026년 6월",
           납기일: "2026-06-30",
+          상세링크: "https://resident.example.com/r/overdue-token-22",
         },
-        ref: { occupancyId: 32, buildingId: 1 },
+        ref: { occupancyId: 32, unitId: 22, buildingId: 1 },
       },
     ]);
+    expect(mintBillTokens).toHaveBeenCalledTimes(2);
+    expect(mintBillTokens).toHaveBeenCalledWith({
+      unitIds: [21],
+      period: "2026-08-01",
+    });
+    expect(mintBillTokens).toHaveBeenCalledWith({
+      unitIds: [22],
+      period: "2026-06-01",
+    });
 
     const templates = [{
       id: 302,
@@ -453,6 +479,21 @@ describe("OverduePage", () => {
     ) ?? [];
     expect(renderedBodies).toHaveLength(2);
     expect(renderedBodies.every((body) => !body.includes("#{"))).toBe(true);
+    const renderedButtonUrls = preset?.recipients?.map((recipient) =>
+      renderTemplate(
+        "#{상세링크}",
+        buildRecipientRenderVariables(
+          recipient,
+          preset.commonVariables,
+          "그린빌라",
+        ),
+      ),
+    ) ?? [];
+    expect(renderedButtonUrls).toEqual([
+      "https://resident.example.com/r/overdue-token-21",
+      "https://resident.example.com/r/overdue-token-22",
+    ]);
+    expect(renderedButtonUrls.every((url) => !url.includes("#{"))).toBe(true);
 
     fireEvent.click(screen.getByRole("button", { name: "테스트 발송 완료" }));
 
@@ -461,6 +502,30 @@ describe("OverduePage", () => {
     );
     expect(messagingModalSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({ open: false }),
+    );
+  });
+
+  it("미납 고지서 토큰 발급 실패 시 오류를 알리고 발송 모달을 열지 않는다", async () => {
+    mintBillTokens.mockRejectedValueOnce(new Error("미납 토큰 발급 실패"));
+    setup({
+      periods: [{
+        occupancyId: 31,
+        unitId: 21,
+        period: "2026-08-01",
+        unpaidPrincipal: 200_000,
+        dueDate: "2026-08-31",
+      }],
+    });
+    render(<OverduePage />);
+    selectBuilding();
+    fireEvent.click(screen.getByRole("checkbox", { name: "101호 선택" }));
+    fireEvent.click(screen.getByRole("button", { name: "독촉 문자 발송 (1)" }));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("미납 토큰 발급 실패"),
+    );
+    expect(messagingModalSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({ open: true }),
     );
   });
 

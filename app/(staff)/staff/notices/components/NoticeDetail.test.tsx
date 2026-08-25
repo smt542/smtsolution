@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Notice } from "@/hooks/reactquery/notices";
 import type { MessagingPreset } from "@/lib/messaging/preset";
 import { buildRecipientRenderVariables } from "@/lib/messaging/preset";
@@ -8,6 +8,7 @@ import { renderTemplate } from "@/lib/messaging/render";
 const messagingModalSpy = vi.fn();
 const useTenantListMock = vi.fn();
 const useOrganizationTenantListMock = vi.fn();
+const mintShareToken = vi.fn();
 
 vi.mock("@/hooks/reactquery/notices", () => ({
   useDeleteNotice: () => ({ mutateAsync: vi.fn(), isPending: false }),
@@ -18,6 +19,12 @@ vi.mock("@/hooks/reactquery/occupancies", () => ({
 }));
 vi.mock("@/hooks/reactquery/org/useOrgContact", () => ({
   useOrgContact: () => ({ data: { phone: "02-1234-5678" } }),
+}));
+vi.mock("@/hooks/reactquery/residentNotice", () => ({
+  useMintNoticeShareToken: () => ({
+    mutateAsync: mintShareToken,
+    isPending: false,
+  }),
 }));
 vi.mock("sonner", () => ({
   toast: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
@@ -52,6 +59,8 @@ const notice: Notice = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.stubEnv("NEXT_PUBLIC_RESIDENT_WEB_ORIGIN", "https://resident.example.com/");
+  mintShareToken.mockResolvedValue("notice-token-3");
   useTenantListMock.mockReturnValue({
     data: [{
       unitId: 101,
@@ -71,8 +80,12 @@ beforeEach(() => {
   });
 });
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 describe("NoticeDetail messaging", () => {
-  it("건물 공지의 입주자 안내 preset을 정확한 중요 템플릿과 완전한 변수로 구성한다", () => {
+  it("건물 공지의 중요 템플릿에 공개 상세 링크를 포함해 완전히 렌더한다", async () => {
     render(
       <NoticeDetail
         notice={notice}
@@ -86,7 +99,7 @@ describe("NoticeDetail messaging", () => {
     fireEvent.click(screen.getByRole("button", { name: "공지 알림 발송" }));
 
     expect(useTenantListMock).toHaveBeenCalledWith(11);
-    expect(screen.getByText("테스트 공지 발송")).toBeInTheDocument();
+    expect(await screen.findByText("테스트 공지 발송")).toBeInTheDocument();
     const openCall = [...messagingModalSpy.mock.calls]
       .reverse()
       .find(([props]) => props.open);
@@ -106,10 +119,14 @@ describe("NoticeDetail messaging", () => {
         phone: "010-1111-2222",
         unitNo: "101호",
         kind: "tenant",
-        variables: { 공지제목: "정기 소독 안내" },
+        variables: {
+          공지제목: "정기 소독 안내",
+          상세링크: "https://resident.example.com/r/notice/notice-token-3",
+        },
         ref: { occupancyId: 91, unitId: 101, buildingId: 11 },
       }],
     });
+    expect(mintShareToken).toHaveBeenCalledWith(3);
 
     const templates = [{
       id: 702,
@@ -128,9 +145,19 @@ describe("NoticeDetail messaging", () => {
       "[해오름빌] 중요 공지: 정기 소독 안내 / 02-1234-5678",
     ]);
     expect(renderedBodies.every((body) => !body.includes("#{"))).toBe(true);
+    const renderedButtonUrls = preset?.recipients?.map((recipient) =>
+      renderTemplate(
+        "#{상세링크}",
+        buildRecipientRenderVariables(recipient, preset.commonVariables, "해오름빌"),
+      ),
+    ) ?? [];
+    expect(renderedButtonUrls).toEqual([
+      "https://resident.example.com/r/notice/notice-token-3",
+    ]);
+    expect(renderedButtonUrls.every((url) => !url.includes("#{"))).toBe(true);
   });
 
-  it("전체 공지는 기존 건물별 세대 조회 결과를 합쳐 수신자를 구성한다", () => {
+  it("전체 공지는 기존 건물별 세대 조회 결과를 합쳐 같은 상세 링크를 전달한다", async () => {
     useOrganizationTenantListMock.mockReturnValue({
       data: [
         {
@@ -168,6 +195,12 @@ describe("NoticeDetail messaging", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "공지 알림 발송" }));
 
+    await waitFor(() =>
+      expect(messagingModalSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ open: true }),
+      ),
+    );
+
     expect(useOrganizationTenantListMock).toHaveBeenCalledWith([11, 12]);
     const openCall = [...messagingModalSpy.mock.calls]
       .reverse()
@@ -176,12 +209,21 @@ describe("NoticeDetail messaging", () => {
     expect(preset?.templateTitle).toBe("공지 안내(신규)");
     expect(preset?.recipients).toHaveLength(2);
     expect(preset?.recipients?.map((recipient) => recipient.variables)).toEqual([
-      { 공지제목: "정기 소독 안내", 건물명: "해오름빌" },
-      { 공지제목: "정기 소독 안내", 건물명: "푸른빌딩" },
+      {
+        공지제목: "정기 소독 안내",
+        건물명: "해오름빌",
+        상세링크: "https://resident.example.com/r/notice/notice-token-3",
+      },
+      {
+        공지제목: "정기 소독 안내",
+        건물명: "푸른빌딩",
+        상세링크: "https://resident.example.com/r/notice/notice-token-3",
+      },
     ]);
+    expect(mintShareToken).toHaveBeenCalledTimes(1);
   });
 
-  it("예약 게시 공지는 같은 시각을 예약 발송 preset으로 전달한다", () => {
+  it("예약 게시 공지는 같은 시각을 예약 발송 preset으로 전달한다", async () => {
     render(
       <NoticeDetail
         notice={{
@@ -198,6 +240,12 @@ describe("NoticeDetail messaging", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "공지 알림 발송" }));
 
+    await waitFor(() =>
+      expect(messagingModalSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ open: true }),
+      ),
+    );
+
     const openCall = [...messagingModalSpy.mock.calls]
       .reverse()
       .find(([props]) => props.open);
@@ -205,5 +253,28 @@ describe("NoticeDetail messaging", () => {
       templateTitle: "공지 안내(긴급)",
       scheduledAt: "2099-08-30T01:30:00.000Z",
     });
+  });
+
+  it("공지 토큰 발급 실패 시 오류를 알리고 발송 모달을 열지 않는다", async () => {
+    const { toast } = await import("sonner");
+    mintShareToken.mockRejectedValueOnce(new Error("공지 토큰 발급 실패"));
+    render(
+      <NoticeDetail
+        notice={notice}
+        buildings={buildings}
+        canSendMessages
+        onEdit={vi.fn()}
+        onDeleted={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "공지 알림 발송" }));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("공지 토큰 발급 실패"),
+    );
+    expect(messagingModalSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({ open: true }),
+    );
   });
 });

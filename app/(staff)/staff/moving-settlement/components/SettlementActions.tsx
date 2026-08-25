@@ -15,6 +15,8 @@ import {
   type SettlementContext,
 } from "@/hooks/reactquery/movingSettlement";
 import { useOrgContact } from "@/hooks/reactquery/org/useOrgContact";
+import { useMintSettlementShareToken } from "@/hooks/reactquery/residentSettlement";
+import { residentOrigin } from "@/lib/messaging/residentOrigin";
 import { formatDate, formatKrw, formatUnit } from "@/lib/messaging/vars";
 import { MessagingModal } from "../../messaging/components/MessagingModal";
 
@@ -40,8 +42,10 @@ export function SettlementActions({
   const save = useSaveSettlement();
   const complete = useCompleteSettlement();
   const mid = useMidMoveout();
+  const mintShareToken = useMintSettlementShareToken();
   const { data: orgContact } = useOrgContact();
   const [messageOpen, setMessageOpen] = useState(false);
+  const [detailLink, setDetailLink] = useState("");
   const [completeOpen, setCompleteOpen] = useState(false);
   const pending = save.isPending || complete.isPending || mid.isPending;
 
@@ -103,10 +107,33 @@ export function SettlementActions({
   const exportStub = (label: string) =>
     toast.info(`${label} 출력은 엑셀 연동 후 제공됩니다.`);
 
+  const openSettlementMessaging = async () => {
+    if (settlementId === null) {
+      toast.error("먼저 계산+저장을 실행해 주세요.");
+      return;
+    }
+
+    try {
+      const token = await mintShareToken.mutateAsync(settlementId);
+      setDetailLink(`${residentOrigin()}/r/settlement/${token}`);
+      setMessageOpen(true);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "정산내역 상세 링크를 만들지 못했습니다.",
+      );
+    }
+  };
+
   return (
     <>
       <section className="flex flex-wrap justify-end gap-2 rounded-2xl border border-line bg-surface p-4 shadow-card">
-        <Button variant="ghost" onClick={() => setMessageOpen(true)}>
+        <Button
+          variant="ghost"
+          onClick={() => void openSettlementMessaging()}
+          disabled={mintShareToken.isPending}
+        >
           정산내역서 전송
         </Button>
         <Button variant="ghost" onClick={() => exportStub("빈양식")}>
@@ -148,6 +175,7 @@ export function SettlementActions({
               정산구분: amount < 0 ? "환급" : "추가납부",
               정산금액: formatKrw(amount),
               세대: formatUnit(unit.dong, unit.unitNo),
+              상세링크: detailLink,
             },
             ref: { occupancyId: occupancy.id },
           }],

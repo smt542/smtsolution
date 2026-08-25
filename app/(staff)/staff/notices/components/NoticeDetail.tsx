@@ -10,7 +10,9 @@ import {
   useTenantList,
 } from "@/hooks/reactquery/occupancies";
 import { useOrgContact } from "@/hooks/reactquery/org/useOrgContact";
+import { useMintNoticeShareToken } from "@/hooks/reactquery/residentNotice";
 import type { MessageRecipient, MessagingPreset } from "@/lib/messaging/preset";
+import { residentOrigin } from "@/lib/messaging/residentOrigin";
 import { MessagingModal } from "../../messaging/components/MessagingModal";
 import {
   formatNoticeDate,
@@ -37,6 +39,7 @@ export function NoticeDetail({
   const [messageOpen, setMessageOpen] = useState(false);
   const [messageRecipients, setMessageRecipients] = useState<MessageRecipient[]>([]);
   const deleteNotice = useDeleteNotice();
+  const mintShareToken = useMintNoticeShareToken();
   const { data: orgContact } = useOrgContact();
   const status = getNoticeStatus(notice);
   const buildingName = notice.buildingId === null
@@ -50,7 +53,7 @@ export function NoticeDetail({
     ? organizationTenants.isLoading
     : buildingTenants.isLoading;
 
-  const openNoticeMessaging = () => {
+  const openNoticeMessaging = async () => {
     if (!canSendMessages) {
       toast.info("문자 발송 권한이 필요합니다.");
       return;
@@ -91,8 +94,24 @@ export function NoticeDetail({
       toast.info("공지를 받을 입주자가 없습니다.");
       return;
     }
-    setMessageRecipients(recipients);
-    setMessageOpen(true);
+    try {
+      const token = await mintShareToken.mutateAsync(notice.id);
+      const detailLink = `${residentOrigin()}/r/notice/${token}`;
+      setMessageRecipients(recipients.map((recipient) => ({
+        ...recipient,
+        variables: {
+          ...recipient.variables,
+          상세링크: detailLink,
+        },
+      })));
+      setMessageOpen(true);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "공지 상세 링크를 만들지 못했습니다.",
+      );
+    }
   };
 
   const messagingPreset: MessagingPreset = {
@@ -129,8 +148,8 @@ export function NoticeDetail({
             <Button
               type="button"
               variant="ghost"
-              onClick={openNoticeMessaging}
-              disabled={!canSendMessages || recipientsLoading}
+              onClick={() => void openNoticeMessaging()}
+              disabled={!canSendMessages || recipientsLoading || mintShareToken.isPending}
               title={!canSendMessages ? "문자 발송 권한이 필요합니다." : undefined}
             >
               공지 알림 발송
