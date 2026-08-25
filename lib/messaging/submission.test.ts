@@ -87,4 +87,26 @@ describe("buildSubmissionPlan", () => {
       "B님 관리비 5만원",
     ]);
   });
+
+  it("수신자별 알림톡 버튼을 배치 수신자에 보존한다", () => {
+    const withButtons: PlanRecipient[] = [
+      {
+        recipientKey: "k1",
+        phone: "01011110001",
+        product: "alimtalk",
+        buttons: [{ t: "WL", n: "상세보기", u1: "https://resident.example/r/token-a" }],
+      },
+      {
+        recipientKey: "k2",
+        phone: "01011110002",
+        product: "alimtalk",
+        buttons: [{ t: "WL", n: "상세보기", u1: "https://resident.example/r/token-b" }],
+      },
+    ];
+    const plan = buildSubmissionPlan({ scope: "m", id: 7, recipients: withButtons });
+    expect(plan[0].recipients.map((recipient) => recipient.buttons?.[0].u1)).toEqual([
+      "https://resident.example/r/token-a",
+      "https://resident.example/r/token-b",
+    ]);
+  });
 });

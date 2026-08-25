@@ -90,6 +90,73 @@ describe("drainSchedules (Popbill 접수 기반)", () => {
     expect(calls.some((c) => c.fn === "mark_message_reservation_provider_pending")).toBe(true);
   });
 
+  it("예약 알림톡도 각 수신자의 변수로 버튼 URL을 렌더링해 배치에 전달한다", async () => {
+    const { admin } = makeAdmin({
+      claim_due_message_schedules: () => [
+        {
+          id: 8,
+          org_id: 7,
+          channel: "alimtalk",
+          body: "알림톡 본문",
+          context: "manual",
+          recipients: [{}, {}],
+          template_id: 17,
+        },
+      ],
+      reserve_scheduled_message: () => ({
+        ok: true,
+        reservation_status: "reserved",
+        reservation_id: 58,
+        message_log_id: 108,
+        resolved_recipients: [
+          {
+            phone: "01011112222",
+            name: "A",
+            channel: "alimtalk",
+            product: "alimtalk",
+            variables: { 상세토큰: "scheduled-a" },
+          },
+          {
+            phone: "01033334444",
+            name: "B",
+            channel: "alimtalk",
+            product: "alimtalk",
+            variables: { 상세토큰: "scheduled-b" },
+          },
+        ],
+        recipient_costs: [
+          { recipient_key: "k1", product: "alimtalk" },
+          { recipient_key: "k2", product: "alimtalk" },
+        ],
+        alimtalk_template_code: "TPL_001",
+        buttons: [
+          {
+            type: "WL",
+            name: "상세보기",
+            url: "https://resident.example/r/#{상세토큰}",
+            u2: "https://resident.example/desktop/#{상세토큰}",
+          },
+        ],
+      }),
+      create_provider_dispatch_jobs: () => ({ ok: true }),
+      mark_message_reservation_provider_pending: () => ({ ok: true, status: "provider_pending" }),
+    });
+
+    const result = await drainSchedules({ admin, orgId: 7, submitBatch, isConfigured: configured });
+
+    expect(result).toMatchObject({ claimed: 1, queued: 1, failed: 0 });
+    const batch = submitBatch.mock.calls[0][0] as MessageBatchInput;
+    expect(batch.recipients.map((recipient) => recipient.buttons?.[0].u1)).toEqual([
+      "https://resident.example/r/scheduled-a",
+      "https://resident.example/r/scheduled-b",
+    ]);
+    expect(batch.recipients.map((recipient) => recipient.buttons?.[0].u2)).toEqual([
+      "https://resident.example/desktop/scheduled-a",
+      "https://resident.example/desktop/scheduled-b",
+    ]);
+    expect(JSON.stringify(batch.recipients)).not.toContain("#{");
+  });
+
   it("INSUFFICIENT_POINTS면 접수 미호출·complete('failed')", async () => {
     const { admin, calls } = makeAdmin({
       claim_due_message_schedules: () => [

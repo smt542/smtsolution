@@ -1,3 +1,5 @@
+import type { PopbillKakaoButton } from "popbill";
+
 /**
  * 발송 멱등을 위한 **material 페이로드 정규화**(공급자 중립, 순수 함수).
  *
@@ -18,6 +20,8 @@ export interface SendSignatureRecipient {
   ref?: Record<string, unknown> | null;
   channel?: string | null;
   renderedBody?: string | null;
+  variables?: Record<string, string> | null;
+  renderedButtons?: PopbillKakaoButton[] | null;
 }
 
 export interface SendSignatureFields {
@@ -44,6 +48,8 @@ export function canonicalSendPayload(fields: SendSignatureFields): string {
       ref: recipient.ref ?? null,
       channel: recipient.channel ?? null,
       body: recipient.renderedBody ?? null,
+      variables: recipient.variables ?? null,
+      buttons: recipient.renderedButtons ?? null,
     })),
   });
 }

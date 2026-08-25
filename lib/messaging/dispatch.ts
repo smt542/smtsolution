@@ -12,6 +12,7 @@ import {
 } from "@/lib/popbill/types";
 import { buildSubmissionPlan, type PlanProduct, type PlanRecipient } from "./submission";
 import { canonicalSendPayload } from "./sendSignature";
+import { renderTemplate } from "./render";
 
 /**
  * === Popbill 접수 기반 즉시 발송 오케스트레이션 (provider-neutral) ===
@@ -297,7 +298,7 @@ export async function dispatchMessages(
   return { ok: false, code: "SEND_FAILED", message: "발송을 접수하지 못했습니다.", httpStatus: 502, reservationId };
 }
 
-/** message_templates.buttons([{name,type,url}]) → Popbill 버튼({t,n,u1}) */
+/** message_templates.buttons([{name,type,url}]) → Popbill 버튼({t,n,u1,u2}) */
 export function toPopbillButtons(raw: unknown): PopbillKakaoButton[] {
   if (!Array.isArray(raw)) return [];
   return raw
@@ -306,7 +307,26 @@ export function toPopbillButtons(raw: unknown): PopbillKakaoButton[] {
       t: String(b.type ?? b.t ?? "WL"),
       n: String(b.name ?? b.n ?? ""),
       u1: b.url != null ? String(b.url) : b.u1 != null ? String(b.u1) : undefined,
+      u2: b.u2 != null ? String(b.u2) : undefined,
     }));
+}
+
+function recipientVariables(raw: unknown): Record<string, string> {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return {};
+  return Object.fromEntries(
+    Object.entries(raw).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
+  );
+}
+
+function renderAlimtalkButtons(
+  buttons: PopbillKakaoButton[],
+  variables: Record<string, string>,
+): PopbillKakaoButton[] {
+  return buttons.map((button) => ({
+    ...button,
+    u1: typeof button.u1 === "string" ? renderTemplate(button.u1, variables) : button.u1,
+    u2: typeof button.u2 === "string" ? renderTemplate(button.u2, variables) : button.u2,
+  }));
 }
 
 export interface SubmitReservationParams {
@@ -338,26 +358,36 @@ export async function submitReservationBatches(
 ): Promise<{ queuedCount: number; markStatus: string }> {
   const submitBatch = deps.submitBatch ?? submitMessageBatch;
 
+  let alimtalk: AlimtalkTemplateContent = { templateCode: null, buttons: [] };
+  if (
+    params.costs.some((cost) => cost.product === "alimtalk") &&
+    params.templateId != null &&
+    deps.loadAlimtalkTemplate
+  ) {
+    alimtalk = await deps.loadAlimtalkTemplate(params.templateId);
+  }
+
   const planRecipients: PlanRecipient[] = [];
   for (let i = 0; i < params.costs.length; i += 1) {
     const cost = params.costs[i];
     const person = params.resolved[i] ?? {};
     // 수신자별 최종 렌더 본문을 보존한다. 없으면 배치 공통 본문으로 대체된다(접수 시점 대체).
     const rendered = person.renderedBody;
+    const product = (cost.product as PlanProduct) ?? "sms";
+    const renderedButtons =
+      product === "alimtalk" && alimtalk.buttons.length > 0
+        ? renderAlimtalkButtons(alimtalk.buttons, recipientVariables(person.variables))
+        : undefined;
     planRecipients.push({
       recipientKey: String(cost.recipient_key ?? ""),
       phone: normalizePhone(person.phone),
       name: (person.name as string | null) ?? null,
-      product: (cost.product as PlanProduct) ?? "sms",
+      product,
       renderedBody: typeof rendered === "string" && rendered.length > 0 ? rendered : null,
+      buttons: renderedButtons,
     });
   }
   const plan = buildSubmissionPlan({ scope: "m", id: params.reservationId, recipients: planRecipients });
-
-  let alimtalk: AlimtalkTemplateContent = { templateCode: null, buttons: [] };
-  if (plan.some((b) => b.product === "alimtalk") && params.templateId != null && deps.loadAlimtalkTemplate) {
-    alimtalk = await deps.loadAlimtalkTemplate(params.templateId);
-  }
 
   const created = (await rpcData(admin, "create_provider_dispatch_jobs", {
     p_reservation_id: params.reservationId,

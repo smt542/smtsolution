@@ -74,6 +74,18 @@ describe("canonicalSendPayload", () => {
     expect(canonicalSendPayload(changed)).not.toBe(canonicalSendPayload(base));
   });
 
+  it("수신자 버튼 토큰 변수 변경은 서명을 바꾼다", () => {
+    const withToken: SendSignatureFields = {
+      ...base,
+      recipients: [{ ...base.recipients[0], variables: { 상세토큰: "token-a" } }],
+    };
+    const changed: SendSignatureFields = {
+      ...withToken,
+      recipients: [{ ...withToken.recipients[0], variables: { 상세토큰: "token-b" } }],
+    };
+    expect(canonicalSendPayload(changed)).not.toBe(canonicalSendPayload(withToken));
+  });
+
   it("수신자 kind 변경은 서명을 바꾼다", () => {
     const changed: SendSignatureFields = {
       ...base,

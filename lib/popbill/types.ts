@@ -14,6 +14,8 @@ export interface MessageBatchInput {
     name?: string | null;
     /** 수신자별 최종 렌더 본문. 없으면 MessageContent.body(공통)로 대체된다. */
     renderedBody?: string | null;
+    /** 수신자별 알림톡 버튼. 없으면 MessageContent.buttons(공통)로 대체된다. */
+    buttons?: PopbillKakaoButton[];
   }>;
 }
 

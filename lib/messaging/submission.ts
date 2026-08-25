@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { PopbillKakaoButton } from "popbill";
 
 /**
  * 제품별 배치 조립 — 공급자 중립.
@@ -17,6 +18,8 @@ export interface PlanRecipient {
   product: PlanProduct;
   /** 수신자별 최종 렌더 본문. 없으면 배치 공통 본문으로 대체된다. */
   renderedBody?: string | null;
+  /** 수신자별로 렌더된 알림톡 버튼. */
+  buttons?: PopbillKakaoButton[];
 }
 
 export interface SubmissionBatch {
@@ -29,6 +32,7 @@ export interface SubmissionBatch {
     phone: string;
     name: string | null;
     renderedBody: string | null;
+    buttons?: PopbillKakaoButton[];
   }>;
 }
 
@@ -76,6 +80,7 @@ export function buildSubmissionPlan(params: {
         phone: r.phone,
         name: r.name ?? null,
         renderedBody: r.renderedBody ?? null,
+        buttons: r.buttons,
       }));
       assertNoRefCollisions(recipients.map((r) => r.providerRefKey));
       batches.push({

@@ -1,3 +1,5 @@
+import type { PopbillKakaoButton } from "popbill";
+
 export type MessageChannel = "sms" | "alimtalk";
 export type SendMode = "auto" | "sms" | "alimtalk";
 /**
@@ -106,4 +108,5 @@ export function buildSendPayload(payload: SendPayload): SendPayload {
 export interface ResolvedRecipient extends MessageRecipient {
   channel: MessageChannel;
   renderedBody: string;
+  renderedButtons?: PopbillKakaoButton[];
 }

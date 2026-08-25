@@ -99,6 +99,69 @@ describe("submitMessageBatch", () => {
     expect(out.product).toBe("alimtalk");
   });
 
+  it("alimtalk 한 배치의 수신자별 버튼 URL을 각 msgs[].btns로 보낸다", async () => {
+    sendATS_multi.mockImplementation((...args: unknown[]) => {
+      (args[args.length - 2] as (r: string) => void)("RCPT-ATS-BUTTONS");
+    });
+    await submitMessageBatch(
+      {
+        product: "alimtalk",
+        requestNum: "m1c-buttons",
+        recipients: [
+          {
+            ...smsBatch.recipients[0],
+            buttons: [{ t: "WL", n: "상세보기", u1: "https://resident.example/r/token-a" }],
+          },
+          {
+            ...smsBatch.recipients[1],
+            buttons: [{ t: "WL", n: "상세보기", u1: "https://resident.example/r/token-b" }],
+          },
+        ],
+      },
+      {
+        body: "관리비 안내입니다",
+        templateCode: "TPL_001",
+        buttons: [{ t: "WL", n: "상세보기", u1: "https://resident.example/r/#{상세토큰}" }],
+      },
+      config,
+    );
+
+    const args = sendATS_multi.mock.calls[0];
+    const msgs = args[5] as Array<{ btns?: Array<{ u1?: string }> }>;
+    expect(msgs[0].btns?.[0].u1).toBe("https://resident.example/r/token-a");
+    expect(msgs[1].btns?.[0].u1).toBe("https://resident.example/r/token-b");
+    expect(msgs[0].btns?.[0].u1).not.toBe(msgs[1].btns?.[0].u1);
+    expect(JSON.stringify(msgs)).not.toContain("#{");
+    expect(args[8]).toBeNull();
+  });
+
+  it("알림톡 버튼 u1/u2에 미치환 변수가 있으면 provider 호출 전에 거절한다", async () => {
+    await expect(
+      submitMessageBatch(
+        {
+          product: "alimtalk",
+          requestNum: "m1c-unresolved-button",
+          recipients: [
+            {
+              ...smsBatch.recipients[0],
+              buttons: [
+                {
+                  t: "WL",
+                  n: "상세보기",
+                  u1: "https://resident.example/r/token-a",
+                  u2: "https://resident.example/r/#{상세토큰}",
+                },
+              ],
+            },
+          ],
+        },
+        { body: "치환 완료 본문", templateCode: "TPL_001" },
+        config,
+      ),
+    ).rejects.toMatchObject({ code: "UNRESOLVED_VARIABLES" });
+    expect(sendATS_multi).not.toHaveBeenCalled();
+  });
+
   it("공급자 오류는 비밀값 없이 정규화되어 reject된다", async () => {
     sendSMS_multi.mockImplementation((...args: unknown[]) => {
       (args[args.length - 1] as (e: { code: number; message: string }) => void)({

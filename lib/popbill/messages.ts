@@ -137,13 +137,27 @@ function submitAlimtalk(
     // 대체문자(altSendType/altmsg)는 비활성화한다. 실패 시 ERP가 임의로 SMS를 보내지 않는다.
     altmsg: "",
     interOPRefKey: r.providerRefKey,
+    btns: r.buttons ?? content.buttons,
   }));
-  // 렌더 후에도 남은 #{변수}가 있으면(수신자별 본문 기준) 접수 전에 거절한다.
-  if (msgs.some((m) => hasUnresolvedVariables(m.msg))) {
+  // 렌더 후에도 본문이나 버튼 URL에 남은 #{변수}가 있으면 접수 전에 거절한다.
+  if (
+    msgs.some(
+      (m) =>
+        hasUnresolvedVariables(m.msg) ||
+        (m.btns ?? []).some(
+          (button) =>
+            (typeof button.u1 === "string" && hasUnresolvedVariables(button.u1)) ||
+            (typeof button.u2 === "string" && hasUnresolvedVariables(button.u2)),
+        ),
+    )
+  ) {
     return Promise.reject(
-      new PopbillSubmitError("UNRESOLVED_VARIABLES", "알림톡 본문에 치환되지 않은 변수가 있습니다."),
+      new PopbillSubmitError("UNRESOLVED_VARIABLES", "알림톡 본문 또는 버튼 URL에 치환되지 않은 변수가 있습니다."),
     );
   }
+  const commonButtons = batch.recipients.some((recipient) => recipient.buttons !== undefined)
+    ? null
+    : (content.buttons ?? null);
   return submitWithTimeout<string>((resolve, reject) => {
     service.sendATS_multi(
       config.corpNum,
@@ -154,7 +168,7 @@ function submitAlimtalk(
       msgs,
       config.userId ?? "",
       batch.requestNum,
-      content.buttons ?? null,
+      commonButtons,
       (receiptNum) => resolve(receiptNum),
       (err) => reject(toSubmitError(err)),
     );

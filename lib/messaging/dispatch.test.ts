@@ -234,6 +234,74 @@ describe("dispatchMessages", () => {
     expect(captured[0].recipients.map((r) => r.renderedBody)).toEqual(["A님 3만원", "B님 5만원"]);
   });
 
+  it("submitReservationBatches: 알림톡 버튼 u1/u2를 수신자 변수로 각각 렌더링한다", async () => {
+    const admin = makeClient({
+      create_provider_dispatch_jobs: () => ({ ok: true }),
+      mark_message_reservation_provider_pending: () => ({ ok: true, status: "provider_pending" }),
+    });
+    const captured: MessageBatchInput[] = [];
+    const submitBatch = vi.fn(async (batch: MessageBatchInput) => {
+      captured.push(batch);
+      return { requestNum: batch.requestNum, receiptNum: "R", product: batch.product, recipients: [] };
+    });
+    const loadAlimtalkTemplate = vi.fn(async () => ({
+      templateCode: "TPL_001",
+      buttons: [
+        {
+          t: "WL",
+          n: "상세보기",
+          u1: "https://resident.example/r/#{상세토큰}",
+          u2: "https://resident.example/desktop/#{상세토큰}/#{서명}",
+        },
+      ],
+    }));
+
+    await submitReservationBatches(
+      admin,
+      {
+        reservationId: 6,
+        scheduleId: null,
+        body: "알림톡 본문",
+        templateId: 17,
+        resolved: [
+          {
+            phone: "010-1111-2222",
+            name: "A",
+            channel: "alimtalk",
+            product: "alimtalk",
+            renderedBody: "A님 안내",
+            variables: { 상세토큰: "token-a", 서명: "sig-a" },
+          },
+          {
+            phone: "010-3333-4444",
+            name: "B",
+            channel: "alimtalk",
+            product: "alimtalk",
+            renderedBody: "B님 안내",
+            variables: { 상세토큰: "token-b", 서명: "sig-b" },
+          },
+        ],
+        costs: [
+          { recipient_key: "k1", product: "alimtalk" },
+          { recipient_key: "k2", product: "alimtalk" },
+        ],
+      },
+      { submitBatch, loadAlimtalkTemplate },
+    );
+
+    expect(loadAlimtalkTemplate).toHaveBeenCalledWith(17);
+    expect(captured).toHaveLength(1);
+    expect(captured[0].recipients.map((recipient) => recipient.buttons?.[0].u1)).toEqual([
+      "https://resident.example/r/token-a",
+      "https://resident.example/r/token-b",
+    ]);
+    expect(captured[0].recipients.map((recipient) => recipient.buttons?.[0].u2)).toEqual([
+      "https://resident.example/desktop/token-a/sig-a",
+      "https://resident.example/desktop/token-b/sig-b",
+    ]);
+    expect(JSON.stringify(captured[0].recipients)).not.toContain("#{");
+  });
+
   it("submitReservationBatches: 제품이 다른 수신자(sms/lms)를 제품별 배치로 나누고 본문을 맞춰 접수한다", async () => {
     const admin = makeClient({
       create_provider_dispatch_jobs: () => ({ ok: true }),

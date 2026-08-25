@@ -1,7 +1,10 @@
-import type { PopbillKakaoButton } from "popbill";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { dispatchMessages, type AlimtalkTemplateContent } from "@/lib/messaging/dispatch";
+import {
+  dispatchMessages,
+  toPopbillButtons,
+  type AlimtalkTemplateContent,
+} from "@/lib/messaging/dispatch";
 import type { SendMode, MessageRecipient } from "@/lib/messaging/preset";
 
 // Popbill SDK·crypto 등 Node API를 사용하므로 Node 런타임을 명시한다.
@@ -23,18 +26,6 @@ function json(data: Record<string, unknown>, status = 200): Response {
     status,
     headers: { "content-type": "application/json" },
   });
-}
-
-/** message_templates.buttons([{name,type,url}]) → Popbill 버튼({t,n,u1}) */
-function toPopbillButtons(raw: unknown): PopbillKakaoButton[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .filter((b): b is Record<string, unknown> => typeof b === "object" && b !== null)
-    .map((b) => ({
-      t: String(b.type ?? "WL"),
-      n: String(b.name ?? ""),
-      u1: b.url != null ? String(b.url) : undefined,
-    }));
 }
 
 export async function POST(request: Request): Promise<Response> {
