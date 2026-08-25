@@ -455,6 +455,44 @@ describe("MessagingComposer", () => {
     );
   });
 
+  it("preset templateTitle은 부분 일치 템플릿을 선택하지 않는다", () => {
+    vi.mocked(useMessageTemplates).mockReturnValue({
+      data: [{
+        id: 6,
+        orgId: 1,
+        title: "관리비 고지서(구버전)",
+        body: "구버전 본문",
+        sortOrder: 0,
+        category: "bill",
+        channelType: "alimtalk",
+        alimtalkTemplateCode: null,
+        buttons: [],
+      }],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useMessageTemplates>);
+
+    render(
+      <MessagingComposer
+        preset={{
+          context: "고지서",
+          buildingId: 7,
+          mode: "auto",
+          templateTitle: "관리비 고지서",
+          recipients: [{
+            name: "김입주",
+            phone: "010-1000-0000",
+            unitNo: "101호",
+            kind: "tenant",
+            ref: { occupancyId: 101, buildingId: 7 },
+          }],
+        }}
+      />,
+    );
+
+    expect(screen.getByLabelText("본문")).toHaveValue("");
+    expect(useMessagePointQuote).toHaveBeenLastCalledWith(null);
+  });
+
   it("예약 날짜·시간을 공용 API에 전달하고 지정 형식 토스트를 표시", async () => {
     mutateAsync.mockResolvedValueOnce({
       logId: 77,

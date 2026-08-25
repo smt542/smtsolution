@@ -9,6 +9,9 @@ const { lateFeeRateModalSpy, messagingModalSpy } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
+vi.mock("@/hooks/reactquery/org/useOrgContact", () => ({
+  useOrgContact: () => ({ data: { phone: "02-9876-5432" } }),
+}));
 vi.mock("@/hooks/reactquery/lateFeeTiers", () => ({
   useLateFeeRateTiers: vi.fn(),
 }));
@@ -63,6 +66,8 @@ import {
 } from "@/hooks/reactquery/overdue";
 import { toast } from "sonner";
 import { downloadOverdueLedger } from "./utils";
+import { buildRecipientRenderVariables } from "@/lib/messaging/preset";
+import { renderTemplate } from "@/lib/messaging/render";
 
 const buildings = [
   { id: 1, code: "B001", name: "그린빌라", address: "서울시 강남구" },
@@ -342,38 +347,117 @@ describe("OverduePage", () => {
     );
   });
 
-  it("overdue와 messaging 권한이 모두 있으면 독촉 발송 모달을 연다", () => {
-    setup({ allowed: true, canMessage: true });
+  it("선택 세대별 최신 미납월 변수를 채우고 정확한 auto 알림톡 템플릿으로 완전히 렌더한다", () => {
+    setup({
+      allowed: true,
+      canMessage: true,
+      periods: [
+        {
+          occupancyId: 31,
+          unitId: 21,
+          period: "2026-05-01",
+          unpaidPrincipal: 70_000,
+          dueDate: "2026-05-31",
+        },
+        {
+          occupancyId: 31,
+          unitId: 21,
+          period: "2026-08-01",
+          unpaidPrincipal: 130_000,
+          dueDate: "2026-08-31",
+        },
+        {
+          occupancyId: 32,
+          unitId: 22,
+          period: "2026-06-01",
+          unpaidPrincipal: 90_000,
+          dueDate: "2026-06-30",
+        },
+      ],
+      tiers: [{
+        id: 1,
+        orgId: 3,
+        tierOrder: 1,
+        fromMonth: 0,
+        toMonth: null,
+        monthlyRate: 10,
+      }],
+    });
     render(<OverduePage />);
     selectBuilding();
-    fireEvent.click(screen.getByRole("checkbox", { name: "101호 선택" }));
-    fireEvent.click(screen.getByRole("button", { name: "독촉 문자 발송 (1)" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "전체 세대 선택" }));
+    fireEvent.click(screen.getByRole("button", { name: "독촉 문자 발송 (2)" }));
 
     expect(screen.getByRole("button", { name: "테스트 발송 완료" })).toBeInTheDocument();
-    expect(messagingModalSpy).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        open: true,
-        preset: {
-          context: "독촉",
-          channel: "sms",
-          body: "미납 관리비를 확인해 주세요.",
-          recipients: [
-            {
-              name: "김입주",
-              phone: "010-1111-2222",
-              unitNo: "101호",
-              kind: "tenant",
-              ref: { occupancyId: 31 },
-            },
-          ],
+    const openCall = [...messagingModalSpy.mock.calls]
+      .reverse()
+      .find(([props]) => props.open);
+    const preset = openCall?.[0].preset as MessagingPreset | undefined;
+    expect(preset).toMatchObject({
+      context: "독촉",
+      buildingId: 1,
+      channel: "alimtalk",
+      mode: "auto",
+      templateTitle: "관리비 미납 안내",
+      commonVariables: {
+        건물명: "그린빌라",
+        관리사무소연락처: "02-9876-5432",
+      },
+    });
+    expect(preset?.body).toBeUndefined();
+    expect(preset?.recipients).toEqual([
+      {
+        name: "김입주",
+        phone: "010-1111-2222",
+        unitNo: "101호",
+        kind: "tenant",
+        variables: {
+          세대: "101호",
+          미납금액: "200,000",
+          미납월: "2026년 8월",
+          납기일: "2026-08-31",
         },
-      }),
-    );
+        ref: { occupancyId: 31, buildingId: 1 },
+      },
+      {
+        name: "이입주",
+        phone: "010-3333-4444",
+        unitNo: "202호",
+        kind: "tenant",
+        variables: {
+          세대: "202호",
+          미납금액: "90,000",
+          미납월: "2026년 6월",
+          납기일: "2026-06-30",
+        },
+        ref: { occupancyId: 32, buildingId: 1 },
+      },
+    ]);
+
+    const templates = [{
+      id: 302,
+      title: "관리비 미납 안내",
+      body: "[#{건물명}] 관리비 미납 안내\n#{세대} #{미납금액}원 #{미납월} #{납기일}\n문의: #{관리사무소연락처}",
+    }];
+    const template = templates.find(({ title }) => title === preset?.templateTitle);
+    expect(template?.id).toBe(302);
+    const renderedBodies = preset?.recipients?.map((recipient) =>
+      renderTemplate(
+        template?.body ?? "",
+        buildRecipientRenderVariables(
+          recipient,
+          preset.commonVariables,
+          "그린빌라",
+        ),
+      ),
+    ) ?? [];
+    expect(renderedBodies).toHaveLength(2);
+    expect(renderedBodies.every((body) => !body.includes("#{"))).toBe(true);
 
     fireEvent.click(screen.getByRole("button", { name: "테스트 발송 완료" }));
 
     expect(toast.success).toHaveBeenCalledWith(
-      "독촉 문자 임시 발송 기록 1건을 생성했습니다. 실제 문자는 발송되지 않았습니다.",
+      "독촉 안내 1건 발송을 접수했습니다.",
     );
     expect(messagingModalSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({ open: false }),

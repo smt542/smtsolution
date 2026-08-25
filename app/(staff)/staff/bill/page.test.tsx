@@ -1,10 +1,14 @@
 // app/(staff)/staff/bill/page.test.tsx
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { MessagingPreset } from "@/lib/messaging/preset";
 
 const h = vi.hoisted(() => ({
   recordMutateAsync: vi.fn(),
-  modal: { onSent: null as null | ((result: unknown) => void | Promise<void>) },
+  modal: {
+    onSent: null as null | ((result: unknown) => void | Promise<void>),
+    preset: undefined as MessagingPreset | undefined,
+  },
 }));
 
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
@@ -13,8 +17,17 @@ vi.mock("@/hooks/reactquery/buildings", () => ({
 }));
 vi.mock("@/hooks/reactquery/setupConfig", () => ({
   useSetupConfig: () => ({
-    data: { unitLabelDefault: "code", mgmtPrint1: false, mgmtPrint2: false },
+    data: {
+      unitLabelDefault: "code",
+      mgmtBank1: "국민은행",
+      mgmtAcct1: "123-456-789",
+      mgmtPrint1: false,
+      mgmtPrint2: false,
+    },
   }),
+}));
+vi.mock("@/hooks/reactquery/org/useOrgContact", () => ({
+  useOrgContact: () => ({ data: { phone: "02-1234-5678" } }),
 }));
 vi.mock("@/hooks/reactquery/bill", () => ({
   useBillTargets: vi.fn(() => ({ data: [], isLoading: false })),
@@ -33,8 +46,12 @@ vi.mock("@/hooks/reactquery/messaging", () => ({
 vi.mock(
   "@/app/(staff)/staff/messaging/components/MessagingModal",
   () => ({
-    MessagingModal: (props: { onSent?: (result: unknown) => void | Promise<void> }) => {
+    MessagingModal: (props: {
+      preset?: MessagingPreset;
+      onSent?: (result: unknown) => void | Promise<void>;
+    }) => {
       h.modal.onSent = props.onSent ?? null;
+      h.modal.preset = props.preset;
       return null;
     },
   }),
@@ -43,8 +60,14 @@ vi.mock(
 import BillPage from "./page";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBillTargets } from "@/hooks/reactquery/bill";
+import { buildRecipientRenderVariables } from "@/lib/messaging/preset";
+import { renderTemplate } from "@/lib/messaging/render";
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  h.modal.onSent = null;
+  h.modal.preset = undefined;
+});
 
 describe("BillPage 게이트", () => {
   it("bill_publish 권한 없으면 차단", () => {
@@ -114,5 +137,101 @@ describe("BillPage 게이트", () => {
     expect(
       screen.getByText(/부과 확정된 세대가 없습니다/),
     ).toBeInTheDocument();
+  });
+
+  it("선택 세대별 고지서 변수를 채우고 정확한 알림톡 템플릿으로 완전히 렌더한다", () => {
+    vi.mocked(useMe).mockReturnValue({
+      data: { role: "staff", orgId: 1, permissions: ["bill_publish"] },
+    } as unknown as ReturnType<typeof useMe>);
+    vi.mocked(useBillTargets).mockReturnValue({
+      data: [{
+        unitId: 101,
+        unitNo: "1001",
+        dong: "101",
+        occupancyId: 401,
+        tenantName: "김입주",
+        payerName: null,
+        payerNo: null,
+        billNameDisplay: "name",
+        phone: "010-1111-2222",
+        secondaryPhone: "010-3333-4444",
+        faxNumber: null,
+        totalAmount: 120_000,
+        autoDebit: false,
+        issueType: null,
+        dueDate: "2026-08-31",
+        sendStatus: null,
+        issuedAt: null,
+        singlePrint: false,
+        waterCutoff: false,
+        scheduledAt: null,
+        messageScheduleId: null,
+        kakaoSendStatus: null,
+        faxSendStatus: null,
+      }],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useBillTargets>);
+
+    render(<BillPage />);
+    fireEvent.click(screen.getByRole("button", { name: /A4 관리비 고지서/ }));
+    fireEvent.change(screen.getByRole("combobox", { name: /건물 선택/ }), {
+      target: { value: "7" },
+    });
+    fireEvent.click(screen.getByRole("checkbox", { name: "1001 선택" }));
+    expect(h.modal.preset?.recipients?.[0].variables?.납기일).toBe("2026-08-31");
+
+    fireEvent.change(screen.getByLabelText("납기일"), {
+      target: { value: "2026-09-05" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "카톡 고지서 발송" }));
+
+    const preset = h.modal.preset;
+    expect(preset).toMatchObject({
+      buildingId: 7,
+      channel: "alimtalk",
+      mode: "alimtalk",
+      templateTitle: "관리비 고지서",
+      commonVariables: {
+        건물명: "행복빌라",
+        관리사무소연락처: "02-1234-5678",
+      },
+    });
+    expect(preset?.recipients).toHaveLength(2);
+    expect(preset?.recipients?.map((recipient) => recipient.variables)).toEqual([
+      {
+        세대: "101동 1001호",
+        청구월: expect.stringMatching(/^\d{4}년 \d{1,2}월$/),
+        청구금액: "120,000",
+        납기일: "2026-09-05",
+        납부계좌: "국민은행 123-456-789",
+      },
+      {
+        세대: "101동 1001호",
+        청구월: expect.stringMatching(/^\d{4}년 \d{1,2}월$/),
+        청구금액: "120,000",
+        납기일: "2026-09-05",
+        납부계좌: "국민은행 123-456-789",
+      },
+    ]);
+
+    const templates = [{
+      id: 301,
+      title: "관리비 고지서",
+      body: "[#{건물명}] #{청구월} 관리비 고지서\n#{세대} #{청구금액}원 #{납기일} #{납부계좌}\n문의: #{관리사무소연락처}",
+    }];
+    const template = templates.find(({ title }) => title === preset?.templateTitle);
+    expect(template?.id).toBe(301);
+    const renderedBodies = preset?.recipients?.map((recipient) =>
+      renderTemplate(
+        template?.body ?? "",
+        buildRecipientRenderVariables(
+          recipient,
+          preset.commonVariables,
+          "행복빌라",
+        ),
+      ),
+    ) ?? [];
+    expect(renderedBodies).toHaveLength(2);
+    expect(renderedBodies.every((body) => !body.includes("#{"))).toBe(true);
   });
 });

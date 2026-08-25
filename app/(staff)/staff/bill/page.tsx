@@ -15,9 +15,17 @@ import {
   useRecordBillDelivery,
 } from "@/hooks/reactquery/bill";
 import { useCancelScheduledMessage } from "@/hooks/reactquery/messaging";
+import { useOrgContact } from "@/hooks/reactquery/org/useOrgContact";
 import { currentPeriod, fromMonthInput, toMonthInput } from "@/lib/billing/period";
 import { printableAccounts, PROGRAM_COMPANY_NAME } from "@/lib/bill/document";
 import type { MessageRecipient } from "@/lib/messaging/preset";
+import {
+  formatAccount,
+  formatDate,
+  formatKrw,
+  formatPeriodMonth,
+  formatUnit,
+} from "@/lib/messaging/vars";
 import { MessagingModal } from "@/app/(staff)/staff/messaging/components/MessagingModal";
 import { BillTargetTable } from "./components/BillTargetTable";
 import { BillPrintView } from "./components/BillPrintView";
@@ -34,7 +42,7 @@ function LegacyA4Workspace({ buildings, config, onBack }: LegacyA4WorkspaceProps
   const [buildingId, setBuildingId] = useState<number | null>(null);
   const [period, setPeriod] = useState(() => currentPeriod());
   const [labelMode, setLabelMode] = useState<"code" | "name">(config?.unitLabelDefault ?? "code");
-  const [dueDate, setDueDate] = useState("");
+  const [dueDate, setDueDate] = useState<string | null>(null);
   const [selected, setSelected] = useState<number[]>([]);
   const [sendOpen, setSendOpen] = useState(false);
   const [waterCutoffOverrides, setWaterCutoffOverrides] = useState<Record<number, boolean>>({});
@@ -44,6 +52,7 @@ function LegacyA4Workspace({ buildings, config, onBack }: LegacyA4WorkspaceProps
   const issue = useIssueBills();
   const recordDelivery = useRecordBillDelivery();
   const cancelSchedule = useCancelScheduledMessage();
+  const { data: orgContact } = useOrgContact();
   const building = buildings.find((candidate) => candidate.id === buildingId) ?? null;
   const rows = (targets ?? []).map((target) => ({
     ...target,
@@ -83,32 +92,44 @@ function LegacyA4Workspace({ buildings, config, onBack }: LegacyA4WorkspaceProps
 
   const recipients: MessageRecipient[] = rows
     .filter((target) => selected.includes(target.unitId))
-    .flatMap((target) => [
-      {
-        name: target.tenantName,
-        phone: target.phone,
-        phoneType: "primary" as const,
-        unitNo: target.unitNo,
-        kind: "tenant" as const,
-        ref: {
-          occupancyId: target.occupancyId ?? undefined,
-          unitId: target.unitId,
-          buildingId: buildingId ?? undefined,
+    .flatMap((target) => {
+      const variables = {
+        세대: formatUnit(target.dong, target.unitNo),
+        청구월: formatPeriodMonth(period),
+        청구금액: formatKrw(target.totalAmount),
+        납기일: formatDate(dueDate ?? target.dueDate),
+        납부계좌: formatAccount(config?.mgmtBank1, config?.mgmtAcct1),
+      };
+
+      return [
+        {
+          name: target.tenantName,
+          phone: target.phone,
+          phoneType: "primary" as const,
+          unitNo: target.unitNo,
+          kind: "tenant" as const,
+          variables,
+          ref: {
+            occupancyId: target.occupancyId ?? undefined,
+            unitId: target.unitId,
+            buildingId: buildingId ?? undefined,
+          },
         },
-      },
-      ...(target.secondaryPhone ? [{
-        name: target.tenantName,
-        phone: target.secondaryPhone,
-        phoneType: "secondary" as const,
-        unitNo: target.unitNo,
-        kind: "tenant" as const,
-        ref: {
-          occupancyId: target.occupancyId ?? undefined,
-          unitId: target.unitId,
-          buildingId: buildingId ?? undefined,
-        },
-      }] : []),
-    ]);
+        ...(target.secondaryPhone ? [{
+          name: target.tenantName,
+          phone: target.secondaryPhone,
+          phoneType: "secondary" as const,
+          unitNo: target.unitNo,
+          kind: "tenant" as const,
+          variables,
+          ref: {
+            occupancyId: target.occupancyId ?? undefined,
+            unitId: target.unitId,
+            buildingId: buildingId ?? undefined,
+          },
+        }] : []),
+      ];
+    });
 
   const cancelSelectedSchedules = async () => {
     const scheduleIds = [...new Set(rows
@@ -181,7 +202,7 @@ function LegacyA4Workspace({ buildings, config, onBack }: LegacyA4WorkspaceProps
 
           <label className="flex flex-col gap-1 text-sm font-bold text-t2">
             납기일
-            <input type="date" aria-label="납기일" value={dueDate} onChange={(event) => setDueDate(event.target.value)} className="h-11 rounded-xl border border-line bg-surface px-3 text-sm text-t1" />
+            <input type="date" aria-label="납기일" value={dueDate ?? ""} onChange={(event) => setDueDate(event.target.value || null)} className="h-11 rounded-xl border border-line bg-surface px-3 text-sm text-t1" />
           </label>
         </section>
 
@@ -212,8 +233,12 @@ function LegacyA4Workspace({ buildings, config, onBack }: LegacyA4WorkspaceProps
             buildingId: buildingId ?? undefined,
             channel: "alimtalk",
             mode: "alimtalk",
-            templateTitle: "고지서",
+            templateTitle: "관리비 고지서",
             recipients,
+            commonVariables: {
+              건물명: building?.name ?? "",
+              관리사무소연락처: orgContact?.phone ?? "",
+            },
           }}
           onSent={async (result) => {
             if (!buildingId) return;

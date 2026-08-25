@@ -127,8 +127,7 @@ export function MessagingComposer({
   const presetTemplate = useMemo(() => {
     const title = preset?.templateTitle?.trim();
     if (!title) return undefined;
-    return templates.find((template) => template.title === title)
-      ?? templates.find((template) => template.title.includes(title));
+    return templates.find((template) => template.title === title);
   }, [preset?.templateTitle, templates]);
   const effectiveTemplateId = templateId ?? presetTemplate?.id ?? null;
   const effectiveBody = bodyTouched ? body : (body || presetTemplate?.body || "");
