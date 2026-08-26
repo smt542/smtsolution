@@ -15,6 +15,9 @@ export interface PlatformOrgBilling {
   lmsCount: number;
   faxCount: number;
   faxPageCount: number;
+  alimtalkAmountKrw: number;
+  smsAmountKrw: number;
+  faxAmountKrw: number;
   subtotalKrw: number;
   vatKrw: number;
   totalKrw: number;
@@ -43,6 +46,9 @@ export interface PlatformBillingInvoice {
   lmsCount: number;
   faxCount: number;
   faxPageCount: number;
+  alimtalkAmountKrw: number;
+  smsAmountKrw: number;
+  faxAmountKrw: number;
   subtotalKrw: number;
   vatKrw: number;
   totalKrw: number;
@@ -68,6 +74,9 @@ interface PlatformOrgBillingRow {
   lms_count: number;
   fax_count: number;
   fax_page_count: number;
+  alimtalk_amount_krw: number;
+  sms_amount_krw: number;
+  fax_amount_krw: number;
   subtotal_krw: number;
   vat_krw: number;
   total_krw: number;
@@ -96,6 +105,9 @@ interface PlatformBillingInvoiceRow {
   lms_count: number | null;
   fax_count: number | null;
   fax_page_count: number | null;
+  alimtalk_amount_krw: number | null;
+  sms_amount_krw: number | null;
+  fax_amount_krw: number | null;
   subtotal_krw: number | null;
   vat_krw: number | null;
   total_krw: number | null;
@@ -116,6 +128,9 @@ function mapOrgBilling(row: PlatformOrgBillingRow): PlatformOrgBilling {
     lmsCount: row.lms_count,
     faxCount: row.fax_count,
     faxPageCount: row.fax_page_count,
+    alimtalkAmountKrw: Number(row.alimtalk_amount_krw ?? 0),
+    smsAmountKrw: Number(row.sms_amount_krw ?? 0),
+    faxAmountKrw: Number(row.fax_amount_krw ?? 0),
     subtotalKrw: Number(row.subtotal_krw),
     vatKrw: Number(row.vat_krw),
     totalKrw: Number(row.total_krw),
@@ -159,6 +174,9 @@ function mapBillingInvoice(row: PlatformBillingInvoiceRow): PlatformBillingInvoi
     lmsCount: row.lms_count ?? 0,
     faxCount: row.fax_count ?? 0,
     faxPageCount: row.fax_page_count ?? 0,
+    alimtalkAmountKrw: Number(row.alimtalk_amount_krw ?? 0),
+    smsAmountKrw: Number(row.sms_amount_krw ?? 0),
+    faxAmountKrw: Number(row.fax_amount_krw ?? 0),
     subtotalKrw: Number(row.subtotal_krw ?? 0),
     vatKrw: Number(row.vat_krw ?? 0),
     totalKrw: Number(row.total_krw ?? 0),

@@ -14,10 +14,12 @@ import {
 } from "./apis";
 import {
   createPlatformAccount,
+  platformUpdateAccount,
   platformResetPassword,
   platformSetActive,
   platformUpdateRole,
   type PlatformCreateAccountInput,
+  type PlatformUpdateAccountInput,
 } from "./accounts";
 import type { OrgMemberRole, StaffType } from "@/hooks/reactquery/auth";
 import { platformKeys } from "./keys";
@@ -147,6 +149,14 @@ export function usePlatformUpdateRole() {
         account.staffType,
         account.permissions,
       ),
+    onSuccess: () => qc.invalidateQueries({ queryKey: platformKeys.accounts() }),
+  });
+}
+
+export function usePlatformUpdateAccount() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: PlatformUpdateAccountInput) => platformUpdateAccount(input),
     onSuccess: () => qc.invalidateQueries({ queryKey: platformKeys.accounts() }),
   });
 }

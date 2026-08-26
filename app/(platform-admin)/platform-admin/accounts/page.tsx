@@ -9,6 +9,7 @@ import {
   usePlatformAccounts,
   usePlatformResetPassword,
   usePlatformSetActive,
+  usePlatformUpdateAccount,
   usePlatformUpdateRole,
   type PlatformAccount,
 } from "@/hooks/reactquery/platform";
@@ -21,6 +22,10 @@ import {
   QueryError,
 } from "../../_components/PageElements";
 import { AccountCreateModal } from "./components/AccountCreateModal";
+import {
+  AccountEditModal,
+  type AccountEditValues,
+} from "./components/AccountEditModal";
 import { AccountRowActions } from "./components/AccountRowActions";
 
 const ROLE_LABELS: Record<PlatformAccount["role"], string> = {
@@ -59,6 +64,7 @@ export default function PlatformAccountsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<PlatformAccount | null>(null);
   const [roleTarget, setRoleTarget] = useState<PlatformAccount | null>(null);
   const [passwordNotice, setPasswordNotice] = useState<{
     username: string;
@@ -73,10 +79,14 @@ export default function PlatformAccountsPage() {
   });
   const accounts = data?.rows ?? [];
   const createAccount = useCreatePlatformAccount();
+  const updateAccount = usePlatformUpdateAccount();
   const updateRole = usePlatformUpdateRole();
   const setActive = usePlatformSetActive();
   const resetPassword = usePlatformResetPassword();
-  const actionPending = updateRole.isPending || setActive.isPending || resetPassword.isPending;
+  const actionPending = updateAccount.isPending
+    || updateRole.isPending
+    || setActive.isPending
+    || resetPassword.isPending;
 
   const handleCreate = async (values: PlatformAccountCreateValues) => {
     try {
@@ -119,6 +129,22 @@ export default function PlatformAccountsPage() {
     }
   };
 
+  const handleAccountUpdate = async (values: AccountEditValues) => {
+    if (!editTarget) return;
+    try {
+      await updateAccount.mutateAsync({
+        orgId: editTarget.orgId,
+        userId: editTarget.userId,
+        ...values,
+      });
+      setEditTarget(null);
+      toast.success("계정 정보를 저장했습니다.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "계정 정보 저장에 실패했습니다.");
+      throw error;
+    }
+  };
+
   const handleToggleActive = async (account: PlatformAccount) => {
     try {
       await setActive.mutateAsync({
@@ -156,7 +182,7 @@ export default function PlatformAccountsPage() {
       <PageHeader
         eyebrow="ACCOUNTS"
         title="계정 관리"
-        description="계정 발급·권한·활성·비밀번호를 직접 관리합니다."
+        description="계정 발급·기본 정보·권한·활성·비밀번호를 직접 관리합니다."
       />
 
       <div className="mt-5">
@@ -198,12 +224,13 @@ export default function PlatformAccountsPage() {
           <EmptyState message={search ? "검색 결과가 없습니다" : "조회 가능한 계정이 없습니다"} />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1240px] text-sm">
+            <table className="w-full min-w-[1420px] text-sm">
               <thead>
                 <tr className="border-b border-line bg-bg/70 text-left text-xs font-bold text-t3">
                   <th className="px-5 py-3">계정</th>
                   <th className="px-4 py-3">조직</th>
                   <th className="px-4 py-3">전화번호</th>
+                  <th className="px-4 py-3">메모</th>
                   <th className="px-4 py-3">권한</th>
                   <th className="px-4 py-3">상태</th>
                   <th className="px-4 py-3">소속일</th>
@@ -222,6 +249,9 @@ export default function PlatformAccountsPage() {
                     </td>
                     <td className="px-4 py-4 font-semibold text-t2">{account.organizationName}</td>
                     <td className="px-4 py-4 text-t2 num">{account.phone ?? "—"}</td>
+                    <td className="max-w-64 px-4 py-4 text-t2">
+                      <span className="line-clamp-2">{account.memo ?? "—"}</span>
+                    </td>
                     <td className="px-4 py-4 text-t2">{ROLE_LABELS[account.role]}</td>
                     <td className="px-4 py-4">
                       <AccountStatus active={account.isActive} />
@@ -232,6 +262,7 @@ export default function PlatformAccountsPage() {
                     <td className="px-5 py-4">
                       <AccountRowActions
                         account={account}
+                        onEditDetails={() => setEditTarget(account)}
                         onChangeRole={() => setRoleTarget(account)}
                         onToggleActive={() => void handleToggleActive(account)}
                         onResetPassword={() => void handleResetPassword(account)}
@@ -258,6 +289,16 @@ export default function PlatformAccountsPage() {
         onSubmit={handleCreate}
         isPending={createAccount.isPending}
       />
+
+      {editTarget && (
+        <AccountEditModal
+          key={`${editTarget.orgId}:${editTarget.userId}`}
+          account={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSubmit={handleAccountUpdate}
+          isPending={updateAccount.isPending}
+        />
+      )}
 
       {roleTarget && (
         <RoleChangeModal

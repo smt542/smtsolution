@@ -103,13 +103,7 @@ describe("platform admin apis", () => {
     });
   });
 
-  it("org_members와 profiles를 결합해 조직별 계정 상태를 반환한다", async () => {
-    const profileIn = vi.fn().mockResolvedValue({
-      data: [{ user_id: "u1", phone: "010-1234-5678" }],
-      error: null,
-    });
-    const profileSelect = vi.fn(() => ({ in: profileIn }));
-    from.mockReturnValue({ select: profileSelect });
+  it("계정 RPC가 결합한 전화번호와 메모를 그대로 반환한다", async () => {
     rpc.mockResolvedValue({
       data: [{
         org_id: 7,
@@ -117,6 +111,8 @@ describe("platform admin apis", () => {
         user_id: "u1",
         username: "master",
         full_name: "김관리",
+        phone: "010-1234-5678",
+        memo: "본사 운영 총괄",
         role: "platform_admin",
         staff_type: "manager_staff",
         feature_permissions: ["accounts"],
@@ -136,6 +132,7 @@ describe("platform admin apis", () => {
       username: "master",
       fullName: "김관리",
       phone: "010-1234-5678",
+      memo: "본사 운영 총괄",
       role: "platform_admin",
       staffType: "manager_staff",
       permissions: ["accounts"],
@@ -147,8 +144,7 @@ describe("platform admin apis", () => {
       p_limit: 25,
       p_offset: 0,
     });
-    expect(profileSelect).toHaveBeenCalledWith("user_id, phone");
-    expect(profileIn).toHaveBeenCalledWith("user_id", ["u1"]);
+    expect(from).not.toHaveBeenCalled();
   });
 
   it("계약 KPI RPC 결과를 숫자로 변환한다", async () => {

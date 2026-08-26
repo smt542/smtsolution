@@ -4,6 +4,7 @@ import type { PlatformAccount } from "@/hooks/reactquery/platform";
 
 interface Props {
   account: PlatformAccount;
+  onEditDetails: () => void;
   onChangeRole: () => void;
   onToggleActive: () => void;
   onResetPassword: () => void;
@@ -15,6 +16,7 @@ const buttonClass =
 
 export function AccountRowActions({
   account,
+  onEditDetails,
   onChangeRole,
   onToggleActive,
   onResetPassword,
@@ -28,6 +30,14 @@ export function AccountRowActions({
         <span className="text-[10px] font-semibold text-danger">권한 변경 시 플랫폼 관리자 강등 주의</span>
       )}
       <div className="flex items-center justify-end gap-1.5">
+        <button
+          type="button"
+          onClick={onEditDetails}
+          disabled={isPending}
+          className={`${buttonClass} text-blue`}
+        >
+          정보 편집
+        </button>
         <button
           type="button"
           onClick={onChangeRole}

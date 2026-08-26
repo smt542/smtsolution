@@ -85,6 +85,7 @@ export interface PlatformAccount {
   username: string | null;
   fullName: string | null;
   phone: string | null;
+  memo: string | null;
   role: OrgMemberRole;
   staffType: StaffType;
   permissions: string[];
@@ -166,6 +167,8 @@ interface AccountRpcRow {
   user_id: string;
   username: string | null;
   full_name: string | null;
+  phone: string | null;
+  memo: string | null;
   role: OrgMemberRole;
   staff_type: StaffType;
   feature_permissions: unknown;
@@ -179,11 +182,6 @@ interface OrganizationContractKpiRpcRow {
   expiring_within_90_days_count: number | string;
   suspended_count: number | string;
   terminated_last_12_months_count: number | string;
-}
-
-interface ProfilePhoneRow {
-  user_id: string;
-  phone: string | null;
 }
 
 interface PointTxRpcRow {
@@ -316,19 +314,6 @@ export async function listPlatformAccounts(
 
   if (error) throw new Error(error.message);
   const rows = (data ?? []) as AccountRpcRow[];
-  const userIds = [...new Set(rows.map((row) => row.user_id))];
-  const phoneByUserId = new Map<string, string | null>();
-
-  if (userIds.length > 0) {
-    const { data: profileData, error: profileError } = await client
-      .from("profiles")
-      .select("user_id, phone")
-      .in("user_id", userIds);
-    if (profileError) throw new Error(profileError.message);
-    for (const profile of (profileData ?? []) as ProfilePhoneRow[]) {
-      phoneByUserId.set(profile.user_id, profile.phone);
-    }
-  }
 
   return {
     rows: rows.map((row) => ({
@@ -337,7 +322,8 @@ export async function listPlatformAccounts(
       userId: row.user_id,
       username: row.username,
       fullName: row.full_name,
-      phone: phoneByUserId.get(row.user_id) ?? null,
+      phone: row.phone,
+      memo: row.memo,
       role: row.role,
       staffType: row.staff_type,
       permissions: Array.isArray(row.feature_permissions) ? row.feature_permissions : [],
