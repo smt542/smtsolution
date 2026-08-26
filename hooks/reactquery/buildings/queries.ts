@@ -1,6 +1,12 @@
 // hooks/reactquery/buildings/queries.ts
 import { useQuery } from "@tanstack/react-query";
-import { listBuildings, listAllBuildings, getBuildingFull, type BuildingListParams } from "./apis";
+import {
+  listBuildings,
+  listAllBuildings,
+  getBuildingFull,
+  type BuildingListParams,
+  type BuildingListResult,
+} from "./apis";
 import { buildingKeys } from "./keys";
 import { listAccounts } from "@/hooks/reactquery/accounts";
 
@@ -8,8 +14,12 @@ export function useBuildings() {
   return useQuery({ queryKey: buildingKeys.directory(), queryFn: () => listAllBuildings() });
 }
 
-export function useBuildingList(params: BuildingListParams) {
-  return useQuery({ queryKey: buildingKeys.list(params), queryFn: () => listBuildings(params) });
+export function useBuildingList(params: BuildingListParams, initialData?: BuildingListResult) {
+  return useQuery({
+    queryKey: buildingKeys.list(params),
+    queryFn: () => listBuildings(params),
+    initialData,
+  });
 }
 export function useBuildingFull(id: number) {
   return useQuery({ queryKey: buildingKeys.full(id), queryFn: () => getBuildingFull(id), enabled: !!id });
