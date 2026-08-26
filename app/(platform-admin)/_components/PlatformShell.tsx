@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useMe } from "@/hooks/reactquery/auth";
+import { usePathname, useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useLogout, useMe } from "@/hooks/reactquery/auth";
 import {
   PLATFORM_NAV_ITEMS,
   isPlatformNavActive,
@@ -48,6 +49,21 @@ export function PlatformShell({ children }: { children: React.ReactNode }) {
 
 function PlatformSidebar({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
   const { data: me } = useMe();
+  const router = useRouter();
+  const logout = useLogout();
+
+  const handleLogout = async () => {
+    if (logout.isPending) return;
+
+    try {
+      await logout.mutateAsync();
+      onNavigate?.();
+      router.replace("/platform-admin/login");
+      router.refresh();
+    } catch {
+      toast.error("로그아웃하지 못했습니다. 다시 시도해 주세요.");
+    }
+  };
 
   return (
     <aside className="flex h-full w-64 flex-col border-r border-line bg-[#101828] px-3.5 py-[18px] text-white">
@@ -89,17 +105,45 @@ function PlatformSidebar({ pathname, onNavigate }: { pathname: string; onNavigat
       </Link>
 
       {me && (
-        <div className="flex items-center gap-2.5 rounded-xl bg-white/[0.06] p-2.5">
-          <div className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full bg-[#344054] text-sm font-bold">
-            {me.fullName.charAt(0)}
-          </div>
-          <div className="min-w-0">
-            <div className="truncate text-[13px] font-bold">{me.fullName}</div>
-            <div className="truncate text-[11px] text-[#98A2B3]">
-              {me.role === "platform_admin" ? "플랫폼 관리자" : "조직 소유자"}
+        <details className="group relative">
+          <summary
+            className="flex cursor-pointer list-none items-center gap-2.5 rounded-xl bg-white/[0.06] p-2.5 transition-colors hover:bg-white/[0.1] [&::-webkit-details-marker]:hidden"
+            aria-label="프로필 메뉴"
+          >
+            <div className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full bg-[#344054] text-sm font-bold">
+              {me.fullName.charAt(0)}
             </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[13px] font-bold">{me.fullName}</div>
+              <div className="truncate text-[11px] text-[#98A2B3]">
+                {me.role === "platform_admin" ? "플랫폼 관리자" : "조직 소유자"}
+              </div>
+            </div>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="h-4 w-4 flex-none text-[#98A2B3] transition-transform group-open:rotate-180"
+              aria-hidden="true"
+            >
+              <path d="M6 15l6-6 6 6" />
+            </svg>
+          </summary>
+          <div className="absolute bottom-full left-0 right-0 z-20 mb-2 rounded-xl border border-line bg-white p-1.5 shadow-[0_16px_40px_-12px_rgba(16,24,40,0.4)]">
+            <button
+              type="button"
+              onClick={() => void handleLogout()}
+              disabled={logout.isPending}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[13px] font-bold text-red transition-colors hover:bg-red-t disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true">
+                <path d="M10 17l5-5-5-5M15 12H3M14 4h5a2 2 0 012 2v12a2 2 0 01-2 2h-5" />
+              </svg>
+              {logout.isPending ? "로그아웃 중…" : "로그아웃"}
+            </button>
           </div>
-        </div>
+        </details>
       )}
     </aside>
   );

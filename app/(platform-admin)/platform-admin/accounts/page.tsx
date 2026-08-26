@@ -198,11 +198,12 @@ export default function PlatformAccountsPage() {
           <EmptyState message={search ? "검색 결과가 없습니다" : "조회 가능한 계정이 없습니다"} />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1120px] text-sm">
+            <table className="w-full min-w-[1240px] text-sm">
               <thead>
                 <tr className="border-b border-line bg-bg/70 text-left text-xs font-bold text-t3">
                   <th className="px-5 py-3">계정</th>
                   <th className="px-4 py-3">조직</th>
+                  <th className="px-4 py-3">전화번호</th>
                   <th className="px-4 py-3">권한</th>
                   <th className="px-4 py-3">상태</th>
                   <th className="px-4 py-3">소속일</th>
@@ -220,6 +221,7 @@ export default function PlatformAccountsPage() {
                       <div className="mt-1 text-xs text-t3">{account.username ?? account.userId}</div>
                     </td>
                     <td className="px-4 py-4 font-semibold text-t2">{account.organizationName}</td>
+                    <td className="px-4 py-4 text-t2 num">{account.phone ?? "—"}</td>
                     <td className="px-4 py-4 text-t2">{ROLE_LABELS[account.role]}</td>
                     <td className="px-4 py-4">
                       <AccountStatus active={account.isActive} />

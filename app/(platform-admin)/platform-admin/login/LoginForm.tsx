@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { authKeys, getMyContext, recordLogin } from "@/hooks/reactquery/auth";
 import { AUTO_LOGIN_KEY } from "@/lib/auth/sessionPersistence";
 import { createClient } from "@/lib/supabase/client";
@@ -49,6 +50,7 @@ export function LoginForm() {
 
       await recordLogin().catch(() => {});
       queryClient.setQueryData(authKeys.me(), context);
+      toast.success("로그인되었습니다");
       router.push("/platform-admin");
       router.refresh();
     } catch (error) {

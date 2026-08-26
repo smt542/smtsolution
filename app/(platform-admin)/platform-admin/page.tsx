@@ -5,20 +5,22 @@ import { EmptyState, Spinner } from "@/components/common";
 import {
   usePlatformOrgBilling,
   usePlatformOverviewMetrics,
+  usePlatformSettings,
 } from "@/hooks/reactquery/platform";
-import { DataScopeNotice, PageHeader, QueryError } from "../_components/PageElements";
+import {
+  BoundedMonthStepper,
+  DataScopeNotice,
+  PageHeader,
+  PlatformPagination,
+  QueryError,
+} from "../_components/PageElements";
 
 const num = (n: number) => n.toLocaleString("ko-KR");
+const PAGE_SIZE = 6;
 
 function currentMonthIso(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-}
-
-function shiftMonth(iso: string, delta: number): string {
-  const [year, month] = iso.split("-").map(Number);
-  const shifted = new Date(year, month - 1 + delta, 1);
-  return `${shifted.getFullYear()}-${String(shifted.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
 function monthLabel(iso: string): string {
@@ -32,8 +34,10 @@ function signed(n: number): string {
 
 export default function PlatformDashboardPage() {
   const [month, setMonth] = useState(currentMonthIso);
+  const [page, setPage] = useState(1);
   const metricsQuery = usePlatformOverviewMetrics(month);
   const billingQuery = usePlatformOrgBilling(month);
+  const settingsQuery = usePlatformSettings();
 
   const metrics = metricsQuery.data;
   const appRate = metrics && metrics.unitCount > 0
@@ -42,11 +46,12 @@ export default function PlatformDashboardPage() {
   const costDelta = metrics ? metrics.sendCostKrw - metrics.sendCostPrevKrw : 0;
 
   const tenantRows = useMemo(
-    () => (billingQuery.data ?? []).filter(
-      (row) => row.alimtalkCount + row.smsCount + row.faxCount > 0,
-    ),
+    () => billingQuery.data ?? [],
     [billingQuery.data],
   );
+  const totalPages = Math.max(1, Math.ceil(tenantRows.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedRows = tenantRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   return (
     <div className="mx-auto w-full max-w-7xl p-5 sm:p-6 lg:p-8">
@@ -56,7 +61,13 @@ export default function PlatformDashboardPage() {
           title="대시보드"
           description="계약 업체·관리 건물·입주자 앱 연결과 월 발송 비용을 한눈에 확인합니다."
         />
-        <MonthStepper month={month} onChange={setMonth} />
+        <BoundedMonthStepper
+          month={month}
+          onChange={(nextMonth) => {
+            setMonth(nextMonth);
+            setPage(1);
+          }}
+        />
       </div>
 
       <div className="mt-5">
@@ -106,34 +117,50 @@ export default function PlatformDashboardPage() {
         <div className="flex items-center justify-between border-b border-line p-4">
           <div>
             <h3 className="text-base font-extrabold text-t1">테넌트별 발송 비용</h3>
-            <p className="mt-1 text-xs text-t3">{monthLabel(month)} · 발송량 기준 (부가세 제외)</p>
+            <p className="mt-1 text-xs text-t3">{monthLabel(month)} · 채널별 공급가액 (부가세 제외)</p>
           </div>
         </div>
-        {billingQuery.isPending ? (
+        {billingQuery.isPending || settingsQuery.isPending ? (
           <div className="py-16"><Spinner /></div>
-        ) : billingQuery.isError ? (
-          <div className="p-4"><QueryError onRetry={() => void billingQuery.refetch()} /></div>
+        ) : billingQuery.isError || settingsQuery.isError || !settingsQuery.data ? (
+          <div className="p-4">
+            <QueryError
+              onRetry={() => {
+                void billingQuery.refetch();
+                void settingsQuery.refetch();
+              }}
+            />
+          </div>
         ) : tenantRows.length === 0 ? (
-          <EmptyState message="발송 내역이 없습니다" />
+          <EmptyState message="조회 가능한 업체가 없습니다" />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-sm">
               <thead>
                 <tr className="border-b border-line bg-bg/70 text-left text-xs font-bold text-t3">
                   <th className="px-5 py-3">업체명</th>
-                  <th className="px-4 py-3 text-right">알림톡</th>
-                  <th className="px-4 py-3 text-right">문자</th>
-                  <th className="px-4 py-3 text-right">팩스</th>
+                  <th className="px-4 py-3 text-right">알림톡(원)</th>
+                  <th className="px-4 py-3 text-right">문자(원)</th>
+                  <th className="px-4 py-3 text-right">팩스(원)</th>
                   <th className="px-5 py-3 text-right">합계(원)</th>
                 </tr>
               </thead>
               <tbody>
-                {tenantRows.map((row) => (
+                {pagedRows.map((row) => (
                   <tr key={row.orgId} className="border-b border-line last:border-0 hover:bg-bg/50">
                     <td className="px-5 py-4 font-bold text-t1">{row.orgName}</td>
-                    <td className="px-4 py-4 text-right text-t2 num">{num(row.alimtalkCount)}</td>
-                    <td className="px-4 py-4 text-right text-t2 num">{num(row.smsCount)}</td>
-                    <td className="px-4 py-4 text-right text-t2 num">{num(row.faxCount)}</td>
+                    <td className="px-4 py-4 text-right text-t2 num">
+                      {num(row.alimtalkCount * settingsQuery.data.rateKrwAlimtalk)}
+                    </td>
+                    <td className="px-4 py-4 text-right text-t2 num">
+                      {num(
+                        row.smsCount * settingsQuery.data.rateKrwSms
+                        + row.lmsCount * settingsQuery.data.rateKrwLms,
+                      )}
+                    </td>
+                    <td className="px-4 py-4 text-right text-t2 num">
+                      {num(row.faxPageCount * settingsQuery.data.rateKrwFax)}
+                    </td>
                     <td className="px-5 py-4 text-right font-extrabold text-t1 num">{num(row.subtotalKrw)}</td>
                   </tr>
                 ))}
@@ -141,31 +168,21 @@ export default function PlatformDashboardPage() {
             </table>
           </div>
         )}
+        {!billingQuery.isPending
+          && !billingQuery.isError
+          && !settingsQuery.isPending
+          && !settingsQuery.isError
+          && (
+            <PlatformPagination
+              page={currentPage}
+              pageSize={PAGE_SIZE}
+              totalCount={tenantRows.length}
+              onPageChange={setPage}
+              numeric
+              totalLabel={`전체 ${num(tenantRows.length)}곳`}
+            />
+          )}
       </section>
-    </div>
-  );
-}
-
-function MonthStepper({ month, onChange }: { month: string; onChange: (m: string) => void }) {
-  return (
-    <div className="flex items-center gap-1 rounded-xl border border-line bg-surface p-1">
-      <button
-        type="button"
-        aria-label="이전 달"
-        onClick={() => onChange(shiftMonth(month, -1))}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-t3 hover:bg-bg hover:text-t1"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
-      </button>
-      <span className="min-w-[92px] text-center text-sm font-extrabold text-t1">{monthLabel(month)}</span>
-      <button
-        type="button"
-        aria-label="다음 달"
-        onClick={() => onChange(shiftMonth(month, 1))}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-t3 hover:bg-bg hover:text-t1"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
-      </button>
     </div>
   );
 }

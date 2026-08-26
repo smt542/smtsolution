@@ -78,6 +78,12 @@ describe("platform admin apis", () => {
   });
 
   it("org_members와 profiles를 결합해 조직별 계정 상태를 반환한다", async () => {
+    const profileIn = vi.fn().mockResolvedValue({
+      data: [{ user_id: "u1", phone: "010-1234-5678" }],
+      error: null,
+    });
+    const profileSelect = vi.fn(() => ({ in: profileIn }));
+    from.mockReturnValue({ select: profileSelect });
     rpc.mockResolvedValue({
       data: [{
         org_id: 7,
@@ -103,6 +109,7 @@ describe("platform admin apis", () => {
       userId: "u1",
       username: "master",
       fullName: "김관리",
+      phone: "010-1234-5678",
       role: "platform_admin",
       staffType: "manager_staff",
       permissions: ["accounts"],
@@ -112,6 +119,87 @@ describe("platform admin apis", () => {
     expect(rpc).toHaveBeenCalledWith("platform_list_accounts", {
       p_search: null,
       p_limit: 25,
+      p_offset: 0,
+    });
+    expect(profileSelect).toHaveBeenCalledWith("user_id, phone");
+    expect(profileIn).toHaveBeenCalledWith("user_id", ["u1"]);
+  });
+
+  it("조직 상태 필터는 기존 목록 RPC 결과를 표시 계층에서 분류한다", async () => {
+    rpc.mockResolvedValue({
+      data: [
+        {
+          id: 1,
+          name: "운영사",
+          slug: "active",
+          status: "active",
+          created_at: "2026-01-04T00:00:00Z",
+          phone: null,
+          deleted_at: null,
+          account_count: 1,
+          building_count: 1,
+          ledger_balance: 0,
+          reserved_points: 0,
+          available_points: 0,
+          total_count: 4,
+        },
+        {
+          id: 2,
+          name: "체험사",
+          slug: "trial",
+          status: "trial",
+          created_at: "2026-01-03T00:00:00Z",
+          phone: null,
+          deleted_at: null,
+          account_count: 1,
+          building_count: 1,
+          ledger_balance: 0,
+          reserved_points: 0,
+          available_points: 0,
+          total_count: 4,
+        },
+        {
+          id: 3,
+          name: "정지사",
+          slug: "suspended",
+          status: "suspended",
+          created_at: "2026-01-02T00:00:00Z",
+          phone: null,
+          deleted_at: null,
+          account_count: 1,
+          building_count: 1,
+          ledger_balance: 0,
+          reserved_points: 0,
+          available_points: 0,
+          total_count: 4,
+        },
+        {
+          id: 4,
+          name: "해지사",
+          slug: "terminated",
+          status: "active",
+          created_at: "2026-01-01T00:00:00Z",
+          phone: null,
+          deleted_at: "2026-08-01T00:00:00Z",
+          account_count: 1,
+          building_count: 1,
+          ledger_balance: 0,
+          reserved_points: 0,
+          available_points: 0,
+          total_count: 4,
+        },
+      ],
+      error: null,
+    });
+
+    const result = await listPlatformOrganizations({ status: "operating", pageSize: 1 });
+
+    expect(result.rows.map((row) => row.name)).toEqual(["운영사"]);
+    expect(result.totalCount).toBe(2);
+    expect(rpc).toHaveBeenCalledWith("platform_list_organizations", {
+      p_search: null,
+      p_include_deleted: true,
+      p_limit: 100,
       p_offset: 0,
     });
   });

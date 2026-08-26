@@ -9,19 +9,19 @@ import {
   type PlatformOrgBilling,
   type PlatformOrgBillingStatus,
 } from "@/hooks/reactquery/platform";
-import { PageHeader, QueryError } from "../../_components/PageElements";
+import {
+  BoundedMonthStepper,
+  PageHeader,
+  PlatformPagination,
+  QueryError,
+} from "../../_components/PageElements";
 
 const num = (n: number) => n.toLocaleString("ko-KR");
+const PAGE_SIZE = 8;
 
 function currentMonthIso(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-}
-
-function shiftMonth(iso: string, delta: number): string {
-  const [year, month] = iso.split("-").map(Number);
-  const shifted = new Date(year, month - 1 + delta, 1);
-  return `${shifted.getFullYear()}-${String(shifted.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
 function monthLabel(iso: string): string {
@@ -29,21 +29,23 @@ function monthLabel(iso: string): string {
   return `${year}년 ${month}월`;
 }
 
-function deltaLabel(n: number): string {
-  if (n === 0) return "—";
-  return `${n > 0 ? "▲" : "▼"} ${num(Math.abs(n))}`;
+function deltaPercentLabel(current: number, previous: number): string {
+  if (previous === 0) return current === 0 ? "—" : "신규";
+  const percentage = Math.round(((current - previous) / previous) * 100);
+  return `${percentage > 0 ? "+" : ""}${percentage}%`;
 }
 
 const STATUS_TABS: { id: "all" | PlatformOrgBillingStatus; label: string }[] = [
   { id: "all", label: "전체" },
   { id: "unpaid", label: "미입금" },
-  { id: "paid", label: "입금" },
+  { id: "paid", label: "입금완료" },
   { id: "none", label: "청구 없음" },
 ];
 
 export default function PlatformBillingPage() {
   const [month, setMonth] = useState(currentMonthIso);
   const [tab, setTab] = useState<"all" | PlatformOrgBillingStatus>("all");
+  const [page, setPage] = useState(1);
   const billingQuery = usePlatformOrgBilling(month);
   const markPaid = useMarkOrgBillingPaid();
 
@@ -54,9 +56,22 @@ export default function PlatformBillingPage() {
         alimtalk: acc.alimtalk + row.alimtalkCount,
         sms: acc.sms + row.smsCount,
         lms: acc.lms + row.lmsCount,
-        faxPages: acc.faxPages + row.faxPageCount,
+        fax: acc.fax + row.faxCount,
+        billedKrw: acc.billedKrw + row.subtotalKrw,
+        unpaidKrw: acc.unpaidKrw + (row.status === "unpaid" ? row.subtotalKrw : 0),
+        unpaidOrganizations: acc.unpaidOrganizations + (row.status === "unpaid" ? 1 : 0),
+        paidOrganizations: acc.paidOrganizations + (row.status === "paid" ? 1 : 0),
       }),
-      { alimtalk: 0, sms: 0, lms: 0, faxPages: 0 },
+      {
+        alimtalk: 0,
+        sms: 0,
+        lms: 0,
+        fax: 0,
+        billedKrw: 0,
+        unpaidKrw: 0,
+        unpaidOrganizations: 0,
+        paidOrganizations: 0,
+      },
     ),
     [rows],
   );
@@ -64,6 +79,9 @@ export default function PlatformBillingPage() {
     () => (tab === "all" ? rows : rows.filter((row) => row.status === tab)),
     [rows, tab],
   );
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const handleToggle = async (row: PlatformOrgBilling) => {
     const nextPaid = row.status !== "paid";
@@ -76,16 +94,16 @@ export default function PlatformBillingPage() {
   };
 
   const handleDownload = () => {
-    const header = ["업체명", "이메일", "알림톡", "문자(SMS)", "장문(LMS)", "팩스(성공페이지)", "청구액", "전월비", "상태"];
+    const header = ["업체명", "이메일", "알림톡", "문자(SMS)", "장문(LMS)", "팩스(발송 건수)", "청구액(공급가액)", "전월비", "상태"];
     const body = filtered.map((row) => [
       row.orgName,
       row.orgEmail ?? "",
       row.alimtalkCount,
       row.smsCount,
       row.lmsCount,
-      row.faxPageCount,
-      row.totalKrw,
-      row.totalKrw - row.prevTotalKrw,
+      row.faxCount,
+      row.subtotalKrw,
+      deltaPercentLabel(row.totalKrw, row.prevTotalKrw),
       STATUS_TABS.find((t) => t.id === row.status)?.label ?? row.status,
     ]);
     const csv = [header, ...body]
@@ -108,14 +126,31 @@ export default function PlatformBillingPage() {
           title="청구 관리"
           description="테넌트별 월 발송 사용량과 청구액·입금 상태를 관리합니다."
         />
-        <MonthStepper month={month} onChange={(m) => { setMonth(m); }} />
+        <BoundedMonthStepper
+          month={month}
+          onChange={(nextMonth) => {
+            setMonth(nextMonth);
+            setPage(1);
+          }}
+        />
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-4">
+      <section className="mt-6 rounded-2xl border border-line bg-surface p-5 shadow-card sm:p-6">
+        <p className="text-lg font-extrabold leading-8 text-t1 sm:text-xl">
+          {monthLabel(month)} 청구할 발송비는 <span className="text-blue num">{num(totals.billedKrw)}원</span>,
+          <br className="hidden sm:block" /> 이 중 <span className="text-red num">{num(totals.unpaidKrw)}원</span>이 아직 입금되지 않았습니다.
+        </p>
+        <p className="mt-2 text-sm font-semibold text-t3">
+          미입금 {num(totals.unpaidOrganizations)}곳 · 입금 완료 {num(totals.paidOrganizations)}곳
+          <span className="ml-2 text-xs font-medium text-t4">공급가액 기준</span>
+        </p>
+      </section>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-4">
         <SummaryCard label="알림톡" value={totals.alimtalk} />
         <SummaryCard label="문자(SMS)" value={totals.sms} />
         <SummaryCard label="장문(LMS)" value={totals.lms} />
-        <SummaryCard label="팩스 성공 페이지" value={totals.faxPages} />
+        <SummaryCard label="팩스 발송" value={totals.fax} />
       </div>
 
       <section className="mt-6 rounded-2xl border border-line bg-surface shadow-card">
@@ -125,7 +160,10 @@ export default function PlatformBillingPage() {
               <button
                 key={statusTab.id}
                 type="button"
-                onClick={() => setTab(statusTab.id)}
+                onClick={() => {
+                  setTab(statusTab.id);
+                  setPage(1);
+                }}
                 className={`rounded-lg px-3 py-1.5 text-sm font-bold ${
                   tab === statusTab.id ? "bg-blue text-white" : "text-t3 hover:bg-bg"
                 }`}
@@ -155,24 +193,24 @@ export default function PlatformBillingPage() {
                   <th className="px-4 py-3 text-right">알림톡</th>
                   <th className="px-4 py-3 text-right">문자</th>
                   <th className="px-4 py-3 text-right">장문</th>
-                  <th className="px-4 py-3 text-right">팩스 페이지</th>
-                  <th className="px-4 py-3 text-right">청구액(원)</th>
+                  <th className="px-4 py-3 text-right">팩스</th>
+                  <th className="px-4 py-3 text-right">청구액(공급가액)</th>
                   <th className="px-4 py-3 text-right">전월비</th>
                   <th className="px-4 py-3">상태</th>
                   <th className="px-5 py-3 text-right">처리</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((row) => (
+                {pagedRows.map((row) => (
                   <tr key={row.orgId} className="border-b border-line last:border-0 hover:bg-bg/50">
                     <td className="px-5 py-4 font-bold text-t1">{row.orgName}</td>
                     <td className="px-4 py-4 text-t3">{row.orgEmail ?? "—"}</td>
                     <td className="px-4 py-4 text-right text-t2 num">{num(row.alimtalkCount)}</td>
                     <td className="px-4 py-4 text-right text-t2 num">{num(row.smsCount)}</td>
                     <td className="px-4 py-4 text-right text-t2 num">{num(row.lmsCount)}</td>
-                    <td className="px-4 py-4 text-right text-t2 num">{num(row.faxPageCount)}</td>
-                    <td className="px-4 py-4 text-right font-extrabold text-t1 num">{num(row.totalKrw)}</td>
-                    <td className="px-4 py-4 text-right text-t3 num">{deltaLabel(row.totalKrw - row.prevTotalKrw)}</td>
+                    <td className="px-4 py-4 text-right text-t2 num">{num(row.faxCount)}</td>
+                    <td className="px-4 py-4 text-right font-extrabold text-t1 num">{num(row.subtotalKrw)}</td>
+                    <td className="px-4 py-4 text-right text-t3 num">{deltaPercentLabel(row.totalKrw, row.prevTotalKrw)}</td>
                     <td className="px-4 py-4"><BillingStatusBadge status={row.status} /></td>
                     <td className="px-5 py-4 text-right">
                       {row.status === "none" ? (
@@ -183,7 +221,7 @@ export default function PlatformBillingPage() {
                           onClick={() => void handleToggle(row)}
                           disabled={markPaid.isPending}
                         >
-                          {row.status === "paid" ? "입금 취소" : "입금 처리"}
+                          {row.status === "paid" ? "입금 취소" : "입금 확인"}
                         </Button>
                       )}
                     </td>
@@ -193,31 +231,17 @@ export default function PlatformBillingPage() {
             </table>
           </div>
         )}
+        {!billingQuery.isPending && !billingQuery.isError && (
+          <PlatformPagination
+            page={currentPage}
+            pageSize={PAGE_SIZE}
+            totalCount={filtered.length}
+            onPageChange={setPage}
+            numeric
+            totalLabel={`전체 ${num(filtered.length)}곳`}
+          />
+        )}
       </section>
-    </div>
-  );
-}
-
-function MonthStepper({ month, onChange }: { month: string; onChange: (m: string) => void }) {
-  return (
-    <div className="flex items-center gap-1 rounded-xl border border-line bg-surface p-1">
-      <button
-        type="button"
-        aria-label="이전 달"
-        onClick={() => onChange(shiftMonth(month, -1))}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-t3 hover:bg-bg hover:text-t1"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
-      </button>
-      <span className="min-w-[92px] text-center text-sm font-extrabold text-t1">{monthLabel(month)}</span>
-      <button
-        type="button"
-        aria-label="다음 달"
-        onClick={() => onChange(shiftMonth(month, 1))}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-t3 hover:bg-bg hover:text-t1"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
-      </button>
     </div>
   );
 }
@@ -233,7 +257,7 @@ function SummaryCard({ label, value }: { label: string; value: number }) {
 
 function BillingStatusBadge({ status }: { status: PlatformOrgBillingStatus }) {
   const view = {
-    paid: { label: "입금", className: "bg-green-t text-green" },
+    paid: { label: "입금완료", className: "bg-green-t text-green" },
     unpaid: { label: "미입금", className: "bg-red-t text-red" },
     none: { label: "청구 없음", className: "bg-bg text-t3" },
   }[status];

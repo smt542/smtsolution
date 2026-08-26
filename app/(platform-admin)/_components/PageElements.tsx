@@ -49,41 +49,138 @@ export function StatusBadge({ status }: { status: "active" | "suspended" | "tria
   return <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${styles.className}`}>{styles.label}</span>;
 }
 
+function shiftMonth(iso: string, delta: number): string {
+  const [year, month] = iso.split("-").map(Number);
+  const shifted = new Date(year, month - 1 + delta, 1);
+  return `${shifted.getFullYear()}-${String(shifted.getMonth() + 1).padStart(2, "0")}-01`;
+}
+
+function currentMonthIso(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+}
+
+function monthLabel(iso: string): string {
+  const [year, month] = iso.split("-").map(Number);
+  return `${year}년 ${month}월`;
+}
+
+export function BoundedMonthStepper({
+  month,
+  onChange,
+  minYear = 2025,
+}: {
+  month: string;
+  onChange: (month: string) => void;
+  minYear?: number;
+}) {
+  const minMonth = `${minYear}-01-01`;
+  const maxMonth = currentMonthIso();
+  const previousDisabled = month <= minMonth;
+  const nextDisabled = month >= maxMonth;
+
+  return (
+    <div className="flex items-center gap-1 rounded-xl border border-line bg-surface p-1">
+      <button
+        type="button"
+        aria-label="이전 달"
+        onClick={() => onChange(shiftMonth(month, -1))}
+        disabled={previousDisabled}
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-t3 hover:bg-bg hover:text-t1 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-t3"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+      </button>
+      <span className="min-w-[92px] text-center text-sm font-extrabold text-t1">
+        {monthLabel(month)}
+      </span>
+      <button
+        type="button"
+        aria-label="다음 달"
+        onClick={() => onChange(shiftMonth(month, 1))}
+        disabled={nextDisabled}
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-t3 hover:bg-bg hover:text-t1 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-t3"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+      </button>
+    </div>
+  );
+}
+
+type PaginationItem = number | "start-ellipsis" | "end-ellipsis";
+
+function paginationItems(page: number, totalPages: number): PaginationItem[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+  if (page <= 4) return [1, 2, 3, 4, 5, "end-ellipsis", totalPages];
+  if (page >= totalPages - 3) {
+    return [1, "start-ellipsis", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+  }
+  return [1, "start-ellipsis", page - 1, page, page + 1, "end-ellipsis", totalPages];
+}
+
 export function PlatformPagination({
   page,
   pageSize,
   totalCount,
   onPageChange,
+  numeric = false,
+  totalLabel,
 }: {
   page: number;
   pageSize: number;
   totalCount: number;
   onPageChange: (page: number) => void;
+  numeric?: boolean;
+  totalLabel?: string;
 }) {
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
-  if (totalPages <= 1) return null;
+  if (totalPages <= 1 && !totalLabel) return null;
   return (
-    <div className="flex items-center justify-center gap-3 border-t border-line px-4 py-3">
-      <button
-        type="button"
-        onClick={() => onPageChange(page - 1)}
-        disabled={page <= 1}
-        className="rounded-lg border border-line px-3 py-1.5 text-xs font-bold text-t2 disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        이전
-      </button>
-      <span className="text-xs font-semibold text-t3 num">
-        {page.toLocaleString("ko-KR")} / {totalPages.toLocaleString("ko-KR")}
-      </span>
-      <button
-        type="button"
-        onClick={() => onPageChange(page + 1)}
-        disabled={page >= totalPages}
-        className="rounded-lg border border-line px-3 py-1.5 text-xs font-bold text-t2 disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        다음
-      </button>
+    <div className={`flex items-center gap-3 border-t border-line px-4 py-3 ${totalLabel ? "justify-between" : "justify-center"}`}>
+      <div className="flex items-center justify-center gap-1">
+        <button
+          type="button"
+          aria-label="이전 페이지"
+          onClick={() => onPageChange(page - 1)}
+          disabled={page <= 1}
+          className="rounded-lg border border-line px-3 py-1.5 text-xs font-bold text-t2 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          이전
+        </button>
+        {numeric ? paginationItems(page, totalPages).map((item) => (
+          typeof item === "number" ? (
+            <button
+              key={item}
+              type="button"
+              aria-current={item === page ? "page" : undefined}
+              onClick={() => onPageChange(item)}
+              className={`h-8 min-w-8 rounded-lg px-2 text-xs font-bold ${
+                item === page ? "bg-blue text-white" : "text-t3 hover:bg-bg hover:text-t1"
+              }`}
+            >
+              {item.toLocaleString("ko-KR")}
+            </button>
+          ) : (
+            <span key={item} className="px-1 text-xs text-t4" aria-hidden="true">…</span>
+          )
+        )) : (
+          <span className="px-2 text-xs font-semibold text-t3 num">
+            {page.toLocaleString("ko-KR")} / {totalPages.toLocaleString("ko-KR")}
+          </span>
+        )}
+        <button
+          type="button"
+          aria-label="다음 페이지"
+          onClick={() => onPageChange(page + 1)}
+          disabled={page >= totalPages}
+          className="rounded-lg border border-line px-3 py-1.5 text-xs font-bold text-t2 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          다음
+        </button>
+      </div>
+      {totalLabel && <span className="text-xs font-semibold text-t3 num">{totalLabel}</span>}
     </div>
   );
 }

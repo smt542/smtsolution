@@ -33,9 +33,11 @@ describe("PlatformBillingPage", () => {
     expect(screen.getByRole("heading", { name: "청구 관리" })).toBeInTheDocument();
     expect(screen.getByText("한빛관리")).toBeInTheDocument();
     expect(screen.getByText("새봄관리")).toBeInTheDocument();
-    expect(screen.getByText("22,000")).toBeInTheDocument();
-    // 상태별 처리 버튼: 미입금→입금 처리, 입금→입금 취소, 청구 없음→버튼 없음
-    expect(screen.getByRole("button", { name: "입금 처리" })).toBeInTheDocument();
+    expect(screen.getByText("20,000")).toBeInTheDocument();
+    expect(screen.getByText("+22%")).toBeInTheDocument();
+    expect(screen.getByText(/미입금 1곳 · 입금 완료 1곳/)).toBeInTheDocument();
+    // 상태별 처리 버튼: 미입금→입금 확인, 입금완료→입금 취소, 청구 없음→버튼 없음
+    expect(screen.getByRole("button", { name: "입금 확인" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "입금 취소" })).toBeInTheDocument();
   });
 
@@ -50,7 +52,7 @@ describe("PlatformBillingPage", () => {
   it("입금 처리 버튼이 mark-paid를 호출한다", async () => {
     render(<PlatformBillingPage />);
     fireEvent.click(screen.getByRole("button", { name: "미입금" }));
-    fireEvent.click(screen.getByRole("button", { name: "입금 처리" }));
+    fireEvent.click(screen.getByRole("button", { name: "입금 확인" }));
     expect(hooks.mutateAsync).toHaveBeenCalledWith(
       expect.objectContaining({ orgId: 1, paid: true }),
     );

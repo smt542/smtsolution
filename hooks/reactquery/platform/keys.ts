@@ -13,6 +13,7 @@ export const platformKeys = {
         ...platformKeys.all,
         "organizations",
         opts.includeDeleted ?? false,
+        opts.status ?? "all",
         opts.search?.trim() ?? "",
         opts.page ?? 1,
         opts.pageSize ?? 25,

@@ -5,11 +5,13 @@ import PlatformDashboardPage from "./page";
 const hooks = vi.hoisted(() => ({
   usePlatformOverviewMetrics: vi.fn(),
   usePlatformOrgBilling: vi.fn(),
+  usePlatformSettings: vi.fn(),
 }));
 
 vi.mock("@/hooks/reactquery/platform", () => ({
   usePlatformOverviewMetrics: hooks.usePlatformOverviewMetrics,
   usePlatformOrgBilling: hooks.usePlatformOrgBilling,
+  usePlatformSettings: hooks.usePlatformSettings,
 }));
 
 const metrics = {
@@ -25,14 +27,20 @@ const metrics = {
 };
 
 const billingRows = [
-  { orgId: 1, orgName: "한빛관리", orgEmail: "a@x.kr", status: "unpaid", alimtalkCount: 120, smsCount: 30, faxCount: 4, subtotalKrw: 20000, vatKrw: 2000, totalKrw: 22000, prevTotalKrw: 18000 },
-  { orgId: 2, orgName: "새봄관리", orgEmail: null, status: "none", alimtalkCount: 0, smsCount: 0, faxCount: 0, subtotalKrw: 0, vatKrw: 0, totalKrw: 0, prevTotalKrw: 0 },
+  { orgId: 1, orgName: "한빛관리", orgEmail: "a@x.kr", status: "unpaid", alimtalkCount: 120, smsCount: 30, lmsCount: 2, faxCount: 4, faxPageCount: 6, subtotalKrw: 2160, vatKrw: 216, totalKrw: 2376, prevTotalKrw: 1800 },
+  { orgId: 2, orgName: "새봄관리", orgEmail: null, status: "none", alimtalkCount: 0, smsCount: 0, lmsCount: 0, faxCount: 0, faxPageCount: 0, subtotalKrw: 0, vatKrw: 0, totalKrw: 0, prevTotalKrw: 0 },
 ];
 
 beforeEach(() => {
   vi.clearAllMocks();
   hooks.usePlatformOverviewMetrics.mockReturnValue({ data: metrics, isPending: false, isError: false, refetch: vi.fn() });
   hooks.usePlatformOrgBilling.mockReturnValue({ data: billingRows, isPending: false, isError: false, refetch: vi.fn() });
+  hooks.usePlatformSettings.mockReturnValue({
+    data: { rateKrwAlimtalk: 10, rateKrwSms: 20, rateKrwLms: 30, rateKrwFax: 50 },
+    isPending: false,
+    isError: false,
+    refetch: vi.fn(),
+  });
 });
 
 describe("PlatformDashboardPage", () => {
@@ -45,9 +53,13 @@ describe("PlatformDashboardPage", () => {
     expect(screen.getByText("612곳")).toBeInTheDocument();
     expect(screen.getByText("앱 연결 8,860세대 (71%)")).toBeInTheDocument();
     expect(screen.getByText("589,490원")).toBeInTheDocument();
-    // 발송 실적이 있는 테넌트만 표에 노출
+    // 채널별 금액과 발송 0원 업체를 함께 표시
     expect(screen.getByText("한빛관리")).toBeInTheDocument();
-    expect(screen.queryByText("새봄관리")).not.toBeInTheDocument();
+    expect(screen.getByText("새봄관리")).toBeInTheDocument();
+    expect(screen.getByText("1,200")).toBeInTheDocument();
+    expect(screen.getByText("660")).toBeInTheDocument();
+    expect(screen.getByText("300")).toBeInTheDocument();
+    expect(screen.getByText("전체 2곳")).toBeInTheDocument();
   });
 
   it("지표 로딩 중에는 스피너를 표시한다", () => {
