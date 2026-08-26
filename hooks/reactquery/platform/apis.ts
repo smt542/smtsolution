@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { OrgMemberRole, StaffType } from "@/hooks/reactquery/auth";
 
 export type OrganizationStatus = "active" | "suspended" | "trial";
+export type PlatformOrganizationStatusFilter = "operating" | "suspended" | "terminated";
 
 export type PointTxType = "charge" | "usage" | "adjustment";
 
@@ -63,6 +64,7 @@ export interface PlatformAccount {
   userId: string;
   username: string | null;
   fullName: string | null;
+  phone: string | null;
   role: OrgMemberRole;
   staffType: StaffType;
   permissions: string[];
@@ -79,6 +81,7 @@ export interface PaginatedResult<T> {
 
 export interface PlatformOrganizationQuery {
   includeDeleted?: boolean;
+  status?: PlatformOrganizationStatusFilter;
   search?: string;
   page?: number;
   pageSize?: number;
@@ -138,6 +141,11 @@ interface AccountRpcRow {
   total_count: number | string;
 }
 
+interface ProfilePhoneRow {
+  user_id: string;
+  phone: string | null;
+}
+
 interface PointTxRpcRow {
   id: number;
   org_id: number;
@@ -154,6 +162,34 @@ interface PointTxRpcRow {
 
 function positiveInteger(value: number | undefined, fallback: number): number {
   return Number.isInteger(value) && (value ?? 0) > 0 ? value as number : fallback;
+}
+
+function mapPlatformOrganization(row: OrganizationRpcRow): PlatformOrganization {
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    status: row.status,
+    createdAt: row.created_at,
+    accountCount: Number(row.account_count),
+    buildingCount: Number(row.building_count),
+    pointBalance: Number(row.ledger_balance),
+    ledgerBalance: Number(row.ledger_balance),
+    reservedPoints: Number(row.reserved_points),
+    availablePoints: Number(row.available_points),
+    phone: row.phone ?? null,
+    deletedAt: row.deleted_at ?? null,
+  };
+}
+
+function matchesOrganizationStatus(
+  row: PlatformOrganization,
+  status: PlatformOrganizationStatusFilter,
+): boolean {
+  if (status === "terminated") return row.deletedAt !== null;
+  if (row.deletedAt !== null) return false;
+  if (status === "suspended") return row.status === "suspended";
+  return row.status === "active" || row.status === "trial";
 }
 
 /**
@@ -191,32 +227,46 @@ export async function listPlatformOrganizations(
 ): Promise<PaginatedResult<PlatformOrganization>> {
   const page = positiveInteger(opts.page, 1);
   const pageSize = Math.min(positiveInteger(opts.pageSize, 25), 100);
-  const { data, error } = await createClient().rpc("platform_list_organizations", {
-    p_search: opts.search?.trim() || null,
-    p_include_deleted: opts.includeDeleted ?? false,
-    p_limit: pageSize,
-    p_offset: (page - 1) * pageSize,
-  });
+  const client = createClient();
+  const fetchRows = async (limit: number, offset: number): Promise<OrganizationRpcRow[]> => {
+    const { data, error } = await client.rpc("platform_list_organizations", {
+      p_search: opts.search?.trim() || null,
+      p_include_deleted: opts.status ? true : opts.includeDeleted ?? false,
+      p_limit: limit,
+      p_offset: offset,
+    });
+    if (error) throw new Error(error.message);
+    return (data ?? []) as OrganizationRpcRow[];
+  };
 
-  if (error) throw new Error(error.message);
-  const rows = (data ?? []) as OrganizationRpcRow[];
+  if (opts.status) {
+    const allRows: OrganizationRpcRow[] = [];
+    let offset = 0;
+    let totalCount = 0;
+
+    do {
+      const chunk = await fetchRows(100, offset);
+      if (chunk.length === 0) break;
+      allRows.push(...chunk);
+      offset += chunk.length;
+      totalCount = Number(chunk[0].total_count);
+    } while (offset < totalCount);
+
+    const matchingRows = allRows
+      .map(mapPlatformOrganization)
+      .filter((row) => matchesOrganizationStatus(row, opts.status!));
+    return {
+      rows: matchingRows.slice((page - 1) * pageSize, page * pageSize),
+      totalCount: matchingRows.length,
+      page,
+      pageSize,
+    };
+  }
+
+  const rows = await fetchRows(pageSize, (page - 1) * pageSize);
 
   return {
-    rows: rows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      slug: row.slug,
-      status: row.status,
-      createdAt: row.created_at,
-      accountCount: Number(row.account_count),
-      buildingCount: Number(row.building_count),
-      pointBalance: Number(row.ledger_balance),
-      ledgerBalance: Number(row.ledger_balance),
-      reservedPoints: Number(row.reserved_points),
-      availablePoints: Number(row.available_points),
-      phone: row.phone ?? null,
-      deletedAt: row.deleted_at ?? null,
-    })),
+    rows: rows.map(mapPlatformOrganization),
     totalCount: rows.length > 0 ? Number(rows[0].total_count) : 0,
     page,
     pageSize,
@@ -228,7 +278,8 @@ export async function listPlatformAccounts(
 ): Promise<PaginatedResult<PlatformAccount>> {
   const page = positiveInteger(opts.page, 1);
   const pageSize = Math.min(positiveInteger(opts.pageSize, 25), 100);
-  const { data, error } = await createClient().rpc("platform_list_accounts", {
+  const client = createClient();
+  const { data, error } = await client.rpc("platform_list_accounts", {
     p_search: opts.search?.trim() || null,
     p_limit: pageSize,
     p_offset: (page - 1) * pageSize,
@@ -236,6 +287,19 @@ export async function listPlatformAccounts(
 
   if (error) throw new Error(error.message);
   const rows = (data ?? []) as AccountRpcRow[];
+  const userIds = [...new Set(rows.map((row) => row.user_id))];
+  const phoneByUserId = new Map<string, string | null>();
+
+  if (userIds.length > 0) {
+    const { data: profileData, error: profileError } = await client
+      .from("profiles")
+      .select("user_id, phone")
+      .in("user_id", userIds);
+    if (profileError) throw new Error(profileError.message);
+    for (const profile of (profileData ?? []) as ProfilePhoneRow[]) {
+      phoneByUserId.set(profile.user_id, profile.phone);
+    }
+  }
 
   return {
     rows: rows.map((row) => ({
@@ -244,6 +308,7 @@ export async function listPlatformAccounts(
       userId: row.user_id,
       username: row.username,
       fullName: row.full_name,
+      phone: phoneByUserId.get(row.user_id) ?? null,
       role: row.role,
       staffType: row.staff_type,
       permissions: Array.isArray(row.feature_permissions) ? row.feature_permissions : [],

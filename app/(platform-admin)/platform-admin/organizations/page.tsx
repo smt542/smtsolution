@@ -12,6 +12,7 @@ import {
   useSetOrgDeleted,
   type OrganizationStatus,
   type PlatformOrganization,
+  type PlatformOrganizationStatusFilter,
 } from "@/hooks/reactquery/platform";
 import type {
   OrgCreateFormValues,
@@ -34,10 +35,19 @@ const dateFormatter = new Intl.DateTimeFormat("ko-KR", {
   day: "2-digit",
 });
 const PAGE_SIZE = 25;
+const STATUS_FILTERS: Array<{
+  id: "all" | PlatformOrganizationStatusFilter;
+  label: string;
+}> = [
+  { id: "all", label: "전체" },
+  { id: "operating", label: "운영" },
+  { id: "suspended", label: "정지" },
+  { id: "terminated", label: "해지" },
+];
 
 export default function PlatformOrganizationsPage() {
   const [search, setSearch] = useState("");
-  const [showDeleted, setShowDeleted] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<"all" | PlatformOrganizationStatusFilter>("all");
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<PlatformOrganization | null>(null);
@@ -45,7 +55,8 @@ export default function PlatformOrganizationsPage() {
 
   const deferredSearch = useDeferredValue(search.trim());
   const { data, isPending, isError, refetch } = usePlatformOrganizations({
-    includeDeleted: showDeleted,
+    includeDeleted: true,
+    status: statusFilter === "all" ? undefined : statusFilter,
     search: deferredSearch,
     page,
     pageSize: PAGE_SIZE,
@@ -127,18 +138,29 @@ export default function PlatformOrganizationsPage() {
             <p className="mt-1 text-xs text-t3">총 {(data?.totalCount ?? 0).toLocaleString("ko-KR")}개</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <label className="flex items-center gap-1.5 text-xs font-semibold text-t3">
-              <input
-                type="checkbox"
-                checked={showDeleted}
-                onChange={(e) => {
-                  setShowDeleted(e.target.checked);
-                  setPage(1);
-                }}
-                className="h-3.5 w-3.5"
-              />
-              해지 포함
-            </label>
+            <div
+              className="flex flex-wrap items-center gap-1 rounded-xl bg-bg p-1"
+              aria-label="조직 상태 필터"
+            >
+              {STATUS_FILTERS.map((filter) => (
+                <button
+                  key={filter.id}
+                  type="button"
+                  aria-pressed={statusFilter === filter.id}
+                  onClick={() => {
+                    setStatusFilter(filter.id);
+                    setPage(1);
+                  }}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-bold ${
+                    statusFilter === filter.id
+                      ? "bg-blue text-white"
+                      : "text-t3 hover:bg-surface hover:text-t1"
+                  }`}
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
             <div className="w-full sm:w-64">
               <SearchBar
                 value={search}
@@ -146,7 +168,7 @@ export default function PlatformOrganizationsPage() {
                   setSearch(value);
                   setPage(1);
                 }}
-                placeholder="조직명·회사코드 검색"
+                placeholder="업체명 검색"
               />
             </div>
             <button
@@ -168,7 +190,13 @@ export default function PlatformOrganizationsPage() {
             <QueryError onRetry={() => void refetch()} />
           </div>
         ) : organizations.length === 0 ? (
-          <EmptyState message={search ? "검색 결과가 없습니다" : "조회 가능한 조직이 없습니다"} />
+          <EmptyState
+            message={
+              search || statusFilter !== "all"
+                ? "해당 조건의 조직이 없습니다"
+                : "조회 가능한 조직이 없습니다"
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[860px] text-sm">
