@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
   getPlatformOverview,
+  getPlatformOrganizationContractKpis,
   listPlatformAccounts,
   listPlatformOrganizations,
   listPointTransactions,
@@ -28,6 +29,13 @@ export function usePlatformOrganizations(opts: PlatformOrganizationQuery = {}) {
   return useQuery({
     queryKey: platformKeys.organizations(opts),
     queryFn: () => listPlatformOrganizations(opts),
+  });
+}
+
+export function usePlatformOrganizationContractKpis() {
+  return useQuery({
+    queryKey: platformKeys.organizationContractKpis(),
+    queryFn: getPlatformOrganizationContractKpis,
   });
 }
 

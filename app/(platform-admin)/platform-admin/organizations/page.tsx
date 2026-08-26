@@ -6,18 +6,17 @@ import { Button, EmptyState, Modal, SearchBar, Spinner } from "@/components/comm
 import { toast } from "sonner";
 import {
   usePlatformOrganizations,
+  usePlatformOrganizationContractKpis,
   useUpdateOrganizationStatus,
   useCreatePlatformOrganization,
   useUpdatePlatformOrganization,
   useSetOrgDeleted,
+  uploadOrganizationContractFile,
+  removeOrganizationContractFile,
   type OrganizationStatus,
   type PlatformOrganization,
   type PlatformOrganizationStatusFilter,
 } from "@/hooks/reactquery/platform";
-import type {
-  OrgCreateFormValues,
-  OrgEditFormValues,
-} from "@/components/forms/schema/platformOrganization";
 import {
   DataScopeNotice,
   PageHeader,
@@ -26,7 +25,11 @@ import {
   StatusBadge,
 } from "../../_components/PageElements";
 import { OrgStatusControl } from "./components/OrgStatusControl";
-import { OrgFormModal } from "./components/OrgFormModal";
+import {
+  OrgFormModal,
+  type OrgCreateSubmitValues,
+  type OrgEditSubmitValues,
+} from "./components/OrgFormModal";
 import { OrgRowActions } from "./components/OrgRowActions";
 
 const dateFormatter = new Intl.DateTimeFormat("ko-KR", {
@@ -62,6 +65,7 @@ export default function PlatformOrganizationsPage() {
     pageSize: PAGE_SIZE,
   });
   const organizations = data?.rows ?? [];
+  const contractKpis = usePlatformOrganizationContractKpis();
   const updateStatus = useUpdateOrganizationStatus();
   const createOrg = useCreatePlatformOrganization();
   const updateOrg = useUpdatePlatformOrganization();
@@ -76,12 +80,26 @@ export default function PlatformOrganizationsPage() {
     }
   };
 
-  const handleCreate = async (v: OrgCreateFormValues) => {
+  const handleCreate = async (v: OrgCreateSubmitValues) => {
+    let uploadedPath: string | null = null;
     try {
+      if (v.contractFile) {
+        uploadedPath = await uploadOrganizationContractFile(v.contractFile);
+      }
       const result = await createOrg.mutateAsync({
         name: v.name,
         slug: v.slug,
-        phone: v.phone || null,
+        phone: v.phone,
+        contractStartDate: v.contractStartDate,
+        contractEndDate: v.contractEndDate,
+        representativeName: v.representativeName,
+        businessRegistrationNumber: v.businessRegistrationNumber,
+        fax: v.fax,
+        email: v.email,
+        address: v.address,
+        region: v.region,
+        operatingHours: v.operatingHours || null,
+        contractFilePath: uploadedPath,
         owner: {
           username: v.ownerUsername,
           fullName: v.ownerFullName,
@@ -92,20 +110,52 @@ export default function PlatformOrganizationsPage() {
       setPwNotice(result.owner);
       toast.success("관리회사를 입점했습니다.");
     } catch (e) {
+      if (uploadedPath) {
+        await removeOrganizationContractFile(uploadedPath).catch(() => undefined);
+      }
       toast.error(e instanceof Error ? e.message : "입점에 실패했습니다.");
     }
   };
 
-  const handleEdit = async (v: OrgEditFormValues) => {
+  const handleEdit = async (v: OrgEditSubmitValues) => {
     if (!editTarget) return;
+    let uploadedPath: string | null = null;
+    const previousPath = editTarget.contractFilePath;
     try {
+      if (v.contractFile) {
+        uploadedPath = await uploadOrganizationContractFile(v.contractFile, editTarget.id);
+      }
+      const contractFilePath = uploadedPath
+        ?? (v.removeContractFile ? null : previousPath);
       await updateOrg.mutateAsync({
         id: editTarget.id,
-        input: { name: v.name, slug: v.slug, phone: v.phone || null },
+        input: {
+          name: v.name,
+          slug: v.slug,
+          phone: v.phone,
+          contractStartDate: v.contractStartDate,
+          contractEndDate: v.contractEndDate,
+          representativeName: v.representativeName,
+          businessRegistrationNumber: v.businessRegistrationNumber,
+          fax: v.fax,
+          email: v.email,
+          address: v.address,
+          region: v.region,
+          operatingHours: v.operatingHours || null,
+          contractFilePath,
+        },
       });
+      if (previousPath && previousPath !== contractFilePath) {
+        await removeOrganizationContractFile(previousPath).catch(() => {
+          toast.warning("이전 계약서 파일 정리가 필요합니다.");
+        });
+      }
       setEditTarget(null);
-      toast.success("조직 정보를 수정했습니다.");
+      toast.success("조직 계약 정보를 수정했습니다.");
     } catch (e) {
+      if (uploadedPath) {
+        await removeOrganizationContractFile(uploadedPath).catch(() => undefined);
+      }
       toast.error(e instanceof Error ? e.message : "수정에 실패했습니다.");
     }
   };
@@ -130,6 +180,40 @@ export default function PlatformOrganizationsPage() {
       <div className="mt-5">
         <DataScopeNotice />
       </div>
+
+      <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="계약 현황">
+        {[
+          {
+            label: "운영 중",
+            value: contractKpis.data?.operatingCount,
+            detail: `전체 ${(contractKpis.data?.operatingCount ?? 0).toLocaleString("ko-KR")}곳`,
+          },
+          {
+            label: "90일 내 만료",
+            value: contractKpis.data?.expiringWithin90DaysCount,
+            detail: "연장 확인 필요",
+          },
+          {
+            label: "정지",
+            value: contractKpis.data?.suspendedCount,
+            detail: "계약 확인 필요",
+          },
+          {
+            label: "해지",
+            value: contractKpis.data?.terminatedLast12MonthsCount,
+            detail: "최근 12개월",
+          },
+        ].map((kpi) => (
+          <div key={kpi.label} className="rounded-2xl border border-line bg-surface p-5 shadow-card">
+            <div className="text-xs font-bold text-t3">{kpi.label}</div>
+            <div className="mt-2 text-3xl font-extrabold text-blue num">
+              {contractKpis.isPending ? "—" : (kpi.value ?? 0).toLocaleString("ko-KR")}
+              <span className="ml-1 text-sm text-t3">곳</span>
+            </div>
+            <div className="mt-2 text-xs font-semibold text-t3">{kpi.detail}</div>
+          </div>
+        ))}
+      </section>
 
       <section className="mt-6 rounded-2xl border border-line bg-surface shadow-card">
         <div className="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -168,7 +252,7 @@ export default function PlatformOrganizationsPage() {
                   setSearch(value);
                   setPage(1);
                 }}
-                placeholder="업체명 검색"
+                placeholder="업체명 · 지역 검색"
               />
             </div>
             <button
@@ -199,12 +283,18 @@ export default function PlatformOrganizationsPage() {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] text-sm">
+            <table className="w-full min-w-[1540px] text-sm">
               <thead>
                 <tr className="border-b border-line bg-bg/70 text-left text-xs font-bold text-t3">
                   <th className="px-5 py-3">조직</th>
+                  <th className="px-4 py-3">지역</th>
                   <th className="px-4 py-3">상태</th>
                   <th className="px-4 py-3 text-right">건물</th>
+                  <th className="px-4 py-3 text-right">세대</th>
+                  <th className="px-4 py-3 text-right">직원</th>
+                  <th className="px-4 py-3 text-right">세입자</th>
+                  <th className="px-4 py-3">계약 시작</th>
+                  <th className="px-4 py-3">계약 만료</th>
                   <th className="px-4 py-3 text-right">계정</th>
                   <th className="px-4 py-3 text-right">포인트 잔액</th>
                   <th className="px-5 py-3">등록일</th>
@@ -230,6 +320,7 @@ export default function PlatformOrganizationsPage() {
                         {organization.slug ?? "회사코드 미설정"}
                       </div>
                     </td>
+                    <td className="px-4 py-4 text-t2">{organization.region ?? "—"}</td>
                     <td className="px-4 py-4">
                       {organization.deletedAt ? (
                         <span className="inline-flex rounded-full bg-bg px-2.5 py-1 text-xs font-bold text-t3">
@@ -248,6 +339,21 @@ export default function PlatformOrganizationsPage() {
                     </td>
                     <td className="px-4 py-4 text-right font-bold text-t1 num">
                       {organization.buildingCount.toLocaleString("ko-KR")}
+                    </td>
+                    <td className="px-4 py-4 text-right font-bold text-t1 num">
+                      {organization.unitCount.toLocaleString("ko-KR")}
+                    </td>
+                    <td className="px-4 py-4 text-right font-bold text-t1 num">
+                      {organization.employeeCount.toLocaleString("ko-KR")}
+                    </td>
+                    <td className="px-4 py-4 text-right font-bold text-t1 num">
+                      {organization.tenantCount.toLocaleString("ko-KR")}
+                    </td>
+                    <td className="px-4 py-4 text-t2 num">
+                      {organization.contractStartDate ?? "—"}
+                    </td>
+                    <td className="px-4 py-4 text-t2 num">
+                      {organization.contractEndDate ?? "—"}
                     </td>
                     <td className="px-4 py-4 text-right font-bold text-t1 num">
                       {organization.accountCount.toLocaleString("ko-KR")}
@@ -282,13 +388,15 @@ export default function PlatformOrganizationsPage() {
         />
       </section>
 
-      <OrgFormModal
-        mode="create"
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        onSubmit={handleCreate}
-        isPending={createOrg.isPending}
-      />
+      {createOpen && (
+        <OrgFormModal
+          mode="create"
+          open
+          onClose={() => setCreateOpen(false)}
+          onSubmit={handleCreate}
+          isPending={createOrg.isPending}
+        />
+      )}
 
       {editTarget && (
         <OrgFormModal
@@ -299,7 +407,17 @@ export default function PlatformOrganizationsPage() {
             name: editTarget.name,
             slug: editTarget.slug ?? "",
             phone: editTarget.phone ?? "",
+            contractStartDate: editTarget.contractStartDate ?? "",
+            contractEndDate: editTarget.contractEndDate ?? "",
+            representativeName: editTarget.representativeName ?? "",
+            businessRegistrationNumber: editTarget.businessRegistrationNumber ?? "",
+            fax: editTarget.fax ?? "",
+            email: editTarget.email ?? "",
+            address: editTarget.address ?? "",
+            region: editTarget.region ?? "",
+            operatingHours: editTarget.operatingHours ?? "",
           }}
+          defaultContractFilePath={editTarget.contractFilePath}
           onSubmit={handleEdit}
           isPending={updateOrg.isPending}
         />

@@ -56,6 +56,26 @@ export interface PlatformOrganization {
   availablePoints: number;
   phone: string | null;
   deletedAt: string | null;
+  contractStartDate: string | null;
+  contractEndDate: string | null;
+  representativeName: string | null;
+  businessRegistrationNumber: string | null;
+  fax: string | null;
+  email: string | null;
+  address: string | null;
+  region: string | null;
+  operatingHours: string | null;
+  contractFilePath: string | null;
+  unitCount: number;
+  employeeCount: number;
+  tenantCount: number;
+}
+
+export interface PlatformOrganizationContractKpis {
+  operatingCount: number;
+  expiringWithin90DaysCount: number;
+  suspendedCount: number;
+  terminatedLast12MonthsCount: number;
 }
 
 export interface PlatformAccount {
@@ -119,8 +139,21 @@ interface OrganizationRpcRow {
   created_at: string;
   phone: string | null;
   deleted_at: string | null;
+  contract_start_date?: string | null;
+  contract_end_date?: string | null;
+  representative_name?: string | null;
+  business_registration_number?: string | null;
+  fax?: string | null;
+  email?: string | null;
+  address?: string | null;
+  region?: string | null;
+  operating_hours?: string | null;
+  contract_file_path?: string | null;
   account_count: number | string;
   building_count: number | string;
+  unit_count?: number | string;
+  employee_count?: number | string;
+  tenant_count?: number | string;
   ledger_balance: number | string;
   reserved_points: number | string;
   available_points: number | string;
@@ -139,6 +172,13 @@ interface AccountRpcRow {
   is_active: boolean | null;
   created_at: string;
   total_count: number | string;
+}
+
+interface OrganizationContractKpiRpcRow {
+  operating_count: number | string;
+  expiring_within_90_days_count: number | string;
+  suspended_count: number | string;
+  terminated_last_12_months_count: number | string;
 }
 
 interface ProfilePhoneRow {
@@ -179,17 +219,20 @@ function mapPlatformOrganization(row: OrganizationRpcRow): PlatformOrganization 
     availablePoints: Number(row.available_points),
     phone: row.phone ?? null,
     deletedAt: row.deleted_at ?? null,
+    contractStartDate: row.contract_start_date ?? null,
+    contractEndDate: row.contract_end_date ?? null,
+    representativeName: row.representative_name ?? null,
+    businessRegistrationNumber: row.business_registration_number ?? null,
+    fax: row.fax ?? null,
+    email: row.email ?? null,
+    address: row.address ?? null,
+    region: row.region ?? null,
+    operatingHours: row.operating_hours ?? null,
+    contractFilePath: row.contract_file_path ?? null,
+    unitCount: Number(row.unit_count ?? 0),
+    employeeCount: Number(row.employee_count ?? 0),
+    tenantCount: Number(row.tenant_count ?? 0),
   };
-}
-
-function matchesOrganizationStatus(
-  row: PlatformOrganization,
-  status: PlatformOrganizationStatusFilter,
-): boolean {
-  if (status === "terminated") return row.deletedAt !== null;
-  if (row.deletedAt !== null) return false;
-  if (status === "suspended") return row.status === "suspended";
-  return row.status === "active" || row.status === "trial";
 }
 
 /**
@@ -228,48 +271,34 @@ export async function listPlatformOrganizations(
   const page = positiveInteger(opts.page, 1);
   const pageSize = Math.min(positiveInteger(opts.pageSize, 25), 100);
   const client = createClient();
-  const fetchRows = async (limit: number, offset: number): Promise<OrganizationRpcRow[]> => {
-    const { data, error } = await client.rpc("platform_list_organizations", {
-      p_search: opts.search?.trim() || null,
-      p_include_deleted: opts.status ? true : opts.includeDeleted ?? false,
-      p_limit: limit,
-      p_offset: offset,
-    });
-    if (error) throw new Error(error.message);
-    return (data ?? []) as OrganizationRpcRow[];
-  };
-
-  if (opts.status) {
-    const allRows: OrganizationRpcRow[] = [];
-    let offset = 0;
-    let totalCount = 0;
-
-    do {
-      const chunk = await fetchRows(100, offset);
-      if (chunk.length === 0) break;
-      allRows.push(...chunk);
-      offset += chunk.length;
-      totalCount = Number(chunk[0].total_count);
-    } while (offset < totalCount);
-
-    const matchingRows = allRows
-      .map(mapPlatformOrganization)
-      .filter((row) => matchesOrganizationStatus(row, opts.status!));
-    return {
-      rows: matchingRows.slice((page - 1) * pageSize, page * pageSize),
-      totalCount: matchingRows.length,
-      page,
-      pageSize,
-    };
-  }
-
-  const rows = await fetchRows(pageSize, (page - 1) * pageSize);
+  const { data, error } = await client.rpc("platform_list_organizations", {
+    p_search: opts.search?.trim() || null,
+    p_include_deleted: opts.status ? true : opts.includeDeleted ?? false,
+    p_status: opts.status ?? null,
+    p_limit: pageSize,
+    p_offset: (page - 1) * pageSize,
+  });
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []) as OrganizationRpcRow[];
 
   return {
     rows: rows.map(mapPlatformOrganization),
     totalCount: rows.length > 0 ? Number(rows[0].total_count) : 0,
     page,
     pageSize,
+  };
+}
+
+export async function getPlatformOrganizationContractKpis(): Promise<PlatformOrganizationContractKpis> {
+  const { data, error } = await createClient().rpc("platform_get_organization_contract_kpis");
+  if (error) throw new Error(error.message);
+  const row = ((data ?? []) as OrganizationContractKpiRpcRow[])[0];
+
+  return {
+    operatingCount: Number(row?.operating_count ?? 0),
+    expiringWithin90DaysCount: Number(row?.expiring_within_90_days_count ?? 0),
+    suspendedCount: Number(row?.suspended_count ?? 0),
+    terminatedLast12MonthsCount: Number(row?.terminated_last_12_months_count ?? 0),
   };
 }
 
@@ -426,7 +455,19 @@ export async function updateOrganizationStatus(
 }
 
 export interface CreateOrgInput {
-  name: string; slug: string; phone?: string | null;
+  name: string;
+  slug: string;
+  phone: string;
+  contractStartDate: string;
+  contractEndDate: string;
+  representativeName: string;
+  businessRegistrationNumber: string;
+  fax: string;
+  email: string;
+  address: string;
+  region: string;
+  operatingHours?: string | null;
+  contractFilePath?: string | null;
   owner: { username: string; fullName: string; phone?: string | null };
 }
 
@@ -446,13 +487,64 @@ export async function createPlatformOrganization(input: CreateOrgInput): Promise
   return json as CreateOrgResult;
 }
 
-export interface UpdateOrgInput { name: string; slug: string; phone?: string | null }
+export type UpdateOrgInput = Omit<CreateOrgInput, "owner">;
 
 export async function updatePlatformOrganization(id: number, input: UpdateOrgInput): Promise<void> {
-  const { error } = await createClient()
-    .from("organizations")
-    .update({ name: input.name, slug: input.slug || null, phone: input.phone || null })
-    .eq("id", id);
+  const { error } = await createClient().rpc("platform_update_organization_contract", {
+    p_org_id: id,
+    p_name: input.name,
+    p_slug: input.slug,
+    p_phone: input.phone || null,
+    p_contract_start_date: input.contractStartDate,
+    p_contract_end_date: input.contractEndDate,
+    p_representative_name: input.representativeName,
+    p_business_registration_number: input.businessRegistrationNumber,
+    p_fax: input.fax,
+    p_email: input.email,
+    p_address: input.address,
+    p_region: input.region,
+    p_operating_hours: input.operatingHours || null,
+    p_contract_file_path: input.contractFilePath || null,
+  });
+  if (error) throw new Error(error.message);
+}
+
+const ORGANIZATION_CONTRACT_BUCKET = "org-contracts";
+const ORGANIZATION_CONTRACT_MAX_BYTES = 10 * 1024 * 1024;
+const ORGANIZATION_CONTRACT_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+export async function uploadOrganizationContractFile(
+  file: File,
+  organizationId?: number,
+): Promise<string> {
+  if (!ORGANIZATION_CONTRACT_MIME_TYPES.has(file.type)) {
+    throw new Error("계약서는 JPG, PNG, WEBP 이미지만 업로드할 수 있습니다.");
+  }
+  if (file.size > ORGANIZATION_CONTRACT_MAX_BYTES) {
+    throw new Error("계약서 이미지는 10MB 이하여야 합니다.");
+  }
+
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+  const path = `${organizationId ?? "pending"}/${crypto.randomUUID()}-${safeName}`;
+  const { error } = await createClient().storage
+    .from(ORGANIZATION_CONTRACT_BUCKET)
+    .upload(path, file, { contentType: file.type, upsert: false });
+  if (error) throw new Error(error.message);
+  return path;
+}
+
+export async function getOrganizationContractFilePreview(path: string): Promise<string> {
+  const { data, error } = await createClient().storage
+    .from(ORGANIZATION_CONTRACT_BUCKET)
+    .createSignedUrl(path, 10 * 60);
+  if (error) throw new Error(error.message);
+  return data.signedUrl;
+}
+
+export async function removeOrganizationContractFile(path: string): Promise<void> {
+  const { error } = await createClient().storage
+    .from(ORGANIZATION_CONTRACT_BUCKET)
+    .remove([path]);
   if (error) throw new Error(error.message);
 }
 

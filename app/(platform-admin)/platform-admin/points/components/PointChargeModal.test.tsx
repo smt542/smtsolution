@@ -3,7 +3,15 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { PointChargeModal } from "./PointChargeModal";
 
 const orgs = [
-  { id: 1, name: "한빛관리", status: "active" as const, pointBalance: 0, ledgerBalance: 0, reservedPoints: 0, availablePoints: 0, slug: null, createdAt: "", accountCount: 0, buildingCount: 0, phone: null, deletedAt: null },
+  {
+    id: 1, name: "한빛관리", status: "active" as const, pointBalance: 0,
+    ledgerBalance: 0, reservedPoints: 0, availablePoints: 0, slug: null,
+    createdAt: "", accountCount: 0, buildingCount: 0, phone: null, deletedAt: null,
+    contractStartDate: null, contractEndDate: null, representativeName: null,
+    businessRegistrationNumber: null, fax: null, email: null, address: null,
+    region: null, operatingHours: null, contractFilePath: null,
+    unitCount: 0, employeeCount: 0, tenantCount: 0,
+  },
 ];
 
 it("포인트가 0 이하이면 제출을 막고 오류를 표시한다", async () => {

@@ -1,6 +1,14 @@
 "use client";
+
 import React from "react";
-import { useForm } from "react-hook-form";
+import {
+  useForm,
+  type FieldError,
+  type FieldErrors,
+  type FieldValues,
+  type Path,
+  type UseFormRegister,
+} from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Modal, Input, Button } from "@/components/common";
@@ -10,20 +18,32 @@ import {
   type OrgCreateFormValues,
   type OrgEditFormValues,
 } from "@/components/forms/schema/platformOrganization";
+import { getOrganizationContractFilePreview } from "@/hooks/reactquery/platform";
+
+export type OrgCreateSubmitValues = OrgCreateFormValues & {
+  contractFile: File | null;
+};
+
+export type OrgEditSubmitValues = OrgEditFormValues & {
+  contractFile: File | null;
+  removeContractFile: boolean;
+};
 
 type CreateProps = {
   mode: "create";
   open: boolean;
   onClose: () => void;
-  onSubmit: (values: OrgCreateFormValues) => Promise<void>;
+  onSubmit: (values: OrgCreateSubmitValues) => Promise<void>;
   isPending: boolean;
 };
+
 type EditProps = {
   mode: "edit";
   open: boolean;
   onClose: () => void;
   defaultValues: OrgEditFormValues;
-  onSubmit: (values: OrgEditFormValues) => Promise<void>;
+  defaultContractFilePath: string | null;
+  onSubmit: (values: OrgEditSubmitValues) => Promise<void>;
   isPending: boolean;
 };
 
@@ -36,15 +56,17 @@ function Field({
   label,
   htmlFor,
   error,
+  className = "",
   children,
 }: {
   label: string;
   htmlFor: string;
   error?: string;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div>
+    <div className={className}>
       <label htmlFor={htmlFor} className="mb-1 block text-xs font-semibold text-t3">
         {label}
       </label>
@@ -54,67 +76,263 @@ function Field({
   );
 }
 
+type EditInput = z.input<typeof orgEditSchema>;
+type CommonFieldName = keyof EditInput;
+
+const ORGANIZATION_FIELDS: Array<{
+  name: CommonFieldName;
+  label: string;
+  type?: React.HTMLInputTypeAttribute;
+  placeholder?: string;
+  full?: boolean;
+}> = [
+  { name: "contractStartDate", label: "계약 시작일 *", type: "date" },
+  { name: "contractEndDate", label: "계약 만료일 *", type: "date" },
+  { name: "name", label: "상호 *", placeholder: "예: 한빛관리", full: true },
+  { name: "slug", label: "회사코드 *", placeholder: "영문 소문자·숫자·하이픈" },
+  { name: "region", label: "지역 *", placeholder: "예: 대전 유성구" },
+  { name: "representativeName", label: "대표자 *", placeholder: "예: 홍길동" },
+  {
+    name: "businessRegistrationNumber",
+    label: "사업자등록번호 *",
+    placeholder: "000-00-00000",
+  },
+  { name: "phone", label: "대표 전화 *", type: "tel", placeholder: "02-1234-5678" },
+  { name: "fax", label: "팩스 번호 *", type: "tel", placeholder: "02-1234-5679" },
+  {
+    name: "email",
+    label: "이메일 *",
+    type: "email",
+    placeholder: "admin@company.co.kr",
+    full: true,
+  },
+  {
+    name: "address",
+    label: "주소 *",
+    placeholder: "도로명 주소와 상세 주소",
+    full: true,
+  },
+  {
+    name: "operatingHours",
+    label: "운영 시간",
+    placeholder: "평일 09:00 ~ 18:00",
+    full: true,
+  },
+];
+
+function OrganizationFields<T extends FieldValues & EditInput>({
+  idPrefix,
+  register,
+  errors,
+}: {
+  idPrefix: string;
+  register: UseFormRegister<T>;
+  errors: FieldErrors<T>;
+}) {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      {ORGANIZATION_FIELDS.map((field) => {
+        const id = `${idPrefix}-${field.name}`;
+        const error = errors[field.name] as FieldError | undefined;
+        return (
+          <Field
+            key={field.name}
+            label={field.label}
+            htmlFor={id}
+            error={error?.message}
+            className={field.full ? "sm:col-span-2" : ""}
+          >
+            <Input
+              id={id}
+              type={field.type}
+              placeholder={field.placeholder}
+              {...register(field.name as Path<T>)}
+            />
+          </Field>
+        );
+      })}
+    </div>
+  );
+}
+
+function ContractFileField({
+  id,
+  selectedFile,
+  currentPath,
+  removeExisting,
+  onSelect,
+  onRemove,
+}: {
+  id: string;
+  selectedFile: File | null;
+  currentPath: string | null;
+  removeExisting: boolean;
+  onSelect: (file: File) => void;
+  onRemove: () => void;
+}) {
+  const [localPreview, setLocalPreview] = React.useState<{
+    file: File;
+    url: string;
+  } | null>(null);
+  const [remotePreview, setRemotePreview] = React.useState<{
+    path: string;
+    url: string | null;
+    error: boolean;
+  } | null>(null);
+
+  React.useEffect(() => {
+    if (!selectedFile) return;
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      if (typeof reader.result === "string") {
+        setLocalPreview({ file: selectedFile, url: reader.result });
+      }
+    });
+    reader.readAsDataURL(selectedFile);
+    return () => reader.abort();
+  }, [selectedFile]);
+
+  React.useEffect(() => {
+    if (!currentPath || selectedFile || removeExisting) return;
+    let disposed = false;
+    void getOrganizationContractFilePreview(currentPath)
+      .then((url) => {
+        if (!disposed) setRemotePreview({ path: currentPath, url, error: false });
+      })
+      .catch(() => {
+        if (!disposed) setRemotePreview({ path: currentPath, url: null, error: true });
+      });
+    return () => {
+      disposed = true;
+    };
+  }, [currentPath, removeExisting, selectedFile]);
+
+  const previewUrl = selectedFile
+    ? (localPreview?.file === selectedFile ? localPreview.url : null)
+    : (!removeExisting && remotePreview?.path === currentPath ? remotePreview.url : null);
+  const previewError = !selectedFile
+    && !removeExisting
+    && remotePreview?.path === currentPath
+    && remotePreview.error;
+
+  const fileName = selectedFile?.name ?? currentPath?.split("/").at(-1);
+
+  return (
+    <div>
+      <div className="mb-1 text-xs font-semibold text-t3">계약서 사진</div>
+      <label
+        htmlFor={id}
+        className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-line bg-bg/50 px-4 py-5 text-center hover:border-blue/50 hover:bg-blue-t2"
+      >
+        <span className="text-sm font-bold text-blue">사진 선택</span>
+        <span className="mt-1 text-xs text-t3">JPG · PNG · WEBP, 최대 10MB</span>
+      </label>
+      <input
+        id={id}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="sr-only"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) onSelect(file);
+          event.target.value = "";
+        }}
+      />
+
+      {(previewUrl || previewError) && (
+        <div className="mt-3 rounded-xl border border-line bg-bg/40 p-3">
+          {previewUrl ? (
+            // Signed Storage URLs and local blob URLs are intentionally rendered without optimization.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={previewUrl}
+              alt="계약서 미리보기"
+              className="max-h-52 w-full rounded-lg object-contain"
+            />
+          ) : (
+            <p className="py-6 text-center text-xs text-danger">미리보기를 불러오지 못했습니다.</p>
+          )}
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <span className="truncate text-xs text-t3">{fileName}</span>
+            <button type="button" onClick={onRemove} className="text-xs font-bold text-danger">
+              제거
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 type CreateInput = z.input<typeof orgCreateSchema>;
 const CREATE_DEFAULTS: CreateInput = {
   name: "",
   slug: "",
   phone: "",
+  contractStartDate: "",
+  contractEndDate: "",
+  representativeName: "",
+  businessRegistrationNumber: "",
+  fax: "",
+  email: "",
+  address: "",
+  region: "",
+  operatingHours: "",
   ownerUsername: "",
   ownerFullName: "",
   ownerPhone: "",
 };
 
 function CreateModal({ open, onClose, onSubmit, isPending }: Omit<CreateProps, "mode">) {
+  const [contractFile, setContractFile] = React.useState<File | null>(null);
   const {
     register,
     handleSubmit,
-    reset,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<CreateInput, unknown, OrgCreateFormValues>({
     resolver: zodResolver(orgCreateSchema),
     defaultValues: CREATE_DEFAULTS,
   });
 
-  React.useEffect(() => {
-    if (open) reset(CREATE_DEFAULTS);
-  }, [open, reset]);
-
-  const onValid = async (values: OrgCreateFormValues) => {
-    await onSubmit(values);
-  };
-
   return (
-    <Modal open={open} onClose={onClose} title="관리회사 입점">
-      <form onSubmit={handleSubmit(onValid)} className="flex flex-col gap-4">
-        <Field label="회사명" htmlFor="org-name" error={errors.name?.message}>
-          <Input id="org-name" aria-label="회사명" {...register("name")} placeholder="예: 한빛관리" />
-        </Field>
-        <Field label="회사코드(영문 소문자·숫자·하이픈)" htmlFor="org-slug" error={errors.slug?.message}>
-          <Input id="org-slug" aria-label="회사코드" {...register("slug")} placeholder="예: hanbit" />
-        </Field>
-        <Field label="대표 연락처(선택)" htmlFor="org-phone" error={errors.phone?.message}>
-          <Input id="org-phone" aria-label="대표 연락처" {...register("phone")} placeholder="예: 02-1234-5678" />
-        </Field>
+    <Modal open={open} onClose={onClose} title="관리회사 입점" className="max-h-[90vh] max-w-3xl overflow-y-auto">
+      <form
+        onSubmit={handleSubmit((values) => onSubmit({ ...values, contractFile }))}
+        className="flex flex-col gap-5"
+      >
+        <OrganizationFields idPrefix="create-org" register={register} errors={errors} />
+        <ContractFileField
+          id="create-org-contract-file"
+          selectedFile={contractFile}
+          currentPath={null}
+          removeExisting={false}
+          onSelect={setContractFile}
+          onRemove={() => setContractFile(null)}
+        />
 
         <hr className="border-line" />
         <p className="text-xs font-bold text-t2">첫 관리자(owner) 계정</p>
-
-        <Field label="관리자 아이디" htmlFor="owner-username" error={errors.ownerUsername?.message}>
-          <Input id="owner-username" aria-label="관리자 아이디" {...register("ownerUsername")} placeholder="예: admin" />
-        </Field>
-        <Field label="관리자 이름" htmlFor="owner-name" error={errors.ownerFullName?.message}>
-          <Input id="owner-name" aria-label="관리자 이름" {...register("ownerFullName")} placeholder="예: 홍길동" />
-        </Field>
-        <Field label="관리자 연락처(선택)" htmlFor="owner-phone" error={errors.ownerPhone?.message}>
-          <Input id="owner-phone" aria-label="관리자 연락처" {...register("ownerPhone")} placeholder="예: 010-1234-5678" />
-        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="관리자 아이디 *" htmlFor="owner-username" error={errors.ownerUsername?.message}>
+            <Input id="owner-username" {...register("ownerUsername")} placeholder="예: admin" />
+          </Field>
+          <Field label="관리자 이름 *" htmlFor="owner-name" error={errors.ownerFullName?.message}>
+            <Input id="owner-name" {...register("ownerFullName")} placeholder="예: 홍길동" />
+          </Field>
+          <Field
+            label="관리자 연락처"
+            htmlFor="owner-phone"
+            error={errors.ownerPhone?.message}
+            className="sm:col-span-2"
+          >
+            <Input id="owner-phone" type="tel" {...register("ownerPhone")} placeholder="010-1234-5678" />
+          </Field>
+        </div>
 
         <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="ghost" onClick={onClose}>
-            취소
-          </Button>
-          <Button type="submit" variant="primary" disabled={isPending}>
-            {isPending ? "등록 중…" : "입점 등록"}
+          <Button type="button" variant="ghost" onClick={onClose}>취소</Button>
+          <Button type="submit" variant="primary" disabled={isPending || isSubmitting}>
+            {isPending || isSubmitting ? "등록 중…" : "입점 등록"}
           </Button>
         </div>
       </form>
@@ -122,46 +340,55 @@ function CreateModal({ open, onClose, onSubmit, isPending }: Omit<CreateProps, "
   );
 }
 
-type EditInput = z.input<typeof orgEditSchema>;
-
-function EditModal({ open, onClose, defaultValues, onSubmit, isPending }: Omit<EditProps, "mode">) {
+function EditModal({
+  open,
+  onClose,
+  defaultValues,
+  defaultContractFilePath,
+  onSubmit,
+  isPending,
+}: Omit<EditProps, "mode">) {
+  const [contractFile, setContractFile] = React.useState<File | null>(null);
+  const [removeContractFile, setRemoveContractFile] = React.useState(false);
   const {
     register,
     handleSubmit,
-    reset,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<EditInput, unknown, OrgEditFormValues>({
     resolver: zodResolver(orgEditSchema),
     defaultValues,
   });
 
-  React.useEffect(() => {
-    if (open) reset(defaultValues);
-  }, [open, defaultValues, reset]);
-
-  const onValid = async (values: OrgEditFormValues) => {
-    await onSubmit(values);
-  };
-
   return (
-    <Modal open={open} onClose={onClose} title="조직 정보 수정">
-      <form onSubmit={handleSubmit(onValid)} className="flex flex-col gap-4">
-        <Field label="회사명" htmlFor="edit-org-name" error={errors.name?.message}>
-          <Input id="edit-org-name" aria-label="회사명" {...register("name")} />
-        </Field>
-        <Field label="회사코드(영문 소문자·숫자·하이픈)" htmlFor="edit-org-slug" error={errors.slug?.message}>
-          <Input id="edit-org-slug" aria-label="회사코드" {...register("slug")} />
-        </Field>
-        <Field label="대표 연락처(선택)" htmlFor="edit-org-phone" error={errors.phone?.message}>
-          <Input id="edit-org-phone" aria-label="대표 연락처" {...register("phone")} />
-        </Field>
+    <Modal open={open} onClose={onClose} title="조직 계약 정보 수정" className="max-h-[90vh] max-w-3xl overflow-y-auto">
+      <form
+        onSubmit={handleSubmit((values) => onSubmit({
+          ...values,
+          contractFile,
+          removeContractFile,
+        }))}
+        className="flex flex-col gap-5"
+      >
+        <OrganizationFields idPrefix="edit-org" register={register} errors={errors} />
+        <ContractFileField
+          id="edit-org-contract-file"
+          selectedFile={contractFile}
+          currentPath={defaultContractFilePath}
+          removeExisting={removeContractFile}
+          onSelect={(file) => {
+            setContractFile(file);
+            setRemoveContractFile(false);
+          }}
+          onRemove={() => {
+            if (contractFile) setContractFile(null);
+            else setRemoveContractFile(true);
+          }}
+        />
 
         <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="ghost" onClick={onClose}>
-            취소
-          </Button>
-          <Button type="submit" variant="primary" disabled={isPending}>
-            {isPending ? "저장 중…" : "저장"}
+          <Button type="button" variant="ghost" onClick={onClose}>취소</Button>
+          <Button type="submit" variant="primary" disabled={isPending || isSubmitting}>
+            {isPending || isSubmitting ? "저장 중…" : "저장"}
           </Button>
         </div>
       </form>

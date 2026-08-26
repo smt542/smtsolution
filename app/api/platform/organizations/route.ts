@@ -15,8 +15,37 @@ export async function POST(req: Request) {
 
   // 2) 검증
   const body = await req.json().catch(() => null);
-  const { name, slug, phone, owner } = body ?? {};
-  if (!name || !slug || !owner?.username || !owner?.fullName)
+  const {
+    name,
+    slug,
+    phone,
+    contractStartDate,
+    contractEndDate,
+    representativeName,
+    businessRegistrationNumber,
+    fax,
+    email,
+    address,
+    region,
+    operatingHours,
+    contractFilePath,
+    owner,
+  } = body ?? {};
+  if (
+    !name
+    || !slug
+    || !phone
+    || !contractStartDate
+    || !contractEndDate
+    || !representativeName
+    || !businessRegistrationNumber
+    || !fax
+    || !email
+    || !address
+    || !region
+    || !owner?.username
+    || !owner?.fullName
+  )
     return NextResponse.json({ error: "필수 항목이 누락되었습니다." }, { status: 422 });
 
   // 3a) 조직 생성(RPC)
@@ -31,12 +60,34 @@ export async function POST(req: Request) {
   }
   const orgRow = Array.isArray(org) ? org[0] : org;
 
-  // 3b) owner Auth user
+  // 3b) 계약 정보 저장. 실패 시 아직 계정이 없는 신규 조직만 보상 삭제한다.
+  const { error: contractError } = await supabase.rpc("platform_update_organization_contract", {
+    p_org_id: orgRow.id,
+    p_name: name,
+    p_slug: slug,
+    p_phone: phone,
+    p_contract_start_date: contractStartDate,
+    p_contract_end_date: contractEndDate,
+    p_representative_name: representativeName,
+    p_business_registration_number: businessRegistrationNumber,
+    p_fax: fax,
+    p_email: email,
+    p_address: address,
+    p_region: region,
+    p_operating_hours: operatingHours || null,
+    p_contract_file_path: contractFilePath || null,
+  });
+  if (contractError) {
+    await createAdminClient().from("organizations").delete().eq("id", orgRow.id);
+    return NextResponse.json({ error: "계약 정보 저장에 실패했습니다." }, { status: 500 });
+  }
+
+  // 3c) owner Auth user
   const admin = createAdminClient();
-  const email = loginEmail(slug, owner.username);
+  const loginAddress = loginEmail(slug, owner.username);
   const tempPassword = generateTempPassword();
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
-    email, password: tempPassword, email_confirm: true,
+    email: loginAddress, password: tempPassword, email_confirm: true,
   });
   if (createErr || !created?.user) {
     await admin.from("organizations").delete().eq("id", orgRow.id); // 보상
@@ -46,7 +97,7 @@ export async function POST(req: Request) {
       { status: dup ? 409 : 500 });
   }
 
-  // 3c) owner provision(cross-org)
+  // 3d) owner provision(cross-org)
   const { error: rpcErr } = await supabase.rpc("provision_member", {
     p_user_id: created.user.id, p_username: owner.username, p_full_name: owner.fullName,
     p_phone: owner.phone ?? null, p_phone_sub: null,

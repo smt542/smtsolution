@@ -22,7 +22,15 @@ export function OrgStatusControl({ status, onChange, isPending }: Props) {
       disabled={isPending}
       onChange={(e) => {
         const next = e.target.value as OrganizationStatus;
-        if (next !== status) void onChange(next);
+        if (next === status) return;
+        const message = next === "suspended"
+          ? "조직을 정지하면 해당 업체의 사무·현장 관리자와 세입자 앱 접속이 제한됩니다. 계속할까요?"
+          : `조직 상태를 '${OPTIONS.find((option) => option.value === next)?.label}'(으)로 변경할까요?`;
+        if (!window.confirm(message)) {
+          e.currentTarget.value = status;
+          return;
+        }
+        void onChange(next);
       }}
       className="rounded-xl border border-line bg-surface px-2.5 py-1.5 text-xs font-bold text-t1 disabled:opacity-50"
     >

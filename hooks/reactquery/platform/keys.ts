@@ -8,6 +8,7 @@ import type { PointReservationQuery } from "./pointBilling";
 export const platformKeys = {
   all: ["platform-admin"] as const,
   overview: () => [...platformKeys.all, "overview"] as const,
+  organizationContractKpis: () => [...platformKeys.all, "organization-contract-kpis"] as const,
   organizations: (opts?: PlatformOrganizationQuery) => opts
     ? [
         ...platformKeys.all,
