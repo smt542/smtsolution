@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button, EmptyState, Spinner } from "@/components/common";
 import {
   useMarkOrgBillingPaid,
   usePlatformOrgBilling,
+  usePlatformSettings,
   type PlatformOrgBilling,
   type PlatformOrgBillingStatus,
 } from "@/hooks/reactquery/platform";
@@ -15,6 +16,9 @@ import {
   PlatformPagination,
   QueryError,
 } from "../../_components/PageElements";
+import { InvoiceBulkPrintRoot } from "./_components/InvoiceBulkPrintRoot";
+import { invoiceConfigFromSettings } from "./_components/InvoiceDocument";
+import { InvoicePreviewModal } from "./_components/InvoicePreviewModal";
 
 const num = (n: number) => n.toLocaleString("ko-KR");
 const PAGE_SIZE = 8;
@@ -46,8 +50,23 @@ export default function PlatformBillingPage() {
   const [month, setMonth] = useState(currentMonthIso);
   const [tab, setTab] = useState<"all" | PlatformOrgBillingStatus>("all");
   const [page, setPage] = useState(1);
+  const [previewOrgId, setPreviewOrgId] = useState<number | null>(null);
+  const [bulkRows, setBulkRows] = useState<PlatformOrgBilling[]>([]);
   const billingQuery = usePlatformOrgBilling(month);
+  const settingsQuery = usePlatformSettings();
   const markPaid = useMarkOrgBillingPaid();
+  const invoiceConfig = useMemo(
+    () => invoiceConfigFromSettings(settingsQuery.data),
+    [settingsQuery.data],
+  );
+
+  // Unmount the bulk print root once the print dialog closes so a later single-invoice
+  // print does not also emit every organization's invoice.
+  useEffect(() => {
+    const clearBulk = () => setBulkRows([]);
+    window.addEventListener("afterprint", clearBulk);
+    return () => window.removeEventListener("afterprint", clearBulk);
+  }, []);
 
   const rows = useMemo(() => billingQuery.data ?? [], [billingQuery.data]);
   const totals = useMemo(
@@ -83,6 +102,11 @@ export default function PlatformBillingPage() {
   const currentPage = Math.min(page, totalPages);
   const pagedRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
+  const previewRow = useMemo(
+    () => rows.find((row) => row.orgId === previewOrgId) ?? null,
+    [rows, previewOrgId],
+  );
+
   const handleToggle = async (row: PlatformOrgBilling) => {
     const nextPaid = row.status !== "paid";
     try {
@@ -93,7 +117,22 @@ export default function PlatformBillingPage() {
     }
   };
 
-  const handleDownload = () => {
+  // "전체 발행": generate an invoice document for every billable (청구액 > 0) org in
+  // the current filter, then open the browser print dialog. No state is persisted.
+  const handlePublishAll = () => {
+    const billable = filtered.filter((row) => row.subtotalKrw > 0);
+    if (billable.length === 0) {
+      toast.error("발행할 청구서가 없습니다.");
+      return;
+    }
+    setPreviewOrgId(null);
+    setBulkRows(billable);
+    requestAnimationFrame(() => {
+      window.print();
+    });
+  };
+
+  const handleCsvDownload = () => {
     const header = ["업체명", "이메일", "알림톡", "문자(SMS)", "장문(LMS)", "팩스(발송 건수)", "청구액(공급가액)", "전월비", "상태"];
     const body = filtered.map((row) => [
       row.orgName,
@@ -113,7 +152,7 @@ export default function PlatformBillingPage() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `청구_${month.slice(0, 7)}.csv`;
+    anchor.download = `청구원장_${month.slice(0, 7)}.csv`;
     anchor.click();
     URL.revokeObjectURL(url);
   };
@@ -172,9 +211,17 @@ export default function PlatformBillingPage() {
               </button>
             ))}
           </div>
-          <Button variant="ghost" onClick={handleDownload} disabled={filtered.length === 0}>
-            청구서 다운로드
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" onClick={handleCsvDownload} disabled={filtered.length === 0}>
+              원장 CSV
+            </Button>
+            <Button
+              onClick={handlePublishAll}
+              disabled={filtered.every((row) => row.subtotalKrw <= 0)}
+            >
+              전체 발행
+            </Button>
+          </div>
         </div>
 
         {billingQuery.isPending ? (
@@ -216,13 +263,24 @@ export default function PlatformBillingPage() {
                       {row.status === "none" ? (
                         <span className="text-t4">—</span>
                       ) : (
-                        <Button
-                          variant="ghost"
-                          onClick={() => void handleToggle(row)}
-                          disabled={markPaid.isPending}
-                        >
-                          {row.status === "paid" ? "입금 취소" : "입금 확인"}
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            onClick={() => {
+                              setBulkRows([]);
+                              setPreviewOrgId(row.orgId);
+                            }}
+                          >
+                            발행
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            onClick={() => void handleToggle(row)}
+                            disabled={markPaid.isPending}
+                          >
+                            {row.status === "paid" ? "입금 취소" : "입금 확인"}
+                          </Button>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -242,6 +300,25 @@ export default function PlatformBillingPage() {
           />
         )}
       </section>
+
+      {previewRow && (
+        <InvoicePreviewModal
+          row={previewRow}
+          month={month}
+          config={invoiceConfig}
+          settings={settingsQuery.data}
+          onClose={() => setPreviewOrgId(null)}
+        />
+      )}
+
+      {bulkRows.length > 0 && (
+        <InvoiceBulkPrintRoot
+          rows={bulkRows}
+          month={month}
+          config={invoiceConfig}
+          settings={settingsQuery.data}
+        />
+      )}
     </div>
   );
 }
