@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 const from = vi.fn();
-vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ from }) }));
-import { listBuildingTypes, createBuildingType } from "./apis";
+const rpc = vi.fn();
+vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ from, rpc }) }));
+import { listBuildingTypes, createBuildingType, reorderBuildingTypes } from "./apis";
 beforeEach(() => vi.clearAllMocks());
 describe("buildingTypes apis", () => {
   it("listBuildingTypes: snake→camel 매핑", async () => {
@@ -16,5 +17,11 @@ describe("buildingTypes apis", () => {
     from.mockReturnValue({ insert: ins });
     await createBuildingType({ orgId:9, label:"빌라", sortOrder:1 });
     expect(ins).toHaveBeenCalledWith(expect.objectContaining({ org_id:9, label:"빌라", sort_order:1 }));
+  });
+  it("reorderBuildingTypes: ordered ids를 단일 RPC로 전송", async () => {
+    rpc.mockResolvedValue({ error: null });
+    await reorderBuildingTypes([3, 1, 2]);
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledWith("reorder_building_types", { p_ordered_ids: [3, 1, 2] });
   });
 });

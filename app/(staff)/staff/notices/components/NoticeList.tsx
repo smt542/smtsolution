@@ -1,7 +1,8 @@
 "use client";
 
+import { useMemo } from "react";
 import type { Building } from "@/hooks/reactquery/buildings";
-import type { Notice } from "@/hooks/reactquery/notices";
+import type { NoticeSummary } from "@/hooks/reactquery/notices";
 import {
   formatNoticeDate,
   getNoticeStatus,
@@ -26,20 +27,32 @@ export function NoticeList({
   notices,
   buildings,
   selectedId,
+  total,
+  page,
+  pageSize,
   onSelect,
+  onPageChange,
 }: {
-  notices: Notice[];
+  notices: NoticeSummary[];
   buildings: Building[];
   selectedId: number | null;
-  onSelect: (notice: Notice) => void;
+  total: number;
+  page: number;
+  pageSize: number;
+  onSelect: (notice: NoticeSummary) => void;
+  onPageChange: (page: number) => void;
 }) {
-  const buildingNames = new Map(buildings.map((building) => [building.id, building.name]));
+  const buildingNames = useMemo(
+    () => new Map(buildings.map((building) => [building.id, building.name])),
+    [buildings],
+  );
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
       <div className="border-b border-line px-5 py-4">
         <h2 className="font-extrabold text-t1">공지 목록</h2>
-        <p className="mt-1 text-xs text-t3">총 {notices.length}건</p>
+        <p className="mt-1 text-xs text-t3">총 {total}건</p>
       </div>
       <ul className="divide-y divide-line">
         {notices.map((notice) => {
@@ -70,7 +83,6 @@ export function NoticeList({
                   </span>
                 </div>
                 <p className="mt-3 truncate font-bold text-t1">{notice.title}</p>
-                <p className="mt-1 line-clamp-2 text-sm leading-6 text-t3">{notice.content}</p>
                 <p className="num mt-2 text-xs text-t4">
                   {status === "draft" ? `작성 ${formatNoticeDate(notice.createdAt)}` : `게시 ${formatNoticeDate(notice.publishedAt)}`}
                 </p>
@@ -79,6 +91,30 @@ export function NoticeList({
           );
         })}
       </ul>
+      {totalPages > 1 && (
+        <nav
+          aria-label="공지 목록 페이지"
+          className="flex items-center justify-between border-t border-line px-5 py-3"
+        >
+          <button
+            type="button"
+            onClick={() => onPageChange(page - 1)}
+            disabled={page === 0}
+            className="rounded-lg border border-line px-3 py-1.5 text-xs font-bold text-t2 disabled:opacity-40"
+          >
+            이전
+          </button>
+          <span className="num text-xs text-t3">{page + 1} / {totalPages}</span>
+          <button
+            type="button"
+            onClick={() => onPageChange(page + 1)}
+            disabled={page + 1 >= totalPages}
+            className="rounded-lg border border-line px-3 py-1.5 text-xs font-bold text-t2 disabled:opacity-40"
+          >
+            다음
+          </button>
+        </nav>
+      )}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { UtilityUnitRow } from "@/hooks/reactquery/utilities";
 
 export interface UtilityDraft {
@@ -81,18 +82,50 @@ export function UtilityTable({
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => {
-            const vacant = isVacant(row);
-            const isNew = !vacant && isNewOccupancy(row.moveInDate, referenceDate);
-            const draft = drafts[row.unitId];
-            const usage = usageFor(row, draft);
-            const hasFixedUsage = row.fixedUsage !== null;
-            const invalidUsage = !hasFixedUsage && usage !== null && usage < 0;
-            const displayUnitPrice = row.unitPrice ?? row.resolvedUnitPrice;
+          {rows.map((row) => (
+            <UtilityRow
+              key={row.unitId}
+              row={row}
+              draft={drafts[row.unitId]}
+              referenceDate={referenceDate}
+              onDraftChange={onDraftChange}
+              onRowClick={onRowClick}
+              onDiscountClick={onDiscountClick}
+              onFixedUsageClick={onFixedUsageClick}
+            />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
-            return (
+const UtilityRow = memo(function UtilityRow({
+  row,
+  draft,
+  referenceDate,
+  onDraftChange,
+  onRowClick,
+  onDiscountClick,
+  onFixedUsageClick,
+}: {
+  row: UtilityTableRow;
+  draft: UtilityDraft;
+  referenceDate: string;
+  onDraftChange: UtilityTableProps["onDraftChange"];
+  onRowClick: UtilityTableProps["onRowClick"];
+  onDiscountClick: UtilityTableProps["onDiscountClick"];
+  onFixedUsageClick: UtilityTableProps["onFixedUsageClick"];
+}) {
+  const vacant = isVacant(row);
+  const isNew = !vacant && isNewOccupancy(row.moveInDate, referenceDate);
+  const usage = usageFor(row, draft);
+  const hasFixedUsage = row.fixedUsage !== null;
+  const invalidUsage = !hasFixedUsage && usage !== null && usage < 0;
+  const displayUnitPrice = row.unitPrice ?? row.resolvedUnitPrice;
+
+  return (
               <tr
-                key={row.unitId}
                 onClick={() => onRowClick(row)}
                 className={`cursor-pointer border-b border-line2 last:border-b-0 hover:bg-bg ${
                   vacant ? "bg-bg text-t3" : isNew ? "bg-blue-t2" : "bg-surface"
@@ -224,10 +257,5 @@ export function UtilityTable({
                   {row.processedAt ?? "—"}
                 </td>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
   );
-}
+});

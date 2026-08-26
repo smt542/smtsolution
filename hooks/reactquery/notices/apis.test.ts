@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const from = vi.fn();
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ from }) }));
 
-import { createNotice, deleteNotice, listNotices, updateNotice } from "./apis";
+import { createNotice, deleteNotice, getNotice, listNotices, updateNotice } from "./apis";
 
 const row = {
   id: 3,
@@ -21,14 +21,14 @@ const row = {
 
 beforeEach(() => vi.clearAllMocks());
 
-function listBuilder(result = { data: [row], error: null }) {
+function listBuilder(result = { data: [row], error: null, count: 1 }) {
   const builder: Record<string, unknown> = {
     then: (resolve: (value: typeof result) => unknown) => Promise.resolve(resolve(result)),
   };
-  for (const method of ["select", "is", "eq", "gt", "lte", "or", "order"]) {
+  for (const method of ["select", "is", "eq", "gt", "lte", "or", "order", "range"]) {
     builder[method] = vi.fn(() => builder);
   }
-  return builder as Record<"select" | "is" | "eq" | "gt" | "lte" | "or" | "order", ReturnType<typeof vi.fn>>;
+  return builder as Record<"select" | "is" | "eq" | "gt" | "lte" | "or" | "order" | "range", ReturnType<typeof vi.fn>>;
 }
 
 describe("notices apis", () => {
@@ -43,13 +43,34 @@ describe("notices apis", () => {
     expect(builder.is).toHaveBeenCalledWith("building_id", null);
     expect(builder.eq).toHaveBeenCalledWith("notice_type", "important");
     expect(builder.or).toHaveBeenCalledWith("title.ilike.%소독%,content.ilike.%소독%");
-    expect(result[0]).toMatchObject({
+    expect(builder.select).toHaveBeenCalledWith(
+      "id, org_id, building_id, title, notice_type, published_at, expires_at, created_by, created_at, updated_at",
+      { count: "exact" },
+    );
+    expect(builder.range).toHaveBeenCalledWith(0, 19);
+    expect(result.total).toBe(1);
+    expect(result.items[0]).toMatchObject({
       id: 3,
       orgId: 9,
       buildingId: null,
       title: "정기 소독 안내",
       noticeType: "important",
     });
+    expect(result.items[0]).not.toHaveProperty("content");
+  });
+
+  it("getNotice: 선택한 공지의 본문을 별도 조회", async () => {
+    const single = vi.fn().mockResolvedValue({ data: row, error: null });
+    const activeOnly = vi.fn(() => ({ single }));
+    const eq = vi.fn(() => ({ is: activeOnly }));
+    const select = vi.fn(() => ({ eq }));
+    from.mockReturnValue({ select });
+
+    await expect(getNotice(3)).resolves.toMatchObject({
+      id: 3,
+      content: "오전 10시에 소독합니다.",
+    });
+    expect(eq).toHaveBeenCalledWith("id", 3);
   });
 
   it("createNotice: 폼 입력을 DB 컬럼으로 변환", async () => {

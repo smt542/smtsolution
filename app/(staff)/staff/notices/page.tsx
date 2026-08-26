@@ -1,10 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Button, EmptyState, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
-import { useNotices, type Notice, type NoticeFilters as NoticeFilterValues, type NoticeStatus, type NoticeType } from "@/hooks/reactquery/notices";
+import {
+  NOTICE_PAGE_SIZE,
+  useNotice,
+  useNotices,
+  type Notice,
+  type NoticeFilters as NoticeFilterValues,
+  type NoticeStatus,
+  type NoticeSummary,
+  type NoticeType,
+} from "@/hooks/reactquery/notices";
 import { hasModule } from "@/lib/auth/permissions";
 import { NoticeDetail } from "./components/NoticeDetail";
 import { NoticeFilters } from "./components/NoticeFilters";
@@ -49,6 +58,7 @@ function NoticesWorkspace({
   const [noticeType, setNoticeType] = useState("all");
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Notice | null>(null);
@@ -61,10 +71,22 @@ function NoticesWorkspace({
   }), [noticeType, search, status, target]);
 
   const buildingsQuery = useBuildings();
-  const noticesQuery = useNotices(filters);
-  const buildings = buildingsQuery.data ?? [];
-  const notices = noticesQuery.data ?? [];
-  const selectedNotice = notices.find((notice) => notice.id === selectedId) ?? null;
+  const noticesQuery = useNotices(filters, page, NOTICE_PAGE_SIZE);
+  const buildings = useMemo(() => buildingsQuery.data ?? [], [buildingsQuery.data]);
+  const notices = useMemo(() => noticesQuery.data?.items ?? [], [noticesQuery.data?.items]);
+  const selectedListId = useMemo(
+    () => selectedId !== null && notices.some((notice) => notice.id === selectedId)
+      ? selectedId
+      : null,
+    [notices, selectedId],
+  );
+  const selectedNoticeQuery = useNotice(selectedListId ?? 0);
+  const selectedNotice = selectedNoticeQuery.data ?? null;
+  const total = noticesQuery.data?.total ?? 0;
+
+  const selectNotice = useCallback((notice: NoticeSummary) => {
+    setSelectedId(notice.id);
+  }, []);
 
   const openCreate = () => {
     setEditing(null);
@@ -84,6 +106,7 @@ function NoticesWorkspace({
     setNoticeType("all");
     setStatus("all");
     setSearch("");
+    setPage(0);
   };
 
   if (buildingsQuery.isError || noticesQuery.isError) {
@@ -113,10 +136,10 @@ function NoticesWorkspace({
         noticeType={noticeType}
         status={status}
         search={search}
-        onTargetChange={setTarget}
-        onNoticeTypeChange={setNoticeType}
-        onStatusChange={setStatus}
-        onSearchChange={setSearch}
+        onTargetChange={(value) => { setTarget(value); setPage(0); }}
+        onNoticeTypeChange={(value) => { setNoticeType(value); setPage(0); }}
+        onStatusChange={(value) => { setStatus(value); setPage(0); }}
+        onSearchChange={(value) => { setSearch(value); setPage(0); }}
         onReset={resetFilters}
       />
 
@@ -128,8 +151,21 @@ function NoticesWorkspace({
         </div>
       ) : (
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(360px,0.9fr)_minmax(440px,1.1fr)]">
-          <NoticeList notices={notices} buildings={buildings} selectedId={selectedNotice?.id ?? null} onSelect={(notice) => setSelectedId(notice.id)} />
-          {selectedNotice ? (
+          <NoticeList
+            notices={notices}
+            buildings={buildings}
+            selectedId={selectedListId}
+            total={total}
+            page={page}
+            pageSize={NOTICE_PAGE_SIZE}
+            onSelect={selectNotice}
+            onPageChange={setPage}
+          />
+          {selectedListId !== null && selectedNoticeQuery.isLoading ? (
+            <div className="rounded-2xl border border-line bg-surface py-16"><Spinner /></div>
+          ) : selectedListId !== null && selectedNoticeQuery.isError ? (
+            <LoadError onRetry={() => selectedNoticeQuery.refetch()} />
+          ) : selectedNotice ? (
             <NoticeDetail
               notice={selectedNotice}
               buildings={buildings}
@@ -151,7 +187,10 @@ function NoticesWorkspace({
         editing={editing}
         buildings={buildings}
         orgId={orgId}
-        onSaved={(notice) => setSelectedId(notice.id)}
+        onSaved={(notice) => {
+          setPage(0);
+          setSelectedId(notice.id);
+        }}
       />
     </div>
   );

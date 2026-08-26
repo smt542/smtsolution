@@ -37,10 +37,13 @@ import { utilityKeys } from "./keys";
 import {
   useClearFixedUsage,
   useConfirmUtilities,
+  useDeleteWaterDiscount,
   useSaveBillingPeriod,
+  useSaveMeterReadings,
   useSaveScopedPrices,
   useSaveUtilitySupplier,
   useSaveUtilityUnitPrices,
+  useSaveWaterDiscount,
   useSetFixedUsage,
 } from "./mutations";
 import {
@@ -590,6 +593,62 @@ describe("utilities apis", () => {
     });
     expect(invalidateQueries).toHaveBeenCalledWith({
       queryKey: utilityKeys.rows(3, "gas", "2026-08-01"),
+    });
+  });
+
+  it("검침 저장은 해당 월 행·확정과 입력 세대 이력만 무효화한다", () => {
+    const input = {
+      buildingId: 3,
+      utilityType: "water" as const,
+      period: "2026-08-01",
+      rows: [
+        { unit_id: 101, current_reading: "120", manual_charge: "", note: "" },
+        { unit_id: 102, current_reading: "130", manual_charge: "", note: "" },
+      ],
+    };
+    const mutation = useSaveMeterReadings() as unknown as {
+      onSuccess: (result: { saved: number; period: string }, variables: typeof input) => void;
+    };
+
+    mutation.onSuccess({ saved: 2, period: input.period }, input);
+
+    expect(invalidateQueries.mock.calls).toEqual([
+      [{ queryKey: utilityKeys.rows(3, "water", "2026-08-01") }],
+      [{ queryKey: utilityKeys.confirmation(3, "water", "2026-08-01") }],
+      [{ queryKey: utilityKeys.history(101, "water", "2026-08-01") }],
+      [{ queryKey: utilityKeys.history(102, "water", "2026-08-01") }],
+    ]);
+  });
+
+  it("수도 할인 저장·해제는 해당 건물과 월의 수도 행만 무효화한다", () => {
+    const saveInput = {
+      buildingId: 3,
+      period: "2026-08-01",
+      unitId: 101,
+      discountType: "recipient" as const,
+      amount: 3000,
+    };
+    const saveMutation = useSaveWaterDiscount() as unknown as {
+      onSuccess: (result: void, variables: typeof saveInput) => void;
+    };
+    saveMutation.onSuccess(undefined, saveInput);
+    expect(invalidateQueries).toHaveBeenLastCalledWith({
+      queryKey: utilityKeys.rows(3, "water", "2026-08-01"),
+    });
+
+    vi.clearAllMocks();
+    const deleteInput = {
+      buildingId: 3,
+      period: "2026-08-01",
+      unitId: 101,
+    };
+    const deleteMutation = useDeleteWaterDiscount() as unknown as {
+      onSuccess: (result: void, variables: typeof deleteInput) => void;
+    };
+    deleteMutation.onSuccess(undefined, deleteInput);
+    expect(invalidateQueries).toHaveBeenCalledTimes(1);
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: utilityKeys.rows(3, "water", "2026-08-01"),
     });
   });
 

@@ -15,7 +15,9 @@ vi.mock("@/hooks/reactquery/residentNotice", () => ({
   useMintNoticeShareToken: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 vi.mock("@/hooks/reactquery/notices", () => ({
+  NOTICE_PAGE_SIZE: 20,
   useNotices: vi.fn(),
+  useNotice: vi.fn(),
   useCreateNotice: vi.fn(),
   useUpdateNotice: vi.fn(),
   useDeleteNotice: vi.fn(),
@@ -31,6 +33,7 @@ import { useBuildings } from "@/hooks/reactquery/buildings";
 import {
   useCreateNotice,
   useDeleteNotice,
+  useNotice,
   useNotices,
   useUpdateNotice,
 } from "@/hooks/reactquery/notices";
@@ -63,6 +66,7 @@ const updateMutate = vi.fn();
 const deleteMutate = vi.fn();
 
 function setup(overrides?: { me?: unknown; notices?: typeof notices; noticesError?: boolean }) {
+  const noticeRows = overrides?.notices ?? notices;
   vi.mocked(useMe).mockReturnValue({
     data: overrides && "me" in overrides ? overrides.me : me,
     isLoading: false,
@@ -71,11 +75,33 @@ function setup(overrides?: { me?: unknown; notices?: typeof notices; noticesErro
   } as never);
   vi.mocked(useBuildings).mockReturnValue({ data: buildings, isLoading: false, isError: false, refetch: vi.fn() } as never);
   vi.mocked(useNotices).mockReturnValue({
-    data: overrides?.notices ?? notices,
+    data: {
+      items: noticeRows.map((notice) => ({
+        id: notice.id,
+        orgId: notice.orgId,
+        buildingId: notice.buildingId,
+        title: notice.title,
+        noticeType: notice.noticeType,
+        publishedAt: notice.publishedAt,
+        expiresAt: notice.expiresAt,
+        createdBy: notice.createdBy,
+        createdAt: notice.createdAt,
+        updatedAt: notice.updatedAt,
+      })),
+      total: noticeRows.length,
+      page: 0,
+      pageSize: 20,
+    },
     isLoading: false,
     isError: overrides?.noticesError ?? false,
     refetch: vi.fn(),
   } as never);
+  vi.mocked(useNotice).mockImplementation((id: number) => ({
+    data: noticeRows.find((notice) => notice.id === id),
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+  }) as never);
   vi.mocked(useCreateNotice).mockReturnValue({ mutateAsync: createMutate, isPending: false } as never);
   vi.mocked(useUpdateNotice).mockReturnValue({ mutateAsync: updateMutate, isPending: false } as never);
   vi.mocked(useDeleteNotice).mockReturnValue({ mutateAsync: deleteMutate, isPending: false } as never);

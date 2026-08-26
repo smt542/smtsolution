@@ -1,11 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
-import { getNotice, listNotices, type NoticeFilters } from "./apis";
+import {
+  getNotice,
+  listNotices,
+  NOTICE_PAGE_SIZE,
+  type NoticeFilters,
+} from "./apis";
 import { noticeKeys } from "./keys";
 
-export function useNotices(filters: NoticeFilters = {}) {
+export function useNotices(
+  filters: NoticeFilters = {},
+  page = 0,
+  pageSize = NOTICE_PAGE_SIZE,
+) {
   return useQuery({
-    queryKey: noticeKeys.list(filters),
-    queryFn: () => listNotices(filters),
+    queryKey: noticeKeys.list(filters, page, pageSize),
+    queryFn: () => listNotices(filters, page, pageSize),
   });
 }
 

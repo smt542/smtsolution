@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 const from = vi.fn();
-vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ from }) }));
-import { listAllFeeItems, listFeeItems, createFeeItem, updateFeeItem, deleteFeeItem } from "./apis";
+const rpc = vi.fn();
+vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ from, rpc }) }));
+import { listAllFeeItems, listFeeItems, createFeeItem, updateFeeItem, deleteFeeItem, reorderFeeItems } from "./apis";
 beforeEach(() => vi.clearAllMocks());
 
 function mockLookupQuery(data: unknown[] = []) {
@@ -63,6 +64,12 @@ describe("feeItems apis", () => {
     await deleteFeeItem({ id:2, isRequired:false });
     expect(upd).toHaveBeenCalledWith(expect.objectContaining({ deleted_at: expect.any(String) }));
     expect(eq).toHaveBeenCalledWith("id", 2);
+  });
+  it("reorderFeeItems: ordered ids를 단일 RPC로 전송", async () => {
+    rpc.mockResolvedValue({ error: null });
+    await reorderFeeItems([4, 2, 3]);
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledWith("reorder_fee_items", { p_ordered_ids: [4, 2, 3] });
   });
 });
 
