@@ -7,6 +7,8 @@ export interface UtilityDraft {
   note: string;
 }
 
+const EMPTY_DRAFT: UtilityDraft = { currentReading: "", manualCharge: "", note: "" };
+
 export interface UtilityTableRow extends UtilityUnitRow {
   fixedUsage: number | null;
   fixedUsageFrom?: string | null;
@@ -86,7 +88,7 @@ export function UtilityTable({
             <UtilityRow
               key={row.unitId}
               row={row}
-              draft={drafts[row.unitId]}
+              draft={drafts[row.unitId] ?? EMPTY_DRAFT}
               referenceDate={referenceDate}
               onDraftChange={onDraftChange}
               onRowClick={onRowClick}

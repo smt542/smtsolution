@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
-import { Button, Modal, SearchBar, Select } from "@/components/common";
+import { Button, Modal, SearchBar, Select, Spinner } from "@/components/common";
 import { useBillOrganizationName } from "@/hooks/reactquery/bill";
 import type { Building } from "@/hooks/reactquery/buildings";
 import {
@@ -25,8 +25,9 @@ import { PaymentReceiptModal } from "./payment/PaymentReceiptModal";
 import { PaymentStatementModal } from "./payment/PaymentStatementModal";
 import { PaymentTable } from "./payment/PaymentTable";
 
-const BankImportModal = dynamic(() =>
-  import("./payment/BankImportModal").then((module) => module.BankImportModal),
+const BankImportModal = dynamic(
+  () => import("./payment/BankImportModal").then((module) => module.BankImportModal),
+  { ssr: false, loading: () => <Spinner /> },
 );
 
 export type VillaInitialView = "table" | "giro" | "bank" | "statement" | "receipt";
