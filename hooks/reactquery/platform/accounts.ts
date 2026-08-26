@@ -16,6 +16,14 @@ export interface PlatformCreateAccountResult {
   tempPassword?: string;
 }
 
+export interface PlatformUpdateAccountInput {
+  orgId: number;
+  userId: string;
+  fullName: string;
+  phone?: string | null;
+  memo?: string | null;
+}
+
 export async function createPlatformAccount(
   input: PlatformCreateAccountInput,
 ): Promise<PlatformCreateAccountResult> {
@@ -56,6 +64,17 @@ export async function platformSetActive(
     p_user_id: userId,
     p_active: active,
     p_target_org_id: orgId,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function platformUpdateAccount(input: PlatformUpdateAccountInput): Promise<void> {
+  const { error } = await createClient().rpc("platform_update_account", {
+    p_org_id: input.orgId,
+    p_user_id: input.userId,
+    p_full_name: input.fullName,
+    p_phone: input.phone?.trim() || null,
+    p_memo: input.memo?.trim() || null,
   });
   if (error) throw new Error(error.message);
 }

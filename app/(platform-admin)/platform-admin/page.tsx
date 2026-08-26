@@ -5,7 +5,6 @@ import { EmptyState, Spinner } from "@/components/common";
 import {
   usePlatformOrgBilling,
   usePlatformOverviewMetrics,
-  usePlatformSettings,
 } from "@/hooks/reactquery/platform";
 import {
   BoundedMonthStepper,
@@ -37,7 +36,6 @@ export default function PlatformDashboardPage() {
   const [page, setPage] = useState(1);
   const metricsQuery = usePlatformOverviewMetrics(month);
   const billingQuery = usePlatformOrgBilling(month);
-  const settingsQuery = usePlatformSettings();
 
   const metrics = metricsQuery.data;
   const appRate = metrics && metrics.unitCount > 0
@@ -120,16 +118,11 @@ export default function PlatformDashboardPage() {
             <p className="mt-1 text-xs text-t3">{monthLabel(month)} · 채널별 공급가액 (부가세 제외)</p>
           </div>
         </div>
-        {billingQuery.isPending || settingsQuery.isPending ? (
+        {billingQuery.isPending ? (
           <div className="py-16"><Spinner /></div>
-        ) : billingQuery.isError || settingsQuery.isError || !settingsQuery.data ? (
+        ) : billingQuery.isError ? (
           <div className="p-4">
-            <QueryError
-              onRetry={() => {
-                void billingQuery.refetch();
-                void settingsQuery.refetch();
-              }}
-            />
+            <QueryError onRetry={() => void billingQuery.refetch()} />
           </div>
         ) : tenantRows.length === 0 ? (
           <EmptyState message="조회 가능한 업체가 없습니다" />
@@ -150,16 +143,13 @@ export default function PlatformDashboardPage() {
                   <tr key={row.orgId} className="border-b border-line last:border-0 hover:bg-bg/50">
                     <td className="px-5 py-4 font-bold text-t1">{row.orgName}</td>
                     <td className="px-4 py-4 text-right text-t2 num">
-                      {num(row.alimtalkCount * settingsQuery.data.rateKrwAlimtalk)}
+                      {num(row.alimtalkAmountKrw)}
                     </td>
                     <td className="px-4 py-4 text-right text-t2 num">
-                      {num(
-                        row.smsCount * settingsQuery.data.rateKrwSms
-                        + row.lmsCount * settingsQuery.data.rateKrwLms,
-                      )}
+                      {num(row.smsAmountKrw)}
                     </td>
                     <td className="px-4 py-4 text-right text-t2 num">
-                      {num(row.faxPageCount * settingsQuery.data.rateKrwFax)}
+                      {num(row.faxAmountKrw)}
                     </td>
                     <td className="px-5 py-4 text-right font-extrabold text-t1 num">{num(row.subtotalKrw)}</td>
                   </tr>
@@ -170,8 +160,6 @@ export default function PlatformDashboardPage() {
         )}
         {!billingQuery.isPending
           && !billingQuery.isError
-          && !settingsQuery.isPending
-          && !settingsQuery.isError
           && (
             <PlatformPagination
               page={currentPage}
