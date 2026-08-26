@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   signOut: vi.fn(),
   getMyContext: vi.fn(),
   recordLogin: vi.fn(),
+  toastSuccess: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -30,6 +31,7 @@ vi.mock("@/hooks/reactquery/auth", () => ({
   getMyContext: mocks.getMyContext,
   recordLogin: mocks.recordLogin,
 }));
+vi.mock("sonner", () => ({ toast: { success: mocks.toastSuccess } }));
 
 import { LoginForm } from "./LoginForm";
 
@@ -81,6 +83,7 @@ describe("HQ LoginForm", () => {
     expect(mocks.recordLogin).toHaveBeenCalled();
     expect(queryClient.getQueryData(["auth", "me"])).toEqual(platformContext);
     expect(localStorage.getItem(AUTO_LOGIN_KEY)).toBe("1");
+    expect(mocks.toastSuccess).toHaveBeenCalledWith("로그인되었습니다");
     expect(mocks.push).toHaveBeenCalledWith("/platform-admin");
   });
 

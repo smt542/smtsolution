@@ -7,38 +7,51 @@ export const metadata: Metadata = {
 
 export default function PlatformAdminLoginPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#F4F8FF] px-5 py-10 sm:px-8">
-      <div className="w-full max-w-[460px]">
-        <section className="rounded-[28px] border border-[#DCE8FA] bg-white px-6 py-8 shadow-[0_24px_70px_rgba(49,130,246,0.12)] sm:px-10 sm:py-10">
-          <header className="text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-blue text-white shadow-[0_10px_24px_rgba(49,130,246,0.28)]">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7" aria-hidden="true">
-                <path d="M4 11l8-6 8 6M6 10v9h12v-9M10 19v-5h4v5" />
-              </svg>
-            </div>
-            <p className="mt-4 text-[22px] font-extrabold tracking-tight text-t1">관리비서</p>
-            <p className="mt-1 text-[11px] font-extrabold tracking-[0.2em] text-blue">HQ CONSOLE</p>
-            <h1 className="mt-7 text-[26px] font-extrabold leading-tight tracking-[-0.03em] text-t1">
-              모든 관리업체를 한 콘솔에서
-            </h1>
-            <p className="mt-3 text-[13px] font-medium leading-6 text-t3">
-              테넌트 계약과 사용량, 이관 현황을 본사에서 관리합니다. 입주자 개인정보는 조회되지 않으며 모든 접근은 기록됩니다.
-            </p>
-          </header>
+    <main className="flex min-h-screen flex-col bg-white lg:flex-row">
+      <section className="relative flex min-h-[300px] flex-col justify-between overflow-hidden bg-gradient-to-br from-[#102A4C] via-[#1B64DA] to-[#3182F6] px-8 py-9 text-white sm:px-12 sm:py-11 lg:min-h-screen lg:flex-1 lg:px-16 lg:py-14">
+        <div className="absolute -right-36 -top-32 h-[460px] w-[460px] rounded-full bg-white/[0.08]" />
+        <div className="absolute -bottom-44 right-14 h-[360px] w-[360px] rounded-full bg-white/[0.07]" />
 
-          <div className="mt-8">
-            <LoginForm />
+        <div className="relative flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-blue shadow-sm">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6" aria-hidden="true">
+              <path d="M4 11l8-6 8 6M6 10v9h12v-9M10 19v-5h4v5" />
+            </svg>
           </div>
+          <div>
+            <div className="text-[19px] font-extrabold tracking-tight">관리비서</div>
+            <div className="mt-0.5 text-[10.5px] font-bold tracking-[0.12em] text-white/60">HQ CONSOLE</div>
+          </div>
+        </div>
 
-          <p className="mt-6 border-t border-line pt-5 text-center text-[11.5px] font-medium leading-5 text-t4">
-            본사 관리자만 접근할 수 있는 콘솔입니다. 모든 로그인과 대리 접속은 감사 로그에 기록됩니다.
+        <div className="relative my-10 max-w-[600px] lg:my-16">
+          <h1 className="text-[34px] font-extrabold leading-[1.25] tracking-[-0.03em] sm:text-[42px] lg:text-5xl">
+            모든 관리업체를<br />한 콘솔에서
+          </h1>
+          <p className="mt-4 max-w-[580px] text-[15px] font-medium leading-7 text-white/85 sm:text-base lg:mt-5 lg:text-lg lg:leading-[1.7]">
+            테넌트 계약과 사용량, 이관 현황을 본사에서 관리합니다. 입주자 개인정보는 조회되지 않으며 모든 접근은 기록됩니다.
           </p>
-        </section>
+        </div>
 
-        <footer className="mt-6 text-center text-xs font-medium text-[#7C8BA1]">
+        <footer className="relative text-xs font-medium text-white/60">
           © 2026 관리비서 · 본사 전용 콘솔
         </footer>
-      </div>
+      </section>
+
+      <section className="flex flex-1 items-center justify-center bg-white px-6 py-12 sm:px-12 lg:flex-[0_0_480px] lg:px-14">
+        <div className="w-full max-w-[368px]">
+          <header className="mb-[26px]">
+            <h2 className="text-2xl font-extrabold tracking-[-0.02em] text-t1">본사 관리자 로그인</h2>
+            <p className="mt-1.5 text-[13.5px] font-medium text-t3">본사 계정으로 로그인해 주세요.</p>
+          </header>
+
+          <LoginForm />
+
+          <p className="mt-5 text-center text-xs font-medium leading-5 text-t4">
+            본사 관리자만 접근할 수 있는 콘솔입니다.<br />모든 로그인과 대리 접속은 감사 로그에 기록됩니다.
+          </p>
+        </div>
+      </section>
     </main>
   );
 }
