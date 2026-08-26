@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useDeferredValue, useState } from "react";
 import { toast } from "sonner";
 import { Button, Checkbox, EmptyState, Modal, SearchBar, Spinner } from "@/components/common";
 import type { PlatformAccountCreateValues } from "@/components/forms/schema/platformAccount";
@@ -14,7 +14,12 @@ import {
 } from "@/hooks/reactquery/platform";
 import type { OrgMemberRole, StaffType } from "@/hooks/reactquery/auth";
 import { MODULE_KEYS, MODULE_LABELS } from "@/lib/auth/permissions";
-import { DataScopeNotice, PageHeader, QueryError } from "../../_components/PageElements";
+import {
+  DataScopeNotice,
+  PageHeader,
+  PlatformPagination,
+  QueryError,
+} from "../../_components/PageElements";
 import { AccountCreateModal } from "./components/AccountCreateModal";
 import { AccountRowActions } from "./components/AccountRowActions";
 
@@ -48,9 +53,11 @@ const dateFormatter = new Intl.DateTimeFormat("ko-KR", {
   month: "2-digit",
   day: "2-digit",
 });
+const PAGE_SIZE = 25;
 
 export default function PlatformAccountsPage() {
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
   const [roleTarget, setRoleTarget] = useState<PlatformAccount | null>(null);
   const [passwordNotice, setPasswordNotice] = useState<{
@@ -58,22 +65,18 @@ export default function PlatformAccountsPage() {
     tempPassword: string;
   } | null>(null);
 
-  const { data: accounts = [], isPending, isError, refetch } = usePlatformAccounts();
+  const deferredSearch = useDeferredValue(search.trim());
+  const { data, isPending, isError, refetch } = usePlatformAccounts({
+    search: deferredSearch,
+    page,
+    pageSize: PAGE_SIZE,
+  });
+  const accounts = data?.rows ?? [];
   const createAccount = useCreatePlatformAccount();
   const updateRole = usePlatformUpdateRole();
   const setActive = usePlatformSetActive();
   const resetPassword = usePlatformResetPassword();
   const actionPending = updateRole.isPending || setActive.isPending || resetPassword.isPending;
-
-  const filtered = useMemo(() => {
-    const keyword = search.trim().toLocaleLowerCase("ko-KR");
-    if (!keyword) return accounts;
-    return accounts.filter((account) =>
-      `${account.organizationName} ${account.fullName ?? ""} ${account.username ?? ""}`
-        .toLocaleLowerCase("ko-KR")
-        .includes(keyword),
-    );
-  }, [accounts, search]);
 
   const handleCreate = async (values: PlatformAccountCreateValues) => {
     try {
@@ -164,11 +167,18 @@ export default function PlatformAccountsPage() {
         <div className="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-base font-extrabold text-t1">소속 계정 목록</h3>
-            <p className="mt-1 text-xs text-t3">총 {accounts.length.toLocaleString("ko-KR")}개</p>
+            <p className="mt-1 text-xs text-t3">총 {(data?.totalCount ?? 0).toLocaleString("ko-KR")}개</p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <div className="w-full sm:w-72">
-              <SearchBar value={search} onChange={setSearch} placeholder="조직·이름·아이디 검색" />
+              <SearchBar
+                value={search}
+                onChange={(value) => {
+                  setSearch(value);
+                  setPage(1);
+                }}
+                placeholder="조직·이름·아이디 검색"
+              />
             </div>
             <Button type="button" variant="primary" onClick={() => setCreateOpen(true)}>
               + 계정 발급
@@ -184,7 +194,7 @@ export default function PlatformAccountsPage() {
           <div className="p-4">
             <QueryError onRetry={() => void refetch()} />
           </div>
-        ) : filtered.length === 0 ? (
+        ) : accounts.length === 0 ? (
           <EmptyState message={search ? "검색 결과가 없습니다" : "조회 가능한 계정이 없습니다"} />
         ) : (
           <div className="overflow-x-auto">
@@ -200,7 +210,7 @@ export default function PlatformAccountsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((account) => (
+                {accounts.map((account) => (
                   <tr
                     key={`${account.orgId}:${account.userId}`}
                     className="border-b border-line last:border-0 hover:bg-bg/50"
@@ -232,6 +242,12 @@ export default function PlatformAccountsPage() {
             </table>
           </div>
         )}
+        <PlatformPagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          totalCount={data?.totalCount ?? 0}
+          onPageChange={setPage}
+        />
       </section>
 
       <AccountCreateModal

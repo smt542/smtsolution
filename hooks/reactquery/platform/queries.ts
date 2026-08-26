@@ -1,16 +1,19 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
   getPlatformOverview,
   listPlatformAccounts,
   listPlatformOrganizations,
   listPointTransactions,
-  type PointTxType,
+  type PlatformAccountQuery,
+  type PlatformOrganizationQuery,
+  type PointTransactionCursor,
+  type PointTransactionQuery,
 } from "./apis";
 import { getOrgBuildings, getBuildingTenants, getUnitOccupancy } from "./drilldown";
 import {
   listMessagePointRates,
   listPointReservations,
-  type PointReservationStatus,
+  type PointReservationQuery,
 } from "./pointBilling";
 import { platformKeys } from "./keys";
 
@@ -21,24 +24,32 @@ export function usePlatformOverview() {
   });
 }
 
-export function usePlatformOrganizations() {
+export function usePlatformOrganizations(opts: PlatformOrganizationQuery = {}) {
   return useQuery({
-    queryKey: platformKeys.organizations(),
-    queryFn: () => listPlatformOrganizations({ includeDeleted: true }),
+    queryKey: platformKeys.organizations(opts),
+    queryFn: () => listPlatformOrganizations(opts),
   });
 }
 
-export function usePlatformAccounts() {
+export function usePlatformAccounts(opts: PlatformAccountQuery = {}) {
   return useQuery({
-    queryKey: platformKeys.accounts(),
-    queryFn: listPlatformAccounts,
+    queryKey: platformKeys.accounts(opts),
+    queryFn: () => listPlatformAccounts(opts),
   });
 }
 
-export function usePlatformTransactions(opts?: { type?: PointTxType }) {
-  return useQuery({
+export function usePlatformTransactions(
+  opts: Omit<PointTransactionQuery, "cursor"> = {},
+) {
+  return useInfiniteQuery({
     queryKey: platformKeys.transactions(opts),
-    queryFn: () => listPointTransactions(opts),
+    queryFn: ({ pageParam }) =>
+      listPointTransactions({ ...opts, cursor: pageParam }),
+    initialPageParam: null as PointTransactionCursor | null,
+    getNextPageParam: (lastPage, pages) => {
+      const loadedCount = pages.reduce((total, page) => total + page.rows.length, 0);
+      return loadedCount < lastPage.totalCount ? lastPage.nextCursor : undefined;
+    },
   });
 }
 
@@ -49,10 +60,10 @@ export function useMessagePointRates(includeHistory = false) {
   });
 }
 
-export function usePointReservations(status?: PointReservationStatus) {
+export function usePointReservations(opts: PointReservationQuery = {}) {
   return useQuery({
-    queryKey: platformKeys.pointReservations(status),
-    queryFn: () => listPointReservations(status),
+    queryKey: platformKeys.pointReservations(opts),
+    queryFn: () => listPointReservations(opts),
   });
 }
 

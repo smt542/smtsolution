@@ -49,6 +49,45 @@ export function StatusBadge({ status }: { status: "active" | "suspended" | "tria
   return <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${styles.className}`}>{styles.label}</span>;
 }
 
+export function PlatformPagination({
+  page,
+  pageSize,
+  totalCount,
+  onPageChange,
+}: {
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  onPageChange: (page: number) => void;
+}) {
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+
+  if (totalPages <= 1) return null;
+  return (
+    <div className="flex items-center justify-center gap-3 border-t border-line px-4 py-3">
+      <button
+        type="button"
+        onClick={() => onPageChange(page - 1)}
+        disabled={page <= 1}
+        className="rounded-lg border border-line px-3 py-1.5 text-xs font-bold text-t2 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        이전
+      </button>
+      <span className="text-xs font-semibold text-t3 num">
+        {page.toLocaleString("ko-KR")} / {totalPages.toLocaleString("ko-KR")}
+      </span>
+      <button
+        type="button"
+        onClick={() => onPageChange(page + 1)}
+        disabled={page >= totalPages}
+        className="rounded-lg border border-line px-3 py-1.5 text-xs font-bold text-t2 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        다음
+      </button>
+    </div>
+  );
+}
+
 export function PlaceholderPage({
   eyebrow,
   title,

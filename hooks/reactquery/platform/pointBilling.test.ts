@@ -78,21 +78,29 @@ describe("platform point billing apis", () => {
         created_at: "2026-08-18T00:00:00Z",
         requested_by: "user-1",
         requested_by_name: "김관리",
+        total_count: 1,
+        has_reconcile_required: true,
       }],
       error: null,
     });
 
-    await expect(listPointReservations("reconcile_required")).resolves.toEqual([
-      expect.objectContaining({
-        id: 4,
-        orgId: 7,
-        organizationName: "한빛관리",
-        reservedPoints: 20,
-        isReleasable: true,
-      }),
-    ]);
-    expect(rpc).toHaveBeenCalledWith("platform_list_point_reservations", {
-      p_status: "reconcile_required",
+    await expect(listPointReservations({
+      statuses: ["reconcile_required"],
+    })).resolves.toEqual(expect.objectContaining({
+      rows: [expect.objectContaining({
+          id: 4,
+          orgId: 7,
+          organizationName: "한빛관리",
+          reservedPoints: 20,
+          isReleasable: true,
+        })],
+      totalCount: 1,
+      hasReconcileRequired: true,
+    }));
+    expect(rpc).toHaveBeenCalledWith("platform_list_point_reservations_page", {
+      p_statuses: ["reconcile_required"],
+      p_limit: 25,
+      p_offset: 0,
     });
   });
 

@@ -70,7 +70,45 @@ export interface PlatformAccount {
   createdAt: string;
 }
 
-interface OrganizationRow {
+export interface PaginatedResult<T> {
+  rows: T[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface PlatformOrganizationQuery {
+  includeDeleted?: boolean;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PlatformAccountQuery {
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PointTransactionCursor {
+  createdAt: string;
+  id: number;
+}
+
+export interface PointTransactionQuery {
+  type?: PointTxType;
+  cursor?: PointTransactionCursor | null;
+  pageSize?: number;
+}
+
+export interface PointTransactionPage {
+  rows: PointTransaction[];
+  totalCount: number;
+  nextCursor: PointTransactionCursor | null;
+  pageSize: number;
+}
+
+interface OrganizationRpcRow {
   id: number;
   name: string;
   slug: string | null;
@@ -78,48 +116,44 @@ interface OrganizationRow {
   created_at: string;
   phone: string | null;
   deleted_at: string | null;
+  account_count: number | string;
+  building_count: number | string;
+  ledger_balance: number | string;
+  reserved_points: number | string;
+  available_points: number | string;
+  total_count: number | string;
 }
 
-interface MemberRow {
+interface AccountRpcRow {
   org_id: number;
+  organization_name: string;
   user_id: string;
+  username: string | null;
+  full_name: string | null;
   role: OrgMemberRole;
   staff_type: StaffType;
   feature_permissions: unknown;
+  is_active: boolean | null;
   created_at: string;
+  total_count: number | string;
 }
 
-interface ProfileRow {
-  user_id: string;
-  username: string;
-  full_name: string;
-  is_active: boolean;
-}
-
-interface PointTxRow {
+interface PointTxRpcRow {
   id: number;
   org_id: number;
+  organization_name: string;
   type: PointTxType;
   points: number;
   amount_krw: number | null;
   memo: string | null;
   created_by: string | null;
+  created_by_name: string | null;
   created_at: string;
+  total_count: number | string;
 }
 
-interface PointBalanceRow {
-  org_id: number;
-  ledger_balance: number;
-  reserved_points: number;
-  available_points: number;
-}
-
-function countByOrganization(rows: Array<{ org_id: number }> | null): Map<number, number> {
-  const counts = new Map<number, number>();
-  for (const row of rows ?? []) {
-    counts.set(row.org_id, (counts.get(row.org_id) ?? 0) + 1);
-  }
-  return counts;
+function positiveInteger(value: number | undefined, fallback: number): number {
+  return Number.isInteger(value) && (value ?? 0) > 0 ? value as number : fallback;
 }
 
 /**
@@ -153,144 +187,107 @@ export async function getPlatformOverview(): Promise<PlatformOverview> {
 }
 
 export async function listPlatformOrganizations(
-  opts: { includeDeleted?: boolean } = {},
-): Promise<PlatformOrganization[]> {
-  const supabase = createClient();
-  let orgQuery = supabase
-    .from("organizations")
-    .select("id, name, slug, status, created_at, phone, deleted_at");
-  if (!opts.includeDeleted) orgQuery = orgQuery.is("deleted_at", null);
-  const [organizations, members, buildings, balances] = await Promise.all([
-    orgQuery.order("created_at", { ascending: false }),
-    supabase.from("org_members").select("org_id"),
-    supabase.from("buildings").select("org_id").is("deleted_at", null),
-    supabase.rpc("platform_list_point_balances"),
-  ]);
+  opts: PlatformOrganizationQuery = {},
+): Promise<PaginatedResult<PlatformOrganization>> {
+  const page = positiveInteger(opts.page, 1);
+  const pageSize = Math.min(positiveInteger(opts.pageSize, 25), 100);
+  const { data, error } = await createClient().rpc("platform_list_organizations", {
+    p_search: opts.search?.trim() || null,
+    p_include_deleted: opts.includeDeleted ?? false,
+    p_limit: pageSize,
+    p_offset: (page - 1) * pageSize,
+  });
 
-  if (organizations.error) throw new Error(organizations.error.message);
-  if (members.error) throw new Error(members.error.message);
-  if (buildings.error) throw new Error(buildings.error.message);
-  if (balances.error) throw new Error(balances.error.message);
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []) as OrganizationRpcRow[];
 
-  const accountCounts = countByOrganization(members.data);
-  const buildingCounts = countByOrganization(buildings.data);
-  const pointBalances = new Map(
-    ((balances.data ?? []) as PointBalanceRow[]).map((row) => [row.org_id, row]),
-  );
-
-  return ((organizations.data ?? []) as OrganizationRow[]).map((row) => ({
-    id: row.id,
-    name: row.name,
-    slug: row.slug,
-    status: row.status,
-    createdAt: row.created_at,
-    accountCount: accountCounts.get(row.id) ?? 0,
-    buildingCount: buildingCounts.get(row.id) ?? 0,
-    pointBalance: pointBalances.get(row.id)?.ledger_balance ?? 0,
-    ledgerBalance: pointBalances.get(row.id)?.ledger_balance ?? 0,
-    reservedPoints: pointBalances.get(row.id)?.reserved_points ?? 0,
-    availablePoints: pointBalances.get(row.id)?.available_points ?? 0,
-    phone: row.phone ?? null,
-    deletedAt: row.deleted_at ?? null,
-  }));
+  return {
+    rows: rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      slug: row.slug,
+      status: row.status,
+      createdAt: row.created_at,
+      accountCount: Number(row.account_count),
+      buildingCount: Number(row.building_count),
+      pointBalance: Number(row.ledger_balance),
+      ledgerBalance: Number(row.ledger_balance),
+      reservedPoints: Number(row.reserved_points),
+      availablePoints: Number(row.available_points),
+      phone: row.phone ?? null,
+      deletedAt: row.deleted_at ?? null,
+    })),
+    totalCount: rows.length > 0 ? Number(rows[0].total_count) : 0,
+    page,
+    pageSize,
+  };
 }
 
-export async function listPlatformAccounts(): Promise<PlatformAccount[]> {
-  const supabase = createClient();
-  const [organizations, members] = await Promise.all([
-    supabase.from("organizations").select("id, name"),
-    supabase
-      .from("org_members")
-      .select("org_id, user_id, role, staff_type, feature_permissions, created_at")
-      .order("created_at", { ascending: false }),
-  ]);
+export async function listPlatformAccounts(
+  opts: PlatformAccountQuery = {},
+): Promise<PaginatedResult<PlatformAccount>> {
+  const page = positiveInteger(opts.page, 1);
+  const pageSize = Math.min(positiveInteger(opts.pageSize, 25), 100);
+  const { data, error } = await createClient().rpc("platform_list_accounts", {
+    p_search: opts.search?.trim() || null,
+    p_limit: pageSize,
+    p_offset: (page - 1) * pageSize,
+  });
 
-  if (organizations.error) throw new Error(organizations.error.message);
-  if (members.error) throw new Error(members.error.message);
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []) as AccountRpcRow[];
 
-  const memberRows = (members.data ?? []) as MemberRow[];
-  const userIds = [...new Set(memberRows.map((row) => row.user_id))];
-  let profileRows: ProfileRow[] = [];
-
-  if (userIds.length > 0) {
-    const profiles = await supabase
-      .from("profiles")
-      .select("user_id, username, full_name, is_active")
-      .in("user_id", userIds);
-    if (profiles.error) throw new Error(profiles.error.message);
-    profileRows = (profiles.data ?? []) as ProfileRow[];
-  }
-
-  const organizationNames = new Map<number, string>(
-    (organizations.data ?? []).map((row) => [row.id, row.name]),
-  );
-  const profilesByUser = new Map(profileRows.map((row) => [row.user_id, row]));
-
-  return memberRows.map((row) => {
-    const profile = profilesByUser.get(row.user_id);
-    return {
+  return {
+    rows: rows.map((row) => ({
       orgId: row.org_id,
-      organizationName: organizationNames.get(row.org_id) ?? "알 수 없는 조직",
+      organizationName: row.organization_name,
       userId: row.user_id,
-      username: profile?.username ?? null,
-      fullName: profile?.full_name ?? null,
+      username: row.username,
+      fullName: row.full_name,
       role: row.role,
       staffType: row.staff_type,
       permissions: Array.isArray(row.feature_permissions) ? row.feature_permissions : [],
-      isActive: profile?.is_active ?? null,
+      isActive: row.is_active,
       createdAt: row.created_at,
-    };
-  });
+    })),
+    totalCount: rows.length > 0 ? Number(rows[0].total_count) : 0,
+    page,
+    pageSize,
+  };
 }
 
 export async function listPointTransactions(
-  opts: { type?: PointTxType } = {},
-): Promise<PointTransaction[]> {
-  const supabase = createClient();
+  opts: PointTransactionQuery = {},
+): Promise<PointTransactionPage> {
+  const pageSize = Math.min(positiveInteger(opts.pageSize, 50), 100);
+  const { data, error } = await createClient().rpc("platform_list_point_transactions", {
+    p_type: opts.type ?? null,
+    p_before_created_at: opts.cursor?.createdAt ?? null,
+    p_before_id: opts.cursor?.id ?? null,
+    p_limit: pageSize,
+  });
 
-  let query = supabase
-    .from("point_transactions")
-    .select("id, org_id, type, points, amount_krw, memo, created_by, created_at");
-  if (opts.type) query = query.eq("type", opts.type);
-
-  const { data, error } = await query.order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
-  const rows = (data ?? []) as PointTxRow[];
+  const rows = (data ?? []) as PointTxRpcRow[];
+  const lastRow = rows.at(-1);
 
-  // 조직명 + 기록자명 결합
-  const [organizations, profiles] = await Promise.all([
-    supabase.from("organizations").select("id, name"),
-    (async () => {
-      const ids = [...new Set(rows.map((r) => r.created_by).filter((v): v is string => !!v))];
-      if (ids.length === 0) return { data: [] as Array<{ user_id: string; full_name: string }> };
-      return supabase.from("profiles").select("user_id, full_name").in("user_id", ids);
-    })(),
-  ]);
-  if (organizations.error) throw new Error(organizations.error.message);
-  if ("error" in profiles && profiles.error) throw new Error(profiles.error.message);
-
-  const orgNames = new Map<number, string>(
-    (organizations.data ?? []).map((o) => [o.id, o.name]),
-  );
-  const creatorNames = new Map<string, string>(
-    ((profiles.data ?? []) as Array<{ user_id: string; full_name: string }>).map((p) => [
-      p.user_id,
-      p.full_name,
-    ]),
-  );
-
-  return rows.map((row) => ({
-    id: row.id,
-    orgId: row.org_id,
-    organizationName: orgNames.get(row.org_id) ?? "알 수 없는 조직",
-    type: row.type,
-    points: row.points,
-    amountKrw: row.amount_krw,
-    memo: row.memo,
-    createdBy: row.created_by,
-    createdByName: row.created_by ? creatorNames.get(row.created_by) ?? null : null,
-    createdAt: row.created_at,
-  }));
+  return {
+    rows: rows.map((row) => ({
+      id: row.id,
+      orgId: row.org_id,
+      organizationName: row.organization_name,
+      type: row.type,
+      points: row.points,
+      amountKrw: row.amount_krw,
+      memo: row.memo,
+      createdBy: row.created_by,
+      createdByName: row.created_by_name,
+      createdAt: row.created_at,
+    })),
+    totalCount: rows.length > 0 ? Number(rows[0].total_count) : 0,
+    nextCursor: lastRow ? { createdAt: lastRow.created_at, id: lastRow.id } : null,
+    pageSize,
+  };
 }
 
 export async function chargePoints(input: ChargePointsInput): Promise<void> {

@@ -2,16 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   from: vi.fn(),
-  listOverdueBuildings: vi.fn(),
-  listOverdueHouseholds: vi.fn(),
+  rpc: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/client", () => ({
-  createClient: () => ({ from: mocks.from }),
-}));
-vi.mock("@/hooks/reactquery/overdue", () => ({
-  listOverdueBuildings: mocks.listOverdueBuildings,
-  listOverdueHouseholds: mocks.listOverdueHouseholds,
+  createClient: () => ({ from: mocks.from, rpc: mocks.rpc }),
 }));
 
 import { getDashboardOverview, getKoreaToday } from "./apis";
@@ -73,15 +68,7 @@ function setupDashboardQueries() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.listOverdueBuildings.mockResolvedValue([
-    { id: 1, code: "B001", name: "그린빌라" },
-    { id: 2, code: "B002", name: "새봄빌라" },
-  ]);
-  mocks.listOverdueHouseholds.mockImplementation(async (buildingId: number) =>
-    buildingId === 1
-      ? [{ occupancyId: 31, overdueAmount: 120_000 }, { occupancyId: 33, overdueAmount: 0 }]
-      : [{ occupancyId: 32, overdueAmount: 90_000 }],
-  );
+  mocks.rpc.mockResolvedValue({ data: 2, error: null });
 });
 
 describe("dashboard apis", () => {
@@ -130,15 +117,10 @@ describe("dashboard apis", () => {
       head: true,
     });
     expect(complaintsQuery.eq).toHaveBeenCalledWith("status", "pending");
-    expect(mocks.listOverdueHouseholds).toHaveBeenCalledWith(1, {
-      year: 2026,
-      month: 8,
-      scope: "all",
-    });
-    expect(mocks.listOverdueHouseholds).toHaveBeenCalledWith(2, {
-      year: 2026,
-      month: 8,
-      scope: "all",
+    expect(mocks.rpc).toHaveBeenCalledTimes(1);
+    expect(mocks.rpc).toHaveBeenCalledWith("count_overdue_households", {
+      p_target_year: 2026,
+      p_target_month: 8,
     });
   });
 });
