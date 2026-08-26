@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useDeferredValue, useState } from "react";
 import { Button, EmptyState, Modal, SearchBar, Spinner } from "@/components/common";
 import { toast } from "sonner";
 import {
@@ -20,6 +20,7 @@ import type {
 import {
   DataScopeNotice,
   PageHeader,
+  PlatformPagination,
   QueryError,
   StatusBadge,
 } from "../../_components/PageElements";
@@ -32,15 +33,24 @@ const dateFormatter = new Intl.DateTimeFormat("ko-KR", {
   month: "2-digit",
   day: "2-digit",
 });
+const PAGE_SIZE = 25;
 
 export default function PlatformOrganizationsPage() {
   const [search, setSearch] = useState("");
   const [showDeleted, setShowDeleted] = useState(false);
+  const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<PlatformOrganization | null>(null);
   const [pwNotice, setPwNotice] = useState<{ username: string; tempPassword: string } | null>(null);
 
-  const { data: organizations = [], isPending, isError, refetch } = usePlatformOrganizations();
+  const deferredSearch = useDeferredValue(search.trim());
+  const { data, isPending, isError, refetch } = usePlatformOrganizations({
+    includeDeleted: showDeleted,
+    search: deferredSearch,
+    page,
+    pageSize: PAGE_SIZE,
+  });
+  const organizations = data?.rows ?? [];
   const updateStatus = useUpdateOrganizationStatus();
   const createOrg = useCreatePlatformOrganization();
   const updateOrg = useUpdatePlatformOrganization();
@@ -98,22 +108,6 @@ export default function PlatformOrganizationsPage() {
     }
   };
 
-  const filtered = useMemo(() => {
-    const keyword = search.trim().toLocaleLowerCase("ko-KR");
-    return organizations.filter((organization) => {
-      if (!showDeleted && organization.deletedAt) return false;
-      if (!keyword) return true;
-      return `${organization.name} ${organization.slug ?? ""}`
-        .toLocaleLowerCase("ko-KR")
-        .includes(keyword);
-    });
-  }, [organizations, search, showDeleted]);
-
-  const visibleCount = useMemo(
-    () => organizations.filter((o) => showDeleted || !o.deletedAt).length,
-    [organizations, showDeleted],
-  );
-
   return (
     <div className="mx-auto w-full max-w-7xl p-5 sm:p-6 lg:p-8">
       <PageHeader
@@ -130,20 +124,30 @@ export default function PlatformOrganizationsPage() {
         <div className="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-base font-extrabold text-t1">조직 목록</h3>
-            <p className="mt-1 text-xs text-t3">총 {visibleCount.toLocaleString("ko-KR")}개</p>
+            <p className="mt-1 text-xs text-t3">총 {(data?.totalCount ?? 0).toLocaleString("ko-KR")}개</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <label className="flex items-center gap-1.5 text-xs font-semibold text-t3">
               <input
                 type="checkbox"
                 checked={showDeleted}
-                onChange={(e) => setShowDeleted(e.target.checked)}
+                onChange={(e) => {
+                  setShowDeleted(e.target.checked);
+                  setPage(1);
+                }}
                 className="h-3.5 w-3.5"
               />
               해지 포함
             </label>
             <div className="w-full sm:w-64">
-              <SearchBar value={search} onChange={setSearch} placeholder="조직명·회사코드 검색" />
+              <SearchBar
+                value={search}
+                onChange={(value) => {
+                  setSearch(value);
+                  setPage(1);
+                }}
+                placeholder="조직명·회사코드 검색"
+              />
             </div>
             <button
               type="button"
@@ -163,7 +167,7 @@ export default function PlatformOrganizationsPage() {
           <div className="p-4">
             <QueryError onRetry={() => void refetch()} />
           </div>
-        ) : filtered.length === 0 ? (
+        ) : organizations.length === 0 ? (
           <EmptyState message={search ? "검색 결과가 없습니다" : "조회 가능한 조직이 없습니다"} />
         ) : (
           <div className="overflow-x-auto">
@@ -180,7 +184,7 @@ export default function PlatformOrganizationsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((organization) => (
+                {organizations.map((organization) => (
                   <tr
                     key={organization.id}
                     className={`border-b border-line last:border-0 hover:bg-bg/50 ${
@@ -242,6 +246,12 @@ export default function PlatformOrganizationsPage() {
             </table>
           </div>
         )}
+        <PlatformPagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          totalCount={data?.totalCount ?? 0}
+          onPageChange={setPage}
+        />
       </section>
 
       <OrgFormModal

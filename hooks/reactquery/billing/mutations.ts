@@ -13,14 +13,20 @@ export function useSaveBillingCharges() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (p: SaveBillingChargesPayload) => saveBillingCharges(p),
-    onSuccess: () => qc.invalidateQueries({ queryKey: billingKeys.all }),
+    onSuccess: (_result, input) => qc.invalidateQueries({
+      queryKey: billingKeys.list(input.buildingId, input.period),
+    }),
   });
 }
 export function useConfirmBilling() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ buildingId, period }: { buildingId: number; period: string }) => confirmBilling(buildingId, period),
-    onSuccess: () => qc.invalidateQueries({ queryKey: billingKeys.all }),
+    onSuccess: (_result, input) => {
+      qc.invalidateQueries({ queryKey: billingKeys.list(input.buildingId, input.period) });
+      qc.invalidateQueries({ queryKey: billingKeys.histories() });
+      qc.invalidateQueries({ queryKey: billingKeys.newOccupancies(input.buildingId, input.period) });
+    },
   });
 }
 export function useChargeNewOccupancies() {
@@ -28,7 +34,13 @@ export function useChargeNewOccupancies() {
   return useMutation({
     mutationFn: ({ buildingId, period, unitIds }: { buildingId: number; period: string; unitIds: number[] }) =>
       chargeNewOccupancies(buildingId, period, unitIds),
-    onSuccess: () => qc.invalidateQueries({ queryKey: billingKeys.all }),
+    onSuccess: (_result, input) => {
+      qc.invalidateQueries({ queryKey: billingKeys.list(input.buildingId, input.period) });
+      qc.invalidateQueries({ queryKey: billingKeys.newOccupancies(input.buildingId, input.period) });
+      input.unitIds.forEach((unitId) => {
+        qc.invalidateQueries({ queryKey: billingKeys.history(unitId, input.period) });
+      });
+    },
   });
 }
 export function useSaveBillingPeriodSetting() {

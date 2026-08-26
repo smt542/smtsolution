@@ -40,9 +40,8 @@ export async function deleteBuildingType(id: number): Promise<void> {
 }
 
 export async function reorderBuildingTypes(orderedIds: number[]): Promise<void> {
-  const sb = createClient();
-  for (let i = 0; i < orderedIds.length; i++) {
-    const { error } = await sb.from("building_types").update({ sort_order: i }).eq("id", orderedIds[i]);
-    if (error) throw new Error(error.message);
-  }
+  const { error } = await createClient().rpc("reorder_building_types", {
+    p_ordered_ids: orderedIds,
+  });
+  if (error) throw new Error(error.message);
 }

@@ -1,23 +1,18 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useQueries, useQuery } from "@tanstack/react-query";
 import { Button, Checkbox, Select, Spinner } from "@/components/common";
-import { billKeys, getBillDocuments, type BillDocument } from "@/hooks/reactquery/bill";
 import type { Building } from "@/hooks/reactquery/buildings";
 import {
-  listBuildingPaymentDates,
-  listPaymentRows,
-  listUnitPayments,
-  paymentKeys,
   type PaymentRow,
-  type UnitPayment,
 } from "@/hooks/reactquery/payments";
 import {
-  listUtilityRows,
-  utilityKeys,
+  type ReceiptStatementDocument,
+  type ReceiptStatementUtilityRow,
+  useReceiptStatementData,
+} from "@/hooks/reactquery/receipts";
+import {
   type UtilityType,
-  type UtilityUnitRow,
 } from "@/hooks/reactquery/utilities";
 import { fromMonthInput, toMonthInput } from "@/lib/billing/period";
 import {
@@ -70,11 +65,10 @@ export function paymentPeriods(startMonth: string, endMonth: string) {
   });
 }
 
-function scopedRows(rows: PaymentRow[], scope: "building" | "unit", unitId: number | null) {
-  return scope === "unit" ? rows.filter((row) => row.unitId === unitId) : rows;
-}
-
-function utilityItemAmount(document: BillDocument | undefined, utilityType: UtilityType) {
+function utilityItemAmount(
+  document: ReceiptStatementDocument | undefined,
+  utilityType: UtilityType,
+) {
   const pattern = utilityType === "electricity"
     ? /전기/
     : utilityType === "water"
@@ -86,14 +80,14 @@ function utilityItemAmount(document: BillDocument | undefined, utilityType: Util
   return matches.length > 0 ? matches.reduce((sum, item) => sum + item.amount, 0) : null;
 }
 
-function lateFee(document: BillDocument | undefined) {
+function lateFee(document: ReceiptStatementDocument | undefined) {
   return (document?.items ?? [])
     .filter((item) => item.charged && /연체|가산/.test(item.name))
     .reduce((sum, item) => sum + item.amount, 0);
 }
 
 function toUtility(
-  utilityRow: UtilityUnitRow | undefined,
+  utilityRow: ReceiptStatementUtilityRow | undefined,
   fallbackAmount: number | null,
 ): PaymentStatementUtility {
   if (!utilityRow) return { ...EMPTY_UTILITY, amount: fallbackAmount };
@@ -135,92 +129,45 @@ export function PaymentStatementModal({
     .filter(({ type }) => utilitySelection[type])
     .map(({ type }) => type);
 
-  const paymentRowQueries = useQueries({
-    queries: periods.map((period) => ({
-      queryKey: paymentKeys.rows(building.id, period),
-      queryFn: () => listPaymentRows(building.id, period),
-    })),
-  });
-  const buildingPaymentDatesQuery = useQuery({
-    queryKey: paymentKeys.statementDates(
-      building.id,
-      periods[0] ?? "",
-      periods.at(-1) ?? "",
-    ),
-    queryFn: () => listBuildingPaymentDates(
-      building.id,
-      periods[0] as string,
-      periods.at(-1) as string,
-    ),
-    enabled: scope === "building" && periods.length > 0,
-  });
-
-  const rowsByPeriod = periods.map((period, index) => ({
+  const statementUnitId = scope === "unit" ? unitId : null;
+  const canLoadStatement = periods.length > 0 && (scope === "building" || unitId !== null);
+  const statementQuery = useReceiptStatementData(
+    building.id,
+    statementUnitId,
+    periods[0] ?? "",
+    periods.at(-1) ?? "",
+    canLoadStatement,
+  );
+  const statementData = canLoadStatement ? statementQuery.data : undefined;
+  const rowsByPeriod = periods.map((period) => ({
     period,
-    rows: scopedRows(paymentRowQueries[index]?.data ?? [], scope, unitId),
+    rows: (statementData?.paymentRows ?? []).filter((row) => row.period === period),
   }));
 
-  const billQueries = useQueries({
-    queries: rowsByPeriod.map(({ period, rows }) => ({
-      queryKey: billKeys.documents(building.id, period, rows.map((row) => row.unitId)),
-      queryFn: () => getBillDocuments(building.id, period, rows.map((row) => row.unitId)),
-      enabled: rows.length > 0,
-    })),
-  });
-
-  const utilityDescriptors = periods.flatMap((period) =>
-    selectedUtilityTypes.map((type) => ({ period, type })),
-  );
-  const utilityQueries = useQueries({
-    queries: utilityDescriptors.map(({ period, type }) => ({
-      queryKey: utilityKeys.rows(building.id, type, period),
-      queryFn: () => listUtilityRows(building.id, type, period),
-    })),
-  });
-
-  const paymentDescriptors = scope === "unit"
-    ? rowsByPeriod.flatMap(({ period, rows }) =>
-        rows.filter((row) => row.paid > 0).map((row) => ({ period, unitId: row.unitId })),
-      )
-    : [];
-  const paymentQueries = useQueries({
-    queries: paymentDescriptors.map(({ period, unitId: paymentUnitId }) => ({
-      queryKey: paymentKeys.unit(paymentUnitId, period),
-      queryFn: () => listUnitPayments(paymentUnitId, period),
-    })),
-  });
-
   const statementRows = (() => {
-    const utilitiesByKey = new Map<string, UtilityUnitRow[]>();
-    utilityDescriptors.forEach((descriptor, index) => {
-      utilitiesByKey.set(
-        `${descriptor.period}:${descriptor.type}`,
-        utilityQueries[index]?.data ?? [],
-      );
-    });
-    const paymentsByKey = new Map<string, UnitPayment[]>();
-    paymentDescriptors.forEach((descriptor, index) => {
-      paymentsByKey.set(
-        `${descriptor.period}:${descriptor.unitId}`,
-        paymentQueries[index]?.data ?? [],
-      );
-    });
+    const utilitiesByKey = new Map<string, ReceiptStatementUtilityRow[]>();
+    for (const type of UTILITY_OPTIONS.map((option) => option.type)) {
+      for (const period of periods) {
+        utilitiesByKey.set(
+          `${period}:${type}`,
+          (statementData?.utilities[type] ?? []).filter((row) => row.period === period),
+        );
+      }
+    }
 
-    return rowsByPeriod.flatMap(({ period, rows }, periodIndex) => {
-      const documents = billQueries[periodIndex]?.data ?? [];
+    return rowsByPeriod.flatMap(({ period, rows }) => {
+      const documents = (statementData?.documents ?? [])
+        .filter((document) => document.period === period);
       return rows.flatMap((row): PaymentStatementRow[] => {
         const hasData = row.charged !== null || row.paid > 0;
         if (!hasData || (filter === "unpaid" && !(row.unpaid !== null && row.unpaid > 0))) {
           return [];
         }
         const document = documents.find((candidate) => candidate.unitId === row.unitId);
-        const activePayments = (paymentsByKey.get(`${period}:${row.unitId}`) ?? [])
+        const activePayments = (statementData?.payments ?? [])
+          .filter((payment) => payment.period === period && payment.unitId === row.unitId)
           .filter((payment) => payment.status === "active");
-        const paymentDates = scope === "building"
-          ? (buildingPaymentDatesQuery.data ?? [])
-              .filter((payment) => payment.period === period && payment.unitId === row.unitId)
-              .map((payment) => payment.paidAt)
-          : activePayments.map((payment) => payment.paidAt);
+        const paymentDates = activePayments.map((payment) => payment.paidAt);
         const utilities = Object.fromEntries(
           UTILITY_OPTIONS.map(({ type }) => {
             const utilityRow = utilitiesByKey
@@ -247,15 +194,9 @@ export function PaymentStatementModal({
     });
   })();
 
-  const allQueries = [
-    ...paymentRowQueries,
-    ...billQueries,
-    ...utilityQueries,
-    ...paymentQueries,
-    buildingPaymentDatesQuery,
-  ];
-  const isLoading = allQueries.some((query) => query.isLoading || query.isFetching);
-  const isError = allQueries.some((query) => query.isError);
+  const isLoading = canLoadStatement
+    && (statementQuery.isLoading || statementQuery.isFetching);
+  const isError = canLoadStatement && statementQuery.isError;
   const selectedRow = currentRows.find((row) => row.unitId === unitId);
   const scopeLabel = scope === "building"
     ? "건물 전체"

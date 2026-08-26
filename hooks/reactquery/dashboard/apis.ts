@@ -1,8 +1,4 @@
 import { createClient } from "@/lib/supabase/client";
-import {
-  listOverdueBuildings,
-  listOverdueHouseholds,
-} from "@/hooks/reactquery/overdue";
 
 const KOREA_TIME_ZONE = "Asia/Seoul";
 
@@ -61,18 +57,13 @@ export function getKoreaToday(now = new Date()): string {
 
 async function countOverdueHouseholds(today: string): Promise<number> {
   const [year, month] = today.split("-").map(Number);
-  const buildings = await listOverdueBuildings();
-  const householdsByBuilding = await Promise.all(
-    buildings.map((building) =>
-      listOverdueHouseholds(building.id, { year, month, scope: "all" }),
-    ),
-  );
+  const { data, error } = await createClient().rpc("count_overdue_households", {
+    p_target_year: year,
+    p_target_month: month,
+  });
 
-  return householdsByBuilding.reduce(
-    (total, households) =>
-      total + households.filter((household) => household.overdueAmount > 0).length,
-    0,
-  );
+  if (error) throw new Error(error.message);
+  return Number(data ?? 0);
 }
 
 export async function getDashboardOverview(

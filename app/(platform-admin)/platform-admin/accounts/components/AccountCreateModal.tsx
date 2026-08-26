@@ -33,10 +33,10 @@ const STAFF_TYPE_OPTIONS = [
 ];
 
 export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props) {
-  const organizationsQuery = usePlatformOrganizations();
+  const organizationsQuery = usePlatformOrganizations({ pageSize: 100 });
   const organizations = useMemo(
     () =>
-      (organizationsQuery.data ?? []).filter(
+      (organizationsQuery.data?.rows ?? []).filter(
         (organization) => !organization.deletedAt && organization.status !== "suspended",
       ),
     [organizationsQuery.data],

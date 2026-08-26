@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { EmptyState, Spinner, Button, SearchBar } from "@/components/common";
 import {
   useAdjustPoints,
@@ -12,11 +12,17 @@ import {
   useReleaseStalePointReservation,
   useSetMessagePointRates,
   type PointReservation,
+  type PointReservationStatus,
   type PointTxType,
 } from "@/hooks/reactquery/platform";
 import type { PointAdjustmentFormValues } from "@/components/forms/schema/pointAdjustment";
 import { toast } from "sonner";
-import { PageHeader, QueryError, StatusBadge } from "../../_components/PageElements";
+import {
+  PageHeader,
+  PlatformPagination,
+  QueryError,
+  StatusBadge,
+} from "../../_components/PageElements";
 import { PointChargeModal } from "./components/PointChargeModal";
 import { PointAdjustmentModal } from "./components/PointAdjustmentModal";
 import { MessagePointRateModal } from "./components/MessagePointRateModal";
@@ -24,40 +30,60 @@ import { ReservationReleaseModal } from "./components/ReservationReleaseModal";
 
 const dateFmt = new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" });
 const num = (n: number) => n.toLocaleString("ko-KR");
+const ORGANIZATION_PAGE_SIZE = 25;
+const RESERVATION_PAGE_SIZE = 25;
+const ACTIVE_RESERVATION_STATUSES: PointReservationStatus[] = [
+  "reserved",
+  "provider_pending",
+  "reconcile_required",
+];
 
 export default function PlatformPointsPage() {
   const [search, setSearch] = useState("");
+  const [organizationPage, setOrganizationPage] = useState(1);
+  const [reservationPage, setReservationPage] = useState(1);
   const [chargeModalOpen, setChargeModalOpen] = useState(false);
   const [adjustmentModalOpen, setAdjustmentModalOpen] = useState(false);
   const [rateModalOpen, setRateModalOpen] = useState(false);
   const [releaseTarget, setReleaseTarget] = useState<PointReservation | null>(null);
-  const orgsQuery = usePlatformOrganizations();
+  const deferredSearch = useDeferredValue(search.trim());
+  const orgsQuery = usePlatformOrganizations({
+    search: deferredSearch,
+    page: organizationPage,
+    pageSize: ORGANIZATION_PAGE_SIZE,
+  });
+  // Dedicated full-list query for modal pickers — not affected by table search/pagination.
+  const modalOrgsQuery = usePlatformOrganizations({ pageSize: 100 });
   const txQuery = usePlatformTransactions();
   const ratesQuery = useMessagePointRates();
-  const reservationsQuery = usePointReservations();
+  const reservationsQuery = usePointReservations({
+    statuses: ACTIVE_RESERVATION_STATUSES,
+    page: reservationPage,
+    pageSize: RESERVATION_PAGE_SIZE,
+  });
   const charge = useChargePoints();
   const adjustment = useAdjustPoints();
   const setRates = useSetMessagePointRates();
   const releaseReservation = useReleaseStalePointReservation();
 
   const organizations = useMemo(
-    () => (orgsQuery.data ?? []).filter((organization) => !organization.deletedAt),
+    () => orgsQuery.data?.rows ?? [],
     [orgsQuery.data],
   );
-  const filtered = useMemo(() => {
-    const kw = search.trim().toLocaleLowerCase("ko-KR");
-    if (!kw) return organizations;
-    return organizations.filter((o) => o.name.toLocaleLowerCase("ko-KR").includes(kw));
-  }, [organizations, search]);
+  const modalOrganizations = useMemo(
+    () => (modalOrgsQuery.data?.rows ?? []).filter((o) => !o.deletedAt),
+    [modalOrgsQuery.data],
+  );
+  const transactions = useMemo(
+    () => txQuery.data?.pages.flatMap((page) => page.rows) ?? [],
+    [txQuery.data],
+  );
   const activeRates = useMemo(
     () => new Map((ratesQuery.data ?? []).filter((rate) => rate.isActive).map((rate) => [rate.channel, rate.points])),
     [ratesQuery.data],
   );
   const activeReservations = useMemo(
-    () => (reservationsQuery.data ?? []).filter((reservation) =>
-      reservation.status === "reserved" ||
-      reservation.status === "provider_pending" ||
-      reservation.status === "reconcile_required"),
+    () => reservationsQuery.data?.rows ?? [],
     [reservationsQuery.data],
   );
 
@@ -139,19 +165,28 @@ export default function PlatformPointsPage() {
         <div className="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-base font-extrabold text-t1">조직별 포인트 잔액</h3>
-            <p className="mt-1 text-xs text-t3">총 {num(organizations.length)}개 조직</p>
+            <p className="mt-1 text-xs text-t3">총 {num(orgsQuery.data?.totalCount ?? 0)}개 조직</p>
           </div>
           <div className="flex w-full gap-2 sm:w-auto">
-            <div className="w-full sm:w-64"><SearchBar value={search} onChange={setSearch} placeholder="조직명 검색" /></div>
-            <Button variant="ghost" onClick={() => setAdjustmentModalOpen(true)} disabled={organizations.length === 0}>포인트 조정</Button>
-            <Button variant="primary" onClick={() => setChargeModalOpen(true)} disabled={organizations.length === 0}>충전 기록</Button>
+            <div className="w-full sm:w-64">
+              <SearchBar
+                value={search}
+                onChange={(value) => {
+                  setSearch(value);
+                  setOrganizationPage(1);
+                }}
+                placeholder="조직명 검색"
+              />
+            </div>
+            <Button variant="ghost" onClick={() => setAdjustmentModalOpen(true)} disabled={modalOrganizations.length === 0}>포인트 조정</Button>
+            <Button variant="primary" onClick={() => setChargeModalOpen(true)} disabled={modalOrganizations.length === 0}>충전 기록</Button>
           </div>
         </div>
         {orgsQuery.isPending ? (
           <div className="py-16"><Spinner /></div>
         ) : orgsQuery.isError ? (
           <div className="p-4"><QueryError onRetry={() => void orgsQuery.refetch()} /></div>
-        ) : filtered.length === 0 ? (
+        ) : organizations.length === 0 ? (
           <EmptyState message={search ? "검색 결과가 없습니다" : "조회 가능한 조직이 없습니다"} />
         ) : (
           <div className="overflow-x-auto">
@@ -165,7 +200,7 @@ export default function PlatformPointsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((o) => (
+                {organizations.map((o) => (
                   <tr key={o.id} className="border-b border-line last:border-0 hover:bg-bg/50">
                     <td className="px-5 py-4 font-bold text-t1">{o.name}</td>
                     <td className="px-4 py-4"><StatusBadge status={o.status} /></td>
@@ -178,6 +213,12 @@ export default function PlatformPointsPage() {
             </table>
           </div>
         )}
+        <PlatformPagination
+          page={organizationPage}
+          pageSize={ORGANIZATION_PAGE_SIZE}
+          totalCount={orgsQuery.data?.totalCount ?? 0}
+          onPageChange={setOrganizationPage}
+        />
       </section>
 
       <section className="mt-6 rounded-2xl border border-line bg-surface shadow-card">
@@ -187,7 +228,7 @@ export default function PlatformPointsPage() {
             만료만으로 자동 해제하지 않습니다. 공급자 상태 확인이 필요한 예약은 수동 검토하세요.
           </p>
         </div>
-        {activeReservations.some((reservation) => reservation.status === "reconcile_required") && (
+        {reservationsQuery.data?.hasReconcileRequired && (
           <p className="m-4 rounded-xl bg-danger/10 px-4 py-3 text-sm font-extrabold text-danger">
             공급자 결과 확인이 필요한 예약이 있습니다.
           </p>
@@ -236,6 +277,12 @@ export default function PlatformPointsPage() {
             </table>
           </div>
         )}
+        <PlatformPagination
+          page={reservationPage}
+          pageSize={RESERVATION_PAGE_SIZE}
+          totalCount={reservationsQuery.data?.totalCount ?? 0}
+          onPageChange={setReservationPage}
+        />
       </section>
 
       {/* 내역 */}
@@ -245,7 +292,7 @@ export default function PlatformPointsPage() {
           <div className="py-16"><Spinner /></div>
         ) : txQuery.isError ? (
           <div className="p-4"><QueryError onRetry={() => void txQuery.refetch()} /></div>
-        ) : (txQuery.data ?? []).length === 0 ? (
+        ) : transactions.length === 0 ? (
           <EmptyState message="내역이 없습니다" />
         ) : (
           <div className="overflow-x-auto">
@@ -257,7 +304,7 @@ export default function PlatformPointsPage() {
                 </tr>
               </thead>
               <tbody>
-                {(txQuery.data ?? []).map((t) => (
+                {transactions.map((t) => (
                   <tr key={t.id} className="border-b border-line last:border-0 hover:bg-bg/50">
                     <td className="px-5 py-4 text-t2 num">{dateFmt.format(new Date(t.createdAt))}</td>
                     <td className="px-4 py-4 text-t1">{t.organizationName}</td>
@@ -273,19 +320,30 @@ export default function PlatformPointsPage() {
             </table>
           </div>
         )}
+        {txQuery.hasNextPage && (
+          <div className="flex justify-center border-t border-line p-3">
+            <Button
+              variant="ghost"
+              onClick={() => void txQuery.fetchNextPage()}
+              disabled={txQuery.isFetchingNextPage}
+            >
+              {txQuery.isFetchingNextPage ? "불러오는 중" : "내역 더 보기"}
+            </Button>
+          </div>
+        )}
       </section>
 
       <PointChargeModal
         open={chargeModalOpen}
         onClose={() => setChargeModalOpen(false)}
-        organizations={organizations}
+        organizations={modalOrganizations}
         onSubmit={handleCharge}
         isPending={charge.isPending}
       />
       <PointAdjustmentModal
         open={adjustmentModalOpen}
         onClose={() => setAdjustmentModalOpen(false)}
-        organizations={organizations}
+        organizations={modalOrganizations}
         onSubmit={handleAdjustment}
         isPending={adjustment.isPending}
       />

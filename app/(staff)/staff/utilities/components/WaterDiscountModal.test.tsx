@@ -48,27 +48,30 @@ beforeEach(() => {
 
 describe("WaterDiscountModal", () => {
   it("구분·금액을 입력해 저장하면 saveWaterDiscount를 호출한다", () => {
-    render(<WaterDiscountModal open row={baseRow} onClose={() => {}} />);
+    render(<WaterDiscountModal open buildingId={7} period="2026-08-01" row={baseRow} onClose={() => {}} />);
     fireEvent.change(screen.getByLabelText("할인 구분"), { target: { value: "recipient" } });
     fireEvent.change(screen.getByLabelText("할인 금액"), { target: { value: "3000" } });
     fireEvent.click(screen.getByRole("button", { name: "저장" }));
 
     expect(saveMutate).toHaveBeenCalledWith(
-      expect.objectContaining({ unitId: 101, discountType: "recipient", amount: 3000 }),
+      expect.objectContaining({ buildingId: 7, period: "2026-08-01", unitId: 101, discountType: "recipient", amount: 3000 }),
       expect.anything(),
     );
   });
 
   it("기존 할인 세대에서 해제하면 deleteWaterDiscount를 호출한다", () => {
     const withDiscount: UtilityUnitRow = { ...baseRow, discountType: "recipient", discountAmount: 3000 };
-    render(<WaterDiscountModal open row={withDiscount} onClose={() => {}} />);
+    render(<WaterDiscountModal open buildingId={7} period="2026-08-01" row={withDiscount} onClose={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: "할인 해제" }));
 
-    expect(deleteMutate).toHaveBeenCalledWith(101, expect.anything());
+    expect(deleteMutate).toHaveBeenCalledWith(
+      { buildingId: 7, period: "2026-08-01", unitId: 101 },
+      expect.anything(),
+    );
   });
 
   it("음수 금액은 저장하지 않는다", () => {
-    render(<WaterDiscountModal open row={baseRow} onClose={() => {}} />);
+    render(<WaterDiscountModal open buildingId={7} period="2026-08-01" row={baseRow} onClose={() => {}} />);
     fireEvent.change(screen.getByLabelText("할인 금액"), { target: { value: "-1" } });
     fireEvent.click(screen.getByRole("button", { name: "저장" }));
 

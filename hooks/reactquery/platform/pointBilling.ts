@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import type { PaginatedResult } from "./apis";
 
 export type MessagePointChannel = "sms" | "lms" | "alimtalk";
 export type PointReservationStatus =
@@ -42,6 +43,16 @@ export interface PointReservation {
   requestedByName: string | null;
 }
 
+export interface PointReservationQuery {
+  statuses?: PointReservationStatus[];
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PointReservationPage extends PaginatedResult<PointReservation> {
+  hasReconcileRequired: boolean;
+}
+
 interface MessagePointRateRow {
   id: number;
   channel: MessagePointChannel;
@@ -67,6 +78,8 @@ interface PointReservationRow {
   created_at: string;
   requested_by: string | null;
   requested_by_name: string | null;
+  total_count: number | string;
+  has_reconcile_required: boolean;
 }
 
 export async function listMessagePointRates(
@@ -121,29 +134,45 @@ export async function setMessagePointRates(
 }
 
 export async function listPointReservations(
-  status?: PointReservationStatus,
-): Promise<PointReservation[]> {
+  opts: PointReservationQuery = {},
+): Promise<PointReservationPage> {
+  const page = Number.isInteger(opts.page) && (opts.page ?? 0) > 0 ? opts.page as number : 1;
+  const requestedPageSize = Number.isInteger(opts.pageSize) && (opts.pageSize ?? 0) > 0
+    ? opts.pageSize as number
+    : 25;
+  const pageSize = Math.min(requestedPageSize, 100);
   const { data, error } = await createClient().rpc(
-    "platform_list_point_reservations",
-    { p_status: status ?? null },
+    "platform_list_point_reservations_page",
+    {
+      p_statuses: opts.statuses ?? null,
+      p_limit: pageSize,
+      p_offset: (page - 1) * pageSize,
+    },
   );
   if (error) throw new Error(error.message);
 
-  return ((data ?? []) as PointReservationRow[]).map((row) => ({
-    id: row.id,
-    orgId: row.org_id,
-    organizationName: row.organization_name,
-    messageLogId: row.message_log_id,
-    status: row.status,
-    reservedPoints: row.reserved_points,
-    chargedPoints: row.charged_points,
-    ageSeconds: row.age_seconds,
-    isReleasable: row.is_releasable,
-    expiresAt: row.expires_at,
-    createdAt: row.created_at,
-    requestedBy: row.requested_by,
-    requestedByName: row.requested_by_name,
-  }));
+  const rows = (data ?? []) as PointReservationRow[];
+  return {
+    rows: rows.map((row) => ({
+      id: row.id,
+      orgId: row.org_id,
+      organizationName: row.organization_name,
+      messageLogId: row.message_log_id,
+      status: row.status,
+      reservedPoints: row.reserved_points,
+      chargedPoints: row.charged_points,
+      ageSeconds: row.age_seconds,
+      isReleasable: row.is_releasable,
+      expiresAt: row.expires_at,
+      createdAt: row.created_at,
+      requestedBy: row.requested_by,
+      requestedByName: row.requested_by_name,
+    })),
+    totalCount: rows.length > 0 ? Number(rows[0].total_count) : 0,
+    page,
+    pageSize,
+    hasReconcileRequired: rows[0]?.has_reconcile_required ?? false,
+  };
 }
 
 export async function releaseStalePointReservation(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button, EmptyState, Select, Spinner, Tabs } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
@@ -89,6 +89,83 @@ export default function UtilitiesPage() {
   const confirmUtilities = useConfirmUtilities();
   const saveMeter = useSaveMeterReadings();
 
+  const buildings = useMemo(() => buildingsQuery.data ?? [], [buildingsQuery.data]);
+  const rows = useMemo<UtilityTableRow[]>(() => {
+    const fixedUsages = new Map(
+      (fixedUsagesQuery.data ?? []).map((row) => [row.unitId, row]),
+    );
+    return (rowsQuery.data ?? []).map((row) => {
+      const fixedUsage = fixedUsages.get(row.unitId);
+      return {
+        ...row,
+        fixedUsage: fixedUsage?.fixedUsage ?? null,
+        ...(utilityType === "gas"
+          ? { fixedUsageFrom: fixedUsage?.fromMonth ?? null }
+          : {}),
+      };
+    });
+  }, [fixedUsagesQuery.data, rowsQuery.data, utilityType]);
+  const rowsLoading = rowsQuery.isLoading || fixedUsagesQuery.isLoading;
+  const rowsError = rowsQuery.error ?? fixedUsagesQuery.error;
+  const scopeKey = `${buildingId ?? "none"}:${utilityType}`;
+  const rowsById = useMemo(
+    () => new Map(rows.map((row) => [row.unitId, row])),
+    [rows],
+  );
+  const initialDrafts = useMemo<Record<number, UtilityDraft>>(
+    () => Object.fromEntries(rows.map((row) => [row.unitId, initialDraft(row)])),
+    [rows],
+  );
+  const scopedDrafts = useMemo<Record<number, UtilityDraft>>(
+    () => Object.fromEntries(
+      rows.map((row) => [
+        row.unitId,
+        drafts[`${scopeKey}:${row.unitId}`] ?? initialDrafts[row.unitId],
+      ]),
+    ),
+    [drafts, initialDrafts, rows, scopeKey],
+  );
+  const activeRows = useMemo(
+    () => rows.filter((row) => !isVacant(row)),
+    [rows],
+  );
+  const visibleRows = useMemo(
+    () => utilityType !== "gas" || gasLine === ""
+      ? rows
+      : rows.filter((row) => gasLine === UNASSIGNED_GAS_LINE
+        ? row.customerNumber === null
+        : row.customerNumber === gasLine),
+    [gasLine, rows, utilityType],
+  );
+  const confirmation = confirmationQuery.data ?? null;
+  const { completed, expectedCharge } = useMemo(() => activeRows.reduce(
+    (summary, row) => {
+      const draft = scopedDrafts[row.unitId];
+      if (row.fixedUsage !== null || draft.currentReading.trim() !== "") {
+        summary.completed += 1;
+      }
+      const manual = draft.manualCharge.trim();
+      if (manual !== "") {
+        const parsed = Number(manual);
+        summary.expectedCharge += Number.isFinite(parsed) ? parsed : 0;
+      } else {
+        summary.expectedCharge += row.automaticCharge ?? 0;
+      }
+      return summary;
+    },
+    { completed: 0, expectedCharge: 0 },
+  ), [activeRows, scopedDrafts]);
+
+  const updateDraft = useCallback((unitId: number, patch: Partial<UtilityDraft>) => {
+    const row = rowsById.get(unitId);
+    if (!row) return;
+    const key = `${scopeKey}:${unitId}`;
+    setDrafts((current) => ({
+      ...current,
+      [key]: { ...(current[key] ?? initialDraft(row)), ...patch },
+    }));
+  }, [rowsById, scopeKey]);
+
   if (me === undefined) return null;
   if (!hasModule(me, "utilities")) {
     return (
@@ -97,55 +174,6 @@ export default function UtilitiesPage() {
       </div>
     );
   }
-
-  const buildings = buildingsQuery.data ?? [];
-  const fixedUsages = new Map(
-    (fixedUsagesQuery.data ?? []).map((row) => [row.unitId, row]),
-  );
-  const rows: UtilityTableRow[] = (rowsQuery.data ?? []).map((row) => {
-    const fixedUsage = fixedUsages.get(row.unitId);
-    return {
-      ...row,
-      fixedUsage: fixedUsage?.fixedUsage ?? null,
-      ...(utilityType === "gas"
-        ? { fixedUsageFrom: fixedUsage?.fromMonth ?? null }
-        : {}),
-    };
-  });
-  const rowsLoading = rowsQuery.isLoading || fixedUsagesQuery.isLoading;
-  const rowsError = rowsQuery.error ?? fixedUsagesQuery.error;
-  const scopeKey = `${buildingId ?? "none"}:${utilityType}`;
-  const scopedDrafts: Record<number, UtilityDraft> = Object.fromEntries(
-    rows.map((row) => [row.unitId, drafts[`${scopeKey}:${row.unitId}`] ?? initialDraft(row)]),
-  );
-  const activeRows = rows.filter((row) => !isVacant(row));
-  const visibleRows = utilityType !== "gas" || gasLine === ""
-    ? rows
-    : rows.filter((row) => gasLine === UNASSIGNED_GAS_LINE
-      ? row.customerNumber === null
-      : row.customerNumber === gasLine);
-  const confirmation = confirmationQuery.data ?? null;
-  const completed = activeRows.filter(
-    (row) => row.fixedUsage !== null || scopedDrafts[row.unitId].currentReading.trim() !== "",
-  ).length;
-  const expectedCharge = activeRows.reduce((sum, row) => {
-    const manual = scopedDrafts[row.unitId].manualCharge.trim();
-    if (manual !== "") {
-      const parsed = Number(manual);
-      return sum + (Number.isFinite(parsed) ? parsed : 0);
-    }
-    return sum + (row.automaticCharge ?? 0);
-  }, 0);
-
-  const updateDraft = (unitId: number, patch: Partial<UtilityDraft>) => {
-    const row = rows.find((candidate) => candidate.unitId === unitId);
-    if (!row) return;
-    const key = `${scopeKey}:${unitId}`;
-    setDrafts((current) => ({
-      ...current,
-      [key]: { ...(current[key] ?? initialDraft(row)), ...patch },
-    }));
-  };
 
   const selectBuilding = (value: string) => {
     setBuildingId(value ? Number(value) : null);
@@ -508,6 +536,8 @@ export default function UtilitiesPage() {
       {discountRow && (
         <WaterDiscountModal
           open
+          buildingId={buildingId as number}
+          period={period}
           row={discountRow}
           onClose={() => setDiscountRow(null)}
         />

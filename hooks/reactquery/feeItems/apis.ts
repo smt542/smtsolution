@@ -110,9 +110,8 @@ export async function deleteFeeItem({ id, isRequired }: { id: number; isRequired
 }
 
 export async function reorderFeeItems(orderedIds: number[]): Promise<void> {
-  const sb = createClient();
-  for (let i = 0; i < orderedIds.length; i++) {
-    const { error } = await sb.from("fee_items").update({ sort_order: i }).eq("id", orderedIds[i]);
-    if (error) throw new Error(error.message);
-  }
+  const { error } = await createClient().rpc("reorder_fee_items", {
+    p_ordered_ids: orderedIds,
+  });
+  if (error) throw new Error(error.message);
 }

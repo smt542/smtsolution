@@ -26,83 +26,78 @@ beforeEach(() => {
 
 describe("platform admin apis", () => {
   it("조직별 실제 계정·건물 수를 집계하고 snake_case를 변환한다", async () => {
-    from.mockImplementation((table: string) => {
-      if (table === "organizations") {
-        const order = vi.fn().mockResolvedValue({
-          data: [
-            { id: 1, name: "한빛관리", slug: "hanbit", status: "active", created_at: "2026-01-02T00:00:00Z" },
-            { id: 2, name: "새봄관리", slug: null, status: "trial", created_at: "2026-01-01T00:00:00Z" },
-          ],
-          error: null,
-        });
-        return {
-          select: () => ({
-            is: vi.fn(() => ({ order })),
-          }),
-        };
-      }
-      if (table === "org_members") {
-        return {
-          select: vi.fn().mockResolvedValue({
-            data: [{ org_id: 1 }, { org_id: 1 }, { org_id: 2 }],
-            error: null,
-          }),
-        };
-      }
-      return {
-        select: () => ({
-          is: vi.fn().mockResolvedValue({
-            data: [{ org_id: 1 }, { org_id: 1 }],
-            error: null,
-          }),
-        }),
-      };
+    rpc.mockResolvedValue({
+      data: [
+        {
+          id: 1,
+          name: "한빛관리",
+          slug: "hanbit",
+          status: "active",
+          created_at: "2026-01-02T00:00:00Z",
+          phone: null,
+          deleted_at: null,
+          account_count: 2,
+          building_count: 2,
+          ledger_balance: 700,
+          reserved_points: 100,
+          available_points: 600,
+          total_count: 2,
+        },
+        {
+          id: 2,
+          name: "새봄관리",
+          slug: null,
+          status: "trial",
+          created_at: "2026-01-01T00:00:00Z",
+          phone: null,
+          deleted_at: null,
+          account_count: 1,
+          building_count: 0,
+          ledger_balance: 500,
+          reserved_points: 0,
+          available_points: 500,
+          total_count: 2,
+        },
+      ],
+      error: null,
     });
 
     const result = await listPlatformOrganizations();
 
-    expect(result).toEqual([
+    expect(result.rows).toEqual([
       expect.objectContaining({ id: 1, name: "한빛관리", accountCount: 2, buildingCount: 2 }),
       expect.objectContaining({ id: 2, name: "새봄관리", accountCount: 1, buildingCount: 0 }),
     ]);
+    expect(result.totalCount).toBe(2);
+    expect(rpc).toHaveBeenCalledWith("platform_list_organizations", {
+      p_search: null,
+      p_include_deleted: false,
+      p_limit: 25,
+      p_offset: 0,
+    });
   });
 
   it("org_members와 profiles를 결합해 조직별 계정 상태를 반환한다", async () => {
-    const profileIn = vi.fn().mockResolvedValue({
-      data: [{ user_id: "u1", username: "master", full_name: "김관리", is_active: true }],
+    rpc.mockResolvedValue({
+      data: [{
+        org_id: 7,
+        organization_name: "한빛관리",
+        user_id: "u1",
+        username: "master",
+        full_name: "김관리",
+        role: "platform_admin",
+        staff_type: "manager_staff",
+        feature_permissions: ["accounts"],
+        is_active: true,
+        created_at: "2026-02-01T00:00:00Z",
+        total_count: 1,
+      }],
       error: null,
-    });
-
-    from.mockImplementation((table: string) => {
-      if (table === "organizations") {
-        return {
-          select: vi.fn().mockResolvedValue({ data: [{ id: 7, name: "한빛관리" }], error: null }),
-        };
-      }
-      if (table === "org_members") {
-        return {
-          select: () => ({
-            order: vi.fn().mockResolvedValue({
-              data: [{
-                org_id: 7,
-                user_id: "u1",
-                role: "platform_admin",
-                staff_type: "manager_staff",
-                feature_permissions: ["accounts"],
-                created_at: "2026-02-01T00:00:00Z",
-              }],
-              error: null,
-            }),
-          }),
-        };
-      }
-      return { select: () => ({ in: profileIn }) };
     });
 
     const result = await listPlatformAccounts();
 
-    expect(profileIn).toHaveBeenCalledWith("user_id", ["u1"]);
-    expect(result[0]).toEqual({
+    expect(result.rows[0]).toEqual({
       orgId: 7,
       organizationName: "한빛관리",
       userId: "u1",
@@ -113,6 +108,11 @@ describe("platform admin apis", () => {
       permissions: ["accounts"],
       isActive: true,
       createdAt: "2026-02-01T00:00:00Z",
+    });
+    expect(rpc).toHaveBeenCalledWith("platform_list_accounts", {
+      p_search: null,
+      p_limit: 25,
+      p_offset: 0,
     });
   });
 
@@ -141,37 +141,27 @@ describe("platform admin apis", () => {
   });
 
   it("조직 목록에 포인트 잔액(sum(points))을 집계한다", async () => {
-    from.mockImplementation((table: string) => {
-      if (table === "organizations") {
-        const order = vi.fn().mockResolvedValue({
-          data: [
-            { id: 1, name: "한빛관리", slug: "hanbit", status: "active", created_at: "2026-01-02T00:00:00Z" },
-            { id: 2, name: "새봄관리", slug: null, status: "trial", created_at: "2026-01-01T00:00:00Z" },
-          ],
-          error: null,
-        });
-        return {
-          select: () => ({
-            is: vi.fn(() => ({ order })),
-          }),
-        };
-      }
-      if (table === "org_members") {
-        return { select: vi.fn().mockResolvedValue({ data: [{ org_id: 1 }], error: null }) };
-      }
-      // buildings
-      return { select: () => ({ is: vi.fn().mockResolvedValue({ data: [], error: null }) }) };
-    });
     rpc.mockResolvedValue({
-      data: [
-        { org_id: 1, ledger_balance: 700, reserved_points: 100, available_points: 600 },
-        { org_id: 2, ledger_balance: 500, reserved_points: 0, available_points: 500 },
-      ],
+      data: [{
+        id: 1,
+        name: "한빛관리",
+        slug: "hanbit",
+        status: "active",
+        created_at: "2026-01-02T00:00:00Z",
+        phone: null,
+        deleted_at: null,
+        account_count: 1,
+        building_count: 0,
+        ledger_balance: 700,
+        reserved_points: 100,
+        available_points: 600,
+        total_count: 1,
+      }],
       error: null,
     });
 
     const result = await listPlatformOrganizations();
-    expect(result).toEqual([
+    expect(result.rows).toEqual([
       expect.objectContaining({
         id: 1,
         pointBalance: 700,
@@ -179,33 +169,32 @@ describe("platform admin apis", () => {
         reservedPoints: 100,
         availablePoints: 600,
       }),
-      expect.objectContaining({ id: 2, pointBalance: 500, availablePoints: 500 }),
     ]);
-    expect(rpc).toHaveBeenCalledWith("platform_list_point_balances");
   });
 
   it("포인트 내역을 조직명과 결합해 최신순으로 반환하고 type 필터를 적용한다", async () => {
-    const order = vi.fn().mockResolvedValue({
+    rpc.mockResolvedValue({
       data: [
-        { id: 5, org_id: 1, type: "charge", points: 1000, amount_krw: 110000, memo: "8월", created_by: "u1", created_at: "2026-08-02T00:00:00Z" },
+        {
+          id: 5,
+          org_id: 1,
+          organization_name: "한빛관리",
+          type: "charge",
+          points: 1000,
+          amount_krw: 110000,
+          memo: "8월",
+          created_by: "u1",
+          created_by_name: "김운영",
+          created_at: "2026-08-02T00:00:00Z",
+          total_count: 1,
+        },
       ],
       error: null,
-    });
-    const eq = vi.fn(() => ({ order }));
-    const profileIn = vi.fn().mockResolvedValue({
-      data: [{ user_id: "u1", full_name: "김운영" }],
-      error: null,
-    });
-    from.mockImplementation((table: string) => {
-      if (table === "point_transactions") return { select: () => ({ eq, order }) };
-      if (table === "organizations") return { select: vi.fn().mockResolvedValue({ data: [{ id: 1, name: "한빛관리" }], error: null }) };
-      return { select: () => ({ in: profileIn }) }; // profiles
     });
 
     const result = await listPointTransactions({ type: "charge" });
 
-    expect(eq).toHaveBeenCalledWith("type", "charge");
-    expect(result[0]).toEqual(
+    expect(result.rows[0]).toEqual(
       expect.objectContaining({
         id: 5,
         orgId: 1,
@@ -216,6 +205,16 @@ describe("platform admin apis", () => {
         createdByName: "김운영",
       }),
     );
+    expect(result.nextCursor).toEqual({
+      createdAt: "2026-08-02T00:00:00Z",
+      id: 5,
+    });
+    expect(rpc).toHaveBeenCalledWith("platform_list_point_transactions", {
+      p_type: "charge",
+      p_before_created_at: null,
+      p_before_id: null,
+      p_limit: 50,
+    });
   });
 
   it("chargePoints는 원장 쓰기 RPC를 호출한다", async () => {
@@ -280,15 +279,11 @@ describe("platform admin apis", () => {
   });
 
   it("listPlatformOrganizations는 기본적으로 deleted_at is null만 조회한다", async () => {
-    const order = vi.fn().mockResolvedValue({ data: [], error: null });
-    const is = vi.fn(() => ({ order }));
-    from.mockImplementation((table: string) => {
-      if (table === "organizations") return { select: () => ({ is }) };
-      if (table === "org_members") return { select: vi.fn().mockResolvedValue({ data: [], error: null }) };
-      return { select: () => ({ is: vi.fn().mockResolvedValue({ data: [], error: null }) }) };
-    });
     await listPlatformOrganizations();
-    expect(is).toHaveBeenCalledWith("deleted_at", null);
+    expect(rpc).toHaveBeenCalledWith(
+      "platform_list_organizations",
+      expect.objectContaining({ p_include_deleted: false }),
+    );
   });
 
   it("updatePlatformOrganization은 name/slug/phone을 update한다", async () => {

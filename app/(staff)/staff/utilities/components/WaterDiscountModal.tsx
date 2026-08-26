@@ -16,11 +16,13 @@ const TYPE_OPTIONS: { value: WaterDiscountType; label: string }[] = [
 
 interface WaterDiscountModalProps {
   open: boolean;
+  buildingId: number;
+  period: string;
   row: UtilityUnitRow | null;
   onClose: () => void;
 }
 
-export function WaterDiscountModal({ open, row, onClose }: WaterDiscountModalProps) {
+export function WaterDiscountModal({ open, buildingId, period, row, onClose }: WaterDiscountModalProps) {
   const saveDiscount = useSaveWaterDiscount();
   const deleteDiscount = useDeleteWaterDiscount();
   const [discountType, setDiscountType] = useState<WaterDiscountType>(
@@ -38,7 +40,7 @@ export function WaterDiscountModal({ open, row, onClose }: WaterDiscountModalPro
       return;
     }
     saveDiscount.mutate(
-      { unitId: row.unitId, discountType, amount: parsed },
+      { buildingId, period, unitId: row.unitId, discountType, amount: parsed },
       {
         onSuccess: () => {
           toast.success("할인을 저장했습니다.");
@@ -50,7 +52,7 @@ export function WaterDiscountModal({ open, row, onClose }: WaterDiscountModalPro
   };
 
   const remove = () => {
-    deleteDiscount.mutate(row.unitId, {
+    deleteDiscount.mutate({ buildingId, period, unitId: row.unitId }, {
       onSuccess: () => {
         toast.success("할인을 해제했습니다.");
         onClose();

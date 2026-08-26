@@ -17,6 +17,17 @@ export interface Notice {
   updatedAt: string;
 }
 
+export type NoticeSummary = Omit<Notice, "content">;
+
+export interface NoticePage {
+  items: NoticeSummary[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export const NOTICE_PAGE_SIZE = 20;
+
 export interface NoticeInput {
   orgId: number;
   buildingId: number | null;
@@ -50,12 +61,27 @@ interface NoticeRow {
   updated_at: string;
 }
 
+type NoticeSummaryRow = Omit<NoticeRow, "content">;
+
 const rowToNotice = (row: NoticeRow): Notice => ({
   id: row.id,
   orgId: row.org_id,
   buildingId: row.building_id,
   title: row.title,
   content: row.content,
+  noticeType: row.notice_type,
+  publishedAt: row.published_at,
+  expiresAt: row.expires_at,
+  createdBy: row.created_by,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
+
+const rowToNoticeSummary = (row: NoticeSummaryRow): NoticeSummary => ({
+  id: row.id,
+  orgId: row.org_id,
+  buildingId: row.building_id,
+  title: row.title,
   noticeType: row.notice_type,
   publishedAt: row.published_at,
   expiresAt: row.expires_at,
@@ -85,11 +111,19 @@ function safeSearchTerm(search: string): string {
   return search.trim().replace(/[,().%]/g, " ");
 }
 
-export async function listNotices(filters: NoticeFilters = {}): Promise<Notice[]> {
+export async function listNotices(
+  filters: NoticeFilters = {},
+  page = 0,
+  pageSize = NOTICE_PAGE_SIZE,
+): Promise<NoticePage> {
   const now = new Date().toISOString();
+  const firstRow = Math.max(0, page) * pageSize;
   let query = createClient()
     .from("notices")
-    .select("*")
+    .select(
+      "id, org_id, building_id, title, notice_type, published_at, expires_at, created_by, created_at, updated_at",
+      { count: "exact" },
+    )
     .is("deleted_at", null);
 
   if (filters.buildingId === null) {
@@ -120,12 +154,19 @@ export async function listNotices(filters: NoticeFilters = {}): Promise<Notice[]
   const search = filters.search ? safeSearchTerm(filters.search) : "";
   if (search) query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`);
 
-  const { data, error } = await query
+  const { data, error, count } = await query
     .order("published_at", { ascending: false, nullsFirst: false })
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .range(firstRow, firstRow + pageSize - 1);
 
   if (error) throw new Error(error.message);
-  return ((data ?? []) as NoticeRow[]).map(rowToNotice);
+  const items = ((data ?? []) as NoticeSummaryRow[]).map(rowToNoticeSummary);
+  return {
+    items,
+    total: count ?? items.length,
+    page: Math.max(0, page),
+    pageSize,
+  };
 }
 
 export async function getNotice(id: number): Promise<Notice> {

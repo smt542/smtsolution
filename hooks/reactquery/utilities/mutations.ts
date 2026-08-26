@@ -22,27 +22,59 @@ import {
 } from "./apis";
 import { utilityKeys } from "./keys";
 
+export interface SaveWaterDiscountMutationInput extends SaveWaterDiscountInput {
+  buildingId: number;
+  period: string;
+}
+
+export interface DeleteWaterDiscountMutationInput {
+  buildingId: number;
+  period: string;
+  unitId: number;
+}
+
 export function useSaveMeterReadings() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: SaveMeterReadingsInput) => saveMeterReadings(input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: utilityKeys.all }),
+    onSuccess: (_result, input) => {
+      qc.invalidateQueries({
+        queryKey: utilityKeys.rows(input.buildingId, input.utilityType, input.period),
+      });
+      qc.invalidateQueries({
+        queryKey: utilityKeys.confirmation(input.buildingId, input.utilityType, input.period),
+      });
+      input.rows.forEach((row) => {
+        qc.invalidateQueries({
+          queryKey: utilityKeys.history(row.unit_id, input.utilityType, input.period),
+        });
+      });
+    },
   });
 }
 
 export function useSaveWaterDiscount() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: SaveWaterDiscountInput) => saveWaterDiscount(input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: utilityKeys.all }),
+    mutationFn: (input: SaveWaterDiscountMutationInput) => saveWaterDiscount({
+      unitId: input.unitId,
+      discountType: input.discountType,
+      amount: input.amount,
+      memo: input.memo,
+    }),
+    onSuccess: (_result, input) => qc.invalidateQueries({
+      queryKey: utilityKeys.rows(input.buildingId, "water", input.period),
+    }),
   });
 }
 
 export function useDeleteWaterDiscount() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (unitId: number) => deleteWaterDiscount(unitId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: utilityKeys.all }),
+    mutationFn: (input: DeleteWaterDiscountMutationInput) => deleteWaterDiscount(input.unitId),
+    onSuccess: (_result, input) => qc.invalidateQueries({
+      queryKey: utilityKeys.rows(input.buildingId, "water", input.period),
+    }),
   });
 }
 

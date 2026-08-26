@@ -22,10 +22,14 @@ import { PaymentHistorySection } from "./components/PaymentHistorySection";
 import { TenantInfoSection } from "./components/TenantInfoSection";
 import { UnifiedSearchModal } from "./components/UnifiedSearchModal";
 import { VillaPaymentModal, type VillaPaymentModalInit } from "./components/VillaPaymentModal";
-import { downloadBankTemplate } from "./components/payment/bankTemplate";
 import { formatCurrency } from "./receiptFormat";
 
 type DropdownItem = { header: string } | { label: string; onClick: () => void };
+
+async function downloadBankTemplate() {
+  const bankTemplate = await import("./components/payment/bankTemplate");
+  await bankTemplate.downloadBankTemplate();
+}
 
 function Dropdown({ label, items }: { label: string; items: DropdownItem[] }) {
   return (
@@ -156,16 +160,15 @@ function ReceiptWorkspace({
   const [monthlyOpen, setMonthlyOpen] = useState(false);
   const [villa, setVilla] = useState<VillaPaymentModalInit | null>(null);
 
-  const { data: buildings = [], isLoading: isBuildingsLoading } = useBuildings();
+  const { data: buildings = [] } = useBuildings();
   const orgBuildings = useMemo(
     () => buildings.filter((building) => building.orgId === orgId),
     [buildings, orgId],
   );
 
   const { data: receiptData, isLoading: isReceiptLoading } = useReceiptPaymentStatus(
-    orgBuildings,
+    orgId,
     period,
-    !isBuildingsLoading && orgBuildings.length > 0,
   );
   const receiptRows = receiptData.rows;
 
@@ -285,6 +288,8 @@ function ReceiptWorkspace({
         <div className="flex min-w-0 flex-1 flex-col gap-4">
           <PaymentHistorySection
             key={`pay-${selectedUnitId ?? "none"}`}
+            orgId={orgId}
+            buildingId={selectedBuildingId}
             hasUnit={selectedUnitId !== null}
             isLoading={isPaymentsLoading || isReceiptLoading}
             payments={unitPayments}
@@ -296,6 +301,9 @@ function ReceiptWorkspace({
           />
           <TenantInfoSection
             key={`tenant-${selectedUnitId ?? "none"}`}
+            orgId={orgId}
+            buildingId={selectedBuildingId}
+            period={period}
             data={occFull}
             isLoading={isOccLoading}
             hasUnit={selectedUnitId !== null}

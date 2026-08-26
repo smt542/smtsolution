@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button, Select, EmptyState, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
@@ -13,16 +13,18 @@ import {
   useChargeNewOccupancies,
 } from "@/hooks/reactquery/billing";
 import { hasModule } from "@/lib/auth/permissions";
-import { pivotBillingRows, type BillingUnitRow } from "@/lib/billing/pivot";
+import { pivotBillingRows } from "@/lib/billing/pivot";
 import { currentPeriod, toMonthInput, fromMonthInput } from "@/lib/billing/period";
-import { BillingTable } from "./components/BillingTable";
+import {
+  BillingTable,
+  type BillingChargeDraft,
+  type BillingNoteDraft,
+} from "./components/BillingTable";
 import { ItemManageModal } from "./components/ItemManageModal";
 import { BillingHistoryModal } from "./components/BillingHistoryModal";
 import { BillingNoteModal } from "./components/BillingNoteModal";
 import { BillingPeriodSettingsBar } from "./components/BillingPeriodSettingsBar";
 import { NewTenantChargeModal } from "./components/NewTenantChargeModal";
-
-type ChargeDraft = { charged: boolean; amount: number };
 
 export default function FeeItemPage() {
   const { data: me } = useMe();
@@ -31,8 +33,8 @@ export default function FeeItemPage() {
 
   const [buildingId, setBuildingId] = useState<number | null>(null);
   const [period, setPeriod] = useState<string>(() => currentPeriod());
-  const [chargeDrafts, setChargeDrafts] = useState<Record<string, ChargeDraft>>({});
-  const [noteDrafts, setNoteDrafts] = useState<Record<number, { billingNote: string; unitNotice: string }>>({});
+  const [chargeDrafts, setChargeDrafts] = useState<Record<number, Record<number, BillingChargeDraft>>>({});
+  const [noteDrafts, setNoteDrafts] = useState<Record<number, BillingNoteDraft>>({});
   const [noteUnit, setNoteUnit] = useState<number | null>(null);
   const [itemModalOpen, setItemModalOpen] = useState(false);
   const [historyUnit, setHistoryUnit] = useState<{ id: number; no: string } | null>(null);
@@ -55,6 +57,47 @@ export default function FeeItemPage() {
     }
   }, [selectionKey, newOccUnits.length]);
 
+  const buildings = buildingsQuery.data ?? [];
+  const selectedBuilding = buildings.find((b) => b.id === buildingId) ?? null;
+  const buildingType = buildingTypes.find((t) => t.id === selectedBuilding?.typeId) ?? null;
+
+  const { units, columns } = useMemo(
+    () => pivotBillingRows(billingQuery.data ?? []),
+    [billingQuery.data],
+  );
+  const unitsById = useMemo(
+    () => new Map(units.map((unit) => [unit.unitId, unit])),
+    [units],
+  );
+
+  const onChargeChange = useCallback((
+    unitId: number,
+    feeItemId: number,
+    patch: Partial<BillingChargeDraft>,
+  ) => {
+    setChargeDrafts((currentDrafts) => {
+      const rowDrafts = currentDrafts[unitId];
+      const current =
+        rowDrafts?.[feeItemId] ??
+        unitsById.get(unitId)?.charges[feeItemId] ??
+        { charged: true, amount: 0 };
+      return {
+        ...currentDrafts,
+        [unitId]: {
+          ...rowDrafts,
+          [feeItemId]: { ...current, ...patch },
+        },
+      };
+    });
+  }, [unitsById]);
+
+  const openHistory = useCallback((unitId: number) => {
+    const unit = unitsById.get(unitId);
+    if (unit) setHistoryUnit({ id: unitId, no: unit.unitNo });
+  }, [unitsById]);
+
+  const openNote = useCallback((unitId: number) => setNoteUnit(unitId), []);
+
   if (me === undefined) return null;
   if (!hasModule(me, "billing")) {
     return (
@@ -64,42 +107,18 @@ export default function FeeItemPage() {
     );
   }
 
-  const buildings = buildingsQuery.data ?? [];
-  const selectedBuilding = buildings.find((b) => b.id === buildingId) ?? null;
-  const buildingType = buildingTypes.find((t) => t.id === selectedBuilding?.typeId) ?? null;
-
-  const { units: serverUnits, columns } = pivotBillingRows(billingQuery.data ?? []);
-  // draft 오버레이 (charge + note)
-  const units: BillingUnitRow[] = serverUnits.map((u) => {
-    const noteDraft = noteDrafts[u.unitId];
-    return {
-      ...u,
-      billingNote: noteDraft ? noteDraft.billingNote : u.billingNote,
-      unitNotice: noteDraft ? noteDraft.unitNotice : u.unitNotice,
-      charges: Object.fromEntries(
-        columns.map((c) => {
-          const key = `${u.unitId}:${c.feeItemId}`;
-          return [c.feeItemId, chargeDrafts[key] ?? u.charges[c.feeItemId] ?? { charged: true, amount: 0 }];
-        })
-      ),
-    };
-  });
-
-  const onChargeChange = (unitId: number, feeItemId: number, patch: Partial<ChargeDraft>) => {
-    const key = `${unitId}:${feeItemId}`;
-    const current =
-      chargeDrafts[key] ??
-      serverUnits.find((u) => u.unitId === unitId)?.charges[feeItemId] ??
-      { charged: true, amount: 0 };
-    setChargeDrafts((d) => ({ ...d, [key]: { ...current, ...patch } }));
-  };
-
   const handleSave = async () => {
     if (!buildingId) return;
-    const charges = Object.entries(chargeDrafts).map(([key, v]) => {
-      const [unitId, feeItemId] = key.split(":").map(Number);
-      const occ = serverUnits.find((u) => u.unitId === unitId)?.occupancyId ?? null;
-      return { unitId, feeItemId, charged: v.charged, amount: v.amount, occupancyId: occ };
+    const charges = Object.entries(chargeDrafts).flatMap(([unitIdText, rowDrafts]) => {
+      const unitId = Number(unitIdText);
+      const occupancyId = unitsById.get(unitId)?.occupancyId ?? null;
+      return Object.entries(rowDrafts).map(([feeItemId, draft]) => ({
+        unitId,
+        feeItemId: Number(feeItemId),
+        charged: draft.charged,
+        amount: draft.amount,
+        occupancyId,
+      }));
     });
     const notes = Object.entries(noteDrafts).map(([unitId, v]) => ({
       unitId: Number(unitId),
@@ -231,9 +250,11 @@ export default function FeeItemPage() {
             units={units}
             columns={columns}
             period={period}
+            chargeDrafts={chargeDrafts}
+            noteDrafts={noteDrafts}
             onChargeChange={onChargeChange}
-            onRowClick={(unitId) => { const u = units.find((x) => x.unitId === unitId); if (u) setHistoryUnit({ id: unitId, no: u.unitNo }); }}
-            onNoteClick={(unitId) => setNoteUnit(unitId)}
+            onRowClick={openHistory}
+            onNoteClick={openNote}
           />
         </section>
       )}
@@ -265,13 +286,14 @@ export default function FeeItemPage() {
       />
 
       {(() => {
-        const u = units.find((x) => x.unitId === noteUnit);
+        const u = noteUnit === null ? undefined : unitsById.get(noteUnit);
+        const noteDraft = noteUnit === null ? undefined : noteDrafts[noteUnit];
         return (
           <BillingNoteModal
             open={noteUnit != null}
             unitNo={u?.unitNo ?? ""}
-            billingNote={u?.billingNote ?? ""}
-            unitNotice={u?.unitNotice ?? ""}
+            billingNote={noteDraft?.billingNote ?? u?.billingNote ?? ""}
+            unitNotice={noteDraft?.unitNotice ?? u?.unitNotice ?? ""}
             onClose={() => setNoteUnit(null)}
             onSave={(v) => {
               if (noteUnit != null) setNoteDrafts((d) => ({ ...d, [noteUnit]: v }));

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button, Input, Modal, Panel, Select, Spinner } from "@/components/common";
 import { useCancelPayment, useRecordPayment, useRecordPaymentEdit } from "@/hooks/reactquery/payments";
 import type { PaymentKind, PaymentMethod, UnitPayment } from "@/hooks/reactquery/payments";
-import type { ReceiptPaymentRow } from "@/hooks/reactquery/receipts";
+import { receiptKeys, type ReceiptPaymentRow } from "@/hooks/reactquery/receipts";
 import { toMonthInput } from "@/lib/billing/period";
 import type { MessagingPreset } from "@/lib/messaging/preset";
 import { MessagingModal } from "../../messaging/components/MessagingModal";
@@ -61,6 +61,8 @@ function emptyForm(): PayForm {
 }
 
 export function PaymentHistorySection({
+  orgId,
+  buildingId,
   hasUnit,
   isLoading,
   payments,
@@ -70,6 +72,8 @@ export function PaymentHistorySection({
   canEdit,
   canSendMessages,
 }: {
+  orgId: number;
+  buildingId: number | null;
   hasUnit: boolean;
   isLoading: boolean;
   payments: UnitPayment[];
@@ -93,7 +97,37 @@ export function PaymentHistorySection({
   const paidTotal = active.reduce((sum, p) => sum + p.amount, 0);
   const unpaid = summary?.unpaid ?? null;
 
-  const refreshSummary = () => qc.invalidateQueries({ queryKey: ["receipts"] });
+  const refreshSummary = async () => {
+    const invalidations = [
+      qc.invalidateQueries({
+        queryKey: receiptKeys.workspace(orgId, period),
+        exact: true,
+      }),
+    ];
+    if (buildingId !== null && unitId !== null) {
+      invalidations.push(qc.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey;
+          if (
+            key[0] !== receiptKeys.all[0]
+            || key[1] !== "statement"
+            || key[2] !== buildingId
+          ) {
+            return false;
+          }
+          const scope = key[3];
+          const startPeriod = key[4];
+          const endPeriod = key[5];
+          return (scope === "building" || scope === unitId)
+            && typeof startPeriod === "string"
+            && typeof endPeriod === "string"
+            && startPeriod <= period
+            && endPeriod >= period;
+        },
+      }));
+    }
+    await Promise.all(invalidations);
+  };
 
   const openAdd = () => {
     setEditingId(null);
