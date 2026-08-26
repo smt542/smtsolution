@@ -44,7 +44,10 @@ export function useUpdateOrganizationStatus() {
     mutationFn: ({ id, status }: { id: number; status: OrganizationStatus }) =>
       updateOrganizationStatus(id, status),
     onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: platformKeys.organizations() }),
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: platformKeys.organizations() }),
+        queryClient.invalidateQueries({ queryKey: platformKeys.organizationContractKpis() }),
+      ]),
   });
 }
 
@@ -89,6 +92,7 @@ export function useCreatePlatformOrganization() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: platformKeys.organizations() });
       void qc.invalidateQueries({ queryKey: platformKeys.overview() });
+      void qc.invalidateQueries({ queryKey: platformKeys.organizationContractKpis() });
     },
   });
 }
@@ -98,7 +102,10 @@ export function useUpdatePlatformOrganization() {
   return useMutation({
     mutationFn: ({ id, input }: { id: number; input: UpdateOrgInput }) =>
       updatePlatformOrganization(id, input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: platformKeys.organizations() }),
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: platformKeys.organizations() }),
+      qc.invalidateQueries({ queryKey: platformKeys.organizationContractKpis() }),
+    ]),
   });
 }
 
@@ -110,6 +117,7 @@ export function useSetOrgDeleted() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: platformKeys.organizations() });
       void qc.invalidateQueries({ queryKey: platformKeys.overview() });
+      void qc.invalidateQueries({ queryKey: platformKeys.organizationContractKpis() });
     },
   });
 }

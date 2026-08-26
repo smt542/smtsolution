@@ -9,6 +9,7 @@ vi.mock("@/lib/supabase/client", () => ({
 
 import {
   getPlatformOverview,
+  getPlatformOrganizationContractKpis,
   listPlatformAccounts,
   listPlatformOrganizations,
   listPointTransactions,
@@ -36,8 +37,21 @@ describe("platform admin apis", () => {
           created_at: "2026-01-02T00:00:00Z",
           phone: null,
           deleted_at: null,
+          contract_start_date: "2026-01-01",
+          contract_end_date: "2026-12-31",
+          representative_name: "홍길동",
+          business_registration_number: "123-45-67890",
+          fax: "02-1234-5679",
+          email: "admin@example.com",
+          address: "서울시 중구 세종대로 1",
+          region: "서울 중구",
+          operating_hours: "평일 09:00 ~ 18:00",
+          contract_file_path: "1/contract.png",
           account_count: 2,
           building_count: 2,
+          unit_count: 20,
+          employee_count: 2,
+          tenant_count: 17,
           ledger_balance: 700,
           reserved_points: 100,
           available_points: 600,
@@ -65,13 +79,25 @@ describe("platform admin apis", () => {
     const result = await listPlatformOrganizations();
 
     expect(result.rows).toEqual([
-      expect.objectContaining({ id: 1, name: "한빛관리", accountCount: 2, buildingCount: 2 }),
+      expect.objectContaining({
+        id: 1,
+        name: "한빛관리",
+        accountCount: 2,
+        buildingCount: 2,
+        unitCount: 20,
+        employeeCount: 2,
+        tenantCount: 17,
+        region: "서울 중구",
+        contractEndDate: "2026-12-31",
+        contractFilePath: "1/contract.png",
+      }),
       expect.objectContaining({ id: 2, name: "새봄관리", accountCount: 1, buildingCount: 0 }),
     ]);
     expect(result.totalCount).toBe(2);
     expect(rpc).toHaveBeenCalledWith("platform_list_organizations", {
       p_search: null,
       p_include_deleted: false,
+      p_status: null,
       p_limit: 25,
       p_offset: 0,
     });
@@ -125,7 +151,26 @@ describe("platform admin apis", () => {
     expect(profileIn).toHaveBeenCalledWith("user_id", ["u1"]);
   });
 
-  it("조직 상태 필터는 기존 목록 RPC 결과를 표시 계층에서 분류한다", async () => {
+  it("계약 KPI RPC 결과를 숫자로 변환한다", async () => {
+    rpc.mockResolvedValue({
+      data: [{
+        operating_count: "7",
+        expiring_within_90_days_count: 2,
+        suspended_count: "1",
+        terminated_last_12_months_count: 3,
+      }],
+      error: null,
+    });
+
+    await expect(getPlatformOrganizationContractKpis()).resolves.toEqual({
+      operatingCount: 7,
+      expiringWithin90DaysCount: 2,
+      suspendedCount: 1,
+      terminatedLast12MonthsCount: 3,
+    });
+  });
+
+  it("조직 상태 필터와 페이지네이션을 목록 RPC에 전달한다", async () => {
     rpc.mockResolvedValue({
       data: [
         {
@@ -192,6 +237,25 @@ describe("platform admin apis", () => {
       error: null,
     });
 
+    rpc.mockResolvedValueOnce({
+      data: [{
+        id: 1,
+        name: "운영사",
+        slug: "active",
+        status: "active",
+        created_at: "2026-01-04T00:00:00Z",
+        phone: null,
+        deleted_at: null,
+        account_count: 1,
+        building_count: 1,
+        ledger_balance: 0,
+        reserved_points: 0,
+        available_points: 0,
+        total_count: 2,
+      }],
+      error: null,
+    });
+
     const result = await listPlatformOrganizations({ status: "operating", pageSize: 1 });
 
     expect(result.rows.map((row) => row.name)).toEqual(["운영사"]);
@@ -199,7 +263,8 @@ describe("platform admin apis", () => {
     expect(rpc).toHaveBeenCalledWith("platform_list_organizations", {
       p_search: null,
       p_include_deleted: true,
-      p_limit: 100,
+      p_status: "operating",
+      p_limit: 1,
       p_offset: 0,
     });
   });
@@ -374,13 +439,38 @@ describe("platform admin apis", () => {
     );
   });
 
-  it("updatePlatformOrganization은 name/slug/phone을 update한다", async () => {
-    const eq = vi.fn().mockResolvedValue({ error: null });
-    const update = vi.fn(() => ({ eq }));
-    from.mockImplementation(() => ({ update }));
-    await updatePlatformOrganization(7, { name: "새이름", slug: "newslug", phone: "021234" });
-    expect(update).toHaveBeenCalledWith({ name: "새이름", slug: "newslug", phone: "021234" });
-    expect(eq).toHaveBeenCalledWith("id", 7);
+  it("updatePlatformOrganization은 계약정보 저장 RPC를 호출한다", async () => {
+    await updatePlatformOrganization(7, {
+      name: "새이름",
+      slug: "newslug",
+      phone: "021234",
+      contractStartDate: "2026-01-01",
+      contractEndDate: "2026-12-31",
+      representativeName: "홍길동",
+      businessRegistrationNumber: "123-45-67890",
+      fax: "021235",
+      email: "admin@example.com",
+      address: "서울시 중구",
+      region: "서울 중구",
+      operatingHours: "평일 09:00 ~ 18:00",
+      contractFilePath: "7/contract.png",
+    });
+    expect(rpc).toHaveBeenCalledWith("platform_update_organization_contract", {
+      p_org_id: 7,
+      p_name: "새이름",
+      p_slug: "newslug",
+      p_phone: "021234",
+      p_contract_start_date: "2026-01-01",
+      p_contract_end_date: "2026-12-31",
+      p_representative_name: "홍길동",
+      p_business_registration_number: "123-45-67890",
+      p_fax: "021235",
+      p_email: "admin@example.com",
+      p_address: "서울시 중구",
+      p_region: "서울 중구",
+      p_operating_hours: "평일 09:00 ~ 18:00",
+      p_contract_file_path: "7/contract.png",
+    });
   });
 
   it("setPlatformOrganizationDeleted(false)는 deleted_at을 null로 되돌린다", async () => {

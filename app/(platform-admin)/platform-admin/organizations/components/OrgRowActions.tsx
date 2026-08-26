@@ -32,7 +32,9 @@ export function OrgRowActions({ org, onEdit, onToggleDeleted, isPending }: Props
       <button
         type="button"
         onClick={() => {
-          if (window.confirm(`'${org.name}' 조직을 해지할까요? 목록에서 숨겨집니다(복구 가능).`))
+          if (window.confirm(
+            `'${org.name}' 조직을 해지할까요? 사용자 접속이 제한되고 목록에서 숨겨집니다. 데이터는 삭제되지 않으며 복구할 수 있습니다.`,
+          ))
             onToggleDeleted(true);
         }}
         disabled={isPending}
