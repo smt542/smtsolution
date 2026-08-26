@@ -2,11 +2,15 @@
 import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Select, SearchBar, EmptyState, Spinner, DataTable } from "@/components/common";
-import { useBuildingList, useStaffOptions } from "@/hooks/reactquery/buildings";
+import {
+  useBuildingList,
+  useStaffOptions,
+  type BuildingListResult,
+} from "@/hooks/reactquery/buildings";
 
 const PAGE_SIZES = [10, 20, 50] as const;
 
-export function BuildingList() {
+export function BuildingList({ initialData }: { initialData: BuildingListResult }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [manager, setManager] = useState("");
@@ -29,7 +33,11 @@ export function BuildingList() {
     page,
     pageSize,
   };
-  const { data, isLoading, isError } = useBuildingList(params);
+  const isInitialQuery = !search && !manager && !meter && !cleaning && page === 1 && pageSize === 20;
+  const { data, isLoading, isError } = useBuildingList(
+    params,
+    isInitialQuery ? initialData : undefined,
+  );
 
   const rows = (data?.rows ?? []).map((b) => ({
     _id: b.id,
