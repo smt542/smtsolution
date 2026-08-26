@@ -35,11 +35,17 @@ function YesNo({ value }: { value: boolean }) {
 }
 
 export function TenantInfoSection({
+  orgId,
+  buildingId,
+  period,
   data,
   isLoading,
   hasUnit,
   canEdit,
 }: {
+  orgId: number;
+  buildingId: number | null;
+  period: string;
   data: UnitOccupancyFull | undefined;
   isLoading: boolean;
   hasUnit: boolean;
@@ -68,9 +74,13 @@ export function TenantInfoSection({
   };
 
   const submit = async () => {
-    if (!occ || !form) return;
+    if (!occ || !form || buildingId === null) return;
     try {
       await save.mutateAsync({
+        orgId,
+        buildingId,
+        unitId: occ.unitId,
+        period,
         occupancyId: occ.id,
         tenantName: form.tenantName,
         payerName: form.payerName,

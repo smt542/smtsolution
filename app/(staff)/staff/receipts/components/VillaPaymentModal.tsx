@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { Button, Modal, SearchBar, Select } from "@/components/common";
 import { useBillOrganizationName } from "@/hooks/reactquery/bill";
@@ -17,13 +18,16 @@ import {
 } from "@/hooks/reactquery/payments";
 import { PROGRAM_COMPANY_NAME } from "@/lib/bill/document";
 import { toMonthInput } from "@/lib/billing/period";
-import { BankImportModal } from "./payment/BankImportModal";
 import { GiroLedgerModal } from "./payment/GiroLedgerModal";
 import { PaymentAmountModal } from "./payment/PaymentAmountModal";
 import { PaymentHistoryModal } from "./payment/PaymentHistoryModal";
 import { PaymentReceiptModal } from "./payment/PaymentReceiptModal";
 import { PaymentStatementModal } from "./payment/PaymentStatementModal";
 import { PaymentTable } from "./payment/PaymentTable";
+
+const BankImportModal = dynamic(() =>
+  import("./payment/BankImportModal").then((module) => module.BankImportModal),
+);
 
 export type VillaInitialView = "table" | "giro" | "bank" | "statement" | "receipt";
 export type VillaStatusFilter = "all" | "unpaid" | "paid";

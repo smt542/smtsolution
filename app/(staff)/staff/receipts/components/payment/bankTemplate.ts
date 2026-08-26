@@ -1,11 +1,10 @@
-import ExcelJS from "exceljs";
-
 /**
  * 은행 입금내역 업로드용 빈 양식(.xlsx) 다운로드.
  * 열은 BankImportModal이 매핑하는 필드와 동일: 고객번호·입금자명·입금액·입금일.
  * (클라이언트에서 생성 — BankImportModal의 bankParse도 exceljs를 클라이언트에서 사용)
  */
 export async function downloadBankTemplate(): Promise<void> {
+  const ExcelJS = (await import("exceljs")).default;
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet("은행입금내역");
   sheet.columns = [

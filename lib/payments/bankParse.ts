@@ -1,5 +1,3 @@
-import ExcelJS from "exceljs";
-
 export interface ParsedSheet { headers: string[]; rows: string[][]; }
 export interface ColumnMapping { customerNo: number | null; name: number | null; amount: number | null; paidAt: number | null; }
 export interface Deposit { customerNo: string; name: string; amount: number; paidAt: string | null; rowIndex: number; }
@@ -12,6 +10,7 @@ const cell = (v: unknown): string => {
 };
 
 export async function parseBankWorkbook(buffer: ArrayBuffer): Promise<ParsedSheet> {
+  const ExcelJS = (await import("exceljs")).default;
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buffer);
   const ws = wb.worksheets[0];

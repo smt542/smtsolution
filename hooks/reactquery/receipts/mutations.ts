@@ -2,8 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { buildingKeys } from "@/hooks/reactquery/buildings/keys";
 import { occupancyKeys } from "@/hooks/reactquery/occupancies/keys";
-
-const receiptsRoot = ["receipts"] as const;
+import { receiptKeys } from "./queries";
 
 export interface SaveBuildingNotesInput {
   buildingId: number;
@@ -24,14 +23,18 @@ export function useSaveBuildingNotes() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: saveBuildingNotes,
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: buildingKeys.all });
-      void qc.invalidateQueries({ queryKey: receiptsRoot });
+    onSuccess: (_data, input) => {
+      void qc.invalidateQueries({ queryKey: buildingKeys.directory(), exact: true });
+      void qc.invalidateQueries({ queryKey: buildingKeys.full(input.buildingId), exact: true });
     },
   });
 }
 
 export interface SaveOccupancyFieldsInput {
+  orgId: number;
+  buildingId: number;
+  unitId: number;
+  period: string;
   occupancyId: number;
   tenantName: string;
   payerName: string;
@@ -66,9 +69,37 @@ export function useSaveOccupancyFields() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: saveOccupancyFields,
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: occupancyKeys.all });
-      void qc.invalidateQueries({ queryKey: receiptsRoot });
+    onSuccess: (_data, input) => {
+      void qc.invalidateQueries({ queryKey: occupancyKeys.full(input.unitId), exact: true });
+      void qc.invalidateQueries({ queryKey: occupancyKeys.byUnit(input.unitId), exact: true });
+      void qc.invalidateQueries({
+        queryKey: occupancyKeys.tenantList(input.buildingId),
+        exact: true,
+      });
+      void qc.invalidateQueries({
+        queryKey: receiptKeys.workspace(input.orgId, input.period),
+        exact: true,
+      });
+      void qc.invalidateQueries({
+        predicate: (query) => {
+          const key = query.queryKey;
+          if (
+            key[0] !== receiptKeys.all[0]
+            || key[1] !== "statement"
+            || key[2] !== input.buildingId
+          ) {
+            return false;
+          }
+          const scope = key[3];
+          const startPeriod = key[4];
+          const endPeriod = key[5];
+          return (scope === "building" || scope === input.unitId)
+            && typeof startPeriod === "string"
+            && typeof endPeriod === "string"
+            && startPeriod <= input.period
+            && endPeriod >= input.period;
+        },
+      });
     },
   });
 }
