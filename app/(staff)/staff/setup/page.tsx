@@ -1,14 +1,22 @@
 // app/(staff)/staff/setup/page.tsx
 "use client";
 import { Suspense, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMe } from "@/hooks/reactquery/auth";
 import { canManageSettings } from "@/lib/auth/permissions";
 import { Tabs } from "@/components/common";
-import { BillingSettingsTab } from "./components/BillingSettingsTab";
-import { AccountSettingsTab } from "./components/AccountSettingsTab";
-import { MovingSettlementSettingsTab } from "./components/MovingSettlementSettingsTab";
-import { SystemSettingsTab } from "./components/SystemSettingsTab";
+
+const BillingSettingsTab = dynamic(() =>
+  import("./components/BillingSettingsTab").then((module) => module.BillingSettingsTab));
+const AccountSettingsTab = dynamic(() =>
+  import("./components/AccountSettingsTab").then((module) => module.AccountSettingsTab));
+const MovingSettlementSettingsTab = dynamic(() =>
+  import("./components/MovingSettlementSettingsTab").then(
+    (module) => module.MovingSettlementSettingsTab,
+  ));
+const SystemSettingsTab = dynamic(() =>
+  import("./components/SystemSettingsTab").then((module) => module.SystemSettingsTab));
 
 const TAB_DEFS = [
   { id: "billing", label: "고지서 설정" },

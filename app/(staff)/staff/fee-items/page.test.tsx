@@ -40,7 +40,7 @@ function setupLookup({
   isError?: boolean;
 } = {}) {
   vi.mocked(useFeeItemLookup).mockReturnValue({
-    data,
+    data: { rows: data, total: data.length },
     isLoading,
     isError,
     refetch,
@@ -74,6 +74,8 @@ describe("FeeItemLookupPage", () => {
         typeId: null,
         required: false,
         q: "",
+        page: 1,
+        pageSize: 50,
       }),
     );
   });

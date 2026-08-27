@@ -28,31 +28,31 @@ describe("SetupPage", () => {
     expect(screen.queryByText("TAB_BILLING")).toBeNull();
   });
 
-  it("settings 권한 있으면 탭 렌더 + 기본 고지서 탭", () => {
+  it("settings 권한 있으면 탭 렌더 + 기본 고지서 탭", async () => {
     vi.mocked(useMe).mockReturnValue({ data: { role: "staff", permissions: ["settings"] } } as unknown as ReturnType<typeof useMe>);
     render(<SetupPage />);
     expect(screen.getByRole("button", { name: "고지서 설정" })).toBeInTheDocument();
-    expect(screen.getByText("TAB_BILLING")).toBeInTheDocument();
+    expect(await screen.findByText("TAB_BILLING")).toBeInTheDocument();
   });
 
-  it("마스터(org_owner)는 권한 배열 없어도 통과", () => {
+  it("마스터(org_owner)는 권한 배열 없어도 통과", async () => {
     vi.mocked(useMe).mockReturnValue({ data: { role: "org_owner", permissions: [] } } as unknown as ReturnType<typeof useMe>);
     render(<SetupPage />);
-    expect(screen.getByText("TAB_BILLING")).toBeInTheDocument();
+    expect(await screen.findByText("TAB_BILLING")).toBeInTheDocument();
   });
 
-  it("?tab=system 이면 시스템 탭으로 시작", () => {
+  it("?tab=system 이면 시스템 탭으로 시작", async () => {
     getMock.mockReturnValue("system");
     vi.mocked(useMe).mockReturnValue({ data: { role: "org_owner", permissions: [] } } as unknown as ReturnType<typeof useMe>);
     render(<SetupPage />);
-    expect(screen.getByText("TAB_SYSTEM")).toBeInTheDocument();
+    expect(await screen.findByText("TAB_SYSTEM")).toBeInTheDocument();
   });
 
-  it("탭 클릭 시 전환", () => {
+  it("탭 클릭 시 전환", async () => {
     vi.mocked(useMe).mockReturnValue({ data: { role: "org_owner", permissions: [] } } as unknown as ReturnType<typeof useMe>);
     render(<SetupPage />);
     fireEvent.click(screen.getByRole("button", { name: "시스템 설정" }));
-    expect(screen.getByText("TAB_SYSTEM")).toBeInTheDocument();
+    expect(await screen.findByText("TAB_SYSTEM")).toBeInTheDocument();
   });
 
   it("기존 ?tab=repair 링크는 독립 장기수선비 화면으로 전환", () => {
