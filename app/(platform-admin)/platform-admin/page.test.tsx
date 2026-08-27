@@ -27,8 +27,8 @@ const metrics = {
 };
 
 const billingRows = [
-  { orgId: 1, orgName: "한빛관리", orgEmail: "a@x.kr", status: "unpaid", alimtalkCount: 120, smsCount: 30, lmsCount: 2, faxCount: 4, faxPageCount: 6, subtotalKrw: 2160, vatKrw: 216, totalKrw: 2376, prevTotalKrw: 1800 },
-  { orgId: 2, orgName: "새봄관리", orgEmail: null, status: "none", alimtalkCount: 0, smsCount: 0, lmsCount: 0, faxCount: 0, faxPageCount: 0, subtotalKrw: 0, vatKrw: 0, totalKrw: 0, prevTotalKrw: 0 },
+  { orgId: 1, orgName: "한빛관리", orgEmail: "a@x.kr", status: "unpaid", alimtalkCount: 120, smsCount: 30, lmsCount: 2, faxCount: 4, faxPageCount: 6, alimtalkAmountKrw: 1200, smsAmountKrw: 660, faxAmountKrw: 300, subtotalKrw: 2160, vatKrw: 216, totalKrw: 2376, prevTotalKrw: 1800 },
+  { orgId: 2, orgName: "새봄관리", orgEmail: null, status: "none", alimtalkCount: 0, smsCount: 0, lmsCount: 0, faxCount: 0, faxPageCount: 0, alimtalkAmountKrw: 0, smsAmountKrw: 0, faxAmountKrw: 0, subtotalKrw: 0, vatKrw: 0, totalKrw: 0, prevTotalKrw: 0 },
 ];
 
 beforeEach(() => {
