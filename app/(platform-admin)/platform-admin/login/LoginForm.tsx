@@ -1,20 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { authKeys, getMyContext, recordLogin } from "@/hooks/reactquery/auth";
 import { AUTO_LOGIN_KEY } from "@/lib/auth/sessionPersistence";
-import { createClient } from "@/lib/supabase/client";
 
 const fieldClass =
   "h-12 w-full rounded-[13px] border border-line bg-white px-3.5 text-[14px] font-medium text-t1 outline-none transition placeholder:text-t4 focus:border-blue focus:ring-4 focus:ring-blue/15";
 
 export function LoginForm() {
   const router = useRouter();
-  const queryClient = useQueryClient();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [autoLogin, setAutoLogin] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -27,34 +23,25 @@ export function LoginForm() {
 
     setErrorMessage("");
     setIsPending(true);
-    const supabase = createClient();
-    let signedIn = false;
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
+      const response = await fetch("/api/platform/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: username.trim(), password }),
       });
-      if (error) throw new Error("아이디 또는 비밀번호가 올바르지 않습니다.");
-      signedIn = true;
-
-      const context = await getMyContext();
-      if (context?.role !== "platform_admin") {
-        await supabase.auth.signOut();
-        signedIn = false;
-        throw new Error("본사 관리자 전용 콘솔입니다");
+      if (!response.ok) {
+        const data = (await response.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error ?? "로그인에 실패했습니다.");
       }
 
       if (autoLogin) localStorage.setItem(AUTO_LOGIN_KEY, "1");
       else localStorage.removeItem(AUTO_LOGIN_KEY);
 
-      await recordLogin().catch(() => {});
-      queryClient.setQueryData(authKeys.me(), context);
       toast.success("로그인되었습니다");
       router.push("/platform-admin");
       router.refresh();
     } catch (error) {
-      if (signedIn) await supabase.auth.signOut().catch(() => {});
       setErrorMessage(error instanceof Error ? error.message : "잠시 후 다시 시도해 주세요.");
     } finally {
       setIsPending(false);
@@ -63,16 +50,16 @@ export function LoginForm() {
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
-      <label className="flex flex-col gap-1.5" htmlFor="hq-email">
+      <label className="flex flex-col gap-1.5" htmlFor="hq-username">
         <span className="text-[12.5px] font-bold text-t3">아이디</span>
         <input
-          id="hq-email"
-          type="email"
-          autoComplete="email"
+          id="hq-username"
+          type="text"
+          autoComplete="username"
           required
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          placeholder="본사 관리자 이메일"
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
+          placeholder="아이디를 입력해 주세요"
           className={fieldClass}
         />
       </label>
@@ -120,7 +107,7 @@ export function LoginForm() {
 
       <button
         type="submit"
-        disabled={isPending || !email.trim() || !password}
+        disabled={isPending || !username.trim() || !password}
         className="mt-1 h-[50px] rounded-[14px] bg-blue text-[15px] font-extrabold text-white transition hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isPending ? "로그인 중…" : "로그인"}
