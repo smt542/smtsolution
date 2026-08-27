@@ -47,6 +47,45 @@ describe("bill apis", () => {
       faxSendStatus: "sent",
     });
   });
+  it("listBillTargets: occupancy와 unit account 보강 조회를 병렬 실행", async () => {
+    rpc.mockResolvedValue({ data: [{
+      unit_id: 1, unit_no: "101", dong: null, occupancy_id: 5, tenant_name: "홍", phone: "010", phone2: null, fax_number: null,
+      total_amount: 30000, auto_debit: false, issue_type: null, due_date: null, send_status: null, issued_at: null,
+      single_print: false, water_cutoff: false, scheduled_at: null, message_schedule_id: null,
+      kakao_send_status: null, fax_send_status: null,
+    }], error: null });
+
+    let resolveOccupancy!: (value: {
+      data: { id: number; payer_name: string; bill_name_display: string }[];
+      error: null;
+    }) => void;
+    let resolveAccount!: (value: {
+      data: { unit_id: number; payer_no: string }[];
+      error: null;
+    }) => void;
+    occupancyIn.mockReturnValueOnce(new Promise((resolve) => {
+      resolveOccupancy = resolve;
+    }));
+    unitAccountIn.mockReturnValueOnce(new Promise((resolve) => {
+      resolveAccount = resolve;
+    }));
+
+    const resultPromise = listBillTargets(7, "2026-08-01");
+
+    await vi.waitFor(() => {
+      expect(occupancyIn).toHaveBeenCalledOnce();
+      expect(unitAccountIn).toHaveBeenCalledOnce();
+    });
+    resolveOccupancy({
+      data: [{ id: 5, payer_name: "김납부", bill_name_display: "code" }],
+      error: null,
+    });
+    resolveAccount({ data: [{ unit_id: 1, payer_no: "P-101" }], error: null });
+
+    await expect(resultPromise).resolves.toEqual([
+      expect.objectContaining({ payerName: "김납부", payerNo: "P-101", billNameDisplay: "code" }),
+    ]);
+  });
   it("getBillDocuments: unit_ids 전송·items 매핑", async () => {
     rpc.mockResolvedValue({ data: [{
       unit_id: 1, unit_no: "101", dong: null, tenant_name: "홍", total_amount: 30000, auto_debit: false,

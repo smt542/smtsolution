@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect } from "react";
 import type { BillDocument, BillTarget } from "@/hooks/reactquery/bill";
 import type { Building } from "@/hooks/reactquery/buildings";
 import { prevPeriod } from "@/lib/billing/period";
@@ -15,10 +18,11 @@ export interface AdjustmentBuildingDocuments {
   targets: BillTarget[];
 }
 
-interface AdjustmentPrintViewProps {
+export interface AdjustmentPrintViewProps {
   companyName: string;
   period: string;
   buildings: AdjustmentBuildingDocuments[];
+  onReady?: () => void;
 }
 
 function signedAmount(amount: number) {
@@ -26,7 +30,11 @@ function signedAmount(amount: number) {
   return `${amount > 0 ? "+" : "-"}${formatBillAmount(Math.abs(amount))}`;
 }
 
-export function AdjustmentPrintView({ companyName, period, buildings }: AdjustmentPrintViewProps) {
+export function AdjustmentPrintView({ companyName, period, buildings, onReady }: AdjustmentPrintViewProps) {
+  useEffect(() => {
+    onReady?.();
+  }, [onReady]);
+
   const previous = prevPeriod(period);
   const previousLabel = `${previous.slice(0, 4)}-${previous.slice(5, 7)}`;
   return (

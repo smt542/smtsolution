@@ -142,13 +142,19 @@ describe("BillPage 게이트", () => {
     vi.mocked(useMe).mockReturnValue({
       data: { role: "staff", orgId: 1, permissions: ["bill_publish"] },
     } as unknown as ReturnType<typeof useMe>);
+    vi.mocked(useBillTargets).mockReturnValue({
+      data: [billTarget],
+      isLoading: false,
+    } as unknown as ReturnType<typeof useBillTargets>);
     render(<BillPage />);
     fireEvent.click(screen.getByRole("button", { name: /A4 관리비 고지서/ }));
     fireEvent.change(screen.getByRole("combobox", { name: /건물 선택/ }), {
       target: { value: "7" },
     });
+    fireEvent.click(screen.getByRole("checkbox", { name: "1001 선택" }));
+    fireEvent.click(screen.getByRole("button", { name: "카톡 고지서 발송" }));
 
-    expect(h.modal.onSent).toBeTypeOf("function");
+    await waitFor(() => expect(h.modal.onSent).toBeTypeOf("function"));
     await act(async () => {
       await h.modal.onSent?.({
         status: "queued",
@@ -201,7 +207,7 @@ describe("BillPage 게이트", () => {
       target: { value: "7" },
     });
     fireEvent.click(screen.getByRole("checkbox", { name: "1001 선택" }));
-    expect(h.modal.preset?.recipients?.[0].variables?.납기일).toBe("2026-08-31");
+    expect(h.modal.preset).toBeUndefined();
 
     fireEvent.change(screen.getByLabelText("납기일"), {
       target: { value: "2026-09-05" },

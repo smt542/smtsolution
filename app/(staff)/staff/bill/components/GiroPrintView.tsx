@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect } from "react";
 import type { BillDocument, BillTarget } from "@/hooks/reactquery/bill";
 import type { Building } from "@/hooks/reactquery/buildings";
 import {
@@ -22,13 +25,14 @@ export interface GiroStampOptions {
   autoDebit: boolean;
 }
 
-interface GiroPrintViewProps {
+export interface GiroPrintViewProps {
   companyName: string;
   period: string;
   documents: GiroOutputDocument[];
   accounts: PrintableAccount[];
   customerNotice: string | null;
   stamps: GiroStampOptions;
+  onReady?: () => void;
 }
 
 function periodLabel(period: string) {
@@ -42,7 +46,12 @@ export function GiroPrintView({
   accounts,
   customerNotice,
   stamps,
+  onReady,
 }: GiroPrintViewProps) {
+  useEffect(() => {
+    onReady?.();
+  }, [onReady]);
+
   return (
     <div className="space-y-5 text-black" data-testid="giro-print-view">
       {documents.map(({ building, document, target, dueDate }) => {
