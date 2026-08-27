@@ -11,7 +11,7 @@ export function useBilling(buildingId: number | null, period: string) {
 }
 export function useBillingHistory(unitId: number | null, period: string, months = 6) {
   return useQuery({
-    queryKey: billingKeys.history(unitId ?? 0, period),
+    queryKey: billingKeys.history(unitId ?? 0, period, months),
     queryFn: () => listBillingHistory(unitId as number, period, months),
     enabled: !!unitId,
   });

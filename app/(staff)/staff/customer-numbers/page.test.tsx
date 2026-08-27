@@ -48,7 +48,7 @@ function setupLookup({
   isError?: boolean;
 } = {}) {
   vi.mocked(useCustomerNumberLookup).mockReturnValue({
-    data,
+    data: { rows: data, total: data.length },
     isLoading,
     isError,
     refetch,
@@ -82,6 +82,8 @@ describe("CustomerNumberLookupPage", () => {
         buildingId: null,
         kind: "common_elec",
         q: "",
+        page: 1,
+        pageSize: 50,
       }),
     );
   });

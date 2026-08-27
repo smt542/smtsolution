@@ -16,10 +16,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ userId
   if (!ctx || (!isMaster && !perms.includes("accounts")))
     return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
 
-  // 대상이 동일 org인지 확인(list_accounts는 org 격리됨)
-  const { data: accounts } = await supabase.rpc("list_accounts");
-  const inOrg = Array.isArray(accounts) && accounts.some((a: { user_id: string }) => a.user_id === userId);
-  if (!inOrg) return NextResponse.json({ error: "대상 계정을 찾을 수 없습니다." }, { status: 404 });
+  // 대상이 현재 컨텍스트의 org 구성원인지 확인한다.
+  const { count: membershipCount } = await supabase
+    .from("org_members")
+    .select("user_id", { count: "exact", head: true })
+    .eq("org_id", ctx.org_id)
+    .eq("user_id", userId);
+  if (!membershipCount) return NextResponse.json({ error: "대상 계정을 찾을 수 없습니다." }, { status: 404 });
 
   const { password } = await req.json().catch(() => ({}));
   if (typeof password !== "string" || !/^\d{4}$/.test(password))

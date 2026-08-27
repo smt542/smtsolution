@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Tabs, SearchBar, Button, EmptyState } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
@@ -23,14 +23,26 @@ const TYPES_BY_TAB: Record<string, StaffType[]> = {
   field: ["field_staff", "support_staff"],
 };
 
+function useDebouncedValue(value: string, delay: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setDebouncedValue(value), delay);
+    return () => window.clearTimeout(timeoutId);
+  }, [delay, value]);
+
+  return debouncedValue;
+}
+
 export default function AccountsPage() {
   const { data: me } = useMe();
   const [tab, setTab] = useState("office");
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Account | null>(null);
+  const debouncedSearch = useDebouncedValue(search, 300);
 
-  const { data: accounts = [] } = useAccounts({ search: search || undefined });
+  const { data: accounts = [] } = useAccounts({ search: debouncedSearch || undefined });
   const createM = useCreateAccount();
   const basicM = useUpdateAccountBasic();
   const permM = useUpdatePermissions();

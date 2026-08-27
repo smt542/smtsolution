@@ -13,6 +13,13 @@ export interface FeeItemLookupFilters {
   typeId?: number | null;
   required?: boolean | null;
   q?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface FeeItemLookupResult {
+  rows: FeeItemLookupRow[];
+  total: number;
 }
 
 export interface FeeItemLookupRow {
@@ -64,30 +71,42 @@ export async function listFeeItems(typeId: number): Promise<FeeItem[]> {
   return (data ?? []).map(rowToFeeItem);
 }
 
-export async function listAllFeeItems(filters: FeeItemLookupFilters): Promise<FeeItemLookupRow[]> {
+export async function listAllFeeItems(
+  filters: FeeItemLookupFilters,
+): Promise<FeeItemLookupResult> {
+  const page = Math.max(1, filters.page ?? 1);
+  const pageSize = Math.min(100, Math.max(1, filters.pageSize ?? 50));
+  const firstRow = (page - 1) * pageSize;
   let query = createClient()
     .from("fee_items")
     .select(
       "id, type_id, name, rounding, daily_proration, carry_over, is_required, sort_order, building_types!inner(id, label)",
+      { count: "exact" },
     )
     .is("deleted_at", null);
   if (filters.typeId != null) query = query.eq("type_id", filters.typeId);
   if (filters.required != null) query = query.eq("is_required", filters.required);
   const q = filters.q?.trim();
   if (q) query = query.ilike("name", `%${q}%`);
-  const { data, error } = await query.order("type_id").order("sort_order");
+  const { data, count, error } = await query
+    .order("type_id")
+    .order("sort_order")
+    .range(firstRow, firstRow + pageSize - 1);
   if (error) throw new Error(error.message);
-  return ((data ?? []) as unknown as FeeItemLookupDbRow[]).map((r) => ({
-    id: r.id,
-    typeId: r.type_id,
-    typeLabel: r.building_types?.label ?? "",
-    name: r.name,
-    rounding: r.rounding,
-    dailyProration: r.daily_proration,
-    carryOver: r.carry_over,
-    isRequired: r.is_required,
-    sortOrder: r.sort_order,
-  }));
+  return {
+    rows: ((data ?? []) as unknown as FeeItemLookupDbRow[]).map((r) => ({
+      id: r.id,
+      typeId: r.type_id,
+      typeLabel: r.building_types?.label ?? "",
+      name: r.name,
+      rounding: r.rounding,
+      dailyProration: r.daily_proration,
+      carryOver: r.carry_over,
+      isRequired: r.is_required,
+      sortOrder: r.sort_order,
+    })),
+    total: count ?? 0,
+  };
 }
 
 export async function createFeeItem(input: FeeItemInput): Promise<FeeItem> {
