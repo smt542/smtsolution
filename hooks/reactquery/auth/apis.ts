@@ -1,12 +1,11 @@
 import { createClient } from "@/lib/supabase/client";
-import { loginEmail } from "@/lib/auth/email";
 
 export type OrgMemberRole =
   | "platform_admin" | "org_owner" | "manager" | "staff" | "field" | "tenant";
 
 export type StaffType = "manager_staff" | "field_staff" | "support_staff" | "tenant";
 
-export interface LoginInput { companyCode: string; username: string; password: string; autoLogin: boolean }
+export interface LoginInput { username: string; password: string; autoLogin: boolean }
 
 export interface MyContext {
   orgId: number;
@@ -22,14 +21,15 @@ export interface MyContext {
   permissions: string[];
 }
 
-const INVALID_CREDS = "아이디 또는 비밀번호가 올바르지 않습니다.";
-
-export async function login(input: LoginInput): Promise<void> {
-  const supabase = createClient();
-  const email = loginEmail(input.companyCode, input.username);
-  // autoLogin은 세션 지속을 직접 바꾸지 않음 — AuthBoot가 부팅 시 처리(설계).
-  const { error } = await supabase.auth.signInWithPassword({ email, password: input.password });
-  if (error) throw new Error(INVALID_CREDS);
+export async function login(input: LoginInput): Promise<MyContext> {
+  const response = await fetch("/api/staff/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: input.username, password: input.password }),
+  });
+  const data = (await response.json().catch(() => ({}))) as Partial<MyContext> & { error?: string };
+  if (!response.ok) throw new Error(data.error ?? "로그인에 실패했습니다.");
+  return data as MyContext;
 }
 
 export async function logout(): Promise<void> {

@@ -1,49 +1,52 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 
-const api = vi.hoisted(() => ({
-  login: vi.fn(), logout: vi.fn(), getMyContext: vi.fn(), recordLogin: vi.fn(),
-}));
+const api = vi.hoisted(() => ({ login: vi.fn(), logout: vi.fn() }));
 vi.mock("./apis", () => api);
-const signOut = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ auth: { signOut } }) }));
 
+import { authKeys } from "./keys";
 import { useLogin } from "./mutations";
 
+let queryClient: QueryClient;
+
 function wrapper({ children }: { children: React.ReactNode }) {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+});
 
 describe("useLogin", () => {
-  it("성공: 활성 조직 컨텍스트면 recordLogin 호출", async () => {
-    api.login.mockResolvedValue(undefined);
-    api.getMyContext.mockResolvedValue({ orgId: 1, role: "staff", orgStatus: "active", username: "hong", fullName: "홍", isActive: true, mustChangePassword: false });
-    api.recordLogin.mockResolvedValue(undefined);
+  it("서버가 검증한 컨텍스트를 반환하고 me 캐시를 채운다", async () => {
+    const context = {
+      orgId: 1,
+      role: "staff",
+      orgStatus: "active",
+      username: "hong",
+      fullName: "홍길동",
+      isActive: true,
+      mustChangePassword: false,
+      staffType: "manager_staff",
+      permissions: ["buildings"],
+    };
+    api.login.mockResolvedValue(context);
+    const input = { username: "hong", password: "pw", autoLogin: false };
     const { result } = renderHook(() => useLogin(), { wrapper });
-    await result.current.mutateAsync({ companyCode: "demo", username: "hong", password: "pw", autoLogin: false });
-    expect(api.recordLogin).toHaveBeenCalled();
+
+    await expect(result.current.mutateAsync(input)).resolves.toEqual(context);
+    expect(api.login).toHaveBeenCalledWith(input);
+    expect(queryClient.getQueryData(authKeys.me())).toEqual(context);
   });
 
-  it("컨텍스트 없음: 권한 없음 에러 + signOut", async () => {
-    api.login.mockResolvedValue(undefined);
-    api.getMyContext.mockResolvedValue(null);
+  it("서버의 로그인 거부 메시지를 그대로 전달한다", async () => {
+    api.login.mockRejectedValue(new Error("비활성화된 계정입니다. 관리자에게 문의해 주세요."));
     const { result } = renderHook(() => useLogin(), { wrapper });
-    await expect(result.current.mutateAsync({ companyCode: "demo", username: "x", password: "y", autoLogin: false }))
-      .rejects.toThrow("접근 권한이 없는 계정입니다.");
-    expect(signOut).toHaveBeenCalled();
-  });
 
-  it("정지 조직: 차단 + signOut", async () => {
-    api.login.mockResolvedValue(undefined);
-    api.getMyContext.mockResolvedValue({ orgId: 1, role: "staff", orgStatus: "suspended", username: "h", fullName: "홍", isActive: true, mustChangePassword: false });
-    const { result } = renderHook(() => useLogin(), { wrapper });
-    await expect(result.current.mutateAsync({ companyCode: "demo", username: "x", password: "y", autoLogin: false }))
-      .rejects.toThrow("정지되었거나 사용할 수 없는 조직입니다.");
-    expect(signOut).toHaveBeenCalled();
+    await expect(result.current.mutateAsync({ username: "hong", password: "pw", autoLogin: false }))
+      .rejects.toThrow("비활성화된 계정입니다. 관리자에게 문의해 주세요.");
   });
 });
