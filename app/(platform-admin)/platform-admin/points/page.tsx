@@ -1,11 +1,14 @@
 "use client";
 
-import { useDeferredValue, useMemo, useState } from "react";
-import { EmptyState, Spinner, Button, SearchBar } from "@/components/common";
+import dynamic from "next/dynamic";
+import { useEffect, useMemo, useState } from "react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { EmptyState, Spinner, Button, Modal, SearchBar } from "@/components/common";
 import {
+  listPlatformOrganizations,
+  platformKeys,
   useAdjustPoints,
   useMessagePointRates,
-  usePlatformOrganizations,
   usePlatformTransactions,
   usePointReservations,
   useChargePoints,
@@ -14,6 +17,7 @@ import {
   type PointReservation,
   type PointReservationStatus,
   type PointTxType,
+  type PlatformOrganizationQuery,
 } from "@/hooks/reactquery/platform";
 import type { PointAdjustmentFormValues } from "@/components/forms/schema/pointAdjustment";
 import { toast } from "sonner";
@@ -23,20 +27,44 @@ import {
   QueryError,
   StatusBadge,
 } from "../../_components/PageElements";
-import { PointChargeModal } from "./components/PointChargeModal";
-import { PointAdjustmentModal } from "./components/PointAdjustmentModal";
-import { MessagePointRateModal } from "./components/MessagePointRateModal";
-import { ReservationReleaseModal } from "./components/ReservationReleaseModal";
+const PointChargeModal = dynamic(() =>
+  import("./components/PointChargeModal").then((module) => module.PointChargeModal),
+);
+const PointAdjustmentModal = dynamic(() =>
+  import("./components/PointAdjustmentModal").then((module) => module.PointAdjustmentModal),
+);
+const MessagePointRateModal = dynamic(() =>
+  import("./components/MessagePointRateModal").then((module) => module.MessagePointRateModal),
+);
+const ReservationReleaseModal = dynamic(() =>
+  import("./components/ReservationReleaseModal").then((module) => module.ReservationReleaseModal),
+);
 
 const dateFmt = new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" });
 const num = (n: number) => n.toLocaleString("ko-KR");
 const ORGANIZATION_PAGE_SIZE = 25;
 const RESERVATION_PAGE_SIZE = 25;
+const SEARCH_DEBOUNCE_MS = 300;
+const MODAL_ORGANIZATION_QUERY = { pageSize: 100 } satisfies PlatformOrganizationQuery;
 const ACTIVE_RESERVATION_STATUSES: PointReservationStatus[] = [
   "reserved",
   "provider_pending",
   "reconcile_required",
 ];
+
+function useDebouncedValue(value: string) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(
+      () => setDebouncedValue(value),
+      SEARCH_DEBOUNCE_MS,
+    );
+    return () => window.clearTimeout(timeoutId);
+  }, [value]);
+
+  return debouncedValue;
+}
 
 export default function PlatformPointsPage() {
   const [search, setSearch] = useState("");
@@ -46,14 +74,22 @@ export default function PlatformPointsPage() {
   const [adjustmentModalOpen, setAdjustmentModalOpen] = useState(false);
   const [rateModalOpen, setRateModalOpen] = useState(false);
   const [releaseTarget, setReleaseTarget] = useState<PointReservation | null>(null);
-  const deferredSearch = useDeferredValue(search.trim());
-  const orgsQuery = usePlatformOrganizations({
-    search: deferredSearch,
+  const debouncedSearch = useDebouncedValue(search.trim());
+  const organizationQuery = useMemo<PlatformOrganizationQuery>(() => ({
+    search: debouncedSearch,
     page: organizationPage,
     pageSize: ORGANIZATION_PAGE_SIZE,
+  }), [debouncedSearch, organizationPage]);
+  const orgsQuery = useQuery({
+    queryKey: platformKeys.organizations(organizationQuery),
+    queryFn: () => listPlatformOrganizations(organizationQuery),
+    placeholderData: keepPreviousData,
   });
-  // Dedicated full-list query for modal pickers — not affected by table search/pagination.
-  const modalOrgsQuery = usePlatformOrganizations({ pageSize: 100 });
+  const modalOrgsQuery = useQuery({
+    queryKey: platformKeys.organizations(MODAL_ORGANIZATION_QUERY),
+    queryFn: () => listPlatformOrganizations(MODAL_ORGANIZATION_QUERY),
+    enabled: chargeModalOpen || adjustmentModalOpen,
+  });
   const txQuery = usePlatformTransactions();
   const ratesQuery = useMessagePointRates();
   const reservationsQuery = usePointReservations({
@@ -86,6 +122,10 @@ export default function PlatformPointsPage() {
     () => reservationsQuery.data?.rows ?? [],
     [reservationsQuery.data],
   );
+  const pickerUnavailable = modalOrgsQuery.data
+    ? modalOrganizations.length === 0
+    : orgsQuery.isPending
+      || (debouncedSearch === "" && organizations.length === 0);
 
   const handleCharge = async (values: { orgId: number; points: number; amountKrw: number; memo?: string }) => {
     try {
@@ -178,8 +218,8 @@ export default function PlatformPointsPage() {
                 placeholder="조직명 검색"
               />
             </div>
-            <Button variant="ghost" onClick={() => setAdjustmentModalOpen(true)} disabled={modalOrganizations.length === 0}>포인트 조정</Button>
-            <Button variant="primary" onClick={() => setChargeModalOpen(true)} disabled={modalOrganizations.length === 0}>충전 기록</Button>
+            <Button variant="ghost" onClick={() => setAdjustmentModalOpen(true)} disabled={pickerUnavailable}>포인트 조정</Button>
+            <Button variant="primary" onClick={() => setChargeModalOpen(true)} disabled={pickerUnavailable}>충전 기록</Button>
           </div>
         </div>
         {orgsQuery.isPending ? (
@@ -333,29 +373,53 @@ export default function PlatformPointsPage() {
         )}
       </section>
 
-      <PointChargeModal
-        open={chargeModalOpen}
-        onClose={() => setChargeModalOpen(false)}
-        organizations={modalOrganizations}
-        onSubmit={handleCharge}
-        isPending={charge.isPending}
-      />
-      <PointAdjustmentModal
-        open={adjustmentModalOpen}
-        onClose={() => setAdjustmentModalOpen(false)}
-        organizations={modalOrganizations}
-        onSubmit={handleAdjustment}
-        isPending={adjustment.isPending}
-      />
-      <MessagePointRateModal
-        open={rateModalOpen}
-        onClose={() => setRateModalOpen(false)}
-        smsPoints={activeRates.get("sms") ?? 1}
-        alimtalkPoints={activeRates.get("alimtalk") ?? 1}
-        lmsPoints={activeRates.get("lms")}
-        onSubmit={handleRates}
-        isPending={setRates.isPending}
-      />
+      {chargeModalOpen && (
+        modalOrgsQuery.isPending || modalOrgsQuery.isError ? (
+          <OrganizationPickerQueryModal
+            title="포인트 충전 기록"
+            isError={modalOrgsQuery.isError}
+            onClose={() => setChargeModalOpen(false)}
+            onRetry={() => void modalOrgsQuery.refetch()}
+          />
+        ) : (
+          <PointChargeModal
+            open
+            onClose={() => setChargeModalOpen(false)}
+            organizations={modalOrganizations}
+            onSubmit={handleCharge}
+            isPending={charge.isPending}
+          />
+        )
+      )}
+      {adjustmentModalOpen && (
+        modalOrgsQuery.isPending || modalOrgsQuery.isError ? (
+          <OrganizationPickerQueryModal
+            title="포인트 조정"
+            isError={modalOrgsQuery.isError}
+            onClose={() => setAdjustmentModalOpen(false)}
+            onRetry={() => void modalOrgsQuery.refetch()}
+          />
+        ) : (
+          <PointAdjustmentModal
+            open
+            onClose={() => setAdjustmentModalOpen(false)}
+            organizations={modalOrganizations}
+            onSubmit={handleAdjustment}
+            isPending={adjustment.isPending}
+          />
+        )
+      )}
+      {rateModalOpen && (
+        <MessagePointRateModal
+          open
+          onClose={() => setRateModalOpen(false)}
+          smsPoints={activeRates.get("sms") ?? 1}
+          alimtalkPoints={activeRates.get("alimtalk") ?? 1}
+          lmsPoints={activeRates.get("lms")}
+          onSubmit={handleRates}
+          isPending={setRates.isPending}
+        />
+      )}
       {releaseTarget && (
         <ReservationReleaseModal
           key={releaseTarget.id}
@@ -366,6 +430,24 @@ export default function PlatformPointsPage() {
         />
       )}
     </div>
+  );
+}
+
+function OrganizationPickerQueryModal({
+  title,
+  isError,
+  onClose,
+  onRetry,
+}: {
+  title: string;
+  isError: boolean;
+  onClose: () => void;
+  onRetry: () => void;
+}) {
+  return (
+    <Modal open onClose={onClose} title={title}>
+      {isError ? <QueryError onRetry={onRetry} /> : <Spinner />}
+    </Modal>
   );
 }
 
