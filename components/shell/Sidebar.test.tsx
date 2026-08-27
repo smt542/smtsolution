@@ -1,15 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { Sidebar } from "./Sidebar";
 import type { MyContext } from "@/hooks/reactquery/auth/apis";
 
 /* ── mocks ──────────────────────────────────────────────────────────────── */
 
 // Mock next/navigation
+const mockReplace = vi.fn();
 vi.mock("next/navigation", () => ({
   usePathname: vi.fn(() => "/staff/buildings"),
-  useRouter: vi.fn(() => ({ push: vi.fn() })),
+  useRouter: vi.fn(() => ({ push: vi.fn(), replace: mockReplace, refresh: vi.fn() })),
 }));
+
+// Mock sonner toast (logout error path)
+vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
 // Mock next/link — render as a plain <a>
 vi.mock("next/link", () => ({
@@ -32,8 +36,10 @@ vi.mock("next/link", () => ({
 
 // Mock @/hooks/reactquery/auth
 const mockUseMe = vi.fn();
+const mockLogoutMutate = vi.fn().mockResolvedValue(undefined);
 vi.mock("@/hooks/reactquery/auth", () => ({
   useMe: () => mockUseMe(),
+  useLogout: () => ({ mutateAsync: mockLogoutMutate, isPending: false }),
 }));
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */
@@ -128,5 +134,16 @@ describe("Sidebar", () => {
     render(<Sidebar />);
 
     expect(screen.queryByRole("link", { name: "통합관리자 콘솔" })).not.toBeInTheDocument();
+  });
+
+  it("로그아웃 버튼 클릭 시 로그아웃 후 로그인 화면으로 이동한다", async () => {
+    mockUseMe.mockReturnValue(makeMe({ role: "org_owner" }));
+
+    render(<Sidebar />);
+
+    fireEvent.click(screen.getByRole("button", { name: /로그아웃/ }));
+
+    await waitFor(() => expect(mockLogoutMutate).toHaveBeenCalledTimes(1));
+    expect(mockReplace).toHaveBeenCalledWith("/staff/login");
   });
 });

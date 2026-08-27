@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useMe } from "@/hooks/reactquery/auth";
+import { usePathname, useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useLogout, useMe } from "@/hooks/reactquery/auth";
 import { hasModule } from "@/lib/auth/permissions";
 import { NAV_GROUPS, type NavItem } from "./navItems";
 
@@ -88,7 +89,20 @@ function NavItemRow({
 /* ── sidebar ─────────────────────────────────────────────────────────────── */
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { data: me } = useMe();
+  const logout = useLogout();
+
+  const handleLogout = async () => {
+    if (logout.isPending) return;
+    try {
+      await logout.mutateAsync();
+      router.replace("/staff/login");
+      router.refresh();
+    } catch {
+      toast.error("로그아웃하지 못했습니다. 다시 시도해 주세요.");
+    }
+  };
 
   return (
     <aside className="w-60 h-full flex flex-col bg-white border-r border-line py-[18px] px-[14px]">
@@ -146,18 +160,31 @@ export function Sidebar() {
         })}
       </div>
 
-      {/* Sidebar footer — user info */}
+      {/* Sidebar footer — user info + logout */}
       {me && (
-        <div className="mt-auto flex items-center gap-[10px] p-[10px] rounded-xl bg-bg">
-          <div className="w-[34px] h-[34px] rounded-full bg-[#DCE3EA] flex items-center justify-center text-[14px] font-bold text-t2 flex-none select-none">
-            {me.fullName.charAt(0)}
-          </div>
-          <div className="min-w-0">
-            <div className="text-[13px] font-bold text-t1 truncate">{me.fullName}</div>
-            <div className="text-[11px] text-t3 truncate">
-              {me.username} · {roleLabel(me.role)}
+        <div className="mt-auto flex flex-col gap-1.5">
+          <div className="flex items-center gap-[10px] p-[10px] rounded-xl bg-bg">
+            <div className="w-[34px] h-[34px] rounded-full bg-[#DCE3EA] flex items-center justify-center text-[14px] font-bold text-t2 flex-none select-none">
+              {me.fullName.charAt(0)}
+            </div>
+            <div className="min-w-0">
+              <div className="text-[13px] font-bold text-t1 truncate">{me.fullName}</div>
+              <div className="text-[11px] text-t3 truncate">
+                {me.username} · {roleLabel(me.role)}
+              </div>
             </div>
           </div>
+          <button
+            type="button"
+            onClick={() => void handleLogout()}
+            disabled={logout.isPending}
+            className="flex w-full items-center gap-2 rounded-[11px] px-3 py-2.5 text-left text-[13px] font-bold text-red transition-colors hover:bg-red-t disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 flex-none" aria-hidden="true">
+              <path d="M10 17l5-5-5-5M15 12H3M14 4h5a2 2 0 012 2v12a2 2 0 01-2 2h-5" />
+            </svg>
+            {logout.isPending ? "로그아웃 중…" : "로그아웃"}
+          </button>
         </div>
       )}
     </aside>
