@@ -1,30 +1,54 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const signInWithPassword = vi.fn();
 const signOut = vi.fn();
 const rpc = vi.fn();
 vi.mock("@/lib/supabase/client", () => ({
-  createClient: () => ({ auth: { signInWithPassword, signOut }, rpc }),
+  createClient: () => ({ auth: { signOut }, rpc }),
 }));
 
-import { login, getMyContext } from "./apis";
+const fetchMock = vi.fn();
+vi.stubGlobal("fetch", fetchMock);
+
+import { getMyContext, login } from "./apis";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  process.env.NEXT_PUBLIC_STAFF_EMAIL_DOMAIN = "staff.gwanribiseo.app";
 });
 
 describe("login", () => {
-  it("회사코드+아이디를 합성 이메일로 바꿔 signInWithPassword 호출", async () => {
-    signInWithPassword.mockResolvedValue({ data: {}, error: null });
-    await login({ companyCode: "demo", username: "hong", password: "pw", autoLogin: false });
-    expect(signInWithPassword).toHaveBeenCalledWith({
-      email: "demo.hong@staff.gwanribiseo.app", password: "pw",
+  const context = {
+    orgId: 1,
+    role: "staff",
+    orgStatus: "active",
+    username: "hong",
+    fullName: "홍길동",
+    isActive: true,
+    mustChangePassword: false,
+    staffType: "manager_staff",
+    permissions: ["buildings"],
+  };
+
+  it("아이디와 비밀번호만 staff 로그인 API로 보내고 컨텍스트를 반환한다", async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue(context),
+    });
+
+    await expect(login({ username: "hong", password: "pw", autoLogin: true })).resolves.toEqual(context);
+    expect(fetchMock).toHaveBeenCalledWith("/api/staff/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: "hong", password: "pw" }),
     });
   });
-  it("실패 시 일반 메시지로 throw", async () => {
-    signInWithPassword.mockResolvedValue({ data: null, error: { message: "Invalid" } });
-    await expect(login({ companyCode: "demo", username: "hong", password: "x", autoLogin: false }))
+
+  it("서버 로그인 오류 메시지를 그대로 전달한다", async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      json: vi.fn().mockResolvedValue({ error: "아이디 또는 비밀번호가 올바르지 않습니다." }),
+    });
+
+    await expect(login({ username: "hong", password: "wrong", autoLogin: false }))
       .rejects.toThrow("아이디 또는 비밀번호가 올바르지 않습니다.");
   });
 });
@@ -43,6 +67,7 @@ describe("getMyContext", () => {
       staffType: "manager_staff", permissions: ["buildings"],
     });
   });
+
   it("결과 없으면 null", async () => {
     rpc.mockResolvedValue({ data: [], error: null });
     expect(await getMyContext()).toBeNull();
