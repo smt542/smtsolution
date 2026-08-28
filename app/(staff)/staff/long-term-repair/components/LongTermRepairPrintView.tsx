@@ -1,3 +1,5 @@
+import { formatNumber } from "@/lib/format";
+
 export interface LongTermRepairPrintRow {
   key: string;
   entryDate: string;
@@ -17,7 +19,7 @@ interface LongTermRepairPrintViewProps {
 }
 
 function formatMoney(value: number) {
-  return value.toLocaleString("ko-KR");
+  return formatNumber(value);
 }
 
 function monthLabel(value: string) {

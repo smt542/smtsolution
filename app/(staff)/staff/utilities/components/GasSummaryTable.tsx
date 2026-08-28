@@ -3,6 +3,10 @@ import {
   useUtilityPrices,
   type UtilityUnitRow,
 } from "@/hooks/reactquery/utilities";
+import {
+  formatNumber as formatSharedNumber,
+  formatWon,
+} from "@/lib/format";
 
 export const UNASSIGNED_GAS_LINE = "__unassigned__";
 
@@ -24,7 +28,7 @@ interface SummaryRow {
 }
 
 function formatNumber(value: number): string {
-  return value.toLocaleString("ko-KR", { maximumFractionDigits: 3 });
+  return formatSharedNumber(value, { fractionDigits: 3 });
 }
 
 export function GasSummaryTable({
@@ -123,13 +127,13 @@ export function GasSummaryTable({
                   )}
                 </td>
                 <td className="num px-5 py-3 text-right font-semibold text-t2">
-                  {row.unitCount.toLocaleString("ko-KR")}세대
+                  {formatSharedNumber(row.unitCount)}세대
                 </td>
                 <td className="num px-5 py-3 text-right font-semibold text-t1">
                   {formatNumber(row.usage)}
                 </td>
                 <td className="num px-5 py-3 text-right font-bold text-blue-d">
-                  {row.charge.toLocaleString("ko-KR")}원
+                  {formatWon(row.charge)}
                 </td>
               </tr>
             ))}

@@ -2,6 +2,7 @@
 import React, { memo } from "react";
 import type { BillingUnitRow, BillingColumn } from "@/lib/billing/pivot";
 import { unitTotal, type ChargeLine } from "@/lib/billing/total";
+import { formatNumber } from "@/lib/format";
 
 interface BillingTableProps {
   units: BillingUnitRow[];
@@ -20,7 +21,7 @@ export type BillingNoteDraft = { billingNote: string; unitNotice: string };
 const EMPTY_CHARGE_DRAFTS: Record<number, Record<number, BillingChargeDraft>> = {};
 const EMPTY_NOTE_DRAFTS: Record<number, BillingNoteDraft> = {};
 
-const won = (n: number) => n.toLocaleString("ko-KR");
+const won = (n: number) => formatNumber(n);
 
 function isMidMoveIn(moveInDate: string | null, period: string): boolean {
   return !!moveInDate && moveInDate.slice(0, 7) === period.slice(0, 7);

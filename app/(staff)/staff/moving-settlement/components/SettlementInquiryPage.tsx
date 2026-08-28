@@ -12,6 +12,7 @@ import {
 } from "@/hooks/reactquery/movingSettlement";
 import { SETTLEMENT_INQUIRY_TYPES } from "@/hooks/reactquery/movingSettlement/inquiryTypes";
 import { hasModule } from "@/lib/auth/permissions";
+import { formatNumber, formatWon } from "@/lib/format";
 
 const TYPE_LABELS: Record<SettlementInquiryType, string> = {
   water: "수도",
@@ -49,7 +50,7 @@ function currentMonthRange(): Pick<FilterState, "from" | "to"> {
 }
 
 function money(value: number | null): string {
-  return value === null ? "-" : `${value.toLocaleString("ko-KR")}원`;
+  return formatWon(value, { nullText: "-" });
 }
 
 function inquiryColumns(type: SettlementInquiryType) {
@@ -234,7 +235,7 @@ export function SettlementInquiryPage({ type }: { type: SettlementInquiryType })
       <section className="rounded-2xl border border-line bg-surface p-4 shadow-card">
         <div className="mb-4 flex items-center justify-between gap-3">
           <h2 className="text-base font-extrabold text-t1">조회 결과</h2>
-          <span className="text-sm font-bold text-t3">총 {total.toLocaleString("ko-KR")}건</span>
+          <span className="text-sm font-bold text-t3">총 {formatNumber(total)}건</span>
         </div>
 
         {invalidRange ? (

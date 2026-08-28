@@ -1,5 +1,6 @@
 import { Button, Modal } from "@/components/common";
 import { useMeterHistory, type UtilityType, type UtilityUnitRow } from "@/hooks/reactquery/utilities";
+import { formatMonth, formatNumber } from "@/lib/format";
 
 const TYPE_LABELS: Record<UtilityType, string> = {
   water: "수도",
@@ -16,15 +17,15 @@ interface UtilityHistoryModalProps {
 }
 
 function ym(period: string): string {
-  return `${period.slice(0, 4)}.${period.slice(5, 7)}`;
+  return formatMonth(period);
 }
 function formatCharge(value: number | null): string {
-  return value === null ? "—" : value.toLocaleString("ko-KR");
+  return formatNumber(value);
 }
 function formatDelta(value: number | null): string {
   if (value === null) return "—";
   const sign = value > 0 ? "+" : "";
-  return `${sign}${value.toLocaleString("ko-KR")}`;
+  return `${sign}${formatNumber(value)}`;
 }
 
 export function UtilityHistoryModal({
@@ -81,7 +82,7 @@ export function UtilityHistoryModal({
                   {formatDelta(item.chargeDelta)}
                 </td>
                 <td className="num px-3 py-3 text-right text-t3">
-                  {item.unitPrice === null ? "—" : item.unitPrice.toLocaleString("ko-KR")}
+                  {formatNumber(item.unitPrice)}
                 </td>
                 <td className="num px-3 py-3 text-right text-t3">
                   {formatDelta(item.unitPriceDelta)}

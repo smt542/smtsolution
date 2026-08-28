@@ -1,5 +1,6 @@
 import { Button, DataTable, EmptyState, Panel, Spinner } from "@/components/common";
 import type { MessageLog } from "@/hooks/reactquery/messaging";
+import { formatNumber } from "@/lib/format";
 
 export interface MessageLogListProps {
   logs: MessageLog[];
@@ -108,10 +109,10 @@ export function MessageLogList({
 
 function PointStatus({ log }: { log: MessageLog }) {
   if (log.pointStatus === "settled") {
-    return <span className="font-bold text-t1">차감 {log.chargedPoints.toLocaleString("ko-KR")} P</span>;
+    return <span className="font-bold text-t1">차감 {formatNumber(log.chargedPoints)} P</span>;
   }
   if (log.pointStatus === "reserved") {
-    return <span className="font-bold text-amber">예약 {log.estimatedPoints.toLocaleString("ko-KR")} P</span>;
+    return <span className="font-bold text-amber">예약 {formatNumber(log.estimatedPoints)} P</span>;
   }
   if (log.pointStatus === "reconcile_required") {
     return <span className="font-bold text-danger">확인 필요</span>;
@@ -120,7 +121,7 @@ function PointStatus({ log }: { log: MessageLog }) {
     return <span className="text-t3">예약 해제 · 0 P</span>;
   }
   if (log.pointStatus === "quoted") {
-    return <span className="text-t3">예상 {log.estimatedPoints.toLocaleString("ko-KR")} P · 차감 없음</span>;
+    return <span className="text-t3">예상 {formatNumber(log.estimatedPoints)} P · 차감 없음</span>;
   }
   return <span className="text-t4">—</span>;
 }

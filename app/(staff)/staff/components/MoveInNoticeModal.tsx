@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { Button } from "@/components/common";
 import type { TodayMoveIn } from "@/hooks/reactquery/dashboard";
+import { formatDate } from "@/lib/format";
 
 function formatMoveInDate(value: string): string {
-  const [year, month, day] = value.split("-");
-  return `${year}.${month}.${day}`;
+  return formatDate(value);
 }
 
 function unitLabel(moveIn: TodayMoveIn): string {
