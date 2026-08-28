@@ -1,3 +1,5 @@
+import { SummaryCard } from "@/components/common";
+
 interface UtilitySummaryCardsProps {
   total: number;
   completed: number;
@@ -25,15 +27,12 @@ export function UtilitySummaryCards({
   return (
     <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
       {cards.map((card) => (
-        <div
+        <SummaryCard
           key={card.label}
-          className="rounded-2xl border border-line bg-surface px-5 py-4 shadow-card"
-        >
-          <p className="text-sm font-semibold text-t3">{card.label}</p>
-          <p className={`num mt-1 text-2xl font-extrabold ${card.tone}`}>
-            {card.value}
-          </p>
-        </div>
+          label={card.label}
+          value={card.value}
+          tone={card.tone}
+        />
       ))}
     </div>
   );
