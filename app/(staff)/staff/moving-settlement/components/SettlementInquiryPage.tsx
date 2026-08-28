@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { type FormEvent, type ReactNode, useState } from "react";
-import { Button, DataTable, EmptyState, Input, Select, Spinner } from "@/components/common";
+import { Badge, Button, DataTable, EmptyState, Input, Select, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import {
@@ -117,9 +117,9 @@ export function SettlementInquiryPage({ type }: { type: SettlementInquiryType })
     gas: money(row.gasCharge),
     total: money(row.settlementAmount),
     status: (
-      <span className="inline-flex rounded-full bg-blue-t px-2.5 py-1 text-xs font-bold text-blue-d">
+      <Badge className="inline-flex bg-blue-t px-2.5 py-1 text-blue-d">
         {STATUS_LABELS[row.status]}
-      </span>
+      </Badge>
     ),
   }));
 

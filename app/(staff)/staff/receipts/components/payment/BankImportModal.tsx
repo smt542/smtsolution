@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Button, Checkbox, EmptyState, Input, Select } from "@/components/common";
+import { Badge, Button, Checkbox, EmptyState, Input, Select } from "@/components/common";
 import {
   useBankPayments,
   useRecordBankPayments,
@@ -63,18 +63,18 @@ function errorMessage(error: unknown) {
 function DeltaBadge({ delta }: { delta: number | null }) {
   if (delta == null) return <span className="text-t4">-</span>;
   if (delta === 0) {
-    return <span className="rounded-full bg-green-t px-2 py-1 text-xs font-bold text-green">일치</span>;
+    return <Badge className="bg-green-t px-2 py-1 text-green">일치</Badge>;
   }
   const isOver = delta > 0;
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span
-        className={`rounded-full px-2 py-1 text-xs font-bold ${
+      <Badge
+        className={`px-2 py-1 ${
           isOver ? "bg-blue-t text-blue" : "bg-amber-t text-amber"
         }`}
       >
         {isOver ? "초과" : "부분"}
-      </span>
+      </Badge>
       <span className="num text-xs font-semibold text-t2">{money(Math.abs(delta))}</span>
     </span>
   );
@@ -370,7 +370,7 @@ export function BankImportModal({
                           <td className="px-3 py-3"><DeltaBadge delta={item.delta} /></td>
                           <td className="px-3 py-3">
                             {item.isDuplicate ? (
-                              <span className="rounded-full bg-amber-t px-2 py-1 text-xs font-bold text-amber">중복</span>
+                              <Badge className="bg-amber-t px-2 py-1 text-amber">중복</Badge>
                             ) : (
                               <span className="text-t4">-</span>
                             )}

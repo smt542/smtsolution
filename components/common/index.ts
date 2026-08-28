@@ -10,3 +10,4 @@ export { SidebarList } from "./SidebarList";
 export { SearchBar } from "./SearchBar";
 export { EmptyState } from "./EmptyState";
 export { Spinner } from "./Spinner";
+export { Badge } from "./Badge";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Button, Input, Select, Spinner } from "@/components/common";
+import { Badge, Button, Input, Select, Spinner } from "@/components/common";
 import type { Account } from "@/hooks/reactquery/accounts";
 import {
   useComplaintResolutions,
@@ -124,9 +124,9 @@ export function ComplaintDetailModal({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${COMPLAINT_STATUS_STYLE[complaint.status]}`}>
+              <Badge className={`px-2.5 py-1 ${COMPLAINT_STATUS_STYLE[complaint.status]}`}>
                 {COMPLAINT_STATUS_LABEL[complaint.status]}
-              </span>
+              </Badge>
               <span className="text-xs text-t3">접수 #{complaint.id}</span>
             </div>
             <h3 className="mt-3 text-xl font-extrabold text-t1">{complaint.title}</h3>

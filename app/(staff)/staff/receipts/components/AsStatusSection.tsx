@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Button, EmptyState, Panel, Select, Spinner } from "@/components/common";
+import { Badge, Button, EmptyState, Panel, Select, Spinner } from "@/components/common";
 import { useAccounts } from "@/hooks/reactquery/accounts";
 import { useAsCategories } from "@/hooks/reactquery/asCategories";
 import { useBuildings } from "@/hooks/reactquery/buildings";
@@ -338,11 +338,11 @@ export function AsStatusSection({
                       {complaint.reporterPhone ?? "-"}
                     </td>
                     <td className="px-3 py-3">
-                      <span
-                        className={`rounded-full px-2 py-1 text-xs font-bold ${COMPLAINT_STATUS_STYLE[complaint.status]}`}
+                      <Badge
+                        className={`px-2 py-1 ${COMPLAINT_STATUS_STYLE[complaint.status]}`}
                       >
                         {COMPLAINT_STATUS_LABEL[complaint.status]}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="max-w-[220px] truncate px-3 py-3 text-t2">
                       {latest?.resultContent ?? "-"}
