@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
+import { formatMonth } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 
 import styles from "./mobile-meter.module.css";
@@ -236,7 +237,7 @@ function MeterInner() {
         <div className={styles.scrim} onClick={(e) => e.target === e.currentTarget && setConfirm(false)}>
           <div className={styles.dialog}>
             <div className={styles.dTitle}>검침 자료를 저장할까요?</div>
-            <div className={styles.dDesc}>{month.replace("-", ".")} 검침 내용이 저장돼요.</div>
+            <div className={styles.dDesc}>{formatMonth(month)} 검침 내용이 저장돼요.</div>
             <div className={styles.dActions}>
               <button type="button" className={`${styles.dBtn} ${styles.dCancel}`} onClick={() => setConfirm(false)}>취소</button>
               <button type="button" className={`${styles.dBtn} ${styles.dOk}`} onClick={() => { setConfirm(false); void save(); }} disabled={busy}>저장</button>

@@ -7,13 +7,14 @@ import MoveOutSection from "@/app/(resident)/_components/MoveOutSection";
 import { useResidentBillMonths } from "@/hooks/reactquery/residentBilling";
 import { useResidentNotices } from "@/hooks/reactquery/residentNotices";
 import { useResidentProfile } from "@/hooks/reactquery/residentProfile";
+import { formatDate as formatDateValue, formatWon } from "@/lib/format";
 import { useResidentGuard } from "@/lib/resident/useResidentGuard";
 
 import styles from "./home.module.css";
 
-const formatAmount = (amount: number) => `${amount.toLocaleString("ko-KR")}원`;
+const formatAmount = (amount: number) => formatWon(amount);
 const formatDate = (date: string | null) =>
-  date ? date.slice(0, 10).replaceAll("-", ".") : "미정";
+  formatDateValue(date, { nullText: "미정" });
 const formatPeriod = (period: string) => `${Number(period.slice(5, 7))}월`;
 
 export default function ResidentHomePage() {

@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/common";
+import { formatNumber } from "@/lib/format";
 
 export function PageHeader({
   eyebrow,
@@ -162,14 +163,14 @@ export function PlatformPagination({
                 item === page ? "bg-blue text-white" : "text-t3 hover:bg-bg hover:text-t1"
               }`}
             >
-              {item.toLocaleString("ko-KR")}
+              {formatNumber(item)}
             </button>
           ) : (
             <span key={item} className="px-1 text-xs text-t4" aria-hidden="true">…</span>
           )
         )) : (
           <span className="px-2 text-xs font-semibold text-t3 num">
-            {page.toLocaleString("ko-KR")} / {totalPages.toLocaleString("ko-KR")}
+            {formatNumber(page)} / {formatNumber(totalPages)}
           </span>
         )}
         <button

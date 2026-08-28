@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { type ReactNode, Suspense, useEffect, useState } from "react";
 
+import { formatDate, formatMonth, formatWon } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 
 import styles from "./mobile-tenant.module.css";
@@ -58,16 +59,16 @@ function unitLabel(dong: string | null, unitNo: string) {
   return `${dong ? `${dong} ` : ""}${unitNo}`;
 }
 function fmtDate(iso: string | null) {
-  return iso ? iso.slice(0, 10).replaceAll("-", ".") : "";
+  return formatDate(iso, { nullText: "" });
 }
 function fmtMonth(iso: string) {
-  return iso.slice(0, 7).replaceAll("-", ".");
+  return formatMonth(iso, { nullText: "" });
 }
 function telHref(v: string) {
   return `tel:${v.replace(/[^0-9]/g, "")}`;
 }
 function won(n: number) {
-  return `${n < 0 ? "-" : ""}${Math.abs(n).toLocaleString("ko-KR")}원`;
+  return `${n < 0 ? "-" : ""}${formatWon(Math.abs(n))}`;
 }
 function methodsLabel(csv: string | null) {
   if (!csv) return "";

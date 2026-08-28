@@ -8,10 +8,9 @@ import {
   useMoveOutRequest,
   useUpdateMoveOut,
 } from "@/hooks/reactquery/residentMoveOut";
+import { formatDate } from "@/lib/format";
 
 import styles from "./MoveOutSection.module.css";
-
-const formatDate = (date: string) => date.replaceAll("-", ".");
 
 const statusCopy = {
   confirmed: {

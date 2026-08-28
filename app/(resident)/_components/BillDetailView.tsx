@@ -4,6 +4,11 @@ import type {
   PublicBillDetail,
   ResidentBillDetail,
 } from "@/hooks/reactquery/residentBilling";
+import {
+  formatDate as formatDateValue,
+  formatMonth,
+  formatWon,
+} from "@/lib/format";
 
 import CopyButton from "./CopyButton";
 import styles from "./BillDetailView.module.css";
@@ -13,12 +18,12 @@ type BillDetailViewProps =
   | { mode: "public"; detail: PublicBillDetail | null };
 
 const formatAmount = (amount: number | null) =>
-  `${(amount ?? 0).toLocaleString("ko-KR")}원`;
+  formatWon(amount ?? 0);
 
-const formatPeriod = (period: string) => period.slice(0, 7).replace("-", ".");
+const formatPeriod = (period: string) => formatMonth(period, { nullText: "" });
 
 const formatDate = (date: string | null) =>
-  date ? date.slice(0, 10).replaceAll("-", ".") : "-";
+  formatDateValue(date, { nullText: "-" });
 
 export default function BillDetailView(props: BillDetailViewProps) {
   if (props.mode === "public" && !props.detail) {
@@ -50,7 +55,7 @@ export default function BillDetailView(props: BillDetailViewProps) {
     detail.mgmtBank && detail.mgmtAcct
       ? `${detail.mgmtBank} ${detail.mgmtAcct}`
       : "";
-  const accountWithAmount = `${account} ${paymentAmount.toLocaleString("ko-KR")}원`.trim();
+  const accountWithAmount = `${account} ${formatWon(paymentAmount)}`.trim();
 
   return (
     <article className={styles.detail}>

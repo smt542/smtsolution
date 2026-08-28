@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { formatNumber } from "@/lib/format";
 import type { OrgMemberRole, StaffType } from "@/hooks/reactquery/auth";
 
 export type OrganizationStatus = "active" | "suspended" | "trial";
@@ -420,7 +421,7 @@ function assertPointOperationResult(data: unknown): void {
 
   if (result?.code === "POINTS_RESERVED") {
     throw new Error(
-      `활성 메시지 예약 ${Number(result.reserved_points ?? 0).toLocaleString("ko-KR")} P를 침범해 조정할 수 없습니다.`,
+      `활성 메시지 예약 ${formatNumber(Number(result.reserved_points ?? 0))} P를 침범해 조정할 수 없습니다.`,
     );
   }
   if (result?.code === "INSUFFICIENT_POINTS") {

@@ -6,6 +6,7 @@ import {
   type ResidentNoticeType,
   useResidentNotices,
 } from "@/hooks/reactquery/residentNotices";
+import { formatDate } from "@/lib/format";
 import { useResidentGuard } from "@/lib/resident/useResidentGuard";
 
 import styles from "./notice.module.css";
@@ -15,8 +16,6 @@ const typeLabel: Record<ResidentNoticeType, string> = {
   important: "중요",
   urgent: "긴급",
 };
-
-const formatDate = (date: string) => date.slice(0, 10).replaceAll("-", ".");
 
 export default function ResidentNoticePage() {
   const guard = useResidentGuard();

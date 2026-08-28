@@ -1,8 +1,9 @@
 "use client";
 
 import type { PlatformOrgBilling, PlatformSettings } from "@/hooks/reactquery/platform";
+import { formatNumber } from "@/lib/format";
 
-const num = (n: number) => n.toLocaleString("ko-KR");
+const num = (n: number) => formatNumber(n);
 
 export interface InvoiceConfig {
   bank: string;
