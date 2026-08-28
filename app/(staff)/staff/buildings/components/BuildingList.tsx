@@ -1,7 +1,7 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Select, SearchBar, EmptyState, Spinner, DataTable } from "@/components/common";
+import { Button, Select, SearchBar, EmptyState, Spinner, DataTable, Pagination } from "@/components/common";
 import {
   useBuildingList,
   useStaffOptions,
@@ -102,20 +102,17 @@ export function BuildingList({ initialData }: { initialData: BuildingListResult 
             rows={rows}
             onRowDoubleClick={(r) => router.push(`/staff/buildings/${r._id}`)}
           />
-          <div className="flex items-center justify-between">
-            <Select
-              aria-label="페이지당 건수"
-              className="w-28"
-              options={PAGE_SIZES.map((n) => ({ value: String(n), label: `${n}건` }))}
-              value={String(pageSize)}
-              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-            />
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>이전</Button>
-              <span className="text-sm text-t3">{page} / {totalPages}</span>
-              <Button variant="ghost" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>다음</Button>
-            </div>
-          </div>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            pageSize={pageSize}
+            pageSizeOptions={PAGE_SIZES}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>

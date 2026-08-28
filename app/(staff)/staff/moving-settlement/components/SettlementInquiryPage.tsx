@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { type FormEvent, type ReactNode, useState } from "react";
-import { Badge, Button, DataTable, EmptyState, Input, Select, Spinner } from "@/components/common";
+import { Badge, Button, DataTable, EmptyState, Input, Pagination, Select, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import {
@@ -248,25 +248,12 @@ export function SettlementInquiryPage({ type }: { type: SettlementInquiryType })
         ) : (
           <>
             <DataTable columns={inquiryColumns(type)} rows={rows} />
-            <div className="mt-4 flex items-center justify-end gap-2">
-              <Button
-                variant="ghost"
-                disabled={page <= 1}
-                onClick={() => setPage((current) => current - 1)}
-              >
-                이전
-              </Button>
-              <span className="min-w-20 text-center text-sm font-bold text-t3">
-                {page} / {totalPages}
-              </span>
-              <Button
-                variant="ghost"
-                disabled={page >= totalPages}
-                onClick={() => setPage((current) => current + 1)}
-              >
-                다음
-              </Button>
-            </div>
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              className="mt-4"
+            />
           </>
         )}
       </section>
