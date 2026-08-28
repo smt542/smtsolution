@@ -16,6 +16,7 @@ import {
   type UtilityUnitRow,
 } from "@/hooks/reactquery/utilities";
 import { hasModule } from "@/lib/auth/permissions";
+import { formatNumber, formatWon } from "@/lib/format";
 import { UtilityHistoryModal } from "./components/UtilityHistoryModal";
 import { FixedUsageModal } from "./components/FixedUsageModal";
 import { WaterDiscountModal } from "./components/WaterDiscountModal";
@@ -248,7 +249,7 @@ export default function UtilitiesPage() {
         period,
       });
       toast.success(
-        `부과가 확정되었습니다. (${result.unitCount}세대 · ${result.total.toLocaleString("ko-KR")}원)`,
+        `부과가 확정되었습니다. (${result.unitCount}세대 · ${formatWon(result.total)})`,
       );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "부과 확정에 실패했습니다.");
@@ -473,8 +474,8 @@ export default function UtilitiesPage() {
               <span className="text-xs font-semibold text-t3">
                 {new Date(confirmation.confirmedAt).toLocaleString("ko-KR")} ·{" "}
                 {confirmation.confirmedByName ?? "확정자 미상"} ·{" "}
-                {confirmation.unitCount.toLocaleString("ko-KR")}세대 ·{" "}
-                {confirmation.totalAmount.toLocaleString("ko-KR")}원
+                {formatNumber(confirmation.unitCount)}세대 ·{" "}
+                {formatWon(confirmation.totalAmount)}
               </span>
             </section>
           )}

@@ -9,6 +9,7 @@ import {
   useDashboardOverview,
   type DashboardOverview,
 } from "@/hooks/reactquery/dashboard";
+import { formatNumber } from "@/lib/format";
 import { MoveInNoticeModal } from "./MoveInNoticeModal";
 
 const DISMISS_STORAGE_PREFIX = "home-erp:dashboard:move-in-dismissed";
@@ -63,7 +64,7 @@ function SummaryCard({
         <div>
           <p className="text-sm font-extrabold text-t2">{label}</p>
           <p className="mt-3 text-3xl font-extrabold text-t1 num">
-            {count.toLocaleString("ko-KR")}
+            {formatNumber(count)}
             <span className="ml-1 text-sm font-bold text-t3">{unit}</span>
           </p>
         </div>

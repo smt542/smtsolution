@@ -1,12 +1,12 @@
 import type { MessagePointQuote } from "@/hooks/reactquery/messaging";
+import { formatNumber } from "@/lib/format";
 
 interface MessagePointQuoteCardProps {
   quote?: MessagePointQuote;
   isLoading?: boolean;
   error?: unknown;
 }
-const numberFormat = new Intl.NumberFormat("ko-KR");
-const points = (value: number) => `${numberFormat.format(value)} P`;
+const points = (value: number) => `${formatNumber(value)} P`;
 
 export function MessagePointQuoteCard({
   quote,

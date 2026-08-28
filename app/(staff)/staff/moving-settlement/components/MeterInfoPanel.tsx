@@ -1,4 +1,5 @@
 import type { MeterSummary } from "@/hooks/reactquery/movingSettlement";
+import { formatNumber } from "@/lib/format";
 
 const LABELS: Record<MeterSummary["utility"], string> = {
   water: "수도",
@@ -7,7 +8,7 @@ const LABELS: Record<MeterSummary["utility"], string> = {
 };
 
 function formatReading(value: number | null): string {
-  return value === null ? "-" : value.toLocaleString("ko-KR");
+  return formatNumber(value, { nullText: "-" });
 }
 
 export function MeterInfoPanel({ meters }: { meters: MeterSummary[] }) {

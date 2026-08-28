@@ -1,5 +1,5 @@
 import { SummaryCard } from "@/components/common";
-
+import { formatNumber, formatWon } from "@/lib/format";
 interface UtilitySummaryCardsProps {
   total: number;
   completed: number;
@@ -14,12 +14,12 @@ export function UtilitySummaryCards({
   expectedCharge,
 }: UtilitySummaryCardsProps) {
   const cards = [
-    { label: "총 세대", value: total.toLocaleString("ko-KR"), tone: "text-t1" },
-    { label: "당월 입력", value: completed.toLocaleString("ko-KR"), tone: "text-blue" },
-    { label: "미입력", value: missing.toLocaleString("ko-KR"), tone: "text-amber" },
+    { label: "총 세대", value: formatNumber(total), tone: "text-t1" },
+    { label: "당월 입력", value: formatNumber(completed), tone: "text-blue" },
+    { label: "미입력", value: formatNumber(missing), tone: "text-amber" },
     {
       label: "예상 부과",
-      value: `${expectedCharge.toLocaleString("ko-KR")}원`,
+      value: formatWon(expectedCharge),
       tone: "text-t1",
     },
   ];

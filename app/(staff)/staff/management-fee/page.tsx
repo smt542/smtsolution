@@ -15,6 +15,7 @@ import {
 import { hasModule } from "@/lib/auth/permissions";
 import { pivotBillingRows } from "@/lib/billing/pivot";
 import { currentPeriod, toMonthInput, fromMonthInput } from "@/lib/billing/period";
+import { formatWon } from "@/lib/format";
 import {
   BillingTable,
   type BillingChargeDraft,
@@ -142,7 +143,7 @@ export default function FeeItemPage() {
     if (!window.confirm("당월 관리비를 부과 확정하시겠습니까?")) return;
     try {
       const r = await confirmBilling.mutateAsync({ buildingId, period });
-      toast.success(`부과가 확정되었습니다. (${r.unitCount}세대 · ${r.total.toLocaleString("ko-KR")}원)`);
+      toast.success(`부과가 확정되었습니다. (${r.unitCount}세대 · ${formatWon(r.total)})`);
     } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
   };
 
@@ -150,7 +151,7 @@ export default function FeeItemPage() {
     if (!buildingId) return;
     try {
       const r = await chargeNewOcc.mutateAsync({ buildingId, period, unitIds });
-      toast.success(`신규 입주 ${r.unitCount}세대 당월 부과 완료 (${r.total.toLocaleString("ko-KR")}원)`);
+      toast.success(`신규 입주 ${r.unitCount}세대 당월 부과 완료 (${formatWon(r.total)})`);
       setNewTenantOpen(false);
     } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
   };

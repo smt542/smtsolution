@@ -18,6 +18,7 @@ import {
   type TenantListRow,
 } from "@/hooks/reactquery/occupancies";
 import { useQuickMessages } from "@/hooks/reactquery/quickMessages";
+import { formatNumber } from "@/lib/format";
 import { renderTemplate } from "@/lib/messaging/render";
 import {
   newUuid,
@@ -352,7 +353,7 @@ export function MessagingComposer({
       scheduledIso = scheduledTime.toISOString();
     }
     const actionLabel = sendTiming === "scheduled" ? "예약 발송" : "발송";
-    const pointNotice = `${validCount}명 · 예상 ${pointQuote.data.estimatedPoints.toLocaleString("ko-KR")} P (성공 발송분만 차감)`;
+    const pointNotice = `${validCount}명 · 예상 ${formatNumber(pointQuote.data.estimatedPoints)} P (성공 발송분만 차감)`;
     if (!window.confirm(`${pointNotice}\n${actionLabel}하시겠습니까?`)) return;
 
     // 같은 초안이면 같은 키(중복 클릭·재시도 안전), 초안이 바뀌면 회전한다.

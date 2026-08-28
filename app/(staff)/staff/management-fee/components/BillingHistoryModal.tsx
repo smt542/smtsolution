@@ -2,6 +2,7 @@
 import React from "react";
 import { Modal, Spinner } from "@/components/common";
 import { useBillingHistory } from "@/hooks/reactquery/billing";
+import { formatNumber } from "@/lib/format";
 
 interface Props {
   open: boolean;
@@ -11,7 +12,7 @@ interface Props {
   onClose: () => void;
 }
 
-const won = (n: number) => n.toLocaleString("ko-KR");
+const won = (n: number) => formatNumber(n);
 
 export function BillingHistoryModal({ open, unitId, unitNo, period, onClose }: Props) {
   const { data = [], isLoading } = useBillingHistory(open ? unitId : null, period);

@@ -1,7 +1,8 @@
 "use client";
 import { Button, Checkbox } from "@/components/common";
-import { unitLabel } from "@/lib/bill/document";
 import type { BillTarget } from "@/hooks/reactquery/bill";
+import { unitLabel } from "@/lib/bill/document";
+import { formatWon } from "@/lib/format";
 
 export interface BillTargetTableProps {
   targets: BillTarget[];
@@ -110,7 +111,7 @@ export function BillTargetTable({
               </td>
               <td className="p-2">{unitLabel(unitLabelMode, row.unitNo, row.tenantName)}</td>
               <td className="p-2">{row.tenantName ?? "-"}</td>
-              <td className="p-2 text-right">{row.totalAmount.toLocaleString()}원</td>
+              <td className="p-2 text-right">{formatWon(row.totalAmount)}</td>
               <td className="p-2 text-center">{row.autoDebit ? "자동이체" : "-"}</td>
               <td className="p-2 text-center">
                 <Checkbox

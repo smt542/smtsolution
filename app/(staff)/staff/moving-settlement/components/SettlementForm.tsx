@@ -4,6 +4,7 @@ import {
   type MovingSettlementValues,
 } from "@/components/forms/schema/movingSettlement";
 import { calculateSettlementAmount } from "@/hooks/reactquery/movingSettlement";
+import { formatWon } from "@/lib/format";
 
 export type SettlementDraft = MovingSettlementValues;
 
@@ -214,7 +215,7 @@ export function SettlementForm({
       <div className="mt-5 rounded-xl bg-blue-t p-4 text-right">
         <span className="text-sm font-bold text-t2">정산금 </span>
         <strong className="text-xl text-blue-d">
-          {amount.toLocaleString("ko-KR")}원
+          {formatWon(amount)}
         </strong>
       </div>
     </section>

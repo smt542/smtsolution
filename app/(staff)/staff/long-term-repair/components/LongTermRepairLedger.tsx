@@ -16,6 +16,7 @@ import {
   useUploadAttachment,
   type Attachment,
 } from "@/hooks/reactquery/attachments";
+import { formatNumber } from "@/lib/format";
 import { AttachmentViewer } from "./AttachmentViewer";
 import { CustomDropdown } from "./CustomDropdown";
 import {
@@ -105,7 +106,7 @@ export function recalculateLedgerRows(rows: DraftLedgerRow[], openingBalance: nu
 }
 
 function formatMoney(value: number) {
-  return value.toLocaleString("ko-KR");
+  return formatNumber(value);
 }
 
 function parseAmount(value: string) {
