@@ -1,5 +1,6 @@
 import type { Building } from "@/hooks/reactquery/buildings";
 import type { PaymentRow, UnitPayment } from "@/hooks/reactquery/payments";
+import { formatWon } from "@/lib/format";
 import { KIND_LABEL, METHOD_LABEL } from "./constants";
 
 interface PaymentReceiptPrintViewProps {
@@ -13,7 +14,7 @@ interface PaymentReceiptPrintViewProps {
 }
 
 function formatMoney(value: number | null) {
-  return value === null ? "-" : `${value.toLocaleString("ko-KR")}원`;
+  return formatWon(value, { nullText: "-" });
 }
 
 function periodLabel(period: string) {

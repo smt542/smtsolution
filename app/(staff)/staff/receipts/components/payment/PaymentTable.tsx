@@ -1,5 +1,6 @@
 import { Badge, Button, EmptyState, Spinner } from "@/components/common";
 import type { PaymentKind, PaymentRow } from "@/hooks/reactquery/payments";
+import { formatNumber } from "@/lib/format";
 import { PAY_STATUS_LABEL, PAY_STATUS_STYLE } from "./constants";
 
 type PaymentAction = PaymentKind | "cancel" | "giro";
@@ -12,7 +13,7 @@ interface PaymentTableProps {
 }
 
 function formatAmount(amount: number | null) {
-  return amount == null ? "-" : amount.toLocaleString();
+  return formatNumber(amount, { nullText: "-" });
 }
 
 function formatUnit(row: PaymentRow) {

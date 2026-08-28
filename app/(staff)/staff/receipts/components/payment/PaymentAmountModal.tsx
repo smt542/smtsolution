@@ -7,6 +7,7 @@ import type {
   PaymentMethod,
   PaymentRow,
 } from "@/hooks/reactquery/payments";
+import { formatWon } from "@/lib/format";
 import { ComplaintDialog } from "../ComplaintDialog";
 import { KIND_LABEL, METHOD_OPTIONS } from "./constants";
 
@@ -89,7 +90,7 @@ function PaymentAmountForm({
               />
             ) : (
               <div className="num flex h-11 items-center rounded-xl border border-line bg-bg px-4 text-t1">
-                {defaultAmount.toLocaleString()}원
+                {formatWon(defaultAmount)}
               </div>
             )}
           </label>
