@@ -3,7 +3,7 @@
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Button, EmptyState, Modal, Spinner } from "@/components/common";
+import { Badge, Button, EmptyState, Modal, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { type Building, useBuildings } from "@/hooks/reactquery/buildings";
 import { useUnitOccupancyFull } from "@/hooks/reactquery/occupancies";
@@ -123,12 +123,12 @@ function MonthlyChargeModal({
             ) : (
               <div className="flex flex-wrap gap-1.5">
                 {items.map((item) => (
-                  <span
+                  <Badge
                     key={item.feeItemId}
-                    className="rounded-full bg-blue-t2 px-2.5 py-1 text-xs font-bold text-blue"
+                    className="bg-blue-t2 px-2.5 py-1 text-blue"
                   >
                     {item.feeItemName} {formatCurrency(item.amount)}
-                  </span>
+                  </Badge>
                 ))}
               </div>
             )}

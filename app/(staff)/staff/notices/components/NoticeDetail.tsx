@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Button, Modal, Panel } from "@/components/common";
+import { Badge, Button, Modal, Panel } from "@/components/common";
 import type { Building } from "@/hooks/reactquery/buildings";
 import { useDeleteNotice, type Notice } from "@/hooks/reactquery/notices";
 import {
@@ -160,12 +160,12 @@ export function NoticeDetail({
         }
       >
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-blue-t px-2.5 py-1 text-xs font-bold text-blue-d">
+          <Badge className="bg-blue-t px-2.5 py-1 text-blue-d">
             {NOTICE_TYPE_LABELS[notice.noticeType]}
-          </span>
-          <span className="rounded-full bg-bg px-2.5 py-1 text-xs font-bold text-t2">
+          </Badge>
+          <Badge className="bg-bg px-2.5 py-1 text-t2">
             {NOTICE_STATUS_LABELS[status]}
-          </span>
+          </Badge>
           <span className="text-sm text-t3">{buildingName}</span>
         </div>
 

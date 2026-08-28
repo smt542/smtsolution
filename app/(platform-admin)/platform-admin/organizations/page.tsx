@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useDeferredValue, useState } from "react";
-import { Button, EmptyState, Modal, SearchBar, Spinner } from "@/components/common";
+import { Badge, Button, EmptyState, Modal, SearchBar, Spinner } from "@/components/common";
 import { toast } from "sonner";
 import {
   usePlatformOrganizations,
@@ -323,9 +323,9 @@ export default function PlatformOrganizationsPage() {
                     <td className="px-4 py-4 text-t2">{organization.region ?? "—"}</td>
                     <td className="px-4 py-4">
                       {organization.deletedAt ? (
-                        <span className="inline-flex rounded-full bg-bg px-2.5 py-1 text-xs font-bold text-t3">
+                        <Badge className="inline-flex bg-bg px-2.5 py-1 text-t3">
                           해지됨
-                        </span>
+                        </Badge>
                       ) : (
                         <div className="flex items-center gap-2">
                           <StatusBadge status={organization.status} />
