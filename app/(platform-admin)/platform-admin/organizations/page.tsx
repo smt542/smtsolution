@@ -17,6 +17,7 @@ import {
   type PlatformOrganization,
   type PlatformOrganizationStatusFilter,
 } from "@/hooks/reactquery/platform";
+import { formatNumber } from "@/lib/format";
 import {
   DataScopeNotice,
   PageHeader,
@@ -186,7 +187,7 @@ export default function PlatformOrganizationsPage() {
           {
             label: "운영 중",
             value: contractKpis.data?.operatingCount,
-            detail: `전체 ${(contractKpis.data?.operatingCount ?? 0).toLocaleString("ko-KR")}곳`,
+            detail: `전체 ${formatNumber(contractKpis.data?.operatingCount ?? 0)}곳`,
           },
           {
             label: "90일 내 만료",
@@ -207,7 +208,7 @@ export default function PlatformOrganizationsPage() {
           <div key={kpi.label} className="rounded-2xl border border-line bg-surface p-5 shadow-card">
             <div className="text-xs font-bold text-t3">{kpi.label}</div>
             <div className="mt-2 text-3xl font-extrabold text-blue num">
-              {contractKpis.isPending ? "—" : (kpi.value ?? 0).toLocaleString("ko-KR")}
+              {contractKpis.isPending ? "—" : formatNumber(kpi.value ?? 0)}
               <span className="ml-1 text-sm text-t3">곳</span>
             </div>
             <div className="mt-2 text-xs font-semibold text-t3">{kpi.detail}</div>
@@ -219,7 +220,7 @@ export default function PlatformOrganizationsPage() {
         <div className="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-base font-extrabold text-t1">조직 목록</h3>
-            <p className="mt-1 text-xs text-t3">총 {(data?.totalCount ?? 0).toLocaleString("ko-KR")}개</p>
+            <p className="mt-1 text-xs text-t3">총 {formatNumber(data?.totalCount ?? 0)}개</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <div
@@ -338,16 +339,16 @@ export default function PlatformOrganizationsPage() {
                       )}
                     </td>
                     <td className="px-4 py-4 text-right font-bold text-t1 num">
-                      {organization.buildingCount.toLocaleString("ko-KR")}
+                      {formatNumber(organization.buildingCount)}
                     </td>
                     <td className="px-4 py-4 text-right font-bold text-t1 num">
-                      {organization.unitCount.toLocaleString("ko-KR")}
+                      {formatNumber(organization.unitCount)}
                     </td>
                     <td className="px-4 py-4 text-right font-bold text-t1 num">
-                      {organization.employeeCount.toLocaleString("ko-KR")}
+                      {formatNumber(organization.employeeCount)}
                     </td>
                     <td className="px-4 py-4 text-right font-bold text-t1 num">
-                      {organization.tenantCount.toLocaleString("ko-KR")}
+                      {formatNumber(organization.tenantCount)}
                     </td>
                     <td className="px-4 py-4 text-t2 num">
                       {organization.contractStartDate ?? "—"}
@@ -356,10 +357,10 @@ export default function PlatformOrganizationsPage() {
                       {organization.contractEndDate ?? "—"}
                     </td>
                     <td className="px-4 py-4 text-right font-bold text-t1 num">
-                      {organization.accountCount.toLocaleString("ko-KR")}
+                      {formatNumber(organization.accountCount)}
                     </td>
                     <td className="px-4 py-4 text-right font-extrabold text-t1 num">
-                      {organization.pointBalance.toLocaleString("ko-KR")} P
+                      {formatNumber(organization.pointBalance)} P
                     </td>
                     <td className="px-5 py-4 text-t2 num">
                       {dateFormatter.format(new Date(organization.createdAt))}

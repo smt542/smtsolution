@@ -1,4 +1,6 @@
 // lib/bill/document.ts
+import { formatWon } from "@/lib/format";
+
 export const BILL_QR_PLACEHOLDER_BASE = "https://bill.example.com/apply";
 export const PROGRAM_COMPANY_NAME = "관리비서";
 
@@ -64,7 +66,7 @@ export function giroDocumentAmount(document: BillAmountSource): number {
 }
 
 export function formatBillAmount(amount: number): string {
-  return `${amount.toLocaleString("ko-KR")}원`;
+  return formatWon(amount);
 }
 
 // ===== 팩스 문서 서버 데이터 계약 (load_fax_document RPC → 렌더러) =====

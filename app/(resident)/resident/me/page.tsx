@@ -11,13 +11,12 @@ import {
   useSetNotifyPrefs,
 } from "@/hooks/reactquery/residentProfile";
 import { useWithdrawResident } from "@/hooks/reactquery/residentWithdrawal";
+import { formatDate } from "@/lib/format";
 import { resetOnboardingSession } from "@/lib/resident/onboardingClient";
 import { useResidentGuard } from "@/lib/resident/useResidentGuard";
 import { createClient } from "@/lib/supabase/client";
 
 import styles from "./me.module.css";
-
-const formatDate = (date: string) => date.replaceAll("-", ".");
 
 export default function ResidentMePage() {
   const router = useRouter();

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
+import { formatDate } from "@/lib/format";
+
 import styles from "./mobile-home.module.css";
 
 export type AsRow = {
@@ -38,7 +40,7 @@ const FILTERS: { v: string; label: string }[] = [
 ];
 
 function fmtDate(iso: string) {
-  return iso.slice(0, 10).replaceAll("-", ".");
+  return formatDate(iso);
 }
 
 export function AsList({ rows }: { rows: AsRow[] }) {

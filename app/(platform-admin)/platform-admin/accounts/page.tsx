@@ -15,6 +15,7 @@ import {
 } from "@/hooks/reactquery/platform";
 import type { OrgMemberRole, StaffType } from "@/hooks/reactquery/auth";
 import { MODULE_KEYS, MODULE_LABELS } from "@/lib/auth/permissions";
+import { formatNumber } from "@/lib/format";
 import {
   DataScopeNotice,
   PageHeader,
@@ -193,7 +194,7 @@ export default function PlatformAccountsPage() {
         <div className="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-base font-extrabold text-t1">소속 계정 목록</h3>
-            <p className="mt-1 text-xs text-t3">총 {(data?.totalCount ?? 0).toLocaleString("ko-KR")}개</p>
+            <p className="mt-1 text-xs text-t3">총 {formatNumber(data?.totalCount ?? 0)}개</p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <div className="w-full sm:w-72">

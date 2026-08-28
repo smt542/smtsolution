@@ -9,6 +9,7 @@ import {
   type PlatformSettings,
   type PlatformSettingsInput,
 } from "@/hooks/reactquery/platform";
+import { formatNumber as formatNumericValue } from "@/lib/format";
 import { PageHeader, QueryError } from "../../_components/PageElements";
 
 interface SettingsDraft {
@@ -365,5 +366,5 @@ function nullableText(value: string): string | null {
 
 function formatNumber(value: string): string {
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed.toLocaleString("ko-KR") : value;
+  return Number.isFinite(parsed) ? formatNumericValue(parsed) : value;
 }
