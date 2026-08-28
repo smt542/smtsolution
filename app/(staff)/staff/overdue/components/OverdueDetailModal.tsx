@@ -1,30 +1,6 @@
-import { Button, Modal } from "@/components/common";
+import { Button, Modal, DetailField, DetailSection } from "@/components/common";
 import type { OverdueHousehold } from "@/hooks/reactquery/overdue";
 import { formatDate, formatWon } from "../utils";
-
-function DetailField({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-xs font-semibold text-t3">{label}</dt>
-      <dd className="mt-1 break-words text-sm font-bold text-t1">{value || "—"}</dd>
-    </div>
-  );
-}
-
-function DetailSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-xl border border-line bg-bg/60 p-4">
-      <h3 className="mb-3 text-sm font-extrabold text-t1">{title}</h3>
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-3">{children}</dl>
-    </section>
-  );
-}
 
 export function OverdueDetailModal({
   household,
