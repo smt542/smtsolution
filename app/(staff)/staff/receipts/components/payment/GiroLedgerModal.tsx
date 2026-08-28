@@ -2,6 +2,7 @@
 
 import { Button, EmptyState, Spinner } from "@/components/common";
 import { useGiroPayments, type GiroPayment } from "@/hooks/reactquery/payments";
+import { formatNumber } from "@/lib/format";
 import { ComplaintDialog } from "../ComplaintDialog";
 
 interface GiroLedgerModalProps {
@@ -28,7 +29,7 @@ export function GiroLedgerModal({ open, buildingId, period, isPending, onClose, 
               <tr key={r.id} className={`border-b border-line ${r.status === "canceled" ? "opacity-50" : ""}`}>
                 <td className="px-3 py-2">{r.dong ? `${r.dong} ${r.unitNo}` : r.unitNo}</td>
                 <td className="px-3 py-2">{r.tenantName ?? "-"}</td>
-                <td className="num px-3 py-2 text-right">{r.amount.toLocaleString()}</td>
+                <td className="num px-3 py-2 text-right">{formatNumber(r.amount)}</td>
                 <td className="px-3 py-2">{r.paidAt}</td>
                 <td className="px-3 py-2">{r.status === "canceled" ? "취소" : "완료"}</td>
                 <td className="px-3 py-2 text-right">

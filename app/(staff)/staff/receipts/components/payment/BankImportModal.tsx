@@ -20,6 +20,7 @@ import {
   type MatchedDeposit,
   type MatchUnit,
 } from "@/lib/payments/match";
+import { formatWon } from "@/lib/format";
 import { ComplaintDialog } from "../ComplaintDialog";
 
 interface BankImportModalProps {
@@ -53,7 +54,7 @@ function rowsToMatchUnits(rows: PaymentRow[]): MatchUnit[] {
 }
 
 function money(value: number | null) {
-  return value == null ? "-" : `${value.toLocaleString("ko-KR")}원`;
+  return formatWon(value, { nullText: "-" });
 }
 
 function errorMessage(error: unknown) {

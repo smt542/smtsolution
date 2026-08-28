@@ -1,5 +1,6 @@
 import type { Building } from "@/hooks/reactquery/buildings";
 import type { UtilityType } from "@/hooks/reactquery/utilities";
+import { formatNumber, formatWon } from "@/lib/format";
 
 export interface PaymentStatementUtility {
   amount: number | null;
@@ -40,11 +41,11 @@ const UTILITY_LABEL: Record<UtilityType, string> = {
 };
 
 function formatMoney(value: number | null) {
-  return value === null ? "-" : value.toLocaleString("ko-KR");
+  return formatNumber(value, { nullText: "-" });
 }
 
 function formatReading(value: number | null) {
-  return value === null ? "-" : value.toLocaleString("ko-KR", { maximumFractionDigits: 3 });
+  return formatNumber(value, { nullText: "-", fractionDigits: 3 });
 }
 
 function periodLabel(period: string) {
@@ -218,7 +219,7 @@ function Total({ label, value }: { label: string; value: number }) {
   return (
     <div className="flex items-center justify-between border-r border-black px-3 py-2 last:border-r-0">
       <span className="font-bold">{label}</span>
-      <strong className="tabular-nums">{value.toLocaleString("ko-KR")}원</strong>
+      <strong className="tabular-nums">{formatWon(value)}</strong>
     </div>
   );
 }
