@@ -13,3 +13,4 @@ export { Spinner } from "./Spinner";
 export { Badge } from "./Badge";
 export { DetailField, DetailSection } from "./Detail";
 export { SummaryCard } from "./SummaryCard";
+export { Pagination } from "./Pagination";
