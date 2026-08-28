@@ -1,18 +1,17 @@
 import {
-  formatDateIntl,
   formatDateTime as formatSharedDateTime,
-  formatWon,
+  formatNumber,
 } from "@/lib/format";
 import type { PayStatus } from "@/lib/payments/status";
 
 /** 세대중심 수납관리 화면 공용 표시 헬퍼. (구 PaymentStatusSection 헬퍼 승계) */
 
 export function formatCurrency(value: number | null | undefined): string {
-  return formatWon(value, { nullText: "-" });
+  return value === null || value === undefined ? "-" : formatNumber(value);
 }
 
 export function formatDate(value: string | null | undefined): string {
-  return formatDateIntl(value, { nullText: "-" });
+  return value ? value.slice(0, 10) : "-";
 }
 
 export function formatDateTime(value: string | null | undefined): string {
@@ -20,7 +19,12 @@ export function formatDateTime(value: string | null | undefined): string {
 }
 
 export function unitLabel(row: { dong?: string | null; unitNo?: string | null }): string {
-  return [row.dong, row.unitNo].filter(Boolean).join(" ");
+  const unitNo = row.unitNo
+    ? row.unitNo.endsWith("호")
+      ? row.unitNo
+      : `${row.unitNo}호`
+    : null;
+  return [row.dong, unitNo].filter(Boolean).join(" ");
 }
 
 export const PAY_STATUS_LABEL: Record<PayStatus, string> = {

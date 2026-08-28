@@ -20,6 +20,11 @@
   --color-brand-dark: #1B64DA;
   --color-brand-tint: #EAF2FE;
 
+  /* teal accent (수납 진입 알림 CTA·헤더 자동수납. 로그인 hero와 동일 계열, Figma #14A497) */
+  --color-teal: #14A497;
+  --color-teal-d: #0F857A;
+  --color-teal-t: #E7F6F4;
+
   /* surfaces */
   --color-bg: #F2F4F6;
   --color-surface: #ffffff;

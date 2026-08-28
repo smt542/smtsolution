@@ -22,6 +22,7 @@ vi.mock("@/hooks/reactquery/payments", () => ({
 }));
 vi.mock("@/hooks/reactquery/receipts", () => ({
   useReceiptPaymentStatus: vi.fn(),
+  useReceiptStatementData: vi.fn(),
   useSaveBuildingNotes: vi.fn(),
   useSaveOccupancyFields: vi.fn(),
 }));
@@ -46,6 +47,25 @@ vi.mock("./components/VillaPaymentModal", () => ({
   VillaPaymentModal: ({ open }: { open: boolean }) =>
     open ? <div data-testid="villa-modal" /> : null,
 }));
+vi.mock("./components/ChargeReceiptReportModal", () => ({
+  ChargeReceiptReportModal: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="charge-report-modal" /> : null,
+}));
+vi.mock("./components/monthly/MonthlyChargeModal", () => ({
+  MonthlyChargeModal: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="monthly-charge-modal" /> : null,
+}));
+vi.mock("./components/villa-receipts/VillaReceiptHistoryModal", () => ({
+  VillaReceiptHistoryModal: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="villa-receipt-history-modal" /> : null,
+}));
+vi.mock("./components/unit-statement/UnitStatementModal", () => ({
+  UnitStatementModal: ({ open }: { open: boolean }) =>
+    open ? <div data-testid="unit-statement-modal" /> : null,
+}));
+vi.mock("./components/entry-alerts/ReceiptEntryAlerts", () => ({
+  ReceiptEntryAlerts: () => null,
+}));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 
 import ReceiptManagementPage from "./page";
@@ -61,6 +81,7 @@ import {
 } from "@/hooks/reactquery/payments";
 import {
   useReceiptPaymentStatus,
+  useReceiptStatementData,
   useSaveBuildingNotes,
   useSaveOccupancyFields,
 } from "@/hooks/reactquery/receipts";
@@ -202,6 +223,12 @@ function setup(me: any = master) {
     mutateAsync: saveBuildingNotesAsync,
     isPending: false,
   } as any);
+  vi.mocked(useReceiptStatementData).mockReturnValue({
+    data: undefined,
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+  } as any);
   vi.mocked(useSaveOccupancyFields).mockReturnValue({
     mutateAsync: saveOccupancyFieldsAsync,
     isPending: false,
@@ -252,8 +279,10 @@ describe("ReceiptManagementPage (세대중심 재설계)", () => {
   it("조회 버튼이 통합검색 모달을 연다", () => {
     renderPage();
     fireEvent.click(screen.getByRole("button", { name: "조회" }));
-    expect(screen.getByRole("heading", { name: "통합 조회" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /입금자명·전화·동호로 찾기/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "조회 구간" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "입금자명으로 조회" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "전화번호로 조회" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "동호로 조회" })).toBeInTheDocument();
   });
 
   it("입주자정보 수정→저장 시 useSaveOccupancyFields 호출 (P2 편집)", async () => {
@@ -271,10 +300,21 @@ describe("ReceiptManagementPage (세대중심 재설계)", () => {
     );
   });
 
-  it("빌라 드롭다운이 빌라 수납 콘솔(VillaPaymentModal)을 연다 (P3a 흡수)", () => {
+  it("빌라 드롭다운이 Figma형 부과금액 리포트를 연다", () => {
     renderPage();
     fireEvent.click(screen.getByText("그린빌라"));
     fireEvent.click(screen.getByRole("button", { name: "빌라 부과금액" }));
-    expect(screen.getByTestId("villa-modal")).toBeInTheDocument();
+    expect(screen.getByTestId("charge-report-modal")).toBeInTheDocument();
+  });
+
+  it("빌라 수납내역과 선택 호실 명세서를 각각 연다", () => {
+    renderPage();
+    fireEvent.click(screen.getByText("그린빌라"));
+    fireEvent.click(screen.getByRole("button", { name: "빌라 수납내역" }));
+    expect(screen.getByTestId("villa-receipt-history-modal")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("A동 101호"));
+    fireEvent.click(screen.getByRole("button", { name: "호실 명세서" }));
+    expect(screen.getByTestId("unit-statement-modal")).toBeInTheDocument();
   });
 });

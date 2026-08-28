@@ -4,9 +4,14 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button, Input, Modal, Panel, Select, Spinner } from "@/components/common";
+import { UnitCardIcon } from "@/components/icons";
 import { useCancelPayment, useRecordPayment, useRecordPaymentEdit } from "@/hooks/reactquery/payments";
 import type { PaymentKind, PaymentMethod, UnitPayment } from "@/hooks/reactquery/payments";
-import { receiptKeys, type ReceiptPaymentRow } from "@/hooks/reactquery/receipts";
+import {
+  receiptKeys,
+  type ReceiptPaymentRow,
+  type ReceiptStatementPaymentRow,
+} from "@/hooks/reactquery/receipts";
 import { toMonthInput } from "@/lib/billing/period";
 import type { MessagingPreset } from "@/lib/messaging/preset";
 import { MessagingModal } from "../../messaging/components/MessagingModal";
@@ -14,12 +19,10 @@ import {
   PAYMENT_KIND_LABEL,
   PAYMENT_METHOD_LABEL,
   formatCurrency,
-  formatDate,
   unitLabel,
 } from "../receiptFormat";
 
 const COLS = [
-  "처리",
   "년월",
   "당월계",
   "연체",
@@ -50,10 +53,26 @@ interface PayForm {
   memo: string;
 }
 
+type HistoryPayment = UnitPayment & { period?: string };
+interface HistoryDisplayRow {
+  key: string;
+  rowPeriod: string;
+  rowSummary: ReceiptStatementPaymentRow | ReceiptPaymentRow | undefined;
+  payment: HistoryPayment | null;
+}
+
 function todayInput(): string {
   const d = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function slashDate(value: string | null | undefined): string {
+  return value ? value.slice(0, 10).replaceAll("-", "/") : "-";
+}
+
+function dotDate(value: string | null | undefined): string {
+  return value ? value.slice(0, 10).replaceAll("-", ".") : "-";
 }
 
 function emptyForm(): PayForm {
@@ -66,6 +85,7 @@ export function PaymentHistorySection({
   hasUnit,
   isLoading,
   payments,
+  historySummaries,
   summary,
   period,
   unitId,
@@ -76,7 +96,8 @@ export function PaymentHistorySection({
   buildingId: number | null;
   hasUnit: boolean;
   isLoading: boolean;
-  payments: UnitPayment[];
+  payments: HistoryPayment[];
+  historySummaries?: ReceiptStatementPaymentRow[];
   summary: ReceiptPaymentRow | undefined;
   period: string;
   unitId: number | null;
@@ -89,13 +110,55 @@ export function PaymentHistorySection({
   const cancel = useCancelPayment();
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [selectedPaymentId, setSelectedPaymentId] = useState<number | null>(null);
   const [form, setForm] = useState<PayForm>(emptyForm);
   const [messagingPreset, setMessagingPreset] = useState<MessagingPreset | null>(null);
 
   const ym = toMonthInput(period);
-  const active = payments.filter((p) => p.status === "active");
-  const paidTotal = active.reduce((sum, p) => sum + p.amount, 0);
   const unpaid = summary?.unpaid ?? null;
+  const overduePrincipal = Math.max(summary?.overdueAmount ?? 0, unpaid ?? 0);
+  const lateFeeTotal = 0;
+  const historyRows: HistoryDisplayRow[] = (() => {
+    const summaries = historySummaries?.length
+      ? [...historySummaries].sort((a, b) => b.period.localeCompare(a.period))
+      : [];
+    if (summaries.length === 0) {
+      if (payments.length === 0) {
+        return [{ key: `empty-${period}`, rowPeriod: period, rowSummary: summary, payment: null }];
+      }
+      return payments.map((payment, index) => ({
+        key: `payment-${payment.id}`,
+        rowPeriod: payment.period ?? period,
+        rowSummary: index === 0 ? summary : undefined,
+        payment,
+      }));
+    }
+
+    const rows: HistoryDisplayRow[] = [];
+    for (const rowSummary of summaries) {
+      const periodPayments = payments.filter(
+        (payment) => (payment.period ?? period) === rowSummary.period,
+      );
+      if (periodPayments.length === 0) {
+        rows.push({
+          key: `summary-${rowSummary.period}`,
+          rowPeriod: rowSummary.period,
+          rowSummary,
+          payment: null,
+        });
+        continue;
+      }
+      periodPayments.forEach((payment, index) => {
+        rows.push({
+          key: `payment-${payment.id}`,
+          rowPeriod: rowSummary.period,
+          rowSummary: index === 0 ? rowSummary : undefined,
+          payment,
+        });
+      });
+    }
+    return rows;
+  })();
 
   const refreshSummary = async () => {
     const invalidations = [
@@ -146,6 +209,12 @@ export function PaymentHistorySection({
     });
     setFormOpen(true);
   };
+  const openSelectedPayment = () => {
+    const payment = payments.find(
+      (candidate) => candidate.id === selectedPaymentId && candidate.status === "active",
+    );
+    if (payment) openEdit(payment);
+  };
 
   const submit = async () => {
     if (unitId === null) return;
@@ -189,6 +258,13 @@ export function PaymentHistorySection({
       toast.error(error instanceof Error ? error.message : "취소에 실패했습니다.");
     }
   };
+  const cancelEditingPayment = async () => {
+    const payment = payments.find((candidate) => candidate.id === editingId);
+    if (!payment) return;
+    await cancelRow(payment);
+    setFormOpen(false);
+    setSelectedPaymentId(null);
+  };
 
   const sendUnpaidSms = () => {
     if (!summary) return;
@@ -203,7 +279,7 @@ export function PaymentHistorySection({
     setMessagingPreset({
       context: "미납 안내",
       channel: "sms",
-      body: `${summary.tenantName ?? "입주자"}님, ${ym} 관리비 미납 안내입니다. 미납금액 ${formatCurrency(unpaid)}, 납기일 ${summary.dueDate ?? "미정"}입니다.`,
+      body: `${summary.tenantName ?? "입주자"}님, ${ym} 관리비 미납 안내입니다. 미납금액 ${formatCurrency(unpaid)}원, 납기일 ${summary.dueDate ?? "미정"}입니다.`,
       recipients: [
         {
           name: summary.tenantName,
@@ -218,117 +294,93 @@ export function PaymentHistorySection({
 
   const action =
     canEdit && hasUnit ? (
-      <Button type="button" onClick={openAdd}>
-        + 수납 추가
-      </Button>
+      <div className="flex items-center gap-[7px]">
+        <button
+          type="button"
+          onClick={openAdd}
+          className="h-[28px] rounded-[8px] border border-line bg-surface px-[11px] text-[12px] font-bold text-t2 hover:bg-bg"
+        >
+          추가
+        </button>
+        <button
+          type="button"
+          onClick={openSelectedPayment}
+          disabled={selectedPaymentId === null}
+          className="h-[28px] rounded-[8px] border border-line bg-surface px-[11px] text-[12px] font-bold text-t2 hover:bg-bg disabled:cursor-not-allowed disabled:opacity-45"
+        >
+          수정
+        </button>
+      </div>
     ) : undefined;
 
   return (
-    <Panel title="수납 이력" action={action}>
+    <Panel title="수납 이력" action={action} flush>
       {!hasUnit ? (
-        <p className="py-10 text-center text-sm text-t4">호수를 선택해 주세요</p>
+        <div className="flex h-[246px] flex-col items-center justify-center text-center">
+          <span className="mb-[10px] flex size-[54px] items-center justify-center rounded-[16px] bg-teal-t text-teal">
+            <UnitCardIcon className="size-[24px]" aria-hidden="true" />
+          </span>
+          <p className="text-[15px] font-bold text-t1">호수를 선택해 주세요</p>
+          <p className="pt-[7px] text-[13px] text-t4">선택한 세대의 월별 수납 이력이<br />여기에 표시돼요</p>
+        </div>
       ) : isLoading ? (
-        <Spinner />
+        <div className="flex h-[246px] items-center justify-center"><Spinner /></div>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-xl border border-line">
+          <div className="overflow-x-auto">
             <table className="w-full min-w-[920px] text-sm">
               <thead>
                 <tr className="border-b border-line bg-bg text-left text-xs font-bold text-t3">
                   {COLS.map((col) => (
-                    <th key={col} className="whitespace-nowrap px-3 py-2">
+                    <th key={col} className="h-[36px] whitespace-nowrap px-3 py-0">
                       {col}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {payments.length === 0 ? (
-                  <tr>
-                    <td className="px-3 py-3 text-t3">-</td>
-                    <td className="px-3 py-3 num">{ym}</td>
-                    <td className="px-3 py-3 text-right num">{formatCurrency(summary?.charged ?? null)}</td>
-                    <td className="px-3 py-3 text-right text-red num">{formatCurrency(unpaid)}</td>
-                    <td className="px-3 py-3 text-right num">-</td>
-                    <td className="px-3 py-3 text-right num">-</td>
-                    <td className="px-3 py-3">-</td>
-                    <td className="px-3 py-3">-</td>
-                    <td className="px-3 py-3">-</td>
-                    <td className="px-3 py-3">-</td>
-                    <td className="whitespace-nowrap px-3 py-3">{formatDate(summary?.dueDate ?? null)}</td>
-                  </tr>
-                ) : (
-                  payments.map((payment, index) => {
-                    const canceled = payment.status === "canceled";
-                    return (
-                      <tr
-                        key={payment.id}
-                        className={`border-b border-line last:border-0 ${canceled ? "opacity-50" : ""}`}
-                      >
-                        <td className="whitespace-nowrap px-3 py-3">
-                          {canceled ? (
-                            <span className="text-xs text-t4">취소됨</span>
-                          ) : canEdit ? (
-                            <div className="flex gap-1">
-                              <button
-                                type="button"
-                                onClick={() => openEdit(payment)}
-                                className="rounded-md border border-line px-2 py-1 text-xs font-bold text-t2 hover:bg-bg"
-                              >
-                                수정
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => cancelRow(payment)}
-                                disabled={cancel.isPending}
-                                className="rounded-md border border-line px-2 py-1 text-xs font-bold text-red hover:bg-red-t disabled:opacity-50"
-                              >
-                                취소
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-t4">-</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-3 num">{ym}</td>
-                        <td className="px-3 py-3 text-right num">
-                          {index === 0 ? formatCurrency(summary?.charged ?? null) : ""}
-                        </td>
-                        <td className="px-3 py-3 text-right text-red num">
-                          {index === 0 ? formatCurrency(unpaid) : ""}
-                        </td>
-                        <td className="px-3 py-3 text-right font-semibold num">{formatCurrency(payment.amount)}</td>
-                        <td className="px-3 py-3 text-right num">{formatCurrency(payment.fee)}</td>
-                        <td className="whitespace-nowrap px-3 py-3">{formatDate(payment.paidAt)}</td>
-                        <td className="px-3 py-3">{PAYMENT_METHOD_LABEL[payment.method] ?? payment.method}</td>
-                        <td className="px-3 py-3">{PAYMENT_KIND_LABEL[payment.kind] ?? payment.kind}</td>
-                        <td className="px-3 py-3 text-t2">{payment.memo ?? "-"}</td>
-                        <td className="whitespace-nowrap px-3 py-3">
-                          {index === 0 ? formatDate(summary?.dueDate ?? null) : ""}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
+                {historyRows.map(({ key, rowPeriod, rowSummary, payment }) => {
+                  const canceled = payment?.status === "canceled";
+                  return (
+                    <tr
+                      key={key}
+                      onClick={() => payment && setSelectedPaymentId(payment.id)}
+                      className={`h-[40px] border-b border-line2 last:border-0 ${
+                        payment ? "cursor-pointer" : ""
+                      } ${selectedPaymentId === payment?.id ? "bg-teal-t" : ""} ${canceled ? "opacity-50" : ""}`}
+                    >
+                      <td className="px-3 py-[6px] num">{toMonthInput(rowPeriod)}</td>
+                      <td className="px-3 py-[6px] text-right num">{formatCurrency(rowSummary?.charged ?? null)}</td>
+                      <td className="px-3 py-[6px] text-right text-red num">{formatCurrency(rowSummary?.unpaid ?? null)}</td>
+                      <td className="px-3 py-[6px] text-right font-semibold num">{payment ? formatCurrency(payment.amount) : "-"}</td>
+                      <td className="px-3 py-[6px] text-right num">{payment ? formatCurrency(payment.fee) : "-"}</td>
+                      <td className="whitespace-nowrap px-3 py-[6px]">{payment ? slashDate(payment.paidAt) : "-"}</td>
+                      <td className="px-3 py-[6px]">{payment ? PAYMENT_METHOD_LABEL[payment.method] ?? payment.method : "-"}</td>
+                      <td className="px-3 py-[6px]">{payment ? PAYMENT_KIND_LABEL[payment.kind] ?? payment.kind : "-"}</td>
+                      <td className="px-3 py-[6px] text-t2">{payment?.memo ?? "-"}</td>
+                      <td className="whitespace-nowrap px-3 py-[6px]">{dotDate(rowSummary?.dueDate ?? null)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center justify-end gap-4 rounded-xl border border-line bg-bg px-4 py-3 text-sm">
+          <div className="flex h-[37px] flex-wrap items-center justify-end gap-4 border-t border-line bg-[#f7f9fa] px-4 text-sm">
             <span className="text-t3">
-              수납액 합계 <b className="num text-t1">{formatCurrency(paidTotal)}</b>
+              미납 <b className="num text-red">{formatCurrency(overduePrincipal)}</b>
             </span>
             <span className="text-t3">
-              미납 <b className="num text-red">{formatCurrency(unpaid)}</b>
+              연체료 <b className="num text-red">{formatCurrency(lateFeeTotal)}</b>
             </span>
             <span className="text-t3">
-              미납합계 <b className="num text-red">{formatCurrency(unpaid)}</b>
+              미납합계 <b className="num text-red">{formatCurrency(overduePrincipal + lateFeeTotal)}</b>
             </span>
             <button
               type="button"
               onClick={sendUnpaidSms}
               disabled={!summary || (unpaid ?? 0) <= 0}
-              className="rounded-lg border border-line px-3 py-1.5 text-xs font-bold text-blue hover:bg-blue-t2 disabled:cursor-not-allowed disabled:text-t4"
+              className="h-[27px] rounded-lg border border-line px-3 text-xs font-bold text-blue hover:bg-blue-t2 disabled:cursor-not-allowed disabled:text-t4"
             >
               미납 문자 전송
             </button>
@@ -402,6 +454,16 @@ export function PaymentHistorySection({
             <p className="mt-3 text-xs text-t4">수정은 기존 수납을 취소하고 새로 기록합니다.</p>
           )}
           <div className="mt-4 flex justify-end gap-2">
+            {editingId !== null && (
+              <Button
+                type="button"
+                variant="danger"
+                onClick={() => void cancelEditingPayment()}
+                disabled={cancel.isPending}
+              >
+                수납 취소
+              </Button>
+            )}
             <Button type="button" variant="ghost" onClick={() => setFormOpen(false)}>
               취소
             </Button>
