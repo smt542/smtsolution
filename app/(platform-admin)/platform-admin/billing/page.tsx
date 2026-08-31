@@ -10,6 +10,7 @@ import {
   type PlatformOrgBilling,
   type PlatformOrgBillingStatus,
 } from "@/hooks/reactquery/platform";
+import { formatNumber } from "@/lib/format";
 import {
   BoundedMonthStepper,
   PageHeader,
@@ -20,7 +21,7 @@ import { InvoiceBulkPrintRoot } from "./_components/InvoiceBulkPrintRoot";
 import { invoiceConfigFromSettings } from "./_components/InvoiceDocument";
 import { InvoicePreviewModal } from "./_components/InvoicePreviewModal";
 
-const num = (n: number) => n.toLocaleString("ko-KR");
+const num = (n: number) => formatNumber(n);
 const PAGE_SIZE = 8;
 
 function currentMonthIso(): string {

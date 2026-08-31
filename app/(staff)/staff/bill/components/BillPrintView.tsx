@@ -2,6 +2,7 @@
 import { useEffect } from "react";
 import type { BillDocument } from "@/hooks/reactquery/bill";
 import { unitLabel, buildQrPayload, billDocumentTotal, PROGRAM_COMPANY_NAME, type PrintableAccount } from "@/lib/bill/document";
+import { formatWon } from "@/lib/format";
 import { QrCode } from "./QrCode";
 
 export interface BillPrintViewProps {
@@ -42,9 +43,9 @@ export function BillPrintView({ buildingName, period, unitLabelMode, dueDate, ac
             <table className="mt-4 w-full text-sm">
               <tbody>
                 {items.map((i) => (
-                  <tr key={i.feeItemId}><td>{i.name}</td><td className="text-right">{i.amount.toLocaleString()}원</td></tr>
+                  <tr key={i.feeItemId}><td>{i.name}</td><td className="text-right">{formatWon(i.amount)}</td></tr>
                 ))}
-                <tr className="border-t font-bold"><td>합계</td><td className="text-right">{total.toLocaleString()}원</td></tr>
+                <tr className="border-t font-bold"><td>합계</td><td className="text-right">{formatWon(total)}</td></tr>
               </tbody>
             </table>
             <div className="mt-3 text-sm">납기일: {dueDate ?? "-"}</div>

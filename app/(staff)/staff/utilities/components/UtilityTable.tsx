@@ -1,5 +1,6 @@
 import { memo } from "react";
 import type { UtilityUnitRow } from "@/hooks/reactquery/utilities";
+import { formatNumber as formatSharedNumber } from "@/lib/format";
 
 export interface UtilityDraft {
   currentReading: string;
@@ -47,7 +48,7 @@ function parseOptionalNumber(value: string): number | null {
 }
 
 function formatNumber(value: number | null): string {
-  return value === null ? "—" : value.toLocaleString("ko-KR");
+  return formatSharedNumber(value);
 }
 
 function usageFor(row: UtilityTableRow, draft: UtilityDraft): number | null {
@@ -159,7 +160,7 @@ const UtilityRow = memo(function UtilityRow({
                     )}
                     {row.discountType && row.discountAmount != null && (
                       <span className="rounded-md bg-blue-t px-2 py-0.5 text-[11px] font-bold text-blue-d">
-                        {discountLabel(row.discountType)} −{row.discountAmount.toLocaleString("ko-KR")}
+                        {discountLabel(row.discountType)} −{formatSharedNumber(row.discountAmount)}
                       </span>
                     )}
                     {onDiscountClick && !vacant && (

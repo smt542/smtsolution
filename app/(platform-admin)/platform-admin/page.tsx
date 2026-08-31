@@ -6,6 +6,7 @@ import {
   usePlatformOrgBilling,
   usePlatformOverviewMetrics,
 } from "@/hooks/reactquery/platform";
+import { formatNumber } from "@/lib/format";
 import {
   BoundedMonthStepper,
   DataScopeNotice,
@@ -14,7 +15,7 @@ import {
   QueryError,
 } from "../_components/PageElements";
 
-const num = (n: number) => n.toLocaleString("ko-KR");
+const num = (n: number) => formatNumber(n);
 const PAGE_SIZE = 6;
 
 function currentMonthIso(): string {

@@ -7,6 +7,7 @@ import {
   type PublicNoticeType,
   usePublicNoticeByToken,
 } from "@/hooks/reactquery/residentNotice";
+import { formatDate } from "@/lib/format";
 
 import styles from "../../share.module.css";
 
@@ -15,9 +16,6 @@ const noticeTypeLabels: Record<PublicNoticeType, string> = {
   important: "중요 공지",
   urgent: "긴급 공지",
 };
-
-const formatDate = (value: string) =>
-  value.slice(0, 10).replaceAll("-", ".");
 
 export default function PublicNoticePage() {
   const params = useParams<{ token: string }>();

@@ -8,12 +8,13 @@ import {
   type ResidentBillPayStatus,
   useResidentBillMonths,
 } from "@/hooks/reactquery/residentBilling";
+import { formatMonth, formatWon } from "@/lib/format";
 import { useResidentGuard } from "@/lib/resident/useResidentGuard";
 
 import styles from "./bill.module.css";
 
 const formatAmount = (amount: number) =>
-  `${amount.toLocaleString("ko-KR")}원`;
+  formatWon(amount);
 
 const statusLabel: Record<ResidentBillPayStatus, string> = {
   paid: "완납",
@@ -132,7 +133,7 @@ export default function ResidentBillPage() {
                 return (
                   <Link href={`/resident/bill/${period}`} key={month.period}>
                     <div className={styles.rowTop}>
-                      <b>{period.replace("-", ".")}</b>
+                      <b>{formatMonth(period)}</b>
                       <span
                         className={`${styles.badge} ${styles[month.payStatus]}`}
                       >

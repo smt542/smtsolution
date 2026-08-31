@@ -1,5 +1,6 @@
-import { Button, EmptyState, Spinner } from "@/components/common";
+import { Badge, Button, EmptyState, Spinner } from "@/components/common";
 import type { PaymentKind, PaymentRow } from "@/hooks/reactquery/payments";
+import { formatNumber } from "@/lib/format";
 import { PAY_STATUS_LABEL, PAY_STATUS_STYLE } from "./constants";
 
 type PaymentAction = PaymentKind | "cancel" | "giro";
@@ -12,7 +13,7 @@ interface PaymentTableProps {
 }
 
 function formatAmount(amount: number | null) {
-  return amount == null ? "-" : amount.toLocaleString();
+  return formatNumber(amount, { nullText: "-" });
 }
 
 function formatUnit(row: PaymentRow) {
@@ -71,15 +72,15 @@ export function PaymentTable({ rows, isLoading, onAction, onStatement }: Payment
                 </td>
                 <td className="px-4 py-4">
                   <div className="flex flex-wrap gap-1.5">
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${PAY_STATUS_STYLE[row.payStatus]}`}
+                    <Badge
+                      className={`inline-flex px-2.5 py-1 ${PAY_STATUS_STYLE[row.payStatus]}`}
                     >
                       {PAY_STATUS_LABEL[row.payStatus]}
-                    </span>
+                    </Badge>
                     {row.isAutoDebit && (
-                      <span className="inline-flex rounded-full bg-blue-t px-2.5 py-1 text-xs font-bold text-blue">
+                      <Badge className="inline-flex bg-blue-t px-2.5 py-1 text-blue">
                         자동이체
-                      </span>
+                      </Badge>
                     )}
                   </div>
                 </td>

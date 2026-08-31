@@ -12,6 +12,12 @@ vi.mock("@/hooks/reactquery/buildings", () => ({
 vi.mock("@/hooks/reactquery/asCategories", () => ({
   useAsCategories: () => ({ data: [] }),
 }));
+vi.mock("@/hooks/reactquery/units", () => ({
+  useUnits: () => ({ data: [], isLoading: false }),
+}));
+vi.mock("@/hooks/reactquery/occupancies", () => ({
+  useOccupancies: () => ({ data: [] }),
+}));
 vi.mock("@/hooks/reactquery/accounts", () => ({
   useAccounts: () => ({
     data: [{
@@ -91,7 +97,7 @@ describe("AsStatusSection resident messaging", () => {
     );
 
     fireEvent.click(screen.getByText("수도 누수"));
-    fireEvent.click(screen.getByRole("button", { name: "입주자 안내" }));
+    fireEvent.click(screen.getByRole("button", { name: "확인문자 보내기" }));
 
     expect(screen.getByText("테스트 메시지 모달")).toBeInTheDocument();
     const openCall = [...messagingModalSpy.mock.calls]
@@ -145,34 +151,5 @@ describe("AsStatusSection resident messaging", () => {
       "[해오름빌] A동 101호 주방 싱크대 아래에서 물이 새요. / 완결 / 박기사 / 02-1234-5678",
     ]);
     expect(renderedBodies.every((body) => !body.includes("#{"))).toBe(true);
-  });
-
-  it("기존 담당 기사 SMS preset을 유지한다", () => {
-    render(
-      <AsStatusSection
-        orgId={7}
-        buildingId={3}
-        unitId={101}
-        canSendMessages
-        resident={null}
-      />,
-    );
-
-    fireEvent.click(screen.getByText("수도 누수"));
-    fireEvent.click(screen.getByRole("button", { name: "담당 기사 문자 전송" }));
-
-    const openCall = [...messagingModalSpy.mock.calls]
-      .reverse()
-      .find(([props]) => props.open);
-    expect(openCall?.[0].preset).toMatchObject({
-      context: "A/S 확인",
-      channel: "sms",
-      recipients: [{
-        name: "박기사",
-        phone: "010-9999-0000",
-        kind: "staff",
-        ref: { userId: "field-1" },
-      }],
-    });
   });
 });

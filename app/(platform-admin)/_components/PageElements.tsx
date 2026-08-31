@@ -1,5 +1,8 @@
 "use client";
 
+import { Badge } from "@/components/common";
+import { formatNumber } from "@/lib/format";
+
 export function PageHeader({
   eyebrow,
   title,
@@ -160,14 +163,14 @@ export function PlatformPagination({
                 item === page ? "bg-blue text-white" : "text-t3 hover:bg-bg hover:text-t1"
               }`}
             >
-              {item.toLocaleString("ko-KR")}
+              {formatNumber(item)}
             </button>
           ) : (
             <span key={item} className="px-1 text-xs text-t4" aria-hidden="true">…</span>
           )
         )) : (
           <span className="px-2 text-xs font-semibold text-t3 num">
-            {page.toLocaleString("ko-KR")} / {totalPages.toLocaleString("ko-KR")}
+            {formatNumber(page)} / {formatNumber(totalPages)}
           </span>
         )}
         <button
@@ -204,7 +207,7 @@ export function PlaceholderPage({
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-t text-blue">{icon}</div>
           <h3 className="mt-5 text-lg font-extrabold text-t1">연동 준비 중</h3>
           <p className="mt-2 text-sm leading-6 text-t3">필요한 데이터 스키마가 확정되면 실제 현황과 관리 기능을 연결합니다.</p>
-          <span className="mt-5 inline-flex rounded-full bg-bg px-3 py-1.5 text-xs font-bold text-t3">데이터 미연동</span>
+          <Badge className="mt-5 inline-flex bg-bg px-3 py-1.5 text-t3">데이터 미연동</Badge>
         </div>
       </section>
     </div>

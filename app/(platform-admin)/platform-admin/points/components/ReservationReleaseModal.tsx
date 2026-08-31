@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button, Input, Modal } from "@/components/common";
 import type { PointReservation } from "@/hooks/reactquery/platform";
+import { formatNumber } from "@/lib/format";
 
 interface ReservationReleaseModalProps {
   reservation: PointReservation;
@@ -28,7 +29,7 @@ export function ReservationReleaseModal({
         </div>
         <dl className="grid grid-cols-2 gap-2 rounded-xl bg-bg p-3 text-xs">
           <div><dt className="text-t3">조직</dt><dd className="font-bold text-t1">{reservation.organizationName}</dd></div>
-          <div><dt className="text-t3">예약 포인트</dt><dd className="font-bold text-t1">{reservation.reservedPoints.toLocaleString("ko-KR")} P</dd></div>
+          <div><dt className="text-t3">예약 포인트</dt><dd className="font-bold text-t1">{formatNumber(reservation.reservedPoints)} P</dd></div>
         </dl>
         <label>
           <span className="mb-1 block text-xs font-semibold text-t3">해제 사유</span>

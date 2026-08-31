@@ -1,4 +1,5 @@
 import type { ComplaintStatus } from "@/hooks/reactquery/complaints";
+import { formatDateIntl, formatDateTime } from "@/lib/format";
 
 export const COMPLAINT_STATUS_OPTIONS: {
   value: ComplaintStatus;
@@ -28,12 +29,9 @@ export function formatComplaintDate(value?: string | null, includeTime = false) 
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    ...(includeTime ? { hour: "2-digit", minute: "2-digit" } : {}),
-  }).format(date);
+  if (includeTime) return formatDateTime(value, { nullText: "-" });
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString();
+  return formatDateIntl(localDate, { nullText: "-" });
 }
 
 export function formatUnitLabel(unit?: {

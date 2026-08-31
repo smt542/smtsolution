@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { Badge } from "@/components/common";
 import type { Building } from "@/hooks/reactquery/buildings";
 import type { NoticeSummary } from "@/hooks/reactquery/notices";
 import {
@@ -70,12 +71,12 @@ export function NoticeList({
                 }`}
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${TYPE_CLASS[notice.noticeType]}`}>
+                  <Badge className={`px-2.5 py-1 ${TYPE_CLASS[notice.noticeType]}`}>
                     {NOTICE_TYPE_LABELS[notice.noticeType]}
-                  </span>
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${STATUS_CLASS[status]}`}>
+                  </Badge>
+                  <Badge className={`px-2.5 py-1 ${STATUS_CLASS[status]}`}>
                     {NOTICE_STATUS_LABELS[status]}
-                  </span>
+                  </Badge>
                   <span className="text-xs text-t3">
                     {notice.buildingId === null
                       ? "전체 공지"

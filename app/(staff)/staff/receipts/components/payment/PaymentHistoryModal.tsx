@@ -1,10 +1,11 @@
 "use client";
 
-import { Button, EmptyState, Spinner } from "@/components/common";
+import { Badge, Button, EmptyState, Spinner } from "@/components/common";
 import {
   useUnitPayments,
   type UnitPayment,
 } from "@/hooks/reactquery/payments";
+import { formatWon } from "@/lib/format";
 import { ComplaintDialog } from "../ComplaintDialog";
 import { KIND_LABEL, METHOD_LABEL } from "./constants";
 
@@ -55,15 +56,15 @@ export function PaymentHistoryModal({
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="num text-lg font-extrabold text-t1">
-                        {payment.amount.toLocaleString()}원
+                        {formatWon(payment.amount)}
                       </p>
-                      <span className="rounded-full bg-bg px-2.5 py-1 text-xs font-bold text-t2">
+                      <Badge className="bg-bg px-2.5 py-1 text-t2">
                         {KIND_LABEL[payment.kind]}
-                      </span>
+                      </Badge>
                       {canceled && (
-                        <span className="rounded-full bg-red-t px-2.5 py-1 text-xs font-bold text-red">
+                        <Badge className="bg-red-t px-2.5 py-1 text-red">
                           취소됨
-                        </span>
+                        </Badge>
                       )}
                     </div>
                     <p className="mt-2 text-sm text-t2">

@@ -1,4 +1,8 @@
 import type { OverdueHousehold } from "@/hooks/reactquery/overdue";
+import {
+  formatDate as formatSharedDate,
+  formatWon as formatSharedWon,
+} from "@/lib/format";
 
 export const DEBT_COLLECTION_MIN_MONTHS = 2;
 export const DEBT_COLLECTION_MIN_AMOUNT = 100_000;
@@ -11,12 +15,11 @@ export function isDebtCollectionTarget(row: OverdueHousehold): boolean {
 }
 
 export function formatWon(amount: number): string {
-  return `${new Intl.NumberFormat("ko-KR").format(amount)}원`;
+  return formatSharedWon(amount);
 }
 
 export function formatDate(value?: string | null): string {
-  if (!value) return "—";
-  return value.replaceAll("-", ".");
+  return formatSharedDate(value);
 }
 
 function csvCell(value: string | number): string {

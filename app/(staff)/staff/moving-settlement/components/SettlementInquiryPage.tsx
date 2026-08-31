@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { type FormEvent, type ReactNode, useState } from "react";
-import { Button, DataTable, EmptyState, Input, Select, Spinner } from "@/components/common";
+import { Badge, Button, DataTable, EmptyState, Input, Pagination, Select, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import {
@@ -12,6 +12,7 @@ import {
 } from "@/hooks/reactquery/movingSettlement";
 import { SETTLEMENT_INQUIRY_TYPES } from "@/hooks/reactquery/movingSettlement/inquiryTypes";
 import { hasModule } from "@/lib/auth/permissions";
+import { formatNumber, formatWon } from "@/lib/format";
 
 const TYPE_LABELS: Record<SettlementInquiryType, string> = {
   water: "수도",
@@ -49,7 +50,7 @@ function currentMonthRange(): Pick<FilterState, "from" | "to"> {
 }
 
 function money(value: number | null): string {
-  return value === null ? "-" : `${value.toLocaleString("ko-KR")}원`;
+  return formatWon(value, { nullText: "-" });
 }
 
 function inquiryColumns(type: SettlementInquiryType) {
@@ -117,9 +118,9 @@ export function SettlementInquiryPage({ type }: { type: SettlementInquiryType })
     gas: money(row.gasCharge),
     total: money(row.settlementAmount),
     status: (
-      <span className="inline-flex rounded-full bg-blue-t px-2.5 py-1 text-xs font-bold text-blue-d">
+      <Badge className="inline-flex bg-blue-t px-2.5 py-1 text-blue-d">
         {STATUS_LABELS[row.status]}
-      </span>
+      </Badge>
     ),
   }));
 
@@ -234,7 +235,7 @@ export function SettlementInquiryPage({ type }: { type: SettlementInquiryType })
       <section className="rounded-2xl border border-line bg-surface p-4 shadow-card">
         <div className="mb-4 flex items-center justify-between gap-3">
           <h2 className="text-base font-extrabold text-t1">조회 결과</h2>
-          <span className="text-sm font-bold text-t3">총 {total.toLocaleString("ko-KR")}건</span>
+          <span className="text-sm font-bold text-t3">총 {formatNumber(total)}건</span>
         </div>
 
         {invalidRange ? (
@@ -248,25 +249,12 @@ export function SettlementInquiryPage({ type }: { type: SettlementInquiryType })
         ) : (
           <>
             <DataTable columns={inquiryColumns(type)} rows={rows} />
-            <div className="mt-4 flex items-center justify-end gap-2">
-              <Button
-                variant="ghost"
-                disabled={page <= 1}
-                onClick={() => setPage((current) => current - 1)}
-              >
-                이전
-              </Button>
-              <span className="min-w-20 text-center text-sm font-bold text-t3">
-                {page} / {totalPages}
-              </span>
-              <Button
-                variant="ghost"
-                disabled={page >= totalPages}
-                onClick={() => setPage((current) => current + 1)}
-              >
-                다음
-              </Button>
-            </div>
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              className="mt-4"
+            />
           </>
         )}
       </section>

@@ -15,6 +15,7 @@ import {
   type UtilityType,
 } from "@/hooks/reactquery/utilities";
 import { fromMonthInput, toMonthInput } from "@/lib/billing/period";
+import { formatNumber } from "@/lib/format";
 import {
   PaymentStatementPrintView,
   type PaymentStatementRow,
@@ -362,7 +363,7 @@ export function PaymentStatementModal({
 
           <footer className="flex items-center justify-between border-t border-line px-5 py-3">
             <p className="text-xs text-t3">
-              {scopeLabel} · {statementRows.length.toLocaleString("ko-KR")}건
+              {scopeLabel} · {formatNumber(statementRows.length)}건
             </p>
             <div className="flex gap-2">
               <Button type="button" variant="ghost" onClick={onClose}>닫기</Button>

@@ -4,12 +4,12 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 
 import { usePublicSettlementByToken } from "@/hooks/reactquery/residentSettlement";
+import { formatDate as formatDateValue, formatWon } from "@/lib/format";
 
 import styles from "../../share.module.css";
 
-const formatDate = (value: string) => value.replaceAll("-", ".");
-const formatAmount = (value: number) =>
-  `${value.toLocaleString("ko-KR")}원`;
+const formatDate = (value: string) => formatDateValue(value);
+const formatAmount = (value: number) => formatWon(value);
 
 export default function PublicSettlementPage() {
   const params = useParams<{ token: string }>();

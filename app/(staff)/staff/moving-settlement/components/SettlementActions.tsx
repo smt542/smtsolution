@@ -16,6 +16,7 @@ import {
 } from "@/hooks/reactquery/movingSettlement";
 import { useOrgContact } from "@/hooks/reactquery/org/useOrgContact";
 import { useMintSettlementShareToken } from "@/hooks/reactquery/residentSettlement";
+import { formatWon } from "@/lib/format";
 import { residentOrigin } from "@/lib/messaging/residentOrigin";
 import { formatDate, formatKrw, formatUnit } from "@/lib/messaging/vars";
 import { MessagingModal } from "../../messaging/components/MessagingModal";
@@ -59,7 +60,7 @@ export function SettlementActions({
 
   const calculate = () => {
     if (validate()) {
-      toast.success(`정산금은 ${amount.toLocaleString("ko-KR")}원입니다.`);
+      toast.success(`정산금은 ${formatWon(amount)}입니다.`);
     }
   };
 

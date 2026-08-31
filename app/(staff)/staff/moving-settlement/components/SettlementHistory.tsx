@@ -6,6 +6,7 @@ import {
   useSettlementList,
   type SettlementStatus,
 } from "@/hooks/reactquery/movingSettlement";
+import { formatWon } from "@/lib/format";
 
 const STATUS: Record<SettlementStatus, string> = {
   draft: "작성중",
@@ -96,7 +97,7 @@ export function SettlementHistory({
                   <td className="px-3 py-2">{row.tenantName ?? "-"}</td>
                   <td className="px-3 py-2">{STATUS[row.status]}</td>
                   <td className="px-3 py-2 text-right">
-                    {(row.settlementAmount ?? 0).toLocaleString("ko-KR")}원
+                    {formatWon(row.settlementAmount ?? 0)}
                   </td>
                 </tr>
               ))}

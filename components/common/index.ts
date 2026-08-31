@@ -10,3 +10,7 @@ export { SidebarList } from "./SidebarList";
 export { SearchBar } from "./SearchBar";
 export { EmptyState } from "./EmptyState";
 export { Spinner } from "./Spinner";
+export { Badge } from "./Badge";
+export { DetailField, DetailSection } from "./Detail";
+export { SummaryCard } from "./SummaryCard";
+export { Pagination } from "./Pagination";

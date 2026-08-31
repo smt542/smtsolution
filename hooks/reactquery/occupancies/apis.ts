@@ -44,16 +44,43 @@ export interface TenantListRow {
   unitId: number; occupancyId: number | null; unitNo: string; tenantName: string | null; phone: string | null;
   roomTypeLabel: string | null; residentCount: number | null; moveInDate: string | null;
   isVacant: boolean; isOverdue: boolean;
+  payerName?: string | null; vehicleNo?: string | null; areaPyeong?: number | null;
+  billingEnabled?: boolean | null; printEnabled?: boolean | null; billNameDisplay?: BillNameDisplay | null;
+  moveOutDate?: string | null; lateFeeEnabled?: boolean | null; singlePrint?: boolean | null;
+  transferMethod?: TransferMethod | null; smsOptIn?: boolean | null; billingNote?: string | null;
+  billAuth?: boolean | null; billDelivery?: BillDelivery | null; createdAt?: string | null;
+  kepcoCustomerNo?: string | null; kepcoMeterNo?: string | null;
+  mgmtAccount?: string | null; waterAccount?: string | null; elecAccount?: string | null; gasAccount?: string | null;
+  commonElecNo?: string | null;
 }
 type TenantRow = {
   unit_id: number; occupancy_id: number | null; unit_no: string; tenant_name: string | null; phone: string | null;
   room_type_label: string | null; resident_count: number | null; move_in_date: string | null;
   is_vacant: boolean; is_overdue: boolean;
+  payer_name?: string | null; vehicle_no?: string | null; area_pyeong?: number | null;
+  billing_enabled?: boolean | null; print_enabled?: boolean | null; bill_name_display?: BillNameDisplay | null;
+  move_out_date?: string | null; late_fee_enabled?: boolean | null; single_print?: boolean | null;
+  transfer_method?: TransferMethod | null; sms_opt_in?: boolean | null; billing_note?: string | null;
+  bill_auth?: boolean | null; bill_delivery?: BillDelivery | null; occupancy_created_at?: string | null;
+  kepco_customer_no?: string | null; kepco_meter_no?: string | null;
+  mgmt_account?: string | null; water_account?: string | null; elec_account?: string | null; gas_account?: string | null;
+  common_elec_no?: string | null;
 };
 const rowToTenant = (r: TenantRow): TenantListRow => ({
   unitId: r.unit_id, occupancyId: r.occupancy_id, unitNo: r.unit_no, tenantName: r.tenant_name, phone: r.phone,
   roomTypeLabel: r.room_type_label, residentCount: r.resident_count, moveInDate: r.move_in_date,
   isVacant: r.is_vacant, isOverdue: r.is_overdue,
+  payerName: r.payer_name ?? null, vehicleNo: r.vehicle_no ?? null, areaPyeong: r.area_pyeong ?? null,
+  billingEnabled: r.billing_enabled ?? null, printEnabled: r.print_enabled ?? null,
+  billNameDisplay: r.bill_name_display ?? null, moveOutDate: r.move_out_date ?? null,
+  lateFeeEnabled: r.late_fee_enabled ?? null, singlePrint: r.single_print ?? null,
+  transferMethod: r.transfer_method ?? null, smsOptIn: r.sms_opt_in ?? null,
+  billingNote: r.billing_note ?? null, billAuth: r.bill_auth ?? null,
+  billDelivery: r.bill_delivery ?? null, createdAt: r.occupancy_created_at ?? null,
+  kepcoCustomerNo: r.kepco_customer_no ?? null, kepcoMeterNo: r.kepco_meter_no ?? null,
+  mgmtAccount: r.mgmt_account ?? null, waterAccount: r.water_account ?? null,
+  elecAccount: r.elec_account ?? null, gasAccount: r.gas_account ?? null,
+  commonElecNo: r.common_elec_no ?? null,
 });
 
 export interface UnitOccupancyFull {

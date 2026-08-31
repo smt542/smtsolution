@@ -7,6 +7,7 @@ import {
   type UtilityUnitRow,
 } from "@/hooks/reactquery/utilities";
 import { PROGRAM_COMPANY_NAME } from "@/lib/bill/document";
+import { formatNumber } from "@/lib/format";
 
 export interface GasLedgerBuilding {
   id: number;
@@ -33,9 +34,7 @@ function chunkRows(rows: UtilityUnitRow[]): UtilityUnitRow[][] {
 }
 
 function formatReading(value: number | null): string {
-  return value === null
-    ? "-"
-    : value.toLocaleString("ko-KR", { maximumFractionDigits: 3 });
+  return formatNumber(value, { nullText: "-", fractionDigits: 3 });
 }
 
 function periodLabel(period: string): string {

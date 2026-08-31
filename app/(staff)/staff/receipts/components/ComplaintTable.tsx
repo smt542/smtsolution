@@ -1,4 +1,4 @@
-import { EmptyState, Spinner } from "@/components/common";
+import { Badge, EmptyState, Spinner } from "@/components/common";
 import type { Account } from "@/hooks/reactquery/accounts";
 import type { Complaint } from "@/hooks/reactquery/complaints";
 import {
@@ -88,11 +88,11 @@ export function ComplaintTable({
                   </p>
                 </td>
                 <td className="px-4 py-4">
-                  <span
-                    className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${COMPLAINT_STATUS_STYLE[complaint.status]}`}
+                  <Badge
+                    className={`inline-flex px-2.5 py-1 ${COMPLAINT_STATUS_STYLE[complaint.status]}`}
                   >
                     {COMPLAINT_STATUS_LABEL[complaint.status]}
-                  </span>
+                  </Badge>
                 </td>
               </tr>
             );

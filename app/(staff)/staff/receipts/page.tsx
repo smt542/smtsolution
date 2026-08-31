@@ -3,26 +3,28 @@
 import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Button, EmptyState, Modal, Spinner } from "@/components/common";
+import { EmptyState, Spinner } from "@/components/common";
+import { PrinterIcon } from "@/components/icons";
 import { useMe } from "@/hooks/reactquery/auth";
-import { type Building, useBuildings } from "@/hooks/reactquery/buildings";
+import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useUnitOccupancyFull } from "@/hooks/reactquery/occupancies";
 import { useUnitPayments } from "@/hooks/reactquery/payments";
-import {
-  type ReceiptFeeItemAmount,
-  type ReceiptPaymentRow,
-  useReceiptPaymentStatus,
-} from "@/hooks/reactquery/receipts";
+import { useReceiptPaymentStatus, useReceiptStatementData } from "@/hooks/reactquery/receipts";
 import { useUnits } from "@/hooks/reactquery/units";
 import { hasModule } from "@/lib/auth/permissions";
-import { currentPeriod, fromMonthInput, toMonthInput } from "@/lib/billing/period";
+import { currentPeriod, prevPeriod } from "@/lib/billing/period";
 import { AsStatusSection } from "./components/AsStatusSection";
 import { BuildingUnitRail } from "./components/BuildingUnitRail";
 import { PaymentHistorySection } from "./components/PaymentHistorySection";
 import { TenantInfoSection } from "./components/TenantInfoSection";
 import { UnifiedSearchModal } from "./components/UnifiedSearchModal";
+import { ChargeReceiptReportModal } from "./components/ChargeReceiptReportModal";
 import { VillaPaymentModal, type VillaPaymentModalInit } from "./components/VillaPaymentModal";
-import { formatCurrency } from "./receiptFormat";
+import { VillaOverdueModal } from "./components/villa-overdue/VillaOverdueModal";
+import { ReceiptEntryAlerts } from "./components/entry-alerts/ReceiptEntryAlerts";
+import { MonthlyChargeModal } from "./components/monthly/MonthlyChargeModal";
+import { UnitStatementModal } from "./components/unit-statement/UnitStatementModal";
+import { VillaReceiptHistoryModal } from "./components/villa-receipts/VillaReceiptHistoryModal";
 
 type DropdownItem = { header: string } | { label: string; onClick: () => void };
 
@@ -31,10 +33,24 @@ async function downloadBankTemplate() {
   await bankTemplate.downloadBankTemplate();
 }
 
-function Dropdown({ label, items }: { label: string; items: DropdownItem[] }) {
+function Dropdown({
+  label,
+  items,
+  accent,
+}: {
+  label: string;
+  items: DropdownItem[];
+  accent?: "teal";
+}) {
+  const widthClass =
+    label === "빌라" ? "w-[78px]" : label === "호실" ? "w-[76px]" : "w-[102px]";
+  const summaryClass =
+    accent === "teal"
+      ? `flex h-10 ${widthClass} cursor-pointer list-none items-center justify-center gap-1 rounded-xl bg-teal px-3 text-sm font-bold text-white hover:bg-teal-d`
+      : `flex h-10 ${widthClass} cursor-pointer list-none items-center justify-center gap-1 rounded-xl border border-line bg-surface px-3 text-sm font-bold text-t2 hover:bg-bg`;
   return (
     <details className="relative [&_summary::-webkit-details-marker]:hidden">
-      <summary className="flex h-10 cursor-pointer list-none items-center gap-1 rounded-xl border border-line bg-surface px-3 text-sm font-bold text-t2 hover:bg-bg">
+      <summary className={summaryClass}>
         {label} <span className="text-xs">▾</span>
       </summary>
       <div className="absolute right-0 z-20 mt-1 min-w-[190px] rounded-xl border border-line bg-surface p-1 shadow-card">
@@ -63,83 +79,7 @@ function Dropdown({ label, items }: { label: string; items: DropdownItem[] }) {
   );
 }
 
-function MonthlyChargeModal({
-  open,
-  onClose,
-  building,
-  feeItems,
-  rows,
-  period,
-}: {
-  open: boolean;
-  onClose: () => void;
-  building: Building | null;
-  feeItems: ReceiptFeeItemAmount[];
-  rows: ReceiptPaymentRow[];
-  period: string;
-}) {
-  const items = feeItems.filter((item) => building !== null && item.buildingId === building.id);
-  const buildingRows = rows.filter((row) => building !== null && row.buildingId === building.id);
-  const totals = buildingRows.reduce(
-    (sum, row) => ({
-      charged: sum.charged + (row.charged ?? 0),
-      paid: sum.paid + row.paid,
-      unpaid: sum.unpaid + (row.unpaid ?? 0),
-    }),
-    { charged: 0, paid: 0, unpaid: 0 },
-  );
-  const cards: [string, number][] = [
-    ["총부과", totals.charged],
-    ["수납", totals.paid],
-    ["미납", totals.unpaid],
-  ];
-
-  return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title={`월별 부과금액 · ${toMonthInput(period)}`}
-      className="max-w-lg"
-    >
-      {building === null ? (
-        <p className="py-6 text-center text-sm text-t4">건물을 먼저 선택하세요</p>
-      ) : (
-        <div className="space-y-4">
-          <p className="text-sm font-extrabold text-t1">{building.name}</p>
-          <div className="grid grid-cols-3 gap-2">
-            {cards.map(([label, value]) => (
-              <div key={label} className="rounded-xl border border-line bg-bg px-3 py-2">
-                <p className="text-xs font-bold text-t3">{label}</p>
-                <p className="mt-1 num text-sm font-extrabold text-t1">{formatCurrency(value)}</p>
-              </div>
-            ))}
-          </div>
-          <div>
-            <p className="mb-1.5 text-xs font-bold text-t3">관리비 항목별 부과</p>
-            {items.length === 0 ? (
-              <p className="rounded-xl border border-line bg-bg px-3 py-3 text-xs text-t4">
-                확정된 항목별 부과가 없습니다.
-              </p>
-            ) : (
-              <div className="flex flex-wrap gap-1.5">
-                {items.map((item) => (
-                  <span
-                    key={item.feeItemId}
-                    className="rounded-full bg-blue-t2 px-2.5 py-1 text-xs font-bold text-blue"
-                  >
-                    {item.feeItemName} {formatCurrency(item.amount)}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </Modal>
-  );
-}
-
-function ReceiptWorkspace({
+export function ReceiptWorkspace({
   orgId,
   canSendMessages,
   canEditPayment,
@@ -149,16 +89,27 @@ function ReceiptWorkspace({
   canEditPayment: boolean;
 }) {
   const searchParams = useSearchParams();
-  const [period, setPeriod] = useState(() => currentPeriod());
+  const [period] = useState(() => {
+    const requested = searchParams.get("period");
+    return requested && /^\d{4}-\d{2}-01$/.test(requested) ? requested : currentPeriod();
+  });
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | null>(() => {
     const raw = searchParams.get("buildingId");
     const parsed = raw ? Number(raw) : NaN;
     return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
   });
-  const [selectedUnitId, setSelectedUnitId] = useState<number | null>(null);
+  const [selectedUnitId, setSelectedUnitId] = useState<number | null>(() => {
+    const raw = searchParams.get("unitId");
+    const parsed = raw ? Number(raw) : NaN;
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+  });
   const [searchOpen, setSearchOpen] = useState(false);
   const [monthlyOpen, setMonthlyOpen] = useState(false);
+  const [chargeReportOpen, setChargeReportOpen] = useState(false);
+  const [receiptHistoryOpen, setReceiptHistoryOpen] = useState(false);
+  const [unitStatementOpen, setUnitStatementOpen] = useState(false);
   const [villa, setVilla] = useState<VillaPaymentModalInit | null>(null);
+  const [overdueOpen, setOverdueOpen] = useState(false);
 
   const { data: buildings = [] } = useBuildings();
   const orgBuildings = useMemo(
@@ -178,8 +129,27 @@ function ReceiptWorkspace({
     selectedUnitId,
     period,
   );
+  const historyStartPeriod = useMemo(() => {
+    let start = period;
+    for (let index = 0; index < 4; index += 1) start = prevPeriod(start);
+    return start;
+  }, [period]);
+  const historyQuery = useReceiptStatementData(
+    selectedBuildingId ?? 0,
+    selectedUnitId,
+    historyStartPeriod,
+    period,
+    selectedBuildingId !== null && selectedUnitId !== null,
+  );
 
   const selectedBuilding = orgBuildings.find((building) => building.id === selectedBuildingId) ?? null;
+  const selectedUnit = units.find((unit) => unit.id === selectedUnitId) ?? null;
+  const selectedUnitNo = selectedUnit?.unitNo ?? "";
+  const selectedUnitLabel = selectedUnitNo
+    ? `${selectedUnit?.dong ? `${selectedUnit.dong} ` : ""}${
+        selectedUnitNo.endsWith("호") ? selectedUnitNo : `${selectedUnitNo}호`
+      }`
+    : "";
   const selectedSummary = receiptRows.find((row) => row.unitId === selectedUnitId);
 
   const selectBuilding = (id: number) => {
@@ -202,58 +172,83 @@ function ReceiptWorkspace({
     }
     setVilla(init);
   };
-  const openVillaUnit = (view: "statement" | "receipt") => {
+  const openOverdue = () => {
+    if (selectedBuildingId === null) {
+      toast.info("건물을 먼저 선택하세요.");
+      return;
+    }
+    setOverdueOpen(true);
+  };
+  const requireBuilding = (open: () => void) => {
+    if (selectedBuildingId === null) {
+      toast.info("건물을 먼저 선택하세요.");
+      return;
+    }
+    open();
+  };
+  const openUnitStatement = () => {
     if (selectedBuildingId === null || selectedUnitId === null) {
       toast.info("호실을 먼저 선택하세요.");
       return;
     }
-    setVilla({ view, unitId: selectedUnitId });
+    setUnitStatementOpen(true);
+  };
+  const openUnitReceipt = () => {
+    if (selectedBuildingId === null || selectedUnitId === null) {
+      toast.info("호실을 먼저 선택하세요.");
+      return;
+    }
+    setVilla({ view: "receipt", unitId: selectedUnitId });
   };
 
   return (
-    <div className="flex min-h-screen flex-col gap-4 p-6">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="mb-1 text-xs font-bold text-t3">관리업무 · 수납관리</p>
-          <h1 className="text-2xl font-extrabold text-t1">수납관리·민원접수</h1>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <input
-            type="month"
-            aria-label="조회월"
-            value={toMonthInput(period)}
-            onChange={(event) => {
-              if (event.target.value) setPeriod(fromMonthInput(event.target.value));
-            }}
-            className="h-10 rounded-xl border border-line bg-surface px-3 text-sm text-t1"
-          />
-          <Button type="button" onClick={() => setSearchOpen(true)}>
+    <div className="min-h-[calc(100vh-62px)] px-[24px] py-[18px]">
+      <h1 className="sr-only">수납관리·민원접수</h1>
+
+      <div className="fixed right-[24px] top-[11px] z-[30] hidden items-center gap-[8px] md:flex print:hidden">
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            className="h-[40px] w-[58px] rounded-[11px] border border-line bg-surface text-[14px] font-bold text-t2 hover:bg-bg"
+          >
             조회
-          </Button>
-          <Button type="button" variant="ghost" onClick={() => setMonthlyOpen(true)}>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMonthlyOpen(true)}
+            className="flex h-[40px] w-[132px] items-center justify-center gap-[7px] rounded-[11px] border border-line bg-surface text-[14px] font-bold text-t2 hover:bg-bg"
+          >
+            <PrinterIcon className="size-[15px]" aria-hidden="true" />
             월별 부과금액
-          </Button>
+          </button>
           {/* 빌라·호실·자동수납은 수납 콘솔(기록/취소 포함)이므로 payment 모듈 보유자만 노출 */}
           {canEditPayment && (
             <>
               <Dropdown
                 label="빌라"
                 items={[
-                  { label: "빌라 부과금액", onClick: () => openVilla({ statusFilter: "all" }) },
-                  { label: "빌라 미납내역", onClick: () => openVilla({ statusFilter: "unpaid" }) },
-                  { label: "빌라 수납내역", onClick: () => openVilla({ statusFilter: "paid" }) },
+                  {
+                    label: "빌라 부과금액",
+                    onClick: () => requireBuilding(() => setChargeReportOpen(true)),
+                  },
+                  { label: "빌라 미납내역", onClick: openOverdue },
+                  {
+                    label: "빌라 수납내역",
+                    onClick: () => requireBuilding(() => setReceiptHistoryOpen(true)),
+                  },
                 ]}
               />
               <Dropdown
                 label="호실"
                 items={[
-                  { label: "호실 명세서", onClick: () => openVillaUnit("statement") },
-                  { label: "영수증 출력", onClick: () => openVillaUnit("receipt") },
+                  { label: "호실 명세서", onClick: openUnitStatement },
+                  { label: "영수증 출력", onClick: openUnitReceipt },
                 ]}
               />
               {/* 지로처리일자 확인 = 지로원장(처리일자 포함) 뷰. 은행 양식 다운 = 업로드용 빈 xlsx 템플릿. */}
               <Dropdown
                 label="자동수납"
+                accent="teal"
                 items={[
                   { header: "지로" },
                   { label: "지로수납처리", onClick: () => openVilla({ view: "table" }) },
@@ -266,13 +261,11 @@ function ReceiptWorkspace({
               />
             </>
           )}
-        </div>
-      </header>
+      </div>
 
-      <div className="border-t border-line" />
-
-      <div className="flex flex-col gap-4 lg:flex-row">
+      <div className="flex flex-col gap-[16px] lg:flex-row">
         <BuildingUnitRail
+          key={selectedBuildingId ?? "all-buildings"}
           buildings={orgBuildings}
           units={units}
           receiptRows={receiptRows}
@@ -285,14 +278,17 @@ function ReceiptWorkspace({
           onBack={backToBuildings}
         />
 
-        <div className="flex min-w-0 flex-1 flex-col gap-4">
+        <div className="flex min-w-0 flex-1 flex-col gap-[10px]">
           <PaymentHistorySection
             key={`pay-${selectedUnitId ?? "none"}`}
             orgId={orgId}
             buildingId={selectedBuildingId}
             hasUnit={selectedUnitId !== null}
-            isLoading={isPaymentsLoading || isReceiptLoading}
-            payments={unitPayments}
+            isLoading={isPaymentsLoading || isReceiptLoading || historyQuery.isLoading}
+            payments={historyQuery.data?.payments ?? unitPayments}
+            historySummaries={historyQuery.data?.paymentRows.filter(
+              (row) => row.unitId === selectedUnitId,
+            )}
             summary={selectedSummary}
             period={period}
             unitId={selectedUnitId}
@@ -324,21 +320,57 @@ function ReceiptWorkspace({
         </div>
       </div>
 
+      <button
+        type="button"
+        aria-label="상담 문의"
+        onClick={() => toast.info("상담 문의 기능을 준비 중입니다.")}
+        className="fixed bottom-[21px] right-[24px] z-20 hidden size-[52px] items-center justify-center rounded-full bg-teal text-white shadow-[0_8px_22px_rgba(8,117,108,0.28)] transition-colors hover:bg-teal-d md:flex print:hidden"
+      >
+        <svg viewBox="0 0 24 24" fill="none" className="size-[19px]" aria-hidden="true">
+          <path d="M6.5 18.5 3.5 21v-5.3A7.5 7.5 0 0 1 4 5.5 9 9 0 0 1 18.8 7a7.2 7.2 0 0 1-.4 8.8A8.8 8.8 0 0 1 6.5 18.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
       <UnifiedSearchModal
         open={searchOpen}
         onClose={() => setSearchOpen(false)}
         buildings={orgBuildings}
         receiptRows={receiptRows}
+        period={period}
         onJump={jumpTo}
       />
       <MonthlyChargeModal
         open={monthlyOpen}
         onClose={() => setMonthlyOpen(false)}
-        building={selectedBuilding}
-        feeItems={receiptData.feeItems}
-        rows={receiptRows}
+        buildings={orgBuildings}
         period={period}
       />
+      {chargeReportOpen && selectedBuilding && (
+        <ChargeReceiptReportModal
+          open
+          onClose={() => setChargeReportOpen(false)}
+          building={selectedBuilding}
+          period={period}
+        />
+      )}
+      {receiptHistoryOpen && selectedBuilding && (
+        <VillaReceiptHistoryModal
+          open
+          onClose={() => setReceiptHistoryOpen(false)}
+          building={selectedBuilding}
+          period={period}
+        />
+      )}
+      {unitStatementOpen && selectedBuilding && selectedUnitId !== null && (
+        <UnitStatementModal
+          open
+          onClose={() => setUnitStatementOpen(false)}
+          building={selectedBuilding}
+          unitId={selectedUnitId}
+          unitLabel={selectedUnitLabel}
+          period={period}
+        />
+      )}
       {villa && selectedBuilding && (
         <VillaPaymentModal
           open
@@ -349,6 +381,17 @@ function ReceiptWorkspace({
           onClose={() => setVilla(null)}
         />
       )}
+      {overdueOpen && selectedBuilding && (
+        <VillaOverdueModal
+          open
+          building={selectedBuilding}
+          orgId={orgId}
+          period={period}
+          onClose={() => setOverdueOpen(false)}
+        />
+      )}
+
+      <ReceiptEntryAlerts />
     </div>
   );
 }

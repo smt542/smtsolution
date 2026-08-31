@@ -20,6 +20,7 @@ import {
   type PlatformOrganizationQuery,
 } from "@/hooks/reactquery/platform";
 import type { PointAdjustmentFormValues } from "@/components/forms/schema/pointAdjustment";
+import { formatNumber } from "@/lib/format";
 import { toast } from "sonner";
 import {
   PageHeader,
@@ -41,7 +42,7 @@ const ReservationReleaseModal = dynamic(() =>
 );
 
 const dateFmt = new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" });
-const num = (n: number) => n.toLocaleString("ko-KR");
+const num = (n: number) => formatNumber(n);
 const ORGANIZATION_PAGE_SIZE = 25;
 const RESERVATION_PAGE_SIZE = 25;
 const SEARCH_DEBOUNCE_MS = 300;
