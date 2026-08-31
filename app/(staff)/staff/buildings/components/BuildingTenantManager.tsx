@@ -9,7 +9,7 @@ import { useTenantList } from "@/hooks/reactquery/occupancies";
 import { BuildingSearchCard } from "./BuildingSearchCard";
 import { BuildingDirectoryCard } from "./BuildingDirectoryCard";
 import { TenantOccupancyCard } from "./TenantOccupancyCard";
-import { BuildingOutputModal } from "./BuildingOutputModal";
+import { TenantOutputModal } from "./TenantOutputModal";
 
 /**
  * Figma 673:39652 / 673:40619 — 건물·입주자 관리(통합 master-detail).
@@ -91,18 +91,12 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
         />
       </div>
 
-      <BuildingOutputModal
-        open={outputOpen}
-        buildings={rows}
-        selectedBuildingId={selected?.id ?? null}
-        tenants={tenantRows}
-        tenantsLoading={tenant.isLoading}
-        onSelectBuilding={(id) => {
-          const b = rows.find((r) => r.id === id);
-          if (b) setSelected({ id: b.id, name: b.name });
-        }}
-        onClose={() => setOutputOpen(false)}
-      />
+      {outputOpen && (
+        <TenantOutputModal
+          initialBuildingId={selected?.id ?? null}
+          onClose={() => setOutputOpen(false)}
+        />
+      )}
     </div>
   );
 }
