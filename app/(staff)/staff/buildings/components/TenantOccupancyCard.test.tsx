@@ -30,8 +30,8 @@ beforeEach(() => {
 });
 
 describe("TenantOccupancyCard", () => {
-  it("입주민 행을 클릭하면 해당 입주자카드를 연다", () => {
-    const onOpenTenantCard = vi.fn();
+  it("입주민 행을 클릭하면 해당 입주민 관리카드를 연다", () => {
+    const onOpenManagementCard = vi.fn();
     render(
       <TenantOccupancyCard
         buildingId={7}
@@ -39,17 +39,17 @@ describe("TenantOccupancyCard", () => {
         rows={[tenant]}
         isLoading={false}
         isError={false}
-        onOpenTenantCard={onOpenTenantCard}
+        onOpenManagementCard={onOpenManagementCard}
       />,
     );
 
-    fireEvent.click(screen.getByRole("row", { name: "101호 홍길동 입주자카드 보기" }));
+    fireEvent.click(screen.getByRole("row", { name: "101호 홍길동 입주민 관리카드 보기" }));
 
-    expect(onOpenTenantCard).toHaveBeenCalledWith(tenant);
+    expect(onOpenManagementCard).toHaveBeenCalledWith(tenant);
   });
 
-  it("입주민 행에서 Enter를 눌러도 입주자카드를 연다", () => {
-    const onOpenTenantCard = vi.fn();
+  it("입주민 행에서 Enter를 눌러도 입주민 관리카드를 연다", () => {
+    const onOpenManagementCard = vi.fn();
     render(
       <TenantOccupancyCard
         buildingId={7}
@@ -57,12 +57,12 @@ describe("TenantOccupancyCard", () => {
         rows={[tenant]}
         isLoading={false}
         isError={false}
-        onOpenTenantCard={onOpenTenantCard}
+        onOpenManagementCard={onOpenManagementCard}
       />,
     );
 
-    fireEvent.keyDown(screen.getByRole("row", { name: "101호 홍길동 입주자카드 보기" }), { key: "Enter" });
+    fireEvent.keyDown(screen.getByRole("row", { name: "101호 홍길동 입주민 관리카드 보기" }), { key: "Enter" });
 
-    expect(onOpenTenantCard).toHaveBeenCalledWith(tenant);
+    expect(onOpenManagementCard).toHaveBeenCalledWith(tenant);
   });
 });

@@ -52,9 +52,9 @@ vi.mock("./tenant-output/ChargeStatementDocument", () => ({
 }));
 
 describe("TenantOutputModal", () => {
-  it("입주민 행에서 열면 해당 세대의 입주자카드를 첫 화면에 표시한다", async () => {
-    render(<TenantOutputModal initialBuildingId={7} initialUnitId={202} onClose={vi.fn()} />);
+  it("선택 건물로 열면 첫 세대의 출력 카드를 표시한다", async () => {
+    render(<TenantOutputModal initialBuildingId={7} onClose={vi.fn()} />);
 
-    expect(await screen.findByText("CARD:202")).toBeInTheDocument();
+    expect(await screen.findByText("CARD:101")).toBeInTheDocument();
   });
 });

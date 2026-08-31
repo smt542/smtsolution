@@ -9,11 +9,12 @@ import { useTenantList } from "@/hooks/reactquery/occupancies";
 import { BuildingSearchCard } from "./BuildingSearchCard";
 import { BuildingDirectoryCard } from "./BuildingDirectoryCard";
 import { TenantOccupancyCard } from "./TenantOccupancyCard";
+import { TenantManagementCardModal } from "./TenantManagementCardModal";
 import { TenantOutputModal } from "./TenantOutputModal";
 
-interface OutputRequest {
-  buildingId: number | null;
-  unitId: number | null;
+interface ManagementCardRequest {
+  buildingId: number;
+  unitId: number;
 }
 
 /**
@@ -26,7 +27,8 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [selected, setSelected] = useState<{ id: number; name: string } | null>(null);
-  const [outputRequest, setOutputRequest] = useState<OutputRequest | null>(null);
+  const [outputOpen, setOutputOpen] = useState(false);
+  const [managementCardRequest, setManagementCardRequest] = useState<ManagementCardRequest | null>(null);
 
   const params = { search: search || undefined, page, pageSize };
   const isInitialQuery = !search && page === 1 && pageSize === 20;
@@ -58,7 +60,7 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
         <h1 className="text-[19px] font-extrabold tracking-[-0.38px] text-t1">건물·입주자 관리</h1>
         <button
           type="button"
-          onClick={() => setOutputRequest({ buildingId: selected?.id ?? null, unitId: null })}
+          onClick={() => setOutputOpen(true)}
           className="ml-auto inline-flex h-[40px] items-center gap-[6px] rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold text-t2 hover:bg-bg"
         >
           <PrinterIcon className="h-4 w-4" />
@@ -93,18 +95,26 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
           rows={tenantRows}
           isLoading={tenant.isLoading}
           isError={tenant.isError}
-          onOpenTenantCard={(tenantRow) => {
+          onOpenManagementCard={(tenantRow) => {
             if (!selected) return;
-            setOutputRequest({ buildingId: selected.id, unitId: tenantRow.unitId });
+            setManagementCardRequest({ buildingId: selected.id, unitId: tenantRow.unitId });
           }}
         />
       </div>
 
-      {outputRequest && (
+      {outputOpen && (
         <TenantOutputModal
-          initialBuildingId={outputRequest.buildingId}
-          initialUnitId={outputRequest.unitId}
-          onClose={() => setOutputRequest(null)}
+          initialBuildingId={selected?.id ?? null}
+          onClose={() => setOutputOpen(false)}
+        />
+      )}
+
+      {managementCardRequest && (
+        <TenantManagementCardModal
+          key={`${managementCardRequest.buildingId}-${managementCardRequest.unitId}`}
+          buildingId={managementCardRequest.buildingId}
+          unitId={managementCardRequest.unitId}
+          onClose={() => setManagementCardRequest(null)}
         />
       )}
     </div>
