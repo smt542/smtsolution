@@ -108,7 +108,7 @@ export default async function BuildingsPage() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-6 xl:p-7">
       <BuildingList initialData={initialData} />
     </div>
   );
