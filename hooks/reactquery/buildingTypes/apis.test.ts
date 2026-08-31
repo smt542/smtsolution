@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const from = vi.fn();
 const rpc = vi.fn();
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ from, rpc }) }));
-import { listBuildingTypes, createBuildingType, reorderBuildingTypes } from "./apis";
+import { listBuildingTypes, createBuildingType, getBuildingTypeUsage, reorderBuildingTypes } from "./apis";
 beforeEach(() => vi.clearAllMocks());
 describe("buildingTypes apis", () => {
   it("listBuildingTypes: snake→camel 매핑", async () => {
@@ -23,5 +23,19 @@ describe("buildingTypes apis", () => {
     await reorderBuildingTypes([3, 1, 2]);
     expect(rpc).toHaveBeenCalledTimes(1);
     expect(rpc).toHaveBeenCalledWith("reorder_building_types", { p_ordered_ids: [3, 1, 2] });
+  });
+  it("getBuildingTypeUsage: 건물 배정과 부과 이력을 함께 확인", async () => {
+    const buildingLimit = vi.fn().mockResolvedValue({ data: [{ id: 4 }], error: null });
+    const chargeLimit = vi.fn().mockResolvedValue({ data: [{ id: 8 }], error: null });
+    from.mockImplementation((table: string) => ({
+      select: () => table === "buildings"
+        ? { eq: () => ({ limit: buildingLimit }) }
+        : table === "fee_items"
+          ? { eq: vi.fn().mockResolvedValue({ data: [{ id: 11 }], error: null }) }
+          : { in: () => ({ limit: chargeLimit }) },
+    }));
+
+    await expect(getBuildingTypeUsage(3)).resolves.toEqual({ buildings: true, billing: true });
+    expect(from).toHaveBeenCalledWith("fee_item_charges");
   });
 });

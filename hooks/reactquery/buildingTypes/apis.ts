@@ -34,7 +34,36 @@ export async function renameBuildingType(id: number, label: string): Promise<Bui
   return rowToBuildingType(data);
 }
 
+export async function getBuildingTypeUsage(id: number): Promise<{ buildings: boolean; billing: boolean }> {
+  const client = createClient();
+  const [buildingsResult, feeItemsResult] = await Promise.all([
+    client.from("buildings").select("id").eq("type_id", id).limit(1),
+    client.from("fee_items").select("id").eq("type_id", id),
+  ]);
+  if (buildingsResult.error) throw new Error(buildingsResult.error.message);
+  if (feeItemsResult.error) throw new Error(feeItemsResult.error.message);
+
+  const feeItemIds = (feeItemsResult.data ?? []).map((item) => item.id as number);
+  if (feeItemIds.length === 0) {
+    return { buildings: (buildingsResult.data ?? []).length > 0, billing: false };
+  }
+  const chargesResult = await client
+    .from("fee_item_charges")
+    .select("id")
+    .in("fee_item_id", feeItemIds)
+    .limit(1);
+  if (chargesResult.error) throw new Error(chargesResult.error.message);
+  return {
+    buildings: (buildingsResult.data ?? []).length > 0,
+    billing: (chargesResult.data ?? []).length > 0,
+  };
+}
+
 export async function deleteBuildingType(id: number): Promise<void> {
+  const usage = await getBuildingTypeUsage(id);
+  if (usage.buildings || usage.billing) {
+    throw new Error("건물 또는 부과 내역에 사용 중인 유형은 삭제할 수 없습니다.");
+  }
   const { error } = await createClient().from("building_types").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }

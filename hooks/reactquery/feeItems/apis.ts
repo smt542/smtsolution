@@ -71,6 +71,18 @@ export async function listFeeItems(typeId: number): Promise<FeeItem[]> {
   return (data ?? []).map(rowToFeeItem);
 }
 
+/** 항목등록 관리 화면에서 유형별 초안을 구성하기 위한 전체 활성 항목 목록. */
+export async function listFeeItemsForManagement(): Promise<FeeItem[]> {
+  const { data, error } = await createClient()
+    .from("fee_items")
+    .select("*")
+    .is("deleted_at", null)
+    .order("type_id")
+    .order("sort_order");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map(rowToFeeItem);
+}
+
 export async function listAllFeeItems(
   filters: FeeItemLookupFilters,
 ): Promise<FeeItemLookupResult> {
