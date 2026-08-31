@@ -11,6 +11,7 @@ import {
   saveBillingPeriodSetting,
   listUnchargedNewOccupancies,
   chargeNewOccupancies,
+  copyPreviousBilling,
 } from "./apis";
 beforeEach(() => vi.clearAllMocks());
 
@@ -40,6 +41,55 @@ describe("billing apis", () => {
       p_charges: [{ unit_id: 1, fee_item_id: 10, charged: true, amount: 30000, occupancy_id: 5 }],
       p_notes: [{ unit_id: 1, billing_note: "메모", unit_notice: null }],
     }));
+  });
+  it("copyPreviousBilling: 이월 항목과 한 달 이동한 부과 일정을 반영한다", async () => {
+    const row = {
+      unit_id: 1, unit_no: "101", dong: null, room_type_label: "원룸",
+      occupancy_id: 5, tenant_name: "홍", move_in_date: "2026-07-01", is_vacant: false,
+      fee_item_id: 10, fee_item_name: "관리비", carry_over: true, daily_proration: false,
+      rounding: "round", is_required: true, sort_order: 0, charged: true, amount: 30000,
+      confirmed_at: null, confirmed_by_name: null, total_amount: null,
+      billing_note: "전월 메모", unit_notice: "전월 공지", is_dirty: false,
+    };
+    rpc
+      .mockResolvedValueOnce({ data: [row], error: null })
+      .mockResolvedValueOnce({ data: [{ ...row, occupancy_id: 9, amount: 0, billing_note: null, unit_notice: null }], error: null })
+      .mockResolvedValueOnce({ data: null, error: null });
+    const previousSetting = {
+      building_id: 7, period: "2026-07-01", charge_start_date: "2026-06-16",
+      charge_end_date: "2026-07-15", due_date: "2026-07-25",
+    };
+    const nextSetting = {
+      building_id: 7, period: "2026-08-01", charge_start_date: "2026-07-16",
+      charge_end_date: "2026-08-15", due_date: "2026-08-25",
+    };
+    const maybeSingle = vi.fn().mockResolvedValue({ data: previousSetting, error: null });
+    const secondEq = vi.fn(() => ({ maybeSingle }));
+    const firstEq = vi.fn(() => ({ eq: secondEq }));
+    const single = vi.fn().mockResolvedValue({ data: nextSetting, error: null });
+    const selectAfterUpsert = vi.fn(() => ({ single }));
+    const upsert = vi.fn(() => ({ select: selectAfterUpsert }));
+    from
+      .mockReturnValueOnce({ select: () => ({ eq: firstEq }) })
+      .mockReturnValueOnce({ upsert });
+
+    await expect(copyPreviousBilling(7, "2026-08-01")).resolves.toEqual({ unitCount: 1, chargeCount: 1 });
+    expect(rpc.mock.calls).toEqual([
+      ["list_billing", { p_building_id: 7, p_period: "2026-07-01" }],
+      ["list_billing", { p_building_id: 7, p_period: "2026-08-01" }],
+      ["save_billing_charges", expect.objectContaining({
+        p_building_id: 7,
+        p_period: "2026-08-01",
+        p_charges: [{ unit_id: 1, fee_item_id: 10, charged: true, amount: 30000, occupancy_id: 9 }],
+        p_notes: [],
+      })],
+    ]);
+    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({
+      period: "2026-08-01",
+      charge_start_date: "2026-07-16",
+      charge_end_date: "2026-08-15",
+      due_date: "2026-08-25",
+    }), { onConflict: "building_id,period" });
   });
   it("confirmBilling: 결과 매핑", async () => {
     rpc.mockResolvedValue({ data: { unit_count: 3, total: 90000 }, error: null });

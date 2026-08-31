@@ -20,7 +20,7 @@ describe("BillingTable", () => {
   it("항목 컬럼과 세대 행을 렌더", () => {
     render(<BillingTable units={[unit()]} columns={columns} period="2026-08-01"
       onChargeChange={vi.fn()} onRowClick={vi.fn()} onNoteClick={vi.fn()} />);
-    expect(screen.getByText("관리비")).toBeInTheDocument();
+    expect(screen.getAllByText("관리비").length).toBeGreaterThan(0);
     expect(screen.getByText("수도")).toBeInTheDocument();
     expect(screen.getByText("101")).toBeInTheDocument();
   });

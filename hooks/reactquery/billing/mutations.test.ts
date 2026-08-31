@@ -10,6 +10,7 @@ vi.mock("./apis", () => ({
   confirmBilling: vi.fn(),
   chargeNewOccupancies: vi.fn(),
   saveBillingPeriodSetting: vi.fn(),
+  copyPreviousBilling: vi.fn(),
 }));
 
 import { billingKeys } from "./keys";
@@ -17,6 +18,7 @@ import {
   useChargeNewOccupancies,
   useConfirmBilling,
   useSaveBillingCharges,
+  useCopyPreviousBilling,
 } from "./mutations";
 
 beforeEach(() => vi.clearAllMocks());
@@ -69,6 +71,20 @@ describe("billing mutation invalidation", () => {
       [{ queryKey: billingKeys.newOccupancies(7, "2026-08-01") }],
       [{ queryKey: billingKeys.history(3, "2026-08-01") }],
       [{ queryKey: billingKeys.history(4, "2026-08-01") }],
+    ]);
+  });
+
+  it("전월자료 반영은 요청한 모든 건물의 현재 월 목록을 무효화한다", () => {
+    const input = { buildingIds: [7, 8], period: "2026-08-01" };
+    const mutation = useCopyPreviousBilling() as unknown as {
+      onSuccess: (result: unknown, variables: typeof input) => void;
+    };
+    mutation.onSuccess({}, input);
+    expect(invalidateQueries.mock.calls).toEqual([
+      [{ queryKey: billingKeys.list(7, "2026-08-01") }],
+      [{ queryKey: billingKeys.periodSetting(7, "2026-08-01") }],
+      [{ queryKey: billingKeys.list(8, "2026-08-01") }],
+      [{ queryKey: billingKeys.periodSetting(8, "2026-08-01") }],
     ]);
   });
 });

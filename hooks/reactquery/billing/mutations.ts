@@ -4,6 +4,7 @@ import {
   confirmBilling,
   chargeNewOccupancies,
   saveBillingPeriodSetting,
+  copyPreviousBilling,
   type SaveBillingChargesPayload,
   type SaveBillingPeriodSettingPayload,
 } from "./apis";
@@ -52,6 +53,31 @@ export function useSaveBillingPeriodSetting() {
         billingKeys.periodSetting(setting.buildingId, setting.period),
         setting,
       );
+    },
+  });
+}
+
+export function useCopyPreviousBilling() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ buildingIds, period }: { buildingIds: number[]; period: string }) => {
+      const results = await Promise.all(
+        buildingIds.map((buildingId) => copyPreviousBilling(buildingId, period)),
+      );
+      return results.reduce<{ buildingCount: number; unitCount: number; chargeCount: number }>(
+        (total, result) => ({
+          buildingCount: total.buildingCount + (result.unitCount > 0 ? 1 : 0),
+          unitCount: total.unitCount + result.unitCount,
+          chargeCount: total.chargeCount + result.chargeCount,
+        }),
+        { buildingCount: 0, unitCount: 0, chargeCount: 0 },
+      );
+    },
+    onSuccess: (_result, input) => {
+      input.buildingIds.forEach((buildingId) => {
+        void qc.invalidateQueries({ queryKey: billingKeys.list(buildingId, input.period) });
+        void qc.invalidateQueries({ queryKey: billingKeys.periodSetting(buildingId, input.period) });
+      });
     },
   });
 }
