@@ -53,12 +53,16 @@ export interface BuildingDirectoryRow {
   managerUserId: string | null; meterUserId: string | null; cleaningUserId: string | null;
   managerName: string | null; meterName: string | null; cleaningName: string | null;
   totalUnits: number; occupiedUnits: number; minMeterDay: number | null;
+  typeLabel: string | null; ownerName: string | null; ownerPhone: string | null;
+  commonEntrance: string | null; createdAt: string | null;
 }
 type BuildingDirectoryDbRow = {
   id: number; code: string; name: string; address: string | null;
   manager_user_id: string | null; meter_user_id: string | null; cleaning_user_id: string | null;
   manager_name: string | null; meter_name: string | null; cleaning_name: string | null;
   total_units: unknown; occupied_units: unknown; min_meter_day: number | null;
+  type_label?: string | null; owner_name?: string | null; owner_phone?: string | null;
+  entrance_password?: string | null; created_at?: string | null;
 };
 
 const rowToDirectory = (r: BuildingDirectoryDbRow): BuildingDirectoryRow => ({
@@ -67,6 +71,8 @@ const rowToDirectory = (r: BuildingDirectoryDbRow): BuildingDirectoryRow => ({
   managerName: r.manager_name, meterName: r.meter_name, cleaningName: r.cleaning_name,
   totalUnits: Number(r.total_units ?? 0), occupiedUnits: Number(r.occupied_units ?? 0),
   minMeterDay: r.min_meter_day,
+  typeLabel: r.type_label ?? null, ownerName: r.owner_name ?? null, ownerPhone: r.owner_phone ?? null,
+  commonEntrance: r.entrance_password ?? null, createdAt: r.created_at ?? null,
 });
 
 export interface BuildingListParams {
