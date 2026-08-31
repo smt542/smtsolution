@@ -1,205 +1,93 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import type { UtilityUnitRow } from "@/hooks/reactquery/utilities";
+import { GasAccountSummary } from "./gas/GasAccountSummary";
+import { GasBuildingPanel } from "./gas/GasBuildingPanel";
+import { GasReadingsTable } from "./gas/GasReadingsTable";
+import type { GasTableRow, GasUtilityDraft } from "./gas/types";
 
-vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
-vi.mock("@/hooks/reactquery/buildings", () => ({ useBuildings: vi.fn() }));
-vi.mock("@/hooks/reactquery/utilities", () => ({
-  useUtilityRows: vi.fn(),
-  useFixedUsages: vi.fn(),
-  useUtilityConfirmation: vi.fn(),
-  useConfirmUtilities: vi.fn(),
-  useSaveMeterReadings: vi.fn(),
-  useMeterHistory: vi.fn(),
-  useSaveWaterDiscount: vi.fn(),
-  useDeleteWaterDiscount: vi.fn(),
-  useSetFixedUsage: vi.fn(),
-  useClearFixedUsage: vi.fn(),
-  useUtilityPrices: vi.fn(),
-  useSaveUtilityUnitPrices: vi.fn(),
-  useScopedPrices: vi.fn(),
-  useSaveScopedPrices: vi.fn(),
-  useBillingPeriod: vi.fn(),
-  useSaveBillingPeriod: vi.fn(),
-  useUtilitySupplier: vi.fn(),
-  useSaveUtilitySupplier: vi.fn(),
-  ledgerDownloadUrl: vi.fn(),
-}));
-vi.mock("sonner", () => ({
-  toast: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
-}));
-
-import { toast } from "sonner";
-import { useMe } from "@/hooks/reactquery/auth";
-import { useBuildings } from "@/hooks/reactquery/buildings";
-import {
-  useBillingPeriod,
-  useClearFixedUsage,
-  useConfirmUtilities,
-  useDeleteWaterDiscount,
-  useFixedUsages,
-  useMeterHistory,
-  useSaveBillingPeriod,
-  useSaveMeterReadings,
-  useSaveScopedPrices,
-  useSaveUtilitySupplier,
-  useSaveUtilityUnitPrices,
-  useSaveWaterDiscount,
-  useScopedPrices,
-  useSetFixedUsage,
-  useUtilityConfirmation,
-  useUtilityPrices,
-  useUtilityRows,
-  useUtilitySupplier,
-  type UtilityUnitRow,
-} from "@/hooks/reactquery/utilities";
-import UtilitiesPage from "../page";
-
-const activeRow: UtilityUnitRow = {
-  unitId: 101,
+const baseRow: UtilityUnitRow = {
+  unitId: 1,
   unitNo: "101호",
   dong: null,
-  occupancyId: 1001,
+  occupancyId: 10,
   tenantName: "홍길동",
   occupancyStatus: "occupied",
-  moveInDate: null,
-  customerNumber: "G-1",
+  moveInDate: "2026-07-10",
+  customerNumber: "G-001",
   meterNumber: "M-1",
-  previousReading: 41,
-  currentReading: null,
-  usage: null,
+  previousReading: 20,
+  currentReading: 24,
+  usage: 4,
   unitPrice: 100,
   resolvedUnitPrice: 100,
-  automaticCharge: null,
+  automaticCharge: 400,
   manualCharge: null,
   note: null,
   processedAt: null,
   discountType: null,
   discountAmount: null,
 };
+const row: GasTableRow = { ...baseRow, fixedUsage: null, fixedUsageFrom: null };
+const drafts: Record<number, GasUtilityDraft> = {
+  1: { currentReading: "24", manualCharge: "", note: "" },
+};
 
-const rows: UtilityUnitRow[] = [
-  activeRow,
-  {
-    ...activeRow,
-    unitId: 102,
-    unitNo: "102호",
-    tenantName: "고정세대",
-    previousReading: 50,
-  },
-  {
-    ...activeRow,
-    unitId: 103,
-    unitNo: "103호",
-    tenantName: "입력세대",
-    previousReading: 55,
-    currentReading: 60,
-  },
-  {
-    ...activeRow,
-    unitId: 201,
-    unitNo: "201호",
-    occupancyId: null,
-    tenantName: null,
-    occupancyStatus: "vacant",
-    customerNumber: null,
-    previousReading: 70,
-  },
-];
+describe("가스 공과금 Figma 표", () => {
+  it("고객번호 요약의 14개 컬럼과 계산값을 표시한다", () => {
+    render(<GasAccountSummary rows={[row]} drafts={drafts} editing={false} />);
 
-const mutation = { mutate: vi.fn(), isPending: false };
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  vi.mocked(useMe).mockReturnValue({
-    data: { role: "staff", permissions: ["utilities"] },
-  } as never);
-  vi.mocked(useBuildings).mockReturnValue({
-    data: [{ id: 1, name: "그린빌라" }],
-    isLoading: false,
-    error: null,
-    refetch: vi.fn(),
-  } as never);
-  vi.mocked(useUtilityRows).mockReturnValue({
-    data: rows,
-    isLoading: false,
-    error: null,
-    refetch: vi.fn(),
-  } as never);
-  vi.mocked(useFixedUsages).mockReturnValue({
-    data: [{ unitId: 102, fixedUsage: 5, fromMonth: "2026-08-01" }],
-    isLoading: false,
-    error: null,
-    refetch: vi.fn(),
-  } as never);
-  vi.mocked(useUtilityConfirmation).mockReturnValue({
-    data: null,
-    isLoading: false,
-    error: null,
-  } as never);
-  vi.mocked(useConfirmUtilities).mockReturnValue({
-    mutateAsync: vi.fn(),
-    isPending: false,
-  } as never);
-  vi.mocked(useSaveMeterReadings).mockReturnValue(mutation as never);
-  vi.mocked(useMeterHistory).mockReturnValue({ data: [], isLoading: false, error: null } as never);
-  vi.mocked(useSaveWaterDiscount).mockReturnValue(mutation as never);
-  vi.mocked(useDeleteWaterDiscount).mockReturnValue(mutation as never);
-  vi.mocked(useSetFixedUsage).mockReturnValue(mutation as never);
-  vi.mocked(useClearFixedUsage).mockReturnValue(mutation as never);
-  vi.mocked(useUtilityPrices).mockReturnValue({ data: [], isLoading: false, error: null } as never);
-  vi.mocked(useSaveUtilityUnitPrices).mockReturnValue(mutation as never);
-  vi.mocked(useScopedPrices).mockReturnValue({ data: [], isLoading: false, error: null } as never);
-  vi.mocked(useSaveScopedPrices).mockReturnValue(mutation as never);
-  vi.mocked(useBillingPeriod).mockReturnValue({ data: null, isLoading: false, error: null } as never);
-  vi.mocked(useSaveBillingPeriod).mockReturnValue(mutation as never);
-  vi.mocked(useUtilitySupplier).mockReturnValue({ data: null, isLoading: false, error: null } as never);
-  vi.mocked(useSaveUtilitySupplier).mockReturnValue(mutation as never);
-});
-
-function selectBuildingAndGas() {
-  fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "1" } });
-  fireEvent.click(screen.getByRole("button", { name: "가스" }));
-}
-
-describe("UtilitiesPage gas wiring", () => {
-  it("수도에는 가스 기능이 없고 가스 탭에만 모든 진입점과 기준일·라인 필터가 표시된다", () => {
-    render(<UtilitiesPage />);
-    fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "1" } });
-
-    expect(screen.queryByRole("button", { name: "가스 공급자정보" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "검침대장 출력" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "전체 이월" })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("라인 필터")).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "가스" }));
-    expect(screen.getByRole("button", { name: "가스 공급자정보" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "검침대장 출력" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "검침대장 다운" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "전체 이월" })).toBeInTheDocument();
-    expect(screen.getByText("부과기준일을 먼저 설정해 주세요.")).toBeInTheDocument();
-    expect(screen.getByLabelText("라인 필터")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "고객번호" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "금월량" })).toBeInTheDocument();
+    expect(screen.getByText("G-001")).toBeInTheDocument();
+    expect(screen.getAllByText("4").length).toBeGreaterThan(0);
   });
 
-  it("전체 이월은 빈 활성·비고정 세대만 전월 지침으로 채운다", () => {
-    render(<UtilitiesPage />);
-    selectBuildingAndGas();
-    fireEvent.click(screen.getByRole("button", { name: "전체 이월" }));
+  it("호실 지침의 20개 컬럼과 수정 입력을 표시한다", () => {
+    render(
+      <GasReadingsTable
+        rows={[row]}
+        drafts={drafts}
+        editing
+        referenceDate="2026-07-31"
+        chargeStartDate="2026-07-01"
+        chargeEndDate="2026-07-31"
+        onDraftChange={() => {}}
+        onOpenFixedUsage={() => {}}
+      />,
+    );
 
-    expect(screen.getByLabelText("101호 당월 지침값")).toHaveValue(41);
-    expect(screen.getByLabelText("102호 당월 지침값")).toBeDisabled();
-    expect(screen.getByLabelText("103호 당월 지침값")).toHaveValue(60);
-    expect(screen.getByLabelText("201호 당월 지침값")).toBeDisabled();
-    expect(toast.success).toHaveBeenCalledWith("1개 세대를 전체 이월했습니다.");
+    expect(screen.getAllByRole("columnheader")).toHaveLength(20);
+    expect(screen.getByLabelText("101호 전월 지침값")).toHaveValue(20);
+    expect(screen.getByLabelText("101호 전월 지침값")).toHaveAttribute("readonly");
+    expect(screen.getByLabelText("101호 당월 지침값")).toHaveValue(24);
+    expect(screen.getByLabelText("101호 당월 지침값")).toBeEnabled();
+    expect(screen.getByLabelText("101호 사용량")).toHaveValue(4);
+    expect(screen.getByLabelText("101호 사용량")).toHaveAttribute("readonly");
+    expect(screen.getByLabelText("101호 수동 입력 요금")).toBeEnabled();
+    expect(screen.getByLabelText("101호 고정 사용량 설정")).toBeInTheDocument();
   });
 
-  it("미지정 라인을 선택하면 고객번호가 없는 세대만 표에 표시한다", () => {
-    render(<UtilitiesPage />);
-    selectBuildingAndGas();
-    fireEvent.change(screen.getByLabelText("라인 필터"), {
-      target: { value: "__unassigned__" },
-    });
+  it("건물 목록을 코드·건물명·주소·가스 고객번호 수로 표시한다", () => {
+    render(
+      <GasBuildingPanel
+        buildings={[{ id: 1, code: "001", name: "그린빌라", address: "서울 강서구" }]}
+        selectedBuildingId={1}
+        gasCustomerNumberCounts={{ 1: 2 }}
+        year={2026}
+        month={7}
+        search=""
+        onSearchChange={() => {}}
+        onYearChange={() => {}}
+        onMonthChange={() => {}}
+        onSelect={() => {}}
+      />,
+    );
 
-    expect(screen.queryByText("홍길동")).not.toBeInTheDocument();
-    expect(screen.getByText("공실")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "전체 건물" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "주소" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "가스" })).toBeInTheDocument();
+    expect(screen.getByText("서울 강서구")).toBeInTheDocument();
+    expect(screen.getByText("2")).toBeInTheDocument();
   });
 });

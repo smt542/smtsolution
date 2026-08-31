@@ -6,83 +6,46 @@ const rows: CustomerNumberLookupRow[] = [
   {
     id: 1,
     buildingId: 11,
-    buildingName: "해오름빌",
+    buildingCode: "B0011",
+    buildingName: "해오름빌라",
+    address: "서울시 강남구",
     kind: "water",
     customerNo: "W-1001",
-    holderName: "김수도",
+    lineName: "A",
     meterDay: 15,
     billingBasis: "prev",
-    printOnBill: true,
-  },
-  {
-    id: 2,
-    buildingId: 11,
-    buildingName: "해오름빌",
-    kind: "common_elec",
-    customerNo: "CE-1001",
-    holderName: null,
-    meterDay: null,
-    billingBasis: "current",
-    printOnBill: false,
-  },
-  {
-    id: 3,
-    buildingId: 12,
-    buildingName: "푸른빌딩",
-    kind: "elec",
-    customerNo: "E-2001",
-    holderName: "이전기",
-    meterDay: 20,
-    billingBasis: "current",
-    printOnBill: true,
-  },
-  {
-    id: 4,
-    buildingId: 12,
-    buildingName: "푸른빌딩",
-    kind: "gas",
-    customerNo: "G-2001",
-    holderName: "박가스",
-    meterDay: 25,
-    billingBasis: "prev",
-    printOnBill: false,
+    calculationMethod: "manual",
+    note: "옥상 수도",
   },
 ];
 
 describe("buildCustomerNumberWorkbookData", () => {
-  it("테이블과 같은 헤더 및 한글·Y/N 변환 행을 만든다", () => {
-    const workbook = buildCustomerNumberWorkbookData(rows);
+  it("조회 표와 동일한 열과 한글 변환 값을 만든다", () => {
+    const workbook = buildCustomerNumberWorkbookData(rows, "water");
 
     expect(workbook.columns.map(({ header }) => header)).toEqual([
-      "건물명",
-      "유형",
-      "고객번호",
-      "명의자",
-      "검침일",
-      "부과기준",
-      "고지서출력",
+      "코드",
+      "빌라명",
+      "주소",
+      "LIN",
+      "수도고객번호",
+      "일금일",
+      "구분",
+      "계산",
+      "기타적요",
     ]);
     expect(workbook.rows).toEqual([
       {
-        buildingName: "해오름빌",
-        kind: "수도",
+        buildingCode: "B0011",
+        buildingName: "해오름빌라",
+        address: "서울시 강남구",
+        lineName: "A",
         customerNo: "W-1001",
-        holderName: "김수도",
         meterDay: 15,
         billingBasis: "전월",
-        printOnBill: "Y",
+        calculationMethod: "수동",
+        note: "옥상 수도",
       },
-      {
-        buildingName: "해오름빌",
-        kind: "공용전기",
-        customerNo: "CE-1001",
-        holderName: "",
-        meterDay: "",
-        billingBasis: "당월",
-        printOnBill: "N",
-      },
-      expect.objectContaining({ kind: "전기" }),
-      expect.objectContaining({ kind: "가스" }),
     ]);
   });
 });

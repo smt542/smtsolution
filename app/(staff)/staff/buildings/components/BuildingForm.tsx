@@ -56,6 +56,7 @@ export function BuildingForm({ buildingId }: { buildingId?: number }) {
     setCustomerNumbers.call(undefined, full.customerNumbers.map((c) => ({
       _key: rowKey("cn"), id: c.id, kind: c.kind, customerNo: c.customerNo, meterDay: c.meterDay,
       billingBasis: c.billingBasis, printOnBill: c.printOnBill, holderName: c.holderName ?? "",
+      lineName: c.lineName ?? "", calculationMethod: c.calculationMethod, note: c.note ?? "",
     })));
     const vendorIds = full.vendors.map((v) => v.id);
     (async () => {
@@ -114,6 +115,7 @@ export function BuildingForm({ buildingId }: { buildingId?: number }) {
       customerNumbers: customerNumbers.map((c, i) => ({
         id: c.id, kind: c.kind, customerNo: c.customerNo, meterDay: c.meterDay,
         billingBasis: c.billingBasis, printOnBill: c.printOnBill, holderName: c.holderName,
+        lineName: c.lineName, calculationMethod: c.calculationMethod, note: c.note,
         sortOrder: i, _deleted: c._deleted,
       })),
       vendors: vendors.map((v, i) => ({

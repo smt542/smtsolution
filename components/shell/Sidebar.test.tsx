@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import type { MyContext } from "@/hooks/reactquery/auth/apis";
 
@@ -65,6 +66,7 @@ function makeMe(overrides: Partial<MyContext>): { data: MyContext } {
 describe("Sidebar", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(usePathname).mockReturnValue("/staff/buildings");
   });
 
   it("Test A: org_owner sees the full Figma office navigation", () => {
@@ -113,6 +115,19 @@ describe("Sidebar", () => {
     const link = screen.getByRole("link", { name: /건물·입주자/ });
     expect(link).toHaveAttribute("aria-current", "page");
     expect(link).toHaveClass("bg-teal", "text-white");
+  });
+
+  it("고객번호 조회 경로에서 공과금 메뉴를 펼치고 고객번호만 활성 표시한다", () => {
+    vi.mocked(usePathname).mockReturnValue("/staff/customer-numbers");
+    mockUseMe.mockReturnValue(makeMe({ role: "manager", permissions: ["utilities"] }));
+
+    render(<Sidebar />);
+
+    expect(screen.getByRole("link", { name: "공과금 관리" })).toBeInTheDocument();
+    const customerNumberLink = screen.getByRole("link", { name: "고객번호 조회" });
+    expect(customerNumberLink).toHaveAttribute("aria-current", "page");
+    expect(customerNumberLink).toHaveClass("bg-teal-t", "text-teal-d");
+    expect(screen.getByRole("link", { name: "가스" })).not.toHaveAttribute("aria-current");
   });
 
   it("Figma 공통 브랜드 마크와 워드마크를 사용한다", () => {

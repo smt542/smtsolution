@@ -1,5 +1,5 @@
 // hooks/reactquery/buildingCustomerNumbers/queries.ts
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   listCustomerNumbers,
   listCustomerNumbersByBuilding,
@@ -18,6 +18,5 @@ export function useCustomerNumberLookup(filters: CustomerNumberFilters) {
   return useQuery({
     queryKey: customerNumberKeys.lookup(filters),
     queryFn: () => listCustomerNumbers(filters),
-    placeholderData: keepPreviousData,
   });
 }

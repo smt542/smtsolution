@@ -54,7 +54,7 @@ beforeEach(() => {
 });
 
 describe("GasLedgerModal", () => {
-  it("현재 건물을 기본 선택하고 계량기 없음·워터마크를 출력하며 다중 건물을 선택한다", () => {
+  it("현재 건물을 기본 선택하고 Figma 검침대장 형식으로 다중 건물을 출력한다", () => {
     const print = vi.spyOn(window, "print").mockImplementation(() => {});
     render(
       <GasLedgerModal
@@ -72,12 +72,16 @@ describe("GasLedgerModal", () => {
     expect(screen.getByLabelText("그린빌라")).toBeChecked();
     expect(screen.getByLabelText("블루타워")).not.toBeChecked();
     let ledger = screen.getByTestId("gas-ledger-print");
-    expect(within(ledger).getByText("계량기 없음")).toBeInTheDocument();
-    expect(within(ledger).getAllByText("관리비서").length).toBeGreaterThan(0);
+    expect(within(ledger).getByText("[ 2026 년 08 월분 검침대장 ]")).toBeInTheDocument();
+    expect(within(ledger).getByRole("columnheader", { name: "전기검침" })).toBeInTheDocument();
+    expect(within(ledger).getByRole("columnheader", { name: "수도검침" })).toBeInTheDocument();
+    expect(within(ledger).getByRole("columnheader", { name: "가스검침" })).toBeInTheDocument();
+    expect(within(ledger).queryByText("관리비서")).not.toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "가스" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByLabelText("블루타워"));
     ledger = screen.getByTestId("gas-ledger-print");
-    expect(within(ledger).getByText(/블루타워 · 2026년 8월/)).toBeInTheDocument();
+    expect(within(ledger).getByText(/블루타워 · 1 \/ 1/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "인쇄" }));
     expect(print).toHaveBeenCalledTimes(1);

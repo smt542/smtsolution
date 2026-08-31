@@ -1,19 +1,14 @@
 import { useMemo, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
-import { Button, Checkbox, Modal, Spinner } from "@/components/common";
+import { CloseIcon, PrinterIcon, SearchIcon } from "@/components/icons";
+import { Spinner } from "@/components/common";
+import { listUtilityRows, utilityKeys } from "@/hooks/reactquery/utilities";
 import {
-  listUtilityRows,
-  utilityKeys,
-  type UtilityUnitRow,
-} from "@/hooks/reactquery/utilities";
-import { PROGRAM_COMPANY_NAME } from "@/lib/bill/document";
-import { formatNumber } from "@/lib/format";
+  GasLedgerPrintView,
+  type GasLedgerBuilding,
+} from "./gas/GasLedgerPrintView";
 
-export interface GasLedgerBuilding {
-  id: number;
-  name: string;
-  address?: string | null;
-}
+export type { GasLedgerBuilding } from "./gas/GasLedgerPrintView";
 
 interface GasLedgerModalProps {
   open: boolean;
@@ -23,23 +18,7 @@ interface GasLedgerModalProps {
   onClose: () => void;
 }
 
-const ROWS_PER_PAGE = 24;
-
-function chunkRows(rows: UtilityUnitRow[]): UtilityUnitRow[][] {
-  if (rows.length === 0) return [[]];
-  return Array.from(
-    { length: Math.ceil(rows.length / ROWS_PER_PAGE) },
-    (_, index) => rows.slice(index * ROWS_PER_PAGE, (index + 1) * ROWS_PER_PAGE),
-  );
-}
-
-function formatReading(value: number | null): string {
-  return formatNumber(value, { nullText: "-", fractionDigits: 3 });
-}
-
-function periodLabel(period: string): string {
-  return `${period.slice(0, 4)}년 ${Number(period.slice(5, 7))}월`;
-}
+const LEDGER_UTILITIES = ["electricity", "water", "gas"] as const;
 
 export function GasLedgerModal({
   open,
@@ -48,189 +27,131 @@ export function GasLedgerModal({
   period,
   onClose,
 }: GasLedgerModalProps) {
-  const [selectedBuildingIds, setSelectedBuildingIds] = useState<number[]>([
-    currentBuildingId,
-  ]);
+  const [selectedBuildingIds, setSelectedBuildingIds] = useState<number[]>([currentBuildingId]);
+  const [search, setSearch] = useState("");
+  const [ledgerYear, setLedgerYear] = useState(Number(period.slice(0, 4)));
+  const [ledgerMonth, setLedgerMonth] = useState(Number(period.slice(5, 7)));
+  const ledgerPeriod = `${ledgerYear}-${String(ledgerMonth).padStart(2, "0")}-01`;
   const selectedBuildings = useMemo(
     () => buildings.filter((building) => selectedBuildingIds.includes(building.id)),
     [buildings, selectedBuildingIds],
   );
+  const filteredBuildings = useMemo(() => buildings.filter((building) => {
+    const query = search.trim().toLowerCase();
+    return query === "" || building.name.toLowerCase().includes(query)
+      || (building.address ?? "").toLowerCase().includes(query);
+  }), [buildings, search]);
   const ledgerQueries = useQueries({
-    queries: selectedBuildings.map((building) => ({
-      queryKey: utilityKeys.rows(building.id, "gas", period),
-      queryFn: () => listUtilityRows(building.id, "gas", period),
-    })),
+    queries: selectedBuildings.flatMap((building) => LEDGER_UTILITIES.map((utility) => ({
+      queryKey: utilityKeys.rows(building.id, utility, ledgerPeriod),
+      queryFn: () => listUtilityRows(building.id, utility, ledgerPeriod),
+    }))),
   });
   const isLoading = ledgerQueries.some((query) => query.isLoading);
   const hasError = ledgerQueries.some((query) => query.error);
+  const documents = selectedBuildings.map((building, index) => ({
+    building,
+    electricityRows: ledgerQueries[index * 3]?.data ?? [],
+    waterRows: ledgerQueries[index * 3 + 1]?.data ?? [],
+    gasRows: ledgerQueries[index * 3 + 2]?.data ?? [],
+  }));
+
+  if (!open) return null;
 
   const toggleBuilding = (buildingId: number, checked: boolean) => {
     setSelectedBuildingIds((current) => checked
-      ? [...current, buildingId]
+      ? Array.from(new Set([...current, buildingId]))
       : current.filter((id) => id !== buildingId));
   };
 
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      title="가스 검침대장 출력"
-      className="max-w-[96vw]"
-    >
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4 print:static print:block print:bg-white print:p-0" role="presentation">
       <style>{`@media print {
         @page { size: A4 portrait; margin: 0; }
         body * { visibility: hidden !important; }
         [data-gas-ledger-print], [data-gas-ledger-print] * { visibility: visible !important; }
-        [data-gas-ledger-print] { position: absolute !important; inset: 0 auto auto 0 !important; width: 100% !important; }
+        [data-gas-ledger-print] {
+          position: absolute !important;
+          inset: 0 auto auto 0 !important;
+          width: 633px !important;
+          zoom: 1.254;
+        }
       }`}</style>
+      <section role="dialog" aria-modal="true" aria-labelledby="gas-ledger-title" className="h-[660px] w-[1020px] overflow-hidden rounded-2xl bg-white shadow-[0_18px_50px_rgba(23,31,40,0.3)] print:h-auto print:w-auto print:overflow-visible print:rounded-none print:shadow-none">
+        <header data-gas-ledger-controls className="flex h-[61px] items-center border-b border-line px-5">
+          <h2 id="gas-ledger-title" className="text-[17px] font-extrabold text-t1">검침대장 출력</h2>
+          <button type="button" aria-label="검침대장 닫기" onClick={onClose} className="ml-auto flex size-8 items-center justify-center rounded-lg text-t3 hover:bg-bg">
+            <CloseIcon />
+          </button>
+        </header>
 
-      <div data-gas-ledger-controls className="grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)]">
-        <aside className="rounded-xl border border-line bg-bg/60 p-4">
-          <h3 className="text-sm font-extrabold text-t1">출력 건물</h3>
-          <p className="mt-1 text-xs text-t3">관리 중인 건물을 여러 개 선택할 수 있습니다.</p>
-          <div className="mt-4 max-h-56 space-y-3 overflow-y-auto">
-            {buildings.map((building) => (
-              <Checkbox
-                key={building.id}
-                label={building.name}
-                checked={selectedBuildingIds.includes(building.id)}
-                onChange={(event) => toggleBuilding(building.id, event.target.checked)}
-              />
-            ))}
-          </div>
-        </aside>
-
-        <div className="max-h-[72vh] overflow-auto rounded-xl border border-line bg-bg p-4">
-          {selectedBuildings.length === 0 ? (
-            <p className="py-16 text-center text-sm text-t3">출력할 건물을 선택해 주세요.</p>
-          ) : isLoading ? (
-            <div className="py-16">
-              <Spinner />
-              <p className="text-center text-sm text-t3">검침대장을 불러오는 중입니다.</p>
+        <div data-gas-ledger-controls className="grid h-[530px] grid-cols-[340px_680px]">
+          <aside className="flex min-h-0 flex-col border-r border-line bg-white">
+            <div className="h-[99px] shrink-0 px-3 pt-3">
+              <div className="flex gap-2">
+                <label>
+                  <span className="sr-only">출력 연도</span>
+                  <select aria-label="출력 연도" value={ledgerYear} onChange={(event) => setLedgerYear(Number(event.target.value))} className="h-8 appearance-none rounded-[9px] border border-line bg-white px-3 pr-7 text-[12px] font-bold text-t2 outline-none focus:border-teal">
+                    {[ledgerYear - 1, ledgerYear, ledgerYear + 1].map((value) => <option key={value} value={value}>{value}년</option>)}
+                  </select>
+                </label>
+                <label>
+                  <span className="sr-only">출력 월</span>
+                  <select aria-label="출력 월" value={ledgerMonth} onChange={(event) => setLedgerMonth(Number(event.target.value))} className="h-8 appearance-none rounded-[9px] border border-line bg-white px-3 pr-7 text-[12px] font-bold text-t2 outline-none focus:border-teal">
+                    {Array.from({ length: 12 }, (_, index) => index + 1).map((value) => <option key={value} value={value}>{value}월분</option>)}
+                  </select>
+                </label>
+              </div>
+              <label className="relative mt-3 block">
+                <span className="sr-only">출력 건물 검색</span>
+                <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-t3" />
+                <input aria-label="출력 건물 검색" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="건물명·주소 검색" className="h-[42px] w-full rounded-[9px] border border-line bg-white pl-9 pr-3 text-[12px] text-t1 outline-none placeholder:text-t4 focus:border-teal" />
+              </label>
             </div>
-          ) : hasError ? (
-            <p className="rounded-xl border border-red/20 bg-red-t p-6 text-center text-sm font-semibold text-red">
-              일부 건물의 검침대장을 불러오지 못했습니다.
-            </p>
-          ) : (
-            <GasLedgerPrintView
-              buildings={selectedBuildings.map((building, index) => ({
-                building,
-                rows: ledgerQueries[index]?.data ?? [],
-              }))}
-              period={period}
-            />
-          )}
-        </div>
-      </div>
-
-      <div data-gas-ledger-controls className="mt-5 flex justify-end gap-2">
-        <Button type="button" variant="ghost" onClick={onClose}>닫기</Button>
-        <Button
-          type="button"
-          onClick={() => window.print()}
-          disabled={selectedBuildings.length === 0 || isLoading || hasError}
-        >
-          인쇄
-        </Button>
-      </div>
-    </Modal>
-  );
-}
-
-export function GasLedgerPrintView({
-  buildings,
-  period,
-}: {
-  buildings: { building: GasLedgerBuilding; rows: UtilityUnitRow[] }[];
-  period: string;
-}) {
-  const pages = buildings.flatMap(({ building, rows }) => (
-    chunkRows(rows).map((pageRows, pageIndex) => ({
-      building,
-      pageIndex,
-      pageRows,
-    }))
-  ));
-
-  return (
-    <div className="space-y-5 text-black print:space-y-0" data-gas-ledger-print data-testid="gas-ledger-print">
-      {pages.map(({ building, pageIndex, pageRows }, globalPageIndex) => {
-        const isLastPage = globalPageIndex === pages.length - 1;
-        return (
-            <article
-              key={`${building.id}:${pageIndex}`}
-              className={`relative mx-auto min-h-[277mm] w-[190mm] overflow-hidden bg-white p-[10mm] shadow-sm print:shadow-none ${
-                isLastPage ? "print:break-after-auto" : "print:break-after-page"
-              }`}
-            >
-              <div className="pointer-events-none absolute inset-0 flex rotate-[-28deg] items-center justify-center text-6xl font-black text-slate-100">
-                {PROGRAM_COMPANY_NAME}
-              </div>
-              <div className="relative">
-                <header className="flex items-end justify-between border-b-2 border-black pb-3">
-                  <div>
-                    <p className="text-[10px] font-bold tracking-[0.2em]">GAS METER LEDGER</p>
-                    <h1 className="mt-1 text-2xl font-black">가스 검침대장</h1>
-                    <p className="mt-1 text-xs font-bold">{building.name} · {periodLabel(period)}</p>
-                  </div>
-                  <div className="text-right text-[10px]">
-                    <p>{building.address ?? "주소 미등록"}</p>
-                    <p className="mt-1">{globalPageIndex + 1} / {pages.length} 페이지</p>
-                  </div>
-                </header>
-
-                {pageRows.length === 0 ? (
-                  <div className="mt-6 border border-dashed border-slate-400 p-12 text-center text-sm text-slate-500">
-                    등록된 세대가 없습니다.
-                  </div>
-                ) : (
-                  <table className="mt-5 w-full table-fixed border-collapse text-[9px]">
-                    <thead>
-                      <tr className="bg-slate-100">
-                        <th className="w-[16%] border border-black p-1.5">고객번호</th>
-                        <th className="w-[12%] border border-black p-1.5">호실</th>
-                        <th className="w-[14%] border border-black p-1.5">입주자</th>
-                        <th className="w-[18%] border border-black p-1.5">계량기번호</th>
-                        <th className="w-[13%] border border-black p-1.5 text-right">전월지침</th>
-                        <th className="w-[13%] border border-black p-1.5 text-right">당월지침</th>
-                        <th className="w-[14%] border border-black p-1.5 text-right">사용량</th>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <table className="w-full table-fixed border-collapse text-left">
+                <colgroup><col className="w-[88px]" /><col className="w-[104px]" /><col className="w-[96px]" /><col className="w-[52px]" /></colgroup>
+                <thead className="sticky top-0 h-9 bg-[#fbfcfd] text-[11px] font-bold text-t3">
+                  <tr className="border-y border-line"><th className="pl-[11px] text-left">코드</th><th>건물명</th><th>주소</th><th className="pr-[11px] text-right">가스</th></tr>
+                </thead>
+                <tbody className="text-[11.5px] font-semibold text-t2">
+                  {filteredBuildings.map((building) => {
+                    const checked = selectedBuildingIds.includes(building.id);
+                    return (
+                      <tr key={building.id} className={`h-[41px] border-b border-line2 ${checked ? "bg-teal-t" : "hover:bg-bg"}`}>
+                        <td className="pl-[11px]"><span className="flex items-center gap-2"><input aria-label={building.name} type="checkbox" checked={checked} onChange={(event) => toggleBuilding(building.id, event.target.checked)} className="size-4 shrink-0 accent-[#14a497]" /><span className="truncate text-t3">{building.code ?? building.id}</span></span></td>
+                        <td className="truncate pr-2">{building.name}</td>
+                        <td className="truncate pr-2 text-[10.5px] text-t3">{building.address ?? "-"}</td>
+                        <td className="pr-[11px] text-right tabular-nums text-t3">{building.gasCustomerNumberCount ?? 0}</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {pageRows.map((row) => (
-                        <tr key={row.unitId}>
-                          <td className="border border-black p-1.5">{row.customerNumber ?? "미지정"}</td>
-                          <td className="border border-black p-1.5 font-bold">
-                            {row.dong ? `${row.dong} ` : ""}{row.unitNo}
-                          </td>
-                          <td className="border border-black p-1.5">{row.tenantName ?? "-"}</td>
-                          <td className={`border border-black p-1.5 ${row.meterNumber === null ? "font-bold text-red-700" : ""}`}>
-                            {row.meterNumber ?? "계량기 없음"}
-                          </td>
-                          <td className="border border-black p-1.5 text-right tabular-nums">
-                            {formatReading(row.previousReading)}
-                          </td>
-                          <td className="border border-black p-1.5 text-right tabular-nums">
-                            {formatReading(row.currentReading)}
-                          </td>
-                          <td className="border border-black p-1.5 text-right tabular-nums">
-                            {formatReading(row.usage)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </aside>
 
-                <footer className="mt-5 flex justify-between border-t border-black pt-2 text-[9px]">
-                  <span>{building.name}</span>
-                  <strong>{PROGRAM_COMPANY_NAME}</strong>
-                </footer>
-              </div>
-            </article>
-        );
-      })}
+          <div className="relative overflow-auto bg-[#e8ebee] p-[16px]">
+            {selectedBuildings.length === 0 ? (
+              <p className="flex h-full items-center justify-center text-[12px] font-semibold text-t3">출력할 건물을 선택해 주세요.</p>
+            ) : isLoading ? (
+              <div className="flex h-full flex-col justify-center"><Spinner /><p className="mt-2 text-center text-[12px] text-t3">검침대장을 불러오는 중입니다.</p></div>
+            ) : hasError ? (
+              <p className="flex h-full items-center justify-center text-[12px] font-semibold text-red">일부 검침대장을 불러오지 못했습니다.</p>
+            ) : (
+              <GasLedgerPrintView documents={documents} period={ledgerPeriod} />
+            )}
+          </div>
+        </div>
+
+        <footer data-gas-ledger-controls className="flex h-[69px] items-center border-t border-line px-5">
+          <p className="text-[12px] font-bold text-t2"><strong className="text-teal">{selectedBuildings.length}곳</strong> 선택</p>
+          <button type="button" onClick={() => window.print()} disabled={selectedBuildings.length === 0 || isLoading || hasError} className="ml-auto flex h-10 items-center gap-1.5 rounded-[10px] bg-teal px-5 text-[13px] font-bold text-white hover:bg-teal-d disabled:cursor-not-allowed disabled:opacity-45">
+            <PrinterIcon className="size-4" />
+            인쇄
+          </button>
+        </footer>
+      </section>
     </div>
   );
 }

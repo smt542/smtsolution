@@ -126,7 +126,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "관리업무",
     items: [
       { label: "건물·입주자", href: "/staff/buildings", module: "buildings", built: true, icon: "M4 3h16a1.5 1.5 0 0 1 1.5 1.5v15A1.5 1.5 0 0 1 20 21H4a1.5 1.5 0 0 1-1.5-1.5v-15A1.5 1.5 0 0 1 4 3zm5 5h1m5 0h1M9 12h1m5 0h1M9.5 21v-4h5v4" },
-      { label: "고객번호 조회", href: "/staff/customer-numbers", module: "buildings", built: true, icon: "M4 3h13a2 2 0 0 1 2 2v8M8 8h7M8 12h5M8 16h3M17 15a3 3 0 1 1 0 6 3 3 0 0 1 0-6zM19 21l2 2" },
+      { label: "고객번호 조회", href: "/staff/customer-numbers", module: "utilities", built: true, icon: "M4 3h13a2 2 0 0 1 2 2v8M8 8h7M8 12h5M8 16h3M17 15a3 3 0 1 1 0 6 3 3 0 0 1 0-6zM19 21l2 2" },
       { label: "지침·부과", href: "/staff/utilities", module: "utilities", built: false, icon: "M4 18a8 8 0 1 1 16 0M12 14l3.5-3.5" },
       { label: "관리비 부과셋팅", href: "/staff/management-fee", module: "billing", built: true, icon: "M4 8h9M18 8h2M4 16h2M11 16h9M15 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM10 16a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" },
       { label: "항목등록 관리", href: "/staff/fee-items", module: "billing", built: true, icon: "M4 6h16M4 12h10M4 18h7M17 14l2 2 4-4" },

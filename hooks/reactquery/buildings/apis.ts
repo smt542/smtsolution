@@ -122,7 +122,9 @@ export async function getBuildingFull(id: number): Promise<BuildingFull> {
 
 export interface CustomerNumberPayload {
   id?: number; kind: string; customerNo: string; meterDay?: number | null;
-  billingBasis: string; printOnBill: boolean; holderName?: string | null; sortOrder?: number; _deleted?: boolean;
+  lineName?: string | null; billingBasis: string; calculationMethod?: "auto" | "manual";
+  note?: string | null; printOnBill: boolean; holderName?: string | null;
+  sortOrder?: number; _deleted?: boolean;
 }
 export interface VendorPayload {
   id?: number; clientKey?: string; vendorType: string; name: string;
@@ -152,6 +154,8 @@ export async function saveBuilding(p: SaveBuildingPayload): Promise<SaveBuilding
     p_customer_numbers: p.customerNumbers.map((c) => ({
       id: c.id, kind: c.kind, customer_no: c.customerNo, meter_day: c.meterDay ?? null,
       billing_basis: c.billingBasis, print_on_bill: c.printOnBill, holder_name: c.holderName ?? null,
+      line_name: c.lineName ?? null, calculation_method: c.calculationMethod ?? "auto",
+      note: c.note ?? null,
       sort_order: c.sortOrder ?? 0, _deleted: c._deleted ?? false,
     })),
     p_vendors: p.vendors.map((v) => ({

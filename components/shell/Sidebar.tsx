@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useLogout, useMe } from "@/hooks/reactquery/auth";
@@ -90,12 +91,67 @@ function NavItemRow({
   );
 }
 
+function UtilitiesNavGroup({
+  item,
+  activeType,
+  isUtilitiesPage,
+  isCustomerNumbersPage,
+  onSelect,
+}: {
+  item: NavItem;
+  activeType: "electricity" | "water" | "gas";
+  isUtilitiesPage: boolean;
+  isCustomerNumbersPage: boolean;
+  onSelect: (type: "electricity" | "water" | "gas") => void;
+}) {
+  const linkClass = (type: "electricity" | "water" | "gas") =>
+    `flex h-8 items-center rounded-lg px-2 text-[12.5px] ${
+      isUtilitiesPage && activeType === type
+        ? "bg-teal-t font-extrabold text-teal-d"
+        : "font-medium text-t3 hover:bg-bg hover:text-t2"
+    }`;
+  const customerNumberClass = `flex h-8 items-center rounded-lg px-2 text-[12.5px] ${
+    isCustomerNumbersPage
+      ? "bg-teal-t font-extrabold text-teal-d"
+      : "font-medium text-t3 hover:bg-bg hover:text-t2"
+  }`;
+
+  return (
+    <div className="pb-1">
+      <Link
+        href={item.href}
+        className="flex h-[40px] w-full items-center gap-[11px] rounded-[11px] px-[12px] text-[13.5px] font-bold text-t2 hover:bg-bg"
+      >
+        <NavIcon d={item.icon} />
+        <span className="flex-1">{item.label}</span>
+        <span className="rotate-180 text-[15px] leading-none text-t3" aria-hidden="true">⌄</span>
+      </Link>
+      <div className="ml-[31px] flex flex-col gap-0.5 border-l border-line pl-[11px]">
+        <Link
+          href="/staff/customer-numbers"
+          aria-current={isCustomerNumbersPage ? "page" : undefined}
+          className={customerNumberClass}
+        >
+          고객번호 조회
+        </Link>
+        <Link href="/staff/utilities?type=electricity" onClick={() => onSelect("electricity")} aria-current={isUtilitiesPage && activeType === "electricity" ? "page" : undefined} className={linkClass("electricity")}>전기</Link>
+        <Link href="/staff/utilities?type=water" onClick={() => onSelect("water")} aria-current={isUtilitiesPage && activeType === "water" ? "page" : undefined} className={linkClass("water")}>수도</Link>
+        <Link href="/staff/utilities" onClick={() => onSelect("gas")} aria-current={isUtilitiesPage && activeType === "gas" ? "page" : undefined} className={linkClass("gas")}>가스</Link>
+      </div>
+    </div>
+  );
+}
+
 /* ── sidebar ─────────────────────────────────────────────────────────────── */
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { data: me } = useMe();
   const logout = useLogout();
+  const [activeUtilityType, setActiveUtilityType] = useState<"electricity" | "water" | "gas">("gas");
+  const isUtilitiesPage = pathname.startsWith("/staff/utilities");
+  const isCustomerNumbersPage = pathname.startsWith("/staff/customer-numbers");
+  const isUtilitiesSection = isUtilitiesPage || isCustomerNumbersPage;
   const visibleItems = OFFICE_NAV_ITEMS.filter((item) =>
     item.modules
       ? item.modules.some((module) => hasModule(me ?? null, module))
@@ -112,6 +168,20 @@ export function Sidebar() {
       toast.error("로그아웃하지 못했습니다. 다시 시도해 주세요.");
     }
   };
+
+  const selectUtilityType = (type: "electricity" | "water" | "gas") => {
+    setActiveUtilityType(type);
+    window.dispatchEvent(new CustomEvent("utilities:type-change", { detail: type }));
+  };
+
+  useEffect(() => {
+    if (!pathname.startsWith("/staff/utilities")) return;
+    const initialSync = window.setTimeout(() => {
+      const type = new URLSearchParams(window.location.search).get("type");
+      selectUtilityType(type === "electricity" ? "electricity" : type === "water" ? "water" : "gas");
+    }, 0);
+    return () => window.clearTimeout(initialSync);
+  }, [pathname]);
 
   return (
     <aside className="flex h-full w-60 flex-col border-r border-line bg-white px-[14px] pb-[25px] pt-[18px] font-sans">
@@ -142,11 +212,22 @@ export function Sidebar() {
         )}
         <nav className="flex flex-col gap-[2px]">
           {visibleItems.map((item) => (
-            <NavItemRow
-              key={item.href}
-              item={item}
-              active={pathname.startsWith(item.href)}
-            />
+            item.href === "/staff/utilities" && isUtilitiesSection ? (
+              <UtilitiesNavGroup
+                key={item.href}
+                item={item}
+                activeType={activeUtilityType}
+                isUtilitiesPage={isUtilitiesPage}
+                isCustomerNumbersPage={isCustomerNumbersPage}
+                onSelect={selectUtilityType}
+              />
+            ) : (
+              <NavItemRow
+                key={item.href}
+                item={item}
+                active={pathname.startsWith(item.href)}
+              />
+            )
           ))}
         </nav>
       </div>

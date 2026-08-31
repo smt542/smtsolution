@@ -1,19 +1,17 @@
 import type {
-  CustomerNumberKind,
+  CustomerNumberLookupKind,
   CustomerNumberLookupRow,
 } from "@/hooks/reactquery/buildingCustomerNumbers";
 import type { XlsxColumn } from "@/lib/export/xlsx";
 
-const KIND_LABELS: Record<CustomerNumberKind, string> = {
-  water: "수도",
-  common_elec: "공용전기",
-  elec: "전기",
-  gas: "가스",
-};
-
 const BILLING_BASIS_LABELS: Record<CustomerNumberLookupRow["billingBasis"], string> = {
   prev: "전월",
   current: "당월",
+};
+
+const CALCULATION_LABELS: Record<CustomerNumberLookupRow["calculationMethod"], string> = {
+  auto: "자동",
+  manual: "수동",
 };
 
 interface CustomerNumberWorkbookData {
@@ -23,25 +21,34 @@ interface CustomerNumberWorkbookData {
 
 export function buildCustomerNumberWorkbookData(
   rows: CustomerNumberLookupRow[],
+  kind: CustomerNumberLookupKind,
 ): CustomerNumberWorkbookData {
   return {
     columns: [
-      { header: "건물명", key: "buildingName", width: 24 },
-      { header: "유형", key: "kind", width: 12 },
-      { header: "고객번호", key: "customerNo", width: 22 },
-      { header: "명의자", key: "holderName", width: 16 },
-      { header: "검침일", key: "meterDay", width: 10 },
-      { header: "부과기준", key: "billingBasis", width: 12 },
-      { header: "고지서출력", key: "printOnBill", width: 12 },
+      { header: "코드", key: "buildingCode", width: 12 },
+      { header: "빌라명", key: "buildingName", width: 22 },
+      { header: "주소", key: "address", width: 34 },
+      { header: "LIN", key: "lineName", width: 10 },
+      {
+        header: kind === "water" ? "수도고객번호" : "공용전기고객번호",
+        key: "customerNo",
+        width: 24,
+      },
+      { header: "일금일", key: "meterDay", width: 10 },
+      { header: "구분", key: "billingBasis", width: 10 },
+      { header: "계산", key: "calculationMethod", width: 10 },
+      { header: "기타적요", key: "note", width: 30 },
     ],
     rows: rows.map((row) => ({
+      buildingCode: row.buildingCode,
       buildingName: row.buildingName,
-      kind: KIND_LABELS[row.kind],
+      address: row.address ?? "",
+      lineName: row.lineName ?? "",
       customerNo: row.customerNo,
-      holderName: row.holderName ?? "",
       meterDay: row.meterDay ?? "",
       billingBasis: BILLING_BASIS_LABELS[row.billingBasis],
-      printOnBill: row.printOnBill ? "Y" : "N",
+      calculationMethod: CALCULATION_LABELS[row.calculationMethod],
+      note: row.note ?? "",
     })),
   };
 }

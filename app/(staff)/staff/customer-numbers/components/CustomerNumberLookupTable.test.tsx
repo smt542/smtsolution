@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import type { CustomerNumberLookupRow } from "@/hooks/reactquery/buildingCustomerNumbers";
 import { CustomerNumberLookupTable } from "./CustomerNumberLookupTable";
 
@@ -7,47 +7,35 @@ const rows: CustomerNumberLookupRow[] = [
   {
     id: 1,
     buildingId: 11,
-    buildingName: "해오름빌",
+    buildingCode: "B0011",
+    buildingName: "해오름빌라",
+    address: "서울시 강남구",
     kind: "water",
     customerNo: "W-1001",
-    holderName: "김명의",
+    lineName: "A",
     meterDay: 15,
     billingBasis: "prev",
-    printOnBill: true,
-  },
-  {
-    id: 2,
-    buildingId: 12,
-    buildingName: "푸른빌딩",
-    kind: "gas",
-    customerNo: "G-2002",
-    holderName: null,
-    meterDay: null,
-    billingBasis: "current",
-    printOnBill: false,
+    calculationMethod: "manual",
+    note: "옥상 수도",
   },
 ];
 
 describe("CustomerNumberLookupTable", () => {
-  it("유형·부과기준을 한글로, 고지서 출력 여부를 Y/N으로 표시한다", () => {
-    render(<CustomerNumberLookupTable rows={rows} onRowClick={() => {}} />);
+  it("PRD의 조회 전용 열과 값을 표시한다", () => {
+    render(<CustomerNumberLookupTable rows={rows} kind="water" />);
 
-    expect(screen.getByRole("columnheader", { name: "건물명" })).toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: "유형" })).toBeInTheDocument();
-    expect(screen.getByText("수도")).toBeInTheDocument();
-    expect(screen.getByText("가스")).toBeInTheDocument();
+    for (const heading of ["코드", "빌라명", "주소", "LIN", "수도고객번호", "일금일", "구분", "계산", "기타적요"]) {
+      expect(screen.getByRole("columnheader", { name: heading })).toBeInTheDocument();
+    }
+    expect(screen.getByText("B0011")).toBeInTheDocument();
     expect(screen.getByText("전월")).toBeInTheDocument();
-    expect(screen.getByText("당월")).toBeInTheDocument();
-    expect(screen.getByText("Y")).toBeInTheDocument();
-    expect(screen.getByText("N")).toBeInTheDocument();
+    expect(screen.getByText("수동")).toBeInTheDocument();
+    expect(screen.getByText("옥상 수도")).toBeInTheDocument();
+    expect(screen.getAllByRole("row")[1]).not.toHaveAttribute("tabindex");
   });
 
-  it("행을 클릭하면 해당 고객번호 행을 전달한다", () => {
-    const onRowClick = vi.fn();
-    render(<CustomerNumberLookupTable rows={rows} onRowClick={onRowClick} />);
-
-    fireEvent.click(screen.getByText("W-1001"));
-
-    expect(onRowClick).toHaveBeenCalledWith(rows[0]);
+  it("공용전기 탭에서는 고객번호 열 제목을 변경한다", () => {
+    render(<CustomerNumberLookupTable rows={rows} kind="common_elec" />);
+    expect(screen.getByRole("columnheader", { name: "공용전기고객번호" })).toBeInTheDocument();
   });
 });

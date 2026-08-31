@@ -188,7 +188,14 @@ export interface SaveMeterReadingsInput {
   buildingId: number;
   utilityType: UtilityType;
   period: string;
-  rows: { unit_id: number; current_reading?: string; manual_charge: string; note: string }[];
+  rows: {
+    unit_id: number;
+    previous_reading?: string;
+    current_reading?: string;
+    usage?: string;
+    manual_charge: string;
+    note: string;
+  }[];
 }
 export interface SaveMeterReadingsResult {
   saved: number;

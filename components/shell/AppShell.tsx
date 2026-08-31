@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
@@ -16,12 +16,21 @@ function isBare(pathname: string): boolean {
 
 /** Figma 자체 62px 헤더를 렌더하는 화면. */
 function hasIntegratedHeader(pathname: string): boolean {
-  return pathname.startsWith("/staff/buildings/new-v2");
+  return (
+    pathname.startsWith("/staff/buildings/new-v2") ||
+    pathname.startsWith("/staff/utilities")
+  );
 }
 
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    const openDrawer = () => setDrawerOpen(true);
+    window.addEventListener("app-shell:open-menu", openDrawer);
+    return () => window.removeEventListener("app-shell:open-menu", openDrawer);
+  }, []);
 
   if (isBare(pathname)) {
     return <>{children}</>;

@@ -258,11 +258,11 @@ describe("utilities apis", () => {
     rpc.mockResolvedValue({ data: { saved: 2, period: "2026-08-01" }, error: null });
     const res = await saveMeterReadings({
       buildingId: 3, utilityType: "water", period: "2026-08-01",
-      rows: [{ unit_id: 101, current_reading: "158", manual_charge: "", note: "" }],
+      rows: [{ unit_id: 101, previous_reading: "99", current_reading: "158", usage: "59", manual_charge: "", note: "" }],
     });
     expect(rpc).toHaveBeenCalledWith("save_meter_readings", {
       p_building_id: 3, p_utility: "water", p_period: "2026-08-01",
-      p_rows: [{ unit_id: 101, current_reading: "158", manual_charge: "", note: "" }],
+      p_rows: [{ unit_id: 101, previous_reading: "99", current_reading: "158", usage: "59", manual_charge: "", note: "" }],
     });
     expect(res).toEqual({ saved: 2, period: "2026-08-01" });
   });

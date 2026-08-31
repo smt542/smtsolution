@@ -2,10 +2,11 @@
 import { createClient } from "@/lib/supabase/client";
 
 export type CustomerNumberKind = "water" | "common_elec" | "elec" | "gas";
+export type CustomerNumberLookupKind = Extract<CustomerNumberKind, "water" | "common_elec">;
+export type CustomerNumberCalculationMethod = "auto" | "manual";
 
 export interface CustomerNumberFilters {
-  buildingId?: number | null;
-  kind?: CustomerNumberKind | null;
+  kind: CustomerNumberLookupKind;
   q?: string;
   page?: number;
   pageSize?: number;
@@ -19,13 +20,16 @@ export interface CustomerNumberLookupResult {
 export interface CustomerNumberLookupRow {
   id: number;
   buildingId: number;
+  buildingCode: string;
   buildingName: string;
-  kind: CustomerNumberKind;
+  address: string | null;
+  kind: CustomerNumberLookupKind;
   customerNo: string;
+  lineName: string | null;
   meterDay: number | null;
   billingBasis: "prev" | "current";
-  printOnBill: boolean;
-  holderName: string | null;
+  calculationMethod: CustomerNumberCalculationMethod;
+  note: string | null;
 }
 
 export interface BuildingCustomerNumber {
@@ -37,25 +41,33 @@ export interface BuildingCustomerNumber {
   billingBasis: "prev" | "current";
   printOnBill: boolean;
   holderName: string | null;
+  lineName: string | null;
+  calculationMethod: CustomerNumberCalculationMethod;
+  note: string | null;
   sortOrder: number;
 }
 
 type BuildingCustomerNumberRow = {
   id: number; building_id: number; kind: CustomerNumberKind; customer_no: string;
   meter_day: number | null; billing_basis: "prev" | "current"; print_on_bill: boolean;
-  holder_name: string | null; sort_order: number;
+  holder_name: string | null; line_name?: string | null;
+  calculation_method?: CustomerNumberCalculationMethod; note?: string | null; sort_order: number;
 };
 
 type CustomerNumberDbRow = {
-  id: number; building_id: number; kind: CustomerNumberKind; customer_no: string;
-  meter_day: number | null; billing_basis: "prev" | "current"; print_on_bill: boolean;
-  holder_name: string | null; buildings: { name: string } | null;
+  id: number; building_id: number; building_code: string; building_name: string;
+  address: string | null; kind: CustomerNumberLookupKind; customer_no: string;
+  line_name: string | null; meter_day: number | null; billing_basis: "prev" | "current";
+  calculation_method: CustomerNumberCalculationMethod; note: string | null;
+  sort_order: number; total_count: number;
 };
 
 export const toCustomerNumber = (r: BuildingCustomerNumberRow): BuildingCustomerNumber => ({
   id: r.id, buildingId: r.building_id, kind: r.kind, customerNo: r.customer_no,
   meterDay: r.meter_day, billingBasis: r.billing_basis, printOnBill: r.print_on_bill,
-  holderName: r.holder_name, sortOrder: r.sort_order,
+  holderName: r.holder_name, lineName: r.line_name ?? null,
+  calculationMethod: r.calculation_method ?? "auto", note: r.note ?? null,
+  sortOrder: r.sort_order,
 });
 
 export async function listCustomerNumbersByBuilding(buildingId: number): Promise<BuildingCustomerNumber[]> {
@@ -74,29 +86,22 @@ export async function listCustomerNumbers(
 ): Promise<CustomerNumberLookupResult> {
   const page = Math.max(1, filters.page ?? 1);
   const pageSize = Math.min(100, Math.max(1, filters.pageSize ?? 50));
-  const firstRow = (page - 1) * pageSize;
-  let query = createClient()
-    .from("building_customer_numbers")
-    .select(
-      "id, kind, customer_no, meter_day, billing_basis, print_on_bill, holder_name, building_id, buildings!inner(id, name)",
-      { count: "exact" },
-    )
-    .is("deleted_at", null);
-  if (filters.buildingId != null) query = query.eq("building_id", filters.buildingId);
-  if (filters.kind) query = query.eq("kind", filters.kind);
   const q = filters.q?.trim();
-  if (q) query = query.or(`customer_no.ilike.%${q}%,holder_name.ilike.%${q}%`);
-  const { data, count, error } = await query
-    .order("building_id")
-    .order("sort_order")
-    .range(firstRow, firstRow + pageSize - 1);
+  const { data, error } = await createClient().rpc("list_customer_number_lookup", {
+    p_kind: filters.kind,
+    p_query: q || null,
+    p_limit: pageSize,
+    p_offset: (page - 1) * pageSize,
+  });
   if (error) throw new Error(error.message);
+  const dbRows = (data ?? []) as CustomerNumberDbRow[];
   return {
-    rows: ((data ?? []) as unknown as CustomerNumberDbRow[]).map((r) => ({
-      id: r.id, buildingId: r.building_id, buildingName: r.buildings?.name ?? "",
-      kind: r.kind, customerNo: r.customer_no, meterDay: r.meter_day,
-      billingBasis: r.billing_basis, printOnBill: r.print_on_bill, holderName: r.holder_name,
+    rows: dbRows.map((r) => ({
+      id: r.id, buildingId: r.building_id, buildingCode: r.building_code,
+      buildingName: r.building_name, address: r.address, kind: r.kind,
+      customerNo: r.customer_no, lineName: r.line_name, meterDay: r.meter_day,
+      billingBasis: r.billing_basis, calculationMethod: r.calculation_method, note: r.note,
     })),
-    total: count ?? 0,
+    total: Number(dbRows[0]?.total_count ?? 0),
   };
 }

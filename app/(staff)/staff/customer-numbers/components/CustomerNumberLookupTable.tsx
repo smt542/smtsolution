@@ -1,75 +1,65 @@
-import type { KeyboardEvent } from "react";
 import type {
-  CustomerNumberKind,
+  CustomerNumberLookupKind,
   CustomerNumberLookupRow,
 } from "@/hooks/reactquery/buildingCustomerNumbers";
-
-const KIND_LABELS: Record<CustomerNumberKind, string> = {
-  water: "수도",
-  common_elec: "공용전기",
-  elec: "전기",
-  gas: "가스",
-};
 
 const BILLING_BASIS_LABELS: Record<CustomerNumberLookupRow["billingBasis"], string> = {
   prev: "전월",
   current: "당월",
 };
 
+const CALCULATION_LABELS: Record<CustomerNumberLookupRow["calculationMethod"], string> = {
+  auto: "자동",
+  manual: "수동",
+};
+
 export function CustomerNumberLookupTable({
   rows,
-  onRowClick,
+  kind,
 }: {
   rows: CustomerNumberLookupRow[];
-  onRowClick: (row: CustomerNumberLookupRow) => void;
+  kind: CustomerNumberLookupKind;
 }) {
-  const openWithKeyboard = (
-    event: KeyboardEvent<HTMLTableRowElement>,
-    row: CustomerNumberLookupRow,
-  ) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      onRowClick(row);
-    }
-  };
+  const customerNumberHeading = kind === "water" ? "수도고객번호" : "공용전기고객번호";
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[760px] text-sm">
+      <table className="w-full min-w-[1080px] table-fixed text-[13px]">
         <thead>
-          <tr className="border-b border-line bg-bg/80 text-left text-t2">
-            <th scope="col" className="px-5 py-3.5 font-bold">건물명</th>
-            <th scope="col" className="px-3 py-3.5 font-bold">유형</th>
-            <th scope="col" className="px-3 py-3.5 font-bold">고객번호</th>
-            <th scope="col" className="px-3 py-3.5 font-bold">명의자</th>
-            <th scope="col" className="px-3 py-3.5 text-center font-bold">검침일</th>
-            <th scope="col" className="px-3 py-3.5 text-center font-bold">부과기준</th>
-            <th scope="col" className="px-5 py-3.5 text-center font-bold">고지서출력</th>
+          <tr className="h-11 border-b border-line bg-bg/80 text-left text-t2">
+            <th scope="col" className="w-[84px] px-3 font-bold">코드</th>
+            <th scope="col" className="w-[130px] px-3 font-bold">빌라명</th>
+            <th scope="col" className="w-[220px] px-3 font-bold">주소</th>
+            <th scope="col" className="w-[70px] px-3 text-center font-bold">LIN</th>
+            <th scope="col" className="w-[170px] px-3 font-bold">{customerNumberHeading}</th>
+            <th scope="col" className="w-[72px] px-3 text-center font-bold">일금일</th>
+            <th scope="col" className="w-[72px] px-3 text-center font-bold">구분</th>
+            <th scope="col" className="w-[76px] px-3 text-center font-bold">계산</th>
+            <th scope="col" className="px-3 font-bold">기타적요</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr
-              key={row.id}
-              tabIndex={0}
-              aria-label={`${row.buildingName} 고객번호 상세 보기`}
-              onClick={() => onRowClick(row)}
-              onKeyDown={(event) => openWithKeyboard(event, row)}
-              className="cursor-pointer border-b border-line2 transition last:border-0 hover:bg-blue-t2 focus:bg-blue-t2 focus:outline-none"
-            >
-              <td className="px-5 py-4 font-extrabold text-t1">{row.buildingName}</td>
-              <td className="px-3 py-4 text-t1">{KIND_LABELS[row.kind]}</td>
-              <td className="num px-3 py-4 text-t1">{row.customerNo}</td>
-              <td className="px-3 py-4 text-t2">{row.holderName ?? "—"}</td>
-              <td className="num px-3 py-4 text-center text-t2">
-                {row.meterDay === null ? "—" : `${row.meterDay}일`}
+            <tr key={row.id} className="h-[52px] border-b border-line2 last:border-0 hover:bg-bg/50">
+              <td className="num truncate px-3 text-t3" title={row.buildingCode}>{row.buildingCode}</td>
+              <td className="truncate px-3 font-bold text-t1" title={row.buildingName}>{row.buildingName}</td>
+              <td className="truncate px-3 text-t2" title={row.address ?? ""}>{row.address ?? "-"}</td>
+              <td className="num px-3 text-center text-t2">{row.lineName ?? "-"}</td>
+              <td className="num truncate px-3 font-semibold text-t1" title={row.customerNo}>{row.customerNo}</td>
+              <td className="num px-3 text-center text-t2">{row.meterDay ?? "-"}</td>
+              <td className="px-3 text-center text-t2">{BILLING_BASIS_LABELS[row.billingBasis]}</td>
+              <td className="px-3 text-center">
+                <span
+                  className={`inline-flex min-w-[42px] justify-center rounded-full px-2 py-1 text-xs font-bold ${
+                    row.calculationMethod === "auto"
+                      ? "bg-teal-t text-teal"
+                      : "bg-amber-t text-amber"
+                  }`}
+                >
+                  {CALCULATION_LABELS[row.calculationMethod]}
+                </span>
               </td>
-              <td className="px-3 py-4 text-center text-t2">
-                {BILLING_BASIS_LABELS[row.billingBasis]}
-              </td>
-              <td className="px-5 py-4 text-center font-bold text-t2">
-                {row.printOnBill ? "Y" : "N"}
-              </td>
+              <td className="truncate px-3 text-t2" title={row.note ?? ""}>{row.note ?? "-"}</td>
             </tr>
           ))}
         </tbody>
