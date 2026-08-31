@@ -31,6 +31,41 @@ import type { ResolutionDraft } from "./AsComplaintForm";
 import { ComplaintDetailModal } from "./ComplaintDetailModal";
 import { ComplaintFormModal } from "./ComplaintFormModal";
 
+const AS_COLUMNS = [
+  "No",
+  "접수일시",
+  "유형",
+  "접수내용",
+  "입주자 전화번호",
+  "처리결과",
+  "처리결과 내용",
+  "시행일자",
+  "시간",
+  "접수자",
+  "담당자",
+];
+const AS_COLUMN_WIDTHS = [50, 111, 90, 285, 135, 105, 207, 111, 70, 65, 63];
+
+function AsTableColumns() {
+  return (
+    <colgroup>
+      {AS_COLUMN_WIDTHS.map((width, index) => <col key={index} style={{ width }} />)}
+    </colgroup>
+  );
+}
+
+function AsTableHeader() {
+  return (
+    <thead>
+      <tr className="h-[37px] border-b border-line bg-bg text-left text-xs font-bold text-t3">
+        {AS_COLUMNS.map((label, index) => (
+          <th key={label} className={`px-3 ${index === 0 ? "text-right" : ""}`}>{label}</th>
+        ))}
+      </tr>
+    </thead>
+  );
+}
+
 /**
  * A/S(민원) 현황·접수 — 세대 스코프. Figma 단일 플랫 폼(추가·상세)으로 재구성.
  * 처리결과 내용은 최신 처리이력 1건으로 upsert하며 기존 이력 데이터는 보존한다.
@@ -207,14 +242,14 @@ export function AsStatusSection({
   };
 
   const action = (
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="flex rounded-lg border border-line p-0.5 text-xs font-bold">
+    <div className="flex w-full flex-nowrap items-center gap-[8px]">
+      <div className="flex rounded-lg border border-line bg-bg p-0.5 text-xs font-bold">
         <button
           type="button"
           onClick={() => setScope("unit")}
           disabled={unitId === null}
           className={`rounded-md px-2 py-1 disabled:opacity-40 ${
-            scope === "unit" ? "bg-blue text-white" : "text-t3"
+            scope === "unit" ? "bg-surface text-t1 shadow-sm" : "text-t3"
           }`}
         >
           호실
@@ -223,50 +258,49 @@ export function AsStatusSection({
           type="button"
           onClick={() => setScope("building")}
           className={`rounded-md px-2 py-1 ${
-            scope === "building" ? "bg-blue text-white" : "text-t3"
+            scope === "building" ? "bg-surface text-t1 shadow-sm" : "text-t3"
           }`}
         >
           건물 전체
         </button>
       </div>
       <Select
+        className="!h-[30px] !w-[72px] !rounded-[8px] !px-[10px] !text-[12px]"
         aria-label="처리결과 필터"
         value={resultFilter}
         onChange={(event) => setResultFilter(event.target.value as "" | ComplaintStatus)}
         options={[{ value: "", label: "전체" }, ...COMPLAINT_STATUS_OPTIONS]}
       />
-      <Button type="button" onClick={() => setFormOpen(true)} disabled={buildingId === null}>
+      <Button
+        type="button"
+        onClick={() => setFormOpen(true)}
+        disabled={buildingId === null}
+        className="ml-auto !h-[30px] whitespace-nowrap !rounded-[8px] !border !border-line !bg-surface !px-[11px] !text-[12px] !text-t2 !shadow-none hover:!bg-bg"
+      >
         + 접수 추가
       </Button>
     </div>
   );
 
   return (
-    <Panel title="A/S 현황" action={action}>
+    <Panel title="A/S 현황" action={action} actionClassName="ml-[14px] flex-1" flush>
       {buildingId === null ? (
-        <p className="py-10 text-center text-sm text-t4">건물·호실을 선택하면 A/S 현황이 표시돼요</p>
+        <div className="overflow-x-auto">
+          <table className="w-[1292px] table-fixed text-sm"><AsTableColumns /><AsTableHeader /></table>
+          <p className="flex h-[223px] min-w-[1292px] items-center justify-center text-[13px] text-t4">건물과 호수를 선택해 주세요</p>
+        </div>
       ) : isLoading ? (
-        <Spinner />
+        <div className="flex h-[260px] items-center justify-center"><Spinner /></div>
       ) : rows.length === 0 ? (
-        <EmptyState message="접수된 A/S가 없습니다" />
+        <div className="overflow-x-auto">
+          <table className="w-[1292px] table-fixed text-sm"><AsTableColumns /><AsTableHeader /></table>
+          <div className="flex h-[223px] min-w-[1292px] items-center justify-center"><EmptyState message="접수된 A/S가 없습니다" /></div>
+        </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-line">
-          <table className="w-full min-w-[1080px] text-sm">
-            <thead>
-              <tr className="border-b border-line bg-bg text-left text-xs font-bold text-t3">
-                <th className="px-3 py-2 text-right">No</th>
-                <th className="px-3 py-2">호수</th>
-                <th className="px-3 py-2">접수일시</th>
-                <th className="px-3 py-2">유형</th>
-                <th className="px-3 py-2">접수내용</th>
-                <th className="px-3 py-2">전화번호</th>
-                <th className="px-3 py-2">처리결과</th>
-                <th className="px-3 py-2">처리결과 내용</th>
-                <th className="px-3 py-2">시행일자</th>
-                <th className="px-3 py-2">접수자</th>
-                <th className="px-3 py-2">담당자</th>
-              </tr>
-            </thead>
+        <div className="overflow-x-auto">
+          <table className="w-[1292px] table-fixed text-sm">
+            <AsTableColumns />
+            <AsTableHeader />
             <tbody>
               {rows.map((complaint, index) => {
                 const latest = complaint.resolutions[0];
@@ -277,9 +311,6 @@ export function AsStatusSection({
                     className="cursor-pointer border-b border-line last:border-0 hover:bg-bg"
                   >
                     <td className="px-3 py-3 text-right text-t3 num">{index + 1}</td>
-                    <td className="whitespace-nowrap px-3 py-3 text-t2">
-                      {formatUnitLabel({ unitNo: complaint.unitNo, dong: complaint.unitDong })}
-                    </td>
                     <td className="whitespace-nowrap px-3 py-3 text-t2">
                       {formatComplaintDate(complaint.receivedAt, true)}
                     </td>
@@ -301,7 +332,12 @@ export function AsStatusSection({
                     <td className="whitespace-nowrap px-3 py-3 text-t2">
                       {formatComplaintDate(latest?.resolvedAt ?? complaint.completedAt)}
                     </td>
-                    <td className="px-3 py-3 text-t2">{complaint.reporterName ?? "-"}</td>
+                    <td className="whitespace-nowrap px-3 py-3 text-t2">
+                      {complaint.receivedAt?.slice(11, 16) || "-"}
+                    </td>
+                    <td className="px-3 py-3 text-t2">
+                      {complaint.createdBy ? assigneeNames.get(complaint.createdBy) ?? "-" : "-"}
+                    </td>
                     <td className="px-3 py-3 text-t2">
                       {complaint.assignedTo ? assigneeNames.get(complaint.assignedTo) ?? "-" : "-"}
                     </td>

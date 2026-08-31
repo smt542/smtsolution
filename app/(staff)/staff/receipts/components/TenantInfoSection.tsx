@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import type { ReactNode } from "react";
 import { toast } from "sonner";
 import { Button, Checkbox, Input, Panel, Spinner } from "@/components/common";
 import type { UnitOccupancyFull } from "@/hooks/reactquery/occupancies";
 import { useSaveOccupancyFields } from "@/hooks/reactquery/receipts";
-import { BILL_DELIVERY_LABEL, TRANSFER_METHOD_LABEL, formatDate } from "../receiptFormat";
+import { formatDate } from "../receiptFormat";
 
 interface FormState {
   tenantName: string;
@@ -21,17 +20,33 @@ interface FormState {
   alimtalkOptIn: boolean;
 }
 
-function Field({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="rounded-xl border border-line bg-bg px-3 py-2">
-      <p className="text-xs font-bold text-t3">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-t1">{value}</p>
-    </div>
-  );
+function YesNo({ value }: { value: boolean }) {
+  return <span className={value ? "text-t1" : "text-t4"}>{value ? "Y" : "N"}</span>;
 }
 
-function YesNo({ value }: { value: boolean }) {
-  return <span className={value ? "text-blue" : "text-t4"}>{value ? "Y" : "N"}</span>;
+const TENANT_COLUMNS = [
+  "입주자명",
+  "입금자명",
+  "전화번호",
+  "입주일",
+  "퇴거일",
+  "적요",
+  "문자",
+  "알림톡",
+  "부과",
+  "출력",
+];
+
+function TenantTableHeader() {
+  return (
+    <table className="w-full min-w-[980px] table-fixed text-[13px]">
+      <thead>
+        <tr className="h-[37px] border-b border-line bg-[#fbfcfd] text-left text-[12px] font-bold text-t3">
+          {TENANT_COLUMNS.map((label) => <th key={label} className="px-[16px]">{label}</th>)}
+        </tr>
+      </thead>
+    </table>
+  );
 }
 
 export function TenantInfoSection({
@@ -121,15 +136,21 @@ export function TenantInfoSection({
     ) : undefined;
 
   return (
-    <Panel title="입주자정보" action={action}>
+    <Panel title="입주자정보" action={action} flush>
       {!hasUnit ? (
-        <p className="py-10 text-center text-sm text-t4">호실을 선택하면 입주자정보가 표시돼요</p>
+        <div className="overflow-x-auto">
+          <TenantTableHeader />
+          <p className="flex h-[69px] min-w-[980px] items-center justify-center text-[13px] text-t4">호실을 선택하면 입주자정보가 표시돼요</p>
+        </div>
       ) : isLoading ? (
-        <Spinner />
+        <div className="flex h-[106px] items-center justify-center"><Spinner /></div>
       ) : occ === null ? (
-        <p className="py-10 text-center text-sm text-t4">등록된 입주자 정보가 없습니다 (공실)</p>
+        <div className="overflow-x-auto">
+          <TenantTableHeader />
+          <p className="flex h-[69px] min-w-[980px] items-center justify-center text-[13px] text-t4">등록된 입주자 정보가 없습니다 (공실)</p>
+        </div>
       ) : editing && form ? (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 p-[18px] md:grid-cols-4">
           <label className="text-xs font-bold text-t3">
             입주자명
             <Input
@@ -204,19 +225,30 @@ export function TenantInfoSection({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-          <Field label="입주자명" value={occ.tenantName ?? "-"} />
-          <Field label="입금자명" value={occ.payerName ?? "-"} />
-          <Field label="전화번호" value={occ.phone ?? "-"} />
-          <Field label="적요" value={occ.billingNote ?? "-"} />
-          <Field label="입주일" value={formatDate(occ.moveInDate)} />
-          <Field label="퇴거일" value={formatDate(occ.moveOutDate)} />
-          <Field label="이체방식" value={TRANSFER_METHOD_LABEL[occ.transferMethod] ?? occ.transferMethod} />
-          <Field label="고지서 전달" value={BILL_DELIVERY_LABEL[occ.billDelivery] ?? occ.billDelivery} />
-          <Field label="문자 동의" value={<YesNo value={occ.smsOptIn} />} />
-          <Field label="알림톡 동의" value={<YesNo value={occ.alimtalkOptIn} />} />
-          <Field label="부과" value={<YesNo value={occ.billingEnabled} />} />
-          <Field label="출력" value={<YesNo value={occ.printEnabled} />} />
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[980px] table-fixed text-[13px]">
+            <thead>
+              <tr className="h-[37px] border-b border-line bg-[#fbfcfd] text-left text-[12px] font-bold text-t3">
+                {TENANT_COLUMNS.map((label) => (
+                  <th key={label} className="px-[16px]">{label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="h-[40px] text-t2">
+                <td className="px-[16px]">{occ.tenantName ?? "-"}</td>
+                <td className="px-[16px]">{occ.payerName ?? "-"}</td>
+                <td className="px-[16px]">{occ.phone ?? "-"}</td>
+                <td className="px-[16px]">{formatDate(occ.moveInDate)}</td>
+                <td className="px-[16px]">{formatDate(occ.moveOutDate)}</td>
+                <td className="truncate px-[16px]" title={occ.billingNote ?? "-"}>{occ.billingNote ?? "-"}</td>
+                <td className="px-[16px]"><YesNo value={occ.smsOptIn} /></td>
+                <td className="px-[16px]"><YesNo value={occ.alimtalkOptIn} /></td>
+                <td className="px-[16px]"><YesNo value={occ.billingEnabled} /></td>
+                <td className="px-[16px]"><YesNo value={occ.printEnabled} /></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       )}
     </Panel>

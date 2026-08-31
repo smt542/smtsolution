@@ -66,11 +66,15 @@ async function countOverdueHouseholds(today: string): Promise<number> {
   return Number(data ?? 0);
 }
 
-export async function getDashboardOverview(
-  today = getKoreaToday(),
-): Promise<DashboardOverview> {
-  const client = createClient();
-  const moveInsRequest = client
+/**
+ * 당일 입주예정 세대 목록을 조회한다.
+ * 대시보드 요약과 수납관리 진입 알림에서 공용으로 사용한다(호출부에서 client를 주입해 병렬 실행 유지).
+ */
+export async function fetchTodayMoveIns(
+  client: ReturnType<typeof createClient>,
+  today: string,
+): Promise<TodayMoveIn[]> {
+  const { data, error } = await client
     .from("occupancies")
     .select(`
       id,
@@ -93,25 +97,10 @@ export async function getDashboardOverview(
     .is("units.deleted_at", null)
     .is("units.buildings.deleted_at", null)
     .order("unit_id");
-  const pendingComplaintsRequest = client
-    .from("complaints")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "pending")
-    .is("deleted_at", null);
 
-  const [moveInsResponse, pendingComplaintsResponse, overdueHouseholdCount] =
-    await Promise.all([
-      moveInsRequest,
-      pendingComplaintsRequest,
-      countOverdueHouseholds(today),
-    ]);
+  if (error) throw new Error(error.message);
 
-  if (moveInsResponse.error) throw new Error(moveInsResponse.error.message);
-  if (pendingComplaintsResponse.error) {
-    throw new Error(pendingComplaintsResponse.error.message);
-  }
-
-  const todayMoveIns = ((moveInsResponse.data ?? []) as unknown as MoveInRow[])
+  return ((data ?? []) as unknown as MoveInRow[])
     .map((row): TodayMoveIn | null => {
       const unit = firstRelation(row.units);
       const building = unit ? firstRelation(unit.buildings) : null;
@@ -134,6 +123,28 @@ export async function getDashboardOverview(
         "ko-KR",
       ),
     );
+}
+
+export async function getDashboardOverview(
+  today = getKoreaToday(),
+): Promise<DashboardOverview> {
+  const client = createClient();
+  const pendingComplaintsRequest = client
+    .from("complaints")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending")
+    .is("deleted_at", null);
+
+  const [todayMoveIns, pendingComplaintsResponse, overdueHouseholdCount] =
+    await Promise.all([
+      fetchTodayMoveIns(client, today),
+      pendingComplaintsRequest,
+      countOverdueHouseholds(today),
+    ]);
+
+  if (pendingComplaintsResponse.error) {
+    throw new Error(pendingComplaintsResponse.error.message);
+  }
 
   return {
     today,

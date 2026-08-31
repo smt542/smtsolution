@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useMe } from "@/hooks/reactquery/auth";
+import { MenuIcon } from "@/components/icons";
 import { NAV_GROUPS } from "./navItems";
 
 interface TopbarProps {
@@ -23,19 +24,18 @@ export function Topbar({ onMenu }: TopbarProps) {
   const pathname = usePathname();
   const { data: me } = useMe();
   const title = findPageTitle(pathname);
+  const usesRouteActions = pathname.startsWith("/staff/receipts");
 
   return (
-    <header className="h-[62px] flex-none flex items-center gap-3 px-6 bg-white border-b border-line">
-      {/* hamburger — mobile only */}
+    <header className="h-[62px] flex-none flex items-center gap-[28px] px-6 bg-white border-b border-line">
+      {/* Figma 공통 상단 메뉴 아이콘. 모바일에서는 서랍을 열고 데스크톱에서는 위치 기준을 유지한다. */}
       <button
         type="button"
         onClick={onMenu}
-        className="md:hidden flex items-center justify-center w-9 h-9 rounded-[11px] text-t2 hover:bg-bg transition-colors"
+        className="flex h-[32px] w-[22px] shrink-0 items-center justify-center text-t3 transition-colors hover:text-t1"
         aria-label="메뉴 열기"
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M3 6h18M3 12h18M3 18h18" />
-        </svg>
+        <MenuIcon className="size-[18px]" />
       </button>
 
       {/* title */}
@@ -44,7 +44,7 @@ export function Topbar({ onMenu }: TopbarProps) {
       </h1>
 
       {/* avatar */}
-      {me && (
+      {me && !usesRouteActions && (
         <div className="w-[40px] h-[40px] rounded-[11px] flex items-center justify-center bg-[#DCE3EA] text-[14px] font-bold text-t2 select-none flex-none">
           {me.fullName.charAt(0)}
         </div>

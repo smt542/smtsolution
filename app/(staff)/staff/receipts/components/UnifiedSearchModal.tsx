@@ -1,253 +1,477 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Modal } from "@/components/common";
+import { useEffect, useId, useMemo, useState } from "react";
+import { CloseIcon } from "@/components/icons";
 import type { Building } from "@/hooks/reactquery/buildings";
 import { useSettlementInquiry } from "@/hooks/reactquery/movingSettlement";
 import type { ReceiptPaymentRow } from "@/hooks/reactquery/receipts";
-import { formatCurrency, unitLabel } from "../receiptFormat";
+import type { Period } from "@/lib/billing/period";
+import { formatCurrency, formatDate, unitLabel } from "../receiptFormat";
+import {
+  SearchResultTable,
+  type SearchColumn,
+  type SearchResultRow,
+} from "./search/SearchResultTable";
+import { SearchSection } from "./search/SearchSection";
+import { ReportDateField } from "./report-controls/ReportDateField";
 
-type BuildingLite = Pick<Building, "id" | "name" | "ownerName" | "ownerPhone">;
+type BuildingLite = Pick<
+  Building,
+  "id" | "code" | "name" | "address" | "ownerName" | "ownerPhone"
+>;
 
-interface JumpRow {
-  key: string;
-  buildingId: number;
-  unitId: number | null;
-  cells: string[];
+type KeywordField = "name" | "phone" | "dongho";
+type KeywordSearch = { field: KeywordField; value: string };
+
+const PLACEHOLDER = "조회 버튼을 눌러 주세요";
+const NO_RESULT = "조회 결과가 없어요";
+const RESULT_LIMIT = 100;
+
+const CHARGE_COLUMNS: SearchColumn[] = [
+  { label: "코드" },
+  { label: "빌라명칭" },
+  { label: "호" },
+  { label: "세입자명" },
+  { label: "년월" },
+  { label: "당월계", align: "right" },
+  { label: "납기내금액", align: "right" },
+  { label: "납기후금액", align: "right" },
+  { label: "수납일자" },
+];
+
+const SETTLEMENT_COLUMNS: SearchColumn[] = [
+  { label: "코드" },
+  { label: "빌라명칭" },
+  { label: "호수" },
+  { label: "년월" },
+  { label: "일" },
+  { label: "금액", align: "right" },
+  { label: "수납일" },
+];
+
+const TENANT_COLUMNS: SearchColumn[] = [
+  { label: "이름" },
+  { label: "입금자" },
+  { label: "코드" },
+  { label: "빌라명" },
+  { label: "호수" },
+  { label: "핸드폰" },
+  { label: "년월" },
+  { label: "납기내금액", align: "right" },
+  { label: "수납일자" },
+];
+
+const OWNER_COLUMNS: SearchColumn[] = [
+  { label: "코드" },
+  { label: "동명칭" },
+  { label: "주소" },
+  { label: "거래처명" },
+  { label: "구분" },
+  { label: "건물주명" },
+  { label: "연락처" },
+];
+
+const pad2 = (value: number) => String(value).padStart(2, "0");
+
+/** period(YYYY-MM-01) → 해당 월 1일 ~ 말일 범위 */
+function monthRange(period: Period): { from: string; to: string } {
+  const ym = period.slice(0, 7);
+  const [year, month] = ym.split("-").map(Number);
+  const lastDay = new Date(year, month, 0).getDate();
+  return { from: `${ym}-01`, to: `${ym}-${pad2(lastDay)}` };
 }
 
-function yearAgoRange(): { from: string; to: string } {
-  const now = new Date();
-  const to = now.toISOString().slice(0, 10);
-  const start = new Date(now);
-  start.setFullYear(start.getFullYear() - 1);
-  const from = start.toISOString().slice(0, 10);
-  return { from, to };
-}
+const toYm = (value: string | null | undefined) =>
+  value ? value.slice(0, 7).replace("-", ".") : "-";
+const toDay = (value: string | null | undefined) =>
+  value && value.length >= 10 ? value.slice(8, 10) : "-";
+const norm = (value: string | null | undefined) => (value ?? "").toLocaleLowerCase("ko-KR");
+const digitsOf = (value: string | null | undefined) => (value ?? "").replace(/\D/g, "");
 
-function ResultTable({
-  title,
-  headers,
-  rows,
-  onJump,
-}: {
-  title: string;
-  headers: string[];
-  rows: JumpRow[];
-  onJump: (buildingId: number, unitId: number | null) => void;
-}) {
-  return (
-    <div>
-      <p className="mb-1.5 text-sm font-extrabold text-t1">
-        {title} <span className="text-t4">({rows.length})</span>
-      </p>
-      {rows.length === 0 ? (
-        <p className="rounded-xl border border-line bg-bg px-3 py-3 text-xs text-t4">결과 없음</p>
-      ) : (
-        <div className="overflow-hidden rounded-xl border border-line">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-line bg-bg text-left text-xs font-bold text-t3">
-                {headers.map((header) => (
-                  <th key={header} className="px-3 py-2">
-                    {header}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr
-                  key={row.key}
-                  onClick={() => onJump(row.buildingId, row.unitId)}
-                  className="cursor-pointer border-b border-line last:border-0 hover:bg-blue-t2"
-                >
-                  {row.cells.map((cell, index) => (
-                    <td key={index} className="px-3 py-2.5 text-t1">
-                      {cell}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
+const FIELD_BASE =
+  "h-[38px] rounded-[10px] border border-line bg-surface px-[11px] text-[13px] text-t1 placeholder:text-t4 outline-none focus:border-blue";
+const SEARCH_BTN =
+  "h-[38px] shrink-0 rounded-[10px] border border-line bg-surface px-[15px] text-[13.5px] font-bold text-t2 hover:bg-bg";
 
 export function UnifiedSearchModal({
   open,
-  onClose,
-  buildings,
-  receiptRows,
-  onJump,
+  ...props
 }: {
   open: boolean;
   onClose: () => void;
   buildings: BuildingLite[];
   receiptRows: ReceiptPaymentRow[];
+  period: Period;
   onJump: (buildingId: number, unitId: number | null) => void;
 }) {
-  const [mode, setMode] = useState<"keyword" | "amount">("keyword");
-  const [keyword, setKeyword] = useState("");
-  const [amount, setAmount] = useState("");
+  // 닫힐 때 언마운트해 재오픈 시 조회 상태가 자연스럽게 초기화되도록 본문을 분리한다.
+  if (!open) return null;
+  return <UnifiedSearchModalBody {...props} />;
+}
 
-  // 이사정산은 열려있을 때만 조회(최근 1년). range를 안정화해 재요청 루프 방지.
-  const range = useMemo(() => (open ? yearAgoRange() : { from: "", to: "" }), [open]);
+function UnifiedSearchModalBody({
+  onClose,
+  buildings,
+  receiptRows,
+  period,
+  onJump,
+}: {
+  onClose: () => void;
+  buildings: BuildingLite[];
+  receiptRows: ReceiptPaymentRow[];
+  period: Period;
+  onJump: (buildingId: number, unitId: number | null) => void;
+}) {
+  const titleId = useId();
+  const defaults = useMemo(() => monthRange(period), [period]);
+
+  const [from, setFrom] = useState(defaults.from);
+  const [to, setTo] = useState(defaults.to);
+  const [amountInput, setAmountInput] = useState("");
+  const [amountSearch, setAmountSearch] = useState<string | null>(null);
+  const [nameInput, setNameInput] = useState("");
+  const [phoneInput, setPhoneInput] = useState("");
+  const [donghoInput, setDonghoInput] = useState("");
+  const [keyword, setKeyword] = useState<KeywordSearch | null>(null);
+
+  // Escape·스크롤 잠금 (ComplaintDialog 공통 패턴)
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [onClose]);
+
+  const validRange = Boolean(from) && Boolean(to) && from <= to;
   const { data: settlementResult } = useSettlementInquiry({
     type: "all",
-    from: range.from,
-    to: range.to,
+    from: validRange ? from : "",
+    to: validRange ? to : "",
     pageSize: 200,
   });
-  const settlements = settlementResult?.rows ?? [];
+  const settlements = useMemo(() => settlementResult?.rows ?? [], [settlementResult]);
 
-  const kw = keyword.trim().toLocaleLowerCase("ko-KR");
-  const amountDigits = amount.replace(/[^0-9]/g, "");
+  const codeByBuilding = useMemo(
+    () => new Map(buildings.map((building) => [building.id, building.code])),
+    [buildings],
+  );
 
-  const matchKeyword = (parts: (string | null | undefined)[]) =>
-    kw.length === 0
-      ? true
-      : parts.filter(Boolean).join(" ").toLocaleLowerCase("ko-KR").includes(kw);
-  const matchAmount = (value: number | null | undefined) =>
-    amountDigits.length > 0 && value != null && String(value).includes(amountDigits);
+  const amountDigits = amountSearch ? digitsOf(amountSearch) : "";
 
-  const tenantRows: JumpRow[] =
-    mode === "amount"
-      ? []
-      : receiptRows
-          .filter((row) => matchKeyword([row.buildingName, unitLabel(row), row.tenantName, row.phone]))
-          .slice(0, 50)
-          .map((row) => ({
-            key: `t-${row.buildingId}-${row.unitId}`,
-            buildingId: row.buildingId,
-            unitId: row.unitId,
-            cells: [row.buildingName, unitLabel(row), row.tenantName ?? "-", row.phone ?? "-"],
-          }));
+  const chargeRows: SearchResultRow[] = useMemo(() => {
+    if (!amountSearch || amountDigits.length === 0) return [];
+    return receiptRows
+      .filter((row) => row.charged != null && String(row.charged).includes(amountDigits))
+      .slice(0, RESULT_LIMIT)
+      .map((row) => ({
+        key: `charge-${row.buildingId}-${row.unitId}`,
+        buildingId: row.buildingId,
+        unitId: row.unitId,
+        cells: [
+          codeByBuilding.get(row.buildingId) ?? "-",
+          row.buildingName,
+          unitLabel(row) || "-",
+          row.tenantName ?? "-",
+          toYm(period),
+          formatCurrency(row.charged),
+          formatCurrency(row.charged),
+          formatCurrency(row.charged),
+          formatDate(row.lastPaymentDate),
+        ],
+      }));
+  }, [amountSearch, amountDigits, receiptRows, period, codeByBuilding]);
 
-  const chargeRows: JumpRow[] = receiptRows
-    .filter((row) =>
-      mode === "amount"
-        ? matchAmount(row.charged)
-        : matchKeyword([row.buildingName, unitLabel(row), row.tenantName]),
-    )
-    .slice(0, 50)
-    .map((row) => ({
-      key: `c-${row.buildingId}-${row.unitId}`,
-      buildingId: row.buildingId,
-      unitId: row.unitId,
-      cells: [row.buildingName, unitLabel(row), row.tenantName ?? "-", formatCurrency(row.charged)],
-    }));
+  const settlementRows: SearchResultRow[] = useMemo(() => {
+    if (!amountSearch || amountDigits.length === 0) return [];
+    return settlements
+      .filter(
+        (row) => row.settlementAmount != null && String(row.settlementAmount).includes(amountDigits),
+      )
+      .slice(0, RESULT_LIMIT)
+      .map((row) => ({
+        key: `settle-${row.settlementId}`,
+        buildingId: row.buildingId,
+        unitId: row.unitId,
+        cells: [
+          codeByBuilding.get(row.buildingId) ?? "-",
+          row.buildingName,
+          unitLabel(row) || "-",
+          toYm(row.moveOutDate),
+          toDay(row.moveOutDate),
+          formatCurrency(row.settlementAmount),
+          formatDate(row.processedAt),
+        ],
+      }));
+  }, [amountSearch, amountDigits, settlements, codeByBuilding]);
 
-  const settlementRows: JumpRow[] = settlements
-    .filter((settlement) =>
-      mode === "amount"
-        ? matchAmount(settlement.settlementAmount)
-        : matchKeyword([settlement.buildingName, unitLabel(settlement), settlement.tenantName]),
-    )
-    .slice(0, 50)
-    .map((settlement) => ({
-      key: `s-${settlement.settlementId}`,
-      buildingId: settlement.buildingId,
-      unitId: settlement.unitId,
-      cells: [
-        settlement.buildingName,
-        unitLabel(settlement),
-        settlement.tenantName ?? "-",
-        formatCurrency(settlement.settlementAmount),
-      ],
-    }));
+  const tenantRows: SearchResultRow[] = useMemo(() => {
+    if (!keyword) return [];
+    const nv = norm(keyword.value);
+    const dv = digitsOf(keyword.value);
+    const matches = (row: ReceiptPaymentRow) => {
+      if (keyword.field === "name") {
+        return norm(row.tenantName).includes(nv) || norm(row.payerName).includes(nv);
+      }
+      if (keyword.field === "phone") {
+        return dv.length > 0 && digitsOf(row.phone).includes(dv);
+      }
+      return (
+        norm(codeByBuilding.get(row.buildingId)).includes(nv) || norm(unitLabel(row)).includes(nv)
+      );
+    };
+    return receiptRows
+      .filter(matches)
+      .slice(0, RESULT_LIMIT)
+      .map((row) => ({
+        key: `tenant-${row.buildingId}-${row.unitId}`,
+        buildingId: row.buildingId,
+        unitId: row.unitId,
+        cells: [
+          row.tenantName ?? "-",
+          row.payerName ?? "-",
+          codeByBuilding.get(row.buildingId) ?? "-",
+          row.buildingName,
+          unitLabel(row) || "-",
+          row.phone ?? "-",
+          toYm(period),
+          formatCurrency(row.charged),
+          formatDate(row.lastPaymentDate),
+        ],
+      }));
+  }, [keyword, receiptRows, period, codeByBuilding]);
 
-  const ownerRows: JumpRow[] =
-    mode === "amount"
-      ? []
-      : buildings
-          .filter((building) => matchKeyword([building.name, building.ownerName, building.ownerPhone]))
-          .slice(0, 50)
-          .map((building) => ({
-            key: `o-${building.id}`,
-            buildingId: building.id,
-            unitId: null,
-            cells: [building.name, building.ownerName ?? "-", building.ownerPhone ?? "-"],
-          }));
+  const ownerRows: SearchResultRow[] = useMemo(() => {
+    if (!keyword) return [];
+    const nv = norm(keyword.value);
+    const dv = digitsOf(keyword.value);
+    const matches = (building: BuildingLite) => {
+      if (keyword.field === "name") {
+        return norm(building.ownerName).includes(nv) || norm(building.name).includes(nv);
+      }
+      if (keyword.field === "phone") {
+        return dv.length > 0 && digitsOf(building.ownerPhone).includes(dv);
+      }
+      return norm(building.code).includes(nv) || norm(building.name).includes(nv);
+    };
+    return buildings
+      .filter(matches)
+      .slice(0, RESULT_LIMIT)
+      .map((building) => ({
+        key: `owner-${building.id}`,
+        buildingId: building.id,
+        unitId: null,
+        cells: [
+          building.code || "-",
+          building.name,
+          building.address ?? "-",
+          "-", // 거래처명 — 현재 조회 데이터 소스 없음
+          "-", // 구분 — 현재 조회 데이터 소스 없음
+          building.ownerName ?? "-",
+          building.ownerPhone ?? "-",
+        ],
+      }));
+  }, [keyword, buildings]);
 
+  const runAmount = () => {
+    const value = amountInput.trim();
+    if (value) setAmountSearch(value);
+  };
+  const runKeyword = (field: KeywordField, raw: string) => {
+    const value = raw.trim();
+    if (value) setKeyword({ field, value });
+  };
   const handleJump = (buildingId: number, unitId: number | null) => {
     onJump(buildingId, unitId);
     onClose();
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="통합 조회" className="max-w-4xl">
-      <div className="mb-3 flex gap-2">
-        <button
-          type="button"
-          onClick={() => setMode("keyword")}
-          className={`rounded-lg px-3 py-1.5 text-sm font-bold ${
-            mode === "keyword" ? "bg-blue text-white" : "border border-line text-t2"
-          }`}
-        >
-          입금자명·전화·동호로 찾기
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode("amount")}
-          className={`rounded-lg px-3 py-1.5 text-sm font-bold ${
-            mode === "amount" ? "bg-blue text-white" : "border border-line text-t2"
-          }`}
-        >
-          금액으로 찾기
-        </button>
-      </div>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#171f28]/45 p-4"
+      onMouseDown={onClose}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="flex h-[801px] max-h-[calc(100vh-32px)] w-full max-w-[1180px] flex-col rounded-[20px] bg-surface px-[20px] pb-[14px] pt-[18px] shadow-pop"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        {/* 조회 구간 */}
+        <div className="flex flex-wrap items-center gap-[9px] pb-3">
+          <h2
+            id={titleId}
+            className="whitespace-nowrap text-[16.5px] font-extrabold tracking-[-0.33px] text-t1"
+          >
+            조회 구간
+          </h2>
+          <ReportDateField
+            type="date"
+            ariaLabel="조회 시작일"
+            value={from}
+            max={to || undefined}
+            onValueChange={setFrom}
+            className="w-[150px]"
+          />
+          <span className="text-[16.5px] font-extrabold text-t3">~</span>
+          <ReportDateField
+            type="date"
+            ariaLabel="조회 종료일"
+            value={to}
+            min={from || undefined}
+            onValueChange={setTo}
+            className="w-[150px]"
+          />
+          <div className="flex-1" />
+          <button
+            type="button"
+            aria-label="닫기"
+            onClick={onClose}
+            className="flex size-[26px] shrink-0 items-center justify-center rounded-[8px] border border-line bg-surface text-t3 hover:bg-bg hover:text-t1"
+          >
+            <CloseIcon className="size-[14px]" aria-hidden="true" />
+          </button>
+        </div>
 
-      {mode === "keyword" ? (
-        <input
-          autoFocus
-          value={keyword}
-          onChange={(event) => setKeyword(event.target.value)}
-          placeholder="입금자명·전화번호·동호 입력"
-          aria-label="통합검색 키워드"
-          className="mb-4 h-11 w-full rounded-xl border border-line bg-bg px-3 text-sm text-t1 placeholder:text-t4"
-        />
-      ) : (
-        <input
-          autoFocus
-          inputMode="numeric"
-          value={amount}
-          onChange={(event) => setAmount(event.target.value)}
-          placeholder="금액 입력 (예: 150000)"
-          aria-label="통합검색 금액"
-          className="mb-4 h-11 w-full rounded-xl border border-line bg-bg px-3 text-sm text-t1 placeholder:text-t4"
-        />
-      )}
+        {/* 결과 영역 */}
+        <div className="flex flex-1 flex-col gap-3 overflow-y-auto pr-1">
+          <SearchSection
+            title="금액으로 찾기"
+            actions={
+              <>
+                <input
+                  value={amountInput}
+                  onChange={(event) => setAmountInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") runAmount();
+                  }}
+                  inputMode="numeric"
+                  placeholder="금액"
+                  aria-label="금액"
+                  className={`${FIELD_BASE} w-[150px]`}
+                />
+                <button
+                  type="button"
+                  aria-label="금액으로 조회"
+                  onClick={runAmount}
+                  className={SEARCH_BTN}
+                >
+                  조회
+                </button>
+              </>
+            }
+          >
+            <SearchResultTable
+              title="청구금액 조회"
+              columns={CHARGE_COLUMNS}
+              rows={chargeRows}
+              placeholder={amountSearch ? NO_RESULT : PLACEHOLDER}
+              onJump={handleJump}
+            />
+            <SearchResultTable
+              title="이사정산 금액조회"
+              columns={SETTLEMENT_COLUMNS}
+              rows={settlementRows}
+              placeholder={amountSearch ? NO_RESULT : PLACEHOLDER}
+              onJump={handleJump}
+            />
+          </SearchSection>
 
-      <div className="max-h-[52vh] space-y-4 overflow-y-auto pr-1">
-        <ResultTable
-          title="세입자"
-          headers={["건물", "호실", "입주자", "전화"]}
-          rows={tenantRows}
-          onJump={handleJump}
-        />
-        <ResultTable
-          title="청구금액"
-          headers={["건물", "호실", "입주자", "부과금액"]}
-          rows={chargeRows}
-          onJump={handleJump}
-        />
-        <ResultTable
-          title="이사정산"
-          headers={["건물", "호실", "입주자", "정산금액"]}
-          rows={settlementRows}
-          onJump={handleJump}
-        />
-        <ResultTable
-          title="건물주"
-          headers={["건물", "건물주", "전화"]}
-          rows={ownerRows}
-          onJump={handleJump}
-        />
-      </div>
-    </Modal>
+          <SearchSection
+            title="입금자명 · 전화번호 · 동호로 찾기"
+            actions={
+              <>
+                <input
+                  value={nameInput}
+                  onChange={(event) => setNameInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") runKeyword("name", nameInput);
+                  }}
+                  placeholder="입금자명 (세입자 · 건물주)"
+                  aria-label="입금자명"
+                  className={`${FIELD_BASE} w-[200px]`}
+                />
+                <button
+                  type="button"
+                  aria-label="입금자명으로 조회"
+                  onClick={() => runKeyword("name", nameInput)}
+                  className={SEARCH_BTN}
+                >
+                  조회
+                </button>
+                <input
+                  value={phoneInput}
+                  onChange={(event) => setPhoneInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") runKeyword("phone", phoneInput);
+                  }}
+                  inputMode="tel"
+                  placeholder="전화번호"
+                  aria-label="전화번호"
+                  className={`${FIELD_BASE} w-[160px]`}
+                />
+                <button
+                  type="button"
+                  aria-label="전화번호로 조회"
+                  onClick={() => runKeyword("phone", phoneInput)}
+                  className={SEARCH_BTN}
+                >
+                  조회
+                </button>
+                <input
+                  value={donghoInput}
+                  onChange={(event) => setDonghoInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") runKeyword("dongho", donghoInput);
+                  }}
+                  placeholder="동호 (코드 또는 호수)"
+                  aria-label="동호"
+                  className={`${FIELD_BASE} w-[180px]`}
+                />
+                <button
+                  type="button"
+                  aria-label="동호로 조회"
+                  onClick={() => runKeyword("dongho", donghoInput)}
+                  className={SEARCH_BTN}
+                >
+                  조회
+                </button>
+              </>
+            }
+          >
+            <SearchResultTable
+              title="세입자 조회"
+              columns={TENANT_COLUMNS}
+              rows={tenantRows}
+              placeholder={keyword ? NO_RESULT : PLACEHOLDER}
+              onJump={handleJump}
+            />
+            <SearchResultTable
+              title="건물주 조회"
+              columns={OWNER_COLUMNS}
+              rows={ownerRows}
+              placeholder={keyword ? NO_RESULT : PLACEHOLDER}
+              onJump={handleJump}
+            />
+          </SearchSection>
+        </div>
+
+        {/* 닫기 */}
+        <div className="flex justify-end pt-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-10 items-center rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold text-t2 hover:bg-bg"
+          >
+            닫기
+          </button>
+        </div>
+      </section>
+    </div>
   );
 }
