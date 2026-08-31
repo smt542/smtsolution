@@ -14,6 +14,11 @@ function isBare(pathname: string): boolean {
   return pathname === "/" || pathname.startsWith("/staff/login");
 }
 
+/** Figma 자체 62px 헤더를 렌더하는 화면. */
+function hasIntegratedHeader(pathname: string): boolean {
+  return pathname.startsWith("/staff/buildings/new-v2");
+}
+
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -31,9 +36,11 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* Main column */}
       <div className="flex flex-col flex-1 min-w-0 print:block">
-        <div className="print:hidden">
-          <Topbar onMenu={() => setDrawerOpen(true)} />
-        </div>
+        {!hasIntegratedHeader(pathname) && (
+          <div className="print:hidden">
+            <Topbar onMenu={() => setDrawerOpen(true)} />
+          </div>
+        )}
         <main className="flex-1 overflow-auto print:overflow-visible">
           {children}
         </main>
