@@ -1,10 +1,11 @@
 "use client";
 
+import Image from "next/image";
+
 export type OutputDocumentType = "giro" | "adjustment" | "autoDebit" | "fax";
 
 interface DocumentCardsProps {
   onOpen: (type: OutputDocumentType) => void;
-  onOpenA4: () => void;
 }
 
 interface DocumentCardDefinition {
@@ -12,91 +13,110 @@ interface DocumentCardDefinition {
   icon: string;
   title: string;
   description: string;
-  badge?: string;
 }
 
 interface DocumentCardGroup {
   title: string;
-  description: string;
   cards: DocumentCardDefinition[];
 }
 
 const groups: DocumentCardGroup[] = [
   {
     title: "고지서 출력",
-    description: "확정된 부과 자료로 세대별 고지서를 발행합니다.",
     cards: [
-      { type: "giro" as const, icon: "▦", title: "지로 고지서", description: "QR·자동이체 표시가 포함된 지로형 고지서" },
+      {
+        type: "giro",
+        icon: "/figma-assets/bill/document-giro.svg",
+        title: "지로 고지서",
+        description: "지로 용지에 맞춰 출력합니다 · QR·회사명·자동이체 표시 자동 포함",
+      },
     ],
   },
   {
     title: "부속 서류",
-    description: "부과 검토와 자동이체 업무에 필요한 서류입니다.",
     cards: [
-      { type: "adjustment" as const, icon: "±", title: "조정명세서", description: "전월 대비 세대별 부과 조정 내역" },
-      { type: "autoDebit" as const, icon: "↓", title: "자동이체 세대 출력", description: "기존 수납 CMS 엑셀을 건물별로 내려받기" },
+      {
+        type: "adjustment",
+        icon: "/figma-assets/bill/document-adjustment.svg",
+        title: "조정명세서",
+        description: "전월 대비 조정 내역을 건물별로 출력합니다",
+      },
+      {
+        type: "autoDebit",
+        icon: "/figma-assets/bill/document-autodebit.svg",
+        title: "자동이체 세대 출력",
+        description: "자동이체 세대 목록과 청구 금액을 출력합니다",
+      },
     ],
   },
   {
     title: "발송",
-    description: "외부 채널을 통한 문서 발송 기능입니다.",
     cards: [
-      { type: "fax" as const, icon: "↗", title: "팩스 발송", description: "팩스번호가 등록된 선택 세대 일괄 발송" },
+      {
+        type: "fax",
+        icon: "/figma-assets/bill/document-fax.svg",
+        title: "팩스 발송",
+        description: "건물주·관계처에 팩스로 발송합니다",
+      },
     ],
   },
 ];
 
-export function DocumentCards({ onOpen, onOpenA4 }: DocumentCardsProps) {
+export function DocumentCards({ onOpen }: DocumentCardsProps) {
   return (
-    <div className="space-y-7">
-      {groups.map((group) => (
-        <section key={group.title} aria-labelledby={`document-group-${group.title}`}>
-          <div className="mb-3">
-            <h2 id={`document-group-${group.title}`} className="text-base font-extrabold text-t1">
-              {group.title}
-            </h2>
-            <p className="mt-1 text-sm text-t3">{group.description}</p>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {group.cards.map((card) => (
-              <button
-                key={card.type}
-                type="button"
-                onClick={() => onOpen(card.type)}
-                className="group min-h-36 rounded-2xl border border-line bg-surface p-5 text-left shadow-card transition hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-pop"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <span aria-hidden="true" className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-t text-xl font-black text-brand">
-                    {card.icon}
-                  </span>
-                  {card.badge && (
-                    <span className="rounded-full bg-bg px-2.5 py-1 text-[11px] font-bold text-t3">
-                      {card.badge}
-                    </span>
-                  )}
-                </div>
-                <strong className="mt-5 block text-base text-t1 group-hover:text-brand">{card.title}</strong>
-                <span className="mt-1.5 block text-sm leading-5 text-t3">{card.description}</span>
-              </button>
-            ))}
-          </div>
-        </section>
-      ))}
+    <div className="flex flex-col gap-[16px]">
+      {groups.map((group) => {
+        const headingId = `document-group-${group.title}`;
 
-      <section aria-labelledby="legacy-document-group">
-        <div className="mb-3">
-          <h2 id="legacy-document-group" className="text-base font-extrabold text-t1">기존 서식</h2>
-          <p className="mt-1 text-sm text-t3">기존 A4 고지서 발행·문자 발송 흐름을 그대로 사용할 수 있습니다.</p>
-        </div>
-        <button
-          type="button"
-          onClick={onOpenA4}
-          className="w-full rounded-2xl border border-dashed border-line bg-surface p-5 text-left shadow-card transition hover:border-brand/40 md:max-w-md"
-        >
-          <strong className="text-base text-t1">A4 관리비 고지서</strong>
-          <span className="mt-1.5 block text-sm text-t3">기존 세대 선택·미리보기·인쇄 화면 열기</span>
-        </button>
-      </section>
+        return (
+          <section key={group.title} aria-labelledby={headingId} className="flex flex-col gap-[9px]">
+            <div className="px-[2px]">
+              <h2
+                id={headingId}
+                className="text-[12.5px] font-extrabold leading-[19px] tracking-[0.01em] text-[#8b95a1]"
+              >
+                {group.title}
+              </h2>
+            </div>
+
+            <div className="flex flex-col gap-[9px]">
+              {group.cards.map((card) => (
+                <button
+                  key={card.type}
+                  type="button"
+                  onClick={() => onOpen(card.type)}
+                  className="group flex h-[78px] w-full items-center gap-[14px] rounded-[15px] border border-[#e8ebee] bg-white px-[18px] py-[16px] text-left transition-colors hover:border-[#14a497]/40 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#e2f5f1]"
+                >
+                  <span
+                    aria-hidden="true"
+                    className="flex size-[44px] shrink-0 items-center justify-center rounded-[13px] bg-[#e2f5f1]"
+                  >
+                    <Image src={card.icon} alt="" width={22} height={22} className="size-[22px]" />
+                  </span>
+
+                  <span className="min-w-0 flex-1">
+                    <strong className="block text-[15px] font-extrabold leading-[18px] tracking-[-0.02em] text-[#191f28]">
+                      {card.title}
+                    </strong>
+                    <span className="block pt-[4px] text-[12.5px] font-normal leading-[19px] text-[#8b95a1]">
+                      {card.description}
+                    </span>
+                  </span>
+
+                  <Image
+                    aria-hidden="true"
+                    src="/figma-assets/bill/chevron-right.svg"
+                    alt=""
+                    width={18}
+                    height={18}
+                    className="size-[18px] shrink-0 transition-transform group-hover:translate-x-px"
+                  />
+                </button>
+              ))}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }

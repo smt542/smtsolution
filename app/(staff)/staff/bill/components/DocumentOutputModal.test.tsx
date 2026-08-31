@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { sendFax, recordDelivery, useQueries } = vi.hoisted(() => ({
@@ -89,8 +89,11 @@ describe("DocumentOutputModal 팩스", () => {
       />,
     );
 
-    fireEvent.click(screen.getByLabelText("행복빌라 · 101호 · 홍길동"));
-    fireEvent.click(screen.getByRole("button", { name: "선택 1세대 팩스 발송" }));
+    const openConfirm = screen.getByRole("button", { name: "발송" });
+    await waitFor(() => expect(openConfirm).toBeEnabled());
+    fireEvent.click(openConfirm);
+    const dialogs = screen.getAllByRole("dialog");
+    fireEvent.click(within(dialogs[1]).getByRole("button", { name: "발송" }));
 
     await waitFor(() => expect(sendFax).toHaveBeenCalledWith({
       buildingId: 7,

@@ -150,6 +150,7 @@ export function Sidebar() {
   const logout = useLogout();
   const [activeUtilityType, setActiveUtilityType] = useState<"electricity" | "water" | "gas">("gas");
   const isUtilitiesPage = pathname.startsWith("/staff/utilities");
+  const isBillPage = pathname.startsWith("/staff/bill");
   const isCustomerNumbersPage = pathname.startsWith("/staff/customer-numbers");
   const isUtilitiesSection = isUtilitiesPage || isCustomerNumbersPage;
   const visibleItems = OFFICE_NAV_ITEMS.filter((item) =>
@@ -235,17 +236,19 @@ export function Sidebar() {
       {/* Sidebar footer — user info + logout */}
       {me && (
         <div className="mt-auto flex flex-col gap-1.5">
-          <div className="flex items-center gap-[10px] p-[10px] rounded-xl bg-bg">
-            <div className="w-[34px] h-[34px] rounded-full bg-[#DCE3EA] flex items-center justify-center text-[14px] font-bold text-t2 flex-none select-none">
-              {me.fullName.charAt(0)}
-            </div>
-            <div className="min-w-0">
-              <div className="text-[13px] font-bold text-t1 truncate">{me.fullName}</div>
-              <div className="text-[11px] text-t3 truncate">
-                {me.username} · {roleLabel(me.role)}
+          {!isBillPage && (
+            <div className="flex items-center gap-[10px] p-[10px] rounded-xl bg-bg">
+              <div className="w-[34px] h-[34px] rounded-full bg-[#DCE3EA] flex items-center justify-center text-[14px] font-bold text-t2 flex-none select-none">
+                {me.fullName.charAt(0)}
+              </div>
+              <div className="min-w-0">
+                <div className="text-[13px] font-bold text-t1 truncate">{me.fullName}</div>
+                <div className="text-[11px] text-t3 truncate">
+                  {me.username} · {roleLabel(me.role)}
+                </div>
               </div>
             </div>
-          </div>
+          )}
           <button
             type="button"
             onClick={() => void handleLogout()}
