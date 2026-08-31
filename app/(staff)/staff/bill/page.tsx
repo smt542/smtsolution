@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import dynamic from "next/dynamic";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button, Select, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
@@ -28,11 +29,25 @@ import {
   formatPeriodMonth,
   formatUnit,
 } from "@/lib/messaging/vars";
-import { MessagingModal } from "@/app/(staff)/staff/messaging/components/MessagingModal";
+import type { MessagingModalProps } from "@/app/(staff)/staff/messaging/components/MessagingModal";
 import { BillTargetTable } from "./components/BillTargetTable";
-import { BillPrintView } from "./components/BillPrintView";
+import type { BillPrintViewProps } from "./components/BillPrintView";
 import { DocumentCards, type OutputDocumentType } from "./components/DocumentCards";
-import { DocumentOutputModal } from "./components/DocumentOutputModal";
+import type { DocumentOutputModalProps } from "./components/DocumentOutputModal";
+
+const MessagingModal = dynamic<MessagingModalProps>(() =>
+  import("@/app/(staff)/staff/messaging/components/MessagingModal").then(
+    (module) => module.MessagingModal,
+  ),
+);
+const BillPrintView = dynamic<BillPrintViewProps>(() =>
+  import("./components/BillPrintView").then((module) => module.BillPrintView),
+);
+const DocumentOutputModal = dynamic<DocumentOutputModalProps>(() =>
+  import("./components/DocumentOutputModal").then(
+    (module) => module.DocumentOutputModal,
+  ),
+);
 
 interface LegacyA4WorkspaceProps {
   buildings: Building[];
@@ -49,6 +64,11 @@ function LegacyA4Workspace({ buildings, config, onBack }: LegacyA4WorkspaceProps
   const [sendOpen, setSendOpen] = useState(false);
   const [messageRecipients, setMessageRecipients] = useState<MessageRecipient[]>([]);
   const [waterCutoffOverrides, setWaterCutoffOverrides] = useState<Record<number, boolean>>({});
+  const [printViewRequested, setPrintViewRequested] = useState(false);
+  const [printViewReady, setPrintViewReady] = useState(false);
+  const [printRequest, setPrintRequest] = useState<{ id: number; count: number } | null>(null);
+  const nextPrintRequestId = useRef(0);
+  const lastPrintedRequestId = useRef(0);
 
   const { data: targets, isLoading, refetch: refetchTargets } = useBillTargets(buildingId, period);
   const { data: documents } = useBillDocuments(buildingId, period, selected);
@@ -63,6 +83,14 @@ function LegacyA4Workspace({ buildings, config, onBack }: LegacyA4WorkspaceProps
     waterCutoff: waterCutoffOverrides[target.unitId] ?? target.waterCutoff,
   }));
   const waterCutoffUnitIds = rows.filter((target) => target.waterCutoff).map((target) => target.unitId);
+  const handlePrintViewReady = useCallback(() => setPrintViewReady(true), []);
+
+  useEffect(() => {
+    if (!printViewReady || !printRequest || lastPrintedRequestId.current === printRequest.id) return;
+    lastPrintedRequestId.current = printRequest.id;
+    window.print();
+    toast.success(`${printRequest.count}세대 고지서를 발행했습니다`);
+  }, [printRequest, printViewReady]);
 
   const toggle = (id: number) => setSelected((current) =>
     current.includes(id) ? current.filter((value) => value !== id) : [...current, id],
@@ -87,8 +115,8 @@ function LegacyA4Workspace({ buildings, config, onBack }: LegacyA4WorkspaceProps
         unitLabelMode: labelMode,
         waterCutoffUnitIds: waterCutoffUnitIds.filter((unitId) => selected.includes(unitId)),
       });
-      window.print();
-      toast.success(`${selected.length}세대 고지서를 발행했습니다`);
+      setPrintViewRequested(true);
+      setPrintRequest({ id: ++nextPrintRequestId.current, count: selected.length });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "발행에 실패했습니다.");
     }
@@ -267,63 +295,65 @@ function LegacyA4Workspace({ buildings, config, onBack }: LegacyA4WorkspaceProps
           />
         )}
 
-        <MessagingModal
-          open={sendOpen}
-          onClose={() => setSendOpen(false)}
-          preset={{
-            context: "고지서",
-            buildingId: buildingId ?? undefined,
-            channel: "alimtalk",
-            mode: "alimtalk",
-            templateTitle: "관리비 고지서",
-            recipients: sendOpen ? messageRecipients : recipients,
-            commonVariables: {
-              건물명: building?.name ?? "",
-              관리사무소연락처: orgContact?.phone ?? "",
-            },
-          }}
-          onSent={async (result) => {
-            if (!buildingId) return;
-            const deliveredUnitIds = [...new Set(result.recipients
-              .map((recipient) => recipient.ref?.unitId)
-              .filter((unitId): unitId is number => unitId !== undefined))];
-            try {
-              // 카톡 고지서: 예약은 scheduled로, 즉시 접수는 queued로 기록한다(접수≠발송 성공).
-              // 최종 확정(sent/partial/failed)은 message_logs 재조회 정산이 message_log_id 연결로 담당한다.
-              const scheduled = result.status === "scheduled";
-              await recordDelivery.mutateAsync({
-                buildingId,
-                period,
-                unitIds: deliveredUnitIds,
-                issueType: "kakao",
-                sendStatus: scheduled ? "scheduled" : "queued",
-                messageLogId: scheduled ? null : result.logId,
-                messageScheduleId: scheduled ? result.logId : null,
-                scheduledAt: result.scheduledAt,
-              });
-              setSendOpen(false);
-            } catch {
-              toast.error("발송 상태를 저장하지 못했습니다.");
-            }
-          }}
-          onFailed={async () => {
-            if (!buildingId) return;
-            try {
-              await recordDelivery.mutateAsync({
-                buildingId,
-                period,
-                unitIds: selected,
-                issueType: "kakao",
-                sendStatus: "failed",
-              });
-            } catch {
-              // 원 발송 오류 토스트를 유지하고 상태 기록 실패는 별도 전파하지 않는다.
-            }
-          }}
-        />
+        {sendOpen && (
+          <MessagingModal
+            open
+            onClose={() => setSendOpen(false)}
+            preset={{
+              context: "고지서",
+              buildingId: buildingId ?? undefined,
+              channel: "alimtalk",
+              mode: "alimtalk",
+              templateTitle: "관리비 고지서",
+              recipients: sendOpen ? messageRecipients : recipients,
+              commonVariables: {
+                건물명: building?.name ?? "",
+                관리사무소연락처: orgContact?.phone ?? "",
+              },
+            }}
+            onSent={async (result) => {
+              if (!buildingId) return;
+              const deliveredUnitIds = [...new Set(result.recipients
+                .map((recipient) => recipient.ref?.unitId)
+                .filter((unitId): unitId is number => unitId !== undefined))];
+              try {
+                // 카톡 고지서: 예약은 scheduled로, 즉시 접수는 queued로 기록한다(접수≠발송 성공).
+                // 최종 확정(sent/partial/failed)은 message_logs 재조회 정산이 message_log_id 연결로 담당한다.
+                const scheduled = result.status === "scheduled";
+                await recordDelivery.mutateAsync({
+                  buildingId,
+                  period,
+                  unitIds: deliveredUnitIds,
+                  issueType: "kakao",
+                  sendStatus: scheduled ? "scheduled" : "queued",
+                  messageLogId: scheduled ? null : result.logId,
+                  messageScheduleId: scheduled ? result.logId : null,
+                  scheduledAt: result.scheduledAt,
+                });
+                setSendOpen(false);
+              } catch {
+                toast.error("발송 상태를 저장하지 못했습니다.");
+              }
+            }}
+            onFailed={async () => {
+              if (!buildingId) return;
+              try {
+                await recordDelivery.mutateAsync({
+                  buildingId,
+                  period,
+                  unitIds: selected,
+                  issueType: "kakao",
+                  sendStatus: "failed",
+                });
+              } catch {
+                // 원 발송 오류 토스트를 유지하고 상태 기록 실패는 별도 전파하지 않는다.
+              }
+            }}
+          />
+        )}
       </div>
 
-      {building && documents && (
+      {printViewRequested && building && documents && (
         <BillPrintView
           buildingName={building.name}
           period={period}
@@ -333,6 +363,7 @@ function LegacyA4Workspace({ buildings, config, onBack }: LegacyA4WorkspaceProps
           customerNotice={config?.customerNotice ?? null}
           documents={documents}
           waterCutoffUnitIds={waterCutoffUnitIds.filter((unitId) => selected.includes(unitId))}
+          onReady={handlePrintViewReady}
         />
       )}
     </>

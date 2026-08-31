@@ -17,6 +17,12 @@ function ctxRpc(ctx: unknown, accounts: unknown[]) {
       ? Promise.resolve({ data: accounts, error: null })
       : Promise.resolve({ error: null }));
 }
+function membershipFrom(count: number) {
+  const secondEq = vi.fn().mockResolvedValue({ count, error: null });
+  const firstEq = vi.fn(() => ({ eq: secondEq }));
+  const select = vi.fn(() => ({ eq: firstEq }));
+  return vi.fn(() => ({ select }));
+}
 const params = Promise.resolve({ userId: "target-uid" });
 function req(body: unknown) {
   return new Request("http://localhost/api/accounts/target-uid", {
@@ -46,6 +52,7 @@ describe("PATCH /api/accounts/:userId", () => {
     createClient.mockResolvedValue({
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }) },
       rpc: ctxRpc({ org_id: 1, role: "org_owner", permissions: [] }, [{ user_id: "target-uid" }]),
+      from: membershipFrom(1),
     });
     const updateUserById = vi.fn().mockResolvedValue({ error: null });
     createAdminClient.mockReturnValue({ auth: { admin: { updateUserById } } });
@@ -58,6 +65,7 @@ describe("PATCH /api/accounts/:userId", () => {
     createClient.mockResolvedValue({
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }) },
       rpc: ctxRpc({ org_id: 1, role: "org_owner", permissions: [] }, []),
+      from: membershipFrom(0),
     });
     const updateUserById = vi.fn().mockResolvedValue({ error: null });
     createAdminClient.mockReturnValue({ auth: { admin: { updateUserById } } });
@@ -70,6 +78,7 @@ describe("PATCH /api/accounts/:userId", () => {
     createClient.mockResolvedValue({
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }) },
       rpc: ctxRpc({ org_id: 1, role: "org_owner", permissions: [] }, [{ user_id: "target-uid" }]),
+      from: membershipFrom(1),
     });
     const updateUserById = vi.fn().mockResolvedValue({ error: null });
     createAdminClient.mockReturnValue({ auth: { admin: { updateUserById } } });
@@ -82,6 +91,7 @@ describe("PATCH /api/accounts/:userId", () => {
     createClient.mockResolvedValue({
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }) },
       rpc: ctxRpc({ org_id: 1, role: "org_owner", permissions: [] }, [{ user_id: "target-uid" }]),
+      from: membershipFrom(1),
     });
     const updateUserById = vi.fn().mockResolvedValue({ error: null });
     createAdminClient.mockReturnValue({ auth: { admin: { updateUserById } } });

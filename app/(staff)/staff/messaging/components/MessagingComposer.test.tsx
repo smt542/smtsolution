@@ -426,7 +426,7 @@ describe("MessagingComposer", () => {
     );
     expect(screen.getByText("예상 알림톡")).toBeInTheDocument();
     expect(
-      screen.getByText("김입주님 101호 그린빌라 관리비를 확인해 주세요."),
+      await screen.findByText("김입주님 101호 그린빌라 관리비를 확인해 주세요."),
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "발송" }));
@@ -622,7 +622,7 @@ describe("MessagingComposer", () => {
     expect(key1).not.toBe(key2);
   });
 
-  it("견적 입력에 수신자별 최종 renderedBody를 담아 SMS/LMS 판정을 접수와 일치시킨다(개인화 2명)", () => {
+  it("견적 입력에 수신자별 최종 renderedBody를 담아 SMS/LMS 판정을 접수와 일치시킨다(개인화 2명)", async () => {
     vi.mocked(useTenantList).mockReturnValue({
       data: [
         { ...tenants[0], unitId: 11, occupancyId: 101, unitNo: "101호", tenantName: "김일", phone: "010-1000-0001" },
@@ -639,14 +639,16 @@ describe("MessagingComposer", () => {
     fireEvent.click(screen.getByLabelText(/101호 · 김일/));
     fireEvent.click(screen.getByLabelText(/102호 · 이이/));
 
-    const calls = vi.mocked(useMessagePointQuote).mock.calls;
-    const lastInput = calls[calls.length - 1][0];
-    expect(lastInput).not.toBeNull();
-    const bodies = (lastInput!.recipients as Array<{ renderedBody?: string }>).map(
-      (r) => r.renderedBody,
-    );
-    expect(bodies).toContain("김일님 관리비 안내");
-    expect(bodies).toContain("이이님 관리비 안내");
+    await waitFor(() => {
+      const calls = vi.mocked(useMessagePointQuote).mock.calls;
+      const lastInput = calls[calls.length - 1][0];
+      expect(lastInput).not.toBeNull();
+      const bodies = (lastInput!.recipients as Array<{ renderedBody?: string }>).map(
+        (r) => r.renderedBody,
+      );
+      expect(bodies).toContain("김일님 관리비 안내");
+      expect(bodies).toContain("이이님 관리비 안내");
+    });
   });
 
   it("공통 변수와 수신자별 변수를 우선순위대로 병합해 두 수신자의 본문을 완전히 렌더한다", () => {

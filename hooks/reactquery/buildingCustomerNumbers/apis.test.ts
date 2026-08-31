@@ -11,16 +11,19 @@ function mockLookupQuery(data: unknown[] = []) {
     eq: ReturnType<typeof vi.fn>;
     or: ReturnType<typeof vi.fn>;
     order: ReturnType<typeof vi.fn>;
+    range: ReturnType<typeof vi.fn>;
   } = {
     is: vi.fn(),
     eq: vi.fn(),
     or: vi.fn(),
     order: vi.fn(),
+    range: vi.fn(),
   };
   query.is.mockReturnValue(query);
   query.eq.mockReturnValue(query);
   query.or.mockReturnValue(query);
-  query.order.mockReturnValueOnce(query).mockResolvedValueOnce({ data, error: null });
+  query.order.mockReturnValue(query);
+  query.range.mockResolvedValue({ data, count: data.length, error: null });
   const select = vi.fn(() => query);
   from.mockReturnValue({ select });
   return { query, select };
@@ -55,11 +58,13 @@ describe("buildingCustomerNumbers apis", () => {
     expect(from).toHaveBeenCalledWith("building_customer_numbers");
     expect(select).toHaveBeenCalledWith(
       "id, kind, customer_no, meter_day, billing_basis, print_on_bill, holder_name, building_id, buildings!inner(id, name)",
+      { count: "exact" },
     );
     expect(query.is).toHaveBeenCalledWith("deleted_at", null);
     expect(query.eq).not.toHaveBeenCalled();
     expect(query.or).not.toHaveBeenCalled();
     expect(query.order.mock.calls).toEqual([["building_id"], ["sort_order"]]);
+    expect(query.range).toHaveBeenCalledWith(0, 49);
   });
 
   it("listCustomerNumbers: applies building and kind filters", async () => {
@@ -100,8 +105,8 @@ describe("buildingCustomerNumbers apis", () => {
 
     const result = await listCustomerNumbers({});
 
-    expect(result).toEqual([
-      {
+    expect(result).toEqual({
+      rows: [{
         id: 11,
         buildingId: 7,
         buildingName: "해오름빌딩",
@@ -111,7 +116,8 @@ describe("buildingCustomerNumbers apis", () => {
         billingBasis: "prev",
         printOnBill: false,
         holderName: null,
-      },
-    ]);
+      }],
+      total: 1,
+    });
   });
 });

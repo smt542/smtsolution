@@ -7,6 +7,13 @@ export interface CustomerNumberFilters {
   buildingId?: number | null;
   kind?: CustomerNumberKind | null;
   q?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CustomerNumberLookupResult {
+  rows: CustomerNumberLookupRow[];
+  total: number;
 }
 
 export interface CustomerNumberLookupRow {
@@ -62,20 +69,34 @@ export async function listCustomerNumbersByBuilding(buildingId: number): Promise
   return (data ?? []).map(toCustomerNumber);
 }
 
-export async function listCustomerNumbers(filters: CustomerNumberFilters): Promise<CustomerNumberLookupRow[]> {
+export async function listCustomerNumbers(
+  filters: CustomerNumberFilters,
+): Promise<CustomerNumberLookupResult> {
+  const page = Math.max(1, filters.page ?? 1);
+  const pageSize = Math.min(100, Math.max(1, filters.pageSize ?? 50));
+  const firstRow = (page - 1) * pageSize;
   let query = createClient()
     .from("building_customer_numbers")
-    .select("id, kind, customer_no, meter_day, billing_basis, print_on_bill, holder_name, building_id, buildings!inner(id, name)")
+    .select(
+      "id, kind, customer_no, meter_day, billing_basis, print_on_bill, holder_name, building_id, buildings!inner(id, name)",
+      { count: "exact" },
+    )
     .is("deleted_at", null);
   if (filters.buildingId != null) query = query.eq("building_id", filters.buildingId);
   if (filters.kind) query = query.eq("kind", filters.kind);
   const q = filters.q?.trim();
   if (q) query = query.or(`customer_no.ilike.%${q}%,holder_name.ilike.%${q}%`);
-  const { data, error } = await query.order("building_id").order("sort_order");
+  const { data, count, error } = await query
+    .order("building_id")
+    .order("sort_order")
+    .range(firstRow, firstRow + pageSize - 1);
   if (error) throw new Error(error.message);
-  return ((data ?? []) as unknown as CustomerNumberDbRow[]).map((r) => ({
-    id: r.id, buildingId: r.building_id, buildingName: r.buildings?.name ?? "",
-    kind: r.kind, customerNo: r.customer_no, meterDay: r.meter_day,
-    billingBasis: r.billing_basis, printOnBill: r.print_on_bill, holderName: r.holder_name,
-  }));
+  return {
+    rows: ((data ?? []) as unknown as CustomerNumberDbRow[]).map((r) => ({
+      id: r.id, buildingId: r.building_id, buildingName: r.buildings?.name ?? "",
+      kind: r.kind, customerNo: r.customer_no, meterDay: r.meter_day,
+      billingBasis: r.billing_basis, printOnBill: r.print_on_bill, holderName: r.holder_name,
+    })),
+    total: count ?? 0,
+  };
 }

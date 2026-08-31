@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import dynamic from "next/dynamic";
+import { useCallback, useMemo, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button, Checkbox, SearchBar, Select, Spinner } from "@/components/common";
@@ -21,11 +22,27 @@ import {
 import { cmsDownloadUrl } from "@/hooks/reactquery/payments";
 import { currentPeriod, prevPeriod } from "@/lib/billing/period";
 import type { PrintableAccount } from "@/lib/bill/document";
-import { AdjustmentPrintView, type AdjustmentBuildingDocuments } from "./AdjustmentPrintView";
-import { GiroPrintView, type GiroOutputDocument, type GiroStampOptions } from "./GiroPrintView";
+import type {
+  AdjustmentBuildingDocuments,
+  AdjustmentPrintViewProps,
+} from "./AdjustmentPrintView";
+import type {
+  GiroOutputDocument,
+  GiroPrintViewProps,
+  GiroStampOptions,
+} from "./GiroPrintView";
 import type { OutputDocumentType } from "./DocumentCards";
 
-interface DocumentOutputModalProps {
+const AdjustmentPrintView = dynamic<AdjustmentPrintViewProps>(() =>
+  import("./AdjustmentPrintView").then((module) => module.AdjustmentPrintView),
+  { loading: () => <Spinner /> },
+);
+const GiroPrintView = dynamic<GiroPrintViewProps>(() =>
+  import("./GiroPrintView").then((module) => module.GiroPrintView),
+  { loading: () => <Spinner /> },
+);
+
+export interface DocumentOutputModalProps {
   type: OutputDocumentType;
   buildings: Building[];
   companyName: string;
@@ -100,8 +117,10 @@ export function DocumentOutputModal({
   const [waterCutoffOverrides, setWaterCutoffOverrides] = useState<Record<number, boolean>>({});
   const [selectedFaxUnitIds, setSelectedFaxUnitIds] = useState<number[]>([]);
   const [faxError, setFaxError] = useState(false);
+  const [previewReady, setPreviewReady] = useState(false);
   const issueBills = useIssueBills();
   const sendFaxes = useSendBillFaxes();
+  const handlePreviewReady = useCallback(() => setPreviewReady(true), []);
 
   const period = outputPeriod(year, month);
   const previousPeriod = prevPeriod(period);
@@ -297,9 +316,15 @@ export function DocumentOutputModal({
       accounts={accounts}
       customerNotice={customerNotice}
       stamps={{ ...stamps, waterCutoffUnitIds }}
+      onReady={handlePreviewReady}
     />
   ) : type === "adjustment" ? (
-    <AdjustmentPrintView companyName={companyName} period={period} buildings={adjustmentBuildings} />
+    <AdjustmentPrintView
+      companyName={companyName}
+      period={period}
+      buildings={adjustmentBuildings}
+      onReady={handlePreviewReady}
+    />
   ) : null;
 
   return (
@@ -524,7 +549,7 @@ export function DocumentOutputModal({
             <div className="flex gap-2">
               <Button type="button" variant="ghost" onClick={onClose}>닫기</Button>
               {(type === "giro" || type === "adjustment") && (
-                <Button type="button" onClick={() => void print()} disabled={!hasPrintableData || isLoading || issueBills.isPending}>
+                <Button type="button" onClick={() => void print()} disabled={!hasPrintableData || isLoading || !previewReady || issueBills.isPending}>
                   {issueBills.isPending ? "발행 중…" : "인쇄"}
                 </Button>
               )}

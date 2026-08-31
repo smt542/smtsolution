@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button, Checkbox, Panel, Select } from "@/components/common";
-import { useAccounts } from "@/hooks/reactquery/accounts";
-import { useBuildings } from "@/hooks/reactquery/buildings";
+import { useAccounts, type Account } from "@/hooks/reactquery/accounts";
+import { useBuildings, type Building } from "@/hooks/reactquery/buildings";
 import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates";
 import {
   useMessagePointQuote,
@@ -17,7 +17,7 @@ import {
   useTenantList,
   type TenantListRow,
 } from "@/hooks/reactquery/occupancies";
-import { useQuickMessages } from "@/hooks/reactquery/quickMessages";
+import { useQuickMessages, type QuickMessage } from "@/hooks/reactquery/quickMessages";
 import { formatNumber } from "@/lib/format";
 import { renderTemplate } from "@/lib/messaging/render";
 import {
@@ -66,15 +66,26 @@ function toLocalDateTimeInput(value: string | undefined): string {
   return local.toISOString().slice(0, 16);
 }
 
-function TenantRecipientOption({
+function useDebouncedValue<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setDebouncedValue(value), delay);
+    return () => window.clearTimeout(timeoutId);
+  }, [delay, value]);
+
+  return debouncedValue;
+}
+
+const TenantRecipientOption = memo(function TenantRecipientOption({
   buildingId,
   tenant,
-  selectedKeys,
+  checked,
   onToggle,
 }: {
   buildingId: number;
   tenant: TenantListRow;
-  selectedKeys: Set<string>;
+  checked: boolean;
   onToggle: (recipient: MessageRecipient) => void;
 }) {
   const recipient: MessageRecipient = {
@@ -92,12 +103,253 @@ function TenantRecipientOption({
   return (
     <Checkbox
       label={`${tenant.unitNo} · ${tenant.tenantName ?? "입주자 미등록"} · ${phoneLabel}`}
-      checked={selectedKeys.has(recipientKey(recipient))}
+      checked={checked}
       disabled={!recipient.phone}
       onChange={() => onToggle(recipient)}
     />
   );
+});
+
+const StaffRecipientOption = memo(function StaffRecipientOption({
+  account,
+  checked,
+  onToggle,
+}: {
+  account: Account;
+  checked: boolean;
+  onToggle: (recipient: MessageRecipient) => void;
+}) {
+  const recipient: MessageRecipient = {
+    name: account.fullName,
+    phone: account.phone,
+    kind: "staff",
+    ref: { userId: account.userId },
+  };
+
+  return (
+    <Checkbox
+      label={`${account.fullName} · ${account.phone ?? "연락처 없음"}`}
+      checked={checked}
+      disabled={!recipient.phone}
+      onChange={() => onToggle(recipient)}
+    />
+  );
+});
+
+interface RecipientPreview {
+  recipient: MessageRecipient;
+  channel: MessageChannel | null;
+  renderedBody: string;
 }
+
+const RecipientLists = memo(function RecipientLists({
+  selectedBuildingId,
+  selectedBuilding,
+  occupiedTenants,
+  activeAccounts,
+  selectedKeys,
+  isTenantsLoading,
+  isAccountsLoading,
+  onToggle,
+}: {
+  selectedBuildingId: number;
+  selectedBuilding: Building | undefined;
+  occupiedTenants: TenantListRow[];
+  activeAccounts: Account[];
+  selectedKeys: Set<string>;
+  isTenantsLoading: boolean;
+  isAccountsLoading: boolean;
+  onToggle: (recipient: MessageRecipient) => void;
+}) {
+  const ownerRecipient: MessageRecipient | null = selectedBuilding
+    ? {
+        name: selectedBuilding.ownerName,
+        phone: selectedBuilding.ownerPhone,
+        kind: "owner",
+        ref: { buildingId: selectedBuilding.id },
+      }
+    : null;
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-3">
+      <section
+        aria-labelledby="tenant-recipient-title"
+        className="rounded-xl border border-line p-4"
+      >
+        <h4 id="tenant-recipient-title" className="mb-3 text-sm font-extrabold text-t1">
+          세대
+        </h4>
+        {!selectedBuilding && (
+          <p className="text-sm text-t4">건물을 먼저 선택해 주세요.</p>
+        )}
+        {selectedBuilding && isTenantsLoading && (
+          <p className="text-sm text-t4">세대 목록을 불러오는 중입니다.</p>
+        )}
+        {selectedBuilding && !isTenantsLoading && occupiedTenants.length === 0 && (
+          <p className="text-sm text-t4">선택할 입주 세대가 없습니다.</p>
+        )}
+        <div className="flex max-h-56 flex-col gap-2 overflow-y-auto">
+          {occupiedTenants.map((tenant) => {
+            const tenantKey = `tenant:${tenant.occupancyId ?? ""}:${tenant.phone ?? ""}`;
+            return (
+              <TenantRecipientOption
+                key={tenant.unitId}
+                buildingId={selectedBuildingId}
+                tenant={tenant}
+                checked={selectedKeys.has(tenantKey)}
+                onToggle={onToggle}
+              />
+            );
+          })}
+        </div>
+      </section>
+
+      <section
+        aria-labelledby="owner-recipient-title"
+        className="rounded-xl border border-line p-4"
+      >
+        <h4 id="owner-recipient-title" className="mb-3 text-sm font-extrabold text-t1">
+          건물주
+        </h4>
+        {!ownerRecipient ? (
+          <p className="text-sm text-t4">건물을 먼저 선택해 주세요.</p>
+        ) : (
+          <Checkbox
+            label={`${ownerRecipient.name ?? "건물주"} · ${ownerRecipient.phone ?? "연락처 없음"}`}
+            checked={selectedKeys.has(recipientKey(ownerRecipient))}
+            disabled={!ownerRecipient.phone}
+            onChange={() => onToggle(ownerRecipient)}
+          />
+        )}
+      </section>
+
+      <section
+        aria-labelledby="staff-recipient-title"
+        className="rounded-xl border border-line p-4"
+      >
+        <h4 id="staff-recipient-title" className="mb-3 text-sm font-extrabold text-t1">
+          직원
+        </h4>
+        {isAccountsLoading && (
+          <p className="text-sm text-t4">직원 목록을 불러오는 중입니다.</p>
+        )}
+        {!isAccountsLoading && activeAccounts.length === 0 && (
+          <p className="text-sm text-t4">선택할 직원이 없습니다.</p>
+        )}
+        <div className="flex max-h-56 flex-col gap-2 overflow-y-auto">
+          {activeAccounts.map((account) => (
+            <StaffRecipientOption
+              key={account.userId}
+              account={account}
+              checked={selectedKeys.has(`staff:${account.userId}`)}
+              onToggle={onToggle}
+            />
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+});
+
+const SelectedRecipientList = memo(function SelectedRecipientList({
+  recipients,
+  previewByRecipient,
+}: {
+  recipients: MessageRecipient[];
+  previewByRecipient: Map<string, RecipientPreview>;
+}) {
+  if (recipients.length === 0) return null;
+
+  return (
+    <section aria-label="선택된 수신처">
+      <h4 className="mb-2 text-xs font-bold text-t2">선택된 수신처</h4>
+      <div className="flex flex-wrap gap-2">
+        {recipients.map((recipient, index) => {
+          const preview = previewByRecipient.get(recipientKey(recipient));
+          const channelLabel =
+            preview?.channel === "alimtalk"
+              ? "예상 알림톡"
+              : preview?.channel === "sms"
+                ? "예상 SMS"
+                : "예상 제외";
+
+          return (
+            <div
+              key={`${recipientKey(recipient)}:${index}`}
+              className="rounded-lg bg-bg px-2.5 py-2 text-xs text-t2"
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <span>
+                  {recipient.unitNo ? `${recipient.unitNo} · ` : ""}
+                  {recipient.name ?? "이름 없음"}
+                  {recipient.phone ? ` · ${recipient.phone}` : " · 연락처 없음"}
+                </span>
+                <span
+                  className={`rounded-md px-2 py-0.5 font-bold ${
+                    preview?.channel === null || !preview
+                      ? "bg-danger/10 text-danger"
+                      : "bg-brand/10 text-brand"
+                  }`}
+                >
+                  {channelLabel}
+                </span>
+              </div>
+              {preview && (
+                <p className="mt-1 max-w-xl whitespace-pre-wrap text-t3">
+                  {preview.renderedBody}
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+});
+
+const MessageBodyEditor = memo(function MessageBodyEditor({
+  body,
+  quickMessageId,
+  quickMessages,
+  onBodyChange,
+  onQuickMessageChange,
+}: {
+  body: string;
+  quickMessageId: string;
+  quickMessages: QuickMessage[];
+  onBodyChange: (body: string) => void;
+  onQuickMessageChange: (id: string) => void;
+}) {
+  return (
+    <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
+      <label>
+        <span className="mb-1.5 block text-xs font-bold text-t2">본문</span>
+        <textarea
+          aria-label="본문"
+          value={body}
+          onChange={(event) => onBodyChange(event.target.value)}
+          placeholder="발송할 문자 내용을 입력해 주세요."
+          className="min-h-36 w-full rounded-xl border border-line bg-surface p-4 text-sm text-t1 placeholder:text-t4 focus:border-brand focus:outline-none"
+        />
+      </label>
+      <label>
+        <span className="mb-1.5 block text-xs font-bold text-t2">자주 보내는 문자</span>
+        <Select
+          aria-label="자주 보내는 문자"
+          value={quickMessageId}
+          onChange={(event) => onQuickMessageChange(event.target.value)}
+          options={[
+            { value: "", label: "문구를 선택해 주세요" },
+            ...quickMessages.map((message) => ({
+              value: String(message.id),
+              label: message.title,
+            })),
+          ]}
+        />
+      </label>
+    </div>
+  );
+});
 export function MessagingComposer({
   preset,
   initialMode,
@@ -144,6 +396,7 @@ export function MessagingComposer({
   }, [preset?.templateTitle, templates]);
   const effectiveTemplateId = templateId ?? presetTemplate?.id ?? null;
   const effectiveBody = bodyTouched ? body : (body || presetTemplate?.body || "");
+  const quotedBody = useDebouncedValue(effectiveBody, 400);
 
   const selectedBuilding = buildings.find(
     (building) => building.id === selectedBuildingId,
@@ -166,7 +419,7 @@ export function MessagingComposer({
     () => validRecipients(dedupeRecipients(recipients)),
     [recipients],
   );
-  const recipientPreviews = useMemo(
+  const recipientRoutes = useMemo(
     () =>
       validRecipientList.map((recipient) => {
         const occupancyId = recipient.ref?.occupancyId;
@@ -182,25 +435,33 @@ export function MessagingComposer({
               : mode === "alimtalk"
                 ? null
                 : "sms";
-        const renderedBody = renderTemplate(
-          effectiveBody,
+        return { recipient, channel };
+      }),
+    [
+      consentByOccupancy,
+      mode,
+      validRecipientList,
+    ],
+  );
+  const renderRecipientPreviews = useCallback(
+    (renderBody: string): RecipientPreview[] =>
+      recipientRoutes.map(({ recipient, channel }) => ({
+        recipient,
+        channel,
+        renderedBody: renderTemplate(
+          renderBody,
           buildRecipientRenderVariables(
             recipient,
             preset?.commonVariables,
             selectedBuilding?.name,
           ),
-        );
-
-        return { recipient, channel, renderedBody };
-      }),
-    [
-      consentByOccupancy,
-      effectiveBody,
-      mode,
-      preset?.commonVariables,
-      selectedBuilding?.name,
-      validRecipientList,
-    ],
+        ),
+      })),
+    [preset?.commonVariables, recipientRoutes, selectedBuilding?.name],
+  );
+  const recipientPreviews = useMemo(
+    () => renderRecipientPreviews(quotedBody),
+    [quotedBody, renderRecipientPreviews],
   );
   const sendRecipients = useMemo<ResolvedRecipient[]>(
     () =>
@@ -230,27 +491,16 @@ export function MessagingComposer({
             mode,
             recipients: submissionRecipients,
             templateId: mode === "sms" ? null : effectiveTemplateId,
-            body: effectiveBody,
+            body: quotedBody,
           }
         : null,
-    [effectiveBody, effectiveTemplateId, mode, submissionRecipients, validRecipientList.length],
+    [effectiveTemplateId, mode, quotedBody, submissionRecipients, validRecipientList.length],
   );
   const pointQuote = useMessagePointQuote(quoteInput);
   // 멱등 키: 한 논리적 발송 시도를 식별한다. 초안이 실질적으로 바뀌면 서명이 달라져 회전하고,
   // 같은 초안의 중복 클릭·재시도는 같은 키를 재사용한다. 성공 후에는 idemRef를 비워 회전한다.
   // 초안 서명은 모든 material 필드(mode·body·context·effective templateId·완전한 수신자)를 담는다.
   // 수신자 identity/ref가 바뀌면 서명이 달라져 키가 회전하므로, 대상이 바뀐 발송이 stale 키를 재사용하지 않는다.
-  const draftSignature = useMemo(
-    () =>
-      canonicalSendPayload({
-        mode,
-        body: effectiveBody,
-        context: preset?.context ?? "manual",
-        templateId: mode === "sms" ? null : effectiveTemplateId,
-        recipients: submissionRecipients,
-      }),
-    [effectiveBody, effectiveTemplateId, mode, preset?.context, submissionRecipients],
-  );
   const idempotencyRef = useRef<IdempotencyState | null>(null);
   const previewByRecipient = useMemo(
     () =>
@@ -265,11 +515,16 @@ export function MessagingComposer({
   const validCount = pointQuote.data?.recipientCount ?? sendRecipients.length;
   const excludedCount =
     pointQuote.data?.excludedCount ?? validRecipientList.length - sendRecipients.length;
-  const activeAccounts = accounts.filter((account) => account.isActive);
-  const occupiedTenants = tenants.filter(
-    (tenant) => !tenant.isVacant && tenant.occupancyId !== null,
+  const activeAccounts = useMemo(
+    () => accounts.filter((account) => account.isActive),
+    [accounts],
+  );
+  const occupiedTenants = useMemo(
+    () => tenants.filter((tenant) => !tenant.isVacant && tenant.occupancyId !== null),
+    [tenants],
   );
   const quoteAllowsSend =
+    effectiveBody === quotedBody &&
     pointQuote.data !== undefined &&
     !pointQuote.isFetching &&
     pointQuote.data.sufficient;
@@ -280,16 +535,21 @@ export function MessagingComposer({
     (sendTiming === "now" || scheduledAt.length > 0) &&
     quoteAllowsSend;
 
-  const toggleRecipient = (recipient: MessageRecipient) => {
+  const toggleRecipient = useCallback((recipient: MessageRecipient) => {
     const key = recipientKey(recipient);
     setRecipients((current) =>
       current.some((item) => recipientKey(item) === key)
         ? current.filter((item) => recipientKey(item) !== key)
         : [...current, recipient],
     );
-  };
+  }, []);
 
-  const insertQuickMessage = (id: string) => {
+  const changeBody = useCallback((nextBody: string) => {
+    setBody(nextBody);
+    setBodyTouched(true);
+  }, []);
+
+  const insertQuickMessage = useCallback((id: string) => {
     setQuickMessageId(id);
     const message = quickMessages.find((item) => String(item.id) === id);
     if (!message) return;
@@ -298,7 +558,7 @@ export function MessagingComposer({
     );
     setBodyTouched(true);
     setQuickMessageId("");
-  };
+  }, [quickMessages]);
 
   const selectTemplate = (value: string) => {
     const nextTemplateId = Number(value) || null;
@@ -327,7 +587,7 @@ export function MessagingComposer({
       toast.info("알림톡 수신에 동의한 수신처가 없습니다.");
       return;
     }
-    if (pointQuote.isPending || pointQuote.isFetching) {
+    if (effectiveBody !== quotedBody || pointQuote.isPending || pointQuote.isFetching) {
       toast.info("포인트 견적을 계산하고 있습니다.");
       return;
     }
@@ -356,6 +616,20 @@ export function MessagingComposer({
     const pointNotice = `${validCount}명 · 예상 ${formatNumber(pointQuote.data.estimatedPoints)} P (성공 발송분만 차감)`;
     if (!window.confirm(`${pointNotice}\n${actionLabel}하시겠습니까?`)) return;
 
+    const currentSubmissionRecipients = renderRecipientPreviews(effectiveBody).map(
+      ({ recipient, channel, renderedBody }) => ({
+        ...recipient,
+        channel: channel ?? (mode === "sms" ? "sms" : "alimtalk"),
+        renderedBody,
+      }),
+    );
+    const draftSignature = canonicalSendPayload({
+      mode,
+      body: effectiveBody,
+      context: preset?.context ?? "manual",
+      templateId: mode === "sms" ? null : effectiveTemplateId,
+      recipients: currentSubmissionRecipients,
+    });
     // 같은 초안이면 같은 키(중복 클릭·재시도 안전), 초안이 바뀌면 회전한다.
     const idempotency = resolveIdempotencyKey(idempotencyRef.current, draftSignature, newUuid);
     idempotencyRef.current = idempotency;
@@ -366,7 +640,7 @@ export function MessagingComposer({
         body: effectiveBody,
         context: preset?.context ?? "manual",
         templateId: mode === "sms" ? null : effectiveTemplateId,
-        recipients: submissionRecipients,
+        recipients: currentSubmissionRecipients,
         scheduledAt: scheduledIso,
         idempotencyKey: idempotency.key,
       });
@@ -410,15 +684,6 @@ export function MessagingComposer({
       toast.error(message);
     }
   };
-
-  const ownerRecipient: MessageRecipient | null = selectedBuilding
-    ? {
-        name: selectedBuilding.ownerName,
-        phone: selectedBuilding.ownerPhone,
-        kind: "owner",
-        ref: { buildingId: selectedBuilding.id },
-      }
-    : null;
 
   return (
     <Panel
@@ -489,148 +754,21 @@ export function MessagingComposer({
           </label>
         )}
 
-        <div className="grid gap-4 lg:grid-cols-3">
-          <section
-            aria-labelledby="tenant-recipient-title"
-            className="rounded-xl border border-line p-4"
-          >
-            <h4
-              id="tenant-recipient-title"
-              className="mb-3 text-sm font-extrabold text-t1"
-            >
-              세대
-            </h4>
-            {!selectedBuilding && (
-              <p className="text-sm text-t4">건물을 먼저 선택해 주세요.</p>
-            )}
-            {selectedBuilding && isTenantsLoading && (
-              <p className="text-sm text-t4">세대 목록을 불러오는 중입니다.</p>
-            )}
-            {selectedBuilding &&
-              !isTenantsLoading &&
-              occupiedTenants.length === 0 && (
-                <p className="text-sm text-t4">선택할 입주 세대가 없습니다.</p>
-              )}
-            <div className="flex max-h-56 flex-col gap-2 overflow-y-auto">
-              {occupiedTenants.map((tenant) => (
-                <TenantRecipientOption
-                  key={tenant.unitId}
-                  buildingId={selectedBuildingId}
-                  tenant={tenant}
-                  selectedKeys={selectedKeys}
-                  onToggle={toggleRecipient}
-                />
-              ))}
-            </div>
-          </section>
+        <RecipientLists
+          selectedBuildingId={selectedBuildingId}
+          selectedBuilding={selectedBuilding}
+          occupiedTenants={occupiedTenants}
+          activeAccounts={activeAccounts}
+          selectedKeys={selectedKeys}
+          isTenantsLoading={isTenantsLoading}
+          isAccountsLoading={isAccountsLoading}
+          onToggle={toggleRecipient}
+        />
 
-          <section
-            aria-labelledby="owner-recipient-title"
-            className="rounded-xl border border-line p-4"
-          >
-            <h4
-              id="owner-recipient-title"
-              className="mb-3 text-sm font-extrabold text-t1"
-            >
-              건물주
-            </h4>
-            {!ownerRecipient ? (
-              <p className="text-sm text-t4">건물을 먼저 선택해 주세요.</p>
-            ) : (
-              <Checkbox
-                label={`${ownerRecipient.name ?? "건물주"} · ${ownerRecipient.phone ?? "연락처 없음"}`}
-                checked={selectedKeys.has(recipientKey(ownerRecipient))}
-                disabled={!ownerRecipient.phone}
-                onChange={() => toggleRecipient(ownerRecipient)}
-              />
-            )}
-          </section>
-
-          <section
-            aria-labelledby="staff-recipient-title"
-            className="rounded-xl border border-line p-4"
-          >
-            <h4
-              id="staff-recipient-title"
-              className="mb-3 text-sm font-extrabold text-t1"
-            >
-              직원
-            </h4>
-            {isAccountsLoading && (
-              <p className="text-sm text-t4">직원 목록을 불러오는 중입니다.</p>
-            )}
-            {!isAccountsLoading && activeAccounts.length === 0 && (
-              <p className="text-sm text-t4">선택할 직원이 없습니다.</p>
-            )}
-            <div className="flex max-h-56 flex-col gap-2 overflow-y-auto">
-              {activeAccounts.map((account) => {
-                const recipient: MessageRecipient = {
-                  name: account.fullName,
-                  phone: account.phone,
-                  kind: "staff",
-                  ref: { userId: account.userId },
-                };
-                return (
-                  <Checkbox
-                    key={account.userId}
-                    label={`${account.fullName} · ${account.phone ?? "연락처 없음"}`}
-                    checked={selectedKeys.has(recipientKey(recipient))}
-                    disabled={!recipient.phone}
-                    onChange={() => toggleRecipient(recipient)}
-                  />
-                );
-              })}
-            </div>
-          </section>
-        </div>
-
-        {recipients.length > 0 && (
-          <section aria-label="선택된 수신처">
-            <h4 className="mb-2 text-xs font-bold text-t2">선택된 수신처</h4>
-            <div className="flex flex-wrap gap-2">
-              {recipients.map((recipient, index) => {
-                const preview = previewByRecipient.get(recipientKey(recipient));
-                const channelLabel =
-                  preview?.channel === "alimtalk"
-                    ? "예상 알림톡"
-                    : preview?.channel === "sms"
-                      ? "예상 SMS"
-                      : "예상 제외";
-
-                return (
-                  <div
-                    key={`${recipientKey(recipient)}:${index}`}
-                    className="rounded-lg bg-bg px-2.5 py-2 text-xs text-t2"
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span>
-                        {recipient.unitNo ? `${recipient.unitNo} · ` : ""}
-                        {recipient.name ?? "이름 없음"}
-                        {recipient.phone
-                          ? ` · ${recipient.phone}`
-                          : " · 연락처 없음"}
-                      </span>
-                      <span
-                        className={`rounded-md px-2 py-0.5 font-bold ${
-                          preview?.channel === null || !preview
-                            ? "bg-danger/10 text-danger"
-                            : "bg-brand/10 text-brand"
-                        }`}
-                      >
-                        {channelLabel}
-                      </span>
-                    </div>
-                    {preview && (
-                      <p className="mt-1 max-w-xl whitespace-pre-wrap text-t3">
-                        {preview.renderedBody}
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
+        <SelectedRecipientList
+          recipients={recipients}
+          previewByRecipient={previewByRecipient}
+        />
 
         {mode === "alimtalk" && excludedCount > 0 && (
           <p
@@ -644,43 +782,20 @@ export function MessagingComposer({
         <MessagePointQuoteCard
           quote={pointQuote.data}
           isLoading={
-            quoteInput !== null && (pointQuote.isPending || pointQuote.isFetching)
+            quoteInput !== null && (
+              effectiveBody !== quotedBody || pointQuote.isPending || pointQuote.isFetching
+            )
           }
           error={pointQuote.error}
         />
 
-        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
-          <label>
-            <span className="mb-1.5 block text-xs font-bold text-t2">본문</span>
-            <textarea
-              aria-label="본문"
-              value={effectiveBody}
-              onChange={(event) => {
-                setBody(event.target.value);
-                setBodyTouched(true);
-              }}
-              placeholder="발송할 문자 내용을 입력해 주세요."
-              className="min-h-36 w-full rounded-xl border border-line bg-surface p-4 text-sm text-t1 placeholder:text-t4 focus:border-brand focus:outline-none"
-            />
-          </label>
-          <label>
-            <span className="mb-1.5 block text-xs font-bold text-t2">
-              자주 보내는 문자
-            </span>
-            <Select
-              aria-label="자주 보내는 문자"
-              value={quickMessageId}
-              onChange={(event) => insertQuickMessage(event.target.value)}
-              options={[
-                { value: "", label: "문구를 선택해 주세요" },
-                ...quickMessages.map((message) => ({
-                  value: String(message.id),
-                  label: message.title,
-                })),
-              ]}
-            />
-          </label>
-        </div>
+        <MessageBodyEditor
+          body={effectiveBody}
+          quickMessageId={quickMessageId}
+          quickMessages={quickMessages}
+          onBodyChange={changeBody}
+          onQuickMessageChange={insertQuickMessage}
+        />
 
         <div className="grid gap-4 rounded-xl border border-line p-4 sm:grid-cols-2">
           <label>

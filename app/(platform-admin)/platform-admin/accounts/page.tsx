@@ -1,17 +1,21 @@
 "use client";
 
-import { useDeferredValue, useState } from "react";
+import dynamic from "next/dynamic";
+import { useEffect, useMemo, useState } from "react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button, Checkbox, EmptyState, Modal, SearchBar, Spinner } from "@/components/common";
 import type { PlatformAccountCreateValues } from "@/components/forms/schema/platformAccount";
 import {
   useCreatePlatformAccount,
-  usePlatformAccounts,
+  listPlatformAccounts,
+  platformKeys,
   usePlatformResetPassword,
   usePlatformSetActive,
   usePlatformUpdateAccount,
   usePlatformUpdateRole,
   type PlatformAccount,
+  type PlatformAccountQuery,
 } from "@/hooks/reactquery/platform";
 import type { OrgMemberRole, StaffType } from "@/hooks/reactquery/auth";
 import { MODULE_KEYS, MODULE_LABELS } from "@/lib/auth/permissions";
@@ -22,12 +26,15 @@ import {
   PlatformPagination,
   QueryError,
 } from "../../_components/PageElements";
-import { AccountCreateModal } from "./components/AccountCreateModal";
-import {
-  AccountEditModal,
-  type AccountEditValues,
-} from "./components/AccountEditModal";
+import type { AccountEditValues } from "./components/AccountEditModal";
 import { AccountRowActions } from "./components/AccountRowActions";
+
+const AccountCreateModal = dynamic(() =>
+  import("./components/AccountCreateModal").then((module) => module.AccountCreateModal),
+);
+const AccountEditModal = dynamic(() =>
+  import("./components/AccountEditModal").then((module) => module.AccountEditModal),
+);
 
 const ROLE_LABELS: Record<PlatformAccount["role"], string> = {
   platform_admin: "플랫폼 관리자",
@@ -60,6 +67,21 @@ const dateFormatter = new Intl.DateTimeFormat("ko-KR", {
   day: "2-digit",
 });
 const PAGE_SIZE = 25;
+const SEARCH_DEBOUNCE_MS = 300;
+
+function useDebouncedValue(value: string) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(
+      () => setDebouncedValue(value),
+      SEARCH_DEBOUNCE_MS,
+    );
+    return () => window.clearTimeout(timeoutId);
+  }, [value]);
+
+  return debouncedValue;
+}
 
 export default function PlatformAccountsPage() {
   const [search, setSearch] = useState("");
@@ -72,11 +94,16 @@ export default function PlatformAccountsPage() {
     tempPassword: string;
   } | null>(null);
 
-  const deferredSearch = useDeferredValue(search.trim());
-  const { data, isPending, isError, refetch } = usePlatformAccounts({
-    search: deferredSearch,
+  const debouncedSearch = useDebouncedValue(search.trim());
+  const query = useMemo<PlatformAccountQuery>(() => ({
+    search: debouncedSearch,
     page,
     pageSize: PAGE_SIZE,
+  }), [debouncedSearch, page]);
+  const { data, isPending, isError, refetch } = useQuery({
+    queryKey: platformKeys.accounts(query),
+    queryFn: () => listPlatformAccounts(query),
+    placeholderData: keepPreviousData,
   });
   const accounts = data?.rows ?? [];
   const createAccount = useCreatePlatformAccount();
@@ -284,12 +311,14 @@ export default function PlatformAccountsPage() {
         />
       </section>
 
-      <AccountCreateModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        onSubmit={handleCreate}
-        isPending={createAccount.isPending}
-      />
+      {createOpen && (
+        <AccountCreateModal
+          open
+          onClose={() => setCreateOpen(false)}
+          onSubmit={handleCreate}
+          isPending={createAccount.isPending}
+        />
+      )}
 
       {editTarget && (
         <AccountEditModal

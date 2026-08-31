@@ -25,7 +25,7 @@ interface Props {
 }
 
 export function ItemManageModal({ open, onClose, orgId, typeId, typeLabel }: Props) {
-  const { data: feeItems = [], isLoading } = useFeeItems(typeId);
+  const { data: feeItems = [], isLoading } = useFeeItems(open ? typeId : 0);
   const createItem = useCreateFeeItem();
   const updateItem = useUpdateFeeItem();
   const deleteItem = useDeleteFeeItem();

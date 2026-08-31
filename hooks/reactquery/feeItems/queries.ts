@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { listAllFeeItems, listFeeItems, type FeeItemLookupFilters } from "./apis";
 import { feeItemKeys } from "./keys";
 
@@ -10,5 +10,6 @@ export function useFeeItemLookup(filters: FeeItemLookupFilters) {
   return useQuery({
     queryKey: feeItemKeys.lookup(filters),
     queryFn: () => listAllFeeItems(filters),
+    placeholderData: keepPreviousData,
   });
 }

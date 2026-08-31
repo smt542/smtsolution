@@ -42,8 +42,8 @@ export function UnitPriceModal({
   utilityType,
   onClose,
 }: UnitPriceModalProps) {
-  const pricesQuery = useUtilityPrices(buildingId, utilityType);
-  const scopedPricesQuery = useScopedPrices(buildingId, utilityType);
+  const pricesQuery = useUtilityPrices(open ? buildingId : null, utilityType);
+  const scopedPricesQuery = useScopedPrices(open ? buildingId : null, utilityType);
   const savePrices = useSaveUtilityUnitPrices();
   const saveScoped = useSaveScopedPrices();
   const [drafts, setDrafts] = useState<Record<number, string>>({});

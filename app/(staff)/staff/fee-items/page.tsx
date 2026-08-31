@@ -16,6 +16,7 @@ const REQUIRED_OPTIONS = [
   { value: "true", label: "필수" },
   { value: "false", label: "선택" },
 ];
+const PAGE_SIZE = 50;
 
 function useDebouncedValue(value: string, delay: number) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -42,16 +43,19 @@ function FeeItemLookup() {
   const [typeId, setTypeId] = useState<number | null>(null);
   const [required, setRequired] = useState<boolean | null>(null);
   const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
   const debouncedQ = useDebouncedValue(q, 300);
 
   const buildingTypesQuery = useBuildingTypes();
   const filters = useMemo<FeeItemLookupFilters>(
-    () => ({ typeId, required, q: debouncedQ }),
-    [debouncedQ, required, typeId],
+    () => ({ typeId, required, q: debouncedQ, page, pageSize: PAGE_SIZE }),
+    [debouncedQ, page, required, typeId],
   );
   const lookupQuery = useFeeItemLookup(filters);
   const buildingTypes = buildingTypesQuery.data ?? [];
-  const rows = lookupQuery.data ?? [];
+  const rows = lookupQuery.data?.rows ?? [];
+  const total = lookupQuery.data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const isLoading = buildingTypesQuery.isLoading || lookupQuery.isLoading;
   const isError = buildingTypesQuery.isError || lookupQuery.isError;
 
@@ -95,9 +99,10 @@ function FeeItemLookup() {
               aria-label="건물유형 필터"
               value={typeId?.toString() ?? ""}
               disabled={buildingTypesQuery.isLoading}
-              onChange={(event) =>
-                setTypeId(event.target.value ? Number(event.target.value) : null)
-              }
+              onChange={(event) => {
+                setTypeId(event.target.value ? Number(event.target.value) : null);
+                setPage(1);
+              }}
               options={[
                 { value: "", label: "전체" },
                 ...buildingTypes.map((buildingType) => ({
@@ -116,6 +121,7 @@ function FeeItemLookup() {
               onChange={(event) => {
                 const value = event.target.value;
                 setRequired(value === "" ? null : value === "true");
+                setPage(1);
               }}
               options={REQUIRED_OPTIONS}
             />
@@ -128,7 +134,10 @@ function FeeItemLookup() {
               type="search"
               value={q}
               placeholder="항목명 검색"
-              onChange={(event) => setQ(event.target.value)}
+              onChange={(event) => {
+                setQ(event.target.value);
+                setPage(1);
+              }}
             />
           </label>
         </div>
@@ -152,6 +161,30 @@ function FeeItemLookup() {
           <EmptyState message="조건에 맞는 관리비 항목이 없습니다" />
         ) : (
           <FeeItemLookupTable rows={rows} />
+        )}
+        {!isError && !isLoading && rows.length > 0 && (
+          <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-3">
+            <span className="text-xs font-semibold text-t3">총 {total.toLocaleString("ko-KR")}건</span>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={page <= 1}
+                onClick={() => setPage((current) => current - 1)}
+              >
+                이전
+              </Button>
+              <span className="num text-xs text-t3">{page} / {totalPages}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={page >= totalPages}
+                onClick={() => setPage((current) => current + 1)}
+              >
+                다음
+              </Button>
+            </div>
+          </div>
         )}
       </section>
     </div>

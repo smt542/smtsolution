@@ -11,16 +11,19 @@ function mockLookupQuery(data: unknown[] = []) {
     eq: ReturnType<typeof vi.fn>;
     ilike: ReturnType<typeof vi.fn>;
     order: ReturnType<typeof vi.fn>;
+    range: ReturnType<typeof vi.fn>;
   } = {
     is: vi.fn(),
     eq: vi.fn(),
     ilike: vi.fn(),
     order: vi.fn(),
+    range: vi.fn(),
   };
   query.is.mockReturnValue(query);
   query.eq.mockReturnValue(query);
   query.ilike.mockReturnValue(query);
-  query.order.mockReturnValueOnce(query).mockResolvedValueOnce({ data, error: null });
+  query.order.mockReturnValue(query);
+  query.range.mockResolvedValue({ data, count: data.length, error: null });
   const select = vi.fn(() => query);
   from.mockReturnValue({ select });
   return { query, select };
@@ -82,11 +85,13 @@ describe("listAllFeeItems", () => {
     expect(from).toHaveBeenCalledWith("fee_items");
     expect(select).toHaveBeenCalledWith(
       "id, type_id, name, rounding, daily_proration, carry_over, is_required, sort_order, building_types!inner(id, label)",
+      { count: "exact" },
     );
     expect(query.is).toHaveBeenCalledWith("deleted_at", null);
     expect(query.eq).not.toHaveBeenCalled();
     expect(query.ilike).not.toHaveBeenCalled();
     expect(query.order.mock.calls).toEqual([["type_id"], ["sort_order"]]);
+    expect(query.range).toHaveBeenCalledWith(0, 49);
   });
 
   it("applies the building-type filter", async () => {
@@ -157,8 +162,8 @@ describe("listAllFeeItems", () => {
 
     const result = await listAllFeeItems({});
 
-    expect(result).toEqual([
-      {
+    expect(result).toEqual({
+      rows: [{
         id: 1,
         typeId: 7,
         typeLabel: "원룸텔",
@@ -179,7 +184,8 @@ describe("listAllFeeItems", () => {
         carryOver: false,
         isRequired: false,
         sortOrder: 1,
-      },
-    ]);
+      }],
+      total: 2,
+    });
   });
 });

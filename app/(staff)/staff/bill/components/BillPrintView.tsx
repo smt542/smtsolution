@@ -1,4 +1,5 @@
 "use client";
+import { useEffect } from "react";
 import type { BillDocument } from "@/hooks/reactquery/bill";
 import { unitLabel, buildQrPayload, billDocumentTotal, PROGRAM_COMPANY_NAME, type PrintableAccount } from "@/lib/bill/document";
 import { formatWon } from "@/lib/format";
@@ -14,9 +15,14 @@ export interface BillPrintViewProps {
   documents: BillDocument[];
   qrBase?: string | null;
   waterCutoffUnitIds?: number[];
+  onReady?: () => void;
 }
 
-export function BillPrintView({ buildingName, period, unitLabelMode, dueDate, accounts, customerNotice, documents, qrBase, waterCutoffUnitIds = [] }: BillPrintViewProps) {
+export function BillPrintView({ buildingName, period, unitLabelMode, dueDate, accounts, customerNotice, documents, qrBase, waterCutoffUnitIds = [], onReady }: BillPrintViewProps) {
+  useEffect(() => {
+    onReady?.();
+  }, [onReady]);
+
   const ym = `${period.slice(0, 4)}년 ${period.slice(5, 7)}월`;
   return (
     <div className="hidden print:block" data-testid="bill-print">

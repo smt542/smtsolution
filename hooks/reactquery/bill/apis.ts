@@ -70,24 +70,25 @@ export async function listBillTargets(buildingId: number, period: string): Promi
     payer_name: string | null;
     bill_name_display: BillNameDisplay | null;
   };
-  let occupancyRows: OccupancyBillFields[] = [];
-  if (occupancyIds.length > 0) {
-    // Keep occupancy-owned print fields as a separate enrichment so the bill RPC
-    // remains compatible with already-deployed versions.
-    const occupancyResult = await supabase
+  // Keep occupancy-owned print fields as a separate enrichment so the bill RPC
+  // remains compatible with already-deployed versions.
+  const occupancyQuery = occupancyIds.length > 0
+    ? supabase
       .from("occupancies")
       .select("id, payer_name, bill_name_display")
-      .in("id", occupancyIds);
-    if (occupancyResult.error) throw new Error(occupancyResult.error.message);
-    occupancyRows = (occupancyResult.data ?? []) as OccupancyBillFields[];
-  }
-
-  const accountResult = await supabase
-    .from("unit_accounts")
-    .select("unit_id, payer_no")
-    .eq("kind", "mgmt")
-    .in("unit_id", unitIds);
+      .in("id", occupancyIds)
+    : null;
+  const [occupancyResult, accountResult] = await Promise.all([
+    occupancyQuery,
+    supabase
+      .from("unit_accounts")
+      .select("unit_id, payer_no")
+      .eq("kind", "mgmt")
+      .in("unit_id", unitIds),
+  ]);
+  if (occupancyResult?.error) throw new Error(occupancyResult.error.message);
   if (accountResult.error) throw new Error(accountResult.error.message);
+  const occupancyRows = (occupancyResult?.data ?? []) as OccupancyBillFields[];
 
   const occupancyFields = new Map<number, Omit<OccupancyBillFields, "id">>(
     occupancyRows.map(({ id, ...fields }) => [id, fields]),

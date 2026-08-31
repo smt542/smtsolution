@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useDeferredValue, useState } from "react";
+import dynamic from "next/dynamic";
+import { useEffect, useMemo, useState } from "react";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Badge, Button, EmptyState, Modal, SearchBar, Spinner } from "@/components/common";
 import { toast } from "sonner";
 import {
-  usePlatformOrganizations,
+  listPlatformOrganizations,
+  platformKeys,
   usePlatformOrganizationContractKpis,
   useUpdateOrganizationStatus,
   useCreatePlatformOrganization,
@@ -15,6 +18,7 @@ import {
   removeOrganizationContractFile,
   type OrganizationStatus,
   type PlatformOrganization,
+  type PlatformOrganizationQuery,
   type PlatformOrganizationStatusFilter,
 } from "@/hooks/reactquery/platform";
 import { formatNumber } from "@/lib/format";
@@ -26,12 +30,12 @@ import {
   StatusBadge,
 } from "../../_components/PageElements";
 import { OrgStatusControl } from "./components/OrgStatusControl";
-import {
-  OrgFormModal,
-  type OrgCreateSubmitValues,
-  type OrgEditSubmitValues,
-} from "./components/OrgFormModal";
+import type { OrgCreateSubmitValues, OrgEditSubmitValues } from "./components/OrgFormModal";
 import { OrgRowActions } from "./components/OrgRowActions";
+
+const OrgFormModal = dynamic(() =>
+  import("./components/OrgFormModal").then((module) => module.OrgFormModal),
+);
 
 const dateFormatter = new Intl.DateTimeFormat("ko-KR", {
   year: "numeric",
@@ -39,6 +43,7 @@ const dateFormatter = new Intl.DateTimeFormat("ko-KR", {
   day: "2-digit",
 });
 const PAGE_SIZE = 25;
+const SEARCH_DEBOUNCE_MS = 300;
 const STATUS_FILTERS: Array<{
   id: "all" | PlatformOrganizationStatusFilter;
   label: string;
@@ -49,6 +54,20 @@ const STATUS_FILTERS: Array<{
   { id: "terminated", label: "해지" },
 ];
 
+function useDebouncedValue(value: string) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(
+      () => setDebouncedValue(value),
+      SEARCH_DEBOUNCE_MS,
+    );
+    return () => window.clearTimeout(timeoutId);
+  }, [value]);
+
+  return debouncedValue;
+}
+
 export default function PlatformOrganizationsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | PlatformOrganizationStatusFilter>("all");
@@ -57,13 +76,18 @@ export default function PlatformOrganizationsPage() {
   const [editTarget, setEditTarget] = useState<PlatformOrganization | null>(null);
   const [pwNotice, setPwNotice] = useState<{ username: string; tempPassword: string } | null>(null);
 
-  const deferredSearch = useDeferredValue(search.trim());
-  const { data, isPending, isError, refetch } = usePlatformOrganizations({
+  const debouncedSearch = useDebouncedValue(search.trim());
+  const query = useMemo<PlatformOrganizationQuery>(() => ({
     includeDeleted: true,
     status: statusFilter === "all" ? undefined : statusFilter,
-    search: deferredSearch,
+    search: debouncedSearch,
     page,
     pageSize: PAGE_SIZE,
+  }), [debouncedSearch, page, statusFilter]);
+  const { data, isPending, isError, refetch } = useQuery({
+    queryKey: platformKeys.organizations(query),
+    queryFn: () => listPlatformOrganizations(query),
+    placeholderData: keepPreviousData,
   });
   const organizations = data?.rows ?? [];
   const contractKpis = usePlatformOrganizationContractKpis();
