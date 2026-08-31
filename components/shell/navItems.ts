@@ -129,7 +129,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "고객번호 조회", href: "/staff/customer-numbers", module: "utilities", built: true, icon: "M4 3h13a2 2 0 0 1 2 2v8M8 8h7M8 12h5M8 16h3M17 15a3 3 0 1 1 0 6 3 3 0 0 1 0-6zM19 21l2 2" },
       { label: "지침·부과", href: "/staff/utilities", module: "utilities", built: false, icon: "M4 18a8 8 0 1 1 16 0M12 14l3.5-3.5" },
       { label: "관리비 부과셋팅", href: "/staff/management-fee", module: "billing", built: true, icon: "M4 8h9M18 8h2M4 16h2M11 16h9M15 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM10 16a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" },
-      { label: "항목등록 관리", href: "/staff/fee-items", module: "billing", built: true, icon: "M4 6h16M4 12h10M4 18h7M17 14l2 2 4-4" },
+      { label: "항목등록 관리", href: "/staff/fee-items", module: "fee_items", built: true, icon: "M4 6h16M4 12h10M4 18h7M17 14l2 2 4-4" },
       { label: "고지서 발행", href: "/staff/bill", module: "bill_publish", built: true, icon: "M5 3h14a2 2 0 0 1 2 2v16H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM9 8h6M9 12h6M9 16h4" },
       { label: "수납관리·민원접수", href: "/staff/receipts", modules: ["payment", "complaints"], built: true, icon: "M3 6h18a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2zM3 10h18M7 15h4" },
       { label: "미납관리", href: "/staff/overdue", module: "overdue", built: true, icon: "M12 3a9 9 0 1 1 0 18A9 9 0 0 1 12 3zM12 8v5M12 16h.01" },
