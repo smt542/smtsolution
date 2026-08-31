@@ -47,9 +47,9 @@ function uploadFile() {
   Object.defineProperty(file, "arrayBuffer", {
     value: vi.fn().mockResolvedValue(new ArrayBuffer(0)),
   });
-  fireEvent.change(screen.getByLabelText("은행 엑셀 파일"), {
-    target: { files: [file] },
-  });
+  const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+  fireEvent.change(input, { target: { files: [file] } });
+  fireEvent.click(screen.getByRole("button", { name: "처리" }));
 }
 
 async function openPreview(propsRows: PaymentRow[] = rows) {

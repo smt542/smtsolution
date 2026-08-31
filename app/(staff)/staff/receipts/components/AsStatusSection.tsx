@@ -11,14 +11,10 @@ import {
   useCreateComplaint,
   useCreateComplaintResolution,
   useDeleteComplaint,
-  useDeleteComplaintResolution,
   useUpdateComplaint,
   useUpdateComplaintResolution,
-  useUpdateComplaintStatus,
   type Complaint,
   type ComplaintInput,
-  type ComplaintResolution,
-  type ComplaintResolutionInput,
   type ComplaintStatus,
 } from "@/hooks/reactquery/complaints";
 import { useOrgContact } from "@/hooks/reactquery/org/useOrgContact";
@@ -31,6 +27,7 @@ import {
   formatComplaintDate,
   formatUnitLabel,
 } from "../constants";
+import type { ResolutionDraft } from "./AsComplaintForm";
 import { ComplaintDetailModal } from "./ComplaintDetailModal";
 import { ComplaintFormModal } from "./ComplaintFormModal";
 
@@ -70,8 +67,8 @@ function AsTableHeader() {
 }
 
 /**
- * A/S(민원) 현황·접수 — 세대 스코프. 기존 민원 CRUD 컴포넌트를 재사용.
- * P2에서 확인문자를 상세폼 단문 방식으로 단일화 예정.
+ * A/S(민원) 현황·접수 — 세대 스코프. Figma 단일 플랫 폼(추가·상세)으로 재구성.
+ * 처리결과 내용은 최신 처리이력 1건으로 upsert하며 기존 이력 데이터는 보존한다.
  */
 export function AsStatusSection({
   orgId,
@@ -95,7 +92,6 @@ export function AsStatusSection({
   const [resultFilter, setResultFilter] = useState<"" | ComplaintStatus>("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Complaint | null>(null);
   const [messagingPreset, setMessagingPreset] = useState<MessagingPreset | null>(null);
 
   const { data: buildings = [] } = useBuildings();
@@ -108,11 +104,16 @@ export function AsStatusSection({
 
   const createComplaint = useCreateComplaint();
   const updateComplaint = useUpdateComplaint();
-  const updateStatus = useUpdateComplaintStatus();
   const deleteComplaint = useDeleteComplaint();
   const createResolution = useCreateComplaintResolution();
   const updateResolution = useUpdateComplaintResolution();
-  const deleteResolution = useDeleteComplaintResolution();
+
+  const isSaving =
+    createComplaint.isPending ||
+    updateComplaint.isPending ||
+    createResolution.isPending ||
+    updateResolution.isPending ||
+    deleteComplaint.isPending;
 
   const assigneeNames = useMemo(
     () => new Map(assignees.map((account) => [account.userId, account.fullName])),
@@ -131,25 +132,19 @@ export function AsStatusSection({
 
   const selected = complaints.find((complaint) => complaint.id === selectedId) ?? null;
 
-  const openCreate = () => {
-    setEditing(null);
-    setFormOpen(true);
-  };
-  const openEdit = (complaint: Complaint) => {
-    setSelectedId(null);
-    setEditing(complaint);
-    setFormOpen(true);
-  };
-  const closeForm = () => {
-    setFormOpen(false);
-    setEditing(null);
-  };
+  const closeForm = () => setFormOpen(false);
 
-  const saveComplaint = async (input: ComplaintInput) => {
+  const createAs = async (input: ComplaintInput, resolution: ResolutionDraft | null) => {
     try {
-      if (editing) await updateComplaint.mutateAsync({ id: editing.id, input });
-      else await createComplaint.mutateAsync(input);
-      toast.success("민원·AS 접수가 저장되었습니다.");
+      const created = await createComplaint.mutateAsync(input);
+      if (resolution) {
+        await createResolution.mutateAsync({
+          complaintId: created.id,
+          resultContent: resolution.resultContent || null,
+          resolvedAt: resolution.resolvedAt,
+        });
+      }
+      toast.success("A/S 접수가 저장되었습니다.");
       closeForm();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "저장 중 오류가 발생했습니다.");
@@ -157,13 +152,31 @@ export function AsStatusSection({
     }
   };
 
-  const changeStatus = async (complaint: Complaint, status: ComplaintStatus) => {
-    if (complaint.status === status) return;
+  const updateAs = async (input: ComplaintInput, resolution: ResolutionDraft | null) => {
+    if (!selected) return;
     try {
-      await updateStatus.mutateAsync({ id: complaint.id, status });
-      toast.success(`상태를 ${COMPLAINT_STATUS_LABEL[status]}로 변경했습니다.`);
+      await updateComplaint.mutateAsync({ id: selected.id, input });
+      if (resolution) {
+        const latest = selected.resolutions[0];
+        const resolutionInput = {
+          resultContent: resolution.resultContent || null,
+          resolvedAt: resolution.resolvedAt,
+        };
+        if (latest) {
+          await updateResolution.mutateAsync({
+            id: latest.id,
+            complaintId: selected.id,
+            input: resolutionInput,
+          });
+        } else {
+          await createResolution.mutateAsync({ complaintId: selected.id, ...resolutionInput });
+        }
+      }
+      toast.success("A/S 접수를 저장했습니다.");
+      setSelectedId(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "상태 변경에 실패했습니다.");
+      toast.error(error instanceof Error ? error.message : "저장 중 오류가 발생했습니다.");
+      throw error;
     }
   };
 
@@ -171,76 +184,13 @@ export function AsStatusSection({
     try {
       await deleteComplaint.mutateAsync(complaint.id);
       setSelectedId(null);
-      toast.success("민원·AS 접수를 삭제했습니다.");
+      toast.success("A/S 접수를 삭제했습니다.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "삭제에 실패했습니다.");
     }
   };
 
-  const addResolution = async (input: ComplaintResolutionInput) => {
-    try {
-      await createResolution.mutateAsync(input);
-      toast.success("처리이력을 추가했습니다.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "처리이력 저장에 실패했습니다.");
-      throw error;
-    }
-  };
-  const editResolution = async (
-    resolution: ComplaintResolution,
-    input: Partial<ComplaintResolutionInput>,
-  ) => {
-    try {
-      await updateResolution.mutateAsync({
-        id: resolution.id,
-        complaintId: resolution.complaintId,
-        input,
-      });
-      toast.success("처리이력을 수정했습니다.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "처리이력 수정에 실패했습니다.");
-      throw error;
-    }
-  };
-  const removeResolution = async (resolution: ComplaintResolution) => {
-    try {
-      await deleteResolution.mutateAsync({
-        id: resolution.id,
-        complaintId: resolution.complaintId,
-      });
-      toast.success("처리이력을 삭제했습니다.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "처리이력 삭제에 실패했습니다.");
-    }
-  };
-
-  const messageAssignee = (complaint: Complaint) => {
-    if (!canSendMessages) {
-      toast.info("문자 발송 권한이 필요합니다.");
-      return;
-    }
-    const assignee = assignees.find((account) => account.userId === complaint.assignedTo);
-    if (!assignee?.phone) {
-      toast.info("담당 기사 연락처가 등록되어 있지 않습니다.");
-      return;
-    }
-    // A/S 확인문자 = 상세폼 단문 방식(건물·호수·접수내용·전화)으로 단일화 — 3종 템플릿 모달 미사용.
-    const unit = formatUnitLabel({ unitNo: complaint.unitNo, dong: complaint.unitDong });
-    setMessagingPreset({
-      context: "A/S 확인",
-      channel: "sms",
-      body: `[${complaint.buildingName ?? "건물"} ${unit}] A/S 접수 안내\n유형: ${complaint.categoryLabel ?? "-"}\n접수내용: ${complaint.content ?? complaint.title}\n입주자 연락처: ${complaint.reporterPhone ?? "-"}`,
-      recipients: [
-        {
-          name: assignee.fullName,
-          phone: assignee.phone,
-          kind: "staff",
-          ref: { userId: assignee.userId },
-        },
-      ],
-    });
-  };
-
+  // 확인문자 보내기 = 입주자 안내(알림톡 자동 라우팅, 미동의 시 SMS 전환) — 기존 통합 유지.
   const messageResident = (complaint: Complaint) => {
     if (!canSendMessages) {
       toast.info("문자 발송 권한이 필요합니다.");
@@ -253,9 +203,10 @@ export function AsStatusSection({
 
     const assignee = assignees.find((account) => account.userId === complaint.assignedTo);
     const unit = formatUnitLabel({ unitNo: complaint.unitNo, dong: complaint.unitDong });
-    const buildingName = complaint.buildingName
-      ?? buildings.find((building) => building.id === complaint.buildingId)?.name
-      ?? "";
+    const buildingName =
+      complaint.buildingName ??
+      buildings.find((building) => building.id === complaint.buildingId)?.name ??
+      "";
 
     setMessagingPreset({
       context: "민원·AS",
@@ -263,24 +214,26 @@ export function AsStatusSection({
       channel: "alimtalk",
       mode: "auto",
       templateTitle: "민원·AS 처리 안내",
-      recipients: [{
-        name: resident.name,
-        phone: resident.phone,
-        unitNo: unit,
-        kind: "tenant",
-        alimtalkOptIn: resident.alimtalkOptIn,
-        variables: {
-          세대: unit,
-          접수내용: complaint.content ?? complaint.title,
-          처리상태: COMPLAINT_STATUS_LABEL[complaint.status],
-          담당자: assignee?.fullName ?? "",
+      recipients: [
+        {
+          name: resident.name,
+          phone: resident.phone,
+          unitNo: unit,
+          kind: "tenant",
+          alimtalkOptIn: resident.alimtalkOptIn,
+          variables: {
+            세대: unit,
+            접수내용: complaint.content ?? complaint.title,
+            처리상태: COMPLAINT_STATUS_LABEL[complaint.status],
+            담당자: assignee?.fullName ?? "",
+          },
+          ref: {
+            occupancyId: resident.occupancyId,
+            unitId: complaint.unitId ?? undefined,
+            buildingId: complaint.buildingId,
+          },
         },
-        ref: {
-          occupancyId: resident.occupancyId,
-          unitId: complaint.unitId ?? undefined,
-          buildingId: complaint.buildingId,
-        },
-      }],
+      ],
       commonVariables: {
         건물명: buildingName,
         관리사무소연락처: orgContact?.phone ?? "",
@@ -320,7 +273,7 @@ export function AsStatusSection({
       />
       <Button
         type="button"
-        onClick={openCreate}
+        onClick={() => setFormOpen(true)}
         disabled={buildingId === null}
         className="ml-auto !h-[30px] whitespace-nowrap !rounded-[8px] !border !border-line !bg-surface !px-[11px] !text-[12px] !text-t2 !shadow-none hover:!bg-bg"
       >
@@ -350,7 +303,7 @@ export function AsStatusSection({
             <AsTableHeader />
             <tbody>
               {rows.map((complaint, index) => {
-                const latest = complaint.resolutions[complaint.resolutions.length - 1];
+                const latest = complaint.resolutions[0];
                 return (
                   <tr
                     key={complaint.id}
@@ -369,9 +322,7 @@ export function AsStatusSection({
                       {complaint.reporterPhone ?? "-"}
                     </td>
                     <td className="px-3 py-3">
-                      <Badge
-                        className={`px-2 py-1 ${COMPLAINT_STATUS_STYLE[complaint.status]}`}
-                      >
+                      <Badge className={`px-2 py-1 ${COMPLAINT_STATUS_STYLE[complaint.status]}`}>
                         {COMPLAINT_STATUS_LABEL[complaint.status]}
                       </Badge>
                     </td>
@@ -379,7 +330,7 @@ export function AsStatusSection({
                       {latest?.resultContent ?? "-"}
                     </td>
                     <td className="whitespace-nowrap px-3 py-3 text-t2">
-                      {formatComplaintDate(complaint.completedAt)}
+                      {formatComplaintDate(latest?.resolvedAt ?? complaint.completedAt)}
                     </td>
                     <td className="whitespace-nowrap px-3 py-3 text-t2">
                       {complaint.receivedAt?.slice(11, 16) || "-"}
@@ -401,14 +352,13 @@ export function AsStatusSection({
       {formOpen && (
         <ComplaintFormModal
           open
-          editing={editing}
           orgId={orgId}
           buildings={buildings}
           categories={categories}
           assignees={assignees}
-          isPending={createComplaint.isPending || updateComplaint.isPending}
+          isPending={isSaving}
           onClose={closeForm}
-          onSubmit={saveComplaint}
+          onSubmit={createAs}
         />
       )}
 
@@ -416,25 +366,15 @@ export function AsStatusSection({
         <ComplaintDetailModal
           open
           complaint={selected}
+          orgId={orgId}
+          buildings={buildings}
+          categories={categories}
           assignees={assignees}
-          isComplaintPending={updateStatus.isPending || deleteComplaint.isPending}
-          isResolutionPending={
-            createResolution.isPending || updateResolution.isPending || deleteResolution.isPending
-          }
+          isPending={isSaving}
           onClose={() => setSelectedId(null)}
-          onEdit={openEdit}
+          onSubmit={updateAs}
           onDelete={removeComplaint}
-          onStatusChange={changeStatus}
-          onCreateResolution={addResolution}
-          onUpdateResolution={editResolution}
-          onDeleteResolution={removeResolution}
-          onMessageAssignee={messageAssignee}
-          onMessageResident={messageResident}
-          residentMessageTitle={
-            resident && !resident.alimtalkOptIn
-              ? "알림톡 미동의 시 SMS로 자동 전환됩니다."
-              : undefined
-          }
+          onSendMessage={messageResident}
         />
       )}
 
@@ -444,11 +384,7 @@ export function AsStatusSection({
           preset={messagingPreset}
           onClose={() => setMessagingPreset(null)}
           onSent={(result) => {
-            toast.success(
-              messagingPreset.context === "A/S 확인"
-                ? `문자가 발송되었습니다. (성공 ${result.count}건)`
-                : `입주자 안내 ${result.count}건 발송을 접수했습니다.`,
-            );
+            toast.success(`문자가 발송되었습니다. (성공 ${result.count}건)`);
             setMessagingPreset(null);
           }}
         />

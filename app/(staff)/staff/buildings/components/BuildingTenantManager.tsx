@@ -1,6 +1,5 @@
 "use client";
 import { useMemo, useState } from "react";
-import { toast } from "sonner";
 import { PrinterIcon } from "@/components/icons";
 import {
   useBuildingList,
@@ -10,6 +9,7 @@ import { useTenantList } from "@/hooks/reactquery/occupancies";
 import { BuildingSearchCard } from "./BuildingSearchCard";
 import { BuildingDirectoryCard } from "./BuildingDirectoryCard";
 import { TenantOccupancyCard } from "./TenantOccupancyCard";
+import { BuildingOutputModal } from "./BuildingOutputModal";
 
 /**
  * Figma 673:39652 / 673:40619 — 건물·입주자 관리(통합 master-detail).
@@ -21,6 +21,7 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [selected, setSelected] = useState<{ id: number; name: string } | null>(null);
+  const [outputOpen, setOutputOpen] = useState(false);
 
   const params = { search: search || undefined, page, pageSize };
   const isInitialQuery = !search && page === 1 && pageSize === 20;
@@ -45,14 +46,6 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
     setPage(1);
   };
 
-  const onPrintCards = () => {
-    if (!selected) {
-      toast("건물을 먼저 선택해 주세요.");
-      return;
-    }
-    window.open(`/api/buildings/${selected.id}/tenant-cards`, "_blank");
-  };
-
   return (
     <div className="flex min-h-full flex-col">
       {/* App bar */}
@@ -60,7 +53,7 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
         <h1 className="text-[19px] font-extrabold tracking-[-0.38px] text-t1">건물·입주자 관리</h1>
         <button
           type="button"
-          onClick={onPrintCards}
+          onClick={() => setOutputOpen(true)}
           className="ml-auto inline-flex h-[40px] items-center gap-[6px] rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold text-t2 hover:bg-bg"
         >
           <PrinterIcon className="h-4 w-4" />
@@ -97,6 +90,19 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
           isError={tenant.isError}
         />
       </div>
+
+      <BuildingOutputModal
+        open={outputOpen}
+        buildings={rows}
+        selectedBuildingId={selected?.id ?? null}
+        tenants={tenantRows}
+        tenantsLoading={tenant.isLoading}
+        onSelectBuilding={(id) => {
+          const b = rows.find((r) => r.id === id);
+          if (b) setSelected({ id: b.id, name: b.name });
+        }}
+        onClose={() => setOutputOpen(false)}
+      />
     </div>
   );
 }

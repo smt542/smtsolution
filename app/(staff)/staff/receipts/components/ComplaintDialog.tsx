@@ -2,18 +2,28 @@
 
 import { useEffect, useId } from "react";
 
+const SIZE_CLASS = {
+  medium: "max-w-2xl",
+  large: "max-w-5xl",
+  wide: "max-w-[1080px]",
+} as const;
+
 export function ComplaintDialog({
   open,
   onClose,
   title,
+  subtitle,
   children,
+  footer,
   size = "large",
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
+  subtitle?: string;
   children: React.ReactNode;
-  size?: "medium" | "large";
+  footer?: React.ReactNode;
+  size?: keyof typeof SIZE_CLASS;
 }) {
   const titleId = useId();
 
@@ -41,25 +51,29 @@ export function ComplaintDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={`max-h-[92vh] w-full overflow-y-auto rounded-2xl bg-surface p-6 shadow-pop ${
-          size === "large" ? "max-w-5xl" : "max-w-2xl"
-        }`}
+        className={`flex max-h-[92vh] w-full flex-col rounded-2xl bg-surface p-6 shadow-pop ${SIZE_CLASS[size]}`}
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between gap-4">
-          <h2 id={titleId} className="text-xl font-extrabold text-t1">
-            {title}
-          </h2>
+        <div className="flex shrink-0 items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 id={titleId} className="text-xl font-extrabold text-t1">
+              {title}
+            </h2>
+            {subtitle && <p className="mt-1 text-sm text-t3">{subtitle}</p>}
+          </div>
           <button
             type="button"
             aria-label="닫기"
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-xl text-t3 hover:bg-bg hover:text-t1"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-xl text-t3 hover:bg-bg hover:text-t1"
             onClick={onClose}
           >
             ×
           </button>
         </div>
-        <div className="mt-5">{children}</div>
+        <div className="mt-5 min-h-0 flex-1 overflow-y-auto">{children}</div>
+        {footer && (
+          <div className="mt-5 shrink-0 border-t border-line pt-4">{footer}</div>
+        )}
       </section>
     </div>
   );
