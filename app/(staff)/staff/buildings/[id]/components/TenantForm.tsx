@@ -1,7 +1,7 @@
 // app/(staff)/staff/buildings/[id]/components/TenantForm.tsx
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button, EmptyState, Spinner } from "@/components/common";
@@ -129,7 +129,19 @@ function optionalNumber(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-export function TenantForm({ buildingId, unitId }: { buildingId: number; unitId?: number }) {
+export function TenantForm({
+  buildingId,
+  unitId,
+  presentation = "page",
+  onClose,
+  onDirtyChange,
+}: {
+  buildingId: number;
+  unitId?: number;
+  presentation?: "page" | "modal";
+  onClose?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
+}) {
   const router = useRouter();
   const save = useSaveUnitOccupancy();
   const { data: roomTypes } = useRoomTypes();
@@ -147,6 +159,10 @@ export function TenantForm({ buildingId, unitId }: { buildingId: number; unitId?
   const [basicErrors, setBasicErrors] = useState<BasicErrors>({});
   const [phoneError, setPhoneError] = useState<string>();
   const [previousFull, setPreviousFull] = useState<typeof full>();
+
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
 
   const roomTypeOptions = useMemo(() => {
     const options = (roomTypes ?? []).map((roomType) => ({
@@ -433,6 +449,10 @@ export function TenantForm({ buildingId, unitId }: { buildingId: number; unitId?
   };
 
   const onLeave = () => {
+    if (onClose) {
+      onClose();
+      return;
+    }
     if (dirty && !window.confirm("저장하지 않고 나가시겠습니까?")) return;
     router.push(`/staff/buildings/${buildingId}/tenants`);
   };
@@ -449,14 +469,16 @@ export function TenantForm({ buildingId, unitId }: { buildingId: number; unitId?
     <div className="flex flex-col gap-[13px]">
       <div className="flex flex-wrap items-center justify-between gap-[12px]">
         <div>
-          <p className="text-[12px] font-semibold text-t3">건물·입주자 관리</p>
+          <p className="text-[12px] font-semibold text-t3">
+            {presentation === "modal" ? "입주민 관리카드" : "건물·입주자 관리"}
+          </p>
           <h2 className="pt-[2px] text-[19px] font-extrabold tracking-[-0.02em] text-t1">
             {unitId ? `${basic.unitNo} · ${basic.tenantName || "입주민"}` : "호수·입주민 등록"}
           </h2>
         </div>
         <div className="flex gap-[8px]">
           <Button variant="ghost" className="!h-[40px] !rounded-[9px] !px-[15px]" onClick={onLeave}>
-            뒤로가기
+            {presentation === "modal" ? "닫기" : "뒤로가기"}
           </Button>
           <Button
             variant="primary"
@@ -464,7 +486,7 @@ export function TenantForm({ buildingId, unitId }: { buildingId: number; unitId?
             onClick={onSave}
             disabled={save.isPending}
           >
-            {save.isPending ? "저장 중…" : "등록 저장"}
+            {save.isPending ? "저장 중…" : presentation === "modal" ? "저장" : "등록 저장"}
           </Button>
         </div>
       </div>

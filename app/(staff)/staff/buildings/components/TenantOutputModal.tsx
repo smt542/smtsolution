@@ -23,13 +23,10 @@ type PrintScope = "both" | "card" | "statement";
 export function TenantOutputModal({
   onClose,
   initialBuildingId,
-  initialUnitId,
 }: {
   onClose: () => void;
-  /** 본 화면에서 이미 선택된 건물을 초기 선택값으로 사용(PRD §3.3). */
+  /** 본 화면에서 이미 선택된 건물을 초기 선택값으로 사용(PRD §3.4). */
   initialBuildingId?: number | null;
-  /** 입주민 행에서 열었을 때 해당 세대의 카드 페이지를 바로 표시한다. */
-  initialUnitId?: number | null;
 }) {
   const [initYear, initMonth] = useMemo(() => {
     const [rawYear, rawMonth] = currentPeriod().split("-").map(Number);
@@ -39,7 +36,7 @@ export function TenantOutputModal({
   const [month, setMonth] = useState(initMonth);
   const [search, setSearch] = useState("");
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | null>(initialBuildingId ?? null);
-  const [requestedCardPage, setRequestedCardPage] = useState<number | null>(null);
+  const [cardPage, setCardPage] = useState(0);
   const [statementPage, setStatementPage] = useState(0);
   const [printScope, setPrintScope] = useState<PrintScope | null>(null);
 
@@ -62,12 +59,6 @@ export function TenantOutputModal({
 
   const cardCount = tenants.length;
   const statementCount = statementPages.length;
-  const initialCardPage = useMemo(() => {
-    if (initialUnitId == null) return 0;
-    const page = tenants.findIndex((tenant) => tenant.unitId === initialUnitId);
-    return Math.max(0, page);
-  }, [initialUnitId, tenants]);
-  const cardPage = requestedCardPage ?? initialCardPage;
   const cardIdx = Math.min(cardPage, Math.max(0, cardCount - 1));
   const statementIdx = Math.min(statementPage, Math.max(0, statementCount - 1));
 
@@ -95,7 +86,7 @@ export function TenantOutputModal({
 
   const selectBuilding = (id: number) => {
     setSelectedBuildingId(id);
-    setRequestedCardPage(0);
+    setCardPage(0);
     setStatementPage(0);
   };
 
@@ -188,8 +179,8 @@ export function TenantOutputModal({
                     title="입주자카드"
                     count={cardCount}
                     page={cardIdx + 1}
-                    onPrev={() => setRequestedCardPage(Math.max(0, cardIdx - 1))}
-                    onNext={() => setRequestedCardPage(Math.min(cardCount - 1, cardIdx + 1))}
+                    onPrev={() => setCardPage(Math.max(0, cardIdx - 1))}
+                    onNext={() => setCardPage(Math.min(cardCount - 1, cardIdx + 1))}
                     actionLabel="카드만 인쇄"
                     onAction={() => setPrintScope("card")}
                     actionDisabled={!canPrintCards}
