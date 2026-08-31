@@ -43,6 +43,7 @@ next-env.d.ts
 
 # local agent state
 .omc/
+.figma-tmp/
 .env.local
 
 # agent worktrees

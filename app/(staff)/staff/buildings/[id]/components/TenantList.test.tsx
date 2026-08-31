@@ -23,7 +23,7 @@ describe("TenantList", () => {
   it("등록 버튼 → tenants/new", () => {
     vi.mocked(useTenantList).mockReturnValue({ data: [], isLoading:false, isError:false } as unknown as ReturnType<typeof useTenantList>);
     render(<TenantList buildingId={7} />);
-    fireEvent.click(screen.getByRole("button", { name: /입주자 등록/ }));
+    fireEvent.click(screen.getByRole("button", { name: /호수·입주민 등록/ }));
     expect(push).toHaveBeenCalledWith("/staff/buildings/7/tenants/new");
   });
 });

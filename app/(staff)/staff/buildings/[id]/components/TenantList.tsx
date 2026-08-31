@@ -26,7 +26,7 @@ export function TenantList({ buildingId }: { buildingId: number }) {
         <div className="flex gap-2">
           <a href={`/api/buildings/${buildingId}/tenant-cards`} className="inline-flex h-11 items-center rounded-xl border border-line bg-white px-4 text-sm font-bold text-t2 hover:bg-bg">입주자카드 출력</a>
           <Button variant="ghost" disabled title="관리비 부과 확정 후 사용 가능(P5)">관리비부과내역서</Button>
-          <Button variant="primary" onClick={() => router.push(`${base}/new`)}>+ 입주자 등록</Button>
+          <Button variant="primary" onClick={() => router.push(`${base}/new`)}>+ 호수·입주민 등록</Button>
         </div>
       </div>
       {isLoading ? (
