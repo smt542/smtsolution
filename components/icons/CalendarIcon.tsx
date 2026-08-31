@@ -1,7 +1,31 @@
 import type { SVGProps } from "react";
 
 /** Figma 673:18990 — 15×15 calendar, stroke → currentColor. */
-export function CalendarIcon(props: SVGProps<SVGSVGElement>) {
+export function CalendarIcon({
+  variant = "default",
+  ...props
+}: SVGProps<SVGSVGElement> & { variant?: "default" | "building-register" }) {
+  if (variant === "building-register") {
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" {...props}>
+        <path
+          d="M12 3.33333H4C3.26362 3.33333 2.66667 3.93029 2.66667 4.66667V12.6667C2.66667 13.403 3.26362 14 4 14H12C12.7364 14 13.3333 13.403 13.3333 12.6667V4.66667C13.3333 3.93029 12.7364 3.33333 12 3.33333Z"
+          stroke="currentColor"
+          strokeWidth="1.26667"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M5.33333 2V4.66667M10.6667 2V4.66667M2.66667 6.66667H13.3333"
+          stroke="currentColor"
+          strokeWidth="1.26667"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+
   return (
     <svg
       width="15"
