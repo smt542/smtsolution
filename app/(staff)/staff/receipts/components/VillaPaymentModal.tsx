@@ -32,7 +32,14 @@ const BankImportModal = dynamic(
   { ssr: false, loading: () => <Spinner /> },
 );
 
-export type VillaInitialView = "table" | "giro" | "bank" | "statement" | "receipt";
+export type VillaInitialView =
+  | "table"
+  | "giro-upload"
+  | "giro"
+  | "giro-calendar"
+  | "bank"
+  | "statement"
+  | "receipt";
 export type VillaStatusFilter = "all" | "unpaid" | "paid";
 
 export interface VillaPaymentModalInit {
@@ -89,8 +96,10 @@ export function VillaPaymentModal({
   const [receiptState, setReceiptState] = useState<ReceiptState | null>(null);
   const [bankOpen, setBankOpen] = useState(init?.view === "bank");
   const [giroOpen, setGiroOpen] = useState(init?.view === "giro");
-  const [giroUploadOpen, setGiroUploadOpen] = useState(false);
-  const [giroCalendarOpen, setGiroCalendarOpen] = useState(false);
+  const [giroUploadOpen, setGiroUploadOpen] = useState(init?.view === "giro-upload");
+  const [giroCalendarOpen, setGiroCalendarOpen] = useState(
+    init?.view === "giro-calendar",
+  );
   // 호실 영수증 진입: rows 로드 후 해당 세대 이력 자동 오픈(사용자 조작 전까지).
   const [receiptDismissed, setReceiptDismissed] = useState(false);
 
