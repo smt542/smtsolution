@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import type { BillingFlatRow } from "@/lib/billing/pivot";
-import { defaultChargePeriod } from "@/lib/billing/period";
+import { defaultChargePeriod, prevPeriod } from "@/lib/billing/period";
 
 type BillingFlatDbRow = {
   unit_id: number; unit_no: string; dong: string | null; room_type_label: string | null;
@@ -61,6 +61,60 @@ export async function saveBillingCharges(p: SaveBillingChargesPayload): Promise<
     p_notes: p.notes.map((n) => ({ unit_id: n.unitId, billing_note: n.billingNote, unit_notice: n.unitNotice })),
   });
   if (error) throw new Error(error.message);
+}
+
+export interface CopyPreviousBillingResult {
+  unitCount: number;
+  chargeCount: number;
+}
+
+/** 현재 월에 존재하는 세대·항목을 기준으로 전월 금액과 메모를 덮어쓴다. */
+export async function copyPreviousBilling(
+  buildingId: number,
+  period: string,
+): Promise<CopyPreviousBillingResult> {
+  const [previousRows, currentRows] = await Promise.all([
+    listBilling(buildingId, prevPeriod(period)),
+    listBilling(buildingId, period),
+  ]);
+  const previousByCell = new Map(
+    previousRows
+      .filter((row) => row.carryOver)
+      .map((row) => [`${row.unitId}:${row.feeItemId}`, row]),
+  );
+  const charges = currentRows.flatMap((current) => {
+    const previous = previousByCell.get(`${current.unitId}:${current.feeItemId}`);
+    return previous
+      ? [{
+          unitId: current.unitId,
+          feeItemId: current.feeItemId,
+          charged: previous.charged,
+          amount: previous.amount,
+          occupancyId: current.occupancyId,
+        }]
+      : [];
+  });
+  const unitIds = [...new Set(charges.map((charge) => charge.unitId))];
+  if (charges.length > 0) {
+    await saveBillingCharges({ buildingId, period, charges, notes: [] });
+  }
+  const previousSetting = await getBillingPeriodSetting(buildingId, prevPeriod(period));
+  await saveBillingPeriodSetting({
+    buildingId,
+    period,
+    chargeStartDate: shiftMonth(previousSetting.chargeStartDate),
+    chargeEndDate: shiftMonth(previousSetting.chargeEndDate),
+    dueDate: previousSetting.dueDate ? shiftMonth(previousSetting.dueDate) : null,
+  });
+  return { unitCount: unitIds.length, chargeCount: charges.length };
+}
+
+function shiftMonth(value: string): string {
+  const [year, month, day] = value.split("-").map(Number);
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+  const lastDay = new Date(nextYear, nextMonth, 0).getDate();
+  return `${nextYear}-${String(nextMonth).padStart(2, "0")}-${String(Math.min(day, lastDay)).padStart(2, "0")}`;
 }
 
 export interface ConfirmBillingResult { unitCount: number; total: number; }

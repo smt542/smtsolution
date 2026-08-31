@@ -1,115 +1,128 @@
 "use client";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { toast } from "sonner";
-import { Button, Select, EmptyState, Spinner } from "@/components/common";
+import { EmptyState, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useBuildingTypes } from "@/hooks/reactquery/buildingTypes";
 import {
   useBilling,
-  useSaveBillingCharges,
-  useConfirmBilling,
-  useUnchargedNewOccupancies,
   useChargeNewOccupancies,
+  useConfirmBilling,
+  useCopyPreviousBilling,
+  useSaveBillingCharges,
+  useUnchargedNewOccupancies,
 } from "@/hooks/reactquery/billing";
+import { useSaveBuildingNotes } from "@/hooks/reactquery/receipts";
+import { useUtilityConfirmation, useUtilityRows } from "@/hooks/reactquery/utilities";
 import { hasModule } from "@/lib/auth/permissions";
+import { currentPeriod } from "@/lib/billing/period";
 import { pivotBillingRows } from "@/lib/billing/pivot";
-import { currentPeriod, toMonthInput, fromMonthInput } from "@/lib/billing/period";
 import { formatWon } from "@/lib/format";
-import {
-  BillingTable,
-  type BillingChargeDraft,
-  type BillingNoteDraft,
-} from "./components/BillingTable";
-import { ItemManageModal } from "./components/ItemManageModal";
 import { BillingHistoryModal } from "./components/BillingHistoryModal";
 import { BillingNoteModal } from "./components/BillingNoteModal";
 import { BillingPeriodSettingsBar } from "./components/BillingPeriodSettingsBar";
+import { BillingSectionToolbar } from "./components/BillingSectionToolbar";
+import { BillingTable, type BillingChargeDraft, type BillingNoteDraft } from "./components/BillingTable";
+import { BuildingDirectoryRail } from "./components/BuildingDirectoryRail";
+import { ManagementFeeDialog, type ManagementFeeDialogKind } from "./components/ManagementFeeDialog";
 import { NewTenantChargeModal } from "./components/NewTenantChargeModal";
+import { UtilitySummaryPanel } from "./components/UtilitySummaryPanel";
 
-export default function FeeItemPage() {
+const periodFrom = (year: number, month: number) => `${year}-${String(month).padStart(2, "0")}-01`;
+
+export default function ManagementFeePage() {
   const { data: me } = useMe();
   const buildingsQuery = useBuildings();
   const { data: buildingTypes = [] } = useBuildingTypes();
+  const buildings = buildingsQuery.data ?? [];
 
   const [buildingId, setBuildingId] = useState<number | null>(null);
-  const [period, setPeriod] = useState<string>(() => currentPeriod());
+  const [period, setPeriod] = useState(() => currentPeriod());
+  const [editing, setEditing] = useState(false);
+  const [buildingNoteDraft, setBuildingNoteDraft] = useState("");
   const [chargeDrafts, setChargeDrafts] = useState<Record<number, Record<number, BillingChargeDraft>>>({});
   const [noteDrafts, setNoteDrafts] = useState<Record<number, BillingNoteDraft>>({});
   const [noteUnit, setNoteUnit] = useState<number | null>(null);
-  const [itemModalOpen, setItemModalOpen] = useState(false);
   const [historyUnit, setHistoryUnit] = useState<{ id: number; no: string } | null>(null);
+  const [dialog, setDialog] = useState<ManagementFeeDialogKind | null>(null);
 
   const billingQuery = useBilling(buildingId, period);
   const saveCharges = useSaveBillingCharges();
   const confirmBilling = useConfirmBilling();
+  const copyPrevious = useCopyPreviousBilling();
+  const saveBuildingNotes = useSaveBuildingNotes();
+  const newOccupanciesQuery = useUnchargedNewOccupancies(buildingId, period);
+  const chargeNewOccupancies = useChargeNewOccupancies();
+  const waterRows = useUtilityRows(buildingId, "water", period);
+  const electricityRows = useUtilityRows(buildingId, "electricity", period);
+  const gasRows = useUtilityRows(buildingId, "gas", period);
+  const waterConfirmation = useUtilityConfirmation(buildingId, "water", period);
+  const electricityConfirmation = useUtilityConfirmation(buildingId, "electricity", period);
+  const gasConfirmation = useUtilityConfirmation(buildingId, "gas", period);
 
-  // §3.3 부과확정 이후 등록된 미부과 신규 세대 감지 + 당월부과
-  const newOccQuery = useUnchargedNewOccupancies(buildingId, period);
-  const chargeNewOcc = useChargeNewOccupancies();
-  const [newTenantOpen, setNewTenantOpen] = useState(false);
-  const newOccUnits = newOccQuery.data ?? [];
+  const selectedBuilding = buildings.find((building) => building.id === buildingId) ?? null;
+  const { units, columns } = useMemo(() => pivotBillingRows(billingQuery.data ?? []), [billingQuery.data]);
+  const unitsById = useMemo(() => new Map(units.map((unit) => [unit.unitId, unit])), [units]);
+  const utilityRows = useMemo(() => ({
+    water: waterRows.data ?? [],
+    electricity: electricityRows.data ?? [],
+    gas: gasRows.data ?? [],
+  }), [electricityRows.data, gasRows.data, waterRows.data]);
+  const utilityConfirmations = useMemo(() => ({
+    water: waterConfirmation.data ?? null,
+    electricity: electricityConfirmation.data ?? null,
+    gas: gasConfirmation.data ?? null,
+  }), [electricityConfirmation.data, gasConfirmation.data, waterConfirmation.data]);
+
+  const newOccupancies = newOccupanciesQuery.data ?? [];
   const selectionKey = buildingId ? `${buildingId}:${period}` : null;
+  const [newTenantOpen, setNewTenantOpen] = useState(false);
   useEffect(() => {
-    // 진입(건물·월)마다 미부과 신규 세대가 있으면 자동 노출
-    if (selectionKey && newOccUnits.length > 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setNewTenantOpen(true);
-    }
-  }, [selectionKey, newOccUnits.length]);
+    // 신규 입주 감지 결과는 비동기 쿼리 완료 후에만 알 수 있어 모달 상태를 동기화한다.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (selectionKey && newOccupancies.length > 0) setNewTenantOpen(true);
+  }, [selectionKey, newOccupancies.length]);
 
-  const buildings = buildingsQuery.data ?? [];
-  const selectedBuilding = buildings.find((b) => b.id === buildingId) ?? null;
-  const buildingType = buildingTypes.find((t) => t.id === selectedBuilding?.typeId) ?? null;
+  const resetDrafts = useCallback((note = "") => {
+    setChargeDrafts({});
+    setNoteDrafts({});
+    setBuildingNoteDraft(note);
+  }, []);
 
-  const { units, columns } = useMemo(
-    () => pivotBillingRows(billingQuery.data ?? []),
-    [billingQuery.data],
-  );
-  const unitsById = useMemo(
-    () => new Map(units.map((unit) => [unit.unitId, unit])),
-    [units],
-  );
+  const changeBuilding = (value: string) => {
+    const nextId = value ? Number(value) : null;
+    const nextBuilding = buildings.find((building) => building.id === nextId) ?? null;
+    setBuildingId(nextId);
+    setEditing(false);
+    resetDrafts(nextBuilding?.billingNote ?? "");
+  };
 
-  const onChargeChange = useCallback((
-    unitId: number,
-    feeItemId: number,
-    patch: Partial<BillingChargeDraft>,
-  ) => {
+  const changePeriod = (year: number, month: number) => {
+    setPeriod(periodFrom(year, month));
+    setEditing(false);
+    resetDrafts(selectedBuilding?.billingNote ?? "");
+  };
+
+  const onChargeChange = useCallback((unitId: number, feeItemId: number, patch: Partial<BillingChargeDraft>) => {
     setChargeDrafts((currentDrafts) => {
-      const rowDrafts = currentDrafts[unitId];
-      const current =
-        rowDrafts?.[feeItemId] ??
-        unitsById.get(unitId)?.charges[feeItemId] ??
-        { charged: true, amount: 0 };
+      const current = currentDrafts[unitId]?.[feeItemId]
+        ?? unitsById.get(unitId)?.charges[feeItemId]
+        ?? { charged: true, amount: 0 };
       return {
         ...currentDrafts,
         [unitId]: {
-          ...rowDrafts,
+          ...currentDrafts[unitId],
           [feeItemId]: { ...current, ...patch },
         },
       };
     });
   }, [unitsById]);
 
-  const openHistory = useCallback((unitId: number) => {
-    const unit = unitsById.get(unitId);
-    if (unit) setHistoryUnit({ id: unitId, no: unit.unitNo });
-  }, [unitsById]);
-
-  const openNote = useCallback((unitId: number) => setNoteUnit(unitId), []);
-
-  if (me === undefined) return null;
-  if (!hasModule(me, "billing")) {
-    return (
-      <div className="p-6">
-        <EmptyState message="이 화면에 접근할 권한이 없습니다. (부과 확정 권한 필요)" />
-      </div>
-    );
-  }
-
-  const handleSave = async () => {
-    if (!buildingId) return;
+  const saveAndConfirm = async () => {
+    if (!buildingId || !selectedBuilding) return;
     const charges = Object.entries(chargeDrafts).flatMap(([unitIdText, rowDrafts]) => {
       const unitId = Number(unitIdText);
       const occupancyId = unitsById.get(unitId)?.occupancyId ?? null;
@@ -121,183 +134,220 @@ export default function FeeItemPage() {
         occupancyId,
       }));
     });
-    const notes = Object.entries(noteDrafts).map(([unitId, v]) => ({
+    const notes = Object.entries(noteDrafts).map(([unitId, value]) => ({
       unitId: Number(unitId),
-      billingNote: v.billingNote || null,
-      unitNotice: v.unitNotice || null,
+      billingNote: value.billingNote || null,
+      unitNotice: value.unitNotice || null,
     }));
-    if (charges.length === 0 && notes.length === 0) { toast.info("변경된 내용이 없습니다."); return; }
     try {
-      await saveCharges.mutateAsync({ buildingId, period, charges, notes });
-      setChargeDrafts({});
-      setNoteDrafts({});
-      toast.success("임시 저장되었습니다.");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      if (charges.length > 0 || notes.length > 0) {
+        await saveCharges.mutateAsync({ buildingId, period, charges, notes });
+      }
+      if (buildingNoteDraft !== (selectedBuilding.billingNote ?? "")) {
+        await saveBuildingNotes.mutateAsync({
+          buildingId,
+          memo: selectedBuilding.memo ?? "",
+          billingNote: buildingNoteDraft,
+        });
+      }
+      const result = units.length > 0
+        ? await confirmBilling.mutateAsync({ buildingId, period })
+        : { unitCount: 0, total: 0 };
+      setEditing(false);
+      resetDrafts(buildingNoteDraft);
+      toast.success(`관리비가 저장되었습니다. (${result.unitCount}세대 · ${formatWon(result.total)})`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error));
+      throw error;
     }
   };
 
-  const handleConfirm = async () => {
+  const calculateUtilities = () => {
     if (!buildingId) return;
-    if (Object.keys(chargeDrafts).length > 0 || Object.keys(noteDrafts).length > 0) { toast.info("먼저 [저장]으로 임시 저장해 주세요."); return; }
-    if (!window.confirm("당월 관리비를 부과 확정하시겠습니까?")) return;
-    try {
-      const r = await confirmBilling.mutateAsync({ buildingId, period });
-      toast.success(`부과가 확정되었습니다. (${r.unitCount}세대 · ${formatWon(r.total)})`);
-    } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
+    const allReady = Object.values(utilityConfirmations).every((confirmation) => confirmation && !confirmation.isDirty);
+    if (!allReady) {
+      setDialog("utility-missing");
+      return;
+    }
+    const columnByType = {
+      water: columns.find((column) => /수도/.test(column.name)),
+      electricity: columns.find((column) => /전기/.test(column.name)),
+      gas: columns.find((column) => /가스/.test(column.name)),
+    };
+    setChargeDrafts((current) => {
+      const next = { ...current };
+      (["water", "electricity", "gas"] as const).forEach((type) => {
+        const column = columnByType[type];
+        if (!column) return;
+        utilityRows[type].forEach((row) => {
+          next[row.unitId] = {
+            ...next[row.unitId],
+            [column.feeItemId]: {
+              charged: !unitsById.get(row.unitId)?.isVacant,
+              amount: row.manualCharge ?? row.automaticCharge ?? 0,
+            },
+          };
+        });
+      });
+      return next;
+    });
+    setEditing(true);
+    toast.success("산정된 공과금 부과액을 세대별 관리비에 반영했습니다.");
   };
+
+  const openCarryBuilding = () => {
+    if (!selectedBuilding) return;
+    setDialog(selectedBuilding.setupConfirmRequired ? "important-building" : "carry-building");
+  };
+
+  const confirmDialog = async () => {
+    if (dialog === "utility-missing") {
+      setDialog(null);
+      return;
+    }
+    if (dialog === "important-building") {
+      setDialog("carry-building");
+      return;
+    }
+    const buildingIds = dialog === "carry-all"
+      ? buildings.map((building) => building.id)
+      : buildingId ? [buildingId] : [];
+    if (buildingIds.length === 0) return;
+    try {
+      const result = await copyPrevious.mutateAsync({ buildingIds, period });
+      setDialog(null);
+      setEditing(true);
+      toast.success(`전월 자료를 반영했습니다. (${result.buildingCount}개 건물 · ${result.unitCount}세대)`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  const openHistory = useCallback((unitId: number) => {
+    const unit = unitsById.get(unitId);
+    if (unit) setHistoryUnit({ id: unitId, no: unit.unitNo });
+  }, [unitsById]);
 
   const handleChargeNewTenants = async (unitIds: number[]) => {
     if (!buildingId) return;
     try {
-      const r = await chargeNewOcc.mutateAsync({ buildingId, period, unitIds });
-      toast.success(`신규 입주 ${r.unitCount}세대 당월 부과 완료 (${formatWon(r.total)})`);
+      const result = await chargeNewOccupancies.mutateAsync({ buildingId, period, unitIds });
+      toast.success(`신규 입주 ${result.unitCount}세대 당월 부과 완료 (${formatWon(result.total)})`);
       setNewTenantOpen(false);
-    } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
-  };
-
-  const selectBuilding = (v: string) => {
-    const id = v ? Number(v) : null;
-    if (id) {
-      const b = buildings.find((x) => x.id === id);
-      if (b?.setupConfirmRequired && !window.confirm("이 건물은 셋팅 시 확인이 필요합니다. 계속하시겠습니까?")) {
-        return; // §3.4 취소 → 선택 롤백
-      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : String(error));
     }
-    setBuildingId(id);
-    setChargeDrafts({});
-    setNoteDrafts({});
   };
-  const changeMonth = (v: string) => { setPeriod(fromMonthInput(v)); setChargeDrafts({}); setNoteDrafts({}); };
 
+  if (me === undefined) return null;
+  if (!hasModule(me, "billing")) {
+    return <div className="p-6"><EmptyState message="이 화면에 접근할 권한이 없습니다. (부과 확정 권한 필요)" /></div>;
+  }
+
+  const actionPending = saveCharges.isPending || confirmBilling.isPending || copyPrevious.isPending || saveBuildingNotes.isPending;
   return (
-    <div className="flex min-h-screen flex-col gap-5 p-4 sm:p-6">
-      <div>
-        <p className="text-xs font-semibold text-t3">관리업무 · 부과 확정</p>
-        <h1 className="mt-1 text-2xl font-extrabold text-t1">관리비 부과 셋팅</h1>
+    <div className="h-[calc(100dvh-62px)] min-h-[720px] overflow-hidden bg-bg px-[24px] pb-[24px] pt-[22px]">
+      <div className="grid h-full min-h-0 grid-cols-[322px_minmax(0,1fr)] gap-[16px]">
+        <BuildingDirectoryRail
+          buildings={buildings}
+          buildingTypes={buildingTypes}
+          selectedBuildingId={buildingId}
+          period={period}
+          loading={buildingsQuery.isLoading}
+          editing={editing}
+          note={buildingNoteDraft}
+          onNoteChange={setBuildingNoteDraft}
+          onBuildingChange={changeBuilding}
+          onPeriodChange={changePeriod}
+        />
+
+        <main className="grid min-h-0 grid-rows-[51px_196px_minmax(250px,1fr)] gap-[12px]">
+          <BillingPeriodSettingsBar
+            key={`${buildingId ?? "none"}:${period}`}
+            buildingId={buildingId}
+            buildingName={selectedBuilding?.name ?? ""}
+            period={period}
+            editing={editing}
+            pending={actionPending}
+            onEdit={() => {
+              setBuildingNoteDraft(selectedBuilding?.billingNote ?? "");
+              setEditing(true);
+            }}
+            onCancel={() => {
+              setEditing(false);
+              resetDrafts(selectedBuilding?.billingNote ?? "");
+            }}
+            onSave={saveAndConfirm}
+          />
+
+          <UtilitySummaryPanel
+            buildingSelected={buildingId !== null}
+            rows={utilityRows}
+            confirmations={utilityConfirmations}
+            loading={{ water: waterRows.isLoading, electricity: electricityRows.isLoading, gas: gasRows.isLoading }}
+          />
+
+          <section className="flex min-h-0 flex-col overflow-hidden rounded-[16px] bg-surface shadow-card">
+            <BillingSectionToolbar
+              buildingSelected={buildingId !== null}
+              hasBuildings={buildings.length > 0}
+              pending={actionPending}
+              onCarryBuilding={openCarryBuilding}
+              onCarryAll={() => setDialog("carry-all")}
+              onCalculateUtilities={calculateUtilities}
+            />
+
+            <div className="min-h-0 flex-1">
+              {!buildingId && (
+                <div className="flex h-full min-h-[260px] flex-col items-center justify-center text-center">
+                  <span className="flex size-[56px] items-center justify-center rounded-[17px] bg-[#e2f5f1]"><Image src="/icons/management-fee-empty.svg" alt="" width={27} height={27} className="size-[27px]" /></span>
+                  <p className="mt-[15px] text-[14px] font-extrabold text-t1">건물을 선택해 주세요</p>
+                  <p className="mt-[5px] text-[12px] font-medium text-t3">선택한 건물의 세대별 관리비를 확인할 수 있어요.</p>
+                </div>
+              )}
+              {buildingId && billingQuery.isLoading && <div className="flex h-full flex-col items-center justify-center gap-2"><Spinner /><p className="text-[12px] text-t3">관리비를 불러오는 중입니다.</p></div>}
+              {buildingId && billingQuery.error && (
+                <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+                  <p className="text-[13px] font-semibold text-red">관리비를 불러오지 못했습니다.</p>
+                  <button type="button" onClick={() => billingQuery.refetch()} className="h-[32px] rounded-[9px] border border-line px-[12px] text-[12px] font-bold">다시 시도</button>
+                </div>
+              )}
+              {buildingId && !billingQuery.isLoading && !billingQuery.error && units.length === 0 && (
+                <div className="flex h-full items-center justify-center text-[13px] text-t3">등록된 세대가 없습니다.</div>
+              )}
+              {buildingId && !billingQuery.isLoading && !billingQuery.error && units.length > 0 && (
+                <BillingTable
+                  units={units}
+                  columns={columns}
+                  period={period}
+                  editing={editing}
+                  chargeDrafts={chargeDrafts}
+                  noteDrafts={noteDrafts}
+                  onChargeChange={onChargeChange}
+                  onRowClick={openHistory}
+                  onNoteClick={(unitId) => editing && setNoteUnit(unitId)}
+                />
+              )}
+            </div>
+          </section>
+        </main>
       </div>
 
-      <section className="rounded-2xl border border-line bg-surface p-4 shadow-card">
-        <div className="flex flex-wrap items-end gap-3">
-          <label className="w-full sm:w-64">
-            <span className="mb-1.5 block text-xs font-bold text-t2">건물 선택</span>
-            <Select
-              aria-label="건물 선택"
-              value={buildingId?.toString() ?? ""}
-              onChange={(e) => selectBuilding(e.target.value)}
-              disabled={buildingsQuery.isLoading}
-              options={[
-                { value: "", label: buildingsQuery.isLoading ? "불러오는 중" : "-- 선택 --" },
-                ...buildings.map((b) => ({ value: String(b.id), label: b.name })),
-              ]}
-            />
-          </label>
-          <label>
-            <span className="mb-1.5 block text-xs font-bold text-t2">부과 월</span>
-            <input
-              type="month"
-              aria-label="부과 월"
-              value={toMonthInput(period)}
-              max={toMonthInput(currentPeriod())}
-              onChange={(e) => e.target.value && changeMonth(e.target.value)}
-              className="h-9 rounded-lg border border-line bg-surface px-3 text-sm font-semibold text-t1 focus:border-blue focus:outline-none"
-            />
-          </label>
-          <div className="flex w-full flex-wrap justify-end gap-2 xl:w-auto xl:flex-1">
-            <Button variant="ghost" onClick={() => setItemModalOpen(true)} disabled={!selectedBuilding?.typeId}>
-              항목관리
-            </Button>
-            <Button variant="ghost" onClick={handleSave} disabled={!buildingId || saveCharges.isPending}>
-              저장
-            </Button>
-            <Button variant="primary" onClick={handleConfirm}
-              disabled={!buildingId || confirmBilling.isPending || units.length === 0}>
-              부과 확정
-            </Button>
-          </div>
-        </div>
-        {buildingId && (
-          <BillingPeriodSettingsBar key={`${buildingId}:${period}`} buildingId={buildingId} period={period} />
-        )}
-      </section>
-
-      {!buildingId && (
-        <section className="rounded-2xl border border-line bg-surface shadow-card">
-          <EmptyState message="건물을 선택해 주세요" />
-        </section>
-      )}
-      {buildingId && billingQuery.isLoading && (
-        <section className="rounded-2xl border border-line bg-surface py-16 shadow-card">
-          <Spinner />
-          <p className="text-center text-sm text-t3">불러오는 중입니다.</p>
-        </section>
-      )}
-      {buildingId && billingQuery.error && (
-        <section className="rounded-2xl border border-red/20 bg-red-t p-8 text-center">
-          <p className="text-sm font-semibold text-red">오류가 발생했습니다. 다시 시도해 주세요.</p>
-          <Button className="mt-3" variant="ghost" onClick={() => billingQuery.refetch()}>
-            다시 시도
-          </Button>
-        </section>
-      )}
-      {buildingId && !billingQuery.isLoading && !billingQuery.error && units.length === 0 && (
-        <section className="rounded-2xl border border-line bg-surface shadow-card">
-          <EmptyState message="등록된 세대가 없습니다" />
-        </section>
-      )}
-      {buildingId && !billingQuery.isLoading && !billingQuery.error && units.length > 0 && (
-        <section className="overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
-          <BillingTable
-            units={units}
-            columns={columns}
-            period={period}
-            chargeDrafts={chargeDrafts}
-            noteDrafts={noteDrafts}
-            onChargeChange={onChargeChange}
-            onRowClick={openHistory}
-            onNoteClick={openNote}
-          />
-        </section>
-      )}
-
-      {selectedBuilding?.typeId && buildingType && me?.orgId && (
-        <ItemManageModal
-          open={itemModalOpen}
-          onClose={() => setItemModalOpen(false)}
-          orgId={me.orgId}
-          typeId={selectedBuilding.typeId}
-          typeLabel={buildingType.label}
-        />
-      )}
-
-      <BillingHistoryModal
-        open={!!historyUnit}
-        unitId={historyUnit?.id ?? null}
-        unitNo={historyUnit?.no ?? ""}
-        period={period}
-        onClose={() => setHistoryUnit(null)}
-      />
-
-      <NewTenantChargeModal
-        open={newTenantOpen}
-        units={newOccUnits}
-        pending={chargeNewOcc.isPending}
-        onConfirm={handleChargeNewTenants}
-        onClose={() => setNewTenantOpen(false)}
-      />
-
+      <ManagementFeeDialog kind={dialog} buildingName={selectedBuilding?.name ?? "선택한 건물"} period={period} pending={copyPrevious.isPending} onClose={() => setDialog(null)} onConfirm={() => void confirmDialog()} />
+      <BillingHistoryModal open={Boolean(historyUnit)} unitId={historyUnit?.id ?? null} unitNo={historyUnit?.no ?? ""} period={period} onClose={() => setHistoryUnit(null)} />
+      <NewTenantChargeModal open={newTenantOpen} units={newOccupancies} pending={chargeNewOccupancies.isPending} onConfirm={handleChargeNewTenants} onClose={() => setNewTenantOpen(false)} />
       {(() => {
-        const u = noteUnit === null ? undefined : unitsById.get(noteUnit);
+        const unit = noteUnit === null ? undefined : unitsById.get(noteUnit);
         const noteDraft = noteUnit === null ? undefined : noteDrafts[noteUnit];
         return (
           <BillingNoteModal
-            open={noteUnit != null}
-            unitNo={u?.unitNo ?? ""}
-            billingNote={noteDraft?.billingNote ?? u?.billingNote ?? ""}
-            unitNotice={noteDraft?.unitNotice ?? u?.unitNotice ?? ""}
+            open={noteUnit !== null}
+            unitNo={unit?.unitNo ?? ""}
+            billingNote={noteDraft?.billingNote ?? unit?.billingNote ?? ""}
+            unitNotice={noteDraft?.unitNotice ?? unit?.unitNotice ?? ""}
             onClose={() => setNoteUnit(null)}
-            onSave={(v) => {
-              if (noteUnit != null) setNoteDrafts((d) => ({ ...d, [noteUnit]: v }));
+            onSave={(value) => {
+              if (noteUnit !== null) setNoteDrafts((current) => ({ ...current, [noteUnit]: value }));
               setNoteUnit(null);
             }}
           />
