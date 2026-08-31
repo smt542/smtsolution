@@ -5,3 +5,6 @@ export { PrinterIcon } from "./PrinterIcon";
 export { UnitCardIcon } from "./UnitCardIcon";
 export { BrandMarkIcon } from "./BrandMarkIcon";
 export { MenuIcon } from "./MenuIcon";
+export { FilterIcon } from "./FilterIcon";
+export { SearchIcon } from "./SearchIcon";
+export { ResidentsIcon } from "./ResidentsIcon";

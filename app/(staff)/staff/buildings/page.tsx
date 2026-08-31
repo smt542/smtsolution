@@ -4,7 +4,7 @@ import type { MyContext } from "@/hooks/reactquery/auth";
 import type { BuildingDirectoryRow, BuildingListResult } from "@/hooks/reactquery/buildings";
 import { hasModule } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
-import { BuildingList } from "./components/BuildingList";
+import { BuildingTenantManager } from "./components/BuildingTenantManager";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +35,11 @@ type BuildingDirectoryDbRow = {
   occupied_units: unknown;
   min_meter_day: number | null;
   total: unknown;
+  type_label?: string | null;
+  owner_name?: string | null;
+  owner_phone?: string | null;
+  entrance_password?: string | null;
+  created_at?: string | null;
 };
 
 function toMyContext(data: unknown): MyContext | null {
@@ -69,6 +74,11 @@ function toBuildingDirectory(row: BuildingDirectoryDbRow): BuildingDirectoryRow 
     totalUnits: Number(row.total_units ?? 0),
     occupiedUnits: Number(row.occupied_units ?? 0),
     minMeterDay: row.min_meter_day,
+    typeLabel: row.type_label ?? null,
+    ownerName: row.owner_name ?? null,
+    ownerPhone: row.owner_phone ?? null,
+    commonEntrance: row.entrance_password ?? null,
+    createdAt: row.created_at ?? null,
   };
 }
 
@@ -107,9 +117,5 @@ export default async function BuildingsPage() {
     total: dbRows.length > 0 ? Number(dbRows[0].total) : 0,
   };
 
-  return (
-    <div className="p-6 xl:p-7">
-      <BuildingList initialData={initialData} />
-    </div>
-  );
+  return <BuildingTenantManager initialData={initialData} />;
 }

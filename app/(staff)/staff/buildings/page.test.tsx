@@ -9,8 +9,8 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
-vi.mock("./components/BuildingList", () => ({
-  BuildingList: ({ initialData }: { initialData: { rows: Array<{ name: string }>; total: number } }) => (
+vi.mock("./components/BuildingTenantManager", () => ({
+  BuildingTenantManager: ({ initialData }: { initialData: { rows: Array<{ name: string }>; total: number } }) => (
     <div>LIST:{initialData.rows[0]?.name}:{initialData.total}</div>
   ),
 }));
