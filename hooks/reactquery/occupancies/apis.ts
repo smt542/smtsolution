@@ -18,6 +18,11 @@ export interface Occupancy {
   transferMethod: TransferMethod; billNameDisplay: BillNameDisplay; billDelivery: BillDelivery; billAuth: boolean;
   moveOutScheduledDate: string | null;
   smsOptIn: boolean; alimtalkOptIn: boolean;
+  // 0117 신규
+  expectedMoveInDate: string | null; discountType: string | null; discountAmount: number | null;
+  homepagePassword: string | null; mgmtFeeAmount: number | null; moveCleaningFee: number | null;
+  increaseAmount: number | null; billingDay: string | null; etcNote: string | null; billAuthInfo: string | null;
+  phonesExtra: string[]; vehiclesExtra: string[];
 }
 type OccupancyRow = {
   id: number; unit_id: number; tenant_name: string | null; payer_name: string | null;
@@ -28,6 +33,10 @@ type OccupancyRow = {
   transfer_method: TransferMethod; bill_name_display: BillNameDisplay; bill_delivery: BillDelivery; bill_auth: boolean;
   move_out_scheduled_date: string | null;
   sms_opt_in: boolean; alimtalk_opt_in: boolean;
+  expected_move_in_date?: string | null; discount_type?: string | null; discount_amount?: number | null;
+  homepage_password?: string | null; mgmt_fee_amount?: number | null; move_cleaning_fee?: number | null;
+  increase_amount?: number | null; billing_day?: string | null; etc_note?: string | null; bill_auth_info?: string | null;
+  phones_extra?: string[] | null; vehicles_extra?: string[] | null;
 };
 const rowToOccupancy = (r: OccupancyRow): Occupancy => ({
   id: r.id, unitId: r.unit_id, tenantName: r.tenant_name, payerName: r.payer_name,
@@ -38,7 +47,38 @@ const rowToOccupancy = (r: OccupancyRow): Occupancy => ({
   transferMethod: r.transfer_method, billNameDisplay: r.bill_name_display, billDelivery: r.bill_delivery, billAuth: r.bill_auth,
   moveOutScheduledDate: r.move_out_scheduled_date,
   smsOptIn: r.sms_opt_in ?? false, alimtalkOptIn: r.alimtalk_opt_in ?? false,
+  expectedMoveInDate: r.expected_move_in_date ?? null, discountType: r.discount_type ?? null, discountAmount: r.discount_amount ?? null,
+  homepagePassword: r.homepage_password ?? null, mgmtFeeAmount: r.mgmt_fee_amount ?? null, moveCleaningFee: r.move_cleaning_fee ?? null,
+  increaseAmount: r.increase_amount ?? null, billingDay: r.billing_day ?? null, etcNote: r.etc_note ?? null, billAuthInfo: r.bill_auth_info ?? null,
+  phonesExtra: r.phones_extra ?? [], vehiclesExtra: r.vehicles_extra ?? [],
 });
+
+export interface PropertyListing {
+  id: number; unitId: number;
+  propertyName: string | null; address: string | null; addressDetail: string | null;
+  propertyType: string | null; dealType: string | null; rentType: string | null;
+  areaM2: number | null; deposit: number | null; jeonseDeposit: number | null; monthlyRent: number | null;
+  mgmtFeeDesc: string | null; availableDate: string | null; location: string | null;
+  facilities: string[];
+}
+type PropertyRow = {
+  id: number; unit_id: number; property_name: string | null; address: string | null; address_detail: string | null;
+  property_type: string | null; deal_type: string | null; rent_type: string | null;
+  area_m2: number | null; deposit: number | null; jeonse_deposit: number | null; monthly_rent: number | null;
+  mgmt_fee_desc: string | null; available_date: string | null; location: string | null; facilities: unknown;
+};
+const rowToProperty = (r: PropertyRow): PropertyListing => ({
+  id: r.id, unitId: r.unit_id, propertyName: r.property_name, address: r.address, addressDetail: r.address_detail,
+  propertyType: r.property_type, dealType: r.deal_type, rentType: r.rent_type,
+  areaM2: r.area_m2, deposit: r.deposit, jeonseDeposit: r.jeonse_deposit, monthlyRent: r.monthly_rent,
+  mgmtFeeDesc: r.mgmt_fee_desc, availableDate: r.available_date, location: r.location,
+  facilities: Array.isArray(r.facilities) ? (r.facilities as string[]) : [],
+});
+export async function getPropertyByUnit(unitId: number): Promise<PropertyListing | null> {
+  const { data, error } = await createClient().from("unit_property_listings").select("*").eq("unit_id", unitId).is("deleted_at", null).maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ? rowToProperty(data as PropertyRow) : null;
+}
 
 export interface TenantListRow {
   unitId: number; occupancyId: number | null; unitNo: string; tenantName: string | null; phone: string | null;
@@ -86,6 +126,7 @@ const rowToTenant = (r: TenantRow): TenantListRow => ({
 export interface UnitOccupancyFull {
   unit: Unit; occupancy: Occupancy | null;
   meters: UnitMeter[]; accounts: UnitAccount[]; lease: LeaseContract | null; history: OccupancyHistory[];
+  property: PropertyListing | null;
 }
 export interface SaveUnitOccupancyPayload {
   buildingId: number; unitId?: number | null; occupancyId?: number | null;
@@ -100,10 +141,24 @@ export interface SaveUnitOccupancyPayload {
     lateFeeEnabled: boolean; singlePrint: boolean; billingNote?: string | null; settlementNote?: string | null; facilityNote?: string | null;
     transferMethod: TransferMethod; billNameDisplay: BillNameDisplay; billDelivery: BillDelivery; billAuth: boolean;
     moveOutScheduledDate?: string | null;
+    smsOptIn?: boolean; alimtalkOptIn?: boolean;
+    expectedMoveInDate?: string | null; discountType?: string | null; discountAmount?: number | null;
+    homepagePassword?: string | null; mgmtFeeAmount?: number | null; moveCleaningFee?: number | null;
+    increaseAmount?: number | null; billingDay?: string | null; etcNote?: string | null; billAuthInfo?: string | null;
+    phonesExtra?: string[]; vehiclesExtra?: string[];
   };
   meters: { utility: string; meterNo?: string | null; customerNo?: string | null }[];
   accounts: { kind: string; bank?: string | null; account?: string | null; holder?: string | null; cmsMemberNo?: string | null; payerNo?: string | null }[];
-  lease: { deposit?: number | null; monthlyRent?: number | null; startDate?: string | null; endDate?: string | null; expiryAlert: boolean } | null;
+  lease: {
+    deposit?: number | null; monthlyRent?: number | null; startDate?: string | null; endDate?: string | null; expiryAlert: boolean;
+    leaseType?: string | null; depositDate?: string | null; jeonseDeposit?: number | null; bankAccount?: string | null;
+  } | null;
+  property?: {
+    propertyName?: string | null; address?: string | null; addressDetail?: string | null;
+    propertyType?: string | null; dealType?: string | null; rentType?: string | null;
+    areaM2?: number | null; deposit?: number | null; jeonseDeposit?: number | null; monthlyRent?: number | null;
+    mgmtFeeDesc?: string | null; availableDate?: string | null; location?: string | null; facilities: string[];
+  } | null;
 }
 export interface SaveUnitOccupancyResult { unitId: number; occupancyId: number; }
 
@@ -129,11 +184,12 @@ export async function getUnitOccupancyFull(unitId: number): Promise<UnitOccupanc
     .order("created_at", { ascending: false }).limit(1).maybeSingle();
   if (oe) throw new Error(oe.message);
   const occupancy = o ? rowToOccupancy(o) : null;
-  const [meters, accounts, history, lease] = await Promise.all([
+  const [meters, accounts, history, lease, property] = await Promise.all([
     listMetersByUnit(unitId), listAccountsByUnit(unitId), listHistoryByUnit(unitId),
     occupancy ? getLeaseByOccupancy(occupancy.id) : Promise.resolve(null),
+    getPropertyByUnit(unitId),
   ]);
-  return { unit: rowToUnit(u), occupancy, meters, accounts, lease, history };
+  return { unit: rowToUnit(u), occupancy, meters, accounts, lease, history, property };
 }
 
 export async function listOccupancies(unitId: number): Promise<Occupancy[]> {
@@ -143,7 +199,7 @@ export async function listOccupancies(unitId: number): Promise<Occupancy[]> {
 }
 
 export async function saveUnitOccupancy(p: SaveUnitOccupancyPayload): Promise<SaveUnitOccupancyResult> {
-  const { data, error } = await createClient().rpc("save_unit_occupancy_with_fax", {
+  const { data, error } = await createClient().rpc("save_unit_occupancy_full", {
     p_building_id: p.buildingId,
     p_unit_id: p.unitId ?? null,
     p_occupancy_id: p.occupancyId ?? null,
@@ -162,11 +218,31 @@ export async function saveUnitOccupancy(p: SaveUnitOccupancyPayload): Promise<Sa
       transfer_method: p.occupancy.transferMethod, bill_name_display: p.occupancy.billNameDisplay,
       bill_delivery: p.occupancy.billDelivery, bill_auth: p.occupancy.billAuth,
       move_out_scheduled_date: p.occupancy.moveOutScheduledDate ?? null,
+      sms_opt_in: p.occupancy.smsOptIn ?? false, alimtalk_opt_in: p.occupancy.alimtalkOptIn ?? false,
+      expected_move_in_date: p.occupancy.expectedMoveInDate ?? null,
+      discount_type: p.occupancy.discountType ?? null, discount_amount: p.occupancy.discountAmount ?? null,
+      homepage_password: p.occupancy.homepagePassword ?? null,
+      mgmt_fee_amount: p.occupancy.mgmtFeeAmount ?? null, move_cleaning_fee: p.occupancy.moveCleaningFee ?? null,
+      increase_amount: p.occupancy.increaseAmount ?? null, billing_day: p.occupancy.billingDay ?? null,
+      etc_note: p.occupancy.etcNote ?? null, bill_auth_info: p.occupancy.billAuthInfo ?? null,
+      phones_extra: p.occupancy.phonesExtra ?? [], vehicles_extra: p.occupancy.vehiclesExtra ?? [],
     },
     p_meters: p.meters.map((m) => ({ utility: m.utility, meter_no: m.meterNo ?? null, customer_no: m.customerNo ?? null })),
     p_accounts: p.accounts.map((a) => ({ kind: a.kind, bank: a.bank ?? null, account: a.account ?? null, holder: a.holder ?? null, cms_member_no: a.cmsMemberNo ?? null, payer_no: a.payerNo ?? null })),
-    p_lease: p.lease ? { deposit: p.lease.deposit ?? null, monthly_rent: p.lease.monthlyRent ?? null, start_date: p.lease.startDate ?? null, end_date: p.lease.endDate ?? null, expiry_alert: p.lease.expiryAlert } : null,
+    p_lease: p.lease ? {
+      deposit: p.lease.deposit ?? null, monthly_rent: p.lease.monthlyRent ?? null,
+      start_date: p.lease.startDate ?? null, end_date: p.lease.endDate ?? null, expiry_alert: p.lease.expiryAlert,
+      lease_type: p.lease.leaseType ?? null, deposit_date: p.lease.depositDate ?? null,
+      jeonse_deposit: p.lease.jeonseDeposit ?? null, bank_account: p.lease.bankAccount ?? null,
+    } : null,
     p_fax_number: p.occupancy.faxNumber ?? null,
+    p_property: p.property ? {
+      property_name: p.property.propertyName ?? null, address: p.property.address ?? null, address_detail: p.property.addressDetail ?? null,
+      property_type: p.property.propertyType ?? null, deal_type: p.property.dealType ?? null, rent_type: p.property.rentType ?? null,
+      area_m2: p.property.areaM2 ?? null, deposit: p.property.deposit ?? null, jeonse_deposit: p.property.jeonseDeposit ?? null,
+      monthly_rent: p.property.monthlyRent ?? null, mgmt_fee_desc: p.property.mgmtFeeDesc ?? null,
+      available_date: p.property.availableDate ?? null, location: p.property.location ?? null, facilities: p.property.facilities ?? [],
+    } : null,
   });
   if (error) throw new Error(error.message);
   const result = data as { unit_id: number; occupancy_id: number };
