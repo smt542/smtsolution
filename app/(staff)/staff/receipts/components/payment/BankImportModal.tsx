@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Badge, Button, Checkbox, EmptyState, Input, Select } from "@/components/common";
+import { Badge, Button, Checkbox, EmptyState, Select } from "@/components/common";
 import {
   useBankPayments,
   useRecordBankPayments,
@@ -22,6 +22,7 @@ import {
 } from "@/lib/payments/match";
 import { formatWon } from "@/lib/format";
 import { ComplaintDialog } from "../ComplaintDialog";
+import { FileDropzone } from "./FileDropzone";
 
 interface BankImportModalProps {
   open: boolean;
@@ -98,6 +99,7 @@ export function BankImportModal({
     paidAt: null,
   });
   const [isParsing, setIsParsing] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [manualAssignments, setManualAssignments] = useState<Record<number, number>>({});
   const [checkedRowIndexes, setCheckedRowIndexes] = useState<Set<number>>(new Set());
 
@@ -151,9 +153,7 @@ export function BankImportModal({
 
   if (!open) return null;
 
-  const handleFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const parseFile = async (file: File) => {
     setIsParsing(true);
     try {
       const parsed = await parseBankWorkbook(await file.arrayBuffer());
@@ -246,41 +246,52 @@ export function BankImportModal({
     <ComplaintDialog
       open
       onClose={onClose}
-      title="은행 입금 엑셀 업로드"
-      size="large"
+      title="은행 입금내역 업로드"
+      subtitle="은행에서 내려받은 입금내역 엑셀을 첨부해 주세요"
+      size="wide"
     >
       <div className="space-y-5">
-        <ol className="grid grid-cols-3 gap-2 text-center text-xs font-bold">
-          {[
-            ["select", "1. 파일 선택"],
-            ["map", "2. 열 매핑"],
-            ["preview", "3. 미리보기"],
-          ].map(([value, label]) => (
-            <li
-              key={value}
-              className={`rounded-lg px-2 py-2 ${
-                stage === value ? "bg-blue-t text-blue" : "bg-bg text-t3"
-              }`}
-            >
-              {label}
-            </li>
-          ))}
-        </ol>
+        {/* Figma 업로드 화면은 드롭존만 노출 — 단계 표시는 매핑/미리보기부터. */}
+        {stage !== "select" && (
+          <ol className="grid grid-cols-3 gap-2 text-center text-xs font-bold">
+            {[
+              ["select", "1. 파일 선택"],
+              ["map", "2. 열 매핑"],
+              ["preview", "3. 미리보기"],
+            ].map(([value, label]) => (
+              <li
+                key={value}
+                className={`rounded-lg px-2 py-2 ${
+                  stage === value ? "bg-blue-t text-blue" : "bg-bg text-t3"
+                }`}
+              >
+                {label}
+              </li>
+            ))}
+          </ol>
+        )}
 
         {stage === "select" && (
-          <section className="rounded-2xl border border-dashed border-line p-8 text-center">
-            <h3 className="text-base font-extrabold text-t1">은행 입금 엑셀 선택</h3>
-            <p className="mt-2 text-sm text-t3">첫 번째 시트의 헤더와 입금 내역을 불러옵니다.</p>
-            <Input
-              aria-label="은행 엑셀 파일"
-              type="file"
-              accept=".xlsx"
+          <div className="space-y-5">
+            <FileDropzone
+              accept=".xlsx,.xls,.csv"
+              helperText="xlsx · xls · csv 파일을 첨부할 수 있어요"
+              fileName={selectedFile?.name}
               disabled={isParsing}
-              onChange={(event) => void handleFile(event)}
-              className="mx-auto mt-5 max-w-xl pt-2"
+              onFile={setSelectedFile}
+              ariaLabel="은행 입금내역 엑셀 첨부"
             />
-            {isParsing && <p className="mt-3 text-sm font-semibold text-t2">파일 분석 중…</p>}
-          </section>
+            {isParsing && <p className="text-center text-sm font-semibold text-t2">파일 분석 중…</p>}
+            <div className="flex justify-end border-t border-line pt-4">
+              <Button
+                type="button"
+                disabled={!selectedFile || isParsing}
+                onClick={() => selectedFile && void parseFile(selectedFile)}
+              >
+                {isParsing ? "처리 중…" : "처리"}
+              </Button>
+            </div>
+          </div>
         )}
 
         {stage === "map" && (

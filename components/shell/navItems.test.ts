@@ -8,14 +8,14 @@ describe("navItems P2b", () => {
   it("셋업 built:true", () => {
     expect(all.find((i) => i.href === "/staff/setup")?.built).toBe(true);
   });
-  it("수납·민원 접수는 payment 또는 complaints 권한으로 활성화", () => {
+  it("수납관리·민원접수는 payment 또는 complaints 권한으로 활성화", () => {
     expect(all.find((i) => i.href === "/staff/receipts")).toMatchObject({
-      label: "수납·민원 접수",
+      label: "수납관리·민원접수",
       modules: ["payment", "complaints"],
       built: true,
     });
   });
-  it("수납처리 독립 항목 제거(수납·민원 접수로 통합)", () => {
+  it("수납처리 독립 항목 제거(수납관리·민원접수로 통합)", () => {
     expect(all.find((i) => i.href === "/staff/payment")).toBeUndefined();
   });
   it("문자·알림톡 발송은 messaging 권한으로 활성화", () => {

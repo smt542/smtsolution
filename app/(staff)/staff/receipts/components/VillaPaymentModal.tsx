@@ -18,7 +18,9 @@ import {
 } from "@/hooks/reactquery/payments";
 import { PROGRAM_COMPANY_NAME } from "@/lib/bill/document";
 import { toMonthInput } from "@/lib/billing/period";
+import { GiroCalendarModal } from "./payment/GiroCalendarModal";
 import { GiroLedgerModal } from "./payment/GiroLedgerModal";
+import { GiroUploadModal } from "./payment/GiroUploadModal";
 import { PaymentAmountModal } from "./payment/PaymentAmountModal";
 import { PaymentHistoryModal } from "./payment/PaymentHistoryModal";
 import { PaymentReceiptModal } from "./payment/PaymentReceiptModal";
@@ -87,6 +89,8 @@ export function VillaPaymentModal({
   const [receiptState, setReceiptState] = useState<ReceiptState | null>(null);
   const [bankOpen, setBankOpen] = useState(init?.view === "bank");
   const [giroOpen, setGiroOpen] = useState(init?.view === "giro");
+  const [giroUploadOpen, setGiroUploadOpen] = useState(false);
+  const [giroCalendarOpen, setGiroCalendarOpen] = useState(false);
   // 호실 영수증 진입: rows 로드 후 해당 세대 이력 자동 오픈(사용자 조작 전까지).
   const [receiptDismissed, setReceiptDismissed] = useState(false);
 
@@ -196,8 +200,14 @@ export function VillaPaymentModal({
             <Button type="button" variant="ghost" onClick={() => setStatementState({ unitId: null })}>
               수납명세서 출력
             </Button>
+            <Button type="button" variant="ghost" onClick={() => setGiroUploadOpen(true)}>
+              지로 처리
+            </Button>
             <Button type="button" variant="ghost" onClick={() => setGiroOpen(true)}>
               지로 원장
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setGiroCalendarOpen(true)}>
+              지로 일자별
             </Button>
             <Button type="button" variant="ghost" onClick={downloadCms}>
               자동이체 세대 다운
@@ -259,14 +269,31 @@ export function VillaPaymentModal({
         />
       )}
 
+      {giroUploadOpen && (
+        <GiroUploadModal
+          open
+          buildingId={building.id}
+          period={period}
+          onClose={() => setGiroUploadOpen(false)}
+        />
+      )}
+
       {giroOpen && (
         <GiroLedgerModal
           open
           buildingId={building.id}
+          buildingName={building.name}
           period={period}
-          isPending={cancelPayment.isPending}
           onClose={() => setGiroOpen(false)}
-          onCancel={cancelRecordedPayment}
+        />
+      )}
+
+      {giroCalendarOpen && (
+        <GiroCalendarModal
+          open
+          buildingId={building.id}
+          period={period}
+          onClose={() => setGiroCalendarOpen(false)}
         />
       )}
 
