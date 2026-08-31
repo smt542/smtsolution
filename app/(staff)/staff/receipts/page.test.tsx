@@ -44,8 +44,13 @@ vi.mock("../messaging/components/MessagingModal", () => ({
   MessagingModal: () => <div data-testid="messaging-modal" />,
 }));
 vi.mock("./components/VillaPaymentModal", () => ({
-  VillaPaymentModal: ({ open }: { open: boolean }) =>
-    open ? <div data-testid="villa-modal" /> : null,
+  VillaPaymentModal: ({
+    open,
+    init,
+  }: {
+    open: boolean;
+    init?: { view?: string };
+  }) => open ? <div data-testid="villa-modal" data-view={init?.view} /> : null,
 }));
 vi.mock("./components/ChargeReceiptReportModal", () => ({
   ChargeReceiptReportModal: ({ open }: { open: boolean }) =>
@@ -316,5 +321,19 @@ describe("ReceiptManagementPage (세대중심 재설계)", () => {
     fireEvent.click(screen.getByText("A동 101호"));
     fireEvent.click(screen.getByRole("button", { name: "호실 명세서" }));
     expect(screen.getByTestId("unit-statement-modal")).toBeInTheDocument();
+  });
+
+  it("자동수납 메뉴가 지로 처리·원장·일자별 Figma 모달로 각각 진입한다", () => {
+    renderPage();
+    fireEvent.click(screen.getByText("그린빌라"));
+
+    fireEvent.click(screen.getByRole("button", { name: "지로수납처리" }));
+    expect(screen.getByTestId("villa-modal")).toHaveAttribute("data-view", "giro-upload");
+
+    fireEvent.click(screen.getByRole("button", { name: "지로수납원장 보기" }));
+    expect(screen.getByTestId("villa-modal")).toHaveAttribute("data-view", "giro");
+
+    fireEvent.click(screen.getByRole("button", { name: "지로처리일자 확인" }));
+    expect(screen.getByTestId("villa-modal")).toHaveAttribute("data-view", "giro-calendar");
   });
 });

@@ -245,15 +245,18 @@ export function ReceiptWorkspace({
                   { label: "영수증 출력", onClick: openUnitReceipt },
                 ]}
               />
-              {/* 지로처리일자 확인 = 지로원장(처리일자 포함) 뷰. 은행 양식 다운 = 업로드용 빈 xlsx 템플릿. */}
+              {/* 자동수납 메뉴는 각 Figma 모달로 바로 진입한다. */}
               <Dropdown
                 label="자동수납"
                 accent="teal"
                 items={[
                   { header: "지로" },
-                  { label: "지로수납처리", onClick: () => openVilla({ view: "table" }) },
+                  { label: "지로수납처리", onClick: () => openVilla({ view: "giro-upload" }) },
                   { label: "지로수납원장 보기", onClick: () => openVilla({ view: "giro" }) },
-                  { label: "지로처리일자 확인", onClick: () => openVilla({ view: "giro" }) },
+                  {
+                    label: "지로처리일자 확인",
+                    onClick: () => openVilla({ view: "giro-calendar" }),
+                  },
                   { header: "은행 입금" },
                   { label: "은행 입금내역 업로드", onClick: () => openVilla({ view: "bank" }) },
                   { label: "은행 양식 다운", onClick: () => void downloadBankTemplate() },
