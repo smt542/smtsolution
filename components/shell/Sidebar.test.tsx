@@ -67,31 +67,32 @@ describe("Sidebar", () => {
     vi.clearAllMocks();
   });
 
-  it("Test A: org_owner sees all items including 건물·입주자 and 계정·직원 관리", () => {
+  it("Test A: org_owner sees the full Figma office navigation", () => {
     mockUseMe.mockReturnValue(
       makeMe({ role: "org_owner", permissions: [] })
     );
 
     render(<Sidebar />);
 
-    expect(screen.getByText("건물·입주자")).toBeInTheDocument();
-    expect(screen.getByText("계정·직원 관리")).toBeInTheDocument();
+    expect(screen.getByText("건물·입주자 관리")).toBeInTheDocument();
+    expect(screen.getByText("협력업체 관리")).toBeInTheDocument();
+    expect(screen.getByText("공지 관리")).toBeInTheDocument();
   });
 
-  it("Test B: manager with only buildings permission sees 건물·입주자 but not 계정·직원 관리", () => {
+  it("Test B: manager with only buildings permission sees only the matching menu", () => {
     mockUseMe.mockReturnValue(
       makeMe({ role: "manager", permissions: ["buildings"] })
     );
 
     render(<Sidebar />);
 
-    expect(screen.getByText("건물·입주자")).toBeInTheDocument();
-    expect(screen.queryByText("계정·직원 관리")).toBeNull();
+    expect(screen.getByText("건물·입주자 관리")).toBeInTheDocument();
+    expect(screen.queryByText("협력업체 관리")).toBeNull();
     expect(screen.queryByText("장기수선비 관리")).toBeNull();
   });
 
-  it("settings 권한 직원에게 장기수선비 관리 링크를 노출한다", () => {
-    mockUseMe.mockReturnValue(makeMe({ role: "manager", permissions: ["settings"] }));
+  it("장기수선비 권한 직원에게 장기수선비 관리 링크를 노출한다", () => {
+    mockUseMe.mockReturnValue(makeMe({ role: "manager", permissions: ["long_term_repair"] }));
 
     render(<Sidebar />);
 
@@ -111,6 +112,17 @@ describe("Sidebar", () => {
     // 건물·입주자 is a built:true item → rendered as <a>
     const link = screen.getByRole("link", { name: /건물·입주자/ });
     expect(link).toHaveAttribute("aria-current", "page");
+    expect(link).toHaveClass("bg-teal", "text-white");
+  });
+
+  it("Figma 공통 브랜드 마크와 워드마크를 사용한다", () => {
+    mockUseMe.mockReturnValue(makeMe({ role: "org_owner", permissions: [] }));
+
+    render(<Sidebar />);
+
+    const brandLink = screen.getByRole("link", { name: "관리비서" });
+    expect(brandLink.querySelector("img")?.getAttribute("src")).toContain("%2Flogo-mark.png");
+    expect(screen.getByText("비서")).toHaveClass("text-teal");
   });
 
   it("platform_admin에게 통합관리자 콘솔 링크를 노출한다", () => {
