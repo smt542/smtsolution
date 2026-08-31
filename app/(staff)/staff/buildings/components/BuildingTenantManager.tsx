@@ -11,6 +11,11 @@ import { BuildingDirectoryCard } from "./BuildingDirectoryCard";
 import { TenantOccupancyCard } from "./TenantOccupancyCard";
 import { TenantOutputModal } from "./TenantOutputModal";
 
+interface OutputRequest {
+  buildingId: number | null;
+  unitId: number | null;
+}
+
 /**
  * Figma 673:39652 / 673:40619 — 건물·입주자 관리(통합 master-detail).
  * 상단 건물 표에서 건물을 선택하면 하단 입주민 표가 해당 건물로 채워진다.
@@ -21,7 +26,7 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [selected, setSelected] = useState<{ id: number; name: string } | null>(null);
-  const [outputOpen, setOutputOpen] = useState(false);
+  const [outputRequest, setOutputRequest] = useState<OutputRequest | null>(null);
 
   const params = { search: search || undefined, page, pageSize };
   const isInitialQuery = !search && page === 1 && pageSize === 20;
@@ -53,7 +58,7 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
         <h1 className="text-[19px] font-extrabold tracking-[-0.38px] text-t1">건물·입주자 관리</h1>
         <button
           type="button"
-          onClick={() => setOutputOpen(true)}
+          onClick={() => setOutputRequest({ buildingId: selected?.id ?? null, unitId: null })}
           className="ml-auto inline-flex h-[40px] items-center gap-[6px] rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold text-t2 hover:bg-bg"
         >
           <PrinterIcon className="h-4 w-4" />
@@ -88,13 +93,18 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
           rows={tenantRows}
           isLoading={tenant.isLoading}
           isError={tenant.isError}
+          onOpenTenantCard={(tenantRow) => {
+            if (!selected) return;
+            setOutputRequest({ buildingId: selected.id, unitId: tenantRow.unitId });
+          }}
         />
       </div>
 
-      {outputOpen && (
+      {outputRequest && (
         <TenantOutputModal
-          initialBuildingId={selected?.id ?? null}
-          onClose={() => setOutputOpen(false)}
+          initialBuildingId={outputRequest.buildingId}
+          initialUnitId={outputRequest.unitId}
+          onClose={() => setOutputRequest(null)}
         />
       )}
     </div>
