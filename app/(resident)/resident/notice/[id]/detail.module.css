@@ -21,7 +21,13 @@
   height: 42px;
   display: grid;
   place-items: center;
+  border-radius: 12px;
   color: var(--t1);
+}
+
+.header a:hover {
+  background: var(--blue-t2);
+  color: var(--blue-d);
 }
 
 .header svg {
@@ -52,7 +58,7 @@
 .badge {
   display: inline-block;
   padding: 5px 9px;
-  border-radius: 999px;
+  border-radius: 8px;
   font-size: 10px;
   font-weight: 900;
 }

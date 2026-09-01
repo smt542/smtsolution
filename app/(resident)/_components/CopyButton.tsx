@@ -46,7 +46,25 @@ export default function CopyButton({
       onClick={() => void copy()}
       aria-live="polite"
     >
-      {copied ? "복사되었습니다" : label}
+      {copied ? (
+        "복사되었습니다"
+      ) : (
+        <>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="9" y="9" width="11" height="11" rx="2.5" />
+            <path d="M15 5.5A2.5 2.5 0 0012.5 3h-7A2.5 2.5 0 003 5.5v7A2.5 2.5 0 005.5 15" />
+          </svg>
+          {label}
+        </>
+      )}
     </button>
   );
 }

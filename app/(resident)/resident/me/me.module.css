@@ -50,10 +50,10 @@
 .toggleRow b { font-size: 14px; }
 .toggleRow div > span { margin-top: 4px; color: var(--t3); font-size: 11px; font-weight: 600; }
 
-.switch { position: relative; width: 48px; height: 28px; flex: none; }
+.switch { position: relative; width: 50px; height: 30px; flex: none; }
 .switch input { position: absolute; opacity: 0; pointer-events: none; }
 .switch > span:last-child { position: absolute; inset: 0; border-radius: 999px; background: var(--line); transition: 0.2s ease; cursor: pointer; }
-.switch > span:last-child::after { content: ""; position: absolute; width: 22px; height: 22px; left: 3px; top: 3px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(25, 31, 40, 0.2); transition: 0.2s ease; }
+.switch > span:last-child::after { content: ""; position: absolute; width: 24px; height: 24px; left: 3px; top: 3px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(25, 31, 40, 0.2); transition: 0.2s ease; }
 .switch input:checked + span { background: var(--blue); }
 .switch input:checked + span::after { transform: translateX(20px); }
 .switch input:focus-visible + span { box-shadow: 0 0 0 3px var(--blue-t); }
