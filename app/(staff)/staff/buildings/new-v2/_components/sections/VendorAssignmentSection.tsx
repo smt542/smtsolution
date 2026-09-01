@@ -4,8 +4,7 @@ import { SelectField } from "../ui/SelectField";
 import { Accordion } from "../ui/Accordion";
 import { VendorCard } from "./VendorCard";
 import { VENDORS } from "../config/vendors";
-import type { RegisterFormState } from "../config/formState";
-import type { BuildingVendorEntry } from "@/hooks/reactquery/buildings";
+import type { RegisterFormState, RegisterVendorEntry } from "../config/formState";
 
 /** ② 업체 및 담당자 지정 (Figma 673:55789). */
 export function VendorAssignmentSection({
@@ -17,7 +16,7 @@ export function VendorAssignmentSection({
   patch: (p: Partial<RegisterFormState>) => void;
   staffOptions: string[];
 }) {
-  const setVendor = (key: string, next: BuildingVendorEntry) =>
+  const setVendor = (key: string, next: RegisterVendorEntry) =>
     patch({ vendors: { ...value.vendors, [key]: next } });
 
   return (

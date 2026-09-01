@@ -4,8 +4,7 @@ import { Accordion } from "../ui/Accordion";
 import { UtilityPanel } from "./UtilityPanel";
 import { TextAreaField } from "../ui/TextAreaField";
 import { UTILITIES, GAS_EXTRA } from "../config/utilities";
-import type { RegisterFormState } from "../config/formState";
-import type { BuildingUtilityEntry } from "@/hooks/reactquery/buildings";
+import type { RegisterFormState, RegisterUtilityEntry } from "../config/formState";
 
 /** ⑤ 부가 정보 (Figma 673:56714). */
 export function ExtraInfoSection({
@@ -15,7 +14,7 @@ export function ExtraInfoSection({
   value: RegisterFormState;
   patch: (p: Partial<RegisterFormState>) => void;
 }) {
-  const setUtility = (key: string, next: BuildingUtilityEntry) =>
+  const setUtility = (key: string, next: RegisterUtilityEntry) =>
     patch({ utilities: { ...value.utilities, [key]: next } });
 
   return (
@@ -26,7 +25,7 @@ export function ExtraInfoSection({
             <UtilityPanel
               fields={u.fields}
               extra={u.key === "gas" ? GAS_EXTRA : undefined}
-              value={value.utilities[u.key] ?? { cards: [{}], extra: {} }}
+              value={value.utilities[u.key] ?? { cards: [{ fields: {} }], extra: {}, deletedIds: [] }}
               onChange={(next) => setUtility(u.key, next)}
             />
           </Accordion>

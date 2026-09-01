@@ -26,8 +26,8 @@ function toFacilities(raw: FacilitiesRow): FacilitiesMap {
 }
 
 // 건물 등록 재설계(Figma 673:55474) 섹션별 JSONB 페이로드.
-// 정규화 테이블에 대응 컬럼이 없는 리치 섹션(적립금·건물주 부가·부가정보 유틸·기본정보 부가·업체 상세)을
-// 섹션 단위 JSONB로 왕복 저장한다(마이그 0122).
+// 정규화 테이블에 대응 컬럼이 없는 리치 섹션(적립금·건물주 부가·유틸/업체 보충정보·기본정보 부가)을
+// 섹션 단위 JSONB로 왕복 저장한다(마이그 0124). 고객번호와 업체 공통 필드는 정규화 테이블에 저장한다.
 export interface BuildingReserveFund { type: string; memo: string }
 export interface BuildingOwnerExtra { phoneSub: string; address: string; addressDetail: string; memo: string }
 export interface BuildingBasicExtra {
@@ -36,7 +36,7 @@ export interface BuildingBasicExtra {
 }
 export interface BuildingUtilityEntry { cards: Record<string, string>[]; extra: Record<string, string> }
 export interface BuildingExtraInfo { utilities: Record<string, BuildingUtilityEntry> }
-export interface BuildingVendorEntry { fields: Record<string, string>; memo: string }
+export interface BuildingVendorEntry { fields: Record<string, string>; memo?: string; assigned?: boolean }
 export interface BuildingVendorDetails { vendors: Record<string, BuildingVendorEntry> }
 
 export interface Building {

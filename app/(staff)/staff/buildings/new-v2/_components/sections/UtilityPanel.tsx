@@ -3,7 +3,7 @@ import { UtilityCard } from "./UtilityCard";
 import { FieldRenderer } from "../ui/FieldRenderer";
 import { PlusIcon } from "@/components/icons";
 import type { FieldDef } from "../config/types";
-import type { BuildingUtilityEntry } from "@/hooks/reactquery/buildings";
+import type { RegisterUtilityEntry } from "../config/formState";
 
 /** 유틸 아코디언 내용(제어형): 고객번호 카드 목록 + 추가/삭제 + (가스) 하단 공통 필드. */
 export function UtilityPanel({
@@ -14,17 +14,26 @@ export function UtilityPanel({
 }: {
   fields: FieldDef[];
   extra?: FieldDef[];
-  value: BuildingUtilityEntry;
-  onChange: (next: BuildingUtilityEntry) => void;
+  value: RegisterUtilityEntry;
+  onChange: (next: RegisterUtilityEntry) => void;
 }) {
-  const cards = value.cards.length > 0 ? value.cards : [{}];
+  const cards = value.cards.length > 0 ? value.cards : [{ fields: {} }];
 
   const setCard = (i: number, label: string, v: string) => {
-    const next = cards.map((c, j) => (j === i ? { ...c, [label]: v } : c));
+    const next = cards.map((c, j) => (j === i ? { ...c, fields: { ...c.fields, [label]: v } } : c));
     onChange({ ...value, cards: next });
   };
-  const addCard = () => onChange({ ...value, cards: [...cards, {}] });
-  const removeCard = (i: number) => onChange({ ...value, cards: cards.filter((_, j) => j !== i) });
+  const addCard = () => onChange({ ...value, cards: [...cards, { fields: {} }] });
+  const removeCard = (i: number) => {
+    const removedId = cards[i]?.normalized?.id;
+    onChange({
+      ...value,
+      cards: cards.filter((_, j) => j !== i),
+      deletedIds: removedId && !value.deletedIds.includes(removedId)
+        ? [...value.deletedIds, removedId]
+        : value.deletedIds,
+    });
+  };
   const setExtra = (label: string, v: string) => onChange({ ...value, extra: { ...value.extra, [label]: v } });
 
   return (
@@ -34,7 +43,7 @@ export function UtilityPanel({
           key={i}
           index={i + 1}
           fields={fields}
-          values={card}
+          values={card.fields}
           onChange={(label, v) => setCard(i, label, v)}
           onRemove={cards.length > 1 ? () => removeCard(i) : undefined}
         />
