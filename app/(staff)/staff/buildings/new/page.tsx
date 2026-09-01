@@ -1,7 +1,7 @@
 "use client";
 import { useMe } from "@/hooks/reactquery/auth";
 import { hasModule } from "@/lib/auth/permissions";
-import { BuildingForm } from "../components/BuildingForm";
+import { BuildingRegisterForm } from "../new-v2/_components/BuildingRegisterForm";
 
 export default function BuildingNewPage() {
   const { data: me } = useMe();
@@ -13,9 +13,5 @@ export default function BuildingNewPage() {
       </div>
     );
   }
-  return (
-    <div className="p-6">
-      <BuildingForm />
-    </div>
-  );
+  return <BuildingRegisterForm />;
 }

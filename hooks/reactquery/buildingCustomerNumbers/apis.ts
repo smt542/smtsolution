@@ -81,6 +81,27 @@ export async function listCustomerNumbersByBuilding(buildingId: number): Promise
   return (data ?? []).map(toCustomerNumber);
 }
 
+/** 건물 목록 검침일 필터용: 건물별·항목별 대표 검침일(최소값) 맵. */
+export type BuildingMeterDayMap = Record<number, Partial<Record<CustomerNumberKind, number>>>;
+
+export async function listBuildingMeterDays(buildingIds: number[]): Promise<BuildingMeterDayMap> {
+  if (buildingIds.length === 0) return {};
+  const { data, error } = await createClient()
+    .from("building_customer_numbers")
+    .select("building_id, kind, meter_day")
+    .in("building_id", buildingIds)
+    .is("deleted_at", null);
+  if (error) throw new Error(error.message);
+  const map: BuildingMeterDayMap = {};
+  for (const r of (data ?? []) as { building_id: number; kind: CustomerNumberKind; meter_day: number | null }[]) {
+    if (r.meter_day == null) continue;
+    const byKind = (map[r.building_id] ??= {});
+    const cur = byKind[r.kind];
+    if (cur == null || r.meter_day < cur) byKind[r.kind] = r.meter_day;
+  }
+  return map;
+}
+
 export async function listCustomerNumbers(
   filters: CustomerNumberFilters,
 ): Promise<CustomerNumberLookupResult> {

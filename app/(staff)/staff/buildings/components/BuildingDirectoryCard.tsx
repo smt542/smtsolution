@@ -13,7 +13,7 @@ interface Column {
   get?: (b: BuildingDirectoryRow) => string;
 }
 
-const COLUMNS: Column[] = [
+const BASE_COLUMNS: Column[] = [
   { key: "code", label: "코드", get: (b) => b.code ?? "" },
   { key: "name", label: "건물명", get: (b) => b.name ?? "" },
   { key: "type", label: "유형", get: (b) => b.typeLabel ?? "" },
@@ -43,6 +43,8 @@ export function BuildingDirectoryCard({
   pageSize,
   onPageChange,
   onPageSizeChange,
+  meterDayActive = false,
+  meterDayByBuilding,
 }: {
   rows: BuildingDirectoryRow[];
   total: number;
@@ -57,8 +59,20 @@ export function BuildingDirectoryCard({
   pageSize: number;
   onPageChange: (p: number) => void;
   onPageSizeChange: (s: number) => void;
+  /** 검침일 필터 활성 시 조건부 검침일 컬럼을 노출한다. */
+  meterDayActive?: boolean;
+  meterDayByBuilding?: Record<number, number | null | undefined>;
 }) {
   const router = useRouter();
+
+  // 검침일 필터 활성 시 등록일 앞에 검침일 컬럼을 삽입.
+  const columns: Column[] = meterDayActive
+    ? BASE_COLUMNS.flatMap((c) => (c.key === "createdAt" ? [{ key: "mday", label: "검침일" }, c] : [c]))
+    : BASE_COLUMNS;
+  const meterDayText = (b: BuildingDirectoryRow) => {
+    const d = meterDayByBuilding?.[b.id];
+    return d == null ? "-" : `${d}일`;
+  };
 
   return (
     <section className="overflow-hidden rounded-2xl border border-line bg-surface">
@@ -96,7 +110,7 @@ export function BuildingDirectoryCard({
             <table className="w-full border-collapse text-left">
               <thead className="sticky top-0 z-[1]">
                 <tr>
-                  {COLUMNS.map((col) => (
+                  {columns.map((col) => (
                     <th
                       key={col.key}
                       className="h-[36px] whitespace-nowrap border-b border-line bg-[#fbfcfd] px-[16px] text-[12px] font-bold text-t3"
@@ -118,7 +132,7 @@ export function BuildingDirectoryCard({
                         selected ? "bg-teal-t" : "hover:bg-bg"
                       }`}
                     >
-                      {COLUMNS.map((col) =>
+                      {columns.map((col) =>
                         col.key === "action" ? (
                           <td key={col.key} className="whitespace-nowrap px-[16px]">
                             <button
@@ -131,6 +145,10 @@ export function BuildingDirectoryCard({
                             >
                               상세
                             </button>
+                          </td>
+                        ) : col.key === "mday" ? (
+                          <td key={col.key} className="whitespace-nowrap px-[16px] text-[13.5px] font-bold text-t1">
+                            {meterDayText(b)}
                           </td>
                         ) : (
                           <td key={col.key} className="whitespace-nowrap px-[16px] text-[13.5px] text-t1">

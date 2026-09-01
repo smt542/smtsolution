@@ -25,12 +25,29 @@ function toFacilities(raw: FacilitiesRow): FacilitiesMap {
   return base;
 }
 
+// 건물 등록 재설계(Figma 673:55474) 섹션별 JSONB 페이로드.
+// 정규화 테이블에 대응 컬럼이 없는 리치 섹션(적립금·건물주 부가·부가정보 유틸·기본정보 부가·업체 상세)을
+// 섹션 단위 JSONB로 왕복 저장한다(마이그 0122).
+export interface BuildingReserveFund { type: string; memo: string }
+export interface BuildingOwnerExtra { phoneSub: string; address: string; addressDetail: string; memo: string }
+export interface BuildingBasicExtra {
+  groupType: string; waterCount: string; contractDate: string;
+  terminationDate: string; standingNotice: string; addressDetail: string; buildingTypeLabel: string;
+}
+export interface BuildingUtilityEntry { cards: Record<string, string>[]; extra: Record<string, string> }
+export interface BuildingExtraInfo { utilities: Record<string, BuildingUtilityEntry> }
+export interface BuildingVendorEntry { fields: Record<string, string>; memo: string }
+export interface BuildingVendorDetails { vendors: Record<string, BuildingVendorEntry> }
+
 export interface Building {
   id: number; orgId: number; code: string; name: string; address: string | null; typeId: number | null;
   ownerName: string | null; ownerPhone: string | null; entrancePassword: string | null;
   managerUserId: string | null; meterUserId: string | null; cleaningUserId: string | null;
   facilities: FacilitiesMap; memo: string | null; billingNote: string | null;
   setupConfirmRequired: boolean;
+  reserveFund?: BuildingReserveFund | null; ownerExtra?: BuildingOwnerExtra | null;
+  basicExtra?: BuildingBasicExtra | null; extraInfo?: BuildingExtraInfo | null;
+  vendorDetails?: BuildingVendorDetails | null;
 }
 type BuildingRow = {
   id: number; org_id: number; code: string; name: string; address: string | null; type_id: number | null;
@@ -38,7 +55,12 @@ type BuildingRow = {
   manager_user_id: string | null; meter_user_id: string | null; cleaning_user_id: string | null;
   facilities: FacilitiesRow; memo: string | null; billing_note: string | null;
   setup_confirm_required: boolean | null;
+  reserve_fund?: unknown; owner_extra?: unknown; basic_extra?: unknown;
+  extra_info?: unknown; vendor_details?: unknown;
 };
+
+const asObj = <T,>(v: unknown): T | null =>
+  v && typeof v === "object" && !Array.isArray(v) ? (v as T) : null;
 
 const rowToBuilding = (r: BuildingRow): Building => ({
   id: r.id, orgId: r.org_id, code: r.code, name: r.name, address: r.address, typeId: r.type_id,
@@ -46,6 +68,11 @@ const rowToBuilding = (r: BuildingRow): Building => ({
   managerUserId: r.manager_user_id, meterUserId: r.meter_user_id, cleaningUserId: r.cleaning_user_id,
   facilities: toFacilities(r.facilities), memo: r.memo, billingNote: r.billing_note ?? null,
   setupConfirmRequired: r.setup_confirm_required ?? false,
+  reserveFund: asObj<BuildingReserveFund>(r.reserve_fund),
+  ownerExtra: asObj<BuildingOwnerExtra>(r.owner_extra),
+  basicExtra: asObj<BuildingBasicExtra>(r.basic_extra),
+  extraInfo: asObj<BuildingExtraInfo>(r.extra_info),
+  vendorDetails: asObj<BuildingVendorDetails>(r.vendor_details),
 });
 
 export interface BuildingDirectoryRow {
@@ -135,6 +162,12 @@ export interface SaveBuildingPayload {
   managerUserId?: string | null; meterUserId?: string | null; cleaningUserId?: string | null;
   facilities: FacilitiesMap; memo?: string | null;
   customerNumbers: CustomerNumberPayload[]; vendors: VendorPayload[];
+  // 재설계 폼(마이그 0122)에서 추가로 저장하는 필드. 레거시 폼은 미지정(null 저장).
+  typeId?: number | null; entrancePassword?: string | null;
+  ownerName?: string | null; ownerPhone?: string | null; billingNote?: string | null;
+  reserveFund?: BuildingReserveFund | null; ownerExtra?: BuildingOwnerExtra | null;
+  basicExtra?: BuildingBasicExtra | null; extraInfo?: BuildingExtraInfo | null;
+  vendorDetails?: BuildingVendorDetails | null;
 }
 export interface SaveBuildingResult { buildingId: number; vendors: { clientKey: string; id: number }[]; }
 type SaveBuildingVendorRow = { client_key: string; id: number };
@@ -162,6 +195,16 @@ export async function saveBuilding(p: SaveBuildingPayload): Promise<SaveBuilding
       id: v.id, client_key: v.clientKey, vendor_type: v.vendorType, name: v.name,
       phone: v.phone ?? null, memo: v.memo ?? null, sort_order: v.sortOrder ?? 0, _deleted: v._deleted ?? false,
     })),
+    p_type_id: p.typeId ?? null,
+    p_entrance_password: p.entrancePassword ?? null,
+    p_owner_name: p.ownerName ?? null,
+    p_owner_phone: p.ownerPhone ?? null,
+    p_billing_note: p.billingNote ?? null,
+    p_reserve_fund: p.reserveFund ?? null,
+    p_owner_extra: p.ownerExtra ?? null,
+    p_basic_extra: p.basicExtra ?? null,
+    p_extra_info: p.extraInfo ?? null,
+    p_vendor_details: p.vendorDetails ?? null,
   });
   if (error) throw new Error(error.message);
   return {
