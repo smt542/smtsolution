@@ -445,6 +445,14 @@ export async function midMoveoutSettlement(
   return data as { ok: boolean };
 }
 
+export async function deleteMovingSettlement(settlementId: number): Promise<void> {
+  const { error } = await createClient()
+    .from("moving_settlements")
+    .delete()
+    .eq("id", settlementId);
+  if (error) throw new Error(error.message);
+}
+
 export async function listSettlements(
   buildingId: number,
   from: string,

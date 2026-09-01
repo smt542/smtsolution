@@ -49,6 +49,7 @@ describe("SettlementForm", () => {
 
   it("정산금 합계를 표시한다", () => {
     render(<SettlementForm value={draft} onChange={vi.fn()} />);
-    expect(screen.getByText("223,000원")).toBeInTheDocument();
+    expect(screen.getAllByText("223,000")).toHaveLength(2);
+    expect(screen.getByText("미수금")).toBeInTheDocument();
   });
 });

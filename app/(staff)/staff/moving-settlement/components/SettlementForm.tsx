@@ -1,12 +1,15 @@
-import { Input, Select } from "@/components/common";
-import {
-  movingSettlementSchema,
-  type MovingSettlementValues,
-} from "@/components/forms/schema/movingSettlement";
+import type { RefObject } from "react";
+import type { MovingSettlementValues } from "@/components/forms/schema/movingSettlement";
+import type { ChecklistItem, MeterSummary } from "@/hooks/reactquery/movingSettlement";
 import { calculateSettlementAmount } from "@/hooks/reactquery/movingSettlement";
-import { formatWon } from "@/lib/format";
+import { ManagementFeeSection } from "./settlement-form/ManagementFeeSection";
+import { SettlementBasicSection } from "./settlement-form/SettlementBasicSection";
+import { SettlementExtrasSection } from "./settlement-form/SettlementExtrasSection";
+import { SettlementSummaryBar } from "./settlement-form/SettlementSummaryBar";
+import { UtilitySettlementSection } from "./settlement-form/UtilitySettlementSection";
 
 export type SettlementDraft = MovingSettlementValues;
+const EMPTY_INPUT_REF: RefObject<HTMLInputElement | null> = { current: null };
 
 export function calculateProratedMgmtFee(
   monthly: number | null,
@@ -17,29 +20,45 @@ export function calculateProratedMgmtFee(
   const [year, month, day] = moveOutDate.split("-").map(Number);
   if (!year || !month || !day) return 0;
 
-  // 계산규칙 1.1: 일할 분모는 그 달 일수와 무관하게 고정 30일 (year·month는 위 유효성 검증에만 사용)
   return Math.round((monthly * day) / 30);
 }
 
-function numberValue(raw: string): number | null {
-  if (raw === "") return null;
-  const parsed = Number(raw);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
 export function SettlementForm({
+  buildingName = "선택 세대",
+  unitNo = "",
+  contactPhone = "",
   value,
   onChange,
+  meters = [],
+  checklist = [],
+  checked = {},
+  onChecklistChange = () => undefined,
+  receivedAmount = 0,
+  onReceivedAmountChange = () => undefined,
+  finalPaidDate = "",
+  onFinalPaidDateChange = () => undefined,
+  paymentInputRef = EMPTY_INPUT_REF,
 }: {
+  buildingName?: string;
+  unitNo?: string;
+  contactPhone?: string;
   value: SettlementDraft;
   onChange: (next: SettlementDraft) => void;
+  meters?: MeterSummary[];
+  checklist?: ChecklistItem[];
+  checked?: Record<number, boolean>;
+  onChecklistChange?: (id: number, checked: boolean) => void;
+  receivedAmount?: number;
+  onReceivedAmountChange?: (amount: number) => void;
+  finalPaidDate?: string;
+  onFinalPaidDateChange?: (date: string) => void;
+  paymentInputRef?: RefObject<HTMLInputElement | null>;
 }) {
   const set = <K extends keyof SettlementDraft>(
     key: K,
     next: SettlementDraft[K],
   ) => onChange({ ...value, [key]: next });
   const amount = calculateSettlementAmount(value);
-  const valid = movingSettlementSchema.safeParse(value).success;
 
   const setMoveOutDate = (moveOutDate: string) =>
     onChange({
@@ -61,163 +80,50 @@ export function SettlementForm({
       ),
     });
 
-  const amountInput = (
-    label: string,
-    key:
-      | "mgmtFeeMonthly"
-      | "mgmtFeeProrated"
-      | "waterCharge"
-      | "elecCharge"
-      | "gasCharge"
-      | "repairAmount",
-    onAmount?: (next: number | null) => void,
-  ) => (
-    <label>
-      <span className="mb-1.5 block text-xs font-bold text-t2">{label}</span>
-      <Input
-        aria-label={label}
-        type="number"
-        min={0}
-        step={1}
-        value={value[key] ?? ""}
-        onChange={(event) => {
-          const next = numberValue(event.target.value);
-          if (onAmount) onAmount(next);
-          else set(key, next);
-        }}
-      />
-    </label>
-  );
-
   return (
-    <section className="rounded-2xl border border-line bg-surface p-5 shadow-card">
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-extrabold text-t1">이사정산 입력</h2>
-        <span
-          className={
-            valid
-              ? "text-xs font-bold text-green"
-              : "text-xs font-bold text-red"
-          }
-        >
-          {valid ? "입력 가능" : "필수값 확인"}
-        </span>
+    <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[16px] bg-white shadow-card">
+      <div className="flex h-[49px] shrink-0 items-center border-b border-line2 px-[18px]">
+        <h2 className="text-[15px] font-extrabold text-t1">
+          {buildingName} {unitNo}
+        </h2>
       </div>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <label>
-          <span className="mb-1.5 block text-xs font-bold text-t2">퇴실일</span>
-          <Input
-            aria-label="퇴실일"
-            type="date"
-            value={value.moveOutDate}
-            onChange={(event) => setMoveOutDate(event.target.value)}
+      <div className="min-h-0 flex-1 overflow-auto px-[18px] pb-[20px] pt-[16px]">
+        <div className="flex min-w-[760px] flex-col gap-[10px]">
+          <SettlementBasicSection
+            moveOutDate={value.moveOutDate}
+            onMoveOutDateChange={setMoveOutDate}
           />
-        </label>
-        {amountInput("관리비 월액", "mgmtFeeMonthly", setMonthly)}
-        {amountInput("관리비 일할", "mgmtFeeProrated")}
-        {amountInput("수도 요금", "waterCharge")}
-        {amountInput("전기 요금", "elecCharge")}
-        {amountInput("가스 요금", "gasCharge")}
-
-        <label>
-          <span className="mb-1.5 block text-xs font-bold text-t2">전기 입금일</span>
-          <Input
-            aria-label="전기 입금일"
-            type="date"
-            value={value.elecPaidDate ?? ""}
-            onChange={(event) => set("elecPaidDate", event.target.value)}
+          <UtilitySettlementSection value={value} meters={meters} onChange={onChange} />
+          <ManagementFeeSection
+            monthly={value.mgmtFeeMonthly}
+            prorated={value.mgmtFeeProrated}
+            contactPhone={contactPhone}
+            onMonthlyChange={setMonthly}
+            onProratedChange={(next) => set("mgmtFeeProrated", next)}
           />
-        </label>
-        <label>
-          <span className="mb-1.5 block text-xs font-bold text-t2">가스 입금일</span>
-          <Input
-            aria-label="가스 입금일"
-            type="date"
-            value={value.gasPaidDate ?? ""}
-            onChange={(event) => set("gasPaidDate", event.target.value)}
+          <SettlementExtrasSection
+            value={value}
+            onChange={onChange}
+            checklist={checklist}
+            checked={checked}
+            onChecklistChange={onChecklistChange}
+            receivedAmount={receivedAmount}
+            onReceivedAmountChange={onReceivedAmountChange}
+            finalPaidDate={finalPaidDate}
+            onFinalPaidDateChange={onFinalPaidDateChange}
+            paymentInputRef={paymentInputRef}
           />
-        </label>
-
-        {amountInput("수리비", "repairAmount")}
-        <label>
-          <span className="mb-1.5 block text-xs font-bold text-t2">수리비 귀속</span>
-          <Select
-            aria-label="수리비 귀속"
-            value={value.repairAttribution ?? ""}
-            onChange={(event) =>
-              set(
-                "repairAttribution",
-                event.target.value === ""
-                  ? null
-                  : (event.target.value as "owner" | "manager" | "office"),
-              )
-            }
-            options={[
-              { value: "", label: "선택 안 함" },
-              { value: "owner", label: "건물주" },
-              { value: "manager", label: "관리자" },
-              { value: "office", label: "관리실" },
-            ]}
-          />
-        </label>
-
-        <label className="sm:col-span-2">
-          <span className="mb-1.5 block text-xs font-bold text-t2">수리 메모</span>
-          <Input
-            aria-label="수리 메모"
-            value={value.repairMemo ?? ""}
-            onChange={(event) => set("repairMemo", event.target.value)}
-          />
-        </label>
-        <label>
-          <span className="mb-1.5 block text-xs font-bold text-t2">정산 은행</span>
-          <Input
-            aria-label="정산 은행"
-            value={value.settleBank ?? ""}
-            onChange={(event) => set("settleBank", event.target.value)}
-          />
-        </label>
-        <label>
-          <span className="mb-1.5 block text-xs font-bold text-t2">정산 계좌</span>
-          <Input
-            aria-label="정산 계좌"
-            value={value.settleAcct ?? ""}
-            onChange={(event) => set("settleAcct", event.target.value)}
-          />
-        </label>
-        <label>
-          <span className="mb-1.5 block text-xs font-bold text-t2">예금주</span>
-          <Input
-            aria-label="예금주"
-            value={value.settleHolder ?? ""}
-            onChange={(event) => set("settleHolder", event.target.value)}
-          />
-        </label>
-        <label>
-          <span className="mb-1.5 block text-xs font-bold text-t2">비고</span>
-          <Input
-            aria-label="비고"
-            value={value.note ?? ""}
-            onChange={(event) => set("note", event.target.value)}
-          />
-        </label>
-        <label className="sm:col-span-2">
-          <span className="mb-1.5 block text-xs font-bold text-t2">이사정산 적요</span>
-          <Input
-            aria-label="이사정산 적요"
-            value={value.settlementNote ?? ""}
-            onChange={(event) => set("settlementNote", event.target.value)}
-          />
-        </label>
+        </div>
       </div>
 
-      <div className="mt-5 rounded-xl bg-blue-t p-4 text-right">
-        <span className="text-sm font-bold text-t2">정산금 </span>
-        <strong className="text-xl text-blue-d">
-          {formatWon(amount)}
-        </strong>
-      </div>
+      <SettlementSummaryBar
+        utilityTotal={(value.waterCharge ?? 0) + (value.elecCharge ?? 0) + (value.gasCharge ?? 0)}
+        managementTotal={value.mgmtFeeProrated ?? 0}
+        otherTotal={value.repairAmount ?? 0}
+        receivedAmount={receivedAmount}
+        total={amount}
+      />
     </section>
   );
 }

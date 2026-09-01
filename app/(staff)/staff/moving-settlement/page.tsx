@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
-import { EmptyState, Select, Spinner } from "@/components/common";
+import { useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+import { EmptyState, Spinner } from "@/components/common";
 import type { MovingSettlementValues } from "@/components/forms/schema/movingSettlement";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
@@ -14,14 +14,18 @@ import {
 } from "@/hooks/reactquery/movingSettlement";
 import { useUnits } from "@/hooks/reactquery/units";
 import { hasModule } from "@/lib/auth/permissions";
-import { ChecklistSection } from "./components/ChecklistSection";
 import { MeterInfoPanel } from "./components/MeterInfoPanel";
 import { SettlementActions } from "./components/SettlementActions";
+import { SettlementDirectoryRail } from "./components/SettlementDirectoryRail";
+import { SettlementEmptyPanel } from "./components/SettlementEmptyPanel";
 import { SettlementForm } from "./components/SettlementForm";
 import { SettlementHistory } from "./components/SettlementHistory";
 
-function draftFromContext(context: SettlementContext): MovingSettlementValues {
-  const saved = context.latestSettlement;
+function draftFromContext(
+  context: SettlementContext,
+  forceNew = false,
+): MovingSettlementValues {
+  const saved = forceNew ? null : context.latestSettlement;
 
   return {
     moveOutDate: saved?.moveOutDate ?? "",
@@ -53,20 +57,27 @@ function SettlementEditor({
   building,
   context,
   occupancy,
+  forceNew,
+  onDeleted,
 }: {
   building: { id: number; name: string };
   context: SettlementContext;
   occupancy: NonNullable<SettlementContext["occupancy"]>;
+  forceNew: boolean;
+  onDeleted: () => void;
 }) {
-  const [draft, setDraft] = useState(() => draftFromContext(context));
+  const [draft, setDraft] = useState(() => draftFromContext(context, forceNew));
   const [checked, setChecked] = useState<Record<number, boolean>>(() =>
     Object.fromEntries(
       context.checklist.map((item) => [item.id, item.checked]),
     ),
   );
+  const [receivedAmount, setReceivedAmount] = useState(0);
+  const [finalPaidDate, setFinalPaidDate] = useState("");
   const [activeSettlementId, setActiveSettlementId] = useState<number | null>(
-    context.latestSettlement?.id ?? null,
+    forceNew ? null : (context.latestSettlement?.id ?? null),
   );
+  const paymentInputRef = useRef<HTMLInputElement>(null);
 
   const saveInput: SaveSettlementInput = {
     unitId: context.unit.id,
@@ -96,23 +107,27 @@ function SettlementEditor({
     })),
   };
 
+  const amount = calculateSettlementAmount(draft);
+
   return (
-    <>
-      <div className="rounded-xl bg-blue-t px-4 py-3 text-sm font-bold text-blue-d">
-        <span>{context.unit.unitNo}</span>
-        <span aria-hidden="true"> · </span>
-        <span>{occupancy.tenantName ?? "입주자 미등록"}</span>
-      </div>
-      <div className="grid items-start gap-5 xl:grid-cols-[320px_1fr]">
-        <MeterInfoPanel meters={context.meterSummary} />
-        <SettlementForm value={draft} onChange={setDraft} />
-      </div>
-      <ChecklistSection
-        items={context.checklist}
+    <div className="flex min-h-0 flex-1 flex-col gap-[12px]">
+      <SettlementForm
+        buildingName={building.name}
+        unitNo={context.unit.unitNo}
+        contactPhone={occupancy.phone ?? ""}
+        value={draft}
+        onChange={setDraft}
+        meters={context.meterSummary}
+        checklist={context.checklist}
         checked={checked}
-        onChange={(id, next) =>
+        onChecklistChange={(id, next) =>
           setChecked((current) => ({ ...current, [id]: next }))
         }
+        receivedAmount={receivedAmount}
+        onReceivedAmountChange={setReceivedAmount}
+        finalPaidDate={finalPaidDate}
+        onFinalPaidDateChange={setFinalPaidDate}
+        paymentInputRef={paymentInputRef}
       />
       <SettlementActions
         building={building}
@@ -121,10 +136,17 @@ function SettlementEditor({
         draft={draft}
         input={saveInput}
         settlementId={activeSettlementId}
-        amount={calculateSettlementAmount(draft)}
+        amount={amount}
+        receivedAmount={receivedAmount}
+        createdAt={context.latestSettlement?.createdAt ?? null}
+        paymentInputRef={paymentInputRef}
         onSaved={setActiveSettlementId}
+        onDeleted={() => {
+          setActiveSettlementId(null);
+          onDeleted();
+        }}
       />
-    </>
+    </div>
   );
 }
 
@@ -133,8 +155,20 @@ export default function MovingSettlementPage() {
   const buildingsQuery = useBuildings();
   const [buildingId, setBuildingId] = useState<number | null>(null);
   const [unitId, setUnitId] = useState<number | null>(null);
+  const [forceNew, setForceNew] = useState(false);
+  const [editorVersion, setEditorVersion] = useState(0);
   const unitsQuery = useUnits(buildingId ?? 0);
   const contextQuery = useSettlementContext(unitId);
+
+  const buildings = useMemo(
+    () => buildingsQuery.data ?? [],
+    [buildingsQuery.data],
+  );
+  const units = useMemo(() => unitsQuery.data ?? [], [unitsQuery.data]);
+  const context = unitId === null ? undefined : contextQuery.data;
+  const selectedBuilding =
+    buildings.find((building) => building.id === buildingId) ?? null;
+  const selectedUnit = units.find((unit) => unit.id === unitId) ?? null;
 
   if (me === undefined) return null;
   if (!hasModule(me, "moving")) {
@@ -145,111 +179,135 @@ export default function MovingSettlementPage() {
     );
   }
 
-  const buildings = buildingsQuery.data ?? [];
-  const units = unitsQuery.data ?? [];
-  const context = unitId === null ? undefined : contextQuery.data;
-  const selectedBuilding =
-    buildings.find((building) => building.id === buildingId) ?? null;
-
-  const selectBuilding = (value: string) => {
-    setBuildingId(value ? Number(value) : null);
+  const selectBuilding = (value: string | number | null) => {
+    const next = value === null || value === "" ? null : Number(value);
+    setBuildingId(next);
     setUnitId(null);
+    setForceNew(false);
   };
 
-  const selectUnit = (value: string) => {
-    setUnitId(value ? Number(value) : null);
+  const selectUnit = (value: string | number | null) => {
+    const next = value === null || value === "" ? null : Number(value);
+    setUnitId(next);
+    setForceNew(false);
   };
+
+  const startNewSettlement = () => {
+    if (unitId === null) return;
+    setForceNew(true);
+    setEditorVersion((current) => current + 1);
+  };
+
+  const emptyAction = () =>
+    toast.info("건물과 호실을 먼저 선택해 주세요.");
 
   return (
-    <div className="flex min-h-screen flex-col gap-5 p-4 sm:p-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold text-t3">관리업무 · 이사정산</p>
-          <h1 className="mt-1 text-2xl font-extrabold text-t1">이사정산</h1>
-        </div>
-        <nav aria-label="이사조회 바로가기" className="flex flex-wrap gap-2">
-          {[
-            ["water", "수도 조회"],
-            ["electric", "전기 조회"],
-            ["gas", "가스 조회"],
-            ["all", "전체 조회"],
-          ].map(([type, label]) => (
-            <Link
-              key={type}
-              href={`/staff/moving-settlement/inquiries/${type}`}
-              className="inline-flex h-10 items-center rounded-xl border border-line bg-white px-3 text-sm font-bold text-t2 hover:bg-bg"
-            >
-              {label}
-            </Link>
+    <div className="relative min-h-[calc(100dvh-62px)] overflow-x-auto bg-bg px-[24px] pb-[22px] pt-[18px]">
+      <label className="sr-only">
+        건물 선택
+        <select
+          aria-label="건물 선택"
+          value={buildingId ?? ""}
+          onChange={(event) => selectBuilding(event.target.value)}
+        >
+          <option value="">건물을 선택해 주세요</option>
+          {buildings.map((building) => (
+            <option key={building.id} value={building.id}>
+              {building.name}
+            </option>
           ))}
-        </nav>
+        </select>
+      </label>
+      <label className="sr-only">
+        호실 선택
+        <select
+          aria-label="호실 선택"
+          value={unitId ?? ""}
+          onChange={(event) => selectUnit(event.target.value)}
+        >
+          <option value="">호실을 선택해 주세요</option>
+          {units.map((unit) => (
+            <option key={unit.id} value={unit.id}>
+              {[unit.dong, unit.unitNo].filter(Boolean).join(" ")}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <div className="mx-auto grid h-[calc(100dvh-102px)] min-h-[720px] min-w-[1340px] max-w-[1632px] grid-cols-[322px_322px_minmax(664px,1fr)] gap-[16px]">
+        <SettlementDirectoryRail
+          buildings={buildings}
+          units={units}
+          buildingId={buildingId}
+          unitId={unitId}
+          buildingsLoading={buildingsQuery.isLoading}
+          unitsLoading={unitsQuery.isLoading}
+          settlementDate={context?.latestSettlement?.moveOutDate ?? null}
+          settlementNote={context?.occupancy?.settlementNote ?? null}
+          onSelectBuilding={(id) => selectBuilding(id)}
+          onSelectUnit={(id) => selectUnit(id)}
+          onStartNew={startNewSettlement}
+        />
+
+        <div className="flex min-h-0 flex-col gap-[16px] overflow-hidden">
+          <SettlementHistory
+            buildingId={buildingId}
+            selectedUnitId={unitId}
+            onSelectUnit={(id) => selectUnit(id)}
+          />
+          <MeterInfoPanel
+            meters={context?.meterSummary ?? []}
+            selected={Boolean(context?.occupancy)}
+          />
+        </div>
+
+        <div className="flex min-h-0 min-w-0 flex-col">
+          {unitId === null && <SettlementEmptyPanel onAction={emptyAction} />}
+          {unitId !== null && contextQuery.isLoading && (
+            <div className="grid min-h-0 flex-1 place-items-center rounded-[16px] bg-white shadow-card">
+              <Spinner />
+            </div>
+          )}
+          {unitId !== null && contextQuery.error && (
+            <div className="grid min-h-0 flex-1 place-items-center rounded-[16px] bg-white shadow-card">
+              <EmptyState message="정산 정보를 불러오지 못했습니다." />
+            </div>
+          )}
+          {context && context.occupancy === null && (
+            <div className="grid min-h-0 flex-1 place-items-center rounded-[16px] bg-white shadow-card">
+              <EmptyState message="선택한 호실에 입주 정보가 없습니다." />
+            </div>
+          )}
+          {context && context.occupancy && selectedBuilding && selectedUnit && (
+            <SettlementEditor
+              key={`${context.unit.id}:${forceNew ? `new-${editorVersion}` : (context.latestSettlement?.id ?? "new")}`}
+              building={selectedBuilding}
+              context={context}
+              occupancy={context.occupancy}
+              forceNew={forceNew}
+              onDeleted={() => {
+                setForceNew(true);
+                setEditorVersion((current) => current + 1);
+              }}
+            />
+          )}
+        </div>
       </div>
 
-      <section className="rounded-2xl border border-line bg-surface p-4 shadow-card">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label>
-            <span className="mb-1.5 block text-xs font-bold text-t2">건물 선택</span>
-            <Select
-              aria-label="건물 선택"
-              value={buildingId?.toString() ?? ""}
-              disabled={buildingsQuery.isLoading}
-              onChange={(event) => selectBuilding(event.target.value)}
-              options={[
-                {
-                  value: "",
-                  label: buildingsQuery.isLoading
-                    ? "건물 불러오는 중"
-                    : "건물을 선택해 주세요",
-                },
-                ...buildings.map((building) => ({
-                  value: String(building.id),
-                  label: building.name,
-                })),
-              ]}
-            />
-          </label>
-          <label>
-            <span className="mb-1.5 block text-xs font-bold text-t2">호실 선택</span>
-            <Select
-              aria-label="호실 선택"
-              value={unitId?.toString() ?? ""}
-              disabled={buildingId === null || unitsQuery.isLoading}
-              onChange={(event) => selectUnit(event.target.value)}
-              options={[
-                { value: "", label: "호실을 선택해 주세요" },
-                ...units.map((unit) => ({
-                  value: String(unit.id),
-                  label: [unit.dong, unit.unitNo].filter(Boolean).join(" "),
-                })),
-              ]}
-            />
-          </label>
-        </div>
-      </section>
-
-      {buildingsQuery.error && (
-        <EmptyState message="건물 목록을 불러오지 못했습니다." />
-      )}
-      {unitId === null && (
-        <EmptyState message="정산할 호실을 선택해 주세요" />
-      )}
-      {unitId !== null && contextQuery.isLoading && <Spinner />}
-      {unitId !== null && contextQuery.error && (
-        <EmptyState message="정산 정보를 불러오지 못했습니다." />
-      )}
-      {context && context.occupancy === null && (
-        <EmptyState message="선택한 호실에 입주 정보가 없습니다." />
-      )}
-      {context && context.occupancy && selectedBuilding && (
-        <SettlementEditor
-          key={`${context.unit.id}:${context.latestSettlement?.id ?? "new"}`}
-          building={selectedBuilding}
-          context={context}
-          occupancy={context.occupancy}
-        />
-      )}
-
-      <SettlementHistory buildingId={buildingId} />
+      <button
+        type="button"
+        aria-label="화면 도우미 열기"
+        className="fixed right-0 top-1/2 hidden h-[70px] w-[30px] -translate-y-1/2 items-center justify-center rounded-l-[12px] border border-line bg-white text-t3 shadow-[-6px_0_8px_rgba(23,31,40,0.25)] 2xl:flex"
+      >
+        <span aria-hidden="true">▧</span>
+      </button>
+      <button
+        type="button"
+        aria-label="도움말"
+        className="fixed bottom-[22px] right-[22px] hidden size-[52px] items-center justify-center rounded-full bg-teal text-[20px] text-white shadow-[0_12px_14px_rgba(20,164,151,0.6)] 2xl:flex"
+      >
+        <span aria-hidden="true">◯</span>
+      </button>
     </div>
   );
 }

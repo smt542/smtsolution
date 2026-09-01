@@ -142,6 +142,46 @@ function UtilitiesNavGroup({
   );
 }
 
+function MovingSettlementNavGroup({ item, pathname }: { item: NavItem; pathname: string }) {
+  const links = [
+    { label: "이사정산 입력", href: "/staff/moving-settlement" },
+    { label: "전체 이사조회", href: "/staff/moving-settlement/inquiries/all" },
+    { label: "전기 이사조회", href: "/staff/moving-settlement/inquiries/electric" },
+    { label: "수도 이사조회", href: "/staff/moving-settlement/inquiries/water" },
+    { label: "가스 이사조회", href: "/staff/moving-settlement/inquiries/gas" },
+  ];
+
+  return (
+    <div className="pb-1">
+      <Link
+        href={item.href}
+        className="flex h-[40px] w-full items-center gap-[11px] rounded-[11px] px-[12px] text-[13.5px] font-bold text-t1 hover:bg-bg"
+      >
+        <NavIcon d={item.icon} />
+        <span className="flex-1">{item.label}</span>
+        <span className="rotate-180 text-[15px] leading-none text-t3" aria-hidden="true">⌄</span>
+      </Link>
+      <div className="ml-[31px] flex flex-col gap-[2px] border-l border-line pl-[11px]">
+        {links.map((link) => {
+          const active = link.href === "/staff/moving-settlement"
+            ? pathname === link.href
+            : pathname.startsWith(link.href);
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              aria-current={active ? "page" : undefined}
+              className={`flex h-[32px] items-center rounded-[9px] px-[12px] text-[12.5px] ${active ? "bg-teal font-bold text-white" : "font-medium text-t3 hover:bg-bg hover:text-t2"}`}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ── sidebar ─────────────────────────────────────────────────────────────── */
 export function Sidebar() {
   const pathname = usePathname();
@@ -153,6 +193,7 @@ export function Sidebar() {
   const isBillPage = pathname.startsWith("/staff/bill");
   const isCustomerNumbersPage = pathname.startsWith("/staff/customer-numbers");
   const isUtilitiesSection = isUtilitiesPage || isCustomerNumbersPage;
+  const isMovingSettlementSection = pathname.startsWith("/staff/moving-settlement");
   const visibleItems = OFFICE_NAV_ITEMS.filter((item) =>
     item.modules
       ? item.modules.some((module) => hasModule(me ?? null, module))
@@ -222,6 +263,8 @@ export function Sidebar() {
                 isCustomerNumbersPage={isCustomerNumbersPage}
                 onSelect={selectUtilityType}
               />
+            ) : item.href === "/staff/moving-settlement" && isMovingSettlementSection ? (
+              <MovingSettlementNavGroup key={item.href} item={item} pathname={pathname} />
             ) : (
               <NavItemRow
                 key={item.href}

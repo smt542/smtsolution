@@ -1,44 +1,19 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { MessagingPreset } from "@/lib/messaging/preset";
-import {
-  buildRecipientRenderVariables,
-} from "@/lib/messaging/preset";
-import { renderTemplate } from "@/lib/messaging/render";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const saveMutate = vi.fn();
 const completeMutate = vi.fn();
 const midMutate = vi.fn();
-const messagingModalSpy = vi.fn();
-const mintShareToken = vi.fn();
+const deleteMutate = vi.fn();
 
 vi.mock("@/hooks/reactquery/movingSettlement", () => ({
   useSaveSettlement: () => ({ mutate: saveMutate, isPending: false }),
   useCompleteSettlement: () => ({ mutate: completeMutate, isPending: false }),
   useMidMoveout: () => ({ mutate: midMutate, isPending: false }),
+  useDeleteSettlement: () => ({ mutate: deleteMutate, isPending: false }),
 }));
 vi.mock("sonner", () => ({
   toast: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
-}));
-vi.mock("@/hooks/reactquery/org/useOrgContact", () => ({
-  useOrgContact: () => ({ data: { phone: "02-1234-5678" } }),
-}));
-vi.mock("@/hooks/reactquery/residentSettlement", () => ({
-  useMintSettlementShareToken: () => ({
-    mutateAsync: mintShareToken,
-    isPending: false,
-  }),
-}));
-vi.mock("../../messaging/components/MessagingModal", () => ({
-  MessagingModal: (props: {
-    open: boolean;
-    preset?: MessagingPreset;
-    onClose: () => void;
-    onSent?: (result: { logId: number; count: number }) => void;
-  }) => {
-    messagingModalSpy(props);
-    return props.open ? <p>테스트 정산내역서 발송</p> : null;
-  },
 }));
 
 import { SettlementActions } from "./SettlementActions";
@@ -101,12 +76,13 @@ const settlementContext = {
   },
 };
 
-const renderActions = (amount = 218806) => render(
+const renderActions = (receivedAmount = 0) => render(
   <SettlementActions
     draft={draft}
     input={input}
     settlementId={31}
-    amount={amount}
+    amount={218806}
+    receivedAmount={receivedAmount}
     onSaved={vi.fn()}
     {...settlementContext}
   />,
@@ -114,144 +90,56 @@ const renderActions = (amount = 218806) => render(
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.stubEnv("NEXT_PUBLIC_RESIDENT_WEB_ORIGIN", "https://resident.example.com/");
-  mintShareToken.mockResolvedValue("settlement-token-31");
-  vi.stubGlobal("confirm", vi.fn(() => true));
-});
-
-afterEach(() => {
-  vi.unstubAllEnvs();
+  vi.stubGlobal("print", vi.fn());
 });
 
 describe("SettlementActions", () => {
-  it("계산+저장 payload를 mutation에 전달한다", () => {
+  it("저장 payload를 mutation에 전달한다", () => {
     renderActions();
 
-    fireEvent.click(screen.getByRole("button", { name: "계산+저장" }));
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
     expect(saveMutate).toHaveBeenCalledWith(input, expect.any(Object));
   });
 
-  it("중도퇴실 확인 뒤 RPC mutation을 호출한다", () => {
+  it("미수금이 있으면 중도퇴실 처리를 막고 수납 입력을 안내한다", () => {
     renderActions();
 
-    fireEvent.click(screen.getByRole("button", { name: "중도퇴실" }));
+    fireEvent.click(screen.getByRole("button", { name: "정산완료+중도퇴실" }));
+    expect(screen.getByRole("heading", { name: "중도퇴실 처리 전 확인" })).toBeInTheDocument();
+    expect(screen.getByText(/218,806원/)).toBeInTheDocument();
+    expect(midMutate).not.toHaveBeenCalled();
+  });
+
+  it("수납이 끝난 뒤 확인하면 중도퇴실 RPC를 호출한다", () => {
+    renderActions(218806);
+
+    fireEvent.click(screen.getByRole("button", { name: "정산완료+중도퇴실" }));
+    fireEvent.click(screen.getByRole("button", { name: "중도퇴실 처리" }));
     expect(midMutate).toHaveBeenCalledWith(31, expect.any(Object));
   });
 
-  it("미납 확인 모달 뒤 정산완료를 호출한다", () => {
-    renderActions();
+  it("수납이 끝난 뒤 확인하면 퇴실 완료 RPC를 호출한다", () => {
+    renderActions(218806);
 
-    fireEvent.click(screen.getByRole("button", { name: "정산완료+공실" }));
-    expect(screen.getByText("미납 수납 확인")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "확인하고 완료" }));
+    fireEvent.click(screen.getByRole("button", { name: "정산완료+퇴실" }));
+    fireEvent.click(screen.getByRole("button", { name: "퇴실 처리" }));
     expect(completeMutate).toHaveBeenCalledWith(31, expect.any(Object));
   });
 
-  it("퇴실자용 이사정산 내역서에 공개 상세 링크를 포함해 완전히 렌더한다", async () => {
+  it("삭제 확인 뒤 정산 삭제 mutation을 호출한다", () => {
     renderActions();
 
-    fireEvent.click(screen.getByRole("button", { name: "정산내역서 전송" }));
-
-    expect(await screen.findByText("테스트 정산내역서 발송")).toBeInTheDocument();
-    const openCall = [...messagingModalSpy.mock.calls]
-      .reverse()
-      .find(([props]) => props.open);
-    const preset = openCall?.[0].preset as MessagingPreset | undefined;
-    expect(preset).toMatchObject({
-      context: "이사정산",
-      buildingId: 3,
-      channel: "alimtalk",
-      mode: "auto",
-      templateTitle: "이사정산 내역서",
-      commonVariables: {
-        건물명: "해오름",
-        관리사무소연락처: "02-1234-5678",
-      },
-      recipients: [{
-        name: "홍길동",
-        phone: "010-1234-5678",
-        unitNo: "A동 101호",
-        kind: "tenant",
-        variables: {
-          퇴실일: "2026-08-13",
-          정산구분: "추가납부",
-          정산금액: "218,806",
-          세대: "A동 101호",
-          상세링크: "https://resident.example.com/r/settlement/settlement-token-31",
-        },
-        ref: { occupancyId: 9 },
-      }],
-    });
-    expect(mintShareToken).toHaveBeenCalledWith(31);
-
-    const templates = [{
-      id: 303,
-      title: "이사정산 내역서",
-      body: "[#{건물명}] #{세대} 퇴실일 #{퇴실일} #{정산구분} #{정산금액}원 문의 #{관리사무소연락처}",
-    }];
-    const template = templates.find(({ title }) => title === preset?.templateTitle);
-    expect(template?.id).toBe(303);
-    const renderedBodies = preset?.recipients?.map((recipient) =>
-      renderTemplate(
-        template?.body ?? "",
-        buildRecipientRenderVariables(
-          recipient,
-          preset.commonVariables,
-          settlementContext.building.name,
-        ),
-      ),
-    ) ?? [];
-    expect(renderedBodies).toHaveLength(1);
-    expect(renderedBodies.every((body) => !body.includes("#{"))).toBe(true);
-    const renderedButtonUrls = preset?.recipients?.map((recipient) =>
-      renderTemplate(
-        "#{상세링크}",
-        buildRecipientRenderVariables(
-          recipient,
-          preset.commonVariables,
-          settlementContext.building.name,
-        ),
-      ),
-    ) ?? [];
-    expect(renderedButtonUrls).toEqual([
-      "https://resident.example.com/r/settlement/settlement-token-31",
-    ]);
-    expect(renderedButtonUrls.every((url) => !url.includes("#{"))).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "삭제" }));
+    expect(screen.getByRole("heading", { name: "이사정산 삭제" })).toBeInTheDocument();
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "삭제" }));
+    expect(deleteMutate).toHaveBeenCalledWith(31, expect.any(Object));
   });
 
-  it("음수 정산금은 환급으로 파생한다", async () => {
-    renderActions(-50000);
-
-    fireEvent.click(screen.getByRole("button", { name: "정산내역서 전송" }));
-
-    await waitFor(() =>
-      expect(messagingModalSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ open: true }),
-      ),
-    );
-
-    const openCall = [...messagingModalSpy.mock.calls]
-      .reverse()
-      .find(([props]) => props.open);
-    const preset = openCall?.[0].preset as MessagingPreset | undefined;
-    expect(preset?.recipients?.[0].variables).toMatchObject({
-      정산구분: "환급",
-      정산금액: "-50,000",
-    });
-  });
-
-  it("정산 토큰 발급 실패 시 오류를 알리고 발송 모달을 열지 않는다", async () => {
-    const { toast } = await import("sonner");
-    mintShareToken.mockRejectedValueOnce(new Error("정산 토큰 발급 실패"));
+  it("출력과 빈양식 버튼을 제공한다", () => {
     renderActions();
 
-    fireEvent.click(screen.getByRole("button", { name: "정산내역서 전송" }));
-
-    await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith("정산 토큰 발급 실패"),
-    );
-    expect(messagingModalSpy).not.toHaveBeenCalledWith(
-      expect.objectContaining({ open: true }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "출력" }));
+    fireEvent.click(screen.getByRole("button", { name: "빈양식" }));
+    expect(window.print).toHaveBeenCalledTimes(2);
   });
 });

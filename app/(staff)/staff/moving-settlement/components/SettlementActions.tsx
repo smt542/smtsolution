@@ -1,25 +1,50 @@
 "use client";
 
+import type { RefObject } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Button, Modal } from "@/components/common";
 import {
   movingSettlementSchema,
   type MovingSettlementValues,
 } from "@/components/forms/schema/movingSettlement";
 import {
   useCompleteSettlement,
+  useDeleteSettlement,
   useMidMoveout,
   useSaveSettlement,
   type SaveSettlementInput,
   type SettlementContext,
 } from "@/hooks/reactquery/movingSettlement";
-import { useOrgContact } from "@/hooks/reactquery/org/useOrgContact";
-import { useMintSettlementShareToken } from "@/hooks/reactquery/residentSettlement";
 import { formatWon } from "@/lib/format";
-import { residentOrigin } from "@/lib/messaging/residentOrigin";
-import { formatDate, formatKrw, formatUnit } from "@/lib/messaging/vars";
-import { MessagingModal } from "../../messaging/components/MessagingModal";
+import { SettlementActionBar } from "./SettlementActionBar";
+import { SettlementDecisionDialog } from "./SettlementDecisionDialog";
+
+type DialogState =
+  | "mid-outstanding"
+  | "moveout-outstanding"
+  | "mid-confirm"
+  | "moveout-confirm"
+  | "delete"
+  | null;
+
+const EMPTY_INPUT_REF: RefObject<HTMLInputElement | null> = { current: null };
+
+function formatCreatedAt(value: string | null): string {
+  if (!value) return "작성 중인";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "작성 중인";
+  const parts = new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("year")}.${part("month")}.${part("day")} ${part("hour")}:${part("minute")} 작성 건`;
+}
 
 export function SettlementActions({
   building,
@@ -29,7 +54,11 @@ export function SettlementActions({
   input,
   settlementId,
   amount,
+  receivedAmount = 0,
+  createdAt = null,
+  paymentInputRef = EMPTY_INPUT_REF,
   onSaved,
+  onDeleted = () => undefined,
 }: {
   building: { id: number; name: string };
   unit: SettlementContext["unit"];
@@ -38,178 +67,170 @@ export function SettlementActions({
   input: SaveSettlementInput;
   settlementId: number | null;
   amount: number;
+  receivedAmount?: number;
+  createdAt?: string | null;
+  paymentInputRef?: RefObject<HTMLInputElement | null>;
   onSaved: (id: number) => void;
+  onDeleted?: () => void;
 }) {
   const save = useSaveSettlement();
   const complete = useCompleteSettlement();
   const mid = useMidMoveout();
-  const mintShareToken = useMintSettlementShareToken();
-  const { data: orgContact } = useOrgContact();
-  const [messageOpen, setMessageOpen] = useState(false);
-  const [detailLink, setDetailLink] = useState("");
-  const [completeOpen, setCompleteOpen] = useState(false);
-  const pending = save.isPending || complete.isPending || mid.isPending;
+  const remove = useDeleteSettlement();
+  const [dialog, setDialog] = useState<DialogState>(null);
+  const pending = save.isPending || complete.isPending || mid.isPending || remove.isPending;
+  const outstanding = amount - receivedAmount;
 
   const validate = () => {
     const result = movingSettlementSchema.safeParse(draft);
-    if (!result.success) {
-      toast.error("퇴실일과 금액 입력값을 확인해 주세요.");
-    }
+    if (!result.success) toast.error("퇴실일과 금액 입력값을 확인해 주세요.");
     return result.success;
   };
 
-  const calculate = () => {
-    if (validate()) {
-      toast.success(`정산금은 ${formatWon(amount)}입니다.`);
-    }
+  const requireSaved = () => {
+    if (settlementId !== null) return true;
+    toast.error("먼저 저장을 실행해 주세요.");
+    return false;
   };
 
   const saveNow = () => {
     if (!validate()) return;
-
     save.mutate(input, {
       onSuccess: (result) => {
         onSaved(result.settlementId);
-        toast.success("이사정산을 저장했습니다.");
+        toast.success("이사정산을 저장했어요.");
       },
       onError: () => toast.error("이사정산 저장에 실패했습니다."),
     });
   };
 
-  const midMoveout = () => {
-    if (settlementId === null) {
-      toast.error("먼저 계산+저장을 실행해 주세요.");
+  const requestCompletion = (kind: "mid" | "moveout") => {
+    if (!validate() || !requireSaved()) return;
+    if (outstanding > 0) {
+      setDialog(kind === "mid" ? "mid-outstanding" : "moveout-outstanding");
       return;
     }
-    if (!window.confirm("중도퇴실로 처리하시겠습니까?")) return;
+    setDialog(kind === "mid" ? "mid-confirm" : "moveout-confirm");
+  };
 
+  const completeMidMoveout = () => {
+    if (settlementId === null) return;
     mid.mutate(settlementId, {
-      onSuccess: () => toast.success("중도퇴실로 처리했습니다."),
+      onSuccess: () => {
+        setDialog(null);
+        toast.success("중도퇴실로 처리 완료했어요.");
+      },
       onError: () => toast.error("중도퇴실 처리에 실패했습니다."),
     });
   };
 
-  const completeNow = () => {
-    if (settlementId === null) {
-      toast.error("먼저 계산+저장을 실행해 주세요.");
-      setCompleteOpen(false);
-      return;
-    }
-
+  const completeMoveout = () => {
+    if (settlementId === null) return;
     complete.mutate(settlementId, {
       onSuccess: () => {
-        setCompleteOpen(false);
-        toast.success("정산을 완료하고 공실로 전환했습니다.");
+        setDialog(null);
+        toast.success("퇴실로 처리 완료했어요.");
       },
-      onError: () => toast.error("정산완료 처리에 실패했습니다."),
+      onError: () => toast.error("퇴실 처리에 실패했습니다."),
     });
   };
 
-  const exportStub = (label: string) =>
-    toast.info(`${label} 출력은 엑셀 연동 후 제공됩니다.`);
-
-  const openSettlementMessaging = async () => {
+  const deleteSettlement = () => {
     if (settlementId === null) {
-      toast.error("먼저 계산+저장을 실행해 주세요.");
+      setDialog(null);
+      toast.info("아직 저장되지 않은 입력입니다.");
       return;
     }
-
-    try {
-      const token = await mintShareToken.mutateAsync(settlementId);
-      setDetailLink(`${residentOrigin()}/r/settlement/${token}`);
-      setMessageOpen(true);
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "정산내역 상세 링크를 만들지 못했습니다.",
-      );
-    }
+    remove.mutate(settlementId, {
+      onSuccess: () => {
+        setDialog(null);
+        onDeleted();
+        toast.success("이사정산을 삭제했어요.");
+      },
+      onError: () => toast.error("이사정산을 삭제하지 못했습니다."),
+    });
   };
+
+  const focusPayment = () => {
+    setDialog(null);
+    window.setTimeout(() => {
+      paymentInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      paymentInputRef.current?.focus();
+    }, 0);
+  };
+
+  const print = () => {
+    if (outstanding < 0) {
+      toast.error("미수금이 음수인 정산은 내역서를 출력할 수 없습니다.");
+      return;
+    }
+    window.print();
+  };
+
+  const outstandingDialog = dialog === "mid-outstanding" || dialog === "moveout-outstanding";
 
   return (
     <>
-      <section className="flex flex-wrap justify-end gap-2 rounded-2xl border border-line bg-surface p-4 shadow-card">
-        <Button
-          variant="ghost"
-          onClick={() => void openSettlementMessaging()}
-          disabled={mintShareToken.isPending}
-        >
-          정산내역서 전송
-        </Button>
-        <Button variant="ghost" onClick={() => exportStub("빈양식")}>
-          빈양식
-        </Button>
-        <Button variant="ghost" onClick={calculate} disabled={pending}>
-          정산금 계산
-        </Button>
-        <Button onClick={saveNow} disabled={pending}>
-          계산+저장
-        </Button>
-        <Button variant="ghost" onClick={midMoveout} disabled={pending}>
-          중도퇴실
-        </Button>
-        <Button
-          variant="danger"
-          onClick={() => setCompleteOpen(true)}
-          disabled={pending}
-        >
-          정산완료+공실
-        </Button>
-      </section>
-
-      <MessagingModal
-        open={messageOpen}
-        preset={{
-          context: "이사정산",
-          buildingId: building.id,
-          channel: "alimtalk",
-          mode: "auto",
-          templateTitle: "이사정산 내역서",
-          recipients: [{
-            name: occupancy.tenantName,
-            phone: occupancy.phone,
-            unitNo: formatUnit(unit.dong, unit.unitNo),
-            kind: "tenant",
-            variables: {
-              퇴실일: formatDate(draft.moveOutDate),
-              정산구분: amount < 0 ? "환급" : "추가납부",
-              정산금액: formatKrw(amount),
-              세대: formatUnit(unit.dong, unit.unitNo),
-              상세링크: detailLink,
-            },
-            ref: { occupancyId: occupancy.id },
-          }],
-          commonVariables: {
-            건물명: building.name,
-            관리사무소연락처: orgContact?.phone ?? "",
-          },
-        }}
-        onClose={() => setMessageOpen(false)}
-        onSent={(result) => {
-          toast.success(`이사정산 내역서 ${result.count}건 발송을 접수했습니다.`);
-          setMessageOpen(false);
-        }}
+      <SettlementActionBar
+        onSave={saveNow}
+        onMidMoveout={() => requestCompletion("mid")}
+        onMoveout={() => requestCompletion("moveout")}
+        onPrint={print}
+        onBlankPrint={() => window.print()}
+        onDelete={() => setDialog("delete")}
+        pending={pending}
       />
 
-      <Modal
-        open={completeOpen}
-        onClose={() => setCompleteOpen(false)}
-        title="미납 수납 확인"
+      <SettlementDecisionDialog
+        open={outstandingDialog}
+        title={dialog === "mid-outstanding" ? "중도퇴실 처리 전 확인" : "퇴실 처리 전 확인"}
+        confirmLabel="수납액 입력"
+        pending={pending}
+        onCancel={() => setDialog(null)}
+        onConfirm={focusPayment}
       >
-        <p className="text-sm text-t2">
-          미납 수납 기능은 아직 연결되지 않았습니다. 미납 여부를 별도로
-          확인한 뒤 공실 처리해 주세요.
+        <p>
+          미수금 <strong className="font-bold text-red">{formatWon(outstanding)}</strong>이 남아 있어요.
         </p>
-        <div className="mt-5 flex justify-end gap-2">
-          <Button variant="ghost" onClick={() => setCompleteOpen(false)}>
-            취소
-          </Button>
-          <Button variant="danger" onClick={completeNow}>
-            확인하고 완료
-          </Button>
-        </div>
-      </Modal>
+        <p>수납액을 먼저 입력해 미수금을 0원으로 맞춘 뒤 처리할 수 있어요.</p>
+      </SettlementDecisionDialog>
+
+      <SettlementDecisionDialog
+        open={dialog === "mid-confirm"}
+        title="중도퇴실 처리 전 확인"
+        confirmLabel="중도퇴실 처리"
+        pending={pending}
+        onCancel={() => setDialog(null)}
+        onConfirm={completeMidMoveout}
+      >
+        <p>{building.name} {unit.unitNo} 세대를 중도퇴실로 처리할까요?</p>
+        <p>{occupancy.tenantName ?? "입주자 미등록"}의 정산 상태가 완료로 변경돼요.</p>
+      </SettlementDecisionDialog>
+
+      <SettlementDecisionDialog
+        open={dialog === "moveout-confirm"}
+        title="퇴실 처리 전 확인"
+        confirmLabel="퇴실 처리"
+        pending={pending}
+        onCancel={() => setDialog(null)}
+        onConfirm={completeMoveout}
+      >
+        <p>{building.name} {unit.unitNo} 세대를 퇴실 처리할까요?</p>
+        <p>처리하면 입주자 정보가 초기화되고 세대가 공실로 전환돼요.</p>
+      </SettlementDecisionDialog>
+
+      <SettlementDecisionDialog
+        open={dialog === "delete"}
+        title="이사정산 삭제"
+        confirmLabel="삭제"
+        confirmTone="danger"
+        pending={pending}
+        onCancel={() => setDialog(null)}
+        onConfirm={deleteSettlement}
+      >
+        <p>해당 이사정산을 삭제하시겠습니까?</p>
+        <p className="text-t3">{formatCreatedAt(createdAt)}이며, 삭제하면 되돌릴 수 없어요.</p>
+      </SettlementDecisionDialog>
     </>
   );
 }
