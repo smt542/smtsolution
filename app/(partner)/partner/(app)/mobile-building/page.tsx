@@ -115,6 +115,10 @@ function BuildingDetailInner() {
         href={Number.isFinite(buildingId) ? `/partner/mobile-meter?id=${buildingId}` : "/partner/mobile-meter"}
         className={styles.meterBtn}
       >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M4 18a8 8 0 1 1 16 0" />
+          <path d="M12 14l3-3" />
+        </svg>
         검침 자료
       </Link>
     </div>

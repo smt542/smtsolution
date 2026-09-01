@@ -148,6 +148,9 @@ function TenantDetailInner() {
       </div>
       {occ && (
         <Link href={`/partner/mobile-ms-new?unitId=${occ.unit_id}`} className={styles.msBtn}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
           이사정산 등록
         </Link>
       )}
@@ -277,6 +280,10 @@ function TenantDetailInner() {
                         No.{settlements.length - i} {s.tenant_name || occ.tenant_name || "—"}
                       </span>
                       <span className={`${styles.chip} ${done ? styles.chipOk : styles.chipNo}`}>{done ? "완료" : "미결"}</span>
+                      <span className={styles.msSpacer} />
+                      <svg className={styles.mchev} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M9 5l7 7-7 7" />
+                      </svg>
                     </div>
                     <div className={styles.msamtRow}>
                       <span className={styles.msamtLabel}>정산액</span>

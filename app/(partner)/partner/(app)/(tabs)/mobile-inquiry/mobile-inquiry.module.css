@@ -129,6 +129,10 @@
   color: var(--t4);
 }
 
+.bcard:hover .chev {
+  color: var(--t2);
+}
+
 .tcard {
   border-bottom: 1px solid var(--line);
   padding: 16px 2px;
@@ -167,6 +171,7 @@
 }
 
 .tel {
+  margin-left: auto;
   flex: none;
   display: inline-flex;
   align-items: center;

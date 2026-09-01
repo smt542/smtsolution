@@ -28,6 +28,10 @@
   cursor: pointer;
 }
 
+.back:hover {
+  background: var(--bg);
+}
+
 .back svg {
   width: 22px;
   height: 22px;
@@ -374,6 +378,10 @@
   font-weight: 700;
   color: var(--t2);
   cursor: pointer;
+}
+
+.mini:hover {
+  border-color: var(--t4);
 }
 
 .mini:disabled {
