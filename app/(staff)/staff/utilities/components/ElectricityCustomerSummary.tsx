@@ -35,7 +35,7 @@ const columns: { key: keyof ElectricityCustomerSummaryRow | "line"; label: strin
   { key: "unitPrice", label: "단가", align: "right" },
   { key: "currentReading", label: "금월량", align: "right" },
   { key: "previousReading", label: "전월량", align: "right" },
-  { key: "meterDifference", label: "검면", align: "right" },
+  { key: "meterDifference", label: "감면", align: "right" },
   { key: "movingCharge", label: "이사", align: "right" },
 ];
 
