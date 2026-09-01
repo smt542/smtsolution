@@ -18,7 +18,7 @@ export function Badge({
 }) {
   return (
     <span
-      className={["rounded-full text-xs font-bold", className]
+      className={["rounded-[7px] text-xs font-bold", className]
         .filter(Boolean)
         .join(" ")}
     >

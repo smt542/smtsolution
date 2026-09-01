@@ -339,5 +339,5 @@ function BillingStatusBadge({ status }: { status: PlatformOrgBillingStatus }) {
     unpaid: { label: "미입금", className: "bg-red-t text-red" },
     none: { label: "청구 없음", className: "bg-bg text-t3" },
   }[status];
-  return <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${view.className}`}>{view.label}</span>;
+  return <span className={`inline-flex rounded-[7px] px-2.5 py-1 text-[11px] font-bold ${view.className}`}>{view.label}</span>;
 }

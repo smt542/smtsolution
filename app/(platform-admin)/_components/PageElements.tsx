@@ -49,7 +49,7 @@ export function StatusBadge({ status }: { status: "active" | "suspended" | "tria
     suspended: { label: "정지", className: "bg-red-t text-red" },
     trial: { label: "체험", className: "bg-amber-t text-amber" },
   }[status];
-  return <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${styles.className}`}>{styles.label}</span>;
+  return <span className={`inline-flex rounded-[7px] px-2.5 py-1 text-[11px] font-bold ${styles.className}`}>{styles.label}</span>;
 }
 
 function shiftMonth(iso: string, delta: number): string {

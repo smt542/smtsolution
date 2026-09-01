@@ -468,7 +468,7 @@ function ReservationStatus({ status }: { status: PointReservation["status"] }) {
       ? { label: "발송 중", className: "bg-blue-t text-blue" }
       : { label: "예약", className: "bg-amber-t text-amber" };
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${view.className}`}>
+    <span className={`inline-flex rounded-[7px] px-2.5 py-1 text-[11px] font-bold ${view.className}`}>
       {view.label}
     </span>
   );
@@ -490,7 +490,7 @@ const TRANSACTION_BADGES: Record<PointTxType, { label: string; className: string
 function TransactionTypeBadge({ type }: { type: PointTxType }) {
   const badge = TRANSACTION_BADGES[type];
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-bold ${badge.className}`}>
+    <span className={`inline-flex rounded-[7px] px-2.5 py-1 text-[11px] font-bold ${badge.className}`}>
       {badge.label}
     </span>
   );

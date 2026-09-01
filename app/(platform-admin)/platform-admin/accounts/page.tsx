@@ -379,12 +379,12 @@ export default function PlatformAccountsPage() {
 function AccountStatus({ active }: { active: boolean | null }) {
   if (active === null) {
     return (
-      <span className="rounded-full bg-bg px-2.5 py-1 text-[11px] font-bold text-t3">확인 불가</span>
+      <span className="rounded-[7px] bg-bg px-2.5 py-1 text-[11px] font-bold text-t3">확인 불가</span>
     );
   }
   return (
     <span
-      className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${
+      className={`rounded-[7px] px-2.5 py-1 text-[11px] font-bold ${
         active ? "bg-green-t text-green" : "bg-red-t text-red"
       }`}
     >
