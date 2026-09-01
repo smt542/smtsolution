@@ -7,20 +7,21 @@
 }
 
 @theme {
-  /* ===== 홈지기 디자인 토큰 (프로토타입 기준) ===== */
+  /* ===== 관리비서 디자인 토큰 (클로드 디자인 캔버스 기준 · 청록 프라이머리) ===== */
 
-  /* primary = blue */
-  --color-blue: #3182F6;
-  --color-blue-d: #1B64DA;
-  --color-blue-t: #EAF2FE;
-  --color-blue-t2: #F4F8FF;
+  /* primary = teal (청록). 앱 전역 호환을 위해 `blue`/`brand` 토큰 이름은 유지하되 값은 청록으로 통일.
+     ※ 향후 정리: 유틸리티(bg-blue 등)를 primary로 시맨틱 리네임 가능(337곳/127파일). */
+  --color-blue: #14A497;
+  --color-blue-d: #0F857A;
+  --color-blue-t: #E7F6F4;
+  --color-blue-t2: #EFFBF8;
 
-  /* brand alias → blue (기존 `brand` 참조 호환) */
-  --color-brand: #3182F6;
-  --color-brand-dark: #1B64DA;
-  --color-brand-tint: #EAF2FE;
+  /* brand alias → teal (기존 `brand` 참조 호환) */
+  --color-brand: #14A497;
+  --color-brand-dark: #0F857A;
+  --color-brand-tint: #E7F6F4;
 
-  /* teal accent (수납 진입 알림 CTA·헤더 자동수납. 로그인 hero와 동일 계열, Figma #14A497) */
+  /* teal = primary 원본 값 (blue/brand와 동일. 과거 수납 CTA·로그인 hero 액센트에서 전역 프라이머리로 승격) */
   --color-teal: #14A497;
   --color-teal-d: #0F857A;
   --color-teal-t: #E7F6F4;
@@ -57,7 +58,7 @@
   --radius-field: 13px; /* 기존 `radius-field` alias */
 
   /* shadows */
-  --shadow-pri: 0 8px 16px -6px rgba(49, 130, 246, 0.5);
+  --shadow-pri: 0 8px 16px -6px rgba(20, 164, 151, 0.5);
   --shadow-card: 0 1px 3px rgba(23, 31, 40, 0.05);
   --shadow-pop: 0 22px 60px -20px rgba(23, 31, 40, 0.28);
 

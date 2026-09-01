@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 export default function PlatformAdminLoginPage() {
   return (
     <main className="flex min-h-screen flex-col bg-white lg:flex-row">
-      <section className="relative flex min-h-[300px] flex-col justify-between overflow-hidden bg-gradient-to-br from-[#102A4C] via-[#1B64DA] to-[#3182F6] px-8 py-9 text-white sm:px-12 sm:py-11 lg:min-h-screen lg:flex-1 lg:px-16 lg:py-14">
+      <section className="relative flex min-h-[300px] flex-col justify-between overflow-hidden bg-gradient-to-br from-[#0A3D39] via-[#0F857A] to-[#14A497] px-8 py-9 text-white sm:px-12 sm:py-11 lg:min-h-screen lg:flex-1 lg:px-16 lg:py-14">
         <div className="absolute -right-36 -top-32 h-[460px] w-[460px] rounded-full bg-white/[0.08]" />
         <div className="absolute -bottom-44 right-14 h-[360px] w-[360px] rounded-full bg-white/[0.07]" />
 
