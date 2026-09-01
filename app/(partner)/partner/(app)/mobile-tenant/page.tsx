@@ -147,7 +147,7 @@ function TenantDetailInner() {
         {occ && <div className={styles.sub}>{occ.building_name}</div>}
       </div>
       {occ && (
-        <Link href="/partner/mobile-ms-new" className={styles.msBtn}>
+        <Link href={`/partner/mobile-ms-new?unitId=${occ.unit_id}`} className={styles.msBtn}>
           이사정산 등록
         </Link>
       )}
@@ -266,7 +266,12 @@ function TenantDetailInner() {
               settlements.map((s, i) => {
                 const done = s.status === "completed";
                 return (
-                  <div key={s.id} className={styles.mscard}>
+                  <Link
+                    key={s.id}
+                    href={`/partner/mobile-ms-new?unitId=${occ.unit_id}&settlementId=${s.id}`}
+                    className={styles.mscard}
+                    style={{ display: "block" }}
+                  >
                     <div className={styles.mstop}>
                       <span className={styles.msname}>
                         No.{settlements.length - i} {s.tenant_name || occ.tenant_name || "—"}
@@ -285,7 +290,7 @@ function TenantDetailInner() {
                         등록일자 <b>{fmtDate(s.created_at) || "—"}</b>
                       </span>
                     </div>
-                  </div>
+                  </Link>
                 );
               })
             )}
