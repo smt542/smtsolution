@@ -20,6 +20,7 @@ vi.mock("@/hooks/reactquery/movingSettlement", async (importOriginal) => {
     useSaveSettlement: () => ({ mutate: vi.fn(), isPending: false }),
     useCompleteSettlement: () => ({ mutate: vi.fn(), isPending: false }),
     useMidMoveout: () => ({ mutate: vi.fn(), isPending: false }),
+    useDeleteSettlement: () => ({ mutate: vi.fn(), isPending: false }),
     useSettlementList: () => ({ data: [], isLoading: false, error: null }),
   };
 });
@@ -84,14 +85,8 @@ describe("MovingSettlementPage", () => {
   it("건물·호실 선택 뒤 context를 표시한다", async () => {
     render(<MovingSettlementPage />);
 
-    expect(screen.getByRole("link", { name: "수도 조회" })).toHaveAttribute(
-      "href",
-      "/staff/moving-settlement/inquiries/water",
-    );
-    expect(screen.getByRole("link", { name: "전체 조회" })).toHaveAttribute(
-      "href",
-      "/staff/moving-settlement/inquiries/all",
-    );
+    expect(screen.getByRole("heading", { name: "전체 건물" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "이사정산 입력" })).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("건물 선택"), {
       target: { value: "3" },
@@ -101,10 +96,9 @@ describe("MovingSettlementPage", () => {
     });
 
     expect(useSettlementContext).toHaveBeenLastCalledWith(101);
-    await waitFor(() => {
-      expect(screen.getByText("홍길동")).toBeInTheDocument();
-    });
-    expect(screen.getByLabelText("정산 은행")).toHaveValue("한국은행");
-    expect(screen.getByRole("checkbox", { name: "열쇠 반납" })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getAllByText("해오름 101호")).toHaveLength(2));
+    expect(screen.getByLabelText("수도 입금계좌")).toHaveValue("123");
+    expect(screen.getByLabelText("열쇠 반납")).toBeInTheDocument();
+    expect(screen.getByLabelText("연락처")).toHaveValue("010-1234-5678");
   });
 });

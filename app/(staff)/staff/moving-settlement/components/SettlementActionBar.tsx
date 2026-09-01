@@ -1,0 +1,57 @@
+import { PrinterIcon } from "@/components/icons";
+
+export function SettlementActionBar({
+  onSave,
+  onMidMoveout,
+  onMoveout,
+  onPrint,
+  onBlankPrint,
+  onDelete,
+  pending = false,
+}: {
+  onSave: () => void;
+  onMidMoveout: () => void;
+  onMoveout: () => void;
+  onPrint: () => void;
+  onBlankPrint: () => void;
+  onDelete: () => void;
+  pending?: boolean;
+}) {
+  const neutral =
+    "flex h-[40px] min-w-0 items-center justify-center gap-[6px] rounded-[11px] border border-line bg-white px-[10px] text-[13.5px] font-bold text-t2 hover:bg-bg disabled:cursor-wait disabled:opacity-60";
+  const outlined =
+    "h-[40px] min-w-0 rounded-[11px] border border-teal bg-white px-[10px] text-[13.5px] font-bold text-teal-d hover:bg-teal-t disabled:cursor-wait disabled:opacity-60";
+
+  return (
+    <div className="flex h-[62px] shrink-0 items-center gap-[8px] rounded-[14px] border border-line bg-white py-[10px] pl-[14px] pr-[72px] shadow-card">
+      <button
+        type="button"
+        onClick={onSave}
+        disabled={pending}
+        className="h-[40px] min-w-0 flex-[105.266_0_0] rounded-[11px] bg-teal px-[10px] text-[13.5px] font-bold text-white shadow-[0_6px_7px_rgba(20,164,151,0.5)] hover:bg-teal-d disabled:cursor-wait disabled:opacity-60"
+      >
+        저장
+      </button>
+      <button type="button" onClick={onMidMoveout} disabled={pending} className={`${outlined} flex-[187.688_0_0]`}>
+        정산완료+중도퇴실
+      </button>
+      <button type="button" onClick={onMoveout} disabled={pending} className={`${outlined} flex-[162.828_0_0]`}>
+        정산완료+퇴실
+      </button>
+      <button type="button" onClick={onPrint} disabled={pending} className={`${neutral} flex-[127.266_0_0]`}>
+        <PrinterIcon className="size-[16px]" /> 출력
+      </button>
+      <button type="button" onClick={onBlankPrint} disabled={pending} className={`${neutral} flex-[139.688_0_0]`}>
+        <PrinterIcon className="size-[16px]" /> 빈양식
+      </button>
+      <button
+        type="button"
+        onClick={onDelete}
+        disabled={pending}
+        className="h-[40px] min-w-0 flex-[105.266_0_0] rounded-[11px] border border-red bg-white px-[10px] text-[13.5px] font-bold text-red hover:bg-red-t disabled:cursor-wait disabled:opacity-60"
+      >
+        삭제
+      </button>
+    </div>
+  );
+}

@@ -33,7 +33,7 @@ describe("SettlementHistory", () => {
 
     expect(screen.getByText("101호")).toBeInTheDocument();
     expect(screen.getByText("홍길동")).toBeInTheDocument();
-    expect(screen.getByText("정산완료")).toBeInTheDocument();
-    expect(screen.getByText("218,806원")).toBeInTheDocument();
+    expect(screen.getByText("퇴실완료")).toBeInTheDocument();
+    expect(screen.getByText("총 1건")).toBeInTheDocument();
   });
 });

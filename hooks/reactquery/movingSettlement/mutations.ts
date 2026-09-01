@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   completeMovingSettlement,
+  deleteMovingSettlement,
   midMoveoutSettlement,
   saveMovingSettlement,
   updateSettlementInquiryRows,
@@ -40,5 +41,13 @@ export function useUpdateSettlementInquiryRows() {
       updateSettlementInquiryRows(rows),
     onSuccess: () =>
       qc.invalidateQueries({ queryKey: movingSettlementKeys.all }),
+  });
+}
+
+export function useDeleteSettlement() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (settlementId: number) => deleteMovingSettlement(settlementId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: movingSettlementKeys.all }),
   });
 }
