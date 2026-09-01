@@ -24,7 +24,7 @@ export function OrgBuildingsList({ orgId }: { orgId: number }) {
       />
       {data?.org && <div className="mt-4"><StatusBadge status={data.org.status} /></div>}
 
-      <section className="mt-6 rounded-2xl border border-line bg-surface shadow-card">
+      <section className="mt-6 rounded-2xl bg-surface shadow-card">
         <div className="border-b border-line p-4">
           <h3 className="text-base font-extrabold text-t1">건물 목록{data ? ` · ${data.buildings.length}개` : ""}</h3>
         </div>

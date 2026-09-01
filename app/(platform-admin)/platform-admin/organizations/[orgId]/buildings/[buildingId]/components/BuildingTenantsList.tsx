@@ -25,7 +25,7 @@ export function BuildingTenantsList({ orgId, buildingId }: { orgId: number; buil
         description="이 건물의 입주민(세대) 목록입니다. 세대를 선택하면 상세를 조회합니다."
       />
 
-      <section className="mt-6 rounded-2xl border border-line bg-surface shadow-card">
+      <section className="mt-6 rounded-2xl bg-surface shadow-card">
         <div className="border-b border-line p-4">
           <h3 className="text-base font-extrabold text-t1">입주민 목록{data ? ` · ${data.tenants.length}세대` : ""}</h3>
         </div>

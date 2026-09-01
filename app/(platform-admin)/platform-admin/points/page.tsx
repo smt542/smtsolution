@@ -174,7 +174,7 @@ export default function PlatformPointsPage() {
     <div className="mx-auto w-full max-w-7xl p-5 sm:p-6 lg:p-8">
       <PageHeader eyebrow="POINTS" title="포인트 관리" description="조직별 발송 크레딧(포인트) 잔액과 충전·사용·조정 내역을 관리합니다." />
 
-      <section className="mt-6 rounded-2xl border border-line bg-surface p-4 shadow-card">
+      <section className="mt-6 rounded-2xl bg-surface p-4 shadow-card">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-base font-extrabold text-t1">메시지 채널 단가</h3>
@@ -202,7 +202,7 @@ export default function PlatformPointsPage() {
       </section>
 
       {/* 잔액 목록 */}
-      <section className="mt-6 rounded-2xl border border-line bg-surface shadow-card">
+      <section className="mt-6 rounded-2xl bg-surface shadow-card">
         <div className="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-base font-extrabold text-t1">조직별 포인트 잔액</h3>
@@ -262,7 +262,7 @@ export default function PlatformPointsPage() {
         />
       </section>
 
-      <section className="mt-6 rounded-2xl border border-line bg-surface shadow-card">
+      <section className="mt-6 rounded-2xl bg-surface shadow-card">
         <div className="border-b border-line p-4">
           <h3 className="text-base font-extrabold text-t1">활성 메시지 포인트 예약</h3>
           <p className="mt-1 text-xs text-t3">
@@ -327,7 +327,7 @@ export default function PlatformPointsPage() {
       </section>
 
       {/* 내역 */}
-      <section className="mt-6 rounded-2xl border border-line bg-surface shadow-card">
+      <section className="mt-6 rounded-2xl bg-surface shadow-card">
         <div className="border-b border-line p-4"><h3 className="text-base font-extrabold text-t1">충전·사용·조정 내역</h3></div>
         {txQuery.isPending ? (
           <div className="py-16"><Spinner /></div>

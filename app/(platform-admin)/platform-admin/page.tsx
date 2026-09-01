@@ -112,7 +112,7 @@ export default function PlatformDashboardPage() {
         )}
       </section>
 
-      <section aria-label="테넌트별 발송 비용" className="mt-6 rounded-2xl border border-line bg-surface shadow-card">
+      <section aria-label="테넌트별 발송 비용" className="mt-6 rounded-2xl bg-surface shadow-card">
         <div className="flex items-center justify-between border-b border-line p-4">
           <div>
             <h3 className="text-base font-extrabold text-t1">테넌트별 발송 비용</h3>
@@ -178,7 +178,7 @@ export default function PlatformDashboardPage() {
 
 function KpiCard({ label, value, sub, color, icon }: { label: string; value: string; sub: string; color: string; icon: string }) {
   return (
-    <article className="rounded-2xl border border-line bg-surface p-5 shadow-card">
+    <article className="rounded-2xl bg-surface p-5 shadow-card">
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="text-sm font-bold text-t2">{label}</div>

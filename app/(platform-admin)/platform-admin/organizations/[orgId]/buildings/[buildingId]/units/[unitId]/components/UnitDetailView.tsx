@@ -42,7 +42,7 @@ export function UnitDetailView({ orgId, buildingId, unitId }: { orgId: number; b
         <p className="mt-6 text-sm text-t3">세대를 찾을 수 없습니다.</p>
       ) : (
         <div className="mt-6 flex flex-col gap-6">
-          <section className="rounded-2xl border border-line bg-surface p-5 shadow-card">
+          <section className="rounded-2xl bg-surface p-5 shadow-card">
             <h3 className="mb-3 text-sm font-extrabold text-t2">세대 정보</h3>
             <dl className="grid grid-cols-2 gap-4 md:grid-cols-4">
               <Field label="호실" value={data.unitNo} />
@@ -51,7 +51,7 @@ export function UnitDetailView({ orgId, buildingId, unitId }: { orgId: number; b
               <Field label="방 수" value={data.roomCount} />
             </dl>
           </section>
-          <section className="rounded-2xl border border-line bg-surface p-5 shadow-card">
+          <section className="rounded-2xl bg-surface p-5 shadow-card">
             <h3 className="mb-3 text-sm font-extrabold text-t2">입주 정보</h3>
             {o == null ? (
               <p className="text-sm text-t3">현재 입주 정보가 없습니다(공실).</p>

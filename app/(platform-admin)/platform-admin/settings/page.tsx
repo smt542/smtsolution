@@ -87,7 +87,7 @@ export default function PlatformSettingsPage() {
         description="본사 공통 발송 단가와 청구서 표기 정보를 관리합니다."
       />
 
-      <div className="mt-6 flex min-h-[60px] items-center justify-between gap-4 rounded-2xl border border-line bg-white px-4 py-3 shadow-card sm:px-5">
+      <div className="mt-6 flex min-h-[60px] items-center justify-between gap-4 rounded-2xl bg-white px-4 py-3 shadow-card sm:px-5">
         <div>
           <p className="text-sm font-extrabold text-t1">HQ 공통 설정</p>
           <p className="mt-0.5 text-xs text-t3">
@@ -228,7 +228,7 @@ function SettingsSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-line bg-surface p-5 shadow-card sm:p-6">
+    <section className="rounded-2xl bg-surface p-5 shadow-card sm:p-6">
       <div className="mb-4">
         <h2 className="text-base font-extrabold text-t1">{title}</h2>
         {helper && <p className="mt-1 text-xs leading-5 text-t3">{helper}</p>}

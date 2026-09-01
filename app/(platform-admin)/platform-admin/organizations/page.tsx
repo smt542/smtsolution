@@ -229,7 +229,7 @@ export default function PlatformOrganizationsPage() {
             detail: "최근 12개월",
           },
         ].map((kpi) => (
-          <div key={kpi.label} className="rounded-2xl border border-line bg-surface p-5 shadow-card">
+          <div key={kpi.label} className="rounded-2xl bg-surface p-5 shadow-card">
             <div className="text-xs font-bold text-t3">{kpi.label}</div>
             <div className="mt-2 text-3xl font-extrabold text-blue num">
               {contractKpis.isPending ? "—" : formatNumber(kpi.value ?? 0)}
@@ -240,7 +240,7 @@ export default function PlatformOrganizationsPage() {
         ))}
       </section>
 
-      <section className="mt-6 rounded-2xl border border-line bg-surface shadow-card">
+      <section className="mt-6 rounded-2xl bg-surface shadow-card">
         <div className="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-base font-extrabold text-t1">조직 목록</h3>

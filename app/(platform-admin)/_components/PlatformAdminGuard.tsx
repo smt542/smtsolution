@@ -75,7 +75,7 @@ function GuardMessage({
 }) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-bg p-6">
-      <section className="w-full max-w-md rounded-3xl border border-line bg-surface p-8 text-center shadow-card">
+      <section className="w-full max-w-md rounded-3xl bg-surface p-8 text-center shadow-card">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-t text-blue">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-6 w-6" aria-hidden="true">
             <path d="M12 3 4.5 6v5.2c0 4.6 3.1 8.1 7.5 9.8 4.4-1.7 7.5-5.2 7.5-9.8V6L12 3z" />

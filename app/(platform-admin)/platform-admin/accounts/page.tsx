@@ -217,7 +217,7 @@ export default function PlatformAccountsPage() {
         <DataScopeNotice />
       </div>
 
-      <section className="mt-6 rounded-2xl border border-line bg-surface shadow-card">
+      <section className="mt-6 rounded-2xl bg-surface shadow-card">
         <div className="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-base font-extrabold text-t1">소속 계정 목록</h3>

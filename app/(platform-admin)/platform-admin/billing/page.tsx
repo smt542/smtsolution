@@ -175,7 +175,7 @@ export default function PlatformBillingPage() {
         />
       </div>
 
-      <section className="mt-6 rounded-2xl border border-line bg-surface p-5 shadow-card sm:p-6">
+      <section className="mt-6 rounded-2xl bg-surface p-5 shadow-card sm:p-6">
         <p className="text-lg font-extrabold leading-8 text-t1 sm:text-xl">
           {monthLabel(month)} 청구할 발송비는 <span className="text-blue num">{num(totals.billedKrw)}원</span>,
           <br className="hidden sm:block" /> 이 중 <span className="text-red num">{num(totals.unpaidKrw)}원</span>이 아직 입금되지 않았습니다.
@@ -193,7 +193,7 @@ export default function PlatformBillingPage() {
         <SummaryCard label="팩스 발송" value={totals.fax} />
       </div>
 
-      <section className="mt-6 rounded-2xl border border-line bg-surface shadow-card">
+      <section className="mt-6 rounded-2xl bg-surface shadow-card">
         <div className="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-1">
             {STATUS_TABS.map((statusTab) => (
@@ -326,7 +326,7 @@ export default function PlatformBillingPage() {
 
 function SummaryCard({ label, value }: { label: string; value: number }) {
   return (
-    <article className="rounded-2xl border border-line bg-surface p-5 shadow-card">
+    <article className="rounded-2xl bg-surface p-5 shadow-card">
       <div className="text-sm font-bold text-t2">{label}</div>
       <div className="mt-2 text-2xl font-extrabold text-t1 num">{num(value)}<span className="ml-1 text-sm font-bold text-t3">건</span></div>
     </article>
