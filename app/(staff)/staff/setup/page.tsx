@@ -53,7 +53,7 @@ function SetupContent() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <h1 className="text-2xl font-extrabold text-t1">셋업·기타 설정</h1>
+      <h1 className="text-2xl font-extrabold text-t1">셋업 설정</h1>
       <Tabs tabs={[...TAB_DEFS]} active={tab} onChange={(id) => setTab(id as TabKey)} />
       <div>
         {tab === "billing" && <BillingSettingsTab />}
