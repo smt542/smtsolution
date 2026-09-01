@@ -78,7 +78,7 @@ function NavItemRow({
       aria-current={active ? "page" : undefined}
       className={`${base} ${
         active
-          ? "bg-teal font-bold text-white"
+          ? "bg-teal-t font-bold text-teal-d"
           : "text-t2 hover:bg-bg"
       }`}
     >
@@ -171,7 +171,7 @@ function MovingSettlementNavGroup({ item, pathname }: { item: NavItem; pathname:
               key={link.href}
               href={link.href}
               aria-current={active ? "page" : undefined}
-              className={`flex h-[32px] items-center rounded-[9px] px-[12px] text-[12.5px] ${active ? "bg-teal font-bold text-white" : "font-medium text-t3 hover:bg-bg hover:text-t2"}`}
+              className={`flex h-[32px] items-center rounded-[9px] px-[12px] text-[12.5px] ${active ? "bg-teal-t font-bold text-teal-d" : "font-medium text-t3 hover:bg-bg hover:text-t2"}`}
             >
               {link.label}
             </Link>
