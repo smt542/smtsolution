@@ -17,6 +17,7 @@ import {
 import {
   createFeeItem,
   deleteFeeItem,
+  listFeeItems,
   reorderFeeItems,
   updateFeeItem,
   useAllFeeItems,
@@ -24,7 +25,13 @@ import {
   type FeeItem,
 } from "@/hooks/reactquery/feeItems";
 import { BuildingTypeTabs } from "./BuildingTypeTabs";
-import { createRequiredItems, DEFAULT_FORM_VALUE, MAX_FEE_ITEMS } from "./constants";
+import {
+  createRequiredItems,
+  DEFAULT_FORM_VALUE,
+  ensureRequiredItems,
+  MAX_FEE_ITEMS,
+  REQUIRED_ITEM_NAMES,
+} from "./constants";
 import { DeleteBuildingTypeDialog } from "./DeleteBuildingTypeDialog";
 import { FeeItemCard } from "./FeeItemCard";
 import { FeeItemFormDialog } from "./FeeItemFormDialog";
@@ -56,6 +63,13 @@ function cloneDrafts(types: BuildingTypeDraft[]): BuildingTypeDraft[] {
   return types.map((type) => ({ ...type, items: type.items.map((item) => ({ ...item })) }));
 }
 
+function ensureRequiredItemsByType(types: BuildingTypeDraft[]): BuildingTypeDraft[] {
+  return types.map((type) => ({
+    ...type,
+    items: ensureRequiredItems(type.key, type.items),
+  }));
+}
+
 function comparable(types: BuildingTypeDraft[]) {
   return types.map((type, typeIndex) => ({
     id: type.id,
@@ -78,6 +92,7 @@ function feeItemChanged(current: FeeItemDraft, baseline: FeeItemDraft) {
     || current.rounding !== baseline.rounding
     || current.dailyProration !== baseline.dailyProration
     || current.carryOver !== baseline.carryOver
+    || current.isRequired !== baseline.isRequired
     || current.sortOrder !== baseline.sortOrder;
 }
 
@@ -96,10 +111,11 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
   const localSequence = useRef(0);
 
   if (drafts === null && buildingTypesQuery.data && feeItemsQuery.data) {
-    const initial = toDrafts(buildingTypesQuery.data, feeItemsQuery.data);
-    setDrafts(initial);
-    setBaseline(cloneDrafts(initial));
-    setActiveKey(initial[0]?.key ?? null);
+    const persisted = toDrafts(buildingTypesQuery.data, feeItemsQuery.data);
+    const repaired = ensureRequiredItemsByType(persisted);
+    setDrafts(repaired);
+    setBaseline(cloneDrafts(persisted));
+    setActiveKey(repaired[0]?.key ?? null);
   }
 
   const activeType = drafts?.find((type) => type.key === activeKey) ?? null;
@@ -215,6 +231,10 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
       const itemNames = type.items.map((item) => item.name.trim());
       if (itemNames.some((name) => !name)) return "관리 항목 명칭을 입력해 주세요.";
       if (new Set(itemNames).size !== itemNames.length) return `${type.label} 유형에 중복된 항목 명칭이 있습니다.`;
+      const requiredNames = new Set(type.items.filter((item) => item.isRequired).map((item) => item.name.trim()));
+      if (REQUIRED_ITEM_NAMES.some((name) => !requiredNames.has(name))) {
+        return `${type.label} 유형에는 전기·수도료·가스 필수 항목이 모두 필요합니다.`;
+      }
     }
     return null;
   };
@@ -245,6 +265,7 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
         const typeId = savedType.id;
         savedTypeIds.push(typeId);
         savedTypeIdByKey.set(draftType.key, typeId);
+        const seededItems = draftType.id == null ? await listFeeItems(typeId) : [];
 
         const currentItemIds = new Set(draftType.items.flatMap((item) => item.id == null ? [] : [item.id]));
         for (const previousItem of previousType?.items ?? []) {
@@ -255,8 +276,14 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
         for (const [itemIndex, draftItem] of draftType.items.entries()) {
           const input = { orgId, typeId, name: draftItem.name.trim(), rounding: draftItem.rounding, dailyProration: draftItem.dailyProration, carryOver: draftItem.carryOver, isRequired: draftItem.isRequired, sortOrder: itemIndex };
           if (draftItem.id == null) {
-            const created = await createFeeItem(input);
-            savedItemIds.push(created.id);
+            const seededItem = seededItems.find((item) => item.name.trim() === input.name);
+            if (seededItem) {
+              await updateFeeItem(seededItem.id, input);
+              savedItemIds.push(seededItem.id);
+            } else {
+              const created = await createFeeItem(input);
+              savedItemIds.push(created.id);
+            }
           } else {
             const previousItem = previousType?.items.find((item) => item.id === draftItem.id);
             if (previousItem && feeItemChanged({ ...draftItem, sortOrder: itemIndex }, previousItem)) await updateFeeItem(draftItem.id, input);
@@ -269,10 +296,11 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
 
       const [typesResult, itemsResult] = await Promise.all([buildingTypesQuery.refetch(), feeItemsQuery.refetch()]);
       if (!typesResult.data || !itemsResult.data) throw new Error("저장된 데이터를 다시 불러오지 못했습니다.");
-      const refreshed = toDrafts(typesResult.data, itemsResult.data);
+      const persisted = toDrafts(typesResult.data, itemsResult.data);
+      const refreshed = ensureRequiredItemsByType(persisted);
       const previousActiveId = activeType?.id ?? (activeType ? savedTypeIdByKey.get(activeType.key) : undefined);
       setDrafts(refreshed);
-      setBaseline(cloneDrafts(refreshed));
+      setBaseline(cloneDrafts(persisted));
       setActiveKey(refreshed.find((type) => type.id === previousActiveId)?.key ?? refreshed[0]?.key ?? null);
       toast.success("변경 내용을 저장했습니다.");
     } catch (error) {
@@ -281,9 +309,10 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
         feeItemsQuery.refetch(),
       ]);
       if (typesResult.data && itemsResult.data) {
-        const refreshed = toDrafts(typesResult.data, itemsResult.data);
+        const persisted = toDrafts(typesResult.data, itemsResult.data);
+        const refreshed = ensureRequiredItemsByType(persisted);
         setDrafts(refreshed);
-        setBaseline(cloneDrafts(refreshed));
+        setBaseline(cloneDrafts(persisted));
         setActiveKey(refreshed[0]?.key ?? null);
       }
       toast.error(error instanceof Error ? error.message : "변경 내용을 저장하지 못했습니다.");
