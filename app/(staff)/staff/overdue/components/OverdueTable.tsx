@@ -1,26 +1,87 @@
-import type { KeyboardEvent, MouseEvent } from "react";
-import type { OverdueHousehold } from "@/hooks/reactquery/overdue";
-import { formatDate, formatWon } from "../utils";
+import type { KeyboardEvent } from "react";
+import type { OverdueHousehold, OverduePeriodRow } from "@/hooks/reactquery/overdue";
 
-export function OverdueTable({
-  rows,
-  selectedIds,
-  onToggleOne,
-  onToggleAll,
-  onRowClick,
-}: {
+interface OverdueTableProps {
   rows: OverdueHousehold[];
-  selectedIds: Set<number>;
-  onToggleOne: (occupancyId: number) => void;
-  onToggleAll: () => void;
+  periods?: OverduePeriodRow[];
   onRowClick: (row: OverdueHousehold) => void;
-}) {
-  const allSelected = rows.length > 0 && rows.every((row) => selectedIds.has(row.occupancyId));
-  const totalOverdueAmount = rows.reduce((sum, row) => sum + row.overdueAmount, 0);
-  const totalLateFeeAmount = rows.reduce((sum, row) => sum + (row.lateFeeAmount ?? 0), 0);
+  selectedIds?: Set<number>;
+  onToggleOne?: (occupancyId: number) => void;
+  onToggleAll?: () => void;
+}
 
-  const stopRowClick = (event: MouseEvent<HTMLInputElement>) => event.stopPropagation();
-  const openWithKeyboard = (event: KeyboardEvent<HTMLTableRowElement>, row: OverdueHousehold) => {
+interface PeriodLine {
+  key: string;
+  period: string;
+  months: number;
+  principal: number;
+  lateFee: number;
+}
+
+interface HouseholdGroup {
+  household: OverdueHousehold;
+  lines: PeriodLine[];
+  principal: number;
+  lateFee: number;
+}
+
+const money = new Intl.NumberFormat("ko-KR");
+
+function formatPeriod(value: string): string {
+  const [year, month] = value.split("-");
+  return year && month ? `${year}/${month}` : value;
+}
+
+function buildGroups(rows: OverdueHousehold[], periods: OverduePeriodRow[]): HouseholdGroup[] {
+  return rows.map((household) => {
+    const periodLateFee = new Map(
+      (household.lateFeeByPeriod ?? []).map((item) => [item.period, item]),
+    );
+    const householdPeriods = periods
+      .filter(
+        (period) =>
+          period.occupancyId === household.occupancyId &&
+          period.unitId === household.unitId,
+      )
+      .sort((a, b) => b.period.localeCompare(a.period));
+    const lines = householdPeriods.length > 0
+      ? householdPeriods.map((period) => {
+          const lateFee = periodLateFee.get(period.period);
+          return {
+            key: `${household.occupancyId}:${period.period}`,
+            period: period.period,
+            months: lateFee?.months ?? household.overdueMonths,
+            principal: period.unpaidPrincipal,
+            lateFee: lateFee?.lateFee ?? 0,
+          };
+        })
+      : [{
+          key: `${household.occupancyId}:aggregate`,
+          period: "—",
+          months: household.overdueMonths,
+          principal: household.overdueAmount,
+          lateFee: household.lateFeeAmount ?? 0,
+        }];
+
+    return {
+      household,
+      lines,
+      principal: lines.reduce((sum, line) => sum + line.principal, 0),
+      lateFee: lines.reduce((sum, line) => sum + line.lateFee, 0),
+    };
+  });
+}
+
+export function OverdueTable({ rows, periods = [], onRowClick }: OverdueTableProps) {
+  const groups = buildGroups(rows, periods);
+  const itemCount = groups.reduce((sum, group) => sum + group.lines.length, 0);
+  const principalTotal = groups.reduce((sum, group) => sum + group.principal, 0);
+  const lateFeeTotal = groups.reduce((sum, group) => sum + group.lateFee, 0);
+
+  const openWithKeyboard = (
+    event: KeyboardEvent<HTMLTableRowElement>,
+    row: OverdueHousehold,
+  ) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       onRowClick(row);
@@ -28,85 +89,111 @@ export function OverdueTable({
   };
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[960px] text-sm">
-        <thead>
-          <tr className="border-b border-line bg-bg/80 text-left text-t2">
-            <th scope="col" className="w-14 px-5 py-3.5">
-              <input
-                type="checkbox"
-                aria-label="전체 세대 선택"
-                checked={allSelected}
-                onChange={onToggleAll}
-                className="h-4 w-4 rounded border-line accent-brand"
-              />
-            </th>
-            <th scope="col" className="px-3 py-3.5 font-bold">호실명</th>
-            <th scope="col" className="px-3 py-3.5 font-bold">입주자명</th>
-            <th scope="col" className="px-3 py-3.5 font-bold">연락처</th>
-            <th scope="col" className="px-3 py-3.5 text-right font-bold">연체 개월수</th>
-            <th scope="col" className="px-3 py-3.5 text-right font-bold">미납금액</th>
-            <th scope="col" className="px-3 py-3.5 text-right font-bold">연체료</th>
-            <th scope="col" className="px-5 py-3.5 font-bold">최근 납부일</th>
+    <div className="min-h-0 flex-1 overflow-auto">
+      <table className="w-full min-w-[1240px] table-fixed border-separate border-spacing-0 text-[13.5px] text-t1">
+        <colgroup>
+          <col className="w-[8.15%]" />
+          <col className="w-[9.37%]" />
+          <col className="w-[5.29%]" />
+          <col className="w-[3.18%]" />
+          <col className="w-[9.31%]" />
+          <col className="w-[8.15%]" />
+          <col className="w-[8.15%]" />
+          <col className="w-[8.15%]" />
+          <col className="w-[9.31%]" />
+          <col className="w-[11.93%]" />
+          <col className="w-[12.39%]" />
+          <col className="w-[6.61%]" />
+        </colgroup>
+        <thead className="sticky top-0 z-20 bg-[#f7f9fa] text-[11.5px] font-medium text-t3">
+          <tr>
+            {[
+              ["동호", "text-left"],
+              ["거래처명", "text-left"],
+              ["년월", "text-left"],
+              ["연체", "text-right"],
+              ["미납액", "text-right"],
+              ["납.연체료", "text-right"],
+              ["납.후연체", "text-right"],
+              ["연체료계", "text-right"],
+              ["합계", "text-right"],
+              ["비고", "text-left"],
+              ["전화", "text-left"],
+              ["이름", "text-left"],
+            ].map(([label, align]) => (
+              <th
+                key={label}
+                scope="col"
+                className={`h-[36.5px] border-b border-line2 px-[16px] ${align}`}
+              >
+                {label}
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => {
-            const unitLabel = [row.dong, row.unitNo].filter(Boolean).join(" ");
-            return (
-              <tr
-                key={row.occupancyId}
-                tabIndex={0}
-                aria-label={`${unitLabel} ${row.tenantName ?? "입주자 미등록"} 상세 보기`}
-                onClick={() => onRowClick(row)}
-                onKeyDown={(event) => openWithKeyboard(event, row)}
-                className="cursor-pointer border-b border-line2 transition last:border-0 hover:bg-blue-t2 focus:bg-blue-t2 focus:outline-none"
-              >
-                <td className="px-5 py-4">
-                  <input
-                    type="checkbox"
-                    aria-label={`${unitLabel} 선택`}
-                    checked={selectedIds.has(row.occupancyId)}
-                    onClick={stopRowClick}
-                    onChange={() => onToggleOne(row.occupancyId)}
-                    className="h-4 w-4 rounded border-line accent-brand"
-                  />
-                </td>
-                <td className="px-3 py-4 font-extrabold text-t1">{unitLabel}</td>
-                <td className="px-3 py-4 text-t1">{row.tenantName || "미등록"}</td>
-                <td className="num px-3 py-4 text-t3">{row.phone || "—"}</td>
-                <td className="px-3 py-4 text-right">
-                  <span className={row.billingAvailable ? "font-bold text-red" : "text-t3"}>
-                    {row.overdueMonths}개월
-                  </span>
-                </td>
-                <td className={`num px-3 py-4 text-right font-bold ${row.billingAvailable ? "text-red" : "text-t3"}`}>
-                  {formatWon(row.overdueAmount)}
-                </td>
-                <td className="num px-3 py-4 text-right font-bold text-t1">
-                  {formatWon(row.lateFeeAmount ?? 0)}
-                </td>
-                <td className="num px-5 py-4 text-t3">{formatDate(row.lastPaymentDate)}</td>
-              </tr>
-            );
+          {groups.map((group) => {
+            const unit = [group.household.dong, group.household.unitNo]
+              .filter(Boolean)
+              .join("-");
+            return [
+              ...group.lines.map((line, index) => (
+                <tr
+                  key={line.key}
+                  tabIndex={0}
+                  aria-label={`${unit} ${group.household.tenantName ?? "입주자 미등록"} 상세 보기`}
+                  onClick={() => onRowClick(group.household)}
+                  onKeyDown={(event) => openWithKeyboard(event, group.household)}
+                  className="h-[41px] cursor-pointer bg-white transition hover:bg-[#f7fbfb] focus:bg-[#f7fbfb] focus:outline-none"
+                >
+                  <td className="border-b border-line2 px-[16px] font-medium">{index === 0 ? unit : ""}</td>
+                  <td className="border-b border-line2 px-[16px]">{index === 0 ? group.household.buildingName : ""}</td>
+                  <td className="border-b border-line2 px-[16px] num">{line.period === "—" ? "—" : formatPeriod(line.period)}</td>
+                  <td className="border-b border-line2 px-[16px] text-right num">{line.months}</td>
+                  <td className="border-b border-line2 px-[16px] text-right num">{money.format(line.principal)}</td>
+                  <td className="border-b border-line2 px-[16px] text-right num">{money.format(line.lateFee)}</td>
+                  <td className="border-b border-line2 px-[16px] text-right num">0</td>
+                  <td className="border-b border-line2 px-[16px] text-right num">{money.format(line.lateFee)}</td>
+                  <td className="border-b border-line2 px-[16px] text-right font-medium num">{money.format(line.principal + line.lateFee)}</td>
+                  <td className="border-b border-line2 px-[16px] text-t3">{index === 0 ? group.household.memo ?? group.household.unitMemo ?? "" : ""}</td>
+                  <td className="border-b border-line2 px-[16px] num">{index === 0 ? group.household.phone ?? "" : ""}</td>
+                  <td className="border-b border-line2 px-[16px]">{index === 0 ? group.household.tenantName ?? "미등록" : ""}</td>
+                </tr>
+              )),
+              <tr key={`${group.household.occupancyId}:subtotal`} className="h-[41px] bg-white font-semibold">
+                <td className="border-b border-line2 px-[16px]" />
+                <td className="border-b border-line2 px-[16px]" />
+                <td className="border-b border-line2 px-[16px]">[호합]</td>
+                <td className="border-b border-line2 px-[16px]" />
+                <td className="border-b border-line2 px-[16px] text-right num">{money.format(group.principal)}</td>
+                <td className="border-b border-line2 px-[16px] text-right num">{money.format(group.lateFee)}</td>
+                <td className="border-b border-line2 px-[16px] text-right num">0</td>
+                <td className="border-b border-line2 px-[16px] text-right num">{money.format(group.lateFee)}</td>
+                <td className="border-b border-line2 px-[16px] text-right num">{money.format(group.principal + group.lateFee)}</td>
+                <td className="border-b border-line2 px-[16px]" />
+                <td className="border-b border-line2 px-[16px]" />
+                <td className="border-b border-line2 px-[16px]" />
+              </tr>,
+            ];
           })}
         </tbody>
-        <tfoot>
-          <tr className="border-t border-line bg-bg/80 font-bold text-t1">
-            <th scope="row" colSpan={5} className="px-5 py-3 text-left">
-              합계 ({rows.length}세대)
+        <tfoot className="sticky bottom-0 z-20 bg-[#f7f9fa] font-bold text-t1">
+          <tr className="h-[38.5px]">
+            <th scope="row" colSpan={3} className="border-t border-line px-[16px] text-left">
+              항목 {itemCount} / {rows.length}건
             </th>
-            <td className="num px-3 py-3 text-right">
-              {formatWon(totalOverdueAmount)}
-            </td>
-            <td className="num px-3 py-3 text-right">
-              {formatWon(totalLateFeeAmount)}
-            </td>
-            <td className="px-5 py-3" />
+            <td className="border-t border-line px-[16px]" />
+            <td className="border-t border-line px-[16px] text-right num">{money.format(principalTotal)}</td>
+            <td className="border-t border-line px-[16px] text-right num">{money.format(lateFeeTotal)}</td>
+            <td className="border-t border-line px-[16px] text-right num">0</td>
+            <td className="border-t border-line px-[16px] text-right num">{money.format(lateFeeTotal)}</td>
+            <td className="border-t border-line px-[16px] text-right num">{money.format(principalTotal + lateFeeTotal)}</td>
+            <td className="border-t border-line px-[16px]" />
+            <td className="border-t border-line px-[16px]" />
+            <td className="border-t border-line px-[16px]" />
           </tr>
         </tfoot>
       </table>
     </div>
   );
 }
-

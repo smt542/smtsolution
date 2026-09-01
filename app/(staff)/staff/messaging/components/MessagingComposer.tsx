@@ -37,12 +37,15 @@ import {
   type SendMode,
 } from "@/lib/messaging/preset";
 import { MessagePointQuoteCard } from "./MessagePointQuoteCard";
+import { MessagingWorkspaceView } from "./MessagingWorkspaceView";
 
 export interface MessagingComposerProps {
   preset?: MessagingPreset;
   initialMode?: SendMode;
   onSent?: (result: SendMessagesResult) => void | Promise<void>;
   onFailed?: (error: unknown) => void | Promise<void>;
+  presentation?: "default" | "workspace";
+  itemCount?: number;
 }
 
 function recipientKey(recipient: MessageRecipient): string {
@@ -355,6 +358,8 @@ export function MessagingComposer({
   initialMode,
   onSent,
   onFailed,
+  presentation = "default",
+  itemCount,
 }: MessagingComposerProps) {
   const [selectedBuildingId, setSelectedBuildingId] = useState(
     preset?.buildingId ?? preset?.recipients?.[0]?.ref?.buildingId ?? 0,
@@ -684,6 +689,34 @@ export function MessagingComposer({
       toast.error(message);
     }
   };
+
+  if (presentation === "workspace") {
+    return (
+      <MessagingWorkspaceView
+        mode={mode}
+        onModeChange={setMode}
+        senderPhone={preset?.commonVariables?.관리사무소연락처 || "대표번호 미등록"}
+        recipients={recipients}
+        onClearRecipients={() => setRecipients([])}
+        recipientLabel={preset?.context === "독촉" ? "미납 독촉 대상" : "선택 수신자"}
+        itemCount={itemCount ?? validRecipientList.length}
+        templates={templates}
+        effectiveTemplateId={effectiveTemplateId}
+        isTemplatesLoading={isTemplatesLoading}
+        onTemplateChange={selectTemplate}
+        body={effectiveBody}
+        previewBody={recipientPreviews[0]?.renderedBody ?? effectiveBody}
+        onBodyChange={changeBody}
+        sendTiming={sendTiming}
+        onSendTimingChange={setSendTiming}
+        scheduledAt={scheduledAt}
+        onScheduledAtChange={setScheduledAt}
+        onSend={() => void send()}
+        sending={sendMessages.isPending}
+        canSend={canSend}
+      />
+    );
+  }
 
   return (
     <Panel

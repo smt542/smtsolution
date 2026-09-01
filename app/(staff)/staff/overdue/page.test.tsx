@@ -3,8 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MessagingPreset } from "@/lib/messaging/preset";
 
-const { lateFeeRateModalSpy, messagingModalSpy, mintBillTokens } = vi.hoisted(() => ({
-  lateFeeRateModalSpy: vi.fn(),
+const { messagingModalSpy, mintBillTokens } = vi.hoisted(() => ({
   messagingModalSpy: vi.fn(),
   mintBillTokens: vi.fn(),
 }));
@@ -27,29 +26,18 @@ vi.mock("@/hooks/reactquery/residentBilling", () => ({
     isPending: false,
   }),
 }));
-vi.mock("./components/LateFeeRateModal", () => ({
-  LateFeeRateModal: (props: {
-    open: boolean;
-    orgId: number;
-    onClose: () => void;
-  }) => {
-    lateFeeRateModalSpy(props);
-    return props.open ? <p>테스트 요율 모달</p> : null;
-  },
-}));
 vi.mock("../messaging/components/MessagingModal", () => ({
   MessagingModal: (props: {
     open: boolean;
     preset?: MessagingPreset;
+    presentation?: "modal" | "workspace";
+    itemCount?: number;
     onClose: () => void;
     onSent?: (result: { logId: number; count: number }) => void;
   }) => {
     messagingModalSpy(props);
     return props.open ? (
-      <button
-        type="button"
-        onClick={() => props.onSent?.({ logId: 91, count: 1 })}
-      >
+      <button type="button" onClick={() => props.onSent?.({ logId: 91, count: 1 })}>
         테스트 발송 완료
       </button>
     ) : null;
@@ -60,7 +48,10 @@ vi.mock("sonner", () => ({
 }));
 vi.mock("./utils", async () => {
   const actual = await vi.importActual<typeof import("./utils")>("./utils");
-  return { ...actual, downloadOverdueLedger: vi.fn(() => "그린빌라_미납대장_202608.csv") };
+  return {
+    ...actual,
+    downloadOverdueLedger: vi.fn(() => "그린빌라_미납대장_202609.csv"),
+  };
 });
 
 import OverduePage from "./page";
@@ -73,8 +64,6 @@ import {
 } from "@/hooks/reactquery/overdue";
 import { toast } from "sonner";
 import { downloadOverdueLedger } from "./utils";
-import { buildRecipientRenderVariables } from "@/lib/messaging/preset";
-import { renderTemplate } from "@/lib/messaging/render";
 
 const buildings = [
   { id: 1, code: "B001", name: "그린빌라", address: "서울시 강남구" },
@@ -94,6 +83,7 @@ const households = [
     tenantName: "김입주",
     payerName: "김납부",
     phone: "010-1111-2222",
+    phone2: "010-1111-3333",
     residentCount: 2,
     vehicleNo: "12가3456",
     moveInDate: "2025-01-02",
@@ -133,31 +123,35 @@ const households = [
   },
 ] as const;
 
+type PeriodFixture = {
+  occupancyId: number;
+  unitId: number;
+  period: string;
+  unpaidPrincipal: number;
+  dueDate: string;
+};
+
+type TierFixture = {
+  id: number;
+  orgId: number;
+  tierOrder: number;
+  fromMonth: number;
+  toMonth: number | null;
+  monthlyRate: number;
+};
+
 function setup({
   allowed = true,
   canMessage = true,
-  canEditLateFeeRate = false,
   periods = [],
   tiers = [],
+  householdRows = households,
 }: {
   allowed?: boolean;
   canMessage?: boolean;
-  canEditLateFeeRate?: boolean;
-  periods?: Array<{
-    occupancyId: number;
-    unitId: number;
-    period: string;
-    unpaidPrincipal: number;
-    dueDate: string;
-  }>;
-  tiers?: Array<{
-    id: number;
-    orgId: number;
-    tierOrder: number;
-    fromMonth: number;
-    toMonth: number | null;
-    monthlyRate: number;
-  }>;
+  periods?: PeriodFixture[];
+  tiers?: TierFixture[];
+  householdRows?: readonly (typeof households)[number][];
 } = {}) {
   vi.mocked(useMe).mockReturnValue({
     data: {
@@ -172,17 +166,13 @@ function setup({
       permissions: [
         ...(allowed ? ["overdue"] : []),
         ...(canMessage ? ["messaging"] : []),
-        ...(canEditLateFeeRate ? ["billing"] : []),
       ],
     },
     isLoading: false,
   } as never);
-  vi.mocked(useOverdueBuildings).mockReturnValue({
-    data: buildings,
-    isLoading: false,
-  } as never);
+  vi.mocked(useOverdueBuildings).mockReturnValue({ data: buildings, isLoading: false } as never);
   vi.mocked(useOverdueHouseholds).mockReturnValue({
-    data: households,
+    data: householdRows,
     isLoading: false,
     error: null,
     refetch: vi.fn(),
@@ -199,10 +189,24 @@ function setup({
   } as never);
 }
 
+function selectPeriod(year = 2026, month = 7) {
+  fireEvent.change(screen.getByRole("combobox", { name: "조회 년도" }), {
+    target: { value: String(year) },
+  });
+  fireEvent.change(screen.getByRole("combobox", { name: "조회 월" }), {
+    target: { value: String(month) },
+  });
+}
+
 function selectBuilding() {
   fireEvent.change(screen.getByRole("combobox", { name: "건물 선택" }), {
-    target: { value: "1" },
+    target: { value: "그린빌라" },
   });
+}
+
+function showResults() {
+  selectPeriod();
+  selectBuilding();
 }
 
 beforeEach(() => {
@@ -219,307 +223,194 @@ afterEach(() => {
 });
 
 describe("OverduePage", () => {
-  it("초기 화면은 건물 선택 안내와 주요 액션을 렌더한다", () => {
+  it("기간 선택 전 Figma 빈 상태와 바로 사용할 수 있는 액션을 표시한다", () => {
     render(<OverduePage />);
-    expect(screen.getByRole("heading", { name: "미납관리" })).toBeInTheDocument();
-    expect(screen.getByText("건물을 선택해 주세요", { selector: "p" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "미납대장 출력" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "독촉 문자 발송" })).toBeDisabled();
+
+    expect(screen.getByText("년도와 월을 선택해 주세요")).toBeInTheDocument();
+    expect(screen.getByText("조회 기간을 고르면 미납 내역이 표시돼요")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "미납대장 출력" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "독촉 문자 발송" })).toBeEnabled();
   });
 
-  it("overdue 권한이 없으면 페이지 내용을 노출하지 않는다", () => {
+  it("기간 선택 후에는 건물 선택 빈 상태로 전환한다", () => {
+    render(<OverduePage />);
+    selectPeriod();
+
+    expect(screen.getByText("건물명을 검색해 선택해 주세요")).toBeInTheDocument();
+  });
+
+  it("overdue 권한이 없으면 화면 내용을 노출하지 않는다", () => {
     setup({ allowed: false });
     render(<OverduePage />);
+
     expect(screen.getByText("권한이 없습니다")).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "미납관리" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("미납 조회 조건")).not.toBeInTheDocument();
   });
 
-  it("overdue 권한만 있으면 독촉 문자 발송 액션을 사용할 수 없다", () => {
-    setup({ canMessage: false, canEditLateFeeRate: false });
+  it("messaging 권한이 없으면 독촉 문자 발송을 비활성화한다", () => {
+    setup({ canMessage: false });
     render(<OverduePage />);
-    selectBuilding();
-    fireEvent.click(screen.getByRole("checkbox", { name: "101호 선택" }));
+    showResults();
 
-    const sendButton = screen.getByRole("button", {
-      name: "독촉 문자 발송 (1)",
-    });
-    expect(sendButton).toBeDisabled();
-    expect(sendButton).toHaveAttribute("title", "문자 발송 권한이 필요합니다.");
+    expect(screen.getByRole("button", { name: "독촉 문자 발송" })).toBeDisabled();
     expect(messagingModalSpy).not.toHaveBeenCalledWith(
       expect.objectContaining({ open: true }),
     );
   });
 
-  it("billing 권한이 있을 때만 연체료 요율 설정 모달을 연다", () => {
-    setup({ canEditLateFeeRate: false });
-    const { unmount } = render(<OverduePage />);
-    expect(screen.queryByRole("button", { name: "연체료 요율 설정" })).not.toBeInTheDocument();
-    expect(lateFeeRateModalSpy).not.toHaveBeenCalled();
-    unmount();
-
-    setup({ canEditLateFeeRate: true });
+  it("조회 결과를 12열 원장과 호합·고정 합계 구조로 표시한다", () => {
     render(<OverduePage />);
-    fireEvent.click(screen.getByRole("button", { name: "연체료 요율 설정" }));
+    showResults();
 
-    expect(screen.getByText("테스트 요율 모달")).toBeInTheDocument();
-    expect(lateFeeRateModalSpy).toHaveBeenLastCalledWith(
-      expect.objectContaining({ open: true, orgId: 3 }),
-    );
+    for (const column of [
+      "동호", "거래처명", "년월", "연체", "미납액", "납.연체료",
+      "납.후연체", "연체료계", "합계", "비고", "전화", "이름",
+    ]) {
+      expect(screen.getByRole("columnheader", { name: column })).toBeInTheDocument();
+    }
+    expect(screen.getAllByText("[호합]")).toHaveLength(2);
+    expect(screen.getByText("항목 2 / 2건")).toBeInTheDocument();
   });
 
-  it("건물 선택 후 세대 목록을 표시하고 채권 필터를 AND 조건으로 적용한다", () => {
+  it("독촉 대상은 2개월 이상 AND 10만원 이상인 세대만 표시한다", () => {
     render(<OverduePage />);
-    selectBuilding();
+    showResults();
+
     expect(screen.getByText("101호")).toBeInTheDocument();
     expect(screen.getByText("202호")).toBeInTheDocument();
-
     fireEvent.click(screen.getByRole("button", { name: "채권 관리 필터" }));
 
     expect(screen.getByText("101호")).toBeInTheDocument();
     expect(screen.queryByText("202호")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "채권 관리 필터" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "채권 관리 필터" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 
-  it("조회 연월과 전체·당계 범위를 미납 조회 훅에 전달한다", () => {
+  it("조회 년월과 전체·당계 범위를 조회 훅에 전달한다", () => {
     render(<OverduePage />);
-    selectBuilding();
+    showResults();
 
-    fireEvent.change(screen.getByLabelText("조회 기간"), {
-      target: { value: "2026-07" },
-    });
     expect(useOverdueHouseholds).toHaveBeenLastCalledWith(1, {
       year: 2026,
       month: 7,
       scope: "all",
     });
-    expect(useOverduePeriods).toHaveBeenLastCalledWith(1, {
-      year: 2026,
-      month: 7,
-      scope: "all",
-    });
-
-    fireEvent.change(screen.getByRole("combobox", { name: "범위" }), {
-      target: { value: "current" },
-    });
-    expect(useOverdueHouseholds).toHaveBeenLastCalledWith(1, {
-      year: 2026,
-      month: 7,
-      scope: "current",
-    });
+    fireEvent.click(screen.getByRole("button", { name: "당계" }));
     expect(useOverduePeriods).toHaveBeenLastCalledWith(1, {
       year: 2026,
       month: 7,
       scope: "current",
     });
-    expect(screen.getByText("연체 2개월 이상 AND 미납 10만원 이상")).toBeInTheDocument();
   });
 
-  it("월분별 미납 원금과 요율표로 계산한 연체료를 표와 상세에 반영한다", () => {
+  it("월분 미납 원금과 요율표로 계산한 연체료를 표와 상세에 반영한다", () => {
     setup({
-      periods: [
-        {
-          occupancyId: 31,
-          unitId: 21,
-          period: "2026-03-01",
-          unpaidPrincipal: 100_000,
-          dueDate: "2026-03-31",
-        },
-      ],
+      periods: [{
+        occupancyId: 31,
+        unitId: 21,
+        period: "2026-03-01",
+        unpaidPrincipal: 100_000,
+        dueDate: "2026-03-31",
+      }],
       tiers: [
         { id: 1, orgId: 3, tierOrder: 1, fromMonth: 0, toMonth: 1, monthlyRate: 1 },
         { id: 2, orgId: 3, tierOrder: 2, fromMonth: 1, toMonth: 3, monthlyRate: 1.2 },
       ],
     });
     render(<OverduePage />);
+    selectPeriod(2026, 6);
     selectBuilding();
-    fireEvent.change(screen.getByLabelText("조회 기간"), {
-      target: { value: "2026-06" },
-    });
 
-    expect(screen.getAllByText("3,400원")).toHaveLength(2);
-    fireEvent.click(screen.getByText("101호"));
+    expect(screen.getAllByText("3,400").length).toBeGreaterThanOrEqual(3);
+    fireEvent.click(screen.getByRole("row", { name: /101호 김입주 상세 보기/ }));
     expect(screen.getByText("연체료 내역")).toBeInTheDocument();
-    expect(screen.getAllByText("3,400원")).toHaveLength(4);
+    expect(screen.getAllByText("3,400원")).toHaveLength(2);
   });
 
-  it("전체 선택과 개별 선택을 문자 수신 대상에 반영한다", () => {
-    render(<OverduePage />);
-    selectBuilding();
-    fireEvent.click(screen.getByRole("checkbox", { name: "전체 세대 선택" }));
-    expect(screen.getByRole("button", { name: "독촉 문자 발송 (2)" })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("checkbox", { name: "202호 선택" }));
-    expect(screen.getByRole("button", { name: "독촉 문자 발송 (1)" })).toBeInTheDocument();
-  });
-
-  it("선택 없이 독촉 문자 버튼을 누르면 안내 토스트를 표시한다", () => {
-    render(<OverduePage />);
-    selectBuilding();
-    fireEvent.click(screen.getByRole("button", { name: "독촉 문자 발송" }));
-    expect(toast.info).toHaveBeenCalledWith("문자를 받을 세대를 선택해 주세요.");
-    expect(messagingModalSpy).not.toHaveBeenCalledWith(
-      expect.objectContaining({ open: true }),
-    );
-  });
-
-  it("선택 세대별 최신 미납월로 토큰을 발급하고 공개 상세 링크를 완전히 렌더한다", async () => {
+  it("독촉 기준에 맞는 세대를 자동 수신자로 담아 우측 작업창을 연다", async () => {
     setup({
-      allowed: true,
-      canMessage: true,
-      periods: [
-        {
-          occupancyId: 31,
-          unitId: 21,
-          period: "2026-05-01",
-          unpaidPrincipal: 70_000,
-          dueDate: "2026-05-31",
-        },
-        {
-          occupancyId: 31,
-          unitId: 21,
-          period: "2026-08-01",
-          unpaidPrincipal: 130_000,
-          dueDate: "2026-08-31",
-        },
-        {
-          occupancyId: 32,
-          unitId: 22,
-          period: "2026-06-01",
-          unpaidPrincipal: 90_000,
-          dueDate: "2026-06-30",
-        },
-      ],
-      tiers: [{
-        id: 1,
-        orgId: 3,
-        tierOrder: 1,
-        fromMonth: 0,
-        toMonth: null,
-        monthlyRate: 10,
+      periods: [{
+        occupancyId: 31,
+        unitId: 21,
+        period: "2026-05-01",
+        unpaidPrincipal: 200_000,
+        dueDate: "2026-05-31",
       }],
     });
     render(<OverduePage />);
-    selectBuilding();
-    fireEvent.click(screen.getByRole("checkbox", { name: "전체 세대 선택" }));
-    fireEvent.click(screen.getByRole("button", { name: "독촉 문자 발송 (2)" }));
+    showResults();
+    fireEvent.click(screen.getByRole("button", { name: "독촉 문자 발송" }));
 
     expect(await screen.findByRole("button", { name: "테스트 발송 완료" })).toBeInTheDocument();
     const openCall = [...messagingModalSpy.mock.calls]
       .reverse()
       .find(([props]) => props.open);
-    const preset = openCall?.[0].preset as MessagingPreset | undefined;
-    expect(preset).toMatchObject({
+    expect(openCall?.[0]).toMatchObject({ presentation: "workspace", itemCount: 1 });
+    expect(openCall?.[0].preset).toMatchObject({
       context: "독촉",
       buildingId: 1,
-      channel: "alimtalk",
-      mode: "auto",
+      channel: "sms",
+      mode: "sms",
       templateTitle: "관리비 미납 안내",
       commonVariables: {
         건물명: "그린빌라",
         관리사무소연락처: "02-9876-5432",
       },
-    });
-    expect(preset?.body).toBeUndefined();
-    expect(preset?.recipients).toEqual([
-      {
+      recipients: [{
         name: "김입주",
         phone: "010-1111-2222",
         unitNo: "101호",
-        kind: "tenant",
         variables: {
           세대: "101호",
           미납금액: "200,000",
-          미납월: "2026년 8월",
-          납기일: "2026-08-31",
+          미납월: "2026년 5월",
+          납기일: "2026-05-31",
           상세링크: "https://resident.example.com/r/overdue-token-21",
         },
-        ref: { occupancyId: 31, unitId: 21, buildingId: 1 },
-      },
-      {
-        name: "이입주",
-        phone: "010-3333-4444",
-        unitNo: "202호",
-        kind: "tenant",
+      }, {
+        name: "김입주",
+        phone: "010-1111-3333",
+        unitNo: "101호",
         variables: {
-          세대: "202호",
-          미납금액: "90,000",
-          미납월: "2026년 6월",
-          납기일: "2026-06-30",
-          상세링크: "https://resident.example.com/r/overdue-token-22",
+          세대: "101호",
+          미납금액: "200,000",
+          미납월: "2026년 5월",
+          납기일: "2026-05-31",
+          상세링크: "https://resident.example.com/r/overdue-token-21",
         },
-        ref: { occupancyId: 32, unitId: 22, buildingId: 1 },
-      },
-    ]);
-    expect(mintBillTokens).toHaveBeenCalledTimes(2);
-    expect(mintBillTokens).toHaveBeenCalledWith({
-      unitIds: [21],
-      period: "2026-08-01",
+      }],
     });
-    expect(mintBillTokens).toHaveBeenCalledWith({
-      unitIds: [22],
-      period: "2026-06-01",
-    });
+    expect(toast.success).toHaveBeenCalledWith("1세대를 수신자로 담았어요");
+  });
 
-    const templates = [{
-      id: 302,
-      title: "관리비 미납 안내",
-      body: "[#{건물명}] 관리비 미납 안내\n#{세대} #{미납금액}원 #{미납월} #{납기일}\n문의: #{관리사무소연락처}",
-    }];
-    const template = templates.find(({ title }) => title === preset?.templateTitle);
-    expect(template?.id).toBe(302);
-    const renderedBodies = preset?.recipients?.map((recipient) =>
-      renderTemplate(
-        template?.body ?? "",
-        buildRecipientRenderVariables(
-          recipient,
-          preset.commonVariables,
-          "그린빌라",
-        ),
-      ),
-    ) ?? [];
-    expect(renderedBodies).toHaveLength(2);
-    expect(renderedBodies.every((body) => !body.includes("#{"))).toBe(true);
-    const renderedButtonUrls = preset?.recipients?.map((recipient) =>
-      renderTemplate(
-        "#{상세링크}",
-        buildRecipientRenderVariables(
-          recipient,
-          preset.commonVariables,
-          "그린빌라",
-        ),
-      ),
-    ) ?? [];
-    expect(renderedButtonUrls).toEqual([
-      "https://resident.example.com/r/overdue-token-21",
-      "https://resident.example.com/r/overdue-token-22",
-    ]);
-    expect(renderedButtonUrls.every((url) => !url.includes("#{"))).toBe(true);
+  it("독촉 대상이 없으면 안내하고 발송 작업창을 열지 않는다", () => {
+    setup({ householdRows: [households[1]] });
+    render(<OverduePage />);
+    showResults();
+    fireEvent.click(screen.getByRole("button", { name: "독촉 문자 발송" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "테스트 발송 완료" }));
-
-    expect(toast.success).toHaveBeenCalledWith(
-      "독촉 안내 1건 발송을 접수했습니다.",
-    );
-    expect(messagingModalSpy).toHaveBeenLastCalledWith(
-      expect.objectContaining({ open: false }),
+    expect(toast.info).toHaveBeenCalledWith("발송할 대상이 없어요");
+    expect(messagingModalSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({ open: true }),
     );
   });
 
-  it("미납 고지서 토큰 발급 실패 시 오류를 알리고 발송 모달을 열지 않는다", async () => {
+  it("고지서 토큰 발급 실패 시 오류를 알리고 작업창을 열지 않는다", async () => {
     mintBillTokens.mockRejectedValueOnce(new Error("미납 토큰 발급 실패"));
     setup({
       periods: [{
         occupancyId: 31,
         unitId: 21,
-        period: "2026-08-01",
+        period: "2026-07-01",
         unpaidPrincipal: 200_000,
-        dueDate: "2026-08-31",
+        dueDate: "2026-07-31",
       }],
     });
     render(<OverduePage />);
-    selectBuilding();
-    fireEvent.click(screen.getByRole("checkbox", { name: "101호 선택" }));
-    fireEvent.click(screen.getByRole("button", { name: "독촉 문자 발송 (1)" }));
+    showResults();
+    fireEvent.click(screen.getByRole("button", { name: "독촉 문자 발송" }));
 
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith("미납 토큰 발급 실패"),
@@ -529,11 +420,12 @@ describe("OverduePage", () => {
     );
   });
 
-  it("미납대장 출력은 현재 필터 결과와 건물명을 다운로드 함수에 전달한다", () => {
+  it("현재 필터 결과로 미납대장을 출력한다", () => {
     render(<OverduePage />);
-    selectBuilding();
+    showResults();
     fireEvent.click(screen.getByRole("button", { name: "채권 관리 필터" }));
     fireEvent.click(screen.getByRole("button", { name: "미납대장 출력" }));
+
     expect(downloadOverdueLedger).toHaveBeenCalledWith("그린빌라", [
       expect.objectContaining({
         ...households[0],
@@ -541,19 +433,19 @@ describe("OverduePage", () => {
         lateFeeByPeriod: [],
       }),
     ]);
-    expect(toast.success).toHaveBeenCalledWith("그린빌라_미납대장_202608.csv 파일을 저장했습니다.");
+    expect(toast.success).toHaveBeenCalledWith(
+      "그린빌라_미납대장_202609.csv 파일을 저장했습니다.",
+    );
   });
 
-  it("행을 클릭하면 실제 세대 정보와 미납 정보 상세를 연다", () => {
+  it("원장 행을 선택하면 세대·입주자·미납 상세를 연다", () => {
     render(<OverduePage />);
-    selectBuilding();
-    fireEvent.click(screen.getByText("101호"));
+    showResults();
+    fireEvent.click(screen.getByRole("row", { name: /101호 김입주 상세 보기/ }));
 
     expect(screen.getByText("101호 상세")).toBeInTheDocument();
     expect(screen.getByText("세대 정보")).toBeInTheDocument();
     expect(screen.getByText("입주자 정보")).toBeInTheDocument();
-    expect(screen.getByText("입주 정보")).toBeInTheDocument();
     expect(screen.getByText("미납 정보")).toBeInTheDocument();
-    expect(screen.getAllByText("200,000원")).toHaveLength(2);
   });
 });

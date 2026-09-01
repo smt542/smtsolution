@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Button, EmptyState, Spinner } from "@/components/common";
+import { EmptyState, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
 import { useOrgContact } from "@/hooks/reactquery/org/useOrgContact";
@@ -16,27 +16,17 @@ import {
   type OverdueScope,
 } from "@/hooks/reactquery/overdue";
 import { hasModule } from "@/lib/auth/permissions";
-import {
-  computeLateFee,
-  type OverduePeriodInput,
-} from "@/lib/billing/lateFee";
+import { computeLateFee, type OverduePeriodInput } from "@/lib/billing/lateFee";
 import type { MessageRecipient } from "@/lib/messaging/preset";
 import { residentOrigin } from "@/lib/messaging/residentOrigin";
-import {
-  formatDate,
-  formatKrw,
-  formatPeriodMonth,
-  formatUnit,
-} from "@/lib/messaging/vars";
+import { formatDate, formatKrw, formatPeriodMonth, formatUnit } from "@/lib/messaging/vars";
 import { MessagingModal } from "../messaging/components/MessagingModal";
-import { LateFeeRateModal } from "./components/LateFeeRateModal";
 import { OverdueDetailModal } from "./components/OverdueDetailModal";
+import { OverdueEmptyState } from "./components/OverdueEmptyState";
+import { OverdueFloatingActions } from "./components/OverdueFloatingActions";
 import { OverdueTable } from "./components/OverdueTable";
 import { OverdueToolbar } from "./components/OverdueToolbar";
-import {
-  downloadOverdueLedger,
-  isDebtCollectionTarget,
-} from "./utils";
+import { downloadOverdueLedger, isDebtCollectionTarget } from "./utils";
 
 function latestOverduePeriod(
   household: OverdueHousehold,
@@ -57,28 +47,25 @@ export default function OverduePage() {
   const { data: me, isLoading: isMeLoading } = useMe();
   const canAccess = hasModule(me, "overdue");
   const canSendMessages = hasModule(me, "messaging");
-  const canEditLateFeeRate = hasModule(me, "billing");
-  const {
-    data: buildings = [],
-    isLoading: isBuildingsLoading,
-  } = useOverdueBuildings(canAccess);
+  const { data: buildings = [], isLoading: isBuildingsLoading } =
+    useOverdueBuildings(canAccess);
 
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | null>(null);
-  const [targetPeriod, setTargetPeriod] = useState(() => {
-    const now = new Date();
-    return { year: now.getFullYear(), month: now.getMonth() + 1 };
-  });
+  const [targetPeriod, setTargetPeriod] = useState<{
+    year: number | null;
+    month: number | null;
+  }>({ year: null, month: null });
   const [scope, setScope] = useState<OverdueScope>("all");
   const [debtFilterEnabled, setDebtFilterEnabled] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [detailHousehold, setDetailHousehold] = useState<OverdueHousehold | null>(null);
   const [messageRecipients, setMessageRecipients] = useState<MessageRecipient[]>([]);
   const [isMessagingOpen, setIsMessagingOpen] = useState(false);
-  const [isRateModalOpen, setIsRateModalOpen] = useState(false);
 
+  const hasPeriod = targetPeriod.year !== null && targetPeriod.month !== null;
+  const readyBuildingId = canAccess && hasPeriod ? selectedBuildingId : null;
   const overdueQuery = {
-    year: targetPeriod.year,
-    month: targetPeriod.month,
+    year: targetPeriod.year ?? undefined,
+    month: targetPeriod.month ?? undefined,
     scope,
   };
 
@@ -87,36 +74,36 @@ export default function OverduePage() {
     isLoading: isHouseholdsLoading,
     error: householdsError,
     refetch,
-  } = useOverdueHouseholds(canAccess ? selectedBuildingId : null, overdueQuery);
-  const { data: overduePeriods = [] } = useOverduePeriods(
-    canAccess ? selectedBuildingId : null,
-    overdueQuery,
-  );
+  } = useOverdueHouseholds(readyBuildingId, overdueQuery);
+  const { data: overduePeriods = [] } = useOverduePeriods(readyBuildingId, overdueQuery);
   const { data: lateFeeRateTiers = [] } = useLateFeeRateTiers(me?.orgId ?? null);
   const { data: orgContact } = useOrgContact();
   const mintBillTokens = useStaffMintBillTokens();
 
   const rowsWithLateFee = useMemo(() => {
-    if (households.length === 0) return households;
+    if (households.length === 0 || targetPeriod.year === null || targetPeriod.month === null) {
+      return households;
+    }
 
     const periodsByHousehold = new Map<string, OverduePeriodInput[]>();
     for (const period of overduePeriods) {
       const key = `${period.occupancyId}:${period.unitId}`;
-      const householdPeriods = periodsByHousehold.get(key) ?? [];
-      householdPeriods.push({
-        period: period.period as OverduePeriodInput["period"],
-        unpaidPrincipal: period.unpaidPrincipal,
-        dueDate: period.dueDate,
-      });
-      periodsByHousehold.set(key, householdPeriods);
+      periodsByHousehold.set(key, [
+        ...(periodsByHousehold.get(key) ?? []),
+        {
+          period: period.period as OverduePeriodInput["period"],
+          unpaidPrincipal: period.unpaidPrincipal,
+          dueDate: period.dueDate,
+        },
+      ]);
     }
 
     return households.map((household) => {
       const result = computeLateFee(
         periodsByHousehold.get(`${household.occupancyId}:${household.unitId}`) ?? [],
         lateFeeRateTiers,
-        targetPeriod.year,
-        targetPeriod.month,
+        targetPeriod.year as number,
+        targetPeriod.month as number,
       );
       return {
         ...household,
@@ -124,30 +111,31 @@ export default function OverduePage() {
         lateFeeByPeriod: result.byPeriod,
       };
     });
-  }, [
-    households,
-    lateFeeRateTiers,
-    overduePeriods,
-    targetPeriod.month,
-    targetPeriod.year,
-  ]);
+  }, [households, lateFeeRateTiers, overduePeriods, targetPeriod.month, targetPeriod.year]);
 
-  const selectedBuilding = buildings.find((building) => building.id === selectedBuildingId) ?? null;
-  const debtTargetCount = useMemo(
-    () => rowsWithLateFee.filter(isDebtCollectionTarget).length,
+  const selectedBuilding =
+    buildings.find((building) => building.id === selectedBuildingId) ?? null;
+  const messageTargets = useMemo(
+    () => rowsWithLateFee.filter(isDebtCollectionTarget),
     [rowsWithLateFee],
   );
   const visibleHouseholds = useMemo(
-    () => debtFilterEnabled
-      ? rowsWithLateFee.filter(isDebtCollectionTarget)
-      : rowsWithLateFee,
-    [debtFilterEnabled, rowsWithLateFee],
+    () => (debtFilterEnabled ? messageTargets : rowsWithLateFee),
+    [debtFilterEnabled, messageTargets, rowsWithLateFee],
   );
-  const selectedCount = visibleHouseholds.filter((row) => selectedIds.has(row.occupancyId)).length;
+  const messageTargetKeys = useMemo(
+    () => new Set(messageTargets.map((row) => `${row.occupancyId}:${row.unitId}`)),
+    [messageTargets],
+  );
+  const messageItemCount = useMemo(() => {
+    const count = overduePeriods.filter((period) =>
+      messageTargetKeys.has(`${period.occupancyId}:${period.unitId}`),
+    ).length;
+    return count || messageTargets.length;
+  }, [messageTargetKeys, messageTargets.length, overduePeriods]);
 
   const resetResultState = () => {
     setDebtFilterEnabled(false);
-    setSelectedIds(new Set());
     setDetailHousehold(null);
     setMessageRecipients([]);
     setIsMessagingOpen(false);
@@ -158,7 +146,7 @@ export default function OverduePage() {
     resetResultState();
   };
 
-  const changePeriod = (year: number, month: number) => {
+  const changePeriod = (year: number | null, month: number | null) => {
     setTargetPeriod({ year, month });
     resetResultState();
   };
@@ -166,36 +154,6 @@ export default function OverduePage() {
   const changeScope = (nextScope: OverdueScope) => {
     setScope(nextScope);
     resetResultState();
-  };
-
-  const toggleDebtFilter = () => {
-    const nextEnabled = !debtFilterEnabled;
-    setDebtFilterEnabled(nextEnabled);
-    setSelectedIds(
-      nextEnabled
-        ? new Set(rowsWithLateFee.filter(isDebtCollectionTarget).map((row) => row.occupancyId))
-        : new Set(),
-    );
-  };
-
-  const toggleOne = (occupancyId: number) => {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      if (next.has(occupancyId)) next.delete(occupancyId);
-      else next.add(occupancyId);
-      return next;
-    });
-  };
-
-  const toggleAll = () => {
-    const allVisibleSelected =
-      visibleHouseholds.length > 0 &&
-      visibleHouseholds.every((row) => selectedIds.has(row.occupancyId));
-    setSelectedIds(
-      allVisibleSelected
-        ? new Set()
-        : new Set(visibleHouseholds.map((row) => row.occupancyId)),
-    );
   };
 
   const exportLedger = () => {
@@ -217,17 +175,13 @@ export default function OverduePage() {
       toast.info("문자 발송 권한이 필요합니다.");
       return;
     }
-
-    const selectedRows = visibleHouseholds.filter((row) =>
-      selectedIds.has(row.occupancyId),
-    );
-    if (selectedRows.length === 0) {
-      toast.info("문자를 받을 세대를 선택해 주세요.");
+    if (messageTargets.length === 0) {
+      toast.info("발송할 대상이 없어요");
       return;
     }
 
     const unitIdsByPeriod = new Map<string, number[]>();
-    for (const row of selectedRows) {
+    for (const row of messageTargets) {
       const latestPeriod = latestOverduePeriod(row, overduePeriods);
       if (!latestPeriod) {
         toast.error("미납 고지서 기준 월을 확인할 수 없습니다.");
@@ -249,7 +203,7 @@ export default function OverduePage() {
         mintedGroups.flat().map(({ unitId, token }) => [unitId, token]),
       );
       const origin = residentOrigin();
-      const recipients: MessageRecipient[] = selectedRows.map((row) => {
+      const recipients: MessageRecipient[] = messageTargets.flatMap((row) => {
         const latestPeriod = latestOverduePeriod(row, overduePeriods);
         const token = tokenByUnitId.get(row.unitId);
         if (!latestPeriod || !token) {
@@ -257,28 +211,33 @@ export default function OverduePage() {
         }
         const unit = formatUnit(row.dong, row.unitNo);
 
-        return {
-          name: row.tenantName ?? null,
-          phone: row.phone ?? null,
-          unitNo: unit,
-          kind: "tenant",
-          variables: {
-            세대: unit,
-            미납금액: formatKrw(row.overdueAmount),
-            미납월: formatPeriodMonth(latestPeriod.period),
-            납기일: formatDate(latestPeriod.dueDate),
-            상세링크: `${origin}/r/${token}`,
-          },
-          ref: {
-            occupancyId: row.occupancyId,
-            unitId: row.unitId,
-            buildingId: row.buildingId,
-          },
-        };
+        return [row.phone, row.phone2]
+          .filter((phone, index, values): phone is string =>
+            Boolean(phone) && values.indexOf(phone) === index,
+          )
+          .map((phone) => ({
+            name: row.tenantName ?? null,
+            phone,
+            unitNo: unit,
+            kind: "tenant" as const,
+            variables: {
+              세대: unit,
+              미납금액: formatKrw(row.overdueAmount),
+              미납월: formatPeriodMonth(latestPeriod.period),
+              납기일: formatDate(latestPeriod.dueDate),
+              상세링크: `${origin}/r/${token}`,
+            },
+            ref: {
+              occupancyId: row.occupancyId,
+              unitId: row.unitId,
+              buildingId: row.buildingId,
+            },
+          }));
       });
 
       setMessageRecipients(recipients);
       setIsMessagingOpen(true);
+      toast.success(`${messageTargets.length}세대를 수신자로 담았어요`);
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -290,7 +249,7 @@ export default function OverduePage() {
 
   if (isMeLoading) {
     return (
-      <div className="p-6" aria-label="권한 확인 중">
+      <div className="flex h-[calc(100dvh-62px)] items-center justify-center" aria-label="권한 확인 중">
         <Spinner />
       </div>
     );
@@ -298,136 +257,83 @@ export default function OverduePage() {
 
   if (!canAccess) {
     return (
-      <div className="p-6">
+      <div className="h-[calc(100dvh-62px)] p-6">
         <EmptyState message="권한이 없습니다" />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col gap-5 p-6">
-      <header className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div>
-          <p className="mb-1 text-xs font-bold text-t3">관리업무 · 미납관리</p>
-          <h1 className="text-2xl font-extrabold text-t1">미납관리</h1>
-          <p className="mt-2 text-sm text-t2">
-            건물별 세대를 확인하고 채권 관리 대상과 독촉 문자 수신처를 선별합니다.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {canEditLateFeeRate && (
-            <Button
-              variant="ghost"
-              onClick={() => setIsRateModalOpen(true)}
-            >
-              연체료 요율 설정
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            onClick={exportLedger}
-            disabled={!selectedBuilding || isHouseholdsLoading}
-          >
-            미납대장 출력
-          </Button>
-          <Button
-            variant="primary"
-            onClick={() => void openMessagingModal()}
-            disabled={
-              !selectedBuilding ||
-              isHouseholdsLoading ||
-              !canSendMessages ||
-              mintBillTokens.isPending
-            }
-            title={!canSendMessages ? "문자 발송 권한이 필요합니다." : undefined}
-          >
-            독촉 문자 발송{selectedCount > 0 ? ` (${selectedCount})` : ""}
-          </Button>
-        </div>
-      </header>
+    <div className="h-[calc(100dvh-62px)] min-h-[520px] bg-bg px-[24px] pb-[24px] pt-[22px]">
+      <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] bg-white shadow-card">
+        <OverdueToolbar
+          buildings={buildings}
+          selectedBuildingId={selectedBuildingId}
+          onBuildingChange={changeBuilding}
+          targetYear={targetPeriod.year}
+          targetMonth={targetPeriod.month}
+          scope={scope}
+          onPeriodChange={changePeriod}
+          onScopeChange={changeScope}
+          debtFilterEnabled={debtFilterEnabled}
+          onToggleDebtFilter={() => setDebtFilterEnabled((current) => !current)}
+          onSend={() => void openMessagingModal()}
+          onExport={exportLedger}
+          canSend={!isHouseholdsLoading && canSendMessages}
+          canExport={!isHouseholdsLoading}
+          disabled={isBuildingsLoading}
+        />
 
-      <OverdueToolbar
-        buildings={buildings}
-        selectedBuildingId={selectedBuildingId}
-        onBuildingChange={changeBuilding}
-        targetYear={targetPeriod.year}
-        targetMonth={targetPeriod.month}
-        scope={scope}
-        onPeriodChange={changePeriod}
-        onScopeChange={changeScope}
-        debtFilterEnabled={debtFilterEnabled}
-        onToggleDebtFilter={toggleDebtFilter}
-        disabled={isBuildingsLoading}
-      />
-
-      <section className="overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
-        <div className="flex flex-col gap-3 border-b border-line px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-base font-extrabold text-t1">미납 세대</h2>
-            <p className="mt-1 text-xs text-t3">행을 선택하면 세대 상세 정보를 확인할 수 있습니다.</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
-            <span className="rounded-full bg-bg px-3 py-1.5 text-t2">
-              조회 {visibleHouseholds.length}세대
-            </span>
-            <span className="rounded-full bg-blue-t px-3 py-1.5 text-blue-d">
-              선택 {selectedCount}세대
-            </span>
-            <span className="rounded-full bg-red-t px-3 py-1.5 text-red">
-              채권 대상 {debtTargetCount}세대
-            </span>
-          </div>
-        </div>
-
-        {selectedBuildingId === null ? (
-          <EmptyState message="건물을 선택해 주세요" />
+        {!hasPeriod ? (
+          <OverdueEmptyState
+            title="년도와 월을 선택해 주세요"
+            description="조회 기간을 고르면 미납 내역이 표시돼요"
+          />
+        ) : selectedBuildingId === null ? (
+          <OverdueEmptyState
+            title="건물명을 검색해 선택해 주세요"
+            description="선택한 건물의 미납 내역을 조회할 수 있어요"
+          />
         ) : isHouseholdsLoading ? (
-          <div aria-label="미납 세대 조회 중" className="py-12">
+          <div aria-label="미납 세대 조회 중" className="flex min-h-0 flex-1 items-center justify-center">
             <Spinner />
           </div>
         ) : householdsError ? (
-          <div className="flex flex-col items-center gap-3 py-14 text-center">
-            <p className="text-sm text-t3">오류가 발생했습니다. 다시 시도해 주세요.</p>
-            <Button variant="ghost" onClick={() => refetch()}>재시도</Button>
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[12px] text-center">
+            <p className="text-[13.5px] text-t3">미납 내역을 불러오지 못했어요</p>
+            <button
+              type="button"
+              onClick={() => void refetch()}
+              className="h-[34px] rounded-[9px] border border-line bg-white px-[14px] text-[13px] font-bold text-t2"
+            >
+              다시 조회
+            </button>
           </div>
         ) : visibleHouseholds.length === 0 ? (
-          <EmptyState
-            message={debtFilterEnabled ? "채권 관리 대상 세대가 없습니다" : "미납 세대가 없습니다"}
+          <OverdueEmptyState
+            title={debtFilterEnabled ? "독촉 대상이 없어요" : "조회 결과가 없어요"}
+            description={debtFilterEnabled ? "독촉 기준을 만족하는 미납 세대가 없어요" : "다른 조회 조건을 선택해 보세요"}
           />
         ) : (
           <OverdueTable
             rows={visibleHouseholds}
-            selectedIds={selectedIds}
-            onToggleOne={toggleOne}
-            onToggleAll={toggleAll}
+            periods={overduePeriods}
             onRowClick={setDetailHousehold}
           />
         )}
-
-        {selectedBuildingId !== null && !householdsError && (
-          <div className="border-t border-line2 bg-bg/60 px-5 py-4">
-            <p className="text-xs font-semibold leading-5 text-t3">
-              연체 2개월 이상 세대는 3개월째 고지서에 “단전·단수 예고”가 자동 인쇄됩니다.
-            </p>
-          </div>
-        )}
       </section>
 
-      {canEditLateFeeRate && me?.orgId != null && (
-        <LateFeeRateModal
-          open={isRateModalOpen}
-          orgId={me.orgId}
-          onClose={() => setIsRateModalOpen(false)}
-        />
-      )}
+      <OverdueFloatingActions />
       <OverdueDetailModal household={detailHousehold} onClose={() => setDetailHousehold(null)} />
       <MessagingModal
         open={isMessagingOpen}
+        presentation="workspace"
+        itemCount={messageItemCount}
         preset={{
           context: "독촉",
           buildingId: selectedBuildingId ?? undefined,
-          channel: "alimtalk",
-          mode: "auto",
+          channel: "sms",
+          mode: "sms",
           templateTitle: "관리비 미납 안내",
           recipients: messageRecipients,
           commonVariables: {
@@ -444,4 +350,3 @@ export default function OverduePage() {
     </div>
   );
 }
-

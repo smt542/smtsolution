@@ -38,6 +38,8 @@ describe("overdue utils", () => {
     expect(isDebtCollectionTarget({ ...household, overdueMonths: 2 })).toBe(true);
     expect(isDebtCollectionTarget({ ...household, overdueMonths: 1 })).toBe(false);
     expect(isDebtCollectionTarget({ ...household, overdueAmount: 99_999 })).toBe(false);
+    expect(isDebtCollectionTarget({ ...household, overdueAmount: 99_000, lateFeeAmount: 1_000 })).toBe(true);
+    expect(isDebtCollectionTarget({ ...household, overdueAmount: 99_000, lateFeeAmount: 999 })).toBe(false);
   });
 
   it("현재 조회 결과를 엑셀 호환 CSV로 직렬화한다", () => {

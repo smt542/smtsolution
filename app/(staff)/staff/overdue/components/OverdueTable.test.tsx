@@ -21,7 +21,7 @@ const row = {
 } as OverdueHousehold;
 
 describe("OverdueTable", () => {
-  it("연체료 열과 세대 수·미납금액·연체료 합계를 렌더한다", () => {
+  it("Figma 원장 열과 호합·고정 합계를 렌더한다", () => {
     render(
       <OverdueTable
         rows={[row]}
@@ -32,9 +32,12 @@ describe("OverdueTable", () => {
       />,
     );
 
-    expect(screen.getByRole("columnheader", { name: "연체료" })).toBeInTheDocument();
-    expect(screen.getByText("합계 (1세대)")).toBeInTheDocument();
-    expect(screen.getAllByText("100,000원")).toHaveLength(2);
-    expect(screen.getAllByText("3,400원")).toHaveLength(2);
+    expect(screen.getByRole("columnheader", { name: "납.연체료" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "납.후연체" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "연체료계" })).toBeInTheDocument();
+    expect(screen.getByText("[호합]")).toBeInTheDocument();
+    expect(screen.getByText("항목 1 / 1건")).toBeInTheDocument();
+    expect(screen.getAllByText("100,000")).toHaveLength(3);
+    expect(screen.getAllByText("3,400")).toHaveLength(6);
   });
 });

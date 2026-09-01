@@ -35,6 +35,7 @@ export interface OverdueHousehold {
   tenantName?: string | null;
   payerName?: string | null;
   phone?: string | null;
+  phone2?: string | null;
   residentCount?: number | null;
   vehicleNo?: string | null;
   moveInDate?: string | null;
@@ -79,6 +80,7 @@ interface OccupancyRow {
   tenant_name?: string | null;
   payer_name?: string | null;
   phone?: string | null;
+  phone2?: string | null;
   resident_count?: number | null;
   vehicle_no?: string | null;
   move_in_date?: string | null;
@@ -192,6 +194,7 @@ function rowToHousehold(
     tenantName: row.tenant_name,
     payerName: row.payer_name,
     phone: row.phone,
+    phone2: row.phone2,
     residentCount: row.resident_count,
     vehicleNo: row.vehicle_no,
     moveInDate: row.move_in_date,
@@ -235,6 +238,7 @@ export async function listOverdueHouseholds(
       tenant_name,
       payer_name,
       phone,
+      phone2,
       resident_count,
       vehicle_no,
       move_in_date,

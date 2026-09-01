@@ -27,6 +27,7 @@ export function Topbar({ onMenu }: TopbarProps) {
   const title = findPageTitle(pathname);
   const usesRouteActions = pathname.startsWith("/staff/receipts");
   const isBillPage = pathname.startsWith("/staff/bill");
+  const isOverduePage = pathname.startsWith("/staff/overdue");
   const isUtilities = pathname.startsWith("/staff/utilities");
   const [utilityType, setUtilityType] = useState<"electricity" | "water" | "gas">("gas");
   const isElectricityUtilities =
@@ -101,7 +102,7 @@ export function Topbar({ onMenu }: TopbarProps) {
       )}
 
       {/* avatar */}
-      {me && !usesRouteActions && !isElectricityUtilities && !isBillPage && (
+      {me && !usesRouteActions && !isElectricityUtilities && !isBillPage && !isOverduePage && (
         <div className="w-[40px] h-[40px] rounded-[11px] flex items-center justify-center bg-[#DCE3EA] text-[14px] font-bold text-t2 select-none flex-none">
           {me.fullName.charAt(0)}
         </div>
