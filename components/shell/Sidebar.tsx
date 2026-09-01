@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useLogout, useMe } from "@/hooks/reactquery/auth";
@@ -189,8 +189,9 @@ export function Sidebar() {
   const { data: me } = useMe();
   const logout = useLogout();
   const [activeUtilityType, setActiveUtilityType] = useState<"electricity" | "water" | "gas">("gas");
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   const isUtilitiesPage = pathname.startsWith("/staff/utilities");
-  const isBillPage = pathname.startsWith("/staff/bill");
   const isMovingInquiryPage = pathname.startsWith("/staff/moving-settlement/inquiries/");
   const isCustomerNumbersPage = pathname.startsWith("/staff/customer-numbers");
   const isUtilitiesSection = isUtilitiesPage || isCustomerNumbersPage;
@@ -225,6 +226,17 @@ export function Sidebar() {
     }, 0);
     return () => window.clearTimeout(initialSync);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [profileMenuOpen]);
 
   return (
     <aside className="flex h-full w-60 flex-col border-r border-line bg-white px-[14px] pb-[25px] pt-[18px] font-sans">
@@ -280,32 +292,47 @@ export function Sidebar() {
         </nav>
       </div>
 
-      {/* Sidebar footer — user info + logout */}
+      {/* Sidebar footer — 프로필 메뉴(로그아웃은 이 메뉴 안). 캔버스 hf-side-foot: 프로필 클릭 → 메뉴 */}
       {me && (
-        <div className="mt-auto flex flex-col gap-1.5">
-          {!isBillPage && !isMovingInquiryPage && (
-            <div className="flex items-center gap-[10px] p-[10px] rounded-xl bg-bg">
-              <div className="w-[34px] h-[34px] rounded-full bg-[#DCE3EA] flex items-center justify-center text-[14px] font-bold text-t2 flex-none select-none">
-                {me.fullName.charAt(0)}
-              </div>
-              <div className="min-w-0">
-                <div className="text-[13px] font-bold text-t1 truncate">{me.fullName}</div>
-                <div className="text-[11px] text-t3 truncate">
-                  {me.username} · {roleLabel(me.role)}
-                </div>
-              </div>
+        <div className="relative mt-auto" ref={profileMenuRef}>
+          {profileMenuOpen && (
+            <div
+              role="menu"
+              className="absolute inset-x-0 bottom-full mb-2 rounded-[12px] border border-line bg-surface p-1.5 shadow-pop"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => { setProfileMenuOpen(false); void handleLogout(); }}
+                disabled={logout.isPending}
+                className="flex w-full items-center gap-2 rounded-[9px] px-3 py-2.5 text-left text-[13px] font-bold text-red transition-colors hover:bg-red-t disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 flex-none" aria-hidden="true">
+                  <path d="M10 17l5-5-5-5M15 12H3M14 4h5a2 2 0 012 2v12a2 2 0 01-2 2h-5" />
+                </svg>
+                {logout.isPending ? "로그아웃 중…" : "로그아웃"}
+              </button>
             </div>
           )}
           <button
             type="button"
-            onClick={() => void handleLogout()}
-            disabled={logout.isPending}
-            className="flex w-full items-center gap-2 rounded-[11px] px-3 py-2.5 text-left text-[13px] font-bold text-red transition-colors hover:bg-red-t disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={() => setProfileMenuOpen((v) => !v)}
+            aria-haspopup="menu"
+            aria-expanded={profileMenuOpen}
+            className="flex w-full items-center gap-[10px] rounded-xl bg-bg p-[10px] text-left transition-colors hover:bg-line2"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 flex-none" aria-hidden="true">
-              <path d="M10 17l5-5-5-5M15 12H3M14 4h5a2 2 0 012 2v12a2 2 0 01-2 2h-5" />
+            <div className="w-[34px] h-[34px] rounded-full bg-[#DCE3EA] flex items-center justify-center text-[14px] font-bold text-t2 flex-none select-none">
+              {me.fullName.charAt(0)}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[13px] font-bold text-t1 truncate">{me.fullName}</div>
+              <div className="text-[11px] text-t3 truncate">
+                {me.username} · {roleLabel(me.role)}
+              </div>
+            </div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`h-4 w-4 flex-none text-t3 transition-transform ${profileMenuOpen ? "rotate-180" : ""}`} aria-hidden="true">
+              <path d="M6 9l6 6 6-6" />
             </svg>
-            {logout.isPending ? "로그아웃 중…" : "로그아웃"}
           </button>
         </div>
       )}
