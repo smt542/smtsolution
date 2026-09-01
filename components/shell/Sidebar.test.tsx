@@ -114,7 +114,7 @@ describe("Sidebar", () => {
     // 건물·입주자 is a built:true item → rendered as <a>
     const link = screen.getByRole("link", { name: /건물·입주자/ });
     expect(link).toHaveAttribute("aria-current", "page");
-    expect(link).toHaveClass("bg-teal", "text-white");
+    expect(link).toHaveClass("bg-teal-t", "text-teal-d");
   });
 
   it("고객번호 조회 경로에서 공과금 메뉴를 펼치고 고객번호만 활성 표시한다", () => {
@@ -163,12 +163,14 @@ describe("Sidebar", () => {
     expect(screen.queryByRole("link", { name: "통합관리자 콘솔" })).not.toBeInTheDocument();
   });
 
-  it("로그아웃 버튼 클릭 시 로그아웃 후 로그인 화면으로 이동한다", async () => {
+  it("프로필 메뉴에서 로그아웃 클릭 시 로그아웃 후 로그인 화면으로 이동한다", async () => {
     mockUseMe.mockReturnValue(makeMe({ role: "org_owner" }));
 
     render(<Sidebar />);
 
-    fireEvent.click(screen.getByRole("button", { name: /로그아웃/ }));
+    // 로그아웃은 프로필 메뉴 안에 있다 — 프로필 버튼을 눌러 메뉴를 먼저 연다
+    fireEvent.click(screen.getByRole("button", { name: /테스트/ }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /로그아웃/ }));
 
     await waitFor(() => expect(mockLogoutMutate).toHaveBeenCalledTimes(1));
     expect(mockReplace).toHaveBeenCalledWith("/staff/login");
