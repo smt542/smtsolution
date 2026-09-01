@@ -59,23 +59,23 @@ export function Topbar({ onMenu }: TopbarProps) {
   };
 
   return (
-    <header className="h-[62px] flex-none flex items-center gap-[28px] px-6 bg-white border-b border-line">
+    <header className="h-[62px] flex-none flex items-center gap-[14px] px-6 bg-white border-b border-line">
       {/* Figma 공통 상단 메뉴 아이콘. 모바일에서는 서랍을 열고 데스크톱에서는 위치 기준을 유지한다. */}
       <button
         type="button"
         onClick={onMenu}
-        className="flex h-[32px] w-[22px] shrink-0 items-center justify-center text-t3 transition-colors hover:text-t1"
+        className="flex h-[36px] w-[36px] shrink-0 items-center justify-center text-t3 transition-colors hover:text-t1"
         aria-label="메뉴 열기"
       >
-        <MenuIcon className="size-[18px]" />
+        <MenuIcon className="size-[20px]" />
       </button>
 
       {isElectricityUtilities || isMovingInquiry || isMovingSettlement ? (
         <div className="min-w-0 flex-1 leading-none">
-          <p className="text-[10px] font-semibold leading-[12px] text-t3">
+          <p className={`${isMovingInquiry ? "text-[12px] leading-[15px]" : "text-[10px] leading-[12px]"} font-semibold text-t3`}>
             {isMovingInquiry || isMovingSettlement ? "이사정산" : "공과금 관리"}
           </p>
-          <h1 className="mt-[3px] text-[17px] font-extrabold leading-[21px] tracking-[-0.35px] text-t1">
+          <h1 className={`${isMovingInquiry ? "text-[19px] leading-[23px]" : "text-[17px] leading-[21px]"} mt-[3px] font-extrabold tracking-[-0.35px] text-t1`}>
             {isMovingInquiry
               ? pathname.endsWith("/all")
                 ? "전체 이사조회"

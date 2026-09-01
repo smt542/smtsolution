@@ -18,17 +18,38 @@ do $$ begin
 
   if has_function_privilege(
     'anon',
-    'public.list_settlement_inquiries(text,bigint,date,date,text,text,integer,integer)',
+    'public.list_settlement_inquiries(text,bigint,date,date,text,text,text,integer,integer)',
     'EXECUTE'
   ) then raise exception 'P7b RPC must not be executable by anon'; end if;
 
   if not has_function_privilege(
     'authenticated',
-    'public.list_settlement_inquiries(text,bigint,date,date,text,text,integer,integer)',
+    'public.list_settlement_inquiries(text,bigint,date,date,text,text,text,integer,integer)',
     'EXECUTE'
   ) then raise exception 'P7b RPC must be executable by authenticated'; end if;
+
+  perform 1
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public'
+    and p.proname = 'update_settlement_inquiry_rows'
+    and p.prosecdef;
+  if not found then raise exception 'P7b inline-edit security-definer RPC missing'; end if;
+
+  if has_function_privilege(
+    'anon',
+    'public.update_settlement_inquiry_rows(jsonb)',
+    'EXECUTE'
+  ) then raise exception 'P7b inline-edit RPC must not be executable by anon'; end if;
+
+  if not has_function_privilege(
+    'authenticated',
+    'public.update_settlement_inquiry_rows(jsonb)',
+    'EXECUTE'
+  ) then raise exception 'P7b inline-edit RPC must be executable by authenticated'; end if;
 end $$;
 
 -- 수동: moving 권한 보유 사용자가 water/elec/gas/all 필터별 결과·총건수·페이지를 확인;
 --       moving 미보유 사용자는 forbidden, 타 조직 building/unit/settlement는 결과에서 격리;
---       건물·퇴실일·검색어·상태 필터 및 0원 요금(null 아님)이 유형별 결과에 포함되는지 확인.
+--       건물·퇴실일·검색어·상태·정렬 필터 및 0원 요금(null 아님)이 유형별 결과에 포함되는지 확인;
+--       전기·가스 입금일/청소비를 비우거나 수정한 뒤 일괄 저장 및 변경 건수를 확인.

@@ -15,6 +15,7 @@ interface CustomDropdownProps {
   onChange: (value: string) => void;
   disabled?: boolean;
   size?: "default" | "compact";
+  compact?: boolean;
 }
 
 export function CustomDropdown({
@@ -24,6 +25,7 @@ export function CustomDropdown({
   onChange,
   disabled = false,
   size = "default",
+  compact = false,
 }: CustomDropdownProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -51,7 +53,7 @@ export function CustomDropdown({
   return (
     <div
       ref={rootRef}
-      className={`uc-dd ${size === "compact" ? "uc-dd--compact" : ""} ${open ? "open" : ""}`}
+      className={`uc-dd ${size === "compact" || compact ? "uc-dd--compact" : ""} ${open ? "open" : ""}`}
     >
       <button
         type="button"
