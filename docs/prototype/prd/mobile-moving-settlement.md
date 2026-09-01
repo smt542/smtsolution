@@ -80,3 +80,8 @@
 - [2026-07-03] 현장관리자 — `계산+저장` 버튼만 사용 가능
 - [2026-07-03] 정산내역서 문자 전송 기능 제공
 - [2026-07-14] (문자 발송 통합) 정산내역서 문자 전송 — 공용 발송 모듈(`messaging.md`) 호출 방식으로 전환, 수신처=퇴실자·건물주·템플릿=정산내역서 프리셋 전달
+
+## 구현 반영 (2026-09-01)
+- partner(현장) 모바일 "이사정산 등록" 화면 구현(기존 PartnerPlaceholder 스텁 대체): 공과금 정산·관리비 항목·기타·청소·정산·정산 체크·합계.
+- 기존 staff 이사정산 원장(moving_settlements/settlement_checklist_results) 재사용. field 계정은 moving 모듈 권한이 없어 담당건물 스코프 SECURITY DEFINER RPC 3종(partner_get/save/delete_*) + moving_settlements.extra jsonb 신설, 마이그 0122 라이브.
+- 커스텀 캘린더/드롭다운 대신 네이티브 date/select(기존 mobile-as-new 일관성). 완료(completed) 정산은 읽기전용.
