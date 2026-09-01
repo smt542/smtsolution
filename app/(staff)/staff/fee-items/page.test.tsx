@@ -7,6 +7,10 @@ const mocks = vi.hoisted(() => ({
   itemRefetch: vi.fn(),
   typeUsage: vi.fn(),
   renameType: vi.fn(),
+  createFeeItem: vi.fn(),
+  listFeeItems: vi.fn(),
+  reorderFeeItems: vi.fn(),
+  updateFeeItem: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -28,10 +32,11 @@ vi.mock("@/hooks/reactquery/buildingTypes", () => ({
 vi.mock("@/hooks/reactquery/buildings", () => ({ useBuildings: vi.fn() }));
 vi.mock("@/hooks/reactquery/feeItems", () => ({
   useAllFeeItems: vi.fn(),
-  createFeeItem: vi.fn(),
+  createFeeItem: mocks.createFeeItem,
   deleteFeeItem: vi.fn(),
-  reorderFeeItems: vi.fn(),
-  updateFeeItem: vi.fn(),
+  listFeeItems: mocks.listFeeItems,
+  reorderFeeItems: mocks.reorderFeeItems,
+  updateFeeItem: mocks.updateFeeItem,
   feeItemKeys: { all: ["feeItems"] },
 }));
 
@@ -71,6 +76,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.typeUsage.mockResolvedValue({ buildings: false, billing: false });
   mocks.renameType.mockResolvedValue({ id: 1 });
+  mocks.createFeeItem.mockResolvedValue({ id: 101 });
+  mocks.listFeeItems.mockResolvedValue([]);
+  mocks.reorderFeeItems.mockResolvedValue(undefined);
+  mocks.updateFeeItem.mockResolvedValue({ id: 1 });
   mocks.typeRefetch.mockResolvedValue({ data: buildingTypes });
   mocks.itemRefetch.mockResolvedValue({ data: feeItems });
   vi.mocked(useMe).mockReturnValue({
@@ -113,6 +122,39 @@ describe("FeeItemsPage", () => {
     expect(screen.getByText("3개")).toBeInTheDocument();
     expect(screen.getAllByText("필수")).toHaveLength(3);
     expect(screen.getByRole("button", { name: "변경 내용 저장" })).toBeInTheDocument();
+  });
+
+  it("repairs missing or unlocked utility items before saving", async () => {
+    const incompleteItems = feeItems
+      .filter((item) => item.name !== "가스")
+      .map((item) => item.name === "수도료" ? { ...item, isRequired: false } : item);
+    const oneType = [buildingTypes[0]];
+    vi.mocked(useBuildingTypes).mockReturnValue({
+      data: oneType,
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn().mockResolvedValue({ data: oneType }),
+    } as never);
+    vi.mocked(useAllFeeItems).mockReturnValue({
+      data: incompleteItems,
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn().mockResolvedValue({ data: incompleteItems }),
+    } as never);
+
+    render(<FeeItemsPage />);
+
+    expect(screen.getAllByText("필수")).toHaveLength(3);
+    expect(screen.getByRole("rowheader", { name: /가스/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "변경 내용 저장" }));
+
+    await waitFor(() => expect(mocks.updateFeeItem).toHaveBeenCalledWith(
+      expect.any(Number),
+      expect.objectContaining({ name: "수도료", isRequired: true }),
+    ));
+    expect(mocks.createFeeItem).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "가스", isRequired: true }),
+    );
   });
 
   it("opens the add dialog with the PRD defaults", () => {
