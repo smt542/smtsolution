@@ -151,6 +151,7 @@ export function Sidebar() {
   const [activeUtilityType, setActiveUtilityType] = useState<"electricity" | "water" | "gas">("gas");
   const isUtilitiesPage = pathname.startsWith("/staff/utilities");
   const isBillPage = pathname.startsWith("/staff/bill");
+  const isMovingInquiryPage = pathname.startsWith("/staff/moving-settlement/inquiries");
   const isCustomerNumbersPage = pathname.startsWith("/staff/customer-numbers");
   const isUtilitiesSection = isUtilitiesPage || isCustomerNumbersPage;
   const visibleItems = OFFICE_NAV_ITEMS.filter((item) =>
@@ -226,7 +227,7 @@ export function Sidebar() {
               <NavItemRow
                 key={item.href}
                 item={item}
-                active={pathname.startsWith(item.href)}
+                active={!isMovingInquiryPage && pathname.startsWith(item.href)}
               />
             )
           ))}
@@ -236,7 +237,7 @@ export function Sidebar() {
       {/* Sidebar footer — user info + logout */}
       {me && (
         <div className="mt-auto flex flex-col gap-1.5">
-          {!isBillPage && (
+          {!isBillPage && !isMovingInquiryPage && (
             <div className="flex items-center gap-[10px] p-[10px] rounded-xl bg-bg">
               <div className="w-[34px] h-[34px] rounded-full bg-[#DCE3EA] flex items-center justify-center text-[14px] font-bold text-t2 flex-none select-none">
                 {me.fullName.charAt(0)}

@@ -1,18 +1,25 @@
 "use client";
 
-import Link from "next/link";
-import { type FormEvent, type ReactNode, useState } from "react";
-import { Badge, Button, DataTable, EmptyState, Input, Pagination, Select, Spinner } from "@/components/common";
+import { useDeferredValue, useState } from "react";
+import { toast } from "sonner";
+import { EmptyState, Spinner } from "@/components/common";
+import { QuickAccessRail } from "@/components/shell/QuickAccessRail";
 import { useMe } from "@/hooks/reactquery/auth";
-import { useBuildings } from "@/hooks/reactquery/buildings";
+import { useBillOrganizationName } from "@/hooks/reactquery/bill";
 import {
+  useSaveSettlementInquiryEdits,
   useSettlementInquiry,
+  type SettlementInquiryEdit,
+  type SettlementInquiryRow,
+  type SettlementInquirySort,
+  type SettlementInquiryStatus,
   type SettlementInquiryType,
-  type SettlementStatus,
 } from "@/hooks/reactquery/movingSettlement";
-import { SETTLEMENT_INQUIRY_TYPES } from "@/hooks/reactquery/movingSettlement/inquiryTypes";
 import { hasModule } from "@/lib/auth/permissions";
-import { formatNumber, formatWon } from "@/lib/format";
+import { PROGRAM_COMPANY_NAME } from "@/lib/bill/document";
+import { SettlementInquiryPrintHeader } from "./settlement-inquiry/SettlementInquiryPrintHeader";
+import { SettlementInquiryTable } from "./settlement-inquiry/SettlementInquiryTable";
+import { SettlementInquiryToolbar } from "./settlement-inquiry/SettlementInquiryToolbar";
 
 const TYPE_LABELS: Record<SettlementInquiryType, string> = {
   water: "수도",
@@ -21,79 +28,43 @@ const TYPE_LABELS: Record<SettlementInquiryType, string> = {
   all: "전체",
 };
 
-const STATUS_LABELS: Record<SettlementStatus, string> = {
-  draft: "작성 중",
-  saved: "저장",
-  mid_moveout: "중도퇴실",
-  completed: "정산완료",
-};
-
-type FilterStatus = "" | SettlementStatus;
-
-interface FilterState {
-  buildingId: string;
-  from: string;
-  to: string;
-  search: string;
-  status: FilterStatus;
-}
-
-function currentMonthRange(): Pick<FilterState, "from" | "to"> {
+function currentMonthRange() {
   const now = new Date();
   const year = now.getFullYear();
-  const month = now.getMonth();
-  const pad = (value: number) => String(value).padStart(2, "0");
   return {
-    from: `${year}-${pad(month + 1)}-01`,
-    to: `${year}-${pad(month + 1)}-${pad(new Date(year, month + 1, 0).getDate())}`,
+    fromMonth: `${year}-01`,
+    toMonth: `${year}-${String(now.getMonth() + 1).padStart(2, "0")}`,
   };
 }
 
-function money(value: number | null): string {
-  return formatWon(value, { nullText: "-" });
-}
-
-function inquiryColumns(type: SettlementInquiryType) {
-  const columns = [
-    { key: "moveOutDate", label: "퇴실일" },
-    { key: "building", label: "건물" },
-    { key: "unit", label: "호실" },
-    { key: "tenant", label: "입주자" },
-  ];
-  if (type === "water" || type === "all") columns.push({ key: "water", label: "수도요금" });
-  if (type === "electric" || type === "all") columns.push({ key: "electric", label: "전기요금" });
-  if (type === "gas" || type === "all") columns.push({ key: "gas", label: "가스요금" });
-  columns.push(
-    { key: "total", label: "정산 합계" },
-    { key: "status", label: "상태" },
-  );
-  return columns;
+function monthEnd(month: string): string {
+  const [year, value] = month.split("-").map(Number);
+  return `${month}-${String(new Date(year, value, 0).getDate()).padStart(2, "0")}`;
 }
 
 export function SettlementInquiryPage({ type }: { type: SettlementInquiryType }) {
   const range = currentMonthRange();
-  const initialFilters: FilterState = {
-    buildingId: "",
-    from: range.from,
-    to: range.to,
-    search: "",
-    status: "",
-  };
   const { data: me } = useMe();
-  const buildingsQuery = useBuildings();
-  const [draft, setDraft] = useState<FilterState>(initialFilters);
-  const [filters, setFilters] = useState<FilterState>(initialFilters);
-  const [page, setPage] = useState(1);
-  const pageSize = 20;
+  const { data: organizationName } = useBillOrganizationName(me?.orgId);
+  const [fromMonth, setFromMonth] = useState(range.fromMonth);
+  const [toMonth, setToMonth] = useState(range.toMonth);
+  const [status, setStatus] = useState<"" | SettlementInquiryStatus>("");
+  const [sort, setSort] = useState<SettlementInquirySort>("code");
+  const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search.trim());
+  const [edits, setEdits] = useState<Record<number, SettlementInquiryEdit>>({});
+  const saveEdits = useSaveSettlementInquiryEdits();
+  const from = `${fromMonth}-01`;
+  const to = monthEnd(toMonth);
   const inquiryQuery = useSettlementInquiry({
     type,
-    buildingId: filters.buildingId ? Number(filters.buildingId) : undefined,
-    from: filters.from,
-    to: filters.to,
-    search: filters.search || undefined,
-    status: filters.status || undefined,
-    page,
-    pageSize,
+    from,
+    to,
+    search: deferredSearch || undefined,
+    status: status || undefined,
+    sort,
+    page: 1,
+    pageSize: 100,
   });
 
   if (me === undefined) return null;
@@ -105,159 +76,100 @@ export function SettlementInquiryPage({ type }: { type: SettlementInquiryType })
     );
   }
 
-  const total = inquiryQuery.data?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const invalidRange = filters.from > filters.to;
-  const rows: Record<string, ReactNode>[] = (inquiryQuery.data?.rows ?? []).map((row) => ({
-    moveOutDate: row.moveOutDate ?? "-",
-    building: row.buildingName,
-    unit: [row.dong, row.unitNo].filter(Boolean).join(" "),
-    tenant: row.tenantName ?? "-",
-    water: money(row.waterCharge),
-    electric: money(row.elecCharge),
-    gas: money(row.gasCharge),
-    total: money(row.settlementAmount),
-    status: (
-      <Badge className="inline-flex bg-blue-t px-2.5 py-1 text-blue-d">
-        {STATUS_LABELS[row.status]}
-      </Badge>
-    ),
-  }));
+  const rows = inquiryQuery.data?.rows ?? [];
+  const invalidRange = fromMonth > toMonth;
+  const editRow = (row: SettlementInquiryRow, patch: Partial<SettlementInquiryEdit>) => {
+    setEdits((current) => {
+      const previous = current[row.settlementId];
+      const next: SettlementInquiryEdit = {
+        settlementId: row.settlementId,
+        elecPaidDate: previous ? previous.elecPaidDate : row.elecPaidDate,
+        gasPaidDate: previous ? previous.gasPaidDate : row.gasPaidDate,
+        cleaningCost: previous ? previous.cleaningCost : row.cleaningCost,
+        ...patch,
+      };
+      const result = { ...current };
+      if (
+        next.elecPaidDate === row.elecPaidDate
+        && next.gasPaidDate === row.gasPaidDate
+        && next.cleaningCost === row.cleaningCost
+      ) {
+        delete result[row.settlementId];
+      } else {
+        result[row.settlementId] = next;
+      }
+      return result;
+    });
+  };
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setFilters(draft);
-    setPage(1);
+  const save = () => {
+    const changed = Object.values(edits);
+    if (changed.length === 0) return;
+    saveEdits.mutate(changed, {
+      onSuccess: ({ count }) => {
+        setEdits({});
+        toast.success(`변경사항 ${count}건을 저장했어요.`);
+      },
+      onError: () => toast.error("변경사항을 저장하지 못했어요. 다시 시도해 주세요."),
+    });
+  };
+
+  const print = () => {
+    if (rows.length === 0) {
+      toast.info("출력할 내역이 없어요.");
+      return;
+    }
+    window.print();
   };
 
   return (
-    <div className="flex min-h-screen flex-col gap-5 p-4 sm:p-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold text-t3">관리업무 · 이사정산 · 조회</p>
-          <h1 className="mt-1 text-2xl font-extrabold text-t1">
-            {TYPE_LABELS[type]} 이사조회
-          </h1>
+    <div className="h-[calc(100dvh-62px)] min-h-[560px] bg-bg px-[24px] pb-[22px] pt-[22px] print:h-auto print:min-h-0 print:bg-white print:p-0">
+      <section aria-label={`${TYPE_LABELS[type]} 이사조회`} className="flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] bg-white shadow-card print:relative print:overflow-visible print:rounded-none print:shadow-none">
+        <SettlementInquiryPrintHeader
+          type={type}
+          companyName={organizationName ?? PROGRAM_COMPANY_NAME}
+          fromMonth={fromMonth}
+          toMonth={toMonth}
+        />
+        <div className="overflow-x-auto print:hidden">
+          <SettlementInquiryToolbar
+            fromMonth={fromMonth}
+            toMonth={toMonth}
+            status={status}
+            sort={sort}
+            search={search}
+            changedCount={Object.keys(edits).length}
+            saving={saveEdits.isPending}
+            onFromMonthChange={setFromMonth}
+            onToMonthChange={setToMonth}
+            onStatusChange={setStatus}
+            onSortChange={setSort}
+            onSearchChange={setSearch}
+            onPrint={print}
+            onSave={save}
+          />
         </div>
-        <Link
-          href="/staff/moving-settlement"
-          className="inline-flex h-11 items-center rounded-xl border border-line bg-white px-4 text-sm font-bold text-t2 hover:bg-bg"
-        >
-          정산 입력
-        </Link>
-      </div>
-
-      <nav aria-label="이사조회 유형" className="flex flex-wrap gap-2">
-        {SETTLEMENT_INQUIRY_TYPES.map((item) => (
-          <Link
-            key={item}
-            href={`/staff/moving-settlement/inquiries/${item}`}
-            aria-current={item === type ? "page" : undefined}
-            className={`inline-flex h-10 items-center rounded-xl px-4 text-sm font-bold ${
-              item === type
-                ? "bg-brand text-white shadow-pri"
-                : "border border-line bg-white text-t2 hover:bg-bg"
-            }`}
-          >
-            {TYPE_LABELS[item]}
-          </Link>
-        ))}
-      </nav>
-
-      <form
-        onSubmit={submit}
-        className="grid gap-3 rounded-2xl border border-line bg-surface p-4 shadow-card md:grid-cols-2 xl:grid-cols-[1.2fr_1fr_1fr_1.4fr_1fr_auto]"
-      >
-        <label>
-          <span className="mb-1.5 block text-xs font-bold text-t2">건물</span>
-          <Select
-            aria-label="건물"
-            value={draft.buildingId}
-            disabled={buildingsQuery.isLoading}
-            onChange={(event) => setDraft((current) => ({ ...current, buildingId: event.target.value }))}
-            options={[
-              { value: "", label: buildingsQuery.isLoading ? "건물 불러오는 중" : "전체 건물" },
-              ...(buildingsQuery.data ?? []).map((building) => ({
-                value: String(building.id),
-                label: building.name,
-              })),
-            ]}
-          />
-        </label>
-        <label>
-          <span className="mb-1.5 block text-xs font-bold text-t2">시작일</span>
-          <Input
-            aria-label="조회 시작일"
-            type="date"
-            value={draft.from}
-            onChange={(event) => setDraft((current) => ({ ...current, from: event.target.value }))}
-          />
-        </label>
-        <label>
-          <span className="mb-1.5 block text-xs font-bold text-t2">종료일</span>
-          <Input
-            aria-label="조회 종료일"
-            type="date"
-            value={draft.to}
-            onChange={(event) => setDraft((current) => ({ ...current, to: event.target.value }))}
-          />
-        </label>
-        <label>
-          <span className="mb-1.5 block text-xs font-bold text-t2">검색</span>
-          <Input
-            aria-label="검색어"
-            value={draft.search}
-            placeholder="건물·동·호실·입주자"
-            onChange={(event) => setDraft((current) => ({ ...current, search: event.target.value }))}
-          />
-        </label>
-        <label>
-          <span className="mb-1.5 block text-xs font-bold text-t2">상태</span>
-          <Select
-            aria-label="상태"
-            value={draft.status}
-            onChange={(event) => setDraft((current) => ({
-              ...current,
-              status: event.target.value as FilterStatus,
-            }))}
-            options={[
-              { value: "", label: "전체 상태" },
-              { value: "draft", label: STATUS_LABELS.draft },
-              { value: "saved", label: STATUS_LABELS.saved },
-              { value: "mid_moveout", label: STATUS_LABELS.mid_moveout },
-              { value: "completed", label: STATUS_LABELS.completed },
-            ]}
-          />
-        </label>
-        <Button type="submit" className="self-end">조회</Button>
-      </form>
-
-      <section className="rounded-2xl border border-line bg-surface p-4 shadow-card">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-base font-extrabold text-t1">조회 결과</h2>
-          <span className="text-sm font-bold text-t3">총 {formatNumber(total)}건</span>
-        </div>
-
+        <div className="min-h-0 flex-1 print:relative print:z-10">
         {invalidRange ? (
-          <EmptyState message="조회 시작일은 종료일보다 늦을 수 없습니다." />
+          <div className="py-16"><EmptyState message="조회 시작월은 종료월보다 늦을 수 없습니다." /></div>
         ) : inquiryQuery.isLoading ? (
           <div className="py-16"><Spinner /></div>
         ) : inquiryQuery.error ? (
-          <EmptyState message="이사정산 조회 결과를 불러오지 못했습니다." />
+          <div className="py-16"><EmptyState message="이사정산 조회 결과를 불러오지 못했습니다." /></div>
         ) : rows.length === 0 ? (
-          <EmptyState message="조건에 맞는 이사정산 내역이 없습니다." />
+          <div className="py-16"><EmptyState message="조회 결과가 없어요 · 조회 기간이나 검색어를 바꿔 보세요" /></div>
         ) : (
-          <>
-            <DataTable columns={inquiryColumns(type)} rows={rows} />
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              onPageChange={setPage}
-              className="mt-4"
-            />
-          </>
+          <SettlementInquiryTable
+            type={type}
+            rows={rows}
+            total={inquiryQuery.data?.total}
+            edits={edits}
+            onEdit={editRow}
+          />
         )}
+        </div>
       </section>
+      <QuickAccessRail />
     </div>
   );
 }

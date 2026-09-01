@@ -3,6 +3,8 @@ import type { SettlementInquiryType } from "./inquiryTypes";
 
 export type RepairAttribution = "owner" | "manager" | "office";
 export type SettlementStatus = "draft" | "saved" | "mid_moveout" | "completed";
+export type SettlementInquiryStatus = "completed" | "unresolved";
+export type SettlementInquirySort = "code" | "date";
 export type OccupancyStatus = "occupied" | "vacant" | "moving_out";
 export type SettlementUtility = "water" | "elec" | "gas";
 
@@ -120,7 +122,8 @@ export interface SettlementInquiryParams {
   from: string;
   to: string;
   search?: string;
-  status?: SettlementStatus;
+  status?: SettlementInquiryStatus;
+  sort?: SettlementInquirySort;
   page?: number;
   pageSize?: number;
 }
@@ -128,21 +131,32 @@ export interface SettlementInquiryParams {
 export interface SettlementInquiryRow {
   settlementId: number;
   buildingId: number;
+  buildingCode: string | null;
+  buildingAddress: string | null;
   buildingName: string;
   unitId: number;
   occupancyId: number | null;
   dong: string | null;
   unitNo: string;
   tenantName: string | null;
+  moveInDate: string | null;
   status: SettlementStatus;
   moveOutDate: string | null;
   mgmtFeeProrated: number | null;
   waterCharge: number | null;
+  elecFinalReading: number | null;
+  elecMoveReading: number | null;
+  elecUsage: number | null;
   elecCharge: number | null;
+  gasFinalReading: number | null;
+  gasMoveReading: number | null;
+  gasUsage: number | null;
   gasCharge: number | null;
   elecPaidDate: string | null;
   gasPaidDate: string | null;
   repairAmount: number | null;
+  inspectorName: string | null;
+  cleaningCost: number | null;
   settlementAmount: number | null;
   processedAt: string | null;
   createdAt: string;
@@ -151,6 +165,13 @@ export interface SettlementInquiryRow {
 export interface SettlementInquiryResult {
   rows: SettlementInquiryRow[];
   total: number;
+}
+
+export interface SettlementInquiryEdit {
+  settlementId: number;
+  elecPaidDate: string | null;
+  gasPaidDate: string | null;
+  cleaningCost: number | null;
 }
 
 interface MovingSettlementRpc {
@@ -229,21 +250,32 @@ interface SettlementListRpc {
 interface SettlementInquiryRpc {
   settlement_id: number;
   building_id: number;
+  building_code: string | null;
+  building_address: string | null;
   building_name: string;
   unit_id: number;
   occupancy_id: number | null;
   dong: string | null;
   unit_no: string;
   tenant_name: string | null;
+  move_in_date: string | null;
   status: SettlementStatus;
   move_out_date: string | null;
   mgmt_fee_prorated: number | null;
   water_charge: number | null;
+  elec_final_reading: number | null;
+  elec_move_reading: number | null;
+  elec_usage: number | null;
   elec_charge: number | null;
+  gas_final_reading: number | null;
+  gas_move_reading: number | null;
+  gas_usage: number | null;
   gas_charge: number | null;
   elec_paid_date: string | null;
   gas_paid_date: string | null;
   repair_amount: number | null;
+  inspector_name: string | null;
+  cleaning_cost: number | null;
   settlement_amount: number | null;
   processed_at: string | null;
   created_at: string;
@@ -362,21 +394,32 @@ function rpcToSettlementInquiryRow(r: SettlementInquiryRpc): SettlementInquiryRo
   return {
     settlementId: r.settlement_id,
     buildingId: r.building_id,
+    buildingCode: r.building_code,
+    buildingAddress: r.building_address,
     buildingName: r.building_name,
     unitId: r.unit_id,
     occupancyId: r.occupancy_id,
     dong: r.dong,
     unitNo: r.unit_no,
     tenantName: r.tenant_name,
+    moveInDate: r.move_in_date,
     status: r.status,
     moveOutDate: r.move_out_date,
     mgmtFeeProrated: r.mgmt_fee_prorated,
     waterCharge: r.water_charge,
+    elecFinalReading: r.elec_final_reading,
+    elecMoveReading: r.elec_move_reading,
+    elecUsage: r.elec_usage,
     elecCharge: r.elec_charge,
+    gasFinalReading: r.gas_final_reading,
+    gasMoveReading: r.gas_move_reading,
+    gasUsage: r.gas_usage,
     gasCharge: r.gas_charge,
     elecPaidDate: r.elec_paid_date,
     gasPaidDate: r.gas_paid_date,
     repairAmount: r.repair_amount,
+    inspectorName: r.inspector_name,
+    cleaningCost: r.cleaning_cost,
     settlementAmount: r.settlement_amount,
     processedAt: r.processed_at,
     createdAt: r.created_at,
@@ -471,6 +514,7 @@ export async function listSettlementInquiries(
     p_to: params.to,
     p_search: params.search?.trim() || null,
     p_status: params.status ?? null,
+    p_sort: params.sort ?? "code",
     p_limit: pageSize,
     p_offset: (page - 1) * pageSize,
   });
@@ -480,4 +524,19 @@ export async function listSettlementInquiries(
     rows: rpcRows.map(rpcToSettlementInquiryRow),
     total: rpcRows.length > 0 ? Number(rpcRows[0].total_count) : 0,
   };
+}
+
+export async function saveSettlementInquiryEdits(
+  edits: SettlementInquiryEdit[],
+): Promise<{ count: number }> {
+  const { data, error } = await createClient().rpc("save_settlement_inquiry_edits", {
+    p_edits: edits.map((edit) => ({
+      settlement_id: edit.settlementId,
+      elec_paid_date: edit.elecPaidDate,
+      gas_paid_date: edit.gasPaidDate,
+      cleaning_cost: edit.cleaningCost,
+    })),
+  });
+  if (error) throw new Error(error.message);
+  return { count: Number((data as { count?: unknown } | null)?.count ?? edits.length) };
 }

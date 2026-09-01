@@ -12,6 +12,7 @@ import {
   listSettlementInquiries,
   listSettlements,
   midMoveoutSettlement,
+  saveSettlementInquiryEdits,
   saveMovingSettlement,
 } from "./apis";
 
@@ -252,21 +253,32 @@ describe("moving settlement apis", () => {
       data: [{
         settlement_id: 31,
         building_id: 3,
+        building_code: "B-003",
+        building_address: "부산 남구 수영로 12",
         building_name: "해오름",
         unit_id: 101,
         occupancy_id: 9,
         dong: "A동",
         unit_no: "101호",
         tenant_name: "홍길동",
+        move_in_date: "2025-08-01",
         status: "completed",
         move_out_date: "2026-08-13",
         mgmt_fee_prorated: 125806,
         water_charge: 12000,
+        elec_final_reading: 136,
+        elec_move_reading: 172,
+        elec_usage: 36,
         elec_charge: 23000,
+        gas_final_reading: 50,
+        gas_move_reading: 61,
+        gas_usage: 11,
         gas_charge: 8000,
         elec_paid_date: "2026-08-12",
         gas_paid_date: null,
         repair_amount: 50000,
+        inspector_name: "박검침",
+        cleaning_cost: 30000,
         settlement_amount: 218806,
         processed_at: "2026-08-13T03:00:00Z",
         created_at: "2026-08-13T01:00:00Z",
@@ -282,6 +294,7 @@ describe("moving settlement apis", () => {
       to: "2026-08-31",
       search: "홍길동",
       status: "completed",
+      sort: "date",
       page: 2,
       pageSize: 20,
     });
@@ -293,6 +306,7 @@ describe("moving settlement apis", () => {
       p_to: "2026-08-31",
       p_search: "홍길동",
       p_status: "completed",
+      p_sort: "date",
       p_limit: 20,
       p_offset: 20,
     });
@@ -301,24 +315,55 @@ describe("moving settlement apis", () => {
       rows: [{
         settlementId: 31,
         buildingId: 3,
+        buildingCode: "B-003",
+        buildingAddress: "부산 남구 수영로 12",
         buildingName: "해오름",
         unitId: 101,
         occupancyId: 9,
         dong: "A동",
         unitNo: "101호",
         tenantName: "홍길동",
+        moveInDate: "2025-08-01",
         status: "completed",
         moveOutDate: "2026-08-13",
         mgmtFeeProrated: 125806,
         waterCharge: 12000,
+        elecFinalReading: 136,
+        elecMoveReading: 172,
+        elecUsage: 36,
         elecCharge: 23000,
+        gasFinalReading: 50,
+        gasMoveReading: 61,
+        gasUsage: 11,
         gasCharge: 8000,
         elecPaidDate: "2026-08-12",
         gasPaidDate: null,
         repairAmount: 50000,
+        inspectorName: "박검침",
+        cleaningCost: 30000,
         settlementAmount: 218806,
         processedAt: "2026-08-13T03:00:00Z",
         createdAt: "2026-08-13T01:00:00Z",
+      }],
+    });
+  });
+
+  it("saveSettlementInquiryEdits: 수정 행을 snake payload로 저장한다", async () => {
+    rpc.mockResolvedValue({ data: { count: 1 }, error: null });
+
+    await expect(saveSettlementInquiryEdits([{
+      settlementId: 31,
+      elecPaidDate: null,
+      gasPaidDate: "2026-08-14",
+      cleaningCost: 35000,
+    }])).resolves.toEqual({ count: 1 });
+
+    expect(rpc).toHaveBeenCalledWith("save_settlement_inquiry_edits", {
+      p_edits: [{
+        settlement_id: 31,
+        elec_paid_date: null,
+        gas_paid_date: "2026-08-14",
+        cleaning_cost: 35000,
       }],
     });
   });

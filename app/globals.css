@@ -117,6 +117,12 @@ body {
   height: 15px;
 }
 
+.uc-dd--compact .uc-dd-btn {
+  height: 32px;
+  border-radius: 9px;
+  font-size: 13px;
+}
+
 .uc-dd-menu {
   position: absolute;
   top: calc(100% + 6px);
