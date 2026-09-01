@@ -28,6 +28,7 @@ export function Topbar({ onMenu }: TopbarProps) {
   const usesRouteActions = pathname.startsWith("/staff/receipts");
   const isBillPage = pathname.startsWith("/staff/bill");
   const isUtilities = pathname.startsWith("/staff/utilities");
+  const isMovingInquiry = pathname.startsWith("/staff/moving-settlement/inquiries/");
   const [utilityType, setUtilityType] = useState<"electricity" | "water" | "gas">("gas");
   const isElectricityUtilities =
     isUtilities && utilityType === "electricity";
@@ -67,11 +68,21 @@ export function Topbar({ onMenu }: TopbarProps) {
         <MenuIcon className="size-[18px]" />
       </button>
 
-      {isElectricityUtilities ? (
+      {isElectricityUtilities || isMovingInquiry ? (
         <div className="min-w-0 flex-1 leading-none">
-          <p className="text-[10px] font-semibold leading-[12px] text-t3">공과금 관리</p>
+          <p className="text-[10px] font-semibold leading-[12px] text-t3">
+            {isMovingInquiry ? "이사정산" : "공과금 관리"}
+          </p>
           <h1 className="mt-[3px] text-[17px] font-extrabold leading-[21px] tracking-[-0.35px] text-t1">
-            전기
+            {isMovingInquiry
+              ? pathname.endsWith("/all")
+                ? "전체 이사조회"
+                : pathname.endsWith("/electric")
+                  ? "전기 이사조회"
+                  : pathname.endsWith("/water")
+                    ? "수도 이사조회"
+                    : "가스 이사조회"
+              : "전기"}
           </h1>
         </div>
       ) : (
@@ -101,7 +112,7 @@ export function Topbar({ onMenu }: TopbarProps) {
       )}
 
       {/* avatar */}
-      {me && !usesRouteActions && !isElectricityUtilities && !isBillPage && (
+      {me && !usesRouteActions && !isElectricityUtilities && !isMovingInquiry && !isBillPage && (
         <div className="w-[40px] h-[40px] rounded-[11px] flex items-center justify-center bg-[#DCE3EA] text-[14px] font-bold text-t2 select-none flex-none">
           {me.fullName.charAt(0)}
         </div>
