@@ -181,7 +181,7 @@ export default function LandingPage() {
         <section className="relative overflow-hidden">
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(1100px_520px_at_75%_-10%,#E7F6F4_0%,transparent_60%)]"
+            className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(1100px_520px_at_75%_-10%,#E2F5F1_0%,transparent_60%)]"
           />
           <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 py-16 sm:px-8 sm:py-24 lg:grid-cols-2">
             <div>
@@ -349,7 +349,7 @@ export default function LandingPage() {
         {/* ===== CTA / Contact ===== */}
         <section id="contact" className="border-t border-line2">
           <div className="mx-auto max-w-6xl px-5 py-18 sm:px-8 sm:py-24">
-            <div className="overflow-hidden rounded-[22px] bg-[linear-gradient(135deg,#0F857A_0%,#14A497_100%)] px-8 py-12 text-white sm:px-14 sm:py-16">
+            <div className="overflow-hidden rounded-[22px] bg-[linear-gradient(135deg,#0E8677_0%,#14A497_100%)] px-8 py-12 text-white sm:px-14 sm:py-16">
               <h2 className="text-[26px] font-extrabold leading-[1.3] tracking-[-0.02em] sm:text-[32px]">
                 도입을 검토 중이신가요?
               </h2>

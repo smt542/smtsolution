@@ -69,7 +69,7 @@ function PlatformSidebar({ pathname, onNavigate }: { pathname: string; onNavigat
     <aside className="flex h-full w-64 flex-col border-r border-line bg-[#101828] px-3.5 py-[18px] text-white">
       <div className="px-2.5 pb-5 pt-2">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-[10px] bg-gradient-to-br from-[#4FC7BA] to-[#14A497]">
+          <div className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-[10px] bg-gradient-to-br from-[#2CC0AC] to-[#0E9E8C]">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5" aria-hidden="true">
               <path d="M4 11l8-6 8 6M6 10v9h12v-9M10 19v-5h4v5" />
             </svg>

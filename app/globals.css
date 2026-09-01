@@ -12,19 +12,19 @@
   /* primary = teal (청록). 앱 전역 호환을 위해 `blue`/`brand` 토큰 이름은 유지하되 값은 청록으로 통일.
      ※ 향후 정리: 유틸리티(bg-blue 등)를 primary로 시맨틱 리네임 가능(337곳/127파일). */
   --color-blue: #14A497;
-  --color-blue-d: #0F857A;
-  --color-blue-t: #E7F6F4;
+  --color-blue-d: #0E8677;
+  --color-blue-t: #E2F5F1;
   --color-blue-t2: #EFFBF8;
 
   /* brand alias → teal (기존 `brand` 참조 호환) */
   --color-brand: #14A497;
-  --color-brand-dark: #0F857A;
-  --color-brand-tint: #E7F6F4;
+  --color-brand-dark: #0E8677;
+  --color-brand-tint: #E2F5F1;
 
   /* teal = primary 원본 값 (blue/brand와 동일. 과거 수납 CTA·로그인 hero 액센트에서 전역 프라이머리로 승격) */
   --color-teal: #14A497;
-  --color-teal-d: #0F857A;
-  --color-teal-t: #E7F6F4;
+  --color-teal-d: #0E8677;
+  --color-teal-t: #E2F5F1;
 
   /* surfaces */
   --color-bg: #F2F4F6;
