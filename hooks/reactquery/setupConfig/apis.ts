@@ -17,6 +17,18 @@ export interface SetupConfig {
   waterUnitReflect: boolean;
   electricUnitReflect: boolean;
   vacancyPaymentMode: "manual" | "auto";
+  // 회사 정보(관리업체 정보) — 0122
+  companyName: string | null;
+  companyPhone: string | null;
+  companyFax: string | null;
+  bizRegNo: string | null;
+  ceoName: string | null;
+  companyAddress: string | null;
+  operatingHours: string | null;
+  // 알림 설정 — 0122
+  notifyMoveIn: boolean;
+  notifyLeaseExpiry: boolean;
+  leaseExpiryDays: number;
 }
 export type SetupConfigPatch = Partial<Omit<SetupConfig, "orgId">>;
 
@@ -28,6 +40,10 @@ type SetupConfigRow = {
   mgmt_bank2: string | null; mgmt_acct2: string | null; mgmt_holder2: string | null; mgmt_print2: boolean;
   settle_bank: string | null; settle_acct: string | null; settle_holder: string | null;
   water_unit_reflect: boolean; electric_unit_reflect: boolean; vacancy_payment_mode: "manual" | "auto";
+  company_name: string | null; company_phone: string | null; company_fax: string | null;
+  biz_reg_no: string | null; ceo_name: string | null; company_address: string | null;
+  operating_hours: string | null;
+  notify_move_in: boolean; notify_lease_expiry: boolean; lease_expiry_days: number;
 };
 
 const rowToConfig = (r: SetupConfigRow): SetupConfig => ({
@@ -40,6 +56,11 @@ const rowToConfig = (r: SetupConfigRow): SetupConfig => ({
   settleBank: r.settle_bank, settleAcct: r.settle_acct, settleHolder: r.settle_holder,
   waterUnitReflect: r.water_unit_reflect, electricUnitReflect: r.electric_unit_reflect,
   vacancyPaymentMode: r.vacancy_payment_mode,
+  companyName: r.company_name, companyPhone: r.company_phone, companyFax: r.company_fax,
+  bizRegNo: r.biz_reg_no, ceoName: r.ceo_name, companyAddress: r.company_address,
+  operatingHours: r.operating_hours,
+  notifyMoveIn: r.notify_move_in, notifyLeaseExpiry: r.notify_lease_expiry,
+  leaseExpiryDays: r.lease_expiry_days,
 });
 
 const CAMEL_TO_SNAKE: Record<keyof SetupConfigPatch, string> = {
@@ -51,6 +72,10 @@ const CAMEL_TO_SNAKE: Record<keyof SetupConfigPatch, string> = {
   mgmtPrint2:"mgmt_print2", settleBank:"settle_bank", settleAcct:"settle_acct", settleHolder:"settle_holder",
   waterUnitReflect:"water_unit_reflect", electricUnitReflect:"electric_unit_reflect",
   vacancyPaymentMode:"vacancy_payment_mode",
+  companyName:"company_name", companyPhone:"company_phone", companyFax:"company_fax",
+  bizRegNo:"biz_reg_no", ceoName:"ceo_name", companyAddress:"company_address",
+  operatingHours:"operating_hours", notifyMoveIn:"notify_move_in",
+  notifyLeaseExpiry:"notify_lease_expiry", leaseExpiryDays:"lease_expiry_days",
 };
 
 function patchToRow(patch: SetupConfigPatch): Record<string, unknown> {
