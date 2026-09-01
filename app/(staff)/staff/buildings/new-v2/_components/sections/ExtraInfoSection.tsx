@@ -1,20 +1,34 @@
 "use client";
-import { useState } from "react";
 import { FormSection } from "../ui/FormSection";
 import { Accordion } from "../ui/Accordion";
 import { UtilityPanel } from "./UtilityPanel";
 import { TextAreaField } from "../ui/TextAreaField";
 import { UTILITIES, GAS_EXTRA } from "../config/utilities";
+import type { RegisterFormState } from "../config/formState";
+import type { BuildingUtilityEntry } from "@/hooks/reactquery/buildings";
 
 /** ⑤ 부가 정보 (Figma 673:56714). */
-export function ExtraInfoSection() {
-  const [ref, setRef] = useState("");
+export function ExtraInfoSection({
+  value,
+  patch,
+}: {
+  value: RegisterFormState;
+  patch: (p: Partial<RegisterFormState>) => void;
+}) {
+  const setUtility = (key: string, next: BuildingUtilityEntry) =>
+    patch({ utilities: { ...value.utilities, [key]: next } });
+
   return (
     <FormSection index={5} title="부가 정보">
       <div>
         {UTILITIES.map((u) => (
           <Accordion key={u.key} title={u.title}>
-            <UtilityPanel fields={u.fields} extra={u.key === "gas" ? GAS_EXTRA : undefined} />
+            <UtilityPanel
+              fields={u.fields}
+              extra={u.key === "gas" ? GAS_EXTRA : undefined}
+              value={value.utilities[u.key] ?? { cards: [{}], extra: {} }}
+              onChange={(next) => setUtility(u.key, next)}
+            />
           </Accordion>
         ))}
       </div>
@@ -22,8 +36,8 @@ export function ExtraInfoSection() {
         <TextAreaField
           label="부과시 참조사항"
           placeholder="관리비 부과 세팅 화면에 표시할 참조사항"
-          value={ref}
-          onChange={setRef}
+          value={value.refNote}
+          onChange={(v) => patch({ refNote: v })}
         />
       </div>
     </FormSection>

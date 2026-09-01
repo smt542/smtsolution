@@ -10,6 +10,11 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/hooks/reactquery/buildings", () => ({
   useBuildingList: mocks.useBuildingList,
+  useStaffOptions: () => ({ data: [] }),
+}));
+
+vi.mock("@/hooks/reactquery/buildingCustomerNumbers", () => ({
+  useBuildingMeterDays: () => ({ data: {} }),
 }));
 
 vi.mock("@/hooks/reactquery/occupancies", () => ({
@@ -18,6 +23,15 @@ vi.mock("@/hooks/reactquery/occupancies", () => ({
 
 vi.mock("./BuildingSearchCard", () => ({
   BuildingSearchCard: () => null,
+  initialBuildingFilter: {
+    regSort: "desc",
+    managerUserId: null,
+    meterUserId: null,
+    cleaningUserId: null,
+    meterKind: "",
+    meterDir: "asc",
+  },
+  isFilterActive: () => false,
 }));
 
 vi.mock("./BuildingDirectoryCard", () => ({
