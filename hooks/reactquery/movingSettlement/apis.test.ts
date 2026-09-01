@@ -13,6 +13,7 @@ import {
   listSettlements,
   midMoveoutSettlement,
   saveMovingSettlement,
+  updateSettlementInquiryRows,
 } from "./apis";
 
 beforeEach(() => vi.clearAllMocks());
@@ -252,7 +253,9 @@ describe("moving settlement apis", () => {
       data: [{
         settlement_id: 31,
         building_id: 3,
+        building_code: "B003",
         building_name: "해오름",
+        building_address: "용전동",
         unit_id: 101,
         occupancy_id: 9,
         dong: "A동",
@@ -260,13 +263,22 @@ describe("moving settlement apis", () => {
         tenant_name: "홍길동",
         status: "completed",
         move_out_date: "2026-08-13",
+        move_in_date: "2025-08-01",
         mgmt_fee_prorated: 125806,
         water_charge: 12000,
         elec_charge: 23000,
         gas_charge: 8000,
+        elec_previous_reading: 100,
+        elec_current_reading: 125,
+        elec_usage: 25,
+        gas_previous_reading: 20,
+        gas_current_reading: 24,
+        gas_usage: 4,
         elec_paid_date: "2026-08-12",
         gas_paid_date: null,
         repair_amount: 50000,
+        cleaning_cost: 69000,
+        checked_by_name: "김관리",
         settlement_amount: 218806,
         processed_at: "2026-08-13T03:00:00Z",
         created_at: "2026-08-13T01:00:00Z",
@@ -293,6 +305,7 @@ describe("moving settlement apis", () => {
       p_to: "2026-08-31",
       p_search: "홍길동",
       p_status: "completed",
+      p_sort: "date",
       p_limit: 20,
       p_offset: 20,
     });
@@ -301,7 +314,9 @@ describe("moving settlement apis", () => {
       rows: [{
         settlementId: 31,
         buildingId: 3,
+        buildingCode: "B003",
         buildingName: "해오름",
+        buildingAddress: "용전동",
         unitId: 101,
         occupancyId: 9,
         dong: "A동",
@@ -309,16 +324,45 @@ describe("moving settlement apis", () => {
         tenantName: "홍길동",
         status: "completed",
         moveOutDate: "2026-08-13",
+        moveInDate: "2025-08-01",
         mgmtFeeProrated: 125806,
         waterCharge: 12000,
         elecCharge: 23000,
         gasCharge: 8000,
+        elecPreviousReading: 100,
+        elecCurrentReading: 125,
+        elecUsage: 25,
+        gasPreviousReading: 20,
+        gasCurrentReading: 24,
+        gasUsage: 4,
         elecPaidDate: "2026-08-12",
         gasPaidDate: null,
         repairAmount: 50000,
+        cleaningCost: 69000,
+        checkedByName: "김관리",
         settlementAmount: 218806,
         processedAt: "2026-08-13T03:00:00Z",
         createdAt: "2026-08-13T01:00:00Z",
+      }],
+    });
+  });
+
+  it("updateSettlementInquiryRows: 편집 가능한 세 필드를 일괄 저장한다", async () => {
+    rpc.mockResolvedValue({ data: { count: 1 }, error: null });
+
+    await expect(updateSettlementInquiryRows([{
+      settlementId: 31,
+      elecPaidDate: "2026-08-20",
+      gasPaidDate: null,
+      cleaningCost: 69000,
+    }])).resolves.toEqual({ count: 1 });
+
+    expect(rpc).toHaveBeenCalledWith("update_settlement_inquiry_rows", {
+      p_rows: [{
+        settlement_id: 31,
+        elec_paid_date: "2026-08-20",
+        gas_paid_date: null,
+        cleaning_cost: 69000,
       }],
     });
   });

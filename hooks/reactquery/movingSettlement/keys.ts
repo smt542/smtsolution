@@ -16,6 +16,7 @@ export const movingSettlementKeys = {
       params.to,
       params.search ?? "",
       params.status ?? null,
+      params.sort ?? "date",
       params.page ?? 1,
       params.pageSize ?? 20,
     ] as const,

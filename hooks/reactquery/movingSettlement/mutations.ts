@@ -3,7 +3,9 @@ import {
   completeMovingSettlement,
   midMoveoutSettlement,
   saveMovingSettlement,
+  updateSettlementInquiryRows,
   type SaveSettlementInput,
+  type UpdateSettlementInquiryRow,
 } from "./apis";
 import { movingSettlementKeys } from "./keys";
 
@@ -28,5 +30,15 @@ export function useMidMoveout() {
   return useMutation({
     mutationFn: (settlementId: number) => midMoveoutSettlement(settlementId),
     onSuccess: () => qc.invalidateQueries({ queryKey: movingSettlementKeys.all }),
+  });
+}
+
+export function useUpdateSettlementInquiryRows() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (rows: UpdateSettlementInquiryRow[]) =>
+      updateSettlementInquiryRows(rows),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: movingSettlementKeys.all }),
   });
 }
