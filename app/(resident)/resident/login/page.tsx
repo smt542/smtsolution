@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
+import ResidentBottomSheet from "@/app/(resident)/_components/ResidentBottomSheet";
 import { kakaoStubLogin } from "@/lib/resident/onboardingClient";
 
 import styles from "./login.module.css";
@@ -11,17 +12,6 @@ import styles from "./login.module.css";
 export default function ResidentLoginPage() {
   const router = useRouter();
   const [sheetOpen, setSheetOpen] = useState(false);
-
-  useEffect(() => {
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setSheetOpen(false);
-      }
-    };
-
-    document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
-  }, []);
 
   const continueWithMatchedIdentity = async () => {
     setSheetOpen(false);
@@ -97,29 +87,23 @@ export default function ResidentLoginPage() {
         </div>
       </div>
 
-      <div
-        className={`${styles.sheet} ${sheetOpen ? styles.show : ""}`}
-        onClick={(event) => {
-          if (event.target === event.currentTarget) {
-            setSheetOpen(false);
-          }
-        }}
+      <ResidentBottomSheet
+        variant="compact"
+        open={sheetOpen}
+        onDismiss={() => setSheetOpen(false)}
       >
-        <div className={styles.sheetB}>
-          <div className={styles.grab} />
-          <div className={styles.sheetT}>카카오 로그인으로 연결할까요?</div>
-          <div className={styles.sheetD}>
-            카카오톡에 등록된 휴대폰 번호로 세대 정보를 자동으로 찾아드려요.
-          </div>
-          <button
-            type="button"
-            className={styles.sheetBtn}
-            onClick={continueWithMatchedIdentity}
-          >
-            계속하기
-          </button>
+        <div className={styles.sheetT}>카카오 로그인으로 연결할까요?</div>
+        <div className={styles.sheetD}>
+          카카오톡에 등록된 휴대폰 번호로 세대 정보를 자동으로 찾아드려요.
         </div>
-      </div>
+        <button
+          type="button"
+          className={styles.sheetBtn}
+          onClick={continueWithMatchedIdentity}
+        >
+          계속하기
+        </button>
+      </ResidentBottomSheet>
     </>
   );
 }

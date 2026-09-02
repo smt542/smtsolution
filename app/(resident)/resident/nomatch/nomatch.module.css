@@ -25,13 +25,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.body {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  padding: calc(env(safe-area-inset-top) + 44px) 28px 8px;
-}
-
 .ic {
   width: 58px;
   height: 58px;
@@ -47,24 +40,6 @@
 .ic svg {
   width: 28px;
   height: 28px;
-}
-
-.h1 {
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.38;
-  margin: 18px 0 0;
-  animation: rise 0.5s 0.06s cubic-bezier(0.22, 0.61, 0.36, 1) both;
-}
-
-.lead {
-  font-size: 14.5px;
-  font-weight: 600;
-  color: var(--t3);
-  line-height: 1.62;
-  margin-top: 10px;
-  animation: rise 0.5s 0.1s cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 
 .why {
@@ -115,14 +90,6 @@
   color: var(--t3);
   line-height: 1.6;
   margin-top: 4px;
-}
-
-.foot {
-  flex: none;
-  padding: 14px 28px calc(env(safe-area-inset-bottom) + 24px);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 }
 
 .btn {

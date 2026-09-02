@@ -13,62 +13,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.hdr {
-  flex: none;
-  display: flex;
-  align-items: center;
-  padding: calc(env(safe-area-inset-top) + 12px) 12px 4px;
-}
-
-.bk {
-  width: 38px;
-  height: 38px;
-  border: 0;
-  border-radius: 12px;
-  background: transparent;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--t2);
-  cursor: pointer;
-}
-
-.bk:hover {
-  background: var(--bg);
-  color: var(--t2);
-}
-
-.bk svg {
-  width: 22px;
-  height: 22px;
-}
-
-.body {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  padding: 10px 28px 8px;
-}
-
-.h1 {
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.38;
-  margin: 8px 0 0;
-  animation: rise 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) both;
-}
-
-.lead {
-  font-size: 14.5px;
-  font-weight: 600;
-  color: var(--t3);
-  line-height: 1.62;
-  margin-top: 10px;
-  animation: rise 0.5s 0.06s cubic-bezier(0.22, 0.61, 0.36, 1) both;
-}
-
 .card {
   margin-top: 26px;
   border: 1px solid var(--line);
@@ -156,14 +100,6 @@
   margin-top: 1px;
 }
 
-.foot {
-  flex: none;
-  padding: 14px 28px calc(env(safe-area-inset-bottom) + 24px);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
 .btn {
   width: 100%;
   height: 56px;
@@ -202,46 +138,6 @@
 
 .btn.alt:hover {
   color: var(--t2);
-}
-
-.sheet {
-  position: fixed;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 100dvh;
-  max-height: 100dvh;
-  background: rgba(23, 31, 40, 0.45);
-  display: none;
-  align-items: flex-end;
-  justify-content: center;
-  z-index: 90;
-  overflow: hidden;
-}
-
-.sheet.show {
-  display: flex;
-}
-
-.sheetB {
-  background: #fff;
-  border-radius: 22px 22px 0 0;
-  width: 100%;
-  max-width: 440px;
-  padding: 10px 24px calc(env(safe-area-inset-bottom) + 22px);
-  height: min(640px, calc(100dvh - 40px));
-  max-height: calc(100dvh - 40px);
-  display: flex;
-  flex-direction: column;
-}
-
-.grab {
-  width: 36px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--line);
-  margin: 0 auto 16px;
-  flex: none;
 }
 
 .sheetT {

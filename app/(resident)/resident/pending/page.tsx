@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import OnboardingPageScaffold from "@/app/(resident)/_components/OnboardingPageScaffold";
 import {
   getPendingInfo,
   type PendingInfo,
@@ -58,8 +59,17 @@ export default function ResidentPendingPage() {
     "건물 확인 요청";
 
   return (
-    <>
-      <div className={styles.body}>
+    <OnboardingPageScaffold
+      variant="center"
+      title="확인 요청을 보냈어요"
+      lead={
+        <>
+          관리사무소에서 세대를 확인하면
+          <br />
+          알림으로 알려드려요. 보통 1영업일 안에 처리돼요.
+        </>
+      }
+      icon={
         <div className={styles.ring}>
           <div className={styles.wave} />
           <div className={styles.core}>
@@ -77,26 +87,8 @@ export default function ResidentPendingPage() {
             </svg>
           </div>
         </div>
-        <h1 className={styles.h1}>확인 요청을 보냈어요</h1>
-        <p className={styles.lead}>
-          관리사무소에서 세대를 확인하면
-          <br />
-          알림으로 알려드려요. 보통 1영업일 안에 처리돼요.
-        </p>
-        <div className={styles.card}>
-          <div className={styles.r}>
-            <span>요청 세대</span>
-            <b>{household}</b>
-          </div>
-          <div className={styles.r}>
-            <span>요청 일시</span>
-            <b className={styles.num}>
-              {formatRequestedAt(pendingInfo.requestedAt)}
-            </b>
-          </div>
-        </div>
-      </div>
-      <div className={styles.foot}>
+      }
+      footer={
         <button
           type="button"
           className={`${styles.btn} ${styles.pri}`}
@@ -104,7 +96,20 @@ export default function ResidentPendingPage() {
         >
           로그인 화면으로
         </button>
+      }
+    >
+      <div className={styles.card}>
+        <div className={styles.r}>
+          <span>요청 세대</span>
+          <b>{household}</b>
+        </div>
+        <div className={styles.r}>
+          <span>요청 일시</span>
+          <b className={styles.num}>
+            {formatRequestedAt(pendingInfo.requestedAt)}
+          </b>
+        </div>
       </div>
-    </>
+    </OnboardingPageScaffold>
   );
 }

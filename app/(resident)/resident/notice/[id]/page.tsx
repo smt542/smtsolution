@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
+import MobileBackHeader from "@/app/(resident)/_components/MobileBackHeader";
 import {
   type ResidentNoticeType,
   useResidentNoticeDetail,
@@ -26,15 +27,12 @@ export default function ResidentNoticeDetailPage() {
   const detailQuery = useResidentNoticeDetail(id);
 
   const header = (
-    <header className={styles.header}>
-      <Link href="/resident/notice" aria-label="공지 목록으로 돌아가기">
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M15 5l-7 7 7 7" />
-        </svg>
-      </Link>
-      <h1>공지사항</h1>
-      <span aria-hidden="true" />
-    </header>
+    <MobileBackHeader
+      href="/resident/notice"
+      label="공지 목록으로 돌아가기"
+      title="공지사항"
+      divider
+    />
   );
 
   if (guard.loading || (id > 0 && detailQuery.isPending)) {

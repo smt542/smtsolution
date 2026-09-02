@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import OnboardingPageScaffold from "@/app/(resident)/_components/OnboardingPageScaffold";
 import { getSession, logout } from "@/lib/resident/onboardingClient";
 
 import styles from "./nomatch.module.css";
@@ -52,8 +53,25 @@ export default function ResidentNomatchPage() {
   };
 
   return (
-    <>
-      <div className={styles.body}>
+    <OnboardingPageScaffold
+      variant="block"
+      title={
+        <>
+          등록된 세대를
+          <br />
+          찾지 못했어요
+        </>
+      }
+      lead={
+        <>
+          <b className={styles.num}>{maskedPhone}</b> 번호로 연결된 세대가 없어요.
+          <br />
+          관리사무소에 등록한 번호의 카카오 계정으로
+          <br />
+          다시 로그인해 주세요.
+        </>
+      }
+      icon={
         <div className={styles.ic}>
           <svg
             viewBox="0 0 24 24"
@@ -69,45 +87,8 @@ export default function ResidentNomatchPage() {
             <path d="M11 8v3M11 14v.4" />
           </svg>
         </div>
-        <h1 className={styles.h1}>
-          등록된 세대를
-          <br />
-          찾지 못했어요
-        </h1>
-        <p className={styles.lead}>
-          <b className={styles.num}>{maskedPhone}</b> 번호로 연결된 세대가 없어요.
-          <br />
-          관리사무소에 등록한 번호의 카카오 계정으로
-          <br />
-          다시 로그인해 주세요.
-        </p>
-        <div className={styles.why}>
-          <div className={styles.w}>
-            <div className={styles.n}>1</div>
-            <div>
-              <b>관리사무소에 등록된 번호가 다를 수 있어요</b>
-              <span>계약서에 적은 번호와 카카오 계정 번호가 다른 경우예요</span>
-            </div>
-          </div>
-          <div className={styles.w}>
-            <div className={styles.n}>2</div>
-            <div>
-              <b>입주 등록이 아직 안 됐을 수 있어요</b>
-              <span>입주 직후에는 관리사무소 등록까지 하루 정도 걸려요</span>
-            </div>
-          </div>
-          <div className={styles.w}>
-            <div className={styles.n}>3</div>
-            <div>
-              <b>세대주 명의가 가족일 수 있어요</b>
-              <span>
-                계약자 본인 번호로 가입된 카카오 계정으로 로그인해 주세요
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className={styles.foot}>
+      }
+      footer={
         <button
           type="button"
           className={`${styles.btn} ${styles.pri}`}
@@ -115,7 +96,33 @@ export default function ResidentNomatchPage() {
         >
           다른 카카오 계정으로 로그인
         </button>
+      }
+    >
+      <div className={styles.why}>
+        <div className={styles.w}>
+          <div className={styles.n}>1</div>
+          <div>
+            <b>관리사무소에 등록된 번호가 다를 수 있어요</b>
+            <span>계약서에 적은 번호와 카카오 계정 번호가 다른 경우예요</span>
+          </div>
+        </div>
+        <div className={styles.w}>
+          <div className={styles.n}>2</div>
+          <div>
+            <b>입주 등록이 아직 안 됐을 수 있어요</b>
+            <span>입주 직후에는 관리사무소 등록까지 하루 정도 걸려요</span>
+          </div>
+        </div>
+        <div className={styles.w}>
+          <div className={styles.n}>3</div>
+          <div>
+            <b>세대주 명의가 가족일 수 있어요</b>
+            <span>
+              계약자 본인 번호로 가입된 카카오 계정으로 로그인해 주세요
+            </span>
+          </div>
+        </div>
       </div>
-    </>
+    </OnboardingPageScaffold>
   );
 }

@@ -1,14 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useParams } from "next/navigation";
 
 import BillDetailView from "@/app/(resident)/_components/BillDetailView";
+import PublicTokenPageShell from "@/app/(resident)/_components/PublicTokenPageShell";
 import ResidentAsyncState from "@/app/(resident)/_components/ResidentAsyncState";
-import ResidentScreenFrame from "@/app/(resident)/_components/ResidentScreenFrame";
 import { usePublicBillByToken } from "@/hooks/reactquery/residentBilling";
-
-import styles from "./public.module.css";
 
 export default function PublicBillPage() {
   const params = useParams<{ token: string }>();
@@ -44,21 +41,13 @@ export default function PublicBillPage() {
   const valid = billQuery.data && !billQuery.data.isExpired;
 
   return (
-    <ResidentScreenFrame
-      variant="public"
-      header={
-        <>
-          <span className={styles.brand}>관리비서</span>
-          <span>공개 관리비 고지서</span>
-        </>
-      }
+    <PublicTokenPageShell
+      brand="관리비서"
+      subtitle="공개 관리비 고지서"
+      ctaLabel="관리비서 시작하기"
+      showCta={Boolean(valid)}
     >
       <BillDetailView mode="public" detail={billQuery.data ?? null} />
-      {valid ? (
-        <Link className={styles.cta} href="/resident/login">
-          관리비서 시작하기
-        </Link>
-      ) : null}
-    </ResidentScreenFrame>
+    </PublicTokenPageShell>
   );
 }

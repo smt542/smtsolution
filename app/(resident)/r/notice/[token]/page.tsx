@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useParams } from "next/navigation";
 
+import PublicShareArticleCard from "@/app/(resident)/_components/PublicShareArticleCard";
+import PublicTokenPageShell from "@/app/(resident)/_components/PublicTokenPageShell";
 import ResidentAsyncState from "@/app/(resident)/_components/ResidentAsyncState";
-import ResidentScreenFrame from "@/app/(resident)/_components/ResidentScreenFrame";
 import {
   type PublicNoticeType,
   usePublicNoticeByToken,
@@ -79,34 +79,25 @@ export default function PublicNoticePage() {
   const notice = noticeQuery.data;
 
   return (
-    <ResidentScreenFrame
-      variant="public"
-      header={
-        <>
-          <span className={styles.brand}>관리비ON</span>
-          <span>공개 공지사항</span>
-        </>
-      }
+    <PublicTokenPageShell
+      brand="관리비ON"
+      subtitle="공개 공지사항"
+      ctaLabel="관리비ON 시작하기"
     >
-      <article className={styles.card}>
-          <p className={styles.eyebrow}>
-            {notice.noticeType
-              ? noticeTypeLabels[notice.noticeType]
-              : "공지사항"}
-          </p>
-          <h1 className={styles.title}>{notice.title}</h1>
-          <p className={styles.meta}>
-            {[notice.buildingName, notice.publishedAt
-              ? formatDate(notice.publishedAt)
-              : null]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
-          <p className={styles.content}>{notice.content}</p>
-      </article>
-      <Link className={styles.cta} href="/resident/login">
-        관리비ON 시작하기
-      </Link>
-    </ResidentScreenFrame>
+      <PublicShareArticleCard
+        eyebrow={
+          notice.noticeType ? noticeTypeLabels[notice.noticeType] : "공지사항"
+        }
+        title={notice.title}
+        metadata={[
+          notice.buildingName,
+          notice.publishedAt ? formatDate(notice.publishedAt) : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+      >
+        <p className={styles.content}>{notice.content}</p>
+      </PublicShareArticleCard>
+    </PublicTokenPageShell>
   );
 }

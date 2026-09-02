@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import MobileBackHeader from "@/app/(resident)/_components/MobileBackHeader";
 import {
   type ResidentNoticeType,
   useResidentNotices,
@@ -53,15 +54,11 @@ export default function ResidentNoticePage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <Link href="/resident/home" aria-label="홈으로 돌아가기">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M15 5l-7 7 7 7" />
-          </svg>
-        </Link>
-        <h1>공지사항</h1>
-        <span aria-hidden="true" />
-      </header>
+      <MobileBackHeader
+        href="/resident/home"
+        label="홈으로 돌아가기"
+        title="공지사항"
+      />
 
       <main className={styles.scroll}>
         {notices.length === 0 ? (
