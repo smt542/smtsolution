@@ -4,6 +4,7 @@ import React from "react";
 import { Controller, useForm, useWatch, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, Input, Modal, Select } from "@/components/common";
+import { FormField } from '@/components/common/FormField';
 import { accountCreateSchema, accountEditSchema } from "@/components/forms/schema/account";
 import type {
   Account,
@@ -195,10 +196,11 @@ export function AccountFormModal({
 
           <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <label htmlFor="username" className="mb-1 block text-xs font-semibold text-t3">
-                  아이디 <RequiredMark />
-                </label>
+              <FormField
+                htmlFor="username"
+                label={<>아이디 <RequiredMark /></>}
+                error={errors.username && <>{errors.username.message}</>}
+              >
                 <Input
                   id="username"
                   aria-label="아이디"
@@ -207,13 +209,13 @@ export function AccountFormModal({
                   readOnly={isEdit}
                   className={errors.username ? "border-danger" : ""}
                 />
-                {errors.username && <p className="mt-1 text-xs text-danger">{errors.username.message}</p>}
-              </div>
+              </FormField>
 
-              <div>
-                <label htmlFor="password" className="mb-1 block text-xs font-semibold text-t3">
-                  비밀번호 {!isEdit && <RequiredMark />}
-                </label>
+              <FormField
+                htmlFor="password"
+                label={<>비밀번호 {!isEdit && <RequiredMark />}</>}
+                error={errors.password && <>{errors.password.message}</>}
+              >
                 <Input
                   id="password"
                   aria-label="비밀번호"
@@ -231,13 +233,13 @@ export function AccountFormModal({
                   placeholder="숫자 4자리"
                   className={errors.password ? "border-danger" : ""}
                 />
-                {errors.password && <p className="mt-1 text-xs text-danger">{errors.password.message}</p>}
-              </div>
+              </FormField>
 
-              <div>
-                <label htmlFor="fullName" className="mb-1 block text-xs font-semibold text-t3">
-                  이름 <RequiredMark />
-                </label>
+              <FormField
+                htmlFor="fullName"
+                label={<>이름 <RequiredMark /></>}
+                error={errors.fullName && <>{errors.fullName.message}</>}
+              >
                 <Input
                   id="fullName"
                   aria-label="이름"
@@ -245,11 +247,9 @@ export function AccountFormModal({
                   placeholder="이름 입력"
                   className={errors.fullName ? "border-danger" : ""}
                 />
-                {errors.fullName && <p className="mt-1 text-xs text-danger">{errors.fullName.message}</p>}
-              </div>
+              </FormField>
 
-              <div>
-                <label htmlFor="phone" className="mb-1 block text-xs font-semibold text-t3">연락처</label>
+              <FormField htmlFor="phone" label="연락처">
                 <Input
                   id="phone"
                   aria-label="연락처"
@@ -258,10 +258,9 @@ export function AccountFormModal({
                   {...register("phone")}
                   placeholder="010-0000-0000"
                 />
-              </div>
+              </FormField>
 
-              <div>
-                <label htmlFor="memberType" className="mb-1 block text-xs font-semibold text-t3">회원 유형</label>
+              <FormField htmlFor="memberType" label="회원 유형">
                 <Controller
                   control={control}
                   name="isMaster"
@@ -276,10 +275,9 @@ export function AccountFormModal({
                     />
                   )}
                 />
-              </div>
+              </FormField>
 
-              <div>
-                <label htmlFor="status" className="mb-1 block text-xs font-semibold text-t3">상태</label>
+              <FormField htmlFor="status" label="상태">
                 <Controller
                   control={control}
                   name="isActive"
@@ -293,7 +291,7 @@ export function AccountFormModal({
                     />
                   )}
                 />
-              </div>
+              </FormField>
             </div>
 
             <div className="mt-5">
