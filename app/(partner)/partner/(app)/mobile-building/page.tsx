@@ -6,7 +6,9 @@ import { type ReactNode, Suspense, useEffect, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 
+import { PartnerListRow } from "../../../_components/PartnerListRow";
 import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
+import { PartnerPhoneLink } from "../../../_components/PartnerPhoneLink";
 import styles from "./mobile-building.module.css";
 
 type Building = {
@@ -48,15 +50,6 @@ const VENDOR_LABEL: Record<string, string> = {
 function unitLabel(dong: string | null, unitNo: string) {
   return `${dong ? `${dong} ` : ""}${unitNo}`;
 }
-function telHref(v: string) {
-  return `tel:${v.replace(/[^0-9]/g, "")}`;
-}
-
-const PhoneIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-    <path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1.1 1A16 16 0 0 1 4 5.1 1 1 0 0 1 5 4z" />
-  </svg>
-);
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -172,12 +165,7 @@ function BuildingDetailInner() {
                     <div className={styles.vendType}>{VENDOR_LABEL[v.vendor_type] ?? v.vendor_type}</div>
                     <div className={styles.vendBody}>
                       <span className={styles.vendName}>{v.name}</span>
-                      {v.phone && (
-                        <a className={styles.tel} href={telHref(v.phone)}>
-                          <PhoneIcon />
-                          {v.phone}
-                        </a>
-                      )}
+                      {v.phone && <PartnerPhoneLink phone={v.phone} />}
                     </div>
                     {v.memo && <div className={styles.vendMemo}>{v.memo}</div>}
                   </div>
@@ -191,14 +179,7 @@ function BuildingDetailInner() {
               <div className={styles.row}>
                 <span className={styles.rowLabel}>전화번호</span>
                 <b className={styles.rowValue}>
-                  {building.owner_phone ? (
-                    <a className={styles.tel} href={telHref(building.owner_phone)}>
-                      <PhoneIcon />
-                      {building.owner_phone}
-                    </a>
-                  ) : (
-                    "—"
-                  )}
+                  {building.owner_phone ? <PartnerPhoneLink phone={building.owner_phone} /> : "—"}
                 </b>
               </div>
             </div>
@@ -209,14 +190,11 @@ function BuildingDetailInner() {
               <div className={styles.none}>세대 정보가 없어요</div>
             ) : (
               units.map((u) => (
-                <Link key={u.unit_id} href={`/partner/mobile-tenant?id=${u.unit_id}`} className={styles.ucell}>
+                <PartnerListRow key={u.unit_id} href={`/partner/mobile-tenant?id=${u.unit_id}`} chevron>
                   <span className={styles.uho}>{unitLabel(u.dong, u.unit_no)}</span>
                   {u.tenant_name ? <span className={styles.unm}>{u.tenant_name}</span> : <span className={styles.uvac}>공실</span>}
                   <span className={styles.uspacer} />
-                  <svg className={styles.uchev} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 5l7 7-7 7" />
-                  </svg>
-                </Link>
+                </PartnerListRow>
               ))
             )}
           </div>

@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
+import { PartnerFormFieldRow } from "../../../_components/PartnerFormFieldRow";
+import { PartnerInlineError } from "../../../_components/PartnerInlineError";
 import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
 import { AS_STATUS, combineDateTime, todayLocal } from "../_as";
 import styles from "../_asform.module.css";
@@ -130,89 +132,77 @@ export default function PartnerAsNewPage() {
         <div className={styles.sec}>
           <div className={styles.secTitle}>대상 세대</div>
           <div className={styles.box}>
-            <div className={styles.row}>
-              <span className={styles.label}>건물</span>
+            <PartnerFormFieldRow label="건물">
               <select className={styles.control} value={buildingId} onChange={(e) => setBuildingId(e.target.value)}>
                 {buildings.length === 0 && <option value="">담당 건물 없음</option>}
                 {buildings.map((b) => (
                   <option key={b.id} value={String(b.id)}>{b.name}</option>
                 ))}
               </select>
-            </div>
-            <div className={styles.row}>
-              <span className={styles.label}>호수</span>
+            </PartnerFormFieldRow>
+            <PartnerFormFieldRow label="호수">
               <select className={styles.control} value={unitId} onChange={(e) => setUnitId(e.target.value)}>
                 <option value="">건물 전체</option>
                 {units.map((u) => (
                   <option key={u.unit_id} value={String(u.unit_id)}>{unitLabel(u)}</option>
                 ))}
               </select>
-            </div>
+            </PartnerFormFieldRow>
           </div>
         </div>
 
         <div className={styles.sec}>
           <div className={styles.secTitle}>접수 정보</div>
           <div className={styles.box}>
-            <div className={styles.row}>
-              <span className={styles.label}>접수자</span>
+            <PartnerFormFieldRow label="접수자">
               <span className={styles.ro}>{myName || "—"}</span>
-            </div>
-            <div className={styles.row}>
-              <span className={styles.label}>담당자</span>
+            </PartnerFormFieldRow>
+            <PartnerFormFieldRow label="담당자">
               <span className={styles.ro}>{myName || "—"}</span>
-            </div>
-            <div className={styles.row}>
-              <span className={styles.label}>접수일시</span>
+            </PartnerFormFieldRow>
+            <PartnerFormFieldRow label="접수일시">
               <span className={styles.ro}>{today}</span>
-            </div>
-            <div className={styles.row}>
-              <span className={styles.label}>유형</span>
+            </PartnerFormFieldRow>
+            <PartnerFormFieldRow label="유형">
               <select className={styles.control} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
                 <option value="">선택 안 함</option>
                 {cats.map((c) => (
                   <option key={c.id} value={String(c.id)}>{c.label}</option>
                 ))}
               </select>
-            </div>
-            <div className={styles.row}>
-              <span className={styles.label}>입주자 전화번호</span>
+            </PartnerFormFieldRow>
+            <PartnerFormFieldRow label="입주자 전화번호">
               <span className={styles.ro}>{reporterPhone || "—"}</span>
-            </div>
-            <div className={`${styles.row} ${styles.rowCol}`}>
-              <span className={styles.label}>접수 내용</span>
+            </PartnerFormFieldRow>
+            <PartnerFormFieldRow label="접수 내용" column>
               <textarea className={styles.textarea} value={content} onChange={(e) => setContent(e.target.value)} placeholder="접수 내용을 입력해 주세요" />
-            </div>
+            </PartnerFormFieldRow>
           </div>
         </div>
 
         <div className={styles.sec}>
           <div className={styles.secTitle}>처리</div>
           <div className={styles.box}>
-            <div className={styles.row}>
-              <span className={styles.label}>처리결과</span>
+            <PartnerFormFieldRow label="처리결과">
               <select className={styles.control} value={status} onChange={(e) => setStatus(e.target.value)}>
                 {AS_STATUS.map((s) => (
                   <option key={s.db} value={s.db}>{s.ko}</option>
                 ))}
               </select>
-            </div>
-            <div className={styles.row}>
-              <span className={styles.label}>시행일자</span>
+            </PartnerFormFieldRow>
+            <PartnerFormFieldRow label="시행일자">
               <input type="date" className={styles.control} value={date} onChange={(e) => setDate(e.target.value)} />
-            </div>
-            <div className={styles.row}>
-              <span className={styles.label}>시간</span>
+            </PartnerFormFieldRow>
+            <PartnerFormFieldRow label="시간">
               <input type="time" className={styles.control} value={time} onChange={(e) => setTime(e.target.value)} />
-            </div>
-            <div className={`${styles.row} ${styles.rowCol}`}>
-              <span className={styles.label}>처리결과 내용</span>
+            </PartnerFormFieldRow>
+            <PartnerFormFieldRow label="처리결과 내용" column>
               <textarea className={styles.textarea} value={result} onChange={(e) => setResult(e.target.value)} placeholder="처리한 내용을 입력해 주세요" />
-            </div>
+            </PartnerFormFieldRow>
           </div>
         </div>
 
-        {err && <div className={styles.err} role="alert">{err}</div>}
+        {err && <PartnerInlineError message={err} />}
       </div>
 
       <PartnerBottomActionBar>

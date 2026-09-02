@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { type ReactNode, Suspense, useEffect, useMemo, useState } from "react";
 
 import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
+import { PartnerInlineError } from "../../../_components/PartnerInlineError";
 import {
   buildSaveData,
   computeTotals,
@@ -580,11 +581,7 @@ function MsNewInner() {
           </div>
         </div>
 
-        {err ? (
-          <div className={styles.err} role="alert">
-            {err}
-          </div>
-        ) : null}
+        {err ? <PartnerInlineError message={err} /> : null}
       </div>
 
       <PartnerBottomActionBar>
