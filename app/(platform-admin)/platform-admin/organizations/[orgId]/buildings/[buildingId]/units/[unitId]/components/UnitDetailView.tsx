@@ -1,9 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { Spinner } from "@/components/common";
 import { PageHeader, QueryError } from "../../../../../../../../_components/PageElements";
+import { PlatformPageContainer } from "../../../../../../../../_components/PlatformPageContainer";
+import { PlatformBreadcrumbs } from "../../../../../../../../_components/PlatformBreadcrumbs";
 import { useUnitOccupancy } from "@/hooks/reactquery/platform";
 
 const STATUS_LABEL: Record<string, string> = { occupied: "입주", vacant: "공실", moving_out: "이사예정" };
@@ -22,16 +23,18 @@ export function UnitDetailView({ orgId, buildingId, unitId }: { orgId: number; b
   const o = data?.occupancy;
 
   return (
-    <div className="mx-auto w-full max-w-5xl p-5 sm:p-6 lg:p-8">
-      <nav className="mb-3 text-xs text-t3">
-        <Link href="/platform-admin/organizations" className="hover:underline">조직 관리</Link>
-        <span className="mx-1.5">›</span>
-        <Link href={`/platform-admin/organizations/${orgId}`} className="hover:underline">{data?.orgName ?? "조직"}</Link>
-        <span className="mx-1.5">›</span>
-        <Link href={`/platform-admin/organizations/${orgId}/buildings/${buildingId}`} className="hover:underline">{data?.buildingName ?? "건물"}</Link>
-        <span className="mx-1.5">›</span>
-        {data?.unitNo ?? "세대"}
-      </nav>
+    <PlatformPageContainer maxWidthClassName="max-w-5xl">
+      <PlatformBreadcrumbs
+        items={[
+          { label: "조직 관리", href: "/platform-admin/organizations" },
+          { label: data?.orgName ?? "조직", href: `/platform-admin/organizations/${orgId}` },
+          {
+            label: data?.buildingName ?? "건물",
+            href: `/platform-admin/organizations/${orgId}/buildings/${buildingId}`,
+          },
+          { label: data?.unitNo ?? "세대" },
+        ]}
+      />
       <PageHeader eyebrow="UNIT" title={data ? `${data.unitNo} 세대` : "세대 상세"} description="세대·입주 정보입니다. (읽기 전용)" />
 
       {isPending ? (
@@ -67,6 +70,6 @@ export function UnitDetailView({ orgId, buildingId, unitId }: { orgId: number; b
           </section>
         </div>
       )}
-    </div>
+    </PlatformPageContainer>
   );
 }

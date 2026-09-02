@@ -27,6 +27,10 @@ import {
   QueryError,
 } from "../../_components/PageElements";
 import { CollectionToolbar } from "../../_components/CollectionToolbar";
+import { PlatformPageContainer } from "../../_components/PlatformPageContainer";
+import { TableFrame } from "../../_components/TableFrame";
+import { ModalActions } from "../../_components/ModalActions";
+import { InlineAlert } from "../../_components/InlineAlert";
 import type { AccountEditValues } from "./components/AccountEditModal";
 import { AccountRowActions } from "./components/AccountRowActions";
 
@@ -207,7 +211,7 @@ export default function PlatformAccountsPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-7xl p-5 sm:p-6 lg:p-8">
+    <PlatformPageContainer>
       <PageHeader
         eyebrow="ACCOUNTS"
         title="계정 관리"
@@ -252,57 +256,55 @@ export default function PlatformAccountsPage() {
         ) : accounts.length === 0 ? (
           <EmptyState message={search ? "검색 결과가 없습니다" : "조회 가능한 계정이 없습니다"} />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1420px] text-sm">
-              <thead>
-                <tr className="border-b border-line bg-bg/70 text-left text-xs font-bold text-t3">
-                  <th className="px-5 py-3">계정</th>
-                  <th className="px-4 py-3">조직</th>
-                  <th className="px-4 py-3">전화번호</th>
-                  <th className="px-4 py-3">메모</th>
-                  <th className="px-4 py-3">권한</th>
-                  <th className="px-4 py-3">상태</th>
-                  <th className="px-4 py-3">소속일</th>
-                  <th className="px-5 py-3 text-right">관리</th>
+          <TableFrame minWidthClassName="min-w-[1420px]">
+            <thead>
+              <tr className="border-b border-line bg-bg/70 text-left text-xs font-bold text-t3">
+                <th className="px-5 py-3">계정</th>
+                <th className="px-4 py-3">조직</th>
+                <th className="px-4 py-3">전화번호</th>
+                <th className="px-4 py-3">메모</th>
+                <th className="px-4 py-3">권한</th>
+                <th className="px-4 py-3">상태</th>
+                <th className="px-4 py-3">소속일</th>
+                <th className="px-5 py-3 text-right">관리</th>
+              </tr>
+            </thead>
+            <tbody>
+              {accounts.map((account) => (
+                <tr
+                  key={`${account.orgId}:${account.userId}`}
+                  className="border-b border-line last:border-0 hover:bg-bg/50"
+                >
+                  <td className="px-5 py-4">
+                    <div className="font-bold text-t1">{account.fullName ?? "프로필 없음"}</div>
+                    <div className="mt-1 text-xs text-t3">{account.username ?? account.userId}</div>
+                  </td>
+                  <td className="px-4 py-4 font-semibold text-t2">{account.organizationName}</td>
+                  <td className="px-4 py-4 text-t2 num">{account.phone ?? "—"}</td>
+                  <td className="max-w-64 px-4 py-4 text-t2">
+                    <span className="line-clamp-2">{account.memo ?? "—"}</span>
+                  </td>
+                  <td className="px-4 py-4 text-t2">{ROLE_LABELS[account.role]}</td>
+                  <td className="px-4 py-4">
+                    <AccountStatus active={account.isActive} />
+                  </td>
+                  <td className="px-4 py-4 text-t2 num">
+                    {dateFormatter.format(new Date(account.createdAt))}
+                  </td>
+                  <td className="px-5 py-4">
+                    <AccountRowActions
+                      account={account}
+                      onEditDetails={() => setEditTarget(account)}
+                      onChangeRole={() => setRoleTarget(account)}
+                      onToggleActive={() => void handleToggleActive(account)}
+                      onResetPassword={() => void handleResetPassword(account)}
+                      isPending={actionPending}
+                    />
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {accounts.map((account) => (
-                  <tr
-                    key={`${account.orgId}:${account.userId}`}
-                    className="border-b border-line last:border-0 hover:bg-bg/50"
-                  >
-                    <td className="px-5 py-4">
-                      <div className="font-bold text-t1">{account.fullName ?? "프로필 없음"}</div>
-                      <div className="mt-1 text-xs text-t3">{account.username ?? account.userId}</div>
-                    </td>
-                    <td className="px-4 py-4 font-semibold text-t2">{account.organizationName}</td>
-                    <td className="px-4 py-4 text-t2 num">{account.phone ?? "—"}</td>
-                    <td className="max-w-64 px-4 py-4 text-t2">
-                      <span className="line-clamp-2">{account.memo ?? "—"}</span>
-                    </td>
-                    <td className="px-4 py-4 text-t2">{ROLE_LABELS[account.role]}</td>
-                    <td className="px-4 py-4">
-                      <AccountStatus active={account.isActive} />
-                    </td>
-                    <td className="px-4 py-4 text-t2 num">
-                      {dateFormatter.format(new Date(account.createdAt))}
-                    </td>
-                    <td className="px-5 py-4">
-                      <AccountRowActions
-                        account={account}
-                        onEditDetails={() => setEditTarget(account)}
-                        onChangeRole={() => setRoleTarget(account)}
-                        onToggleActive={() => void handleToggleActive(account)}
-                        onResetPassword={() => void handleResetPassword(account)}
-                        isPending={actionPending}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </TableFrame>
         )}
         <PlatformPagination
           page={page}
@@ -373,7 +375,7 @@ export default function PlatformAccountsPage() {
           </div>
         </Modal>
       )}
-    </div>
+    </PlatformPageContainer>
   );
 }
 
@@ -443,9 +445,9 @@ function RoleChangeModal({
         </p>
 
         {account.role === "platform_admin" && (
-          <p className="rounded-xl bg-red-t px-3 py-2 text-xs font-semibold text-red">
+          <InlineAlert tone="danger">
             현재 플랫폼 관리자입니다. 다른 역할을 저장하면 플랫폼 관리자 권한이 해제됩니다.
-          </p>
+          </InlineAlert>
         )}
 
         <div className="grid grid-cols-2 gap-3">
@@ -505,7 +507,7 @@ function RoleChangeModal({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-2">
+        <ModalActions>
           <Button type="button" variant="ghost" onClick={onClose}>
             취소
           </Button>
@@ -517,7 +519,7 @@ function RoleChangeModal({
           >
             {isPending ? "저장 중…" : "권한 저장"}
           </Button>
-        </div>
+        </ModalActions>
       </div>
     </Modal>
   );

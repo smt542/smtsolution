@@ -20,6 +20,7 @@ import {
   type OrgEditFormValues,
 } from "@/components/forms/schema/platformOrganization";
 import { getOrganizationContractFilePreview } from "@/hooks/reactquery/platform";
+import { ModalActions } from "../../../_components/ModalActions";
 
 export type OrgCreateSubmitValues = OrgCreateFormValues & {
   contractFile: File | null;
@@ -316,12 +317,12 @@ function CreateModal({ open, onClose, onSubmit, isPending }: Omit<CreateProps, "
           </FormField>
         </div>
 
-        <div className="flex justify-end gap-2 pt-2">
+        <ModalActions>
           <Button type="button" variant="ghost" onClick={onClose}>취소</Button>
           <Button type="submit" variant="primary" disabled={isPending || isSubmitting}>
             {isPending || isSubmitting ? "등록 중…" : "입점 등록"}
           </Button>
-        </div>
+        </ModalActions>
       </form>
     </Modal>
   );
@@ -372,12 +373,12 @@ function EditModal({
           }}
         />
 
-        <div className="flex justify-end gap-2 pt-2">
+        <ModalActions>
           <Button type="button" variant="ghost" onClick={onClose}>취소</Button>
           <Button type="submit" variant="primary" disabled={isPending || isSubmitting}>
             {isPending || isSubmitting ? "저장 중…" : "저장"}
           </Button>
-        </div>
+        </ModalActions>
       </form>
     </Modal>
   );

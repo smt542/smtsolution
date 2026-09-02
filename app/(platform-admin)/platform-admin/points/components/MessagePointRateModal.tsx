@@ -10,6 +10,8 @@ import {
   messagePointRatesSchema,
   type MessagePointRatesFormValues,
 } from "@/components/forms/schema/messagePointRates";
+import { ModalActions } from "../../../_components/ModalActions";
+import { InlineAlert } from "../../../_components/InlineAlert";
 
 type FormInput = z.input<typeof messagePointRatesSchema>;
 
@@ -99,17 +101,17 @@ export function MessagePointRateModal({
           />
         </FormField>
 
-        <p className="rounded-xl bg-amber-t px-3 py-2 text-xs font-semibold text-amber">
+        <InlineAlert tone="warning">
           단가는 동시에 변경되며 기존 단가는 이력으로 보존됩니다. LMS 단가를 비우면 LMS 단가는 변경되지
           않고, 미설정 상태에서는 LMS 길이의 문자를 발송할 수 없습니다.
-        </p>
+        </InlineAlert>
 
-        <div className="flex justify-end gap-2 pt-2">
+        <ModalActions>
           <Button type="button" variant="ghost" onClick={onClose}>취소</Button>
           <Button type="submit" variant="primary" disabled={isPending}>
             {isPending ? "저장 중…" : "단가 저장"}
           </Button>
-        </div>
+        </ModalActions>
       </form>
     </Modal>
   );

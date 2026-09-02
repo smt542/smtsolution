@@ -18,6 +18,8 @@ import {
   QueryError,
 } from "../../_components/PageElements";
 import { CollectionToolbar } from "../../_components/CollectionToolbar";
+import { PlatformPageContainer } from "../../_components/PlatformPageContainer";
+import { TableFrame } from "../../_components/TableFrame";
 import { InvoiceBulkPrintRoot } from "./_components/InvoiceBulkPrintRoot";
 import { invoiceConfigFromSettings } from "./_components/InvoiceDocument";
 import { InvoicePreviewModal } from "./_components/InvoicePreviewModal";
@@ -160,7 +162,7 @@ export default function PlatformBillingPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-7xl p-5 sm:p-6 lg:p-8">
+    <PlatformPageContainer>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <PageHeader
           eyebrow="BILLING"
@@ -233,63 +235,61 @@ export default function PlatformBillingPage() {
         ) : filtered.length === 0 ? (
           <EmptyState message="해당 조건의 청구 내역이 없습니다" />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-sm">
-              <thead>
-                <tr className="border-b border-line bg-bg/70 text-left text-xs font-bold text-t3">
-                  <th className="px-5 py-3">업체명</th>
-                  <th className="px-4 py-3">이메일</th>
-                  <th className="px-4 py-3 text-right">알림톡</th>
-                  <th className="px-4 py-3 text-right">문자</th>
-                  <th className="px-4 py-3 text-right">장문</th>
-                  <th className="px-4 py-3 text-right">팩스</th>
-                  <th className="px-4 py-3 text-right">청구액(공급가액)</th>
-                  <th className="px-4 py-3 text-right">전월비</th>
-                  <th className="px-4 py-3">상태</th>
-                  <th className="px-5 py-3 text-right">처리</th>
+          <TableFrame minWidthClassName="min-w-[900px]">
+            <thead>
+              <tr className="border-b border-line bg-bg/70 text-left text-xs font-bold text-t3">
+                <th className="px-5 py-3">업체명</th>
+                <th className="px-4 py-3">이메일</th>
+                <th className="px-4 py-3 text-right">알림톡</th>
+                <th className="px-4 py-3 text-right">문자</th>
+                <th className="px-4 py-3 text-right">장문</th>
+                <th className="px-4 py-3 text-right">팩스</th>
+                <th className="px-4 py-3 text-right">청구액(공급가액)</th>
+                <th className="px-4 py-3 text-right">전월비</th>
+                <th className="px-4 py-3">상태</th>
+                <th className="px-5 py-3 text-right">처리</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pagedRows.map((row) => (
+                <tr key={row.orgId} className="border-b border-line last:border-0 hover:bg-bg/50">
+                  <td className="px-5 py-4 font-bold text-t1">{row.orgName}</td>
+                  <td className="px-4 py-4 text-t3">{row.orgEmail ?? "—"}</td>
+                  <td className="px-4 py-4 text-right text-t2 num">{num(row.alimtalkCount)}</td>
+                  <td className="px-4 py-4 text-right text-t2 num">{num(row.smsCount)}</td>
+                  <td className="px-4 py-4 text-right text-t2 num">{num(row.lmsCount)}</td>
+                  <td className="px-4 py-4 text-right text-t2 num">{num(row.faxCount)}</td>
+                  <td className="px-4 py-4 text-right font-extrabold text-t1 num">{num(row.subtotalKrw)}</td>
+                  <td className="px-4 py-4 text-right text-t3 num">{deltaPercentLabel(row.totalKrw, row.prevTotalKrw)}</td>
+                  <td className="px-4 py-4"><BillingStatusBadge status={row.status} /></td>
+                  <td className="px-5 py-4 text-right">
+                    {row.status === "none" ? (
+                      <span className="text-t4">—</span>
+                    ) : (
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          onClick={() => {
+                            setBulkRows([]);
+                            setPreviewOrgId(row.orgId);
+                          }}
+                        >
+                          발행
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          onClick={() => void handleToggle(row)}
+                          disabled={markPaid.isPending}
+                        >
+                          {row.status === "paid" ? "입금 취소" : "입금 확인"}
+                        </Button>
+                      </div>
+                    )}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {pagedRows.map((row) => (
-                  <tr key={row.orgId} className="border-b border-line last:border-0 hover:bg-bg/50">
-                    <td className="px-5 py-4 font-bold text-t1">{row.orgName}</td>
-                    <td className="px-4 py-4 text-t3">{row.orgEmail ?? "—"}</td>
-                    <td className="px-4 py-4 text-right text-t2 num">{num(row.alimtalkCount)}</td>
-                    <td className="px-4 py-4 text-right text-t2 num">{num(row.smsCount)}</td>
-                    <td className="px-4 py-4 text-right text-t2 num">{num(row.lmsCount)}</td>
-                    <td className="px-4 py-4 text-right text-t2 num">{num(row.faxCount)}</td>
-                    <td className="px-4 py-4 text-right font-extrabold text-t1 num">{num(row.subtotalKrw)}</td>
-                    <td className="px-4 py-4 text-right text-t3 num">{deltaPercentLabel(row.totalKrw, row.prevTotalKrw)}</td>
-                    <td className="px-4 py-4"><BillingStatusBadge status={row.status} /></td>
-                    <td className="px-5 py-4 text-right">
-                      {row.status === "none" ? (
-                        <span className="text-t4">—</span>
-                      ) : (
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            onClick={() => {
-                              setBulkRows([]);
-                              setPreviewOrgId(row.orgId);
-                            }}
-                          >
-                            발행
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            onClick={() => void handleToggle(row)}
-                            disabled={markPaid.isPending}
-                          >
-                            {row.status === "paid" ? "입금 취소" : "입금 확인"}
-                          </Button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </TableFrame>
         )}
         {!billingQuery.isPending && !billingQuery.isError && (
           <PlatformPagination
@@ -321,7 +321,7 @@ export default function PlatformBillingPage() {
           settings={settingsQuery.data}
         />
       )}
-    </div>
+    </PlatformPageContainer>
   );
 }
 
