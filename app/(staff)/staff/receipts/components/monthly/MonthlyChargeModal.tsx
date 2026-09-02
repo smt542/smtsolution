@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
-import { Spinner } from "@/components/common";
 import { CloseIcon, PrinterIcon } from "@/components/icons";
 import type { Building } from "@/hooks/reactquery/buildings";
 import {
@@ -11,6 +10,7 @@ import {
   type ReceiptStatementData,
 } from "@/hooks/reactquery/receipts";
 import { toMonthInput } from "@/lib/billing/period";
+import { AsyncContentState } from "../AsyncContentState";
 import { buildMonthlyReport, periodsBetween, shiftMonth } from "./buildMonthlyReport";
 import { MonthlyChargeSummary } from "./MonthlyChargeSummary";
 import { MonthlyChargeTable } from "./MonthlyChargeTable";
@@ -174,27 +174,19 @@ export function MonthlyChargeModal({
           <MonthlyChargeSummary title={title} summary={model.summary} />
 
           {/* 표 (세로·가로 스크롤) */}
-          <div className="min-h-0 flex-1 overflow-auto">
-            {buildings.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-sm text-t3">
-                조회 가능한 건물이 없습니다.
-              </div>
-            ) : isError ? (
-              <div className="flex h-full items-center justify-center text-sm font-bold text-red">
-                부과·수납 자료를 불러오지 못했습니다.
-              </div>
-            ) : isLoading ? (
-              <div className="flex h-full items-center justify-center">
-                <Spinner />
-              </div>
-            ) : !hasData ? (
-              <div className="flex h-full items-center justify-center text-sm text-t3">
-                조회된 부과·수납 자료가 없습니다.
-              </div>
-            ) : (
-              <MonthlyChargeTable model={model} />
-            )}
-          </div>
+          <AsyncContentState
+            error={isError}
+            errorMessage="부과·수납 자료를 불러오지 못했습니다."
+            loading={isLoading}
+            empty={buildings.length === 0 || !hasData}
+            emptyMessage={
+              buildings.length === 0
+                ? "조회 가능한 건물이 없습니다."
+                : "조회된 부과·수납 자료가 없습니다."
+            }
+          >
+            <MonthlyChargeTable model={model} />
+          </AsyncContentState>
 
           {/* 푸터: 인쇄 */}
           <div className="flex h-[69px] shrink-0 items-center justify-end border-t border-line px-[20px]">
