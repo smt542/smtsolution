@@ -28,6 +28,7 @@ import {
   QueryError,
   StatusBadge,
 } from "../../_components/PageElements";
+import { CollectionToolbar } from "../../_components/CollectionToolbar";
 const PointChargeModal = dynamic(() =>
   import("./components/PointChargeModal").then((module) => module.PointChargeModal),
 );
@@ -203,12 +204,12 @@ export default function PlatformPointsPage() {
 
       {/* 잔액 목록 */}
       <section className="mt-6 rounded-2xl bg-surface shadow-card">
-        <div className="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
+        <CollectionToolbar
+          left={<div>
             <h3 className="text-base font-extrabold text-t1">조직별 포인트 잔액</h3>
             <p className="mt-1 text-xs text-t3">총 {num(orgsQuery.data?.totalCount ?? 0)}개 조직</p>
-          </div>
-          <div className="flex w-full gap-2 sm:w-auto">
+          </div>}
+          right={<div className="flex w-full gap-2 sm:w-auto">
             <div className="w-full sm:w-64">
               <SearchBar
                 value={search}
@@ -221,8 +222,8 @@ export default function PlatformPointsPage() {
             </div>
             <Button variant="ghost" onClick={() => setAdjustmentModalOpen(true)} disabled={pickerUnavailable}>포인트 조정</Button>
             <Button variant="primary" onClick={() => setChargeModalOpen(true)} disabled={pickerUnavailable}>충전 기록</Button>
-          </div>
-        </div>
+          </div>}
+        />
         {orgsQuery.isPending ? (
           <div className="py-16"><Spinner /></div>
         ) : orgsQuery.isError ? (

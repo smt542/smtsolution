@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Modal, Input, Button } from "@/components/common";
+import { FormField } from "@/components/common/FormField";
 import { pointChargeSchema } from "@/components/forms/schema/pointCharge";
 import type { PlatformOrganization } from "@/hooks/reactquery/platform";
 
@@ -41,8 +42,7 @@ export function PointChargeModal({ open, onClose, organizations, onSubmit, isPen
   return (
     <Modal open={open} onClose={onClose} title="포인트 충전 기록">
       <form onSubmit={handleSubmit(onValid)} className="flex flex-col gap-4">
-        <div>
-          <label htmlFor="pc-org" className="mb-1 block text-xs font-semibold text-t3">대상 조직</label>
+        <FormField label="대상 조직" htmlFor="pc-org" error={errors.orgId?.message}>
           <select
             id="pc-org"
             aria-label="대상 조직"
@@ -53,26 +53,19 @@ export function PointChargeModal({ open, onClose, organizations, onSubmit, isPen
               <option key={o.id} value={o.id}>{o.name}</option>
             ))}
           </select>
-          {errors.orgId && <p className="mt-1 text-xs text-danger">{errors.orgId.message}</p>}
-        </div>
+        </FormField>
 
-        <div>
-          <label htmlFor="pc-points" className="mb-1 block text-xs font-semibold text-t3">충전 포인트</label>
+        <FormField label="충전 포인트" htmlFor="pc-points" error={errors.points?.message}>
           <Input id="pc-points" aria-label="충전 포인트" type="number" inputMode="numeric" {...register("points")} placeholder="예: 10000" />
-          {errors.points && <p className="mt-1 text-xs text-danger">{errors.points.message}</p>}
-        </div>
+        </FormField>
 
-        <div>
-          <label htmlFor="pc-amount" className="mb-1 block text-xs font-semibold text-t3">결제금액(원)</label>
+        <FormField label="결제금액(원)" htmlFor="pc-amount" error={errors.amountKrw?.message}>
           <Input id="pc-amount" aria-label="결제금액(원)" type="number" inputMode="numeric" {...register("amountKrw")} placeholder="예: 110000" />
-          {errors.amountKrw && <p className="mt-1 text-xs text-danger">{errors.amountKrw.message}</p>}
-        </div>
+        </FormField>
 
-        <div>
-          <label htmlFor="pc-memo" className="mb-1 block text-xs font-semibold text-t3">메모(선택)</label>
+        <FormField label="메모(선택)" htmlFor="pc-memo" error={errors.memo?.message}>
           <Input id="pc-memo" aria-label="메모" {...register("memo")} placeholder="예: 8월 선불 충전" />
-          {errors.memo && <p className="mt-1 text-xs text-danger">{errors.memo.message}</p>}
-        </div>
+        </FormField>
 
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="ghost" onClick={onClose}>취소</Button>

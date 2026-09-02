@@ -12,6 +12,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Modal, Input, Button } from "@/components/common";
+import { FormField } from "@/components/common/FormField";
 import {
   orgCreateSchema,
   orgEditSchema,
@@ -50,30 +51,6 @@ type EditProps = {
 export function OrgFormModal(props: CreateProps | EditProps) {
   if (props.mode === "create") return <CreateModal {...props} />;
   return <EditModal {...props} />;
-}
-
-function Field({
-  label,
-  htmlFor,
-  error,
-  className = "",
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  error?: string;
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className={className}>
-      <label htmlFor={htmlFor} className="mb-1 block text-xs font-semibold text-t3">
-        {label}
-      </label>
-      {children}
-      {error && <p className="mt-1 text-xs text-danger">{error}</p>}
-    </div>
-  );
 }
 
 type EditInput = z.input<typeof orgEditSchema>;
@@ -135,7 +112,7 @@ function OrganizationFields<T extends FieldValues & EditInput>({
         const id = `${idPrefix}-${field.name}`;
         const error = errors[field.name] as FieldError | undefined;
         return (
-          <Field
+          <FormField
             key={field.name}
             label={field.label}
             htmlFor={id}
@@ -148,7 +125,7 @@ function OrganizationFields<T extends FieldValues & EditInput>({
               placeholder={field.placeholder}
               {...register(field.name as Path<T>)}
             />
-          </Field>
+          </FormField>
         );
       })}
     </div>
@@ -313,20 +290,30 @@ function CreateModal({ open, onClose, onSubmit, isPending }: Omit<CreateProps, "
         <hr className="border-line" />
         <p className="text-xs font-bold text-t2">첫 관리자(owner) 계정</p>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="관리자 아이디 *" htmlFor="owner-username" error={errors.ownerUsername?.message}>
+          <FormField
+            label="관리자 아이디 *"
+            htmlFor="owner-username"
+            error={errors.ownerUsername?.message}
+            className=""
+          >
             <Input id="owner-username" {...register("ownerUsername")} placeholder="예: admin" />
-          </Field>
-          <Field label="관리자 이름 *" htmlFor="owner-name" error={errors.ownerFullName?.message}>
+          </FormField>
+          <FormField
+            label="관리자 이름 *"
+            htmlFor="owner-name"
+            error={errors.ownerFullName?.message}
+            className=""
+          >
             <Input id="owner-name" {...register("ownerFullName")} placeholder="예: 홍길동" />
-          </Field>
-          <Field
+          </FormField>
+          <FormField
             label="관리자 연락처"
             htmlFor="owner-phone"
             error={errors.ownerPhone?.message}
             className="sm:col-span-2"
           >
             <Input id="owner-phone" type="tel" {...register("ownerPhone")} placeholder="010-1234-5678" />
-          </Field>
+          </FormField>
         </div>
 
         <div className="flex justify-end gap-2 pt-2">

@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button, Input, Modal, Select } from "@/components/common";
+import { FormField } from "@/components/common/FormField";
 import {
   platformAccountCreateSchema,
   type PlatformAccountCreateValues,
@@ -80,7 +81,7 @@ export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props
   return (
     <Modal open={open} onClose={onClose} title="플랫폼 계정 발급">
       <form onSubmit={handleSubmit(onValid)} className="flex flex-col gap-4">
-        <Field label="대상 조직" htmlFor="platform-account-org" error={errors.orgId?.message}>
+        <FormField label="대상 조직" htmlFor="platform-account-org" error={errors.orgId?.message}>
           <select
             id="platform-account-org"
             aria-label="대상 조직"
@@ -93,7 +94,7 @@ export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props
               </option>
             ))}
           </select>
-        </Field>
+        </FormField>
 
         {organizations.length === 0 && (
           <p className="rounded-xl bg-amber-t px-3 py-2 text-xs font-semibold text-amber">
@@ -102,15 +103,15 @@ export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props
         )}
 
         <div className="grid grid-cols-2 gap-3">
-          <Field label="아이디" htmlFor="platform-account-username" error={errors.username?.message}>
+          <FormField label="아이디" htmlFor="platform-account-username" error={errors.username?.message}>
             <Input
               id="platform-account-username"
               aria-label="아이디"
               {...register("username")}
               placeholder="예: admin"
             />
-          </Field>
-          <Field label="비밀번호(선택)" htmlFor="platform-account-password" error={errors.password?.message}>
+          </FormField>
+          <FormField label="비밀번호(선택)" htmlFor="platform-account-password" error={errors.password?.message}>
             <Input
               id="platform-account-password"
               aria-label="비밀번호"
@@ -118,39 +119,39 @@ export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props
               {...register("password")}
               placeholder="비우면 자동 발급"
             />
-          </Field>
+          </FormField>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <Field label="이름" htmlFor="platform-account-name" error={errors.fullName?.message}>
+          <FormField label="이름" htmlFor="platform-account-name" error={errors.fullName?.message}>
             <Input
               id="platform-account-name"
               aria-label="이름"
               {...register("fullName")}
               placeholder="예: 김관리"
             />
-          </Field>
-          <Field label="연락처(선택)" htmlFor="platform-account-phone" error={errors.phone?.message}>
+          </FormField>
+          <FormField label="연락처(선택)" htmlFor="platform-account-phone" error={errors.phone?.message}>
             <Input
               id="platform-account-phone"
               aria-label="연락처"
               {...register("phone")}
               placeholder="010-0000-0000"
             />
-          </Field>
+          </FormField>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <Field label="역할" htmlFor="platform-account-role" error={errors.role?.message}>
+          <FormField label="역할" htmlFor="platform-account-role" error={errors.role?.message}>
             <Select id="platform-account-role" {...register("role")} options={ROLE_OPTIONS} />
-          </Field>
-          <Field label="직원 유형" htmlFor="platform-account-staff-type" error={errors.staffType?.message}>
+          </FormField>
+          <FormField label="직원 유형" htmlFor="platform-account-staff-type" error={errors.staffType?.message}>
             <Select
               id="platform-account-staff-type"
               {...register("staffType")}
               options={STAFF_TYPE_OPTIONS}
             />
-          </Field>
+          </FormField>
         </div>
 
         <p className="text-xs text-t3">
@@ -171,27 +172,5 @@ export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props
         </div>
       </form>
     </Modal>
-  );
-}
-
-function Field({
-  label,
-  htmlFor,
-  error,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label htmlFor={htmlFor} className="mb-1 block text-xs font-semibold text-t3">
-        {label}
-      </label>
-      {children}
-      {error && <p className="mt-1 text-xs text-danger">{error}</p>}
-    </div>
   );
 }

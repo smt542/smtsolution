@@ -26,6 +26,7 @@ import {
   PlatformPagination,
   QueryError,
 } from "../../_components/PageElements";
+import { CollectionToolbar } from "../../_components/CollectionToolbar";
 import type { AccountEditValues } from "./components/AccountEditModal";
 import { AccountRowActions } from "./components/AccountRowActions";
 
@@ -218,12 +219,12 @@ export default function PlatformAccountsPage() {
       </div>
 
       <section className="mt-6 rounded-2xl bg-surface shadow-card">
-        <div className="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
+        <CollectionToolbar
+          left={<div>
             <h3 className="text-base font-extrabold text-t1">소속 계정 목록</h3>
             <p className="mt-1 text-xs text-t3">총 {formatNumber(data?.totalCount ?? 0)}개</p>
-          </div>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          </div>}
+          right={<div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             <div className="w-full sm:w-72">
               <SearchBar
                 value={search}
@@ -237,8 +238,8 @@ export default function PlatformAccountsPage() {
             <Button type="button" variant="primary" onClick={() => setCreateOpen(true)}>
               + 계정 발급
             </Button>
-          </div>
-        </div>
+          </div>}
+        />
 
         {isPending ? (
           <div className="py-16">
