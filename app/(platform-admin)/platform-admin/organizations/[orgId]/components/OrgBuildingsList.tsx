@@ -1,9 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DataTable, EmptyState, Spinner } from "@/components/common";
 import { PageHeader, QueryError, StatusBadge } from "../../../../_components/PageElements";
+import { PlatformPageContainer } from "../../../../_components/PlatformPageContainer";
+import { PlatformBreadcrumbs } from "../../../../_components/PlatformBreadcrumbs";
 import { useOrgBuildings } from "@/hooks/reactquery/platform";
 
 export function OrgBuildingsList({ orgId }: { orgId: number }) {
@@ -11,12 +12,13 @@ export function OrgBuildingsList({ orgId }: { orgId: number }) {
   const { data, isPending, isError, refetch } = useOrgBuildings(orgId);
 
   return (
-    <div className="mx-auto w-full max-w-7xl p-5 sm:p-6 lg:p-8">
-      <nav className="mb-3 text-xs text-t3">
-        <Link href="/platform-admin/organizations" className="hover:underline">조직 관리</Link>
-        <span className="mx-1.5">›</span>
-        {data?.org.name ?? "조직"}
-      </nav>
+    <PlatformPageContainer>
+      <PlatformBreadcrumbs
+        items={[
+          { label: "조직 관리", href: "/platform-admin/organizations" },
+          { label: data?.org.name ?? "조직" },
+        ]}
+      />
       <PageHeader
         eyebrow="ORGANIZATION"
         title={data?.org.name ?? "조직 상세"}
@@ -48,6 +50,6 @@ export function OrgBuildingsList({ orgId }: { orgId: number }) {
           />
         )}
       </section>
-    </div>
+    </PlatformPageContainer>
   );
 }

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Button, Input, Modal } from "@/components/common";
 import { FormField } from "@/components/common/FormField";
 import type { PlatformAccount } from "@/hooks/reactquery/platform";
+import { ModalActions } from "../../../_components/ModalActions";
+import { InlineAlert } from "../../../_components/InlineAlert";
 
 export interface AccountEditValues {
   fullName: string;
@@ -80,19 +82,19 @@ export function AccountEditModal({ account, onClose, onSubmit, isPending }: Prop
         </FormField>
 
         {error && (
-          <p role="alert" className="rounded-xl bg-red-t px-3 py-2 text-sm font-semibold text-red">
+          <InlineAlert tone="dangerStrong" role="alert">
             {error}
-          </p>
+          </InlineAlert>
         )}
 
-        <div className="flex justify-end gap-2 pt-2">
+        <ModalActions>
           <Button type="button" variant="ghost" onClick={onClose} disabled={isPending}>
             취소
           </Button>
           <Button type="submit" variant="primary" disabled={isPending}>
             {isPending ? "저장 중…" : "저장"}
           </Button>
-        </div>
+        </ModalActions>
       </form>
     </Modal>
   );

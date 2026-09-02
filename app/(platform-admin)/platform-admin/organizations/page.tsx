@@ -30,6 +30,8 @@ import {
   StatusBadge,
 } from "../../_components/PageElements";
 import { CollectionToolbar } from "../../_components/CollectionToolbar";
+import { PlatformPageContainer } from "../../_components/PlatformPageContainer";
+import { TableFrame } from "../../_components/TableFrame";
 import { OrgStatusControl } from "./components/OrgStatusControl";
 import type { OrgCreateSubmitValues, OrgEditSubmitValues } from "./components/OrgFormModal";
 import { OrgRowActions } from "./components/OrgRowActions";
@@ -196,7 +198,7 @@ export default function PlatformOrganizationsPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-7xl p-5 sm:p-6 lg:p-8">
+    <PlatformPageContainer>
       <PageHeader
         eyebrow="ORGANIZATIONS"
         title="조직 관리"
@@ -308,103 +310,101 @@ export default function PlatformOrganizationsPage() {
             }
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1540px] text-sm">
-              <thead>
-                <tr className="border-b border-line bg-bg/70 text-left text-xs font-bold text-t3">
-                  <th className="px-5 py-3">조직</th>
-                  <th className="px-4 py-3">지역</th>
-                  <th className="px-4 py-3">상태</th>
-                  <th className="px-4 py-3 text-right">건물</th>
-                  <th className="px-4 py-3 text-right">세대</th>
-                  <th className="px-4 py-3 text-right">직원</th>
-                  <th className="px-4 py-3 text-right">세입자</th>
-                  <th className="px-4 py-3">계약 시작</th>
-                  <th className="px-4 py-3">계약 만료</th>
-                  <th className="px-4 py-3 text-right">계정</th>
-                  <th className="px-4 py-3 text-right">포인트 잔액</th>
-                  <th className="px-5 py-3">등록일</th>
-                  <th className="px-5 py-3 text-right">관리</th>
-                </tr>
-              </thead>
-              <tbody>
-                {organizations.map((organization) => (
-                  <tr
-                    key={organization.id}
-                    className={`border-b border-line last:border-0 hover:bg-bg/50 ${
-                      organization.deletedAt ? "opacity-50" : ""
-                    }`}
-                  >
-                    <td className="px-5 py-4">
-                      <Link
-                        href={`/platform-admin/organizations/${organization.id}`}
-                        className="font-bold text-t1 hover:text-blue hover:underline"
-                      >
-                        {organization.name}
-                      </Link>
-                      <div className="mt-1 text-xs text-t3">
-                        {organization.slug ?? "회사코드 미설정"}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-t2">{organization.region ?? "—"}</td>
-                    <td className="px-4 py-4">
-                      {organization.deletedAt ? (
-                        <Badge className="inline-flex bg-bg px-2.5 py-1 text-t3">
-                          해지됨
-                        </Badge>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <StatusBadge status={organization.status} />
-                          <OrgStatusControl
-                            status={organization.status}
-                            isPending={updateStatus.isPending}
-                            onChange={(next) => handleStatus(organization.id, next)}
-                          />
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-4 text-right font-bold text-t1 num">
-                      {formatNumber(organization.buildingCount)}
-                    </td>
-                    <td className="px-4 py-4 text-right font-bold text-t1 num">
-                      {formatNumber(organization.unitCount)}
-                    </td>
-                    <td className="px-4 py-4 text-right font-bold text-t1 num">
-                      {formatNumber(organization.employeeCount)}
-                    </td>
-                    <td className="px-4 py-4 text-right font-bold text-t1 num">
-                      {formatNumber(organization.tenantCount)}
-                    </td>
-                    <td className="px-4 py-4 text-t2 num">
-                      {organization.contractStartDate ?? "—"}
-                    </td>
-                    <td className="px-4 py-4 text-t2 num">
-                      {organization.contractEndDate ?? "—"}
-                    </td>
-                    <td className="px-4 py-4 text-right font-bold text-t1 num">
-                      {formatNumber(organization.accountCount)}
-                    </td>
-                    <td className="px-4 py-4 text-right font-extrabold text-t1 num">
-                      {formatNumber(organization.pointBalance)} P
-                    </td>
-                    <td className="px-5 py-4 text-t2 num">
-                      {dateFormatter.format(new Date(organization.createdAt))}
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex justify-end">
-                        <OrgRowActions
-                          org={organization}
-                          onEdit={() => setEditTarget(organization)}
-                          onToggleDeleted={(deleted) => handleToggleDeleted(organization.id, deleted)}
-                          isPending={setDeleted.isPending}
+          <TableFrame minWidthClassName="min-w-[1540px]">
+            <thead>
+              <tr className="border-b border-line bg-bg/70 text-left text-xs font-bold text-t3">
+                <th className="px-5 py-3">조직</th>
+                <th className="px-4 py-3">지역</th>
+                <th className="px-4 py-3">상태</th>
+                <th className="px-4 py-3 text-right">건물</th>
+                <th className="px-4 py-3 text-right">세대</th>
+                <th className="px-4 py-3 text-right">직원</th>
+                <th className="px-4 py-3 text-right">세입자</th>
+                <th className="px-4 py-3">계약 시작</th>
+                <th className="px-4 py-3">계약 만료</th>
+                <th className="px-4 py-3 text-right">계정</th>
+                <th className="px-4 py-3 text-right">포인트 잔액</th>
+                <th className="px-5 py-3">등록일</th>
+                <th className="px-5 py-3 text-right">관리</th>
+              </tr>
+            </thead>
+            <tbody>
+              {organizations.map((organization) => (
+                <tr
+                  key={organization.id}
+                  className={`border-b border-line last:border-0 hover:bg-bg/50 ${
+                    organization.deletedAt ? "opacity-50" : ""
+                  }`}
+                >
+                  <td className="px-5 py-4">
+                    <Link
+                      href={`/platform-admin/organizations/${organization.id}`}
+                      className="font-bold text-t1 hover:text-blue hover:underline"
+                    >
+                      {organization.name}
+                    </Link>
+                    <div className="mt-1 text-xs text-t3">
+                      {organization.slug ?? "회사코드 미설정"}
+                    </div>
+                  </td>
+                  <td className="px-4 py-4 text-t2">{organization.region ?? "—"}</td>
+                  <td className="px-4 py-4">
+                    {organization.deletedAt ? (
+                      <Badge className="inline-flex bg-bg px-2.5 py-1 text-t3">
+                        해지됨
+                      </Badge>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <StatusBadge status={organization.status} />
+                        <OrgStatusControl
+                          status={organization.status}
+                          isPending={updateStatus.isPending}
+                          onChange={(next) => handleStatus(organization.id, next)}
                         />
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-4 text-right font-bold text-t1 num">
+                    {formatNumber(organization.buildingCount)}
+                  </td>
+                  <td className="px-4 py-4 text-right font-bold text-t1 num">
+                    {formatNumber(organization.unitCount)}
+                  </td>
+                  <td className="px-4 py-4 text-right font-bold text-t1 num">
+                    {formatNumber(organization.employeeCount)}
+                  </td>
+                  <td className="px-4 py-4 text-right font-bold text-t1 num">
+                    {formatNumber(organization.tenantCount)}
+                  </td>
+                  <td className="px-4 py-4 text-t2 num">
+                    {organization.contractStartDate ?? "—"}
+                  </td>
+                  <td className="px-4 py-4 text-t2 num">
+                    {organization.contractEndDate ?? "—"}
+                  </td>
+                  <td className="px-4 py-4 text-right font-bold text-t1 num">
+                    {formatNumber(organization.accountCount)}
+                  </td>
+                  <td className="px-4 py-4 text-right font-extrabold text-t1 num">
+                    {formatNumber(organization.pointBalance)} P
+                  </td>
+                  <td className="px-5 py-4 text-t2 num">
+                    {dateFormatter.format(new Date(organization.createdAt))}
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="flex justify-end">
+                      <OrgRowActions
+                        org={organization}
+                        onEdit={() => setEditTarget(organization)}
+                        onToggleDeleted={(deleted) => handleToggleDeleted(organization.id, deleted)}
+                        isPending={setDeleted.isPending}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </TableFrame>
         )}
         <PlatformPagination
           page={page}
@@ -480,6 +480,6 @@ export default function PlatformOrganizationsPage() {
           </div>
         </Modal>
       )}
-    </div>
+    </PlatformPageContainer>
   );
 }

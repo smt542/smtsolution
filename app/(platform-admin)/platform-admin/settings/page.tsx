@@ -11,6 +11,7 @@ import {
 } from "@/hooks/reactquery/platform";
 import { formatNumber as formatNumericValue } from "@/lib/format";
 import { PageHeader, QueryError } from "../../_components/PageElements";
+import { PlatformPageContainer } from "../../_components/PlatformPageContainer";
 
 interface SettingsDraft {
   rateKrwAlimtalk: string;
@@ -80,7 +81,7 @@ export default function PlatformSettingsPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-5xl p-5 sm:p-6 lg:p-8">
+    <PlatformPageContainer maxWidthClassName="max-w-5xl">
       <PageHeader
         eyebrow="SETTINGS"
         title="설정"
@@ -214,7 +215,7 @@ export default function PlatformSettingsPage() {
           </SettingsSection>
         </div>
       )}
-    </div>
+    </PlatformPageContainer>
   );
 }
 

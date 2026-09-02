@@ -11,6 +11,8 @@ import {
   type PointAdjustmentFormValues,
 } from "@/components/forms/schema/pointAdjustment";
 import type { PlatformOrganization } from "@/hooks/reactquery/platform";
+import { ModalActions } from "../../../_components/ModalActions";
+import { InlineAlert } from "../../../_components/InlineAlert";
 
 type FormInput = z.input<typeof pointAdjustmentSchema>;
 
@@ -130,18 +132,18 @@ export function PointAdjustmentModal({
           />
         </FormField>
 
-        <p className="rounded-xl bg-amber-t px-3 py-2 text-xs font-semibold text-amber">
+        <InlineAlert tone="warning">
           조정 내역은 포인트 원장에 남으며 삭제할 수 없습니다.
-        </p>
+        </InlineAlert>
 
-        <div className="flex justify-end gap-2 pt-2">
+        <ModalActions>
           <Button type="button" variant="ghost" onClick={onClose}>
             취소
           </Button>
           <Button type="submit" variant="primary" disabled={isPending || organizations.length === 0}>
             {isPending ? "기록 중…" : "조정 기록"}
           </Button>
-        </div>
+        </ModalActions>
       </form>
     </Modal>
   );

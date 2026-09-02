@@ -14,6 +14,8 @@ import {
   PlatformPagination,
   QueryError,
 } from "../_components/PageElements";
+import { PlatformPageContainer } from "../_components/PlatformPageContainer";
+import { TableFrame } from "../_components/TableFrame";
 
 const num = (n: number) => formatNumber(n);
 const PAGE_SIZE = 6;
@@ -53,7 +55,7 @@ export default function PlatformDashboardPage() {
   const pagedRows = tenantRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   return (
-    <div className="mx-auto w-full max-w-7xl p-5 sm:p-6 lg:p-8">
+    <PlatformPageContainer>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <PageHeader
           eyebrow="HQ CONSOLE"
@@ -128,36 +130,34 @@ export default function PlatformDashboardPage() {
         ) : tenantRows.length === 0 ? (
           <EmptyState message="조회 가능한 업체가 없습니다" />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-sm">
-              <thead>
-                <tr className="border-b border-line bg-bg/70 text-left text-xs font-bold text-t3">
-                  <th className="px-5 py-3">업체명</th>
-                  <th className="px-4 py-3 text-right">알림톡(원)</th>
-                  <th className="px-4 py-3 text-right">문자(원)</th>
-                  <th className="px-4 py-3 text-right">팩스(원)</th>
-                  <th className="px-5 py-3 text-right">합계(원)</th>
+          <TableFrame minWidthClassName="min-w-[720px]">
+            <thead>
+              <tr className="border-b border-line bg-bg/70 text-left text-xs font-bold text-t3">
+                <th className="px-5 py-3">업체명</th>
+                <th className="px-4 py-3 text-right">알림톡(원)</th>
+                <th className="px-4 py-3 text-right">문자(원)</th>
+                <th className="px-4 py-3 text-right">팩스(원)</th>
+                <th className="px-5 py-3 text-right">합계(원)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pagedRows.map((row) => (
+                <tr key={row.orgId} className="border-b border-line last:border-0 hover:bg-bg/50">
+                  <td className="px-5 py-4 font-bold text-t1">{row.orgName}</td>
+                  <td className="px-4 py-4 text-right text-t2 num">
+                    {num(row.alimtalkAmountKrw)}
+                  </td>
+                  <td className="px-4 py-4 text-right text-t2 num">
+                    {num(row.smsAmountKrw)}
+                  </td>
+                  <td className="px-4 py-4 text-right text-t2 num">
+                    {num(row.faxAmountKrw)}
+                  </td>
+                  <td className="px-5 py-4 text-right font-extrabold text-t1 num">{num(row.subtotalKrw)}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {pagedRows.map((row) => (
-                  <tr key={row.orgId} className="border-b border-line last:border-0 hover:bg-bg/50">
-                    <td className="px-5 py-4 font-bold text-t1">{row.orgName}</td>
-                    <td className="px-4 py-4 text-right text-t2 num">
-                      {num(row.alimtalkAmountKrw)}
-                    </td>
-                    <td className="px-4 py-4 text-right text-t2 num">
-                      {num(row.smsAmountKrw)}
-                    </td>
-                    <td className="px-4 py-4 text-right text-t2 num">
-                      {num(row.faxAmountKrw)}
-                    </td>
-                    <td className="px-5 py-4 text-right font-extrabold text-t1 num">{num(row.subtotalKrw)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </TableFrame>
         )}
         {!billingQuery.isPending
           && !billingQuery.isError
@@ -172,7 +172,7 @@ export default function PlatformDashboardPage() {
             />
           )}
       </section>
-    </div>
+    </PlatformPageContainer>
   );
 }
 

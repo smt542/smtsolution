@@ -7,6 +7,7 @@ import { Modal, Input, Button } from "@/components/common";
 import { FormField } from "@/components/common/FormField";
 import { pointChargeSchema } from "@/components/forms/schema/pointCharge";
 import type { PlatformOrganization } from "@/hooks/reactquery/platform";
+import { ModalActions } from "../../../_components/ModalActions";
 
 type Input$ = z.input<typeof pointChargeSchema>;
 type Values = z.output<typeof pointChargeSchema>;
@@ -67,12 +68,12 @@ export function PointChargeModal({ open, onClose, organizations, onSubmit, isPen
           <Input id="pc-memo" aria-label="메모" {...register("memo")} placeholder="예: 8월 선불 충전" />
         </FormField>
 
-        <div className="flex justify-end gap-2 pt-2">
+        <ModalActions>
           <Button type="button" variant="ghost" onClick={onClose}>취소</Button>
           <Button type="submit" variant="primary" disabled={isPending}>
             {isPending ? "기록 중…" : "충전 기록"}
           </Button>
-        </div>
+        </ModalActions>
       </form>
     </Modal>
   );

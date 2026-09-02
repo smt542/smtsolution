@@ -1,9 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DataTable, EmptyState, Spinner } from "@/components/common";
 import { PageHeader, QueryError } from "../../../../../../_components/PageElements";
+import { PlatformPageContainer } from "../../../../../../_components/PlatformPageContainer";
+import { PlatformBreadcrumbs } from "../../../../../../_components/PlatformBreadcrumbs";
 import { useBuildingTenants } from "@/hooks/reactquery/platform";
 
 export function BuildingTenantsList({ orgId, buildingId }: { orgId: number; buildingId: number }) {
@@ -11,14 +12,14 @@ export function BuildingTenantsList({ orgId, buildingId }: { orgId: number; buil
   const { data, isPending, isError, refetch } = useBuildingTenants(buildingId);
 
   return (
-    <div className="mx-auto w-full max-w-7xl p-5 sm:p-6 lg:p-8">
-      <nav className="mb-3 text-xs text-t3">
-        <Link href="/platform-admin/organizations" className="hover:underline">조직 관리</Link>
-        <span className="mx-1.5">›</span>
-        <Link href={`/platform-admin/organizations/${orgId}`} className="hover:underline">{data?.org.name ?? "조직"}</Link>
-        <span className="mx-1.5">›</span>
-        {data?.building.name ?? "건물"}
-      </nav>
+    <PlatformPageContainer>
+      <PlatformBreadcrumbs
+        items={[
+          { label: "조직 관리", href: "/platform-admin/organizations" },
+          { label: data?.org.name ?? "조직", href: `/platform-admin/organizations/${orgId}` },
+          { label: data?.building.name ?? "건물" },
+        ]}
+      />
       <PageHeader
         eyebrow="BUILDING"
         title={data?.building.name ?? "건물 상세"}
@@ -54,6 +55,6 @@ export function BuildingTenantsList({ orgId, buildingId }: { orgId: number; buil
           />
         )}
       </section>
-    </div>
+    </PlatformPageContainer>
   );
 }

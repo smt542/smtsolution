@@ -11,6 +11,8 @@ import {
   type PlatformAccountCreateValues,
 } from "@/components/forms/schema/platformAccount";
 import { usePlatformOrganizations } from "@/hooks/reactquery/platform";
+import { ModalActions } from "../../../_components/ModalActions";
+import { InlineAlert } from "../../../_components/InlineAlert";
 
 type FormInput = z.input<typeof platformAccountCreateSchema>;
 
@@ -97,9 +99,9 @@ export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props
         </FormField>
 
         {organizations.length === 0 && (
-          <p className="rounded-xl bg-amber-t px-3 py-2 text-xs font-semibold text-amber">
+          <InlineAlert tone="warning">
             계정을 발급할 수 있는 활성 조직이 없습니다.
-          </p>
+          </InlineAlert>
         )}
 
         <div className="grid grid-cols-2 gap-3">
@@ -158,7 +160,7 @@ export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props
           비밀번호를 비우면 서버가 임시 비밀번호를 발급하며, 발급 완료 후 한 번만 표시됩니다.
         </p>
 
-        <div className="flex justify-end gap-2 pt-2">
+        <ModalActions>
           <Button type="button" variant="ghost" onClick={onClose}>
             취소
           </Button>
@@ -169,7 +171,7 @@ export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props
           >
             {isPending ? "발급 중…" : "계정 발급"}
           </Button>
-        </div>
+        </ModalActions>
       </form>
     </Modal>
   );

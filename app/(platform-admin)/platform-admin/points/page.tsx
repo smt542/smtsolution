@@ -29,6 +29,8 @@ import {
   StatusBadge,
 } from "../../_components/PageElements";
 import { CollectionToolbar } from "../../_components/CollectionToolbar";
+import { PlatformPageContainer } from "../../_components/PlatformPageContainer";
+import { TableFrame } from "../../_components/TableFrame";
 const PointChargeModal = dynamic(() =>
   import("./components/PointChargeModal").then((module) => module.PointChargeModal),
 );
@@ -172,7 +174,7 @@ export default function PlatformPointsPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-7xl p-5 sm:p-6 lg:p-8">
+    <PlatformPageContainer>
       <PageHeader eyebrow="POINTS" title="포인트 관리" description="조직별 발송 크레딧(포인트) 잔액과 충전·사용·조정 내역을 관리합니다." />
 
       <section className="mt-6 rounded-2xl bg-surface p-4 shadow-card">
@@ -231,29 +233,27 @@ export default function PlatformPointsPage() {
         ) : organizations.length === 0 ? (
           <EmptyState message={search ? "검색 결과가 없습니다" : "조회 가능한 조직이 없습니다"} />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-sm">
-              <thead>
-                <tr className="border-b border-line bg-bg/70 text-left text-xs font-bold text-t3">
-                  <th className="px-5 py-3">조직</th><th className="px-4 py-3">상태</th>
-                  <th className="px-4 py-3 text-right">원장 잔액</th>
-                  <th className="px-4 py-3 text-right">예약</th>
-                  <th className="px-5 py-3 text-right">가용 잔액</th>
+          <TableFrame minWidthClassName="min-w-[760px]">
+            <thead>
+              <tr className="border-b border-line bg-bg/70 text-left text-xs font-bold text-t3">
+                <th className="px-5 py-3">조직</th><th className="px-4 py-3">상태</th>
+                <th className="px-4 py-3 text-right">원장 잔액</th>
+                <th className="px-4 py-3 text-right">예약</th>
+                <th className="px-5 py-3 text-right">가용 잔액</th>
+              </tr>
+            </thead>
+            <tbody>
+              {organizations.map((o) => (
+                <tr key={o.id} className="border-b border-line last:border-0 hover:bg-bg/50">
+                  <td className="px-5 py-4 font-bold text-t1">{o.name}</td>
+                  <td className="px-4 py-4"><StatusBadge status={o.status} /></td>
+                  <td className="px-4 py-4 text-right text-t2 num">{num(o.ledgerBalance)} P</td>
+                  <td className="px-4 py-4 text-right text-amber num">{num(o.reservedPoints)} P</td>
+                  <td className="px-5 py-4 text-right font-extrabold text-t1 num">{num(o.availablePoints)} P</td>
                 </tr>
-              </thead>
-              <tbody>
-                {organizations.map((o) => (
-                  <tr key={o.id} className="border-b border-line last:border-0 hover:bg-bg/50">
-                    <td className="px-5 py-4 font-bold text-t1">{o.name}</td>
-                    <td className="px-4 py-4"><StatusBadge status={o.status} /></td>
-                    <td className="px-4 py-4 text-right text-t2 num">{num(o.ledgerBalance)} P</td>
-                    <td className="px-4 py-4 text-right text-amber num">{num(o.reservedPoints)} P</td>
-                    <td className="px-5 py-4 text-right font-extrabold text-t1 num">{num(o.availablePoints)} P</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </TableFrame>
         )}
         <PlatformPagination
           page={organizationPage}
@@ -282,42 +282,40 @@ export default function PlatformPointsPage() {
         ) : activeReservations.length === 0 ? (
           <EmptyState message="활성 예약이 없습니다" />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[920px] text-sm">
-              <thead>
-                <tr className="border-b border-line bg-bg/70 text-left text-xs font-bold text-t3">
-                  <th className="px-5 py-3">조직</th>
-                  <th className="px-4 py-3">상태</th>
-                  <th className="px-4 py-3 text-right">예약 포인트</th>
-                  <th className="px-4 py-3">생성</th>
-                  <th className="px-4 py-3">만료 기준</th>
-                  <th className="px-5 py-3 text-right">운영</th>
-                </tr>
-              </thead>
-              <tbody>
-                {activeReservations.map((reservation) => {
-                  return (
-                    <tr key={reservation.id} className="border-b border-line last:border-0">
-                      <td className="px-5 py-4 font-bold text-t1">{reservation.organizationName}</td>
-                      <td className="px-4 py-4"><ReservationStatus status={reservation.status} /></td>
-                      <td className="px-4 py-4 text-right font-bold num">{num(reservation.reservedPoints)} P</td>
-                      <td className="px-4 py-4 text-t3">{formatAge(reservation.ageSeconds)} 전</td>
-                      <td className="px-4 py-4 text-t3 num">{dateFmt.format(new Date(reservation.expiresAt))}</td>
-                      <td className="px-5 py-4 text-right">
-                        <Button
-                          variant="ghost"
-                          disabled={!reservation.isReleasable}
-                          onClick={() => setReleaseTarget(reservation)}
-                        >
-                          수동 해제
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <TableFrame minWidthClassName="min-w-[920px]">
+            <thead>
+              <tr className="border-b border-line bg-bg/70 text-left text-xs font-bold text-t3">
+                <th className="px-5 py-3">조직</th>
+                <th className="px-4 py-3">상태</th>
+                <th className="px-4 py-3 text-right">예약 포인트</th>
+                <th className="px-4 py-3">생성</th>
+                <th className="px-4 py-3">만료 기준</th>
+                <th className="px-5 py-3 text-right">운영</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activeReservations.map((reservation) => {
+                return (
+                  <tr key={reservation.id} className="border-b border-line last:border-0">
+                    <td className="px-5 py-4 font-bold text-t1">{reservation.organizationName}</td>
+                    <td className="px-4 py-4"><ReservationStatus status={reservation.status} /></td>
+                    <td className="px-4 py-4 text-right font-bold num">{num(reservation.reservedPoints)} P</td>
+                    <td className="px-4 py-4 text-t3">{formatAge(reservation.ageSeconds)} 전</td>
+                    <td className="px-4 py-4 text-t3 num">{dateFmt.format(new Date(reservation.expiresAt))}</td>
+                    <td className="px-5 py-4 text-right">
+                      <Button
+                        variant="ghost"
+                        disabled={!reservation.isReleasable}
+                        onClick={() => setReleaseTarget(reservation)}
+                      >
+                        수동 해제
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </TableFrame>
         )}
         <PlatformPagination
           page={reservationPage}
@@ -337,30 +335,28 @@ export default function PlatformPointsPage() {
         ) : transactions.length === 0 ? (
           <EmptyState message="내역이 없습니다" />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-sm">
-              <thead>
-                <tr className="border-b border-line bg-bg/70 text-left text-xs font-bold text-t3">
-                  <th className="px-5 py-3">일시</th><th className="px-4 py-3">조직</th><th className="px-4 py-3">구분</th>
-                  <th className="px-4 py-3 text-right">포인트</th><th className="px-4 py-3">메모</th><th className="px-5 py-3">기록자</th>
+          <TableFrame minWidthClassName="min-w-[720px]">
+            <thead>
+              <tr className="border-b border-line bg-bg/70 text-left text-xs font-bold text-t3">
+                <th className="px-5 py-3">일시</th><th className="px-4 py-3">조직</th><th className="px-4 py-3">구분</th>
+                <th className="px-4 py-3 text-right">포인트</th><th className="px-4 py-3">메모</th><th className="px-5 py-3">기록자</th>
+              </tr>
+            </thead>
+            <tbody>
+              {transactions.map((t) => (
+                <tr key={t.id} className="border-b border-line last:border-0 hover:bg-bg/50">
+                  <td className="px-5 py-4 text-t2 num">{dateFmt.format(new Date(t.createdAt))}</td>
+                  <td className="px-4 py-4 text-t1">{t.organizationName}</td>
+                  <td className="px-4 py-4">
+                    <TransactionTypeBadge type={t.type} />
+                  </td>
+                  <td className={`px-4 py-4 text-right font-bold num ${t.points >= 0 ? "text-green" : "text-red"}`}>{t.points >= 0 ? "+" : ""}{num(t.points)}</td>
+                  <td className="px-4 py-4 text-t3">{t.memo ?? "—"}</td>
+                  <td className="px-5 py-4 text-t3">{t.createdByName ?? "—"}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {transactions.map((t) => (
-                  <tr key={t.id} className="border-b border-line last:border-0 hover:bg-bg/50">
-                    <td className="px-5 py-4 text-t2 num">{dateFmt.format(new Date(t.createdAt))}</td>
-                    <td className="px-4 py-4 text-t1">{t.organizationName}</td>
-                    <td className="px-4 py-4">
-                      <TransactionTypeBadge type={t.type} />
-                    </td>
-                    <td className={`px-4 py-4 text-right font-bold num ${t.points >= 0 ? "text-green" : "text-red"}`}>{t.points >= 0 ? "+" : ""}{num(t.points)}</td>
-                    <td className="px-4 py-4 text-t3">{t.memo ?? "—"}</td>
-                    <td className="px-5 py-4 text-t3">{t.createdByName ?? "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </TableFrame>
         )}
         {txQuery.hasNextPage && (
           <div className="flex justify-center border-t border-line p-3">
@@ -431,7 +427,7 @@ export default function PlatformPointsPage() {
           isPending={releaseReservation.isPending}
         />
       )}
-    </div>
+    </PlatformPageContainer>
   );
 }
 
