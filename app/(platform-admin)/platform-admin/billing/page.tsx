@@ -17,6 +17,7 @@ import {
   PlatformPagination,
   QueryError,
 } from "../../_components/PageElements";
+import { CollectionToolbar } from "../../_components/CollectionToolbar";
 import { InvoiceBulkPrintRoot } from "./_components/InvoiceBulkPrintRoot";
 import { invoiceConfigFromSettings } from "./_components/InvoiceDocument";
 import { InvoicePreviewModal } from "./_components/InvoicePreviewModal";
@@ -194,8 +195,8 @@ export default function PlatformBillingPage() {
       </div>
 
       <section className="mt-6 rounded-2xl bg-surface shadow-card">
-        <div className="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-1">
+        <CollectionToolbar
+          left={<div className="flex flex-wrap items-center gap-1">
             {STATUS_TABS.map((statusTab) => (
               <button
                 key={statusTab.id}
@@ -211,8 +212,8 @@ export default function PlatformBillingPage() {
                 {statusTab.label}
               </button>
             ))}
-          </div>
-          <div className="flex items-center gap-2">
+          </div>}
+          right={<div className="flex items-center gap-2">
             <Button variant="ghost" onClick={handleCsvDownload} disabled={filtered.length === 0}>
               원장 CSV
             </Button>
@@ -222,8 +223,8 @@ export default function PlatformBillingPage() {
             >
               전체 발행
             </Button>
-          </div>
-        </div>
+          </div>}
+        />
 
         {billingQuery.isPending ? (
           <div className="py-16"><Spinner /></div>

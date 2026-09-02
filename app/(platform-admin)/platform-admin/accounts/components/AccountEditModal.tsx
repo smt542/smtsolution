@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button, Input, Modal } from "@/components/common";
+import { FormField } from "@/components/common/FormField";
 import type { PlatformAccount } from "@/hooks/reactquery/platform";
 
 export interface AccountEditValues {
@@ -46,7 +47,7 @@ export function AccountEditModal({ account, onClose, onSubmit, isPending }: Prop
           <b>{account.username ?? account.userId}</b> · {account.organizationName}
         </p>
 
-        <Field label="이름" htmlFor="platform-account-edit-name">
+        <FormField label="이름" htmlFor="platform-account-edit-name">
           <Input
             id="platform-account-edit-name"
             value={fullName}
@@ -54,9 +55,9 @@ export function AccountEditModal({ account, onClose, onSubmit, isPending }: Prop
             maxLength={100}
             autoFocus
           />
-        </Field>
+        </FormField>
 
-        <Field label="전화번호" htmlFor="platform-account-edit-phone">
+        <FormField label="전화번호" htmlFor="platform-account-edit-phone">
           <Input
             id="platform-account-edit-phone"
             value={phone}
@@ -64,9 +65,9 @@ export function AccountEditModal({ account, onClose, onSubmit, isPending }: Prop
             maxLength={30}
             placeholder="010-0000-0000"
           />
-        </Field>
+        </FormField>
 
-        <Field label="메모" htmlFor="platform-account-edit-memo">
+        <FormField label="메모" htmlFor="platform-account-edit-memo">
           <textarea
             id="platform-account-edit-memo"
             value={memo}
@@ -76,7 +77,7 @@ export function AccountEditModal({ account, onClose, onSubmit, isPending }: Prop
             placeholder="담당 업무 · 비고"
             className="w-full resize-none rounded-xl border border-line bg-surface px-4 py-3 text-sm text-t1 outline-none focus:border-blue focus:ring-4 focus:ring-blue/10"
           />
-        </Field>
+        </FormField>
 
         {error && (
           <p role="alert" className="rounded-xl bg-red-t px-3 py-2 text-sm font-semibold text-red">
@@ -94,24 +95,5 @@ export function AccountEditModal({ account, onClose, onSubmit, isPending }: Prop
         </div>
       </form>
     </Modal>
-  );
-}
-
-function Field({
-  label,
-  htmlFor,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label htmlFor={htmlFor} className="mb-1 block text-xs font-semibold text-t3">
-        {label}
-      </label>
-      {children}
-    </div>
   );
 }

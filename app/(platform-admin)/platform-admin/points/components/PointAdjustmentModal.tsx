@@ -5,6 +5,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button, Input, Modal, Select } from "@/components/common";
+import { FormField } from "@/components/common/FormField";
 import {
   pointAdjustmentSchema,
   type PointAdjustmentFormValues,
@@ -71,7 +72,7 @@ export function PointAdjustmentModal({
   return (
     <Modal open={open} onClose={onClose} title="포인트 조정">
       <form onSubmit={handleSubmit(onValid)} className="flex flex-col gap-4">
-        <Field label="대상 조직" htmlFor="pa-org" error={errors.orgId?.message}>
+        <FormField label="대상 조직" htmlFor="pa-org" error={errors.orgId?.message}>
           <select
             id="pa-org"
             aria-label="대상 조직"
@@ -84,13 +85,18 @@ export function PointAdjustmentModal({
               </option>
             ))}
           </select>
-        </Field>
+        </FormField>
 
-        <Field label="조정 구분" htmlFor="pa-kind" error={errors.kind?.message}>
+        <FormField label="조정 구분" htmlFor="pa-kind" error={errors.kind?.message}>
           <Select id="pa-kind" aria-label="조정 구분" {...register("kind")} options={KIND_OPTIONS} />
-        </Field>
+        </FormField>
 
-        <Field label="조정 포인트" htmlFor="pa-points" error={errors.points?.message}>
+        <FormField
+          label="조정 포인트"
+          htmlFor="pa-points"
+          error={errors.points?.message}
+          hint={kind === "correction" ? "정정은 증가(+)와 감소(-) 모두 가능합니다." : "차감·환불은 음수로 입력해 주세요."}
+        >
           <Input
             id="pa-points"
             aria-label="조정 포인트"
@@ -99,13 +105,10 @@ export function PointAdjustmentModal({
             {...register("points")}
             placeholder={kind === "correction" ? "예: 1000 또는 -1000" : "예: -1000"}
           />
-          <p className="mt-1 text-xs text-t3">
-            {kind === "correction" ? "정정은 증가(+)와 감소(-) 모두 가능합니다." : "차감·환불은 음수로 입력해 주세요."}
-          </p>
-        </Field>
+        </FormField>
 
         {kind === "refund" && (
-          <Field label="실제 환불액(원, 선택)" htmlFor="pa-amount" error={errors.amountKrw?.message}>
+          <FormField label="실제 환불액(원, 선택)" htmlFor="pa-amount" error={errors.amountKrw?.message}>
             <Input
               id="pa-amount"
               aria-label="실제 환불액(원)"
@@ -115,17 +118,17 @@ export function PointAdjustmentModal({
               {...register("amountKrw")}
               placeholder="예: 11000"
             />
-          </Field>
+          </FormField>
         )}
 
-        <Field label="조정 사유" htmlFor="pa-memo" error={errors.memo?.message}>
+        <FormField label="조정 사유" htmlFor="pa-memo" error={errors.memo?.message}>
           <Input
             id="pa-memo"
             aria-label="조정 사유"
             {...register("memo")}
             placeholder="예: 중복 충전분 환불"
           />
-        </Field>
+        </FormField>
 
         <p className="rounded-xl bg-amber-t px-3 py-2 text-xs font-semibold text-amber">
           조정 내역은 포인트 원장에 남으며 삭제할 수 없습니다.
@@ -141,27 +144,5 @@ export function PointAdjustmentModal({
         </div>
       </form>
     </Modal>
-  );
-}
-
-function Field({
-  label,
-  htmlFor,
-  error,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label htmlFor={htmlFor} className="mb-1 block text-xs font-semibold text-t3">
-        {label}
-      </label>
-      {children}
-      {error && <p className="mt-1 text-xs text-danger">{error}</p>}
-    </div>
   );
 }

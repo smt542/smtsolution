@@ -29,6 +29,7 @@ import {
   QueryError,
   StatusBadge,
 } from "../../_components/PageElements";
+import { CollectionToolbar } from "../../_components/CollectionToolbar";
 import { OrgStatusControl } from "./components/OrgStatusControl";
 import type { OrgCreateSubmitValues, OrgEditSubmitValues } from "./components/OrgFormModal";
 import { OrgRowActions } from "./components/OrgRowActions";
@@ -241,12 +242,12 @@ export default function PlatformOrganizationsPage() {
       </section>
 
       <section className="mt-6 rounded-2xl bg-surface shadow-card">
-        <div className="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
+        <CollectionToolbar
+          left={<div>
             <h3 className="text-base font-extrabold text-t1">조직 목록</h3>
             <p className="mt-1 text-xs text-t3">총 {formatNumber(data?.totalCount ?? 0)}개</p>
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          </div>}
+          right={<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <div
               className="flex flex-wrap items-center gap-1 rounded-xl bg-bg p-1"
               aria-label="조직 상태 필터"
@@ -287,8 +288,8 @@ export default function PlatformOrganizationsPage() {
             >
               + 관리회사 입점
             </button>
-          </div>
-        </div>
+          </div>}
+        />
 
         {isPending ? (
           <div className="py-16">

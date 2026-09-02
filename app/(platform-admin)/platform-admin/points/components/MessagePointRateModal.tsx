@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button, Input, Modal } from "@/components/common";
+import { FormField } from "@/components/common/FormField";
 import {
   messagePointRatesSchema,
   type MessagePointRatesFormValues,
@@ -52,8 +53,8 @@ export function MessagePointRateModal({
   return (
     <Modal open={open} onClose={onClose} title="메시지 포인트 단가 설정">
       <form className="flex flex-col gap-4" onSubmit={handleSubmit(submit)}>
-        <RateField
-          id="message-sms-points"
+        <FormField
+          htmlFor="message-sms-points"
           label="SMS 건당 포인트"
           error={errors.smsPoints?.message}
         >
@@ -65,10 +66,10 @@ export function MessagePointRateModal({
             inputMode="numeric"
             {...register("smsPoints")}
           />
-        </RateField>
+        </FormField>
 
-        <RateField
-          id="message-lms-points"
+        <FormField
+          htmlFor="message-lms-points"
           label="LMS 건당 포인트 (선택)"
           error={errors.lmsPoints?.message}
         >
@@ -81,10 +82,10 @@ export function MessagePointRateModal({
             placeholder="미설정 시 LMS 발송 불가"
             {...register("lmsPoints")}
           />
-        </RateField>
+        </FormField>
 
-        <RateField
-          id="message-alimtalk-points"
+        <FormField
+          htmlFor="message-alimtalk-points"
           label="알림톡 건당 포인트"
           error={errors.alimtalkPoints?.message}
         >
@@ -96,7 +97,7 @@ export function MessagePointRateModal({
             inputMode="numeric"
             {...register("alimtalkPoints")}
           />
-        </RateField>
+        </FormField>
 
         <p className="rounded-xl bg-amber-t px-3 py-2 text-xs font-semibold text-amber">
           단가는 동시에 변경되며 기존 단가는 이력으로 보존됩니다. LMS 단가를 비우면 LMS 단가는 변경되지
@@ -111,27 +112,5 @@ export function MessagePointRateModal({
         </div>
       </form>
     </Modal>
-  );
-}
-
-function RateField({
-  id,
-  label,
-  error,
-  children,
-}: {
-  id: string;
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label htmlFor={id} className="mb-1 block text-xs font-semibold text-t3">
-        {label}
-      </label>
-      {children}
-      {error && <p className="mt-1 text-xs text-danger">{error}</p>}
-    </div>
   );
 }
