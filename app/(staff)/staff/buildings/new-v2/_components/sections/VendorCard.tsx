@@ -1,4 +1,5 @@
 "use client";
+import { FormGrid } from "@/components/common/FormGrid";
 import { FieldRenderer } from "../ui/FieldRenderer";
 import { PhotoUpload } from "../ui/PhotoUpload";
 import { TextAreaField } from "../ui/TextAreaField";
@@ -18,7 +19,7 @@ export function VendorCard({
 }) {
   const setField = (label: string, v: string) => onChange({ ...value, fields: { ...value.fields, [label]: v } });
   return (
-    <div className="grid grid-cols-2 gap-x-[18px] gap-y-[16px]">
+    <FormGrid>
       {fields.map((f) => (
         <FieldRenderer key={f.label} field={f} value={value.fields[f.label]} onChange={(v) => setField(f.label, v)} />
       ))}
@@ -30,6 +31,6 @@ export function VendorCard({
         value={value.memo}
         onChange={(v) => onChange({ ...value, memo: v })}
       />
-    </div>
+    </FormGrid>
   );
 }

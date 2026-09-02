@@ -1,5 +1,6 @@
 "use client";
-import { FormSection } from "../ui/FormSection";
+import { CollapsibleFormSection } from "@/components/common/CollapsibleFormSection";
+import { FormGrid } from "@/components/common/FormGrid";
 import { SelectField } from "../ui/SelectField";
 import { Accordion } from "../ui/Accordion";
 import { VendorCard } from "./VendorCard";
@@ -20,11 +21,11 @@ export function VendorAssignmentSection({
     patch({ vendors: { ...value.vendors, [key]: next } });
 
   return (
-    <FormSection index={2} title="업체 및 담당자 지정">
-      <div className="grid grid-cols-2 gap-x-[18px] gap-y-[16px]">
+    <CollapsibleFormSection index={2} title="업체 및 담당자 지정">
+      <FormGrid>
         <SelectField label="사무 담당자" placeholder="직원 선택" options={staffOptions} value={value.officeManager} onChange={(v) => patch({ officeManager: v })} />
         <SelectField label="현장 관리자" placeholder="직원 선택" options={staffOptions} value={value.siteManager} onChange={(v) => patch({ siteManager: v })} />
-      </div>
+      </FormGrid>
       <div>
         {VENDORS.map((vd) => (
           <Accordion key={vd.key} title={vd.title}>
@@ -36,6 +37,6 @@ export function VendorAssignmentSection({
           </Accordion>
         ))}
       </div>
-    </FormSection>
+    </CollapsibleFormSection>
   );
 }

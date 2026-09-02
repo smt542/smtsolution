@@ -1,5 +1,6 @@
 "use client";
-import { FormSection } from "../ui/FormSection";
+import { CollapsibleFormSection } from "@/components/common/CollapsibleFormSection";
+import { FormGrid } from "@/components/common/FormGrid";
 import { TextField } from "../ui/TextField";
 import { SelectField } from "../ui/SelectField";
 import { DateField } from "../ui/DateField";
@@ -21,8 +22,8 @@ export function BasicInfoSection({
   buildingTypeOptions: string[];
 }) {
   return (
-    <FormSection index={1} title="기본 정보">
-      <div className="grid grid-cols-2 gap-x-[18px] gap-y-[16px]">
+    <CollapsibleFormSection index={1} title="기본 정보">
+      <FormGrid>
         <TextField label="건물 코드" placeholder="비우면 자동 생성" inputMode="numeric" value={value.code} onChange={(v) => patch({ code: v })} />
         <TextField label="건물명" required placeholder="건물명 입력" value={value.name} onChange={(v) => patch({ name: v })} />
         <SelectField label="건물 유형" placeholder={buildingTypeOptions.length ? "선택" : "설정에서 유형 등록"} options={buildingTypeOptions} value={value.buildingType} onChange={(v) => patch({ buildingType: v })} />
@@ -40,7 +41,7 @@ export function BasicInfoSection({
           value={value.standingNotice}
           onChange={(v) => patch({ standingNotice: v })}
         />
-      </div>
-    </FormSection>
+      </FormGrid>
+    </CollapsibleFormSection>
   );
 }

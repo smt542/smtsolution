@@ -1,4 +1,5 @@
 "use client";
+import { FormGrid } from "@/components/common/FormGrid";
 import { UtilityCard } from "./UtilityCard";
 import { FieldRenderer } from "../ui/FieldRenderer";
 import { PlusIcon } from "@/components/icons";
@@ -57,11 +58,11 @@ export function UtilityPanel({
         고객번호 추가
       </button>
       {extra && (
-        <div className="grid grid-cols-2 gap-x-[18px] gap-y-[16px]">
+        <FormGrid>
           {extra.map((f) => (
             <FieldRenderer key={f.label} field={f} value={value.extra[f.label]} onChange={(v) => setExtra(f.label, v)} />
           ))}
-        </div>
+        </FormGrid>
       )}
     </div>
   );
