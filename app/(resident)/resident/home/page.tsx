@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import BottomNav from "@/app/(resident)/_components/BottomNav";
 import MoveOutSection from "@/app/(resident)/_components/MoveOutSection";
+import ResidentAsyncState from "@/app/(resident)/_components/ResidentAsyncState";
 import { useResidentBillMonths } from "@/hooks/reactquery/residentBilling";
 import { useResidentNotices } from "@/hooks/reactquery/residentNotices";
 import { useResidentProfile } from "@/hooks/reactquery/residentProfile";
@@ -33,29 +34,29 @@ export default function ResidentHomePage() {
 
   if (loading) {
     return (
-      <div className={styles.center} role="status">
-        <span className={styles.spinner} aria-hidden="true" />
-        홈 정보를 불러오고 있어요.
-      </div>
+      <ResidentAsyncState
+        variant="compact"
+        role="status"
+        message="홈 정보를 불러오고 있어요."
+        showSpinner
+      />
     );
   }
 
   if (error) {
     return (
-      <div className={styles.center} role="alert">
-        <b>홈 정보를 불러오지 못했어요.</b>
-        <button
-          type="button"
-          onClick={() => {
-            void guard.retry();
-            void profileQuery.refetch();
-            void monthsQuery.refetch();
-            void noticesQuery.refetch();
-          }}
-        >
-          다시 시도
-        </button>
-      </div>
+      <ResidentAsyncState
+        variant="compact"
+        role="alert"
+        message={<b>홈 정보를 불러오지 못했어요.</b>}
+        retryLabel="다시 시도"
+        onRetry={() => {
+          void guard.retry();
+          void profileQuery.refetch();
+          void monthsQuery.refetch();
+          void noticesQuery.refetch();
+        }}
+      />
     );
   }
 
@@ -64,9 +65,11 @@ export default function ResidentHomePage() {
   const profile = profileQuery.data;
   if (!profile) {
     return (
-      <div className={styles.center} role="status">
-        <b>연결된 세대 정보를 찾을 수 없어요.</b>
-      </div>
+      <ResidentAsyncState
+        variant="compact"
+        role="status"
+        message={<b>연결된 세대 정보를 찾을 수 없어요.</b>}
+      />
     );
   }
 

@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import BottomNav from "@/app/(resident)/_components/BottomNav";
 import MoveOutSection from "@/app/(resident)/_components/MoveOutSection";
+import ResidentAsyncState from "@/app/(resident)/_components/ResidentAsyncState";
 import {
   useResidentProfile,
   useSetNotifyPrefs,
@@ -33,27 +34,27 @@ export default function ResidentMePage() {
 
   if (guard.loading || profileQuery.isPending) {
     return (
-      <div className={styles.center} role="status">
-        <span className={styles.spinner} aria-hidden="true" />
-        내 정보를 불러오고 있어요.
-      </div>
+      <ResidentAsyncState
+        variant="compact"
+        role="status"
+        message="내 정보를 불러오고 있어요."
+        showSpinner
+      />
     );
   }
 
   if (guard.error || profileQuery.error) {
     return (
-      <div className={styles.center} role="alert">
-        <b>내 정보를 불러오지 못했어요.</b>
-        <button
-          type="button"
-          onClick={() => {
-            void guard.retry();
-            void profileQuery.refetch();
-          }}
-        >
-          다시 시도
-        </button>
-      </div>
+      <ResidentAsyncState
+        variant="compact"
+        role="alert"
+        message={<b>내 정보를 불러오지 못했어요.</b>}
+        retryLabel="다시 시도"
+        onRetry={() => {
+          void guard.retry();
+          void profileQuery.refetch();
+        }}
+      />
     );
   }
 
@@ -65,12 +66,13 @@ export default function ResidentMePage() {
     return (
       <div className={styles.page}>
         <header className={styles.header}><h1>내 정보</h1></header>
-        <div className={styles.center} role="status">
-          <b>연결된 세대 정보를 찾을 수 없어요.</b>
-          <button type="button" onClick={() => void profileQuery.refetch()}>
-            다시 확인
-          </button>
-        </div>
+        <ResidentAsyncState
+          variant="compact"
+          role="status"
+          message={<b>연결된 세대 정보를 찾을 수 없어요.</b>}
+          retryLabel="다시 확인"
+          onRetry={() => void profileQuery.refetch()}
+        />
         <BottomNav />
       </div>
     );

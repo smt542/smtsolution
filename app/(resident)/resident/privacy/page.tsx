@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import ResidentScreenFrame from "@/app/(resident)/_components/ResidentScreenFrame";
+
 import styles from "../_legal.module.css";
 
 // NOTE: 아래 처리방침은 서비스가 실제로 처리하는 항목을 반영한 표준 초안입니다.
@@ -8,13 +10,16 @@ import styles from "../_legal.module.css";
 
 export default function ResidentPrivacyPage() {
   return (
-    <div className={styles.page}>
-      <header className={styles.header}>
-        <Link href="/resident/me" aria-label="내 정보로 돌아가기">‹</Link>
-        <h1>개인정보 처리방침</h1>
-        <span aria-hidden="true" />
-      </header>
-      <main className={styles.content}>
+    <ResidentScreenFrame
+      variant="legal"
+      header={
+        <>
+          <Link href="/resident/me" aria-label="내 정보로 돌아가기">‹</Link>
+          <h1>개인정보 처리방침</h1>
+          <span aria-hidden="true" />
+        </>
+      }
+    >
         <h2>개인정보 처리방침</h2>
         <p className={styles.note}>
           본 처리방침은 표준 초안이며, 정식 시행본은 관리업체의 법무 검토 후
@@ -86,7 +91,6 @@ export default function ResidentPrivacyPage() {
         </p>
 
         <p>본 방침의 시행일 및 변경 이력은 정식 시행본 게시 시 함께 안내합니다.</p>
-      </main>
-    </div>
+    </ResidentScreenFrame>
   );
 }

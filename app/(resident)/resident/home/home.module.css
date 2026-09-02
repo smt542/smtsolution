@@ -218,23 +218,3 @@
   font-size: 12px;
   text-align: center;
 }
-
-.center {
-  flex: 1;
-  min-height: 0;
-  padding: 40px 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  color: var(--t3);
-  text-align: center;
-  font-size: 13px;
-}
-
-.center b { color: var(--t1); font-size: 17px; }
-.center button { height: 42px; padding: 0 17px; border: 0; border-radius: 12px; background: var(--blue); color: #fff; font: inherit; font-weight: 800; }
-.spinner { width: 27px; height: 27px; border: 3px solid var(--blue-t); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.8s linear infinite; }
-
-@keyframes spin { to { transform: rotate(360deg); } }

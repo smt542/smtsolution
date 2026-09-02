@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import ResidentScreenFrame from "@/app/(resident)/_components/ResidentScreenFrame";
+
 import styles from "../_legal.module.css";
 
 // NOTE: 아래 약관은 서비스 특성을 반영한 표준 초안입니다.
@@ -8,13 +10,16 @@ import styles from "../_legal.module.css";
 
 export default function ResidentTermsPage() {
   return (
-    <div className={styles.page}>
-      <header className={styles.header}>
-        <Link href="/resident/me" aria-label="내 정보로 돌아가기">‹</Link>
-        <h1>이용약관</h1>
-        <span aria-hidden="true" />
-      </header>
-      <main className={styles.content}>
+    <ResidentScreenFrame
+      variant="legal"
+      header={
+        <>
+          <Link href="/resident/me" aria-label="내 정보로 돌아가기">‹</Link>
+          <h1>이용약관</h1>
+          <span aria-hidden="true" />
+        </>
+      }
+    >
         <h2>세입자 서비스 이용약관</h2>
         <p className={styles.note}>
           본 약관은 표준 초안이며, 정식 시행본은 관리업체의 법무 검토 후 갱신됩니다.
@@ -96,7 +101,6 @@ export default function ResidentTermsPage() {
         </p>
 
         <p>시행일 및 개정 이력은 정식 시행본 게시 시 함께 안내합니다.</p>
-      </main>
-    </div>
+    </ResidentScreenFrame>
   );
 }

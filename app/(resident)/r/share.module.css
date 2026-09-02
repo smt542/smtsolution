@@ -1,36 +1,8 @@
-.page {
-  flex: 1;
-  min-height: 0;
-  background: var(--bg);
-  display: flex;
-  flex-direction: column;
-}
-
-.header {
-  flex: none;
-  padding: calc(env(safe-area-inset-top) + 17px) 20px 15px;
-  background: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  color: var(--t3);
-  font-size: 12px;
-  font-weight: 700;
-}
-
 .brand {
   color: var(--blue-d);
   font-size: 18px;
   font-weight: 900;
   letter-spacing: -0.04em;
-}
-
-.scroll {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  padding: 16px 20px calc(24px + env(safe-area-inset-bottom));
 }
 
 .card {
@@ -106,8 +78,7 @@
   font-size: 20px;
 }
 
-.cta,
-.center button {
+.cta {
   min-height: 50px;
   border: 0;
   border-radius: 14px;
@@ -125,32 +96,4 @@
   align-items: center;
   justify-content: center;
   text-decoration: none;
-}
-
-.center {
-  flex: 1;
-  min-height: 0;
-  padding: 40px 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  color: var(--t3);
-  font-size: 14px;
-}
-
-.center b {
-  color: var(--t1);
-  font-size: 18px;
-}
-
-.center p {
-  margin: 8px 0 0;
-}
-
-.center button {
-  min-height: 42px;
-  margin-top: 16px;
-  padding: 0 18px;
 }

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
+import ResidentAsyncState from "@/app/(resident)/_components/ResidentAsyncState";
+import ResidentScreenFrame from "@/app/(resident)/_components/ResidentScreenFrame";
 import {
   type PublicNoticeType,
   usePublicNoticeByToken,
@@ -24,51 +26,69 @@ export default function PublicNoticePage() {
 
   if (noticeQuery.isPending) {
     return (
-      <div className={styles.center} role="status">
-        공지사항을 불러오고 있어요.
-      </div>
+      <ResidentAsyncState
+        variant="public"
+        role="status"
+        message="공지사항을 불러오고 있어요."
+      />
     );
   }
 
   if (noticeQuery.error) {
     return (
-      <div className={styles.center} role="alert">
-        <b>공지사항을 불러오지 못했어요.</b>
-        <button type="button" onClick={() => void noticeQuery.refetch()}>
-          다시 시도
-        </button>
-      </div>
+      <ResidentAsyncState
+        variant="public"
+        role="alert"
+        message={<b>공지사항을 불러오지 못했어요.</b>}
+        retryLabel="다시 시도"
+        onRetry={() => void noticeQuery.refetch()}
+      />
     );
   }
 
   if (!noticeQuery.data) {
     return (
-      <div className={styles.center} role="alert">
-        <b>유효하지 않은 링크예요.</b>
-        <p>공유 링크를 다시 확인해 주세요.</p>
-      </div>
+      <ResidentAsyncState
+        variant="public"
+        role="alert"
+        message={
+          <>
+            <b>유효하지 않은 링크예요.</b>
+            <p>공유 링크를 다시 확인해 주세요.</p>
+          </>
+        }
+      />
     );
   }
 
   if (noticeQuery.data.isExpired) {
     return (
-      <div className={styles.center} role="alert">
-        <b>만료된 링크예요.</b>
-        <p>관리사무소에 새 링크를 요청해 주세요.</p>
-      </div>
+      <ResidentAsyncState
+        variant="public"
+        role="alert"
+        message={
+          <>
+            <b>만료된 링크예요.</b>
+            <p>관리사무소에 새 링크를 요청해 주세요.</p>
+          </>
+        }
+      />
     );
   }
 
   const notice = noticeQuery.data;
 
   return (
-    <div className={styles.page}>
-      <header className={styles.header}>
-        <span className={styles.brand}>관리비ON</span>
-        <span>공개 공지사항</span>
-      </header>
-      <main className={styles.scroll}>
-        <article className={styles.card}>
+    <ResidentScreenFrame
+      variant="public"
+      header={
+        <>
+          <span className={styles.brand}>관리비ON</span>
+          <span>공개 공지사항</span>
+        </>
+      }
+    >
+      <article className={styles.card}>
           <p className={styles.eyebrow}>
             {notice.noticeType
               ? noticeTypeLabels[notice.noticeType]
@@ -83,11 +103,10 @@ export default function PublicNoticePage() {
               .join(" · ")}
           </p>
           <p className={styles.content}>{notice.content}</p>
-        </article>
-        <Link className={styles.cta} href="/resident/login">
-          관리비ON 시작하기
-        </Link>
-      </main>
-    </div>
+      </article>
+      <Link className={styles.cta} href="/resident/login">
+        관리비ON 시작하기
+      </Link>
+    </ResidentScreenFrame>
   );
 }
