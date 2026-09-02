@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useParams } from "next/navigation";
 
+import PublicShareArticleCard from "@/app/(resident)/_components/PublicShareArticleCard";
+import PublicTokenPageShell from "@/app/(resident)/_components/PublicTokenPageShell";
 import ResidentAsyncState from "@/app/(resident)/_components/ResidentAsyncState";
-import ResidentScreenFrame from "@/app/(resident)/_components/ResidentScreenFrame";
 import { usePublicSettlementByToken } from "@/hooks/reactquery/residentSettlement";
 import { formatDate as formatDateValue, formatWon } from "@/lib/format";
 
@@ -73,49 +73,41 @@ export default function PublicSettlementPage() {
   const settlement = settlementQuery.data;
 
   return (
-    <ResidentScreenFrame
-      variant="public"
-      header={
-        <>
-          <span className={styles.brand}>관리비ON</span>
-          <span>공개 이사정산 내역</span>
-        </>
-      }
+    <PublicTokenPageShell
+      brand="관리비ON"
+      subtitle="공개 이사정산 내역"
+      ctaLabel="관리비ON 시작하기"
     >
-      <article className={styles.card}>
-          <p className={styles.eyebrow}>이사정산</p>
-          <h1 className={styles.title}>정산 내역</h1>
-          <p className={styles.meta}>
-            {[settlement.buildingName, settlement.unitLabel]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
-          <dl className={styles.details}>
-            <div className={styles.detailRow}>
-              <dt>퇴실일</dt>
-              <dd>
-                {settlement.moveOutDate
-                  ? formatDate(settlement.moveOutDate)
-                  : "-"}
-              </dd>
-            </div>
-            <div className={styles.detailRow}>
-              <dt>정산구분</dt>
-              <dd>{settlement.settlementKind ?? "-"}</dd>
-            </div>
-            <div className={styles.detailRow}>
-              <dt>정산금액</dt>
-              <dd className={styles.amount}>
-                {settlement.settlementAmount === null
-                  ? "-"
-                  : formatAmount(settlement.settlementAmount)}
-              </dd>
-            </div>
-          </dl>
-      </article>
-      <Link className={styles.cta} href="/resident/login">
-        관리비ON 시작하기
-      </Link>
-    </ResidentScreenFrame>
+      <PublicShareArticleCard
+        eyebrow="이사정산"
+        title="정산 내역"
+        metadata={[settlement.buildingName, settlement.unitLabel]
+          .filter(Boolean)
+          .join(" · ")}
+      >
+        <dl className={styles.details}>
+          <div className={styles.detailRow}>
+            <dt>퇴실일</dt>
+            <dd>
+              {settlement.moveOutDate
+                ? formatDate(settlement.moveOutDate)
+                : "-"}
+            </dd>
+          </div>
+          <div className={styles.detailRow}>
+            <dt>정산구분</dt>
+            <dd>{settlement.settlementKind ?? "-"}</dd>
+          </div>
+          <div className={styles.detailRow}>
+            <dt>정산금액</dt>
+            <dd className={styles.amount}>
+              {settlement.settlementAmount === null
+                ? "-"
+                : formatAmount(settlement.settlementAmount)}
+            </dd>
+          </div>
+        </dl>
+      </PublicShareArticleCard>
+    </PublicTokenPageShell>
   );
 }

@@ -6,45 +6,6 @@
   background: var(--bg);
 }
 
-.header {
-  flex: none;
-  min-height: 58px;
-  padding: env(safe-area-inset-top) 16px 0;
-  background: #fff;
-  display: grid;
-  grid-template-columns: 42px 1fr 42px;
-  align-items: center;
-}
-
-.header a {
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border-radius: 12px;
-  color: var(--t1);
-}
-
-.header a:hover {
-  background: var(--blue-t2);
-  color: var(--blue-d);
-}
-
-.header svg {
-  width: 22px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2.1;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.header h1 {
-  margin: 0;
-  font-size: 18px;
-  text-align: center;
-}
-
 .scroll {
   flex: 1;
   min-height: 0;

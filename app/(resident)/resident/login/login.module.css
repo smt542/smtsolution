@@ -339,41 +339,6 @@
   color: var(--blue-d);
 }
 
-.sheet {
-  position: fixed;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 100dvh;
-  max-height: 100dvh;
-  background: rgba(23, 31, 40, 0.45);
-  display: none;
-  align-items: flex-end;
-  justify-content: center;
-  z-index: 90;
-  overflow: hidden;
-}
-
-.sheet.show {
-  display: flex;
-}
-
-.sheetB {
-  background: #fff;
-  border-radius: 22px 22px 0 0;
-  width: 100%;
-  max-width: 440px;
-  padding: 10px 24px calc(env(safe-area-inset-bottom) + 24px);
-}
-
-.grab {
-  width: 36px;
-  height: 4px;
-  border-radius: 2px;
-  background: var(--line);
-  margin: 0 auto 16px;
-}
-
 .sheetT {
   font-size: 18px;
   font-weight: 800;
