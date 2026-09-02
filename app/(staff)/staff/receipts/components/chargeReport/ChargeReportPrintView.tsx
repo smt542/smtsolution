@@ -1,4 +1,5 @@
 import { formatNumber } from "@/lib/format";
+import { A4LandscapeDocumentShell } from "../A4LandscapeDocumentShell";
 import type { ChargeReportModel } from "./buildChargeReport";
 
 interface ChargeReportPrintViewProps {
@@ -15,16 +16,17 @@ export function ChargeReportPrintView({ model, buildingName, rangeLabel }: Charg
   const { months, feeItems, totals } = model;
 
   return (
-    <article
-      className="mx-auto w-[277mm] bg-white p-[10mm] text-black"
-      data-testid="charge-report-print-view"
+    <A4LandscapeDocumentShell
+      testId="charge-report-print-view"
+      buildingName={buildingName}
+      title={
+        <>
+          <p className="text-[10px] font-bold tracking-[0.2em]">CHARGE / RECEIPT REPORT</p>
+          <h1 className="mt-1 text-xl font-black">[ {buildingName} 부과금액 및 수납자료 ]</h1>
+          <p className="mt-1 text-xs font-bold">기준월 · {rangeLabel}</p>
+        </>
+      }
     >
-      <header className="mb-3 border-b-2 border-black pb-2">
-        <p className="text-[10px] font-bold tracking-[0.2em]">CHARGE / RECEIPT REPORT</p>
-        <h1 className="mt-1 text-xl font-black">[ {buildingName} 부과금액 및 수납자료 ]</h1>
-        <p className="mt-1 text-xs font-bold">기준월 · {rangeLabel}</p>
-      </header>
-
       <table className="w-full border-collapse text-[9px]">
         <thead>
           <tr className="bg-slate-100">
@@ -79,10 +81,6 @@ export function ChargeReportPrintView({ model, buildingName, rangeLabel }: Charg
           </tr>
         </tbody>
       </table>
-
-      <footer className="mt-3 border-t border-black pt-2 text-right text-[9px] font-bold">
-        {buildingName}
-      </footer>
-    </article>
+    </A4LandscapeDocumentShell>
   );
 }

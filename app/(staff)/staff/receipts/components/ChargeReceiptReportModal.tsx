@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Spinner } from "@/components/common";
 import { CloseIcon, PrinterIcon } from "@/components/icons";
 import type { Building } from "@/hooks/reactquery/buildings";
 import { useReceiptStatementData } from "@/hooks/reactquery/receipts";
 import { toMonthInput } from "@/lib/billing/period";
+import { AsyncContentState } from "./AsyncContentState";
 import {
   buildChargeReport,
   periodsBetween,
@@ -192,27 +192,17 @@ export function ChargeReceiptReportModal({
             </div>
 
             {/* 테이블 */}
-            <div className="min-h-0 flex-1 overflow-auto">
-              {building === null ? (
-                <div className="flex h-full items-center justify-center text-sm text-t3">
-                  건물을 먼저 선택하세요
-                </div>
-              ) : isError ? (
-                <div className="flex h-full items-center justify-center text-sm font-bold text-red">
-                  부과·수납 자료를 불러오지 못했습니다.
-                </div>
-              ) : isLoading ? (
-                <div className="flex h-full items-center justify-center">
-                  <Spinner />
-                </div>
-              ) : !hasData ? (
-                <div className="flex h-full items-center justify-center text-sm text-t3">
-                  조회된 부과·수납 자료가 없습니다.
-                </div>
-              ) : (
-                <ChargeReportTable model={model} />
-              )}
-            </div>
+            <AsyncContentState
+              error={isError}
+              errorMessage="부과·수납 자료를 불러오지 못했습니다."
+              loading={isLoading}
+              empty={building === null || !hasData}
+              emptyMessage={
+                building === null ? "건물을 먼저 선택하세요" : "조회된 부과·수납 자료가 없습니다."
+              }
+            >
+              <ChargeReportTable model={model} />
+            </AsyncContentState>
           </div>
 
           {/* 푸터 */}

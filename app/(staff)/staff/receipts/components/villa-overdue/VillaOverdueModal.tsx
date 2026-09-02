@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Spinner } from "@/components/common";
 import { CloseIcon, PrinterIcon } from "@/components/icons";
 import type { Building } from "@/hooks/reactquery/buildings";
 import {
@@ -10,6 +9,7 @@ import {
   useOverduePeriods,
 } from "@/hooks/reactquery/overdue";
 import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
+import { AsyncContentState } from "../AsyncContentState";
 import {
   buildOverdueGroups,
   grandTotals,
@@ -148,27 +148,19 @@ export function VillaOverdueModal({
           />
 
           {/* 테이블 */}
-          <div className="min-h-0 flex-1 overflow-auto">
-            {isError ? (
-              <div className="flex h-full items-center justify-center text-sm font-bold text-red">
-                미납내역을 불러오지 못했습니다.
-              </div>
-            ) : isLoading ? (
-              <div className="flex h-full items-center justify-center">
-                <Spinner />
-              </div>
-            ) : !hasData ? (
-              <div className="flex h-full items-center justify-center text-sm text-t3">
-                조회된 미납내역이 없습니다.
-              </div>
-            ) : (
-              <OverdueDetailTable
-                groups={displayGroups}
-                billerName={building.name}
-                onEdit={onEdit}
-              />
-            )}
-          </div>
+          <AsyncContentState
+            error={isError}
+            errorMessage="미납내역을 불러오지 못했습니다."
+            loading={isLoading}
+            empty={!hasData}
+            emptyMessage="조회된 미납내역이 없습니다."
+          >
+            <OverdueDetailTable
+              groups={displayGroups}
+              billerName={building.name}
+              onEdit={onEdit}
+            />
+          </AsyncContentState>
 
           {/* 푸터: 총계 + 인쇄 */}
           <footer className="flex h-[69px] shrink-0 items-center justify-between gap-[16px] border-t border-line px-[20px]">

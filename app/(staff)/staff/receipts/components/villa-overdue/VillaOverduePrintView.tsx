@@ -1,4 +1,5 @@
 import { formatNumber } from "@/lib/format";
+import { A4LandscapeDocumentShell } from "../A4LandscapeDocumentShell";
 import type { OverdueDisplayGroup, OverdueRollup } from "./buildOverdueGroups";
 import { formatPeriodSlash } from "./format";
 
@@ -24,18 +25,19 @@ export function VillaOverduePrintView({
   scopeLabel,
 }: VillaOverduePrintViewProps) {
   return (
-    <article
-      className="mx-auto w-[277mm] bg-white p-[10mm] text-black"
-      data-testid="villa-overdue-print-view"
+    <A4LandscapeDocumentShell
+      testId="villa-overdue-print-view"
+      buildingName={buildingName}
+      title={
+        <>
+          <p className="text-[10px] font-bold tracking-[0.2em]">OVERDUE STATEMENT</p>
+          <h1 className="mt-1 text-xl font-black">[ {buildingName} 미납내역 ]</h1>
+          <p className="mt-1 text-xs font-bold">
+            {asOfLabel} · {scopeLabel} · 항목 {totals.lineCount} / 동호 {totals.unitCount}건
+          </p>
+        </>
+      }
     >
-      <header className="mb-3 border-b-2 border-black pb-2">
-        <p className="text-[10px] font-bold tracking-[0.2em]">OVERDUE STATEMENT</p>
-        <h1 className="mt-1 text-xl font-black">[ {buildingName} 미납내역 ]</h1>
-        <p className="mt-1 text-xs font-bold">
-          {asOfLabel} · {scopeLabel} · 항목 {totals.lineCount} / 동호 {totals.unitCount}건
-        </p>
-      </header>
-
       <table className="w-full border-collapse text-[9px]">
         <thead>
           <tr className="bg-slate-100">
@@ -70,11 +72,7 @@ export function VillaOverduePrintView({
           </tr>
         </tbody>
       </table>
-
-      <footer className="mt-3 border-t border-black pt-2 text-right text-[9px] font-bold">
-        {buildingName}
-      </footer>
-    </article>
+    </A4LandscapeDocumentShell>
   );
 }
 

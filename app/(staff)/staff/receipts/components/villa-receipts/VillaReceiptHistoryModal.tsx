@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Spinner } from "@/components/common";
 import { CloseIcon, PrinterIcon } from "@/components/icons";
 import type { Building } from "@/hooks/reactquery/buildings";
 import { useReceiptStatementData } from "@/hooks/reactquery/receipts";
 import { formatNumber } from "@/lib/format";
+import { AsyncContentState } from "../AsyncContentState";
 import {
   buildVillaReceiptReport,
   type VillaReceiptReportModel,
@@ -210,25 +210,17 @@ export function VillaReceiptHistoryModal({
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-auto">
-            {periods.length === 0 ? (
-              <div className="flex h-full items-center justify-center text-sm text-t3">
-                조회 기간을 확인하세요.
-              </div>
-            ) : query.isError ? (
-              <div className="flex h-full items-center justify-center text-sm font-bold text-red">
-                수납내역을 불러오지 못했습니다.
-              </div>
-            ) : isLoading ? (
-              <div className="flex h-full items-center justify-center"><Spinner /></div>
-            ) : !hasData ? (
-              <div className="flex h-full items-center justify-center text-sm text-t3">
-                조회된 수납내역이 없습니다.
-              </div>
-            ) : (
-              <ReportTable model={model} />
-            )}
-          </div>
+          <AsyncContentState
+            error={query.isError}
+            errorMessage="수납내역을 불러오지 못했습니다."
+            loading={isLoading}
+            empty={periods.length === 0 || !hasData}
+            emptyMessage={
+              periods.length === 0 ? "조회 기간을 확인하세요." : "조회된 수납내역이 없습니다."
+            }
+          >
+            <ReportTable model={model} />
+          </AsyncContentState>
 
           <footer className="flex h-[69px] shrink-0 items-center justify-end border-t border-line px-[20px]">
             <button

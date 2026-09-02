@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Spinner } from "@/components/common";
 import { CloseIcon, PrinterIcon } from "@/components/icons";
 import type { Building } from "@/hooks/reactquery/buildings";
 import { useReceiptStatementData } from "@/hooks/reactquery/receipts";
 import type { UtilityType } from "@/hooks/reactquery/utilities";
 import { formatNumber } from "@/lib/format";
+import { AsyncContentState } from "../AsyncContentState";
 import { shiftMonth } from "../monthly/buildMonthlyReport";
 import {
   buildUnitStatementReport,
@@ -283,21 +283,15 @@ export function UnitStatementModal({
             <p className="text-[15px] font-bold text-t1">[ {building.name} {resolvedUnitLabel} ]</p>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-auto">
-            {query.isError ? (
-              <div className="flex h-full items-center justify-center text-sm font-bold text-red">
-                호실 명세서를 불러오지 못했습니다.
-              </div>
-            ) : isLoading ? (
-              <div className="flex h-full items-center justify-center"><Spinner /></div>
-            ) : !hasData ? (
-              <div className="flex h-full items-center justify-center text-sm text-t3">
-                조회된 호실 명세서가 없습니다.
-              </div>
-            ) : (
-              <StatementTable model={model} />
-            )}
-          </div>
+          <AsyncContentState
+            error={query.isError}
+            errorMessage="호실 명세서를 불러오지 못했습니다."
+            loading={isLoading}
+            empty={!hasData}
+            emptyMessage="조회된 호실 명세서가 없습니다."
+          >
+            <StatementTable model={model} />
+          </AsyncContentState>
 
           <div className="flex h-[36px] shrink-0 items-center gap-[34px] border-t border-line bg-[#f7f9fa] px-[38px] text-[13px] font-medium text-red tabular-nums">
             <span>미납액</span><strong>{formatNumber(model.totals.unpaid)}</strong>
