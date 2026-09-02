@@ -6,6 +6,7 @@ import { type ReactNode, Suspense, useEffect, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 
+import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
 import styles from "./mobile-building.module.css";
 
 type Building = {
@@ -51,11 +52,6 @@ function telHref(v: string) {
   return `tel:${v.replace(/[^0-9]/g, "")}`;
 }
 
-const BackIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round">
-    <path d="M15 5l-7 7 7 7" />
-  </svg>
-);
 const PhoneIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
     <path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1.1 1A16 16 0 0 1 4 5.1 1 1 0 0 1 5 4z" />
@@ -106,22 +102,22 @@ function BuildingDetailInner() {
   }, [buildingId]);
 
   const header = (title: string) => (
-    <div className={styles.header}>
-      <Link href="/partner/mobile-inquiry" className={styles.back} aria-label="뒤로">
-        <BackIcon />
-      </Link>
-      <div className={styles.title}>{title}</div>
-      <Link
-        href={Number.isFinite(buildingId) ? `/partner/mobile-meter?id=${buildingId}` : "/partner/mobile-meter"}
-        className={styles.meterBtn}
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M4 18a8 8 0 1 1 16 0" />
-          <path d="M12 14l3-3" />
-        </svg>
-        검침 자료
-      </Link>
-    </div>
+    <PartnerMobileHeader
+      title={title}
+      backHref="/partner/mobile-inquiry"
+      action={
+        <Link
+          href={Number.isFinite(buildingId) ? `/partner/mobile-meter?id=${buildingId}` : "/partner/mobile-meter"}
+          className={styles.meterBtn}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M4 18a8 8 0 1 1 16 0" />
+            <path d="M12 14l3-3" />
+          </svg>
+          검침 자료
+        </Link>
+      }
+    />
   );
 
   if (loading) {

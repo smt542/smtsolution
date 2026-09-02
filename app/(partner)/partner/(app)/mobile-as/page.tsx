@@ -1,11 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 
+import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
+import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
 import { AS_STATUS, combineDateTime, fmtDateTime, splitDateTime } from "../_as";
 import styles from "../_asform.module.css";
 
@@ -121,16 +122,7 @@ function AsDetailInner() {
     router.push("/partner/mobile-home");
   };
 
-  const header = (
-    <div className={styles.header}>
-      <Link href="/partner/mobile-home" className={styles.back} aria-label="뒤로">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M15 5l-7 7 7 7" />
-        </svg>
-      </Link>
-      <div className={styles.title}>A/S 상세</div>
-    </div>
-  );
+  const header = <PartnerMobileHeader title="A/S 상세" backHref="/partner/mobile-home" variant="compact" />;
 
   if (loading) {
     return (
@@ -236,14 +228,14 @@ function AsDetailInner() {
       </div>
 
       {ro ? (
-        <div className={styles.foot}>
+        <PartnerBottomActionBar>
           <div className={styles.note}>담당 건이 아니라 수정할 수 없어요</div>
-        </div>
+        </PartnerBottomActionBar>
       ) : (
-        <div className={styles.foot}>
+        <PartnerBottomActionBar>
           <button type="button" className={`${styles.btn} ${styles.btnDel}`} onClick={() => setConfirmDel(true)} disabled={busy}>삭제</button>
           <button type="button" className={`${styles.btn} ${styles.btnPri}`} onClick={() => setConfirmSave(true)} disabled={busy}>저장</button>
-        </div>
+        </PartnerBottomActionBar>
       )}
 
       {confirmSave && (

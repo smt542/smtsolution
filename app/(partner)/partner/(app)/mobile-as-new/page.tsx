@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 
+import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
+import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
 import { AS_STATUS, combineDateTime, todayLocal } from "../_as";
 import styles from "../_asform.module.css";
 
@@ -110,16 +112,7 @@ export default function PartnerAsNewPage() {
     router.push("/partner/mobile-home");
   };
 
-  const header = (
-    <div className={styles.header}>
-      <button type="button" className={styles.back} onClick={() => setConfirmCancel(true)} aria-label="뒤로">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M15 5l-7 7 7 7" />
-        </svg>
-      </button>
-      <div className={styles.title}>신규 접수</div>
-    </div>
-  );
+  const header = <PartnerMobileHeader title="신규 접수" onBack={() => setConfirmCancel(true)} variant="compact" />;
 
   if (loading) {
     return (
@@ -222,10 +215,10 @@ export default function PartnerAsNewPage() {
         {err && <div className={styles.err} role="alert">{err}</div>}
       </div>
 
-      <div className={styles.foot}>
+      <PartnerBottomActionBar>
         <button type="button" className={`${styles.btn} ${styles.btnSec}`} onClick={() => setConfirmCancel(true)} disabled={busy}>취소</button>
         <button type="button" className={`${styles.btn} ${styles.btnPri}`} onClick={() => setConfirmReg(true)} disabled={busy}>접수 등록</button>
-      </div>
+      </PartnerBottomActionBar>
 
       {confirmReg && (
         <div className={styles.scrim} onClick={(e) => e.target === e.currentTarget && setConfirmReg(false)}>

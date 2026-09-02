@@ -502,15 +502,6 @@
 }
 
 /* ===== 하단 액션 ===== */
-.foot {
-  flex: none;
-  background: #fff;
-  border-top: 1px solid var(--line);
-  padding: 12px 20px 22px;
-  display: flex;
-  gap: 9px;
-}
-
 .btn {
   flex: 1;
   height: 52px;

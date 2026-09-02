@@ -7,6 +7,7 @@ import { Suspense, useEffect, useState } from "react";
 import { formatMonth } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 
+import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
 import styles from "./mobile-meter.module.css";
 
 type Meter = { prev: string; cur: string };
@@ -227,11 +228,11 @@ function MeterInner() {
         )}
       </div>
 
-      <div className={styles.foot}>
+      <PartnerBottomActionBar>
         <button type="button" className={styles.btn} onClick={() => setConfirm(true)} disabled={busy || loading || units.length === 0}>
           {saved ? "저장했어요" : "저장"}
         </button>
-      </div>
+      </PartnerBottomActionBar>
 
       {confirm && (
         <div className={styles.scrim} onClick={(e) => e.target === e.currentTarget && setConfirm(false)}>
