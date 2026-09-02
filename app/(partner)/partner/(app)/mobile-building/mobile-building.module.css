@@ -115,19 +115,6 @@
   text-align: right;
 }
 
-.ucell {
-  border-bottom: 1px solid var(--line);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 16px 2px;
-  color: inherit;
-}
-
-.ucell:last-child {
-  border-bottom: 0;
-}
-
 .uho {
   flex: none;
   font-size: 17px;
@@ -155,46 +142,12 @@
   flex: 1;
 }
 
-.uchev {
-  flex: none;
-  width: 20px;
-  height: 20px;
-  color: var(--t4);
-}
-
-.ucell:hover .uchev {
-  color: var(--t2);
-}
-
 .none {
   text-align: center;
   padding: 40px 20px;
   font-size: 14px;
   font-weight: 600;
   color: var(--t3);
-}
-
-/* ===== 전화 걸기(pill) ===== */
-.tel {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 32px;
-  padding: 0 11px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--t2);
-  background: #fff;
-  font-variant-numeric: tabular-nums;
-}
-
-.tel svg {
-  width: 14px;
-  height: 14px;
-  color: var(--blue);
 }
 
 /* ===== 업체 정보 ===== */

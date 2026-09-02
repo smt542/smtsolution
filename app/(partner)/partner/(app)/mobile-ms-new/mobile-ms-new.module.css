@@ -543,16 +543,6 @@
   color: var(--t3);
 }
 
-.err {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--red);
-  background: var(--red-t);
-  border-radius: 11px;
-  padding: 10px 12px;
-  margin: 8px 0 0;
-}
-
 /* ===== 확인 모달 ===== */
 .scrim {
   position: fixed;

@@ -8,6 +8,7 @@ import { formatDate, formatMonth, formatWon } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 
 import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
+import { PartnerPhoneLink } from "../../../_components/PartnerPhoneLink";
 import styles from "./mobile-tenant.module.css";
 
 type Occ = {
@@ -64,9 +65,6 @@ function fmtDate(iso: string | null) {
 }
 function fmtMonth(iso: string) {
   return formatMonth(iso, { nullText: "" });
-}
-function telHref(v: string) {
-  return `tel:${v.replace(/[^0-9]/g, "")}`;
 }
 function won(n: number) {
   return `${n < 0 ? "-" : ""}${formatWon(Math.abs(n))}`;
@@ -203,12 +201,7 @@ function TenantDetailInner() {
               <div className={styles.row}>
                 <span className={styles.rowLabel}>전화번호</span>
                 {occ.phone ? (
-                  <a className={styles.tel} href={telHref(occ.phone)}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-                      <path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1.1 1A16 16 0 0 1 4 5.1 1 1 0 0 1 5 4z" />
-                    </svg>
-                    {occ.phone}
-                  </a>
+                  <PartnerPhoneLink phone={occ.phone} pushRight />
                 ) : (
                   <span className={styles.muted}>등록된 연락처가 없어요</span>
                 )}

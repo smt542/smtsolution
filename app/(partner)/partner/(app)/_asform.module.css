@@ -30,36 +30,6 @@
   padding: 2px 16px;
 }
 
-.row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--line2);
-}
-
-.row:last-child {
-  border-bottom: 0;
-}
-
-.rowCol {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
-}
-
-.label {
-  flex: none;
-  width: 104px;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--t3);
-}
-
-.rowCol .label {
-  width: auto;
-}
-
 .req {
   color: var(--red);
   margin-left: 2px;
@@ -191,16 +161,6 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--t3);
-}
-
-.err {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--red);
-  background: var(--red-t);
-  border-radius: 11px;
-  padding: 10px 12px;
-  margin: 8px 0 0;
 }
 
 .scrim {

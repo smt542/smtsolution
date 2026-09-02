@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { PartnerListRow } from "../../../../_components/PartnerListRow";
+import { PartnerPhoneLink } from "../../../../_components/PartnerPhoneLink";
 import styles from "./mobile-inquiry.module.css";
 
 export type BuildingRow = {
@@ -28,16 +29,6 @@ export type TenantRow = {
 function unitLabel(dong: string | null, unitNo: string) {
   return `${dong ? `${dong} ` : ""}${unitNo}`;
 }
-
-function telHref(v: string) {
-  return `tel:${v.replace(/[^0-9]/g, "")}`;
-}
-
-const TelIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-    <path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1.1 1A16 16 0 0 1 4 5.1 1 1 0 0 1 5 4z" />
-  </svg>
-);
 
 export function InquiryView({ buildings, tenants }: { buildings: BuildingRow[]; tenants: TenantRow[] }) {
   const [tab, setTab] = useState<"bld" | "ten">("bld");
@@ -91,15 +82,12 @@ export function InquiryView({ buildings, tenants }: { buildings: BuildingRow[]; 
         ) : tab === "bld" ? (
           <div className={styles.list}>
             {bList.map((b) => (
-              <Link key={b.id} href={`/partner/mobile-building?id=${b.id}`} className={styles.bcard}>
+              <PartnerListRow key={b.id} href={`/partner/mobile-building?id=${b.id}`} chevron>
                 <div className={styles.bmain}>
                   <div className={styles.bname}>{b.name}</div>
                   {b.address && <div className={styles.baddr}>{b.address}</div>}
                 </div>
-                <svg className={styles.chev} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
+              </PartnerListRow>
             ))}
           </div>
         ) : (
@@ -113,10 +101,7 @@ export function InquiryView({ buildings, tenants }: { buildings: BuildingRow[]; 
                 {t.phone && (
                   <div className={styles.trow}>
                     <span className={styles.trowLabel}>연락처</span>
-                    <a className={styles.tel} href={telHref(t.phone)}>
-                      <TelIcon />
-                      {t.phone}
-                    </a>
+                    <PartnerPhoneLink phone={t.phone} pushRight />
                   </div>
                 )}
               </div>

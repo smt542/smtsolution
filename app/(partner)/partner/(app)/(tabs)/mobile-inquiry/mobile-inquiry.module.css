@@ -89,19 +89,6 @@
   color: var(--t3);
 }
 
-.bcard {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border-bottom: 1px solid var(--line);
-  padding: 16px 2px;
-  color: inherit;
-}
-
-.bcard:last-child {
-  border-bottom: 0;
-}
-
 .bmain {
   flex: 1;
   min-width: 0;
@@ -120,17 +107,6 @@
   color: var(--t3);
   margin-top: 5px;
   line-height: 1.5;
-}
-
-.chev {
-  flex: none;
-  width: 20px;
-  height: 20px;
-  color: var(--t4);
-}
-
-.bcard:hover .chev {
-  color: var(--t2);
 }
 
 .tcard {
@@ -170,25 +146,3 @@
   width: 64px;
 }
 
-.tel {
-  margin-left: auto;
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 32px;
-  padding: 0 11px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--t2);
-  background: #fff;
-  font-variant-numeric: tabular-nums;
-}
-
-.tel svg {
-  width: 14px;
-  height: 14px;
-  color: var(--blue);
-}

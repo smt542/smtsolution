@@ -6,6 +6,8 @@ import { Suspense, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
+import { PartnerFormFieldRow } from "../../../_components/PartnerFormFieldRow";
+import { PartnerInlineError } from "../../../_components/PartnerInlineError";
 import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
 import { AS_STATUS, combineDateTime, fmtDateTime, splitDateTime } from "../_as";
 import styles from "../_asform.module.css";
@@ -150,81 +152,67 @@ function AsDetailInner() {
         <div className={styles.sec}>
           <div className={styles.secTitle}>대상 세대</div>
           <div className={styles.box}>
-            <div className={styles.row}>
-              <span className={styles.label}>건물</span>
+            <PartnerFormFieldRow label="건물">
               <span className={styles.ro}>{d.building_name}</span>
-            </div>
-            <div className={styles.row}>
-              <span className={styles.label}>호수</span>
+            </PartnerFormFieldRow>
+            <PartnerFormFieldRow label="호수">
               <span className={styles.ro}>{d.unit_label ?? "건물 전체"}</span>
-            </div>
+            </PartnerFormFieldRow>
           </div>
         </div>
 
         <div className={styles.sec}>
           <div className={styles.secTitle}>A/S 내용</div>
           <div className={styles.box}>
-            <div className={styles.row}>
-              <span className={styles.label}>접수자</span>
+            <PartnerFormFieldRow label="접수자">
               <span className={styles.ro}>{d.logger_name ?? "—"}</span>
-            </div>
-            <div className={styles.row}>
-              <span className={styles.label}>담당자</span>
+            </PartnerFormFieldRow>
+            <PartnerFormFieldRow label="담당자">
               <span className={styles.ro}>{d.assigned_name ?? "—"}</span>
-            </div>
-            <div className={styles.row}>
-              <span className={styles.label}>접수일시</span>
+            </PartnerFormFieldRow>
+            <PartnerFormFieldRow label="접수일시">
               <span className={styles.ro}>{fmtDateTime(d.received_at)}</span>
-            </div>
-            <div className={styles.row}>
-              <span className={styles.label}>유형</span>
+            </PartnerFormFieldRow>
+            <PartnerFormFieldRow label="유형">
               <select className={styles.control} value={categoryId} onChange={(e) => setCategoryId(e.target.value)} disabled={ro}>
                 <option value="">선택 안 함</option>
                 {cats.map((c) => (
                   <option key={c.id} value={String(c.id)}>{c.label}</option>
                 ))}
               </select>
-            </div>
-            <div className={styles.row}>
-              <span className={styles.label}>입주자 전화번호</span>
+            </PartnerFormFieldRow>
+            <PartnerFormFieldRow label="입주자 전화번호">
               <span className={styles.ro}>{d.reporter_phone ?? "—"}</span>
-            </div>
-            <div className={`${styles.row} ${styles.rowCol}`}>
-              <span className={styles.label}>접수 내용</span>
+            </PartnerFormFieldRow>
+            <PartnerFormFieldRow label="접수 내용" column>
               <textarea className={styles.textarea} value={content} onChange={(e) => setContent(e.target.value)} placeholder="접수 내용을 입력해 주세요" disabled={ro} />
-            </div>
+            </PartnerFormFieldRow>
           </div>
         </div>
 
         <div className={styles.sec}>
           <div className={styles.secTitle}>처리</div>
           <div className={styles.box}>
-            <div className={styles.row}>
-              <span className={styles.label}>처리결과</span>
+            <PartnerFormFieldRow label="처리결과">
               <select className={styles.control} value={status} onChange={(e) => setStatus(e.target.value)} disabled={ro}>
                 {AS_STATUS.map((s) => (
                   <option key={s.db} value={s.db}>{s.ko}</option>
                 ))}
               </select>
-            </div>
-            <div className={styles.row}>
-              <span className={styles.label}>
-                시행일자{!ro && <b className={styles.req}>*</b>}
-              </span>
+            </PartnerFormFieldRow>
+            <PartnerFormFieldRow label={<>시행일자{!ro && <b className={styles.req}>*</b>}</>}>
               <input type="date" className={styles.control} value={date} onChange={(e) => setDate(e.target.value)} disabled={ro} />
-            </div>
-            <div className={styles.row}>
-              <span className={styles.label}>시간</span>
+            </PartnerFormFieldRow>
+            <PartnerFormFieldRow label="시간">
               <input type="time" className={styles.control} value={time} onChange={(e) => setTime(e.target.value)} disabled={ro} />
-            </div>
-            <div className={`${styles.row} ${styles.rowCol}`}>
-              <span className={styles.label}>처리결과 내용</span>
+            </PartnerFormFieldRow>
+            <PartnerFormFieldRow label="처리결과 내용" column>
               <textarea className={styles.textarea} value={result} onChange={(e) => setResult(e.target.value)} placeholder="처리한 내용을 입력해 주세요" disabled={ro} />
-            </div>
+            </PartnerFormFieldRow>
           </div>
         </div>
 
-        {err && <div className={styles.err} role="alert">{err}</div>}
+        {err && <PartnerInlineError message={err} />}
       </div>
 
       {ro ? (
