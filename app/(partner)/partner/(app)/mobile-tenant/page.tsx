@@ -7,6 +7,7 @@ import { type ReactNode, Suspense, useEffect, useState } from "react";
 import { formatDate, formatMonth, formatWon } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 
+import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
 import styles from "./mobile-tenant.module.css";
 
 type Occ = {
@@ -134,27 +135,21 @@ function TenantDetailInner() {
   const backHref = occ ? `/partner/mobile-building?id=${occ.building_id}` : "/partner/mobile-inquiry";
 
   const header = (
-    <div className={styles.header}>
-      <Link href={backHref} className={styles.back} aria-label="뒤로">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M15 5l-7 7 7 7" />
-        </svg>
-      </Link>
-      <div className={styles.titleWrap}>
-        <div className={styles.title}>
-          {occ ? `${unitLabel(occ.dong, occ.unit_no)}${occ.tenant_name ? ` · ${occ.tenant_name}` : ""}` : "입주자"}
-        </div>
-        {occ && <div className={styles.sub}>{occ.building_name}</div>}
-      </div>
-      {occ && (
-        <Link href={`/partner/mobile-ms-new?unitId=${occ.unit_id}`} className={styles.msBtn}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" aria-hidden="true">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-          이사정산 등록
-        </Link>
-      )}
-    </div>
+    <PartnerMobileHeader
+      title={occ ? `${unitLabel(occ.dong, occ.unit_no)}${occ.tenant_name ? ` · ${occ.tenant_name}` : ""}` : "입주자"}
+      backHref={backHref}
+      subtitle={occ ? occ.building_name : null}
+      action={
+        occ ? (
+          <Link href={`/partner/mobile-ms-new?unitId=${occ.unit_id}`} className={styles.msBtn}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            이사정산 등록
+          </Link>
+        ) : undefined
+      }
+    />
   );
 
   if (loading) {

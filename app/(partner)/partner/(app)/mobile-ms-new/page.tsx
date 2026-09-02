@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { type ReactNode, Suspense, useEffect, useMemo, useState } from "react";
 
+import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
 import {
   buildSaveData,
   computeTotals,
@@ -261,11 +262,11 @@ function MsNewInner() {
       <div className={styles.root}>
         {header}
         <div className={styles.none}>정산 정보를 불러오지 못했어요</div>
-        <div className={styles.foot}>
+        <PartnerBottomActionBar>
           <button type="button" className={`${styles.btn} ${styles.btnSec}`} onClick={goBack}>
             돌아가기
           </button>
-        </div>
+        </PartnerBottomActionBar>
       </div>
     );
   }
@@ -586,7 +587,7 @@ function MsNewInner() {
         ) : null}
       </div>
 
-      <div className={styles.foot}>
+      <PartnerBottomActionBar>
         {isEdit ? (
           <button type="button" className={`${styles.btn} ${styles.btnDel}`} onClick={() => setConfirmKind("delete")} disabled={busy}>
             삭제
@@ -599,7 +600,7 @@ function MsNewInner() {
         <button type="button" className={`${styles.btn} ${styles.btnPri}`} onClick={() => setConfirmKind("save")} disabled={busy}>
           저장
         </button>
-      </div>
+      </PartnerBottomActionBar>
 
       {confirmKind ? (
         <div
