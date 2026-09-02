@@ -3,7 +3,7 @@ import { useState, type ReactNode } from "react";
 import { ChevronDownIcon } from "@/components/icons";
 
 /** Figma numbered section card: teal index badge + title + collapse chevron; body p-17. */
-export function FormSection({
+export function CollapsibleFormSection({
   index,
   title,
   defaultOpen = true,

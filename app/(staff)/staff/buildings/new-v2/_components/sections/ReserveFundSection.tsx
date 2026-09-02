@@ -1,5 +1,6 @@
 "use client";
-import { FormSection } from "../ui/FormSection";
+import { CollapsibleFormSection } from "@/components/common/CollapsibleFormSection";
+import { FormGrid } from "@/components/common/FormGrid";
 import { SelectField } from "../ui/SelectField";
 import { TextAreaField } from "../ui/TextAreaField";
 import type { RegisterFormState } from "../config/formState";
@@ -15,11 +16,11 @@ export function ReserveFundSection({
   patch: (p: Partial<RegisterFormState>) => void;
 }) {
   return (
-    <FormSection index={3} title="적립금">
-      <div className="grid grid-cols-2 gap-x-[18px] gap-y-[16px]">
+    <CollapsibleFormSection index={3} title="적립금">
+      <FormGrid>
         <SelectField label="유형" options={FUND_TYPES} value={value.reserveFundType} onChange={(v) => patch({ reserveFundType: v })} />
         <TextAreaField label="메모" placeholder="적립금 관련 메모를 입력하세요…" value={value.reserveFundMemo} onChange={(v) => patch({ reserveFundMemo: v })} />
-      </div>
-    </FormSection>
+      </FormGrid>
+    </CollapsibleFormSection>
   );
 }

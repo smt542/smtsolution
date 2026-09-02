@@ -1,5 +1,5 @@
 "use client";
-import { FormSection } from "../ui/FormSection";
+import { CollapsibleFormSection } from "@/components/common/CollapsibleFormSection";
 import { Accordion } from "../ui/Accordion";
 import { UtilityPanel } from "./UtilityPanel";
 import { TextAreaField } from "../ui/TextAreaField";
@@ -18,7 +18,7 @@ export function ExtraInfoSection({
     patch({ utilities: { ...value.utilities, [key]: next } });
 
   return (
-    <FormSection index={5} title="부가 정보">
+    <CollapsibleFormSection index={5} title="부가 정보">
       <div>
         {UTILITIES.map((u) => (
           <Accordion key={u.key} title={u.title}>
@@ -39,6 +39,6 @@ export function ExtraInfoSection({
           onChange={(v) => patch({ refNote: v })}
         />
       </div>
-    </FormSection>
+    </CollapsibleFormSection>
   );
 }

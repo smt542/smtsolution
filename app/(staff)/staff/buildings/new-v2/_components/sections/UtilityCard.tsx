@@ -1,4 +1,5 @@
 "use client";
+import { FormGrid } from "@/components/common/FormGrid";
 import { FieldRenderer } from "../ui/FieldRenderer";
 import type { FieldDef } from "../config/types";
 
@@ -26,11 +27,11 @@ export function UtilityCard({
           </button>
         )}
       </div>
-      <div className="grid grid-cols-2 gap-x-[18px] gap-y-[16px]">
+      <FormGrid>
         {fields.map((f) => (
           <FieldRenderer key={f.label} field={f} value={values[f.label]} onChange={(v) => onChange(f.label, v)} />
         ))}
-      </div>
+      </FormGrid>
     </div>
   );
 }
