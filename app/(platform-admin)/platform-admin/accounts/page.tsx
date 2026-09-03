@@ -227,7 +227,7 @@ export default function PlatformAccountsPage() {
             총 {formatNumber(data?.totalCount ?? 0)}개
           </span>
           <div className="flex-1" />
-          <label className="flex h-10 min-w-60 items-center gap-2 rounded-[11px] border border-line bg-surface px-[13px] focus-within:border-blue focus-within:ring-[3px] focus-within:ring-blue-t">
+          <label className="flex h-8 min-w-60 items-center gap-[7px] rounded-[10px] border border-transparent bg-bg px-[11px] focus-within:border-blue focus-within:bg-surface focus-within:ring-[3px] focus-within:ring-[rgba(20,164,151,0.13)]">
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -235,7 +235,7 @@ export default function PlatformAccountsPage() {
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
-              className="h-4 w-4 shrink-0 text-t3"
+              className="h-3.5 w-3.5 shrink-0 text-t4"
               aria-hidden="true"
             >
               <circle cx="11" cy="11" r="6.5" />
@@ -249,7 +249,7 @@ export default function PlatformAccountsPage() {
                 setPage(1);
               }}
               placeholder="조직·이름·아이디 검색"
-              className="w-full bg-transparent text-[13.5px] font-semibold text-t1 outline-none placeholder:text-t4"
+              className="w-full bg-transparent text-[13px] font-semibold text-t1 outline-none placeholder:font-medium placeholder:text-t4"
             />
           </label>
         </div>
@@ -268,21 +268,21 @@ export default function PlatformAccountsPage() {
           <TableFrame minWidthClassName="min-w-[1420px]">
             <thead>
               <tr className="text-left">
-                <th className="whitespace-nowrap border-b border-line bg-bg/40 px-4 py-[11px] text-xs font-bold text-t3">계정</th>
-                <th className="whitespace-nowrap border-b border-line bg-bg/40 px-4 py-[11px] text-xs font-bold text-t3">조직</th>
-                <th className="whitespace-nowrap border-b border-line bg-bg/40 px-4 py-[11px] text-xs font-bold text-t3">전화번호</th>
-                <th className="whitespace-nowrap border-b border-line bg-bg/40 px-4 py-[11px] text-xs font-bold text-t3">메모</th>
-                <th className="whitespace-nowrap border-b border-line bg-bg/40 px-4 py-[11px] text-xs font-bold text-t3">권한</th>
-                <th className="whitespace-nowrap border-b border-line bg-bg/40 px-4 py-[11px] text-xs font-bold text-t3">상태</th>
-                <th className="whitespace-nowrap border-b border-line bg-bg/40 px-4 py-[11px] text-xs font-bold text-t3">소속일</th>
-                <th className="whitespace-nowrap border-b border-line bg-bg/40 px-4 py-[11px] text-right text-xs font-bold text-t3">관리</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-xs font-bold text-t3">계정</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-xs font-bold text-t3">조직</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-xs font-bold text-t3">전화번호</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-xs font-bold text-t3">메모</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-xs font-bold text-t3">권한</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-xs font-bold text-t3">상태</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-xs font-bold text-t3">소속일</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold text-t3">관리</th>
               </tr>
             </thead>
             <tbody>
               {accounts.map((account) => (
                 <tr
                   key={`${account.orgId}:${account.userId}`}
-                  className="hover:bg-bg/40 [&:last-child>td]:border-b-0"
+                  className="cursor-pointer hover:bg-[#FBFCFD] [&:last-child>td]:border-b-0"
                 >
                   <td className="border-b border-line2 px-4 py-3 text-[13.5px]">
                     <div className="font-extrabold text-t1">{account.fullName ?? "프로필 없음"}</div>
@@ -290,7 +290,7 @@ export default function PlatformAccountsPage() {
                   </td>
                   <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] font-semibold text-t2">{account.organizationName}</td>
                   <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] text-t2 num">{account.phone ?? "—"}</td>
-                  <td className="max-w-64 border-b border-line2 px-4 py-3 text-[13.5px] text-t2">
+                  <td className="max-w-64 border-b border-line2 px-4 py-3 text-[12.5px] text-t2">
                     <span className="line-clamp-2">{account.memo ?? "—"}</span>
                   </td>
                   <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] text-t2">{ROLE_LABELS[account.role]}</td>
