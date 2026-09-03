@@ -189,7 +189,7 @@ export default function PlatformBillingPage() {
 
       <section className="mt-4 overflow-hidden rounded-2xl bg-surface shadow-card">
         <div className="flex items-center gap-2.5 overflow-x-auto border-b border-line2 px-[18px] py-[15px]">
-          <div className="inline-flex shrink-0 gap-0.5 rounded-[11px] bg-[#EDF0F3] p-1">
+          <div className="inline-flex shrink-0 gap-0.5 rounded-[11px] bg-[#EDF0F3] p-[3px]">
             {STATUS_TABS.map((statusTab) => (
               <button
                 key={statusTab.id}
@@ -199,9 +199,9 @@ export default function PlatformBillingPage() {
                   setTab(statusTab.id);
                   setPage(1);
                 }}
-                className={`rounded-lg px-[15px] py-[7px] text-sm font-bold whitespace-nowrap ${
+                className={`cursor-pointer rounded-lg px-[13px] py-[5px] text-[12.5px] font-bold whitespace-nowrap ${
                   tab === statusTab.id
-                    ? "bg-surface text-t1 shadow-card"
+                    ? "bg-surface text-t1 shadow-[0_2px_6px_rgba(23,31,40,0.1)]"
                     : "text-t3 hover:text-t1"
                 }`}
               >
@@ -214,7 +214,7 @@ export default function PlatformBillingPage() {
             type="button"
             onClick={handlePublishAll}
             disabled={filtered.every((row) => row.subtotalKrw <= 0)}
-            className="inline-flex h-10 shrink-0 items-center justify-center rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold whitespace-nowrap text-white shadow-pri hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[11px] border border-transparent bg-blue px-[14px] text-[12.5px] font-bold whitespace-nowrap text-white shadow-[0_6px_14px_-4px_rgba(20,164,151,0.5)] hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-50"
           >
             전체 발행
           </button>
@@ -222,7 +222,7 @@ export default function PlatformBillingPage() {
             type="button"
             onClick={handleCsvDownload}
             disabled={filtered.length === 0}
-            className="inline-flex h-10 shrink-0 items-center justify-center rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold whitespace-nowrap text-t2 hover:bg-bg disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[11px] border border-line bg-surface px-[14px] text-[12.5px] font-bold whitespace-nowrap text-t2 hover:bg-bg disabled:cursor-not-allowed disabled:opacity-50"
           >
             원장 CSV
           </button>
@@ -238,42 +238,42 @@ export default function PlatformBillingPage() {
           <TableFrame minWidthClassName="min-w-[900px]">
             <thead>
               <tr className="text-left">
-                <th className="border-b border-line bg-bg/40 px-4 py-[11px] text-xs font-bold whitespace-nowrap text-t3">업체명</th>
-                <th className="border-b border-line bg-bg/40 px-4 py-[11px] text-xs font-bold whitespace-nowrap text-t3">이메일</th>
-                <th className="border-b border-line bg-bg/40 px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">알림톡</th>
-                <th className="border-b border-line bg-bg/40 px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">문자</th>
-                <th className="border-b border-line bg-bg/40 px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">장문</th>
-                <th className="border-b border-line bg-bg/40 px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">팩스</th>
-                <th className="border-b border-line bg-bg/40 px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">청구액(공급가액)</th>
-                <th className="border-b border-line bg-bg/40 px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">전월비</th>
-                <th className="border-b border-line bg-bg/40 px-4 py-[11px] text-xs font-bold whitespace-nowrap text-t3">상태</th>
-                <th className="border-b border-line bg-bg/40 px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">처리</th>
+                <th className="w-[15%] border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-xs font-bold whitespace-nowrap text-t3">업체명</th>
+                <th className="w-[18%] border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-xs font-bold whitespace-nowrap text-t3">이메일</th>
+                <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">알림톡</th>
+                <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">문자</th>
+                <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">장문</th>
+                <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">팩스</th>
+                <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">청구액(공급가액)</th>
+                <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">전월비</th>
+                <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-xs font-bold whitespace-nowrap text-t3">상태</th>
+                <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">처리</th>
               </tr>
             </thead>
             <tbody>
               {pagedRows.map((row) => (
-                <tr key={row.orgId} className="hover:bg-bg/40 [&:last-child>td]:border-b-0">
-                  <td className="border-b border-line2 px-4 py-3 text-[13.5px] font-extrabold whitespace-nowrap text-t1">{row.orgName}</td>
-                  <td className="border-b border-line2 px-4 py-3 text-[13.5px] whitespace-nowrap text-t3">{row.orgEmail ?? "—"}</td>
-                  <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t2 num">{num(row.alimtalkCount)}</td>
-                  <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t2 num">{num(row.smsCount)}</td>
-                  <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t2 num">{num(row.lmsCount)}</td>
-                  <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t2 num">{num(row.faxCount)}</td>
+                <tr key={row.orgId} className="cursor-pointer hover:bg-[#FBFCFD] [&:last-child>td]:border-b-0">
+                  <td className="border-b border-line2 px-4 py-3 text-[13.5px] font-bold whitespace-nowrap text-t1">{row.orgName}</td>
+                  <td className="border-b border-line2 px-4 py-3 text-[12.5px] font-semibold whitespace-nowrap text-t3">{row.orgEmail ?? "—"}</td>
+                  <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.alimtalkCount)}</td>
+                  <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.smsCount)}</td>
+                  <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.lmsCount)}</td>
+                  <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.faxCount)}</td>
                   <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] font-extrabold whitespace-nowrap text-t1 num">{num(row.subtotalKrw)}</td>
-                  <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t3 num">{deltaPercentLabel(row.totalKrw, row.prevTotalKrw)}</td>
+                  <td className="border-b border-line2 px-4 py-3 text-right text-[12.5px] font-bold whitespace-nowrap text-t3 num">{deltaPercentLabel(row.totalKrw, row.prevTotalKrw)}</td>
                   <td className="border-b border-line2 px-4 py-3 text-[13.5px] whitespace-nowrap"><BillingStatusBadge status={row.status} /></td>
                   <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap">
                     {row.status === "none" ? (
                       <span className="text-t4">—</span>
                     ) : (
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="inline-flex justify-end gap-1.5">
                         <button
                           type="button"
                           onClick={() => {
                             setBulkRows([]);
                             setPreviewOrgId(row.orgId);
                           }}
-                          className="inline-flex h-8 items-center justify-center rounded-[9px] px-3 text-[12.5px] font-bold text-t2 hover:bg-bg"
+                          className="inline-flex h-7 cursor-pointer items-center rounded-lg border border-line bg-surface px-[11px] text-xs font-bold text-t2 hover:bg-bg"
                         >
                           발행
                         </button>
@@ -281,7 +281,7 @@ export default function PlatformBillingPage() {
                           type="button"
                           onClick={() => void handleToggle(row)}
                           disabled={markPaid.isPending}
-                          className="inline-flex h-8 items-center justify-center rounded-[9px] px-3 text-[12.5px] font-bold text-t2 hover:bg-bg disabled:cursor-not-allowed disabled:opacity-50"
+                          className="inline-flex h-7 cursor-pointer items-center rounded-lg border border-line bg-surface px-[11px] text-xs font-bold text-t2 hover:bg-bg disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {row.status === "paid" ? "입금 취소" : "입금 확인"}
                         </button>
@@ -343,5 +343,5 @@ function BillingStatusBadge({ status }: { status: PlatformOrgBillingStatus }) {
     unpaid: { label: "미입금", className: "bg-red-t text-red" },
     none: { label: "청구 없음", className: "bg-bg text-t3" },
   }[status];
-  return <span className={`inline-flex rounded-[7px] px-[9px] py-[3px] text-xs font-bold leading-[1.4] ${view.className}`}>{view.label}</span>;
+  return <span className={`inline-flex items-center gap-1 rounded-[7px] px-[9px] py-[3px] text-xs font-bold leading-[1.4] ${view.className}`}>{view.label}</span>;
 }
