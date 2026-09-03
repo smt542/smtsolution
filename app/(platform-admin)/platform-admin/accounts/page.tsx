@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Button, Checkbox, EmptyState, Modal, SearchBar, Spinner } from "@/components/common";
+import { Checkbox, EmptyState, Modal, Spinner } from "@/components/common";
 import type { PlatformAccountCreateValues } from "@/components/forms/schema/platformAccount";
 import {
   useCreatePlatformAccount,
@@ -26,7 +26,6 @@ import {
   PlatformPagination,
   QueryError,
 } from "../../_components/PageElements";
-import { CollectionToolbar } from "../../_components/CollectionToolbar";
 import { PlatformPageContainer } from "../../_components/PlatformPageContainer";
 import { TableFrame } from "../../_components/TableFrame";
 import { ModalActions } from "../../_components/ModalActions";
@@ -212,38 +211,58 @@ export default function PlatformAccountsPage() {
 
   return (
     <PlatformPageContainer>
-      <PageHeader
-        eyebrow="ACCOUNTS"
-        title="계정 관리"
-        description="계정 발급·기본 정보·권한·활성·비밀번호를 직접 관리합니다."
-      />
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader
+          eyebrow="ACCOUNTS"
+          title="계정 관리"
+          description="계정 발급·기본 정보·권한·활성·비밀번호를 직접 관리합니다."
+        />
+        <button
+          type="button"
+          onClick={() => setCreateOpen(true)}
+          className="inline-flex h-10 shrink-0 items-center rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-pri transition-colors hover:bg-blue-d"
+        >
+          + 계정 발급
+        </button>
+      </div>
 
       <div className="mt-5">
         <DataScopeNotice />
       </div>
 
-      <section className="mt-6 rounded-2xl bg-surface shadow-card">
-        <CollectionToolbar
-          left={<div>
-            <h3 className="text-base font-extrabold text-t1">소속 계정 목록</h3>
-            <p className="mt-1 text-xs text-t3">총 {formatNumber(data?.totalCount ?? 0)}개</p>
-          </div>}
-          right={<div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-            <div className="w-full sm:w-72">
-              <SearchBar
-                value={search}
-                onChange={(value) => {
-                  setSearch(value);
-                  setPage(1);
-                }}
-                placeholder="조직·이름·아이디 검색"
-              />
-            </div>
-            <Button type="button" variant="primary" onClick={() => setCreateOpen(true)}>
-              + 계정 발급
-            </Button>
-          </div>}
-        />
+      <section className="mt-6 overflow-hidden rounded-2xl bg-surface shadow-card">
+        <div className="flex items-center gap-2.5 border-b border-line2 px-[18px] py-[15px]">
+          <h3 className="text-[15px] font-extrabold text-t1">소속 계정 목록</h3>
+          <span className="text-xs font-semibold text-t3">
+            총 {formatNumber(data?.totalCount ?? 0)}개
+          </span>
+          <div className="flex-1" />
+          <label className="flex h-10 min-w-60 items-center gap-2 rounded-[11px] border border-line bg-surface px-[13px] focus-within:border-blue focus-within:ring-[3px] focus-within:ring-blue-t">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4 shrink-0 text-t3"
+              aria-hidden="true"
+            >
+              <circle cx="11" cy="11" r="6.5" />
+              <path d="m16 16 4 4" />
+            </svg>
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
+              placeholder="조직·이름·아이디 검색"
+              className="w-full bg-transparent text-[13.5px] font-semibold text-t1 outline-none placeholder:text-t4"
+            />
+          </label>
+        </div>
 
         {isPending ? (
           <div className="py-16">
@@ -258,40 +277,40 @@ export default function PlatformAccountsPage() {
         ) : (
           <TableFrame minWidthClassName="min-w-[1420px]">
             <thead>
-              <tr className="border-b border-line bg-bg/70 text-left text-xs font-bold text-t3">
-                <th className="px-5 py-3">계정</th>
-                <th className="px-4 py-3">조직</th>
-                <th className="px-4 py-3">전화번호</th>
-                <th className="px-4 py-3">메모</th>
-                <th className="px-4 py-3">권한</th>
-                <th className="px-4 py-3">상태</th>
-                <th className="px-4 py-3">소속일</th>
-                <th className="px-5 py-3 text-right">관리</th>
+              <tr className="text-left">
+                <th className="whitespace-nowrap border-b border-line bg-bg/40 px-4 py-[11px] text-xs font-bold text-t3">계정</th>
+                <th className="whitespace-nowrap border-b border-line bg-bg/40 px-4 py-[11px] text-xs font-bold text-t3">조직</th>
+                <th className="whitespace-nowrap border-b border-line bg-bg/40 px-4 py-[11px] text-xs font-bold text-t3">전화번호</th>
+                <th className="whitespace-nowrap border-b border-line bg-bg/40 px-4 py-[11px] text-xs font-bold text-t3">메모</th>
+                <th className="whitespace-nowrap border-b border-line bg-bg/40 px-4 py-[11px] text-xs font-bold text-t3">권한</th>
+                <th className="whitespace-nowrap border-b border-line bg-bg/40 px-4 py-[11px] text-xs font-bold text-t3">상태</th>
+                <th className="whitespace-nowrap border-b border-line bg-bg/40 px-4 py-[11px] text-xs font-bold text-t3">소속일</th>
+                <th className="whitespace-nowrap border-b border-line bg-bg/40 px-4 py-[11px] text-right text-xs font-bold text-t3">관리</th>
               </tr>
             </thead>
             <tbody>
               {accounts.map((account) => (
                 <tr
                   key={`${account.orgId}:${account.userId}`}
-                  className="border-b border-line last:border-0 hover:bg-bg/50"
+                  className="hover:bg-bg/40 [&:last-child>td]:border-b-0"
                 >
-                  <td className="px-5 py-4">
-                    <div className="font-bold text-t1">{account.fullName ?? "프로필 없음"}</div>
+                  <td className="border-b border-line2 px-4 py-3 text-[13.5px]">
+                    <div className="font-extrabold text-t1">{account.fullName ?? "프로필 없음"}</div>
                     <div className="mt-1 text-xs text-t3">{account.username ?? account.userId}</div>
                   </td>
-                  <td className="px-4 py-4 font-semibold text-t2">{account.organizationName}</td>
-                  <td className="px-4 py-4 text-t2 num">{account.phone ?? "—"}</td>
-                  <td className="max-w-64 px-4 py-4 text-t2">
+                  <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] font-semibold text-t2">{account.organizationName}</td>
+                  <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] text-t2 num">{account.phone ?? "—"}</td>
+                  <td className="max-w-64 border-b border-line2 px-4 py-3 text-[13.5px] text-t2">
                     <span className="line-clamp-2">{account.memo ?? "—"}</span>
                   </td>
-                  <td className="px-4 py-4 text-t2">{ROLE_LABELS[account.role]}</td>
-                  <td className="px-4 py-4">
+                  <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] text-t2">{ROLE_LABELS[account.role]}</td>
+                  <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px]">
                     <AccountStatus active={account.isActive} />
                   </td>
-                  <td className="px-4 py-4 text-t2 num">
+                  <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] text-t2 num">
                     {dateFormatter.format(new Date(account.createdAt))}
                   </td>
-                  <td className="px-5 py-4">
+                  <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-right text-[13.5px]">
                     <AccountRowActions
                       account={account}
                       onEditDetails={() => setEditTarget(account)}
@@ -311,6 +330,9 @@ export default function PlatformAccountsPage() {
           pageSize={PAGE_SIZE}
           totalCount={data?.totalCount ?? 0}
           onPageChange={setPage}
+          numeric
+          compact
+          totalLabel={`전체 ${formatNumber(data?.totalCount ?? 0)}개 · ${formatNumber(page)}/${formatNumber(Math.max(1, Math.ceil((data?.totalCount ?? 0) / PAGE_SIZE)))}`}
         />
       </section>
 
@@ -344,13 +366,18 @@ export default function PlatformAccountsPage() {
       )}
 
       {passwordNotice && (
-        <Modal open onClose={() => setPasswordNotice(null)} title="계정 임시 비밀번호">
+        <Modal
+          open
+          onClose={() => setPasswordNotice(null)}
+          title="계정 임시 비밀번호"
+          className="max-w-[480px] rounded-[20px] [&>h2]:text-[17px] [&>h2]:font-extrabold [&>h2]:tracking-[-0.02em]"
+        >
           <div className="flex flex-col gap-3 text-sm">
             <p className="text-t2">
               아래 계정 정보를 사용자에게 <b>안전하게 전달</b>하세요. 이 창을 닫으면 다시 볼 수
               없습니다.
             </p>
-            <div className="rounded-xl border border-line bg-bg/50 p-3 font-mono">
+            <div className="rounded-[10px] border border-line bg-bg/50 p-3 font-mono">
               <div>
                 아이디: <b>{passwordNotice.username}</b>
               </div>
@@ -359,18 +386,18 @@ export default function PlatformAccountsPage() {
               </div>
             </div>
             <div className="flex justify-end pt-1">
-              <Button
+              <button
                 type="button"
-                variant="primary"
                 onClick={() => {
                   void navigator.clipboard?.writeText(
                     `아이디: ${passwordNotice.username} / 임시비밀번호: ${passwordNotice.tempPassword}`,
                   );
                   toast.success("복사했습니다.");
                 }}
+                className="h-10 rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-pri hover:bg-blue-d"
               >
                 복사
-              </Button>
+              </button>
             </div>
           </div>
         </Modal>
@@ -382,13 +409,13 @@ export default function PlatformAccountsPage() {
 function AccountStatus({ active }: { active: boolean | null }) {
   if (active === null) {
     return (
-      <span className="rounded-[7px] bg-bg px-2.5 py-1 text-[11px] font-bold text-t3">확인 불가</span>
+      <span className="inline-flex rounded-[7px] bg-bg px-[9px] py-[3px] text-xs font-bold leading-[1.4] text-t3">확인 불가</span>
     );
   }
   return (
     <span
-      className={`rounded-[7px] px-2.5 py-1 text-[11px] font-bold ${
-        active ? "bg-green-t text-green" : "bg-red-t text-red"
+      className={`inline-flex rounded-[7px] px-[9px] py-[3px] text-xs font-bold leading-[1.4] ${
+        active ? "bg-green-t text-green" : "bg-bg text-t3"
       }`}
     >
       {active ? "활성" : "비활성"}
@@ -438,7 +465,12 @@ function RoleChangeModal({
   };
 
   return (
-    <Modal open onClose={onClose} title="계정 권한 변경">
+    <Modal
+      open
+      onClose={onClose}
+      title="계정 권한 변경"
+      className="max-w-[480px] rounded-[20px] [&>h2]:text-[17px] [&>h2]:font-extrabold [&>h2]:tracking-[-0.02em]"
+    >
       <div className="flex flex-col gap-4">
         <p className="text-sm text-t2">
           <b>{account.fullName ?? account.username ?? account.userId}</b> · {account.organizationName}
@@ -452,14 +484,14 @@ function RoleChangeModal({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label htmlFor="platform-role" className="mb-1 block text-xs font-semibold text-t3">
+            <label htmlFor="platform-role" className="mb-1.5 block text-[12.5px] font-bold text-t2">
               역할
             </label>
             <select
               id="platform-role"
               value={role}
               onChange={(event) => setRole(event.target.value as EditableRole)}
-              className="h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm text-t1"
+              className="h-[42px] w-full rounded-[10px] border border-line bg-surface px-[13px] text-[13.5px] font-semibold text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t"
             >
               {ROLE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -469,14 +501,14 @@ function RoleChangeModal({
             </select>
           </div>
           <div>
-            <label htmlFor="platform-staff-type" className="mb-1 block text-xs font-semibold text-t3">
+            <label htmlFor="platform-staff-type" className="mb-1.5 block text-[12.5px] font-bold text-t2">
               직원 유형
             </label>
             <select
               id="platform-staff-type"
               value={staffType}
               onChange={(event) => setStaffType(event.target.value as StaffType)}
-              className="h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm text-t1"
+              className="h-[42px] w-full rounded-[10px] border border-line bg-surface px-[13px] text-[13.5px] font-semibold text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t"
             >
               {STAFF_TYPE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -488,8 +520,8 @@ function RoleChangeModal({
         </div>
 
         <div>
-          <p className="mb-2 text-xs font-semibold text-t3">기능별 권한</p>
-          <div className="grid grid-cols-2 gap-2">
+          <p className="mb-2 text-[12.5px] font-bold text-t2">기능별 권한</p>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
             {MODULE_KEYS.map((permission) => (
               <Checkbox
                 key={permission}
@@ -508,17 +540,21 @@ function RoleChangeModal({
         </div>
 
         <ModalActions>
-          <Button type="button" variant="ghost" onClick={onClose}>
-            취소
-          </Button>
-          <Button
+          <button
             type="button"
-            variant="primary"
+            onClick={onClose}
+            className="h-10 rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold text-t2 hover:bg-bg"
+          >
+            취소
+          </button>
+          <button
+            type="button"
             disabled={isPending}
             onClick={() => void handleSubmit()}
+            className="h-10 rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-pri hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isPending ? "저장 중…" : "권한 저장"}
-          </Button>
+          </button>
         </ModalActions>
       </div>
     </Modal>
