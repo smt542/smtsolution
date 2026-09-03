@@ -23,7 +23,6 @@ import type { PointAdjustmentFormValues } from "@/components/forms/schema/pointA
 import { formatNumber } from "@/lib/format";
 import { toast } from "sonner";
 import {
-  PageHeader,
   PlatformPagination,
   QueryError,
   StatusBadge,
@@ -174,9 +173,7 @@ export default function PlatformPointsPage() {
 
   return (
     <PlatformPageContainer>
-      <PageHeader eyebrow="POINTS" title="포인트 관리" description="조직별 발송 크레딧(포인트) 잔액과 충전·사용·조정 내역을 관리합니다." />
-
-      <section className="mt-6 overflow-hidden rounded-2xl bg-surface shadow-card">
+      <section className="overflow-hidden rounded-2xl bg-surface shadow-card">
         <div className="flex flex-wrap items-center gap-2.5 border-b border-line2 px-[18px] py-[15px]">
           <h3 className="text-[15px] font-extrabold text-t1">메시지 채널 단가</h3>
           <p className="text-xs font-semibold text-t3">새 견적부터 현재 활성 단가가 적용됩니다.</p>

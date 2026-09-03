@@ -10,8 +10,9 @@ import {
   type PlatformSettingsInput,
 } from "@/hooks/reactquery/platform";
 import { formatNumber as formatNumericValue } from "@/lib/format";
-import { PageHeader, QueryError } from "../../_components/PageElements";
+import { QueryError } from "../../_components/PageElements";
 import { PlatformPageContainer } from "../../_components/PlatformPageContainer";
+import { PlatformTopBarActions } from "../../_components/PlatformShell";
 
 interface SettingsDraft {
   rateKrwAlimtalk: string;
@@ -82,12 +83,7 @@ export default function PlatformSettingsPage() {
 
   return (
     <PlatformPageContainer maxWidthClassName="max-w-5xl">
-      <div className="flex items-start justify-between gap-4">
-        <PageHeader
-          eyebrow="SETTINGS"
-          title="설정"
-          description="본사 공통 발송 단가와 청구서 표기 정보를 관리합니다."
-        />
+      <PlatformTopBarActions>
         {isEditing ? (
           <div className="flex items-center gap-2">
             <button
@@ -117,14 +113,14 @@ export default function PlatformSettingsPage() {
             수정
           </button>
         )}
-      </div>
+      </PlatformTopBarActions>
 
       {settingsQuery.isPending ? (
         <div className="flex min-h-[360px] items-center justify-center"><Spinner /></div>
       ) : settingsQuery.isError ? (
-        <div className="mt-6"><QueryError onRetry={() => void settingsQuery.refetch()} /></div>
+        <div><QueryError onRetry={() => void settingsQuery.refetch()} /></div>
       ) : (
-        <div className="mt-6 grid gap-5">
+        <div className="grid gap-5">
           <SettingsSection title="발송 단가 · 알림" helper="팝빌 계약 단가에 맞춰 입력하세요">
             <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-px bg-line2">
               <NumberSetting

@@ -60,7 +60,7 @@ describe("PlatformDashboardPage", () => {
   it("HQ 핵심 지표와 테넌트별 발송 비용을 표시한다", () => {
     render(<PlatformDashboardPage />);
 
-    expect(screen.getByRole("heading", { name: "대시보드" })).toBeInTheDocument();
+    // 제목(대시보드)은 셸 상단바가 렌더 — 페이지 단위 테스트 범위 밖.
     expect(screen.getByText("계약 업체").closest("article")).toHaveTextContent("29곳");
     expect(screen.getByText("정지 2 · 해지 1")).toBeInTheDocument();
     expect(screen.getByText("관리 건물").closest("article")).toHaveTextContent("612곳");
