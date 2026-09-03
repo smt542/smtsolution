@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { LoginForm } from "./LoginForm";
 
 export const metadata: Metadata = {
@@ -8,19 +9,17 @@ export const metadata: Metadata = {
 export default function PlatformAdminLoginPage() {
   return (
     <main className="flex min-h-screen flex-col bg-white lg:flex-row">
-      <section className="relative flex min-h-[300px] flex-col justify-between overflow-hidden bg-gradient-to-br from-[#0A3D39] via-[#0E8677] to-[#14A497] px-8 py-9 text-white sm:px-12 sm:py-11 lg:min-h-screen lg:flex-1 lg:px-16 lg:py-14">
-        <div className="absolute -right-36 -top-32 h-[460px] w-[460px] rounded-full bg-white/[0.08]" />
-        <div className="absolute -bottom-44 right-14 h-[360px] w-[360px] rounded-full bg-white/[0.07]" />
+      <section className="relative flex min-h-[300px] flex-col justify-between overflow-hidden bg-[linear-gradient(160deg,#0E1E33_0%,#16375A_58%,#1F4E7A_100%)] px-8 py-9 text-white sm:px-12 sm:py-11 lg:min-h-screen lg:flex-1 lg:px-16 lg:py-14">
+        <div className="absolute -right-36 -top-32 h-[460px] w-[460px] rounded-full bg-white/[0.07]" />
+        <div className="absolute -bottom-44 right-14 h-[360px] w-[360px] rounded-full bg-white/[0.06]" />
 
         <div className="relative flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-blue shadow-sm">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6" aria-hidden="true">
-              <path d="M4 11l8-6 8 6M6 10v9h12v-9M10 19v-5h4v5" />
-            </svg>
+          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white">
+            <Image src="/logo-mark.png" alt="" width={26} height={26} className="h-[26px] w-[26px] object-contain" priority />
           </div>
           <div>
             <div className="text-[19px] font-extrabold tracking-tight">관리비서</div>
-            <div className="mt-0.5 text-[10.5px] font-bold tracking-[0.12em] text-white/60">HQ CONSOLE</div>
+            <div className="mt-0.5 text-[10.5px] font-bold tracking-[0.1em] text-white/60">HQ CONSOLE</div>
           </div>
         </div>
 
