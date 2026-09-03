@@ -99,7 +99,7 @@ const ORGANIZATION_FIELDS: Array<{
 ];
 
 const ORGANIZATION_INPUT_CLASS =
-  "h-[42px] rounded-[10px] px-[13px] text-[13.5px] font-semibold focus:ring-[3px] focus:ring-blue-t";
+  "h-[42px] rounded-[10px] px-[13px] text-[13.5px] font-semibold placeholder:font-medium focus:ring-[3px] focus:ring-blue-t";
 const FORM_FIELD_CLASS =
   "[&>label]:mb-1.5 [&>label]:text-[12.5px] [&>label]:font-bold [&>label]:text-t2";
 
@@ -313,7 +313,7 @@ function CreateModal({ open, onClose, onSubmit, isPending }: Omit<CreateProps, "
           onRemove={() => setContractFile(null)}
         />
 
-        <hr className="border-line" />
+        <hr className="border-line2" />
         <p className="text-[12.5px] font-bold text-t2">첫 관리자(owner) 계정</p>
         <div className="grid gap-[13px] sm:grid-cols-2 sm:gap-x-[15px]">
           <FormField
@@ -363,7 +363,7 @@ function CreateModal({ open, onClose, onSubmit, isPending }: Omit<CreateProps, "
             type="button"
             variant="ghost"
             onClick={onClose}
-            className="h-[40px] rounded-[11px] px-[15px] text-[13.5px]"
+            className="h-10 cursor-pointer whitespace-nowrap rounded-[11px] px-[15px] text-[13.5px]"
           >
             취소
           </Button>
@@ -371,7 +371,7 @@ function CreateModal({ open, onClose, onSubmit, isPending }: Omit<CreateProps, "
             type="submit"
             variant="primary"
             disabled={isPending || isSubmitting}
-            className="h-[40px] rounded-[11px] px-[15px] text-[13.5px]"
+            className="h-10 cursor-pointer whitespace-nowrap rounded-[11px] px-[15px] text-[13.5px]"
           >
             {isPending || isSubmitting ? "등록 중…" : "입점 등록"}
           </Button>
@@ -436,7 +436,7 @@ function EditModal({
             type="button"
             variant="ghost"
             onClick={onClose}
-            className="h-[40px] rounded-[11px] px-[15px] text-[13.5px]"
+            className="h-10 cursor-pointer whitespace-nowrap rounded-[11px] px-[15px] text-[13.5px]"
           >
             취소
           </Button>
@@ -444,7 +444,7 @@ function EditModal({
             type="submit"
             variant="primary"
             disabled={isPending || isSubmitting}
-            className="h-[40px] rounded-[11px] px-[15px] text-[13.5px]"
+            className="h-10 cursor-pointer whitespace-nowrap rounded-[11px] px-[15px] text-[13.5px]"
           >
             {isPending || isSubmitting ? "저장 중…" : "저장"}
           </Button>
