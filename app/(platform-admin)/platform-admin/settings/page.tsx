@@ -162,7 +162,7 @@ export default function PlatformSettingsPage() {
           </SettingsSection>
 
           <SettingsSection title="청구 계좌" helper="업체 청구서에 표기되는 입금 계좌입니다">
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-px bg-line2">
+            <div className="grid grid-cols-1 gap-px bg-line2">
               <TextSetting label="은행" value={draft.billingBank} editing={isEditing} onChange={(value) => change("billingBank", value)} />
               <TextSetting label="계좌번호" value={draft.billingAccountNo} editing={isEditing} onChange={(value) => change("billingAccountNo", value)} />
               <TextSetting label="예금주" value={draft.billingAccountHolder} editing={isEditing} onChange={(value) => change("billingAccountHolder", value)} />
