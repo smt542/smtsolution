@@ -31,6 +31,8 @@ export const platformKeys = {
     : [...platformKeys.all, "accounts"] as const,
   settings: () => [...platformKeys.all, "settings"] as const,
   billing: (month: string) => [...platformKeys.all, "billing", month] as const,
+  monthlySendCost: (year: number) =>
+    [...platformKeys.all, "monthly-send-cost", year] as const,
   overviewMetrics: (month: string) =>
     [...platformKeys.all, "overview-metrics", month] as const,
   transactions: (opts?: Omit<PointTransactionQuery, "cursor">) =>

@@ -36,6 +36,13 @@ export interface PlatformOverviewMetrics {
   sendCostPrevKrw: number;
 }
 
+export interface PlatformMonthlySendCost {
+  month: number;
+  alimtalkKrw: number;
+  smsKrw: number;
+  faxKrw: number;
+}
+
 export interface PlatformBillingInvoice {
   id: number;
   orgId: number;
@@ -93,6 +100,13 @@ interface PlatformOverviewMetricsRow {
   linked_unit_count: number;
   send_cost_krw: number;
   send_cost_prev_krw: number;
+}
+
+interface PlatformMonthlySendCostRow {
+  month: number | null;
+  alimtalk_krw: number | string | null;
+  sms_krw: number | string | null;
+  fax_krw: number | string | null;
 }
 
 interface PlatformBillingInvoiceRow {
@@ -211,6 +225,39 @@ export async function getPlatformOverviewMetrics(
   return mapOverviewMetrics(row);
 }
 
+export async function getPlatformMonthlySendCost(
+  year: number,
+): Promise<PlatformMonthlySendCost[]> {
+  const { data, error } = await createClient().rpc("platform_get_monthly_send_cost", {
+    p_year: year,
+  });
+
+  if (error) throw new Error(error.message);
+
+  const costsByMonth = new Map<number, PlatformMonthlySendCost>();
+  for (const row of (data ?? []) as unknown as PlatformMonthlySendCostRow[]) {
+    const month = Number(row.month);
+    if (!Number.isInteger(month) || month < 1 || month > 12) continue;
+
+    costsByMonth.set(month, {
+      month,
+      alimtalkKrw: Number(row.alimtalk_krw ?? 0),
+      smsKrw: Number(row.sms_krw ?? 0),
+      faxKrw: Number(row.fax_krw ?? 0),
+    });
+  }
+
+  return Array.from({ length: 12 }, (_, index) => {
+    const month = index + 1;
+    return costsByMonth.get(month) ?? {
+      month,
+      alimtalkKrw: 0,
+      smsKrw: 0,
+      faxKrw: 0,
+    };
+  });
+}
+
 export async function markOrgBillingPaid(
   input: MarkOrgBillingPaidInput,
 ): Promise<PlatformBillingInvoice | null> {
@@ -238,6 +285,13 @@ export function usePlatformOverviewMetrics(month: string) {
   return useQuery({
     queryKey: platformKeys.overviewMetrics(month),
     queryFn: () => getPlatformOverviewMetrics(month),
+  });
+}
+
+export function usePlatformMonthlySendCost(year: number) {
+  return useQuery({
+    queryKey: platformKeys.monthlySendCost(year),
+    queryFn: () => getPlatformMonthlySendCost(year),
   });
 }
 
