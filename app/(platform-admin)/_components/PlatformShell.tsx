@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useLogout, useMe } from "@/hooks/reactquery/auth";
@@ -66,23 +67,24 @@ function PlatformSidebar({ pathname, onNavigate }: { pathname: string; onNavigat
   };
 
   return (
-    <aside className="flex h-full w-64 flex-col border-r border-line bg-[#101828] px-3.5 py-[18px] text-white">
-      <div className="px-2.5 pb-5 pt-2">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-[10px] bg-gradient-to-br from-[#2CC0AC] to-[#0E9E8C]">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5" aria-hidden="true">
-              <path d="M4 11l8-6 8 6M6 10v9h12v-9M10 19v-5h4v5" />
-            </svg>
-          </div>
-          <div>
-            <div className="text-[17px] font-extrabold tracking-tight">관리비서</div>
-            <div className="mt-0.5 text-[10px] font-bold tracking-[0.14em] text-[#98A2B3]">PLATFORM ADMIN</div>
-          </div>
+    <aside className="flex h-full w-64 flex-col border-r border-line bg-white px-3.5 py-[18px]">
+      {/* 캔버스 hf-hqb: 로고마크 + 관리비서 / HQ CONSOLE (라이트) */}
+      <div className="flex items-center gap-2.5 px-2.5 pb-[18px] pt-2">
+        <Image
+          src="/logo-mark.png"
+          alt=""
+          width={28}
+          height={28}
+          className="size-[28px] flex-none object-contain"
+          priority
+        />
+        <div className="leading-[1.15]">
+          <div className="text-[17px] font-extrabold tracking-[-0.02em] text-[#16375A]">관리비서</div>
+          <div className="mt-0.5 text-[10.5px] font-bold tracking-[0.08em] text-t4">HQ CONSOLE</div>
         </div>
       </div>
 
-      <div className="px-3 pb-2 text-[10px] font-bold tracking-[0.12em] text-[#667085]">PLATFORM</div>
-      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto" aria-label="플랫폼 관리 메뉴">
+      <nav className="flex flex-1 flex-col gap-[2px] overflow-y-auto" aria-label="플랫폼 관리 메뉴">
         {PLATFORM_NAV_ITEMS.map((item) => (
           <PlatformNavLink
             key={item.href}
@@ -96,7 +98,7 @@ function PlatformSidebar({ pathname, onNavigate }: { pathname: string; onNavigat
       <Link
         href="/staff"
         onClick={onNavigate}
-        className="mb-3 flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2.5 text-xs font-semibold text-[#D0D5DD] hover:bg-white/5"
+        className="mb-3 flex items-center gap-2 rounded-xl border border-line px-3 py-2.5 text-xs font-semibold text-t2 hover:bg-bg"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true">
           <path d="M19 12H5m6-6-6 6 6 6" />
@@ -107,15 +109,15 @@ function PlatformSidebar({ pathname, onNavigate }: { pathname: string; onNavigat
       {me && (
         <details className="group relative">
           <summary
-            className="flex cursor-pointer list-none items-center gap-2.5 rounded-xl bg-white/[0.06] p-2.5 transition-colors hover:bg-white/[0.1] [&::-webkit-details-marker]:hidden"
+            className="flex cursor-pointer list-none items-center gap-2.5 rounded-xl bg-bg p-2.5 transition-colors hover:bg-line2 [&::-webkit-details-marker]:hidden"
             aria-label="프로필 메뉴"
           >
-            <div className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full bg-[#344054] text-sm font-bold">
+            <div className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full bg-[#DCE3EA] text-sm font-bold text-t2">
               {me.fullName.charAt(0)}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[13px] font-bold">{me.fullName}</div>
-              <div className="truncate text-[11px] text-[#98A2B3]">
+              <div className="truncate text-[13px] font-bold text-t1">{me.fullName}</div>
+              <div className="truncate text-[11px] text-t3">
                 {me.role === "platform_admin" ? "플랫폼 관리자" : "조직 소유자"}
               </div>
             </div>
@@ -124,7 +126,7 @@ function PlatformSidebar({ pathname, onNavigate }: { pathname: string; onNavigat
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
-              className="h-4 w-4 flex-none text-[#98A2B3] transition-transform group-open:rotate-180"
+              className="h-4 w-4 flex-none text-t3 transition-transform group-open:rotate-180"
               aria-hidden="true"
             >
               <path d="M6 15l6-6 6 6" />
@@ -163,19 +165,23 @@ function PlatformNavLink({
       href={item.href}
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
-      className={`flex items-center gap-3 rounded-xl px-3 py-3 transition-colors ${
-        active ? "bg-blue text-white shadow-sm" : "text-[#D0D5DD] hover:bg-white/[0.06]"
+      className={`flex items-center gap-[11px] rounded-[11px] px-3 py-[10px] text-[14px] transition-colors ${
+        active ? "bg-teal font-bold text-white" : "font-semibold text-t2 hover:bg-bg"
       }`}
     >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5 flex-none" aria-hidden="true">
-        <path d={item.icon} />
-      </svg>
-      <span className="min-w-0">
-        <span className="block text-sm font-bold">{item.label}</span>
-        <span className={`mt-0.5 block truncate text-[10px] ${active ? "text-white/70" : "text-[#667085]"}`}>
-          {item.description}
-        </span>
-      </span>
+      {/* item.icon = 디자인 정본 admin/*.dc.html의 신뢰된 정적 SVG 마크업 */}
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="h-5 w-5 flex-none"
+        aria-hidden="true"
+        dangerouslySetInnerHTML={{ __html: item.icon }}
+      />
+      <span className="min-w-0 truncate">{item.label}</span>
     </Link>
   );
 }

@@ -114,7 +114,8 @@ describe("Sidebar", () => {
     // 건물·입주자 is a built:true item → rendered as <a>
     const link = screen.getByRole("link", { name: /건물·입주자/ });
     expect(link).toHaveAttribute("aria-current", "page");
-    expect(link).toHaveClass("bg-teal-t", "text-teal-d");
+    // 디자인 정본 .hf-item.on: solid teal 배경 + 흰색 텍스트/아이콘
+    expect(link).toHaveClass("bg-teal", "text-white");
   });
 
   it("고객번호 조회 경로에서 공과금 메뉴를 펼치고 고객번호만 활성 표시한다", () => {
@@ -126,7 +127,8 @@ describe("Sidebar", () => {
     expect(screen.getByRole("link", { name: "공과금 관리" })).toBeInTheDocument();
     const customerNumberLink = screen.getByRole("link", { name: "고객번호 조회" });
     expect(customerNumberLink).toHaveAttribute("aria-current", "page");
-    expect(customerNumberLink).toHaveClass("bg-teal-t", "text-teal-d");
+    // 디자인 정본 .hf-sub a.on: solid teal 배경 + 흰색 텍스트
+    expect(customerNumberLink).toHaveClass("bg-teal", "text-white");
     expect(screen.getByRole("link", { name: "가스" })).not.toHaveAttribute("aria-current");
   });
 
