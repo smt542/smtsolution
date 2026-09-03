@@ -98,6 +98,11 @@ const ORGANIZATION_FIELDS: Array<{
   },
 ];
 
+const ORGANIZATION_INPUT_CLASS =
+  "h-[42px] rounded-[10px] px-[13px] text-[13.5px] font-semibold focus:ring-[3px] focus:ring-blue-t";
+const FORM_FIELD_CLASS =
+  "[&>label]:mb-1.5 [&>label]:text-[12.5px] [&>label]:font-bold [&>label]:text-t2";
+
 function OrganizationFields<T extends FieldValues & EditInput>({
   idPrefix,
   register,
@@ -108,7 +113,7 @@ function OrganizationFields<T extends FieldValues & EditInput>({
   errors: FieldErrors<T>;
 }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid gap-[13px] sm:grid-cols-2 sm:gap-x-[15px]">
       {ORGANIZATION_FIELDS.map((field) => {
         const id = `${idPrefix}-${field.name}`;
         const error = errors[field.name] as FieldError | undefined;
@@ -118,12 +123,13 @@ function OrganizationFields<T extends FieldValues & EditInput>({
             label={field.label}
             htmlFor={id}
             error={error?.message}
-            className={field.full ? "sm:col-span-2" : ""}
+            className={`${field.full ? "sm:col-span-2" : ""} ${FORM_FIELD_CLASS}`}
           >
             <Input
               id={id}
               type={field.type}
               placeholder={field.placeholder}
+              className={ORGANIZATION_INPUT_CLASS}
               {...register(field.name as Path<T>)}
             />
           </FormField>
@@ -197,13 +203,27 @@ function ContractFileField({
 
   return (
     <div>
-      <div className="mb-1 text-xs font-semibold text-t3">계약서 사진</div>
+      <div className="mb-1.5 text-[12.5px] font-bold text-t2">계약서 사진</div>
       <label
         htmlFor={id}
-        className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-line bg-bg/50 px-4 py-5 text-center hover:border-blue/50 hover:bg-blue-t2"
+        className="flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-dashed border-line bg-surface p-5 text-center transition-colors hover:border-blue hover:bg-blue-t2"
       >
-        <span className="text-sm font-bold text-blue">사진 선택</span>
-        <span className="mt-1 text-xs text-t3">JPG · PNG · WEBP, 최대 10MB</span>
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-[22px] w-[22px] text-blue"
+          aria-hidden="true"
+        >
+          <path d="M12 16V4" />
+          <path d="m7 9 5-5 5 5" />
+          <path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2" />
+        </svg>
+        <span className="text-[13px] font-bold text-t1">사진 선택</span>
+        <span className="text-xs font-medium text-t3">JPG · PNG · WEBP, 최대 10MB</span>
       </label>
       <input
         id={id}
@@ -232,7 +252,7 @@ function ContractFileField({
           )}
           <div className="mt-2 flex items-center justify-between gap-3">
             <span className="truncate text-xs text-t3">{fileName}</span>
-            <button type="button" onClick={onRemove} className="text-xs font-bold text-danger">
+            <button type="button" onClick={onRemove} className="text-xs font-bold text-red">
               제거
             </button>
           </div>
@@ -273,10 +293,15 @@ function CreateModal({ open, onClose, onSubmit, isPending }: Omit<CreateProps, "
   });
 
   return (
-    <Modal open={open} onClose={onClose} title="관리회사 입점" className="max-h-[90vh] max-w-3xl overflow-y-auto">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="관리회사 입점"
+      className="max-h-[88vh] max-w-[520px] overflow-y-auto [&>h2]:text-[17px] [&>h2]:tracking-[-0.02em]"
+    >
       <form
         onSubmit={handleSubmit((values) => onSubmit({ ...values, contractFile }))}
-        className="flex flex-col gap-5"
+        className="flex flex-col gap-[18px]"
       >
         <OrganizationFields idPrefix="create-org" register={register} errors={errors} />
         <ContractFileField
@@ -289,37 +314,65 @@ function CreateModal({ open, onClose, onSubmit, isPending }: Omit<CreateProps, "
         />
 
         <hr className="border-line" />
-        <p className="text-xs font-bold text-t2">첫 관리자(owner) 계정</p>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <p className="text-[12.5px] font-bold text-t2">첫 관리자(owner) 계정</p>
+        <div className="grid gap-[13px] sm:grid-cols-2 sm:gap-x-[15px]">
           <FormField
             label="관리자 아이디 *"
             htmlFor="owner-username"
             error={errors.ownerUsername?.message}
-            className=""
+            className={FORM_FIELD_CLASS}
           >
-            <Input id="owner-username" {...register("ownerUsername")} placeholder="예: admin" />
+            <Input
+              id="owner-username"
+              {...register("ownerUsername")}
+              placeholder="예: admin"
+              className={ORGANIZATION_INPUT_CLASS}
+            />
           </FormField>
           <FormField
             label="관리자 이름 *"
             htmlFor="owner-name"
             error={errors.ownerFullName?.message}
-            className=""
+            className={FORM_FIELD_CLASS}
           >
-            <Input id="owner-name" {...register("ownerFullName")} placeholder="예: 홍길동" />
+            <Input
+              id="owner-name"
+              {...register("ownerFullName")}
+              placeholder="예: 홍길동"
+              className={ORGANIZATION_INPUT_CLASS}
+            />
           </FormField>
           <FormField
             label="관리자 연락처"
             htmlFor="owner-phone"
             error={errors.ownerPhone?.message}
-            className="sm:col-span-2"
+            className={`sm:col-span-2 ${FORM_FIELD_CLASS}`}
           >
-            <Input id="owner-phone" type="tel" {...register("ownerPhone")} placeholder="010-1234-5678" />
+            <Input
+              id="owner-phone"
+              type="tel"
+              {...register("ownerPhone")}
+              placeholder="010-1234-5678"
+              className={ORGANIZATION_INPUT_CLASS}
+            />
           </FormField>
         </div>
 
         <ModalActions>
-          <Button type="button" variant="ghost" onClick={onClose}>취소</Button>
-          <Button type="submit" variant="primary" disabled={isPending || isSubmitting}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onClose}
+            className="h-[40px] rounded-[11px] px-[15px] text-[13.5px]"
+          >
+            취소
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={isPending || isSubmitting}
+            className="h-[40px] rounded-[11px] px-[15px] text-[13.5px]"
+          >
             {isPending || isSubmitting ? "등록 중…" : "입점 등록"}
           </Button>
         </ModalActions>
@@ -348,14 +401,19 @@ function EditModal({
   });
 
   return (
-    <Modal open={open} onClose={onClose} title="조직 계약 정보 수정" className="max-h-[90vh] max-w-3xl overflow-y-auto">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="조직 계약 정보 수정"
+      className="max-h-[88vh] max-w-[520px] overflow-y-auto [&>h2]:text-[17px] [&>h2]:tracking-[-0.02em]"
+    >
       <form
         onSubmit={handleSubmit((values) => onSubmit({
           ...values,
           contractFile,
           removeContractFile,
         }))}
-        className="flex flex-col gap-5"
+        className="flex flex-col gap-[18px]"
       >
         <OrganizationFields idPrefix="edit-org" register={register} errors={errors} />
         <ContractFileField
@@ -374,8 +432,20 @@ function EditModal({
         />
 
         <ModalActions>
-          <Button type="button" variant="ghost" onClick={onClose}>취소</Button>
-          <Button type="submit" variant="primary" disabled={isPending || isSubmitting}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onClose}
+            className="h-[40px] rounded-[11px] px-[15px] text-[13.5px]"
+          >
+            취소
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={isPending || isSubmitting}
+            className="h-[40px] rounded-[11px] px-[15px] text-[13.5px]"
+          >
             {isPending || isSubmitting ? "저장 중…" : "저장"}
           </Button>
         </ModalActions>

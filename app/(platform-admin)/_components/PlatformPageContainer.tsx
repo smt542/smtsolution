@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 interface PlatformPageContainerProps {
   maxWidthClassName?: string;
+  paddingClassName?: string;
   children: ReactNode;
 }
 
@@ -12,10 +13,11 @@ interface PlatformPageContainerProps {
  */
 export function PlatformPageContainer({
   maxWidthClassName = "max-w-7xl",
+  paddingClassName = "p-5 sm:p-6 lg:p-8",
   children,
 }: PlatformPageContainerProps) {
   return (
-    <div className={`mx-auto w-full ${maxWidthClassName} p-5 sm:p-6 lg:p-8`}>
+    <div className={`mx-auto w-full ${maxWidthClassName} ${paddingClassName}`}>
       {children}
     </div>
   );

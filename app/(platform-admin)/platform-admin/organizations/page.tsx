@@ -4,7 +4,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Badge, Button, EmptyState, Modal, SearchBar, Spinner } from "@/components/common";
+import { Badge, Button, EmptyState, Modal, Spinner } from "@/components/common";
 import { toast } from "sonner";
 import {
   listPlatformOrganizations,
@@ -29,7 +29,6 @@ import {
   QueryError,
   StatusBadge,
 } from "../../_components/PageElements";
-import { CollectionToolbar } from "../../_components/CollectionToolbar";
 import { PlatformPageContainer } from "../../_components/PlatformPageContainer";
 import { TableFrame } from "../../_components/TableFrame";
 import { OrgStatusControl } from "./components/OrgStatusControl";
@@ -198,18 +197,32 @@ export default function PlatformOrganizationsPage() {
   };
 
   return (
-    <PlatformPageContainer>
-      <PageHeader
-        eyebrow="ORGANIZATIONS"
-        title="조직 관리"
-        description="입점 조직의 기본 정보와 운영 규모를 조회하고, 입점·수정·해지를 관리합니다."
-      />
+    <PlatformPageContainer
+      maxWidthClassName="max-w-none"
+      paddingClassName="px-5 py-[22px] sm:px-6 sm:pb-[30px]"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="[&_h2]:text-[19px] [&_h2]:tracking-[-0.02em] sm:[&_h2]:text-[19px]">
+          <PageHeader
+            eyebrow="ORGANIZATIONS"
+            title="조직 관리"
+            description="입점 조직의 기본 정보와 운영 규모를 조회하고, 입점·수정·해지를 관리합니다."
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => setCreateOpen(true)}
+          className="inline-flex h-10 shrink-0 items-center rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-pri transition-colors hover:bg-blue-d"
+        >
+          + 관리회사 입점
+        </button>
+      </div>
 
-      <div className="mt-5">
+      <div className="mt-4">
         <DataScopeNotice />
       </div>
 
-      <section className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="계약 현황">
+      <section className="mt-4 grid gap-[13px] sm:grid-cols-2 xl:grid-cols-4" aria-label="계약 현황">
         {[
           {
             label: "운영 중",
@@ -232,66 +245,82 @@ export default function PlatformOrganizationsPage() {
             detail: "최근 12개월",
           },
         ].map((kpi) => (
-          <div key={kpi.label} className="rounded-2xl bg-surface p-5 shadow-card">
-            <div className="text-xs font-bold text-t3">{kpi.label}</div>
-            <div className="mt-2 text-3xl font-extrabold text-blue num">
+          <div key={kpi.label} className="rounded-[15px] bg-surface px-[18px] py-[17px] shadow-card">
+            <div className="text-[12.5px] font-bold text-t3">{kpi.label}</div>
+            <div className="mt-[9px] text-[26px] font-extrabold tracking-[-0.03em] text-t1 num">
               {contractKpis.isPending ? "—" : formatNumber(kpi.value ?? 0)}
-              <span className="ml-1 text-sm text-t3">곳</span>
+              <span className="ml-[3px] text-sm font-bold tracking-normal text-t3">곳</span>
             </div>
-            <div className="mt-2 text-xs font-semibold text-t3">{kpi.detail}</div>
+            <div
+              className={`mt-[7px] text-xs font-bold ${
+                kpi.label === "정지" ? "text-red" : "text-t3"
+              }`}
+            >
+              {kpi.detail}
+            </div>
           </div>
         ))}
       </section>
 
-      <section className="mt-6 rounded-2xl bg-surface shadow-card">
-        <CollectionToolbar
-          left={<div>
-            <h3 className="text-base font-extrabold text-t1">조직 목록</h3>
-            <p className="mt-1 text-xs text-t3">총 {formatNumber(data?.totalCount ?? 0)}개</p>
-          </div>}
-          right={<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <div
-              className="flex flex-wrap items-center gap-1 rounded-xl bg-bg p-1"
-              aria-label="조직 상태 필터"
-            >
-              {STATUS_FILTERS.map((filter) => (
-                <button
-                  key={filter.id}
-                  type="button"
-                  aria-pressed={statusFilter === filter.id}
-                  onClick={() => {
-                    setStatusFilter(filter.id);
-                    setPage(1);
-                  }}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-bold ${
-                    statusFilter === filter.id
-                      ? "bg-blue text-white"
-                      : "text-t3 hover:bg-surface hover:text-t1"
-                  }`}
-                >
-                  {filter.label}
-                </button>
-              ))}
-            </div>
-            <div className="w-full sm:w-64">
-              <SearchBar
-                value={search}
-                onChange={(value) => {
-                  setSearch(value);
-                  setPage(1);
-                }}
-                placeholder="업체명 · 지역 검색"
-              />
-            </div>
+      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div
+          className="inline-flex w-fit flex-wrap items-center gap-0.5 rounded-[11px] bg-line2 p-1"
+          aria-label="조직 상태 필터"
+        >
+          {STATUS_FILTERS.map((filter) => (
             <button
+              key={filter.id}
               type="button"
-              onClick={() => setCreateOpen(true)}
-              className="rounded-xl bg-blue px-4 py-2.5 text-sm font-bold text-white hover:bg-blue/90"
+              aria-pressed={statusFilter === filter.id}
+              onClick={() => {
+                setStatusFilter(filter.id);
+                setPage(1);
+              }}
+              className={`rounded-lg px-[15px] py-[7px] text-sm font-bold transition-colors ${
+                statusFilter === filter.id
+                  ? "bg-surface text-t1 shadow-card"
+                  : "text-t3 hover:text-t1"
+              }`}
             >
-              + 관리회사 입점
+              {filter.label}
             </button>
-          </div>}
-        />
+          ))}
+        </div>
+        <div className="flex-1" />
+        <label className="flex h-10 min-w-60 items-center gap-2 rounded-[11px] border border-line bg-surface px-[13px] focus-within:border-blue focus-within:ring-[3px] focus-within:ring-blue-t">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-4 w-4 shrink-0 text-t3"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="6.5" />
+            <path d="m16 16 4 4" />
+          </svg>
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(1);
+            }}
+            placeholder="업체명 · 지역 검색"
+            className="w-full bg-transparent text-[13.5px] font-semibold text-t1 outline-none placeholder:font-medium placeholder:text-t4"
+          />
+        </label>
+      </div>
+
+      <section className="mt-4 overflow-hidden rounded-2xl bg-surface shadow-card">
+        <div className="flex items-center gap-2.5 border-b border-line2 px-[18px] py-[15px]">
+          <h3 className="text-[15px] font-extrabold text-t1">조직 목록</h3>
+          <span className="text-xs font-semibold text-t3">
+            {formatNumber(data?.totalCount ?? 0)}곳
+          </span>
+        </div>
 
         {isPending ? (
           <div className="py-16">
@@ -310,47 +339,57 @@ export default function PlatformOrganizationsPage() {
             }
           />
         ) : (
-          <TableFrame minWidthClassName="min-w-[1540px]">
+          <TableFrame minWidthClassName="min-w-[1480px]">
             <thead>
-              <tr className="border-b border-line bg-bg/70 text-left text-xs font-bold text-t3">
-                <th className="px-5 py-3">조직</th>
-                <th className="px-4 py-3">지역</th>
-                <th className="px-4 py-3">상태</th>
-                <th className="px-4 py-3 text-right">건물</th>
-                <th className="px-4 py-3 text-right">세대</th>
-                <th className="px-4 py-3 text-right">직원</th>
-                <th className="px-4 py-3 text-right">세입자</th>
-                <th className="px-4 py-3">계약 시작</th>
-                <th className="px-4 py-3">계약 만료</th>
-                <th className="px-4 py-3 text-right">계정</th>
-                <th className="px-4 py-3 text-right">포인트 잔액</th>
-                <th className="px-5 py-3">등록일</th>
-                <th className="px-5 py-3 text-right">관리</th>
+              <tr className="border-b border-line bg-bg/40 text-left text-xs font-bold text-t3">
+                <th className="w-[22%] whitespace-nowrap px-4 py-[11px]">조직</th>
+                <th className="whitespace-nowrap px-4 py-[11px] text-right">건물</th>
+                <th className="whitespace-nowrap px-4 py-[11px] text-right">세대</th>
+                <th className="whitespace-nowrap px-4 py-[11px] text-right">직원</th>
+                <th className="whitespace-nowrap px-4 py-[11px] text-right">세입자</th>
+                <th className="whitespace-nowrap px-4 py-[11px]">상태</th>
+                <th className="whitespace-nowrap px-4 py-[11px]">계약 시작</th>
+                <th className="whitespace-nowrap px-4 py-[11px]">계약 만료</th>
+                <th className="whitespace-nowrap px-4 py-[11px] text-right">계정</th>
+                <th className="whitespace-nowrap px-4 py-[11px] text-right">포인트 잔액</th>
+                <th className="whitespace-nowrap px-4 py-[11px]">등록일</th>
+                <th className="whitespace-nowrap px-4 py-[11px] text-right">관리</th>
               </tr>
             </thead>
             <tbody>
               {organizations.map((organization) => (
                 <tr
                   key={organization.id}
-                  className={`border-b border-line last:border-0 hover:bg-bg/50 ${
-                    organization.deletedAt ? "opacity-50" : ""
-                  }`}
+                  className="border-b border-line2 text-[13.5px] last:border-0 hover:bg-bg/40"
                 >
-                  <td className="px-5 py-4">
+                  <td className="whitespace-nowrap px-4 py-3">
                     <Link
                       href={`/platform-admin/organizations/${organization.id}`}
-                      className="font-bold text-t1 hover:text-blue hover:underline"
+                      className="text-sm font-extrabold tracking-[-0.01em] text-t1 hover:text-blue"
                     >
                       {organization.name}
                     </Link>
-                    <div className="mt-1 text-xs text-t3">
+                    <div className="mt-[3px] text-xs font-semibold text-t3">
+                      {organization.region ?? "지역 미설정"}
+                      <span className="mx-1 text-t4">·</span>
                       {organization.slug ?? "회사코드 미설정"}
                     </div>
                   </td>
-                  <td className="px-4 py-4 text-t2">{organization.region ?? "—"}</td>
-                  <td className="px-4 py-4">
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-t2 num">
+                    {formatNumber(organization.buildingCount)}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-t2 num">
+                    {formatNumber(organization.unitCount)}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-t2 num">
+                    {formatNumber(organization.employeeCount)}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-t2 num">
+                    {formatNumber(organization.tenantCount)}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3">
                     {organization.deletedAt ? (
-                      <Badge className="inline-flex bg-bg px-2.5 py-1 text-t3">
+                      <Badge className="inline-flex bg-bg px-[9px] py-[3px] leading-[1.4] text-t3">
                         해지됨
                       </Badge>
                     ) : (
@@ -364,34 +403,22 @@ export default function PlatformOrganizationsPage() {
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-4 text-right font-bold text-t1 num">
-                    {formatNumber(organization.buildingCount)}
-                  </td>
-                  <td className="px-4 py-4 text-right font-bold text-t1 num">
-                    {formatNumber(organization.unitCount)}
-                  </td>
-                  <td className="px-4 py-4 text-right font-bold text-t1 num">
-                    {formatNumber(organization.employeeCount)}
-                  </td>
-                  <td className="px-4 py-4 text-right font-bold text-t1 num">
-                    {formatNumber(organization.tenantCount)}
-                  </td>
-                  <td className="px-4 py-4 text-t2 num">
+                  <td className="whitespace-nowrap px-4 py-3 text-t3 num">
                     {organization.contractStartDate ?? "—"}
                   </td>
-                  <td className="px-4 py-4 text-t2 num">
+                  <td className="whitespace-nowrap px-4 py-3 text-t3 num">
                     {organization.contractEndDate ?? "—"}
                   </td>
-                  <td className="px-4 py-4 text-right font-bold text-t1 num">
+                  <td className="whitespace-nowrap px-4 py-3 text-right font-bold text-t1 num">
                     {formatNumber(organization.accountCount)}
                   </td>
-                  <td className="px-4 py-4 text-right font-extrabold text-t1 num">
+                  <td className="whitespace-nowrap px-4 py-3 text-right font-extrabold text-t1 num">
                     {formatNumber(organization.pointBalance)} P
                   </td>
-                  <td className="px-5 py-4 text-t2 num">
+                  <td className="whitespace-nowrap px-4 py-3 text-t3 num">
                     {dateFormatter.format(new Date(organization.createdAt))}
                   </td>
-                  <td className="px-5 py-4">
+                  <td className="whitespace-nowrap px-4 py-3">
                     <div className="flex justify-end">
                       <OrgRowActions
                         org={organization}
@@ -411,6 +438,9 @@ export default function PlatformOrganizationsPage() {
           pageSize={PAGE_SIZE}
           totalCount={data?.totalCount ?? 0}
           onPageChange={setPage}
+          numeric
+          compact
+          totalLabel={`전체 ${formatNumber(data?.totalCount ?? 0)}곳 · ${formatNumber(page)}/${formatNumber(Math.max(1, Math.ceil((data?.totalCount ?? 0) / PAGE_SIZE)))}`}
         />
       </section>
 

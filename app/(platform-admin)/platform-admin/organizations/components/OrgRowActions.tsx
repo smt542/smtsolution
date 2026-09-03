@@ -9,7 +9,7 @@ interface Props {
 }
 
 const btn =
-  "rounded-lg border border-line px-2.5 py-1 text-xs font-bold hover:bg-bg/60 disabled:opacity-50";
+  "inline-flex h-7 items-center rounded-lg border border-line bg-surface px-2.5 text-xs font-bold hover:bg-bg disabled:opacity-50";
 
 export function OrgRowActions({ org, onEdit, onToggleDeleted, isPending }: Props) {
   if (org.deletedAt) {
@@ -38,7 +38,7 @@ export function OrgRowActions({ org, onEdit, onToggleDeleted, isPending }: Props
             onToggleDeleted(true);
         }}
         disabled={isPending}
-        className={`${btn} text-danger`}
+        className={`${btn} text-red`}
       >
         해지
       </button>
