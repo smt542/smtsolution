@@ -177,8 +177,8 @@ export default function PlatformSettingsPage() {
                     className="mt-[9px] min-h-28 w-full rounded-[9px] border border-line bg-surface px-3 py-2.5 text-[13.5px] font-bold leading-6 text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t"
                   />
                 ) : (
-                  <div className="mt-[9px]">
-                    <SettingValue value={draft.invoiceNotice} multiline />
+                  <div className="mt-[9px] min-h-28 w-full whitespace-pre-wrap rounded-[9px] border border-line bg-bg px-3 py-2.5 text-[13.5px] font-bold leading-6 text-t3">
+                    {draft.invoiceNotice || "—"}
                   </div>
                 )}
               </label>
@@ -262,8 +262,8 @@ function TextSetting({
           className="mt-[9px] h-[38px] w-full rounded-[9px] border border-line bg-surface px-3 text-[13.5px] font-bold text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t"
         />
       ) : (
-        <div className="mt-[9px]">
-          <SettingValue value={value} />
+        <div className="mt-[9px] flex h-[38px] w-full items-center rounded-[9px] border border-line bg-bg px-3 text-[13.5px] font-bold text-t3">
+          {value || "—"}
         </div>
       )}
     </label>
@@ -304,20 +304,14 @@ function NumberSetting({
           <span className="whitespace-nowrap text-[12.5px] font-semibold text-t3">{unit}</span>
         </span>
       ) : (
-        <div className="mt-[9px] flex items-baseline gap-1.5">
-          <span className="text-lg font-extrabold tabular-nums text-t1">{formatNumber(value)}</span>
-          <span className="text-[12.5px] font-semibold text-t3">{unit}</span>
-        </div>
+        <span className="mt-[9px] flex items-center gap-[7px]">
+          <span className="flex h-9 w-full max-w-[110px] items-center justify-end rounded-[9px] border border-line bg-bg px-[11px] text-[13.5px] font-bold tabular-nums text-t3">
+            {formatNumber(value)}
+          </span>
+          <span className="whitespace-nowrap text-[12.5px] font-semibold text-t3">{unit}</span>
+        </span>
       )}
     </label>
-  );
-}
-
-function SettingValue({ value, multiline = false }: { value: string; multiline?: boolean }) {
-  return (
-    <p className={`text-[13.5px] leading-6 text-t1 ${multiline ? "whitespace-pre-wrap" : ""}`}>
-      {value || "—"}
-    </p>
   );
 }
 
