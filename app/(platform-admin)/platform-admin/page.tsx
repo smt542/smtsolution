@@ -126,9 +126,9 @@ export default function PlatformDashboardPage() {
         <MonthlySendCostChart />
 
         <section aria-label="테넌트별 발송 비용" className="rounded-2xl bg-surface shadow-card">
-          <div className="flex items-center justify-between border-b border-line p-4">
+          <div className="flex items-center justify-between border-b border-line2 px-[18px] py-[15px]">
             <div>
-              <h3 className="text-base font-extrabold text-t1">테넌트별 발송 비용</h3>
+              <h3 className="text-[15px] font-extrabold text-t1">테넌트별 발송 비용</h3>
               <p className="mt-1 text-xs text-t3">{monthLabel(month)} · 채널별 공급가액 (부가세 제외)</p>
             </div>
           </div>
@@ -143,28 +143,28 @@ export default function PlatformDashboardPage() {
           ) : (
             <TableFrame minWidthClassName="min-w-[720px]">
               <thead>
-                <tr className="border-b border-line bg-bg/70 text-left text-xs font-bold text-t3">
-                  <th className="px-5 py-3">업체명</th>
-                  <th className="px-4 py-3 text-right">알림톡(원)</th>
-                  <th className="px-4 py-3 text-right">문자(원)</th>
-                  <th className="px-4 py-3 text-right">팩스(원)</th>
-                  <th className="px-5 py-3 text-right">합계(원)</th>
+                <tr className="border-b border-line bg-bg/40 text-left text-xs font-bold text-t3">
+                  <th className="whitespace-nowrap px-4 py-[11px]">업체명</th>
+                  <th className="whitespace-nowrap px-4 py-[11px] text-right">알림톡(원)</th>
+                  <th className="whitespace-nowrap px-4 py-[11px] text-right">문자(원)</th>
+                  <th className="whitespace-nowrap px-4 py-[11px] text-right">팩스(원)</th>
+                  <th className="whitespace-nowrap px-4 py-[11px] text-right">합계(원)</th>
                 </tr>
               </thead>
               <tbody>
                 {pagedRows.map((row) => (
-                  <tr key={row.orgId} className="border-b border-line last:border-0 hover:bg-bg/50">
-                    <td className="px-5 py-4 font-bold text-t1">{row.orgName}</td>
-                    <td className="px-4 py-4 text-right text-t2 num">
+                  <tr key={row.orgId} className="border-b border-line2 text-[13.5px] last:border-0 hover:bg-bg/40">
+                    <td className="whitespace-nowrap px-4 py-3 font-extrabold text-t1">{row.orgName}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-t2 num">
                       {num(row.alimtalkAmountKrw)}
                     </td>
-                    <td className="px-4 py-4 text-right text-t2 num">
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-t2 num">
                       {num(row.smsAmountKrw)}
                     </td>
-                    <td className="px-4 py-4 text-right text-t2 num">
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-t2 num">
                       {num(row.faxAmountKrw)}
                     </td>
-                    <td className="px-5 py-4 text-right font-extrabold text-t1 num">{num(row.subtotalKrw)}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right font-extrabold text-t1 num">{num(row.subtotalKrw)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -179,6 +179,7 @@ export default function PlatformDashboardPage() {
                 totalCount={tenantRows.length}
                 onPageChange={setPage}
                 numeric
+                compact
                 totalLabel={`전체 ${num(tenantRows.length)}곳`}
               />
             )}

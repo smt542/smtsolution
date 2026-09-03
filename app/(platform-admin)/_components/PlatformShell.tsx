@@ -204,7 +204,7 @@ function PlatformTopbar({ title, onMenu }: { title: string; onMenu: () => void }
       <h1 className="flex-1 text-[19px] font-extrabold tracking-tight text-t1">{title}</h1>
       {me && (
         <div className="hidden items-center gap-2 sm:flex">
-          <span className="rounded-[7px] bg-blue-t px-2.5 py-1 text-[11px] font-bold text-blue">
+          <span className="inline-flex rounded-[7px] bg-blue-t px-[9px] py-[3px] text-xs font-bold leading-[1.4] text-blue-d">
             MASTER
           </span>
           <span className="text-sm font-semibold text-t2">{me.fullName}</span>
