@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -82,8 +83,8 @@ export default function ResidentLoginPage() {
           카카오톡으로 3초 만에 시작
         </button>
         <div className={styles.note}>
-          <a href="#">이용약관</a> · <a href="#">개인정보 처리방침</a>에
-          동의하고 시작합니다
+          <Link href="/resident/terms">이용약관</Link> ·{" "}
+          <Link href="/resident/privacy">개인정보 처리방침</Link>에 동의하고 시작합니다
         </div>
       </div>
 
