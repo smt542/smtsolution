@@ -1,10 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isPopbillConfigured } from "@/lib/popbill/config";
+import {
+  isPopbillConfigured,
+  PopbillNotConfiguredError,
+  readPopbillConfig,
+} from "@/lib/popbill/config";
 import { loadFaxDocumentData } from "@/lib/bill/faxData";
 import { renderFaxPdf } from "@/lib/bill/faxPdf";
 import { submitFax } from "@/lib/popbill/fax";
-import { PopbillNotConfiguredError } from "@/lib/popbill/config";
 import { PopbillSubmitError, PopbillTimeoutError } from "@/lib/popbill/types";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
@@ -64,6 +67,18 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const admin = createAdminClient();
+  const { data: setupConfig, error: setupConfigError } = await admin
+    .from("setup_config")
+    .select("fax_sender")
+    .eq("org_id", ctx.org_id)
+    .maybeSingle();
+  if (setupConfigError) return json({ error: setupConfigError.message }, 500);
+  const envConfig = readPopbillConfig();
+  const orgFaxSender = (setupConfig as { fax_sender?: string | null } | null)?.fax_sender;
+  const effectiveConfig = {
+    ...envConfig,
+    faxSender: orgFaxSender?.trim() || envConfig.faxSender,
+  };
   let queued = 0;
   let failed = 0;
   let skipped = 0;
@@ -135,15 +150,18 @@ export async function POST(request: Request): Promise<Response> {
     // 3) Popbill 접수.
     let receiptNum: string;
     try {
-      const submission = await submitFax({
-        requestNum: created.request_num,
-        receiver: doc.faxNumber,
-        receiverName: doc.householdName,
-        title: `${doc.building.name} 관리비 고지서`,
-        fileName: `bill-${billIssueId}.pdf`,
-        pdf,
-        providerRefKey: created.provider_ref_key ?? created.request_num,
-      });
+      const submission = await submitFax(
+        {
+          requestNum: created.request_num,
+          receiver: doc.faxNumber,
+          receiverName: doc.householdName,
+          title: `${doc.building.name} 관리비 고지서`,
+          fileName: `bill-${billIssueId}.pdf`,
+          pdf,
+          providerRefKey: created.provider_ref_key ?? created.request_num,
+        },
+        effectiveConfig,
+      );
       receiptNum = submission.receiptNum;
     } catch (e) {
       // 설정/사전 오류·SDK 오류 콜백=failed(확정 실패). 타임아웃/예기치 못한 오류=unknown(reconcile_required, 재발송 금지).

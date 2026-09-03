@@ -49,6 +49,13 @@ declare module "popbill" {
   }
 
   export interface MessageService {
+    checkSenderNumber(
+      corpNum: string,
+      senderNumber: string,
+      userId: string,
+      success: (result: { code: number; message?: string }) => void,
+      error: PopbillErrorHandler,
+    ): void;
     sendSMS_multi(
       corpNum: string,
       sender: string,
@@ -175,6 +182,13 @@ declare module "popbill" {
     resultDT?: string;
   }
   export interface FaxService {
+    checkSenderNumber(
+      corpNum: string,
+      senderNumber: string,
+      userId: string,
+      success: (result: { code: number; message?: string }) => void,
+      error: PopbillErrorHandler,
+    ): void;
     sendFaxBinary(
       corpNum: string,
       options: PopbillFaxBinaryOptions,

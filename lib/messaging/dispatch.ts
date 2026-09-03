@@ -1,7 +1,12 @@
 import { createHash } from "node:crypto";
 import type { PopbillKakaoButton } from "popbill";
 import { type SendMode, type MessageRecipient } from "./preset";
-import { isPopbillConfigured, PopbillNotConfiguredError } from "@/lib/popbill/config";
+import {
+  isPopbillConfigured,
+  PopbillNotConfiguredError,
+  readPopbillConfig,
+  type PopbillConfig,
+} from "@/lib/popbill/config";
 import { submitMessageBatch } from "@/lib/popbill/messages";
 import {
   PopbillSubmitError,
@@ -54,8 +59,37 @@ export interface DispatchMessagesDeps {
   /** service_role 클라이언트(예약·작업·접수 반영용). */
   admin: SupabaseClientLike;
   loadAlimtalkTemplate?: (templateId: number) => Promise<AlimtalkTemplateContent>;
-  submitBatch?: (batch: MessageBatchInput, content: MessageContent) => Promise<ProviderSubmission>;
+  submitBatch?: (
+    batch: MessageBatchInput,
+    content: MessageContent,
+    config?: PopbillConfig,
+  ) => Promise<ProviderSubmission>;
   isConfigured?: () => boolean;
+  config?: PopbillConfig;
+  loadOrgSmsSender?: (orgId: number) => Promise<string | null>;
+}
+
+interface SetupConfigQueryClient {
+  from(table: "setup_config"): {
+    select(columns: "sms_sender"): {
+      eq(column: "org_id", value: number): {
+        maybeSingle(): PromiseLike<{
+          data: { sms_sender?: string | null } | null;
+          error: { message: string } | null;
+        }>;
+      };
+    };
+  };
+}
+
+export async function loadOrgSmsSender(client: SupabaseClientLike, orgId: number): Promise<string | null> {
+  const { data, error } = await (client as SupabaseClientLike & SetupConfigQueryClient)
+    .from("setup_config")
+    .select("sms_sender")
+    .eq("org_id", orgId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data?.sms_sender ?? null;
 }
 
 export interface DispatchMessagesResult {
@@ -144,6 +178,15 @@ export async function dispatchMessages(
       httpStatus: 503,
     };
   }
+
+  const envConfig = deps.config ?? readPopbillConfig();
+  const orgSmsSender = await (deps.loadOrgSmsSender ?? ((orgId) => loadOrgSmsSender(deps.admin, orgId)))(
+    input.orgId,
+  );
+  const effectiveConfig: PopbillConfig = {
+    ...envConfig,
+    smsSender: orgSmsSender?.trim() || envConfig.smsSender,
+  };
 
   // 1) 서버 견적(인증 컨텍스트) — 최종 본문으로 sms/lms/alimtalk 판정
   const quote = (await rpcData(deps.sb, "quote_message_points", {
@@ -256,7 +299,7 @@ export async function dispatchMessages(
       resolved,
       costs,
     },
-    { submitBatch, loadAlimtalkTemplate: deps.loadAlimtalkTemplate },
+    { submitBatch, loadAlimtalkTemplate: deps.loadAlimtalkTemplate, config: effectiveConfig },
   );
 
   // 접수 receipt가 하나라도 있는 경우(provider_pending)에만 queued로 보고한다.
@@ -338,8 +381,13 @@ export interface SubmitReservationParams {
   costs: Array<Record<string, unknown>>;
 }
 export interface SubmitReservationDeps {
-  submitBatch?: (batch: MessageBatchInput, content: MessageContent) => Promise<ProviderSubmission>;
+  submitBatch?: (
+    batch: MessageBatchInput,
+    content: MessageContent,
+    config?: PopbillConfig,
+  ) => Promise<ProviderSubmission>;
   loadAlimtalkTemplate?: (templateId: number) => Promise<AlimtalkTemplateContent>;
+  config?: PopbillConfig;
 }
 interface CreatedJobRow {
   request_num: string;
@@ -425,6 +473,7 @@ export async function submitReservationBatches(
       const submission = await submitBatch(
         { product: batch.product, requestNum: batch.requestNum, recipients: batch.recipients },
         content,
+        deps.config,
       );
       outcomes.push({ request_num: batch.requestNum, outcome: "accepted", receipt_num: submission.receiptNum });
       queuedCount += batch.recipients.length;
