@@ -55,7 +55,10 @@ export default function PlatformDashboardPage() {
   const pagedRows = tenantRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   return (
-    <PlatformPageContainer>
+    <PlatformPageContainer
+      maxWidthClassName="max-w-none"
+      paddingClassName="flex flex-col gap-4 px-6 pb-[30px] pt-[22px]"
+    >
       <PlatformTopBarActions>
         <BoundedMonthStepper
           month={month}
@@ -68,7 +71,7 @@ export default function PlatformDashboardPage() {
 
       <section aria-label="핵심 지표">
         {metricsQuery.isPending ? (
-          <div className="rounded-2xl bg-white py-16"><Spinner /></div>
+          <div className="rounded-2xl bg-surface py-16"><Spinner /></div>
         ) : metricsQuery.isError || !metrics ? (
           <QueryError onRetry={() => void metricsQuery.refetch()} />
         ) : (
@@ -112,14 +115,14 @@ export default function PlatformDashboardPage() {
         )}
       </section>
 
-      <div className="mt-6 grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-4 items-stretch">
+      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-[1.5fr_1fr]">
         <MonthlySendCostChart />
 
-        <section aria-label="테넌트별 발송 비용" className="rounded-2xl bg-surface shadow-card">
-          <div className="flex items-center justify-between border-b border-line2 px-[18px] py-[15px]">
+        <section aria-label="테넌트별 발송 비용" className="overflow-hidden rounded-2xl bg-surface shadow-card">
+          <div className="flex items-center gap-2.5 border-b border-line2 px-[18px] py-[15px]">
             <div>
               <h3 className="text-[15px] font-extrabold text-t1">테넌트별 발송 비용</h3>
-              <p className="mt-1 text-xs text-t3">{monthLabel(month)} · 채널별 공급가액 (부가세 제외)</p>
+              <p className="text-[12px] font-semibold text-t3">{monthLabel(month)} · 채널별 공급가액 (부가세 제외)</p>
             </div>
           </div>
           {billingQuery.isPending ? (
@@ -133,7 +136,7 @@ export default function PlatformDashboardPage() {
           ) : (
             <TableFrame minWidthClassName="min-w-[720px]">
               <thead>
-                <tr className="border-b border-line bg-bg/40 text-left text-xs font-bold text-t3">
+                <tr className="border-b border-line bg-[#FBFCFD] text-left text-[12px] font-bold text-t3">
                   <th className="whitespace-nowrap px-4 py-[11px]">업체명</th>
                   <th className="whitespace-nowrap px-4 py-[11px] text-right">알림톡(원)</th>
                   <th className="whitespace-nowrap px-4 py-[11px] text-right">문자(원)</th>
@@ -143,15 +146,15 @@ export default function PlatformDashboardPage() {
               </thead>
               <tbody>
                 {pagedRows.map((row) => (
-                  <tr key={row.orgId} className="border-b border-line2 text-[13.5px] last:border-0 hover:bg-bg/40">
-                    <td className="whitespace-nowrap px-4 py-3 font-extrabold text-t1">{row.orgName}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-t2 num">
+                  <tr key={row.orgId} className="border-b border-line2 text-[13.5px] last:border-0 hover:bg-[#FBFCFD]">
+                    <td className="whitespace-nowrap px-4 py-3 font-bold text-t1">{row.orgName}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-t1 num">
                       {num(row.alimtalkAmountKrw)}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-t2 num">
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-t1 num">
                       {num(row.smsAmountKrw)}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-t2 num">
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-t1 num">
                       {num(row.faxAmountKrw)}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right font-extrabold text-t1 num">{num(row.subtotalKrw)}</td>
@@ -182,9 +185,9 @@ export default function PlatformDashboardPage() {
 // 정본 admin/overview .hq-k: 텍스트 전용(아이콘 없음) — label 12.5/t3, value 26/-.03em + 작은 단위, sub 12/t3(컬러 델타).
 function KpiCard({ label, value, unit, sub }: { label: string; value: string; unit: string; sub: ReactNode }) {
   return (
-    <article className="rounded-[15px] bg-surface p-[17px] shadow-card">
+    <article className="rounded-[15px] bg-surface px-[18px] py-[17px] shadow-card">
       <div className="text-[12.5px] font-bold text-t3">{label}</div>
-      <div className="mt-[9px] whitespace-nowrap text-[26px] font-extrabold leading-none tracking-[-0.03em] text-t1 num">
+      <div className="mt-[9px] whitespace-nowrap text-[26px] font-extrabold tracking-[-0.03em] text-t1 num">
         {value}
         <small className="ml-[3px] text-[14px] font-bold tracking-normal text-t3">{unit}</small>
       </div>
