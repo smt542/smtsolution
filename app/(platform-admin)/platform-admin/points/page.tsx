@@ -214,7 +214,7 @@ export default function PlatformPointsPage() {
       )}
 
       <section className="overflow-hidden rounded-2xl bg-surface shadow-card">
-        <div className="flex flex-wrap items-center gap-2.5 border-b border-line2 px-[18px] py-[15px]">
+        <div className="flex items-center gap-2.5 border-b border-line2 px-[18px] py-[15px]">
           <h2 className="text-[15px] font-extrabold text-t1">팝빌 포인트</h2>
           <p className="text-xs font-semibold text-t3">1원 = 1P · 알림톡·문자·팩스 공통 차감</p>
           <div className="flex-1" />
@@ -222,7 +222,7 @@ export default function PlatformPointsPage() {
             type="button"
             onClick={() => setChargeModalOpen(true)}
             disabled={pickerUnavailable}
-            className="inline-flex h-10 shrink-0 items-center justify-center rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-pri transition-colors hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-[11px] border border-transparent bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-[0_6px_14px_-4px_rgba(20,164,151,0.5)] transition-colors hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-60"
           >
             충전 기록
           </button>
@@ -280,7 +280,7 @@ export default function PlatformPointsPage() {
                 aria-hidden="true"
               />
             </div>
-            <div className="mt-[13px] flex flex-wrap gap-x-5 gap-y-2">
+            <div className="mt-[13px] flex flex-wrap gap-5">
               <ChannelLegend
                 label="알림톡"
                 points={alimtalkPoints}
@@ -334,7 +334,7 @@ export default function PlatformPointsPage() {
                   </em>
                 </div>
                 {transaction.memo && (
-                  <span className="max-w-[40%] truncate text-[13px] font-semibold text-t3">
+                  <span className="max-w-[40%] truncate text-[13px] font-bold text-t3">
                     {transaction.memo}
                   </span>
                 )}
