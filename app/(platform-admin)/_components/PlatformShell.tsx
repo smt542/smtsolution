@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { createContext, useContext, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -13,13 +14,32 @@ import {
   type PlatformNavItem,
 } from "../navItems";
 
+// 정본 hf-top: 제목은 셸 상단바에만 두고, 페이지별 액션은 상단바 우측 슬롯에 렌더한다.
+const TopBarSlotContext = createContext<HTMLElement | null>(null);
+
+/**
+ * 페이지가 셸 상단바(hf-top) 우측에 액션 버튼(입점·저장·기간선택 등)을 렌더링할 때 사용.
+ * 본문에 별도 PageHeader를 두지 않고 정본처럼 상단바로 액션을 올린다.
+ */
+export function PlatformTopBarActions({ children }: { children: React.ReactNode }) {
+  const slot = useContext(TopBarSlotContext);
+  if (!slot) return null;
+  return createPortal(children, slot);
+}
+
 export function PlatformShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [slotEl, setSlotEl] = useState<HTMLElement | null>(null);
 
   return (
     <div className="flex min-h-screen bg-bg">
-      <div className="sticky top-0 hidden h-screen md:flex">
+      <div
+        className={`sticky top-0 hidden h-screen shrink-0 overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.22,0.61,0.36,1)] md:flex ${
+          collapsed ? "md:w-0" : "md:w-64"
+        }`}
+      >
         <PlatformSidebar pathname={pathname} />
       </div>
 
@@ -27,8 +47,12 @@ export function PlatformShell({ children }: { children: React.ReactNode }) {
         <PlatformTopbar
           title={platformPageTitle(pathname)}
           onMenu={() => setDrawerOpen(true)}
+          onToggleCollapse={() => setCollapsed((value) => !value)}
+          slotRef={setSlotEl}
         />
-        <main className="flex-1 overflow-auto">{children}</main>
+        <TopBarSlotContext.Provider value={slotEl}>
+          <main className="flex-1 overflow-auto">{children}</main>
+        </TopBarSlotContext.Provider>
       </div>
 
       {drawerOpen && (
@@ -186,11 +210,22 @@ function PlatformNavLink({
   );
 }
 
-function PlatformTopbar({ title, onMenu }: { title: string; onMenu: () => void }) {
+function PlatformTopbar({
+  title,
+  onMenu,
+  onToggleCollapse,
+  slotRef,
+}: {
+  title: string;
+  onMenu: () => void;
+  onToggleCollapse: () => void;
+  slotRef: (el: HTMLElement | null) => void;
+}) {
   const { data: me } = useMe();
 
   return (
     <header className="flex h-[62px] flex-none items-center gap-3 border-b border-line bg-white px-5 sm:px-6">
+      {/* 모바일: 사이드 드로어 열기 */}
       <button
         type="button"
         onClick={onMenu}
@@ -201,7 +236,20 @@ function PlatformTopbar({ title, onMenu }: { title: string; onMenu: () => void }
           <path d="M3 6h18M3 12h18M3 18h18" />
         </svg>
       </button>
-      <h1 className="flex-1 text-[19px] font-extrabold tracking-tight text-t1">{title}</h1>
+      {/* 데스크톱: 사이드바 접기/펼치기 (정본 lnb-btn) */}
+      <button
+        type="button"
+        onClick={onToggleCollapse}
+        className="hidden h-9 w-9 items-center justify-center rounded-xl text-t2 hover:bg-bg md:flex"
+        aria-label="사이드바 접기·펼치기"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5" aria-hidden="true">
+          <path d="M3 6h18M3 12h18M3 18h18" />
+        </svg>
+      </button>
+      <h1 className="min-w-0 flex-1 truncate text-[19px] font-extrabold tracking-tight text-t1">{title}</h1>
+      {/* 페이지 액션 슬롯 (PlatformTopBarActions가 여기로 포털) */}
+      <div ref={slotRef} className="flex items-center gap-2" />
       {me && (
         <div className="hidden items-center gap-2 sm:flex">
           <span className="inline-flex rounded-[7px] bg-blue-t px-[9px] py-[3px] text-xs font-bold leading-[1.4] text-blue-d">

@@ -53,7 +53,7 @@ beforeEach(() => {
 describe("PlatformBillingPage", () => {
   it("테넌트별 청구액·상태를 표시한다", () => {
     render(<PlatformBillingPage />);
-    expect(screen.getByRole("heading", { name: "청구 관리" })).toBeInTheDocument();
+    // 제목(청구 관리)은 셸 상단바가 렌더 — 페이지 단위 테스트 범위 밖.
     expect(screen.getByText("한빛관리")).toBeInTheDocument();
     expect(screen.getByText("새봄관리")).toBeInTheDocument();
     expect(screen.getByText("20,000")).toBeInTheDocument();

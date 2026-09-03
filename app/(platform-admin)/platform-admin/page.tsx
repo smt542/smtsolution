@@ -9,12 +9,11 @@ import {
 import { formatNumber } from "@/lib/format";
 import {
   BoundedMonthStepper,
-  DataScopeNotice,
-  PageHeader,
   PlatformPagination,
   QueryError,
 } from "../_components/PageElements";
 import { PlatformPageContainer } from "../_components/PlatformPageContainer";
+import { PlatformTopBarActions } from "../_components/PlatformShell";
 import { TableFrame } from "../_components/TableFrame";
 import { MonthlySendCostChart } from "./_components/MonthlySendCostChart";
 
@@ -57,12 +56,7 @@ export default function PlatformDashboardPage() {
 
   return (
     <PlatformPageContainer>
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <PageHeader
-          eyebrow="HQ CONSOLE"
-          title="대시보드"
-          description="계약 업체·관리 건물·입주자 앱 연결과 월 발송 비용을 한눈에 확인합니다."
-        />
+      <PlatformTopBarActions>
         <BoundedMonthStepper
           month={month}
           onChange={(nextMonth) => {
@@ -70,13 +64,9 @@ export default function PlatformDashboardPage() {
             setPage(1);
           }}
         />
-      </div>
+      </PlatformTopBarActions>
 
-      <div className="mt-5">
-        <DataScopeNotice />
-      </div>
-
-      <section className="mt-6" aria-label="핵심 지표">
+      <section aria-label="핵심 지표">
         {metricsQuery.isPending ? (
           <div className="rounded-2xl bg-white py-16"><Spinner /></div>
         ) : metricsQuery.isError || !metrics ? (

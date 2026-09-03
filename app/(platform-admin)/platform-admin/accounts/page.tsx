@@ -21,12 +21,11 @@ import type { OrgMemberRole, StaffType } from "@/hooks/reactquery/auth";
 import { MODULE_KEYS, MODULE_LABELS } from "@/lib/auth/permissions";
 import { formatNumber } from "@/lib/format";
 import {
-  DataScopeNotice,
-  PageHeader,
   PlatformPagination,
   QueryError,
 } from "../../_components/PageElements";
 import { PlatformPageContainer } from "../../_components/PlatformPageContainer";
+import { PlatformTopBarActions } from "../../_components/PlatformShell";
 import { TableFrame } from "../../_components/TableFrame";
 import { ModalActions } from "../../_components/ModalActions";
 import { InlineAlert } from "../../_components/InlineAlert";
@@ -211,12 +210,7 @@ export default function PlatformAccountsPage() {
 
   return (
     <PlatformPageContainer>
-      <div className="flex items-start justify-between gap-4">
-        <PageHeader
-          eyebrow="ACCOUNTS"
-          title="계정 관리"
-          description="계정 발급·기본 정보·권한·활성·비밀번호를 직접 관리합니다."
-        />
+      <PlatformTopBarActions>
         <button
           type="button"
           onClick={() => setCreateOpen(true)}
@@ -224,13 +218,9 @@ export default function PlatformAccountsPage() {
         >
           + 계정 발급
         </button>
-      </div>
+      </PlatformTopBarActions>
 
-      <div className="mt-5">
-        <DataScopeNotice />
-      </div>
-
-      <section className="mt-6 overflow-hidden rounded-2xl bg-surface shadow-card">
+      <section className="overflow-hidden rounded-2xl bg-surface shadow-card">
         <div className="flex items-center gap-2.5 border-b border-line2 px-[18px] py-[15px]">
           <h3 className="text-[15px] font-extrabold text-t1">소속 계정 목록</h3>
           <span className="text-xs font-semibold text-t3">

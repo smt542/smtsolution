@@ -13,7 +13,6 @@ import {
 import { formatNumber } from "@/lib/format";
 import {
   BoundedMonthStepper,
-  PageHeader,
   PlatformPagination,
   QueryError,
 } from "../../_components/PageElements";
@@ -162,13 +161,7 @@ export default function PlatformBillingPage() {
 
   return (
     <PlatformPageContainer>
-      <PageHeader
-        eyebrow="BILLING"
-        title="청구 관리"
-        description="테넌트별 월 발송 사용량과 청구액·입금 상태를 관리합니다."
-      />
-
-      <section className="mt-6 rounded-[18px] bg-surface px-6 py-[22px] shadow-card">
+      <section className="rounded-[18px] bg-surface px-6 py-[22px] shadow-card">
         <div className="mb-[14px] flex items-center">
           <BoundedMonthStepper
             month={month}

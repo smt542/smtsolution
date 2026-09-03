@@ -23,13 +23,12 @@ import {
 } from "@/hooks/reactquery/platform";
 import { formatNumber } from "@/lib/format";
 import {
-  DataScopeNotice,
-  PageHeader,
   PlatformPagination,
   QueryError,
   StatusBadge,
 } from "../../_components/PageElements";
 import { PlatformPageContainer } from "../../_components/PlatformPageContainer";
+import { PlatformTopBarActions } from "../../_components/PlatformShell";
 import { TableFrame } from "../../_components/TableFrame";
 import { OrgStatusControl } from "./components/OrgStatusControl";
 import type { OrgCreateSubmitValues, OrgEditSubmitValues } from "./components/OrgFormModal";
@@ -201,14 +200,7 @@ export default function PlatformOrganizationsPage() {
       maxWidthClassName="max-w-none"
       paddingClassName="px-5 py-[22px] sm:px-6 sm:pb-[30px]"
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="[&_h2]:text-[19px] [&_h2]:tracking-[-0.02em] sm:[&_h2]:text-[19px]">
-          <PageHeader
-            eyebrow="ORGANIZATIONS"
-            title="조직 관리"
-            description="입점 조직의 기본 정보와 운영 규모를 조회하고, 입점·수정·해지를 관리합니다."
-          />
-        </div>
+      <PlatformTopBarActions>
         <button
           type="button"
           onClick={() => setCreateOpen(true)}
@@ -216,13 +208,9 @@ export default function PlatformOrganizationsPage() {
         >
           + 관리회사 입점
         </button>
-      </div>
+      </PlatformTopBarActions>
 
-      <div className="mt-4">
-        <DataScopeNotice />
-      </div>
-
-      <section className="mt-4 grid gap-[13px] sm:grid-cols-2 xl:grid-cols-4" aria-label="계약 현황">
+      <section className="grid gap-[13px] sm:grid-cols-2 xl:grid-cols-4" aria-label="계약 현황">
         {[
           {
             label: "운영 중",
