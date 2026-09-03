@@ -39,7 +39,7 @@ export function MonthlySendCostChart() {
           <span className="sr-only">발송 비용 연도</span>
           <select
             aria-label="발송 비용 연도"
-            className="h-9 appearance-none rounded-[11px] border border-line bg-surface pl-3 pr-8 text-[13.5px] font-bold text-t1 outline-none transition hover:bg-bg focus:border-blue"
+            className="h-[36px] cursor-pointer appearance-none rounded-[11px] border border-line bg-surface pl-[12px] pr-[34px] text-[13.5px] font-bold text-t1 outline-none transition-colors hover:bg-bg"
             value={year}
             onChange={(event) => setYear(Number(event.target.value))}
           >
@@ -47,7 +47,7 @@ export function MonthlySendCostChart() {
               <option key={option} value={option}>{option}년</option>
             ))}
           </select>
-          <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 size-3.5 -translate-y-1/2 text-t3" />
+          <ChevronDownIcon className="pointer-events-none absolute right-[12px] top-1/2 size-[14px] -translate-y-1/2 stroke-[2.2] text-t3" />
         </label>
       </div>
 
@@ -114,7 +114,7 @@ function MonthlySendCostBars({
             const stackWidth = summary.max > 0 ? (total / summary.max) * 100 : 0;
 
             return (
-              <div key={cost.month} className="flex items-center gap-3 relative">
+              <div key={cost.month} className="flex items-center gap-3">
                 <div
                   className={`w-11 flex-none text-[12.5px] font-bold ${isLatest ? "text-t1" : "text-t3"}`}
                 >
@@ -146,10 +146,8 @@ function MonthlySendCostBars({
                   )}
                 </div>
                 <div
-                  className={`w-[88px] flex-none text-right text-[12.5px] num ${
-                    isEmpty
-                      ? "font-bold text-t4"
-                      : `font-extrabold ${isLatest ? "text-t1" : "text-t2"}`
+                  className={`w-[88px] flex-none text-right text-[12.5px] font-extrabold num ${
+                    isLatest ? "text-t1" : "text-t2"
                   }`}
                 >
                   {isEmpty ? "—" : `${formatNumber(total)}원`}
@@ -160,12 +158,12 @@ function MonthlySendCostBars({
         </div>
       </div>
 
-      <div className="flex items-center gap-2.5 px-5 pt-3.5 pb-[18px] border-t border-line2 mt-3.5">
+      <div className="mt-3.5 flex items-center gap-[9px] border-t border-line2 px-5 pb-[18px] pt-3.5">
         <div className="text-[13px] font-bold text-t2">{year}년 누계</div>
-        <div className="text-xs font-semibold text-t3 num">
+        <div className="text-[12px] font-semibold text-t3 num">
           {summary.dataMonths}개월 · 월 평균 {formatNumber(summary.average)}원
         </div>
-        <div className="ml-auto text-lg font-extrabold tracking-[-0.02em] num">
+        <div className="ml-auto text-[18px] font-extrabold tracking-[-0.02em] num">
           {formatNumber(summary.annualTotal)}원
         </div>
       </div>
