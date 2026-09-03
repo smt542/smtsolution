@@ -8,6 +8,7 @@ import { formatMonth } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 
 import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
+import { PartnerConfirmDialog } from "../../../_components/PartnerConfirmDialog";
 import styles from "./mobile-meter.module.css";
 
 type Meter = { prev: string; cur: string };
@@ -235,16 +236,15 @@ function MeterInner() {
       </PartnerBottomActionBar>
 
       {confirm && (
-        <div className={styles.scrim} onClick={(e) => e.target === e.currentTarget && setConfirm(false)}>
-          <div className={styles.dialog}>
-            <div className={styles.dTitle}>검침 자료를 저장할까요?</div>
-            <div className={styles.dDesc}>{formatMonth(month)} 검침 내용이 저장돼요.</div>
-            <div className={styles.dActions}>
-              <button type="button" className={`${styles.dBtn} ${styles.dCancel}`} onClick={() => setConfirm(false)}>취소</button>
-              <button type="button" className={`${styles.dBtn} ${styles.dOk}`} onClick={() => { setConfirm(false); void save(); }} disabled={busy}>저장</button>
-            </div>
-          </div>
-        </div>
+        <PartnerConfirmDialog
+          title="검침 자료를 저장할까요?"
+          description={<>{formatMonth(month)} 검침 내용이 저장돼요.</>}
+          cancelLabel="취소"
+          confirmLabel="저장"
+          onCancel={() => setConfirm(false)}
+          onConfirm={() => { setConfirm(false); void save(); }}
+          confirmDisabled={busy}
+        />
       )}
     </div>
   );

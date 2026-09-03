@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
+import { PartnerConfirmDialog } from "../../../_components/PartnerConfirmDialog";
 import { PartnerFormFieldRow } from "../../../_components/PartnerFormFieldRow";
 import { PartnerInlineError } from "../../../_components/PartnerInlineError";
 import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
@@ -211,29 +212,27 @@ export default function PartnerAsNewPage() {
       </PartnerBottomActionBar>
 
       {confirmReg && (
-        <div className={styles.scrim} onClick={(e) => e.target === e.currentTarget && setConfirmReg(false)}>
-          <div className={styles.dialog}>
-            <div className={styles.dTitle}>접수를 등록할까요?</div>
-            <div className={styles.dDesc}>입력한 내용으로 A/S 접수가 등록돼요.</div>
-            <div className={styles.dActions}>
-              <button type="button" className={`${styles.dBtn} ${styles.dCancel}`} onClick={() => setConfirmReg(false)}>취소</button>
-              <button type="button" className={`${styles.dBtn} ${styles.dOk}`} onClick={() => { setConfirmReg(false); void register(); }} disabled={busy}>등록</button>
-            </div>
-          </div>
-        </div>
+        <PartnerConfirmDialog
+          title="접수를 등록할까요?"
+          description="입력한 내용으로 A/S 접수가 등록돼요."
+          cancelLabel="취소"
+          confirmLabel="등록"
+          onCancel={() => setConfirmReg(false)}
+          onConfirm={() => { setConfirmReg(false); void register(); }}
+          confirmDisabled={busy}
+        />
       )}
 
       {confirmCancel && (
-        <div className={styles.scrim} onClick={(e) => e.target === e.currentTarget && setConfirmCancel(false)}>
-          <div className={styles.dialog}>
-            <div className={styles.dTitle}>작성을 취소할까요?</div>
-            <div className={styles.dDesc}>입력한 내용은 저장되지 않아요.</div>
-            <div className={styles.dActions}>
-              <button type="button" className={`${styles.dBtn} ${styles.dCancel}`} onClick={() => setConfirmCancel(false)}>계속 작성</button>
-              <button type="button" className={`${styles.dBtn} ${styles.dDanger}`} onClick={() => router.push("/partner/mobile-home")}>나가기</button>
-            </div>
-          </div>
-        </div>
+        <PartnerConfirmDialog
+          title="작성을 취소할까요?"
+          description="입력한 내용은 저장되지 않아요."
+          cancelLabel="계속 작성"
+          confirmLabel="나가기"
+          confirmVariant="danger"
+          onCancel={() => setConfirmCancel(false)}
+          onConfirm={() => router.push("/partner/mobile-home")}
+        />
       )}
     </div>
   );
