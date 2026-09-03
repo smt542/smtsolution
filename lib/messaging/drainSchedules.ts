@@ -1,6 +1,11 @@
-import { isPopbillConfigured } from "@/lib/popbill/config";
+import {
+  isPopbillConfigured,
+  readPopbillConfig,
+  type PopbillConfig,
+} from "@/lib/popbill/config";
 import type { MessageBatchInput, MessageContent, ProviderSubmission } from "@/lib/popbill/types";
 import {
+  loadOrgSmsSender,
   submitReservationBatches,
   toPopbillButtons,
   type SupabaseClientLike,
@@ -18,7 +23,11 @@ export interface DrainDeps {
   admin: SupabaseClientLike;
   orgId: number | null;
   limit?: number;
-  submitBatch?: (batch: MessageBatchInput, content: MessageContent) => Promise<ProviderSubmission>;
+  submitBatch?: (
+    batch: MessageBatchInput,
+    content: MessageContent,
+    config?: PopbillConfig,
+  ) => Promise<ProviderSubmission>;
   isConfigured?: () => boolean;
 }
 
@@ -84,6 +93,7 @@ async function processRow(
   row: ClaimRow,
   result: DrainResult,
   deps: DrainDeps,
+  getEffectiveConfig: (orgId: number) => Promise<PopbillConfig>,
 ): Promise<void> {
   const isConfigured = deps.isConfigured ?? isPopbillConfigured;
   if (!isConfigured()) {
@@ -110,6 +120,10 @@ async function processRow(
   }
 
   // 예약(또는 접수 진행 중) — 배치 접수. 로그는 reserve에서 이미 스케줄에 연결됨.
+  const needsSmsConfig = (reserve.recipient_costs ?? []).some(
+    (cost) => cost.product === "sms" || cost.product === "lms",
+  );
+  const config = needsSmsConfig ? await getEffectiveConfig(row.org_id) : undefined;
   const { markStatus } = await submitReservationBatches(
     admin,
     {
@@ -126,6 +140,7 @@ async function processRow(
         templateCode: reserve.alimtalk_template_code ?? null,
         buttons: toPopbillButtons(reserve.buttons),
       }),
+      config,
     },
   );
 
@@ -155,10 +170,26 @@ export async function drainSchedules(deps: DrainDeps): Promise<DrainResult> {
   })) as ClaimRow[] | null;
   const rows = claimed ?? [];
   result.claimed = rows.length;
+  const effectiveConfigByOrgId = new Map<number, Promise<PopbillConfig>>();
+  const getEffectiveConfig = (scheduledOrgId: number): Promise<PopbillConfig> => {
+    let config = effectiveConfigByOrgId.get(scheduledOrgId);
+    if (!config) {
+      config = (async () => {
+        const envConfig = readPopbillConfig();
+        const orgSmsSender = await loadOrgSmsSender(admin, scheduledOrgId);
+        return {
+          ...envConfig,
+          smsSender: orgSmsSender?.trim() || envConfig.smsSender,
+        };
+      })();
+      effectiveConfigByOrgId.set(scheduledOrgId, config);
+    }
+    return config;
+  };
 
   for (const row of rows) {
     try {
-      await processRow(admin, row, result, deps);
+      await processRow(admin, row, result, deps, getEffectiveConfig);
     } catch {
       try {
         await complete(admin, row.id, null, "failed");

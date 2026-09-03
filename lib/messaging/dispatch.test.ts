@@ -1,14 +1,35 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { dispatchMessages, submitReservationBatches, type DispatchMessagesInput } from "./dispatch";
 import { PopbillSubmitError, PopbillTimeoutError, type MessageBatchInput } from "@/lib/popbill/types";
 
-function makeClient(handlers: Record<string, (args: Record<string, unknown>) => unknown>) {
+function makeClient(
+  handlers: Record<string, (args: Record<string, unknown>) => unknown>,
+  smsSender: string | null = null,
+) {
+  const maybeSingle = vi.fn().mockResolvedValue({
+    data: smsSender ? { sms_sender: smsSender } : null,
+    error: null,
+  });
   return {
     rpc: vi.fn((fn: string, args: Record<string, unknown>) =>
       Promise.resolve({ data: handlers[fn] ? handlers[fn](args) : null, error: null }),
     ),
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({ maybeSingle })),
+      })),
+    })),
   };
 }
+
+beforeAll(() => {
+  vi.stubEnv("POPBILL_LINK_ID", "test-link");
+  vi.stubEnv("POPBILL_SECRET_KEY", "test-secret");
+  vi.stubEnv("POPBILL_CORP_NUM", "1234567890");
+  vi.stubEnv("POPBILL_SMS_SENDER", "0211112222");
+});
+
+afterAll(() => vi.unstubAllEnvs());
 
 const twoSmsReserve = {
   ok: true,
@@ -59,11 +80,14 @@ describe("dispatchMessages", () => {
     const sb = makeClient({
       quote_message_points: () => ({ ok: true, rate_ids: { sms: 1 }, estimated_points: 2 }),
     });
-    const admin = makeClient({
-      reserve_message_points: () => twoSmsReserve,
-      create_provider_dispatch_jobs: () => ({ ok: true }),
-      mark_message_reservation_provider_pending: () => ({ ok: true, status: "provider_pending", accepted: 1 }),
-    });
+    const admin = makeClient(
+      {
+        reserve_message_points: () => twoSmsReserve,
+        create_provider_dispatch_jobs: () => ({ ok: true }),
+        mark_message_reservation_provider_pending: () => ({ ok: true, status: "provider_pending", accepted: 1 }),
+      },
+      "0233334444",
+    );
     const submitBatch = vi.fn().mockResolvedValue({
       requestNum: "m5c0",
       receiptNum: "RCPT-1",
@@ -73,6 +97,10 @@ describe("dispatchMessages", () => {
     const out = await dispatchMessages(baseInput, { sb, admin, submitBatch, isConfigured: () => true });
     expect(out).toMatchObject({ ok: true, status: "queued", logId: 9, queuedCount: 2, reservedPoints: 2 });
     expect(submitBatch).toHaveBeenCalledTimes(1); // 두 sms는 한 배치
+    expect(submitBatch.mock.calls[0][2]).toMatchObject({
+      smsSender: "0233334444",
+      kakaoSender: "",
+    });
     // mark은 accepted outcome으로 호출
     expect(admin.rpc).toHaveBeenCalledWith(
       "mark_message_reservation_provider_pending",

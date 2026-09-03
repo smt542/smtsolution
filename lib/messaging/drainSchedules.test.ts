@@ -1,13 +1,22 @@
-import { beforeEach, describe, expect, it, vi, type Mock } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { drainSchedules } from "@/lib/messaging/drainSchedules";
+import type { PopbillConfig } from "@/lib/popbill/config";
 import type { MessageBatchInput, MessageContent, ProviderSubmission } from "@/lib/popbill/types";
 
 type RpcArgs = Record<string, unknown>;
-type SubmitBatch = (batch: MessageBatchInput, content: MessageContent) => Promise<ProviderSubmission>;
+type SubmitBatch = (
+  batch: MessageBatchInput,
+  content: MessageContent,
+  config?: PopbillConfig,
+) => Promise<ProviderSubmission>;
 
 /** function 이름별로 응답을 라우팅하는 admin.rpc 목 */
 function makeAdmin(handlers: Record<string, (args: RpcArgs) => unknown>) {
   const calls: { fn: string; args: RpcArgs }[] = [];
+  const maybeSingle = vi.fn().mockResolvedValue({
+    data: null,
+    error: null,
+  });
   const admin = {
     rpc: vi.fn(async (fn: string, args: RpcArgs = {}) => {
       calls.push({ fn, args });
@@ -15,6 +24,11 @@ function makeAdmin(handlers: Record<string, (args: RpcArgs) => unknown>) {
       const data = handler ? handler(args) : null;
       return { data, error: null };
     }),
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn(() => ({ maybeSingle })),
+      })),
+    })),
   };
   return { admin, calls };
 }
@@ -32,6 +46,15 @@ const oneSmsReserve = {
   alimtalk_template_code: null,
   buttons: [],
 };
+
+beforeAll(() => {
+  vi.stubEnv("POPBILL_LINK_ID", "test-link");
+  vi.stubEnv("POPBILL_SECRET_KEY", "test-secret");
+  vi.stubEnv("POPBILL_CORP_NUM", "1234567890");
+  vi.stubEnv("POPBILL_SMS_SENDER", "0211112222");
+});
+
+afterAll(() => vi.unstubAllEnvs());
 
 beforeEach(() => {
   submitBatch = vi.fn().mockResolvedValue({

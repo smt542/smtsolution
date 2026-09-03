@@ -25,12 +25,21 @@ export interface SetupConfig {
   ceoName: string | null;
   companyAddress: string | null;
   operatingHours: string | null;
+  smsSender: string | null;
+  faxSender: string | null;
+  smsSenderVerifiedAt: string | null;
+  faxSenderVerifiedAt: string | null;
   // 알림 설정 — 0122
   notifyMoveIn: boolean;
   notifyLeaseExpiry: boolean;
   leaseExpiryDays: number;
 }
-export type SetupConfigPatch = Partial<Omit<SetupConfig, "orgId">>;
+type ServerManagedSenderField =
+  | "smsSender"
+  | "faxSender"
+  | "smsSenderVerifiedAt"
+  | "faxSenderVerifiedAt";
+export type SetupConfigPatch = Partial<Omit<SetupConfig, "orgId" | ServerManagedSenderField>>;
 
 type SetupConfigRow = {
   org_id: number; customer_notice: string | null; unit_label_default: "code" | "name";
@@ -43,6 +52,8 @@ type SetupConfigRow = {
   company_name: string | null; company_phone: string | null; company_fax: string | null;
   biz_reg_no: string | null; ceo_name: string | null; company_address: string | null;
   operating_hours: string | null;
+  sms_sender: string | null; fax_sender: string | null;
+  sms_sender_verified_at: string | null; fax_sender_verified_at: string | null;
   notify_move_in: boolean; notify_lease_expiry: boolean; lease_expiry_days: number;
 };
 
@@ -59,6 +70,8 @@ const rowToConfig = (r: SetupConfigRow): SetupConfig => ({
   companyName: r.company_name, companyPhone: r.company_phone, companyFax: r.company_fax,
   bizRegNo: r.biz_reg_no, ceoName: r.ceo_name, companyAddress: r.company_address,
   operatingHours: r.operating_hours,
+  smsSender: r.sms_sender, faxSender: r.fax_sender,
+  smsSenderVerifiedAt: r.sms_sender_verified_at, faxSenderVerifiedAt: r.fax_sender_verified_at,
   notifyMoveIn: r.notify_move_in, notifyLeaseExpiry: r.notify_lease_expiry,
   leaseExpiryDays: r.lease_expiry_days,
 });
@@ -99,4 +112,30 @@ export async function upsertSetupConfig(orgId: number, patch: SetupConfigPatch):
     .select().single();
   if (error) throw new Error(error.message);
   return rowToConfig(data);
+}
+
+export type SetupSenderProduct = "sms" | "fax";
+export interface SaveSetupSenderResult {
+  product: SetupSenderProduct;
+  number: string | null;
+  verifiedAt: string | null;
+}
+
+export async function saveSetupSender(
+  product: SetupSenderProduct,
+  number: string,
+): Promise<SaveSetupSenderResult> {
+  const response = await fetch("/api/setup/sender", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ product, number }),
+  });
+  const result = (await response.json().catch(() => ({}))) as SaveSetupSenderResult & {
+    error?: string;
+    message?: string;
+  };
+  if (!response.ok) {
+    throw new Error(result.message ?? result.error ?? "발신번호를 저장하지 못했습니다.");
+  }
+  return result;
 }

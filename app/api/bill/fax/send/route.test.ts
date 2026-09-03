@@ -6,11 +6,32 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(async () => ({ auth: { getUser }, rpc: serverRpc })),
 }));
 const adminRpc = vi.fn();
-vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ rpc: adminRpc }) }));
+const setupMaybeSingle = vi.fn();
+const adminFrom = vi.fn(() => ({
+  select: vi.fn(() => ({
+    eq: vi.fn(() => ({ maybeSingle: setupMaybeSingle })),
+  })),
+}));
+vi.mock("@/lib/supabase/admin", () => ({
+  createAdminClient: () => ({ rpc: adminRpc, from: adminFrom }),
+}));
 const isPopbillConfigured = vi.fn();
 vi.mock("@/lib/popbill/config", async (orig) => ({
   ...(await orig<Record<string, unknown>>()),
   isPopbillConfigured: () => isPopbillConfigured(),
+  readPopbillConfig: () => ({
+    linkId: "test-link",
+    secretKey: "test-secret",
+    corpNum: "1234567890",
+    userId: "test-user",
+    isTest: true,
+    ipRestrictOn: true,
+    useStaticIp: false,
+    useLocalTime: true,
+    smsSender: "0211112222",
+    kakaoSender: "test-channel",
+    faxSender: "0222223333",
+  }),
 }));
 const loadFaxDocumentData = vi.fn();
 vi.mock("@/lib/bill/faxData", () => ({ loadFaxDocumentData: (...a: unknown[]) => loadFaxDocumentData(...a) }));
@@ -44,6 +65,7 @@ beforeEach(() => {
   loadFaxDocumentData.mockResolvedValue(doc);
   renderFaxPdf.mockResolvedValue(Buffer.from("%PDF-1.7"));
   submitFax.mockResolvedValue({ requestNum: "f5a0", receiptNum: "FAX-1" });
+  setupMaybeSingle.mockResolvedValue({ data: null, error: null });
   adminRpc.mockImplementation((name: string) => {
     if (name === "create_fax_dispatch_job") {
       return Promise.resolve({ data: { ok: true, job_id: 1, request_num: "f5a0", provider_ref_key: "f5a0" }, error: null });
@@ -79,11 +101,13 @@ describe("POST /api/bill/fax/send", () => {
   });
 
   it("세대별 PDF 접수 → 202 queued, mark accepted", async () => {
+    setupMaybeSingle.mockResolvedValueOnce({ data: { fax_sender: "0233334444" }, error: null });
     const res = await POST(req({ billIssueIds: [5] }));
     expect(res.status).toBe(202);
     expect(await res.json()).toMatchObject({ queued: 1, failed: 0 });
     expect(renderFaxPdf).toHaveBeenCalledTimes(1);
     expect(submitFax).toHaveBeenCalledTimes(1);
+    expect(submitFax.mock.calls[0][1]).toMatchObject({ faxSender: "0233334444" });
     expect(adminRpc).toHaveBeenCalledWith(
       "mark_fax_dispatch_result",
       expect.objectContaining({ p_job_id: 1, p_outcome: "accepted", p_receipt_num: "FAX-1" }),
