@@ -75,14 +75,16 @@ describe("HQ LoginForm", () => {
     expect(usernameInput).toHaveAttribute("type", "text");
     expect(usernameInput).toHaveAttribute("autocomplete", "username");
     expect(usernameInput).toHaveAttribute("placeholder", "아이디를 입력해 주세요");
-    expect(submitButton).toBeDisabled();
 
+    // 디자인 정본: 버튼은 항상 solid(비활성 아님). 빈 값은 클릭 시 검증으로 막는다.
+    expect(submitButton).toBeEnabled();
+    await user.click(submitButton);
+    expect(await screen.findByRole("alert")).toHaveTextContent("아이디와 비밀번호를 입력해 주세요.");
+    expect(mocks.fetch).not.toHaveBeenCalled();
+
+    // 아이디만 있고 비밀번호 없으면 여전히 제출되지 않는다
     await user.type(usernameInput, "hq");
-    expect(submitButton).toBeDisabled();
-
-    await user.clear(usernameInput);
-    await user.type(screen.getByLabelText("비밀번호"), "secret");
-    expect(submitButton).toBeDisabled();
+    await user.click(submitButton);
     expect(mocks.fetch).not.toHaveBeenCalled();
   });
 });

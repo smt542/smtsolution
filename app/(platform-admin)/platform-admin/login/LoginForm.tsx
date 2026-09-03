@@ -21,6 +21,12 @@ export function LoginForm() {
     event.preventDefault();
     if (isPending) return;
 
+    // 정본처럼 버튼은 항상 solid(비활성 아님) — 빈 값은 여기서 막는다.
+    if (!username.trim() || !password) {
+      setErrorMessage("아이디와 비밀번호를 입력해 주세요.");
+      return;
+    }
+
     setErrorMessage("");
     setIsPending(true);
 
@@ -116,8 +122,8 @@ export function LoginForm() {
 
       <button
         type="submit"
-        disabled={isPending || !username.trim() || !password}
-        className="mt-1 h-[50px] rounded-[14px] bg-blue text-[15px] font-extrabold text-white transition hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={isPending}
+        className="mt-1.5 h-[50px] w-full rounded-[14px] bg-blue text-[15px] font-extrabold text-white transition hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
       >
         {isPending ? "로그인 중…" : "로그인"}
       </button>
