@@ -89,13 +89,22 @@ export function LoginForm() {
         </span>
       </label>
 
-      <label className="flex items-center gap-2 text-[13px] font-semibold text-t2">
+      <label className="flex cursor-pointer select-none items-center gap-2 text-[13.5px] font-semibold text-t2">
         <input
           type="checkbox"
           checked={autoLogin}
           onChange={(event) => setAutoLogin(event.target.checked)}
-          className="h-[18px] w-[18px] accent-blue"
+          className="peer sr-only"
         />
+        <span
+          className={`flex h-[19px] w-[19px] flex-none items-center justify-center rounded-md border-[1.6px] transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-blue/40 ${
+            autoLogin ? "border-blue bg-blue" : "border-line bg-white"
+          }`}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={`h-3 w-3 ${autoLogin ? "opacity-100" : "opacity-0"}`} aria-hidden="true">
+            <path d="M4 12.5l5 5L20 6.5" />
+          </svg>
+        </span>
         자동 로그인
       </label>
 
