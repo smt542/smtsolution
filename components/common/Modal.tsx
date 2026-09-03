@@ -1,5 +1,5 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 
 export function Modal({
   open,
@@ -14,6 +14,7 @@ export function Modal({
   children: React.ReactNode;
   className?: string;
 }) {
+  const titleId = useId();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -35,10 +36,13 @@ export function Modal({
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         className={`w-full rounded-2xl bg-surface p-6 ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-lg font-extrabold">{title}</h2>
+        <h2 id={titleId} className="text-lg font-extrabold">{title}</h2>
         <div className="mt-4">{children}</div>
       </div>
     </div>
