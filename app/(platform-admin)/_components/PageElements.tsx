@@ -45,11 +45,11 @@ export function QueryError({ onRetry }: { onRetry: () => void }) {
 
 export function StatusBadge({ status }: { status: "active" | "suspended" | "trial" }) {
   const styles = {
-    active: { label: "운영 중", className: "bg-green-t text-green" },
+    active: { label: "운영 중", className: "bg-blue-t text-blue-d" },
     suspended: { label: "정지", className: "bg-red-t text-red" },
     trial: { label: "체험", className: "bg-amber-t text-amber" },
   }[status];
-  return <span className={`inline-flex rounded-[7px] px-2.5 py-1 text-[11px] font-bold ${styles.className}`}>{styles.label}</span>;
+  return <span className={`inline-flex rounded-[7px] px-[9px] py-[3px] text-xs font-bold leading-[1.4] ${styles.className}`}>{styles.label}</span>;
 }
 
 function shiftMonth(iso: string, delta: number): string {
@@ -128,6 +128,7 @@ export function PlatformPagination({
   totalCount,
   onPageChange,
   numeric = false,
+  compact = false,
   totalLabel,
 }: {
   page: number;
@@ -135,22 +136,26 @@ export function PlatformPagination({
   totalCount: number;
   onPageChange: (page: number) => void;
   numeric?: boolean;
+  compact?: boolean;
   totalLabel?: string;
 }) {
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   if (totalPages <= 1 && !totalLabel) return null;
+  const directionButtonClassName = compact
+    ? "flex h-7 min-w-7 items-center justify-center rounded-lg px-2 text-[12.5px] font-bold text-t3 hover:bg-bg disabled:cursor-not-allowed disabled:text-t4"
+    : "rounded-lg border border-line px-3 py-1.5 text-xs font-bold text-t2 disabled:cursor-not-allowed disabled:opacity-40";
   return (
-    <div className={`flex items-center gap-3 border-t border-line px-4 py-3 ${totalLabel ? "justify-between" : "justify-center"}`}>
+    <div className={`relative flex items-center border-t ${compact ? "gap-1 border-line2 px-[14px] py-[11px]" : "gap-3 border-line px-4 py-3"} ${totalLabel && !compact ? "justify-between" : "justify-center"}`}>
       <div className="flex items-center justify-center gap-1">
         <button
           type="button"
           aria-label="이전 페이지"
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
-          className="rounded-lg border border-line px-3 py-1.5 text-xs font-bold text-t2 disabled:cursor-not-allowed disabled:opacity-40"
+          className={directionButtonClassName}
         >
-          이전
+          {compact ? "‹" : "이전"}
         </button>
         {numeric ? paginationItems(page, totalPages).map((item) => (
           typeof item === "number" ? (
@@ -159,7 +164,7 @@ export function PlatformPagination({
               type="button"
               aria-current={item === page ? "page" : undefined}
               onClick={() => onPageChange(item)}
-              className={`h-8 min-w-8 rounded-lg px-2 text-xs font-bold ${
+              className={`${compact ? "h-7 min-w-7 text-[12.5px]" : "h-8 min-w-8 text-xs"} rounded-lg px-2 font-bold ${
                 item === page ? "bg-blue text-white" : "text-t3 hover:bg-bg hover:text-t1"
               }`}
             >
@@ -178,12 +183,16 @@ export function PlatformPagination({
           aria-label="다음 페이지"
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
-          className="rounded-lg border border-line px-3 py-1.5 text-xs font-bold text-t2 disabled:cursor-not-allowed disabled:opacity-40"
+          className={directionButtonClassName}
         >
-          다음
+          {compact ? "›" : "다음"}
         </button>
       </div>
-      {totalLabel && <span className="text-xs font-semibold text-t3 num">{totalLabel}</span>}
+      {totalLabel && (
+        <span className={`${compact ? "absolute right-[14px] hidden text-t4 sm:inline" : "text-t3"} text-xs font-semibold num`}>
+          {totalLabel}
+        </span>
+      )}
     </div>
   );
 }

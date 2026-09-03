@@ -4,7 +4,7 @@ import React, { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Button, Input, Modal, Select } from "@/components/common";
+import { Input, Modal, Select } from "@/components/common";
 import { FormField } from "@/components/common/FormField";
 import {
   platformAccountCreateSchema,
@@ -34,6 +34,11 @@ const STAFF_TYPE_OPTIONS = [
   { value: "field_staff", label: "현장 직원" },
   { value: "support_staff", label: "지원 직원" },
 ];
+
+const INPUT_CLASS =
+  "h-[42px] rounded-[10px] border border-line bg-surface px-[13px] text-[13.5px] font-semibold text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t";
+const FORM_FIELD_CLASS =
+  "[&>label]:mb-1.5 [&>label]:text-[12.5px] [&>label]:font-bold [&>label]:text-t2";
 
 export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props) {
   const organizationsQuery = usePlatformOrganizations({ pageSize: 100 });
@@ -81,14 +86,24 @@ export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="플랫폼 계정 발급">
-      <form onSubmit={handleSubmit(onValid)} className="flex flex-col gap-4">
-        <FormField label="대상 조직" htmlFor="platform-account-org" error={errors.orgId?.message}>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="플랫폼 계정 발급"
+      className="max-h-[88vh] max-w-[480px] overflow-y-auto rounded-[20px] [&>h2]:text-[17px] [&>h2]:font-extrabold [&>h2]:tracking-[-0.02em]"
+    >
+      <form onSubmit={handleSubmit(onValid)} className="flex flex-col gap-[18px]">
+        <FormField
+          label="대상 조직"
+          htmlFor="platform-account-org"
+          error={errors.orgId?.message}
+          className={FORM_FIELD_CLASS}
+        >
           <select
             id="platform-account-org"
             aria-label="대상 조직"
             {...register("orgId")}
-            className="h-11 w-full rounded-xl border border-line bg-surface px-4 text-sm text-t1 focus:border-brand focus:outline-none"
+            className={`w-full ${INPUT_CLASS}`}
           >
             {organizations.map((organization) => (
               <option key={organization.id} value={organization.id}>
@@ -104,54 +119,59 @@ export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props
           </InlineAlert>
         )}
 
-        <div className="grid grid-cols-2 gap-3">
-          <FormField label="아이디" htmlFor="platform-account-username" error={errors.username?.message}>
+        <div className="grid grid-cols-2 gap-[13px] gap-x-[15px]">
+          <FormField label="아이디" htmlFor="platform-account-username" error={errors.username?.message} className={FORM_FIELD_CLASS}>
             <Input
               id="platform-account-username"
               aria-label="아이디"
               {...register("username")}
               placeholder="예: admin"
+              className={INPUT_CLASS}
             />
           </FormField>
-          <FormField label="비밀번호(선택)" htmlFor="platform-account-password" error={errors.password?.message}>
+          <FormField label="비밀번호(선택)" htmlFor="platform-account-password" error={errors.password?.message} className={FORM_FIELD_CLASS}>
             <Input
               id="platform-account-password"
               aria-label="비밀번호"
               type="password"
               {...register("password")}
               placeholder="비우면 자동 발급"
+              className={INPUT_CLASS}
             />
           </FormField>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <FormField label="이름" htmlFor="platform-account-name" error={errors.fullName?.message}>
+        <div className="grid grid-cols-2 gap-[13px] gap-x-[15px]">
+          <FormField label="이름" htmlFor="platform-account-name" error={errors.fullName?.message} className={FORM_FIELD_CLASS}>
             <Input
               id="platform-account-name"
               aria-label="이름"
               {...register("fullName")}
               placeholder="예: 김관리"
+              className={INPUT_CLASS}
             />
           </FormField>
-          <FormField label="연락처(선택)" htmlFor="platform-account-phone" error={errors.phone?.message}>
+          <FormField label="연락처(선택)" htmlFor="platform-account-phone" error={errors.phone?.message} className={FORM_FIELD_CLASS}>
             <Input
               id="platform-account-phone"
               aria-label="연락처"
               {...register("phone")}
               placeholder="010-0000-0000"
+              className={INPUT_CLASS}
             />
           </FormField>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <FormField label="역할" htmlFor="platform-account-role" error={errors.role?.message}>
-            <Select id="platform-account-role" {...register("role")} options={ROLE_OPTIONS} />
+        <div className="grid grid-cols-2 gap-[13px] gap-x-[15px]">
+          <FormField label="역할" htmlFor="platform-account-role" error={errors.role?.message} className={FORM_FIELD_CLASS}>
+            <Select id="platform-account-role" {...register("role")} options={ROLE_OPTIONS} className={INPUT_CLASS} />
           </FormField>
-          <FormField label="직원 유형" htmlFor="platform-account-staff-type" error={errors.staffType?.message}>
+          <FormField label="직원 유형" htmlFor="platform-account-staff-type" error={errors.staffType?.message} className={FORM_FIELD_CLASS}>
             <Select
               id="platform-account-staff-type"
               {...register("staffType")}
               options={STAFF_TYPE_OPTIONS}
+              className={INPUT_CLASS}
             />
           </FormField>
         </div>
@@ -161,16 +181,20 @@ export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props
         </p>
 
         <ModalActions>
-          <Button type="button" variant="ghost" onClick={onClose}>
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-10 rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold text-t2 hover:bg-bg"
+          >
             취소
-          </Button>
-          <Button
+          </button>
+          <button
             type="submit"
-            variant="primary"
             disabled={isPending || organizations.length === 0}
+            className="h-10 rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-pri hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isPending ? "발급 중…" : "계정 발급"}
-          </Button>
+          </button>
         </ModalActions>
       </form>
     </Modal>

@@ -32,7 +32,7 @@ export function OrgStatusControl({ status, onChange, isPending }: Props) {
         }
         void onChange(next);
       }}
-      className="rounded-xl border border-line bg-surface px-2.5 py-1.5 text-xs font-bold text-t1 disabled:opacity-50"
+      className="h-8 rounded-[9px] border border-line bg-surface px-2.5 text-[12.5px] font-bold text-t2 outline-none hover:border-blue focus:border-blue focus:ring-[3px] focus:ring-blue-t disabled:opacity-50"
     >
       {OPTIONS.map((o) => (
         <option key={o.value} value={o.value}>{o.label}</option>

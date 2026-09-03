@@ -12,7 +12,7 @@ interface Props {
 }
 
 const buttonClass =
-  "rounded-lg border border-line px-2.5 py-1 text-xs font-bold hover:bg-bg/60 disabled:opacity-50";
+  "inline-flex h-8 items-center rounded-[9px] px-3 text-[12.5px] font-bold text-t2 hover:bg-bg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent";
 
 export function AccountRowActions({
   account,
@@ -27,14 +27,14 @@ export function AccountRowActions({
   return (
     <div className="flex flex-col items-end gap-1.5">
       {account.role === "platform_admin" && (
-        <span className="text-[10px] font-semibold text-danger">권한 변경 시 플랫폼 관리자 강등 주의</span>
+        <span className="text-[10px] font-semibold text-red">권한 변경 시 플랫폼 관리자 강등 주의</span>
       )}
       <div className="flex items-center justify-end gap-1.5">
         <button
           type="button"
           onClick={onEditDetails}
           disabled={isPending}
-          className={`${buttonClass} text-blue`}
+          className={buttonClass}
         >
           정보 편집
         </button>
@@ -42,7 +42,7 @@ export function AccountRowActions({
           type="button"
           onClick={onChangeRole}
           disabled={isPending}
-          className={`${buttonClass} text-t2`}
+          className={buttonClass}
         >
           권한 변경
         </button>
@@ -53,7 +53,7 @@ export function AccountRowActions({
             if (window.confirm(`'${accountName}' 계정을 ${action}할까요?`)) onToggleActive();
           }}
           disabled={isPending}
-          className={`${buttonClass} ${account.isActive ? "text-danger" : "text-blue"}`}
+          className={buttonClass}
         >
           {account.isActive ? "비활성" : "활성"}
         </button>
@@ -65,7 +65,7 @@ export function AccountRowActions({
             }
           }}
           disabled={isPending}
-          className={`${buttonClass} text-t2`}
+          className={buttonClass}
         >
           비번 초기화
         </button>

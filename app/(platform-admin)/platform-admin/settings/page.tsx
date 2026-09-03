@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Button, Input, Spinner } from "@/components/common";
+import { Spinner } from "@/components/common";
 import {
   usePlatformSettings,
   useUpdatePlatformSettings,
@@ -82,32 +82,40 @@ export default function PlatformSettingsPage() {
 
   return (
     <PlatformPageContainer maxWidthClassName="max-w-5xl">
-      <PageHeader
-        eyebrow="SETTINGS"
-        title="설정"
-        description="본사 공통 발송 단가와 청구서 표기 정보를 관리합니다."
-      />
-
-      <div className="mt-6 flex min-h-[60px] items-center justify-between gap-4 rounded-2xl bg-white px-4 py-3 shadow-card sm:px-5">
-        <div>
-          <p className="text-sm font-extrabold text-t1">HQ 공통 설정</p>
-          <p className="mt-0.5 text-xs text-t3">
-            {isEditing ? "변경할 값을 입력한 뒤 저장해 주세요." : "수정 버튼을 눌러 설정을 변경할 수 있습니다."}
-          </p>
-        </div>
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader
+          eyebrow="SETTINGS"
+          title="설정"
+          description="본사 공통 발송 단가와 청구서 표기 정보를 관리합니다."
+        />
         {isEditing ? (
           <div className="flex items-center gap-2">
-            <Button type="button" variant="ghost" onClick={cancelEditing} disabled={updateSettings.isPending}>
-              취소
-            </Button>
-            <Button type="button" onClick={() => void save()} disabled={updateSettings.isPending}>
+            <button
+              type="button"
+              onClick={() => void save()}
+              disabled={updateSettings.isPending}
+              className="inline-flex h-10 shrink-0 items-center justify-center rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-pri transition-colors hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
+            >
               {updateSettings.isPending ? "저장 중…" : "저장"}
-            </Button>
+            </button>
+            <button
+              type="button"
+              onClick={cancelEditing}
+              disabled={updateSettings.isPending}
+              className="inline-flex h-10 shrink-0 items-center justify-center rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold text-t2 transition-colors hover:bg-bg disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              취소
+            </button>
           </div>
         ) : (
-          <Button type="button" variant="ghost" onClick={beginEditing} disabled={!settingsQuery.data}>
+          <button
+            type="button"
+            onClick={beginEditing}
+            disabled={!settingsQuery.data}
+            className="inline-flex h-10 shrink-0 items-center justify-center rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-pri transition-colors hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
+          >
             수정
-          </Button>
+          </button>
         )}
       </div>
 
@@ -118,7 +126,7 @@ export default function PlatformSettingsPage() {
       ) : (
         <div className="mt-6 grid gap-5">
           <SettingsSection title="발송 단가 · 알림" helper="팝빌 계약 단가에 맞춰 입력하세요">
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-px bg-line2">
               <NumberSetting
                 label="알림톡"
                 unit="원/건"
@@ -147,71 +155,65 @@ export default function PlatformSettingsPage() {
                 editing={isEditing}
                 onChange={(value) => change("rateKrwFax", value)}
               />
+              <NumberSetting
+                label="잔액 알림 기준"
+                unit="P 이하"
+                value={draft.lowBalanceThreshold}
+                editing={isEditing}
+                onChange={(value) => change("lowBalanceThreshold", value)}
+              />
             </div>
           </SettingsSection>
 
-          <SettingsSection title="잔액 알림 기준">
-            <NumberSetting
-              label="잔액 알림 기준"
-              unit="P 이하"
-              value={draft.lowBalanceThreshold}
-              editing={isEditing}
-              onChange={(value) => change("lowBalanceThreshold", value)}
-              hideLabel
-            />
-          </SettingsSection>
-
           <SettingsSection title="청구 계좌" helper="업체 청구서에 표기되는 입금 계좌입니다">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-px bg-line2">
               <TextSetting label="은행" value={draft.billingBank} editing={isEditing} onChange={(value) => change("billingBank", value)} />
               <TextSetting label="계좌번호" value={draft.billingAccountNo} editing={isEditing} onChange={(value) => change("billingAccountNo", value)} />
               <TextSetting label="예금주" value={draft.billingAccountHolder} editing={isEditing} onChange={(value) => change("billingAccountHolder", value)} />
               <TextSetting label="사업자등록번호" value={draft.businessRegNo} editing={isEditing} onChange={(value) => change("businessRegNo", value)} />
+              <label className="col-span-full block bg-surface p-[16px] px-[18px]">
+                <span className="block text-[12.5px] font-bold text-t3">청구서 안내 문구</span>
+                {isEditing ? (
+                  <textarea
+                    aria-label="청구서 안내 문구"
+                    value={draft.invoiceNotice}
+                    onChange={(event) => change("invoiceNotice", event.target.value)}
+                    className="mt-[9px] min-h-28 w-full rounded-[9px] border border-line bg-surface px-3 py-2.5 text-[13.5px] font-bold leading-6 text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t"
+                  />
+                ) : (
+                  <div className="mt-[9px]">
+                    <SettingValue value={draft.invoiceNotice} multiline />
+                  </div>
+                )}
+              </label>
             </div>
           </SettingsSection>
 
-          <SettingsSection title="청구서 안내 문구">
-            {isEditing ? (
-              <textarea
-                aria-label="청구서 안내 문구"
-                value={draft.invoiceNotice}
-                onChange={(event) => change("invoiceNotice", event.target.value)}
-                className="min-h-28 w-full rounded-xl border border-line bg-surface p-3 text-sm leading-6 text-t1 outline-none focus:border-blue"
-              />
-            ) : (
-              <SettingValue value={draft.invoiceNotice} multiline />
-            )}
-          </SettingsSection>
-
           <SettingsSection title="청구 기준">
-            <TextSetting label="청구 기준" value={draft.billingBasis} editing={isEditing} onChange={(value) => change("billingBasis", value)} hideLabel />
-          </SettingsSection>
-
-          <SettingsSection title="입금 기한">
-            <NumberSetting
-              label="입금 기한"
-              unit="일"
-              value={draft.paymentDueDays}
-              editing={isEditing}
-              onChange={(value) => change("paymentDueDays", value)}
-              hideLabel
-            />
-          </SettingsSection>
-
-          <SettingsSection title="부가세">
-            <NumberSetting
-              label="부가세"
-              unit="%"
-              value={draft.vatRate}
-              editing={isEditing}
-              onChange={(value) => change("vatRate", value)}
-              hideLabel
-              step="0.1"
-            />
-          </SettingsSection>
-
-          <SettingsSection title="담당자">
-            <TextSetting label="담당자" value={draft.contactPerson} editing={isEditing} onChange={(value) => change("contactPerson", value)} hideLabel />
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-px bg-line2">
+              <TextSetting
+                label="청구 기준"
+                value={draft.billingBasis}
+                editing={isEditing}
+                onChange={(value) => change("billingBasis", value)}
+              />
+              <NumberSetting
+                label="입금 기한"
+                unit="일"
+                value={draft.paymentDueDays}
+                editing={isEditing}
+                onChange={(value) => change("paymentDueDays", value)}
+              />
+              <NumberSetting
+                label="부가세"
+                unit="%"
+                value={draft.vatRate}
+                editing={isEditing}
+                onChange={(value) => change("vatRate", value)}
+                step="0.1"
+              />
+              <TextSetting label="담당자" value={draft.contactPerson} editing={isEditing} onChange={(value) => change("contactPerson", value)} />
+            </div>
           </SettingsSection>
         </div>
       )}
@@ -229,10 +231,11 @@ function SettingsSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl bg-surface p-5 shadow-card sm:p-6">
-      <div className="mb-4">
-        <h2 className="text-base font-extrabold text-t1">{title}</h2>
-        {helper && <p className="mt-1 text-xs leading-5 text-t3">{helper}</p>}
+    <section className="overflow-hidden rounded-2xl bg-surface shadow-card">
+      <div className="flex items-center gap-2.5 border-b border-line2 px-[18px] py-[15px]">
+        <h2 className="text-[15px] font-extrabold text-t1">{title}</h2>
+        <div className="flex-1" />
+        {helper && <p className="text-right text-xs font-semibold text-t3">{helper}</p>}
       </div>
       {children}
     </section>
@@ -253,12 +256,19 @@ function TextSetting({
   hideLabel?: boolean;
 }) {
   return (
-    <label className="block">
-      {!hideLabel && <span className="mb-1.5 block text-xs font-bold text-t3">{label}</span>}
+    <label className="block bg-surface p-[16px] px-[18px]">
+      {!hideLabel && <span className="block text-[12.5px] font-bold text-t3">{label}</span>}
       {editing ? (
-        <Input aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} />
+        <input
+          aria-label={label}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="mt-[9px] h-[38px] w-full rounded-[9px] border border-line bg-surface px-3 text-[13.5px] font-bold text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t"
+        />
       ) : (
-        <SettingValue value={value} />
+        <div className="mt-[9px]">
+          <SettingValue value={value} />
+        </div>
       )}
     </label>
   );
@@ -282,25 +292,25 @@ function NumberSetting({
   step?: string;
 }) {
   return (
-    <label className="block">
-      {!hideLabel && <span className="mb-1.5 block text-xs font-bold text-t3">{label}</span>}
+    <label className="block bg-surface p-[16px] px-[18px]">
+      {!hideLabel && <span className="block text-[12.5px] font-bold text-t3">{label}</span>}
       {editing ? (
-        <span className="flex items-center gap-2">
-          <Input
+        <span className="mt-[9px] flex items-center gap-[7px]">
+          <input
             aria-label={label}
             type="number"
             min="0"
             step={step}
             value={value}
             onChange={(event) => onChange(event.target.value)}
-            className="max-w-xs text-right tabular-nums"
+            className="h-9 w-full max-w-[110px] min-w-0 rounded-[9px] border border-line bg-surface px-[11px] text-right text-[13.5px] font-bold tabular-nums text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t"
           />
-          <span className="whitespace-nowrap text-sm font-semibold text-t3">{unit}</span>
+          <span className="whitespace-nowrap text-[12.5px] font-semibold text-t3">{unit}</span>
         </span>
       ) : (
-        <div className="flex items-baseline gap-1.5">
+        <div className="mt-[9px] flex items-baseline gap-1.5">
           <span className="text-lg font-extrabold tabular-nums text-t1">{formatNumber(value)}</span>
-          <span className="text-sm font-semibold text-t3">{unit}</span>
+          <span className="text-[12.5px] font-semibold text-t3">{unit}</span>
         </div>
       )}
     </label>
@@ -309,7 +319,7 @@ function NumberSetting({
 
 function SettingValue({ value, multiline = false }: { value: string; multiline?: boolean }) {
   return (
-    <p className={`text-sm leading-6 text-t1 ${multiline ? "whitespace-pre-wrap" : ""}`}>
+    <p className={`text-[13.5px] leading-6 text-t1 ${multiline ? "whitespace-pre-wrap" : ""}`}>
       {value || "—"}
     </p>
   );

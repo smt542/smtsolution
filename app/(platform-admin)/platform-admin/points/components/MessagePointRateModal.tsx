@@ -24,6 +24,15 @@ interface MessagePointRateModalProps {
   onSubmit: (values: MessagePointRatesFormValues) => Promise<void>;
   isPending: boolean;
 }
+
+const MODAL_CLASS =
+  "max-w-[440px] rounded-[20px] shadow-pop [&>h2]:text-[17px] [&>h2]:tracking-[-0.02em] [&>h2]:text-t1";
+const FORM_FIELD_CLASS =
+  "[&>label]:mb-1.5 [&>label]:text-[12.5px] [&>label]:font-bold [&>label]:text-t2";
+const INPUT_CLASS =
+  "h-[42px] rounded-[10px] px-[13px] text-[13.5px] font-semibold focus:border-blue focus:ring-[3px] focus:ring-blue-t";
+const BUTTON_CLASS = "h-10 rounded-[11px] px-[15px] text-[13.5px]";
+
 export function MessagePointRateModal({
   open,
   onClose,
@@ -53,12 +62,18 @@ export function MessagePointRateModal({
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="메시지 포인트 단가 설정">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="메시지 포인트 단가 설정"
+      className={MODAL_CLASS}
+    >
       <form className="flex flex-col gap-4" onSubmit={handleSubmit(submit)}>
         <FormField
           htmlFor="message-sms-points"
           label="SMS 건당 포인트"
           error={errors.smsPoints?.message}
+          className={FORM_FIELD_CLASS}
         >
           <Input
             id="message-sms-points"
@@ -67,6 +82,7 @@ export function MessagePointRateModal({
             min={1}
             inputMode="numeric"
             {...register("smsPoints")}
+            className={INPUT_CLASS}
           />
         </FormField>
 
@@ -74,6 +90,7 @@ export function MessagePointRateModal({
           htmlFor="message-lms-points"
           label="LMS 건당 포인트 (선택)"
           error={errors.lmsPoints?.message}
+          className={FORM_FIELD_CLASS}
         >
           <Input
             id="message-lms-points"
@@ -83,6 +100,7 @@ export function MessagePointRateModal({
             inputMode="numeric"
             placeholder="미설정 시 LMS 발송 불가"
             {...register("lmsPoints")}
+            className={INPUT_CLASS}
           />
         </FormField>
 
@@ -90,6 +108,7 @@ export function MessagePointRateModal({
           htmlFor="message-alimtalk-points"
           label="알림톡 건당 포인트"
           error={errors.alimtalkPoints?.message}
+          className={FORM_FIELD_CLASS}
         >
           <Input
             id="message-alimtalk-points"
@@ -98,6 +117,7 @@ export function MessagePointRateModal({
             min={1}
             inputMode="numeric"
             {...register("alimtalkPoints")}
+            className={INPUT_CLASS}
           />
         </FormField>
 
@@ -107,8 +127,8 @@ export function MessagePointRateModal({
         </InlineAlert>
 
         <ModalActions>
-          <Button type="button" variant="ghost" onClick={onClose}>취소</Button>
-          <Button type="submit" variant="primary" disabled={isPending}>
+          <Button type="button" variant="ghost" onClick={onClose} className={BUTTON_CLASS}>취소</Button>
+          <Button type="submit" variant="primary" disabled={isPending} className={BUTTON_CLASS}>
             {isPending ? "저장 중…" : "단가 저장"}
           </Button>
         </ModalActions>

@@ -5,12 +5,14 @@ import PlatformDashboardPage from "./page";
 const hooks = vi.hoisted(() => ({
   usePlatformOverviewMetrics: vi.fn(),
   usePlatformOrgBilling: vi.fn(),
+  usePlatformMonthlySendCost: vi.fn(),
   usePlatformSettings: vi.fn(),
 }));
 
 vi.mock("@/hooks/reactquery/platform", () => ({
   usePlatformOverviewMetrics: hooks.usePlatformOverviewMetrics,
   usePlatformOrgBilling: hooks.usePlatformOrgBilling,
+  usePlatformMonthlySendCost: hooks.usePlatformMonthlySendCost,
   usePlatformSettings: hooks.usePlatformSettings,
 }));
 
@@ -35,6 +37,17 @@ beforeEach(() => {
   vi.clearAllMocks();
   hooks.usePlatformOverviewMetrics.mockReturnValue({ data: metrics, isPending: false, isError: false, refetch: vi.fn() });
   hooks.usePlatformOrgBilling.mockReturnValue({ data: billingRows, isPending: false, isError: false, refetch: vi.fn() });
+  hooks.usePlatformMonthlySendCost.mockReturnValue({
+    data: Array.from({ length: 12 }, (_, index) => ({
+      month: index + 1,
+      alimtalkKrw: index < 8 ? 1000 : 0,
+      smsKrw: index < 8 ? 200 : 0,
+      faxKrw: index < 8 ? 100 : 0,
+    })),
+    isPending: false,
+    isError: false,
+    refetch: vi.fn(),
+  });
   hooks.usePlatformSettings.mockReturnValue({
     data: { rateKrwAlimtalk: 10, rateKrwSms: 20, rateKrwLms: 30, rateKrwFax: 50 },
     isPending: false,
@@ -48,11 +61,15 @@ describe("PlatformDashboardPage", () => {
     render(<PlatformDashboardPage />);
 
     expect(screen.getByRole("heading", { name: "대시보드" })).toBeInTheDocument();
-    expect(screen.getByText("29곳")).toBeInTheDocument();
+    expect(screen.getByText("계약 업체").closest("article")).toHaveTextContent("29곳");
     expect(screen.getByText("정지 2 · 해지 1")).toBeInTheDocument();
-    expect(screen.getByText("612곳")).toBeInTheDocument();
+    expect(screen.getByText("관리 건물").closest("article")).toHaveTextContent("612곳");
     expect(screen.getByText("앱 연결 8,860세대 (71%)")).toBeInTheDocument();
-    expect(screen.getByText("589,490원")).toBeInTheDocument();
+    expect(
+      screen.getByText(`${new Date().getMonth() + 1}월 발송 비용`).closest("article"),
+    ).toHaveTextContent("589,490원");
+    expect(screen.getByRole("heading", { name: "알림톡 · 문자 · 팩스 발송 비용" })).toBeInTheDocument();
+    expect(screen.getByText("8개월 · 월 평균 1,300원")).toBeInTheDocument();
     // 채널별 금액과 발송 0원 업체를 함께 표시
     expect(screen.getByText("한빛관리")).toBeInTheDocument();
     expect(screen.getByText("새봄관리")).toBeInTheDocument();
@@ -65,7 +82,7 @@ describe("PlatformDashboardPage", () => {
   it("지표 로딩 중에는 스피너를 표시한다", () => {
     hooks.usePlatformOverviewMetrics.mockReturnValue({ data: undefined, isPending: true, isError: false, refetch: vi.fn() });
     render(<PlatformDashboardPage />);
-    expect(screen.queryByText("29곳")).not.toBeInTheDocument();
+    expect(screen.queryByText("계약 업체")).not.toBeInTheDocument();
   });
 
   it("지표 오류 시 오류 UI와 다시 시도를 제공한다", () => {

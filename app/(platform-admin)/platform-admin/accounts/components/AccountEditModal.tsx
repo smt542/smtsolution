@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Input, Modal } from "@/components/common";
+import { Input, Modal } from "@/components/common";
 import { FormField } from "@/components/common/FormField";
 import type { PlatformAccount } from "@/hooks/reactquery/platform";
 import { ModalActions } from "../../../_components/ModalActions";
@@ -19,6 +19,11 @@ interface Props {
   onSubmit: (values: AccountEditValues) => Promise<void>;
   isPending: boolean;
 }
+
+const INPUT_CLASS =
+  "h-[42px] rounded-[10px] border border-line bg-surface px-[13px] text-[13.5px] font-semibold text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t";
+const FORM_FIELD_CLASS =
+  "[&>label]:mb-1.5 [&>label]:text-[12.5px] [&>label]:font-bold [&>label]:text-t2";
 
 export function AccountEditModal({ account, onClose, onSubmit, isPending }: Props) {
   const [fullName, setFullName] = useState(account.fullName ?? "");
@@ -43,33 +48,40 @@ export function AccountEditModal({ account, onClose, onSubmit, isPending }: Prop
   };
 
   return (
-    <Modal open onClose={onClose} title="계정 정보 편집">
+    <Modal
+      open
+      onClose={onClose}
+      title="계정 정보 편집"
+      className="max-w-[480px] rounded-[20px] [&>h2]:text-[17px] [&>h2]:font-extrabold [&>h2]:tracking-[-0.02em]"
+    >
       <form onSubmit={(event) => void submit(event)} className="flex flex-col gap-4">
         <p className="text-sm text-t2">
           <b>{account.username ?? account.userId}</b> · {account.organizationName}
         </p>
 
-        <FormField label="이름" htmlFor="platform-account-edit-name">
+        <FormField label="이름" htmlFor="platform-account-edit-name" className={FORM_FIELD_CLASS}>
           <Input
             id="platform-account-edit-name"
             value={fullName}
             onChange={(event) => setFullName(event.target.value)}
             maxLength={100}
             autoFocus
+            className={INPUT_CLASS}
           />
         </FormField>
 
-        <FormField label="전화번호" htmlFor="platform-account-edit-phone">
+        <FormField label="전화번호" htmlFor="platform-account-edit-phone" className={FORM_FIELD_CLASS}>
           <Input
             id="platform-account-edit-phone"
             value={phone}
             onChange={(event) => setPhone(event.target.value)}
             maxLength={30}
             placeholder="010-0000-0000"
+            className={INPUT_CLASS}
           />
         </FormField>
 
-        <FormField label="메모" htmlFor="platform-account-edit-memo">
+        <FormField label="메모" htmlFor="platform-account-edit-memo" className={FORM_FIELD_CLASS}>
           <textarea
             id="platform-account-edit-memo"
             value={memo}
@@ -77,7 +89,7 @@ export function AccountEditModal({ account, onClose, onSubmit, isPending }: Prop
             maxLength={500}
             rows={4}
             placeholder="담당 업무 · 비고"
-            className="w-full resize-none rounded-xl border border-line bg-surface px-4 py-3 text-sm text-t1 outline-none focus:border-blue focus:ring-4 focus:ring-blue/10"
+            className="w-full resize-none rounded-[10px] border border-line bg-surface px-[13px] py-3 text-[13.5px] font-semibold text-t1 outline-none placeholder:text-t4 focus:border-blue focus:ring-[3px] focus:ring-blue-t"
           />
         </FormField>
 
@@ -88,12 +100,21 @@ export function AccountEditModal({ account, onClose, onSubmit, isPending }: Prop
         )}
 
         <ModalActions>
-          <Button type="button" variant="ghost" onClick={onClose} disabled={isPending}>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isPending}
+            className="h-10 rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold text-t2 hover:bg-bg disabled:cursor-not-allowed disabled:opacity-70"
+          >
             취소
-          </Button>
-          <Button type="submit" variant="primary" disabled={isPending}>
+          </button>
+          <button
+            type="submit"
+            disabled={isPending}
+            className="h-10 rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-pri hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
+          >
             {isPending ? "저장 중…" : "저장"}
-          </Button>
+          </button>
         </ModalActions>
       </form>
     </Modal>

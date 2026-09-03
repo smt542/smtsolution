@@ -20,6 +20,14 @@ interface Props {
   isPending: boolean;
 }
 
+const MODAL_CLASS =
+  "max-w-[420px] rounded-[20px] shadow-pop [&>h2]:text-[17px] [&>h2]:tracking-[-0.02em] [&>h2]:text-t1";
+const FORM_FIELD_CLASS =
+  "[&>label]:mb-1.5 [&>label]:text-[12.5px] [&>label]:font-bold [&>label]:text-t2";
+const INPUT_CLASS =
+  "h-[42px] rounded-[10px] px-[13px] text-[13.5px] font-semibold focus:border-blue focus:ring-[3px] focus:ring-blue-t";
+const BUTTON_CLASS = "h-10 rounded-[11px] px-[15px] text-[13.5px]";
+
 export function PointChargeModal({ open, onClose, organizations, onSubmit, isPending }: Props) {
   const {
     register,
@@ -41,14 +49,24 @@ export function PointChargeModal({ open, onClose, organizations, onSubmit, isPen
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="포인트 충전 기록">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="포인트 충전 기록"
+      className={MODAL_CLASS}
+    >
       <form onSubmit={handleSubmit(onValid)} className="flex flex-col gap-4">
-        <FormField label="대상 조직" htmlFor="pc-org" error={errors.orgId?.message}>
+        <FormField
+          label="대상 조직"
+          htmlFor="pc-org"
+          error={errors.orgId?.message}
+          className={FORM_FIELD_CLASS}
+        >
           <select
             id="pc-org"
             aria-label="대상 조직"
             {...register("orgId")}
-            className="w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-sm"
+            className="h-[42px] w-full rounded-[10px] border border-line bg-surface px-[13px] text-[13.5px] font-semibold text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t"
           >
             {organizations.map((o) => (
               <option key={o.id} value={o.id}>{o.name}</option>
@@ -56,21 +74,36 @@ export function PointChargeModal({ open, onClose, organizations, onSubmit, isPen
           </select>
         </FormField>
 
-        <FormField label="충전 포인트" htmlFor="pc-points" error={errors.points?.message}>
-          <Input id="pc-points" aria-label="충전 포인트" type="number" inputMode="numeric" {...register("points")} placeholder="예: 10000" />
+        <FormField
+          label="충전 포인트"
+          htmlFor="pc-points"
+          error={errors.points?.message}
+          className={FORM_FIELD_CLASS}
+        >
+          <Input id="pc-points" aria-label="충전 포인트" type="number" inputMode="numeric" {...register("points")} placeholder="예: 10000" className={INPUT_CLASS} />
         </FormField>
 
-        <FormField label="결제금액(원)" htmlFor="pc-amount" error={errors.amountKrw?.message}>
-          <Input id="pc-amount" aria-label="결제금액(원)" type="number" inputMode="numeric" {...register("amountKrw")} placeholder="예: 110000" />
+        <FormField
+          label="결제금액(원)"
+          htmlFor="pc-amount"
+          error={errors.amountKrw?.message}
+          className={FORM_FIELD_CLASS}
+        >
+          <Input id="pc-amount" aria-label="결제금액(원)" type="number" inputMode="numeric" {...register("amountKrw")} placeholder="예: 110000" className={INPUT_CLASS} />
         </FormField>
 
-        <FormField label="메모(선택)" htmlFor="pc-memo" error={errors.memo?.message}>
-          <Input id="pc-memo" aria-label="메모" {...register("memo")} placeholder="예: 8월 선불 충전" />
+        <FormField
+          label="메모(선택)"
+          htmlFor="pc-memo"
+          error={errors.memo?.message}
+          className={FORM_FIELD_CLASS}
+        >
+          <Input id="pc-memo" aria-label="메모" {...register("memo")} placeholder="예: 8월 선불 충전" className={INPUT_CLASS} />
         </FormField>
 
         <ModalActions>
-          <Button type="button" variant="ghost" onClick={onClose}>취소</Button>
-          <Button type="submit" variant="primary" disabled={isPending}>
+          <Button type="button" variant="ghost" onClick={onClose} className={BUTTON_CLASS}>취소</Button>
+          <Button type="submit" variant="primary" disabled={isPending} className={BUTTON_CLASS}>
             {isPending ? "기록 중…" : "충전 기록"}
           </Button>
         </ModalActions>
