@@ -10,7 +10,10 @@ const tabs = [
     href: "/resident/home",
     label: "홈",
     icon: (
-      <path d="M3.5 10.5 12 3l8.5 7.5v9a1.5 1.5 0 0 1-1.5 1.5h-5v-6h-4v6H5a1.5 1.5 0 0 1-1.5-1.5z" />
+      <>
+        <path d="M4 11l8-6 8 6" />
+        <path d="M6 10v9h12v-9" />
+      </>
     ),
   },
   {
@@ -18,8 +21,8 @@ const tabs = [
     label: "관리비",
     icon: (
       <>
-        <path d="M6 3h12a1 1 0 0 1 1 1v17l-3-2-4 2-4-2-3 2V4a1 1 0 0 1 1-1Z" />
-        <path d="M9 8h6M9 12h6" />
+        <path d="M6 3h9l4 4v14H6z" />
+        <path d="M9 12h8M9 16h5" />
       </>
     ),
   },
@@ -28,8 +31,8 @@ const tabs = [
     label: "내 정보",
     icon: (
       <>
-        <circle cx="12" cy="8" r="4" />
-        <path d="M4.5 21a7.5 7.5 0 0 1 15 0" />
+        <circle cx="12" cy="8" r="3.6" />
+        <path d="M5 20c1.4-3.6 4-5.4 7-5.4s5.6 1.8 7 5.4" />
       </>
     ),
   },

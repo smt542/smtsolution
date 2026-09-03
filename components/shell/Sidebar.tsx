@@ -13,7 +13,7 @@ const PLATFORM_ADMIN_ITEM: NavItem = {
   label: "통합관리자 콘솔",
   href: "/platform-admin",
   built: true,
-  icon: "M4 4h6v6H4V4zM14 4h6v6h-6V4zM4 14h6v6H4v-6zM14 14h6v6h-6v-6z",
+  icon: '<path d="M4 4h6v6H4V4zM14 4h6v6h-6V4zM4 14h6v6H4v-6zM14 14h6v6h-6v-6z"/>',
 };
 
 /* ── role label ─────────────────────────────────────────────────────────── */
@@ -26,8 +26,9 @@ function roleLabel(role: string): string {
   }
 }
 
-/* ── small icon rendered from path data ─────────────────────────────────── */
-function NavIcon({ d }: { d: string }) {
+/* ── small icon: 디자인 정본 .dc.html의 SVG inner markup을 그대로 렌더 ───────── */
+function NavIcon({ svg }: { svg: string }) {
+  // svg = 디자인 정본 .dc.html의 신뢰된 정적 마크업(rect/circle/path)만 담긴다 — 사용자 입력 아님.
   return (
     <svg
       width="20"
@@ -39,13 +40,8 @@ function NavIcon({ d }: { d: string }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
-    >
-      {d.split("M").filter(Boolean).map((seg, i) => {
-        const full = "M" + seg;
-        // circle segments start with a different command — handle both path types
-        return <path key={i} d={full} />;
-      })}
-    </svg>
+      dangerouslySetInnerHTML={{ __html: svg }}
+    />
   );
 }
 
@@ -58,12 +54,12 @@ function NavItemRow({
   active: boolean;
 }) {
   const base =
-    "flex h-[40px] w-full items-center gap-[11px] rounded-[11px] px-[12px] text-left text-[13.5px] leading-[17px] transition-colors duration-100";
+    "flex h-[40px] w-full items-center gap-[11px] rounded-[11px] px-[12px] text-left text-[14px] leading-[17px] transition-colors duration-100";
 
   if (!item.built) {
     return (
-      <div className={`${base} text-t3 cursor-default select-none`}>
-        <NavIcon d={item.icon} />
+      <div className={`${base} text-t3 font-semibold cursor-default select-none`}>
+        <NavIcon svg={item.icon} />
         <span className="flex-1">{item.label}</span>
         <span className="text-[10px] font-bold text-t4 bg-line px-1.5 py-0.5 rounded-md leading-none">
           준비중
@@ -78,11 +74,11 @@ function NavItemRow({
       aria-current={active ? "page" : undefined}
       className={`${base} ${
         active
-          ? "bg-teal-t font-bold text-teal-d"
-          : "text-t2 hover:bg-bg"
+          ? "bg-teal font-bold text-white"
+          : "text-t2 font-semibold hover:bg-bg"
       }`}
     >
-      <NavIcon d={item.icon} />
+      <NavIcon svg={item.icon} />
       <span className="min-w-0 flex-1 truncate">{item.label}</span>
       {(item.href === "/staff/utilities" || item.href === "/staff/moving-settlement") && (
         <span className="text-[15px] leading-none opacity-70" aria-hidden="true">⌄</span>
@@ -105,24 +101,24 @@ function UtilitiesNavGroup({
   onSelect: (type: "electricity" | "water" | "gas") => void;
 }) {
   const linkClass = (type: "electricity" | "water" | "gas") =>
-    `flex h-8 items-center rounded-lg px-2 text-[12.5px] ${
+    `flex h-8 items-center rounded-[9px] px-3 text-[13.5px] ${
       isUtilitiesPage && activeType === type
-        ? "bg-teal-t font-extrabold text-teal-d"
-        : "font-medium text-t3 hover:bg-bg hover:text-t2"
+        ? "bg-teal font-bold text-white"
+        : "font-semibold text-t2 hover:bg-bg"
     }`;
-  const customerNumberClass = `flex h-8 items-center rounded-lg px-2 text-[12.5px] ${
+  const customerNumberClass = `flex h-8 items-center rounded-[9px] px-3 text-[13.5px] ${
     isCustomerNumbersPage
-      ? "bg-teal-t font-extrabold text-teal-d"
-      : "font-medium text-t3 hover:bg-bg hover:text-t2"
+      ? "bg-teal font-bold text-white"
+      : "font-semibold text-t2 hover:bg-bg"
   }`;
 
   return (
     <div className="pb-1">
       <Link
         href={item.href}
-        className="flex h-[40px] w-full items-center gap-[11px] rounded-[11px] px-[12px] text-[13.5px] font-bold text-t2 hover:bg-bg"
+        className="flex h-[40px] w-full items-center gap-[11px] rounded-[11px] px-[12px] text-[14px] font-bold text-t1 hover:bg-bg"
       >
-        <NavIcon d={item.icon} />
+        <NavIcon svg={item.icon} />
         <span className="flex-1">{item.label}</span>
         <span className="rotate-180 text-[15px] leading-none text-t3" aria-hidden="true">⌄</span>
       </Link>
@@ -157,7 +153,7 @@ function MovingSettlementNavGroup({ item, pathname }: { item: NavItem; pathname:
         href={item.href}
         className="flex h-[40px] w-full items-center gap-[11px] rounded-[11px] px-[12px] text-[13.5px] font-bold text-t1 hover:bg-bg"
       >
-        <NavIcon d={item.icon} />
+        <NavIcon svg={item.icon} />
         <span className="flex-1">{item.label}</span>
         <span className="rotate-180 text-[15px] leading-none text-t3" aria-hidden="true">⌄</span>
       </Link>
@@ -171,7 +167,7 @@ function MovingSettlementNavGroup({ item, pathname }: { item: NavItem; pathname:
               key={link.href}
               href={link.href}
               aria-current={active ? "page" : undefined}
-              className={`flex h-[32px] items-center rounded-[9px] px-[12px] text-[12.5px] ${active ? "bg-teal-t font-bold text-teal-d" : "font-medium text-t3 hover:bg-bg hover:text-t2"}`}
+              className={`flex h-[32px] items-center rounded-[9px] px-[12px] text-[13.5px] ${active ? "bg-teal font-bold text-white" : "font-semibold text-t2 hover:bg-bg"}`}
             >
               {link.label}
             </Link>
@@ -298,8 +294,35 @@ export function Sidebar() {
           {profileMenuOpen && (
             <div
               role="menu"
-              className="absolute inset-x-0 bottom-full mb-2 rounded-[12px] border border-line bg-surface p-1.5 shadow-pop"
+              className="absolute inset-x-0 bottom-full mb-2 rounded-[14px] border border-line bg-surface p-1.5 shadow-pop"
             >
+              {/* 캔버스 hf-menu: 설정 섹션(계정·직원 / 셋업) — 권한 있는 항목만 노출 */}
+              {(hasModule(me, "accounts") || hasModule(me, "settings")) && (
+                <>
+                  <div className="px-3 pb-1 pt-1.5 text-[11px] font-bold tracking-[0.04em] text-t4">설정</div>
+                  {hasModule(me, "accounts") && (
+                    <Link
+                      role="menuitem"
+                      href="/staff/accounts"
+                      onClick={() => setProfileMenuOpen(false)}
+                      className="block rounded-[9px] px-3 py-2.5 text-[13.5px] font-semibold text-t2 transition-colors hover:bg-bg"
+                    >
+                      계정·직원
+                    </Link>
+                  )}
+                  {hasModule(me, "settings") && (
+                    <Link
+                      role="menuitem"
+                      href="/staff/setup"
+                      onClick={() => setProfileMenuOpen(false)}
+                      className="block rounded-[9px] px-3 py-2.5 text-[13.5px] font-semibold text-t2 transition-colors hover:bg-bg"
+                    >
+                      셋업 설정
+                    </Link>
+                  )}
+                  <div className="mx-1 my-1.5 h-px bg-line2" />
+                </>
+              )}
               <button
                 type="button"
                 role="menuitem"
