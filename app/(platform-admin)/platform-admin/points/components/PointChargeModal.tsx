@@ -21,7 +21,7 @@ interface Props {
 }
 
 const MODAL_CLASS =
-  "max-w-[420px] rounded-[20px] shadow-pop [&>h2]:text-[17px] [&>h2]:tracking-[-0.02em] [&>h2]:text-t1";
+  "max-w-[420px] rounded-[20px] shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)] [&>h2]:text-[17px] [&>h2]:tracking-[-0.02em] [&>h2]:text-t1";
 const FORM_FIELD_CLASS =
   "[&>label]:mb-1.5 [&>label]:text-[12.5px] [&>label]:font-bold [&>label]:text-t2";
 const INPUT_CLASS =
