@@ -204,7 +204,7 @@ export default function PlatformOrganizationsPage() {
         <button
           type="button"
           onClick={() => setCreateOpen(true)}
-          className="inline-flex h-10 shrink-0 items-center rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-pri transition-colors hover:bg-blue-d"
+          className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[11px] border border-transparent bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-pri transition-colors hover:bg-blue-d"
         >
           + 관리회사 입점
         </button>
@@ -240,7 +240,7 @@ export default function PlatformOrganizationsPage() {
               <span className="ml-[3px] text-sm font-bold tracking-normal text-t3">곳</span>
             </div>
             <div
-              className={`mt-[7px] text-xs font-bold ${
+              className={`mt-[7px] text-xs font-bold num ${
                 kpi.label === "정지" ? "text-red" : "text-t3"
               }`}
             >
@@ -250,9 +250,9 @@ export default function PlatformOrganizationsPage() {
         ))}
       </section>
 
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+      <div className="mt-4 flex flex-col flex-wrap gap-2.5 sm:flex-row sm:items-center">
         <div
-          className="inline-flex w-fit flex-wrap items-center gap-0.5 rounded-[11px] bg-line2 p-1"
+          className="inline-flex w-fit flex-wrap items-center gap-0.5 rounded-[11px] bg-[#EDF0F3] p-1"
           aria-label="조직 상태 필터"
         >
           {STATUS_FILTERS.map((filter) => (
@@ -264,9 +264,9 @@ export default function PlatformOrganizationsPage() {
                 setStatusFilter(filter.id);
                 setPage(1);
               }}
-              className={`rounded-lg px-[15px] py-[7px] text-sm font-bold transition-colors ${
+              className={`cursor-pointer rounded-lg px-[15px] py-[7px] text-sm font-bold transition-colors ${
                 statusFilter === filter.id
-                  ? "bg-surface text-t1 shadow-card"
+                  ? "bg-surface text-t1 shadow-[0_2px_6px_rgba(23,31,40,0.1)]"
                   : "text-t3 hover:text-t1"
               }`}
             >
@@ -329,8 +329,8 @@ export default function PlatformOrganizationsPage() {
         ) : (
           <TableFrame minWidthClassName="min-w-[1480px]">
             <thead>
-              <tr className="border-b border-line bg-bg/40 text-left text-xs font-bold text-t3">
-                <th className="w-[22%] whitespace-nowrap px-4 py-[11px]">조직</th>
+              <tr className="border-b border-line bg-[#FBFCFD] text-left text-xs font-bold text-t3">
+                <th className="w-[24%] whitespace-nowrap px-4 py-[11px]">조직</th>
                 <th className="whitespace-nowrap px-4 py-[11px] text-right">건물</th>
                 <th className="whitespace-nowrap px-4 py-[11px] text-right">세대</th>
                 <th className="whitespace-nowrap px-4 py-[11px] text-right">직원</th>
@@ -348,7 +348,7 @@ export default function PlatformOrganizationsPage() {
               {organizations.map((organization) => (
                 <tr
                   key={organization.id}
-                  className="border-b border-line2 text-[13.5px] last:border-0 hover:bg-bg/40"
+                  className="cursor-pointer border-b border-line2 text-[13.5px] text-t1 last:border-0 hover:bg-[#FBFCFD]"
                 >
                   <td className="whitespace-nowrap px-4 py-3">
                     <Link
@@ -363,16 +363,16 @@ export default function PlatformOrganizationsPage() {
                       {organization.slug ?? "회사코드 미설정"}
                     </div>
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right text-t2 num">
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-t1 num">
                     {formatNumber(organization.buildingCount)}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right text-t2 num">
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-t1 num">
                     {formatNumber(organization.unitCount)}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right text-t2 num">
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-t1 num">
                     {formatNumber(organization.employeeCount)}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right text-t2 num">
+                  <td className="whitespace-nowrap px-4 py-3 text-right text-t1 num">
                     {formatNumber(organization.tenantCount)}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3">
@@ -485,6 +485,7 @@ export default function PlatformOrganizationsPage() {
               <Button
                 type="button"
                 variant="primary"
+                className="h-10 cursor-pointer whitespace-nowrap rounded-[11px] px-[15px] text-[13.5px]"
                 onClick={() => {
                   void navigator.clipboard?.writeText(
                     `아이디: ${pwNotice.username} / 임시비밀번호: ${pwNotice.tempPassword}`,

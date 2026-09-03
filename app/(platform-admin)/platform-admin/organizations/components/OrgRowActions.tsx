@@ -9,7 +9,7 @@ interface Props {
 }
 
 const btn =
-  "inline-flex h-7 items-center rounded-lg border border-line bg-surface px-2.5 text-xs font-bold hover:bg-bg disabled:opacity-50";
+  "inline-flex h-8 cursor-pointer items-center rounded-[9px] border border-line bg-surface px-2.5 text-[12.5px] font-bold outline-none hover:bg-bg focus:border-blue focus:ring-[3px] focus:ring-blue-t disabled:opacity-50";
 
 export function OrgRowActions({ org, onEdit, onToggleDeleted, isPending }: Props) {
   if (org.deletedAt) {
