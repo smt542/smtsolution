@@ -6,6 +6,7 @@ import { Suspense, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
+import { PartnerConfirmDialog } from "../../../_components/PartnerConfirmDialog";
 import { PartnerFormFieldRow } from "../../../_components/PartnerFormFieldRow";
 import { PartnerInlineError } from "../../../_components/PartnerInlineError";
 import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
@@ -227,29 +228,28 @@ function AsDetailInner() {
       )}
 
       {confirmSave && (
-        <div className={styles.scrim} onClick={(e) => e.target === e.currentTarget && setConfirmSave(false)}>
-          <div className={styles.dialog}>
-            <div className={styles.dTitle}>저장할까요?</div>
-            <div className={styles.dDesc}>변경한 내용이 저장돼요.</div>
-            <div className={styles.dActions}>
-              <button type="button" className={`${styles.dBtn} ${styles.dCancel}`} onClick={() => setConfirmSave(false)}>취소</button>
-              <button type="button" className={`${styles.dBtn} ${styles.dOk}`} onClick={() => { setConfirmSave(false); void save(); }} disabled={busy}>저장</button>
-            </div>
-          </div>
-        </div>
+        <PartnerConfirmDialog
+          title="저장할까요?"
+          description="변경한 내용이 저장돼요."
+          cancelLabel="취소"
+          confirmLabel="저장"
+          onCancel={() => setConfirmSave(false)}
+          onConfirm={() => { setConfirmSave(false); void save(); }}
+          confirmDisabled={busy}
+        />
       )}
 
       {confirmDel && (
-        <div className={styles.scrim} onClick={(e) => e.target === e.currentTarget && setConfirmDel(false)}>
-          <div className={styles.dialog}>
-            <div className={styles.dTitle}>접수를 삭제할까요?</div>
-            <div className={styles.dDesc}>삭제하면 되돌릴 수 없어요.</div>
-            <div className={styles.dActions}>
-              <button type="button" className={`${styles.dBtn} ${styles.dCancel}`} onClick={() => setConfirmDel(false)}>취소</button>
-              <button type="button" className={`${styles.dBtn} ${styles.dDanger}`} onClick={() => void del()} disabled={busy}>삭제</button>
-            </div>
-          </div>
-        </div>
+        <PartnerConfirmDialog
+          title="접수를 삭제할까요?"
+          description="삭제하면 되돌릴 수 없어요."
+          cancelLabel="취소"
+          confirmLabel="삭제"
+          confirmVariant="danger"
+          onCancel={() => setConfirmDel(false)}
+          onConfirm={() => void del()}
+          confirmDisabled={busy}
+        />
       )}
     </div>
   );
