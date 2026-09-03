@@ -24,7 +24,7 @@ export default function PlatformAdminLoginPage() {
         </div>
 
         <div className="relative my-10 max-w-[600px] lg:my-16">
-          <h1 className="text-[34px] font-extrabold leading-[1.25] tracking-[-0.03em] sm:text-[42px] lg:text-5xl">
+          <h1 className="text-[34px] font-extrabold leading-[1.28] tracking-[-0.03em] sm:text-[42px] lg:text-5xl">
             모든 관리업체를<br />한 콘솔에서
           </h1>
           <p className="mt-4 max-w-[580px] text-[15px] font-medium leading-7 text-white/85 sm:text-base lg:mt-5 lg:text-lg lg:leading-[1.7]">

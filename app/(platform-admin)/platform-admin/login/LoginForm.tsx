@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { AUTO_LOGIN_KEY } from "@/lib/auth/sessionPersistence";
 
 const fieldClass =
-  "h-12 w-full rounded-[13px] border border-line bg-white px-3.5 text-[14px] font-medium text-t1 outline-none transition placeholder:text-t4 focus:border-blue focus:ring-4 focus:ring-blue/15";
+  "h-12 w-full rounded-[13px] border border-line bg-white px-3.5 text-[14.5px] font-medium text-t1 outline-none transition placeholder:text-t4 focus:border-blue focus:ring-[3px] focus:ring-blue-t";
 
 export function LoginForm() {
   const router = useRouter();
@@ -55,8 +55,8 @@ export function LoginForm() {
   };
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
-      <label className="flex flex-col gap-1.5" htmlFor="hq-username">
+    <form onSubmit={submit} className="flex flex-col gap-3.5" noValidate>
+      <label className="flex flex-col gap-[7px]" htmlFor="hq-username">
         <span className="text-[12.5px] font-bold text-t3">아이디</span>
         <input
           id="hq-username"
@@ -70,7 +70,7 @@ export function LoginForm() {
         />
       </label>
 
-      <label className="flex flex-col gap-1.5" htmlFor="hq-password">
+      <label className="flex flex-col gap-[7px]" htmlFor="hq-password">
         <span className="text-[12.5px] font-bold text-t3">비밀번호</span>
         <span className="relative flex items-center">
           <input
