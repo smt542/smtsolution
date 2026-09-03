@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { LoginForm } from "./components/LoginForm";
 
 export default function LoginPage() {
@@ -9,18 +10,14 @@ export default function LoginPage() {
         <div aria-hidden className="pointer-events-none absolute -bottom-44 right-16 h-[360px] w-[360px] rounded-full bg-white/[0.06]" />
 
         <div className="relative flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white">
-            <svg viewBox="0 0 24 24" fill="none" stroke="#14A497" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-[26px] w-[26px]">
-              <path d="M4 11l8-6 8 6" />
-              <path d="M6 10v9h12v-9" />
-              <path d="M10 19v-5h4v5" />
-            </svg>
+          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-white">
+            <Image src="/logo-mark.png" alt="" width={26} height={26} className="h-[26px] w-[26px] object-contain" priority />
           </div>
           <span className="text-[19px] font-extrabold tracking-tight">관리비서</span>
         </div>
 
         <div className="relative max-w-[600px]">
-          <h2 className="text-pretty text-[44px] font-extrabold leading-[1.28] tracking-[-0.03em]">건물관리, 이제 한 곳에서</h2>
+          <h2 className="text-pretty text-[48px] font-extrabold leading-[1.28] tracking-[-0.03em]">건물관리, 이제 한 곳에서</h2>
           <p className="mt-5 text-[18px] font-medium leading-[1.7] text-white/[0.86]">관리비 부과부터 수납, 민원, 이사정산까지 건물관리 업무 전체를 하나의 플랫폼에서 처리하세요.</p>
         </div>
 
@@ -30,8 +27,8 @@ export default function LoginPage() {
       {/* 우측 로그인 폼 */}
       <main className="flex w-full flex-col items-center justify-center px-6 py-12 lg:w-[480px] lg:flex-none lg:px-14">
         <div className="w-full max-w-[368px]">
-          <div className="mb-6">
-            <h1 className="text-2xl font-extrabold tracking-tight">로그인</h1>
+          <div className="mb-[26px]">
+            <h1 className="text-2xl font-extrabold tracking-[-0.02em]">로그인</h1>
             <p className="mt-1.5 text-[13.5px] font-medium text-t3">발급받은 계정으로 로그인해 주세요.</p>
           </div>
           <LoginForm />

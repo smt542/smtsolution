@@ -12,7 +12,7 @@ import { AUTO_LOGIN_KEY } from "@/lib/auth/sessionPersistence";
 type LoginFormInput = z.input<typeof loginSchema>;
 
 const fieldBase =
-  "h-12 rounded-[13px] border border-line bg-white text-[14.5px] font-medium text-t1 outline-none transition focus:border-[#14A497] focus:ring-4 focus:ring-[#14A497]/15";
+  "h-12 rounded-[13px] border border-line bg-white text-[14.5px] font-medium text-t1 outline-none transition focus:border-[#14A497] focus:ring-[3px] focus:ring-blue-t";
 const labelClass = "text-[12.5px] font-bold text-t3";
 
 export function LoginForm() {
@@ -40,13 +40,13 @@ export function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-3.5" noValidate>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-[7px]">
         <label htmlFor="username" className={labelClass}>아이디</label>
         <input id="username" autoComplete="username" placeholder="아이디를 입력해 주세요"
           className={`${fieldBase} px-3.5`} {...register("username")} />
         {errors.username && <p className="text-sm text-red">{errors.username.message}</p>}
       </div>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-[7px]">
         <label htmlFor="password" className={labelClass}>비밀번호</label>
         <div className="relative flex items-center">
           <input id="password" type={showPw ? "text" : "password"} autoComplete="current-password" placeholder="비밀번호를 입력해 주세요"
@@ -70,8 +70,14 @@ export function LoginForm() {
         </div>
         {errors.password && <p className="text-sm text-red">{errors.password.message}</p>}
       </div>
-      <label className="flex items-center gap-2 text-[13.5px] font-semibold text-t2">
-        <input type="checkbox" className="h-[18px] w-[18px] accent-[#14A497]" {...register("autoLogin")} /> 자동 로그인
+      <label className="flex cursor-pointer select-none items-center gap-2 text-[13.5px] font-semibold text-t2">
+        <input type="checkbox" className="peer sr-only" {...register("autoLogin")} />
+        <span className="flex h-[19px] w-[19px] flex-none items-center justify-center rounded-md border-[1.6px] border-line bg-white transition-colors peer-checked:border-[#14A497] peer-checked:bg-[#14A497] peer-checked:[&_svg]:opacity-100 peer-focus-visible:ring-2 peer-focus-visible:ring-[#14A497]/40">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 opacity-0" aria-hidden="true">
+            <path d="M4 12.5l5 5L20 6.5" />
+          </svg>
+        </span>
+        자동 로그인
       </label>
       {serverError && (
         <div role="alert" className="rounded-[11px] bg-red-t px-3 py-2.5 text-sm font-bold text-red">{serverError}</div>
