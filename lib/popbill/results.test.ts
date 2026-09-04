@@ -2,10 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const getMessages = vi.fn();
 const kakaoGetMessages = vi.fn();
+const getMessagesRN = vi.fn();
+const kakaoGetMessagesRN = vi.fn();
 const getFaxResult = vi.fn();
 vi.mock("./sdk", () => ({
-  getMessageService: () => ({ getMessages }),
-  getKakaoService: () => ({ getMessages: kakaoGetMessages }),
+  getMessageService: () => ({ getMessages, getMessagesRN }),
+  getKakaoService: () => ({ getMessages: kakaoGetMessages, getMessagesRN: kakaoGetMessagesRN }),
   getFaxService: () => ({ getFaxResult }),
 }));
 
@@ -13,6 +15,7 @@ import {
   computeNextPollAt,
   fetchFaxResult,
   fetchMessageResults,
+  fetchMessageResultsByRequestNum,
   normalizeFaxResult,
   normalizeMessageResult,
 } from "./results";
@@ -106,6 +109,27 @@ describe("fetchMessageResults", () => {
     const err = (await fetchMessageResults(config, "sms", "X").catch((e) => e)) as Error;
     expect(err).toBeInstanceOf(Error);
     expect(err.message).not.toContain("SECRET");
+  });
+});
+
+describe("fetchMessageResultsByRequestNum", () => {
+  it("receipt가 없는 문자 접수를 RequestNum으로 조회한다", async () => {
+    getMessagesRN.mockImplementation((...args: unknown[]) => {
+      (args[3] as (rows: unknown[]) => void)([
+        { state: 2, result: 1, interOPRefKey: "r0" },
+      ]);
+    });
+
+    const out = await fetchMessageResultsByRequestNum(config, "sms", "m77c0");
+
+    expect(out).toEqual([{ providerRefKey: "r0", status: "pending", code: "1" }]);
+    expect(getMessagesRN).toHaveBeenCalledWith(
+      "1234567890",
+      "m77c0",
+      "u",
+      expect.any(Function),
+      expect.any(Function),
+    );
   });
 });
 

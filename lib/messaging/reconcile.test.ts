@@ -31,6 +31,7 @@ function job(overrides: Partial<Record<string, unknown>> = {}) {
     kind: "message",
     product: "sms",
     receipt_num: "R1",
+    request_num: "m5c0",
     reservation_id: 5,
     submitted_at: recent,
     created_at: recent,
@@ -92,6 +93,31 @@ describe("reconcilePendingDeliveries", () => {
 
     expect(result.pending).toBe(1);
     expect(calls.find((c) => c.fn === "apply_provider_dispatch_results")?.args.p_results).toEqual([]);
+  });
+
+  it("receipt가 없는 fenced job은 RequestNum으로 조회한다", async () => {
+    const fetchResultsByRequestNum = vi.fn().mockResolvedValue([
+      { providerRefKey: "r0", status: "pending", code: "1" },
+    ]);
+    const { admin } = makeAdmin({
+      claim_provider_dispatch_jobs: () => [job({ receipt_num: null, request_num: "m5c0" })],
+      apply_provider_dispatch_results: () => ({ ok: true, job_status: "reconcile_required" }),
+    });
+
+    const result = await reconcilePendingDeliveries({
+      admin,
+      now: NOW,
+      fetchResults,
+      fetchResultsByRequestNum,
+    });
+
+    expect(fetchResults).not.toHaveBeenCalled();
+    expect(fetchResultsByRequestNum).toHaveBeenCalledWith({
+      product: "sms",
+      requestNum: "m5c0",
+      kind: "message",
+    });
+    expect(result.reconcileRequired).toBe(1);
   });
 
   it("팩스(kind=fax) 성공 결과를 페이지 수와 함께 반영한다(finalized)", async () => {

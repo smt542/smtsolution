@@ -123,7 +123,9 @@ async function processRow(
   const needsSmsConfig = (reserve.recipient_costs ?? []).some(
     (cost) => cost.product === "sms" || cost.product === "lms",
   );
-  const config = needsSmsConfig ? await getEffectiveConfig(row.org_id) : undefined;
+  // Pass an explicit config for every product. The provider adapter performs the
+  // final Kakao sender-registration check against this exact config before submit.
+  const config = needsSmsConfig ? await getEffectiveConfig(row.org_id) : readPopbillConfig();
   const { markStatus } = await submitReservationBatches(
     admin,
     {

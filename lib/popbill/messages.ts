@@ -2,6 +2,7 @@ import { hasUnresolvedVariables } from "@/lib/messaging/render";
 import type { PopbillError } from "popbill";
 import { readPopbillConfig, requirePopbillSender, type PopbillConfig } from "./config";
 import { getKakaoService, getMessageService } from "./sdk";
+import { checkSenderRegistered } from "./senders";
 import {
   PopbillSubmitError,
   submitWithTimeout,
@@ -116,7 +117,7 @@ function submitLms(
   }, options.timeoutMs);
 }
 
-function submitAlimtalk(
+async function submitAlimtalk(
   batch: MessageBatchInput,
   content: MessageContent,
   config: PopbillConfig,
@@ -158,6 +159,9 @@ function submitAlimtalk(
   const commonButtons = batch.recipients.some((recipient) => recipient.buttons !== undefined)
     ? null
     : (content.buttons ?? null);
+  if (!(await checkSenderRegistered("alimtalk", sender, config))) {
+    throw new PopbillSubmitError("SENDER_NOT_REGISTERED", "알림톡 발신번호가 등록되어 있지 않습니다.");
+  }
   return submitWithTimeout<string>((resolve, reject) => {
     service.sendATS_multi(
       config.corpNum,

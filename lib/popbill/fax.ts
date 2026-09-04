@@ -1,5 +1,6 @@
 import { readPopbillConfig, requirePopbillSender, type PopbillConfig } from "./config";
 import { getFaxService } from "./sdk";
+import { checkSenderRegistered } from "./senders";
 import { PopbillSubmitError, submitWithTimeout } from "./types";
 
 /**
@@ -29,20 +30,18 @@ export interface FaxSubmitOptions {
   timeoutMs?: number;
 }
 
-export function submitFax(
+export async function submitFax(
   input: FaxSubmitInput,
   config: PopbillConfig = readPopbillConfig(),
   options: FaxSubmitOptions = {},
 ): Promise<FaxSubmission> {
   // 설정 오류(발신번호 미등록)는 타임아웃 이전에 즉시 확정 실패로 거절한다.
-  let sender: string;
-  try {
-    sender = requirePopbillSender(config, "fax");
-  } catch (e) {
-    return Promise.reject(e);
-  }
+  const sender = requirePopbillSender(config, "fax");
   const service = getFaxService(config);
   const receiver = input.receiver.replace(/\D/g, "");
+  if (!(await checkSenderRegistered("fax", sender, config))) {
+    throw new PopbillSubmitError("SENDER_NOT_REGISTERED", "팩스 발신번호가 등록되어 있지 않습니다.");
+  }
   return submitWithTimeout<FaxSubmission>((resolve, reject) => {
     service.sendFaxBinary(
       config.corpNum,

@@ -3,9 +3,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const sendSMS_multi = vi.fn();
 const sendLMS_multi = vi.fn();
 const sendATS_multi = vi.fn();
+const checkKakaoSenderNumber = vi.fn((...args: unknown[]) => {
+  (args[args.length - 2] as (result: { code: number }) => void)({ code: 1 });
+});
 vi.mock("./sdk", () => ({
   getMessageService: () => ({ sendSMS_multi, sendLMS_multi }),
-  getKakaoService: () => ({ sendATS_multi }),
+  getKakaoService: () => ({ sendATS_multi, checkSenderNumber: checkKakaoSenderNumber }),
 }));
 
 import { submitMessageBatch } from "./messages";
@@ -22,7 +25,7 @@ const config: PopbillConfig = {
   useStaticIp: false,
   useLocalTime: true,
   smsSender: "0212345678",
-  kakaoSender: "@channel",
+  kakaoSender: "0212345678",
   faxSender: "0311112222",
 };
 
@@ -90,13 +93,28 @@ describe("submitMessageBatch", () => {
     expect(sendATS_multi).toHaveBeenCalledTimes(1);
     const args = sendATS_multi.mock.calls[0];
     expect(args[1]).toBe("TPL_001"); // templateCode
-    expect(args[2]).toBe("@channel"); // sender
+    expect(args[2]).toBe("0212345678"); // sender
     expect(args[3]).toBe(""); // altSendType disabled (대체문자 비활성화)
     const msgs = args[5] as Array<{ rcv: string; msg: string; interOPRefKey: string; altmsg?: string }>;
     expect(msgs[0]).toMatchObject({ rcv: "01011112222", msg: "관리비 안내입니다", interOPRefKey: "r0" });
     expect(msgs[0].altmsg ?? "").toBe("");
     expect(args[8]).toEqual([{ t: "WL", n: "확인", u1: "https://x" }]); // btns
     expect(out.product).toBe("alimtalk");
+  });
+
+  it("등록되지 않은 알림톡 발신번호는 provider 접수 전에 거절한다", async () => {
+    checkKakaoSenderNumber.mockImplementationOnce((...args: unknown[]) => {
+      (args[args.length - 2] as (result: { code: number }) => void)({ code: 0 });
+    });
+
+    await expect(
+      submitMessageBatch(
+        { product: "alimtalk", requestNum: "m1c-unverified", recipients: smsBatch.recipients },
+        { body: "관리비 안내입니다", templateCode: "TPL_001" },
+        config,
+      ),
+    ).rejects.toMatchObject({ code: "SENDER_NOT_REGISTERED" });
+    expect(sendATS_multi).not.toHaveBeenCalled();
   });
 
   it("alimtalk 한 배치의 수신자별 버튼 URL을 각 msgs[].btns로 보낸다", async () => {

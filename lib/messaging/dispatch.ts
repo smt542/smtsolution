@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { PopbillKakaoButton } from "popbill";
 import { type SendMode, type MessageRecipient } from "./preset";
 import {
@@ -15,6 +15,11 @@ import {
   type MessageContent,
   type ProviderSubmission,
 } from "@/lib/popbill/types";
+import {
+  computeNextPollAt,
+  defaultFetchResultsByRequestNum,
+  type ProviderRecipientResult,
+} from "@/lib/popbill/results";
 import { buildSubmissionPlan, type PlanProduct, type PlanRecipient } from "./submission";
 import { canonicalSendPayload } from "./sendSignature";
 import { renderTemplate } from "./render";
@@ -387,12 +392,26 @@ export interface SubmitReservationDeps {
     config?: PopbillConfig,
   ) => Promise<ProviderSubmission>;
   loadAlimtalkTemplate?: (templateId: number) => Promise<AlimtalkTemplateContent>;
+  reconcileBatch?: (batch: {
+    product: PlanProduct;
+    requestNum: string;
+  }) => Promise<ProviderRecipientResult[]>;
   config?: PopbillConfig;
 }
 interface CreatedJobRow {
+  job_id?: number;
   request_num: string;
   status?: string;
   receipt_num?: string | null;
+  claimed_at?: string | null;
+}
+interface SubmissionClaim {
+  ok?: boolean;
+  action?: "submit" | "reconcile" | "wait" | "terminal";
+  job_id?: number;
+  status?: string;
+  receipt_num?: string | null;
+  claimed_at?: string | null;
 }
 
 /**
@@ -405,6 +424,10 @@ export async function submitReservationBatches(
   deps: SubmitReservationDeps,
 ): Promise<{ queuedCount: number; markStatus: string }> {
   const submitBatch = deps.submitBatch ?? submitMessageBatch;
+  const reconcileBatch =
+    deps.reconcileBatch ??
+    ((batch: { product: PlanProduct; requestNum: string }) =>
+      defaultFetchResultsByRequestNum(batch, deps.config));
 
   let alimtalk: AlimtalkTemplateContent = { templateCode: null, buttons: [] };
   if (
@@ -415,10 +438,23 @@ export async function submitReservationBatches(
     alimtalk = await deps.loadAlimtalkTemplate(params.templateId);
   }
 
+  const resolvedByRecipientKey = new Map<string, Record<string, unknown>>();
+  for (const person of params.resolved) {
+    const phone = normalizePhone(person.phone);
+    const recipientKey = phone ? createHash("sha256").update(phone).digest("hex") : "";
+    if (!recipientKey || resolvedByRecipientKey.has(recipientKey)) {
+      throw new Error("resolved recipient identity is missing or duplicated");
+    }
+    resolvedByRecipientKey.set(recipientKey, person);
+  }
+
   const planRecipients: PlanRecipient[] = [];
-  for (let i = 0; i < params.costs.length; i += 1) {
-    const cost = params.costs[i];
-    const person = params.resolved[i] ?? {};
+  for (const cost of params.costs) {
+    const recipientKey = String(cost.recipient_key ?? "");
+    const person = resolvedByRecipientKey.get(recipientKey);
+    if (!recipientKey || !person) {
+      throw new Error("recipient cost does not match a resolved recipient");
+    }
     // 수신자별 최종 렌더 본문을 보존한다. 없으면 배치 공통 본문으로 대체된다(접수 시점 대체).
     const rendered = person.renderedBody;
     const product = (cost.product as PlanProduct) ?? "sms";
@@ -427,7 +463,7 @@ export async function submitReservationBatches(
         ? renderAlimtalkButtons(alimtalk.buttons, recipientVariables(person.variables))
         : undefined;
     planRecipients.push({
-      recipientKey: String(cost.recipient_key ?? ""),
+      recipientKey,
       phone: normalizePhone(person.phone),
       name: (person.name as string | null) ?? null,
       product,
@@ -453,18 +489,65 @@ export async function submitReservationBatches(
 
   const outcomes: Array<Record<string, unknown>> = [];
   let queuedCount = 0;
+  const submitOwner = randomUUID();
   for (const batch of plan) {
     const info = jobByReq.get(batch.requestNum);
     // 이미 접수번호가 있으면 재발송하지 않고 접수 상태를 유지한다(중복 발송 방지).
     if (info?.receipt_num) {
-      outcomes.push({ request_num: batch.requestNum, outcome: "accepted", receipt_num: info.receipt_num });
+      outcomes.push({
+        request_num: batch.requestNum,
+        outcome: "accepted",
+        receipt_num: info.receipt_num,
+        submit_owner: submitOwner,
+      });
       queuedCount += batch.recipients.length;
       continue;
     }
-    // 이미 terminal/미확인으로 넘어간 작업은 그대로 둔다.
-    if (info?.status && info.status !== "submitting") {
+
+    const claim = (await rpcData(admin, "claim_provider_dispatch_submission", {
+      p_reservation_id: params.reservationId,
+      p_request_num: batch.requestNum,
+      p_owner: submitOwner,
+    })) as SubmissionClaim | null;
+
+    if (claim?.receipt_num) {
+      outcomes.push({
+        request_num: batch.requestNum,
+        outcome: "accepted",
+        receipt_num: claim.receipt_num,
+        submit_owner: submitOwner,
+      });
+      queuedCount += batch.recipients.length;
       continue;
     }
+
+    if (claim?.action === "reconcile") {
+      let results: ProviderRecipientResult[] = [];
+      try {
+        results = await reconcileBatch({ product: batch.product, requestNum: batch.requestNum });
+      } catch {
+        results = [];
+      }
+      const claimedAt = new Date(claim.claimed_at ?? info?.claimed_at ?? Date.now());
+      const nextPollAt = computeNextPollAt(claimedAt, new Date());
+      await rpcData(admin, "apply_provider_dispatch_results", {
+        p_job_id: claim.job_id ?? info?.job_id,
+        p_results: results
+          .filter((result) => result.status !== "pending")
+          .map((result) => ({
+            provider_ref_key: result.providerRefKey,
+            status: result.status,
+            code: result.code,
+          })),
+        p_next_poll_at: nextPollAt?.toISOString() ?? null,
+      });
+      if (results.length > 0) queuedCount += batch.recipients.length;
+      continue;
+    }
+
+    // Only the owner returned by the atomic DB claim may cross the provider boundary.
+    if (claim?.ok !== true || claim.action !== "submit") continue;
+
     const content: MessageContent =
       batch.product === "alimtalk"
         ? { body: params.body, templateCode: alimtalk.templateCode, buttons: alimtalk.buttons }
@@ -475,7 +558,12 @@ export async function submitReservationBatches(
         content,
         deps.config,
       );
-      outcomes.push({ request_num: batch.requestNum, outcome: "accepted", receipt_num: submission.receiptNum });
+      outcomes.push({
+        request_num: batch.requestNum,
+        outcome: "accepted",
+        receipt_num: submission.receiptNum,
+        submit_owner: submitOwner,
+      });
       queuedCount += batch.recipients.length;
     } catch (e) {
       const classified = classifySubmitError(e);
@@ -484,6 +572,7 @@ export async function submitReservationBatches(
         outcome: classified.outcome,
         error_code: classified.code,
         error_message: classified.message,
+        submit_owner: submitOwner,
       });
     }
   }
