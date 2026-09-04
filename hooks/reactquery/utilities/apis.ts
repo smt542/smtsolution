@@ -119,6 +119,9 @@ export interface UtilityUnitRow {
   processedAt: string | null;
   discountType: string | null;
   discountAmount: number | null;
+  /** Server-authoritative review flag (e.g. negative computed usage). Always
+   *  populated by listUtilityRows; optional so existing row fixtures stay valid. */
+  needsReview?: boolean;
 }
 
 interface UtilityRowRpc {
@@ -142,6 +145,7 @@ interface UtilityRowRpc {
   processed_at: string | null;
   discount_type: string | null;
   resolved_unit_price: number | null;
+  needs_review: boolean | null;
 }
 
 function rpcToUtilityRow(r: UtilityRowRpc): UtilityUnitRow {
@@ -166,6 +170,7 @@ function rpcToUtilityRow(r: UtilityRowRpc): UtilityUnitRow {
     processedAt: r.processed_at,
     discountType: r.discount_type,
     discountAmount: r.discount_amount,
+    needsReview: r.needs_review ?? false,
   };
 }
 
