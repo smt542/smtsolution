@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import {
   checkLoginRateLimit,
+  equalizeLoginTiming,
   getClientIp,
   recordLoginFailure,
   recordLoginSuccess,
@@ -19,6 +20,14 @@ const RATE_LIMITED = "너무 많은 로그인 시도가 있었습니다. 잠시 
 // 유일하므로, 서비스롤로 동일 아이디의 현장 계정 후보를 찾아 실제 이메일로 로그인한다.
 // 후보가 여럿(다른 org에 같은 아이디)이면 비밀번호가 맞는 계정에서 세션이 성립한다.
 export async function POST(req: Request) {
+  const startedAt = Date.now();
+  const res = await handlePost(req);
+  // 실패(401) 응답만 타이밍 평탄화 — 아이디 존재 여부 오라클 완화
+  if (res.status === 401) await equalizeLoginTiming(startedAt);
+  return res;
+}
+
+async function handlePost(req: Request) {
   const body = (await req.json().catch(() => null)) as
     | { username?: unknown; password?: unknown }
     | null;

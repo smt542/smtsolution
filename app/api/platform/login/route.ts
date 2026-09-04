@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import {
   checkLoginRateLimit,
+  equalizeLoginTiming,
   getClientIp,
   recordLoginFailure,
   recordLoginSuccess,
@@ -13,6 +14,14 @@ const INVALID = "아이디 또는 비밀번호가 올바르지 않습니다.";
 const RATE_LIMITED = "너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도해 주세요.";
 
 export async function POST(req: Request) {
+  const startedAt = Date.now();
+  const res = await handlePost(req);
+  // 실패(401) 응답만 타이밍 평탄화 — 아이디 존재 여부 오라클 완화
+  if (res.status === 401) await equalizeLoginTiming(startedAt);
+  return res;
+}
+
+async function handlePost(req: Request) {
   const body = (await req.json().catch(() => null)) as
     | { username?: unknown; password?: unknown }
     | null;

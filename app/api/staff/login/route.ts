@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import {
   checkLoginRateLimit,
+  equalizeLoginTiming,
   getClientIp,
   recordLoginFailure,
   recordLoginSuccess,
@@ -17,6 +18,14 @@ const SUSPENDED = "정지되었거나 사용할 수 없는 조직입니다.";
 const SERVER_ERROR = "로그인 처리 중 오류가 발생했습니다.";
 
 export async function POST(req: Request) {
+  const startedAt = Date.now();
+  const res = await handlePost(req);
+  // 실패(401) 응답만 타이밍 평탄화 — 아이디 존재 여부 오라클 완화
+  if (res.status === 401) await equalizeLoginTiming(startedAt);
+  return res;
+}
+
+async function handlePost(req: Request) {
   const body = (await req.json().catch(() => null)) as
     | { username?: unknown; password?: unknown }
     | null;

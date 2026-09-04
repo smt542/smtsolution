@@ -104,3 +104,12 @@ export async function recordLoginSuccess(
     console.error("[loginRateLimit] recordLoginSuccess failed", err);
   }
 }
+
+// 로그인 실패(401) 응답의 타이밍 사이드채널(아이디 존재 여부 유추)을 완화하기 위한 하한 지연.
+// GoTrue 자격증명 검증 유무로 생기는 응답시간 차이를 상수 하한으로 평탄화한다.
+export async function equalizeLoginTiming(startedAtMs: number, floorMs = 300): Promise<void> {
+  const elapsed = Date.now() - startedAtMs;
+  if (elapsed < floorMs) {
+    await new Promise((resolve) => setTimeout(resolve, floorMs - elapsed));
+  }
+}
