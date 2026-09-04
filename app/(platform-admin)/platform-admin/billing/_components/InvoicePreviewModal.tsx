@@ -32,7 +32,7 @@ export function InvoicePreviewModal({
         aria-modal="true"
         aria-labelledby="invoice-preview-title"
       >
-        <div className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-surface shadow-pop">
+        <div className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-surface shadow-hf-modal">
           <header className="flex items-center justify-between border-b border-line px-5 py-4">
             <div>
               <p className="text-xs font-bold text-blue">청구서 미리보기</p>

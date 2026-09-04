@@ -82,7 +82,7 @@ export default function PlatformSettingsPage() {
   };
 
   return (
-    <PlatformPageContainer maxWidthClassName="max-w-5xl">
+    <PlatformPageContainer maxWidthClassName="max-w-none">
       <PlatformTopBarActions>
         {isEditing ? (
           <div className="flex items-center gap-2">
@@ -90,7 +90,7 @@ export default function PlatformSettingsPage() {
               type="button"
               onClick={() => void save()}
               disabled={updateSettings.isPending}
-              className="inline-flex h-10 shrink-0 items-center justify-center rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-pri transition-colors hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
+              className="inline-flex h-10 shrink-0 items-center justify-center rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-hf-btn transition-colors hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
             >
               {updateSettings.isPending ? "저장 중…" : "저장"}
             </button>
@@ -108,7 +108,7 @@ export default function PlatformSettingsPage() {
             type="button"
             onClick={beginEditing}
             disabled={!settingsQuery.data}
-            className="inline-flex h-10 shrink-0 items-center justify-center rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-pri transition-colors hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
+            className="inline-flex h-10 shrink-0 items-center justify-center rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-hf-btn transition-colors hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
           >
             수정
           </button>

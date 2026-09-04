@@ -214,7 +214,7 @@ export default function PlatformAccountsPage() {
         <button
           type="button"
           onClick={() => setCreateOpen(true)}
-          className="inline-flex h-10 shrink-0 items-center rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-pri transition-colors hover:bg-blue-d"
+          className="inline-flex h-10 shrink-0 items-center rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-hf-btn transition-colors hover:bg-blue-d"
         >
           + 계정 발급
         </button>
@@ -384,7 +384,7 @@ export default function PlatformAccountsPage() {
                   );
                   toast.success("복사했습니다.");
                 }}
-                className="h-10 rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-pri hover:bg-blue-d"
+                className="h-10 rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-hf-btn hover:bg-blue-d"
               >
                 복사
               </button>
@@ -541,7 +541,7 @@ function RoleChangeModal({
             type="button"
             disabled={isPending}
             onClick={() => void handleSubmit()}
-            className="h-10 rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-pri hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
+            className="h-10 rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-hf-btn hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isPending ? "저장 중…" : "권한 저장"}
           </button>

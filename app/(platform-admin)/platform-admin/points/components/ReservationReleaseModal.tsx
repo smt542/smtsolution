@@ -13,7 +13,7 @@ interface ReservationReleaseModalProps {
 }
 
 const MODAL_CLASS =
-  "max-w-[440px] rounded-[20px] shadow-pop [&>h2]:text-[17px] [&>h2]:tracking-[-0.02em] [&>h2]:text-t1";
+  "max-w-[440px] rounded-[20px] shadow-hf-modal [&>h2]:text-[17px] [&>h2]:tracking-[-0.02em] [&>h2]:text-t1";
 const INPUT_CLASS =
   "h-[42px] rounded-[10px] px-[13px] text-[13.5px] font-semibold focus:border-blue focus:ring-[3px] focus:ring-blue-t";
 const BUTTON_CLASS = "h-10 rounded-[11px] px-[15px] text-[13.5px]";

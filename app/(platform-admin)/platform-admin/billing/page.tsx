@@ -214,7 +214,7 @@ export default function PlatformBillingPage() {
             type="button"
             onClick={handlePublishAll}
             disabled={filtered.every((row) => row.subtotalKrw <= 0)}
-            className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[11px] border border-transparent bg-blue px-[14px] text-[12.5px] font-bold whitespace-nowrap text-white shadow-[0_6px_14px_-4px_rgba(20,164,151,0.5)] hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[11px] border border-transparent bg-blue px-[14px] text-[12.5px] font-bold whitespace-nowrap text-white shadow-hf-btn hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-50"
           >
             전체 발행
           </button>
