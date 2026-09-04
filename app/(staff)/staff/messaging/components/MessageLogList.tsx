@@ -123,5 +123,5 @@ function PointStatus({ log }: { log: MessageLog }) {
   if (log.pointStatus === "quoted") {
     return <span className="text-t3">예상 {formatNumber(log.estimatedPoints)} P · 차감 없음</span>;
   }
-  return <span className="text-t4">—</span>;
+  return <span className="text-t4">-</span>;
 }

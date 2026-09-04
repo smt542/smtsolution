@@ -36,7 +36,7 @@ function monthLabel(iso: string): string {
 }
 
 function deltaPercentLabel(current: number, previous: number): string {
-  if (previous === 0) return current === 0 ? "—" : "신규";
+  if (previous === 0) return current === 0 ? "-" : "신규";
   const percentage = Math.round(((current - previous) / previous) * 100);
   return `${percentage > 0 ? "+" : ""}${percentage}%`;
 }
@@ -254,7 +254,7 @@ export default function PlatformBillingPage() {
               {pagedRows.map((row) => (
                 <tr key={row.orgId} className="cursor-pointer hover:bg-[#FBFCFD] [&:last-child>td]:border-b-0">
                   <td className="border-b border-line2 px-4 py-3 text-[13.5px] font-bold whitespace-nowrap text-t1">{row.orgName}</td>
-                  <td className="border-b border-line2 px-4 py-3 text-[12.5px] font-semibold whitespace-nowrap text-t3">{row.orgEmail ?? "—"}</td>
+                  <td className="border-b border-line2 px-4 py-3 text-[12.5px] font-semibold whitespace-nowrap text-t3">{row.orgEmail ?? "-"}</td>
                   <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.alimtalkCount)}</td>
                   <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.smsCount)}</td>
                   <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.lmsCount)}</td>
@@ -264,7 +264,7 @@ export default function PlatformBillingPage() {
                   <td className="border-b border-line2 px-4 py-3 text-[13.5px] whitespace-nowrap"><BillingStatusBadge status={row.status} /></td>
                   <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap">
                     {row.status === "none" ? (
-                      <span className="text-t4">—</span>
+                      <span className="text-t4">-</span>
                     ) : (
                       <div className="inline-flex justify-end gap-1.5">
                         <button

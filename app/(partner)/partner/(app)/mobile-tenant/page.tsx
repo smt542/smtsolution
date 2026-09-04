@@ -193,7 +193,7 @@ function TenantDetailInner() {
                 <span className={styles.rowLabel}>입주자명</span>
                 {occ.tenant_name ? <b className={styles.rowValue}>{occ.tenant_name}</b> : <span className={styles.uvac}>공실</span>}
               </div>
-              <Row label="입주일">{fmtDate(occ.move_in_date) || "—"}</Row>
+              <Row label="입주일">{fmtDate(occ.move_in_date) || "-"}</Row>
             </div>
 
             <div className={styles.sectionTitle}>연락처</div>
@@ -222,7 +222,7 @@ function TenantDetailInner() {
                     <button type="button" className={styles.ptop} onClick={() => togglePeriod(p.period)}>
                       <div className={styles.ptopMain}>
                         <span className={styles.pmonth}>{fmtMonth(p.period)}</span>
-                        <span className={styles.pdue}>기한 {p.due_date ? fmtDate(p.due_date) : "—"}</span>
+                        <span className={styles.pdue}>기한 {p.due_date ? fmtDate(p.due_date) : "-"}</span>
                       </div>
                       <span className={styles.pamt}>{won(p.charged)}</span>
                       <svg className={styles.pchev} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -233,12 +233,12 @@ function TenantDetailInner() {
                       <div className={styles.pdet}>
                         <div className={styles.sec}>
                           <Row label="연체">
-                            {p.unpaid > 0 ? <span className={styles.neg}>{won(p.unpaid)}</span> : <span className={styles.muted}>—</span>}
+                            {p.unpaid > 0 ? <span className={styles.neg}>{won(p.unpaid)}</span> : <span className={styles.muted}>-</span>}
                           </Row>
                           <Row label="수납액">{won(p.paid)}</Row>
-                          <Row label="수납일자">{p.last_paid_at ? fmtDate(p.last_paid_at) : "—"}</Row>
-                          <Row label="구분">{methodsLabel(p.methods) || "—"}</Row>
-                          <Row label="비고">{p.memo || "—"}</Row>
+                          <Row label="수납일자">{p.last_paid_at ? fmtDate(p.last_paid_at) : "-"}</Row>
+                          <Row label="구분">{methodsLabel(p.methods) || "-"}</Row>
+                          <Row label="비고">{p.memo || "-"}</Row>
                         </div>
                       </div>
                     )}
@@ -265,7 +265,7 @@ function TenantDetailInner() {
                   >
                     <div className={styles.mstop}>
                       <span className={styles.msname}>
-                        No.{settlements.length - i} {s.tenant_name || occ.tenant_name || "—"}
+                        No.{settlements.length - i} {s.tenant_name || occ.tenant_name || "-"}
                       </span>
                       <span className={`${styles.chip} ${done ? styles.chipOk : styles.chipNo}`}>{done ? "완료" : "미결"}</span>
                       <span className={styles.msSpacer} />
@@ -279,10 +279,10 @@ function TenantDetailInner() {
                     </div>
                     <div className={styles.msmeta}>
                       <span>
-                        퇴실일 <b>{s.move_out_date ? fmtDate(s.move_out_date) : "—"}</b>
+                        퇴실일 <b>{s.move_out_date ? fmtDate(s.move_out_date) : "-"}</b>
                       </span>
                       <span>
-                        등록일자 <b>{fmtDate(s.created_at) || "—"}</b>
+                        등록일자 <b>{fmtDate(s.created_at) || "-"}</b>
                       </span>
                     </div>
                   </Link>

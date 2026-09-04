@@ -363,8 +363,8 @@ export default function PlatformPointsPage() {
                     <TransactionTypeBadge type={t.type} />
                   </td>
                   <td className={`whitespace-nowrap px-4 py-3 text-right font-bold num ${t.points >= 0 ? "text-green" : "text-red"}`}>{t.points >= 0 ? "+" : ""}{num(t.points)}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-t3">{t.memo ?? "—"}</td>
-                  <td className="whitespace-nowrap px-4 py-3 text-t3">{t.createdByName ?? "—"}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-t3">{t.memo ?? "-"}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-t3">{t.createdByName ?? "-"}</td>
                 </tr>
               ))}
             </tbody>

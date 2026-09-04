@@ -236,7 +236,7 @@ export default function PlatformOrganizationsPage() {
           <div key={kpi.label} className="rounded-[15px] bg-surface px-[18px] py-[17px] shadow-card">
             <div className="text-[12.5px] font-bold text-t3">{kpi.label}</div>
             <div className="mt-[9px] text-[26px] font-extrabold tracking-[-0.03em] text-t1 num">
-              {contractKpis.isPending ? "—" : formatNumber(kpi.value ?? 0)}
+              {contractKpis.isPending ? "-" : formatNumber(kpi.value ?? 0)}
               <span className="ml-[3px] text-sm font-bold tracking-normal text-t3">곳</span>
             </div>
             <div
@@ -392,10 +392,10 @@ export default function PlatformOrganizationsPage() {
                     )}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-t3 num">
-                    {organization.contractStartDate ?? "—"}
+                    {organization.contractStartDate ?? "-"}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-t3 num">
-                    {organization.contractEndDate ?? "—"}
+                    {organization.contractEndDate ?? "-"}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-right font-bold text-t1 num">
                     {formatNumber(organization.accountCount)}

@@ -19,7 +19,7 @@ export function SettlementEmptyPanel({ onAction }: { onAction: () => void }) {
         </div>
         <div className="flex h-[50px] shrink-0 items-center justify-end border-t border-[#dce1e7] bg-[#f7f9fa] px-[18px]">
           <span className="text-[12px] font-bold text-t2">총 요금액</span>
-          <strong className="ml-[8px] text-[19px] font-extrabold text-t1">—</strong>
+          <strong className="ml-[8px] text-[19px] font-extrabold text-t1">-</strong>
         </div>
       </section>
       <SettlementActionBar

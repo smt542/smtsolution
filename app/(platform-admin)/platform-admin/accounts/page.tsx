@@ -289,9 +289,9 @@ export default function PlatformAccountsPage() {
                     <div className="mt-1 text-xs text-t3">{account.username ?? account.userId}</div>
                   </td>
                   <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] font-semibold text-t2">{account.organizationName}</td>
-                  <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] text-t2 num">{account.phone ?? "—"}</td>
+                  <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] text-t2 num">{account.phone ?? "-"}</td>
                   <td className="max-w-64 border-b border-line2 px-4 py-3 text-[12.5px] text-t2">
-                    <span className="line-clamp-2">{account.memo ?? "—"}</span>
+                    <span className="line-clamp-2">{account.memo ?? "-"}</span>
                   </td>
                   <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] text-t2">{ROLE_LABELS[account.role]}</td>
                   <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px]">

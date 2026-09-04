@@ -44,7 +44,7 @@ export function OrgBuildingsList({ orgId }: { orgId: number }) {
               { key: "address", label: "주소" },
             ]}
             rows={(data?.buildings ?? []).map((b) => ({
-              _id: b.id, code: b.code, name: b.name, address: b.address ?? "—",
+              _id: b.id, code: b.code, name: b.name, address: b.address ?? "-",
             }))}
             onRowClick={(row) => router.push(`/platform-admin/organizations/${orgId}/buildings/${row._id}`)}
           />

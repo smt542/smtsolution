@@ -215,7 +215,7 @@ function MeterInner() {
                             </label>
                             <div className={styles.fld}>
                               <span>사용량</span>
-                              <div className={styles.usage}>{usageOf(m) || "—"}</div>
+                              <div className={styles.usage}>{usageOf(m) || "-"}</div>
                             </div>
                           </div>
                         </div>

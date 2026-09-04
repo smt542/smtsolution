@@ -47,8 +47,8 @@ export function BuildingTenantsList({ orgId, buildingId }: { orgId: number; buil
             rows={(data?.tenants ?? []).map((t) => ({
               _id: t.unitId,
               unitNo: t.unitNo,
-              residents: t.residentCount ?? "—",
-              moveIn: t.moveInDate ?? "—",
+              residents: t.residentCount ?? "-",
+              moveIn: t.moveInDate ?? "-",
               vacancy: t.isVacant ? "공실" : "입주",
             }))}
             onRowClick={(row) => router.push(`/platform-admin/organizations/${orgId}/buildings/${buildingId}/units/${row._id}`)}

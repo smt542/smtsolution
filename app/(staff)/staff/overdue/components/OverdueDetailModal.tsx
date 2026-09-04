@@ -18,24 +18,24 @@ export function OverdueDetailModal({
         <DetailSection title="세대 정보">
           <DetailField label="건물" value={household.buildingName} />
           <DetailField label="호실" value={unitLabel} />
-          <DetailField label="주소" value={household.buildingAddress || "—"} />
+          <DetailField label="주소" value={household.buildingAddress || "-"} />
           <DetailField
             label="면적 / 방 수"
-            value={`${household.areaPyeong ?? "—"}평 / ${household.roomCount ?? "—"}개`}
+            value={`${household.areaPyeong ?? "-"}평 / ${household.roomCount ?? "-"}개`}
           />
         </DetailSection>
 
         <DetailSection title="입주자 정보">
           <DetailField label="입주자" value={household.tenantName || "미등록"} />
-          <DetailField label="납부자" value={household.payerName || "—"} />
-          <DetailField label="연락처" value={household.phone || "—"} />
-          <DetailField label="거주 인원" value={household.residentCount != null ? `${household.residentCount}명` : "—"} />
+          <DetailField label="납부자" value={household.payerName || "-"} />
+          <DetailField label="연락처" value={household.phone || "-"} />
+          <DetailField label="거주 인원" value={household.residentCount != null ? `${household.residentCount}명` : "-"} />
         </DetailSection>
 
         <DetailSection title="입주 정보">
           <DetailField label="입주일" value={formatDate(household.moveInDate)} />
           <DetailField label="퇴실일" value={formatDate(household.moveOutDate)} />
-          <DetailField label="차량번호" value={household.vehicleNo || "—"} />
+          <DetailField label="차량번호" value={household.vehicleNo || "-"} />
           <DetailField label="상태" value={household.status === "occupied" ? "입주" : household.status === "moving_out" ? "퇴실 예정" : "공실"} />
         </DetailSection>
 
@@ -84,8 +84,8 @@ export function OverdueDetailModal({
 
         {(household.memo || household.unitMemo) && (
           <DetailSection title="관리 메모">
-            <DetailField label="입주 메모" value={household.memo || "—"} />
-            <DetailField label="호실 메모" value={household.unitMemo || "—"} />
+            <DetailField label="입주 메모" value={household.memo || "-"} />
+            <DetailField label="호실 메모" value={household.unitMemo || "-"} />
           </DetailSection>
         )}
       </div>

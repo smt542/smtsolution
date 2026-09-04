@@ -178,7 +178,7 @@ export default function PlatformSettingsPage() {
                   />
                 ) : (
                   <div className="mt-[9px] min-h-28 w-full whitespace-pre-wrap rounded-[9px] border border-line bg-bg px-3 py-2.5 text-[13.5px] font-bold leading-6 text-t3">
-                    {draft.invoiceNotice || "—"}
+                    {draft.invoiceNotice || "-"}
                   </div>
                 )}
               </label>
@@ -263,7 +263,7 @@ function TextSetting({
         />
       ) : (
         <div className="mt-[9px] flex h-[38px] w-full items-center rounded-[9px] border border-line bg-bg px-3 text-[13.5px] font-bold text-t3">
-          {value || "—"}
+          {value || "-"}
         </div>
       )}
     </label>

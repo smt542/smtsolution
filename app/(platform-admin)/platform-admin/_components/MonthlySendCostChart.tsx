@@ -150,7 +150,7 @@ function MonthlySendCostBars({
                     isLatest ? "text-t1" : "text-t2"
                   }`}
                 >
-                  {isEmpty ? "—" : `${formatNumber(total)}원`}
+                  {isEmpty ? "-" : `${formatNumber(total)}원`}
                 </div>
               </div>
             );

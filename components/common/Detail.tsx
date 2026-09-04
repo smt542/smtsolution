@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 /**
  * 상세/이력 화면의 라벨-값 한 쌍. `<dl>` 안에서 사용한다.
- * 값이 비면(falsy) "—"로 대체한다.
+ * 값이 비면(falsy) "-"로 대체한다.
  */
 export function DetailField({
   label,
@@ -14,7 +14,7 @@ export function DetailField({
   return (
     <div>
       <dt className="text-xs font-semibold text-t3">{label}</dt>
-      <dd className="mt-1 break-words text-sm font-bold text-t1">{value || "—"}</dd>
+      <dd className="mt-1 break-words text-sm font-bold text-t1">{value || "-"}</dd>
     </div>
   );
 }

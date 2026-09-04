@@ -23,7 +23,7 @@ function formatCharge(value: number | null): string {
   return formatNumber(value);
 }
 function formatDelta(value: number | null): string {
-  if (value === null) return "—";
+  if (value === null) return "-";
   const sign = value > 0 ? "+" : "";
   return `${sign}${formatNumber(value)}`;
 }

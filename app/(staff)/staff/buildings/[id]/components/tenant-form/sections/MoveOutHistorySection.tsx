@@ -4,7 +4,7 @@ import { FormSection } from "../ui/FormSection";
 import { EmptyState } from "@/components/common";
 import type { OccupancyHistory } from "@/hooks/reactquery/occupancyHistory";
 
-const dash = (v: string | null) => (v && v.length > 0 ? v : "—");
+const dash = (v: string | null) => (v && v.length > 0 ? v : "-");
 
 export function MoveOutHistorySection({ history }: { history: OccupancyHistory[] }) {
   return (
