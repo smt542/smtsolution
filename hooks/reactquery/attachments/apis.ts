@@ -16,13 +16,28 @@ const toAtt = (r: AttachmentRow): Attachment => ({
   kind: r.kind, fileUrl: r.file_url, fileName: r.file_name, createdAt: r.created_at,
 });
 
+const ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024;
+const ATTACHMENT_MIME_TYPES = new Set([
+  "image/jpeg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif", "application/pdf",
+]);
+
 export async function uploadAttachment(params: {
   entityType: string; entityId: number; orgId: number; kind: string; file: File;
 }): Promise<Attachment> {
   const { entityType, entityId, orgId, kind, file } = params;
+  if (!ATTACHMENT_MIME_TYPES.has(file.type)) {
+    throw new Error("이미지 또는 PDF 파일만 업로드할 수 있습니다.");
+  }
+  if (file.size > ATTACHMENT_MAX_BYTES) {
+    throw new Error("첨부 파일은 10MB 이하여야 합니다.");
+  }
   const sb = createClient();
-  const path = `${orgId}/${entityType}/${entityId}/${crypto.randomUUID()}-${file.name}`;
-  const { error: upErr } = await sb.storage.from("attachments").upload(path, file);
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+  const path = `${orgId}/${entityType}/${entityId}/${crypto.randomUUID()}-${safeName}`;
+  const { error: upErr } = await sb.storage.from("attachments").upload(path, file, {
+    contentType: file.type,
+    upsert: false,
+  });
   if (upErr) throw new Error(upErr.message);
   const { data, error } = await sb.from("attachments").insert({
     org_id: orgId, entity_type: entityType, entity_id: entityId, kind, file_url: path, file_name: file.name,
