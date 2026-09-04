@@ -21,7 +21,6 @@ import { SettlementDecisionDialog } from "./SettlementDecisionDialog";
 
 type DialogState =
   | "mid-outstanding"
-  | "moveout-outstanding"
   | "mid-confirm"
   | "moveout-confirm"
   | "delete"
@@ -106,8 +105,10 @@ export function SettlementActions({
 
   const requestCompletion = (kind: "mid" | "moveout") => {
     if (!validate() || !requireSaved()) return;
-    if (outstanding > 0) {
-      setDialog(kind === "mid" ? "mid-outstanding" : "moveout-outstanding");
+    // 중도퇴실은 공실/자동수납이 없으므로 미수금이 남아 있으면 수납 입력을 먼저 안내한다.
+    // 정산완료+공실(퇴실)은 PRD상 미납 관리비를 자동 수납하므로 막지 않고 확인 팝업으로 바로 진행한다.
+    if (kind === "mid" && outstanding > 0) {
+      setDialog("mid-outstanding");
       return;
     }
     setDialog(kind === "mid" ? "mid-confirm" : "moveout-confirm");
@@ -167,7 +168,7 @@ export function SettlementActions({
     window.print();
   };
 
-  const outstandingDialog = dialog === "mid-outstanding" || dialog === "moveout-outstanding";
+  const outstandingDialog = dialog === "mid-outstanding";
 
   return (
     <>
@@ -183,7 +184,7 @@ export function SettlementActions({
 
       <SettlementDecisionDialog
         open={outstandingDialog}
-        title={dialog === "mid-outstanding" ? "중도퇴실 처리 전 확인" : "퇴실 처리 전 확인"}
+        title="중도퇴실 처리 전 확인"
         confirmLabel="수납액 입력"
         pending={pending}
         onCancel={() => setDialog(null)}
@@ -215,8 +216,8 @@ export function SettlementActions({
         onCancel={() => setDialog(null)}
         onConfirm={completeMoveout}
       >
-        <p>{building.name} {unit.unitNo} 세대를 퇴실 처리할까요?</p>
-        <p>처리하면 입주자 정보가 초기화되고 세대가 공실로 전환돼요.</p>
+        <p>{building.name} {unit.unitNo} 세대의 미납 관리비를 수납 처리하시겠습니까?</p>
+        <p>확인하면 남은 미납 관리비가 자동으로 수납 처리되고, 입주자 정보가 초기화되며 세대가 공실로 전환돼요.</p>
       </SettlementDecisionDialog>
 
       <SettlementDecisionDialog
