@@ -48,9 +48,29 @@ beforeEach(() => {
       upsert: mocks.identityUpsert,
     })),
   });
-  mocks.createClient.mockResolvedValue({
-    auth: { signInWithPassword: mocks.signInWithPassword },
-  });
+  mocks.createClient.mockImplementation(async (setAllCookies?: (
+    cookies: Array<{
+      name: string;
+      value: string;
+      options: { httpOnly?: boolean; path?: string };
+    }>,
+    headers: Record<string, string>,
+  ) => void) => ({
+    auth: {
+      signInWithPassword: async (input: { email: string; password: string }) => {
+        const result = await mocks.signInWithPassword(input);
+        setAllCookies?.(
+          [{
+            name: "sb-test-auth-token",
+            value: "resident-session",
+            options: { httpOnly: true, path: "/" },
+          }],
+          { "Cache-Control": "private, no-store" },
+        );
+        return result;
+      },
+    },
+  }));
   mocks.identityMaybeSingle.mockResolvedValue({ data: null, error: null });
   mocks.identityUpsert.mockResolvedValue({ error: null });
   mocks.createUser.mockResolvedValue({
@@ -107,6 +127,26 @@ describe("POST /api/resident/kakao/stub", () => {
       name: "Stub User",
       phone: "01012345678",
     });
+    expect(response.cookies.get("sb-test-auth-token")?.value).toBe(
+      "resident-session",
+    );
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+  });
+
+  it("normalizes a Kakao-format phone before storing the identity", async () => {
+    const response = await POST(request({
+      kakaoId: "normalized-phone",
+      name: "Stub User",
+      phone: "+82 10-1234-5678",
+    }));
+
+    expect(response.status).toBe(200);
+    expect(mocks.identityUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      phone: "01012345678",
+    }), { onConflict: "user_id" });
+    expect(await response.json()).toEqual(expect.objectContaining({
+      phone: "01012345678",
+    }));
   });
 
   it("reuses an existing identity and rotates its stub password before sign-in", async () => {

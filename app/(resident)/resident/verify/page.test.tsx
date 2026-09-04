@@ -20,6 +20,7 @@ vi.mock("@/lib/resident/onboardingClient", () => ({
   automatch: vi.fn(),
   getActiveCandidate: vi.fn(),
   getSession: vi.fn(),
+  loadSession: vi.fn(),
   confirm: vi.fn().mockResolvedValue({ status: "linked" }),
   requestClaim: vi.fn().mockResolvedValue({ status: "pending" }),
   searchBuildings: vi.fn().mockResolvedValue([]),
@@ -60,6 +61,7 @@ const building: Building = {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(client.getSession).mockReturnValue({ identity });
+  vi.mocked(client.loadSession).mockResolvedValue({ identity });
   vi.mocked(client.getActiveCandidate).mockReturnValue(candidate);
   vi.mocked(client.automatch).mockResolvedValue([candidate]);
   vi.mocked(client.confirm).mockResolvedValue({ status: "linked" });

@@ -9,7 +9,7 @@ import {
   automatch,
   confirm,
   getActiveCandidate,
-  getSession,
+  loadSession,
   requestClaim,
   searchBuildings,
   type Building,
@@ -47,14 +47,16 @@ export default function ResidentVerifyPage() {
   const [unitValue, setUnitValue] = useState("");
 
   useEffect(() => {
-    if (!getSession()) {
-      router.replace("/resident/login");
-      return;
-    }
-
     let cancelled = false;
 
     const resolveCandidate = async () => {
+      const session = await loadSession();
+      if (cancelled) return;
+      if (!session) {
+        router.replace("/resident/login");
+        return;
+      }
+
       const activeCandidate = getActiveCandidate();
       const matchedCandidate =
         activeCandidate ?? (await automatch()).at(0) ?? null;

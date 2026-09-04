@@ -286,6 +286,7 @@
   justify-content: center;
   gap: 9px;
   cursor: pointer;
+  text-decoration: none;
   transition:
     transform 0.12s ease,
     filter 0.12s ease;

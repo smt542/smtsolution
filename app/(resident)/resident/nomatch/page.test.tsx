@@ -20,6 +20,7 @@ vi.mock("@/lib/resident/onboardingClient", () => ({
   automatch: vi.fn(),
   getActiveCandidate: vi.fn(),
   getSession: vi.fn(),
+  loadSession: vi.fn(),
   confirm: vi.fn().mockResolvedValue({ status: "linked" }),
   requestClaim: vi.fn().mockResolvedValue({ status: "pending" }),
   searchBuildings: vi.fn().mockResolvedValue([]),
@@ -42,6 +43,7 @@ const identity: KakaoIdentity = {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(client.getSession).mockReturnValue({ identity });
+  vi.mocked(client.loadSession).mockResolvedValue({ identity });
   vi.mocked(client.logout).mockResolvedValue(undefined);
 });
 

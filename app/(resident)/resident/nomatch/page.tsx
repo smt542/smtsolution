@@ -4,16 +4,17 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import OnboardingPageScaffold from "@/app/(resident)/_components/OnboardingPageScaffold";
-import { getSession, logout } from "@/lib/resident/onboardingClient";
+import { normalizePhone } from "@/lib/format";
+import { loadSession, logout } from "@/lib/resident/onboardingClient";
 
 import styles from "./nomatch.module.css";
 
 function maskPhone(phone: string): string {
-  const groups = phone.split("-");
-
-  if (groups.length < 3) return phone;
-
-  return `${groups[0]}-****-${groups[groups.length - 1]}`;
+  const normalized = normalizePhone(phone);
+  if (normalized.length >= 7) {
+    return `${normalized.slice(0, 3)}-****-${normalized.slice(-4)}`;
+  }
+  return normalized;
 }
 
 export default function ResidentNomatchPage() {
@@ -23,8 +24,8 @@ export default function ResidentNomatchPage() {
   useEffect(() => {
     let cancelled = false;
 
-    const loadSession = async () => {
-      const session = getSession();
+    const loadResidentSession = async () => {
+      const session = await loadSession();
 
       if (!session) {
         router.replace("/resident/login");
@@ -34,11 +35,15 @@ export default function ResidentNomatchPage() {
       await Promise.resolve();
 
       if (!cancelled) {
-        setMaskedPhone(maskPhone(session.identity.phone));
+        setMaskedPhone(
+          session.identity.phone
+            ? maskPhone(session.identity.phone)
+            : "연락처 미제공",
+        );
       }
     };
 
-    void loadSession();
+    void loadResidentSession();
 
     return () => {
       cancelled = true;

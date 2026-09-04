@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { automatch, getSession } from "@/lib/resident/onboardingClient";
+import { automatch, loadSession } from "@/lib/resident/onboardingClient";
 
 import styles from "./auth.module.css";
 
@@ -22,11 +22,6 @@ export default function ResidentAuthPage() {
   const [stepIndex, setStepIndex] = useState(0);
 
   useEffect(() => {
-    if (!getSession()) {
-      router.replace("/resident/login");
-      return;
-    }
-
     let cancelled = false;
     const timers: number[] = [];
     const wait = (milliseconds: number) =>
@@ -35,6 +30,13 @@ export default function ResidentAuthPage() {
       });
 
     const run = async () => {
+      const session = await loadSession();
+      if (cancelled) return;
+      if (!session) {
+        router.replace("/resident/login");
+        return;
+      }
+
       const candidatesPromise = automatch();
 
       await wait(900);

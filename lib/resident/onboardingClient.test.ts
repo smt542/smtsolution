@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const supabase = vi.hoisted(() => ({
   signOut: vi.fn(async () => ({ error: null })),
+  getUser: vi.fn(),
+  identityMaybeSingle: vi.fn(),
 }));
 
 vi.mock("@/hooks/reactquery/residentClaims", () => ({
@@ -14,7 +16,14 @@ vi.mock("@/hooks/reactquery/residentClaims", () => ({
 }));
 
 vi.mock("@/lib/supabase/client", () => ({
-  createClient: () => ({ auth: { signOut: supabase.signOut } }),
+  createClient: () => ({
+    auth: { signOut: supabase.signOut, getUser: supabase.getUser },
+    from: () => ({
+      select: () => ({
+        eq: () => ({ maybeSingle: supabase.identityMaybeSingle }),
+      }),
+    }),
+  }),
 }));
 
 import * as api from "@/hooks/reactquery/residentClaims";
@@ -26,6 +35,7 @@ import {
   getPendingInfo,
   getSession,
   kakaoStubLogin,
+  loadSession,
   logout,
   myLink,
   requestClaim,
@@ -56,6 +66,8 @@ beforeEach(async () => {
   vi.mocked(api.residentRequestClaim).mockResolvedValue(undefined);
   vi.mocked(api.residentMyLink).mockResolvedValue(null);
   vi.mocked(api.residentSearchBuildings).mockResolvedValue([]);
+  supabase.getUser.mockResolvedValue({ data: { user: null }, error: null });
+  supabase.identityMaybeSingle.mockResolvedValue({ data: null, error: null });
   await logout();
 });
 
@@ -73,6 +85,29 @@ describe("resident onboarding client", () => {
         kakaoId: loginResult.kakaoId,
         name: loginResult.name,
         phone: loginResult.phone,
+      },
+    });
+  });
+
+  it("rehydrates identity after the full-page OAuth callback", async () => {
+    supabase.getUser.mockResolvedValue({
+      data: { user: { id: "resident-user-2" } },
+      error: null,
+    });
+    supabase.identityMaybeSingle.mockResolvedValue({
+      data: {
+        kakao_id: "998877",
+        kakao_name: "OAuth Resident",
+        phone: null,
+      },
+      error: null,
+    });
+
+    await expect(loadSession()).resolves.toEqual({
+      identity: {
+        kakaoId: "998877",
+        name: "OAuth Resident",
+        phone: null,
       },
     });
   });
