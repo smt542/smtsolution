@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
 
+import {
+  checkLoginRateLimit,
+  getClientIp,
+  recordLoginFailure,
+  recordLoginSuccess,
+} from "@/lib/auth/loginRateLimit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const INVALID = "아이디 또는 비밀번호가 올바르지 않습니다.";
+const RATE_LIMITED = "너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도해 주세요.";
 const NO_ACCESS = "접근 권한이 없는 계정입니다.";
 const INACTIVE = "비활성화된 계정입니다. 관리자에게 문의해 주세요.";
 const SUSPENDED = "정지되었거나 사용할 수 없는 조직입니다.";
@@ -21,6 +28,16 @@ export async function POST(req: Request) {
   }
 
   const admin = createAdminClient();
+  const ip = getClientIp(req);
+
+  const rl = await checkLoginRateLimit(admin, { ip, username });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: RATE_LIMITED },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+    );
+  }
+
   const { data: profiles, error: profileError } = await admin
     .from("profiles")
     .select("user_id")
@@ -34,6 +51,7 @@ export async function POST(req: Request) {
     ...new Set((profiles ?? []).map((profile) => profile.user_id as string)),
   ];
   if (profileIds.length === 0) {
+    await recordLoginFailure(admin, { ip, username });
     return NextResponse.json({ error: INVALID }, { status: 401 });
   }
 
@@ -51,6 +69,7 @@ export async function POST(req: Request) {
     ...new Set((memberships ?? []).map((membership) => membership.user_id as string)),
   ];
   if (officeUserIds.length === 0) {
+    await recordLoginFailure(admin, { ip, username });
     return NextResponse.json({ error: INVALID }, { status: 401 });
   }
 
@@ -98,8 +117,10 @@ export async function POST(req: Request) {
     } catch {
       /* 감사 기록 실패는 로그인 성공을 막지 않는다. */
     }
+    await recordLoginSuccess(admin, { ip, username });
     return NextResponse.json(context);
   }
 
+  await recordLoginFailure(admin, { ip, username });
   return NextResponse.json({ error: INVALID }, { status: 401 });
 }

@@ -1,3 +1,4 @@
+import { requireOrgContext } from "@/lib/api/requireOrgContext";
 import { createClient } from "@/lib/supabase/server";
 import { rowsToXlsxBuffer } from "@/lib/export/xlsx";
 
@@ -14,6 +15,9 @@ export async function GET(request: Request) {
   const meter = p.get("meter") || null;
 
   const sb = await createClient();
+  const gate = await requireOrgContext(sb);
+  if (!gate.ok) return gate.response;
+
   const { data, error } = await sb.rpc("list_buildings", {
     p_search: p.get("search") || null,
     p_manager: p.get("manager") || null,
@@ -22,7 +26,10 @@ export async function GET(request: Request) {
     p_limit: 100000,
     p_offset: 0,
   });
-  if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+  if (error) {
+    console.error("buildings/export failed", error);
+    return Response.json({ error: "요청을 처리할 수 없습니다." }, { status: 500 });
+  }
 
   let rows = (data ?? []) as BuildingExportRow[];
   // 검침담당자 필터가 있으면 검침일(min_meter_day) 오름차순

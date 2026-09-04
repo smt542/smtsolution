@@ -49,8 +49,13 @@ function serverClient({
   const eq = vi.fn(() => ({ maybeSingle }));
   const select = vi.fn(() => ({ eq }));
   const from = vi.fn(() => ({ select }));
-  const rpc = vi.fn().mockResolvedValue({ data: rows, error: rpcError });
-  return { client: { from, rpc }, from, rpc, select, eq, maybeSingle };
+  const rpc = vi.fn().mockImplementation((name: string) =>
+    name === "get_my_context"
+      ? Promise.resolve({ data: [{ org_id: 10, role: "org_owner", permissions: [] }], error: null })
+      : Promise.resolve({ data: rows, error: rpcError }),
+  );
+  const getUser = vi.fn().mockResolvedValue({ data: { user: { id: "u-1" } }, error: null });
+  return { client: { from, rpc, auth: { getUser } }, from, rpc, select, eq, maybeSingle, getUser };
 }
 
 beforeEach(() => {
@@ -78,7 +83,7 @@ describe("GET /api/utilities/ledger", () => {
     const response = await GET(request("buildingId=3&utility=water&period=2026-08-01"));
 
     expect(response.status).toBe(403);
-    expect(server.rpc).not.toHaveBeenCalled();
+    expect(server.rpc).not.toHaveBeenCalledWith("list_utility_rows", expect.anything());
   });
 
   it("검침 RPC 결과를 11개 열의 xlsx 데이터로 매핑한다", async () => {
@@ -138,6 +143,6 @@ describe("GET /api/utilities/ledger", () => {
     const response = await GET(request("buildingId=3&utility=gas&period=2026-08-01"));
 
     expect(response.status).toBe(500);
-    await expect(response.json()).resolves.toEqual({ error: "조회 실패" });
+    await expect(response.json()).resolves.toEqual({ error: "요청을 처리할 수 없습니다." });
   });
 });

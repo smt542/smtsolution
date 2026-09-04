@@ -37,6 +37,12 @@ export async function POST(request: Request): Promise<Response> {
   }
   const { mode, body, context, templateId, recipients } = input;
 
+  // 한 요청의 수신자 수 상한(남용 방지). 클라이언트가 지정한 대상 배열은 상류에서 별도로
+  // 제한되지 않으므로, 접수/provider 액션 전에 과도한 배치를 거부한다.
+  if (Array.isArray(recipients) && recipients.length > 5000) {
+    return json({ error: "한 번에 최대 5000명까지 발송할 수 있습니다." }, 400);
+  }
+
   // 멱등 키 검증(접수/예약/provider 액션 전에 수행). 한 논리적 발송 시도를 식별한다.
   const idempotencyKey = request.headers.get("idempotency-key");
   if (!idempotencyKey) {
@@ -52,7 +58,10 @@ export async function POST(request: Request): Promise<Response> {
   const userId = userData.user.id;
 
   const { data: ctxData, error: ctxErr } = await sb.rpc("get_my_context");
-  if (ctxErr) return json({ error: ctxErr.message }, 500);
+  if (ctxErr) {
+    console.error("[messaging/send] get_my_context failed", ctxErr);
+    return json({ error: "요청을 처리할 수 없습니다." }, 500);
+  }
   const ctx = (Array.isArray(ctxData) ? ctxData[0] : ctxData) as
     | { org_id?: number; role?: string; permissions?: unknown }
     | null;
