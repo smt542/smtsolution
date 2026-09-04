@@ -61,6 +61,8 @@
   --shadow-pri: 0 8px 16px -6px rgba(20, 164, 151, 0.5);
   --shadow-card: 0 1px 3px rgba(23, 31, 40, 0.05);
   --shadow-pop: 0 22px 60px -20px rgba(23, 31, 40, 0.28);
+  --shadow-hf-btn: 0 6px 14px -4px rgba(20, 164, 151, 0.5); /* HQ console .hf-btn.pri (desktop primary button) */
+  --shadow-hf-modal: 0 30px 70px -20px rgba(0, 0, 0, 0.4); /* HQ console .modal */
 
   /* font (Pretendard 유지) */
   --font-sans: 'Pretendard Variable', 'Pretendard', -apple-system, system-ui, sans-serif;

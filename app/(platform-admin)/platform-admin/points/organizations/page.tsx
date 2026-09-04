@@ -449,7 +449,7 @@ function OrganizationPickerQueryModal({
       open
       onClose={onClose}
       title={title}
-      className="max-w-[440px] rounded-[20px] shadow-pop [&>h2]:text-[17px] [&>h2]:tracking-[-0.02em] [&>h2]:text-t1"
+      className="max-w-[440px] rounded-[20px] shadow-hf-modal [&>h2]:text-[17px] [&>h2]:tracking-[-0.02em] [&>h2]:text-t1"
     >
       {isError ? <QueryError onRetry={onRetry} /> : <Spinner />}
     </Modal>

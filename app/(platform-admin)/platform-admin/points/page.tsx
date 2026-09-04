@@ -222,7 +222,7 @@ export default function PlatformPointsPage() {
             type="button"
             onClick={() => setChargeModalOpen(true)}
             disabled={pickerUnavailable}
-            className="inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-[11px] border border-transparent bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-[0_6px_14px_-4px_rgba(20,164,151,0.5)] transition-colors hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-[11px] border border-transparent bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-hf-btn transition-colors hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-60"
           >
             충전 기록
           </button>
@@ -411,7 +411,7 @@ function OrganizationPickerQueryModal({
       open
       onClose={onClose}
       title="포인트 충전 기록"
-      className="max-w-[440px] rounded-[20px] shadow-pop [&>h2]:text-[17px] [&>h2]:tracking-[-0.02em] [&>h2]:text-t1"
+      className="max-w-[440px] rounded-[20px] shadow-hf-modal [&>h2]:text-[17px] [&>h2]:tracking-[-0.02em] [&>h2]:text-t1"
     >
       {isError ? <QueryError onRetry={onRetry} /> : <Spinner />}
     </Modal>

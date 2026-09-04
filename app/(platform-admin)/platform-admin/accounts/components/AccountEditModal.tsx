@@ -111,7 +111,7 @@ export function AccountEditModal({ account, onClose, onSubmit, isPending }: Prop
           <button
             type="submit"
             disabled={isPending}
-            className="h-10 rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-pri hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
+            className="h-10 rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-hf-btn hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isPending ? "저장 중…" : "저장"}
           </button>

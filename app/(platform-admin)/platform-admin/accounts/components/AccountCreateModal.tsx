@@ -191,7 +191,7 @@ export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props
           <button
             type="submit"
             disabled={isPending || organizations.length === 0}
-            className="h-10 rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-pri hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
+            className="h-10 rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-hf-btn hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isPending ? "발급 중…" : "계정 발급"}
           </button>
