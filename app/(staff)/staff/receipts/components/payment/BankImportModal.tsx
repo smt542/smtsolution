@@ -17,6 +17,7 @@ import {
 } from "@/lib/payments/bankParse";
 import {
   matchDeposits,
+  resolveMatch,
   type MatchedDeposit,
   type MatchUnit,
 } from "@/lib/payments/match";
@@ -119,13 +120,7 @@ export function BankImportModal({
     () => automaticResult.unmatched.flatMap((deposit) => {
       const unit = unitById.get(manualAssignments[deposit.rowIndex]);
       if (!unit) return [];
-      return [{
-        deposit,
-        unitId: unit.unitId,
-        unitNo: unit.unitNo,
-        unpaid: unit.unpaid,
-        delta: unit.unpaid == null ? null : deposit.amount - unit.unpaid,
-      }];
+      return [resolveMatch(deposit, unit)];
     }),
     [automaticResult.unmatched, manualAssignments, unitById],
   );
@@ -147,6 +142,8 @@ export function BankImportModal({
     [automaticResult.matched, bankPayments, manuallyMatched],
   );
   const duplicateCount = matched.filter((item) => item.isDuplicate).length;
+  // 초과 입금(입금액 > 미납): 자동 수납에서 제외하고 수동 검토 대상으로만 표시(음수 미납 방지).
+  const overpayCount = matched.filter((item) => item.overpay).length;
   const selectedCount = matched.filter(
     (item) => checkedRowIndexes.has(item.deposit.rowIndex),
   ).length;
@@ -180,22 +177,25 @@ export function BankImportModal({
   };
 
   const openPreview = () => {
+    // 초과 입금·중복은 자동 선택하지 않음 → 운영자가 명시적으로 검토/확정.
     setCheckedRowIndexes(new Set(
       matched
-        .filter((item) => !item.isDuplicate)
+        .filter((item) => !item.isDuplicate && !item.overpay)
         .map((item) => item.deposit.rowIndex),
     ));
     setStage("preview");
   };
 
   const assignUnit = (deposit: Deposit, unitId: number) => {
+    const unit = unitById.get(unitId);
     const isDuplicate = bankPayments.some(
       (payment) => payment.unitId === unitId
         && payment.amount === deposit.amount
         && payment.paidAt === deposit.paidAt,
     );
+    const isOverpay = unit?.unpaid != null && deposit.amount > unit.unpaid;
     setManualAssignments((current) => ({ ...current, [deposit.rowIndex]: unitId }));
-    if (!isDuplicate) {
+    if (!isDuplicate && !isOverpay) {
       setCheckedRowIndexes((current) => new Set(current).add(deposit.rowIndex));
     }
   };
@@ -212,18 +212,25 @@ export function BankImportModal({
   const confirmPayments = async () => {
     const selected = matched.filter((item) => checkedRowIndexes.has(item.deposit.rowIndex));
     if (selected.length === 0 || recordBankPayments.isPending) return;
+    // 초과분은 미납액까지만 기록(postAmount) — 음수 미납이 생기지 않도록 클램프.
+    const clampedCount = selected.filter((item) => item.overpay).length;
     try {
-      await recordBankPayments.mutateAsync({
+      const { recorded, duplicate } = await recordBankPayments.mutateAsync({
         buildingId,
         period,
         entries: selected.map((item) => ({
           unitId: item.unitId,
-          amount: item.deposit.amount,
+          amount: item.postAmount,
           paidAt: item.deposit.paidAt,
           memo: item.deposit.name,
         })),
       });
-      toast.success(`${selected.length}건 수납 처리`);
+      const notes: string[] = [];
+      if (duplicate > 0) notes.push(`중복 ${duplicate}건 제외`);
+      if (clampedCount > 0) notes.push(`초과 ${clampedCount}건 미납액까지만 반영`);
+      toast.success(
+        `${recorded}건 수납 처리${notes.length ? ` (${notes.join(" · ")})` : ""}`,
+      );
       onClose();
     } catch (error) {
       toast.error(errorMessage(error));
@@ -328,7 +335,7 @@ export function BankImportModal({
 
         {stage === "preview" && (
           <>
-            <section className="grid gap-3 sm:grid-cols-3" aria-label="입금 매칭 요약">
+            <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="입금 매칭 요약">
               <div className="rounded-xl bg-green-t px-4 py-3">
                 <p className="text-xs font-bold text-green">매칭</p>
                 <p className="mt-1 text-xl font-extrabold text-t1">{matched.length}건</p>
@@ -340,6 +347,10 @@ export function BankImportModal({
               <div className="rounded-xl bg-blue-t px-4 py-3">
                 <p className="text-xs font-bold text-blue">중복</p>
                 <p className="mt-1 text-xl font-extrabold text-t1">{duplicateCount}건</p>
+              </div>
+              <div className="rounded-xl bg-amber-t px-4 py-3">
+                <p className="text-xs font-bold text-amber">초과(수동 검토)</p>
+                <p className="mt-1 text-xl font-extrabold text-t1">{overpayCount}건</p>
               </div>
             </section>
 
@@ -383,6 +394,10 @@ export function BankImportModal({
                           <td className="px-3 py-3">
                             {item.isDuplicate ? (
                               <Badge className="bg-amber-t px-2 py-1 text-amber">중복</Badge>
+                            ) : item.overpay ? (
+                              <span title={`초과분은 미납액(${money(item.unpaid)})까지만 반영됩니다`}>
+                                <Badge className="bg-amber-t px-2 py-1 text-amber">초과 · 검토</Badge>
+                              </span>
                             ) : (
                               <span className="text-t4">-</span>
                             )}

@@ -180,7 +180,10 @@ const UtilityRow = memo(function UtilityRow({
   const movingOut = row.occupancyStatus === "moving_out";
   const recent = !vacant && isNewOccupancy(row.moveInDate, referenceDate);
   const usage = usageFor(row, draft);
-  const invalidUsage = row.fixedUsage === null && usage !== null && usage < 0;
+  // Server-authoritative review flag (persisted negative usage) OR a live-edited
+  // negative delta. row.needsReview reflects the saved reading; the local check
+  // covers unsaved edits before the next save round-trips.
+  const invalidUsage = row.needsReview || (row.fixedUsage === null && usage !== null && usage < 0);
   const unitPrice = row.unitPrice ?? row.resolvedUnitPrice;
   const manual = parseNumber(draft.manualCharge);
   const charge = manual ?? row.automaticCharge;
