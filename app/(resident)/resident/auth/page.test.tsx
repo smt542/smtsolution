@@ -19,6 +19,7 @@ vi.mock("@/lib/resident/onboardingClient", () => ({
   automatch: vi.fn(),
   getActiveCandidate: vi.fn(),
   getSession: vi.fn(),
+  loadSession: vi.fn(),
   confirm: vi.fn().mockResolvedValue({ status: "linked" }),
   requestClaim: vi.fn().mockResolvedValue({ status: "pending" }),
   searchBuildings: vi.fn().mockResolvedValue([]),
@@ -50,6 +51,7 @@ beforeEach(() => {
   vi.useFakeTimers();
   vi.clearAllMocks();
   vi.mocked(client.getSession).mockReturnValue(null);
+  vi.mocked(client.loadSession).mockResolvedValue(null);
   vi.mocked(client.automatch).mockResolvedValue([]);
 });
 
@@ -58,8 +60,12 @@ afterEach(() => {
 });
 
 describe("ResidentAuthPage", () => {
-  it("redirects to login without a session", () => {
+  it("redirects to login without a session", async () => {
     render(<ResidentAuthPage />);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
 
     expect(nav.replace).toHaveBeenCalledWith("/resident/login");
     expect(client.automatch).not.toHaveBeenCalled();
@@ -67,6 +73,7 @@ describe("ResidentAuthPage", () => {
 
   it("routes a matched session to household verification", async () => {
     vi.mocked(client.getSession).mockReturnValue({ identity });
+    vi.mocked(client.loadSession).mockResolvedValue({ identity });
     vi.mocked(client.automatch).mockResolvedValue([candidate]);
     render(<ResidentAuthPage />);
 
@@ -80,6 +87,7 @@ describe("ResidentAuthPage", () => {
 
   it("routes an unmatched session to the no-match screen", async () => {
     vi.mocked(client.getSession).mockReturnValue({ identity });
+    vi.mocked(client.loadSession).mockResolvedValue({ identity });
     vi.mocked(client.automatch).mockResolvedValue([]);
     render(<ResidentAuthPage />);
 

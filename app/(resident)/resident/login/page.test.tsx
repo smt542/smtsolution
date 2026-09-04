@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const nav = vi.hoisted(() => {
   const push = vi.fn();
@@ -32,9 +32,20 @@ import * as client from "@/lib/resident/onboardingClient";
 
 import ResidentLoginPage from "./page";
 
+const originalKakaoLoginFlag = process.env.NEXT_PUBLIC_KAKAO_LOGIN_ENABLED;
+
 beforeEach(() => {
   vi.clearAllMocks();
+  delete process.env.NEXT_PUBLIC_KAKAO_LOGIN_ENABLED;
   vi.mocked(client.kakaoStubLogin).mockResolvedValue({ ok: true });
+});
+
+afterAll(() => {
+  if (originalKakaoLoginFlag === undefined) {
+    delete process.env.NEXT_PUBLIC_KAKAO_LOGIN_ENABLED;
+  } else {
+    process.env.NEXT_PUBLIC_KAKAO_LOGIN_ENABLED = originalKakaoLoginFlag;
+  }
 });
 
 describe("ResidentLoginPage", () => {
@@ -59,5 +70,15 @@ describe("ResidentLoginPage", () => {
       expect(client.kakaoStubLogin).toHaveBeenCalledOnce();
       expect(nav.push).toHaveBeenCalledWith("/resident/auth");
     });
+  });
+
+  it("uses a full-page OAuth link when real Kakao login is enabled", () => {
+    process.env.NEXT_PUBLIC_KAKAO_LOGIN_ENABLED = "true";
+    render(<ResidentLoginPage />);
+
+    expect(
+      screen.getByRole("link", { name: "카카오톡으로 3초 만에 시작" }),
+    ).toHaveAttribute("href", "/api/resident/kakao/login");
+    expect(client.kakaoStubLogin).not.toHaveBeenCalled();
   });
 });

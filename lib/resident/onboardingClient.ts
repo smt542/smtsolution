@@ -24,7 +24,7 @@ import {
 export type KakaoIdentity = {
   kakaoId: string;
   name: string;
-  phone: string;
+  phone: string | null;
 };
 
 // Trimmed to what O1 `resident_automatch` actually returns (building + unit + ids).
@@ -73,7 +73,7 @@ export async function kakaoStubLogin(
   const result = await stubResidentKakaoLogin({
     kakaoId: input.kakaoId,
     name: input.name,
-    phone: input.phone,
+    phone: input.phone ?? undefined,
   });
 
   identity = {
@@ -164,6 +164,32 @@ export async function searchBuildings(query: string): Promise<Building[]> {
 // real Kakao OAuth.
 export function getSession(): { identity: KakaoIdentity } | null {
   return identity ? { identity } : null;
+}
+
+// A real OAuth callback performs a full-page navigation, so module state is
+// empty on arrival. Rehydrate the identity from the authenticated Supabase
+// session while keeping the synchronous stub path available for local tests.
+export async function loadSession(): Promise<{ identity: KakaoIdentity } | null> {
+  const current = getSession();
+  if (current) return current;
+
+  const supabase = createClient();
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) return null;
+
+  const { data: residentIdentity, error: identityError } = await supabase
+    .from("resident_identities")
+    .select("kakao_id,kakao_name,phone")
+    .eq("user_id", userData.user.id)
+    .maybeSingle();
+  if (identityError || !residentIdentity) return null;
+
+  identity = {
+    kakaoId: residentIdentity.kakao_id,
+    name: residentIdentity.kakao_name ?? "",
+    phone: residentIdentity.phone,
+  };
+  return { identity };
 }
 
 export function getPendingInfo(): PendingInfo | null {

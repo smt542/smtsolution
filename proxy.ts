@@ -10,6 +10,8 @@ export async function proxy(request: NextRequest) {
   const isPlatformAdminLogin = pathname === "/platform-admin/login";
   const isPartner = pathname.startsWith("/partner");
   const isPartnerLogin = pathname === "/partner/mobile-login";
+  const isResident = pathname.startsWith("/resident");
+  const isResidentLogin = pathname === "/resident/login";
 
   if ((isStaff && !isLogin) && !user) {
     const url = request.nextUrl.clone();
@@ -38,6 +40,13 @@ export async function proxy(request: NextRequest) {
     url.pathname = "/partner/mobile-home";
     return NextResponse.redirect(url);
   }
+  // 세입자앱 서버측 가드(클라 useResidentGuard와 동일 정책의 심층방어).
+  // /resident/login만 공개. 공개 토큰 상세(/r/*)는 이 matcher 밖이라 영향 없음.
+  if (isResident && !isResidentLogin && !user) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/resident/login";
+    return NextResponse.redirect(url);
+  }
   if (isLogin && user) {
     const url = request.nextUrl.clone();
     url.pathname = "/staff";
@@ -47,5 +56,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/staff/:path*", "/platform-admin/:path*", "/partner/:path*"],
+  matcher: ["/staff/:path*", "/platform-admin/:path*", "/partner/:path*", "/resident/:path*"],
 };
