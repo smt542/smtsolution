@@ -2,6 +2,7 @@ import type {
   CustomerNumberLookupKind,
   CustomerNumberLookupRow,
 } from "@/hooks/reactquery/buildingCustomerNumbers";
+import { requireOrgContext } from "@/lib/api/requireOrgContext";
 import { rowsToXlsxBuffer } from "@/lib/export/xlsx";
 import { createClient } from "@/lib/supabase/server";
 import { buildCustomerNumberWorkbookData } from "./workbook";
@@ -36,6 +37,9 @@ export async function GET(request: Request) {
 
   const query = params.get("q")?.trim();
   const sb = await createClient();
+  const gate = await requireOrgContext(sb);
+  if (!gate.ok) return gate.response;
+
   const { data, error } = await sb.rpc("list_customer_number_lookup", {
     p_kind: kind,
     p_query: query || null,
@@ -43,7 +47,8 @@ export async function GET(request: Request) {
     p_offset: 0,
   });
   if (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error("customer-numbers/export failed", error);
+    return Response.json({ error: "요청을 처리할 수 없습니다." }, { status: 500 });
   }
 
   const rows = ((data ?? []) as CustomerNumberDbRow[]).map<CustomerNumberLookupRow>((row) => ({

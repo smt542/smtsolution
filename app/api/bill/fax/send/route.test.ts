@@ -52,7 +52,7 @@ function req(body: unknown): Request {
   });
 }
 
-const doc = { faxNumber: "02-333-4444", householdName: "홍길동", building: { name: "그린빌라" } };
+const doc = { orgId: 10, faxNumber: "02-333-4444", householdName: "홍길동", building: { name: "그린빌라" } };
 
 beforeEach(() => {
   getUser.mockResolvedValue({ data: { user: { id: "u-1" } }, error: null });

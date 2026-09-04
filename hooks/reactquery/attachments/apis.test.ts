@@ -26,7 +26,11 @@ describe("attachments apis", () => {
     const file = new File(["c"], "x.pdf", { type: "application/pdf" });
     const r = await uploadAttachment({ entityType: "building_vendor", entityId: 7, orgId: 9, kind: "contract", file });
 
-    expect(uploadMock).toHaveBeenCalledWith(expect.stringMatching(/^9\/building_vendor\/7\//), file);
+    expect(uploadMock).toHaveBeenCalledWith(
+      expect.stringMatching(/^9\/building_vendor\/7\//),
+      file,
+      { contentType: "application/pdf", upsert: false },
+    );
     expect(r).toMatchObject({ id: 10, entityType: "building_vendor", entityId: 7, kind: "contract" });
   });
 

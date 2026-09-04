@@ -38,7 +38,10 @@ export async function POST(request: Request): Promise<Response> {
   if (!userData?.user) return json({ error: "unauthenticated" }, 401);
 
   const { data: ctxData, error: ctxErr } = await sb.rpc("get_my_context");
-  if (ctxErr) return json({ error: ctxErr.message }, 500);
+  if (ctxErr) {
+    console.error("[setup/sender] get_my_context failed", ctxErr);
+    return json({ error: "요청을 처리할 수 없습니다." }, 500);
+  }
   const ctx = (Array.isArray(ctxData) ? ctxData[0] : ctxData) as
     | { org_id?: number; role?: string; permissions?: unknown }
     | null;
@@ -71,7 +74,10 @@ export async function POST(request: Request): Promise<Response> {
     },
     { onConflict: "org_id" },
   );
-  if (error) return json({ error: error.message }, 500);
+  if (error) {
+    console.error("[setup/sender] setup_config upsert failed", error);
+    return json({ error: "요청을 처리할 수 없습니다." }, 500);
+  }
 
   return json({ product: input.product, number: number || null, verifiedAt });
 }

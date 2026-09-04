@@ -47,13 +47,19 @@ export async function POST(request: Request): Promise<Response> {
   }
   const billIssueIds = Array.isArray(input.billIssueIds) ? input.billIssueIds : [];
   if (billIssueIds.length === 0) return json({ error: "no bill issues" }, 400);
+  if (billIssueIds.length > 500) {
+    return json({ error: "한 번에 최대 500건까지 전송할 수 있습니다." }, 400);
+  }
 
   const sb = await createClient();
   const { data: userData } = await sb.auth.getUser();
   if (!userData?.user) return json({ error: "unauthenticated" }, 401);
 
   const { data: ctxData, error: ctxErr } = await sb.rpc("get_my_context");
-  if (ctxErr) return json({ error: ctxErr.message }, 500);
+  if (ctxErr) {
+    console.error("[bill/fax/send] get_my_context failed", ctxErr);
+    return json({ error: "요청을 처리할 수 없습니다." }, 500);
+  }
   const ctx = (Array.isArray(ctxData) ? ctxData[0] : ctxData) as
     | { org_id?: number; role?: string; permissions?: unknown }
     | null;
@@ -72,7 +78,10 @@ export async function POST(request: Request): Promise<Response> {
     .select("fax_sender")
     .eq("org_id", ctx.org_id)
     .maybeSingle();
-  if (setupConfigError) return json({ error: setupConfigError.message }, 500);
+  if (setupConfigError) {
+    console.error("[bill/fax/send] setup_config load failed", setupConfigError);
+    return json({ error: "요청을 처리할 수 없습니다." }, 500);
+  }
   const envConfig = readPopbillConfig();
   const orgFaxSender = (setupConfig as { fax_sender?: string | null } | null)?.fax_sender;
   const effectiveConfig = {
@@ -98,6 +107,14 @@ export async function POST(request: Request): Promise<Response> {
     if (!doc.faxNumber) {
       failed += 1;
       results.push({ billIssueId, status: "no_fax_number" });
+      continue;
+    }
+    // 라우트 계층 조직 경계 방어(심층 방어). create_fax_dispatch_job은 service_role로
+    // p_bill_issue_id만 받아 RLS를 우회하므로, admin 클라이언트로 job을 만들기 전에
+    // 로드된 문서의 org가 호출자 org와 일치하는지 확인한다(불일치 시 job 생성 없이 스킵).
+    if (doc.orgId !== ctx.org_id) {
+      skipped += 1;
+      results.push({ billIssueId, status: "forbidden" });
       continue;
     }
 

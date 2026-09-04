@@ -1,5 +1,12 @@
 import { NextResponse } from "next/server";
 
+import {
+  checkLoginRateLimit,
+  equalizeLoginTiming,
+  getClientIp,
+  recordLoginFailure,
+  recordLoginSuccess,
+} from "@/lib/auth/loginRateLimit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -7,11 +14,20 @@ import { createClient } from "@/lib/supabase/server";
 const FIELD_TYPES = ["field_staff", "support_staff"];
 
 const INVALID = "아이디 또는 비밀번호가 올바르지 않습니다.";
+const RATE_LIMITED = "너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도해 주세요.";
 
 // 파트너 로그인은 회사코드 없이 아이디+비밀번호만 받는다(명세). username은 org 내에서만
 // 유일하므로, 서비스롤로 동일 아이디의 현장 계정 후보를 찾아 실제 이메일로 로그인한다.
 // 후보가 여럿(다른 org에 같은 아이디)이면 비밀번호가 맞는 계정에서 세션이 성립한다.
 export async function POST(req: Request) {
+  const startedAt = Date.now();
+  const res = await handlePost(req);
+  // 실패(401) 응답만 타이밍 평탄화 — 아이디 존재 여부 오라클 완화
+  if (res.status === 401) await equalizeLoginTiming(startedAt);
+  return res;
+}
+
+async function handlePost(req: Request) {
   const body = (await req.json().catch(() => null)) as
     | { username?: unknown; password?: unknown }
     | null;
@@ -22,6 +38,15 @@ export async function POST(req: Request) {
   }
 
   const admin = createAdminClient();
+  const ip = getClientIp(req);
+
+  const rl = await checkLoginRateLimit(admin, { ip, username });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: RATE_LIMITED },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+    );
+  }
 
   // 1) 아이디 → 활성 프로필
   const { data: profiles, error: profErr } = await admin
@@ -33,6 +58,7 @@ export async function POST(req: Request) {
   }
   const activeIds = (profiles ?? []).filter((p) => p.is_active).map((p) => p.user_id as string);
   if (activeIds.length === 0) {
+    await recordLoginFailure(admin, { ip, username });
     return NextResponse.json({ error: INVALID }, { status: 401 });
   }
 
@@ -47,6 +73,7 @@ export async function POST(req: Request) {
   }
   const fieldIds = [...new Set((members ?? []).map((m) => m.user_id as string))];
   if (fieldIds.length === 0) {
+    await recordLoginFailure(admin, { ip, username });
     return NextResponse.json({ error: INVALID }, { status: 401 });
   }
 
@@ -61,9 +88,11 @@ export async function POST(req: Request) {
       password,
     });
     if (!signErr && sess.session) {
+      await recordLoginSuccess(admin, { ip, username });
       return NextResponse.json({ userId: uid });
     }
   }
 
+  await recordLoginFailure(admin, { ip, username });
   return NextResponse.json({ error: INVALID }, { status: 401 });
 }

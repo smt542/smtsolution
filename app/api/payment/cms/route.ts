@@ -1,3 +1,4 @@
+import { requireOrgContext } from "@/lib/api/requireOrgContext";
 import { rowsToXlsxBuffer } from "@/lib/export/xlsx";
 import { createClient } from "@/lib/supabase/server";
 
@@ -24,16 +25,25 @@ export async function GET(request: Request) {
   }
 
   const sb = await createClient();
+  const gate = await requireOrgContext(sb);
+  if (!gate.ok) return gate.response;
+
   const { data: building, error: buildingError } = await sb
     .from("buildings").select("name").eq("id", buildingId).maybeSingle();
-  if (buildingError) return Response.json({ error: buildingError.message }, { status: 500 });
+  if (buildingError) {
+    console.error("payment/cms building lookup failed", buildingError);
+    return Response.json({ error: "요청을 처리할 수 없습니다." }, { status: 500 });
+  }
   if (!building) return Response.json({ error: "forbidden" }, { status: 403 });
 
   const { data, error } = await sb.rpc("list_cms_debit_rows", {
     p_building_id: buildingId,
     p_period: period,
   });
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("payment/cms failed", error);
+    return Response.json({ error: "요청을 처리할 수 없습니다." }, { status: 500 });
+  }
 
   const table = ((data ?? []) as CmsDebitRpcRow[]).map((r) => ({
     cmsMemberNo: r.cms_member_no,

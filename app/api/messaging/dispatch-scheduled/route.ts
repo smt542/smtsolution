@@ -35,7 +35,10 @@ export async function POST(request: Request): Promise<Response> {
     if (!userData?.user) return json({ error: "unauthorized" }, 401);
 
     const { data: contextData, error: contextError } = await supabase.rpc("get_my_context");
-    if (contextError) return json({ error: contextError.message }, 500);
+    if (contextError) {
+      console.error("[messaging/dispatch-scheduled] get_my_context failed", contextError);
+      return json({ error: "요청을 처리할 수 없습니다." }, 500);
+    }
     const context = (Array.isArray(contextData) ? contextData[0] : contextData) as
       | { org_id?: number; role?: string; permissions?: unknown }
       | null;

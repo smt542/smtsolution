@@ -1,4 +1,5 @@
 // app/api/buildings/[id]/tenant-cards/route.ts
+import { requireOrgContext } from "@/lib/api/requireOrgContext";
 import { createClient } from "@/lib/supabase/server";
 import { rowsToXlsxBuffer } from "@/lib/export/xlsx";
 
@@ -15,8 +16,17 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
   const { id } = await ctx.params;
   const buildingId = Number(id);
   const sb = await createClient();
+  const gate = await requireOrgContext(sb);
+  if (!gate.ok) return gate.response;
+  if (!Number.isSafeInteger(buildingId) || buildingId <= 0) {
+    return Response.json({ error: "invalid building id" }, { status: 400 });
+  }
+
   const { data, error } = await sb.rpc("list_tenants", { p_building_id: buildingId });
-  if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+  if (error) {
+    console.error("buildings/[id]/tenant-cards failed", error);
+    return Response.json({ error: "요청을 처리할 수 없습니다." }, { status: 500 });
+  }
 
   const table = ((data ?? []) as TenantCardRow[]).map((r) => ({
     unitNo: r.unit_no,

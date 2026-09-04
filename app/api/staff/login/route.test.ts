@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   signInWithPassword: vi.fn(),
   signOut: vi.fn(),
   rpc: vi.fn(),
+  adminRpc: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/admin", () => ({
@@ -70,6 +71,13 @@ beforeEach(() => {
   mocks.createAdminClient.mockReturnValue({
     from: mocks.from,
     auth: { admin: { getUserById: mocks.getUserById } },
+    rpc: mocks.adminRpc,
+  });
+  mocks.adminRpc.mockImplementation((name: string) => {
+    if (name === "login_rate_limit_hit") {
+      return Promise.resolve({ data: [{ allowed: true, retry_after_seconds: 0 }], error: null });
+    }
+    throw new Error(`Unexpected admin RPC: ${name}`);
   });
   mocks.createClient.mockResolvedValue({
     auth: {

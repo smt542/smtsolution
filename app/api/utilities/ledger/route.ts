@@ -1,3 +1,4 @@
+import { requireOrgContext } from "@/lib/api/requireOrgContext";
 import { rowsToXlsxBuffer } from "@/lib/export/xlsx";
 import { createClient } from "@/lib/supabase/server";
 
@@ -45,6 +46,9 @@ export async function GET(request: Request) {
   }
 
   const sb = await createClient();
+  const gate = await requireOrgContext(sb);
+  if (!gate.ok) return gate.response;
+
   const { data: building, error: buildingError } = await sb
     .from("buildings")
     .select("name")
@@ -52,7 +56,8 @@ export async function GET(request: Request) {
     .maybeSingle();
 
   if (buildingError) {
-    return Response.json({ error: buildingError.message }, { status: 500 });
+    console.error("utilities/ledger building lookup failed", buildingError);
+    return Response.json({ error: "요청을 처리할 수 없습니다." }, { status: 500 });
   }
   if (!building) {
     return Response.json({ error: "forbidden" }, { status: 403 });
@@ -64,7 +69,8 @@ export async function GET(request: Request) {
     p_period: period,
   });
   if (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error("utilities/ledger failed", error);
+    return Response.json({ error: "요청을 처리할 수 없습니다." }, { status: 500 });
   }
 
   const table = ((data ?? []) as UtilityLedgerRpcRow[]).map((row) => ({

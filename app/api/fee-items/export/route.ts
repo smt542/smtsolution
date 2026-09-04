@@ -1,4 +1,5 @@
 import type { FeeItemLookupRow } from "@/hooks/reactquery/feeItems";
+import { requireOrgContext } from "@/lib/api/requireOrgContext";
 import { rowsToXlsxBuffer } from "@/lib/export/xlsx";
 import { createClient } from "@/lib/supabase/server";
 import { buildFeeItemWorkbookData } from "./workbook";
@@ -29,6 +30,9 @@ export async function GET(request: Request) {
   }
 
   const sb = await createClient();
+  const gate = await requireOrgContext(sb);
+  if (!gate.ok) return gate.response;
+
   let query = sb
     .from("fee_items")
     .select(
@@ -43,7 +47,8 @@ export async function GET(request: Request) {
 
   const { data, error } = await query.order("type_id").order("sort_order");
   if (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error("fee-items/export failed", error);
+    return Response.json({ error: "요청을 처리할 수 없습니다." }, { status: 500 });
   }
 
   const rows = ((data ?? []) as unknown as FeeItemDbRow[]).map<FeeItemLookupRow>((row) => ({
