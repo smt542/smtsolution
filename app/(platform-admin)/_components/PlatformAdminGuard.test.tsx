@@ -6,6 +6,12 @@ vi.mock("@/hooks/reactquery/auth", () => ({ useMe: () => useMe() }));
 vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: React.ReactNode }) => <a href={href}>{children}</a>,
 }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
+}));
+vi.mock("@/lib/supabase/client", () => ({
+  createClient: () => ({ auth: { signOut: vi.fn().mockResolvedValue({ error: null }) } }),
+}));
 
 import { PlatformAdminGuard } from "./PlatformAdminGuard";
 
@@ -45,7 +51,7 @@ describe("PlatformAdminGuard", () => {
     expect(screen.getByRole("link", { name: "직원 화면으로 돌아가기" })).toHaveAttribute("href", "/staff");
   });
 
-  it("인증 컨텍스트가 없으면 HQ 로그인 링크를 표시한다", () => {
+  it("인증 컨텍스트가 없으면 세션 정리 후 이동하는 HQ 로그인 버튼을 표시한다", () => {
     useMe.mockReturnValue({
       data: null,
       isPending: false,
@@ -53,9 +59,7 @@ describe("PlatformAdminGuard", () => {
       refetch: vi.fn(),
     });
     render(<PlatformAdminGuard><div>플랫폼 콘텐츠</div></PlatformAdminGuard>);
-    expect(screen.getByRole("link", { name: "로그인으로 이동" })).toHaveAttribute(
-      "href",
-      "/platform-admin/login",
-    );
+    expect(screen.queryByText("플랫폼 콘텐츠")).toBeNull();
+    expect(screen.getByRole("button", { name: "로그인으로 이동" })).toBeInTheDocument();
   });
 });
