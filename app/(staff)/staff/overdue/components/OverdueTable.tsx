@@ -57,7 +57,7 @@ function buildGroups(rows: OverdueHousehold[], periods: OverduePeriodRow[]): Hou
         })
       : [{
           key: `${household.occupancyId}:aggregate`,
-          period: "—",
+          period: "-",
           months: household.overdueMonths,
           principal: household.overdueAmount,
           lateFee: household.lateFeeAmount ?? 0,
@@ -148,7 +148,7 @@ export function OverdueTable({ rows, periods = [], onRowClick }: OverdueTablePro
                 >
                   <td className="border-b border-line2 px-[16px] font-medium">{index === 0 ? unit : ""}</td>
                   <td className="border-b border-line2 px-[16px]">{index === 0 ? group.household.buildingName : ""}</td>
-                  <td className="border-b border-line2 px-[16px] num">{line.period === "—" ? "—" : formatPeriod(line.period)}</td>
+                  <td className="border-b border-line2 px-[16px] num">{line.period === "-" ? "-" : formatPeriod(line.period)}</td>
                   <td className="border-b border-line2 px-[16px] text-right num">{line.months}</td>
                   <td className="border-b border-line2 px-[16px] text-right num">{money.format(line.principal)}</td>
                   <td className="border-b border-line2 px-[16px] text-right num">{money.format(line.lateFee)}</td>

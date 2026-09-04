@@ -149,9 +149,9 @@ function BuildingDetailInner() {
             <div className={styles.sec}>
               <Row label="건물 코드">{building.code}</Row>
               <Row label="건물명">{building.name}</Row>
-              <Row label="건물 유형">{building.building_type ?? "—"}</Row>
-              <Row label="건물 주소">{building.address ?? "—"}</Row>
-              <Row label="공동현관">{building.entrance_password ?? "—"}</Row>
+              <Row label="건물 유형">{building.building_type ?? "-"}</Row>
+              <Row label="건물 주소">{building.address ?? "-"}</Row>
+              <Row label="공동현관">{building.entrance_password ?? "-"}</Row>
               {building.memo && <Row label="메모">{building.memo}</Row>}
             </div>
 
@@ -175,11 +175,11 @@ function BuildingDetailInner() {
 
             <div className={styles.sectionTitle}>건물주 정보</div>
             <div className={styles.sec}>
-              <Row label="건물주명">{building.owner_name ?? "—"}</Row>
+              <Row label="건물주명">{building.owner_name ?? "-"}</Row>
               <div className={styles.row}>
                 <span className={styles.rowLabel}>전화번호</span>
                 <b className={styles.rowValue}>
-                  {building.owner_phone ? <PartnerPhoneLink phone={building.owner_phone} /> : "—"}
+                  {building.owner_phone ? <PartnerPhoneLink phone={building.owner_phone} /> : "-"}
                 </b>
               </div>
             </div>

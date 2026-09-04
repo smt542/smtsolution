@@ -1,8 +1,8 @@
 /**
  * 날짜·기간 표시 포맷.
  *
- * 화면마다 기존 출력이 달라(dot `2024.01.15` vs Intl `2024. 01. 15.`, 널 표기 "—"/"-"/"")
- * 스타일별 함수 + nullText 옵션으로 그대로 재현한다. 기본 널 표기는 "—".
+ * 화면마다 기존 출력이 달라(dot `2024.01.15` vs Intl `2024. 01. 15.`, 널 표기 "-"/"")
+ * 스타일별 함수 + nullText 옵션으로 그대로 재현한다. 기본 널 표기는 "-"(하이픈).
  */
 
 /** ISO 날짜 → `2024.01.15` (dot, 앞 10자). */
@@ -10,7 +10,7 @@ export function formatDate(
   value: string | null | undefined,
   opts: { nullText?: string } = {},
 ): string {
-  if (!value) return opts.nullText ?? "—";
+  if (!value) return opts.nullText ?? "-";
   return value.slice(0, 10).replaceAll("-", ".");
 }
 
@@ -19,7 +19,7 @@ export function formatMonth(
   value: string | null | undefined,
   opts: { nullText?: string } = {},
 ): string {
-  if (!value) return opts.nullText ?? "—";
+  if (!value) return opts.nullText ?? "-";
   return value.slice(0, 7).replaceAll("-", ".");
 }
 
@@ -28,7 +28,7 @@ export function formatDateIntl(
   value: string | null | undefined,
   opts: { nullText?: string } = {},
 ): string {
-  if (!value) return opts.nullText ?? "—";
+  if (!value) return opts.nullText ?? "-";
   const date = new Date(`${value.slice(0, 10)}T00:00:00`);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat("ko-KR", {
@@ -43,9 +43,9 @@ export function formatDateTime(
   value: string | null | undefined,
   opts: { nullText?: string } = {},
 ): string {
-  if (!value) return opts.nullText ?? "—";
+  if (!value) return opts.nullText ?? "-";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return opts.nullText ?? "—";
+  if (Number.isNaN(date.getTime())) return opts.nullText ?? "-";
   return new Intl.DateTimeFormat("ko-KR", {
     year: "numeric",
     month: "2-digit",

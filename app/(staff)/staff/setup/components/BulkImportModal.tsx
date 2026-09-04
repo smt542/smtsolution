@@ -118,7 +118,7 @@ export function BulkImportModal({
                     <tr key={r.line} className={r.errs.length ? "bg-danger/5" : ""}>
                       <td className="border-b border-line2 px-3 py-2 text-t4 tabular-nums">{r.line}</td>
                       {cols.map((c) => (
-                        <td key={c.k} className={`border-b border-line2 px-3 py-2 font-semibold ${r.bad[c.k] ? "text-danger" : "text-t2"}`}>{r.rec[c.k] || "—"}</td>
+                        <td key={c.k} className={`border-b border-line2 px-3 py-2 font-semibold ${r.bad[c.k] ? "text-danger" : "text-t2"}`}>{r.rec[c.k] || "-"}</td>
                       ))}
                       <td className="border-b border-line2 px-3 py-2 whitespace-normal">
                         {r.errs.length ? <span className="font-bold text-danger">{r.errs.join(", ")}</span> : <span className="font-bold text-brand">정상</span>}

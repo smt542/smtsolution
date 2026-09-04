@@ -156,10 +156,10 @@ export default function PartnerAsNewPage() {
           <div className={styles.secTitle}>접수 정보</div>
           <div className={styles.box}>
             <PartnerFormFieldRow label="접수자">
-              <span className={styles.ro}>{myName || "—"}</span>
+              <span className={styles.ro}>{myName || "-"}</span>
             </PartnerFormFieldRow>
             <PartnerFormFieldRow label="담당자">
-              <span className={styles.ro}>{myName || "—"}</span>
+              <span className={styles.ro}>{myName || "-"}</span>
             </PartnerFormFieldRow>
             <PartnerFormFieldRow label="접수일시">
               <span className={styles.ro}>{today}</span>
@@ -173,7 +173,7 @@ export default function PartnerAsNewPage() {
               </select>
             </PartnerFormFieldRow>
             <PartnerFormFieldRow label="입주자 전화번호">
-              <span className={styles.ro}>{reporterPhone || "—"}</span>
+              <span className={styles.ro}>{reporterPhone || "-"}</span>
             </PartnerFormFieldRow>
             <PartnerFormFieldRow label="접수 내용" column>
               <textarea className={styles.textarea} value={content} onChange={(e) => setContent(e.target.value)} placeholder="접수 내용을 입력해 주세요" />

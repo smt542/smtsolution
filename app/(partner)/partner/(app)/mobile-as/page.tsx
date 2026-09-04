@@ -166,10 +166,10 @@ function AsDetailInner() {
           <div className={styles.secTitle}>A/S 내용</div>
           <div className={styles.box}>
             <PartnerFormFieldRow label="접수자">
-              <span className={styles.ro}>{d.logger_name ?? "—"}</span>
+              <span className={styles.ro}>{d.logger_name ?? "-"}</span>
             </PartnerFormFieldRow>
             <PartnerFormFieldRow label="담당자">
-              <span className={styles.ro}>{d.assigned_name ?? "—"}</span>
+              <span className={styles.ro}>{d.assigned_name ?? "-"}</span>
             </PartnerFormFieldRow>
             <PartnerFormFieldRow label="접수일시">
               <span className={styles.ro}>{fmtDateTime(d.received_at)}</span>
@@ -183,7 +183,7 @@ function AsDetailInner() {
               </select>
             </PartnerFormFieldRow>
             <PartnerFormFieldRow label="입주자 전화번호">
-              <span className={styles.ro}>{d.reporter_phone ?? "—"}</span>
+              <span className={styles.ro}>{d.reporter_phone ?? "-"}</span>
             </PartnerFormFieldRow>
             <PartnerFormFieldRow label="접수 내용" column>
               <textarea className={styles.textarea} value={content} onChange={(e) => setContent(e.target.value)} placeholder="접수 내용을 입력해 주세요" disabled={ro} />
