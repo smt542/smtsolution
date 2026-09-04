@@ -1,8 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
+import { createClient } from "@/lib/supabase/client";
 
 export function PlatformAdminGuard({ children }: { children: React.ReactNode }) {
   const { data: me, isPending, isError, refetch } = useMe();
@@ -38,7 +41,7 @@ export function PlatformAdminGuard({ children }: { children: React.ReactNode }) 
       <GuardMessage
         title="로그인이 필요합니다"
         description="본사 관리자 로그인 후 플랫폼 관리 화면에 다시 접속해 주세요."
-        action={<GuardLink href="/platform-admin/login">로그인으로 이동</GuardLink>}
+        action={<SignOutLoginButton />}
       />
     );
   }
@@ -61,6 +64,37 @@ function GuardLink({ href, children }: { href: string; children: React.ReactNode
     <Link href={href} className="rounded-xl bg-blue px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-d">
       {children}
     </Link>
+  );
+}
+
+/**
+ * 이 화면(!me)에 도달했다는 건 platform_admin이 아닌 Supabase 세션이 남아 있다는 뜻이다.
+ * proxy가 세션이 있으면 /platform-admin/login을 다시 /platform-admin으로 되돌리므로,
+ * 로그인 화면으로 가기 전에 현재 세션을 반드시 정리한다(안 하면 왕복 루프).
+ */
+function SignOutLoginButton() {
+  const router = useRouter();
+  const [isPending, setIsPending] = useState(false);
+  const goLogin = async () => {
+    if (isPending) return;
+    setIsPending(true);
+    try {
+      await createClient().auth.signOut();
+    } catch {
+      // 세션 정리에 실패해도 로그인 화면으로는 진행한다.
+    }
+    // signOut으로 세션 쿠키가 지워진 뒤 이동하므로 proxy가 로그인 화면을 그대로 내보낸다.
+    router.replace("/platform-admin/login");
+  };
+  return (
+    <button
+      type="button"
+      onClick={() => void goLogin()}
+      disabled={isPending}
+      className="rounded-xl bg-blue px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
+    >
+      {isPending ? "이동 중…" : "로그인으로 이동"}
+    </button>
   );
 }
 
