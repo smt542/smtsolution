@@ -161,14 +161,15 @@ export async function listGiroPayments(buildingId: number, period: string): Prom
 
 export async function recordBankPayments(
   buildingId: number, period: string, entries: BankPaymentEntry[],
-): Promise<{ recorded: number; skipped: number }> {
+): Promise<{ recorded: number; skipped: number; duplicate: number }> {
   const { data, error } = await createClient().rpc("record_bank_payments", {
     p_building_id: buildingId, p_period: period,
     p_entries: entries.map((e) => ({ unit_id: e.unitId, amount: e.amount, paid_at: e.paidAt ?? null, memo: e.memo ?? null })),
   });
   if (error) throw new Error(error.message);
-  const r = data as { recorded: number; skipped: number };
-  return { recorded: r.recorded, skipped: r.skipped };
+  // duplicate = 서버 멱등 스킵(이미 반영된 동일 입금). skipped는 무효행 포함 합계.
+  const r = data as { recorded: number; skipped: number; duplicate?: number };
+  return { recorded: r.recorded, skipped: r.skipped, duplicate: r.duplicate ?? 0 };
 }
 
 export async function listBankPayments(buildingId: number, period: string): Promise<BankPaymentRef[]> {

@@ -83,7 +83,7 @@ describe("listPaymentRows payerNo/payerName", () => {
 
 describe("recordBankPayments", () => {
   it("entries를 snake로 전달하고 결과 반환", async () => {
-    rpc.mockResolvedValue({ data: { recorded: 2, skipped: 1 }, error: null });
+    rpc.mockResolvedValue({ data: { recorded: 2, skipped: 1, duplicate: 1 }, error: null });
     const res = await recordBankPayments(3, "2026-08-01", [
       { unitId: 11, amount: 5000, paidAt: "2026-08-10", memo: "홍길동" },
     ]);
@@ -91,7 +91,7 @@ describe("recordBankPayments", () => {
       p_building_id: 3, p_period: "2026-08-01",
       p_entries: [{ unit_id: 11, amount: 5000, paid_at: "2026-08-10", memo: "홍길동" }],
     });
-    expect(res).toEqual({ recorded: 2, skipped: 1 });
+    expect(res).toEqual({ recorded: 2, skipped: 1, duplicate: 1 });
   });
 });
 
