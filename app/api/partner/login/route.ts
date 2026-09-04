@@ -88,7 +88,7 @@ async function handlePost(req: Request) {
       password,
     });
     if (!signErr && sess.session) {
-      await recordLoginSuccess(admin, { ip, username });
+      await recordLoginSuccess(admin, { ip, username, userId: uid });
       return NextResponse.json({ userId: uid });
     }
   }

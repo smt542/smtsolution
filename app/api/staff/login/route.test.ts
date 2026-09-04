@@ -77,6 +77,7 @@ beforeEach(() => {
     if (name === "login_rate_limit_hit") {
       return Promise.resolve({ data: [{ allowed: true, retry_after_seconds: 0 }], error: null });
     }
+    if (name === "record_login") return Promise.resolve({ data: null, error: null });
     throw new Error(`Unexpected admin RPC: ${name}`);
   });
   mocks.createClient.mockResolvedValue({
@@ -99,7 +100,6 @@ beforeEach(() => {
   mocks.signOut.mockResolvedValue({ error: null });
   mocks.rpc.mockImplementation((name: string) => {
     if (name === "get_my_context") return Promise.resolve({ data: [CONTEXT_ROW], error: null });
-    if (name === "record_login") return Promise.resolve({ data: null, error: null });
     throw new Error(`Unexpected RPC: ${name}`);
   });
 });
@@ -134,7 +134,10 @@ describe("POST /api/staff/login", () => {
       password: "secret",
     });
     expect(mocks.rpc).toHaveBeenCalledWith("get_my_context");
-    expect(mocks.rpc).toHaveBeenCalledWith("record_login", { p_ip: "203.0.113.10" });
+    expect(mocks.adminRpc).toHaveBeenCalledWith("record_login", {
+      p_actor_id: "office-1",
+      p_ip: "203.0.113.10",
+    });
   });
 
   it("동일 아이디 후보 중 비밀번호가 맞는 계정을 선택한다", async () => {
@@ -221,6 +224,6 @@ describe("POST /api/staff/login", () => {
     expect(response.status).toBe(403);
     expect(await response.json()).toEqual({ error: message });
     expect(mocks.signOut).toHaveBeenCalled();
-    expect(mocks.rpc).not.toHaveBeenCalledWith("record_login", expect.anything());
+    expect(mocks.adminRpc).not.toHaveBeenCalledWith("record_login", expect.anything());
   });
 });
