@@ -117,6 +117,13 @@ declare module "popbill" {
   }
 
   export interface KakaoService {
+    checkSenderNumber(
+      corpNum: string,
+      senderNumber: string,
+      userId: string,
+      success: (result: { code: number; message?: string }) => void,
+      error: PopbillErrorHandler,
+    ): void;
     sendATS_multi(
       corpNum: string,
       templateCode: string,

@@ -3,6 +3,7 @@ import {
   computeNextPollAt,
   defaultFetchFax,
   defaultFetchResults,
+  defaultFetchResultsByRequestNum,
   type FaxResultSummary,
   type ProviderRecipientResult,
 } from "@/lib/popbill/results";
@@ -21,6 +22,7 @@ export interface ReconcileJob {
   kind: string;
   product: string;
   receipt_num: string | null;
+  request_num: string;
   reservation_id: number | null;
   submitted_at: string | null;
   created_at: string;
@@ -34,6 +36,11 @@ export interface ReconcileDeps {
   fetchResults?: (job: {
     product: string;
     receiptNum: string;
+    kind: string;
+  }) => Promise<ProviderRecipientResult[]>;
+  fetchResultsByRequestNum?: (job: {
+    product: string;
+    requestNum: string;
     kind: string;
   }) => Promise<ProviderRecipientResult[]>;
   fetchFax?: (job: { receiptNum: string }) => Promise<FaxResultSummary>;
@@ -63,6 +70,9 @@ export async function reconcilePendingDeliveries(deps: ReconcileDeps): Promise<R
   const fetchResults =
     deps.fetchResults ?? ((job) => defaultFetchResults(job, config ?? readPopbillConfig()));
   const fetchFax = deps.fetchFax ?? ((job) => defaultFetchFax(job, config ?? readPopbillConfig()));
+  const fetchResultsByRequestNum =
+    deps.fetchResultsByRequestNum ??
+    ((job) => defaultFetchResultsByRequestNum(job, config ?? readPopbillConfig()));
 
   const jobs = (await rpcData(deps.admin, "claim_provider_dispatch_jobs", {
     p_limit: limit,
@@ -106,13 +116,19 @@ export async function reconcilePendingDeliveries(deps: ReconcileDeps): Promise<R
     if (job.kind !== "message") continue;
 
     let results: ProviderRecipientResult[] = [];
-    if (job.receipt_num) {
+    if (job.receipt_num || job.request_num) {
       try {
-        results = await fetchResults({
-          product: job.product,
-          receiptNum: job.receipt_num,
-          kind: job.kind,
-        });
+        results = job.receipt_num
+          ? await fetchResults({
+              product: job.product,
+              receiptNum: job.receipt_num,
+              kind: job.kind,
+            })
+          : await fetchResultsByRequestNum({
+              product: job.product,
+              requestNum: job.request_num,
+              kind: job.kind,
+            });
       } catch {
         // 조회 실패 → 빈 결과로 진행(재스케줄, 24시간 초과 시 reconcile_required).
         results = [];

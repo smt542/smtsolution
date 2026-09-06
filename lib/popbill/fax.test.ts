@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const sendFaxBinary = vi.fn();
-vi.mock("./sdk", () => ({ getFaxService: () => ({ sendFaxBinary }) }));
+const checkSenderNumber = vi.fn((...args: unknown[]) => {
+  (args[args.length - 2] as (result: { code: number }) => void)({ code: 1 });
+});
+vi.mock("./sdk", () => ({ getFaxService: () => ({ sendFaxBinary, checkSenderNumber }) }));
 
 import { submitFax } from "./fax";
 import { PopbillTimeoutError } from "./types";
@@ -64,6 +67,15 @@ describe("submitFax", () => {
 
   it("팩스 발신번호 미설정이면 PROVIDER_NOT_CONFIGURED", async () => {
     await expect(submitFax(input, { ...config, faxSender: "" })).rejects.toBeInstanceOf(PopbillNotConfiguredError);
+    expect(sendFaxBinary).not.toHaveBeenCalled();
+  });
+
+  it("등록되지 않은 팩스 발신번호는 provider 접수 전에 거절한다", async () => {
+    checkSenderNumber.mockImplementationOnce((...args: unknown[]) => {
+      (args[args.length - 2] as (result: { code: number }) => void)({ code: 0 });
+    });
+
+    await expect(submitFax(input, config)).rejects.toMatchObject({ code: "SENDER_NOT_REGISTERED" });
     expect(sendFaxBinary).not.toHaveBeenCalled();
   });
 

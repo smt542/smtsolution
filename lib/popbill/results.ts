@@ -68,6 +68,25 @@ export function fetchMessageResults(
   });
 }
 
+/** RequestNum lookup is used when a submission lease expired before its receipt was persisted. */
+export function fetchMessageResultsByRequestNum(
+  config: PopbillConfig,
+  product: "sms" | "lms" | "alimtalk",
+  requestNum: string,
+): Promise<ProviderRecipientResult[]> {
+  const userId = config.userId ?? "";
+  return new Promise((resolve, reject) => {
+    const onSuccess = (raw: PopbillMessageResult[]) => resolve(toRecipientResults(raw));
+    const onError = (e: { code: number; message: string }) =>
+      reject(new Error(`provider request lookup failed (code ${e?.code ?? "?"})`));
+    if (product === "alimtalk") {
+      getKakaoService(config).getMessagesRN(config.corpNum, requestNum, userId, onSuccess, onError);
+    } else {
+      getMessageService(config).getMessagesRN(config.corpNum, requestNum, userId, onSuccess, onError);
+    }
+  });
+}
+
 /** reconcile에서 사용하는 기본 조회기. config 미지정 시 서버 설정을 읽는다. */
 export function defaultFetchResults(job: {
   product: string;
@@ -76,6 +95,18 @@ export function defaultFetchResults(job: {
 }, config?: PopbillConfig): Promise<ProviderRecipientResult[]> {
   const cfg = config ?? readPopbillConfig();
   return fetchMessageResults(cfg, job.product as "sms" | "lms" | "alimtalk", job.receiptNum);
+}
+
+export function defaultFetchResultsByRequestNum(
+  job: { product: string; requestNum: string },
+  config?: PopbillConfig,
+): Promise<ProviderRecipientResult[]> {
+  const cfg = config ?? readPopbillConfig();
+  return fetchMessageResultsByRequestNum(
+    cfg,
+    job.product as "sms" | "lms" | "alimtalk",
+    job.requestNum,
+  );
 }
 
 // ===== 팩스 결과 =====

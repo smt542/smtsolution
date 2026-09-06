@@ -1,9 +1,9 @@
 import type { PopbillError } from "popbill";
 import { readPopbillConfig, type PopbillConfig } from "./config";
-import { getFaxService, getMessageService } from "./sdk";
+import { getFaxService, getKakaoService, getMessageService } from "./sdk";
 import { submitWithTimeout } from "./types";
 
-export type SenderProduct = "sms" | "fax";
+export type SenderProduct = "sms" | "alimtalk" | "fax";
 
 /** Popbill 계정에 발신번호가 등록되어 있는지 안전하게 확인한다. */
 export async function checkSenderRegistered(
@@ -17,7 +17,11 @@ export async function checkSenderRegistered(
   try {
     const effectiveConfig = config ?? readPopbillConfig();
     const service =
-      product === "sms" ? getMessageService(effectiveConfig) : getFaxService(effectiveConfig);
+      product === "sms"
+        ? getMessageService(effectiveConfig)
+        : product === "alimtalk"
+          ? getKakaoService(effectiveConfig)
+          : getFaxService(effectiveConfig);
     const result = await submitWithTimeout<{ code: number; message?: string }>((resolve, reject) => {
       service.checkSenderNumber(
         effectiveConfig.corpNum,

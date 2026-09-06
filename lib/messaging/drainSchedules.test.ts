@@ -1,7 +1,11 @@
+import { createHash } from "node:crypto";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi, type Mock } from "vitest";
 import { drainSchedules } from "@/lib/messaging/drainSchedules";
 import type { PopbillConfig } from "@/lib/popbill/config";
 import type { MessageBatchInput, MessageContent, ProviderSubmission } from "@/lib/popbill/types";
+
+const K1 = createHash("sha256").update("01011112222").digest("hex");
+const K2 = createHash("sha256").update("01033334444").digest("hex");
 
 type RpcArgs = Record<string, unknown>;
 type SubmitBatch = (
@@ -21,7 +25,11 @@ function makeAdmin(handlers: Record<string, (args: RpcArgs) => unknown>) {
     rpc: vi.fn(async (fn: string, args: RpcArgs = {}) => {
       calls.push({ fn, args });
       const handler = handlers[fn];
-      const data = handler ? handler(args) : null;
+      const data = handler
+        ? handler(args)
+        : fn === "claim_provider_dispatch_submission"
+          ? { ok: true, action: "submit", job_id: 1, claimed_at: new Date().toISOString() }
+          : null;
       return { data, error: null };
     }),
     from: vi.fn(() => ({
@@ -41,8 +49,10 @@ const oneSmsReserve = {
   reservation_status: "reserved",
   reservation_id: 55,
   message_log_id: 99,
-  resolved_recipients: [{ phone: "01011112222", name: "A", channel: "sms", product: "sms" }],
-  recipient_costs: [{ recipient_key: "k1", product: "sms" }],
+  resolved_recipients: [
+    { phone: "01011112222", name: "A", channel: "sms", product: "sms" },
+  ],
+  recipient_costs: [{ recipient_key: K1, product: "sms" }],
   alimtalk_template_code: null,
   buttons: [],
 };
@@ -148,8 +158,8 @@ describe("drainSchedules (Popbill 접수 기반)", () => {
           },
         ],
         recipient_costs: [
-          { recipient_key: "k1", product: "alimtalk" },
-          { recipient_key: "k2", product: "alimtalk" },
+          { recipient_key: K1, product: "alimtalk" },
+          { recipient_key: K2, product: "alimtalk" },
         ],
         alimtalk_template_code: "TPL_001",
         buttons: [

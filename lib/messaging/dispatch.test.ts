@@ -1,6 +1,10 @@
+import { createHash } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { dispatchMessages, submitReservationBatches, type DispatchMessagesInput } from "./dispatch";
 import { PopbillSubmitError, PopbillTimeoutError, type MessageBatchInput } from "@/lib/popbill/types";
+
+const K1 = createHash("sha256").update("01011112222").digest("hex");
+const K2 = createHash("sha256").update("01033334444").digest("hex");
 
 function makeClient(
   handlers: Record<string, (args: Record<string, unknown>) => unknown>,
@@ -12,7 +16,14 @@ function makeClient(
   });
   return {
     rpc: vi.fn((fn: string, args: Record<string, unknown>) =>
-      Promise.resolve({ data: handlers[fn] ? handlers[fn](args) : null, error: null }),
+      Promise.resolve({
+        data: handlers[fn]
+          ? handlers[fn](args)
+          : fn === "claim_provider_dispatch_submission"
+            ? { ok: true, action: "submit", job_id: 1, claimed_at: new Date().toISOString() }
+            : null,
+        error: null,
+      }),
     ),
     from: vi.fn(() => ({
       select: vi.fn(() => ({
@@ -41,8 +52,8 @@ const twoSmsReserve = {
     { phone: "010-3333-4444", name: "B", channel: "sms", product: "sms" },
   ],
   recipient_costs: [
-    { recipient_key: "k1", product: "sms" },
-    { recipient_key: "k2", product: "sms" },
+    { recipient_key: K1, product: "sms" },
+    { recipient_key: K2, product: "sms" },
   ],
 };
 
@@ -248,12 +259,12 @@ describe("dispatchMessages", () => {
         body: "공통본문",
         templateId: null,
         resolved: [
-          { phone: "010-1111-2222", name: "A", channel: "sms", product: "sms", renderedBody: "A님 3만원" },
           { phone: "010-3333-4444", name: "B", channel: "sms", product: "sms", renderedBody: "B님 5만원" },
+          { phone: "010-1111-2222", name: "A", channel: "sms", product: "sms", renderedBody: "A님 3만원" },
         ],
         costs: [
-          { recipient_key: "k1", product: "sms" },
-          { recipient_key: "k2", product: "sms" },
+          { recipient_key: K1, product: "sms" },
+          { recipient_key: K2, product: "sms" },
         ],
       },
       { submitBatch },
@@ -310,8 +321,8 @@ describe("dispatchMessages", () => {
           },
         ],
         costs: [
-          { recipient_key: "k1", product: "alimtalk" },
-          { recipient_key: "k2", product: "alimtalk" },
+          { recipient_key: K1, product: "alimtalk" },
+          { recipient_key: K2, product: "alimtalk" },
         ],
       },
       { submitBatch, loadAlimtalkTemplate },
@@ -354,8 +365,8 @@ describe("dispatchMessages", () => {
           { phone: "010-3333-4444", name: "긴", channel: "sms", product: "lms", renderedBody: longBody },
         ],
         costs: [
-          { recipient_key: "k1", product: "sms" },
-          { recipient_key: "k2", product: "lms" },
+          { recipient_key: K1, product: "sms" },
+          { recipient_key: K2, product: "lms" },
         ],
       },
       { submitBatch },
@@ -366,6 +377,62 @@ describe("dispatchMessages", () => {
     expect(lms?.recipients).toHaveLength(1);
     expect(sms?.recipients[0].renderedBody).toBe("짧은 본문");
     expect(lms?.recipients[0].renderedBody).toBe(longBody);
+  });
+
+  it("submitReservationBatches: 만료된 submitting lease는 RequestNum으로 조회하고 재접수하지 않는다", async () => {
+    const admin = makeClient({
+      create_provider_dispatch_jobs: () => ({
+        ok: true,
+        jobs: [
+          {
+            job_id: 77,
+            request_num: "m77c0",
+            status: "submitting",
+            claimed_at: "2026-08-24T00:00:00.000Z",
+          },
+        ],
+      }),
+      claim_provider_dispatch_submission: () => ({
+        ok: true,
+        action: "reconcile",
+        job_id: 77,
+        status: "reconcile_required",
+        claimed_at: new Date().toISOString(),
+      }),
+      apply_provider_dispatch_results: () => ({ ok: true, job_status: "reconcile_required" }),
+      mark_message_reservation_provider_pending: () => ({
+        ok: true,
+        status: "reconcile_required",
+      }),
+    });
+    const submitBatch = vi.fn();
+    const reconcileBatch = vi.fn().mockResolvedValue([
+      { providerRefKey: "r0", status: "pending", code: "1" },
+    ]);
+
+    const result = await submitReservationBatches(
+      admin,
+      {
+        reservationId: 77,
+        scheduleId: 9,
+        body: "본문",
+        templateId: null,
+        resolved: [{ phone: "010-1111-2222", name: "A", product: "sms" }],
+        costs: [{ recipient_key: K1, product: "sms" }],
+      },
+      { submitBatch, reconcileBatch },
+    );
+
+    expect(submitBatch).not.toHaveBeenCalled();
+    expect(reconcileBatch).toHaveBeenCalledWith({ product: "sms", requestNum: "m77c0" });
+    const applyCall = (
+      admin.rpc.mock.calls as Array<[string, Record<string, unknown>]>
+    ).find(([fn]) => fn === "apply_provider_dispatch_results");
+    expect(applyCall?.[1]).toMatchObject({
+      p_job_id: 77,
+      p_results: [],
+    });
+    expect(result.markStatus).toBe("reconcile_required");
   });
 
   it("포인트 부족 예약 실패는 402로 반환하고 접수하지 않는다", async () => {
