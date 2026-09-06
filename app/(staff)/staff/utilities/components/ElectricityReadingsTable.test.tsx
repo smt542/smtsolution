@@ -110,6 +110,23 @@ describe("ElectricityReadingsTable", () => {
     expect(screen.getByLabelText("101호 사용량")).toHaveAttribute("placeholder", "-");
   });
 
+  it.each([
+    ["서버 검토 플래그", { ...baseRow, needsReview: true }, "488", false],
+    ["수정 중 음수 사용량", baseRow, "400", true],
+  ])("%s가 있으면 확인 필요를 표시한다", (_case, row, currentReading, editing) => {
+    render(
+      <ElectricityReadingsTable
+        rows={[row]}
+        drafts={{ 1: { currentReading, manualCharge: "", note: "" } }}
+        referenceDate="2026-07-15"
+        editing={editing}
+        onDraftChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("확인 필요")).toHaveClass("text-red");
+  });
+
   it("조회 리스트의 모든 빈값을 같은 하이픈 스타일로 표시한다", () => {
     render(
       <ElectricityReadingsTable

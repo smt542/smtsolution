@@ -214,7 +214,7 @@ describe("utilities apis", () => {
       occupancy_status: "occupied", move_in_date: "2026-08-01", customer_no: "E-101", meter_no: "M-101",
       previous_reading: 100, current_reading: 158, usage: 58, unit_price: null, calc_charge: null,
       discount_amount: null, manual_charge: null, note: null, processed_at: null, discount_type: null,
-      resolved_unit_price: 125.5,
+      resolved_unit_price: 125.5, needs_review: true,
     }], error: null });
 
     const rows = await listUtilityRows(3, "electricity", "2026-08-01");
@@ -225,6 +225,7 @@ describe("utilities apis", () => {
       occupancyStatus: "occupied", customerNumber: "E-101", meterNumber: "M-101",
       previousReading: 100, currentReading: 158, usage: 58, automaticCharge: null,
       unitPrice: null, resolvedUnitPrice: 125.5, discountType: null, discountAmount: null,
+      needsReview: true,
     });
   });
 

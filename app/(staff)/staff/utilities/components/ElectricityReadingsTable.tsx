@@ -101,6 +101,11 @@ export function ElectricityReadingsTable({
                 const usage = current !== null && row.previousReading !== null
                   ? current - row.previousReading
                   : row.usage;
+                const invalidUsage = row.needsReview || (
+                  current !== null
+                  && row.previousReading !== null
+                  && current - row.previousReading < 0
+                );
                 const vacant = row.occupancyStatus === "vacant" || row.occupancyId === null;
                 const moving = row.occupancyStatus === "moving_out";
                 const recent = !vacant && isNewOccupancy(row.moveInDate, referenceDate);
@@ -130,8 +135,10 @@ export function ElectricityReadingsTable({
                         />
                       ) : current === null ? <GridEmptyValue /> : <span className="num font-semibold">{formatNumber(current)}</span>}
                     </td>
-                    <td className={`px-4 text-right font-semibold ${vacant && (usage ?? 0) > 0 ? "text-red" : "text-t1"}`}>
-                      {editing ? (
+                    <td className={`px-4 text-right font-semibold ${invalidUsage || (vacant && (usage ?? 0) > 0) ? "text-red" : "text-t1"}`}>
+                      {invalidUsage ? (
+                        <span className="text-red">확인 필요</span>
+                      ) : editing ? (
                         <span className="flex items-center gap-[5px]">
                           <input aria-label={`${row.unitNo} 사용량`} readOnly value={usage ?? ""} placeholder="-" className={`${inputClass()} w-[56px]`} />
                           <span className="flex size-[22px] flex-none items-center justify-center"><Image src="/figma-assets/gas/lock.svg" alt="잠금" width={12} height={12} /></span>
