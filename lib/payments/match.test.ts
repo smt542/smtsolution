@@ -24,6 +24,30 @@ describe("matchDeposits", () => {
     expect(r.matched).toHaveLength(0);
     expect(r.unmatched).toHaveLength(1);
   });
+  it("숫자가 다른 이름은 정확히 구분", () => {
+    const numberedUnits = [
+      { unitId: 4, unitNo: "104", payerNo: null, payerName: "김납부1", tenantName: null, unpaid: 5000 },
+      { unitId: 5, unitNo: "105", payerNo: null, payerName: "김납부2", tenantName: null, unpaid: 5000 },
+    ];
+    const r = matchDeposits([dep({ name: "김납부2", amount: 5000 })], numberedUnits);
+    expect(r.matched[0].unitId).toBe(5);
+  });
+  it("숫자 제거 fallback은 단일 후보일 때만 매칭", () => {
+    const single = matchDeposits(
+      [dep({ name: "김납부", amount: 5000 })],
+      [{ unitId: 4, unitNo: "104", payerNo: null, payerName: "김납부1", tenantName: null, unpaid: 5000 }],
+    );
+    const collision = matchDeposits(
+      [dep({ name: "김납부", amount: 5000 })],
+      [
+        { unitId: 4, unitNo: "104", payerNo: null, payerName: "김납부1", tenantName: null, unpaid: 5000 },
+        { unitId: 5, unitNo: "105", payerNo: null, payerName: "김납부2", tenantName: null, unpaid: 5000 },
+      ],
+    );
+    expect(single.matched[0].unitId).toBe(4);
+    expect(collision.matched).toHaveLength(0);
+    expect(collision.unmatched).toHaveLength(1);
+  });
   it("아무 매칭 없음 → 미매칭", () => {
     const r = matchDeposits([dep({ customerNo: "X", name: "누구", amount: 1 })], units);
     expect(r.unmatched).toHaveLength(1);
@@ -36,5 +60,5 @@ describe("matchDeposits", () => {
 });
 
 describe("normalizeName", () => {
-  it("공백·괄호 제거·소문자", () => { expect(normalizeName(" 김 철수(101) ")).toBe(normalizeName("김철수")); });
+  it("공백·괄호 제거·소문자, 숫자 보존", () => { expect(normalizeName(" 김 철수(101) ")).toBe("김철수101"); });
 });

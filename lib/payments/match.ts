@@ -27,7 +27,11 @@ export function resolveMatch(deposit: Deposit, unit: MatchUnit): MatchedDeposit 
 }
 
 export function normalizeName(s: string): string {
-  return (s ?? "").replace(/[\s()（）]/g, "").replace(/\d+/g, "").toLocaleLowerCase("ko-KR");
+  return (s ?? "").replace(/[\s()（）]/g, "").toLocaleLowerCase("ko-KR");
+}
+
+function normalizeNameWithoutDigits(s: string): string {
+  return normalizeName(s).replace(/\d+/g, "");
 }
 
 export function matchDeposits(deposits: Deposit[], units: MatchUnit[]): MatchResult {
@@ -43,10 +47,21 @@ export function matchDeposits(deposits: Deposit[], units: MatchUnit[]): MatchRes
       hit = byPayerNo.get(d.customerNo.trim());
     } else if (d.name) {
       const key = normalizeName(d.name);
-      const cands = units.filter(
+      const exactCandidates = units.filter(
         (u) => (u.payerName && normalizeName(u.payerName) === key) || (u.tenantName && normalizeName(u.tenantName) === key),
       );
-      if (cands.length === 1) hit = cands[0];
+      if (exactCandidates.length === 1) {
+        hit = exactCandidates[0];
+      } else if (exactCandidates.length === 0) {
+        const digitlessKey = normalizeNameWithoutDigits(d.name);
+        const fallbackCandidates = digitlessKey
+          ? units.filter(
+              (u) => (u.payerName && normalizeNameWithoutDigits(u.payerName) === digitlessKey)
+                || (u.tenantName && normalizeNameWithoutDigits(u.tenantName) === digitlessKey),
+            )
+          : [];
+        if (fallbackCandidates.length === 1) hit = fallbackCandidates[0];
+      }
     }
     if (!hit) { unmatched.push(d); continue; }
     matched.push(resolveMatch(d, hit));
