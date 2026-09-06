@@ -23,10 +23,10 @@ vi.mock("@/lib/supabase/server", () => ({
 
 import { POST } from "./route";
 
-function request(body: unknown) {
+function request(body: unknown, headers?: HeadersInit) {
   return new Request("http://localhost/api/platform/login", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...headers },
     body: JSON.stringify(body),
   });
 }
@@ -55,6 +55,7 @@ beforeEach(() => {
     if (name === "login_rate_limit_hit") {
       return Promise.resolve({ data: [{ allowed: true, retry_after_seconds: 0 }], error: null });
     }
+    if (name === "record_login") return Promise.resolve({ data: null, error: null });
     throw new Error(`Unexpected admin RPC: ${name}`);
   });
   mocks.createClient.mockResolvedValue({
@@ -93,7 +94,10 @@ describe("POST /api/platform/login", () => {
   });
 
   it("정규화한 아이디를 활성 platform_admin 계정으로 해석하고 세션을 생성한다", async () => {
-    const response = await POST(request({ username: "  HQ.Admin  ", password: "secret" }));
+    const response = await POST(request(
+      { username: "  HQ.Admin  ", password: "secret" },
+      { "x-real-ip": "198.51.100.20" },
+    ));
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ userId: "admin-1" });
@@ -105,6 +109,10 @@ describe("POST /api/platform/login", () => {
     expect(mocks.signInWithPassword).toHaveBeenCalledWith({
       email: "admin@example.com",
       password: "secret",
+    });
+    expect(mocks.adminRpc).toHaveBeenCalledWith("record_login", {
+      p_actor_id: "admin-1",
+      p_ip: "198.51.100.20",
     });
   });
 

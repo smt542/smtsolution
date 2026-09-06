@@ -80,9 +80,6 @@ async function handlePost(req: Request) {
     return NextResponse.json({ error: INVALID }, { status: 401 });
   }
 
-  const forwardedFor = req.headers.get("x-forwarded-for");
-  const clientIp = forwardedFor?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || null;
-
   const sessionClient = await createClient();
   for (const userId of platformAdminIds) {
     const { data, error } = await admin.auth.admin.getUserById(userId);
@@ -94,14 +91,7 @@ async function handlePost(req: Request) {
       password,
     });
     if (!authError && authData.session) {
-      // 감사 로그: 모든 본사 로그인을 기록한다(프로토타입 정책). 세션이 성립한 뒤
-      // 서버에서 호출해야 auth.uid()가 잡히며, 기록 실패가 로그인 성공을 막지 않도록 한다.
-      try {
-        await sessionClient.rpc("record_login", { p_ip: clientIp });
-      } catch {
-        /* 감사 기록 실패는 무시 */
-      }
-      await recordLoginSuccess(admin, { ip, username });
+      await recordLoginSuccess(admin, { ip, username, userId });
       return NextResponse.json({ userId });
     }
   }

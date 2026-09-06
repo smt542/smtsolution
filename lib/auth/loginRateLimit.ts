@@ -93,7 +93,7 @@ export async function recordLoginFailure(
 // 로그인 성공 시 각 버킷 초기화. 오류는 삼킨다.
 export async function recordLoginSuccess(
   admin: AdminClient,
-  { ip, username }: { ip: string; username?: string },
+  { ip, username, userId }: { ip: string; username?: string; userId: string },
 ): Promise<void> {
   try {
     for (const rk of buildKeys({ ip, username })) {
@@ -102,6 +102,16 @@ export async function recordLoginSuccess(
     }
   } catch (err) {
     console.error("[loginRateLimit] recordLoginSuccess failed", err);
+  }
+
+  try {
+    const { error } = await admin.rpc("record_login", {
+      p_actor_id: userId,
+      p_ip: ip === "unknown" ? null : ip,
+    });
+    if (error) console.error("[loginRateLimit] login audit rpc error", error);
+  } catch (err) {
+    console.error("[loginRateLimit] recordLoginAudit failed", err);
   }
 }
 

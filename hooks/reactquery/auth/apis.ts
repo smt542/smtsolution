@@ -55,8 +55,3 @@ export async function getMyContext(): Promise<MyContext | null> {
     permissions: Array.isArray(row.permissions) ? row.permissions : [],
   };
 }
-
-export async function recordLogin(ip?: string): Promise<void> {
-  const supabase = createClient();
-  await supabase.rpc("record_login", { p_ip: ip ?? null });
-}

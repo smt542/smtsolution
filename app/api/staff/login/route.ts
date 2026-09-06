@@ -82,8 +82,6 @@ async function handlePost(req: Request) {
     return NextResponse.json({ error: INVALID }, { status: 401 });
   }
 
-  const forwardedFor = req.headers.get("x-forwarded-for");
-  const clientIp = forwardedFor?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || null;
   const sessionClient = await createClient();
 
   for (const userId of officeUserIds) {
@@ -121,12 +119,7 @@ async function handlePost(req: Request) {
       permissions: Array.isArray(row.permissions) ? row.permissions : [],
     };
 
-    try {
-      await sessionClient.rpc("record_login", { p_ip: clientIp });
-    } catch {
-      /* 감사 기록 실패는 로그인 성공을 막지 않는다. */
-    }
-    await recordLoginSuccess(admin, { ip, username });
+    await recordLoginSuccess(admin, { ip, username, userId });
     return NextResponse.json(context);
   }
 
