@@ -122,7 +122,7 @@ export default function ResidentMePage() {
         <section className={styles.card} aria-labelledby="profile-title">
           <h2 id="profile-title">프로필</h2>
           <dl>
-            <div><dt>이름</dt><dd>{profile.tenantName}</dd></div>
+            <div><dt>이름</dt><dd>{profile.kakaoName || "사용자"}</dd></div>
             <div><dt>전화</dt><dd>{profile.phone}</dd></div>
             <div><dt>로그인 방식</dt><dd>카카오 간편로그인</dd></div>
           </dl>

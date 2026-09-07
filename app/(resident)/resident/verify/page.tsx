@@ -33,6 +33,18 @@ function highlightMatch(text: string, query: string): ReactNode {
   );
 }
 
+function formatMoveInDate(value: string): string {
+  return value.slice(0, 10).replaceAll("-", ".");
+}
+
+// 매칭 확인 카드에서는 정본대로 이름을 마스킹한다(예: 이병재 → 이O재).
+function maskName(value: string): string {
+  const name = value.trim();
+  if (name.length <= 1) return name;
+  if (name.length === 2) return `${name[0]}O`;
+  return `${name[0]}${"O".repeat(name.length - 2)}${name[name.length - 1]}`;
+}
+
 export default function ResidentVerifyPage() {
   const router = useRouter();
   const buildingsRequest = useRef<Promise<Building[]> | null>(null);
@@ -156,25 +168,42 @@ export default function ResidentVerifyPage() {
         <div className={styles.card}>
           <div className={styles.who}>
             <div className={styles.ava}>
-              <svg
-                viewBox="0 0 24 24"
-                width="24"
-                height="24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16" />
-                <path d="M3 21h18M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2" />
-              </svg>
+              {(candidate.kakaoName ?? "사용자").charAt(0)}
             </div>
             <div>
-              <b>{candidate.buildingName}</b>
-              <span className={styles.num}>{candidate.unitNo}</span>
+              <b>
+                {candidate.kakaoName
+                  ? `${maskName(candidate.kakaoName)} 님`
+                  : "사용자 님"}
+              </b>
+              {candidate.phoneMasked && (
+                <span className={styles.num}>{candidate.phoneMasked}</span>
+              )}
             </div>
+          </div>
+          <div className={styles.rows}>
+            <div className={styles.r}>
+              <span>건물</span>
+              <b>{candidate.buildingName}</b>
+            </div>
+            <div className={styles.r}>
+              <span>호수</span>
+              <b className={styles.num}>{candidate.unitNo}</b>
+            </div>
+            {candidate.moveInDate && (
+              <div className={styles.r}>
+                <span>입주일</span>
+                <b className={styles.num}>
+                  {formatMoveInDate(candidate.moveInDate)}
+                </b>
+              </div>
+            )}
+            {candidate.orgName && (
+              <div className={styles.r}>
+                <span>관리주체</span>
+                <b>{candidate.orgName}</b>
+              </div>
+            )}
           </div>
         </div>
         <div className={styles.hint}>

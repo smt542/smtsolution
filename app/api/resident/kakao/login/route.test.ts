@@ -34,7 +34,7 @@ describe("GET /api/resident/kakao/login", () => {
     );
     expect(location.searchParams.get("response_type")).toBe("code");
     expect(location.searchParams.get("scope")).toBe(
-      "profile_nickname,phone_number",
+      "profile_nickname,phone_number,name",
     );
     expect(state).toMatch(/^[a-f0-9]{32}$/);
 

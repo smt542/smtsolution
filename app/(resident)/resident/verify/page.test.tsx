@@ -50,6 +50,11 @@ const candidate: Candidate = {
   buildingName: "그린빌라",
   unitNo: "201호",
   orgId: 7,
+  kakaoName: "박정호",
+  tenantNameMasked: "박O호",
+  phoneMasked: "010-****-7788",
+  moveInDate: "2024-03-02",
+  orgName: "테스트 관리회사",
 };
 
 const building: Building = {
@@ -70,7 +75,7 @@ beforeEach(() => {
 });
 
 describe("ResidentVerifyPage", () => {
-  it("shows the lean household card and confirms its occupancy", async () => {
+  it("shows the household card and confirms its occupancy", async () => {
     const user = userEvent.setup();
     render(<ResidentVerifyPage />);
 

@@ -31,6 +31,7 @@ beforeEach(() => {
     ...queryBase,
     data: {
       tenantName: "김주민",
+      kakaoName: "김주민",
       buildingName: "해오름빌라",
       unitNo: "201호",
       orgName: "해오름관리",

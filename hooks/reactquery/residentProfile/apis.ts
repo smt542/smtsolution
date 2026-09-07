@@ -10,6 +10,7 @@ export type ResidentBillDelivery = "post" | "alimtalk";
 
 export interface ResidentProfileRow {
   tenant_name: string;
+  kakao_name: string | null;
   phone: string;
   building_name: string;
   unit_no: string;
@@ -25,6 +26,7 @@ export interface ResidentProfileRow {
 
 export interface ResidentProfile {
   tenantName: string;
+  kakaoName: string | null;
   phone: string;
   buildingName: string;
   unitNo: string;
@@ -47,6 +49,7 @@ export type ResidentProfileResult = ResidentProfile | null;
 
 const rowToProfile = (row: ResidentProfileRow): ResidentProfile => ({
   tenantName: row.tenant_name,
+  kakaoName: row.kakao_name,
   phone: row.phone,
   buildingName: row.building_name,
   unitNo: row.unit_no,
