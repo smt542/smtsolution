@@ -19,8 +19,6 @@ interface GiroLedgerModalProps {
   onClose: () => void;
 }
 
-/** 지로 이용 수수료(프론트 표기용 placeholder — 서버 수수료 연동 전까지 건당 고정). */
-const GIRO_FEE_PER_TXN = 180;
 type ErrorFilter = "all" | "normal" | "dup";
 
 const dateOnly = (value: string) => (value ? value.slice(0, 10) : "");
@@ -40,8 +38,6 @@ interface LedgerRow {
   code: string;
   unitLabel: string;
   amount: number;
-  fee: number;
-  net: number;
   charged: number;
   customerNo: string;
   isDup: boolean;
@@ -84,8 +80,6 @@ export function GiroLedgerModal({
         code: String(index + 1).padStart(3, "0"),
         unitLabel: row.dong ? `${row.dong} ${row.unitNo}` : row.unitNo,
         amount: row.amount,
-        fee: GIRO_FEE_PER_TXN,
-        net: row.amount - GIRO_FEE_PER_TXN,
         charged: info?.charged ?? row.amount,
         customerNo: info?.payerNo ?? "-",
         isDup: (dupCount.get(dupKey) ?? 0) > 1,
@@ -119,12 +113,8 @@ export function GiroLedgerModal({
         date,
         rows: list,
         sub: list.reduce(
-          (acc, row) => ({
-            amount: acc.amount + row.amount,
-            fee: acc.fee + row.fee,
-            net: acc.net + row.net,
-          }),
-          { amount: 0, fee: 0, net: 0 },
+          (acc, row) => ({ amount: acc.amount + row.amount }),
+          { amount: 0 },
         ),
       }));
   }, [filtered]);
@@ -135,10 +125,8 @@ export function GiroLedgerModal({
         (acc, row) => ({
           count: acc.count + 1,
           amount: acc.amount + row.amount,
-          fee: acc.fee + row.fee,
-          net: acc.net + row.net,
         }),
-        { count: 0, amount: 0, fee: 0, net: 0 },
+        { count: 0, amount: 0 },
       ),
     [filtered],
   );
@@ -163,10 +151,6 @@ export function GiroLedgerModal({
             <span>총건수 <strong className="num text-t1">{formatNumber(totals.count)}</strong>건</span>
             <span className="text-line">|</span>
             <span>총 수납액 <strong className="num text-t1">{formatNumber(totals.amount)}</strong>원</span>
-            <span className="text-line">|</span>
-            <span>총 수수료 <strong className="num text-t1">{formatNumber(totals.fee)}</strong>원</span>
-            <span className="text-line">|</span>
-            <span>총 실입금액 <strong className="num text-t1">{formatNumber(totals.net)}</strong>원</span>
           </div>
           <Button type="button" variant="ghost" onClick={onClose}>
             닫기
@@ -216,7 +200,7 @@ export function GiroLedgerModal({
         ) : filtered.length === 0 ? (
           <EmptyState message="지로 수납 내역이 없습니다" />
         ) : (
-          <table className="w-full min-w-[1040px] text-[11px]">
+          <table className="w-full min-w-[900px] text-[11px]">
             <thead>
               <tr className="border-b border-line bg-bg text-left font-bold text-t3">
                 <th className="px-2 py-2 text-right">No</th>
@@ -227,8 +211,6 @@ export function GiroLedgerModal({
                 <th className="px-2 py-2">호수</th>
                 <th className="px-2 py-2">년월</th>
                 <th className="px-2 py-2 text-right">수납액</th>
-                <th className="px-2 py-2 text-right">수수료</th>
-                <th className="px-2 py-2 text-right">실입금액</th>
                 <th className="px-2 py-2 text-right">부과금액</th>
                 <th className="px-2 py-2">에러</th>
                 <th className="px-2 py-2">고객번호</th>
@@ -268,7 +250,7 @@ function GiroDateGroup({
 }: {
   date: string;
   rows: LedgerRow[];
-  sub: { amount: number; fee: number; net: number };
+  sub: { amount: number };
   startNo: number;
   yearMonth: string;
   buildingName: string;
@@ -286,8 +268,6 @@ function GiroDateGroup({
           <td className="whitespace-nowrap px-2 py-1.5">{row.unitLabel}</td>
           <td className="whitespace-nowrap px-2 py-1.5">{yearMonth}</td>
           <td className="num px-2 py-1.5 text-right text-t1">{formatNumber(row.amount)}</td>
-          <td className="num px-2 py-1.5 text-right">{formatNumber(row.fee)}</td>
-          <td className="num px-2 py-1.5 text-right">{formatNumber(row.net)}</td>
           <td className="num px-2 py-1.5 text-right">{formatNumber(row.charged)}</td>
           <td className="px-2 py-1.5">
             {row.isDup ? (
@@ -307,8 +287,6 @@ function GiroDateGroup({
         <td className="px-2 py-1.5">{rows.length}건</td>
         <td className="px-2 py-1.5" colSpan={4} />
         <td className="num px-2 py-1.5 text-right">{formatNumber(sub.amount)}</td>
-        <td className="num px-2 py-1.5 text-right">{formatNumber(sub.fee)}</td>
-        <td className="num px-2 py-1.5 text-right">{formatNumber(sub.net)}</td>
         <td className="px-2 py-1.5" colSpan={5} />
       </tr>
     </>

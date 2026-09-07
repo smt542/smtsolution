@@ -19,10 +19,12 @@ describe("matchDeposits", () => {
     const r = matchDeposits([dep({ name: "이 영희", amount: 5000 })], units.slice(1, 2));
     expect(r.matched[0].unitId).toBe(2);
   });
-  it("이름 복수후보 → 미매칭", () => {
+  it("이름 복수후보 → 복수후보(수동선택) 버킷, 미매칭 아님", () => {
     const r = matchDeposits([dep({ name: "이영희", amount: 5000 })], units);
     expect(r.matched).toHaveLength(0);
-    expect(r.unmatched).toHaveLength(1);
+    expect(r.unmatched).toHaveLength(0);
+    expect(r.ambiguous).toHaveLength(1);
+    expect(r.ambiguous[0].candidates.map((u) => u.unitId).sort()).toEqual([2, 3]);
   });
   it("숫자가 다른 이름은 정확히 구분", () => {
     const numberedUnits = [
@@ -46,11 +48,15 @@ describe("matchDeposits", () => {
     );
     expect(single.matched[0].unitId).toBe(4);
     expect(collision.matched).toHaveLength(0);
-    expect(collision.unmatched).toHaveLength(1);
+    // 숫자제거 fallback도 복수후보면 자동확정 금지 → ambiguous로 수동선택 유도.
+    expect(collision.unmatched).toHaveLength(0);
+    expect(collision.ambiguous).toHaveLength(1);
+    expect(collision.ambiguous[0].candidates.map((u) => u.unitId).sort()).toEqual([4, 5]);
   });
-  it("아무 매칭 없음 → 미매칭", () => {
+  it("아무 매칭 없음 → 미매칭(복수후보 아님)", () => {
     const r = matchDeposits([dep({ customerNo: "X", name: "누구", amount: 1 })], units);
     expect(r.unmatched).toHaveLength(1);
+    expect(r.ambiguous).toHaveLength(0);
   });
   it("unpaid null이면 delta null", () => {
     const r = matchDeposits([dep({ customerNo: "C-9", amount: 1000 })],

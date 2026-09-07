@@ -116,13 +116,28 @@ export function BankImportModal({
     () => new Map(units.map((unit) => [unit.unitId, unit])),
     [units],
   );
+  // 미매칭 + 복수후보(ambiguous) 모두 수동 지정 대상 → 지정되면 matched로 승격.
+  const manualPool = useMemo(
+    () => [
+      ...automaticResult.unmatched,
+      ...automaticResult.ambiguous.map((item) => item.deposit),
+    ],
+    [automaticResult.ambiguous, automaticResult.unmatched],
+  );
   const manuallyMatched = useMemo<MatchedDeposit[]>(
-    () => automaticResult.unmatched.flatMap((deposit) => {
+    () => manualPool.flatMap((deposit) => {
       const unit = unitById.get(manualAssignments[deposit.rowIndex]);
       if (!unit) return [];
       return [resolveMatch(deposit, unit)];
     }),
-    [automaticResult.unmatched, manualAssignments, unitById],
+    [manualPool, manualAssignments, unitById],
+  );
+  // 복수후보 중 아직 세대를 고르지 않은 입금(수동 선택 대기).
+  const ambiguousPending = useMemo(
+    () => automaticResult.ambiguous.filter(
+      (item) => manualAssignments[item.deposit.rowIndex] == null,
+    ),
+    [automaticResult.ambiguous, manualAssignments],
   );
   const unmatched = useMemo(
     () => automaticResult.unmatched.filter(
@@ -335,10 +350,14 @@ export function BankImportModal({
 
         {stage === "preview" && (
           <>
-            <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="입금 매칭 요약">
+            <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5" aria-label="입금 매칭 요약">
               <div className="rounded-xl bg-green-t px-4 py-3">
                 <p className="text-xs font-bold text-green">매칭</p>
                 <p className="mt-1 text-xl font-extrabold text-t1">{matched.length}건</p>
+              </div>
+              <div className="rounded-xl bg-blue-t px-4 py-3">
+                <p className="text-xs font-bold text-blue">복수 후보(수동 선택)</p>
+                <p className="mt-1 text-xl font-extrabold text-t1">{ambiguousPending.length}건</p>
               </div>
               <div className="rounded-xl bg-amber-t px-4 py-3">
                 <p className="text-xs font-bold text-amber">미매칭</p>
@@ -409,6 +428,54 @@ export function BankImportModal({
                 </div>
               )}
             </section>
+
+            {ambiguousPending.length > 0 && (
+              <section>
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-base font-extrabold text-t1">복수 후보 · 수동 선택</h3>
+                  <p className="text-xs font-semibold text-t3">
+                    이름이 여러 세대와 일치해요. 세대를 직접 선택해 주세요.
+                  </p>
+                </div>
+                <div className="mt-3 overflow-x-auto rounded-xl border border-line">
+                  <table className="min-w-[680px] w-full text-sm">
+                    <thead className="bg-bg text-left text-xs font-bold text-t3">
+                      <tr>
+                        <th className="px-3 py-3">입금자</th>
+                        <th className="px-3 py-3 text-right">금액</th>
+                        <th className="px-3 py-3">입금일</th>
+                        <th className="px-3 py-3">세대 선택 (후보)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ambiguousPending.map((item) => (
+                        <tr key={item.deposit.rowIndex} className="border-t border-line2">
+                          <td className="px-3 py-3 text-t1">{item.deposit.name || "-"}</td>
+                          <td className="num px-3 py-3 text-right font-semibold text-t1">{money(item.deposit.amount)}</td>
+                          <td className="px-3 py-3 text-t2">{item.deposit.paidAt || "-"}</td>
+                          <td className="w-60 px-3 py-3">
+                            <Select
+                              aria-label={`${item.deposit.name || item.deposit.rowIndex + 1} 세대 선택`}
+                              value=""
+                              options={[
+                                { value: "", label: `세대 선택 (후보 ${item.candidates.length})` },
+                                ...item.candidates.map((unit) => ({
+                                  value: String(unit.unitId),
+                                  label: `${unit.unitNo}${unit.tenantName ? ` · ${unit.tenantName}` : ""}`,
+                                })),
+                              ]}
+                              onChange={(event) => {
+                                if (event.target.value) assignUnit(item.deposit, Number(event.target.value));
+                              }}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
 
             <section>
               <h3 className="text-base font-extrabold text-t1">미매칭 입금</h3>
