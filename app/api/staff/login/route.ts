@@ -20,8 +20,11 @@ const SERVER_ERROR = "로그인 처리 중 오류가 발생했습니다.";
 export async function POST(req: Request) {
   const startedAt = Date.now();
   const res = await handlePost(req);
-  // 실패(401) 응답만 타이밍 평탄화 — 아이디 존재 여부 오라클 완화
-  if (res.status === 401) await equalizeLoginTiming(startedAt);
+  // 인증 결과에 따라 갈리는 실패 응답(401·403)의 타이밍을 함께 평탄화한다.
+  // 401(계정 없음/비번 불일치)과 403(비번은 맞지만 비활성·정지)이 동일한 하한 지연을
+  // 거쳐야, 응답시간으로 "계정 존재 + 비번 유효" 여부를 유추하는 오라클을 막을 수 있다.
+  // 422(입력 누락)·429(레이트리밋)는 인증 이전 단계라 오라클이 아니므로 제외한다.
+  if (res.status === 401 || res.status === 403) await equalizeLoginTiming(startedAt);
   return res;
 }
 
