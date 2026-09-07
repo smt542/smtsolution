@@ -66,6 +66,25 @@ export default function ManagementFeePage() {
   const selectedBuilding = buildings.find((building) => building.id === buildingId) ?? null;
   const { units, columns } = useMemo(() => pivotBillingRows(billingQuery.data ?? []), [billingQuery.data]);
   const unitsById = useMemo(() => new Map(units.map((unit) => [unit.unitId, unit])), [units]);
+  const zeroAmountSummary = useMemo(() => {
+    let unitCount = 0;
+    let itemCount = 0;
+
+    units.forEach((unit) => {
+      if (unit.isVacant) return;
+      let unitItemCount = 0;
+      columns.forEach((column) => {
+        const charge = chargeDrafts[unit.unitId]?.[column.feeItemId]
+          ?? unit.charges[column.feeItemId]
+          ?? { charged: true, amount: 0 };
+        if (charge.charged && charge.amount === 0) unitItemCount += 1;
+      });
+      if (unitItemCount > 0) unitCount += 1;
+      itemCount += unitItemCount;
+    });
+
+    return { unitCount, itemCount };
+  }, [chargeDrafts, columns, units]);
   const utilityRows = useMemo(() => ({
     water: waterRows.data ?? [],
     electricity: electricityRows.data ?? [],
@@ -162,6 +181,14 @@ export default function ManagementFeePage() {
     }
   };
 
+  const requestSaveAndConfirm = async () => {
+    if (zeroAmountSummary.itemCount > 0) {
+      setDialog("zero-amount");
+      return;
+    }
+    await saveAndConfirm();
+  };
+
   const calculateUtilities = () => {
     if (!buildingId) return;
     const allReady = Object.values(utilityConfirmations).every((confirmation) => confirmation && !confirmation.isDirty);
@@ -207,6 +234,15 @@ export default function ManagementFeePage() {
     }
     if (dialog === "important-building") {
       setDialog("carry-building");
+      return;
+    }
+    if (dialog === "zero-amount") {
+      try {
+        await saveAndConfirm();
+        setDialog(null);
+      } catch {
+        // saveAndConfirm에서 오류를 안내하고, 재시도를 위해 경고 모달을 유지한다.
+      }
       return;
     }
     const buildingIds = dialog === "carry-all"
@@ -277,7 +313,7 @@ export default function ManagementFeePage() {
               setEditing(false);
               resetDrafts(selectedBuilding?.billingNote ?? "");
             }}
-            onSave={saveAndConfirm}
+            onSave={requestSaveAndConfirm}
           />
 
           <UtilitySummaryPanel
@@ -333,7 +369,16 @@ export default function ManagementFeePage() {
         </main>
       </div>
 
-      <ManagementFeeDialog kind={dialog} buildingName={selectedBuilding?.name ?? "선택한 건물"} period={period} pending={copyPrevious.isPending} onClose={() => setDialog(null)} onConfirm={() => void confirmDialog()} />
+      <ManagementFeeDialog
+        kind={dialog}
+        buildingName={selectedBuilding?.name ?? "선택한 건물"}
+        period={period}
+        pending={dialog === "zero-amount" ? actionPending : copyPrevious.isPending}
+        zeroAmountUnitCount={zeroAmountSummary.unitCount}
+        zeroAmountItemCount={zeroAmountSummary.itemCount}
+        onClose={() => setDialog(null)}
+        onConfirm={() => void confirmDialog()}
+      />
       <BillingHistoryModal open={Boolean(historyUnit)} unitId={historyUnit?.id ?? null} unitNo={historyUnit?.no ?? ""} period={period} onClose={() => setHistoryUnit(null)} />
       <NewTenantChargeModal open={newTenantOpen} units={newOccupancies} pending={chargeNewOccupancies.isPending} onConfirm={handleChargeNewTenants} onClose={() => setNewTenantOpen(false)} />
       {(() => {
