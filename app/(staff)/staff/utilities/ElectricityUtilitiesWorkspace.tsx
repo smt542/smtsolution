@@ -124,22 +124,21 @@ export default function ElectricityUtilitiesWorkspace() {
     return [...groups.entries()].map(([customerNumber, groupRows], index) => {
       const price = prices.find((item) => item.customerNo === customerNumber);
       const chargeAmount = groupRows.reduce((total, row) => total + (row.manualCharge ?? row.automaticCharge ?? 0), 0);
-      const billedAmount = Math.round(chargeAmount * 1.11);
       const usage = groupRows.reduce((total, row) => total + (row.usage ?? 0), 0);
       const currentReading = groupRows.reduce((total, row) => total + (row.currentReading ?? 0), 0);
       const previousReading = groupRows.reduce((total, row) => total + (row.previousReading ?? 0), 0);
+      const discountAmount = groupRows.reduce((total, row) => total + (row.discountAmount ?? 0), 0);
       const baseUnitPrice = price?.unitPrice ?? groupRows.find((row) => row.unitPrice !== null)?.unitPrice ?? null;
       const draftedPrice = price ? parsedNumber(priceDrafts[price.customerNumberId] ?? "") : null;
       return {
         id: price?.customerNumberId ?? -(index + 1),
         customerNumber,
-        billedAmount,
         chargeAmount,
         usage,
         unitPrice: draftedPrice ?? baseUnitPrice,
         currentReading,
         previousReading,
-        meterDifference: chargeAmount - billedAmount,
+        meterDifference: discountAmount === 0 ? 0 : -discountAmount,
         movingCharge: 0,
       };
     });

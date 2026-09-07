@@ -211,8 +211,16 @@ const UtilityRow = memo(function UtilityRow({
       </td>
       <td className={`${cell} num text-right`}>
         <div className="flex items-center justify-end gap-1">
+          {!editing && row.fixedUsage !== null && row.fixedUsage > 0 && (
+            <span
+              title="매월 자동 적용되는 고정 사용량입니다. 값이 유효한지 확인하세요."
+              className="rounded border border-amber-t bg-amber-t px-1.5 py-0.5 text-[10px] font-bold text-amber"
+            >
+              고정<span className="ml-0.5 opacity-80">확인</span>
+            </span>
+          )}
           <span className="text-t2"><ReadingValue value={row.fixedUsage} /></span>
-          {editing && onFixedUsageClick && !vacant && <button type="button" aria-label={`${row.unitNo} 고정 사용량 설정`} onClick={(event) => { event.stopPropagation(); onFixedUsageClick(row); }} className="rounded border border-line px-1.5 py-0.5 text-[10px] font-bold text-t3 hover:bg-bg">{row.fixedUsage === null ? "설정" : "고정"}</button>}
+          {editing && onFixedUsageClick && !vacant && <button type="button" aria-label={`${row.unitNo} 고정 사용량 설정`} title={row.fixedUsage === null ? undefined : "매월 자동 적용되는 고정 사용량입니다. 값이 유효한지 확인하세요."} onClick={(event) => { event.stopPropagation(); onFixedUsageClick(row); }} className={`rounded border px-1.5 py-0.5 text-[10px] font-bold ${row.fixedUsage === null ? "border-line text-t3 hover:bg-bg" : "border-amber-t bg-amber-t text-amber hover:bg-amber-t"}`}>{row.fixedUsage === null ? "설정" : "고정"}</button>}
         </div>
       </td>
       <td className={`${cell} num text-right text-t2`}><ReadingValue value={unitPrice} /></td>

@@ -5,7 +5,6 @@ import { ElectricityCustomerSummary } from "./ElectricityCustomerSummary";
 const row = {
   id: 11,
   customerNumber: "1000007919",
-  billedAmount: 0,
   chargeAmount: 5280,
   usage: 202,
   unitPrice: 49.3,
