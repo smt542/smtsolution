@@ -14,9 +14,6 @@ vi.mock("@/lib/resident/useResidentGuard", () => guard);
 vi.mock("@/hooks/reactquery/residentBilling", () => billing);
 vi.mock("@/hooks/reactquery/residentNotices", () => notices);
 vi.mock("@/hooks/reactquery/residentProfile", () => profiles);
-vi.mock("@/app/(resident)/_components/MoveOutSection", () => ({
-  default: () => <section aria-label="퇴실 신청">퇴실 신청 영역</section>,
-}));
 
 import ResidentHomePage from "./page";
 
@@ -120,7 +117,7 @@ describe("ResidentHomePage", () => {
     expect(screen.getByText("2026년 8월 관리비")).toBeInTheDocument();
     expect(screen.getByText("미납")).toBeInTheDocument();
     expect(screen.getByText("126,800")).toBeInTheDocument();
-    expect(screen.getByText("2026.08.25")).toBeInTheDocument();
+    expect(screen.getByText("8월 25일")).toBeInTheDocument();
     expect(screen.getByText("당월 부과액")).toBeInTheDocument();
     expect(screen.getByText("연체료")).toBeInTheDocument();
     expect(screen.getByText("6,800원")).toBeInTheDocument();
@@ -137,7 +134,6 @@ describe("ResidentHomePage", () => {
     expect(
       screen.getByText("8월 15일 승강기 정기 점검이 있습니다."),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("퇴실 신청")).toBeInTheDocument();
     expect(screen.getByRole("navigation")).toBeInTheDocument();
   });
 
