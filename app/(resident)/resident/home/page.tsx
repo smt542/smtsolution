@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import BottomNav from "@/app/(resident)/_components/BottomNav";
-import MoveOutSection from "@/app/(resident)/_components/MoveOutSection";
 import ResidentAsyncState from "@/app/(resident)/_components/ResidentAsyncState";
 import { useResidentBillMonths } from "@/hooks/reactquery/residentBilling";
 import {
@@ -12,7 +11,7 @@ import {
   useResidentNotices,
 } from "@/hooks/reactquery/residentNotices";
 import { useResidentProfile } from "@/hooks/reactquery/residentProfile";
-import { formatDate as formatDateValue, formatWon } from "@/lib/format";
+import { formatWon } from "@/lib/format";
 import { useResidentGuard } from "@/lib/resident/useResidentGuard";
 
 import styles from "./home.module.css";
@@ -20,8 +19,10 @@ import styles from "./home.module.css";
 const formatAmount = (amount: number) => formatWon(amount);
 const formatPlain = (amount: number) =>
   formatWon(Math.round(amount)).replace(/원$/, "");
-const formatDate = (date: string | null) =>
-  formatDateValue(date, { nullText: "미정" });
+const formatDate = (date: string | null) => {
+  if (!date) return "미정";
+  return `${Number(date.slice(5, 7))}월 ${Number(date.slice(8, 10))}일`;
+};
 const formatPeriod = (period: string) => `${Number(period.slice(5, 7))}월`;
 const formatBillLabel = (period: string) =>
   `${period.slice(0, 4)}년 ${Number(period.slice(5, 7))}월 관리비`;
@@ -324,8 +325,6 @@ export default function ResidentHomePage() {
             <p className={styles.trendEmpty}>표시할 관리비 추이가 없어요.</p>
           )}
         </section>
-
-        <MoveOutSection />
       </main>
 
       <BottomNav />
