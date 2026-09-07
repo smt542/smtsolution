@@ -141,6 +141,55 @@ describe("관리비 부과 셋팅", () => {
     await waitFor(() => expect(confirmMut.mutateAsync).toHaveBeenCalledWith({ buildingId: 7, period: expect.any(String) }));
   });
 
+  it("0원 부과 항목이 있으면 세대·항목 수를 경고하고 취소 시 확정하지 않는다", async () => {
+    vi.mocked(useBilling).mockReturnValue({
+      data: [
+        { ...billingRow, amount: 0 },
+        { ...billingRow, feeItemId: 11, feeItemName: "청소비", sortOrder: 1, charged: false, amount: 0 },
+        { ...billingRow, unitId: 2, unitNo: "102", occupancyId: 6, amount: 0 },
+        { ...billingRow, unitId: 2, unitNo: "102", occupancyId: 6, feeItemId: 11, feeItemName: "청소비", sortOrder: 1, amount: 10000 },
+      ],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+    render(<ManagementFeePage />);
+    fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
+    const schedule = screen.getByRole("group", { name: "부과 일정 설정" });
+    fireEvent.click(within(schedule).getByRole("button", { name: "수정" }));
+    fireEvent.click(within(schedule).getByRole("button", { name: "저장" }));
+
+    const warning = await screen.findByRole("dialog", { name: "0원 부과 항목이 있어요" });
+    expect(warning).toHaveTextContent("2개 세대에서 2개 항목이 0원으로 부과됩니다. 계속하시겠습니까?");
+    expect(warning).toHaveTextContent("의도적으로 0원을 입력한 항목도 포함될 수 있으니");
+    expect(confirmMut.mutateAsync).not.toHaveBeenCalled();
+
+    fireEvent.click(within(warning).getByRole("button", { name: "취소" }));
+    expect(screen.queryByRole("dialog", { name: "0원 부과 항목이 있어요" })).not.toBeInTheDocument();
+    expect(confirmMut.mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it("0원 부과 경고에서 계속 확정해야 부과 확정을 수행한다", async () => {
+    vi.mocked(useBilling).mockReturnValue({
+      data: [{ ...billingRow, amount: 0 }],
+      isLoading: false,
+      error: null,
+      refetch: vi.fn(),
+    } as never);
+    render(<ManagementFeePage />);
+    fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
+    const schedule = screen.getByRole("group", { name: "부과 일정 설정" });
+    fireEvent.click(within(schedule).getByRole("button", { name: "수정" }));
+    fireEvent.click(within(schedule).getByRole("button", { name: "저장" }));
+
+    const warning = await screen.findByRole("dialog", { name: "0원 부과 항목이 있어요" });
+    expect(confirmMut.mutateAsync).not.toHaveBeenCalled();
+    fireEvent.click(within(warning).getByRole("button", { name: "계속 확정" }));
+
+    await waitFor(() => expect(confirmMut.mutateAsync).toHaveBeenCalledWith({ buildingId: 7, period: expect.any(String) }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "0원 부과 항목이 있어요" })).not.toBeInTheDocument());
+  });
+
   it("부과기준일을 수정해 저장한다", async () => {
     render(<ManagementFeePage />);
     fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });

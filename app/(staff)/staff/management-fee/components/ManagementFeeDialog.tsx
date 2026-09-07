@@ -5,6 +5,7 @@ import Image from "next/image";
 
 export type ManagementFeeDialogKind =
   | "utility-missing"
+  | "zero-amount"
   | "carry-all"
   | "carry-building"
   | "important-building";
@@ -14,6 +15,8 @@ interface ManagementFeeDialogProps {
   buildingName: string;
   period: string;
   pending?: boolean;
+  zeroAmountUnitCount?: number;
+  zeroAmountItemCount?: number;
   onClose: () => void;
   onConfirm: () => void;
 }
@@ -34,6 +37,8 @@ export function ManagementFeeDialog({
   buildingName,
   period,
   pending = false,
+  zeroAmountUnitCount = 0,
+  zeroAmountItemCount = 0,
   onClose,
   onConfirm,
 }: ManagementFeeDialogProps) {
@@ -57,6 +62,7 @@ export function ManagementFeeDialog({
   const utilityMissing = kind === "utility-missing";
   const title = {
     "utility-missing": "공과금 부과액이 아직 없어요",
+    "zero-amount": "0원 부과 항목이 있어요",
     "carry-all": "전체 건물에 전월 자료를 반영할까요?",
     "carry-building": "이 건물에 전월 자료를 반영할까요?",
     "important-building": "중요 건물로 지정된 건물이에요",
@@ -106,6 +112,18 @@ export function ManagementFeeDialog({
               <p>공과금 관리에서 먼저 부과액을 입력해 주세요.</p>
             </>
           )}
+          {kind === "zero-amount" && (
+            <>
+              <p>
+                <strong className="font-bold text-amber">{zeroAmountUnitCount}개 세대</strong>에서{" "}
+                <strong className="font-bold text-amber">{zeroAmountItemCount}개 항목</strong>이 0원으로 부과됩니다.
+                계속하시겠습니까?
+              </p>
+              <p className="mt-[4px] text-[12px] leading-[19px] text-t3">
+                의도적으로 0원을 입력한 항목도 포함될 수 있으니 부과 금액을 확인해 주세요.
+              </p>
+            </>
+          )}
           {kind === "carry-all" && (
             <>
               <p>
@@ -148,7 +166,13 @@ export function ManagementFeeDialog({
             disabled={pending}
             className="h-[40px] flex-1 rounded-[11px] border border-teal bg-teal px-[18px] text-[13.5px] font-bold text-white disabled:opacity-60"
           >
-            {pending ? "처리 중…" : utilityMissing || kind === "important-building" ? "확인" : "반영"}
+            {pending
+              ? "처리 중…"
+              : utilityMissing || kind === "important-building"
+                ? "확인"
+                : kind === "zero-amount"
+                  ? "계속 확정"
+                  : "반영"}
           </button>
         </div>
       </section>
