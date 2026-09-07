@@ -72,6 +72,8 @@ export interface DispatchMessagesDeps {
   isConfigured?: () => boolean;
   config?: PopbillConfig;
   loadOrgSmsSender?: (orgId: number) => Promise<string | null>;
+  /** 접수 재시도 대기(L6). 테스트 주입용. 기본은 실지연. */
+  sleep?: (ms: number) => Promise<void>;
 }
 
 interface SetupConfigQueryClient {
@@ -166,6 +168,65 @@ function classifySubmitError(e: unknown): {
   }
   // 예기치 못한 예외는 접수 여부가 불분명하므로 보수적으로 unknown(reconcile_required)으로 남긴다.
   return { outcome: "unknown", code: "SUBMIT_ERROR", message: "발송 접수 중 오류가 발생했습니다." };
+}
+
+// === L6: 공급자 '구조화된 거절'에 한해 제한적 재시도(백오프) ===
+// 안전 원칙(이중발송 방지): 접수번호(receipt)가 발급되지 않은 '확정 거절'만 재시도한다.
+// 공급자가 요청을 받아 코드로 반려한 경우는 접수가 성립하지 않았으므로, 동일 requestNum 재접수가
+// 이중발송을 만들지 않는다. 반대로 타임아웃(PopbillTimeoutError)·예기치못한 예외·코드 없는 오류는
+// 접수 여부가 불명확(전송 후 응답 유실/네트워크 등)하므로 재시도하지 않고 unknown(reconcile)로 남긴다.
+// 로컬 검증 실패(템플릿/변수/발신번호)·설정 누락은 동일 입력에 영구 실패이므로 재시도하지 않는다.
+const NON_RETRYABLE_SUBMIT_CODES = new Set<string>([
+  "NO_TEMPLATE_CODE",
+  "UNRESOLVED_VARIABLES",
+  "SENDER_NOT_REGISTERED",
+  // 코드 없는 SDK/전송 오류. 접수 여부가 불명확하므로(이중발송 위험) 재시도하지 않는다.
+  "PROVIDER_ERROR",
+]);
+
+export function isRetryableSubmitError(e: unknown): boolean {
+  // PopbillSubmitError(구조화된 공급자 거절)만 재시도 후보. 타임아웃·예기치못한 예외·설정누락은 제외.
+  if (!(e instanceof PopbillSubmitError)) return false;
+  return !NON_RETRYABLE_SUBMIT_CODES.has(e.code);
+}
+
+const SUBMIT_MAX_RETRIES = 2;
+const SUBMIT_RETRY_BASE_MS = 500;
+
+/** 지수 백오프 지연(ms): 첫 재시도 500ms, 두 번째 1000ms. 총합이 접수 lease(5분)를 넘지 않는다. */
+export function submitRetryDelayMs(attempt: number): number {
+  return SUBMIT_RETRY_BASE_MS * 2 ** attempt;
+}
+
+const defaultSubmitSleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * 접수 1건을 제한적으로 재시도한다. 재시도 대상은 '구조화된 공급자 거절'(isRetryableSubmitError)뿐이며,
+ * 재시도를 소진하면 마지막 오류를 그대로 던져 기존 classifySubmitError 경로(failed/unknown)로 넘긴다.
+ * sleep은 테스트에서 주입 가능(기본은 setTimeout 기반 실지연).
+ */
+export async function submitBatchWithRetry(
+  submitBatch: (
+    batch: MessageBatchInput,
+    content: MessageContent,
+    config?: PopbillConfig,
+  ) => Promise<ProviderSubmission>,
+  batch: MessageBatchInput,
+  content: MessageContent,
+  config: PopbillConfig | undefined,
+  sleep: (ms: number) => Promise<void> = defaultSubmitSleep,
+): Promise<ProviderSubmission> {
+  let attempt = 0;
+  for (;;) {
+    try {
+      return await submitBatch(batch, content, config);
+    } catch (e) {
+      if (attempt >= SUBMIT_MAX_RETRIES || !isRetryableSubmitError(e)) throw e;
+      await sleep(submitRetryDelayMs(attempt));
+      attempt += 1;
+    }
+  }
 }
 
 export async function dispatchMessages(
@@ -304,7 +365,7 @@ export async function dispatchMessages(
       resolved,
       costs,
     },
-    { submitBatch, loadAlimtalkTemplate: deps.loadAlimtalkTemplate, config: effectiveConfig },
+    { submitBatch, loadAlimtalkTemplate: deps.loadAlimtalkTemplate, config: effectiveConfig, sleep: deps.sleep },
   );
 
   // 접수 receipt가 하나라도 있는 경우(provider_pending)에만 queued로 보고한다.
@@ -397,6 +458,8 @@ export interface SubmitReservationDeps {
     requestNum: string;
   }) => Promise<ProviderRecipientResult[]>;
   config?: PopbillConfig;
+  /** 접수 재시도 대기(L6). 테스트 주입용. 기본은 실지연. */
+  sleep?: (ms: number) => Promise<void>;
 }
 interface CreatedJobRow {
   job_id?: number;
@@ -553,10 +616,12 @@ export async function submitReservationBatches(
         ? { body: params.body, templateCode: alimtalk.templateCode, buttons: alimtalk.buttons }
         : { body: params.body };
     try {
-      const submission = await submitBatch(
+      const submission = await submitBatchWithRetry(
+        submitBatch,
         { product: batch.product, requestNum: batch.requestNum, recipients: batch.recipients },
         content,
         deps.config,
+        deps.sleep,
       );
       outcomes.push({
         request_num: batch.requestNum,

@@ -134,11 +134,13 @@ describe("dispatchMessages", () => {
         return { ok: true, status: "released", failed: 1 };
       },
     });
-    const submitBatch = vi.fn().mockRejectedValue(new PopbillSubmitError("-99", "발신번호 미등록"));
+    // 로컬 검증 실패(발신번호 미등록)는 재시도 대상이 아니다 — 즉시 failed로 확정한다.
+    const submitBatch = vi.fn().mockRejectedValue(new PopbillSubmitError("SENDER_NOT_REGISTERED", "발신번호 미등록"));
     const out = await dispatchMessages(baseInput, { sb, admin, submitBatch, isConfigured: () => true });
     // 접수 receipt가 없으므로 queued로 보고하지 않고 명확한 실패를 반환한다.
     expect(out).toMatchObject({ ok: false, code: "SEND_REJECTED", httpStatus: 502 });
     expect(out.status).toBeUndefined();
+    expect(submitBatch).toHaveBeenCalledTimes(1); // 재시도 없음
     const outcomes = markArgs[0].p_outcomes as Array<{ outcome: string }>;
     expect(outcomes[0].outcome).toBe("failed");
   });
@@ -587,5 +589,67 @@ describe("dispatchMessages 서버 페이로드 해시(material 필드 전체)", 
       recipients: [{ name: "A", phone: "010-1111-2222", kind: "tenant" as const, ref: { occupancyId: 2 } }],
     };
     expect(await hashFor(a)).not.toBe(await hashFor(b));
+  });
+});
+
+describe("submitReservationBatches 접수 재시도(L6)", () => {
+  const retryParams = {
+    reservationId: 12,
+    scheduleId: null,
+    body: "본문",
+    templateId: null,
+    resolved: [{ phone: "010-1111-2222", name: "A", product: "sms" }],
+    costs: [{ recipient_key: K1, product: "sms" }],
+  };
+  const noSleep = () => Promise.resolve();
+
+  it("구조화된 공급자 거절은 백오프로 재시도하고, 성공하면 accepted로 접수한다", async () => {
+    const markArgs: Record<string, unknown>[] = [];
+    const admin = makeClient({
+      create_provider_dispatch_jobs: () => ({ ok: true }),
+      mark_message_reservation_provider_pending: (a) => {
+        markArgs.push(a);
+        return { ok: true, status: "provider_pending" };
+      },
+    });
+    const submitBatch = vi
+      .fn()
+      .mockRejectedValueOnce(new PopbillSubmitError("-1301", "일시적 접수 오류"))
+      .mockResolvedValue({ requestNum: "m12c0", receiptNum: "RCPT", product: "sms", recipients: [] });
+    const result = await submitReservationBatches(admin, retryParams, { submitBatch, sleep: noSleep });
+    expect(submitBatch).toHaveBeenCalledTimes(2); // 1 실패 + 1 재시도 성공
+    const outcomes = markArgs[0].p_outcomes as Array<{ outcome: string; receipt_num?: string }>;
+    expect(outcomes[0]).toMatchObject({ outcome: "accepted", receipt_num: "RCPT" });
+    expect(result.markStatus).toBe("provider_pending");
+  });
+
+  it("재시도를 모두 소진하면 failed로 확정한다(총 3회 접수 시도)", async () => {
+    const markArgs: Record<string, unknown>[] = [];
+    const admin = makeClient({
+      create_provider_dispatch_jobs: () => ({ ok: true }),
+      mark_message_reservation_provider_pending: (a) => {
+        markArgs.push(a);
+        return { ok: true, status: "released" };
+      },
+    });
+    const submitBatch = vi.fn().mockRejectedValue(new PopbillSubmitError("-1301", "일시적 접수 오류"));
+    await submitReservationBatches(admin, retryParams, { submitBatch, sleep: noSleep });
+    expect(submitBatch).toHaveBeenCalledTimes(3); // 1 + 2 재시도
+    const outcomes = markArgs[0].p_outcomes as Array<{ outcome: string }>;
+    expect(outcomes[0].outcome).toBe("failed");
+  });
+
+  it("코드 없는 오류(PROVIDER_ERROR)·타임아웃은 재시도하지 않는다(접수 여부 불명확)", async () => {
+    const admin = makeClient({
+      create_provider_dispatch_jobs: () => ({ ok: true }),
+      mark_message_reservation_provider_pending: () => ({ ok: true, status: "reconcile_required" }),
+    });
+    const providerError = vi.fn().mockRejectedValue(new PopbillSubmitError("PROVIDER_ERROR", "전송 오류"));
+    await submitReservationBatches(admin, retryParams, { submitBatch: providerError, sleep: noSleep });
+    expect(providerError).toHaveBeenCalledTimes(1);
+
+    const timeout = vi.fn().mockRejectedValue(new PopbillTimeoutError());
+    await submitReservationBatches(admin, retryParams, { submitBatch: timeout, sleep: noSleep });
+    expect(timeout).toHaveBeenCalledTimes(1);
   });
 });
