@@ -9,6 +9,7 @@ import {
   residentBillMonths,
   residentGetOrCreateBillToken,
   staffMintBillTokens,
+  staffRevokeBillToken,
 } from "./apis";
 
 beforeEach(() => {
@@ -174,6 +175,25 @@ describe("resident billing APIs", () => {
     expect(rpc).toHaveBeenCalledWith("public_bill_by_token", {
       p_token: "11111111-2222-4333-8444-555555555555",
     });
+  });
+
+  it("revokes a staff bill token via RPC and returns the boolean result", async () => {
+    rpc.mockResolvedValue({ data: true, error: null });
+
+    await expect(
+      staffRevokeBillToken("11111111-2222-4333-8444-555555555555"),
+    ).resolves.toBe(true);
+    expect(rpc).toHaveBeenCalledWith("staff_revoke_bill_token", {
+      p_token: "11111111-2222-4333-8444-555555555555",
+    });
+  });
+
+  it("returns false when staff_revoke_bill_token finds no matching token", async () => {
+    rpc.mockResolvedValue({ data: false, error: null });
+
+    await expect(
+      staffRevokeBillToken("00000000-0000-4000-8000-000000000000"),
+    ).resolves.toBe(false);
   });
 
   it("returns null for zero-row detail RPCs and throws RPC errors", async () => {
