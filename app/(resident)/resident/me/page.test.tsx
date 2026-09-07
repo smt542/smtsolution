@@ -37,6 +37,7 @@ import ResidentMePage from "./page";
 const mutate = vi.fn();
 const profile = {
   tenantName: "김주민",
+  kakaoName: "김주민",
   phone: "01012345678",
   buildingName: "해오름빌라",
   unitNo: "201호",

@@ -5,10 +5,9 @@
 // login, the cached automatch candidate, and the just-submitted claim shown on the
 // pending screen).
 //
-// HYBRID scope note: O1's resident RPCs return leaner data than the prototype UI.
-// Fields the prototype showed but O1 does not provide to residents (masked name /
-// phone / move-in date / management org on verify, and org contact on pending) are
-// intentionally dropped here and tracked as an O1-extension backlog. See
+// HYBRID scope note: the verify card fields (masked name / phone / move-in date /
+// management org) are now returned by resident_automatch (migration 0140). Org
+// contact on the pending screen remains an O1-extension backlog. See
 // [[resident-onboarding-status]].
 
 import { createClient } from "@/lib/supabase/client";
@@ -34,6 +33,11 @@ export type Candidate = {
   buildingName: string;
   unitNo: string;
   orgId: number;
+  kakaoName: string | null;
+  tenantNameMasked: string | null;
+  phoneMasked: string | null;
+  moveInDate: string | null;
+  orgName: string | null;
 };
 
 export type Building = {
@@ -95,6 +99,11 @@ export async function automatch(): Promise<Candidate[]> {
     buildingName: row.buildingName,
     unitNo: row.unitNo,
     orgId: row.orgId,
+    kakaoName: row.kakaoName,
+    tenantNameMasked: row.tenantNameMasked,
+    phoneMasked: row.phoneMasked,
+    moveInDate: row.moveInDate,
+    orgName: row.orgName,
   }));
 
   activeCandidate = candidates[0] ?? null;

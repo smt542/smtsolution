@@ -86,7 +86,7 @@ export default function ResidentHomePage() {
     <div className={styles.page}>
       <header className={styles.header}>
         <p>{profile.buildingName} {profile.unitNo}</p>
-        <h1>{profile.tenantName} 님</h1>
+        <h1>{profile.kakaoName || "사용자"} 님</h1>
         <span>{profile.orgName}</span>
       </header>
 

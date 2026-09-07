@@ -112,9 +112,16 @@ export async function GET(request: NextRequest) {
     ? userPayload.kakao_account
     : null;
   const profile = account && isRecord(account.profile) ? account.profile : null;
-  const name = profile && typeof profile.nickname === "string"
+  // 카카오 실명(account.name)이 오면 우선 사용하고, 없으면 프로필 닉네임으로 폴백한다.
+  // account.name은 이름(name) 동의항목이 심사 승인되고 scope에 추가돼야 내려오므로,
+  // 그 전까지는 닉네임이 쓰인다(로그인 영향 없음).
+  const realName = account && typeof account.name === "string"
+    ? account.name.trim() || null
+    : null;
+  const nickname = profile && typeof profile.nickname === "string"
     ? profile.nickname.trim() || null
     : null;
+  const name = realName ?? nickname;
   const rawPhone = account && typeof account.phone_number === "string"
     ? account.phone_number
     : null;

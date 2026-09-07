@@ -23,6 +23,11 @@ export interface ResidentAutomatchCandidate {
   unitId: number;
   unitNo: string;
   occupancyId: number;
+  kakaoName: string | null;
+  tenantNameMasked: string | null;
+  phoneMasked: string | null;
+  moveInDate: string | null;
+  orgName: string | null;
 }
 
 export interface ResidentLink {
@@ -70,6 +75,11 @@ type AutomatchRow = {
   unit_id: number;
   unit_no: string;
   occupancy_id: number;
+  kakao_name: string | null;
+  tenant_name_masked: string | null;
+  phone_masked: string | null;
+  move_in_date: string | null;
+  org_name: string | null;
 };
 
 type ResidentLinkRow = {
@@ -117,6 +127,11 @@ const rowToAutomatch = (row: AutomatchRow): ResidentAutomatchCandidate => ({
   unitId: row.unit_id,
   unitNo: row.unit_no,
   occupancyId: row.occupancy_id,
+  kakaoName: row.kakao_name,
+  tenantNameMasked: row.tenant_name_masked,
+  phoneMasked: row.phone_masked,
+  moveInDate: row.move_in_date,
+  orgName: row.org_name,
 });
 
 const rowToResidentLink = (row: ResidentLinkRow): ResidentLink => ({

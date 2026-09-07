@@ -23,7 +23,8 @@ export async function GET() {
   authorizeUrl.searchParams.set("client_id", clientId);
   authorizeUrl.searchParams.set("redirect_uri", redirectUri);
   authorizeUrl.searchParams.set("response_type", "code");
-  authorizeUrl.searchParams.set("scope", "profile_nickname,phone_number");
+  // 카카오 이름(name) 동의항목 심사 승인 완료(필수 동의) → 실명 수신.
+  authorizeUrl.searchParams.set("scope", "profile_nickname,phone_number,name");
   authorizeUrl.searchParams.set("state", state);
 
   const response = NextResponse.redirect(authorizeUrl);
