@@ -5,23 +5,41 @@ import { useState } from "react";
 
 import BottomNav from "@/app/(resident)/_components/BottomNav";
 import {
-  type ResidentBillPayStatus,
+  type ResidentBillMonth,
   useResidentBillMonths,
 } from "@/hooks/reactquery/residentBilling";
-import { formatMonth, formatWon } from "@/lib/format";
+import { formatWon } from "@/lib/format";
 import { useResidentGuard } from "@/lib/resident/useResidentGuard";
 
 import styles from "./bill.module.css";
 
-const formatAmount = (amount: number) =>
-  formatWon(amount);
+const formatAmount = (won: number) => formatWon(won);
+const formatPlain = (won: number) =>
+  formatWon(Math.round(won)).replace(/원$/, "");
+const formatMd = (iso: string) =>
+  `${Number(iso.slice(5, 7))}월 ${Number(iso.slice(8, 10))}일`;
+const monthLabel = (period: string) => `${Number(period.slice(5, 7))}월`;
+const yearOf = (period: string) => period.slice(0, 4);
 
-const statusLabel: Record<ResidentBillPayStatus, string> = {
-  paid: "완납",
-  partial: "부분",
-  unpaid: "미납",
-  none: "미납",
-};
+const isPaid = (month: ResidentBillMonth) =>
+  month.payStatus === "paid" || month.payStatus === "none";
+
+function ChevronIcon() {
+  return (
+    <svg
+      className={styles.chev}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.1"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M9 5l7 7-7 7" />
+    </svg>
+  );
+}
 
 export default function ResidentBillPage() {
   const guard = useResidentGuard();
@@ -57,99 +75,131 @@ export default function ResidentBillPage() {
   if (!guard.link) return null;
 
   const months = monthsQuery.data ?? [];
-  const years = Array.from(
-    new Set(months.map((month) => month.period.slice(0, 4))),
-  );
+  const years = Array.from(new Set(months.map((month) => yearOf(month.period))));
   const activeYear =
     selectedYear && years.includes(selectedYear) ? selectedYear : years[0];
   const visibleMonths = activeYear
-    ? months.filter((month) => month.period.startsWith(activeYear))
+    ? months.filter((month) => yearOf(month.period) === activeYear)
     : [];
+
   const yearlyTotal = visibleMonths.reduce(
-    (sum, month) => sum + month.totalAmount,
+    (sum, month) => sum + month.totalAmount + month.lateFee,
     0,
   );
   const yearlyAverage = visibleMonths.length
     ? Math.round(yearlyTotal / visibleMonths.length)
     : 0;
   const yearlyUnpaid = visibleMonths.reduce(
-    (sum, month) => sum + month.unpaidAmount,
+    (sum, month) => sum + month.unpaidAmount + month.lateFee,
     0,
   );
 
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <div>
-          <p>{guard.link.buildingName} {guard.link.unitNo}</p>
-          <h1>관리비 내역</h1>
+        <h1 className={styles.h1}>관리비</h1>
+        <div className={styles.sub}>
+          {guard.link.buildingName} {guard.link.unitNo}
         </div>
         {years.length > 0 ? (
-          <label className={styles.yearSelect}>
-            <span className={styles.srOnly}>조회 연도</span>
-            <select
-              value={activeYear}
-              onChange={(event) => setSelectedYear(event.target.value)}
-            >
-              {years.map((year) => (
-                <option value={year} key={year}>
-                  {year}년
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className={styles.yr} role="tablist" aria-label="조회 연도">
+            {years.map((year) => (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={year === activeYear}
+                className={
+                  year === activeYear ? `${styles.yb} ${styles.ybOn}` : styles.yb
+                }
+                onClick={() => setSelectedYear(year)}
+                key={year}
+              >
+                {year}년
+              </button>
+            ))}
+          </div>
         ) : null}
       </header>
 
       <main className={styles.scroll}>
         {months.length === 0 ? (
           <div className={styles.empty} role="status">
-            <b>부과 내역이 없어요</b>
-            <span>관리비가 확정되면 이곳에서 확인할 수 있어요.</span>
+            부과 내역이 없어요
           </div>
         ) : (
           <>
-            <section className={styles.summary} aria-label={`${activeYear}년 요약`}>
-              <div>
-                <span>연 합계</span>
-                <b>{formatAmount(yearlyTotal)}</b>
+            <section className={styles.sum} aria-label={`${activeYear}년 요약`}>
+              <div className={styles.sw}>
+                <span>{activeYear}년 합계</span>
+                <span>{visibleMonths.length}개월</span>
               </div>
-              <div>
-                <span>월 평균</span>
-                <b>{formatAmount(yearlyAverage)}</b>
+              <div className={styles.stot}>
+                {formatPlain(yearlyTotal)}
+                <i>원</i>
               </div>
-              <div>
-                <span>미납 총합</span>
-                <b className={yearlyUnpaid > 0 ? styles.emphasis : undefined}>
-                  {formatAmount(yearlyUnpaid)}
-                </b>
+              <div className={styles.srow}>
+                <div>
+                  <span>월 평균</span>
+                  <b>{formatAmount(yearlyAverage)}</b>
+                </div>
+                <div>
+                  <span>미납</span>
+                  <b>{formatAmount(yearlyUnpaid)}</b>
+                </div>
               </div>
             </section>
 
-            <section className={styles.list} aria-labelledby="monthly-bills-title">
-              <h2 id="monthly-bills-title">월별 내역</h2>
+            <div className={styles.lbl}>
+              월별 부과 내역<span>{visibleMonths.length}건</span>
+            </div>
+
+            <section className={styles.list} aria-label="월별 부과 내역">
               {visibleMonths.map((month) => {
-                const period = month.period.slice(0, 7);
+                const paid = isPaid(month);
+                const gross = month.totalAmount + month.lateFee;
                 return (
-                  <Link href={`/resident/bill/${period}`} key={month.period}>
-                    <div className={styles.rowTop}>
-                      <b>{formatMonth(period)}</b>
-                      <span
-                        className={`${styles.badge} ${styles[month.payStatus]}`}
-                      >
-                        {statusLabel[month.payStatus]}
-                      </span>
+                  <Link
+                    href={`/resident/bill/${month.period.slice(0, 7)}`}
+                    className={styles.row}
+                    key={month.period}
+                  >
+                    <div className={styles.m}>
+                      <b>{monthLabel(month.period)}</b>
+                      <span>{yearOf(month.period)}</span>
                     </div>
-                    <dl>
-                      <div>
-                        <dt>부과액</dt>
-                        <dd>{formatAmount(month.totalAmount)}</dd>
+                    <div className={styles.mid}>
+                      <div className={styles.amt}>{formatAmount(gross)}</div>
+                      <div className={styles.meta}>
+                        {paid ? (
+                          month.paidDate ? (
+                            `${formatMd(month.paidDate)} 납부`
+                          ) : (
+                            "완납"
+                          )
+                        ) : (
+                          <>
+                            납부기한{" "}
+                            {month.dueDate ? formatMd(month.dueDate) : "미정"}
+                            {month.lateFee > 0 ? (
+                              <>
+                                {" · 연체료 "}
+                                <em>{formatAmount(month.lateFee)}</em>
+                              </>
+                            ) : null}
+                          </>
+                        )}
                       </div>
-                      <div>
-                        <dt>미납액</dt>
-                        <dd>{formatAmount(month.unpaidAmount)}</dd>
-                      </div>
-                    </dl>
+                    </div>
+                    <span
+                      className={
+                        paid
+                          ? `${styles.chip} ${styles.chipPaid}`
+                          : `${styles.chip} ${styles.chipDue}`
+                      }
+                    >
+                      {paid ? "완납" : "미납"}
+                    </span>
+                    <ChevronIcon />
                   </Link>
                 );
               })}
