@@ -36,5 +36,8 @@ export async function PATCH(
   if (error) {
     return NextResponse.json({ error: "비밀번호 변경에 실패했습니다." }, { status: 500 });
   }
+  // 비밀번호 변경 후 대상 계정의 기존 세션을 폐기한다(리셋 후 구세션 잔존 방지). 폐기 실패가 변경을 막지 않는다.
+  const { error: revokeError } = await admin.rpc("revoke_user_sessions", { p_user_id: userId });
+  if (revokeError) console.error("[platform accounts] revoke_user_sessions failed", revokeError.message);
   return NextResponse.json({ ok: true }, { status: 200 });
 }

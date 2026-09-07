@@ -55,10 +55,13 @@ describe("PATCH /api/accounts/:userId", () => {
       from: membershipFrom(1),
     });
     const updateUserById = vi.fn().mockResolvedValue({ error: null });
-    createAdminClient.mockReturnValue({ auth: { admin: { updateUserById } } });
+    const adminRpc = vi.fn().mockResolvedValue({ error: null });
+    createAdminClient.mockReturnValue({ auth: { admin: { updateUserById } }, rpc: adminRpc });
     const res = await PATCH(req({ password: "4321" }), { params });
     expect(res.status).toBe(200);
     expect(updateUserById).toHaveBeenCalledWith("target-uid", { password: "4321" });
+    // 비밀번호 변경 후 대상 계정 세션을 폐기하는 RPC를 호출한다.
+    expect(adminRpc).toHaveBeenCalledWith("revoke_user_sessions", { p_user_id: "target-uid" });
   });
 
   it("대상 계정 없음(다른 org) → 404 + updateUserById 미호출", async () => {
