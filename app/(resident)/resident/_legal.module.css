@@ -1,1 +1,79 @@
-.note { padding: 14px; border-radius: 13px; background: var(--blue-t2); color: var(--blue-d); font-size: 12px; font-weight: 700; }
+.lead {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--t3);
+  line-height: 1.7;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line2);
+}
+
+.lead b {
+  color: var(--t2);
+  font-weight: 700;
+}
+
+.tbl {
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  overflow: hidden;
+  margin: 10px 0 6px;
+}
+
+.tr {
+  display: flex;
+  border-bottom: 1px solid var(--line2);
+}
+
+.tr:last-child {
+  border-bottom: 0;
+}
+
+.tr > div {
+  padding: 11px 13px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--t2);
+  line-height: 1.6;
+  word-break: keep-all;
+}
+
+.tr > div:first-child {
+  flex: none;
+  width: 110px;
+  font-weight: 700;
+  color: var(--t1);
+  background: #fafbfc;
+}
+
+.tr > div:last-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.tr.trHead > div {
+  font-weight: 800;
+  color: var(--t1);
+  background: var(--bg);
+  font-size: 12px;
+}
+
+.box {
+  background: var(--bg);
+  border-radius: 13px;
+  padding: 14px 15px;
+  margin: 10px 0 6px;
+}
+
+.box li {
+  margin-bottom: 4px;
+}
+
+.tail {
+  margin-top: 30px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line2);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--t4);
+  line-height: 1.7;
+}
