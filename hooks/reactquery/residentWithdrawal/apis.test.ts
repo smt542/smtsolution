@@ -1,26 +1,32 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-
-const rpc = vi.fn();
-vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ rpc }) }));
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { residentWithdraw } from "./apis";
 
-beforeEach(() => vi.clearAllMocks());
+const fetchMock = vi.fn();
+
+beforeEach(() => {
+  vi.stubGlobal("fetch", fetchMock);
+  fetchMock.mockReset();
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("resident withdrawal API", () => {
-  it("calls the resident_withdraw RPC with no arguments", async () => {
-    rpc.mockResolvedValueOnce({ data: null, error: null });
+  it("POSTs to the withdraw route and resolves on success", async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ ok: true }) });
 
     await expect(residentWithdraw()).resolves.toBeUndefined();
-    expect(rpc).toHaveBeenCalledWith("resident_withdraw");
+    expect(fetchMock).toHaveBeenCalledWith("/api/resident/withdraw", { method: "POST" });
   });
 
-  it("throws the RPC error message on failure", async () => {
-    rpc.mockResolvedValueOnce({
-      data: null,
-      error: { message: "authentication required" },
+  it("throws the server error message on failure", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ error: "세입자 계정이 아닙니다." }),
     });
 
-    await expect(residentWithdraw()).rejects.toThrow("authentication required");
+    await expect(residentWithdraw()).rejects.toThrow("세입자 계정이 아닙니다.");
   });
 });
