@@ -7,6 +7,7 @@ export interface ResidentBillMonthRow {
   total_amount: number;
   paid_amount: number;
   unpaid_amount: number;
+  late_fee: number;
   pay_status: ResidentBillPayStatus;
   due_date: string | null;
   confirmed_at: string;
@@ -17,6 +18,8 @@ export interface ResidentBillMonth {
   totalAmount: number;
   paidAmount: number;
   unpaidAmount: number;
+  /** 세대 자기 스코프 연체료(원). 미납·납기 있는 월만 산정, 그 외 0. staff /overdue와 동일 알고리즘. */
+  lateFee: number;
   payStatus: ResidentBillPayStatus;
   dueDate: string | null;
   confirmedAt: string;
@@ -139,6 +142,7 @@ const rowToBillMonth = (row: ResidentBillMonthRow): ResidentBillMonth => ({
   totalAmount: row.total_amount,
   paidAmount: row.paid_amount,
   unpaidAmount: row.unpaid_amount,
+  lateFee: row.late_fee,
   payStatus: row.pay_status,
   dueDate: row.due_date,
   confirmedAt: row.confirmed_at,

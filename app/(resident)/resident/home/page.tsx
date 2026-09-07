@@ -1,12 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 import BottomNav from "@/app/(resident)/_components/BottomNav";
 import MoveOutSection from "@/app/(resident)/_components/MoveOutSection";
 import ResidentAsyncState from "@/app/(resident)/_components/ResidentAsyncState";
 import { useResidentBillMonths } from "@/hooks/reactquery/residentBilling";
-import { useResidentNotices } from "@/hooks/reactquery/residentNotices";
+import {
+  useResidentNoticeDetail,
+  useResidentNotices,
+} from "@/hooks/reactquery/residentNotices";
 import { useResidentProfile } from "@/hooks/reactquery/residentProfile";
 import { formatDate as formatDateValue, formatWon } from "@/lib/format";
 import { useResidentGuard } from "@/lib/resident/useResidentGuard";
@@ -14,15 +18,80 @@ import { useResidentGuard } from "@/lib/resident/useResidentGuard";
 import styles from "./home.module.css";
 
 const formatAmount = (amount: number) => formatWon(amount);
+const formatPlain = (amount: number) =>
+  formatWon(Math.round(amount)).replace(/원$/, "");
 const formatDate = (date: string | null) =>
   formatDateValue(date, { nullText: "미정" });
 const formatPeriod = (period: string) => `${Number(period.slice(5, 7))}월`;
+const formatBillLabel = (period: string) =>
+  `${period.slice(0, 4)}년 ${Number(period.slice(5, 7))}월 관리비`;
+
+type ChipInfo = { label: string; className: string };
+const chipFor = (status: string): ChipInfo => {
+  if (status === "paid" || status === "none") {
+    return { label: "완납", className: `${styles.chip} ${styles.chipOk}` };
+  }
+  if (status === "partial") {
+    return { label: "부분", className: `${styles.chip} ${styles.chipWarn}` };
+  }
+  return { label: "미납", className: styles.chip };
+};
+
+function BellIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M6 10a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14 6 10z" />
+      <path d="M10 19a2 2 0 0 0 4 0" />
+    </svg>
+  );
+}
+
+function NoticeIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M4 8h9l5-3v14l-5-3H4z" />
+    </svg>
+  );
+}
 
 export default function ResidentHomePage() {
   const guard = useResidentGuard();
   const profileQuery = useResidentProfile();
   const monthsQuery = useResidentBillMonths();
   const noticesQuery = useResidentNotices();
+  const latestNotice = noticesQuery.data?.[0];
+  const noticeDetailQuery = useResidentNoticeDetail(latestNotice?.id ?? 0);
+  const [noticeOpen, setNoticeOpen] = useState(false);
+
+  useEffect(() => {
+    if (!noticeOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setNoticeOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [noticeOpen]);
 
   const loading =
     guard.loading ||
@@ -75,47 +144,111 @@ export default function ResidentHomePage() {
 
   const months = monthsQuery.data ?? [];
   const currentMonth = months[0];
-  const trend = months.slice(0, 6).reverse();
-  const maxTrendAmount = Math.max(
-    ...trend.map((month) => month.totalAmount),
-    1,
-  );
-  const latestNotice = noticesQuery.data?.[0];
+  const lateFee = currentMonth?.lateFee ?? 0;
+  const totalBilled = currentMonth ? currentMonth.totalAmount + lateFee : 0;
+  const chip = currentMonth ? chipFor(currentMonth.payStatus) : null;
+
+  const trend = months.slice(0, 3).reverse();
+  const trendValues = trend.map((month) => month.totalAmount);
+  const trendMax = trendValues.length ? Math.max(...trendValues) : 0;
+  const trendMin = trendValues.length ? Math.min(...trendValues) : 0;
+  const barHeight = (value: number) =>
+    trendMax === trendMin
+      ? 82
+      : Math.round(42 + ((value - trendMin) / (trendMax - trendMin)) * 48);
+  const trendAvg = trend.length
+    ? Math.round(
+        trendValues.reduce((sum, value) => sum + value, 0) / trend.length,
+      )
+    : 0;
+  const trendCurrent = currentMonth?.totalAmount ?? 0;
+  const trendDiff = trendCurrent - trendAvg;
+  const showComparison = trend.length >= 2 && trendDiff !== 0;
+
+  const hasNotice = (noticesQuery.data?.length ?? 0) > 0;
+  const noticePreview =
+    noticeDetailQuery.data?.content ?? "공지 내용을 확인해 보세요.";
 
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <p>{profile.buildingName} {profile.unitNo}</p>
-        <h1>{profile.kakaoName || "사용자"} 님</h1>
-        <span>{profile.orgName}</span>
+        <div className={styles.unit}>
+          <h1>
+            {profile.buildingName} {profile.unitNo}
+          </h1>
+          <p>
+            {profile.kakaoName || "사용자"} 님 · {profile.orgName}
+          </p>
+        </div>
+        <Link
+          href="/resident/notice"
+          className={styles.bell}
+          aria-label={hasNotice ? "공지사항, 새 공지 있음" : "공지사항"}
+        >
+          <BellIcon />
+          {hasNotice ? <i className={styles.dot} aria-hidden="true" /> : null}
+        </Link>
       </header>
 
       <main className={styles.scroll}>
-        <section className={styles.billCard} aria-labelledby="current-bill-title">
-          <div className={styles.billTitle}>
-            <div>
-              <span>{currentMonth ? formatPeriod(currentMonth.period) : "이번 달"}</span>
-              <h2 id="current-bill-title">관리비 현황</h2>
-            </div>
-            <Link href="/resident/bill">상세 내역 보기</Link>
-          </div>
+        {latestNotice ? (
+          <button
+            type="button"
+            className={styles.notice}
+            onClick={() => setNoticeOpen(true)}
+          >
+            <span className={styles.noticeIcon}>
+              <NoticeIcon />
+            </span>
+            <span className={styles.noticeText}>
+              <b>{latestNotice.title}</b>
+              <span>{noticePreview}</span>
+            </span>
+          </button>
+        ) : (
+          <Link href="/resident/notice" className={styles.notice}>
+            <span className={styles.noticeIcon}>
+              <NoticeIcon />
+            </span>
+            <span className={styles.noticeText}>
+              <b>공지사항</b>
+              <span>새로운 공지가 없습니다.</span>
+            </span>
+          </Link>
+        )}
 
-          {currentMonth ? (
+        <section className={styles.bill} aria-labelledby="current-bill-title">
+          {currentMonth && chip ? (
             <>
-              <div className={styles.unpaid}>
-                <span>미납액</span>
-                <strong>{formatAmount(currentMonth.unpaidAmount)}</strong>
+              <div className={styles.billHead}>
+                <span id="current-bill-title">
+                  {formatBillLabel(currentMonth.period)}
+                </span>
+                <span className={chip.className}>{chip.label}</span>
               </div>
-              <dl className={styles.billMeta}>
-                <div>
-                  <dt>납기일</dt>
-                  <dd>{formatDate(currentMonth.dueDate)}</dd>
+              <div className={styles.amount}>
+                {formatPlain(totalBilled)}
+                <i>원</i>
+              </div>
+              <div className={styles.due}>
+                납부기한 <b>{formatDate(currentMonth.dueDate)}</b>
+              </div>
+              <div className={styles.divider} />
+              <div className={styles.li}>
+                <span>당월 부과액</span>
+                <b>{formatAmount(currentMonth.totalAmount)}</b>
+              </div>
+              {lateFee > 0 ? (
+                <div className={`${styles.li} ${styles.liSub}`}>
+                  <span>연체료</span>
+                  <b>{formatAmount(lateFee)}</b>
                 </div>
-                <div>
-                  <dt>당월 부과액</dt>
-                  <dd>{formatAmount(currentMonth.totalAmount)}</dd>
-                </div>
-              </dl>
+              ) : null}
+              <div className={styles.cta}>
+                <Link href="/resident/bill" className={styles.ctaPrimary}>
+                  상세 내역 보기
+                </Link>
+              </div>
             </>
           ) : (
             <div className={styles.billEmpty}>
@@ -125,47 +258,68 @@ export default function ResidentHomePage() {
           )}
         </section>
 
-        {latestNotice ? (
-          <Link
-            href={`/resident/notice/${latestNotice.id}`}
-            className={styles.noticeBanner}
-          >
-            <span>최근 공지</span>
-            <strong>{latestNotice.title}</strong>
-            <b aria-hidden="true">›</b>
-          </Link>
-        ) : (
-          <Link href="/resident/notice" className={styles.noticeBanner}>
-            <span>공지사항</span>
-            <strong>새로운 공지가 없습니다.</strong>
-            <b aria-hidden="true">›</b>
-          </Link>
-        )}
-
-        <section className={styles.trendCard} aria-labelledby="trend-title">
-          <div className={styles.sectionHeading}>
-            <h2 id="trend-title">최근 관리비 추이</h2>
-            <span>최근 {trend.length}개월</span>
-          </div>
+        <div className={styles.trendGap} />
+        <section className={styles.trend} aria-labelledby="trend-title">
           {trend.length > 0 ? (
-            <div className={styles.trendList}>
-              {trend.map((month) => (
-                <div className={styles.trendRow} key={month.period}>
-                  <span>{formatPeriod(month.period)}</span>
-                  <div className={styles.barTrack} aria-hidden="true">
-                    <i
-                      style={{
-                        width: `${Math.max(
-                          5,
-                          (month.totalAmount / maxTrendAmount) * 100,
-                        )}%`,
-                      }}
-                    />
-                  </div>
-                  <b>{formatAmount(month.totalAmount)}</b>
+            <>
+              <div
+                className={
+                  showComparison && trendDiff > 0
+                    ? `${styles.thead} ${styles.theadRed}`
+                    : styles.thead
+                }
+                id="trend-title"
+              >
+                {showComparison ? (
+                  <>
+                    최근 {trend.length}개월 평균보다
+                    <br />
+                    <b>
+                      <em>{formatAmount(Math.abs(trendDiff))}</em>{" "}
+                      {trendDiff > 0 ? "많아요" : "적어요"}
+                    </b>
+                  </>
+                ) : (
+                  <>
+                    이번 달 관리비는
+                    <br />
+                    <b>{formatAmount(trendCurrent)}</b>이에요
+                  </>
+                )}
+              </div>
+              <div className={styles.tg}>
+                {trend.map((month, index) => {
+                  const on = index === trend.length - 1;
+                  return (
+                    <div
+                      className={on ? `${styles.tb} ${styles.tbOn}` : styles.tb}
+                      key={month.period}
+                    >
+                      <div className={styles.plot}>
+                        <div
+                          className={styles.stack}
+                          style={{ height: `${barHeight(month.totalAmount)}%` }}
+                        >
+                          <div className={styles.tv}>
+                            {formatPlain(month.totalAmount)}
+                          </div>
+                          <div className={styles.tr} />
+                        </div>
+                      </div>
+                      <div className={styles.tm}>
+                        {formatPeriod(month.period)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {trend.length >= 2 ? (
+                <div className={styles.tfoot}>
+                  최근 {trend.length}개월 평균 <b>{formatAmount(trendAvg)}</b> ·
+                  이번 달 <b>{formatAmount(trendCurrent)}</b>
                 </div>
-              ))}
-            </div>
+              ) : null}
+            </>
           ) : (
             <p className={styles.trendEmpty}>표시할 관리비 추이가 없어요.</p>
           )}
@@ -175,6 +329,45 @@ export default function ResidentHomePage() {
       </main>
 
       <BottomNav />
+
+      {noticeOpen && latestNotice ? (
+        <div
+          className={styles.modalBackdrop}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="notice-modal-title"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setNoticeOpen(false);
+          }}
+        >
+          <div className={styles.modalCard}>
+            <div className={styles.modalHead}>
+              <h2 className={styles.modalTitle} id="notice-modal-title">
+                {latestNotice.title}
+              </h2>
+              {latestNotice.buildingName ? (
+                <p className={styles.modalMeta}>{latestNotice.buildingName}</p>
+              ) : null}
+            </div>
+            <div className={styles.modalBody}>
+              {noticeDetailQuery.isPending
+                ? "공지 내용을 불러오고 있어요."
+                : noticeDetailQuery.error
+                  ? "공지 내용을 불러오지 못했어요."
+                  : (noticeDetailQuery.data?.content ?? "공지 내용이 없어요.")}
+            </div>
+            <div className={styles.modalFoot}>
+              <button
+                type="button"
+                className={styles.modalBtn}
+                onClick={() => setNoticeOpen(false)}
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
