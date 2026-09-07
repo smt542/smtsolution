@@ -243,3 +243,13 @@ export async function publicBillByToken(
   const row = ((data ?? []) as PublicBillDetailRow[])[0];
   return row ? rowToPublicBillDetail(row) : null;
 }
+
+// Explicit revoke of a public bill-share link (staff / bill_publish scoped).
+// Returns true when a token in the caller's org was found (and is now revoked).
+export async function staffRevokeBillToken(token: string): Promise<boolean> {
+  const { data, error } = await createClient().rpc("staff_revoke_bill_token", {
+    p_token: token,
+  });
+  if (error) throw new Error(error.message);
+  return data === true;
+}
