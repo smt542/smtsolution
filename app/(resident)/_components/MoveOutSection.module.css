@@ -1,20 +1,18 @@
-.section {
-  padding: 20px;
-  border-radius: 20px;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(25, 31, 40, 0.06);
-}
-
-.heading span {
-  color: var(--blue-d);
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.heading h2 {
-  margin: 4px 0 0;
+/* 퇴실 신청 — 바텀시트 컨테이너 */
+.sheetTitle {
+  flex: none;
   font-size: 19px;
-  letter-spacing: -0.03em;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+
+.sheetScroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  margin-top: 4px;
+  padding-bottom: 6px;
 }
 
 .form,

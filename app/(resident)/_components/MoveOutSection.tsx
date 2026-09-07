@@ -2,6 +2,7 @@
 
 import { type FormEvent, useState } from "react";
 
+import ResidentBottomSheet from "@/app/(resident)/_components/ResidentBottomSheet";
 import {
   useCancelMoveOut,
   useCreateMoveOut,
@@ -11,6 +12,11 @@ import {
 import { formatDate } from "@/lib/format";
 
 import styles from "./MoveOutSection.module.css";
+
+type MoveOutSectionProps = {
+  open: boolean;
+  onClose: () => void;
+};
 
 const statusCopy = {
   confirmed: {
@@ -27,7 +33,7 @@ const statusCopy = {
   },
 } as const;
 
-export default function MoveOutSection() {
+export default function MoveOutSection({ open, onClose }: MoveOutSectionProps) {
   const requestQuery = useMoveOutRequest();
   const createMutation = useCreateMoveOut();
   const updateMutation = useUpdateMoveOut();
@@ -111,14 +117,13 @@ export default function MoveOutSection() {
   const showForm = !request || (canStartAgain && showNewForm);
 
   return (
-    <section className={styles.section} aria-labelledby="move-out-title">
-      <div className={styles.heading}>
-        <div>
-          <span>이사 준비</span>
-          <h2 id="move-out-title">퇴실 신청</h2>
-        </div>
-      </div>
-
+    <ResidentBottomSheet
+      variant="stepped"
+      open={open}
+      onDismiss={onClose}
+    >
+      <div className={styles.sheetTitle}>퇴실 신청</div>
+      <div className={styles.sheetScroll}>
       {requestQuery.isPending ? (
         <div className={styles.state} role="status">
           퇴실 신청 내역을 확인하고 있어요.
@@ -258,6 +263,7 @@ export default function MoveOutSection() {
           {actionMessage}
         </p>
       ) : null}
+      </div>
 
       {showCreated ? (
         <div className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="move-out-created-title">
@@ -293,6 +299,6 @@ export default function MoveOutSection() {
           </div>
         </div>
       ) : null}
-    </section>
+    </ResidentBottomSheet>
   );
 }

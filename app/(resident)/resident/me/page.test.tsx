@@ -31,6 +31,14 @@ vi.mock("@/hooks/reactquery/residentWithdrawal", () => ({
 vi.mock("@/app/(resident)/_components/MoveOutSection", () => ({
   default: () => <section aria-label="퇴실 신청">퇴실 신청 영역</section>,
 }));
+vi.mock("@/hooks/reactquery/residentMoveOut", () => ({
+  useMoveOutRequest: () => ({
+    data: null,
+    error: null,
+    isPending: false,
+    refetch: vi.fn(),
+  }),
+}));
 
 import ResidentMePage from "./page";
 
@@ -75,29 +83,25 @@ beforeEach(() => {
 });
 
 describe("ResidentMePage", () => {
-  it("renders profile, household, policies, and auto-transfer marker", () => {
+  it("renders profile header, household, and policies", () => {
     render(<ResidentMePage />);
     expect(screen.getByText("김주민")).toBeInTheDocument();
-    expect(screen.getByText("카카오 간편로그인")).toBeInTheDocument();
-    expect(screen.getByText("자동이체 세대")).toBeInTheDocument();
+    expect(screen.getByText("카카오 간편 로그인")).toBeInTheDocument();
     expect(screen.getByText("해오름관리")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "이용약관" })).toHaveAttribute("href", "/resident/terms");
     expect(screen.getByRole("link", { name: "개인정보 처리방침" })).toHaveAttribute("href", "/resident/privacy");
     expect(screen.getByLabelText("퇴실 신청")).toBeInTheDocument();
   });
 
-  it("warns before disabling Alimtalk and saves both toggle types", async () => {
+  it("warns before disabling Alimtalk and saves both channels off together", async () => {
     const user = userEvent.setup();
     render(<ResidentMePage />);
 
-    await user.click(screen.getByRole("switch", { name: "카카오 알림톡" }));
-    const dialog = screen.getByRole("dialog", { name: "카카오 알림톡을 끌까요?" });
-    expect(within(dialog).getByText("관리비 확정 안내를 못 받을 수 있어요.")).toBeInTheDocument();
-    await user.click(within(dialog).getByRole("button", { name: "끄기" }));
-    expect(mutate).toHaveBeenCalledWith({ alimtalk: false });
-
-    await user.click(screen.getByRole("switch", { name: "문자" }));
-    expect(mutate).toHaveBeenCalledWith({ sms: true });
+    await user.click(screen.getByRole("switch", { name: "알림톡" }));
+    const dialog = screen.getByRole("dialog", { name: "알림톡을 끌까요?" });
+    expect(within(dialog).getByText(/알려드릴 수\s*없어요/)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "그래도 끄기" }));
+    expect(mutate).toHaveBeenCalledWith({ alimtalk: false, sms: false });
   });
 
   it("signs out, clears onboarding state, and replaces to login", async () => {
@@ -119,9 +123,9 @@ describe("ResidentMePage", () => {
     const user = userEvent.setup();
     render(<ResidentMePage />);
 
-    await user.click(screen.getByRole("button", { name: "회원 탈퇴" }));
-    const dialog = screen.getByRole("dialog", { name: "회원 탈퇴할까요?" });
-    await user.click(within(dialog).getByRole("button", { name: "회원 탈퇴" }));
+    await user.click(screen.getByRole("button", { name: "회원탈퇴" }));
+    const dialog = screen.getByRole("dialog", { name: "정말 탈퇴할까요?" });
+    await user.click(within(dialog).getByRole("button", { name: "탈퇴하기" }));
 
     await waitFor(() => {
       expect(withdrawMutateAsync).toHaveBeenCalledOnce();
@@ -136,9 +140,9 @@ describe("ResidentMePage", () => {
     const user = userEvent.setup();
     render(<ResidentMePage />);
 
-    await user.click(screen.getByRole("button", { name: "회원 탈퇴" }));
-    const dialog = screen.getByRole("dialog", { name: "회원 탈퇴할까요?" });
-    await user.click(within(dialog).getByRole("button", { name: "회원 탈퇴" }));
+    await user.click(screen.getByRole("button", { name: "회원탈퇴" }));
+    const dialog = screen.getByRole("dialog", { name: "정말 탈퇴할까요?" });
+    await user.click(within(dialog).getByRole("button", { name: "탈퇴하기" }));
 
     await waitFor(() =>
       expect(within(dialog).getByText("탈퇴에 실패했어요")).toBeInTheDocument(),

@@ -7,6 +7,7 @@ import { useState } from "react";
 import BottomNav from "@/app/(resident)/_components/BottomNav";
 import MoveOutSection from "@/app/(resident)/_components/MoveOutSection";
 import ResidentAsyncState from "@/app/(resident)/_components/ResidentAsyncState";
+import { useMoveOutRequest } from "@/hooks/reactquery/residentMoveOut";
 import {
   useResidentProfile,
   useSetNotifyPrefs,
@@ -19,13 +20,49 @@ import { createClient } from "@/lib/supabase/client";
 
 import styles from "./me.module.css";
 
+function formatPhone(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 11)
+    return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+  if (digits.length === 10)
+    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  return raw;
+}
+
+function KakaoIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 3C7 3 3 6.2 3 10.1c0 2.5 1.7 4.7 4.2 6l-.9 3.4c-.1.4.3.6.6.4l4-2.6c.4 0 .7.1 1.1.1 5 0 9-3.2 9-7.3S17 3 12 3z" />
+    </svg>
+  );
+}
+
+function ChevronIcon() {
+  return (
+    <svg
+      className={styles.chev}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.1"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M9 5l7 7-7 7" />
+    </svg>
+  );
+}
+
 export default function ResidentMePage() {
   const router = useRouter();
   const guard = useResidentGuard();
   const profileQuery = useResidentProfile();
+  const moveOutQuery = useMoveOutRequest();
   const notifyMutation = useSetNotifyPrefs();
   const withdrawResident = useWithdrawResident();
   const [alimtalkWarningOpen, setAlimtalkWarningOpen] = useState(false);
+  const [moveOutOpen, setMoveOutOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
@@ -65,7 +102,9 @@ export default function ResidentMePage() {
   if (!profile) {
     return (
       <div className={styles.page}>
-        <header className={styles.header}><h1>내 정보</h1></header>
+        <header className={styles.header}>
+          <h1 className={styles.title}>내 정보</h1>
+        </header>
         <ResidentAsyncState
           variant="compact"
           role="status"
@@ -77,6 +116,18 @@ export default function ResidentMePage() {
       </div>
     );
   }
+
+  const displayName = profile.kakaoName || profile.tenantName || "사용자";
+  const avatarChar = Array.from(displayName.trim())[0] ?? "세";
+  const notifyOn = profile.alimtalkOptIn;
+
+  const moveOut = moveOutQuery.data;
+  const moveOutSubtitle =
+    moveOut?.status === "pending"
+      ? `${formatDate(moveOut.desiredDate)} 신청 · 확인 중`
+      : moveOut?.status === "confirmed"
+        ? `${formatDate(moveOut.desiredDate)} 퇴실 예정`
+        : "희망 퇴실일을 알려주세요";
 
   const confirmLogout = async () => {
     setLoggingOut(true);
@@ -114,124 +165,166 @@ export default function ResidentMePage() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <p>{profile.buildingName} {profile.unitNo}</p>
-        <h1>내 정보</h1>
+        <h1 className={styles.title}>내 정보</h1>
+        <div className={styles.prof}>
+          <div className={styles.av} aria-hidden="true">
+            {avatarChar}
+          </div>
+          <div className={styles.pi}>
+            <div className={styles.pn}>
+              <span className={styles.kbadge}>
+                <KakaoIcon />
+                카카오 간편 로그인
+              </span>
+            </div>
+            <div className={styles.pt}>
+              <b>{displayName}</b> <span>{formatPhone(profile.phone)}</span>
+            </div>
+          </div>
+        </div>
       </header>
 
       <main className={styles.scroll}>
-        <section className={styles.card} aria-labelledby="profile-title">
-          <h2 id="profile-title">프로필</h2>
-          <dl>
-            <div><dt>이름</dt><dd>{profile.kakaoName || "사용자"}</dd></div>
-            <div><dt>전화</dt><dd>{profile.phone}</dd></div>
-            <div><dt>로그인 방식</dt><dd>카카오 간편로그인</dd></div>
-          </dl>
+        <h2 className={styles.lbl}>세대 정보</h2>
+        <section className={styles.card} aria-label="세대 정보">
+          <div className={styles.row}>
+            <span className={styles.rowKey}>건물 · 호수</span>
+            <span className={styles.rowVal}>
+              {profile.buildingName} {profile.unitNo}
+            </span>
+          </div>
+          <div className={styles.row}>
+            <span className={styles.rowKey}>입주일</span>
+            <span className={styles.rowVal}>{formatDate(profile.moveInDate)}</span>
+          </div>
+          <div className={styles.row}>
+            <span className={styles.rowKey}>관리주체</span>
+            <span className={styles.rowVal}>{profile.orgName}</span>
+          </div>
+          <button
+            type="button"
+            className={`${styles.row} ${styles.go}`}
+            onClick={() => setMoveOutOpen(true)}
+          >
+            <span className={styles.rowText}>
+              <b>퇴실 신청</b>
+              <span>{moveOutSubtitle}</span>
+            </span>
+            <ChevronIcon />
+          </button>
         </section>
 
-        <section className={styles.card} aria-labelledby="household-title">
-          <div className={styles.sectionTitle}>
-            <h2 id="household-title">세대</h2>
-            {profile.transferMethod === "auto_transfer" ? (
-              <span className={styles.marker}>자동이체 세대</span>
-            ) : null}
-          </div>
-          <dl>
-            <div><dt>건물/호실</dt><dd>{profile.buildingName} {profile.unitNo}</dd></div>
-            <div><dt>입주일</dt><dd>{formatDate(profile.moveInDate)}</dd></div>
-            <div><dt>관리업체</dt><dd>{profile.orgName}</dd></div>
-          </dl>
-        </section>
-
-        <section className={styles.card} aria-labelledby="notification-title">
-          <h2 id="notification-title">알림 설정</h2>
-          <div className={styles.toggleRow}>
-            <div>
-              <b>카카오 알림톡</b>
-              <span>관리비 확정 및 주요 안내</span>
-            </div>
-            <label className={styles.switch}>
-              <span className={styles.srOnly}>카카오 알림톡</span>
-              <input
-                type="checkbox"
-                role="switch"
-                checked={profile.alimtalkOptIn}
-                disabled={notifyMutation.isPending}
-                onChange={(event) => {
-                  if (event.target.checked) {
-                    notifyMutation.mutate({ alimtalk: true });
-                  } else {
-                    setAlimtalkWarningOpen(true);
-                  }
-                }}
-              />
-              <span aria-hidden="true" />
-            </label>
-          </div>
-          <div className={styles.toggleRow}>
-            <div>
-              <b>문자</b>
-              <span>알림톡 미수신 시 문자 안내</span>
-            </div>
-            <label className={styles.switch}>
-              <span className={styles.srOnly}>문자</span>
-              <input
-                type="checkbox"
-                role="switch"
-                checked={profile.smsOptIn}
-                disabled={notifyMutation.isPending}
-                onChange={(event) =>
-                  notifyMutation.mutate({ sms: event.target.checked })
+        <h2 className={styles.lbl}>알림 설정</h2>
+        <section className={styles.card} aria-label="알림 설정">
+          <div className={styles.row}>
+            <span className={styles.rowText}>
+              <b>알림톡</b>
+              <span>관리비 확정 안내와 서비스 공지를 카카오톡으로 받아요</span>
+            </span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={notifyOn}
+              aria-label="알림톡"
+              disabled={notifyMutation.isPending}
+              className={`${styles.sw} ${notifyOn ? styles.on : ""}`}
+              onClick={() => {
+                if (notifyMutation.isPending) return;
+                if (notifyOn) {
+                  setAlimtalkWarningOpen(true);
+                } else {
+                  notifyMutation.mutate({ alimtalk: true, sms: true });
                 }
-              />
-              <span aria-hidden="true" />
-            </label>
+              }}
+            />
           </div>
-          {notifyMutation.error ? (
-            <p className={styles.error} role="alert">
-              알림 설정을 저장하지 못했어요. 다시 시도해 주세요.
-            </p>
-          ) : null}
+        </section>
+        <p className={styles.note}>끄면 관리비가 확정돼도 알려드리지 않아요</p>
+        {notifyMutation.error ? (
+          <p className={styles.error} role="alert">
+            알림 설정을 저장하지 못했어요. 다시 시도해 주세요.
+          </p>
+        ) : null}
+
+        <h2 className={styles.lbl}>이용 정보</h2>
+        <section className={styles.card} aria-label="이용 정보">
+          <Link className={`${styles.row} ${styles.go}`} href="/resident/terms">
+            <span className={styles.rowText}>
+              <b>이용약관</b>
+            </span>
+            <ChevronIcon />
+          </Link>
+          <Link
+            className={`${styles.row} ${styles.go}`}
+            href="/resident/privacy"
+          >
+            <span className={styles.rowText}>
+              <b>개인정보 처리방침</b>
+            </span>
+            <ChevronIcon />
+          </Link>
         </section>
 
-        <MoveOutSection />
-
-        <nav className={styles.links} aria-label="정책 및 계정">
-          <Link href="/resident/terms"><span>이용약관</span><b aria-hidden="true">›</b></Link>
-          <Link href="/resident/privacy"><span>개인정보 처리방침</span><b aria-hidden="true">›</b></Link>
+        <div className={styles.foot}>
           <button type="button" onClick={() => setLogoutOpen(true)}>
-            <span>로그아웃</span><b aria-hidden="true">›</b>
+            로그아웃
           </button>
           <button
             type="button"
-            className={styles.withdrawal}
+            className={styles.del}
             onClick={() => {
               setWithdrawError(null);
               setWithdrawOpen(true);
             }}
           >
-            회원 탈퇴
+            회원탈퇴
           </button>
-        </nav>
+        </div>
       </main>
 
       <BottomNav />
 
+      <MoveOutSection
+        open={moveOutOpen}
+        onClose={() => setMoveOutOpen(false)}
+      />
+
       {alimtalkWarningOpen ? (
-        <div className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="alimtalk-warning-title">
-          <div className={styles.modalBody}>
-            <h2 id="alimtalk-warning-title">카카오 알림톡을 끌까요?</h2>
-            <p>관리비 확정 안내를 못 받을 수 있어요.</p>
-            <div className={styles.modalActions}>
-              <button type="button" onClick={() => setAlimtalkWarningOpen(false)}>유지하기</button>
+        <div
+          className={styles.confirm}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="alimtalk-warning-title"
+          onClick={(event) => {
+            if (event.target === event.currentTarget)
+              setAlimtalkWarningOpen(false);
+          }}
+        >
+          <div className={styles.confirmBody}>
+            <h2 className={styles.confirmTitle} id="alimtalk-warning-title">
+              알림톡을 끌까요?
+            </h2>
+            <p className={styles.confirmDesc}>
+              관리비가 확정돼도 <b>금액 · 납부 계좌 · 기한</b>을 알려드릴 수
+              없어요.
+            </p>
+            <div className={styles.confirmActions}>
               <button
                 type="button"
-                className={styles.danger}
+                className={styles.confirmBtn}
+                onClick={() => setAlimtalkWarningOpen(false)}
+              >
+                닫기
+              </button>
+              <button
+                type="button"
+                className={`${styles.confirmBtn} ${styles.confirmDanger}`}
                 onClick={() => {
-                  notifyMutation.mutate({ alimtalk: false });
+                  notifyMutation.mutate({ alimtalk: false, sms: false });
                   setAlimtalkWarningOpen(false);
                 }}
               >
-                끄기
+                그래도 끄기
               </button>
             </div>
           </div>
@@ -239,15 +332,33 @@ export default function ResidentMePage() {
       ) : null}
 
       {logoutOpen ? (
-        <div className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="logout-title">
-          <div className={styles.modalBody}>
-            <h2 id="logout-title">로그아웃할까요?</h2>
-            <p>현재 계정에서 로그아웃하고 로그인 화면으로 이동해요.</p>
-            <div className={styles.modalActions}>
-              <button type="button" onClick={() => setLogoutOpen(false)}>취소</button>
+        <div
+          className={styles.confirm}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="logout-title"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setLogoutOpen(false);
+          }}
+        >
+          <div className={styles.confirmBody}>
+            <h2 className={styles.confirmTitle} id="logout-title">
+              로그아웃할까요?
+            </h2>
+            <p className={styles.confirmDesc}>
+              다시 카카오로 로그인하면 바로 이용할 수 있어요.
+            </p>
+            <div className={styles.confirmActions}>
               <button
                 type="button"
-                className={styles.danger}
+                className={styles.confirmBtn}
+                onClick={() => setLogoutOpen(false)}
+              >
+                닫기
+              </button>
+              <button
+                type="button"
+                className={`${styles.confirmBtn} ${styles.confirmPri}`}
                 disabled={loggingOut}
                 onClick={() => void confirmLogout()}
               >
@@ -259,21 +370,33 @@ export default function ResidentMePage() {
       ) : null}
 
       {withdrawOpen ? (
-        <div className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="withdraw-title">
-          <div className={styles.modalBody}>
-            <h2 id="withdraw-title">회원 탈퇴할까요?</h2>
-            <p>
-              연결된 세대 정보와 카카오 로그인 연결이 삭제돼요. 관리비·공지 등
-              세입자 서비스를 더 이상 이용할 수 없어요.
+        <div
+          className={styles.confirm}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="withdraw-title"
+          onClick={(event) => {
+            if (event.target === event.currentTarget && !withdrawing)
+              setWithdrawOpen(false);
+          }}
+        >
+          <div className={styles.confirmBody}>
+            <h2 className={styles.confirmTitle} id="withdraw-title">
+              정말 탈퇴할까요?
+            </h2>
+            <p className={styles.confirmDesc}>
+              세대 연결과 알림 설정이 모두 삭제돼요. 부과 · 납부 내역은
+              관리사무소에 보관됩니다.
             </p>
             {withdrawError ? (
-              <p className={styles.error} role="alert">
+              <p className={styles.confirmError} role="alert">
                 {withdrawError}
               </p>
             ) : null}
-            <div className={styles.modalActions}>
+            <div className={styles.confirmActions}>
               <button
                 type="button"
+                className={styles.confirmBtn}
                 onClick={() => setWithdrawOpen(false)}
                 disabled={withdrawing}
               >
@@ -281,11 +404,11 @@ export default function ResidentMePage() {
               </button>
               <button
                 type="button"
-                className={styles.danger}
+                className={`${styles.confirmBtn} ${styles.confirmDanger}`}
                 disabled={withdrawing}
                 onClick={() => void confirmWithdraw()}
               >
-                {withdrawing ? "처리 중..." : "회원 탈퇴"}
+                {withdrawing ? "처리 중..." : "탈퇴하기"}
               </button>
             </div>
           </div>
