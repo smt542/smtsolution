@@ -8,7 +8,9 @@ export interface MatchedDeposit {
   /** 실제 자동 수납으로 기록할 금액. 초과분은 미납액으로 캡(음수 미납 방지). unpaid=null이면 입금액 그대로. */
   postAmount: number;
 }
-export interface MatchResult { matched: MatchedDeposit[]; unmatched: Deposit[]; }
+/** 이름이 복수 세대와 일치해 자동 확정하지 않는 입금(수동 선택 대상). candidates에 후보 세대 목록을 담는다. */
+export interface AmbiguousDeposit { deposit: Deposit; candidates: MatchUnit[]; }
+export interface MatchResult { matched: MatchedDeposit[]; ambiguous: AmbiguousDeposit[]; unmatched: Deposit[]; }
 
 /** 매칭된 입금 1건의 초과 여부·자동 수납 금액을 산출(단일 소스). */
 export function resolveMatch(deposit: Deposit, unit: MatchUnit): MatchedDeposit {
@@ -39,10 +41,13 @@ export function matchDeposits(deposits: Deposit[], units: MatchUnit[]): MatchRes
   for (const u of units) if (u.payerNo) byPayerNo.set(u.payerNo.trim(), u);
 
   const matched: MatchedDeposit[] = [];
+  const ambiguous: AmbiguousDeposit[] = [];
   const unmatched: Deposit[] = [];
 
   for (const d of deposits) {
     let hit: MatchUnit | undefined;
+    // 복수 일치 시 자동 확정하지 않고 수동 선택 대상으로 넘길 후보 목록.
+    let candidates: MatchUnit[] = [];
     if (d.customerNo && byPayerNo.has(d.customerNo.trim())) {
       hit = byPayerNo.get(d.customerNo.trim());
     } else if (d.name) {
@@ -52,7 +57,9 @@ export function matchDeposits(deposits: Deposit[], units: MatchUnit[]): MatchRes
       );
       if (exactCandidates.length === 1) {
         hit = exactCandidates[0];
-      } else if (exactCandidates.length === 0) {
+      } else if (exactCandidates.length > 1) {
+        candidates = exactCandidates;
+      } else {
         const digitlessKey = normalizeNameWithoutDigits(d.name);
         const fallbackCandidates = digitlessKey
           ? units.filter(
@@ -61,10 +68,13 @@ export function matchDeposits(deposits: Deposit[], units: MatchUnit[]): MatchRes
             )
           : [];
         if (fallbackCandidates.length === 1) hit = fallbackCandidates[0];
+        else if (fallbackCandidates.length > 1) candidates = fallbackCandidates;
       }
     }
-    if (!hit) { unmatched.push(d); continue; }
-    matched.push(resolveMatch(d, hit));
+    if (hit) { matched.push(resolveMatch(d, hit)); continue; }
+    // 복수 후보 → 수동 선택 대상(자동 확정 금지). 후보 없음 → 미매칭.
+    if (candidates.length > 1) { ambiguous.push({ deposit: d, candidates }); continue; }
+    unmatched.push(d);
   }
-  return { matched, unmatched };
+  return { matched, ambiguous, unmatched };
 }
