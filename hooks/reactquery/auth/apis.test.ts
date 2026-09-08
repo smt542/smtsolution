@@ -58,13 +58,13 @@ describe("getMyContext", () => {
     rpc.mockResolvedValue({ data: [{
       org_id: 1, role: "staff", org_status: "active",
       username: "hong", full_name: "홍길동", is_active: true, must_change_password: false,
-      staff_type: "manager_staff", permissions: ["buildings"],
+      staff_type: "manager_staff", permissions: ["buildings"], staff_capabilities: ["manager_staff"],
     }], error: null });
     const ctx = await getMyContext();
     expect(ctx).toEqual({
       orgId: 1, role: "staff", orgStatus: "active",
       username: "hong", fullName: "홍길동", isActive: true, mustChangePassword: false,
-      staffType: "manager_staff", permissions: ["buildings"],
+      staffType: "manager_staff", staffCapabilities: ["manager_staff"], permissions: ["buildings"],
     });
   });
 
