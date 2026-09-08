@@ -12,6 +12,7 @@ const base = {
   affiliation: z.string().optional(),
   permissions: z.array(z.string()).default([]),
   roleIds: z.array(z.number()).default([]),
+  alsoCrossApp: z.boolean().default(false),
 };
 
 const pinSchema = z.string().regex(/^\d{4}$/, "비밀번호는 숫자 4자리를 입력해 주세요");
