@@ -61,8 +61,9 @@ update org_members
    - 인자 추가 `p_staff_capabilities jsonb default null`.
    - org_members INSERT 시 `staff_capabilities = coalesce(p_staff_capabilities, jsonb_build_array(p_staff_type::text))`.
    - RPC가 **primary ∈ caps 보장 + dedup**(방어적). 미전달 기존 호출자는 `[primary]` → **하위호환**.
-3. **`admin_update_member_basic` / `admin_set_member_permissions`(최신 `0002_p2a_accounts_permissions.sql`)**:
-   - `p_staff_capabilities jsonb` 수용, 제공 시 org_members UPDATE. RPC가 primary 방어적 재주입 + dedup.
+3. **기본정보/권한 UPDATE RPC(최신 `0002_p2a_accounts_permissions.sql`)**:
+   - `admin_update_member_basic`: `p_staff_capabilities jsonb default null` **추가**, 제공 시 org_members UPDATE(미제공 시 기존 caps 보존), primary 방어적 재주입+dedup. (겸직 토글의 편집 경로.)
+   - `admin_set_member_permissions`: **시그니처 유지(신규 param 없음)**. staff_type 변경 대비 기존 caps에 primary만 방어적 재주입 → 불변식 유지. 권한 모달은 caps 미관리라 param 불필요(호출자·테스트 보존).
 4. **`get_my_context`(최신 `0002_p2a_accounts_permissions.sql`)**:
    - 반환 컬럼에 `staff_capabilities jsonb` **추가(additive)**. `staff_type`(primary)은 그대로 반환.
 5. **`list_accounts`(최신 `0002_p2a_accounts_permissions.sql`)**:
@@ -92,7 +93,8 @@ update org_members
     - 현장 계정(primary=field/support): 토글 ON → caps에 `manager_staff` 추가.
     - 항상 `caps = [primary] (+ 토글 시 반대 persona 값)` 형태로 제출. 편집 시 현재 caps로 토글 초기화.
   - `page.tsx`: 계정 행에 **capability 배지**("현장 접근"/"사무실 접근") — primary 외 자격 보유 시 표시. 목록은 primary 탭 기준 유지(양쪽 탭 노출은 §8 비목표).
-  - API 라우트(`app/api/accounts/route.ts` POST, `app/api/accounts/[userId]` PATCH): body의 `staffCapabilities`를 `p_staff_capabilities`로 RPC에 전달.
+  - **생성 경로**: `AccountFormModal`→`createAccount`→POST `app/api/accounts`→`provision_member`. POST 라우트가 body의 `staffCapabilities`를 `p_staff_capabilities`로 전달.
+  - **편집(basic) 경로**: `AccountFormModal`→`updateAccountBasic` 훅→클라 RPC `admin_update_member_basic`(`p_staff_capabilities`). (`[userId]` PATCH는 비번 리셋 전용 — caps 무관.)
 - **platform-admin 계정 UI**: `provision_member` 시그니처가 하위호환(신규 인자 default null)이라 무변경으로 동작(caps=`[primary]`). 겸직 부여를 platform-admin에도 노출할지는 **후속(선택)** — 이번 범위는 `/staff/accounts`.
 
 ## 8. 비목표
@@ -122,8 +124,9 @@ update org_members
 | 게이트 예외 | `app/(partner)/partner/(app)/layout.tsx` | `requirePersona("field_partner","/partner/mobile-login")`로 전환 |
 | 로그인 | `app/api/staff/login/route.ts` | 후보 capability 검사 + 재검사 caps 기반 |
 | 로그인 | `app/api/partner/login/route.ts` | 후보 capability 검사(JS) |
-| 프로비저닝 API | `app/api/accounts/route.ts`, `app/api/accounts/[userId]/route.ts` | `staffCapabilities` → `p_staff_capabilities` 전달 |
-| 프로비저닝 UI | `app/(staff)/staff/(app)/accounts/components/AccountFormModal.tsx`, `.../accounts/page.tsx` | 겸직 토글 + 배지 |
+| 프로비저닝 API | `app/api/accounts/route.ts`(POST) | body `staffCapabilities` → `p_staff_capabilities`(생성) |
+| 편집 훅 | `hooks/reactquery/accounts/apis.ts` `updateAccountBasic` | `p_staff_capabilities` 전달(편집 basic) |
+| 프로비저닝 UI | `AccountFormModal.tsx`(겸직 토글) · `AccountTable.tsx`(배지) · `components/forms/schema/account.ts`(alsoCrossApp) | 겸직 토글 + 목록 배지 |
 | 타입 | `hooks/reactquery/auth/apis.ts`, `hooks/reactquery/accounts/apis.ts`, `components/forms/schema/account.ts` | `staffCapabilities` additive |
 
 ## 12. 다음 단계
