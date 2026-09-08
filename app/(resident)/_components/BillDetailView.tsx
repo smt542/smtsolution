@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import type {
   PublicBillDetail,
   ResidentBillDetail,
@@ -34,6 +36,15 @@ const monthTitle = (period: string) =>
 
 /** 원 표기에서 접미사만 떼 낸 숫자 문자열(히어로 큰 금액용, 뒤에 <i>원</i>). */
 const plainWon = (won: number) => formatWon(won).replace(/원$/, "");
+
+/** 공개 링크 열람 만료 안내용 날짜 "YYYY.MM.DD"(정본 gnote 포맷). */
+const formatExpiryDate = (iso: string): string => {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(
+    d.getDate(),
+  ).padStart(2, "0")}`;
+};
 
 /** 개별 사용료 항목의 검침 라벨: "8.2톤 · 전월 7.6톤". 검침 없으면 null. */
 const usageLabel = (item: ViewItem): string | null => {
@@ -119,6 +130,11 @@ export default function BillDetailView(props: BillDetailViewProps) {
   const accountWithAmount = account
     ? `${account} ${formatWon(payableAmount)}`
     : "";
+  // 공개(무로그인) 링크의 열람 만료일(고지월+12개월). authed 모드에는 없음.
+  const publicExpiry =
+    props.mode === "public" && props.detail
+      ? formatExpiryDate(props.detail.expiresAt)
+      : null;
 
   return (
     <article className={styles.detail}>
@@ -207,6 +223,21 @@ export default function BillDetailView(props: BillDetailViewProps) {
           <div className={styles.vv}>{formatWon(grandTotal)}</div>
         </div>
       </section>
+
+      {props.mode === "public" ? (
+        <>
+          <div className={styles.cta}>
+            <b>지난 달 내역도 앱에서 확인하세요</b>
+            <span>월별 부과 내역과 공지를 카카오 로그인 한 번으로 볼 수 있어요.</span>
+            <Link href="/resident/login">관리비서 시작하기</Link>
+          </div>
+          {publicExpiry ? (
+            <p className={styles.gnote}>
+              이 링크는 관리비 확인 전용이며 {publicExpiry}까지 열람할 수 있습니다.
+            </p>
+          ) : null}
+        </>
+      ) : null}
     </article>
   );
 }

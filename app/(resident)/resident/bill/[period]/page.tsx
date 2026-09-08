@@ -5,8 +5,9 @@ import { useEffect, useRef, useState } from "react";
 
 import BillDetailView from "@/app/(resident)/_components/BillDetailView";
 import {
-  useCreateBillToken,
+  signedBillPath,
   useResidentBillDetail,
+  useResidentSignBillUrl,
 } from "@/hooks/reactquery/residentBilling";
 import { useResidentGuard } from "@/lib/resident/useResidentGuard";
 
@@ -25,7 +26,7 @@ export default function ResidentBillDetailPage() {
   const period = PERIOD_PATTERN.test(segment) ? `${segment}-01` : "";
   const guard = useResidentGuard();
   const detailQuery = useResidentBillDetail(period);
-  const tokenMutation = useCreateBillToken();
+  const signMutation = useResidentSignBillUrl();
   const timer = useRef<number | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -72,8 +73,15 @@ export default function ResidentBillDetailPage() {
 
   const copyPublicLink = async () => {
     try {
-      const token = await tokenMutation.mutateAsync(period);
-      await navigator.clipboard.writeText(`${window.location.origin}/r/${token}`);
+      const link = await signMutation.mutateAsync(period);
+      if (!link) throw new Error("no link");
+      const path = signedBillPath({
+        buildingId: link.buildingId,
+        unitNo: link.unitNo,
+        period,
+        sig: link.sig,
+      });
+      await navigator.clipboard.writeText(`${window.location.origin}${path}`);
       setCopied(true);
       if (timer.current !== null) window.clearTimeout(timer.current);
       timer.current = window.setTimeout(() => {
@@ -117,16 +125,16 @@ export default function ResidentBillDetailPage() {
             <button
               type="button"
               className={styles.shareButton}
-              disabled={tokenMutation.isPending}
+              disabled={signMutation.isPending}
               onClick={() => void copyPublicLink()}
             >
-              {tokenMutation.isPending
+              {signMutation.isPending
                 ? "링크 만드는 중..."
                 : copied
                   ? "복사되었습니다"
                   : "무로그인 링크 복사"}
             </button>
-            {tokenMutation.error ? (
+            {signMutation.error ? (
               <p className={styles.shareError} role="alert">
                 공유 링크를 만들지 못했어요. 다시 시도해 주세요.
               </p>
