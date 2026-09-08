@@ -30,11 +30,17 @@ export interface ResidentBillMonth {
 
 export type ResidentBillMonthsResult = ResidentBillMonth[];
 
+/** 개별 사용료 분류(fee_items.name 매칭). 공용·기타 항목은 null. */
+export type ResidentBillUtility = "water" | "elec" | "gas";
+
 export interface ResidentBillItemRow {
   fee_item_id: number;
   name: string;
   amount: number;
   charged: boolean;
+  utility: ResidentBillUtility | null;
+  usage: number | null;
+  prev_usage: number | null;
 }
 
 export interface ResidentBillItem {
@@ -42,6 +48,12 @@ export interface ResidentBillItem {
   name: string;
   amount: number;
   charged: boolean;
+  /** 개별 사용료면 'water'|'elec'|'gas', 공용·기타면 null. */
+  utility: ResidentBillUtility | null;
+  /** 당월 검침 사용량(water=톤·elec=kWh·gas=㎥). 검침 없으면 null. */
+  usage: number | null;
+  /** 전월 검침 사용량. 없으면 null. */
+  prevUsage: number | null;
 }
 
 export interface ResidentBillDetailRow {
@@ -52,6 +64,7 @@ export interface ResidentBillDetailRow {
   total_amount: number;
   paid_amount: number;
   unpaid_amount: number;
+  late_fee: number;
   due_date: string | null;
   confirmed_at: string;
   items: ResidentBillItemRow[] | null;
@@ -68,6 +81,8 @@ export interface ResidentBillDetail {
   totalAmount: number;
   paidAmount: number;
   unpaidAmount: number;
+  /** 세대 자기 스코프 연체료(원). 미납·납기 있는 월만 산정, 그 외 0. */
+  lateFee: number;
   dueDate: string | null;
   confirmedAt: string;
   items: ResidentBillItem[];
@@ -99,11 +114,17 @@ export type StaffMintBillTokensResult = StaffBillToken[];
 export interface PublicBillItemRow {
   name: string;
   amount: number;
+  utility: ResidentBillUtility | null;
+  usage: number | null;
+  prev_usage: number | null;
 }
 
 export interface PublicBillItem {
   name: string;
   amount: number;
+  utility: ResidentBillUtility | null;
+  usage: number | null;
+  prevUsage: number | null;
 }
 
 export interface PublicBillDetailRow {
@@ -113,6 +134,7 @@ export interface PublicBillDetailRow {
   total_amount: number | null;
   paid_amount: number | null;
   unpaid_amount: number | null;
+  late_fee: number | null;
   due_date: string | null;
   items: PublicBillItemRow[] | null;
   mgmt_bank: string | null;
@@ -129,6 +151,8 @@ export interface PublicBillDetail {
   totalAmount: number | null;
   paidAmount: number | null;
   unpaidAmount: number | null;
+  /** 연체료(원). 만료 링크면 null 마스킹. */
+  lateFee: number | null;
   dueDate: string | null;
   items: PublicBillItem[];
   mgmtBank: string | null;
@@ -157,6 +181,9 @@ const rowToBillItem = (row: ResidentBillItemRow): ResidentBillItem => ({
   name: row.name,
   amount: row.amount,
   charged: row.charged,
+  utility: row.utility ?? null,
+  usage: row.usage ?? null,
+  prevUsage: row.prev_usage ?? null,
 });
 
 const rowToBillDetail = (row: ResidentBillDetailRow): ResidentBillDetail => ({
@@ -167,6 +194,7 @@ const rowToBillDetail = (row: ResidentBillDetailRow): ResidentBillDetail => ({
   totalAmount: row.total_amount,
   paidAmount: row.paid_amount,
   unpaidAmount: row.unpaid_amount,
+  lateFee: row.late_fee ?? 0,
   dueDate: row.due_date,
   confirmedAt: row.confirmed_at,
   items: (row.items ?? []).map(rowToBillItem),
@@ -184,10 +212,14 @@ const rowToPublicBillDetail = (
   totalAmount: row.total_amount,
   paidAmount: row.paid_amount,
   unpaidAmount: row.unpaid_amount,
+  lateFee: row.late_fee,
   dueDate: row.due_date,
   items: (row.items ?? []).map((item) => ({
     name: item.name,
     amount: item.amount,
+    utility: item.utility ?? null,
+    usage: item.usage ?? null,
+    prevUsage: item.prev_usage ?? null,
   })),
   mgmtBank: row.mgmt_bank,
   mgmtAcct: row.mgmt_acct,

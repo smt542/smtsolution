@@ -3,12 +3,9 @@
 import type {
   PublicBillDetail,
   ResidentBillDetail,
+  ResidentBillUtility,
 } from "@/hooks/reactquery/residentBilling";
-import {
-  formatDate as formatDateValue,
-  formatMonth,
-  formatWon,
-} from "@/lib/format";
+import { formatWon } from "@/lib/format";
 
 import CopyButton from "./CopyButton";
 import styles from "./BillDetailView.module.css";
@@ -17,13 +14,60 @@ type BillDetailViewProps =
   | { mode: "authed"; detail: ResidentBillDetail }
   | { mode: "public"; detail: PublicBillDetail | null };
 
-const formatAmount = (amount: number | null) =>
-  formatWon(amount ?? 0);
+type ViewItem = {
+  name: string;
+  amount: number;
+  utility: ResidentBillUtility | null;
+  usage: number | null;
+  prevUsage: number | null;
+};
 
-const formatPeriod = (period: string) => formatMonth(period, { nullText: "" });
+const UNIT_LABEL: Record<ResidentBillUtility, string> = {
+  water: "톤",
+  elec: "kWh",
+  gas: "㎥",
+};
 
-const formatDate = (date: string | null) =>
-  formatDateValue(date, { nullText: "-" });
+/** "2026년 7월 관리비" — 정본 한글 라벨(lib/format의 dot 포맷과 다름). */
+const monthTitle = (period: string) =>
+  `${period.slice(0, 4)}년 ${Number(period.slice(5, 7))}월 관리비`;
+
+/** 원 표기에서 접미사만 떼 낸 숫자 문자열(히어로 큰 금액용, 뒤에 <i>원</i>). */
+const plainWon = (won: number) => formatWon(won).replace(/원$/, "");
+
+/** 개별 사용료 항목의 검침 라벨: "8.2톤 · 전월 7.6톤". 검침 없으면 null. */
+const usageLabel = (item: ViewItem): string | null => {
+  if (item.utility == null || item.usage == null) return null;
+  const unit = UNIT_LABEL[item.utility];
+  const current = `${item.usage}${unit}`;
+  return item.prevUsage != null
+    ? `${current} · 전월 ${item.prevUsage}${unit}`
+    : current;
+};
+
+function ItemRow({ item }: { item: ViewItem }) {
+  const label = usageLabel(item);
+  return (
+    <div className={styles.it}>
+      <div className={styles.nm}>
+        {item.name}
+        {label ? <small>{label}</small> : null}
+      </div>
+      <div className={`${styles.vv}${item.amount < 0 ? ` ${styles.r}` : ""}`}>
+        {formatWon(item.amount)}
+      </div>
+    </div>
+  );
+}
+
+function Subtotal({ label, amount }: { label: string; amount: number }) {
+  return (
+    <div className={styles.sub}>
+      <div className={styles.nm}>{label}</div>
+      <div className={styles.vv}>{formatWon(amount)}</div>
+    </div>
+  );
+}
 
 export default function BillDetailView(props: BillDetailViewProps) {
   if (props.mode === "public" && !props.detail) {
@@ -47,96 +91,121 @@ export default function BillDetailView(props: BillDetailViewProps) {
   const detail = props.detail;
   if (!detail) return null;
 
-  const paymentAmount =
-    (detail.unpaidAmount ?? 0) > 0
-      ? (detail.unpaidAmount ?? 0)
-      : (detail.totalAmount ?? 0);
+  const items: ViewItem[] = detail.items.map((item) => ({
+    name: item.name,
+    amount: item.amount,
+    utility: item.utility,
+    usage: item.usage,
+    prevUsage: item.prevUsage,
+  }));
+  const perItems = items.filter((item) => item.utility != null);
+  const comItems = items.filter((item) => item.utility == null);
+  const perSum = perItems.reduce((sum, item) => sum + item.amount, 0);
+  const comSum = comItems.reduce((sum, item) => sum + item.amount, 0);
+  const charge = perSum + comSum;
+
+  const totalAmount = detail.totalAmount ?? 0;
+  const unpaidAmount = detail.unpaidAmount ?? 0;
+  const lateFee = detail.lateFee ?? 0;
+  const grandTotal = totalAmount + lateFee;
+  const isDue = unpaidAmount > 0;
+
   const account =
     detail.mgmtBank && detail.mgmtAcct
       ? `${detail.mgmtBank} ${detail.mgmtAcct}`
       : "";
-  const accountWithAmount = `${account} ${formatWon(paymentAmount)}`.trim();
+  // 계좌·금액 복사 = 실제 납부할 금액(미납 원금 + 연체료). 완납 월은 참고용 총액.
+  const payableAmount = unpaidAmount > 0 ? unpaidAmount + lateFee : totalAmount;
+  const accountWithAmount = account
+    ? `${account} ${formatWon(payableAmount)}`
+    : "";
 
   return (
     <article className={styles.detail}>
+      {props.mode === "public" ? (
+        <p className={styles.gt}>
+          {detail.buildingName} {detail.unitNo} · {monthTitle(detail.period)}
+        </p>
+      ) : null}
+
       <section className={styles.hero}>
-        <p className={styles.unit}>
-          {detail.buildingName} {detail.unitNo}
-        </p>
-        {props.mode === "authed" && props.detail.tenantName ? (
-          <p className={styles.tenant}>{props.detail.tenantName} 님</p>
-        ) : null}
-        <h1>{formatPeriod(detail.period)} 관리비</h1>
-        <div className={styles.amounts}>
-          <div>
-            <span>합계</span>
-            <b>{formatAmount(detail.totalAmount)}</b>
+        <div className={styles.hw}>
+          <div className={styles.aline}>
+            <b>{account || "계좌 미등록"}</b>
+            {detail.mgmtHolder ? <em>{detail.mgmtHolder}</em> : null}
           </div>
-          <div>
-            <span>납부</span>
-            <b>{formatAmount(detail.paidAmount)}</b>
-          </div>
-          <div className={styles.unpaid}>
-            <span>미납</span>
-            <b>{formatAmount(detail.unpaidAmount)}</b>
-          </div>
+          <span className={`${styles.chip} ${isDue ? styles.due : styles.paid}`}>
+            {isDue ? "미납" : "완납"}
+          </span>
         </div>
-        <p className={styles.due}>
-          <span>납기</span>
-          <b>{formatDate(detail.dueDate)}</b>
-        </p>
-      </section>
-
-      <section className={styles.card} aria-labelledby="bill-items-title">
-        <h2 id="bill-items-title">부과 항목</h2>
-        {detail.items.length > 0 ? (
-          <ul className={styles.items}>
-            {detail.items.map((item, index) => (
-              <li key={`${item.name}-${index}`}>
-                <span>{item.name}</span>
-                <b>{formatAmount(item.amount)}</b>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className={styles.empty}>등록된 항목이 없습니다.</p>
-        )}
-      </section>
-
-      <section className={styles.card} aria-labelledby="deposit-account-title">
-        <h2 id="deposit-account-title">입금 계좌</h2>
+        <div className={styles.tot}>
+          {plainWon(grandTotal)}
+          <i>원</i>
+        </div>
         {account ? (
-          <>
-            <dl className={styles.account}>
-              <div>
-                <dt>은행</dt>
-                <dd>{detail.mgmtBank ?? "-"}</dd>
-              </div>
-              <div>
-                <dt>계좌번호</dt>
-                <dd>{detail.mgmtAcct ?? "-"}</dd>
-              </div>
-              <div>
-                <dt>예금주</dt>
-                <dd>{detail.mgmtHolder ?? "-"}</dd>
-              </div>
-            </dl>
-            <div className={styles.copyActions}>
+          <div className={styles.acct}>
+            <div className={styles.abtns}>
               <CopyButton
                 text={account}
                 label="계좌 복사"
-                className={styles.copyButton}
+                className={styles.ab}
               />
               <CopyButton
                 text={accountWithAmount}
                 label="계좌·금액 복사"
-                className={`${styles.copyButton} ${styles.primary}`}
+                className={`${styles.ab} ${styles.pri}`}
               />
             </div>
-          </>
-        ) : (
-          <p className={styles.empty}>등록된 계좌가 없습니다.</p>
-        )}
+          </div>
+        ) : null}
+      </section>
+
+      {perItems.length > 0 ? (
+        <>
+          <div className={styles.lbl}>
+            개별 사용료<span>{perItems.length}개</span>
+          </div>
+          <section className={styles.card} aria-label="개별 사용료">
+            {perItems.map((item, index) => (
+              <ItemRow key={`per-${item.name}-${index}`} item={item} />
+            ))}
+            <Subtotal label="개별 사용료 소계" amount={perSum} />
+          </section>
+        </>
+      ) : null}
+
+      {comItems.length > 0 ? (
+        <>
+          <div className={styles.lbl}>
+            공용 · 기타 관리비<span>{comItems.length}개</span>
+          </div>
+          <section className={styles.card} aria-label="공용 · 기타 관리비">
+            {comItems.map((item, index) => (
+              <ItemRow key={`com-${item.name}-${index}`} item={item} />
+            ))}
+            <Subtotal label="공용 · 기타 소계" amount={comSum} />
+          </section>
+        </>
+      ) : null}
+
+      <div className={styles.lbl}>정산</div>
+      <section className={styles.fin} aria-label="정산">
+        <div className={styles.it}>
+          <div className={styles.nm}>당월 부과액</div>
+          <div className={styles.vv}>{formatWon(charge)}</div>
+        </div>
+        <div className={styles.it}>
+          <div className={styles.nm}>미납액</div>
+          <div className={styles.vv}>{formatWon(unpaidAmount)}</div>
+        </div>
+        <div className={styles.it}>
+          <div className={styles.nm}>연체료</div>
+          <div className={styles.vv}>{formatWon(lateFee)}</div>
+        </div>
+        <div className={styles.grand}>
+          <div className={styles.nm}>총 관리비</div>
+          <div className={styles.vv}>{formatWon(grandTotal)}</div>
+        </div>
       </section>
     </article>
   );
