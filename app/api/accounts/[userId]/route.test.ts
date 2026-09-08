@@ -11,7 +11,9 @@ import { PATCH } from "./route";
 
 function ctxRpc(ctx: unknown, accounts: unknown[]) {
   return vi.fn().mockImplementation((name: string) =>
-    name === "get_my_context"
+    name === "current_user_is_manager_staff"
+      ? Promise.resolve({ data: true, error: null })
+      : name === "get_my_context"
       ? Promise.resolve({ data: ctx ? [ctx] : [], error: null })
       : name === "list_accounts"
       ? Promise.resolve({ data: accounts, error: null })

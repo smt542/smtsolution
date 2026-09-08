@@ -39,7 +39,9 @@ const payload = {
 beforeEach(() => {
   getUser.mockResolvedValue({ data: { user: { id: "u-1" } }, error: null });
   serverRpc.mockImplementation((name: string) =>
-    name === "get_my_context"
+    name === "current_user_is_manager_staff"
+      ? Promise.resolve({ data: true, error: null })
+      : name === "get_my_context"
       ? Promise.resolve({ data: [{ org_id: 10, role: "org_owner", permissions: [] }], error: null })
       : Promise.resolve({ data: null, error: null }),
   );
@@ -64,7 +66,9 @@ describe("POST /api/messaging/send", () => {
 
   it("messaging 권한 없으면 403", async () => {
     serverRpc.mockImplementation((name: string) =>
-      name === "get_my_context"
+      name === "current_user_is_manager_staff"
+        ? Promise.resolve({ data: true, error: null })
+        : name === "get_my_context"
         ? Promise.resolve({ data: [{ org_id: 10, role: "staff", permissions: [] }], error: null })
         : Promise.resolve({ data: null, error: null }),
     );

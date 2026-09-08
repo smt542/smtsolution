@@ -51,7 +51,9 @@ function serverClient({
   const select = vi.fn(() => ({ eq }));
   const from = vi.fn(() => ({ select }));
   const rpc = vi.fn().mockImplementation((name: string) =>
-    name === "get_my_context"
+    name === "current_user_is_manager_staff"
+      ? Promise.resolve({ data: true, error: null })
+      : name === "get_my_context"
       ? Promise.resolve({ data: [{ org_id: 10, role: "org_owner", permissions: [] }], error: null })
       : Promise.resolve({ data: rows, error: rpcError }),
   );

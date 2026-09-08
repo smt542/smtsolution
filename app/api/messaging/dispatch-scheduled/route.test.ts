@@ -60,10 +60,14 @@ describe("POST /api/messaging/dispatch-scheduled", () => {
 
   it("세션(messaging 권한)이면 본인 org 드레인", async () => {
     getUser.mockResolvedValue({ data: { user: { id: "u1" } }, error: null });
-    serverRpc.mockResolvedValue({
-      data: [{ org_id: 7, role: "staff", permissions: ["messaging"] }],
-      error: null,
-    });
+    serverRpc.mockImplementation((name: string) =>
+      name === "current_user_is_manager_staff"
+        ? Promise.resolve({ data: true, error: null })
+        : Promise.resolve({
+          data: [{ org_id: 7, role: "staff", permissions: ["messaging"] }],
+          error: null,
+        }),
+    );
 
     const response = await POST(request());
 
@@ -73,10 +77,14 @@ describe("POST /api/messaging/dispatch-scheduled", () => {
 
   it("세션 있으나 messaging 권한 없으면 403", async () => {
     getUser.mockResolvedValue({ data: { user: { id: "u1" } }, error: null });
-    serverRpc.mockResolvedValue({
-      data: [{ org_id: 7, role: "staff", permissions: [] }],
-      error: null,
-    });
+    serverRpc.mockImplementation((name: string) =>
+      name === "current_user_is_manager_staff"
+        ? Promise.resolve({ data: true, error: null })
+        : Promise.resolve({
+          data: [{ org_id: 7, role: "staff", permissions: [] }],
+          error: null,
+        }),
+    );
 
     const response = await POST(request());
 

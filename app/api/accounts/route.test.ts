@@ -13,7 +13,9 @@ function serverClient({ user, ctx }: { user: unknown; ctx: unknown }) {
   return {
     auth: { getUser: vi.fn().mockResolvedValue({ data: { user }, error: null }) },
     rpc: vi.fn().mockImplementation((name: string) =>
-      name === "get_my_context"
+      name === "current_user_is_manager_staff"
+        ? Promise.resolve({ data: true, error: null })
+        : name === "get_my_context"
         ? Promise.resolve({ data: ctx ? [ctx] : [], error: null })
         : Promise.resolve({ error: null })),
     from: vi.fn(() => ({
@@ -53,7 +55,9 @@ describe("POST /api/accounts", () => {
 
   it("마스터 정상 → 201 + provision_member 호출", async () => {
     const rpc = vi.fn().mockImplementation((name: string) =>
-      name === "get_my_context"
+      name === "current_user_is_manager_staff"
+        ? Promise.resolve({ data: true, error: null })
+        : name === "get_my_context"
         ? Promise.resolve({ data: [{ org_id: 1, role: "org_owner", permissions: [] }], error: null })
         : Promise.resolve({ error: null }));
     createClient.mockResolvedValue({

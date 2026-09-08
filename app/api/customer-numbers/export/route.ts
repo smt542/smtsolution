@@ -2,7 +2,7 @@ import type {
   CustomerNumberLookupKind,
   CustomerNumberLookupRow,
 } from "@/hooks/reactquery/buildingCustomerNumbers";
-import { requireOrgContext } from "@/lib/api/requireOrgContext";
+import { requirePersonaApi } from "@/lib/api/requirePersona";
 import { rowsToXlsxBuffer } from "@/lib/export/xlsx";
 import { createClient } from "@/lib/supabase/server";
 import { buildCustomerNumberWorkbookData } from "./workbook";
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
 
   const query = params.get("q")?.trim();
   const sb = await createClient();
-  const gate = await requireOrgContext(sb);
+  const gate = await requirePersonaApi(sb, "manager_staff");
   if (!gate.ok) return gate.response;
 
   const { data, error } = await sb.rpc("list_customer_number_lookup", {

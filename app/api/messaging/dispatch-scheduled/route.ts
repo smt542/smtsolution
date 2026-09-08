@@ -50,6 +50,13 @@ export async function POST(request: Request): Promise<Response> {
       context?.role === "platform_admin" ||
       permissions.includes("messaging");
     if (!context?.org_id || !hasMessaging) return json({ error: "forbidden" }, 403);
+
+    // persona 게이트: field/support 파트너·세입자 세션 배제(기존 권한검사에 더한 방어).
+    const { data: isManagerStaff } = await supabase.rpc("current_user_is_manager_staff");
+    if (isManagerStaff !== true) {
+      return json({ error: "권한이 없습니다." }, 403);
+    }
+
     orgId = context.org_id;
   }
 

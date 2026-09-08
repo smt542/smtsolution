@@ -50,6 +50,12 @@ export async function POST(request: Request): Promise<Response> {
     ctx?.role === "org_owner" || ctx?.role === "platform_admin" || permissions.includes("settings");
   if (!ctx?.org_id || !hasSettings) return json({ error: "forbidden" }, 403);
 
+  // persona 게이트: field/support 파트너·세입자 세션 배제(기존 권한검사에 더한 방어).
+  const { data: isManagerStaff } = await sb.rpc("current_user_is_manager_staff");
+  if (isManagerStaff !== true) {
+    return json({ error: "권한이 없습니다." }, 403);
+  }
+
   if (number && !(await checkSenderRegistered(input.product, number))) {
     return json(
       {

@@ -57,7 +57,9 @@ const doc = { orgId: 10, faxNumber: "02-333-4444", householdName: "홍길동", b
 beforeEach(() => {
   getUser.mockResolvedValue({ data: { user: { id: "u-1" } }, error: null });
   serverRpc.mockImplementation((name: string) =>
-    name === "get_my_context"
+    name === "current_user_is_manager_staff"
+      ? Promise.resolve({ data: true, error: null })
+      : name === "get_my_context"
       ? Promise.resolve({ data: [{ org_id: 10, role: "org_owner", permissions: [] }], error: null })
       : Promise.resolve({ data: null, error: null }),
   );
@@ -82,8 +84,10 @@ describe("POST /api/bill/fax/send", () => {
   });
 
   it("bill_publish 권한 없으면 403", async () => {
-    serverRpc.mockImplementation(() =>
-      Promise.resolve({ data: [{ org_id: 10, role: "staff", permissions: [] }], error: null }),
+    serverRpc.mockImplementation((name: string) =>
+      name === "current_user_is_manager_staff"
+        ? Promise.resolve({ data: true, error: null })
+        : Promise.resolve({ data: [{ org_id: 10, role: "staff", permissions: [] }], error: null }),
     );
     expect((await POST(req({ billIssueIds: [5] }))).status).toBe(403);
   });

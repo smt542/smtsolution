@@ -19,6 +19,12 @@ export async function POST(req: Request) {
   if (!isMaster && !perms.includes("accounts"))
     return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
 
+  // persona 게이트: field/support 파트너·세입자 세션 배제(기존 권한검사에 더한 방어).
+  const { data: isManagerStaff } = await supabase.rpc("current_user_is_manager_staff");
+  if (isManagerStaff !== true) {
+    return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+  }
+
   // 3) 검증
   const body = await req.json().catch(() => null);
   const { username, password, fullName, phone, phoneSub, role, staffType, permissions, affiliation, roleIds } = body ?? {};

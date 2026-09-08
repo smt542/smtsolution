@@ -16,6 +16,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ userId
   if (!ctx || (!isMaster && !perms.includes("accounts")))
     return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
 
+  // persona 게이트: field/support 파트너·세입자 세션 배제(기존 권한검사에 더한 방어).
+  const { data: isManagerStaff } = await supabase.rpc("current_user_is_manager_staff");
+  if (isManagerStaff !== true) {
+    return NextResponse.json({ error: "권한이 없습니다." }, { status: 403 });
+  }
+
   // 대상이 현재 컨텍스트의 org 구성원인지 확인한다.
   const { count: membershipCount } = await supabase
     .from("org_members")
