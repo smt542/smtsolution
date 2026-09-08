@@ -24,7 +24,8 @@ export async function GET() {
   authorizeUrl.searchParams.set("redirect_uri", redirectUri);
   authorizeUrl.searchParams.set("response_type", "code");
   // 카카오 이름(name) 동의항목 심사 승인 완료(필수 동의) → 실명 수신.
-  authorizeUrl.searchParams.set("scope", "profile_nickname,phone_number,name");
+  // profile_image = 프로필 사진(선택 동의). 미동의 시 콜백이 URL을 못 받아 글자 아바타로 폴백.
+  authorizeUrl.searchParams.set("scope", "profile_nickname,profile_image,phone_number,name");
   authorizeUrl.searchParams.set("state", state);
 
   const response = NextResponse.redirect(authorizeUrl);
