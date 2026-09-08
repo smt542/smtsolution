@@ -32,6 +32,7 @@
   height: 46px;
   flex: none;
   border-radius: 15px;
+  object-fit: cover;
   background: var(--blue-t);
   color: var(--blue-d);
   display: flex;

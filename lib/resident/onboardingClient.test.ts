@@ -61,6 +61,7 @@ const automatchRow = {
   phoneMasked: "010-****-7788",
   moveInDate: "2024-03-02",
   orgName: "테스트 관리회사",
+  profileImageUrl: null,
 };
 
 beforeEach(async () => {
@@ -134,6 +135,7 @@ describe("resident onboarding client", () => {
         phoneMasked: "010-****-7788",
         moveInDate: "2024-03-02",
         orgName: "테스트 관리회사",
+        profileImageUrl: null,
       },
     ]);
     expect(getActiveCandidate()).toEqual(candidates[0]);

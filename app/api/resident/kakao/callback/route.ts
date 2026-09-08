@@ -128,8 +128,9 @@ export async function GET(request: NextRequest) {
   const phone = rawPhone ? normalizePhone(rawPhone) || null : null;
   // 프로필 사진(선택 동의). 미동의 시 카카오가 내려주지 않으므로 null → UI는 글자 아바타.
   // 카카오 기본(회색) 이미지도 그대로 저장·표시한다(is_default_image 분기 없음).
+  // 카카오 썸네일이 http://로 올 수 있어 https로 정규화(프로덕션 https에서 mixed-content 차단 방지).
   const profileImage = profile && typeof profile.thumbnail_image_url === "string"
-    ? profile.thumbnail_image_url.trim() || null
+    ? profile.thumbnail_image_url.trim().replace(/^http:\/\//i, "https://") || null
     : null;
 
   const response = NextResponse.redirect(new URL("/resident/auth", request.url));

@@ -28,6 +28,7 @@ export interface ResidentAutomatchCandidate {
   phoneMasked: string | null;
   moveInDate: string | null;
   orgName: string | null;
+  profileImageUrl: string | null;
 }
 
 export interface ResidentLink {
@@ -80,6 +81,7 @@ type AutomatchRow = {
   phone_masked: string | null;
   move_in_date: string | null;
   org_name: string | null;
+  profile_image_url: string | null;
 };
 
 type ResidentLinkRow = {
@@ -132,6 +134,7 @@ const rowToAutomatch = (row: AutomatchRow): ResidentAutomatchCandidate => ({
   phoneMasked: row.phone_masked,
   moveInDate: row.move_in_date,
   orgName: row.org_name,
+  profileImageUrl: row.profile_image_url,
 });
 
 const rowToResidentLink = (row: ResidentLinkRow): ResidentLink => ({
