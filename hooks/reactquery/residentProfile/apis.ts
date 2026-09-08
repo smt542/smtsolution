@@ -22,6 +22,7 @@ export interface ResidentProfileRow {
   alimtalk_opt_in: boolean;
   sms_opt_in: boolean;
   linked_at: string;
+  profile_image_url: string | null;
 }
 
 export interface ResidentProfile {
@@ -38,6 +39,7 @@ export interface ResidentProfile {
   alimtalkOptIn: boolean;
   smsOptIn: boolean;
   linkedAt: string;
+  profileImageUrl: string | null;
 }
 
 export interface ResidentNotifyPrefsInput {
@@ -61,6 +63,7 @@ const rowToProfile = (row: ResidentProfileRow): ResidentProfile => ({
   alimtalkOptIn: row.alimtalk_opt_in,
   smsOptIn: row.sms_opt_in,
   linkedAt: row.linked_at,
+  profileImageUrl: row.profile_image_url,
 });
 
 export async function residentGetProfile(): Promise<ResidentProfileResult> {

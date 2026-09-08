@@ -167,9 +167,19 @@ export default function ResidentMePage() {
       <header className={styles.header}>
         <h1 className={styles.title}>내 정보</h1>
         <div className={styles.prof}>
-          <div className={styles.av} aria-hidden="true">
-            {avatarChar}
-          </div>
+          {profile.profileImageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- 카카오 CDN 프로필 사진 직접 표시(next/image 불요)
+            <img
+              className={styles.av}
+              src={profile.profileImageUrl}
+              alt=""
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div className={styles.av} aria-hidden="true">
+              {avatarChar}
+            </div>
+          )}
           <div className={styles.pi}>
             <div className={styles.pn}>
               <span className={styles.kbadge}>

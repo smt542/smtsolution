@@ -126,6 +126,11 @@ export async function GET(request: NextRequest) {
     ? account.phone_number
     : null;
   const phone = rawPhone ? normalizePhone(rawPhone) || null : null;
+  // 프로필 사진(선택 동의). 미동의 시 카카오가 내려주지 않으므로 null → UI는 글자 아바타.
+  // 카카오 기본(회색) 이미지도 그대로 저장·표시한다(is_default_image 분기 없음).
+  const profileImage = profile && typeof profile.thumbnail_image_url === "string"
+    ? profile.thumbnail_image_url.trim() || null
+    : null;
 
   const response = NextResponse.redirect(new URL("/resident/auth", request.url));
   clearStateCookie(response);
@@ -135,6 +140,7 @@ export async function GET(request: NextRequest) {
       kakaoId: String(rawId),
       name,
       phone,
+      profileImage,
     });
     session.applyTo(response);
   } catch {
