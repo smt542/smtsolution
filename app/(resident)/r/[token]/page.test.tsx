@@ -98,7 +98,9 @@ describe("PublicBillPage", () => {
     expect(billing.usePublicBillByToken).toHaveBeenCalledWith(
       "11111111-2222-4333-8444-555555555555",
     );
-    expect(screen.getByText("그린빌라 201호")).toBeInTheDocument();
+    expect(
+      screen.getByText("그린빌라 201호 · 2026년 8월 관리비"),
+    ).toBeInTheDocument();
     expect(screen.getByText("일반관리비")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "관리비서 시작하기" })).toHaveAttribute(
       "href",

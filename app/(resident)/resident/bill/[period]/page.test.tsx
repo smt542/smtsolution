@@ -104,8 +104,7 @@ describe("ResidentBillDetailPage", () => {
 
     render(<ResidentBillDetailPage />);
 
-    expect(screen.getByText("김주민 님")).toBeInTheDocument();
-    expect(screen.getByText("2026.08 관리비")).toBeInTheDocument();
+    expect(screen.getByText("2026년 8월 관리비")).toBeInTheDocument();
     expect(screen.getByText("일반관리비")).toBeInTheDocument();
     expect(screen.getByText("그린관리")).toBeInTheDocument();
 

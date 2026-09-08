@@ -1,164 +1,109 @@
+/* 세입자앱 관리비 상세 — 정본(resident-bill-detail.dc.html) 클래스 포팅. authed/public 공용. */
+
 .detail {
-  display: grid;
-  gap: 14px;
-}
-
-.hero,
-.card {
-  background: #fff;
-  border-radius: 20px;
-  box-shadow: 0 1px 3px rgba(25, 31, 40, 0.06);
-}
-
-.hero {
-  padding: 22px 20px 18px;
-}
-
-.unit {
-  margin: 0;
-  color: var(--t2);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.tenant {
-  margin: 4px 0 0;
-  color: var(--t3);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.hero h1 {
-  margin: 8px 0 20px;
-  font-size: 24px;
-  letter-spacing: -0.04em;
-}
-
-.amounts {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.amounts div {
-  min-width: 0;
-  padding: 12px 8px;
-  border-radius: 14px;
-  background: var(--bg);
-  text-align: center;
-}
-
-.amounts span,
-.amounts b {
   display: block;
 }
 
-.amounts span {
-  color: var(--t3);
-  font-size: 11px;
+/* 공개(게스트) 컨텍스트 라인 — 상단바에 기간이 없는 공개뷰에서만 노출 */
+.gt {
+  margin: 0 0 10px;
+  font-size: 12.5px;
   font-weight: 700;
-}
-
-.amounts b {
-  margin-top: 5px;
-  font-size: 14px;
-  white-space: nowrap;
-}
-
-.amounts .unpaid {
-  background: var(--blue-t2);
-  color: var(--blue-d);
-}
-
-.due {
-  margin: 16px 2px 0;
-  padding-top: 15px;
-  border-top: 1px solid var(--line2);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 13px;
-}
-
-.due span {
   color: var(--t3);
-  font-weight: 700;
 }
 
-.card {
+/* ===== 히어로 ===== */
+.hero {
+  background: #fff;
+  border-radius: 18px;
   padding: 20px;
+  box-shadow: 0 1px 2px rgba(23, 31, 40, 0.06);
 }
 
-.card h2 {
-  margin: 0 0 14px;
-  font-size: 16px;
-  letter-spacing: -0.02em;
-}
-
-.items {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.items li {
+.hw {
   display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--line2);
-  font-size: 14px;
+  align-items: flex-start;
+  gap: 10px;
 }
 
-.items li:last-child {
-  padding-bottom: 0;
-  border-bottom: 0;
+.aline {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
-.items span {
+.aline b {
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
   color: var(--t2);
 }
 
-.account {
-  margin: 0;
-  display: grid;
-  gap: 10px;
+.aline em {
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--t4);
 }
 
-.account div {
-  display: grid;
-  grid-template-columns: 72px 1fr;
-  gap: 10px;
-  font-size: 14px;
-}
-
-.account dt {
+.chip {
+  flex: none;
+  font-size: 11.5px;
+  font-weight: 800;
+  padding: 4px 9px;
+  border-radius: 8px;
   color: var(--t3);
-  font-weight: 700;
+  background: var(--bg);
 }
 
-.account dd {
-  margin: 0;
-  font-weight: 700;
-  word-break: break-all;
+.chip.due {
+  color: var(--red);
+  background: var(--red-t);
 }
 
-.copyActions {
-  margin-top: 18px;
-  display: grid;
-  grid-template-columns: 1fr 1.25fr;
-  gap: 8px;
-}
-
-.copyButton {
-  min-height: 46px;
-  border: 0;
-  border-radius: 13px;
-  background: var(--blue-t);
+.chip.paid {
   color: var(--blue-d);
+  background: var(--blue-t);
+}
+
+.tot {
+  margin-top: 8px;
+  font-size: 31px;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  font-variant-numeric: tabular-nums;
+}
+
+.tot i {
+  font-style: normal;
+  font-size: 18px;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+.acct {
+  margin-top: 16px;
+}
+
+.abtns {
+  display: flex;
+  gap: 6px;
+}
+
+.ab {
+  flex: 1;
+  min-height: 42px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--blue-t);
   font: inherit;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
+  color: var(--blue-d);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -166,29 +111,153 @@
   gap: 6px;
 }
 
-.copyButton svg {
+.ab:hover {
+  background: #d3eee8;
+}
+
+.ab svg {
   width: 14px;
   height: 14px;
 }
 
-.copyButton.primary {
+.ab.pri {
   background: var(--blue);
   color: #fff;
 }
 
-.copyButton:disabled {
+.ab.pri:hover {
+  background: var(--blue-d);
+}
+
+.ab:disabled {
   cursor: default;
   opacity: 0.55;
 }
 
-.empty {
-  margin: 0;
-  padding: 16px 0;
-  color: var(--t3);
+/* ===== 섹션 라벨 ===== */
+.lbl {
+  display: flex;
+  align-items: center;
+  margin: 24px 4px 9px;
   font-size: 13px;
-  text-align: center;
+  font-weight: 700;
+  color: var(--t3);
 }
 
+.lbl span {
+  margin-left: auto;
+  font-weight: 600;
+  color: var(--t4);
+}
+
+/* ===== 항목 카드 ===== */
+.card {
+  background: #fff;
+  border-radius: 18px;
+  padding: 4px 18px;
+  box-shadow: 0 1px 2px rgba(23, 31, 40, 0.06);
+}
+
+.it {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line2);
+}
+
+.it:last-child {
+  border-bottom: 0;
+}
+
+.nm {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.nm small {
+  display: block;
+  margin-top: 3px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--t3);
+  letter-spacing: 0;
+}
+
+.vv {
+  flex: none;
+  font-size: 14.5px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  text-align: right;
+}
+
+.vv.r {
+  color: var(--red);
+}
+
+/* 소계 */
+.sub {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 0;
+  border-top: 1px solid var(--line);
+}
+
+.sub .nm {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--t3);
+}
+
+.sub .vv {
+  font-size: 14.5px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== 정산 ===== */
+.fin {
+  background: #fff;
+  border-radius: 18px;
+  padding: 6px 18px 18px;
+  box-shadow: 0 1px 2px rgba(23, 31, 40, 0.06);
+}
+
+.fin .it .nm {
+  font-weight: 600;
+  color: var(--t2);
+}
+
+.grand {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 15px;
+  border-top: 2px solid var(--t1);
+}
+
+.grand .nm {
+  flex: 1;
+  font-size: 14.5px;
+  font-weight: 800;
+}
+
+.grand .vv {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== 공개 링크 상태(무효/만료) ===== */
 .state {
   min-height: 300px;
   padding: 44px 24px;

@@ -14,6 +14,10 @@ import styles from "./detail.module.css";
 
 const PERIOD_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
+/** "2026년 7월 관리비" — 정본 상단바 타이틀. period = "YYYY-MM-01". */
+const monthTitle = (period: string) =>
+  `${period.slice(0, 4)}년 ${Number(period.slice(5, 7))}월 관리비`;
+
 export default function ResidentBillDetailPage() {
   const router = useRouter();
   const params = useParams<{ period: string }>();
@@ -97,7 +101,7 @@ export default function ResidentBillDetailPage() {
             <path d="M15 5l-7 7 7 7" />
           </svg>
         </button>
-        <h1>관리비 상세</h1>
+        <h1>{monthTitle(period)}</h1>
         <span aria-hidden="true" />
       </header>
 
