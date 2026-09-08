@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 
   // 3) 검증
   const body = await req.json().catch(() => null);
-  const { username, password, fullName, phone, phoneSub, role, staffType, permissions, affiliation, roleIds } = body ?? {};
+  const { username, password, fullName, phone, phoneSub, role, staffType, permissions, affiliation, roleIds, staffCapabilities } = body ?? {};
   if (!username || !password || !fullName || !staffType)
     return NextResponse.json({ error: "필수 항목이 누락되었습니다." }, { status: 422 });
   if (typeof password !== "string" || !/^\d{4}$/.test(password))
@@ -58,6 +58,7 @@ export async function POST(req: Request) {
     p_role: role ?? "staff", p_staff_type: staffType,
     p_permissions: permissions ?? [], p_affiliation: affiliation ?? null,
     p_role_ids: roleIds ?? null,
+    p_staff_capabilities: staffCapabilities ?? null,
   });
   if (rpcErr) {
     await admin.auth.admin.deleteUser(created.user.id); // 롤백(고아 방지)
