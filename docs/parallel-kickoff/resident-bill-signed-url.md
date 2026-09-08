@@ -20,7 +20,7 @@
 - **비교**: HMAC 비교. pgcrypto 문자열 `=`는 완전 상수시간은 아님 — 실무 허용범위, 필요 시 완화(길이 고정·해시 재비교).
 - **폐기/만료(§5 결정)**: 서명 URL은 상태가 없어 **개별 폐기 불가**. 방법 = (a) 영구 (b) payload에 만료월 포함해 서명·검증(예 발급월+12개월, 만료 시 마스킹) (c) denylist 테이블. 토큰(폐기 가능·1년)과의 트레이드오프를 사용자와 확정.
 
-## 3. DB (마이그 **0145** — 커밋 직전 origin/master max 재확인)
+## 3. DB (마이그 **0146** — 커밋 직전 origin/master max 재확인. 0144=이 화면·**0145=resident_profile_image가 이미 선점**)
 > `pgcrypto` 확장 필요(`create extension if not exists pgcrypto`).
 - **secret**: 잠금 테이블/GUC + 강한 랜덤 초기값 주입. ⚠️ secret 주입 DML은 auto-mode classifier가 막을 수 있음 → **사용자 `!` 직접 실행** 또는 승인.
 - **`public_bill_by_signed(p_building_id bigint, p_unit_no text, p_period date, p_sig text)`** — anon, security definer:
@@ -49,7 +49,7 @@
 tsc0·eslint0·vitest(기존)·(가능 시)next build → 커밋(`feat/resident-bill-signed-url`)·PR·머지·`git checkout master && git pull` → WBS(`세입자_관리비 상세고지서` fa79ce05, 버킷 9514ec1f, dev 진행중 유지) → PRD §3.2 무로그인 접근 서술 갱신.
 
 ## 데이터/환경 사실
-- 작업 위치=**projects/home_erp**(master 체크아웃·node_modules·:3000). 마이그 적용=`node --env-file=.env.local scripts/db-query.mjs < 파일`(ref amhtprmapxlizdnsgbeg 가드). 다음 마이그=**0145**(커밋 전 재확인).
+- 작업 위치=**projects/home_erp**(master 체크아웃·node_modules·:3000). 마이그 적용=`node --env-file=.env.local scripts/db-query.mjs < 파일`(ref amhtprmapxlizdnsgbeg 가드). 다음 마이그=**0146**(⚠️0145는 resident_profile_image가 선점 — 커밋 전 origin/master max 재확인).
 - 재사용 자산: `BillDetailView(mode="public")` · `PublicBillDetail`/`PublicBillItem` 타입 · `rowToPublicBillDetail` · `public_bill_by_token`의 SELECT(late_fee[0142/0143 동일 산식] + 항목 검침[meter_readings 0007] + 계좌·PII 제외 + 마스킹). `pgcrypto.hmac`.
 - ⚠️ **classifier**: config/추론·secret DML은 에이전트 차단 → 사용자 `!` 직접 실행/승인. `next build`는 :3000 dev 충돌 + Turbopack이 워크트리 정션 거부 → tsc/lint/dev 컴파일로 대체(또는 dev 잠깐 중지).
 - 관련 메모리: [[resident-app-screens-status]] · 보안 posture [[supabase-connection]](RLS 감사) · [[security-hardening-status]] · [[supabase-migration-apply-method]].
