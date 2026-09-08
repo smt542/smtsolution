@@ -8,7 +8,6 @@ const mocks = vi.hoisted(() => ({
   profileEq: vi.fn(),
   membershipSelect: vi.fn(),
   membershipIn: vi.fn(),
-  membershipStaffTypeEq: vi.fn(),
   getUserById: vi.fn(),
   signInWithPassword: vi.fn(),
   signOut: vi.fn(),
@@ -35,6 +34,7 @@ const CONTEXT_ROW = {
   is_active: true,
   must_change_password: true,
   staff_type: "manager_staff",
+  staff_capabilities: ["manager_staff"],
   permissions: ["buildings", "accounts"],
 };
 const CONTEXT = {
@@ -46,6 +46,7 @@ const CONTEXT = {
   isActive: true,
   mustChangePassword: true,
   staffType: "manager_staff",
+  staffCapabilities: ["manager_staff"],
   permissions: ["buildings", "accounts"],
 };
 
@@ -67,7 +68,6 @@ beforeEach(() => {
   });
   mocks.profileSelect.mockReturnValue({ eq: mocks.profileEq });
   mocks.membershipSelect.mockReturnValue({ in: mocks.membershipIn });
-  mocks.membershipIn.mockReturnValue({ eq: mocks.membershipStaffTypeEq });
   mocks.createAdminClient.mockReturnValue({
     from: mocks.from,
     auth: { admin: { getUserById: mocks.getUserById } },
@@ -88,7 +88,10 @@ beforeEach(() => {
     rpc: mocks.rpc,
   });
   mocks.profileEq.mockResolvedValue({ data: [{ user_id: "office-1" }], error: null });
-  mocks.membershipStaffTypeEq.mockResolvedValue({ data: [{ user_id: "office-1" }], error: null });
+  mocks.membershipIn.mockResolvedValue({
+    data: [{ user_id: "office-1", staff_capabilities: ["manager_staff"] }],
+    error: null,
+  });
   mocks.getUserById.mockResolvedValue({
     data: { user: { id: "office-1", email: "office@example.com" } },
     error: null,
@@ -116,7 +119,7 @@ describe("POST /api/staff/login", () => {
     expect(mocks.createAdminClient).not.toHaveBeenCalled();
   });
 
-  it("정규화한 아이디로 manager_staff를 찾아 세션과 컨텍스트를 반환하고 로그인을 기록한다", async () => {
+  it("정규화한 아이디로 manager_staff capability 후보를 찾아 세션과 컨텍스트를 반환하고 로그인을 기록한다", async () => {
     const response = await POST(request(
       { username: "  Office.User  ", password: "secret" },
       { "x-forwarded-for": "203.0.113.10, 10.0.0.1" },
@@ -126,8 +129,8 @@ describe("POST /api/staff/login", () => {
     expect(await response.json()).toEqual(CONTEXT);
     expect(mocks.profileSelect).toHaveBeenCalledWith("user_id");
     expect(mocks.profileEq).toHaveBeenCalledWith("username", "office.user");
+    expect(mocks.membershipSelect).toHaveBeenCalledWith("user_id, staff_capabilities");
     expect(mocks.membershipIn).toHaveBeenCalledWith("user_id", ["office-1"]);
-    expect(mocks.membershipStaffTypeEq).toHaveBeenCalledWith("staff_type", "manager_staff");
     expect(mocks.getUserById).toHaveBeenCalledWith("office-1");
     expect(mocks.signInWithPassword).toHaveBeenCalledWith({
       email: "office@example.com",
@@ -145,8 +148,11 @@ describe("POST /api/staff/login", () => {
       data: [{ user_id: "office-1" }, { user_id: "office-2" }],
       error: null,
     });
-    mocks.membershipStaffTypeEq.mockResolvedValue({
-      data: [{ user_id: "office-1" }, { user_id: "office-2" }],
+    mocks.membershipIn.mockResolvedValue({
+      data: [
+        { user_id: "office-1", staff_capabilities: ["manager_staff"] },
+        { user_id: "office-2", staff_capabilities: ["manager_staff"] },
+      ],
       error: null,
     });
     mocks.getUserById.mockImplementation((userId: string) => Promise.resolve({
@@ -190,8 +196,11 @@ describe("POST /api/staff/login", () => {
     expect(mocks.createClient).not.toHaveBeenCalled();
   });
 
-  it("내근 계정이 아닌 후보에도 동일한 401을 반환하고 세션 클라이언트를 만들지 않는다", async () => {
-    mocks.membershipStaffTypeEq.mockResolvedValue({ data: [], error: null });
+  it("manager_staff capability가 없는 후보에도 동일한 401을 반환하고 세션 클라이언트를 만들지 않는다", async () => {
+    mocks.membershipIn.mockResolvedValue({
+      data: [{ user_id: "field-1", staff_capabilities: ["field_staff"] }],
+      error: null,
+    });
 
     const response = await POST(request({ username: "field.user", password: "secret" }));
 

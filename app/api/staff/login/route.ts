@@ -69,16 +69,21 @@ async function handlePost(req: Request) {
 
   const { data: memberships, error: membershipError } = await admin
     .from("org_members")
-    .select("user_id")
-    .in("user_id", profileIds)
-    .eq("staff_type", "manager_staff");
+    .select("user_id, staff_capabilities")
+    .in("user_id", profileIds);
 
   if (membershipError) {
     return NextResponse.json({ error: SERVER_ERROR }, { status: 500 });
   }
 
   const officeUserIds = [
-    ...new Set((memberships ?? []).map((membership) => membership.user_id as string)),
+    ...new Set(
+      (memberships ?? [])
+        .filter(
+          (m) => Array.isArray(m.staff_capabilities) && m.staff_capabilities.includes("manager_staff"),
+        )
+        .map((m) => m.user_id as string),
+    ),
   ];
   if (officeUserIds.length === 0) {
     await recordLoginFailure(admin, { ip, username });
@@ -106,7 +111,8 @@ async function handlePost(req: Request) {
     if (contextError) return rejectAccess(SERVER_ERROR, 500);
 
     const row = Array.isArray(contextData) ? contextData[0] : contextData;
-    if (!row || row.staff_type !== "manager_staff") return rejectAccess(NO_ACCESS);
+    const caps = Array.isArray(row?.staff_capabilities) ? (row.staff_capabilities as string[]) : [];
+    if (!row || !caps.includes("manager_staff")) return rejectAccess(NO_ACCESS);
     if (!row.is_active) return rejectAccess(INACTIVE);
     if (row.org_status !== "active") return rejectAccess(SUSPENDED);
 
@@ -119,6 +125,7 @@ async function handlePost(req: Request) {
       isActive: row.is_active,
       mustChangePassword: row.must_change_password,
       staffType: row.staff_type,
+      staffCapabilities: caps,
       permissions: Array.isArray(row.permissions) ? row.permissions : [],
     };
 
