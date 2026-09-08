@@ -62,16 +62,25 @@ async function handlePost(req: Request) {
     return NextResponse.json({ error: INVALID }, { status: 401 });
   }
 
-  // 2) 현장 계정 후보로 좁히기
+  // 2) 현장 capability 보유 후보로 좁히기
   const { data: members, error: memberErr } = await admin
     .from("org_members")
-    .select("user_id, staff_type")
-    .in("user_id", activeIds)
-    .in("staff_type", FIELD_TYPES);
+    .select("user_id, staff_capabilities")
+    .in("user_id", activeIds);
   if (memberErr) {
     return NextResponse.json({ error: "로그인 처리 중 오류가 발생했습니다." }, { status: 500 });
   }
-  const fieldIds = [...new Set((members ?? []).map((m) => m.user_id as string))];
+  const fieldIds = [
+    ...new Set(
+      (members ?? [])
+        .filter(
+          (m) =>
+            Array.isArray(m.staff_capabilities) &&
+            (m.staff_capabilities as string[]).some((c) => FIELD_TYPES.includes(c)),
+        )
+        .map((m) => m.user_id as string),
+    ),
+  ];
   if (fieldIds.length === 0) {
     await recordLoginFailure(admin, { ip, username });
     return NextResponse.json({ error: INVALID }, { status: 401 });
