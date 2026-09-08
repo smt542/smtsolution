@@ -79,7 +79,7 @@ function Dropdown({
   );
 }
 
-export function ReceiptWorkspace({
+function ReceiptWorkspace({
   orgId,
   canSendMessages,
   canEditPayment,
