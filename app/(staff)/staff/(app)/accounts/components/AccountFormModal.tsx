@@ -38,6 +38,7 @@ interface FormValues {
   isMaster: boolean;
   isActive: boolean;
   permissions: string[];
+  alsoCrossApp: boolean;
 }
 
 const MEMBER_TYPE_OPTIONS = [
@@ -84,6 +85,14 @@ export function AccountFormModal({
             isMaster: editing.role === "org_owner" || editing.role === "platform_admin",
             isActive: editing.isActive,
             permissions: editing.permissions,
+            alsoCrossApp: (() => {
+              const caps = editing.staffCapabilities ?? [];
+              const primaryIsField =
+                editing.staffType === "field_staff" || editing.staffType === "support_staff";
+              return primaryIsField
+                ? caps.includes("manager_staff")
+                : caps.some((c) => c === "field_staff" || c === "support_staff");
+            })(),
           }
         : {
             username: "",
@@ -94,6 +103,7 @@ export function AccountFormModal({
             isMaster: false,
             isActive: true,
             permissions: [],
+            alsoCrossApp: false,
           },
     [createStaffType, editing],
   );
@@ -123,6 +133,11 @@ export function AccountFormModal({
         ? "field"
         : "staff";
 
+    const crossType: StaffType = isField ? "manager_staff" : "field_staff";
+    const staffCapabilities: StaffType[] = values.alsoCrossApp
+      ? [values.staffType, crossType]
+      : [values.staffType];
+
     if (!isEdit) {
       const created = await onCreate({
         username: values.username,
@@ -133,6 +148,7 @@ export function AccountFormModal({
         staffType: values.staffType,
         permissions: values.permissions,
         roleIds: [],
+        staffCapabilities,
       });
       if (!values.isActive) await onSetActive(created.userId, false);
     } else if (editing) {
@@ -143,6 +159,7 @@ export function AccountFormModal({
         staffType: values.staffType,
         affiliation: editing.affiliation || undefined,
         roleIds: null,
+        staffCapabilities,
       });
       if (canEditPermissions) {
         await onUpdatePermissions(editing.userId, {
@@ -292,6 +309,28 @@ export function AccountFormModal({
                   )}
                 />
               </FormField>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-line bg-bg/40 p-3">
+              <Controller
+                control={control}
+                name="alsoCrossApp"
+                render={({ field }) => (
+                  <label className="flex items-center gap-2 text-sm font-semibold text-t2">
+                    <input
+                      type="checkbox"
+                      checked={field.value}
+                      onChange={(e) => field.onChange(e.target.checked)}
+                      aria-label="겸직 다른 앱 접근 허용"
+                    />
+                    {isField ? "사무실 앱도 접근 허용(겸직)" : "현장 앱도 접근 허용(겸직)"}
+                  </label>
+                )}
+              />
+              <p className="mt-1 text-xs text-t4">
+                체크하면 이 계정이 {isField ? "사무실 웹앱(/staff)" : "현장 모바일앱(/partner)"}에도
+                로그인·접근할 수 있습니다.
+              </p>
             </div>
 
             <div className="mt-5">

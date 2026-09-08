@@ -17,6 +17,8 @@ export interface MyContext {
   mustChangePassword: boolean;
   /** 계정 유형(PRD "유형"). role과 직교. */
   staffType: StaffType;
+  /** 보유 앱 접근 자격(겸직). staffType(primary)을 항상 포함. 미설정 계정은 []. */
+  staffCapabilities?: StaffType[];
   /** Module permission keys granted to this user (empty for org_owner who has all). */
   permissions: string[];
 }
@@ -52,6 +54,7 @@ export async function getMyContext(): Promise<MyContext | null> {
     isActive: row.is_active,
     mustChangePassword: row.must_change_password,
     staffType: row.staff_type,
+    staffCapabilities: Array.isArray(row.staff_capabilities) ? row.staff_capabilities : [],
     permissions: Array.isArray(row.permissions) ? row.permissions : [],
   };
 }

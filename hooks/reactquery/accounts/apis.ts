@@ -6,16 +6,19 @@ export interface Account {
   phone: string | null; phoneSub: string | null;
   role: OrgMemberRole; staffType: StaffType; affiliation: string | null;
   isActive: boolean; permissions: string[]; roleLabels: string[];
+  staffCapabilities?: StaffType[];
 }
 export interface AccountCreateInput {
   username: string; password: string; fullName: string;
   phone?: string; phoneSub?: string;
   role: OrgMemberRole; staffType: StaffType;
   permissions: string[]; affiliation?: string; roleIds: number[];
+  staffCapabilities?: StaffType[];
 }
 export interface AccountBasicInput {
   fullName: string; phone?: string; phoneSub?: string;
   staffType: StaffType; affiliation?: string; roleIds: number[] | null;
+  staffCapabilities?: StaffType[];
 }
 export interface PermissionInput {
   role: OrgMemberRole; staffType: StaffType; permissions: string[]; roleIds: number[] | null;
@@ -26,6 +29,7 @@ type AccountRow = {
   phone: string | null; phone_sub: string | null;
   role: OrgMemberRole; staff_type: StaffType; affiliation: string | null;
   is_active: boolean; permissions: unknown; role_labels: unknown;
+  staff_capabilities?: unknown;
 };
 
 const rowToAccount = (r: AccountRow): Account => ({
@@ -34,6 +38,7 @@ const rowToAccount = (r: AccountRow): Account => ({
   affiliation: r.affiliation, isActive: r.is_active,
   permissions: Array.isArray(r.permissions) ? r.permissions : [],
   roleLabels: Array.isArray(r.role_labels) ? r.role_labels : [],
+  staffCapabilities: Array.isArray(r.staff_capabilities) ? (r.staff_capabilities as StaffType[]) : [],
 });
 
 export async function listAccounts(params?: { search?: string; type?: StaffType }): Promise<Account[]> {
@@ -58,6 +63,7 @@ export async function updateAccountBasic(userId: string, input: AccountBasicInpu
     p_user_id: userId, p_full_name: input.fullName, p_phone: input.phone ?? null,
     p_phone_sub: input.phoneSub ?? null, p_staff_type: input.staffType,
     p_affiliation: input.affiliation ?? null, p_role_ids: input.roleIds,
+    p_staff_capabilities: input.staffCapabilities ?? null,
   });
   if (error) throw new Error(error.message);
 }
