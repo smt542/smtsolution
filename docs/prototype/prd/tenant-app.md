@@ -8,7 +8,7 @@
 | **화면** | 세입자 앱 (카카오 기반) · `/tenant-app` |
 | **진입** | 카카오 로그인 → 메인 홈 자동 진입 |
 | **Figma** | 미연결 (PRD 작성 후 와이어프레임 → Figma 순서로 진행) |
-| **상태/작성자** | `반영중` · 최근 2026-09-07 (PR #150) |
+| **상태/작성자** | `반영중` · 최근 2026-09-08 (PR #176) |
 
 > **앱 구조**: 카카오 로그인 → **세대 매칭 확인("이 세대가 맞나요?")** → 홈 화면 → 각 기능 페이지 (관리비 확인 / 공지사항 / 퇴실 신청 / 고지서 신청 / 내 정보)
 > **실 라우트**: `/resident/*` (login·verify·home·bill·notice·me 등). 문서의 일부 구 라우트(`/tenant-app/*`) 표기는 순차 갱신 대상.
@@ -169,3 +169,4 @@
 - [2026-09-07] 관리비 목록(3.2) 클로드 디자인 정본 정합 — 헤더 `관리비`+`{건물} {호수}`, **연도 pill 토글**, 요약(합계=Σ(부과+연체료)·월평균·미납=Σ(미납+연체료)), 월별 리스트(총청구액·완납 납부일/미납 납부기한·연체료·상태칩) → 상세. 완납 납부일 = `resident_bill_months.paid_date`(월 active 납부 `max(paid_at)`, 마이그 0143). partial은 정본 이진(완납/미납)상 미납으로 표기.
 - [2026-09-08] 관리비 상세(3.2) 클로드 디자인 정본 정합 — 상단바 `{연}년 {월} 관리비`, 히어로(계좌·미납/완납 칩·총관리비=당월부과+연체료·계좌/계좌+금액 복사[실납부액=미납+연체료]), **개별 사용료**(검침 `{사용량}·전월 {전월}`, 톤/kWh/㎥·소계), **공용·기타**(소계), **정산**(당월부과·미납·연체료·총관리비). authed·무로그인 공용. RPC `resident_bill_detail`·`public_bill_by_token`에 `late_fee`(월 목록 0142/0143 동일 산식) + 항목별 `utility/usage/prev_usage`(meter_readings 조인) 부착, 항목 소스 `fee_item_charges` 통일(마이그 0144). PR #162.
 - [2026-09-08] 관리비 상세(3.2) 무로그인 접근을 **서명 URL**(`/rb/{건물}/{호수}/{월}?s={HMAC서명}`)로 제공하고 기존 1년 토큰(`/r/[token]`) 경로를 **대체**. 파라미터는 보이되 서명 없이는 위조·열거 불가, 수신자는 비밀번호 없이 링크만 열람. 만료 = **고지월+12개월**(만료 시 마스킹). 링크는 서버가 무상태·자동 발급(세입자 공유 버튼·미납 문자/알림톡 봉투). RPC `public_bill_by_signed`(anon)·`resident_sign_bill_url`·`staff_sign_bill_urls`, secret은 `app_secrets` 잠금 테이블(anon/Node 미노출), 서명은 building_id 바인딩(교차 org 접근 차단). 토큰 RPC 4종 drop, `bill_share_tokens` 테이블은 고아 보존. 마이그 0146. PR #169.
+- [2026-09-08] **카카오 실 OAuth 로그인 프로덕션 개시·동작 확인**(스텁 → 실 OAuth). 로그인 페이지(3.0)는 `NEXT_PUBLIC_KAKAO_LOGIN_ENABLED=true`면 실제 `/api/resident/kakao/login`(스텁 아님)으로 진입. 콜백은 로그인 후 목적지(`/resident/auth`)를 **공개 도메인**(`KAKAO_REDIRECT_URI` origin) 기준으로 생성 — Amplify SSR의 `request.url`(내부 `localhost:3000`)로 만들면 인증 후 localhost로 튕기던 문제(`ERR_SSL_PROTOCOL_ERROR`) 해결. 서버 키(`KAKAO_*`)는 Amplify build spec `env|grep … >> .env.production`에 `KAKAO_`/`POPBILL_` 추가로 런타임 주입. PR #176. (실 카카오 계정 동의→콜백→세대매칭 완주 확인 완료.)
