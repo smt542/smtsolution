@@ -52,7 +52,6 @@
   padding: 16px 20px calc(24px + env(safe-area-inset-bottom));
 }
 
-.shareButton,
 .center button {
   width: 100%;
   min-height: 50px;
@@ -64,22 +63,6 @@
   font-size: 14px;
   font-weight: 800;
   cursor: pointer;
-}
-
-.shareButton {
-  margin-top: 14px;
-}
-
-.shareButton:disabled {
-  cursor: wait;
-  opacity: 0.65;
-}
-
-.shareError {
-  margin: 9px 0 0;
-  color: var(--red);
-  font-size: 12px;
-  text-align: center;
 }
 
 .center,

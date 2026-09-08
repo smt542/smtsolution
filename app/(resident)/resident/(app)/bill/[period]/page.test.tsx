@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -8,15 +8,7 @@ const nav = vi.hoisted(() => ({
 }));
 const guard = vi.hoisted(() => ({ useResidentGuard: vi.fn() }));
 const billing = vi.hoisted(() => ({
-  useResidentSignBillUrl: vi.fn(),
   useResidentBillDetail: vi.fn(),
-  signedBillPath: (link: {
-    buildingId: number;
-    unitNo: string;
-    period: string;
-    sig: string;
-  }) =>
-    `/rb/${link.buildingId}/${encodeURIComponent(link.unitNo)}/${link.period.slice(0, 7)}?s=${link.sig}`,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -51,8 +43,6 @@ const detail = {
   mgmtHolder: "그린관리",
 };
 
-const mutateAsync = vi.fn();
-
 beforeEach(() => {
   vi.clearAllMocks();
   guard.useResidentGuard.mockReturnValue({
@@ -66,16 +56,6 @@ beforeEach(() => {
     error: null,
     isPending: false,
     refetch: vi.fn(),
-  });
-  billing.useResidentSignBillUrl.mockReturnValue({
-    mutateAsync,
-    isPending: false,
-    error: null,
-  });
-  mutateAsync.mockResolvedValue({
-    buildingId: 5,
-    unitNo: "201호",
-    sig: "sig-abc",
   });
 });
 
@@ -121,13 +101,5 @@ describe("ResidentBillDetailPage", () => {
 
     await user.click(screen.getByRole("button", { name: "계좌·금액 복사" }));
     expect(writeText).toHaveBeenCalledWith("관리은행 123-456 100,000원");
-
-    await user.click(screen.getByRole("button", { name: "무로그인 링크 복사" }));
-    await waitFor(() => {
-      expect(mutateAsync).toHaveBeenCalledWith("2026-08-01");
-      expect(writeText).toHaveBeenCalledWith(
-        `${window.location.origin}/rb/5/${encodeURIComponent("201호")}/2026-08?s=sig-abc`,
-      );
-    });
   });
 });
