@@ -167,9 +167,19 @@ export default function ResidentVerifyPage() {
       >
         <div className={styles.card}>
           <div className={styles.who}>
-            <div className={styles.ava}>
-              {(candidate.kakaoName ?? "사용자").charAt(0)}
-            </div>
+            {candidate.profileImageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- 카카오 CDN 프로필 사진 직접 표시(next/image 불요)
+              <img
+                className={styles.ava}
+                src={candidate.profileImageUrl}
+                alt=""
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className={styles.ava}>
+                {(candidate.kakaoName ?? "사용자").charAt(0)}
+              </div>
+            )}
             <div>
               <b>
                 {candidate.kakaoName

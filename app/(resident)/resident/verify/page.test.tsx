@@ -55,6 +55,7 @@ const candidate: Candidate = {
   phoneMasked: "010-****-7788",
   moveInDate: "2024-03-02",
   orgName: "테스트 관리회사",
+  profileImageUrl: null,
 };
 
 const building: Building = {

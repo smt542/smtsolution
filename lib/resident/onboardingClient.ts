@@ -38,6 +38,7 @@ export type Candidate = {
   phoneMasked: string | null;
   moveInDate: string | null;
   orgName: string | null;
+  profileImageUrl: string | null;
 };
 
 export type Building = {
@@ -104,6 +105,7 @@ export async function automatch(): Promise<Candidate[]> {
     phoneMasked: row.phoneMasked,
     moveInDate: row.moveInDate,
     orgName: row.orgName,
+    profileImageUrl: row.profileImageUrl,
   }));
 
   activeCandidate = candidates[0] ?? null;
