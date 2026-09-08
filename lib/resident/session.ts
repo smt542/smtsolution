@@ -10,6 +10,7 @@ export type ResidentSessionInput = {
   kakaoId: string;
   name: string | null | undefined;
   phone: string | null | undefined;
+  profileImage?: string | null;
 };
 
 type SessionCookie = {
@@ -23,6 +24,7 @@ export type ResidentSessionResult = {
   kakaoId: string;
   name: string | null;
   phone: string | null;
+  profileImage: string | null;
   applyTo(response: NextResponse): void;
 };
 
@@ -70,7 +72,7 @@ export async function mintResidentSession(
 
   const { data: existingIdentity, error: identityLookupError } = await admin
     .from("resident_identities")
-    .select("user_id,kakao_name,phone")
+    .select("user_id,kakao_name,phone,profile_image_url")
     .eq("kakao_id", kakaoId)
     .maybeSingle();
   if (identityLookupError) {
@@ -84,6 +86,9 @@ export async function mintResidentSession(
     ? existingIdentity?.phone || mockPhone()
     : input.phone;
   const phone = normalizeNullablePhone(phoneSource);
+  const profileImage = input.profileImage === undefined
+    ? existingIdentity?.profile_image_url ?? null
+    : input.profileImage?.trim() || null;
 
   let user: User | null = null;
   let created = false;
@@ -135,6 +140,7 @@ export async function mintResidentSession(
     kakao_id: kakaoId,
     kakao_name: name,
     phone,
+    profile_image_url: profileImage,
   }, { onConflict: "user_id" });
   if (upsertError) {
     throw new Error("Unable to save the resident identity.");
@@ -160,6 +166,7 @@ export async function mintResidentSession(
     kakaoId,
     name,
     phone,
+    profileImage,
     applyTo(response) {
       sessionCookies.forEach(({ name: cookieName, value, options }) => {
         response.cookies.set(cookieName, value, options);

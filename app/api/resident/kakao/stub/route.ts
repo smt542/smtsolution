@@ -5,6 +5,7 @@ type StubBody = {
   kakaoId?: string;
   name?: string;
   phone?: string;
+  profileImage?: string;
 };
 
 export async function POST(req: Request) {
@@ -23,6 +24,7 @@ export async function POST(req: Request) {
     (body.kakaoId !== undefined && typeof body.kakaoId !== "string")
     || (body.name !== undefined && typeof body.name !== "string")
     || (body.phone !== undefined && typeof body.phone !== "string")
+    || (body.profileImage !== undefined && typeof body.profileImage !== "string")
   ) {
     return NextResponse.json({ error: "Stub identity fields must be strings." }, { status: 422 });
   }
@@ -38,12 +40,14 @@ export async function POST(req: Request) {
       kakaoId,
       name: body.name?.trim() || undefined,
       phone: body.phone?.trim() || undefined,
+      profileImage: body.profileImage,
     });
     const response = NextResponse.json({
       userId: session.userId,
       kakaoId: session.kakaoId,
       name: session.name,
       phone: session.phone,
+      profileImage: session.profileImage,
     });
     session.applyTo(response);
     return response;
