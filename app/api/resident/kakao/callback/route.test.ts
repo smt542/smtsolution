@@ -100,6 +100,7 @@ describe("GET /api/resident/kakao/callback", () => {
       kakaoId: "123456",
       name: "Kakao Resident",
       phone: "01012345678",
+      profileImage: null,
     });
     expect(mocks.applyTo).toHaveBeenCalledWith(response);
     expect(response.cookies.get("sb-test-auth-token")?.value).toBe(
@@ -125,6 +126,7 @@ describe("GET /api/resident/kakao/callback", () => {
       kakaoId: "resident-without-phone",
       name: "No Phone",
       phone: null,
+      profileImage: null,
     });
   });
 

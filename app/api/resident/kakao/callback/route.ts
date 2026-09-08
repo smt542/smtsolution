@@ -133,7 +133,11 @@ export async function GET(request: NextRequest) {
     ? profile.thumbnail_image_url.trim().replace(/^http:\/\//i, "https://") || null
     : null;
 
-  const response = NextResponse.redirect(new URL("/resident/auth", request.url));
+  // Amplify(SSR)에서 request.url은 내부 호스트(localhost:3000)라 그대로 쓰면 카카오 인증 후
+  // 사용자가 localhost로 튕긴다(ERR_SSL_PROTOCOL_ERROR). 카카오가 방금 브라우저를 보낸
+  // redirectUri의 origin이 곧 공개 도메인이므로 이를 기준으로 로그인 후 목적지를 만든다.
+  const publicOrigin = new URL(redirectUri).origin;
+  const response = NextResponse.redirect(new URL("/resident/auth", publicOrigin));
   clearStateCookie(response);
 
   try {
