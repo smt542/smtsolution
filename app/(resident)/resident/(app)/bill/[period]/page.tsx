@@ -1,14 +1,9 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
 
 import BillDetailView from "@/app/(resident)/_components/BillDetailView";
-import {
-  signedBillPath,
-  useResidentBillDetail,
-  useResidentSignBillUrl,
-} from "@/hooks/reactquery/residentBilling";
+import { useResidentBillDetail } from "@/hooks/reactquery/residentBilling";
 import { useResidentGuard } from "@/lib/resident/useResidentGuard";
 
 import styles from "./detail.module.css";
@@ -26,15 +21,6 @@ export default function ResidentBillDetailPage() {
   const period = PERIOD_PATTERN.test(segment) ? `${segment}-01` : "";
   const guard = useResidentGuard();
   const detailQuery = useResidentBillDetail(period);
-  const signMutation = useResidentSignBillUrl();
-  const timer = useRef<number | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    return () => {
-      if (timer.current !== null) window.clearTimeout(timer.current);
-    };
-  }, []);
 
   if (guard.loading || (period && detailQuery.isPending)) {
     return (
@@ -71,28 +57,6 @@ export default function ResidentBillDetailPage() {
 
   if (!guard.link) return null;
 
-  const copyPublicLink = async () => {
-    try {
-      const link = await signMutation.mutateAsync(period);
-      if (!link) throw new Error("no link");
-      const path = signedBillPath({
-        buildingId: link.buildingId,
-        unitNo: link.unitNo,
-        period,
-        sig: link.sig,
-      });
-      await navigator.clipboard.writeText(`${window.location.origin}${path}`);
-      setCopied(true);
-      if (timer.current !== null) window.clearTimeout(timer.current);
-      timer.current = window.setTimeout(() => {
-        setCopied(false);
-        timer.current = null;
-      }, 1600);
-    } catch {
-      setCopied(false);
-    }
-  };
-
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -120,26 +84,7 @@ export default function ResidentBillDetailPage() {
             <span>선택한 달의 확정된 관리비가 없습니다.</span>
           </div>
         ) : (
-          <>
-            <BillDetailView mode="authed" detail={detailQuery.data} />
-            <button
-              type="button"
-              className={styles.shareButton}
-              disabled={signMutation.isPending}
-              onClick={() => void copyPublicLink()}
-            >
-              {signMutation.isPending
-                ? "링크 만드는 중..."
-                : copied
-                  ? "복사되었습니다"
-                  : "무로그인 링크 복사"}
-            </button>
-            {signMutation.error ? (
-              <p className={styles.shareError} role="alert">
-                공유 링크를 만들지 못했어요. 다시 시도해 주세요.
-              </p>
-            ) : null}
-          </>
+          <BillDetailView mode="authed" detail={detailQuery.data} />
         )}
       </main>
     </div>
