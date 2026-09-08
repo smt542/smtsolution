@@ -10,14 +10,24 @@ import { usePublicBillBySigned } from "@/hooks/reactquery/residentBilling";
 
 const PERIOD_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
+/** URL 세그먼트의 unit_no를 안전 디코드(잘못된 %는 원문 유지). */
+const decodeUnitSegment = (segment: string): string => {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+};
+
 function PublicSignedBillContent() {
   const params = useParams<{ building: string; unit: string; period: string }>();
   const searchParams = useSearchParams();
 
   const buildingId = Number(params.building);
-  // Next.js가 동적 세그먼트를 이미 디코드하므로 params.unit은 원본 unit_no와 동일하다
-  // (서명 대상 값과 일치). sig는 base64url이라 인코딩/디코딩 불필요.
-  const unitNo = params.unit ?? "";
+  // 이 Next 빌드는 동적 세그먼트를 자동 디코드하지 않는다(예: "201%ED%98%B8").
+  // 서명 대상 원본 unit_no("201호")로 되돌려야 검증이 일치한다. 이미 디코드된
+  // 값은 %가 없어 no-op이므로 이중 디코드도 안전. sig는 base64url이라 디코딩 불필요.
+  const unitNo = params.unit ? decodeUnitSegment(params.unit) : "";
   const period = params.period ?? "";
   const sig = searchParams.get("s") ?? "";
   const paramsValid =
