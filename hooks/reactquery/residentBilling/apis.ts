@@ -92,24 +92,38 @@ export interface ResidentBillDetail {
 }
 
 export type ResidentBillDetailResult = ResidentBillDetail | null;
-export type ResidentBillTokenResult = string;
 
-export interface StaffMintBillTokensPayload {
+/** resident_sign_bill_url / staff_sign_bill_urls 원본 행(서명 계산 결과). */
+export interface SignedBillLinkRow {
+  building_id: number;
+  unit_no: string;
+  sig: string;
+}
+
+export interface SignedBillLink {
+  buildingId: number;
+  unitNo: string;
+  sig: string;
+}
+
+export interface StaffSignBillUrlRow {
+  unit_id: number;
+  building_id: number;
+  unit_no: string;
+  sig: string;
+}
+
+export interface StaffSignedBillLink {
+  unitId: number;
+  buildingId: number;
+  unitNo: string;
+  sig: string;
+}
+
+export interface StaffSignBillUrlsPayload {
   unitIds: number[];
   period: string;
 }
-
-export interface StaffBillTokenRow {
-  unit_id: number;
-  token: string;
-}
-
-export interface StaffBillToken {
-  unitId: number;
-  token: string;
-}
-
-export type StaffMintBillTokensResult = StaffBillToken[];
 
 export interface PublicBillItemRow {
   name: string;
@@ -162,7 +176,7 @@ export interface PublicBillDetail {
   isExpired: boolean;
 }
 
-export type PublicBillByTokenResult = PublicBillDetail | null;
+export type PublicBillBySignedResult = PublicBillDetail | null;
 
 const rowToBillMonth = (row: ResidentBillMonthRow): ResidentBillMonth => ({
   period: row.period,
@@ -245,51 +259,64 @@ export async function residentBillDetail(
   return row ? rowToBillDetail(row) : null;
 }
 
-export async function residentGetOrCreateBillToken(
+/**
+ * 서명 무로그인 상세 경로 `/rb/{building}/{unit}/{YYYY-MM}?s={sig}`.
+ * period는 "YYYY-MM" 또는 "YYYY-MM-01" 모두 허용(앞 7자만 사용).
+ * sig는 base64url(URL-safe)이라 별도 인코딩 불필요, unit_no만 인코딩한다.
+ */
+export function signedBillPath(link: {
+  buildingId: number;
+  unitNo: string;
+  period: string;
+  sig: string;
+}): string {
+  return `/rb/${link.buildingId}/${encodeURIComponent(link.unitNo)}/${link.period.slice(0, 7)}?s=${link.sig}`;
+}
+
+export async function publicBillBySigned(
+  buildingId: number,
+  unitNo: string,
   period: string,
-): Promise<ResidentBillTokenResult> {
-  const { data, error } = await createClient().rpc(
-    "resident_get_or_create_bill_token",
-    { p_period: period },
-  );
-  if (error) throw new Error(error.message);
-  if (typeof data !== "string") {
-    throw new Error("관리비 공유 링크를 만들지 못했습니다.");
-  }
-  return data;
-}
-
-export async function staffMintBillTokens(
-  payload: StaffMintBillTokensPayload,
-): Promise<StaffMintBillTokensResult> {
-  const { data, error } = await createClient().rpc("staff_mint_bill_tokens", {
-    p_unit_ids: payload.unitIds,
-    p_period: payload.period,
-  });
-  if (error) throw new Error(error.message);
-  return ((data ?? []) as StaffBillTokenRow[]).map((row) => ({
-    unitId: row.unit_id,
-    token: row.token,
-  }));
-}
-
-export async function publicBillByToken(
-  token: string,
-): Promise<PublicBillByTokenResult> {
-  const { data, error } = await createClient().rpc("public_bill_by_token", {
-    p_token: token,
+  sig: string,
+): Promise<PublicBillBySignedResult> {
+  const { data, error } = await createClient().rpc("public_bill_by_signed", {
+    p_building_id: buildingId,
+    p_unit_no: unitNo,
+    p_period: `${period.slice(0, 7)}-01`,
+    p_sig: sig,
   });
   if (error) throw new Error(error.message);
   const row = ((data ?? []) as PublicBillDetailRow[])[0];
   return row ? rowToPublicBillDetail(row) : null;
 }
 
-// Explicit revoke of a public bill-share link (staff / bill_publish scoped).
-// Returns true when a token in the caller's org was found (and is now revoked).
-export async function staffRevokeBillToken(token: string): Promise<boolean> {
-  const { data, error } = await createClient().rpc("staff_revoke_bill_token", {
-    p_token: token,
+/** 세입자 본인 세대의 무로그인 서명 링크(building_id·unit_no·sig)를 자동 발급한다. */
+export async function residentSignBillUrl(
+  period: string,
+): Promise<SignedBillLink | null> {
+  const { data, error } = await createClient().rpc("resident_sign_bill_url", {
+    p_period: period,
   });
   if (error) throw new Error(error.message);
-  return data === true;
+  const row = ((data ?? []) as SignedBillLinkRow[])[0];
+  return row
+    ? { buildingId: row.building_id, unitNo: row.unit_no, sig: row.sig }
+    : null;
+}
+
+/** staff가 세대별 무로그인 서명 링크를 대량 자동 발급(org + bill_publish 스코프). */
+export async function staffSignBillUrls(
+  payload: StaffSignBillUrlsPayload,
+): Promise<StaffSignedBillLink[]> {
+  const { data, error } = await createClient().rpc("staff_sign_bill_urls", {
+    p_unit_ids: payload.unitIds,
+    p_period: payload.period,
+  });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as StaffSignBillUrlRow[]).map((row) => ({
+    unitId: row.unit_id,
+    buildingId: row.building_id,
+    unitNo: row.unit_no,
+    sig: row.sig,
+  }));
 }

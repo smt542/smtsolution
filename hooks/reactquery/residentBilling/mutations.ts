@@ -3,27 +3,20 @@
 import { useMutation } from "@tanstack/react-query";
 
 import {
-  residentGetOrCreateBillToken,
-  staffMintBillTokens,
-  staffRevokeBillToken,
-  type StaffMintBillTokensPayload,
+  residentSignBillUrl,
+  staffSignBillUrls,
+  type StaffSignBillUrlsPayload,
 } from "./apis";
 
-export function useCreateBillToken() {
+export function useResidentSignBillUrl() {
   return useMutation({
-    mutationFn: (period: string) => residentGetOrCreateBillToken(period),
+    mutationFn: (period: string) => residentSignBillUrl(period),
   });
 }
 
-export function useStaffMintBillTokens() {
+export function useStaffSignBillUrls() {
   return useMutation({
-    mutationFn: (payload: StaffMintBillTokensPayload) =>
-      staffMintBillTokens(payload),
-  });
-}
-
-export function useStaffRevokeBillToken() {
-  return useMutation({
-    mutationFn: (token: string) => staffRevokeBillToken(token),
+    mutationFn: (payload: StaffSignBillUrlsPayload) =>
+      staffSignBillUrls(payload),
   });
 }

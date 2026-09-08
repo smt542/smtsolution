@@ -6,7 +6,7 @@ import { EmptyState, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
 import { useOrgContact } from "@/hooks/reactquery/org/useOrgContact";
-import { useStaffMintBillTokens } from "@/hooks/reactquery/residentBilling";
+import { signedBillPath, useStaffSignBillUrls } from "@/hooks/reactquery/residentBilling";
 import {
   useOverdueBuildings,
   useOverdueHouseholds,
@@ -78,7 +78,7 @@ export default function OverduePage() {
   const { data: overduePeriods = [] } = useOverduePeriods(readyBuildingId, overdueQuery);
   const { data: lateFeeRateTiers = [] } = useLateFeeRateTiers(me?.orgId ?? null);
   const { data: orgContact } = useOrgContact();
-  const mintBillTokens = useStaffMintBillTokens();
+  const signBillUrls = useStaffSignBillUrls();
 
   const rowsWithLateFee = useMemo(() => {
     if (households.length === 0 || targetPeriod.year === null || targetPeriod.month === null) {
@@ -194,22 +194,28 @@ export default function OverduePage() {
     }
 
     try {
-      const mintedGroups = await Promise.all(
+      const signedGroups = await Promise.all(
         [...unitIdsByPeriod].map(([period, unitIds]) =>
-          mintBillTokens.mutateAsync({ unitIds, period }),
+          signBillUrls.mutateAsync({ unitIds, period }),
         ),
       );
-      const tokenByUnitId = new Map(
-        mintedGroups.flat().map(({ unitId, token }) => [unitId, token]),
+      const signedByUnitId = new Map(
+        signedGroups.flat().map((link) => [link.unitId, link]),
       );
       const origin = residentOrigin();
       const recipients: MessageRecipient[] = messageTargets.flatMap((row) => {
         const latestPeriod = latestOverduePeriod(row, overduePeriods);
-        const token = tokenByUnitId.get(row.unitId);
-        if (!latestPeriod || !token) {
+        const signed = signedByUnitId.get(row.unitId);
+        if (!latestPeriod || !signed) {
           throw new Error("미납 고지서 상세 링크를 만들지 못했습니다.");
         }
         const unit = formatUnit(row.dong, row.unitNo);
+        const detailLink = `${origin}${signedBillPath({
+          buildingId: signed.buildingId,
+          unitNo: signed.unitNo,
+          period: latestPeriod.period,
+          sig: signed.sig,
+        })}`;
 
         return [row.phone, row.phone2]
           .filter((phone, index, values): phone is string =>
@@ -225,7 +231,7 @@ export default function OverduePage() {
               미납금액: formatKrw(row.overdueAmount),
               미납월: formatPeriodMonth(latestPeriod.period),
               납기일: formatDate(latestPeriod.dueDate),
-              상세링크: `${origin}/r/${token}`,
+              상세링크: detailLink,
             },
             ref: {
               occupancyId: row.occupancyId,

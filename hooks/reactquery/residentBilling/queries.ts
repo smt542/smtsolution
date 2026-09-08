@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import {
-  publicBillByToken,
+  publicBillBySigned,
   residentBillDetail,
   residentBillMonths,
 } from "./apis";
@@ -24,10 +24,15 @@ export function useResidentBillDetail(period: string) {
   });
 }
 
-export function usePublicBillByToken(token: string) {
+export function usePublicBillBySigned(
+  buildingId: number,
+  unitNo: string,
+  period: string,
+  sig: string,
+) {
   return useQuery({
-    queryKey: residentBillingKeys.publicDetail(token),
-    queryFn: () => publicBillByToken(token),
-    enabled: Boolean(token),
+    queryKey: residentBillingKeys.publicDetail(buildingId, unitNo, period, sig),
+    queryFn: () => publicBillBySigned(buildingId, unitNo, period, sig),
+    enabled: Boolean(buildingId && unitNo && period && sig),
   });
 }

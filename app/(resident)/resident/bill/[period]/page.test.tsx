@@ -8,8 +8,15 @@ const nav = vi.hoisted(() => ({
 }));
 const guard = vi.hoisted(() => ({ useResidentGuard: vi.fn() }));
 const billing = vi.hoisted(() => ({
-  useCreateBillToken: vi.fn(),
+  useResidentSignBillUrl: vi.fn(),
   useResidentBillDetail: vi.fn(),
+  signedBillPath: (link: {
+    buildingId: number;
+    unitNo: string;
+    period: string;
+    sig: string;
+  }) =>
+    `/rb/${link.buildingId}/${encodeURIComponent(link.unitNo)}/${link.period.slice(0, 7)}?s=${link.sig}`,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -60,12 +67,16 @@ beforeEach(() => {
     isPending: false,
     refetch: vi.fn(),
   });
-  billing.useCreateBillToken.mockReturnValue({
+  billing.useResidentSignBillUrl.mockReturnValue({
     mutateAsync,
     isPending: false,
     error: null,
   });
-  mutateAsync.mockResolvedValue("11111111-2222-4333-8444-555555555555");
+  mutateAsync.mockResolvedValue({
+    buildingId: 5,
+    unitNo: "201호",
+    sig: "sig-abc",
+  });
 });
 
 describe("ResidentBillDetailPage", () => {
@@ -115,7 +126,7 @@ describe("ResidentBillDetailPage", () => {
     await waitFor(() => {
       expect(mutateAsync).toHaveBeenCalledWith("2026-08-01");
       expect(writeText).toHaveBeenCalledWith(
-        `${window.location.origin}/r/11111111-2222-4333-8444-555555555555`,
+        `${window.location.origin}/rb/5/${encodeURIComponent("201호")}/2026-08?s=sig-abc`,
       );
     });
   });

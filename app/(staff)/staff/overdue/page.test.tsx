@@ -3,9 +3,9 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MessagingPreset } from "@/lib/messaging/preset";
 
-const { messagingModalSpy, mintBillTokens } = vi.hoisted(() => ({
+const { messagingModalSpy, signBillUrls } = vi.hoisted(() => ({
   messagingModalSpy: vi.fn(),
-  mintBillTokens: vi.fn(),
+  signBillUrls: vi.fn(),
 }));
 
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
@@ -21,10 +21,17 @@ vi.mock("@/hooks/reactquery/overdue", () => ({
   useOverduePeriods: vi.fn(),
 }));
 vi.mock("@/hooks/reactquery/residentBilling", () => ({
-  useStaffMintBillTokens: () => ({
-    mutateAsync: mintBillTokens,
+  useStaffSignBillUrls: () => ({
+    mutateAsync: signBillUrls,
     isPending: false,
   }),
+  signedBillPath: (link: {
+    buildingId: number;
+    unitNo: string;
+    period: string;
+    sig: string;
+  }) =>
+    `/rb/${link.buildingId}/${encodeURIComponent(link.unitNo)}/${link.period.slice(0, 7)}?s=${link.sig}`,
 }));
 vi.mock("../messaging/components/MessagingModal", () => ({
   MessagingModal: (props: {
@@ -212,8 +219,14 @@ function showResults() {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubEnv("NEXT_PUBLIC_RESIDENT_WEB_ORIGIN", "https://resident.example.com/");
-  mintBillTokens.mockImplementation(async ({ unitIds }: { unitIds: number[] }) =>
-    unitIds.map((unitId) => ({ unitId, token: `overdue-token-${unitId}` })),
+  signBillUrls.mockImplementation(
+    async ({ unitIds, period }: { unitIds: number[]; period: string }) =>
+      unitIds.map((unitId) => ({
+        unitId,
+        buildingId: 1,
+        unitNo: unitId === 21 ? "101호" : "202호",
+        sig: `sig-${unitId}-${period.slice(0, 7)}`,
+      })),
   );
   setup();
 });
@@ -367,7 +380,7 @@ describe("OverduePage", () => {
           미납금액: "200,000",
           미납월: "2026년 5월",
           납기일: "2026-05-31",
-          상세링크: "https://resident.example.com/r/overdue-token-21",
+          상세링크: `https://resident.example.com/rb/1/${encodeURIComponent("101호")}/2026-05?s=sig-21-2026-05`,
         },
       }, {
         name: "김입주",
@@ -378,7 +391,7 @@ describe("OverduePage", () => {
           미납금액: "200,000",
           미납월: "2026년 5월",
           납기일: "2026-05-31",
-          상세링크: "https://resident.example.com/r/overdue-token-21",
+          상세링크: `https://resident.example.com/rb/1/${encodeURIComponent("101호")}/2026-05?s=sig-21-2026-05`,
         },
       }],
     });
@@ -397,8 +410,8 @@ describe("OverduePage", () => {
     );
   });
 
-  it("고지서 토큰 발급 실패 시 오류를 알리고 작업창을 열지 않는다", async () => {
-    mintBillTokens.mockRejectedValueOnce(new Error("미납 토큰 발급 실패"));
+  it("고지서 링크 발급 실패 시 오류를 알리고 작업창을 열지 않는다", async () => {
+    signBillUrls.mockRejectedValueOnce(new Error("미납 링크 발급 실패"));
     setup({
       periods: [{
         occupancyId: 31,
@@ -413,7 +426,7 @@ describe("OverduePage", () => {
     fireEvent.click(screen.getByRole("button", { name: "독촉 문자 발송" }));
 
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith("미납 토큰 발급 실패"),
+      expect(toast.error).toHaveBeenCalledWith("미납 링크 발급 실패"),
     );
     expect(messagingModalSpy).not.toHaveBeenCalledWith(
       expect.objectContaining({ open: true }),
