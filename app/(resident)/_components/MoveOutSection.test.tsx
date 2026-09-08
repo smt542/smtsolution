@@ -48,7 +48,7 @@ beforeEach(() => {
 describe("MoveOutSection", () => {
   it("creates a request and shows the receipt confirmation", async () => {
     const user = userEvent.setup();
-    render(<MoveOutSection />);
+    render(<MoveOutSection open onClose={vi.fn()} />);
 
     await user.type(screen.getByLabelText(/희망 퇴실일/), "2026-09-30");
     await user.type(screen.getByLabelText(/사유/), "직장 이동");
@@ -69,7 +69,7 @@ describe("MoveOutSection", () => {
       isPending: false,
       refetch,
     });
-    render(<MoveOutSection />);
+    render(<MoveOutSection open onClose={vi.fn()} />);
 
     expect(screen.getByText("담당자가 확인 중이에요")).toBeInTheDocument();
     expect(screen.getByText("2026.09.30")).toBeInTheDocument();
@@ -91,7 +91,7 @@ describe("MoveOutSection", () => {
     const user = userEvent.setup();
     create.mockRejectedValue(new Error("pending move-out request already exists"));
     refetch.mockResolvedValue({ data: pendingRequest });
-    render(<MoveOutSection />);
+    render(<MoveOutSection open onClose={vi.fn()} />);
 
     await user.type(screen.getByLabelText(/희망 퇴실일/), "2026-09-30");
     await user.click(screen.getByRole("button", { name: "퇴실 신청하기" }));
