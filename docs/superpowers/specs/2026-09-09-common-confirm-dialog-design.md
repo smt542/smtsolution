@@ -165,9 +165,9 @@ function useConfirm(): (options: ConfirmOptions) => Promise<boolean>;
 
 ## 9. 검증
 
-- `tsc` (소스만; `.next` validator 노이즈는 `grep -vE '\.next'`), `lint`, `build`, 기존 `vitest` 그린.
+- **Claude 담당**: `tsc` (소스만; `.next` validator 노이즈는 `grep -vE '\.next'`), `lint`, `build`, 기존 `vitest` 그린.
 - 워크트리엔 node_modules 없음 → 검증은 master 체크아웃 node_modules 정션 연결 후 실행, 끝나면 `rmdir` (Turbopack 정션 거부 → webpack build).
-- **픽셀 정합**: `scripts/pixel-diff` 하네스로 **열린 상태**의 다이얼로그 캡처(트리거 클릭 인터랙션 추가) vs staging 정본. 로그인 admin/erp!12345 (`save-auth.mjs`, 세션 ~1h).
+- **픽셀 정합 증빙 = 사용자 직접 수행** (2026-09-09 결정). `scripts/pixel-diff` 하네스로 열린 상태 다이얼로그 캡처 vs staging 정본. Claude는 하네스 개조는 요청 시에만.
 
 ## 10. 커밋 배치
 
@@ -175,6 +175,6 @@ function useConfirm(): (options: ConfirmOptions) => Promise<boolean>;
 2. **C2** danger 7곳 교체.
 3. **C3** 이탈경고 5곳 교체.
 4. **C4** 일반확인 7곳 교체(OrgStatusControl·MessagingComposer 특수 포함).
-5. **C5** 테스트 보정(필요시) + 픽셀 정합 증빙.
+5. **C5** 테스트 보정(필요시). 픽셀 정합 증빙은 사용자 직접 수행.
 
 각 배치 후 tsc/lint/(관련)vitest 스팟 검증. 커밋 직후 `wbs-commit-sync`로 관련 화면 dev 동기화.
