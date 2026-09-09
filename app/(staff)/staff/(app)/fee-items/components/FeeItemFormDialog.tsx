@@ -51,7 +51,7 @@ export function FeeItemFormDialog({
     event.preventDefault();
     const name = value.name.trim();
     if (!name) {
-      setError("항목 명칭을 입력해 주세요.");
+      setError("항목 명칭을 입력해 주세요");
       return;
     }
     if (existingNames.some((candidate) => candidate.trim() === name)) {

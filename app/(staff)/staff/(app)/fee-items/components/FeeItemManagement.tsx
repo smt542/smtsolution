@@ -141,7 +141,7 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
   const openAddItem = () => {
     if (!activeType) return;
     if (activeType.items.length >= MAX_FEE_ITEMS) {
-      toast.error(`관리 항목은 유형별로 최대 ${MAX_FEE_ITEMS}개까지 등록할 수 있습니다.`);
+      toast.error(`관리 항목은 최대 ${MAX_FEE_ITEMS}개까지 등록할 수 있어요`);
       return;
     }
     setEditingItem(null);
@@ -211,14 +211,14 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
   };
 
   const validate = () => {
-    if (!drafts?.length) return "건물 유형을 한 개 이상 등록해 주세요.";
+    if (!drafts?.length) return "최소 1개 유형은 있어야 해요";
     const typeNames = drafts.map((type) => type.label.trim());
     if (typeNames.some((name) => !name)) return "건물 유형명을 입력해 주세요.";
     if (new Set(typeNames).size !== typeNames.length) return "건물 유형명은 중복될 수 없습니다.";
     for (const type of drafts) {
       if (type.items.length > MAX_FEE_ITEMS) return `${type.label} 유형은 항목을 ${MAX_FEE_ITEMS}개까지만 등록할 수 있습니다.`;
       const itemNames = type.items.map((item) => item.name.trim());
-      if (itemNames.some((name) => !name)) return "관리 항목 명칭을 입력해 주세요.";
+      if (itemNames.some((name) => !name)) return "항목 명칭을 입력해 주세요";
       if (new Set(itemNames).size !== itemNames.length) return `${type.label} 유형에 중복된 항목 명칭이 있습니다.`;
       const requiredNames = new Set(type.items.filter((item) => item.isRequired).map((item) => item.name.trim()));
       if (REQUIRED_ITEM_NAMES.some((name) => !requiredNames.has(name))) {
@@ -346,12 +346,13 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
             type={activeType}
             dirty={dirty}
             saving={saving}
-            onEditType={() => setEditingTypeKey(activeType.key)}
             onAddItem={openAddItem}
             onEditItem={(item) => { setEditingItem(item); setFormOpen(true); }}
             onReorder={reorderItems}
             onDeleteType={() => void requestDeleteType()}
             onSave={() => void save()}
+            onLabelChange={(key, label) => setDrafts((current) => current?.map((type) => (type.key === key ? { ...type, label } : type)) ?? current)}
+            onFinishEditing={() => setDrafts((current) => current?.map((type) => (type.key === activeType.key ? { ...type, label: type.label.trim() || baseline.find((item) => item.id === type.id)?.label || "유형명" } : type)) ?? current)}
           />
         ) : (
           <div className="rounded-2xl bg-white p-10 shadow-card"><EmptyState message="등록된 건물 유형이 없습니다. 상단 + 버튼으로 유형을 추가해 주세요." /></div>
