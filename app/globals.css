@@ -16,6 +16,9 @@
   --color-blue-t: #E2F5F1;
   --color-blue-t2: #EFFBF8;
 
+  /* 보조 파랑 (정본 --blue2) — 공과금·관리비 세팅 등에서 청록 주색과 함께 쓰는 액센트 */
+  --color-blue2: #3182F6;
+
   /* brand alias → teal (기존 `brand` 참조 호환) */
   --color-brand: #14A497;
   --color-brand-dark: #0E8677;
