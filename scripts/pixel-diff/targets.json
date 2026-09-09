@@ -1,0 +1,11 @@
+[
+  {
+    "id": "staff-receipt-management",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/receipt-management/receipt-management.dc.html",
+    "originSelector": ".hf-app",
+    "appPath": "/staff/receipts",
+    "appSelector": null,
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
+  }
+]
