@@ -27,7 +27,8 @@ describe("BillingTable", () => {
   it("합계=charged 금액 합(비일할, 당월 전체 거주)", () => {
     render(<BillingTable units={[unit({ moveInDate: "2026-07-01" })]} columns={columns} period="2026-08-01"
       onChargeChange={vi.fn()} onRowClick={vi.fn()} onNoteClick={vi.fn()} />);
-    expect(screen.getByText("35,000")).toBeInTheDocument(); // 30000+5000
+    // 총 관리비 셀은 2줄(총 관리비 / 고정 관리비). 공과금 미전달 → 둘 다 30000+5000=35,000.
+    expect(screen.getAllByText("35,000").length).toBeGreaterThan(0);
   });
   it("금액 입력 시 onChargeChange 호출", () => {
     const onChargeChange = vi.fn();
@@ -48,7 +49,8 @@ describe("BillingTable", () => {
     render(<BillingTable units={[unit({ isVacant: true, tenantName: null })]} columns={columns} period="2026-08-01"
       onChargeChange={vi.fn()} onRowClick={vi.fn()} onNoteClick={vi.fn()} />);
     expect(screen.getByLabelText("101 관리비 금액")).toBeDisabled();
-    expect(screen.getByText("공실")).toBeInTheDocument();
+    // 원본 정본: 공실 성명은 "-"로 표시(별도 "공실" 라벨 없음), 총 관리비 0.
+    expect(screen.getAllByText("0").length).toBeGreaterThan(0);
   });
   it("확정 세대는 확정 배지, is_dirty면 재확정 필요", () => {
     render(<BillingTable units={[unit({ confirmedAt: "2026-08-13T00:00:00Z", isDirty: true })]} columns={columns} period="2026-08-01"
@@ -65,7 +67,8 @@ describe("BillingTable", () => {
     });
     render(<BillingTable units={[confirmedUnit]} columns={columns} period="2026-08-01"
       onChargeChange={vi.fn()} onRowClick={vi.fn()} onNoteClick={vi.fn()} />);
-    expect(screen.getByText("99,000")).toBeInTheDocument();
+    // 확정·비수정 → 스냅샷 99,000 사용(공과금 미전달). 재계산값 35,000은 나오지 않아야 한다.
+    expect(screen.getAllByText("99,000").length).toBeGreaterThan(0);
     expect(screen.queryByText("35,000")).not.toBeInTheDocument();
   });
 });

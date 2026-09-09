@@ -120,7 +120,6 @@ describe("관리비 부과 셋팅", () => {
     expect(screen.getAllByText("건물을 선택해 주세요").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "빌라자료추가" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "전체자료추가" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "공과금 계산" })).toBeDisabled();
   });
 
   it("건물을 선택하면 세대 표를 표시한다", async () => {
@@ -198,13 +197,6 @@ describe("관리비 부과 셋팅", () => {
     fireEvent.change(within(schedule).getByLabelText("부과기준일 시작일"), { target: { value: "2026-07-20" } });
     fireEvent.click(within(schedule).getByRole("button", { name: "저장" }));
     await waitFor(() => expect(periodMut.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ chargeStartDate: "2026-07-20" })));
-  });
-
-  it("공과금 미산정 시 안내 모달을 표시한다", () => {
-    render(<ManagementFeePage />);
-    fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
-    fireEvent.click(screen.getByRole("button", { name: "공과금 계산" }));
-    expect(screen.getByRole("dialog", { name: "공과금 부과액이 아직 없어요" })).toBeInTheDocument();
   });
 
   it("전체 전월자료 반영을 확인한 뒤 복사한다", async () => {

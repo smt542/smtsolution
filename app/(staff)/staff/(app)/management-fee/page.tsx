@@ -321,6 +321,7 @@ export default function ManagementFeePage() {
                   columns={columns}
                   period={period}
                   editing={editing}
+                  utilities={utilityRows}
                   chargeDrafts={chargeDrafts}
                   noteDrafts={noteDrafts}
                   onChargeChange={onChargeChange}
