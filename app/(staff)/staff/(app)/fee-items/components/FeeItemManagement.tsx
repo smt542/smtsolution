@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { EmptyState, Spinner } from "@/components/common";
+import { useConfirm } from "@/components/common/ConfirmProvider";
 import {
   createBuildingType,
   deleteBuildingType,
@@ -96,6 +97,7 @@ function feeItemChanged(current: FeeItemDraft, baseline: FeeItemDraft) {
 }
 
 export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
+  const confirm = useConfirm();
   const queryClient = useQueryClient();
   const buildingTypesQuery = useBuildingTypes();
   const feeItemsQuery = useAllFeeItems();
@@ -159,9 +161,15 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
     setFormOpen(false);
   };
 
-  const deleteItem = () => {
+  const deleteItem = async () => {
     if (!editingItem || !activeType) return;
-    if (!window.confirm(`‘${editingItem.name}’ 항목을 삭제할까요?`)) return;
+    const ok = await confirm({
+      title: "관리 항목 삭제",
+      description: `‘${editingItem.name}’ 항목을 삭제할까요?`,
+      confirmLabel: "삭제",
+      variant: "danger",
+    });
+    if (!ok) return;
     const removed = editingItem;
     const ownerKey = activeType.key;
     const removedIndex = activeType.items.findIndex((item) => item.key === removed.key);

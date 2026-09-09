@@ -4,6 +4,7 @@ import React from "react";
 import { Controller, useForm, useWatch, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, Input, Modal, Select } from "@/components/common";
+import { useConfirm } from "@/components/common/ConfirmProvider";
 import { FormField } from '@/components/common/FormField';
 import { accountCreateSchema, accountEditSchema } from "@/components/forms/schema/account";
 import type {
@@ -68,6 +69,7 @@ export function AccountFormModal({
   onSetActive,
   isPending,
 }: Props) {
+  const confirm = useConfirm();
   const isEdit = !!editing;
   const isTenant = editing?.staffType === "tenant";
   const modalStaffType = editing?.staffType ?? createStaffType;
@@ -178,7 +180,14 @@ export function AccountFormModal({
   };
 
   const deactivate = async () => {
-    if (!editing || !window.confirm("계정을 삭제할까요?")) return;
+    if (!editing) return;
+    const ok = await confirm({
+      title: "계정 삭제",
+      description: "계정을 삭제할까요?", // 원문 고정 (test assertion)
+      confirmLabel: "삭제",
+      variant: "danger",
+    });
+    if (!ok) return;
     try {
       await onSetActive(editing.userId, false);
       onClose();

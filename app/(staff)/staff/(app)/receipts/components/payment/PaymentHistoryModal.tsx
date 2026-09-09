@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge, Button, EmptyState, Spinner } from "@/components/common";
+import { useConfirm } from "@/components/common/ConfirmProvider";
 import {
   useUnitPayments,
   type UnitPayment,
@@ -28,12 +29,18 @@ export function PaymentHistoryModal({
   onCancel,
   onReceipt,
 }: PaymentHistoryModalProps) {
+  const confirm = useConfirm();
   const { data: payments = [], isLoading } = useUnitPayments(unitId, period);
 
-  const handleCancel = (payment: UnitPayment) => {
-    if (window.confirm("이 수납 내역을 취소하시겠습니까?")) {
-      onCancel(payment.id);
-    }
+  const handleCancel = async (payment: UnitPayment) => {
+    const ok = await confirm({
+      title: "수납 취소",
+      description: "이 수납 내역을 취소하시겠습니까?",
+      confirmLabel: "수납 취소",
+      cancelLabel: "닫기",
+      variant: "danger",
+    });
+    if (ok) onCancel(payment.id);
   };
 
   return (
