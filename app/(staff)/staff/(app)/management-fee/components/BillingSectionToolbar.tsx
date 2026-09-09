@@ -6,7 +6,6 @@ interface BillingSectionToolbarProps {
   pending?: boolean;
   onCarryBuilding: () => void;
   onCarryAll: () => void;
-  onCalculateUtilities: () => void;
 }
 
 const miniClass =
@@ -18,7 +17,6 @@ export function BillingSectionToolbar({
   pending = false,
   onCarryBuilding,
   onCarryAll,
-  onCalculateUtilities,
 }: BillingSectionToolbarProps) {
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-[10px] gap-y-[8px] border-b border-line2 px-[18px] py-[15px]">
@@ -29,9 +27,6 @@ export function BillingSectionToolbar({
         </button>
         <button type="button" className={miniClass} disabled={!hasBuildings || pending} onClick={onCarryAll}>
           전체자료추가
-        </button>
-        <button type="button" className={miniClass} disabled={!buildingSelected || pending} onClick={onCalculateUtilities}>
-          공과금 계산
         </button>
       </div>
 

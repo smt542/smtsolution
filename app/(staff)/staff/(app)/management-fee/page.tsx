@@ -187,39 +187,6 @@ export default function ManagementFeePage() {
     await saveAndConfirm();
   };
 
-  const calculateUtilities = () => {
-    if (!buildingId) return;
-    const allReady = Object.values(utilityConfirmations).every((confirmation) => confirmation && !confirmation.isDirty);
-    if (!allReady) {
-      setDialog("utility-missing");
-      return;
-    }
-    const columnByType = {
-      water: columns.find((column) => /수도/.test(column.name)),
-      electricity: columns.find((column) => /전기/.test(column.name)),
-      gas: columns.find((column) => /가스/.test(column.name)),
-    };
-    setChargeDrafts((current) => {
-      const next = { ...current };
-      (["water", "electricity", "gas"] as const).forEach((type) => {
-        const column = columnByType[type];
-        if (!column) return;
-        utilityRows[type].forEach((row) => {
-          next[row.unitId] = {
-            ...next[row.unitId],
-            [column.feeItemId]: {
-              charged: !unitsById.get(row.unitId)?.isVacant,
-              amount: row.manualCharge ?? row.automaticCharge ?? 0,
-            },
-          };
-        });
-      });
-      return next;
-    });
-    setEditing(true);
-    toast.success("산정된 공과금 부과액을 세대별 관리비에 반영했습니다.");
-  };
-
   const openCarryBuilding = () => {
     if (!selectedBuilding) return;
     setDialog(selectedBuilding.setupConfirmRequired ? "important-building" : "carry-building");
@@ -328,7 +295,6 @@ export default function ManagementFeePage() {
               pending={actionPending}
               onCarryBuilding={openCarryBuilding}
               onCarryAll={() => setDialog("carry-all")}
-              onCalculateUtilities={calculateUtilities}
             />
 
             <div className="min-h-0 flex-1">
