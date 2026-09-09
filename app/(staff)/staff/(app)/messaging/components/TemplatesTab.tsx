@@ -9,6 +9,7 @@ import {
   Panel,
   Spinner,
 } from "@/components/common";
+import { useConfirm } from "@/components/common/ConfirmProvider";
 import {
   type MessageTemplate,
   useDeleteMessageTemplate,
@@ -25,6 +26,7 @@ function summarizeBody(body: string): string {
 }
 
 export function TemplatesTab() {
+  const confirm = useConfirm();
   const {
     data: templates = [],
     isLoading,
@@ -52,9 +54,13 @@ export function TemplatesTab() {
   };
 
   const remove = async (template: MessageTemplate) => {
-    if (!window.confirm(`'${template.title}' 템플릿을 삭제하시겠습니까?`)) {
-      return;
-    }
+    const ok = await confirm({
+      title: "템플릿 삭제",
+      description: `'${template.title}' 템플릿을 삭제하시겠습니까?`,
+      confirmLabel: "삭제",
+      variant: "danger",
+    });
+    if (!ok) return;
 
     try {
       await deleteTemplate.mutateAsync(template.id);

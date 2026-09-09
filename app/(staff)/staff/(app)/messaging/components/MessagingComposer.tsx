@@ -3,6 +3,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button, Checkbox, Panel, Select } from "@/components/common";
+import { useConfirm } from "@/components/common/ConfirmProvider";
 import { useAccounts, type Account } from "@/hooks/reactquery/accounts";
 import { useBuildings, type Building } from "@/hooks/reactquery/buildings";
 import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates";
@@ -361,6 +362,7 @@ export function MessagingComposer({
   presentation = "default",
   itemCount,
 }: MessagingComposerProps) {
+  const confirm = useConfirm();
   const [selectedBuildingId, setSelectedBuildingId] = useState(
     preset?.buildingId ?? preset?.recipients?.[0]?.ref?.buildingId ?? 0,
   );
@@ -619,7 +621,12 @@ export function MessagingComposer({
     }
     const actionLabel = sendTiming === "scheduled" ? "예약 발송" : "발송";
     const pointNotice = `${validCount}명 · 예상 ${formatNumber(pointQuote.data.estimatedPoints)} P (성공 발송분만 차감)`;
-    if (!window.confirm(`${pointNotice}\n${actionLabel}하시겠습니까?`)) return;
+    const ok = await confirm({
+      title: "문자 발송",
+      description: `${pointNotice}\n${actionLabel}하시겠습니까?`,
+      confirmLabel: actionLabel,
+    });
+    if (!ok) return;
 
     const currentSubmissionRecipients = renderRecipientPreviews(effectiveBody).map(
       ({ recipient, channel, renderedBody }) => ({
