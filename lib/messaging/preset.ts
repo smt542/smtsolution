@@ -15,7 +15,7 @@ export interface MessageRecipient {
   alimtalkOptIn?: boolean;
   phoneType?: "primary" | "secondary";
   unitNo?: string | null;
-  kind: "tenant" | "owner" | "staff" | "vendor" | "etc";
+  kind: "tenant" | "owner" | "staff" | "cleaner" | "vendor" | "etc";
   variables?: Record<string, string>;
   ref?: {
     occupancyId?: number;
@@ -50,6 +50,9 @@ export function buildRecipientRenderVariables(
 ): Record<string, string> {
   return {
     이름: recipient.name ?? "",
+    입주자명: recipient.name ?? "",
+    건물주명: recipient.name ?? "",
+    청소담당자명: recipient.name ?? "",
     호수: recipient.unitNo ?? "",
     호실: recipient.unitNo ?? "",
     건물명: buildingName ?? "",
