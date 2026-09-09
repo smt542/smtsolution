@@ -35,6 +35,8 @@ export interface SendMessagesInput {
   templateId: number | null;
   recipients: ResolvedRecipient[];
   scheduledAt?: string | null;
+  recurrenceMode?: "monthly" | null;
+  recurrenceAnchorDay?: number | null;
   /** 한 논리적 즉시발송 시도의 멱등 키(UUID). Idempotency-Key 헤더로 전달한다. */
   idempotencyKey?: string;
 }
@@ -200,6 +202,8 @@ export async function sendMessages(
       p_recipients: input.recipients,
       p_template_id: input.templateId,
       p_scheduled_at: input.scheduledAt,
+      p_recurrence_mode: input.recurrenceMode ?? null,
+      p_recurrence_anchor_day: input.recurrenceAnchorDay ?? null,
     });
     if (error) throw new Error(error.message);
     const result = data as { schedule_id: number; count: number; scheduled_at: string };
