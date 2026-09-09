@@ -9,8 +9,8 @@ interface BillingSectionToolbarProps {
   onCalculateUtilities: () => void;
 }
 
-const actionClass =
-  "h-[32px] rounded-[9px] border border-line bg-white px-[12px] text-[12px] font-bold text-t2 transition-colors hover:border-teal hover:text-teal disabled:cursor-not-allowed disabled:bg-bg disabled:text-t4";
+const miniClass =
+  "h-[26px] rounded-[8px] border border-line bg-white px-[10px] text-[11.5px] font-bold text-t2 transition-[border-color,background-color] duration-[120ms] hover:border-[#C9D0D8] hover:bg-[#F7F9FA] disabled:cursor-not-allowed disabled:opacity-55";
 
 export function BillingSectionToolbar({
   buildingSelected,
@@ -21,23 +21,27 @@ export function BillingSectionToolbar({
   onCalculateUtilities,
 }: BillingSectionToolbarProps) {
   return (
-    <div className="flex h-[57px] shrink-0 items-center border-b border-line2 px-[18px]">
-      <h2 className="mr-[14px] text-[14px] font-extrabold text-t1">세대별 관리비</h2>
-      <div className="flex items-center gap-[6px]">
-        <button type="button" className={actionClass} disabled={!buildingSelected || pending} onClick={onCarryBuilding}>
+    <div className="flex shrink-0 flex-wrap items-center gap-[10px] gap-y-[8px] border-b border-line2 px-[18px] py-[15px]">
+      <h2 className="text-[15px] font-extrabold text-t1">세대별 관리비 항목</h2>
+      <div className="ml-[10px] flex flex-none items-center gap-[6px]">
+        <button type="button" className={miniClass} disabled={!buildingSelected || pending} onClick={onCarryBuilding}>
           빌라자료추가
         </button>
-        <button type="button" className={actionClass} disabled={!hasBuildings || pending} onClick={onCarryAll}>
+        <button type="button" className={miniClass} disabled={!hasBuildings || pending} onClick={onCarryAll}>
           전체자료추가
         </button>
-        <button type="button" className={actionClass} disabled={!buildingSelected || pending} onClick={onCalculateUtilities}>
+        <button type="button" className={miniClass} disabled={!buildingSelected || pending} onClick={onCalculateUtilities}>
           공과금 계산
         </button>
       </div>
 
-      <div className="ml-auto flex items-center gap-[16px] text-[11.5px] font-semibold text-t3">
-        <span className="flex items-center gap-[6px]"><i className="size-[8px] rounded-full bg-[#f5b544]" />공실 사용량</span>
-        <span className="flex items-center gap-[6px]"><i className="size-[8px] rounded-full bg-[#5c89f2]" />최근 입주</span>
+      <div className="ml-auto flex flex-none items-center gap-[12px]">
+        <span className="inline-flex items-center gap-[5px] whitespace-nowrap text-[11.5px] font-medium text-t3">
+          <i className="h-[12px] w-[3px] flex-none rounded-[2px] bg-red" />공실 사용량
+        </span>
+        <span className="inline-flex items-center gap-[5px] whitespace-nowrap text-[11.5px] font-medium text-t3">
+          <i className="h-[12px] w-[3px] flex-none rounded-[2px] bg-green" />최근 입주
+        </span>
       </div>
     </div>
   );

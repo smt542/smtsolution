@@ -169,12 +169,10 @@ export default function ManagementFeePage() {
           billingNote: buildingNoteDraft,
         });
       }
-      const result = units.length > 0
-        ? await confirmBilling.mutateAsync({ buildingId, period })
-        : { unitCount: 0, total: 0 };
+      // 원본은 저장 시 무음(성공 토스트 없음) — 저장 후 편집바가 조회 모드로 전환되는 것이 완료 신호.
+      if (units.length > 0) await confirmBilling.mutateAsync({ buildingId, period });
       setEditing(false);
       resetDrafts(buildingNoteDraft);
-      toast.success(`관리비가 저장되었습니다. (${result.unitCount}세대 · ${formatWon(result.total)})`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : String(error));
       throw error;
@@ -297,7 +295,7 @@ export default function ManagementFeePage() {
           onPeriodChange={changePeriod}
         />
 
-        <main className="grid min-h-0 grid-rows-[51px_196px_minmax(250px,1fr)] gap-[12px]">
+        <main className="grid min-h-0 grid-rows-[auto_196px_minmax(250px,1fr)] gap-[12px]">
           <BillingPeriodSettingsBar
             key={`${buildingId ?? "none"}:${period}`}
             buildingId={buildingId}
@@ -335,21 +333,21 @@ export default function ManagementFeePage() {
 
             <div className="min-h-0 flex-1">
               {!buildingId && (
-                <div className="flex h-full min-h-[260px] flex-col items-center justify-center text-center">
-                  <span className="flex size-[56px] items-center justify-center rounded-[17px] bg-[#e2f5f1]"><Image src="/icons/management-fee-empty.svg" alt="" width={27} height={27} className="size-[27px]" /></span>
-                  <p className="mt-[15px] text-[14px] font-extrabold text-t1">건물을 선택해 주세요</p>
-                  <p className="mt-[5px] text-[12px] font-medium text-t3">선택한 건물의 세대별 관리비를 확인할 수 있어요.</p>
+                <div className="flex h-full min-h-[260px] flex-col items-center justify-center gap-[4px] text-center">
+                  <span className="mb-[4px] flex size-[56px] items-center justify-center rounded-[17px] bg-[#e2f5f1]"><Image src="/icons/management-fee-empty.svg" alt="" width={27} height={27} className="size-[27px]" /></span>
+                  <p className="text-[16px] font-bold tracking-[-0.02em] text-t1">건물을 선택해 주세요</p>
+                  <p className="text-[13.5px] font-normal leading-[1.6] text-t3">선택한 건물의 세대별 관리비 항목이 표시돼요</p>
                 </div>
               )}
-              {buildingId && billingQuery.isLoading && <div className="flex h-full flex-col items-center justify-center gap-2"><Spinner /><p className="text-[12px] text-t3">관리비를 불러오는 중입니다.</p></div>}
+              {buildingId && billingQuery.isLoading && <div className="flex h-full flex-col items-center justify-center gap-2"><Spinner /><p className="text-[12px] text-t3">관리비를 불러오고 있어요.</p></div>}
               {buildingId && billingQuery.error && (
                 <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-                  <p className="text-[13px] font-semibold text-red">관리비를 불러오지 못했습니다.</p>
+                  <p className="text-[13px] font-semibold text-red">관리비를 불러오지 못했어요.</p>
                   <button type="button" onClick={() => billingQuery.refetch()} className="h-[32px] rounded-[9px] border border-line px-[12px] text-[12px] font-bold">다시 시도</button>
                 </div>
               )}
               {buildingId && !billingQuery.isLoading && !billingQuery.error && units.length === 0 && (
-                <div className="flex h-full items-center justify-center text-[13px] text-t3">등록된 세대가 없습니다.</div>
+                <div className="flex h-full items-center justify-center text-[13px] text-t3">등록된 세대가 없어요.</div>
               )}
               {buildingId && !billingQuery.isLoading && !billingQuery.error && units.length > 0 && (
                 <BillingTable

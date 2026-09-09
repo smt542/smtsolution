@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDownIcon, SearchIcon } from "@/components/icons";
+import { SearchIcon } from "@/components/icons";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
 import type { Building } from "@/hooks/reactquery/buildings";
 import type { BuildingType } from "@/hooks/reactquery/buildingTypes";
 import { BillingReferencePanel } from "./BillingReferencePanel";
@@ -40,6 +41,21 @@ export function BuildingDirectoryRail({
     () => new Map(buildingTypes.map((type) => [type.id, type.label])),
     [buildingTypes],
   );
+  const yearOptions = useMemo(
+    () => years.map((option) => ({ value: String(option), label: `${option}년` })),
+    [years],
+  );
+  const monthOptions = useMemo(
+    () => Array.from({ length: 12 }, (_, index) => ({ value: String(index + 1), label: `${index + 1}월분` })),
+    [],
+  );
+  const groupOptions = useMemo(
+    () => [
+      { value: "", label: "그룹 전체" },
+      ...buildingTypes.map((type) => ({ value: String(type.id), label: type.label })),
+    ],
+    [buildingTypes],
+  );
   const normalizedSearch = search.trim().toLocaleLowerCase("ko");
   const visibleBuildings = buildings.filter((building) => {
     const matchesGroup = !groupId || String(building.typeId ?? "") === groupId;
@@ -49,69 +65,49 @@ export function BuildingDirectoryRail({
   });
   const selectedBuilding = buildings.find((building) => building.id === selectedBuildingId) ?? null;
 
-  const selectClass =
-    "h-[32px] appearance-none rounded-[9px] border border-line bg-white pl-[11px] pr-[28px] text-[13px] font-bold tracking-[-0.01em] text-t1 outline-none focus:border-teal";
-
   return (
     <aside className="grid min-h-0 grid-rows-[minmax(180px,1fr)_168px] gap-[12px]">
       <section className="flex min-h-[180px] flex-col overflow-hidden rounded-[16px] bg-surface shadow-card">
-        <div className="h-[106px] shrink-0 border-b border-line2 px-[18px] pt-[15px]">
-          <div className="flex h-[32px] items-center gap-[8px]">
-            <h2 className="text-[15px] font-extrabold text-t1">전체 건물</h2>
-            <div className="ml-auto flex items-center gap-[6px]">
-              <label className="relative">
-                <span className="sr-only">부과 연도</span>
-                <select
-                  aria-label="부과 연도"
-                  value={year}
-                  onChange={(event) => onPeriodChange(Number(event.target.value), month)}
-                  className={`${selectClass} w-[88px]`}
-                >
-                  {years.map((option) => <option key={option} value={option}>{option}년</option>)}
-                </select>
-                <ChevronDownIcon className="pointer-events-none absolute right-[9px] top-[9px] size-[14px] text-t3" />
-              </label>
-              <label className="relative">
-                <span className="sr-only">부과 월</span>
-                <select
-                  aria-label="부과 월"
-                  value={month}
-                  onChange={(event) => onPeriodChange(year, Number(event.target.value))}
-                  className={`${selectClass} w-[74px]`}
-                >
-                  {Array.from({ length: 12 }, (_, index) => index + 1).map((option) => (
-                    <option key={option} value={option}>{option}월분</option>
-                  ))}
-                </select>
-                <ChevronDownIcon className="pointer-events-none absolute right-[9px] top-[9px] size-[14px] text-t3" />
-              </label>
+        <div className="flex shrink-0 flex-col items-stretch gap-[9px] border-b border-line2 px-[18px] py-[15px]">
+          <div className="flex flex-wrap items-center gap-[8px] gap-y-[8px]">
+            <h2 className="whitespace-nowrap text-[15px] font-extrabold text-t1">전체 건물</h2>
+            <div className="flex-1" />
+            <div className="flex flex-none items-center gap-[6px]">
+              <CustomDropdown
+                ariaLabel="부과 연도"
+                value={String(year)}
+                options={yearOptions}
+                compact
+                onChange={(value) => onPeriodChange(Number(value), month)}
+              />
+              <CustomDropdown
+                ariaLabel="부과 월"
+                value={String(month)}
+                options={monthOptions}
+                compact
+                onChange={(value) => onPeriodChange(year, Number(value))}
+              />
             </div>
           </div>
 
-          <div className="mt-[9px] flex h-[34px] items-center gap-[8px]">
-            <label className="relative min-w-0 flex-1">
-              <span className="sr-only">건물명·주소 검색</span>
-              <SearchIcon className="pointer-events-none absolute left-[11px] top-[9px] size-[15px] text-t3" />
+          <div className="flex w-full items-center gap-[8px]">
+            <div className="relative w-full">
+              <SearchIcon className="pointer-events-none absolute left-[11px] top-1/2 size-[15px] -translate-y-1/2 text-t3" />
               <input
+                aria-label="건물명·주소 검색"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="건물명·주소 검색"
                 className="h-[34px] w-full rounded-[9px] border border-line bg-white pl-[31px] pr-[11px] text-[13px] font-semibold text-t1 outline-none placeholder:text-[#757575] focus:border-teal"
               />
-            </label>
-            <label className="relative w-[92px] shrink-0">
-              <span className="sr-only">건물 그룹</span>
-              <select
-                aria-label="건물 그룹"
-                value={groupId}
-                onChange={(event) => setGroupId(event.target.value)}
-                className={`${selectClass} w-full`}
-              >
-                <option value="">그룹 전체</option>
-                {buildingTypes.map((type) => <option key={type.id} value={type.id}>{type.label}</option>)}
-              </select>
-              <ChevronDownIcon className="pointer-events-none absolute right-[9px] top-[9px] size-[14px] text-t3" />
-            </label>
+            </div>
+            <CustomDropdown
+              ariaLabel="건물 그룹"
+              value={groupId}
+              options={groupOptions}
+              compact
+              onChange={setGroupId}
+            />
           </div>
 
           <select
@@ -133,10 +129,10 @@ export function BuildingDirectoryRail({
               <col />
             </colgroup>
             <thead className="sticky top-0 z-10 bg-[#fbfcfd] text-left text-[12px] font-bold text-t3">
-              <tr className="h-[36px] border-b border-line">
-                <th className="px-[11px]">코드</th>
-                <th className="px-[11px]">건물명</th>
-                <th className="px-[11px]">주소</th>
+              <tr className="border-b border-line">
+                <th className="px-[11px] py-[11px]">코드</th>
+                <th className="px-[11px] py-[11px]">건물명</th>
+                <th className="px-[11px] py-[11px]">주소</th>
               </tr>
             </thead>
             <tbody>
@@ -148,7 +144,7 @@ export function BuildingDirectoryRail({
                     aria-selected={selected}
                     title={typeById.get(building.typeId ?? -1) ?? undefined}
                     onClick={() => onBuildingChange(String(building.id))}
-                    className={`h-[41px] cursor-pointer border-b border-line2 ${selected ? "bg-[#e2f5f1] font-bold" : "hover:bg-bg"}`}
+                    className={`h-[41px] cursor-pointer border-b border-line2 ${selected ? "bg-[#e2f5f1] font-bold" : "hover:bg-blue-t2"}`}
                   >
                     <td className="truncate px-[11px]">{building.code}</td>
                     <td className="truncate px-[11px]">{building.name}</td>
@@ -159,9 +155,9 @@ export function BuildingDirectoryRail({
             </tbody>
           </table>
           {!loading && visibleBuildings.length === 0 && (
-            <p className="px-[18px] py-[30px] text-center text-[13px] text-t3">조건에 맞는 건물이 없습니다.</p>
+            <p className="px-[18px] py-[30px] text-center text-[13px] text-t3">조건에 맞는 건물이 없어요.</p>
           )}
-          {loading && <p className="px-[18px] py-[30px] text-center text-[13px] text-t3">건물을 불러오는 중입니다.</p>}
+          {loading && <p className="px-[18px] py-[30px] text-center text-[13px] text-t3">건물을 불러오는 중이에요.</p>}
         </div>
       </section>
 

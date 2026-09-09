@@ -7,5 +7,23 @@
     "appSelector": null,
     "viewport": { "w": 1340, "h": 880 },
     "device": "desktop"
+  },
+  {
+    "id": "staff-fee-items",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/fee-item/fee-item.dc.html",
+    "originSelector": ".hf-app",
+    "appPath": "/staff/fee-items",
+    "appSelector": null,
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
+  },
+  {
+    "id": "staff-management-fee",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/management-fee-setting/management-fee-setting.dc.html",
+    "originSelector": ".hf-app",
+    "appPath": "/staff/management-fee",
+    "appSelector": null,
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
   }
 ]
