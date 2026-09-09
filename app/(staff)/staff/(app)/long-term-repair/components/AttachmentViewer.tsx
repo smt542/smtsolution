@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button, Spinner } from "@/components/common";
+import { useConfirm } from "@/components/common/ConfirmProvider";
 import { attachmentSignedUrl, type Attachment } from "@/hooks/reactquery/attachments";
 
 interface AttachmentViewerProps {
@@ -25,6 +26,7 @@ export function AttachmentViewer({
   onClose,
   onDelete,
 }: AttachmentViewerProps) {
+  const confirm = useConfirm();
   const attachmentKey = attachments.map((attachment) => attachment.id).join(",");
   const [resolved, setResolved] = useState<{ key: string; items: ViewableAttachment[] }>({
     key: "",
@@ -91,7 +93,8 @@ export function AttachmentViewer({
                           type="button"
                           className="font-bold text-red"
                           onClick={async () => {
-                            if (!window.confirm("첨부파일을 삭제할까요?")) return;
+                            const ok = await confirm({ title: "첨부파일 삭제", description: "첨부파일을 삭제할까요?", confirmLabel: "삭제", variant: "danger" });
+                            if (!ok) return;
                             await onDelete(attachment);
                           }}
                         >

@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button, Spinner } from "@/components/common";
+import { useConfirm } from "@/components/common/ConfirmProvider";
 import type { Building } from "@/hooks/reactquery/buildings";
 import {
   useLongTermRepairLedger,
@@ -184,6 +185,7 @@ function AttachmentCell({
 }
 
 export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTermRepairLedgerProps) {
+  const confirm = useConfirm();
   const now = new Date();
   const currentYear = now.getFullYear();
   const initialEndMonth = `${currentYear}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -276,8 +278,9 @@ export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTerm
     setDirty(true);
   };
 
-  const removeRow = (row: DraftLedgerRow) => {
-    if (!window.confirm("행을 삭제할까요?")) return;
+  const removeRow = async (row: DraftLedgerRow) => {
+    const ok = await confirm({ title: "행 삭제", description: "행을 삭제할까요?", confirmLabel: "삭제", variant: "danger" });
+    if (!ok) return;
     setDraftRows((current) => current.filter((candidate) => candidate.clientKey !== row.clientKey));
     if (row.id) setDeletedIds((current) => [...new Set([...current, row.id as number])]);
     setDirty(true);
@@ -405,8 +408,15 @@ export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTerm
                   type="button"
                   className={`grid w-full grid-cols-[88px_1fr] rounded-xl px-2 py-3 text-left text-sm transition-colors ${building.id === buildingId ? "bg-blue-t text-blue-d" : "text-t2 hover:bg-bg"}`}
                   aria-pressed={building.id === buildingId}
-                  onClick={() => {
-                    if (editing && dirty && !window.confirm("저장하지 않은 변경을 취소하고 건물을 바꿀까요?")) return;
+                  onClick={async () => {
+                    if (editing && dirty) {
+                      const ok = await confirm({
+                        title: "저장하지 않고 건물 변경",
+                        description: "저장하지 않은 변경을 취소하고 건물을 바꿀까요?",
+                        confirmLabel: "건물 변경",
+                      });
+                      if (!ok) return;
+                    }
                     setBuildingId(building.id);
                     setEditing(false);
                     setDirty(false);
