@@ -45,6 +45,13 @@ try {
       const page = await ctx.newPage();
       await page.goto(APP_ORIGIN + t.appPath, { waitUntil: 'networkidle' });
       await page.waitForTimeout(500); // 폰트·데이터 안정화
+      if (Array.isArray(t.appActions)) {
+        for (const action of t.appActions) {
+          if (action.click) await page.click(action.click);
+          if (typeof action.wait === 'number') await page.waitForTimeout(action.wait);
+          if (action.waitFor) await page.waitForSelector(action.waitFor, { timeout: 15000 });
+        }
+      }
       await mkdir(path.join(OUT, 'app'), { recursive: true });
       const shotTarget = t.appSelector
         ? await page.waitForSelector(t.appSelector, { timeout: 15000 })

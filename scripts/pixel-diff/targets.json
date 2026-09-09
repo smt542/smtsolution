@@ -25,5 +25,15 @@
     "appSelector": null,
     "viewport": { "w": 1340, "h": 880 },
     "device": "desktop"
+  },
+  {
+    "id": "as-rail-panel",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/fee-item/fee-item.dc.html",
+    "originSelector": ".rnb",
+    "appPath": "/staff/fee-items",
+    "appSelector": "[data-testid='as-rail-panel']",
+    "appActions": [{ "click": "[data-testid='as-rail-handle']" }, { "wait": 400 }],
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
   }
 ]
