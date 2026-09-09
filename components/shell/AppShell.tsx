@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { MessengerFab } from "@/components/messenger/MessengerFab";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 
@@ -54,6 +55,9 @@ export function AppShell({ children }: AppShellProps) {
           {children}
         </main>
       </div>
+
+      {/* 스태프 전역 빠른발송 FAB */}
+      <MessengerFab />
 
       {/* Mobile drawer */}
       {drawerOpen && (

@@ -24,19 +24,6 @@ export function QuickAccessRail({ variant = "moving-inquiry" }: QuickAccessRailP
           height={feeItems ? 16 : 18}
         />
       </button>
-      <button
-        type="button"
-        aria-label="도움말 열기"
-        className={`fixed z-20 flex h-[52px] w-[52px] items-center justify-center rounded-full bg-teal shadow-[0_12px_24px_-7px_rgba(20,164,151,.65)] ${feeItems ? "bottom-8 right-6" : "bottom-[22px] right-[22px]"}`}
-        onClick={() => toast.info("도움말 채팅은 준비 중입니다.")}
-      >
-        <Image
-          src="/icons/fee-items/chat.svg"
-          alt=""
-          width={feeItems ? 22 : 20}
-          height={feeItems ? 22 : 20}
-        />
-      </button>
     </aside>
   );
 }
