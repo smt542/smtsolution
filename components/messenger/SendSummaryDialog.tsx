@@ -14,6 +14,7 @@ interface SendSummaryDialogProps {
   body: string;
   templateId: number | null;
   scheduledAt: string | null;
+  recurrenceMode: "monthly" | null;
   onCancel: () => void;
   onConfirm: () => void | Promise<void>;
   sender?: string;
@@ -63,6 +64,7 @@ export function SendSummaryDialog({
   body,
   templateId,
   scheduledAt,
+  recurrenceMode,
   onCancel,
   onConfirm,
   sender,
@@ -128,7 +130,12 @@ export function SendSummaryDialog({
           </div>
           <div className={styles.r}>
             <span className={styles.rl}>발송시점</span>
-            <span className={styles.rv}>{formatScheduledAt(scheduledAt)}</span>
+            <span className={styles.rv}>
+              {formatScheduledAt(scheduledAt)}
+              {recurrenceMode === "monthly" && (
+                <> · <span className={styles["ch-pill"]}>매월 반복</span></>
+              )}
+            </span>
           </div>
           {channel === "sms" ? (
             <div className={styles.r}>

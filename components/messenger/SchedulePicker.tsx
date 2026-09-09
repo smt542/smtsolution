@@ -5,6 +5,7 @@ import styles from "./messenger.module.css";
 
 export interface ScheduleValue {
   scheduledAt: string | null;
+  recurrenceMode: "monthly" | null;
 }
 
 interface SchedulePickerProps {
@@ -68,16 +69,21 @@ function toKstIso(date: string, time: string): string | null {
 
 export function SchedulePicker({ value, onChange }: SchedulePickerProps) {
   const [minimumDate] = useState(() => defaultKstParts().date);
+  const [repeatOpen, setRepeatOpen] = useState(false);
   const enabled = value.scheduledAt !== null;
   const parts = scheduledParts(value.scheduledAt);
 
   const toggle = () => {
     if (enabled) {
-      onChange({ scheduledAt: null });
+      setRepeatOpen(false);
+      onChange({ scheduledAt: null, recurrenceMode: null });
       return;
     }
     const next = defaultKstParts();
-    onChange({ scheduledAt: toKstIso(next.date, next.time) });
+    onChange({
+      scheduledAt: toKstIso(next.date, next.time),
+      recurrenceMode: null,
+    });
   };
 
   return (
@@ -116,6 +122,7 @@ export function SchedulePicker({ value, onChange }: SchedulePickerProps) {
               onChange={(event) =>
                 onChange({
                   scheduledAt: toKstIso(event.target.value, parts.time),
+                  recurrenceMode: value.recurrenceMode,
                 })
               }
             />
@@ -143,10 +150,75 @@ export function SchedulePicker({ value, onChange }: SchedulePickerProps) {
               onChange={(event) =>
                 onChange({
                   scheduledAt: toKstIso(parts.date, event.target.value),
+                  recurrenceMode: value.recurrenceMode,
                 })
               }
             />
           </label>
+          <div
+            className={`${styles["fmp-dpick"]} ${repeatOpen ? styles.open : ""}`}
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) setRepeatOpen(false);
+            }}
+          >
+            <svg
+              className={styles.ic}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.9"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M17 2v4M7 2v4M3 10h18" />
+              <rect x="3" y="4.5" width="18" height="16" rx="2.5" />
+            </svg>
+            <button
+              type="button"
+              className={styles.v}
+              aria-haspopup="listbox"
+              aria-expanded={repeatOpen}
+              onClick={() => setRepeatOpen((open) => !open)}
+            >
+              {value.recurrenceMode === "monthly" ? "매월" : "반복 없음"}
+            </button>
+            <div
+              className={`${styles.menu} ${styles["fmp-rplist"]}`}
+              role="listbox"
+              aria-label="반복 주기"
+            >
+              {([
+                [null, "반복 없음"],
+                ["monthly", "매월"],
+              ] as const).map(([mode, label]) => (
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={value.recurrenceMode === mode}
+                  className={`${styles.opt} ${value.recurrenceMode === mode ? styles.on : ""}`}
+                  key={label}
+                  onClick={() => {
+                    onChange({ scheduledAt: value.scheduledAt, recurrenceMode: mode });
+                    setRepeatOpen(false);
+                  }}
+                >
+                  {label}
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M4 12.5l5 5L20 6.5" />
+                  </svg>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>

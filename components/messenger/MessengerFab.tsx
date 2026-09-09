@@ -87,6 +87,7 @@ function MessengerFabContent() {
   const [templateId, setTemplateId] = useState<number | null>(null);
   const [alimtalkVars, setAlimtalkVars] = useState<Record<string, string>>({});
   const [scheduledAt, setScheduledAt] = useState<string | null>(null);
+  const [recurrenceMode, setRecurrenceMode] = useState<"monthly" | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
   const [sendFeedback, setSendFeedback] = useState<SendFeedback | null>(null);
@@ -312,8 +313,12 @@ function MessengerFabContent() {
     clearTransientFeedback();
   };
 
-  const changeSchedule = (next: { scheduledAt: string | null }) => {
+  const changeSchedule = (next: {
+    scheduledAt: string | null;
+    recurrenceMode: "monthly" | null;
+  }) => {
     setScheduledAt(next.scheduledAt);
+    setRecurrenceMode(next.recurrenceMode);
     clearTransientFeedback();
   };
 
@@ -361,6 +366,14 @@ function MessengerFabContent() {
     idempotencyRef.current = idempotency;
 
     try {
+      const recurrenceAnchorDay = scheduledAt && recurrenceMode === "monthly"
+        ? Number(
+            new Intl.DateTimeFormat("en-US", {
+              timeZone: "Asia/Seoul",
+              day: "numeric",
+            }).format(new Date(scheduledAt)),
+          )
+        : null;
       const result = await sendMessages.mutateAsync({
         mode: sendMode,
         body,
@@ -368,6 +381,8 @@ function MessengerFabContent() {
         templateId: effectiveTemplateId,
         recipients: sendRecipients,
         scheduledAt,
+        recurrenceMode,
+        recurrenceAnchorDay,
         idempotencyKey: idempotency.key,
       });
       idempotencyRef.current = null;
@@ -402,6 +417,7 @@ function MessengerFabContent() {
     setTemplateId(null);
     setAlimtalkVars({});
     setScheduledAt(null);
+    setRecurrenceMode(null);
     setSummaryOpen(false);
     setCloseConfirmOpen(false);
     setSendFeedback(null);
@@ -482,7 +498,7 @@ function MessengerFabContent() {
                 />
               )}
               <SchedulePicker
-                value={{ scheduledAt }}
+                value={{ scheduledAt, recurrenceMode }}
                 onChange={changeSchedule}
               />
               <div className={styles["fmp-recip"]} aria-live="polite">
@@ -515,6 +531,7 @@ function MessengerFabContent() {
           body={body}
           templateId={ui.channel === "alim" ? templateId : null}
           scheduledAt={scheduledAt}
+          recurrenceMode={recurrenceMode}
           sender={sender}
           template={ui.channel === "alim" ? selectedTemplate : null}
           vars={alimtalkVars}
