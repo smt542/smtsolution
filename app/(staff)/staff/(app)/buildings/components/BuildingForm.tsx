@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/common";
+import { useConfirm } from "@/components/common/ConfirmProvider";
 import { useMe } from "@/hooks/reactquery/auth";
 import {
   useSaveBuilding, useStaffOptions, useBuildingFull, useSetBuildingSetupConfirm,
@@ -22,6 +23,7 @@ let keySeq = 0;
 const rowKey = (p: string) => `${p}-${keySeq++}`;
 
 export function BuildingForm({ buildingId }: { buildingId?: number }) {
+  const confirm = useConfirm();
   const router = useRouter();
   const { data: me } = useMe();
   const save = useSaveBuilding();
@@ -166,8 +168,11 @@ export function BuildingForm({ buildingId }: { buildingId?: number }) {
     }
   };
 
-  const onLeave = () => {
-    if (dirty && !window.confirm("저장하지 않고 나가시겠습니까?")) return;
+  const onLeave = async () => {
+    if (dirty) {
+      const ok = await confirm({ title: "저장하지 않고 나가기", description: "저장하지 않고 나가시겠습니까?", confirmLabel: "나가기" });
+      if (!ok) return;
+    }
     router.push("/staff/buildings");
   };
 

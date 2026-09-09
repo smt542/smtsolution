@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/common/ConfirmProvider";
 import { useSaveBuilding, useStaffOptions, useBuildingFull } from "@/hooks/reactquery/buildings";
 import { useBuildingTypes } from "@/hooks/reactquery/buildingTypes";
 import { RegisterHeader } from "./RegisterHeader";
@@ -23,6 +24,7 @@ import {
  * 등록 모드(buildingId 없음)·수정 모드(buildingId) 를 한 컴포넌트에서 처리한다.
  */
 export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
+  const confirm = useConfirm();
   const router = useRouter();
   const save = useSaveBuilding();
   const { data: staff } = useStaffOptions();
@@ -96,8 +98,11 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
     }
   };
 
-  const onBack = () => {
-    if (dirty && !window.confirm("저장하지 않고 나가시겠습니까?")) return;
+  const onBack = async () => {
+    if (dirty) {
+      const ok = await confirm({ title: "저장하지 않고 나가기", description: "저장하지 않고 나가시겠습니까?", confirmLabel: "나가기" });
+      if (!ok) return;
+    }
     router.push("/staff/buildings");
   };
 

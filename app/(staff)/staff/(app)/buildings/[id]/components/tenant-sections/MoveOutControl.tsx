@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
 import { Button, Input } from "@/components/common";
+import { useConfirm } from "@/components/common/ConfirmProvider";
 import {
   useCancelMoveOutSchedule,
   useExecuteMoveOut,
@@ -20,6 +21,7 @@ export function MoveOutControl({ occupancyId, scheduledDate, isVacant }: {
   scheduledDate: string | null;
   isVacant: boolean;
 }) {
+  const confirm = useConfirm();
   const execute = useExecuteMoveOut();
   const schedule = useScheduleMoveOut();
   const cancel = useCancelMoveOutSchedule();
@@ -31,7 +33,12 @@ export function MoveOutControl({ occupancyId, scheduledDate, isVacant }: {
   const isPending = execute.isPending || schedule.isPending || cancel.isPending;
 
   const handleExecute = async () => {
-    if (!window.confirm("현재 입주자 정보를 전출 이력에 남기고 지금 공실 처리하시겠습니까?")) return;
+    const ok = await confirm({
+      title: "공실 처리",
+      description: "현재 입주자 정보를 전출 이력에 남기고 지금 공실 처리하시겠습니까?",
+      confirmLabel: "공실 처리",
+    });
+    if (!ok) return;
     try {
       await execute.mutateAsync({ occupancyId, moveOutDate: todayLocal() });
       toast.success("퇴실 처리가 완료되었습니다.");

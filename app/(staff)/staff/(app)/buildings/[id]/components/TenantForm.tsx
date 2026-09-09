@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button, EmptyState, Spinner } from "@/components/common";
+import { useConfirm } from "@/components/common/ConfirmProvider";
 import { occupancyBasicSchema } from "@/components/forms/schema/occupancy";
 import { useCustomerNumbers, type CustomerNumberKind } from "@/hooks/reactquery/buildingCustomerNumbers";
 import {
@@ -142,6 +143,7 @@ export function TenantForm({
   onClose?: () => void;
   onDirtyChange?: (dirty: boolean) => void;
 }) {
+  const confirm = useConfirm();
   const router = useRouter();
   const save = useSaveUnitOccupancy();
   const { data: roomTypes } = useRoomTypes();
@@ -448,12 +450,15 @@ export function TenantForm({
     }
   };
 
-  const onLeave = () => {
+  const onLeave = async () => {
     if (onClose) {
       onClose();
       return;
     }
-    if (dirty && !window.confirm("저장하지 않고 나가시겠습니까?")) return;
+    if (dirty) {
+      const ok = await confirm({ title: "저장하지 않고 나가기", description: "저장하지 않고 나가시겠습니까?", confirmLabel: "나가기" });
+      if (!ok) return;
+    }
     router.push(`/staff/buildings/${buildingId}/tenants`);
   };
 

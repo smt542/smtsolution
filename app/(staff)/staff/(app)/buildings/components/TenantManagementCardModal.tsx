@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useConfirm } from "@/components/common/ConfirmProvider";
 import { TenantForm } from "../[id]/components/TenantForm";
 
 /** 입주민 행에서 여는 세대별 관리카드 모달. 출력 모달과는 독립적으로 동작한다. */
@@ -13,12 +14,16 @@ export function TenantManagementCardModal({
   unitId: number;
   onClose: () => void;
 }) {
+  const confirm = useConfirm();
   const [dirty, setDirty] = useState(false);
 
-  const requestClose = useCallback(() => {
-    if (dirty && !window.confirm("저장하지 않고 닫으시겠습니까?")) return;
+  const requestClose = useCallback(async () => {
+    if (dirty) {
+      const ok = await confirm({ title: "저장하지 않고 닫기", description: "저장하지 않고 닫으시겠습니까?", confirmLabel: "닫기" });
+      if (!ok) return;
+    }
     onClose();
-  }, [dirty, onClose]);
+  }, [dirty, onClose, confirm]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
