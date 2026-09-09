@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirm } from "@/components/common/ConfirmProvider";
 import type { OrganizationStatus } from "@/hooks/reactquery/platform";
 
 const OPTIONS: { value: OrganizationStatus; label: string }[] = [
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function OrgStatusControl({ status, onChange, isPending }: Props) {
+  const confirm = useConfirm();
   return (
     <select
       aria-label="조직 상태 변경"
@@ -23,14 +25,19 @@ export function OrgStatusControl({ status, onChange, isPending }: Props) {
       onChange={(e) => {
         const next = e.target.value as OrganizationStatus;
         if (next === status) return;
-        const message = next === "suspended"
-          ? "조직을 정지하면 해당 업체의 사무·현장 관리자와 세입자 앱 접속이 제한됩니다. 계속할까요?"
-          : `조직 상태를 '${OPTIONS.find((option) => option.value === next)?.label}'(으)로 변경할까요?`;
-        if (!window.confirm(message)) {
-          e.currentTarget.value = status;
-          return;
-        }
-        void onChange(next);
+        const selectEl = e.currentTarget; // await 이전 캡처 (currentTarget null화 방지)
+        const message =
+          next === "suspended"
+            ? "조직을 정지하면 해당 업체의 사무·현장 관리자와 세입자 앱 접속이 제한됩니다. 계속할까요?"
+            : `조직 상태를 '${OPTIONS.find((option) => option.value === next)?.label}'(으)로 변경할까요?`;
+        void (async () => {
+          const ok = await confirm({ title: "조직 상태 변경", description: message, confirmLabel: "변경" });
+          if (!ok) {
+            selectEl.value = status;
+            return;
+          }
+          void onChange(next);
+        })();
       }}
       className="h-8 cursor-pointer rounded-[9px] border border-line bg-surface px-2.5 text-[12.5px] font-bold text-t2 outline-none hover:border-blue focus:border-blue focus:ring-[3px] focus:ring-blue-t disabled:opacity-50"
     >

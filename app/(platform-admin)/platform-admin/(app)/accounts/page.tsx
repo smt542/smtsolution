@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Checkbox, EmptyState, Modal, Spinner } from "@/components/common";
+import { useConfirm } from "@/components/common/ConfirmProvider";
 import type { PlatformAccountCreateValues } from "@/components/forms/schema/platformAccount";
 import {
   useCreatePlatformAccount,
@@ -428,6 +429,7 @@ function RoleChangeModal({
   }) => Promise<void>;
   isPending: boolean;
 }) {
+  const confirm = useConfirm();
   const [role, setRole] = useState<EditableRole>(
     account.role === "field" || account.role === "tenant" ? "staff" : account.role,
   );
@@ -435,21 +437,21 @@ function RoleChangeModal({
   const [permissions, setPermissions] = useState<string[]>(account.permissions);
 
   const handleSubmit = async () => {
-    if (
-      role === "platform_admin" &&
-      account.role !== "platform_admin" &&
-      !window.confirm(
-        "이 계정에 모든 조직을 관리할 수 있는 플랫폼 관리자 권한을 부여할까요? 매우 높은 권한입니다.",
-      )
-    ) {
-      return;
+    if (role === "platform_admin" && account.role !== "platform_admin") {
+      const ok = await confirm({
+        title: "플랫폼 관리자 권한 부여",
+        description: "이 계정에 모든 조직을 관리할 수 있는 플랫폼 관리자 권한을 부여할까요? 매우 높은 권한입니다.",
+        confirmLabel: "권한 부여",
+      });
+      if (!ok) return;
     }
-    if (
-      account.role === "platform_admin" &&
-      role !== "platform_admin" &&
-      !window.confirm("플랫폼 관리자 권한을 해제하고 일반 조직 역할로 강등할까요?")
-    ) {
-      return;
+    if (account.role === "platform_admin" && role !== "platform_admin") {
+      const ok = await confirm({
+        title: "플랫폼 관리자 권한 해제",
+        description: "플랫폼 관리자 권한을 해제하고 일반 조직 역할로 강등할까요?",
+        confirmLabel: "권한 해제",
+      });
+      if (!ok) return;
     }
     await onSubmit({ role, staffType, permissions });
   };

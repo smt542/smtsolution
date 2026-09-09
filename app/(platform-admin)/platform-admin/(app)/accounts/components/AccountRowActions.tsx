@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirm } from "@/components/common/ConfirmProvider";
 import type { PlatformAccount } from "@/hooks/reactquery/platform";
 
 interface Props {
@@ -22,6 +23,7 @@ export function AccountRowActions({
   onResetPassword,
   isPending,
 }: Props) {
+  const confirm = useConfirm();
   const accountName = account.fullName ?? account.username ?? account.userId;
 
   return (
@@ -48,9 +50,10 @@ export function AccountRowActions({
         </button>
         <button
           type="button"
-          onClick={() => {
+          onClick={async () => {
             const action = account.isActive ? "비활성화" : "활성화";
-            if (window.confirm(`'${accountName}' 계정을 ${action}할까요?`)) onToggleActive();
+            const ok = await confirm({ title: action, description: `'${accountName}' 계정을 ${action}할까요?`, confirmLabel: action });
+            if (ok) onToggleActive();
           }}
           disabled={isPending}
           className={buttonClass}
@@ -59,10 +62,9 @@ export function AccountRowActions({
         </button>
         <button
           type="button"
-          onClick={() => {
-            if (window.confirm(`'${accountName}' 계정의 비밀번호를 초기화할까요?`)) {
-              onResetPassword();
-            }
+          onClick={async () => {
+            const ok = await confirm({ title: "비밀번호 초기화", description: `'${accountName}' 계정의 비밀번호를 초기화할까요?`, confirmLabel: "초기화" });
+            if (ok) onResetPassword();
           }}
           disabled={isPending}
           className={buttonClass}
