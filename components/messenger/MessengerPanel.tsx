@@ -12,6 +12,11 @@ interface Props {
   onMin: () => void;
   onClose: () => void;
   onPos: (pos: { x: number; y: number }) => void;
+  onSend?: () => void;
+  sendLabel?: string;
+  sendDisabled?: boolean;
+  sending?: boolean;
+  recipientCount?: number;
   children?: React.ReactNode;
 }
 
@@ -23,11 +28,17 @@ export function MessengerPanel({
   onMin,
   onClose,
   onPos,
+  onSend,
+  sendLabel = "수신자를 선택해 주세요",
+  sendDisabled = true,
+  sending = false,
+  recipientCount = 0,
   children,
 }: Props) {
   const drag = useRef<{ dx: number; dy: number } | null>(null);
 
   const onPointerDown = (event: React.PointerEvent) => {
+    if ((event.target as HTMLElement).closest("button")) return;
     const base = pos ?? { x: 0, y: 0 };
     drag.current = {
       dx: event.clientX - base.x,
@@ -61,8 +72,9 @@ export function MessengerPanel({
       : undefined),
   };
 
-  if (minimized) {
-    return (
+  return (
+    <>
+      {minimized && (
       <div
         className={`${styles["fmp-bubble"]} ${styles["show"]}`}
         onClick={onMin}
@@ -82,15 +94,12 @@ export function MessengerPanel({
         </div>
         <div style={{ minWidth: 0 }}>
           <div className={styles["bt"]}>문자·알림톡 발송</div>
-          <div className={styles["bs"]}>작성 중 · 128명</div>
+          <div className={styles["bs"]}>작성 중 · {recipientCount}명</div>
         </div>
       </div>
-    );
-  }
-
-  return (
+      )}
     <div
-      className={`${styles["fmp"]} ${styles["show"]}`}
+      className={`${styles["fmp"]} ${!minimized ? styles.show : ""}`}
       style={panelStyle}
       role="dialog"
       aria-modal="false"
@@ -152,7 +161,9 @@ export function MessengerPanel({
         </button>
       </div>
 
-      <div className={styles["fmp-body"]}>
+      <div
+        className={`${styles["fmp-body"]} ${channel === "alim" ? styles["chan-alim"] : ""}`}
+      >
         <div className={styles["fmp-seg"]}>
           <div
             className={
@@ -179,7 +190,13 @@ export function MessengerPanel({
       </div>
 
       <div className={styles["fmp-f"]}>
-        <div className={styles["fmp-send"]}>
+        <button
+          type="button"
+          className={`${styles["fmp-send"]} ${sending ? styles.sending : ""}`}
+          onClick={onSend}
+          disabled={sendDisabled || sending}
+          style={{ opacity: sendDisabled ? 0.45 : undefined }}
+        >
           <svg
             viewBox="0 0 24 24"
             width="18"
@@ -192,9 +209,10 @@ export function MessengerPanel({
           >
             <path d="M22 2L11 13M22 2l-7 20-4-9-9-4z" />
           </svg>
-          <span>수신자를 선택해 주세요</span>
-        </div>
+          <span>{sending ? "발송 중…" : sendLabel}</span>
+        </button>
       </div>
     </div>
+    </>
   );
 }
