@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { complaintKeys } from "@/hooks/reactquery/complaints";
 import { staffMoveOutKeys } from "@/hooks/reactquery/staffMoveOut/keys";
 
+import { AsReportModal } from "./AsReportModal";
 import { AsReceptionList } from "./AsReceptionList";
 import styles from "./AsRail.module.css";
 import { MoveOutList } from "./MoveOutList";
@@ -20,6 +21,7 @@ function classNames(...values: Array<string | false>) {
 export function AsReceptionRail() {
   const { open, toggle } = useRailOpen();
   const [tab, setTab] = useState<RailTab>("as");
+  const [reportOpen, setReportOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const chooseTab = (next: RailTab) => setTab(next);
@@ -86,29 +88,27 @@ export function AsReceptionRail() {
             <path d="M9 12h6M9 16h4" />
           </svg>
           <div className={styles.t}>A/S 접수·퇴실 신청 현황</div>
-          <button
-            type="button"
-            className={styles.rnbRefresh}
-            title="새로고침"
-            aria-label="A/S 접수·퇴실 신청 새로고침"
-            style={{ marginLeft: "auto" }}
-            onClick={refresh}
-          >
-            <svg
-              width="17"
-              height="17"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
+          <div className={styles.rnbActs}>
+            <button
+              type="button"
+              className={styles.rnbBtn}
+              title="새로고침"
+              aria-label="A/S 접수·퇴실 신청 새로고침"
+              onClick={refresh}
             >
-              <path d="M20 11a8 8 0 1 0-.5 4" />
-              <path d="M20 4v5h-5" />
-            </svg>
-          </button>
+              새로고침
+            </button>
+            <button
+              type="button"
+              className={styles.rnbBtn}
+              title="출력"
+              aria-label="A/S 접수 현황 출력"
+              hidden={tab === "mv"}
+              onClick={() => setReportOpen(true)}
+            >
+              인쇄
+            </button>
+          </div>
         </div>
         <div className={styles.rnbTabs} role="tablist">
           <a
@@ -134,6 +134,7 @@ export function AsReceptionRail() {
         </div>
         {tab === "as" ? <AsReceptionList /> : <MoveOutList />}
       </div>
+      <AsReportModal open={reportOpen} onClose={() => setReportOpen(false)} />
     </aside>
   );
 }
