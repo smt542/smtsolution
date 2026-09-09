@@ -24,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               borderRadius: "12px",
               boxShadow: "0 12px 30px -8px rgba(0,0,0,0.4)",
             },
+            classNames: { icon: "hidden" },
           }}
         />
       </body>
