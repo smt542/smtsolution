@@ -1,16 +1,25 @@
 "use client";
 
+import { useMemo } from "react";
 import type { BillingColumn, BillingUnitRow } from "@/lib/billing/pivot";
 import { BillingTableRow } from "./BillingTableRow";
-import { groupBillingColumns, type BillingChargeDraft, type BillingNoteDraft } from "./billingTableModel";
+import {
+  chunkTrios,
+  EMPTY_UTILITY_ROWS,
+  type BillingChargeDraft,
+  type BillingNoteDraft,
+  type UtilityRowSet,
+} from "./billingTableModel";
 
-export type { BillingChargeDraft, BillingNoteDraft } from "./billingTableModel";
+export type { BillingChargeDraft, BillingNoteDraft, UtilityRowSet } from "./billingTableModel";
 
 interface BillingTableProps {
   units: BillingUnitRow[];
   columns: BillingColumn[];
   period: string;
   editing?: boolean;
+  /** 수도·전기·가스 공과금 행. page.tsx의 useUtilityRows 결과를 그대로 전달. */
+  utilities?: UtilityRowSet;
   chargeDrafts?: Record<number, Record<number, BillingChargeDraft>>;
   noteDrafts?: Record<number, BillingNoteDraft>;
   onChargeChange: (unitId: number, feeItemId: number, patch: { charged?: boolean; amount?: number }) => void;
@@ -21,33 +30,73 @@ interface BillingTableProps {
 const EMPTY_CHARGE_DRAFTS: Record<number, Record<number, BillingChargeDraft>> = {};
 const EMPTY_NOTE_DRAFTS: Record<number, BillingNoteDraft> = {};
 
-export function BillingTable({ units, columns, period, editing = true, chargeDrafts = EMPTY_CHARGE_DRAFTS, noteDrafts = EMPTY_NOTE_DRAFTS, onChargeChange, onRowClick, onNoteClick }: BillingTableProps) {
-  const groups = groupBillingColumns(columns);
-  const orderedColumns = groups.flatMap((group) => group.columns);
+const HEAD_TH = "border-b border-r border-line bg-[#FBFCFD] px-[8px] py-[11px] text-left text-[12px] font-bold text-t3 whitespace-nowrap align-middle";
+
+export function BillingTable({
+  units,
+  columns,
+  period,
+  editing = true,
+  utilities = EMPTY_UTILITY_ROWS,
+  chargeDrafts = EMPTY_CHARGE_DRAFTS,
+  noteDrafts = EMPTY_NOTE_DRAFTS,
+  onChargeChange,
+  onRowClick,
+  onNoteClick,
+}: BillingTableProps) {
+  const trios = useMemo(() => chunkTrios(columns), [columns]);
+
   return (
     <div className="h-full overflow-auto">
-      <table className="min-w-max border-separate border-spacing-0">
-        <thead className="sticky top-0 z-10 bg-[#fbfcfd] text-[11px] font-bold text-t3">
-          <tr className="h-[29px]">
-            <th rowSpan={2} className="sticky left-0 z-20 w-[68px] border-b border-r border-line bg-[#fbfcfd]">호수</th>
-            <th rowSpan={2} className="w-[95px] border-b border-r border-line bg-[#fbfcfd]">총 관리비</th>
-            <th rowSpan={2} className="w-[150px] border-b border-r border-line bg-[#fbfcfd]">성명 / 평수 / 룸타입 / 입주일</th>
-            {groups.map((group) => <th key={group.label} colSpan={group.columns.length} className="border-b border-r border-line bg-[#fbfcfd] text-t2">{group.label}</th>)}
-            <th rowSpan={2} className="w-[116px] border-b border-r border-line bg-[#fbfcfd]">부과시 참조사항</th>
-            <th rowSpan={2} className="w-[116px] border-b border-r border-line bg-[#fbfcfd]">부과시 공지사항</th>
-            <th rowSpan={2} className="w-[92px] border-b border-line bg-[#fbfcfd]">처리일자</th>
-          </tr>
-          <tr className="h-[34px]">
-            {orderedColumns.map((column) => (
-              <th key={column.feeItemId} className="min-w-[100px] border-b border-r border-line bg-[#fbfcfd] px-[7px]">
-                {column.name}{column.dailyProration && <span className="ml-[3px] rounded bg-blue-t px-[3px] text-[9px] text-blue-d">일할</span>}
+      <table className="border-separate border-spacing-0 whitespace-nowrap text-[13.5px]">
+        <thead>
+          <tr>
+            {/* 호수 — 56px sticky left:0 */}
+            <th className={`sticky left-0 top-0 z-[4] w-[56px] min-w-[56px] max-w-[56px] ${HEAD_TH}`}>호수</th>
+            {/* 총 관리비 — 92px sticky left:56px (2줄) */}
+            <th className={`sticky left-[56px] top-0 z-[4] w-[92px] min-w-[92px] max-w-[92px] ${HEAD_TH}`}>
+              총 관리비<br />고정 관리비
+            </th>
+            {/* 성명 / 평수·룸타입 / 입주일 */}
+            <th className={`sticky top-0 z-[3] min-w-[92px] ${HEAD_TH}`}>성명<br />평수/룸타입<br />입주일</th>
+            {/* 수도 / 전기 / 가스 금액 */}
+            <th className={`sticky top-0 z-[3] min-w-[78px] ${HEAD_TH}`}>수도금액<br />전기금액<br />가스금액</th>
+            {/* 항목 TRIOS */}
+            {trios.map((group, groupIndex) => (
+              <th key={group[0]?.feeItemId ?? `trio-${groupIndex}`} className={`sticky top-0 z-[3] min-w-[104px] ${HEAD_TH}`}>
+                {group.map((column) => (
+                  <div key={column.feeItemId} className="text-[12px] font-bold leading-[1.4] text-t3 whitespace-nowrap">
+                    {column.name}
+                    {column.dailyProration && <span className="ml-[3px] rounded bg-blue-t px-[3px] text-[9px] text-blue-d">일할</span>}
+                  </div>
+                ))}
+                {Array.from({ length: 3 - group.length }).map((_, i) => (
+                  <div key={`pad-${i}`} className="text-[12px] leading-[1.4]">&nbsp;</div>
+                ))}
               </th>
             ))}
+            {/* 참조 / 공지 / 처리일자 */}
+            <th className={`sticky top-0 z-[3] min-w-[150px] ${HEAD_TH}`}>부과시 참조사항</th>
+            <th className={`sticky top-0 z-[3] min-w-[150px] ${HEAD_TH}`}>부과시 공지사항</th>
+            <th className={`sticky top-0 z-[3] min-w-[96px] border-r-0 ${HEAD_TH}`}>처리일자</th>
           </tr>
         </thead>
         <tbody>
           {units.map((unit) => (
-            <BillingTableRow key={unit.unitId} unit={unit} columns={orderedColumns} period={period} editing={editing} chargeDrafts={chargeDrafts[unit.unitId]} noteDraft={noteDrafts[unit.unitId]} onChargeChange={onChargeChange} onRowClick={onRowClick} onNoteClick={onNoteClick} />
+            <BillingTableRow
+              key={unit.unitId}
+              unit={unit}
+              columns={columns}
+              trios={trios}
+              period={period}
+              editing={editing}
+              utilities={utilities}
+              chargeDrafts={chargeDrafts[unit.unitId]}
+              noteDraft={noteDrafts[unit.unitId]}
+              onChargeChange={onChargeChange}
+              onRowClick={onRowClick}
+              onNoteClick={onNoteClick}
+            />
           ))}
         </tbody>
       </table>

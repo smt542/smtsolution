@@ -61,3 +61,7 @@ docs/prototype/_erp/
 # 화면 프로토타입 export(루트 docs/*.zip): 대용량·커밋 금지
 docs/*.zip
 .gstack/
+
+# pixel-diff 하네스 산출물·로그인 세션(커밋 안 함)
+scripts/pixel-diff/out/
+scripts/pixel-diff/.auth/

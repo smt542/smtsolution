@@ -23,7 +23,20 @@ interface BillingPeriodSettingsBarProps {
   onSave: () => Promise<void>;
 }
 
-const dateClass = "h-[32px] w-[128px] rounded-[8px] border border-line bg-white px-[9px] text-[12px] font-semibold text-t1 outline-none focus:border-teal disabled:border-transparent disabled:bg-transparent disabled:px-0";
+// 원본 .uc-dpx .dp-ctl: 28px·min-w 106px·radius8·12px/500·중앙정렬. 잠금(비수정) 시 bg=var(--bg)·border=var(--line2).
+function dpClass(active: boolean) {
+  return [
+    "h-[28px] w-[106px] rounded-[8px] border px-[10px] text-center text-[12px] font-medium text-t1 outline-none",
+    active
+      ? "border-line bg-white focus:border-teal focus:shadow-[0_0_0_3px_#E2F5F1]"
+      : "pointer-events-none border-line2 bg-bg",
+  ].join(" ");
+}
+
+function periodLabel(period: string) {
+  const [year, month] = period.split("-");
+  return year && month ? `${year}년 ${Number(month)}월분` : "";
+}
 
 export function BillingPeriodSettingsBar({
   buildingId,
@@ -64,11 +77,11 @@ export function BillingPeriodSettingsBar({
       dueDate: setting.dueDate,
     };
     if (!next.chargeStartDate || !next.chargeEndDate) {
-      toast.error("부과기준일 시작일과 종료일을 입력해 주세요.");
+      toast.error("부과기준일 시작일과 종료일을 입력해 주세요");
       return;
     }
     if (next.chargeStartDate > next.chargeEndDate) {
-      toast.error("부과기준일 종료일은 시작일보다 빠를 수 없습니다.");
+      toast.error("부과기준일 종료일은 시작일보다 빠를 수 없어요");
       return;
     }
     try {
@@ -81,46 +94,87 @@ export function BillingPeriodSettingsBar({
   };
 
   const disabled = pending || saveSetting.isPending;
+  const active = editing && !!buildingId && !disabled;
+  const show = (value: string | null) => (buildingId ? value ?? "" : "");
   return (
     <section
       role="group"
       aria-label="부과 일정 설정"
-      className={`flex h-[51px] items-center rounded-[12px] bg-white px-[14px] shadow-card ${editing ? "border border-teal" : "border border-transparent"}`}
+      className={`sticky top-0 z-[4] flex flex-none items-center gap-[10px] rounded-[12px] border bg-white px-[14px] py-[10px] ${
+        editing ? "border-teal shadow-[0_0_0_3px_#E2F5F1]" : "border-line shadow-card"
+      }`}
     >
-      <p className="mr-[18px] max-w-[260px] truncate text-[13.5px] font-extrabold text-t1">
-        {buildingName || "건물을 선택해 주세요"}
-      </p>
-      <span className="mr-[9px] text-[12px] font-bold text-t3">부과기준일</span>
-      <input
-        type="date"
-        aria-label="부과기준일 시작일"
-        value={values.chargeStartDate}
-        disabled={!editing || disabled || !buildingId}
-        onChange={(event) => setDraft((current) => ({ ...(current ?? values), chargeStartDate: event.target.value }))}
-        className={dateClass}
-      />
-      <span className="mx-[6px] text-[12px] font-bold text-t3">~</span>
-      <input
-        type="date"
-        aria-label="부과기준일 종료일"
-        value={values.chargeEndDate}
-        disabled={!editing || disabled || !buildingId}
-        onChange={(event) => setDraft((current) => ({ ...(current ?? values), chargeEndDate: event.target.value }))}
-        className={dateClass}
-      />
+      <div className="min-w-0">
+        <div className="truncate text-[12.5px] font-bold text-t1">{buildingName || "건물을 선택해 주세요"}</div>
+        <div className="whitespace-nowrap text-[11.5px] font-medium text-t3">
+          <span>{periodLabel(period)}</span> 부과 세팅
+        </div>
+      </div>
 
-      <div className="ml-auto flex items-center gap-[7px]">
+      <div className="flex-1" />
+
+      <div className="flex flex-none items-center gap-[6px]">
+        <span className="whitespace-nowrap text-[11.5px] font-bold text-t2">부과기준일</span>
+        <input
+          type="date"
+          aria-label="부과기준일 시작일"
+          value={show(values.chargeStartDate)}
+          disabled={!active}
+          onChange={(event) => setDraft((current) => ({ ...(current ?? values), chargeStartDate: event.target.value }))}
+          className={dpClass(active)}
+        />
+        <span className="text-[12px] font-bold text-t2">~</span>
+        <input
+          type="date"
+          aria-label="부과기준일 종료일"
+          value={show(values.chargeEndDate)}
+          disabled={!active}
+          onChange={(event) => setDraft((current) => ({ ...(current ?? values), chargeEndDate: event.target.value }))}
+          className={dpClass(active)}
+        />
+        <span className="mx-[4px] h-[26px] w-px flex-none bg-line" />
+        <span className="whitespace-nowrap text-[11.5px] font-bold text-t2">납기일</span>
+        <input
+          type="date"
+          aria-label="납기일"
+          value={show(values.dueDate)}
+          disabled={!active}
+          onChange={(event) => setDraft((current) => ({ ...(current ?? values), dueDate: event.target.value }))}
+          className={dpClass(active)}
+        />
+      </div>
+
+      <span className="mx-[4px] h-[26px] w-px flex-none bg-line" />
+
+      <div className="flex flex-none items-center gap-[6px]">
         {editing ? (
           <>
-            <button type="button" disabled={disabled || !buildingId} onClick={() => void save()} className="h-[32px] min-w-[64px] rounded-[9px] bg-teal px-[14px] text-[12px] font-extrabold text-white disabled:opacity-50">
+            <button
+              type="button"
+              disabled={disabled || !buildingId}
+              onClick={() => void save()}
+              className="h-[26px] rounded-[8px] border border-teal bg-teal px-[10px] text-[11.5px] font-bold text-white hover:bg-teal-d disabled:opacity-50"
+            >
               {disabled ? "저장 중…" : "저장"}
             </button>
-            <button type="button" aria-label="수정 닫기" disabled={disabled} onClick={cancel} className="flex size-[32px] items-center justify-center rounded-[9px] border border-line bg-white text-t3 disabled:opacity-50">
-              <CloseIcon className="size-[15px]" />
+            <button
+              type="button"
+              aria-label="수정 닫기"
+              title="취소"
+              disabled={disabled}
+              onClick={cancel}
+              className="inline-flex h-[26px] w-[26px] items-center justify-center rounded-[8px] border border-line bg-white text-t3 hover:text-t2 disabled:opacity-50"
+            >
+              <CloseIcon className="size-[14px]" />
             </button>
           </>
         ) : (
-          <button type="button" disabled={!buildingId || settingQuery.isLoading || settingQuery.isError} onClick={ensureDraft} className="h-[32px] min-w-[64px] rounded-[9px] border border-line bg-white px-[14px] text-[12px] font-extrabold text-t2 disabled:bg-bg disabled:text-t4">
+          <button
+            type="button"
+            disabled={!buildingId || settingQuery.isLoading || settingQuery.isError}
+            onClick={ensureDraft}
+            className="h-[26px] rounded-[8px] border border-line bg-white px-[10px] text-[11.5px] font-bold text-t2 hover:border-[#C9D0D8] hover:bg-[#F7F9FA] disabled:bg-bg disabled:text-t4"
+          >
             수정
           </button>
         )}

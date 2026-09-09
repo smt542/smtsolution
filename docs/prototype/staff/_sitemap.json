@@ -1,0 +1,23 @@
+[
+  {"id": "bill-publish", "path": "/staff/bill-publish/bill-publish.dc.html"},
+  {"id": "building-list", "path": "/staff/building-list/building-list.dc.html"},
+  {"id": "fee-item", "path": "/staff/fee-item/fee-item.dc.html"},
+  {"id": "long-term-repair", "path": "/staff/long-term-repair/long-term-repair.dc.html"},
+  {"id": "management-fee-setting", "path": "/staff/management-fee-setting/management-fee-setting.dc.html"},
+  {"id": "messaging", "path": "/staff/messaging/messaging.dc.html"},
+  {"id": "moving-elec", "path": "/staff/moving-elec/moving-elec.dc.html"},
+  {"id": "moving-gas", "path": "/staff/moving-gas/moving-gas.dc.html"},
+  {"id": "moving-settlement", "path": "/staff/moving-settlement/moving-settlement.dc.html"},
+  {"id": "moving-status", "path": "/staff/moving-status/moving-status.dc.html"},
+  {"id": "moving-water", "path": "/staff/moving-water/moving-water.dc.html"},
+  {"id": "notice-management", "path": "/staff/notice-management/notice-management.dc.html"},
+  {"id": "overdue-management", "path": "/staff/overdue-management/overdue-management.dc.html"},
+  {"id": "receipt-management", "path": "/staff/receipt-management/receipt-management.dc.html"},
+  {"id": "setup", "path": "/staff/setup/setup.dc.html"},
+  {"id": "staff-management", "path": "/staff/staff-management/staff-management.dc.html"},
+  {"id": "utility-electric", "path": "/staff/utility-electric/utility-electric.dc.html"},
+  {"id": "utility-gas", "path": "/staff/utility-gas/utility-gas.dc.html"},
+  {"id": "utility-lookup", "path": "/staff/utility-lookup/utility-lookup.dc.html"},
+  {"id": "utility-water", "path": "/staff/utility-water/utility-water.dc.html"},
+  {"id": "vendor-management", "path": "/staff/vendor-management/vendor-management.dc.html"}
+]

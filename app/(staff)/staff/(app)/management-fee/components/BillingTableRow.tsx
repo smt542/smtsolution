@@ -3,13 +3,25 @@
 import { memo } from "react";
 import type { BillingColumn, BillingUnitRow } from "@/lib/billing/pivot";
 import { formatNumber } from "@/lib/format";
-import { billingRowTotal, isRecentMoveIn, type BillingChargeDraft, type BillingNoteDraft } from "./billingTableModel";
+import {
+  billingItemsTotal,
+  billingRowTotal,
+  effectiveChargeAmount,
+  isRecentMoveIn,
+  unitAreaPyeong,
+  unitUtilityAmounts,
+  type BillingChargeDraft,
+  type BillingNoteDraft,
+  type UtilityRowSet,
+} from "./billingTableModel";
 
 interface BillingTableRowProps {
   unit: BillingUnitRow;
   columns: BillingColumn[];
+  trios: BillingColumn[][];
   period: string;
   editing: boolean;
+  utilities: UtilityRowSet;
   chargeDrafts?: Record<number, BillingChargeDraft>;
   noteDraft?: BillingNoteDraft;
   onChargeChange: (unitId: number, feeItemId: number, patch: { charged?: boolean; amount?: number }) => void;
@@ -17,70 +29,162 @@ interface BillingTableRowProps {
   onNoteClick: (unitId: number) => void;
 }
 
+function num(value: number): string {
+  return formatNumber(value);
+}
+
 export const BillingTableRow = memo(function BillingTableRow({
-  unit, columns, period, editing, chargeDrafts, noteDraft, onChargeChange, onRowClick, onNoteClick,
+  unit, columns, trios, period, editing, utilities, chargeDrafts, noteDraft, onChargeChange, onRowClick, onNoteClick,
 }: BillingTableRowProps) {
   const recent = isRecentMoveIn(unit.moveInDate, period);
-  const displayTotal = unit.confirmedAt && !unit.isDirty && unit.totalAmount != null
+  const util = unitUtilityAmounts(unit.unitId, utilities);
+  const anomaly = unit.isVacant && util.sum > 0;
+  // 확정·비수정 상태면 스냅샷 totalAmount(항목만)에 공과금을 더해 총액을 맞춘다.
+  const itemsTotal = unit.confirmedAt && !unit.isDirty && unit.totalAmount != null
     ? unit.totalAmount
-    : billingRowTotal(unit, columns, period, chargeDrafts);
+    : billingItemsTotal(unit, columns, period, chargeDrafts);
+  const displayTotal = unit.isVacant ? 0 : itemsTotal + util.sum;
+  const fixedTotal = unit.confirmedAt && !unit.isDirty && unit.totalAmount != null
+    ? unit.totalAmount
+    : billingRowTotal(unit, columns, period, { water: [], electricity: [], gas: [] }, chargeDrafts);
   const billingNote = noteDraft?.billingNote ?? unit.billingNote ?? "";
   const unitNotice = noteDraft?.unitNotice ?? unit.unitNotice ?? "";
+  const areaPyeong = unitAreaPyeong(unit);
+  const unitNo = [unit.dong, unit.unitNo].filter(Boolean).join(" ");
+
+  // 원본 행 상태: 공실 → 텍스트 t4, 이상(공실+공과금>0) → 좌측 빨강 바, 최근입주 → 좌측 초록 바.
+  const rowStateText = unit.isVacant ? "text-t4" : "text-t1";
+  const firstCellBar = anomaly
+    ? "shadow-[inset_3px_0_0_var(--color-red)]"
+    : recent
+      ? "shadow-[inset_3px_0_0_var(--color-green)]"
+      : "";
+  const cellBorder = "border-b border-r border-line2";
 
   return (
-    <tr className={`h-[58px] border-b border-line2 text-[12px] ${recent ? "bg-[#f2f6ff]" : ""} ${unit.isVacant ? "bg-[#fff9ed] text-t3" : "text-t1"}`}>
-      <td className="sticky left-0 z-[1] border-b border-r border-line2 bg-inherit px-[10px] text-center">
-        <button type="button" className="font-extrabold text-teal hover:underline" onClick={() => onRowClick(unit.unitId)}>{unit.unitNo}</button>
+    <tr className={`border-b border-line2 align-top text-[13.5px] ${rowStateText}`}>
+      {/* 호수 — 56px sticky left:0, .mf-nocell 700 중앙 */}
+      <td className={`sticky left-0 z-[2] w-[56px] min-w-[56px] max-w-[56px] bg-surface px-[8px] py-[7px] text-center align-middle text-[13.5px] font-bold ${cellBorder} ${firstCellBar}`}>
+        <button type="button" className="font-bold text-teal hover:underline" onClick={() => onRowClick(unit.unitId)}>{unitNo}</button>
       </td>
-      <td className="border-b border-r border-line2 px-[10px] text-right font-extrabold">{formatNumber(displayTotal)}</td>
-      <td className="min-w-[138px] border-b border-r border-line2 px-[10px] leading-[17px]">
-        <p className="truncate font-bold">{unit.isVacant ? "공실" : unit.tenantName ?? "-"}</p>
-        <p className="truncate text-[10.5px] text-t3">{[unit.roomTypeLabel, recent ? "최근 입주" : unit.moveInDate].filter(Boolean).join(" · ") || "-"}</p>
+
+      {/* 총 관리비 — 92px sticky left:56px, .mf-totcell (2줄: 총관리비 / 고정관리비) */}
+      <td className={`sticky left-[56px] z-[2] w-[92px] min-w-[92px] max-w-[92px] bg-surface px-[8px] py-[7px] align-middle text-[13.5px] font-bold text-t1 shadow-[1px_0_0_var(--color-line)] ${cellBorder}`}>
+        <div className="tabular-nums">{num(displayTotal)}</div>
+        <div className="mt-[2px] text-[11.5px] font-semibold tabular-nums text-t3">{num(fixedTotal)}</div>
       </td>
-      {columns.map((column) => {
-        const cell = chargeDrafts?.[column.feeItemId] ?? unit.charges[column.feeItemId] ?? { charged: true, amount: 0 };
-        return (
-          <td key={column.feeItemId} className="min-w-[100px] border-b border-r border-line2 px-[7px] text-center">
-            {editing ? (
-              <div className="flex items-center justify-center gap-[5px]">
+
+      {/* 성명 / 평수·룸타입 / 입주일 — 92px, 3줄 */}
+      <td className={`min-w-[92px] px-[8px] py-[7px] ${cellBorder}`}>
+        <div className="text-[13.5px] font-normal leading-[1.5]">{unit.isVacant ? "-" : unit.tenantName ?? "-"}</div>
+        <div className="text-[13.5px] font-normal leading-[1.5] tabular-nums">{unit.isVacant ? "" : `${areaPyeong ?? "-"}평 / ${unit.roomTypeLabel ?? "-"}`}</div>
+        <div className={`text-[13.5px] font-normal leading-[1.5] tabular-nums ${recent ? "font-bold text-green" : ""}`}>{unit.isVacant ? "" : unit.moveInDate ?? "-"}</div>
+      </td>
+
+      {/* 수도 / 전기 / 가스 금액 — 78px, 3줄 (이상 시 빨강) */}
+      <td className={`min-w-[78px] px-[8px] py-[7px] text-right tabular-nums ${cellBorder}`}>
+        <div className={`text-[13.5px] font-normal leading-[1.5] ${anomaly ? "font-bold text-red" : ""}`}>{num(util.water)}</div>
+        <div className={`text-[13.5px] font-normal leading-[1.5] ${anomaly ? "font-bold text-red" : ""}`}>{num(util.electricity)}</div>
+        <div className={`text-[13.5px] font-normal leading-[1.5] ${anomaly ? "font-bold text-red" : ""}`}>{num(util.gas)}</div>
+      </td>
+
+      {/* 항목 컬럼 (TRIOS: <td> 하나에 최대 3개 셀) */}
+      {trios.map((group, groupIndex) => (
+        <td key={group[0]?.feeItemId ?? `trio-${groupIndex}`} className={`min-w-[104px] px-[8px] py-[7px] ${cellBorder}`}>
+          {group.map((column) => {
+            const cell = chargeDrafts?.[column.feeItemId] ?? unit.charges[column.feeItemId] ?? { charged: true, amount: 0 };
+            const shown = cell.charged ? effectiveChargeAmount(column, cell.amount, unit.moveInDate, period) : cell.amount;
+            const prorated = shown !== cell.amount;
+            return (
+              <div key={column.feeItemId} className="flex items-center gap-[4px] leading-[1.5]">
+                {editing ? (
+                  <input
+                    type="number"
+                    aria-label={`${unitNo} ${column.name} 금액`}
+                    value={String(cell.amount)}
+                    disabled={unit.isVacant || !cell.charged}
+                    onChange={(event) => onChargeChange(unit.unitId, column.feeItemId, { amount: Number(event.target.value) || 0 })}
+                    className="h-[26px] w-full min-w-0 flex-1 rounded-[7px] border border-line bg-white px-[6px] text-right text-[13.5px] font-normal text-t1 outline-none focus:border-teal focus:shadow-[0_0_0_3px_var(--color-blue-t)] disabled:bg-bg"
+                  />
+                ) : (
+                  <span
+                    className={`flex-1 text-right text-[13.5px] font-normal tabular-nums ${cell.charged ? "text-t1" : "text-red"}`}
+                    title={prorated ? `${num(cell.amount)}원 · 일할` : undefined}
+                  >
+                    {shown ? num(shown) : "-"}
+                  </span>
+                )}
                 <button
                   type="button"
-                  aria-label={`${unit.unitNo} ${column.name} 부과`}
+                  aria-label={`${unitNo} ${column.name} 부과`}
                   aria-pressed={cell.charged}
                   disabled={unit.isVacant}
                   onClick={() => onChargeChange(unit.unitId, column.feeItemId, { charged: !cell.charged })}
-                  className={`h-[28px] w-[28px] rounded-[7px] border text-[10px] font-extrabold disabled:opacity-40 ${cell.charged ? "border-teal bg-[#e2f5f1] text-teal" : "border-line text-t4"}`}
+                  className={`inline-flex h-[18px] w-[18px] flex-none items-center justify-center rounded-[6px] text-[10px] font-extrabold disabled:opacity-40 ${cell.charged ? "bg-blue-t text-blue-d" : "bg-red-t text-red"}`}
                 >
                   {cell.charged ? "Y" : "N"}
                 </button>
-                <input
-                  type="number"
-                  aria-label={`${unit.unitNo} ${column.name} 금액`}
-                  value={String(cell.amount)}
-                  disabled={unit.isVacant || !cell.charged}
-                  onChange={(event) => onChargeChange(unit.unitId, column.feeItemId, { amount: Number(event.target.value) || 0 })}
-                  className="h-[28px] w-[66px] rounded-[7px] border border-line bg-white px-[7px] text-right font-semibold outline-none focus:border-teal disabled:bg-bg"
-                />
               </div>
-            ) : (
-              <div className="flex items-center justify-center gap-[6px]">
-                <span className={`rounded-[6px] px-[5px] py-[2px] text-[9.5px] font-extrabold ${cell.charged ? "bg-[#e2f5f1] text-teal" : "bg-bg text-t4"}`}>{cell.charged ? "Y" : "N"}</span>
-                <span className="font-semibold">{formatNumber(cell.amount)}</span>
-              </div>
-            )}
-          </td>
-        );
-      })}
-      <td className="min-w-[116px] border-b border-r border-line2 px-[8px] text-center">
-        <button type="button" aria-label={`${unit.unitNo} 부과시 참조사항`} onClick={() => onNoteClick(unit.unitId)} className="max-w-[104px] truncate text-t2 hover:text-teal">{billingNote || "-"}</button>
+            );
+          })}
+          {/* 빈 슬롯 채움(3개 미만일 때 정렬 유지) */}
+          {Array.from({ length: 3 - group.length }).map((_, i) => (
+            <div key={`pad-${i}`} className="leading-[1.5]">&nbsp;</div>
+          ))}
+        </td>
+      ))}
+
+      {/* 부과시 참조사항 — 150px, .mf-clamp 2줄 */}
+      <td className={`min-w-[150px] px-[8px] py-[7px] ${cellBorder}`}>
+        {editing ? (
+          <input
+            aria-label={`${unitNo} 부과시 참조사항`}
+            readOnly
+            value={billingNote}
+            onClick={() => onNoteClick(unit.unitId)}
+            className="h-[26px] w-full rounded-[7px] border border-line bg-white px-[7px] text-[13.5px] font-normal text-t1 outline-none focus:border-teal focus:shadow-[0_0_0_3px_var(--color-blue-t)]"
+          />
+        ) : (
+          <button
+            type="button"
+            aria-label={`${unitNo} 부과시 참조사항`}
+            onClick={() => onNoteClick(unit.unitId)}
+            className={`line-clamp-2 max-w-[150px] break-words text-left text-[13.5px] font-normal leading-[1.4] ${billingNote ? "text-t1" : "text-t4"} hover:text-teal`}
+            title={billingNote || undefined}
+          >
+            {billingNote || "-"}
+          </button>
+        )}
       </td>
-      <td className="min-w-[116px] border-b border-r border-line2 px-[8px] text-center">
-        <button type="button" aria-label={`${unit.unitNo} 부과시 공지사항`} onClick={() => onNoteClick(unit.unitId)} className="max-w-[104px] truncate text-t2 hover:text-teal">{unitNotice || "-"}</button>
+
+      {/* 부과시 공지사항 — 150px, .mf-clamp 2줄 */}
+      <td className={`min-w-[150px] px-[8px] py-[7px] ${cellBorder}`}>
+        {editing ? (
+          <input
+            aria-label={`${unitNo} 부과시 공지사항`}
+            readOnly
+            value={unitNotice}
+            onClick={() => onNoteClick(unit.unitId)}
+            className="h-[26px] w-full rounded-[7px] border border-line bg-white px-[7px] text-[13.5px] font-normal text-t1 outline-none focus:border-teal focus:shadow-[0_0_0_3px_var(--color-blue-t)]"
+          />
+        ) : (
+          <button
+            type="button"
+            aria-label={`${unitNo} 부과시 공지사항`}
+            onClick={() => onNoteClick(unit.unitId)}
+            className={`line-clamp-2 max-w-[150px] break-words text-left text-[13.5px] font-normal leading-[1.4] ${unitNotice ? "text-t1" : "text-t4"} hover:text-teal`}
+            title={unitNotice || undefined}
+          >
+            {unitNotice || "-"}
+          </button>
+        )}
       </td>
-      <td className="min-w-[92px] border-b border-line2 px-[8px] text-center text-[10.5px] text-t3">
-        {unit.confirmedAt ? unit.confirmedAt.slice(0, 10) : "-"}
-        {unit.confirmedAt && unit.isDirty && <p className="font-bold text-amber">재확정 필요</p>}
-        {unit.confirmedAt && !unit.isDirty && <p className="font-bold text-teal">확정</p>}
+
+      {/* 처리일자 — 96px */}
+      <td className={`min-w-[96px] px-[8px] py-[7px] text-right align-middle tabular-nums ${cellBorder}`}>
+        <span className={`text-[13.5px] font-normal ${unit.confirmedAt ? "text-t1" : "text-t4"}`}>{unit.confirmedAt ? unit.confirmedAt.slice(0, 10) : "-"}</span>
+        {unit.confirmedAt && unit.isDirty && <p className="text-[11.5px] font-bold text-amber">재확정 필요</p>}
+        {unit.confirmedAt && !unit.isDirty && <p className="text-[11.5px] font-bold text-teal">확정</p>}
       </td>
     </tr>
   );

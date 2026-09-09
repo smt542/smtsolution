@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { DEFAULT_FORM_VALUE, ROUNDING_OPTIONS } from "./constants";
 import type { FeeItemDraft, FeeItemFormValue, RoundingRule } from "./types";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
 
 interface FeeItemFormDialogProps {
   open: boolean;
@@ -50,7 +51,7 @@ export function FeeItemFormDialog({
     event.preventDefault();
     const name = value.name.trim();
     if (!name) {
-      setError("항목 명칭을 입력해 주세요.");
+      setError("항목 명칭을 입력해 주세요");
       return;
     }
     if (existingNames.some((candidate) => candidate.trim() === name)) {
@@ -75,7 +76,7 @@ export function FeeItemFormDialog({
           </button>
         </header>
 
-        <div className="space-y-[14px] px-[22px] pb-[37px] pt-5">
+        <div className="space-y-[13px] px-[22px] pb-[37px] pt-5">
           <label className="block text-xs font-bold text-t2">
             항목 명칭
             <input
@@ -83,7 +84,7 @@ export function FeeItemFormDialog({
               value={value.name}
               maxLength={30}
               placeholder="예: 일반관리비"
-              className="mt-2 h-11 w-full rounded-[11px] border border-line px-3 text-[13px] font-semibold text-t1 outline-none placeholder:text-t4 focus:border-teal focus:ring-2 focus:ring-teal-t"
+              className="mt-1.5 h-11 w-full rounded-[11px] border border-line px-3 text-[13px] font-semibold text-t1 outline-none placeholder:text-t4 focus:border-teal focus:ring-2 focus:ring-teal-t"
               onChange={(event) => {
                 setValue((current) => ({ ...current, name: event.target.value }));
                 setError("");
@@ -119,15 +120,16 @@ export function FeeItemFormDialog({
           />
         </div>
 
-        <footer className="flex h-[69px] items-center gap-2 border-t border-line px-[22px]">
+        <footer className="flex h-[69px] items-center gap-[9px] border-t border-line px-[22px]">
           {item ? (
             <>
-              <button type="button" className="mr-auto h-10 px-1 text-[13px] font-bold text-red" onClick={onDelete}>항목 삭제</button>
-              <button type="button" className="h-10 rounded-[11px] border border-line px-5 text-[13px] font-bold text-t2" onClick={onClose}>취소</button>
-              <button type="submit" className="h-10 rounded-[11px] bg-teal px-5 text-[13px] font-bold text-white">수정</button>
+              {!item.isRequired && (
+                <button type="button" className="h-10 rounded-[11px] bg-red-t px-5 text-[13.5px] font-bold text-red hover:bg-[#fbdbe0]" onClick={onDelete}>삭제</button>
+              )}
+              <button type="submit" className="h-10 flex-1 rounded-[11px] bg-teal text-[13.5px] font-bold text-white hover:bg-teal-d">수정</button>
             </>
           ) : (
-            <button type="submit" className="h-10 w-full rounded-[11px] bg-teal text-[13px] font-bold text-white">추가</button>
+            <button type="submit" className="h-10 w-full rounded-[11px] bg-teal text-[13.5px] font-bold text-white hover:bg-teal-d">추가</button>
           )}
         </footer>
       </form>
@@ -147,22 +149,14 @@ function SelectField({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="text-xs font-bold text-t2">
+    <div className="text-xs font-bold text-t2">
       <span className="flex items-center gap-1.5">
         <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-t3 text-[9px] font-bold text-t3">i</span>
         {label}
       </span>
-      <span className="relative mt-2 block">
-        <select
-          aria-label={label}
-          value={value}
-          className="h-11 w-full appearance-none rounded-[11px] border border-line bg-white px-3 pr-8 text-[13px] font-semibold text-t1 outline-none focus:border-teal focus:ring-2 focus:ring-teal-t"
-          onChange={(event) => onChange(event.target.value)}
-        >
-          {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-        </select>
-        <Image className="pointer-events-none absolute right-2.5 top-3.5" src="/icons/fee-items/chevron-down.svg" alt="" width={16} height={16} />
-      </span>
-    </label>
+      <div className="mt-1.5 [&_.uc-dd]:w-full [&_.uc-dd-btn]:h-11 [&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:justify-between [&_.uc-dd-btn]:text-[13px]">
+        <CustomDropdown ariaLabel={label} value={value} options={options} onChange={onChange} />
+      </div>
+    </div>
   );
 }
