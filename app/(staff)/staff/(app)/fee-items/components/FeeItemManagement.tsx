@@ -35,7 +35,6 @@ import {
 import { DeleteBuildingTypeDialog } from "./DeleteBuildingTypeDialog";
 import { FeeItemCard } from "./FeeItemCard";
 import { FeeItemFormDialog } from "./FeeItemFormDialog";
-import { FeeItemRightRail } from "./FeeItemRightRail";
 import type { BuildingTypeDraft, FeeItemDraft, FeeItemFormValue, RoundingRule } from "./types";
 
 interface FeeItemManagementProps { orgId: number; }
@@ -368,7 +367,6 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
           <div className="rounded-2xl bg-white p-10 shadow-card"><EmptyState message="등록된 건물 유형이 없습니다. 상단 + 버튼으로 유형을 추가해 주세요." /></div>
         )}
       </main>
-      <FeeItemRightRail />
       <FeeItemFormDialog
         key={`${formOpen}-${editingItem?.key ?? "new"}`}
         open={formOpen}

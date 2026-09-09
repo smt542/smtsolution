@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { AsReceptionRail } from "./as-rail/AsReceptionRail";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 
@@ -54,6 +55,9 @@ export function AppShell({ children }: AppShellProps) {
           {children}
         </main>
       </div>
+
+      {/* 우측 A/S·퇴실 패널 (전역, print 제외) */}
+      <AsReceptionRail />
 
       {/* Mobile drawer */}
       {drawerOpen && (

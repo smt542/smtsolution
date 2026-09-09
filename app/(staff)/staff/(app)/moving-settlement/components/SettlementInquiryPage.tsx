@@ -3,7 +3,6 @@
 import { useDeferredValue, useState } from "react";
 import { toast } from "sonner";
 import { EmptyState, Spinner } from "@/components/common";
-import { QuickAccessRail } from "@/components/shell/QuickAccessRail";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBillOrganizationName } from "@/hooks/reactquery/bill";
 import {
@@ -169,7 +168,6 @@ export function SettlementInquiryPage({ type }: { type: SettlementInquiryType })
         )}
         </div>
       </section>
-      <QuickAccessRail />
     </div>
   );
 }
