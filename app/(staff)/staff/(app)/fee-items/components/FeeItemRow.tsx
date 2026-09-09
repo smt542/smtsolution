@@ -18,7 +18,7 @@ export function FeeItemRow({ item, onEdit, onDragStart, onDrop }: FeeItemRowProp
   return (
     <tr
       draggable={interactive}
-      className={`${item.isRequired ? "h-[47px]" : "h-[51px]"} border-t border-line2 text-[13px] text-t2 ${interactive ? "cursor-pointer hover:bg-bg/60" : ""}`}
+      className={`${item.isRequired ? "h-[47px] bg-[#fbfcfd]" : "h-[51px]"} border-t border-line2 text-[13px] text-t2 ${interactive ? "cursor-pointer hover:bg-bg/60" : ""}`}
       onClick={() => interactive && onEdit(item)}
       onDragStart={(event) => {
         if (!interactive) return;

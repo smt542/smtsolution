@@ -132,9 +132,10 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
   const addType = () => {
     const sequence = ++localSequence.current;
     const key = `local-type-${Date.now()}-${sequence}`;
-    const nextType: BuildingTypeDraft = { key, label: "유형명", sortOrder: drafts?.length ?? 0, items: createRequiredItems(key) };
+    const nextType: BuildingTypeDraft = { key, label: "", sortOrder: drafts?.length ?? 0, items: createRequiredItems(key) };
     setDrafts((current) => [...(current ?? []), nextType]);
     setActiveKey(key);
+    setEditingTypeKey(key); // + 클릭 즉시 탭에서 이름 편집(원본 동작)
   };
 
   const openAddItem = () => {
@@ -164,21 +165,8 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
     if (!editingItem || !activeType) return;
     if (!window.confirm(`‘${editingItem.name}’ 항목을 삭제할까요?`)) return;
     const removed = editingItem;
-    const ownerKey = activeType.key;
-    const removedIndex = activeType.items.findIndex((item) => item.key === removed.key);
     updateActiveType((type) => ({ ...type, items: type.items.filter((item) => item.key !== removed.key).map((item, index) => ({ ...item, sortOrder: index })) }));
     setFormOpen(false);
-    toast("관리 항목을 삭제했습니다.", {
-      action: {
-        label: "실행취소",
-        onClick: () => setDrafts((current) => current?.map((type) => {
-          if (type.key !== ownerKey) return type;
-          const items = [...type.items];
-          items.splice(removedIndex, 0, removed);
-          return { ...type, items: items.map((item, index) => ({ ...item, sortOrder: index })) };
-        }) ?? current),
-      },
-    });
   };
 
   const reorderItems = (draggedKey: string, targetKey: string) => {
@@ -219,6 +207,7 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
     setDrafts(next.map((type, typeIndex) => ({ ...type, sortOrder: typeIndex })));
     if (activeKey === deleteTarget.key) setActiveKey(next[Math.min(index, next.length - 1)]?.key ?? null);
     setDeleteTargetKey(null);
+    toast.success("유형이 삭제되었습니다");
   };
 
   const validate = () => {
