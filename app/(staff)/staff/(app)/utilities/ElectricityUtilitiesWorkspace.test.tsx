@@ -143,6 +143,15 @@ function selectBuilding() {
 }
 
 describe("UtilitiesPage Figma electricity states", () => {
+  it("와이어프레임 상단 헤더와 액션을 표시한다", () => {
+    render(<UtilitiesPage />);
+
+    expect(screen.getByText("공과금 관리")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "전기" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "검침대장 출력" }));
+    expect(screen.getByRole("dialog", { name: "검침대장 출력" })).toBeInTheDocument();
+  });
+
   it("권한이 없으면 접근을 차단한다", () => {
     vi.mocked(useMe).mockReturnValue({ data: { role: "staff", permissions: [] } } as never);
     render(<UtilitiesPage />);
