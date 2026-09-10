@@ -65,5 +65,14 @@
     "appSelector": "header",
     "viewport": { "w": 1340, "h": 880 },
     "device": "desktop"
+  },
+  {
+    "id": "staff-utilities-side",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/utility-gas/utility-gas.dc.html",
+    "originSelector": ".hf-side",
+    "appPath": "/staff/utilities",
+    "appSelector": "aside",
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
   }
 ]

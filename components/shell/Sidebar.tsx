@@ -115,10 +115,10 @@ function UtilitiesNavGroup({
   }`;
 
   return (
-    <div className="pb-1">
+    <div>
       <Link
         href={item.href}
-        className="flex h-[40px] w-full items-center gap-[11px] rounded-[11px] px-[12px] text-[14px] font-bold text-t1 hover:bg-bg"
+        className="flex h-[40px] w-full items-center gap-[11px] rounded-[11px] px-[12px] text-[14px] font-semibold text-t1 hover:bg-bg"
       >
         <NavIcon svg={item.icon} />
         <span className="flex-1">{item.label}</span>
@@ -126,7 +126,7 @@ function UtilitiesNavGroup({
           <path d="M6 9l6 6 6-6" />
         </svg>
       </Link>
-      <div className="ml-[31px] flex flex-col gap-0.5 border-l border-line pl-[11px]">
+      <div className="my-[2px] ml-[16px] flex flex-col gap-[2px] border-l border-line pl-[14px]">
         <Link
           href="/staff/customer-numbers"
           aria-current={isCustomerNumbersPage ? "page" : undefined}
@@ -152,10 +152,10 @@ function MovingSettlementNavGroup({ item, pathname }: { item: NavItem; pathname:
   ];
 
   return (
-    <div className="pb-1">
+    <div>
       <Link
         href={item.href}
-        className="flex h-[40px] w-full items-center gap-[11px] rounded-[11px] px-[12px] text-[13.5px] font-bold text-t1 hover:bg-bg"
+        className="flex h-[40px] w-full items-center gap-[11px] rounded-[11px] px-[12px] text-[14px] font-semibold text-t1 hover:bg-bg"
       >
         <NavIcon svg={item.icon} />
         <span className="flex-1">{item.label}</span>
@@ -163,7 +163,7 @@ function MovingSettlementNavGroup({ item, pathname }: { item: NavItem; pathname:
           <path d="M6 9l6 6 6-6" />
         </svg>
       </Link>
-      <div className="ml-[31px] flex flex-col gap-[2px] border-l border-line pl-[11px]">
+      <div className="my-[2px] ml-[16px] flex flex-col gap-[2px] border-l border-line pl-[14px]">
         {links.map((link) => {
           const active = link.href === "/staff/moving-settlement"
             ? pathname === link.href
@@ -300,7 +300,7 @@ export function Sidebar() {
           {profileMenuOpen && (
             <div
               role="menu"
-              className="absolute inset-x-0 bottom-full mb-2 rounded-[14px] border border-line bg-surface p-1.5 shadow-pop"
+              className="absolute inset-x-0 bottom-full mb-2 rounded-[14px] border border-line bg-surface p-1.5 leading-[normal] shadow-pop"
             >
               {/* 캔버스 hf-menu-head: 사용자 정보 */}
               <div className="flex items-center gap-[10px] px-3 pb-2 pt-2.5">
