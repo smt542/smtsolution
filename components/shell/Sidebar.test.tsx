@@ -125,7 +125,8 @@ describe("Sidebar", () => {
 
     render(<Sidebar />);
 
-    expect(screen.getByRole("link", { name: "공과금 관리" })).toBeInTheDocument();
+    // 정본 <details>/<summary>: "공과금 관리" 헤더는 라우팅 없는 토글 버튼
+    expect(screen.getByRole("button", { name: "공과금 관리" })).toBeInTheDocument();
     const customerNumberLink = screen.getByRole("link", { name: "고객번호 조회" });
     expect(customerNumberLink).toHaveAttribute("aria-current", "page");
     // 디자인 정본 .hf-sub a.on: solid teal 배경 + 흰색 텍스트
