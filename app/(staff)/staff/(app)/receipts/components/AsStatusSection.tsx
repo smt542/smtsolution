@@ -83,7 +83,7 @@ function AsEmptyTable({ message, scope }: { message: string; scope: "unit" | "bu
       <AsTableHeader scope={scope} />
       <tbody>
         <tr>
-          <td colSpan={visibleAsColumns(scope).length} className="py-[26px] text-center text-[13px] text-t4">
+          <td colSpan={visibleAsColumns(scope).length} className="py-[26px] text-center text-[13px] text-t1">
             {message}
           </td>
         </tr>

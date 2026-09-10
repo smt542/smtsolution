@@ -126,7 +126,7 @@ export function BuildingUnitRail({
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="건물명·주소 검색"
                   aria-label="건물명·주소 검색"
-                  className="h-[32px] w-full rounded-[9px] border border-line bg-surface pl-[31px] pr-[11px] text-[13px] font-semibold leading-[normal] text-t1 placeholder:text-t4 outline-none focus:border-teal"
+                  className="h-[32px] w-full rounded-[9px] border border-line bg-surface pl-[31px] pr-[11px] text-[13px] font-semibold leading-[normal] text-t1 placeholder:text-[#757575] outline-none focus:border-teal"
                 />
               </div>
             </div>
@@ -194,7 +194,7 @@ export function BuildingUnitRail({
                       onChange={(event) => setSearch(event.target.value)}
                       placeholder="호수·세대주 검색"
                       aria-label="호수·세대주 검색"
-                      className="h-[32px] w-full rounded-[9px] border border-line bg-surface pl-[31px] pr-[11px] text-[13px] font-semibold leading-[normal] text-t1 placeholder:text-t4 outline-none focus:border-teal"
+                      className="h-[32px] w-full rounded-[9px] border border-line bg-surface pl-[31px] pr-[11px] text-[13px] font-semibold leading-[normal] text-t1 placeholder:text-[#757575] outline-none focus:border-teal"
                     />
                   </div>
                 </div>

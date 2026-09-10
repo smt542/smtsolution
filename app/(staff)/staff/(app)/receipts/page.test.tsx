@@ -278,7 +278,9 @@ describe("ReceiptManagementPage (세대중심 재설계)", () => {
     expect(screen.getByText("그린빌라")).toBeInTheDocument();
     expect(screen.getByText("블루하우스")).toBeInTheDocument();
     expect(screen.getByText("호수를 선택해 주세요")).toBeInTheDocument();
-    expect(screen.getByText("호실을 선택하면 입주자정보가 표시돼요")).toBeInTheDocument();
+    expect(screen.getByLabelText("건물명·주소 검색")).toHaveClass("placeholder:text-[#757575]");
+    expect(screen.getByText("호실을 선택하면 입주자정보가 표시돼요")).toHaveClass("text-t1");
+    expect(screen.getByText("건물과 호수를 선택해 주세요")).toHaveClass("text-t1");
   });
 
   it("건물 선택 시 호실 목록, 호실 선택 시 입주자정보 표시", () => {

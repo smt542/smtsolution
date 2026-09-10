@@ -58,7 +58,7 @@ function TenantEmptyTable({ message }: { message: string }) {
       <TenantTableHead />
       <tbody>
         <tr>
-          <td colSpan={TENANT_COLUMNS.length} className="pb-[27px] pt-[26px] text-center text-[13px] text-t4">
+          <td colSpan={TENANT_COLUMNS.length} className="pb-[27px] pt-[26px] text-center text-[13px] text-t1">
             {message}
           </td>
         </tr>
