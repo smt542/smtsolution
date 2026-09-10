@@ -9,6 +9,7 @@ import {
   useSaveBillingPeriodSetting,
   type SaveBillingPeriodSettingPayload,
 } from "@/hooks/reactquery/billing";
+import { DpDatePicker } from "@/components/common/DpDatePicker";
 
 type ScheduleDraft = Pick<SaveBillingPeriodSettingPayload, "chargeStartDate" | "chargeEndDate" | "dueDate">;
 
@@ -21,16 +22,6 @@ interface BillingPeriodSettingsBarProps {
   onEdit: () => void;
   onCancel: () => void;
   onSave: () => Promise<void>;
-}
-
-// 원본 .uc-dpx .dp-ctl: 28px·min-w 106px·radius8·12px/500·중앙정렬. 잠금(비수정) 시 bg=var(--bg)·border=var(--line2).
-function dpClass(active: boolean) {
-  return [
-    "h-[28px] w-[106px] rounded-[8px] border px-[10px] text-center text-[12px] font-medium text-t1 outline-none",
-    active
-      ? "border-line bg-white focus:border-teal focus:shadow-[0_0_0_3px_#E2F5F1]"
-      : "pointer-events-none border-line2 bg-bg",
-  ].join(" ");
 }
 
 function periodLabel(period: string) {
@@ -115,32 +106,29 @@ export function BillingPeriodSettingsBar({
 
       <div className="flex flex-none items-center gap-[6px]">
         <span className="whitespace-nowrap text-[11.5px] font-bold text-t2">부과기준일</span>
-        <input
-          type="date"
-          aria-label="부과기준일 시작일"
-          value={show(values.chargeStartDate)}
+        <DpDatePicker
+          ariaLabel="부과기준일 시작일"
+          placeholder="시작일"
           disabled={!active}
-          onChange={(event) => setDraft((current) => ({ ...(current ?? values), chargeStartDate: event.target.value }))}
-          className={dpClass(active)}
+          value={show(values.chargeStartDate)}
+          onChange={(value) => setDraft((current) => ({ ...(current ?? values), chargeStartDate: value }))}
         />
         <span className="text-[12px] font-bold text-t2">~</span>
-        <input
-          type="date"
-          aria-label="부과기준일 종료일"
-          value={show(values.chargeEndDate)}
+        <DpDatePicker
+          ariaLabel="부과기준일 종료일"
+          placeholder="종료일"
           disabled={!active}
-          onChange={(event) => setDraft((current) => ({ ...(current ?? values), chargeEndDate: event.target.value }))}
-          className={dpClass(active)}
+          value={show(values.chargeEndDate)}
+          onChange={(value) => setDraft((current) => ({ ...(current ?? values), chargeEndDate: value }))}
         />
         <span className="mx-[4px] h-[26px] w-px flex-none bg-line" />
         <span className="whitespace-nowrap text-[11.5px] font-bold text-t2">납기일</span>
-        <input
-          type="date"
-          aria-label="납기일"
-          value={show(values.dueDate)}
+        <DpDatePicker
+          ariaLabel="납기일"
+          placeholder="납기일"
           disabled={!active}
-          onChange={(event) => setDraft((current) => ({ ...(current ?? values), dueDate: event.target.value }))}
-          className={dpClass(active)}
+          value={show(values.dueDate)}
+          onChange={(value) => setDraft((current) => ({ ...(current ?? values), dueDate: value }))}
         />
       </div>
 

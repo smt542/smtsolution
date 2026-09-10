@@ -195,9 +195,11 @@ describe("관리비 부과 셋팅", () => {
     fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
     const schedule = screen.getByRole("group", { name: "부과 일정 설정" });
     fireEvent.click(within(schedule).getByRole("button", { name: "수정" }));
-    fireEvent.change(within(schedule).getByLabelText("부과기준일 시작일"), { target: { value: "2026-07-20" } });
+    // DpDatePicker 커스텀 달력: 시작일 컨트롤을 열고 20일 선택(달력은 포탈로 document.body에 렌더)
+    fireEvent.click(within(schedule).getByRole("button", { name: "부과기준일 시작일" }));
+    fireEvent.click(await screen.findByRole("button", { name: "20" }));
     fireEvent.click(within(schedule).getByRole("button", { name: "저장" }));
-    await waitFor(() => expect(periodMut.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ chargeStartDate: "2026-07-20" })));
+    await waitFor(() => expect(periodMut.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ chargeStartDate: expect.stringMatching(/-20$/) })));
   });
 
   it("전체 전월자료 반영을 확인한 뒤 복사한다", async () => {
