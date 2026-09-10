@@ -123,9 +123,14 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
           <p className="text-sm text-t3">건물 정보를 불러오는 중…</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-[16px] p-[24px]">
+        <div className="flex flex-col gap-[16px] px-[24px] pb-[30px] pt-[22px]">
           <BasicInfoSection value={state} patch={patch} buildingTypeOptions={resolvers.typeLabels} />
-          <VendorAssignmentSection value={state} patch={patch} staffOptions={resolvers.staffNames} />
+          <VendorAssignmentSection
+            value={state}
+            patch={patch}
+            staffOptions={resolvers.staffNames}
+            showAllVendors={Boolean(buildingId)}
+          />
           <ReserveFundSection value={state} patch={patch} />
           <OwnerInfoSection value={state} patch={patch} />
           <ExtraInfoSection value={state} patch={patch} />

@@ -11,7 +11,7 @@ export function FieldLabel({
   hint?: string;
 }) {
   return (
-    <p className="text-[12.5px] font-bold leading-none text-t2">
+    <p className="text-[12.5px] font-bold leading-[normal] text-t2">
       {children}
       {required && <span className="text-red">{" *"}</span>}
       {hint && <span className="font-semibold text-t3">{hint}</span>}

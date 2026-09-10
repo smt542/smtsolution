@@ -16,7 +16,7 @@ export function CollapsibleFormSection({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <section className="rounded-[14px] border border-line bg-surface shadow-[0px_1px_1.5px_rgba(23,31,40,0.04)]">
+    <section className="mb-[13px] rounded-[14px] border border-line bg-surface shadow-[0_1px_3px_rgba(23,31,40,0.04)]">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -25,10 +25,10 @@ export function CollapsibleFormSection({
           open ? "rounded-t-[14px] border-b border-line" : "rounded-[14px]"
         }`}
       >
-        <span className="rounded-[7px] bg-[#e2f5f1] px-[9px] py-[3px] text-[12px] font-bold leading-[16px] text-[#0e8677]">
+        <span className="rounded-[7px] bg-[#e2f5f1] px-[9px] py-[3px] text-[12px] font-bold leading-[1.4] text-[#0e8677]">
           {index}
         </span>
-        <span className="text-[14px] font-extrabold text-t1">{title}</span>
+        <span className="text-[14px] font-extrabold leading-[normal] text-t1">{title}</span>
         <ChevronDownIcon
           variant="building-register-section"
           className={`ml-auto size-[18px] text-t3 transition-transform ${open ? "" : "-rotate-90"}`}

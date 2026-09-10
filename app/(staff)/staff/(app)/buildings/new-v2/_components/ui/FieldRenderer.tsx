@@ -2,6 +2,7 @@
 import { TextField } from "./TextField";
 import { SelectField } from "./SelectField";
 import { DateField } from "./DateField";
+import { TextAreaField } from "./TextAreaField";
 import type { FieldDef } from "../config/types";
 
 /** Maps a config-driven FieldDef to the matching Figma primitive. */
@@ -17,7 +18,7 @@ export function FieldRenderer({
   const common = {
     label: field.label,
     placeholder: field.placeholder,
-    value,
+    value: value || field.defaultValue,
     onChange,
     full: field.full,
   };
@@ -26,6 +27,8 @@ export function FieldRenderer({
       return <SelectField {...common} options={field.options ?? []} />;
     case "date":
       return <DateField {...common} />;
+    case "textarea":
+      return <TextAreaField {...common} minHeight={field.minHeight} />;
     case "readonly":
       return <TextField {...common} readOnly />;
     default:

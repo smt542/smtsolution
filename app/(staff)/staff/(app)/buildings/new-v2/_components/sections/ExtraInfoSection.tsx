@@ -31,12 +31,13 @@ export function ExtraInfoSection({
           </Accordion>
         ))}
       </div>
-      <div className="grid grid-cols-2 gap-x-[18px] gap-y-[16px] pt-[16px]">
+      <div className="mt-[14px] grid grid-cols-2 gap-x-[18px] gap-y-[16px]">
         <TextAreaField
           label="부과시 참조사항"
           placeholder="관리비 부과 세팅 화면에 표시할 참조사항"
           value={value.refNote}
           onChange={(v) => patch({ refNote: v })}
+          minHeight={72}
         />
       </div>
     </CollapsibleFormSection>

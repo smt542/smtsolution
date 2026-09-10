@@ -41,10 +41,12 @@ try {
           if (action.waitFor) await page.waitForSelector(action.waitFor, { timeout: 15000 });
         }
       }
-      const el = await page.waitForSelector(t.originSelector, { timeout: 15000 });
+      const shotTarget = t.originSelector
+        ? await page.waitForSelector(t.originSelector, { timeout: 15000 })
+        : page;
       await page.evaluate(() => document.fonts && document.fonts.ready).catch(() => {});
       await mkdir(path.join(OUT, 'origin'), { recursive: true });
-      await el.screenshot({ path: path.join(OUT, 'origin', `${t.id}.png`) });
+      await shotTarget.screenshot({ path: path.join(OUT, 'origin', `${t.id}.png`) });
       await ctx.close();
       console.log(`origin captured: ${t.id}`);
     }

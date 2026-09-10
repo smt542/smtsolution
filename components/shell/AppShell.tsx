@@ -20,6 +20,7 @@ function isBare(pathname: string): boolean {
 function hasIntegratedHeader(pathname: string): boolean {
   return (
     pathname === "/staff/buildings" ||
+    pathname === "/staff/buildings/new" ||
     pathname.startsWith("/staff/buildings/new-v2") ||
     pathname.startsWith("/staff/utilities")
   );
@@ -30,6 +31,9 @@ export function AppShell({ children }: AppShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const isBuildingsIndex = pathname === "/staff/buildings";
+  const isBuildingRegister =
+    pathname === "/staff/buildings/new" || pathname.startsWith("/staff/buildings/new-v2");
+  const isViewportLocked = isBuildingsIndex || isBuildingRegister;
 
   useEffect(() => {
     const openDrawer = () => setDrawerOpen(true);
@@ -53,7 +57,7 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   return (
-    <div className={`${isBuildingsIndex ? "h-screen overflow-hidden" : "min-h-screen"} flex bg-bg print:block print:bg-white`}>
+    <div className={`${isViewportLocked ? "h-screen overflow-hidden" : "min-h-screen"} flex bg-bg print:block print:bg-white`}>
       {/* Desktop sidebar */}
       <div
         className={`sticky top-0 hidden h-screen shrink-0 overflow-hidden transition-[width] duration-[180ms] md:flex print:hidden ${

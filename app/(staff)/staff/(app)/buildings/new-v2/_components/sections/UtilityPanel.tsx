@@ -38,31 +38,35 @@ export function UtilityPanel({
   const setExtra = (label: string, v: string) => onChange({ ...value, extra: { ...value.extra, [label]: v } });
 
   return (
-    <div className="flex flex-col gap-[14px]">
-      {cards.map((card, i) => (
-        <UtilityCard
-          key={i}
-          index={i + 1}
-          fields={fields}
-          values={card.fields}
-          onChange={(label, v) => setCard(i, label, v)}
-          onRemove={cards.length > 1 ? () => removeCard(i) : undefined}
-        />
-      ))}
+    <div>
+      <div className="flex flex-col gap-[10px]">
+        {cards.map((card, i) => (
+          <UtilityCard
+            key={i}
+            index={i + 1}
+            fields={fields}
+            values={card.fields}
+            onChange={(label, v) => setCard(i, label, v)}
+            onRemove={cards.length > 1 ? () => removeCard(i) : undefined}
+          />
+        ))}
+      </div>
       <button
         type="button"
         onClick={addCard}
-        className="flex w-full items-center justify-center gap-[4px] rounded-[10px] border border-dashed border-line py-[11px] text-[13px] font-bold text-teal transition-colors hover:bg-teal-t"
+        className="mt-[10px] flex h-[38px] w-full items-center justify-center gap-[6px] rounded-[11px] border-[1.5px] border-dashed border-teal bg-blue-t2 text-[13px] font-bold leading-[normal] text-teal-d transition-colors hover:bg-teal-t"
       >
         <PlusIcon className="size-[16px]" />
         고객번호 추가
       </button>
       {extra && (
-        <FormGrid>
-          {extra.map((f) => (
-            <FieldRenderer key={f.label} field={f} value={value.extra[f.label]} onChange={(v) => setExtra(f.label, v)} />
-          ))}
-        </FormGrid>
+        <div className="pt-[14px]">
+          <FormGrid>
+            {extra.map((f) => (
+              <FieldRenderer key={f.label} field={f} value={value.extra[f.label]} onChange={(v) => setExtra(f.label, v)} />
+            ))}
+          </FormGrid>
+        </div>
       )}
     </div>
   );

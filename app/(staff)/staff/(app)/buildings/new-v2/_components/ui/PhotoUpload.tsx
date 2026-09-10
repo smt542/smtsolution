@@ -21,7 +21,7 @@ export function PhotoUpload({ label = "계약서 사진", max = 10 }: { label?: 
   return (
     <div className="col-span-2 flex flex-col">
       <FieldLabel hint={` (최대 ${max}장)`}>{label}</FieldLabel>
-      <div className="flex flex-wrap gap-[10px] pt-[6px]">
+      <div className="flex flex-nowrap items-start gap-[10px] overflow-x-auto pb-[4px] pt-[6px]">
         {files.map((f, i) => (
           <div key={i} className="group relative size-[84px] overflow-hidden rounded-[10px] border border-line">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -29,7 +29,7 @@ export function PhotoUpload({ label = "계약서 사진", max = 10 }: { label?: 
             <button
               type="button"
               onClick={() => setFiles(files.filter((_, j) => j !== i))}
-              className="absolute right-[4px] top-[4px] flex size-[18px] items-center justify-center rounded-full bg-black/55 text-white opacity-0 transition-opacity group-hover:opacity-100"
+              className="absolute right-[4px] top-[4px] flex size-[20px] items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
               aria-label="사진 삭제"
             >
               <CloseIcon className="size-[10px]" />
@@ -40,7 +40,7 @@ export function PhotoUpload({ label = "계약서 사진", max = 10 }: { label?: 
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="flex size-[84px] flex-col items-center justify-center gap-[4px] rounded-[10px] border border-dashed border-line bg-[#fbfcfd] text-t3 transition-colors hover:border-teal hover:text-teal"
+            className="flex size-[84px] shrink-0 flex-col items-center justify-center gap-[4px] rounded-[10px] border-[1.5px] border-dashed border-line bg-[#fbfcfd] text-t3 transition-colors hover:border-teal hover:bg-teal-t hover:text-teal"
           >
             <PlusIcon className="size-[20px]" />
             <span className="text-[11px] font-bold">사진 추가</span>

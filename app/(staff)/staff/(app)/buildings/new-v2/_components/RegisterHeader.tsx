@@ -40,7 +40,7 @@ export function RegisterHeader({
         type="button"
         onClick={onSave}
         disabled={saving}
-        className="flex h-[40px] items-center rounded-[11px] bg-teal px-[15px] text-[13.5px] font-bold text-white shadow-[0px_6px_7px_rgba(20,164,151,0.5)] hover:bg-teal-d disabled:opacity-60"
+        className="flex h-[40px] items-center rounded-[11px] border border-transparent bg-teal px-[15px] text-[13.5px] font-bold leading-[normal] text-white shadow-[0_6px_14px_-4px_rgba(20,164,151,0.5)] hover:bg-teal-d disabled:opacity-60"
       >
         {saving ? "저장 중…" : saveLabel}
       </button>

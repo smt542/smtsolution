@@ -126,5 +126,48 @@
     "appSelector": null,
     "viewport": { "w": 1340, "h": 880 },
     "device": "desktop"
+  },
+  {
+    "id": "staff-building-register",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/building-register/building-register.dc.html",
+    "originSelector": ".hf-app",
+    "appPath": "/staff/buildings/new",
+    "appSelector": null,
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
+  },
+  {
+    "id": "staff-building-register-calendar",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/building-register/building-register.dc.html",
+    "originSelector": ".hf-app",
+    "originActions": [{ "click": ".dp-ctl" }, { "wait": 100 }],
+    "appPath": "/staff/buildings/new",
+    "appSelector": null,
+    "appActions": [{ "click": "button[aria-label='계약일']" }, { "wait": 100 }],
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
+  },
+  {
+    "id": "staff-building-register-address",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/building-register/building-register.dc.html",
+    "originSelector": null,
+    "originStyle": ".rnb{pointer-events:none!important;transform:none!important;width:100vw!important;background:transparent!important;border:0!important;box-shadow:none!important}.rnb>*:not(.modal-scrim){display:none!important}",
+    "originActions": [{ "click": ".hf-fsec .hf-btn.sec" }, { "wait": 100 }],
+    "appPath": "/staff/buildings/new",
+    "appSelector": null,
+    "appActions": [{ "click": "main section:first-of-type button:has-text('주소 검색')" }, { "wait": 100 }],
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
+  },
+  {
+    "id": "staff-building-register-collapsed",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/building-register/building-register.dc.html",
+    "originSelector": ".hf-app",
+    "originActions": [{ "click": ".hf-fsec-h" }, { "wait": 250 }],
+    "appPath": "/staff/buildings/new",
+    "appSelector": null,
+    "appActions": [{ "click": "main section:first-of-type > button" }, { "wait": 250 }],
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
   }
 ]

@@ -90,7 +90,7 @@ const emptyUtilities = (): Record<string, RegisterUtilityEntry> =>
 
 export function initialFormState(): RegisterFormState {
   return {
-    code: "", name: "", buildingType: "", gate: "", address: "", addressDetail: "",
+    code: "", name: "", buildingType: "빌라", gate: "", address: "", addressDetail: "",
     groupType: "1", waterCount: "1", contractDate: "", terminationDate: "", standingNotice: "",
     officeManager: "", siteManager: "", vendors: emptyVendors(),
     reserveFundType: "적립금", reserveFundMemo: "",

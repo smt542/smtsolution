@@ -18,8 +18,8 @@ export function BuildingMemoSection({
         placeholder="건물 관련 메모를 입력하세요… (최대 1,000자)"
         value={memo}
         onChange={(v) => patch({ memo: v.slice(0, 1000) })}
-        minHeight={120}
-        footer={`${memo.length.toLocaleString()}/1,000자`}
+        minHeight={80}
+        maxLength={1000}
       />
     </CollapsibleFormSection>
   );

@@ -11,6 +11,7 @@ export function TextField({
   readOnly,
   full,
   inputMode,
+  maxLength,
 }: {
   label: string;
   required?: boolean;
@@ -21,6 +22,7 @@ export function TextField({
   readOnly?: boolean;
   full?: boolean;
   inputMode?: "text" | "numeric" | "tel";
+  maxLength?: number;
 }) {
   return (
     <div className={`flex flex-col ${full ? "col-span-2" : ""}`}>
@@ -34,7 +36,8 @@ export function TextField({
           readOnly={readOnly}
           placeholder={placeholder}
           inputMode={inputMode}
-          className={`h-[42px] w-full rounded-[10px] border border-line px-[13px] text-[14px] font-medium text-t1 placeholder:text-t4 focus:border-teal focus:outline-none ${
+          maxLength={maxLength}
+          className={`h-[42px] w-full rounded-[10px] border border-line px-[13px] text-[16px] font-normal leading-[normal] text-t1 outline-none placeholder:font-medium placeholder:text-t4 focus:border-teal focus:shadow-[0_0_0_3px_var(--color-teal-t)] ${
             readOnly ? "bg-bg" : "bg-surface"
           }`}
         />

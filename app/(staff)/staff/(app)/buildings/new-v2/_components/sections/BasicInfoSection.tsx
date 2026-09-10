@@ -10,6 +10,7 @@ import type { RegisterFormState } from "../config/formState";
 
 const GROUP_TYPES = ["1", "2", "3", "4", "5"];
 const WATER_COUNTS = ["1", "2", "3", "4", "5", "6", "7", "8", "10"];
+const PROTOTYPE_BUILDING_TYPES = ["빌라", "빌딩"];
 
 /** ① 기본 정보 (Figma 673:55665). */
 export function BasicInfoSection({
@@ -21,12 +22,14 @@ export function BasicInfoSection({
   patch: (p: Partial<RegisterFormState>) => void;
   buildingTypeOptions: string[];
 }) {
+  const typeOptions = Array.from(new Set([...PROTOTYPE_BUILDING_TYPES, ...buildingTypeOptions]));
+
   return (
     <CollapsibleFormSection index={1} title="기본 정보">
       <FormGrid>
-        <TextField label="건물 코드" placeholder="비우면 자동 생성" inputMode="numeric" value={value.code} onChange={(v) => patch({ code: v })} />
-        <TextField label="건물명" required placeholder="건물명 입력" value={value.name} onChange={(v) => patch({ name: v })} />
-        <SelectField label="건물 유형" placeholder={buildingTypeOptions.length ? "선택" : "설정에서 유형 등록"} options={buildingTypeOptions} value={value.buildingType} onChange={(v) => patch({ buildingType: v })} />
+        <TextField label="건물 코드" required placeholder="숫자 3자리" inputMode="numeric" maxLength={3} value={value.code} onChange={(v) => patch({ code: v })} />
+        <TextField label="건물명" placeholder="건물명 입력" value={value.name} onChange={(v) => patch({ name: v })} />
+        <SelectField label="건물 유형" placeholder="선택" options={typeOptions} value={value.buildingType} onChange={(v) => patch({ buildingType: v })} />
         <TextField label="공동현관" placeholder="공동현관 비밀번호" value={value.gate} onChange={(v) => patch({ gate: v })} />
         <AddressField label="주소" required value={value.address} detail={value.addressDetail} onChange={(v) => patch({ address: v })} onDetailChange={(v) => patch({ addressDetail: v })} />
         <SelectField label="고지서 부과 그룹 유형" options={GROUP_TYPES} value={value.groupType} onChange={(v) => patch({ groupType: v })} />
@@ -38,6 +41,8 @@ export function BasicInfoSection({
           hint=" · 세입자 앱 홈의 건물 공지에 표시돼요"
           placeholder="예: 매주 화요일 오전 9시부터 11시까지 저수조 청소가 진행됩니다."
           footer="비워 두면 세입자 홈에 건물 공지가 표시되지 않아요"
+          minHeight={100.79}
+          lineHeight={1.6}
           value={value.standingNotice}
           onChange={(v) => patch({ standingNotice: v })}
         />
