@@ -77,7 +77,9 @@ export function MessageComposer({
     <div className={styles["fmp-smswrap"]}>
       <div
         className={styles["fmp-lbl"]}
-        style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
+        // 정본은 라벨이 .fmp-smswrap 밖(fmp-msgL 형제)이라 margin8+gap8=16px 간격.
+        // 앱은 라벨을 wrap 안에 두므로 동일 간격을 margin으로 재현(폰 컬럼 정렬 정합).
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}
       >
         <span>메시지 내용</span>
         <div
