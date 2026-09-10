@@ -31,49 +31,59 @@ import type { ResolutionDraft } from "./AsComplaintForm";
 import { ComplaintDetailModal } from "./ComplaintDetailModal";
 import { ComplaintFormModal } from "./ComplaintFormModal";
 
-const AS_COLUMNS = [
-  "No",
-  "접수일시",
-  "유형",
-  "접수내용",
-  "입주자 전화번호",
-  "처리결과",
-  "처리결과 내용",
-  "시행일자",
-  "시간",
-  "접수자",
-  "담당자",
-];
-const AS_COLUMN_WIDTHS = [47, 86, 80, 240, 112, 70, 200, 86, 52, 66, 66];
-
-function AsTableColumns() {
-  return (
-    <colgroup>
-      {AS_COLUMN_WIDTHS.map((width, index) => <col key={index} style={{ width }} />)}
-    </colgroup>
-  );
+interface AsColumn {
+  key: string;
+  label: string;
+  minWidth: number;
+  maxWidth?: number;
+  align?: "right";
+  buildingOnly?: boolean;
 }
 
-function AsTableHeader() {
+const AS_COLUMNS: readonly AsColumn[] = [
+  { key: "no", label: "No", minWidth: 38, align: "right" },
+  { key: "unit", label: "호수", minWidth: 58, buildingOnly: true },
+  { key: "receivedAt", label: "접수일시", minWidth: 86 },
+  { key: "type", label: "유형", minWidth: 80 },
+  { key: "content", label: "접수내용", minWidth: 240, maxWidth: 300 },
+  { key: "phone", label: "입주자 전화번호", minWidth: 112 },
+  { key: "result", label: "처리결과", minWidth: 70 },
+  { key: "resultContent", label: "처리결과 내용", minWidth: 200, maxWidth: 260 },
+  { key: "resolvedAt", label: "시행일자", minWidth: 86 },
+  { key: "time", label: "시간", minWidth: 52 },
+  { key: "reporter", label: "접수자", minWidth: 66 },
+  { key: "assignee", label: "담당자", minWidth: 66 },
+];
+
+function visibleAsColumns(scope: "unit" | "building") {
+  return AS_COLUMNS.filter((column) => !column.buildingOnly || scope === "building");
+}
+
+function AsTableHeader({ scope }: { scope: "unit" | "building" }) {
   return (
     <thead>
       <tr className="h-[37px] border-b border-line bg-[#FBFCFD] text-left text-xs font-bold leading-[normal] text-t3">
-        {AS_COLUMNS.map((label, index) => (
-          <th key={label} className={`px-[16px] ${index === 0 ? "text-right" : ""}`}>{label}</th>
+        {visibleAsColumns(scope).map((column) => (
+          <th
+            key={column.key}
+            className={`overflow-hidden text-ellipsis whitespace-nowrap px-[16px] ${column.align === "right" ? "text-right" : ""}`}
+            style={{ minWidth: column.minWidth, maxWidth: column.maxWidth }}
+          >
+            {column.label}
+          </th>
         ))}
       </tr>
     </thead>
   );
 }
 
-function AsEmptyTable({ message }: { message: string }) {
+function AsEmptyTable({ message, scope }: { message: string; scope: "unit" | "building" }) {
   return (
-    <table className="w-[1105px] table-fixed text-[12.5px] leading-[normal]">
-      <AsTableColumns />
-      <AsTableHeader />
+    <table className="w-full border-collapse whitespace-nowrap text-[12.5px] leading-[normal]">
+      <AsTableHeader scope={scope} />
       <tbody>
         <tr>
-          <td colSpan={AS_COLUMNS.length} className="py-[26px] text-center text-[13px] text-t4">
+          <td colSpan={visibleAsColumns(scope).length} className="py-[26px] text-center text-[13px] text-t4">
             {message}
           </td>
         </tr>
@@ -315,21 +325,23 @@ export function AsStatusSection({
 
   return (
     <Panel title="A/S 현황" action={action} actionClassName="flex-1" flush className="h-[320px] shrink-0 [&>div:first-child]:gap-[14px] [&>div:first-child]:px-[12px]">
-      {buildingId === null ? (
+      {buildingId === null || (scope === "unit" && unitId === null) ? (
         <div className="overflow-x-auto">
-          <AsEmptyTable message="건물과 호수를 선택해 주세요" />
+          <AsEmptyTable
+            scope={scope}
+            message={scope === "building" ? "건물을 선택해 주세요" : "건물과 호수를 선택해 주세요"}
+          />
         </div>
       ) : isLoading ? (
         <div className="flex h-[260px] items-center justify-center"><Spinner /></div>
       ) : rows.length === 0 ? (
         <div className="overflow-x-auto">
-          <AsEmptyTable message="접수 내역이 없어요" />
+          <AsEmptyTable scope={scope} message="접수 내역이 없어요" />
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-[1105px] table-fixed text-[12.5px] leading-[normal]">
-            <AsTableColumns />
-            <AsTableHeader />
+          <table className="w-full border-collapse whitespace-nowrap text-[12.5px] leading-[normal]">
+            <AsTableHeader scope={scope} />
             <tbody>
               {rows.map((complaint, index) => {
                 const latest = complaint.resolutions[0];
@@ -337,37 +349,42 @@ export function AsStatusSection({
                   <tr
                     key={complaint.id}
                     onClick={() => setSelectedId(complaint.id)}
-                    className="cursor-pointer border-b border-line last:border-0 hover:bg-bg"
+                    className="cursor-pointer border-b border-line last:border-0 hover:bg-bg [&>td]:h-[38px]"
                   >
-                    <td className="px-3 py-3 text-right text-t3 num">{index + 1}</td>
-                    <td className="whitespace-nowrap px-3 py-3 text-t2">
+                    <td className="px-4 py-3 text-right text-t3 num">{index + 1}</td>
+                    {scope === "building" && (
+                      <td className="whitespace-nowrap px-4 py-3 text-t2 num">
+                        {complaint.unitId === null ? "건물 전체" : complaint.unitNo ?? "-"}
+                      </td>
+                    )}
+                    <td className="whitespace-nowrap px-4 py-3 text-t2 num">
                       {formatComplaintDate(complaint.receivedAt, true)}
                     </td>
-                    <td className="px-3 py-3 text-t2">{complaint.categoryLabel ?? "-"}</td>
-                    <td className="max-w-[220px] truncate px-3 py-3 text-t1">
+                    <td className="px-4 py-3 text-t2">{complaint.categoryLabel ?? "-"}</td>
+                    <td className="min-w-[240px] max-w-[300px] whitespace-normal break-words px-4 py-3 leading-[1.5] text-t1">
                       {complaint.title || complaint.content || "-"}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-3 text-t2">
+                    <td className="whitespace-nowrap px-4 py-3 text-t2 num">
                       {complaint.reporterPhone ?? "-"}
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="px-4 py-3">
                       <Badge className={`px-2 py-1 ${COMPLAINT_STATUS_STYLE[complaint.status]}`}>
                         {COMPLAINT_STATUS_LABEL[complaint.status]}
                       </Badge>
                     </td>
-                    <td className="max-w-[220px] truncate px-3 py-3 text-t2">
+                    <td className="min-w-[240px] max-w-[300px] whitespace-normal break-words px-4 py-3 leading-[1.5] text-t2">
                       {latest?.resultContent ?? "-"}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-3 text-t2">
+                    <td className="whitespace-nowrap px-4 py-3 text-t2 num">
                       {formatComplaintDate(latest?.resolvedAt ?? complaint.completedAt)}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-3 text-t2">
+                    <td className="whitespace-nowrap px-4 py-3 text-t2 num">
                       {complaint.receivedAt?.slice(11, 16) || "-"}
                     </td>
-                    <td className="px-3 py-3 text-t2">
+                    <td className="px-4 py-3 text-t2">
                       {complaint.createdBy ? assigneeNames.get(complaint.createdBy) ?? "-" : "-"}
                     </td>
-                    <td className="px-3 py-3 text-t2">
+                    <td className="px-4 py-3 text-t2">
                       {complaint.assignedTo ? assigneeNames.get(complaint.assignedTo) ?? "-" : "-"}
                     </td>
                   </tr>
