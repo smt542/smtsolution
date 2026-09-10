@@ -743,24 +743,3 @@
   max-height: 100%;
   border-radius: 10px;
 }
-
-@media (max-width: 1023px) {
-  .screen {
-    height: auto;
-    min-height: calc(100dvh - 62px);
-    overflow: visible;
-    padding: 16px;
-  }
-
-  .workspace {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .buildingPanel {
-    max-height: 320px;
-  }
-
-  .ledgerPanel {
-    min-height: 560px;
-  }
-}
