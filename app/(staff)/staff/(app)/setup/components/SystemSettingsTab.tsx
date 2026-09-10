@@ -3,7 +3,6 @@ import { toast } from "sonner";
 import { useMe } from "@/hooks/reactquery/auth";
 import { MasterListEditor } from "./MasterListEditor";
 import { QuickMessageEditor } from "./QuickMessageEditor";
-import { VendorManagementSection } from "@/components/vendors/VendorManagementSection";
 import { useRoomTypes, useCreateRoomType, useRenameRoomType, useDeleteRoomType } from "@/hooks/reactquery/roomTypes";
 import { useSepticVendors, useCreateSepticVendor, useRenameSepticVendor, useDeleteSepticVendor } from "@/hooks/reactquery/septicVendors";
 import { useAsCategories, useCreateAsCategory, useRenameAsCategory, useDeleteAsCategory } from "@/hooks/reactquery/asCategories";
@@ -44,10 +43,6 @@ export function SystemSettingsTab() {
         <ConnectedMasterEditor title="청소팀" useList={useCleaningTeams} useCreate={useCreateCleaningTeam} useRename={useRenameCleaningTeam} useRemove={useDeleteCleaningTeam} />
       </div>
       <QuickMessageEditor />
-      <div>
-        <h3 className="mb-3 text-base font-extrabold text-t1">협력업체</h3>
-        <VendorManagementSection />
-      </div>
     </div>
   );
 }

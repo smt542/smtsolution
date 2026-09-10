@@ -22,20 +22,19 @@ vi.mock("@/hooks/reactquery/cleaningTeams", () => ({
   useRenameCleaningTeam: () => ({ mutateAsync: vi.fn() }), useDeleteCleaningTeam: () => ({ mutateAsync: vi.fn() }),
 }));
 vi.mock("./QuickMessageEditor", () => ({ QuickMessageEditor: () => <div>QUICK_MSG</div> }));
-vi.mock("@/components/vendors/VendorManagementSection", () => ({ VendorManagementSection: () => <div>VENDOR_SECTION</div> }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 import { SystemSettingsTab } from "./SystemSettingsTab";
 beforeEach(() => { vi.clearAllMocks(); roomCreate.mockResolvedValue({}); });
 
 describe("SystemSettingsTab", () => {
-  it("4 마스터 + 문자 + 협력업체 렌더", () => {
+  it("4 마스터 + 문자를 렌더하고 독립 협력업체 화면은 포함하지 않는다", () => {
     render(<SystemSettingsTab />);
     expect(screen.getByText("룸타입")).toBeInTheDocument();
     expect(screen.getByText("정화조 업체")).toBeInTheDocument();
     expect(screen.getByText("AS 구분")).toBeInTheDocument();
     expect(screen.getByText("청소팀")).toBeInTheDocument();
     expect(screen.getByText("QUICK_MSG")).toBeInTheDocument();
-    expect(screen.getByText("VENDOR_SECTION")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "협력업체" })).not.toBeInTheDocument();
   });
   it("룸타입 추가 → useCreateRoomType({orgId,label})", async () => {
     render(<SystemSettingsTab />);
