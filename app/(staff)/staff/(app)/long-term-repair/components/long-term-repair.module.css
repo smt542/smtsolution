@@ -84,7 +84,6 @@
   color: var(--color-t3);
   font-size: 12px;
   font-weight: 700;
-  line-height: 13.5px;
 }
 
 .buildingRow {
@@ -116,6 +115,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.buildingCode {
+  font-variant-numeric: tabular-nums;
 }
 
 .buildingName {
@@ -449,6 +452,12 @@
   background: #fafbfc;
   color: var(--color-t3);
   font-weight: 600;
+}
+
+.subtotalRow td:nth-child(4),
+.subtotalRow td:nth-child(5),
+.subtotalRow td:nth-child(6) {
+  font-variant-numeric: tabular-nums;
 }
 
 .footer {
