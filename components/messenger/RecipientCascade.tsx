@@ -106,6 +106,24 @@ export function RecipientCascade({
   const thirdRef = useRef<HTMLDivElement>(null);
   const onChangeRef = useRef(onChange);
 
+  // 채널(문자↔알림톡) 전환 시 선택 조정 — effect가 아닌 렌더 중 조정(React 권장 패턴).
+  // 새 채널에 없는 유형만 초기화한다: 입주자·건물주는 두 채널 공통이라 선택을 유지해
+  // 문자↔알림톡을 오가도 수신자 선택이 보존되고, 직원·청소담당은 알림톡에 없어 초기화된다.
+  const [prevChannel, setPrevChannel] = useState(channel);
+  if (channel !== prevChannel) {
+    setPrevChannel(channel);
+    const validTypes: RecipientType[] =
+      channel === "alim"
+        ? ["tenant", "owner"]
+        : ["staff", "tenant", "owner", "cleaner"];
+    if (selection.type && !validTypes.includes(selection.type as RecipientType)) {
+      setSelection(EMPTY_SELECTION);
+    }
+    setOpenMenu(null);
+    setSecondSearch("");
+    setThirdSearch("");
+  }
+
   const types: RecipientType[] =
     channel === "alim"
       ? ["tenant", "owner"]

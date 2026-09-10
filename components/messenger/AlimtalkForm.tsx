@@ -108,6 +108,9 @@ export function AlimtalkForm({
 }: AlimtalkFormProps) {
   const { data: allTemplates = [], isLoading } = useMessageTemplates();
   const [open, setOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<
+    { left: number; top: number; width: number } | undefined
+  >();
   const rootRef = useRef<HTMLDivElement>(null);
   const templates = useMemo(
     () =>
@@ -131,6 +134,21 @@ export function AlimtalkForm({
     return () => document.removeEventListener("mousedown", closeOnOutsideClick);
   }, []);
 
+  // 정본(Messenger.dc.html #akTplSel)은 SMS와 동일한 .fmp-tplsel "≡ 템플릿" 버튼으로
+  // 승인 템플릿을 고른다. 메뉴는 우측 정렬 팝업(.fmp-tplmenu)이라 버튼 위치 기준으로 배치.
+  const toggleTemplates = () => {
+    if (!open && rootRef.current) {
+      const rect = rootRef.current.getBoundingClientRect();
+      const width = Math.min(340, window.innerWidth - 24);
+      setMenuPosition({
+        left: Math.max(12, Math.min(rect.right - width, window.innerWidth - width - 12)),
+        top: rect.bottom + 6,
+        width,
+      });
+    }
+    setOpen((current) => !current);
+  };
+
   const chooseTemplate = (template: TemplateWithStatus) => {
     if (!isApproved(template)) return;
     const nextVariables = Object.fromEntries(
@@ -147,80 +165,100 @@ export function AlimtalkForm({
 
   return (
     <div className={styles["fmp-akwrap"]} style={{ display: "flex" }}>
-      <div className={styles["fmp-lbl"]}>알림톡 승인 템플릿</div>
+      {/* 정본: "템플릿 내용" 라벨 + 우측 "≡ 템플릿" 버튼(.fmp-tplsel, SMS와 동일 스타일) */}
       <div
-        ref={rootRef}
-        className={`${styles["fmp-aksel"]} ${open ? styles.open : ""}`}
-        onClick={() => setOpen((current) => !current)}
-        aria-expanded={open}
+        className={styles["fmp-lbl"]}
+        // .fmp-akwrap는 gap:8이라 라벨→akForm 간격이 +8 된다. 정본(16px)에 맞춰 margin은 8만.
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 8,
+        }}
       >
-        <span className={styles.k}>K</span>
-        {selected ? (
-          <span className={styles.nm}>{selected.title}</span>
-        ) : (
-          <span className={styles.phv}>승인 템플릿을 선택해 주세요</span>
-        )}
-        <svg
-          className={styles.cv}
-          viewBox="0 0 24 24"
-          width="15"
-          height="15"
-          fill="none"
-          stroke="#8B95A1"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M6 9l6 6 6-6" />
-        </svg>
+        <span>템플릿 내용</span>
         <div
-          className={styles["fmp-akmenu"]}
-          onClick={(event) => event.stopPropagation()}
+          ref={rootRef}
+          className={`${styles["fmp-tplsel"]} ${open ? styles.open : ""}`}
         >
-          {isLoading && (
-            <div className={styles["fmp-pempty"]}>템플릿을 불러오는 중입니다.</div>
-          )}
-          {!isLoading && templates.length === 0 && (
-            <div className={styles["fmp-pempty"]}>
-              승인 코드가 등록된 알림톡 템플릿이 없습니다.
-            </div>
-          )}
-          {templates.map((template) => {
-            const approved = isApproved(template);
-            const optionKind = templateKind(template);
-            return (
-              <button
-                type="button"
-                key={template.id}
-                className={`${styles["ak-opt"]} ${!approved ? styles.disabled : ""}`}
-                onClick={() => chooseTemplate(template)}
-                disabled={!approved}
-              >
-                <span className={styles["ak-opt-h"]}>
-                  <span className={`${styles["ak-type"]} ${styles[optionKind]}`}>
-                    {optionKind === "recurring" ? "정기" : "공지"}
+          <button
+            type="button"
+            onClick={toggleTemplates}
+            aria-expanded={open}
+            style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M4 6h16M4 12h16M4 18h10" />
+            </svg>
+            템플릿
+            <svg
+              className={styles.cv}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              aria-hidden="true"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+          <div
+            className={`${styles.menu} ${styles["fmp-tplmenu"]}`}
+            style={menuPosition}
+            onClick={(event) => event.stopPropagation()}
+          >
+            {isLoading && (
+              <div className={styles["fmp-pempty"]}>템플릿을 불러오는 중입니다.</div>
+            )}
+            {!isLoading && templates.length === 0 && (
+              <div className={styles["fmp-pempty"]}>
+                승인 코드가 등록된 알림톡 템플릿이 없습니다.
+              </div>
+            )}
+            {templates.map((template) => {
+              const approved = isApproved(template);
+              const optionKind = templateKind(template);
+              return (
+                <button
+                  type="button"
+                  key={template.id}
+                  className={`${styles["ak-opt"]} ${!approved ? styles.disabled : ""}`}
+                  onClick={() => chooseTemplate(template)}
+                  disabled={!approved}
+                >
+                  <span className={styles["ak-opt-h"]}>
+                    <span className={`${styles["ak-type"]} ${styles[optionKind]}`}>
+                      {optionKind === "recurring" ? "정기" : "공지"}
+                    </span>
+                    <span className={styles.nm}>{template.title}</span>
+                    <span
+                      className={`${styles["ak-status"]} ${approved ? styles.ok : styles.wait}`}
+                    >
+                      {approved ? "승인" : "미승인"}
+                    </span>
                   </span>
-                  <span className={styles.nm}>{template.title}</span>
-                  <span
-                    className={`${styles["ak-status"]} ${approved ? styles.ok : styles.wait}`}
-                  >
-                    {approved ? "승인" : "미승인"}
+                  <span className={styles["ak-opt-b"]}>
+                    {template.body.replace(/\s+/g, " ")}
                   </span>
-                </span>
-                <span className={styles["ak-opt-b"]}>
-                  {template.body.replace(/\s+/g, " ")}
-                </span>
-              </button>
-            );
-          })}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
       <div className={styles["fmp-akform"]} style={{ display: "flex" }}>
         {!selected ? (
           <div className={styles["ak-emptyhint"]}>
-            위 <b>템플릿</b>에서 승인 템플릿을 선택하면
+            우측 <b>템플릿</b> 버튼에서 승인 템플릿을 선택하면
             <br />채워 넣을 항목이 여기에 표시돼요.
           </div>
         ) : (

@@ -456,7 +456,6 @@ function MessengerFabContent() {
             <div>
               <div className={styles["fmp-lbl"]}>수신자</div>
               <RecipientCascade
-                key={ui.channel}
                 channel={ui.channel}
                 onChange={changeRecipients}
               />
