@@ -10,7 +10,7 @@ const columns: BillingColumn[] = [
   { feeItemId: 11, name: "수도", carryOver: false, dailyProration: true, rounding: "round", isRequired: false, sortOrder: 1 },
 ];
 const unit = (o: Partial<BillingUnitRow> = {}): BillingUnitRow => ({
-  unitId: 1, unitNo: "101", dong: null, roomTypeLabel: "원룸", occupancyId: 5, tenantName: "홍길동",
+  unitId: 1, unitNo: "101", dong: null, roomTypeLabel: "원룸", areaPyeong: null, occupancyId: 5, tenantName: "홍길동",
   moveInDate: "2026-08-01", isVacant: false, confirmedAt: null, confirmedByName: null, totalAmount: null,
   billingNote: null, unitNotice: null, isDirty: false,
   charges: { 10: { charged: true, amount: 30000 }, 11: { charged: true, amount: 5000 } }, ...o,

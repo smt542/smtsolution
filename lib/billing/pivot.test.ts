@@ -3,6 +3,7 @@ import { pivotBillingRows, type BillingFlatRow } from "./pivot";
 
 const base: Omit<BillingFlatRow, "feeItemId" | "feeItemName" | "sortOrder" | "charged" | "amount"> = {
   unitId: 1, unitNo: "101", dong: null, roomTypeLabel: "원룸",
+  areaPyeong: null,
   occupancyId: 5, tenantName: "홍길동", moveInDate: "2026-08-01", isVacant: false,
   carryOver: false, dailyProration: false, rounding: "round", isRequired: true,
   confirmedAt: null, confirmedByName: null, totalAmount: null, billingNote: null, unitNotice: null, isDirty: false,

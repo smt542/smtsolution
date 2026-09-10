@@ -29,15 +29,9 @@ export function isRecentMoveIn(moveInDate: string | null, period: string): boole
   return Boolean(moveInDate && moveInDate.slice(0, 7) === period.slice(0, 7));
 }
 
-/**
- * 세대의 평수. 아직 list_billing RPC가 area를 돌려주지 않아 pivot 타입에도 없다.
- * TODO(pixel): 후속 마이그레이션이 units.area_pyeong을 채우고 pivot에 areaPyeong을 추가하면
- * 아래 접근이 자동으로 실값을 읽는다. 그 전까지는 null → 화면에 "-"로 표시한다.
- * (pivot.ts는 이 작업 범위 밖이라 여기서 방어적으로 읽는다.)
- */
+/** 세대의 평수. list_billing이 units.area_pyeong을 반환하고 pivot이 areaPyeong으로 전달한다(마이그 0151). */
 export function unitAreaPyeong(unit: BillingUnitRow): number | null {
-  const value = (unit as BillingUnitRow & { areaPyeong?: number | null }).areaPyeong;
-  return typeof value === "number" ? value : null;
+  return unit.areaPyeong;
 }
 
 /** 특정 공과금 유형에서 이 세대의 금액. manualCharge ?? automaticCharge ?? 0. */

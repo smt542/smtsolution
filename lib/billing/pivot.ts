@@ -2,6 +2,7 @@ import type { Rounding } from "./proration";
 
 export interface BillingFlatRow {
   unitId: number; unitNo: string; dong: string | null; roomTypeLabel: string | null;
+  areaPyeong: number | null;
   occupancyId: number | null; tenantName: string | null; moveInDate: string | null; isVacant: boolean;
   feeItemId: number; feeItemName: string; carryOver: boolean; dailyProration: boolean;
   rounding: Rounding; isRequired: boolean; sortOrder: number;
@@ -17,6 +18,7 @@ export interface BillingColumn {
 
 export interface BillingUnitRow {
   unitId: number; unitNo: string; dong: string | null; roomTypeLabel: string | null;
+  areaPyeong: number | null;
   occupancyId: number | null; tenantName: string | null; moveInDate: string | null; isVacant: boolean;
   confirmedAt: string | null; confirmedByName: string | null; totalAmount: number | null;
   billingNote: string | null; unitNotice: string | null; isDirty: boolean;
@@ -37,6 +39,7 @@ export function pivotBillingRows(rows: BillingFlatRow[]): { units: BillingUnitRo
     if (!unitMap.has(r.unitId)) {
       unitMap.set(r.unitId, {
         unitId: r.unitId, unitNo: r.unitNo, dong: r.dong, roomTypeLabel: r.roomTypeLabel,
+        areaPyeong: r.areaPyeong,
         occupancyId: r.occupancyId, tenantName: r.tenantName, moveInDate: r.moveInDate, isVacant: r.isVacant,
         confirmedAt: r.confirmedAt, confirmedByName: r.confirmedByName, totalAmount: r.totalAmount,
         billingNote: r.billingNote, unitNotice: r.unitNotice, isDirty: r.isDirty, charges: {},
