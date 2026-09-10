@@ -27,6 +27,7 @@ import { POST } from "./route";
 const INVALID_RESPONSE = { error: "아이디 또는 비밀번호가 올바르지 않습니다." };
 const CONTEXT_ROW = {
   org_id: 7,
+  org_name: "테스트 관리회사",
   role: "staff",
   org_status: "active",
   username: "office.user",
@@ -39,6 +40,7 @@ const CONTEXT_ROW = {
 };
 const CONTEXT = {
   orgId: 7,
+  orgName: "테스트 관리회사",
   role: "staff",
   orgStatus: "active",
   username: "office.user",

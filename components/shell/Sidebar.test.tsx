@@ -48,6 +48,7 @@ vi.mock("@/hooks/reactquery/auth", () => ({
 function makeMe(overrides: Partial<MyContext>): { data: MyContext } {
   const base: MyContext = {
     orgId: 1,
+    orgName: "테스트 관리회사",
     role: "manager",
     orgStatus: "active",
     username: "testuser",
@@ -139,7 +140,16 @@ describe("Sidebar", () => {
 
     const brandLink = screen.getByRole("link", { name: "관리비서" });
     expect(brandLink.querySelector("img")?.getAttribute("src")).toContain("%2Flogo-mark.png");
-    expect(screen.getByText("비서")).toHaveClass("text-teal");
+    expect(screen.getByText("비서")).toHaveClass("text-[#17a493]");
+  });
+
+  it("프로필 메뉴 헤더에 로그인 컨텍스트의 회사명을 표시한다", () => {
+    mockUseMe.mockReturnValue(makeMe({ role: "org_owner" }));
+
+    render(<Sidebar />);
+    fireEvent.click(screen.getByRole("button", { name: /테스트/ }));
+
+    expect(screen.getByText("프로필 · 테스트 관리회사")).toBeInTheDocument();
   });
 
   it("platform_admin에게 통합관리자 콘솔 링크를 노출한다", () => {

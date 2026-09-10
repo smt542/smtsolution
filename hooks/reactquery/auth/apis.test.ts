@@ -57,12 +57,13 @@ describe("getMyContext", () => {
   it("rpc 결과 첫 행을 카멜케이스로 매핑", async () => {
     rpc.mockResolvedValue({ data: [{
       org_id: 1, role: "staff", org_status: "active",
+      org_name: "테스트 관리회사",
       username: "hong", full_name: "홍길동", is_active: true, must_change_password: false,
       staff_type: "manager_staff", permissions: ["buildings"], staff_capabilities: ["manager_staff"],
     }], error: null });
     const ctx = await getMyContext();
     expect(ctx).toEqual({
-      orgId: 1, role: "staff", orgStatus: "active",
+      orgId: 1, orgName: "테스트 관리회사", role: "staff", orgStatus: "active",
       username: "hong", fullName: "홍길동", isActive: true, mustChangePassword: false,
       staffType: "manager_staff", staffCapabilities: ["manager_staff"], permissions: ["buildings"],
     });
