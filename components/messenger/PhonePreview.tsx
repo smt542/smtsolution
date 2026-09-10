@@ -91,7 +91,14 @@ export function PhonePreview({
 
   return (
     <div className={styles["fmp-phonewrap"]}>
-      <div className={styles["fmp-lbl"]}>미리보기</div>
+      {/* 정본: 메시지 컬럼 라벨과 높이를 맞추기 위한 숨김 스페이서(표시 안 함) */}
+      <div
+        className={styles["fmp-lbl"]}
+        aria-hidden="true"
+        style={{ visibility: "hidden", height: 25 }}
+      >
+        미리보기
+      </div>
       <div className={styles["fmp-phone"]}>
         <div className={styles["ph-screen"]}>
           <div className={styles["ph-head"]}>
