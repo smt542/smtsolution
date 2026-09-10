@@ -128,7 +128,7 @@ export default function BillDetailView(props: BillDetailViewProps) {
   const accountWithAmount = account
     ? `${account} ${formatWon(payableAmount)}`
     : "";
-  // 공개(무로그인) 링크의 열람 만료일(고지월+12개월). authed 모드에는 없음.
+  // 공개(무로그인) 링크의 열람 만료일(납기일+1개월). authed 모드에는 없음.
   const publicExpiry =
     props.mode === "public" && props.detail
       ? formatExpiryDate(props.detail.expiresAt)

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { MessengerFab } from "@/components/messenger/MessengerFab";
 import { AsReceptionRail } from "./as-rail/AsReceptionRail";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
@@ -58,6 +59,9 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* 우측 A/S·퇴실 패널 (전역, print 제외) */}
       <AsReceptionRail />
+
+      {/* 스태프 전역 빠른발송 FAB */}
+      <MessengerFab />
 
       {/* Mobile drawer */}
       {drawerOpen && (
