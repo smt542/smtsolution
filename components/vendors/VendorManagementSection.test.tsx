@@ -148,7 +148,23 @@ describe("VendorManagementPage", () => {
     fireEvent.click(categoryButton!);
     fireEvent.click(screen.getByRole("button", { name: "업체 추가" }));
 
-    expect(await screen.findByRole("combobox", { name: "구분" })).toHaveValue("1");
+    expect(await screen.findByRole("combobox", { name: "구분" })).toHaveTextContent("전기");
+  });
+
+  it("업체 추가 모달은 구분 선택 전 입력 필드를 숨기고 커스텀 목록에서 구분을 선택한다", async () => {
+    const user = userEvent.setup();
+    render(<VendorManagementSection />);
+    await user.click(screen.getByRole("button", { name: /업체 추가/ }));
+
+    expect(screen.getByText("구분을 먼저 선택하세요.")).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("업체명")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("combobox", { name: "구분" }));
+    expect(screen.getByRole("listbox", { name: "구분 선택" })).toBeInTheDocument();
+    await user.click(screen.getByRole("option", { name: "전기" }));
+
+    expect(screen.queryByText("구분을 먼저 선택하세요.")).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText("업체명")).toBeInTheDocument();
   });
 
   it("업체명 is required — submitting empty name shows validation error", async () => {
@@ -156,6 +172,9 @@ describe("VendorManagementPage", () => {
     render(<VendorManagementSection />);
     fireEvent.click(screen.getByRole("button", { name: /업체 추가/ }));
     await waitFor(() => expect(screen.getByRole("heading", { name: "업체 추가" })).toBeInTheDocument());
+
+    await user.click(screen.getByRole("combobox", { name: "구분" }));
+    await user.click(screen.getByRole("option", { name: "전기" }));
 
     // Submit without filling name — use the modal's submit button (exact text "추가")
     const submitBtn = screen.getByRole("button", { name: "추가" });
