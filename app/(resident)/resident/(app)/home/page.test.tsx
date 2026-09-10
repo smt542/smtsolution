@@ -1,7 +1,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const guard = vi.hoisted(() => ({ useResidentGuard: vi.fn() }));
 const billing = vi.hoisted(() => ({ useResidentBillMonths: vi.fn() }));
 const notices = vi.hoisted(() => ({
   useResidentNotices: vi.fn(),
@@ -10,7 +9,6 @@ const notices = vi.hoisted(() => ({
 const profiles = vi.hoisted(() => ({ useResidentProfile: vi.fn() }));
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/resident/home" }));
-vi.mock("@/lib/resident/useResidentGuard", () => guard);
 vi.mock("@/hooks/reactquery/residentBilling", () => billing);
 vi.mock("@/hooks/reactquery/residentNotices", () => notices);
 vi.mock("@/hooks/reactquery/residentProfile", () => profiles);
@@ -21,12 +19,6 @@ const queryBase = { error: null, isPending: false, refetch: vi.fn() };
 
 beforeEach(() => {
   vi.clearAllMocks();
-  guard.useResidentGuard.mockReturnValue({
-    loading: false,
-    link: { buildingName: "해오름빌라", unitNo: "201호", tenantName: "김주민" },
-    error: null,
-    retry: vi.fn(),
-  });
   profiles.useResidentProfile.mockReturnValue({
     ...queryBase,
     data: {
@@ -99,6 +91,29 @@ beforeEach(() => {
 });
 
 describe("ResidentHomePage", () => {
+  it("preserves the combined loading and retry states", () => {
+    profiles.useResidentProfile.mockReturnValue({
+      ...queryBase,
+      data: undefined,
+      isPending: true,
+    });
+    const loading = render(<ResidentHomePage />);
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "홈 정보를 불러오고 있어요.",
+    );
+    loading.unmount();
+
+    profiles.useResidentProfile.mockReturnValue({
+      ...queryBase,
+      data: undefined,
+      error: new Error("failed"),
+    });
+    render(<ResidentHomePage />);
+
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    expect(queryBase.refetch).toHaveBeenCalledTimes(3);
+  });
+
   it("renders the canon header, bill card with total + late fee, trend, notice, move-out, and nav", () => {
     render(<ResidentHomePage />);
 

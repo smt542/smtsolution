@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const getStaffContext = vi.hoisted(() => vi.fn());
 const mutation = () => ({ mutateAsync: vi.fn().mockResolvedValue({}), isPending: false });
 const saveMut = mutation();
 const confirmMut = { mutateAsync: vi.fn().mockResolvedValue({ unitCount: 1, total: 30000 }), isPending: false };
@@ -9,7 +10,7 @@ const periodMut = mutation();
 const noteMut = mutation();
 const chargeNewMut = mutation();
 
-vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
+vi.mock("../_staffContext", () => ({ getStaffContext }));
 vi.mock("@/hooks/reactquery/buildings", () => ({
   useBuildings: vi.fn(),
   useSetBuildingSetupConfirm: vi.fn(() => mutation()),
@@ -44,7 +45,7 @@ vi.mock("@/hooks/reactquery/utilities", () => ({
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() } }));
 
 import ManagementFeePage from "./page";
-import { useMe } from "@/hooks/reactquery/auth";
+import { ManagementFeeWorkspace } from "./ManagementFeeWorkspace";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useBilling, useBillingPeriodSetting, useUnchargedNewOccupancies } from "@/hooks/reactquery/billing";
 
@@ -97,7 +98,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   confirmMut.mutateAsync.mockResolvedValue({ unitCount: 1, total: 30000 });
   copyMut.mutateAsync.mockResolvedValue({ buildingCount: 1, unitCount: 1, chargeCount: 1 });
-  vi.mocked(useMe).mockReturnValue({ data: { orgId: 10, role: "org_owner", permissions: [] } } as never);
+  getStaffContext.mockResolvedValue({ orgId: 10, role: "org_owner", permissions: [] });
   vi.mocked(useBuildings).mockReturnValue({ data: [baseBuilding], isLoading: false } as never);
   vi.mocked(useBilling).mockReturnValue({ data: [], isLoading: false, error: null, refetch: vi.fn() } as never);
   vi.mocked(useBillingPeriodSetting).mockReturnValue({
@@ -109,14 +110,14 @@ beforeEach(() => {
 });
 
 describe("관리비 부과 셋팅", () => {
-  it("billing 권한이 없으면 접근을 차단한다", () => {
-    vi.mocked(useMe).mockReturnValue({ data: { orgId: 10, role: "staff", permissions: [] } } as never);
-    render(<ManagementFeePage />);
+  it("billing 권한이 없으면 서버에서 접근을 차단한다", async () => {
+    getStaffContext.mockResolvedValue({ orgId: 10, role: "staff", permissions: [] });
+    render(await ManagementFeePage());
     expect(screen.getByText(/권한이 없습니다/)).toBeInTheDocument();
   });
 
-  it("미선택 상태와 Figma 작업 버튼을 표시한다", () => {
-    render(<ManagementFeePage />);
+  it("권한이 있으면 Client workspace의 미선택 상태와 Figma 작업 버튼을 표시한다", async () => {
+    render(await ManagementFeePage());
     expect(screen.getAllByText("건물을 선택해 주세요").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "빌라자료추가" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "전체자료추가" })).toBeEnabled();
@@ -124,14 +125,14 @@ describe("관리비 부과 셋팅", () => {
 
   it("건물을 선택하면 세대 표를 표시한다", async () => {
     vi.mocked(useBilling).mockReturnValue({ data: [billingRow], isLoading: false, error: null, refetch: vi.fn() } as never);
-    render(<ManagementFeePage />);
+    render(<ManagementFeeWorkspace />);
     fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
     expect(await screen.findByText("101")).toBeInTheDocument();
   });
 
   it("수정 후 저장하면 일정 저장과 부과 확정을 함께 수행한다", async () => {
     vi.mocked(useBilling).mockReturnValue({ data: [billingRow], isLoading: false, error: null, refetch: vi.fn() } as never);
-    render(<ManagementFeePage />);
+    render(<ManagementFeeWorkspace />);
     fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
     const schedule = screen.getByRole("group", { name: "부과 일정 설정" });
     fireEvent.click(within(schedule).getByRole("button", { name: "수정" }));
@@ -152,7 +153,7 @@ describe("관리비 부과 셋팅", () => {
       error: null,
       refetch: vi.fn(),
     } as never);
-    render(<ManagementFeePage />);
+    render(<ManagementFeeWorkspace />);
     fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
     const schedule = screen.getByRole("group", { name: "부과 일정 설정" });
     fireEvent.click(within(schedule).getByRole("button", { name: "수정" }));
@@ -175,7 +176,7 @@ describe("관리비 부과 셋팅", () => {
       error: null,
       refetch: vi.fn(),
     } as never);
-    render(<ManagementFeePage />);
+    render(<ManagementFeeWorkspace />);
     fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
     const schedule = screen.getByRole("group", { name: "부과 일정 설정" });
     fireEvent.click(within(schedule).getByRole("button", { name: "수정" }));
@@ -190,7 +191,7 @@ describe("관리비 부과 셋팅", () => {
   });
 
   it("부과기준일을 수정해 저장한다", async () => {
-    render(<ManagementFeePage />);
+    render(<ManagementFeeWorkspace />);
     fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
     const schedule = screen.getByRole("group", { name: "부과 일정 설정" });
     fireEvent.click(within(schedule).getByRole("button", { name: "수정" }));
@@ -200,7 +201,7 @@ describe("관리비 부과 셋팅", () => {
   });
 
   it("전체 전월자료 반영을 확인한 뒤 복사한다", async () => {
-    render(<ManagementFeePage />);
+    render(<ManagementFeeWorkspace />);
     fireEvent.click(screen.getByRole("button", { name: "전체자료추가" }));
     expect(screen.getByRole("dialog", { name: "전체 건물에 전월 자료를 반영할까요?" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "반영" }));
@@ -209,7 +210,7 @@ describe("관리비 부과 셋팅", () => {
 
   it("중요 건물은 경고 후 개별 전월자료 반영을 재확인한다", async () => {
     vi.mocked(useBuildings).mockReturnValue({ data: [{ ...baseBuilding, setupConfirmRequired: true }], isLoading: false } as never);
-    render(<ManagementFeePage />);
+    render(<ManagementFeeWorkspace />);
     fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
     fireEvent.click(screen.getByRole("button", { name: "빌라자료추가" }));
     expect(screen.getByRole("dialog", { name: "중요 건물로 지정된 건물이에요" })).toBeInTheDocument();
@@ -221,7 +222,7 @@ describe("관리비 부과 셋팅", () => {
 
   it("신규 입주 감지 시 당월 부과 모달을 자동으로 연다", async () => {
     vi.mocked(useUnchargedNewOccupancies).mockReturnValue({ data: [{ unitId: 3, unitNo: "301", dong: "A", tenantName: "김신규", moveInDate: "2026-08-20" }], isLoading: false } as never);
-    render(<ManagementFeePage />);
+    render(<ManagementFeeWorkspace />);
     fireEvent.change(screen.getByLabelText("건물 선택"), { target: { value: "7" } });
     expect(await screen.findByText("이번 달 관리비를 부과하시겠습니까?")).toBeInTheDocument();
   });

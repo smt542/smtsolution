@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   listFeeItems: vi.fn(),
   reorderFeeItems: vi.fn(),
   updateFeeItem: vi.fn(),
+  getStaffContext: vi.fn(),
 }));
 
 vi.mock("sonner", () => ({
@@ -19,7 +20,7 @@ vi.mock("sonner", () => ({
 vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
 }));
-vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
+vi.mock("../_staffContext", () => ({ getStaffContext: mocks.getStaffContext }));
 vi.mock("@/hooks/reactquery/buildingTypes", () => ({
   useBuildingTypes: vi.fn(),
   createBuildingType: vi.fn(),
@@ -40,7 +41,6 @@ vi.mock("@/hooks/reactquery/feeItems", () => ({
   feeItemKeys: { all: ["feeItems"] },
 }));
 
-import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildingTypes } from "@/hooks/reactquery/buildingTypes";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useAllFeeItems } from "@/hooks/reactquery/feeItems";
@@ -82,9 +82,7 @@ beforeEach(() => {
   mocks.updateFeeItem.mockResolvedValue({ id: 1 });
   mocks.typeRefetch.mockResolvedValue({ data: buildingTypes });
   mocks.itemRefetch.mockResolvedValue({ data: feeItems });
-  vi.mocked(useMe).mockReturnValue({
-    data: { orgId: 9, role: "staff", permissions: ["fee_items"] },
-  } as never);
+  mocks.getStaffContext.mockResolvedValue({ orgId: 9, role: "staff", permissions: ["fee_items"] });
   vi.mocked(useBuildingTypes).mockReturnValue({
     data: buildingTypes,
     isLoading: false,
@@ -101,8 +99,8 @@ beforeEach(() => {
 });
 
 describe("FeeItemsPage", () => {
-  it("renders the Figma default state with type tabs and fee item policies", () => {
-    render(<FeeItemsPage />);
+  it("renders the Figma default state with type tabs and fee item policies", async () => {
+    render(await FeeItemsPage());
 
     expect(screen.getByRole("navigation", { name: "건물 유형" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "빌라" })).toBeInTheDocument();
@@ -113,12 +111,12 @@ describe("FeeItemsPage", () => {
     expect(screen.getByRole("button", { name: "항목 추가" })).toBeInTheDocument();
   });
 
-  it("creates a new type with the three locked required items", () => {
-    render(<FeeItemsPage />);
+  it("creates a new type with the three locked required items", async () => {
+    render(await FeeItemsPage());
 
     fireEvent.click(screen.getByRole("button", { name: "건물 유형 추가" }));
 
-    expect(screen.getByRole("button", { name: "유형명" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "유형명" })).toBeInTheDocument();
     expect(screen.getByText("3개")).toBeInTheDocument();
     expect(screen.getAllByText("필수")).toHaveLength(3);
     expect(screen.getByRole("button", { name: "변경 내용 저장" })).toBeInTheDocument();
@@ -142,7 +140,7 @@ describe("FeeItemsPage", () => {
       refetch: vi.fn().mockResolvedValue({ data: incompleteItems }),
     } as never);
 
-    render(<FeeItemsPage />);
+    render(await FeeItemsPage());
 
     expect(screen.getAllByText("필수")).toHaveLength(3);
     expect(screen.getByRole("rowheader", { name: /가스/ })).toBeInTheDocument();
@@ -157,20 +155,20 @@ describe("FeeItemsPage", () => {
     );
   });
 
-  it("opens the add dialog with the PRD defaults", () => {
-    render(<FeeItemsPage />);
+  it("opens the add dialog with the PRD defaults", async () => {
+    render(await FeeItemsPage());
 
     fireEvent.click(screen.getByRole("button", { name: "항목 추가" }));
 
     expect(screen.getByRole("form", { name: "관리 항목 추가" })).toBeInTheDocument();
     expect(screen.getByPlaceholderText("예: 일반관리비")).toHaveValue("");
-    expect(screen.getByRole("combobox", { name: "반올림" })).toHaveValue("round");
-    expect(screen.getByRole("combobox", { name: "일자계산" })).toHaveValue("true");
-    expect(screen.getByRole("combobox", { name: "이월" })).toHaveValue("false");
+    expect(screen.getByRole("button", { name: "반올림" })).toHaveTextContent("4사5입");
+    expect(screen.getByRole("button", { name: "일자계산" })).toHaveTextContent("적용");
+    expect(screen.getByRole("button", { name: "이월" })).toHaveTextContent("안함");
   });
 
   it("shows the destructive type confirmation with its item count", async () => {
-    render(<FeeItemsPage />);
+    render(await FeeItemsPage());
 
     fireEvent.click(screen.getByRole("button", { name: "건물 유형 삭제" }));
 
@@ -181,7 +179,7 @@ describe("FeeItemsPage", () => {
 
   it("blocks deleting a type that is assigned or has billing history", async () => {
     mocks.typeUsage.mockResolvedValue({ buildings: false, billing: true });
-    render(<FeeItemsPage />);
+    render(await FeeItemsPage());
 
     fireEvent.click(screen.getByRole("button", { name: "건물 유형 삭제" }));
 
@@ -190,7 +188,7 @@ describe("FeeItemsPage", () => {
   });
 
   it("stages a type rename and persists it only after explicit save", async () => {
-    render(<FeeItemsPage />);
+    render(await FeeItemsPage());
 
     fireEvent.click(screen.getByRole("button", { name: "건물 유형명 수정" }));
     fireEvent.change(screen.getByRole("textbox", { name: "건물 유형명" }), { target: { value: "다가구" } });
@@ -201,10 +199,10 @@ describe("FeeItemsPage", () => {
     await waitFor(() => expect(mocks.renameType).toHaveBeenCalledWith(1, "다가구"));
   });
 
-  it("uses the dedicated fee-items permission", () => {
-    vi.mocked(useMe).mockReturnValue({ data: { orgId: 9, role: "staff", permissions: ["billing"] } } as never);
+  it("uses the dedicated fee-items permission", async () => {
+    mocks.getStaffContext.mockResolvedValue({ orgId: 9, role: "staff", permissions: ["billing"] });
 
-    render(<FeeItemsPage />);
+    render(await FeeItemsPage());
 
     expect(screen.getByText("권한이 없습니다")).toBeInTheDocument();
   });

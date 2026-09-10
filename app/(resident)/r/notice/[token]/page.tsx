@@ -1,16 +1,11 @@
-"use client";
-
-import { useParams } from "next/navigation";
-
 import PublicShareArticleCard from "@/app/(resident)/_components/PublicShareArticleCard";
 import PublicTokenPageShell from "@/app/(resident)/_components/PublicTokenPageShell";
 import ResidentAsyncState from "@/app/(resident)/_components/ResidentAsyncState";
-import {
-  type PublicNoticeType,
-  usePublicNoticeByToken,
-} from "@/hooks/reactquery/residentNotice";
+import type { PublicNoticeType } from "@/hooks/reactquery/residentNotice/apis";
 import { formatDate } from "@/lib/format";
 
+import { getPublicNoticeByToken } from "./data";
+import PublicNoticeRetryState from "./PublicNoticeRetryState";
 import styles from "../../share.module.css";
 
 const noticeTypeLabels: Record<PublicNoticeType, string> = {
@@ -19,34 +14,21 @@ const noticeTypeLabels: Record<PublicNoticeType, string> = {
   urgent: "긴급 공지",
 };
 
-export default function PublicNoticePage() {
-  const params = useParams<{ token: string }>();
-  const token = params.token;
-  const noticeQuery = usePublicNoticeByToken(token);
+export default async function PublicNoticePage({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}) {
+  const { token } = await params;
 
-  if (noticeQuery.isPending) {
-    return (
-      <ResidentAsyncState
-        variant="public"
-        role="status"
-        message="공지사항을 불러오고 있어요."
-      />
-    );
+  let notice;
+  try {
+    notice = await getPublicNoticeByToken(token);
+  } catch {
+    return <PublicNoticeRetryState />;
   }
 
-  if (noticeQuery.error) {
-    return (
-      <ResidentAsyncState
-        variant="public"
-        role="alert"
-        message={<b>공지사항을 불러오지 못했어요.</b>}
-        retryLabel="다시 시도"
-        onRetry={() => void noticeQuery.refetch()}
-      />
-    );
-  }
-
-  if (!noticeQuery.data) {
+  if (!notice) {
     return (
       <ResidentAsyncState
         variant="public"
@@ -61,7 +43,7 @@ export default function PublicNoticePage() {
     );
   }
 
-  if (noticeQuery.data.isExpired) {
+  if (notice.isExpired) {
     return (
       <ResidentAsyncState
         variant="public"
@@ -76,8 +58,6 @@ export default function PublicNoticePage() {
     );
   }
 
-  const notice = noticeQuery.data;
-
   return (
     <PublicTokenPageShell
       brand="관리비ON"
@@ -85,14 +65,9 @@ export default function PublicNoticePage() {
       ctaLabel="관리비ON 시작하기"
     >
       <PublicShareArticleCard
-        eyebrow={
-          notice.noticeType ? noticeTypeLabels[notice.noticeType] : "공지사항"
-        }
+        eyebrow={notice.noticeType ? noticeTypeLabels[notice.noticeType] : "공지사항"}
         title={notice.title}
-        metadata={[
-          notice.buildingName,
-          notice.publishedAt ? formatDate(notice.publishedAt) : null,
-        ]
+        metadata={[notice.buildingName, notice.publishedAt ? formatDate(notice.publishedAt) : null]
           .filter(Boolean)
           .join(" · ")}
       >

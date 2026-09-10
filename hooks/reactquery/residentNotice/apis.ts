@@ -23,25 +23,6 @@ export interface PublicNotice {
 export type PublicNoticeByTokenResult = PublicNotice | null;
 export type MintNoticeShareTokenResult = string;
 
-const rowToPublicNotice = (row: PublicNoticeRow): PublicNotice => ({
-  title: row.title,
-  content: row.content,
-  noticeType: row.notice_type,
-  buildingName: row.building_name,
-  publishedAt: row.published_at,
-  isExpired: row.is_expired,
-});
-
-export async function publicNoticeByToken(
-  token: string,
-): Promise<PublicNoticeByTokenResult> {
-  const { data, error } = await createClient().rpc("public_notice_by_token", {
-    p_token: token,
-  });
-  if (error) throw new Error(error.message);
-  return data ? rowToPublicNotice(data as PublicNoticeRow) : null;
-}
-
 export async function mintNoticeShareToken(
   noticeId: number,
 ): Promise<MintNoticeShareTokenResult> {

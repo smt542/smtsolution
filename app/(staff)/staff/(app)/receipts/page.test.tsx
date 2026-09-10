@@ -5,9 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
-  useSearchParams: () => new URLSearchParams(),
 }));
-vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
 vi.mock("@/hooks/reactquery/buildings", () => ({ useBuildings: vi.fn() }));
 vi.mock("@/hooks/reactquery/units", () => ({ useUnits: vi.fn() }));
 vi.mock("@/hooks/reactquery/occupancies", () => ({ useUnitOccupancyFull: vi.fn() }));
@@ -73,8 +71,7 @@ vi.mock("./components/entry-alerts/ReceiptEntryAlerts", () => ({
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 
-import ReceiptManagementPage from "./page";
-import { useMe } from "@/hooks/reactquery/auth";
+import { ReceiptWorkspace } from "./ReceiptWorkspace";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useUnits } from "@/hooks/reactquery/units";
 import { useUnitOccupancyFull } from "@/hooks/reactquery/occupancies";
@@ -189,17 +186,31 @@ function mutation() {
   return { mutateAsync: vi.fn(), isPending: false } as any;
 }
 
-function renderPage() {
+function renderPage({
+  initialPeriod = null,
+  initialBuildingId = null,
+  initialUnitId = null,
+}: {
+  initialPeriod?: string | null;
+  initialBuildingId?: number | null;
+  initialUnitId?: number | null;
+} = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <ReceiptManagementPage />
+      <ReceiptWorkspace
+        orgId={master.orgId}
+        canSendMessages
+        canEditPayment
+        initialPeriod={initialPeriod}
+        initialBuildingId={initialBuildingId}
+        initialUnitId={initialUnitId}
+      />
     </QueryClientProvider>,
   );
 }
 
-function setup(me: any = master) {
-  vi.mocked(useMe).mockReturnValue({ data: me } as any);
+function setup() {
   vi.mocked(useBuildings).mockReturnValue(query(buildings));
   vi.mocked(useUnits).mockReturnValue(query(units));
   vi.mocked(useUnitOccupancyFull).mockReturnValue(query(occFull));
@@ -248,16 +259,15 @@ beforeEach(() => {
 });
 
 describe("ReceiptManagementPage (세대중심 재설계)", () => {
-  it("payment·complaints 권한이 모두 없으면 접근 차단", () => {
-    setup({ orgId: 7, role: "staff", permissions: [] });
-    renderPage();
-    expect(screen.getByText("수납관리·민원접수 권한이 없습니다")).toBeInTheDocument();
-  });
+  it("서버에서 전달한 초기 건물·호실을 선택 상태로 사용한다", () => {
+    renderPage({
+      initialPeriod: "2026-08-01",
+      initialBuildingId: 2,
+      initialUnitId: 21,
+    });
 
-  it("payment 권한만 있어도 접근 가능", () => {
-    setup({ orgId: 7, role: "staff", permissions: ["payment"] });
-    renderPage();
-    expect(screen.getByRole("heading", { name: "수납관리·민원접수" })).toBeInTheDocument();
+    expect(screen.getByText("입주자명")).toBeInTheDocument();
+    expect(useUnitPayments).toHaveBeenCalledWith(21, "2026-08-01");
   });
 
   it("셸·건물 목록·조회 버튼과 미선택 안내를 렌더", () => {

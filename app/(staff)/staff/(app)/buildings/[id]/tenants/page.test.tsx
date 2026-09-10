@@ -1,21 +1,31 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-vi.mock("next/navigation", () => ({ useParams: () => ({ id: "7" }) }));
-vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
+
+const mocks = vi.hoisted(() => ({
+  getStaffContext: vi.fn(),
+}));
+
+vi.mock("../../../_staffContext", () => ({ getStaffContext: mocks.getStaffContext }));
 vi.mock("../components/TenantList", () => ({ TenantList: ({ buildingId }: { buildingId: number }) => <div>TENANTS {buildingId}</div> }));
+
 import TenantsPage from "./page";
-import { useMe } from "@/hooks/reactquery/auth";
+
 beforeEach(() => vi.clearAllMocks());
 describe("TenantsPage 게이트", () => {
-  it("tenants 권한 없으면 차단", () => {
-    vi.mocked(useMe).mockReturnValue({ data: { role: "field_staff", permissions: [] } } as unknown as ReturnType<typeof useMe>);
-    render(<TenantsPage />);
+  it("tenants 권한 없으면 차단", async () => {
+    mocks.getStaffContext.mockResolvedValue({ role: "field", permissions: [] });
+
+    render(await TenantsPage({ params: Promise.resolve({ id: "7" }) }));
+
     expect(screen.getByText(/접근할 권한이 없습니다/)).toBeInTheDocument();
   });
-  it("tenants 권한 있으면 목록(buildingId 전달)", () => {
-    vi.mocked(useMe).mockReturnValue({ data: { role: "staff", permissions: ["tenants"] } } as unknown as ReturnType<typeof useMe>);
-    render(<TenantsPage />);
+
+  it("tenants 권한 있으면 숫자 buildingId를 목록에 전달", async () => {
+    mocks.getStaffContext.mockResolvedValue({ role: "staff", permissions: ["tenants"] });
+
+    render(await TenantsPage({ params: Promise.resolve({ id: "7" }) }));
+
     expect(screen.getByText("TENANTS 7")).toBeInTheDocument();
   });
 });

@@ -1,11 +1,10 @@
-"use client";
-import { useMe } from "@/hooks/reactquery/auth";
 import { hasModule } from "@/lib/auth/permissions";
 import { BuildingRegisterForm } from "../new-v2/_components/BuildingRegisterForm";
+import { getStaffContext } from "../../_staffContext";
 
-export default function BuildingNewPage() {
-  const { data: me } = useMe();
-  if (me === undefined) return null;
+export default async function BuildingNewPage() {
+  const me = await getStaffContext();
+
   if (!hasModule(me, "buildings")) {
     return (
       <div className="p-6">
@@ -13,5 +12,6 @@ export default function BuildingNewPage() {
       </div>
     );
   }
+
   return <BuildingRegisterForm />;
 }

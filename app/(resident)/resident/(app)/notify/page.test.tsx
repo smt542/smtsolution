@@ -35,13 +35,17 @@ beforeEach(() => {
 });
 
 describe("ResidentNotifyPage", () => {
-  it("starts enabled and supports forward and back navigation", async () => {
+  it("keeps the local toggle and supports forward and back navigation", async () => {
     const user = userEvent.setup();
     render(<ResidentNotifyPage />);
 
-    expect(
-      screen.getByRole("switch", { name: "알림톡 받기" }),
-    ).toBeChecked();
+    const notificationSwitch = screen.getByRole("switch", {
+      name: "알림톡 받기",
+    });
+    expect(notificationSwitch).toBeChecked();
+
+    await user.click(notificationSwitch);
+    expect(notificationSwitch).not.toBeChecked();
 
     await user.click(screen.getByRole("button", { name: "시작하기" }));
     expect(nav.push).toHaveBeenCalledWith("/resident/home");

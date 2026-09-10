@@ -4,7 +4,6 @@ import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button, Spinner } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
-import type { Building } from "@/hooks/reactquery/buildings";
 import {
   useLongTermRepairLedger,
   useLongTermRepairOpeningBalance,
@@ -47,7 +46,7 @@ interface ViewerState {
 interface LongTermRepairLedgerProps {
   orgId: number;
   companyName: string;
-  buildings: Building[];
+  buildings: Array<{ id: number; code: string; name: string }>;
 }
 
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => {

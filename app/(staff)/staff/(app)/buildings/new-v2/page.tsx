@@ -1,12 +1,11 @@
-"use client";
-import { useMe } from "@/hooks/reactquery/auth";
 import { hasModule } from "@/lib/auth/permissions";
 import { BuildingRegisterForm } from "./_components/BuildingRegisterForm";
+import { getStaffContext } from "../../_staffContext";
 
 /** 건물 등록 재설계 미리보기 라우트. 기존 /staff/buildings/new 는 그대로 유지. */
-export default function BuildingRegisterV2Page() {
-  const { data: me } = useMe();
-  if (me === undefined) return null;
+export default async function BuildingRegisterV2Page() {
+  const me = await getStaffContext();
+
   if (!hasModule(me, "buildings")) {
     return (
       <div className="p-6">
@@ -14,5 +13,6 @@ export default function BuildingRegisterV2Page() {
       </div>
     );
   }
+
   return <BuildingRegisterForm />;
 }

@@ -1,16 +1,12 @@
-"use client";
-
 import Link from "next/link";
 
 import MobileBackHeader from "@/app/(resident)/_components/MobileBackHeader";
-import {
-  type ResidentNoticeType,
-  useResidentNotices,
-} from "@/hooks/reactquery/residentNotices";
+import type { ResidentNoticeType } from "@/hooks/reactquery/residentNotices/apis";
 import { formatDate } from "@/lib/format";
-import { useResidentGuard } from "@/lib/resident/useResidentGuard";
 
+import { getResidentNotices } from "./data";
 import styles from "./notice.module.css";
+import ResidentNoticeRetryState from "./ResidentNoticeRetryState";
 
 const typeLabel: Record<ResidentNoticeType, string> = {
   normal: "일반",
@@ -18,39 +14,18 @@ const typeLabel: Record<ResidentNoticeType, string> = {
   urgent: "긴급",
 };
 
-export default function ResidentNoticePage() {
-  const guard = useResidentGuard();
-  const noticesQuery = useResidentNotices();
-
-  if (guard.loading || noticesQuery.isPending) {
+export default async function ResidentNoticePage() {
+  let notices: Awaited<ReturnType<typeof getResidentNotices>>;
+  try {
+    notices = await getResidentNotices();
+  } catch {
     return (
-      <div className={styles.center} role="status">
-        <span className={styles.spinner} aria-hidden="true" />
-        공지사항을 불러오고 있어요.
-      </div>
+      <ResidentNoticeRetryState
+        className={styles.center}
+        message="공지사항을 불러오지 못했어요."
+      />
     );
   }
-
-  if (guard.error || noticesQuery.error) {
-    return (
-      <div className={styles.center} role="alert">
-        <b>공지사항을 불러오지 못했어요.</b>
-        <button
-          type="button"
-          onClick={() => {
-            void guard.retry();
-            void noticesQuery.refetch();
-          }}
-        >
-          다시 시도
-        </button>
-      </div>
-    );
-  }
-
-  if (!guard.link) return null;
-
-  const notices = noticesQuery.data ?? [];
 
   return (
     <div className={styles.page}>

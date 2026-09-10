@@ -8,9 +8,9 @@ const { messagingModalSpy, signBillUrls } = vi.hoisted(() => ({
   signBillUrls: vi.fn(),
 }));
 
-vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
-vi.mock("@/hooks/reactquery/org/useOrgContact", () => ({
-  useOrgContact: () => ({ data: { phone: "02-9876-5432" } }),
+vi.mock("../_staffContext", () => ({ getStaffContext: vi.fn() }));
+vi.mock("./components/useOverdueOrgContact", () => ({
+  useOverdueOrgContact: () => ({ data: { phone: "02-9876-5432" } }),
 }));
 vi.mock("@/hooks/reactquery/lateFeeTiers", () => ({
   useLateFeeRateTiers: vi.fn(),
@@ -62,7 +62,7 @@ vi.mock("./utils", async () => {
 });
 
 import OverduePage from "./page";
-import { useMe } from "@/hooks/reactquery/auth";
+import { OverdueWorkspace } from "./components/OverdueWorkspace";
 import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
 import {
   useOverdueBuildings,
@@ -71,6 +71,7 @@ import {
 } from "@/hooks/reactquery/overdue";
 import { toast } from "sonner";
 import { downloadOverdueLedger } from "./utils";
+import { getStaffContext } from "../_staffContext";
 
 const buildings = [
   { id: 1, code: "B001", name: "그린빌라", address: "서울시 강남구" },
@@ -160,23 +161,20 @@ function setup({
   tiers?: TierFixture[];
   householdRows?: readonly (typeof households)[number][];
 } = {}) {
-  vi.mocked(useMe).mockReturnValue({
-    data: {
-      orgId: 3,
-      role: "staff",
-      orgStatus: "active",
-      username: "staff1",
-      fullName: "담당자",
-      isActive: true,
-      mustChangePassword: false,
-      staffType: "manager_staff",
-      permissions: [
-        ...(allowed ? ["overdue"] : []),
-        ...(canMessage ? ["messaging"] : []),
-      ],
-    },
-    isLoading: false,
-  } as never);
+  vi.mocked(getStaffContext).mockResolvedValue({
+    orgId: 3,
+    role: "staff",
+    orgStatus: "active",
+    username: "staff1",
+    fullName: "담당자",
+    isActive: true,
+    mustChangePassword: false,
+    staffType: "manager_staff",
+    permissions: [
+      ...(allowed ? ["overdue" as const] : []),
+      ...(canMessage ? ["messaging" as const] : []),
+    ],
+  });
   vi.mocked(useOverdueBuildings).mockReturnValue({ data: buildings, isLoading: false } as never);
   vi.mocked(useOverdueHouseholds).mockReturnValue({
     data: householdRows,
@@ -216,6 +214,10 @@ function showResults() {
   selectBuilding();
 }
 
+function renderWorkspace(canSendMessages = true) {
+  return render(<OverdueWorkspace orgId={3} canSendMessages={canSendMessages} />);
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubEnv("NEXT_PUBLIC_RESIDENT_WEB_ORIGIN", "https://resident.example.com/");
@@ -236,8 +238,8 @@ afterEach(() => {
 });
 
 describe("OverduePage", () => {
-  it("기간 선택 전 Figma 빈 상태와 바로 사용할 수 있는 액션을 표시한다", () => {
-    render(<OverduePage />);
+  it("기간 선택 전 Figma 빈 상태와 바로 사용할 수 있는 액션을 표시한다", async () => {
+    render(await OverduePage());
 
     expect(screen.getByText("년도와 월을 선택해 주세요")).toBeInTheDocument();
     expect(screen.getByText("조회 기간을 고르면 미납 내역이 표시돼요")).toBeInTheDocument();
@@ -246,23 +248,23 @@ describe("OverduePage", () => {
   });
 
   it("기간 선택 후에는 건물 선택 빈 상태로 전환한다", () => {
-    render(<OverduePage />);
+    renderWorkspace();
     selectPeriod();
 
     expect(screen.getByText("건물명을 검색해 선택해 주세요")).toBeInTheDocument();
   });
 
-  it("overdue 권한이 없으면 화면 내용을 노출하지 않는다", () => {
+  it("overdue 권한이 없으면 화면 내용을 노출하지 않는다", async () => {
     setup({ allowed: false });
-    render(<OverduePage />);
+    render(await OverduePage());
 
     expect(screen.getByText("권한이 없습니다")).toBeInTheDocument();
     expect(screen.queryByLabelText("미납 조회 조건")).not.toBeInTheDocument();
   });
 
-  it("messaging 권한이 없으면 독촉 문자 발송을 비활성화한다", () => {
+  it("messaging 권한이 없으면 독촉 문자 발송을 비활성화한다", async () => {
     setup({ canMessage: false });
-    render(<OverduePage />);
+    render(await OverduePage());
     showResults();
 
     expect(screen.getByRole("button", { name: "독촉 문자 발송" })).toBeDisabled();
@@ -272,7 +274,7 @@ describe("OverduePage", () => {
   });
 
   it("조회 결과를 12열 원장과 호합·고정 합계 구조로 표시한다", () => {
-    render(<OverduePage />);
+    renderWorkspace();
     showResults();
 
     for (const column of [
@@ -286,7 +288,7 @@ describe("OverduePage", () => {
   });
 
   it("독촉 대상은 2개월 이상 AND 10만원 이상인 세대만 표시한다", () => {
-    render(<OverduePage />);
+    renderWorkspace();
     showResults();
 
     expect(screen.getByText("101호")).toBeInTheDocument();
@@ -302,7 +304,7 @@ describe("OverduePage", () => {
   });
 
   it("조회 년월과 전체·당계 범위를 조회 훅에 전달한다", () => {
-    render(<OverduePage />);
+    renderWorkspace();
     showResults();
 
     expect(useOverdueHouseholds).toHaveBeenLastCalledWith(1, {
@@ -332,7 +334,7 @@ describe("OverduePage", () => {
         { id: 2, orgId: 3, tierOrder: 2, fromMonth: 1, toMonth: 3, monthlyRate: 1.2 },
       ],
     });
-    render(<OverduePage />);
+    renderWorkspace();
     selectPeriod(2026, 6);
     selectBuilding();
 
@@ -352,7 +354,7 @@ describe("OverduePage", () => {
         dueDate: "2026-05-31",
       }],
     });
-    render(<OverduePage />);
+    renderWorkspace();
     showResults();
     fireEvent.click(screen.getByRole("button", { name: "독촉 문자 발송" }));
 
@@ -400,7 +402,7 @@ describe("OverduePage", () => {
 
   it("독촉 대상이 없으면 안내하고 발송 작업창을 열지 않는다", () => {
     setup({ householdRows: [households[1]] });
-    render(<OverduePage />);
+    renderWorkspace();
     showResults();
     fireEvent.click(screen.getByRole("button", { name: "독촉 문자 발송" }));
 
@@ -421,7 +423,7 @@ describe("OverduePage", () => {
         dueDate: "2026-07-31",
       }],
     });
-    render(<OverduePage />);
+    renderWorkspace();
     showResults();
     fireEvent.click(screen.getByRole("button", { name: "독촉 문자 발송" }));
 
@@ -434,7 +436,7 @@ describe("OverduePage", () => {
   });
 
   it("현재 필터 결과로 미납대장을 출력한다", () => {
-    render(<OverduePage />);
+    renderWorkspace();
     showResults();
     fireEvent.click(screen.getByRole("button", { name: "채권 관리 필터" }));
     fireEvent.click(screen.getByRole("button", { name: "미납대장 출력" }));
@@ -452,7 +454,7 @@ describe("OverduePage", () => {
   });
 
   it("원장 행을 선택하면 세대·입주자·미납 상세를 연다", () => {
-    render(<OverduePage />);
+    renderWorkspace();
     showResults();
     fireEvent.click(screen.getByRole("row", { name: /101호 김입주 상세 보기/ }));
 

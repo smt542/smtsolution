@@ -1,25 +1,25 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const guard = vi.hoisted(() => ({ useResidentGuard: vi.fn() }));
-const billing = vi.hoisted(() => ({ useResidentBillMonths: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  getResidentBillPageData: vi.fn(),
+  refresh: vi.fn(),
+}));
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/resident/bill" }));
-vi.mock("@/lib/resident/useResidentGuard", () => guard);
-vi.mock("@/hooks/reactquery/residentBilling", () => billing);
+vi.mock("./data", () => ({
+  getResidentBillPageData: mocks.getResidentBillPageData,
+}));
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/resident/bill",
+  useRouter: () => ({ refresh: mocks.refresh }),
+}));
 
+import ResidentBillLoading from "./loading";
 import ResidentBillPage from "./page";
 
 const linkedHousehold = {
   buildingName: "그린빌라",
   unitNo: "201호",
-};
-
-const readyGuard = {
-  loading: false,
-  link: linkedHousehold,
-  error: null,
-  retry: vi.fn(),
 };
 
 const months = [
@@ -47,42 +47,38 @@ const months = [
   },
 ] as const;
 
+const renderPage = async () => render(<>{await ResidentBillPage()}</>);
+
 beforeEach(() => {
   vi.clearAllMocks();
-  guard.useResidentGuard.mockReturnValue(readyGuard);
-  billing.useResidentBillMonths.mockReturnValue({
-    data: months,
-    error: null,
-    isPending: false,
-    refetch: vi.fn(),
+  mocks.getResidentBillPageData.mockResolvedValue({
+    link: linkedHousehold,
+    months,
   });
 });
 
 describe("ResidentBillPage", () => {
-  it("shows a loading state", () => {
-    billing.useResidentBillMonths.mockReturnValue({
-      data: undefined,
-      error: null,
-      isPending: true,
-      refetch: vi.fn(),
-    });
-
-    render(<ResidentBillPage />);
-
+  it("shows the route loading state and refreshes a failed server request", async () => {
+    const loading = render(<ResidentBillLoading />);
     expect(screen.getByRole("status")).toHaveTextContent(
       "관리비 내역을 불러오고 있어요",
     );
+    loading.unmount();
+
+    mocks.getResidentBillPageData.mockRejectedValue(new Error("failed"));
+    await renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    expect(mocks.refresh).toHaveBeenCalledOnce();
   });
 
-  it("shows the required empty state", () => {
-    billing.useResidentBillMonths.mockReturnValue({
-      data: [],
-      error: null,
-      isPending: false,
-      refetch: vi.fn(),
+  it("shows the required empty state", async () => {
+    mocks.getResidentBillPageData.mockResolvedValue({
+      link: linkedHousehold,
+      months: [],
     });
 
-    render(<ResidentBillPage />);
+    await renderPage();
 
     expect(screen.getByText("부과 내역이 없어요")).toBeInTheDocument();
     expect(
@@ -90,23 +86,19 @@ describe("ResidentBillPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders the canon header, year toggle, summary, and month rows", () => {
-    render(<ResidentBillPage />);
+  it("renders the canon header, year toggle, summary, and month rows", async () => {
+    await renderPage();
 
-    // 헤더 + 연도 pill
+    expect(mocks.getResidentBillPageData).toHaveBeenCalledOnce();
     expect(screen.getByRole("heading", { name: "관리비" })).toBeInTheDocument();
     expect(screen.getByText("그린빌라 201호")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "2026년" })).toBeInTheDocument();
-
-    // 요약: 합계 = Σ(부과+연체료), 월평균, 미납 = Σ(미납+연체료)
     expect(screen.getByText("2026년 합계")).toBeInTheDocument();
     expect(screen.getByText("2개월")).toBeInTheDocument();
     expect(screen.getByText("226,800")).toBeInTheDocument();
     expect(screen.getByText("113,400원")).toBeInTheDocument();
     expect(screen.getByText("106,800원")).toBeInTheDocument();
     expect(screen.getByText("2건")).toBeInTheDocument();
-
-    // 행: 총청구액 + 상태칩 + meta(완납=납부일 / 미납=납부기한·연체료)
     expect(screen.getByText("126,800원")).toBeInTheDocument();
     expect(screen.getByText("100,000원")).toBeInTheDocument();
     expect(screen.getByText("완납")).toBeInTheDocument();

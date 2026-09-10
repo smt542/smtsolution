@@ -1,12 +1,8 @@
-"use client";
-
-import { Suspense } from "react";
-import { useParams, useSearchParams } from "next/navigation";
-
 import BillDetailView from "@/app/(resident)/_components/BillDetailView";
 import PublicTokenPageShell from "@/app/(resident)/_components/PublicTokenPageShell";
-import ResidentAsyncState from "@/app/(resident)/_components/ResidentAsyncState";
-import { usePublicBillBySigned } from "@/hooks/reactquery/residentBilling";
+
+import { getPublicBillBySigned } from "./data";
+import PublicBillRetryState from "./PublicBillRetryState";
 
 const PERIOD_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -19,17 +15,21 @@ const decodeUnitSegment = (segment: string): string => {
   }
 };
 
-function PublicSignedBillContent() {
-  const params = useParams<{ building: string; unit: string; period: string }>();
-  const searchParams = useSearchParams();
-
-  const buildingId = Number(params.building);
-  // 이 Next 빌드는 동적 세그먼트를 자동 디코드하지 않는다(예: "201%ED%98%B8").
-  // 서명 대상 원본 unit_no("201호")로 되돌려야 검증이 일치한다. 이미 디코드된
-  // 값은 %가 없어 no-op이므로 이중 디코드도 안전. sig는 base64url이라 디코딩 불필요.
-  const unitNo = params.unit ? decodeUnitSegment(params.unit) : "";
-  const period = params.period ?? "";
-  const sig = searchParams.get("s") ?? "";
+export default async function PublicSignedBillPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ building: string; unit: string; period: string }>;
+  searchParams: Promise<{ s?: string | string[] }>;
+}) {
+  const [routeParams, query] = await Promise.all([params, searchParams]);
+  const buildingId = Number(routeParams.building);
+  // 이 Next 빌드는 동적 세그먼트를 자동 디코드하지 않을 수 있다(예: "201%ED%98%B8").
+  // 서명 대상 원본 unit_no("201호")로 되돌린다. 이미 디코드된 값은 no-op이다.
+  const unitNo = routeParams.unit ? decodeUnitSegment(routeParams.unit) : "";
+  const period = routeParams.period ?? "";
+  const sigValue = query.s;
+  const sig = Array.isArray(sigValue) ? (sigValue[0] ?? "") : (sigValue ?? "");
   const paramsValid =
     Number.isInteger(buildingId) &&
     buildingId > 0 &&
@@ -37,37 +37,15 @@ function PublicSignedBillContent() {
     PERIOD_PATTERN.test(period) &&
     Boolean(sig);
 
-  const billQuery = usePublicBillBySigned(
-    paramsValid ? buildingId : 0,
-    paramsValid ? unitNo : "",
-    paramsValid ? period : "",
-    paramsValid ? sig : "",
-  );
-
   if (!paramsValid) {
     return <BillDetailView mode="public" detail={null} />;
   }
 
-  if (billQuery.isPending) {
-    return (
-      <ResidentAsyncState
-        variant="public"
-        role="status"
-        message="관리비 고지서를 불러오고 있어요"
-      />
-    );
-  }
-
-  if (billQuery.error) {
-    return (
-      <ResidentAsyncState
-        variant="public"
-        role="alert"
-        message={<b>관리비 고지서를 불러오지 못했어요</b>}
-        retryLabel="다시 시도"
-        onRetry={() => void billQuery.refetch()}
-      />
-    );
+  let detail;
+  try {
+    detail = await getPublicBillBySigned(buildingId, unitNo, period, sig);
+  } catch {
+    return <PublicBillRetryState />;
   }
 
   // 앱 유도 CTA·열람 안내는 BillDetailView(public 모드)가 정본대로 렌더하므로
@@ -79,23 +57,7 @@ function PublicSignedBillContent() {
       ctaLabel="관리비서 시작하기"
       showCta={false}
     >
-      <BillDetailView mode="public" detail={billQuery.data ?? null} />
+      <BillDetailView mode="public" detail={detail} />
     </PublicTokenPageShell>
-  );
-}
-
-export default function PublicSignedBillPage() {
-  return (
-    <Suspense
-      fallback={
-        <ResidentAsyncState
-          variant="public"
-          role="status"
-          message="관리비 고지서를 불러오고 있어요"
-        />
-      }
-    >
-      <PublicSignedBillContent />
-    </Suspense>
   );
 }

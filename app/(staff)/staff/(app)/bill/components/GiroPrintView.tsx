@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import type { BillDocument, BillTarget } from "@/hooks/reactquery/bill";
-import type { Building } from "@/hooks/reactquery/buildings";
 import {
   buildOutputQrPayload,
   formatBillAmount,
@@ -10,10 +9,11 @@ import {
   unitLabel,
   type PrintableAccount,
 } from "@/lib/bill/document";
+import type { BillBuilding } from "../types";
 import { QrCode } from "./QrCode";
 
 export interface GiroOutputDocument {
-  building: Building;
+  building: BillBuilding;
   document: BillDocument;
   target: BillTarget;
   dueDate: string | null;

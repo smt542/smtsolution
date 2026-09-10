@@ -6,12 +6,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Spinner } from "@/components/common";
-import type { Building } from "@/hooks/reactquery/buildings";
 import { billKeys, getBillDocuments, listBillTargets, useIssueBills, useSendBillFaxes, type BillDocument, type BillTarget } from "@/hooks/reactquery/bill";
 import { billingKeys, getBillingPeriodSetting } from "@/hooks/reactquery/billing";
 import { cmsDownloadUrl } from "@/hooks/reactquery/payments";
 import { currentPeriod, prevPeriod } from "@/lib/billing/period";
 import type { PrintableAccount } from "@/lib/bill/document";
+import type { BillBuilding } from "../types";
 import type { AdjustmentBuildingDocuments, AdjustmentPrintViewProps } from "./AdjustmentPrintView";
 import type { GiroOutputDocument, GiroPrintViewProps, GiroStampOptions } from "./GiroPrintView";
 import type { OutputDocumentType } from "./DocumentCards";
@@ -26,7 +26,7 @@ const GiroPrintView = dynamic<GiroPrintViewProps>(() => import("./GiroPrintView"
 
 export interface DocumentOutputModalProps {
   type: OutputDocumentType;
-  buildings: Building[];
+  buildings: BillBuilding[];
   companyName: string;
   accounts: PrintableAccount[];
   customerNotice: string | null;
@@ -42,7 +42,7 @@ function initialYearMonth() {
   return { year: Math.min(2026, Math.max(2019, rawYear)), month: rawMonth };
 }
 function outputPeriod(year: number, month: number) { return `${year}-${String(month).padStart(2, "0")}-01`; }
-function mergeGiroDocuments(building: Building, documents: BillDocument[], targets: BillTarget[], dueDate: string | null): GiroOutputDocument[] {
+function mergeGiroDocuments(building: BillBuilding, documents: BillDocument[], targets: BillTarget[], dueDate: string | null): GiroOutputDocument[] {
   return documents.flatMap((document) => {
     const target = targets.find((candidate) => candidate.unitId === document.unitId);
     return target ? [{ building, document, target, dueDate }] : [];

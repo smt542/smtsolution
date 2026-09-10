@@ -1,98 +1,82 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const nav = vi.hoisted(() => ({
-  params: { token: "11111111-2222-4333-8444-555555555555" },
+const mocks = vi.hoisted(() => ({
+  getPublicNoticeByToken: vi.fn(),
+  refresh: vi.fn(),
 }));
-const notice = vi.hoisted(() => ({ usePublicNoticeByToken: vi.fn() }));
 
-vi.mock("next/navigation", () => ({ useParams: () => nav.params }));
-vi.mock("@/hooks/reactquery/residentNotice", () => notice);
+vi.mock("./data", () => ({
+  getPublicNoticeByToken: mocks.getPublicNoticeByToken,
+}));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: mocks.refresh }),
+}));
 
+import PublicNoticeLoading from "./loading";
 import PublicNoticePage from "./page";
 
+const token = "11111111-2222-4333-8444-555555555555";
 const publicNotice = {
   title: "수도 점검 안내",
   content: "오전 10시부터 수도 점검을 진행합니다.",
-  noticeType: "important",
+  noticeType: "important" as const,
   buildingName: "그린빌라",
   publishedAt: "2026-08-25T01:00:00Z",
   isExpired: false,
 };
 
+const renderPage = async () =>
+  render(<>{await PublicNoticePage({ params: Promise.resolve({ token }) })}</>);
+
 beforeEach(() => {
   vi.clearAllMocks();
-  notice.usePublicNoticeByToken.mockReturnValue({
-    data: publicNotice,
-    error: null,
-    isPending: false,
-    refetch: vi.fn(),
-  });
+  mocks.getPublicNoticeByToken.mockResolvedValue(publicNotice);
 });
 
 describe("PublicNoticePage", () => {
-  it("shows pending and retryable error states", () => {
-    const refetch = vi.fn();
-    notice.usePublicNoticeByToken
-      .mockReturnValueOnce({
-        data: undefined,
-        error: null,
-        isPending: true,
-        refetch,
-      })
-      .mockReturnValueOnce({
-        data: undefined,
-        error: new Error("failed"),
-        isPending: false,
-        refetch,
-      });
-
-    const view = render(<PublicNoticePage />);
+  it("shows the route loading state and refreshes a failed server request", async () => {
+    const loading = render(<PublicNoticeLoading />);
     expect(screen.getByRole("status")).toHaveTextContent(
       "공지사항을 불러오고 있어요.",
     );
+    loading.unmount();
 
-    view.rerender(<PublicNoticePage />);
+    mocks.getPublicNoticeByToken.mockRejectedValue(new Error("failed"));
+    await renderPage();
+
     fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
-    expect(refetch).toHaveBeenCalledOnce();
+    expect(mocks.refresh).toHaveBeenCalledOnce();
   });
 
-  it("shows invalid and expired links without masked content", () => {
-    notice.usePublicNoticeByToken
-      .mockReturnValueOnce({
-        data: null,
-        error: null,
-        isPending: false,
-        refetch: vi.fn(),
-      })
-      .mockReturnValueOnce({
-        data: {
-          title: null,
-          content: null,
-          noticeType: null,
-          buildingName: null,
-          publishedAt: null,
-          isExpired: true,
-        },
-        error: null,
-        isPending: false,
-        refetch: vi.fn(),
+  it("shows invalid and expired links without masked content", async () => {
+    mocks.getPublicNoticeByToken
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        title: null,
+        content: null,
+        noticeType: null,
+        buildingName: null,
+        publishedAt: null,
+        isExpired: true,
       });
 
-    const view = render(<PublicNoticePage />);
+    const view = await renderPage();
     expect(screen.getByText("유효하지 않은 링크예요.")).toBeInTheDocument();
 
-    view.rerender(<PublicNoticePage />);
+    view.rerender(
+      <>
+        {await PublicNoticePage({ params: Promise.resolve({ token }) })}
+      </>,
+    );
     expect(screen.getByText("만료된 링크예요.")).toBeInTheDocument();
     expect(screen.queryByText(publicNotice.title)).not.toBeInTheDocument();
   });
 
-  it("renders the whitelisted notice detail", () => {
-    render(<PublicNoticePage />);
+  it("renders the server-fetched whitelisted notice detail", async () => {
+    await renderPage();
 
-    expect(notice.usePublicNoticeByToken).toHaveBeenCalledWith(
-      "11111111-2222-4333-8444-555555555555",
-    );
+    expect(mocks.getPublicNoticeByToken).toHaveBeenCalledWith(token);
     expect(screen.getByRole("heading", { name: publicNotice.title })).toBeInTheDocument();
     expect(screen.getByText(publicNotice.content)).toBeInTheDocument();
     expect(screen.getByText("그린빌라 · 2026.08.25")).toBeInTheDocument();

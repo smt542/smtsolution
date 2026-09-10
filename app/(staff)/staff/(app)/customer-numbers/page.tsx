@@ -1,14 +1,11 @@
-"use client";
-
-import { EmptyState, Spinner } from "@/components/common";
-import { useMe } from "@/hooks/reactquery/auth";
+import { EmptyState } from "@/components/common";
 import { hasModule } from "@/lib/auth/permissions";
+import { getStaffContext } from "../_staffContext";
 import { CustomerNumberLookupContent } from "./components/CustomerNumberLookupContent";
 
-export default function CustomerNumberLookupPage() {
-  const { data: me } = useMe();
+export default async function CustomerNumberLookupPage() {
+  const me = await getStaffContext();
 
-  if (me === undefined) return <Spinner />;
   if (!me || !hasModule(me, "utilities")) {
     return (
       <div className="p-6">

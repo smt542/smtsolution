@@ -4,18 +4,12 @@ import type { MyContext } from "@/hooks/reactquery/auth";
 import type { MessageLog } from "@/hooks/reactquery/messaging";
 import type { MessagingPreset, SendMode } from "@/lib/messaging/preset";
 
-const { composerSpy, navigationState } = vi.hoisted(() => ({
+const { composerSpy, getStaffContext } = vi.hoisted(() => ({
   composerSpy: vi.fn(),
-  navigationState: { tab: null as string | null },
+  getStaffContext: vi.fn(),
 }));
 
-vi.mock("next/navigation", () => ({
-  useSearchParams: () =>
-    new URLSearchParams(
-      navigationState.tab ? { tab: navigationState.tab } : undefined,
-    ),
-}));
-vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
+vi.mock("../_staffContext", () => ({ getStaffContext }));
 vi.mock("@/hooks/reactquery/messaging", () => ({
   useMessageLogs: vi.fn(),
 }));
@@ -33,7 +27,6 @@ vi.mock("./components/TemplatesTab", () => ({
   TemplatesTab: () => <button type="button">새 템플릿</button>,
 }));
 
-import { useMe } from "@/hooks/reactquery/auth";
 import { useMessageLogs } from "@/hooks/reactquery/messaging";
 import { MessageLogList } from "./components/MessageLogList";
 import { MessagingModal } from "./components/MessagingModal";
@@ -83,10 +76,7 @@ function setup({
   isLogsLoading?: boolean;
   logsError?: Error | null;
 } = {}) {
-  vi.mocked(useMe).mockReturnValue({
-    data: me,
-    isLoading: false,
-  } as unknown as ReturnType<typeof useMe>);
+  getStaffContext.mockResolvedValue(me);
   vi.mocked(useMessageLogs).mockReturnValue({
     data: messageLogs,
     isLoading: isLogsLoading,
@@ -97,23 +87,22 @@ function setup({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  navigationState.tab = null;
   setup();
 });
 
 describe("MessagingPage", () => {
-  it("messaging 권한이 없으면 화면을 차단하고 이력을 조회하지 않는다", () => {
+  it("messaging 권한이 없으면 화면을 차단하고 이력을 조회하지 않는다", async () => {
     setup({ me: { ...allowedUser, permissions: [] } });
 
-    render(<MessagingPage />);
+    render(await MessagingPage({ searchParams: Promise.resolve({}) }));
 
     expect(screen.getByText("문자 발송 권한이 없습니다.")).toBeInTheDocument();
     expect(screen.queryByTestId("messaging-composer")).not.toBeInTheDocument();
     expect(useMessageLogs).not.toHaveBeenCalled();
   });
 
-  it("발송·템플릿·내역 탭을 렌더하고 전환한다", () => {
-    render(<MessagingPage />);
+  it("발송·템플릿·내역 탭을 렌더하고 전환한다", async () => {
+    render(await MessagingPage({ searchParams: Promise.resolve({}) }));
 
     expect(
       screen.getByRole("heading", { name: "문자·알림톡 발송" }),
@@ -147,9 +136,9 @@ describe("MessagingPage", () => {
     expect(screen.getByText("stub")).toBeInTheDocument();
   });
 
-  it("발송 이력 조회 오류를 표시하고 재시도하면 쿼리를 다시 요청한다", () => {
+  it("발송 이력 조회 오류를 표시하고 재시도하면 쿼리를 다시 요청한다", async () => {
     setup({ messageLogs: [], logsError: new Error("network error") });
-    render(<MessagingPage />);
+    render(await MessagingPage({ searchParams: Promise.resolve({}) }));
     fireEvent.click(screen.getByRole("tab", { name: "내역" }));
 
     expect(screen.getByRole("alert")).toHaveTextContent(
@@ -159,10 +148,12 @@ describe("MessagingPage", () => {
     expect(refetchLogs).toHaveBeenCalledOnce();
   });
 
-  it("tab 쿼리로 초기 탭을 선택한다", () => {
-    navigationState.tab = "history";
-
-    render(<MessagingPage />);
+  it("tab 쿼리로 초기 탭을 선택한다", async () => {
+    render(
+      await MessagingPage({
+        searchParams: Promise.resolve({ tab: "history" }),
+      }),
+    );
 
     expect(screen.getByRole("tab", { name: "내역" })).toHaveAttribute(
       "aria-selected",

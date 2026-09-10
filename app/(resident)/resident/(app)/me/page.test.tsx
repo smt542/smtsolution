@@ -3,11 +3,11 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const nav = vi.hoisted(() => ({ replace: vi.fn() }));
-const guard = vi.hoisted(() => ({ useResidentGuard: vi.fn() }));
 const profileHooks = vi.hoisted(() => ({
   useResidentProfile: vi.fn(),
   useSetNotifyPrefs: vi.fn(),
 }));
+const profileRefetch = vi.hoisted(() => vi.fn());
 const signOut = vi.hoisted(() => vi.fn());
 const resetOnboardingSession = vi.hoisted(() => vi.fn());
 const withdrawMutateAsync = vi.hoisted(() => vi.fn());
@@ -16,7 +16,6 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/resident/me",
   useRouter: () => ({ replace: nav.replace }),
 }));
-vi.mock("@/lib/resident/useResidentGuard", () => guard);
 vi.mock("@/hooks/reactquery/residentProfile", () => profileHooks);
 vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({ auth: { signOut } }),
@@ -61,17 +60,11 @@ const profile = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  guard.useResidentGuard.mockReturnValue({
-    loading: false,
-    link: { buildingName: "해오름빌라", unitNo: "201호" },
-    error: null,
-    retry: vi.fn(),
-  });
   profileHooks.useResidentProfile.mockReturnValue({
     data: profile,
     error: null,
     isPending: false,
-    refetch: vi.fn(),
+    refetch: profileRefetch,
   });
   profileHooks.useSetNotifyPrefs.mockReturnValue({
     mutate,
@@ -83,6 +76,31 @@ beforeEach(() => {
 });
 
 describe("ResidentMePage", () => {
+  it("preserves profile loading, error, and retry states", async () => {
+    profileHooks.useResidentProfile.mockReturnValue({
+      data: undefined,
+      error: null,
+      isPending: true,
+      refetch: profileRefetch,
+    });
+    const loading = render(<ResidentMePage />);
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "내 정보를 불러오고 있어요.",
+    );
+    loading.unmount();
+
+    profileHooks.useResidentProfile.mockReturnValue({
+      data: undefined,
+      error: new Error("failed"),
+      isPending: false,
+      refetch: profileRefetch,
+    });
+    const user = userEvent.setup();
+    render(<ResidentMePage />);
+    await user.click(screen.getByRole("button", { name: "다시 시도" }));
+    expect(profileRefetch).toHaveBeenCalledOnce();
+  });
+
   it("renders profile header, household, and policies", () => {
     render(<ResidentMePage />);
     expect(screen.getByText("김주민")).toBeInTheDocument();

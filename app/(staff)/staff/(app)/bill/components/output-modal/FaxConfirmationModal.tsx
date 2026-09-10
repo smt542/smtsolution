@@ -1,11 +1,11 @@
 "use client";
 
-import type { Building } from "@/hooks/reactquery/buildings";
 import type { BillTarget } from "@/hooks/reactquery/bill";
+import type { BillBuilding } from "../../types";
 import { ModalActionButton } from "./OutputModalPrimitives";
 
 interface FaxConfirmationModalProps {
-  building?: Building;
+  building?: BillBuilding;
   targets: BillTarget[];
   period: string;
   senderLabel: string;

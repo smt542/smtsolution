@@ -14,6 +14,8 @@ const bundle = {
     unitId: 11, unitNo: "101", dong: null, occupancyId: 21, tenantName: "홍길동", payerName: "김납부", phone: "010",
     payerNo: "P-101", billNameDisplay: "name", totalAmount: 38000, autoDebit: true,
     issueType: null, dueDate: null, sendStatus: null, issuedAt: null,
+    secondaryPhone: null, faxNumber: null, singlePrint: false, waterCutoff: false,
+    scheduledAt: null, messageScheduleId: null, kakaoSendStatus: null, faxSendStatus: null,
   }],
 } as AdjustmentBuildingDocuments;
 

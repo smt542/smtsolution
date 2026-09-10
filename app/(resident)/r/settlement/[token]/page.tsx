@@ -1,46 +1,30 @@
-"use client";
-
-import { useParams } from "next/navigation";
-
 import PublicShareArticleCard from "@/app/(resident)/_components/PublicShareArticleCard";
 import PublicTokenPageShell from "@/app/(resident)/_components/PublicTokenPageShell";
 import ResidentAsyncState from "@/app/(resident)/_components/ResidentAsyncState";
-import { usePublicSettlementByToken } from "@/hooks/reactquery/residentSettlement";
 import { formatDate as formatDateValue, formatWon } from "@/lib/format";
 
+import { getPublicSettlementByToken } from "./data";
+import PublicSettlementRetryState from "./PublicSettlementRetryState";
 import styles from "../../share.module.css";
 
 const formatDate = (value: string) => formatDateValue(value);
 const formatAmount = (value: number) => formatWon(value);
 
-export default function PublicSettlementPage() {
-  const params = useParams<{ token: string }>();
-  const token = params.token;
-  const settlementQuery = usePublicSettlementByToken(token);
+export default async function PublicSettlementPage({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}) {
+  const { token } = await params;
 
-  if (settlementQuery.isPending) {
-    return (
-      <ResidentAsyncState
-        variant="public"
-        role="status"
-        message="이사정산 내역을 불러오고 있어요."
-      />
-    );
+  let settlement;
+  try {
+    settlement = await getPublicSettlementByToken(token);
+  } catch {
+    return <PublicSettlementRetryState />;
   }
 
-  if (settlementQuery.error) {
-    return (
-      <ResidentAsyncState
-        variant="public"
-        role="alert"
-        message={<b>이사정산 내역을 불러오지 못했어요.</b>}
-        retryLabel="다시 시도"
-        onRetry={() => void settlementQuery.refetch()}
-      />
-    );
-  }
-
-  if (!settlementQuery.data) {
+  if (!settlement) {
     return (
       <ResidentAsyncState
         variant="public"
@@ -55,7 +39,7 @@ export default function PublicSettlementPage() {
     );
   }
 
-  if (settlementQuery.data.isExpired) {
+  if (settlement.isExpired) {
     return (
       <ResidentAsyncState
         variant="public"
@@ -69,8 +53,6 @@ export default function PublicSettlementPage() {
       />
     );
   }
-
-  const settlement = settlementQuery.data;
 
   return (
     <PublicTokenPageShell

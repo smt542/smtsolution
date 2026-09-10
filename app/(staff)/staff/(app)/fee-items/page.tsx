@@ -1,16 +1,11 @@
-"use client";
-
-import { EmptyState, Spinner } from "@/components/common";
-import { useMe } from "@/hooks/reactquery/auth";
+import { EmptyState } from "@/components/common";
 import { hasModule } from "@/lib/auth/permissions";
+import { getStaffContext } from "../_staffContext";
 import { FeeItemManagement } from "./components/FeeItemManagement";
 
-export default function FeeItemsPage() {
-  const { data: me } = useMe();
+export default async function FeeItemsPage() {
+  const me = await getStaffContext();
 
-  if (me === undefined) {
-    return <div className="flex min-h-[420px] items-center justify-center"><Spinner /></div>;
-  }
   if (!me || !hasModule(me, "fee_items")) {
     return <div className="p-6"><EmptyState message="권한이 없습니다" /></div>;
   }

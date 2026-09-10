@@ -23,28 +23,6 @@ export interface PublicSettlement {
 export type PublicSettlementByTokenResult = PublicSettlement | null;
 export type MintSettlementShareTokenResult = string;
 
-const rowToPublicSettlement = (
-  row: PublicSettlementRow,
-): PublicSettlement => ({
-  moveOutDate: row.move_out_date,
-  settlementKind: row.settlement_kind,
-  settlementAmount: row.settlement_amount,
-  unitLabel: row.unit_label,
-  buildingName: row.building_name,
-  isExpired: row.is_expired,
-});
-
-export async function publicSettlementByToken(
-  token: string,
-): Promise<PublicSettlementByTokenResult> {
-  const { data, error } = await createClient().rpc(
-    "public_settlement_by_token",
-    { p_token: token },
-  );
-  if (error) throw new Error(error.message);
-  return data ? rowToPublicSettlement(data as PublicSettlementRow) : null;
-}
-
 export async function mintSettlementShareToken(
   settlementId: number,
 ): Promise<MintSettlementShareTokenResult> {

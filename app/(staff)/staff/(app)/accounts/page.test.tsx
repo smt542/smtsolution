@@ -6,7 +6,6 @@ vi.mock("@/hooks/reactquery/accounts", () => ({
   useAccounts: vi.fn(), useCreateAccount: vi.fn(), useUpdateAccountBasic: vi.fn(),
   useUpdatePermissions: vi.fn(), useSetActive: vi.fn(), useResetPassword: vi.fn(),
 }));
-vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
 vi.mock("@/hooks/reactquery/residentClaims", () => ({
   useResidentClaims: vi.fn(),
   useApproveResidentClaim: vi.fn(),
@@ -14,18 +13,21 @@ vi.mock("@/hooks/reactquery/residentClaims", () => ({
 }));
 vi.mock("./components/useOrgOccupancyLookup", () => ({ useOrgOccupancyLookup: vi.fn() }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("../_staffContext", () => ({ getStaffContext: vi.fn() }));
 
 import AccountsPage from "./page";
+import { AccountsWorkspace } from "./components/AccountsWorkspace";
 import {
   useAccounts, useCreateAccount, useUpdateAccountBasic, useUpdatePermissions, useSetActive, useResetPassword,
 } from "@/hooks/reactquery/accounts";
-import { useMe, type MyContext } from "@/hooks/reactquery/auth";
+import type { MyContext } from "@/hooks/reactquery/auth";
 import {
   useApproveResidentClaim,
   useRejectResidentClaim,
   useResidentClaims,
 } from "@/hooks/reactquery/residentClaims";
 import { useOrgOccupancyLookup } from "./components/useOrgOccupancyLookup";
+import { getStaffContext } from "../_staffContext";
 
 const createMutateAsync = vi.fn();
 const basicMutateAsync = vi.fn();
@@ -57,8 +59,7 @@ const sampleAccounts = [
   },
 ];
 
-function setup(me: MyContext = master) {
-  vi.mocked(useMe).mockReturnValue({ data: me } as unknown as ReturnType<typeof useMe>);
+function setup() {
   vi.mocked(useAccounts).mockReturnValue({ data: sampleAccounts, isLoading: false } as unknown as ReturnType<typeof useAccounts>);
   createMutateAsync.mockResolvedValue({ userId: "new-user" });
   basicMutateAsync.mockResolvedValue(undefined);
@@ -95,11 +96,15 @@ function setup(me: MyContext = master) {
   } as unknown as ReturnType<typeof useOrgOccupancyLookup>);
 }
 
-beforeEach(() => { vi.clearAllMocks(); setup(); });
+beforeEach(() => {
+  vi.clearAllMocks();
+  setup();
+  vi.mocked(getStaffContext).mockResolvedValue(master);
+});
 
 describe("AccountsPage", () => {
-  it("3개 탭과 계정 목록 + 등록 버튼 렌더", () => {
-    render(<AccountsPage />);
+  it("3개 탭과 계정 목록 + 등록 버튼 렌더", async () => {
+    render(await AccountsPage());
     expect(screen.getByRole("button", { name: "사무실 관리자" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "현장 관리자" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "입주자" })).toBeInTheDocument();
@@ -108,7 +113,7 @@ describe("AccountsPage", () => {
   });
 
   it("관리자 탭은 staff_type을 필터링하고 입주자 탭은 청구 목록을 표시", () => {
-    render(<AccountsPage />);
+    render(<AccountsWorkspace canEditPermissions />);
 
     expect(screen.getByText("김직원")).toBeInTheDocument();
     expect(screen.queryByText("박현장")).not.toBeInTheDocument();
@@ -132,13 +137,13 @@ describe("AccountsPage", () => {
   });
 
   it("+ 계정 등록 클릭 시 모달 오픈", async () => {
-    render(<AccountsPage />);
+    render(<AccountsWorkspace canEditPermissions />);
     fireEvent.click(screen.getByRole("button", { name: /계정 등록/ }));
     await waitFor(() => expect(screen.getByRole("heading", { name: "사무실 관리자 등록" })).toBeInTheDocument());
   });
 
   it("수정 모드에서 입력한 PIN을 reset mutation으로 전달", async () => {
-    render(<AccountsPage />);
+    render(<AccountsWorkspace canEditPermissions />);
     fireEvent.click(screen.getByText("김직원"));
     await screen.findByRole("heading", { name: "사무실 관리자 수정" });
 
@@ -150,9 +155,9 @@ describe("AccountsPage", () => {
     }));
   });
 
-  it("accounts 권한 없는 사용자는 권한없음 안내", () => {
-    setup({ ...master, role: "staff", permissions: [] });
-    render(<AccountsPage />);
+  it("accounts 권한 없는 사용자는 서버에서 권한없음 안내", async () => {
+    vi.mocked(getStaffContext).mockResolvedValue({ ...master, role: "staff", permissions: [] });
+    render(await AccountsPage());
     expect(screen.getByText(/권한이 없습니다/)).toBeInTheDocument();
     expect(screen.queryByText("김직원")).toBeNull();
   });

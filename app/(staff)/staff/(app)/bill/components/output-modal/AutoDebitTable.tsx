@@ -1,11 +1,11 @@
 "use client";
 
-import type { Building } from "@/hooks/reactquery/buildings";
 import type { BillTarget } from "@/hooks/reactquery/bill";
+import type { BillBuilding } from "../../types";
 import { SmallSelect } from "./OutputModalPrimitives";
 
 interface AutoDebitRow {
-  building: Building;
+  building: BillBuilding;
   target: BillTarget;
 }
 

@@ -1,12 +1,15 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  getStaffContext: vi.fn(),
+}));
+
+vi.mock("../_staffContext", () => ({ getStaffContext: mocks.getStaffContext }));
 vi.mock("@/hooks/reactquery/buildingCustomerNumbers", () => ({
   useCustomerNumberLookup: vi.fn(),
 }));
 
-import { useMe } from "@/hooks/reactquery/auth";
 import { useCustomerNumberLookup } from "@/hooks/reactquery/buildingCustomerNumbers";
 import CustomerNumberLookupPage from "./page";
 
@@ -47,15 +50,13 @@ function setupLookup({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(useMe).mockReturnValue({
-    data: { orgId: 9, role: "staff", permissions: ["utilities"] },
-  } as never);
+  mocks.getStaffContext.mockResolvedValue({ orgId: 9, role: "staff", permissions: ["utilities"] });
   setupLookup();
 });
 
 describe("CustomerNumberLookupPage", () => {
   it("수도와 공용전기를 전환해 조회한다", async () => {
-    render(<CustomerNumberLookupPage />);
+    render(await CustomerNumberLookupPage());
     fireEvent.click(screen.getByRole("button", { name: "공용전기" }));
 
     await waitFor(() =>
@@ -69,24 +70,24 @@ describe("CustomerNumberLookupPage", () => {
     expect(screen.getByRole("button", { name: "공용전기" })).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("조회 중에는 로딩 상태를 표시한다", () => {
+  it("조회 중에는 로딩 상태를 표시한다", async () => {
     setupLookup({ data: [], isLoading: true });
-    render(<CustomerNumberLookupPage />);
+    render(await CustomerNumberLookupPage());
     expect(screen.getByRole("status", { name: "고객번호 조회 중" })).toBeInTheDocument();
   });
 
-  it("조회 결과가 없으면 빈 상태를 표시한다", () => {
+  it("조회 결과가 없으면 빈 상태를 표시한다", async () => {
     setupLookup({ data: [] });
-    render(<CustomerNumberLookupPage />);
+    render(await CustomerNumberLookupPage());
     expect(screen.getByText("검색 결과가 없습니다")).toBeInTheDocument();
   });
 
-  it("엑셀 다운로드에 현재 유형과 검색어를 직렬화한다", () => {
+  it("엑셀 다운로드에 현재 유형과 검색어를 직렬화한다", async () => {
     vi.useFakeTimers();
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
 
     try {
-      render(<CustomerNumberLookupPage />);
+      render(await CustomerNumberLookupPage());
       fireEvent.click(screen.getByRole("button", { name: "공용전기" }));
       fireEvent.change(screen.getByLabelText("고객번호 통합검색"), {
         target: { value: " 강남 빌라 " },

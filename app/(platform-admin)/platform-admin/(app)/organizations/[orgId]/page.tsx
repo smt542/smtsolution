@@ -1,8 +1,10 @@
-"use client";
-import { useParams } from "next/navigation";
 import { OrgBuildingsList } from "./components/OrgBuildingsList";
 
-export default function PlatformOrgDetailPage() {
-  const { orgId } = useParams<{ orgId: string }>();
+export default async function PlatformOrgDetailPage({
+  params,
+}: {
+  params: Promise<{ orgId: string }>;
+}) {
+  const { orgId } = await params;
   return <OrgBuildingsList orgId={Number(orgId)} />;
 }

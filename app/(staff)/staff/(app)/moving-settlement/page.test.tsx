@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
+vi.mock("../_staffContext", () => ({ getStaffContext: vi.fn() }));
 vi.mock("@/hooks/reactquery/buildings", () => ({ useBuildings: vi.fn() }));
 vi.mock("@/hooks/reactquery/org/useOrgContact", () => ({
   useOrgContact: () => ({ data: { phone: "02-1234-5678" } }),
@@ -25,17 +25,25 @@ vi.mock("@/hooks/reactquery/movingSettlement", async (importOriginal) => {
   };
 });
 
-import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useSettlementContext } from "@/hooks/reactquery/movingSettlement";
 import { useUnits } from "@/hooks/reactquery/units";
+import { getStaffContext } from "../_staffContext";
 import MovingSettlementPage from "./page";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(useMe).mockReturnValue({
-    data: { role: "staff", permissions: ["moving"] },
-  } as never);
+  vi.mocked(getStaffContext).mockResolvedValue({
+    orgId: 3,
+    role: "staff",
+    orgStatus: "active",
+    username: "staff1",
+    fullName: "담당자",
+    isActive: true,
+    mustChangePassword: false,
+    staffType: "manager_staff",
+    permissions: ["moving"],
+  });
   vi.mocked(useBuildings).mockReturnValue({
     data: [{ id: 3, name: "해오름" }],
     isLoading: false,
@@ -83,7 +91,7 @@ beforeEach(() => {
 
 describe("MovingSettlementPage", () => {
   it("건물·호실 선택 뒤 context를 표시한다", async () => {
-    render(<MovingSettlementPage />);
+    render(await MovingSettlementPage());
 
     expect(screen.getByRole("heading", { name: "전체 건물" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "이사정산 입력" })).toBeInTheDocument();
@@ -100,5 +108,25 @@ describe("MovingSettlementPage", () => {
     expect(screen.getByLabelText("수도 입금계좌")).toHaveValue("123");
     expect(screen.getByLabelText("열쇠 반납")).toBeInTheDocument();
     expect(screen.getByLabelText("연락처")).toHaveValue("010-1234-5678");
+  });
+
+  it("moving 권한이 없으면 서버에서 정산 workspace를 노출하지 않는다", async () => {
+    vi.mocked(getStaffContext).mockResolvedValue({
+      orgId: 3,
+      role: "staff",
+      orgStatus: "active",
+      username: "staff1",
+      fullName: "담당자",
+      isActive: true,
+      mustChangePassword: false,
+      staffType: "manager_staff",
+      permissions: [],
+    });
+
+    render(await MovingSettlementPage());
+
+    expect(screen.getByText(/이사정산 권한 필요/)).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "전체 건물" })).not.toBeInTheDocument();
+    expect(useBuildings).not.toHaveBeenCalled();
   });
 });

@@ -1,67 +1,92 @@
-// app/(staff)/staff/setup/page.test.tsx
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const getMock = vi.fn<(k: string) => string | null>(() => null);
-const replaceMock = vi.fn();
-vi.mock("next/navigation", () => ({
-  useSearchParams: () => ({ get: getMock }),
-  useRouter: () => ({ replace: replaceMock }),
+const mocks = vi.hoisted(() => ({
+  getStaffContext: vi.fn(),
+  redirect: vi.fn(),
+  setupTabs: vi.fn(),
 }));
-vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
-vi.mock("./components/BillingSettingsTab", () => ({ BillingSettingsTab: () => <div>TAB_BILLING</div> }));
-vi.mock("./components/AccountSettingsTab", () => ({ AccountSettingsTab: () => <div>TAB_ACCOUNTS</div> }));
-vi.mock("./components/MovingSettlementSettingsTab", () => ({ MovingSettlementSettingsTab: () => <div>TAB_SETTLEMENT</div> }));
-vi.mock("./components/SystemSettingsTab", () => ({ SystemSettingsTab: () => <div>TAB_SYSTEM</div> }));
+
+vi.mock("../_staffContext", () => ({
+  getStaffContext: mocks.getStaffContext,
+}));
+vi.mock("next/navigation", () => ({
+  redirect: mocks.redirect,
+}));
+vi.mock("./SetupTabs", () => ({
+  SetupTabs: ({ initialTab }: { initialTab: string }) => {
+    mocks.setupTabs(initialTab);
+    return <div>SETUP_TABS_{initialTab}</div>;
+  },
+}));
 
 import SetupPage from "./page";
-import { useMe } from "@/hooks/reactquery/auth";
 
-beforeEach(() => { vi.clearAllMocks(); getMock.mockReturnValue(null); });
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.getStaffContext.mockResolvedValue({
+    role: "staff",
+    permissions: ["settings"],
+  });
+});
 
 describe("SetupPage", () => {
-  it("settings 권한 없으면 접근 차단", () => {
-    vi.mocked(useMe).mockReturnValue({ data: { role: "staff", permissions: [] } } as unknown as ReturnType<typeof useMe>);
-    render(<SetupPage />);
+  it("settings 권한 없으면 서버에서 접근을 차단한다", async () => {
+    mocks.getStaffContext.mockResolvedValue({ role: "staff", permissions: [] });
+
+    render(await SetupPage({ searchParams: Promise.resolve({}) }));
+
     expect(screen.getByText(/접근할 권한이 없습니다/)).toBeInTheDocument();
-    expect(screen.queryByText("TAB_BILLING")).toBeNull();
+    expect(mocks.setupTabs).not.toHaveBeenCalled();
   });
 
-  it("settings 권한 있으면 탭 렌더 + 기본 고지서 탭", async () => {
-    vi.mocked(useMe).mockReturnValue({ data: { role: "staff", permissions: ["settings"] } } as unknown as ReturnType<typeof useMe>);
-    render(<SetupPage />);
-    expect(screen.getByRole("button", { name: "고지서 설정" })).toBeInTheDocument();
-    expect(await screen.findByText("TAB_BILLING")).toBeInTheDocument();
+  it("settings 권한이 있으면 기본 고지서 탭을 전달한다", async () => {
+    render(await SetupPage({ searchParams: Promise.resolve({}) }));
+
+    expect(screen.getByText("SETUP_TABS_billing")).toBeInTheDocument();
+    expect(mocks.setupTabs).toHaveBeenCalledWith("billing");
   });
 
-  it("마스터(org_owner)는 권한 배열 없어도 통과", async () => {
-    vi.mocked(useMe).mockReturnValue({ data: { role: "org_owner", permissions: [] } } as unknown as ReturnType<typeof useMe>);
-    render(<SetupPage />);
-    expect(await screen.findByText("TAB_BILLING")).toBeInTheDocument();
+  it("마스터는 권한 배열 없이도 통과한다", async () => {
+    mocks.getStaffContext.mockResolvedValue({
+      role: "org_owner",
+      permissions: [],
+    });
+
+    render(await SetupPage({ searchParams: Promise.resolve({}) }));
+
+    expect(screen.getByText("SETUP_TABS_billing")).toBeInTheDocument();
   });
 
-  it("?tab=system 이면 시스템 탭으로 시작", async () => {
-    getMock.mockReturnValue("system");
-    vi.mocked(useMe).mockReturnValue({ data: { role: "org_owner", permissions: [] } } as unknown as ReturnType<typeof useMe>);
-    render(<SetupPage />);
-    expect(await screen.findByText("TAB_SYSTEM")).toBeInTheDocument();
+  it("tab 쿼리의 첫 값을 초기 탭으로 전달한다", async () => {
+    render(
+      await SetupPage({
+        searchParams: Promise.resolve({ tab: ["system", "company"] }),
+      }),
+    );
+
+    expect(screen.getByText("SETUP_TABS_system")).toBeInTheDocument();
   });
 
-  it("탭 클릭 시 전환", async () => {
-    vi.mocked(useMe).mockReturnValue({ data: { role: "org_owner", permissions: [] } } as unknown as ReturnType<typeof useMe>);
-    render(<SetupPage />);
-    fireEvent.click(screen.getByRole("button", { name: "시스템 설정" }));
-    expect(await screen.findByText("TAB_SYSTEM")).toBeInTheDocument();
+  it("알 수 없는 tab 쿼리는 기본 고지서 탭으로 처리한다", async () => {
+    render(
+      await SetupPage({ searchParams: Promise.resolve({ tab: "unknown" }) }),
+    );
+
+    expect(screen.getByText("SETUP_TABS_billing")).toBeInTheDocument();
   });
 
-  it("기존 ?tab=repair 링크는 독립 장기수선비 화면으로 전환", () => {
-    getMock.mockReturnValue("repair");
-    vi.mocked(useMe).mockReturnValue({ data: { role: "org_owner", permissions: [] } } as unknown as ReturnType<typeof useMe>);
+  it("기존 repair 링크는 독립 장기수선비 화면으로 전환한다", async () => {
+    mocks.redirect.mockImplementation(() => {
+      throw new Error("NEXT_REDIRECT");
+    });
 
-    render(<SetupPage />);
+    await expect(
+      SetupPage({ searchParams: Promise.resolve({ tab: "repair" }) }),
+    ).rejects.toThrow("NEXT_REDIRECT");
 
-    expect(replaceMock).toHaveBeenCalledWith("/staff/long-term-repair");
-    expect(screen.queryByText("TAB_BILLING")).toBeNull();
+    expect(mocks.redirect).toHaveBeenCalledWith("/staff/long-term-repair");
+    expect(mocks.setupTabs).not.toHaveBeenCalled();
   });
 });

@@ -1,16 +1,11 @@
-"use client";
-
 import Link from "next/link";
-import { useParams } from "next/navigation";
 
 import MobileBackHeader from "@/app/(resident)/_components/MobileBackHeader";
-import {
-  type ResidentNoticeType,
-  useResidentNoticeDetail,
-} from "@/hooks/reactquery/residentNotices";
+import type { ResidentNoticeType } from "@/hooks/reactquery/residentNotices/apis";
 import { formatDate } from "@/lib/format";
-import { useResidentGuard } from "@/lib/resident/useResidentGuard";
 
+import { getResidentNoticeDetailPageData } from "../data";
+import ResidentNoticeRetryState from "../ResidentNoticeRetryState";
 import styles from "./detail.module.css";
 
 const typeLabel: Record<ResidentNoticeType, string> = {
@@ -19,12 +14,14 @@ const typeLabel: Record<ResidentNoticeType, string> = {
   urgent: "긴급",
 };
 
-export default function ResidentNoticeDetailPage() {
-  const params = useParams<{ id: string }>();
-  const parsedId = Number(params.id);
+export default async function ResidentNoticeDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id: idSegment } = await params;
+  const parsedId = Number(idSegment);
   const id = Number.isInteger(parsedId) && parsedId > 0 ? parsedId : 0;
-  const guard = useResidentGuard();
-  const detailQuery = useResidentNoticeDetail(id);
 
   const header = (
     <MobileBackHeader
@@ -35,39 +32,35 @@ export default function ResidentNoticeDetailPage() {
     />
   );
 
-  if (guard.loading || (id > 0 && detailQuery.isPending)) {
+  if (!id) {
     return (
       <div className={styles.page}>
         {header}
-        <div className={styles.center} role="status">공지를 불러오고 있어요.</div>
-      </div>
-    );
-  }
-
-  if (guard.error || detailQuery.error) {
-    return (
-      <div className={styles.page}>
-        {header}
-        <div className={styles.center} role="alert">
-          <b>공지를 불러오지 못했어요.</b>
-          <button
-            type="button"
-            onClick={() => {
-              void guard.retry();
-              void detailQuery.refetch();
-            }}
-          >
-            다시 시도
-          </button>
+        <div className={styles.center} role="status">
+          <b>공지 내용을 찾을 수 없어요.</b>
+          <Link href="/resident/notice">공지 목록 보기</Link>
         </div>
       </div>
     );
   }
 
-  if (!guard.link) return null;
+  let pageData: Awaited<ReturnType<typeof getResidentNoticeDetailPageData>>;
+  try {
+    pageData = await getResidentNoticeDetailPageData(id);
+  } catch {
+    return (
+      <div className={styles.page}>
+        {header}
+        <ResidentNoticeRetryState
+          className={styles.center}
+          message="공지를 불러오지 못했어요."
+        />
+      </div>
+    );
+  }
 
-  const detail = detailQuery.data;
-  if (!id || !detail) {
+  const { detail, residentBuildingName } = pageData;
+  if (!detail) {
     return (
       <div className={styles.page}>
         {header}
@@ -91,7 +84,7 @@ export default function ResidentNoticeDetailPage() {
           <p className={styles.metadata}>
             <time dateTime={detail.publishedAt}>{formatDate(detail.publishedAt)}</time>
             <span aria-hidden="true">·</span>
-            <span>{detail.buildingName ?? guard.link.buildingName ?? "전체 공지"}</span>
+            <span>{detail.buildingName ?? residentBuildingName ?? "전체 공지"}</span>
           </p>
           <div className={styles.content}>{detail.content}</div>
         </article>

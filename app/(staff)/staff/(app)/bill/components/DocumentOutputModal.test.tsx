@@ -29,7 +29,6 @@ vi.mock("sonner", () => ({
 }));
 
 import { toast } from "sonner";
-import { emptyFacilities } from "@/hooks/reactquery/buildings";
 import { DocumentOutputModal } from "./DocumentOutputModal";
 
 const target = {
@@ -77,10 +76,7 @@ describe("DocumentOutputModal 팩스", () => {
       <DocumentOutputModal
         type="fax"
         buildings={[{
-          id: 7, orgId: 1, code: "B007", name: "행복빌라", address: null,
-          typeId: null, ownerName: null, ownerPhone: null, entrancePassword: null,
-          managerUserId: null, meterUserId: null, cleaningUserId: null, facilities: emptyFacilities(), memo: null, billingNote: null,
-          setupConfirmRequired: false,
+          id: 7, code: "B007", name: "행복빌라", address: null,
         }]}
         companyName="한빛관리"
         accounts={[]}

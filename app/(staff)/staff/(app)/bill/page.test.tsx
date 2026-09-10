@@ -1,33 +1,55 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
-vi.mock("@/hooks/reactquery/buildings", () => ({
-  useBuildings: () => ({ data: [{ id: 7, orgId: 1, code: "B007", name: "행복빌라", address: "서울시" }], isLoading: false }),
+const mocks = vi.hoisted(() => ({
+  getStaffContext: vi.fn(),
+  getBillPageData: vi.fn(),
 }));
-vi.mock("@/hooks/reactquery/setupConfig", () => ({ useSetupConfig: () => ({ data: null }) }));
-vi.mock("@/hooks/reactquery/bill", () => ({ useBillOrganizationName: () => ({ data: "한빛관리" }) }));
 
-import { useMe } from "@/hooks/reactquery/auth";
+vi.mock("../_staffContext", () => ({ getStaffContext: mocks.getStaffContext }));
+vi.mock("./data", () => ({ getBillPageData: mocks.getBillPageData }));
+vi.mock("./components/BillWorkspace", () => ({
+  BillWorkspace: ({ companyName, buildings }: { companyName: string; buildings: Array<{ name: string }> }) => (
+    <div>WORKSPACE:{companyName}:{buildings[0]?.name}</div>
+  ),
+}));
+
 import BillPage from "./page";
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.getBillPageData.mockResolvedValue({
+    buildings: [{ id: 7, code: "B007", name: "행복빌라", address: "서울시" }],
+    companyName: "한빛관리",
+    accounts: [],
+    customerNotice: null,
+  });
+});
 
-describe("BillPage 게이트와 문서 선택", () => {
-  it("bill_publish 권한이 없으면 차단한다", () => {
-    vi.mocked(useMe).mockReturnValue({ data: { role: "field_staff", permissions: [] } } as unknown as ReturnType<typeof useMe>);
-    render(<BillPage />);
+describe("BillPage 권한 게이트", () => {
+  it("bill_publish 권한이 없으면 차단하고 페이지 데이터를 조회하지 않는다", async () => {
+    mocks.getStaffContext.mockResolvedValue({ orgId: 1, role: "staff", permissions: [] });
+
+    render(await BillPage());
+
     expect(screen.getByText(/접근할 권한이 없습니다/)).toBeInTheDocument();
+    expect(mocks.getBillPageData).not.toHaveBeenCalled();
   });
 
-  it("권한이 있으면 Figma 문서 카드 4종을 노출한다", () => {
-    vi.mocked(useMe).mockReturnValue({ data: { role: "staff", orgId: 1, permissions: ["bill_publish"] } } as unknown as ReturnType<typeof useMe>);
-    render(<BillPage />);
-    expect(screen.getByRole("heading", { name: "서류 발행·출력" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /지로 고지서/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /조정명세서/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /자동이체 세대 출력/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /팩스 발송/ })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /A4 관리비 고지서/ })).not.toBeInTheDocument();
+  it("권한이 있으면 서버 데이터를 Client workspace에 전달한다", async () => {
+    mocks.getStaffContext.mockResolvedValue({ orgId: 1, role: "staff", permissions: ["bill_publish"] });
+
+    render(await BillPage());
+
+    expect(screen.getByText("WORKSPACE:한빛관리:행복빌라")).toBeInTheDocument();
+    expect(mocks.getBillPageData).toHaveBeenCalledWith(1);
+  });
+
+  it("org_owner는 별도 모듈 권한 없이 접근할 수 있다", async () => {
+    mocks.getStaffContext.mockResolvedValue({ orgId: 1, role: "org_owner", permissions: [] });
+
+    render(await BillPage());
+
+    expect(screen.getByText("WORKSPACE:한빛관리:행복빌라")).toBeInTheDocument();
   });
 });

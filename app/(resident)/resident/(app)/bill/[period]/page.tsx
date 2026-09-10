@@ -1,12 +1,9 @@
-"use client";
-
-import { useParams, useRouter } from "next/navigation";
-
 import BillDetailView from "@/app/(resident)/_components/BillDetailView";
-import { useResidentBillDetail } from "@/hooks/reactquery/residentBilling";
-import { useResidentGuard } from "@/lib/resident/useResidentGuard";
 
+import { getResidentBillDetail } from "../data";
+import ResidentBillRetryState from "../ResidentBillRetryState";
 import styles from "./detail.module.css";
+import ResidentBillBackButton from "./ResidentBillBackButton";
 
 const PERIOD_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -14,21 +11,13 @@ const PERIOD_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
 const monthTitle = (period: string) =>
   `${period.slice(0, 4)}년 ${Number(period.slice(5, 7))}월 관리비`;
 
-export default function ResidentBillDetailPage() {
-  const router = useRouter();
-  const params = useParams<{ period: string }>();
-  const segment = params.period;
+export default async function ResidentBillDetailPage({
+  params,
+}: {
+  params: Promise<{ period: string }>;
+}) {
+  const { period: segment } = await params;
   const period = PERIOD_PATTERN.test(segment) ? `${segment}-01` : "";
-  const guard = useResidentGuard();
-  const detailQuery = useResidentBillDetail(period);
-
-  if (guard.loading || (period && detailQuery.isPending)) {
-    return (
-      <div className={styles.center} role="status">
-        관리비 상세를 불러오고 있어요
-      </div>
-    );
-  }
 
   if (!period) {
     return (
@@ -38,53 +27,34 @@ export default function ResidentBillDetailPage() {
     );
   }
 
-  if (guard.error || detailQuery.error) {
+  let detail: Awaited<ReturnType<typeof getResidentBillDetail>>;
+  try {
+    detail = await getResidentBillDetail(period);
+  } catch {
     return (
-      <div className={styles.center} role="alert">
-        <b>관리비 상세를 불러오지 못했어요</b>
-        <button
-          type="button"
-          onClick={() => {
-            void guard.retry();
-            void detailQuery.refetch();
-          }}
-        >
-          다시 시도
-        </button>
-      </div>
+      <ResidentBillRetryState
+        className={styles.center}
+        message="관리비 상세를 불러오지 못했어요"
+      />
     );
   }
-
-  if (!guard.link) return null;
 
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <button type="button" aria-label="뒤로가기" onClick={() => router.back()}>
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.1"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M15 5l-7 7 7 7" />
-          </svg>
-        </button>
+        <ResidentBillBackButton />
         <h1>{monthTitle(period)}</h1>
         <span aria-hidden="true" />
       </header>
 
       <main className={styles.scroll}>
-        {!detailQuery.data ? (
+        {!detail ? (
           <div className={styles.empty} role="status">
             <b>부과 내역이 없어요</b>
             <span>선택한 달의 확정된 관리비가 없습니다.</span>
           </div>
         ) : (
-          <BillDetailView mode="authed" detail={detailQuery.data} />
+          <BillDetailView mode="authed" detail={detail} />
         )}
       </main>
     </div>

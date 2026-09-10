@@ -1,14 +1,14 @@
 "use client";
 
-import type { Building } from "@/hooks/reactquery/buildings";
 import type { BillDocument, BillTarget } from "@/hooks/reactquery/bill";
+import type { BillBuilding } from "../../types";
 import { ZoomControls } from "./OutputModalPrimitives";
 
 interface CompactDocumentPreviewProps {
   type: "giro" | "adjustment" | "fax";
   companyName: string;
   period: string;
-  building?: Building;
+  building?: BillBuilding;
   target?: BillTarget;
   document?: BillDocument;
   zoom: number;

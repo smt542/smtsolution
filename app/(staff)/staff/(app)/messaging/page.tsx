@@ -1,64 +1,35 @@
-"use client";
-
-import { Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { EmptyState, Spinner } from "@/components/common";
-import { useMe } from "@/hooks/reactquery/auth";
+import { EmptyState } from "@/components/common";
 import { hasModule } from "@/lib/auth/permissions";
+import { getStaffContext } from "../_staffContext";
 import { DrainScheduledButton } from "./components/DrainScheduledButton";
-import { HistoryTab } from "./components/HistoryTab";
-import { MessagingComposer } from "./components/MessagingComposer";
-import { TemplatesTab } from "./components/TemplatesTab";
+import {
+  MessagingTabs,
+  type MessagingTab,
+} from "./components/MessagingTabs";
 
-type MessagingTab = "send" | "templates" | "history";
+type MessagingSearchParams = {
+  tab?: string | string[];
+};
 
-const TABS: { id: MessagingTab; label: string }[] = [
-  { id: "send", label: "발송" },
-  { id: "templates", label: "템플릿" },
-  { id: "history", label: "내역" },
-];
-
-function parseTab(value: string | null): MessagingTab {
-  return value === "templates" || value === "history" ? value : "send";
+function parseTab(value: string | string[] | undefined): MessagingTab {
+  const tab = Array.isArray(value) ? value[0] : value;
+  return tab === "templates" || tab === "history" ? tab : "send";
 }
 
-export default function MessagingPage() {
-  const { data: me, isLoading } = useMe();
+export default async function MessagingPage({
+  searchParams,
+}: {
+  searchParams: Promise<MessagingSearchParams>;
+}) {
+  const [me, query] = await Promise.all([getStaffContext(), searchParams]);
 
-  if (isLoading || me === undefined) {
-    return (
-      <div className="p-6">
-        <Spinner />
-      </div>
-    );
-  }
-
-  if (!hasModule(me, "messaging")) {
+  if (!me || !hasModule(me, "messaging")) {
     return (
       <div className="p-6">
         <EmptyState message="문자 발송 권한이 없습니다." />
       </div>
     );
   }
-
-  return (
-    <Suspense
-      fallback={
-        <div className="p-6">
-          <Spinner />
-        </div>
-      }
-    >
-      <MessagingWorkspace />
-    </Suspense>
-  );
-}
-
-function MessagingWorkspace() {
-  const searchParams = useSearchParams();
-  const [tab, setTab] = useState<MessagingTab>(() =>
-    parseTab(searchParams.get("tab")),
-  );
 
   return (
     <div className="flex min-h-screen flex-col gap-6 p-6">
@@ -72,41 +43,7 @@ function MessagingWorkspace() {
         <DrainScheduledButton />
       </header>
 
-      <div
-        role="tablist"
-        aria-label="메시징 메뉴"
-        className="flex border-b border-line"
-      >
-        {TABS.map((item) => (
-          <button
-            key={item.id}
-            id={`messaging-tab-${item.id}`}
-            type="button"
-            role="tab"
-            aria-selected={tab === item.id}
-            aria-controls={`messaging-panel-${item.id}`}
-            tabIndex={tab === item.id ? 0 : -1}
-            onClick={() => setTab(item.id)}
-            className={`px-5 py-3 text-sm font-bold ${
-              tab === item.id
-                ? "border-b-2 border-brand text-brand"
-                : "text-t3 hover:text-t1"
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-
-      <div
-        id={`messaging-panel-${tab}`}
-        role="tabpanel"
-        aria-labelledby={`messaging-tab-${tab}`}
-      >
-        {tab === "send" && <MessagingComposer initialMode="auto" />}
-        {tab === "templates" && <TemplatesTab />}
-        {tab === "history" && <HistoryTab />}
-      </div>
+      <MessagingTabs initialTab={parseTab(query.tab)} />
     </div>
   );
 }

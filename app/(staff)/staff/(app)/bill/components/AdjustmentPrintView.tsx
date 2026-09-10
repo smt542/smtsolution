@@ -2,17 +2,17 @@
 
 import { useEffect } from "react";
 import type { BillDocument, BillTarget } from "@/hooks/reactquery/bill";
-import type { Building } from "@/hooks/reactquery/buildings";
 import { prevPeriod } from "@/lib/billing/period";
 import {
   buildAdjustmentRows,
   buildOutputQrPayload,
   formatBillAmount,
 } from "@/lib/bill/document";
+import type { BillBuilding } from "../types";
 import { QrCode } from "./QrCode";
 
 export interface AdjustmentBuildingDocuments {
-  building: Building;
+  building: BillBuilding;
   current: BillDocument[];
   previous: BillDocument[];
   targets: BillTarget[];

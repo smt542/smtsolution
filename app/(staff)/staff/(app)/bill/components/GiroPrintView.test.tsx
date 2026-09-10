@@ -14,6 +14,8 @@ const entry = {
     payerNo: "P-101", billNameDisplay: "name", phone: "010-1234-5678", totalAmount: 35400,
     autoDebit: true, issueType: null, dueDate: null,
     sendStatus: null, issuedAt: null,
+    secondaryPhone: null, faxNumber: null, singlePrint: false, waterCutoff: false,
+    scheduledAt: null, messageScheduleId: null, kakaoSendStatus: null, faxSendStatus: null,
   },
   dueDate: "2026-08-25",
 } as GiroOutputDocument;

@@ -330,7 +330,7 @@ type SettlementJson = {
   extra: MSExtra | null;
 };
 
-type ContextJson = {
+export type ContextJson = {
   unit: { id: number; unit_no: string; dong: string | null; building_id: number; building_name: string };
   occupancy: {
     id: number;
@@ -351,7 +351,7 @@ type ContextJson = {
   }[];
 };
 
-function mapContext(r: ContextJson): PartnerSettlementContext {
+export function mapContext(r: ContextJson): PartnerSettlementContext {
   const s = r.latest_settlement;
   return {
     unit: {
@@ -399,18 +399,6 @@ function mapContext(r: ContextJson): PartnerSettlementContext {
       usage: m.usage,
     })),
   };
-}
-
-export async function fetchPartnerSettlementContext(
-  unitId: number,
-  settlementId?: number | null,
-): Promise<PartnerSettlementContext> {
-  const { data, error } = await createClient().rpc("partner_get_settlement_context", {
-    p_unit_id: unitId,
-    p_settlement_id: settlementId ?? null,
-  });
-  if (error) throw new Error(error.message);
-  return mapContext(data as ContextJson);
 }
 
 export async function savePartnerSettlement(

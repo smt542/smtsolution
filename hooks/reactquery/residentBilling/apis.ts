@@ -217,31 +217,6 @@ const rowToBillDetail = (row: ResidentBillDetailRow): ResidentBillDetail => ({
   mgmtHolder: row.mgmt_holder,
 });
 
-const rowToPublicBillDetail = (
-  row: PublicBillDetailRow,
-): PublicBillDetail => ({
-  period: row.period,
-  buildingName: row.building_name,
-  unitNo: row.unit_no,
-  totalAmount: row.total_amount,
-  paidAmount: row.paid_amount,
-  unpaidAmount: row.unpaid_amount,
-  lateFee: row.late_fee,
-  dueDate: row.due_date,
-  items: (row.items ?? []).map((item) => ({
-    name: item.name,
-    amount: item.amount,
-    utility: item.utility ?? null,
-    usage: item.usage ?? null,
-    prevUsage: item.prev_usage ?? null,
-  })),
-  mgmtBank: row.mgmt_bank,
-  mgmtAcct: row.mgmt_acct,
-  mgmtHolder: row.mgmt_holder,
-  expiresAt: row.expires_at,
-  isExpired: row.is_expired,
-});
-
 export async function residentBillMonths(): Promise<ResidentBillMonthsResult> {
   const { data, error } = await createClient().rpc("resident_bill_months");
   if (error) throw new Error(error.message);
@@ -271,23 +246,6 @@ export function signedBillPath(link: {
   sig: string;
 }): string {
   return `/rb/${link.buildingId}/${encodeURIComponent(link.unitNo)}/${link.period.slice(0, 7)}?s=${link.sig}`;
-}
-
-export async function publicBillBySigned(
-  buildingId: number,
-  unitNo: string,
-  period: string,
-  sig: string,
-): Promise<PublicBillBySignedResult> {
-  const { data, error } = await createClient().rpc("public_bill_by_signed", {
-    p_building_id: buildingId,
-    p_unit_no: unitNo,
-    p_period: `${period.slice(0, 7)}-01`,
-    p_sig: sig,
-  });
-  if (error) throw new Error(error.message);
-  const row = ((data ?? []) as PublicBillDetailRow[])[0];
-  return row ? rowToPublicBillDetail(row) : null;
 }
 
 /** 세입자 본인 세대의 무로그인 서명 링크(building_id·unit_no·sig)를 자동 발급한다. */
