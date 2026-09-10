@@ -267,20 +267,6 @@ function MessengerFabContent() {
             ? "알림톡 수신 동의 대상 없음"
             : `${eligibleRecipients.length}명에게 ${scheduledAt ? "예약 발송" : "발송"}`;
 
-  const quoteStatus = providerGated
-    ? "발송 설정 준비 중"
-    : senderGated
-      ? "알림톡 발신 설정 준비 중"
-      : consentLoading
-        ? "알림톡 수신 동의를 확인하고 있어요."
-        : pointsInsufficient
-          ? `포인트가 부족해요${pointQuote.data ? ` · 예상 ${formatPoints(pointQuote.data.estimatedPoints)} P / 가용 ${formatPoints(pointQuote.data.availablePoints)} P` : ""}`
-          : quotePending
-            ? "예상 포인트를 계산하고 있어요."
-            : pointQuote.data
-              ? `발송 대상 ${pointQuote.data.recipientCount}명 · 예상 ${formatPoints(pointQuote.data.estimatedPoints)} P${excludedCount ? ` · 미동의 ${excludedCount}명 제외` : ""}`
-              : sendFeedback?.message || "수신자와 내용을 선택하면 예상 포인트를 확인할 수 있어요.";
-
   const changeChannel = (channel: ChannelMode) => {
     if (channel === ui.channel) return;
     setChannel(channel);
@@ -477,6 +463,12 @@ function MessengerFabContent() {
             </div>
           </div>
 
+          {/* 정본: 예약전송은 수신자 아래·메시지 영역 위(full-width) */}
+          <SchedulePicker
+            value={{ scheduledAt, recurrenceMode }}
+            onChange={changeSchedule}
+          />
+
           <div className={styles["fmp-msg2col"]}>
             <div className={styles["fmp-msgL"]}>
               {ui.channel === "sms" ? (
@@ -497,16 +489,6 @@ function MessengerFabContent() {
                   }}
                 />
               )}
-              <SchedulePicker
-                value={{ scheduledAt, recurrenceMode }}
-                onChange={changeSchedule}
-              />
-              <div className={styles["fmp-recip"]} aria-live="polite">
-                <span className={styles.c}>
-                  {pointQuote.data ? formatPoints(pointQuote.data.estimatedPoints) : "—"}
-                </span>
-                <span style={{ fontSize: 12, fontWeight: 600 }}>{quoteStatus}</span>
-              </div>
             </div>
             <PhonePreview
               channel={ui.channel}

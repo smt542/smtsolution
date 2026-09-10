@@ -352,7 +352,10 @@ export function RecipientCascade({
             phone: selectedCleaner.phone,
           }
         : null;
-  const useTwoColumns = type === "staff" || ((type === "owner" || type === "cleaner") && !autoRecipient);
+  // 정본(Messenger.dc.html L534·995): 기본(미선택) 상태와 staff/owner/cleaner는 2열(.two, flex:1 1 0),
+  // tenant+건물/자동수신(3요소)일 때만 .two 해제(각 1/3). 미선택 기본상태 누락 시 좌측 1/3 폭으로 쏠린다.
+  const useTwoColumns =
+    !type || type === "staff" || ((type === "owner" || type === "cleaner") && !autoRecipient);
 
   return (
     <div
