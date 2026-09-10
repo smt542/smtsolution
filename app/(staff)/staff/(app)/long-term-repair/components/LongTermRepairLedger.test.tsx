@@ -52,6 +52,14 @@ beforeEach(() => {
 });
 
 describe("LongTermRepairLedger", () => {
+  it("페이지 제목을 본문에 중복 렌더링하지 않는다", () => {
+    render(<LongTermRepairLedger orgId={9} companyName="한빛관리" buildings={buildings} />);
+
+    const pageBody = screen.getByTestId("long-term-repair-screen");
+    expect(pageBody.querySelector(":scope > header")).toBeNull();
+    expect(screen.queryByText("장기수선비 관리")).toBeNull();
+  });
+
   it("건물 미선택 안내와 커스텀 기간 드롭다운을 표시한다", () => {
     const { container } = render(<LongTermRepairLedger orgId={9} companyName="한빛관리" buildings={buildings} />);
 

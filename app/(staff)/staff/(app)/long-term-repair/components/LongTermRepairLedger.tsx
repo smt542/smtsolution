@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Button, Spinner } from "@/components/common";
+import { Spinner } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import {
   useLongTermRepairLedger,
@@ -23,6 +23,7 @@ import {
   LongTermRepairPrintView,
   type LongTermRepairPrintRow,
 } from "./LongTermRepairPrintView";
+import styles from "./long-term-repair.module.css";
 
 const LEDGER_ENTITY_TYPE = "long_term_repair_ledger";
 
@@ -39,8 +40,8 @@ interface DraftLedgerRow {
 }
 
 interface ViewerState {
-  title: string;
-  attachments: Attachment[];
+  row: DraftLedgerRow;
+  kind: "receipt" | "photo";
 }
 
 interface LongTermRepairLedgerProps {
@@ -124,62 +125,27 @@ function nextEntryNo(rows: DraftLedgerRow[]) {
 
 function AttachmentCell({
   label,
-  kind,
-  row,
   attachments,
-  editing,
-  uploading,
   onOpen,
-  onUpload,
 }: {
   label: string;
-  kind: "receipt" | "photo";
-  row: DraftLedgerRow;
   attachments: Attachment[];
-  editing: boolean;
-  uploading: boolean;
   onOpen: () => void;
-  onUpload: (file: File) => Promise<void>;
 }) {
-  const fileRef = useRef<HTMLInputElement>(null);
   return (
-    <div className="flex min-w-20 items-center justify-center gap-1">
-      <button
-        type="button"
-        className={`rounded-md px-1.5 py-1 text-xs font-bold ${attachments.length ? "bg-blue-t text-blue-d hover:bg-blue-t2" : "text-t4"}`}
-        disabled={attachments.length === 0}
-        onClick={onOpen}
-        aria-label={`${label} ${attachments.length}장 열기`}
-      >
-        {attachments.length ? `${attachments.length}장` : "-"}
-      </button>
-      {editing && row.id && (
-        <>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            aria-label={`${label} 이미지 첨부`}
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file) void onUpload(file);
-              event.target.value = "";
-            }}
-          />
-          <button
-            type="button"
-            disabled={uploading}
-            className="rounded-md border border-line px-1.5 py-1 text-[11px] font-bold text-t2 hover:border-blue hover:text-blue disabled:opacity-50"
-            onClick={() => fileRef.current?.click()}
-          >
-            첨부
-          </button>
-        </>
-      )}
-      {editing && !row.id && <span className="text-[10px] text-t4">저장 후 첨부</span>}
-      <span className="sr-only">{kind}</span>
-    </div>
+    <button
+      type="button"
+      className={`${styles.attachmentButton} ${attachments.length ? styles.attachmentButtonActive : ""}`}
+      onClick={onOpen}
+      aria-label={`${label} ${attachments.length}장 열기`}
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M21 11.5 12.5 20a5 5 0 0 1-7-7l8-8a3.5 3.5 0 0 1 5 5l-8 8a2 2 0 0 1-3-3l7-7" />
+      </svg>
+      <b className={`${styles.attachmentCount} ${attachments.length ? "" : styles.attachmentCountEmpty}`}>
+        {attachments.length}
+      </b>
+    </button>
   );
 }
 
@@ -187,11 +153,17 @@ export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTerm
   const confirm = useConfirm();
   const now = new Date();
   const currentYear = now.getFullYear();
-  const initialEndMonth = `${currentYear}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const [startMonth, setStartMonth] = useState(`${currentYear}-01`);
+  const latestClosedMonth = new Date(currentYear, now.getMonth(), 0);
+  const latestClosedMonthNumber = latestClosedMonth.getMonth() + 1;
+  const initialEndMonth = `${latestClosedMonth.getFullYear()}-${String(latestClosedMonthNumber).padStart(2, "0")}`;
+  const openingDecemberYear = latestClosedMonthNumber === 12
+    ? latestClosedMonth.getFullYear()
+    : latestClosedMonth.getFullYear() - 1;
+  const [startMonth, setStartMonth] = useState(`${openingDecemberYear}-12`);
   const [endMonth, setEndMonth] = useState(initialEndMonth);
   const [buildingId, setBuildingId] = useState<number | null>(null);
   const [editing, setEditing] = useState(false);
+  const [adding, setAdding] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [draftRows, setDraftRows] = useState<DraftLedgerRow[]>([]);
   const [deletedIds, setDeletedIds] = useState<number[]>([]);
@@ -232,12 +204,16 @@ export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTerm
     }
     return grouped;
   }, [attachmentQuery.data]);
+  const viewerAttachments = viewer?.row.id
+    ? (attachmentsByRow.get(viewer.row.id) ?? []).filter((item) => item.kind === viewer.kind)
+    : [];
 
   const enterEdit = () => {
     if (!buildingId) return;
     setDraftRows(serverRows.map(toDraft));
     setDeletedIds([]);
     setDirty(false);
+    setAdding(false);
     setEditing(true);
     toast.success("내역을 수정할 수 있어요");
   };
@@ -261,11 +237,13 @@ export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTerm
     }]);
     setDeletedIds(editing ? deletedIds : []);
     setEditing(true);
+    setAdding(true);
     setDirty(true);
   };
 
   const cancelEdit = () => {
     setEditing(false);
+    setAdding(false);
     setDirty(false);
     setDraftRows([]);
     setDeletedIds([]);
@@ -315,6 +293,7 @@ export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTerm
         deletedIds,
       });
       setEditing(false);
+      setAdding(false);
       setDirty(false);
       setDraftRows([]);
       setDeletedIds([]);
@@ -353,12 +332,7 @@ export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTerm
   };
 
   const openAttachments = (row: DraftLedgerRow, kind: "receipt" | "photo") => {
-    const selected = (row.id ? attachmentsByRow.get(row.id) ?? [] : []).filter((item) => item.kind === kind);
-    if (selected.length === 0) return;
-    setViewer({
-      title: `${selectedBuilding?.name ?? "건물"} · ${row.entryDate} · ${kind === "receipt" ? "영수증" : "공사사진"}`,
-      attachments: selected,
-    });
+    setViewer({ row, kind });
   };
 
   const changeStartMonth = (next: string) => {
@@ -383,29 +357,24 @@ export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTerm
 
   return (
     <>
-      <div className="flex min-h-[calc(100vh-62px)] flex-col p-4 print:hidden sm:p-6">
-        <header className="mb-5">
-          <p className="text-xs font-semibold text-t3">관리업무 · 적립금 원장</p>
-          <h1 className="mt-1 text-2xl font-extrabold text-t1">장기수선비 관리</h1>
-        </header>
-
-        <div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
-          <aside className="overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
-            <div className="border-b border-line px-4 py-3">
-              <h2 className="text-sm font-extrabold text-t1">적립 건물 목록</h2>
-              <p className="mt-1 text-xs text-t3">코드·명칭</p>
+      <div className={`${styles.screen} print:hidden`} data-testid="long-term-repair-screen">
+        <div className={styles.workspace} data-testid="long-term-repair-workspace">
+          <aside className={`${styles.panel} ${styles.buildingPanel}`} data-testid="long-term-repair-buildings">
+            <div className={`${styles.panelHeader} ${styles.buildingHeader}`}>
+              <h2 className={styles.panelTitle}>적립 건물</h2>
             </div>
-            <div className="grid grid-cols-[88px_1fr] border-b border-line bg-bg px-3 py-2 text-[11px] font-bold text-t3">
-              <span>코드</span><span>명칭</span>
+            <div className={styles.buildingTableHeader} aria-hidden="true">
+              <span>코드</span>
+              <span>명칭</span>
             </div>
-            <div className="max-h-[calc(100vh-235px)] overflow-y-auto p-2">
+            <div className={styles.buildingScroll}>
               {buildings.length === 0 ? (
-                <p className="p-6 text-center text-sm text-t4">등록된 건물이 없습니다.</p>
+                <p className={styles.buildingEmpty}>등록된 건물이 없습니다.</p>
               ) : buildings.map((building) => (
                 <button
                   key={building.id}
                   type="button"
-                  className={`grid w-full grid-cols-[88px_1fr] rounded-xl px-2 py-3 text-left text-sm transition-colors ${building.id === buildingId ? "bg-blue-t text-blue-d" : "text-t2 hover:bg-bg"}`}
+                  className={`${styles.buildingRow} ${building.id === buildingId ? styles.buildingRowSelected : ""}`}
                   aria-pressed={building.id === buildingId}
                   onClick={async () => {
                     if (editing && dirty) {
@@ -418,29 +387,31 @@ export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTerm
                     }
                     setBuildingId(building.id);
                     setEditing(false);
+                    setAdding(false);
                     setDirty(false);
                     setDraftRows([]);
                     setDeletedIds([]);
                   }}
                 >
-                  <span className="truncate font-bold">{building.code}</span>
-                  <span className="truncate font-semibold">{building.name}</span>
+                  <span className={styles.buildingCode}>{building.code}</span>
+                  <span className={styles.buildingName} title={building.name}>{building.name}</span>
                 </button>
               ))}
             </div>
           </aside>
 
-          <section className="flex min-w-0 flex-col overflow-visible rounded-2xl border border-line bg-surface shadow-card">
-            <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-3">
-              <div className="mr-auto min-w-40">
-                <h2 className="text-sm font-extrabold text-t1">적립금 내역</h2>
-                <p className="mt-0.5 truncate text-xs text-t3">{selectedBuilding ? `${selectedBuilding.code} · ${selectedBuilding.name}` : "건물 미선택"}</p>
-              </div>
-              <span className="text-xs font-bold text-t3">조회기간</span>
+          <section className={`${styles.panel} ${styles.ledgerPanel}`} data-testid="long-term-repair-ledger">
+            <div className={`${styles.panelHeader} ${styles.toolbar}`}>
+              <h2 className={styles.panelTitle}>
+                {selectedBuilding ? `${selectedBuilding.name} 적립금 내역` : "적립금 내역"}
+              </h2>
+              <div className={styles.toolbarSpacer} />
+              <span className={styles.toolbarLabel}>조회일</span>
               <CustomDropdown
                 ariaLabel="조회 시작 연도"
                 value={startMonth.slice(0, 4)}
                 options={yearOptions}
+                compact
                 disabled={editing}
                 onChange={(year) => changeStartMonth(`${year}-${startMonth.slice(5, 7)}`)}
               />
@@ -448,14 +419,16 @@ export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTerm
                 ariaLabel="조회 시작 월"
                 value={startMonth.slice(5, 7)}
                 options={MONTH_OPTIONS}
+                compact
                 disabled={editing}
                 onChange={(month) => changeStartMonth(`${startMonth.slice(0, 4)}-${month}`)}
               />
-              <span className="font-bold text-t4">~</span>
+              <span className={styles.rangeSeparator}>~</span>
               <CustomDropdown
                 ariaLabel="조회 종료 연도"
                 value={endMonth.slice(0, 4)}
                 options={yearOptions}
+                compact
                 disabled={editing}
                 onChange={(year) => changeEndMonth(`${year}-${endMonth.slice(5, 7)}`)}
               />
@@ -463,110 +436,174 @@ export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTerm
                 ariaLabel="조회 종료 월"
                 value={endMonth.slice(5, 7)}
                 options={MONTH_OPTIONS}
+                compact
                 disabled={editing}
                 onChange={(month) => changeEndMonth(`${endMonth.slice(0, 4)}-${month}`)}
               />
-              <Button type="button" variant="ghost" className="h-9 px-3" onClick={print}>출력</Button>
-              <Button type="button" variant="ghost" className="h-9 px-3" onClick={addRow} disabled={ledgerQuery.isFetching}>추가</Button>
-              {!editing ? (
-                <Button type="button" variant="ghost" className="h-9 px-3" onClick={enterEdit} disabled={!buildingId || ledgerQuery.isFetching}>수정</Button>
-              ) : (
+              <button type="button" className={styles.miniButton} onClick={print}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M7 8V4h10v4" />
+                  <rect x="4" y="8" width="16" height="8" rx="2" />
+                  <path d="M7 16h10v4H7z" />
+                </svg>
+                출력
+              </button>
+              {(!editing || adding) && (
+                <button type="button" className={styles.miniButton} onClick={addRow} disabled={ledgerQuery.isFetching}>추가</button>
+              )}
+              {(!editing || !adding) && (
+                <button type="button" className={styles.miniButton} onClick={enterEdit}>수정</button>
+              )}
+              {editing && (
                 <>
-                  <Button type="button" variant="ghost" className="h-9 border-red-t px-3 text-red" onClick={cancelEdit}>취소</Button>
-                  <Button type="button" className="h-9 px-4" onClick={() => void persist()} disabled={!dirty || saveLedger.isPending}>
+                  <button type="button" className={`${styles.miniButton} ${styles.cancelButton}`} onClick={cancelEdit}>취소</button>
+                  <button type="button" className={`${styles.miniButton} ${styles.saveButton}`} onClick={() => void persist()} disabled={!dirty || saveLedger.isPending}>
                     {saveLedger.isPending ? "저장 중…" : "저장"}
-                  </Button>
+                  </button>
                 </>
               )}
             </div>
 
-            {!buildingId ? (
-              <div className="flex min-h-80 flex-1 items-center justify-center p-8 text-sm text-t4">좌측에서 건물을 선택해 주세요</div>
+            <div className={styles.ledgerBody}>
+              {!buildingId ? (
+              <div className={styles.emptyState}>좌측에서 건물을 선택해 주세요</div>
             ) : ledgerQuery.isLoading || openingBalanceQuery.isLoading ? (
-              <div className="flex min-h-80 flex-1 items-center justify-center"><Spinner /></div>
+              <div className={styles.emptyState}><Spinner /></div>
             ) : ledgerQuery.isError || openingBalanceQuery.isError ? (
-              <div className="flex min-h-80 flex-1 items-center justify-center p-8 text-sm font-bold text-red">적립금 내역을 불러오지 못했습니다.</div>
+              <div className={`${styles.emptyState} ${styles.negative}`}>적립금 내역을 불러오지 못했습니다.</div>
             ) : (
               <>
-                <div className="min-h-0 flex-1 overflow-auto">
-                  <table className="w-full min-w-[1280px] table-fixed border-collapse text-xs">
-                    <thead className="sticky top-0 z-10 bg-bg text-t3">
+                <div className={styles.tableScroll}>
+                  <table
+                    className={`${styles.ledgerTable} ${editing ? styles.ledgerTableEditing : ""}`}
+                    style={{ minWidth: editing ? 830.5 : 803.25 }}
+                  >
+                    <colgroup>
+                      <col style={{ width: 144 }} />
+                      <col style={{ width: 52.75 }} />
+                      <col style={{ width: 86.625 }} />
+                      <col style={{ width: 87.65625 }} />
+                      <col style={{ width: 83.859375 }} />
+                      <col style={{ width: 138.203125 }} />
+                      <col style={{ width: editing ? 80 : 52.75 }} />
+                      <col style={{ width: 78.703125 }} />
+                      <col style={{ width: 78.703125 }} />
+                    </colgroup>
+                    <thead>
                       <tr>
-                        <th className="w-[118px] border-b border-r border-line p-2">일자</th>
-                        <th className="w-[82px] border-b border-r border-line p-2">번호</th>
-                        <th className="w-[190px] border-b border-r border-line p-2">적립금 적요</th>
-                        <th className="w-[125px] border-b border-r border-line p-2 text-right">적립금입금</th>
-                        <th className="w-[125px] border-b border-r border-line p-2 text-right">적립금출금</th>
-                        <th className="w-[125px] border-b border-r border-line p-2 text-right">차인잔액</th>
-                        <th className="w-[170px] border-b border-r border-line p-2">적요</th>
-                        <th className="w-[105px] border-b border-r border-line p-2">영수증</th>
-                        <th className="w-[105px] border-b border-line p-2">사진</th>
-                        {editing && <th className="w-[58px] border-b border-l border-line p-2">삭제</th>}
+                        <th style={{ width: 96 }}>일자</th>
+                        <th style={{ width: 76 }}>번호</th>
+                        <th>적립금 적요</th>
+                        <th className={styles.right} style={{ width: 104 }}>적립금입금</th>
+                        <th className={styles.right} style={{ width: 104 }}>적립금출금</th>
+                        <th className={styles.right} style={{ width: 112 }}>차인잔액</th>
+                        <th style={{ width: 96 }}>적요</th>
+                        <th style={{ width: 72 }}>영수증</th>
+                        <th style={{ width: 72 }}>사진</th>
                       </tr>
                     </thead>
                     <tbody>
                       {displayRows.length === 0 ? (
-                        <tr><td colSpan={editing ? 10 : 9} className="h-64 text-center text-sm text-t4">조회기간에 등록된 내역이 없습니다. 추가 버튼으로 입력해 주세요.</td></tr>
-                      ) : displayRows.map((row) => {
+                        <tr><td colSpan={9} className="text-center !text-t4">조회기간에 등록된 내역이 없습니다.</td></tr>
+                      ) : displayRows.map((row, index) => {
                         const rowAttachments = row.id ? attachmentsByRow.get(row.id) ?? [] : [];
                         const receipts = rowAttachments.filter((attachment) => attachment.kind === "receipt");
                         const photos = rowAttachments.filter((attachment) => attachment.kind === "photo");
-                        const inputClass = "h-8 w-full rounded-lg border border-line bg-white px-2 text-xs text-t1 outline-none focus:border-blue";
+                        const canEditRow = editing && (!adding || !row.id);
+                        const monthKey = row.entryDate.slice(0, 7);
+                        const nextMonthKey = displayRows[index + 1]?.entryDate.slice(0, 7);
+                        const isMonthEnd = monthKey !== nextMonthKey;
+                        const monthRows = isMonthEnd
+                          ? displayRows.filter((candidate) => candidate.entryDate.startsWith(monthKey))
+                          : [];
+                        const monthDeposit = monthRows.reduce((sum, candidate) => sum + candidate.deposit, 0);
+                        const monthWithdrawal = monthRows.reduce((sum, candidate) => sum + candidate.withdrawal, 0);
                         return (
-                          <tr key={row.clientKey} className="border-b border-line2 hover:bg-blue-t2/40">
-                            <td className="border-r border-line2 p-1.5 text-center">
-                              {editing ? <input aria-label="일자" type="date" className={inputClass} value={row.entryDate} onChange={(event) => updateRow(row.clientKey, { entryDate: event.target.value })} /> : row.entryDate}
-                            </td>
-                            <td className="border-r border-line2 p-1.5 text-center">
-                              {editing ? <input aria-label="번호" className={`${inputClass} text-center`} value={row.entryNo} onChange={(event) => updateRow(row.clientKey, { entryNo: event.target.value })} /> : row.entryNo || "-"}
-                            </td>
-                            <td className="border-r border-line2 p-1.5">
-                              {editing ? <input aria-label="적립금 적요" className={inputClass} value={row.fundNote} onChange={(event) => updateRow(row.clientKey, { fundNote: event.target.value })} /> : row.fundNote}
-                            </td>
-                            <td className="border-r border-line2 p-1.5 text-right tabular-nums">
-                              {editing ? <input aria-label="적립금입금" inputMode="numeric" className={`${inputClass} text-right tabular-nums`} value={row.deposit ? formatMoney(row.deposit) : ""} onChange={(event) => updateRow(row.clientKey, { deposit: parseAmount(event.target.value) })} /> : row.deposit ? formatMoney(row.deposit) : "-"}
-                            </td>
-                            <td className="border-r border-line2 p-1.5 text-right tabular-nums">
-                              {editing ? <input aria-label="적립금출금" inputMode="numeric" className={`${inputClass} text-right tabular-nums`} value={row.withdrawal ? formatMoney(row.withdrawal) : ""} onChange={(event) => updateRow(row.clientKey, { withdrawal: parseAmount(event.target.value) })} /> : row.withdrawal ? formatMoney(row.withdrawal) : "-"}
-                            </td>
-                            <td className={`border-r border-line2 p-2 text-right font-bold tabular-nums ${row.balance < 0 ? "text-red" : "text-t1"}`}>{formatMoney(row.balance)}</td>
-                            <td className="border-r border-line2 p-1.5">
-                              {editing ? <input aria-label="적요" className={inputClass} value={row.memo} onChange={(event) => updateRow(row.clientKey, { memo: event.target.value })} /> : row.memo || "-"}
-                            </td>
-                            <td className="border-r border-line2 p-1.5">
-                              <AttachmentCell label="영수증" kind="receipt" row={row} attachments={receipts} editing={editing} uploading={uploadAttachment.isPending} onOpen={() => openAttachments(row, "receipt")} onUpload={(file) => upload(row, "receipt", file)} />
-                            </td>
-                            <td className="p-1.5">
-                              <AttachmentCell label="사진" kind="photo" row={row} attachments={photos} editing={editing} uploading={uploadAttachment.isPending} onOpen={() => openAttachments(row, "photo")} onUpload={(file) => upload(row, "photo", file)} />
-                            </td>
-                            {editing && (
-                              <td className="border-l border-line2 p-1.5 text-center">
-                                <button type="button" aria-label={`${row.entryDate} ${row.entryNo} 행 삭제`} className="rounded-md px-2 py-1 text-sm font-bold text-red hover:bg-red-t" onClick={() => removeRow(row)}>×</button>
+                          <Fragment key={row.clientKey}>
+                            <tr className={!row.id ? styles.newRow : undefined}>
+                              <td>
+                                <div className={`${styles.dateControl} ${canEditRow ? styles.editableDate : styles.dateControlReadOnly}`}>
+                                  <span>{row.entryDate.replaceAll("-", ".")}</span>
+                                  {canEditRow && (
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                      <rect x="4" y="5" width="16" height="16" rx="2" />
+                                      <path d="M8 3v4M16 3v4M4 11h16" />
+                                    </svg>
+                                  )}
+                                  {canEditRow && (
+                                    <input aria-label="일자" type="date" className={styles.nativeDateInput} value={row.entryDate} onChange={(event) => updateRow(row.clientKey, { entryDate: event.target.value })} />
+                                  )}
+                                </div>
                               </td>
+                              <td className={styles.numberCell}>{row.entryNo || "-"}</td>
+                              <td>
+                                <input aria-label="적립금 적요" readOnly={!canEditRow} className={`${styles.ledgerInput} ${canEditRow ? styles.editableInput : ""}`} value={row.fundNote} placeholder="적립금 적요" onChange={(event) => updateRow(row.clientKey, { fundNote: event.target.value })} />
+                              </td>
+                              <td>
+                                <input aria-label="적립금입금" readOnly={!canEditRow} inputMode="numeric" className={`${styles.ledgerInput} ${styles.moneyInput} ${canEditRow ? styles.editableInput : ""}`} value={row.deposit ? formatMoney(row.deposit) : ""} placeholder="0" onChange={(event) => updateRow(row.clientKey, { deposit: parseAmount(event.target.value) })} />
+                              </td>
+                              <td>
+                                <input aria-label="적립금출금" readOnly={!canEditRow} inputMode="numeric" className={`${styles.ledgerInput} ${styles.moneyInput} ${canEditRow ? styles.editableInput : ""}`} value={row.withdrawal ? formatMoney(row.withdrawal) : ""} placeholder="0" onChange={(event) => updateRow(row.clientKey, { withdrawal: parseAmount(event.target.value) })} />
+                              </td>
+                              <td className={`${styles.balanceCell} ${row.balance < 0 ? styles.negative : ""}`}>{formatMoney(row.balance)}</td>
+                              <td>
+                                <div className={styles.noteCell}>
+                                  <input aria-label="적요" readOnly={!canEditRow} className={`${styles.ledgerInput} ${canEditRow ? styles.editableInput : ""}`} value={row.memo} placeholder="적요" onChange={(event) => updateRow(row.clientKey, { memo: event.target.value })} />
+                                  {canEditRow && (
+                                    <button type="button" aria-label={`${row.entryDate} ${row.entryNo} 행 삭제`} className={styles.deleteButton} onClick={() => removeRow(row)}>
+                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+                                        <path d="M6 6l12 12M18 6 6 18" />
+                                      </svg>
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                              <td className={styles.attachmentCell}>
+                                <AttachmentCell label="영수증" attachments={receipts} onOpen={() => openAttachments(row, "receipt")} />
+                              </td>
+                              <td className={styles.attachmentCell}>
+                                <AttachmentCell label="사진" attachments={photos} onOpen={() => openAttachments(row, "photo")} />
+                              </td>
+                            </tr>
+                            {isMonthEnd && (
+                              <tr className={styles.subtotalRow}>
+                                <td />
+                                <td />
+                                <td className={styles.right}>{monthKey.replace("-", ".")}</td>
+                                <td className={styles.right}>{formatMoney(monthDeposit)}</td>
+                                <td className={styles.right}>{formatMoney(monthWithdrawal)}</td>
+                                <td className={styles.right}>월잔액 {formatMoney(row.balance)}</td>
+                                <td />
+                                <td />
+                                <td />
+                              </tr>
                             )}
-                          </tr>
+                          </Fragment>
                         );
                       })}
                     </tbody>
                   </table>
                 </div>
 
-                <div className="grid gap-3 border-t border-line bg-bg/70 p-4 sm:grid-cols-3">
-                  <div className="rounded-xl border border-line bg-surface px-4 py-3">
-                    <p className="text-xs font-bold text-t3">적립금입금 합계</p>
-                    <p className="mt-1 text-right text-lg font-extrabold tabular-nums text-t1">{formatMoney(depositTotal)}원</p>
-                  </div>
-                  <div className="rounded-xl border border-line bg-surface px-4 py-3">
-                    <p className="text-xs font-bold text-t3">적립금출금 합계</p>
-                    <p className="mt-1 text-right text-lg font-extrabold tabular-nums text-t1">{formatMoney(withdrawalTotal)}원</p>
-                  </div>
-                  <div className="rounded-xl border border-line bg-surface px-4 py-3">
-                    <p className="text-xs font-bold text-t3">현잔액</p>
-                    <p className={`mt-1 text-right text-lg font-extrabold tabular-nums ${currentBalance < 0 ? "text-red" : "text-blue-d"}`}>{formatMoney(currentBalance)}원</p>
-                  </div>
+                <div className={styles.footer}>
+                  <span className="sr-only">적립금입금 합계</span>
+                  <span className={styles.footerItem}>
+                    <i className={styles.footerLabel}>적립금입금</i>
+                    <b className={styles.footerValue}>{formatMoney(depositTotal)}</b>
+                  </span>
+                  <span className="sr-only">적립금출금 합계</span>
+                  <span className={styles.footerItem}>
+                    <i className={styles.footerLabel}>적립금출금</i>
+                    <b className={styles.footerValue}>{formatMoney(withdrawalTotal)}</b>
+                  </span>
+                  <span className={`${styles.footerItem} ${styles.footerTotal}`}>
+                    <i className={styles.footerLabel}>현잔액</i>
+                    <b className={`${styles.footerValue} ${currentBalance < 0 ? styles.negative : ""}`}>{formatMoney(currentBalance)}</b>
+                  </span>
                 </div>
               </>
             )}
+            </div>
           </section>
         </div>
       </div>
@@ -583,17 +620,17 @@ export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTerm
 
       {viewer && (
         <AttachmentViewer
-          title={viewer.title}
-          attachments={viewer.attachments}
-          canDelete={editing}
+          title={`${viewer.kind === "receipt" ? "영수증" : "공사사진"} 첨부`}
+          description={`${viewer.row.fundNote || "적립금 출금"} · ${viewer.row.entryDate.replaceAll("-", ".")} · 번호 ${viewer.row.entryNo || "-"}`}
+          kindLabel={viewer.kind === "receipt" ? "영수증" : "공사사진"}
+          attachments={viewerAttachments}
+          canEdit={editing && Boolean(viewer.row.id)}
+          uploading={uploadAttachment.isPending}
           onClose={() => setViewer(null)}
+          onUpload={async (file) => upload(viewer.row, viewer.kind, file)}
           onDelete={async (attachment) => {
             try {
               await deleteAttachment.mutateAsync({ id: attachment.id, path: attachment.fileUrl });
-              setViewer((current) => current ? {
-                ...current,
-                attachments: current.attachments.filter((item) => item.id !== attachment.id),
-              } : null);
               toast.success("첨부파일을 삭제했어요");
             } catch (error) {
               toast.error(error instanceof Error ? error.message : "첨부파일을 삭제하지 못했습니다.");
