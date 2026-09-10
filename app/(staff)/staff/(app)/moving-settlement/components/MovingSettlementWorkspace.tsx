@@ -282,20 +282,6 @@ export function MovingSettlementWorkspace() {
         </div>
       </div>
 
-      <button
-        type="button"
-        aria-label="화면 도우미 열기"
-        className="fixed right-0 top-1/2 hidden h-[70px] w-[30px] -translate-y-1/2 items-center justify-center rounded-l-[12px] border border-line bg-white text-t3 shadow-[-6px_0_8px_rgba(23,31,40,0.25)] 2xl:flex"
-      >
-        <span aria-hidden="true">▧</span>
-      </button>
-      <button
-        type="button"
-        aria-label="도움말"
-        className="fixed bottom-[22px] right-[22px] hidden size-[52px] items-center justify-center rounded-full bg-teal text-[20px] text-white shadow-[0_12px_14px_rgba(20,164,151,0.6)] 2xl:flex"
-      >
-        <span aria-hidden="true">◯</span>
-      </button>
     </div>
   );
 }

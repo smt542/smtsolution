@@ -117,5 +117,14 @@
     "appSelector": "aside",
     "viewport": { "w": 1340, "h": 880 },
     "device": "desktop"
+  },
+  {
+    "id": "staff-moving-settlement",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/moving-settlement/moving-settlement.dc.html",
+    "originSelector": ".hf-app",
+    "appPath": "/staff/moving-settlement",
+    "appSelector": null,
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
   }
 ]

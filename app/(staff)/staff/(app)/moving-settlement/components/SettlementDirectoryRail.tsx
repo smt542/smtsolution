@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDownIcon, SearchIcon } from "@/components/icons";
+import { ChevronDownIcon, ChevronLeftIcon, SearchIcon } from "@/components/icons";
 import type { Building } from "@/hooks/reactquery/buildings";
 import type { Unit } from "@/hooks/reactquery/units";
 
@@ -59,9 +59,9 @@ export function SettlementDirectoryRail({
                 type="button"
                 aria-label="호실 목록으로 돌아가기"
                 onClick={() => onSelectUnit(null)}
-                className="grid size-[24px] place-items-center rounded-[7px] text-[22px] leading-none text-t3 hover:bg-bg"
+                className="grid size-[24px] place-items-center rounded-[7px] text-t2 hover:bg-bg"
               >
-                ‹
+                <ChevronLeftIcon className="size-[20px]" />
               </button>
               <h2 className="truncate text-[15px] font-extrabold text-t1">
                 {selectedBuilding.name} {selectedUnit.unitNo}
@@ -119,9 +119,9 @@ export function SettlementDirectoryRail({
               type="button"
               aria-label="전체 건물로 돌아가기"
               onClick={() => onSelectBuilding(null)}
-              className="grid size-[24px] place-items-center rounded-[7px] text-[22px] leading-none text-t3 hover:bg-bg"
+              className="grid size-[24px] place-items-center rounded-[7px] text-t2 hover:bg-bg"
             >
-              ‹
+              <ChevronLeftIcon className="size-[20px]" />
             </button>
             <h2 className="truncate text-[15px] font-extrabold text-t1">
               {selectedBuilding.name}
@@ -148,7 +148,7 @@ export function SettlementDirectoryRail({
                 key={unit.id}
                 type="button"
                 onClick={() => onSelectUnit(unit.id)}
-                className="grid h-[41px] w-full grid-cols-[56px_1fr_1fr] border-b border-line2 text-left text-[13.5px] text-t1 hover:bg-teal-t"
+                className="grid h-[41px] w-full grid-cols-[56px_1fr_1fr] border-b border-line2 text-left text-[13.5px] text-t1 hover:bg-[#fbfcfd]"
               >
                 <span className="px-[12px] py-[12px]">{index + 1}</span>
                 <span className="px-[8px] py-[12px] font-bold">{unit.unitNo}</span>
@@ -214,7 +214,7 @@ export function SettlementDirectoryRail({
               key={building.id}
               type="button"
               onClick={() => onSelectBuilding(building.id)}
-              className="grid min-h-[41px] w-full grid-cols-[64px_96px_1fr] border-b border-line2 text-left text-[12.5px] text-t1 hover:bg-teal-t"
+              className="grid min-h-[41px] w-full grid-cols-[64px_96px_1fr] border-b border-line2 text-left text-[12.5px] text-t1 hover:bg-[#fbfcfd]"
             >
               <span className="px-[16px] py-[12px]">{building.code}</span>
               <span className="truncate px-[16px] py-[12px] font-bold">

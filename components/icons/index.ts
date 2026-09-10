@@ -1,6 +1,7 @@
 export { CloseIcon } from "./CloseIcon";
 export { CalendarIcon } from "./CalendarIcon";
 export { ChevronDownIcon } from "./ChevronDownIcon";
+export { ChevronLeftIcon } from "./ChevronLeftIcon";
 export { PrinterIcon } from "./PrinterIcon";
 export { UnitCardIcon } from "./UnitCardIcon";
 export { BrandMarkIcon } from "./BrandMarkIcon";
