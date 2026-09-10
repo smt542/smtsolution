@@ -72,6 +72,7 @@ vi.mock("./components/entry-alerts/ReceiptEntryAlerts", () => ({
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 
 import { ReceiptWorkspace } from "./ReceiptWorkspace";
+import railStyles from "./components/BuildingUnitRail.module.css";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useUnits } from "@/hooks/reactquery/units";
 import { useUnitOccupancyFull } from "@/hooks/reactquery/occupancies";
@@ -289,6 +290,24 @@ describe("ReceiptManagementPage (세대중심 재설계)", () => {
     expect(screen.queryByText("호실을 선택하면 입주자정보가 표시돼요")).toBeNull();
     expect(screen.getByText("입주자명")).toBeInTheDocument();
     expect(screen.getByText("적요메모")).toBeInTheDocument();
+  });
+
+  it("건물과 호실 목록 전환에 원본 방향의 슬라이드 애니메이션을 적용", () => {
+    renderPage();
+
+    expect(screen.getByRole("table", { name: "건물 목록" })).toHaveClass(
+      railStyles.buildingTableEnter,
+    );
+
+    fireEvent.click(screen.getByText("그린빌라"));
+    expect(screen.getByRole("table", { name: "호실 목록" })).toHaveClass(
+      railStyles.unitTableEnter,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "건물 목록으로" }));
+    expect(screen.getByRole("table", { name: "건물 목록" })).toHaveClass(
+      railStyles.buildingTableEnter,
+    );
   });
 
   it("조회 버튼이 통합검색 모달을 연다", () => {

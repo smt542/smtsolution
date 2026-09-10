@@ -8,6 +8,7 @@ import { useSaveBuildingNotes } from "@/hooks/reactquery/receipts";
 import type { ReceiptPaymentRow } from "@/hooks/reactquery/receipts";
 import type { Unit } from "@/hooks/reactquery/units";
 import { unitLabel } from "../receiptFormat";
+import styles from "./BuildingUnitRail.module.css";
 
 type BuildingLite = Pick<Building, "id" | "name" | "code" | "address" | "memo" | "billingNote">;
 
@@ -104,11 +105,14 @@ export function BuildingUnitRail({
                 />
               </div>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
             {filteredBuildings.length === 0 ? (
               <EmptyState message="건물이 없습니다" />
             ) : (
-              <table className="w-full table-fixed leading-[normal]">
+              <table
+                aria-label="건물 목록"
+                className={`w-full table-fixed leading-[normal] ${styles.buildingTableEnter}`}
+              >
                 <colgroup>
                   <col className="w-[64px]" />
                   <col className="w-[96px]" />
@@ -145,7 +149,7 @@ export function BuildingUnitRail({
                 type="button"
                 onClick={onBack}
                 aria-label="건물 목록으로"
-                className="flex size-[24px] items-center justify-center rounded-[7px] text-t2 hover:bg-bg"
+                className="flex size-[24px] items-center justify-center rounded-[7px] text-t2 transition-transform duration-[120ms] ease-[ease] hover:bg-bg active:-translate-x-0.5"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-[18px]">
                   <path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
@@ -164,13 +168,16 @@ export function BuildingUnitRail({
                 />
               </div>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
               {isUnitsLoading ? (
                 <Spinner />
               ) : filteredUnits.length === 0 ? (
                 <EmptyState message="호실이 없습니다" />
               ) : (
-                <table className="w-full table-fixed leading-[normal]">
+                <table
+                  aria-label="호실 목록"
+                  className={`w-full table-fixed leading-[normal] ${styles.unitTableEnter}`}
+                >
                   <colgroup>
                     <col className="w-[64px]" />
                     <col />
