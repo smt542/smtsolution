@@ -80,13 +80,49 @@ function NavItemRow({
     >
       <NavIcon svg={item.icon} />
       <span className="min-w-0 flex-1 truncate">{item.label}</span>
-      {(item.href === "/staff/utilities" || item.href === "/staff/moving-settlement") && (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="ml-auto h-[14px] w-[14px] text-t3" aria-hidden="true">
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      )}
     </Link>
   );
+}
+
+/* ── collapsible group header (정본 <details>/<summary> — 클릭 시 토글, 라우팅 없음) ── */
+function NavGroupHeader({
+  item,
+  open,
+  onToggle,
+}: {
+  item: NavItem;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={open}
+      className="flex h-[40px] w-full items-center gap-[11px] rounded-[11px] px-[12px] text-left text-[14px] font-semibold text-t1 hover:bg-bg"
+    >
+      <NavIcon svg={item.icon} />
+      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={`ml-auto h-[14px] w-[14px] text-t3 ${open ? "rotate-180" : ""}`} aria-hidden="true">
+        <path d="M6 9l6 6 6-6" />
+      </svg>
+    </button>
+  );
+}
+
+/**
+ * 섹션 진입/이탈에 맞춰 라우트를 따라가되(정본 <details open>), 페이지 내 수동 토글은 허용.
+ * 섹션 소속이 바뀌면 수동 상태를 렌더 중에 리셋한다(React 권장: prop 변경 시 상태 조정).
+ */
+function useNavGroupOpen(inSection: boolean) {
+  const [manualOpen, setManualOpen] = useState<boolean | null>(null);
+  const [prevInSection, setPrevInSection] = useState(inSection);
+  if (prevInSection !== inSection) {
+    setPrevInSection(inSection);
+    setManualOpen(null);
+  }
+  const open = manualOpen ?? inSection;
+  return { open, toggle: () => setManualOpen(!open) };
 }
 
 function UtilitiesNavGroup({
@@ -114,35 +150,30 @@ function UtilitiesNavGroup({
       : "font-semibold text-t2 hover:bg-bg"
   }`;
 
+  const { open, toggle } = useNavGroupOpen(isUtilitiesPage || isCustomerNumbersPage);
+
   return (
     <div>
-      <Link
-        href={item.href}
-        className="flex h-[40px] w-full items-center gap-[11px] rounded-[11px] px-[12px] text-[14px] font-semibold text-t1 hover:bg-bg"
-      >
-        <NavIcon svg={item.icon} />
-        <span className="flex-1">{item.label}</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="ml-auto h-[14px] w-[14px] rotate-180 text-t3" aria-hidden="true">
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      </Link>
-      <div className="my-[2px] ml-[16px] flex flex-col gap-[2px] border-l border-line pl-[14px]">
-        <Link
-          href="/staff/customer-numbers"
-          aria-current={isCustomerNumbersPage ? "page" : undefined}
-          className={customerNumberClass}
-        >
-          고객번호 조회
-        </Link>
-        <Link href="/staff/utilities?type=electricity" onClick={() => onSelect("electricity")} aria-current={isUtilitiesPage && activeType === "electricity" ? "page" : undefined} className={linkClass("electricity")}>전기</Link>
-        <Link href="/staff/utilities?type=water" onClick={() => onSelect("water")} aria-current={isUtilitiesPage && activeType === "water" ? "page" : undefined} className={linkClass("water")}>수도</Link>
-        <Link href="/staff/utilities" onClick={() => onSelect("gas")} aria-current={isUtilitiesPage && activeType === "gas" ? "page" : undefined} className={linkClass("gas")}>가스</Link>
-      </div>
+      <NavGroupHeader item={item} open={open} onToggle={toggle} />
+      {open && (
+        <div className="my-[2px] ml-[16px] flex flex-col gap-[2px] border-l border-line pl-[14px]">
+          <Link
+            href="/staff/customer-numbers"
+            aria-current={isCustomerNumbersPage ? "page" : undefined}
+            className={customerNumberClass}
+          >
+            고객번호 조회
+          </Link>
+          <Link href="/staff/utilities?type=electricity" onClick={() => onSelect("electricity")} aria-current={isUtilitiesPage && activeType === "electricity" ? "page" : undefined} className={linkClass("electricity")}>전기</Link>
+          <Link href="/staff/utilities?type=water" onClick={() => onSelect("water")} aria-current={isUtilitiesPage && activeType === "water" ? "page" : undefined} className={linkClass("water")}>수도</Link>
+          <Link href="/staff/utilities" onClick={() => onSelect("gas")} aria-current={isUtilitiesPage && activeType === "gas" ? "page" : undefined} className={linkClass("gas")}>가스</Link>
+        </div>
+      )}
     </div>
   );
 }
 
-function MovingSettlementNavGroup({ item, pathname }: { item: NavItem; pathname: string }) {
+function MovingSettlementNavGroup({ item, pathname, isMovingSettlementSection }: { item: NavItem; pathname: string; isMovingSettlementSection: boolean }) {
   const links = [
     { label: "이사정산 입력", href: "/staff/moving-settlement" },
     { label: "전체 이사조회", href: "/staff/moving-settlement/inquiries/all" },
@@ -151,35 +182,30 @@ function MovingSettlementNavGroup({ item, pathname }: { item: NavItem; pathname:
     { label: "가스 이사조회", href: "/staff/moving-settlement/inquiries/gas" },
   ];
 
+  const { open, toggle } = useNavGroupOpen(isMovingSettlementSection);
+
   return (
     <div>
-      <Link
-        href={item.href}
-        className="flex h-[40px] w-full items-center gap-[11px] rounded-[11px] px-[12px] text-[14px] font-semibold text-t1 hover:bg-bg"
-      >
-        <NavIcon svg={item.icon} />
-        <span className="flex-1">{item.label}</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="ml-auto h-[14px] w-[14px] rotate-180 text-t3" aria-hidden="true">
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      </Link>
-      <div className="my-[2px] ml-[16px] flex flex-col gap-[2px] border-l border-line pl-[14px]">
-        {links.map((link) => {
-          const active = link.href === "/staff/moving-settlement"
-            ? pathname === link.href
-            : pathname.startsWith(link.href);
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              aria-current={active ? "page" : undefined}
-              className={`flex h-[32px] items-center rounded-[9px] px-[12px] text-[13.5px] ${active ? "bg-teal font-bold text-white" : "font-semibold text-t2 hover:bg-bg"}`}
-            >
-              {link.label}
-            </Link>
-          );
-        })}
-      </div>
+      <NavGroupHeader item={item} open={open} onToggle={toggle} />
+      {open && (
+        <div className="my-[2px] ml-[16px] flex flex-col gap-[2px] border-l border-line pl-[14px]">
+          {links.map((link) => {
+            const active = link.href === "/staff/moving-settlement"
+              ? pathname === link.href
+              : pathname.startsWith(link.href);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={active ? "page" : undefined}
+                className={`flex h-[32px] items-center rounded-[9px] px-[12px] text-[13.5px] ${active ? "bg-teal font-bold text-white" : "font-semibold text-t2 hover:bg-bg"}`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -194,9 +220,7 @@ export function Sidebar() {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const isUtilitiesPage = pathname.startsWith("/staff/utilities");
-  const isMovingInquiryPage = pathname.startsWith("/staff/moving-settlement/inquiries/");
   const isCustomerNumbersPage = pathname.startsWith("/staff/customer-numbers");
-  const isUtilitiesSection = isUtilitiesPage || isCustomerNumbersPage;
   const isMovingSettlementSection = pathname.startsWith("/staff/moving-settlement");
   const visibleItems = OFFICE_NAV_ITEMS.filter((item) =>
     item.modules
@@ -269,7 +293,7 @@ export function Sidebar() {
         )}
         <nav className="flex flex-col gap-[2px]">
           {visibleItems.map((item) => (
-            item.href === "/staff/utilities" && isUtilitiesSection ? (
+            item.href === "/staff/utilities" ? (
               <UtilitiesNavGroup
                 key={item.href}
                 item={item}
@@ -278,16 +302,18 @@ export function Sidebar() {
                 isCustomerNumbersPage={isCustomerNumbersPage}
                 onSelect={selectUtilityType}
               />
-            ) : item.href === "/staff/moving-settlement" && isMovingSettlementSection ? (
-              <MovingSettlementNavGroup key={item.href} item={item} pathname={pathname} />
+            ) : item.href === "/staff/moving-settlement" ? (
+              <MovingSettlementNavGroup
+                key={item.href}
+                item={item}
+                pathname={pathname}
+                isMovingSettlementSection={isMovingSettlementSection}
+              />
             ) : (
               <NavItemRow
                 key={item.href}
                 item={item}
-                active={
-                  pathname.startsWith(item.href) &&
-                  !(isMovingInquiryPage && item.href === "/staff/moving-settlement")
-                }
+                active={pathname.startsWith(item.href)}
               />
             )
           ))}
