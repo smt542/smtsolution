@@ -21,7 +21,11 @@ vi.mock("@/hooks/reactquery/movingSettlement", async (importOriginal) => {
     useCompleteSettlement: () => ({ mutate: vi.fn(), isPending: false }),
     useMidMoveout: () => ({ mutate: vi.fn(), isPending: false }),
     useDeleteSettlement: () => ({ mutate: vi.fn(), isPending: false }),
-    useSettlementList: () => ({ data: [], isLoading: false, error: null }),
+    useSettlementInquiry: () => ({
+      data: { rows: [], total: 0 },
+      isLoading: false,
+      error: null,
+    }),
   };
 });
 

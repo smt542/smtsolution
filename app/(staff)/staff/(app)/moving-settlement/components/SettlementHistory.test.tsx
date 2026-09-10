@@ -2,38 +2,23 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/hooks/reactquery/movingSettlement", () => ({
-  useSettlementList: vi.fn(),
+  useSettlementInquiry: vi.fn(),
 }));
 
-import { useSettlementList } from "@/hooks/reactquery/movingSettlement";
+import { useSettlementInquiry } from "@/hooks/reactquery/movingSettlement";
 import { SettlementHistory } from "./SettlementHistory";
 
 describe("SettlementHistory", () => {
-  it("날짜범위 조회 결과를 표시한다", () => {
-    vi.mocked(useSettlementList).mockReturnValue({
-      data: [
-        {
-          settlementId: 31,
-          unitId: 101,
-          occupancyId: 9,
-          unitNo: "101호",
-          tenantName: "홍길동",
-          status: "completed",
-          settlementAmount: 218806,
-          moveOutDate: "2026-08-13",
-          processedAt: "2026-08-13T03:00:00Z",
-          createdAt: "2026-08-13T01:00:00Z",
-        },
-      ],
+  it("날짜 미선택 시 안내 문구를 표시한다", () => {
+    vi.mocked(useSettlementInquiry).mockReturnValue({
+      data: undefined,
       isLoading: false,
       error: null,
     } as never);
 
-    render(<SettlementHistory buildingId={3} />);
+    render(<SettlementHistory />);
 
-    expect(screen.getByText("101호")).toBeInTheDocument();
-    expect(screen.getByText("홍길동")).toBeInTheDocument();
-    expect(screen.getByText("퇴실완료")).toBeInTheDocument();
-    expect(screen.getByText("총 1건")).toBeInTheDocument();
+    expect(screen.getByText("이사정산 이력 조회")).toBeInTheDocument();
+    expect(screen.getByText(/날짜를 선택하면/)).toBeInTheDocument();
   });
 });

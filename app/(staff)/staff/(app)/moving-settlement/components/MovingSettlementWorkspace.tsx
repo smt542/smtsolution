@@ -180,6 +180,12 @@ export function MovingSettlementWorkspace() {
     setForceNew(false);
   };
 
+  const selectBuildingUnit = (nextBuildingId: number, nextUnitId: number) => {
+    setBuildingId(nextBuildingId);
+    setUnitId(nextUnitId);
+    setForceNew(false);
+  };
+
   const startNewSettlement = () => {
     if (unitId === null) return;
     setForceNew(true);
@@ -239,9 +245,9 @@ export function MovingSettlementWorkspace() {
 
         <div className="flex min-h-0 flex-col gap-[16px] overflow-hidden">
           <SettlementHistory
-            buildingId={buildingId}
+            selectedBuildingId={buildingId}
             selectedUnitId={unitId}
-            onSelectUnit={(id) => selectUnit(id)}
+            onSelect={selectBuildingUnit}
           />
           <MeterInfoPanel
             meters={context?.meterSummary ?? []}
