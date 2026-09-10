@@ -80,6 +80,9 @@ describe("LongTermRepairLedger", () => {
     expect(screen.getByRole("columnheader", { name: "적요" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "영수증" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "사진" })).toBeInTheDocument();
+    const ledgerTable = screen.getByTestId("long-term-repair-ledger").querySelector("table");
+    expect(ledgerTable?.querySelector("colgroup")).toBeNull();
+    expect(ledgerTable).not.toHaveStyle({ tableLayout: "fixed" });
     expect(screen.getAllByText("-200,000").length).toBeGreaterThan(0);
     expect(screen.getByText("적립금입금 합계")).toBeInTheDocument();
     expect(screen.getByText("적립금출금 합계")).toBeInTheDocument();
