@@ -1,6 +1,6 @@
 "use client";
 import React, { useRef, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button, Modal } from "@/components/common";
@@ -43,12 +43,11 @@ export function VendorFormModal({
   onDeleteAttachment,
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
+  const categoryControlId = React.useId();
+  const categoryMenuId = React.useId();
   const [confirmDelete, setConfirmDelete] = useState(false);
-
-  const categoryOptions = [
-    { value: "", label: "구분 없음" },
-    ...categories.map((c) => ({ value: String(c.id), label: c.label })),
-  ];
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
 
   const {
     register,
@@ -85,9 +84,31 @@ export function VendorFormModal({
     }
   }, [open, editing, defaultCategoryId, reset]);
 
+  React.useEffect(() => {
+    if (!categoryDropdownOpen) return;
+
+    const closeOnOutsidePointerDown = (event: PointerEvent) => {
+      if (!categoryDropdownRef.current?.contains(event.target as Node)) {
+        setCategoryDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsidePointerDown);
+    return () => document.removeEventListener("pointerdown", closeOnOutsidePointerDown);
+  }, [categoryDropdownOpen]);
+
+  const selectedCategoryId = useWatch({ control, name: "categoryId" });
+  const selectedCategory = categories.find((category) => category.id === selectedCategoryId);
+
+  const closeModal = () => {
+    setCategoryDropdownOpen(false);
+    setConfirmDelete(false);
+    onClose();
+  };
+
   const onValid = async (values: VendorFormOutput) => {
     await onSubmit(values);
-    onClose();
+    closeModal();
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -104,12 +125,12 @@ export function VendorFormModal({
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={closeModal}
       title={editing ? "업체 수정" : "업체 추가"}
       className={styles.dialog}
       overlayClassName="z-[320] bg-[rgba(23,31,40,.5)] p-6"
     >
-      <button type="button" onClick={onClose} className={styles.closeButton} aria-label="닫기">
+      <button type="button" onClick={closeModal} className={styles.closeButton} aria-label="닫기">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
           <path d="M6 6l12 12M18 6 6 18" />
         </svg>
@@ -118,107 +139,149 @@ export function VendorFormModal({
       <form onSubmit={handleSubmit(onValid)}>
         {/* 구분 (category) */}
         <div className={styles.formCategory}>
-          <label className={styles.fieldLabel}>구분</label>
+          <label htmlFor={categoryControlId} className={styles.fieldLabel}>구분</label>
           <Controller
             control={control}
             name="categoryId"
             render={({ field }) => (
-              <select
-                value={field.value != null ? String(field.value) : ""}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  field.onChange(v === "" ? null : Number(v));
+              <div
+                ref={categoryDropdownRef}
+                className={`${styles.categoryDropdown} ${categoryDropdownOpen ? styles.categoryDropdownOpen : ""} ${selectedCategory ? "" : styles.categoryDropdownPlaceholder}`}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape" && categoryDropdownOpen) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setCategoryDropdownOpen(false);
+                  }
                 }}
-                className={styles.fieldSelect}
-                aria-label="구분"
               >
-                {categoryOptions.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
+                <button
+                  id={categoryControlId}
+                  type="button"
+                  role="combobox"
+                  aria-label="구분"
+                  aria-haspopup="listbox"
+                  aria-expanded={categoryDropdownOpen}
+                  aria-controls={categoryMenuId}
+                  className={styles.categoryControl}
+                  onClick={() => setCategoryDropdownOpen((current) => !current)}
+                >
+                  <span className={styles.categoryValue}>{selectedCategory?.label ?? "선택"}</span>
+                  <svg className={styles.categoryChevron} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+
+                {categoryDropdownOpen ? (
+                  <div id={categoryMenuId} role="listbox" aria-label="구분 선택" className={styles.categoryMenu}>
+                    {categories.map((category) => (
+                      <button
+                        key={category.id}
+                        type="button"
+                        role="option"
+                        aria-selected={field.value === category.id}
+                        className={`${styles.categoryOption} ${field.value === category.id ? styles.categoryOptionSelected : ""}`}
+                        onClick={() => {
+                          field.onChange(category.id);
+                          field.onBlur();
+                          setCategoryDropdownOpen(false);
+                        }}
+                      >
+                        {category.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             )}
           />
         </div>
 
         <div className={styles.formBody}>
-          <div className={styles.formGrid}>
-            {/* 업체명 (required) */}
-            <div>
-              <label className={styles.fieldLabel}>업체명</label>
-              <input
-                {...register("name")}
-                placeholder="업체명"
-                className={styles.fieldInput}
-              />
-              {errors.name && (
-                <p className={styles.fieldError}>{errors.name.message}</p>
-              )}
-            </div>
-
-            {/* 전화 */}
-            <div>
-              <label className={styles.fieldLabel}>전화번호</label>
-              <input {...register("phone")} placeholder="전화번호" className={`${styles.fieldInput} num`} />
-            </div>
-
-            {/* 계좌번호 */}
-            <div className={styles.fullField}>
-              <label className={styles.fieldLabel}>계좌번호</label>
-              <input {...register("bankAccount")} placeholder="계좌번호" className={styles.fieldInput} />
-            </div>
-
-            {/* 계약서 사진 */}
-            <div className={`${styles.fullField} ${styles.attachments}`}>
-              <label className={styles.fieldLabel}>
-                계약서 사진 <span className="font-semibold text-t4">(최대 10장)</span>
-              </label>
-
-              {attachments.length > 0 && (
-                <ul className={styles.attachmentList}>
-                  {attachments.map((att) => (
-                    <li key={att.id} className={styles.attachmentItem}>
-                      <span className={styles.attachmentName}>{att.fileName}</span>
-                      {onDeleteAttachment && (
-                        <button
-                          type="button"
-                          aria-label={`${att.fileName} 삭제`}
-                          onClick={() => onDeleteAttachment(att)}
-                          className={styles.attachmentDelete}
-                        >
-                          삭제
-                        </button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {editing && onUploadAttachment ? (
-                <label className={styles.fileButton}>
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                    <path d="M12 5v14M5 12h14" />
-                  </svg>
-                  사진 추가
+          <div className={styles.formFields}>
+            {!selectedCategory ? (
+              <p className={styles.categoryHelp}>구분을 먼저 선택하세요.</p>
+            ) : (
+              <div className={styles.formGrid}>
+                {/* 업체명 (required) */}
+                <div>
+                  <label className={styles.fieldLabel}>업체명</label>
                   <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="sr-only"
-                    onChange={handleFileChange}
-                    aria-label="계약서 사진 업로드"
+                    {...register("name")}
+                    placeholder="업체명"
+                    className={styles.fieldInput}
                   />
-                </label>
-              ) : (
-                <p className={styles.fileHelp}>새 업체는 저장 후 사진을 첨부할 수 있습니다.</p>
-              )}
-            </div>
+                  {errors.name && (
+                    <p className={styles.fieldError}>{errors.name.message}</p>
+                  )}
+                </div>
 
-            {/* 비고 */}
-            <div className={styles.fullField}>
-              <label className={styles.fieldLabel}>비고</label>
-              <textarea {...register("memo")} placeholder="비고" className={styles.fieldTextarea} />
-            </div>
+                {/* 전화 */}
+                <div>
+                  <label className={styles.fieldLabel}>전화번호</label>
+                  <input {...register("phone")} placeholder="전화번호" className={`${styles.fieldInput} num`} />
+                </div>
+
+                {/* 계좌번호 */}
+                <div className={styles.fullField}>
+                  <label className={styles.fieldLabel}>계좌번호</label>
+                  <input {...register("bankAccount")} placeholder="계좌번호" className={styles.fieldInput} />
+                </div>
+
+                {/* 계약서 사진 */}
+                <div className={`${styles.fullField} ${styles.attachments}`}>
+                  <label className={styles.fieldLabel}>
+                    계약서 사진 <span className="font-semibold text-t4">(최대 10장)</span>
+                  </label>
+
+                  {attachments.length > 0 && (
+                    <ul className={styles.attachmentList}>
+                      {attachments.map((att) => (
+                        <li key={att.id} className={styles.attachmentItem}>
+                          <span className={styles.attachmentName}>{att.fileName}</span>
+                          {onDeleteAttachment && (
+                            <button
+                              type="button"
+                              aria-label={`${att.fileName} 삭제`}
+                              onClick={() => onDeleteAttachment(att)}
+                              className={styles.attachmentDelete}
+                            >
+                              삭제
+                            </button>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  {editing && onUploadAttachment ? (
+                    <label className={styles.fileButton}>
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
+                      사진 추가
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="sr-only"
+                        onChange={handleFileChange}
+                        aria-label="계약서 사진 업로드"
+                      />
+                    </label>
+                  ) : (
+                    <p className={styles.fileHelp}>새 업체는 저장 후 사진을 첨부할 수 있습니다.</p>
+                  )}
+                </div>
+
+                {/* 비고 */}
+                <div className={styles.fullField}>
+                  <label className={styles.fieldLabel}>비고</label>
+                  <textarea {...register("memo")} placeholder="비고" className={styles.fieldTextarea} />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -263,7 +326,7 @@ export function VendorFormModal({
             onClick={async () => {
               if (!editing || !onDeleteVendor) return;
               setConfirmDelete(false);
-              onClose();
+              closeModal();
               await onDeleteVendor(editing.id);
             }}
           >
