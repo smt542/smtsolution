@@ -1,8 +1,9 @@
 "use client";
 import React from "react";
-import { DataTable, EmptyState, Spinner } from "@/components/common";
+import { Spinner } from "@/components/common";
 import type { Vendor } from "@/hooks/reactquery/vendors";
 import type { VendorCategory } from "@/hooks/reactquery/vendorCategories";
+import styles from "./VendorManagement.module.css";
 
 interface Props {
   vendors: Vendor[];
@@ -10,12 +11,6 @@ interface Props {
   isLoading: boolean;
   onRowClick: (vendor: Vendor) => void;
 }
-
-const COLUMNS = [
-  { key: "category", label: "구분" },
-  { key: "name", label: "업체명" },
-  { key: "phone", label: "연락처" },
-];
 
 export function VendorList({ vendors, categories, isLoading, onRowClick }: Props) {
   const categoryMap = React.useMemo(
@@ -25,34 +20,51 @@ export function VendorList({ vendors, categories, isLoading, onRowClick }: Props
 
   if (isLoading) {
     return (
-      <div className="flex justify-center py-12">
-        <Spinner />
+      <div className={styles.tableWrap}>
+        <div className={styles.loadingCell}>
+          <Spinner />
+        </div>
       </div>
     );
   }
 
-  if (vendors.length === 0) {
-    return <EmptyState message="등록된 업체가 없습니다" />;
-  }
-
-  // Build rows — include hidden _id so click resolution is id-based (not name-based)
-  const rows = vendors.map((v) => ({
-    _id: v.id,
-    category: v.categoryId != null ? (categoryMap[v.categoryId] ?? "-") : "-",
-    name: v.name,
-    phone: v.phone ?? "-",
-  }));
-
-  const handleRowClick = (row: Record<string, React.ReactNode>) => {
-    const vendor = vendors.find((v) => v.id === (row._id as number));
-    if (vendor) onRowClick(vendor);
-  };
-
   return (
-    <DataTable
-      columns={COLUMNS}
-      rows={rows}
-      onRowClick={handleRowClick}
-    />
+    <div className={styles.tableWrap}>
+      <table className={styles.table}>
+        <thead>
+          <tr>
+            <th>구분</th>
+            <th>업체명</th>
+            <th>연락처</th>
+          </tr>
+        </thead>
+        <tbody>
+          {vendors.length === 0 ? (
+            <tr>
+              <td colSpan={3} className={styles.stateCell}>
+                등록된 업체가 없어요 · 업체 추가를 눌러 등록하세요
+              </td>
+            </tr>
+          ) : vendors.map((vendor) => (
+            <tr
+              key={vendor.id}
+              className={styles.vendorRow}
+              onClick={() => onRowClick(vendor)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onRowClick(vendor);
+                }
+              }}
+              tabIndex={0}
+            >
+              <td>{vendor.categoryId != null ? (categoryMap[vendor.categoryId] ?? "미분류") : "미분류"}</td>
+              <td className={styles.vendorName}>{vendor.name}</td>
+              <td className="num">{vendor.phone ?? "-"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

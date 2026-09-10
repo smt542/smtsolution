@@ -15,7 +15,7 @@ export default async function VendorManagementPage() {
   }
 
   return (
-    <div className="p-6">
+    <div className="h-[calc(100vh-62px)] min-h-[480px] overflow-hidden px-6 pb-6 pt-[22px] max-md:h-auto max-md:overflow-visible">
       <VendorManagementSection />
     </div>
   );

@@ -1,8 +1,9 @@
 "use client";
 import React, { useState } from "react";
-import { Button, Input, Modal } from "@/components/common";
+import { Button, Modal } from "@/components/common";
 import type { VendorCategory } from "@/hooks/reactquery/vendorCategories";
 import type { Vendor } from "@/hooks/reactquery/vendors";
+import styles from "./VendorManagement.module.css";
 
 interface Props {
   categories: VendorCategory[];
@@ -88,27 +89,53 @@ export function VendorCategorySidebar({
 
   const isActive = (id: string) => activeStr === id;
 
-  const itemCls = (active: boolean) =>
-    `flex w-full items-center justify-between rounded-xl px-4 py-2 text-sm font-bold transition-colors ${
-      active ? "bg-brand text-white" : "text-t2 hover:bg-bg"
-    }`;
-
-  const countCls = (active: boolean) =>
-    `text-xs ${active ? "text-white/80" : "text-t4"}`;
-
   return (
-    <div className="flex flex-col gap-2">
-      <ul className="flex flex-col gap-1">
+    <aside className={styles.categories} aria-label="협력업체 구분">
+      <div className={styles.categoryHeader}>
+        <h2 className={styles.categoryTitle}>구분</h2>
+        <button
+          type="button"
+          className={styles.categoryAdd}
+          aria-label="구분 추가"
+          onClick={() => setAdding(true)}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </button>
+      </div>
+
+      <ul className={styles.categoryList}>
         {/* "전체" item — single-click only, no rename */}
         <li key="__all__">
           <button
+            type="button"
             onClick={() => onSelect(null)}
-            className={itemCls(isActive("__all__"))}
+            className={`${styles.categoryItem} ${isActive("__all__") ? styles.categoryItemActive : ""}`}
+            aria-pressed={isActive("__all__")}
           >
-            <span>전체</span>
-            <span className={countCls(isActive("__all__"))}>{allVendors.length}</span>
+            <span className={styles.categoryLabel}>전체</span>
+            <span className={styles.categoryCount}>{allVendors.length}</span>
           </button>
         </li>
+
+        {adding && (
+          <li className={styles.categoryEditRow}>
+            <input
+              value={newLabel}
+              onChange={(e) => setNewLabel(e.target.value)}
+              onKeyDown={handleAddKeyDown}
+              onBlur={() => {
+                if (newLabel.trim()) void handleAddSubmit();
+                else setAdding(false);
+              }}
+              placeholder="구분명"
+              aria-label="새 구분명"
+              autoFocus
+              className={styles.categoryInput}
+            />
+          </li>
+        )}
 
         {/* Real category items — double-click label to rename */}
         {categories.map((c) => {
@@ -119,26 +146,28 @@ export function VendorCategorySidebar({
           return (
             <li key={c.id}>
               {isEditing ? (
-                <div className="flex gap-1 px-1 py-1">
-                  <Input
+                <div className={styles.categoryEditRow}>
+                  <input
                     value={editingLabel}
                     onChange={(e) => setEditingLabel(e.target.value)}
                     onKeyDown={(e) => handleRenameKeyDown(e, c.id, c.label)}
                     onBlur={() => commitRename(c.id, c.label)}
                     aria-label="구분 이름 변경"
                     autoFocus
-                    className="text-sm"
+                    className={styles.categoryInput}
                   />
                 </div>
               ) : (
-                <div className="group relative">
+                <div className={styles.categoryRow}>
                   <button
+                    type="button"
                     onClick={() => onSelect(c.id)}
                     onDoubleClick={() => startRename(c.id, c.label)}
-                    className={itemCls(active)}
+                    className={`${styles.categoryItem} ${active ? styles.categoryItemActive : ""}`}
+                    aria-pressed={active}
                   >
-                    <span>{c.label}</span>
-                    <span className={countCls(active)}>{count}</span>
+                    <span className={styles.categoryLabel}>{c.label}</span>
+                    <span className={styles.categoryCount}>{count}</span>
                   </button>
                   {onDeleteCategory && (
                     <button
@@ -148,7 +177,7 @@ export function VendorCategorySidebar({
                         e.stopPropagation();
                         setDeletingCategory(c);
                       }}
-                      className="absolute right-1 top-1/2 -translate-y-1/2 hidden rounded px-1 text-xs text-danger group-hover:block"
+                      className={styles.categoryDelete}
                     >
                       ×
                     </button>
@@ -160,43 +189,12 @@ export function VendorCategorySidebar({
         })}
       </ul>
 
-      {adding ? (
-        <div className="flex gap-1 px-1">
-          <Input
-            value={newLabel}
-            onChange={(e) => setNewLabel(e.target.value)}
-            onKeyDown={handleAddKeyDown}
-            placeholder="구분명"
-            autoFocus
-            className="text-sm"
-          />
-          <Button variant="primary" onClick={handleAddSubmit} type="button">
-            추가
-          </Button>
-          <Button
-            variant="ghost"
-            onClick={() => { setAdding(false); setNewLabel(""); }}
-            type="button"
-          >
-            취소
-          </Button>
-        </div>
-      ) : (
-        <Button
-          variant="ghost"
-          onClick={() => setAdding(true)}
-          type="button"
-          className="w-full text-sm"
-        >
-          ＋ 구분 추가
-        </Button>
-      )}
-
       {/* Category delete confirm modal */}
       <Modal
         open={deletingCategory !== null}
         onClose={() => setDeletingCategory(null)}
         title="구분 삭제"
+        overlayClassName="z-[320] bg-[rgba(23,31,40,.5)] p-6"
       >
         <p className="text-sm text-t2">
           이 구분을 삭제하면 소속 업체는 미분류가 됩니다. 삭제할까요?
@@ -219,6 +217,6 @@ export function VendorCategorySidebar({
           </Button>
         </div>
       </Modal>
-    </div>
+    </aside>
   );
 }

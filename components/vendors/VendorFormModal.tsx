@@ -3,11 +3,12 @@ import React, { useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Modal, Input, Select, Button } from "@/components/common";
+import { Button, Modal } from "@/components/common";
 import { vendorSchema } from "@/components/forms/schema/vendor";
 import type { Vendor } from "@/hooks/reactquery/vendors";
 import type { VendorAttachment } from "@/hooks/reactquery/vendors";
 import type { VendorCategory } from "@/hooks/reactquery/vendorCategories";
+import styles from "./VendorManagement.module.css";
 
 // Use z.input so form fields stay as strings/null before Zod coercion
 type VendorFormInput = z.input<typeof vendorSchema>;
@@ -17,6 +18,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   editing: Vendor | null;
+  defaultCategoryId?: number | null;
   categories: VendorCategory[];
   onSubmit: (values: VendorFormOutput) => Promise<void>;
   isPending: boolean;
@@ -31,6 +33,7 @@ export function VendorFormModal({
   open,
   onClose,
   editing,
+  defaultCategoryId = null,
   categories,
   onSubmit,
   isPending,
@@ -63,7 +66,7 @@ export function VendorFormModal({
           memo: editing.memo ?? "",
           categoryId: editing.categoryId ?? null,
         }
-      : { name: "", phone: "", bankAccount: "", memo: "", categoryId: null },
+      : { name: "", phone: "", bankAccount: "", memo: "", categoryId: defaultCategoryId },
   });
 
   React.useEffect(() => {
@@ -77,10 +80,10 @@ export function VendorFormModal({
               memo: editing.memo ?? "",
               categoryId: editing.categoryId ?? null,
             }
-          : { name: "", phone: "", bankAccount: "", memo: "", categoryId: null }
+          : { name: "", phone: "", bankAccount: "", memo: "", categoryId: defaultCategoryId }
       );
     }
-  }, [open, editing, reset]);
+  }, [open, editing, defaultCategoryId, reset]);
 
   const onValid = async (values: VendorFormOutput) => {
     await onSubmit(values);
@@ -88,130 +91,154 @@ export function VendorFormModal({
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !onUploadAttachment) return;
-    await onUploadAttachment(file);
+    const remaining = Math.max(0, 10 - attachments.length);
+    const files = Array.from(e.target.files ?? []).slice(0, remaining);
+    if (files.length === 0 || !onUploadAttachment) return;
+    for (const file of files) {
+      await onUploadAttachment(file);
+    }
     // Reset file input so the same file can be re-uploaded if needed
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={editing ? "업체 수정" : "업체 추가"}>
-      <form onSubmit={handleSubmit(onValid)} className="flex flex-col gap-4">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={editing ? "업체 수정" : "업체 추가"}
+      className={styles.dialog}
+      overlayClassName="z-[320] bg-[rgba(23,31,40,.5)] p-6"
+    >
+      <button type="button" onClick={onClose} className={styles.closeButton} aria-label="닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+          <path d="M6 6l12 12M18 6 6 18" />
+        </svg>
+      </button>
+
+      <form onSubmit={handleSubmit(onValid)}>
         {/* 구분 (category) */}
-        <div>
-          <label className="mb-1 block text-xs font-semibold text-t3">구분</label>
+        <div className={styles.formCategory}>
+          <label className={styles.fieldLabel}>구분</label>
           <Controller
             control={control}
             name="categoryId"
             render={({ field }) => (
-              <Select
-                options={categoryOptions}
+              <select
                 value={field.value != null ? String(field.value) : ""}
                 onChange={(e) => {
                   const v = e.target.value;
                   field.onChange(v === "" ? null : Number(v));
                 }}
-              />
-            )}
-          />
-        </div>
-
-        {/* 업체명 (required) */}
-        <div>
-          <label className="mb-1 block text-xs font-semibold text-t3">업체명</label>
-          <Input
-            {...register("name")}
-            placeholder="예: 한국전력"
-            className={errors.name ? "border-danger" : ""}
-          />
-          {errors.name && (
-            <p className="mt-1 text-xs text-danger">{errors.name.message}</p>
-          )}
-        </div>
-
-        {/* 전화 */}
-        <div>
-          <label className="mb-1 block text-xs font-semibold text-t3">전화</label>
-          <Input {...register("phone")} placeholder="예: 02-1234-5678" />
-        </div>
-
-        {/* 계좌번호 */}
-        <div>
-          <label className="mb-1 block text-xs font-semibold text-t3">계좌번호</label>
-          <Input {...register("bankAccount")} placeholder="예: 국민 1234-56-7890" />
-        </div>
-
-        {/* 비고 */}
-        <div>
-          <label className="mb-1 block text-xs font-semibold text-t3">비고</label>
-          <Input {...register("memo")} placeholder="메모" />
-        </div>
-
-        {/* 계약서 사진 — only in edit mode (vendorId required) */}
-        {editing && (
-          <div className="flex flex-col gap-2 border-t border-line pt-4">
-            <p className="text-xs font-semibold text-t3">계약서 사진</p>
-
-            {attachments.length > 0 && (
-              <ul className="flex flex-col gap-1">
-                {attachments.map((att) => (
-                  <li
-                    key={att.id}
-                    className="flex items-center justify-between rounded-lg bg-bg px-3 py-2 text-sm"
-                  >
-                    <span className="truncate text-t1">{att.fileName}</span>
-                    {onDeleteAttachment && (
-                      <button
-                        type="button"
-                        aria-label={`${att.fileName} 삭제`}
-                        onClick={() => onDeleteAttachment(att)}
-                        className="ml-2 text-xs text-danger hover:underline"
-                      >
-                        삭제
-                      </button>
-                    )}
-                  </li>
+                className={styles.fieldSelect}
+                aria-label="구분"
+              >
+                {categoryOptions.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
-              </ul>
+              </select>
             )}
+          />
+        </div>
 
-            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-line px-4 py-3 text-sm text-t3 hover:border-brand">
-              <span>+ 파일 추가</span>
+        <div className={styles.formBody}>
+          <div className={styles.formGrid}>
+            {/* 업체명 (required) */}
+            <div>
+              <label className={styles.fieldLabel}>업체명</label>
               <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="sr-only"
-                onChange={handleFileChange}
-                aria-label="계약서 사진 업로드"
+                {...register("name")}
+                placeholder="업체명"
+                className={styles.fieldInput}
               />
-            </label>
-            <p className="text-xs text-t4">새 업체는 저장 후 사진을 첨부할 수 있습니다.</p>
-          </div>
-        )}
+              {errors.name && (
+                <p className={styles.fieldError}>{errors.name.message}</p>
+              )}
+            </div>
 
-        <div className="flex items-center justify-between pt-2">
+            {/* 전화 */}
+            <div>
+              <label className={styles.fieldLabel}>전화번호</label>
+              <input {...register("phone")} placeholder="전화번호" className={`${styles.fieldInput} num`} />
+            </div>
+
+            {/* 계좌번호 */}
+            <div className={styles.fullField}>
+              <label className={styles.fieldLabel}>계좌번호</label>
+              <input {...register("bankAccount")} placeholder="계좌번호" className={styles.fieldInput} />
+            </div>
+
+            {/* 계약서 사진 */}
+            <div className={`${styles.fullField} ${styles.attachments}`}>
+              <label className={styles.fieldLabel}>
+                계약서 사진 <span className="font-semibold text-t4">(최대 10장)</span>
+              </label>
+
+              {attachments.length > 0 && (
+                <ul className={styles.attachmentList}>
+                  {attachments.map((att) => (
+                    <li key={att.id} className={styles.attachmentItem}>
+                      <span className={styles.attachmentName}>{att.fileName}</span>
+                      {onDeleteAttachment && (
+                        <button
+                          type="button"
+                          aria-label={`${att.fileName} 삭제`}
+                          onClick={() => onDeleteAttachment(att)}
+                          className={styles.attachmentDelete}
+                        >
+                          삭제
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {editing && onUploadAttachment ? (
+                <label className={styles.fileButton}>
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                    <path d="M12 5v14M5 12h14" />
+                  </svg>
+                  사진 추가
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="sr-only"
+                    onChange={handleFileChange}
+                    aria-label="계약서 사진 업로드"
+                  />
+                </label>
+              ) : (
+                <p className={styles.fileHelp}>새 업체는 저장 후 사진을 첨부할 수 있습니다.</p>
+              )}
+            </div>
+
+            {/* 비고 */}
+            <div className={styles.fullField}>
+              <label className={styles.fieldLabel}>비고</label>
+              <textarea {...register("memo")} placeholder="비고" className={styles.fieldTextarea} />
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.formFooter}>
           {editing && onDeleteVendor ? (
-            <Button
+            <button
               type="button"
-              variant="ghost"
               onClick={() => setConfirmDelete(true)}
-              className="text-danger"
+              className={`${styles.footerButton} ${styles.deleteButton}`}
             >
               삭제
-            </Button>
-          ) : (
-            <span />
-          )}
-          <div className="flex gap-2">
-            <Button type="button" variant="ghost" onClick={onClose}>
-              취소
-            </Button>
-            <Button type="submit" variant="primary" disabled={isPending}>
-              {isPending ? "저장 중…" : editing ? "수정" : "추가"}
-            </Button>
-          </div>
+            </button>
+          ) : null}
+          <button
+            type="submit"
+            disabled={isPending}
+            className={`${styles.footerButton} ${styles.submitButton}`}
+          >
+            {isPending ? "저장 중…" : editing ? "수정" : "추가"}
+          </button>
         </div>
       </form>
 
@@ -219,9 +246,13 @@ export function VendorFormModal({
       <Modal
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}
-        title="거래처 삭제"
+        title="업체 삭제"
+        className="max-w-[360px] rounded-[20px] shadow-hf-modal"
+        overlayClassName="z-[340] bg-[rgba(23,31,40,.5)] p-6"
       >
-        <p className="text-sm text-t2">이 거래처를 삭제할까요?</p>
+        <p className="text-[13.5px] font-semibold leading-[1.6] text-t3">
+          ‘<b className="font-bold text-t1">{editing?.name}</b>’ 업체를 삭제합니다. 삭제하면 되돌릴 수 없어요.
+        </p>
         <div className="mt-4 flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={() => setConfirmDelete(false)}>
             취소
