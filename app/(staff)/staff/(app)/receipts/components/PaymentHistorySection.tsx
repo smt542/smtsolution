@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Button, Input, Modal, Panel, Select, Spinner } from "@/components/common";
-import { UnitCardIcon } from "@/components/icons";
+import { Panel, Spinner } from "@/components/common";
+import { CloseIcon, UnitCardIcon } from "@/components/icons";
 import { useCancelPayment, useRecordPayment, useRecordPaymentEdit } from "@/hooks/reactquery/payments";
 import type { PaymentKind, PaymentMethod, UnitPayment } from "@/hooks/reactquery/payments";
 import {
@@ -248,6 +248,7 @@ export function PaymentHistorySection({
       await refreshSummary();
       toast.success(isEdit ? "수납 내역을 수정했습니다." : "수납 내역을 추가했습니다.");
       setFormOpen(false);
+      setEditingId(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "저장에 실패했습니다.");
     }
@@ -267,7 +268,13 @@ export function PaymentHistorySection({
     if (!payment) return;
     await cancelRow(payment);
     setFormOpen(false);
+    setEditingId(null);
     setSelectedPaymentId(null);
+  };
+
+  const closeEditor = () => {
+    setFormOpen(false);
+    setEditingId(null);
   };
 
   const sendUnpaidSms = () => {
@@ -296,24 +303,148 @@ export function PaymentHistorySection({
     });
   };
 
+  const miniButtonClass =
+    "h-[26px] rounded-[8px] border border-line bg-surface px-[10px] text-[11.5px] font-bold leading-[normal] text-t2 hover:bg-bg disabled:cursor-not-allowed disabled:opacity-50";
   const action = canEdit ? (
     <div className="flex items-center gap-[6px]">
-      <button
-        type="button"
-        onClick={openAdd}
-        className="h-[26px] rounded-[8px] border border-line bg-surface px-[10px] text-[11.5px] font-bold leading-[normal] text-t2 hover:bg-bg"
-      >
+      <button type="button" onClick={openAdd} className={miniButtonClass}>
         추가
       </button>
-      <button
-        type="button"
-        onClick={openSelectedPayment}
-        className="h-[26px] rounded-[8px] border border-line bg-surface px-[10px] text-[11.5px] font-bold leading-[normal] text-t2 hover:bg-bg"
-      >
-        수정
-      </button>
+      {formOpen ? (
+        <>
+          <button
+            type="button"
+            onClick={() => void submit()}
+            disabled={record.isPending || recordEdit.isPending || cancel.isPending}
+            className={`${miniButtonClass} border-teal bg-teal text-white hover:bg-teal`}
+          >
+            저장
+          </button>
+          <button
+            type="button"
+            onClick={closeEditor}
+            className="flex size-[26px] items-center justify-center rounded-[8px] border border-line bg-surface text-t3 hover:bg-bg"
+            title="취소"
+            aria-label="수납 이력 편집 취소"
+          >
+            <CloseIcon className="size-[14px]" aria-hidden="true" />
+          </button>
+        </>
+      ) : (
+        <button type="button" onClick={openSelectedPayment} className={miniButtonClass}>
+          수정
+        </button>
+      )}
     </div>
   ) : undefined;
+
+  const renderInlineEditor = ({
+    key,
+    rowPeriod,
+    rowSummary,
+  }: {
+    key: string;
+    rowPeriod: string;
+    rowSummary: ReceiptStatementPaymentRow | ReceiptPaymentRow | undefined;
+  }) => {
+    const suggestedAmount = (rowSummary?.unpaid ?? 0) > 0
+      ? rowSummary?.unpaid ?? 0
+      : rowSummary?.charged ?? 0;
+    const shortcut = (kind: PaymentKind, amount = suggestedAmount) => {
+      setForm((previous) => ({
+        ...previous,
+        kind,
+        amount: amount > 0 ? String(amount) : previous.amount,
+      }));
+    };
+    const fieldClass =
+      "h-[26px] rounded-[7px] border border-line bg-surface px-[7px] text-[12px] font-normal text-t1 outline-none focus:border-teal focus:ring-[3px] focus:ring-teal-t";
+
+    return (
+      <tr key={key} data-testid="payment-inline-editor" className="h-[40px] border-b border-line2 bg-teal-t2">
+        <td className="whitespace-nowrap px-2 py-[6px]">
+          <div className="flex items-center gap-[3px]">
+            <button
+              type="button"
+              onClick={() => editingId !== null ? void cancelEditingPayment() : closeEditor()}
+              disabled={cancel.isPending}
+              className={`${miniButtonClass} border-red-t px-[8px] font-medium text-red`}
+            >
+              {editingId !== null ? "수납 취소" : "삭제"}
+            </button>
+            <button type="button" onClick={() => shortcut("full")} className={`${miniButtonClass} border-teal bg-teal px-[8px] font-medium text-white hover:bg-teal`}>
+              수납
+            </button>
+            <button type="button" onClick={() => shortcut("principal", rowSummary?.charged ?? 0)} className={`${miniButtonClass} px-[8px] font-medium`}>
+              원금
+            </button>
+            <button type="button" onClick={() => shortcut("partial", 0)} className={`${miniButtonClass} px-[8px] font-medium`}>
+              수.연
+            </button>
+          </div>
+        </td>
+        <td className="whitespace-nowrap px-3 py-[6px] num">{toMonthInput(rowPeriod)}</td>
+        <td className="px-3 py-[6px] text-right num">{formatCurrency(rowSummary?.charged ?? null)}</td>
+        <td className="px-3 py-[6px] text-right text-red num">{formatCurrency(rowSummary?.unpaid ?? null)}</td>
+        <td className="px-2 py-[6px] text-right">
+          <input
+            type="number"
+            aria-label="수납액"
+            value={form.amount}
+            onChange={(event) => setForm((previous) => ({ ...previous, amount: event.target.value }))}
+            className={`${fieldClass} w-[88px] text-right num`}
+          />
+        </td>
+        <td className="px-2 py-[6px] text-right">
+          <input
+            type="number"
+            aria-label="수수료(수료)"
+            value={form.fee}
+            onChange={(event) => setForm((previous) => ({ ...previous, fee: event.target.value }))}
+            className={`${fieldClass} w-[76px] text-right num`}
+          />
+        </td>
+        <td className="px-2 py-[6px]">
+          <input
+            type="date"
+            aria-label="수납일자"
+            value={form.paidAt}
+            onChange={(event) => setForm((previous) => ({ ...previous, paidAt: event.target.value }))}
+            className={`${fieldClass} w-[124px] num`}
+          />
+        </td>
+        <td className="px-2 py-[6px]">
+          <select
+            aria-label="은행/방법"
+            value={form.method}
+            onChange={(event) => setForm((previous) => ({ ...previous, method: event.target.value as PaymentMethod }))}
+            className={`${fieldClass} min-w-[104px]`}
+          >
+            {METHOD_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        </td>
+        <td className="px-2 py-[6px]">
+          <select
+            aria-label="구분"
+            value={form.kind}
+            onChange={(event) => setForm((previous) => ({ ...previous, kind: event.target.value as PaymentKind }))}
+            className={`${fieldClass} min-w-[76px]`}
+          >
+            {KIND_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        </td>
+        <td className="px-2 py-[6px]">
+          <input
+            aria-label="비고"
+            value={form.memo}
+            onChange={(event) => setForm((previous) => ({ ...previous, memo: event.target.value }))}
+            className={`${fieldClass} w-[110px]`}
+          />
+        </td>
+        <td className="whitespace-nowrap px-3 py-[6px] num">{dotDate(rowSummary?.dueDate ?? null)}</td>
+      </tr>
+    );
+  };
 
   return (
     <Panel title="수납 이력" action={action} flush className="min-h-[266px] flex-1">
@@ -330,9 +461,10 @@ export function PaymentHistorySection({
       ) : (
         <>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[920px] text-sm">
+            <table className={`w-full text-sm ${formOpen ? "min-w-[1120px]" : "min-w-[920px]"}`}>
               <thead>
                 <tr className="border-b border-line bg-bg text-left text-xs font-bold text-t3">
+                  {formOpen && <th className="h-[36px] min-w-[190px] whitespace-nowrap px-3 py-0">처리</th>}
                   {COLS.map((col) => (
                     <th key={col} className="h-[36px] whitespace-nowrap px-3 py-0">
                       {col}
@@ -341,8 +473,20 @@ export function PaymentHistorySection({
                 </tr>
               </thead>
               <tbody>
+                {formOpen && editingId === null && renderInlineEditor({
+                  key: "new-payment",
+                  rowPeriod: period,
+                  rowSummary: summary,
+                })}
                 {historyRows.map(({ key, rowPeriod, rowSummary, payment }) => {
                   const canceled = payment?.status === "canceled";
+                  if (formOpen && payment?.id === editingId) {
+                    return renderInlineEditor({
+                      key,
+                      rowPeriod,
+                      rowSummary: rowSummary ?? (rowPeriod === period ? summary : undefined),
+                    });
+                  }
                   return (
                     <tr
                       key={key}
@@ -351,6 +495,7 @@ export function PaymentHistorySection({
                         payment ? "cursor-pointer" : ""
                       } ${selectedPaymentId === payment?.id ? "bg-teal-t" : ""} ${canceled ? "opacity-50" : ""}`}
                     >
+                      {formOpen && <td className="px-3 py-[6px]" />}
                       <td className="px-3 py-[6px] num">{toMonthInput(rowPeriod)}</td>
                       <td className="px-3 py-[6px] text-right num">{formatCurrency(rowSummary?.charged ?? null)}</td>
                       <td className="px-3 py-[6px] text-right text-red num">{formatCurrency(rowSummary?.unpaid ?? null)}</td>
@@ -388,96 +533,6 @@ export function PaymentHistorySection({
             </button>
           </div>
         </>
-      )}
-
-      {formOpen && (
-        <Modal
-          open
-          onClose={() => setFormOpen(false)}
-          title={editingId !== null ? "수납 내역 수정" : "수납 내역 추가"}
-          className="max-w-md"
-        >
-          <div className="grid grid-cols-2 gap-3">
-            <label className="text-xs font-bold text-t3">
-              수납액
-              <Input
-                type="number"
-                className="mt-1"
-                value={form.amount}
-                onChange={(e) => setForm((p) => ({ ...p, amount: e.target.value }))}
-              />
-            </label>
-            <label className="text-xs font-bold text-t3">
-              수수료(수료)
-              <Input
-                type="number"
-                className="mt-1"
-                value={form.fee}
-                onChange={(e) => setForm((p) => ({ ...p, fee: e.target.value }))}
-              />
-            </label>
-            <label className="text-xs font-bold text-t3">
-              은행/방법
-              <Select
-                className="mt-1"
-                value={form.method}
-                onChange={(e) => setForm((p) => ({ ...p, method: e.target.value as PaymentMethod }))}
-                options={METHOD_OPTIONS}
-              />
-            </label>
-            <label className="text-xs font-bold text-t3">
-              구분
-              <Select
-                className="mt-1"
-                value={form.kind}
-                onChange={(e) => setForm((p) => ({ ...p, kind: e.target.value as PaymentKind }))}
-                options={KIND_OPTIONS}
-              />
-            </label>
-            <label className="text-xs font-bold text-t3">
-              수납일자
-              <Input
-                type="date"
-                className="mt-1"
-                value={form.paidAt}
-                onChange={(e) => setForm((p) => ({ ...p, paidAt: e.target.value }))}
-              />
-            </label>
-            <label className="text-xs font-bold text-t3">
-              비고
-              <Input
-                className="mt-1"
-                value={form.memo}
-                onChange={(e) => setForm((p) => ({ ...p, memo: e.target.value }))}
-              />
-            </label>
-          </div>
-          {editingId !== null && (
-            <p className="mt-3 text-xs text-t4">수정은 기존 수납을 취소하고 새로 기록합니다.</p>
-          )}
-          <div className="mt-4 flex justify-end gap-2">
-            {editingId !== null && (
-              <Button
-                type="button"
-                variant="danger"
-                onClick={() => void cancelEditingPayment()}
-                disabled={cancel.isPending}
-              >
-                수납 취소
-              </Button>
-            )}
-            <Button type="button" variant="ghost" onClick={() => setFormOpen(false)}>
-              취소
-            </Button>
-            <Button
-              type="button"
-              onClick={submit}
-              disabled={record.isPending || recordEdit.isPending || cancel.isPending}
-            >
-              저장
-            </Button>
-          </div>
-        </Modal>
       )}
 
       {messagingPreset && (
