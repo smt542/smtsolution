@@ -139,6 +139,7 @@ describe("Sidebar", () => {
     render(<Sidebar />);
 
     const brandLink = screen.getByRole("link", { name: "관리비서" });
+    expect(brandLink).toHaveAttribute("href", "/staff/receipts");
     expect(brandLink.querySelector("img")?.getAttribute("src")).toContain("%2Flogo-mark.png");
     expect(screen.getByText("비서")).toHaveClass("text-[#17a493]");
   });

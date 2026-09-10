@@ -32,7 +32,7 @@ export function LoginForm() {
       if (values.autoLogin) localStorage.setItem(AUTO_LOGIN_KEY, "1");
       else localStorage.removeItem(AUTO_LOGIN_KEY);
       if (ctx?.mustChangePassword) toast.info("비밀번호 변경이 필요합니다. 관리자 안내에 따라 변경해 주세요.");
-      router.push(ctx.role === "platform_admin" ? "/platform-admin" : "/staff");
+      router.push(ctx.role === "platform_admin" ? "/platform-admin" : "/staff/receipts");
     } catch (e) {
       setServerError(e instanceof Error ? e.message : "잠시 후 다시 시도해 주세요.");
     }

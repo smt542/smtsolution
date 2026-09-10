@@ -76,7 +76,7 @@ describe("proxy", () => {
     expect(response.headers.get("x-session-refreshed")).toBe("true");
   });
 
-  it("로그인한 사용자의 로그인 페이지 요청은 직원 화면으로 보낸다", async () => {
+  it("로그인한 사용자의 로그인 페이지 요청은 수납관리·민원접수 화면으로 보낸다", async () => {
     updateSession.mockResolvedValue({
       response: NextResponse.next(),
       user: { id: "signed-in-user" },
@@ -84,6 +84,6 @@ describe("proxy", () => {
 
     const response = await proxy(request("/staff/login"));
 
-    expect(getRedirectUrl(response)).toBe("https://example.com/staff");
+    expect(getRedirectUrl(response)).toBe("https://example.com/staff/receipts");
   });
 });

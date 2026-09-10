@@ -22,14 +22,14 @@ describe("LoginForm", () => {
     expect(screen.queryByText("회사코드")).not.toBeInTheDocument();
   });
 
-  it("일반 직원 로그인 성공 시 직원 화면으로 이동", async () => {
+  it("일반 직원 로그인 성공 시 수납관리·민원접수 화면으로 이동", async () => {
     mutateAsync.mockResolvedValue({ role: "staff" });
     render(<LoginForm />);
     await userEvent.type(screen.getByLabelText("아이디"), "hong");
     await userEvent.type(screen.getByLabelText("비밀번호"), "pw123456");
     await userEvent.click(screen.getByRole("button", { name: "로그인" }));
     expect(mutateAsync).toHaveBeenCalledWith({ username: "hong", password: "pw123456", autoLogin: false });
-    expect(push).toHaveBeenCalledWith("/staff");
+    expect(push).toHaveBeenCalledWith("/staff/receipts");
   });
 
   it("통합관리자 로그인 성공 시 통합관리자 콘솔로 이동", async () => {
