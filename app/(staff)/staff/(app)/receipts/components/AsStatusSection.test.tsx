@@ -100,6 +100,23 @@ describe("AsStatusSection resident messaging", () => {
     expect(screen.getByText("접수 내역이 없어요")).toBeInTheDocument();
   });
 
+  it("건물 전체 범위에서는 원본처럼 호수 컬럼을 표시한다", () => {
+    render(
+      <AsStatusSection
+        orgId={7}
+        buildingId={3}
+        unitId={101}
+        canSendMessages
+        resident={null}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "건물 전체" }));
+
+    expect(screen.getByRole("columnheader", { name: "호수" })).toBeInTheDocument();
+    expect(screen.getByText("101호")).toBeInTheDocument();
+  });
+
   it("입주자용 민원·AS 처리 안내 preset을 정확한 템플릿과 완전한 변수로 구성한다", () => {
     render(
       <AsStatusSection
