@@ -6,12 +6,7 @@ import { VendorCategorySidebar } from "./VendorCategorySidebar";
 import { VendorList } from "./VendorList";
 import { VendorFormModal } from "./VendorFormModal";
 import styles from "./VendorManagement.module.css";
-import {
-  useVendorCategories,
-  useCreateVendorCategory,
-  useRenameVendorCategory,
-  useDeleteVendorCategory,
-} from "@/hooks/reactquery/vendorCategories";
+import { useVendorCategories } from "@/hooks/reactquery/vendorCategories";
 import {
   useVendors,
   useCreateVendor,
@@ -81,9 +76,6 @@ export function VendorManagementSection() {
     search || undefined
   );
 
-  const createCategory = useCreateVendorCategory();
-  const renameCategory = useRenameVendorCategory();
-  const deleteCategory = useDeleteVendorCategory();
   const createVendor = useCreateVendor();
   const updateVendor = useUpdateVendor();
   const deleteVendor = useDeleteVendor();
@@ -107,32 +99,6 @@ export function VendorManagementSection() {
   const closeModal = () => {
     setModalOpen(false);
     setEditingVendor(null);
-  };
-
-  const handleAddCategory = async (label: string) => {
-    if (!orgId) { toast.error("인증 정보가 없습니다"); return; }
-    try {
-      await createCategory.mutateAsync({ orgId, label });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
-    }
-  };
-
-  const handleRenameCategory = async (id: number, label: string) => {
-    try {
-      await renameCategory.mutateAsync({ id, label });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
-    }
-  };
-
-  const handleDeleteCategory = async (id: number) => {
-    try {
-      await deleteCategory.mutateAsync(id);
-      if (selectedCategoryId === id) setSelectedCategoryId(null);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
-    }
   };
 
   const handleDeleteVendor = async (id: number) => {
@@ -164,9 +130,6 @@ export function VendorManagementSection() {
         allVendors={allVendors}
         selectedId={selectedCategoryId}
         onSelect={setSelectedCategoryId}
-        onAddCategory={handleAddCategory}
-        onRenameCategory={handleRenameCategory}
-        onDeleteCategory={handleDeleteCategory}
       />
 
       {/* Right content */}

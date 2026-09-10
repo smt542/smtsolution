@@ -12,9 +12,6 @@ vi.mock("next/navigation", () => ({
 // Mock hooks
 vi.mock("@/hooks/reactquery/vendorCategories", () => ({
   useVendorCategories: vi.fn(),
-  useCreateVendorCategory: vi.fn(),
-  useRenameVendorCategory: vi.fn(),
-  useDeleteVendorCategory: vi.fn(),
 }));
 
 vi.mock("@/hooks/reactquery/vendors", () => ({
@@ -36,12 +33,7 @@ vi.mock("sonner", () => ({
 }));
 
 import { VendorManagementSection } from "./VendorManagementSection";
-import {
-  useVendorCategories,
-  useCreateVendorCategory,
-  useRenameVendorCategory,
-  useDeleteVendorCategory,
-} from "@/hooks/reactquery/vendorCategories";
+import { useVendorCategories } from "@/hooks/reactquery/vendorCategories";
 import {
   useVendors,
   useCreateVendor,
@@ -74,9 +66,6 @@ function setupMocks() {
   vi.mocked(useVendors).mockReturnValue({ data: mockVendors, isLoading: false } as unknown as ReturnType<typeof useVendors>);
   vi.mocked(useVendorAttachments).mockReturnValue({ data: mockAttachments, isLoading: false } as unknown as ReturnType<typeof useVendorAttachments>);
   vi.mocked(useMe).mockReturnValue({ data: { orgId: 10 } } as unknown as ReturnType<typeof useMe>);
-  vi.mocked(useCreateVendorCategory).mockReturnValue(mockMutate as unknown as ReturnType<typeof useCreateVendorCategory>);
-  vi.mocked(useRenameVendorCategory).mockReturnValue(mockMutate as unknown as ReturnType<typeof useRenameVendorCategory>);
-  vi.mocked(useDeleteVendorCategory).mockReturnValue(mockMutate as unknown as ReturnType<typeof useDeleteVendorCategory>);
   vi.mocked(useCreateVendor).mockReturnValue(mockMutate as unknown as ReturnType<typeof useCreateVendor>);
   vi.mocked(useUpdateVendor).mockReturnValue(mockMutate as unknown as ReturnType<typeof useUpdateVendor>);
   vi.mocked(useDeleteVendor).mockReturnValue(mockMutate as unknown as ReturnType<typeof useDeleteVendor>);
@@ -198,30 +187,11 @@ describe("VendorManagementPage", () => {
     expect(fileInput).toHaveAttribute("multiple");
   });
 
-  it("double-clicking a category label shows rename input and submitting calls mutateAsync", async () => {
-    const renameMutate = vi.fn().mockResolvedValue({});
-    vi.mocked(useRenameVendorCategory).mockReturnValue({ mutateAsync: renameMutate, isPending: false } as unknown as ReturnType<typeof useRenameVendorCategory>);
-
+  it("renders categories as fixed filters without add, rename, or delete controls", () => {
     render(<VendorManagementSection />);
-
-    // Double-click the "전기" category button to enter rename mode
-    const sidebarButtons = screen.getAllByRole("button");
-    const dengiBtn = sidebarButtons.find((b) => b.textContent?.startsWith("전기"));
-    expect(dengiBtn).toBeDefined();
-    fireEvent.dblClick(dengiBtn!);
-
-    // Rename input should appear
-    const renameInput = await screen.findByRole("textbox", { name: "구분 이름 변경" });
-    expect(renameInput).toBeInTheDocument();
-    expect((renameInput as HTMLInputElement).value).toBe("전기");
-
-    // Clear and type a new name, then press Enter
-    fireEvent.change(renameInput, { target: { value: "전기설비" } });
-    fireEvent.keyDown(renameInput, { key: "Enter" });
-
-    await waitFor(() => {
-      expect(renameMutate).toHaveBeenCalledWith({ id: 1, label: "전기설비" });
-    });
+    expect(screen.queryByRole("button", { name: "구분 추가" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /구분 삭제/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "구분 이름 변경" })).not.toBeInTheDocument();
   });
 
   it("duplicate name: clicking the SECOND vendor with the same name opens the modal for the SECOND vendor", async () => {
@@ -274,32 +244,4 @@ describe("VendorManagementPage", () => {
     });
   });
 
-  it("category delete: clicking × on a category, confirming calls useDeleteVendorCategory().mutateAsync; × absent on 전체", async () => {
-    const deleteCatMutate = vi.fn().mockResolvedValue({});
-    vi.mocked(useDeleteVendorCategory).mockReturnValue({ mutateAsync: deleteCatMutate, isPending: false } as unknown as ReturnType<typeof useDeleteVendorCategory>);
-
-    render(<VendorManagementSection />);
-
-    // The × button for 전기 (id=1) should be present
-    const deleteBtn = screen.getByRole("button", { name: "전기 구분 삭제" });
-    expect(deleteBtn).toBeInTheDocument();
-
-    // 전체 must NOT have a delete button
-    expect(screen.queryByRole("button", { name: "전체 구분 삭제" })).toBeNull();
-
-    fireEvent.click(deleteBtn);
-
-    // Confirm dialog appears
-    await waitFor(() =>
-      expect(screen.getByText("이 구분을 삭제하면 소속 업체는 미분류가 됩니다. 삭제할까요?")).toBeInTheDocument()
-    );
-
-    // Confirm
-    const confirmBtns = screen.getAllByRole("button", { name: "삭제" });
-    fireEvent.click(confirmBtns[confirmBtns.length - 1]!);
-
-    await waitFor(() => {
-      expect(deleteCatMutate).toHaveBeenCalledWith(1);
-    });
-  });
 });

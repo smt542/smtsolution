@@ -32,30 +32,6 @@
   font-weight: 800;
 }
 
-.categoryAdd {
-  display: none;
-  width: 28px;
-  height: 28px;
-  margin-left: auto;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  color: var(--color-t3);
-  cursor: pointer;
-}
-
-.categoryAdd:hover,
-.categoryAdd:focus-visible {
-  background: var(--color-blue-t);
-  color: var(--color-blue-d);
-  outline: none;
-}
-
-.categoryAdd svg {
-  width: 16px;
-  height: 16px;
-}
-
 .categoryList {
   display: flex;
   min-height: 0;
@@ -120,58 +96,6 @@
 .categoryItemActive .categoryCount {
   background: var(--color-surface);
   color: var(--color-blue);
-}
-
-.categoryDelete {
-  position: absolute;
-  top: 50%;
-  right: 9px;
-  display: none;
-  width: 24px;
-  height: 24px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 6px;
-  color: var(--color-t3);
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(-50%);
-  transition: opacity 100ms ease, background-color 100ms ease, color 100ms ease;
-}
-
-.categoryRow:hover .categoryDelete,
-.categoryDelete:focus-visible {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.categoryDelete:hover,
-.categoryDelete:focus-visible {
-  background: var(--color-red-t);
-  color: var(--color-red);
-  outline: none;
-}
-
-.categoryEditRow {
-  display: flex;
-  min-height: 37px;
-  align-items: center;
-  border-radius: 10px;
-  background: var(--color-blue-t);
-  padding: 9px 11px;
-}
-
-.categoryInput {
-  width: 100%;
-  border: 0;
-  border-bottom: 1.5px solid var(--color-blue);
-  background: transparent;
-  padding: 0;
-  color: var(--color-blue);
-  font: inherit;
-  font-size: 13.5px;
-  font-weight: 700;
-  outline: none;
 }
 
 .panel {
