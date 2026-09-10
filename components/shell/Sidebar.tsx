@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useLogout, useMe } from "@/hooks/reactquery/auth";
+import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
 import { hasModule } from "@/lib/auth/permissions";
 import { OFFICE_NAV_ITEMS, type NavItem } from "./navItems";
 
@@ -189,6 +190,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { data: me } = useMe();
+  const { data: setupConfig } = useSetupConfig(me?.orgId);
   const logout = useLogout();
   const [activeUtilityType, setActiveUtilityType] = useState<"electricity" | "water" | "gas">("gas");
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -309,7 +311,7 @@ export function Sidebar() {
                 </div>
                 <div className="min-w-0">
                   <div className="truncate text-[13px] font-bold text-t1">{me.fullName}</div>
-                  <div className="truncate text-[11px] font-semibold text-t3">프로필 · {roleLabel(me.role)}</div>
+                  <div className="truncate text-[11px] font-semibold text-t3">프로필{setupConfig?.companyName ? " · " + setupConfig.companyName : ""}</div>
                 </div>
               </div>
               <div className="mx-1 my-1.5 h-px bg-line2" />
@@ -356,7 +358,7 @@ export function Sidebar() {
             onClick={() => setProfileMenuOpen((v) => !v)}
             aria-haspopup="menu"
             aria-expanded={profileMenuOpen}
-            className={`flex w-full items-center gap-[10px] rounded-xl p-[10px] text-left transition-colors ${profileMenuOpen ? "bg-teal-t" : "bg-transparent hover:bg-bg"}`}
+            className={`flex w-full items-center gap-[10px] rounded-xl p-[10px] text-left leading-[normal] transition-colors ${profileMenuOpen ? "bg-teal-t" : "bg-transparent hover:bg-bg"}`}
           >
             <div className="w-[34px] h-[34px] rounded-full bg-[#DCE3EA] flex items-center justify-center text-[14px] font-bold text-t2 flex-none select-none">
               {me.fullName.charAt(0)}
@@ -364,7 +366,7 @@ export function Sidebar() {
             <div className="min-w-0 flex-1">
               <div className="text-[13px] font-bold text-t1 truncate">{me.fullName}</div>
               <div className="text-[11px] text-t3 truncate">
-                {me.username} · {roleLabel(me.role)}
+                {roleLabel(me.role)}
               </div>
             </div>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 flex-none text-t3" aria-hidden="true">
