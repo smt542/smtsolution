@@ -1,6 +1,5 @@
 "use client";
 import { useState, type ReactNode } from "react";
-import { FilterIcon, SearchIcon } from "@/components/icons";
 
 export type MeterKind = "" | "수도" | "전기" | "가스" | "공용전기";
 
@@ -43,8 +42,8 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-[9px] px-[11px] py-[6px] text-[12.5px] font-bold transition-colors ${
-        active ? "border border-teal-t bg-teal-t text-teal-d" : "border border-transparent bg-bg text-t2 hover:bg-line2"
+      className={`rounded-full border px-[13px] py-[6px] text-[12.5px] font-bold leading-[normal] transition-colors ${
+        active ? "border-teal-t bg-teal-t text-teal" : "border-transparent bg-bg text-t2 hover:bg-[#e4e8ec]"
       }`}
     >
       {children}
@@ -54,8 +53,8 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
 
 function ChipGroup({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-[8px]">
-      <div className="text-[12px] font-bold text-t3">{label}</div>
+    <div className="flex items-center gap-[12px]">
+      <div className="w-[82px] shrink-0 text-[12.5px] font-bold leading-[normal] text-t2">{label}</div>
       <div className="flex flex-wrap items-center gap-[7px]">{children}</div>
     </div>
   );
@@ -96,7 +95,7 @@ export function BuildingSearchCard({
   const METER_KINDS: MeterKind[] = ["수도", "전기", "가스", "공용전기"];
 
   return (
-    <div className="rounded-2xl border border-line bg-surface px-[17px] py-[15px]">
+    <div className="min-h-[69px] shrink-0 rounded-2xl border border-line bg-surface px-[16px] py-[14px] shadow-card">
       <form
         className="flex items-center gap-[10px]"
         onSubmit={(e) => {
@@ -112,33 +111,54 @@ export function BuildingSearchCard({
           className={`flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[11px] border transition-colors ${
             open || isFilterActive(filter)
               ? "border-teal-t bg-teal-t text-teal-d"
-              : "border-line bg-surface text-t3 hover:bg-bg"
+              : "border-line bg-surface text-t2 hover:bg-bg"
           }`}
         >
-          <FilterIcon className="h-4 w-4" />
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-4 w-4"
+            aria-hidden="true"
+          >
+            <path d="M4 5h16M7 12h10M10 19h4" />
+          </svg>
         </button>
         <div className="relative flex-1">
           <span aria-hidden="true" className="pointer-events-none absolute left-[12px] top-1/2 -translate-y-1/2 text-t3">
-            <SearchIcon className="h-4 w-4" />
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              className="h-4 w-4"
+            >
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-3-3" />
+            </svg>
           </span>
           <input
             type="search"
             value={value}
             onChange={(e) => onChange(e.target.value)}
             placeholder="건물명·주소 검색"
-            className="h-[38px] w-full rounded-[11px] border border-line bg-surface pl-[34px] pr-[12px] text-[14px] font-semibold text-t1 placeholder:font-semibold placeholder:text-[#757575] focus:border-teal focus:outline-none"
+            className="h-[38px] w-full rounded-[11px] border border-line bg-surface pl-[34px] pr-[12px] text-[14px] font-semibold leading-[normal] text-t1 placeholder:font-semibold placeholder:text-[#757575] focus:border-teal focus:outline-none"
           />
         </div>
         <button
           type="submit"
-          className="inline-flex h-[38px] shrink-0 items-center rounded-[11px] bg-teal px-[15px] text-[13.5px] font-bold text-white shadow-[0_6px_7px_rgba(20,164,151,0.5)] hover:bg-teal-d"
+          className="inline-flex h-[38px] shrink-0 items-center rounded-[11px] border border-transparent bg-teal px-[15px] text-[13.5px] font-bold leading-[normal] text-white shadow-[0_6px_14px_-4px_rgba(20,164,151,0.5)] hover:bg-teal-d"
         >
           검색
         </button>
       </form>
 
       {open && (
-        <div className="mt-[13px] flex flex-col gap-[16px] border-t border-line2 pt-[13px]">
+        <div className="mt-[13px] flex flex-col gap-[11px] border-t border-line2 pt-[13px]">
           <ChipGroup label="등록일">
             <Chip active={filter.regSort === "desc"} onClick={() => patch({ regSort: "desc" })}>
               최신순

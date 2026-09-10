@@ -19,6 +19,7 @@ function isBare(pathname: string): boolean {
 /** Figma 자체 62px 헤더를 렌더하는 화면. */
 function hasIntegratedHeader(pathname: string): boolean {
   return (
+    pathname === "/staff/buildings" ||
     pathname.startsWith("/staff/buildings/new-v2") ||
     pathname.startsWith("/staff/utilities")
   );
@@ -27,11 +28,24 @@ function hasIntegratedHeader(pathname: string): boolean {
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const isBuildingsIndex = pathname === "/staff/buildings";
 
   useEffect(() => {
     const openDrawer = () => setDrawerOpen(true);
+    const toggleSidebar = () => {
+      if (window.matchMedia("(min-width: 768px)").matches) {
+        setSidebarCollapsed((value) => !value);
+        return;
+      }
+      setDrawerOpen(true);
+    };
     window.addEventListener("app-shell:open-menu", openDrawer);
-    return () => window.removeEventListener("app-shell:open-menu", openDrawer);
+    window.addEventListener("app-shell:toggle-sidebar", toggleSidebar);
+    return () => {
+      window.removeEventListener("app-shell:open-menu", openDrawer);
+      window.removeEventListener("app-shell:toggle-sidebar", toggleSidebar);
+    };
   }, []);
 
   if (isBare(pathname)) {
@@ -39,9 +53,13 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   return (
-    <div className="min-h-screen flex bg-bg print:block print:bg-white">
+    <div className={`${isBuildingsIndex ? "h-screen overflow-hidden" : "min-h-screen"} flex bg-bg print:block print:bg-white`}>
       {/* Desktop sidebar */}
-      <div className="hidden md:flex h-screen sticky top-0 print:hidden">
+      <div
+        className={`sticky top-0 hidden h-screen shrink-0 overflow-hidden transition-[width] duration-[180ms] md:flex print:hidden ${
+          sidebarCollapsed ? "w-0" : "w-[240px]"
+        }`}
+      >
         <Sidebar />
       </div>
 

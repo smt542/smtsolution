@@ -75,21 +75,21 @@ export function BuildingDirectoryCard({
   };
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-line bg-surface">
+    <section className="shrink-0 overflow-hidden rounded-2xl bg-surface shadow-card">
       <header className="flex items-center gap-[10px] border-b border-line2 px-[18px] py-[15px]">
-        <h2 className="text-[15px] font-extrabold text-t1">전체 건물</h2>
-        <span className="rounded-[7px] bg-bg px-[9px] py-[3px] text-[12px] font-bold text-t3">{total}곳</span>
-        <div className="ml-auto flex items-center gap-[8px]">
+        <h2 className="text-[15px] font-extrabold leading-[normal] text-t1">전체 건물</h2>
+        <span className="rounded-[7px] bg-bg px-[9px] py-[3px] text-[12px] font-bold leading-[1.4] text-t3">{total}곳</span>
+        <div className="ml-auto flex items-center gap-[10px]">
           <a
             href={exportHref}
-            className="inline-flex h-[40px] items-center rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold text-t2 hover:bg-bg"
+            className="inline-flex h-[40px] items-center rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg"
           >
             ⤓ 엑셀 다운
           </a>
           <button
             type="button"
             onClick={() => router.push("/staff/buildings/new")}
-            className="inline-flex h-[40px] items-center rounded-[11px] bg-teal px-[15px] text-[13.5px] font-bold text-white shadow-[0_6px_7px_rgba(20,164,151,0.5)] hover:bg-teal-d"
+            className="inline-flex h-[40px] items-center rounded-[11px] border border-transparent bg-teal px-[15px] text-[13.5px] font-bold leading-[normal] text-white shadow-[0_6px_14px_-4px_rgba(20,164,151,0.5)] hover:bg-teal-d"
           >
             ＋ 건물 등록
           </button>
@@ -106,14 +106,14 @@ export function BuildingDirectoryCard({
         <EmptyState message={hasFilter ? "조건에 맞는 건물이 없습니다." : "등록된 건물이 없습니다."} />
       ) : (
         <>
-          <div className="max-h-[360px] overflow-auto">
+          <div className="max-h-[230px] overflow-auto">
             <table className="w-full border-collapse text-left">
               <thead className="sticky top-0 z-[1]">
                 <tr>
                   {columns.map((col) => (
                     <th
                       key={col.key}
-                      className="h-[36px] whitespace-nowrap border-b border-line bg-[#fbfcfd] px-[16px] text-[12px] font-bold text-t3"
+                      className="whitespace-nowrap border-b border-line bg-[#fbfcfd] px-[16px] py-[11px] text-[12px] font-bold leading-[normal] text-t3"
                     >
                       {col.label}
                     </th>
@@ -128,30 +128,30 @@ export function BuildingDirectoryCard({
                       key={b.id}
                       onClick={() => onSelect(b)}
                       aria-selected={selected}
-                      className={`h-[55px] cursor-pointer border-b border-line2 last:border-0 ${
-                        selected ? "bg-teal-t" : "hover:bg-bg"
+                      className={`cursor-pointer border-b border-line2 last:border-0 ${
+                        selected ? "bg-blue-t2" : "hover:bg-bg"
                       }`}
                     >
                       {columns.map((col) =>
                         col.key === "action" ? (
-                          <td key={col.key} className="whitespace-nowrap px-[16px]">
+                          <td key={col.key} className="whitespace-nowrap px-[16px] py-[12px] leading-[normal]">
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 router.push(`/staff/buildings/${b.id}`);
                               }}
-                              className="inline-flex h-[30px] items-center rounded-[8px] border border-line bg-surface px-[12px] text-[13px] font-bold text-t2 hover:bg-bg"
+                              className="inline-flex h-[30px] items-center rounded-[8px] border border-line bg-surface px-[12px] text-[12.5px] font-bold leading-[normal] text-t2 hover:bg-bg"
                             >
                               상세
                             </button>
                           </td>
                         ) : col.key === "mday" ? (
-                          <td key={col.key} className="whitespace-nowrap px-[16px] text-[13.5px] font-bold text-t1">
+                          <td key={col.key} className="whitespace-nowrap px-[16px] py-[12px] text-[13.5px] font-bold leading-[normal] text-t1">
                             {meterDayText(b)}
                           </td>
                         ) : (
-                          <td key={col.key} className="whitespace-nowrap px-[16px] text-[13.5px] text-t1">
+                          <td key={col.key} className="whitespace-nowrap px-[16px] py-[12px] text-[13.5px] leading-[normal] text-t1">
                             {col.get?.(b) ?? ""}
                           </td>
                         ),

@@ -65,4 +65,19 @@ describe("TenantOccupancyCard", () => {
 
     expect(onOpenManagementCard).toHaveBeenCalledWith(tenant);
   });
+
+  it("헤더 인원 배지는 공실을 제외한 입주 세대 수를 표시한다", () => {
+    render(
+      <TenantOccupancyCard
+        buildingId={7}
+        buildingName="그린빌라"
+        rows={[tenant, { ...tenant, unitId: 102, unitNo: "102", occupancyId: null, tenantName: null, isVacant: true }]}
+        isLoading={false}
+        isError={false}
+        onOpenManagementCard={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("1명", { selector: "header span" })).toBeInTheDocument();
+  });
 });

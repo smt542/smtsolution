@@ -28,6 +28,48 @@
     "device": "desktop"
   },
   {
+    "id": "staff-buildings",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/building-list/building-list.dc.html",
+    "originSelector": ".hf-app",
+    "appPath": "/staff/buildings",
+    "appSelector": null,
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
+  },
+  {
+    "id": "staff-buildings-visual-fixture",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/building-list/building-list.dc.html",
+    "originSelector": ".hf-app",
+    "originStyle": ".hf-body>.hf-panel:not(.bl-tnt) th,.hf-body>.hf-panel:not(.bl-tnt) td,.hf-body>.hf-panel:not(.bl-tnt) .badge{color:transparent!important}.hf-side-foot .hf-ava,.hf-side-foot>div:nth-child(2){visibility:hidden!important}",
+    "appPath": "/staff/buildings",
+    "appSelector": null,
+    "appStyle": "main section:first-of-type th,main section:first-of-type td,main section:first-of-type header>span{color:transparent!important}aside button>div:first-child,aside button>div:nth-child(2){visibility:hidden!important}",
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
+  },
+  {
+    "id": "staff-buildings-filter",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/building-list/building-list.dc.html",
+    "originSelector": ".hf-app",
+    "originActions": [{ "click": "label[for='fltToggle']" }, { "wait": 400 }],
+    "appPath": "/staff/buildings",
+    "appSelector": null,
+    "appActions": [{ "click": "button[aria-label='필터']" }, { "wait": 100 }],
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
+  },
+  {
+    "id": "staff-buildings-selected",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/building-list/building-list.dc.html",
+    "originSelector": ".hf-app",
+    "originActions": [{ "click": "#bldBody tr:has-text('그린빌라')" }, { "wait": 300 }],
+    "appPath": "/staff/buildings",
+    "appSelector": null,
+    "appActions": [{ "click": "main section:first-of-type tbody tr:has-text('그린빌라')" }, { "wait": 1500 }],
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
+  },
+  {
     "id": "as-rail-panel",
     "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/fee-item/fee-item.dc.html",
     "originSelector": ".rnb",

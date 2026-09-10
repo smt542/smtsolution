@@ -8,7 +8,7 @@ import path from 'node:path';
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(ROOT, 'out');
 const APP_ORIGIN = process.env.APP_ORIGIN || 'http://localhost:3000';
-const AUTH = path.join(ROOT, '.auth', 'staff.json');
+const AUTH = process.env.AUTH_STATE || path.join(ROOT, '.auth', 'staff.json');
 
 const targets = JSON.parse(await readFile(path.join(ROOT, 'targets.json'), 'utf8'));
 const idArg = process.argv[2] || 'all';
@@ -65,6 +65,9 @@ try {
             'nextjs-portal,.tsqd-parent-container{display:none!important}',
         })
         .catch(() => {});
+      if (t.appStyle) {
+        await page.addStyleTag({ content: t.appStyle }).catch(() => {});
+      }
       if (Array.isArray(t.appActions)) {
         for (const action of t.appActions) {
           if (action.click) await page.click(action.click);

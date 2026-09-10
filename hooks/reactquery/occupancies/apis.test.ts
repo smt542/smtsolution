@@ -19,6 +19,17 @@ describe("occupancies hub apis", () => {
     expect(rpc).toHaveBeenCalledWith("list_tenants", { p_building_id: 7 });
     expect(r[0]).toMatchObject({ unitId:3, occupancyId:9, unitNo:"101", tenantName:"김입주", phone:"010-1111-2222", roomTypeLabel:"원룸", isVacant:false });
   });
+  it("listTenants: 만료 처리 RPC 권한이 배포되지 않았어도 목록 조회는 계속한다", async () => {
+    rpc.mockImplementation((name: string) => name === "execute_due_move_outs"
+      ? Promise.resolve({ data: null, error: { message: "permission denied for function execute_due_move_outs" } })
+      : Promise.resolve({ data: [{ unit_id:3, occupancy_id:null, unit_no:"101", tenant_name:null, phone:null, room_type_label:null, resident_count:null, move_in_date:null, is_vacant:true, is_overdue:false }], error:null }));
+
+    const result = await listTenants(7);
+
+    expect(rpc).toHaveBeenNthCalledWith(1, "execute_due_move_outs");
+    expect(rpc).toHaveBeenNthCalledWith(2, "list_tenants", { p_building_id: 7 });
+    expect(result[0]).toMatchObject({ unitId: 3, unitNo: "101", isVacant: true });
+  });
   it("saveUnitOccupancy: RPC payload(snake) + 결과 파싱", async () => {
     rpc.mockResolvedValue({ data: { unit_id:3, occupancy_id:9 }, error:null });
     const res = await saveUnitOccupancy({
