@@ -39,7 +39,7 @@
 | `/staff/vendor-management` | vendor-management | 🟡 | 협력업체 |
 | `/staff/long-term-repair` | long-term-repair | 🟢 | PR#36 장기수선 |
 | `/staff/accounts` | staff-management | 🟢 | PR#49 재설계(직원/계정) |
-| `/staff/customer-numbers` | (없음/utility-lookup?) | 🔴 | 고객번호 관리. 원본 대응 불명 → 확인 |
+| `/staff/customer-numbers` | utility-lookup | 🟢 | 고객번호 조회. 원본 단일 패널·세그먼트·표 구조 이식 |
 | `/staff/login` | login | 🟢 | PR#22. **이미 원본 px 이식 확인** |
 
 ---

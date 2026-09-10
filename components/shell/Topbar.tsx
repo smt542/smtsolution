@@ -26,6 +26,7 @@ export function Topbar({ onMenu }: TopbarProps) {
   const isUtilities = pathname.startsWith("/staff/utilities");
   const isMovingInquiry = pathname.startsWith("/staff/moving-settlement/inquiries/");
   const isMovingSettlement = pathname === "/staff/moving-settlement";
+  const isCustomerNumbers = pathname === "/staff/customer-numbers";
   const [utilityType, setUtilityType] = useState<"electricity" | "water" | "gas">("gas");
   const isElectricityUtilities =
     isUtilities && utilityType === "electricity";
@@ -67,12 +68,12 @@ export function Topbar({ onMenu }: TopbarProps) {
         </svg>
       </button>
 
-      {isElectricityUtilities || isMovingInquiry || isMovingSettlement ? (
+      {isElectricityUtilities || isMovingInquiry || isMovingSettlement || isCustomerNumbers ? (
         <div className="min-w-0 flex-1 leading-none">
-          <p className={`${isMovingInquiry ? "text-[12px] leading-[15px]" : "text-[10px] leading-[12px]"} font-semibold text-t3`}>
+          <p className={`${isMovingInquiry || isCustomerNumbers ? "text-[12px] leading-[15px]" : "text-[10px] leading-[12px]"} font-semibold text-t3`}>
             {isMovingInquiry || isMovingSettlement ? "이사정산" : "공과금 관리"}
           </p>
-          <h1 className={`${isMovingInquiry ? "text-[19px] leading-[23px]" : "text-[17px] leading-[21px]"} mt-[3px] font-extrabold tracking-[-0.35px] text-t1`}>
+          <h1 className={`${isMovingInquiry || isCustomerNumbers ? "text-[19px] leading-[23px]" : "text-[17px] leading-[21px]"} ${isCustomerNumbers ? "" : "mt-[3px]"} font-extrabold tracking-[-0.35px] text-t1`}>
             {isMovingInquiry
               ? pathname.endsWith("/all")
                 ? "전체 이사조회"
@@ -83,7 +84,9 @@ export function Topbar({ onMenu }: TopbarProps) {
                     : "가스 이사조회"
               : isMovingSettlement
                 ? "이사정산 입력"
-                : "전기"}
+                : isCustomerNumbers
+                  ? "고객번호 조회"
+                  : "전기"}
           </h1>
         </div>
       ) : (

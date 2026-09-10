@@ -1,43 +1,51 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Button, EmptyState, Pagination, Spinner } from "@/components/common";
+import { useMemo, useState } from "react";
+import { Button, Pagination, Spinner } from "@/components/common";
 import {
   useCustomerNumberLookup,
   type CustomerNumberFilters,
   type CustomerNumberLookupKind,
 } from "@/hooks/reactquery/buildingCustomerNumbers";
+import { CustomerNumberLookupHeader } from "./CustomerNumberLookupHeader";
 import { CustomerNumberLookupTable } from "./CustomerNumberLookupTable";
-import { CustomerNumberLookupToolbar } from "./CustomerNumberLookupToolbar";
 
 const PAGE_SIZE = 50;
 
-function useDebouncedValue(value: string, delay: number) {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => setDebouncedValue(value), delay);
-    return () => window.clearTimeout(timeoutId);
-  }, [delay, value]);
-
-  return debouncedValue;
-}
-
-function customerNumberExportUrl(filters: CustomerNumberFilters) {
-  const params = new URLSearchParams({ kind: filters.kind });
-  const query = filters.q?.trim();
-  if (query) params.set("q", query);
-  return `/api/customer-numbers/export?${params.toString()}`;
+function CustomerNumberLookupEmptyState() {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[6px] px-6 pb-14 pt-12 text-center">
+      <div className="mb-[5px] flex size-[58px] items-center justify-center rounded-[17px] bg-teal-t text-teal">
+        <svg
+          aria-hidden="true"
+          className="size-7"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <circle cx="11" cy="11" r="7" />
+          <path d="M20 20l-3-3" />
+        </svg>
+      </div>
+      <p className="text-[16px] font-bold tracking-[-0.02em] text-t1">
+        검색 결과가 없어요
+      </p>
+      <p className="text-[13.5px] font-normal leading-[1.6] text-t3">
+        고객번호나 건물명으로 다시 검색해 주세요
+      </p>
+    </div>
+  );
 }
 
 export function CustomerNumberLookupContent() {
   const [kind, setKind] = useState<CustomerNumberLookupKind>("water");
-  const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
-  const debouncedQuery = useDebouncedValue(query, 300);
   const filters = useMemo<CustomerNumberFilters>(
-    () => ({ kind, q: debouncedQuery, page, pageSize: PAGE_SIZE }),
-    [debouncedQuery, kind, page],
+    () => ({ kind, page, pageSize: PAGE_SIZE }),
+    [kind, page],
   );
   const lookupQuery = useCustomerNumberLookup(filters);
   const rows = lookupQuery.data?.rows ?? [];
@@ -49,32 +57,17 @@ export function CustomerNumberLookupContent() {
     setPage(1);
   };
 
-  const exportCustomerNumbers = () => {
-    const anchor = document.createElement("a");
-    anchor.href = customerNumberExportUrl(filters);
-    anchor.download = "";
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-  };
-
   return (
-    <div className="min-h-[calc(100vh-62px)] bg-bg p-[18px] sm:p-[22px]">
-      <CustomerNumberLookupToolbar
-        kind={kind}
-        total={total}
-        query={query}
-        onKindChange={changeKind}
-        onQueryChange={(value) => {
-          setQuery(value);
-          setPage(1);
-        }}
-        onExport={exportCustomerNumbers}
-      />
+    <div className="flex h-[calc(100dvh-62px)] min-h-[420px] flex-col overflow-hidden bg-bg px-6 pb-6 pt-[22px]">
+      <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[16px] bg-surface shadow-card">
+        <CustomerNumberLookupHeader
+          kind={kind}
+          total={total}
+          onKindChange={changeKind}
+        />
 
-      <section className="mt-3 overflow-hidden rounded-xl border border-line bg-surface shadow-card">
         {lookupQuery.isError ? (
-          <div role="alert" className="p-8 text-center">
+          <div role="alert" className="flex min-h-0 flex-1 flex-col items-center justify-center p-8 text-center">
             <p className="text-sm font-semibold text-red">
               고객번호 목록을 불러오지 못했습니다. 다시 시도해 주세요.
             </p>
@@ -88,16 +81,23 @@ export function CustomerNumberLookupContent() {
             </Button>
           </div>
         ) : lookupQuery.isLoading ? (
-          <div role="status" aria-label="고객번호 조회 중" className="py-12">
+          <div
+            role="status"
+            aria-label="고객번호 조회 중"
+            className="flex min-h-0 flex-1 items-center justify-center"
+          >
             <Spinner />
           </div>
         ) : rows.length === 0 ? (
-          <EmptyState message="검색 결과가 없습니다" />
+          <CustomerNumberLookupEmptyState />
         ) : (
           <CustomerNumberLookupTable rows={rows} kind={kind} />
         )}
 
-        {!lookupQuery.isError && !lookupQuery.isLoading && rows.length > 0 && (
+        {!lookupQuery.isError &&
+          !lookupQuery.isLoading &&
+          rows.length > 0 &&
+          totalPages > 1 && (
           <div className="border-t border-line px-4 py-3">
             <Pagination
               page={page}

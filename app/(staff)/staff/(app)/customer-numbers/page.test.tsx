@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -62,7 +62,6 @@ describe("CustomerNumberLookupPage", () => {
     await waitFor(() =>
       expect(useCustomerNumberLookup).toHaveBeenLastCalledWith({
         kind: "common_elec",
-        q: "",
         page: 1,
         pageSize: 50,
       }),
@@ -79,28 +78,16 @@ describe("CustomerNumberLookupPage", () => {
   it("조회 결과가 없으면 빈 상태를 표시한다", async () => {
     setupLookup({ data: [] });
     render(await CustomerNumberLookupPage());
-    expect(screen.getByText("검색 결과가 없습니다")).toBeInTheDocument();
+    expect(screen.getByText("검색 결과가 없어요")).toBeInTheDocument();
+    expect(screen.getByText("고객번호나 건물명으로 다시 검색해 주세요")).toBeInTheDocument();
   });
 
-  it("엑셀 다운로드에 현재 유형과 검색어를 직렬화한다", async () => {
-    vi.useFakeTimers();
-    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+  it("원본 패널 헤더처럼 유형 세그먼트와 건수만 표시한다", async () => {
+    render(await CustomerNumberLookupPage());
 
-    try {
-      render(await CustomerNumberLookupPage());
-      fireEvent.click(screen.getByRole("button", { name: "공용전기" }));
-      fireEvent.change(screen.getByLabelText("고객번호 통합검색"), {
-        target: { value: " 강남 빌라 " },
-      });
-      act(() => vi.advanceTimersByTime(300));
-      fireEvent.click(screen.getByRole("button", { name: "엑셀 다운로드" }));
-
-      const anchor = click.mock.instances[0] as HTMLAnchorElement;
-      expect(anchor.getAttribute("href")).toBe(
-        "/api/customer-numbers/export?kind=common_elec&q=%EA%B0%95%EB%82%A8+%EB%B9%8C%EB%9D%BC",
-      );
-    } finally {
-      vi.useRealTimers();
-    }
+    expect(screen.getByRole("group", { name: "공과금 종류" })).toBeInTheDocument();
+    expect(screen.getByLabelText("조회 결과 1건")).toBeInTheDocument();
+    expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "엑셀 다운로드" })).not.toBeInTheDocument();
   });
 });
