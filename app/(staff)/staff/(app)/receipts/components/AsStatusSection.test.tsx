@@ -80,6 +80,26 @@ beforeEach(() => {
 });
 
 describe("AsStatusSection resident messaging", () => {
+  it("처리결과 필터를 원본형 커스텀 드롭다운으로 제공한다", () => {
+    render(
+      <AsStatusSection
+        orgId={7}
+        buildingId={3}
+        unitId={101}
+        canSendMessages
+        resident={null}
+      />,
+    );
+
+    const filter = screen.getByRole("button", { name: "처리결과 필터" });
+    expect(filter).toHaveAttribute("aria-haspopup", "listbox");
+
+    fireEvent.click(filter);
+    fireEvent.click(screen.getByRole("option", { name: "미결" }));
+
+    expect(screen.getByText("접수 내역이 없어요")).toBeInTheDocument();
+  });
+
   it("입주자용 민원·AS 처리 안내 preset을 정확한 템플릿과 완전한 변수로 구성한다", () => {
     render(
       <AsStatusSection

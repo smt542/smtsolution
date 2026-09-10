@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Badge, Button, Panel, Select, Spinner } from "@/components/common";
+import { Badge, Button, CustomDropdown, Panel, Spinner } from "@/components/common";
 import { useAccounts } from "@/hooks/reactquery/accounts";
 import { useAsCategories } from "@/hooks/reactquery/asCategories";
 import { useBuildings } from "@/hooks/reactquery/buildings";
@@ -279,13 +279,14 @@ export function AsStatusSection({
           건물 전체
         </button>
       </div>
-      <Select
-        className="!h-[28px] !w-[62px] !rounded-[9px] !px-[9px] !text-[12px] !leading-[normal]"
-        aria-label="처리결과 필터"
-        value={resultFilter}
-        onChange={(event) => setResultFilter(event.target.value as "" | ComplaintStatus)}
-        options={[{ value: "", label: "전체" }, ...COMPLAINT_STATUS_OPTIONS]}
-      />
+      <div className="[&_.uc-dd-btn]:h-[28px] [&_.uc-dd-btn]:px-[9px] [&_.uc-dd-btn]:text-[12px] [&_.uc-dd-menu]:left-0 [&_.uc-dd-menu]:right-auto [&_.uc-dd-menu]:min-w-[96px]">
+        <CustomDropdown
+          ariaLabel="처리결과 필터"
+          value={resultFilter}
+          onChange={(value) => setResultFilter(value as "" | ComplaintStatus)}
+          options={[{ value: "", label: "전체" }, ...COMPLAINT_STATUS_OPTIONS]}
+        />
+      </div>
       <Button
         type="button"
         onClick={() => {

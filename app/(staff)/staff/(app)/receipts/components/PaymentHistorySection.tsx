@@ -320,7 +320,7 @@ export function PaymentHistorySection({
       {!hasUnit ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-[5px] px-[24px] py-[40px] text-center">
           <span className="mb-[4px] flex size-[54px] items-center justify-center rounded-[16px] bg-teal-t text-teal">
-            <UnitCardIcon className="size-[26px]" aria-hidden="true" />
+            <UnitCardIcon variant="receipt-history" className="size-[26px]" aria-hidden="true" />
           </span>
           <p className="text-[15px] font-bold leading-[normal] text-t1">호수를 선택해 주세요</p>
           <p className="text-[13px] leading-[1.55] text-t3">선택한 세대의 월별 수납 이력이<br />여기에 표시돼요</p>
