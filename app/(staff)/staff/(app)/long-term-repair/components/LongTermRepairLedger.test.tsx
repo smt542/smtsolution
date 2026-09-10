@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { toastSuccess, toastError, saveMutate, ledgerRows } = vi.hoisted(() => ({
@@ -98,6 +98,20 @@ describe("LongTermRepairLedger", () => {
     expect(screen.getByRole("button", { name: "저장" })).toBeDisabled();
     fireEvent.change(screen.getByRole("textbox", { name: "적립금 적요" }), { target: { value: "변경 적립" } });
     expect(screen.getByRole("button", { name: "저장" })).toBeEnabled();
+  });
+
+  it("추가 행 일자에 앱 공용 커스텀 달력을 사용한다", async () => {
+    const { container } = render(<LongTermRepairLedger orgId={9} companyName="한빛관리" buildings={buildings} />);
+    fireEvent.click(screen.getByRole("button", { name: /B001/ }));
+    fireEvent.click(screen.getByRole("button", { name: "추가" }));
+
+    expect(container.querySelector('input[type="date"]')).toBeNull();
+    const dateTrigger = screen.getByRole("button", { name: "일자" });
+    fireEvent.click(dateTrigger);
+    const calendar = await screen.findByRole("dialog", { name: /달력$/ });
+    fireEvent.click(within(calendar).getByRole("button", { name: "20" }));
+
+    expect(dateTrigger).toHaveTextContent(/\.20$/);
   });
 });
 

@@ -4,6 +4,7 @@ import { Fragment, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Spinner } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
+import { DpDatePicker } from "@/components/common/DpDatePicker";
 import {
   useLongTermRepairLedger,
   useLongTermRepairOpeningBalance,
@@ -508,18 +509,25 @@ export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTerm
                           <Fragment key={row.clientKey}>
                             <tr className={!row.id ? styles.newRow : undefined}>
                               <td>
-                                <div className={`${styles.dateControl} ${canEditRow ? styles.editableDate : styles.dateControlReadOnly}`}>
-                                  <span>{row.entryDate.replaceAll("-", ".")}</span>
-                                  {canEditRow && (
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                      <rect x="4" y="5" width="16" height="16" rx="2" />
-                                      <path d="M8 3v4M16 3v4M4 11h16" />
-                                    </svg>
-                                  )}
-                                  {canEditRow && (
-                                    <input aria-label="일자" type="date" className={styles.nativeDateInput} value={row.entryDate} onChange={(event) => updateRow(row.clientKey, { entryDate: event.target.value })} />
-                                  )}
-                                </div>
+                                {canEditRow ? (
+                                  <DpDatePicker
+                                    ariaLabel="일자"
+                                    value={row.entryDate}
+                                    onChange={(entryDate) => updateRow(row.clientKey, { entryDate })}
+                                    triggerClassName={`${styles.dateControl} ${styles.editableDate}`}
+                                    triggerOpenClassName={styles.dateControlOpen}
+                                    endAdornment={(
+                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                        <rect x="4" y="5" width="16" height="16" rx="2" />
+                                        <path d="M8 3v4M16 3v4M4 11h16" />
+                                      </svg>
+                                    )}
+                                  />
+                                ) : (
+                                  <div className={`${styles.dateControl} ${styles.dateControlReadOnly}`}>
+                                    <span>{row.entryDate.replaceAll("-", ".")}</span>
+                                  </div>
+                                )}
                               </td>
                               <td className={styles.numberCell}>{row.entryNo || "-"}</td>
                               <td>
