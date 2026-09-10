@@ -169,7 +169,15 @@ export async function executeDueMoveOuts(): Promise<number> {
 }
 
 export async function listTenants(buildingId: number): Promise<TenantListRow[]> {
-  await executeDueMoveOuts();
+  try {
+    await executeDueMoveOuts();
+  } catch (error) {
+    // The maintenance RPC is ancillary to this read. Older deployed schemas can
+    // omit its authenticated grant, but the tenant directory should still load.
+    if (!(error instanceof Error) || !/permission denied for function execute_due_move_outs/i.test(error.message)) {
+      throw error;
+    }
+  }
   const { data, error } = await createClient().rpc("list_tenants", { p_building_id: buildingId });
   if (error) throw new Error(error.message);
   return (data ?? []).map(rowToTenant);

@@ -30,22 +30,23 @@ export function TenantOccupancyCard({
   const router = useRouter();
   const selected = buildingId != null && buildingName != null;
   const base = selected ? `/staff/buildings/${buildingId}/tenants` : "";
+  const occupiedCount = rows.filter((row) => !row.isVacant).length;
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-line bg-surface">
-      <header className="flex items-center gap-[10px] border-b border-line2 px-[18px] py-[15px]">
-        <h2 className="text-[15px] font-extrabold text-t1">
+    <section className="flex min-h-[220px] flex-1 flex-col overflow-hidden rounded-2xl bg-surface shadow-card">
+      <header className="flex shrink-0 items-center gap-[10px] border-b border-line2 px-[18px] py-[15px]">
+        <h2 className="text-[15px] font-extrabold leading-[normal] text-t1">
           {selected ? `${buildingName} 호수·입주민` : "입주민"}
         </h2>
         {selected && (
-          <span className="rounded-[7px] bg-bg px-[9px] py-[3px] text-[12px] font-bold text-t3">{rows.length}명</span>
+          <span className="rounded-[7px] bg-bg px-[9px] py-[3px] text-[12px] font-bold leading-[1.4] text-t3">{occupiedCount}명</span>
         )}
-        <div className="ml-auto flex items-center gap-[8px]">
+        <div className="ml-auto flex items-center gap-[10px]">
           <button
             type="button"
             disabled={!selected}
             onClick={() => toast("엑셀 다운로드는 준비 중입니다.")}
-            className="inline-flex h-[40px] items-center rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold text-t2 hover:bg-bg disabled:cursor-default disabled:opacity-50 disabled:hover:bg-surface"
+            className="inline-flex h-[40px] items-center rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg disabled:cursor-default disabled:opacity-[.45] disabled:hover:bg-surface"
           >
             ⤓ 엑셀 다운
           </button>
@@ -54,7 +55,7 @@ export function TenantOccupancyCard({
             disabled={!selected}
             title={selected ? undefined : "건물을 먼저 선택해 주세요"}
             onClick={() => router.push(`${base}/new`)}
-            className="inline-flex h-[40px] items-center rounded-[11px] bg-teal px-[15px] text-[13.5px] font-bold text-white shadow-[0_6px_7px_rgba(20,164,151,0.5)] hover:bg-teal-d disabled:cursor-default disabled:opacity-50 disabled:shadow-none disabled:hover:bg-teal"
+            className="inline-flex h-[40px] items-center rounded-[11px] border border-transparent bg-teal px-[15px] text-[13.5px] font-bold leading-[normal] text-white shadow-[0_6px_14px_-4px_rgba(20,164,151,0.5)] hover:bg-teal-d disabled:cursor-default disabled:opacity-[.45] disabled:shadow-none disabled:hover:bg-teal"
           >
             ＋ 호수·입주민 등록
           </button>
@@ -72,7 +73,7 @@ export function TenantOccupancyCard({
       ) : rows.length === 0 ? (
         <EmptyState message="등록된 세대가 없습니다." />
       ) : (
-        <div className="max-h-[440px] overflow-auto">
+        <div className="min-h-0 flex-1 overflow-auto">
           <table className="border-collapse text-left" style={{ minWidth: TENANT_TABLE_MIN_WIDTH }}>
             <thead className="sticky top-0 z-[1]">
               <tr>
@@ -80,7 +81,7 @@ export function TenantOccupancyCard({
                   <th
                     key={col.key}
                     style={{ minWidth: col.w }}
-                    className="h-[36px] whitespace-nowrap border-b border-line bg-[#fbfcfd] px-[16px] text-[12px] font-bold text-t3"
+                    className="whitespace-nowrap border-b border-line bg-[#fbfcfd] px-[16px] py-[11px] text-[12px] font-bold leading-[normal] text-t3"
                   >
                     {col.label}
                   </th>
@@ -99,13 +100,13 @@ export function TenantOccupancyCard({
                     event.preventDefault();
                     onOpenManagementCard(t);
                   }}
-                  className="h-[41px] cursor-pointer border-b border-line2 outline-none last:border-0 hover:bg-bg focus-visible:bg-teal-t focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal"
+                  className="cursor-pointer border-b border-line2 outline-none last:border-0 hover:bg-bg focus-visible:bg-teal-t focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal"
                 >
                   {TENANT_COLUMNS.map((col) => (
                     <td
                       key={col.key}
                       style={{ minWidth: col.w }}
-                      className="whitespace-nowrap px-[16px] text-[13.5px] text-t1"
+                      className="whitespace-nowrap px-[16px] py-[12px] text-[13.5px] leading-[normal] text-t1"
                     >
                       {col.get(t)}
                     </td>

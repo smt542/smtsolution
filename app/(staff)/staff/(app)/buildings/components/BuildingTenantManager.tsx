@@ -1,6 +1,5 @@
 "use client";
 import { useMemo, useState } from "react";
-import { PrinterIcon } from "@/components/icons";
 import {
   useBuildingList,
   useStaffOptions,
@@ -136,22 +135,54 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
   };
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       {/* App bar */}
       <div className="sticky top-0 z-10 flex h-[62px] shrink-0 items-center gap-[12px] border-b border-line bg-surface px-[24px]">
-        <h1 className="text-[19px] font-extrabold tracking-[-0.38px] text-t1">건물·입주자 관리</h1>
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new Event("app-shell:toggle-sidebar"))}
+          className="mr-[2px] flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[10px] text-t2 transition-colors hover:bg-bg"
+          aria-label="메뉴 열기"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-[20px] w-[20px]"
+            aria-hidden="true"
+          >
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <h1 className="text-[19px] font-extrabold leading-[normal] tracking-[-0.38px] text-t1">건물·입주자 관리</h1>
         <button
           type="button"
           onClick={() => setOutputOpen(true)}
-          className="ml-auto inline-flex h-[40px] items-center gap-[6px] rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold text-t2 hover:bg-bg"
+          className="ml-auto inline-flex h-[40px] items-center gap-[6px] rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg"
         >
-          <PrinterIcon className="h-4 w-4" />
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-4 w-4"
+            aria-hidden="true"
+          >
+            <path d="M6 9V3h12v6" />
+            <path d="M6 18H4a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-2" />
+            <rect x="7" y="14" width="10" height="7" />
+          </svg>
           입주자카드 및 부과내역 출력
         </button>
       </div>
 
       {/* Content */}
-      <div className="flex flex-col gap-[16px] px-[24px] pb-[24px] pt-[22px]">
+      <div className="flex min-h-0 flex-1 flex-col gap-[16px] overflow-hidden px-[24px] pb-[24px] pt-[22px]">
         <BuildingSearchCard
           value={searchInput}
           onChange={setSearchInput}
