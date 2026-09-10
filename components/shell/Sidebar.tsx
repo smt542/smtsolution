@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useLogout, useMe } from "@/hooks/reactquery/auth";
@@ -103,10 +103,31 @@ function NavGroupHeader({
     >
       <NavIcon svg={item.icon} />
       <span className="min-w-0 flex-1 truncate">{item.label}</span>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={`ml-auto h-[14px] w-[14px] text-t3 ${open ? "rotate-180" : ""}`} aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={`ml-auto h-[14px] w-[14px] text-t3 transition-transform duration-[240ms] ease-[ease] ${open ? "rotate-180" : ""}`} aria-hidden="true">
         <path d="M6 9l6 6 6-6" />
       </svg>
     </button>
+  );
+}
+
+/*
+ * 접이식 그룹 본문 — 정본 utility-*.dc.html .hf-sub 펼침 애니메이션 재현.
+ *   · 높이 0→auto: CSS Grid 0fr↔1fr (block-size .24s ease 대체, 양방향)
+ *   · 페이드+슬라이드: opacity 0→1 · translateY(-4px)→0 (@keyframes hfSubIn .2s ease)
+ * 접힘 시 inert로 하위 링크를 포커스·상호작용에서 제외한다.
+ */
+function NavGroupBody({ open, children }: { open: boolean; children: ReactNode }) {
+  return (
+    <div className={`grid transition-[grid-template-rows] duration-[240ms] ease-[ease] ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+      <div className="overflow-hidden">
+        <div
+          inert={!open}
+          className={`my-[2px] ml-[16px] flex flex-col gap-[2px] border-l border-line pl-[14px] transition duration-200 ease-[ease] ${open ? "translate-y-0 opacity-100" : "-translate-y-1 opacity-0"}`}
+        >
+          {children}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -155,20 +176,18 @@ function UtilitiesNavGroup({
   return (
     <div>
       <NavGroupHeader item={item} open={open} onToggle={toggle} />
-      {open && (
-        <div className="my-[2px] ml-[16px] flex flex-col gap-[2px] border-l border-line pl-[14px]">
-          <Link
-            href="/staff/customer-numbers"
-            aria-current={isCustomerNumbersPage ? "page" : undefined}
-            className={customerNumberClass}
-          >
-            고객번호 조회
-          </Link>
-          <Link href="/staff/utilities?type=electricity" onClick={() => onSelect("electricity")} aria-current={isUtilitiesPage && activeType === "electricity" ? "page" : undefined} className={linkClass("electricity")}>전기</Link>
-          <Link href="/staff/utilities?type=water" onClick={() => onSelect("water")} aria-current={isUtilitiesPage && activeType === "water" ? "page" : undefined} className={linkClass("water")}>수도</Link>
-          <Link href="/staff/utilities" onClick={() => onSelect("gas")} aria-current={isUtilitiesPage && activeType === "gas" ? "page" : undefined} className={linkClass("gas")}>가스</Link>
-        </div>
-      )}
+      <NavGroupBody open={open}>
+        <Link
+          href="/staff/customer-numbers"
+          aria-current={isCustomerNumbersPage ? "page" : undefined}
+          className={customerNumberClass}
+        >
+          고객번호 조회
+        </Link>
+        <Link href="/staff/utilities?type=electricity" onClick={() => onSelect("electricity")} aria-current={isUtilitiesPage && activeType === "electricity" ? "page" : undefined} className={linkClass("electricity")}>전기</Link>
+        <Link href="/staff/utilities?type=water" onClick={() => onSelect("water")} aria-current={isUtilitiesPage && activeType === "water" ? "page" : undefined} className={linkClass("water")}>수도</Link>
+        <Link href="/staff/utilities" onClick={() => onSelect("gas")} aria-current={isUtilitiesPage && activeType === "gas" ? "page" : undefined} className={linkClass("gas")}>가스</Link>
+      </NavGroupBody>
     </div>
   );
 }
@@ -187,25 +206,23 @@ function MovingSettlementNavGroup({ item, pathname, isMovingSettlementSection }:
   return (
     <div>
       <NavGroupHeader item={item} open={open} onToggle={toggle} />
-      {open && (
-        <div className="my-[2px] ml-[16px] flex flex-col gap-[2px] border-l border-line pl-[14px]">
-          {links.map((link) => {
-            const active = link.href === "/staff/moving-settlement"
-              ? pathname === link.href
-              : pathname.startsWith(link.href);
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                aria-current={active ? "page" : undefined}
-                className={`flex h-[32px] items-center rounded-[9px] px-[12px] text-[13.5px] ${active ? "bg-teal font-bold text-white" : "font-semibold text-t2 hover:bg-bg"}`}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </div>
-      )}
+      <NavGroupBody open={open}>
+        {links.map((link) => {
+          const active = link.href === "/staff/moving-settlement"
+            ? pathname === link.href
+            : pathname.startsWith(link.href);
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              aria-current={active ? "page" : undefined}
+              className={`flex h-[32px] items-center rounded-[9px] px-[12px] text-[13.5px] ${active ? "bg-teal font-bold text-white" : "font-semibold text-t2 hover:bg-bg"}`}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
+      </NavGroupBody>
     </div>
   );
 }
