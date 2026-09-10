@@ -24,29 +24,29 @@ export function CustomerNumberLookupTable({
 
   return (
     <div className="min-h-0 flex-1 overflow-auto">
-      <table className="w-full min-w-[900px] table-fixed border-collapse whitespace-nowrap text-[12.5px]">
+      <table className="w-full min-w-[1000px] table-fixed border-collapse whitespace-nowrap text-[12.5px]">
         <colgroup>
-          <col className="w-[68px]" />
-          <col className="w-[104px]" />
-          <col />
-          <col className="w-[52px]" />
-          <col className="w-[144px]" />
-          <col className="w-[60px]" />
-          <col className="w-[60px]" />
-          <col className="w-[64px]" />
-          <col className="w-[150px]" />
+          <col className="w-[7%]" />
+          <col className="w-[14%]" />
+          <col className="w-[21%]" />
+          <col className="w-[6%]" />
+          <col className="w-[16%]" />
+          <col className="w-[7%]" />
+          <col className="w-[7%]" />
+          <col className="w-[7%]" />
+          <col className="w-[15%]" />
         </colgroup>
         <thead>
           <tr className="border-b border-line bg-[#FBFCFD] text-left text-t3">
-            <th scope="col" className="min-w-[52px] px-4 py-[11px] text-[12px] font-bold">코드</th>
-            <th scope="col" className="min-w-[104px] px-4 py-[11px] text-[12px] font-bold">빌라명</th>
+            <th scope="col" className="px-4 py-[11px] text-[12px] font-bold">코드</th>
+            <th scope="col" className="px-4 py-[11px] text-[12px] font-bold">빌라명</th>
             <th scope="col" className="px-4 py-[11px] text-[12px] font-bold">주소</th>
-            <th scope="col" className="min-w-[44px] px-4 py-[11px] text-right text-[12px] font-bold">LIN</th>
-            <th scope="col" className="min-w-[120px] px-4 py-[11px] text-[12px] font-bold">{customerNumberHeading}</th>
-            <th scope="col" className="min-w-[60px] px-4 py-[11px] text-right text-[12px] font-bold">일금일</th>
-            <th scope="col" className="min-w-[60px] px-4 py-[11px] text-[12px] font-bold">구분</th>
-            <th scope="col" className="min-w-[64px] px-4 py-[11px] text-[12px] font-bold">계산</th>
-            <th scope="col" className="min-w-[150px] px-4 py-[11px] text-[12px] font-bold">기타적요</th>
+            <th scope="col" className="px-4 py-[11px] text-right text-[12px] font-bold">LIN</th>
+            <th scope="col" className="px-4 py-[11px] text-[12px] font-bold">{customerNumberHeading}</th>
+            <th scope="col" className="px-4 py-[11px] text-right text-[12px] font-bold">일금일</th>
+            <th scope="col" className="px-4 py-[11px] text-[12px] font-bold">구분</th>
+            <th scope="col" className="px-4 py-[11px] text-[12px] font-bold">계산</th>
+            <th scope="col" className="px-4 py-[11px] text-[12px] font-bold">기타적요</th>
           </tr>
         </thead>
         <tbody>
