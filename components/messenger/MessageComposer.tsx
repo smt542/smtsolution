@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates/queries";
 import { byteLen, smsProduct } from "@/lib/messenger/bytes";
-import { insertToken, SMS_VARS } from "@/lib/messenger/tokens";
 import styles from "./messenger.module.css";
 
 interface MessageComposerProps {
@@ -72,17 +71,6 @@ export function MessageComposer({
     onBody(template.body);
     setOpen(false);
     requestAnimationFrame(() => textareaRef.current?.focus());
-  };
-
-  const addVariable = (label: string) => {
-    const textarea = textareaRef.current;
-    const caret = textarea?.selectionStart ?? body.length;
-    const next = insertToken(body, caret, label);
-    onBody(next.body);
-    requestAnimationFrame(() => {
-      textarea?.focus();
-      textarea?.setSelectionRange(next.caret, next.caret);
-    });
   };
 
   return (
@@ -174,22 +162,10 @@ export function MessageComposer({
           onTemplate(null);
           onBody(event.target.value);
         }}
-        placeholder="메시지 내용을 입력해 주세요 · 아래 변수를 눌러 넣을 수 있어요"
+        placeholder="메시지 내용을 입력해 주세요"
         aria-label="문자 메시지 내용"
       />
       <div className={styles["fmp-varsrow"]}>
-        <div className={styles["fmp-vars"]} aria-label="메시지 변수">
-          {SMS_VARS.map((label) => (
-            <button
-              type="button"
-              key={label}
-              className={styles["fmp-var"]}
-              onClick={() => addVariable(label)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
         <div className={styles["fmp-bytes"]} aria-live="polite">
           {body.length}자 · {bytes}byte ·{" "}
           <b className={product === "LMS" ? styles.lms : undefined}>{product}</b>

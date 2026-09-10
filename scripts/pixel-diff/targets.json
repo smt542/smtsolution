@@ -35,5 +35,17 @@
     "appActions": [{ "click": "[data-testid='as-rail-handle']" }, { "wait": 400 }],
     "viewport": { "w": 1340, "h": 880 },
     "device": "desktop"
+  },
+  {
+    "id": "staff-messenger-panel",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/fee-item/Messenger.dc.html",
+    "originSelector": "#fmp",
+    "originStyle": "*{font-family:'Pretendard Variable','Pretendard',-apple-system,system-ui,sans-serif!important}",
+    "originActions": [{ "click": "#fmpFab" }, { "waitFor": ".fmp.show" }, { "wait": 450 }],
+    "appPath": "/staff/fee-items",
+    "appSelector": "[role='dialog'][aria-label='문자·알림톡 발송']",
+    "appActions": [{ "click": "button[aria-label='문자·알림톡 발송']" }, { "wait": 500 }],
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
   }
 ]
