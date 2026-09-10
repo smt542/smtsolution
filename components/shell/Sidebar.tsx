@@ -6,7 +6,6 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useLogout, useMe } from "@/hooks/reactquery/auth";
-import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
 import { hasModule } from "@/lib/auth/permissions";
 import { OFFICE_NAV_ITEMS, type NavItem } from "./navItems";
 
@@ -190,7 +189,6 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { data: me } = useMe();
-  const { data: setupConfig } = useSetupConfig(me?.orgId);
   const logout = useLogout();
   const [activeUtilityType, setActiveUtilityType] = useState<"electricity" | "water" | "gas">("gas");
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
@@ -311,7 +309,7 @@ export function Sidebar() {
                 </div>
                 <div className="min-w-0">
                   <div className="truncate text-[13px] font-bold text-t1">{me.fullName}</div>
-                  <div className="truncate text-[11px] font-semibold text-t3">프로필{setupConfig?.companyName ? " · " + setupConfig.companyName : ""}</div>
+                  <div className="truncate text-[11px] font-semibold text-t3">프로필{me.orgName ? " · " + me.orgName : ""}</div>
                 </div>
               </div>
               <div className="mx-1 my-1.5 h-px bg-line2" />

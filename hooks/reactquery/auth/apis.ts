@@ -9,6 +9,8 @@ export interface LoginInput { username: string; password: string; autoLogin: boo
 
 export interface MyContext {
   orgId: number;
+  /** 소속 회사(조직)명 — 로그인 컨텍스트(get_my_context)에서 제공. 마이그 0152 이전/목에서는 undefined. */
+  orgName?: string | null;
   role: OrgMemberRole;
   orgStatus: "active" | "suspended" | "trial";
   username: string;
@@ -47,6 +49,7 @@ export async function getMyContext(): Promise<MyContext | null> {
   if (!row) return null;
   return {
     orgId: row.org_id,
+    orgName: row.org_name ?? null,
     role: row.role,
     orgStatus: row.org_status,
     username: row.username,

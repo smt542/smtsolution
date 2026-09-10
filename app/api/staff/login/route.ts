@@ -118,6 +118,7 @@ async function handlePost(req: Request) {
 
     const context = {
       orgId: row.org_id,
+      orgName: row.org_name ?? null,
       role: row.role,
       orgStatus: row.org_status,
       username: row.username,
