@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Panel, Spinner } from "@/components/common";
-import { CloseIcon, UnitCardIcon } from "@/components/icons";
+import { CustomDropdown, Panel, Spinner } from "@/components/common";
+import { DpDatePicker } from "@/components/common/DpDatePicker";
+import { CalendarIcon, CloseIcon, UnitCardIcon } from "@/components/icons";
 import { useCancelPayment, useRecordPayment, useRecordPaymentEdit } from "@/hooks/reactquery/payments";
 import type { PaymentKind, PaymentMethod, UnitPayment } from "@/hooks/reactquery/payments";
 import {
@@ -405,33 +406,35 @@ export function PaymentHistorySection({
           />
         </td>
         <td className="px-2 py-[6px]">
-          <input
-            type="date"
-            aria-label="수납일자"
+          <DpDatePicker
+            ariaLabel="수납일자"
             value={form.paidAt}
-            onChange={(event) => setForm((previous) => ({ ...previous, paidAt: event.target.value }))}
-            className={`${fieldClass} w-[124px] num`}
+            onChange={(paidAt) => setForm((previous) => ({ ...previous, paidAt }))}
+            placeholder="날짜 선택"
+            triggerClassName={`${fieldClass} flex w-[124px] cursor-pointer items-center justify-between gap-[6px] whitespace-nowrap num`}
+            triggerOpenClassName="!border-teal ring-[3px] ring-teal-t"
+            endAdornment={<CalendarIcon className="size-[14px] shrink-0 text-t3" aria-hidden="true" />}
           />
         </td>
         <td className="px-2 py-[6px]">
-          <select
-            aria-label="은행/방법"
-            value={form.method}
-            onChange={(event) => setForm((previous) => ({ ...previous, method: event.target.value as PaymentMethod }))}
-            className={`${fieldClass} min-w-[104px]`}
-          >
-            {METHOD_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
+          <div className="w-[104px] [&_.uc-dd]:w-full [&_.uc-dd-btn]:h-[26px] [&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:justify-between [&_.uc-dd-btn]:gap-[5px] [&_.uc-dd-btn]:rounded-[7px] [&_.uc-dd-btn]:px-[7px] [&_.uc-dd-btn]:text-[12px] [&_.uc-dd-btn]:font-normal [&_.uc-dd-menu]:left-0 [&_.uc-dd-menu]:right-auto [&_.uc-dd-menu]:min-w-[120px]">
+            <CustomDropdown
+              ariaLabel="은행/방법"
+              value={form.method}
+              onChange={(method) => setForm((previous) => ({ ...previous, method: method as PaymentMethod }))}
+              options={METHOD_OPTIONS}
+            />
+          </div>
         </td>
         <td className="px-2 py-[6px]">
-          <select
-            aria-label="구분"
-            value={form.kind}
-            onChange={(event) => setForm((previous) => ({ ...previous, kind: event.target.value as PaymentKind }))}
-            className={`${fieldClass} min-w-[76px]`}
-          >
-            {KIND_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
+          <div className="w-[76px] [&_.uc-dd]:w-full [&_.uc-dd-btn]:h-[26px] [&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:justify-between [&_.uc-dd-btn]:gap-[5px] [&_.uc-dd-btn]:rounded-[7px] [&_.uc-dd-btn]:px-[7px] [&_.uc-dd-btn]:text-[12px] [&_.uc-dd-btn]:font-normal [&_.uc-dd-menu]:left-0 [&_.uc-dd-menu]:right-auto [&_.uc-dd-menu]:min-w-[96px]">
+            <CustomDropdown
+              ariaLabel="구분"
+              value={form.kind}
+              onChange={(kind) => setForm((previous) => ({ ...previous, kind: kind as PaymentKind }))}
+              options={KIND_OPTIONS}
+            />
+          </div>
         </td>
         <td className="px-2 py-[6px]">
           <input

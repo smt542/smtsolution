@@ -310,10 +310,12 @@ describe("ReceiptManagementPage (세대중심 재설계)", () => {
     expect(screen.getByRole("columnheader", { name: "처리" })).toBeInTheDocument();
     expect(within(editor).getByLabelText("수납액")).toBeInTheDocument();
     expect(within(editor).getByLabelText("수수료(수료)")).toBeInTheDocument();
-    expect(within(editor).getByLabelText("수납일자")).toBeInTheDocument();
-    expect(within(editor).getByLabelText("은행/방법")).toBeInTheDocument();
-    expect(within(editor).getByLabelText("구분")).toBeInTheDocument();
+    expect(within(editor).getByLabelText("수납일자")).toHaveAttribute("aria-haspopup", "dialog");
+    expect(within(editor).getByLabelText("은행/방법")).toHaveAttribute("aria-haspopup", "listbox");
+    expect(within(editor).getByLabelText("구분")).toHaveAttribute("aria-haspopup", "listbox");
     expect(within(editor).getByLabelText("비고")).toBeInTheDocument();
+    expect(editor.querySelector('input[type="date"]')).not.toBeInTheDocument();
+    expect(editor.querySelector("select")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "저장" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "수납 이력 편집 취소" }));
     expect(screen.queryByTestId("payment-inline-editor")).not.toBeInTheDocument();
