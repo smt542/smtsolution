@@ -93,8 +93,14 @@ describe("VendorManagementPage", () => {
 
   it('renders sidebar with "전체" and sample categories', () => {
     render(<VendorManagementSection />);
-    // "전체" only appears in sidebar
-    expect(screen.getByText("전체")).toBeInTheDocument();
+    expect(screen.getByLabelText("협력업체 구분")).toBeInTheDocument();
+    expect(screen.getByLabelText("협력업체 목록")).toBeInTheDocument();
+    expect(screen.getAllByText("전체")).toHaveLength(2);
+    expect(screen.getByText("2곳")).toBeInTheDocument();
+    expect(screen.getByRole("searchbox", { name: "협력업체 검색" })).toHaveAttribute(
+      "placeholder",
+      "업체명·담당자·연락처 검색",
+    );
     // categories appear in sidebar — use getAllByText since "전기" may also appear in the vendor table column
     expect(screen.getAllByText("전기").length).toBeGreaterThan(0);
     expect(screen.getAllByText("수도").length).toBeGreaterThan(0);
@@ -141,15 +147,26 @@ describe("VendorManagementPage", () => {
     render(<VendorManagementSection />);
     fireEvent.click(screen.getByRole("button", { name: /업체 추가/ }));
     await waitFor(() => {
-      expect(screen.getByText("업체 추가")).toBeInTheDocument();
+      const dialog = screen.getByRole("dialog", { name: "업체 추가" });
+      expect(dialog).toBeInTheDocument();
+      expect(dialog.parentElement).toHaveClass("z-[320]");
     });
+  });
+
+  it("선택한 구분에서 업체 추가를 열면 해당 구분을 기본 선택한다", async () => {
+    render(<VendorManagementSection />);
+    const categoryButton = screen.getAllByRole("button").find((button) => button.textContent?.startsWith("전기"));
+    fireEvent.click(categoryButton!);
+    fireEvent.click(screen.getByRole("button", { name: "업체 추가" }));
+
+    expect(await screen.findByRole("combobox", { name: "구분" })).toHaveValue("1");
   });
 
   it("업체명 is required — submitting empty name shows validation error", async () => {
     const user = userEvent.setup();
     render(<VendorManagementSection />);
     fireEvent.click(screen.getByRole("button", { name: /업체 추가/ }));
-    await waitFor(() => expect(screen.getByText("업체 추가")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole("heading", { name: "업체 추가" })).toBeInTheDocument());
 
     // Submit without filling name — use the modal's submit button (exact text "추가")
     const submitBtn = screen.getByRole("button", { name: "추가" });
@@ -178,6 +195,7 @@ describe("VendorManagementPage", () => {
     const fileInput = document.querySelector('input[type="file"]');
     expect(fileInput).not.toBeNull();
     expect(fileInput).toHaveAttribute("accept", "image/*");
+    expect(fileInput).toHaveAttribute("multiple");
   });
 
   it("double-clicking a category label shows rename input and submitting calls mutateAsync", async () => {
@@ -244,7 +262,7 @@ describe("VendorManagementPage", () => {
     fireEvent.click(deleteBtn);
 
     // Confirm dialog appears
-    await waitFor(() => expect(screen.getByText("이 거래처를 삭제할까요?")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/삭제하면 되돌릴 수 없어요/)).toBeInTheDocument());
 
     // Click confirm 삭제
     const confirmBtns = screen.getAllByRole("button", { name: "삭제" });

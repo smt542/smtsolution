@@ -7,12 +7,14 @@ export function Modal({
   title,
   children,
   className = "max-w-md",
+  overlayClassName = "",
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
   className?: string;
+  overlayClassName?: string;
 }) {
   const titleId = useId();
   useEffect(() => {
@@ -32,7 +34,7 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/40 ${overlayClassName}`}
       onClick={onClose}
     >
       <div

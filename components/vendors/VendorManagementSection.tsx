@@ -2,10 +2,10 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Button, SearchBar } from "@/components/common";
 import { VendorCategorySidebar } from "./VendorCategorySidebar";
 import { VendorList } from "./VendorList";
 import { VendorFormModal } from "./VendorFormModal";
+import styles from "./VendorManagement.module.css";
 import {
   useVendorCategories,
   useCreateVendorCategory,
@@ -90,6 +90,9 @@ export function VendorManagementSection() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
+  const selectedCategoryLabel = selectedCategoryId === null
+    ? "전체"
+    : (categories.find((category) => category.id === selectedCategoryId)?.label ?? "미분류");
 
   const openCreate = () => {
     setEditingVendor(null);
@@ -155,35 +158,38 @@ export function VendorManagementSection() {
   };
 
   return (
-    <div className="flex gap-6">
-      {/* Left sidebar */}
-      <aside className="w-52 shrink-0">
-        <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-t4">구분</h2>
-        <VendorCategorySidebar
-          categories={categories}
-          allVendors={allVendors}
-          selectedId={selectedCategoryId}
-          onSelect={setSelectedCategoryId}
-          onAddCategory={handleAddCategory}
-          onRenameCategory={handleRenameCategory}
-          onDeleteCategory={handleDeleteCategory}
-        />
-      </aside>
+    <div className={styles.workspace}>
+      <VendorCategorySidebar
+        categories={categories}
+        allVendors={allVendors}
+        selectedId={selectedCategoryId}
+        onSelect={setSelectedCategoryId}
+        onAddCategory={handleAddCategory}
+        onRenameCategory={handleRenameCategory}
+        onDeleteCategory={handleDeleteCategory}
+      />
 
       {/* Right content */}
-      <div className="flex flex-1 flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-extrabold text-t1">업체 관리</h2>
-          <Button variant="primary" onClick={openCreate}>
-            ＋ 업체 추가
-          </Button>
+      <section className={styles.panel} aria-label="협력업체 목록">
+        <div className={styles.panelHeader}>
+          <h2 className={styles.panelTitle}>{selectedCategoryLabel}</h2>
+          <span className={styles.countBadge}>{vendors.length}곳</span>
+          <span className={styles.panelSpacer} />
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="업체명·담당자·연락처 검색"
+            aria-label="협력업체 검색"
+            className={styles.search}
+          />
+          <button type="button" className={styles.addButton} onClick={openCreate}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            업체 추가
+          </button>
         </div>
-
-        <SearchBar
-          value={search}
-          onChange={setSearch}
-          placeholder="업체명·연락처 검색"
-        />
 
         <VendorList
           vendors={vendors}
@@ -191,7 +197,7 @@ export function VendorManagementSection() {
           isLoading={vendorsLoading || catLoading}
           onRowClick={openEdit}
         />
-      </div>
+      </section>
 
       {/* Modal */}
       {editingVendor ? (
@@ -216,6 +222,7 @@ export function VendorManagementSection() {
           open={modalOpen}
           onClose={closeModal}
           editing={null}
+          defaultCategoryId={selectedCategoryId}
           categories={categories}
           onSubmit={handleSubmit}
           isPending={createVendor.isPending || updateVendor.isPending}
