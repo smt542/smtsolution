@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Button, Checkbox, Input, Panel, Spinner } from "@/components/common";
+import { Checkbox, Input, Panel, Spinner } from "@/components/common";
 import type { UnitOccupancyFull } from "@/hooks/reactquery/occupancies";
 import { useSaveOccupancyFields } from "@/hooks/reactquery/receipts";
 import { formatDate } from "../receiptFormat";
@@ -36,15 +36,33 @@ const TENANT_COLUMNS = [
   "부과",
   "출력",
 ];
+const TENANT_COLUMN_WIDTHS = [80, 80, 118, 92, 92, 180, 60, 66, 48, 48];
 
-function TenantTableHeader() {
+function TenantTableHead() {
   return (
-    <table className="w-full min-w-[980px] table-fixed text-[13px]">
-      <thead>
-        <tr className="h-[37px] border-b border-line bg-[#fbfcfd] text-left text-[12px] font-bold text-t3">
-          {TENANT_COLUMNS.map((label) => <th key={label} className="px-[16px]">{label}</th>)}
+    <thead>
+      <tr className="border-b border-line bg-[#FBFCFD] text-left text-[12px] font-bold leading-[normal] text-t3">
+        {TENANT_COLUMNS.map((label, index) => (
+          <th key={label} className="px-[16px] py-[11px]" style={{ minWidth: TENANT_COLUMN_WIDTHS[index] }}>
+            {label}
+          </th>
+        ))}
+      </tr>
+    </thead>
+  );
+}
+
+function TenantEmptyTable({ message }: { message: string }) {
+  return (
+    <table className="w-full whitespace-nowrap text-[12.5px] leading-[normal]">
+      <TenantTableHead />
+      <tbody>
+        <tr>
+          <td colSpan={TENANT_COLUMNS.length} className="pb-[27px] pt-[26px] text-center text-[13px] text-t4">
+            {message}
+          </td>
         </tr>
-      </thead>
+      </tbody>
     </table>
   );
 }
@@ -117,37 +135,47 @@ export function TenantInfoSection({
 
   const patch = (next: Partial<FormState>) => setForm((prev) => (prev ? { ...prev, ...next } : prev));
 
-  const action =
-    canEdit && occ !== null ? (
-      editing ? (
-        <div className="flex gap-1.5">
-          <Button type="button" onClick={submit} disabled={save.isPending}>
-            저장
-          </Button>
-          <Button type="button" variant="ghost" onClick={() => setEditing(false)}>
-            취소
-          </Button>
-        </div>
-      ) : (
-        <Button type="button" variant="ghost" onClick={startEdit}>
-          수정
-        </Button>
-      )
-    ) : undefined;
+  const action = canEdit ? (
+    editing ? (
+      <div className="flex gap-[6px]">
+        <button
+          type="button"
+          onClick={submit}
+          disabled={save.isPending}
+          className="h-[26px] rounded-[8px] border border-teal bg-teal px-[10px] text-[11.5px] font-bold text-white disabled:opacity-60"
+        >
+          저장
+        </button>
+        <button
+          type="button"
+          onClick={() => setEditing(false)}
+          className="h-[26px] rounded-[8px] border border-line bg-surface px-[10px] text-[11.5px] font-bold text-t2 hover:bg-bg"
+        >
+          취소
+        </button>
+      </div>
+    ) : (
+      <button
+        type="button"
+        onClick={startEdit}
+        className="h-[26px] rounded-[8px] border border-line bg-surface px-[10px] text-[11.5px] font-bold leading-[normal] text-t2 hover:bg-bg"
+      >
+        수정
+      </button>
+    )
+  ) : undefined;
 
   return (
-    <Panel title="입주자정보" action={action} flush>
+    <Panel title="입주자정보" action={action} flush className="max-h-[210px] shrink-0">
       {!hasUnit ? (
         <div className="overflow-x-auto">
-          <TenantTableHeader />
-          <p className="flex h-[69px] min-w-[980px] items-center justify-center text-[13px] text-t4">호실을 선택하면 입주자정보가 표시돼요</p>
+          <TenantEmptyTable message="호실을 선택하면 입주자정보가 표시돼요" />
         </div>
       ) : isLoading ? (
         <div className="flex h-[106px] items-center justify-center"><Spinner /></div>
       ) : occ === null ? (
         <div className="overflow-x-auto">
-          <TenantTableHeader />
-          <p className="flex h-[69px] min-w-[980px] items-center justify-center text-[13px] text-t4">등록된 입주자 정보가 없습니다 (공실)</p>
+          <TenantEmptyTable message="등록된 입주자 정보가 없습니다 (공실)" />
         </div>
       ) : editing && form ? (
         <div className="grid grid-cols-2 gap-3 p-[18px] md:grid-cols-4">
@@ -226,26 +254,20 @@ export function TenantInfoSection({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] table-fixed text-[13px]">
-            <thead>
-              <tr className="h-[37px] border-b border-line bg-[#fbfcfd] text-left text-[12px] font-bold text-t3">
-                {TENANT_COLUMNS.map((label) => (
-                  <th key={label} className="px-[16px]">{label}</th>
-                ))}
-              </tr>
-            </thead>
+          <table className="w-full whitespace-nowrap text-[12.5px] leading-[normal]">
+            <TenantTableHead />
             <tbody>
-              <tr className="h-[40px] text-t2">
-                <td className="px-[16px]">{occ.tenantName ?? "-"}</td>
-                <td className="px-[16px]">{occ.payerName ?? "-"}</td>
-                <td className="px-[16px]">{occ.phone ?? "-"}</td>
-                <td className="px-[16px]">{formatDate(occ.moveInDate)}</td>
-                <td className="px-[16px]">{formatDate(occ.moveOutDate)}</td>
-                <td className="truncate px-[16px]" title={occ.billingNote ?? "-"}>{occ.billingNote ?? "-"}</td>
-                <td className="px-[16px]"><YesNo value={occ.smsOptIn} /></td>
-                <td className="px-[16px]"><YesNo value={occ.alimtalkOptIn} /></td>
-                <td className="px-[16px]"><YesNo value={occ.billingEnabled} /></td>
-                <td className="px-[16px]"><YesNo value={occ.printEnabled} /></td>
+              <tr className="text-t2">
+                <td className="px-[16px] py-[12px]">{occ.tenantName ?? "-"}</td>
+                <td className="px-[16px] py-[12px]">{occ.payerName ?? "-"}</td>
+                <td className="px-[16px] py-[12px]">{occ.phone ?? "-"}</td>
+                <td className="px-[16px] py-[12px]">{formatDate(occ.moveInDate)}</td>
+                <td className="px-[16px] py-[12px]">{formatDate(occ.moveOutDate)}</td>
+                <td className="truncate px-[16px] py-[12px]" title={occ.billingNote ?? "-"}>{occ.billingNote ?? "-"}</td>
+                <td className="px-[16px] py-[12px]"><YesNo value={occ.smsOptIn} /></td>
+                <td className="px-[16px] py-[12px]"><YesNo value={occ.alimtalkOptIn} /></td>
+                <td className="px-[16px] py-[12px]"><YesNo value={occ.billingEnabled} /></td>
+                <td className="px-[16px] py-[12px]"><YesNo value={occ.printEnabled} /></td>
               </tr>
             </tbody>
           </table>

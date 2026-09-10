@@ -11,6 +11,22 @@ import { unitLabel } from "../receiptFormat";
 
 type BuildingLite = Pick<Building, "id" | "name" | "code" | "address" | "memo" | "billingNote">;
 
+/** 15px 돋보기 아이콘 (canon #rcSearch). */
+function SearchIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className="pointer-events-none absolute left-[11px] top-1/2 size-[15px] -translate-y-1/2 text-t3"
+    >
+      <circle cx="11" cy="11" r="7" />
+      <path d="m21 21-4.3-4.3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function BuildingUnitRail({
   buildings,
   units,
@@ -70,36 +86,39 @@ export function BuildingUnitRail({
   }, [search, tenantByUnit, units]);
 
   return (
-    <aside className="flex w-full flex-col gap-[15px] lg:h-[calc(100vh-101px)] lg:w-[322px] lg:shrink-0">
-      <div className="min-h-[360px] flex-1 overflow-hidden rounded-2xl border border-line bg-surface">
+    <aside className="flex h-full w-full min-h-0 flex-col gap-[16px]">
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden rounded-2xl bg-surface shadow-[0_1px_3px_rgba(23,31,40,0.05)]">
         {selectedBuilding === null ? (
           <div className="flex h-full min-h-0 flex-col">
-            <div className="shrink-0 px-[18px] pb-[15px] pt-[9px]">
-              <h2 className="text-[14px] font-extrabold text-t1">전체 건물</h2>
-              <input
-                type="search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="건물명·주소 검색"
-                aria-label="건물명·주소 검색"
-                className="mt-[10px] h-[32px] w-full rounded-[9px] border border-line bg-surface px-[12px] text-[13px] text-t1 placeholder:text-t4 outline-none focus:border-teal"
-              />
+            <div className="flex flex-wrap items-center gap-[8px] px-[18px] py-[15px] border-b border-line2">
+              <h2 className="text-[15px] font-extrabold leading-[normal] text-t1">전체 건물</h2>
+              <div className="relative basis-full w-full">
+                <SearchIcon />
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="건물명·주소 검색"
+                  aria-label="건물명·주소 검색"
+                  className="h-[32px] w-full rounded-[9px] border border-line bg-surface pl-[31px] pr-[11px] text-[13px] font-semibold leading-[normal] text-t1 placeholder:text-t4 outline-none focus:border-teal"
+                />
+              </div>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto border-t border-line">
+            <div className="min-h-0 flex-1 overflow-y-auto">
             {filteredBuildings.length === 0 ? (
               <EmptyState message="건물이 없습니다" />
             ) : (
-              <table className="w-full table-fixed text-[13px]">
+              <table className="w-full table-fixed leading-[normal]">
                 <colgroup>
                   <col className="w-[64px]" />
                   <col className="w-[96px]" />
                   <col />
                 </colgroup>
                 <thead>
-                  <tr className="h-[36px] border-b border-line bg-[#fbfcfd] text-left text-[12px] font-bold text-t3">
-                    <th className="px-[16px]">코드</th>
-                    <th className="px-[8px]">건물명</th>
-                    <th className="px-[8px]">주소</th>
+                  <tr className="border-b border-line bg-[#FBFCFD] text-left text-[12px] font-bold text-t3">
+                    <th className="px-[16px] py-[11px]">코드</th>
+                    <th className="px-[16px] py-[11px]">건물명</th>
+                    <th className="px-[16px] py-[11px]">주소</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -107,11 +126,11 @@ export function BuildingUnitRail({
                     <tr
                       key={b.id}
                       onClick={() => onSelectBuilding(b.id)}
-                      className="h-[41px] cursor-pointer border-b border-line2 last:border-0 hover:bg-teal-t"
+                      className="cursor-pointer border-b border-line2 last:border-0 hover:bg-blue-t2"
                     >
-                      <td className="truncate px-[16px] text-t2 num">{b.code}</td>
-                      <td className="truncate px-[8px] font-bold text-t1">{b.name}</td>
-                      <td className="truncate px-[8px] text-t2" title={b.address ?? "-"}>{b.address ?? "-"}</td>
+                      <td className="truncate px-[16px] py-[12px] text-[13.5px] text-t2 num">{b.code}</td>
+                      <td className="truncate px-[16px] py-[12px] text-[13.5px] font-bold text-t1">{b.name}</td>
+                      <td className="truncate px-[16px] py-[12px] text-[13.5px] text-t2" title={b.address ?? "-"}>{b.address ?? "-"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -121,38 +140,45 @@ export function BuildingUnitRail({
           </div>
         ) : (
           <div className="flex h-full min-h-0 flex-col">
-            <div className="shrink-0 px-[18px] pb-[15px] pt-[15px]">
-              <div className="flex h-[21px] items-center gap-[10px]">
+            <div className="flex flex-wrap items-center gap-[8px] px-[18px] py-[15px] border-b border-line2">
               <button
                 type="button"
                 onClick={onBack}
                 aria-label="건물 목록으로"
-                className="flex size-[22px] items-center justify-center rounded-[7px] text-[18px] text-t3 hover:bg-bg"
+                className="flex size-[24px] items-center justify-center rounded-[7px] text-t2 hover:bg-bg"
               >
-                ‹
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-[18px]">
+                  <path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
               </button>
-                <span className="text-[14px] font-extrabold text-t1">{selectedBuilding.name}</span>
+              <span className="text-[15px] font-extrabold leading-[normal] text-t1">{selectedBuilding.name}</span>
+              <div className="relative basis-full w-full">
+                <SearchIcon />
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="호수·세대주 검색"
+                  aria-label="호수·세대주 검색"
+                  className="h-[32px] w-full rounded-[9px] border border-line bg-surface pl-[31px] pr-[11px] text-[13px] font-semibold leading-[normal] text-t1 placeholder:text-t4 outline-none focus:border-teal"
+                />
               </div>
-              <input
-                type="search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="호수·세대주 검색"
-                aria-label="호수·세대주 검색"
-                className="mt-[10px] h-[32px] w-full rounded-[9px] border border-line bg-surface px-[12px] text-[13px] text-t1 placeholder:text-t4 outline-none focus:border-teal"
-              />
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto border-t border-line">
+            <div className="min-h-0 flex-1 overflow-y-auto">
               {isUnitsLoading ? (
                 <Spinner />
               ) : filteredUnits.length === 0 ? (
                 <EmptyState message="호실이 없습니다" />
               ) : (
-                <table className="w-full text-[13px]">
+                <table className="w-full table-fixed leading-[normal]">
+                  <colgroup>
+                    <col className="w-[64px]" />
+                    <col />
+                  </colgroup>
                   <thead>
-                    <tr className="h-[36px] border-b border-line bg-[#fbfcfd] text-left text-[12px] font-bold text-t3">
-                      <th className="px-[16px]">호수</th>
-                      <th className="px-[16px]">세대주</th>
+                    <tr className="border-b border-line bg-[#FBFCFD] text-left text-[12px] font-bold text-t3">
+                      <th className="px-[16px] py-[11px]">호수</th>
+                      <th className="px-[16px] py-[11px]">세대주</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -162,14 +188,14 @@ export function BuildingUnitRail({
                         <tr
                           key={u.id}
                           onClick={() => onSelectUnit(u.id)}
-                          className={`h-[41px] cursor-pointer border-b border-line2 last:border-0 ${
-                            active ? "bg-teal-t" : "hover:bg-bg"
+                          className={`cursor-pointer border-b border-line2 last:border-0 ${
+                            active ? "bg-teal-t" : "hover:bg-blue-t2"
                           }`}
                         >
-                          <td className="px-[16px] font-bold text-t1">
+                          <td className="px-[16px] py-[12px] text-[13.5px] font-bold text-t1">
                             {unitLabel(u)}
                           </td>
-                          <td className={`px-[16px] ${tenantByUnit.has(u.id) ? "text-t2" : "text-t4"}`}>
+                          <td className={`px-[16px] py-[12px] text-[13.5px] ${tenantByUnit.has(u.id) ? "text-t2" : "text-t4"}`}>
                             {tenantByUnit.get(u.id) ?? "공실"}
                           </td>
                         </tr>
@@ -192,7 +218,9 @@ export function BuildingUnitRail({
   );
 }
 
-/** Figma 하단 "부과시 참조사항" 카드. */
+type NoteTab = "memo" | "ref";
+
+/** canon `.rc-note`: 수납 건물 메모 / 부과시 참조사항 2탭 메모 패널. */
 function BuildingNoteBlock({
   building,
   canEdit,
@@ -200,56 +228,86 @@ function BuildingNoteBlock({
   building: BuildingLite | null;
   canEdit: boolean;
 }) {
+  const [tab, setTab] = useState<NoteTab>("memo");
   const [editing, setEditing] = useState(false);
-  const [billingNote, setBillingNote] = useState("");
+  const [draft, setDraft] = useState("");
   const save = useSaveBuildingNotes();
 
+  const storedMemo = building?.memo ?? "";
+  const storedBillingNote = building?.billingNote ?? "";
+  const storedActive = tab === "memo" ? storedMemo : storedBillingNote;
+
+  const selectTab = (next: NoteTab) => {
+    if (editing) return;
+    setTab(next);
+  };
+
   const startEdit = () => {
-    setBillingNote(building?.billingNote ?? "");
+    if (!building) {
+      toast.info("건물을 먼저 선택해 주세요.");
+      return;
+    }
+    setDraft(storedActive);
     setEditing(true);
   };
 
   const submit = async () => {
     if (!building) return;
     try {
-      await save.mutateAsync({ buildingId: building.id, memo: building.memo ?? "", billingNote });
-      toast.success("부과시 참조사항을 저장했습니다.");
+      await save.mutateAsync({
+        buildingId: building.id,
+        memo: tab === "memo" ? draft : storedMemo,
+        billingNote: tab === "ref" ? draft : storedBillingNote,
+      });
+      toast.success(tab === "memo" ? "수납 건물 메모를 저장했습니다." : "부과시 참조사항을 저장했습니다.");
       setEditing(false);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "저장에 실패했습니다.");
     }
   };
 
-  const activeValue = editing ? billingNote : building?.billingNote ?? "";
+  const value = editing ? draft : storedActive;
+  const editPlaceholder = tab === "memo" ? "건물 단위 메모를 입력해 주세요" : "부과시 참조사항 입력";
+  const readPlaceholder = "등록된 내용이 없습니다";
+
+  const tabClass = (active: boolean) =>
+    `-mb-px border-b-2 pb-[10px] pt-[12px] text-[13.5px] font-semibold leading-[normal] ${
+      active ? "text-teal border-teal font-bold" : "text-t4 border-transparent"
+    }`;
 
   return (
-    <div className="group h-[169px] shrink-0 overflow-hidden rounded-2xl border border-line bg-surface">
-      <div className="flex h-[49px] items-center justify-between border-b border-line px-[18px]">
-        <h3 className="text-[14px] font-extrabold text-t1">부과시 참조사항</h3>
-        {building !== null && canEdit && (
+    <div className="h-[168px] min-h-[90px] shrink-0 flex flex-col overflow-hidden rounded-2xl bg-surface shadow-[0_1px_3px_rgba(23,31,40,0.05)]">
+      <div className="flex items-center gap-[16px] px-[16px] border-b border-line">
+        <button
+          type="button"
+          onClick={() => selectTab("memo")}
+          className={tabClass(tab === "memo")}
+        >
+          수납 건물 메모
+        </button>
+        <button
+          type="button"
+          onClick={() => selectTab("ref")}
+          className={tabClass(tab === "ref")}
+        >
+          부과시 참조사항
+        </button>
+        <span className="flex-1" />
+        {canEdit && (
           editing ? (
-            <div className="flex gap-1">
-              <button
-                type="button"
-                onClick={submit}
-                disabled={save.isPending}
-                className="rounded-[8px] bg-teal px-[9px] py-[5px] text-[12px] font-bold text-white disabled:opacity-60"
-              >
-                저장
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditing(false)}
-                className="rounded-[8px] border border-line px-[9px] py-[5px] text-[12px] font-bold text-t2 hover:bg-bg"
-              >
-                취소
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={submit}
+              disabled={save.isPending}
+              className="h-[26px] rounded-[8px] border border-teal bg-teal px-[10px] text-[11.5px] font-bold leading-[normal] text-white disabled:opacity-60"
+            >
+              저장
+            </button>
           ) : (
             <button
               type="button"
               onClick={startEdit}
-              className="rounded-[8px] border border-line px-[9px] py-[5px] text-[12px] font-bold text-t2 opacity-0 transition-opacity hover:bg-bg focus:opacity-100 group-hover:opacity-100"
+              className="h-[26px] rounded-[8px] border border-line bg-surface px-[10px] text-[11.5px] font-bold leading-[normal] text-t2 hover:bg-bg"
             >
               수정
             </button>
@@ -257,15 +315,17 @@ function BuildingNoteBlock({
         )}
       </div>
       {building === null ? (
-        <p className="flex h-[120px] items-center px-[18px] text-[13px] text-t4">건물을 선택하면 표시돼요</p>
+        <p className="flex-1 px-[16px] pb-[15px] pt-[13px] text-[13.5px] leading-[1.62] text-t4">건물을 선택하면 표시돼요</p>
       ) : (
         <textarea
           readOnly={!editing}
-          value={activeValue}
-          onChange={(event) => setBillingNote(event.target.value)}
-          placeholder={editing ? "부과시 참조사항 입력" : "등록된 내용이 없습니다"}
-          className={`h-[120px] w-full resize-none border-0 px-[18px] py-[15px] text-[13px] leading-[21px] outline-none ${
-            editing ? "bg-surface text-t1" : "bg-surface text-t2"
+          value={value}
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder={editing ? editPlaceholder : readPlaceholder}
+          className={`flex-1 w-full resize-none text-[13.5px] leading-[1.62] outline-none bg-surface ${
+            editing
+              ? "mx-[12px] mb-[12px] rounded-[10px] border border-teal px-[14px] py-[11px] text-t1"
+              : "border-0 px-[16px] pt-[13px] pb-[15px] text-t1"
           }`}
         />
       )}

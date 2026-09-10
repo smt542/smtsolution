@@ -39,15 +39,25 @@ function Dropdown({
   accent?: "teal";
 }) {
   const widthClass =
-    label === "빌라" ? "w-[78px]" : label === "호실" ? "w-[76px]" : "w-[102px]";
+    label === "빌라" ? "w-[79px]" : label === "호실" ? "w-[79px]" : "w-[106px]";
   const summaryClass =
     accent === "teal"
-      ? `flex h-10 ${widthClass} cursor-pointer list-none items-center justify-center gap-1 rounded-xl bg-teal px-3 text-sm font-bold text-white hover:bg-teal-d`
-      : `flex h-10 ${widthClass} cursor-pointer list-none items-center justify-center gap-1 rounded-xl border border-line bg-surface px-3 text-sm font-bold text-t2 hover:bg-bg`;
+      ? `flex h-10 ${widthClass} cursor-pointer list-none items-center justify-center gap-[5px] rounded-[11px] bg-teal px-[15px] text-[13.5px] font-bold leading-[normal] text-white hover:bg-teal-d`
+      : `flex h-10 ${widthClass} cursor-pointer list-none items-center justify-center gap-[5px] rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg`;
   return (
     <details className="relative [&_summary::-webkit-details-marker]:hidden">
       <summary className={summaryClass}>
-        {label} <span className="text-xs">▾</span>
+        {label}
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          className="size-[15px]"
+          aria-hidden="true"
+        >
+          <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
       </summary>
       <div className="absolute right-0 z-20 mt-1 min-w-[190px] rounded-xl border border-line bg-surface p-1 shadow-card">
         {items.map((item, index) =>
@@ -192,23 +202,23 @@ export function ReceiptWorkspace({
   };
 
   return (
-    <div className="min-h-[calc(100vh-62px)] px-[24px] py-[18px]">
+    <div className="flex h-[calc(100vh-62px)] flex-col overflow-hidden px-[24px] pb-[22px] pt-[18px]">
       <h1 className="sr-only">수납관리·민원접수</h1>
 
-      <div className="fixed right-[24px] top-[11px] z-[30] hidden items-center gap-[8px] md:flex print:hidden">
+      <div className="fixed right-[24px] top-[10.5px] z-[30] hidden items-center gap-[8px] md:flex print:hidden">
           <button
             type="button"
             onClick={() => setSearchOpen(true)}
-            className="h-[40px] w-[58px] rounded-[11px] border border-line bg-surface text-[14px] font-bold text-t2 hover:bg-bg"
+            className="h-[40px] w-[59px] rounded-[11px] border border-line bg-surface text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg"
           >
             조회
           </button>
           <button
             type="button"
             onClick={() => setMonthlyOpen(true)}
-            className="flex h-[40px] w-[132px] items-center justify-center gap-[7px] rounded-[11px] border border-line bg-surface text-[14px] font-bold text-t2 hover:bg-bg"
+            className="flex h-[40px] w-[139px] items-center justify-center gap-[6px] rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg"
           >
-            <PrinterIcon className="size-[15px]" aria-hidden="true" />
+            <PrinterIcon className="size-[16px]" aria-hidden="true" />
             월별 부과금액
           </button>
           {/* 빌라·호실·자동수납은 수납 콘솔(기록/취소 포함)이므로 payment 모듈 보유자만 노출 */}
@@ -256,7 +266,7 @@ export function ReceiptWorkspace({
           )}
       </div>
 
-      <div className="flex flex-col gap-[16px] lg:flex-row">
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-[16px] lg:grid-cols-[minmax(240px,322px)_minmax(0,1fr)]">
         <BuildingUnitRail
           key={selectedBuildingId ?? "all-buildings"}
           buildings={orgBuildings}
@@ -271,7 +281,7 @@ export function ReceiptWorkspace({
           onBack={backToBuildings}
         />
 
-        <div className="flex min-w-0 flex-1 flex-col gap-[10px]">
+        <div className="flex min-h-0 min-w-0 flex-col gap-[12px] overflow-auto">
           <PaymentHistorySection
             key={`pay-${selectedUnitId ?? "none"}`}
             orgId={orgId}
