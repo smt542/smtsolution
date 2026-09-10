@@ -18,6 +18,8 @@ interface DpDatePickerProps {
   triggerClassName?: string;
   triggerOpenClassName?: string;
   endAdornment?: ReactNode;
+  /** 루트 래퍼(relative inline-flex)에 덧붙이는 클래스. grid/flex 셀에서 폭 제어(w-full 등)에 사용 */
+  className?: string;
 }
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -33,6 +35,7 @@ export function DpDatePicker({
   triggerClassName,
   triggerOpenClassName,
   endAdornment,
+  className,
 }: DpDatePickerProps) {
   const ctlRef = useRef<HTMLButtonElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
@@ -109,7 +112,7 @@ export function DpDatePicker({
     });
 
   return (
-    <div className="relative inline-flex">
+    <div className={`relative inline-flex${className ? ` ${className}` : ""}`}>
       <button
         ref={ctlRef}
         type="button"

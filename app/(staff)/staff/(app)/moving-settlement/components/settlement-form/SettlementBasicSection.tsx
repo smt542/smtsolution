@@ -1,3 +1,6 @@
+import { DpDatePicker } from "@/components/common/DpDatePicker";
+import { CalendarIcon } from "@/components/icons";
+
 export function SettlementBasicSection({
   moveOutDate,
   onMoveOutDateChange,
@@ -13,12 +16,15 @@ export function SettlementBasicSection({
         <span className="mb-[7px] block text-[12px] font-bold text-t2">
           퇴실일자<span className="text-red">*</span>
         </span>
-        <input
-          aria-label="퇴실일자"
-          type="date"
+        <DpDatePicker
+          ariaLabel="퇴실일자"
           value={moveOutDate}
-          onChange={(event) => onMoveOutDateChange(event.target.value)}
-          className="h-[38px] w-full rounded-[10px] border border-[#dee3e8] bg-white px-[11px] text-[13.5px] font-semibold text-t1 outline-none focus:border-teal"
+          onChange={onMoveOutDateChange}
+          placeholder="날짜 선택"
+          className="w-full"
+          triggerClassName="flex h-[38px] w-full cursor-pointer items-center justify-between gap-[6px] rounded-[10px] border border-[#dee3e8] bg-white px-[11px] text-[13.5px] font-semibold text-t1 outline-none"
+          triggerOpenClassName="!border-teal ring-[3px] ring-teal-t"
+          endAdornment={<CalendarIcon className="size-[14px] shrink-0 text-t3" aria-hidden="true" />}
         />
       </label>
       <label>

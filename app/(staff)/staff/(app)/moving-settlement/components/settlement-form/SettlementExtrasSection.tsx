@@ -1,4 +1,8 @@
-import type { RefObject } from "react";
+"use client";
+
+import { useState, type RefObject } from "react";
+import { DpDatePicker } from "@/components/common/DpDatePicker";
+import { CalendarIcon } from "@/components/icons";
 import type { MovingSettlementValues } from "@/components/forms/schema/movingSettlement";
 import type { ChecklistItem } from "@/hooks/reactquery/movingSettlement";
 
@@ -13,6 +17,8 @@ const cardClass =
 const fieldClass =
   "h-[38px] w-full rounded-[10px] border border-[#dee3e8] bg-white px-[11px] text-[13px] text-t1 outline-none placeholder:text-t4 focus:border-teal";
 const labelClass = "mb-[6px] block text-[12px] font-bold text-t2";
+const dateTriggerClass =
+  "flex h-[38px] w-full cursor-pointer items-center justify-between gap-[6px] rounded-[10px] border border-[#dee3e8] bg-white px-[11px] text-[13px] text-t1 outline-none";
 
 export function SettlementExtrasSection({
   value,
@@ -37,6 +43,7 @@ export function SettlementExtrasSection({
   onFinalPaidDateChange: (date: string) => void;
   paymentInputRef: RefObject<HTMLInputElement | null>;
 }) {
+  const [cleaningDoneDate, setCleaningDoneDate] = useState("");
   return (
     <>
       <section className={cardClass}>
@@ -105,7 +112,16 @@ export function SettlementExtrasSection({
           </label>
           <label>
             <span className={labelClass}>청소완료일</span>
-            <input aria-label="청소완료일" type="date" className={fieldClass} />
+            <DpDatePicker
+              ariaLabel="청소완료일"
+              value={cleaningDoneDate}
+              onChange={setCleaningDoneDate}
+              placeholder="날짜 선택"
+              className="w-full"
+              triggerClassName={dateTriggerClass}
+              triggerOpenClassName="!border-teal ring-[3px] ring-teal-t"
+              endAdornment={<CalendarIcon className="size-[14px] shrink-0 text-t3" aria-hidden="true" />}
+            />
           </label>
           <label>
             <span className={labelClass}>청소금액</span>
@@ -141,12 +157,15 @@ export function SettlementExtrasSection({
           </label>
           <label>
             <span className={labelClass}>최종 수납일</span>
-            <input
-              aria-label="최종 수납일"
-              type="date"
+            <DpDatePicker
+              ariaLabel="최종 수납일"
               value={finalPaidDate}
-              onChange={(event) => onFinalPaidDateChange(event.target.value)}
-              className={fieldClass}
+              onChange={onFinalPaidDateChange}
+              placeholder="날짜 선택"
+              className="w-full"
+              triggerClassName={dateTriggerClass}
+              triggerOpenClassName="!border-teal ring-[3px] ring-teal-t"
+              endAdornment={<CalendarIcon className="size-[14px] shrink-0 text-t3" aria-hidden="true" />}
             />
           </label>
         </div>

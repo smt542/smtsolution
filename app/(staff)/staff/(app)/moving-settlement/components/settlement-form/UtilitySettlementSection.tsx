@@ -1,3 +1,5 @@
+import { DpDatePicker } from "@/components/common/DpDatePicker";
+import { CalendarIcon } from "@/components/icons";
 import type { MovingSettlementValues } from "@/components/forms/schema/movingSettlement";
 import type { MeterSummary, SettlementUtility } from "@/hooks/reactquery/movingSettlement";
 import { formatNumber } from "@/lib/format";
@@ -74,12 +76,16 @@ export function UtilitySettlementSection({
                 placeholder="입금계좌"
                 className="h-[34px] rounded-[9px] border border-[#dee3e8] px-[8px] text-[13px] text-t1 outline-none placeholder:text-t4 focus:border-teal"
               />
-              <input
-                aria-label={`${row.label} 입금일`}
-                type="date"
+              <DpDatePicker
+                ariaLabel={`${row.label} 입금일`}
                 value={row.paidDateKey ? (value[row.paidDateKey] ?? "") : ""}
-                onChange={(event) => row.paidDateKey && onChange({ ...value, [row.paidDateKey]: event.target.value })}
-                className="h-[34px] rounded-[9px] border border-[#dee3e8] px-[8px] text-[12px] text-t1 outline-none focus:border-teal"
+                onChange={(next) => row.paidDateKey && onChange({ ...value, [row.paidDateKey]: next })}
+                disabled={!row.paidDateKey}
+                placeholder="날짜 선택"
+                className="w-full"
+                triggerClassName="flex h-[34px] w-full cursor-pointer items-center justify-between gap-[6px] rounded-[9px] border border-[#dee3e8] px-[8px] text-[12px] text-t1 outline-none"
+                triggerOpenClassName="!border-teal ring-[3px] ring-teal-t"
+                endAdornment={<CalendarIcon className="size-[14px] shrink-0 text-t3" aria-hidden="true" />}
               />
             </div>
           );
