@@ -10,6 +10,9 @@ vi.mock("@/hooks/reactquery/residentSettlement", () => ({
   useMintSettlementShareToken: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 vi.mock("@/hooks/reactquery/units", () => ({ useUnits: vi.fn() }));
+vi.mock("@/hooks/reactquery/occupancies", () => ({
+  useTenantList: () => ({ data: [], isLoading: false, error: null }),
+}));
 vi.mock("@/hooks/reactquery/movingSettlement", async (importOriginal) => {
   const actual = await importOriginal<
     typeof import("@/hooks/reactquery/movingSettlement")

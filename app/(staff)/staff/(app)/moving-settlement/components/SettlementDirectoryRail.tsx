@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { ChevronDownIcon, ChevronLeftIcon, SearchIcon } from "@/components/icons";
 import type { Building } from "@/hooks/reactquery/buildings";
+import { useTenantList } from "@/hooks/reactquery/occupancies";
 import type { Unit } from "@/hooks/reactquery/units";
 
 function displayDate(value: string | null): string {
@@ -48,6 +49,9 @@ export function SettlementDirectoryRail({
         .includes(query),
     );
   }, [buildings, search]);
+
+  const tenantQuery = useTenantList(buildingId ?? 0);
+  const tenants = tenantQuery.data ?? [];
 
   if (selectedBuilding && selectedUnit) {
     return (
@@ -127,34 +131,37 @@ export function SettlementDirectoryRail({
               {selectedBuilding.name}
             </h2>
           </div>
-          <div className="grid h-[37px] shrink-0 grid-cols-[56px_1fr_1fr] border-b border-line bg-[#fbfcfd] text-[12px] font-bold text-t3">
-            <span className="px-[12px] py-[11px]">No</span>
-            <span className="px-[8px] py-[11px]">호수</span>
-            <span className="px-[8px] py-[11px]">동</span>
+          <div className="grid h-[37px] shrink-0 grid-cols-[64px_1fr] border-b border-line bg-[#fbfcfd] text-[12px] font-bold text-t3">
+            <span className="px-[16px] py-[11px]">호수</span>
+            <span className="px-[16px] py-[11px]">세대주</span>
           </div>
           <div className="min-h-0 flex-1 overflow-auto">
-            {unitsLoading && (
+            {(unitsLoading || tenantQuery.isLoading) && (
               <p className="px-[16px] py-[14px] text-[12.5px] text-t4">
                 호실을 불러오는 중입니다.
               </p>
             )}
-            {!unitsLoading && units.length === 0 && (
+            {!unitsLoading && !tenantQuery.isLoading && tenants.length === 0 && (
               <p className="px-[16px] py-[14px] text-[12.5px] text-t4">
                 등록된 호실이 없습니다.
               </p>
             )}
-            {units.map((unit, index) => (
-              <button
-                key={unit.id}
-                type="button"
-                onClick={() => onSelectUnit(unit.id)}
-                className="grid h-[41px] w-full grid-cols-[56px_1fr_1fr] border-b border-line2 text-left text-[13.5px] text-t1 hover:bg-[#fbfcfd]"
-              >
-                <span className="px-[12px] py-[12px]">{index + 1}</span>
-                <span className="px-[8px] py-[12px] font-bold">{unit.unitNo}</span>
-                <span className="truncate px-[8px] py-[12px]">{unit.dong ?? "-"}</span>
-              </button>
-            ))}
+            {tenants.map((tenant) => {
+              const vacant = tenant.isVacant || !tenant.tenantName;
+              return (
+                <button
+                  key={tenant.unitId}
+                  type="button"
+                  onClick={() => onSelectUnit(tenant.unitId)}
+                  className="grid min-h-[41px] w-full grid-cols-[64px_1fr] border-b border-line2 text-left text-[13.5px] text-t1 hover:bg-[#fbfcfd]"
+                >
+                  <span className="px-[16px] py-[12px] font-bold">{tenant.unitNo}</span>
+                  <span className={`truncate px-[16px] py-[12px] ${vacant ? "text-t4" : ""}`}>
+                    {vacant ? "공실" : tenant.tenantName}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </section>
         <section className="h-[132px] shrink-0 overflow-hidden rounded-[16px] bg-white shadow-card">
