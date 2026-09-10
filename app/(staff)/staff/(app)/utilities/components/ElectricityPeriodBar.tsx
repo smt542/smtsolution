@@ -48,8 +48,9 @@ export function ElectricityPeriodBar({
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="mr-1 whitespace-nowrap text-[11.5px] font-bold text-t2">부과기준일</span>
         <DpDatePicker ariaLabel="부과 시작일" disabled={!editing} value={startDate} onChange={onStartDateChange} placeholder="시작일" />
-        <span className="text-xs text-t3">~</span>
+        <span className="text-[12px] font-bold text-t2">~</span>
         <DpDatePicker ariaLabel="부과 종료일" disabled={!editing} value={endDate} onChange={onEndDateChange} placeholder="종료일" />
+        <span aria-hidden="true" className="h-[26px] w-px flex-none bg-line" />
         {editing ? (
           <>
             <button

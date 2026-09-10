@@ -48,7 +48,7 @@ export function ElectricityReadingsTable({
     <section className="flex min-h-[360px] flex-1 flex-col overflow-hidden rounded-card bg-white shadow-card">
       <div className="flex h-[49px] flex-none items-center gap-2.5 border-b border-line2 px-[18px]">
         <h2 className="whitespace-nowrap text-[15px] font-extrabold text-t1">호실별 {utilityLabel} 지침</h2>
-        <span className="h-px min-w-5 flex-1 bg-line2" />
+        <div className="flex-1" />
         <div className="ml-3 flex items-center gap-3 whitespace-nowrap text-[11.5px] font-medium text-t3">
           <span className="flex items-center gap-[5px]"><i className="h-3 w-[3px] rounded-[2px] bg-blue2" />퇴실 예정</span>
           <span className="flex items-center gap-[5px]"><i className="h-3 w-[3px] rounded-[2px] bg-red" />공실 사용량</span>
@@ -63,7 +63,7 @@ export function ElectricityReadingsTable({
         </div>
       ) : (
         <div className="min-h-0 flex-1 overflow-auto">
-          <table className={`table-fixed border-collapse text-[13.5px] ${editing ? "w-[1922px]" : "w-[1722px]"}`}>
+          <table className={`table-fixed border-collapse text-[11.5px] ${editing ? "w-[1922px]" : "w-[1722px]"}`}>
             <colgroup>
               {(editing
                 ? [59, 115, 112, 115, 88, 88, 115, 56, 53, 115, 90, 76, 71, 152, 112, 197, 67, 137, 53, 53]
