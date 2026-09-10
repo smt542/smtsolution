@@ -24,7 +24,7 @@ interface BillingTableProps {
   noteDrafts?: Record<number, BillingNoteDraft>;
   onChargeChange: (unitId: number, feeItemId: number, patch: { charged?: boolean; amount?: number }) => void;
   onRowClick: (unitId: number) => void;
-  onNoteClick: (unitId: number) => void;
+  onNoteChange: (unitId: number, patch: Partial<BillingNoteDraft>) => void;
 }
 
 const EMPTY_CHARGE_DRAFTS: Record<number, Record<number, BillingChargeDraft>> = {};
@@ -42,7 +42,7 @@ export function BillingTable({
   noteDrafts = EMPTY_NOTE_DRAFTS,
   onChargeChange,
   onRowClick,
-  onNoteClick,
+  onNoteChange,
 }: BillingTableProps) {
   const trios = useMemo(() => chunkTrios(columns), [columns]);
 
@@ -95,7 +95,7 @@ export function BillingTable({
               noteDraft={noteDrafts[unit.unitId]}
               onChargeChange={onChargeChange}
               onRowClick={onRowClick}
-              onNoteClick={onNoteClick}
+              onNoteChange={onNoteChange}
             />
           ))}
         </tbody>

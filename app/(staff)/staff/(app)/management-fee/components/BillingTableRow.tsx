@@ -26,7 +26,7 @@ interface BillingTableRowProps {
   noteDraft?: BillingNoteDraft;
   onChargeChange: (unitId: number, feeItemId: number, patch: { charged?: boolean; amount?: number }) => void;
   onRowClick: (unitId: number) => void;
-  onNoteClick: (unitId: number) => void;
+  onNoteChange: (unitId: number, patch: Partial<BillingNoteDraft>) => void;
 }
 
 function num(value: number): string {
@@ -34,7 +34,7 @@ function num(value: number): string {
 }
 
 export const BillingTableRow = memo(function BillingTableRow({
-  unit, columns, trios, period, editing, utilities, chargeDrafts, noteDraft, onChargeChange, onRowClick, onNoteClick,
+  unit, columns, trios, period, editing, utilities, chargeDrafts, noteDraft, onChargeChange, onRowClick, onNoteChange,
 }: BillingTableRowProps) {
   const recent = isRecentMoveIn(unit.moveInDate, period);
   const util = unitUtilityAmounts(unit.unitId, utilities);
@@ -134,49 +134,41 @@ export const BillingTableRow = memo(function BillingTableRow({
         </td>
       ))}
 
-      {/* 부과시 참조사항 — 150px, .mf-clamp 2줄 */}
+      {/* 부과시 참조사항 — 150px 인라인 편집 */}
       <td className={`min-w-[150px] px-[8px] py-[7px] ${cellBorder}`}>
         {editing ? (
           <input
             aria-label={`${unitNo} 부과시 참조사항`}
-            readOnly
             value={billingNote}
-            onClick={() => onNoteClick(unit.unitId)}
+            onChange={(event) => onNoteChange(unit.unitId, { billingNote: event.target.value })}
             className="h-[26px] w-full rounded-[7px] border border-line bg-white px-[7px] text-[13.5px] font-normal text-t1 outline-none focus:border-teal focus:shadow-[0_0_0_3px_var(--color-blue-t)]"
           />
         ) : (
-          <button
-            type="button"
-            aria-label={`${unitNo} 부과시 참조사항`}
-            onClick={() => onNoteClick(unit.unitId)}
-            className={`line-clamp-2 max-w-[150px] break-words text-left text-[13.5px] font-normal leading-[1.4] ${billingNote ? "text-t1" : "text-t4"} hover:text-teal`}
+          <span
+            className={`line-clamp-2 block max-w-[150px] break-words text-[13.5px] font-normal leading-[1.4] ${billingNote ? "text-t1" : "text-t4"}`}
             title={billingNote || undefined}
           >
             {billingNote || "-"}
-          </button>
+          </span>
         )}
       </td>
 
-      {/* 부과시 공지사항 — 150px, .mf-clamp 2줄 */}
+      {/* 부과시 공지사항 — 150px 인라인 편집 */}
       <td className={`min-w-[150px] px-[8px] py-[7px] ${cellBorder}`}>
         {editing ? (
           <input
             aria-label={`${unitNo} 부과시 공지사항`}
-            readOnly
             value={unitNotice}
-            onClick={() => onNoteClick(unit.unitId)}
+            onChange={(event) => onNoteChange(unit.unitId, { unitNotice: event.target.value })}
             className="h-[26px] w-full rounded-[7px] border border-line bg-white px-[7px] text-[13.5px] font-normal text-t1 outline-none focus:border-teal focus:shadow-[0_0_0_3px_var(--color-blue-t)]"
           />
         ) : (
-          <button
-            type="button"
-            aria-label={`${unitNo} 부과시 공지사항`}
-            onClick={() => onNoteClick(unit.unitId)}
-            className={`line-clamp-2 max-w-[150px] break-words text-left text-[13.5px] font-normal leading-[1.4] ${unitNotice ? "text-t1" : "text-t4"} hover:text-teal`}
+          <span
+            className={`line-clamp-2 block max-w-[150px] break-words text-[13.5px] font-normal leading-[1.4] ${unitNotice ? "text-t1" : "text-t4"}`}
             title={unitNotice || undefined}
           >
             {unitNotice || "-"}
-          </button>
+          </span>
         )}
       </td>
 

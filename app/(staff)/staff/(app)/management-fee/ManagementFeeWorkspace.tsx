@@ -8,6 +8,7 @@ import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useBuildingTypes } from "@/hooks/reactquery/buildingTypes";
 import {
   useBilling,
+  useBillingPeriodSetting,
   useChargeNewOccupancies,
   useConfirmBilling,
   useCopyPreviousBilling,
@@ -16,11 +17,10 @@ import {
 } from "@/hooks/reactquery/billing";
 import { useSaveBuildingNotes } from "@/hooks/reactquery/receipts";
 import { useUtilityConfirmation, useUtilityRows } from "@/hooks/reactquery/utilities";
-import { currentPeriod } from "@/lib/billing/period";
+import { currentPeriod, isFuturePeriod } from "@/lib/billing/period";
 import { pivotBillingRows } from "@/lib/billing/pivot";
 import { formatWon } from "@/lib/format";
 import { BillingHistoryModal } from "./components/BillingHistoryModal";
-import { BillingNoteModal } from "./components/BillingNoteModal";
 import { BillingPeriodSettingsBar } from "./components/BillingPeriodSettingsBar";
 import { BillingSectionToolbar } from "./components/BillingSectionToolbar";
 import { BillingTable, type BillingChargeDraft, type BillingNoteDraft } from "./components/BillingTable";
@@ -42,7 +42,6 @@ export function ManagementFeeWorkspace() {
   const [buildingNoteDraft, setBuildingNoteDraft] = useState("");
   const [chargeDrafts, setChargeDrafts] = useState<Record<number, Record<number, BillingChargeDraft>>>({});
   const [noteDrafts, setNoteDrafts] = useState<Record<number, BillingNoteDraft>>({});
-  const [noteUnit, setNoteUnit] = useState<number | null>(null);
   const [historyUnit, setHistoryUnit] = useState<{ id: number; no: string } | null>(null);
   const [dialog, setDialog] = useState<ManagementFeeDialogKind | null>(null);
 
@@ -59,6 +58,7 @@ export function ManagementFeeWorkspace() {
   const waterConfirmation = useUtilityConfirmation(buildingId, "water", period);
   const electricityConfirmation = useUtilityConfirmation(buildingId, "electricity", period);
   const gasConfirmation = useUtilityConfirmation(buildingId, "gas", period);
+  const periodSettingQuery = useBillingPeriodSetting(buildingId, period);
 
   const selectedBuilding = buildings.find((building) => building.id === buildingId) ?? null;
   const { units, columns } = useMemo(() => pivotBillingRows(billingQuery.data ?? []), [billingQuery.data]);
@@ -92,6 +92,11 @@ export function ManagementFeeWorkspace() {
     electricity: electricityConfirmation.data ?? null,
     gas: gasConfirmation.data ?? null,
   }), [electricityConfirmation.data, gasConfirmation.data, waterConfirmation.data]);
+  // 원본 mfNeedBasis: 미래월인데 부과기준일이 저장 안 됐으면 표 대신 "부과기준일 먼저 설정" 안내판.
+  const needBasis = buildingId != null
+    && isFuturePeriod(period)
+    && !!periodSettingQuery.data
+    && !periodSettingQuery.data.isSaved;
 
   const newOccupancies = newOccupanciesQuery.data ?? [];
   const selectionKey = buildingId ? `${buildingId}:${period}` : null;
@@ -137,6 +142,14 @@ export function ManagementFeeWorkspace() {
     });
   }, [unitsById]);
 
+  const onNoteChange = useCallback((unitId: number, patch: Partial<BillingNoteDraft>) => {
+    setNoteDrafts((current) => {
+      const unit = unitsById.get(unitId);
+      const existing = current[unitId] ?? { billingNote: unit?.billingNote ?? "", unitNotice: unit?.unitNotice ?? "" };
+      return { ...current, [unitId]: { ...existing, ...patch } };
+    });
+  }, [unitsById]);
+
   const saveAndConfirm = async () => {
     if (!buildingId || !selectedBuilding) return;
     const charges = Object.entries(chargeDrafts).flatMap(([unitIdText, rowDrafts]) => {
@@ -177,6 +190,17 @@ export function ManagementFeeWorkspace() {
   };
 
   const requestSaveAndConfirm = async () => {
+    // 원본 missModal 대응: 공과금(수도·전기·가스)이 전혀 산정되지 않았으면 부과확정을 차단한다.
+    if (
+      buildingId
+      && units.length > 0
+      && !utilityConfirmations.water
+      && !utilityConfirmations.electricity
+      && !utilityConfirmations.gas
+    ) {
+      setDialog("utility-missing");
+      return;
+    }
     if (zeroAmountSummary.itemCount > 0) {
       setDialog("zero-amount");
       return;
@@ -304,10 +328,26 @@ export function ManagementFeeWorkspace() {
                   <button type="button" onClick={() => billingQuery.refetch()} className="h-[32px] rounded-[9px] border border-line px-[12px] text-[12px] font-bold">다시 시도</button>
                 </div>
               )}
-              {buildingId && !billingQuery.isLoading && !billingQuery.error && units.length === 0 && (
+              {buildingId && !billingQuery.isLoading && !billingQuery.error && needBasis && (
+                <div className="flex h-full min-h-[260px] flex-col items-center justify-center gap-[6px] text-center">
+                  <span className="mb-[4px] flex size-[56px] items-center justify-center rounded-[17px] bg-[#e2f5f1] text-teal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className="size-[27px]"><rect x="4" y="5" width="16" height="16" rx="2" /><path d="M8 3v4M16 3v4M4 11h16" /></svg>
+                  </span>
+                  <p className="text-[16px] font-bold tracking-[-0.02em] text-t1">부과기준일을 먼저 설정해 주세요</p>
+                  <p className="text-[13.5px] font-normal leading-[1.6] text-t3">아직 검침이 등록되지 않은 달이에요</p>
+                  <button
+                    type="button"
+                    onClick={() => { setBuildingNoteDraft(selectedBuilding?.billingNote ?? ""); setEditing(true); }}
+                    className="mt-[16px] h-[42px] rounded-[12px] bg-teal px-[22px] text-[14px] font-bold text-white hover:bg-teal-d"
+                  >
+                    부과기준일 설정
+                  </button>
+                </div>
+              )}
+              {buildingId && !billingQuery.isLoading && !billingQuery.error && !needBasis && units.length === 0 && (
                 <div className="flex h-full items-center justify-center text-[13px] text-t3">등록된 세대가 없어요.</div>
               )}
-              {buildingId && !billingQuery.isLoading && !billingQuery.error && units.length > 0 && (
+              {buildingId && !billingQuery.isLoading && !billingQuery.error && !needBasis && units.length > 0 && (
                 <BillingTable
                   units={units}
                   columns={columns}
@@ -318,7 +358,7 @@ export function ManagementFeeWorkspace() {
                   noteDrafts={noteDrafts}
                   onChargeChange={onChargeChange}
                   onRowClick={openHistory}
-                  onNoteClick={(unitId) => editing && setNoteUnit(unitId)}
+                  onNoteChange={onNoteChange}
                 />
               )}
             </div>
@@ -338,23 +378,6 @@ export function ManagementFeeWorkspace() {
       />
       <BillingHistoryModal open={Boolean(historyUnit)} unitId={historyUnit?.id ?? null} unitNo={historyUnit?.no ?? ""} period={period} onClose={() => setHistoryUnit(null)} />
       <NewTenantChargeModal open={newTenantOpen} units={newOccupancies} pending={chargeNewOccupancies.isPending} onConfirm={handleChargeNewTenants} onClose={() => setNewTenantOpen(false)} />
-      {(() => {
-        const unit = noteUnit === null ? undefined : unitsById.get(noteUnit);
-        const noteDraft = noteUnit === null ? undefined : noteDrafts[noteUnit];
-        return (
-          <BillingNoteModal
-            open={noteUnit !== null}
-            unitNo={unit?.unitNo ?? ""}
-            billingNote={noteDraft?.billingNote ?? unit?.billingNote ?? ""}
-            unitNotice={noteDraft?.unitNotice ?? unit?.unitNotice ?? ""}
-            onClose={() => setNoteUnit(null)}
-            onSave={(value) => {
-              if (noteUnit !== null) setNoteDrafts((current) => ({ ...current, [noteUnit]: value }));
-              setNoteUnit(null);
-            }}
-          />
-        );
-      })()}
     </div>
   );
 }

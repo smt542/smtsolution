@@ -40,7 +40,7 @@ vi.mock("@/hooks/reactquery/billing", () => ({
 vi.mock("@/hooks/reactquery/receipts", () => ({ useSaveBuildingNotes: vi.fn(() => noteMut) }));
 vi.mock("@/hooks/reactquery/utilities", () => ({
   useUtilityRows: vi.fn(() => ({ data: [], isLoading: false })),
-  useUtilityConfirmation: vi.fn(() => ({ data: null, isLoading: false })),
+  useUtilityConfirmation: vi.fn(() => ({ data: { confirmedAt: "2026-08-01T00:00:00Z", confirmedByName: null, unitCount: 1, totalAmount: 1000, isDirty: false }, isLoading: false })),
 }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() } }));
 
