@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { EmptyState, Spinner } from "@/components/common";
 import type { Building } from "@/hooks/reactquery/buildings";
@@ -53,6 +53,24 @@ export function BuildingUnitRail({
 }) {
   const [search, setSearch] = useState("");
   const selectedBuilding = buildings.find((b) => b.id === selectedBuildingId) ?? null;
+  const [unitViewBuilding, setUnitViewBuilding] = useState(selectedBuilding);
+
+  useEffect(() => {
+    if (selectedBuilding === null) return;
+    const frame = window.requestAnimationFrame(() => setUnitViewBuilding(selectedBuilding));
+    return () => window.cancelAnimationFrame(frame);
+  }, [selectedBuilding]);
+
+  const selectBuilding = (building: BuildingLite) => {
+    setSearch("");
+    setUnitViewBuilding(building);
+    onSelectBuilding(building.id);
+  };
+
+  const showBuildingList = () => {
+    setSearch("");
+    onBack();
+  };
 
   const filteredBuildings = useMemo(() => {
     const q = search.trim().toLocaleLowerCase("ko-KR");
@@ -89,8 +107,15 @@ export function BuildingUnitRail({
   return (
     <aside className="flex h-full w-full min-h-0 flex-col gap-[16px]">
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden rounded-2xl bg-surface shadow-[0_1px_3px_rgba(23,31,40,0.05)]">
-        {selectedBuilding === null ? (
-          <div className="flex h-full min-h-0 flex-col">
+        <div
+          data-testid="building-unit-view-track"
+          className={`${styles.viewTrack} ${selectedBuilding === null ? "" : styles.showUnitView}`}
+        >
+          <div
+            className={`flex h-full flex-col ${styles.viewPane}`}
+            aria-hidden={selectedBuilding !== null}
+            inert={selectedBuilding !== null}
+          >
             <div className="flex flex-wrap items-center gap-[8px] px-[18px] py-[15px] border-b border-line2">
               <h2 className="text-[15px] font-extrabold leading-[normal] text-t1">전체 건물</h2>
               <div className="relative basis-full w-full">
@@ -111,7 +136,7 @@ export function BuildingUnitRail({
             ) : (
               <table
                 aria-label="건물 목록"
-                className={`w-full table-fixed leading-[normal] ${styles.buildingTableEnter}`}
+                className="w-full table-fixed leading-[normal]"
               >
                 <colgroup>
                   <col className="w-[64px]" />
@@ -129,7 +154,7 @@ export function BuildingUnitRail({
                   {filteredBuildings.map((b) => (
                     <tr
                       key={b.id}
-                      onClick={() => onSelectBuilding(b.id)}
+                      onClick={() => selectBuilding(b)}
                       className="cursor-pointer border-b border-line2 last:border-0 hover:bg-blue-t2"
                     >
                       <td className="truncate px-[16px] py-[12px] text-[13.5px] text-t2 num">{b.code}</td>
@@ -142,78 +167,82 @@ export function BuildingUnitRail({
             )}
             </div>
           </div>
-        ) : (
-          <div className="flex h-full min-h-0 flex-col">
-            <div className="flex flex-wrap items-center gap-[8px] px-[18px] py-[15px] border-b border-line2">
-              <button
-                type="button"
-                onClick={onBack}
-                aria-label="건물 목록으로"
-                className="flex size-[24px] items-center justify-center rounded-[7px] text-t2 transition-transform duration-[120ms] ease-[ease] hover:bg-bg active:-translate-x-0.5"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-[18px]">
-                  <path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-              <span className="text-[15px] font-extrabold leading-[normal] text-t1">{selectedBuilding.name}</span>
-              <div className="relative basis-full w-full">
-                <SearchIcon />
-                <input
-                  type="search"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="호수·세대주 검색"
-                  aria-label="호수·세대주 검색"
-                  className="h-[32px] w-full rounded-[9px] border border-line bg-surface pl-[31px] pr-[11px] text-[13px] font-semibold leading-[normal] text-t1 placeholder:text-t4 outline-none focus:border-teal"
-                />
-              </div>
-            </div>
-            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
-              {isUnitsLoading ? (
-                <Spinner />
-              ) : filteredUnits.length === 0 ? (
-                <EmptyState message="호실이 없습니다" />
-              ) : (
-                <table
-                  aria-label="호실 목록"
-                  className={`w-full table-fixed leading-[normal] ${styles.unitTableEnter}`}
-                >
-                  <colgroup>
-                    <col className="w-[64px]" />
-                    <col />
-                  </colgroup>
-                  <thead>
-                    <tr className="border-b border-line bg-[#FBFCFD] text-left text-[12px] font-bold text-t3">
-                      <th className="px-[16px] py-[11px]">호수</th>
-                      <th className="px-[16px] py-[11px]">세대주</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredUnits.map((u) => {
-                      const active = u.id === selectedUnitId;
-                      return (
-                        <tr
-                          key={u.id}
-                          onClick={() => onSelectUnit(u.id)}
-                          className={`cursor-pointer border-b border-line2 last:border-0 ${
-                            active ? "bg-teal-t" : "hover:bg-blue-t2"
-                          }`}
-                        >
-                          <td className="px-[16px] py-[12px] text-[13.5px] font-bold text-t1">
-                            {unitLabel(u)}
-                          </td>
-                          <td className={`px-[16px] py-[12px] text-[13.5px] ${tenantByUnit.has(u.id) ? "text-t2" : "text-t4"}`}>
-                            {tenantByUnit.get(u.id) ?? "공실"}
-                          </td>
+          <div
+            className={`flex h-full flex-col ${styles.viewPane}`}
+            aria-hidden={selectedBuilding === null}
+            inert={selectedBuilding === null}
+          >
+            {unitViewBuilding !== null && (
+              <>
+                <div className="flex flex-wrap items-center gap-[8px] px-[18px] py-[15px] border-b border-line2">
+                  <button
+                    type="button"
+                    onClick={showBuildingList}
+                    aria-label="건물 목록으로"
+                    className="flex size-[24px] items-center justify-center rounded-[7px] text-t2 transition-transform duration-[120ms] ease-[ease] hover:bg-bg active:-translate-x-0.5"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-[18px]">
+                      <path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                  <span className="text-[15px] font-extrabold leading-[normal] text-t1">{unitViewBuilding.name}</span>
+                  <div className="relative basis-full w-full">
+                    <SearchIcon />
+                    <input
+                      type="search"
+                      value={search}
+                      onChange={(event) => setSearch(event.target.value)}
+                      placeholder="호수·세대주 검색"
+                      aria-label="호수·세대주 검색"
+                      className="h-[32px] w-full rounded-[9px] border border-line bg-surface pl-[31px] pr-[11px] text-[13px] font-semibold leading-[normal] text-t1 placeholder:text-t4 outline-none focus:border-teal"
+                    />
+                  </div>
+                </div>
+                <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
+                  {isUnitsLoading ? (
+                    <Spinner />
+                  ) : filteredUnits.length === 0 ? (
+                    <EmptyState message="호실이 없습니다" />
+                  ) : (
+                    <table aria-label="호실 목록" className="w-full table-fixed leading-[normal]">
+                      <colgroup>
+                        <col className="w-[64px]" />
+                        <col />
+                      </colgroup>
+                      <thead>
+                        <tr className="border-b border-line bg-[#FBFCFD] text-left text-[12px] font-bold text-t3">
+                          <th className="px-[16px] py-[11px]">호수</th>
+                          <th className="px-[16px] py-[11px]">세대주</th>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </div>
+                      </thead>
+                      <tbody>
+                        {filteredUnits.map((u) => {
+                          const active = u.id === selectedUnitId;
+                          return (
+                            <tr
+                              key={u.id}
+                              onClick={() => onSelectUnit(u.id)}
+                              className={`cursor-pointer border-b border-line2 last:border-0 ${
+                                active ? "bg-teal-t" : "hover:bg-blue-t2"
+                              }`}
+                            >
+                              <td className="px-[16px] py-[12px] text-[13.5px] font-bold text-t1">
+                                {unitLabel(u)}
+                              </td>
+                              <td className={`px-[16px] py-[12px] text-[13.5px] ${tenantByUnit.has(u.id) ? "text-t2" : "text-t4"}`}>
+                                {tenantByUnit.get(u.id) ?? "공실"}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       <BuildingNoteBlock
