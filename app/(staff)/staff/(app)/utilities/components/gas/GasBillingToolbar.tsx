@@ -1,4 +1,5 @@
 import { CloseIcon } from "@/components/icons";
+import { DpDatePicker } from "@/components/common/DpDatePicker";
 
 interface GasBillingToolbarProps {
   buildingName: string;
@@ -37,33 +38,9 @@ export function GasBillingToolbar({
       </div>
       <div className="ml-auto flex flex-wrap items-center gap-1.5">
         <span className="mr-1 text-[11.5px] font-bold text-t2">부과기준일</span>
-        {editing ? (
-          <input
-            aria-label="부과 시작일"
-            type="date"
-            value={chargeStartDate}
-            onChange={(event) => onChargeStartDateChange(event.target.value)}
-            className="h-7 w-[128px] rounded-[8px] border border-line bg-white px-2 text-[12px] font-medium text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t"
-          />
-        ) : (
-          <div className={`flex h-7 min-w-[106px] items-center justify-center rounded-[8px] border border-line2 bg-bg px-2 text-[12px] font-medium tabular-nums ${chargeStartDate ? "text-t1" : "text-t4"}`}>
-            {chargeStartDate ? chargeStartDate.replaceAll("-", ".") : "시작일"}
-          </div>
-        )}
+        <DpDatePicker ariaLabel="부과 시작일" disabled={!editing} value={chargeStartDate} onChange={onChargeStartDateChange} placeholder="시작일" />
         <span className="text-[12px] font-bold text-t2">~</span>
-        {editing ? (
-          <input
-            aria-label="부과 종료일"
-            type="date"
-            value={chargeEndDate}
-            onChange={(event) => onChargeEndDateChange(event.target.value)}
-            className="h-7 w-[128px] rounded-[8px] border border-line bg-white px-2 text-[12px] font-medium text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t"
-          />
-        ) : (
-          <div className={`flex h-7 min-w-[106px] items-center justify-center rounded-[8px] border border-line2 bg-bg px-2 text-[12px] font-medium tabular-nums ${chargeEndDate ? "text-t1" : "text-t4"}`}>
-            {chargeEndDate ? chargeEndDate.replaceAll("-", ".") : "종료일"}
-          </div>
-        )}
+        <DpDatePicker ariaLabel="부과 종료일" disabled={!editing} value={chargeEndDate} onChange={onChargeEndDateChange} placeholder="종료일" />
         <span className="mx-[10px] h-[26px] w-px bg-line" />
         {editing ? (
           <>

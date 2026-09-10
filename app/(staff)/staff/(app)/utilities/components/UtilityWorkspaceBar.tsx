@@ -6,6 +6,7 @@ import { CloseIcon } from "@/components/icons";
 import { useBillingPeriod, useSaveBillingPeriod } from "@/hooks/reactquery/utilities";
 import { defaultBillingDates } from "./BillingPeriodBar";
 import { isPrototypeFuturePeriod } from "./BillingBasisRequiredState";
+import { DpDatePicker } from "@/components/common/DpDatePicker";
 
 interface UtilityWorkspaceBarProps {
   buildingId: number;
@@ -17,10 +18,6 @@ interface UtilityWorkspaceBarProps {
   onEditingChange: (editing: boolean) => void;
   onCalculate: () => void;
   onSave: () => void;
-}
-
-function displayDate(value: string): string {
-  return value.replaceAll("-", ".");
 }
 
 export function UtilityWorkspaceBar({
@@ -77,19 +74,9 @@ export function UtilityWorkspaceBar({
 
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="mr-1 text-[11.5px] font-bold text-t2">부과기준일</span>
-        {editing ? (
-          <>
-            <input aria-label="부과 시작일" type="date" value={chargeStartDate} onChange={(event) => setStartDraft(event.target.value)} className="h-7 w-[128px] rounded-[8px] border border-line bg-white px-2 text-[12px] text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t" />
-            <span className="text-[12px] font-bold text-t2">~</span>
-            <input aria-label="부과 종료일" type="date" value={chargeEndDate} onChange={(event) => setEndDraft(event.target.value)} className="h-7 w-[128px] rounded-[8px] border border-line bg-white px-2 text-[12px] text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t" />
-          </>
-        ) : (
-          <>
-            <span className={`flex h-7 min-w-[106px] items-center justify-center rounded-[8px] border border-line2 bg-bg px-2 text-[12px] font-medium ${chargeStartDate ? "text-t1" : "text-t4"}`}>{chargeStartDate ? displayDate(chargeStartDate) : "시작일"}</span>
-            <span className="text-[12px] font-bold text-t2">~</span>
-            <span className={`flex h-7 min-w-[106px] items-center justify-center rounded-[8px] border border-line2 bg-bg px-2 text-[12px] font-medium ${chargeEndDate ? "text-t1" : "text-t4"}`}>{chargeEndDate ? displayDate(chargeEndDate) : "종료일"}</span>
-          </>
-        )}
+        <DpDatePicker ariaLabel="부과 시작일" disabled={!editing} value={chargeStartDate} onChange={setStartDraft} placeholder="시작일" />
+        <span className="text-[12px] font-bold text-t2">~</span>
+        <DpDatePicker ariaLabel="부과 종료일" disabled={!editing} value={chargeEndDate} onChange={setEndDraft} placeholder="종료일" />
       </div>
 
       <span className="mx-1 hidden h-[26px] w-px bg-line lg:block" />

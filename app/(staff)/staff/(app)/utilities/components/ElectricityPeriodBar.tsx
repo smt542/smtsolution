@@ -1,4 +1,5 @@
 import { CloseIcon } from "@/components/icons";
+import { DpDatePicker } from "@/components/common/DpDatePicker";
 
 interface ElectricityPeriodBarProps {
   buildingName: string | null;
@@ -13,10 +14,6 @@ interface ElectricityPeriodBarProps {
   onCalculate: () => void;
   onSave: () => void;
   onCancel: () => void;
-}
-
-function dateLabel(value: string): string {
-  return value ? value.replaceAll("-", ".") : "-";
 }
 
 export function ElectricityPeriodBar({
@@ -50,23 +47,11 @@ export function ElectricityPeriodBar({
 
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="mr-1 whitespace-nowrap text-[11.5px] font-bold text-t2">부과기준일</span>
+        <DpDatePicker ariaLabel="부과 시작일" disabled={!editing} value={startDate} onChange={onStartDateChange} placeholder="시작일" />
+        <span className="text-xs text-t3">~</span>
+        <DpDatePicker ariaLabel="부과 종료일" disabled={!editing} value={endDate} onChange={onEndDateChange} placeholder="종료일" />
         {editing ? (
           <>
-            <input
-              aria-label="부과 시작일"
-              type="date"
-              value={startDate}
-              onChange={(event) => onStartDateChange(event.target.value)}
-              className="h-[28px] w-[128px] rounded-[8px] border border-line bg-white px-[10px] text-center text-[12px] font-medium text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t"
-            />
-            <span className="text-xs text-t3">~</span>
-            <input
-              aria-label="부과 종료일"
-              type="date"
-              value={endDate}
-              onChange={(event) => onEndDateChange(event.target.value)}
-              className="h-[28px] w-[128px] rounded-[8px] border border-line bg-white px-[10px] text-center text-[12px] font-medium text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t"
-            />
             <button
               type="button"
               onClick={onCalculate}
@@ -92,23 +77,14 @@ export function ElectricityPeriodBar({
             </button>
           </>
         ) : (
-          <>
-            <div className={`flex h-[28px] min-w-[106px] items-center justify-center rounded-[8px] border px-[10px] text-[12px] font-medium ${disabled || !startDate ? "border-line2 bg-bg text-t4" : "border-line2 bg-bg text-t1"}`}>
-              {disabled || !startDate ? "시작일" : dateLabel(startDate)}
-            </div>
-            <span className="text-xs text-t3">~</span>
-            <div className={`flex h-[28px] min-w-[106px] items-center justify-center rounded-[8px] border px-[10px] text-[12px] font-medium ${disabled || !endDate ? "border-line2 bg-bg text-t4" : "border-line2 bg-bg text-t1"}`}>
-              {disabled || !endDate ? "종료일" : dateLabel(endDate)}
-            </div>
-            <button
-              type="button"
-              onClick={onEdit}
-              disabled={disabled}
-              className="h-[26px] rounded-[8px] border border-line bg-white px-[10px] text-[11.5px] font-bold text-t2 hover:bg-bg disabled:cursor-default disabled:bg-line2 disabled:text-t4"
-            >
-              수정
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={onEdit}
+            disabled={disabled}
+            className="h-[26px] rounded-[8px] border border-line bg-white px-[10px] text-[11.5px] font-bold text-t2 hover:bg-bg disabled:cursor-default disabled:bg-line2 disabled:text-t4"
+          >
+            수정
+          </button>
         )}
       </div>
     </section>
