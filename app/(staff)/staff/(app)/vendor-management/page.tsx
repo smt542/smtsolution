@@ -1,6 +1,22 @@
-import { redirect } from "next/navigation";
+import { EmptyState } from "@/components/common";
+import { VendorManagementSection } from "@/components/vendors/VendorManagementSection";
+import { hasModule } from "@/lib/auth/permissions";
+import { getStaffContext } from "../_staffContext";
 
-// 협력업체 관리는 PRD 정본상 /setup 시스템설정 탭 소속 → 이관 완료. 이 라우트는 리다이렉트만 유지.
-export default function VendorManagementRedirect() {
-  redirect("/staff/setup?tab=system");
+export default async function VendorManagementPage() {
+  const me = await getStaffContext();
+
+  if (!me || !hasModule(me, "vendors")) {
+    return (
+      <div className="p-6">
+        <EmptyState message="권한이 없습니다" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6">
+      <VendorManagementSection />
+    </div>
+  );
 }

@@ -2,8 +2,12 @@ import { describe, it, expect } from "vitest";
 import { NAV_GROUPS } from "./navItems";
 const all = NAV_GROUPS.flatMap((g) => g.items);
 describe("navItems P2b", () => {
-  it("협력업체 독립 항목 제거", () => {
-    expect(all.find((i) => i.href === "/staff/vendor-management")).toBeUndefined();
+  it("협력업체 관리 독립 항목을 vendors 권한으로 제공", () => {
+    expect(all.find((i) => i.href === "/staff/vendor-management")).toMatchObject({
+      label: "협력업체 관리",
+      module: "vendors",
+      built: true,
+    });
   });
   it("셋업 built:true", () => {
     expect(all.find((i) => i.href === "/staff/setup")?.built).toBe(true);
