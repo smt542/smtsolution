@@ -193,6 +193,10 @@ export function PaymentHistorySection({
   };
 
   const openAdd = () => {
+    if (!hasUnit || unitId === null) {
+      toast.info("건물과 호수를 먼저 선택해 주세요.");
+      return;
+    }
     setEditingId(null);
     setForm(emptyForm());
     setFormOpen(true);
@@ -292,39 +296,37 @@ export function PaymentHistorySection({
     });
   };
 
-  const action =
-    canEdit && hasUnit ? (
-      <div className="flex items-center gap-[7px]">
-        <button
-          type="button"
-          onClick={openAdd}
-          className="h-[28px] rounded-[8px] border border-line bg-surface px-[11px] text-[12px] font-bold text-t2 hover:bg-bg"
-        >
-          추가
-        </button>
-        <button
-          type="button"
-          onClick={openSelectedPayment}
-          disabled={selectedPaymentId === null}
-          className="h-[28px] rounded-[8px] border border-line bg-surface px-[11px] text-[12px] font-bold text-t2 hover:bg-bg disabled:cursor-not-allowed disabled:opacity-45"
-        >
-          수정
-        </button>
-      </div>
-    ) : undefined;
+  const action = canEdit ? (
+    <div className="flex items-center gap-[6px]">
+      <button
+        type="button"
+        onClick={openAdd}
+        className="h-[26px] rounded-[8px] border border-line bg-surface px-[10px] text-[11.5px] font-bold leading-[normal] text-t2 hover:bg-bg"
+      >
+        추가
+      </button>
+      <button
+        type="button"
+        onClick={openSelectedPayment}
+        className="h-[26px] rounded-[8px] border border-line bg-surface px-[10px] text-[11.5px] font-bold leading-[normal] text-t2 hover:bg-bg"
+      >
+        수정
+      </button>
+    </div>
+  ) : undefined;
 
   return (
-    <Panel title="수납 이력" action={action} flush>
+    <Panel title="수납 이력" action={action} flush className="min-h-[266px] flex-1">
       {!hasUnit ? (
-        <div className="flex h-[246px] flex-col items-center justify-center text-center">
-          <span className="mb-[10px] flex size-[54px] items-center justify-center rounded-[16px] bg-teal-t text-teal">
-            <UnitCardIcon className="size-[24px]" aria-hidden="true" />
+        <div className="flex flex-1 flex-col items-center justify-center gap-[5px] px-[24px] py-[40px] text-center">
+          <span className="mb-[4px] flex size-[54px] items-center justify-center rounded-[16px] bg-teal-t text-teal">
+            <UnitCardIcon className="size-[26px]" aria-hidden="true" />
           </span>
-          <p className="text-[15px] font-bold text-t1">호수를 선택해 주세요</p>
-          <p className="pt-[7px] text-[13px] text-t4">선택한 세대의 월별 수납 이력이<br />여기에 표시돼요</p>
+          <p className="text-[15px] font-bold leading-[normal] text-t1">호수를 선택해 주세요</p>
+          <p className="text-[13px] leading-[1.55] text-t3">선택한 세대의 월별 수납 이력이<br />여기에 표시돼요</p>
         </div>
       ) : isLoading ? (
-        <div className="flex h-[246px] items-center justify-center"><Spinner /></div>
+        <div className="flex min-h-[246px] flex-1 items-center justify-center"><Spinner /></div>
       ) : (
         <>
           <div className="overflow-x-auto">

@@ -17,9 +17,9 @@ export function Panel({
 }) {
   if (flush) {
     return (
-      <section className={`overflow-hidden rounded-2xl border border-line bg-surface ${className}`}>
-        <div className="flex h-[56px] items-center justify-between border-b border-line px-[18px]">
-          <h3 className="text-[16px] font-extrabold text-t1">{title}</h3>
+      <section className={`flex flex-col overflow-hidden rounded-2xl bg-surface shadow-[0_1px_3px_rgba(23,31,40,0.05)] ${className}`}>
+        <div className="flex items-center justify-between border-b border-line2 px-[18px] py-[15px]">
+          <h3 className="text-[15px] font-extrabold leading-[normal] text-t1">{title}</h3>
           {action && <div className={`ml-auto ${actionClassName}`}>{action}</div>}
         </div>
         {children}

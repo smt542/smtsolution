@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Badge, Button, EmptyState, Panel, Select, Spinner } from "@/components/common";
+import { Badge, Button, Panel, Select, Spinner } from "@/components/common";
 import { useAccounts } from "@/hooks/reactquery/accounts";
 import { useAsCategories } from "@/hooks/reactquery/asCategories";
 import { useBuildings } from "@/hooks/reactquery/buildings";
@@ -44,7 +44,7 @@ const AS_COLUMNS = [
   "접수자",
   "담당자",
 ];
-const AS_COLUMN_WIDTHS = [50, 111, 90, 285, 135, 105, 207, 111, 70, 65, 63];
+const AS_COLUMN_WIDTHS = [47, 86, 80, 240, 112, 70, 200, 86, 52, 66, 66];
 
 function AsTableColumns() {
   return (
@@ -57,12 +57,28 @@ function AsTableColumns() {
 function AsTableHeader() {
   return (
     <thead>
-      <tr className="h-[37px] border-b border-line bg-bg text-left text-xs font-bold text-t3">
+      <tr className="h-[37px] border-b border-line bg-[#FBFCFD] text-left text-xs font-bold leading-[normal] text-t3">
         {AS_COLUMNS.map((label, index) => (
-          <th key={label} className={`px-3 ${index === 0 ? "text-right" : ""}`}>{label}</th>
+          <th key={label} className={`px-[16px] ${index === 0 ? "text-right" : ""}`}>{label}</th>
         ))}
       </tr>
     </thead>
+  );
+}
+
+function AsEmptyTable({ message }: { message: string }) {
+  return (
+    <table className="w-[1105px] table-fixed text-[12.5px] leading-[normal]">
+      <AsTableColumns />
+      <AsTableHeader />
+      <tbody>
+        <tr>
+          <td colSpan={AS_COLUMNS.length} className="py-[26px] text-center text-[13px] text-t4">
+            {message}
+          </td>
+        </tr>
+      </tbody>
+    </table>
   );
 }
 
@@ -242,14 +258,13 @@ export function AsStatusSection({
   };
 
   const action = (
-    <div className="flex w-full flex-nowrap items-center gap-[8px]">
-      <div className="flex rounded-lg border border-line bg-bg p-0.5 text-xs font-bold">
+    <div className="flex w-full flex-nowrap items-center gap-[14px]">
+      <div className="inline-flex flex-none gap-[2px] rounded-[9px] bg-[#EDF0F3] p-[3px] text-[11.5px] font-bold leading-[normal]">
         <button
           type="button"
           onClick={() => setScope("unit")}
-          disabled={unitId === null}
-          className={`rounded-md px-2 py-1 disabled:opacity-40 ${
-            scope === "unit" ? "bg-surface text-t1 shadow-sm" : "text-t3"
+          className={`whitespace-nowrap rounded-[7px] px-[7px] py-[4px] ${
+            scope === "unit" ? "bg-surface text-t1" : "text-t3"
           }`}
         >
           호실
@@ -257,15 +272,15 @@ export function AsStatusSection({
         <button
           type="button"
           onClick={() => setScope("building")}
-          className={`rounded-md px-2 py-1 ${
-            scope === "building" ? "bg-surface text-t1 shadow-sm" : "text-t3"
+          className={`whitespace-nowrap rounded-[7px] px-[7px] py-[4px] ${
+            scope === "building" ? "bg-surface text-t1" : "text-t3"
           }`}
         >
           건물 전체
         </button>
       </div>
       <Select
-        className="!h-[30px] !w-[72px] !rounded-[8px] !px-[10px] !text-[12px]"
+        className="!h-[28px] !w-[62px] !rounded-[9px] !px-[9px] !text-[12px] !leading-[normal]"
         aria-label="처리결과 필터"
         value={resultFilter}
         onChange={(event) => setResultFilter(event.target.value as "" | ComplaintStatus)}
@@ -273,32 +288,45 @@ export function AsStatusSection({
       />
       <Button
         type="button"
-        onClick={() => setFormOpen(true)}
-        disabled={buildingId === null}
-        className="ml-auto !h-[30px] whitespace-nowrap !rounded-[8px] !border !border-line !bg-surface !px-[11px] !text-[12px] !text-t2 !shadow-none hover:!bg-bg"
+        onClick={() => {
+          if (buildingId === null) {
+            toast.info("건물을 먼저 선택해 주세요.");
+            return;
+          }
+          setFormOpen(true);
+        }}
+        className="ml-auto !flex !h-[26px] items-center gap-[5px] whitespace-nowrap !rounded-[8px] !border !border-line !bg-surface !px-[8px] !text-[11.5px] !leading-[normal] !text-t2 !shadow-none hover:!bg-bg"
       >
-        + 접수 추가
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          className="size-[13px]"
+          aria-hidden="true"
+        >
+          <path d="M12 5v14M5 12h14" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        접수 추가
       </Button>
     </div>
   );
 
   return (
-    <Panel title="A/S 현황" action={action} actionClassName="ml-[14px] flex-1" flush>
+    <Panel title="A/S 현황" action={action} actionClassName="flex-1" flush className="h-[320px] shrink-0 [&>div:first-child]:gap-[14px] [&>div:first-child]:px-[12px]">
       {buildingId === null ? (
         <div className="overflow-x-auto">
-          <table className="w-[1292px] table-fixed text-sm"><AsTableColumns /><AsTableHeader /></table>
-          <p className="flex h-[223px] min-w-[1292px] items-center justify-center text-[13px] text-t4">건물과 호수를 선택해 주세요</p>
+          <AsEmptyTable message="건물과 호수를 선택해 주세요" />
         </div>
       ) : isLoading ? (
         <div className="flex h-[260px] items-center justify-center"><Spinner /></div>
       ) : rows.length === 0 ? (
         <div className="overflow-x-auto">
-          <table className="w-[1292px] table-fixed text-sm"><AsTableColumns /><AsTableHeader /></table>
-          <div className="flex h-[223px] min-w-[1292px] items-center justify-center"><EmptyState message="접수된 A/S가 없습니다" /></div>
+          <AsEmptyTable message="접수 내역이 없어요" />
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-[1292px] table-fixed text-sm">
+          <table className="w-[1105px] table-fixed text-[12.5px] leading-[normal]">
             <AsTableColumns />
             <AsTableHeader />
             <tbody>
