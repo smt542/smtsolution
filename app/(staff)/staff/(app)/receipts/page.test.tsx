@@ -292,22 +292,20 @@ describe("ReceiptManagementPage (세대중심 재설계)", () => {
     expect(screen.getByText("적요메모")).toBeInTheDocument();
   });
 
-  it("건물과 호실 목록 전환에 원본 방향의 슬라이드 애니메이션을 적용", () => {
+  it("건물 선택 시 전체 목록 화면을 오른쪽 호실 화면으로 슬라이드", () => {
     renderPage();
 
-    expect(screen.getByRole("table", { name: "건물 목록" })).toHaveClass(
-      railStyles.buildingTableEnter,
-    );
+    const track = screen.getByTestId("building-unit-view-track");
+    expect(track).not.toHaveClass(railStyles.showUnitView);
+    expect(screen.queryByRole("table", { name: "호실 목록" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByText("그린빌라"));
-    expect(screen.getByRole("table", { name: "호실 목록" })).toHaveClass(
-      railStyles.unitTableEnter,
-    );
+    expect(track).toHaveClass(railStyles.showUnitView);
+    expect(screen.getByRole("table", { name: "호실 목록" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "건물 목록으로" }));
-    expect(screen.getByRole("table", { name: "건물 목록" })).toHaveClass(
-      railStyles.buildingTableEnter,
-    );
+    expect(track).not.toHaveClass(railStyles.showUnitView);
+    expect(screen.getByRole("table", { name: "건물 목록" })).toBeInTheDocument();
   });
 
   it("조회 버튼이 통합검색 모달을 연다", () => {

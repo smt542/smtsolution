@@ -268,7 +268,6 @@ export function ReceiptWorkspace({
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-[16px] lg:grid-cols-[minmax(240px,322px)_minmax(0,1fr)]">
         <BuildingUnitRail
-          key={selectedBuildingId ?? "all-buildings"}
           buildings={orgBuildings}
           units={units}
           receiptRows={receiptRows}
