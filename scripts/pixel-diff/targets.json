@@ -47,5 +47,23 @@
     "appActions": [{ "click": "button[aria-label='문자·알림톡 발송']" }, { "wait": 500 }],
     "viewport": { "w": 1340, "h": 880 },
     "device": "desktop"
+  },
+  {
+    "id": "staff-sidebar",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/fee-item/fee-item.dc.html",
+    "originSelector": ".hf-side",
+    "appPath": "/staff/fee-items",
+    "appSelector": "aside",
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
+  },
+  {
+    "id": "staff-topbar",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/fee-item/fee-item.dc.html",
+    "originSelector": ".hf-top",
+    "appPath": "/staff/fee-items",
+    "appSelector": "header",
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
   }
 ]

@@ -81,7 +81,9 @@ function NavItemRow({
       <NavIcon svg={item.icon} />
       <span className="min-w-0 flex-1 truncate">{item.label}</span>
       {(item.href === "/staff/utilities" || item.href === "/staff/moving-settlement") && (
-        <span className="text-[15px] leading-none opacity-70" aria-hidden="true">⌄</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="ml-auto h-[14px] w-[14px] text-t3" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
       )}
     </Link>
   );
@@ -120,7 +122,9 @@ function UtilitiesNavGroup({
       >
         <NavIcon svg={item.icon} />
         <span className="flex-1">{item.label}</span>
-        <span className="rotate-180 text-[15px] leading-none text-t3" aria-hidden="true">⌄</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="ml-auto h-[14px] w-[14px] rotate-180 text-t3" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
       </Link>
       <div className="ml-[31px] flex flex-col gap-0.5 border-l border-line pl-[11px]">
         <Link
@@ -155,7 +159,9 @@ function MovingSettlementNavGroup({ item, pathname }: { item: NavItem; pathname:
       >
         <NavIcon svg={item.icon} />
         <span className="flex-1">{item.label}</span>
-        <span className="rotate-180 text-[15px] leading-none text-t3" aria-hidden="true">⌄</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="ml-auto h-[14px] w-[14px] rotate-180 text-t3" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
       </Link>
       <div className="ml-[31px] flex flex-col gap-[2px] border-l border-line pl-[11px]">
         {links.map((link) => {
@@ -235,7 +241,7 @@ export function Sidebar() {
   }, [profileMenuOpen]);
 
   return (
-    <aside className="flex h-full w-60 flex-col border-r border-line bg-white px-[14px] pb-[25px] pt-[18px] font-sans">
+    <aside className="flex h-full w-60 flex-col border-r border-line bg-white px-[14px] pb-[18px] pt-[18px] font-sans">
       {/* Brand */}
       <Link href="/staff" className="flex items-center gap-[10px] px-[10px] pb-[18px] pt-[8px]">
         <Image
@@ -246,8 +252,8 @@ export function Sidebar() {
           className="size-[34px] shrink-0 object-contain"
           priority
         />
-        <span className="text-[18px] font-extrabold leading-[23px] tracking-[-0.5px] text-t1">
-          관리<span className="text-teal">비서</span>
+        <span className="text-[19px] font-extrabold leading-[23px] tracking-[-0.02em] text-[#16375a]">
+          관리<span className="text-[#17a493]">비서</span>
         </span>
       </Link>
 
@@ -296,10 +302,21 @@ export function Sidebar() {
               role="menu"
               className="absolute inset-x-0 bottom-full mb-2 rounded-[14px] border border-line bg-surface p-1.5 shadow-pop"
             >
+              {/* 캔버스 hf-menu-head: 사용자 정보 */}
+              <div className="flex items-center gap-[10px] px-3 pb-2 pt-2.5">
+                <div className="flex h-[30px] w-[30px] flex-none select-none items-center justify-center rounded-full bg-[#DCE3EA] text-[12px] font-bold text-t2">
+                  {me.fullName.charAt(0)}
+                </div>
+                <div className="min-w-0">
+                  <div className="truncate text-[13px] font-bold text-t1">{me.fullName}</div>
+                  <div className="truncate text-[11px] font-semibold text-t3">프로필 · {roleLabel(me.role)}</div>
+                </div>
+              </div>
+              <div className="mx-1 my-1.5 h-px bg-line2" />
               {/* 캔버스 hf-menu: 설정 섹션(계정·직원 / 셋업) — 권한 있는 항목만 노출 */}
               {(hasModule(me, "accounts") || hasModule(me, "settings")) && (
                 <>
-                  <div className="px-3 pb-1 pt-1.5 text-[11px] font-bold tracking-[0.04em] text-t4">설정</div>
+                  <div className="px-3 pb-1 pt-2 text-[11px] font-bold tracking-[0.04em] text-t4">설정</div>
                   {hasModule(me, "accounts") && (
                     <Link
                       role="menuitem"
@@ -328,11 +345,8 @@ export function Sidebar() {
                 role="menuitem"
                 onClick={() => { setProfileMenuOpen(false); void handleLogout(); }}
                 disabled={logout.isPending}
-                className="flex w-full items-center gap-2 rounded-[9px] px-3 py-2.5 text-left text-[13px] font-bold text-red transition-colors hover:bg-red-t disabled:cursor-not-allowed disabled:opacity-60"
+                className="block w-full rounded-[9px] px-3 py-2.5 text-left text-[13.5px] font-semibold text-red transition-colors hover:bg-red-t disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 flex-none" aria-hidden="true">
-                  <path d="M10 17l5-5-5-5M15 12H3M14 4h5a2 2 0 012 2v12a2 2 0 01-2 2h-5" />
-                </svg>
                 {logout.isPending ? "로그아웃 중…" : "로그아웃"}
               </button>
             </div>
@@ -342,7 +356,7 @@ export function Sidebar() {
             onClick={() => setProfileMenuOpen((v) => !v)}
             aria-haspopup="menu"
             aria-expanded={profileMenuOpen}
-            className="flex w-full items-center gap-[10px] rounded-xl bg-bg p-[10px] text-left transition-colors hover:bg-line2"
+            className={`flex w-full items-center gap-[10px] rounded-xl p-[10px] text-left transition-colors ${profileMenuOpen ? "bg-teal-t" : "bg-transparent hover:bg-bg"}`}
           >
             <div className="w-[34px] h-[34px] rounded-full bg-[#DCE3EA] flex items-center justify-center text-[14px] font-bold text-t2 flex-none select-none">
               {me.fullName.charAt(0)}
@@ -353,8 +367,8 @@ export function Sidebar() {
                 {me.username} · {roleLabel(me.role)}
               </div>
             </div>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`h-4 w-4 flex-none text-t3 transition-transform ${profileMenuOpen ? "rotate-180" : ""}`} aria-hidden="true">
-              <path d="M6 9l6 6 6-6" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 flex-none text-t3" aria-hidden="true">
+              <path d="M6 15l6-6 6 6" />
             </svg>
           </button>
         </div>

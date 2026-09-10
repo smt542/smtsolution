@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { useMe } from "@/hooks/reactquery/auth";
-import { MenuIcon, PrinterIcon } from "@/components/icons";
+import { PrinterIcon } from "@/components/icons";
 import { NAV_GROUPS } from "./navItems";
 
 interface TopbarProps {
@@ -23,11 +22,7 @@ function findPageTitle(pathname: string): string {
 
 export function Topbar({ onMenu }: TopbarProps) {
   const pathname = usePathname();
-  const { data: me } = useMe();
   const title = findPageTitle(pathname);
-  const usesRouteActions = pathname.startsWith("/staff/receipts");
-  const isBillPage = pathname.startsWith("/staff/bill");
-  const isOverduePage = pathname.startsWith("/staff/overdue");
   const isUtilities = pathname.startsWith("/staff/utilities");
   const isMovingInquiry = pathname.startsWith("/staff/moving-settlement/inquiries/");
   const isMovingSettlement = pathname === "/staff/moving-settlement";
@@ -59,15 +54,17 @@ export function Topbar({ onMenu }: TopbarProps) {
   };
 
   return (
-    <header className="h-[62px] flex-none flex items-center gap-[14px] px-6 bg-white border-b border-line">
-      {/* Figma 공통 상단 메뉴 아이콘. 모바일에서는 서랍을 열고 데스크톱에서는 위치 기준을 유지한다. */}
+    <header className="h-[62px] flex-none flex items-center gap-[12px] px-6 bg-white border-b border-line">
+      {/* 캔버스 hf-top lnb-btn: 36×36 rounded, hover 배경 채움 */}
       <button
         type="button"
         onClick={onMenu}
-        className="flex h-[36px] w-[36px] shrink-0 items-center justify-center text-t3 transition-colors hover:text-t1"
+        className="mr-[2px] flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[10px] text-t2 transition-colors hover:bg-bg"
         aria-label="메뉴 열기"
       >
-        <MenuIcon className="size-[20px]" />
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-[20px] w-[20px]" aria-hidden="true">
+          <path d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
       </button>
 
       {isElectricityUtilities || isMovingInquiry || isMovingSettlement ? (
@@ -90,7 +87,7 @@ export function Topbar({ onMenu }: TopbarProps) {
           </h1>
         </div>
       ) : (
-        <h1 className="flex-1 text-[19px] font-extrabold tracking-tight text-t1">
+        <h1 className="flex-1 text-[19px] font-extrabold tracking-[-0.02em] text-t1">
           {title}
         </h1>
       )}
@@ -112,13 +109,6 @@ export function Topbar({ onMenu }: TopbarProps) {
           >
             전체 이월
           </button>
-        </div>
-      )}
-
-      {/* avatar */}
-      {me && !usesRouteActions && !isElectricityUtilities && !isMovingInquiry && !isMovingSettlement && !isBillPage && !isOverduePage && (
-        <div className="w-[40px] h-[40px] rounded-[11px] flex items-center justify-center bg-[#DCE3EA] text-[14px] font-bold text-t2 select-none flex-none">
-          {me.fullName.charAt(0)}
         </div>
       )}
     </header>
