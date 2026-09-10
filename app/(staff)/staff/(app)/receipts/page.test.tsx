@@ -294,6 +294,32 @@ describe("ReceiptManagementPage (세대중심 재설계)", () => {
     expect(screen.getByText("적요메모")).toBeInTheDocument();
   });
 
+  it("수납 추가 폼을 모달이 아닌 수납 이력 표 내부에 표시", () => {
+    renderPage({
+      initialPeriod: "2026-08-01",
+      initialBuildingId: 2,
+      initialUnitId: 21,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "추가" }));
+
+    const editor = screen.getByTestId("payment-inline-editor");
+    const historyPanel = editor.closest("section");
+    expect(historyPanel).not.toBeNull();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "처리" })).toBeInTheDocument();
+    expect(within(editor).getByLabelText("수납액")).toBeInTheDocument();
+    expect(within(editor).getByLabelText("수수료(수료)")).toBeInTheDocument();
+    expect(within(editor).getByLabelText("수납일자")).toBeInTheDocument();
+    expect(within(editor).getByLabelText("은행/방법")).toBeInTheDocument();
+    expect(within(editor).getByLabelText("구분")).toBeInTheDocument();
+    expect(within(editor).getByLabelText("비고")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "저장" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "수납 이력 편집 취소" }));
+    expect(screen.queryByTestId("payment-inline-editor")).not.toBeInTheDocument();
+    expect(within(historyPanel!).getByRole("button", { name: "수정" })).toBeInTheDocument();
+  });
+
   it("건물 선택 시 전체 목록 화면을 오른쪽 호실 화면으로 슬라이드", () => {
     renderPage();
 
