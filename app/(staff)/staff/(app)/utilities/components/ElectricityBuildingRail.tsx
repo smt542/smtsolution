@@ -80,7 +80,7 @@ export function ElectricityBuildingRail({
             disabled={disabled}
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder="건물명·주소 검색"
-            className="h-[34px] w-full rounded-[9px] border border-line bg-white pl-[31px] pr-[11px] text-[13px] font-semibold text-t1 outline-none placeholder:text-t4 focus:border-teal disabled:bg-line2"
+            className="h-[34px] w-full rounded-[9px] border border-line bg-white pl-[31px] pr-[11px] text-[13px] font-semibold text-t1 outline-none placeholder:text-t4 focus:border-teal"
           />
         </label>
       </div>

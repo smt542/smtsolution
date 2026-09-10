@@ -55,7 +55,7 @@ export function ElectricityCustomerSummary({
   return (
     <section className="h-[150px] flex-none overflow-hidden rounded-card bg-white shadow-card">
       <div className="h-full overflow-auto">
-        <table className="w-[1294px] table-fixed border-collapse text-[13.5px]">
+        <table className="w-[1294px] table-fixed border-collapse text-[11.5px]">
           <colgroup>
             {(editing
               ? [58, 300, 300, 82, 87, 90, 90, 107, 75]
