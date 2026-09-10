@@ -206,6 +206,38 @@ describe("VendorManagementPage", () => {
     expect(fileInput).toHaveAttribute("multiple");
   });
 
+  it("new vendor photos are uploaded after the vendor is created", async () => {
+    const user = userEvent.setup();
+    const createdVendor = {
+      id: 30,
+      orgId: 10,
+      name: "새 업체",
+      phone: null,
+      bankAccount: null,
+      memo: null,
+      categoryId: 1,
+    };
+    const createMutate = vi.fn().mockResolvedValue(createdVendor);
+    const uploadMutate = vi.fn().mockResolvedValue({});
+    vi.mocked(useCreateVendor).mockReturnValue({ mutateAsync: createMutate, isPending: false } as unknown as ReturnType<typeof useCreateVendor>);
+    vi.mocked(useUploadVendorAttachment).mockReturnValue({ mutateAsync: uploadMutate, isPending: false } as unknown as ReturnType<typeof useUploadVendorAttachment>);
+
+    render(<VendorManagementSection />);
+    await user.click(screen.getByRole("button", { name: /업체 추가/ }));
+    await user.click(screen.getByRole("combobox", { name: "구분" }));
+    await user.click(screen.getByRole("option", { name: "전기" }));
+    await user.type(screen.getByPlaceholderText("업체명"), "새 업체");
+
+    const photo = new File(["photo"], "contract.png", { type: "image/png" });
+    await user.upload(screen.getByLabelText("계약서 사진 업로드"), photo);
+    await user.click(screen.getByRole("button", { name: "추가" }));
+
+    await waitFor(() => {
+      expect(createMutate).toHaveBeenCalledWith(expect.objectContaining({ name: "새 업체", categoryId: 1, orgId: 10 }));
+      expect(uploadMutate).toHaveBeenCalledWith({ vendorId: 30, orgId: 10, file: photo });
+    });
+  });
+
   it("renders categories as fixed filters without add, rename, or delete controls", () => {
     render(<VendorManagementSection />);
     expect(screen.queryByRole("button", { name: "구분 추가" })).not.toBeInTheDocument();
