@@ -336,7 +336,7 @@
 .dateControl {
   position: relative;
   display: flex;
-  width: 112px;
+  width: 96px;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
