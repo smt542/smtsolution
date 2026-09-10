@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 /**
@@ -15,6 +15,9 @@ interface DpDatePickerProps {
   placeholder?: string;
   disabled?: boolean;
   ariaLabel?: string;
+  triggerClassName?: string;
+  triggerOpenClassName?: string;
+  endAdornment?: ReactNode;
 }
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -27,6 +30,9 @@ export function DpDatePicker({
   placeholder = "날짜",
   disabled = false,
   ariaLabel,
+  triggerClassName,
+  triggerOpenClassName,
+  endAdornment,
 }: DpDatePickerProps) {
   const ctlRef = useRef<HTMLButtonElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
@@ -108,19 +114,26 @@ export function DpDatePicker({
         ref={ctlRef}
         type="button"
         aria-label={ariaLabel}
+        aria-expanded={open}
+        aria-haspopup="dialog"
         disabled={disabled}
         onClick={() => (open ? setOpen(false) : openPicker())}
-        className={`flex h-[28px] min-w-[106px] items-center justify-center gap-1.5 rounded-[8px] border px-[10px] text-[12px] font-medium outline-none ${
-          disabled ? "cursor-default border-line2 bg-bg" : "cursor-pointer border-line bg-white"
-        } ${open ? "border-blue shadow-[0_0_0_3px_var(--color-blue-t)]" : ""} ${value ? "text-t1" : "text-t4"}`}
+        className={triggerClassName
+          ? `${triggerClassName} ${open ? triggerOpenClassName ?? "" : ""}`
+          : `flex h-[28px] min-w-[106px] items-center justify-center gap-1.5 rounded-[8px] border px-[10px] text-[12px] font-medium outline-none ${
+            disabled ? "cursor-default border-line2 bg-bg" : "cursor-pointer border-line bg-white"
+          } ${open ? "border-blue shadow-[0_0_0_3px_var(--color-blue-t)]" : ""} ${value ? "text-t1" : "text-t4"}`}
       >
-        {value ? toDisplay(value) : placeholder}
+        <span>{value ? toDisplay(value) : placeholder}</span>
+        {endAdornment}
       </button>
 
       {open && !disabled && pos
         && createPortal(
           <div
             ref={popRef}
+            role="dialog"
+            aria-label={`${view.y}년 ${view.m + 1}월 달력`}
             className="fixed z-[200] w-[262px] rounded-[14px] border border-line bg-white p-[14px] shadow-[0_16px_40px_-12px_rgba(23,31,40,0.28)]"
             style={{ left: pos.left, top: pos.top }}
           >
