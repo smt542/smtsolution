@@ -243,7 +243,7 @@ export function Sidebar() {
   return (
     <aside className="flex h-full w-60 flex-col border-r border-line bg-white px-[14px] pb-[18px] pt-[18px] font-sans">
       {/* Brand */}
-      <Link href="/staff" className="flex items-center gap-[10px] px-[10px] pb-[18px] pt-[8px]">
+      <Link href="/staff/receipts" className="flex items-center gap-[10px] px-[10px] pb-[18px] pt-[8px]">
         <Image
           src="/logo-mark.png"
           alt=""

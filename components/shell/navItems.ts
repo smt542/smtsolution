@@ -3,7 +3,7 @@ import type { ModuleKey } from "@/lib/auth/permissions";
 export interface NavItem {
   label: string;
   href: string;
-  /** 권한 게이트 모듈. undefined = 항상 표시(예: 대시보드). */
+  /** 권한 게이트 모듈. undefined = 항상 표시. */
   module?: ModuleKey;
   /** 권한 게이트 모듈(any-of). 지정 시 이 중 하나라도 보유하면 표시(예: 수납·민원 통합 화면). */
   modules?: ModuleKey[];
@@ -120,12 +120,6 @@ export const OFFICE_NAV_ITEMS: NavItem[] = [
  * 라우트는 우리 앱의 /staff/* prefix. 미구현 화면은 built:false(준비중).
  */
 export const NAV_GROUPS: NavGroup[] = [
-  {
-    label: "",
-    items: [
-      { label: "대시보드", href: "/staff", built: true, icon: "M4 11l8-6 8 6M6 10v9h12v-9M10 19v-5h4v5" },
-    ],
-  },
   {
     label: "관리업무",
     items: [
