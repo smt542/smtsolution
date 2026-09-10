@@ -230,7 +230,14 @@ export function RecipientCascade({
     onChangeRef.current = onChange;
   }, [onChange]);
 
+  // emittedRecipients는 쿼리 로딩 중 기본값(data = [])이나 파생 memo 때문에 매 렌더 새 배열
+  // 참조가 되기 쉽다. 그러면 내용이 같아도 이 effect가 매 렌더 부모 onChange(setRecipients)를
+  // 호출해 무한 렌더 루프("Maximum update depth")가 난다. 내용 서명이 실제로 바뀔 때만 통지한다.
+  const lastEmittedSignatureRef = useRef<string | null>(null);
   useEffect(() => {
+    const signature = emittedRecipients.map((r) => `${r.kind}:${r.phone}`).join("|");
+    if (signature === lastEmittedSignatureRef.current) return;
+    lastEmittedSignatureRef.current = signature;
     onChangeRef.current(emittedRecipients);
   }, [emittedRecipients]);
 
