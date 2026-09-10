@@ -20,7 +20,7 @@ interface Props {
   editing: Vendor | null;
   defaultCategoryId?: number | null;
   categories: VendorCategory[];
-  onSubmit: (values: VendorFormOutput) => Promise<void>;
+  onSubmit: (values: VendorFormOutput, pendingFiles: File[]) => Promise<void>;
   isPending: boolean;
   onDeleteVendor?: (id: number) => Promise<void>;
   // Attachment props (only used when editing an existing vendor)
@@ -48,6 +48,7 @@ export function VendorFormModal({
   const categoryMenuId = React.useId();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const [pendingPhotos, setPendingPhotos] = useState<Array<{ file: File; previewUrl: string }>>([]);
 
   const {
     register,
@@ -101,25 +102,49 @@ export function VendorFormModal({
   const selectedCategory = categories.find((category) => category.id === selectedCategoryId);
 
   const closeModal = () => {
+    pendingPhotos.forEach(({ previewUrl }) => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    });
+    setPendingPhotos([]);
     setCategoryDropdownOpen(false);
     setConfirmDelete(false);
     onClose();
   };
 
   const onValid = async (values: VendorFormOutput) => {
-    await onSubmit(values);
+    await onSubmit(values, pendingPhotos.map(({ file }) => file));
     closeModal();
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const remaining = Math.max(0, 10 - attachments.length);
+    const remaining = Math.max(0, 10 - attachments.length - pendingPhotos.length);
     const files = Array.from(e.target.files ?? []).slice(0, remaining);
-    if (files.length === 0 || !onUploadAttachment) return;
-    for (const file of files) {
-      await onUploadAttachment(file);
+    if (files.length === 0) return;
+
+    if (editing && onUploadAttachment) {
+      for (const file of files) {
+        await onUploadAttachment(file);
+      }
+    } else {
+      setPendingPhotos((current) => [
+        ...current,
+        ...files.map((file) => ({
+          file,
+          previewUrl: typeof URL.createObjectURL === "function" ? URL.createObjectURL(file) : "",
+        })),
+      ]);
     }
+
     // Reset file input so the same file can be re-uploaded if needed
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removePendingPhoto = (index: number) => {
+    setPendingPhotos((current) => {
+      const target = current[index];
+      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
+      return current.filter((_, photoIndex) => photoIndex !== index);
+    });
   };
 
   return (
@@ -229,7 +254,7 @@ export function VendorFormModal({
                 </div>
 
                 {/* 계약서 사진 */}
-                <div className={`${styles.fullField} ${styles.attachments}`}>
+                <div className={styles.fullField}>
                   <label className={styles.fieldLabel}>
                     계약서 사진 <span className="font-semibold text-t4">(최대 10장)</span>
                   </label>
@@ -254,12 +279,38 @@ export function VendorFormModal({
                     </ul>
                   )}
 
-                  {editing && onUploadAttachment ? (
+                  <div className={styles.photoGallery}>
+                    <div className={styles.photoStrip}>
+                      {pendingPhotos.map((photo, index) => (
+                        <div key={`${photo.file.name}-${photo.file.lastModified}-${index}`} className={styles.photoPreview}>
+                          {photo.previewUrl ? (
+                            <span
+                              className={styles.photoPreviewImage}
+                              style={{ backgroundImage: `url(${photo.previewUrl})` }}
+                              aria-label={photo.file.name}
+                              role="img"
+                            />
+                          ) : (
+                            <span className={styles.photoPreviewName}>{photo.file.name}</span>
+                          )}
+                          <button
+                            type="button"
+                            aria-label={`${photo.file.name} 삭제`}
+                            className={styles.photoRemove}
+                            onClick={() => removePendingPhoto(index)}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    {attachments.length + pendingPhotos.length < 10 ? (
                     <label className={styles.fileButton}>
-                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                         <path d="M12 5v14M5 12h14" />
                       </svg>
-                      사진 추가
+                      <span>사진 추가</span>
                       <input
                         ref={fileInputRef}
                         type="file"
@@ -270,9 +321,8 @@ export function VendorFormModal({
                         aria-label="계약서 사진 업로드"
                       />
                     </label>
-                  ) : (
-                    <p className={styles.fileHelp}>새 업체는 저장 후 사진을 첨부할 수 있습니다.</p>
-                  )}
+                    ) : null}
+                  </div>
                 </div>
 
                 {/* 비고 */}

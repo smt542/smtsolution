@@ -79,6 +79,7 @@ export function VendorManagementSection() {
   const createVendor = useCreateVendor();
   const updateVendor = useUpdateVendor();
   const deleteVendor = useDeleteVendor();
+  const uploadNewVendorAttachment = useUploadVendorAttachment();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
@@ -109,13 +110,22 @@ export function VendorManagementSection() {
     }
   };
 
-  const handleSubmit = async (values: VendorFormOutput) => {
+  const handleSubmit = async (values: VendorFormOutput, pendingFiles: File[]) => {
     if (!orgId) { toast.error("인증 정보가 없습니다"); return; }
     try {
       if (editingVendor) {
         await updateVendor.mutateAsync({ id: editingVendor.id, input: { ...values, orgId } });
       } else {
-        await createVendor.mutateAsync({ ...values, orgId });
+        const createdVendor = await createVendor.mutateAsync({ ...values, orgId });
+        try {
+          for (const file of pendingFiles) {
+            await uploadNewVendorAttachment.mutateAsync({ vendorId: createdVendor.id, orgId, file });
+          }
+        } catch (error) {
+          toast.error(error instanceof Error
+            ? `업체는 저장됐지만 사진 첨부에 실패했습니다: ${error.message}`
+            : "업체는 저장됐지만 사진 첨부에 실패했습니다");
+        }
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
@@ -172,7 +182,7 @@ export function VendorManagementSection() {
               editing={editingVendor}
               categories={categories}
               onSubmit={handleSubmit}
-              isPending={createVendor.isPending || updateVendor.isPending}
+              isPending={createVendor.isPending || updateVendor.isPending || uploadNewVendorAttachment.isPending}
               onDeleteVendor={handleDeleteVendor}
               attachments={attachments}
               onUploadAttachment={onUpload}
@@ -188,7 +198,7 @@ export function VendorManagementSection() {
           defaultCategoryId={selectedCategoryId}
           categories={categories}
           onSubmit={handleSubmit}
-          isPending={createVendor.isPending || updateVendor.isPending}
+          isPending={createVendor.isPending || updateVendor.isPending || uploadNewVendorAttachment.isPending}
         />
       )}
     </div>
