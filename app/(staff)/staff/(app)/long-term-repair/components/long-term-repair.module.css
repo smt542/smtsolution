@@ -241,8 +241,6 @@
 
 .ledgerTable {
   width: 100%;
-  min-width: 803.25px;
-  table-layout: fixed;
   border-collapse: collapse;
   color: var(--color-t1);
   white-space: nowrap;

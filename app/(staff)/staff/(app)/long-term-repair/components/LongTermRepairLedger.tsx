@@ -474,21 +474,7 @@ export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTerm
             ) : (
               <>
                 <div className={styles.tableScroll}>
-                  <table
-                    className={`${styles.ledgerTable} ${editing ? styles.ledgerTableEditing : ""}`}
-                    style={{ minWidth: editing ? 830.5 : 803.25 }}
-                  >
-                    <colgroup>
-                      <col style={{ width: 144 }} />
-                      <col style={{ width: 52.75 }} />
-                      <col style={{ width: 86.625 }} />
-                      <col style={{ width: 87.65625 }} />
-                      <col style={{ width: 83.859375 }} />
-                      <col style={{ width: 138.203125 }} />
-                      <col style={{ width: editing ? 80 : 52.75 }} />
-                      <col style={{ width: 78.703125 }} />
-                      <col style={{ width: 78.703125 }} />
-                    </colgroup>
+                  <table className={`${styles.ledgerTable} ${editing ? styles.ledgerTableEditing : ""}`}>
                     <thead>
                       <tr>
                         <th style={{ width: 96 }}>일자</th>
