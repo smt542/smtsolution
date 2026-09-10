@@ -45,9 +45,9 @@ export function ElectricityCustomerSummary({
 }: ElectricityCustomerSummaryProps) {
   if (rows.length === 0) {
     return (
-      <section className="flex h-[150px] flex-none flex-col items-center justify-center rounded-card bg-white text-center shadow-card">
-        <p className="text-[13px] font-extrabold text-t1">건물을 선택해 주세요</p>
-        <p className="mt-1 text-[11px] font-medium text-t3">선택한 건물의 고객번호가 여기에 표시돼요</p>
+      <section className="flex h-[150px] flex-none flex-col items-center justify-center gap-[5px] rounded-[16px] bg-white px-6 pb-10 pt-[34px] text-center shadow-card">
+        <p className="text-[15px] font-semibold tracking-[-0.02em] text-t1">건물을 선택해 주세요</p>
+        <p className="text-[13px] font-normal leading-[1.55] text-t3">선택한 건물의 고객번호가 여기에 표시돼요</p>
       </section>
     );
   }
@@ -78,7 +78,7 @@ export function ElectricityCustomerSummary({
                 chargeAmount: String(row.chargeAmount),
               };
               return (
-              <tr key={row.id} className={`border-b border-line2 last:border-b-0 ${editing ? "h-[51px]" : "h-[41px]"} ${!editing && rowIndex === 0 ? "bg-[#e2f5f1]" : "bg-white"}`}>
+              <tr key={row.id} className={`border-b border-line2 last:border-b-0 ${editing ? "h-[51px]" : "h-[41px]"} ${!editing && rowIndex === 0 ? "bg-blue-t" : "bg-white hover:bg-blue-t2"}`}>
                 <td className="px-4 text-right font-medium text-t1">{rowIndex + 1}</td>
                 <td className="truncate px-4 font-bold text-t1">
                   {editing ? (

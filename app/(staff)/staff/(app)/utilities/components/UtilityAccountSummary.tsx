@@ -26,25 +26,25 @@ export function UtilityAccountSummary({
   });
 
   return (
-    <section className="h-[150px] shrink-0 overflow-hidden rounded-xl border border-line bg-white">
+    <section className="h-[150px] shrink-0 overflow-hidden rounded-[16px] bg-white shadow-card">
       <div className="h-full overflow-auto">
-        <table className="w-full min-w-[1120px] table-fixed border-collapse text-[11px]">
+        <table className="w-full min-w-[1120px] table-fixed border-collapse text-[13.5px]">
           <thead className="sticky top-0 z-10 bg-[#FBFCFD] text-t3">
-            <tr className="h-[42px] border-b border-line2">
-              <th className="w-8 px-2 text-center font-semibold">L</th>
-              <th className="w-[105px] px-2 text-left font-semibold">고객번호</th>
-              <th className="w-14 px-2 text-right font-semibold">월</th>
-              <th className="w-14 px-2 text-right font-semibold">량</th>
-              <th className="w-[72px] px-2 text-right font-semibold">수동입력</th>
-              <th className="w-[72px] px-2 text-right font-semibold">할인금액</th>
-              <th className="w-[72px] px-2 text-right font-semibold">전월금액</th>
-              <th className="w-[72px] px-2 text-right font-semibold">부과액</th>
-              <th className="w-[65px] px-2 text-right font-semibold">전단가</th>
-              <th className="w-[65px] px-2 text-right font-semibold">단가</th>
-              <th className="w-[70px] px-2 text-right font-semibold">금-전1</th>
-              <th className="w-[70px] px-2 text-right font-semibold">금-전2</th>
-              <th className="w-[70px] px-2 text-right font-semibold">금월량</th>
-              <th className="w-[70px] px-2 text-right font-semibold">전월량</th>
+            <tr className="h-[37px] border-b border-line">
+              <th className="w-8 px-4 text-right text-[12px] font-bold">L</th>
+              <th className="w-[105px] px-4 text-left text-[12px] font-bold">고객번호</th>
+              <th className="w-14 px-4 text-right text-[12px] font-bold">월</th>
+              <th className="w-14 px-4 text-right text-[12px] font-bold">량</th>
+              <th className="w-[72px] px-4 text-right text-[12px] font-bold">수동입력</th>
+              <th className="w-[72px] px-4 text-right text-[12px] font-bold">할인금액</th>
+              <th className="w-[72px] px-4 text-right text-[12px] font-bold">전월금액</th>
+              <th className="w-[72px] px-4 text-right text-[12px] font-bold">부과액</th>
+              <th className="w-[65px] px-4 text-right text-[12px] font-bold">전단가</th>
+              <th className="w-[65px] px-4 text-right text-[12px] font-bold">단가</th>
+              <th className="w-[70px] px-4 text-right text-[12px] font-bold">금-전1</th>
+              <th className="w-[70px] px-4 text-right text-[12px] font-bold">금-전2</th>
+              <th className="w-[70px] px-4 text-right text-[12px] font-bold">금월량</th>
+              <th className="w-[70px] px-4 text-right text-[12px] font-bold">전월량</th>
             </tr>
           </thead>
           <tbody>
@@ -59,7 +59,7 @@ export function UtilityAccountSummary({
                 <tr
                   key={customerNumber}
                   onClick={() => onSelect(anchor)}
-                  className={`h-[42px] cursor-pointer border-b border-line2 ${selected ? "bg-[#E2F5F1]" : "hover:bg-bg"}`}
+                  className={`${editing ? "h-[51px]" : "h-[41px]"} cursor-pointer border-b border-line2 ${selected ? "bg-blue-t" : "hover:bg-blue-t2"}`}
                 >
                   <td className="px-2 text-center font-bold text-t2">{index + 1}</td>
                   <td className="px-2 font-bold text-t1">
@@ -89,7 +89,7 @@ export function UtilityAccountSummary({
               );
             })}
             {rows.length === 0 && (
-              <tr><td colSpan={14} className="h-[96px] text-center text-[12px] text-t3">등록된 고객번호가 없습니다.</td></tr>
+              <tr><td colSpan={14} className="h-[96px] text-center text-[13px] text-t3">등록된 고객번호가 없어요.</td></tr>
             )}
           </tbody>
         </table>

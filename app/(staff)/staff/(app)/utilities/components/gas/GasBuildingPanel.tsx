@@ -1,4 +1,5 @@
-import { ChevronDownIcon, SearchIcon } from "@/components/icons";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
+import { SearchIcon } from "@/components/icons";
 
 export interface GasBuildingOption {
   id: number;
@@ -19,36 +20,6 @@ interface GasBuildingPanelProps {
   onYearChange: (value: number) => void;
   onMonthChange: (value: number) => void;
   onSelect: (buildingId: number) => void;
-}
-
-function CompactSelect({
-  value,
-  label,
-  disabled,
-  children,
-  onChange,
-}: {
-  value: number;
-  label: string;
-  disabled?: boolean;
-  children: React.ReactNode;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <label className="relative block">
-      <span className="sr-only">{label}</span>
-      <select
-        aria-label={label}
-        value={value}
-        disabled={disabled}
-        onChange={(event) => onChange(Number(event.target.value))}
-        className="h-8 appearance-none rounded-[9px] border border-line bg-white pl-3 pr-8 text-[12px] font-bold text-t2 outline-none focus:border-teal disabled:cursor-not-allowed disabled:opacity-45"
-      >
-        {children}
-      </select>
-      <ChevronDownIcon className="pointer-events-none absolute right-2.5 top-1/2 size-3 -translate-y-1/2 text-t3" />
-    </label>
-  );
 }
 
 export function GasBuildingPanel({
@@ -73,21 +44,31 @@ export function GasBuildingPanel({
   return (
     <aside
       aria-label="건물 선택"
-      className={`flex h-full min-h-0 w-[322px] shrink-0 flex-col overflow-hidden rounded-2xl bg-white shadow-card transition-opacity ${disabled ? "opacity-55" : ""}`}
+      className={`flex min-h-[420px] w-full shrink-0 flex-col overflow-hidden rounded-[16px] bg-white shadow-card transition-opacity min-[1101px]:h-full min-[1101px]:min-h-0 min-[1101px]:w-[322px] ${disabled ? "pointer-events-none opacity-45" : ""}`}
     >
       <div className="h-[106px] shrink-0 border-b border-line2 px-[18px] pt-[15px]">
         <div className="flex items-center gap-2">
           <h2 className="mr-auto text-[15px] font-extrabold text-t1">전체 건물</h2>
-          <CompactSelect value={year} label="조회 연도" disabled={disabled} onChange={onYearChange}>
-            {[year - 2, year - 1, year, year + 1].map((option) => (
-              <option key={option} value={option}>{option}년</option>
-            ))}
-          </CompactSelect>
-          <CompactSelect value={month} label="조회 월" disabled={disabled} onChange={onMonthChange}>
-            {Array.from({ length: 12 }, (_, index) => index + 1).map((option) => (
-              <option key={option} value={option}>{option}월분</option>
-            ))}
-          </CompactSelect>
+          <div className="[&_.uc-dd-menu]:min-w-[104px]">
+            <CustomDropdown
+              ariaLabel="조회 연도"
+              value={String(year)}
+              disabled={disabled}
+              compact
+              options={[2026, 2025, 2024].map((option) => ({ value: String(option), label: `${option}년` }))}
+              onChange={(value) => onYearChange(Number(value))}
+            />
+          </div>
+          <div className="[&_.uc-dd-menu]:min-w-[112px]">
+            <CustomDropdown
+              ariaLabel="조회 월"
+              value={String(month)}
+              disabled={disabled}
+              compact
+              options={Array.from({ length: 12 }, (_, index) => ({ value: String(index + 1), label: `${index + 1}월분` }))}
+              onChange={(value) => onMonthChange(Number(value))}
+            />
+          </div>
         </div>
         <label className="relative mt-[9px] block">
           <span className="sr-only">건물명·주소 검색</span>
@@ -99,7 +80,7 @@ export function GasBuildingPanel({
             disabled={disabled}
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder="건물명·주소 검색"
-            className="h-[34px] w-full rounded-[9px] border border-line bg-white pl-[31px] pr-3 text-[12px] font-medium text-t1 outline-none placeholder:text-t4 focus:border-teal disabled:cursor-not-allowed disabled:opacity-45"
+            className="h-[34px] w-full rounded-[9px] border border-line bg-white pl-[31px] pr-[11px] text-[13px] font-semibold text-t1 outline-none placeholder:text-t4 focus:border-blue disabled:cursor-not-allowed disabled:opacity-45"
           />
         </label>
       </div>
@@ -112,7 +93,7 @@ export function GasBuildingPanel({
             <col className="w-[82px]" />
             <col className="w-[52px]" />
           </colgroup>
-          <thead className="sticky top-0 z-10 h-[37px] bg-[#fbfcfd] text-[11.5px] font-bold text-t3">
+          <thead className="sticky top-0 z-10 h-[37px] bg-[#fbfcfd] text-[12px] font-bold text-t3">
             <tr className="border-b border-line">
               <th className="px-3">코드</th>
               <th>건물명</th>
@@ -126,7 +107,7 @@ export function GasBuildingPanel({
               return (
                 <tr
                   key={building.id}
-                  className={`h-[41px] border-b border-line2 ${selected ? "bg-teal-t" : "hover:bg-bg"}`}
+                  className={`h-[41px] cursor-pointer border-b border-line2 ${selected ? "bg-blue-t" : "hover:bg-blue-t2"}`}
                 >
                   <td className="truncate px-3 text-[12px] text-t3">{building.code ?? "-"}</td>
                   <td>
@@ -149,7 +130,7 @@ export function GasBuildingPanel({
           </tbody>
         </table>
         {filteredBuildings.length === 0 && (
-          <p className="py-10 text-center text-[12px] text-t3">검색 결과가 없습니다.</p>
+          <p className="py-10 text-center text-[13px] text-t3">조건에 맞는 건물이 없어요.</p>
         )}
       </div>
     </aside>

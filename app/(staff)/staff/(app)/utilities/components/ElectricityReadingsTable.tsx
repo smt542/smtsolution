@@ -47,19 +47,19 @@ export function ElectricityReadingsTable({
   return (
     <section className="flex min-h-[360px] flex-1 flex-col overflow-hidden rounded-card bg-white shadow-card">
       <div className="flex h-[49px] flex-none items-center gap-2.5 border-b border-line2 px-[18px]">
-        <h2 className="whitespace-nowrap text-[14px] font-extrabold text-t1">호실별 {utilityLabel} 지침</h2>
+        <h2 className="whitespace-nowrap text-[15px] font-extrabold text-t1">호실별 {utilityLabel} 지침</h2>
         <span className="h-px min-w-5 flex-1 bg-line2" />
-        <div className="flex items-center gap-3 whitespace-nowrap text-[10px] font-semibold text-t3">
-          <span className="flex items-center gap-1"><i className="size-1.5 rounded-full bg-blue" />퇴실 예정</span>
-          <span className="flex items-center gap-1"><i className="size-1.5 rounded-full bg-red" />공실 사용량</span>
-          <span className="flex items-center gap-1"><i className="size-1.5 rounded-full bg-green" />최근 입주</span>
+        <div className="ml-3 flex items-center gap-3 whitespace-nowrap text-[11.5px] font-medium text-t3">
+          <span className="flex items-center gap-[5px]"><i className="h-3 w-[3px] rounded-[2px] bg-blue2" />퇴실 예정</span>
+          <span className="flex items-center gap-[5px]"><i className="h-3 w-[3px] rounded-[2px] bg-red" />공실 사용량</span>
+          <span className="flex items-center gap-[5px]"><i className="h-3 w-[3px] rounded-[2px] bg-green" />최근 입주</span>
         </div>
       </div>
 
       {rows.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center text-center">
-          <p className="text-[13px] font-extrabold text-t1">건물을 선택해 주세요</p>
-          <p className="mt-1 text-[11px] font-medium text-t3">선택한 건물의 호실별 전기 지침이 여기에 표시돼요</p>
+        <div className="flex flex-1 flex-col items-center justify-center gap-1.5 px-6 pb-14 pt-12 text-center">
+          <p className="text-[16px] font-semibold tracking-[-0.02em] text-t1">건물을 선택해 주세요</p>
+          <p className="text-[13px] font-normal leading-[1.55] text-t3">선택한 건물의 고객번호가 여기에 표시돼요</p>
         </div>
       ) : (
         <div className="min-h-0 flex-1 overflow-auto">
@@ -110,11 +110,17 @@ export function ElectricityReadingsTable({
                 const moving = row.occupancyStatus === "moving_out";
                 const recent = !vacant && isNewOccupancy(row.moveInDate, referenceDate);
                 const charge = optionalNumber(draft.manualCharge) ?? row.manualCharge ?? row.automaticCharge;
-                const marker = moving ? "shadow-[inset_3px_0_0_#3182f6]" : vacant ? "shadow-[inset_3px_0_0_#f04452]" : recent ? "shadow-[inset_3px_0_0_#12b886]" : "";
+                const marker = moving
+                  ? "shadow-[inset_3px_0_0_#3182F6]"
+                  : vacant && (usage ?? 0) > 0
+                    ? "shadow-[inset_3px_0_0_#F04452]"
+                    : recent
+                      ? "shadow-[inset_3px_0_0_#12B886]"
+                      : "";
 
                 return (
-                  <tr key={row.unitId} className={`${editing ? "h-[51px]" : "h-[41px]"} border-b border-line2 bg-white hover:bg-bg ${marker}`}>
-                    <td className="px-4 font-bold text-t1">{row.unitNo.replace(/호$/, "")}</td>
+                  <tr key={row.unitId} className={`${editing ? "h-[51px]" : "h-[41px]"} border-b border-line2 bg-white hover:bg-[#FBFCFD] ${vacant && (usage ?? 0) <= 0 ? "opacity-55" : ""}`}>
+                    <td className={`px-4 font-bold text-t1 ${marker}`}>{row.unitNo.replace(/호$/, "")}</td>
                     <td className={`px-4 ${row.moveInDate ? (recent ? "font-semibold text-green" : "text-t2") : ""}`}>{row.moveInDate ?? <GridEmptyValue />}</td>
                     <td className="px-4"><GridEmptyValue /></td>
                     <td className="px-4"><GridEmptyValue /></td>

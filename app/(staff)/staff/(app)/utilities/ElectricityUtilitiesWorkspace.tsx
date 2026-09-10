@@ -20,6 +20,11 @@ import {
 import { hasModule } from "@/lib/auth/permissions";
 import { defaultBillingDates } from "./components/BillingPeriodBar";
 import { CarryOverDialog } from "./components/CarryOverDialog";
+import {
+  BillingBasisRequiredState,
+  hasBillingBasis,
+  isPrototypeFuturePeriod,
+} from "./components/BillingBasisRequiredState";
 import { ElectricityBuildingRail } from "./components/ElectricityBuildingRail";
 import {
   ElectricityCustomerSummary,
@@ -103,12 +108,13 @@ export default function ElectricityUtilitiesWorkspace() {
 
   const defaults = useMemo(() => defaultBillingDates(period), [period]);
   const savedPeriod = billingPeriodQuery.data;
+  const useDefaultBasis = !isPrototypeFuturePeriod(period);
   const startDate = editing
     ? editStartDate
-    : savedPeriod?.chargeStartDate ?? defaults.chargeStartDate;
+    : savedPeriod?.chargeStartDate ?? (useDefaultBasis ? defaults.chargeStartDate : "");
   const endDate = editing
     ? editEndDate
-    : savedPeriod?.chargeEndDate ?? defaults.chargeEndDate;
+    : savedPeriod?.chargeEndDate ?? (useDefaultBasis ? defaults.chargeEndDate : "");
 
   const customerSummaryRows = useMemo<ElectricityCustomerSummaryRow[]>(() => {
     const prices = pricesQuery.data ?? [];
@@ -219,8 +225,8 @@ export default function ElectricityUtilitiesWorkspace() {
   };
 
   const startEditing = () => {
-    setEditStartDate(savedPeriod?.chargeStartDate ?? defaults.chargeStartDate);
-    setEditEndDate(savedPeriod?.chargeEndDate ?? defaults.chargeEndDate);
+    setEditStartDate(savedPeriod?.chargeStartDate ?? (useDefaultBasis ? defaults.chargeStartDate : ""));
+    setEditEndDate(savedPeriod?.chargeEndDate ?? (useDefaultBasis ? defaults.chargeEndDate : ""));
     setPriceDrafts(Object.fromEntries((pricesQuery.data ?? []).map((price) => [
       price.customerNumberId,
       price.unitPrice === null ? "" : String(price.unitPrice),
@@ -323,9 +329,13 @@ export default function ElectricityUtilitiesWorkspace() {
   const utilityLabel = utilityType === "water" ? "수도" : utilityType === "gas" ? "가스" : "전기";
   const rowsLoading = rowsQuery.isLoading || fixedUsagesQuery.isLoading;
   const saving = saveMeterReadings.isPending || saveBillingPeriod.isPending || saveUtilityPrices.isPending;
+  const needsBasis = buildingId !== null
+    && !billingPeriodQuery.isLoading
+    && isPrototypeFuturePeriod(period)
+    && !hasBillingBasis(startDate, endDate);
 
   return (
-    <div className="relative min-h-[calc(100vh-62px)] bg-bg p-4 sm:p-6">
+    <div className="relative min-h-[calc(100vh-62px)] bg-bg p-4 sm:p-[22px_24px_24px]">
       <label className="sr-only">
         건물 선택
         <select
@@ -338,7 +348,7 @@ export default function ElectricityUtilitiesWorkspace() {
         </select>
       </label>
 
-      <div className="mx-auto flex min-h-[803px] max-w-[1632px] flex-col gap-4 lg:h-[calc(100vh-110px)] lg:flex-row">
+      <div className="mx-auto grid min-h-[803px] max-w-[1632px] grid-cols-1 items-stretch gap-4 min-[1101px]:h-[calc(100vh-110px)] min-[1101px]:grid-cols-[minmax(0,322px)_minmax(0,1fr)]">
         <ElectricityBuildingRail
           buildings={buildings}
           selectedBuildingId={buildingId}
@@ -378,14 +388,21 @@ export default function ElectricityUtilitiesWorkspace() {
             onDraftChange={updateSummaryDraft}
           />
 
-          {rowsLoading ? (
+          {rowsLoading || (buildingId !== null && billingPeriodQuery.isLoading) ? (
             <section className="flex min-h-[360px] flex-1 items-center justify-center rounded-card bg-white text-xs font-semibold text-t3 shadow-card">
               호실별 전기 지침을 불러오는 중입니다.
             </section>
-          ) : rowsQuery.error ? (
+          ) : rowsQuery.error || billingPeriodQuery.error ? (
             <section className="flex min-h-[360px] flex-1 flex-col items-center justify-center rounded-card bg-white text-center shadow-card">
               <p className="text-sm font-bold text-red">호실별 전기 지침을 불러오지 못했습니다.</p>
               <button type="button" onClick={() => rowsQuery.refetch()} className="mt-3 h-8 rounded-lg border border-line px-3 text-xs font-bold text-t2">다시 시도</button>
+            </section>
+          ) : needsBasis ? (
+            <section className="flex min-h-[360px] flex-1 flex-col overflow-hidden rounded-[16px] bg-white shadow-card">
+              <div className="flex h-[49px] flex-none items-center gap-2.5 border-b border-line2 px-[18px]">
+                <h2 className="whitespace-nowrap text-[15px] font-extrabold text-t1">호실별 {utilityLabel} 지침</h2>
+              </div>
+              <BillingBasisRequiredState detailed={false} onEdit={startEditing} />
             </section>
           ) : (
             <ElectricityReadingsTable

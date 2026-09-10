@@ -11,13 +11,21 @@ import {
   listCustomerNumbersByBuilding,
 } from "@/hooks/reactquery/buildingCustomerNumbers";
 import {
+  useBillingPeriod,
   useFixedUsages,
+  useSaveBillingPeriod,
   useSaveMeterReadings,
   useUtilityRows,
   type UtilityUnitRow,
 } from "@/hooks/reactquery/utilities";
 import { hasModule } from "@/lib/auth/permissions";
 import { CarryOverDialog } from "./components/gas/CarryOverDialog";
+import {
+  BillingBasisRequiredState,
+  hasBillingBasis,
+  isPrototypeFuturePeriod,
+} from "./components/BillingBasisRequiredState";
+import { defaultBillingDates } from "./components/BillingPeriodBar";
 import { GasAccountSummary } from "./components/gas/GasAccountSummary";
 import { GasBillingToolbar } from "./components/gas/GasBillingToolbar";
 import { GasBuildingPanel } from "./components/gas/GasBuildingPanel";
@@ -26,13 +34,7 @@ import { GasWorkspaceHeader } from "./components/gas/GasWorkspaceHeader";
 import type { GasTableRow, GasUtilityDraft } from "./components/gas/types";
 import { FixedUsageModal } from "./components/FixedUsageModal";
 import { GasLedgerModal } from "./components/GasLedgerModal";
-
-function billingMonth(): { year: number; month: number } {
-  const value = new Date();
-  value.setDate(1);
-  value.setMonth(value.getMonth() - 1);
-  return { year: value.getFullYear(), month: value.getMonth() + 1 };
-}
+import { UtilityPeriodBarPlaceholder } from "./components/UtilityPeriodBarPlaceholder";
 
 function pad(value: number): string {
   return String(value).padStart(2, "0");
@@ -54,22 +56,23 @@ function SelectionPlaceholder({ compact = false }: { compact?: boolean }) {
   return (
     <div className={`flex items-center justify-center text-center ${compact ? "h-[150px]" : "min-h-0 flex-1"}`}>
       <div>
-        <p className="text-[13px] font-extrabold text-t2">건물을 선택해 주세요</p>
-        <p className="mt-1.5 text-[11.5px] font-medium text-t3">선택한 건물의 고객번호가 여기에 표시돼요</p>
+        <p className={`${compact ? "text-[15px]" : "text-[16px]"} font-semibold tracking-[-0.02em] text-t1`}>건물을 선택해 주세요</p>
+        <p className="mt-[5px] text-[13px] font-normal leading-[1.55] text-t3">선택한 건물의 고객번호가 여기에 표시돼요</p>
       </div>
     </div>
   );
 }
 
 export default function GasUtilitiesWorkspace() {
-  const initialMonth = useMemo(() => billingMonth(), []);
   const { data: me } = useMe();
   const buildingsQuery = useBuildings();
   const [buildingId, setBuildingId] = useState<number | null>(null);
-  const [year, setYear] = useState(initialMonth.year);
-  const [month, setMonth] = useState(initialMonth.month);
+  const [year, setYear] = useState(2026);
+  const [month, setMonth] = useState(7);
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState(false);
+  const [editStartDate, setEditStartDate] = useState("");
+  const [editEndDate, setEditEndDate] = useState("");
   const [drafts, setDrafts] = useState<Record<string, GasUtilityDraft>>({});
   const [fixedUsageRow, setFixedUsageRow] = useState<GasTableRow | null>(null);
   const [ledgerOpen, setLedgerOpen] = useState(false);
@@ -79,7 +82,9 @@ export default function GasUtilitiesWorkspace() {
   const referenceDate = monthEnd(year, month);
   const rowsQuery = useUtilityRows(buildingId, "gas", period);
   const fixedUsagesQuery = useFixedUsages(buildingId, "gas");
+  const billingPeriodQuery = useBillingPeriod(buildingId, period);
   const saveMeter = useSaveMeterReadings();
+  const saveBillingPeriod = useSaveBillingPeriod();
   const buildings = useMemo(() => buildingsQuery.data ?? [], [buildingsQuery.data]);
   const customerNumberQueries = useQueries({
     queries: buildings.map((building) => ({
@@ -113,6 +118,18 @@ export default function GasUtilitiesWorkspace() {
   );
   const rowsLoading = rowsQuery.isLoading || fixedUsagesQuery.isLoading;
   const rowsError = rowsQuery.error ?? fixedUsagesQuery.error;
+  const defaults = useMemo(() => defaultBillingDates(period), [period]);
+  const useDefaultBasis = !isPrototypeFuturePeriod(period);
+  const chargeStartDate = editing
+    ? editStartDate
+    : billingPeriodQuery.data?.chargeStartDate ?? (useDefaultBasis ? defaults.chargeStartDate : "");
+  const chargeEndDate = editing
+    ? editEndDate
+    : billingPeriodQuery.data?.chargeEndDate ?? (useDefaultBasis ? defaults.chargeEndDate : "");
+  const needsBasis = buildingId !== null
+    && !billingPeriodQuery.isLoading
+    && isPrototypeFuturePeriod(period)
+    && !hasBillingBasis(chargeStartDate, chargeEndDate);
 
   const updateDraft = useCallback((unitId: number, patch: Partial<GasUtilityDraft>) => {
     const row = rowsById.get(unitId);
@@ -139,6 +156,10 @@ export default function GasUtilitiesWorkspace() {
   };
 
   const calculate = () => {
+    if (!hasBillingBasis(chargeStartDate, chargeEndDate)) {
+      toast.error("부과기준일을 먼저 설정해 주세요.");
+      return;
+    }
     if (rows.every((row) => row.fixedUsage === null && scopedDrafts[row.unitId].currentReading.trim() === "")) {
       toast.error("입력된 당월 지침이 없습니다.");
       return;
@@ -146,8 +167,18 @@ export default function GasUtilitiesWorkspace() {
     toast.success("가스 요금을 계산했습니다.");
   };
 
-  const save = () => {
+  const startEditing = () => {
+    setEditStartDate(billingPeriodQuery.data?.chargeStartDate ?? (useDefaultBasis ? defaults.chargeStartDate : ""));
+    setEditEndDate(billingPeriodQuery.data?.chargeEndDate ?? (useDefaultBasis ? defaults.chargeEndDate : ""));
+    setEditing(true);
+  };
+
+  const save = async () => {
     if (buildingId === null) return;
+    if (!chargeStartDate || !chargeEndDate || chargeStartDate > chargeEndDate) {
+      toast.error("부과 시작일과 종료일을 확인해 주세요.");
+      return;
+    }
     const payloadRows = rows
       .filter((row) => row.fixedUsage !== null || scopedDrafts[row.unitId].currentReading.trim() !== "")
       .map((row) => ({
@@ -157,21 +188,25 @@ export default function GasUtilitiesWorkspace() {
         note: scopedDrafts[row.unitId].note.trim(),
       }));
 
-    if (payloadRows.length === 0) {
-      toast.error("저장할 가스 지침이 없습니다.");
-      return;
+    try {
+      const [, meterResult] = await Promise.all([
+        saveBillingPeriod.mutateAsync({
+          buildingId,
+          period,
+          chargeStartDate,
+          chargeEndDate,
+        }),
+        payloadRows.length > 0
+          ? saveMeter.mutateAsync({ buildingId, utilityType: "gas", period, rows: payloadRows })
+          : Promise.resolve(null),
+      ]);
+      toast.success(meterResult
+        ? `${meterResult.saved}개 호실의 가스 지침과 부과기준을 저장했습니다.`
+        : "부과기준일을 저장했습니다.");
+      setEditing(false);
+    } catch {
+      toast.error("가스 지침과 부과기준을 저장하지 못했습니다.");
     }
-
-    saveMeter.mutate(
-      { buildingId, utilityType: "gas", period, rows: payloadRows },
-      {
-        onSuccess: (result) => {
-          toast.success(`${result.saved}개 호실의 가스 지침을 저장했습니다.`);
-          setEditing(false);
-        },
-        onError: () => toast.error("가스 지침 저장에 실패했습니다."),
-      },
-    );
   };
 
   const confirmCarryOver = () => {
@@ -193,13 +228,13 @@ export default function GasUtilitiesWorkspace() {
       });
       return next;
     });
-    setEditing(true);
+    startEditing();
     setCarryOverOpen(false);
     toast.success(`${carryRows.length}개 호실을 이월했습니다.`);
   };
 
   return (
-    <div className="flex h-screen min-h-[700px] flex-col overflow-hidden bg-[#e7eaee]">
+    <div className="flex min-h-screen flex-col overflow-hidden bg-bg min-[1101px]:h-screen min-[1101px]:min-h-[700px]">
       <GasWorkspaceHeader
         onOpenLedger={() => {
           if (buildings.length === 0) toast.info("출력할 건물이 없습니다.");
@@ -213,7 +248,7 @@ export default function GasUtilitiesWorkspace() {
           <EmptyState message="이 화면에 접근할 권한이 없습니다. (지침·부과 권한 필요)" />
         </div>
       ) : (
-        <main className="flex min-h-0 flex-1 gap-4 p-6 pt-[22px]">
+        <main className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-4 overflow-auto p-4 min-[1101px]:grid-cols-[minmax(0,322px)_minmax(0,1fr)] min-[1101px]:overflow-hidden min-[1101px]:p-[22px_24px_24px]">
           <GasBuildingPanel
             buildings={buildings}
             selectedBuildingId={buildingId}
@@ -223,8 +258,12 @@ export default function GasUtilitiesWorkspace() {
             disabled={editing}
             search={search}
             onSearchChange={setSearch}
-            onYearChange={(value) => !editing && setYear(value)}
-            onMonthChange={(value) => !editing && setMonth(value)}
+            onYearChange={(value) => {
+              if (!editing) setYear(value);
+            }}
+            onMonthChange={(value) => {
+              if (!editing) setMonth(value);
+            }}
             onSelect={selectBuilding}
           />
 
@@ -233,20 +272,22 @@ export default function GasUtilitiesWorkspace() {
               <GasBillingToolbar
                 buildingName={selectedBuilding.name}
                 periodLabel={`${year}년 ${month}월분`}
-                chargeStartDate={`${year}-${pad(month)}-01`}
-                chargeEndDate={monthEnd(year, month)}
+                chargeStartDate={chargeStartDate}
+                chargeEndDate={chargeEndDate}
                 editing={editing}
-                pending={saveMeter.isPending}
-                onEdit={() => setEditing(true)}
+                pending={saveMeter.isPending || saveBillingPeriod.isPending}
+                onChargeStartDateChange={setEditStartDate}
+                onChargeEndDateChange={setEditEndDate}
+                onEdit={startEditing}
                 onCalculate={calculate}
-                onSave={save}
+                onSave={() => void save()}
                 onCancel={() => {
                   resetScopeDrafts();
                   setEditing(false);
                 }}
               />
             ) : (
-              <div className="h-[52px] shrink-0 rounded-xl border border-line bg-white shadow-card" />
+              <UtilityPeriodBarPlaceholder period={period} />
             )}
 
             {!selectedBuilding ? (
@@ -258,36 +299,50 @@ export default function GasUtilitiesWorkspace() {
                   <div className="flex h-[49px] shrink-0 items-center border-b border-line2 px-[18px]">
                     <h2 className="text-[15px] font-extrabold text-t1">호실별 가스 지침</h2>
                     <div className="ml-auto flex items-center gap-4 text-[11.5px] font-medium text-t3">
-                      <span className="flex items-center gap-1.5"><i className="h-3 w-[3px] rounded-full bg-blue" />퇴실 예정</span>
-                      <span className="flex items-center gap-1.5"><i className="h-3 w-[3px] rounded-full bg-red" />공실 사용량</span>
-                      <span className="flex items-center gap-1.5"><i className="h-3 w-[3px] rounded-full bg-green" />최근 입주</span>
+                      <span className="flex items-center gap-1.5"><i className="h-3 w-[3px] rounded-[2px] bg-blue2" />퇴실 예정</span>
+                      <span className="flex items-center gap-1.5"><i className="h-3 w-[3px] rounded-[2px] bg-red" />공실 사용량</span>
+                      <span className="flex items-center gap-1.5"><i className="h-3 w-[3px] rounded-[2px] bg-green" />최근 입주</span>
                     </div>
                   </div>
                   <SelectionPlaceholder />
                 </section>
               </>
-            ) : rowsLoading ? (
+            ) : rowsLoading || billingPeriodQuery.isLoading ? (
               <section className="flex min-h-0 flex-1 flex-col justify-center rounded-2xl bg-white shadow-card">
                 <Spinner />
                 <p className="mt-2 text-center text-[12px] text-t3">가스 지침을 불러오는 중입니다.</p>
               </section>
-            ) : rowsError ? (
+            ) : rowsError || billingPeriodQuery.error ? (
               <section className="flex min-h-0 flex-1 items-center justify-center rounded-2xl border border-red/20 bg-red-t text-[13px] font-bold text-red">
                 가스 지침을 불러오지 못했습니다.
               </section>
             ) : (
               <>
                 <GasAccountSummary rows={rows} drafts={scopedDrafts} editing={editing} />
-                <GasReadingsTable
-                  rows={rows}
-                  drafts={scopedDrafts}
-                  editing={editing}
-                  referenceDate={referenceDate}
-                  chargeStartDate={`${year}-${pad(month)}-01`}
-                  chargeEndDate={monthEnd(year, month)}
-                  onDraftChange={updateDraft}
-                  onOpenFixedUsage={setFixedUsageRow}
-                />
+                {needsBasis ? (
+                  <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[16px] bg-white shadow-card">
+                    <div className="flex h-[49px] shrink-0 items-center border-b border-line2 px-[18px]">
+                      <h2 className="text-[15px] font-extrabold text-t1">호실별 가스 지침</h2>
+                      <div className="ml-auto flex items-center gap-3 text-[11.5px] font-medium text-t3">
+                        <span className="flex items-center gap-[5px]"><i className="h-3 w-[3px] rounded-[2px] bg-blue2" />퇴실 예정</span>
+                        <span className="flex items-center gap-[5px]"><i className="h-3 w-[3px] rounded-[2px] bg-red" />공실 사용량</span>
+                        <span className="flex items-center gap-[5px]"><i className="h-3 w-[3px] rounded-[2px] bg-green" />최근 입주</span>
+                      </div>
+                    </div>
+                    <BillingBasisRequiredState onEdit={startEditing} />
+                  </section>
+                ) : (
+                  <GasReadingsTable
+                    rows={rows}
+                    drafts={scopedDrafts}
+                    editing={editing}
+                    referenceDate={referenceDate}
+                    chargeStartDate={chargeStartDate}
+                    chargeEndDate={chargeEndDate}
+                    onDraftChange={updateDraft}
+                    onOpenFixedUsage={setFixedUsageRow}
+                  />
+                )}
               </>
             )}
           </div>

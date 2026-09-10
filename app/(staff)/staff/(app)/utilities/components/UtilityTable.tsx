@@ -68,8 +68,8 @@ function usageFor(row: UtilityTableRow, draft: UtilityDraft): number | null {
   return current - previous;
 }
 
-const head = "h-10 border-b border-line2 bg-[#FBFCFD] px-3 text-left text-[11px] font-semibold whitespace-nowrap text-t3";
-const cell = "h-[42px] border-b border-line2 px-3 text-[11px] whitespace-nowrap";
+const head = "h-[37px] border-b border-line bg-[#FBFCFD] px-4 text-left text-[12px] font-bold whitespace-nowrap text-t3";
+const cell = "border-b border-line2 px-4 text-[13.5px] whitespace-nowrap";
 const numericInput = "num h-[26px] w-14 rounded-[7px] border border-teal bg-white px-[7px] text-right text-[11.5px] font-semibold text-t1 outline-none focus:ring-1 focus:ring-teal/20 disabled:border-line disabled:bg-line2 disabled:text-t4";
 
 function ReadingInput({
@@ -187,14 +187,21 @@ const UtilityRow = memo(function UtilityRow({
   const unitPrice = row.unitPrice ?? row.resolvedUnitPrice;
   const manual = parseNumber(draft.manualCharge);
   const charge = manual ?? row.automaticCharge;
+  const marker = movingOut
+    ? "shadow-[inset_3px_0_0_#3182F6]"
+    : vacant && (usage ?? 0) > 0
+      ? "shadow-[inset_3px_0_0_#F04452]"
+      : recent
+        ? "shadow-[inset_3px_0_0_#12B886]"
+        : "";
 
   return (
-    <tr onClick={() => onRowClick(row)} className={`cursor-pointer transition-colors hover:bg-bg ${selected ? "bg-[#E2F5F1]" : recent ? "bg-[#EAF3FF]" : "bg-white"}`}>
-      <td className={`${cell} text-center text-t3`}>{index + 1}</td>
+    <tr onClick={() => onRowClick(row)} className={`${editing ? "h-[51px]" : "h-[41px]"} cursor-pointer transition-colors ${selected ? "bg-blue-t" : "bg-white hover:bg-[#FBFCFD]"} ${vacant && (usage ?? 0) <= 0 ? "opacity-55" : ""}`}>
+      <td className={`${cell} ${marker} text-center text-t3`}>{index + 1}</td>
       <td className={`${cell} font-bold text-t1`}>{row.dong ? `${row.dong} ` : ""}{row.unitNo}</td>
       <td className={`${cell} text-t2`}>
         <div className="flex items-center gap-1.5">
-          <span className={vacant ? "text-red" : movingOut ? "text-blue" : recent ? "text-green" : ""}>{vacant ? "공실" : row.tenantName || "이름 미등록"}</span>
+          <span className={vacant ? "text-red" : movingOut ? "text-blue2" : recent ? "text-green" : ""}>{vacant ? "공실" : row.tenantName || "이름 미등록"}</span>
           {editing && onDiscountClick && !vacant && <button type="button" aria-label={`${row.unitNo} 수도 할인 설정`} onClick={(event) => { event.stopPropagation(); onDiscountClick(row); }} className="rounded border border-line px-1.5 py-0.5 text-[10px] font-bold text-t3 hover:bg-bg">할인</button>}
         </div>
       </td>

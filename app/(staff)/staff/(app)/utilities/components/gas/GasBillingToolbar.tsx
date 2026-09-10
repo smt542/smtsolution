@@ -7,6 +7,8 @@ interface GasBillingToolbarProps {
   chargeEndDate: string;
   editing: boolean;
   pending?: boolean;
+  onChargeStartDateChange: (value: string) => void;
+  onChargeEndDateChange: (value: string) => void;
   onEdit: () => void;
   onCalculate: () => void;
   onSave: () => void;
@@ -20,40 +22,63 @@ export function GasBillingToolbar({
   chargeEndDate,
   editing,
   pending,
+  onChargeStartDateChange,
+  onChargeEndDateChange,
   onEdit,
   onCalculate,
   onSave,
   onCancel,
 }: GasBillingToolbarProps) {
   return (
-    <section className={`flex h-[52px] shrink-0 items-center rounded-xl bg-white px-[14px] shadow-card ${editing ? "border border-teal" : "border border-line"}`}>
+    <section className={`sticky top-0 z-[4] flex min-h-[52px] shrink-0 flex-wrap items-center gap-2.5 rounded-[12px] border bg-white px-[14px] py-[10px] shadow-[0_1px_3px_rgba(23,31,40,0.05)] ${editing ? "border-blue shadow-[0_0_0_3px_#E2F5F1]" : "border-line"}`}>
       <div className="min-w-[150px]">
-        <p className="truncate text-[12.5px] font-extrabold text-t1">{buildingName}</p>
-        <p className="mt-0.5 text-[11.5px] font-medium text-t3">{periodLabel} 가스 지침</p>
+        <p className="truncate text-[12.5px] font-bold text-t1">{buildingName}</p>
+        <p className="mt-px text-[11.5px] font-medium text-t3">{periodLabel} 부과 편집</p>
       </div>
-      <div className="ml-auto flex items-center gap-2.5">
-        <span className="text-[11.5px] font-bold text-t2">부과기간</span>
-        <div className={`flex h-7 w-[106px] items-center rounded-lg border px-2 text-[11.5px] font-semibold tabular-nums ${editing ? "border-line bg-white text-t2" : "border-line2 bg-bg text-t3"}`}>
-          {chargeStartDate}
-        </div>
-        <span className="text-[11px] text-t4">~</span>
-        <div className={`flex h-7 w-[106px] items-center rounded-lg border px-2 text-[11.5px] font-semibold tabular-nums ${editing ? "border-line bg-white text-t2" : "border-line2 bg-bg text-t3"}`}>
-          {chargeEndDate}
-        </div>
+      <div className="ml-auto flex flex-wrap items-center gap-1.5">
+        <span className="mr-1 text-[11.5px] font-bold text-t2">부과기준일</span>
+        {editing ? (
+          <input
+            aria-label="부과 시작일"
+            type="date"
+            value={chargeStartDate}
+            onChange={(event) => onChargeStartDateChange(event.target.value)}
+            className="h-7 w-[128px] rounded-[8px] border border-line bg-white px-2 text-[12px] font-medium text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t"
+          />
+        ) : (
+          <div className={`flex h-7 min-w-[106px] items-center justify-center rounded-[8px] border border-line2 bg-bg px-2 text-[12px] font-medium tabular-nums ${chargeStartDate ? "text-t1" : "text-t4"}`}>
+            {chargeStartDate ? chargeStartDate.replaceAll("-", ".") : "시작일"}
+          </div>
+        )}
+        <span className="text-[12px] font-bold text-t2">~</span>
+        {editing ? (
+          <input
+            aria-label="부과 종료일"
+            type="date"
+            value={chargeEndDate}
+            onChange={(event) => onChargeEndDateChange(event.target.value)}
+            className="h-7 w-[128px] rounded-[8px] border border-line bg-white px-2 text-[12px] font-medium text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t"
+          />
+        ) : (
+          <div className={`flex h-7 min-w-[106px] items-center justify-center rounded-[8px] border border-line2 bg-bg px-2 text-[12px] font-medium tabular-nums ${chargeEndDate ? "text-t1" : "text-t4"}`}>
+            {chargeEndDate ? chargeEndDate.replaceAll("-", ".") : "종료일"}
+          </div>
+        )}
+        <span className="mx-[10px] h-[26px] w-px bg-line" />
         {editing ? (
           <>
-            <button type="button" onClick={onCalculate} disabled={pending} className="h-[26px] rounded-lg border border-line bg-white px-3 text-[11.5px] font-bold text-t2 hover:bg-bg disabled:opacity-50">
+            <button type="button" onClick={onCalculate} disabled={pending} className="h-[26px] rounded-[8px] border border-line bg-white px-[10px] text-[11.5px] font-bold text-t2 hover:bg-bg disabled:opacity-50">
               계산
             </button>
-            <button type="button" onClick={onSave} disabled={pending} className="h-[26px] rounded-lg bg-teal px-3 text-[11.5px] font-bold text-white hover:bg-teal-d disabled:opacity-50">
+            <button type="button" onClick={onSave} disabled={pending} className="h-[26px] rounded-[8px] bg-blue px-[10px] text-[11.5px] font-bold text-white hover:bg-blue-d disabled:opacity-50">
               저장
             </button>
-            <button type="button" aria-label="수정 취소" onClick={onCancel} disabled={pending} className="flex size-[26px] items-center justify-center rounded-lg border border-line bg-white text-t3 hover:bg-bg disabled:opacity-50">
+            <button type="button" aria-label="수정 취소" onClick={onCancel} disabled={pending} className="flex size-[26px] items-center justify-center rounded-[8px] border border-line bg-white text-t3 hover:bg-bg disabled:opacity-50">
               <CloseIcon />
             </button>
           </>
         ) : (
-          <button type="button" onClick={onEdit} className="h-[26px] rounded-lg border border-line bg-white px-3 text-[11.5px] font-bold text-t2 hover:bg-bg">
+          <button type="button" onClick={onEdit} className="h-[26px] rounded-[8px] border border-line bg-white px-[10px] text-[11.5px] font-bold text-t2 hover:bg-bg">
             수정
           </button>
         )}

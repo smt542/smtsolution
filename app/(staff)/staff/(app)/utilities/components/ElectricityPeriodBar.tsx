@@ -38,9 +38,9 @@ export function ElectricityPeriodBar({
   const disabled = !buildingName;
 
   return (
-    <section className={`flex h-[52px] flex-none items-center gap-2.5 rounded-[12px] border bg-white px-[14px] shadow-[0_1px_1.5px_rgba(23,31,40,0.05)] ${editing ? "border-teal" : "border-line"}`}>
+    <section className={`sticky top-0 z-[4] flex min-h-[52px] flex-none flex-wrap items-center gap-2.5 rounded-[12px] border bg-white px-[14px] py-[10px] shadow-[0_1px_3px_rgba(23,31,40,0.05)] ${editing ? "border-blue shadow-[0_0_0_3px_#E2F5F1]" : "border-line"}`}>
       <div className="min-w-0 flex-1">
-        <p className={`truncate text-[12.5px] font-extrabold leading-[15px] ${disabled ? "text-t3" : "text-t1"}`}>
+        <p className={`truncate text-[12.5px] font-bold leading-[15px] ${disabled ? "text-t3" : "text-t1"}`}>
           {buildingName ?? "건물 미선택"}
         </p>
         <p className="mt-px text-[11.5px] font-medium leading-[14px] text-t3">
@@ -48,7 +48,8 @@ export function ElectricityPeriodBar({
         </p>
       </div>
 
-      <div className="flex items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="mr-1 whitespace-nowrap text-[11.5px] font-bold text-t2">부과기준일</span>
         {editing ? (
           <>
             <input
@@ -56,7 +57,7 @@ export function ElectricityPeriodBar({
               type="date"
               value={startDate}
               onChange={(event) => onStartDateChange(event.target.value)}
-              className="h-[28px] w-[106px] rounded-[8px] border border-line bg-white px-[10px] text-center text-[12px] font-medium text-t1 outline-none focus:border-teal"
+              className="h-[28px] w-[128px] rounded-[8px] border border-line bg-white px-[10px] text-center text-[12px] font-medium text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t"
             />
             <span className="text-xs text-t3">~</span>
             <input
@@ -64,7 +65,7 @@ export function ElectricityPeriodBar({
               type="date"
               value={endDate}
               onChange={(event) => onEndDateChange(event.target.value)}
-              className="h-[28px] w-[106px] rounded-[8px] border border-line bg-white px-[10px] text-center text-[12px] font-medium text-t1 outline-none focus:border-teal"
+              className="h-[28px] w-[128px] rounded-[8px] border border-line bg-white px-[10px] text-center text-[12px] font-medium text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t"
             />
             <button
               type="button"
@@ -77,7 +78,7 @@ export function ElectricityPeriodBar({
               type="button"
               onClick={onSave}
               disabled={saving}
-              className="h-[26px] rounded-[8px] bg-teal px-[10px] text-[11.5px] font-bold text-white hover:bg-teal-d disabled:opacity-60"
+              className="h-[26px] rounded-[8px] bg-blue px-[10px] text-[11.5px] font-bold text-white hover:bg-blue-d disabled:opacity-60"
             >
               {saving ? "저장 중" : "저장"}
             </button>
@@ -92,12 +93,12 @@ export function ElectricityPeriodBar({
           </>
         ) : (
           <>
-            <div className={`flex h-[28px] w-[106px] items-center justify-center rounded-[8px] border px-[10px] text-[12px] font-medium ${disabled ? "border-line2 bg-line2 text-t4" : "border-line bg-white text-t1"}`}>
-              {disabled ? "시작일" : dateLabel(startDate)}
+            <div className={`flex h-[28px] min-w-[106px] items-center justify-center rounded-[8px] border px-[10px] text-[12px] font-medium ${disabled || !startDate ? "border-line2 bg-bg text-t4" : "border-line2 bg-bg text-t1"}`}>
+              {disabled || !startDate ? "시작일" : dateLabel(startDate)}
             </div>
             <span className="text-xs text-t3">~</span>
-            <div className={`flex h-[28px] w-[106px] items-center justify-center rounded-[8px] border px-[10px] text-[12px] font-medium ${disabled ? "border-line2 bg-line2 text-t4" : "border-line bg-white text-t1"}`}>
-              {disabled ? "종료일" : dateLabel(endDate)}
+            <div className={`flex h-[28px] min-w-[106px] items-center justify-center rounded-[8px] border px-[10px] text-[12px] font-medium ${disabled || !endDate ? "border-line2 bg-bg text-t4" : "border-line2 bg-bg text-t1"}`}>
+              {disabled || !endDate ? "종료일" : dateLabel(endDate)}
             </div>
             <button
               type="button"
