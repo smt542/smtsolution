@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { PrinterIcon } from "@/components/icons";
 import { NAV_GROUPS } from "./navItems";
 
 interface TopbarProps {
@@ -23,35 +21,8 @@ function findPageTitle(pathname: string): string {
 export function Topbar({ onMenu }: TopbarProps) {
   const pathname = usePathname();
   const title = findPageTitle(pathname);
-  const isUtilities = pathname.startsWith("/staff/utilities");
   const isMovingInquiry = pathname.startsWith("/staff/moving-settlement/inquiries/");
   const isMovingSettlement = pathname === "/staff/moving-settlement";
-  const [utilityType, setUtilityType] = useState<"electricity" | "water" | "gas">("gas");
-  const isElectricityUtilities =
-    isUtilities && utilityType === "electricity";
-
-  useEffect(() => {
-    if (!isUtilities) return;
-    const updateTitle = (event: Event) => {
-      const nextType = (event as CustomEvent<"electricity" | "water" | "gas">).detail;
-      if (nextType === "electricity" || nextType === "water" || nextType === "gas") {
-        setUtilityType(nextType);
-      }
-    };
-    const initialSync = window.setTimeout(() => {
-      const type = new URLSearchParams(window.location.search).get("type");
-      setUtilityType(type === "electricity" ? "electricity" : type === "water" ? "water" : "gas");
-    }, 0);
-    window.addEventListener("utilities:type-change", updateTitle);
-    return () => {
-      window.clearTimeout(initialSync);
-      window.removeEventListener("utilities:type-change", updateTitle);
-    };
-  }, [isUtilities]);
-
-  const dispatchUtilityAction = (action: "print" | "carry-over") => {
-    window.dispatchEvent(new CustomEvent(`utilities:${action}`));
-  };
 
   return (
     <header className="h-[62px] flex-none flex items-center gap-[12px] px-6 bg-white border-b border-line">
@@ -67,10 +38,10 @@ export function Topbar({ onMenu }: TopbarProps) {
         </svg>
       </button>
 
-      {isElectricityUtilities || isMovingInquiry || isMovingSettlement ? (
+      {isMovingInquiry || isMovingSettlement ? (
         <div className="min-w-0 flex-1 leading-none">
           <p className={`${isMovingInquiry ? "text-[12px] leading-[15px]" : "text-[10px] leading-[12px]"} font-semibold text-t3`}>
-            {isMovingInquiry || isMovingSettlement ? "이사정산" : "공과금 관리"}
+            이사정산
           </p>
           <h1 className={`${isMovingInquiry ? "text-[19px] leading-[23px]" : "text-[17px] leading-[21px]"} mt-[3px] font-extrabold tracking-[-0.35px] text-t1`}>
             {isMovingInquiry
@@ -81,35 +52,13 @@ export function Topbar({ onMenu }: TopbarProps) {
                   : pathname.endsWith("/water")
                     ? "수도 이사조회"
                     : "가스 이사조회"
-              : isMovingSettlement
-                ? "이사정산 입력"
-                : "전기"}
+              : "이사정산 입력"}
           </h1>
         </div>
       ) : (
         <h1 className="flex-1 text-[19px] font-extrabold tracking-[-0.02em] text-t1">
           {title}
         </h1>
-      )}
-
-      {isElectricityUtilities && (
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => dispatchUtilityAction("print")}
-            className="flex h-10 items-center gap-1.5 rounded-[10px] border border-line bg-white px-[14px] text-[13px] font-bold text-t2 transition-colors hover:bg-bg"
-          >
-            <PrinterIcon className="size-4" />
-            검침대장 출력
-          </button>
-          <button
-            type="button"
-            onClick={() => dispatchUtilityAction("carry-over")}
-            className="h-10 rounded-[10px] bg-teal px-[17px] text-[13px] font-bold text-white transition-colors hover:bg-teal-d"
-          >
-            전체 이월
-          </button>
-        </div>
       )}
     </header>
   );
