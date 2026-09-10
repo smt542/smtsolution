@@ -174,7 +174,7 @@
   /* 정본은 예약전송 블록(WRAPPER-A)과 메시지 섹션 사이에 여백을 둔다(정본 렌더 기준
      예약전송↔메시지 간격 = fmp-body gap + 이 여백). 없으면 메시지 이하가 위로 뜬다.
      (메시지 라벨 간격 정합과 합쳐 msg2col-top·textarea·폰이 모두 정본과 일치.) */
-  .fmp-resv{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+  .fmp-resv{display:flex;flex-direction:column;gap:10px}
   .fmp-ck{display:inline-flex;align-items:center;min-height:22px;line-height:1.4;gap:8px;font-size:13px;font-weight:700;color:var(--t2);cursor:pointer;user-select:none}
   .fmp-ck .box{width:19px;height:19px;border-radius:6px;border:2px solid var(--line);flex:none;position:relative}
   .fmp-ck.on .box{background:var(--blue);border-color:var(--blue)}

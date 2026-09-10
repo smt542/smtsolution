@@ -164,7 +164,7 @@ export function MessageComposer({
           onTemplate(null);
           onBody(event.target.value);
         }}
-        placeholder="메시지 내용을 입력해 주세요"
+        placeholder="메시지 내용을 입력해 주세요 · 아래 변수를 눌러 넣을 수 있어요"
         aria-label="문자 메시지 내용"
       />
       <div className={styles["fmp-varsrow"]}>

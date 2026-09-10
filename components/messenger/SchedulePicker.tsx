@@ -88,15 +88,28 @@ export function SchedulePicker({ value, onChange }: SchedulePickerProps) {
 
   return (
     <div className={styles["fmp-resv"]}>
-      <button
-        type="button"
-        className={`${styles["fmp-ck"]} ${enabled ? styles.on : ""}`}
-        onClick={toggle}
-        aria-pressed={enabled}
+      {/* 정본(Messenger.dc.html L543): 체크박스를 min-height:24px·align-items:center 행에
+          감싸 22px 라벨을 세로중앙 배치(텍스트 1px 아래로) — 앱 전용 margin 보정 대신 정본 구조 복제 */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 18,
+          marginBottom: 10,
+          flexWrap: "wrap",
+          minHeight: 24,
+        }}
       >
-        <span className={styles.box} aria-hidden="true" />
-        예약 전송
-      </button>
+        <button
+          type="button"
+          className={`${styles["fmp-ck"]} ${enabled ? styles.on : ""}`}
+          onClick={toggle}
+          aria-pressed={enabled}
+        >
+          <span className={styles.box} aria-hidden="true" />
+          예약 전송
+        </button>
+      </div>
       {enabled && (
         <div className={styles["fmp-dt"]}>
           <label className={`${styles["fmp-dpick"]} ${!parts.date ? styles.ph : ""}`}>
