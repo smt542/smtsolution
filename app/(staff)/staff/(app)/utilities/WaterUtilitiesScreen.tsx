@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { EmptyState, Spinner } from "@/components/common";
-import { MenuIcon, PrinterIcon } from "@/components/icons";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import {
@@ -32,6 +31,7 @@ import { MeterLedgerModal } from "./components/MeterLedgerModal";
 import { UnitPriceModal } from "./components/UnitPriceModal";
 import { UtilityAccountSummary } from "./components/UtilityAccountSummary";
 import { UtilityPeriodBarPlaceholder } from "./components/UtilityPeriodBarPlaceholder";
+import { UtilityWorkspaceHeader } from "./components/UtilityWorkspaceHeader";
 import { UtilityTable, type UtilityDraft, type UtilityTableRow } from "./components/UtilityTable";
 import { UtilityWorkspaceBar } from "./components/UtilityWorkspaceBar";
 import { WaterDiscountModal } from "./components/WaterDiscountModal";
@@ -257,14 +257,11 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
 
   return (
     <div className="flex min-h-screen flex-col bg-bg">
-      <header className="flex h-[62px] shrink-0 items-center border-b border-line bg-white px-5 md:px-6">
-        <button type="button" aria-label="메뉴 열기" onClick={() => window.dispatchEvent(new Event("app-shell:open-menu"))} className="mr-3 grid size-8 place-items-center rounded-lg text-t2 hover:bg-bg"><MenuIcon className="size-5" /></button>
-        <div><p className="text-[10px] font-semibold text-t3">공과금 관리</p><h1 className="mt-0.5 text-[18px] font-extrabold leading-5 text-t1">{TYPE_LABELS[utilityType]}</h1></div>
-        <div className="ml-auto flex items-center gap-2">
-          <button type="button" onClick={() => setLedgerOpen(true)} className="flex h-10 items-center gap-1.5 rounded-[11px] border border-line bg-white px-[15px] text-[13.5px] font-bold text-t2 hover:bg-bg"><PrinterIcon /> 검침대장 출력</button>
-          <button type="button" onClick={() => setCarryOpen(true)} className="h-10 rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white hover:bg-blue-d">전체 이월</button>
-        </div>
-      </header>
+      <UtilityWorkspaceHeader
+        utilityLabel={TYPE_LABELS[utilityType]}
+        onOpenLedger={() => setLedgerOpen(true)}
+        onOpenCarryOver={() => setCarryOpen(true)}
+      />
 
       <main className="grid min-h-[calc(100dvh-62px)] grid-cols-1 items-stretch gap-4 p-4 min-[1101px]:grid-cols-[minmax(0,322px)_minmax(0,1fr)] min-[1101px]:overflow-hidden min-[1101px]:p-[22px_24px_24px]">
         <BuildingSelectionRail
