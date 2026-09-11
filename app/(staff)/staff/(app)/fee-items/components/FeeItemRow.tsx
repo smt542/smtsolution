@@ -18,7 +18,7 @@ export function FeeItemRow({ item, onEdit, onDragStart, onDrop }: FeeItemRowProp
   return (
     <tr
       draggable={interactive}
-      className={`${item.isRequired ? "h-[47px] bg-[#fbfcfd]" : "h-[51px]"} border-t border-line2 text-[13px] text-t2 ${interactive ? "cursor-pointer hover:bg-bg/60" : ""}`}
+      className={`${item.isRequired ? "h-[47px] bg-[#fbfcfd]" : "h-[51px]"} border-t border-line2 text-[13.5px] text-t2 ${interactive ? "cursor-pointer hover:bg-bg/60" : ""}`}
       onClick={() => interactive && onEdit(item)}
       onDragStart={(event) => {
         if (!interactive) return;
@@ -32,7 +32,7 @@ export function FeeItemRow({ item, onEdit, onDragStart, onDrop }: FeeItemRowProp
         onDrop(item.key);
       }}
     >
-      <td className="w-11 pl-[21px]">
+      <td className="w-11 pl-4">
         <Image
           src={item.isRequired ? "/icons/fee-items/lock.svg" : "/icons/fee-items/grip.svg"}
           alt={item.isRequired ? "필수 항목" : "순서 이동"}
@@ -40,15 +40,15 @@ export function FeeItemRow({ item, onEdit, onDragStart, onDrop }: FeeItemRowProp
           height={16}
         />
       </td>
-      <th scope="row" className="w-[25%] py-0 pr-5 text-left font-bold text-t1">
+      <th scope="row" className="w-[24%] py-0 px-4 text-left font-bold text-t1">
         <span>{item.name}</span>
         {item.isRequired && (
           <span className="ml-2 rounded-md bg-bg px-1.5 py-0.5 text-[10px] font-bold text-t3">필수</span>
         )}
       </th>
-      <td className="w-[26%] px-5 font-semibold">{rounding}</td>
-      <td className="w-[26%] px-5 font-semibold">{item.dailyProration ? "적용" : "안함"}</td>
-      <td className="px-5 font-semibold">{item.carryOver ? "이월" : "안함"}</td>
+      <td className="px-4 font-semibold">{rounding}</td>
+      <td className="px-4 font-semibold">{item.dailyProration ? "적용" : "안함"}</td>
+      <td className="px-4 font-semibold">{item.carryOver ? "이월" : "안함"}</td>
     </tr>
   );
 }

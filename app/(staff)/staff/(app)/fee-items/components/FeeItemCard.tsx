@@ -22,8 +22,8 @@ export function FeeItemCard({ type, dirty, saving, onAddItem, onEditItem, onReor
   const [editing, setEditing] = useState(false);
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-line/80 bg-white shadow-card">
-      <header className="flex h-[69px] items-center justify-between px-[18px]">
+    <section className="overflow-hidden rounded-2xl bg-white shadow-card">
+      <header className="flex h-[70px] items-center justify-between border-b border-line2 px-[18px]">
         <div className="flex items-center gap-2">
           {editing ? (
             <input

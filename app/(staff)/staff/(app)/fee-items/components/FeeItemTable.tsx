@@ -15,14 +15,14 @@ export function FeeItemTable({ items, onEdit, onReorder }: FeeItemTableProps) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[760px] border-collapse">
+      <table className="w-full table-fixed border-collapse">
         <thead>
-          <tr className="h-9 bg-[#fbfcfd] text-left text-[11px] font-bold text-t3">
+          <tr className="h-9 bg-[#fbfcfd] text-left text-[12px] font-bold text-t3">
             <th aria-label="상태" className="w-11" />
-            <th className="w-[25%] pr-5">항목 명칭</th>
-            <th className="w-[26%] px-5">반올림</th>
-            <th className="w-[26%] px-5">일자계산</th>
-            <th className="px-5">이월</th>
+            <th className="w-[24%] px-4">항목 명칭</th>
+            <th className="px-4">반올림</th>
+            <th className="px-4">일자계산</th>
+            <th className="px-4">이월</th>
           </tr>
         </thead>
         <tbody>
