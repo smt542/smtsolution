@@ -169,5 +169,14 @@
     "appActions": [{ "click": "main section:first-of-type > button" }, { "wait": 250 }],
     "viewport": { "w": 1340, "h": 880 },
     "device": "desktop"
+  },
+  {
+    "id": "staff-tenant-register",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/tenant-detail/tenant-detail.dc.html",
+    "originSelector": ".hf-app",
+    "appPath": "/staff/buildings/2/tenants/new",
+    "appSelector": null,
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
   }
 ]

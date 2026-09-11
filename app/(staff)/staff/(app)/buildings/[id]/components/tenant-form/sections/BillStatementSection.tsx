@@ -29,7 +29,11 @@ export function BillStatementSection({
         </Field>
         <Field label="발송">
           <SelectField value={value.billDelivery} onChange={(v) => onChange({ billDelivery: v })} options={billDeliveryOptions} />
-          <p className="pt-[6px] text-[12px] text-t3">알림톡 수신 동의 세대는 알림톡 고지서로 발송돼요</p>
+          {value.billDelivery === "alimtalk" && (
+            <p className="pt-[6px] text-[12px] font-semibold leading-[1.5] text-teal">
+              알림톡 수신 동의 세대는 이체 방식과 무관하게 알림톡 고지서로 발송돼요
+            </p>
+          )}
         </Field>
         <Field label="인증">
           <TextField value={value.billAuthInfo} onChange={(v) => onChange({ billAuthInfo: v })} placeholder="인증 정보" />
