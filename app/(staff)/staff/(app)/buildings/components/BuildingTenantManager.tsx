@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import { IconButton } from "@/components/common";
 import {
   useBuildingList,
   useStaffOptions,
@@ -138,10 +139,9 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
     <div className="flex h-full min-h-0 flex-col">
       {/* App bar */}
       <div className="sticky top-0 z-10 flex h-[62px] shrink-0 items-center gap-[12px] border-b border-line bg-surface px-[24px]">
-        <button
-          type="button"
+        <IconButton
           onClick={() => window.dispatchEvent(new Event("app-shell:toggle-sidebar"))}
-          className="mr-[2px] flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-[10px] text-t2 transition-colors hover:bg-bg"
+          className="mr-[2px] h-[36px] w-[36px] shrink-0 rounded-[10px] text-t2 transition-colors hover:bg-bg"
           aria-label="메뉴 열기"
         >
           <svg
@@ -156,7 +156,7 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
           >
             <path d="M4 6h16M4 12h16M4 18h16" />
           </svg>
-        </button>
+        </IconButton>
         <h1 className="text-[19px] font-extrabold leading-[normal] tracking-[-0.38px] text-t1">건물·입주자 관리</h1>
         <button
           type="button"

@@ -1,6 +1,7 @@
 "use client";
 
 import { PrinterIcon } from "@/components/icons";
+import { IconButton } from "@/components/common";
 
 interface UtilityWorkspaceHeaderProps {
   utilityLabel: string;
@@ -15,11 +16,10 @@ export function UtilityWorkspaceHeader({
 }: UtilityWorkspaceHeaderProps) {
   return (
     <header className="flex h-[62px] shrink-0 items-center gap-3 border-b border-line bg-white px-6">
-      <button
-        type="button"
+      <IconButton
         aria-label="메뉴 열기"
         onClick={() => window.dispatchEvent(new Event("app-shell:open-menu"))}
-        className="mr-0.5 flex size-9 shrink-0 items-center justify-center rounded-[10px] text-t2 transition-colors hover:bg-bg"
+        className="mr-0.5 size-9 shrink-0 rounded-[10px] text-t2 transition-colors hover:bg-bg"
       >
         <svg
           viewBox="0 0 24 24"
@@ -33,7 +33,7 @@ export function UtilityWorkspaceHeader({
         >
           <path d="M4 6h16M4 12h16M4 18h16" />
         </svg>
-      </button>
+      </IconButton>
 
       <div className="min-w-0 leading-none">
         <p className="whitespace-nowrap text-xs font-semibold text-t3">공과금 관리</p>
