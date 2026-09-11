@@ -99,18 +99,16 @@ export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props
           error={errors.orgId?.message}
           className={FORM_FIELD_CLASS}
         >
-          <select
+          <Select
             id="platform-account-org"
             aria-label="대상 조직"
             {...register("orgId")}
-            className={`w-full ${INPUT_CLASS}`}
-          >
-            {organizations.map((organization) => (
-              <option key={organization.id} value={organization.id}>
-                {organization.name}
-              </option>
-            ))}
-          </select>
+            options={organizations.map((organization) => ({
+              value: String(organization.id),
+              label: organization.name,
+            }))}
+            className={INPUT_CLASS}
+          />
         </FormField>
 
         {organizations.length === 0 && (

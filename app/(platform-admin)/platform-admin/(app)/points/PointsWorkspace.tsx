@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Modal, Spinner } from "@/components/common";
+import { Badge, Modal, Spinner } from "@/components/common";
 import {
   listPlatformOrganizations,
   platformKeys,
@@ -243,13 +243,13 @@ export default function PointsWorkspace() {
                 {num(poolBalance)}P
               </strong>
               {sendingStopped ? (
-                <span className="inline-flex rounded-[7px] bg-red-t px-[9px] py-[3px] text-xs font-bold leading-[1.4] text-red">
+                <Badge className="inline-flex bg-red-t px-[9px] py-[3px] leading-[1.4] text-red">
                   발송 중단
-                </span>
+                </Badge>
               ) : chargeNeeded ? (
-                <span className="inline-flex rounded-[7px] bg-amber-t px-[9px] py-[3px] text-xs font-bold leading-[1.4] text-amber">
+                <Badge className="inline-flex bg-amber-t px-[9px] py-[3px] leading-[1.4] text-amber">
                   충전 필요
-                </span>
+                </Badge>
               ) : null}
               <p className="mt-[9px] w-full text-[12.5px] font-semibold text-t3">
                 이번 달 사용 <b className="font-extrabold text-t2 tabular-nums">{num(monthUsedPoints)}P</b>

@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Badge } from "@/components/common";
 import { useLogout, useMe } from "@/hooks/reactquery/auth";
 import {
   PLATFORM_NAV_ITEMS,
@@ -241,9 +242,9 @@ function PlatformTopbar({
       <div ref={slotRef} className="flex items-center gap-2" />
       {me && (
         <div className="hidden items-center gap-2 sm:flex">
-          <span className="inline-flex rounded-[7px] bg-blue-t px-[9px] py-[3px] text-xs font-bold leading-[1.4] text-blue-d">
+          <Badge className="inline-flex bg-blue-t px-[9px] py-[3px] leading-[1.4] text-blue-d">
             MASTER
-          </span>
+          </Badge>
           <span className="text-sm font-semibold text-t2">{me.fullName}</span>
         </div>
       )}

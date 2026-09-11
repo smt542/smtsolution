@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { EmptyState, Spinner, Button, Modal } from "@/components/common";
+import { Badge, EmptyState, Spinner, Button, Modal } from "@/components/common";
 import {
   listPlatformOrganizations,
   platformKeys,
@@ -463,9 +463,9 @@ function ReservationStatus({ status }: { status: PointReservation["status"] }) {
       ? { label: "발송 중", className: "bg-blue-t text-blue-d" }
       : { label: "예약", className: "bg-amber-t text-amber" };
   return (
-    <span className={`inline-flex rounded-[7px] px-[9px] py-[3px] text-xs font-bold leading-[1.4] ${view.className}`}>
+    <Badge className={`inline-flex px-[9px] py-[3px] leading-[1.4] ${view.className}`}>
       {view.label}
-    </span>
+    </Badge>
   );
 }
 
@@ -485,8 +485,8 @@ const TRANSACTION_BADGES: Record<PointTxType, { label: string; className: string
 function TransactionTypeBadge({ type }: { type: PointTxType }) {
   const badge = TRANSACTION_BADGES[type];
   return (
-    <span className={`inline-flex rounded-[7px] px-[9px] py-[3px] text-xs font-bold leading-[1.4] ${badge.className}`}>
+    <Badge className={`inline-flex px-[9px] py-[3px] leading-[1.4] ${badge.className}`}>
       {badge.label}
-    </span>
+    </Badge>
   );
 }

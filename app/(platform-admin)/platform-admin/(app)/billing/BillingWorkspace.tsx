@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { EmptyState, Spinner } from "@/components/common";
+import { Badge, EmptyState, Spinner } from "@/components/common";
 import {
   useMarkOrgBillingPaid,
   usePlatformOrgBilling,
@@ -343,5 +343,5 @@ function BillingStatusBadge({ status }: { status: PlatformOrgBillingStatus }) {
     unpaid: { label: "미입금", className: "bg-red-t text-red" },
     none: { label: "청구 없음", className: "bg-bg text-t3" },
   }[status];
-  return <span className={`inline-flex items-center gap-1 rounded-[7px] px-[9px] py-[3px] text-xs font-bold leading-[1.4] ${view.className}`}>{view.label}</span>;
+  return <Badge className={`inline-flex items-center gap-1 px-[9px] py-[3px] leading-[1.4] ${view.className}`}>{view.label}</Badge>;
 }
