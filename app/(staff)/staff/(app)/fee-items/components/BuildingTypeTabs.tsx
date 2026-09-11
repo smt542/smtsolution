@@ -23,7 +23,7 @@ export function BuildingTypeTabs({
   onFinishEditing,
 }: BuildingTypeTabsProps) {
   return (
-    <nav aria-label="건물 유형" className="h-[46px] border-b border-line bg-white px-6">
+    <nav aria-label="건물 유형" className="h-[42px] border-b border-line bg-white px-6">
       <div className="flex h-full items-center gap-1 overflow-x-auto">
         {types.map((type) => {
           const active = type.key === activeKey;
@@ -31,7 +31,7 @@ export function BuildingTypeTabs({
           return (
             <div
               key={type.key}
-              className={`relative flex h-full shrink-0 items-center justify-center px-4 text-[13px] font-bold ${type.id == null ? "min-w-24" : ""} ${
+              className={`relative flex h-full shrink-0 items-center justify-center px-4 text-[14px] font-bold ${type.id == null ? "min-w-24" : ""} ${
                 active ? "text-teal" : "text-t3"
               }`}
             >
