@@ -65,12 +65,12 @@ export function SettlementHistory({
         )}
         {date !== "" && query.isLoading && (
           <p className="px-[18px] py-[14px] text-[12.5px] text-t4">
-            이력을 불러오는 중입니다.
+            이력을 불러오고 있어요
           </p>
         )}
         {date !== "" && query.error && (
           <p className="px-[18px] py-[14px] text-[12.5px] text-red">
-            이사정산 이력을 불러오지 못했습니다.
+            이사정산 이력을 불러오지 못했어요
           </p>
         )}
         {date !== "" && !query.isLoading && !query.error && rows.length === 0 && (

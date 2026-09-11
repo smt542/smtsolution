@@ -96,7 +96,7 @@ export function SettlementDirectoryRail({
               </button>
             ) : (
               <p className="px-[16px] py-[14px] text-[12.5px] text-t4">
-                작성된 이사정산이 없습니다.
+                정산된 이사 항목이 없어요
               </p>
             )}
           </div>
@@ -107,7 +107,7 @@ export function SettlementDirectoryRail({
             <h2 className="text-[14px] font-semibold text-t1">이사정산시 적요</h2>
           </div>
           <p className="px-[16px] py-[13px] text-[13.5px] leading-[22px] text-t1">
-            {settlementNote || "등록된 이사정산 적요가 없습니다."}
+            {settlementNote || "등록된 이사정산시 적요가 없어요"}
           </p>
         </section>
       </aside>
@@ -138,12 +138,12 @@ export function SettlementDirectoryRail({
           <div className="min-h-0 flex-1 overflow-auto">
             {(unitsLoading || tenantQuery.isLoading) && (
               <p className="px-[16px] py-[14px] text-[12.5px] text-t4">
-                호실을 불러오는 중입니다.
+                호실을 불러오고 있어요
               </p>
             )}
             {!unitsLoading && !tenantQuery.isLoading && tenants.length === 0 && (
               <p className="px-[16px] py-[14px] text-[12.5px] text-t4">
-                등록된 호실이 없습니다.
+                등록된 호실이 없어요
               </p>
             )}
             {tenants.map((tenant) => {
@@ -208,12 +208,12 @@ export function SettlementDirectoryRail({
         <div className="min-h-0 flex-1 overflow-auto">
           {buildingsLoading && (
             <p className="px-[16px] py-[14px] text-[12.5px] text-t4">
-              건물을 불러오는 중입니다.
+              건물을 불러오고 있어요
             </p>
           )}
           {!buildingsLoading && visibleBuildings.length === 0 && (
             <p className="px-[16px] py-[14px] text-[12.5px] text-t4">
-              검색 결과가 없습니다.
+              검색 결과가 없어요
             </p>
           )}
           {visibleBuildings.map((building) => (

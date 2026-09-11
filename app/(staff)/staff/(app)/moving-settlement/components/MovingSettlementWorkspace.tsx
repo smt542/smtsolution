@@ -264,12 +264,12 @@ export function MovingSettlementWorkspace() {
           )}
           {unitId !== null && contextQuery.error && (
             <div className="grid min-h-0 flex-1 place-items-center rounded-[16px] bg-white shadow-card">
-              <EmptyState message="정산 정보를 불러오지 못했습니다." />
+              <EmptyState message="정산 정보를 불러오지 못했어요" />
             </div>
           )}
           {context && context.occupancy === null && (
             <div className="grid min-h-0 flex-1 place-items-center rounded-[16px] bg-white shadow-card">
-              <EmptyState message="선택한 호실에 입주 정보가 없습니다." />
+              <EmptyState message="선택한 호실에 입주 정보가 없어요" />
             </div>
           )}
           {context && context.occupancy && selectedBuilding && selectedUnit && (

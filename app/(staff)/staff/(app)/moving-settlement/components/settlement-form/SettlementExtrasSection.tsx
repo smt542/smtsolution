@@ -175,7 +175,7 @@ export function SettlementExtrasSection({
         <h3 className="text-[14px] font-extrabold text-t1">정산 체크</h3>
         {checklist.length === 0 ? (
           <p className="mt-[10px] text-[12.5px] text-t4">
-            등록된 정산 체크 항목이 없습니다.
+            등록된 정산 체크 항목이 없어요
           </p>
         ) : (
           <div className="mt-[10px] grid grid-cols-2 gap-x-[20px] gap-y-[6px]">

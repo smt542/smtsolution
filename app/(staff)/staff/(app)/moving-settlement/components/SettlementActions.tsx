@@ -99,7 +99,7 @@ export function SettlementActions({
         onSaved(result.settlementId);
         toast.success("이사정산을 저장했어요.");
       },
-      onError: () => toast.error("이사정산 저장에 실패했습니다."),
+      onError: () => toast.error("이사정산 저장에 실패했어요."),
     });
   };
 
@@ -121,7 +121,7 @@ export function SettlementActions({
         setDialog(null);
         toast.success("중도퇴실로 처리 완료했어요.");
       },
-      onError: () => toast.error("중도퇴실 처리에 실패했습니다."),
+      onError: () => toast.error("중도퇴실 처리에 실패했어요."),
     });
   };
 
@@ -132,14 +132,14 @@ export function SettlementActions({
         setDialog(null);
         toast.success("퇴실로 처리 완료했어요.");
       },
-      onError: () => toast.error("퇴실 처리에 실패했습니다."),
+      onError: () => toast.error("퇴실 처리에 실패했어요."),
     });
   };
 
   const deleteSettlement = () => {
     if (settlementId === null) {
       setDialog(null);
-      toast.info("아직 저장되지 않은 입력입니다.");
+      toast.info("아직 저장되지 않은 입력이에요.");
       return;
     }
     remove.mutate(settlementId, {
@@ -148,7 +148,7 @@ export function SettlementActions({
         onDeleted();
         toast.success("이사정산을 삭제했어요.");
       },
-      onError: () => toast.error("이사정산을 삭제하지 못했습니다."),
+      onError: () => toast.error("이사정산을 삭제하지 못했어요."),
     });
   };
 
@@ -162,7 +162,7 @@ export function SettlementActions({
 
   const print = () => {
     if (outstanding < 0) {
-      toast.error("미수금이 음수인 정산은 내역서를 출력할 수 없습니다.");
+      toast.error("미수금이 음수인 정산은 내역서를 출력할 수 없어요.");
       return;
     }
     window.print();
