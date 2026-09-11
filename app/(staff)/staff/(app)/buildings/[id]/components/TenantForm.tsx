@@ -9,6 +9,7 @@ import { useConfirm } from "@/components/common/ConfirmProvider";
 import { occupancyBasicSchema } from "@/components/forms/schema/occupancy";
 import { useCustomerNumbers, type CustomerNumberKind } from "@/hooks/reactquery/buildingCustomerNumbers";
 import {
+  useDeleteUnit,
   useSaveUnitOccupancy,
   useUnitOccupancyFull,
   type SaveUnitOccupancyPayload,
@@ -64,6 +65,8 @@ const emptyBilling = (): BillingValue => ({
   billingEnabled: true,
   billingDay: "",
   transferMethod: "giro",
+  cmsMemberNo: "",
+  cmsContractNo: "",
   lateFeeEnabled: false,
   singlePrint: false,
   billingNote: "",
@@ -110,7 +113,7 @@ const emptyProperty = (): PropertyValue => ({
   mgmtFeeDesc: "",
   availableDate: "",
   location: "",
-  facilities: [""],
+  facilities: [],
 });
 
 function withoutTrailingBlanks(values: string[]): string[] {
@@ -146,6 +149,7 @@ export function TenantForm({
   const confirm = useConfirm();
   const router = useRouter();
   const save = useSaveUnitOccupancy();
+  const del = useDeleteUnit();
   const { data: roomTypes } = useRoomTypes();
   const { data: customerNumbers } = useCustomerNumbers(buildingId);
   const { data: full, isLoading, isError } = useUnitOccupancyFull(unitId ?? 0);
@@ -244,6 +248,8 @@ export function TenantForm({
       billingEnabled: occupancy?.billingEnabled ?? true,
       billingDay: occupancy?.billingDay ?? "",
       transferMethod: occupancy?.transferMethod ?? "giro",
+      cmsMemberNo: occupancy?.cmsMemberNo ?? "",
+      cmsContractNo: occupancy?.cmsContractNo ?? "",
       lateFeeEnabled: occupancy?.lateFeeEnabled ?? false,
       singlePrint: occupancy?.singlePrint ?? false,
       billingNote: occupancy?.billingNote ?? "",
@@ -285,7 +291,7 @@ export function TenantForm({
       mgmtFeeDesc: full.property?.mgmtFeeDesc ?? "",
       availableDate: full.property?.availableDate ?? "",
       location: full.property?.location ?? "",
-      facilities: withInputSlot(full.property?.facilities ?? []),
+      facilities: full.property?.facilities ?? [],
     });
     setBasicErrors({});
     setPhoneError(undefined);
@@ -393,6 +399,8 @@ export function TenantForm({
         billingDay: billing.billingDay || null,
         etcNote: basic.etcNote || null,
         billAuthInfo: bill.billAuthInfo || null,
+        cmsMemberNo: billing.transferMethod === "auto_transfer" ? billing.cmsMemberNo || null : null,
+        cmsContractNo: billing.transferMethod === "auto_transfer" ? billing.cmsContractNo || null : null,
         phonesExtra: phones.slice(3),
         vehiclesExtra: vehicles.slice(1),
       },
@@ -436,7 +444,7 @@ export function TenantForm({
         mgmtFeeDesc: property.mgmtFeeDesc || null,
         availableDate: property.availableDate || null,
         location: property.location || null,
-        facilities: withoutTrailingBlanks(property.facilities),
+        facilities: property.facilities.filter((f) => f.label.trim() !== ""),
       },
     };
 
@@ -516,6 +524,34 @@ export function TenantForm({
       <MoveOutHistorySection history={full?.history ?? []} />
       <LeaseInfoSection value={lease} onChange={patch(setLease)} />
       <PropertyInfoSection value={property} onChange={patch(setProperty)} />
+
+      {unitId && (
+        <div className="flex justify-center pt-[4px]">
+          <button
+            type="button"
+            onClick={async () => {
+              const ok = await confirm({
+                title: "호수 삭제",
+                description: "이 호수(세대)와 입주자 정보를 삭제하시겠습니까? 되돌릴 수 없습니다.",
+                confirmLabel: "삭제",
+                variant: "danger",
+              });
+              if (!ok) return;
+              try {
+                await del.mutateAsync(unitId);
+                toast.success("삭제되었습니다.");
+                router.push(`/staff/buildings/${buildingId}/tenants`);
+              } catch (error) {
+                toast.error(error instanceof Error ? error.message : "삭제에 실패했습니다.");
+              }
+            }}
+            disabled={del.isPending}
+            className="flex h-[44px] w-full items-center justify-center rounded-[11px] border border-red bg-red text-[13.5px] font-bold text-white disabled:opacity-60"
+          >
+            호수 삭제
+          </button>
+        </div>
+      )}
     </div>
   );
 }

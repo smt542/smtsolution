@@ -41,7 +41,7 @@ describe("occupancies hub apis", () => {
       meters:[{ utility:"water", meterNo:"M1", customerNo:"C1" }],
       accounts:[{ kind:"mgmt", bank:"국민", account:"111", holder:"김", cmsMemberNo:"CMS1", payerNo:"PAYER1" }],
       lease:{ deposit:1000000, monthlyRent:500000, expiryAlert:false },
-      property:{ propertyName:"101호 매물", propertyType:"oneroom", dealType:"direct", rentType:"month", facilities:["에어컨"] },
+      property:{ propertyName:"101호 매물", propertyType:"oneroom", dealType:"direct", rentType:"month", facilities:[{ label:"에어컨", on:true }] },
     });
     expect(rpc).toHaveBeenCalledWith("save_unit_occupancy_full", expect.objectContaining({ p_building_id:7, p_unit_id:null }));
     const args = rpc.mock.calls[0][1];
@@ -54,7 +54,7 @@ describe("occupancies hub apis", () => {
     expect(args.p_accounts[0]).toMatchObject({ kind:"mgmt", bank:"국민", cms_member_no:"CMS1", payer_no:"PAYER1" });
     expect(args.p_fax_number).toBe("02-1234");
     expect(args.p_lease).toMatchObject({ deposit:1000000, monthly_rent:500000 });
-    expect(args.p_property).toMatchObject({ property_name:"101호 매물", property_type:"oneroom", facilities:["에어컨"] });
+    expect(args.p_property).toMatchObject({ property_name:"101호 매물", property_type:"oneroom", facilities:[{ label:"에어컨", on:true }] });
     expect(res).toEqual({ unitId:3, occupancyId:9 });
   });
 
@@ -97,7 +97,7 @@ describe("occupancies hub apis", () => {
       transferMethod: "giro", billNameDisplay: "code", billDelivery: "alimtalk", billAuth: true, faxNumber: "02-1234",
       moveOutScheduledDate: "2026-08-31",
     });
-    expect(result.property).toMatchObject({ propertyName:"101호 매물", areaM2:42.5, facilities:["에어컨"] });
+    expect(result.property).toMatchObject({ propertyName:"101호 매물", areaM2:42.5, facilities:[{ label:"에어컨", on:true }] });
   });
 
   it("퇴실 실행·예약·취소 RPC에 확정 파라미터를 전달한다", async () => {

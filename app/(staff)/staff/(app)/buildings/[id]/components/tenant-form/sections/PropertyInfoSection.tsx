@@ -2,8 +2,9 @@
 import React, { useRef } from "react";
 import { FormSection } from "../ui/FormSection";
 import { FieldGrid, Field, TextField, AmountField, SelectField, DateField } from "../ui/Fields";
-import { RepeatableTextField } from "../ui/RepeatableTextField";
+import { FacilityField } from "../ui/FacilityField";
 import { propertyTypeOptions, dealTypeOptions, propertyClassOptions } from "../ui/options";
+import type { Facility } from "@/hooks/reactquery/occupancies";
 
 export interface PropertyValue {
   propertyName: string;
@@ -19,7 +20,7 @@ export interface PropertyValue {
   mgmtFeeDesc: string;
   availableDate: string;
   location: string;
-  facilities: string[];
+  facilities: Facility[];
 }
 
 export function PropertyInfoSection({
@@ -91,12 +92,7 @@ export function PropertyInfoSection({
       </div>
       <div className="mt-[22px] border-t border-line pt-[20px]">
         <p className="mb-[11px] text-[13.5px] font-extrabold text-t1">시설정보</p>
-        <RepeatableTextField
-          values={value.facilities}
-          onChange={(v) => onChange({ facilities: v })}
-          placeholders={["시설 항목 입력 (예: 에어컨)"]}
-          addLabel="항목 추가"
-        />
+        <FacilityField value={value.facilities} onChange={(v) => onChange({ facilities: v })} />
       </div>
     </FormSection>
   );

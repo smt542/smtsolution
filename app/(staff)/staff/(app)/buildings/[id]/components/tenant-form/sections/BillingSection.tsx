@@ -11,6 +11,8 @@ export interface BillingValue {
   billingEnabled: boolean;
   billingDay: string;
   transferMethod: string;
+  cmsMemberNo: string;
+  cmsContractNo: string;
   lateFeeEnabled: boolean;
   singlePrint: boolean;
   billingNote: string;
@@ -44,6 +46,26 @@ export function BillingSection({
         <Field label="이체 방식">
           <SelectField value={value.transferMethod} onChange={(v) => onChange({ transferMethod: v })} options={transferMethodOptions} />
         </Field>
+        {value.transferMethod === "auto_transfer" && (
+          <>
+            <Field label="효성 회원번호 · 숫자 8자리">
+              <TextField
+                value={value.cmsMemberNo}
+                onChange={(v) => onChange({ cmsMemberNo: v.replace(/[^\d]/g, "").slice(0, 8) })}
+                placeholder="00000000"
+                inputMode="numeric"
+              />
+            </Field>
+            <Field label="계약번호 · 숫자 3자리">
+              <TextField
+                value={value.cmsContractNo}
+                onChange={(v) => onChange({ cmsContractNo: v.replace(/[^\d]/g, "").slice(0, 3) })}
+                placeholder="001"
+                inputMode="numeric"
+              />
+            </Field>
+          </>
+        )}
         <Field label="연체료 부과 여부">
           <SelectField value={value.lateFeeEnabled ? "Y" : "N"} onChange={(v) => onChange({ lateFeeEnabled: v === "Y" })} options={oxOptions} />
         </Field>
