@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { EmptyState, Spinner } from "@/components/common";
+import { EmptyState, IconButton, Spinner } from "@/components/common";
 import type { Building } from "@/hooks/reactquery/buildings";
 import { useSaveBuildingNotes } from "@/hooks/reactquery/receipts";
 import type { ReceiptPaymentRow } from "@/hooks/reactquery/receipts";
@@ -175,16 +175,15 @@ export function BuildingUnitRail({
             {unitViewBuilding !== null && (
               <>
                 <div className="flex flex-wrap items-center gap-[8px] px-[18px] py-[15px] border-b border-line2">
-                  <button
-                    type="button"
+                  <IconButton
                     onClick={showBuildingList}
                     aria-label="건물 목록으로"
-                    className="flex size-[24px] items-center justify-center rounded-[7px] text-t2 transition-transform duration-[120ms] ease-[ease] hover:bg-bg active:-translate-x-0.5"
+                    className="size-[24px] rounded-[7px] text-t2 transition-transform duration-[120ms] ease-[ease] hover:bg-bg active:-translate-x-0.5"
                   >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="size-[18px]">
                       <path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
-                  </button>
+                  </IconButton>
                   <span className="text-[15px] font-extrabold leading-[normal] text-t1">{unitViewBuilding.name}</span>
                   <div className="relative basis-full w-full">
                     <SearchIcon />

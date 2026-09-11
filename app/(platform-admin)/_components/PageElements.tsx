@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge } from "@/components/common";
+import { Badge, IconButton } from "@/components/common";
 import { formatNumber } from "@/lib/format";
 
 export function PageHeader({
@@ -84,27 +84,25 @@ export function BoundedMonthStepper({
 
   return (
     <div className="flex items-center gap-1 rounded-xl border border-line bg-surface p-1">
-      <button
-        type="button"
+      <IconButton
         aria-label="이전 달"
         onClick={() => onChange(shiftMonth(month, -1))}
         disabled={previousDisabled}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-t3 hover:bg-bg hover:text-t1 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-t3"
+        className="h-8 w-8 rounded-lg text-t3 hover:bg-bg hover:text-t1 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-t3"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
-      </button>
+      </IconButton>
       <span className="min-w-[92px] text-center text-sm font-extrabold text-t1">
         {monthLabel(month)}
       </span>
-      <button
-        type="button"
+      <IconButton
         aria-label="다음 달"
         onClick={() => onChange(shiftMonth(month, 1))}
         disabled={nextDisabled}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-t3 hover:bg-bg hover:text-t1 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-t3"
+        className="h-8 w-8 rounded-lg text-t3 hover:bg-bg hover:text-t1 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-t3"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
-      </button>
+      </IconButton>
     </div>
   );
 }

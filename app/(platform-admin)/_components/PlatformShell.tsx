@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Badge } from "@/components/common";
+import { Badge, IconButton } from "@/components/common";
 import { useLogout, useMe } from "@/hooks/reactquery/auth";
 import {
   PLATFORM_NAV_ITEMS,
@@ -216,16 +216,15 @@ function PlatformTopbar({
   return (
     <header className="flex h-[62px] flex-none items-center gap-3 border-b border-line bg-white px-5 sm:px-6">
       {/* 모바일: 사이드 드로어 열기 */}
-      <button
-        type="button"
+      <IconButton
         onClick={onMenu}
-        className="flex h-9 w-9 items-center justify-center rounded-xl text-t2 hover:bg-bg md:hidden"
+        className="h-9 w-9 rounded-xl text-t2 hover:bg-bg md:hidden"
         aria-label="메뉴 열기"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-5 w-5" aria-hidden="true">
           <path d="M3 6h18M3 12h18M3 18h18" />
         </svg>
-      </button>
+      </IconButton>
       {/* 데스크톱: 사이드바 접기/펼치기 (정본 lnb-btn) */}
       <button
         type="button"
