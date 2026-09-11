@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Button, Modal } from "@/components/common";
+import { Button, Modal, Textarea } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import {
   type MessageTemplate,
@@ -119,12 +119,12 @@ function TemplateFormFields({
 
         <label>
           <span className="mb-1.5 block text-xs font-bold text-t2">본문</span>
-          <textarea
+          <Textarea
             aria-label="템플릿 본문"
             value={body}
             onChange={(event) => setBody(event.target.value)}
             placeholder="알림톡 본문을 입력해 주세요."
-            className="min-h-40 w-full rounded-xl border border-line bg-surface p-4 text-sm text-t1 placeholder:text-t4 focus:border-brand focus:outline-none"
+            className="min-h-40 py-[16px]"
           />
         </label>
 

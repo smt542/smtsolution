@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import { Textarea } from "@/components/common";
 
 const MAX = 1000;
 
@@ -10,9 +11,9 @@ export function MemoSection({ value, onChange }: { value: string; onChange: (v: 
         <h2 className="text-lg font-extrabold text-t1">참고사항</h2>
         <span className="text-xs text-t4">{value.length} / {MAX}</span>
       </div>
-      <textarea
+      <Textarea
         aria-label="참고사항"
-        className="min-h-32 w-full rounded-xl border border-line bg-surface p-4 text-sm text-t1 focus:border-brand focus:outline-none"
+        className="min-h-32 py-[16px]"
         value={value}
         maxLength={MAX}
         onChange={(e) => onChange(e.target.value.slice(0, MAX))}

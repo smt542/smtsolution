@@ -2,7 +2,7 @@
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Button, Checkbox, Panel, Select } from "@/components/common";
+import { Button, Checkbox, Panel, Select, Textarea } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { useAccounts, type Account } from "@/hooks/reactquery/accounts";
 import { useBuildings, type Building } from "@/hooks/reactquery/buildings";
@@ -328,12 +328,12 @@ const MessageBodyEditor = memo(function MessageBodyEditor({
     <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]">
       <label>
         <span className="mb-1.5 block text-xs font-bold text-t2">본문</span>
-        <textarea
+        <Textarea
           aria-label="본문"
           value={body}
           onChange={(event) => onBodyChange(event.target.value)}
           placeholder="발송할 문자 내용을 입력해 주세요."
-          className="min-h-36 w-full rounded-xl border border-line bg-surface p-4 text-sm text-t1 placeholder:text-t4 focus:border-brand focus:outline-none"
+          className="min-h-36 py-[16px]"
         />
       </label>
       <label>

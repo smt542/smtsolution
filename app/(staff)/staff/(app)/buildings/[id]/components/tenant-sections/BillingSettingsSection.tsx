@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { Checkbox, Select } from "@/components/common";
+import { Checkbox, Select, Textarea } from "@/components/common";
 import type { TransferMethod } from "@/hooks/reactquery/occupancies";
 
 export interface TenantBillingValue {
@@ -42,11 +42,11 @@ export function BillingSettingsSection({ value, onChange }: {
         </label>
         <label className="col-span-2 flex flex-col gap-1">
           <span className="text-sm text-t2">적요</span>
-          <textarea aria-label="적요" className="min-h-20 w-full rounded-xl border border-line bg-surface p-3 text-sm text-t1 focus:border-brand focus:outline-none" value={value.billingNote} onChange={(e) => onChange({ billingNote: e.target.value })} />
+          <Textarea aria-label="적요" className="min-h-20 px-[12px]" value={value.billingNote} onChange={(e) => onChange({ billingNote: e.target.value })} />
         </label>
         <label className="col-span-2 flex flex-col gap-1">
           <span className="text-sm text-t2">이사정산 시 적요</span>
-          <textarea aria-label="이사정산 적요" className="min-h-20 w-full rounded-xl border border-line bg-surface p-3 text-sm text-t1 focus:border-brand focus:outline-none" value={value.settlementNote} onChange={(e) => onChange({ settlementNote: e.target.value })} />
+          <Textarea aria-label="이사정산 적요" className="min-h-20 px-[12px]" value={value.settlementNote} onChange={(e) => onChange({ settlementNote: e.target.value })} />
         </label>
       </div>
     </section>
