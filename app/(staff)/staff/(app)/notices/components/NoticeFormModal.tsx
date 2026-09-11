@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { toast } from "sonner";
-import { Button, Input, Modal, Select } from "@/components/common";
+import { Button, Input, Modal, Select, Textarea } from "@/components/common";
 import type { Building } from "@/hooks/reactquery/buildings";
 import {
   useCreateNotice,
@@ -136,13 +136,13 @@ function NoticeFormContent({
 
         <div>
           <label htmlFor="notice-content" className="mb-1 block text-xs font-semibold text-t2">내용 *</label>
-          <textarea
+          <Textarea
             id="notice-content"
             value={content}
             rows={7}
             onChange={(event) => setContent(event.target.value)}
             placeholder="입주자에게 안내할 내용을 입력해 주세요."
-            className="w-full resize-y rounded-xl border border-line bg-surface px-4 py-3 text-sm leading-6 text-t1 placeholder:text-t4 focus:border-brand focus:outline-none"
+            className="resize-y leading-6"
           />
         </div>
 

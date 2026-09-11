@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
-import { Button, Input, Select, Spinner } from "@/components/common";
+import { Button, Input, Select, Spinner, Textarea } from "@/components/common";
 import type { Account } from "@/hooks/reactquery/accounts";
 import type { AsCategory } from "@/hooks/reactquery/asCategories";
 import type { Building } from "@/hooks/reactquery/buildings";
@@ -322,13 +322,13 @@ export function AsComplaintForm({
 
         <label className="space-y-2 text-sm font-bold text-t2 sm:col-span-3">
           접수내용 <span className="text-red">*</span>
-          <textarea
+          <Textarea
             aria-label="접수내용"
             value={content}
             onChange={(event) => setContent(event.target.value)}
             rows={3}
             placeholder="접수내용을 입력해 주세요"
-            className="w-full resize-y rounded-xl border border-line bg-surface px-4 py-3 text-sm text-t1 placeholder:text-t4 focus:border-brand focus:outline-none"
+            className="resize-y"
           />
         </label>
 
@@ -362,13 +362,13 @@ export function AsComplaintForm({
 
         <label className="space-y-2 text-sm font-bold text-t2 sm:col-span-3">
           처리결과 내용
-          <textarea
+          <Textarea
             aria-label="처리결과 내용"
             value={resultContent}
             onChange={(event) => setResultContent(event.target.value)}
             rows={3}
             placeholder="처리결과 내용을 입력해 주세요"
-            className="w-full resize-y rounded-xl border border-line bg-surface px-4 py-3 text-sm text-t1 placeholder:text-t4 focus:border-brand focus:outline-none"
+            className="resize-y"
           />
         </label>
 
