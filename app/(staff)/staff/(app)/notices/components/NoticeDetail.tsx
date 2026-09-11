@@ -160,7 +160,7 @@ export function NoticeDetail({
         }
       >
         <div className="flex flex-wrap items-center gap-2">
-          <Badge className="bg-blue-t px-2.5 py-1 text-blue-d">
+          <Badge tone="blue" className="px-2.5 py-1">
             {NOTICE_TYPE_LABELS[notice.noticeType]}
           </Badge>
           <Badge className="bg-bg px-2.5 py-1 text-t2">

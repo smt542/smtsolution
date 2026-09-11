@@ -66,7 +66,7 @@ function errorMessage(error: unknown) {
 function DeltaBadge({ delta }: { delta: number | null }) {
   if (delta == null) return <span className="text-t4">-</span>;
   if (delta === 0) {
-    return <Badge className="bg-green-t px-2 py-1 text-green">일치</Badge>;
+    return <Badge tone="green" className="px-2 py-1">일치</Badge>;
   }
   const isOver = delta > 0;
   return (
@@ -412,10 +412,10 @@ export function BankImportModal({
                           <td className="px-3 py-3"><DeltaBadge delta={item.delta} /></td>
                           <td className="px-3 py-3">
                             {item.isDuplicate ? (
-                              <Badge className="bg-amber-t px-2 py-1 text-amber">중복</Badge>
+                              <Badge tone="amber" className="px-2 py-1">중복</Badge>
                             ) : item.overpay ? (
                               <span title={`초과분은 미납액(${money(item.unpaid)})까지만 반영됩니다`}>
-                                <Badge className="bg-amber-t px-2 py-1 text-amber">초과 · 검토</Badge>
+                                <Badge tone="amber" className="px-2 py-1">초과 · 검토</Badge>
                               </span>
                             ) : (
                               <span className="text-t4">-</span>

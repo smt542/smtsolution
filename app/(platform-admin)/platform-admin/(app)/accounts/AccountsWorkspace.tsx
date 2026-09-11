@@ -400,14 +400,13 @@ export function AccountsWorkspace() {
 function AccountStatus({ active }: { active: boolean | null }) {
   if (active === null) {
     return (
-      <Badge className="inline-flex bg-bg px-[9px] py-[3px] leading-[1.4] text-t3">확인 불가</Badge>
+      <Badge tone="gray" className="inline-flex px-[9px] py-[3px] leading-[1.4]">확인 불가</Badge>
     );
   }
   return (
     <Badge
-      className={`inline-flex px-[9px] py-[3px] leading-[1.4] ${
-        active ? "bg-green-t text-green" : "bg-bg text-t3"
-      }`}
+      tone={active ? "green" : "gray"}
+      className="inline-flex px-[9px] py-[3px] leading-[1.4]"
     >
       {active ? "활성" : "비활성"}
     </Badge>
