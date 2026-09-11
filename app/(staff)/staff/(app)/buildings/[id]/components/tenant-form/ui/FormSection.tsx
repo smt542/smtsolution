@@ -1,6 +1,5 @@
 "use client";
 import React, { useState } from "react";
-import { ChevronDownIcon } from "@/components/icons";
 
 /**
  * 번호가 매겨진 접이식 섹션 카드 (Figma 673-58897).
@@ -11,15 +10,17 @@ export function FormSection({
   title,
   children,
   defaultOpen = true,
+  bodyPadded = true,
 }: {
   index: number;
   title: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
+  bodyPadded?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <section className="rounded-[14px] border border-line bg-white shadow-[0px_1px_1.5px_rgba(23,31,40,0.04)]">
+    <section className="rounded-[14px] border border-line bg-white shadow-[0px_1px_3px_rgba(23,31,40,0.04)]">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -29,13 +30,8 @@ export function FormSection({
           {index}
         </span>
         <span className="text-[14px] font-extrabold text-t1">{title}</span>
-        <span className="ml-auto flex items-center justify-end">
-          <ChevronDownIcon
-            className={`h-[18px] w-[18px] text-t3 transition-transform ${open ? "" : "-rotate-90"}`}
-          />
-        </span>
       </button>
-      {open && <div className="p-[17px]">{children}</div>}
+      {open && <div className={bodyPadded ? "p-[17px]" : ""}>{children}</div>}
     </section>
   );
 }

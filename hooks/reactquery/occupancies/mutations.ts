@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   cancelMoveOutSchedule,
+  deleteUnit,
   executeMoveOut,
   saveUnitOccupancy,
   scheduleMoveOut,
@@ -43,6 +44,14 @@ export function useCancelMoveOutSchedule() {
   const invalidate = useInvalidateOccupancies();
   return useMutation({
     mutationFn: (occupancyId: number) => cancelMoveOutSchedule(occupancyId),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDeleteUnit() {
+  const invalidate = useInvalidateOccupancies();
+  return useMutation({
+    mutationFn: (unitId: number) => deleteUnit(unitId),
     onSuccess: invalidate,
   });
 }

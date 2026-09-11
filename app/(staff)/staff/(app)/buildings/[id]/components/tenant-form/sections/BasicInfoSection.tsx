@@ -49,10 +49,10 @@ export function BasicInfoSection({
           <SelectField value={value.roomTypeId} onChange={(v) => onChange({ roomTypeId: v })} options={roomTypeOptions} placeholder="선택" />
         </Field>
         <Field label="인원">
-          <TextField type="number" value={value.residentCount} onChange={(v) => onChange({ residentCount: v })} placeholder="예: 2" min={0} />
+          <TextField value={value.residentCount} onChange={(v) => onChange({ residentCount: v })} placeholder="예: 2" inputMode="numeric" />
         </Field>
         <Field label="평형">
-          <TextField type="number" value={value.areaPyeong} onChange={(v) => onChange({ areaPyeong: v })} placeholder="예: 18" min={0} />
+          <TextField value={value.areaPyeong} onChange={(v) => onChange({ areaPyeong: v })} placeholder="예: 18평" inputMode="numeric" />
         </Field>
         <Field label="입주일" error={errors?.moveInDate}>
           <DateField value={value.moveInDate} onChange={(v) => onChange({ moveInDate: v })} />
@@ -65,12 +65,11 @@ export function BasicInfoSection({
         </Field>
         <Field label="할인 금액">
           <TextField
-            type="number"
             value={discountMuted ? "" : value.discountAmount}
             onChange={(v) => onChange({ discountAmount: v })}
             placeholder="일반은 입력하지 않아요"
             muted={discountMuted}
-            min={0}
+            inputMode="numeric"
           />
         </Field>
         <Field label="기타적요" full>
@@ -80,7 +79,7 @@ export function BasicInfoSection({
           <TextAreaField value={value.settlementNote} onChange={(v) => onChange({ settlementNote: v })} placeholder="이사정산 관련 메모를 입력하세요…" />
         </Field>
       </FieldGrid>
-      {moveOutControl && <div className="pt-[16px]">{moveOutControl}</div>}
+      {moveOutControl}
     </FormSection>
   );
 }

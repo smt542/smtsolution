@@ -43,10 +43,10 @@ export function RepeatableTextField({
             <button
               type="button"
               onClick={() => removeAt(i)}
-              className="shrink-0 rounded-[8px] border border-line px-[10px] py-[8px] text-[13px] font-medium text-t3 hover:text-red"
+              className="flex h-[40px] w-[42px] shrink-0 items-center justify-center rounded-[11px] border border-line bg-white text-[18px] leading-none text-t3 hover:text-red"
               aria-label="삭제"
             >
-              −
+              ×
             </button>
           )}
         </div>
@@ -54,7 +54,7 @@ export function RepeatableTextField({
       <button
         type="button"
         onClick={() => onChange([...list, ""])}
-        className="self-start text-[13.5px] font-semibold text-brand"
+        className="inline-flex h-[34px] items-center gap-[6px] self-start rounded-[11px] border border-line bg-white px-[15px] text-[13.5px] font-bold text-t2"
       >
         ＋ {addLabel}
       </button>

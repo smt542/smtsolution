@@ -23,6 +23,7 @@ export interface Occupancy {
   homepagePassword: string | null; mgmtFeeAmount: number | null; moveCleaningFee: number | null;
   increaseAmount: number | null; billingDay: string | null; etcNote: string | null; billAuthInfo: string | null;
   phonesExtra: string[]; vehiclesExtra: string[];
+  cmsMemberNo: string | null; cmsContractNo: string | null;
 }
 type OccupancyRow = {
   id: number; unit_id: number; tenant_name: string | null; payer_name: string | null;
@@ -37,6 +38,7 @@ type OccupancyRow = {
   homepage_password?: string | null; mgmt_fee_amount?: number | null; move_cleaning_fee?: number | null;
   increase_amount?: number | null; billing_day?: string | null; etc_note?: string | null; bill_auth_info?: string | null;
   phones_extra?: string[] | null; vehicles_extra?: string[] | null;
+  cms_member_no?: string | null; cms_contract_no?: string | null;
 };
 const rowToOccupancy = (r: OccupancyRow): Occupancy => ({
   id: r.id, unitId: r.unit_id, tenantName: r.tenant_name, payerName: r.payer_name,
@@ -51,7 +53,19 @@ const rowToOccupancy = (r: OccupancyRow): Occupancy => ({
   homepagePassword: r.homepage_password ?? null, mgmtFeeAmount: r.mgmt_fee_amount ?? null, moveCleaningFee: r.move_cleaning_fee ?? null,
   increaseAmount: r.increase_amount ?? null, billingDay: r.billing_day ?? null, etcNote: r.etc_note ?? null, billAuthInfo: r.bill_auth_info ?? null,
   phonesExtra: r.phones_extra ?? [], vehiclesExtra: r.vehicles_extra ?? [],
+  cmsMemberNo: r.cms_member_no ?? null, cmsContractNo: r.cms_contract_no ?? null,
 });
+
+export type Facility = { label: string; on: boolean };
+// facilities 는 jsonb — 구(문자열 배열)·신(객체 배열) 형식을 모두 수용한다.
+function parseFacilities(raw: unknown): Facility[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((item) =>
+    typeof item === "string"
+      ? { label: item, on: true }
+      : { label: String((item as { label?: unknown })?.label ?? ""), on: Boolean((item as { on?: unknown })?.on ?? true) },
+  );
+}
 
 export interface PropertyListing {
   id: number; unitId: number;
@@ -59,7 +73,7 @@ export interface PropertyListing {
   propertyType: string | null; dealType: string | null; rentType: string | null;
   areaM2: number | null; deposit: number | null; jeonseDeposit: number | null; monthlyRent: number | null;
   mgmtFeeDesc: string | null; availableDate: string | null; location: string | null;
-  facilities: string[];
+  facilities: Facility[];
 }
 type PropertyRow = {
   id: number; unit_id: number; property_name: string | null; address: string | null; address_detail: string | null;
@@ -72,7 +86,7 @@ const rowToProperty = (r: PropertyRow): PropertyListing => ({
   propertyType: r.property_type, dealType: r.deal_type, rentType: r.rent_type,
   areaM2: r.area_m2, deposit: r.deposit, jeonseDeposit: r.jeonse_deposit, monthlyRent: r.monthly_rent,
   mgmtFeeDesc: r.mgmt_fee_desc, availableDate: r.available_date, location: r.location,
-  facilities: Array.isArray(r.facilities) ? (r.facilities as string[]) : [],
+  facilities: parseFacilities(r.facilities),
 });
 export async function getPropertyByUnit(unitId: number): Promise<PropertyListing | null> {
   const { data, error } = await createClient().from("unit_property_listings").select("*").eq("unit_id", unitId).is("deleted_at", null).maybeSingle();
@@ -146,6 +160,7 @@ export interface SaveUnitOccupancyPayload {
     homepagePassword?: string | null; mgmtFeeAmount?: number | null; moveCleaningFee?: number | null;
     increaseAmount?: number | null; billingDay?: string | null; etcNote?: string | null; billAuthInfo?: string | null;
     phonesExtra?: string[]; vehiclesExtra?: string[];
+    cmsMemberNo?: string | null; cmsContractNo?: string | null;
   };
   meters: { utility: string; meterNo?: string | null; customerNo?: string | null }[];
   accounts: { kind: string; bank?: string | null; account?: string | null; holder?: string | null; cmsMemberNo?: string | null; payerNo?: string | null }[];
@@ -157,7 +172,7 @@ export interface SaveUnitOccupancyPayload {
     propertyName?: string | null; address?: string | null; addressDetail?: string | null;
     propertyType?: string | null; dealType?: string | null; rentType?: string | null;
     areaM2?: number | null; deposit?: number | null; jeonseDeposit?: number | null; monthlyRent?: number | null;
-    mgmtFeeDesc?: string | null; availableDate?: string | null; location?: string | null; facilities: string[];
+    mgmtFeeDesc?: string | null; availableDate?: string | null; location?: string | null; facilities: Facility[];
   } | null;
 }
 export interface SaveUnitOccupancyResult { unitId: number; occupancyId: number; }
@@ -234,6 +249,7 @@ export async function saveUnitOccupancy(p: SaveUnitOccupancyPayload): Promise<Sa
       increase_amount: p.occupancy.increaseAmount ?? null, billing_day: p.occupancy.billingDay ?? null,
       etc_note: p.occupancy.etcNote ?? null, bill_auth_info: p.occupancy.billAuthInfo ?? null,
       phones_extra: p.occupancy.phonesExtra ?? [], vehicles_extra: p.occupancy.vehiclesExtra ?? [],
+      cms_member_no: p.occupancy.cmsMemberNo ?? null, cms_contract_no: p.occupancy.cmsContractNo ?? null,
     },
     p_meters: p.meters.map((m) => ({ utility: m.utility, meter_no: m.meterNo ?? null, customer_no: m.customerNo ?? null })),
     p_accounts: p.accounts.map((a) => ({ kind: a.kind, bank: a.bank ?? null, account: a.account ?? null, holder: a.holder ?? null, cms_member_no: a.cmsMemberNo ?? null, payer_no: a.payerNo ?? null })),
@@ -276,5 +292,10 @@ export async function scheduleMoveOut(occupancyId: number, moveOutDate: string):
 
 export async function cancelMoveOutSchedule(occupancyId: number): Promise<void> {
   const { error } = await createClient().rpc("cancel_move_out_schedule", { p_occupancy_id: occupancyId });
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteUnit(unitId: number): Promise<void> {
+  const { error } = await createClient().rpc("delete_unit", { p_unit_id: unitId });
   if (error) throw new Error(error.message);
 }
