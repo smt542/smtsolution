@@ -78,6 +78,15 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Tailwind v4 Preflight는 버튼 기본 커서를 default로 둔다 → 클릭 가능한 버튼에 손 커서 복원.
+   @layer base에 두어 개별 cursor-* 유틸리티가 계속 우선하도록 한다(:disabled 제외). */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]):not(:disabled) {
+    cursor: pointer;
+  }
+}
+
 /* 금액·날짜 등 숫자 정렬용 */
 .num {
   font-variant-numeric: tabular-nums;
