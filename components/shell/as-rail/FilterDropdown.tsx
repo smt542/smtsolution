@@ -2,8 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import styles from "./AsRail.module.css";
-
 export interface DdOption {
   value: string;
   label: string;
@@ -28,9 +26,12 @@ interface MultiFilterDropdownProps {
   ariaLabel: string;
 }
 
-function classNames(...values: Array<string | false | undefined>) {
-  return values.filter(Boolean).join(" ");
-}
+const CTL_BASE =
+  "flex items-center justify-between cursor-pointer h-[30px] px-[10px] text-[12px] font-bold text-t2 bg-white border rounded-[8px] gap-1.5 whitespace-nowrap";
+const MENU_BASE =
+  "absolute top-[calc(100%+5px)] bg-white border border-line rounded-[12px] shadow-[0_14px_34px_-10px_rgba(23,31,40,0.28)] z-[90] max-h-[240px] w-max min-w-[110px]";
+const OPT_BASE =
+  "py-[9px] px-[11px] rounded-[8px] text-[13px] cursor-pointer whitespace-nowrap hover:bg-bg";
 
 function useOutsideClose(
   ref: React.RefObject<HTMLDivElement | null>,
@@ -45,10 +46,10 @@ function useOutsideClose(
   }, [onClose, ref]);
 }
 
-function Chevron() {
+function Chevron({ open = false }: { open?: boolean }) {
   return (
     <svg
-      className={styles.ddCv}
+      className={`transition-all duration-[150ms] flex-none ${open ? "rotate-180" : ""}`}
       width="13"
       height="13"
       viewBox="0 0 24 24"
@@ -82,6 +83,7 @@ export function FilterDropdown({
   const [query, setQuery] = useState("");
   useOutsideClose(rootRef, () => setOpen(false));
 
+  const isSort = ariaLabel.includes("정렬");
   const selected = options.find((option) => option.value === value);
   const visibleOptions = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase();
@@ -99,20 +101,21 @@ export function FilterDropdown({
     setQuery("");
   };
 
+  // .asfBld .ddMenu → overflow-hidden p-0 (searchable); otherwise base overflow-auto p-1.5
+  // .asfDd[data-f="sort"] .ddMenu → left-auto right-0; otherwise .asfDd → left-0 right-auto
+  const menuClass = `${MENU_BASE} ${
+    searchable ? "overflow-hidden p-0" : "overflow-auto p-1.5"
+  } ${isSort ? "left-auto right-0" : "left-0 right-auto"} ${open ? "block" : "hidden"}`;
+
   return (
     <div
       ref={rootRef}
-      className={classNames(
-        styles.dd,
-        styles.asfDd,
-        searchable && styles.asfBld,
-        open && styles.open,
-      )}
-      data-f={ariaLabel.includes("정렬") ? "sort" : undefined}
+      className="relative flex-[0_1_auto]"
+      data-f={isSort ? "sort" : undefined}
       data-value={value}
     >
       <div
-        className={styles.ddCtl}
+        className={`${CTL_BASE} ${open ? "border-blue" : "border-line"}`}
         role="button"
         tabIndex={0}
         aria-label={ariaLabel}
@@ -126,11 +129,11 @@ export function FilterDropdown({
         <span className="dd-val">
           {value ? selected?.label ?? label : label}
         </span>
-        <Chevron />
+        <Chevron open={open} />
       </div>
-      <div className={styles.ddMenu} role="listbox" aria-label={ariaLabel}>
+      <div className={menuClass} role="listbox" aria-label={ariaLabel}>
         {searchable && (
-          <div className={styles.asfSrch}>
+          <div className="relative bg-white p-2.5">
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -138,12 +141,13 @@ export function FilterDropdown({
               strokeWidth="2"
               strokeLinecap="round"
               aria-hidden="true"
+              className="w-[15px] h-[15px] absolute left-[21px] top-1/2 -translate-y-1/2"
             >
               <circle cx="11" cy="11" r="7" />
               <path d="M20 20l-3-3" />
             </svg>
             <input
-              className={styles.asfQ}
+              className="w-full h-[36px] border border-line rounded-[10px] pl-8 pr-[11px] text-[12.5px] font-medium text-t1 outline-none bg-white focus:border-blue"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="건물명·주소 검색"
@@ -152,15 +156,15 @@ export function FilterDropdown({
           </div>
         )}
         {searchable ? (
-          <div className={styles.asfOpts}>
+          <div className="max-h-[232px] overflow-auto py-1">
             {visibleOptions.map((option) => (
               <div
                 key={option.value}
-                className={classNames(
-                  styles.ddOpt,
-                  styles.asfO,
-                  option.value === value && styles.on,
-                )}
+                className={`${OPT_BASE} flex items-start gap-2.5 ${
+                  option.value === value
+                    ? "text-blue font-bold bg-blue-t"
+                    : "text-t2 font-semibold"
+                }`}
                 role="option"
                 tabIndex={0}
                 aria-selected={option.value === value}
@@ -169,10 +173,18 @@ export function FilterDropdown({
                   onKeyboardActivate(event, () => select(option.value))
                 }
               >
-                <span className={styles.asfCode}>{option.code ?? ""}</span>
-                <span className={styles.asfTxt}>
-                  <b>{option.label}</b>
-                  {option.sub && <i>{option.sub}</i>}
+                <span className="flex-none w-[26px] text-[11.5px] font-bold text-t3 pt-px">
+                  {option.code ?? ""}
+                </span>
+                <span className="flex flex-col gap-0.5 min-w-0">
+                  <b className="text-[13px] font-bold text-t1 whitespace-nowrap overflow-hidden text-ellipsis">
+                    {option.label}
+                  </b>
+                  {option.sub && (
+                    <i className="not-italic text-[11.5px] font-medium text-t3 whitespace-nowrap overflow-hidden text-ellipsis">
+                      {option.sub}
+                    </i>
+                  )}
                 </span>
               </div>
             ))}
@@ -181,10 +193,11 @@ export function FilterDropdown({
           visibleOptions.map((option) => (
             <div
               key={option.value}
-              className={classNames(
-                styles.ddOpt,
-                option.value === value && styles.on,
-              )}
+              className={`${OPT_BASE} ${
+                option.value === value
+                  ? "text-blue font-bold bg-blue-t"
+                  : "text-t2 font-semibold"
+              }`}
               role="option"
               tabIndex={0}
               aria-selected={option.value === value}
@@ -239,16 +252,11 @@ export function MultiFilterDropdown({
   return (
     <div
       ref={rootRef}
-      className={classNames(
-        styles.dd,
-        styles.asfDd,
-        styles.multi,
-        open && styles.open,
-      )}
+      className="relative flex-[0_1_auto]"
       data-value={values.join(",")}
     >
       <div
-        className={styles.ddCtl}
+        className={`${CTL_BASE} ${open ? "border-blue" : "border-line"}`}
         role="button"
         tabIndex={0}
         aria-label={ariaLabel}
@@ -260,10 +268,10 @@ export function MultiFilterDropdown({
         }
       >
         <span className="dd-val">{valueLabel}</span>
-        <Chevron />
+        <Chevron open={open} />
       </div>
       <div
-        className={styles.ddMenu}
+        className={`${MENU_BASE} overflow-auto p-1.5 left-0 right-auto ${open ? "block" : "hidden"}`}
         role="listbox"
         aria-label={ariaLabel}
         aria-multiselectable="true"
@@ -273,7 +281,11 @@ export function MultiFilterDropdown({
           return (
             <div
               key={option.value}
-              className={classNames(styles.ddOpt, active && styles.on)}
+              className={`${OPT_BASE} flex items-center gap-[9px] relative font-semibold text-t2 before:content-[''] before:w-[19px] before:h-[19px] before:rounded-md before:border-2 before:flex-none before:box-border before:transition-all before:duration-100 ${
+                active
+                  ? "before:border-blue before:bg-blue after:content-[''] after:absolute after:left-[20.5px] after:top-1/2 after:w-[5px] after:h-[9px] after:border-solid after:border-white after:border-r-2 after:border-b-2 after:[transform:translate(-50%,-60%)_rotate(45deg)]"
+                  : "before:border-line"
+              }`}
               role="option"
               tabIndex={0}
               aria-selected={active}
