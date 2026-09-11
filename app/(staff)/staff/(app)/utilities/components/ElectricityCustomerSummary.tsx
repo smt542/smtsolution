@@ -4,6 +4,7 @@ import { GridEmptyValue } from "./GridEmptyValue";
 export interface ElectricityCustomerSummaryRow {
   id: number;
   customerNumber: string;
+  billedAmount: number;
   chargeAmount: number;
   usage: number;
   unitPrice: number | null;
@@ -28,6 +29,7 @@ interface ElectricityCustomerSummaryProps {
 const columns: { key: keyof ElectricityCustomerSummaryRow | "line"; label: string; align?: "right" }[] = [
   { key: "line", label: "L" },
   { key: "customerNumber", label: "고객번호" },
+  { key: "billedAmount", label: "고지금액", align: "right" },
   { key: "chargeAmount", label: "부과액", align: "right" },
   { key: "usage", label: "량", align: "right" },
   { key: "unitPrice", label: "단가", align: "right" },
@@ -58,8 +60,8 @@ export function ElectricityCustomerSummary({
         <table className="w-[1294px] table-fixed border-collapse text-[11.5px]">
           <colgroup>
             {(editing
-              ? [58, 300, 300, 82, 87, 90, 90, 107, 75]
-              : [77, 230, 136, 110, 116, 120, 120, 144, 101]
+              ? [58, 300, 136, 300, 82, 87, 90, 90, 107, 75]
+              : [77, 230, 136, 136, 110, 116, 120, 120, 144, 101]
             ).map((width, index) => <col key={index} style={{ width }} />)}
           </colgroup>
           <thead>
@@ -90,6 +92,7 @@ export function ElectricityCustomerSummary({
                     />
                   ) : row.customerNumber}
                 </td>
+                <td className="num px-2 text-right text-t2">{formatNumber(row.billedAmount)}</td>
                 <td className="num px-4 text-right font-bold text-t1">
                   {editing ? (
                     <input
