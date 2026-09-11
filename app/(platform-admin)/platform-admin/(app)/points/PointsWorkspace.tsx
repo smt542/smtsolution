@@ -243,11 +243,11 @@ export default function PointsWorkspace() {
                 {num(poolBalance)}P
               </strong>
               {sendingStopped ? (
-                <Badge className="inline-flex bg-red-t px-[9px] py-[3px] leading-[1.4] text-red">
+                <Badge tone="red" className="inline-flex px-[9px] py-[3px] leading-[1.4]">
                   발송 중단
                 </Badge>
               ) : chargeNeeded ? (
-                <Badge className="inline-flex bg-amber-t px-[9px] py-[3px] leading-[1.4] text-amber">
+                <Badge tone="amber" className="inline-flex px-[9px] py-[3px] leading-[1.4]">
                   충전 필요
                 </Badge>
               ) : null}

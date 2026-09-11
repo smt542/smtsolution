@@ -110,7 +110,7 @@ export function CompanyInfoTab() {
               <div className="flex flex-wrap items-center gap-2">
                 <div className="text-sm font-bold text-t1">{label}</div>
                 {verifiedAt ? (
-                  <Badge className="bg-green-t px-2 py-1 text-green">
+                  <Badge tone="green" className="px-2 py-1">
                     팝빌 등록 확인 ({new Intl.DateTimeFormat("ko-KR").format(new Date(verifiedAt))})
                   </Badge>
                 ) : (

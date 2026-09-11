@@ -214,7 +214,7 @@ export function PlaceholderPage({
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-t text-blue">{icon}</div>
           <h3 className="mt-5 text-lg font-extrabold text-t1">연동 준비 중</h3>
           <p className="mt-2 text-sm leading-6 text-t3">필요한 데이터 스키마가 확정되면 실제 현황과 관리 기능을 연결합니다.</p>
-          <Badge className="mt-5 inline-flex bg-bg px-3 py-1.5 text-t3">데이터 미연동</Badge>
+          <Badge tone="gray" className="mt-5 inline-flex px-3 py-1.5">데이터 미연동</Badge>
         </div>
       </section>
     </div>

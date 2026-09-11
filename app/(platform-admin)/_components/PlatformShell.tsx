@@ -241,7 +241,7 @@ function PlatformTopbar({
       <div ref={slotRef} className="flex items-center gap-2" />
       {me && (
         <div className="hidden items-center gap-2 sm:flex">
-          <Badge className="inline-flex bg-blue-t px-[9px] py-[3px] leading-[1.4] text-blue-d">
+          <Badge tone="blue" className="inline-flex px-[9px] py-[3px] leading-[1.4]">
             MASTER
           </Badge>
           <span className="text-sm font-semibold text-t2">{me.fullName}</span>

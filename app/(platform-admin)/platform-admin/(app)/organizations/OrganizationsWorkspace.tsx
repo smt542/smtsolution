@@ -377,7 +377,7 @@ export default function OrganizationsWorkspace() {
                   </td>
                   <td className="whitespace-nowrap px-4 py-3">
                     {organization.deletedAt ? (
-                      <Badge className="inline-flex bg-bg px-[9px] py-[3px] leading-[1.4] text-t3">
+                      <Badge tone="gray" className="inline-flex px-[9px] py-[3px] leading-[1.4]">
                         해지됨
                       </Badge>
                     ) : (

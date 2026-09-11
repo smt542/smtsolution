@@ -69,7 +69,7 @@ export function PaymentHistoryModal({
                         {KIND_LABEL[payment.kind]}
                       </Badge>
                       {canceled && (
-                        <Badge className="bg-red-t px-2.5 py-1 text-red">
+                        <Badge tone="red" className="px-2.5 py-1">
                           취소됨
                         </Badge>
                       )}
