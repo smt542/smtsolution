@@ -24,6 +24,7 @@ beforeEach(() => {
 describe("MoveOutControl", () => {
   it("즉시 퇴실은 확인 후 occupancy id와 오늘 날짜로 실행한다", async () => {
     render(<MoveOutControl occupancyId={9} scheduledDate={null} isVacant={false} />);
+    fireEvent.click(screen.getByRole("button", { name: "퇴실처리" }));
     fireEvent.click(screen.getByRole("button", { name: "지금 퇴실 확정" }));
     await waitFor(() => expect(executeMutate).toHaveBeenCalledWith(expect.objectContaining({ occupancyId: 9 })));
     expect(executeMutate.mock.calls[0][0].moveOutDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
@@ -31,6 +32,7 @@ describe("MoveOutControl", () => {
 
   it("예약 카드에서 예약 취소를 호출한다", async () => {
     render(<MoveOutControl occupancyId={9} scheduledDate="2026-08-31" isVacant={false} />);
+    fireEvent.click(screen.getByRole("button", { name: "퇴실처리" }));
     expect(screen.getByText("2026-08-31 자동 퇴실 예정")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "예약 취소" }));
     await waitFor(() => expect(cancelMutate).toHaveBeenCalledWith(9));
