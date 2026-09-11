@@ -93,18 +93,16 @@ export function PointAdjustmentModal({
           error={errors.orgId?.message}
           className={FORM_FIELD_CLASS}
         >
-          <select
+          <Select
             id="pa-org"
             aria-label="대상 조직"
             {...register("orgId")}
-            className="h-[42px] w-full rounded-[10px] border border-line bg-surface px-[13px] text-[13.5px] font-semibold text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t"
-          >
-            {organizations.map((organization) => (
-              <option key={organization.id} value={organization.id}>
-                {organization.name}
-              </option>
-            ))}
-          </select>
+            options={organizations.map((organization) => ({
+              value: String(organization.id),
+              label: organization.name,
+            }))}
+            className={INPUT_CLASS}
+          />
         </FormField>
 
         <FormField

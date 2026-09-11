@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Checkbox, EmptyState, Modal, Spinner } from "@/components/common";
+import { Badge, Checkbox, EmptyState, Modal, Select, Spinner } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import type { PlatformAccountCreateValues } from "@/components/forms/schema/platformAccount";
 import {
@@ -400,17 +400,17 @@ export function AccountsWorkspace() {
 function AccountStatus({ active }: { active: boolean | null }) {
   if (active === null) {
     return (
-      <span className="inline-flex rounded-[7px] bg-bg px-[9px] py-[3px] text-xs font-bold leading-[1.4] text-t3">확인 불가</span>
+      <Badge className="inline-flex bg-bg px-[9px] py-[3px] leading-[1.4] text-t3">확인 불가</Badge>
     );
   }
   return (
-    <span
-      className={`inline-flex rounded-[7px] px-[9px] py-[3px] text-xs font-bold leading-[1.4] ${
+    <Badge
+      className={`inline-flex px-[9px] py-[3px] leading-[1.4] ${
         active ? "bg-green-t text-green" : "bg-bg text-t3"
       }`}
     >
       {active ? "활성" : "비활성"}
-    </span>
+    </Badge>
   );
 }
 
@@ -479,35 +479,25 @@ function RoleChangeModal({
             <label htmlFor="platform-role" className="mb-1.5 block text-[12.5px] font-bold text-t2">
               역할
             </label>
-            <select
+            <Select
               id="platform-role"
               value={role}
               onChange={(event) => setRole(event.target.value as EditableRole)}
+              options={ROLE_OPTIONS}
               className="h-[42px] w-full rounded-[10px] border border-line bg-surface px-[13px] text-[13.5px] font-semibold text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t"
-            >
-              {ROLE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            />
           </div>
           <div>
             <label htmlFor="platform-staff-type" className="mb-1.5 block text-[12.5px] font-bold text-t2">
               직원 유형
             </label>
-            <select
+            <Select
               id="platform-staff-type"
               value={staffType}
               onChange={(event) => setStaffType(event.target.value as StaffType)}
+              options={STAFF_TYPE_OPTIONS}
               className="h-[42px] w-full rounded-[10px] border border-line bg-surface px-[13px] text-[13.5px] font-semibold text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t"
-            >
-              {STAFF_TYPE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            />
           </div>
         </div>
 
