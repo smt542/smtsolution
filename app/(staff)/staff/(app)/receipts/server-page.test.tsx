@@ -24,7 +24,7 @@ vi.mock("./ReceiptWorkspace", () => ({
   },
 }));
 
-import { ReceiptManagementContent } from "./page";
+import { ReceiptManagementContent } from "./ReceiptManagementContent";
 
 beforeEach(() => {
   vi.clearAllMocks();
