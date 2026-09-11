@@ -5,6 +5,7 @@ import { ElectricityCustomerSummary } from "./ElectricityCustomerSummary";
 const row = {
   id: 11,
   customerNumber: "1000007919",
+  billedAmount: 9968,
   chargeAmount: 5280,
   usage: 202,
   unitPrice: 49.3,
@@ -45,6 +46,7 @@ describe("ElectricityCustomerSummary", () => {
 
     expect(screen.queryByRole("textbox", { name: "1번 고객번호" })).not.toBeInTheDocument();
     expect(screen.getByText("1000007919")).toBeInTheDocument();
+    expect(screen.getByText("9,968")).toBeInTheDocument();
     expect(screen.getByText("5,280")).toBeInTheDocument();
   });
 

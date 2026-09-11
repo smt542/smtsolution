@@ -141,6 +141,8 @@ export default function ElectricityUtilitiesWorkspace() {
         id: price?.customerNumberId ?? -(index + 1),
         customerNumber,
         chargeAmount,
+        // 고지금액: 실제 청구액 저장 필드가 없어 현재는 부과액과 동일값으로 파생(후속: 스태프 입력 배선)
+        billedAmount: chargeAmount,
         usage,
         unitPrice: draftedPrice ?? baseUnitPrice,
         currentReading,
