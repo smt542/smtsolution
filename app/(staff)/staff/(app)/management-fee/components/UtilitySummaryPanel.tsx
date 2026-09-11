@@ -125,7 +125,7 @@ export function UtilitySummaryPanel({ buildingSelected, rows, confirmations, loa
         )}
       </div>
 
-      {/* 본문 표 (원본 .hf-tbl: th #FBFCFD · 셀 좌우 8px · 컬럼별 min-width) */}
+      {/* 본문 표 (원본 .hf-tbl 기본값: th #FBFCFD · 셀 좌우 16px · 컬럼별 min-width) */}
       <div className="min-h-0 min-w-0 flex-1 overflow-auto">
         <table className="w-full border-collapse whitespace-nowrap [&_tbody_tr:last-child_td]:border-b-0">
           <thead>
@@ -134,7 +134,7 @@ export function UtilitySummaryPanel({ buildingSelected, rows, confirmations, loa
                 <th
                   key={col.key}
                   style={{ minWidth: col.minW }}
-                  className={`border-b border-line bg-[#fbfcfd] px-[8px] py-[11px] text-[12px] font-bold text-t3 ${
+                  className={`border-b border-line bg-[#fbfcfd] px-[16px] py-[11px] text-[12px] font-bold text-t3 ${
                     col.rt ? "text-right" : "text-left"
                   }`}
                 >
@@ -158,7 +158,7 @@ export function UtilitySummaryPanel({ buildingSelected, rows, confirmations, loa
                     return (
                       <td
                         key={col.key}
-                        className={`border-b border-line2 px-[8px] py-[12px] text-[13.5px] ${
+                        className={`border-b border-line2 px-[16px] py-[12px] text-[13.5px] ${
                           col.rt ? "text-right" : "text-left"
                         } ${col.num ? "tabular-nums" : ""} ${cell.muted ? "font-medium text-t3" : cell.weight ?? ""}`}
                       >
