@@ -71,7 +71,7 @@ export function AppShell({ children }: AppShellProps) {
       <div className="flex flex-col flex-1 min-w-0 print:block">
         {!hasIntegratedHeader(pathname) && (
           <div className="print:hidden">
-            <Topbar onMenu={() => setDrawerOpen(true)} />
+            <Topbar onMenu={() => window.dispatchEvent(new Event("app-shell:toggle-sidebar"))} />
           </div>
         )}
         <main className="flex-1 overflow-auto print:overflow-visible">
