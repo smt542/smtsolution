@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import { Button, EmptyState, Spinner } from "@/components/common";
+import { useMemo, useState } from "react";
+import { Spinner } from "@/components/common";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import {
   NOTICE_PAGE_SIZE,
@@ -9,14 +9,21 @@ import {
   useNotices,
   type Notice,
   type NoticeFilters as NoticeFilterValues,
-  type NoticeStatus,
-  type NoticeSummary,
   type NoticeType,
+  type NoticeSummary,
 } from "@/hooks/reactquery/notices";
 import { NoticeDetail } from "./NoticeDetail";
-import { NoticeFilters } from "./NoticeFilters";
 import { NoticeFormModal } from "./NoticeFormModal";
 import { NoticeList } from "./NoticeList";
+
+function AnnouncementIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 8h9l5-3v14l-5-3H4z" />
+      <path d="M8 15v4" />
+    </svg>
+  );
+}
 
 export function NoticesWorkspace({
   orgId,
@@ -25,39 +32,32 @@ export function NoticesWorkspace({
   orgId: number;
   canSendMessages: boolean;
 }) {
-  const [target, setTarget] = useState("all");
-  const [noticeType, setNoticeType] = useState("all");
-  const [status, setStatus] = useState("all");
-  const [search, setSearch] = useState("");
+  const [noticeType, setNoticeType] = useState<NoticeType | "all">("all");
   const [page, setPage] = useState(0);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Notice | null>(null);
 
-  const filters = useMemo<NoticeFilterValues>(() => ({
-    buildingId: target === "all" ? undefined : target === "organization" ? null : Number(target),
-    noticeType: noticeType === "all" ? undefined : noticeType as NoticeType,
-    status: status as NoticeStatus,
-    search: search.trim() || undefined,
-  }), [noticeType, search, status, target]);
+  const filters = useMemo<NoticeFilterValues>(
+    () => ({ noticeType: noticeType === "all" ? undefined : noticeType }),
+    [noticeType],
+  );
 
   const buildingsQuery = useBuildings();
   const noticesQuery = useNotices(filters, page, NOTICE_PAGE_SIZE);
   const buildings = useMemo(() => buildingsQuery.data ?? [], [buildingsQuery.data]);
   const notices = useMemo(() => noticesQuery.data?.items ?? [], [noticesQuery.data?.items]);
+  const total = noticesQuery.data?.total ?? 0;
+
   const selectedListId = useMemo(
-    () => selectedId !== null && notices.some((notice) => notice.id === selectedId)
-      ? selectedId
-      : null,
+    () =>
+      selectedId !== null && notices.some((n) => n.id === selectedId)
+        ? selectedId
+        : null,
     [notices, selectedId],
   );
   const selectedNoticeQuery = useNotice(selectedListId ?? 0);
   const selectedNotice = selectedNoticeQuery.data ?? null;
-  const total = noticesQuery.data?.total ?? 0;
-
-  const selectNotice = useCallback((notice: NoticeSummary) => {
-    setSelectedId(notice.id);
-  }, []);
 
   const openCreate = () => {
     setEditing(null);
@@ -72,56 +72,74 @@ export function NoticesWorkspace({
     setFormOpen(false);
     setEditing(null);
   };
-  const resetFilters = () => {
-    setTarget("all");
-    setNoticeType("all");
-    setStatus("all");
-    setSearch("");
+
+  const handleTypeChange = (type: NoticeType | "all") => {
+    setNoticeType(type);
     setPage(0);
+  };
+
+  const handleSelect = (notice: NoticeSummary) => {
+    setSelectedId(notice.id);
   };
 
   if (buildingsQuery.isError || noticesQuery.isError) {
     return (
-      <div className="p-6">
-        <LoadError onRetry={() => {
-          void buildingsQuery.refetch();
-          void noticesQuery.refetch();
-        }} />
+      <div className="flex flex-col min-h-screen bg-[#f2f4f6]">
+        <div className="bg-white border-b border-[#e8ebee] flex h-[62px] items-center gap-[12px] px-[24px] shrink-0">
+          <div className="flex items-center justify-center size-[36px] rounded-[10px]">
+            <AnnouncementIcon />
+          </div>
+          <h1 className="text-[19px] font-extrabold text-[#191f28] tracking-[-0.38px] whitespace-nowrap">
+            공지 관리
+          </h1>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <p className="font-bold text-[#191f28] text-[15px]">데이터를 불러오지 못했습니다.</p>
+            <p className="mt-1 text-[13px] text-[#8b95a1]">잠시 후 다시 시도해 주세요.</p>
+            <button
+              type="button"
+              className="mt-4 text-[13px] text-[#14a497] underline"
+              onClick={() => {
+                void buildingsQuery.refetch();
+                void noticesQuery.refetch();
+              }}
+            >
+              다시 시도
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col gap-4 p-6">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-extrabold text-t1">공지 관리</h1>
-          <p className="mt-1 text-sm text-t3">전체 또는 건물별 공지를 등록하고 게시 상태를 관리합니다.</p>
+    <div className="flex flex-col min-h-screen bg-[#f2f4f6]">
+      {/* 62px 페이지 헤더 */}
+      <div className="bg-white border-b border-[#e8ebee] flex h-[62px] items-center gap-[12px] px-[24px] shrink-0">
+        <div className="flex items-center justify-center size-[36px] rounded-[10px] text-[#191f28]">
+          <AnnouncementIcon />
         </div>
-        <Button type="button" variant="primary" onClick={openCreate}>+ 공지 등록</Button>
-      </header>
+        <h1 className="text-[19px] font-extrabold text-[#191f28] tracking-[-0.38px] whitespace-nowrap">
+          공지 관리
+        </h1>
+        <div className="flex-1" />
+        <button
+          type="button"
+          onClick={openCreate}
+          className="bg-[#14a497] h-[34px] px-[14px] rounded-[11px] drop-shadow-[0px_6px_7px_rgba(20,164,151,0.5)] text-white text-[13px] font-bold whitespace-nowrap border border-transparent"
+        >
+          ＋ 공지 등록
+        </button>
+      </div>
 
-      <NoticeFilters
-        buildings={buildings}
-        target={target}
-        noticeType={noticeType}
-        status={status}
-        search={search}
-        onTargetChange={(value) => { setTarget(value); setPage(0); }}
-        onNoticeTypeChange={(value) => { setNoticeType(value); setPage(0); }}
-        onStatusChange={(value) => { setStatus(value); setPage(0); }}
-        onSearchChange={(value) => { setSearch(value); setPage(0); }}
-        onReset={resetFilters}
-      />
-
-      {buildingsQuery.isLoading || noticesQuery.isLoading ? (
-        <div className="rounded-2xl border border-line bg-surface py-16"><Spinner /></div>
-      ) : notices.length === 0 ? (
-        <div className="rounded-2xl border border-line bg-surface">
-          <EmptyState message="조건에 맞는 공지가 없습니다." />
-        </div>
-      ) : (
-        <div className="grid items-start gap-5 xl:grid-cols-[minmax(360px,0.9fr)_minmax(440px,1.1fr)]">
+      {/* 콘텐츠 영역 */}
+      <div className="flex-1 pt-[22px] pb-[30px] px-[24px]">
+        {buildingsQuery.isLoading || noticesQuery.isLoading ? (
+          <div className="bg-white rounded-[16px] shadow-[0px_1px_3px_0px_rgba(23,31,40,0.05)] flex items-center justify-center py-16">
+            <Spinner />
+          </div>
+        ) : (
           <NoticeList
             notices={notices}
             buildings={buildings}
@@ -129,27 +147,39 @@ export function NoticesWorkspace({
             total={total}
             page={page}
             pageSize={NOTICE_PAGE_SIZE}
-            onSelect={selectNotice}
+            noticeType={noticeType}
+            onNoticeTypeChange={handleTypeChange}
+            onSelect={handleSelect}
             onPageChange={setPage}
           />
-          {selectedListId !== null && selectedNoticeQuery.isLoading ? (
-            <div className="rounded-2xl border border-line bg-surface py-16"><Spinner /></div>
-          ) : selectedListId !== null && selectedNoticeQuery.isError ? (
-            <LoadError onRetry={() => selectedNoticeQuery.refetch()} />
-          ) : selectedNotice ? (
-            <NoticeDetail
-              notice={selectedNotice}
-              buildings={buildings}
-              canSendMessages={canSendMessages}
-              onEdit={openEdit}
-              onDeleted={() => setSelectedId(null)}
-            />
-          ) : (
-            <div className="rounded-2xl border border-dashed border-line bg-surface">
-              <EmptyState message="목록에서 공지를 선택하면 상세 내용을 확인할 수 있습니다." />
-            </div>
-          )}
-        </div>
+        )}
+      </div>
+
+      {/* 공지 상세 오버레이 */}
+      {selectedListId !== null && (
+        <>
+          {/* 배경 딤 */}
+          <div
+            className="fixed inset-0 z-40 bg-black/20"
+            onClick={() => setSelectedId(null)}
+          />
+          {/* 우측 슬라이드 패널 */}
+          <div className="fixed inset-y-0 right-0 z-50 w-[520px] bg-white shadow-xl overflow-y-auto">
+            {selectedNoticeQuery.isLoading ? (
+              <div className="flex items-center justify-center h-full py-16">
+                <Spinner />
+              </div>
+            ) : selectedNotice ? (
+              <NoticeDetail
+                notice={selectedNotice}
+                buildings={buildings}
+                canSendMessages={canSendMessages}
+                onEdit={openEdit}
+                onDeleted={() => setSelectedId(null)}
+              />
+            ) : null}
+          </div>
+        </>
       )}
 
       <NoticeFormModal
@@ -163,16 +193,6 @@ export function NoticesWorkspace({
           setSelectedId(notice.id);
         }}
       />
-    </div>
-  );
-}
-
-function LoadError({ onRetry }: { onRetry: () => void }) {
-  return (
-    <div role="alert" className="rounded-2xl border border-line bg-surface p-8 text-center">
-      <p className="font-bold text-t1">데이터를 불러오지 못했습니다.</p>
-      <p className="mt-1 text-sm text-t3">잠시 후 다시 시도해 주세요.</p>
-      <Button type="button" variant="ghost" className="mt-4" onClick={onRetry}>다시 시도</Button>
     </div>
   );
 }

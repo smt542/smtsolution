@@ -1,7 +1,7 @@
 import type { Notice, NoticeStatus, NoticeType } from "@/hooks/reactquery/notices";
 
 export const NOTICE_TYPE_LABELS: Record<NoticeType, string> = {
-  normal: "일반",
+  normal: "신규",
   important: "중요",
   urgent: "긴급",
 };
