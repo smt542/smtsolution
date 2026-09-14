@@ -24,7 +24,7 @@ import {
 } from "../receiptFormat";
 
 const COLS = [
-  "년월",
+  "년 월",
   "당월계",
   "연체",
   "수납액",
@@ -466,10 +466,10 @@ export function PaymentHistorySection({
           <div className="overflow-x-auto">
             <table className={`w-full text-sm ${formOpen ? "min-w-[1120px]" : "min-w-[920px]"}`}>
               <thead>
-                <tr className="border-b border-line bg-bg text-left text-xs font-bold text-t3">
-                  {formOpen && <th className="h-[36px] min-w-[190px] whitespace-nowrap px-3 py-0">처리</th>}
+                <tr className="border-b border-[#e8ebee] bg-[#fbfcfd] text-[12px] font-bold leading-[normal] text-[#8b95a1]">
+                  {formOpen && <th className="min-w-[190px] whitespace-nowrap px-[16px] py-[11px]">처리</th>}
                   {COLS.map((col) => (
-                    <th key={col} className="h-[36px] whitespace-nowrap px-3 py-0">
+                    <th key={col} className={`whitespace-nowrap px-[16px] py-[11px] ${["당월계","연체","수납액","수료"].includes(col) ? "text-right" : "text-left"}`}>
                       {col}
                     </th>
                   ))}
@@ -483,6 +483,7 @@ export function PaymentHistorySection({
                 })}
                 {historyRows.map(({ key, rowPeriod, rowSummary, payment }) => {
                   const canceled = payment?.status === "canceled";
+                  const isUnpaid = !payment || canceled;
                   if (formOpen && payment?.id === editingId) {
                     return renderInlineEditor({
                       key,
@@ -494,21 +495,21 @@ export function PaymentHistorySection({
                     <tr
                       key={key}
                       onClick={() => payment && setSelectedPaymentId(payment.id)}
-                      className={`h-[40px] border-b border-line2 last:border-0 ${
+                      className={`border-b border-[#f1f3f5] last:border-0 ${
                         payment ? "cursor-pointer" : ""
                       } ${selectedPaymentId === payment?.id ? "bg-teal-t" : ""} ${canceled ? "opacity-50" : ""}`}
                     >
-                      {formOpen && <td className="px-3 py-[6px]" />}
-                      <td className="px-3 py-[6px] num">{toMonthInput(rowPeriod)}</td>
-                      <td className="px-3 py-[6px] text-right num">{formatCurrency(rowSummary?.charged ?? null)}</td>
-                      <td className="px-3 py-[6px] text-right text-red num">{formatCurrency(rowSummary?.unpaid ?? null)}</td>
-                      <td className="px-3 py-[6px] text-right font-semibold num">{payment ? formatCurrency(payment.amount) : "-"}</td>
-                      <td className="px-3 py-[6px] text-right num">{payment ? formatCurrency(payment.fee) : "-"}</td>
-                      <td className="whitespace-nowrap px-3 py-[6px]">{payment ? slashDate(payment.paidAt) : "-"}</td>
-                      <td className="px-3 py-[6px]">{payment ? PAYMENT_METHOD_LABEL[payment.method] ?? payment.method : "-"}</td>
-                      <td className="px-3 py-[6px]">{payment ? PAYMENT_KIND_LABEL[payment.kind] ?? payment.kind : "-"}</td>
-                      <td className="px-3 py-[6px] text-t2">{payment?.memo ?? "-"}</td>
-                      <td className="whitespace-nowrap px-3 py-[6px]">{dotDate(rowSummary?.dueDate ?? null)}</td>
+                      {formOpen && <td className="px-[16px] py-[12px]" />}
+                      <td className={`px-[16px] py-[12px] num ${isUnpaid ? "shadow-[inset_3px_0px_0px_0px_#f04452]" : ""}`}>{toMonthInput(rowPeriod)}</td>
+                      <td className="px-[16px] py-[12px] text-right num">{formatCurrency(rowSummary?.charged ?? null)}</td>
+                      <td className={`px-[16px] py-[12px] text-right num ${(rowSummary?.unpaid ?? 0) > 0 ? "text-[#f04452]" : ""}`}>{formatCurrency(rowSummary?.unpaid ?? null)}</td>
+                      <td className="px-[16px] py-[12px] text-right num">{payment ? formatCurrency(payment.amount) : "-"}</td>
+                      <td className="px-[16px] py-[12px] text-right num">{payment ? formatCurrency(payment.fee) : "-"}</td>
+                      <td className="whitespace-nowrap px-[16px] py-[12px]">{payment ? slashDate(payment.paidAt) : "-"}</td>
+                      <td className="px-[16px] py-[12px]">{payment ? PAYMENT_METHOD_LABEL[payment.method] ?? payment.method : "-"}</td>
+                      <td className="px-[16px] py-[12px]">{payment ? PAYMENT_KIND_LABEL[payment.kind] ?? payment.kind : "-"}</td>
+                      <td className="px-[16px] py-[12px]">{payment?.memo ?? "-"}</td>
+                      <td className="whitespace-nowrap px-[16px] py-[12px]">{dotDate(rowSummary?.dueDate ?? null)}</td>
                     </tr>
                   );
                 })}
@@ -516,24 +517,29 @@ export function PaymentHistorySection({
             </table>
           </div>
 
-          <div className="flex h-[37px] flex-wrap items-center justify-end gap-4 border-t border-line bg-[#f7f9fa] px-4 text-sm">
-            <span className="text-t3">
-              미납 <b className="num text-red">{formatCurrency(overduePrincipal)}</b>
-            </span>
-            <span className="text-t3">
-              연체료 <b className="num text-red">{formatCurrency(lateFeeTotal)}</b>
-            </span>
-            <span className="text-t3">
-              미납합계 <b className="num text-red">{formatCurrency(overduePrincipal + lateFeeTotal)}</b>
-            </span>
-            <button
-              type="button"
-              onClick={sendUnpaidSms}
-              disabled={!summary || (unpaid ?? 0) <= 0}
-              className="h-[27px] rounded-lg border border-line px-3 text-xs font-bold text-blue hover:bg-blue-t2 disabled:cursor-not-allowed disabled:text-t4"
-            >
-              미납 문자 전송
-            </button>
+          <div className="flex items-center gap-[10px] border-t border-[#e8ebee] bg-[#fbfcfd] px-[14px] py-[11px]">
+            <div className="flex items-center gap-[6px]">
+              <span className="text-[12px] font-medium leading-[normal] text-[#8b95a1]">미납</span>
+              <span className="num text-[12.5px] font-medium leading-[normal] text-[#f04452]">{formatCurrency(overduePrincipal)}</span>
+            </div>
+            <div className="flex items-center gap-[6px]">
+              <span className="text-[12px] font-medium leading-[normal] text-[#8b95a1]">연체료</span>
+              <span className="num text-[12.5px] font-medium leading-[normal] text-[#f04452]">{formatCurrency(lateFeeTotal)}</span>
+            </div>
+            <div className="flex items-center gap-[6px]">
+              <span className="text-[12px] font-medium leading-[normal] text-[#8b95a1]">미납합계</span>
+              <span className="num text-[12.5px] font-medium leading-[normal] text-[#f04452]">{formatCurrency(overduePrincipal + lateFeeTotal)}</span>
+            </div>
+            <div className="ml-auto">
+              <button
+                type="button"
+                onClick={sendUnpaidSms}
+                disabled={!summary || (unpaid ?? 0) <= 0}
+                className="h-[26px] rounded-[8px] border border-teal bg-teal px-[10px] text-[11.5px] font-bold leading-[normal] text-white disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                문자 전송
+              </button>
+            </div>
           </div>
         </>
       )}
