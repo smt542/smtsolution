@@ -38,12 +38,10 @@ function Dropdown({
   items: DropdownItem[];
   accent?: "teal";
 }) {
-  const widthClass =
-    label === "빌라" ? "w-[79px]" : label === "호실" ? "w-[79px]" : "w-[106px]";
   const summaryClass =
     accent === "teal"
-      ? `flex h-10 ${widthClass} cursor-pointer list-none items-center justify-center gap-[5px] rounded-[11px] bg-teal px-[15px] text-[13.5px] font-bold leading-[normal] text-white hover:bg-teal-d`
-      : `flex h-10 ${widthClass} cursor-pointer list-none items-center justify-center gap-[5px] rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg`;
+      ? "flex h-10 cursor-pointer list-none items-center gap-[5px] rounded-[11px] bg-teal px-[15px] text-[13.5px] font-bold leading-[normal] text-white hover:bg-teal-d"
+      : "flex h-10 cursor-pointer list-none items-center gap-[5px] rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg";
   return (
     <details className="relative [&_summary::-webkit-details-marker]:hidden">
       <summary className={summaryClass}>
@@ -321,17 +319,6 @@ export function ReceiptWorkspace({
           />
         </div>
       </div>
-
-      <button
-        type="button"
-        aria-label="상담 문의"
-        onClick={() => toast.info("상담 문의 기능을 준비 중입니다.")}
-        className="fixed bottom-[21px] right-[24px] z-20 hidden size-[52px] items-center justify-center rounded-full bg-teal text-white shadow-[0_8px_22px_rgba(8,117,108,0.28)] transition-colors hover:bg-teal-d md:flex print:hidden"
-      >
-        <svg viewBox="0 0 24 24" fill="none" className="size-[19px]" aria-hidden="true">
-          <path d="M6.5 18.5 3.5 21v-5.3A7.5 7.5 0 0 1 4 5.5 9 9 0 0 1 18.8 7a7.2 7.2 0 0 1-.4 8.8A8.8 8.8 0 0 1 6.5 18.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
 
       <UnifiedSearchModal
         open={searchOpen}
