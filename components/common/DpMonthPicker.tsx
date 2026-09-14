@@ -46,7 +46,8 @@ export function DpMonthPicker({
       const ctl = ctlRef.current;
       if (!ctl) return;
       const rect = ctl.getBoundingClientRect();
-      const h = popRef.current?.offsetHeight || 204;
+      // 실제 팝업 높이: p-[10px]×2 + header(26px) + mt-[8px] + grid(3×32+2×4) = 158px
+      const h = popRef.current?.offsetHeight || 158;
       const w = popRef.current?.offsetWidth || 210;
       const below = window.innerHeight - rect.bottom - 10;
       setPos({
@@ -119,26 +120,30 @@ export function DpMonthPicker({
             className="fixed z-[200] flex w-[210px] flex-col items-start rounded-[12px] border border-[#e8ebee] bg-white p-[10px] drop-shadow-[0px_14px_17px_rgba(23,31,40,0.28)]"
             style={{ left: pos.left, top: pos.top }}
           >
+            {/* 헤더: 이전/다음 연도 + 연도 표시 */}
             <div className="flex w-full items-center justify-between">
               <button
                 type="button"
                 aria-label="이전 년도"
                 onClick={() => setYear((y) => y - 1)}
-                className="grid size-[26px] place-items-center rounded-[8px] text-[16px] text-[#8b95a1] hover:bg-bg"
+                className="flex size-[26px] items-center justify-center rounded-[8px] hover:bg-bg"
               >
-                ‹
+                <span className="text-[16px] leading-[normal] whitespace-nowrap text-[#8b95a1]">‹</span>
               </button>
-              <span className="text-[13px] font-extrabold text-[#191f28]">{year}년</span>
+              <span className="text-[13px] font-extrabold leading-[normal] whitespace-nowrap text-[#191f28]">
+                {year}년
+              </span>
               <button
                 type="button"
                 aria-label="다음 년도"
                 onClick={() => setYear((y) => y + 1)}
-                className="grid size-[26px] place-items-center rounded-[8px] text-[16px] text-[#8b95a1] hover:bg-bg"
+                className="flex size-[26px] items-center justify-center rounded-[8px] hover:bg-bg"
               >
-                ›
+                <span className="text-[16px] leading-[normal] whitespace-nowrap text-[#8b95a1]">›</span>
               </button>
             </div>
-            <div className="mt-[8px] grid w-full grid-cols-4 gap-[4px]">
+            {/* 월 그리드: 4열×3행 고정 */}
+            <div className="mt-[8px] grid w-full grid-cols-[44.5px_44.5px_44.5px_44.5px] grid-rows-[32px_32px_32px] gap-[4px]">
               {MONTHS.map((label, idx) => {
                 const m = idx + 1;
                 const isSelected = selectedYear === year && selectedMonth === m;
@@ -147,13 +152,13 @@ export function DpMonthPicker({
                     key={m}
                     type="button"
                     onClick={() => pick(m)}
-                    className={`flex h-[32px] items-center justify-center rounded-[8px] text-[12.5px] ${
+                    className={`flex h-[32px] items-center justify-center rounded-[8px] ${
                       isSelected
                         ? "bg-teal font-bold text-white"
                         : "font-semibold text-[#4e5968] hover:bg-bg"
                     }`}
                   >
-                    {label}
+                    <span className="text-[12.5px] leading-[normal] whitespace-nowrap">{label}</span>
                   </button>
                 );
               })}

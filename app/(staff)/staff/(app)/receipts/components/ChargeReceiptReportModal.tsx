@@ -141,37 +141,37 @@ export function ChargeReceiptReportModal({
                 onChange={setPendingStart}
                 ariaLabel="기준월 시작"
                 placeholder="YYYY.MM"
-                triggerClassName="flex h-[38px] w-[116px] cursor-pointer items-center rounded-[10px] border border-line bg-surface px-[11px] text-[12.5px] font-medium text-t1"
+                triggerClassName="flex h-[38px] w-[116px] cursor-pointer items-center rounded-[10px] border border-line bg-surface px-[10px] text-[12.5px] font-medium text-t1"
                 triggerOpenClassName="border-teal"
                 endAdornment={<CalendarIcon className="ml-auto size-[15px] shrink-0 text-t3" aria-hidden="true" />}
               />
-              <span className="text-t4">~</span>
+              <span className="font-bold text-t4">~</span>
               <DpMonthPicker
                 value={pendingEnd}
                 onChange={setPendingEnd}
                 ariaLabel="기준월 종료"
                 placeholder="YYYY.MM"
-                triggerClassName="flex h-[38px] w-[116px] cursor-pointer items-center rounded-[10px] border border-line bg-surface px-[11px] text-[12.5px] font-medium text-t1"
+                triggerClassName="flex h-[38px] w-[116px] cursor-pointer items-center rounded-[10px] border border-line bg-surface px-[10px] text-[12.5px] font-medium text-t1"
                 triggerOpenClassName="border-teal"
                 endAdornment={<CalendarIcon className="ml-auto size-[15px] shrink-0 text-t3" aria-hidden="true" />}
               />
-              <span className="ml-[8px] text-[12px] font-bold text-t3">수납일</span>
+              <span className="ml-[6px] text-[12px] font-bold text-t3">수납일</span>
               <DpDatePicker
                 value={paymentStartDate}
                 onChange={setPaymentStartDate}
                 ariaLabel="수납일 시작"
                 placeholder="시작일"
-                triggerClassName="flex h-[38px] w-[116px] cursor-pointer items-center rounded-[10px] border border-line bg-surface px-[11px] text-[12.5px] font-medium text-t1"
+                triggerClassName="flex h-[38px] w-[116px] cursor-pointer items-center rounded-[10px] border border-line bg-surface px-[10px] text-[12.5px] font-medium text-t1"
                 triggerOpenClassName="border-teal"
                 endAdornment={<CalendarIcon className="ml-auto size-[15px] shrink-0 text-t3" aria-hidden="true" />}
               />
-              <span className="text-t4">~</span>
+              <span className="font-bold text-t4">~</span>
               <DpDatePicker
                 value={paymentEndDate}
                 onChange={setPaymentEndDate}
                 ariaLabel="수납일 종료"
                 placeholder="종료일"
-                triggerClassName="flex h-[38px] w-[116px] cursor-pointer items-center rounded-[10px] border border-line bg-surface px-[11px] text-[12.5px] font-medium text-t1"
+                triggerClassName="flex h-[38px] w-[116px] cursor-pointer items-center rounded-[10px] border border-line bg-surface px-[10px] text-[12.5px] font-medium text-t1"
                 triggerOpenClassName="border-teal"
                 endAdornment={<CalendarIcon className="ml-auto size-[15px] shrink-0 text-t3" aria-hidden="true" />}
               />
@@ -215,7 +215,7 @@ export function ChargeReceiptReportModal({
           </div>
 
           {/* 푸터 */}
-          <footer className="flex h-[69px] shrink-0 items-center justify-end border-t border-line px-[20px]">
+          <footer className="flex shrink-0 items-center justify-end border-t border-line px-[20px] py-[14px]">
             <button
               type="button"
               onClick={() => window.print()}
