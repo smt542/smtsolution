@@ -25,13 +25,6 @@ function AnnouncementIcon() {
   );
 }
 
-const TYPE_TABS: Array<{ value: NoticeType | "all"; label: string }> = [
-  { value: "all",       label: "전체" },
-  { value: "normal",    label: "신규" },
-  { value: "important", label: "중요" },
-  { value: "urgent",    label: "긴급" },
-];
-
 const DUMMY_NOTICES: NoticeSummary[] = [
   {
     id: -1,
@@ -166,26 +159,7 @@ export function NoticesWorkspace({
         <h1 className="text-[19px] font-extrabold text-[#191f28] tracking-[-0.38px] whitespace-nowrap">
           공지 관리
         </h1>
-        <div className="bg-[#f2f4f6] px-[9px] py-[3px] rounded-[7px] shrink-0">
-          <span className="font-bold text-[12px] text-[#8b95a1] leading-[16.8px]">{displayTotal}개</span>
-        </div>
         <div className="flex-1" />
-        <div className="flex gap-[2px] bg-[#edf0f3] p-[3px] rounded-[9px] shrink-0">
-          {TYPE_TABS.map((tab) => (
-            <button
-              key={tab.value}
-              type="button"
-              onClick={() => handleTypeChange(tab.value)}
-              className={
-                noticeType === tab.value
-                  ? "bg-white shadow-[0px_1px_1.5px_rgba(23,31,40,0.1)] px-[11px] py-[5px] rounded-[7px] font-bold text-[12px] text-[#191f28]"
-                  : "px-[11px] py-[5px] rounded-[7px] font-bold text-[12px] text-[#8b95a1]"
-              }
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
         <button
           type="button"
           onClick={openCreate}
@@ -209,6 +183,8 @@ export function NoticesWorkspace({
             total={displayTotal}
             page={page}
             pageSize={NOTICE_PAGE_SIZE}
+            noticeType={noticeType}
+            onNoticeTypeChange={handleTypeChange}
             onSelect={(notice) => setSelectedId(notice.id)}
             onPageChange={setPage}
           />
