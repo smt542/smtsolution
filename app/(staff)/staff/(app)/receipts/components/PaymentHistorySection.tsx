@@ -496,7 +496,7 @@ export function PaymentHistorySection({
                     <tr
                       key={key}
                       onClick={() => payment && setSelectedPaymentId(payment.id)}
-                      className={`h-[41px] border-b border-[#f1f3f5] last:border-0 ${
+                      className={`h-[41px] leading-[normal] border-b border-[#f1f3f5] last:border-0 ${
                         payment ? "cursor-pointer" : ""
                       } ${selectedPaymentId === payment?.id ? "bg-teal-t" : ""} ${canceled ? "opacity-50" : ""}`}
                     >
