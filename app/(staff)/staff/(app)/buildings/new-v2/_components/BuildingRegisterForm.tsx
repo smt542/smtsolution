@@ -109,7 +109,7 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
   const title = buildingId ? state.name || "건물 상세" : "건물 등록";
 
   return (
-    <div className="flex flex-col">
+    <div className="flex h-full flex-col">
       <RegisterHeader
         title={title}
         backLabel={buildingId ? "목록으로" : "뒤로가기"}
@@ -123,7 +123,7 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
           <p className="text-sm text-t3">건물 정보를 불러오는 중…</p>
         </div>
       ) : (
-        <div className="flex flex-col gap-[16px] px-[24px] pb-[30px] pt-[22px]">
+        <div className="flex flex-1 flex-col gap-[16px] overflow-y-auto px-[24px] pb-[30px] pt-[22px]">
           <BasicInfoSection value={state} patch={patch} buildingTypeOptions={resolvers.typeLabels} />
           <VendorAssignmentSection
             value={state}

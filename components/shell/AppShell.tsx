@@ -74,7 +74,7 @@ export function AppShell({ children }: AppShellProps) {
             <Topbar onMenu={() => window.dispatchEvent(new Event("app-shell:toggle-sidebar"))} />
           </div>
         )}
-        <main className="flex-1 overflow-auto print:overflow-visible">
+        <main className="flex-1 min-h-0 overflow-auto print:overflow-visible">
           {children}
         </main>
       </div>

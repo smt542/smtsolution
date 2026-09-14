@@ -17,7 +17,7 @@ export function RegisterHeader({
   saving?: boolean;
 }) {
   return (
-    <div className="sticky top-0 z-10 flex h-[62px] items-center gap-[12px] border-b border-line bg-surface px-[24px]">
+    <div className="flex h-[62px] shrink-0 items-center gap-[12px] border-b border-line bg-surface px-[24px]">
       {/* 햄버거: Topbar 와 동일 구조 — AppShell 이 hasIntegratedHeader 로 Topbar 를 숨기므로 여기서 직접 dispatch */}
       <button
         type="button"
