@@ -25,7 +25,7 @@ import {
   hasBillingBasis,
   isPrototypeFuturePeriod,
 } from "./components/BillingBasisRequiredState";
-import { ElectricityBuildingRail } from "./components/ElectricityBuildingRail";
+import { UtilityBuildingRail } from "./components/UtilityBuildingRail";
 import {
   ElectricityCustomerSummary,
   type ElectricityCustomerSummaryDraft,
@@ -359,7 +359,7 @@ export default function ElectricityUtilitiesWorkspace() {
       </label>
 
       <div className="mx-auto grid min-h-[803px] max-w-[1632px] grid-cols-1 items-stretch gap-4 min-[1101px]:h-[calc(100vh-110px)] min-[1101px]:grid-cols-[minmax(0,322px)_minmax(0,1fr)]">
-        <ElectricityBuildingRail
+        <UtilityBuildingRail
           buildings={buildings}
           selectedBuildingId={buildingId}
           search={search}
