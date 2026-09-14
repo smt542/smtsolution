@@ -349,7 +349,7 @@ function BuildingNoteBlock({
         )}
       </div>
       {building === null ? (
-        <p className="flex-1 px-[16px] pb-[15px] pt-[13px] text-[13.5px] leading-[21.87px] text-[#757575]">건물을 선택하면 표시돼요</p>
+        <p className="flex-1 px-[16px] pb-[15px] pt-[13px] text-[13.5px] leading-[21.87px] text-[#757575]">{editPlaceholder}</p>
       ) : editing ? (
         <div className="flex-1 min-h-0 flex flex-col px-[12px] pb-[12px]">
           <textarea
