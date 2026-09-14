@@ -20,6 +20,8 @@ interface DpDatePickerProps {
   endAdornment?: ReactNode;
   /** 루트 래퍼(relative inline-flex)에 덧붙이는 클래스. grid/flex 셀에서 폭 제어(w-full 등)에 사용 */
   className?: string;
+  /** 선택된 값의 표시 포맷을 재정의한다. 기본값: "YYYY-MM-DD" → "YYYY.MM.DD" */
+  displayFormatter?: (value: string) => string;
 }
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -36,6 +38,7 @@ export function DpDatePicker({
   triggerOpenClassName,
   endAdornment,
   className,
+  displayFormatter,
 }: DpDatePickerProps) {
   const ctlRef = useRef<HTMLButtonElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
@@ -127,7 +130,9 @@ export function DpDatePicker({
             disabled ? "cursor-default border-line2 bg-bg" : "cursor-pointer border-line bg-white"
           } ${open ? "border-blue shadow-[0_0_0_3px_var(--color-blue-t)]" : ""} ${value ? "text-t1" : "text-t4"}`}
       >
-        <span>{value ? toDisplay(value) : placeholder}</span>
+        <span className={triggerClassName && !value ? "text-t4" : ""}>
+          {value ? (displayFormatter ? displayFormatter(value) : toDisplay(value)) : placeholder}
+        </span>
         {endAdornment}
       </button>
 

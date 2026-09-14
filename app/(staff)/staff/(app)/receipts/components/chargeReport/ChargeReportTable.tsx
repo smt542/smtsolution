@@ -1,11 +1,11 @@
 import { formatNumber } from "@/lib/format";
 import type { ChargeReportFeeItem, ChargeReportModel } from "./buildChargeReport";
 
-// 피그마 컬럼 폭(px). 년월/당월분/당월수납액은 고정, 관리비 항목은 3개씩 묶어 124px 컬럼으로.
-const COL_MONTH = 104;
-const COL_CHARGE = 143;
-const COL_PAID = 124;
-const COL_FEE = 124;
+// 피그마 컬럼 폭(px) — 피그마 정본 스크린샷 실측값
+const COL_MONTH = 148;
+const COL_CHARGE = 204;
+const COL_PAID = 178;
+const COL_FEE = 178;
 
 type Tone = "normal" | "red";
 type CellLine = { text: string; tone?: Tone } | null;
@@ -40,14 +40,32 @@ function ReportCell({
 }) {
   const alignClass =
     align === "left" ? "text-left" : align === "center" ? "text-center" : "text-right";
-  const fontClass = size === "header" ? "text-[11px]" : "text-[12px]";
+
+  if (size === "header") {
+    const visible = lines.filter(Boolean) as NonNullable<CellLine>[];
+    return (
+      <div style={{ width }} className="flex h-[73px] shrink-0 flex-col items-center justify-center px-[16px]">
+        {visible.map((line, idx) => (
+          <span
+            key={idx}
+            className={`block truncate text-center text-[11px] font-medium leading-[14.85px] tabular-nums text-t1${idx > 0 ? " pt-[3px]" : ""}`}
+          >
+            {line.text}
+          </span>
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div style={{ width }} className="flex h-[73px] shrink-0 flex-col justify-center px-[10px]">
+    <div style={{ width }} className="flex h-[73px] shrink-0 flex-col justify-center px-[16px]">
       {lines.map((line, index) => (
         <span
           key={index}
           title={line?.text}
-          className={`block h-[16px] truncate font-medium leading-[16px] tabular-nums ${fontClass} ${alignClass} ${line ? toneClass[line.tone ?? "normal"] : "text-transparent"}`}
+          className={`block h-[16px] truncate font-medium leading-[16px] tabular-nums text-[12px] ${alignClass} ${
+            line ? toneClass[line.tone ?? "normal"] : "text-transparent"
+          }`}
         >
           {line ? line.text : " "}
         </span>

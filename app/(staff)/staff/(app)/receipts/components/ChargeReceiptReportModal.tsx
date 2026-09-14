@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CloseIcon, PrinterIcon } from "@/components/icons";
+import { CalendarIcon, CloseIcon, PrinterIcon } from "@/components/icons";
+import { DpDatePicker } from "@/components/common/DpDatePicker";
 import type { Building } from "@/hooks/reactquery/buildings";
 import { useReceiptStatementData } from "@/hooks/reactquery/receipts";
 import { toMonthInput } from "@/lib/billing/period";
@@ -14,7 +15,6 @@ import {
 import { ChargeReportInfoBar } from "./chargeReport/ChargeReportInfoBar";
 import { ChargeReportPrintView } from "./chargeReport/ChargeReportPrintView";
 import { ChargeReportTable } from "./chargeReport/ChargeReportTable";
-import { ReportDateField } from "./report-controls/ReportDateField";
 
 const monthLabel = (month: string) => month.replace("-", ".");
 
@@ -135,36 +135,46 @@ export function ChargeReceiptReportModal({
             {/* 필터 */}
             <div className="flex shrink-0 flex-wrap items-center gap-[8px] border-b border-line px-[16px] py-[13px]">
               <span className="text-[12px] font-bold text-t3">기준월</span>
-              <ReportDateField
-                type="month"
+              <DpDatePicker
+                value={pendingStart ? `${pendingStart}-01` : ""}
+                onChange={(v) => setPendingStart(v.slice(0, 7))}
                 ariaLabel="기준월 시작"
-                value={pendingStart}
-                max={pendingEnd}
-                onValueChange={setPendingStart}
+                placeholder="YYYY.MM"
+                displayFormatter={(v) => v.slice(0, 7).replaceAll("-", ".")}
+                triggerClassName="flex h-[38px] w-[116px] cursor-pointer items-center rounded-[10px] border border-line bg-surface px-[11px] text-[12.5px] font-medium text-t1"
+                triggerOpenClassName="border-teal"
+                endAdornment={<CalendarIcon className="ml-auto size-[15px] shrink-0 text-t3" aria-hidden="true" />}
               />
               <span className="text-t4">~</span>
-              <ReportDateField
-                type="month"
+              <DpDatePicker
+                value={pendingEnd ? `${pendingEnd}-01` : ""}
+                onChange={(v) => setPendingEnd(v.slice(0, 7))}
                 ariaLabel="기준월 종료"
-                value={pendingEnd}
-                min={pendingStart}
-                onValueChange={setPendingEnd}
+                placeholder="YYYY.MM"
+                displayFormatter={(v) => v.slice(0, 7).replaceAll("-", ".")}
+                triggerClassName="flex h-[38px] w-[116px] cursor-pointer items-center rounded-[10px] border border-line bg-surface px-[11px] text-[12.5px] font-medium text-t1"
+                triggerOpenClassName="border-teal"
+                endAdornment={<CalendarIcon className="ml-auto size-[15px] shrink-0 text-t3" aria-hidden="true" />}
               />
               <span className="ml-[8px] text-[12px] font-bold text-t3">수납일</span>
-              <ReportDateField
-                type="date"
+              <DpDatePicker
+                value={paymentStartDate}
+                onChange={setPaymentStartDate}
                 ariaLabel="수납일 시작"
                 placeholder="시작일"
-                value={paymentStartDate}
-                onValueChange={setPaymentStartDate}
+                triggerClassName="flex h-[38px] w-[116px] cursor-pointer items-center rounded-[10px] border border-line bg-surface px-[11px] text-[12.5px] font-medium text-t1"
+                triggerOpenClassName="border-teal"
+                endAdornment={<CalendarIcon className="ml-auto size-[15px] shrink-0 text-t3" aria-hidden="true" />}
               />
               <span className="text-t4">~</span>
-              <ReportDateField
-                type="date"
+              <DpDatePicker
+                value={paymentEndDate}
+                onChange={setPaymentEndDate}
                 ariaLabel="수납일 종료"
                 placeholder="종료일"
-                value={paymentEndDate}
-                onValueChange={setPaymentEndDate}
+                triggerClassName="flex h-[38px] w-[116px] cursor-pointer items-center rounded-[10px] border border-line bg-surface px-[11px] text-[12.5px] font-medium text-t1"
+                triggerOpenClassName="border-teal"
+                endAdornment={<CalendarIcon className="ml-auto size-[15px] shrink-0 text-t3" aria-hidden="true" />}
               />
               <div className="flex-1" />
               <button
@@ -177,7 +187,7 @@ export function ChargeReceiptReportModal({
             </div>
 
             {/* 표 제목 + 요약 */}
-            <div className="flex h-[70px] shrink-0 flex-col justify-center border-b border-line px-[16px]">
+            <div className="flex shrink-0 flex-col border-b border-line px-[16px] pb-[13px] pt-[15px]">
               <p className="text-center text-[15px] font-bold tracking-[-0.3px] text-t1">
                 [ {buildingName || "건물"} 부과금액 및 수납자료 ]
               </p>
