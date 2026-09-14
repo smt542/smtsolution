@@ -33,18 +33,20 @@ function Dropdown({
   label,
   items,
   accent,
+  inactive,
 }: {
   label: string;
   items: DropdownItem[];
   accent?: "teal";
+  inactive?: boolean;
 }) {
   const summaryClass =
     accent === "teal"
       ? "flex h-10 cursor-pointer list-none items-center gap-[5px] rounded-[11px] bg-teal px-[15px] text-[13.5px] font-bold leading-[normal] text-white hover:bg-teal-d"
       : "flex h-10 cursor-pointer list-none items-center gap-[5px] rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg";
   return (
-    <details className="relative [&_summary::-webkit-details-marker]:hidden">
-      <summary className={summaryClass}>
+    <details className="group relative [&_summary::-webkit-details-marker]:hidden">
+      <summary className={`${summaryClass}${inactive ? " opacity-45 transition-opacity group-open:opacity-100" : ""}`}>
         {label}
         <svg
           viewBox="0 0 24 24"
@@ -224,6 +226,7 @@ export function ReceiptWorkspace({
             <>
               <Dropdown
                 label="빌라"
+                inactive
                 items={[
                   {
                     label: "빌라 부과금액",
@@ -238,6 +241,7 @@ export function ReceiptWorkspace({
               />
               <Dropdown
                 label="호실"
+                inactive
                 items={[
                   { label: "호실 명세서", onClick: openUnitStatement },
                   { label: "영수증 출력", onClick: openUnitReceipt },
