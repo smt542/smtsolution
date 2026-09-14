@@ -42,17 +42,20 @@ function ReportCell({
     align === "left" ? "text-left" : align === "center" ? "text-center" : "text-right";
 
   if (size === "header") {
-    const visible = lines.filter(Boolean) as NonNullable<CellLine>[];
     return (
-      <div style={{ width }} className="flex h-[73px] shrink-0 flex-col items-center justify-center px-[16px]">
-        {visible.map((line, idx) => (
-          <span
-            key={idx}
-            className={`block truncate text-center text-[11px] font-medium leading-[14.85px] tabular-nums text-t1${idx > 0 ? " pt-[3px]" : ""}`}
-          >
-            {line.text}
-          </span>
-        ))}
+      <div style={{ width }} className="flex h-[73px] shrink-0 flex-col items-center justify-between px-[16px] py-[11px]">
+        {lines.map((line, idx) =>
+          line ? (
+            <span
+              key={idx}
+              className="block truncate text-center text-[11px] font-medium leading-[14.85px] tabular-nums text-t1"
+            >
+              {line.text}
+            </span>
+          ) : (
+            <span key={idx} aria-hidden="true" />
+          ),
+        )}
       </div>
     );
   }
@@ -120,6 +123,7 @@ export function ChargeReportTable({ model }: { model: ChargeReportModel }) {
             lines={feeHeaderLines(column)}
           />
         ))}
+        <div className="flex-1" />
       </div>
 
       {/* 월별 데이터 */}
@@ -145,6 +149,7 @@ export function ChargeReportTable({ model }: { model: ChargeReportModel }) {
               lines={feeDataLines(column, month.feeItemAmounts)}
             />
           ))}
+          <div className="flex-1" />
         </div>
       ))}
 
@@ -166,6 +171,7 @@ export function ChargeReportTable({ model }: { model: ChargeReportModel }) {
             lines={feeDataLines(column, totals.feeItemAmounts)}
           />
         ))}
+        <div className="flex-1" />
       </div>
     </div>
   );

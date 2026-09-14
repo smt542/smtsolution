@@ -23,17 +23,18 @@ import {
   unitLabel,
 } from "../receiptFormat";
 
-const COLS = [
-  "년 월",
-  "당월계",
-  "연체",
-  "수납액",
-  "수료",
-  "수납일자",
-  "은행",
-  "구분",
-  "비고",
-  "기한",
+// 피그마 정본 컬럼 폭(px) — node 20:18763 수납 이력 테이블
+const COLS: { label: string; minW: number }[] = [
+  { label: "년 월",    minW: 130 },
+  { label: "당월계",   minW: 127 },
+  { label: "연체",     minW: 104 },
+  { label: "수납액",   minW: 127 },
+  { label: "수료",     minW: 84  },
+  { label: "수납일자", minW: 159 },
+  { label: "은행",     minW: 142 },
+  { label: "구분",     minW: 89  },
+  { label: "비고",     minW: 177 },
+  { label: "기한",     minW: 156 },
 ];
 
 const METHOD_OPTIONS = (Object.keys(PAYMENT_METHOD_LABEL) as PaymentMethod[]).map((value) => ({
@@ -464,13 +465,13 @@ export function PaymentHistorySection({
       ) : (
         <>
           <div className="overflow-x-auto">
-            <table className={`w-full text-sm ${formOpen ? "min-w-[1120px]" : "min-w-[920px]"}`}>
+            <table className={`w-full text-sm ${formOpen ? "min-w-[1485px]" : "min-w-[1295px]"}`}>
               <thead>
                 <tr className="border-b border-[#e8ebee] bg-[#fbfcfd] text-[12px] font-bold leading-[normal] text-[#8b95a1]">
                   {formOpen && <th className="min-w-[190px] whitespace-nowrap px-[16px] py-[11px]">처리</th>}
-                  {COLS.map((col) => (
-                    <th key={col} className={`whitespace-nowrap px-[16px] py-[11px] ${["당월계","연체","수납액","수료"].includes(col) ? "text-right" : "text-left"}`}>
-                      {col}
+                  {COLS.map(({ label, minW }) => (
+                    <th key={label} style={{ minWidth: minW }} className={`whitespace-nowrap px-[16px] py-[11px] ${["당월계","연체","수납액","수료"].includes(label) ? "text-right" : "text-left"}`}>
+                      {label}
                     </th>
                   ))}
                 </tr>
