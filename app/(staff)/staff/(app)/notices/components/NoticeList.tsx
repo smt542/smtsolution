@@ -4,6 +4,13 @@ import { useMemo } from "react";
 import type { Building } from "@/hooks/reactquery/buildings";
 import type { NoticeSummary, NoticeType } from "@/hooks/reactquery/notices";
 
+const TYPE_TABS: Array<{ value: NoticeType | "all"; label: string }> = [
+  { value: "all",       label: "전체" },
+  { value: "normal",    label: "신규" },
+  { value: "important", label: "중요" },
+  { value: "urgent",    label: "긴급" },
+];
+
 const TYPE_BADGE: Record<NoticeType, { label: string; bg: string; text: string }> = {
   urgent:    { label: "긴급", bg: "bg-[#fff1f1]", text: "text-[#f04452]" },
   important: { label: "중요", bg: "bg-[#fff4e5]", text: "text-[#b26a00]" },
@@ -27,6 +34,8 @@ export function NoticeList({
   total,
   page,
   pageSize,
+  noticeType,
+  onNoticeTypeChange,
   onSelect,
   onPageChange,
 }: {
@@ -36,6 +45,8 @@ export function NoticeList({
   total: number;
   page: number;
   pageSize: number;
+  noticeType: NoticeType | "all";
+  onNoticeTypeChange: (type: NoticeType | "all") => void;
   onSelect: (notice: NoticeSummary) => void;
   onPageChange: (page: number) => void;
 }) {
@@ -47,6 +58,31 @@ export function NoticeList({
 
   return (
     <div className="bg-white rounded-[16px] shadow-[0px_1px_3px_0px_rgba(23,31,40,0.05)] overflow-hidden">
+      {/* 카드 헤더 */}
+      <div className="flex items-center gap-[8px] border-b border-[#f1f3f5] px-[18px] py-[15px]">
+        <span className="font-extrabold text-[15px] text-[#191f28] whitespace-nowrap">공지 목록</span>
+        <div className="bg-[#f2f4f6] px-[9px] py-[3px] rounded-[7px] shrink-0">
+          <span className="font-bold text-[12px] text-[#8b95a1] leading-[16.8px]">{total}개</span>
+        </div>
+        <div className="flex-1" />
+        <div className="flex gap-[2px] bg-[#edf0f3] p-[3px] rounded-[9px] shrink-0">
+          {TYPE_TABS.map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => onNoticeTypeChange(tab.value)}
+              className={
+                noticeType === tab.value
+                  ? "bg-white shadow-[0px_1px_1.5px_rgba(23,31,40,0.1)] px-[11px] py-[5px] rounded-[7px] font-bold text-[12px] text-[#191f28]"
+                  : "px-[11px] py-[5px] rounded-[7px] font-bold text-[12px] text-[#8b95a1]"
+              }
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {notices.length === 0 ? (
         <div className="py-16 text-center text-[13px] text-[#8b95a1]">
           공지가 없습니다.
