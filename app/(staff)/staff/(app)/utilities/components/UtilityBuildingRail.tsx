@@ -1,34 +1,43 @@
 import { CustomDropdown } from "@/components/common/CustomDropdown";
 import { SearchIcon } from "@/components/icons";
-import type { Building } from "@/hooks/reactquery/buildings";
 
-interface ElectricityBuildingRailProps {
-  buildings: Building[];
+export interface UtilityBuildingRailBuilding {
+  id: number;
+  code?: string | null;
+  name: string;
+  address?: string | null;
+}
+
+interface UtilityBuildingRailProps {
+  buildings: UtilityBuildingRailBuilding[];
   selectedBuildingId: number | null;
-  search: string;
+  /** "YYYY-MM-DD" 형식의 기준 날짜 */
   period: string;
   utilityLabel: string;
   customerNumberCounts: Record<number, number>;
+  search: string;
   disabled?: boolean;
   onSearchChange: (value: string) => void;
+  /** "YYYY-MM-01" 형식으로 호출 */
   onPeriodChange: (period: string) => void;
   onSelectBuilding: (buildingId: number) => void;
 }
 
-export function ElectricityBuildingRail({
+export function UtilityBuildingRail({
   buildings,
   selectedBuildingId,
-  search,
   period,
   utilityLabel,
   customerNumberCounts,
+  search,
   disabled = false,
   onSearchChange,
   onPeriodChange,
   onSelectBuilding,
-}: ElectricityBuildingRailProps) {
+}: UtilityBuildingRailProps) {
   const year = period.slice(0, 4);
   const month = period.slice(5, 7);
+
   const filteredBuildings = buildings.filter((building) => {
     const keyword = search.trim().toLocaleLowerCase("ko-KR");
     if (!keyword) return true;
@@ -45,7 +54,9 @@ export function ElectricityBuildingRail({
     >
       <div className="h-[106px] flex-none border-b border-line2 px-[18px] pt-[15px]">
         <div className="flex h-8 items-center gap-1.5">
-          <h2 className="min-w-0 flex-1 text-[15px] font-extrabold leading-[19px] tracking-[-0.2px] text-t1">전체 건물</h2>
+          <h2 className="min-w-0 flex-1 text-[15px] font-extrabold leading-[normal] tracking-[-0.2px] text-t1">
+            전체 건물
+          </h2>
           <div className="flex-none [&_.uc-dd-menu]:min-w-[104px]">
             <CustomDropdown
               ariaLabel="연도 선택"
@@ -105,7 +116,9 @@ export function ElectricityBuildingRail({
                   className={`h-[41px] cursor-pointer border-b border-line2 text-[13.5px] transition-colors ${selected ? "bg-blue-t" : "bg-white hover:bg-blue-t2"}`}
                   aria-selected={selected}
                 >
-                  <td className={`truncate px-[11px] font-semibold ${selected ? "text-t1" : "text-t3"}`}>{building.code}</td>
+                  <td className={`truncate px-[11px] font-semibold ${selected ? "text-t1" : "text-t3"}`}>
+                    {building.code ?? "-"}
+                  </td>
                   <td className="truncate px-[11px] font-bold text-t1">{building.name}</td>
                   <td className="truncate px-[11px] font-medium text-t1">{building.address ?? "-"}</td>
                   <td className="num px-[11px] text-right font-bold text-t1">
@@ -117,7 +130,9 @@ export function ElectricityBuildingRail({
           </tbody>
         </table>
         {filteredBuildings.length === 0 && (
-          <p className="px-4 py-12 text-center text-[13px] font-medium text-t3">조건에 맞는 건물이 없어요.</p>
+          <p className="px-4 py-12 text-center text-[13px] font-medium text-t3">
+            조건에 맞는 건물이 없어요.
+          </p>
         )}
       </div>
     </aside>
