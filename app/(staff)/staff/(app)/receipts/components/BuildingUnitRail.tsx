@@ -356,7 +356,7 @@ function BuildingNoteBlock({
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             placeholder={editPlaceholder}
-            className="flex-1 w-full resize-none text-[13.5px] leading-[1.62] outline-none rounded-[10px] border border-teal px-[14px] py-[11px] text-t1 bg-surface"
+            className="flex-1 w-full resize-none text-[13.5px] leading-[1.62] outline-none rounded-[10px] border border-teal px-[14px] py-[11px] text-t1 bg-surface placeholder:text-[#757575]"
           />
         </div>
       ) : (
@@ -364,7 +364,7 @@ function BuildingNoteBlock({
           readOnly
           value={storedActive}
           placeholder={readPlaceholder}
-          className="flex-1 w-full resize-none text-[13.5px] leading-[1.62] outline-none border-0 px-[16px] pt-[13px] pb-[15px] text-t1 bg-surface"
+          className="flex-1 w-full resize-none text-[13.5px] leading-[1.62] outline-none border-0 px-[16px] pt-[13px] pb-[15px] text-t1 bg-surface placeholder:text-t3"
         />
       )}
     </div>
