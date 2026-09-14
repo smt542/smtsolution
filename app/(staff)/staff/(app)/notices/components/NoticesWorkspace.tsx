@@ -155,7 +155,7 @@ export function NoticesWorkspace({
         <button
           type="button"
           onClick={openCreate}
-          className="bg-[#14a497] h-[34px] px-[14px] rounded-[11px] text-white text-[13px] font-bold whitespace-nowrap"
+          className="bg-[#14a497] h-[34px] px-[14px] rounded-[11px] drop-shadow-[0px_6px_7px_rgba(20,164,151,0.5)] text-white text-[13px] font-bold whitespace-nowrap"
         >
           ＋ 공지 등록
         </button>
