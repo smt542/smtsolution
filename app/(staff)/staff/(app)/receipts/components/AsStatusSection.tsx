@@ -40,18 +40,18 @@ interface AsColumn {
 }
 
 const AS_COLUMNS: readonly AsColumn[] = [
-  { key: "no", label: "No", minWidth: 38, align: "right" },
+  { key: "no", label: "No", minWidth: 48, align: "right" },
   { key: "unit", label: "호수", minWidth: 58, buildingOnly: true },
-  { key: "receivedAt", label: "접수일시", minWidth: 86 },
-  { key: "type", label: "유형", minWidth: 80 },
-  { key: "content", label: "접수내용", minWidth: 240, maxWidth: 300 },
-  { key: "phone", label: "입주자 전화번호", minWidth: 112 },
-  { key: "result", label: "처리결과", minWidth: 70 },
-  { key: "resultContent", label: "처리결과 내용", minWidth: 200, maxWidth: 260 },
-  { key: "resolvedAt", label: "시행일자", minWidth: 86 },
-  { key: "time", label: "시간", minWidth: 52 },
-  { key: "reporter", label: "접수자", minWidth: 66 },
-  { key: "assignee", label: "담당자", minWidth: 66 },
+  { key: "receivedAt", label: "접수일시", minWidth: 110 },
+  { key: "type", label: "유형", minWidth: 90 },
+  { key: "content", label: "접수내용", minWidth: 285, maxWidth: 300 },
+  { key: "phone", label: "입주자 전화번호", minWidth: 135 },
+  { key: "result", label: "처리결과", minWidth: 73 },
+  { key: "resultContent", label: "처리결과 내용", minWidth: 240, maxWidth: 260 },
+  { key: "resolvedAt", label: "시행일자", minWidth: 110 },
+  { key: "time", label: "시간", minWidth: 69 },
+  { key: "reporter", label: "접수자", minWidth: 67 },
+  { key: "assignee", label: "담당자", minWidth: 67 },
 ];
 
 function visibleAsColumns(scope: "unit" | "building") {
