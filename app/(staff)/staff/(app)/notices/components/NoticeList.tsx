@@ -59,10 +59,10 @@ export function NoticeList({
   return (
     <div className="bg-white rounded-[16px] shadow-[0px_1px_3px_0px_rgba(23,31,40,0.05)] overflow-hidden">
       {/* 카드 헤더 */}
-      <div className="flex items-center gap-[8px] border-b border-[#f1f3f5] px-[18px] h-[61px] shrink-0">
+      <div className="flex items-center gap-[8px] border-b border-[#f1f3f5] px-[18px] h-[62px] shrink-0">
         <span className="font-extrabold text-[15px] text-[#191f28] whitespace-nowrap">공지 목록</span>
-        <div className="bg-[#f2f4f6] px-[9px] py-[3px] rounded-[7px] shrink-0">
-          <span className="font-bold text-[12px] text-[#8b95a1] leading-[16.8px]">{total}개</span>
+        <div className="bg-[#f2f4f6] px-[9px] h-[23px] flex items-center rounded-[7px] shrink-0">
+          <span className="font-bold text-[12px] text-[#8b95a1] leading-none">{total}개</span>
         </div>
         <div className="flex-1" />
         <div className="flex gap-[2px] bg-[#edf0f3] p-[3px] rounded-[9px] shrink-0">
@@ -73,8 +73,8 @@ export function NoticeList({
               onClick={() => onNoticeTypeChange(tab.value)}
               className={
                 noticeType === tab.value
-                  ? "bg-white shadow-[0px_1px_1.5px_rgba(23,31,40,0.1)] px-[11px] py-[5px] rounded-[7px] font-bold text-[12px] text-[#191f28]"
-                  : "px-[11px] py-[5px] rounded-[7px] font-bold text-[12px] text-[#8b95a1]"
+                  ? "bg-white shadow-[0px_1px_1.5px_rgba(23,31,40,0.1)] px-[11px] h-[25px] flex items-center rounded-[7px] font-bold text-[12px] text-[#191f28]"
+                  : "px-[11px] h-[25px] flex items-center rounded-[7px] font-bold text-[12px] text-[#8b95a1]"
               }
             >
               {tab.label}
