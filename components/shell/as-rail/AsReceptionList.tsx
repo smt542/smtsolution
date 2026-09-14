@@ -12,7 +12,6 @@ import {
 } from "@/hooks/reactquery/complaints";
 
 import { AsReceptionCard } from "./AsReceptionCard";
-import styles from "./AsRail.module.css";
 import {
   FilterDropdown,
   MultiFilterDropdown,
@@ -130,7 +129,7 @@ export function AsReceptionList({ refreshSignal }: AsReceptionListProps = {}) {
 
   return (
     <>
-      <div className={styles.asfBar}>
+      <div className="flex gap-1.5 py-[10px] px-[14px] border-b border-line flex-wrap bg-white items-center">
         <FilterDropdown
           label="건물 선택"
           value={buildingId === undefined ? "" : String(buildingId)}
@@ -175,7 +174,7 @@ export function AsReceptionList({ refreshSignal }: AsReceptionListProps = {}) {
           ariaLabel="A/S 정렬"
         />
       </div>
-      <div className={styles.rnbBody}>
+      <div className="flex-1 overflow-auto p-3 flex flex-col gap-2 bg-white">
         {complaintsQuery.isLoading ? (
           <Spinner />
         ) : complaintsQuery.error ? (

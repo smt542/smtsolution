@@ -12,7 +12,6 @@ import type {
 import { useConfirmMoveOut } from "@/hooks/reactquery/staffMoveOut/mutations";
 import { useStaffMoveOutRequests } from "@/hooks/reactquery/staffMoveOut/queries";
 
-import styles from "./AsRail.module.css";
 import { FilterDropdown, type DdOption } from "./FilterDropdown";
 import { MoveOutCard } from "./MoveOutCard";
 import { MoveOutConfirmDialog } from "./MoveOutConfirmDialog";
@@ -61,7 +60,7 @@ export function MoveOutList() {
 
   return (
     <>
-      <div className={styles.asfBar}>
+      <div className="flex gap-1.5 py-[10px] px-[14px] border-b border-line flex-wrap bg-white items-center">
         <FilterDropdown
           label="건물 선택"
           value={buildingId === undefined ? "" : String(buildingId)}
@@ -78,13 +77,13 @@ export function MoveOutList() {
           ariaLabel="퇴실 신청 정렬"
         />
       </div>
-      <div className={styles.mvList}>
+      <div className="flex-1 min-h-0 overflow-auto p-3 flex flex-col gap-2 bg-white">
         {moveOutQuery.isLoading ? (
           <Spinner />
         ) : moveOutQuery.error ? (
           <EmptyState message="퇴실 신청을 불러오지 못했어요" />
         ) : (moveOutQuery.data ?? []).length === 0 ? (
-          <div className={styles.mvEmpty}>대기 중인 퇴실 신청이 없어요</div>
+          <div className="flex-1 flex items-center justify-center text-[13px] font-semibold text-t4">대기 중인 퇴실 신청이 없어요</div>
         ) : (
           moveOutQuery.data?.map((request) => (
             <MoveOutCard

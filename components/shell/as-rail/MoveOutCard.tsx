@@ -1,6 +1,5 @@
 import type { StaffMoveOutRequest } from "@/hooks/reactquery/staffMoveOut/apis";
 
-import styles from "./AsRail.module.css";
 import { MOVE_OUT_BADGE, ymd } from "./constants";
 
 interface MoveOutCardProps {
@@ -22,38 +21,39 @@ export function MoveOutCard({ request, onDone }: MoveOutCardProps) {
 
   return (
     <a
-      className={styles.mvCard}
+      className="block bg-white border border-line rounded-[14px] py-[13px] px-[14px] cursor-pointer no-underline text-inherit hover:border-blue hover:shadow-[0_6px_18px_-10px_rgba(23,31,40,0.25)]"
       href={`/staff/moving-settlement?${query.toString()}`}
     >
-      <div className={styles.mvTop}>
-        <b>
+      <div className="flex items-center gap-2 mb-[7px]">
+        <b className="text-[13.5px] font-extrabold text-t1">
           {request.buildingName ?? "-"} {unitLabel || "-"}호
         </b>
-        <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--t3)" }}>
+        <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--color-t3)" }}>
           {request.tenantName ?? "-"}
         </span>
-        {badge && (
-          <span className={`${styles.mvSt} ${styles[badge.cls]}`}>
-            {badge.label}
-          </span>
-        )}
+        {badge &&
+          (badge.cls === "mvNew" ? (
+            <span className="ml-auto text-[11.5px] font-extrabold py-[3px] px-2 rounded-[7px] bg-red-t text-red">
+              {badge.label}
+            </span>
+          ) : null)}
       </div>
-      <div className={styles.mvR}>
+      <div className="flex justify-between gap-2.5 text-[12.5px] font-medium text-t3 leading-[1.7]">
         <span>신청일</span>
-        <b>{ymd(request.createdAt)}</b>
+        <b className="font-bold text-t2 tabular-nums">{ymd(request.createdAt)}</b>
       </div>
-      <div className={styles.mvR}>
+      <div className="flex justify-between gap-2.5 text-[12.5px] font-medium text-t3 leading-[1.7]">
         <span>희망 퇴실일</span>
-        <b>{ymd(request.desiredDate)}</b>
+        <b className="font-bold text-t2 tabular-nums">{ymd(request.desiredDate)}</b>
       </div>
-      <div className={styles.mvR}>
+      <div className="flex justify-between gap-2.5 text-[12.5px] font-medium text-t3 leading-[1.7]">
         <span>연락처</span>
-        <b>{request.phone ?? "-"}</b>
+        <b className="font-bold text-t2 tabular-nums">{request.phone ?? "-"}</b>
       </div>
-      <div className={styles.mvAct}>
+      <div className="mt-[11px] pt-[11px] border-t border-line2">
         <button
           type="button"
-          className={styles.mvDone}
+          className="w-full h-[36px] border border-blue rounded-[10px] bg-blue text-white text-[13px] font-bold cursor-pointer hover:bg-blue-d hover:border-blue-d"
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();
