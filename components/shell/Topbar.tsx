@@ -44,7 +44,7 @@ export function Topbar({ onMenu }: TopbarProps) {
           <p className={`${isMovingInquiry || isCustomerNumbers ? "text-[12px] leading-[15px]" : "text-[10px] leading-[12px]"} font-semibold text-t3`}>
             {isMovingInquiry || isMovingSettlement ? "이사정산" : "공과금 관리"}
           </p>
-          <h1 className={`${isMovingInquiry || isCustomerNumbers ? "text-[19px] leading-[23px]" : "text-[17px] leading-[21px]"} ${isCustomerNumbers ? "" : "mt-[3px]"} font-extrabold tracking-[-0.35px] text-t1`}>
+          <h1 className={`${isMovingInquiry || isCustomerNumbers ? "text-[19px] leading-[23px]" : "text-[17px] leading-[21px]"} ${isCustomerNumbers ? "" : "mt-[3px]"} font-extrabold ${isCustomerNumbers ? "tracking-[-0.38px]" : "tracking-[-0.35px]"} text-t1`}>
             {isMovingInquiry
               ? pathname.endsWith("/all")
                 ? "전체 이사조회"

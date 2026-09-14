@@ -38,15 +38,15 @@ export function CustomerNumberLookupTable({
         </colgroup>
         <thead>
           <tr className="border-b border-line bg-[#FBFCFD] text-left text-t3">
-            <th scope="col" className="px-4 py-[11px] text-[12px] font-bold">코드</th>
-            <th scope="col" className="px-4 py-[11px] text-[12px] font-bold">빌라명</th>
-            <th scope="col" className="px-4 py-[11px] text-[12px] font-bold">주소</th>
-            <th scope="col" className="px-4 py-[11px] text-right text-[12px] font-bold">LIN</th>
-            <th scope="col" className="px-4 py-[11px] text-[12px] font-bold">{customerNumberHeading}</th>
-            <th scope="col" className="px-4 py-[11px] text-right text-[12px] font-bold">일금일</th>
-            <th scope="col" className="px-4 py-[11px] text-[12px] font-bold">구분</th>
-            <th scope="col" className="px-4 py-[11px] text-[12px] font-bold">계산</th>
-            <th scope="col" className="px-4 py-[11px] text-[12px] font-bold">기타적요</th>
+            <th scope="col" className="h-[36.5px] px-4 py-[11px] text-[12px] font-bold">코드</th>
+            <th scope="col" className="h-[36.5px] px-4 py-[11px] text-[12px] font-bold">빌라명</th>
+            <th scope="col" className="h-[36.5px] px-4 py-[11px] text-[12px] font-bold">주소</th>
+            <th scope="col" className="h-[36.5px] px-4 py-[11px] text-right text-[12px] font-bold">LIN</th>
+            <th scope="col" className="h-[36.5px] px-4 py-[11px] text-[12px] font-bold">{customerNumberHeading}</th>
+            <th scope="col" className="h-[36.5px] px-4 py-[11px] text-right text-[12px] font-bold">일금일</th>
+            <th scope="col" className="h-[36.5px] px-4 py-[11px] text-[12px] font-bold">구분</th>
+            <th scope="col" className="h-[36.5px] px-4 py-[11px] text-[12px] font-bold">계산</th>
+            <th scope="col" className="h-[36.5px] px-4 py-[11px] text-[12px] font-bold">기타적요</th>
           </tr>
         </thead>
         <tbody>
@@ -55,31 +55,31 @@ export function CustomerNumberLookupTable({
               key={row.id}
               className="cursor-pointer border-b border-line2 text-[13.5px] text-t1 last:border-0 hover:bg-[#FBFCFD]"
             >
-              <td className="num truncate px-4 py-3" title={row.buildingCode}>
+              <td className="num h-[41px] truncate px-4 py-[12px]" title={row.buildingCode}>
                 {row.buildingCode}
               </td>
-              <td className="truncate px-4 py-3 font-semibold" title={row.buildingName}>
+              <td className="h-[41px] truncate px-4 py-[12px] font-semibold" title={row.buildingName}>
                 {row.buildingName}
               </td>
               <td
-                className={`truncate px-4 py-3 ${row.address ? "" : "text-t3"}`}
+                className={`h-[41px] truncate px-4 py-[12px] ${row.address ? "" : "text-t3"}`}
                 title={row.address ?? undefined}
               >
                 {row.address ?? "-"}
               </td>
-              <td className={`num px-4 py-3 text-right ${row.lineName ? "" : "text-t3"}`}>
+              <td className={`num h-[41px] px-4 py-[12px] text-right ${row.lineName ? "" : "text-t3"}`}>
                 {row.lineName ?? "-"}
               </td>
-              <td className="num truncate px-4 py-3 font-bold" title={row.customerNo}>
+              <td className="num h-[41px] truncate px-4 py-[12px] font-bold" title={row.customerNo}>
                 {row.customerNo}
               </td>
-              <td className={`num px-4 py-3 text-right ${row.meterDay ? "" : "text-t3"}`}>
+              <td className={`num h-[41px] px-4 py-[12px] text-right ${row.meterDay ? "" : "text-t3"}`}>
                 {row.meterDay ?? "-"}
               </td>
-              <td className="px-4 py-3 font-semibold">{BILLING_BASIS_LABELS[row.billingBasis]}</td>
-              <td className="px-4 py-3">{CALCULATION_LABELS[row.calculationMethod]}</td>
+              <td className="h-[41px] px-4 py-[12px] font-semibold">{BILLING_BASIS_LABELS[row.billingBasis]}</td>
+              <td className="h-[41px] px-4 py-[12px]">{CALCULATION_LABELS[row.calculationMethod]}</td>
               <td
-                className={`truncate px-4 py-3 ${row.note ? "" : "text-t3"}`}
+                className={`h-[41px] truncate px-4 py-[12px] ${row.note ? "" : "text-t3"}`}
                 title={row.note ?? undefined}
               >
                 {row.note ?? "-"}
