@@ -301,7 +301,6 @@ function BuildingNoteBlock({
     }
   };
 
-  const value = editing ? draft : storedActive;
   const editPlaceholder = tab === "memo" ? "건물 단위 메모를 입력해 주세요" : "부과시 참조사항 입력";
   const readPlaceholder = "등록된 내용이 없습니다";
 
@@ -351,17 +350,21 @@ function BuildingNoteBlock({
       </div>
       {building === null ? (
         <p className="flex-1 px-[16px] pb-[15px] pt-[13px] text-[13.5px] leading-[1.62] text-t4">건물을 선택하면 표시돼요</p>
+      ) : editing ? (
+        <div className="flex-1 min-h-0 flex flex-col px-[12px] pb-[12px]">
+          <textarea
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder={editPlaceholder}
+            className="flex-1 w-full resize-none text-[13.5px] leading-[1.62] outline-none rounded-[10px] border border-teal px-[14px] py-[11px] text-t1 bg-surface"
+          />
+        </div>
       ) : (
         <textarea
-          readOnly={!editing}
-          value={value}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder={editing ? editPlaceholder : readPlaceholder}
-          className={`flex-1 w-full resize-none text-[13.5px] leading-[1.62] outline-none bg-surface ${
-            editing
-              ? "mx-[12px] mb-[12px] rounded-[10px] border border-teal px-[14px] py-[11px] text-t1"
-              : "border-0 px-[16px] pt-[13px] pb-[15px] text-t1"
-          }`}
+          readOnly
+          value={storedActive}
+          placeholder={readPlaceholder}
+          className="flex-1 w-full resize-none text-[13.5px] leading-[1.62] outline-none border-0 px-[16px] pt-[13px] pb-[15px] text-t1 bg-surface"
         />
       )}
     </div>
