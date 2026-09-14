@@ -52,18 +52,19 @@
   --color-amber-t: #FFF3E6;
   --color-danger: #F04452; /* 기존 `danger` alias */
 
-  /* radii */
-  --radius-btn: 13px;
+  /* radii — 디자인 시스템 정본: 옵션 8 · 버튼 11 · 카드 15 · 모달 20 */
+  --radius-btn: 11px;
   --radius-in: 12px;
-  --radius-card: 16px;
-  --radius-panel: 16px;
+  --radius-card: 15px;
+  --radius-panel: 15px;
+  --radius-modal: 20px;
   --radius-pill: 999px;
-  --radius-field: 13px; /* 기존 `radius-field` alias */
+  --radius-field: 11px; /* 기존 `radius-field` alias */
 
   /* shadows */
-  --shadow-pri: 0 8px 16px -6px rgba(20, 164, 151, 0.5);
+  --shadow-pri: 0 6px 14px -4px rgba(20, 164, 151, 0.5);
   --shadow-card: 0 1px 3px rgba(23, 31, 40, 0.05);
-  --shadow-pop: 0 22px 60px -20px rgba(23, 31, 40, 0.28);
+  --shadow-pop: 0 14px 32px -10px rgba(23, 31, 40, 0.22);
   --shadow-hf-btn: 0 6px 14px -4px rgba(20, 164, 151, 0.5); /* HQ console .hf-btn.pri (desktop primary button) */
   --shadow-hf-modal: 0 30px 70px -20px rgba(0, 0, 0, 0.4); /* HQ console .modal */
 
