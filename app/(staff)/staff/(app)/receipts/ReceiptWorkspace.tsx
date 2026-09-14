@@ -226,7 +226,7 @@ export function ReceiptWorkspace({
             <>
               <Dropdown
                 label="빌라"
-                inactive
+                inactive={selectedBuildingId === null}
                 items={[
                   {
                     label: "빌라 부과금액",
@@ -241,7 +241,7 @@ export function ReceiptWorkspace({
               />
               <Dropdown
                 label="호실"
-                inactive
+                inactive={selectedUnitId === null}
                 items={[
                   { label: "호실 명세서", onClick: openUnitStatement },
                   { label: "영수증 출력", onClick: openUnitReceipt },
