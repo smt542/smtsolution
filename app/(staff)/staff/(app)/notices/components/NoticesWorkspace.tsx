@@ -25,6 +25,52 @@ function AnnouncementIcon() {
   );
 }
 
+const TYPE_TABS: Array<{ value: NoticeType | "all"; label: string }> = [
+  { value: "all",       label: "전체" },
+  { value: "normal",    label: "신규" },
+  { value: "important", label: "중요" },
+  { value: "urgent",    label: "긴급" },
+];
+
+const DUMMY_NOTICES: NoticeSummary[] = [
+  {
+    id: -1,
+    orgId: 0,
+    buildingId: null,
+    title: "9월 관리비 청구 안내 — 납기일 9월 25일",
+    noticeType: "normal",
+    publishedAt: "2026-09-14T00:00:00Z",
+    expiresAt: null,
+    createdBy: "관리자",
+    createdAt: "2026-09-14T00:00:00Z",
+    updatedAt: "2026-09-14T00:00:00Z",
+  },
+  {
+    id: -2,
+    orgId: 0,
+    buildingId: null,
+    title: "엘리베이터 정기점검 안내 (9/15 오전 9시~12시)",
+    noticeType: "important",
+    publishedAt: "2026-09-13T00:00:00Z",
+    expiresAt: "2026-09-15T12:00:00Z",
+    createdBy: "관리자",
+    createdAt: "2026-09-13T00:00:00Z",
+    updatedAt: "2026-09-13T00:00:00Z",
+  },
+  {
+    id: -3,
+    orgId: 0,
+    buildingId: null,
+    title: "긴급 단수 안내 — 9/14(일) 오후 2시~6시",
+    noticeType: "urgent",
+    publishedAt: "2026-09-14T08:00:00Z",
+    expiresAt: "2026-09-14T18:00:00Z",
+    createdBy: "관리자",
+    createdAt: "2026-09-14T08:00:00Z",
+    updatedAt: "2026-09-14T08:00:00Z",
+  },
+];
+
 export function NoticesWorkspace({
   orgId,
   canSendMessages,
@@ -46,40 +92,40 @@ export function NoticesWorkspace({
   const buildingsQuery = useBuildings();
   const noticesQuery = useNotices(filters, page, NOTICE_PAGE_SIZE);
   const buildings = useMemo(() => buildingsQuery.data ?? [], [buildingsQuery.data]);
-  const notices = useMemo(() => noticesQuery.data?.items ?? [], [noticesQuery.data?.items]);
-  const total = noticesQuery.data?.total ?? 0;
+  const rawNotices = useMemo(() => noticesQuery.data?.items ?? [], [noticesQuery.data?.items]);
+  const rawTotal = noticesQuery.data?.total ?? 0;
+
+  const displayNotices = useMemo(() => {
+    if (rawNotices.length > 0) return rawNotices;
+    if (noticeType === "all") return DUMMY_NOTICES;
+    return DUMMY_NOTICES.filter((n) => n.noticeType === noticeType);
+  }, [rawNotices, noticeType]);
+  const displayTotal = rawTotal > 0 ? rawTotal : displayNotices.length;
 
   const selectedListId = useMemo(
     () =>
-      selectedId !== null && notices.some((n) => n.id === selectedId)
+      selectedId !== null && displayNotices.some((n) => n.id === selectedId)
         ? selectedId
         : null,
-    [notices, selectedId],
+    [displayNotices, selectedId],
   );
-  const selectedNoticeQuery = useNotice(selectedListId ?? 0);
+  // 더미(음수 id)는 API 조회 안 함
+  const selectedNoticeQuery = useNotice(
+    selectedListId !== null && selectedListId > 0 ? selectedListId : 0,
+  );
   const selectedNotice = selectedNoticeQuery.data ?? null;
 
-  const openCreate = () => {
-    setEditing(null);
-    setFormOpen(true);
-  };
+  const openCreate = () => { setEditing(null); setFormOpen(true); };
   const openEdit = () => {
     if (!selectedNotice) return;
     setEditing(selectedNotice);
     setFormOpen(true);
   };
-  const closeForm = () => {
-    setFormOpen(false);
-    setEditing(null);
-  };
+  const closeForm = () => { setFormOpen(false); setEditing(null); };
 
   const handleTypeChange = (type: NoticeType | "all") => {
     setNoticeType(type);
     setPage(0);
-  };
-
-  const handleSelect = (notice: NoticeSummary) => {
-    setSelectedId(notice.id);
   };
 
   if (buildingsQuery.isError || noticesQuery.isError) {
@@ -100,10 +146,7 @@ export function NoticesWorkspace({
             <button
               type="button"
               className="mt-4 text-[13px] text-[#14a497] underline"
-              onClick={() => {
-                void buildingsQuery.refetch();
-                void noticesQuery.refetch();
-              }}
+              onClick={() => { void buildingsQuery.refetch(); void noticesQuery.refetch(); }}
             >
               다시 시도
             </button>
@@ -123,7 +166,26 @@ export function NoticesWorkspace({
         <h1 className="text-[19px] font-extrabold text-[#191f28] tracking-[-0.38px] whitespace-nowrap">
           공지 관리
         </h1>
+        <div className="bg-[#f2f4f6] px-[9px] py-[3px] rounded-[7px] shrink-0">
+          <span className="font-bold text-[12px] text-[#8b95a1] leading-[16.8px]">{displayTotal}개</span>
+        </div>
         <div className="flex-1" />
+        <div className="flex gap-[2px] bg-[#edf0f3] p-[3px] rounded-[9px] shrink-0">
+          {TYPE_TABS.map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => handleTypeChange(tab.value)}
+              className={
+                noticeType === tab.value
+                  ? "bg-white shadow-[0px_1px_1.5px_rgba(23,31,40,0.1)] px-[11px] py-[5px] rounded-[7px] font-bold text-[12px] text-[#191f28]"
+                  : "px-[11px] py-[5px] rounded-[7px] font-bold text-[12px] text-[#8b95a1]"
+              }
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
         <button
           type="button"
           onClick={openCreate}
@@ -133,7 +195,7 @@ export function NoticesWorkspace({
         </button>
       </div>
 
-      {/* 콘텐츠 영역 */}
+      {/* 콘텐츠 */}
       <div className="flex-1 pt-[22px] pb-[30px] px-[24px]">
         {buildingsQuery.isLoading || noticesQuery.isLoading ? (
           <div className="bg-white rounded-[16px] shadow-[0px_1px_3px_0px_rgba(23,31,40,0.05)] flex items-center justify-center py-16">
@@ -141,29 +203,22 @@ export function NoticesWorkspace({
           </div>
         ) : (
           <NoticeList
-            notices={notices}
+            notices={displayNotices}
             buildings={buildings}
             selectedId={selectedListId}
-            total={total}
+            total={displayTotal}
             page={page}
             pageSize={NOTICE_PAGE_SIZE}
-            noticeType={noticeType}
-            onNoticeTypeChange={handleTypeChange}
-            onSelect={handleSelect}
+            onSelect={(notice) => setSelectedId(notice.id)}
             onPageChange={setPage}
           />
         )}
       </div>
 
-      {/* 공지 상세 오버레이 */}
-      {selectedListId !== null && (
+      {/* 상세 오버레이 (더미 항목은 열지 않음) */}
+      {selectedListId !== null && selectedListId > 0 && (
         <>
-          {/* 배경 딤 */}
-          <div
-            className="fixed inset-0 z-40 bg-black/20"
-            onClick={() => setSelectedId(null)}
-          />
-          {/* 우측 슬라이드 패널 */}
+          <div className="fixed inset-0 z-40 bg-black/20" onClick={() => setSelectedId(null)} />
           <div className="fixed inset-y-0 right-0 z-50 w-[520px] bg-white shadow-xl overflow-y-auto">
             {selectedNoticeQuery.isLoading ? (
               <div className="flex items-center justify-center h-full py-16">
@@ -188,10 +243,7 @@ export function NoticesWorkspace({
         editing={editing}
         buildings={buildings}
         orgId={orgId}
-        onSaved={(notice) => {
-          setPage(0);
-          setSelectedId(notice.id);
-        }}
+        onSaved={(notice) => { setPage(0); setSelectedId(notice.id); }}
       />
     </div>
   );
