@@ -59,7 +59,7 @@ export function NoticeList({
   return (
     <div className="bg-white rounded-[16px] shadow-[0px_1px_3px_0px_rgba(23,31,40,0.05)] overflow-hidden">
       {/* 카드 헤더 */}
-      <div className="flex items-center gap-[8px] border-b border-[#f1f3f5] px-[18px] py-[15px]">
+      <div className="flex items-center gap-[8px] border-b border-[#f1f3f5] px-[18px] h-[61px] shrink-0">
         <span className="font-extrabold text-[15px] text-[#191f28] whitespace-nowrap">공지 목록</span>
         <div className="bg-[#f2f4f6] px-[9px] py-[3px] rounded-[7px] shrink-0">
           <span className="font-bold text-[12px] text-[#8b95a1] leading-[16.8px]">{total}개</span>
