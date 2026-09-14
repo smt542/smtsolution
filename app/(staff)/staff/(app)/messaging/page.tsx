@@ -12,7 +12,8 @@ type MessagingSearchParams = {
 
 function parseTab(value: string | string[] | undefined): MessagingTab {
   const tab = Array.isArray(value) ? value[0] : value;
-  return tab === "scheduled" || tab === "templates" ? tab : "history";
+  if (tab === "history" || tab === "templates") return tab;
+  return "scheduled";
 }
 
 export default async function MessagingPage({

@@ -282,3 +282,41 @@ export async function listMessageLogs(limit?: number): Promise<MessageLog[]> {
   if (error) throw new Error(error.message);
   return ((data ?? []) as MessageLogRow[]).map(rowToMessageLog);
 }
+
+export interface ScheduledMessage {
+  id: number;
+  channel: SendMode;
+  body: string;
+  context: string;
+  recipientCount: number;
+  scheduledAt: string;
+  recurrenceMode: "monthly" | null;
+}
+
+type ScheduledMessageRow = {
+  id: number;
+  channel: SendMode;
+  body: string;
+  context: string;
+  recipient_count: number;
+  scheduled_at: string;
+  recurrence_mode: "monthly" | null;
+};
+
+export async function listScheduledMessages(): Promise<ScheduledMessage[]> {
+  const { data, error } = await createClient()
+    .from("message_schedules")
+    .select("id, channel, body, context, recipient_count, scheduled_at, recurrence_mode")
+    .eq("status", "scheduled")
+    .order("scheduled_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as ScheduledMessageRow[]).map((r) => ({
+    id: r.id,
+    channel: r.channel,
+    body: r.body,
+    context: r.context,
+    recipientCount: r.recipient_count,
+    scheduledAt: r.scheduled_at,
+    recurrenceMode: r.recurrence_mode,
+  }));
+}

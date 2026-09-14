@@ -144,7 +144,7 @@ export function HistoryTab() {
         <PillFilter
           options={[
             { value: "newest", label: "최신순" },
-            { value: "oldest", label: "오래된순" },
+            { value: "oldest", label: "과거순" },
           ]}
           value={sortOrder}
           onChange={(v) => setSortOrder(v as SortOrder)}
@@ -157,10 +157,10 @@ export function HistoryTab() {
           <thead>
             <tr className="border-b border-[#e8ebee] bg-[#fbfcfd]">
               <th className={`${TH_BASE} w-[125px]`}>채널</th>
-              <th className={`${TH_BASE} w-[200px]`}>수신처</th>
+              <th className={`${TH_BASE} w-[200px]`}>발신자</th>
               <th className={`${TH_BASE} w-[220px]`}>수신자</th>
               <th className={TH_BASE}>내용</th>
-              <th className={`${TH_BASE} w-[100px]`}>상태</th>
+              <th className={`${TH_BASE} w-[100px]`}>결과</th>
               <th className={`${TH_BASE} w-[160px]`}>발송 일시</th>
               <th className="w-[96px]" />
             </tr>
