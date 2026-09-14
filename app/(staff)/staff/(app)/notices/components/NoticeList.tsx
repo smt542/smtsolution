@@ -130,26 +130,26 @@ export function NoticeList({
                       isSelected ? "bg-[#f2f4f6]" : "hover:bg-[#fafbfc]",
                     ].join(" ")}
                   >
-                    <td className="px-[16px] py-[14px]">
+                    <td className="px-[16px] py-[10px]">
                       <span
                         className={`inline-flex items-center px-[9px] py-[3px] rounded-[7px] font-extrabold text-[11.5px] whitespace-nowrap ${badge.bg} ${badge.text}`}
                       >
                         {badge.label}
                       </span>
                     </td>
-                    <td className="px-[16px] py-[14px] font-bold text-[13.5px] text-[#191f28]">
+                    <td className="px-[16px] py-[10px] font-bold text-[13.5px] text-[#191f28]">
                       <span className="block truncate">{notice.title}</span>
                     </td>
-                    <td className="px-[16px] py-[14px] text-[13.5px] text-[#191f28] whitespace-nowrap">
+                    <td className="px-[16px] py-[10px] text-[13.5px] text-[#191f28] whitespace-nowrap">
                       {buildingLabel}
                     </td>
-                    <td className="px-[16px] py-[14px] text-[13.5px] text-[#191f28] whitespace-nowrap">
+                    <td className="px-[16px] py-[10px] text-[13.5px] text-[#191f28] whitespace-nowrap">
                       {formatPublishDate(notice.publishedAt)}
                     </td>
-                    <td className="px-[16px] py-[14px] text-[13.5px] text-[#191f28] whitespace-nowrap">
+                    <td className="px-[16px] py-[10px] text-[13.5px] text-[#191f28] whitespace-nowrap">
                       -
                     </td>
-                    <td className="px-[16px] py-[14px] text-[13.5px] text-[#191f28] whitespace-nowrap">
+                    <td className="px-[16px] py-[10px] text-[13.5px] text-[#191f28] whitespace-nowrap">
                       {notice.createdBy ?? "-"}
                     </td>
                   </tr>
@@ -163,7 +163,7 @@ export function NoticeList({
       {totalPages > 1 && (
         <nav
           aria-label="공지 목록 페이지"
-          className="flex items-center justify-between border-t border-[#f1f3f5] px-[18px] py-[14px]"
+          className="flex items-center justify-between border-t border-[#f1f3f5] px-[18px] py-[10px]"
         >
           <button
             type="button"
