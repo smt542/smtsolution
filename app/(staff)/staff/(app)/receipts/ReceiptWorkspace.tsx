@@ -209,14 +209,14 @@ export function ReceiptWorkspace({
           <button
             type="button"
             onClick={() => setSearchOpen(true)}
-            className="h-[40px] w-[59px] rounded-[11px] border border-line bg-surface text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg"
+            className="h-[40px] rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg"
           >
             조회
           </button>
           <button
             type="button"
             onClick={() => setMonthlyOpen(true)}
-            className="flex h-[40px] w-[139px] items-center justify-center gap-[6px] rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg"
+            className="flex h-[40px] items-center gap-[6px] rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg"
           >
             <PrinterIcon className="size-[16px]" aria-hidden="true" />
             월별 부과금액
