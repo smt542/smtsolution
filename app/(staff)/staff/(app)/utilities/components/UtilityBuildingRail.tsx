@@ -81,7 +81,7 @@ export function UtilityBuildingRail({
             />
           </div>
         </div>
-        <label className="relative mt-3 block">
+        <label className="relative mt-[9px] block">
           <span className="sr-only">건물명·주소 검색</span>
           <SearchIcon className="pointer-events-none absolute left-[11px] top-1/2 size-[15px] -translate-y-1/2 text-t3" />
           <input

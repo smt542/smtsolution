@@ -37,7 +37,7 @@ export function UtilityWorkspaceHeader({
 
       <div className="min-w-0">
         <p className="whitespace-nowrap text-xs font-semibold leading-[normal] text-t3">공과금 관리</p>
-        <h1 className="mt-1 whitespace-nowrap text-[19px] font-extrabold leading-[normal] tracking-[-0.02em] text-t1">
+        <h1 className="whitespace-nowrap text-[19px] font-extrabold leading-[normal] tracking-[-0.02em] text-t1">
           {utilityLabel}
         </h1>
       </div>

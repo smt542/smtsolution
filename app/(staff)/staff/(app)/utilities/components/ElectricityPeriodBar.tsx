@@ -35,7 +35,7 @@ export function ElectricityPeriodBar({
   const disabled = !buildingName;
 
   return (
-    <section className={`sticky top-0 z-[4] flex min-h-[52px] flex-none flex-wrap items-center gap-2.5 rounded-[12px] border bg-white px-[14px] py-[10px] shadow-[0_1px_3px_rgba(23,31,40,0.05)] ${editing ? "border-blue shadow-[0_0_0_3px_#E2F5F1]" : "border-line"}`}>
+    <section className={`sticky top-0 z-[4] flex min-h-[52px] flex-none flex-wrap items-center gap-[10px] rounded-[12px] border bg-white px-[14px] py-[10px] drop-shadow-[0px_1px_1.5px_rgba(23,31,40,0.05)] ${editing ? "border-blue shadow-[0_0_0_3px_#E2F5F1]" : "border-line"}`}>
       <div className="min-w-0 flex-1">
         <p className={`truncate text-[12.5px] font-bold leading-[15px] ${disabled ? "text-t3" : "text-t1"}`}>
           {buildingName ?? "건물 미선택"}
@@ -45,49 +45,53 @@ export function ElectricityPeriodBar({
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="mr-1 whitespace-nowrap text-[11.5px] font-bold text-t2">부과기준일</span>
+      <div className="flex flex-wrap items-center gap-[6px]">
+        <span className="whitespace-nowrap text-[11.5px] font-bold text-t2">부과기준일</span>
         <DpDatePicker ariaLabel="부과 시작일" disabled={!editing} value={startDate} onChange={onStartDateChange} placeholder="시작일" />
         <span className="text-[12px] font-bold text-t2">~</span>
         <DpDatePicker ariaLabel="부과 종료일" disabled={!editing} value={endDate} onChange={onEndDateChange} placeholder="종료일" />
-        <span aria-hidden="true" className="h-[26px] w-px flex-none bg-line" />
-        {editing ? (
-          <>
-            <button
-              type="button"
-              onClick={onCalculate}
-              className="h-[26px] rounded-[8px] border border-line bg-white px-[10px] text-[11.5px] font-bold text-t2 hover:bg-bg"
-            >
-              계산
-            </button>
-            <button
-              type="button"
-              onClick={onSave}
-              disabled={saving}
-              className="h-[26px] rounded-[8px] bg-blue px-[10px] text-[11.5px] font-bold text-white hover:bg-blue-d disabled:opacity-60"
-            >
-              {saving ? "저장 중" : "저장"}
-            </button>
-            <button
-              type="button"
-              aria-label="수정 취소"
-              onClick={onCancel}
-              className="flex size-[26px] items-center justify-center rounded-[8px] border border-line bg-white text-t3 hover:bg-bg hover:text-t1"
-            >
-              <CloseIcon className="size-4" />
-            </button>
-          </>
-        ) : (
+      </div>
+
+      <div aria-hidden="true" className="flex items-start px-[4px]">
+        <span className="h-[26px] w-px bg-line" />
+      </div>
+
+      {editing ? (
+        <>
           <button
             type="button"
-            onClick={onEdit}
-            disabled={disabled}
-            className="h-[26px] rounded-[8px] border border-line bg-white px-[10px] text-[11.5px] font-bold text-t2 hover:bg-bg disabled:cursor-default disabled:bg-line2 disabled:text-t4"
+            onClick={onCalculate}
+            className="h-[26px] rounded-[8px] border border-line bg-white px-[10px] text-[11.5px] font-bold text-t2 hover:bg-bg"
           >
-            수정
+            계산
           </button>
-        )}
-      </div>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saving}
+            className="h-[26px] rounded-[8px] bg-blue px-[10px] text-[11.5px] font-bold text-white hover:bg-blue-d disabled:opacity-60"
+          >
+            {saving ? "저장 중" : "저장"}
+          </button>
+          <button
+            type="button"
+            aria-label="수정 취소"
+            onClick={onCancel}
+            className="flex size-[26px] items-center justify-center rounded-[8px] border border-line bg-white text-t3 hover:bg-bg hover:text-t1"
+          >
+            <CloseIcon className="size-4" />
+          </button>
+        </>
+      ) : (
+        <button
+          type="button"
+          onClick={onEdit}
+          disabled={disabled}
+          className="h-[26px] rounded-[8px] border border-line bg-white px-[10px] text-[11.5px] font-bold text-t2 hover:bg-bg disabled:cursor-default disabled:bg-line2 disabled:text-t4"
+        >
+          수정
+        </button>
+      )}
     </section>
   );
 }
