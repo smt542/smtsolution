@@ -134,24 +134,24 @@ export function BuildingDirectoryCard({
                     >
                       {columns.map((col) =>
                         col.key === "action" ? (
-                          <td key={col.key} className="whitespace-nowrap px-[16px] py-[12px] leading-[normal]">
+                          <td key={col.key} className="h-[55px] whitespace-nowrap px-[16px] leading-[normal]">
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 router.push(`/staff/buildings/${b.id}`);
                               }}
-                              className="inline-flex h-[30px] items-center rounded-[8px] border border-line bg-surface px-[12px] text-[12.5px] font-bold leading-[normal] text-t2 hover:bg-bg"
+                              className="inline-flex h-[30px] items-center rounded-[11px] border border-line bg-surface px-[12px] text-[12.5px] font-bold leading-[normal] text-t2 hover:bg-bg"
                             >
                               상세
                             </button>
                           </td>
                         ) : col.key === "mday" ? (
-                          <td key={col.key} className="whitespace-nowrap px-[16px] py-[12px] text-[13.5px] font-bold leading-[normal] text-t1">
+                          <td key={col.key} className="h-[55px] whitespace-nowrap px-[16px] text-[13.5px] font-bold leading-[normal] text-t1">
                             {meterDayText(b)}
                           </td>
                         ) : (
-                          <td key={col.key} className="whitespace-nowrap px-[16px] py-[12px] text-[13.5px] leading-[normal] text-t1">
+                          <td key={col.key} className="h-[55px] whitespace-nowrap px-[16px] text-[13.5px] leading-[normal] text-t1">
                             {col.get?.(b) ?? ""}
                           </td>
                         ),

@@ -106,7 +106,7 @@ export function TenantOccupancyCard({
                     <td
                       key={col.key}
                       style={{ minWidth: col.w }}
-                      className="whitespace-nowrap px-[16px] py-[12px] text-[13.5px] leading-[normal] text-t1"
+                      className="h-[55px] whitespace-nowrap px-[16px] text-[13.5px] leading-[normal] text-t1"
                     >
                       {col.get(t)}
                     </td>
