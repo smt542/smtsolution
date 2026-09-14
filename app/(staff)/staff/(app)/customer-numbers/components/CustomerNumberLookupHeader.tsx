@@ -31,7 +31,7 @@ export function CustomerNumberLookupHeader({
               aria-pressed={selected}
               className={`cursor-pointer rounded-[8px] px-[13px] py-[6px] text-[13px] font-bold transition-colors ${
                 selected
-                  ? "bg-white text-t1 shadow-[0_2px_6px_rgba(23,31,40,0.1)]"
+                  ? "bg-white text-t1 shadow-[0_2px_3px_rgba(23,31,40,0.1)]"
                   : "text-t3 hover:text-t1"
               }`}
               onClick={() => onKindChange(option.value)}
