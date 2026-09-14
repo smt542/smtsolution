@@ -467,7 +467,7 @@ export function PaymentHistorySection({
           <div className="overflow-x-auto">
             <table className={`w-full text-sm ${formOpen ? "min-w-[1485px]" : "min-w-[1295px]"}`}>
               <thead>
-                <tr className="border-b border-[#e8ebee] bg-[#fbfcfd] text-[12px] font-bold leading-[normal] text-[#8b95a1]">
+                <tr className="h-[36.5px] border-b border-[#e8ebee] bg-[#fbfcfd] text-[12px] font-bold leading-[normal] text-[#8b95a1]">
                   {formOpen && <th className="min-w-[190px] whitespace-nowrap px-[16px] py-[11px]">처리</th>}
                   {COLS.map(({ label, minW }) => (
                     <th key={label} style={{ minWidth: minW }} className={`whitespace-nowrap px-[16px] py-[11px] ${["당월계","연체","수납액","수료"].includes(label) ? "text-right" : "text-left"}`}>
@@ -496,7 +496,7 @@ export function PaymentHistorySection({
                     <tr
                       key={key}
                       onClick={() => payment && setSelectedPaymentId(payment.id)}
-                      className={`border-b border-[#f1f3f5] last:border-0 ${
+                      className={`h-[41px] border-b border-[#f1f3f5] last:border-0 ${
                         payment ? "cursor-pointer" : ""
                       } ${selectedPaymentId === payment?.id ? "bg-teal-t" : ""} ${canceled ? "opacity-50" : ""}`}
                     >
