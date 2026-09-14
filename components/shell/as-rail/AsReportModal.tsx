@@ -22,6 +22,9 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const PRINT_SHEET_ID = "aspPrintSheet";
 const PRINT_STYLE_ID = "aspPrintCss";
 
+const DP_CELL_BASE =
+  "h-8 flex items-center justify-center text-[13px] rounded-lg";
+
 const pad = (value: number) => String(value).padStart(2, "0");
 
 function toDateKey(value?: string | Date | null) {
@@ -116,14 +119,11 @@ function DatePicker({ ariaLabel, value, onChange }: DatePickerProps) {
   ];
 
   return (
-    <div
-      ref={rootRef}
-      className={`${styles.aspDp} ${open ? styles.open : ""}`}
-    >
+    <div ref={rootRef} className="relative">
       <button
         ref={controlRef}
         type="button"
-        className={styles.aspDpCtl}
+        className={`flex items-center gap-[7px] h-[34px] px-[11px] border rounded-[9px] bg-white cursor-pointer text-[13px] font-semibold text-t1 whitespace-nowrap ${open ? "border-blue shadow-[0_0_0_3px_var(--color-blue-t)]" : "border-line"}`}
         aria-label={ariaLabel}
         aria-expanded={open}
         aria-haspopup="dialog"
@@ -136,6 +136,7 @@ function DatePicker({ ariaLabel, value, onChange }: DatePickerProps) {
           strokeWidth="1.9"
           strokeLinecap="round"
           aria-hidden="true"
+          className="w-[14px] h-[14px] text-t3 flex-none"
         >
           <rect x="3" y="4.5" width="18" height="16" rx="2.5" />
           <path d="M3 9h18M8 3v3M16 3v3" />
@@ -144,44 +145,49 @@ function DatePicker({ ariaLabel, value, onChange }: DatePickerProps) {
       </button>
       <div
         ref={popupRef}
-        className={styles.aspDpPop}
+        className={`${open ? "block" : "hidden"} fixed z-[520] bg-white border border-line rounded-[14px] shadow-[0_16px_40px_-12px_rgba(23,31,40,0.28)] p-[14px] w-[262px]`}
         role="dialog"
         aria-label={`${ariaLabel} 달력`}
         style={position}
       >
-        <div className={styles.aspDpHead}>
+        <div className="flex items-center justify-between mb-[10px]">
           <button
             type="button"
-            className={styles.aspDpNav}
+            className="w-[30px] h-[30px] rounded-lg flex items-center justify-center cursor-pointer text-t2 text-[17px] select-none hover:bg-bg"
             aria-label="이전 달"
             onClick={() => moveMonth(-1)}
           >
             ‹
           </button>
-          <div className={styles.aspDpTitle}>
+          <div className="text-[14px] font-extrabold">
             {viewYear}.{pad(viewMonth + 1)}
           </div>
           <button
             type="button"
-            className={styles.aspDpNav}
+            className="w-[30px] h-[30px] rounded-lg flex items-center justify-center cursor-pointer text-t2 text-[17px] select-none hover:bg-bg"
             aria-label="다음 달"
             onClick={() => moveMonth(1)}
           >
             ›
           </button>
         </div>
-        <div className={styles.aspDpWk}>
+        <div className="grid grid-cols-7 mb-1">
           {WEEKDAYS.map((weekday) => (
-            <span key={weekday}>{weekday}</span>
+            <span
+              key={weekday}
+              className="text-center text-[11px] font-bold text-t4 py-1"
+            >
+              {weekday}
+            </span>
           ))}
         </div>
-        <div className={styles.aspDpGrid}>
+        <div className="grid grid-cols-7 gap-[2px]">
           {cells.map((day, index) => {
             if (day === null) {
               return (
                 <div
                   key={`empty-${index}`}
-                  className={styles.aspDpCell}
+                  className={`${DP_CELL_BASE} font-semibold`}
                   aria-hidden="true"
                 />
               );
@@ -192,7 +198,7 @@ function DatePicker({ ariaLabel, value, onChange }: DatePickerProps) {
               <button
                 key={dateValue}
                 type="button"
-                className={`${styles.aspDpCell} ${styles.aspDpDay} ${selected ? styles.sel : ""}`}
+                className={`${DP_CELL_BASE} cursor-pointer ${selected ? "bg-blue text-white font-bold" : "text-t1 font-semibold hover:bg-blue-t2"}`}
                 aria-label={`${viewYear}년 ${viewMonth + 1}월 ${day}일`}
                 aria-pressed={selected}
                 onClick={() => {
@@ -466,24 +472,26 @@ export function AsReportModal({
 
   return (
     <div
-      className={`${styles.aspScrim} ${styles.show}`}
+      className={`${styles.aspScrim} ${styles.show} flex items-center justify-center fixed inset-0 z-[500] bg-[rgba(23,31,40,0.45)] p-6`}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
       <section
-        className={styles.aspModal}
+        className={`${styles.aspModal} bg-white rounded-[18px] w-[min(1180px,96vw)] max-h-[calc(100vh_-_48px)] flex flex-col overflow-hidden shadow-[0_30px_80px_-20px_rgba(0,0,0,0.4)]`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
       >
-        <div className={styles.aspHead}>
-          <h2 id={titleId} className={styles.aspT}>
+        <div
+          className={`${styles.aspHead} flex items-center gap-3 px-[22px] py-[18px] border-b border-line flex-none`}
+        >
+          <h2 id={titleId} className="text-[17px] font-extrabold text-t1">
             A/S 접수 현황 출력
           </h2>
           <button
             type="button"
-            className={styles.aspX}
+            className="ml-auto w-8 h-8 rounded-[9px] flex items-center justify-center text-t3 cursor-pointer hover:bg-bg"
             aria-label="A/S 접수 현황 출력 닫기"
             onClick={onClose}
           >
@@ -494,13 +502,16 @@ export function AsReportModal({
               strokeWidth="2.2"
               strokeLinecap="round"
               aria-hidden="true"
+              className="w-4 h-4"
             >
               <path d="M6 6l12 12M18 6L6 18" />
             </svg>
           </button>
         </div>
-        <div className={styles.aspBar}>
-          <div className={styles.aspSrch}>
+        <div
+          className={`${styles.aspBar} flex items-center gap-2 px-[22px] py-[14px] border-b border-line flex-none flex-wrap`}
+        >
+          <div className="relative flex items-center flex-[0_0_260px]">
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -508,6 +519,7 @@ export function AsReportModal({
               strokeWidth="2"
               strokeLinecap="round"
               aria-hidden="true"
+              className="w-[15px] h-[15px] absolute left-[11px] text-t4"
             >
               <circle cx="11" cy="11" r="7" />
               <path d="M20 20l-3-3" />
@@ -517,24 +529,29 @@ export function AsReportModal({
               placeholder="건물명·주소·호실 검색"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
+              className="w-full h-[34px] border border-line rounded-[9px] pl-8 pr-[11px] py-0 text-[13px] font-semibold text-t1 outline-none bg-white focus:border-blue focus:shadow-[0_0_0_3px_var(--color-blue-t)]"
             />
           </div>
-          <span className={styles.aspLbl}>시행일 기간</span>
+          <span className="text-[12.5px] font-bold text-t3 ml-[6px]">
+            시행일 기간
+          </span>
           <DatePicker
             ariaLabel="시행일 시작 날짜"
             value={from}
             onChange={setFrom}
           />
-          <span className={styles.aspTilde}>~</span>
+          <span className="text-t4 font-bold">~</span>
           <DatePicker
             ariaLabel="시행일 종료 날짜"
             value={to}
             onChange={setTo}
           />
         </div>
-        <div className={styles.aspSheet}>
+        <div
+          className={`${styles.aspSheet} flex-[1_1_auto] min-h-0 overflow-auto px-[22px] py-5`}
+        >
           <h1>[ A/S 접수 현황 ]</h1>
-          <div className={styles.aspMeta}>{meta}</div>
+          <div className="text-[12.5px] font-bold text-t2 mb-2">{meta}</div>
           <table ref={tableRef} className={styles.aspTbl}>
             <thead>
               <tr>
@@ -598,20 +615,24 @@ export function AsReportModal({
             </tbody>
           </table>
           {stateMessage && (
-            <div className={styles.aspEmpty}>{stateMessage}</div>
+            <div className="py-10 text-center text-[13.5px] font-semibold text-t4">
+              {stateMessage}
+            </div>
           )}
         </div>
-        <div className={styles.aspFoot}>
+        <div
+          className={`${styles.aspFoot} flex justify-end gap-2 px-[22px] pt-[14px] pb-[18px] border-t border-line flex-none`}
+        >
           <button
             type="button"
-            className={styles.aspBtn}
+            className="h-10 px-[18px] border border-line rounded-[11px] bg-white text-[13.5px] font-bold text-t2 cursor-pointer"
             onClick={downloadCsv}
           >
             엑셀 다운로드
           </button>
           <button
             type="button"
-            className={`${styles.aspBtn} ${styles.pri}`}
+            className="h-10 px-[18px] border border-blue rounded-[11px] bg-blue text-[13.5px] font-bold text-white cursor-pointer"
             onClick={printReport}
           >
             인쇄
