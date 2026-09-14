@@ -32,6 +32,7 @@ function pointQuoteSignature(input: MessagePointQuoteInput): string {
 export const messagingKeys = {
   all: ["messaging"] as const,
   logs: (limit?: number) => ["messaging", "logs", limit] as const,
+  scheduledMessages: () => ["messaging", "scheduled"] as const,
   consent: (buildingId: number) => ["messaging", "consent", buildingId] as const,
   pointQuote: (input: MessagePointQuoteInput | null) =>
     ["messaging", "point-quote", input === null ? null : pointQuoteSignature(input)] as const,
