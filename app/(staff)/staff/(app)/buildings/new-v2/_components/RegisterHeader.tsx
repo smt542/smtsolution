@@ -39,14 +39,14 @@ export function RegisterHeader({
         </svg>
       </button>
       <div className="flex flex-col">
-        <p className="text-[12px] font-semibold text-t3">건물·입주자 관리</p>
-        <p className="text-[19px] font-extrabold tracking-[-0.38px] text-t1">{title}</p>
+        <p className="leading-[normal] text-[12px] font-semibold text-t3">건물·입주자 관리</p>
+        <p className="leading-[normal] text-[19px] font-extrabold tracking-[-0.38px] text-t1">{title}</p>
       </div>
       <div className="flex-1" />
       <button
         type="button"
         onClick={onBack}
-        className="flex h-[40px] items-center rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold text-t2 hover:bg-bg"
+        className="flex h-[40px] items-center rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg"
       >
         {backLabel}
       </button>
