@@ -54,11 +54,11 @@ function TenantTableHead() {
 
 function TenantEmptyTable({ message }: { message: string }) {
   return (
-    <table className="w-full whitespace-nowrap text-[12.5px] leading-[normal]">
+    <table className="w-full whitespace-nowrap text-[13.5px] leading-[normal]">
       <TenantTableHead />
       <tbody>
         <tr>
-          <td colSpan={TENANT_COLUMNS.length} className="pb-[27px] pt-[26px] text-center text-[13px] text-t1">
+          <td colSpan={TENANT_COLUMNS.length} className="pb-[27px] pt-[26px] text-center text-[13.5px] text-t1">
             {message}
           </td>
         </tr>
@@ -254,20 +254,20 @@ export function TenantInfoSection({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full whitespace-nowrap text-[12.5px] leading-[normal]">
+          <table className="w-full whitespace-nowrap text-[13.5px] leading-[normal]">
             <TenantTableHead />
             <tbody>
               <tr className="text-t2">
-                <td className="px-[16px] py-[12px]">{occ.tenantName ?? "-"}</td>
-                <td className="px-[16px] py-[12px]">{occ.payerName ?? "-"}</td>
-                <td className="px-[16px] py-[12px]">{occ.phone ?? "-"}</td>
-                <td className="px-[16px] py-[12px]">{formatDate(occ.moveInDate)}</td>
-                <td className="px-[16px] py-[12px]">{formatDate(occ.moveOutDate)}</td>
-                <td className="truncate px-[16px] py-[12px]" title={occ.billingNote ?? "-"}>{occ.billingNote ?? "-"}</td>
-                <td className="px-[16px] py-[12px]"><YesNo value={occ.smsOptIn} /></td>
-                <td className="px-[16px] py-[12px]"><YesNo value={occ.alimtalkOptIn} /></td>
-                <td className="px-[16px] py-[12px]"><YesNo value={occ.billingEnabled} /></td>
-                <td className="px-[16px] py-[12px]"><YesNo value={occ.printEnabled} /></td>
+                <td className="px-[16px] py-[26px]">{occ.tenantName ?? "-"}</td>
+                <td className="px-[16px] py-[26px]">{occ.payerName ?? "-"}</td>
+                <td className="px-[16px] py-[26px]">{occ.phone ?? "-"}</td>
+                <td className="px-[16px] py-[26px]">{formatDate(occ.moveInDate)}</td>
+                <td className="px-[16px] py-[26px]">{formatDate(occ.moveOutDate)}</td>
+                <td className="truncate px-[16px] py-[26px]" title={occ.billingNote ?? "-"}>{occ.billingNote ?? "-"}</td>
+                <td className="px-[16px] py-[26px]"><YesNo value={occ.smsOptIn} /></td>
+                <td className="px-[16px] py-[26px]"><YesNo value={occ.alimtalkOptIn} /></td>
+                <td className="px-[16px] py-[26px]"><YesNo value={occ.billingEnabled} /></td>
+                <td className="px-[16px] py-[26px]"><YesNo value={occ.printEnabled} /></td>
               </tr>
             </tbody>
           </table>

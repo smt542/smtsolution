@@ -79,11 +79,11 @@ function AsTableHeader({ scope }: { scope: "unit" | "building" }) {
 
 function AsEmptyTable({ message, scope }: { message: string; scope: "unit" | "building" }) {
   return (
-    <table className="w-full border-collapse whitespace-nowrap text-[12.5px] leading-[normal]">
+    <table className="w-full border-collapse whitespace-nowrap text-[13.5px] leading-[normal]">
       <AsTableHeader scope={scope} />
       <tbody>
         <tr>
-          <td colSpan={visibleAsColumns(scope).length} className="py-[26px] text-center text-[13px] text-t1">
+          <td colSpan={visibleAsColumns(scope).length} className="py-[26px] text-center text-[13.5px] text-t1">
             {message}
           </td>
         </tr>
@@ -340,7 +340,7 @@ export function AsStatusSection({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse whitespace-nowrap text-[12.5px] leading-[normal]">
+          <table className="w-full border-collapse whitespace-nowrap text-[13.5px] leading-[normal]">
             <AsTableHeader scope={scope} />
             <tbody>
               {rows.map((complaint, index) => {

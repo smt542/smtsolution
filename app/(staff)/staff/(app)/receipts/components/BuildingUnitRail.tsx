@@ -157,9 +157,9 @@ export function BuildingUnitRail({
                       onClick={() => selectBuilding(b)}
                       className="cursor-pointer border-b border-line2 last:border-0 hover:bg-blue-t2"
                     >
-                      <td className="truncate px-[16px] py-[12px] text-[13.5px] text-t2 num">{b.code}</td>
+                      <td className="truncate px-[16px] py-[12px] text-[13.5px] text-t1 num">{b.code}</td>
                       <td className="truncate px-[16px] py-[12px] text-[13.5px] font-bold text-t1">{b.name}</td>
-                      <td className="truncate px-[16px] py-[12px] text-[13.5px] text-t2" title={b.address ?? "-"}>{b.address ?? "-"}</td>
+                      <td className="truncate px-[16px] py-[12px] text-[13.5px] text-t1" title={b.address ?? "-"}>{b.address ?? "-"}</td>
                     </tr>
                   ))}
                 </tbody>
