@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Badge, Button, CustomDropdown, Panel, Spinner } from "@/components/common";
+import { Button, CustomDropdown, Panel, Spinner } from "@/components/common";
 import { useAccounts } from "@/hooks/reactquery/accounts";
 import { useAsCategories } from "@/hooks/reactquery/asCategories";
 import { useBuildings } from "@/hooks/reactquery/buildings";
@@ -23,7 +23,6 @@ import { MessagingModal } from "../../messaging/components/MessagingModal";
 import {
   COMPLAINT_STATUS_LABEL,
   COMPLAINT_STATUS_OPTIONS,
-  COMPLAINT_STATUS_STYLE,
   formatComplaintDate,
   formatUnitLabel,
 } from "../constants";
@@ -62,11 +61,11 @@ function visibleAsColumns(scope: "unit" | "building") {
 function AsTableHeader({ scope }: { scope: "unit" | "building" }) {
   return (
     <thead>
-      <tr className="h-[37px] border-b border-line bg-[#FBFCFD] text-left text-xs font-bold leading-[normal] text-t3">
+      <tr className="border-b border-[#e8ebee] bg-[#fbfcfd] text-[12px] font-bold leading-[normal] text-[#8b95a1]">
         {visibleAsColumns(scope).map((column) => (
           <th
             key={column.key}
-            className={`overflow-hidden text-ellipsis whitespace-nowrap px-[16px] ${column.align === "right" ? "text-right" : ""}`}
+            className={`overflow-hidden text-ellipsis whitespace-nowrap px-[16px] py-[11px] ${column.align === "right" ? "text-right" : ""}`}
             style={{ minWidth: column.minWidth, maxWidth: column.maxWidth }}
           >
             {column.label}
@@ -91,6 +90,13 @@ function AsEmptyTable({ message, scope }: { message: string; scope: "unit" | "bu
     </table>
   );
 }
+
+const AS_STATUS_BADGE: Record<string, string> = {
+  pending: "bg-[#fdecee] text-[#f04452]",
+  completed: "bg-[#e6f8f1] text-[#0f7a43]",
+  on_hold: "bg-[#fff3e0] text-[#b26a00]",
+  repeat: "bg-[#e2f5f1] text-[#0e8677]",
+};
 
 /**
  * A/S(민원) 현황·접수 — 세대 스코프. Figma 단일 플랫 폼(추가·상세)으로 재구성.
@@ -345,46 +351,47 @@ export function AsStatusSection({
             <tbody>
               {rows.map((complaint, index) => {
                 const latest = complaint.resolutions[0];
+                const badgeStyle = AS_STATUS_BADGE[complaint.status] ?? "bg-bg text-t2";
                 return (
                   <tr
                     key={complaint.id}
                     onClick={() => setSelectedId(complaint.id)}
-                    className="cursor-pointer border-b border-line last:border-0 hover:bg-bg [&>td]:h-[38px]"
+                    className="cursor-pointer border-b border-[#f1f3f5] last:border-0 hover:bg-bg"
                   >
-                    <td className="px-4 py-3 text-right text-t3 num">{index + 1}</td>
+                    <td className="px-[16px] py-[12px] text-right num">{index + 1}</td>
                     {scope === "building" && (
-                      <td className="whitespace-nowrap px-4 py-3 text-t2 num">
+                      <td className="whitespace-nowrap px-[16px] py-[12px] num">
                         {complaint.unitId === null ? "건물 전체" : complaint.unitNo ?? "-"}
                       </td>
                     )}
-                    <td className="whitespace-nowrap px-4 py-3 text-t2 num">
+                    <td className="whitespace-nowrap px-[16px] py-[12px] num">
                       {formatComplaintDate(complaint.receivedAt, true)}
                     </td>
-                    <td className="px-4 py-3 text-t2">{complaint.categoryLabel ?? "-"}</td>
-                    <td className="min-w-[240px] max-w-[300px] whitespace-normal break-words px-4 py-3 leading-[1.5] text-t1">
+                    <td className="px-[16px] py-[12px]">{complaint.categoryLabel ?? "-"}</td>
+                    <td className="min-w-[240px] max-w-[300px] whitespace-normal break-words px-[16px] py-[12px] leading-[1.5]">
                       {complaint.title || complaint.content || "-"}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-t2 num">
+                    <td className="whitespace-nowrap px-[16px] py-[12px] num">
                       {complaint.reporterPhone ?? "-"}
                     </td>
-                    <td className="px-4 py-3">
-                      <Badge className={`px-2 py-1 ${COMPLAINT_STATUS_STYLE[complaint.status]}`}>
+                    <td className="px-[16px] py-[12px]">
+                      <span className={`inline-flex items-center rounded-[6px] px-[8px] py-[2px] text-[11px] font-bold leading-[normal] ${badgeStyle}`}>
                         {COMPLAINT_STATUS_LABEL[complaint.status]}
-                      </Badge>
+                      </span>
                     </td>
-                    <td className="min-w-[240px] max-w-[300px] whitespace-normal break-words px-4 py-3 leading-[1.5] text-t2">
+                    <td className="min-w-[240px] max-w-[300px] whitespace-normal break-words px-[16px] py-[12px] leading-[1.5]">
                       {latest?.resultContent ?? "-"}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-t2 num">
+                    <td className="whitespace-nowrap px-[16px] py-[12px] num">
                       {formatComplaintDate(latest?.resolvedAt ?? complaint.completedAt)}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-t2 num">
+                    <td className="whitespace-nowrap px-[16px] py-[12px] num">
                       {complaint.receivedAt?.slice(11, 16) || "-"}
                     </td>
-                    <td className="px-4 py-3 text-t2">
+                    <td className="px-[16px] py-[12px]">
                       {complaint.createdBy ? assigneeNames.get(complaint.createdBy) ?? "-" : "-"}
                     </td>
-                    <td className="px-4 py-3 text-t2">
+                    <td className="px-[16px] py-[12px]">
                       {complaint.assignedTo ? assigneeNames.get(complaint.assignedTo) ?? "-" : "-"}
                     </td>
                   </tr>

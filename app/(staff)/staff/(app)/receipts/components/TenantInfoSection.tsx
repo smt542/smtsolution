@@ -36,7 +36,7 @@ const TENANT_COLUMNS = [
   "부과",
   "출력",
 ];
-const TENANT_COLUMN_WIDTHS = [80, 80, 118, 92, 92, 180, 60, 66, 48, 48];
+const TENANT_COLUMN_WIDTHS = [114, 114, 192, 157, 131, 256, 85, 94, 75, 75];
 
 function TenantTableHead() {
   return (
@@ -257,17 +257,17 @@ export function TenantInfoSection({
           <table className="w-full whitespace-nowrap text-[13.5px] leading-[normal]">
             <TenantTableHead />
             <tbody>
-              <tr className="text-t2">
-                <td className="px-[16px] py-[26px]">{occ.tenantName ?? "-"}</td>
-                <td className="px-[16px] py-[26px]">{occ.payerName ?? "-"}</td>
-                <td className="px-[16px] py-[26px]">{occ.phone ?? "-"}</td>
-                <td className="px-[16px] py-[26px]">{formatDate(occ.moveInDate)}</td>
-                <td className="px-[16px] py-[26px]">{formatDate(occ.moveOutDate)}</td>
-                <td className="truncate px-[16px] py-[26px]" title={occ.billingNote ?? "-"}>{occ.billingNote ?? "-"}</td>
-                <td className="px-[16px] py-[26px]"><YesNo value={occ.smsOptIn} /></td>
-                <td className="px-[16px] py-[26px]"><YesNo value={occ.alimtalkOptIn} /></td>
-                <td className="px-[16px] py-[26px]"><YesNo value={occ.billingEnabled} /></td>
-                <td className="px-[16px] py-[26px]"><YesNo value={occ.printEnabled} /></td>
+              <tr className="text-[13.5px] leading-[normal] text-t1">
+                <td className="px-[16px] py-[12px]">{occ.tenantName ?? "-"}</td>
+                <td className="px-[16px] py-[12px]">{occ.payerName ?? "-"}</td>
+                <td className="px-[16px] py-[12px]">{occ.phone ?? "-"}</td>
+                <td className="px-[16px] py-[12px]">{formatDate(occ.moveInDate)}</td>
+                <td className="px-[16px] py-[12px]">{formatDate(occ.moveOutDate)}</td>
+                <td className="truncate px-[16px] py-[12px]" title={occ.billingNote ?? "-"}>{occ.billingNote ?? "-"}</td>
+                <td className="px-[16px] py-[12px]">{occ.smsOptIn ? "동의" : "-"}</td>
+                <td className="px-[16px] py-[12px]">{occ.alimtalkOptIn ? "동의" : "-"}</td>
+                <td className="px-[16px] py-[12px]"><YesNo value={occ.billingEnabled} /></td>
+                <td className="px-[16px] py-[12px]"><YesNo value={occ.printEnabled} /></td>
               </tr>
             </tbody>
           </table>
