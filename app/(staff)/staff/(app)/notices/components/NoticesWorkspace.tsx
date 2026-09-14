@@ -16,14 +16,6 @@ import { NoticeDetail } from "./NoticeDetail";
 import { NoticeFormModal } from "./NoticeFormModal";
 import { NoticeList } from "./NoticeList";
 
-function AnnouncementIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 8h9l5-3v14l-5-3H4z" />
-      <path d="M8 15v4" />
-    </svg>
-  );
-}
 
 const DUMMY_NOTICES: NoticeSummary[] = [
   {
@@ -125,9 +117,9 @@ export function NoticesWorkspace({
     return (
       <div className="flex flex-col min-h-screen bg-[#f2f4f6]">
         <div className="bg-white border-b border-[#e8ebee] flex h-[62px] items-center gap-[12px] px-[24px] shrink-0">
-          <div className="flex items-center justify-center size-[36px] rounded-[10px]">
-            <AnnouncementIcon />
-          </div>
+          <button type="button" aria-label="메뉴 열기" onClick={() => window.dispatchEvent(new Event("app-shell:toggle-sidebar"))} className="mr-[2px] flex size-[36px] shrink-0 items-center justify-center rounded-[10px] text-t2 transition-colors hover:bg-bg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="size-[20px]" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+          </button>
           <h1 className="text-[19px] font-extrabold text-[#191f28] tracking-[-0.38px] whitespace-nowrap">
             공지 관리
           </h1>
@@ -153,9 +145,9 @@ export function NoticesWorkspace({
     <div className="flex flex-col min-h-screen bg-[#f2f4f6]">
       {/* 62px 페이지 헤더 */}
       <div className="bg-white border-b border-[#e8ebee] flex h-[62px] items-center gap-[12px] px-[24px] shrink-0">
-        <div className="flex items-center justify-center size-[36px] rounded-[10px] text-[#191f28]">
-          <AnnouncementIcon />
-        </div>
+        <button type="button" aria-label="메뉴 열기" onClick={() => window.dispatchEvent(new Event("app-shell:toggle-sidebar"))} className="mr-[2px] flex size-[36px] shrink-0 items-center justify-center rounded-[10px] text-t2 transition-colors hover:bg-bg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="size-[20px]" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+        </button>
         <h1 className="text-[19px] font-extrabold text-[#191f28] tracking-[-0.38px] whitespace-nowrap">
           공지 관리
         </h1>
@@ -163,7 +155,7 @@ export function NoticesWorkspace({
         <button
           type="button"
           onClick={openCreate}
-          className="bg-[#14a497] h-[34px] px-[14px] rounded-[11px] drop-shadow-[0px_6px_7px_rgba(20,164,151,0.5)] text-white text-[13px] font-bold whitespace-nowrap border border-transparent"
+          className="bg-[#14a497] h-[34px] px-[14px] rounded-[11px] text-white text-[13px] font-bold whitespace-nowrap"
         >
           ＋ 공지 등록
         </button>
