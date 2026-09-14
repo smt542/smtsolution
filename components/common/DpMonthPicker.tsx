@@ -116,29 +116,29 @@ export function DpMonthPicker({
             ref={popRef}
             role="dialog"
             aria-label={`${year}년 월 선택`}
-            className="fixed z-[200] w-[210px] rounded-[12px] border border-[#e8ebee] bg-white p-[10px] shadow-[0px_14px_17px_rgba(23,31,40,0.28)]"
+            className="fixed z-[200] flex w-[210px] flex-col items-start rounded-[12px] border border-[#e8ebee] bg-white p-[10px] drop-shadow-[0px_14px_17px_rgba(23,31,40,0.28)]"
             style={{ left: pos.left, top: pos.top }}
           >
-            <div className="flex items-center justify-between">
+            <div className="flex w-full items-center justify-between">
               <button
                 type="button"
                 aria-label="이전 년도"
                 onClick={() => setYear((y) => y - 1)}
-                className="grid size-[26px] place-items-center rounded-[8px] text-[16px] text-t3 hover:bg-bg"
+                className="grid size-[26px] place-items-center rounded-[8px] text-[16px] text-[#8b95a1] hover:bg-bg"
               >
                 ‹
               </button>
-              <span className="text-[13px] font-extrabold text-t1">{year}년</span>
+              <span className="text-[13px] font-extrabold text-[#191f28]">{year}년</span>
               <button
                 type="button"
                 aria-label="다음 년도"
                 onClick={() => setYear((y) => y + 1)}
-                className="grid size-[26px] place-items-center rounded-[8px] text-[16px] text-t3 hover:bg-bg"
+                className="grid size-[26px] place-items-center rounded-[8px] text-[16px] text-[#8b95a1] hover:bg-bg"
               >
                 ›
               </button>
             </div>
-            <div className="mt-[8px] grid grid-cols-4 gap-[4px]">
+            <div className="mt-[8px] grid w-full grid-cols-4 gap-[4px]">
               {MONTHS.map((label, idx) => {
                 const m = idx + 1;
                 const isSelected = selectedYear === year && selectedMonth === m;
