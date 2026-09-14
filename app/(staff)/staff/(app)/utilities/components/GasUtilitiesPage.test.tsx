@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { UtilityUnitRow } from "@/hooks/reactquery/utilities";
 import { GasAccountSummary } from "./gas/GasAccountSummary";
-import { GasBuildingPanel } from "./gas/GasBuildingPanel";
+import { UtilityBuildingRail } from "./UtilityBuildingRail";
 import { GasReadingsTable } from "./gas/GasReadingsTable";
 import type { GasTableRow, GasUtilityDraft } from "./gas/types";
 
@@ -70,17 +70,16 @@ describe("가스 공과금 Figma 표", () => {
 
   it("건물 목록을 코드·건물명·주소·가스 고객번호 수로 표시한다", () => {
     render(
-      <GasBuildingPanel
+      <UtilityBuildingRail
         buildings={[{ id: 1, code: "001", name: "그린빌라", address: "서울 강서구" }]}
         selectedBuildingId={1}
-        gasCustomerNumberCounts={{ 1: 2 }}
-        year={2026}
-        month={7}
+        period="2026-07-01"
+        utilityLabel="가스"
+        customerNumberCounts={{ 1: 2 }}
         search=""
         onSearchChange={() => {}}
-        onYearChange={() => {}}
-        onMonthChange={() => {}}
-        onSelect={() => {}}
+        onPeriodChange={() => {}}
+        onSelectBuilding={() => {}}
       />,
     );
 

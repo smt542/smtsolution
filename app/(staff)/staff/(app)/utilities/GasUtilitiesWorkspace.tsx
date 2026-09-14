@@ -28,7 +28,7 @@ import {
 import { defaultBillingDates } from "./components/BillingPeriodBar";
 import { GasAccountSummary } from "./components/gas/GasAccountSummary";
 import { GasBillingToolbar } from "./components/gas/GasBillingToolbar";
-import { GasBuildingPanel } from "./components/gas/GasBuildingPanel";
+import { UtilityBuildingRail } from "./components/UtilityBuildingRail";
 import { GasReadingsTable } from "./components/gas/GasReadingsTable";
 import { GasWorkspaceHeader } from "./components/gas/GasWorkspaceHeader";
 import type { GasTableRow, GasUtilityDraft } from "./components/gas/types";
@@ -249,22 +249,22 @@ export default function GasUtilitiesWorkspace() {
         </div>
       ) : (
         <main className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-4 overflow-auto p-4 min-[1101px]:grid-cols-[minmax(0,322px)_minmax(0,1fr)] min-[1101px]:overflow-hidden min-[1101px]:p-[22px_24px_24px]">
-          <GasBuildingPanel
+          <UtilityBuildingRail
             buildings={buildings}
             selectedBuildingId={buildingId}
-            gasCustomerNumberCounts={gasCustomerNumberCounts}
-            year={year}
-            month={month}
-            disabled={editing}
+            period={period}
+            utilityLabel="가스"
+            customerNumberCounts={gasCustomerNumberCounts}
             search={search}
+            disabled={editing}
             onSearchChange={setSearch}
-            onYearChange={(value) => {
-              if (!editing) setYear(value);
+            onPeriodChange={(value) => {
+              if (!editing) {
+                setYear(Number(value.slice(0, 4)));
+                setMonth(Number(value.slice(5, 7)));
+              }
             }}
-            onMonthChange={(value) => {
-              if (!editing) setMonth(value);
-            }}
-            onSelect={selectBuilding}
+            onSelectBuilding={selectBuilding}
           />
 
           <div className="flex min-w-0 flex-1 flex-col gap-4">
