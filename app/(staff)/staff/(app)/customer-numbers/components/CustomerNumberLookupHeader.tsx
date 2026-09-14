@@ -29,7 +29,7 @@ export function CustomerNumberLookupHeader({
               key={option.value}
               type="button"
               aria-pressed={selected}
-              className={`cursor-pointer rounded-[8px] px-[13px] py-[6px] text-[13px] font-bold transition-colors ${
+              className={`cursor-pointer rounded-[8px] px-[13px] py-[6px] text-[13px] font-bold leading-[normal] transition-colors ${
                 selected
                   ? "bg-white text-t1 shadow-[0_2px_3px_rgba(23,31,40,0.1)]"
                   : "text-t3 hover:text-t1"
@@ -44,7 +44,7 @@ export function CustomerNumberLookupHeader({
 
       <span
         aria-label={`조회 결과 ${total.toLocaleString("ko-KR")}건`}
-        className="ml-auto text-[12.5px] font-semibold text-t3"
+        className="ml-auto text-[12.5px] font-semibold leading-[normal] text-t3"
       >
         <b className="num font-bold text-t1">{total.toLocaleString("ko-KR")}</b>건
       </span>

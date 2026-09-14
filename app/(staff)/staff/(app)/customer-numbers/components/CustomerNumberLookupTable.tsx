@@ -37,7 +37,7 @@ export function CustomerNumberLookupTable({
           <col className="w-[15%]" />
         </colgroup>
         <thead>
-          <tr className="border-b border-line bg-[#FBFCFD] text-left text-t3">
+          <tr className="border-b border-line bg-[#FBFCFD] text-left text-t3 leading-[normal]">
             <th scope="col" className="h-[36.5px] px-4 py-[11px] text-[12px] font-bold">코드</th>
             <th scope="col" className="h-[36.5px] px-4 py-[11px] text-[12px] font-bold">빌라명</th>
             <th scope="col" className="h-[36.5px] px-4 py-[11px] text-[12px] font-bold">주소</th>
@@ -53,7 +53,7 @@ export function CustomerNumberLookupTable({
           {rows.map((row) => (
             <tr
               key={row.id}
-              className="cursor-pointer border-b border-line2 text-[13.5px] text-t1 last:border-0 hover:bg-[#FBFCFD]"
+              className="cursor-pointer border-b border-line2 text-[13.5px] text-t1 last:border-0 hover:bg-[#FBFCFD] leading-[normal]"
             >
               <td className="num h-[41px] truncate px-4 py-[12px]" title={row.buildingCode}>
                 {row.buildingCode}
