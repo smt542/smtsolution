@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { CalendarIcon, CloseIcon, PrinterIcon } from "@/components/icons";
 import { DpDatePicker } from "@/components/common/DpDatePicker";
+import { DpMonthPicker } from "@/components/common/DpMonthPicker";
 import type { Building } from "@/hooks/reactquery/buildings";
 import { useReceiptStatementData } from "@/hooks/reactquery/receipts";
 import { toMonthInput } from "@/lib/billing/period";
@@ -135,23 +136,21 @@ export function ChargeReceiptReportModal({
             {/* 필터 */}
             <div className="flex shrink-0 flex-wrap items-center gap-[8px] border-b border-line px-[16px] py-[13px]">
               <span className="text-[12px] font-bold text-t3">기준월</span>
-              <DpDatePicker
-                value={pendingStart ? `${pendingStart}-01` : ""}
-                onChange={(v) => setPendingStart(v.slice(0, 7))}
+              <DpMonthPicker
+                value={pendingStart}
+                onChange={setPendingStart}
                 ariaLabel="기준월 시작"
                 placeholder="YYYY.MM"
-                displayFormatter={(v) => v.slice(0, 7).replaceAll("-", ".")}
                 triggerClassName="flex h-[38px] w-[116px] cursor-pointer items-center rounded-[10px] border border-line bg-surface px-[11px] text-[12.5px] font-medium text-t1"
                 triggerOpenClassName="border-teal"
                 endAdornment={<CalendarIcon className="ml-auto size-[15px] shrink-0 text-t3" aria-hidden="true" />}
               />
               <span className="text-t4">~</span>
-              <DpDatePicker
-                value={pendingEnd ? `${pendingEnd}-01` : ""}
-                onChange={(v) => setPendingEnd(v.slice(0, 7))}
+              <DpMonthPicker
+                value={pendingEnd}
+                onChange={setPendingEnd}
                 ariaLabel="기준월 종료"
                 placeholder="YYYY.MM"
-                displayFormatter={(v) => v.slice(0, 7).replaceAll("-", ".")}
                 triggerClassName="flex h-[38px] w-[116px] cursor-pointer items-center rounded-[10px] border border-line bg-surface px-[11px] text-[12.5px] font-medium text-t1"
                 triggerOpenClassName="border-teal"
                 endAdornment={<CalendarIcon className="ml-auto size-[15px] shrink-0 text-t3" aria-hidden="true" />}
