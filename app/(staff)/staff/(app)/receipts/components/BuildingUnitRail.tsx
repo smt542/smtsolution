@@ -228,7 +228,7 @@ export function BuildingUnitRail({
                               <td className="px-[16px] py-[12px] text-[13.5px] font-bold text-t1">
                                 {unitLabel(u)}
                               </td>
-                              <td className={`px-[16px] py-[12px] text-[13.5px] ${tenantByUnit.has(u.id) ? "text-t2" : "text-t4"}`}>
+                              <td className={`px-[16px] py-[12px] text-[13.5px] ${tenantByUnit.has(u.id) ? "text-t1" : "text-t4"}`}>
                                 {tenantByUnit.get(u.id) ?? "공실"}
                               </td>
                             </tr>
