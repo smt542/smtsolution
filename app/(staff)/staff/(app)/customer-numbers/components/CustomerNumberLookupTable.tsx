@@ -26,15 +26,15 @@ export function CustomerNumberLookupTable({
     <div className="min-h-0 flex-1 overflow-auto">
       <table className="w-full min-w-[1000px] table-fixed border-collapse whitespace-nowrap text-[12.5px]">
         <colgroup>
-          <col className="w-[7%]" />
-          <col className="w-[14%]" />
-          <col className="w-[21%]" />
-          <col className="w-[6%]" />
-          <col className="w-[16%]" />
-          <col className="w-[7%]" />
-          <col className="w-[7%]" />
-          <col className="w-[7%]" />
-          <col className="w-[15%]" />
+          <col className="w-[6.74%]" />
+          <col className="w-[12.31%]" />
+          <col className="w-[20.76%]" />
+          <col className="w-[5.95%]" />
+          <col className="w-[14.25%]" />
+          <col className="w-[7.47%]" />
+          <col className="w-[7.10%]" />
+          <col className="w-[7.58%]" />
+          <col className="w-[17.84%]" />
         </colgroup>
         <thead>
           <tr className="border-b border-line bg-[#FBFCFD] text-left text-t3 leading-[normal]">
