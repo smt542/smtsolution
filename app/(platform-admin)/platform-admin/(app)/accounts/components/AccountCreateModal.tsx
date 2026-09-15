@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Input, Modal, Select } from "@/components/common";
 import { FormField } from "@/components/common/FormField";
+import { setSubmissionError } from "@/components/forms/formErrors";
 import {
   platformAccountCreateSchema,
   type PlatformAccountCreateValues,
@@ -49,15 +50,17 @@ export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props
       ),
     [organizationsQuery.data],
   );
+  const defaultOrgId = organizations[0]?.id;
   const {
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    setError,
+    formState: { errors, isSubmitting },
   } = useForm<FormInput, unknown, PlatformAccountCreateValues>({
     resolver: zodResolver(platformAccountCreateSchema),
     defaultValues: {
-      orgId: organizations[0]?.id,
+      orgId: defaultOrgId,
       username: "",
       password: "",
       fullName: "",
@@ -65,34 +68,45 @@ export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props
       role: "staff",
       staffType: "manager_staff",
     },
+    shouldFocusError: true,
   });
+  const submitting = isPending || isSubmitting;
+  const defaults = React.useCallback((): FormInput => ({
+    orgId: defaultOrgId,
+    username: "",
+    password: "",
+    fullName: "",
+    phone: "",
+    role: "staff",
+    staffType: "manager_staff",
+  }), [defaultOrgId]);
+  const closeSafely = () => {
+    if (!submitting) onClose();
+  };
 
   React.useEffect(() => {
     if (!open) return;
-    reset({
-      orgId: organizations[0]?.id,
-      username: "",
-      password: "",
-      fullName: "",
-      phone: "",
-      role: "staff",
-      staffType: "manager_staff",
-    });
-  }, [open, organizations, reset]);
+    reset(defaults());
+  }, [defaults, open, reset]);
 
   const onValid = async (values: PlatformAccountCreateValues) => {
-    await onSubmit(values);
-    onClose();
+    try {
+      await onSubmit(values);
+      reset(defaults());
+      onClose();
+    } catch (error) {
+      setSubmissionError(error, setError, "계정 발급에 실패했습니다.");
+    }
   };
 
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={closeSafely}
       title="플랫폼 계정 발급"
       className="max-h-[88vh] max-w-[480px] overflow-y-auto rounded-[20px] [&>h2]:text-[17px] [&>h2]:font-extrabold [&>h2]:tracking-[-0.02em]"
     >
-      <form onSubmit={handleSubmit(onValid)} className="flex flex-col gap-[18px]">
+      <form onSubmit={handleSubmit(onValid)} className="flex flex-col gap-[18px]" noValidate>
         <FormField
           label="대상 조직"
           htmlFor="platform-account-org"
@@ -178,20 +192,27 @@ export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props
           비밀번호를 비우면 서버가 임시 비밀번호를 발급하며, 발급 완료 후 한 번만 표시됩니다.
         </p>
 
+        {errors.root?.server?.message && (
+          <InlineAlert tone="dangerStrong" role="alert">
+            {errors.root.server.message}
+          </InlineAlert>
+        )}
+
         <ModalActions>
           <button
             type="button"
-            onClick={onClose}
+            onClick={closeSafely}
+            disabled={submitting}
             className="h-10 rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold text-t2 hover:bg-bg"
           >
             취소
           </button>
           <button
             type="submit"
-            disabled={isPending || organizations.length === 0}
+            disabled={submitting || organizations.length === 0}
             className="h-10 rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-hf-btn hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {isPending ? "발급 중…" : "계정 발급"}
+            {submitting ? "발급 중…" : "계정 발급"}
           </button>
         </ModalActions>
       </form>

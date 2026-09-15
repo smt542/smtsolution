@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
 
 export interface Vendor { id: number; orgId: number; name: string; phone?: string | null; bankAccount?: string | null; memo?: string | null; categoryId?: number | null; }
-export interface VendorInput { orgId: number; name: string; phone?: string; bankAccount?: string; memo?: string; categoryId?: number | null; }
+export interface VendorInput { orgId: number; name: string; phone?: string | null; bankAccount?: string | null; memo?: string | null; categoryId?: number | null; }
 
 type VendorRow = {
   id: number; org_id: number; name: string; phone: string | null;

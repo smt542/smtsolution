@@ -3,12 +3,15 @@
 import { useRouter } from "next/navigation";
 import { type ReactNode, useMemo, useState } from "react";
 
+import {
+  useDeletePartnerSettlement,
+  useSavePartnerSettlement,
+} from "@/hooks/reactquery/movingSettlement";
 import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
 import { PartnerInlineError } from "../../../_components/PartnerInlineError";
 import {
   buildSaveData,
   computeTotals,
-  deletePartnerSettlement,
   feeProrated,
   initialState,
   mapContext,
@@ -16,7 +19,6 @@ import {
   type ContextJson,
   type MSState,
   type PartnerSettlementContext,
-  savePartnerSettlement,
   toNumber,
   utilAmount,
   UTILITY_LABEL,
@@ -134,7 +136,6 @@ export default function PartnerMsNewWorkspace({
     return initialState(forInit);
   });
   const [activeId, setActiveId] = useState<number | null>(editId);
-  const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [toast, setToast] = useState("");
   const [confirmKind, setConfirmKind] = useState<null | "save" | "cancel" | "delete">(null);
@@ -149,6 +150,9 @@ export default function PartnerMsNewWorkspace({
   });
 
   const totals = useMemo(() => (state ? computeTotals(state) : null), [state]);
+  const saveMutation = useSavePartnerSettlement();
+  const deleteMutation = useDeletePartnerSettlement();
+  const busy = saveMutation.isPending || deleteMutation.isPending;
 
   const backHref = Number.isFinite(unitId) ? `/partner/mobile-tenant?id=${unitId}` : "/partner/mobile-inquiry";
   const goBack = () => router.push(backHref);
@@ -180,7 +184,6 @@ export default function PartnerMsNewWorkspace({
       setToast("퇴실일자를 선택해 주세요");
       return;
     }
-    setBusy(true);
     setErr("");
     try {
       const data = buildSaveData(state, ctx);
@@ -188,7 +191,7 @@ export default function PartnerMsNewWorkspace({
         check_item_id: c.id,
         checked: state.checked[c.id] ?? false,
       }));
-      const res = await savePartnerSettlement({
+      const res = await saveMutation.mutateAsync({
         unitId,
         occupancyId: ctx.occupancy?.id ?? null,
         settlementId: activeId,
@@ -200,21 +203,18 @@ export default function PartnerMsNewWorkspace({
       setTimeout(goBack, 700);
     } catch {
       setErr("저장에 실패했어요. 다시 시도해 주세요.");
-      setBusy(false);
     }
   };
 
   const doDelete = async () => {
     if (activeId === null || busy) return;
-    setBusy(true);
     setErr("");
     try {
-      await deletePartnerSettlement(activeId);
+      await deleteMutation.mutateAsync(activeId);
       setToast("이사정산을 삭제했어요");
       setTimeout(goBack, 700);
     } catch {
       setErr("삭제에 실패했어요. 다시 시도해 주세요.");
-      setBusy(false);
     }
   };
 

@@ -324,3 +324,124 @@ export async function deleteComplaintResolution(id: number): Promise<void> {
     .eq("id", id);
   if (error) throw new Error(error.message);
 }
+
+export interface PartnerComplaintDetail {
+  id: number;
+  building_name: string;
+  unit_label: string | null;
+  category_id: number | null;
+  content: string | null;
+  status: string;
+  reporter_phone: string | null;
+  logger_name: string | null;
+  assigned_name: string | null;
+  received_at: string;
+  completed_at: string | null;
+  result_content: string | null;
+  is_mine: boolean;
+}
+
+export interface PartnerAsCategory {
+  id: number;
+  label: string;
+}
+
+export interface PartnerComplaintEditorData {
+  detail: PartnerComplaintDetail | null;
+  categories: PartnerAsCategory[];
+}
+
+export async function getPartnerComplaintEditor(
+  complaintId: number,
+): Promise<PartnerComplaintEditorData> {
+  const supabase = createClient();
+  const [detailResult, categoryResult] = await Promise.all([
+    supabase.rpc("partner_get_complaint", { p_id: complaintId }),
+    supabase.rpc("partner_list_as_categories"),
+  ]);
+  if (detailResult.error) throw new Error(detailResult.error.message);
+  if (categoryResult.error) throw new Error(categoryResult.error.message);
+
+  return {
+    detail: (Array.isArray(detailResult.data)
+      ? detailResult.data[0]
+      : detailResult.data) as PartnerComplaintDetail | null,
+    categories: Array.isArray(categoryResult.data)
+      ? (categoryResult.data as PartnerAsCategory[])
+      : [],
+  };
+}
+
+export interface PartnerUnitOption {
+  unit_id: number;
+  unit_no: string;
+  dong: string | null;
+  phone: string | null;
+}
+
+export async function listPartnerUnits(
+  buildingId: number,
+): Promise<PartnerUnitOption[]> {
+  const { data, error } = await createClient().rpc("partner_list_units", {
+    p_building_id: buildingId,
+  });
+  if (error) throw new Error(error.message);
+  return Array.isArray(data) ? (data as PartnerUnitOption[]) : [];
+}
+
+export interface UpdatePartnerComplaintInput {
+  id: number;
+  categoryId: number | null;
+  content: string;
+  status: string;
+  completedAt: string | null;
+  resultContent: string;
+}
+
+export async function updatePartnerComplaint(
+  input: UpdatePartnerComplaintInput,
+): Promise<void> {
+  const { error } = await createClient().rpc("partner_update_complaint", {
+    p_id: input.id,
+    p_category_id: input.categoryId,
+    p_content: input.content,
+    p_status: input.status,
+    p_completed_at: input.completedAt,
+    p_result_content: input.resultContent,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function deletePartnerComplaint(id: number): Promise<void> {
+  const { error } = await createClient().rpc("partner_delete_complaint", {
+    p_id: id,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export interface CreatePartnerComplaintInput {
+  buildingId: number;
+  unitId: number | null;
+  categoryId: number | null;
+  content: string;
+  status: string;
+  completedAt: string | null;
+  resultContent: string;
+  reporterPhone: string;
+}
+
+export async function createPartnerComplaint(
+  input: CreatePartnerComplaintInput,
+): Promise<void> {
+  const { error } = await createClient().rpc("partner_create_complaint", {
+    p_building_id: input.buildingId,
+    p_unit_id: input.unitId,
+    p_category_id: input.categoryId,
+    p_content: input.content,
+    p_status: input.status,
+    p_completed_at: input.completedAt,
+    p_result_content: input.resultContent,
+    p_reporter_phone: input.reporterPhone,
+  });
+  if (error) throw new Error(error.message);
+}

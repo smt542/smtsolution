@@ -1,11 +1,14 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   completeMovingSettlement,
+  deletePartnerMovingSettlement,
   deleteMovingSettlement,
   midMoveoutSettlement,
   saveMovingSettlement,
+  savePartnerMovingSettlement,
   updateSettlementInquiryRows,
   type SaveSettlementInput,
+  type SavePartnerSettlementInput,
   type UpdateSettlementInquiryRow,
 } from "./apis";
 import { movingSettlementKeys } from "./keys";
@@ -49,5 +52,25 @@ export function useDeleteSettlement() {
   return useMutation({
     mutationFn: (settlementId: number) => deleteMovingSettlement(settlementId),
     onSuccess: () => qc.invalidateQueries({ queryKey: movingSettlementKeys.all }),
+  });
+}
+
+export function useSavePartnerSettlement() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: SavePartnerSettlementInput) =>
+      savePartnerMovingSettlement(input),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: movingSettlementKeys.all }),
+  });
+}
+
+export function useDeletePartnerSettlement() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (settlementId: number) =>
+      deletePartnerMovingSettlement(settlementId),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: movingSettlementKeys.all }),
   });
 }

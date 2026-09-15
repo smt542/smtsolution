@@ -1,8 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { FormField } from "@/components/common/FormField";
+import { setSubmissionError } from "@/components/forms/formErrors";
+import {
+  loginSchema,
+  type LoginFormInput,
+  type LoginFormValues,
+} from "@/components/forms/schema/auth";
 import { AUTO_LOGIN_KEY } from "@/lib/auth/sessionPersistence";
 
 const fieldClass =
@@ -10,76 +19,73 @@ const fieldClass =
 
 export function LoginForm() {
   const router = useRouter();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [autoLogin, setAutoLogin] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [isPending, setIsPending] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormInput, unknown, LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { username: "", password: "", autoLogin: false },
+    shouldFocusError: true,
+  });
 
-  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (isPending) return;
-
-    // 정본처럼 버튼은 항상 solid(비활성 아님) — 빈 값은 여기서 막는다.
-    if (!username.trim() || !password) {
-      setErrorMessage("아이디와 비밀번호를 입력해 주세요.");
-      return;
-    }
-
-    setErrorMessage("");
-    setIsPending(true);
-
+  const submit = async (values: LoginFormValues) => {
     try {
       const response = await fetch("/api/platform/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: username.trim(), password }),
+        body: JSON.stringify({ username: values.username, password: values.password }),
       });
       if (!response.ok) {
         const data = (await response.json().catch(() => ({}))) as { error?: string };
         throw new Error(data.error ?? "로그인에 실패했습니다.");
       }
 
-      if (autoLogin) localStorage.setItem(AUTO_LOGIN_KEY, "1");
+      if (values.autoLogin) localStorage.setItem(AUTO_LOGIN_KEY, "1");
       else localStorage.removeItem(AUTO_LOGIN_KEY);
 
       toast.success("로그인되었습니다");
       router.push("/platform-admin");
       router.refresh();
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "잠시 후 다시 시도해 주세요.");
-    } finally {
-      setIsPending(false);
+      setSubmissionError(error, setError, "잠시 후 다시 시도해 주세요.");
     }
   };
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3.5" noValidate>
-      <label className="flex flex-col gap-[7px]" htmlFor="hq-username">
-        <span className="text-[12.5px] font-bold text-t3">아이디</span>
+    <form onSubmit={handleSubmit(submit)} className="flex flex-col gap-3.5" noValidate>
+      <FormField
+        className="flex flex-col gap-[7px]"
+        htmlFor="hq-username"
+        label="아이디"
+        error={errors.username?.message}
+      >
         <input
           id="hq-username"
           type="text"
           autoComplete="username"
-          required
-          value={username}
-          onChange={(event) => setUsername(event.target.value)}
+          {...register("username")}
           placeholder="아이디를 입력해 주세요"
           className={fieldClass}
         />
-      </label>
+      </FormField>
 
-      <label className="flex flex-col gap-[7px]" htmlFor="hq-password">
-        <span className="text-[12.5px] font-bold text-t3">비밀번호</span>
+      <FormField
+        className="flex flex-col gap-[7px]"
+        htmlFor="hq-password"
+        label="비밀번호"
+        error={errors.password?.message}
+      >
         <span className="relative flex items-center">
           <input
             id="hq-password"
             type={showPassword ? "text" : "password"}
             autoComplete="current-password"
-            required
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            {...register("password")}
+            aria-invalid={Boolean(errors.password)}
+            aria-describedby={errors.password ? "hq-password-error" : undefined}
             placeholder="비밀번호를 입력해 주세요"
             className={`${fieldClass} pr-12`}
           />
@@ -93,39 +99,36 @@ export function LoginForm() {
             {showPassword ? <EyeOffIcon /> : <EyeIcon />}
           </button>
         </span>
-      </label>
+      </FormField>
 
       <label className="flex cursor-pointer select-none items-center gap-2 text-[13.5px] font-semibold text-t2">
         <input
           type="checkbox"
-          checked={autoLogin}
-          onChange={(event) => setAutoLogin(event.target.checked)}
+          {...register("autoLogin")}
           className="peer sr-only"
         />
         <span
-          className={`flex h-[19px] w-[19px] flex-none items-center justify-center rounded-md border-[1.6px] transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-blue/40 ${
-            autoLogin ? "border-blue bg-blue" : "border-line bg-white"
-          }`}
+          className="flex h-[19px] w-[19px] flex-none items-center justify-center rounded-md border-[1.6px] border-line bg-white transition-colors peer-checked:border-blue peer-checked:bg-blue peer-checked:[&_svg]:opacity-100 peer-focus-visible:ring-2 peer-focus-visible:ring-blue/40"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={`h-3 w-3 ${autoLogin ? "opacity-100" : "opacity-0"}`} aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 opacity-0 peer-checked:opacity-100" aria-hidden="true">
             <path d="M4 12.5l5 5L20 6.5" />
           </svg>
         </span>
         자동 로그인
       </label>
 
-      {errorMessage && (
+      {errors.root?.server?.message && (
         <div role="alert" className="rounded-xl bg-red-t px-3 py-2.5 text-sm font-bold text-red">
-          {errorMessage}
+          {errors.root.server.message}
         </div>
       )}
 
       <button
         type="submit"
-        disabled={isPending}
+        disabled={isSubmitting}
         className="mt-1.5 h-[50px] w-full rounded-[14px] bg-blue text-[15px] font-extrabold text-white transition hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {isPending ? "로그인 중…" : "로그인"}
+        {isSubmitting ? "로그인 중…" : "로그인"}
       </button>
     </form>
   );

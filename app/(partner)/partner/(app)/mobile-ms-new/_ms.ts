@@ -1,5 +1,4 @@
 import { formatWon } from "@/lib/format";
-import { createClient } from "@/lib/supabase/client";
 
 // 현장 파트너 모바일 이사정산 폼의 상태 모델 · 계산 · 저장 매핑.
 // 표준 컬럼으로 표현되지 않는 부가 항목(단가·입금계좌·관리비 항목별 내역·가수금·기타 항목·
@@ -246,14 +245,6 @@ function nullableText(v: string): string | null {
   return t !== "" ? t : null;
 }
 
-export type PartnerSaveInput = {
-  unitId: number;
-  occupancyId: number | null;
-  settlementId: number | null;
-  data: Record<string, unknown>;
-  checklist: { check_item_id: number; checked: boolean }[];
-};
-
 export function buildSaveData(
   state: MSState,
   ctx: PartnerSettlementContext,
@@ -399,26 +390,4 @@ export function mapContext(r: ContextJson): PartnerSettlementContext {
       usage: m.usage,
     })),
   };
-}
-
-export async function savePartnerSettlement(
-  input: PartnerSaveInput,
-): Promise<{ settlementId: number; settlementAmount: number }> {
-  const { data, error } = await createClient().rpc("partner_save_moving_settlement", {
-    p_unit_id: input.unitId,
-    p_occupancy_id: input.occupancyId,
-    p_settlement_id: input.settlementId,
-    p_data: input.data,
-    p_checklist: input.checklist,
-  });
-  if (error) throw new Error(error.message);
-  const r = data as { settlement_id: number; settlement_amount: number };
-  return { settlementId: r.settlement_id, settlementAmount: r.settlement_amount };
-}
-
-export async function deletePartnerSettlement(settlementId: number): Promise<void> {
-  const { error } = await createClient().rpc("partner_delete_moving_settlement", {
-    p_settlement_id: settlementId,
-  });
-  if (error) throw new Error(error.message);
 }

@@ -17,6 +17,7 @@ import {
   dbUtility,
   deleteWaterDiscount,
   getBillingPeriod,
+  getPartnerMeterWorkspace,
   getUtilityConfirmation,
   getUtilitySupplier,
   ledgerDownloadUrl,
@@ -28,6 +29,7 @@ import {
   saveScopedPrices,
   saveBillingPeriod,
   saveMeterReadings,
+  savePartnerMeterReadings,
   saveUtilitySupplier,
   saveUtilityUnitPrices,
   saveWaterDiscount,
@@ -40,6 +42,7 @@ import {
   useDeleteWaterDiscount,
   useSaveBillingPeriod,
   useSaveMeterReadings,
+  useSavePartnerMeterReadings,
   useSaveScopedPrices,
   useSaveUtilitySupplier,
   useSaveUtilityUnitPrices,
@@ -49,6 +52,7 @@ import {
 import {
   useBillingPeriod,
   useFixedUsages,
+  usePartnerMeterWorkspace,
   useScopedPrices,
   useUtilitySupplier,
 } from "./queries";
@@ -656,5 +660,78 @@ describe("utilities apis", () => {
   it("RPC 오류를 전달한다", async () => {
     rpc.mockResolvedValue({ data: null, error: { message: "조회 실패" } });
     await expect(listUtilityRows(3, "water", "2026-08-01")).rejects.toThrow("조회 실패");
+  });
+
+  it("현장 검침 조회·저장을 React Query 키로 통합한다", async () => {
+    rpc
+      .mockResolvedValueOnce({ data: [{ name: "해오름" }], error: null })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            unit_id: 101,
+            unit_no: "101호",
+            dong: "A동",
+            tenant_name: "홍길동",
+            utility: "water",
+            previous_reading: 10,
+            current_reading: 15,
+          },
+          {
+            unit_id: 101,
+            unit_no: "101호",
+            dong: "A동",
+            tenant_name: "홍길동",
+            utility: "gas",
+            previous_reading: null,
+            current_reading: null,
+          },
+        ],
+        error: null,
+      });
+
+    await expect(getPartnerMeterWorkspace(3, "2026-09-01")).resolves.toEqual({
+      buildingName: "해오름",
+      units: [{
+        unitId: 101,
+        unitNo: "101호",
+        dong: "A동",
+        tenantName: "홍길동",
+        meters: {
+          water: { previous: "10", current: "15" },
+          gas: { previous: "", current: "" },
+        },
+      }],
+    });
+
+    const query = usePartnerMeterWorkspace(3, "2026-09-01") as unknown as {
+      queryKey: readonly unknown[];
+    };
+    expect(query.queryKey).toEqual(utilityKeys.partnerMeter(3, "2026-09-01"));
+
+    rpc.mockResolvedValueOnce({ data: null, error: null });
+    const input = {
+      buildingId: 3,
+      period: "2026-09-01",
+      readings: [{
+        unit_id: 101,
+        utility: "water",
+        previous_reading: "10",
+        current_reading: "15",
+      }],
+    };
+    await savePartnerMeterReadings(input);
+    expect(rpc).toHaveBeenLastCalledWith("partner_save_meter_readings", {
+      p_building_id: 3,
+      p_period: "2026-09-01",
+      p_readings: input.readings,
+    });
+
+    const mutation = useSavePartnerMeterReadings() as unknown as {
+      onSuccess: (result: void, variables: typeof input) => void;
+    };
+    mutation.onSuccess(undefined, input);
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: utilityKeys.partnerMeter(3, "2026-09-01"),
+    });
   });
 });

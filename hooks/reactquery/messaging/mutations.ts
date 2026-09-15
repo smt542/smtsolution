@@ -1,5 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { cancelScheduledMessage, sendMessages, type SendMessagesInput } from "./apis";
+import {
+  cancelScheduledMessage,
+  drainScheduledMessages,
+  sendMessages,
+  type SendMessagesInput,
+} from "./apis";
 import { messagingKeys } from "./keys";
 
 export function useSendMessages() {
@@ -15,6 +20,15 @@ export function useCancelScheduledMessage() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (scheduleId: number) => cancelScheduledMessage(scheduleId),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: messagingKeys.all }),
+  });
+}
+
+export function useDrainScheduledMessages() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: drainScheduledMessages,
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: messagingKeys.all }),
   });

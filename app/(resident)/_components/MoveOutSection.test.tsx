@@ -61,6 +61,31 @@ describe("MoveOutSection", () => {
     expect(screen.getByRole("dialog", { name: "퇴실 신청이 접수됐어요" })).toBeInTheDocument();
   });
 
+  it("검증 실패 시 날짜 필드에 포커스하고 ARIA로 오류를 연결한다", async () => {
+    const user = userEvent.setup();
+    render(<MoveOutSection open onClose={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "퇴실 신청하기" }));
+    const date = screen.getByLabelText(/희망 퇴실일/);
+    await waitFor(() => expect(date).toHaveFocus());
+    expect(date).toHaveAttribute("aria-invalid", "true");
+    expect(date).toHaveAttribute("aria-describedby", "move-out-desired-date-error");
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it("서버 실패는 전역 오류로 표시하고 화면을 유지한다", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    create.mockRejectedValue(new Error("퇴실 신청 저장 실패"));
+    render(<MoveOutSection open onClose={onClose} />);
+
+    await user.type(screen.getByLabelText(/희망 퇴실일/), "2026-09-30");
+    await user.click(screen.getByRole("button", { name: "퇴실 신청하기" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("퇴실 신청 저장 실패");
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it("edits a pending date and confirms cancellation through a warning", async () => {
     const user = userEvent.setup();
     moveOut.useMoveOutRequest.mockReturnValue({

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -25,6 +26,17 @@ const rows = [
   },
 ];
 
+function renderWorkspace(buildingId: number | null) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <PartnerMeterWorkspace buildingId={buildingId} />
+    </QueryClientProvider>,
+  );
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.createClient.mockReturnValue({ rpc: mocks.rpc });
@@ -41,7 +53,7 @@ beforeEach(() => {
 
 describe("PartnerMeterWorkspace", () => {
   it("loads the browser-local current month and refetches for a selected month", async () => {
-    render(<PartnerMeterWorkspace buildingId={7} />);
+    renderWorkspace(7);
 
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -67,7 +79,7 @@ describe("PartnerMeterWorkspace", () => {
 
   it("keeps meter input and save payload in the client workspace", async () => {
     const user = userEvent.setup();
-    render(<PartnerMeterWorkspace buildingId={7} />);
+    renderWorkspace(7);
 
     await screen.findByText("해오름빌라");
     await user.click(screen.getByRole("button", { name: /A동 201호/ }));
@@ -95,7 +107,7 @@ describe("PartnerMeterWorkspace", () => {
   });
 
   it("preserves the missing-building state without calling RPCs", async () => {
-    render(<PartnerMeterWorkspace buildingId={null} />);
+    renderWorkspace(null);
 
     expect(await screen.findByText("세대 정보가 없어요")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "뒤로" })).toHaveAttribute("href", "/partner/mobile-inquiry");

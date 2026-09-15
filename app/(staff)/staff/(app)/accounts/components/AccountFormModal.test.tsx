@@ -86,7 +86,24 @@ describe("AccountFormModal", () => {
     fireEvent.submit(screen.getByRole("button", { name: "등록" }).closest("form")!);
 
     expect(await screen.findByText("비밀번호는 숫자 4자리를 입력해 주세요")).toBeInTheDocument();
+    const password = screen.getByLabelText("비밀번호");
+    await waitFor(() => expect(password).toHaveFocus());
+    expect(password).toHaveAttribute("aria-invalid", "true");
+    expect(password).toHaveAttribute("aria-describedby", "password-error");
     expect(onCreate).not.toHaveBeenCalled();
+  });
+
+  it("서버 실패는 전역 오류로 표시하고 모달을 유지", async () => {
+    const onCreate = vi.fn().mockRejectedValue(new Error("계정 저장 실패"));
+    const onClose = vi.fn();
+    render(<AccountFormModal {...baseProps} editing={null} onCreate={onCreate} onClose={onClose} />);
+    fireEvent.change(screen.getByLabelText("아이디"), { target: { value: "staff" } });
+    fireEvent.change(screen.getByLabelText("비밀번호"), { target: { value: "1234" } });
+    fireEvent.change(screen.getByLabelText("이름"), { target: { value: "홍직원" } });
+    fireEvent.click(screen.getByRole("button", { name: "등록" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("계정 저장 실패");
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it("수정 PIN은 빈칸이면 유지하고 입력하면 reset 경로를 호출", async () => {

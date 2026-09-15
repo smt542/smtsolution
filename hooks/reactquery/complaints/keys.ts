@@ -16,4 +16,8 @@ export const complaintKeys = {
   one: (id: number) => ["complaints", "detail", id] as const,
   resolutions: (complaintId: number) =>
     ["complaints", "resolutions", complaintId] as const,
+  partnerDetail: (complaintId: number | null) =>
+    ["complaints", "partner", "detail", complaintId] as const,
+  partnerUnits: (buildingId: number | null) =>
+    ["complaints", "partner", "units", buildingId] as const,
 };

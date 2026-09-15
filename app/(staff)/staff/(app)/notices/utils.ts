@@ -1,4 +1,5 @@
 import type { Notice, NoticeStatus, NoticeType } from "@/hooks/reactquery/notices";
+import { createNoticeFormSchema } from "@/components/forms/schema/notice";
 
 export const NOTICE_TYPE_LABELS: Record<NoticeType, string> = {
   normal: "신규",
@@ -95,24 +96,14 @@ export function validateNoticeForm({
   expiresAt: string;
   now?: Date;
 }): string | null {
-  if (!title.trim()) return "제목을 입력해 주세요.";
-  if (!content.trim()) return "내용을 입력해 주세요.";
-
-  const publishedAt = publishMode === "scheduled" ? toIsoDateTime(scheduledAt) : null;
-  if (publishMode === "scheduled") {
-    if (!publishedAt) return "예약 게시 일시를 입력해 주세요.";
-    if (new Date(publishedAt).getTime() <= now.getTime()) {
-      return "예약 게시 일시는 현재 이후로 선택해 주세요.";
-    }
-  }
-
-  const expiresIso = toIsoDateTime(expiresAt);
-  if (expiresAt && !expiresIso) return "게시 종료 일시를 확인해 주세요.";
-  if (expiresIso) {
-    const publishTime = publishedAt ? new Date(publishedAt).getTime() : now.getTime();
-    if (new Date(expiresIso).getTime() <= publishTime) {
-      return "게시 종료 일시는 게시 일시 이후로 선택해 주세요.";
-    }
-  }
-  return null;
+  const result = createNoticeFormSchema(now).safeParse({
+    target: "organization",
+    noticeType: "normal",
+    title,
+    content,
+    publishMode,
+    scheduledAt,
+    expiresAt,
+  });
+  return result.success ? null : result.error.issues[0]?.message ?? "공지 입력값을 확인해 주세요.";
 }

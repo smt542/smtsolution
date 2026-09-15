@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -52,14 +53,18 @@ const contextData = {
 const renderPage = async (query: {
   unitId?: string | string[];
   settlementId?: string | string[];
-}) =>
-  render(
-    <>
+}) => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
       {await PartnerMsNewPage({
         searchParams: Promise.resolve(query),
       })}
-    </>,
+    </QueryClientProvider>,
   );
+};
 
 beforeEach(() => {
   vi.clearAllMocks();

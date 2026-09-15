@@ -108,7 +108,7 @@ export function VendorManagementSection() {
   const handleSubmit = async (values: VendorFormOutput, pendingFiles: File[]) => {
     if (!orgId) {
       appToast.error("인증 정보가 없습니다.");
-      return { failedFiles: pendingFiles };
+      throw new Error("인증 정보가 없습니다.");
     }
     try {
       let vendorId = editingVendor?.id ?? createdVendorIdForRetry;

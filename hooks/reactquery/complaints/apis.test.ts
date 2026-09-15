@@ -2,15 +2,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const from = vi.fn();
-vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ from }) }));
+const rpc = vi.fn();
+vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ from, rpc }) }));
 
 import {
   createComplaint,
+  createPartnerComplaint,
   createComplaintResolution,
   deleteComplaint,
+  deletePartnerComplaint,
+  getPartnerComplaintEditor,
   deleteComplaintResolution,
   listComplaintResolutions,
   listComplaints,
+  listPartnerUnits,
+  updatePartnerComplaint,
   updateComplaintResolution,
   updateComplaintStatus,
 } from "./apis";
@@ -220,5 +226,75 @@ describe("complaint resolutions apis", () => {
     await deleteComplaintResolution(91);
     expect(remove).toHaveBeenCalledOnce();
     expect(eq).toHaveBeenCalledWith("id", 91);
+  });
+});
+
+describe("partner complaint apis", () => {
+  it("상세와 카테고리를 함께 조회하고 세대 목록을 반환한다", async () => {
+    rpc
+      .mockResolvedValueOnce({
+        data: [{ id: 11, building_name: "해오름", is_mine: true }],
+        error: null,
+      })
+      .mockResolvedValueOnce({ data: [{ id: 2, label: "수도" }], error: null });
+
+    await expect(getPartnerComplaintEditor(11)).resolves.toMatchObject({
+      detail: { id: 11, building_name: "해오름", is_mine: true },
+      categories: [{ id: 2, label: "수도" }],
+    });
+
+    rpc.mockResolvedValueOnce({
+      data: [{ unit_id: 101, unit_no: "101호", dong: "A동", phone: "010" }],
+      error: null,
+    });
+    await expect(listPartnerUnits(3)).resolves.toHaveLength(1);
+    expect(rpc).toHaveBeenLastCalledWith("partner_list_units", {
+      p_building_id: 3,
+    });
+  });
+
+  it("현장 A/S 등록·수정·삭제 RPC payload를 한 API 계층에서 관리한다", async () => {
+    rpc.mockResolvedValue({ data: null, error: null });
+
+    await createPartnerComplaint({
+      buildingId: 3,
+      unitId: 101,
+      categoryId: 2,
+      content: "누수",
+      status: "pending",
+      completedAt: null,
+      resultContent: "",
+      reporterPhone: "010",
+    });
+    expect(rpc).toHaveBeenLastCalledWith("partner_create_complaint", {
+      p_building_id: 3,
+      p_unit_id: 101,
+      p_category_id: 2,
+      p_content: "누수",
+      p_status: "pending",
+      p_completed_at: null,
+      p_result_content: "",
+      p_reporter_phone: "010",
+    });
+
+    await updatePartnerComplaint({
+      id: 11,
+      categoryId: 2,
+      content: "처리",
+      status: "completed",
+      completedAt: "2026-09-15T01:00:00.000Z",
+      resultContent: "완료",
+    });
+    expect(rpc).toHaveBeenLastCalledWith("partner_update_complaint", {
+      p_id: 11,
+      p_category_id: 2,
+      p_content: "처리",
+      p_status: "completed",
+      p_completed_at: "2026-09-15T01:00:00.000Z",
+      p_result_content: "완료",
+    });
+
+    await deletePartnerComplaint(11);
+    expect(rpc).toHaveBeenLastCalledWith("partner_delete_complaint", { p_id: 11 });
   });
 });

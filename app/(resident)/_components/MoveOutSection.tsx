@@ -1,8 +1,19 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 import ResidentBottomSheet from "@/app/(resident)/_components/ResidentBottomSheet";
+import { setSubmissionError } from "@/components/forms/formErrors";
+import {
+  moveOutCreateSchema,
+  moveOutUpdateSchema,
+  type MoveOutCreateInput,
+  type MoveOutCreateValues,
+  type MoveOutUpdateInput,
+  type MoveOutUpdateValues,
+} from "@/components/forms/schema/residentMoveOut";
 import {
   useCancelMoveOut,
   useCreateMoveOut,
@@ -38,64 +49,75 @@ export default function MoveOutSection({ open, onClose }: MoveOutSectionProps) {
   const createMutation = useCreateMoveOut();
   const updateMutation = useUpdateMoveOut();
   const cancelMutation = useCancelMoveOut();
-  const [desiredDate, setDesiredDate] = useState("");
-  const [reason, setReason] = useState("");
-  const [editDate, setEditDate] = useState("");
   const [showNewForm, setShowNewForm] = useState(false);
   const [showCreated, setShowCreated] = useState(false);
   const [showCancelWarning, setShowCancelWarning] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
-  const createRequest = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!desiredDate) return;
-    setFormError(null);
+  const createForm = useForm<MoveOutCreateInput, unknown, MoveOutCreateValues>({
+    resolver: zodResolver(moveOutCreateSchema),
+    defaultValues: { desiredDate: "", reason: "" },
+    shouldFocusError: true,
+  });
+  const updateForm = useForm<MoveOutUpdateInput, unknown, MoveOutUpdateValues>({
+    resolver: zodResolver(moveOutUpdateSchema),
+    defaultValues: { desiredDate: "" },
+    shouldFocusError: true,
+  });
+
+  const submitting = createMutation.isPending
+    || updateMutation.isPending
+    || cancelMutation.isPending
+    || createForm.formState.isSubmitting
+    || updateForm.formState.isSubmitting;
+  const closeSafely = () => {
+    if (submitting) return;
+    createForm.reset({ desiredDate: "", reason: "" });
+    updateForm.reset({ desiredDate: "" });
+    setEditing(false);
+    setShowCancelWarning(false);
+    setActionError(null);
+    setActionMessage(null);
+    onClose();
+  };
+
+  const createRequest = async (values: MoveOutCreateValues) => {
+    setActionError(null);
     setActionMessage(null);
 
     try {
-      await createMutation.mutateAsync({
-        desiredDate,
-        reason: reason.trim() || null,
-      });
+      await createMutation.mutateAsync(values);
+      createForm.reset({ desiredDate: "", reason: "" });
       setShowCreated(true);
       setShowNewForm(false);
-      setReason("");
     } catch (error) {
       const refreshed = await requestQuery.refetch();
       if (refreshed.data?.status === "pending") {
+        createForm.reset({ desiredDate: "", reason: "" });
         setShowNewForm(false);
         return;
       }
-      setFormError(
-        error instanceof Error
-          ? error.message
-          : "퇴실 신청을 접수하지 못했어요.",
-      );
+      setSubmissionError(error, createForm.setError, "퇴실 신청을 접수하지 못했어요.");
     }
   };
 
-  const updateRequest = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!editDate) return;
-    setFormError(null);
+  const updateRequest = async (values: MoveOutUpdateValues) => {
+    setActionError(null);
     setActionMessage(null);
     try {
-      await updateMutation.mutateAsync(editDate);
+      await updateMutation.mutateAsync(values.desiredDate);
+      updateForm.reset({ desiredDate: "" });
       setEditing(false);
       setActionMessage("희망 퇴실일을 변경했어요.");
     } catch (error) {
-      setFormError(
-        error instanceof Error
-          ? error.message
-          : "희망 퇴실일을 변경하지 못했어요.",
-      );
+      setSubmissionError(error, updateForm.setError, "희망 퇴실일을 변경하지 못했어요.");
     }
   };
 
   const cancelRequest = async () => {
-    setFormError(null);
+    setActionError(null);
     setActionMessage(null);
     try {
       await cancelMutation.mutateAsync();
@@ -103,7 +125,7 @@ export default function MoveOutSection({ open, onClose }: MoveOutSectionProps) {
       setActionMessage("퇴실 신청을 취소했어요.");
     } catch (error) {
       setShowCancelWarning(false);
-      setFormError(
+      setActionError(
         error instanceof Error
           ? error.message
           : "퇴실 신청을 취소하지 못했어요.",
@@ -120,7 +142,7 @@ export default function MoveOutSection({ open, onClose }: MoveOutSectionProps) {
     <ResidentBottomSheet
       variant="stepped"
       open={open}
-      onDismiss={onClose}
+      onDismiss={closeSafely}
     >
       <div className={styles.sheetTitle}>퇴실 신청</div>
       <div className={styles.sheetScroll}>
@@ -136,7 +158,7 @@ export default function MoveOutSection({ open, onClose }: MoveOutSectionProps) {
           </button>
         </div>
       ) : showForm ? (
-        <form className={styles.form} onSubmit={createRequest}>
+        <form className={styles.form} onSubmit={createForm.handleSubmit(createRequest)} noValidate>
           {canStartAgain ? (
             <button
               type="button"
@@ -149,27 +171,39 @@ export default function MoveOutSection({ open, onClose }: MoveOutSectionProps) {
           <label>
             <span>희망 퇴실일 <em>필수</em></span>
             <input
+              id="move-out-desired-date"
               type="date"
-              required
-              value={desiredDate}
-              onChange={(event) => setDesiredDate(event.target.value)}
+              {...createForm.register("desiredDate")}
+              aria-invalid={Boolean(createForm.formState.errors.desiredDate)}
+              aria-describedby={createForm.formState.errors.desiredDate ? "move-out-desired-date-error" : undefined}
             />
+            {createForm.formState.errors.desiredDate?.message && (
+              <small id="move-out-desired-date-error" className={styles.error}>{createForm.formState.errors.desiredDate.message}</small>
+            )}
           </label>
           <label>
             <span>사유 <small>선택</small></span>
             <textarea
+              id="move-out-reason"
               rows={3}
-              value={reason}
               placeholder="퇴실 사유를 입력해 주세요."
-              onChange={(event) => setReason(event.target.value)}
+              {...createForm.register("reason")}
+              aria-invalid={Boolean(createForm.formState.errors.reason)}
+              aria-describedby={createForm.formState.errors.reason ? "move-out-reason-error" : undefined}
             />
+            {createForm.formState.errors.reason?.message && (
+              <small id="move-out-reason-error" className={styles.error}>{createForm.formState.errors.reason.message}</small>
+            )}
           </label>
+          {createForm.formState.errors.root?.server?.message && (
+            <p className={styles.error} role="alert">{createForm.formState.errors.root.server.message}</p>
+          )}
           <button
             type="submit"
             className={styles.primaryButton}
-            disabled={createMutation.isPending}
+            disabled={createMutation.isPending || createForm.formState.isSubmitting}
           >
-            {createMutation.isPending ? "신청 중..." : "퇴실 신청하기"}
+            {createMutation.isPending || createForm.formState.isSubmitting ? "신청 중..." : "퇴실 신청하기"}
           </button>
         </form>
       ) : request?.status === "pending" ? (
@@ -187,21 +221,28 @@ export default function MoveOutSection({ open, onClose }: MoveOutSectionProps) {
           </dl>
 
           {editing ? (
-            <form className={styles.editForm} onSubmit={updateRequest}>
+            <form className={styles.editForm} onSubmit={updateForm.handleSubmit(updateRequest)} noValidate>
               <label>
                 <span>새 희망 퇴실일</span>
                 <input
+                  id="move-out-edit-date"
                   type="date"
-                  required
-                  value={editDate}
-                  onChange={(event) => setEditDate(event.target.value)}
+                  {...updateForm.register("desiredDate")}
+                  aria-invalid={Boolean(updateForm.formState.errors.desiredDate)}
+                  aria-describedby={updateForm.formState.errors.desiredDate ? "move-out-edit-date-error" : undefined}
                 />
+                {updateForm.formState.errors.desiredDate?.message && (
+                  <small id="move-out-edit-date-error" className={styles.error}>{updateForm.formState.errors.desiredDate.message}</small>
+                )}
               </label>
+              {updateForm.formState.errors.root?.server?.message && (
+                <p className={styles.error} role="alert">{updateForm.formState.errors.root.server.message}</p>
+              )}
               <div className={styles.actionRow}>
-                <button type="submit" disabled={updateMutation.isPending}>
-                  {updateMutation.isPending ? "변경 중..." : "변경 저장"}
+                <button type="submit" disabled={updateMutation.isPending || updateForm.formState.isSubmitting}>
+                  {updateMutation.isPending || updateForm.formState.isSubmitting ? "변경 중..." : "변경 저장"}
                 </button>
-                <button type="button" onClick={() => setEditing(false)}>
+                <button type="button" disabled={submitting} onClick={() => setEditing(false)}>
                   닫기
                 </button>
               </div>
@@ -211,7 +252,7 @@ export default function MoveOutSection({ open, onClose }: MoveOutSectionProps) {
               <button
                 type="button"
                 onClick={() => {
-                  setEditDate(request.desiredDate);
+                  updateForm.reset({ desiredDate: request.desiredDate });
                   setEditing(true);
                 }}
               >
@@ -242,8 +283,7 @@ export default function MoveOutSection({ open, onClose }: MoveOutSectionProps) {
               type="button"
               className={styles.primaryButton}
               onClick={() => {
-                setDesiredDate("");
-                setReason("");
+                createForm.reset({ desiredDate: "", reason: "" });
                 setShowNewForm(true);
               }}
             >
@@ -253,9 +293,9 @@ export default function MoveOutSection({ open, onClose }: MoveOutSectionProps) {
         </div>
       ) : null}
 
-      {formError ? (
+      {actionError ? (
         <p className={styles.error} role="alert">
-          {formError}
+          {actionError}
         </p>
       ) : null}
       {actionMessage ? (
@@ -284,7 +324,7 @@ export default function MoveOutSection({ open, onClose }: MoveOutSectionProps) {
             <h3 id="move-out-cancel-title">퇴실 신청을 취소할까요?</h3>
             <p>취소하면 담당자가 확인 중인 신청이 종료돼요.</p>
             <div className={styles.modalActions}>
-              <button type="button" onClick={() => setShowCancelWarning(false)}>
+              <button type="button" disabled={cancelMutation.isPending} onClick={() => setShowCancelWarning(false)}>
                 돌아가기
               </button>
               <button

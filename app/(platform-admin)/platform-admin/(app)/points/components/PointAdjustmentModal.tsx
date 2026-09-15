@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button, Input, Modal, Select } from "@/components/common";
 import { FormField } from "@/components/common/FormField";
+import { setSubmissionError } from "@/components/forms/formErrors";
 import {
   pointAdjustmentSchema,
   type PointAdjustmentFormValues,
@@ -49,8 +50,9 @@ export function PointAdjustmentModal({
     register,
     handleSubmit,
     reset,
+    setError,
     control,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<FormInput, unknown, PointAdjustmentFormValues>({
     resolver: zodResolver(pointAdjustmentSchema),
     defaultValues: {
@@ -60,7 +62,9 @@ export function PointAdjustmentModal({
       amountKrw: undefined,
       memo: "",
     },
+    shouldFocusError: true,
   });
+  const submitting = isPending || isSubmitting;
   const kind = useWatch({ control, name: "kind" });
 
   React.useEffect(() => {
@@ -75,18 +79,32 @@ export function PointAdjustmentModal({
   }, [open, organizations, reset]);
 
   const onValid = async (values: PointAdjustmentFormValues) => {
-    await onSubmit(values);
-    onClose();
+    try {
+      await onSubmit(values);
+      reset({
+        orgId: organizations[0]?.id,
+        kind: "correction",
+        points: undefined,
+        amountKrw: undefined,
+        memo: "",
+      });
+      onClose();
+    } catch (error) {
+      setSubmissionError(error, setError, "포인트 조정을 기록하지 못했습니다.");
+    }
+  };
+  const closeSafely = () => {
+    if (!submitting) onClose();
   };
 
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={closeSafely}
       title="포인트 조정"
       className={MODAL_CLASS}
     >
-      <form onSubmit={handleSubmit(onValid)} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit(onValid)} className="flex flex-col gap-4" noValidate>
         <FormField
           label="대상 조직"
           htmlFor="pa-org"
@@ -171,12 +189,16 @@ export function PointAdjustmentModal({
           조정 내역은 포인트 원장에 남으며 삭제할 수 없습니다.
         </InlineAlert>
 
+        {errors.root?.server?.message && (
+          <InlineAlert tone="dangerStrong" role="alert">{errors.root.server.message}</InlineAlert>
+        )}
+
         <ModalActions>
-          <Button type="button" variant="ghost" onClick={onClose} className={BUTTON_CLASS}>
+          <Button type="button" variant="ghost" onClick={closeSafely} disabled={submitting} className={BUTTON_CLASS}>
             취소
           </Button>
-          <Button type="submit" variant="primary" disabled={isPending || organizations.length === 0} className={BUTTON_CLASS}>
-            {isPending ? "기록 중…" : "조정 기록"}
+          <Button type="submit" variant="primary" disabled={submitting || organizations.length === 0} className={BUTTON_CLASS}>
+            {submitting ? "기록 중…" : "조정 기록"}
           </Button>
         </ModalActions>
       </form>

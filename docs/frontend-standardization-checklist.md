@@ -121,36 +121,50 @@ lib/                        React에 종속되지 않는 순수 로직과 외부
 
 완료 조건은 아래 17개 파일을 전수 확인하고, 모든 업무 입력 폼이 React Hook Form + Zod를 사용하거나 예외 사유가 이 문서에 기록되는 것이다. 이미 React Hook Form을 사용하는 폼도 표준 준수 여부를 다시 확인한다.
 
-- [ ] `app/(platform-admin)/platform-admin/(app)/accounts/components/AccountCreateModal.tsx`
-- [ ] `app/(platform-admin)/platform-admin/(app)/accounts/components/AccountEditModal.tsx`
-- [ ] `app/(platform-admin)/platform-admin/(app)/organizations/components/OrgFormModal.tsx`
-- [ ] `app/(platform-admin)/platform-admin/(app)/points/components/MessagePointRateModal.tsx`
-- [ ] `app/(platform-admin)/platform-admin/(app)/points/components/PointAdjustmentModal.tsx`
-- [ ] `app/(platform-admin)/platform-admin/(app)/points/components/PointChargeModal.tsx`
-- [ ] `app/(platform-admin)/platform-admin/login/LoginForm.tsx`
-- [ ] `app/(resident)/_components/MoveOutSection.tsx`
-- [ ] `app/(staff)/staff/(app)/accounts/components/AccountFormModal.tsx`
-- [ ] `app/(staff)/staff/(app)/buildings/components/BuildingSearchCard.tsx`
-- [ ] `app/(staff)/staff/(app)/fee-items/components/FeeItemFormDialog.tsx`
-- [ ] `app/(staff)/staff/(app)/management-fee/components/FeeItemFormModal.tsx`
-- [ ] `app/(staff)/staff/(app)/notices/components/NoticeFormModal.tsx`
-- [ ] `app/(staff)/staff/(app)/receipts/components/AsComplaintForm.tsx`
-- [ ] `app/(staff)/staff/(app)/receipts/components/payment/PaymentAmountModal.tsx`
-- [ ] `app/(staff)/staff/login/components/LoginForm.tsx`
-- [ ] `components/vendors/VendorFormModal.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/accounts/components/AccountCreateModal.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/accounts/components/AccountEditModal.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/organizations/components/OrgFormModal.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/points/components/MessagePointRateModal.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/points/components/PointAdjustmentModal.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/points/components/PointChargeModal.tsx`
+- [x] `app/(platform-admin)/platform-admin/login/LoginForm.tsx`
+- [x] `app/(resident)/_components/MoveOutSection.tsx`
+- [x] `app/(staff)/staff/(app)/accounts/components/AccountFormModal.tsx`
+- [x] `app/(staff)/staff/(app)/buildings/components/BuildingSearchCard.tsx` — 전환 예외. 서버에 업무 데이터를 제출하는 폼이 아니라 부모가 소유한 검색어·목록 필터를 전달하는 조회 전용 컨트롤이다. controlled 상태와 submit 이벤트를 유지하고 검색·필터 동작 테스트를 추가했다.
+- [x] `app/(staff)/staff/(app)/fee-items/components/FeeItemFormDialog.tsx`
+- [x] `app/(staff)/staff/(app)/management-fee/components/FeeItemFormModal.tsx`
+- [x] `app/(staff)/staff/(app)/notices/components/NoticeFormModal.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/AsComplaintForm.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/payment/PaymentAmountModal.tsx`
+- [x] `app/(staff)/staff/login/components/LoginForm.tsx`
+- [x] `components/vendors/VendorFormModal.tsx`
+
+전환 예외와 수명주기 적용 범위:
+
+- `BuildingSearchCard`만 React Hook Form + Zod 전환이 불필요한 항목이다. 검색 조건은 저장 데이터가 아니며, 유효성 검증이나 서버 mutation을 수행하지 않는다.
+- 두 로그인 폼은 성공 시 모달을 닫거나 입력값을 재사용하는 흐름이 아니라 라우팅으로 화면을 이탈하므로 성공 후 `reset`/닫기 규칙을 적용하지 않는다.
+- `FeeItemFormDialog`는 최종 저장 전의 로컬 관리항목 초안을 편집한다. 이 다이얼로그는 검증·reset·닫기 순서를 적용하고, query invalidation은 상위 일괄 저장 단계가 담당한다.
+- `AccountFormModal`의 입주자 수정 분기는 이 화면에서 수정 권한이 없는 기존 읽기 전용 안내이므로 입력 폼 전환 대상에서 제외했다.
 
 ### 4.1 폼 공통 완료 조건
 
-- [ ] 모든 필수값, 길이, 형식, 교차 필드 검증을 Zod로 옮긴다.
-- [ ] 생성/수정 모드의 `defaultValues`와 `reset` 동작을 검증한다.
-- [ ] 숫자, 날짜, 빈 문자열, nullable 값의 변환 규칙을 통일한다.
-- [ ] 모든 오류 입력에 `aria-invalid`를 제공한다.
-- [ ] 오류 메시지를 `aria-describedby`로 입력과 연결한다.
-- [ ] 첫 오류 필드로 포커스가 이동하는지 확인한다.
-- [ ] 제출 중 버튼을 비활성화하고 중복 요청을 방지한다.
-- [ ] 서버 오류가 필드 오류인지 전역 오류인지 구분한다.
-- [ ] 성공 후 닫기/reset/invalidation 순서를 통일한다.
-- [ ] 각 폼의 성공, 검증 실패, 서버 실패 테스트를 추가한다.
+- [x] 모든 필수값, 길이, 형식, 교차 필드 검증을 Zod로 옮긴다.
+- [x] 생성/수정 모드의 `defaultValues`와 `reset` 동작을 검증한다.
+- [x] 숫자, 날짜, 빈 문자열, nullable 값의 변환 규칙을 통일한다.
+- [x] 모든 오류 입력에 `aria-invalid`를 제공한다.
+- [x] 오류 메시지를 `aria-describedby`로 입력과 연결한다.
+- [x] 첫 오류 필드로 포커스가 이동하는지 확인한다.
+- [x] 제출 중 버튼을 비활성화하고 중복 요청과 모달 닫기를 방지한다.
+- [x] 서버 오류가 필드 오류인지 전역 오류인지 구분한다.
+- [x] 성공 순서를 `mutation 및 query invalidation 완료 → reset → 닫기`로 통일한다.
+- [x] 각 저장 폼의 성공, 검증 실패, 서버 실패 테스트를 추가한다. 조회 전용 예외인 `BuildingSearchCard`는 검색 submit과 필터 변경 테스트로 대체했다.
+
+구현 기준:
+
+- 스키마는 `components/forms/schema`의 도메인별 파일과 `common.ts` 변환 헬퍼로 통합했다.
+- RHF 입력 상태는 `z.input`, resolver 통과 후 제출값은 `z.output`으로 구분했다.
+- 선택 문자열은 API 계약에 따라 `undefined` 또는 `null`, nullable 날짜·일시는 빈 문자열을 `null`, 필수 숫자는 빈 문자열을 `0`이 아닌 검증 오류로 처리한다.
+- `setSubmissionError`는 구조화된 `fieldErrors`를 필드 오류로 연결하고 첫 서버 필드 오류에 포커스하며, 일반 서버 오류는 `root.server`에 둔다.
 
 ## 5. toast 전체 일괄 전환
 
@@ -244,7 +258,7 @@ lib/                        React에 종속되지 않는 순수 로직과 외부
 ## 9. 완료 판정
 
 - [x] 1차 범위: `hooks/common`, debounce 중복 제거, 이미지 업로드/조회/삭제, Free fallback 완료
-- [ ] 폼 범위: 17개 폼 전수 확인 및 표준화 완료
+- [x] 폼 범위: 17개 폼 전수 확인 및 표준화 완료
 - [ ] toast 범위: 허용된 경계 외 Sonner 직접 import 0건
 - [ ] loading 범위: 모든 비동기 상태가 정의된 상태 모델과 공통 UI를 사용
 - [ ] Tiptap 범위: 선설치 검증 완료, 공지사항 파일럿은 별도 완료 표시
@@ -271,9 +285,31 @@ lib/                        React에 종속되지 않는 순수 로직과 외부
 - [x] Free fallback 및 유료 transform 분기 단위 테스트 통과
 - [x] 실제 신규 건물/업체 ID 업로드와 부분 실패 재시도 단위 테스트 통과
 
+### 10.2 기존 폼 전체 일괄 전환 검증 결과
+
+2026-09-15 17개 대상 전수 확인 및 전환 후 결과다. 작업 시작 전에 전체 테스트 기준선을 다시 실행해 8개 파일·14개 실패를 확인했으며, 전환 후 실패 파일과 실패 테스트 수가 동일함을 대조했다.
+
+- [x] 표적 테스트: 19개 test file, 70개 test 통과. 17개 대상 폼과 공통 숫자·날짜·nullable 변환, 필드/전역 서버 오류 분기 포함
+- [x] `npm run lint`: 통과
+- [x] `npm run build`: Next.js 16.3.0 production build, TypeScript 검사, 72개 정적 페이지 생성 통과
+- [ ] `npm test`: 336개 test file 중 326개 통과, 8개 실패, 2개 skip; 1,290개 test 중 1,267개 통과, 14개 실패, 9개 skip
+- [x] 신규 회귀: 0개. 작업 전 기준선은 323개 test file 중 313개 통과, 8개 실패, 2개 skip; 1,246개 test 중 1,223개 통과, 14개 실패, 9개 skip였다. 신규 13개 test file과 44개 test가 추가됐고 실패 수는 증가하지 않았다.
+
+기존 기준선 8개 실패 파일(총 14개 실패):
+
+- `components/shell/navItems.test.ts` — 1개
+- `app/(staff)/staff/(app)/messaging/page.test.tsx` — 3개
+- `app/(staff)/staff/(app)/messaging/components/HistoryTab.test.tsx` — 2개
+- `app/(staff)/staff/(app)/notices/page.test.tsx` — 3개
+- `app/api/resident/kakao/login/route.test.ts` — 1개
+- `app/api/resident/kakao/stub/route.test.ts` — 1개
+- `app/(staff)/staff/(app)/utilities/components/UtilityWorkspaceHeader.test.tsx` — 1개
+- `app/(staff)/staff/(app)/receipts/components/payment/GiroLedgerModal.test.tsx` — 2개
+
 ## 11. 변경 이력
 
 - 2026-09-15: 최초 작성. 사용자 결정 5건과 현재 코드 인벤토리를 반영했다.
 - 2026-09-15: Tiptap React 최소 패키지 3종 `3.31.3` 선설치 완료.
 - 2026-09-15: 사용자 지시에 따라 `docs/prototype/**`를 작업 및 lint 범위에서 제외.
 - 2026-09-15: 1차 범위의 공통 훅, debounce 통합, 이미지 첨부 데이터 경계, Free Supabase fallback 구현 및 검증 완료.
+- 2026-09-15: 4장 17개 대상 전수 확인. 저장 폼을 React Hook Form + Zod로 통합하고 `BuildingSearchCard`는 조회 전용 예외로 근거를 기록했으며, 표적 테스트 19개 파일·70개 통과와 전체 기준선 대비 신규 회귀 0개를 확인했다.

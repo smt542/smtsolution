@@ -1,38 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
+import {
+  usePartnerMeterWorkspace,
+  useSavePartnerMeterReadings,
+  type PartnerMeterValue,
+} from "@/hooks/reactquery/utilities";
 import { formatMonth } from "@/lib/format";
-import { createClient } from "@/lib/supabase/client";
 
 import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
 import { PartnerConfirmDialog } from "../../../_components/PartnerConfirmDialog";
 import styles from "./mobile-meter.module.css";
 
-type Meter = { prev: string; cur: string };
-type UnitRow = {
-  unit_id: number;
-  unit_no: string;
-  dong: string | null;
-  tenant_name: string | null;
-  meters: Record<string, Meter>;
-};
-type RawRow = {
-  unit_id: number;
-  unit_no: string;
-  dong: string | null;
-  tenant_name: string | null;
-  utility: string;
-  previous_reading: number | null;
-  current_reading: number | null;
-};
-
 const KIND = [
   { k: "water", l: "수도", u: "㎥" },
   { k: "elec", l: "전기", u: "kWh" },
   { k: "gas", l: "가스", u: "㎥" },
-];
+] as const;
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -40,76 +26,62 @@ function unitLabel(dong: string | null, unitNo: string) {
   return `${dong ? `${dong} ` : ""}${unitNo}`;
 }
 
-function group(rows: RawRow[]): UnitRow[] {
-  const map = new Map<number, UnitRow>();
-  for (const r of rows) {
-    let u = map.get(r.unit_id);
-    if (!u) {
-      u = { unit_id: r.unit_id, unit_no: r.unit_no, dong: r.dong, tenant_name: r.tenant_name, meters: {} };
-      map.set(r.unit_id, u);
-    }
-    u.meters[r.utility] = {
-      prev: r.previous_reading != null ? String(r.previous_reading) : "",
-      cur: r.current_reading != null ? String(r.current_reading) : "",
-    };
-  }
-  return [...map.values()];
-}
-
-function usageOf(m: Meter | undefined) {
+function usageOf(m: PartnerMeterValue | undefined) {
   if (!m) return "";
-  const p = parseFloat(m.prev);
-  const c = parseFloat(m.cur);
+  const p = parseFloat(m.previous);
+  const c = parseFloat(m.current);
   if (!isFinite(p) || !isFinite(c)) return "";
   return String(Math.max(0, c - p));
 }
+
+type MeterDraft = {
+  scope: string;
+  values: Record<string, PartnerMeterValue>;
+};
+
+const meterKey = (unitId: number, utility: string) => `${unitId}:${utility}`;
 
 export default function PartnerMeterWorkspace({ buildingId }: { buildingId: number | null }) {
   const [month, setMonth] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
   });
-  const [buildingName, setBuildingName] = useState("");
-  const [units, setUnits] = useState<UnitRow[]>([]);
   const [open, setOpen] = useState<Set<number>>(new Set());
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
+  const [draft, setDraft] = useState<MeterDraft>({ scope: "", values: {} });
   const [saved, setSaved] = useState(false);
   const [confirm, setConfirm] = useState(false);
 
-  useEffect(() => {
-    let alive = true;
-    void (async () => {
-      if (buildingId == null) {
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
-      const supabase = createClient();
-      const [{ data: b }, { data: r }] = await Promise.all([
-        supabase.rpc("partner_get_building", { p_building_id: buildingId }),
-        supabase.rpc("partner_list_meter_readings", { p_building_id: buildingId, p_period: `${month}-01` }),
-      ]);
-      if (!alive) return;
-      const bb = Array.isArray(b) ? b[0] : b;
-      setBuildingName(bb?.name ?? "");
-      setUnits(group(Array.isArray(r) ? (r as RawRow[]) : []));
-      setLoading(false);
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [buildingId, month]);
+  const period = `${month}-01`;
+  const scope = `${buildingId ?? "none"}:${period}`;
+  const meterQuery = usePartnerMeterWorkspace(buildingId, period);
+  const saveMutation = useSavePartnerMeterReadings();
+  const draftValues = draft.scope === scope ? draft.values : {};
+  const units = (meterQuery.data?.units ?? []).map((unit) => ({
+    ...unit,
+    meters: Object.fromEntries(
+      KIND.map(({ k }) => [
+        k,
+        draftValues[meterKey(unit.unitId, k)]
+          ?? unit.meters[k]
+          ?? { previous: "", current: "" },
+      ]),
+    ),
+  }));
+  const buildingName = meterQuery.data?.buildingName ?? "";
+  const loading = buildingId !== null && meterQuery.isPending;
+  const busy = saveMutation.isPending;
 
-  const setMeter = (unitId: number, util: string, field: "prev" | "cur", val: string) => {
+  const setMeter = (unitId: number, util: string, field: "previous" | "current", val: string) => {
     const v = val.replace(/[^0-9.]/g, "");
-    setUnits((prev) =>
-      prev.map((u) =>
-        u.unit_id === unitId
-          ? { ...u, meters: { ...u.meters, [util]: { ...(u.meters[util] ?? { prev: "", cur: "" }), [field]: v } } }
-          : u,
-      ),
-    );
+    const unit = units.find((item) => item.unitId === unitId);
+    const meter = unit?.meters[util] ?? { previous: "", current: "" };
+    setDraft((previousDraft) => ({
+      scope,
+      values: {
+        ...(previousDraft.scope === scope ? previousDraft.values : {}),
+        [meterKey(unitId, util)]: { ...meter, [field]: v },
+      },
+    }));
   };
 
   const toggle = (unitId: number) => {
@@ -122,30 +94,27 @@ export default function PartnerMeterWorkspace({ buildingId }: { buildingId: numb
   };
 
   const save = async () => {
-    if (busy) return;
-    setBusy(true);
+    if (busy || buildingId === null) return;
     setSaved(false);
     const readings = units.flatMap((u) =>
       KIND.map((kd) => ({
-        unit_id: u.unit_id,
+        unit_id: u.unitId,
         utility: kd.k,
-        previous_reading: u.meters[kd.k]?.prev ?? "",
-        current_reading: u.meters[kd.k]?.cur ?? "",
+        previous_reading: u.meters[kd.k]?.previous ?? "",
+        current_reading: u.meters[kd.k]?.current ?? "",
       })),
     );
-    const { error } = await createClient().rpc("partner_save_meter_readings", {
-      p_building_id: buildingId,
-      p_period: `${month}-01`,
-      p_readings: readings,
-    });
-    setBusy(false);
-    if (!error) {
+    try {
+      await saveMutation.mutateAsync({ buildingId, period, readings });
+      setDraft({ scope: "", values: {} });
       setSaved(true);
       setTimeout(() => setSaved(false), 1700);
+    } catch {
+      setSaved(false);
     }
   };
 
-  const doneCount = units.filter((u) => KIND.some((kd) => (u.meters[kd.k]?.cur ?? "") !== "")).length;
+  const doneCount = units.filter((u) => KIND.some((kd) => (u.meters[kd.k]?.current ?? "") !== "")).length;
 
   const header = (
     <div className={styles.header}>
@@ -178,13 +147,13 @@ export default function PartnerMeterWorkspace({ buildingId }: { buildingId: numb
           <div className={styles.none}>세대 정보가 없어요</div>
         ) : (
           units.map((u) => {
-            const isOpen = open.has(u.unit_id);
-            const filled = KIND.some((kd) => (u.meters[kd.k]?.cur ?? "") !== "");
+            const isOpen = open.has(u.unitId);
+            const filled = KIND.some((kd) => (u.meters[kd.k]?.current ?? "") !== "");
             return (
-              <div key={u.unit_id} className={`${styles.ucell} ${isOpen ? styles.ucellOpen : ""}`}>
-                <button type="button" className={styles.uhead} onClick={() => toggle(u.unit_id)}>
-                  <span className={styles.uho}>{unitLabel(u.dong, u.unit_no)}</span>
-                  <span className={styles.unm}>{u.tenant_name ?? "공실"}</span>
+              <div key={u.unitId} className={`${styles.ucell} ${isOpen ? styles.ucellOpen : ""}`}>
+                <button type="button" className={styles.uhead} onClick={() => toggle(u.unitId)}>
+                  <span className={styles.uho}>{unitLabel(u.dong, u.unitNo)}</span>
+                  <span className={styles.unm}>{u.tenantName ?? "공실"}</span>
                   <span className={`${styles.ust} ${filled ? styles.ustOn : ""}`}>{filled ? "입력완료" : "미입력"}</span>
                   <svg className={styles.uchev} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round">
                     <path d="M6 9l6 6 6-6" />
@@ -193,7 +162,7 @@ export default function PartnerMeterWorkspace({ buildingId }: { buildingId: numb
                 {isOpen && (
                   <div className={styles.ubody}>
                     {KIND.map((kd) => {
-                      const m = u.meters[kd.k] ?? { prev: "", cur: "" };
+                      const m = u.meters[kd.k] ?? { previous: "", current: "" };
                       return (
                         <div key={kd.k} className={styles.grp}>
                           <div className={styles.grpT}>
@@ -202,11 +171,11 @@ export default function PartnerMeterWorkspace({ buildingId }: { buildingId: numb
                           <div className={styles.g3}>
                             <label className={styles.fld}>
                               <span>전월</span>
-                              <input className={styles.fin} inputMode="decimal" placeholder="0" value={m.prev} onChange={(e) => setMeter(u.unit_id, kd.k, "prev", e.target.value)} />
+                              <input className={styles.fin} inputMode="decimal" placeholder="0" value={m.previous} onChange={(e) => setMeter(u.unitId, kd.k, "previous", e.target.value)} />
                             </label>
                             <label className={styles.fld}>
                               <span>금월</span>
-                              <input className={styles.fin} inputMode="decimal" placeholder="0" value={m.cur} onChange={(e) => setMeter(u.unit_id, kd.k, "cur", e.target.value)} />
+                              <input className={styles.fin} inputMode="decimal" placeholder="0" value={m.current} onChange={(e) => setMeter(u.unitId, kd.k, "current", e.target.value)} />
                             </label>
                             <div className={styles.fld}>
                               <span>사용량</span>

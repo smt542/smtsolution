@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, Input, Select } from "@/components/common";
-import type {
-  PaymentKind,
-  PaymentMethod,
-  PaymentRow,
-} from "@/hooks/reactquery/payments";
+import { FormField } from "@/components/common/FormField";
+import { setSubmissionError } from "@/components/forms/formErrors";
+import {
+  paymentAmountSchema,
+  type PaymentAmountInput,
+  type PaymentAmountValues,
+} from "@/components/forms/schema/payment";
+import type { PaymentKind, PaymentMethod, PaymentRow } from "@/hooks/reactquery/payments";
 import { formatWon } from "@/lib/format";
 import { ComplaintDialog } from "../ComplaintDialog";
 import { KIND_LABEL, METHOD_OPTIONS } from "./constants";
@@ -19,12 +24,7 @@ interface PaymentAmountModalProps {
   defaultMethod?: PaymentMethod;
   isPending: boolean;
   onClose: () => void;
-  onSubmit: (value: {
-    amount: number;
-    method: PaymentMethod;
-    memo: string | null;
-    paidAt: string | null;
-  }) => void;
+  onSubmit: (value: PaymentAmountValues) => Promise<void>;
 }
 
 function today() {
@@ -42,33 +42,46 @@ function PaymentAmountForm({
   onClose,
   onSubmit,
 }: Omit<PaymentAmountModalProps, "open">) {
-  const [amountInput, setAmountInput] = useState(String(defaultAmount));
-  const [method, setMethod] = useState<PaymentMethod>(defaultMethod ?? "transfer");
-  const [memo, setMemo] = useState("");
-  const [paidAt, setPaidAt] = useState(today);
-  const amount = kind === "partial" ? Number(amountInput) : defaultAmount;
-  const amountIsValid = Number.isFinite(amount) && amount > 0;
+  const makeDefaults = useCallback((): PaymentAmountInput => ({
+    amount: defaultAmount,
+    method: defaultMethod ?? "transfer",
+    memo: "",
+    paidAt: today(),
+  }), [defaultAmount, defaultMethod]);
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<PaymentAmountInput, unknown, PaymentAmountValues>({
+    resolver: zodResolver(paymentAmountSchema),
+    defaultValues: makeDefaults(),
+    shouldFocusError: true,
+  });
+  const submitting = isPending || isSubmitting;
   const unitLabel = row.dong ? `${row.dong} ${row.unitNo}` : row.unitNo;
+  const closeSafely = () => {
+    if (!submitting) onClose();
+  };
 
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!amountIsValid || isPending) return;
-    onSubmit({
-      amount,
-      method,
-      memo: memo.trim() || null,
-      paidAt: paidAt || null,
-    });
+  useEffect(() => {
+    reset(makeDefaults());
+  }, [makeDefaults, reset]);
+
+  const submit = async (values: PaymentAmountValues) => {
+    try {
+      await onSubmit(values);
+      reset(makeDefaults());
+      onClose();
+    } catch (error) {
+      setSubmissionError(error, setError, "수납 처리에 실패했습니다.");
+    }
   };
 
   return (
-    <ComplaintDialog
-      open
-      onClose={onClose}
-      title={`${KIND_LABEL[kind]} 처리`}
-      size="medium"
-    >
-      <form className="space-y-5" onSubmit={handleSubmit}>
+    <ComplaintDialog open onClose={closeSafely} title={`${KIND_LABEL[kind]} 처리`} size="medium">
+      <form className="space-y-5" onSubmit={handleSubmit(submit)} noValidate>
         <div className="rounded-xl bg-bg p-4">
           <p className="text-xs font-bold text-t3">호실</p>
           <p className="mt-1 font-extrabold text-t1">{unitLabel}</p>
@@ -76,69 +89,39 @@ function PaymentAmountForm({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="space-y-2 text-sm font-bold text-t2">
-            수납금액 <span className="text-red">*</span>
+          <FormField htmlFor="payment-amount" label={<>수납금액 <span className="text-red">*</span></>} error={errors.amount?.message} className="space-y-2 text-sm font-bold text-t2">
             {kind === "partial" ? (
-              <Input
-                aria-label="수납금액"
-                type="number"
-                min="1"
-                step="1"
-                required
-                value={amountInput}
-                onChange={(event) => setAmountInput(event.target.value)}
-              />
+              <Input id="payment-amount" aria-label="수납금액" type="number" min="1" step="1" {...register("amount")} />
             ) : (
-              <div className="num flex h-11 items-center rounded-xl border border-line bg-bg px-4 text-t1">
-                {formatWon(defaultAmount)}
-              </div>
+              <>
+                <input type="hidden" {...register("amount")} />
+                <div id="payment-amount" className="num flex h-11 items-center rounded-xl border border-line bg-bg px-4 text-t1">
+                  {formatWon(defaultAmount)}
+                </div>
+              </>
             )}
-          </label>
+          </FormField>
 
-          <label className="space-y-2 text-sm font-bold text-t2">
-            수납방법
-            <Select
-              aria-label="수납방법"
-              value={method}
-              onChange={(event) => setMethod(event.target.value as PaymentMethod)}
-              options={METHOD_OPTIONS}
-            />
-          </label>
+          <FormField htmlFor="payment-method" label="수납방법" error={errors.method?.message} className="space-y-2 text-sm font-bold text-t2">
+            <Select id="payment-method" aria-label="수납방법" {...register("method")} options={METHOD_OPTIONS} />
+          </FormField>
 
-          <label className="space-y-2 text-sm font-bold text-t2">
-            수납일
-            <Input
-              aria-label="수납일"
-              type="date"
-              value={paidAt}
-              onChange={(event) => setPaidAt(event.target.value)}
-            />
-          </label>
+          <FormField htmlFor="payment-date" label="수납일" error={errors.paidAt?.message} className="space-y-2 text-sm font-bold text-t2">
+            <Input id="payment-date" aria-label="수납일" type="date" {...register("paidAt")} />
+          </FormField>
 
-          <label className="space-y-2 text-sm font-bold text-t2">
-            비고
-            <Input
-              aria-label="비고"
-              value={memo}
-              onChange={(event) => setMemo(event.target.value)}
-              placeholder="수납 관련 메모"
-            />
-          </label>
+          <FormField htmlFor="payment-memo" label="비고" error={errors.memo?.message} className="space-y-2 text-sm font-bold text-t2">
+            <Input id="payment-memo" aria-label="비고" {...register("memo")} placeholder="수납 관련 메모" />
+          </FormField>
         </div>
 
-        {!amountIsValid && (
-          <p role="alert" className="text-sm font-semibold text-red">
-            수납금액은 0보다 커야 합니다.
-          </p>
+        {errors.root?.server?.message && (
+          <p role="alert" className="rounded-xl bg-red-t px-3 py-2 text-sm font-semibold text-red">{errors.root.server.message}</p>
         )}
 
         <div className="flex justify-end gap-2 border-t border-line pt-4">
-          <Button type="button" variant="ghost" onClick={onClose}>
-            닫기
-          </Button>
-          <Button type="submit" disabled={isPending || !amountIsValid}>
-            {isPending ? "처리 중…" : "수납 처리"}
-          </Button>
+          <Button type="button" variant="ghost" onClick={closeSafely} disabled={submitting}>닫기</Button>
+          <Button type="submit" disabled={submitting}>{submitting ? "처리 중…" : "수납 처리"}</Button>
         </div>
       </form>
     </ComplaintDialog>
@@ -147,16 +130,5 @@ function PaymentAmountForm({
 
 export function PaymentAmountModal(props: PaymentAmountModalProps) {
   if (!props.open) return null;
-
-  return (
-    <PaymentAmountForm
-      row={props.row}
-      kind={props.kind}
-      defaultAmount={props.defaultAmount}
-      defaultMethod={props.defaultMethod}
-      isPending={props.isPending}
-      onClose={props.onClose}
-      onSubmit={props.onSubmit}
-    />
-  );
+  return <PaymentAmountForm {...props} />;
 }

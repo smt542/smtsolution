@@ -1,19 +1,17 @@
 import { z } from "zod";
+import { optionalInteger, requiredInteger } from "./common";
 
 export const POINT_ADJUSTMENT_KINDS = ["correction", "deduction", "refund"] as const;
 
-const optionalAmountKrw = z.preprocess(
-  (value) => (value === "" || value === null || value === undefined ? undefined : value),
-  z.coerce.number().int().min(0, "환불액은 0 이상이어야 합니다").optional(),
+const optionalAmountKrw = optionalInteger("환불액은 정수로 입력해 주세요").pipe(
+  z.number().min(0, "환불액은 0 이상이어야 합니다").optional(),
 );
 
 export const pointAdjustmentSchema = z
   .object({
-    orgId: z.coerce.number().int().positive("조직을 선택해 주세요"),
+    orgId: requiredInteger("조직을 선택해 주세요").pipe(z.number().positive("조직을 선택해 주세요")),
     kind: z.enum(POINT_ADJUSTMENT_KINDS),
-    points: z.coerce
-      .number()
-      .int("포인트는 정수로 입력해 주세요")
+    points: requiredInteger("조정 포인트를 입력해 주세요")
       .refine((value) => value !== 0, "조정 포인트는 0이 아니어야 합니다"),
     amountKrw: optionalAmountKrw,
     memo: z
@@ -33,3 +31,4 @@ export const pointAdjustmentSchema = z
   });
 
 export type PointAdjustmentFormValues = z.output<typeof pointAdjustmentSchema>;
+export type PointAdjustmentFormInput = z.input<typeof pointAdjustmentSchema>;

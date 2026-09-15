@@ -14,6 +14,7 @@ import { z } from "zod";
 import { Modal, Input, Button, PhotoUpload } from "@/components/common";
 import { FormField } from "@/components/common/FormField";
 import { useConfirm } from "@/components/common/ConfirmProvider";
+import { setSubmissionError } from "@/components/forms/formErrors";
 import {
   orgCreateSchema,
   orgEditSchema,
@@ -40,11 +41,12 @@ type CreateProps = {
   isPending: boolean;
 };
 
+type EditInput = z.input<typeof orgEditSchema>;
 type EditProps = {
   mode: "edit";
   open: boolean;
   onClose: () => void;
-  defaultValues: OrgEditFormValues;
+  defaultValues: EditInput;
   defaultContractFilePath: string | null;
   onSubmit: (values: OrgEditSubmitValues) => Promise<void>;
   isPending: boolean;
@@ -55,7 +57,6 @@ export function OrgFormModal(props: CreateProps | EditProps) {
   return <EditModal {...props} />;
 }
 
-type EditInput = z.input<typeof orgEditSchema>;
 type CommonFieldName = keyof EditInput;
 
 const ORGANIZATION_FIELDS: Array<{
@@ -231,21 +232,39 @@ const CREATE_DEFAULTS: CreateInput = {
   ownerFullName: "",
   ownerPhone: "",
 };
+const CREATE_FIELD_ORDER: Array<keyof CreateInput> = [
+  ...ORGANIZATION_FIELDS.map((field) => field.name),
+  "ownerUsername",
+  "ownerFullName",
+  "ownerPhone",
+];
 
 function CreateModal({ open, onClose, onSubmit, isPending }: Omit<CreateProps, "mode">) {
   const [contractFile, setContractFile] = React.useState<File | null>(null);
   const {
     register,
     handleSubmit,
+    reset,
+    setError,
+    setFocus,
     formState: { errors, isSubmitting },
   } = useForm<CreateInput, unknown, OrgCreateFormValues>({
     resolver: zodResolver(orgCreateSchema),
     defaultValues: CREATE_DEFAULTS,
+    shouldFocusError: false,
   });
   const submitting = isPending || isSubmitting;
   const closeSafely = () => {
-    if (!submitting) onClose();
+    if (submitting) return;
+    reset(CREATE_DEFAULTS);
+    setContractFile(null);
+    onClose();
   };
+
+  React.useEffect(() => {
+    if (!open) return;
+    reset(CREATE_DEFAULTS);
+  }, [open, reset]);
 
   return (
     <Modal
@@ -255,14 +274,24 @@ function CreateModal({ open, onClose, onSubmit, isPending }: Omit<CreateProps, "
       className="max-h-[88vh] max-w-[520px] overflow-y-auto [&>h2]:text-[17px] [&>h2]:tracking-[-0.02em]"
     >
       <form
-        onSubmit={handleSubmit(async (values) => {
-          try {
-            await onSubmit({ ...values, contractFile });
-          } catch {
-            // The parent reports the operation error; keep the modal open for retry.
-          }
-        })}
+        onSubmit={handleSubmit(
+          async (values) => {
+            try {
+              await onSubmit({ ...values, contractFile });
+              reset(CREATE_DEFAULTS);
+              setContractFile(null);
+              onClose();
+            } catch (error) {
+              setSubmissionError(error, setError, "관리회사 입점에 실패했습니다.");
+            }
+          },
+          (fieldErrors) => {
+            const first = CREATE_FIELD_ORDER.find((field) => fieldErrors[field]);
+            if (first) setFocus(first);
+          },
+        )}
         className="flex flex-col gap-[18px]"
+        noValidate
       >
         <OrganizationFields idPrefix="create-org" register={register} errors={errors} />
         <ContractFileField
@@ -273,6 +302,12 @@ function CreateModal({ open, onClose, onSubmit, isPending }: Omit<CreateProps, "
           onRemove={() => setContractFile(null)}
           disabled={submitting}
         />
+
+        {errors.root?.server?.message && (
+          <p role="alert" className="rounded-xl bg-red-t px-3 py-2 text-sm font-semibold text-red">
+            {errors.root.server.message}
+          </p>
+        )}
 
         <hr className="border-line2" />
         <p className="text-[12.5px] font-bold text-t2">첫 관리자(owner) 계정</p>
@@ -356,14 +391,21 @@ function EditModal({
   const {
     register,
     handleSubmit,
+    reset,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<EditInput, unknown, OrgEditFormValues>({
     resolver: zodResolver(orgEditSchema),
     defaultValues,
+    shouldFocusError: true,
   });
   const submitting = isPending || isSubmitting;
   const closeSafely = () => {
-    if (!submitting) onClose();
+    if (submitting) return;
+    reset(defaultValues);
+    setContractFile(null);
+    setRemoveContractFile(false);
+    onClose();
   };
 
   return (
@@ -381,11 +423,16 @@ function EditModal({
               contractFile,
               removeContractFile,
             });
-          } catch {
-            // The parent reports the operation error; keep the modal open for retry.
+            reset(defaultValues);
+            setContractFile(null);
+            setRemoveContractFile(false);
+            onClose();
+          } catch (error) {
+            setSubmissionError(error, setError, "조직 계약 정보를 저장하지 못했습니다.");
           }
         })}
         className="flex flex-col gap-[18px]"
+        noValidate
       >
         <OrganizationFields idPrefix="edit-org" register={register} errors={errors} />
         <ContractFileField
@@ -402,6 +449,12 @@ function EditModal({
           }}
           disabled={submitting}
         />
+
+        {errors.root?.server?.message && (
+          <p role="alert" className="rounded-xl bg-red-t px-3 py-2 text-sm font-semibold text-red">
+            {errors.root.server.message}
+          </p>
+        )}
 
         <ModalActions>
           <Button

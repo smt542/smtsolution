@@ -603,3 +603,100 @@ export async function listMeterHistory(
     unitPrice: r.unit_price,
   }));
 }
+
+export interface PartnerMeterValue {
+  previous: string;
+  current: string;
+}
+
+export interface PartnerMeterUnit {
+  unitId: number;
+  unitNo: string;
+  dong: string | null;
+  tenantName: string | null;
+  meters: Record<string, PartnerMeterValue>;
+}
+
+export interface PartnerMeterWorkspaceData {
+  buildingName: string;
+  units: PartnerMeterUnit[];
+}
+
+interface PartnerMeterRpcRow {
+  unit_id: number;
+  unit_no: string;
+  dong: string | null;
+  tenant_name: string | null;
+  utility: string;
+  previous_reading: number | null;
+  current_reading: number | null;
+}
+
+function groupPartnerMeterRows(rows: PartnerMeterRpcRow[]): PartnerMeterUnit[] {
+  const units = new Map<number, PartnerMeterUnit>();
+  for (const row of rows) {
+    const unit = units.get(row.unit_id) ?? {
+      unitId: row.unit_id,
+      unitNo: row.unit_no,
+      dong: row.dong,
+      tenantName: row.tenant_name,
+      meters: {},
+    };
+    unit.meters[row.utility] = {
+      previous: row.previous_reading === null ? "" : String(row.previous_reading),
+      current: row.current_reading === null ? "" : String(row.current_reading),
+    };
+    units.set(row.unit_id, unit);
+  }
+  return [...units.values()];
+}
+
+export async function getPartnerMeterWorkspace(
+  buildingId: number,
+  period: string,
+): Promise<PartnerMeterWorkspaceData> {
+  const supabase = createClient();
+  const [buildingResult, readingsResult] = await Promise.all([
+    supabase.rpc("partner_get_building", { p_building_id: buildingId }),
+    supabase.rpc("partner_list_meter_readings", {
+      p_building_id: buildingId,
+      p_period: period,
+    }),
+  ]);
+  if (buildingResult.error) throw new Error(buildingResult.error.message);
+  if (readingsResult.error) throw new Error(readingsResult.error.message);
+
+  const building = Array.isArray(buildingResult.data)
+    ? buildingResult.data[0]
+    : buildingResult.data;
+  return {
+    buildingName: building?.name ?? "",
+    units: groupPartnerMeterRows(
+      Array.isArray(readingsResult.data)
+        ? (readingsResult.data as PartnerMeterRpcRow[])
+        : [],
+    ),
+  };
+}
+
+export interface SavePartnerMeterReadingsInput {
+  buildingId: number;
+  period: string;
+  readings: {
+    unit_id: number;
+    utility: string;
+    previous_reading: string;
+    current_reading: string;
+  }[];
+}
+
+export async function savePartnerMeterReadings(
+  input: SavePartnerMeterReadingsInput,
+): Promise<void> {
+  const { error } = await createClient().rpc("partner_save_meter_readings", {
+    p_building_id: input.buildingId,
+    p_period: input.period,
+    p_readings: input.readings,
+  });
+  if (error) throw new Error(error.message);
+}

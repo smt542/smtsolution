@@ -4,6 +4,8 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Modal, Input, Select, Button } from "@/components/common";
+import { FormField } from "@/components/common/FormField";
+import { setSubmissionError } from "@/components/forms/formErrors";
 import { feeItemSchema } from "@/components/forms/schema/feeItem";
 import type { FeeItem } from "@/hooks/reactquery/feeItems";
 
@@ -38,104 +40,109 @@ interface Props {
 }
 
 export function FeeItemFormModal({ open, onClose, editing, onSubmit, isPending }: Props) {
+  const makeDefaults = React.useCallback((): FeeItemInput => editing
+    ? {
+        name: editing.name,
+        rounding: editing.rounding as FeeItemInput["rounding"],
+        dailyProration: editing.dailyProration,
+        carryOver: editing.carryOver,
+      }
+    : { name: "", rounding: "round", dailyProration: false, carryOver: false }, [editing]);
   const {
     register,
     control,
     handleSubmit,
     reset,
-    formState: { errors },
+    setError,
+    formState: { errors, isSubmitting },
   } = useForm<FeeItemInput, unknown, FormValues>({
     resolver: zodResolver(feeItemSchema),
-    defaultValues: editing
-      ? {
-          name: editing.name,
-          rounding: editing.rounding as FeeItemInput["rounding"],
-          dailyProration: editing.dailyProration,
-          carryOver: editing.carryOver,
-        }
-      : { rounding: "round", dailyProration: false, carryOver: false },
+    defaultValues: makeDefaults(),
+    shouldFocusError: true,
   });
+  const submitting = isPending || isSubmitting;
+  const closeSafely = () => {
+    if (!submitting) onClose();
+  };
 
   React.useEffect(() => {
     if (open) {
-      reset(
-        editing
-          ? {
-              name: editing.name,
-              rounding: editing.rounding as FeeItemInput["rounding"],
-              dailyProration: editing.dailyProration,
-              carryOver: editing.carryOver,
-            }
-          : { rounding: "round", dailyProration: false, carryOver: false }
-      );
+      reset(makeDefaults());
     }
-  }, [open, editing, reset]);
+  }, [makeDefaults, open, reset]);
 
   const onValid = async (values: FormValues) => {
-    await onSubmit(values);
-    onClose();
+    try {
+      await onSubmit(values);
+      reset(makeDefaults());
+      onClose();
+    } catch (error) {
+      setSubmissionError(error, setError, "관리비 항목을 저장하지 못했습니다.");
+    }
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={editing ? "항목 수정" : "항목 추가"}>
-      <form onSubmit={handleSubmit(onValid)} className="flex flex-col gap-4">
-        <div>
-          <label className="mb-1 block text-xs font-semibold text-t3">항목명칭</label>
+    <Modal open={open} onClose={closeSafely} title={editing ? "항목 수정" : "항목 추가"}>
+      <form onSubmit={handleSubmit(onValid)} className="flex flex-col gap-4" noValidate>
+        <FormField htmlFor="management-fee-item-name" label="항목명칭" error={errors.name?.message}>
           <Input
+            id="management-fee-item-name"
             {...register("name")}
             placeholder="예: 관리비"
             className={errors.name ? "border-danger" : ""}
           />
-          {errors.name && <p className="mt-1 text-xs text-danger">{errors.name.message}</p>}
-        </div>
+        </FormField>
 
-        <div>
-          <label className="mb-1 block text-xs font-semibold text-t3">반올림</label>
+        <FormField htmlFor="management-fee-item-rounding" label="반올림" error={errors.rounding?.message}>
           <Controller
             control={control}
             name="rounding"
             render={({ field }) => (
-              <Select options={ROUNDING_OPTIONS} {...field} />
+              <Select id="management-fee-item-rounding" options={ROUNDING_OPTIONS} {...field} />
             )}
           />
-        </div>
+        </FormField>
 
-        <div>
-          <label className="mb-1 block text-xs font-semibold text-t3">일자계산</label>
+        <FormField htmlFor="management-fee-item-daily" label="일자계산" error={errors.dailyProration?.message}>
           <Controller
             control={control}
             name="dailyProration"
             render={({ field }) => (
               <Select
+                id="management-fee-item-daily"
                 options={DAILY_OPTIONS}
                 value={field.value ? "true" : "false"}
                 onChange={(e) => field.onChange(e.target.value === "true")}
               />
             )}
           />
-        </div>
+        </FormField>
 
-        <div>
-          <label className="mb-1 block text-xs font-semibold text-t3">이월</label>
+        <FormField htmlFor="management-fee-item-carry" label="이월" error={errors.carryOver?.message}>
           <Controller
             control={control}
             name="carryOver"
             render={({ field }) => (
               <Select
+                id="management-fee-item-carry"
                 options={CARRY_OPTIONS}
                 value={field.value ? "true" : "false"}
                 onChange={(e) => field.onChange(e.target.value === "true")}
               />
             )}
           />
-        </div>
+        </FormField>
+
+        {errors.root?.server?.message && (
+          <p role="alert" className="rounded-xl bg-red-t px-3 py-2 text-sm font-semibold text-red">{errors.root.server.message}</p>
+        )}
 
         <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="ghost" onClick={onClose}>
+          <Button type="button" variant="ghost" onClick={closeSafely} disabled={submitting}>
             취소
           </Button>
-          <Button type="submit" variant="primary" disabled={isPending}>
-            {isPending ? "저장 중…" : editing ? "수정" : "추가"}
+          <Button type="submit" variant="primary" disabled={submitting}>
+            {submitting ? "저장 중…" : editing ? "수정" : "추가"}
           </Button>
         </div>
       </form>

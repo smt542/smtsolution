@@ -20,7 +20,20 @@ it("포인트가 0 이하이면 제출을 막고 오류를 표시한다", async 
   fireEvent.change(screen.getByLabelText("충전 포인트"), { target: { value: "0" } });
   fireEvent.click(screen.getByRole("button", { name: "충전 기록" }));
   await waitFor(() => expect(screen.getByText("충전 포인트는 1 이상이어야 합니다")).toBeInTheDocument());
+  expect(screen.getByLabelText("충전 포인트")).toHaveAttribute("aria-invalid", "true");
+  expect(screen.getByLabelText("충전 포인트")).toHaveFocus();
   expect(onSubmit).not.toHaveBeenCalled();
+});
+
+it("서버 실패를 전역 오류로 표시하고 닫지 않는다", async () => {
+  const onSubmit = vi.fn().mockRejectedValue(new Error("충전 저장 실패"));
+  const onClose = vi.fn();
+  render(<PointChargeModal open onClose={onClose} organizations={orgs} onSubmit={onSubmit} isPending={false} />);
+  fireEvent.change(screen.getByLabelText("충전 포인트"), { target: { value: "1000" } });
+  fireEvent.change(screen.getByLabelText("결제금액(원)"), { target: { value: "10000" } });
+  fireEvent.click(screen.getByRole("button", { name: "충전 기록" }));
+  expect(await screen.findByRole("alert")).toHaveTextContent("충전 저장 실패");
+  expect(onClose).not.toHaveBeenCalled();
 });
 
 it("유효 입력이면 onSubmit에 coerce된 숫자를 전달한다", async () => {

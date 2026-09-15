@@ -103,6 +103,14 @@ export interface SaveSettlementInput {
   checklist: { checkItemId: number; checked: boolean }[];
 }
 
+export interface SavePartnerSettlementInput {
+  unitId: number;
+  occupancyId: number | null;
+  settlementId: number | null;
+  data: Record<string, unknown>;
+  checklist: { check_item_id: number; checked: boolean }[];
+}
+
 export interface SettlementListRow {
   settlementId: number;
   unitId: number;
@@ -459,6 +467,37 @@ export async function saveMovingSettlement(
     settlementId: result.settlement_id,
     settlementAmount: result.settlement_amount,
   };
+}
+
+export async function savePartnerMovingSettlement(
+  input: SavePartnerSettlementInput,
+): Promise<{ settlementId: number; settlementAmount: number }> {
+  const { data, error } = await createClient().rpc(
+    "partner_save_moving_settlement",
+    {
+      p_unit_id: input.unitId,
+      p_occupancy_id: input.occupancyId,
+      p_settlement_id: input.settlementId,
+      p_data: input.data,
+      p_checklist: input.checklist,
+    },
+  );
+  if (error) throw new Error(error.message);
+  const result = data as { settlement_id: number; settlement_amount: number };
+  return {
+    settlementId: result.settlement_id,
+    settlementAmount: result.settlement_amount,
+  };
+}
+
+export async function deletePartnerMovingSettlement(
+  settlementId: number,
+): Promise<void> {
+  const { error } = await createClient().rpc(
+    "partner_delete_moving_settlement",
+    { p_settlement_id: settlementId },
+  );
+  if (error) throw new Error(error.message);
 }
 
 export async function completeMovingSettlement(

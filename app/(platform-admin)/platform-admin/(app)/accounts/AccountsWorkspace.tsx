@@ -156,7 +156,6 @@ export function AccountsWorkspace() {
         userId: editTarget.userId,
         ...values,
       });
-      setEditTarget(null);
       toast.success("계정 정보를 저장했습니다.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "계정 정보 저장에 실패했습니다.");

@@ -20,4 +20,6 @@ export const utilityKeys = {
     ["utilities", "billing-period", buildingId, period] as const,
   confirmation: (buildingId: number | null, utilityType: UtilityType, period: string) =>
     ["utilities", "confirmation", buildingId, utilityType, period] as const,
+  partnerMeter: (buildingId: number | null, period: string) =>
+    ["utilities", "partner-meter", buildingId, period] as const,
 };

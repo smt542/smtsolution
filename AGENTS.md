@@ -1,3 +1,10 @@
+## Reference-only prototype documents
+
+- `docs/prototype/**` is reference-only material.
+- Exclude it from routine code discovery, implementation, refactoring, bulk migrations, lint, and verification.
+- Read it only when the user explicitly asks to consult it.
+- This rule takes precedence over any instruction to consult `docs/prototype/prd/**` automatically.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

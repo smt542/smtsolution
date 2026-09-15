@@ -177,7 +177,6 @@ export function AsStatusSection({
         });
       }
       toast.success("A/S 접수가 저장되었습니다.");
-      closeForm();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "저장 중 오류가 발생했습니다.");
       throw error;
@@ -205,7 +204,6 @@ export function AsStatusSection({
         }
       }
       toast.success("A/S 접수를 저장했습니다.");
-      setSelectedId(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "저장 중 오류가 발생했습니다.");
       throw error;

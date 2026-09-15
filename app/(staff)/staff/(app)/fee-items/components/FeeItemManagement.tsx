@@ -159,7 +159,6 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
         items: [...type.items, { key: `local-item-${Date.now()}-${sequence}`, ...DEFAULT_FORM_VALUE, ...value, isRequired: false, sortOrder: type.items.length }],
       }));
     }
-    setFormOpen(false);
   };
 
   const deleteItem = async () => {

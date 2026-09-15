@@ -1,17 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import React from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Input, Modal } from "@/components/common";
 import { FormField } from "@/components/common/FormField";
+import { setSubmissionError } from "@/components/forms/formErrors";
+import {
+  platformAccountEditSchema,
+  type PlatformAccountEditInput,
+  type PlatformAccountEditValues,
+} from "@/components/forms/schema/platformAccount";
 import type { PlatformAccount } from "@/hooks/reactquery/platform";
 import { ModalActions } from "../../../../_components/ModalActions";
 import { InlineAlert } from "../../../../_components/InlineAlert";
 
-export interface AccountEditValues {
-  fullName: string;
-  phone: string;
-  memo: string;
-}
+export type AccountEditValues = PlatformAccountEditValues;
 
 interface Props {
   account: PlatformAccount;
@@ -26,66 +30,77 @@ const FORM_FIELD_CLASS =
   "[&>label]:mb-1.5 [&>label]:text-[12.5px] [&>label]:font-bold [&>label]:text-t2";
 
 export function AccountEditModal({ account, onClose, onSubmit, isPending }: Props) {
-  const [fullName, setFullName] = useState(account.fullName ?? "");
-  const [phone, setPhone] = useState(account.phone ?? "");
-  const [memo, setMemo] = useState(account.memo ?? "");
-  const [error, setError] = useState("");
+  const makeDefaults = React.useCallback((): PlatformAccountEditInput => ({
+    fullName: account.fullName ?? "",
+    phone: account.phone ?? "",
+    memo: account.memo ?? "",
+  }), [account]);
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<PlatformAccountEditInput, unknown, PlatformAccountEditValues>({
+    resolver: zodResolver(platformAccountEditSchema),
+    defaultValues: makeDefaults(),
+    shouldFocusError: true,
+  });
+  const submitting = isPending || isSubmitting;
+  const closeSafely = () => {
+    if (!submitting) onClose();
+  };
 
-  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const normalizedName = fullName.trim();
-    if (!normalizedName) {
-      setError("이름을 입력해 주세요.");
-      return;
+  React.useEffect(() => {
+    reset(makeDefaults());
+  }, [makeDefaults, reset]);
+
+  const submit = async (values: PlatformAccountEditValues) => {
+    try {
+      await onSubmit(values);
+      reset(makeDefaults());
+      onClose();
+    } catch (error) {
+      setSubmissionError(error, setError, "계정 정보 저장에 실패했습니다.");
     }
-
-    setError("");
-    await onSubmit({
-      fullName: normalizedName,
-      phone: phone.trim(),
-      memo: memo.trim(),
-    });
   };
 
   return (
     <Modal
       open
-      onClose={onClose}
+      onClose={closeSafely}
       title="계정 정보 편집"
       className="max-w-[480px] rounded-[20px] [&>h2]:text-[17px] [&>h2]:font-extrabold [&>h2]:tracking-[-0.02em]"
     >
-      <form onSubmit={(event) => void submit(event)} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit(submit)} className="flex flex-col gap-4" noValidate>
         <p className="text-sm text-t2">
           <b>{account.username ?? account.userId}</b> · {account.organizationName}
         </p>
 
-        <FormField label="이름" htmlFor="platform-account-edit-name" className={FORM_FIELD_CLASS}>
+        <FormField label="이름" htmlFor="platform-account-edit-name" error={errors.fullName?.message} className={FORM_FIELD_CLASS}>
           <Input
             id="platform-account-edit-name"
-            value={fullName}
-            onChange={(event) => setFullName(event.target.value)}
+            {...register("fullName")}
             maxLength={100}
             autoFocus
             className={INPUT_CLASS}
           />
         </FormField>
 
-        <FormField label="전화번호" htmlFor="platform-account-edit-phone" className={FORM_FIELD_CLASS}>
+        <FormField label="전화번호" htmlFor="platform-account-edit-phone" error={errors.phone?.message} className={FORM_FIELD_CLASS}>
           <Input
             id="platform-account-edit-phone"
-            value={phone}
-            onChange={(event) => setPhone(event.target.value)}
+            {...register("phone")}
             maxLength={30}
             placeholder="010-0000-0000"
             className={INPUT_CLASS}
           />
         </FormField>
 
-        <FormField label="메모" htmlFor="platform-account-edit-memo" className={FORM_FIELD_CLASS}>
+        <FormField label="메모" htmlFor="platform-account-edit-memo" error={errors.memo?.message} className={FORM_FIELD_CLASS}>
           <textarea
             id="platform-account-edit-memo"
-            value={memo}
-            onChange={(event) => setMemo(event.target.value)}
+            {...register("memo")}
             maxLength={500}
             rows={4}
             placeholder="담당 업무 · 비고"
@@ -93,27 +108,27 @@ export function AccountEditModal({ account, onClose, onSubmit, isPending }: Prop
           />
         </FormField>
 
-        {error && (
+        {errors.root?.server?.message && (
           <InlineAlert tone="dangerStrong" role="alert">
-            {error}
+            {errors.root.server.message}
           </InlineAlert>
         )}
 
         <ModalActions>
           <button
             type="button"
-            onClick={onClose}
-            disabled={isPending}
+            onClick={closeSafely}
+            disabled={submitting}
             className="h-10 rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold text-t2 hover:bg-bg disabled:cursor-not-allowed disabled:opacity-70"
           >
             취소
           </button>
           <button
             type="submit"
-            disabled={isPending}
+            disabled={submitting}
             className="h-10 rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-hf-btn hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {isPending ? "저장 중…" : "저장"}
+            {submitting ? "저장 중…" : "저장"}
           </button>
         </ModalActions>
       </form>

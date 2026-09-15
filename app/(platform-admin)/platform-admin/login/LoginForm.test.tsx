@@ -79,7 +79,11 @@ describe("HQ LoginForm", () => {
     // 디자인 정본: 버튼은 항상 solid(비활성 아님). 빈 값은 클릭 시 검증으로 막는다.
     expect(submitButton).toBeEnabled();
     await user.click(submitButton);
-    expect(await screen.findByRole("alert")).toHaveTextContent("아이디와 비밀번호를 입력해 주세요.");
+    expect(await screen.findByText("아이디를 입력해 주세요")).toBeInTheDocument();
+    expect(screen.getByText("비밀번호를 입력해 주세요")).toBeInTheDocument();
+    expect(usernameInput).toHaveAttribute("aria-invalid", "true");
+    expect(usernameInput).toHaveAttribute("aria-describedby", "hq-username-error");
+    expect(usernameInput).toHaveFocus();
     expect(mocks.fetch).not.toHaveBeenCalled();
 
     // 아이디만 있고 비밀번호 없으면 여전히 제출되지 않는다

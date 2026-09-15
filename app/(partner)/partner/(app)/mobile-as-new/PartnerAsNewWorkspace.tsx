@@ -1,9 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-import { createClient } from "@/lib/supabase/client";
+import {
+  useCreatePartnerComplaint,
+  usePartnerUnits,
+  type PartnerUnitOption,
+} from "@/hooks/reactquery/complaints";
 
 import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
 import { PartnerConfirmDialog } from "../../../_components/PartnerConfirmDialog";
@@ -14,10 +18,9 @@ import { AS_STATUS, combineDateTime } from "../_as";
 import styles from "../_asform.module.css";
 
 export type Building = { id: number; name: string };
-type Unit = { unit_id: number; unit_no: string; dong: string | null; phone: string | null };
 export type Cat = { id: number; label: string };
 
-function unitLabel(u: Unit) {
+function unitLabel(u: PartnerUnitOption) {
   return `${u.dong ? `${u.dong} ` : ""}${u.unit_no}`;
 }
 
@@ -35,7 +38,6 @@ export default function PartnerAsNewWorkspace({
   const router = useRouter();
 
   const [buildingId, setBuildingId] = useState(() => buildings[0] ? String(buildings[0].id) : "");
-  const [units, setUnits] = useState<Unit[]>([]);
   const [unitId, setUnitId] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [content, setContent] = useState("");
@@ -45,23 +47,13 @@ export default function PartnerAsNewWorkspace({
   const [result, setResult] = useState("");
 
   const [err, setErr] = useState("");
-  const [busy, setBusy] = useState(false);
   const [confirmReg, setConfirmReg] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
 
-  useEffect(() => {
-    if (!buildingId) return;
-    let alive = true;
-    void (async () => {
-      const { data } = await createClient().rpc("partner_list_units", { p_building_id: Number(buildingId) });
-      if (!alive) return;
-      setUnits(Array.isArray(data) ? (data as Unit[]) : []);
-      setUnitId("");
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [buildingId]);
+  const unitsQuery = usePartnerUnits(buildingId ? Number(buildingId) : null);
+  const createMutation = useCreatePartnerComplaint();
+  const units = unitsQuery.data ?? [];
+  const busy = createMutation.isPending;
 
   const selectedUnit = units.find((u) => String(u.unit_id) === unitId);
   const reporterPhone = selectedUnit?.phone ?? "";
@@ -77,23 +69,21 @@ export default function PartnerAsNewWorkspace({
       setErr("접수 내용을 입력해 주세요");
       return;
     }
-    setBusy(true);
-    const { error } = await createClient().rpc("partner_create_complaint", {
-      p_building_id: Number(buildingId),
-      p_unit_id: unitId ? Number(unitId) : null,
-      p_category_id: categoryId ? Number(categoryId) : null,
-      p_content: content.trim(),
-      p_status: status,
-      p_completed_at: combineDateTime(date, time),
-      p_result_content: result.trim(),
-      p_reporter_phone: reporterPhone,
-    });
-    if (error) {
+    try {
+      await createMutation.mutateAsync({
+        buildingId: Number(buildingId),
+        unitId: unitId ? Number(unitId) : null,
+        categoryId: categoryId ? Number(categoryId) : null,
+        content: content.trim(),
+        status,
+        completedAt: combineDateTime(date, time),
+        resultContent: result.trim(),
+        reporterPhone,
+      });
+      router.push("/partner/mobile-home");
+    } catch {
       setErr("접수 등록에 실패했어요. 다시 시도해 주세요.");
-      setBusy(false);
-      return;
     }
-    router.push("/partner/mobile-home");
   };
 
   const header = <PartnerMobileHeader title="신규 접수" onBack={() => setConfirmCancel(true)} variant="compact" />;
@@ -106,7 +96,14 @@ export default function PartnerAsNewWorkspace({
           <div className={styles.secTitle}>대상 세대</div>
           <div className={styles.box}>
             <PartnerFormFieldRow label="건물">
-              <select className={styles.control} value={buildingId} onChange={(e) => setBuildingId(e.target.value)}>
+              <select
+                className={styles.control}
+                value={buildingId}
+                onChange={(e) => {
+                  setBuildingId(e.target.value);
+                  setUnitId("");
+                }}
+              >
                 {buildings.length === 0 && <option value="">담당 건물 없음</option>}
                 {buildings.map((b) => (
                   <option key={b.id} value={String(b.id)}>{b.name}</option>

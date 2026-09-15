@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Modal, Input, Button, Select } from "@/components/common";
 import { FormField } from "@/components/common/FormField";
+import { setSubmissionError } from "@/components/forms/formErrors";
 import { pointChargeSchema } from "@/components/forms/schema/pointCharge";
 import type { PlatformOrganization } from "@/hooks/reactquery/platform";
 import { ModalActions } from "../../../../_components/ModalActions";
@@ -33,29 +34,40 @@ export function PointChargeModal({ open, onClose, organizations, onSubmit, isPen
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    setError,
+    formState: { errors, isSubmitting },
   } = useForm<Input$, unknown, Values>({
     resolver: zodResolver(pointChargeSchema),
     defaultValues: { orgId: organizations[0]?.id, points: undefined, amountKrw: undefined, memo: "" },
+    shouldFocusError: true,
   });
+  const submitting = isPending || isSubmitting;
 
   React.useEffect(() => {
     if (open) reset({ orgId: organizations[0]?.id, points: undefined, amountKrw: undefined, memo: "" });
   }, [open, organizations, reset]);
 
   const onValid = async (values: Values) => {
-    await onSubmit(values);
-    onClose();
+    try {
+      await onSubmit(values);
+      reset({ orgId: organizations[0]?.id, points: undefined, amountKrw: undefined, memo: "" });
+      onClose();
+    } catch (error) {
+      setSubmissionError(error, setError, "포인트 충전을 기록하지 못했습니다.");
+    }
+  };
+  const closeSafely = () => {
+    if (!submitting) onClose();
   };
 
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={closeSafely}
       title="포인트 충전 기록"
       className={MODAL_CLASS}
     >
-      <form onSubmit={handleSubmit(onValid)} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit(onValid)} className="flex flex-col gap-4" noValidate>
         <FormField
           label="대상 조직"
           htmlFor="pc-org"
@@ -98,10 +110,16 @@ export function PointChargeModal({ open, onClose, organizations, onSubmit, isPen
           <Input id="pc-memo" aria-label="메모" {...register("memo")} placeholder="예: 8월 선불 충전" className={INPUT_CLASS} />
         </FormField>
 
+        {errors.root?.server?.message && (
+          <p role="alert" className="rounded-xl bg-red-t px-3 py-2 text-sm font-semibold text-red">
+            {errors.root.server.message}
+          </p>
+        )}
+
         <ModalActions>
-          <Button type="button" variant="ghost" onClick={onClose} className={BUTTON_CLASS}>취소</Button>
-          <Button type="submit" variant="primary" disabled={isPending} className={BUTTON_CLASS}>
-            {isPending ? "기록 중…" : "충전 기록"}
+          <Button type="button" variant="ghost" onClick={closeSafely} disabled={submitting} className={BUTTON_CLASS}>취소</Button>
+          <Button type="submit" variant="primary" disabled={submitting} className={BUTTON_CLASS}>
+            {submitting ? "기록 중…" : "충전 기록"}
           </Button>
         </ModalActions>
       </form>

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -31,6 +32,17 @@ const detail = {
   is_mine: true,
 };
 
+async function renderPage(id: string) {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      {await PartnerAsDetailPage({ searchParams: Promise.resolve({ id }) })}
+    </QueryClientProvider>,
+  );
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.rpc.mockImplementation((name: string) => {
@@ -44,7 +56,7 @@ beforeEach(() => {
 
 describe("PartnerAsDetailPage", () => {
   it("Server searchParams의 ID로 상세와 카테고리를 조회한다", async () => {
-    render(await PartnerAsDetailPage({ searchParams: Promise.resolve({ id: "17" }) }));
+    await renderPage("17");
 
     expect(await screen.findByText("그린빌라")).toBeInTheDocument();
     expect(screen.getByText("101호")).toBeInTheDocument();
@@ -54,14 +66,14 @@ describe("PartnerAsDetailPage", () => {
   });
 
   it("유효한 ID가 없으면 RPC 없이 기존 빈 상태를 표시한다", async () => {
-    render(await PartnerAsDetailPage({ searchParams: Promise.resolve({ id: "invalid" }) }));
+    await renderPage("invalid");
 
     expect(await screen.findByText("접수 내역을 찾을 수 없어요")).toBeInTheDocument();
     expect(mocks.rpc).not.toHaveBeenCalled();
   });
 
   it("편집 확인 후 기존 update RPC와 이동 동작을 유지한다", async () => {
-    render(await PartnerAsDetailPage({ searchParams: Promise.resolve({ id: "17" }) }));
+    await renderPage("17");
     await screen.findByDisplayValue("수도 누수 확인");
 
     fireEvent.click(screen.getByRole("button", { name: "저장" }));
@@ -72,6 +84,8 @@ describe("PartnerAsDetailPage", () => {
       "partner_update_complaint",
       expect.objectContaining({ p_id: 17, p_content: "수도 누수 확인" }),
     ));
-    expect(mocks.push).toHaveBeenCalledWith("/partner/mobile-home");
+    await waitFor(() =>
+      expect(mocks.push).toHaveBeenCalledWith("/partner/mobile-home"),
+    );
   });
 });

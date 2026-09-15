@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button, Input, Modal } from "@/components/common";
 import { FormField } from "@/components/common/FormField";
+import { setSubmissionError } from "@/components/forms/formErrors";
 import {
   messagePointRatesSchema,
   type MessagePointRatesFormValues,
@@ -46,29 +47,40 @@ export function MessagePointRateModal({
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    setError,
+    formState: { errors, isSubmitting },
   } = useForm<FormInput, unknown, MessagePointRatesFormValues>({
     resolver: zodResolver(messagePointRatesSchema),
     defaultValues: { smsPoints, alimtalkPoints, lmsPoints },
+    shouldFocusError: true,
   });
+  const submitting = isPending || isSubmitting;
 
   useEffect(() => {
     if (open) reset({ smsPoints, alimtalkPoints, lmsPoints });
   }, [alimtalkPoints, lmsPoints, open, reset, smsPoints]);
 
   const submit = async (values: MessagePointRatesFormValues) => {
-    await onSubmit(values);
-    onClose();
+    try {
+      await onSubmit(values);
+      reset({ smsPoints, alimtalkPoints, lmsPoints });
+      onClose();
+    } catch (error) {
+      setSubmissionError(error, setError, "메시지 포인트 단가를 저장하지 못했습니다.");
+    }
+  };
+  const closeSafely = () => {
+    if (!submitting) onClose();
   };
 
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={closeSafely}
       title="메시지 포인트 단가 설정"
       className={MODAL_CLASS}
     >
-      <form className="flex flex-col gap-4" onSubmit={handleSubmit(submit)}>
+      <form className="flex flex-col gap-4" onSubmit={handleSubmit(submit)} noValidate>
         <FormField
           htmlFor="message-sms-points"
           label="SMS 건당 포인트"
@@ -126,10 +138,14 @@ export function MessagePointRateModal({
           않고, 미설정 상태에서는 LMS 길이의 문자를 발송할 수 없습니다.
         </InlineAlert>
 
+        {errors.root?.server?.message && (
+          <InlineAlert tone="dangerStrong" role="alert">{errors.root.server.message}</InlineAlert>
+        )}
+
         <ModalActions>
-          <Button type="button" variant="ghost" onClick={onClose} className={BUTTON_CLASS}>취소</Button>
-          <Button type="submit" variant="primary" disabled={isPending} className={BUTTON_CLASS}>
-            {isPending ? "저장 중…" : "단가 저장"}
+          <Button type="button" variant="ghost" onClick={closeSafely} disabled={submitting} className={BUTTON_CLASS}>취소</Button>
+          <Button type="submit" variant="primary" disabled={submitting} className={BUTTON_CLASS}>
+            {submitting ? "저장 중…" : "단가 저장"}
           </Button>
         </ModalActions>
       </form>

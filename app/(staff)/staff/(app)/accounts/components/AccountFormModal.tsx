@@ -6,7 +6,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, Input, Modal, Select } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { FormField } from '@/components/common/FormField';
-import { accountCreateSchema, accountEditSchema } from "@/components/forms/schema/account";
+import { setSubmissionError } from "@/components/forms/formErrors";
+import {
+  accountCreateSchema,
+  accountEditSchema,
+  type AccountCreateInput as AccountCreateFormInput,
+  type AccountCreateValues,
+  type AccountEditInput as AccountEditFormInput,
+  type AccountEditValues,
+} from "@/components/forms/schema/account";
 import type {
   Account,
   AccountBasicInput,
@@ -30,17 +38,8 @@ interface Props {
   isPending: boolean;
 }
 
-interface FormValues {
-  username: string;
-  password: string;
-  fullName: string;
-  phone: string;
-  staffType: StaffType;
-  isMaster: boolean;
-  isActive: boolean;
-  permissions: string[];
-  alsoCrossApp: boolean;
-}
+type FormInput = AccountCreateFormInput | AccountEditFormInput;
+type FormValues = AccountCreateValues | AccountEditValues;
 
 const MEMBER_TYPE_OPTIONS = [
   { value: "master", label: "마스터" },
@@ -76,7 +75,7 @@ export function AccountFormModal({
   const isField = modalStaffType === "field_staff" || modalStaffType === "support_staff";
 
   const makeDefaults = React.useCallback(
-    (): FormValues =>
+    (): FormInput =>
       editing
         ? {
             username: editing.username,
@@ -87,6 +86,7 @@ export function AccountFormModal({
             isMaster: editing.role === "org_owner" || editing.role === "platform_admin",
             isActive: editing.isActive,
             permissions: editing.permissions,
+            roleIds: [],
             alsoCrossApp: (() => {
               const caps = editing.staffCapabilities ?? [];
               const primaryIsField =
@@ -105,6 +105,7 @@ export function AccountFormModal({
             isMaster: false,
             isActive: true,
             permissions: [],
+            roleIds: [],
             alsoCrossApp: false,
           },
     [createStaffType, editing],
@@ -115,11 +116,17 @@ export function AccountFormModal({
     control,
     handleSubmit,
     reset,
-    formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(isEdit ? accountEditSchema : accountCreateSchema) as unknown as Resolver<FormValues>,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<FormInput, unknown, FormValues>({
+    resolver: zodResolver(isEdit ? accountEditSchema : accountCreateSchema) as unknown as Resolver<FormInput, unknown, FormValues>,
     defaultValues: makeDefaults(),
+    shouldFocusError: true,
   });
+  const submitting = isPending || isSubmitting;
+  const closeSafely = () => {
+    if (!submitting) onClose();
+  };
 
   React.useEffect(() => {
     if (open) reset(makeDefaults());
@@ -129,54 +136,59 @@ export function AccountFormModal({
   const passwordField = register("password");
 
   const onValid = async (values: FormValues) => {
-    const role = values.isMaster
-      ? "org_owner"
-      : values.staffType === "field_staff"
-        ? "field"
-        : "staff";
+    try {
+      const role = values.isMaster
+        ? "org_owner"
+        : values.staffType === "field_staff"
+          ? "field"
+          : "staff";
 
-    const crossType: StaffType = isField ? "manager_staff" : "field_staff";
-    const staffCapabilities: StaffType[] = values.alsoCrossApp
-      ? [values.staffType, crossType]
-      : [values.staffType];
+      const crossType: StaffType = isField ? "manager_staff" : "field_staff";
+      const staffCapabilities: StaffType[] = values.alsoCrossApp
+        ? [values.staffType, crossType]
+        : [values.staffType];
 
-    if (!isEdit) {
-      const created = await onCreate({
-        username: values.username,
-        password: values.password,
-        fullName: values.fullName,
-        phone: values.phone || undefined,
-        role,
-        staffType: values.staffType,
-        permissions: values.permissions,
-        roleIds: [],
-        staffCapabilities,
-      });
-      if (!values.isActive) await onSetActive(created.userId, false);
-    } else if (editing) {
-      await onUpdateBasic(editing.userId, {
-        fullName: values.fullName,
-        phone: values.phone || undefined,
-        phoneSub: editing.phoneSub || undefined,
-        staffType: values.staffType,
-        affiliation: editing.affiliation || undefined,
-        roleIds: null,
-        staffCapabilities,
-      });
-      if (canEditPermissions) {
-        await onUpdatePermissions(editing.userId, {
+      if (!isEdit) {
+        const created = await onCreate({
+          username: values.username ?? "",
+          password: values.password ?? "",
+          fullName: values.fullName,
+          phone: values.phone || undefined,
           role,
           staffType: values.staffType,
           permissions: values.permissions,
-          roleIds: null,
+          roleIds: [],
+          staffCapabilities,
         });
+        if (!values.isActive) await onSetActive(created.userId, false);
+      } else if (editing) {
+        await onUpdateBasic(editing.userId, {
+          fullName: values.fullName,
+          phone: values.phone || undefined,
+          phoneSub: editing.phoneSub || undefined,
+          staffType: values.staffType,
+          affiliation: editing.affiliation || undefined,
+          roleIds: null,
+          staffCapabilities,
+        });
+        if (canEditPermissions) {
+          await onUpdatePermissions(editing.userId, {
+            role,
+            staffType: values.staffType,
+            permissions: values.permissions,
+            roleIds: null,
+          });
+        }
+        if (values.password) await onResetPassword(editing.userId, values.password);
+        if (values.isActive !== editing.isActive) {
+          await onSetActive(editing.userId, values.isActive);
+        }
       }
-      if (values.password) await onResetPassword(editing.userId, values.password);
-      if (values.isActive !== editing.isActive) {
-        await onSetActive(editing.userId, values.isActive);
-      }
+      reset(makeDefaults());
+      onClose();
+    } catch (error) {
+      setSubmissionError(error, setError, "계정 정보를 저장하지 못했습니다.");
     }
-    onClose();
   };
 
   const deactivate = async () => {
@@ -203,7 +215,7 @@ export function AccountFormModal({
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={closeSafely}
       title={title}
       className="max-h-[calc(100vh-2rem)] max-w-3xl overflow-hidden"
     >
@@ -217,7 +229,7 @@ export function AccountFormModal({
           </div>
         </div>
       ) : (
-        <form onSubmit={handleSubmit(onValid)} className="flex max-h-[calc(100vh-7rem)] flex-col">
+        <form onSubmit={handleSubmit(onValid)} className="flex max-h-[calc(100vh-7rem)] flex-col" noValidate>
           <p className="text-sm font-semibold text-t3">필수 항목(*)을 입력해 주세요</p>
 
           <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
@@ -352,7 +364,7 @@ export function AccountFormModal({
                 name="permissions"
                 render={({ field }) => (
                   <PermissionChecklist
-                    value={field.value}
+                    value={field.value ?? []}
                     onChange={field.onChange}
                     disabled={!canEditPermissions}
                     allGranted={selectedMaster}
@@ -362,14 +374,20 @@ export function AccountFormModal({
             </div>
           </div>
 
+          {errors.root?.server?.message && (
+            <p role="alert" className="mt-3 rounded-xl bg-red-t px-3 py-2 text-sm font-semibold text-red">
+              {errors.root.server.message}
+            </p>
+          )}
+
           <div className="mt-5 flex items-center gap-2 border-t border-line pt-4">
             {isEdit && (
-              <Button type="button" variant="danger" disabled={isPending} onClick={deactivate}>삭제</Button>
+              <Button type="button" variant="danger" disabled={submitting} onClick={deactivate}>삭제</Button>
             )}
             <div className="flex-1" />
-            <Button type="button" variant="ghost" onClick={onClose}>취소</Button>
-            <Button type="submit" variant="primary" disabled={isPending}>
-              {isEdit ? "저장" : "등록"}
+            <Button type="button" variant="ghost" onClick={closeSafely} disabled={submitting}>취소</Button>
+            <Button type="submit" variant="primary" disabled={submitting}>
+              {submitting ? "저장 중…" : isEdit ? "저장" : "등록"}
             </Button>
           </div>
         </form>

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("sonner", () => ({
@@ -13,6 +14,17 @@ function jsonResponse(body: unknown, status = 200) {
     status,
     headers: { "content-type": "application/json" },
   });
+}
+
+function renderButton() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <DrainScheduledButton />
+    </QueryClientProvider>,
+  );
 }
 
 beforeEach(() => {
@@ -36,7 +48,7 @@ describe("DrainScheduledButton", () => {
       }),
     );
 
-    render(<DrainScheduledButton />);
+    renderButton();
     fireEvent.click(screen.getByRole("button", { name: "예약분 지금 처리" }));
 
     await waitFor(() =>
@@ -55,7 +67,7 @@ describe("DrainScheduledButton", () => {
       jsonResponse({ error: "forbidden" }, 403),
     );
 
-    render(<DrainScheduledButton />);
+    renderButton();
     fireEvent.click(screen.getByRole("button", { name: "예약분 지금 처리" }));
 
     await waitFor(() =>
@@ -68,7 +80,7 @@ describe("DrainScheduledButton", () => {
       jsonResponse({ error: "internal_error" }, 500),
     );
 
-    render(<DrainScheduledButton />);
+    renderButton();
     fireEvent.click(screen.getByRole("button", { name: "예약분 지금 처리" }));
 
     await waitFor(() =>
@@ -79,7 +91,7 @@ describe("DrainScheduledButton", () => {
   it("네트워크 오류를 안내한다", async () => {
     vi.mocked(fetch).mockRejectedValueOnce(new Error("network error"));
 
-    render(<DrainScheduledButton />);
+    renderButton();
     fireEvent.click(screen.getByRole("button", { name: "예약분 지금 처리" }));
 
     await waitFor(() =>

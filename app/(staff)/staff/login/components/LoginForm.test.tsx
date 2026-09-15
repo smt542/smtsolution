@@ -19,6 +19,8 @@ describe("LoginForm", () => {
     await userEvent.click(screen.getByRole("button", { name: "로그인" }));
     expect(await screen.findByText("아이디를 입력해 주세요")).toBeInTheDocument();
     expect(screen.getByText("비밀번호를 입력해 주세요")).toBeInTheDocument();
+    expect(screen.getByLabelText("아이디")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText("아이디")).toHaveFocus();
     expect(screen.queryByText("회사코드")).not.toBeInTheDocument();
   });
 

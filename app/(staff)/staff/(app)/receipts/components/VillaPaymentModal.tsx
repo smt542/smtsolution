@@ -150,10 +150,10 @@ export function VillaPaymentModal({
         memo: value.memo,
         paidAt: value.paidAt,
       });
-      setAmountModal(null);
       toast.success("수납 처리가 완료되었습니다.");
     } catch (error) {
       toast.error(errorMessage(error, "수납 처리에 실패했습니다."));
+      throw error;
     }
   };
 

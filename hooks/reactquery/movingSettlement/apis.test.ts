@@ -8,11 +8,13 @@ import { movingSettlementSchema } from "@/components/forms/schema/movingSettleme
 import {
   calculateSettlementAmount,
   completeMovingSettlement,
+  deletePartnerMovingSettlement,
   getSettlementContext,
   listSettlementInquiries,
   listSettlements,
   midMoveoutSettlement,
   saveMovingSettlement,
+  savePartnerMovingSettlement,
   updateSettlementInquiryRows,
 } from "./apis";
 
@@ -194,6 +196,39 @@ describe("moving settlement apis", () => {
       p_checklist: [{ check_item_id: 7, checked: true }],
     });
     expect(result).toEqual({ settlementId: 31, settlementAmount: 218806 });
+  });
+
+  it("현장 이사정산 저장·삭제는 전용 RPC를 사용한다", async () => {
+    rpc
+      .mockResolvedValueOnce({
+        data: { settlement_id: 31, settlement_amount: 218806 },
+        error: null,
+      })
+      .mockResolvedValueOnce({ data: null, error: null });
+
+    const input = {
+      unitId: 101,
+      occupancyId: 9,
+      settlementId: null,
+      data: { move_out_date: "2026-09-15" },
+      checklist: [{ check_item_id: 7, checked: true }],
+    };
+    await expect(savePartnerMovingSettlement(input)).resolves.toEqual({
+      settlementId: 31,
+      settlementAmount: 218806,
+    });
+    expect(rpc).toHaveBeenNthCalledWith(1, "partner_save_moving_settlement", {
+      p_unit_id: 101,
+      p_occupancy_id: 9,
+      p_settlement_id: null,
+      p_data: input.data,
+      p_checklist: input.checklist,
+    });
+
+    await deletePartnerMovingSettlement(31);
+    expect(rpc).toHaveBeenNthCalledWith(2, "partner_delete_moving_settlement", {
+      p_settlement_id: 31,
+    });
   });
 
   it("completeMovingSettlement: 완료 RPC를 호출한다", async () => {

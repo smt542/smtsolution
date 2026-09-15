@@ -33,10 +33,10 @@ export function useChargePoints() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: ChargePointsInput) => chargePoints(input),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: platformKeys.organizations() });
-      void queryClient.invalidateQueries({ queryKey: [...platformKeys.all, "transactions"] });
-    },
+    onSuccess: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: platformKeys.organizations() }),
+      queryClient.invalidateQueries({ queryKey: [...platformKeys.all, "transactions"] }),
+    ]),
   });
 }
 
@@ -57,10 +57,10 @@ export function useAdjustPoints() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: AdjustPointsInput) => adjustPoints(input),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: platformKeys.organizations() });
-      void queryClient.invalidateQueries({ queryKey: [...platformKeys.all, "transactions"] });
-    },
+    onSuccess: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: platformKeys.organizations() }),
+      queryClient.invalidateQueries({ queryKey: [...platformKeys.all, "transactions"] }),
+    ]),
   });
 }
 
@@ -91,11 +91,11 @@ export function useCreatePlatformOrganization() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateOrgInput) => createPlatformOrganization(input),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: platformKeys.organizations() });
-      void qc.invalidateQueries({ queryKey: platformKeys.overview() });
-      void qc.invalidateQueries({ queryKey: platformKeys.organizationContractKpis() });
-    },
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: platformKeys.organizations() }),
+      qc.invalidateQueries({ queryKey: platformKeys.overview() }),
+      qc.invalidateQueries({ queryKey: platformKeys.organizationContractKpis() }),
+    ]),
   });
 }
 

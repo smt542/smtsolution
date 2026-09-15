@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { nullableTrimmedString, requiredDate } from "./common";
 
 const slug = z
   .string()
@@ -8,8 +9,8 @@ const slug = z
 
 const contractFields = {
   phone: z.string().trim().min(1, "대표 연락처를 입력해 주세요").max(20),
-  contractStartDate: z.string().min(1, "계약 시작일을 입력해 주세요"),
-  contractEndDate: z.string().min(1, "계약 만료일을 입력해 주세요"),
+  contractStartDate: requiredDate("계약 시작일을 입력해 주세요"),
+  contractEndDate: requiredDate("계약 만료일을 입력해 주세요"),
   representativeName: z.string().trim().min(1, "대표자명을 입력해 주세요").max(50),
   businessRegistrationNumber: z
     .string()
@@ -19,7 +20,7 @@ const contractFields = {
   email: z.string().trim().email("올바른 이메일 주소를 입력해 주세요").max(254),
   address: z.string().trim().min(1, "주소를 입력해 주세요").max(300),
   region: z.string().trim().min(1, "지역을 입력해 주세요").max(100),
-  operatingHours: z.string().trim().max(100).optional().or(z.literal("")),
+  operatingHours: nullableTrimmedString(100, "운영 시간은 100자 이하로 입력해 주세요"),
 };
 
 function validateContractDates(
@@ -42,8 +43,9 @@ export const orgCreateSchema = z.object({
   ...contractFields,
   ownerUsername: z.string().trim().min(1, "관리자 아이디를 입력해 주세요").max(50),
   ownerFullName: z.string().trim().min(1, "관리자 이름을 입력해 주세요").max(50),
-  ownerPhone: z.string().trim().max(20).optional().or(z.literal("")),
+  ownerPhone: nullableTrimmedString(20, "관리자 연락처는 20자 이하로 입력해 주세요"),
 }).superRefine(validateContractDates);
+export type OrgCreateFormInput = z.input<typeof orgCreateSchema>;
 export type OrgCreateFormValues = z.output<typeof orgCreateSchema>;
 
 export const orgEditSchema = z.object({
@@ -51,4 +53,5 @@ export const orgEditSchema = z.object({
   slug,
   ...contractFields,
 }).superRefine(validateContractDates);
+export type OrgEditFormInput = z.input<typeof orgEditSchema>;
 export type OrgEditFormValues = z.output<typeof orgEditSchema>;

@@ -320,3 +320,51 @@ export async function listScheduledMessages(): Promise<ScheduledMessage[]> {
     recurrenceMode: r.recurrence_mode,
   }));
 }
+
+export interface DrainScheduledResult {
+  claimed: number;
+  sent: number;
+  failed: number;
+  unconfigured: number;
+}
+
+export class DrainScheduledError extends Error {
+  constructor(public readonly code: "forbidden" | "failed" | "network") {
+    super(code);
+    this.name = "DrainScheduledError";
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isDrainScheduledResult(value: unknown): value is DrainScheduledResult {
+  return isRecord(value)
+    && typeof value.claimed === "number"
+    && typeof value.sent === "number"
+    && typeof value.failed === "number"
+    && typeof value.unconfigured === "number";
+}
+
+export async function drainScheduledMessages(): Promise<DrainScheduledResult> {
+  try {
+    const response = await fetch("/api/messaging/dispatch-scheduled", {
+      method: "POST",
+    });
+    const result: unknown = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new DrainScheduledError(
+        isRecord(result) && result.error === "forbidden" ? "forbidden" : "failed",
+      );
+    }
+    if (!isDrainScheduledResult(result)) {
+      throw new DrainScheduledError("failed");
+    }
+    return result;
+  } catch (error) {
+    if (error instanceof DrainScheduledError) throw error;
+    throw new DrainScheduledError("network");
+  }
+}

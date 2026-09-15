@@ -54,6 +54,8 @@ describe("PointAdjustmentModal", () => {
     await waitFor(() =>
       expect(screen.getByText("차감·환불 포인트는 음수로 입력해 주세요")).toBeInTheDocument(),
     );
+    expect(screen.getByLabelText("조정 포인트")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText("조정 포인트")).toHaveFocus();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
@@ -84,5 +86,16 @@ describe("PointAdjustmentModal", () => {
         memo: "중복 충전",
       }),
     );
+  });
+
+  it("서버 실패를 전역 오류로 표시하고 닫지 않는다", async () => {
+    const onSubmit = vi.fn().mockRejectedValue(new Error("조정 저장 실패"));
+    const onClose = vi.fn();
+    render(<PointAdjustmentModal open onClose={onClose} organizations={organizations} onSubmit={onSubmit} isPending={false} />);
+    fireEvent.change(screen.getByLabelText("조정 포인트"), { target: { value: "100" } });
+    fireEvent.change(screen.getByLabelText("조정 사유"), { target: { value: "정정" } });
+    fireEvent.click(screen.getByRole("button", { name: "조정 기록" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("조정 저장 실패");
+    expect(onClose).not.toHaveBeenCalled();
   });
 });

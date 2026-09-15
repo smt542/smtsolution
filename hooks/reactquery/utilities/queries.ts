@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   getBillingPeriod,
+  getPartnerMeterWorkspace,
   getUtilityConfirmation,
   getUtilitySupplier,
   listFixedUsages,
@@ -96,6 +97,17 @@ export function useUtilityConfirmation(
   return useQuery({
     queryKey: utilityKeys.confirmation(buildingId, utilityType, period),
     queryFn: () => getUtilityConfirmation(buildingId as number, utilityType, period),
+    enabled: buildingId !== null,
+  });
+}
+
+export function usePartnerMeterWorkspace(
+  buildingId: number | null,
+  period: string,
+) {
+  return useQuery({
+    queryKey: utilityKeys.partnerMeter(buildingId, period),
+    queryFn: () => getPartnerMeterWorkspace(buildingId as number, period),
     enabled: buildingId !== null,
   });
 }

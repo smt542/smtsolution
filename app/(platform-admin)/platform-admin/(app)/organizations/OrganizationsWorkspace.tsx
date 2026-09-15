@@ -121,7 +121,6 @@ export default function OrganizationsWorkspace() {
           phone: v.ownerPhone || null,
         },
       });
-      setCreateOpen(false);
       setPwNotice(result.owner);
       toast.success("관리회사를 입점했습니다.");
     } catch (e) {
@@ -166,7 +165,6 @@ export default function OrganizationsWorkspace() {
           toast.warning("이전 계약서 파일 정리가 필요합니다.");
         });
       }
-      setEditTarget(null);
       toast.success("조직 계약 정보를 수정했습니다.");
     } catch (e) {
       if (uploadedPath) {

@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button, Modal, PhotoUpload } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
+import { setSubmissionError } from "@/components/forms/formErrors";
 import { vendorSchema } from "@/components/forms/schema/vendor";
 import type { Vendor } from "@/hooks/reactquery/vendors";
 import { useAttachmentSignedUrls, type Attachment } from "@/hooks/reactquery/attachments";
@@ -58,6 +59,7 @@ export function VendorFormModal({
     control,
     handleSubmit,
     reset,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<VendorFormInput, unknown, VendorFormOutput>({
     resolver: zodResolver(vendorSchema),
@@ -70,6 +72,7 @@ export function VendorFormModal({
           categoryId: editing.categoryId ?? null,
         }
       : { name: "", phone: "", bankAccount: "", memo: "", categoryId: defaultCategoryId },
+    shouldFocusError: true,
   });
 
   React.useEffect(() => {
@@ -119,9 +122,10 @@ export function VendorFormModal({
         setPendingPhotos(result.failedFiles);
         return;
       }
+      reset({ name: "", phone: "", bankAccount: "", memo: "", categoryId: defaultCategoryId });
       closeModal(true);
-    } catch {
-      // The parent reports the operation error; keep the modal and selected files open.
+    } catch (error) {
+      setSubmissionError(error, setError, "업체를 저장하지 못했습니다.");
     }
   };
 
@@ -152,7 +156,7 @@ export function VendorFormModal({
           <Controller
             control={control}
             name="categoryId"
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <div
                 ref={categoryDropdownRef}
                 className={`${styles.categoryDropdown} ${categoryDropdownOpen ? styles.categoryDropdownOpen : ""} ${selectedCategory ? "" : styles.categoryDropdownPlaceholder}`}
@@ -166,12 +170,15 @@ export function VendorFormModal({
               >
                 <button
                   id={categoryControlId}
+                  ref={field.ref}
                   type="button"
                   role="combobox"
                   aria-label="구분"
                   aria-haspopup="listbox"
                   aria-expanded={categoryDropdownOpen}
                   aria-controls={categoryMenuId}
+                  aria-invalid={fieldState.invalid}
+                  aria-describedby={fieldState.error ? `${categoryControlId}-error` : undefined}
                   className={styles.categoryControl}
                   onClick={() => setCategoryDropdownOpen((current) => !current)}
                 >
@@ -204,6 +211,9 @@ export function VendorFormModal({
               </div>
             )}
           />
+          {errors.categoryId?.message && (
+            <p id={`${categoryControlId}-error`} className={styles.fieldError}>{errors.categoryId.message}</p>
+          )}
         </div>
 
         <div className={styles.formBody}>
@@ -214,27 +224,32 @@ export function VendorFormModal({
               <div className={styles.formGrid}>
                 {/* 업체명 (required) */}
                 <div>
-                  <label className={styles.fieldLabel}>업체명</label>
+                  <label htmlFor="vendor-name" className={styles.fieldLabel}>업체명</label>
                   <input
+                    id="vendor-name"
                     {...register("name")}
                     placeholder="업체명"
                     className={styles.fieldInput}
+                    aria-invalid={Boolean(errors.name)}
+                    aria-describedby={errors.name ? "vendor-name-error" : undefined}
                   />
                   {errors.name && (
-                    <p className={styles.fieldError}>{errors.name.message}</p>
+                    <p id="vendor-name-error" className={styles.fieldError}>{errors.name.message}</p>
                   )}
                 </div>
 
                 {/* 전화 */}
                 <div>
-                  <label className={styles.fieldLabel}>전화번호</label>
-                  <input {...register("phone")} placeholder="전화번호" className={`${styles.fieldInput} num`} />
+                  <label htmlFor="vendor-phone" className={styles.fieldLabel}>전화번호</label>
+                  <input id="vendor-phone" {...register("phone")} placeholder="전화번호" className={`${styles.fieldInput} num`} aria-invalid={Boolean(errors.phone)} aria-describedby={errors.phone ? "vendor-phone-error" : undefined} />
+                  {errors.phone?.message && <p id="vendor-phone-error" className={styles.fieldError}>{errors.phone.message}</p>}
                 </div>
 
                 {/* 계좌번호 */}
                 <div className={styles.fullField}>
-                  <label className={styles.fieldLabel}>계좌번호</label>
-                  <input {...register("bankAccount")} placeholder="계좌번호" className={styles.fieldInput} />
+                  <label htmlFor="vendor-bank-account" className={styles.fieldLabel}>계좌번호</label>
+                  <input id="vendor-bank-account" {...register("bankAccount")} placeholder="계좌번호" className={styles.fieldInput} aria-invalid={Boolean(errors.bankAccount)} aria-describedby={errors.bankAccount ? "vendor-bank-account-error" : undefined} />
+                  {errors.bankAccount?.message && <p id="vendor-bank-account-error" className={styles.fieldError}>{errors.bankAccount.message}</p>}
                 </div>
 
                 {/* 계약서 사진 */}
@@ -291,13 +306,18 @@ export function VendorFormModal({
 
                 {/* 비고 */}
                 <div className={styles.fullField}>
-                  <label className={styles.fieldLabel}>비고</label>
-                  <textarea {...register("memo")} placeholder="비고" className={styles.fieldTextarea} />
+                  <label htmlFor="vendor-memo" className={styles.fieldLabel}>비고</label>
+                  <textarea id="vendor-memo" {...register("memo")} placeholder="비고" className={styles.fieldTextarea} aria-invalid={Boolean(errors.memo)} aria-describedby={errors.memo ? "vendor-memo-error" : undefined} />
+                  {errors.memo?.message && <p id="vendor-memo-error" className={styles.fieldError}>{errors.memo.message}</p>}
                 </div>
               </div>
             )}
           </div>
         </div>
+
+        {errors.root?.server?.message && (
+          <p role="alert" className={styles.fieldError}>{errors.root.server.message}</p>
+        )}
 
         <div className={styles.formFooter}>
           {editing && onDeleteVendor ? (

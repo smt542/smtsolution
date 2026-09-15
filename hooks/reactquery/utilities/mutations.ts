@@ -6,6 +6,7 @@ import {
   setFixedUsage,
   saveScopedPrices,
   saveMeterReadings,
+  savePartnerMeterReadings,
   saveUtilityUnitPrices,
   saveUtilitySupplier,
   saveWaterDiscount,
@@ -15,6 +16,7 @@ import {
   type SaveBillingPeriodInput,
   type SaveScopedPricesInput,
   type SaveMeterReadingsInput,
+  type SavePartnerMeterReadingsInput,
   type SaveUtilityUnitPricesInput,
   type SaveUtilitySupplierInput,
   type SaveWaterDiscountInput,
@@ -178,6 +180,26 @@ export function useConfirmUtilities() {
       qc.invalidateQueries({
         queryKey: utilityKeys.rows(input.buildingId, input.utilityType, input.period),
       });
+    },
+  });
+}
+
+export function useSavePartnerMeterReadings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: SavePartnerMeterReadingsInput) =>
+      savePartnerMeterReadings(input),
+    onSuccess: async (_result, input) => {
+      await Promise.all([
+        qc.invalidateQueries({
+          queryKey: utilityKeys.partnerMeter(input.buildingId, input.period),
+        }),
+        ...(["water", "electricity", "gas"] as const).map((utilityType) =>
+          qc.invalidateQueries({
+            queryKey: utilityKeys.rowsScope(input.buildingId, utilityType),
+          }),
+        ),
+      ]);
     },
   });
 }

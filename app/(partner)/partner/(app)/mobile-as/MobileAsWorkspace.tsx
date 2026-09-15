@@ -1,9 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-import { createClient } from "@/lib/supabase/client";
+import {
+  useDeletePartnerComplaint,
+  usePartnerComplaintEditor,
+  useUpdatePartnerComplaint,
+  type PartnerAsCategory,
+  type PartnerComplaintDetail,
+} from "@/hooks/reactquery/complaints";
 
 import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
 import { PartnerConfirmDialog } from "../../../_components/PartnerConfirmDialog";
@@ -13,76 +19,68 @@ import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
 import { AS_STATUS, combineDateTime, fmtDateTime, splitDateTime } from "../_as";
 import styles from "../_asform.module.css";
 
-type Detail = {
-  id: number;
-  building_name: string;
-  unit_label: string | null;
-  category_id: number | null;
-  content: string | null;
-  status: string;
-  reporter_phone: string | null;
-  logger_name: string | null;
-  assigned_name: string | null;
-  received_at: string;
-  completed_at: string | null;
-  result_content: string | null;
-  is_mine: boolean;
-};
-type Cat = { id: number; label: string };
-
 export function MobileAsWorkspace({ complaintId }: { complaintId: number | null }) {
+  const complaintQuery = usePartnerComplaintEditor(complaintId);
+  const header = <PartnerMobileHeader title="A/S 상세" backHref="/partner/mobile-home" variant="compact" />;
+
+  if (complaintId !== null && complaintQuery.isPending) {
+    return (
+      <div className={styles.root}>
+        {header}
+        <div className={styles.none}>불러오는 중…</div>
+      </div>
+    );
+  }
+
+  if (!complaintQuery.data?.detail) {
+    return (
+      <div className={styles.root}>
+        {header}
+        <div className={styles.none}>접수 내역을 찾을 수 없어요</div>
+      </div>
+    );
+  }
+
+  return (
+    <MobileAsEditor
+      key={complaintQuery.data.detail.id}
+      complaintId={complaintQuery.data.detail.id}
+      detail={complaintQuery.data.detail}
+      categories={complaintQuery.data.categories}
+    />
+  );
+}
+
+function MobileAsEditor({
+  complaintId,
+  detail: d,
+  categories: cats,
+}: {
+  complaintId: number;
+  detail: PartnerComplaintDetail;
+  categories: PartnerAsCategory[];
+}) {
   const router = useRouter();
+  const completedAt = splitDateTime(d.completed_at);
+  const updateMutation = useUpdatePartnerComplaint();
+  const deleteMutation = useDeletePartnerComplaint();
 
-  const [d, setD] = useState<Detail | null>(null);
-  const [cats, setCats] = useState<Cat[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const [categoryId, setCategoryId] = useState("");
-  const [content, setContent] = useState("");
-  const [status, setStatus] = useState("pending");
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
-  const [result, setResult] = useState("");
+  const [categoryId, setCategoryId] = useState(
+    d.category_id !== null ? String(d.category_id) : "",
+  );
+  const [content, setContent] = useState(d.content ?? "");
+  const [status, setStatus] = useState(d.status ?? "pending");
+  const [date, setDate] = useState(completedAt.date);
+  const [time, setTime] = useState(completedAt.time);
+  const [result, setResult] = useState(d.result_content ?? "");
 
   const [err, setErr] = useState("");
-  const [busy, setBusy] = useState(false);
   const [confirmSave, setConfirmSave] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
-
-  useEffect(() => {
-    let alive = true;
-    void (async () => {
-      if (complaintId === null) {
-        setLoading(false);
-        return;
-      }
-      const supabase = createClient();
-      const [{ data: det }, { data: c }] = await Promise.all([
-        supabase.rpc("partner_get_complaint", { p_id: complaintId }),
-        supabase.rpc("partner_list_as_categories"),
-      ]);
-      if (!alive) return;
-      const row = (Array.isArray(det) ? det[0] : det) ?? null;
-      setD(row);
-      setCats(Array.isArray(c) ? (c as Cat[]) : []);
-      if (row) {
-        setCategoryId(row.category_id != null ? String(row.category_id) : "");
-        setContent(row.content ?? "");
-        setStatus(row.status ?? "pending");
-        const dt = splitDateTime(row.completed_at);
-        setDate(dt.date);
-        setTime(dt.time);
-        setResult(row.result_content ?? "");
-      }
-      setLoading(false);
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [complaintId]);
+  const busy = updateMutation.isPending || deleteMutation.isPending;
 
   const save = async () => {
-    if (busy || complaintId === null) return;
+    if (busy) return;
     setErr("");
     if (!content.trim()) {
       setErr("접수 내용을 입력해 주세요");
@@ -92,54 +90,33 @@ export function MobileAsWorkspace({ complaintId }: { complaintId: number | null 
       setErr("시행일자를 선택해 주세요");
       return;
     }
-    setBusy(true);
-    const { error } = await createClient().rpc("partner_update_complaint", {
-      p_id: complaintId,
-      p_category_id: categoryId ? Number(categoryId) : null,
-      p_content: content.trim(),
-      p_status: status,
-      p_completed_at: combineDateTime(date, time),
-      p_result_content: result.trim(),
-    });
-    if (error) {
+    try {
+      await updateMutation.mutateAsync({
+        id: complaintId,
+        categoryId: categoryId ? Number(categoryId) : null,
+        content: content.trim(),
+        status,
+        completedAt: combineDateTime(date, time),
+        resultContent: result.trim(),
+      });
+      router.push("/partner/mobile-home");
+    } catch {
       setErr("저장에 실패했어요. 다시 시도해 주세요.");
-      setBusy(false);
-      return;
     }
-    router.push("/partner/mobile-home");
   };
 
   const del = async () => {
-    if (busy || complaintId === null) return;
-    setBusy(true);
-    const { error } = await createClient().rpc("partner_delete_complaint", { p_id: complaintId });
-    if (error) {
+    if (busy) return;
+    try {
+      await deleteMutation.mutateAsync(complaintId);
+      router.push("/partner/mobile-home");
+    } catch {
       setErr("삭제에 실패했어요.");
-      setBusy(false);
       setConfirmDel(false);
-      return;
     }
-    router.push("/partner/mobile-home");
   };
 
   const header = <PartnerMobileHeader title="A/S 상세" backHref="/partner/mobile-home" variant="compact" />;
-
-  if (loading) {
-    return (
-      <div className={styles.root}>
-        {header}
-        <div className={styles.none}>불러오는 중…</div>
-      </div>
-    );
-  }
-  if (!d) {
-    return (
-      <div className={styles.root}>
-        {header}
-        <div className={styles.none}>접수 내역을 찾을 수 없어요</div>
-      </div>
-    );
-  }
 
   const ro = !d.is_mine;
 
