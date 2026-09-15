@@ -36,10 +36,10 @@ export function MessagingTabs({ initialTab }: { initialTab: MessagingTab }) {
               aria-controls={`messaging-panel-${item.id}`}
               tabIndex={tab === item.id ? 0 : -1}
               onClick={() => setTab(item.id)}
-              className={`px-[16px] py-[12px] text-[14px] font-bold transition-colors ${
+              className={`border-b-2 px-[16px] py-[12px] text-[14px] font-bold transition-colors ${
                 tab === item.id
-                  ? "border-b-2 border-[#14a497] text-[#14a497]"
-                  : "text-[#8b95a1] hover:text-t1"
+                  ? "border-[#14a497] text-[#14a497]"
+                  : "border-transparent text-[#8b95a1] hover:text-t1"
               }`}
             >
               {item.label}
