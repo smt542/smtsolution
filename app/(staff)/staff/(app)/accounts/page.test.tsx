@@ -12,7 +12,7 @@ vi.mock("@/hooks/reactquery/residentClaims", () => ({
   useRejectResidentClaim: vi.fn(),
 }));
 vi.mock("./components/useOrgOccupancyLookup", () => ({ useOrgOccupancyLookup: vi.fn() }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("@/hooks/common/useAppToast", () => ({ appToast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock("../_staffContext", () => ({ getStaffContext: vi.fn() }));
 
 import AccountsPage from "./page";

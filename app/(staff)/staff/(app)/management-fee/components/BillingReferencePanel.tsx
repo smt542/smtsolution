@@ -1,6 +1,6 @@
 "use client";
 
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useSetBuildingSetupConfirm, type Building } from "@/hooks/reactquery/buildings";
 
 interface BillingReferencePanelProps {
@@ -24,7 +24,7 @@ export function BillingReferencePanel({
     try {
       await setImportant.mutateAsync({ id: building.id, required });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "중요 건물 설정을 저장하지 못했어요.");
+      toast.error(error, "중요 건물 설정을 저장하지 못했어요.");
     }
   };
 

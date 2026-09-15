@@ -7,7 +7,7 @@ vi.mock("@/hooks/reactquery/settlementCheckItems", () => ({
   useSettlementCheckItems: vi.fn(), useCreateSettlementCheckItem: vi.fn(),
   useRenameSettlementCheckItem: vi.fn(), useDeleteSettlementCheckItem: vi.fn(),
 }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("@/hooks/common/useAppToast", () => ({ appToast: { error: vi.fn(), success: vi.fn() } }));
 import { MovingSettlementSettingsTab } from "./MovingSettlementSettingsTab";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useSetupConfig, useUpsertSetupConfig } from "@/hooks/reactquery/setupConfig";

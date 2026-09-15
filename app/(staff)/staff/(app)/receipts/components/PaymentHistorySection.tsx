@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { CustomDropdown, Panel, Spinner } from "@/components/common";
 import { DpDatePicker } from "@/components/common/DpDatePicker";
 import { CalendarIcon, CloseIcon, UnitCardIcon } from "@/components/icons";
@@ -252,7 +252,7 @@ export function PaymentHistorySection({
       setFormOpen(false);
       setEditingId(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "저장에 실패했습니다.");
+      toast.error(error, "저장에 실패했습니다.");
     }
   };
 
@@ -262,7 +262,7 @@ export function PaymentHistorySection({
       await refreshSummary();
       toast.success("수납 내역을 취소했습니다.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "취소에 실패했습니다.");
+      toast.error(error, "취소에 실패했습니다.");
     }
   };
   const cancelEditingPayment = async () => {
@@ -550,8 +550,7 @@ export function PaymentHistorySection({
           open
           preset={messagingPreset}
           onClose={() => setMessagingPreset(null)}
-          onSent={(result) => {
-            toast.success(`문자가 발송되었습니다. (성공 ${result.count}건)`);
+          onSent={() => {
             setMessagingPreset(null);
           }}
         />

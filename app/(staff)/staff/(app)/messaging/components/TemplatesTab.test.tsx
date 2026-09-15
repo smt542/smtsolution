@@ -40,8 +40,8 @@ vi.mock("@/hooks/reactquery/messageTemplates", () => ({
 vi.mock("@/hooks/reactquery/auth", () => ({
   useMe: () => ({ data: { orgId: 9 } }),
 }));
-vi.mock("sonner", () => ({
-  toast: { success: vi.fn(), info: vi.fn(), error: vi.fn() },
+vi.mock("@/hooks/common/useAppToast", () => ({
+  appToast: { success: vi.fn(), info: vi.fn(), error: vi.fn() },
 }));
 
 import { TemplatesTab } from "./TemplatesTab";

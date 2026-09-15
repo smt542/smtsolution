@@ -42,7 +42,7 @@ vi.mock("@/hooks/reactquery/utilities", () => ({
   useUtilityRows: vi.fn(() => ({ data: [], isLoading: false })),
   useUtilityConfirmation: vi.fn(() => ({ data: { confirmedAt: "2026-08-01T00:00:00Z", confirmedByName: null, unitCount: 1, totalAmount: 1000, isDirty: false }, isLoading: false })),
 }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() } }));
+vi.mock("@/hooks/common/useAppToast", () => ({ appToast: { error: vi.fn(), success: vi.fn(), info: vi.fn() } }));
 
 import ManagementFeePage from "./page";
 import { ManagementFeeWorkspace } from "./ManagementFeeWorkspace";

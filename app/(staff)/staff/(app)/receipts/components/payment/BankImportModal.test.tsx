@@ -15,8 +15,8 @@ vi.mock("@/hooks/reactquery/payments", () => ({
   useBankPayments: vi.fn(() => ({ data: [] })),
   useRecordBankPayments: vi.fn(() => ({ mutateAsync, isPending: false })),
 }));
-vi.mock("sonner", () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
+vi.mock("@/hooks/common/useAppToast", () => ({
+  appToast: { success: vi.fn(), error: vi.fn() },
 }));
 
 import { BankImportModal } from "./BankImportModal";

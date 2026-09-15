@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button } from "@/components/common";
 import { ComplaintDialog } from "../ComplaintDialog";
 import { FileDropzone } from "./FileDropzone";

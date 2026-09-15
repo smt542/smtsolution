@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useCallback, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, Checkbox, Panel, Select, Textarea } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { useAccounts, type Account } from "@/hooks/reactquery/accounts";
@@ -589,11 +589,7 @@ export function MessagingComposer({
       return;
     }
     if (pointQuote.error || !pointQuote.data) {
-      toast.error(
-        pointQuote.error instanceof Error
-          ? pointQuote.error.message
-          : "포인트 견적을 확인해 주세요.",
-      );
+      toast.error(pointQuote.error, "포인트 견적을 확인해 주세요.");
       return;
     }
     if (!pointQuote.data.sufficient) {
@@ -680,9 +676,7 @@ export function MessagingComposer({
             ? "발송 공급자가 설정되지 않아 발송할 수 없습니다."
             : preset?.context === "고지서"
               ? "발송에 실패했습니다. 다시 시도해 주세요."
-              : error instanceof Error
-                ? error.message
-                : "발송하지 못했습니다.";
+              : "발송하지 못했습니다.";
       toast.error(message);
     }
   };

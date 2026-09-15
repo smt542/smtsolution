@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Spinner } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import {
@@ -70,7 +70,7 @@ export function TemplatesTab() {
       await deleteTemplate.mutateAsync(template.id);
       toast.success("삭제했습니다.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "삭제 실패");
+      toast.error(e, "삭제 실패");
     }
   };
 

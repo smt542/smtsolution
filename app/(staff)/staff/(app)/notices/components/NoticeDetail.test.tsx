@@ -26,8 +26,8 @@ vi.mock("@/hooks/reactquery/residentNotice", () => ({
     isPending: false,
   }),
 }));
-vi.mock("sonner", () => ({
-  toast: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
+vi.mock("@/hooks/common/useAppToast", () => ({
+  appToast: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
 }));
 vi.mock("../../messaging/components/MessagingModal", () => ({
   MessagingModal: (props: { open: boolean; preset?: MessagingPreset }) => {
@@ -256,7 +256,7 @@ describe("NoticeDetail messaging", () => {
   });
 
   it("공지 토큰 발급 실패 시 오류를 알리고 발송 모달을 열지 않는다", async () => {
-    const { toast } = await import("sonner");
+    const { appToast: toast } = await import("@/hooks/common/useAppToast");
     mintShareToken.mockRejectedValueOnce(new Error("공지 토큰 발급 실패"));
     render(
       <NoticeDetail
@@ -271,7 +271,10 @@ describe("NoticeDetail messaging", () => {
     fireEvent.click(screen.getByRole("button", { name: "공지 알림 발송" }));
 
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith("공지 토큰 발급 실패"),
+      expect(toast.error).toHaveBeenCalledWith(
+        expect.any(Error),
+        "공지 상세 링크를 만들지 못했습니다.",
+      ),
     );
     expect(messagingModalSpy).not.toHaveBeenCalledWith(
       expect.objectContaining({ open: true }),

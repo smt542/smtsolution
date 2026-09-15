@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, Input, Select, Checkbox, Panel } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useSetupConfig, useUpsertSetupConfig } from "@/hooks/reactquery/setupConfig";
@@ -42,7 +42,7 @@ export function BillingSettingsTab() {
         cutoffMonths: cutoffMonths === "" ? undefined : Number(cutoffMonths),
       } });
       toast.success("저장되었습니다");
-    } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
+    } catch (e) { toast.error(e, "고지서 설정을 저장하지 못했습니다."); }
   };
 
   return (

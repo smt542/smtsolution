@@ -5,7 +5,7 @@ vi.mock("@/hooks/reactquery/utilities", () => ({
   useSetFixedUsage: vi.fn(),
   useClearFixedUsage: vi.fn(),
 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("@/hooks/common/useAppToast", () => ({ appToast: { success: vi.fn(), error: vi.fn() } }));
 
 import {
   useClearFixedUsage,

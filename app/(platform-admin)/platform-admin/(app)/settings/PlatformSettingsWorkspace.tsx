@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Spinner } from "@/components/common";
 import {
   usePlatformSettings,
@@ -77,7 +77,7 @@ export function PlatformSettingsWorkspace() {
       setIsEditing(false);
       toast.success("HQ 설정을 저장했습니다.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "설정을 저장하지 못했습니다.");
+      toast.error(error, "설정을 저장하지 못했습니다.");
     }
   };
 

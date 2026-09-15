@@ -29,7 +29,7 @@ vi.mock("@/hooks/reactquery/buildingCustomerNumbers", () => ({
     ],
   }),
 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("@/hooks/common/useAppToast", () => ({ appToast: { success: vi.fn(), error: vi.fn() } }));
 import { TenantForm } from "./TenantForm";
 beforeEach(() => { vi.clearAllMocks(); fullData = undefined; });
 

@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Badge, Checkbox, EmptyState, Modal, Select, Spinner } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import type { PlatformAccountCreateValues } from "@/components/forms/schema/platformAccount";
@@ -123,7 +123,7 @@ export function AccountsWorkspace() {
       }
       toast.success("계정을 발급했습니다.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "계정 발급에 실패했습니다.");
+      toast.error(error, "계정 발급에 실패했습니다.");
       throw error;
     }
   };
@@ -143,7 +143,7 @@ export function AccountsWorkspace() {
       setRoleTarget(null);
       toast.success("계정 권한을 변경했습니다.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "권한 변경에 실패했습니다.");
+      toast.error(error, "권한 변경에 실패했습니다.");
       throw error;
     }
   };
@@ -158,7 +158,7 @@ export function AccountsWorkspace() {
       });
       toast.success("계정 정보를 저장했습니다.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "계정 정보 저장에 실패했습니다.");
+      toast.error(error, "계정 정보 저장에 실패했습니다.");
       throw error;
     }
   };
@@ -172,7 +172,7 @@ export function AccountsWorkspace() {
       });
       toast.success(account.isActive ? "계정을 비활성화했습니다." : "계정을 활성화했습니다.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "계정 상태 변경에 실패했습니다.");
+      toast.error(error, "계정 상태 변경에 실패했습니다.");
     }
   };
 
@@ -191,7 +191,7 @@ export function AccountsWorkspace() {
       });
       toast.success("비밀번호를 초기화했습니다.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "비밀번호 초기화에 실패했습니다.");
+      toast.error(error, "비밀번호 초기화에 실패했습니다.");
     }
   };
 

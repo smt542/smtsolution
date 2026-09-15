@@ -3,7 +3,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, EmptyState, Spinner } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { occupancyBasicSchema } from "@/components/forms/schema/occupancy";
@@ -454,7 +454,7 @@ export function TenantForm({
       setDirty(false);
       if (!unitId) router.replace(`/staff/buildings/${buildingId}/tenants/${result.unitId}`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "저장에 실패했습니다.");
+      toast.error(error, "저장에 실패했습니다.");
     }
   };
 
@@ -542,7 +542,7 @@ export function TenantForm({
                 toast.success("삭제되었습니다.");
                 router.push(`/staff/buildings/${buildingId}/tenants`);
               } catch (error) {
-                toast.error(error instanceof Error ? error.message : "삭제에 실패했습니다.");
+                toast.error(error, "삭제에 실패했습니다.");
               }
             }}
             disabled={del.isPending}

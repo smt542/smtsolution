@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Spinner } from "@/components/common";
 import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
 import { signedBillPath, useStaffSignBillUrls } from "@/hooks/reactquery/residentBilling";
@@ -246,11 +246,7 @@ export function OverdueWorkspace({
       setIsMessagingOpen(true);
       toast.success(`${messageTargets.length}세대를 수신자로 담았어요`);
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "미납 고지서 상세 링크를 만들지 못했습니다.",
-      );
+      toast.error(error, "미납 고지서 상세 링크를 만들지 못했습니다.");
     }
   };
 
@@ -333,8 +329,7 @@ export function OverdueWorkspace({
           },
         }}
         onClose={() => setIsMessagingOpen(false)}
-        onSent={(result) => {
-          toast.success(`독촉 안내 ${result.count}건 발송을 접수했습니다.`);
+        onSent={() => {
           setIsMessagingOpen(false);
         }}
       />

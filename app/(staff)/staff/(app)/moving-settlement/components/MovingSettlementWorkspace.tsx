@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { EmptyState, Spinner } from "@/components/common";
 import type { MovingSettlementValues } from "@/components/forms/schema/movingSettlement";
 import { useBuildings } from "@/hooks/reactquery/buildings";

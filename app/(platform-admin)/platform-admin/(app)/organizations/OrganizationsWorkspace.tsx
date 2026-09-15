@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Badge, Button, EmptyState, Modal, Spinner } from "@/components/common";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import {
   listPlatformOrganizations,
   platformKeys,
@@ -91,7 +91,7 @@ export default function OrganizationsWorkspace() {
       await updateStatus.mutateAsync({ id, status: next });
       toast.success("조직 상태를 변경했습니다.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "상태 변경에 실패했습니다.");
+      toast.error(e, "상태 변경에 실패했습니다.");
     }
   };
 
@@ -127,7 +127,7 @@ export default function OrganizationsWorkspace() {
       if (uploadedPath) {
         await removeOrganizationContractFile(uploadedPath).catch(() => undefined);
       }
-      toast.error(e instanceof Error ? e.message : "입점에 실패했습니다.");
+      toast.error(e, "입점에 실패했습니다.");
       throw e;
     }
   });
@@ -170,7 +170,7 @@ export default function OrganizationsWorkspace() {
       if (uploadedPath) {
         await removeOrganizationContractFile(uploadedPath).catch(() => undefined);
       }
-      toast.error(e instanceof Error ? e.message : "수정에 실패했습니다.");
+      toast.error(e, "수정에 실패했습니다.");
       throw e;
     }
   });
@@ -180,7 +180,7 @@ export default function OrganizationsWorkspace() {
       await setDeleted.mutateAsync({ id, deleted });
       toast.success(deleted ? "조직을 해지했습니다." : "조직을 복구했습니다.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "처리에 실패했습니다.");
+      toast.error(e, "처리에 실패했습니다.");
     }
   };
 

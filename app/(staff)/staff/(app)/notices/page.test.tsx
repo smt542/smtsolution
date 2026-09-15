@@ -33,7 +33,7 @@ vi.mock("@/hooks/reactquery/notices", () => ({
 vi.mock("../messaging/components/MessagingModal", () => ({
   MessagingModal: () => <div data-testid="messaging-modal" />,
 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("@/hooks/common/useAppToast", () => ({ appToast: { success: vi.fn(), error: vi.fn() } }));
 
 import NoticesPage from "./page";
 import { useBuildings } from "@/hooks/reactquery/buildings";

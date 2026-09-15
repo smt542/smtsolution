@@ -21,7 +21,7 @@ import {
 import type { PointAdjustmentFormValues } from "@/components/forms/schema/pointAdjustment";
 import { formatNumber } from "@/lib/format";
 import { useDebouncedValue } from "@/hooks/common";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import {
   PlatformPagination,
   QueryError,
@@ -110,7 +110,7 @@ export function OrganizationsPointsWorkspace() {
       await charge.mutateAsync(values);
       toast.success("포인트 충전을 기록했습니다.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "충전 기록에 실패했습니다.");
+      toast.error(e, "충전 기록에 실패했습니다.");
       throw e;
     }
   };
@@ -120,7 +120,7 @@ export function OrganizationsPointsWorkspace() {
       await adjustment.mutateAsync(values);
       toast.success("포인트 조정을 기록했습니다.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "포인트 조정에 실패했습니다.");
+      toast.error(error, "포인트 조정에 실패했습니다.");
       throw error;
     }
   };
@@ -132,7 +132,7 @@ export function OrganizationsPointsWorkspace() {
       toast.success("포인트 예약을 해제했습니다.");
       setReleaseTarget(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "예약 해제에 실패했습니다.");
+      toast.error(error, "예약 해제에 실패했습니다.");
       throw error;
     }
   };

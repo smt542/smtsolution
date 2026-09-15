@@ -9,7 +9,7 @@ vi.mock("@/hooks/reactquery/quickMessages", () => ({
   useUpdateQuickMessage: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useDeleteQuickMessage: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("@/hooks/common/useAppToast", () => ({ appToast: { error: vi.fn(), success: vi.fn() } }));
 import { QuickMessageEditor } from "./QuickMessageEditor";
 beforeEach(() => { vi.clearAllMocks(); createMut.mockResolvedValue({}); });
 

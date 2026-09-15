@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, Modal, Select } from "@/components/common";
 import {
   useSaveWaterDiscount,

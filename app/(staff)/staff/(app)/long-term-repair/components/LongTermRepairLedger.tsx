@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, useRef, useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Spinner } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { DpDatePicker } from "@/components/common/DpDatePicker";
@@ -300,7 +300,7 @@ export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTerm
       setDeletedIds([]);
       toast.success("적립금 내역을 저장했어요");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "적립금 내역을 저장하지 못했습니다.");
+      toast.error(error, "적립금 내역을 저장하지 못했습니다.");
     }
   };
 
@@ -618,7 +618,7 @@ export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTerm
               await deleteAttachment.mutateAsync({ id: attachment.id, path: attachment.fileUrl });
               toast.success("첨부파일을 삭제했어요");
             } catch (error) {
-              toast.error(error instanceof Error ? error.message : "첨부파일을 삭제하지 못했습니다.");
+              toast.error(error, "첨부파일을 삭제하지 못했습니다.");
             }
           }}
         />

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Tabs, SearchBar, Button, EmptyState } from "@/components/common";
 import type { StaffType } from "@/hooks/reactquery/auth";
 import { useDebouncedValue } from "@/hooks/common";
@@ -51,29 +51,29 @@ export function AccountsWorkspace({ canEditPermissions }: { canEditPermissions: 
       toast.success("저장되었습니다");
       return created;
     }
-    catch (e) { toast.error(e instanceof Error ? e.message : "오류가 발생했습니다"); throw e; }
+    catch (e) { toast.error(e, "오류가 발생했습니다"); throw e; }
   };
   const onUpdateBasic = async (userId: string, input: AccountBasicInput) => {
     try { await basicM.mutateAsync({ userId, input }); toast.success("저장되었습니다"); }
-    catch (e) { toast.error(e instanceof Error ? e.message : "오류가 발생했습니다"); throw e; }
+    catch (e) { toast.error(e, "오류가 발생했습니다"); throw e; }
   };
   const onUpdatePermissions = async (userId: string, input: PermissionInput) => {
     try { await permM.mutateAsync({ userId, input }); }
-    catch (e) { toast.error(e instanceof Error ? e.message : "권한 변경 실패"); throw e; }
+    catch (e) { toast.error(e, "권한 변경 실패"); throw e; }
   };
   const onResetPassword = async (userId: string, password: string) => {
     try {
       await resetPasswordM.mutateAsync({ userId, password });
       toast.success("변경되었습니다");
     }
-    catch (e) { toast.error(e instanceof Error ? e.message : "오류가 발생했습니다"); throw e; }
+    catch (e) { toast.error(e, "오류가 발생했습니다"); throw e; }
   };
   const onSetActive = async (userId: string, active: boolean) => {
     try {
       await activeM.mutateAsync({ userId, active });
       toast.success("변경되었습니다");
     }
-    catch (e) { toast.error(e instanceof Error ? e.message : "오류가 발생했습니다"); throw e; }
+    catch (e) { toast.error(e, "오류가 발생했습니다"); throw e; }
   };
   const onToggleActive = async (account: Account) => {
     try {

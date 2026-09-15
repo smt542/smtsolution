@@ -29,11 +29,11 @@ vi.mock("@/hooks/reactquery/messaging", () => ({
     }
   },
 }));
-vi.mock("sonner", () => ({
-  toast: { success: vi.fn(), info: vi.fn(), error: vi.fn() },
+vi.mock("@/hooks/common/useAppToast", () => ({
+  appToast: { success: vi.fn(), info: vi.fn(), error: vi.fn() },
 }));
 
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useAccounts } from "@/hooks/reactquery/accounts";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useTenantList } from "@/hooks/reactquery/occupancies";

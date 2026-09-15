@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useBuildings } from "@/hooks/reactquery/buildings/queries";
 import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates/queries";
 import { useSendMessages } from "@/hooks/reactquery/messaging/mutations";
@@ -380,9 +380,7 @@ function MessengerFabContent() {
             ? "포인트가 부족해 발송할 수 없어요."
             : code === "SENDER_NOT_REGISTERED"
               ? "알림톡 발신 설정 준비 중"
-              : error instanceof Error
-                ? error.message
-                : "메시지를 발송하지 못했습니다.";
+              : "메시지를 발송하지 못했습니다.";
       setSendFeedback({ code, message });
       toast.error(message);
     }

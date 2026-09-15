@@ -33,8 +33,8 @@ vi.mock("@/hooks/reactquery/auth", () => ({
   useMe: vi.fn(),
 }));
 
-vi.mock("sonner", () => ({
-  toast: { error: vi.fn(), success: vi.fn() },
+vi.mock("@/hooks/common/useAppToast", () => ({
+  useAppToast: () => ({ error: vi.fn(), success: vi.fn(), warning: vi.fn() }),
 }));
 
 import { VendorManagementSection } from "./VendorManagementSection";

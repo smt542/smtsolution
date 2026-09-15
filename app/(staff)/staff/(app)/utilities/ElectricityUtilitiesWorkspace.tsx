@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { EmptyState } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
@@ -305,7 +305,7 @@ export default function ElectricityUtilitiesWorkspace() {
       setEditing(false);
       setSummaryDrafts({});
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "전기 지침을 저장하지 못했습니다.");
+      toast.error(error, "전기 지침을 저장하지 못했습니다.");
     }
   };
 

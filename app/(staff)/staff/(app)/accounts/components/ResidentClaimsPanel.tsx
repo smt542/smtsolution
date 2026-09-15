@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import {
   Button,
   EmptyState,
@@ -180,7 +180,7 @@ export function ResidentClaimsPanel() {
       toast.success(`${selectedOccupancy.buildingName} ${selectedOccupancy.unitNo}호와 연결했어요`);
       closeLinkModal();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "오류가 발생했습니다");
+      toast.error(error, "오류가 발생했습니다");
     }
   };
 
@@ -190,7 +190,7 @@ export function ResidentClaimsPanel() {
       await rejectClaim.mutateAsync(selectedClaim.claimId);
       closeLinkModal();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "오류가 발생했습니다");
+      toast.error(error, "오류가 발생했습니다");
     }
   };
 

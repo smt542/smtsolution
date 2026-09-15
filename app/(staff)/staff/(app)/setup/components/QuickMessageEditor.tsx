@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, Input, Modal } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import {
@@ -33,10 +33,10 @@ export function QuickMessageEditor() {
         await create.mutateAsync({ orgId, title, body });
       }
       setOpen(false);
-    } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
+    } catch (e) { toast.error(e, "자주 보내는 문자를 저장하지 못했습니다."); }
   };
   const remove = async (id: number) => {
-    try { await del.mutateAsync(id); } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
+    try { await del.mutateAsync(id); } catch (e) { toast.error(e, "자주 보내는 문자를 삭제하지 못했습니다."); }
   };
 
   return (

@@ -24,11 +24,11 @@ vi.mock("@/hooks/reactquery/billing", () => ({
   getBillingPeriodSetting: vi.fn(),
 }));
 vi.mock("@/hooks/reactquery/payments", () => ({ cmsDownloadUrl: vi.fn(() => "/cms") }));
-vi.mock("sonner", () => ({
-  toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
+vi.mock("@/hooks/common/useAppToast", () => ({
+  appToast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
 
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { DocumentOutputModal } from "./DocumentOutputModal";
 
 const target = {

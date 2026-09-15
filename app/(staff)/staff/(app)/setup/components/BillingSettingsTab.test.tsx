@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: vi.fn() }));
 vi.mock("@/hooks/reactquery/setupConfig", () => ({ useSetupConfig: vi.fn(), useUpsertSetupConfig: vi.fn() }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("@/hooks/common/useAppToast", () => ({ appToast: { error: vi.fn(), success: vi.fn() } }));
 import { BillingSettingsTab } from "./BillingSettingsTab";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useSetupConfig, useUpsertSetupConfig } from "@/hooks/reactquery/setupConfig";

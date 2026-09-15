@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { CloseIcon } from "@/components/icons";
 import {
   defaultBillingPeriodSetting,
@@ -80,7 +80,7 @@ export function BillingPeriodSettingsBar({
       await onSave();
       setDraft(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : String(error));
+      toast.error(error, "부과기준일을 저장하지 못했습니다.");
     }
   };
 

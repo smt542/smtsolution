@@ -18,7 +18,7 @@ import {
   useUploadAttachments,
   type Attachment,
 } from "@/hooks/reactquery/attachments";
-import { useAppToast } from "@/hooks/common";
+import { useAppToast } from "@/hooks/common/useAppToast";
 import { useMe } from "@/hooks/reactquery/auth";
 import { vendorSchema } from "@/components/forms/schema/vendor";
 import type { Vendor } from "@/hooks/reactquery/vendors";

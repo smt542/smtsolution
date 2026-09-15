@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { PrinterIcon } from "@/components/icons";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useUnitOccupancyFull } from "@/hooks/reactquery/occupancies";

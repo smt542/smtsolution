@@ -1,5 +1,5 @@
 "use client";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useMe } from "@/hooks/reactquery/auth";
 import { MasterListEditor } from "./MasterListEditor";
 import { QuickMessageEditor } from "./QuickMessageEditor";
@@ -26,9 +26,9 @@ function ConnectedMasterEditor({ title, useList, useCreate, useRename, useRemove
     <MasterListEditor
       title={title}
       items={items.map((i) => ({ id: i.id, label: i.label }))}
-      onAdd={async (label) => { if (!orgId) return; try { await create.mutateAsync({ orgId, label }); } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); } }}
-      onRename={async (id, label) => { try { await rename.mutateAsync({ id, label }); } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); } }}
-      onDelete={async (id) => { try { await remove.mutateAsync(id); } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); } }}
+      onAdd={async (label) => { if (!orgId) return; try { await create.mutateAsync({ orgId, label }); } catch (e) { toast.error(e, `${title} 항목을 추가하지 못했습니다.`); } }}
+      onRename={async (id, label) => { try { await rename.mutateAsync({ id, label }); } catch (e) { toast.error(e, `${title} 항목을 변경하지 못했습니다.`); } }}
+      onDelete={async (id) => { try { await remove.mutateAsync(id); } catch (e) { toast.error(e, `${title} 항목을 삭제하지 못했습니다.`); } }}
     />
   );
 }

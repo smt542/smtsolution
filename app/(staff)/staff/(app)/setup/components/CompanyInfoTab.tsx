@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Badge, Button, Input, Panel } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import {
@@ -56,7 +56,7 @@ export function CompanyInfoTab() {
   const save = async () => {
     if (!me?.orgId) { toast.error("인증 정보가 없습니다"); return; }
     try { await upsert.mutateAsync({ orgId: me.orgId, patch: { ...f } }); toast.success("저장되었습니다"); }
-    catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
+    catch (e) { toast.error(e, "관리업체 정보를 저장하지 못했습니다."); }
   };
 
   const verifyAndSaveSender = async (product: SetupSenderProduct) => {
@@ -65,7 +65,7 @@ export function CompanyInfoTab() {
       setSenders((current) => ({ ...current, [product]: result.number ?? "" }));
       toast.success(result.number ? "발신번호를 검증하고 저장했습니다" : "운영사 기본 발신번호를 사용합니다");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(e, "발신번호를 검증하거나 저장하지 못했습니다.");
     }
   };
 

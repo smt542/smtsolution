@@ -34,13 +34,19 @@ describe("useAppToast", () => {
 
     expect(toastMock.error).toHaveBeenCalledWith("사진을 저장하지 못했습니다.");
     expect(toUserMessage(new AppError("다시 로그인해 주세요."))).toBe("다시 로그인해 주세요.");
+    expect(toUserMessage("Failed to fetch")).toBe(
+      "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+    );
   });
 
-  it("loading toast를 같은 id로 종료할 수 있다", () => {
+  it("loading toast를 성공 또는 실패 시 같은 id로 종료한다", () => {
     const { result } = renderHook(() => useAppToast());
-    const id = result.current.loading("저장 중…");
-    result.current.dismiss(id);
+    const successId = result.current.loading("저장 중…");
+    result.current.success("저장 완료", { id: successId });
+    const errorId = result.current.loading("삭제 중…");
+    result.current.error(new Error("network failure"), "삭제하지 못했습니다.", { id: errorId });
 
-    expect(toastMock.dismiss).toHaveBeenCalledWith("toast-id");
+    expect(toastMock.success).toHaveBeenCalledWith("저장 완료", { id: "toast-id" });
+    expect(toastMock.error).toHaveBeenCalledWith("삭제하지 못했습니다.", { id: "toast-id" });
   });
 });

@@ -14,8 +14,8 @@ const mocks = vi.hoisted(() => ({
   getStaffContext: vi.fn(),
 }));
 
-vi.mock("sonner", () => ({
-  toast: Object.assign(vi.fn(), { error: mocks.toastError, success: vi.fn(), info: vi.fn() }),
+vi.mock("@/hooks/common/useAppToast", () => ({
+  appToast: Object.assign(vi.fn(), { error: mocks.toastError, success: vi.fn(), info: vi.fn() }),
 }));
 vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),

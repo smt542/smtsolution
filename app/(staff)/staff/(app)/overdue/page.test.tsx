@@ -50,8 +50,8 @@ vi.mock("../messaging/components/MessagingModal", () => ({
     ) : null;
   },
 }));
-vi.mock("sonner", () => ({
-  toast: { info: vi.fn(), success: vi.fn(), error: vi.fn() },
+vi.mock("@/hooks/common/useAppToast", () => ({
+  appToast: { info: vi.fn(), success: vi.fn(), error: vi.fn() },
 }));
 vi.mock("./utils", async () => {
   const actual = await vi.importActual<typeof import("./utils")>("./utils");
@@ -69,7 +69,7 @@ import {
   useOverdueHouseholds,
   useOverduePeriods,
 } from "@/hooks/reactquery/overdue";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { downloadOverdueLedger } from "./utils";
 import { getStaffContext } from "../_staffContext";
 
@@ -428,7 +428,10 @@ describe("OverduePage", () => {
     fireEvent.click(screen.getByRole("button", { name: "독촉 문자 발송" }));
 
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith("미납 링크 발급 실패"),
+      expect(toast.error).toHaveBeenCalledWith(
+        expect.any(Error),
+        "미납 고지서 상세 링크를 만들지 못했습니다.",
+      ),
     );
     expect(messagingModalSpy).not.toHaveBeenCalledWith(
       expect.objectContaining({ open: true }),

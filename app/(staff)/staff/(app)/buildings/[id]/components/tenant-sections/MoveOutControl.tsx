@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, Input, Modal } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import {
@@ -45,7 +45,7 @@ export function MoveOutControl({ occupancyId, scheduledDate, isVacant }: {
       toast.success("퇴실 처리가 완료되었습니다.");
       setOpen(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "퇴실 처리에 실패했습니다.");
+      toast.error(error, "퇴실 처리에 실패했습니다.");
     }
   };
 
@@ -59,7 +59,7 @@ export function MoveOutControl({ occupancyId, scheduledDate, isVacant }: {
       toast.success("퇴실을 예약했습니다.");
       setOpen(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "퇴실 예약에 실패했습니다.");
+      toast.error(error, "퇴실 예약에 실패했습니다.");
     }
   };
 
@@ -68,7 +68,7 @@ export function MoveOutControl({ occupancyId, scheduledDate, isVacant }: {
       await cancel.mutateAsync(occupancyId);
       toast.success("퇴실 예약을 취소했습니다.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "예약 취소에 실패했습니다.");
+      toast.error(error, "예약 취소에 실패했습니다.");
     }
   };
 

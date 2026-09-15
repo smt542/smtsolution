@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, Input, Modal, Spinner } from "@/components/common";
 import {
   useSaveUtilitySupplier,
@@ -76,11 +76,7 @@ export function GasSupplierModal({
           close();
         },
         onError: (error) => {
-          toast.error(
-            error instanceof Error
-              ? error.message
-              : "가스 공급자정보 저장에 실패했습니다.",
-          );
+          toast.error(error, "가스 공급자정보 저장에 실패했습니다.");
         },
       },
     );

@@ -1,6 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { EmptyState, Spinner } from "@/components/common";
 import type { TenantListRow } from "@/hooks/reactquery/occupancies";
 import { TENANT_COLUMNS, TENANT_TABLE_MIN_WIDTH } from "./tenantColumns";
@@ -45,7 +45,7 @@ export function TenantOccupancyCard({
           <button
             type="button"
             disabled={!selected}
-            onClick={() => toast("엑셀 다운로드는 준비 중입니다.")}
+            onClick={() => toast.info("엑셀 다운로드는 준비 중입니다.")}
             className="inline-flex h-[40px] items-center rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg disabled:cursor-default disabled:opacity-[.45] disabled:hover:bg-surface"
           >
             ⤓ 엑셀 다운

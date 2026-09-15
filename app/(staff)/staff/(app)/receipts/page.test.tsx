@@ -69,7 +69,7 @@ vi.mock("./components/unit-statement/UnitStatementModal", () => ({
 vi.mock("./components/entry-alerts/ReceiptEntryAlerts", () => ({
   ReceiptEntryAlerts: () => null,
 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
+vi.mock("@/hooks/common/useAppToast", () => ({ appToast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 
 import { ReceiptWorkspace } from "./ReceiptWorkspace";
 import railStyles from "./components/BuildingUnitRail.module.css";

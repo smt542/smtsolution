@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useLogout, useMe } from "@/hooks/reactquery/auth";
 import { hasModule } from "@/lib/auth/permissions";
 import { OFFICE_NAV_ITEMS, type NavItem } from "./navItems";

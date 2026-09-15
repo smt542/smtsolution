@@ -5,9 +5,9 @@ vi.mock("@/hooks/reactquery/utilities", () => ({
   useUtilitySupplier: vi.fn(),
   useSaveUtilitySupplier: vi.fn(),
 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("@/hooks/common/useAppToast", () => ({ appToast: { success: vi.fn(), error: vi.fn() } }));
 
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import {
   useSaveUtilitySupplier,
   useUtilitySupplier,

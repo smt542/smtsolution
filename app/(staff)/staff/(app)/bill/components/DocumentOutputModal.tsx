@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Spinner } from "@/components/common";
 import { billKeys, getBillDocuments, listBillTargets, useIssueBills, useSendBillFaxes, type BillDocument, type BillTarget } from "@/hooks/reactquery/bill";
 import { billingKeys, getBillingPeriodSetting } from "@/hooks/reactquery/billing";
@@ -137,7 +137,7 @@ export function DocumentOutputModal({ type, buildings, companyName, accounts, cu
           if (unitIds.length > 0) await issueBills.mutateAsync({ buildingId: building.id, period, unitIds, issueType: "giro", dueDate: periodSettingQueries[buildingIndex]?.data?.dueDate ?? null, unitLabelMode: "name", waterCutoffUnitIds: waterCutoffUnitIds.filter((unitId) => unitIds.includes(unitId)) });
         }
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "지로 고지서 발행에 실패했습니다.");
+        toast.error(error, "지로 고지서 발행에 실패했습니다.");
         return;
       }
     }

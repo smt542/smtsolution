@@ -12,8 +12,8 @@ vi.mock("@/hooks/reactquery/movingSettlement", () => ({
   useMidMoveout: () => ({ mutate: midMutate, isPending: false }),
   useDeleteSettlement: () => ({ mutate: deleteMutate, isPending: false }),
 }));
-vi.mock("sonner", () => ({
-  toast: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
+vi.mock("@/hooks/common/useAppToast", () => ({
+  appToast: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
 }));
 
 import { SettlementActions } from "./SettlementActions";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, CustomDropdown, Panel, Spinner } from "@/components/common";
 import { useAccounts } from "@/hooks/reactquery/accounts";
 import { useAsCategories } from "@/hooks/reactquery/asCategories";
@@ -178,7 +178,7 @@ export function AsStatusSection({
       }
       toast.success("A/S 접수가 저장되었습니다.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "저장 중 오류가 발생했습니다.");
+      toast.error(error, "저장 중 오류가 발생했습니다.");
       throw error;
     }
   };
@@ -205,7 +205,7 @@ export function AsStatusSection({
       }
       toast.success("A/S 접수를 저장했습니다.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "저장 중 오류가 발생했습니다.");
+      toast.error(error, "저장 중 오류가 발생했습니다.");
       throw error;
     }
   };
@@ -216,7 +216,7 @@ export function AsStatusSection({
       setSelectedId(null);
       toast.success("A/S 접수를 삭제했습니다.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "삭제에 실패했습니다.");
+      toast.error(error, "삭제에 실패했습니다.");
     }
   };
 
@@ -434,8 +434,7 @@ export function AsStatusSection({
           open
           preset={messagingPreset}
           onClose={() => setMessagingPreset(null)}
-          onSent={(result) => {
-            toast.success(`문자가 발송되었습니다. (성공 ${result.count}건)`);
+          onSent={() => {
             setMessagingPreset(null);
           }}
         />

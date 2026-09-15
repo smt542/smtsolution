@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, Input, Spinner } from "@/components/common";
 import {
   useBillingPeriod,
@@ -56,9 +56,7 @@ export function BillingPeriodBar({
           setEditing(false);
         },
         onError: (error) => {
-          toast.error(
-            error instanceof Error ? error.message : "부과기준일 저장에 실패했습니다.",
-          );
+          toast.error(error, "부과기준일 저장에 실패했습니다.");
         },
       },
     );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, Modal, Textarea } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import {
@@ -100,7 +100,7 @@ function TemplateFormFields({
       toast.success("저장했습니다.");
       onSaved();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "저장 실패");
+      toast.error(error, "저장 실패");
     }
   };
 

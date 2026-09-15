@@ -7,7 +7,7 @@ vi.mock("@/hooks/reactquery/utilities", () => ({
   useUtilityPrices: vi.fn(),
   useSaveUtilityUnitPrices: vi.fn(),
 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("@/hooks/common/useAppToast", () => ({ appToast: { success: vi.fn(), error: vi.fn() } }));
 
 import {
   useSaveScopedPrices,

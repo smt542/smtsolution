@@ -27,7 +27,7 @@ vi.mock("@/hooks/reactquery/auth", () => ({
     isPending: false,
   }),
 }));
-vi.mock("sonner", () => ({ toast: { error: mocks.toastError } }));
+vi.mock("@/hooks/common/useAppToast", () => ({ appToast: { error: mocks.toastError } }));
 
 import { PlatformShell } from "./PlatformShell";
 

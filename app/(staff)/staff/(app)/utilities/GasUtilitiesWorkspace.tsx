@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { EmptyState, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";

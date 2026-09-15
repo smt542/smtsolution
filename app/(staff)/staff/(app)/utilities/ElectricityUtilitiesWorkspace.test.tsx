@@ -13,8 +13,8 @@ vi.mock("@/hooks/reactquery/utilities", () => ({
   useSaveBillingPeriod: vi.fn(),
   useSaveUtilityUnitPrices: vi.fn(),
 }));
-vi.mock("sonner", () => ({
-  toast: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
+vi.mock("@/hooks/common/useAppToast", () => ({
+  appToast: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
 }));
 vi.mock("./components/MeterLedgerModal", () => ({
   MeterLedgerModal: ({ open }: { open: boolean }) => open
@@ -22,7 +22,7 @@ vi.mock("./components/MeterLedgerModal", () => ({
     : null,
 }));
 
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useCustomerNumberLookup } from "@/hooks/reactquery/buildingCustomerNumbers";

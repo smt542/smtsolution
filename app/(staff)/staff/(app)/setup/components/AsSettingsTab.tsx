@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Input, Panel } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import {
@@ -36,7 +36,7 @@ export function AsSettingsTab() {
     if (!v) { setLabels((p) => ({ ...p, [id]: original })); return; }
     if (v === original) return;
     try { await rename.mutateAsync({ id, label: v }); }
-    catch (e) { setLabels((p) => ({ ...p, [id]: original })); toast.error(e instanceof Error ? e.message : String(e)); }
+    catch (e) { setLabels((p) => ({ ...p, [id]: original })); toast.error(e, "A/S 유형 이름을 변경하지 못했습니다."); }
   };
 
   const commitDraft = async () => {
@@ -44,13 +44,13 @@ export function AsSettingsTab() {
     if (!v) { setDraft(null); return; }
     if (!orgId) { toast.error("인증 정보가 없습니다"); return; }
     try { await create.mutateAsync({ orgId, label: v }); setDraft(null); }
-    catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
+    catch (e) { toast.error(e, "A/S 유형을 추가하지 못했습니다."); }
   };
 
   const onDelete = async (id: number) => {
     if (cats.length <= 1) { toast.error("최소 1개 유형은 있어야 해요"); return; }
     try { await remove.mutateAsync(id); }
-    catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
+    catch (e) { toast.error(e, "A/S 유형을 삭제하지 못했습니다."); }
   };
 
   return (

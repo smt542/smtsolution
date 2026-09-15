@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, Modal } from "@/components/common";
 import {
   useLateFeeRateTiers,
@@ -144,7 +144,7 @@ function LateFeeRateEditor({
       toast.success("연체료 요율을 저장했습니다");
       onClose();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "저장 실패");
+      toast.error(error, "저장 실패");
     }
   };
 

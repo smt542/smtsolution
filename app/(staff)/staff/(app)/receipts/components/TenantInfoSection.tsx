@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Checkbox, Input, Panel, Spinner } from "@/components/common";
 import type { UnitOccupancyFull } from "@/hooks/reactquery/occupancies";
 import { useSaveOccupancyFields } from "@/hooks/reactquery/receipts";
@@ -129,7 +129,7 @@ export function TenantInfoSection({
       toast.success("입주자 정보를 저장했습니다.");
       setEditing(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "저장에 실패했습니다.");
+      toast.error(error, "저장에 실패했습니다.");
     }
   };
 

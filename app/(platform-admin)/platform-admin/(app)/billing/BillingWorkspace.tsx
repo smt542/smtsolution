@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Badge, EmptyState, Spinner } from "@/components/common";
 import {
   useMarkOrgBillingPaid,
@@ -115,7 +115,7 @@ export function BillingWorkspace() {
       await markPaid.mutateAsync({ orgId: row.orgId, month, paid: nextPaid });
       toast.success(nextPaid ? "입금 처리했습니다." : "입금을 취소했습니다.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "처리에 실패했습니다.");
+      toast.error(error, "처리에 실패했습니다.");
     }
   };
 

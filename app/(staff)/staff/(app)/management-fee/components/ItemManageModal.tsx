@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Modal, Button } from "@/components/common";
 import { FeeItemList } from "./FeeItemList";
 import { FeeItemFormModal } from "./FeeItemFormModal";
@@ -33,7 +33,8 @@ export function ItemManageModal({ open, onClose, orgId, typeId, typeLabel }: Pro
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<FeeItem | null>(null);
 
-  const err = (e: unknown) => toast.error(e instanceof Error ? e.message : String(e));
+  const showActionError = (error: unknown) =>
+    toast.error(error, "관리비 항목을 처리하지 못했습니다.");
 
   const handleSubmit = async (values: FeeItemFormValues) => {
     try {
@@ -51,14 +52,14 @@ export function ItemManageModal({ open, onClose, orgId, typeId, typeLabel }: Pro
         });
       }
     } catch (e) {
-      err(e);
+      showActionError(e);
       throw e;
     }
   };
 
   const handleDelete = async (item: FeeItem) => {
     if (item.isRequired) { toast.error("필수 항목은 삭제할 수 없습니다"); return; }
-    try { await deleteItem.mutateAsync({ id: item.id, isRequired: item.isRequired }); } catch (e) { err(e); }
+    try { await deleteItem.mutateAsync({ id: item.id, isRequired: item.isRequired }); } catch (e) { showActionError(e); }
   };
 
   const move = async (item: FeeItem, dir: -1 | 1) => {
@@ -70,7 +71,7 @@ export function ItemManageModal({ open, onClose, orgId, typeId, typeLabel }: Pro
     [ng[idx], ng[swap]] = [ng[swap], ng[idx]];
     const required = item.isRequired ? ng : feeItems.filter((i) => i.isRequired);
     const optional = item.isRequired ? feeItems.filter((i) => !i.isRequired) : ng;
-    try { await reorderItems.mutateAsync([...required, ...optional].map((i) => i.id)); } catch (e) { err(e); }
+    try { await reorderItems.mutateAsync([...required, ...optional].map((i) => i.id)); } catch (e) { showActionError(e); }
   };
 
   return (

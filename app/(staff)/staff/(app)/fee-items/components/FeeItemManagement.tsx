@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { EmptyState, Spinner } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import {
@@ -199,7 +199,7 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
           return;
         }
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "유형의 사용 여부를 확인하지 못했습니다.");
+        toast.error(error, "유형의 사용 여부를 확인하지 못했습니다.");
         return;
       }
     }
@@ -310,7 +310,7 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
         setBaseline(cloneDrafts(persisted));
         setActiveKey(refreshed[0]?.key ?? null);
       }
-      toast.error(error instanceof Error ? error.message : "변경 내용을 저장하지 못했습니다.");
+      toast.error(error, "변경 내용을 저장하지 못했습니다.");
     } finally {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: buildingTypeKeys.all, refetchType: "none" }),

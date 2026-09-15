@@ -1,7 +1,7 @@
 "use client";
 
 import { useDeferredValue, useMemo, useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { EmptyState, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import {

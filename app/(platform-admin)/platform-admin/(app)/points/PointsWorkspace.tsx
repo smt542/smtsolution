@@ -16,7 +16,7 @@ import {
   type PlatformOrganizationQuery,
 } from "@/hooks/reactquery/platform";
 import { formatNumber } from "@/lib/format";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { QueryError } from "../../../_components/PageElements";
 import { PlatformPageContainer } from "../../../_components/PlatformPageContainer";
 
@@ -162,7 +162,7 @@ export default function PointsWorkspace() {
       await charge.mutateAsync(values);
       toast.success("포인트 충전을 기록했습니다.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "충전 기록에 실패했습니다.");
+      toast.error(error, "충전 기록에 실패했습니다.");
       throw error;
     }
   };

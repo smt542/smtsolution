@@ -10,7 +10,7 @@ vi.mock("@/hooks/reactquery/occupancies", () => ({
   useScheduleMoveOut: () => ({ mutateAsync: scheduleMutate, isPending: false }),
   useCancelMoveOutSchedule: () => ({ mutateAsync: cancelMutate, isPending: false }),
 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("@/hooks/common/useAppToast", () => ({ appToast: { success: vi.fn(), error: vi.fn() } }));
 import { MoveOutControl } from "./MoveOutControl";
 
 beforeEach(() => {

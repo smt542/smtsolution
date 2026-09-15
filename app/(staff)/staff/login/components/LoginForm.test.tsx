@@ -7,7 +7,7 @@ const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 const mutateAsync = vi.fn();
 vi.mock("@/hooks/reactquery/auth", () => ({ useLogin: () => ({ mutateAsync, isPending: false }) }));
-vi.mock("sonner", () => ({ toast: { info: vi.fn(), error: vi.fn(), success: vi.fn() } }));
+vi.mock("@/hooks/common/useAppToast", () => ({ appToast: { info: vi.fn(), error: vi.fn(), success: vi.fn() } }));
 
 import { LoginForm } from "./LoginForm";
 
@@ -74,7 +74,7 @@ describe("LoginForm", () => {
   });
 
   it("mustChangePassword면 안내 토스트", async () => {
-    const { toast } = await import("sonner");
+    const { appToast: toast } = await import("@/hooks/common/useAppToast");
     mutateAsync.mockResolvedValue({ mustChangePassword: true });
     render(<LoginForm />);
     await userEvent.type(screen.getByLabelText("아이디"), "hong");

@@ -18,8 +18,8 @@ vi.mock("@/hooks/reactquery/lateFeeTiers", () => {
   };
 });
 
-vi.mock("sonner", () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
+vi.mock("@/hooks/common/useAppToast", () => ({
+  appToast: { success: vi.fn(), error: vi.fn() },
 }));
 
 beforeEach(() => {

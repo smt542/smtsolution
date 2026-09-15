@@ -22,7 +22,7 @@ vi.mock("@/hooks/reactquery/cleaningTeams", () => ({
   useRenameCleaningTeam: () => ({ mutateAsync: vi.fn() }), useDeleteCleaningTeam: () => ({ mutateAsync: vi.fn() }),
 }));
 vi.mock("./QuickMessageEditor", () => ({ QuickMessageEditor: () => <div>QUICK_MSG</div> }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("@/hooks/common/useAppToast", () => ({ appToast: { error: vi.fn(), success: vi.fn() } }));
 import { SystemSettingsTab } from "./SystemSettingsTab";
 beforeEach(() => { vi.clearAllMocks(); roomCreate.mockResolvedValue({}); });
 

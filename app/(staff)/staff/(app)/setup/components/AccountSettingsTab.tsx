@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, Input, Checkbox, Panel } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useSetupConfig, useUpsertSetupConfig } from "@/hooks/reactquery/setupConfig";
@@ -32,7 +32,7 @@ export function AccountSettingsTab() {
   const save = async () => {
     if (!me?.orgId) { toast.error("인증 정보가 없습니다"); return; }
     try { await upsert.mutateAsync({ orgId: me.orgId, patch: { ...f } }); toast.success("저장되었습니다"); }
-    catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
+    catch (e) { toast.error(e, "계좌 설정을 저장하지 못했습니다."); }
   };
 
   return (

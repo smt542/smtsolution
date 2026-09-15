@@ -5,7 +5,7 @@ vi.mock("@/hooks/reactquery/utilities", () => ({
   useSaveWaterDiscount: vi.fn(),
   useDeleteWaterDiscount: vi.fn(),
 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("@/hooks/common/useAppToast", () => ({ appToast: { success: vi.fn(), error: vi.fn() } }));
 
 import {
   useSaveWaterDiscount,

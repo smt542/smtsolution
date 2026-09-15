@@ -30,9 +30,9 @@ vi.mock("@/hooks/reactquery/utilities", () => ({
     rows: (buildingId: number, utilityType: string, period: string) => ["utilities", "rows", buildingId, utilityType, period],
   },
 }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), info: vi.fn(), success: vi.fn() } }));
+vi.mock("@/hooks/common/useAppToast", () => ({ appToast: { error: vi.fn(), info: vi.fn(), success: vi.fn() } }));
 
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import {

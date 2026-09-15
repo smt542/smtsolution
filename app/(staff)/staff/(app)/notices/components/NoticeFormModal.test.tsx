@@ -13,8 +13,8 @@ vi.mock("@/hooks/reactquery/notices", () => ({
   useCreateNotice: () => ({ mutateAsync: noticeMocks.create, isPending: false }),
   useUpdateNotice: () => ({ mutateAsync: noticeMocks.update, isPending: false }),
 }));
-vi.mock("sonner", () => ({
-  toast: { success: noticeMocks.toastSuccess, error: noticeMocks.toastError },
+vi.mock("@/hooks/common/useAppToast", () => ({
+  appToast: { success: noticeMocks.toastSuccess, error: noticeMocks.toastError },
 }));
 
 import { NoticeFormModal } from "./NoticeFormModal";

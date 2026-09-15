@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Badge, Button, Modal, Panel } from "@/components/common";
 import type { Building } from "@/hooks/reactquery/buildings";
 import { useDeleteNotice, type Notice } from "@/hooks/reactquery/notices";
@@ -106,11 +106,7 @@ export function NoticeDetail({
       })));
       setMessageOpen(true);
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "공지 상세 링크를 만들지 못했습니다.",
-      );
+      toast.error(error, "공지 상세 링크를 만들지 못했습니다.");
     }
   };
 
@@ -135,7 +131,7 @@ export function NoticeDetail({
       setConfirmOpen(false);
       onDeleted();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "공지를 삭제하지 못했습니다.");
+      toast.error(error, "공지를 삭제하지 못했습니다.");
     }
   };
 
@@ -201,8 +197,7 @@ export function NoticeDetail({
           open
           preset={messagingPreset}
           onClose={() => setMessageOpen(false)}
-          onSent={(result) => {
-            toast.success(`공지 안내 ${result.count}건 발송을 접수했습니다.`);
+          onSent={() => {
             setMessageOpen(false);
           }}
         />

@@ -24,7 +24,7 @@ vi.mock("@/hooks/reactquery/attachments", () => ({
   listAttachmentsByEntities: vi.fn(async () => []),
 }));
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: () => ({ data: { orgId: 9, role: "org_owner", permissions: [] } }) }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("@/hooks/common/useAppToast", () => ({ appToast: { success: vi.fn(), error: vi.fn() } }));
 
 import { BuildingForm } from "./BuildingForm";
 

@@ -25,8 +25,8 @@ vi.mock("@/hooks/reactquery/platform", () => ({
   usePlatformSetActive: () => ({ mutateAsync: mocks.mutateAsync, isPending: false }),
   usePlatformResetPassword: () => ({ mutateAsync: mocks.mutateAsync, isPending: false }),
 }));
-vi.mock("sonner", () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
+vi.mock("@/hooks/common/useAppToast", () => ({
+  appToast: { success: vi.fn(), error: vi.fn() },
 }));
 
 import PlatformAccountsPage from "./page";

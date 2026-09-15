@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { useMe } from "@/hooks/reactquery/auth";
@@ -146,7 +146,7 @@ export function BuildingForm({ buildingId }: { buildingId?: number }) {
       if (buildingId) router.refresh?.();
       else router.replace(`/staff/buildings/${res.buildingId}`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "저장에 실패했습니다.");
+      toast.error(e, "저장에 실패했습니다.");
     }
   };
 
@@ -162,7 +162,7 @@ export function BuildingForm({ buildingId }: { buildingId?: number }) {
       await deleteAttachment({ id: attId, path });
       setVendors((rows) => rows.map((r) => ({ ...r, existing: r.existing.filter((f) => f.id !== attId) })));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "파일 삭제에 실패했습니다.");
+      toast.error(e, "파일 삭제에 실패했습니다.");
     }
   };
 
@@ -171,7 +171,7 @@ export function BuildingForm({ buildingId }: { buildingId?: number }) {
       const url = await attachmentSignedUrl(path, { preset: "original" });
       window.open(url, "_blank", "noopener,noreferrer");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "파일을 열 수 없습니다.");
+      toast.error(e, "파일을 열 수 없습니다.");
     }
   };
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { EmptyState, IconButton, Spinner } from "@/components/common";
 import type { Building } from "@/hooks/reactquery/buildings";
 import { useSaveBuildingNotes } from "@/hooks/reactquery/receipts";
@@ -297,7 +297,7 @@ function BuildingNoteBlock({
       toast.success(tab === "memo" ? "수납 건물 메모를 저장했습니다." : "부과시 참조사항을 저장했습니다.");
       setEditing(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "저장에 실패했습니다.");
+      toast.error(error, "저장에 실패했습니다.");
     }
   };
 

@@ -9,7 +9,7 @@ vi.mock("@/hooks/reactquery/residentClaims", () => ({
   useRejectResidentClaim: vi.fn(),
 }));
 vi.mock("./useOrgOccupancyLookup", () => ({ useOrgOccupancyLookup: vi.fn() }));
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+vi.mock("@/hooks/common/useAppToast", () => ({ appToast: { error: vi.fn(), success: vi.fn() } }));
 
 import { ResidentClaimsPanel } from "./ResidentClaimsPanel";
 import {

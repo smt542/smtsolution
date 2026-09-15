@@ -21,8 +21,8 @@ const { toastSuccess, toastError, saveMutate, ledgerRows } = vi.hoisted(() => ({
   }],
 }));
 
-vi.mock("sonner", () => ({
-  toast: { success: toastSuccess, error: toastError },
+vi.mock("@/hooks/common/useAppToast", () => ({
+  appToast: { success: toastSuccess, error: toastError },
 }));
 vi.mock("@/hooks/reactquery/longTermRepair", () => ({
   useLongTermRepairLedger: vi.fn((buildingId: number | null) => ({

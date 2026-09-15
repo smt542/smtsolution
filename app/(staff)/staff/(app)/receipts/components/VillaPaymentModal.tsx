@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, Modal, SearchBar, Select, Spinner } from "@/components/common";
 import { useBillOrganizationName } from "@/hooks/reactquery/bill";
 import type { Building } from "@/hooks/reactquery/buildings";
@@ -50,10 +50,6 @@ export interface VillaPaymentModalInit {
 
 type AmountModalState = { row: PaymentRow; kind: PaymentKind; method?: PaymentMethod };
 type ReceiptState = { row: PaymentRow; payment: UnitPayment };
-
-function errorMessage(error: unknown, fallback: string) {
-  return error instanceof Error ? error.message : fallback;
-}
 
 /**
  * 빌라(건물 전체) 수납 콘솔 모달 — 구 /staff/payment 페이지 흡수(P3).
@@ -152,7 +148,7 @@ export function VillaPaymentModal({
       });
       toast.success("수납 처리가 완료되었습니다.");
     } catch (error) {
-      toast.error(errorMessage(error, "수납 처리에 실패했습니다."));
+      toast.error(error, "수납 처리에 실패했습니다.");
       throw error;
     }
   };
@@ -162,7 +158,7 @@ export function VillaPaymentModal({
       await cancelPayment.mutateAsync(paymentId);
       toast.success("수납 내역을 취소했습니다.");
     } catch (error) {
-      toast.error(errorMessage(error, "수납 취소에 실패했습니다."));
+      toast.error(error, "수납 취소에 실패했습니다.");
     }
   };
 

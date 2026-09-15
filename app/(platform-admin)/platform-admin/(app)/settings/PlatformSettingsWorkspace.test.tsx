@@ -14,8 +14,8 @@ vi.mock("@/hooks/reactquery/platform", () => ({
   usePlatformSettings: mocks.usePlatformSettings,
   useUpdatePlatformSettings: mocks.useUpdatePlatformSettings,
 }));
-vi.mock("sonner", () => ({
-  toast: {
+vi.mock("@/hooks/common/useAppToast", () => ({
+  appToast: {
     success: mocks.toastSuccess,
     error: mocks.toastError,
   },

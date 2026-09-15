@@ -13,8 +13,8 @@ vi.mock("next/navigation", () => ({
   useRouter: vi.fn(() => ({ push: vi.fn(), replace: mockReplace, refresh: vi.fn() })),
 }));
 
-// Mock sonner toast (logout error path)
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+// Mock the shared toast boundary (logout error path)
+vi.mock("@/hooks/common/useAppToast", () => ({ appToast: { error: vi.fn(), success: vi.fn() } }));
 
 // Mock next/link — render as a plain <a>
 vi.mock("next/link", () => ({

@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, Modal, Spinner } from "@/components/common";
 import {
   useSaveScopedPrices,
@@ -146,7 +146,7 @@ export function UnitPriceModal({
           close();
         },
         onError: (error) => {
-          toast.error(error instanceof Error ? error.message : "단가 저장에 실패했습니다.");
+          toast.error(error, "단가 저장에 실패했습니다.");
         },
       },
     );
@@ -208,7 +208,7 @@ export function UnitPriceModal({
           close();
         },
         onError: (error) => {
-          toast.error(error instanceof Error ? error.message : "용도/층별 단가 저장에 실패했습니다.");
+          toast.error(error, "용도/층별 단가 저장에 실패했습니다.");
         },
       },
     );

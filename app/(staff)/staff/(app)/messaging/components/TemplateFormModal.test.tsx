@@ -9,7 +9,7 @@ vi.mock("@/hooks/reactquery/messageTemplates", () => ({
   useUpdateMessageTemplate: () => ({ mutateAsync: updateMutate, isPending: false }),
 }));
 vi.mock("@/hooks/reactquery/auth", () => ({ useMe: () => ({ data: { orgId: 9 } }) }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
+vi.mock("@/hooks/common/useAppToast", () => ({ appToast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 
 import { TemplateFormModal } from "./TemplateFormModal";
 

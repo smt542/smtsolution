@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Badge, Button, Checkbox, EmptyState, Select } from "@/components/common";
 import {
   useBankPayments,
@@ -57,10 +57,6 @@ function rowsToMatchUnits(rows: PaymentRow[]): MatchUnit[] {
 
 function money(value: number | null) {
   return formatWon(value, { nullText: "-" });
-}
-
-function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "은행 엑셀을 처리하지 못했습니다.";
 }
 
 function DeltaBadge({ delta }: { delta: number | null }) {
@@ -176,7 +172,7 @@ export function BankImportModal({
       setCheckedRowIndexes(new Set());
       setStage("map");
     } catch (error) {
-      toast.error(errorMessage(error));
+      toast.error(error, "은행 엑셀을 읽지 못했습니다.");
     } finally {
       setIsParsing(false);
     }
@@ -248,7 +244,7 @@ export function BankImportModal({
       );
       onClose();
     } catch (error) {
-      toast.error(errorMessage(error));
+      toast.error(error, "은행 입금내역을 수납 처리하지 못했습니다.");
     }
   };
 

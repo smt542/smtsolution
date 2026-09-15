@@ -63,8 +63,8 @@ vi.mock("@/hooks/reactquery/complaints", () => ({
 vi.mock("@/hooks/reactquery/org/useOrgContact", () => ({
   useOrgContact: () => ({ data: { phone: "02-1234-5678" } }),
 }));
-vi.mock("sonner", () => ({
-  toast: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
+vi.mock("@/hooks/common/useAppToast", () => ({
+  appToast: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
 }));
 vi.mock("../../messaging/components/MessagingModal", () => ({
   MessagingModal: (props: { open: boolean; preset?: MessagingPreset }) => {

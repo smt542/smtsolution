@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, Select, Checkbox, Panel } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useSetupConfig, useUpsertSetupConfig } from "@/hooks/reactquery/setupConfig";
@@ -31,7 +31,7 @@ export function MovingSettlementSettingsTab() {
     try {
       await upsert.mutateAsync({ orgId, patch: { waterUnitReflect, electricUnitReflect, vacancyPaymentMode } });
       toast.success("저장되었습니다");
-    } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
+    } catch (e) { toast.error(e, "이사정산 설정을 저장하지 못했습니다."); }
   };
 
   const { data: items = [] } = useSettlementCheckItems();
@@ -40,13 +40,13 @@ export function MovingSettlementSettingsTab() {
   const deleteItem = useDeleteSettlementCheckItem();
   const onAdd = async (label: string) => {
     if (!orgId) return;
-    try { await createItem.mutateAsync({ orgId, label }); } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
+    try { await createItem.mutateAsync({ orgId, label }); } catch (e) { toast.error(e, "이사정산 체크항목을 추가하지 못했습니다."); }
   };
   const onRename = async (id: number, label: string) => {
-    try { await renameItem.mutateAsync({ id, label }); } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
+    try { await renameItem.mutateAsync({ id, label }); } catch (e) { toast.error(e, "이사정산 체크항목을 변경하지 못했습니다."); }
   };
   const onDelete = async (id: number) => {
-    try { await deleteItem.mutateAsync(id); } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
+    try { await deleteItem.mutateAsync(id); } catch (e) { toast.error(e, "이사정산 체크항목을 삭제하지 못했습니다."); }
   };
 
   return (

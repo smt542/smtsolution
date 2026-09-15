@@ -168,16 +168,108 @@ lib/                        React에 종속되지 않는 순수 로직과 외부
 
 ## 5. toast 전체 일괄 전환
 
-- [ ] `useAppToast`에서 성공, 안내, 경고, 오류 API를 정의한다.
-- [ ] `unknown` 오류를 사용자 메시지로 정규화한다.
-- [ ] Supabase/네트워크 오류 원문을 그대로 사용자에게 노출하지 않는다.
-- [ ] 작업별 toast 중복 호출을 제거한다.
-- [ ] 로딩 toast를 사용하는 경우 성공/실패 시 동일 ID로 종료한다.
-- [ ] 테스트에서 Sonner 자체 대신 공통 toast 경계를 mock한다.
-- [ ] `app/layout.tsx`의 `Toaster` 렌더링은 유지한다.
-- [ ] `useAppToast` 구현과 `app/layout.tsx`를 제외한 운영 코드에서 `sonner` 직접 import를 제거한다.
-- [ ] ESLint `no-restricted-imports`로 신규 직접 import를 차단한다.
-- [ ] 전환 전 검색된 67개 운영 파일을 모두 처리했는지 최종 검색한다.
+- [x] `useAppToast`에서 성공, 안내, 경고, 오류 API를 정의한다.
+- [x] `unknown` 오류를 사용자 메시지로 정규화한다.
+- [x] Supabase/네트워크 오류 원문을 그대로 사용자에게 노출하지 않는다.
+- [x] 작업별 toast 중복 호출을 제거한다.
+- [x] 로딩 toast를 사용하는 경우 성공/실패 시 동일 ID로 종료한다.
+- [x] 테스트에서 Sonner 자체 대신 공통 toast 경계를 mock한다.
+- [x] `app/layout.tsx`의 `Toaster` 렌더링은 유지한다.
+- [x] `useAppToast` 구현과 `app/layout.tsx`를 제외한 운영 코드에서 `sonner` 직접 import를 제거한다.
+- [x] ESLint `no-restricted-imports`로 신규 직접 import를 차단한다.
+- [x] 전환 전 검색된 67개 운영 파일을 모두 처리했는지 최종 검색한다.
+
+### 5장 처리 결과 (2026-09-15)
+
+- 전환 전 기준 67개는 `sonner` 직접 사용 63개와 이미 공통 경계를 사용하던 4개로 구성됐다. 63개는 모두 `useAppToast` 모듈 경계로 전환했고 기존 4개도 오류 처리와 호출 중복을 재검토했다.
+- 알 수 없는 값은 `AppError`로 명시된 사용자 메시지 또는 호출부의 안전한 fallback만 노출한다. `Error.message`, `String(error)`, Supabase/네트워크 오류 객체를 직접 표시하던 경로는 모두 제거했다.
+- 메시지 발송 성공을 `MessagingComposer`와 상위 화면이 함께 알리던 4개 상위 toast를 제거했다.
+- 운영 코드에는 loading toast 사용처가 없다. 공통 API는 loading ID를 성공·실패 API의 `{ id }`로 전달해 같은 toast를 종료하도록 정의하고 단위 테스트로 검증했다.
+- 관련 운영 테스트 42개는 `@/hooks/common/useAppToast`를 mock한다. 공통 경계 자체의 어댑터 단위 테스트만 Sonner를 mock한다.
+- 최종 검색 결과 공통 경계 사용 운영 파일은 67개이며, `sonner` 운영 import는 허용된 `hooks/common/useAppToast.ts`와 `app/layout.tsx` 두 곳뿐이다. `app/layout.tsx`의 `Toaster` 렌더링은 변경하지 않았다.
+
+<details>
+<summary>확인 완료한 운영 파일 67개</summary>
+
+- [x] `app/(platform-admin)/_components/PlatformShell.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/accounts/AccountsWorkspace.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/billing/BillingWorkspace.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/organizations/OrganizationsWorkspace.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/points/organizations/OrganizationsPointsWorkspace.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/points/PointsWorkspace.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/settings/PlatformSettingsWorkspace.tsx`
+- [x] `app/(platform-admin)/platform-admin/login/LoginForm.tsx`
+- [x] `app/(staff)/staff/(app)/accounts/components/AccountsWorkspace.tsx`
+- [x] `app/(staff)/staff/(app)/accounts/components/ResidentClaimsPanel.tsx`
+- [x] `app/(staff)/staff/(app)/bill/components/DocumentOutputModal.tsx`
+- [x] `app/(staff)/staff/(app)/buildings/[id]/components/TenantForm.tsx`
+- [x] `app/(staff)/staff/(app)/buildings/[id]/components/tenant-sections/MoveOutControl.tsx`
+- [x] `app/(staff)/staff/(app)/buildings/components/BuildingForm.tsx`
+- [x] `app/(staff)/staff/(app)/buildings/components/TenantOccupancyCard.tsx`
+- [x] `app/(staff)/staff/(app)/buildings/new-v2/_components/BuildingRegisterForm.tsx`
+- [x] `app/(staff)/staff/(app)/fee-items/components/FeeItemManagement.tsx`
+- [x] `app/(staff)/staff/(app)/long-term-repair/components/AttachmentViewer.tsx`
+- [x] `app/(staff)/staff/(app)/long-term-repair/components/LongTermRepairLedger.tsx`
+- [x] `app/(staff)/staff/(app)/management-fee/components/BillingPeriodSettingsBar.tsx`
+- [x] `app/(staff)/staff/(app)/management-fee/components/BillingReferencePanel.tsx`
+- [x] `app/(staff)/staff/(app)/management-fee/components/ItemManageModal.tsx`
+- [x] `app/(staff)/staff/(app)/management-fee/ManagementFeeWorkspace.tsx`
+- [x] `app/(staff)/staff/(app)/messaging/components/DrainScheduledButton.tsx`
+- [x] `app/(staff)/staff/(app)/messaging/components/MessagingComposer.tsx`
+- [x] `app/(staff)/staff/(app)/messaging/components/TemplateFormModal.tsx`
+- [x] `app/(staff)/staff/(app)/messaging/components/TemplatesTab.tsx`
+- [x] `app/(staff)/staff/(app)/moving-settlement/components/AllSettlementInquiryPage.tsx`
+- [x] `app/(staff)/staff/(app)/moving-settlement/components/MovingSettlementWorkspace.tsx`
+- [x] `app/(staff)/staff/(app)/moving-settlement/components/SettlementActions.tsx`
+- [x] `app/(staff)/staff/(app)/moving-settlement/components/SettlementInquiryPage.tsx`
+- [x] `app/(staff)/staff/(app)/notices/components/NoticeDetail.tsx`
+- [x] `app/(staff)/staff/(app)/notices/components/NoticeFormModal.tsx`
+- [x] `app/(staff)/staff/(app)/overdue/components/LateFeeRateModal.tsx`
+- [x] `app/(staff)/staff/(app)/overdue/components/OverdueWorkspace.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/AsStatusSection.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/BuildingUnitRail.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/payment/BankImportModal.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/payment/GiroUploadModal.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/PaymentHistorySection.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/TenantInfoSection.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/VillaPaymentModal.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/ReceiptWorkspace.tsx`
+- [x] `app/(staff)/staff/(app)/setup/components/AccountSettingsTab.tsx`
+- [x] `app/(staff)/staff/(app)/setup/components/AsSettingsTab.tsx`
+- [x] `app/(staff)/staff/(app)/setup/components/BillingSettingsTab.tsx`
+- [x] `app/(staff)/staff/(app)/setup/components/CompanyInfoTab.tsx`
+- [x] `app/(staff)/staff/(app)/setup/components/DataMigrationTab.tsx`
+- [x] `app/(staff)/staff/(app)/setup/components/MovingSettlementSettingsTab.tsx`
+- [x] `app/(staff)/staff/(app)/setup/components/NotificationSettingsTab.tsx`
+- [x] `app/(staff)/staff/(app)/setup/components/QuickMessageEditor.tsx`
+- [x] `app/(staff)/staff/(app)/setup/components/SystemSettingsTab.tsx`
+- [x] `app/(staff)/staff/(app)/utilities/components/BillingPeriodBar.tsx`
+- [x] `app/(staff)/staff/(app)/utilities/components/FixedUsageModal.tsx`
+- [x] `app/(staff)/staff/(app)/utilities/components/GasSupplierModal.tsx`
+- [x] `app/(staff)/staff/(app)/utilities/components/UnitPriceModal.tsx`
+- [x] `app/(staff)/staff/(app)/utilities/components/UtilityWorkspaceBar.tsx`
+- [x] `app/(staff)/staff/(app)/utilities/components/WaterDiscountModal.tsx`
+- [x] `app/(staff)/staff/(app)/utilities/ElectricityUtilitiesWorkspace.tsx`
+- [x] `app/(staff)/staff/(app)/utilities/GasUtilitiesWorkspace.tsx`
+- [x] `app/(staff)/staff/(app)/utilities/WaterUtilitiesScreen.tsx`
+- [x] `app/(staff)/staff/login/components/LoginForm.tsx`
+- [x] `components/common/PhotoUpload.tsx`
+- [x] `components/messenger/MessengerFab.tsx`
+- [x] `components/shell/as-rail/MoveOutList.tsx`
+- [x] `components/shell/Sidebar.tsx`
+- [x] `components/vendors/VendorManagementSection.tsx`
+
+</details>
+
+### 5장 검증 결과
+
+- `npx tsc --noEmit`: 통과
+- 표적 테스트(변경된 43개 테스트 파일): 216개 중 213개 통과, 기존 `app/(staff)/staff/(app)/notices/page.test.tsx` 3개 실패, 신규 실패 0개
+- `npm run lint`: 통과
+- `npm test`: 336개 파일 중 326개 통과, 8개 실패, 2개 건너뜀; 1,290개 테스트 중 1,267개 통과, 기존 14개 실패, 9개 건너뜀; 신규 실패 0개
+  - 기존 실패 파일: `components/shell/navItems.test.ts`(1), `app/api/resident/kakao/stub/route.test.ts`(1), `app/api/resident/kakao/login/route.test.ts`(1), `app/(staff)/staff/(app)/messaging/components/HistoryTab.test.tsx`(2), `app/(staff)/staff/(app)/utilities/components/UtilityWorkspaceHeader.test.tsx`(1), `app/(staff)/staff/(app)/messaging/page.test.tsx`(3), `app/(staff)/staff/(app)/receipts/components/payment/GiroLedgerModal.test.tsx`(2), `app/(staff)/staff/(app)/notices/page.test.tsx`(3)
+- `npm run build`: 통과 (Next.js 16.3.0, 정적 페이지 72개 생성)
+- 최종 검색: 운영 공통 경계 67개, 허용 외 `sonner` 직접 import 0개, 공통 경계 mock 테스트 42개
 
 ## 6. loading 전체 일괄 전환
 

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Spinner } from "@/components/common";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useBuildingTypes } from "@/hooks/reactquery/buildingTypes";
@@ -184,7 +184,7 @@ export function ManagementFeeWorkspace() {
       setEditing(false);
       resetDrafts(buildingNoteDraft);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : String(error));
+      toast.error(error, "관리비 부과 내용을 저장하지 못했습니다.");
       throw error;
     }
   };
@@ -241,7 +241,7 @@ export function ManagementFeeWorkspace() {
       setEditing(true);
       toast.success(`전월 자료를 반영했습니다. (${result.buildingCount}개 건물 · ${result.unitCount}세대)`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : String(error));
+      toast.error(error, "전월 자료를 반영하지 못했습니다.");
     }
   };
 
@@ -257,7 +257,7 @@ export function ManagementFeeWorkspace() {
       toast.success(`신규 입주 ${result.unitCount}세대 당월 부과 완료 (${formatWon(result.total)})`);
       setNewTenantOpen(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : String(error));
+      toast.error(error, "신규 입주 세대 부과를 처리하지 못했습니다.");
     }
   };
 

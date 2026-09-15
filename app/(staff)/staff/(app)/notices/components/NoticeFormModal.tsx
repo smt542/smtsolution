@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, Input, Modal, Select, Textarea } from "@/components/common";
 import { FormField } from "@/components/common/FormField";
 import { setSubmissionError } from "@/components/forms/formErrors";
@@ -116,7 +116,7 @@ function NoticeFormContent({
       reset(makeDefaults());
       onClose();
     } catch (saveError) {
-      toast.error(saveError instanceof Error ? saveError.message : "공지를 저장하지 못했습니다.");
+      toast.error(saveError, "공지를 저장하지 못했습니다.");
       setSubmissionError(saveError, setError, "공지를 저장하지 못했습니다.");
     }
   };

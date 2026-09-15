@@ -14,7 +14,7 @@ vi.mock("@/hooks/reactquery/platform", () => ({
   useMarkOrgBillingPaid: hooks.useMarkOrgBillingPaid,
   usePlatformSettings: hooks.usePlatformSettings,
 }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("@/hooks/common/useAppToast", () => ({ appToast: { success: vi.fn(), error: vi.fn() } }));
 
 const rows = [
   { orgId: 1, orgName: "한빛관리", orgEmail: "a@x.kr", status: "unpaid", alimtalkCount: 120, smsCount: 30, lmsCount: 5, faxCount: 4, faxPageCount: 9, alimtalkAmountKrw: 1440, smsAmountKrw: 700, faxAmountKrw: 450, subtotalKrw: 20000, vatKrw: 2000, totalKrw: 22000, prevTotalKrw: 18000 },
