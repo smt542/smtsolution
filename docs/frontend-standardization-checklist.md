@@ -480,7 +480,7 @@ lib/                        React에 종속되지 않는 순수 로직과 외부
 - [x] 설치 후 lockfile을 반영한다.
 - [x] 미사용 상태에서 lint, test, production build가 동일하게 통과하는지 확인한다. (6장 검증 기록 기준: Tiptap 3종 설치·미사용 상태에서 tsc/lint/build 통과, 전체 테스트 기준선 변화 없음)
 - [x] 편집기 코드는 필요 화면에서만 client component로 import한다. (`NoticeEditor`만 `use client`이며 작성 화면 `NoticeFormModal`에서만 import, 읽기 경로는 편집기 코드를 로드하지 않는 `NoticeContent` 사용)
-- [ ] `npm audit` 기준 기존 취약점 7건을 별도 의존성 업데이트 작업으로 처리한다. Tiptap 관련 패키지는 보고된 취약 패키지에 포함되지 않는다. (이번 작업과 분리 · 후속 의존성 업데이트 작업으로 기록)
+- [x] `npm audit` 기준 기존 취약점 7건을 별도 의존성 업데이트 작업으로 처리했다(2026-09-15). 비파괴 수정으로 5건(critical 1·high 2·moderate 2)을 해소하고 2건(moderate, `uuid`←`exceljs`)은 파괴적 downgrade만 유효해 보류했다. 상세·근거·검증은 아래 10.3에 기록한다. Tiptap 관련 패키지는 보고된 취약 패키지에 포함되지 않았다.
 
 ### 7.2 공지사항 파일럿
 
@@ -578,8 +578,8 @@ lib/                        React에 종속되지 않는 순수 로직과 외부
 - [x] `npm run build`: production build 및 TypeScript 검사 통과
 - [x] `npm run lint`: 참조 전용 `docs/prototype/**` 제외 후 통과
 - [ ] `npm test`: 314개 test file 중 304개 통과, 8개 실패, 2개 skip; 1,226개 test 중 1,203개 통과, 14개 실패, 9개 skip
-- [ ] `npm audit`: moderate 4건, high 2건, critical 1건. Tiptap 경로가 아닌 기존 Next.js/ExcelJS/Vitest 계열에서 보고됨
-- [ ] Next.js `16.3.0` 취약점은 현재 안내된 non-major 수정 버전을 검토하고 별도 업데이트한다.
+- [x] `npm audit`: 착수 시점 7건(moderate 4·high 2·critical 1) → 처리 후 **2건(moderate)**. 남은 2건은 `exceljs`가 의존하는 `uuid` 계열이며 파괴적 downgrade만 유효해 보류(사유는 10.3). Tiptap 경로는 보고에 없었다.
+- [x] Next.js `16.3.0` 취약점(critical RCE 2건: GHSA-p293-qw3h-jr36·GHSA-2xp9-vwfh-vxw4)은 안내된 non-major 수정 버전 `16.3.5`(16.x 내 patch)로 상향해 해소했다. `eslint-config-next`도 `16.3.5`로 정렬. major 점프 없음.
 
 ### 10.1 1차 작업 검증 결과
 
@@ -613,6 +613,41 @@ lib/                        React에 종속되지 않는 순수 로직과 외부
 - `app/(staff)/staff/(app)/utilities/components/UtilityWorkspaceHeader.test.tsx` — 1개
 - `app/(staff)/staff/(app)/receipts/components/payment/GiroLedgerModal.test.tsx` — 2개
 
+### 10.3 npm audit 의존성 업데이트 결과 (2026-09-15)
+
+착수 시점 `npm audit` 7건(moderate 4·high 2·critical 1)을 비파괴 최소 업데이트로 처리했다. 최종 잔여는 moderate 2건이며, 이는 파괴적 변경 없이는 해소 불가해 보류하고 아래에 근거를 남긴다. `docs/prototype/**`는 변경하지 않았다.
+
+**분류(직접/전이 · 런타임/개발전용)**
+
+| 패키지 | 심각도 | 직접/전이 | 런타임/개발 | 조치 |
+| --- | --- | --- | --- | --- |
+| `next` | critical | 직접 | 런타임 | `16.3.0 → 16.3.5` (16.x 내 patch) — **해소** |
+| `sharp` | high | 전이(← next) | 런타임 | `0.35.3 → 0.35.4` (`npm audit fix`) — **해소** |
+| `js-yaml` | high | 전이(← eslint) | 개발 | `4.3.1 → 4.3.2` (`npm audit fix`) — **해소** |
+| `vitest` / `@vitest/mocker` | moderate×2 | 직접/전이 | 개발 | `4.1.10 → 4.1.11` (`npm audit fix`) — **해소** |
+| `uuid` / `exceljs` | moderate×2 | 전이(← exceljs)/직접 | 런타임 | **보류**(아래 근거) |
+
+**적용 방법(비파괴 최소)**
+
+- `npm audit fix`(`--force` 미사용)로 `sharp`·`js-yaml`·`vitest` 계열을 semver 범위 내 patch로 상향. `package.json` 무변경(전이/semver 호환), lockfile만 갱신.
+- `next`는 `package.json`을 `16.3.0 → 16.3.5`로 표적 상향 후 `npm install`. audit이 `--force`로 안내한 것은 기존 핀이 정확히 `16.3.0`이었기 때문이며, `16.3.5`는 16.x 내 patch(최신 dist-tag `latest`)라 major 점프가 아니다. `node_modules/next/dist/docs`의 upgrading 가이드 확인 결과 16.3.x patch 구간의 신규 deprecation·breaking change 없음. Next 권장에 맞춰 `eslint-config-next`도 `16.3.5`로 정렬.
+
+**보류(2건, moderate) — `uuid`(← `exceljs@4.4.0`)**
+
+- 유일한 수정 경로가 `exceljs@4.4.0 → 3.4.0` **downgrade(major·breaking)**뿐이다. `exceljs`는 은행/지로/영수증/검침대장 등 xlsx 내보내기의 핵심이라 회귀 위험이 크고, 상향이 아닌 하향이라 4.x의 개선·수정을 잃는다. 사용자 정책(“major/파괴적 변경은 자동 적용 금지, 결정 요청”)에 따라 자동 적용하지 않았다.
+- 실질 도달성: 해당 advisory(GHSA-w5hq-g745-h8pq)는 uuid **v3/v5/v6에 `buf` 인자를 넘길 때**만 영향을 받는다. `exceljs`는 `const {v4: uuidv4} = require('uuid')`로 **v4를 인자 없이** 호출(`cf-rule-ext-xform.js`)하므로 이 코드 경로에서 취약점은 도달하지 않는다. → 실사용 위험은 낮음으로 평가하고, 파괴적 downgrade 대신 보류를 권장한다.
+- **결정(2026-09-15, 사용자 확인): ① 현행 유지**(위험 수용). `exceljs@4.4.0`을 그대로 두고 잔여 moderate 2건을 수용한다(미도달 취약점 + 유일 수정이 파괴적 downgrade). 검토했던 대안: ② npm `overrides`로 `exceljs`의 `uuid`만 `^11.1.1` 강제(단 `exceljs@4.4.0`은 uuid v8 API 기준이라 런타임 호환 검증 필요) / ③ `exceljs@3.4.0`으로 downgrade(비권장, 최고 회귀 위험). 향후 `exceljs`가 `uuid ≥11.1.1` 의존 버전을 릴리스하면 그때 상향한다.
+
+**검증 결과**
+
+- `npm audit`: 7건 → **2건(moderate, 위 보류분)**.
+- `npx tsc --noEmit`: 통과(exit 0).
+- `npm run lint`: 통과(exit 0). `eslint-config-next` patch 상향으로 인한 신규 lint 오류 없음.
+- `npm test`(전체): 342개 파일 중 334개 통과·6개 실패·2개 skip; 1,333개 테스트 중 1,316개 통과·8개 실패·9개 skip. **신규 회귀 0개** — 실패는 기존 기준선 6개 파일·8개(`navItems`(1)·`kakao/login`(1)·`kakao/stub`(1)·`messaging/HistoryTab`(2)·`utilities/UtilityWorkspaceHeader`(1)·`receipts/payment/GiroLedgerModal`(2))와 동일. 표적 재실행에서 이 6개 파일이 8개 실패를 모두 차지함을 확인.
+- ExcelJS 내보내기 표적 테스트(`lib/export/xlsx`·`bankParse`·`BankImportModal`·`utilities/ledger/route`·`payment/cms/route`): 5개 파일·22개 테스트 전부 통과. `exceljs`는 이번에 변경하지 않았고 회귀 없음을 재확인.
+- `npm run build`: 통과(exit 0, Next.js 16.3.5, 라우트 매니페스트 정상 생성).
+- `git diff --check`: 공백/충돌 오류 없음(exit 0). 변경 파일은 `package.json`(2줄)·`package-lock.json`(224/224 라인 버전·해시 스왑)뿐. `docs/prototype/**` 변경 0건.
+
 ## 11. 변경 이력
 
 - 2026-09-15: 최초 작성. 사용자 결정 5건과 현재 코드 인벤토리를 반영했다.
@@ -622,3 +657,4 @@ lib/                        React에 종속되지 않는 순수 로직과 외부
 - 2026-09-15: 4장 17개 대상 전수 확인. 저장 폼을 React Hook Form + Zod로 통합하고 `BuildingSearchCard`는 조회 전용 예외로 근거를 기록했으며, 표적 테스트 19개 파일·70개 통과와 전체 기준선 대비 신규 회귀 0개를 확인했다.
 - 2026-09-15: 7장 공지사항 Tiptap 파일럿 구현. `content_json`(jsonb) additive 컬럼·마이그레이션 `0158`, 작성 화면 편집기(SSR-safe, 최소 toolbar, 링크 허용 정책)·공유 읽기 렌더러(`@tiptap/static-renderer`)·레거시 평문 폴백을 배선하고 관리자 상세·입주자 앱·공유 링크에 적용했다. 표적 테스트 8개 파일 통과, 전체 신규 회귀 0개(`notices/page.test.tsx` 3개 갱신으로 기준선 11→8). `@tiptap/static-renderer@3.31.3` 추가.
 - 2026-09-15: 7.3 공지 본문 이미지 구현. 커스텀 Tiptap image 노드+React NodeView, 공통 첨부/Storage 재사용(object path만 `content_json`에 저장), 저장 시 업로드→치환→저장→정리(고아 방지·보상 삭제), 표시 시 signed URL 해석(관리자=RLS 클라이언트, 입주자·공유=service_role 스코프 서명). `src` 허용 정책으로 외부 URL·`data:`·교차 org 차단. 새 마이그레이션 없음. 표적 테스트 17개 파일·79개 통과, 전체 신규 회귀 0개(기준선 6개 파일·8개 유지), lint/build 통과.
+- 2026-09-15: 7.1/10 npm audit 의존성 업데이트. 비파괴 최소 상향으로 7건 → 2건(critical `next` 16.3.0→16.3.5·high `sharp`/`js-yaml`·moderate `vitest` 계열 해소, `eslint-config-next` 16.3.5 정렬). 잔여 2건(moderate `uuid`←`exceljs`)은 파괴적 downgrade만 유효(+ v4 무인자 호출로 미도달)해 보류하고 근거·대안을 10.3에 기록. 변경은 `package.json`(2줄)·lockfile 한정, tsc/lint/test(신규 회귀 0)/build/`git diff --check` 통과, `docs/prototype/**` 무변경.
