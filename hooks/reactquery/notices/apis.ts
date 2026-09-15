@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
 
+import type { NoticeDoc } from "@/lib/notice/richText";
+
 export type NoticeType = "normal" | "important" | "urgent";
 export type NoticeStatus = "all" | "draft" | "scheduled" | "published" | "expired";
 
@@ -8,7 +10,10 @@ export interface Notice {
   orgId: number;
   buildingId: number | null;
   title: string;
+  /** 평문 투영. 목록 검색·미리보기·문자 등 기존 소비 경로 호환용. */
   content: string;
+  /** Tiptap JSON 원본. null이면 레거시 plain text만 존재. */
+  contentJson: NoticeDoc | null;
   noticeType: NoticeType;
   publishedAt: string | null;
   expiresAt: string | null;
@@ -17,7 +22,7 @@ export interface Notice {
   updatedAt: string;
 }
 
-export type NoticeSummary = Omit<Notice, "content">;
+export type NoticeSummary = Omit<Notice, "content" | "contentJson">;
 
 export interface NoticePage {
   items: NoticeSummary[];
@@ -32,7 +37,10 @@ export interface NoticeInput {
   orgId: number;
   buildingId: number | null;
   title: string;
+  /** 평문 투영(NOT NULL 컬럼). Tiptap 문서에서 파생한다. */
   content: string;
+  /** Tiptap JSON 원본. */
+  contentJson?: NoticeDoc | null;
   noticeType: NoticeType;
   publishedAt: string | null;
   expiresAt: string | null;
@@ -53,6 +61,7 @@ interface NoticeRow {
   building_id: number | null;
   title: string;
   content: string;
+  content_json: NoticeDoc | null;
   notice_type: NoticeType;
   published_at: string | null;
   expires_at: string | null;
@@ -61,7 +70,7 @@ interface NoticeRow {
   updated_at: string;
 }
 
-type NoticeSummaryRow = Omit<NoticeRow, "content">;
+type NoticeSummaryRow = Omit<NoticeRow, "content" | "content_json">;
 
 const rowToNotice = (row: NoticeRow): Notice => ({
   id: row.id,
@@ -69,6 +78,7 @@ const rowToNotice = (row: NoticeRow): Notice => ({
   buildingId: row.building_id,
   title: row.title,
   content: row.content,
+  contentJson: row.content_json ?? null,
   noticeType: row.notice_type,
   publishedAt: row.published_at,
   expiresAt: row.expires_at,
@@ -100,6 +110,7 @@ function inputToRow(input: Partial<NoticeInput>): Record<string, unknown> {
   set("building_id", input.buildingId);
   set("title", input.title);
   set("content", input.content);
+  set("content_json", input.contentJson);
   set("notice_type", input.noticeType);
   set("published_at", input.publishedAt);
   set("expires_at", input.expiresAt);

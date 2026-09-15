@@ -49,6 +49,7 @@ const notice: Notice = {
   buildingId: 11,
   title: "정기 소독 안내",
   content: "8월 30일 오전 10시에 소독합니다.",
+  contentJson: null,
   noticeType: "important",
   publishedAt: "2026-08-24T01:00:00.000Z",
   expiresAt: null,

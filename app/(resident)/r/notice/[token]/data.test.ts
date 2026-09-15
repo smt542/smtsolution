@@ -23,6 +23,7 @@ describe("getPublicNoticeByToken", () => {
       data: {
         title: "수도 점검 안내",
         content: "오전 10시부터 점검합니다.",
+        content_json: { type: "doc", content: [{ type: "paragraph" }] },
         notice_type: "important",
         building_name: "그린빌라",
         published_at: "2026-08-25T01:00:00Z",
@@ -35,6 +36,7 @@ describe("getPublicNoticeByToken", () => {
     await expect(getPublicNoticeByToken("notice-token")).resolves.toEqual({
       title: "수도 점검 안내",
       content: "오전 10시부터 점검합니다.",
+      contentJson: { type: "doc", content: [{ type: "paragraph" }] },
       noticeType: "important",
       buildingName: "그린빌라",
       publishedAt: "2026-08-25T01:00:00Z",

@@ -1,6 +1,7 @@
 import PublicShareArticleCard from "@/app/(resident)/_components/PublicShareArticleCard";
 import PublicTokenPageShell from "@/app/(resident)/_components/PublicTokenPageShell";
 import ResidentAsyncState from "@/app/(resident)/_components/ResidentAsyncState";
+import { NoticeContent } from "@/components/notices/NoticeContent";
 import type { PublicNoticeType } from "@/hooks/reactquery/residentNotice/apis";
 import { formatDate } from "@/lib/format";
 
@@ -71,7 +72,7 @@ export default async function PublicNoticePage({
           .filter(Boolean)
           .join(" · ")}
       >
-        <p className={styles.content}>{notice.content}</p>
+        <NoticeContent json={notice.contentJson} fallbackText={notice.content} className={styles.content} />
       </PublicShareArticleCard>
     </PublicTokenPageShell>
   );

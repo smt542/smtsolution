@@ -1,10 +1,13 @@
 import { createClient } from "@/lib/supabase/client";
 
+import type { NoticeDoc } from "@/lib/notice/richText";
+
 export type PublicNoticeType = "normal" | "important" | "urgent";
 
 export interface PublicNoticeRow {
   title: string | null;
   content: string | null;
+  content_json: NoticeDoc | null;
   notice_type: PublicNoticeType | null;
   building_name: string | null;
   published_at: string | null;
@@ -14,6 +17,7 @@ export interface PublicNoticeRow {
 export interface PublicNotice {
   title: string | null;
   content: string | null;
+  contentJson: NoticeDoc | null;
   noticeType: PublicNoticeType | null;
   buildingName: string | null;
   publishedAt: string | null;

@@ -27,6 +27,7 @@ const rowToNoticeDetail = (
 ): ResidentNoticeDetail => ({
   ...rowToNotice(row),
   content: row.content,
+  contentJson: row.content_json ?? null,
 });
 
 export async function getResidentNotices(): Promise<ResidentNotice[]> {

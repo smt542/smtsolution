@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Badge, Button, Modal, Panel } from "@/components/common";
+import { NoticeContent } from "@/components/notices/NoticeContent";
 import type { Building } from "@/hooks/reactquery/buildings";
 import { useDeleteNotice, type Notice } from "@/hooks/reactquery/notices";
 import {
@@ -175,9 +176,11 @@ export function NoticeDetail({
         </div>
 
         <h2 className="mt-5 text-xl font-extrabold leading-8 text-t1">{notice.title}</h2>
-        <div className="mt-4 whitespace-pre-wrap break-words rounded-xl bg-bg p-4 text-sm leading-7 text-t1">
-          {notice.content}
-        </div>
+        <NoticeContent
+          json={notice.contentJson}
+          fallbackText={notice.content}
+          className="mt-4 rounded-xl bg-bg p-4 text-sm leading-7 text-t1"
+        />
 
         <dl className="mt-5 grid gap-x-5 gap-y-3 border-t border-line pt-5 text-sm sm:grid-cols-[100px_1fr]">
           <dt className="font-semibold text-t3">게시 일시</dt>

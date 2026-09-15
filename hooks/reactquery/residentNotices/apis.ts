@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
 
+import type { NoticeDoc } from "@/lib/notice/richText";
+
 export type ResidentNoticeType = "normal" | "important" | "urgent";
 
 export interface ResidentNoticeRow {
@@ -24,10 +26,12 @@ export interface ResidentNotice {
 
 export interface ResidentNoticeDetailRow extends ResidentNoticeRow {
   content: string;
+  content_json: NoticeDoc | null;
 }
 
 export interface ResidentNoticeDetail extends ResidentNotice {
   content: string;
+  contentJson: NoticeDoc | null;
 }
 
 export type ResidentNoticesResult = ResidentNotice[];
@@ -48,6 +52,7 @@ const rowToNoticeDetail = (
 ): ResidentNoticeDetail => ({
   ...rowToNotice(row),
   content: row.content,
+  contentJson: row.content_json ?? null,
 });
 
 export async function residentNotices(): Promise<ResidentNoticesResult> {

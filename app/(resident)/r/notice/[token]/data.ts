@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 const rowToPublicNotice = (row: PublicNoticeRow): PublicNotice => ({
   title: row.title,
   content: row.content,
+  contentJson: row.content_json ?? null,
   noticeType: row.notice_type,
   buildingName: row.building_name,
   publishedAt: row.published_at,

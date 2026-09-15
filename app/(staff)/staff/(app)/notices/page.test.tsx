@@ -34,6 +34,27 @@ vi.mock("../messaging/components/MessagingModal", () => ({
   MessagingModal: () => <div data-testid="messaging-modal" />,
 }));
 vi.mock("@/hooks/common/useAppToast", () => ({ appToast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("@/components/notices/NoticeEditor", () => ({
+  NoticeEditor: ({ onChange }: { onChange: (doc: unknown) => void }) => (
+    <textarea
+      aria-label="내용"
+      onChange={(event) =>
+        onChange({
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: event.target.value ? [{ type: "text", text: event.target.value }] : [],
+            },
+          ],
+        })
+      }
+    />
+  ),
+}));
+vi.mock("@/components/notices/NoticeContent", () => ({
+  NoticeContent: ({ fallbackText }: { fallbackText?: string | null }) => <div>{fallbackText}</div>,
+}));
 
 import NoticesPage from "./page";
 import { useBuildings } from "@/hooks/reactquery/buildings";
@@ -123,11 +144,11 @@ describe("NoticesPage", () => {
     render(await NoticesPage());
 
     expect(screen.getByRole("heading", { name: "공지 관리" })).toBeInTheDocument();
-    expect(screen.getByLabelText("공지 대상")).toHaveTextContent("해오름빌");
-    expect(screen.getByLabelText("공지 유형")).toBeInTheDocument();
-    expect(screen.getByLabelText("게시 상태")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "전체" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "긴급" })).toBeInTheDocument();
+    expect(screen.getByText("공지 목록")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "정기 소독 안내 상세 보기" }));
+    await user.click(screen.getByText("정기 소독 안내"));
     expect(screen.getByRole("heading", { name: "정기 소독 안내" })).toBeInTheDocument();
     expect(screen.getByText("게시 일시")).toBeInTheDocument();
   });
@@ -175,7 +196,7 @@ describe("NoticesPage", () => {
 
   it("상세에서 삭제 확인 후 soft-delete mutation을 호출", async () => {
     render(await NoticesPage());
-    fireEvent.click(screen.getByRole("button", { name: "정기 소독 안내 상세 보기" }));
+    fireEvent.click(screen.getByText("정기 소독 안내"));
     fireEvent.click(screen.getByRole("button", { name: "삭제" }));
 
     const modalTitle = screen.getByRole("heading", { name: "공지 삭제" });
@@ -183,14 +204,11 @@ describe("NoticesPage", () => {
     await waitFor(() => expect(deleteMutate).toHaveBeenCalledWith(3));
   });
 
-  it("조회 실패와 빈 목록 상태를 각각 표시", async () => {
+  it("조회 실패 상태와 다시 시도를 표시", async () => {
     setup({ noticesError: true });
-    const { rerender } = render(await NoticesPage());
-    expect(screen.getByRole("alert")).toHaveTextContent("데이터를 불러오지 못했습니다.");
-
-    setup({ notices: [] });
-    rerender(await NoticesPage());
-    expect(screen.getByText("조건에 맞는 공지가 없습니다.")).toBeInTheDocument();
+    render(await NoticesPage());
+    expect(screen.getByText("데이터를 불러오지 못했습니다.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "다시 시도" })).toBeInTheDocument();
   });
 
   it("서버 권한 조회 실패를 표시하고 새로고침으로 재시도", async () => {

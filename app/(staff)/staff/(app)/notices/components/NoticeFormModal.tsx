@@ -1,12 +1,18 @@
 "use client";
 
 import { useMemo } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Button, Input, Modal, Select, Textarea } from "@/components/common";
+import { Button, Input, Modal, Select } from "@/components/common";
 import { FormField } from "@/components/common/FormField";
 import { setSubmissionError } from "@/components/forms/formErrors";
+import { NoticeEditor } from "@/components/notices/NoticeEditor";
+import {
+  EMPTY_NOTICE_DOC,
+  noticeDocToPlainText,
+  plainTextToNoticeDoc,
+} from "@/lib/notice/richText";
 import {
   createNoticeFormSchema,
   type NoticeFormInput,
@@ -63,7 +69,7 @@ function NoticeFormContent({
     target: editing?.buildingId == null ? "organization" : String(editing.buildingId),
     noticeType: editing?.noticeType ?? "normal",
     title: editing?.title ?? "",
-    content: editing?.content ?? "",
+    contentJson: editing ? (editing.contentJson ?? plainTextToNoticeDoc(editing.content)) : EMPTY_NOTICE_DOC,
     publishMode: mode,
     scheduledAt: mode === "scheduled" ? toDateTimeLocal(editing?.publishedAt) : "",
     expiresAt: toDateTimeLocal(editing?.expiresAt),
@@ -102,7 +108,8 @@ function NoticeFormContent({
       buildingId: values.target,
       noticeType: values.noticeType,
       title: values.title,
-      content: values.content,
+      content: noticeDocToPlainText(values.contentJson),
+      contentJson: values.contentJson,
       publishedAt,
       expiresAt: values.publishMode === "draft" ? null : values.expiresAt,
     };
@@ -149,13 +156,19 @@ function NoticeFormContent({
           <Input id="notice-title" {...register("title")} maxLength={200} placeholder="공지 제목" />
         </FormField>
 
-        <FormField htmlFor="notice-content" label="내용 *" error={errors.content?.message}>
-          <Textarea
-            id="notice-content"
-            {...register("content")}
-            rows={7}
-            placeholder="입주자에게 안내할 내용을 입력해 주세요."
-            className="resize-y leading-6"
+        <FormField htmlFor="notice-content" label="내용 *" error={(errors.contentJson as { message?: string } | undefined)?.message}>
+          <Controller
+            control={control}
+            name="contentJson"
+            render={({ field }) => (
+              <NoticeEditor
+                aria-label="공지 내용"
+                aria-invalid={Boolean(errors.contentJson)}
+                aria-describedby={errors.contentJson ? "notice-content-error" : undefined}
+                value={field.value ?? EMPTY_NOTICE_DOC}
+                onChange={field.onChange}
+              />
+            )}
           />
         </FormField>
 

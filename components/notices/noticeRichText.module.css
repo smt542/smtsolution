@@ -1,0 +1,81 @@
+/* 공지 리치 텍스트 공용 스타일. 편집기(WYSIWYG)와 읽기 전용 렌더러가 함께 사용해
+   작성 화면과 표시 화면의 결과가 동일하게 보이도록 한다. 색·폰트는 상위에서 상속받는다. */
+.root {
+  color: inherit;
+  font-size: inherit;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.root > :first-child {
+  margin-top: 0;
+}
+
+.root > :last-child {
+  margin-bottom: 0;
+}
+
+.root p {
+  margin: 0 0 0.75em;
+}
+
+.root h2 {
+  margin: 1.2em 0 0.5em;
+  font-size: 1.15em;
+  font-weight: 800;
+}
+
+.root h3 {
+  margin: 1em 0 0.4em;
+  font-size: 1.05em;
+  font-weight: 700;
+}
+
+.root ul,
+.root ol {
+  margin: 0 0 0.75em;
+  padding-left: 1.4em;
+}
+
+.root ul {
+  list-style: disc;
+}
+
+.root ol {
+  list-style: decimal;
+}
+
+.root li {
+  margin: 0.2em 0;
+}
+
+.root li > p {
+  margin: 0;
+}
+
+.root blockquote {
+  margin: 0 0 0.75em;
+  padding: 0.4em 0.9em;
+  border-left: 3px solid var(--line, #e5e8eb);
+  color: var(--t2, #4e5968);
+}
+
+.root a {
+  color: var(--blue-d, #14a497);
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+.root strong {
+  font-weight: 700;
+}
+
+.root em {
+  font-style: italic;
+}
+
+/* 레거시 plain text 폴백: 줄바꿈 보존 */
+.plain {
+  white-space: pre-wrap;
+}

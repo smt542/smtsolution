@@ -16,6 +16,24 @@ vi.mock("@/hooks/reactquery/notices", () => ({
 vi.mock("@/hooks/common/useAppToast", () => ({
   appToast: { success: noticeMocks.toastSuccess, error: noticeMocks.toastError },
 }));
+vi.mock("@/components/notices/NoticeEditor", () => ({
+  NoticeEditor: ({ onChange }: { onChange: (doc: unknown) => void }) => (
+    <textarea
+      aria-label="내용"
+      onChange={(event) =>
+        onChange({
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: event.target.value ? [{ type: "text", text: event.target.value }] : [],
+            },
+          ],
+        })
+      }
+    />
+  ),
+}));
 
 import { NoticeFormModal } from "./NoticeFormModal";
 

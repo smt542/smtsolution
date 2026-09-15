@@ -64,6 +64,7 @@ describe("resident notice server data", () => {
         id: 12,
         title: "승강기 점검 안내",
         content: "점검합니다.",
+        contentJson: null,
         noticeType: "important",
         buildingId: 7,
         buildingName: null,

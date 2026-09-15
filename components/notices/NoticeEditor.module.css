@@ -1,0 +1,110 @@
+.wrap {
+  border: 1px solid var(--line, #e5e8eb);
+  border-radius: 12px;
+  background: var(--surface, #fff);
+}
+
+.wrap.invalid {
+  border-color: var(--danger, #f04452);
+}
+
+.wrap:focus-within {
+  border-color: var(--brand, #14a497);
+  box-shadow: 0 0 0 3px rgba(20, 164, 151, 0.12);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px;
+  border-bottom: 1px solid var(--line, #e5e8eb);
+}
+
+.divider {
+  width: 1px;
+  align-self: stretch;
+  margin: 2px 2px;
+  background: var(--line, #e5e8eb);
+}
+
+.tb {
+  min-width: 32px;
+  height: 30px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--t2, #4e5968);
+  background: transparent;
+}
+
+.tb:hover:not(:disabled) {
+  background: var(--bg, #f2f4f6);
+}
+
+.tb:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.tbActive {
+  background: var(--brand, #14a497);
+  color: #fff;
+}
+
+.tbActive:hover:not(:disabled) {
+  background: var(--brand, #14a497);
+}
+
+.editable {
+  min-height: 180px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding: 12px 14px;
+  outline: none;
+}
+
+.linkbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 8px;
+  border-top: 1px solid var(--line, #e5e8eb);
+}
+
+.linkInput {
+  flex: 1 1 200px;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line, #e5e8eb);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.linkBtn {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--t2, #4e5968);
+  background: var(--bg, #f2f4f6);
+}
+
+.linkBtnPrimary {
+  color: #fff;
+  background: var(--brand, #14a497);
+}
+
+.linkError {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+  color: var(--danger, #f04452);
+}

@@ -478,24 +478,50 @@ lib/                        React에 종속되지 않는 순수 로직과 외부
 - [x] 공식 React 최소 패키지를 설치한다: `@tiptap/react`, `@tiptap/pm`, `@tiptap/starter-kit`.
 - [x] 세 패키지의 major/minor 버전이 일치하는지 확인한다. (`3.31.3`)
 - [x] 설치 후 lockfile을 반영한다.
-- [ ] 미사용 상태에서 lint, test, production build가 동일하게 통과하는지 확인한다.
-- [ ] 편집기 코드는 필요 화면에서만 client component로 import한다.
-- [ ] `npm audit` 기준 기존 취약점 7건을 별도 의존성 업데이트 작업으로 처리한다. Tiptap 3종은 보고된 취약 패키지에 포함되지 않는다.
+- [x] 미사용 상태에서 lint, test, production build가 동일하게 통과하는지 확인한다. (6장 검증 기록 기준: Tiptap 3종 설치·미사용 상태에서 tsc/lint/build 통과, 전체 테스트 기준선 변화 없음)
+- [x] 편집기 코드는 필요 화면에서만 client component로 import한다. (`NoticeEditor`만 `use client`이며 작성 화면 `NoticeFormModal`에서만 import, 읽기 경로는 편집기 코드를 로드하지 않는 `NoticeContent` 사용)
+- [ ] `npm audit` 기준 기존 취약점 7건을 별도 의존성 업데이트 작업으로 처리한다. Tiptap 관련 패키지는 보고된 취약 패키지에 포함되지 않는다. (이번 작업과 분리 · 후속 의존성 업데이트 작업으로 기록)
 
 ### 7.2 공지사항 파일럿
 
 - [x] 최초 적용 대상은 공지사항으로 한다.
 - [x] 문자와 알림톡 템플릿은 plain text를 유지한다.
 - [x] 편집기 원본 저장 형식은 Tiptap JSON을 기본으로 한다.
-- [ ] 기존 plain text 공지를 Tiptap JSON으로 읽는 호환 전략을 작성한다.
-- [ ] DB 컬럼 추가 또는 기존 컬럼 전환 방식을 결정하고 마이그레이션한다.
-- [ ] 작성 화면과 읽기 전용 렌더러가 같은 extension 구성을 공유한다.
-- [ ] Next.js SSR 환경에서 편집기 초기화를 클라이언트로 제한한다.
-- [ ] 허용 toolbar 기능을 확정한다.
-- [ ] 링크 프로토콜과 속성 허용 정책을 정의한다.
-- [ ] 본문 이미지 기능은 공통 이미지 업로드 완료 후 연결한다.
-- [ ] 빈 문서, 붙여넣기, 긴 문서, 모바일, 접근성을 테스트한다.
-- [ ] 작성자 화면, 입주자 앱, 공유 링크에서 동일하게 렌더링되는지 확인한다.
+- [x] 기존 plain text 공지를 Tiptap JSON으로 읽는 호환 전략을 작성한다.
+- [x] DB 컬럼 추가 또는 기존 컬럼 전환 방식을 결정하고 마이그레이션한다.
+- [x] 작성 화면과 읽기 전용 렌더러가 같은 extension 구성을 공유한다.
+- [x] Next.js SSR 환경에서 편집기 초기화를 클라이언트로 제한한다.
+- [x] 허용 toolbar 기능을 확정한다.
+- [x] 링크 프로토콜과 속성 허용 정책을 정의한다.
+- [ ] 본문 이미지 기능은 공통 이미지 업로드 완료 후 연결한다. (이번 범위 제외 · 후속 조건 아래 기록)
+- [x] 빈 문서, 붙여넣기, 긴 문서, 모바일, 접근성을 테스트한다. (자동: 빈 문서 검증·리치 렌더·링크 보안·경로별 동일 렌더 / 구현 검증: 붙여넣기·긴 문서 StarterKit 처리, 모바일 `flex-wrap`, 편집기 a11y / 실 브라우저 E2E: 후속)
+- [x] 작성자 화면, 입주자 앱, 공유 링크에서 동일하게 렌더링되는지 확인한다.
+
+### 7장 처리 결과 (2026-09-15)
+
+- **저장 전략(결정 근거)**: 기존 `notices.content`(text, NOT NULL)는 평문 투영으로 유지하고, nullable `content_json`(jsonb)를 신규 추가했다(마이그레이션 `0158_notice_rich_text.sql`). 파괴적 변환·컬럼 전환 대신 additive 컬럼을 택한 이유는 (1) 목록 검색(`content.ilike`)·미리보기·문자/알림톡 등 기존 `content` 소비 경로를 무회귀로 보존하고, (2) 레거시 공지(`content_json = null`)를 읽기 경로에서 평문으로 안전하게 폴백하며, (3) NOT NULL 제약을 건드리지 않기 때문이다. 신규/수정 공지는 편집기 JSON을 `content_json`에, 같은 문서에서 파생한 평문을 `content`에 함께 기록한다(`noticeDocToPlainText`).
+- **호환 전략**: 읽기 경로(`NoticeContent`)는 `content_json`이 있으면 리치 렌더, 없으면 `content` 평문을 줄바꿈 보존해 표시한다. 레거시 공지를 편집기에서 열 때는 `plainTextToNoticeDoc`으로 평문을 문단 문서로 비파괴 승격한다.
+- **데이터 계층**: `Notice`/`NoticeInput`/`NoticeRow`·RPC(`resident_notice_detail`·`public_notice_by_token`)·입주자/공개 타입에 `content_json`을 배선했다. `resident_notice_detail`은 RETURNS TABLE 시그니처 변경이라 DROP 후 재생성, `public_notice_by_token`은 JSONB 반환이라 본문에 키만 추가했다(권한·필터 로직 원본 보존).
+- **편집기(작성 화면 전용)**: `components/notices/NoticeEditor.tsx`(`use client`)만 편집기 코드를 로드하고 `NoticeFormModal`에서만 import한다. `immediatelyRender: false`로 SSR/hydration 불일치를 피한다. 최소 toolbar는 문단·제목(H2·H3)·굵게·기울임·글머리/번호 목록·인용·링크·실행취소/다시실행이며, 범위 밖(코드·코드블록·취소선·밑줄·수평선)은 스키마에서 비활성화해 저장 JSON을 좁혔다. "제목"은 공지 제목(별도 필드)과 충돌하지 않도록 H2·H3 두 단계로 구현했다.
+- **링크 정책**: `lib/notice/richText.ts`가 허용 스킴(http/https/mailto/tel)·`rel="noopener noreferrer nofollow"`·`target="_blank"`의 단일 기준이다. 편집기 입력은 `isAllowedUri`로, 렌더러 출력은 `sanitizeNoticeHref`로 이중 검증해 `javascript:`·`data:` 등 위험 스킴과 상대 경로를 차단한다(익명 공유 페이지 방어).
+- **읽기 전용 렌더러(공유)**: `components/notices/NoticeContent.tsx`가 `@tiptap/static-renderer/json/react`로 JSON을 정적 React 엘리먼트로 변환한다. DOM 비의존이라 관리자 상세(client)·입주자 앱·공유 링크(server component) 모두 동일 컴포넌트로 렌더하고, 저장 HTML을 `dangerouslySetInnerHTML`로 렌더하지 않는다. 편집기 편집 영역과 렌더러는 `noticeRichText.module.css`를 공유해 작성/표시 결과를 일치시킨다.
+- **접근성·모바일·붙여넣기·빈 문서**: 편집 영역에 `role="textbox"`·`aria-multiline`·접근 가능한 이름과 오류 연결(`aria-invalid`/`aria-describedby`), toolbar 버튼에 `aria-label`/`aria-pressed`와 focus 스타일을 제공한다. toolbar는 `flex-wrap`, 본문은 `max-height`+스크롤로 모바일 가로 깨짐을 막는다. 붙여넣기·긴 문서는 StarterKit 기본 처리 위에서 비허용 마크가 스키마에서 제거된다. 빈 문서는 저장 전 스키마에서 검증해(파생 평문 길이 0) "내용을 입력해 주세요"를 필드 오류로 표시한다.
+- **이미지(후속 조건)**: 본문 이미지 toolbar·업로드는 이번 범위에서 제외한다. 공통 이미지 업로드(3.3)가 완료된 뒤 private bucket object path + signed URL 정책 위에서 image 노드/렌더 매핑을 추가하고, `content_json` 스키마에 image 노드를 허용하는 방식으로 연결한다.
+- **npm audit**: `@tiptap/static-renderer@3.31.3` 추가 후에도 취약점 수는 기존과 동일(moderate 4·high 2·critical 1). Tiptap 관련 패키지는 보고 경로에 없으며, 취약점 의존성 업데이트는 이번 작업과 분리해 별도 후속 작업으로 기록한다.
+- **라이브 반영 대기**: 마이그레이션 `0158_notice_rich_text.sql`은 파일만 추가했고 라이브 DB 적용은 별도 요청 시 수행한다. 적용 전에는 운영 조회 시 `content_json` 컬럼이 없어 신규 리치 공지가 표시되지 않으므로 배포 순서에 유의한다.
+
+### 7장 검증 결과
+
+- `npx tsc --noEmit`: 통과
+- Tiptap·공지 표적 테스트: 8개 파일 통과 — `lib/notice/richText`, `components/notices/NoticeContent`, notices `page`/`utils`/`NoticeFormModal`/`NoticeDetail`, 입주자/공개 notice `data`
+- `npm run lint`: 통과
+- `npm test`: 341개 파일 중 333개 통과·2개 건너뜀; 1,319개 테스트 중 1,302개 통과·9개 건너뜀. 신규 회귀 0개.
+  - **기준선 감소(11 → 8)**: 기존 실패였던 `notices/page.test.tsx` 3개를 현재 UI(세그먼트 탭·행 클릭 선택·오류 상태 구조)에 맞게 갱신해 통과시켰다.
+  - **작업 중 발생·해소한 회귀**: 스키마 `content → contentJson` 변경으로 `notices/utils.test.ts` 2개가 일시 실패했고, `validateNoticeForm`이 평문을 문서로 변환하도록 고쳐 통과시켰다(잔여 없음).
+  - **남은 기존 실패 6개 파일·8개(이번 작업 무관)**: `components/shell/navItems.test.ts`(1), `app/api/resident/kakao/login/route.test.ts`(1), `app/api/resident/kakao/stub/route.test.ts`(1), `app/(staff)/staff/(app)/messaging/components/HistoryTab.test.tsx`(2), `app/(staff)/staff/(app)/utilities/components/UtilityWorkspaceHeader.test.tsx`(1), `app/(staff)/staff/(app)/receipts/components/payment/GiroLedgerModal.test.tsx`(2)
+- `npm run build`: 통과 (Next.js 16.3.0)
+- `git diff --check`: 공백/충돌 오류 없음
+- 최종 검색: `docs/prototype/**` 변경 0건, 읽기 경로 `dangerouslySetInnerHTML` 0건
 
 ## 8. 배포 전 검증
 
@@ -518,7 +544,7 @@ lib/                        React에 종속되지 않는 순수 로직과 외부
 - [x] 폼 범위: 17개 폼 전수 확인 및 표준화 완료
 - [ ] toast 범위: 허용된 경계 외 Sonner 직접 import 0건
 - [ ] loading 범위: 모든 비동기 상태가 정의된 상태 모델과 공통 UI를 사용
-- [ ] Tiptap 범위: 선설치 검증 완료, 공지사항 파일럿은 별도 완료 표시
+- [x] Tiptap 범위: 선설치 검증 완료, 공지사항 파일럿 구현·검증 완료 (본문 이미지·실 브라우저 E2E·npm audit 업데이트는 후속)
 - [ ] 전체 lint/test/build 및 핵심 E2E 통과
 
 ## 10. 현재 검증 기준선
@@ -570,3 +596,4 @@ lib/                        React에 종속되지 않는 순수 로직과 외부
 - 2026-09-15: 사용자 지시에 따라 `docs/prototype/**`를 작업 및 lint 범위에서 제외.
 - 2026-09-15: 1차 범위의 공통 훅, debounce 통합, 이미지 첨부 데이터 경계, Free Supabase fallback 구현 및 검증 완료.
 - 2026-09-15: 4장 17개 대상 전수 확인. 저장 폼을 React Hook Form + Zod로 통합하고 `BuildingSearchCard`는 조회 전용 예외로 근거를 기록했으며, 표적 테스트 19개 파일·70개 통과와 전체 기준선 대비 신규 회귀 0개를 확인했다.
+- 2026-09-15: 7장 공지사항 Tiptap 파일럿 구현. `content_json`(jsonb) additive 컬럼·마이그레이션 `0158`, 작성 화면 편집기(SSR-safe, 최소 toolbar, 링크 허용 정책)·공유 읽기 렌더러(`@tiptap/static-renderer`)·레거시 평문 폴백을 배선하고 관리자 상세·입주자 앱·공유 링크에 적용했다. 표적 테스트 8개 파일 통과, 전체 신규 회귀 0개(`notices/page.test.tsx` 3개 갱신으로 기준선 11→8). `@tiptap/static-renderer@3.31.3` 추가.

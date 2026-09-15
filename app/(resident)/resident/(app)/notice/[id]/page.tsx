@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import MobileBackHeader from "@/app/(resident)/_components/MobileBackHeader";
 import type { ResidentNoticeType } from "@/hooks/reactquery/residentNotices/apis";
+import { NoticeContent } from "@/components/notices/NoticeContent";
 import { formatDate } from "@/lib/format";
 
 import { getResidentNoticeDetailPageData } from "../data";
@@ -86,7 +87,7 @@ export default async function ResidentNoticeDetailPage({
             <span aria-hidden="true">·</span>
             <span>{detail.buildingName ?? residentBuildingName ?? "전체 공지"}</span>
           </p>
-          <div className={styles.content}>{detail.content}</div>
+          <NoticeContent json={detail.contentJson} fallbackText={detail.content} className={styles.content} />
         </article>
       </main>
     </div>
