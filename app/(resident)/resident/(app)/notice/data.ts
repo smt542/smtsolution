@@ -6,6 +6,7 @@ import type {
   ResidentNoticeDetailRow,
   ResidentNoticeRow,
 } from "@/hooks/reactquery/residentNotices/apis";
+import { resolveNoticeImageUrls } from "@/lib/notice/serverImages";
 import { createClient } from "@/lib/supabase/server";
 
 type ResidentLinkRow = {
@@ -41,6 +42,7 @@ export async function getResidentNotices(): Promise<ResidentNotice[]> {
 export async function getResidentNoticeDetailPageData(id: number): Promise<{
   detail: ResidentNoticeDetail | null;
   residentBuildingName: string | null;
+  imageUrls: Record<string, string>;
 }> {
   const supabase = await createClient();
   const [detailResult, linkResult] = await Promise.all([
@@ -54,8 +56,14 @@ export async function getResidentNoticeDetailPageData(id: number): Promise<{
   const detailRow = ((detailResult.data ?? []) as ResidentNoticeDetailRow[])[0];
   const linkRow = ((linkResult.data ?? []) as ResidentLinkRow[])[0];
 
+  // RPC가 열람을 인가한 공지(id)에 한해 본문 이미지 signed URL을 service_role로 서명한다.
+  const imageUrls = detailRow?.content_json
+    ? await resolveNoticeImageUrls({ noticeId: id, doc: detailRow.content_json })
+    : {};
+
   return {
     detail: detailRow ? rowToNoticeDetail(detailRow) : null,
     residentBuildingName: linkRow?.building_name ?? null,
+    imageUrls,
   };
 }

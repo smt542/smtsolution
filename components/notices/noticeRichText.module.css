@@ -79,3 +79,60 @@
 .plain {
   white-space: pre-wrap;
 }
+
+/* 본문 이미지 (읽기 렌더러 + 편집기 NodeView 공용) */
+.image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0.5em 0;
+  border-radius: 8px;
+}
+
+.imageBlock {
+  position: relative;
+  margin: 0.5em 0;
+}
+
+.imageBlock .image {
+  margin: 0;
+}
+
+.imageSelected {
+  outline: 2px solid var(--brand, #14a497);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.imagePlaceholder,
+.imageFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  margin: 0.5em 0;
+  padding: 0 12px;
+  border: 1px dashed var(--line, #e5e8eb);
+  border-radius: 8px;
+  background: var(--bg, #f2f4f6);
+  color: var(--t3, #8b95a1);
+  font-size: 12px;
+  text-align: center;
+}
+
+.imageRemove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}

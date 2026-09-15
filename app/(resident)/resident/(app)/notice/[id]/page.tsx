@@ -60,7 +60,7 @@ export default async function ResidentNoticeDetailPage({
     );
   }
 
-  const { detail, residentBuildingName } = pageData;
+  const { detail, residentBuildingName, imageUrls } = pageData;
   if (!detail) {
     return (
       <div className={styles.page}>
@@ -87,7 +87,7 @@ export default async function ResidentNoticeDetailPage({
             <span aria-hidden="true">·</span>
             <span>{detail.buildingName ?? residentBuildingName ?? "전체 공지"}</span>
           </p>
-          <NoticeContent json={detail.contentJson} fallbackText={detail.content} className={styles.content} />
+          <NoticeContent json={detail.contentJson} fallbackText={detail.content} imageUrls={imageUrls} className={styles.content} />
         </article>
       </main>
     </div>

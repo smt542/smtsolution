@@ -31,7 +31,7 @@ const renderPage = async () =>
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.getPublicNoticeByToken.mockResolvedValue(publicNotice);
+  mocks.getPublicNoticeByToken.mockResolvedValue({ notice: publicNotice, imageUrls: {} });
 });
 
 describe("PublicNoticePage", () => {
@@ -51,14 +51,17 @@ describe("PublicNoticePage", () => {
 
   it("shows invalid and expired links without masked content", async () => {
     mocks.getPublicNoticeByToken
-      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ notice: null, imageUrls: {} })
       .mockResolvedValueOnce({
-        title: null,
-        content: null,
-        noticeType: null,
-        buildingName: null,
-        publishedAt: null,
-        isExpired: true,
+        notice: {
+          title: null,
+          content: null,
+          noticeType: null,
+          buildingName: null,
+          publishedAt: null,
+          isExpired: true,
+        },
+        imageUrls: {},
       });
 
     const view = await renderPage();

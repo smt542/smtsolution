@@ -79,7 +79,18 @@ export function noticeDocToPlainText(doc: NoticeDoc | null | undefined): string 
   return buffer.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
-/** 저장 전 빈 문서 검증에 사용한다(텍스트가 전혀 없으면 true). */
+// image 등 텍스트를 담지 않는 노드는 평문 투영이 비어도 "내용 있음"으로 본다.
+function docHasNonTextContent(node: JSONContent | undefined): boolean {
+  if (!node) return false;
+  if (node.type === "image") return true;
+  for (const child of node.content ?? []) {
+    if (docHasNonTextContent(child)) return true;
+  }
+  return false;
+}
+
+/** 저장 전 빈 문서 검증에 사용한다(텍스트도 이미지도 전혀 없으면 true). */
 export function noticeDocIsEmpty(doc: NoticeDoc | null | undefined): boolean {
+  if (docHasNonTextContent(doc as JSONContent)) return false;
   return noticeDocToPlainText(doc).length === 0;
 }

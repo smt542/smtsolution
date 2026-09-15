@@ -1,17 +1,25 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 
+import { useAppToast } from "@/hooks/common";
 import { isNoticeAllowedHref, type NoticeDoc } from "@/lib/notice/richText";
+import {
+  IMAGE_ATTACHMENT_ACCEPT,
+  MAX_ATTACHMENT_FILES,
+} from "@/lib/attachments/policy";
+import { NOTICE_IMAGE_NODE_TYPE, selectNoticeImageFiles } from "@/lib/notice/images";
 
-import { noticeEditorExtensions } from "./tiptap/noticeExtensions";
+import { createNoticeEditorExtensions } from "./tiptap/noticeExtensions";
 import sharedStyles from "./noticeRichText.module.css";
 import styles from "./NoticeEditor.module.css";
 
 type NoticeEditorProps = {
   value: NoticeDoc;
   onChange: (doc: NoticeDoc) => void;
+  /** 저장 전 새 이미지 File을 담는 공유 맵. 작성 화면이 소유해 저장 시 업로드에 쓴다. */
+  pendingFiles: Map<string, File>;
   "aria-label"?: string;
   "aria-invalid"?: boolean | "true" | "false";
   "aria-describedby"?: string;
@@ -27,18 +35,26 @@ type NoticeEditorProps = {
 export function NoticeEditor({
   value,
   onChange,
+  pendingFiles,
   "aria-label": ariaLabel,
   "aria-invalid": ariaInvalid,
   "aria-describedby": ariaDescribedBy,
 }: NoticeEditorProps) {
+  const appToast = useAppToast();
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkValue, setLinkValue] = useState("");
   const [linkError, setLinkError] = useState<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const invalid = ariaInvalid === true || ariaInvalid === "true";
 
+  const extensions = useMemo(
+    () => createNoticeEditorExtensions({ pendingFiles }),
+    [pendingFiles],
+  );
+
   const editor = useEditor({
-    extensions: noticeEditorExtensions,
+    extensions,
     content: value,
     immediatelyRender: false,
     editorProps: {
@@ -101,6 +117,21 @@ export function NoticeEditor({
     setLinkOpen(false);
   };
 
+  const countImages = () => {
+    let count = 0;
+    editor?.state.doc.descendants((node) => {
+      if (node.type.name === NOTICE_IMAGE_NODE_TYPE) count += 1;
+    });
+    return count;
+  };
+
+  const addImages = (fileList: FileList | null) => {
+    if (!editor || !fileList) return;
+    const { accepted, errors } = selectNoticeImageFiles(countImages(), Array.from(fileList));
+    if (errors.length > 0) appToast.error(errors.join("\n"));
+    if (accepted.length > 0) editor.chain().focus().insertNoticeImages(accepted).run();
+  };
+
   const button = (
     label: string,
     active: boolean,
@@ -138,12 +169,26 @@ export function NoticeEditor({
         {button("번호 목록", Boolean(state?.isOrdered), !ready, () => editor?.chain().focus().toggleOrderedList().run(), "1.")}
         {button("인용", Boolean(state?.isQuote), !ready, () => editor?.chain().focus().toggleBlockquote().run(), "❝")}
         {button("링크", Boolean(state?.isLink), !ready, openLink, "링크")}
+        {button("이미지", false, !ready, () => imageInputRef.current?.click(), "이미지")}
         <span className={styles.divider} aria-hidden="true" />
         {button("실행 취소", false, !ready || !state?.canUndo, () => editor?.chain().focus().undo().run(), "↶")}
         {button("다시 실행", false, !ready || !state?.canRedo, () => editor?.chain().focus().redo().run(), "↷")}
       </div>
 
       <EditorContent editor={editor} />
+
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept={IMAGE_ATTACHMENT_ACCEPT}
+        multiple={MAX_ATTACHMENT_FILES > 1}
+        hidden
+        aria-label="본문 이미지 선택"
+        onChange={(event) => {
+          addImages(event.target.files);
+          event.target.value = "";
+        }}
+      />
 
       {linkOpen && (
         <div className={styles.linkbar}>

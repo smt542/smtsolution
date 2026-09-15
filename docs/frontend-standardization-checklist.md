@@ -493,7 +493,7 @@ lib/                        React에 종속되지 않는 순수 로직과 외부
 - [x] Next.js SSR 환경에서 편집기 초기화를 클라이언트로 제한한다.
 - [x] 허용 toolbar 기능을 확정한다.
 - [x] 링크 프로토콜과 속성 허용 정책을 정의한다.
-- [ ] 본문 이미지 기능은 공통 이미지 업로드 완료 후 연결한다. (이번 범위 제외 · 후속 조건 아래 기록)
+- [x] 본문 이미지 기능은 공통 이미지 업로드 완료 후 연결한다. (2026-09-15 구현 완료 · 아래 7.3 기록)
 - [x] 빈 문서, 붙여넣기, 긴 문서, 모바일, 접근성을 테스트한다. (자동: 빈 문서 검증·리치 렌더·링크 보안·경로별 동일 렌더 / 구현 검증: 붙여넣기·긴 문서 StarterKit 처리, 모바일 `flex-wrap`, 편집기 a11y / 실 브라우저 E2E: 후속)
 - [x] 작성자 화면, 입주자 앱, 공유 링크에서 동일하게 렌더링되는지 확인한다.
 
@@ -506,7 +506,7 @@ lib/                        React에 종속되지 않는 순수 로직과 외부
 - **링크 정책**: `lib/notice/richText.ts`가 허용 스킴(http/https/mailto/tel)·`rel="noopener noreferrer nofollow"`·`target="_blank"`의 단일 기준이다. 편집기 입력은 `isAllowedUri`로, 렌더러 출력은 `sanitizeNoticeHref`로 이중 검증해 `javascript:`·`data:` 등 위험 스킴과 상대 경로를 차단한다(익명 공유 페이지 방어).
 - **읽기 전용 렌더러(공유)**: `components/notices/NoticeContent.tsx`가 `@tiptap/static-renderer/json/react`로 JSON을 정적 React 엘리먼트로 변환한다. DOM 비의존이라 관리자 상세(client)·입주자 앱·공유 링크(server component) 모두 동일 컴포넌트로 렌더하고, 저장 HTML을 `dangerouslySetInnerHTML`로 렌더하지 않는다. 편집기 편집 영역과 렌더러는 `noticeRichText.module.css`를 공유해 작성/표시 결과를 일치시킨다.
 - **접근성·모바일·붙여넣기·빈 문서**: 편집 영역에 `role="textbox"`·`aria-multiline`·접근 가능한 이름과 오류 연결(`aria-invalid`/`aria-describedby`), toolbar 버튼에 `aria-label`/`aria-pressed`와 focus 스타일을 제공한다. toolbar는 `flex-wrap`, 본문은 `max-height`+스크롤로 모바일 가로 깨짐을 막는다. 붙여넣기·긴 문서는 StarterKit 기본 처리 위에서 비허용 마크가 스키마에서 제거된다. 빈 문서는 저장 전 스키마에서 검증해(파생 평문 길이 0) "내용을 입력해 주세요"를 필드 오류로 표시한다.
-- **이미지(후속 조건)**: 본문 이미지 toolbar·업로드는 이번 범위에서 제외한다. 공통 이미지 업로드(3.3)가 완료된 뒤 private bucket object path + signed URL 정책 위에서 image 노드/렌더 매핑을 추가하고, `content_json` 스키마에 image 노드를 허용하는 방식으로 연결한다.
+- **이미지(구현 완료)**: 본문 이미지 toolbar·업로드·렌더를 공통 이미지 업로드(3.3) 위에 연결했다. 상세 설계와 근거는 아래 7.3에 기록한다.
 - **npm audit**: `@tiptap/static-renderer@3.31.3` 추가 후에도 취약점 수는 기존과 동일(moderate 4·high 2·critical 1). Tiptap 관련 패키지는 보고 경로에 없으며, 취약점 의존성 업데이트는 이번 작업과 분리해 별도 후속 작업으로 기록한다.
 - **라이브 반영 대기**: 마이그레이션 `0158_notice_rich_text.sql`은 파일만 추가했고 라이브 DB 적용은 별도 요청 시 수행한다. 적용 전에는 운영 조회 시 `content_json` 컬럼이 없어 신규 리치 공지가 표시되지 않으므로 배포 순서에 유의한다.
 
@@ -522,6 +522,30 @@ lib/                        React에 종속되지 않는 순수 로직과 외부
 - `npm run build`: 통과 (Next.js 16.3.0)
 - `git diff --check`: 공백/충돌 오류 없음
 - 최종 검색: `docs/prototype/**` 변경 0건, 읽기 경로 `dangerouslySetInnerHTML` 0건
+
+### 7.3 공지 본문 이미지 (2026-09-15)
+
+7장 파일럿의 후속으로 Tiptap 스키마에 image 노드를 추가하고 편집기·읽기 렌더러가 동일 구성을 공유하도록 배선했다. 저장·해석 방식과 그 근거는 아래와 같다.
+
+- **스키마·단일 구성**: StarterKit v3에는 image가 없어 커스텀 노드 `components/notices/tiptap/NoticeImage.ts`(node type `image`)를 추가했다. 편집기 확장은 상수 배열 대신 팩토리 `createNoticeEditorExtensions({ pendingFiles })`로 만들고(저장 전 File을 담는 공유 맵이 필요), 읽기 렌더러 `NoticeContent`는 기존과 동일하게 `@tiptap/static-renderer`의 명시적 node mapping에 `image` 항목만 추가했다. 저장 HTML을 `dangerouslySetInnerHTML`로 렌더하지 않는 현행 방식을 유지한다.
+- **저장 형식(결정 근거)**: image 노드 attr에는 공개 URL이 아니라 private bucket(`attachments`) object path만 저장한다(`content_json`에 path만 남음). 공통 첨부 인프라(3.3~3.5)를 재사용해 업로드하고, 공지별 `attachments` row(`entity_type='notice'`, `kind='etc'`)로 Storage와 DB 정합을 맞춘다. 신규 attachment enum 값을 만들지 않으려고 `kind`는 기존 `etc`를 재사용하고 `entity_type='notice'`로만 식별한다.
+- **업로드 시점(고아 방지)**: 편집 중에는 Storage에 아무것도 올리지 않고 File을 공유 맵(`pendingId → File`)에만 담아 blob으로 미리 본다. 저장 시에만 ①Storage 업로드(notice id에 의존하지 않는 경로 `{orgId}/notice/{uuid}/{uuid}-{name}`) → ②`content_json`의 pending 노드를 object path로 치환 → ③공지 insert/update → ④업로드분 row 생성 + 본문에서 빠진 이미지(Storage+row) 정리 순으로 처리한다. 저장이 실패하면 방금 올린 object를 보상 삭제해 참조 없는 고아를 남기지 않는다. 업로드 실패한 pending 노드는 문서에서 제거하고 부분 성공을 사용자에게 알린다.
+- **삭제 정합**: 공지 삭제는 이력 보존용 soft delete(`deleted_at`)라 이미지를 지우지 않는다(과거 공지의 이미지가 깨지지 않도록). 이미지 정리는 update 시 이전/다음 `content_json`의 path 차집합으로 수행한다(본문에서 뺀 이미지의 Storage object와 row 삭제, 공통 `deleteAttachment` 정합 로직 재사용).
+- **해석(표시) 방식**: 표시 시점에 object path를 signed URL로 해석한다(관리자 상세·입주자 앱·공유 링크 3경로 동일 렌더러). 서명 주체만 경로별로 다르다.
+  - 관리자 상세(클라이언트): staff는 `org_members`라 Storage RLS로 직접 서명한다. `useNoticeImageUrls`가 공통 `useAttachments`+`useAttachmentSignedUrls`를 재사용해 path→signed URL 맵을 만들고 `NoticeContent`에 넘긴다.
+  - 입주자 앱·공유 링크(서버 컴포넌트): 세입자(`res_claims`)·anon은 `org_members`가 아니라 Storage RLS로 서명할 수 없다(정합 확인: `my_org_ids()`가 빈 집합). 이미 열람이 인가된 공지에 한해 `lib/notice/serverImages.ts`가 service_role(`createAdminClient`)로 서명하되, 교차 org 유출을 막는 신뢰 경계를 둔다 — (1)해당 공지의 attachments row만(entity_id=noticeId), (2)`content_json`이 실제 참조하는 path와 교집합만, (3)각 row의 신뢰된 `org_id`와 path 첫 세그먼트 일치 검증. 공개 링크는 RPC가 notice id를 반환하지 않으므로 service_role로 `notice_share_tokens`를 조회해 id를 얻고 RPC와 동일한 만료 게이트를 다시 적용한다.
+- **src 허용 정책(보안)**: `lib/notice/images.ts`의 `isNoticeImagePath`가 `{orgId}/notice/...` 형태만 허용해 외부 임의 URL·`data:`·상대경로·타 org 경로를 차단한다. 서버 서명은 위 신뢰 경계로, 편집기 업로드는 org 스코프 경로 생성으로 각각 org 밖 접근을 막는다. 미해석 이미지는 object path를 노출하지 않고 로딩/대체 표시만 남긴다.
+- **마이그레이션 불필요**: `content_json`(jsonb)과 읽기 RPC는 0158에서 이미 라이브 반영됐고, `attachments` 테이블·private bucket·정책도 기존 것을 그대로 쓴다. image 노드는 `content_json` 안에 들어가고 첨부는 기존 스키마로 저장되므로 이번 작업에는 새 컬럼·enum·RPC 변경이 없다(파괴적 변환 없음).
+- **로딩 표준**: 최초 조회 `isPending`/`isLoading`, 갱신 `isFetching`, mutation 제출 `isPending`을 유지하고 전역 `useLoading`을 만들지 않는다. 편집기 NodeView와 읽기 렌더러의 이미지 로딩 표시에는 `role="status"`와 읽을 수 있는 `aria-label`을 제공한다.
+
+### 7.3 검증 결과
+
+- `npx tsc --noEmit`: 통과
+- 공지·이미지 표적 테스트: `npx vitest run notice` 17개 파일·79개 테스트 통과(신규 `lib/notice/images.test.ts` 경로 검증·재작성 로직 포함, `NoticeContent`·`richText`에 이미지 케이스 추가, RSC data·staff 폼/상세/목록 테스트를 이미지 배선에 맞게 갱신).
+- `npm run lint`: 통과(신규 React 19 훅 규칙 대응 — NodeView는 공통 `useObjectUrls` 재사용, pending 맵은 `useState`로 보관해 렌더 중 ref 읽기 회피).
+- `npm test`(전체): 342개 파일 중 334개 통과·6개 실패·2개 건너뜀; 1,333개 테스트 중 1,316개 통과·8개 실패·9개 건너뜀. **신규 회귀 0개**(실패는 기존 기준선 6개 파일·8개와 동일: `navItems.test.ts`(1), `kakao/login`(1), `kakao/stub`(1), `messaging/HistoryTab`(2), `utilities/UtilityWorkspaceHeader`(1), `receipts/payment/GiroLedgerModal`(2)). 작업 중 발생한 `notices/page.test.tsx` 회귀 3건은 mock 보강으로 해소했다.
+- `npm run build`: 통과 (Next.js 16.3.0, `/staff/notices`·`/resident/notice/[id]`·`/r/notice/[token]` 포함 생성).
+- `git diff --check`: 공백/충돌 오류 없음. 최종 검색: `docs/prototype/**` 변경 0건, 읽기 경로 `dangerouslySetInnerHTML` 0건, 새 마이그레이션 0건.
 
 ## 8. 배포 전 검증
 
@@ -544,7 +568,7 @@ lib/                        React에 종속되지 않는 순수 로직과 외부
 - [x] 폼 범위: 17개 폼 전수 확인 및 표준화 완료
 - [ ] toast 범위: 허용된 경계 외 Sonner 직접 import 0건
 - [ ] loading 범위: 모든 비동기 상태가 정의된 상태 모델과 공통 UI를 사용
-- [x] Tiptap 범위: 선설치 검증 완료, 공지사항 파일럿 구현·검증 완료 (본문 이미지·실 브라우저 E2E·npm audit 업데이트는 후속)
+- [x] Tiptap 범위: 선설치 검증 완료, 공지사항 파일럿 구현·검증 완료, 본문 이미지(7.3) 구현·검증 완료 (실 브라우저 E2E·npm audit 업데이트는 후속)
 - [ ] 전체 lint/test/build 및 핵심 E2E 통과
 
 ## 10. 현재 검증 기준선
@@ -597,3 +621,4 @@ lib/                        React에 종속되지 않는 순수 로직과 외부
 - 2026-09-15: 1차 범위의 공통 훅, debounce 통합, 이미지 첨부 데이터 경계, Free Supabase fallback 구현 및 검증 완료.
 - 2026-09-15: 4장 17개 대상 전수 확인. 저장 폼을 React Hook Form + Zod로 통합하고 `BuildingSearchCard`는 조회 전용 예외로 근거를 기록했으며, 표적 테스트 19개 파일·70개 통과와 전체 기준선 대비 신규 회귀 0개를 확인했다.
 - 2026-09-15: 7장 공지사항 Tiptap 파일럿 구현. `content_json`(jsonb) additive 컬럼·마이그레이션 `0158`, 작성 화면 편집기(SSR-safe, 최소 toolbar, 링크 허용 정책)·공유 읽기 렌더러(`@tiptap/static-renderer`)·레거시 평문 폴백을 배선하고 관리자 상세·입주자 앱·공유 링크에 적용했다. 표적 테스트 8개 파일 통과, 전체 신규 회귀 0개(`notices/page.test.tsx` 3개 갱신으로 기준선 11→8). `@tiptap/static-renderer@3.31.3` 추가.
+- 2026-09-15: 7.3 공지 본문 이미지 구현. 커스텀 Tiptap image 노드+React NodeView, 공통 첨부/Storage 재사용(object path만 `content_json`에 저장), 저장 시 업로드→치환→저장→정리(고아 방지·보상 삭제), 표시 시 signed URL 해석(관리자=RLS 클라이언트, 입주자·공유=service_role 스코프 서명). `src` 허용 정책으로 외부 URL·`data:`·교차 org 차단. 새 마이그레이션 없음. 표적 테스트 17개 파일·79개 통과, 전체 신규 회귀 0개(기준선 6개 파일·8개 유지), lint/build 통과.

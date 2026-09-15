@@ -12,6 +12,7 @@ const mintShareToken = vi.fn();
 
 vi.mock("@/hooks/reactquery/notices", () => ({
   useDeleteNotice: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useNoticeImageUrls: () => ({ urls: {}, isLoading: false }),
 }));
 vi.mock("@/hooks/reactquery/occupancies", () => ({
   useTenantList: (...args: unknown[]) => useTenantListMock(...args),

@@ -5,7 +5,11 @@ import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Badge, Button, Modal, Panel } from "@/components/common";
 import { NoticeContent } from "@/components/notices/NoticeContent";
 import type { Building } from "@/hooks/reactquery/buildings";
-import { useDeleteNotice, type Notice } from "@/hooks/reactquery/notices";
+import {
+  useDeleteNotice,
+  useNoticeImageUrls,
+  type Notice,
+} from "@/hooks/reactquery/notices";
 import {
   useOrganizationTenantList,
   useTenantList,
@@ -40,6 +44,7 @@ export function NoticeDetail({
   const [messageOpen, setMessageOpen] = useState(false);
   const [messageRecipients, setMessageRecipients] = useState<MessageRecipient[]>([]);
   const deleteNotice = useDeleteNotice();
+  const noticeImages = useNoticeImageUrls(notice.id, notice.contentJson);
   const mintShareToken = useMintNoticeShareToken();
   const { data: orgContact } = useOrgContact();
   const status = getNoticeStatus(notice);
@@ -179,6 +184,8 @@ export function NoticeDetail({
         <NoticeContent
           json={notice.contentJson}
           fallbackText={notice.content}
+          imageUrls={noticeImages.urls}
+          imageUrlsLoading={noticeImages.isLoading}
           className="mt-4 rounded-xl bg-bg p-4 text-sm leading-7 text-t1"
         />
 

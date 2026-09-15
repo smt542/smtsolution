@@ -72,6 +72,7 @@ describe("resident notice server data", () => {
         createdAt: "2026-08-18T00:00:00Z",
       },
       residentBuildingName: "해오름빌라",
+      imageUrls: {},
     });
     expect(mocks.rpc).toHaveBeenNthCalledWith(1, "resident_notice_detail", {
       p_id: 12,
@@ -90,6 +91,7 @@ describe("resident notice server data", () => {
     await expect(getResidentNoticeDetailPageData(99)).resolves.toEqual({
       detail: null,
       residentBuildingName: "해오름빌라",
+      imageUrls: {},
     });
 
     mocks.rpc.mockResolvedValue({ data: null, error: { message: "failed" } });

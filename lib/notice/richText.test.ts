@@ -47,6 +47,15 @@ describe("noticeDocToPlainText", () => {
     expect(noticeDocIsEmpty(EMPTY_NOTICE_DOC)).toBe(true);
     expect(noticeDocIsEmpty(null)).toBe(true);
   });
+
+  it("이미지만 있는 문서는 평문이 없어도 비어 있지 않다", () => {
+    const doc: NoticeDoc = {
+      type: "doc",
+      content: [{ type: "image", attrs: { path: "9/notice/a/x.png", alt: "" } }],
+    };
+    expect(noticeDocToPlainText(doc)).toBe("");
+    expect(noticeDocIsEmpty(doc)).toBe(false);
+  });
 });
 
 describe("plainTextToNoticeDoc", () => {

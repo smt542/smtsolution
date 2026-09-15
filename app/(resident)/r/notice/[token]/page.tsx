@@ -23,8 +23,9 @@ export default async function PublicNoticePage({
   const { token } = await params;
 
   let notice;
+  let imageUrls: Record<string, string> = {};
   try {
-    notice = await getPublicNoticeByToken(token);
+    ({ notice, imageUrls } = await getPublicNoticeByToken(token));
   } catch {
     return <PublicNoticeRetryState />;
   }
@@ -72,7 +73,7 @@ export default async function PublicNoticePage({
           .filter(Boolean)
           .join(" · ")}
       >
-        <NoticeContent json={notice.contentJson} fallbackText={notice.content} className={styles.content} />
+        <NoticeContent json={notice.contentJson} fallbackText={notice.content} imageUrls={imageUrls} className={styles.content} />
       </PublicShareArticleCard>
     </PublicTokenPageShell>
   );

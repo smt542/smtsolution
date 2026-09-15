@@ -12,6 +12,14 @@ const noticeMocks = vi.hoisted(() => ({
 vi.mock("@/hooks/reactquery/notices", () => ({
   useCreateNotice: () => ({ mutateAsync: noticeMocks.create, isPending: false }),
   useUpdateNotice: () => ({ mutateAsync: noticeMocks.update, isPending: false }),
+  // 이미지 없는 저장 경로: content_json을 그대로 통과시키고 부수효과는 no-op.
+  prepareNoticeImages: vi.fn(async ({ doc }: { doc: unknown }) => ({
+    nextDoc: doc,
+    uploaded: [],
+    failedCount: 0,
+  })),
+  finalizeNoticeImages: vi.fn(async () => ({ rowFailedCount: 0 })),
+  removeNoticeImageObjects: vi.fn(async () => {}),
 }));
 vi.mock("@/hooks/common/useAppToast", () => ({
   appToast: { success: noticeMocks.toastSuccess, error: noticeMocks.toastError },

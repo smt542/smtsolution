@@ -34,25 +34,32 @@ describe("getPublicNoticeByToken", () => {
     });
 
     await expect(getPublicNoticeByToken("notice-token")).resolves.toEqual({
-      title: "수도 점검 안내",
-      content: "오전 10시부터 점검합니다.",
-      contentJson: { type: "doc", content: [{ type: "paragraph" }] },
-      noticeType: "important",
-      buildingName: "그린빌라",
-      publishedAt: "2026-08-25T01:00:00Z",
-      isExpired: false,
+      notice: {
+        title: "수도 점검 안내",
+        content: "오전 10시부터 점검합니다.",
+        contentJson: { type: "doc", content: [{ type: "paragraph" }] },
+        noticeType: "important",
+        buildingName: "그린빌라",
+        publishedAt: "2026-08-25T01:00:00Z",
+        isExpired: false,
+      },
+      // 본문에 이미지 노드가 없으면 service_role 조회 없이 빈 맵을 반환한다.
+      imageUrls: {},
     });
     expect(mocks.rpc).toHaveBeenCalledWith("public_notice_by_token", {
       p_token: "notice-token",
     });
   });
 
-  it("returns null for an unknown token and forwards RPC errors", async () => {
+  it("returns null notice for an unknown token and forwards RPC errors", async () => {
     mocks.rpc
       .mockResolvedValueOnce({ data: null, error: null })
       .mockResolvedValueOnce({ data: null, error: { message: "failed" } });
 
-    await expect(getPublicNoticeByToken("missing")).resolves.toBeNull();
+    await expect(getPublicNoticeByToken("missing")).resolves.toEqual({
+      notice: null,
+      imageUrls: {},
+    });
     await expect(getPublicNoticeByToken("failed")).rejects.toThrow("failed");
   });
 });

@@ -29,6 +29,14 @@ vi.mock("@/hooks/reactquery/notices", () => ({
   useCreateNotice: vi.fn(),
   useUpdateNotice: vi.fn(),
   useDeleteNotice: vi.fn(),
+  useNoticeImageUrls: () => ({ urls: {}, isLoading: false }),
+  prepareNoticeImages: vi.fn(async ({ doc }: { doc: unknown }) => ({
+    nextDoc: doc,
+    uploaded: [],
+    failedCount: 0,
+  })),
+  finalizeNoticeImages: vi.fn(async () => ({ rowFailedCount: 0 })),
+  removeNoticeImageObjects: vi.fn(async () => {}),
 }));
 vi.mock("../messaging/components/MessagingModal", () => ({
   MessagingModal: () => <div data-testid="messaging-modal" />,

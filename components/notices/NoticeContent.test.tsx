@@ -71,4 +71,30 @@ describe("NoticeContent (읽기 전용 렌더러)", () => {
     expect(container.querySelector("h2")).toBeNull();
     expect(container.textContent).toBe("첫째 줄\n둘째 줄");
   });
+
+  const imageDoc: NoticeDoc = {
+    type: "doc",
+    content: [
+      { type: "image", attrs: { path: "9/notice/a/x.png", alt: "안내 이미지" } },
+      { type: "image", attrs: { path: "9/notice/b/y.png", alt: "미해석 이미지" } },
+    ],
+  };
+
+  it("이미지 노드는 해석된 signed URL로 렌더하고, 미해석은 대체 표시로 남긴다", () => {
+    const { container } = render(
+      <NoticeContent json={imageDoc} imageUrls={{ "9/notice/a/x.png": "https://signed/x" }} />,
+    );
+    const img = container.querySelector("img");
+    expect(img).toHaveAttribute("src", "https://signed/x");
+    expect(img).toHaveAttribute("alt", "안내 이미지");
+    // 서명 실패/누락 이미지는 object path를 노출하지 않고 대체 표시만 남는다.
+    expect(screen.getByRole("img", { name: "미해석 이미지" })).toBeInTheDocument();
+    expect(container.innerHTML).not.toContain("9/notice/b/y.png");
+  });
+
+  it("이미지 URL을 아직 해석 중이면 로딩 상태를 표시한다", () => {
+    render(<NoticeContent json={imageDoc} imageUrls={{}} imageUrlsLoading />);
+    expect(screen.getAllByRole("status").length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText("이미지 불러오는 중").length).toBe(2);
+  });
 });
