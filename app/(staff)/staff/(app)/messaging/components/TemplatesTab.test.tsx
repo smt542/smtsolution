@@ -3,9 +3,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { createTemplate, updateTemplate, deleteTemplate } = vi.hoisted(() => ({
+const { createTemplate, deleteTemplate } = vi.hoisted(() => ({
   createTemplate: vi.fn(),
-  updateTemplate: vi.fn(),
   deleteTemplate: vi.fn(),
 }));
 
@@ -18,6 +17,10 @@ vi.mock("@/hooks/reactquery/messageTemplates", () => ({
         title: "미납 안내",
         body: "#{이름}님 #{건물명} 관리비가 미납되었습니다.",
         sortOrder: 0,
+        channelType: "sms",
+        category: null,
+        alimtalkTemplateCode: null,
+        buttons: [],
       },
     ],
     isLoading: false,
@@ -28,10 +31,7 @@ vi.mock("@/hooks/reactquery/messageTemplates", () => ({
     mutateAsync: createTemplate,
     isPending: false,
   }),
-  useUpdateMessageTemplate: () => ({
-    mutateAsync: updateTemplate,
-    isPending: false,
-  }),
+  useUpdateMessageTemplate: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useDeleteMessageTemplate: () => ({
     mutateAsync: deleteTemplate,
     isPending: false,
@@ -57,24 +57,24 @@ function renderTab(ui: ReactNode) {
 beforeEach(() => {
   vi.clearAllMocks();
   createTemplate.mockResolvedValue({ id: 2 });
-  updateTemplate.mockResolvedValue({ id: 1 });
   deleteTemplate.mockResolvedValue(undefined);
   vi.spyOn(window, "confirm").mockReturnValue(true);
 });
 
 describe("TemplatesTab", () => {
-  it("템플릿 목록과 사용 변수를 표시한다", () => {
+  it("템플릿 목록을 표시하고 사용자 템플릿에 삭제 버튼이 있다", () => {
     renderTab(<TemplatesTab />);
 
     expect(screen.getByText("미납 안내")).toBeInTheDocument();
-    expect(screen.getByText("이름")).toBeInTheDocument();
-    expect(screen.getByText("건물명")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "미납 안내 삭제" }),
+    ).toBeInTheDocument();
   });
 
   it("새 템플릿을 생성한다", async () => {
     renderTab(<TemplatesTab />);
 
-    fireEvent.click(screen.getByRole("button", { name: "새 템플릿" }));
+    fireEvent.click(screen.getByRole("button", { name: "템플릿 등록" }));
     fireEvent.change(screen.getByLabelText("템플릿 제목"), {
       target: { value: "점검 안내" },
     });
@@ -96,30 +96,8 @@ describe("TemplatesTab", () => {
     );
   });
 
-  it("기존 템플릿을 수정하고 삭제한다", async () => {
+  it("템플릿을 삭제한다", async () => {
     renderTab(<TemplatesTab />);
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "미납 안내 수정" }),
-    );
-    fireEvent.change(screen.getByLabelText("템플릿 제목"), {
-      target: { value: "미납 재안내" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "저장" }));
-
-    await waitFor(() =>
-      expect(updateTemplate).toHaveBeenCalledWith({
-        id: 1,
-        input: {
-          title: "미납 재안내",
-          body: "#{이름}님 #{건물명} 관리비가 미납되었습니다.",
-          category: null,
-          channelType: "sms",
-          alimtalkTemplateCode: null,
-          buttons: [],
-        },
-      }),
-    );
 
     fireEvent.click(
       screen.getByRole("button", { name: "미납 안내 삭제" }),
