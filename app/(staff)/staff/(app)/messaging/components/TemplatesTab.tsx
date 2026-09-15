@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Spinner } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import {
   type MessageTemplate,
@@ -10,6 +9,8 @@ import {
   useDeleteMessageTemplate,
   useMessageTemplates,
 } from "@/hooks/reactquery/messageTemplates";
+import { MessagingListCard } from "./MessagingListCard";
+import { SegmentedFilter } from "./SegmentedFilter";
 import { TemplateFormModal } from "./TemplateFormModal";
 
 type FilterType = "all" | "sms" | "alimtalk";
@@ -35,13 +36,16 @@ function summarizeBody(body: string): string {
   return body.replace(/\s+/g, " ").trim();
 }
 
-const FILTERS: { key: FilterType; label: string }[] = [
-  { key: "all", label: "전체" },
-  { key: "sms", label: "문자" },
-  { key: "alimtalk", label: "알림톡" },
+const FILTERS: { value: FilterType; label: string }[] = [
+  { value: "all", label: "전체" },
+  { value: "sms", label: "문자" },
+  { value: "alimtalk", label: "알림톡" },
 ];
 
 const HEADERS = ["템플릿", "구분", "템플릿명", "템플릿 내용", "링크", ""];
+
+const TH =
+  "px-[16px] py-[11px] text-left text-[12px] font-bold text-[#8b95a1] whitespace-nowrap";
 
 export function TemplatesTab() {
   const confirm = useConfirm();
@@ -55,7 +59,7 @@ export function TemplatesTab() {
   const deleteTemplate = useDeleteMessageTemplate();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [filter, setFilter] = useState<FilterType>("all");
-  const isTemplateListRefreshing = isFetching && !isLoading;
+  const isRefreshing = isFetching && !isLoading;
 
   const openCreate = () => setIsFormOpen(true);
   const closeForm = () => setIsFormOpen(false);
@@ -84,161 +88,120 @@ export function TemplatesTab() {
 
   return (
     <>
-      <div className="relative min-h-[240px] overflow-hidden rounded-[16px] bg-white shadow-[0px_1px_3px_0px_rgba(23,31,40,0.05)]">
-        {/* Card header */}
-        <div className="flex items-center gap-[8px] border-b border-[#f1f3f5] px-[18px] py-[15px]">
-          <span className="text-[15px] font-extrabold leading-normal text-[#191f28]">
-            템플릿 관리
-          </span>
-          <span className="text-[13px] font-semibold leading-normal text-[#8b95a1]">
-            {templates.length}
-          </span>
-          <div className="flex-1" />
-          {isTemplateListRefreshing ? (
-            <Spinner label="템플릿 목록 갱신 중" size="small" showLabel className="px-2 py-1" />
-          ) : null}
-          {/* Type filter */}
-          <div className="flex items-start gap-[2px] rounded-[9px] bg-[#edf0f3] p-[3px]">
-            {FILTERS.map(({ key, label }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setFilter(key)}
-                className={
-                  filter === key
-                    ? "rounded-[7px] bg-white px-[11px] py-[5px] text-[12px] font-bold leading-normal text-[#191f28] drop-shadow-[0px_1px_1.5px_rgba(23,31,40,0.1)]"
-                    : "rounded-[7px] px-[11px] py-[5px] text-[12px] font-bold leading-normal text-[#8b95a1]"
-                }
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          {/* Register button */}
-          <button
-            type="button"
-            onClick={openCreate}
-            className="flex h-[34px] items-center justify-center rounded-[9px] border border-[#14a497] bg-[#14a497] px-[16px] text-[13px] font-bold leading-normal text-white"
-          >
-            템플릿 등록
-          </button>
-        </div>
-
-        {/* Body */}
-        {isLoading ? (
-          <div className="flex min-h-[180px] flex-col items-center justify-center gap-2 py-10">
-            <Spinner label="템플릿 목록 불러오는 중" showLabel />
-          </div>
-        ) : error ? (
-          <div role="alert" className="py-10 text-center">
-            <p className="text-[14px] font-bold text-[#191f28]">
-              템플릿을 불러오지 못했습니다.
-            </p>
+      <MessagingListCard
+        title="템플릿 관리"
+        count={filtered.length}
+        refreshing={isRefreshing}
+        refreshingLabel="템플릿 목록 갱신 중"
+        isLoading={isLoading}
+        loadingLabel="템플릿 목록 불러오는 중"
+        error={error}
+        errorMessage="템플릿을 불러오지 못했습니다."
+        onRetry={() => void refetch()}
+        isEmpty={filtered.length === 0}
+        emptyMessage={
+          templates.length === 0
+            ? "등록된 템플릿이 없습니다."
+            : "해당 조건의 템플릿이 없습니다."
+        }
+        actions={
+          <>
+            <SegmentedFilter
+              ariaLabel="템플릿 채널 필터"
+              options={FILTERS}
+              value={filter}
+              onChange={(value) => setFilter(value)}
+            />
             <button
               type="button"
-              className="mt-4 text-[13px] text-[#14a497]"
-              onClick={() => void refetch()}
+              onClick={openCreate}
+              className="flex h-[34px] items-center justify-center rounded-[9px] border border-[#14a497] bg-[#14a497] px-[16px] text-[13px] font-bold leading-normal text-white"
             >
-              다시 시도
+              템플릿 등록
             </button>
-          </div>
-        ) : filtered.length === 0 ? (
-          <p className="py-12 text-center text-[13px] text-[#8b95a1]">
-            {templates.length === 0
-              ? "등록된 템플릿이 없습니다."
-              : "해당 조건의 템플릿이 없습니다."}
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] border-collapse">
-              <thead>
-                <tr className="border-b border-[#e8ebee] bg-[#fbfcfd]">
-                  {HEADERS.map((heading, i) => (
-                    <th
-                      key={i}
-                      className="px-[16px] py-[11px] text-left text-[12px] font-bold text-[#8b95a1]"
+          </>
+        }
+      >
+        <table className="w-full min-w-[700px] border-collapse">
+          <thead>
+            <tr className="border-b border-[#e8ebee] bg-[#fbfcfd]">
+              {HEADERS.map((heading, i) => (
+                <th key={i} className={TH}>
+                  {heading}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((template) => {
+              const sys = isSystemTemplate(template);
+              const link = getLinkContent(template.buttons);
+              return (
+                <tr
+                  key={template.id}
+                  className="border-b border-[#f1f3f5] last:border-b-0 hover:bg-[#fbfcfd]"
+                >
+                  <td className="whitespace-nowrap px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
+                    {getChannelLabel(template.channelType)}
+                  </td>
+                  <td className="whitespace-nowrap px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
+                    {template.category ?? "-"}
+                  </td>
+                  <td className="px-[16px] py-[12px]">
+                    <div className="flex items-center gap-[6px]">
+                      <span className="whitespace-nowrap text-[13px] font-semibold text-[#191f28]">
+                        {template.title}
+                      </span>
+                      {sys && (
+                        <span className="shrink-0 rounded-[6px] bg-[#f2f4f6] px-[7px] py-[2px] text-[11px] font-bold leading-normal text-[#8b95a1]">
+                          기본
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="max-w-0 overflow-hidden px-[16px] py-[12px]">
+                    <p
+                      className="truncate text-[13px] font-medium text-[#191f28]"
+                      title={template.body}
                     >
-                      {heading}
-                    </th>
-                  ))}
+                      {summarizeBody(template.body)}
+                    </p>
+                  </td>
+                  <td className="w-[200px] overflow-hidden px-[16px] py-[12px]">
+                    {link ? (
+                      <p className="truncate text-[13px]">
+                        <span className="font-medium text-[#191f28]">
+                          {link.name}
+                        </span>
+                        <span className="font-normal text-[#8b95a1]">
+                          {` · ${link.url}`}
+                        </span>
+                      </p>
+                    ) : (
+                      <span className="text-[13px] text-[#8b95a1]">-</span>
+                    )}
+                  </td>
+                  <td className="w-[100px] px-[16px] py-[12px]">
+                    {!sys && (
+                      <button
+                        type="button"
+                        disabled={deleteTemplate.isPending}
+                        onClick={() => void remove(template)}
+                        aria-label={`${template.title} 삭제`}
+                        className="text-[12.5px] font-bold text-[#f04452] disabled:opacity-50"
+                      >
+                        {deleteTemplate.isPending ? "삭제 중…" : "삭제"}
+                      </button>
+                    )}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filtered.map((template) => {
-                  const sys = isSystemTemplate(template);
-                  const link = getLinkContent(template.buttons);
-                  return (
-                    <tr
-                      key={template.id}
-                      className="border-b border-[#f1f3f5] last:border-b-0"
-                    >
-                      <td className="whitespace-nowrap px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
-                        {getChannelLabel(template.channelType)}
-                      </td>
-                      <td className="whitespace-nowrap px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
-                        {template.category ?? "-"}
-                      </td>
-                      <td className="px-[16px] py-[12px]">
-                        <div className="flex items-center gap-[6px]">
-                          <span className="whitespace-nowrap text-[13px] font-semibold text-[#191f28]">
-                            {template.title}
-                          </span>
-                          {sys && (
-                            <span className="shrink-0 rounded-[6px] bg-[#f2f4f6] px-[7px] py-[2px] text-[11px] font-bold leading-normal text-[#8b95a1]">
-                              기본
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="max-w-0 overflow-hidden px-[16px] py-[12px]">
-                        <p
-                          className="truncate text-[13px] font-medium text-[#191f28]"
-                          title={template.body}
-                        >
-                          {summarizeBody(template.body)}
-                        </p>
-                      </td>
-                      <td className="w-[200px] overflow-hidden px-[16px] py-[12px]">
-                        {link ? (
-                          <p className="truncate text-[13px]">
-                            <span className="font-medium text-[#191f28]">
-                              {link.name}
-                            </span>
-                            <span className="font-normal text-[#8b95a1]">
-                              {` · ${link.url}`}
-                            </span>
-                          </p>
-                        ) : (
-                          <span className="text-[13px] text-[#8b95a1]">-</span>
-                        )}
-                      </td>
-                      <td className="w-[100px] px-[16px] py-[12px]">
-                        {!sys && (
-                          <button
-                            type="button"
-                            disabled={deleteTemplate.isPending}
-                            onClick={() => void remove(template)}
-                            aria-label={`${template.title} 삭제`}
-                            className="text-[12.5px] font-bold text-[#f04452] disabled:opacity-50"
-                          >
-                            {deleteTemplate.isPending ? "삭제 중…" : "삭제"}
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+              );
+            })}
+          </tbody>
+        </table>
+      </MessagingListCard>
 
-      <TemplateFormModal
-        open={isFormOpen}
-        onClose={closeForm}
-        onSaved={closeForm}
-      />
+      <TemplateFormModal open={isFormOpen} onClose={closeForm} onSaved={closeForm} />
     </>
   );
 }
