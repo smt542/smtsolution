@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { useBuildings } from "@/hooks/reactquery/buildings/queries";
@@ -40,15 +40,7 @@ import {
 import styles from "./messenger.module.css";
 import type { ChannelMode } from "./types";
 import { useMessengerState } from "./useMessengerState";
-
-function useDebouncedValue<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => setDebounced(value), delay);
-    return () => window.clearTimeout(timeoutId);
-  }, [delay, value]);
-  return debounced;
-}
+import { useDebouncedValue } from "@/hooks/common";
 
 function formatPoints(value: number): string {
   return new Intl.NumberFormat("ko-KR").format(value);

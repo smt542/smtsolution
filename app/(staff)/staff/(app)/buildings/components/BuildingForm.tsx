@@ -151,6 +151,13 @@ export function BuildingForm({ buildingId }: { buildingId?: number }) {
   };
 
   const onDeleteExisting = async (attId: number, path: string) => {
+    const accepted = await confirm({
+      title: "계약서 사진 삭제",
+      description: "저장된 계약서 사진을 삭제할까요?",
+      confirmLabel: "삭제",
+      variant: "danger",
+    });
+    if (!accepted) return;
     try {
       await deleteAttachment({ id: attId, path });
       setVendors((rows) => rows.map((r) => ({ ...r, existing: r.existing.filter((f) => f.id !== attId) })));
@@ -161,7 +168,7 @@ export function BuildingForm({ buildingId }: { buildingId?: number }) {
 
   const onViewExisting = async (path: string) => {
     try {
-      const url = await attachmentSignedUrl(path);
+      const url = await attachmentSignedUrl(path, { preset: "original" });
       window.open(url, "_blank", "noopener,noreferrer");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "파일을 열 수 없습니다.");
@@ -190,7 +197,7 @@ export function BuildingForm({ buildingId }: { buildingId?: number }) {
       <BasicInfoSection value={basic} onChange={patchBasic} staffOptions={staffOptions} errors={errors} />
       <FacilitiesSection value={facilities} onChange={mark(setFacilities)} />
       <CustomerNumberSection rows={customerNumbers} onChange={mark(setCustomerNumbers)} />
-      <VendorSection rows={vendors} onChange={mark(setVendors)} onDeleteExisting={onDeleteExisting} onViewExisting={onViewExisting} />
+      <VendorSection rows={vendors} onChange={mark(setVendors)} onDeleteExisting={onDeleteExisting} onViewExisting={onViewExisting} disabled={save.isPending} />
       <MemoSection value={memo} onChange={mark(setMemo)} />
       <label className="flex items-center gap-2 rounded-2xl border border-line bg-surface p-4 text-sm font-semibold text-t1 shadow-card">
         <input

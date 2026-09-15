@@ -27,6 +27,8 @@ export interface RegisterVendorEntry {
   fields: Record<string, string>;
   memo: string;
   normalized?: BuildingVendor;
+  persistedId?: number;
+  pendingFiles: File[];
 }
 
 /** 재설계 6-섹션 폼의 단일 상태 형태(라벨 키 기반, 프로토타입 필드 그대로 왕복). */
@@ -83,7 +85,7 @@ const NORMALIZED_UTILITY_FIELDS = new Set([
 const NORMALIZED_VENDOR_FIELDS = new Set(["업체명", "전화번호"]);
 
 const emptyVendors = (): Record<string, RegisterVendorEntry> =>
-  Object.fromEntries(VENDORS.map((v) => [v.key, { fields: {}, memo: "" }]));
+  Object.fromEntries(VENDORS.map((v) => [v.key, { fields: {}, memo: "", pendingFiles: [] }]));
 
 const emptyUtilities = (): Record<string, RegisterUtilityEntry> =>
   Object.fromEntries(UTILITIES.map((u) => [u.key, { cards: [{ fields: {} }], extra: {}, deletedIds: [] }]));
@@ -172,7 +174,7 @@ function mergeVendors(
   for (const key of Object.keys(base)) {
     const savedEntry = saved?.[key];
     if (savedEntry) {
-      base[key] = { fields: { ...savedEntry.fields }, memo: savedEntry.memo ?? "" };
+      base[key] = { fields: { ...savedEntry.fields }, memo: savedEntry.memo ?? "", pendingFiles: [] };
     }
   }
 
@@ -194,6 +196,8 @@ function mergeVendors(
       },
       memo: row.memo ?? "",
       normalized: row,
+      persistedId: row.id,
+      pendingFiles: [],
     };
   }
   return base;
@@ -308,7 +312,7 @@ function vendorsFromState(s: RegisterFormState): SaveBuildingPayload["vendors"] 
     if (!name) {
       if (entry?.normalized?.id) {
         rows.push({
-          id: entry.normalized.id,
+          id: entry.persistedId ?? entry.normalized.id,
           vendorType: VENDOR_TYPES[vendor.key],
           name: "",
           sortOrder,
@@ -318,8 +322,8 @@ function vendorsFromState(s: RegisterFormState): SaveBuildingPayload["vendors"] 
       continue;
     }
     rows.push({
-      id: entry.normalized?.id,
-      clientKey: entry.normalized?.id ? undefined : `register-${vendor.key}`,
+      id: entry.persistedId ?? entry.normalized?.id,
+      clientKey: entry.persistedId || entry.normalized?.id ? undefined : `register-${vendor.key}`,
       vendorType: VENDOR_TYPES[vendor.key],
       name,
       phone: entry.fields["전화번호"]?.trim() || null,

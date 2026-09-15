@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Badge, Checkbox, EmptyState, Modal, Select, Spinner } from "@/components/common";
@@ -19,6 +19,7 @@ import {
   type PlatformAccountQuery,
 } from "@/hooks/reactquery/platform";
 import type { OrgMemberRole, StaffType } from "@/hooks/reactquery/auth";
+import { useDebouncedValue } from "@/hooks/common";
 import { MODULE_KEYS, MODULE_LABELS } from "@/lib/auth/permissions";
 import { formatNumber } from "@/lib/format";
 import {
@@ -73,20 +74,6 @@ const dateFormatter = new Intl.DateTimeFormat("ko-KR", {
 const PAGE_SIZE = 25;
 const SEARCH_DEBOUNCE_MS = 300;
 
-function useDebouncedValue(value: string) {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(
-      () => setDebouncedValue(value),
-      SEARCH_DEBOUNCE_MS,
-    );
-    return () => window.clearTimeout(timeoutId);
-  }, [value]);
-
-  return debouncedValue;
-}
-
 export function AccountsWorkspace() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -98,7 +85,7 @@ export function AccountsWorkspace() {
     tempPassword: string;
   } | null>(null);
 
-  const debouncedSearch = useDebouncedValue(search.trim());
+  const debouncedSearch = useDebouncedValue(search.trim(), SEARCH_DEBOUNCE_MS);
   const query = useMemo<PlatformAccountQuery>(() => ({
     search: debouncedSearch,
     page,

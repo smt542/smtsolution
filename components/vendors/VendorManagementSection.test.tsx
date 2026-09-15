@@ -19,9 +19,14 @@ vi.mock("@/hooks/reactquery/vendors", () => ({
   useCreateVendor: vi.fn(),
   useUpdateVendor: vi.fn(),
   useDeleteVendor: vi.fn(),
-  useVendorAttachments: vi.fn(),
-  useUploadVendorAttachment: vi.fn(),
-  useDeleteVendorAttachment: vi.fn(),
+}));
+
+vi.mock("@/hooks/reactquery/attachments", () => ({
+  useAttachments: vi.fn(),
+  useUploadAttachments: vi.fn(),
+  useDeleteAttachment: vi.fn(),
+  useAttachmentSignedUrls: (attachments: Array<{ id: number }>) =>
+    attachments.map((attachment) => ({ attachment, url: null, error: null, isPending: false })),
 }));
 
 vi.mock("@/hooks/reactquery/auth", () => ({
@@ -34,15 +39,8 @@ vi.mock("sonner", () => ({
 
 import { VendorManagementSection } from "./VendorManagementSection";
 import { useVendorCategories } from "@/hooks/reactquery/vendorCategories";
-import {
-  useVendors,
-  useCreateVendor,
-  useUpdateVendor,
-  useDeleteVendor,
-  useVendorAttachments,
-  useUploadVendorAttachment,
-  useDeleteVendorAttachment,
-} from "@/hooks/reactquery/vendors";
+import { useVendors, useCreateVendor, useUpdateVendor, useDeleteVendor } from "@/hooks/reactquery/vendors";
+import { useAttachments, useUploadAttachments, useDeleteAttachment } from "@/hooks/reactquery/attachments";
 import { useMe } from "@/hooks/reactquery/auth";
 
 const mockCategories = [
@@ -64,13 +62,13 @@ const mockMutate = { mutateAsync: vi.fn().mockResolvedValue({}), isPending: fals
 function setupMocks() {
   vi.mocked(useVendorCategories).mockReturnValue({ data: mockCategories, isLoading: false } as unknown as ReturnType<typeof useVendorCategories>);
   vi.mocked(useVendors).mockReturnValue({ data: mockVendors, isLoading: false } as unknown as ReturnType<typeof useVendors>);
-  vi.mocked(useVendorAttachments).mockReturnValue({ data: mockAttachments, isLoading: false } as unknown as ReturnType<typeof useVendorAttachments>);
+  vi.mocked(useAttachments).mockReturnValue({ data: mockAttachments, isLoading: false } as unknown as ReturnType<typeof useAttachments>);
   vi.mocked(useMe).mockReturnValue({ data: { orgId: 10 } } as unknown as ReturnType<typeof useMe>);
   vi.mocked(useCreateVendor).mockReturnValue(mockMutate as unknown as ReturnType<typeof useCreateVendor>);
   vi.mocked(useUpdateVendor).mockReturnValue(mockMutate as unknown as ReturnType<typeof useUpdateVendor>);
   vi.mocked(useDeleteVendor).mockReturnValue(mockMutate as unknown as ReturnType<typeof useDeleteVendor>);
-  vi.mocked(useUploadVendorAttachment).mockReturnValue(mockMutate as unknown as ReturnType<typeof useUploadVendorAttachment>);
-  vi.mocked(useDeleteVendorAttachment).mockReturnValue(mockMutate as unknown as ReturnType<typeof useDeleteVendorAttachment>);
+  vi.mocked(useUploadAttachments).mockReturnValue(mockMutate as unknown as ReturnType<typeof useUploadAttachments>);
+  vi.mocked(useDeleteAttachment).mockReturnValue(mockMutate as unknown as ReturnType<typeof useDeleteAttachment>);
 }
 
 describe("VendorManagementPage", () => {
@@ -202,7 +200,7 @@ describe("VendorManagementPage", () => {
     // File input for contract image upload must be present
     const fileInput = document.querySelector('input[type="file"]');
     expect(fileInput).not.toBeNull();
-    expect(fileInput).toHaveAttribute("accept", "image/*");
+    expect(fileInput).toHaveAttribute("accept", "image/jpeg,image/png,image/webp");
     expect(fileInput).toHaveAttribute("multiple");
   });
 
@@ -218,9 +216,9 @@ describe("VendorManagementPage", () => {
       categoryId: 1,
     };
     const createMutate = vi.fn().mockResolvedValue(createdVendor);
-    const uploadMutate = vi.fn().mockResolvedValue({});
+    const uploadMutate = vi.fn().mockResolvedValue({ succeeded: [{ file: new File([], "ok.png") }], failed: [] });
     vi.mocked(useCreateVendor).mockReturnValue({ mutateAsync: createMutate, isPending: false } as unknown as ReturnType<typeof useCreateVendor>);
-    vi.mocked(useUploadVendorAttachment).mockReturnValue({ mutateAsync: uploadMutate, isPending: false } as unknown as ReturnType<typeof useUploadVendorAttachment>);
+    vi.mocked(useUploadAttachments).mockReturnValue({ mutateAsync: uploadMutate, isPending: false } as unknown as ReturnType<typeof useUploadAttachments>);
 
     render(<VendorManagementSection />);
     await user.click(screen.getByRole("button", { name: /업체 추가/ }));
@@ -229,12 +227,19 @@ describe("VendorManagementPage", () => {
     await user.type(screen.getByPlaceholderText("업체명"), "새 업체");
 
     const photo = new File(["photo"], "contract.png", { type: "image/png" });
-    await user.upload(screen.getByLabelText("계약서 사진 업로드"), photo);
+    await user.upload(screen.getByLabelText("계약서 사진 선택"), photo);
     await user.click(screen.getByRole("button", { name: "추가" }));
 
     await waitFor(() => {
       expect(createMutate).toHaveBeenCalledWith(expect.objectContaining({ name: "새 업체", categoryId: 1, orgId: 10 }));
-      expect(uploadMutate).toHaveBeenCalledWith({ vendorId: 30, orgId: 10, file: photo });
+      expect(uploadMutate).toHaveBeenCalledWith({
+        entityType: "vendor",
+        entityId: 30,
+        orgId: 10,
+        kind: "contract",
+        fileType: "image",
+        files: [photo],
+      });
     });
   });
 
@@ -251,7 +256,7 @@ describe("VendorManagementPage", () => {
       { id: 21, orgId: 10, name: "중복업체", phone: "02-0000-0002", bankAccount: null, memo: null, categoryId: 2 },
     ];
     vi.mocked(useVendors).mockReturnValue({ data: dupVendors, isLoading: false } as unknown as ReturnType<typeof useVendors>);
-    vi.mocked(useVendorAttachments).mockReturnValue({ data: [], isLoading: false } as unknown as ReturnType<typeof useVendorAttachments>);
+    vi.mocked(useAttachments).mockReturnValue({ data: [], isLoading: false } as unknown as ReturnType<typeof useAttachments>);
 
     render(<VendorManagementSection />);
 

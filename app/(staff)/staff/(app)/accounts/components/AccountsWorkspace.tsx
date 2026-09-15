@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { toast } from "sonner";
 import { Tabs, SearchBar, Button, EmptyState } from "@/components/common";
 import type { StaffType } from "@/hooks/reactquery/auth";
+import { useDebouncedValue } from "@/hooks/common";
 import {
   useAccounts, useCreateAccount, useUpdateAccountBasic, useUpdatePermissions, useSetActive, useResetPassword,
   type Account, type AccountCreateInput, type AccountBasicInput, type PermissionInput,
@@ -21,17 +22,6 @@ const TYPES_BY_TAB: Record<string, StaffType[]> = {
   office: ["manager_staff"],
   field: ["field_staff", "support_staff"],
 };
-
-function useDebouncedValue(value: string, delay: number) {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => setDebouncedValue(value), delay);
-    return () => window.clearTimeout(timeoutId);
-  }, [delay, value]);
-
-  return debouncedValue;
-}
 
 export function AccountsWorkspace({ canEditPermissions }: { canEditPermissions: boolean }) {
   const [tab, setTab] = useState("office");

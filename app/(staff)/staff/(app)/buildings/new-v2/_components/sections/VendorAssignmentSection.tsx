@@ -6,6 +6,7 @@ import { Accordion } from "../ui/Accordion";
 import { VendorCard } from "./VendorCard";
 import { VENDORS } from "../config/vendors";
 import type { RegisterFormState, RegisterVendorEntry } from "../config/formState";
+import type { Attachment } from "@/hooks/reactquery/attachments";
 
 const PROTOTYPE_VENDOR_ORDER = [
   "cleaning",
@@ -28,11 +29,17 @@ export function VendorAssignmentSection({
   patch,
   staffOptions,
   showAllVendors = false,
+  attachments = [],
+  onDeleteAttachment,
+  disabled = false,
 }: {
   value: RegisterFormState;
   patch: (p: Partial<RegisterFormState>) => void;
   staffOptions: string[];
   showAllVendors?: boolean;
+  attachments?: Attachment[];
+  onDeleteAttachment?: (attachment: Attachment) => Promise<void>;
+  disabled?: boolean;
 }) {
   const setVendor = (key: string, next: RegisterVendorEntry) =>
     patch({ vendors: { ...value.vendors, [key]: next } });
@@ -49,8 +56,13 @@ export function VendorAssignmentSection({
           <Accordion key={vd.key} title={vd.title}>
             <VendorCard
               fields={vd.fields}
-              value={value.vendors[vd.key] ?? { fields: {}, memo: "" }}
+              value={value.vendors[vd.key] ?? { fields: {}, memo: "", pendingFiles: [] }}
               onChange={(next) => setVendor(vd.key, next)}
+              attachments={attachments.filter((attachment) =>
+                attachment.entityId === (value.vendors[vd.key]?.persistedId ?? value.vendors[vd.key]?.normalized?.id)
+              )}
+              onDeleteAttachment={onDeleteAttachment}
+              disabled={disabled}
             />
           </Accordion>
         ))}

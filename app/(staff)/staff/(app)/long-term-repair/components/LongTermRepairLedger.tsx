@@ -14,7 +14,7 @@ import {
 import {
   useAttachmentsByEntities,
   useDeleteAttachment,
-  useUploadAttachment,
+  useUploadAttachments,
   type Attachment,
 } from "@/hooks/reactquery/attachments";
 import { formatNumber } from "@/lib/format";
@@ -174,7 +174,7 @@ export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTerm
   const ledgerQuery = useLongTermRepairLedger(buildingId, startMonth, endMonth);
   const openingBalanceQuery = useLongTermRepairOpeningBalance(buildingId, startMonth);
   const saveLedger = useSaveLongTermRepairLedger();
-  const uploadAttachment = useUploadAttachment();
+  const uploadAttachments = useUploadAttachments();
   const deleteAttachment = useDeleteAttachment();
   const serverRows = ledgerQuery.data ?? [];
   const persistedIds = (editing ? draftRows : serverRows.map(toDraft))
@@ -314,22 +314,6 @@ export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTerm
       return;
     }
     window.print();
-  };
-
-  const upload = async (row: DraftLedgerRow, kind: "receipt" | "photo", file: File) => {
-    if (!row.id) return;
-    try {
-      await uploadAttachment.mutateAsync({
-        entityType: LEDGER_ENTITY_TYPE,
-        entityId: row.id,
-        orgId,
-        kind,
-        file,
-      });
-      toast.success(`${kind === "receipt" ? "영수증" : "사진"}을 첨부했어요`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "첨부하지 못했습니다.");
-    }
   };
 
   const openAttachments = (row: DraftLedgerRow, kind: "receipt" | "photo") => {
@@ -619,9 +603,16 @@ export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTerm
           kindLabel={viewer.kind === "receipt" ? "영수증" : "공사사진"}
           attachments={viewerAttachments}
           canEdit={editing && Boolean(viewer.row.id)}
-          uploading={uploadAttachment.isPending}
+          uploading={uploadAttachments.isPending}
           onClose={() => setViewer(null)}
-          onUpload={async (file) => upload(viewer.row, viewer.kind, file)}
+          onUpload={(files) => uploadAttachments.mutateAsync({
+            entityType: LEDGER_ENTITY_TYPE,
+            entityId: viewer.row.id as number,
+            orgId,
+            kind: viewer.kind,
+            fileType: "image",
+            files,
+          })}
           onDelete={async (attachment) => {
             try {
               await deleteAttachment.mutateAsync({ id: attachment.id, path: attachment.fileUrl });

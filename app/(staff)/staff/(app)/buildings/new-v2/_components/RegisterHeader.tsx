@@ -46,7 +46,8 @@ export function RegisterHeader({
       <button
         type="button"
         onClick={onBack}
-        className="flex h-[40px] items-center rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg"
+        disabled={saving}
+        className="flex h-[40px] items-center rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg disabled:cursor-not-allowed disabled:opacity-50"
       >
         {backLabel}
       </button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button, Checkbox, Panel, Select, Textarea } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
@@ -19,6 +19,7 @@ import {
   type TenantListRow,
 } from "@/hooks/reactquery/occupancies";
 import { useQuickMessages, type QuickMessage } from "@/hooks/reactquery/quickMessages";
+import { useDebouncedValue } from "@/hooks/common";
 import { formatNumber } from "@/lib/format";
 import { renderTemplate } from "@/lib/messaging/render";
 import {
@@ -68,17 +69,6 @@ function toLocalDateTimeInput(value: string | undefined): string {
   if (Number.isNaN(date.getTime())) return "";
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
   return local.toISOString().slice(0, 16);
-}
-
-function useDebouncedValue<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => setDebouncedValue(value), delay);
-    return () => window.clearTimeout(timeoutId);
-  }, [delay, value]);
-
-  return debouncedValue;
 }
 
 const TenantRecipientOption = memo(function TenantRecipientOption({

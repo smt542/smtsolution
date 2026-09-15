@@ -1,6 +1,5 @@
 "use client";
 import React, { useState } from "react";
-import { toast } from "sonner";
 import { z } from "zod";
 import { VendorCategorySidebar } from "./VendorCategorySidebar";
 import { VendorList } from "./VendorList";
@@ -12,13 +11,17 @@ import {
   useCreateVendor,
   useUpdateVendor,
   useDeleteVendor,
-  useVendorAttachments,
-  useUploadVendorAttachment,
-  useDeleteVendorAttachment,
 } from "@/hooks/reactquery/vendors";
+import {
+  useAttachments,
+  useDeleteAttachment,
+  useUploadAttachments,
+  type Attachment,
+} from "@/hooks/reactquery/attachments";
+import { useAppToast } from "@/hooks/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { vendorSchema } from "@/components/forms/schema/vendor";
-import type { Vendor, VendorAttachment } from "@/hooks/reactquery/vendors";
+import type { Vendor } from "@/hooks/reactquery/vendors";
 
 type VendorFormOutput = z.output<typeof vendorSchema>;
 
@@ -29,38 +32,27 @@ function AttachmentLoader({
 }: {
   vendorId: number;
   children: (data: {
-    attachments: VendorAttachment[];
-    onUpload: (file: File) => Promise<void>;
-    onDelete: (att: VendorAttachment) => Promise<void>;
+    attachments: Attachment[];
+    onDelete: (att: Attachment) => Promise<void>;
   }) => React.ReactNode;
 }) {
-  const { data: me } = useMe();
-  const orgId = me?.orgId;
-  const { data: attachments = [] } = useVendorAttachments(vendorId);
-  const upload = useUploadVendorAttachment();
-  const deleteAtt = useDeleteVendorAttachment();
+  const { data: attachments = [] } = useAttachments("vendor", vendorId);
+  const deleteAtt = useDeleteAttachment();
+  const appToast = useAppToast();
 
-  const onUpload = async (file: File) => {
-    if (!orgId) { toast.error("인증 정보가 없습니다"); return; }
+  const onDelete = async (att: Attachment) => {
     try {
-      await upload.mutateAsync({ vendorId, orgId, file });
+      await deleteAtt.mutateAsync({ id: att.id, path: att.fileUrl });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      appToast.error(e, "계약서 사진을 삭제하지 못했습니다.");
     }
   };
 
-  const onDelete = async (att: VendorAttachment) => {
-    try {
-      await deleteAtt.mutateAsync({ id: att.id, path: att.fileUrl, vendorId });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
-    }
-  };
-
-  return <>{children({ attachments, onUpload, onDelete })}</>;
+  return <>{children({ attachments, onDelete })}</>;
 }
 
 export function VendorManagementSection() {
+  const appToast = useAppToast();
   const { data: me } = useMe();
   const orgId = me?.orgId;
 
@@ -79,16 +71,18 @@ export function VendorManagementSection() {
   const createVendor = useCreateVendor();
   const updateVendor = useUpdateVendor();
   const deleteVendor = useDeleteVendor();
-  const uploadNewVendorAttachment = useUploadVendorAttachment();
+  const uploadVendorAttachments = useUploadAttachments();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
+  const [createdVendorIdForRetry, setCreatedVendorIdForRetry] = useState<number | null>(null);
   const selectedCategoryLabel = selectedCategoryId === null
     ? "전체"
     : (categories.find((category) => category.id === selectedCategoryId)?.label ?? "미분류");
 
   const openCreate = () => {
     setEditingVendor(null);
+    setCreatedVendorIdForRetry(null);
     setModalOpen(true);
   };
 
@@ -100,35 +94,50 @@ export function VendorManagementSection() {
   const closeModal = () => {
     setModalOpen(false);
     setEditingVendor(null);
+    setCreatedVendorIdForRetry(null);
   };
 
   const handleDeleteVendor = async (id: number) => {
     try {
       await deleteVendor.mutateAsync(id);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      appToast.error(e, "업체를 삭제하지 못했습니다.");
     }
   };
 
   const handleSubmit = async (values: VendorFormOutput, pendingFiles: File[]) => {
-    if (!orgId) { toast.error("인증 정보가 없습니다"); return; }
+    if (!orgId) {
+      appToast.error("인증 정보가 없습니다.");
+      return { failedFiles: pendingFiles };
+    }
     try {
-      if (editingVendor) {
-        await updateVendor.mutateAsync({ id: editingVendor.id, input: { ...values, orgId } });
+      let vendorId = editingVendor?.id ?? createdVendorIdForRetry;
+      if (vendorId) {
+        await updateVendor.mutateAsync({ id: vendorId, input: { ...values, orgId } });
       } else {
         const createdVendor = await createVendor.mutateAsync({ ...values, orgId });
-        try {
-          for (const file of pendingFiles) {
-            await uploadNewVendorAttachment.mutateAsync({ vendorId: createdVendor.id, orgId, file });
-          }
-        } catch (error) {
-          toast.error(error instanceof Error
-            ? `업체는 저장됐지만 사진 첨부에 실패했습니다: ${error.message}`
-            : "업체는 저장됐지만 사진 첨부에 실패했습니다");
-        }
+        vendorId = createdVendor.id;
+        setCreatedVendorIdForRetry(createdVendor.id);
       }
+
+      if (pendingFiles.length === 0) return { failedFiles: [] };
+      const uploadResult = await uploadVendorAttachments.mutateAsync({
+        entityType: "vendor",
+        entityId: vendorId,
+        orgId,
+        kind: "contract",
+        fileType: "image",
+        files: pendingFiles,
+      });
+      const failedFiles = uploadResult.failed.map(({ file }) => file);
+      if (failedFiles.length > 0) {
+        appToast.warning(
+          `업체는 저장됐지만 사진 ${failedFiles.length}장을 올리지 못했습니다. 실패한 사진만 다시 시도해 주세요.`,
+        );
+      }
+      return { failedFiles };
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      appToast.error(e, "업체를 저장하지 못했습니다.");
       throw e;
     }
   };
@@ -175,17 +184,16 @@ export function VendorManagementSection() {
       {/* Modal */}
       {editingVendor ? (
         <AttachmentLoader vendorId={editingVendor.id}>
-          {({ attachments, onUpload, onDelete }) => (
+          {({ attachments, onDelete }) => (
             <VendorFormModal
               open={modalOpen}
               onClose={closeModal}
               editing={editingVendor}
               categories={categories}
               onSubmit={handleSubmit}
-              isPending={createVendor.isPending || updateVendor.isPending || uploadNewVendorAttachment.isPending}
+              isPending={createVendor.isPending || updateVendor.isPending || uploadVendorAttachments.isPending}
               onDeleteVendor={handleDeleteVendor}
               attachments={attachments}
-              onUploadAttachment={onUpload}
               onDeleteAttachment={onDelete}
             />
           )}
@@ -198,7 +206,7 @@ export function VendorManagementSection() {
           defaultCategoryId={selectedCategoryId}
           categories={categories}
           onSubmit={handleSubmit}
-          isPending={createVendor.isPending || updateVendor.isPending || uploadNewVendorAttachment.isPending}
+          isPending={createVendor.isPending || updateVendor.isPending || uploadVendorAttachments.isPending}
         />
       )}
     </div>

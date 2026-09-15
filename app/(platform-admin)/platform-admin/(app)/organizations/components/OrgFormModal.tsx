@@ -11,15 +11,16 @@ import {
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Modal, Input, Button } from "@/components/common";
+import { Modal, Input, Button, PhotoUpload } from "@/components/common";
 import { FormField } from "@/components/common/FormField";
+import { useConfirm } from "@/components/common/ConfirmProvider";
 import {
   orgCreateSchema,
   orgEditSchema,
   type OrgCreateFormValues,
   type OrgEditFormValues,
 } from "@/components/forms/schema/platformOrganization";
-import { getOrganizationContractFilePreview } from "@/hooks/reactquery/platform";
+import { useOrganizationContractFilePreview } from "@/hooks/reactquery/platform";
 import { ModalActions } from "../../../../_components/ModalActions";
 
 export type OrgCreateSubmitValues = OrgCreateFormValues & {
@@ -140,110 +141,47 @@ function OrganizationFields<T extends FieldValues & EditInput>({
 }
 
 function ContractFileField({
-  id,
   selectedFile,
   currentPath,
   removeExisting,
   onSelect,
   onRemove,
+  disabled,
 }: {
-  id: string;
   selectedFile: File | null;
   currentPath: string | null;
   removeExisting: boolean;
   onSelect: (file: File) => void;
   onRemove: () => void;
+  disabled: boolean;
 }) {
-  const [localPreview, setLocalPreview] = React.useState<{
-    file: File;
-    url: string;
-  } | null>(null);
-  const [remotePreview, setRemotePreview] = React.useState<{
-    path: string;
-    url: string | null;
-    error: boolean;
-  } | null>(null);
-
-  React.useEffect(() => {
-    if (!selectedFile) return;
-    const reader = new FileReader();
-    reader.addEventListener("load", () => {
-      if (typeof reader.result === "string") {
-        setLocalPreview({ file: selectedFile, url: reader.result });
-      }
-    });
-    reader.readAsDataURL(selectedFile);
-    return () => reader.abort();
-  }, [selectedFile]);
-
-  React.useEffect(() => {
-    if (!currentPath || selectedFile || removeExisting) return;
-    let disposed = false;
-    void getOrganizationContractFilePreview(currentPath)
-      .then((url) => {
-        if (!disposed) setRemotePreview({ path: currentPath, url, error: false });
-      })
-      .catch(() => {
-        if (!disposed) setRemotePreview({ path: currentPath, url: null, error: true });
-      });
-    return () => {
-      disposed = true;
-    };
-  }, [currentPath, removeExisting, selectedFile]);
-
-  const previewUrl = selectedFile
-    ? (localPreview?.file === selectedFile ? localPreview.url : null)
-    : (!removeExisting && remotePreview?.path === currentPath ? remotePreview.url : null);
-  const previewError = !selectedFile
-    && !removeExisting
-    && remotePreview?.path === currentPath
-    && remotePreview.error;
-
-  const fileName = selectedFile?.name ?? currentPath?.split("/").at(-1);
+  const confirm = useConfirm();
+  const selectedFiles = React.useMemo(() => selectedFile ? [selectedFile] : [], [selectedFile]);
+  const remotePath = !selectedFile && !removeExisting ? currentPath : null;
+  const remotePreview = useOrganizationContractFilePreview(remotePath);
+  const fileName = currentPath?.split("/").at(-1);
 
   return (
     <div>
-      <div className="mb-1.5 text-[12.5px] font-bold text-t2">계약서 사진</div>
-      <label
-        htmlFor={id}
-        className="flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-[1.5px] border-dashed border-line bg-surface p-5 text-center transition-colors hover:border-blue hover:bg-blue-t2"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.7"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="h-[22px] w-[22px] text-blue"
-          aria-hidden="true"
-        >
-          <path d="M12 16V4" />
-          <path d="m7 9 5-5 5 5" />
-          <path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2" />
-        </svg>
-        <span className="text-[13px] font-bold text-t1">사진 선택</span>
-        <span className="text-xs font-medium text-t3">JPG · PNG · WEBP, 최대 10MB</span>
-      </label>
-      <input
-        id={id}
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        className="sr-only"
-        onChange={(event) => {
-          const file = event.target.files?.[0];
-          if (file) onSelect(file);
-          event.target.value = "";
+      <PhotoUpload
+        label="계약서 사진"
+        files={selectedFiles}
+        onFilesChange={(files) => {
+          if (files[0]) onSelect(files[0]);
+          else onRemove();
         }}
+        max={1}
+        accept="image/jpeg,image/png,image/webp"
+        disabled={disabled}
       />
 
-      {(previewUrl || previewError) && (
+      {(remotePreview.data || remotePreview.isError) && (
         <div className="mt-3 rounded-xl border border-line bg-bg/40 p-3">
-          {previewUrl ? (
+          {remotePreview.data ? (
             // Signed Storage URLs and local blob URLs are intentionally rendered without optimization.
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={previewUrl}
+              src={remotePreview.data}
               alt="계약서 미리보기"
               className="max-h-52 w-full rounded-lg object-contain"
             />
@@ -252,7 +190,20 @@ function ContractFileField({
           )}
           <div className="mt-2 flex items-center justify-between gap-3">
             <span className="truncate text-xs text-t3">{fileName}</span>
-            <button type="button" onClick={onRemove} className="text-xs font-bold text-red">
+            <button
+              type="button"
+              onClick={async () => {
+                const accepted = await confirm({
+                  title: "계약서 사진 삭제",
+                  description: `${fileName ?? "저장된 계약서"} 파일을 삭제할까요?`,
+                  confirmLabel: "삭제",
+                  variant: "danger",
+                });
+                if (accepted) onRemove();
+              }}
+              disabled={disabled}
+              className="text-xs font-bold text-red disabled:opacity-40"
+            >
               제거
             </button>
           </div>
@@ -291,26 +242,36 @@ function CreateModal({ open, onClose, onSubmit, isPending }: Omit<CreateProps, "
     resolver: zodResolver(orgCreateSchema),
     defaultValues: CREATE_DEFAULTS,
   });
+  const submitting = isPending || isSubmitting;
+  const closeSafely = () => {
+    if (!submitting) onClose();
+  };
 
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={closeSafely}
       title="관리회사 입점"
       className="max-h-[88vh] max-w-[520px] overflow-y-auto [&>h2]:text-[17px] [&>h2]:tracking-[-0.02em]"
     >
       <form
-        onSubmit={handleSubmit((values) => onSubmit({ ...values, contractFile }))}
+        onSubmit={handleSubmit(async (values) => {
+          try {
+            await onSubmit({ ...values, contractFile });
+          } catch {
+            // The parent reports the operation error; keep the modal open for retry.
+          }
+        })}
         className="flex flex-col gap-[18px]"
       >
         <OrganizationFields idPrefix="create-org" register={register} errors={errors} />
         <ContractFileField
-          id="create-org-contract-file"
           selectedFile={contractFile}
           currentPath={null}
           removeExisting={false}
           onSelect={setContractFile}
           onRemove={() => setContractFile(null)}
+          disabled={submitting}
         />
 
         <hr className="border-line2" />
@@ -362,7 +323,8 @@ function CreateModal({ open, onClose, onSubmit, isPending }: Omit<CreateProps, "
           <Button
             type="button"
             variant="ghost"
-            onClick={onClose}
+            onClick={closeSafely}
+            disabled={submitting}
             className="h-10 cursor-pointer whitespace-nowrap rounded-[11px] px-[15px] text-[13.5px]"
           >
             취소
@@ -370,10 +332,10 @@ function CreateModal({ open, onClose, onSubmit, isPending }: Omit<CreateProps, "
           <Button
             type="submit"
             variant="primary"
-            disabled={isPending || isSubmitting}
+            disabled={submitting}
             className="h-10 cursor-pointer whitespace-nowrap rounded-[11px] px-[15px] text-[13.5px]"
           >
-            {isPending || isSubmitting ? "등록 중…" : "입점 등록"}
+            {submitting ? "등록 중…" : "입점 등록"}
           </Button>
         </ModalActions>
       </form>
@@ -399,25 +361,34 @@ function EditModal({
     resolver: zodResolver(orgEditSchema),
     defaultValues,
   });
+  const submitting = isPending || isSubmitting;
+  const closeSafely = () => {
+    if (!submitting) onClose();
+  };
 
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={closeSafely}
       title="조직 계약 정보 수정"
       className="max-h-[88vh] max-w-[520px] overflow-y-auto [&>h2]:text-[17px] [&>h2]:tracking-[-0.02em]"
     >
       <form
-        onSubmit={handleSubmit((values) => onSubmit({
-          ...values,
-          contractFile,
-          removeContractFile,
-        }))}
+        onSubmit={handleSubmit(async (values) => {
+          try {
+            await onSubmit({
+              ...values,
+              contractFile,
+              removeContractFile,
+            });
+          } catch {
+            // The parent reports the operation error; keep the modal open for retry.
+          }
+        })}
         className="flex flex-col gap-[18px]"
       >
         <OrganizationFields idPrefix="edit-org" register={register} errors={errors} />
         <ContractFileField
-          id="edit-org-contract-file"
           selectedFile={contractFile}
           currentPath={defaultContractFilePath}
           removeExisting={removeContractFile}
@@ -429,13 +400,15 @@ function EditModal({
             if (contractFile) setContractFile(null);
             else setRemoveContractFile(true);
           }}
+          disabled={submitting}
         />
 
         <ModalActions>
           <Button
             type="button"
             variant="ghost"
-            onClick={onClose}
+            onClick={closeSafely}
+            disabled={submitting}
             className="h-10 cursor-pointer whitespace-nowrap rounded-[11px] px-[15px] text-[13.5px]"
           >
             취소
@@ -443,10 +416,10 @@ function EditModal({
           <Button
             type="submit"
             variant="primary"
-            disabled={isPending || isSubmitting}
+            disabled={submitting}
             className="h-10 cursor-pointer whitespace-nowrap rounded-[11px] px-[15px] text-[13.5px]"
           >
-            {isPending || isSubmitting ? "저장 중…" : "저장"}
+            {submitting ? "저장 중…" : "저장"}
           </Button>
         </ModalActions>
       </form>

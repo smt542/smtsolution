@@ -56,6 +56,7 @@ describe("building register normalized mapping", () => {
     state.vendors.elevator_insp = {
       fields: { 업체명: "한국승강기", 전화번호: "02-1234", 계좌번호: "111-22", 검사일: "2026-09-01" },
       memo: "정기 검사",
+      pendingFiles: [],
     };
 
     const payload = formStateToPayload(state, saveOptions);

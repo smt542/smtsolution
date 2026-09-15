@@ -36,9 +36,9 @@ vi.mock("@/hooks/reactquery/longTermRepair", () => ({
 }));
 vi.mock("@/hooks/reactquery/attachments", () => ({
   useAttachmentsByEntities: () => ({ data: [] }),
-  useUploadAttachment: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useUploadAttachments: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useDeleteAttachment: () => ({ mutateAsync: vi.fn(), isPending: false }),
-  attachmentSignedUrl: vi.fn(),
+  useAttachmentSignedUrls: () => [],
 }));
 
 import { LongTermRepairLedger, recalculateLedgerRows } from "./LongTermRepairLedger";

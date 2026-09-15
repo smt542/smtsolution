@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Badge, Button, EmptyState, Modal, Spinner } from "@/components/common";
 import { toast } from "sonner";
@@ -22,6 +22,7 @@ import {
   type PlatformOrganizationStatusFilter,
 } from "@/hooks/reactquery/platform";
 import { formatNumber } from "@/lib/format";
+import { useAsyncAction, useDebouncedValue } from "@/hooks/common";
 import {
   PlatformPagination,
   QueryError,
@@ -55,20 +56,6 @@ const STATUS_FILTERS: Array<{
   { id: "terminated", label: "해지" },
 ];
 
-function useDebouncedValue(value: string) {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(
-      () => setDebouncedValue(value),
-      SEARCH_DEBOUNCE_MS,
-    );
-    return () => window.clearTimeout(timeoutId);
-  }, [value]);
-
-  return debouncedValue;
-}
-
 export default function OrganizationsWorkspace() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | PlatformOrganizationStatusFilter>("all");
@@ -77,7 +64,7 @@ export default function OrganizationsWorkspace() {
   const [editTarget, setEditTarget] = useState<PlatformOrganization | null>(null);
   const [pwNotice, setPwNotice] = useState<{ username: string; tempPassword: string } | null>(null);
 
-  const debouncedSearch = useDebouncedValue(search.trim());
+  const debouncedSearch = useDebouncedValue(search.trim(), SEARCH_DEBOUNCE_MS);
   const query = useMemo<PlatformOrganizationQuery>(() => ({
     includeDeleted: true,
     status: statusFilter === "all" ? undefined : statusFilter,
@@ -96,6 +83,8 @@ export default function OrganizationsWorkspace() {
   const createOrg = useCreatePlatformOrganization();
   const updateOrg = useUpdatePlatformOrganization();
   const setDeleted = useSetOrgDeleted();
+  const createOrganizationAction = useAsyncAction();
+  const updateOrganizationAction = useAsyncAction();
 
   const handleStatus = async (id: number, next: OrganizationStatus) => {
     try {
@@ -106,7 +95,7 @@ export default function OrganizationsWorkspace() {
     }
   };
 
-  const handleCreate = async (v: OrgCreateSubmitValues) => {
+  const handleCreate = (v: OrgCreateSubmitValues) => createOrganizationAction.run(async () => {
     let uploadedPath: string | null = null;
     try {
       if (v.contractFile) {
@@ -140,10 +129,11 @@ export default function OrganizationsWorkspace() {
         await removeOrganizationContractFile(uploadedPath).catch(() => undefined);
       }
       toast.error(e instanceof Error ? e.message : "입점에 실패했습니다.");
+      throw e;
     }
-  };
+  });
 
-  const handleEdit = async (v: OrgEditSubmitValues) => {
+  const handleEdit = (v: OrgEditSubmitValues) => updateOrganizationAction.run(async () => {
     if (!editTarget) return;
     let uploadedPath: string | null = null;
     const previousPath = editTarget.contractFilePath;
@@ -183,8 +173,9 @@ export default function OrganizationsWorkspace() {
         await removeOrganizationContractFile(uploadedPath).catch(() => undefined);
       }
       toast.error(e instanceof Error ? e.message : "수정에 실패했습니다.");
+      throw e;
     }
-  };
+  });
 
   const handleToggleDeleted = async (id: number, deleted: boolean) => {
     try {
@@ -438,7 +429,7 @@ export default function OrganizationsWorkspace() {
           open
           onClose={() => setCreateOpen(false)}
           onSubmit={handleCreate}
-          isPending={createOrg.isPending}
+          isPending={createOrg.isPending || createOrganizationAction.isPending}
         />
       )}
 
@@ -463,7 +454,7 @@ export default function OrganizationsWorkspace() {
           }}
           defaultContractFilePath={editTarget.contractFilePath}
           onSubmit={handleEdit}
-          isPending={updateOrg.isPending}
+          isPending={updateOrg.isPending || updateOrganizationAction.isPending}
         />
       )}
 

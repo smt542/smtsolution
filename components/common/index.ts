@@ -16,5 +16,7 @@ export { Badge } from "./Badge";
 export { DetailField, DetailSection } from "./Detail";
 export { SummaryCard } from "./SummaryCard";
 export { Pagination } from "./Pagination";
+export { PhotoUpload } from "./PhotoUpload";
+export type { PhotoUploadProps } from "./PhotoUpload";
 export { CustomDropdown } from "./CustomDropdown";
 export type { DropdownOption } from "./CustomDropdown";

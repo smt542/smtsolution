@@ -1,4 +1,10 @@
 import { createClient } from "@/lib/supabase/client";
+import {
+  imageMimeTypeFromFileName,
+  normalizeAttachmentFileName,
+  validateAttachmentFile,
+} from "@/lib/attachments/policy";
+import { createPrivateAssetSignedUrl } from "@/lib/attachments/signedUrl";
 import { formatNumber } from "@/lib/format";
 import type { OrgMemberRole, StaffType } from "@/hooks/reactquery/auth";
 
@@ -497,21 +503,14 @@ export async function updatePlatformOrganization(id: number, input: UpdateOrgInp
 }
 
 const ORGANIZATION_CONTRACT_BUCKET = "org-contracts";
-const ORGANIZATION_CONTRACT_MAX_BYTES = 10 * 1024 * 1024;
-const ORGANIZATION_CONTRACT_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-
 export async function uploadOrganizationContractFile(
   file: File,
   organizationId?: number,
 ): Promise<string> {
-  if (!ORGANIZATION_CONTRACT_MIME_TYPES.has(file.type)) {
-    throw new Error("계약서는 JPG, PNG, WEBP 이미지만 업로드할 수 있습니다.");
-  }
-  if (file.size > ORGANIZATION_CONTRACT_MAX_BYTES) {
-    throw new Error("계약서 이미지는 10MB 이하여야 합니다.");
-  }
+  const validationError = validateAttachmentFile(file, "image");
+  if (validationError) throw new Error(validationError);
 
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+  const safeName = normalizeAttachmentFileName(file.name);
   const path = `${organizationId ?? "pending"}/${crypto.randomUUID()}-${safeName}`;
   const { error } = await createClient().storage
     .from(ORGANIZATION_CONTRACT_BUCKET)
@@ -521,11 +520,12 @@ export async function uploadOrganizationContractFile(
 }
 
 export async function getOrganizationContractFilePreview(path: string): Promise<string> {
-  const { data, error } = await createClient().storage
-    .from(ORGANIZATION_CONTRACT_BUCKET)
-    .createSignedUrl(path, 10 * 60);
-  if (error) throw new Error(error.message);
-  return data.signedUrl;
+  return createPrivateAssetSignedUrl({
+    bucket: ORGANIZATION_CONTRACT_BUCKET,
+    path,
+    preset: "preview",
+    mimeType: imageMimeTypeFromFileName(path),
+  });
 }
 
 export async function removeOrganizationContractFile(path: string): Promise<void> {

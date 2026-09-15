@@ -2,6 +2,7 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
   getPlatformOverview,
   getPlatformOrganizationContractKpis,
+  getOrganizationContractFilePreview,
   listPlatformAccounts,
   listPlatformOrganizations,
   listPointTransactions,
@@ -17,6 +18,7 @@ import {
   type PointReservationQuery,
 } from "./pointBilling";
 import { platformKeys } from "./keys";
+import { SIGNED_URL_GC_TIME_MS, SIGNED_URL_STALE_TIME_MS } from "@/lib/attachments/signedUrl";
 
 export function usePlatformOverview() {
   return useQuery({
@@ -36,6 +38,17 @@ export function usePlatformOrganizationContractKpis() {
   return useQuery({
     queryKey: platformKeys.organizationContractKpis(),
     queryFn: getPlatformOrganizationContractKpis,
+  });
+}
+
+export function useOrganizationContractFilePreview(path: string | null) {
+  return useQuery({
+    queryKey: platformKeys.organizationContractFile(path ?? ""),
+    queryFn: () => getOrganizationContractFilePreview(path as string),
+    enabled: Boolean(path),
+    staleTime: SIGNED_URL_STALE_TIME_MS,
+    gcTime: SIGNED_URL_GC_TIME_MS,
+    retry: 1,
   });
 }
 

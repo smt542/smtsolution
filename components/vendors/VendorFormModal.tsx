@@ -3,10 +3,11 @@ import React, { useRef, useState } from "react";
 import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Button, Modal } from "@/components/common";
+import { Button, Modal, PhotoUpload } from "@/components/common";
+import { useConfirm } from "@/components/common/ConfirmProvider";
 import { vendorSchema } from "@/components/forms/schema/vendor";
 import type { Vendor } from "@/hooks/reactquery/vendors";
-import type { VendorAttachment } from "@/hooks/reactquery/vendors";
+import { useAttachmentSignedUrls, type Attachment } from "@/hooks/reactquery/attachments";
 import type { VendorCategory } from "@/hooks/reactquery/vendorCategories";
 import styles from "./VendorManagement.module.css";
 
@@ -20,13 +21,15 @@ interface Props {
   editing: Vendor | null;
   defaultCategoryId?: number | null;
   categories: VendorCategory[];
-  onSubmit: (values: VendorFormOutput, pendingFiles: File[]) => Promise<void>;
+  onSubmit: (
+    values: VendorFormOutput,
+    pendingFiles: File[],
+  ) => Promise<{ failedFiles: File[] } | void>;
   isPending: boolean;
   onDeleteVendor?: (id: number) => Promise<void>;
   // Attachment props (only used when editing an existing vendor)
-  attachments?: VendorAttachment[];
-  onUploadAttachment?: (file: File) => Promise<void>;
-  onDeleteAttachment?: (attachment: VendorAttachment) => Promise<void>;
+  attachments?: Attachment[];
+  onDeleteAttachment?: (attachment: Attachment) => Promise<void>;
 }
 
 export function VendorFormModal({
@@ -39,23 +42,23 @@ export function VendorFormModal({
   isPending,
   onDeleteVendor,
   attachments = [],
-  onUploadAttachment,
   onDeleteAttachment,
 }: Props) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const confirm = useConfirm();
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
   const categoryControlId = React.useId();
   const categoryMenuId = React.useId();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
-  const [pendingPhotos, setPendingPhotos] = useState<Array<{ file: File; previewUrl: string }>>([]);
+  const [pendingPhotos, setPendingPhotos] = useState<File[]>([]);
+  const attachmentPreviews = useAttachmentSignedUrls(attachments, "thumbnail");
 
   const {
     register,
     control,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<VendorFormInput, unknown, VendorFormOutput>({
     resolver: zodResolver(vendorSchema),
     defaultValues: editing
@@ -101,10 +104,8 @@ export function VendorFormModal({
   const selectedCategoryId = useWatch({ control, name: "categoryId" });
   const selectedCategory = categories.find((category) => category.id === selectedCategoryId);
 
-  const closeModal = () => {
-    pendingPhotos.forEach(({ previewUrl }) => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-    });
+  const closeModal = (force = false) => {
+    if (!force && (isPending || isSubmitting)) return;
     setPendingPhotos([]);
     setCategoryDropdownOpen(false);
     setConfirmDelete(false);
@@ -112,50 +113,33 @@ export function VendorFormModal({
   };
 
   const onValid = async (values: VendorFormOutput) => {
-    await onSubmit(values, pendingPhotos.map(({ file }) => file));
-    closeModal();
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const remaining = Math.max(0, 10 - attachments.length - pendingPhotos.length);
-    const files = Array.from(e.target.files ?? []).slice(0, remaining);
-    if (files.length === 0) return;
-
-    if (editing && onUploadAttachment) {
-      for (const file of files) {
-        await onUploadAttachment(file);
+    try {
+      const result = await onSubmit(values, pendingPhotos);
+      if (result?.failedFiles.length) {
+        setPendingPhotos(result.failedFiles);
+        return;
       }
-    } else {
-      setPendingPhotos((current) => [
-        ...current,
-        ...files.map((file) => ({
-          file,
-          previewUrl: typeof URL.createObjectURL === "function" ? URL.createObjectURL(file) : "",
-        })),
-      ]);
+      closeModal(true);
+    } catch {
+      // The parent reports the operation error; keep the modal and selected files open.
     }
-
-    // Reset file input so the same file can be re-uploaded if needed
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  const removePendingPhoto = (index: number) => {
-    setPendingPhotos((current) => {
-      const target = current[index];
-      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl);
-      return current.filter((_, photoIndex) => photoIndex !== index);
-    });
   };
 
   return (
     <Modal
       open={open}
-      onClose={closeModal}
+      onClose={() => closeModal()}
       title={editing ? "업체 수정" : "업체 추가"}
       className={styles.dialog}
       overlayClassName="z-[320] bg-[rgba(23,31,40,.5)] p-6"
     >
-      <button type="button" onClick={closeModal} className={styles.closeButton} aria-label="닫기">
+      <button
+        type="button"
+        onClick={() => closeModal()}
+        disabled={isPending || isSubmitting}
+        className={styles.closeButton}
+        aria-label="닫기"
+      >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
           <path d="M6 6l12 12M18 6 6 18" />
         </svg>
@@ -261,14 +245,30 @@ export function VendorFormModal({
 
                   {attachments.length > 0 && (
                     <ul className={styles.attachmentList}>
-                      {attachments.map((att) => (
+                      {attachmentPreviews.map(({ attachment: att, url, error }) => (
                         <li key={att.id} className={styles.attachmentItem}>
-                          <span className={styles.attachmentName}>{att.fileName}</span>
+                          {url ? (
+                            // Signed runtime URLs intentionally bypass next/image host allowlists.
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={url} alt="" className="size-10 rounded object-cover" />
+                          ) : null}
+                          <span className={styles.attachmentName}>
+                            {att.fileName}{error ? " (미리보기 실패)" : ""}
+                          </span>
                           {onDeleteAttachment && (
                             <button
                               type="button"
                               aria-label={`${att.fileName} 삭제`}
-                              onClick={() => onDeleteAttachment(att)}
+                              onClick={async () => {
+                                const accepted = await confirm({
+                                  title: "계약서 사진 삭제",
+                                  description: `${att.fileName} 파일을 삭제할까요?`,
+                                  confirmLabel: "삭제",
+                                  variant: "danger",
+                                });
+                                if (accepted) await onDeleteAttachment(att);
+                              }}
+                              disabled={isPending || isSubmitting}
                               className={styles.attachmentDelete}
                             >
                               삭제
@@ -279,50 +279,14 @@ export function VendorFormModal({
                     </ul>
                   )}
 
-                  <div className={styles.photoGallery}>
-                    <div className={styles.photoStrip}>
-                      {pendingPhotos.map((photo, index) => (
-                        <div key={`${photo.file.name}-${photo.file.lastModified}-${index}`} className={styles.photoPreview}>
-                          {photo.previewUrl ? (
-                            <span
-                              className={styles.photoPreviewImage}
-                              style={{ backgroundImage: `url(${photo.previewUrl})` }}
-                              aria-label={photo.file.name}
-                              role="img"
-                            />
-                          ) : (
-                            <span className={styles.photoPreviewName}>{photo.file.name}</span>
-                          )}
-                          <button
-                            type="button"
-                            aria-label={`${photo.file.name} 삭제`}
-                            className={styles.photoRemove}
-                            onClick={() => removePendingPhoto(index)}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-
-                    {attachments.length + pendingPhotos.length < 10 ? (
-                    <label className={styles.fileButton}>
-                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                        <path d="M12 5v14M5 12h14" />
-                      </svg>
-                      <span>사진 추가</span>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        className="sr-only"
-                        onChange={handleFileChange}
-                        aria-label="계약서 사진 업로드"
-                      />
-                    </label>
-                    ) : null}
-                  </div>
+                  <PhotoUpload
+                    label="계약서 사진"
+                    files={pendingPhotos}
+                    onFilesChange={setPendingPhotos}
+                    max={Math.max(0, 10 - attachments.length)}
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={isPending || isSubmitting}
+                  />
                 </div>
 
                 {/* 비고 */}
@@ -347,10 +311,10 @@ export function VendorFormModal({
           ) : null}
           <button
             type="submit"
-            disabled={isPending}
+            disabled={isPending || isSubmitting}
             className={`${styles.footerButton} ${styles.submitButton}`}
           >
-            {isPending ? "저장 중…" : editing ? "수정" : "추가"}
+            {isPending || isSubmitting ? "저장 중…" : editing ? "수정" : "추가"}
           </button>
         </div>
       </form>
@@ -376,7 +340,7 @@ export function VendorFormModal({
             onClick={async () => {
               if (!editing || !onDeleteVendor) return;
               setConfirmDelete(false);
-              closeModal();
+               closeModal(true);
               await onDeleteVendor(editing.id);
             }}
           >

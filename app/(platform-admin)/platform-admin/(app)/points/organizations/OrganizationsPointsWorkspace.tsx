@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Badge, EmptyState, Spinner, Button, Modal } from "@/components/common";
 import {
@@ -20,6 +20,7 @@ import {
 } from "@/hooks/reactquery/platform";
 import type { PointAdjustmentFormValues } from "@/components/forms/schema/pointAdjustment";
 import { formatNumber } from "@/lib/format";
+import { useDebouncedValue } from "@/hooks/common";
 import { toast } from "sonner";
 import {
   PlatformPagination,
@@ -50,20 +51,6 @@ const ACTIVE_RESERVATION_STATUSES: PointReservationStatus[] = [
   "reconcile_required",
 ];
 
-function useDebouncedValue(value: string) {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(
-      () => setDebouncedValue(value),
-      SEARCH_DEBOUNCE_MS,
-    );
-    return () => window.clearTimeout(timeoutId);
-  }, [value]);
-
-  return debouncedValue;
-}
-
 export function OrganizationsPointsWorkspace() {
   const [search, setSearch] = useState("");
   const [organizationPage, setOrganizationPage] = useState(1);
@@ -71,7 +58,7 @@ export function OrganizationsPointsWorkspace() {
   const [chargeModalOpen, setChargeModalOpen] = useState(false);
   const [adjustmentModalOpen, setAdjustmentModalOpen] = useState(false);
   const [releaseTarget, setReleaseTarget] = useState<PointReservation | null>(null);
-  const debouncedSearch = useDebouncedValue(search.trim());
+  const debouncedSearch = useDebouncedValue(search.trim(), SEARCH_DEBOUNCE_MS);
   const organizationQuery = useMemo<PlatformOrganizationQuery>(() => ({
     search: debouncedSearch,
     page: organizationPage,

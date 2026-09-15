@@ -10,7 +10,14 @@ vi.mock("@/lib/supabase/client", () => ({
     storage: { from: () => ({ upload: uploadMock, remove: removeMock, createSignedUrl: createSignedUrlMock }) },
   }),
 }));
-import { uploadAttachment, listAttachments, listAttachmentsByEntities } from "./apis";
+import {
+  uploadAttachment,
+  uploadAttachments,
+  deleteAttachment,
+  AttachmentConsistencyError,
+  listAttachments,
+  listAttachmentsByEntities,
+} from "./apis";
 beforeEach(() => vi.clearAllMocks());
 
 describe("attachments apis", () => {
@@ -21,7 +28,8 @@ describe("attachments apis", () => {
         file_url: "9/building_vendor/7/x.pdf", file_name: "x.pdf", created_at: "t" },
       error: null,
     });
-    from.mockReturnValue({ insert: () => ({ select: () => ({ single }) }) });
+    const insert = vi.fn(() => ({ select: () => ({ single }) }));
+    from.mockReturnValue({ insert });
 
     const file = new File(["c"], "x.pdf", { type: "application/pdf" });
     const r = await uploadAttachment({ entityType: "building_vendor", entityId: 7, orgId: 9, kind: "contract", file });
@@ -31,7 +39,73 @@ describe("attachments apis", () => {
       file,
       { contentType: "application/pdf", upsert: false },
     );
+    expect(insert).toHaveBeenCalledWith(expect.objectContaining({
+      mime_type: "application/pdf",
+      size_bytes: file.size,
+    }));
     expect(r).toMatchObject({ id: 10, entityType: "building_vendor", entityId: 7, kind: "contract" });
+  });
+
+  it("여러 파일 중 실패한 파일만 구분해 반환한다", async () => {
+    uploadMock
+      .mockResolvedValueOnce({ error: null })
+      .mockResolvedValueOnce({ error: { message: "storage failed" } });
+    const single = vi.fn().mockResolvedValue({
+      data: { id: 10, org_id: 9, entity_type: "vendor", entity_id: 7, kind: "contract", file_url: "ok", file_name: "ok.png", mime_type: "image/png", size_bytes: 1, created_at: "t" },
+      error: null,
+    });
+    from.mockReturnValue({ insert: () => ({ select: () => ({ single }) }) });
+    const ok = new File(["1"], "ok.png", { type: "image/png" });
+    const failed = new File(["2"], "failed.png", { type: "image/png" });
+
+    const result = await uploadAttachments({
+      entityType: "vendor",
+      entityId: 7,
+      orgId: 9,
+      kind: "contract",
+      fileType: "image",
+      files: [ok, failed],
+    });
+
+    expect(result.succeeded.map(({ file }) => file)).toEqual([ok]);
+    expect(result.failed.map(({ file }) => file)).toEqual([failed]);
+  });
+
+  it("DB insert 실패 시 업로드한 object를 보상 삭제한다", async () => {
+    uploadMock.mockResolvedValue({ error: null });
+    removeMock.mockResolvedValue({ error: null });
+    const single = vi.fn().mockResolvedValue({ data: null, error: { message: "insert failed" } });
+    from.mockReturnValue({ insert: () => ({ select: () => ({ single }) }) });
+    const file = new File(["1"], "photo.webp", { type: "image/webp" });
+
+    await expect(uploadAttachment({
+      entityType: "vendor",
+      entityId: 7,
+      orgId: 9,
+      kind: "contract",
+      fileType: "image",
+      file,
+    })).rejects.toThrow("insert failed");
+    expect(removeMock).toHaveBeenCalledWith([
+      expect.stringMatching(/^9\/vendor\/7\//),
+    ]);
+  });
+
+  it("Storage 삭제 후 DB row 삭제가 반복 실패하면 복구 가능한 오류 정보를 남긴다", async () => {
+    removeMock.mockResolvedValue({ error: null });
+    const eq = vi.fn()
+      .mockResolvedValueOnce({ error: { message: "first" } })
+      .mockResolvedValueOnce({ error: { message: "second" } });
+    from.mockReturnValue({ delete: () => ({ eq }) });
+
+    const result = deleteAttachment({ id: 12, path: "9/vendor/7/photo.png" });
+    await expect(result).rejects.toBeInstanceOf(AttachmentConsistencyError);
+    await expect(result).rejects.toMatchObject({
+      orphanedResource: "database_row",
+      attachmentId: 12,
+      path: "9/vendor/7/photo.png",
+    });
+    expect(eq).toHaveBeenCalledTimes(2);
   });
 
   it("listAttachments: entity_type·entity_id 필터", async () => {
