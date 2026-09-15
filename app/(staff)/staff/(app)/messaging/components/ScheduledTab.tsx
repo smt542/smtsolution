@@ -141,16 +141,16 @@ export function ScheduledTab() {
               key={msg.id}
               className="border-b border-[#f1f3f5] last:border-b-0 hover:bg-[#fbfcfd]"
             >
-              <td className="h-[48px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
+              <td className="h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
                 {channelLabel(msg.channel)}
               </td>
-              <td className="h-[48px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
+              <td className="h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
                 {senderLabel(msg.channel)}
               </td>
-              <td className="h-[48px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
+              <td className="h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
                 {recipientSummary(msg)}
               </td>
-              <td className="h-[48px] max-w-[260px] px-[16px] py-[12px]">
+              <td className="h-[49px] max-w-[260px] px-[16px] py-[12px]">
                 <span
                   className="block truncate text-[13px] font-medium text-[#191f28]"
                   title={msg.body}
@@ -158,13 +158,13 @@ export function ScheduledTab() {
                   {truncateBody(msg.body)}
                 </span>
               </td>
-              <td className="h-[48px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
+              <td className="h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
                 {scheduleType(msg)}
               </td>
-              <td className="h-[48px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
+              <td className="h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
                 {formatScheduledAt(msg.scheduledAt)}
               </td>
-              <td className="h-[48px] px-[16px] py-[12px]">
+              <td className="h-[49px] px-[16px] py-[12px]">
                 <CancelButton id={msg.id} />
               </td>
             </tr>

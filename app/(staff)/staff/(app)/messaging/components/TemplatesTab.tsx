@@ -141,13 +141,13 @@ export function TemplatesTab() {
                   key={template.id}
                   className="border-b border-[#f1f3f5] last:border-b-0 hover:bg-[#fbfcfd]"
                 >
-                  <td className="whitespace-nowrap px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
+                  <td className="whitespace-nowrap h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
                     {getChannelLabel(template.channelType)}
                   </td>
-                  <td className="whitespace-nowrap px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
+                  <td className="whitespace-nowrap h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
                     {template.category ?? "-"}
                   </td>
-                  <td className="px-[16px] py-[12px]">
+                  <td className="h-[49px] px-[16px] py-[12px]">
                     <div className="flex items-center gap-[6px]">
                       <span className="whitespace-nowrap text-[13px] font-semibold text-[#191f28]">
                         {template.title}
@@ -159,7 +159,7 @@ export function TemplatesTab() {
                       )}
                     </div>
                   </td>
-                  <td className="max-w-0 overflow-hidden px-[16px] py-[12px]">
+                  <td className="max-w-0 overflow-hidden h-[49px] px-[16px] py-[12px]">
                     <p
                       className="truncate text-[13px] font-medium text-[#191f28]"
                       title={template.body}
@@ -167,7 +167,7 @@ export function TemplatesTab() {
                       {summarizeBody(template.body)}
                     </p>
                   </td>
-                  <td className="w-[200px] overflow-hidden px-[16px] py-[12px]">
+                  <td className="w-[200px] overflow-hidden h-[49px] px-[16px] py-[12px]">
                     {link ? (
                       <p className="truncate text-[13px]">
                         <span className="font-medium text-[#191f28]">
@@ -181,7 +181,7 @@ export function TemplatesTab() {
                       <span className="text-[13px] text-[#8b95a1]">-</span>
                     )}
                   </td>
-                  <td className="w-[100px] px-[16px] py-[12px]">
+                  <td className="w-[100px] h-[49px] px-[16px] py-[12px]">
                     {!sys && (
                       <button
                         type="button"

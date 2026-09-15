@@ -119,16 +119,16 @@ export function HistoryTab() {
               key={log.id}
               className="border-b border-[#f1f3f5] last:border-b-0 hover:bg-[#fbfcfd]"
             >
-              <td className="h-[48px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
+              <td className="h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
                 {channelLabel(log.channel)}
               </td>
-              <td className="h-[48px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
+              <td className="h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
                 {senderChannel(log.channel)}
               </td>
-              <td className="h-[48px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
+              <td className="h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
                 {recipientSummary(log)}
               </td>
-              <td className="h-[48px] max-w-[260px] px-[16px] py-[12px]">
+              <td className="h-[49px] max-w-[260px] px-[16px] py-[12px]">
                 <span
                   className="block truncate text-[13px] font-medium text-[#191f28]"
                   title={log.body}
@@ -136,13 +136,13 @@ export function HistoryTab() {
                   {truncateBody(log.body)}
                 </span>
               </td>
-              <td className="h-[48px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
+              <td className="h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
                 {log.result}
               </td>
-              <td className="h-[48px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
+              <td className="h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
                 {formatSentAt(log.sentAt)}
               </td>
-              <td className="h-[48px] px-[16px] py-[12px]">
+              <td className="h-[49px] px-[16px] py-[12px]">
                 <span className="text-[12.5px] font-bold text-[#f04452]">
                   상세 보기
                 </span>
