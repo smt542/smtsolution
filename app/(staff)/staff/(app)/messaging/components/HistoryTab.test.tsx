@@ -32,8 +32,22 @@ vi.mock("@/hooks/reactquery/messaging", () => ({
         sentAt: "2026-08-17T00:00:00Z",
         templateId: null,
       },
+      {
+        id: 3,
+        orgId: 9,
+        channel: "alimtalk",
+        body: "알림톡 본문",
+        context: "manual",
+        recipientCount: 3,
+        recipients: [],
+        result: "stub",
+        sentBy: null,
+        sentAt: "2026-08-16T00:00:00Z",
+        templateId: null,
+      },
     ],
     isLoading: false,
+    isFetching: false,
     error: null,
     refetch: vi.fn(),
   }),
@@ -43,35 +57,32 @@ import { HistoryTab } from "./HistoryTab";
 
 function renderTab(ui: ReactNode) {
   return render(
-    <QueryClientProvider client={new QueryClient()}>
-      {ui}
-    </QueryClientProvider>,
+    <QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>,
   );
 }
 
 describe("HistoryTab", () => {
-  it("채널 필터로 발송 이력 행을 좁힌다", () => {
+  it("알림톡 채널 필터로 발송 내역 행을 좁힌다", () => {
     renderTab(<HistoryTab />);
 
     expect(screen.getByText("자동 안내 본문")).toBeInTheDocument();
     expect(screen.getByText("독촉 문자 본문")).toBeInTheDocument();
+    expect(screen.getByText("알림톡 본문")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("채널"), {
-      target: { value: "auto" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: "알림톡" }));
 
-    expect(screen.getByText("자동 안내 본문")).toBeInTheDocument();
+    expect(screen.getByText("알림톡 본문")).toBeInTheDocument();
+    expect(screen.queryByText("자동 안내 본문")).not.toBeInTheDocument();
     expect(screen.queryByText("독촉 문자 본문")).not.toBeInTheDocument();
   });
 
-  it("context 필터로 발송 이력 행을 좁힌다", () => {
+  it("문자(SMS) 채널 필터는 알림톡을 제외한 행만 남긴다", () => {
     renderTab(<HistoryTab />);
 
-    fireEvent.change(screen.getByLabelText("발송 구분"), {
-      target: { value: "독촉" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: "문자(SMS)" }));
 
-    expect(screen.queryByText("자동 안내 본문")).not.toBeInTheDocument();
+    expect(screen.getByText("자동 안내 본문")).toBeInTheDocument();
     expect(screen.getByText("독촉 문자 본문")).toBeInTheDocument();
+    expect(screen.queryByText("알림톡 본문")).not.toBeInTheDocument();
   });
 });
