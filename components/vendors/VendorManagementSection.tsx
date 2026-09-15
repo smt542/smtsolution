@@ -56,17 +56,20 @@ export function VendorManagementSection() {
   const { data: me } = useMe();
   const orgId = me?.orgId;
 
-  const { data: categories = [], isLoading: catLoading } = useVendorCategories();
+  const categoriesQuery = useVendorCategories();
+  const { data: categories = [] } = categoriesQuery;
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
 
   // All vendors (no filter) for sidebar counts
-  const { data: allVendors = [] } = useVendors();
+  const allVendorsQuery = useVendors();
+  const { data: allVendors = [] } = allVendorsQuery;
   // Filtered vendors for the list
-  const { data: vendors = [], isLoading: vendorsLoading } = useVendors(
+  const vendorsQuery = useVendors(
     selectedCategoryId ?? undefined,
     search || undefined
   );
+  const { data: vendors = [] } = vendorsQuery;
 
   const createVendor = useCreateVendor();
   const updateVendor = useUpdateVendor();
@@ -79,6 +82,12 @@ export function VendorManagementSection() {
   const selectedCategoryLabel = selectedCategoryId === null
     ? "전체"
     : (categories.find((category) => category.id === selectedCategoryId)?.label ?? "미분류");
+  const isVendorListLoading = categoriesQuery.isLoading || vendorsQuery.isLoading;
+  const isVendorListError = categoriesQuery.isError || vendorsQuery.isError;
+  const isVendorListRefreshing = [categoriesQuery, vendorsQuery]
+    .some((query) => query.isFetching && !query.isLoading);
+  const isVendorSavePending =
+    createVendor.isPending || updateVendor.isPending || uploadVendorAttachments.isPending;
 
   const openCreate = () => {
     setEditingVendor(null);
@@ -156,6 +165,11 @@ export function VendorManagementSection() {
         <div className={styles.panelHeader}>
           <h2 className={styles.panelTitle}>{selectedCategoryLabel}</h2>
           <span className={styles.countBadge}>{vendors.length}곳</span>
+          {isVendorListRefreshing ? (
+            <span role="status" aria-label="협력업체 목록 갱신 중" className="text-xs text-t3">
+              갱신 중…
+            </span>
+          ) : null}
           <span className={styles.panelSpacer} />
           <input
             type="search"
@@ -176,7 +190,12 @@ export function VendorManagementSection() {
         <VendorList
           vendors={vendors}
           categories={categories}
-          isLoading={vendorsLoading || catLoading}
+          isLoading={isVendorListLoading}
+          isError={isVendorListError}
+          onRetry={() => {
+            void categoriesQuery.refetch();
+            void vendorsQuery.refetch();
+          }}
           onRowClick={openEdit}
         />
       </section>
@@ -191,7 +210,7 @@ export function VendorManagementSection() {
               editing={editingVendor}
               categories={categories}
               onSubmit={handleSubmit}
-              isPending={createVendor.isPending || updateVendor.isPending || uploadVendorAttachments.isPending}
+              isPending={isVendorSavePending}
               onDeleteVendor={handleDeleteVendor}
               attachments={attachments}
               onDeleteAttachment={onDelete}
@@ -206,7 +225,7 @@ export function VendorManagementSection() {
           defaultCategoryId={selectedCategoryId}
           categories={categories}
           onSubmit={handleSubmit}
-          isPending={createVendor.isPending || updateVendor.isPending || uploadVendorAttachments.isPending}
+          isPending={isVendorSavePending}
         />
       )}
     </div>

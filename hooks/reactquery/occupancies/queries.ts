@@ -26,6 +26,7 @@ export function useOrganizationTenantList(buildingIds: number[]) {
       (query.data ?? []).map((tenant) => ({ ...tenant, buildingId: ids[index] })),
     ),
     isLoading: queries.some((query) => query.isLoading),
+    isFetching: queries.some((query) => query.isFetching),
     isError: queries.some((query) => query.isError),
   };
 }

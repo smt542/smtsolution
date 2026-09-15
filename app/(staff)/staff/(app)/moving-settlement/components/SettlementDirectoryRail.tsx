@@ -95,7 +95,7 @@ export function SettlementDirectoryRail({
                 </span>
               </button>
             ) : (
-              <p className="px-[16px] py-[14px] text-[12.5px] text-t4">
+              <p role="status" aria-label="호실 목록 불러오는 중" className="px-[16px] py-[14px] text-[12.5px] text-t4">
                 정산된 이사 항목이 없어요
               </p>
             )}
@@ -207,7 +207,7 @@ export function SettlementDirectoryRail({
         </div>
         <div className="min-h-0 flex-1 overflow-auto">
           {buildingsLoading && (
-            <p className="px-[16px] py-[14px] text-[12.5px] text-t4">
+            <p role="status" aria-label="건물 목록 불러오는 중" className="px-[16px] py-[14px] text-[12.5px] text-t4">
               건물을 불러오고 있어요
             </p>
           )}

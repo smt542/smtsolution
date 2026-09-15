@@ -261,9 +261,25 @@ export function ManagementFeeWorkspace() {
     }
   };
 
-  const actionPending = saveCharges.isPending || confirmBilling.isPending || copyPrevious.isPending || saveBuildingNotes.isPending;
+  const isManagementFeeMutationPending =
+    saveCharges.isPending ||
+    confirmBilling.isPending ||
+    copyPrevious.isPending ||
+    saveBuildingNotes.isPending;
+  const isManagementFeeDataRefreshing = [
+    buildingsQuery,
+    waterRows,
+    electricityRows,
+    gasRows,
+    billingQuery,
+  ].some((query) => query.isFetching && !query.isLoading);
   return (
-    <div className="h-[calc(100dvh-62px)] min-h-[720px] overflow-hidden bg-bg px-[24px] pb-[24px] pt-[22px]">
+    <div className="relative h-[calc(100dvh-62px)] min-h-[720px] overflow-hidden bg-bg px-[24px] pb-[24px] pt-[22px]">
+      {isManagementFeeDataRefreshing ? (
+        <div className="absolute right-6 top-3 z-10 rounded-lg bg-white/95 shadow-card">
+          <Spinner label="관리비 자료 갱신 중" size="small" showLabel className="px-3 py-2" />
+        </div>
+      ) : null}
       <div className="grid h-full min-h-0 grid-cols-[322px_minmax(0,1fr)] gap-[16px]">
         <BuildingDirectoryRail
           buildings={buildings}
@@ -285,7 +301,7 @@ export function ManagementFeeWorkspace() {
             buildingName={selectedBuilding?.name ?? ""}
             period={period}
             editing={editing}
-            pending={actionPending}
+            pending={isManagementFeeMutationPending}
             onEdit={() => {
               setBuildingNoteDraft(selectedBuilding?.billingNote ?? "");
               setEditing(true);
@@ -308,7 +324,7 @@ export function ManagementFeeWorkspace() {
             <BillingSectionToolbar
               buildingSelected={buildingId !== null}
               hasBuildings={buildings.length > 0}
-              pending={actionPending}
+              pending={isManagementFeeMutationPending}
               onCarryBuilding={openCarryBuilding}
               onCarryAll={() => setDialog("carry-all")}
             />
@@ -321,9 +337,9 @@ export function ManagementFeeWorkspace() {
                   <p className="text-[13.5px] font-normal leading-[1.6] text-t3">선택한 건물의 세대별 관리비 항목이 표시돼요</p>
                 </div>
               )}
-              {buildingId && billingQuery.isLoading && <div className="flex h-full flex-col items-center justify-center gap-2"><Spinner /><p className="text-[12px] text-t3">관리비를 불러오고 있어요.</p></div>}
+              {buildingId && billingQuery.isLoading && <div className="flex h-full min-h-[260px] flex-col items-center justify-center gap-2"><Spinner label="관리비 자료 불러오는 중" showLabel /></div>}
               {buildingId && billingQuery.error && (
-                <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+                <div role="alert" className="flex h-full min-h-[260px] flex-col items-center justify-center gap-3 text-center">
                   <p className="text-[13px] font-semibold text-red">관리비를 불러오지 못했어요.</p>
                   <button type="button" onClick={() => billingQuery.refetch()} className="h-[32px] rounded-[9px] border border-line px-[12px] text-[12px] font-bold">다시 시도</button>
                 </div>
@@ -370,7 +386,7 @@ export function ManagementFeeWorkspace() {
         kind={dialog}
         buildingName={selectedBuilding?.name ?? "선택한 건물"}
         period={period}
-        pending={dialog === "zero-amount" ? actionPending : copyPrevious.isPending}
+        pending={dialog === "zero-amount" ? isManagementFeeMutationPending : copyPrevious.isPending}
         zeroAmountUnitCount={zeroAmountSummary.unitCount}
         zeroAmountItemCount={zeroAmountSummary.itemCount}
         onClose={() => setDialog(null)}

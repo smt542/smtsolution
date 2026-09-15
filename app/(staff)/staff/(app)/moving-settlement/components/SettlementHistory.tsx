@@ -23,6 +23,7 @@ export function SettlementHistory({
     pageSize: 100,
   });
   const rows = date ? (query.data?.rows ?? []) : [];
+  const isSettlementHistoryRefreshing = query.isFetching && !query.isLoading;
 
   return (
     <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[16px] bg-white shadow-card">
@@ -34,6 +35,9 @@ export function SettlementHistory({
               총 {rows.length}건
             </span>
           )}
+          {date !== "" && isSettlementHistoryRefreshing ? (
+            <span role="status" aria-label="이사정산 이력 갱신 중" className="text-[11.5px] font-bold text-t3">갱신 중…</span>
+          ) : null}
         </div>
         <div className="mt-[9px]">
           <DpDatePicker
@@ -64,12 +68,12 @@ export function SettlementHistory({
           </p>
         )}
         {date !== "" && query.isLoading && (
-          <p className="px-[18px] py-[14px] text-[12.5px] text-t4">
+          <p role="status" aria-label="이사정산 이력 불러오는 중" className="px-[18px] py-[14px] text-[12.5px] text-t4">
             이력을 불러오고 있어요
           </p>
         )}
         {date !== "" && query.error && (
-          <p className="px-[18px] py-[14px] text-[12.5px] text-red">
+          <p role="alert" className="px-[18px] py-[14px] text-[12.5px] text-red">
             이사정산 이력을 불러오지 못했어요
           </p>
         )}

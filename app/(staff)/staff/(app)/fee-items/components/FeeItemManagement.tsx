@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { appToast as toast } from "@/hooks/common/useAppToast";
+import { useAsyncAction } from "@/hooks/common";
 import { EmptyState, Spinner } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import {
@@ -108,7 +109,7 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
   const [formOpen, setFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<FeeItemDraft | null>(null);
   const [deleteTargetKey, setDeleteTargetKey] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const saveAction = useAsyncAction();
   const localSequence = useRef(0);
 
   if (drafts === null && buildingTypesQuery.data && feeItemsQuery.data) {
@@ -122,7 +123,9 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
   const activeType = drafts?.find((type) => type.key === activeKey) ?? null;
   const deleteTarget = drafts?.find((type) => type.key === deleteTargetKey) ?? null;
   const dirty = useMemo(() => drafts !== null && JSON.stringify(comparable(drafts)) !== JSON.stringify(comparable(baseline)), [baseline, drafts]);
-  const loading = buildingTypesQuery.isLoading || feeItemsQuery.isLoading || drafts === null;
+  const isManagementDataLoading = buildingTypesQuery.isLoading || feeItemsQuery.isLoading || drafts === null;
+  const isManagementDataRefreshing = [buildingTypesQuery, feeItemsQuery]
+    .some((query) => query.isFetching && !query.isLoading);
   const failed = buildingTypesQuery.isError || feeItemsQuery.isError;
 
   const updateActiveType = (update: (type: BuildingTypeDraft) => BuildingTypeDraft) => {
@@ -235,14 +238,14 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
   };
 
   const save = async () => {
-    if (!drafts || saving) return;
+    if (!drafts || saveAction.isPending) return;
     const validationError = validate();
     if (validationError) {
       toast.error(validationError);
       return;
     }
-    setSaving(true);
-    try {
+    await saveAction.run(async () => {
+      try {
       const currentPersistedIds = new Set(drafts.flatMap((type) => type.id == null ? [] : [type.id]));
       for (const previousType of baseline) {
         if (previousType.id != null && !currentPersistedIds.has(previousType.id)) await deleteBuildingType(previousType.id);
@@ -298,7 +301,7 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
       setBaseline(cloneDrafts(persisted));
       setActiveKey(refreshed.find((type) => type.id === previousActiveId)?.key ?? refreshed[0]?.key ?? null);
       toast.success("변경 내용을 저장했습니다.");
-    } catch (error) {
+      } catch (error) {
       const [typesResult, itemsResult] = await Promise.all([
         buildingTypesQuery.refetch(),
         feeItemsQuery.refetch(),
@@ -311,13 +314,13 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
         setActiveKey(refreshed[0]?.key ?? null);
       }
       toast.error(error, "변경 내용을 저장하지 못했습니다.");
-    } finally {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: buildingTypeKeys.all, refetchType: "none" }),
-        queryClient.invalidateQueries({ queryKey: feeItemKeys.all, refetchType: "none" }),
-      ]);
-      setSaving(false);
-    }
+      } finally {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: buildingTypeKeys.all, refetchType: "none" }),
+          queryClient.invalidateQueries({ queryKey: feeItemKeys.all, refetchType: "none" }),
+        ]);
+      }
+    });
   };
 
   if (failed) {
@@ -328,10 +331,15 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
       </div></div>
     );
   }
-  if (loading) return <div role="status" aria-label="관리 항목 불러오는 중" className="flex min-h-[420px] items-center justify-center"><Spinner /></div>;
+  if (isManagementDataLoading) return <div className="flex min-h-[420px] items-center justify-center"><Spinner label="관리 항목 불러오는 중" /></div>;
 
   return (
-    <div className="min-h-[calc(100vh-62px)] bg-bg">
+    <div className="relative min-h-[calc(100vh-62px)] bg-bg">
+      {isManagementDataRefreshing ? (
+        <div className="absolute right-6 top-3 z-10 rounded-lg bg-white/95 shadow-card">
+          <Spinner label="관리 항목 갱신 중" size="small" showLabel className="px-3 py-2" />
+        </div>
+      ) : null}
       <BuildingTypeTabs
         types={drafts ?? []}
         activeKey={activeKey}
@@ -351,7 +359,7 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
           <FeeItemCard
             type={activeType}
             dirty={dirty}
-            saving={saving}
+            saving={saveAction.isPending}
             onAddItem={openAddItem}
             onEditItem={(item) => { setEditingItem(item); setFormOpen(true); }}
             onReorder={reorderItems}

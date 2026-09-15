@@ -10,6 +10,7 @@ interface Props {
   onToggleActive: () => void;
   onResetPassword: () => void;
   isPending: boolean;
+  pendingAction?: "toggle" | "reset";
 }
 
 const buttonClass =
@@ -22,6 +23,7 @@ export function AccountRowActions({
   onToggleActive,
   onResetPassword,
   isPending,
+  pendingAction,
 }: Props) {
   const confirm = useConfirm();
   const accountName = account.fullName ?? account.username ?? account.userId;
@@ -58,7 +60,9 @@ export function AccountRowActions({
           disabled={isPending}
           className={buttonClass}
         >
-          {account.isActive ? "비활성" : "활성"}
+          {pendingAction === "toggle"
+            ? account.isActive ? "비활성 처리 중…" : "활성 처리 중…"
+            : account.isActive ? "비활성" : "활성"}
         </button>
         <button
           type="button"
@@ -69,7 +73,7 @@ export function AccountRowActions({
           disabled={isPending}
           className={buttonClass}
         >
-          비번 초기화
+          {pendingAction === "reset" ? "비번 초기화 중…" : "비번 초기화"}
         </button>
       </div>
     </div>

@@ -95,7 +95,7 @@ export function WaterDiscountModal({ open, buildingId, period, row, onClose }: W
         <div>
           {hasDiscount && (
             <Button variant="danger" onClick={remove} disabled={deleteDiscount.isPending}>
-              할인 해제
+              {deleteDiscount.isPending ? "할인 해제 중…" : "할인 해제"}
             </Button>
           )}
         </div>
@@ -104,7 +104,7 @@ export function WaterDiscountModal({ open, buildingId, period, row, onClose }: W
             취소
           </Button>
           <Button onClick={submit} disabled={saveDiscount.isPending}>
-            저장
+            {saveDiscount.isPending ? "저장 중…" : "저장"}
           </Button>
         </div>
       </div>

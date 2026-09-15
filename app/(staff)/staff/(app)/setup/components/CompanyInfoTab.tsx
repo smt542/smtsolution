@@ -79,7 +79,7 @@ export function CompanyInfoTab() {
   ];
 
   return (
-    <Panel title="관리업체 정보" action={<Button variant="primary" onClick={save} disabled={upsert.isPending}>저장</Button>}>
+    <Panel title="관리업체 정보" action={<Button variant="primary" onClick={save} disabled={upsert.isPending}>{upsert.isPending ? "저장 중…" : "저장"}</Button>}>
       <p className="mb-4 text-sm text-t3">세입자 앱과 고지서·알림톡에 표기되는 대표 정보예요</p>
       <p className="mb-4 text-xs text-t3">
         SMS·팩스 발신번호는 운영사 팝빌 계정에 사전 등록된 번호만 사용할 수 있습니다. 미설정 시

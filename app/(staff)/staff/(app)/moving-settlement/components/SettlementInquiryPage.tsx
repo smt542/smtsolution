@@ -76,6 +76,7 @@ export function SettlementInquiryPage({ type }: { type: SettlementInquiryType })
   }
 
   const rows = inquiryQuery.data?.rows ?? [];
+  const isSettlementInquiryRefreshing = inquiryQuery.isFetching && !inquiryQuery.isLoading;
   const invalidRange = fromMonth > toMonth;
   const editRow = (row: SettlementInquiryRow, patch: Partial<UpdateSettlementInquiryRow>) => {
     setEdits((current) => {
@@ -123,7 +124,12 @@ export function SettlementInquiryPage({ type }: { type: SettlementInquiryType })
 
   return (
     <div className="h-[calc(100dvh-62px)] min-h-[560px] bg-bg px-[24px] pb-[22px] pt-[22px] print:h-auto print:min-h-0 print:bg-white print:p-0">
-      <section aria-label={`${TYPE_LABELS[type]} 이사조회`} className="flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] bg-white shadow-card print:relative print:overflow-visible print:rounded-none print:shadow-none">
+      <section aria-label={`${TYPE_LABELS[type]} 이사조회`} className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] bg-white shadow-card print:overflow-visible print:rounded-none print:shadow-none">
+        {isSettlementInquiryRefreshing ? (
+          <div className="absolute right-5 top-3 z-10 rounded-lg bg-white/95 shadow-card print:hidden">
+            <Spinner label="이사정산 조회 결과 갱신 중" size="small" showLabel className="px-3 py-2" />
+          </div>
+        ) : null}
         <SettlementInquiryPrintHeader
           type={type}
           companyName={organizationName ?? PROGRAM_COMPANY_NAME}
@@ -152,9 +158,9 @@ export function SettlementInquiryPage({ type }: { type: SettlementInquiryType })
         {invalidRange ? (
           <div className="py-16"><EmptyState message="조회 시작월은 종료월보다 늦을 수 없습니다." /></div>
         ) : inquiryQuery.isLoading ? (
-          <div className="py-16"><Spinner /></div>
+          <div className="min-h-[360px] py-16"><Spinner label="이사정산 조회 결과 불러오는 중" /></div>
         ) : inquiryQuery.error ? (
-          <div className="py-16"><EmptyState message="이사정산 조회 결과를 불러오지 못했습니다." /></div>
+          <div role="alert" className="min-h-[360px] py-16"><EmptyState message="이사정산 조회 결과를 불러오지 못했습니다." /></div>
         ) : rows.length === 0 ? (
           <div className="py-16"><EmptyState message="조회 결과가 없어요 · 조회 기간이나 검색어를 바꿔 보세요" /></div>
         ) : (

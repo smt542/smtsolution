@@ -100,7 +100,7 @@ export function PaymentHistoryModal({
                         disabled={isPending}
                         onClick={() => handleCancel(payment)}
                       >
-                        취소
+                        {isPending ? "수납 취소 중…" : "취소"}
                       </Button>
                     </div>
                   )}

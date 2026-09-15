@@ -83,6 +83,7 @@ export function OrganizationsPointsWorkspace() {
   const charge = useChargePoints();
   const adjustment = useAdjustPoints();
   const releaseReservation = useReleaseStalePointReservation();
+  const isOrganizationBalanceRefreshing = orgsQuery.isFetching && !orgsQuery.isPending;
 
   const organizations = useMemo(
     () => orgsQuery.data?.rows ?? [],
@@ -165,6 +166,9 @@ export function OrganizationsPointsWorkspace() {
           <span className="text-xs font-semibold text-t3">
             총 {num(orgsQuery.data?.totalCount ?? 0)}개 조직
           </span>
+          {isOrganizationBalanceRefreshing ? (
+            <Spinner label="조직별 포인트 잔액 갱신 중" size="small" showLabel className="px-2 py-1" />
+          ) : null}
           <div className="flex-1" />
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <label className="flex h-10 min-w-60 flex-1 items-center gap-2 rounded-[11px] border border-line bg-surface px-[13px] focus-within:border-blue focus-within:ring-[3px] focus-within:ring-blue-t sm:w-64 sm:flex-none">
@@ -212,7 +216,7 @@ export function OrganizationsPointsWorkspace() {
           </div>
         </div>
         {orgsQuery.isPending ? (
-          <div className="py-16"><Spinner /></div>
+          <div className="py-16"><Spinner label="조직별 포인트 잔액 불러오는 중" /></div>
         ) : orgsQuery.isError ? (
           <div className="p-4"><QueryError onRetry={() => void orgsQuery.refetch()} /></div>
         ) : organizations.length === 0 ? (
@@ -365,8 +369,13 @@ export function OrganizationsPointsWorkspace() {
               disabled={txQuery.isFetchingNextPage}
               className="h-10 rounded-[11px] bg-transparent px-[15px] text-[13.5px] font-bold text-t2 hover:bg-bg disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {txQuery.isFetchingNextPage ? "불러오는 중" : "내역 더 보기"}
+              {txQuery.isFetchingNextPage ? "조직별 포인트 내역 불러오는 중…" : "내역 더 보기"}
             </button>
+            {txQuery.isFetchingNextPage ? (
+              <span role="status" aria-label="조직별 포인트 내역 불러오는 중" className="sr-only">
+                조직별 포인트 내역 불러오는 중…
+              </span>
+            ) : null}
           </div>
         )}
       </section>

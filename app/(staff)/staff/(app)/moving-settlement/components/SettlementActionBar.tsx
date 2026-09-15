@@ -8,6 +8,7 @@ export function SettlementActionBar({
   onBlankPrint,
   onDelete,
   pending = false,
+  pendingAction = null,
 }: {
   onSave: () => void;
   onMidMoveout: () => void;
@@ -16,6 +17,7 @@ export function SettlementActionBar({
   onBlankPrint: () => void;
   onDelete: () => void;
   pending?: boolean;
+  pendingAction?: "save" | "mid" | "moveout" | "delete" | null;
 }) {
   const neutral =
     "flex h-[40px] items-center justify-center gap-[6px] rounded-[11px] border border-line bg-white px-[10px] text-[13.5px] font-bold text-t2 hover:bg-bg disabled:cursor-wait disabled:opacity-60";
@@ -30,13 +32,13 @@ export function SettlementActionBar({
         disabled={pending}
         className="flex-[1_1_auto] min-w-max justify-center h-[40px] rounded-[11px] bg-teal px-[10px] text-[13.5px] font-bold text-white shadow-[0_6px_7px_rgba(20,164,151,0.5)] hover:bg-teal-d disabled:cursor-wait disabled:opacity-60"
       >
-        저장
+        {pendingAction === "save" ? "저장 중…" : "저장"}
       </button>
       <button type="button" onClick={onMidMoveout} disabled={pending} className={`${outlined} flex-[1_1_auto] min-w-max justify-center`}>
-        정산완료+중도퇴실
+        {pendingAction === "mid" ? "중도퇴실 처리 중…" : "정산완료+중도퇴실"}
       </button>
       <button type="button" onClick={onMoveout} disabled={pending} className={`${outlined} flex-[1_1_auto] min-w-max justify-center`}>
-        정산완료+퇴실
+        {pendingAction === "moveout" ? "퇴실 처리 중…" : "정산완료+퇴실"}
       </button>
       <button type="button" onClick={onPrint} disabled={pending} className={`${neutral} flex-[1_1_auto] min-w-max justify-center`}>
         <PrinterIcon className="size-[16px]" /> 출력
@@ -50,7 +52,7 @@ export function SettlementActionBar({
         disabled={pending}
         className="flex-[1_1_auto] min-w-max justify-center h-[40px] rounded-[11px] border border-red bg-white px-[10px] text-[13.5px] font-bold text-red hover:bg-red-t disabled:cursor-wait disabled:opacity-60"
       >
-        삭제
+        {pendingAction === "delete" ? "삭제 중…" : "삭제"}
       </button>
     </div>
   );

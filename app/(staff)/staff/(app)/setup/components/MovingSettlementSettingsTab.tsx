@@ -51,7 +51,7 @@ export function MovingSettlementSettingsTab() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Panel title="이사정산 설정" action={<Button variant="primary" onClick={save} disabled={upsert.isPending}>저장</Button>}>
+      <Panel title="이사정산 설정" action={<Button variant="primary" onClick={save} disabled={upsert.isPending}>{upsert.isPending ? "저장 중…" : "저장"}</Button>}>
         <div className="flex flex-col gap-4">
           <Checkbox label="이사정산 시 수도 단가 반영" checked={waterUnitReflect} onChange={(e) => setWater(e.target.checked)} />
           <Checkbox label="이사정산 시 전기 단가 반영" checked={electricUnitReflect} onChange={(e) => setElec(e.target.checked)} />

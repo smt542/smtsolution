@@ -283,7 +283,7 @@ export function BillingWorkspace() {
                           disabled={markPaid.isPending}
                           className="inline-flex h-7 cursor-pointer items-center rounded-lg border border-line bg-surface px-[11px] text-xs font-bold text-t2 hover:bg-bg disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          {row.status === "paid" ? "입금 취소" : "입금 확인"}
+                          {markPaid.isPending ? "입금 처리 중…" : row.status === "paid" ? "입금 취소" : "입금 확인"}
                         </button>
                       </div>
                     )}

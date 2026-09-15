@@ -51,7 +51,11 @@ export function VendorCard({
                   <img src={url} alt="" className="size-full object-cover" />
                 </button>
               ) : (
-                <span className="flex size-full items-center justify-center p-2 text-center text-[10px] text-t3">
+                <span
+                  role={error ? "alert" : "status"}
+                  aria-label={error ? `${attachment.fileName} 미리보기 실패` : `${attachment.fileName} 불러오는 중`}
+                  className="flex size-full items-center justify-center p-2 text-center text-[10px] text-t3"
+                >
                   {error ? "미리보기 실패" : "불러오는 중…"}
                 </span>
               )}

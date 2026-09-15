@@ -95,8 +95,11 @@ export function VillaOverdueModal({
 
   if (!open) return null;
 
-  const isLoading =
+  const isReportInitialLoading =
     periodsQuery.isLoading || householdsQuery.isLoading || tiersQuery.isLoading;
+  const isReportRefreshing = [periodsQuery, householdsQuery, tiersQuery]
+    .some((query) => query.isFetching && !query.isLoading);
+  const isReportBusy = isReportInitialLoading || isReportRefreshing;
   const isError = periodsQuery.isError || householdsQuery.isError || tiersQuery.isError;
   const hasData = displayGroups.length > 0;
   const asOfLabel = `${year}/${padMonthCount(month)} 까지`;
@@ -151,7 +154,10 @@ export function VillaOverdueModal({
           <AsyncContentState
             error={isError}
             errorMessage="미납내역을 불러오지 못했습니다."
-            loading={isLoading}
+            loading={isReportInitialLoading}
+            loadingLabel="미납내역 불러오는 중"
+            refreshing={isReportRefreshing}
+            refreshingLabel="미납내역 갱신 중"
             empty={!hasData}
             emptyMessage="조회된 미납내역이 없습니다."
           >
@@ -168,7 +174,7 @@ export function VillaOverdueModal({
             <button
               type="button"
               onClick={() => window.print()}
-              disabled={!hasData || isLoading || isError}
+              disabled={!hasData || isReportBusy || isError}
               className="flex h-[40px] shrink-0 items-center gap-[7px] rounded-[11px] bg-teal px-[18px] text-[13.5px] font-bold text-white hover:bg-teal-d disabled:opacity-40"
             >
               <PrinterIcon />

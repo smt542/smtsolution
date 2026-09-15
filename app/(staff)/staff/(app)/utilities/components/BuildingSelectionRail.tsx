@@ -157,7 +157,9 @@ export function BuildingSelectionRail({
             <p className="mt-1 text-[13px] leading-[1.55] text-t3">선택한 고객번호의<br />최근 6개월 이력이 표시돼요</p>
           </div>
         ) : historyQuery.isLoading ? (
-          <div className="flex flex-1 items-center justify-center text-[12px] text-t3">이력을 불러오는 중입니다.</div>
+          <div role="status" aria-label="최근 6개월 이력 불러오는 중" className="flex flex-1 items-center justify-center text-[12px] text-t3">이력을 불러오는 중입니다.</div>
+        ) : historyQuery.isError ? (
+          <div role="alert" className="flex flex-1 items-center justify-center text-[12px] text-red">이력을 불러오지 못했습니다.</div>
         ) : (
           <div className="min-h-0 flex-1 overflow-auto">
             <div className="border-b border-line2 px-4 py-3">

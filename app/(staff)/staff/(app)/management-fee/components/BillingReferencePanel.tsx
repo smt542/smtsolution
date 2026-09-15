@@ -54,6 +54,9 @@ export function BillingReferencePanel({
             className="sr-only"
           />
           중요 건물
+          {setImportant.isPending ? (
+            <span role="status" aria-label="중요 건물 설정 저장 중" className="sr-only">저장 중…</span>
+          ) : null}
         </label>
       </div>
 

@@ -102,13 +102,14 @@ function CancelButton({ id }: { id: number }) {
       onClick={() => mutate(id)}
       className="inline-flex h-[23px] w-[64px] items-center justify-center rounded-[7px] border border-[#f04452] text-[12.5px] font-bold text-[#f04452] hover:bg-[#fff5f5] disabled:opacity-50"
     >
-      {isPending ? "취소 중" : "예약 취소"}
+      {isPending ? "예약 취소 중…" : "예약 취소"}
     </button>
   );
 }
 
 export function ScheduledTab() {
-  const { data: messages = [], isLoading, error, refetch } = useScheduledMessages();
+  const { data: messages = [], isLoading, isFetching, error, refetch } = useScheduledMessages();
+  const isScheduledMessagesRefreshing = isFetching && !isLoading;
   const [filter, setFilter] = useState<RecurrenceFilter>("all");
   const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
 
@@ -124,9 +125,8 @@ export function ScheduledTab() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center gap-[12px] rounded-[16px] bg-white py-[60px] shadow-[0px_1px_3px_0px_rgba(23,31,40,0.05)]">
-        <Spinner />
-        <p className="text-[14px] text-[#8b95a1]">예약 발송 목록을 불러오는 중입니다.</p>
+      <div className="flex min-h-[240px] flex-col items-center justify-center gap-[12px] rounded-[16px] bg-white shadow-[0px_1px_3px_0px_rgba(23,31,40,0.05)]">
+        <Spinner label="예약 발송 목록 불러오는 중" showLabel />
       </div>
     );
   }
@@ -146,7 +146,12 @@ export function ScheduledTab() {
   }
 
   return (
-    <div className="overflow-hidden rounded-[16px] bg-white shadow-[0px_1px_3px_0px_rgba(23,31,40,0.05)]">
+    <div className="relative min-h-[240px] overflow-hidden rounded-[16px] bg-white shadow-[0px_1px_3px_0px_rgba(23,31,40,0.05)]">
+      {isScheduledMessagesRefreshing ? (
+        <div className="absolute right-4 top-3 z-10 rounded-lg bg-white/95 shadow-card">
+          <Spinner label="예약 발송 목록 갱신 중" size="small" showLabel className="px-3 py-2" />
+        </div>
+      ) : null}
       {/* 카드 헤더 */}
       <div className="flex items-center gap-[8px] border-b border-[#f1f3f5] px-[18px] py-[15px]">
         <span className="text-[15px] font-extrabold text-[#191f28]">예약 발송</span>

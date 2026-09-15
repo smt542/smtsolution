@@ -83,7 +83,7 @@ export function UtilityWorkspaceBar({
       {editing ? (
         <div className="flex items-center gap-1.5">
           <button type="button" onClick={onCalculate} className="h-[26px] rounded-[8px] border border-line bg-white px-[10px] text-[11.5px] font-bold text-t2 hover:bg-bg">계산</button>
-          <button type="button" onClick={save} disabled={saving || savePeriod.isPending} className="h-[26px] rounded-[8px] bg-blue px-[10px] text-[11.5px] font-bold text-white hover:bg-blue-d disabled:opacity-60">저장</button>
+          <button type="button" onClick={save} disabled={saving || savePeriod.isPending} className="h-[26px] rounded-[8px] bg-blue px-[10px] text-[11.5px] font-bold text-white hover:bg-blue-d disabled:opacity-60">{saving || savePeriod.isPending ? "저장 중…" : "저장"}</button>
           <button type="button" aria-label="수정 취소" onClick={cancel} className="grid size-[26px] place-items-center rounded-[8px] border border-line text-t3 hover:bg-bg"><CloseIcon className="size-3.5" /></button>
         </div>
       ) : canEdit ? (

@@ -9,10 +9,12 @@ interface Props {
   vendors: Vendor[];
   categories: VendorCategory[];
   isLoading: boolean;
+  isError: boolean;
+  onRetry: () => void;
   onRowClick: (vendor: Vendor) => void;
 }
 
-export function VendorList({ vendors, categories, isLoading, onRowClick }: Props) {
+export function VendorList({ vendors, categories, isLoading, isError, onRetry, onRowClick }: Props) {
   const categoryMap = React.useMemo(
     () => Object.fromEntries(categories.map((c) => [c.id, c.label])),
     [categories],
@@ -22,7 +24,20 @@ export function VendorList({ vendors, categories, isLoading, onRowClick }: Props
     return (
       <div className={styles.tableWrap}>
         <div className={styles.loadingCell}>
-          <Spinner />
+          <Spinner label="협력업체 목록 불러오는 중" />
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className={styles.tableWrap}>
+        <div role="alert" className={styles.stateCell}>
+          협력업체 목록을 불러오지 못했습니다.
+          <button type="button" onClick={onRetry} className="ml-2 underline">
+            다시 시도
+          </button>
         </div>
       </div>
     );

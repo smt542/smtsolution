@@ -49,7 +49,7 @@ export function NotificationSettingsTab() {
   };
 
   return (
-    <Panel title="알림 설정" action={<Button variant="primary" onClick={save} disabled={upsert.isPending}>저장</Button>}>
+    <Panel title="알림 설정" action={<Button variant="primary" onClick={save} disabled={upsert.isPending}>{upsert.isPending ? "저장 중…" : "저장"}</Button>}>
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-4 rounded-xl border border-line p-4">
           <div className="min-w-0">

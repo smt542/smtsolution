@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import { COMPLAINT_STATUS_LABEL } from "@/app/(staff)/staff/(app)/receipts/constants";
+import { Spinner } from "@/components/common";
 import { useAccounts } from "@/hooks/reactquery/accounts";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useComplaints } from "@/hooks/reactquery/complaints";
@@ -350,10 +351,12 @@ export function AsReportModal({
   }, [from, rows, search, to]);
 
   const meta = `[시행일 : ${dotted(from)}] 부터 ${dotted(to)}`;
-  const isLoading =
+  const isReportDataLoading =
     complaintsQuery.isLoading ||
     buildingsQuery.isLoading ||
     accountsQuery.isLoading;
+  const isReportDataRefreshing = [complaintsQuery, buildingsQuery, accountsQuery]
+    .some((query) => query.isFetching && !query.isLoading);
   const isError =
     complaintsQuery.isError || buildingsQuery.isError || accountsQuery.isError;
 
@@ -465,7 +468,7 @@ export function AsReportModal({
   if (!open) return null;
 
   let stateMessage = "";
-  if (isLoading) stateMessage = "A/S 접수 내역을 불러오는 중이에요";
+  if (isReportDataLoading) stateMessage = "A/S 접수 내역을 불러오는 중이에요";
   else if (isError) stateMessage = "A/S 접수 내역을 불러오지 못했어요";
   else if (filteredRows.length === 0)
     stateMessage = "조회된 A/S 접수 내역이 없어요";
@@ -548,8 +551,13 @@ export function AsReportModal({
           />
         </div>
         <div
-          className={`${styles.aspSheet} flex-[1_1_auto] min-h-0 overflow-auto px-[22px] py-5`}
+          className={`${styles.aspSheet} relative flex-[1_1_auto] min-h-[360px] overflow-auto px-[22px] py-5`}
         >
+          {isReportDataRefreshing ? (
+            <div className="absolute right-5 top-4 rounded-lg bg-white/95 shadow-card">
+              <Spinner label="A/S 접수 내역 갱신 중" size="small" showLabel className="px-3 py-2" />
+            </div>
+          ) : null}
           <h1>[ A/S 접수 현황 ]</h1>
           <div className="text-[12.5px] font-bold text-t2 mb-2">{meta}</div>
           <table ref={tableRef} className={styles.aspTbl}>
@@ -583,7 +591,7 @@ export function AsReportModal({
               </tr>
             </thead>
             <tbody>
-              {!isLoading &&
+              {!isReportDataLoading &&
                 !isError &&
                 filteredRows.map((row, index) => (
                   <tr key={row.id}>
@@ -615,7 +623,11 @@ export function AsReportModal({
             </tbody>
           </table>
           {stateMessage && (
-            <div className="py-10 text-center text-[13.5px] font-semibold text-t4">
+            <div
+              role={isError ? "alert" : isReportDataLoading ? "status" : undefined}
+              aria-label={isReportDataLoading ? stateMessage : undefined}
+              className="py-10 text-center text-[13.5px] font-semibold text-t4"
+            >
               {stateMessage}
             </div>
           )}

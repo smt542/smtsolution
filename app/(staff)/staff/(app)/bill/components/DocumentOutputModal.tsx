@@ -109,7 +109,11 @@ export function DocumentOutputModal({ type, buildings, companyName, accounts, cu
   }, [faxReadyTargets, type]);
 
   const allQueries = [...currentTargetQueries, ...(needsDocuments ? currentDocumentQueries : []), ...(type === "giro" ? periodSettingQueries : []), ...(type === "adjustment" ? [...previousTargetQueries, ...previousDocumentQueries] : [])];
-  const isLoading = allQueries.some((query) => query.isLoading || query.isFetching);
+  const isPreviewInitialLoading = allQueries.some((query) => query.isLoading);
+  const isPreviewRefreshing = allQueries.some(
+    (query) => query.isFetching && !query.isLoading,
+  );
+  const isPreviewBusy = isPreviewInitialLoading || isPreviewRefreshing;
   const isError = allQueries.some((query) => query.isError);
   const hasPrintableData = type === "giro" ? giroDocuments.length > 0 : adjustmentBuildings.some((bundle) => bundle.current.length > 0 || bundle.previous.length > 0);
 
@@ -199,7 +203,22 @@ export function DocumentOutputModal({ type, buildings, companyName, accounts, cu
               <>
                 <div className="w-[340px] shrink-0"><OutputSelectionPane type={type} year={year} month={month} years={YEARS} months={MONTHS} search={search} buildings={visibleBuildings} selectedBuildingIds={selectedBuildingIds} targetsByBuilding={currentTargetsByBuilding} selectedUnitIds={type === "fax" ? selectedFaxUnitIds : effectiveIndividualId === null ? [] : [effectiveIndividualId]} onYearChange={changeYear} onMonthChange={changeMonth} onSearchChange={setSearch} onToggleBuilding={toggleBuilding} onToggleUnit={toggleUnit} /></div>
                 <div className="relative flex min-w-0 flex-1">
-                  {selectedBuildingIds.length === 0 ? <div className="flex flex-1 items-center justify-center bg-[#e9edf1] text-[12px] text-[#8b95a1]">출력할 건물을 선택해 주세요.</div> : isError ? <div className="flex flex-1 items-center justify-center bg-[#e9edf1] text-[12px] font-bold text-[#f04452]">확정 부과 자료를 불러오지 못했습니다.</div> : isLoading ? <div className="flex flex-1 items-center justify-center bg-[#e9edf1]"><Spinner /></div> : <CompactDocumentPreview type={type} companyName={companyName} period={period} building={previewEntry?.building ?? fallbackPreview?.building ?? selectedBuildings[0]} target={previewEntry?.target ?? fallbackPreview?.target} document={previewEntry?.document ?? currentDocumentQueries[0]?.data?.[0]} zoom={zoom} onZoom={setZoom} />}
+                  {selectedBuildingIds.length === 0 ? (
+                    <div className="flex flex-1 items-center justify-center bg-[#e9edf1] text-[12px] text-[#8b95a1]">출력할 건물을 선택해 주세요.</div>
+                  ) : isError ? (
+                    <div role="alert" className="flex flex-1 items-center justify-center bg-[#e9edf1] text-[12px] font-bold text-[#f04452]">확정 부과 자료를 불러오지 못했습니다.</div>
+                  ) : isPreviewInitialLoading ? (
+                    <div className="flex min-h-[420px] flex-1 items-center justify-center bg-[#e9edf1]"><Spinner label="출력 미리보기 불러오는 중" /></div>
+                  ) : (
+                    <>
+                      <CompactDocumentPreview type={type} companyName={companyName} period={period} building={previewEntry?.building ?? fallbackPreview?.building ?? selectedBuildings[0]} target={previewEntry?.target ?? fallbackPreview?.target} document={previewEntry?.document ?? currentDocumentQueries[0]?.data?.[0]} zoom={zoom} onZoom={setZoom} />
+                      {isPreviewRefreshing ? (
+                        <div className="pointer-events-none absolute right-3 top-3 rounded-full bg-surface/95 shadow-card">
+                          <Spinner label="출력 미리보기 갱신 중" size="small" showLabel className="px-3 py-2" />
+                        </div>
+                      ) : null}
+                    </>
+                  )}
                 </div>
               </>
             )}
@@ -208,8 +227,8 @@ export function DocumentOutputModal({ type, buildings, companyName, accounts, cu
             <p className="text-[11.5px] font-semibold text-[#8b95a1]">{type === "autoDebit" ? "" : type === "adjustment" ? `${selectedBuildingIds.length}곳 선택` : `건물 ${selectedBuildingIds.length}개 / 호수 ${selectedUnitCount}개 선택`}</p>
             <div className="flex items-center gap-[8px]">
               {type === "autoDebit" && <><ModalActionButton variant="ghost" icon="/figma-assets/bill/download.svg" onClick={downloadAutoDebit} disabled={selectedBuildings.length === 0}>다운로드</ModalActionButton><ModalActionButton icon="/figma-assets/bill/print.svg" onClick={() => window.print()} disabled={autoDebitRows.length === 0}>인쇄</ModalActionButton></>}
-              {(type === "giro" || type === "adjustment") && <ModalActionButton icon="/figma-assets/bill/print.svg" onClick={() => void print()} disabled={!hasPrintableData || isLoading || !previewReady || issueBills.isPending}>{issueBills.isPending ? "발행 중…" : "인쇄"}</ModalActionButton>}
-              {type === "fax" && <ModalActionButton onClick={openFaxConfirmation} disabled={selectedFaxUnitIds.length === 0 || sendFaxes.isPending}>발송</ModalActionButton>}
+              {(type === "giro" || type === "adjustment") && <ModalActionButton icon="/figma-assets/bill/print.svg" onClick={() => void print()} disabled={!hasPrintableData || isPreviewBusy || !previewReady || issueBills.isPending}>{issueBills.isPending ? "발행 중…" : "인쇄"}</ModalActionButton>}
+              {type === "fax" && <ModalActionButton onClick={openFaxConfirmation} disabled={selectedFaxUnitIds.length === 0 || sendFaxes.isPending}>{sendFaxes.isPending ? "발송 중…" : "발송"}</ModalActionButton>}
             </div>
           </footer>
         </div>

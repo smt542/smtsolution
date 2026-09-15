@@ -1,5 +1,3 @@
-"use client";
-
 import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
 import styles from "../_asform.module.css";
 
@@ -8,10 +6,12 @@ export default function PartnerAsNewLoading() {
     <div className={styles.root}>
       <PartnerMobileHeader
         title="신규 접수"
-        onBack={() => undefined}
+        backHref="/partner/mobile-home"
         variant="compact"
       />
-      <div className={styles.none}>불러오는 중…</div>
+      <div className={styles.none} role="status" aria-label="신규 접수 화면 불러오는 중">
+        불러오는 중…
+      </div>
     </div>
   );
 }

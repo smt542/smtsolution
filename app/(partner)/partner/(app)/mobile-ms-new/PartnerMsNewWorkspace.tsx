@@ -152,7 +152,7 @@ export default function PartnerMsNewWorkspace({
   const totals = useMemo(() => (state ? computeTotals(state) : null), [state]);
   const saveMutation = useSavePartnerSettlement();
   const deleteMutation = useDeletePartnerSettlement();
-  const busy = saveMutation.isPending || deleteMutation.isPending;
+  const isSettlementMutating = saveMutation.isPending || deleteMutation.isPending;
 
   const backHref = Number.isFinite(unitId) ? `/partner/mobile-tenant?id=${unitId}` : "/partner/mobile-inquiry";
   const goBack = () => router.push(backHref);
@@ -179,7 +179,7 @@ export default function PartnerMsNewWorkspace({
     setState((s) => (s ? { ...s, checked: { ...s.checked, [id]: !s.checked[id] } } : s));
 
   const doSave = async () => {
-    if (!state || !ctx || busy) return;
+    if (!state || !ctx || isSettlementMutating) return;
     if (!state.moveOutDate) {
       setToast("퇴실일자를 선택해 주세요");
       return;
@@ -207,7 +207,7 @@ export default function PartnerMsNewWorkspace({
   };
 
   const doDelete = async () => {
-    if (activeId === null || busy) return;
+    if (activeId === null || isSettlementMutating) return;
     setErr("");
     try {
       await deleteMutation.mutateAsync(activeId);
@@ -566,16 +566,16 @@ export default function PartnerMsNewWorkspace({
 
       <PartnerBottomActionBar>
         {isEdit ? (
-          <button type="button" className={`${styles.btn} ${styles.btnDel}`} onClick={() => setConfirmKind("delete")} disabled={busy}>
-            삭제
+          <button type="button" className={`${styles.btn} ${styles.btnDel}`} onClick={() => setConfirmKind("delete")} disabled={isSettlementMutating}>
+            {deleteMutation.isPending ? "삭제 중…" : "삭제"}
           </button>
         ) : (
-          <button type="button" className={`${styles.btn} ${styles.btnSec}`} onClick={() => setConfirmKind("cancel")} disabled={busy}>
+          <button type="button" className={`${styles.btn} ${styles.btnSec}`} onClick={() => setConfirmKind("cancel")} disabled={isSettlementMutating}>
             취소
           </button>
         )}
-        <button type="button" className={`${styles.btn} ${styles.btnPri}`} onClick={() => setConfirmKind("save")} disabled={busy}>
-          저장
+        <button type="button" className={`${styles.btn} ${styles.btnPri}`} onClick={() => setConfirmKind("save")} disabled={isSettlementMutating}>
+          {saveMutation.isPending ? "저장 중…" : "저장"}
         </button>
       </PartnerBottomActionBar>
 

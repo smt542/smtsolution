@@ -35,6 +35,7 @@ export function BillingPeriodBar({
   const [chargeStartDate, setChargeStartDate] = useState("");
   const [chargeEndDate, setChargeEndDate] = useState("");
   const setting = periodQuery.data;
+  const isBillingPeriodRefreshing = periodQuery.isFetching && !periodQuery.isLoading;
 
   const startEditing = () => {
     const defaults = defaultBillingDates(period);
@@ -63,15 +64,16 @@ export function BillingPeriodBar({
   };
 
   return (
-    <section className="rounded-xl border border-blue/20 bg-blue-t2 px-4 py-3 shadow-card">
+    <section className="relative min-h-[64px] rounded-xl border border-blue/20 bg-blue-t2 px-4 py-3 shadow-card">
       <div className="flex flex-wrap items-center gap-3">
         <strong className="text-sm text-blue-d">부과기준일</strong>
+        {isBillingPeriodRefreshing ? (
+          <Spinner label="부과기준일 갱신 중" size="small" showLabel className="px-2 py-1" />
+        ) : null}
         {periodQuery.isLoading ? (
-          <div className="flex items-center gap-2 text-xs text-t3">
-            <Spinner /> 불러오는 중
-          </div>
+          <Spinner label="부과기준일 불러오는 중" size="small" showLabel className="px-2 py-1" />
         ) : periodQuery.error ? (
-          <span className="text-sm font-semibold text-red">부과기준일을 불러오지 못했습니다.</span>
+          <span role="alert" className="text-sm font-semibold text-red">부과기준일을 불러오지 못했습니다.</span>
         ) : editing ? (
           <div className="flex flex-1 flex-wrap items-center gap-2">
             <Input
@@ -95,7 +97,7 @@ export function BillingPeriodBar({
               onClick={submit}
               disabled={savePeriod.isPending}
             >
-              저장
+              {savePeriod.isPending ? "저장 중…" : "저장"}
             </Button>
             <Button
               type="button"

@@ -22,7 +22,11 @@ export default function ResidentAsyncState({
   onRetry,
 }: ResidentAsyncStateProps) {
   return (
-    <div className={styles[variant]} role={role}>
+    <div
+      className={styles[variant]}
+      role={role}
+      aria-label={typeof message === "string" ? message : undefined}
+    >
       {showSpinner ? (
         <span className={styles.spinner} aria-hidden="true" />
       ) : null}

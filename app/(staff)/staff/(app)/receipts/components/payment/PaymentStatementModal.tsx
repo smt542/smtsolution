@@ -195,8 +195,11 @@ export function PaymentStatementModal({
     });
   })();
 
-  const isLoading = canLoadStatement
-    && (statementQuery.isLoading || statementQuery.isFetching);
+  const isStatementInitialLoading = canLoadStatement && statementQuery.isLoading;
+  const isStatementRefreshing = canLoadStatement
+    && statementQuery.isFetching
+    && !statementQuery.isLoading;
+  const isStatementBusy = isStatementInitialLoading || isStatementRefreshing;
   const isError = canLoadStatement && statementQuery.isError;
   const selectedRow = currentRows.find((row) => row.unitId === unitId);
   const scopeLabel = scope === "building"
@@ -344,19 +347,26 @@ export function PaymentStatementModal({
               </div>
             </aside>
 
-            <main className="min-h-0 overflow-auto bg-slate-200/70 p-5">
+            <main className="relative min-h-0 overflow-auto bg-slate-200/70 p-5">
               {isError ? (
                 <div className="flex min-h-80 items-center justify-center text-sm font-bold text-red">
                   수납명세서 자료를 불러오지 못했습니다.
                 </div>
-              ) : isLoading ? (
-                <div className="flex min-h-80 items-center justify-center"><Spinner /></div>
+              ) : isStatementInitialLoading ? (
+                <div className="flex min-h-80 items-center justify-center"><Spinner label="수납명세서 자료 불러오는 중" /></div>
               ) : statementRows.length === 0 ? (
                 <div className="flex min-h-80 items-center justify-center text-sm text-t3">
                   검색 결과가 없습니다.
                 </div>
               ) : (
-                preview
+                <>
+                  {preview}
+                  {isStatementRefreshing ? (
+                    <div className="pointer-events-none absolute right-3 top-3 rounded-full bg-surface/95 shadow-card">
+                      <Spinner label="수납명세서 자료 갱신 중" size="small" showLabel className="px-3 py-2" />
+                    </div>
+                  ) : null}
+                </>
               )}
             </main>
           </div>
@@ -370,7 +380,7 @@ export function PaymentStatementModal({
               <Button
                 type="button"
                 onClick={() => window.print()}
-                disabled={isLoading || isError || statementRows.length === 0}
+                disabled={isStatementBusy || isError || statementRows.length === 0}
               >
                 인쇄
               </Button>
@@ -379,7 +389,7 @@ export function PaymentStatementModal({
         </div>
       </div>
 
-      {!isLoading && !isError && statementRows.length > 0 && (
+      {!isStatementInitialLoading && !isError && statementRows.length > 0 && (
         <div className="hidden print:block" data-testid="payment-statement-print-root">
           {preview}
         </div>

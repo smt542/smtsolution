@@ -145,7 +145,9 @@ export function VillaReceiptHistoryModal({
   if (!open) return null;
 
   const years = Array.from({ length: 11 }, (_, index) => initialYear - 5 + index);
-  const isLoading = query.isLoading || query.isFetching;
+  const isHistoryInitialLoading = query.isLoading;
+  const isHistoryRefreshing = query.isFetching && !query.isLoading;
+  const isHistoryBusy = isHistoryInitialLoading || isHistoryRefreshing;
   const hasData = model.rows.length > 0;
 
   return (
@@ -213,7 +215,10 @@ export function VillaReceiptHistoryModal({
           <AsyncContentState
             error={query.isError}
             errorMessage="수납내역을 불러오지 못했습니다."
-            loading={isLoading}
+            loading={isHistoryInitialLoading}
+            loadingLabel="수납내역 불러오는 중"
+            refreshing={isHistoryRefreshing}
+            refreshingLabel="수납내역 갱신 중"
             empty={periods.length === 0 || !hasData}
             emptyMessage={
               periods.length === 0 ? "조회 기간을 확인하세요." : "조회된 수납내역이 없습니다."
@@ -226,7 +231,7 @@ export function VillaReceiptHistoryModal({
             <button
               type="button"
               onClick={() => window.print()}
-              disabled={!hasData || isLoading || query.isError}
+              disabled={!hasData || isHistoryBusy || query.isError}
               className="flex h-[40px] items-center gap-[7px] rounded-[11px] bg-teal px-[18px] text-[13.5px] font-bold text-white hover:bg-teal-d disabled:opacity-40"
             >
               <PrinterIcon className="h-[16px] w-[16px]" />

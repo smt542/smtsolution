@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
+import { useAsyncAction } from "@/hooks/common";
 
 import styles from "./mobile-profile.module.css";
 
@@ -18,17 +19,17 @@ export function ProfileView({
 }) {
   const router = useRouter();
   const [confirm, setConfirm] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const logoutAction = useAsyncAction();
 
   const logout = async () => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      await createClient().auth.signOut();
-    } catch {
-      /* signOut 실패해도 로그인 화면으로 이동 */
-    }
-    router.replace("/partner/mobile-login");
+    await logoutAction.run(async () => {
+      try {
+        await createClient().auth.signOut();
+      } catch {
+        /* signOut 실패해도 로그인 화면으로 이동 */
+      }
+      router.replace("/partner/mobile-login");
+    });
   };
 
   const initial = fullName.trim().charAt(0) || "·";
@@ -80,9 +81,9 @@ export function ProfileView({
                 type="button"
                 className={`${styles.dBtn} ${styles.dDanger}`}
                 onClick={logout}
-                disabled={busy}
+                disabled={logoutAction.isPending}
               >
-                로그아웃
+                {logoutAction.isPending ? "로그아웃 중…" : "로그아웃"}
               </button>
             </div>
           </div>

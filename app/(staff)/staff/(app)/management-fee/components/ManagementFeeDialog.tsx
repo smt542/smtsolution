@@ -60,6 +60,12 @@ export function ManagementFeeDialog({
   const current = periodLabel(period);
   const previous = previousPeriodLabel(period);
   const utilityMissing = kind === "utility-missing";
+  const confirmLabel =
+    utilityMissing || kind === "important-building"
+      ? "확인"
+      : kind === "zero-amount"
+        ? "계속 확정"
+        : "반영";
   const title = {
     "utility-missing": "공과금 부과액이 아직 없어요",
     "zero-amount": "0원 부과 항목이 있어요",
@@ -166,13 +172,7 @@ export function ManagementFeeDialog({
             disabled={pending}
             className="h-[40px] flex-1 rounded-[11px] border border-teal bg-teal px-[18px] text-[13.5px] font-bold text-white disabled:opacity-60"
           >
-            {pending
-              ? "처리 중…"
-              : utilityMissing || kind === "important-building"
-                ? "확인"
-                : kind === "zero-amount"
-                  ? "계속 확정"
-                  : "반영"}
+            {pending ? `${confirmLabel} 중…` : confirmLabel}
           </button>
         </div>
       </section>

@@ -121,7 +121,7 @@ function PaymentAmountForm({
 
         <div className="flex justify-end gap-2 border-t border-line pt-4">
           <Button type="button" variant="ghost" onClick={closeSafely} disabled={submitting}>닫기</Button>
-          <Button type="submit" disabled={submitting}>{submitting ? "처리 중…" : "수납 처리"}</Button>
+          <Button type="submit" disabled={submitting}>{submitting ? "수납 처리 중…" : "수납 처리"}</Button>
         </div>
       </form>
     </ComplaintDialog>

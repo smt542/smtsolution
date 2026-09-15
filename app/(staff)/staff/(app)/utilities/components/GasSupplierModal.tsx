@@ -42,6 +42,7 @@ export function GasSupplierModal({
   const saveSupplier = useSaveUtilitySupplier();
   const [draft, setDraft] = useState<SupplierDraft | null>(null);
   const supplier = supplierQuery.data;
+  const isSupplierRefreshing = supplierQuery.isFetching && !supplierQuery.isLoading;
   const values = draft ?? {
     companyName: supplier?.companyName ?? EMPTY_DRAFT.companyName,
     phone: supplier?.phone ?? EMPTY_DRAFT.phone,
@@ -85,13 +86,12 @@ export function GasSupplierModal({
   return (
     <Modal open={open} onClose={close} title="가스 공급자정보">
       {supplierQuery.isLoading ? (
-        <div className="py-8">
-          <Spinner />
-          <p className="text-center text-sm text-t3">공급자정보를 불러오는 중입니다.</p>
+        <div className="min-h-[200px] py-8">
+          <Spinner label="가스 공급자 정보 불러오는 중" showLabel />
         </div>
       ) : supplierQuery.error ? (
         <div className="space-y-4">
-          <p className="rounded-xl border border-red/20 bg-red-t p-4 text-sm font-semibold text-red">
+          <p role="alert" className="rounded-xl border border-red/20 bg-red-t p-4 text-sm font-semibold text-red">
             공급자정보를 불러오지 못했습니다.
           </p>
           <div className="flex justify-end">
@@ -101,7 +101,12 @@ export function GasSupplierModal({
           </div>
         </div>
       ) : (
-        <>
+        <div className="relative">
+          {isSupplierRefreshing ? (
+            <div className="absolute right-0 top-0 rounded-lg bg-white/95 shadow-card">
+              <Spinner label="가스 공급자 정보 갱신 중" size="small" showLabel className="px-3 py-2" />
+            </div>
+          ) : null}
           <div className="space-y-4">
             <SupplierField
               label="가스회사명"
@@ -132,10 +137,10 @@ export function GasSupplierModal({
           <div className="mt-6 flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={close}>취소</Button>
             <Button type="button" onClick={submit} disabled={saveSupplier.isPending}>
-              저장
+              {saveSupplier.isPending ? "저장 중…" : "저장"}
             </Button>
           </div>
-        </>
+        </div>
       )}
     </Modal>
   );

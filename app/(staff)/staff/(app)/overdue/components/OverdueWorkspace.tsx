@@ -282,11 +282,11 @@ export function OverdueWorkspace({
             description="선택한 건물의 미납 내역을 조회할 수 있어요"
           />
         ) : isHouseholdsLoading ? (
-          <div aria-label="미납 세대 조회 중" className="flex min-h-0 flex-1 items-center justify-center">
-            <Spinner />
+          <div className="flex min-h-[360px] flex-1 items-center justify-center">
+            <Spinner label="미납 세대 조회 중" showLabel />
           </div>
         ) : householdsError ? (
-          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[12px] text-center">
+          <div role="alert" className="flex min-h-[360px] flex-1 flex-col items-center justify-center gap-[12px] text-center">
             <p className="text-[13.5px] text-t3">미납 내역을 불러오지 못했어요</p>
             <button
               type="button"

@@ -125,15 +125,17 @@ export default function PointsWorkspace() {
   const messageCount = billingTotals.smsCount + billingTotals.lmsCount;
   const railTotal = monthUsedPoints > 0 ? monthUsedPoints : 1;
   const lowBalanceThreshold = settingsQuery.data?.lowBalanceThreshold ?? 0;
-  const summaryPending = modalOrgsQuery.isPending
+  const isPointSummaryInitialLoading = modalOrgsQuery.isPending
     || billingQuery.isPending
     || ratesQuery.isPending
     || settingsQuery.isPending;
+  const isPointSummaryRefreshing = [modalOrgsQuery, billingQuery, ratesQuery, settingsQuery]
+    .some((query) => query.isFetching && !query.isPending);
   const summaryError = modalOrgsQuery.isError
     || billingQuery.isError
     || ratesQuery.isError
     || settingsQuery.isError;
-  const summaryReady = !summaryPending && !summaryError;
+  const summaryReady = !isPointSummaryInitialLoading && !summaryError;
   const sendingStopped = summaryReady && poolBalance <= 0;
   const chargeNeeded = summaryReady
     && poolBalance > 0
@@ -213,11 +215,14 @@ export default function PointsWorkspace() {
         </div>
       )}
 
-      <section className="overflow-hidden rounded-2xl bg-surface shadow-card">
+      <section className="relative min-h-[260px] overflow-hidden rounded-2xl bg-surface shadow-card">
         <div className="flex items-center gap-2.5 border-b border-line2 px-[18px] py-[15px]">
           <h2 className="text-[15px] font-extrabold text-t1">팝빌 포인트</h2>
           <p className="text-xs font-semibold text-t3">1원 = 1P · 알림톡·문자·팩스 공통 차감</p>
           <div className="flex-1" />
+          {isPointSummaryRefreshing ? (
+            <Spinner label="팝빌 포인트 요약 갱신 중" size="small" showLabel className="px-2 py-1" />
+          ) : null}
           <button
             type="button"
             onClick={() => setChargeModalOpen(true)}
@@ -228,8 +233,8 @@ export default function PointsWorkspace() {
           </button>
         </div>
 
-        {summaryPending ? (
-          <div className="py-16"><Spinner /></div>
+        {isPointSummaryInitialLoading ? (
+          <div className="py-16"><Spinner label="팝빌 포인트 요약 불러오는 중" /></div>
         ) : summaryError ? (
           <div className="p-[22px]"><QueryError onRetry={retrySummary} /></div>
         ) : (
@@ -350,8 +355,13 @@ export default function PointsWorkspace() {
               disabled={txQuery.isFetchingNextPage}
               className="h-7 rounded-lg px-3 text-[12.5px] font-bold text-t3 transition-colors hover:bg-bg hover:text-t1 disabled:cursor-not-allowed disabled:text-t4"
             >
-              {txQuery.isFetchingNextPage ? "불러오는 중" : "충전 이력 더 보기"}
+              {txQuery.isFetchingNextPage ? "충전 이력 불러오는 중…" : "충전 이력 더 보기"}
             </button>
+            {txQuery.isFetchingNextPage ? (
+              <span role="status" aria-label="충전 이력 불러오는 중" className="sr-only">
+                충전 이력 불러오는 중…
+              </span>
+            ) : null}
           </div>
         )}
       </section>

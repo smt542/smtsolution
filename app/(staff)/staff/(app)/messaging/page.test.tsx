@@ -12,6 +12,10 @@ const { composerSpy, getStaffContext } = vi.hoisted(() => ({
 vi.mock("../_staffContext", () => ({ getStaffContext }));
 vi.mock("@/hooks/reactquery/messaging", () => ({
   useMessageLogs: vi.fn(),
+  useScheduledMessages: () => ({ data: [] }),
+}));
+vi.mock("@/hooks/reactquery/messageTemplates", () => ({
+  useMessageTemplates: () => ({ data: [] }),
 }));
 vi.mock("./components/MessagingComposer", () => ({
   MessagingComposer: (props: {
@@ -69,17 +73,20 @@ function setup({
   me = allowedUser,
   messageLogs = logs,
   isLogsLoading = false,
+  isLogsFetching = false,
   logsError = null,
 }: {
   me?: MyContext | null;
   messageLogs?: MessageLog[];
   isLogsLoading?: boolean;
+  isLogsFetching?: boolean;
   logsError?: Error | null;
 } = {}) {
   getStaffContext.mockResolvedValue(me);
   vi.mocked(useMessageLogs).mockReturnValue({
     data: messageLogs,
     isLoading: isLogsLoading,
+    isFetching: isLogsFetching,
     error: logsError,
     refetch: refetchLogs,
   } as unknown as ReturnType<typeof useMessageLogs>);
@@ -101,37 +108,25 @@ describe("MessagingPage", () => {
     expect(useMessageLogs).not.toHaveBeenCalled();
   });
 
-  it("발송·템플릿·내역 탭을 렌더하고 전환한다", async () => {
+  it("예약·내역·템플릿 탭을 렌더하고 전환한다", async () => {
     render(await MessagingPage({ searchParams: Promise.resolve({}) }));
 
-    expect(
-      screen.getByRole("heading", { name: "문자·알림톡 발송" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "예약분 지금 처리" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "발송" })).toHaveAttribute(
+    expect(screen.getByRole("tab", { name: /^예약 발송/ })).toHaveAttribute(
       "aria-selected",
       "true",
     );
-    expect(screen.getByRole("tab", { name: "템플릿" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "내역" })).toBeInTheDocument();
-    expect(screen.getByTestId("messaging-composer")).toBeInTheDocument();
-    expect(composerSpy).toHaveBeenCalledWith({ initialMode: "auto" });
-    expect(useMessageLogs).not.toHaveBeenCalled();
+    expect(screen.getByRole("tab", { name: /^템플릿 관리/ })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /^발송 내역/ })).toBeInTheDocument();
+    expect(screen.getByText("예약된 발송이 없습니다.")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("tab", { name: "템플릿" }));
+    fireEvent.click(screen.getByRole("tab", { name: /^템플릿 관리/ }));
     expect(screen.getByRole("button", { name: "새 템플릿" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("tab", { name: "내역" }));
-    expect(useMessageLogs).toHaveBeenCalledWith();
-    expect(screen.getByText("user-1")).toBeInTheDocument();
-    expect(
-      screen.getByRole("columnheader", { name: "발송자 ID" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("2026. 08. 13. 10:30")).toBeInTheDocument();
-    expect(screen.getByText("2명")).toBeInTheDocument();
-    expect(screen.getByRole("cell", { name: "SMS" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: /^발송 내역/ }));
+    expect(screen.getByRole("columnheader", { name: "발신자" })).toBeInTheDocument();
+    expect(screen.getByText("2026.08.13 10:30")).toBeInTheDocument();
+    expect(screen.getByText("독촉 / 2명")).toBeInTheDocument();
+    expect(screen.getAllByText("SMS")).toHaveLength(2);
     expect(screen.getByText("8월 관리비 납부를 부탁드립니다.")).toBeInTheDocument();
     expect(screen.getByText("stub")).toBeInTheDocument();
   });
@@ -139,10 +134,10 @@ describe("MessagingPage", () => {
   it("발송 이력 조회 오류를 표시하고 재시도하면 쿼리를 다시 요청한다", async () => {
     setup({ messageLogs: [], logsError: new Error("network error") });
     render(await MessagingPage({ searchParams: Promise.resolve({}) }));
-    fireEvent.click(screen.getByRole("tab", { name: "내역" }));
+    fireEvent.click(screen.getByRole("tab", { name: /^발송 내역/ }));
 
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "발송 이력을 불러오지 못했습니다.",
+      "발송 내역을 불러오지 못했습니다.",
     );
     fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
     expect(refetchLogs).toHaveBeenCalledOnce();
@@ -155,12 +150,27 @@ describe("MessagingPage", () => {
       }),
     );
 
-    expect(screen.getByRole("tab", { name: "내역" })).toHaveAttribute(
+    expect(screen.getByRole("tab", { name: /^발송 내역/ })).toHaveAttribute(
       "aria-selected",
       "true",
     );
-    expect(screen.getByText("user-1")).toBeInTheDocument();
+    expect(screen.getByText("독촉 / 2명")).toBeInTheDocument();
     expect(screen.queryByTestId("messaging-composer")).not.toBeInTheDocument();
+  });
+
+  it("기존 발송 이력을 유지한 채 백그라운드 갱신 상태를 표시한다", async () => {
+    setup({ isLogsFetching: true });
+
+    render(
+      await MessagingPage({
+        searchParams: Promise.resolve({ tab: "history" }),
+      }),
+    );
+
+    expect(screen.getByText("독촉 / 2명")).toBeInTheDocument();
+    expect(
+      screen.getByRole("status", { name: "발송 내역 갱신 중" }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -171,7 +181,7 @@ describe("MessageLogList", () => {
       <MessageLogList logs={[]} isLoading onRetry={onRetry} />,
     );
     expect(
-      screen.getByText("발송 이력을 불러오는 중입니다."),
+      screen.getByRole("status", { name: "발송 이력 불러오는 중" }),
     ).toBeInTheDocument();
 
     rerender(<MessageLogList logs={[]} onRetry={onRetry} />);

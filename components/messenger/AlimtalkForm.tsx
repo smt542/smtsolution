@@ -106,7 +106,8 @@ export function AlimtalkForm({
   vars,
   onVars,
 }: AlimtalkFormProps) {
-  const { data: allTemplates = [], isLoading } = useMessageTemplates();
+  const { data: allTemplates = [], isLoading, isFetching, isError } = useMessageTemplates();
+  const isTemplateListRefreshing = isFetching && !isLoading;
   const [open, setOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState<
     { left: number; top: number; width: number } | undefined
@@ -216,14 +217,20 @@ export function AlimtalkForm({
             onClick={(event) => event.stopPropagation()}
           >
             {isLoading && (
-              <div className={styles["fmp-pempty"]}>템플릿을 불러오는 중입니다.</div>
+              <div className={styles["fmp-pempty"]} role="status" aria-label="알림톡 템플릿 불러오는 중">템플릿을 불러오는 중입니다.</div>
             )}
-            {!isLoading && templates.length === 0 && (
+            {isError && (
+              <div className={styles["fmp-pempty"]} role="alert">알림톡 템플릿을 불러오지 못했습니다.</div>
+            )}
+            {isTemplateListRefreshing && (
+              <div className={styles["fmp-pempty"]} role="status" aria-label="알림톡 템플릿 갱신 중">템플릿을 갱신하는 중입니다.</div>
+            )}
+            {!isLoading && !isError && templates.length === 0 && (
               <div className={styles["fmp-pempty"]}>
                 승인 코드가 등록된 알림톡 템플릿이 없습니다.
               </div>
             )}
-            {templates.map((template) => {
+            {!isError && templates.map((template) => {
               const approved = isApproved(template);
               const optionKind = templateKind(template);
               return (

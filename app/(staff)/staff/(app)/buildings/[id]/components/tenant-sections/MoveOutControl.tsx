@@ -31,7 +31,7 @@ export function MoveOutControl({ occupancyId, scheduledDate, isVacant }: {
     setDraft({ source: scheduledDate, date: scheduledDate ?? todayLocal() });
   }
 
-  const isPending = execute.isPending || schedule.isPending || cancel.isPending;
+  const isMoveOutMutationPending = execute.isPending || schedule.isPending || cancel.isPending;
 
   const handleExecute = async () => {
     const ok = await confirm({
@@ -97,16 +97,16 @@ export function MoveOutControl({ occupancyId, scheduledDate, isVacant }: {
                   <p className="text-xs font-bold text-teal-d">퇴실 예약</p>
                   <p className="mt-1 text-sm font-extrabold text-t1">{scheduledDate} 자동 퇴실 예정</p>
                 </div>
-                <Button variant="ghost" onClick={handleCancel} disabled={isPending}>
-                  예약 취소
+                <Button variant="ghost" onClick={handleCancel} disabled={isMoveOutMutationPending}>
+                  {cancel.isPending ? "예약 취소 중…" : "예약 취소"}
                 </Button>
               </div>
             )}
             <div className="rounded-xl border border-line p-4">
               <p className="text-sm font-bold text-t1">즉시 퇴실</p>
               <p className="mt-1 text-xs text-t3">오늘 날짜로 전출 이력을 남기고 바로 공실 처리합니다.</p>
-              <Button className="mt-4" variant="danger" onClick={handleExecute} disabled={isPending}>
-                지금 퇴실 확정
+              <Button className="mt-4" variant="danger" onClick={handleExecute} disabled={isMoveOutMutationPending}>
+                {execute.isPending ? "퇴실 처리 중…" : "지금 퇴실 확정"}
               </Button>
             </div>
             <div className="rounded-xl border border-line p-4">
@@ -120,8 +120,8 @@ export function MoveOutControl({ occupancyId, scheduledDate, isVacant }: {
                   value={draft.date}
                   onChange={(event) => setDraft((current) => ({ ...current, date: event.target.value }))}
                 />
-                <Button variant="primary" onClick={handleSchedule} disabled={isPending}>
-                  퇴실 예약
+                <Button variant="primary" onClick={handleSchedule} disabled={isMoveOutMutationPending}>
+                  {schedule.isPending ? "퇴실 예약 중…" : "퇴실 예약"}
                 </Button>
               </div>
             </div>

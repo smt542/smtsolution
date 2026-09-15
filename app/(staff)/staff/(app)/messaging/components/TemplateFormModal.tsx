@@ -57,7 +57,7 @@ function TemplateFormFields({
   const [buttonUrl, setButtonUrl] = useState(template?.buttons?.[0]?.url ?? "");
 
   const variables = useMemo(() => extractVariables(body), [body]);
-  const isPending = createTemplate.isPending || updateTemplate.isPending;
+  const isTemplateSavePending = createTemplate.isPending || updateTemplate.isPending;
 
   const save = async () => {
     const trimmedTitle = title.trim();
@@ -216,9 +216,9 @@ function TemplateFormFields({
           <Button
             type="button"
             onClick={() => void save()}
-            disabled={isPending}
+            disabled={isTemplateSavePending}
           >
-            {isPending ? "저장 중…" : "저장"}
+            {isTemplateSavePending ? "저장 중…" : "저장"}
           </Button>
         </div>
     </div>

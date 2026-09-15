@@ -275,36 +275,201 @@ lib/                        React에 종속되지 않는 순수 로직과 외부
 
 ### 6.1 상태 모델
 
-- [ ] 최초 데이터 로딩은 `isPending`/`isLoading`으로 표시한다.
-- [ ] 기존 데이터가 있는 백그라운드 갱신은 `isFetching`으로 구분한다.
-- [ ] mutation 제출 상태는 해당 mutation의 `isPending`을 사용한다.
-- [ ] React Query 밖의 Promise 작업만 `useAsyncAction`을 사용한다.
-- [ ] 여러 요청의 결합 loading은 의미가 드러나는 파생 변수로 정의한다.
-- [ ] 전역 boolean `useLoading`은 만들지 않는다.
+- [x] 최초 데이터 로딩은 `isPending`/`isLoading`으로 표시한다.
+- [x] 기존 데이터가 있는 백그라운드 갱신은 `isFetching`으로 구분한다.
+- [x] mutation 제출 상태는 해당 mutation의 `isPending`을 사용한다.
+- [x] React Query 밖의 Promise 작업만 `useAsyncAction`을 사용한다.
+- [x] 여러 요청의 결합 loading은 의미가 드러나는 파생 변수로 정의한다.
+- [x] 전역 boolean `useLoading`은 만들지 않는다.
 
 ### 6.2 공통 UI와 접근성
 
-- [ ] 공통 `LoadingState` 또는 기존 `Spinner` 확장안을 확정한다.
-- [ ] 로딩 UI에 `role="status"`와 읽을 수 있는 `aria-label`을 제공한다.
-- [ ] 빈 상태, 오류 상태, 최초 로딩 상태를 서로 구분한다.
-- [ ] 버튼 pending 문구를 `저장 중…`, `삭제 중…`, `발송 중…`처럼 동작별로 표시한다.
-- [ ] 로딩 중 레이아웃 이동을 줄이도록 화면 단위 skeleton 또는 최소 높이를 적용한다.
-- [ ] `loading.tsx`는 서버 라우트 전환용으로 유지하고 클라이언트 query loading과 역할을 구분한다.
-- [ ] 모든 `isLoading`/`isPending`/`isFetching` 사용처를 전수 검색해 기준 준수 여부를 확인한다.
+- [x] 공통 `LoadingState` 또는 기존 `Spinner` 확장안을 확정한다.
+- [x] 로딩 UI에 `role="status"`와 읽을 수 있는 `aria-label`을 제공한다.
+- [x] 빈 상태, 오류 상태, 최초 로딩 상태를 서로 구분한다.
+- [x] 버튼 pending 문구를 `저장 중…`, `삭제 중…`, `발송 중…`처럼 동작별로 표시한다.
+- [x] 로딩 중 레이아웃 이동을 줄이도록 화면 단위 skeleton 또는 최소 높이를 적용한다.
+- [x] `loading.tsx`는 서버 라우트 전환용으로 유지하고 클라이언트 query loading과 역할을 구분한다.
+- [x] 모든 `isLoading`/`isPending`/`isFetching` 사용처를 전수 검색해 기준 준수 여부를 확인한다.
 
 ### 6.3 기존 route loading 경계 확인
 
-- [ ] `app/(partner)/partner/(app)/mobile-as-new/loading.tsx`
-- [ ] `app/(partner)/partner/(app)/mobile-building/loading.tsx`
-- [ ] `app/(partner)/partner/(app)/mobile-ms-new/loading.tsx`
-- [ ] `app/(partner)/partner/(app)/mobile-tenant/loading.tsx`
-- [ ] `app/(resident)/resident/(app)/bill/loading.tsx`
-- [ ] `app/(resident)/resident/(app)/notice/loading.tsx`
-- [ ] `app/(staff)/staff/(app)/bill/loading.tsx`
-- [ ] `app/(staff)/staff/(app)/long-term-repair/loading.tsx`
-- [ ] `app/(staff)/staff/(app)/messaging/loading.tsx`
-- [ ] `app/(staff)/staff/(app)/notices/loading.tsx`
-- [ ] `app/(staff)/staff/(app)/overdue/loading.tsx`
+- [x] `app/(partner)/partner/(app)/mobile-as-new/loading.tsx`
+- [x] `app/(partner)/partner/(app)/mobile-building/loading.tsx`
+- [x] `app/(partner)/partner/(app)/mobile-ms-new/loading.tsx`
+- [x] `app/(partner)/partner/(app)/mobile-tenant/loading.tsx`
+- [x] `app/(resident)/resident/(app)/bill/loading.tsx`
+- [x] `app/(resident)/resident/(app)/notice/loading.tsx`
+- [x] `app/(staff)/staff/(app)/bill/loading.tsx`
+- [x] `app/(staff)/staff/(app)/long-term-repair/loading.tsx`
+- [x] `app/(staff)/staff/(app)/messaging/loading.tsx`
+- [x] `app/(staff)/staff/(app)/notices/loading.tsx`
+- [x] `app/(staff)/staff/(app)/overdue/loading.tsx`
+
+### 6장 처리 결과 (2026-09-15)
+
+- Next.js 16.3.0의 `loading.js` 및 Linking and Navigating 가이드를 확인했다. `loading.tsx`는 서버 라우트 전환의 Suspense/streaming 경계로 유지하고, React Query 최초 조회·백그라운드 갱신 상태는 각 클라이언트 화면에서 처리한다.
+- 새 `LoadingState`를 추가하지 않고 기존 `Spinner` 확장안을 채택했다. 공통 컴포넌트가 `role="status"`, 필수 접근성 이름, 크기, 표시 문구를 담당하며, 콘텐츠형 화면은 `AsyncContentState`를 확장해 최초 로딩·오류·기존 콘텐츠를 유지하는 갱신 상태를 구분한다.
+- 테스트를 제외한 운영 코드 136개 파일을 전수 확인했다. 최종 검색은 `isLoading` 197건/68개 파일, `isPending` 341건/99개 파일, `isFetching` 68건/48개 파일이다. 최초 조회는 `isPending`/`isLoading`, 기존 데이터 갱신은 `isFetching && !isLoading`, mutation 제출은 각 mutation의 `isPending`으로 정리했다.
+- 복수 요청은 화면 의미를 담은 파생 변수(예: `isReceiptWorkspaceRefreshing`, `isPaymentHistoryLoading`, `isSettlementMutationPending`)로 결합했다. `isLoading || isFetching`으로 최초 로딩과 갱신을 합치는 운영 코드와 전역 `useLoading`은 최종 검색 결과 0건이다.
+- `useAsyncAction` 호출 파일 8개는 파일 읽기·파싱, 직접 API 요청, 로그아웃, 스토리지 업로드처럼 React Query 밖의 Promise 작업만 감싼다. React Query mutation은 hook이 제공하는 `isPending`을 직접 사용한다.
+- 목록·상세·미리보기에서 최초 로딩, 오류, 빈 상태를 별도 분기로 두고 화면 단위 최소 높이를 적용했다. 기존 데이터가 있는 갱신은 콘텐츠를 유지한 채 이름 있는 소형 상태 표시를 노출한다.
+- mutation 버튼은 실제 실행 중인 작업에 맞춰 저장·삭제·발송·퇴실·수납·파일 분석 등의 pending 문구를 표시한다. 이미지·표·목록·라우트 로딩 표시에는 읽을 수 있는 `aria-label`을 제공한다.
+- 6.3의 11개 `loading.tsx`를 모두 확인해 접근성 이름과 최소 높이를 보완했다. `app/loading-boundaries.test.tsx`에서 11개 경계가 모두 이름 있는 `status`를 렌더하는지 검증한다.
+
+<details>
+<summary>상태 사용처 확인 완료 운영 파일 136개</summary>
+
+- [x] `app/(partner)/partner/(app)/(tabs)/mobile-profile/ProfileView.tsx`
+- [x] `app/(partner)/partner/(app)/mobile-as/MobileAsWorkspace.tsx`
+- [x] `app/(partner)/partner/(app)/mobile-as-new/PartnerAsNewWorkspace.tsx`
+- [x] `app/(partner)/partner/(app)/mobile-meter/PartnerMeterWorkspace.tsx`
+- [x] `app/(partner)/partner/(app)/mobile-ms-new/PartnerMsNewWorkspace.tsx`
+- [x] `app/(partner)/partner/mobile-login/PartnerLoginForm.tsx`
+- [x] `app/(platform-admin)/_components/PlatformAdminGuard.tsx`
+- [x] `app/(platform-admin)/_components/PlatformShell.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/accounts/AccountsWorkspace.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/accounts/components/AccountCreateModal.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/accounts/components/AccountEditModal.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/accounts/components/AccountRowActions.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/billing/BillingWorkspace.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/organizations/[orgId]/buildings/[buildingId]/components/BuildingTenantsList.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/organizations/[orgId]/buildings/[buildingId]/units/[unitId]/components/UnitDetailView.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/organizations/[orgId]/components/OrgBuildingsList.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/organizations/components/OrgFormModal.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/organizations/components/OrgRowActions.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/organizations/components/OrgStatusControl.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/organizations/OrganizationsWorkspace.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/PlatformDashboard.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/points/components/MessagePointRateModal.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/points/components/PointAdjustmentModal.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/points/components/PointChargeModal.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/points/components/ReservationReleaseModal.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/points/organizations/OrganizationsPointsWorkspace.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/points/PointsWorkspace.tsx`
+- [x] `app/(platform-admin)/platform-admin/(app)/settings/PlatformSettingsWorkspace.tsx`
+- [x] `app/(platform-admin)/platform-admin/_components/MonthlySendCostChart.tsx`
+- [x] `app/(resident)/_components/MoveOutSection.tsx`
+- [x] `app/(resident)/resident/(app)/home/ResidentHomeWorkspace.tsx`
+- [x] `app/(resident)/resident/(app)/me/ResidentMeWorkspace.tsx`
+- [x] `app/(staff)/staff/(app)/accounts/components/AccountFormModal.tsx`
+- [x] `app/(staff)/staff/(app)/accounts/components/AccountsWorkspace.tsx`
+- [x] `app/(staff)/staff/(app)/accounts/components/ResidentClaimsPanel.tsx`
+- [x] `app/(staff)/staff/(app)/bill/components/DocumentOutputModal.tsx`
+- [x] `app/(staff)/staff/(app)/bill/components/output-modal/FaxConfirmationModal.tsx`
+- [x] `app/(staff)/staff/(app)/buildings/[id]/components/TenantForm.tsx`
+- [x] `app/(staff)/staff/(app)/buildings/[id]/components/TenantList.tsx`
+- [x] `app/(staff)/staff/(app)/buildings/[id]/components/tenant-sections/MoveOutControl.tsx`
+- [x] `app/(staff)/staff/(app)/buildings/components/BuildingDirectoryCard.tsx`
+- [x] `app/(staff)/staff/(app)/buildings/components/BuildingForm.tsx`
+- [x] `app/(staff)/staff/(app)/buildings/components/BuildingTenantManager.tsx`
+- [x] `app/(staff)/staff/(app)/buildings/components/TenantOccupancyCard.tsx`
+- [x] `app/(staff)/staff/(app)/buildings/components/TenantOutputModal.tsx`
+- [x] `app/(staff)/staff/(app)/buildings/new-v2/_components/BuildingRegisterForm.tsx`
+- [x] `app/(staff)/staff/(app)/customer-numbers/components/CustomerNumberLookupContent.tsx`
+- [x] `app/(staff)/staff/(app)/fee-items/components/FeeItemFormDialog.tsx`
+- [x] `app/(staff)/staff/(app)/fee-items/components/FeeItemManagement.tsx`
+- [x] `app/(staff)/staff/(app)/long-term-repair/components/AttachmentViewer.tsx`
+- [x] `app/(staff)/staff/(app)/long-term-repair/components/LongTermRepairLedger.tsx`
+- [x] `app/(staff)/staff/(app)/management-fee/components/BillingHistoryModal.tsx`
+- [x] `app/(staff)/staff/(app)/management-fee/components/BillingPeriodSettingsBar.tsx`
+- [x] `app/(staff)/staff/(app)/management-fee/components/BillingReferencePanel.tsx`
+- [x] `app/(staff)/staff/(app)/management-fee/components/FeeItemFormModal.tsx`
+- [x] `app/(staff)/staff/(app)/management-fee/components/FeeItemList.tsx`
+- [x] `app/(staff)/staff/(app)/management-fee/components/ItemManageModal.tsx`
+- [x] `app/(staff)/staff/(app)/management-fee/ManagementFeeWorkspace.tsx`
+- [x] `app/(staff)/staff/(app)/messaging/components/DrainScheduledButton.tsx`
+- [x] `app/(staff)/staff/(app)/messaging/components/HistoryTab.tsx`
+- [x] `app/(staff)/staff/(app)/messaging/components/MessageLogList.tsx`
+- [x] `app/(staff)/staff/(app)/messaging/components/MessagePointQuoteCard.tsx`
+- [x] `app/(staff)/staff/(app)/messaging/components/MessagingComposer.tsx`
+- [x] `app/(staff)/staff/(app)/messaging/components/ScheduledTab.tsx`
+- [x] `app/(staff)/staff/(app)/messaging/components/TemplateFormModal.tsx`
+- [x] `app/(staff)/staff/(app)/messaging/components/TemplatesTab.tsx`
+- [x] `app/(staff)/staff/(app)/moving-settlement/components/AllSettlementInquiryPage.tsx`
+- [x] `app/(staff)/staff/(app)/moving-settlement/components/MovingSettlementWorkspace.tsx`
+- [x] `app/(staff)/staff/(app)/moving-settlement/components/SettlementActions.tsx`
+- [x] `app/(staff)/staff/(app)/moving-settlement/components/SettlementDirectoryRail.tsx`
+- [x] `app/(staff)/staff/(app)/moving-settlement/components/SettlementHistory.tsx`
+- [x] `app/(staff)/staff/(app)/moving-settlement/components/SettlementInquiryPage.tsx`
+- [x] `app/(staff)/staff/(app)/notices/components/NoticeDetail.tsx`
+- [x] `app/(staff)/staff/(app)/notices/components/NoticeFormModal.tsx`
+- [x] `app/(staff)/staff/(app)/notices/components/NoticesWorkspace.tsx`
+- [x] `app/(staff)/staff/(app)/overdue/components/LateFeeRateModal.tsx`
+- [x] `app/(staff)/staff/(app)/overdue/components/OverdueWorkspace.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/AsComplaintForm.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/AsStatusSection.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/BuildingUnitRail.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/ChargeReceiptReportModal.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/ComplaintDetailModal.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/ComplaintFormModal.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/ComplaintTable.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/monthly/MonthlyChargeModal.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/payment/BankImportModal.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/payment/GiroCalendarModal.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/payment/GiroLedgerModal.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/payment/GiroUploadModal.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/payment/PaymentAmountModal.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/payment/PaymentHistoryModal.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/payment/PaymentReceiptModal.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/payment/PaymentStatementModal.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/payment/PaymentTable.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/PaymentHistorySection.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/TenantInfoSection.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/unit-statement/UnitStatementModal.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/villa-overdue/VillaOverdueModal.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/VillaPaymentModal.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/components/villa-receipts/VillaReceiptHistoryModal.tsx`
+- [x] `app/(staff)/staff/(app)/receipts/ReceiptWorkspace.tsx`
+- [x] `app/(staff)/staff/(app)/setup/components/AccountSettingsTab.tsx`
+- [x] `app/(staff)/staff/(app)/setup/components/BillingSettingsTab.tsx`
+- [x] `app/(staff)/staff/(app)/setup/components/CompanyInfoTab.tsx`
+- [x] `app/(staff)/staff/(app)/setup/components/MovingSettlementSettingsTab.tsx`
+- [x] `app/(staff)/staff/(app)/setup/components/NotificationSettingsTab.tsx`
+- [x] `app/(staff)/staff/(app)/setup/components/QuickMessageEditor.tsx`
+- [x] `app/(staff)/staff/(app)/utilities/components/BillingPeriodBar.tsx`
+- [x] `app/(staff)/staff/(app)/utilities/components/BuildingSelectionRail.tsx`
+- [x] `app/(staff)/staff/(app)/utilities/components/FixedUsageModal.tsx`
+- [x] `app/(staff)/staff/(app)/utilities/components/GasLedgerModal.tsx`
+- [x] `app/(staff)/staff/(app)/utilities/components/GasSupplierModal.tsx`
+- [x] `app/(staff)/staff/(app)/utilities/components/MeterLedgerModal.tsx`
+- [x] `app/(staff)/staff/(app)/utilities/components/UnitPriceModal.tsx`
+- [x] `app/(staff)/staff/(app)/utilities/components/UtilityWorkspaceBar.tsx`
+- [x] `app/(staff)/staff/(app)/utilities/components/WaterDiscountModal.tsx`
+- [x] `app/(staff)/staff/(app)/utilities/ElectricityUtilitiesWorkspace.tsx`
+- [x] `app/(staff)/staff/(app)/utilities/GasUtilitiesWorkspace.tsx`
+- [x] `app/(staff)/staff/(app)/utilities/WaterUtilitiesScreen.tsx`
+- [x] `app/(staff)/staff/components/DashboardContent.tsx`
+- [x] `app/(staff)/staff/login/components/LoginForm.tsx`
+- [x] `components/messenger/AlimtalkForm.tsx`
+- [x] `components/messenger/MessageComposer.tsx`
+- [x] `components/messenger/MessengerFab.tsx`
+- [x] `components/messenger/SenderSelect.tsx`
+- [x] `components/shell/as-rail/AsReceptionList.tsx`
+- [x] `components/shell/as-rail/AsReportModal.tsx`
+- [x] `components/shell/as-rail/MoveOutList.tsx`
+- [x] `components/shell/Sidebar.tsx`
+- [x] `components/vendors/VendorFormModal.tsx`
+- [x] `components/vendors/VendorList.tsx`
+- [x] `components/vendors/VendorManagementSection.tsx`
+- [x] `hooks/common/useAsyncAction.ts`
+- [x] `hooks/reactquery/attachments/queries.ts`
+- [x] `hooks/reactquery/occupancies/queries.ts`
+- [x] `lib/resident/useResidentGuard.ts`
+
+</details>
+
+### 6장 검증 결과
+
+- `npx tsc --noEmit`: 통과
+- 표적 테스트: 12개 파일, 51개 테스트 모두 통과
+- `npm run lint`: 경고·오류 없이 통과
+- `npm test`: 339개 파일 중 330개 통과, 기존 실패 7개, 2개 건너뜀; 1,307개 테스트 중 1,287개 통과, 기존 실패 11개, 9개 건너뜀; 신규 실패 0개
+  - 기준선 8개 파일·14개 실패 중 현재 메시징 탭 구조와 맞지 않던 `app/(staff)/staff/(app)/messaging/page.test.tsx`의 3개 테스트를 갱신해 통과시켰다.
+  - 남은 기존 실패 파일: `components/shell/navItems.test.ts`(1), `app/api/resident/kakao/stub/route.test.ts`(1), `app/api/resident/kakao/login/route.test.ts`(1), `app/(staff)/staff/(app)/messaging/components/HistoryTab.test.tsx`(2), `app/(staff)/staff/(app)/utilities/components/UtilityWorkspaceHeader.test.tsx`(1), `app/(staff)/staff/(app)/receipts/components/payment/GiroLedgerModal.test.tsx`(2), `app/(staff)/staff/(app)/notices/page.test.tsx`(3)
+- `npm run build`: 통과 (Next.js 16.3.0, 정적 페이지 72개 생성)
+- 최종 검색: 운영 코드의 `useLoading` 0건, 공통 `useAsyncAction` 내부 구현을 제외한 화면 수동 boolean 로딩 상태 0건, `isLoading || isFetching` 혼용 0건, `docs/prototype/**` 변경 0건
+
 
 ## 7. Tiptap 선설치와 후속 도입
 

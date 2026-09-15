@@ -91,7 +91,7 @@ export function AccountsWorkspace() {
     page,
     pageSize: PAGE_SIZE,
   }), [debouncedSearch, page]);
-  const { data, isPending, isError, refetch } = useQuery({
+  const { data, isPending, isError, isFetching, refetch } = useQuery({
     queryKey: platformKeys.accounts(query),
     queryFn: () => listPlatformAccounts(query),
     placeholderData: keepPreviousData,
@@ -102,10 +102,11 @@ export function AccountsWorkspace() {
   const updateRole = usePlatformUpdateRole();
   const setActive = usePlatformSetActive();
   const resetPassword = usePlatformResetPassword();
-  const actionPending = updateAccount.isPending
+  const isAccountActionPending = updateAccount.isPending
     || updateRole.isPending
     || setActive.isPending
     || resetPassword.isPending;
+  const isAccountListRefreshing = isFetching && !isPending;
 
   const handleCreate = async (values: PlatformAccountCreateValues) => {
     try {
@@ -213,6 +214,9 @@ export function AccountsWorkspace() {
           <span className="text-xs font-semibold text-t3">
             총 {formatNumber(data?.totalCount ?? 0)}개
           </span>
+          {isAccountListRefreshing ? (
+            <Spinner label="소속 계정 목록 갱신 중" size="small" showLabel className="px-2 py-1" />
+          ) : null}
           <div className="flex-1" />
           <label className="flex h-8 min-w-60 items-center gap-[7px] rounded-[10px] border border-transparent bg-bg px-[11px] focus-within:border-blue focus-within:bg-surface focus-within:ring-[3px] focus-within:ring-[rgba(20,164,151,0.13)]">
             <svg
@@ -243,7 +247,7 @@ export function AccountsWorkspace() {
 
         {isPending ? (
           <div className="py-16">
-            <Spinner />
+            <Spinner label="소속 계정 목록 불러오는 중" />
           </div>
         ) : isError ? (
           <div className="p-4">
@@ -294,7 +298,14 @@ export function AccountsWorkspace() {
                       onChangeRole={() => setRoleTarget(account)}
                       onToggleActive={() => void handleToggleActive(account)}
                       onResetPassword={() => void handleResetPassword(account)}
-                      isPending={actionPending}
+                      isPending={isAccountActionPending}
+                      pendingAction={
+                        setActive.isPending && setActive.variables?.userId === account.userId
+                          ? "toggle"
+                          : resetPassword.isPending && resetPassword.variables?.userId === account.userId
+                            ? "reset"
+                            : undefined
+                      }
                     />
                   </td>
                 </tr>

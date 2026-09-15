@@ -144,7 +144,7 @@ export function TenantInfoSection({
           disabled={save.isPending}
           className="h-[26px] rounded-[8px] border border-teal bg-teal px-[10px] text-[11.5px] font-bold text-white disabled:opacity-60"
         >
-          저장
+          {save.isPending ? "저장 중…" : "저장"}
         </button>
         <button
           type="button"
@@ -172,7 +172,7 @@ export function TenantInfoSection({
           <TenantEmptyTable message="호실을 선택하면 입주자정보가 표시돼요" />
         </div>
       ) : isLoading ? (
-        <div className="flex h-[106px] items-center justify-center"><Spinner /></div>
+        <div className="flex h-[106px] items-center justify-center"><Spinner label="입주자 정보 불러오는 중" /></div>
       ) : occ === null ? (
         <div className="overflow-x-auto">
           <TenantEmptyTable message="등록된 입주자 정보가 없습니다 (공실)" />

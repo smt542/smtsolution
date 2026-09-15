@@ -72,7 +72,7 @@ export default function OrganizationsWorkspace() {
     page,
     pageSize: PAGE_SIZE,
   }), [debouncedSearch, page, statusFilter]);
-  const { data, isPending, isError, refetch } = useQuery({
+  const { data, isPending, isError, isFetching, refetch } = useQuery({
     queryKey: platformKeys.organizations(query),
     queryFn: () => listPlatformOrganizations(query),
     placeholderData: keepPreviousData,
@@ -83,8 +83,11 @@ export default function OrganizationsWorkspace() {
   const createOrg = useCreatePlatformOrganization();
   const updateOrg = useUpdatePlatformOrganization();
   const setDeleted = useSetOrgDeleted();
-  const createOrganizationAction = useAsyncAction();
-  const updateOrganizationAction = useAsyncAction();
+  const createContractFileAction = useAsyncAction();
+  const updateContractFileAction = useAsyncAction();
+  const isCreatingOrganization = createOrg.isPending || createContractFileAction.isPending;
+  const isUpdatingOrganization = updateOrg.isPending || updateContractFileAction.isPending;
+  const isOrganizationListRefreshing = isFetching && !isPending;
 
   const handleStatus = async (id: number, next: OrganizationStatus) => {
     try {
@@ -95,11 +98,13 @@ export default function OrganizationsWorkspace() {
     }
   };
 
-  const handleCreate = (v: OrgCreateSubmitValues) => createOrganizationAction.run(async () => {
+  const handleCreate = async (v: OrgCreateSubmitValues) => {
     let uploadedPath: string | null = null;
     try {
       if (v.contractFile) {
-        uploadedPath = await uploadOrganizationContractFile(v.contractFile);
+        uploadedPath = await createContractFileAction.run(() =>
+          uploadOrganizationContractFile(v.contractFile as File),
+        );
       }
       const result = await createOrg.mutateAsync({
         name: v.name,
@@ -130,15 +135,17 @@ export default function OrganizationsWorkspace() {
       toast.error(e, "입점에 실패했습니다.");
       throw e;
     }
-  });
+  };
 
-  const handleEdit = (v: OrgEditSubmitValues) => updateOrganizationAction.run(async () => {
+  const handleEdit = async (v: OrgEditSubmitValues) => {
     if (!editTarget) return;
     let uploadedPath: string | null = null;
     const previousPath = editTarget.contractFilePath;
     try {
       if (v.contractFile) {
-        uploadedPath = await uploadOrganizationContractFile(v.contractFile, editTarget.id);
+        uploadedPath = await updateContractFileAction.run(() =>
+          uploadOrganizationContractFile(v.contractFile as File, editTarget.id),
+        );
       }
       const contractFilePath = uploadedPath
         ?? (v.removeContractFile ? null : previousPath);
@@ -173,7 +180,7 @@ export default function OrganizationsWorkspace() {
       toast.error(e, "수정에 실패했습니다.");
       throw e;
     }
-  });
+  };
 
   const handleToggleDeleted = async (id: number, deleted: boolean) => {
     try {
@@ -297,11 +304,14 @@ export default function OrganizationsWorkspace() {
           <span className="text-xs font-semibold text-t3">
             {formatNumber(data?.totalCount ?? 0)}곳
           </span>
+          {isOrganizationListRefreshing ? (
+            <Spinner label="조직 목록 갱신 중" size="small" showLabel className="px-2 py-1" />
+          ) : null}
         </div>
 
         {isPending ? (
           <div className="py-16">
-            <Spinner />
+            <Spinner label="조직 목록 불러오는 중" />
           </div>
         ) : isError ? (
           <div className="p-4">
@@ -401,7 +411,8 @@ export default function OrganizationsWorkspace() {
                         org={organization}
                         onEdit={() => setEditTarget(organization)}
                         onToggleDeleted={(deleted) => handleToggleDeleted(organization.id, deleted)}
-                        isPending={setDeleted.isPending}
+                        disabled={setDeleted.isPending}
+                        isPending={setDeleted.isPending && setDeleted.variables?.id === organization.id}
                       />
                     </div>
                   </td>
@@ -427,7 +438,7 @@ export default function OrganizationsWorkspace() {
           open
           onClose={() => setCreateOpen(false)}
           onSubmit={handleCreate}
-          isPending={createOrg.isPending || createOrganizationAction.isPending}
+          isPending={isCreatingOrganization}
         />
       )}
 
@@ -452,7 +463,7 @@ export default function OrganizationsWorkspace() {
           }}
           defaultContractFilePath={editTarget.contractFilePath}
           onSubmit={handleEdit}
-          isPending={updateOrg.isPending || updateOrganizationAction.isPending}
+          isPending={isUpdatingOrganization}
         />
       )}
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
+import { useAsyncAction } from "@/hooks/common";
 import { Button } from "@/components/common";
 import { ComplaintDialog } from "../ComplaintDialog";
 import { FileDropzone } from "./FileDropzone";
@@ -22,21 +23,20 @@ export function GiroUploadModal({ open, buildingId, period, onClose }: GiroUploa
   void buildingId;
   void period;
   const [file, setFile] = useState<File | null>(null);
-  const [processing, setProcessing] = useState(false);
+  const processFileAction = useAsyncAction();
 
   const handleProcess = async () => {
-    if (!file || processing) return;
-    setProcessing(true);
-    try {
-      const text = await file.text();
-      const count = text.split(/\r?\n/).filter((line) => line.trim()).length;
-      toast.success(`지로 수납 파일을 확인했습니다. (${count.toLocaleString()}행)`);
-      onClose();
-    } catch {
-      toast.error("지로 파일을 읽지 못했습니다.");
-    } finally {
-      setProcessing(false);
-    }
+    if (!file || processFileAction.isPending) return;
+    await processFileAction.run(async () => {
+      try {
+        const text = await file.text();
+        const count = text.split(/\r?\n/).filter((line) => line.trim()).length;
+        toast.success(`지로 수납 파일을 확인했습니다. (${count.toLocaleString()}행)`);
+        onClose();
+      } catch {
+        toast.error("지로 파일을 읽지 못했습니다.");
+      }
+    });
   };
 
   return (
@@ -48,8 +48,8 @@ export function GiroUploadModal({ open, buildingId, period, onClose }: GiroUploa
       size="wide"
       footer={
         <div className="flex justify-end">
-          <Button type="button" disabled={!file || processing} onClick={() => void handleProcess()}>
-            {processing ? "처리 중…" : "처리"}
+          <Button type="button" disabled={!file || processFileAction.isPending} onClick={() => void handleProcess()}>
+            {processFileAction.isPending ? "지로 파일 확인 중…" : "처리"}
           </Button>
         </div>
       }
@@ -58,7 +58,7 @@ export function GiroUploadModal({ open, buildingId, period, onClose }: GiroUploa
         accept=".txt"
         helperText="txt 파일만 첨부할 수 있어요"
         fileName={file?.name}
-        disabled={processing}
+        disabled={processFileAction.isPending}
         onFile={setFile}
         ariaLabel="지로 수납 파일 첨부"
       />

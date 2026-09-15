@@ -189,7 +189,7 @@ export function AsComplaintForm({
 
   const footer = mode === "create" ? (
     <div className="flex justify-end">
-      <Button type="submit" form={formId} disabled={submitting}>{submitting ? "처리 중…" : "추가"}</Button>
+      <Button type="submit" form={formId} disabled={submitting}>{submitting ? "추가 중…" : "추가"}</Button>
     </div>
   ) : (
     <div className="flex items-center justify-between gap-2">

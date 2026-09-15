@@ -48,12 +48,14 @@ export function TemplatesTab() {
   const {
     data: templates = [],
     isLoading,
+    isFetching,
     error,
     refetch,
   } = useMessageTemplates();
   const deleteTemplate = useDeleteMessageTemplate();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [filter, setFilter] = useState<FilterType>("all");
+  const isTemplateListRefreshing = isFetching && !isLoading;
 
   const openCreate = () => setIsFormOpen(true);
   const closeForm = () => setIsFormOpen(false);
@@ -82,7 +84,7 @@ export function TemplatesTab() {
 
   return (
     <>
-      <div className="overflow-hidden rounded-[16px] bg-white shadow-[0px_1px_3px_0px_rgba(23,31,40,0.05)]">
+      <div className="relative min-h-[240px] overflow-hidden rounded-[16px] bg-white shadow-[0px_1px_3px_0px_rgba(23,31,40,0.05)]">
         {/* Card header */}
         <div className="flex items-center gap-[8px] border-b border-[#f1f3f5] px-[18px] py-[15px]">
           <span className="text-[15px] font-extrabold leading-normal text-[#191f28]">
@@ -92,6 +94,9 @@ export function TemplatesTab() {
             {templates.length}
           </span>
           <div className="flex-1" />
+          {isTemplateListRefreshing ? (
+            <Spinner label="템플릿 목록 갱신 중" size="small" showLabel className="px-2 py-1" />
+          ) : null}
           {/* Type filter */}
           <div className="flex items-start gap-[2px] rounded-[9px] bg-[#edf0f3] p-[3px]">
             {FILTERS.map(({ key, label }) => (
@@ -121,14 +126,8 @@ export function TemplatesTab() {
 
         {/* Body */}
         {isLoading ? (
-          <div
-            aria-label="템플릿 목록 불러오는 중"
-            className="flex flex-col items-center gap-2 py-10"
-          >
-            <Spinner />
-            <p className="text-center text-[13px] text-[#8b95a1]">
-              템플릿 목록을 불러오는 중입니다.
-            </p>
+          <div className="flex min-h-[180px] flex-col items-center justify-center gap-2 py-10">
+            <Spinner label="템플릿 목록 불러오는 중" showLabel />
           </div>
         ) : error ? (
           <div role="alert" className="py-10 text-center">
@@ -222,7 +221,7 @@ export function TemplatesTab() {
                             aria-label={`${template.title} 삭제`}
                             className="text-[12.5px] font-bold text-[#f04452] disabled:opacity-50"
                           >
-                            삭제
+                            {deleteTemplate.isPending ? "삭제 중…" : "삭제"}
                           </button>
                         )}
                       </td>

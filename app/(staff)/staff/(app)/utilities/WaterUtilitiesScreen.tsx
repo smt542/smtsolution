@@ -135,7 +135,14 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
   );
   const activeRows = useMemo(() => rows.filter((row) => !isVacant(row)), [rows]);
   const effectiveSelectedRow = rows.find((row) => row.unitId === selectedRow?.unitId) ?? rows[0] ?? null;
-  const loadingRows = rowsQuery.isLoading || fixedUsagesQuery.isLoading;
+  const isWaterWorkspaceLoading =
+    rowsQuery.isLoading ||
+    fixedUsagesQuery.isLoading ||
+    (buildingId !== null && billingPeriodQuery.isLoading);
+  const isWaterWorkspaceRefreshing =
+    (rowsQuery.isFetching && !rowsQuery.isLoading) ||
+    (fixedUsagesQuery.isFetching && !fixedUsagesQuery.isLoading) ||
+    (billingPeriodQuery.isFetching && !billingPeriodQuery.isLoading);
   const rowsError = rowsQuery.error ?? fixedUsagesQuery.error;
   const needsBasis = buildingId !== null
     && !billingPeriodQuery.isLoading
@@ -284,7 +291,12 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
         />
 
         {!buildingId ? <UnselectedWorkspace period={period} /> : (
-          <div className="flex min-h-[650px] min-w-0 flex-1 flex-col gap-4 min-[1101px]:min-h-0">
+          <div className="relative flex min-h-[650px] min-w-0 flex-1 flex-col gap-4 min-[1101px]:min-h-0">
+            {isWaterWorkspaceRefreshing ? (
+              <div className="absolute right-4 top-4 z-10 rounded-lg bg-white/95 shadow-card">
+                <Spinner label="수도 지침 갱신 중" size="small" showLabel />
+              </div>
+            ) : null}
             {selectedBuilding && (
               <UtilityWorkspaceBar
                 key={`${buildingId}:${period}`}
@@ -300,10 +312,10 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
               />
             )}
 
-            {loadingRows || billingPeriodQuery.isLoading ? (
-              <section className="grid flex-1 place-items-center rounded-xl border border-line bg-white"><div><Spinner /><p className="mt-2 text-[12px] text-t3">호실 정보를 불러오는 중입니다.</p></div></section>
+            {isWaterWorkspaceLoading ? (
+              <section className="grid min-h-[360px] flex-1 place-items-center rounded-xl border border-line bg-white"><Spinner label="수도 호실 정보 불러오는 중" showLabel /></section>
             ) : rowsError || billingPeriodQuery.error ? (
-              <section className="grid flex-1 place-items-center rounded-xl border border-red/20 bg-red-t text-center"><div><p className="text-[13px] font-bold text-red">호실 정보를 불러오지 못했습니다.</p><button type="button" onClick={() => { rowsQuery.refetch(); fixedUsagesQuery.refetch(); }} className="mt-3 h-8 rounded-lg border border-line bg-white px-3 text-[11px] font-bold text-t2">다시 시도</button></div></section>
+              <section role="alert" className="grid min-h-[360px] flex-1 place-items-center rounded-xl border border-red/20 bg-red-t text-center"><div><p className="text-[13px] font-bold text-red">호실 정보를 불러오지 못했습니다.</p><button type="button" onClick={() => { rowsQuery.refetch(); fixedUsagesQuery.refetch(); billingPeriodQuery.refetch(); }} className="mt-3 h-8 rounded-lg border border-line bg-white px-3 text-[11px] font-bold text-t2">다시 시도</button></div></section>
             ) : (
               <>
                 <UtilityAccountSummary rows={rows} selectedRow={effectiveSelectedRow} editing={editing} onSelect={setSelectedRow} />

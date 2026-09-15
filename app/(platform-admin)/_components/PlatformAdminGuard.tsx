@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Spinner } from "@/components/common";
+import { useAsyncAction } from "@/hooks/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { createClient } from "@/lib/supabase/client";
 
@@ -12,8 +12,8 @@ export function PlatformAdminGuard({ children }: { children: React.ReactNode }) 
 
   if (isPending) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-bg" aria-label="권한 확인 중">
-        <Spinner />
+      <div className="flex min-h-screen items-center justify-center bg-bg">
+        <Spinner label="권한 확인 중" />
       </div>
     );
   }
@@ -74,26 +74,26 @@ function GuardLink({ href, children }: { href: string; children: React.ReactNode
  */
 function SignOutLoginButton() {
   const router = useRouter();
-  const [isPending, setIsPending] = useState(false);
+  const signOutAction = useAsyncAction();
   const goLogin = async () => {
-    if (isPending) return;
-    setIsPending(true);
-    try {
-      await createClient().auth.signOut();
-    } catch {
-      // 세션 정리에 실패해도 로그인 화면으로는 진행한다.
-    }
-    // signOut으로 세션 쿠키가 지워진 뒤 이동하므로 proxy가 로그인 화면을 그대로 내보낸다.
-    router.replace("/platform-admin/login");
+    await signOutAction.run(async () => {
+      try {
+        await createClient().auth.signOut();
+      } catch {
+        // 세션 정리에 실패해도 로그인 화면으로는 진행한다.
+      }
+      // signOut으로 세션 쿠키가 지워진 뒤 이동하므로 proxy가 로그인 화면을 그대로 내보낸다.
+      router.replace("/platform-admin/login");
+    });
   };
   return (
     <button
       type="button"
       onClick={() => void goLogin()}
-      disabled={isPending}
+      disabled={signOutAction.isPending}
       className="rounded-xl bg-blue px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
     >
-      {isPending ? "이동 중…" : "로그인으로 이동"}
+      {signOutAction.isPending ? "로그인 화면 이동 중…" : "로그인으로 이동"}
     </button>
   );
 }

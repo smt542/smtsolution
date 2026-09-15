@@ -548,7 +548,7 @@ export function TenantForm({
             disabled={del.isPending}
             className="flex h-[44px] w-full items-center justify-center rounded-[11px] border border-red bg-red text-[13.5px] font-bold text-white disabled:opacity-60"
           >
-            호수 삭제
+            {del.isPending ? "삭제 중…" : "호수 삭제"}
           </button>
         </div>
       )}

@@ -92,11 +92,13 @@ export default function ResidentHomeWorkspace() {
     };
   }, [noticeOpen]);
 
-  const loading =
+  const isHomeInitialLoading =
     profileQuery.isPending || monthsQuery.isPending || noticesQuery.isPending;
+  const isHomeRefreshing = [profileQuery, monthsQuery, noticesQuery, noticeDetailQuery]
+    .some((query) => query.isFetching && !query.isPending);
   const error = profileQuery.error || monthsQuery.error || noticesQuery.error;
 
-  if (loading) {
+  if (isHomeInitialLoading) {
     return (
       <ResidentAsyncState
         variant="compact"
@@ -163,6 +165,9 @@ export default function ResidentHomeWorkspace() {
 
   return (
     <div className={styles.page}>
+      {isHomeRefreshing ? (
+        <div role="status" aria-label="홈 정보 갱신 중" className="fixed right-4 top-4 z-30 rounded-full bg-white px-3 py-2 text-xs font-bold text-t3 shadow-card">갱신 중…</div>
+      ) : null}
       <header className={styles.header}>
         <div className={styles.unit}>
           <h1>

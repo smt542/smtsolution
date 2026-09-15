@@ -157,7 +157,7 @@ export function BuildingDirectoryRail({
           {!loading && visibleBuildings.length === 0 && (
             <p className="px-[18px] py-[30px] text-center text-[13px] text-t3">조건에 맞는 건물이 없어요.</p>
           )}
-          {loading && <p className="px-[18px] py-[30px] text-center text-[13px] text-t3">건물을 불러오는 중이에요.</p>}
+          {loading && <p role="status" aria-label="건물 목록 불러오는 중" className="px-[18px] py-[30px] text-center text-[13px] text-t3">건물을 불러오는 중이에요.</p>}
         </div>
       </section>
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { useAsyncAction } from "@/hooks/common";
 
 import styles from "./mobile-login.module.css";
 
@@ -15,7 +16,7 @@ export function PartnerLoginForm({ children }: { children: ReactNode }) {
   const [showPw, setShowPw] = useState(false);
   const [auto, setAuto] = useState(false);
   const [err, setErr] = useState("");
-  const [loading, setLoading] = useState(false);
+  const loginAction = useAsyncAction();
 
   useEffect(() => {
     try {
@@ -33,7 +34,7 @@ export function PartnerLoginForm({ children }: { children: ReactNode }) {
   }, []);
 
   const submit = async () => {
-    if (loading) return;
+    if (loginAction.isPending) return;
     const id = username.trim();
     if (!id) {
       setErr("아이디를 입력해 주세요");
@@ -44,29 +45,28 @@ export function PartnerLoginForm({ children }: { children: ReactNode }) {
       return;
     }
     setErr("");
-    setLoading(true);
     try {
-      const res = await fetch("/api/partner/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: id, password }),
+      await loginAction.run(async () => {
+        const res = await fetch("/api/partner/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: id, password }),
+        });
+        if (!res.ok) {
+          const data = (await res.json().catch(() => ({}))) as { error?: string };
+          setErr(data.error ?? "로그인에 실패했습니다.");
+          return;
+        }
+        try {
+          if (auto) localStorage.setItem(AUTO_KEY, id);
+          else localStorage.removeItem(AUTO_KEY);
+        } catch {
+          /* localStorage 접근 불가 시 무시 */
+        }
+        router.replace("/partner/mobile-home");
       });
-      if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as { error?: string };
-        setErr(data.error ?? "로그인에 실패했습니다.");
-        setLoading(false);
-        return;
-      }
-      try {
-        if (auto) localStorage.setItem(AUTO_KEY, id);
-        else localStorage.removeItem(AUTO_KEY);
-      } catch {
-        /* localStorage 접근 불가 시 무시 */
-      }
-      router.replace("/partner/mobile-home");
     } catch {
       setErr("네트워크 오류가 발생했습니다. 다시 시도해 주세요.");
-      setLoading(false);
     }
   };
 
@@ -144,8 +144,8 @@ export function PartnerLoginForm({ children }: { children: ReactNode }) {
       <div className={styles.spacer} />
 
       <div className={styles.foot}>
-        <button type="button" className={styles.submit} onClick={submit} disabled={loading}>
-          {loading ? "로그인 중이에요" : "로그인"}
+        <button type="button" className={styles.submit} onClick={submit} disabled={loginAction.isPending}>
+          {loginAction.isPending ? "로그인 중…" : "로그인"}
         </button>
         {children}
       </div>

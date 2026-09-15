@@ -67,13 +67,15 @@ export default function MoveOutSection({ open, onClose }: MoveOutSectionProps) {
     shouldFocusError: true,
   });
 
-  const submitting = createMutation.isPending
+  const isMoveOutFormPending = createMutation.isPending
     || updateMutation.isPending
     || cancelMutation.isPending
     || createForm.formState.isSubmitting
     || updateForm.formState.isSubmitting;
+  const isMoveOutRequestSubmitting = createMutation.isPending || createForm.formState.isSubmitting;
+  const isMoveOutUpdateSubmitting = updateMutation.isPending || updateForm.formState.isSubmitting;
   const closeSafely = () => {
-    if (submitting) return;
+    if (isMoveOutFormPending) return;
     createForm.reset({ desiredDate: "", reason: "" });
     updateForm.reset({ desiredDate: "" });
     setEditing(false);
@@ -201,9 +203,9 @@ export default function MoveOutSection({ open, onClose }: MoveOutSectionProps) {
           <button
             type="submit"
             className={styles.primaryButton}
-            disabled={createMutation.isPending || createForm.formState.isSubmitting}
+            disabled={isMoveOutRequestSubmitting}
           >
-            {createMutation.isPending || createForm.formState.isSubmitting ? "신청 중..." : "퇴실 신청하기"}
+            {isMoveOutRequestSubmitting ? "퇴실 신청 중…" : "퇴실 신청하기"}
           </button>
         </form>
       ) : request?.status === "pending" ? (
@@ -239,10 +241,10 @@ export default function MoveOutSection({ open, onClose }: MoveOutSectionProps) {
                 <p className={styles.error} role="alert">{updateForm.formState.errors.root.server.message}</p>
               )}
               <div className={styles.actionRow}>
-                <button type="submit" disabled={updateMutation.isPending || updateForm.formState.isSubmitting}>
-                  {updateMutation.isPending || updateForm.formState.isSubmitting ? "변경 중..." : "변경 저장"}
+                <button type="submit" disabled={isMoveOutUpdateSubmitting}>
+                  {isMoveOutUpdateSubmitting ? "퇴실 신청 변경 중…" : "변경 저장"}
                 </button>
-                <button type="button" disabled={submitting} onClick={() => setEditing(false)}>
+                <button type="button" disabled={isMoveOutFormPending} onClick={() => setEditing(false)}>
                   닫기
                 </button>
               </div>
@@ -333,7 +335,7 @@ export default function MoveOutSection({ open, onClose }: MoveOutSectionProps) {
                 disabled={cancelMutation.isPending}
                 onClick={() => void cancelRequest()}
               >
-                {cancelMutation.isPending ? "취소 중..." : "신청 취소"}
+                {cancelMutation.isPending ? "신청 취소 중…" : "신청 취소"}
               </button>
             </div>
           </div>

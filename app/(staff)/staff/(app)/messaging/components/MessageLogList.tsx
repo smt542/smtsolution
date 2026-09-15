@@ -40,11 +40,8 @@ export function MessageLogList({
   if (isLoading) {
     return (
       <Panel title="발송 이력">
-        <div aria-label="발송 이력 불러오는 중" className="py-8">
-          <Spinner />
-          <p className="text-center text-sm text-t4">
-            발송 이력을 불러오는 중입니다.
-          </p>
+        <div className="min-h-[180px] py-8">
+          <Spinner label="발송 이력 불러오는 중" showLabel />
         </div>
       </Panel>
     );

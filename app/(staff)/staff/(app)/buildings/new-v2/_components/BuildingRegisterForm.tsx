@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useConfirm } from "@/components/common/ConfirmProvider";
-import { useAppToast, useAsyncAction } from "@/hooks/common";
+import { useAppToast } from "@/hooks/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import {
   useAttachmentsByEntities,
@@ -33,11 +33,11 @@ import {
 export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
   const confirm = useConfirm();
   const appToast = useAppToast();
-  const saveAction = useAsyncAction();
   const router = useRouter();
   const save = useSaveBuilding();
   const uploadAttachments = useUploadAttachments();
   const deleteAttachment = useDeleteAttachment();
+  const isSavingBuilding = save.isPending || uploadAttachments.isPending;
   const { data: me } = useMe();
   const { data: staff } = useStaffOptions();
   const { data: types } = useBuildingTypes();
@@ -87,12 +87,12 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
     setDirty(true);
   };
 
-  const onSave = () => {
-    void saveAction.run(async () => {
-      if (!state.name.trim()) {
-        appToast.error("건물명을 입력해 주세요.");
-        return;
-      }
+  const onSave = async () => {
+    if (isSavingBuilding) return;
+    if (!state.name.trim()) {
+      appToast.error("건물명을 입력해 주세요.");
+      return;
+    }
       if (!state.address.trim()) {
         appToast.error("주소를 입력해 주세요.");
         return;
@@ -180,7 +180,6 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
       } catch (error) {
         appToast.error(error, "건물을 저장하지 못했습니다.");
       }
-    });
   };
 
   const onDeleteAttachment = async (attachment: Attachment) => {
@@ -217,10 +216,10 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
         saveLabel={buildingId ? "저장" : "등록 저장"}
         onBack={onBack}
         onSave={onSave}
-        saving={saveAction.isPending || save.isPending || uploadAttachments.isPending}
+        saving={isSavingBuilding}
       />
       {buildingId && fullLoading ? (
-        <div className="p-[24px]">
+        <div role="status" aria-label="건물 정보 불러오는 중" className="min-h-[420px] p-[24px]">
           <p className="text-sm text-t3">건물 정보를 불러오는 중…</p>
         </div>
       ) : (
@@ -233,7 +232,7 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
             showAllVendors={Boolean(buildingId)}
             attachments={vendorAttachments}
             onDeleteAttachment={onDeleteAttachment}
-            disabled={saveAction.isPending || save.isPending || uploadAttachments.isPending}
+            disabled={isSavingBuilding}
           />
           <ReserveFundSection value={state} patch={patch} />
           <OwnerInfoSection value={state} patch={patch} />

@@ -33,6 +33,7 @@ export function MoveOutList() {
   const { data: buildings = [] } = useBuildings();
   const moveOutQuery = useStaffMoveOutRequests({ buildingId, sort });
   const confirmMoveOut = useConfirmMoveOut();
+  const isMoveOutListRefreshing = moveOutQuery.isFetching && !moveOutQuery.isLoading;
 
   const buildingOptions = useMemo<DdOption[]>(
     () => [
@@ -77,11 +78,16 @@ export function MoveOutList() {
           ariaLabel="퇴실 신청 정렬"
         />
       </div>
-      <div className="flex-1 min-h-0 overflow-auto p-3 flex flex-col gap-2 bg-white">
+      <div className="relative flex-1 min-h-0 overflow-auto p-3 flex flex-col gap-2 bg-white">
+        {isMoveOutListRefreshing ? (
+          <div className="sticky right-2 top-2 z-10 ml-auto w-fit rounded-lg bg-white/95 shadow-card">
+            <Spinner label="퇴실 신청 목록 갱신 중" size="small" showLabel className="px-3 py-2" />
+          </div>
+        ) : null}
         {moveOutQuery.isLoading ? (
-          <Spinner />
+          <Spinner label="퇴실 신청 목록 불러오는 중" />
         ) : moveOutQuery.error ? (
-          <EmptyState message="퇴실 신청을 불러오지 못했어요" />
+          <div role="alert"><EmptyState message="퇴실 신청을 불러오지 못했어요" /></div>
         ) : (moveOutQuery.data ?? []).length === 0 ? (
           <div className="flex-1 flex items-center justify-center text-[13px] font-semibold text-t4">대기 중인 퇴실 신청이 없어요</div>
         ) : (

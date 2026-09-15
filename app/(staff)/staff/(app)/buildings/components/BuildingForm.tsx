@@ -191,7 +191,7 @@ export function BuildingForm({ buildingId }: { buildingId?: number }) {
         </h1>
         <div className="flex gap-2">
           <Button variant="ghost" onClick={onLeave}>목록으로</Button>
-          <Button variant="primary" onClick={onSave} disabled={save.isPending}>저장</Button>
+          <Button variant="primary" onClick={onSave} disabled={save.isPending}>{save.isPending ? "저장 중…" : "저장"}</Button>
         </div>
       </div>
       <BasicInfoSection value={basic} onChange={patchBasic} staffOptions={staffOptions} errors={errors} />

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Tabs, SearchBar, Button, EmptyState } from "@/components/common";
+import { Tabs, SearchBar, Button, EmptyState, Spinner } from "@/components/common";
 import type { StaffType } from "@/hooks/reactquery/auth";
 import { useDebouncedValue } from "@/hooks/common";
 import {
@@ -30,12 +30,24 @@ export function AccountsWorkspace({ canEditPermissions }: { canEditPermissions: 
   const [editing, setEditing] = useState<Account | null>(null);
   const debouncedSearch = useDebouncedValue(search, 300);
 
-  const { data: accounts = [] } = useAccounts({ search: debouncedSearch || undefined });
+  const {
+    data: accounts = [],
+    isLoading: isAccountListLoading,
+    isError: isAccountListError,
+    isFetching: isAccountListFetching,
+    refetch: refetchAccounts,
+  } = useAccounts({ search: debouncedSearch || undefined });
   const createM = useCreateAccount();
   const basicM = useUpdateAccountBasic();
   const permM = useUpdatePermissions();
   const activeM = useSetActive();
   const resetPasswordM = useResetPassword();
+  const isAccountListRefreshing = isAccountListFetching && !isAccountListLoading;
+  const isAccountFormPending = createM.isPending
+    || basicM.isPending
+    || permM.isPending
+    || resetPasswordM.isPending
+    || activeM.isPending;
 
   const filtered = tab === "tenant"
     ? []
@@ -101,6 +113,9 @@ export function AccountsWorkspace({ canEditPermissions }: { canEditPermissions: 
               <span className="rounded-lg bg-bg px-2.5 py-1 text-xs font-bold text-t3">
                 {filtered.length}개
               </span>
+              {isAccountListRefreshing ? (
+                <Spinner label="계정 목록 갱신 중" size="small" showLabel className="px-2 py-1" />
+              ) : null}
             </div>
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
               <div className="w-full sm:w-72">
@@ -113,7 +128,18 @@ export function AccountsWorkspace({ canEditPermissions }: { canEditPermissions: 
           </div>
 
           <div className="min-h-0 flex-1 overflow-auto p-4">
-            {filtered.length === 0 ? (
+            {isAccountListLoading ? (
+              <div className="flex min-h-[320px] items-center justify-center">
+                <Spinner label="계정 목록 불러오는 중" />
+              </div>
+            ) : isAccountListError ? (
+              <div role="alert" className="flex min-h-[320px] flex-col items-center justify-center gap-3 text-sm text-danger">
+                <p>계정 목록을 불러오지 못했습니다.</p>
+                <Button type="button" variant="ghost" onClick={() => void refetchAccounts()}>
+                  다시 시도
+                </Button>
+              </div>
+            ) : filtered.length === 0 ? (
               <EmptyState message="조건에 맞는 계정이 없습니다" />
             ) : (
               <AccountTable accounts={filtered} onRowClick={openEdit} onToggleActive={onToggleActive} />
@@ -134,10 +160,7 @@ export function AccountsWorkspace({ canEditPermissions }: { canEditPermissions: 
           onUpdatePermissions={onUpdatePermissions}
           onResetPassword={onResetPassword}
           onSetActive={onSetActive}
-          isPending={
-            createM.isPending || basicM.isPending || permM.isPending
-            || resetPasswordM.isPending || activeM.isPending
-          }
+          isPending={isAccountFormPending}
         />
       )}
     </div>

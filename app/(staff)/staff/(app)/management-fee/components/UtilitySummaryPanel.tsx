@@ -86,12 +86,12 @@ export function UtilitySummaryPanel({ buildingSelected, rows, confirmations, loa
   const sourceType: SourceType = activeTab === "common-electricity" ? "electricity" : activeTab;
   const activeRows = rows[sourceType];
   const confirmation = confirmations[sourceType];
-  const isLoading = loading[sourceType];
+  const isActiveUtilityLoading = loading[sourceType];
   const columns = COLUMNS[activeTab];
 
   const message = !buildingSelected
     ? "건물을 선택하면 표시돼요"
-    : isLoading
+    : isActiveUtilityLoading
       ? "공과금 정보를 불러오는 중입니다."
       : activeRows.length === 0
         ? "등록된 고객번호가 없어요"
@@ -146,7 +146,12 @@ export function UtilitySummaryPanel({ buildingSelected, rows, confirmations, loa
           <tbody>
             {message ? (
               <tr>
-                <td colSpan={columns.length} className="px-0 py-[22px] text-center text-[13.5px] font-medium text-t3">
+                <td
+                  colSpan={columns.length}
+                  role={isActiveUtilityLoading ? "status" : undefined}
+                  aria-label={isActiveUtilityLoading ? "공과금 정보 불러오는 중" : undefined}
+                  className="px-0 py-[22px] text-center text-[13.5px] font-medium text-t3"
+                >
                   {message}
                 </td>
               </tr>
@@ -171,7 +176,7 @@ export function UtilitySummaryPanel({ buildingSelected, rows, confirmations, loa
             )}
           </tbody>
         </table>
-        {activeTab === "common-electricity" && buildingSelected && !isLoading && activeRows.length > 0 && (
+        {activeTab === "common-electricity" && buildingSelected && !isActiveUtilityLoading && activeRows.length > 0 && (
           <p className="px-[18px] pb-[10px] pt-[6px] text-right text-[11px] text-t4">
             공용전기는 전기 산정 내역에 포함되어 표시됩니다.
           </p>

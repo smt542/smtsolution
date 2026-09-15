@@ -20,6 +20,7 @@ export function QuickMessageEditor() {
   const [editing, setEditing] = useState<QuickMessage | null>(null);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const isQuickMessageSavePending = create.isPending || update.isPending;
 
   const openCreate = () => { setEditing(null); setTitle(""); setBody(""); setOpen(true); };
   const openEdit = (m: QuickMessage) => { setEditing(m); setTitle(m.title); setBody(m.body); setOpen(true); };
@@ -51,7 +52,7 @@ export function QuickMessageEditor() {
           <li key={m.id} className="flex items-center gap-2">
             <span className="flex-1 truncate text-sm text-t2"><b>{m.title}</b> — {m.body}</span>
             <button aria-label={`${m.title} 수정`} onClick={() => openEdit(m)} className="text-xs text-t3 hover:text-brand">수정</button>
-            <button aria-label={`${m.title} 삭제`} onClick={() => remove(m.id)} className="text-xs text-t3 hover:text-danger">삭제</button>
+            <button aria-label={`${m.title} 삭제`} disabled={del.isPending} onClick={() => remove(m.id)} className="text-xs text-t3 hover:text-danger disabled:opacity-60">{del.isPending && del.variables === m.id ? "삭제 중…" : "삭제"}</button>
           </li>
         ))}
       </ul>
@@ -62,7 +63,7 @@ export function QuickMessageEditor() {
             className="min-h-24 w-full rounded-xl border border-line bg-surface p-3 text-sm text-t1" />
           <div className="flex justify-end gap-2">
             <button onClick={() => setOpen(false)} className="text-sm text-t3">취소</button>
-            <Button variant="primary" onClick={submit} disabled={create.isPending || update.isPending}>{editing ? "저장" : "추가"}</Button>
+            <Button variant="primary" onClick={submit} disabled={isQuickMessageSavePending}>{isQuickMessageSavePending ? "저장 중…" : editing ? "저장" : "추가"}</Button>
           </div>
         </div>
       </Modal>

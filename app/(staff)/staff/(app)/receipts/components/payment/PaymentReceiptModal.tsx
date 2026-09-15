@@ -39,7 +39,10 @@ export function PaymentReceiptModal({
   const receiverQuery = usePaymentReceiver(payment.id);
   const billDocument = billQuery.data?.find((document) => document.unitId === row.unitId);
   const lateFee = lateFeeFromItems(billDocument?.items);
-  const isLoading = billQuery.isLoading || receiverQuery.isLoading;
+  const isReceiptInitialLoading = billQuery.isLoading || receiverQuery.isLoading;
+  const isReceiptRefreshing = [billQuery, receiverQuery]
+    .some((query) => query.isFetching && !query.isLoading);
+  const isReceiptBusy = isReceiptInitialLoading || isReceiptRefreshing;
 
   const receipt = (
     <PaymentReceiptPrintView
@@ -80,9 +83,9 @@ export function PaymentReceiptModal({
             </button>
           </header>
 
-          <main className="min-h-0 flex-1 overflow-auto bg-slate-200/70 p-5">
-            {isLoading ? (
-              <div className="flex min-h-80 items-center justify-center"><Spinner /></div>
+          <main className="relative min-h-0 flex-1 overflow-auto bg-slate-200/70 p-5">
+            {isReceiptInitialLoading ? (
+              <div className="flex min-h-80 items-center justify-center"><Spinner label="수납 영수증 불러오는 중" /></div>
             ) : (
               <>
                 {(billQuery.isError || receiverQuery.isError) && (
@@ -91,20 +94,25 @@ export function PaymentReceiptModal({
                   </p>
                 )}
                 {receipt}
+                {isReceiptRefreshing ? (
+                  <div className="pointer-events-none absolute right-3 top-3 rounded-full bg-surface/95 shadow-card">
+                    <Spinner label="수납 영수증 갱신 중" size="small" showLabel className="px-3 py-2" />
+                  </div>
+                ) : null}
               </>
             )}
           </main>
 
           <footer className="flex justify-end gap-2 border-t border-line px-5 py-3">
             <Button type="button" variant="ghost" onClick={onClose}>닫기</Button>
-            <Button type="button" onClick={() => window.print()} disabled={isLoading}>
+            <Button type="button" onClick={() => window.print()} disabled={isReceiptBusy}>
               인쇄
             </Button>
           </footer>
         </div>
       </div>
 
-      {!isLoading && (
+      {!isReceiptInitialLoading && (
         <div className="hidden print:block" data-testid="payment-receipt-print-root">
           {receipt}
         </div>

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { EmptyState } from "@/components/common";
+import { EmptyState, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useCustomerNumberLookup } from "@/hooks/reactquery/buildingCustomerNumbers";
@@ -330,8 +330,16 @@ export default function ElectricityUtilitiesWorkspace() {
 
   const referenceDate = `${period.slice(0, 7)}-15`;
   const utilityLabel = utilityType === "water" ? "수도" : utilityType === "gas" ? "가스" : "전기";
-  const rowsLoading = rowsQuery.isLoading || fixedUsagesQuery.isLoading;
-  const saving = saveMeterReadings.isPending || saveBillingPeriod.isPending || saveUtilityPrices.isPending;
+  const isElectricityWorkspaceLoading =
+    rowsQuery.isLoading ||
+    fixedUsagesQuery.isLoading ||
+    (buildingId !== null && billingPeriodQuery.isLoading);
+  const isElectricityWorkspaceRefreshing =
+    (rowsQuery.isFetching && !rowsQuery.isLoading) ||
+    (fixedUsagesQuery.isFetching && !fixedUsagesQuery.isLoading) ||
+    (billingPeriodQuery.isFetching && !billingPeriodQuery.isLoading);
+  const isElectricitySavePending =
+    saveMeterReadings.isPending || saveBillingPeriod.isPending || saveUtilityPrices.isPending;
   const needsBasis = buildingId !== null
     && !billingPeriodQuery.isLoading
     && isPrototypeFuturePeriod(period)
@@ -375,14 +383,19 @@ export default function ElectricityUtilitiesWorkspace() {
           onSelectBuilding={selectBuilding}
         />
 
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 min-[1101px]:overflow-auto">
+        <main className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-4 min-[1101px]:overflow-auto">
+          {buildingId !== null && isElectricityWorkspaceRefreshing ? (
+            <div className="absolute right-4 top-4 z-10 rounded-lg bg-white/95 shadow-card">
+              <Spinner label="전기 지침 갱신 중" size="small" showLabel />
+            </div>
+          ) : null}
           <ElectricityPeriodBar
             buildingName={selectedBuilding?.name ?? null}
             period={period}
             startDate={startDate}
             endDate={endDate}
             editing={editing}
-            saving={saving}
+            saving={isElectricitySavePending}
             onStartDateChange={setEditStartDate}
             onEndDateChange={setEditEndDate}
             onEdit={startEditing}
@@ -398,12 +411,12 @@ export default function ElectricityUtilitiesWorkspace() {
             onDraftChange={updateSummaryDraft}
           />
 
-          {rowsLoading || (buildingId !== null && billingPeriodQuery.isLoading) ? (
+          {isElectricityWorkspaceLoading ? (
             <section className="flex min-h-[360px] flex-1 items-center justify-center rounded-card bg-white text-xs font-semibold text-t3 shadow-card">
-              호실별 전기 지침을 불러오는 중입니다.
+              <Spinner label="전기 지침 불러오는 중" showLabel />
             </section>
           ) : rowsQuery.error || billingPeriodQuery.error ? (
-            <section className="flex min-h-[360px] flex-1 flex-col items-center justify-center rounded-card bg-white text-center shadow-card">
+            <section role="alert" className="flex min-h-[360px] flex-1 flex-col items-center justify-center rounded-card bg-white text-center shadow-card">
               <p className="text-sm font-bold text-red">호실별 전기 지침을 불러오지 못했습니다.</p>
               <button type="button" onClick={() => rowsQuery.refetch()} className="mt-3 h-8 rounded-lg border border-line px-3 text-xs font-bold text-t2">다시 시도</button>
             </section>

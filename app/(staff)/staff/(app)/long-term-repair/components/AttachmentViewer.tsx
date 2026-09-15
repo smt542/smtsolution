@@ -44,7 +44,8 @@ export function AttachmentViewer({
   const thumbnailResults = useAttachmentSignedUrls(attachments, "thumbnail");
   const previewResults = useAttachmentSignedUrls(attachments, "preview");
   const originalResults = useAttachmentSignedUrls(attachments, "original");
-  const loading = thumbnailResults.some((item) => item.isPending);
+  const areThumbnailsLoading = thumbnailResults.some((item) => item.isPending);
+  const areOriginalsLoading = originalResults.some((item) => item.isPending);
   const printable = originalResults.filter((item) => item.url);
   const previewUrl = preview
     ? previewResults.find((item) => item.attachment.id === preview.id)?.url
@@ -124,8 +125,8 @@ export function AttachmentViewer({
                 <b>{kindLabel}</b>
                 <span>{attachments.length}장</span>
               </div>
-              {loading ? (
-                <div className="flex h-11 items-center justify-center"><Spinner /></div>
+            {areThumbnailsLoading ? (
+                <div className="flex h-11 items-center justify-center"><Spinner label="첨부 사진 불러오는 중" /></div>
               ) : (
                 <div className={styles.attachmentGrid}>
                   {thumbnailResults.map(({ attachment, url, error }, index) => (
@@ -142,7 +143,11 @@ export function AttachmentViewer({
                           <img src={url} alt={`${title} ${index + 1}`} />
                         </button>
                       ) : (
-                        <span className="flex size-full items-center justify-center p-2 text-center text-xs text-danger">
+                        <span
+                          role={error ? "alert" : "status"}
+                          aria-label={error ? `${attachment.fileName} 불러오기 실패` : `${attachment.fileName} 불러오는 중`}
+                          className="flex size-full items-center justify-center p-2 text-center text-xs text-danger"
+                        >
                           {error ? "이 사진을 불러오지 못했습니다." : "불러오는 중…"}
                         </span>
                       )}
@@ -243,9 +248,9 @@ export function AttachmentViewer({
                 type="button"
                 className={styles.attachmentAction}
                 onClick={() => window.print()}
-                disabled={originalResults.some((item) => item.isPending)}
+                disabled={areOriginalsLoading}
               >
-                인쇄
+                {areOriginalsLoading ? "인쇄 자료 준비 중…" : "인쇄"}
               </button>
             )}
             <button

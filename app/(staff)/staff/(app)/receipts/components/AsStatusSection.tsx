@@ -140,7 +140,7 @@ export function AsStatusSection({
   const createResolution = useCreateComplaintResolution();
   const updateResolution = useUpdateComplaintResolution();
 
-  const isSaving =
+  const isComplaintSavePending =
     createComplaint.isPending ||
     updateComplaint.isPending ||
     createResolution.isPending ||
@@ -407,7 +407,7 @@ export function AsStatusSection({
           buildings={buildings}
           categories={categories}
           assignees={assignees}
-          isPending={isSaving}
+          isPending={isComplaintSavePending}
           onClose={closeForm}
           onSubmit={createAs}
         />
@@ -421,7 +421,7 @@ export function AsStatusSection({
           buildings={buildings}
           categories={categories}
           assignees={assignees}
-          isPending={isSaving}
+          isPending={isComplaintSavePending}
           onClose={() => setSelectedId(null)}
           onSubmit={updateAs}
           onDelete={removeComplaint}

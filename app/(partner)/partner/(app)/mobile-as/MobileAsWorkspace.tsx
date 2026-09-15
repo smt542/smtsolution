@@ -27,7 +27,7 @@ export function MobileAsWorkspace({ complaintId }: { complaintId: number | null 
     return (
       <div className={styles.root}>
         {header}
-        <div className={styles.none}>불러오는 중…</div>
+        <div className={styles.none} role="status" aria-label="A/S 상세 불러오는 중">불러오는 중…</div>
       </div>
     );
   }
@@ -77,10 +77,10 @@ function MobileAsEditor({
   const [err, setErr] = useState("");
   const [confirmSave, setConfirmSave] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
-  const busy = updateMutation.isPending || deleteMutation.isPending;
+  const isComplaintMutating = updateMutation.isPending || deleteMutation.isPending;
 
   const save = async () => {
-    if (busy) return;
+    if (isComplaintMutating) return;
     setErr("");
     if (!content.trim()) {
       setErr("접수 내용을 입력해 주세요");
@@ -106,7 +106,7 @@ function MobileAsEditor({
   };
 
   const del = async () => {
-    if (busy) return;
+    if (isComplaintMutating) return;
     try {
       await deleteMutation.mutateAsync(complaintId);
       router.push("/partner/mobile-home");
@@ -196,8 +196,8 @@ function MobileAsEditor({
         </PartnerBottomActionBar>
       ) : (
         <PartnerBottomActionBar>
-          <button type="button" className={`${styles.btn} ${styles.btnDel}`} onClick={() => setConfirmDel(true)} disabled={busy}>삭제</button>
-          <button type="button" className={`${styles.btn} ${styles.btnPri}`} onClick={() => setConfirmSave(true)} disabled={busy}>저장</button>
+          <button type="button" className={`${styles.btn} ${styles.btnDel}`} onClick={() => setConfirmDel(true)} disabled={isComplaintMutating}>{deleteMutation.isPending ? "삭제 중…" : "삭제"}</button>
+          <button type="button" className={`${styles.btn} ${styles.btnPri}`} onClick={() => setConfirmSave(true)} disabled={isComplaintMutating}>{updateMutation.isPending ? "저장 중…" : "저장"}</button>
         </PartnerBottomActionBar>
       )}
 
@@ -209,7 +209,7 @@ function MobileAsEditor({
           confirmLabel="저장"
           onCancel={() => setConfirmSave(false)}
           onConfirm={() => { setConfirmSave(false); void save(); }}
-          confirmDisabled={busy}
+          confirmDisabled={isComplaintMutating}
         />
       )}
 
@@ -222,7 +222,7 @@ function MobileAsEditor({
           confirmVariant="danger"
           onCancel={() => setConfirmDel(false)}
           onConfirm={() => void del()}
-          confirmDisabled={busy}
+          confirmDisabled={isComplaintMutating}
         />
       )}
     </div>

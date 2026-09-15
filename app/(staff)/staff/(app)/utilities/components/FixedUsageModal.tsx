@@ -39,7 +39,7 @@ export function FixedUsageModal({
     utility === "gas" ? currentFixedUsageFrom?.slice(0, 7) ?? "" : "",
   );
   const hasFixedUsage = currentFixedUsage !== null;
-  const isPending = setFixedUsage.isPending || clearFixedUsage.isPending;
+  const isFixedUsageMutating = setFixedUsage.isPending || clearFixedUsage.isPending;
 
   const submit = () => {
     const parsed = Number(amount);
@@ -115,17 +115,17 @@ export function FixedUsageModal({
       <div className="mt-6 flex justify-between">
         <div>
           {hasFixedUsage && (
-            <Button variant="danger" onClick={remove} disabled={isPending}>
-              고정 사용량 해제
+            <Button variant="danger" onClick={remove} disabled={isFixedUsageMutating}>
+              {clearFixedUsage.isPending ? "고정 사용량 해제 중…" : "고정 사용량 해제"}
             </Button>
           )}
         </div>
         <div className="flex gap-2">
-          <Button variant="ghost" onClick={onClose} disabled={isPending}>
+          <Button variant="ghost" onClick={onClose} disabled={isFixedUsageMutating}>
             취소
           </Button>
-          <Button onClick={submit} disabled={isPending}>
-            저장
+          <Button onClick={submit} disabled={isFixedUsageMutating}>
+            {setFixedUsage.isPending ? "저장 중…" : "저장"}
           </Button>
         </div>
       </div>

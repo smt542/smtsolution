@@ -81,9 +81,9 @@ function NoticeFormContent({
     shouldFocusError: true,
   });
   const publishMode = useWatch({ control, name: "publishMode" });
-  const isPending = createNotice.isPending || updateNotice.isPending || isSubmitting;
+  const isNoticeSavePending = createNotice.isPending || updateNotice.isPending || isSubmitting;
   const closeSafely = () => {
-    if (!isPending) onClose();
+    if (!isNoticeSavePending) onClose();
   };
 
   const submit = async (values: NoticeFormValues) => {
@@ -190,9 +190,9 @@ function NoticeFormContent({
         {errors.root?.server?.message && <p role="alert" className="rounded-xl bg-red-t px-3 py-2 text-sm font-semibold text-red">{errors.root.server.message}</p>}
 
         <div className="sticky bottom-0 flex justify-end gap-2 border-t border-line bg-surface pt-4">
-          <Button type="button" variant="ghost" onClick={closeSafely} disabled={isPending}>취소</Button>
-          <Button type="submit" variant="primary" disabled={isPending}>
-            {isPending ? "저장 중…" : editing ? "수정" : "등록"}
+          <Button type="button" variant="ghost" onClick={closeSafely} disabled={isNoticeSavePending}>취소</Button>
+          <Button type="submit" variant="primary" disabled={isNoticeSavePending}>
+            {isNoticeSavePending ? "저장 중…" : editing ? "수정" : "등록"}
           </Button>
         </div>
       </form>

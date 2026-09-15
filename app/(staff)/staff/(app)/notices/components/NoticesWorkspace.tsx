@@ -99,6 +99,11 @@ export function NoticesWorkspace({
     selectedListId !== null && selectedListId > 0 ? selectedListId : 0,
   );
   const selectedNotice = selectedNoticeQuery.data ?? null;
+  const isNoticeListInitialLoading = buildingsQuery.isLoading || noticesQuery.isLoading;
+  const isNoticeListRefreshing = [buildingsQuery, noticesQuery]
+    .some((query) => query.isFetching && !query.isLoading);
+  const isSelectedNoticeRefreshing =
+    selectedNoticeQuery.isFetching && !selectedNoticeQuery.isLoading;
 
   const openCreate = () => { setEditing(null); setFormOpen(true); };
   const openEdit = () => {
@@ -162,24 +167,36 @@ export function NoticesWorkspace({
       </div>
 
       {/* 콘텐츠 */}
-      <div className="flex-1 pt-[22px] pb-[30px] px-[24px]">
-        {buildingsQuery.isLoading || noticesQuery.isLoading ? (
-          <div className="bg-white rounded-[16px] shadow-[0px_1px_3px_0px_rgba(23,31,40,0.05)] flex items-center justify-center py-16">
-            <Spinner />
+      <div className="relative flex-1 pt-[22px] pb-[30px] px-[24px]">
+        {isNoticeListInitialLoading ? (
+          <div className="bg-white min-h-[420px] rounded-[16px] shadow-[0px_1px_3px_0px_rgba(23,31,40,0.05)] flex items-center justify-center py-16">
+            <Spinner label="공지 목록 불러오는 중" />
+          </div>
+        ) : buildingsQuery.isError || noticesQuery.isError ? (
+          <div role="alert" className="flex min-h-[420px] flex-col items-center justify-center gap-3 rounded-[16px] bg-white text-sm text-red shadow-card">
+            <p>데이터를 불러오지 못했습니다.</p>
+            <button type="button" className="rounded-xl border border-line px-4 py-2 font-bold text-t2" onClick={() => { void buildingsQuery.refetch(); void noticesQuery.refetch(); }}>다시 시도</button>
           </div>
         ) : (
-          <NoticeList
-            notices={displayNotices}
-            buildings={buildings}
-            selectedId={selectedListId}
-            total={displayTotal}
-            page={page}
-            pageSize={NOTICE_PAGE_SIZE}
-            noticeType={noticeType}
-            onNoticeTypeChange={handleTypeChange}
-            onSelect={(notice) => setSelectedId(notice.id)}
-            onPageChange={setPage}
-          />
+          <>
+            <NoticeList
+              notices={displayNotices}
+              buildings={buildings}
+              selectedId={selectedListId}
+              total={displayTotal}
+              page={page}
+              pageSize={NOTICE_PAGE_SIZE}
+              noticeType={noticeType}
+              onNoticeTypeChange={handleTypeChange}
+              onSelect={(notice) => setSelectedId(notice.id)}
+              onPageChange={setPage}
+            />
+            {isNoticeListRefreshing ? (
+              <div className="pointer-events-none absolute right-8 top-7 rounded-full bg-surface/95 shadow-card">
+                <Spinner label="공지 목록 갱신 중" size="small" showLabel className="px-3 py-2" />
+              </div>
+            ) : null}
+          </>
         )}
       </div>
 
@@ -188,9 +205,19 @@ export function NoticesWorkspace({
         <>
           <div className="fixed inset-0 z-40 bg-black/20" onClick={() => setSelectedId(null)} />
           <div className="fixed inset-y-0 right-0 z-50 w-[520px] bg-white shadow-xl overflow-y-auto">
+            {isSelectedNoticeRefreshing ? (
+              <div className="pointer-events-none absolute right-4 top-4 z-10 rounded-full bg-surface/95 shadow-card">
+                <Spinner label="공지 상세 갱신 중" size="small" showLabel className="px-3 py-2" />
+              </div>
+            ) : null}
             {selectedNoticeQuery.isLoading ? (
               <div className="flex items-center justify-center h-full py-16">
-                <Spinner />
+                <Spinner label="공지 상세 불러오는 중" />
+              </div>
+            ) : selectedNoticeQuery.isError ? (
+              <div role="alert" className="flex h-full flex-col items-center justify-center gap-3 py-16 text-sm text-red">
+                <p>공지 상세를 불러오지 못했습니다.</p>
+                <button type="button" className="rounded-xl border border-line px-4 py-2 font-bold text-t2" onClick={() => void selectedNoticeQuery.refetch()}>다시 시도</button>
               </div>
             ) : selectedNotice ? (
               <NoticeDetail

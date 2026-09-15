@@ -12,7 +12,9 @@ describe("OrgBuildingsList", () => {
   it("로딩 상태", () => {
     vi.mocked(useOrgBuildings).mockReturnValue({ isPending: true, data: undefined } as never);
     render(<OrgBuildingsList orgId={3} />);
-    expect(screen.getByLabelText("불러오는 중")).toBeInTheDocument();
+    expect(
+      screen.getByRole("status", { name: "건물 목록 불러오는 중" }),
+    ).toBeInTheDocument();
   });
   it("건물 없음", () => {
     vi.mocked(useOrgBuildings).mockReturnValue({ isPending: false, isError: false, data: { org: { id: 3, name: "가나관리", slug: "gana", status: "active" }, buildings: [] } } as never);

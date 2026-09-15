@@ -7,6 +7,7 @@ import { useState } from "react";
 import BottomNav from "@/app/(resident)/_components/BottomNav";
 import MoveOutSection from "@/app/(resident)/_components/MoveOutSection";
 import ResidentAsyncState from "@/app/(resident)/_components/ResidentAsyncState";
+import { useAsyncAction } from "@/hooks/common";
 import { useMoveOutRequest } from "@/hooks/reactquery/residentMoveOut";
 import {
   useResidentProfile,
@@ -62,10 +63,11 @@ export default function ResidentMeWorkspace() {
   const [alimtalkWarningOpen, setAlimtalkWarningOpen] = useState(false);
   const [moveOutOpen, setMoveOutOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
-  const [loggingOut, setLoggingOut] = useState(false);
+  const logoutAction = useAsyncAction();
   const [withdrawOpen, setWithdrawOpen] = useState(false);
-  const [withdrawing, setWithdrawing] = useState(false);
   const [withdrawError, setWithdrawError] = useState<string | null>(null);
+  const isResidentMeRefreshing = [profileQuery, moveOutQuery]
+    .some((query) => query.isFetching && !query.isPending);
 
   if (profileQuery.isPending) {
     return (
@@ -123,22 +125,21 @@ export default function ResidentMeWorkspace() {
         : "희망 퇴실일을 알려주세요";
 
   const confirmLogout = async () => {
-    setLoggingOut(true);
-    try {
-      await createClient().auth.signOut();
-    } finally {
-      resetOnboardingSession();
-      router.replace("/resident/login");
-    }
+    await logoutAction.run(async () => {
+      try {
+        await createClient().auth.signOut();
+      } finally {
+        resetOnboardingSession();
+        router.replace("/resident/login");
+      }
+    });
   };
 
   const confirmWithdraw = async () => {
     setWithdrawError(null);
-    setWithdrawing(true);
     try {
       await withdrawResident.mutateAsync();
     } catch (error) {
-      setWithdrawing(false);
       setWithdrawError(
         error instanceof Error
           ? error.message
@@ -157,6 +158,9 @@ export default function ResidentMeWorkspace() {
 
   return (
     <div className={styles.page}>
+      {isResidentMeRefreshing ? (
+        <div role="status" aria-label="내 정보 갱신 중" className="fixed right-4 top-4 z-30 rounded-full bg-white px-3 py-2 text-xs font-bold text-t3 shadow-card">갱신 중…</div>
+      ) : null}
       <header className={styles.header}>
         <h1 className={styles.title}>내 정보</h1>
         <div className={styles.prof}>
@@ -362,10 +366,10 @@ export default function ResidentMeWorkspace() {
               <button
                 type="button"
                 className={`${styles.confirmBtn} ${styles.confirmPri}`}
-                disabled={loggingOut}
+                disabled={logoutAction.isPending}
                 onClick={() => void confirmLogout()}
               >
-                {loggingOut ? "로그아웃 중..." : "로그아웃"}
+                {logoutAction.isPending ? "로그아웃 중…" : "로그아웃"}
               </button>
             </div>
           </div>
@@ -379,7 +383,7 @@ export default function ResidentMeWorkspace() {
           aria-modal="true"
           aria-labelledby="withdraw-title"
           onClick={(event) => {
-            if (event.target === event.currentTarget && !withdrawing)
+            if (event.target === event.currentTarget && !withdrawResident.isPending)
               setWithdrawOpen(false);
           }}
         >
@@ -401,17 +405,17 @@ export default function ResidentMeWorkspace() {
                 type="button"
                 className={styles.confirmBtn}
                 onClick={() => setWithdrawOpen(false)}
-                disabled={withdrawing}
+                disabled={withdrawResident.isPending}
               >
                 취소
               </button>
               <button
                 type="button"
                 className={`${styles.confirmBtn} ${styles.confirmDanger}`}
-                disabled={withdrawing}
+                disabled={withdrawResident.isPending}
                 onClick={() => void confirmWithdraw()}
               >
-                {withdrawing ? "처리 중..." : "탈퇴하기"}
+                {withdrawResident.isPending ? "탈퇴 처리 중…" : "탈퇴하기"}
               </button>
             </div>
           </div>

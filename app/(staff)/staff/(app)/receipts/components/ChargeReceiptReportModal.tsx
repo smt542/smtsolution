@@ -78,7 +78,9 @@ export function ChargeReceiptReportModal({
 
   if (!open) return null;
 
-  const isLoading = canLoad && (query.isLoading || query.isFetching);
+  const isReportInitialLoading = canLoad && query.isLoading;
+  const isReportRefreshing = canLoad && query.isFetching && !query.isLoading;
+  const isReportBusy = isReportInitialLoading || isReportRefreshing;
   const isError = canLoad && query.isError;
   const hasData = Boolean(
     query.data &&
@@ -204,7 +206,10 @@ export function ChargeReceiptReportModal({
             <AsyncContentState
               error={isError}
               errorMessage="부과·수납 자료를 불러오지 못했습니다."
-              loading={isLoading}
+              loading={isReportInitialLoading}
+              loadingLabel="부과·수납 자료 불러오는 중"
+              refreshing={isReportRefreshing}
+              refreshingLabel="부과·수납 자료 갱신 중"
               empty={building === null || !hasData}
               emptyMessage={
                 building === null ? "건물을 먼저 선택하세요" : "조회된 부과·수납 자료가 없습니다."
@@ -219,7 +224,7 @@ export function ChargeReceiptReportModal({
             <button
               type="button"
               onClick={() => window.print()}
-              disabled={!hasData || isLoading || isError}
+              disabled={!hasData || isReportBusy || isError}
               className="flex h-[40px] items-center gap-[7px] rounded-[11px] bg-teal px-[18px] text-[13.5px] font-bold text-white hover:bg-teal-d disabled:opacity-40"
             >
               <PrinterIcon />

@@ -9,7 +9,8 @@ import { useOrgBuildings } from "@/hooks/reactquery/platform";
 
 export function OrgBuildingsList({ orgId }: { orgId: number }) {
   const router = useRouter();
-  const { data, isPending, isError, refetch } = useOrgBuildings(orgId);
+  const { data, isPending, isFetching, isError, refetch } = useOrgBuildings(orgId);
+  const isBuildingListRefreshing = isFetching && !isPending;
 
   return (
     <PlatformPageContainer>
@@ -26,12 +27,17 @@ export function OrgBuildingsList({ orgId }: { orgId: number }) {
       />
       {data?.org && <div className="mt-4"><StatusBadge status={data.org.status} /></div>}
 
-      <section className="mt-6 rounded-2xl bg-surface shadow-card">
+      <section className="relative mt-6 min-h-[320px] rounded-2xl bg-surface shadow-card">
+        {isBuildingListRefreshing ? (
+          <div className="absolute right-4 top-3 z-10 rounded-lg bg-white/95 shadow-card">
+            <Spinner label="건물 목록 갱신 중" size="small" showLabel className="px-3 py-2" />
+          </div>
+        ) : null}
         <div className="border-b border-line p-4">
           <h3 className="text-base font-extrabold text-t1">건물 목록{data ? ` · ${data.buildings.length}개` : ""}</h3>
         </div>
         {isPending ? (
-          <div className="py-16" aria-label="불러오는 중"><Spinner /></div>
+          <div className="py-16"><Spinner label="건물 목록 불러오는 중" /></div>
         ) : isError ? (
           <div className="p-4"><QueryError onRetry={() => void refetch()} /></div>
         ) : (data?.buildings.length ?? 0) === 0 ? (

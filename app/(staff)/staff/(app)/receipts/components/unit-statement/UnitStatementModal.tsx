@@ -205,7 +205,9 @@ export function UnitStatementModal({
   if (!open) return null;
 
   const years = Array.from({ length: 11 }, (_, index) => initialYear - 5 + index);
-  const isLoading = query.isLoading || query.isFetching;
+  const isStatementInitialLoading = query.isLoading;
+  const isStatementRefreshing = query.isFetching && !query.isLoading;
+  const isStatementBusy = isStatementInitialLoading || isStatementRefreshing;
   const hasData = model.rows.length > 0;
   const resolvedUnitLabel = model.unitLabel === "선택 호실" ? unitLabel : model.unitLabel;
 
@@ -286,7 +288,10 @@ export function UnitStatementModal({
           <AsyncContentState
             error={query.isError}
             errorMessage="호실 명세서를 불러오지 못했습니다."
-            loading={isLoading}
+            loading={isStatementInitialLoading}
+            loadingLabel="호실 명세서 불러오는 중"
+            refreshing={isStatementRefreshing}
+            refreshingLabel="호실 명세서 갱신 중"
             empty={!hasData}
             emptyMessage="조회된 호실 명세서가 없습니다."
           >
@@ -302,7 +307,7 @@ export function UnitStatementModal({
             <button
               type="button"
               onClick={() => window.print()}
-              disabled={!hasData || isLoading || query.isError}
+              disabled={!hasData || isStatementBusy || query.isError}
               className="flex h-[40px] items-center gap-[7px] rounded-[11px] bg-teal px-[18px] text-[13.5px] font-bold text-white hover:bg-teal-d disabled:opacity-40"
             >
               <PrinterIcon className="h-[16px] w-[16px]" />

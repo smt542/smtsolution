@@ -47,7 +47,11 @@ export function GasLedgerModal({
       queryFn: () => listUtilityRows(building.id, utility, ledgerPeriod),
     }))),
   });
-  const isLoading = ledgerQueries.some((query) => query.isLoading);
+  const isLedgerInitialLoading = ledgerQueries.some((query) => query.isLoading);
+  const isLedgerRefreshing = ledgerQueries.some(
+    (query) => query.isFetching && !query.isLoading,
+  );
+  const isLedgerBusy = isLedgerInitialLoading || isLedgerRefreshing;
   const hasError = ledgerQueries.some((query) => query.error);
   const documents = selectedBuildings.map((building, index) => ({
     building,
@@ -134,19 +138,26 @@ export function GasLedgerModal({
           <div className="relative overflow-auto bg-[#e8ebee] p-[16px]">
             {selectedBuildings.length === 0 ? (
               <p className="flex h-full items-center justify-center text-[12px] font-semibold text-t3">출력할 건물을 선택해 주세요.</p>
-            ) : isLoading ? (
-              <div className="flex h-full flex-col justify-center"><Spinner /><p className="mt-2 text-center text-[12px] text-t3">검침대장을 불러오는 중입니다.</p></div>
+            ) : isLedgerInitialLoading ? (
+              <div className="flex h-full flex-col justify-center"><Spinner label="검침대장 불러오는 중" /><p className="mt-2 text-center text-[12px] text-t3">검침대장을 불러오는 중입니다.</p></div>
             ) : hasError ? (
               <p className="flex h-full items-center justify-center text-[12px] font-semibold text-red">일부 검침대장을 불러오지 못했습니다.</p>
             ) : (
-              <GasLedgerPrintView documents={documents} period={ledgerPeriod} />
+              <>
+                <GasLedgerPrintView documents={documents} period={ledgerPeriod} />
+                {isLedgerRefreshing ? (
+                  <div className="pointer-events-none absolute right-3 top-3 rounded-full bg-surface/95 shadow-card">
+                    <Spinner label="검침대장 갱신 중" size="small" showLabel className="px-3 py-2" />
+                  </div>
+                ) : null}
+              </>
             )}
           </div>
         </div>
 
         <footer data-gas-ledger-controls className="flex h-[69px] items-center border-t border-line px-5">
           <p className="text-[12px] font-bold text-t2"><strong className="text-teal">{selectedBuildings.length}곳</strong> 선택</p>
-          <button type="button" onClick={() => window.print()} disabled={selectedBuildings.length === 0 || isLoading || hasError} className="ml-auto flex h-10 items-center gap-1.5 rounded-[10px] bg-teal px-5 text-[13px] font-bold text-white hover:bg-teal-d disabled:cursor-not-allowed disabled:opacity-45">
+          <button type="button" onClick={() => window.print()} disabled={selectedBuildings.length === 0 || isLedgerBusy || hasError} className="ml-auto flex h-10 items-center gap-1.5 rounded-[10px] bg-teal px-5 text-[13px] font-bold text-white hover:bg-teal-d disabled:cursor-not-allowed disabled:opacity-45">
             <PrinterIcon className="size-4" />
             인쇄
           </button>

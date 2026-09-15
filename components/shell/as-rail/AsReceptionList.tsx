@@ -51,6 +51,7 @@ export function AsReceptionList({ refreshSignal }: AsReceptionListProps = {}) {
     statuses,
     search,
   });
+  const isComplaintListRefreshing = complaintsQuery.isFetching && !complaintsQuery.isLoading;
   const { refetch } = complaintsQuery;
   const { data: buildings = [] } = useBuildings();
   const { data: accounts = [] } = useAccounts();
@@ -174,11 +175,16 @@ export function AsReceptionList({ refreshSignal }: AsReceptionListProps = {}) {
           ariaLabel="A/S 정렬"
         />
       </div>
-      <div className="flex-1 overflow-auto p-3 flex flex-col gap-2 bg-white">
+      <div className="relative flex-1 overflow-auto p-3 flex flex-col gap-2 bg-white">
+        {isComplaintListRefreshing ? (
+          <div className="sticky right-2 top-2 z-10 ml-auto w-fit rounded-lg bg-white/95 shadow-card">
+            <Spinner label="A/S 접수 목록 갱신 중" size="small" showLabel className="px-3 py-2" />
+          </div>
+        ) : null}
         {complaintsQuery.isLoading ? (
-          <Spinner />
+          <Spinner label="A/S 접수 목록 불러오는 중" />
         ) : complaintsQuery.error ? (
-          <EmptyState message="접수 내역을 불러오지 못했어요" />
+          <div role="alert"><EmptyState message="접수 내역을 불러오지 못했어요" /></div>
         ) : complaints.length === 0 ? (
           <EmptyState message="접수 내역이 없어요" />
         ) : (

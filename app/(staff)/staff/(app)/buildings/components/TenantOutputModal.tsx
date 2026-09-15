@@ -184,7 +184,8 @@ export function TenantOutputModal({
                     actionLabel="카드만 인쇄"
                     onAction={() => setPrintScope("card")}
                     actionDisabled={!canPrintCards}
-                    emptyMessage={tenantsLoading ? "불러오는 중…" : "등록된 세대가 없습니다"}
+                    loading={tenantsLoading}
+                    emptyMessage="등록된 세대가 없습니다"
                   >
                     {cardCount > 0 && (
                       <TenantCardDocument

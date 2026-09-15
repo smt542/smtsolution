@@ -113,7 +113,10 @@ export function MonthlyChargeModal({
 
   if (!open) return null;
 
-  const isLoading = canLoad && queries.some((query) => query.isLoading || query.isFetching);
+  const isReportInitialLoading = canLoad && queries.some((query) => query.isLoading);
+  const isReportRefreshing = canLoad
+    && queries.some((query) => query.isFetching && !query.isLoading);
+  const isReportBusy = isReportInitialLoading || isReportRefreshing;
   const isError = canLoad && queries.some((query) => query.isError);
   const hasData = Boolean(
     statementData.paymentRows.length > 0 ||
@@ -177,7 +180,10 @@ export function MonthlyChargeModal({
           <AsyncContentState
             error={isError}
             errorMessage="부과·수납 자료를 불러오지 못했습니다."
-            loading={isLoading}
+            loading={isReportInitialLoading}
+            loadingLabel="월별 부과·수납 자료 불러오는 중"
+            refreshing={isReportRefreshing}
+            refreshingLabel="월별 부과·수납 자료 갱신 중"
             empty={buildings.length === 0 || !hasData}
             emptyMessage={
               buildings.length === 0
@@ -193,7 +199,7 @@ export function MonthlyChargeModal({
             <button
               type="button"
               onClick={() => window.print()}
-              disabled={!hasData || isLoading || isError}
+              disabled={!hasData || isReportBusy || isError}
               className="flex h-[40px] items-center gap-[6px] rounded-[11px] bg-teal px-[14px] text-[13.5px] font-bold text-white hover:bg-teal-d disabled:opacity-40"
             >
               <PrinterIcon className="h-[16px] w-[16px]" />

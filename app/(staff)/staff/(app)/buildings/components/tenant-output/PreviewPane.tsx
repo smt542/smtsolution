@@ -1,5 +1,6 @@
 "use client";
 import type { CSSProperties, ReactNode } from "react";
+import { Spinner } from "@/components/common";
 import { PrinterIcon } from "@/components/icons";
 
 /** 미리보기 시트(190mm)를 좌우 패널 폭에 맞춰 축소하는 배율. */
@@ -15,6 +16,7 @@ interface PreviewPaneProps {
   actionLabel: string;
   onAction: () => void;
   actionDisabled?: boolean;
+  loading?: boolean;
   emptyMessage?: string;
   emptyHint?: string;
   children?: ReactNode; // 현재 페이지 문서 시트
@@ -30,6 +32,7 @@ export function PreviewPane({
   actionLabel,
   onAction,
   actionDisabled,
+  loading = false,
   emptyMessage,
   emptyHint,
   children,
@@ -76,7 +79,9 @@ export function PreviewPane({
         </button>
       </div>
       <div className="flex min-h-0 flex-1 justify-center overflow-auto bg-[#e9ecef] p-[12px]">
-        {hasContent ? (
+        {loading ? (
+          <Spinner label={`${title} 불러오는 중`} showLabel />
+        ) : hasContent ? (
           <div style={scaleStyle}>{children}</div>
         ) : (
           <div className="flex flex-col items-center justify-center gap-[4px] px-4 text-center">

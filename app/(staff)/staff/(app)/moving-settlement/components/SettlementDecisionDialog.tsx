@@ -7,6 +7,7 @@ export function SettlementDecisionDialog({
   title,
   children,
   confirmLabel,
+  pendingLabel = `${confirmLabel} 중…`,
   confirmTone = "teal",
   pending = false,
   onCancel,
@@ -16,6 +17,7 @@ export function SettlementDecisionDialog({
   title: string;
   children: React.ReactNode;
   confirmLabel: string;
+  pendingLabel?: string;
   confirmTone?: "teal" | "danger";
   pending?: boolean;
   onCancel: () => void;
@@ -70,7 +72,7 @@ export function SettlementDecisionDialog({
             disabled={pending}
             className={`h-[40px] flex-1 rounded-[11px] border text-[13.5px] font-bold text-white disabled:opacity-60 ${confirmTone === "danger" ? "border-red bg-red" : "border-teal bg-teal"}`}
           >
-            {pending ? "처리 중" : confirmLabel}
+            {pending ? pendingLabel : confirmLabel}
           </button>
         </div>
       </section>

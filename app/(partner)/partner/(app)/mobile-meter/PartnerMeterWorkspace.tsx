@@ -68,8 +68,8 @@ export default function PartnerMeterWorkspace({ buildingId }: { buildingId: numb
     ),
   }));
   const buildingName = meterQuery.data?.buildingName ?? "";
-  const loading = buildingId !== null && meterQuery.isPending;
-  const busy = saveMutation.isPending;
+  const isMeterDataLoading = buildingId !== null && meterQuery.isPending;
+  const isSavingMeterData = saveMutation.isPending;
 
   const setMeter = (unitId: number, util: string, field: "previous" | "current", val: string) => {
     const v = val.replace(/[^0-9.]/g, "");
@@ -94,7 +94,7 @@ export default function PartnerMeterWorkspace({ buildingId }: { buildingId: numb
   };
 
   const save = async () => {
-    if (busy || buildingId === null) return;
+    if (isSavingMeterData || buildingId === null) return;
     setSaved(false);
     const readings = units.flatMap((u) =>
       KIND.map((kd) => ({
@@ -141,8 +141,8 @@ export default function PartnerMeterWorkspace({ buildingId }: { buildingId: numb
       </div>
 
       <div className={styles.scroll}>
-        {loading ? (
-          <div className={styles.none}>불러오는 중…</div>
+        {isMeterDataLoading ? (
+          <div className={styles.none} role="status" aria-label="검침 자료 불러오는 중">불러오는 중…</div>
         ) : units.length === 0 ? (
           <div className={styles.none}>세대 정보가 없어요</div>
         ) : (
@@ -194,8 +194,8 @@ export default function PartnerMeterWorkspace({ buildingId }: { buildingId: numb
       </div>
 
       <PartnerBottomActionBar>
-        <button type="button" className={styles.btn} onClick={() => setConfirm(true)} disabled={busy || loading || units.length === 0}>
-          {saved ? "저장했어요" : "저장"}
+        <button type="button" className={styles.btn} onClick={() => setConfirm(true)} disabled={isSavingMeterData || isMeterDataLoading || units.length === 0}>
+          {isSavingMeterData ? "저장 중…" : saved ? "저장했어요" : "저장"}
         </button>
       </PartnerBottomActionBar>
 
@@ -207,7 +207,7 @@ export default function PartnerMeterWorkspace({ buildingId }: { buildingId: numb
           confirmLabel="저장"
           onCancel={() => setConfirm(false)}
           onConfirm={() => { setConfirm(false); void save(); }}
-          confirmDisabled={busy}
+          confirmDisabled={isSavingMeterData}
         />
       )}
     </div>

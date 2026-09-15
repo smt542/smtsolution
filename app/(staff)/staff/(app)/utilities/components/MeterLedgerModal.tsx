@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
+import { Spinner } from "@/components/common";
 import { ChevronDownIcon, CloseIcon, PrinterIcon, SearchIcon } from "@/components/icons";
 import type { Building } from "@/hooks/reactquery/buildings";
 import {
@@ -56,7 +57,9 @@ export function MeterLedgerModal({
   });
   const previewBuilding = selectedBuildings[0] ?? null;
   const previewRows = queries[0]?.data ?? [];
-  const isLoading = queries.some((query) => query.isLoading);
+  const isLedgerLoading = queries.some((query) => query.isLoading);
+  const isLedgerRefreshing = queries.some((query) => query.isFetching && !query.isLoading);
+  const isLedgerBusy = isLedgerLoading || isLedgerRefreshing;
   const hasError = queries.some((query) => query.error);
   const year = printPeriod.slice(0, 4);
   const month = printPeriod.slice(5, 7);
@@ -179,14 +182,21 @@ export function MeterLedgerModal({
 
           <div className="relative min-h-0 overflow-auto bg-[#eef1f4] p-4">
             {previewBuilding ? (
-              isLoading ? (
-                <div className="flex h-full items-center justify-center text-xs font-semibold text-t3">검침대장을 불러오는 중입니다.</div>
+              isLedgerLoading ? (
+                <div role="status" aria-label="검침대장 불러오는 중" className="flex h-full items-center justify-center text-xs font-semibold text-t3">검침대장을 불러오는 중입니다.</div>
               ) : hasError ? (
                 <div className="flex h-full items-center justify-center text-xs font-semibold text-red">검침대장을 불러오지 못했습니다.</div>
               ) : (
-                <div data-testid="meter-ledger-preview" className="w-[633px]">
-                  <MeterLedgerDocument building={previewBuilding} period={printPeriod} rows={previewRows} utilityType={utilityType} />
-                </div>
+                <>
+                  <div data-testid="meter-ledger-preview" className="w-[633px]">
+                    <MeterLedgerDocument building={previewBuilding} period={printPeriod} rows={previewRows} utilityType={utilityType} />
+                  </div>
+                  {isLedgerRefreshing ? (
+                    <div className="pointer-events-none absolute right-3 top-3 rounded-full bg-surface/95 shadow-card">
+                      <Spinner label="검침대장 갱신 중" size="small" showLabel className="px-3 py-2" />
+                    </div>
+                  ) : null}
+                </>
               )
             ) : (
               <div className="flex h-full items-center justify-center text-xs font-semibold text-t3">출력할 건물을 선택해 주세요.</div>
@@ -203,7 +213,7 @@ export function MeterLedgerModal({
               window.print();
               onPrinted?.();
             }}
-            disabled={selectedIds.length === 0 || isLoading || hasError}
+            disabled={selectedIds.length === 0 || isLedgerBusy || hasError}
             className="flex h-10 items-center gap-1.5 rounded-[10px] bg-teal px-5 text-[13px] font-bold text-white hover:bg-teal-d disabled:cursor-not-allowed disabled:opacity-45"
           >
             <PrinterIcon className="size-4" />

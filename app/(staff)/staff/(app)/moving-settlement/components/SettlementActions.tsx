@@ -77,7 +77,17 @@ export function SettlementActions({
   const mid = useMidMoveout();
   const remove = useDeleteSettlement();
   const [dialog, setDialog] = useState<DialogState>(null);
-  const pending = save.isPending || complete.isPending || mid.isPending || remove.isPending;
+  const isSettlementMutationPending =
+    save.isPending || complete.isPending || mid.isPending || remove.isPending;
+  const pendingAction = save.isPending
+    ? "save"
+    : mid.isPending
+      ? "mid"
+      : complete.isPending
+        ? "moveout"
+        : remove.isPending
+          ? "delete"
+          : null;
   const outstanding = amount - receivedAmount;
 
   const validate = () => {
@@ -179,14 +189,15 @@ export function SettlementActions({
         onPrint={print}
         onBlankPrint={() => window.print()}
         onDelete={() => setDialog("delete")}
-        pending={pending}
+        pending={isSettlementMutationPending}
+        pendingAction={pendingAction}
       />
 
       <SettlementDecisionDialog
         open={outstandingDialog}
         title="중도퇴실 처리 전 확인"
         confirmLabel="수납액 입력"
-        pending={pending}
+        pending={false}
         onCancel={() => setDialog(null)}
         onConfirm={focusPayment}
       >
@@ -200,7 +211,8 @@ export function SettlementActions({
         open={dialog === "mid-confirm"}
         title="중도퇴실 처리 전 확인"
         confirmLabel="중도퇴실 처리"
-        pending={pending}
+        pending={mid.isPending}
+        pendingLabel="중도퇴실 처리 중…"
         onCancel={() => setDialog(null)}
         onConfirm={completeMidMoveout}
       >
@@ -212,7 +224,8 @@ export function SettlementActions({
         open={dialog === "moveout-confirm"}
         title="퇴실 처리 전 확인"
         confirmLabel="퇴실 처리"
-        pending={pending}
+        pending={complete.isPending}
+        pendingLabel="퇴실 처리 중…"
         onCancel={() => setDialog(null)}
         onConfirm={completeMoveout}
       >
@@ -225,7 +238,8 @@ export function SettlementActions({
         title="이사정산 삭제"
         confirmLabel="삭제"
         confirmTone="danger"
-        pending={pending}
+        pending={remove.isPending}
+        pendingLabel="삭제 중…"
         onCancel={() => setDialog(null)}
         onConfirm={deleteSettlement}
       >

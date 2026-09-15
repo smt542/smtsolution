@@ -46,7 +46,7 @@ export function BillingSettingsTab() {
   };
 
   return (
-    <Panel title="고지서 설정" action={<Button variant="primary" onClick={save} disabled={upsert.isPending}>저장</Button>}>
+    <Panel title="고지서 설정" action={<Button variant="primary" onClick={save} disabled={upsert.isPending}>{upsert.isPending ? "저장 중…" : "저장"}</Button>}>
       <div className="flex flex-col gap-4">
         <label className="flex flex-col gap-1">
           <span className="text-sm text-t2">고객 안내사항</span>

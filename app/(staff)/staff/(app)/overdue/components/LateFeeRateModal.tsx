@@ -238,9 +238,9 @@ function LateFeeRateEditor({
         </table>
       </div>
 
-      {isLoading && <p className="mt-3 text-xs text-t3">요율표를 불러오는 중입니다.</p>}
+      {isLoading && <p role="status" aria-label="연체요율표 불러오는 중" className="mt-3 text-xs text-t3">요율표를 불러오는 중입니다.</p>}
       {isError && (
-        <p className="mt-3 text-xs font-semibold text-danger">
+        <p role="alert" className="mt-3 text-xs font-semibold text-danger">
           요율표를 불러오지 못했습니다. 모달을 닫고 다시 시도해 주세요.
         </p>
       )}

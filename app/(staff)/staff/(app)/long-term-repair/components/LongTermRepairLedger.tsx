@@ -173,6 +173,11 @@ export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTerm
 
   const ledgerQuery = useLongTermRepairLedger(buildingId, startMonth, endMonth);
   const openingBalanceQuery = useLongTermRepairOpeningBalance(buildingId, startMonth);
+  const isLedgerInitialLoading = ledgerQuery.isLoading || openingBalanceQuery.isLoading;
+  const isLedgerRefreshing =
+    (ledgerQuery.isFetching && !ledgerQuery.isLoading) ||
+    (openingBalanceQuery.isFetching && !openingBalanceQuery.isLoading);
+  const isLedgerBusy = isLedgerInitialLoading || isLedgerRefreshing;
   const saveLedger = useSaveLongTermRepairLedger();
   const uploadAttachments = useUploadAttachments();
   const deleteAttachment = useDeleteAttachment();
@@ -433,8 +438,11 @@ export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTerm
                 </svg>
                 출력
               </button>
+              {isLedgerRefreshing ? (
+                <span role="status" aria-label="적립금 내역 갱신 중" className={styles.miniButton}>갱신 중…</span>
+              ) : null}
               {(!editing || adding) && (
-                <button type="button" className={styles.miniButton} onClick={addRow} disabled={ledgerQuery.isFetching}>추가</button>
+                <button type="button" className={styles.miniButton} onClick={addRow} disabled={isLedgerBusy}>추가</button>
               )}
               {(!editing || !adding) && (
                 <button type="button" className={styles.miniButton} onClick={enterEdit}>수정</button>
@@ -452,10 +460,10 @@ export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTerm
             <div className={styles.ledgerBody}>
               {!buildingId ? (
               <div className={styles.emptyState}>좌측에서 건물을 선택해 주세요</div>
-            ) : ledgerQuery.isLoading || openingBalanceQuery.isLoading ? (
-              <div className={styles.emptyState}><Spinner /></div>
+            ) : isLedgerInitialLoading ? (
+              <div className={styles.emptyState}><Spinner label="적립금 내역 불러오는 중" /></div>
             ) : ledgerQuery.isError || openingBalanceQuery.isError ? (
-              <div className={`${styles.emptyState} ${styles.negative}`}>적립금 내역을 불러오지 못했습니다.</div>
+              <div role="alert" className={`${styles.emptyState} ${styles.negative}`}>적립금 내역을 불러오지 못했습니다.</div>
             ) : (
               <>
                 <div className={styles.tableScroll}>

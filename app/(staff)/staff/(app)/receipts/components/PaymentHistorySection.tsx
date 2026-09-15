@@ -110,6 +110,8 @@ export function PaymentHistorySection({
   const record = useRecordPayment();
   const recordEdit = useRecordPaymentEdit();
   const cancel = useCancelPayment();
+  const isPaymentSavePending = record.isPending || recordEdit.isPending;
+  const isPaymentMutationPending = isPaymentSavePending || cancel.isPending;
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [selectedPaymentId, setSelectedPaymentId] = useState<number | null>(null);
@@ -317,10 +319,10 @@ export function PaymentHistorySection({
           <button
             type="button"
             onClick={() => void submit()}
-            disabled={record.isPending || recordEdit.isPending || cancel.isPending}
+            disabled={isPaymentMutationPending}
             className={`${miniButtonClass} border-teal bg-teal text-white hover:bg-teal`}
           >
-            저장
+            {isPaymentSavePending ? "수납 저장 중…" : "저장"}
           </button>
           <button
             type="button"
@@ -372,7 +374,7 @@ export function PaymentHistorySection({
               disabled={cancel.isPending}
               className={`${miniButtonClass} border-red-t px-[8px] font-medium text-red`}
             >
-              {editingId !== null ? "수납 취소" : "삭제"}
+              {cancel.isPending ? "수납 취소 중…" : editingId !== null ? "수납 취소" : "삭제"}
             </button>
             <button type="button" onClick={() => shortcut("full")} className={`${miniButtonClass} border-teal bg-teal px-[8px] font-medium text-white hover:bg-teal`}>
               수납
@@ -461,7 +463,7 @@ export function PaymentHistorySection({
           <p className="text-[13px] leading-[1.55] text-t3">선택한 세대의 월별 수납 이력이<br />여기에 표시돼요</p>
         </div>
       ) : isLoading ? (
-        <div className="flex min-h-[246px] flex-1 items-center justify-center"><Spinner /></div>
+        <div className="flex min-h-[246px] flex-1 items-center justify-center"><Spinner label="수납 이력 불러오는 중" /></div>
       ) : (
         <>
           <div className="overflow-x-auto">

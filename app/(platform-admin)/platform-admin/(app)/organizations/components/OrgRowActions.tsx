@@ -6,23 +6,24 @@ interface Props {
   org: PlatformOrganization;
   onEdit: () => void;
   onToggleDeleted: (deleted: boolean) => void;
+  disabled: boolean;
   isPending: boolean;
 }
 
 const btn =
   "inline-flex h-8 cursor-pointer items-center rounded-[9px] border border-line bg-surface px-2.5 text-[12.5px] font-bold outline-none hover:bg-bg focus:border-blue focus:ring-[3px] focus:ring-blue-t disabled:opacity-50";
 
-export function OrgRowActions({ org, onEdit, onToggleDeleted, isPending }: Props) {
+export function OrgRowActions({ org, onEdit, onToggleDeleted, disabled, isPending }: Props) {
   const confirm = useConfirm();
   if (org.deletedAt) {
     return (
       <button
         type="button"
         onClick={() => onToggleDeleted(false)}
-        disabled={isPending}
+        disabled={disabled}
         className={`${btn} text-blue`}
       >
-        복구
+        {isPending ? "복구 중…" : "복구"}
       </button>
     );
   }
@@ -43,10 +44,10 @@ export function OrgRowActions({ org, onEdit, onToggleDeleted, isPending }: Props
           if (!ok) return;
           onToggleDeleted(true);
         }}
-        disabled={isPending}
+        disabled={disabled}
         className={`${btn} text-red`}
       >
-        해지
+        {isPending ? "해지 중…" : "해지"}
       </button>
     </div>
   );

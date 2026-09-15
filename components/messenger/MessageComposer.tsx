@@ -18,7 +18,8 @@ export function MessageComposer({
   templateId,
   onTemplate,
 }: MessageComposerProps) {
-  const { data: templates = [], isLoading } = useMessageTemplates();
+  const { data: templates = [], isLoading, isFetching, isError } = useMessageTemplates();
+  const isTemplateListRefreshing = isFetching && !isLoading;
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [menuPosition, setMenuPosition] = useState<
@@ -129,14 +130,20 @@ export function MessageComposer({
             </div>
             <div className={styles["fmp-tpllist"]}>
               {isLoading && (
-                <div className={styles["fmp-pempty"]}>템플릿을 불러오는 중입니다.</div>
+                <div className={styles["fmp-pempty"]} role="status" aria-label="문자 템플릿 불러오는 중">템플릿을 불러오는 중입니다.</div>
               )}
-              {!isLoading && smsTemplates.length === 0 && (
+              {isError && (
+                <div className={styles["fmp-pempty"]} role="alert">문자 템플릿을 불러오지 못했습니다.</div>
+              )}
+              {isTemplateListRefreshing && (
+                <div className={styles["fmp-pempty"]} role="status" aria-label="문자 템플릿 갱신 중">템플릿을 갱신하는 중입니다.</div>
+              )}
+              {!isLoading && !isError && smsTemplates.length === 0 && (
                 <div className={styles["fmp-pempty"]}>
                   {search.trim() ? "검색 결과가 없어요" : "저장된 문자 템플릿이 없어요"}
                 </div>
               )}
-              {smsTemplates.map((template) => (
+              {!isError && smsTemplates.map((template) => (
                 <button
                   type="button"
                   key={template.id}

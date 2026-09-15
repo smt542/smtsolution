@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
+import { useAsyncAction } from "@/hooks/common";
 import { Badge, Button, Checkbox, EmptyState, Select } from "@/components/common";
 import {
   useBankPayments,
@@ -95,7 +96,7 @@ export function BankImportModal({
     amount: null,
     paidAt: null,
   });
-  const [isParsing, setIsParsing] = useState(false);
+  const parseFileAction = useAsyncAction();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [manualAssignments, setManualAssignments] = useState<Record<number, number>>({});
   const [checkedRowIndexes, setCheckedRowIndexes] = useState<Set<number>>(new Set());
@@ -162,20 +163,19 @@ export function BankImportModal({
   if (!open) return null;
 
   const parseFile = async (file: File) => {
-    setIsParsing(true);
-    try {
-      const parsed = await parseBankWorkbook(await file.arrayBuffer());
-      setHeaders(parsed.headers);
-      setSheetRows(parsed.rows);
-      setMapping(guessColumns(parsed.headers));
-      setManualAssignments({});
-      setCheckedRowIndexes(new Set());
-      setStage("map");
-    } catch (error) {
-      toast.error(error, "은행 엑셀을 읽지 못했습니다.");
-    } finally {
-      setIsParsing(false);
-    }
+    await parseFileAction.run(async () => {
+      try {
+        const parsed = await parseBankWorkbook(await file.arrayBuffer());
+        setHeaders(parsed.headers);
+        setSheetRows(parsed.rows);
+        setMapping(guessColumns(parsed.headers));
+        setManualAssignments({});
+        setCheckedRowIndexes(new Set());
+        setStage("map");
+      } catch (error) {
+        toast.error(error, "은행 엑셀을 읽지 못했습니다.");
+      }
+    });
   };
 
   const updateMapping = (key: MappingKey, rawValue: string) => {
@@ -295,18 +295,18 @@ export function BankImportModal({
               accept=".xlsx,.xls,.csv"
               helperText="xlsx · xls · csv 파일을 첨부할 수 있어요"
               fileName={selectedFile?.name}
-              disabled={isParsing}
+              disabled={parseFileAction.isPending}
               onFile={setSelectedFile}
               ariaLabel="은행 입금내역 엑셀 첨부"
             />
-            {isParsing && <p className="text-center text-sm font-semibold text-t2">파일 분석 중…</p>}
+            {parseFileAction.isPending && <p role="status" aria-label="은행 입금 파일 분석 중" className="text-center text-sm font-semibold text-t2">파일 분석 중…</p>}
             <div className="flex justify-end border-t border-line pt-4">
               <Button
                 type="button"
-                disabled={!selectedFile || isParsing}
+                disabled={!selectedFile || parseFileAction.isPending}
                 onClick={() => selectedFile && void parseFile(selectedFile)}
               >
-                {isParsing ? "처리 중…" : "처리"}
+                {parseFileAction.isPending ? "파일 분석 중…" : "처리"}
               </Button>
             </div>
           </div>

@@ -116,7 +116,13 @@ export default function GasUtilitiesWorkspace() {
     ])),
     [drafts, rows, scopeKey],
   );
-  const rowsLoading = rowsQuery.isLoading || fixedUsagesQuery.isLoading;
+  const isGasWorkspaceLoading =
+    rowsQuery.isLoading || fixedUsagesQuery.isLoading || billingPeriodQuery.isLoading;
+  const isGasWorkspaceRefreshing =
+    (rowsQuery.isFetching && !rowsQuery.isLoading) ||
+    (fixedUsagesQuery.isFetching && !fixedUsagesQuery.isLoading) ||
+    (billingPeriodQuery.isFetching && !billingPeriodQuery.isLoading);
+  const isGasSavePending = saveMeter.isPending || saveBillingPeriod.isPending;
   const rowsError = rowsQuery.error ?? fixedUsagesQuery.error;
   const defaults = useMemo(() => defaultBillingDates(period), [period]);
   const useDefaultBasis = !isPrototypeFuturePeriod(period);
@@ -267,7 +273,12 @@ export default function GasUtilitiesWorkspace() {
             onSelectBuilding={selectBuilding}
           />
 
-          <div className="flex min-w-0 flex-1 flex-col gap-4">
+          <div className="relative flex min-w-0 flex-1 flex-col gap-4">
+            {selectedBuilding && isGasWorkspaceRefreshing ? (
+              <div className="absolute right-4 top-4 z-10 rounded-lg bg-white/95 shadow-card">
+                <Spinner label="가스 지침 갱신 중" size="small" showLabel />
+              </div>
+            ) : null}
             {selectedBuilding ? (
               <GasBillingToolbar
                 buildingName={selectedBuilding.name}
@@ -275,7 +286,7 @@ export default function GasUtilitiesWorkspace() {
                 chargeStartDate={chargeStartDate}
                 chargeEndDate={chargeEndDate}
                 editing={editing}
-                pending={saveMeter.isPending || saveBillingPeriod.isPending}
+                pending={isGasSavePending}
                 onChargeStartDateChange={setEditStartDate}
                 onChargeEndDateChange={setEditEndDate}
                 onEdit={startEditing}
@@ -307,13 +318,12 @@ export default function GasUtilitiesWorkspace() {
                   <SelectionPlaceholder />
                 </section>
               </>
-            ) : rowsLoading || billingPeriodQuery.isLoading ? (
-              <section className="flex min-h-0 flex-1 flex-col justify-center rounded-2xl bg-white shadow-card">
-                <Spinner />
-                <p className="mt-2 text-center text-[12px] text-t3">가스 지침을 불러오는 중입니다.</p>
+            ) : isGasWorkspaceLoading ? (
+              <section className="flex min-h-[360px] flex-1 flex-col justify-center rounded-2xl bg-white shadow-card">
+                <Spinner label="가스 지침 불러오는 중" showLabel />
               </section>
             ) : rowsError || billingPeriodQuery.error ? (
-              <section className="flex min-h-0 flex-1 items-center justify-center rounded-2xl border border-red/20 bg-red-t text-[13px] font-bold text-red">
+              <section role="alert" className="flex min-h-[360px] flex-1 items-center justify-center rounded-2xl border border-red/20 bg-red-t text-[13px] font-bold text-red">
                 가스 지침을 불러오지 못했습니다.
               </section>
             ) : (

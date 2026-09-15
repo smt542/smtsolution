@@ -53,6 +53,8 @@ export function UnitPriceModal({
   } | null>(null);
   const nextScopedRowId = useRef(0);
   const prices = pricesQuery.data ?? [];
+  const isUnitPriceRefreshing = [pricesQuery, scopedPricesQuery]
+    .some((query) => query.isFetching && !query.isLoading);
   const scopedScope = `${buildingId ?? "none"}:${utilityType}`;
   const loadedScopedRows: ScopedDraftRow[] = (scopedPricesQuery.data ?? []).map((row) => ({
     id: `saved:${row.usage_type}:${row.floor ?? "all"}`,
@@ -220,7 +222,12 @@ export function UnitPriceModal({
       onClose={close}
       title={`${TYPE_LABELS[utilityType]} 단가 설정`}
     >
-      <div className="max-h-[70vh] space-y-6 overflow-y-auto pr-1">
+      <div className="relative max-h-[70vh] space-y-6 overflow-y-auto pr-1">
+        {isUnitPriceRefreshing ? (
+          <div className="sticky top-0 z-10 ml-auto w-fit rounded-lg bg-white/95 shadow-card">
+            <Spinner label="단가 정보 갱신 중" size="small" showLabel className="px-3 py-2" />
+          </div>
+        ) : null}
         <section aria-labelledby="customer-price-heading">
           <h3 id="customer-price-heading" className="text-sm font-extrabold text-t1">
             고객번호별 단가
@@ -230,14 +237,13 @@ export function UnitPriceModal({
           </p>
 
           {pricesQuery.isLoading && (
-            <div className="py-8">
-              <Spinner />
-              <p className="text-center text-sm text-t3">단가를 불러오는 중입니다.</p>
+            <div className="min-h-[160px] py-8">
+              <Spinner label="고객번호별 단가 불러오는 중" showLabel />
             </div>
           )}
 
           {pricesQuery.error && (
-            <p className="rounded-xl border border-red/20 bg-red-t p-4 text-sm font-semibold text-red">
+            <p role="alert" className="rounded-xl border border-red/20 bg-red-t p-4 text-sm font-semibold text-red">
               단가 목록을 불러오지 못했습니다.
             </p>
           )}
@@ -281,7 +287,7 @@ export function UnitPriceModal({
               onClick={submit}
               disabled={savePrices.isPending || prices.length === 0}
             >
-              저장
+              {savePrices.isPending ? "저장 중…" : "저장"}
             </Button>
           </div>
         </section>
@@ -295,14 +301,13 @@ export function UnitPriceModal({
           </p>
 
           {scopedPricesQuery.isLoading && (
-            <div className="py-8">
-              <Spinner />
-              <p className="text-center text-sm text-t3">용도/층별 단가를 불러오는 중입니다.</p>
+            <div className="min-h-[160px] py-8">
+              <Spinner label="용도·층별 단가 불러오는 중" showLabel />
             </div>
           )}
 
           {scopedPricesQuery.error && (
-            <p className="rounded-xl border border-red/20 bg-red-t p-4 text-sm font-semibold text-red">
+            <p role="alert" className="rounded-xl border border-red/20 bg-red-t p-4 text-sm font-semibold text-red">
               용도/층별 단가 목록을 불러오지 못했습니다.
             </p>
           )}
@@ -378,7 +383,7 @@ export function UnitPriceModal({
               onClick={submitScoped}
               disabled={saveScoped.isPending || scopedPricesQuery.isLoading || scopedRows.length === 0}
             >
-              용도/층별 단가 저장
+              {saveScoped.isPending ? "저장 중…" : "용도/층별 단가 저장"}
             </Button>
           </div>
         </section>

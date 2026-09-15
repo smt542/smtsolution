@@ -194,7 +194,7 @@ export function ResidentClaimsPanel() {
     }
   };
 
-  const isMutating = approveClaim.isPending || rejectClaim.isPending;
+  const isResidentClaimMutationPending = approveClaim.isPending || rejectClaim.isPending;
 
   return (
     <>
@@ -332,16 +332,16 @@ export function ResidentClaimsPanel() {
               ))}
             </div>
             <div className="mt-4 flex items-center gap-2">
-              <Button type="button" variant="danger" onClick={reject} disabled={isMutating}>
-                삭제
+              <Button type="button" variant="danger" onClick={reject} disabled={isResidentClaimMutationPending}>
+                {rejectClaim.isPending ? "삭제 중…" : "삭제"}
               </Button>
-              <Button type="button" variant="ghost" onClick={closeLinkModal} disabled={isMutating} className="ml-auto">
+              <Button type="button" variant="ghost" onClick={closeLinkModal} disabled={isResidentClaimMutationPending} className="ml-auto">
                 닫기
               </Button>
               <Button
                 type="button"
                 onClick={() => setConfirmOpen(true)}
-                disabled={!selectedOccupancy || isMutating}
+                disabled={!selectedOccupancy || isResidentClaimMutationPending}
               >
                 연결하기
               </Button>
@@ -364,11 +364,11 @@ export function ResidentClaimsPanel() {
               연결하면 이 세입자는 해당 호실의 관리비·공지 정보를 열람하게 됩니다.
             </p>
             <div className="mt-5 flex justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={() => setConfirmOpen(false)} disabled={isMutating}>
+              <Button type="button" variant="ghost" onClick={() => setConfirmOpen(false)} disabled={isResidentClaimMutationPending}>
                 취소
               </Button>
-              <Button type="button" onClick={approve} disabled={isMutating}>
-                연결
+              <Button type="button" onClick={approve} disabled={isResidentClaimMutationPending}>
+                {approveClaim.isPending ? "연결 중…" : "연결"}
               </Button>
             </div>
           </div>

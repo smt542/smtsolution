@@ -52,13 +52,17 @@ export function NoticeDetail({
   const recipientsLoading = notice.buildingId === null
     ? organizationTenants.isLoading
     : buildingTenants.isLoading;
+  const recipientsFetching = notice.buildingId === null
+    ? organizationTenants.isFetching
+    : buildingTenants.isFetching;
+  const recipientsRefreshing = recipientsFetching && !recipientsLoading;
 
   const openNoticeMessaging = async () => {
     if (!canSendMessages) {
       toast.info("문자 발송 권한이 필요합니다.");
       return;
     }
-    if (recipientsLoading) {
+    if (recipientsLoading || recipientsRefreshing) {
       toast.info("입주자 수신처를 불러오는 중입니다.");
       return;
     }
@@ -145,11 +149,16 @@ export function NoticeDetail({
               type="button"
               variant="ghost"
               onClick={() => void openNoticeMessaging()}
-              disabled={!canSendMessages || recipientsLoading || mintShareToken.isPending}
+              disabled={!canSendMessages || recipientsLoading || recipientsRefreshing || mintShareToken.isPending}
               title={!canSendMessages ? "문자 발송 권한이 필요합니다." : undefined}
             >
-              공지 알림 발송
+              {mintShareToken.isPending ? "링크 생성 중…" : "공지 알림 발송"}
             </Button>
+            {recipientsRefreshing ? (
+              <span role="status" aria-label="입주자 수신처 갱신 중" className="self-center text-xs text-t3">
+                수신처 갱신 중…
+              </span>
+            ) : null}
             <Button type="button" variant="ghost" onClick={onEdit}>수정</Button>
             <Button type="button" variant="danger" onClick={() => setConfirmOpen(true)}>삭제</Button>
           </div>

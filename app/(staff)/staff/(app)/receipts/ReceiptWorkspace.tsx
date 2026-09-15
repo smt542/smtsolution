@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
+import { Spinner } from "@/components/common";
 import { PrinterIcon } from "@/components/icons";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useUnitOccupancyFull } from "@/hooks/reactquery/occupancies";
@@ -111,24 +112,28 @@ export function ReceiptWorkspace({
   const [villa, setVilla] = useState<VillaPaymentModalInit | null>(null);
   const [overdueOpen, setOverdueOpen] = useState(false);
 
-  const { data: buildings = [] } = useBuildings();
+  const buildingsQuery = useBuildings();
   const orgBuildings = useMemo(
-    () => buildings.filter((building) => building.orgId === orgId),
-    [buildings, orgId],
+    () => (buildingsQuery.data ?? []).filter((building) => building.orgId === orgId),
+    [buildingsQuery.data, orgId],
   );
 
-  const { data: receiptData, isLoading: isReceiptLoading } = useReceiptPaymentStatus(
+  const receiptQuery = useReceiptPaymentStatus(
     orgId,
     period,
   );
+  const { data: receiptData, isLoading: isReceiptLoading } = receiptQuery;
   const receiptRows = receiptData.rows;
 
-  const { data: units = [], isLoading: isUnitsLoading } = useUnits(selectedBuildingId ?? 0);
-  const { data: occFull, isLoading: isOccLoading } = useUnitOccupancyFull(selectedUnitId ?? 0);
-  const { data: unitPayments = [], isLoading: isPaymentsLoading } = useUnitPayments(
+  const unitsQuery = useUnits(selectedBuildingId ?? 0);
+  const { data: units = [], isLoading: isUnitsLoading } = unitsQuery;
+  const occupancyQuery = useUnitOccupancyFull(selectedUnitId ?? 0);
+  const { data: occFull, isLoading: isOccLoading } = occupancyQuery;
+  const paymentsQuery = useUnitPayments(
     selectedUnitId,
     period,
   );
+  const { data: unitPayments = [], isLoading: isPaymentsLoading } = paymentsQuery;
   const historyStartPeriod = useMemo(() => {
     let start = period;
     for (let index = 0; index < 4; index += 1) start = prevPeriod(start);
@@ -141,6 +146,16 @@ export function ReceiptWorkspace({
     period,
     selectedBuildingId !== null && selectedUnitId !== null,
   );
+  const isPaymentHistoryLoading =
+    isPaymentsLoading || isReceiptLoading || historyQuery.isLoading;
+  const isReceiptWorkspaceRefreshing = [
+    buildingsQuery,
+    receiptQuery,
+    unitsQuery,
+    occupancyQuery,
+    paymentsQuery,
+    historyQuery,
+  ].some((query) => query.isFetching && !query.isLoading);
 
   const selectedBuilding = orgBuildings.find((building) => building.id === selectedBuildingId) ?? null;
   const selectedUnit = units.find((unit) => unit.id === selectedUnitId) ?? null;
@@ -202,8 +217,13 @@ export function ReceiptWorkspace({
   };
 
   return (
-    <div className="flex h-[calc(100vh-62px)] flex-col overflow-hidden px-[24px] pb-[22px] pt-[18px]">
+    <div className="relative flex h-[calc(100vh-62px)] flex-col overflow-hidden px-[24px] pb-[22px] pt-[18px]">
       <h1 className="sr-only">수납관리·민원접수</h1>
+      {isReceiptWorkspaceRefreshing ? (
+        <div className="absolute right-6 top-3 z-40 rounded-lg bg-white/95 shadow-card">
+          <Spinner label="수납관리 자료 갱신 중" size="small" showLabel className="px-3 py-2" />
+        </div>
+      ) : null}
 
       <div className="fixed right-[24px] top-[10.5px] z-[30] hidden items-center gap-[8px] md:flex print:hidden">
           <button
@@ -288,7 +308,7 @@ export function ReceiptWorkspace({
             orgId={orgId}
             buildingId={selectedBuildingId}
             hasUnit={selectedUnitId !== null}
-            isLoading={isPaymentsLoading || isReceiptLoading || historyQuery.isLoading}
+            isLoading={isPaymentHistoryLoading}
             payments={historyQuery.data?.payments ?? unitPayments}
             historySummaries={historyQuery.data?.paymentRows.filter(
               (row) => row.unitId === selectedUnitId,

@@ -53,13 +53,13 @@ export default function PartnerAsNewWorkspace({
   const unitsQuery = usePartnerUnits(buildingId ? Number(buildingId) : null);
   const createMutation = useCreatePartnerComplaint();
   const units = unitsQuery.data ?? [];
-  const busy = createMutation.isPending;
+  const isRegisteringComplaint = createMutation.isPending;
 
   const selectedUnit = units.find((u) => String(u.unit_id) === unitId);
   const reporterPhone = selectedUnit?.phone ?? "";
 
   const register = async () => {
-    if (busy) return;
+    if (isRegisteringComplaint) return;
     setErr("");
     if (!buildingId) {
       setErr("건물을 선택해 주세요");
@@ -176,8 +176,8 @@ export default function PartnerAsNewWorkspace({
       </div>
 
       <PartnerBottomActionBar>
-        <button type="button" className={`${styles.btn} ${styles.btnSec}`} onClick={() => setConfirmCancel(true)} disabled={busy}>취소</button>
-        <button type="button" className={`${styles.btn} ${styles.btnPri}`} onClick={() => setConfirmReg(true)} disabled={busy}>접수 등록</button>
+        <button type="button" className={`${styles.btn} ${styles.btnSec}`} onClick={() => setConfirmCancel(true)} disabled={isRegisteringComplaint}>취소</button>
+        <button type="button" className={`${styles.btn} ${styles.btnPri}`} onClick={() => setConfirmReg(true)} disabled={isRegisteringComplaint}>{isRegisteringComplaint ? "접수 등록 중…" : "접수 등록"}</button>
       </PartnerBottomActionBar>
 
       {confirmReg && (
@@ -188,7 +188,7 @@ export default function PartnerAsNewWorkspace({
           confirmLabel="등록"
           onCancel={() => setConfirmReg(false)}
           onConfirm={() => { setConfirmReg(false); void register(); }}
-          confirmDisabled={busy}
+          confirmDisabled={isRegisteringComplaint}
         />
       )}
 

@@ -166,6 +166,8 @@ export function MovingSettlementWorkspace() {
   const selectedBuilding =
     buildings.find((building) => building.id === buildingId) ?? null;
   const selectedUnit = units.find((unit) => unit.id === unitId) ?? null;
+  const isSettlementWorkspaceRefreshing = [buildingsQuery, unitsQuery, contextQuery]
+    .some((query) => query.isFetching && !query.isLoading);
 
   const selectBuilding = (value: string | number | null) => {
     const next = value === null || value === "" ? null : Number(value);
@@ -197,6 +199,11 @@ export function MovingSettlementWorkspace() {
 
   return (
     <div className="relative min-h-[calc(100dvh-62px)] overflow-x-auto bg-bg px-[24px] pb-[22px] pt-[18px]">
+      {isSettlementWorkspaceRefreshing ? (
+        <div className="absolute right-6 top-3 z-10 rounded-lg bg-white/95 shadow-card">
+          <Spinner label="이사정산 자료 갱신 중" size="small" showLabel className="px-3 py-2" />
+        </div>
+      ) : null}
       <label className="sr-only">
         건물 선택
         <select
@@ -258,12 +265,12 @@ export function MovingSettlementWorkspace() {
         <div className="flex min-h-0 min-w-0 flex-col">
           {unitId === null && <SettlementEmptyPanel onAction={emptyAction} />}
           {unitId !== null && contextQuery.isLoading && (
-            <div className="grid min-h-0 flex-1 place-items-center rounded-[16px] bg-white shadow-card">
-              <Spinner />
+            <div className="grid min-h-[420px] flex-1 place-items-center rounded-[16px] bg-white shadow-card">
+              <Spinner label="이사정산 정보 불러오는 중" />
             </div>
           )}
           {unitId !== null && contextQuery.error && (
-            <div className="grid min-h-0 flex-1 place-items-center rounded-[16px] bg-white shadow-card">
+            <div role="alert" className="grid min-h-[420px] flex-1 place-items-center rounded-[16px] bg-white shadow-card">
               <EmptyState message="정산 정보를 불러오지 못했어요" />
             </div>
           )}

@@ -71,7 +71,7 @@ export function ElectricityPeriodBar({
             disabled={saving}
             className="h-[26px] rounded-[8px] bg-blue px-[10px] text-[11.5px] font-bold text-white hover:bg-blue-d disabled:opacity-60"
           >
-            {saving ? "저장 중" : "저장"}
+            {saving ? "저장 중…" : "저장"}
           </button>
           <button
             type="button"

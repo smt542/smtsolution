@@ -34,7 +34,7 @@ export function DrainScheduledButton() {
       aria-busy={drainMutation.isPending}
       onClick={() => void handleDrain()}
     >
-      {drainMutation.isPending ? "처리 중…" : "예약분 지금 처리"}
+      {drainMutation.isPending ? "예약 발송 처리 중…" : "예약분 지금 처리"}
     </Button>
   );
 }

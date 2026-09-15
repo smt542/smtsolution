@@ -177,7 +177,7 @@ const RecipientLists = memo(function RecipientLists({
           <p className="text-sm text-t4">건물을 먼저 선택해 주세요.</p>
         )}
         {selectedBuilding && isTenantsLoading && (
-          <p className="text-sm text-t4">세대 목록을 불러오는 중입니다.</p>
+          <p role="status" aria-label="세대 목록 불러오는 중" className="text-sm text-t4">세대 목록을 불러오는 중입니다.</p>
         )}
         {selectedBuilding && !isTenantsLoading && occupiedTenants.length === 0 && (
           <p className="text-sm text-t4">선택할 입주 세대가 없습니다.</p>
@@ -225,7 +225,7 @@ const RecipientLists = memo(function RecipientLists({
           직원
         </h4>
         {isAccountsLoading && (
-          <p className="text-sm text-t4">직원 목록을 불러오는 중입니다.</p>
+          <p role="status" aria-label="직원 목록 불러오는 중" className="text-sm text-t4">직원 목록을 불러오는 중입니다.</p>
         )}
         {!isAccountsLoading && activeAccounts.length === 0 && (
           <p className="text-sm text-t4">선택할 직원이 없습니다.</p>

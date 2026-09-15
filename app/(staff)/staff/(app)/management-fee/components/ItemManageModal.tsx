@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Modal, Button } from "@/components/common";
+import { Modal, Button, Spinner } from "@/components/common";
 import { FeeItemList } from "./FeeItemList";
 import { FeeItemFormModal } from "./FeeItemFormModal";
 import {
@@ -25,13 +25,16 @@ interface Props {
 }
 
 export function ItemManageModal({ open, onClose, orgId, typeId, typeLabel }: Props) {
-  const { data: feeItems = [], isLoading } = useFeeItems(open ? typeId : 0);
+  const feeItemsQuery = useFeeItems(open ? typeId : 0);
+  const { data: feeItems = [], isLoading } = feeItemsQuery;
   const createItem = useCreateFeeItem();
   const updateItem = useUpdateFeeItem();
   const deleteItem = useDeleteFeeItem();
   const reorderItems = useReorderFeeItems();
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<FeeItem | null>(null);
+  const isFeeItemSavePending = createItem.isPending || updateItem.isPending;
+  const isFeeItemListRefreshing = feeItemsQuery.isFetching && !feeItemsQuery.isLoading;
 
   const showActionError = (error: unknown) =>
     toast.error(error, "관리비 항목을 처리하지 못했습니다.");
@@ -76,6 +79,11 @@ export function ItemManageModal({ open, onClose, orgId, typeId, typeLabel }: Pro
 
   return (
     <Modal open={open} onClose={onClose} title={`관리비 항목 관리 · ${typeLabel}`}>
+      {isFeeItemListRefreshing ? (
+        <div className="mb-2 ml-auto w-fit rounded-lg bg-white shadow-card">
+          <Spinner label="관리비 항목 갱신 중" size="small" showLabel className="px-3 py-2" />
+        </div>
+      ) : null}
       <div className="mb-3 flex justify-end">
         <Button variant="primary" onClick={() => { setEditing(null); setFormOpen(true); }}>
           ＋ 항목 추가
@@ -94,7 +102,7 @@ export function ItemManageModal({ open, onClose, orgId, typeId, typeLabel }: Pro
         onClose={() => { setFormOpen(false); setEditing(null); }}
         editing={editing}
         onSubmit={handleSubmit}
-        isPending={createItem.isPending || updateItem.isPending}
+        isPending={isFeeItemSavePending}
       />
     </Modal>
   );
