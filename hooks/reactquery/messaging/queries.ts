@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   listMessageLogs,
+  listScheduledMessages,
   listTenantAlimtalkConsent,
   quoteMessagePoints,
   type MessagePointQuoteInput,
@@ -11,6 +12,13 @@ export function useMessageLogs(limit?: number) {
   return useQuery({
     queryKey: messagingKeys.logs(limit),
     queryFn: () => listMessageLogs(limit),
+  });
+}
+
+export function useScheduledMessages() {
+  return useQuery({
+    queryKey: messagingKeys.scheduledMessages(),
+    queryFn: listScheduledMessages,
   });
 }
 
