@@ -126,7 +126,7 @@ describe("MessagingPage", () => {
     expect(screen.getByRole("columnheader", { name: "발신자" })).toBeInTheDocument();
     expect(screen.getByText("2026.08.13 10:30")).toBeInTheDocument();
     expect(screen.getByText("독촉 / 2명")).toBeInTheDocument();
-    expect(screen.getByText("문자")).toBeInTheDocument(); // 채널 배지
+    expect(screen.getByText("문자")).toBeInTheDocument(); // 채널(일반 텍스트)
     expect(screen.getByText("SMS")).toBeInTheDocument(); // 발신자
     expect(screen.getByText("8월 관리비 납부를 부탁드립니다.")).toBeInTheDocument();
     expect(screen.getByText("stub")).toBeInTheDocument();
