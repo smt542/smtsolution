@@ -7,7 +7,6 @@ import {
   type ScheduledMessage,
 } from "@/hooks/reactquery/messaging";
 import type { SendMode } from "@/lib/messaging/preset";
-import { ChannelBadge } from "./ChannelBadge";
 import { MessagingListCard } from "./MessagingListCard";
 import { SegmentedFilter } from "./SegmentedFilter";
 
@@ -28,6 +27,10 @@ function formatScheduledAt(value: string): string {
   }).formatToParts(date);
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
   return `${get("year")}.${get("month")}.${get("day")} ${get("hour")}:${get("minute")}`;
+}
+
+function channelLabel(channel: SendMode): string {
+  return channel === "alimtalk" ? "알림톡" : "문자";
 }
 
 function senderLabel(channel: SendMode): string {
@@ -138,8 +141,8 @@ export function ScheduledTab() {
               key={msg.id}
               className="border-b border-[#f1f3f5] last:border-b-0 hover:bg-[#fbfcfd]"
             >
-              <td className="h-[48px] px-[16px] py-[12px]">
-                <ChannelBadge channel={msg.channel} />
+              <td className="h-[48px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
+                {channelLabel(msg.channel)}
               </td>
               <td className="h-[48px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
                 {senderLabel(msg.channel)}
