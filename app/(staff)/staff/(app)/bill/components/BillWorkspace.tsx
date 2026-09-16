@@ -42,6 +42,7 @@ function DataStateModal({ isError, onClose, onRetry }: DataStateModalProps) {
       role="dialog"
       aria-modal="true"
       aria-label="서류 발행 정보"
+      onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
     >
       <div className="flex min-h-[180px] w-[420px] max-w-[calc(100vw-24px)] flex-col items-center justify-center gap-5 rounded-[20px] bg-white p-8 shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)]">
         {isError ? (

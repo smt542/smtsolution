@@ -260,7 +260,7 @@ export function DocumentOutputModal({ type, buildings, companyName, accounts, cu
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-3 print:hidden" role="dialog" aria-modal="true" aria-labelledby="output-modal-title">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-3 print:hidden" role="dialog" aria-modal="true" aria-labelledby="output-modal-title" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
         <div className="flex h-[660px] w-[1020px] max-h-[calc(100vh-24px)] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)]">
           <header className="flex h-[61px] shrink-0 items-center justify-between border-b border-[#e8ebee] px-[20px]">
             <h2 id="output-modal-title" className="text-[16px] font-extrabold leading-[21px] tracking-[-0.02em] text-[#191f28]">{TITLES[type]}</h2>

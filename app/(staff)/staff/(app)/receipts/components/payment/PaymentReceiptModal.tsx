@@ -64,6 +64,7 @@ export function PaymentReceiptModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="payment-receipt-modal-title"
+        onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
       >
         <div className="flex max-h-[96vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-surface shadow-pop">
           <header className="flex items-center justify-between border-b border-line px-5 py-4">

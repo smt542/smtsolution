@@ -37,7 +37,7 @@ export function MoveInNoticeModal({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section
         role="dialog"
         aria-modal="true"
