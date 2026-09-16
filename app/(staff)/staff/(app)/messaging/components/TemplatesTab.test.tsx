@@ -75,10 +75,10 @@ describe("TemplatesTab", () => {
     renderTab(<TemplatesTab />);
 
     fireEvent.click(screen.getByRole("button", { name: "템플릿 등록" }));
-    fireEvent.change(screen.getByLabelText("템플릿 제목"), {
+    fireEvent.change(screen.getByLabelText("템플릿명"), {
       target: { value: "점검 안내" },
     });
-    fireEvent.change(screen.getByLabelText("템플릿 본문"), {
+    fireEvent.change(screen.getByLabelText("템플릿 내용"), {
       target: { value: "#{이름}님 점검 예정입니다." },
     });
     fireEvent.click(screen.getByRole("button", { name: "저장" }));
@@ -88,7 +88,7 @@ describe("TemplatesTab", () => {
         orgId: 9,
         title: "점검 안내",
         body: "#{이름}님 점검 예정입니다.",
-        category: null,
+        category: "정기",
         channelType: "sms",
         alimtalkTemplateCode: null,
         buttons: [],

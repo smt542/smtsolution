@@ -23,12 +23,14 @@ describe("TemplateFormModal 알림톡 필드", () => {
 
   it("채널=알림톡 선택 시 템플릿코드·버튼 입력 + 저장에 전달", async () => {
     render(<TemplateFormModal open onClose={vi.fn()} onSaved={vi.fn()} />);
-    fireEvent.change(screen.getByLabelText("템플릿 제목"), { target: { value: "안내" } });
-    fireEvent.change(screen.getByLabelText("템플릿 본문"), { target: { value: "본문" } });
-    fireEvent.change(screen.getByLabelText("채널 유형"), { target: { value: "alimtalk" } });
+    fireEvent.change(screen.getByLabelText("템플릿명"), { target: { value: "안내" } });
+    fireEvent.change(screen.getByLabelText("템플릿 내용"), { target: { value: "본문" } });
+    // 커스텀 드롭다운으로 채널 = 알림톡 선택
+    fireEvent.click(screen.getByRole("button", { name: "채널 유형" }));
+    fireEvent.click(screen.getByRole("button", { name: "알림톡" }));
     fireEvent.change(screen.getByLabelText("알림톡 템플릿코드"), { target: { value: "T10" } });
-    fireEvent.change(screen.getByLabelText("버튼 이름"), { target: { value: "확인" } });
-    fireEvent.change(screen.getByLabelText("버튼 링크"), { target: { value: "https://x" } });
+    fireEvent.change(screen.getByLabelText("버튼명"), { target: { value: "확인" } });
+    fireEvent.change(screen.getByLabelText("연결 URL"), { target: { value: "https://x" } });
     fireEvent.click(screen.getByRole("button", { name: "저장" }));
     await waitFor(() => expect(createMutate).toHaveBeenCalled());
     const arg = createMutate.mock.calls[0][0];
