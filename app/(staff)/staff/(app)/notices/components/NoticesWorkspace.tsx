@@ -7,6 +7,7 @@ import {
   NOTICE_PAGE_SIZE,
   useNotice,
   useNotices,
+  type Notice,
   type NoticeFilters as NoticeFilterValues,
   type NoticeType,
   type NoticeSummary,
@@ -16,12 +17,17 @@ import { NoticeFormModal } from "./NoticeFormModal";
 import { NoticeList } from "./NoticeList";
 
 
-const DUMMY_NOTICES: NoticeSummary[] = [
+// 실제 공지가 없을 때 목록·상세 디자인 확인용 더미.
+// 양수 id를 부여하되 DUMMY_IDS로 구분해, 상세는 API 조회 없이 로컬 데이터로 연다.
+// (저장·삭제·발송 등 실제 반영이 필요한 동작은 가짜 id라 동작하지 않음 — 표시 확인용)
+const DUMMY_NOTICES: Notice[] = [
   {
-    id: -1,
+    id: 900001,
     orgId: 0,
     buildingIds: [],
     title: "9월 관리비 청구 안내 — 납기일 9월 25일",
+    content: "9월 관리비 고지서를 발송했습니다.\n납기일은 9월 25일이며, 기한 내 납부 부탁드립니다.",
+    contentJson: null,
     noticeType: "normal",
     publishedAt: "2026-09-14T00:00:00Z",
     expiresAt: null,
@@ -30,10 +36,12 @@ const DUMMY_NOTICES: NoticeSummary[] = [
     updatedAt: "2026-09-14T00:00:00Z",
   },
   {
-    id: -2,
+    id: 900002,
     orgId: 0,
     buildingIds: [],
     title: "엘리베이터 정기점검 안내 (9/15 오전 9시~12시)",
+    content: "9월 15일 오전 9시부터 12시까지 엘리베이터 정기점검이 진행됩니다.\n해당 시간 이용에 참고 바랍니다.",
+    contentJson: null,
     noticeType: "important",
     publishedAt: "2026-09-13T00:00:00Z",
     expiresAt: "2026-09-15T12:00:00Z",
@@ -42,10 +50,12 @@ const DUMMY_NOTICES: NoticeSummary[] = [
     updatedAt: "2026-09-13T00:00:00Z",
   },
   {
-    id: -3,
+    id: 900003,
     orgId: 0,
     buildingIds: [],
     title: "긴급 단수 안내 — 9/14(일) 오후 2시~6시",
+    content: "저수조 청소로 9월 14일(일) 오후 2시부터 6시까지 단수됩니다.\n사용하실 물을 미리 받아 두시기 바랍니다.",
+    contentJson: null,
     noticeType: "urgent",
     publishedAt: "2026-09-14T08:00:00Z",
     expiresAt: "2026-09-14T18:00:00Z",
@@ -54,6 +64,8 @@ const DUMMY_NOTICES: NoticeSummary[] = [
     updatedAt: "2026-09-14T08:00:00Z",
   },
 ];
+
+const DUMMY_IDS = new Set(DUMMY_NOTICES.map((notice) => notice.id));
 
 export function NoticesWorkspace({
   orgId,
@@ -78,7 +90,7 @@ export function NoticesWorkspace({
   const rawNotices = useMemo(() => noticesQuery.data?.items ?? [], [noticesQuery.data?.items]);
   const rawTotal = noticesQuery.data?.total ?? 0;
 
-  const displayNotices = useMemo(() => {
+  const displayNotices = useMemo<NoticeSummary[]>(() => {
     if (rawNotices.length > 0) return rawNotices;
     if (noticeType === "all") return DUMMY_NOTICES;
     return DUMMY_NOTICES.filter((n) => n.noticeType === noticeType);
@@ -92,9 +104,13 @@ export function NoticesWorkspace({
         : null,
     [displayNotices, selectedId],
   );
-  // 더미(음수 id)는 API 조회 안 함
+  // 디자인 미리보기용 더미(실데이터 없을 때만 노출)는 로컬 상세로 열고 API 조회는 건너뛴다.
+  const selectedDummy =
+    rawNotices.length === 0 && selectedListId !== null && DUMMY_IDS.has(selectedListId)
+      ? DUMMY_NOTICES.find((notice) => notice.id === selectedListId) ?? null
+      : null;
   const selectedNoticeQuery = useNotice(
-    selectedListId !== null && selectedListId > 0 ? selectedListId : 0,
+    selectedListId !== null && selectedListId > 0 && selectedDummy === null ? selectedListId : 0,
   );
   const selectedNotice = selectedNoticeQuery.data ?? null;
   const isNoticeListInitialLoading = buildingsQuery.isLoading || noticesQuery.isLoading;
@@ -190,8 +206,17 @@ export function NoticesWorkspace({
         )}
       </div>
 
-      {/* 상세 모달 (더미 항목은 열지 않음) */}
-      {selectedListId !== null && selectedListId > 0 && (
+      {/* 상세 모달: 더미는 로컬 데이터로 바로 열고, 실데이터는 조회 상태에 따라 표시 */}
+      {selectedDummy ? (
+        <NoticeDetailModal
+          key={selectedDummy.id}
+          notice={selectedDummy}
+          buildings={buildings}
+          canSendMessages={canSendMessages}
+          onClose={() => setSelectedId(null)}
+          onDeleted={() => setSelectedId(null)}
+        />
+      ) : selectedListId !== null && selectedListId > 0 ? (
         selectedNoticeQuery.isLoading || selectedNoticeQuery.isError ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-4" onClick={() => setSelectedId(null)}>
             <div role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()} className="w-[660px] max-w-full rounded-[20px] bg-white p-[24px] drop-shadow-[0px_30px_35px_rgba(0,0,0,0.4)]">
@@ -217,7 +242,7 @@ export function NoticesWorkspace({
             onDeleted={() => setSelectedId(null)}
           />
         ) : null
-      )}
+      ) : null}
 
       <NoticeFormModal
         open={formOpen}
