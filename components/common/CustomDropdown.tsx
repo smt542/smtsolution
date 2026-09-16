@@ -16,6 +16,11 @@ interface CustomDropdownProps {
   disabled?: boolean;
   size?: "default" | "compact";
   compact?: boolean;
+  /**
+   * "menu"(기본): 툴바/레일용. 메뉴가 내용 너비로 우측 정렬되고 선택 항목에 체크표시.
+   * "field": 폼 필드용. 메뉴 너비를 버튼(트리거) 너비에 맞추고 체크표시를 숨긴다.
+   */
+  variant?: "menu" | "field";
 }
 
 export function CustomDropdown({
@@ -26,12 +31,14 @@ export function CustomDropdown({
   disabled = false,
   size = "default",
   compact = false,
+  variant = "menu",
 }: CustomDropdownProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
   const selected = options.find((option) => option.value === value) ?? options[0];
   const isCompact = size === "compact" || compact;
+  const isField = variant === "field";
 
   useEffect(() => {
     if (!open) return;
@@ -77,7 +84,7 @@ export function CustomDropdown({
           id={menuId}
           role="listbox"
           aria-label={ariaLabel}
-          className="uc-dd-menu absolute right-0 top-[calc(100%_+_6px)] z-[80] max-h-[236px] min-w-[96px] overflow-auto rounded-xl border border-line bg-surface p-[5px] shadow-[0_14px_32px_-10px_rgba(23,31,40,0.22),0_2px_6px_rgba(23,31,40,0.06)]"
+          className={`uc-dd-menu absolute top-[calc(100%_+_6px)] z-[80] max-h-[236px] overflow-auto rounded-xl border border-line bg-surface p-[5px] shadow-[0_14px_32px_-10px_rgba(23,31,40,0.22),0_2px_6px_rgba(23,31,40,0.06)] ${isField ? "inset-x-0" : "right-0 min-w-[96px]"}`}
         >
           {options.map((option) => {
             const isSelected = option.value === value;
@@ -87,23 +94,25 @@ export function CustomDropdown({
                 type="button"
                 role="option"
                 aria-selected={isSelected}
-                className={`uc-opt ${isSelected ? "on" : ""} flex w-full items-center justify-between gap-2.5 rounded-lg px-[10px] py-2 text-[13px] whitespace-nowrap transition-[background] duration-100 ${isSelected ? "bg-blue-t font-bold text-blue-d" : "font-semibold text-t2 hover:bg-bg"}`}
+                className={`uc-opt ${isSelected ? "on" : ""} flex w-full items-center ${isField ? "justify-start" : "justify-between"} gap-2.5 rounded-lg px-[10px] py-2 text-[13px] whitespace-nowrap transition-[background] duration-100 ${isSelected ? "bg-blue-t font-bold text-blue-d" : "font-semibold text-t2 hover:bg-bg"}`}
                 onClick={() => {
                   onChange(option.value);
                   setOpen(false);
                 }}
               >
                 <span>{option.label}</span>
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.4"
-                  aria-hidden="true"
-                  className={`h-[14px] w-[14px] flex-none ${isSelected ? "opacity-100" : "opacity-0"}`}
-                >
-                  <path d="M4 12.5l5 5L20 6.5" />
-                </svg>
+                {!isField && (
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.4"
+                    aria-hidden="true"
+                    className={`h-[14px] w-[14px] flex-none ${isSelected ? "opacity-100" : "opacity-0"}`}
+                  >
+                    <path d="M4 12.5l5 5L20 6.5" />
+                  </svg>
+                )}
               </button>
             );
           })}
