@@ -21,17 +21,22 @@ function amount(value: number | undefined) {
   return (value ?? 0).toLocaleString("ko-KR");
 }
 
+function unitLabel(unitNo: string | undefined) {
+  if (!unitNo) return "-";
+  return unitNo.endsWith("호") ? unitNo : `${unitNo}호`;
+}
+
 function GiroPaper({ companyName, period, building, target, document }: Omit<CompactDocumentPreviewProps, "type" | "zoom" | "onZoom">) {
   const [year, month] = period.split("-");
   const total = document?.totalAmount ?? target?.totalAmount ?? 0;
   const rows = document?.items?.slice(0, 8) ?? feeNames.map((name) => ({ name, amount: 0 }));
 
   return (
-    <div className="relative h-[780px] w-[628px] overflow-hidden border border-[#c5cbd1] bg-white text-[#20262d] shadow-[0_2px_7px_rgba(23,31,40,0.1)]">
-      <div className="absolute left-[88px] top-[48px] text-[8px] leading-[11px]"><p>{building?.address ?? "-"}</p><p>{building?.name ?? "-"} {target?.unitNo ?? "-"}호</p></div>
+    <div className="relative h-[464px] w-[628px] overflow-hidden border border-[#c5cbd1] bg-white text-[#20262d] shadow-[0_2px_7px_rgba(23,31,40,0.1)]">
+      <div className="absolute left-[88px] top-[48px] text-[8px] leading-[11px]"><p>{building?.address ?? "-"}</p><p>{building?.name ?? "-"} {unitLabel(target?.unitNo)}</p></div>
       <p className="absolute left-[23px] top-[198px] text-[6px]">농협 352-2224-0507-03　{companyName}</p>
       <div className="absolute left-[4px] top-[260px] w-[294px]">
-        <div className="flex items-end justify-between px-[17px] pb-[6px] text-[6px]"><span>{building?.name ?? "-"} {target?.unitNo ?? "-"}호<br />{target?.payerName || target?.tenantName || ""}</span><span className="text-right">{year}　 {month}<br /><strong className="text-[8px]">{amount(total)}</strong></span></div>
+        <div className="flex items-end justify-between px-[17px] pb-[6px] text-[6px]"><span>{building?.name ?? "-"} {unitLabel(target?.unitNo)}<br />{target?.payerName || target?.tenantName || ""}</span><span className="text-right">{year}　 {month}<br /><strong className="text-[8px]">{amount(total)}</strong></span></div>
         <div className="grid grid-cols-[77px_72px_72px_72px] border-l border-t border-black text-[5px] leading-[10px]">
           {(["항목", "당월", "전월", "금액"] as const).map((label) => <strong key={label} className="border-b border-r border-black text-center">{label}</strong>)}
           {rows.slice(0, 7).map((row, index) => <div key={`${row.name}-${index}`} className="contents"><span className="border-b border-r border-black px-1">{row.name}</span><span className="border-b border-r border-black text-center">-</span><span className="border-b border-r border-black text-center">-</span><span className="border-b border-r border-black px-1 text-right">{amount(row.amount)}</span></div>)}
@@ -64,8 +69,8 @@ function AdjustmentPaper({ period, building, target }: Omit<CompactDocumentPrevi
 export function CompactDocumentPreview(props: CompactDocumentPreviewProps) {
   const { type, zoom, onZoom } = props;
   return (
-    <section className="relative flex min-h-0 flex-1 items-start justify-start overflow-hidden bg-[#e9edf1] pl-[17px] pt-[17px]">
-      {(type === "giro" || type === "fax") && (
+    <section className={`relative flex min-h-0 flex-1 items-start justify-start overflow-hidden bg-[#e9edf1] ${type === "giro" ? "pl-[12px] pt-[1px]" : "pl-[17px] pt-[17px]"}`}>
+      {type === "fax" && (
         <div className="absolute left-[17px] top-[14px] z-10 flex gap-[6px]">
           {["재발행", "단수", "자동이체"].map((label) => (
             <span key={label} className="rounded-[7px] border border-[#dfe3e7] bg-white px-[9px] py-[5px] text-[9.5px] font-bold text-[#6b7684] shadow-sm">{label}</span>
