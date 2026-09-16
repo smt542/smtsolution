@@ -55,7 +55,7 @@ export function NoticeAlimtalkConfirmModal({
         aria-modal="true"
         aria-labelledby={titleId}
         onClick={(event) => event.stopPropagation()}
-        className="flex w-[340px] max-w-[calc(100vw-32px)] flex-col rounded-[20px] bg-white p-[24px] drop-shadow-[0px_30px_35px_rgba(0,0,0,0.4)]"
+        className="flex w-[400px] max-w-[calc(100vw-32px)] flex-col rounded-[20px] bg-white p-[24px] drop-shadow-[0px_30px_35px_rgba(0,0,0,0.4)]"
       >
         {/* 제목 */}
         <div className="flex w-full flex-col items-center">
