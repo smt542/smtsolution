@@ -141,6 +141,8 @@ describe("DocumentOutputModal 지로 선택 상태", () => {
     expect(reissue).toBeEnabled();
     fireEvent.click(reissue);
     expect(reissue).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "자동이체" }));
+    expect(screen.getByTestId("giro-preview-stamps")).toHaveTextContent("자동이체");
     fireEvent.click(screen.getByRole("button", { name: "전체" }));
     expect(screen.getByText("스탬프 · 전체")).toBeInTheDocument();
   });

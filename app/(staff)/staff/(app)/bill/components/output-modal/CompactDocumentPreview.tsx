@@ -37,7 +37,7 @@ function GiroPaper({ companyName, period, building, target, document, stamps }: 
   const visibleStamps = [
     stamps?.reissue && isStampedForUnit(stamps.reissueUnitIds) ? { label: "재발행", className: "border-red-600 text-red-600 rotate-[-7deg]" } : null,
     stamps?.waterCutoffUnitIds.includes(unitId ?? -1) ? { label: "단수", className: "border-blue-700 text-blue-700 rotate-[5deg]" } : null,
-    stamps?.autoDebit && (document?.autoDebit || target?.autoDebit) && isStampedForUnit(stamps.autoDebitUnitIds) ? { label: "자동이체", className: "border-emerald-700 text-emerald-700 rotate-[-4deg]" } : null,
+    stamps?.autoDebit && isStampedForUnit(stamps.autoDebitUnitIds) ? { label: "자동이체", className: "border-emerald-700 text-emerald-700 rotate-[-4deg]" } : null,
   ].filter((stamp): stamp is { label: string; className: string } => stamp !== null);
 
   return (
