@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRef } from "react";
 import { CloseIcon, PlusIcon } from "@/components/icons";
 import { useAppToast, useObjectUrls } from "@/hooks/common";
@@ -51,9 +52,14 @@ export function PhotoUpload({
               className="group relative size-[84px] shrink-0 overflow-hidden rounded-[10px] border border-line"
             >
               {preview?.file === file ? (
-                // Local blob URLs intentionally bypass next/image optimization.
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={preview.url} alt={file.name} className="size-full object-cover" />
+                <Image
+                  src={preview.url}
+                  alt={file.name}
+                  width={84}
+                  height={84}
+                  unoptimized
+                  className="size-full object-cover"
+                />
               ) : (
                 <span className="flex size-full items-center justify-center p-2 text-center text-[10px] text-t3">
                   {file.name}

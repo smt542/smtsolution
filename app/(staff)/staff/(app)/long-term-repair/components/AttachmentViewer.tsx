@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { Spinner } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
@@ -138,9 +139,14 @@ export function AttachmentViewer({
                           onClick={() => setPreview(attachment)}
                           aria-label={`${attachment.fileName} 크게 보기`}
                         >
-                          {/* Signed runtime URLs intentionally bypass next/image host allowlists. */}
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={url} alt={`${title} ${index + 1}`} />
+                          <Image
+                            src={url}
+                            alt={`${title} ${index + 1}`}
+                            fill
+                            unoptimized
+                            sizes="(max-width: 768px) 33vw, 180px"
+                            className="object-cover"
+                          />
                         </button>
                       ) : (
                         <span
@@ -267,8 +273,14 @@ export function AttachmentViewer({
 
       {preview && previewUrl && (
         <button type="button" className={`${styles.attachmentPreview} print:hidden`} onClick={() => setPreview(null)} aria-label="확대 이미지 닫기">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={previewUrl} alt={preview.fileName} />
+          <Image
+            src={previewUrl}
+            alt={preview.fileName}
+            fill
+            unoptimized
+            sizes="100vw"
+            className="object-contain"
+          />
         </button>
       )}
 
@@ -278,8 +290,15 @@ export function AttachmentViewer({
           {printable.map(({ attachment, url }, index) => (
             <figure key={attachment.id} className="break-after-page last:break-after-auto">
               <div className="relative mx-auto h-[240mm] w-[180mm]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url ?? ""} alt={`${title} ${index + 1}`} className="h-full w-full object-contain" />
+                <Image
+                  src={url ?? ""}
+                  alt={`${title} ${index + 1}`}
+                  fill
+                  unoptimized
+                  loading="eager"
+                  sizes="180mm"
+                  className="h-full w-full object-contain"
+                />
               </div>
               <figcaption className="mt-2 text-center text-xs">{index + 1}/{printable.length} · {attachment.fileName}</figcaption>
             </figure>

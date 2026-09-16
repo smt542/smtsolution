@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { NodeViewWrapper, type NodeViewProps } from "@tiptap/react";
@@ -63,9 +64,15 @@ export function NoticeImageNodeView({ node, editor, deleteNode, selected }: Node
       className={`${styles.imageBlock} ${selected ? styles.imageSelected : ""}`}
     >
       {displayUrl ? (
-        // signed/blob URL은 일시적이라 next/image 최적화를 사용하지 않는다.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={displayUrl} alt={alt} className={styles.image} />
+        <Image
+          src={displayUrl}
+          alt={alt}
+          width={800}
+          height={600}
+          unoptimized
+          className={styles.image}
+          style={{ width: "auto", height: "auto" }}
+        />
       ) : failed ? (
         <div className={styles.imageFallback} role="img" aria-label={alt || "이미지를 불러올 수 없어요"}>
           이미지를 불러올 수 없어요

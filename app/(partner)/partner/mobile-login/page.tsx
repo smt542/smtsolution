@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { PartnerLoginForm } from "./PartnerLoginForm";
 import styles from "./mobile-login.module.css";
 
@@ -5,8 +6,7 @@ export default function PartnerLoginPage() {
   return (
     <div className={styles.wrap}>
       <div className={styles.logo}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="관리비서" />
+        <Image src="/logo.png" alt="관리비서" width={727} height={519} />
       </div>
 
       <PartnerLoginForm>

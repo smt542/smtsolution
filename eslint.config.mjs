@@ -32,8 +32,6 @@ const eslintConfig = defineConfig([
     // Runtime tool artifacts (gstack headless-browser cache) — not source, and
     // can be permission-locked (ESLint scandir EPERM). Never lint.
     ".gstack/**",
-    // Reference-only prototype exports are not application source.
-    "docs/prototype/**",
   ]),
 ]);
 

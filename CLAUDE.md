@@ -1,18 +1,5 @@
 @AGENTS.md
 
-## Reference-only prototype documents
-
-- `docs/prototype/**` is reference-only material.
-- Exclude it from routine code discovery, implementation, refactoring, bulk migrations, lint, and verification.
-- Read it only when the user explicitly asks to consult it.
-- This rule takes precedence over any later instruction to consult `docs/prototype/prd/**` automatically.
-
-## PRD 문서 우선 참조 (수정 전 필독)
-화면·기능을 수정하기 전, `docs/prototype/prd/`에서 **해당 화면에 대응하는 PRD 문서를 먼저 읽는다**(이 디렉터리가 기획 정본). 파일명이 화면과 1:1로 매핑된다 — 예: 고지서 발행=`bill-publish.md`, 관리비 세팅=`management-fee-setting.md`, 공과금=`utility-charge.md`, 수납=`payment-processing.md`, 미납=`overdue-management.md`, 입주자=`tenant-list.md`·`tenant-detail.md`·`tenant-app.md`, 건물=`building-list.md`·`building-detail.md`, 세입자앱/모바일=`mobile-*.md`, 문자·알림톡=`messaging.md`, 퇴실정산=`moving-settlement.md`, 셋업=`setup.md`, 대시보드=`dashboard.md`, 직원=`staff-management.md`, 영수/민원=`receipt-management.md`.
-
-- 전체를 매번 읽지 말고 **수정 대상 화면의 문서만** 참조한다. 구현이 PRD와 어긋나면 진행 전 사용자에게 확인한다.
-- codex에 구현을 위임할 때는 위임 프롬프트에 해당 PRD 문서 경로를 포함해 워커가 직접 읽게 한다.
-
 ## 퍼블리싱 시 공용 컴포넌트 우선 사용
 화면을 퍼블리싱하거나 UI를 수정할 때는 **Tailwind CSS로 구현**하고, 기존 공용 컴포넌트를 먼저 확인해 우선 재사용한다. 동일하거나 유사한 UI를 페이지 내부에 중복 구현하지 말고, 필요한 경우 기존 공용 컴포넌트의 props나 variant를 확장한다. 새 컴포넌트가 여러 화면에서 재사용될 수 있다면 페이지 전용으로 만들지 말고 공용 컴포넌트로 구현한다.
 

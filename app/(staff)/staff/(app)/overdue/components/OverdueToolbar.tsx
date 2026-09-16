@@ -1,5 +1,4 @@
-/* eslint-disable @next/next/no-img-element -- Figma SVG assets are served unchanged from public. */
-
+import Image from "next/image";
 import { useState } from "react";
 import type { OverdueBuilding, OverdueScope } from "@/hooks/reactquery/overdue";
 
@@ -28,9 +27,11 @@ interface OverdueToolbarProps {
 
 function DropdownIcon() {
   return (
-    <img
+    <Image
       src="/icons/overdue/chevron.svg"
       alt=""
+      width={15}
+      height={15}
       className="pointer-events-none absolute right-[10px] top-1/2 size-[15px] -translate-y-1/2"
     />
   );
@@ -75,9 +76,11 @@ function BuildingSearch({
   return (
     <label className="relative h-[38px] w-[200px] shrink-0">
       <span className="sr-only">건물 선택</span>
-      <img
+      <Image
         src="/icons/overdue/search.svg"
         alt=""
+        width={15}
+        height={15}
         className="pointer-events-none absolute left-[11px] top-[11.5px] z-10 size-[15px]"
       />
       <input
@@ -243,7 +246,7 @@ export function OverdueToolbar({
         aria-label="미납대장 출력"
         className="flex h-[34px] shrink-0 items-center justify-center gap-[7px] rounded-[11px] bg-teal px-[14px] text-[13px] font-bold tracking-[-0.13px] text-white transition hover:bg-teal-d disabled:cursor-not-allowed disabled:opacity-45"
       >
-        <img src="/icons/overdue/print.svg" alt="" className="size-[16px]" />
+        <Image src="/icons/overdue/print.svg" alt="" width={16} height={16} className="size-[16px]" />
         출력
       </button>
     </section>

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { JSONContent } from "@tiptap/core";
 import { renderJSONContentToReactElement } from "@tiptap/static-renderer/json/react";
 
@@ -35,9 +36,17 @@ function NoticeImageView({
 }) {
   if (!path) return null;
   if (url) {
-    // signed URL은 일시적이라 next/image 최적화를 사용하지 않는다.
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={url} alt={alt} className={styles.image} />;
+    return (
+      <Image
+        src={url}
+        alt={alt}
+        width={800}
+        height={600}
+        unoptimized
+        className={styles.image}
+        style={{ width: "auto", height: "auto" }}
+      />
+    );
   }
   if (loading) {
     return (

@@ -1,7 +1,6 @@
 "use client";
 
-/* eslint-disable @next/next/no-img-element -- Figma SVG assets are served unchanged from public. */
-
+import Image from "next/image";
 import { useState } from "react";
 
 export function MessagingWorkspaceShell({
@@ -24,7 +23,7 @@ export function MessagingWorkspaceShell({
     >
       <header className="flex h-[57px] shrink-0 items-center gap-[9px] border-b border-line bg-white py-[13px] pl-[16px] pr-[12px]">
         <span className="flex size-[26px] shrink-0 items-center justify-center rounded-[8px] bg-[#e2f5f1]">
-          <img src="/icons/overdue/message.svg" alt="" className="size-[15px]" />
+          <Image src="/icons/overdue/message.svg" alt="" width={15} height={15} className="size-[15px]" />
         </span>
         <span className="flex flex-col">
           <strong className="text-[14px] font-extrabold leading-[17px] tracking-[-0.14px] text-t1">
@@ -41,7 +40,7 @@ export function MessagingWorkspaceShell({
           aria-label={minimized ? "발송창 펼치기" : "발송창 최소화"}
           className="flex size-[30px] items-center justify-center rounded-[8px] hover:bg-bg"
         >
-          <img src="/icons/overdue/minimize.svg" alt="" className="size-[17px]" />
+          <Image src="/icons/overdue/minimize.svg" alt="" width={17} height={17} className="size-[17px]" />
         </button>
         <button
           type="button"
@@ -49,7 +48,7 @@ export function MessagingWorkspaceShell({
           aria-label="발송창 닫기"
           className="flex size-[30px] items-center justify-center rounded-[8px] hover:bg-bg"
         >
-          <img src="/icons/overdue/close.svg" alt="" className="size-[17px]" />
+          <Image src="/icons/overdue/close.svg" alt="" width={17} height={17} className="size-[17px]" />
         </button>
       </header>
       {!minimized && children}

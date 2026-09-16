@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import React, { useRef, useState } from "react";
 import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -263,9 +264,14 @@ export function VendorFormModal({
                       {attachmentPreviews.map(({ attachment: att, url, error }) => (
                         <li key={att.id} className={styles.attachmentItem}>
                           {url ? (
-                            // Signed runtime URLs intentionally bypass next/image host allowlists.
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={url} alt="" className="size-10 rounded object-cover" />
+                            <Image
+                              src={url}
+                              alt=""
+                              width={40}
+                              height={40}
+                              unoptimized
+                              className="size-10 rounded object-cover"
+                            />
                           ) : null}
                           <span className={styles.attachmentName}>
                             {att.fileName}{error ? " (미리보기 실패)" : ""}

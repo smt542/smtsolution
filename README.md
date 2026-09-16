@@ -94,7 +94,6 @@ lib/
   …
 
 supabase/migrations/            번호순 SQL 마이그레이션
-docs/prototype/prd/             화면별 기획 정본(PRD) — 참조 전용
 
 ```
 

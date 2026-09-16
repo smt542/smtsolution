@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import React from "react";
 import {
   useForm,
@@ -179,13 +180,16 @@ function ContractFileField({
       {(remotePreview.data || remotePreview.isError) && (
         <div className="mt-3 rounded-xl border border-line bg-bg/40 p-3">
           {remotePreview.data ? (
-            // Signed Storage URLs and local blob URLs are intentionally rendered without optimization.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={remotePreview.data}
-              alt="계약서 미리보기"
-              className="max-h-52 w-full rounded-lg object-contain"
-            />
+            <div className="relative h-52 w-full">
+              <Image
+                src={remotePreview.data}
+                alt="계약서 미리보기"
+                fill
+                unoptimized
+                sizes="100vw"
+                className="rounded-lg object-contain"
+              />
+            </div>
           ) : (
             <p className="py-6 text-center text-xs text-danger">미리보기를 불러오지 못했습니다.</p>
           )}

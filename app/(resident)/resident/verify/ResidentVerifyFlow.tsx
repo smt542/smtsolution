@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
@@ -168,11 +169,13 @@ export default function ResidentVerifyFlow() {
         <div className={styles.card}>
           <div className={styles.who}>
             {candidate.profileImageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- 카카오 CDN 프로필 사진 직접 표시(next/image 불요)
-              <img
+              <Image
                 className={styles.ava}
                 src={candidate.profileImageUrl}
                 alt=""
+                width={46}
+                height={46}
+                unoptimized
                 referrerPolicy="no-referrer"
               />
             ) : (

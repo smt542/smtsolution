@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -165,11 +166,13 @@ export default function ResidentMeWorkspace() {
         <h1 className={styles.title}>내 정보</h1>
         <div className={styles.prof}>
           {profile.profileImageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- 카카오 CDN 프로필 사진 직접 표시(next/image 불요)
-            <img
+            <Image
               className={styles.av}
               src={profile.profileImageUrl}
               alt=""
+              width={52}
+              height={52}
+              unoptimized
               referrerPolicy="no-referrer"
             />
           ) : (

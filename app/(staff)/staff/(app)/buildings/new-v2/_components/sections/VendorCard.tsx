@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import { FormGrid } from "@/components/common/FormGrid";
 import { FieldRenderer } from "../ui/FieldRenderer";
 import { PhotoUpload } from "../ui/PhotoUpload";
@@ -46,9 +47,14 @@ export function VendorCard({
                   onClick={() => window.open(previews[index]?.url ?? url, "_blank", "noopener,noreferrer")}
                   aria-label={`${attachment.fileName} 미리보기`}
                 >
-                  {/* Signed runtime URLs intentionally bypass next/image host allowlists. */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={url} alt="" className="size-full object-cover" />
+                  <Image
+                    src={url}
+                    alt=""
+                    width={84}
+                    height={84}
+                    unoptimized
+                    className="size-full object-cover"
+                  />
                 </button>
               ) : (
                 <span

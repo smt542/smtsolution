@@ -1,7 +1,6 @@
 "use client";
 
-/* eslint-disable @next/next/no-img-element -- Figma SVG assets are served unchanged from public. */
-
+import Image from "next/image";
 import { useState } from "react";
 import type { MessageTemplate } from "@/hooks/reactquery/messageTemplates";
 import type { MessageRecipient, SendMode } from "@/lib/messaging/preset";
@@ -92,7 +91,7 @@ export function MessagingWorkspaceView({
               <span className="rounded-[6px] bg-[#e2f5f1] px-[7px] py-[2px] text-[10.5px] font-bold text-[#0e8677]">
                 회사 대표번호
               </span>
-              <img src="/icons/overdue/drawer-chevron.svg" alt="" className="ml-auto size-[15px]" />
+              <Image src="/icons/overdue/drawer-chevron.svg" alt="" width={15} height={15} className="ml-auto size-[15px]" />
             </span>
           </label>
 
@@ -166,7 +165,7 @@ export function MessagingWorkspaceView({
                 메시지 내용
               </label>
               <label className="relative flex items-center gap-[5px] rounded-[8px] px-[9px] py-[5px] text-[12px] font-bold text-t2">
-                <img src="/icons/overdue/template.svg" alt="" className="size-[13px]" />
+                <Image src="/icons/overdue/template.svg" alt="" width={13} height={13} className="size-[13px]" />
                 <span>템플릿</span>
                 <select
                   aria-label="메시지 템플릿"
@@ -180,7 +179,7 @@ export function MessagingWorkspaceView({
                     <option key={template.id} value={template.id}>{template.title}</option>
                   ))}
                 </select>
-                <img src="/icons/overdue/template-chevron.svg" alt="" className="size-[13px]" />
+                <Image src="/icons/overdue/template-chevron.svg" alt="" width={13} height={13} className="size-[13px]" />
               </label>
             </div>
             <textarea
@@ -207,7 +206,7 @@ export function MessagingWorkspaceView({
           aria-disabled={!canSend || sending}
           className="flex h-[48px] w-full items-center justify-center gap-[7px] rounded-[13px] bg-teal text-[15px] font-extrabold text-white shadow-[0_8px_8px_rgba(20,164,151,0.5)] transition hover:bg-teal-d disabled:cursor-wait disabled:opacity-60"
         >
-          <img src="/icons/overdue/send.svg" alt="" className="size-[18px]" />
+          <Image src="/icons/overdue/send.svg" alt="" width={18} height={18} className="size-[18px]" />
           {sending ? "발송 중…" : `${itemCount}건 발송`}
         </button>
       </footer>
