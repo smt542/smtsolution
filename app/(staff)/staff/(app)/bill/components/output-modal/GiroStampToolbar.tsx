@@ -21,7 +21,7 @@ const stampItems: { key: GiroStampKind; label: string }[] = [
 
 export function GiroStampToolbar({ stamps, scope, disabled, onToggleStamp, onScopeChange }: GiroStampToolbarProps) {
   return (
-    <div className="flex h-[52px] shrink-0 items-center gap-[8px] border-b border-[#e8ebee] bg-white px-[14px]">
+    <div className="flex h-[50px] shrink-0 items-center gap-[8px] border-b border-[#e8ebee] bg-white px-[14px]">
       <div aria-label="지로 출력 표기" className="flex h-[32px] overflow-hidden rounded-[9px] border border-[#e8ebee] bg-white">
         {stampItems.map(({ key, label }) => {
           const active = stamps[key];
