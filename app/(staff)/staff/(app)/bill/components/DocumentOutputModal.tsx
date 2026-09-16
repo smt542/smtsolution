@@ -13,7 +13,7 @@ import { currentPeriod } from "@/lib/billing/period";
 import type { PrintableAccount } from "@/lib/bill/document";
 import type { BillBuilding, OutputDocumentType } from "../types";
 import type { GiroOutputDocument, GiroPrintViewProps, GiroStampOptions } from "./GiroPrintView";
-import { AutoDebitTable } from "./output-modal/AutoDebitTable";
+import { AutoDebitTable, deriveAutoDebitCells } from "./output-modal/AutoDebitTable";
 import { AdjustmentPreviewViewport, AdjustmentStatementPreview, AdjustmentStatementStyles } from "./output-modal/AdjustmentStatement";
 import { CompactDocumentPreview } from "./output-modal/CompactDocumentPreview";
 import { FaxConfirmationModal } from "./output-modal/FaxConfirmationModal";
@@ -339,7 +339,10 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
       {type === "giro" && hasPrintableData && <div className="hidden print:block" data-testid="document-output-print-root">{printPreview}</div>}
       {type === "adjustment" && adjustment.hasData && <div className="hidden print:block" data-testid="document-output-print-root"><AdjustmentStatementPreview pages={adjustment.pages} mode="print" /></div>}
       {type === "autoDebit" && autoDebitRows.length > 0 && (
-        <table className="hidden w-full border-collapse text-xs print:table" data-testid="auto-debit-print-root"><thead><tr>{["건물", "호수", "회원명", "청구월", "결제일", "금액", "회원구분"].map((label) => <th key={label} className="border p-2">{label}</th>)}</tr></thead><tbody>{autoDebitRows.map(({ building, target }) => <tr key={`${building.id}-${target.unitId}`}><td className="border p-2">{building.name}</td><td className="border p-2">{target.unitNo}</td><td className="border p-2">{target.payerName || target.tenantName}</td><td className="border p-2">{year}.{String(month).padStart(2, "0")}</td><td className="border p-2">{target.dueDate}</td><td className="border p-2 text-right">{target.totalAmount.toLocaleString("ko-KR")}</td><td className="border p-2">자동이체</td></tr>)}</tbody></table>
+        <table className="hidden w-full border-collapse text-xs print:table" data-testid="auto-debit-print-root"><thead><tr>{["#", "청구타입", "회원번호", "계약번호", "회원명", "청구월", "약정일", "결제일(결제시작일)", "상품", "기본금액", "수량", "회원구분"].map((label) => <th key={label} className="border p-2">{label}</th>)}</tr></thead><tbody>{autoDebitRows.map(({ building, target }, index) => {
+          const cells = deriveAutoDebitCells(building, target, year, month);
+          return (<tr key={`${building.id}-${target.unitId}`}><td className="border p-2 text-center">{index + 1}</td><td className="border p-2">{cells.billType}</td><td className="border p-2">{cells.memberNo}</td><td className="border p-2">{cells.contractNo}</td><td className="border p-2">{cells.memberName}</td><td className="border p-2">{cells.billMonth}</td><td className="border p-2">{cells.agreedDay}</td><td className="border p-2">{cells.paymentDate}</td><td className="border p-2">{cells.product}</td><td className="border p-2 text-right">{cells.baseAmount}</td><td className="border p-2 text-center">{cells.quantity}</td><td className="border p-2">{cells.memberGroup}</td></tr>);
+        })}</tbody></table>
       )}
       {faxConfirmOpen && <FaxConfirmationModal building={selectedFaxBuilding} targets={selectedFaxTargetValues} period={period} senderLabel="등록 발신번호 · 본사" recipient={faxRecipient} isPending={sendFaxes.isPending} error={faxError} onCancel={() => setFaxConfirmOpen(false)} onSend={() => void sendFax()} />}
     </>
