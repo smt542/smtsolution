@@ -141,12 +141,12 @@ export function buildAdjustmentStatementPages(
   const pageCount = params.buildings.length;
 
   return params.buildings.map((entry, index) => {
-    // 부과 항목 컬럼 순서: 건물 내 문서 전체에서 등장 순서(=feeItemId 최초 등장) 고정.
+    // 부과 항목 컬럼 = 등록 항목 전체(부과 여부 무관). 순서는 sort_order(문서 items가 이미 정렬됨).
     const itemOrder: { id: number; name: string }[] = [];
     const itemSeen = new Set<number>();
     for (const document of entry.documents) {
       for (const item of document.items) {
-        if (!item.charged || itemSeen.has(item.feeItemId)) continue;
+        if (itemSeen.has(item.feeItemId)) continue;
         itemSeen.add(item.feeItemId);
         itemOrder.push({ id: item.feeItemId, name: item.name });
       }

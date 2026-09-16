@@ -2,8 +2,11 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 import {
   buildAdjustmentStatementPages,
   type AdjustmentBuildingInput,
+  type AdjustmentDocumentInput,
   type AdjustmentStatementPageModel,
 } from "@/lib/bill/adjustmentStatement";
+import { listBilling } from "@/hooks/reactquery/billing/apis";
+import { billingKeys } from "@/hooks/reactquery/billing/keys";
 import { listLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers/apis";
 import { lateFeeTierKeys } from "@/hooks/reactquery/lateFeeTiers/keys";
 import { listOverduePeriods } from "@/hooks/reactquery/overdue/apis";
@@ -12,7 +15,8 @@ import { listBuildingPaymentDates } from "@/hooks/reactquery/payments/apis";
 import { paymentKeys } from "@/hooks/reactquery/payments/keys";
 import { listUtilityRows, type UtilityType, type UtilityUnitRow } from "@/hooks/reactquery/utilities/apis";
 import { utilityKeys } from "@/hooks/reactquery/utilities/keys";
-import { getBillDocuments, listBillTargets } from "./apis";
+import type { BillingFlatRow } from "@/lib/billing/pivot";
+import { listBillTargets } from "./apis";
 import { billKeys } from "./keys";
 
 // 검침 조회 종목 순서(빌더가 항목 순서로 표시 종목을 고르므로 3종목 모두 조회한다).
@@ -28,6 +32,26 @@ function toMeterInputs(rows: UtilityUnitRow[]) {
     usage: meter.usage,
     occupancyStatus: meter.occupancyStatus,
   }));
+}
+
+// list_billing(모든 등록 fee_item × 세대) → 확정 세대별 문서. 항목은 sort_order 순으로
+// 전 등록 항목을 담는다(부과 여부는 charged 플래그로 구분). 당월계는 확정 total_amount.
+function toDocuments(rows: BillingFlatRow[]): AdjustmentDocumentInput[] {
+  const byUnit = new Map<number, BillingFlatRow[]>();
+  for (const row of rows) {
+    if (row.confirmedAt == null) continue; // 확정 세대만
+    const list = byUnit.get(row.unitId);
+    if (list) list.push(row);
+    else byUnit.set(row.unitId, [row]);
+  }
+  return [...byUnit.entries()].map(([unitId, unitRows]) => {
+    const sorted = [...unitRows].sort((a, b) => a.sortOrder - b.sortOrder || a.feeItemId - b.feeItemId);
+    return {
+      unitId,
+      totalAmount: sorted[0]?.totalAmount ?? 0,
+      items: sorted.map((row) => ({ feeItemId: row.feeItemId, name: row.feeItemName, charged: row.charged, amount: row.amount })),
+    };
+  });
 }
 
 export interface AdjustmentStatementBuilding {
@@ -72,20 +96,12 @@ export function useAdjustmentStatements(
     })),
   });
 
-  const targetsByBuilding = buildings.map((building, index) => ({
-    building,
-    targets: targetQueries[index]?.data ?? [],
-  }));
-
-  const documentQueries = useQueries({
-    queries: targetsByBuilding.map(({ building, targets }) => {
-      const unitIds = targets.map((target) => target.unitId);
-      return {
-        queryKey: billKeys.documents(building.id, period, unitIds),
-        queryFn: () => getBillDocuments(building.id, period, unitIds),
-        enabled: enabled && unitIds.length > 0,
-      };
-    }),
+  const billingQueries = useQueries({
+    queries: buildings.map((building) => ({
+      queryKey: billingKeys.list(building.id, period),
+      queryFn: () => listBilling(building.id, period),
+      enabled,
+    })),
   });
 
   const meterQueries = useQueries({
@@ -135,11 +151,7 @@ export function useAdjustmentStatements(
         tenantName: target.tenantName,
         phone: target.phone,
       })),
-      documents: (documentQueries[index]?.data ?? []).map((document) => ({
-        unitId: document.unitId,
-        totalAmount: document.totalAmount,
-        items: document.items,
-      })),
+      documents: toDocuments(billingQueries[index]?.data ?? []),
       metersByUtility: {
         water: toMeterInputs(meterQueries[index * 3]?.data ?? []),
         electricity: toMeterInputs(meterQueries[index * 3 + 1]?.data ?? []),
@@ -167,7 +179,7 @@ export function useAdjustmentStatements(
 
   const perBuilding = [
     ...targetQueries,
-    ...documentQueries,
+    ...billingQueries,
     ...meterQueries,
     ...overdueQueries,
     ...paymentQueries,
