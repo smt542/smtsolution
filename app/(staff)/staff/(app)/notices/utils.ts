@@ -98,7 +98,7 @@ export function validateNoticeForm({
   now?: Date;
 }): string | null {
   const result = createNoticeFormSchema(now).safeParse({
-    target: "organization",
+    buildingIds: [],
     noticeType: "normal",
     title,
     contentJson: plainTextToNoticeDoc(content),

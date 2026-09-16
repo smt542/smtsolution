@@ -8,6 +8,7 @@ import { Button, Input, Modal, Select } from "@/components/common";
 import { FormField } from "@/components/common/FormField";
 import { setSubmissionError } from "@/components/forms/formErrors";
 import { NoticeEditor } from "@/components/notices/NoticeEditor";
+import { NoticeTargetChip } from "./NoticeTargetChip";
 import {
   EMPTY_NOTICE_DOC,
   noticeDocToPlainText,
@@ -69,7 +70,7 @@ function NoticeFormContent({
   const initialPublishMode: PublishMode = mode;
   const schema = useMemo(() => createNoticeFormSchema(), []);
   const makeDefaults = (): NoticeFormInput => ({
-    target: editing?.buildingId == null ? "organization" : String(editing.buildingId),
+    buildingIds: editing?.buildingIds ?? [],
     noticeType: editing?.noticeType ?? "normal",
     title: editing?.title ?? "",
     contentJson: editing ? (editing.contentJson ?? plainTextToNoticeDoc(editing.content)) : EMPTY_NOTICE_DOC,
@@ -127,7 +128,7 @@ function NoticeFormContent({
 
     const payload: NoticeInput = {
       orgId,
-      buildingId: values.target,
+      buildingIds: values.buildingIds,
       noticeType: values.noticeType,
       title: values.title,
       content: noticeDocToPlainText(nextDoc),
@@ -174,16 +175,36 @@ function NoticeFormContent({
     }
   };
 
-  const targetOptions = [
-    { value: "organization", label: "전체 공지" },
-    ...buildings.map((building) => ({ value: String(building.id), label: building.name })),
-  ];
-
   return (
     <Modal open={open} onClose={closeSafely} title={editing ? "공지 수정" : "공지 등록"}>
       <form onSubmit={handleSubmit(submit)} className="flex max-h-[75vh] flex-col gap-4 overflow-y-auto pr-1" noValidate>
-        <FormField htmlFor="notice-target" label="공지 대상 *" error={errors.target?.message} hint="전체 또는 건물 한 곳을 선택할 수 있습니다.">
-          <Select id="notice-target" {...register("target")} options={targetOptions} />
+        <FormField htmlFor="notice-buildings" label="공지 대상 *" hint="전체 공지이거나 하나 이상의 건물을 선택할 수 있습니다.">
+          <Controller
+            control={control}
+            name="buildingIds"
+            render={({ field }) => {
+              const ids = field.value ?? [];
+              return (
+                <div className="flex flex-wrap gap-[8px]">
+                  <NoticeTargetChip label="전체 건물" checked={ids.length === 0} onClick={() => field.onChange([])} />
+                  {buildings.map((building) => (
+                    <NoticeTargetChip
+                      key={building.id}
+                      label={building.name}
+                      checked={ids.includes(building.id)}
+                      onClick={() =>
+                        field.onChange(
+                          ids.includes(building.id)
+                            ? ids.filter((x) => x !== building.id)
+                            : [...ids, building.id],
+                        )
+                      }
+                    />
+                  ))}
+                </div>
+              );
+            }}
+          />
         </FormField>
 
         <FormField htmlFor="notice-type" label="공지 유형 *" error={errors.noticeType?.message}>

@@ -30,6 +30,8 @@ vi.mock("@/hooks/reactquery/notices", () => ({
   useUpdateNotice: vi.fn(),
   useDeleteNotice: vi.fn(),
   useNoticeImageUrls: () => ({ urls: {}, isLoading: false }),
+  useNoticeSendSummary: () => ({ data: null, isLoading: false }),
+  useAttachNoticeSendLog: () => ({ mutateAsync: vi.fn() }),
   prepareNoticeImages: vi.fn(async ({ doc }: { doc: unknown }) => ({
     nextDoc: doc,
     uploaded: [],
@@ -86,7 +88,7 @@ const buildings = [
 const notices = [{
   id: 3,
   orgId: 9,
-  buildingId: null,
+  buildingIds: [],
   title: "정기 소독 안내",
   content: "8월 20일 오전 10시에 소독합니다.",
   noticeType: "important",
@@ -110,7 +112,7 @@ function setup(overrides?: { me?: unknown; notices?: typeof notices; noticesErro
       items: noticeRows.map((notice) => ({
         id: notice.id,
         orgId: notice.orgId,
-        buildingId: notice.buildingId,
+        buildingIds: notice.buildingIds,
         title: notice.title,
         noticeType: notice.noticeType,
         publishedAt: notice.publishedAt,
@@ -158,7 +160,7 @@ describe("NoticesPage", () => {
 
     await user.click(screen.getByText("정기 소독 안내"));
     expect(screen.getByRole("heading", { name: "정기 소독 안내" })).toBeInTheDocument();
-    expect(screen.getByText("게시 일시")).toBeInTheDocument();
+    expect(screen.getByText("대상 건물")).toBeInTheDocument();
   });
 
   it("notices 권한이 없으면 조회 UI를 노출하지 않음", async () => {
@@ -170,17 +172,16 @@ describe("NoticesPage", () => {
     expect(useNotices).not.toHaveBeenCalled();
   });
 
-  it("공지 등록 모달은 전체와 건물 대상만 제공", async () => {
+  it("공지 등록 모달은 전체와 건물 대상 칩을 제공", async () => {
     const user = userEvent.setup();
     render(await NoticesPage());
     await user.click(screen.getByRole("button", { name: /공지 등록/ }));
 
     const dialogTitle = screen.getByRole("heading", { name: "공지 등록" });
     const form = dialogTitle.parentElement!;
-    const target = within(form).getByLabelText(/공지 대상/);
-    expect(target).toHaveTextContent("전체 공지");
-    expect(target).toHaveTextContent("해오름빌");
-    expect(target).not.toHaveTextContent("호실");
+    expect(within(form).getByRole("checkbox", { name: "전체 건물" })).toBeInTheDocument();
+    expect(within(form).getByRole("checkbox", { name: "해오름빌" })).toBeInTheDocument();
+    expect(within(form).getByRole("checkbox", { name: "푸른빌딩" })).toBeInTheDocument();
     expect(screen.queryByText("입주자 선택")).not.toBeInTheDocument();
   });
 
@@ -194,7 +195,7 @@ describe("NoticesPage", () => {
 
     await waitFor(() => expect(createMutate).toHaveBeenCalledWith(expect.objectContaining({
       orgId: 9,
-      buildingId: null,
+      buildingIds: [],
       title: "주차 안내",
       content: "주차장을 비워 주세요.",
       noticeType: "normal",

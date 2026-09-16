@@ -76,7 +76,7 @@ describe("NoticeFormModal form contract", () => {
 
     await waitFor(() => expect(noticeMocks.create).toHaveBeenCalledWith(expect.objectContaining({
       orgId: 3,
-      buildingId: null,
+      buildingIds: [],
       title: "안내",
       content: "공지 내용",
       expiresAt: null,

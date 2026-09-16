@@ -10,3 +10,4 @@ export { FilterIcon } from "./FilterIcon";
 export { SearchIcon } from "./SearchIcon";
 export { ResidentsIcon } from "./ResidentsIcon";
 export { PlusIcon } from "./PlusIcon";
+export { SendIcon } from "./SendIcon";
