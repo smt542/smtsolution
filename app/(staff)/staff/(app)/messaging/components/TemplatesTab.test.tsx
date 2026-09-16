@@ -88,7 +88,7 @@ describe("TemplatesTab", () => {
         orgId: 9,
         title: "점검 안내",
         body: "#{이름}님 점검 예정입니다.",
-        category: "정기",
+        category: null,
         channelType: "sms",
         alimtalkTemplateCode: null,
         buttons: [],

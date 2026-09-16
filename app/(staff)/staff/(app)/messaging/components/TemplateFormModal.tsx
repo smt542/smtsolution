@@ -22,7 +22,7 @@ type CategoryType = "정기" | "공지";
 
 const CHANNEL_OPTIONS: { value: ChannelType; label: string }[] = [
   { value: "alimtalk", label: "알림톡" },
-  { value: "sms", label: "문자(SMS)" },
+  { value: "sms", label: "문자" },
 ];
 
 const CATEGORY_OPTIONS: { value: CategoryType; label: string }[] = [
@@ -52,7 +52,7 @@ const LABEL = "text-[12.5px] font-bold text-[#8b95a1]";
 const FIELD =
   "h-[42px] rounded-[11px] border border-[#e8ebee] bg-white px-[12px] text-[14px] font-medium text-[#191f28] outline-none placeholder:text-[#757575] focus:border-[#14a497]";
 const VAR_CHIP =
-  "rounded-[8px] px-[10px] py-[4px] text-[12px] font-bold text-[#14a497] hover:bg-[#f0faf9]";
+  "rounded-[8px] bg-[#e2f5f1] px-[10px] py-[4px] text-[12px] font-bold text-[#14a497] hover:bg-[#d4efe9]";
 
 export function TemplateFormModal({
   open,
@@ -144,7 +144,7 @@ function TemplateForm({
         ]
       : [];
     const extra = {
-      category,
+      category: channelType === "alimtalk" ? category : null,
       channelType,
       alimtalkTemplateCode:
         channelType === "alimtalk" ? alimtalkTemplateCode.trim() || null : null,
@@ -207,13 +207,15 @@ function TemplateForm({
                 options={CHANNEL_OPTIONS}
                 onChange={(value) => setChannelType(value)}
               />
-              <SelectMenu
-                ariaLabel="발송 구분"
-                className="flex-1"
-                value={category}
-                options={CATEGORY_OPTIONS}
-                onChange={(value) => setCategory(value)}
-              />
+              {channelType === "alimtalk" && (
+                <SelectMenu
+                  ariaLabel="발송 구분"
+                  className="flex-1"
+                  value={category}
+                  options={CATEGORY_OPTIONS}
+                  onChange={(value) => setCategory(value)}
+                />
+              )}
             </div>
           </div>
 
@@ -240,7 +242,7 @@ function TemplateForm({
               placeholder="메시지 내용을 입력해 주세요"
               className="min-h-[180px] w-full resize-none rounded-[11px] border border-[#e8ebee] bg-white px-[13px] py-[12px] text-[13.5px] font-medium leading-[22.95px] text-[#191f28] outline-none placeholder:text-[#757575] focus:border-[#14a497]"
             />
-            <div className="flex flex-wrap gap-[2px]">
+            <div className="flex flex-wrap gap-[6px]">
               {CONTENT_VARIABLES.map((name) => (
                 <button
                   key={name}
