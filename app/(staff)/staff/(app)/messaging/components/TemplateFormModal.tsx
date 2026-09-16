@@ -192,7 +192,7 @@ function TemplateForm({
           id={titleId}
           className="text-center text-[17px] font-extrabold text-[#191f28]"
         >
-          {template ? "템플릿 수정" : "새 템플릿"}
+          {template ? "템플릿 수정" : "템플릿 등록"}
         </p>
 
         <div className="mt-[20px] flex flex-col gap-[20px]">
