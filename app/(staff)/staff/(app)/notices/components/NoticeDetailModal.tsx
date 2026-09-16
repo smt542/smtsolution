@@ -4,18 +4,9 @@ import { useEffect, useId, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, Modal } from "@/components/common";
 import { SendIcon } from "@/components/icons";
-import { NoticeEditor } from "@/components/notices/NoticeEditor";
-import {
-  noticeDocIsEmpty,
-  noticeDocToPlainText,
-  plainTextToNoticeDoc,
-  type NoticeDoc,
-} from "@/lib/notice/richText";
+import { plainTextToNoticeDoc } from "@/lib/notice/richText";
 import type { Building } from "@/hooks/reactquery/buildings";
 import {
-  finalizeNoticeImages,
-  prepareNoticeImages,
-  removeNoticeImageObjects,
   useDeleteNotice,
   useNoticeSendSummary,
   useUpdateNotice,
@@ -69,11 +60,7 @@ export function NoticeDetailModal({
   const titleId = useId();
   const [type, setType] = useState<NoticeType>(notice.noticeType);
   const [title, setTitle] = useState(notice.title);
-  const [contentJson, setContentJson] = useState<NoticeDoc>(
-    notice.contentJson ?? plainTextToNoticeDoc(notice.content),
-  );
-  // 저장 전 새 본문 이미지 File을 담는 공유 맵(렌더마다 안정된 인스턴스).
-  const [pendingFiles] = useState<Map<string, File>>(() => new Map());
+  const [content, setContent] = useState(notice.content);
   // 대상 건물: 빈 배열 = 전체 공지, 그 외 = 지정 건물들(다중 선택).
   const [buildingIds, setBuildingIds] = useState<number[]>(notice.buildingIds);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -105,61 +92,24 @@ export function NoticeDetailModal({
       toast.error("제목을 입력해 주세요.");
       return;
     }
-    if (noticeDocIsEmpty(contentJson)) {
-      toast.error("내용을 입력해 주세요.");
-      return;
-    }
-
-    // 1) pending 이미지를 Storage에 업로드하고 content_json을 object path로 치환한다.
-    let prepared: Awaited<ReturnType<typeof prepareNoticeImages>>;
-    try {
-      prepared = await prepareNoticeImages({ orgId: notice.orgId, doc: contentJson, pendingFiles });
-    } catch (uploadError) {
-      toast.error(uploadError, "본문 이미지를 업로드하지 못했습니다.");
-      return;
-    }
-    const { nextDoc, uploaded, failedCount } = prepared;
-    if (failedCount > 0) {
-      toast.warning(`본문 이미지 ${failedCount}장을 업로드하지 못해 제외했습니다.`);
-    }
-
     const input: Partial<NoticeInput> = {
       title: trimmed,
       noticeType: type,
       buildingIds,
-      content: noticeDocToPlainText(nextDoc),
-      contentJson: nextDoc,
     };
+    // 본문을 실제로 편집한 경우에만 평문→doc 로 치환한다.
+    // (편집하지 않으면 기존 본문/이미지를 그대로 보존한다.)
+    if (content !== notice.content) {
+      input.content = content;
+      input.contentJson = plainTextToNoticeDoc(content);
+    }
     try {
       const saved = await updateNotice.mutateAsync({ id: notice.id, input });
-      // 2) 업로드분 첨부 row 생성 + 본문에서 빠진 이미지 정리(부분 실패는 경고만).
-      try {
-        const { rowFailedCount } = await finalizeNoticeImages({
-          orgId: notice.orgId,
-          noticeId: saved.id,
-          uploaded,
-          previousDoc: notice.contentJson ?? null,
-          nextDoc,
-        });
-        if (rowFailedCount > 0) {
-          toast.warning("본문 이미지 일부의 첨부 정보 저장에 실패했습니다.");
-        }
-      } catch {
-        toast.warning("본문 이미지 정리 중 일부 작업에 실패했습니다.");
-      }
       toast.success("공지가 수정되었습니다.");
       onSaved?.(saved);
       onClose();
-    } catch (saveError) {
-      // 저장 실패 시 방금 업로드한 object를 보상 삭제해 고아를 남기지 않는다.
-      if (uploaded.length > 0) {
-        try {
-          await removeNoticeImageObjects(uploaded.map((image) => image.path));
-        } catch {
-          // 보상 삭제 실패는 무시(저장 자체가 실패했으므로 참조는 남지 않는다).
-        }
-      }
-      toast.error(saveError, "공지를 저장하지 못했습니다.");
+    } catch (error) {
+      toast.error(error, "공지를 저장하지 못했습니다.");
     }
   };
 
@@ -239,12 +189,13 @@ export function NoticeDetailModal({
 
             {/* 내용 */}
             <div className="flex flex-col gap-[9px]">
-              <span className="text-[12.5px] font-bold leading-[normal] text-[#8b95a1]">내용</span>
-              <NoticeEditor
-                aria-label="공지 내용"
-                value={contentJson}
-                onChange={setContentJson}
-                pendingFiles={pendingFiles}
+              <label htmlFor="notice-detail-content" className="text-[12.5px] font-bold leading-[normal] text-[#8b95a1]">내용</label>
+              <textarea
+                id="notice-detail-content"
+                value={content}
+                onChange={(event) => setContent(event.target.value)}
+                placeholder="공지 내용"
+                className="h-[130px] w-full resize-none rounded-[11px] border border-[#e8ebee] bg-white p-[14px] text-[14px] font-medium leading-[22px] text-[#191f28] outline-none placeholder:text-[#b0b8c1] focus:border-[#14a497]"
               />
             </div>
 
