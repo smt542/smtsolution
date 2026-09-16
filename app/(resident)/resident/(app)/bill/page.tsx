@@ -3,7 +3,7 @@ import BottomNav from "@/app/(resident)/_components/BottomNav";
 import { getResidentBillPageData } from "./data";
 import ResidentBillHistory from "./ResidentBillHistory";
 import ResidentBillRetryState from "./ResidentBillRetryState";
-import styles from "./bill.module.css";
+import { billClasses as styles } from "./billClasses";
 
 export default async function ResidentBillPage() {
   let pageData: Awaited<ReturnType<typeof getResidentBillPageData>>;

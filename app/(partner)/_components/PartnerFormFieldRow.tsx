@@ -1,7 +1,5 @@
 import type { ReactNode } from "react";
 
-import styles from "./PartnerFormFieldRow.module.css";
-
 type PartnerFormFieldRowProps = {
   /** Row label. Pass a fragment (e.g. text + a required-marker `<b>`) for non-plain-text labels. */
   label: ReactNode;
@@ -14,8 +12,8 @@ type PartnerFormFieldRowProps = {
 /** Horizontal label + control row for partner A/S-style forms (`_asform.module.css` box sections). */
 export function PartnerFormFieldRow({ label, column, children }: PartnerFormFieldRowProps) {
   return (
-    <div className={column ? `${styles.row} ${styles.rowCol}` : styles.row}>
-      <span className={styles.label}>{label}</span>
+    <div className={column ? "flex flex-col items-stretch gap-2 border-b border-line2 py-3 last:border-b-0" : "flex items-center gap-3 border-b border-line2 py-3 last:border-b-0"}>
+      <span className={column ? "w-auto text-[13.5px] font-semibold text-t3" : "w-[104px] flex-none text-[13.5px] font-semibold text-t3"}>{label}</span>
       {children}
     </div>
   );

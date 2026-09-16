@@ -10,8 +10,6 @@ import {
   type PendingInfo,
 } from "@/lib/resident/onboardingClient";
 
-import styles from "./pending.module.css";
-
 function pad2(value: number): string {
   return String(value).padStart(2, "0");
 }
@@ -76,21 +74,21 @@ export function ResidentPendingClient({
       footer={
         <button
           type="button"
-          className={`${styles.btn} ${styles.pri}`}
+          className="h-14 w-full rounded-2xl bg-blue text-[16.5px] font-bold tracking-[-0.02em] text-white transition-transform hover:bg-blue-d active:scale-[0.985]"
           onClick={() => router.push("/resident/login")}
         >
           로그인 화면으로
         </button>
       }
     >
-      <div className={styles.card}>
-        <div className={styles.r}>
+      <div className="mt-[26px] w-full rounded-[18px] border border-line px-4 py-1.5 text-left animate-[rise_0.5s_160ms_cubic-bezier(0.22,0.61,0.36,1)_both]">
+        <div className="flex items-center justify-between gap-2.5 border-b border-line2 py-3.5 text-[13.5px] font-semibold text-t3 last:border-b-0">
           <span>요청 세대</span>
-          <b>{household}</b>
+          <b className="text-sm font-bold text-t1">{household}</b>
         </div>
-        <div className={styles.r}>
+        <div className="flex items-center justify-between gap-2.5 py-3.5 text-[13.5px] font-semibold text-t3">
           <span>요청 일시</span>
-          <b className={styles.num}>
+          <b className="text-sm font-bold text-t1 tabular-nums">
             {formatRequestedAt(pendingInfo.requestedAt)}
           </b>
         </div>

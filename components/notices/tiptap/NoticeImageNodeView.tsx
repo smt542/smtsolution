@@ -14,7 +14,10 @@ import {
 } from "@/lib/attachments/signedUrl";
 import { NOTICE_IMAGE_NODE_TYPE } from "@/lib/notice/images";
 
-import styles from "../noticeRichText.module.css";
+import {
+  noticeImageClassName,
+  noticeImageStateClassName,
+} from "../richTextClasses";
 
 import type { NoticeImageStorage } from "./NoticeImage";
 
@@ -61,7 +64,7 @@ export function NoticeImageNodeView({ node, editor, deleteNode, selected }: Node
   return (
     <NodeViewWrapper
       as="div"
-      className={`${styles.imageBlock} ${selected ? styles.imageSelected : ""}`}
+      className={`relative my-[0.5em] [&_img]:my-0 ${selected ? "rounded-lg outline-2 outline-offset-2 outline-brand" : ""}`}
     >
       {displayUrl ? (
         <Image
@@ -70,25 +73,25 @@ export function NoticeImageNodeView({ node, editor, deleteNode, selected }: Node
           width={800}
           height={600}
           unoptimized
-          className={styles.image}
+          className={noticeImageClassName}
           style={{ width: "auto", height: "auto" }}
         />
       ) : failed ? (
-        <div className={styles.imageFallback} role="img" aria-label={alt || "이미지를 불러올 수 없어요"}>
+        <div className={noticeImageStateClassName} role="img" aria-label={alt || "이미지를 불러올 수 없어요"}>
           이미지를 불러올 수 없어요
         </div>
       ) : loading ? (
-        <div className={styles.imagePlaceholder} role="status" aria-label="이미지 불러오는 중">
+        <div className={noticeImageStateClassName} role="status" aria-label="이미지 불러오는 중">
           불러오는 중…
         </div>
       ) : (
-        <div className={styles.imageFallback} role="img" aria-label={alt || "이미지"}>
+        <div className={noticeImageStateClassName} role="img" aria-label={alt || "이미지"}>
           이미지를 불러올 수 없어요
         </div>
       )}
       <button
         type="button"
-        className={styles.imageRemove}
+        className="absolute right-1.5 top-1.5 flex size-6 items-center justify-center rounded-full bg-black/60 text-xs leading-none text-white hover:bg-black/85"
         aria-label="이미지 삭제"
         contentEditable={false}
         onClick={() => deleteNode()}

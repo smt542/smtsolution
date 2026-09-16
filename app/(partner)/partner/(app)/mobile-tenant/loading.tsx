@@ -1,5 +1,5 @@
 import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
-import styles from "./mobile-tenant.module.css";
+import { tenantClasses as styles } from "./tenantClasses";
 
 export default function PartnerTenantLoading() {
   return (

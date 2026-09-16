@@ -19,7 +19,7 @@ import { formatDate } from "@/lib/format";
 import { resetOnboardingSession } from "@/lib/resident/onboardingClient";
 import { createClient } from "@/lib/supabase/client";
 
-import styles from "./me.module.css";
+import { residentMeClasses as styles } from "./meClasses";
 
 function formatPhone(raw: string): string {
   const digits = raw.replace(/\D/g, "");

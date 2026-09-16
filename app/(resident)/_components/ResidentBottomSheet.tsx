@@ -2,8 +2,6 @@
 
 import { useEffect, type ReactNode } from "react";
 
-import styles from "./ResidentBottomSheet.module.css";
-
 type ResidentBottomSheetProps = {
   id?: string;
   variant: "compact" | "stepped";
@@ -13,13 +11,13 @@ type ResidentBottomSheetProps = {
 };
 
 const panelClassByVariant = {
-  compact: styles.panelCompact,
-  stepped: styles.panelStepped,
+  compact: "w-full max-w-[440px] rounded-t-[22px] bg-white px-6 pb-[calc(env(safe-area-inset-bottom)+24px)] pt-2.5",
+  stepped: "flex h-[min(640px,calc(100dvh-40px))] max-h-[calc(100dvh-40px)] w-full max-w-[440px] flex-col rounded-t-[22px] bg-white px-6 pb-[calc(env(safe-area-inset-bottom)+22px)] pt-2.5",
 } as const;
 
 const grabClassByVariant = {
-  compact: styles.grabCompact,
-  stepped: styles.grabStepped,
+  compact: "mx-auto mb-4 h-1 w-9 rounded-sm bg-line",
+  stepped: "mx-auto mb-4 h-1 w-9 flex-none rounded-sm bg-line",
 } as const;
 
 export default function ResidentBottomSheet({
@@ -43,7 +41,7 @@ export default function ResidentBottomSheet({
   return (
     <div
       id={id}
-      className={`${styles.sheet} ${open ? styles.show : ""}`}
+      className={`fixed inset-0 z-[90] items-end justify-center overflow-hidden bg-scrim ${open ? "flex" : "hidden"}`}
       onClick={(event) => {
         if (event.target === event.currentTarget) {
           onDismiss();

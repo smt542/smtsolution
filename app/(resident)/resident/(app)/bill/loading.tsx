@@ -1,4 +1,4 @@
-import styles from "./bill.module.css";
+import { billClasses as styles } from "./billClasses";
 
 export default function ResidentBillLoading() {
   return (

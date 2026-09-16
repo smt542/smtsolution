@@ -6,8 +6,6 @@ import { useEffect, useState } from "react";
 
 import { automatch, loadSession } from "@/lib/resident/onboardingClient";
 
-import styles from "./auth.module.css";
-
 const STEPS = [
   { title: "카카오 계정으로 확인 중", description: "잠시만 기다려 주세요" },
   {
@@ -67,18 +65,18 @@ export default function ResidentAuthFlow() {
   const step = STEPS[stepIndex];
 
   return (
-    <div className={styles.auth}>
-      <div className={styles.ring}>
-        <i />
-        <Image src="/logo-mark.png" alt="" width={34} height={34} />
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[22px] px-8">
+      <div className="relative size-[74px] animate-[pop_0.4s_cubic-bezier(0.22,0.61,0.36,1)_both]">
+        <i className="absolute inset-0 animate-spin rounded-full border-[3px] border-blue-t border-t-blue" />
+        <Image className="absolute inset-0 m-auto size-[34px] object-contain" src="/logo-mark.png" alt="" width={34} height={34} />
       </div>
-      <div className={styles.msg}>
-        <b>{step.title}</b>
-        <span>{step.description}</span>
+      <div className="text-center animate-[rise_0.5s_100ms_cubic-bezier(0.22,0.61,0.36,1)_both]">
+        <b className="block text-lg font-extrabold tracking-[-0.02em]">{step.title}</b>
+        <span className="mt-2 block text-sm font-semibold leading-[1.6] text-t3">{step.description}</span>
       </div>
-      <div className={styles.steps}>
+      <div className="mt-1 flex gap-1.5 animate-[rise_0.5s_160ms_cubic-bezier(0.22,0.61,0.36,1)_both]">
         {STEPS.map((item, index) => (
-          <i key={item.title} className={index <= stepIndex ? styles.on : ""} />
+          <i key={item.title} className={`size-1.5 rounded-full ${index <= stepIndex ? "bg-blue" : "bg-line"}`} />
         ))}
       </div>
     </div>

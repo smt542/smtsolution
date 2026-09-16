@@ -7,8 +7,6 @@ import { formatDate } from "@/lib/format";
 
 import { getPublicNoticeByToken } from "./data";
 import PublicNoticeRetryState from "./PublicNoticeRetryState";
-import styles from "../../share.module.css";
-
 const noticeTypeLabels: Record<PublicNoticeType, string> = {
   normal: "일반 공지",
   important: "중요 공지",
@@ -73,7 +71,7 @@ export default async function PublicNoticePage({
           .filter(Boolean)
           .join(" · ")}
       >
-        <NoticeContent json={notice.contentJson} fallbackText={notice.content} imageUrls={imageUrls} className={styles.content} />
+        <NoticeContent json={notice.contentJson} fallbackText={notice.content} imageUrls={imageUrls} className="mt-[22px] border-t border-line pt-5 text-[15px] leading-[1.75] text-t1 [overflow-wrap:anywhere] whitespace-pre-wrap" />
       </PublicShareArticleCard>
     </PublicTokenPageShell>
   );

@@ -8,8 +8,6 @@ import { useSaveBuildingNotes } from "@/hooks/reactquery/receipts";
 import type { ReceiptPaymentRow } from "@/hooks/reactquery/receipts";
 import type { Unit } from "@/hooks/reactquery/units";
 import { unitLabel } from "../receiptFormat";
-import styles from "./BuildingUnitRail.module.css";
-
 type BuildingLite = Pick<Building, "id" | "name" | "code" | "address" | "memo" | "billingNote">;
 
 /** 15px 돋보기 아이콘 (canon #rcSearch). */
@@ -109,10 +107,10 @@ export function BuildingUnitRail({
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden rounded-2xl bg-surface shadow-[0_1px_3px_rgba(23,31,40,0.05)]">
         <div
           data-testid="building-unit-view-track"
-          className={`${styles.viewTrack} ${selectedBuilding === null ? "" : styles.showUnitView}`}
+          className={`flex h-full min-h-0 w-[200%] transition-transform duration-[220ms] ease-[cubic-bezier(0.22,0.8,0.3,1)] motion-reduce:transition-none ${selectedBuilding === null ? "" : "-translate-x-1/2"}`}
         >
           <div
-            className={`flex h-full flex-col ${styles.viewPane}`}
+            className="flex h-full min-h-0 w-1/2 flex-[0_0_50%] flex-col"
             aria-hidden={selectedBuilding !== null}
             inert={selectedBuilding !== null}
           >
@@ -168,7 +166,7 @@ export function BuildingUnitRail({
             </div>
           </div>
           <div
-            className={`flex h-full flex-col ${styles.viewPane}`}
+            className="flex h-full min-h-0 w-1/2 flex-[0_0_50%] flex-col"
             aria-hidden={selectedBuilding === null}
             inert={selectedBuilding === null}
           >

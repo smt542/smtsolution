@@ -9,7 +9,7 @@ import {
   validRecipients,
   type MessageRecipient,
 } from "@/lib/messaging/preset";
-import styles from "./messenger.module.css";
+import { messengerClasses as styles } from "./messengerClasses";
 import type { ChannelMode, RecipientType } from "./types";
 
 const TYPE_LABEL: Record<RecipientType, string> = {

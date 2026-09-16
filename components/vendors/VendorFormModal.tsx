@@ -11,7 +11,7 @@ import { vendorSchema } from "@/components/forms/schema/vendor";
 import type { Vendor } from "@/hooks/reactquery/vendors";
 import { useAttachmentSignedUrls, type Attachment } from "@/hooks/reactquery/attachments";
 import type { VendorCategory } from "@/hooks/reactquery/vendorCategories";
-import styles from "./VendorManagement.module.css";
+import { vendorClasses } from "./vendorClasses";
 
 // Use z.input so form fields stay as strings/null before Zod coercion
 type VendorFormInput = z.input<typeof vendorSchema>;
@@ -135,14 +135,14 @@ export function VendorFormModal({
       open={open}
       onClose={() => closeModal()}
       title={editing ? "업체 수정" : "업체 추가"}
-      className={styles.dialog}
+      className={vendorClasses.dialog}
       overlayClassName="z-[320] p-6"
     >
       <button
         type="button"
         onClick={() => closeModal()}
         disabled={isPending || isSubmitting}
-        className={styles.closeButton}
+        className={vendorClasses.closeButton}
         aria-label="닫기"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
@@ -152,15 +152,15 @@ export function VendorFormModal({
 
       <form onSubmit={handleSubmit(onValid)}>
         {/* 구분 (category) */}
-        <div className={styles.formCategory}>
-          <label htmlFor={categoryControlId} className={styles.fieldLabel}>구분</label>
+        <div className={vendorClasses.formCategory}>
+          <label htmlFor={categoryControlId} className={vendorClasses.fieldLabel}>구분</label>
           <Controller
             control={control}
             name="categoryId"
             render={({ field, fieldState }) => (
               <div
                 ref={categoryDropdownRef}
-                className={`${styles.categoryDropdown} ${categoryDropdownOpen ? styles.categoryDropdownOpen : ""} ${selectedCategory ? "" : styles.categoryDropdownPlaceholder}`}
+                className={vendorClasses.categoryDropdown}
                 onKeyDown={(event) => {
                   if (event.key === "Escape" && categoryDropdownOpen) {
                     event.preventDefault();
@@ -180,24 +180,24 @@ export function VendorFormModal({
                   aria-controls={categoryMenuId}
                   aria-invalid={fieldState.invalid}
                   aria-describedby={fieldState.error ? `${categoryControlId}-error` : undefined}
-                  className={styles.categoryControl}
+                  className={`${vendorClasses.categoryControl} ${categoryDropdownOpen ? "border-blue" : ""}`}
                   onClick={() => setCategoryDropdownOpen((current) => !current)}
                 >
-                  <span className={styles.categoryValue}>{selectedCategory?.label ?? "선택"}</span>
-                  <svg className={styles.categoryChevron} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+                  <span className={`${vendorClasses.categoryValue} ${selectedCategory ? "" : "font-medium text-t4"}`}>{selectedCategory?.label ?? "선택"}</span>
+                  <svg className={`${vendorClasses.categoryChevron} ${categoryDropdownOpen ? "rotate-180" : ""}`} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
                     <path d="M6 9l6 6 6-6" />
                   </svg>
                 </button>
 
                 {categoryDropdownOpen ? (
-                  <div id={categoryMenuId} role="listbox" aria-label="구분 선택" className={styles.categoryMenu}>
+                  <div id={categoryMenuId} role="listbox" aria-label="구분 선택" className={vendorClasses.categoryMenu}>
                     {categories.map((category) => (
                       <button
                         key={category.id}
                         type="button"
                         role="option"
                         aria-selected={field.value === category.id}
-                        className={`${styles.categoryOption} ${field.value === category.id ? styles.categoryOptionSelected : ""}`}
+                        className={`${vendorClasses.categoryOption} ${field.value === category.id ? vendorClasses.categoryOptionSelected : ""}`}
                         onClick={() => {
                           field.onChange(category.id);
                           field.onBlur();
@@ -213,56 +213,56 @@ export function VendorFormModal({
             )}
           />
           {errors.categoryId?.message && (
-            <p id={`${categoryControlId}-error`} className={styles.fieldError}>{errors.categoryId.message}</p>
+            <p id={`${categoryControlId}-error`} className={vendorClasses.fieldError}>{errors.categoryId.message}</p>
           )}
         </div>
 
-        <div className={styles.formBody}>
-          <div className={styles.formFields}>
+        <div className={vendorClasses.formBody}>
+          <div className={vendorClasses.formFields}>
             {!selectedCategory ? (
-              <p className={styles.categoryHelp}>구분을 먼저 선택하세요.</p>
+              <p className={vendorClasses.categoryHelp}>구분을 먼저 선택하세요.</p>
             ) : (
-              <div className={styles.formGrid}>
+              <div className={vendorClasses.formGrid}>
                 {/* 업체명 (required) */}
                 <div>
-                  <label htmlFor="vendor-name" className={styles.fieldLabel}>업체명</label>
+                  <label htmlFor="vendor-name" className={vendorClasses.fieldLabel}>업체명</label>
                   <input
                     id="vendor-name"
                     {...register("name")}
                     placeholder="업체명"
-                    className={styles.fieldInput}
+                    className={vendorClasses.fieldInput}
                     aria-invalid={Boolean(errors.name)}
                     aria-describedby={errors.name ? "vendor-name-error" : undefined}
                   />
                   {errors.name && (
-                    <p id="vendor-name-error" className={styles.fieldError}>{errors.name.message}</p>
+                    <p id="vendor-name-error" className={vendorClasses.fieldError}>{errors.name.message}</p>
                   )}
                 </div>
 
                 {/* 전화 */}
                 <div>
-                  <label htmlFor="vendor-phone" className={styles.fieldLabel}>전화번호</label>
-                  <input id="vendor-phone" {...register("phone")} placeholder="전화번호" className={`${styles.fieldInput} num`} aria-invalid={Boolean(errors.phone)} aria-describedby={errors.phone ? "vendor-phone-error" : undefined} />
-                  {errors.phone?.message && <p id="vendor-phone-error" className={styles.fieldError}>{errors.phone.message}</p>}
+                  <label htmlFor="vendor-phone" className={vendorClasses.fieldLabel}>전화번호</label>
+                  <input id="vendor-phone" {...register("phone")} placeholder="전화번호" className={`${vendorClasses.fieldInput} num`} aria-invalid={Boolean(errors.phone)} aria-describedby={errors.phone ? "vendor-phone-error" : undefined} />
+                  {errors.phone?.message && <p id="vendor-phone-error" className={vendorClasses.fieldError}>{errors.phone.message}</p>}
                 </div>
 
                 {/* 계좌번호 */}
-                <div className={styles.fullField}>
-                  <label htmlFor="vendor-bank-account" className={styles.fieldLabel}>계좌번호</label>
-                  <input id="vendor-bank-account" {...register("bankAccount")} placeholder="계좌번호" className={styles.fieldInput} aria-invalid={Boolean(errors.bankAccount)} aria-describedby={errors.bankAccount ? "vendor-bank-account-error" : undefined} />
-                  {errors.bankAccount?.message && <p id="vendor-bank-account-error" className={styles.fieldError}>{errors.bankAccount.message}</p>}
+                <div className={vendorClasses.fullField}>
+                  <label htmlFor="vendor-bank-account" className={vendorClasses.fieldLabel}>계좌번호</label>
+                  <input id="vendor-bank-account" {...register("bankAccount")} placeholder="계좌번호" className={vendorClasses.fieldInput} aria-invalid={Boolean(errors.bankAccount)} aria-describedby={errors.bankAccount ? "vendor-bank-account-error" : undefined} />
+                  {errors.bankAccount?.message && <p id="vendor-bank-account-error" className={vendorClasses.fieldError}>{errors.bankAccount.message}</p>}
                 </div>
 
                 {/* 계약서 사진 */}
-                <div className={styles.fullField}>
-                  <label className={styles.fieldLabel}>
+                <div className={vendorClasses.fullField}>
+                  <label className={vendorClasses.fieldLabel}>
                     계약서 사진 <span className="font-semibold text-t4">(최대 10장)</span>
                   </label>
 
                   {attachments.length > 0 && (
-                    <ul className={styles.attachmentList}>
+                    <ul className={vendorClasses.attachmentList}>
                       {attachmentPreviews.map(({ attachment: att, url, error }) => (
-                        <li key={att.id} className={styles.attachmentItem}>
+                        <li key={att.id} className={vendorClasses.attachmentItem}>
                           {url ? (
                             <Image
                               src={url}
@@ -273,7 +273,7 @@ export function VendorFormModal({
                               className="size-10 rounded object-cover"
                             />
                           ) : null}
-                          <span className={styles.attachmentName}>
+                          <span className={vendorClasses.attachmentName}>
                             {att.fileName}{error ? " (미리보기 실패)" : ""}
                           </span>
                           {onDeleteAttachment && (
@@ -290,7 +290,7 @@ export function VendorFormModal({
                                 if (accepted) await onDeleteAttachment(att);
                               }}
                               disabled={isPending || isSubmitting}
-                              className={styles.attachmentDelete}
+                              className={vendorClasses.attachmentDelete}
                             >
                               삭제
                             </button>
@@ -311,10 +311,10 @@ export function VendorFormModal({
                 </div>
 
                 {/* 비고 */}
-                <div className={styles.fullField}>
-                  <label htmlFor="vendor-memo" className={styles.fieldLabel}>비고</label>
-                  <textarea id="vendor-memo" {...register("memo")} placeholder="비고" className={styles.fieldTextarea} aria-invalid={Boolean(errors.memo)} aria-describedby={errors.memo ? "vendor-memo-error" : undefined} />
-                  {errors.memo?.message && <p id="vendor-memo-error" className={styles.fieldError}>{errors.memo.message}</p>}
+                <div className={vendorClasses.fullField}>
+                  <label htmlFor="vendor-memo" className={vendorClasses.fieldLabel}>비고</label>
+                  <textarea id="vendor-memo" {...register("memo")} placeholder="비고" className={vendorClasses.fieldTextarea} aria-invalid={Boolean(errors.memo)} aria-describedby={errors.memo ? "vendor-memo-error" : undefined} />
+                  {errors.memo?.message && <p id="vendor-memo-error" className={vendorClasses.fieldError}>{errors.memo.message}</p>}
                 </div>
               </div>
             )}
@@ -322,15 +322,15 @@ export function VendorFormModal({
         </div>
 
         {errors.root?.server?.message && (
-          <p role="alert" className={styles.fieldError}>{errors.root.server.message}</p>
+          <p role="alert" className={vendorClasses.fieldError}>{errors.root.server.message}</p>
         )}
 
-        <div className={styles.formFooter}>
+        <div className={vendorClasses.formFooter}>
           {editing && onDeleteVendor ? (
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
-              className={`${styles.footerButton} ${styles.deleteButton}`}
+              className={`${vendorClasses.footerButton} ${vendorClasses.deleteButton}`}
             >
               삭제
             </button>
@@ -338,7 +338,7 @@ export function VendorFormModal({
           <button
             type="submit"
             disabled={isPending || isSubmitting}
-            className={`${styles.footerButton} ${styles.submitButton}`}
+            className={`${vendorClasses.footerButton} ${vendorClasses.submitButton}`}
           >
             {isPending || isSubmitting ? "저장 중…" : editing ? "수정" : "추가"}
           </button>

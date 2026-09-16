@@ -13,7 +13,7 @@ import {
 import { useResidentProfile } from "@/hooks/reactquery/residentProfile";
 import { formatWon } from "@/lib/format";
 
-import styles from "./home.module.css";
+import { residentHomeClasses as styles } from "./homeClasses";
 
 const formatAmount = (amount: number) => formatWon(amount);
 const formatPlain = (amount: number) =>

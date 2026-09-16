@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates/queries";
 import { byteLen, smsProduct } from "@/lib/messenger/bytes";
-import styles from "./messenger.module.css";
+import { messengerClasses as styles } from "./messengerClasses";
 
 interface MessageComposerProps {
   body: string;

@@ -2,8 +2,6 @@
 
 import type { ReactNode } from "react";
 
-import styles from "./PartnerConfirmDialog.module.css";
-
 type PartnerConfirmDialogProps = {
   title: ReactNode;
   description: ReactNode;
@@ -28,23 +26,23 @@ export function PartnerConfirmDialog({
 }: PartnerConfirmDialogProps) {
   return (
     <div
-      className={styles.scrim}
+      className="fixed inset-0 z-[95] flex items-center justify-center bg-scrim p-6"
       onClick={(e) => e.target === e.currentTarget && onCancel()}
     >
-      <div className={styles.dialog}>
-        <div className={styles.dTitle}>{title}</div>
-        <div className={styles.dDesc}>{description}</div>
-        <div className={styles.dActions}>
+      <div className="w-full max-w-[340px] rounded-modal bg-white px-5 pb-4 pt-[22px] text-center">
+        <div className="text-[17px] font-extrabold">{title}</div>
+        <div className="mt-2 text-[13.5px] font-medium leading-[1.6] text-t3">{description}</div>
+        <div className="mt-5 flex gap-2">
           <button
             type="button"
-            className={`${styles.dBtn} ${styles.dCancel}`}
+            className="h-[46px] flex-1 rounded-[13px] bg-bg text-[14.5px] font-bold text-t2"
             onClick={onCancel}
           >
             {cancelLabel}
           </button>
           <button
             type="button"
-            className={`${styles.dBtn} ${confirmVariant === "danger" ? styles.dDanger : styles.dOk}`}
+            className={`h-[46px] flex-1 rounded-[13px] text-[14.5px] font-bold text-white disabled:opacity-50 ${confirmVariant === "danger" ? "bg-red" : "bg-blue"}`}
             onClick={onConfirm}
             disabled={confirmDisabled}
           >

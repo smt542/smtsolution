@@ -9,7 +9,11 @@ import {
   type NoticeDoc,
 } from "@/lib/notice/richText";
 
-import styles from "./noticeRichText.module.css";
+import {
+  noticeImageClassName,
+  noticeImageStateClassName,
+  noticeRichTextClassName,
+} from "./richTextClasses";
 
 /**
  * 공지 본문 읽기 전용 렌더러.
@@ -43,20 +47,20 @@ function NoticeImageView({
         width={800}
         height={600}
         unoptimized
-        className={styles.image}
+        className={noticeImageClassName}
         style={{ width: "auto", height: "auto" }}
       />
     );
   }
   if (loading) {
     return (
-      <span className={styles.imagePlaceholder} role="status" aria-label="이미지 불러오는 중">
+      <span className={noticeImageStateClassName} role="status" aria-label="이미지 불러오는 중">
         이미지 불러오는 중…
       </span>
     );
   }
   return (
-    <span className={styles.imageFallback} role="img" aria-label={alt || "이미지를 불러올 수 없어요"}>
+    <span className={noticeImageStateClassName} role="img" aria-label={alt || "이미지를 불러올 수 없어요"}>
       이미지를 불러올 수 없어요
     </span>
   );
@@ -126,12 +130,12 @@ export function NoticeContent({
   /** 이미지 URL을 아직 해석 중이면 로딩 표시(클라이언트 비동기 서명 경로). */
   imageUrlsLoading?: boolean;
 }) {
-  const rootClass = [styles.root, className].filter(Boolean).join(" ");
+  const rootClass = [noticeRichTextClassName, className].filter(Boolean).join(" ");
 
   if (json && typeof json === "object") {
     const render = buildRenderer(imageUrls, imageUrlsLoading);
     return <div className={rootClass}>{render({ content: json as JSONContent })}</div>;
   }
 
-  return <div className={`${rootClass} ${styles.plain}`}>{fallbackText ?? ""}</div>;
+  return <div className={`${rootClass} whitespace-pre-wrap`}>{fallbackText ?? ""}</div>;
 }

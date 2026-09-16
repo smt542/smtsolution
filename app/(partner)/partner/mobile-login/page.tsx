@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { PartnerLoginForm } from "./PartnerLoginForm";
-import styles from "./mobile-login.module.css";
+import { partnerLoginClasses as styles } from "./loginClasses";
 
 export default function PartnerLoginPage() {
   return (

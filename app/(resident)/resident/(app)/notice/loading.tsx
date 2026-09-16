@@ -1,4 +1,4 @@
-import styles from "./notice.module.css";
+import { noticeClasses as styles } from "./noticeClasses";
 
 export default function ResidentNoticeLoading() {
   return (

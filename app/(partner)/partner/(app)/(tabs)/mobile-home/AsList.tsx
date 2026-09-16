@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 
 import { formatDate } from "@/lib/format";
 
-import styles from "./mobile-home.module.css";
+import { homeClasses as styles } from "./homeClasses";
 
 export type AsRow = {
   id: number;

@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import styles from "./BottomNav.module.css";
-
 const tabs = [
   {
     href: "/resident/home",
@@ -42,7 +40,7 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className={styles.nav} aria-label="주요 메뉴">
+    <nav className="z-20 grid min-h-[68px] flex-none grid-cols-3 gap-1 border-t border-line bg-white px-3 pb-[calc(8px+env(safe-area-inset-bottom))] pt-2" aria-label="주요 메뉴">
       {tabs.map((tab) => {
         const active =
           pathname === tab.href || pathname.startsWith(`${tab.href}/`);
@@ -50,11 +48,11 @@ export default function BottomNav() {
         return (
           <Link
             href={tab.href}
-            className={`${styles.tab} ${active ? styles.active : ""}`}
+            className={`flex min-w-0 flex-col items-center justify-center gap-[3px] rounded-xl text-[11px] font-bold text-t3 no-underline hover:bg-blue-t2 hover:text-blue-d ${active ? "text-blue-d" : ""}`}
             aria-current={active ? "page" : undefined}
             key={tab.href}
           >
-            <svg
+            <svg className="h-[22px] w-[22px]"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"

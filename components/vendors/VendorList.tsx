@@ -3,7 +3,7 @@ import React from "react";
 import { Spinner } from "@/components/common";
 import type { Vendor } from "@/hooks/reactquery/vendors";
 import type { VendorCategory } from "@/hooks/reactquery/vendorCategories";
-import styles from "./VendorManagement.module.css";
+import { vendorClasses } from "./vendorClasses";
 
 interface Props {
   vendors: Vendor[];
@@ -22,8 +22,8 @@ export function VendorList({ vendors, categories, isLoading, isError, onRetry, o
 
   if (isLoading) {
     return (
-      <div className={styles.tableWrap}>
-        <div className={styles.loadingCell}>
+      <div className={vendorClasses.tableWrap}>
+        <div className={vendorClasses.loadingCell}>
           <Spinner label="협력업체 목록 불러오는 중" />
         </div>
       </div>
@@ -32,8 +32,8 @@ export function VendorList({ vendors, categories, isLoading, isError, onRetry, o
 
   if (isError) {
     return (
-      <div className={styles.tableWrap}>
-        <div role="alert" className={styles.stateCell}>
+      <div className={vendorClasses.tableWrap}>
+        <div role="alert" className={vendorClasses.stateCell}>
           협력업체 목록을 불러오지 못했습니다.
           <button type="button" onClick={onRetry} className="ml-2 underline">
             다시 시도
@@ -44,8 +44,8 @@ export function VendorList({ vendors, categories, isLoading, isError, onRetry, o
   }
 
   return (
-    <div className={styles.tableWrap}>
-      <table className={styles.table}>
+    <div className={vendorClasses.tableWrap}>
+      <table className={vendorClasses.table}>
         <thead>
           <tr>
             <th>구분</th>
@@ -56,14 +56,14 @@ export function VendorList({ vendors, categories, isLoading, isError, onRetry, o
         <tbody>
           {vendors.length === 0 ? (
             <tr>
-              <td colSpan={3} className={styles.stateCell}>
+              <td colSpan={3} className={vendorClasses.stateCell}>
                 등록된 업체가 없어요 · 업체 추가를 눌러 등록하세요
               </td>
             </tr>
           ) : vendors.map((vendor) => (
             <tr
               key={vendor.id}
-              className={styles.vendorRow}
+              className={vendorClasses.vendorRow}
               onClick={() => onRowClick(vendor)}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {
@@ -74,7 +74,7 @@ export function VendorList({ vendors, categories, isLoading, isError, onRetry, o
               tabIndex={0}
             >
               <td>{vendor.categoryId != null ? (categoryMap[vendor.categoryId] ?? "미분류") : "미분류"}</td>
-              <td className={styles.vendorName}>{vendor.name}</td>
+              <td className={vendorClasses.vendorName}>{vendor.name}</td>
               <td className="num">{vendor.phone ?? "-"}</td>
             </tr>
           ))}

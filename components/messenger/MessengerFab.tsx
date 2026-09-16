@@ -37,7 +37,7 @@ import {
   CloseConfirmDialog,
   SendSummaryDialog,
 } from "./SendSummaryDialog";
-import styles from "./messenger.module.css";
+import { messengerClasses as styles } from "./messengerClasses";
 import type { ChannelMode } from "./types";
 import { useMessengerState } from "./useMessengerState";
 import { useDebouncedValue } from "@/hooks/common";

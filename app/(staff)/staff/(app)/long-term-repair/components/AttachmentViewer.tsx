@@ -11,7 +11,7 @@ import {
   type AttachmentUploadBatchResult,
 } from "@/hooks/reactquery/attachments";
 import { selectImageFiles } from "@/lib/attachments/policy";
-import styles from "./long-term-repair.module.css";
+import { longTermRepairClasses as styles } from "./longTermRepairClasses";
 
 interface AttachmentViewerProps {
   title: string;

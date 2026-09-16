@@ -5,7 +5,7 @@ import type { ResidentNoticeType } from "@/hooks/reactquery/residentNotices/apis
 import { formatDate } from "@/lib/format";
 
 import { getResidentNotices } from "./data";
-import styles from "./notice.module.css";
+import { noticeClasses as styles } from "./noticeClasses";
 import ResidentNoticeRetryState from "./ResidentNoticeRetryState";
 
 const typeLabel: Record<ResidentNoticeType, string> = {

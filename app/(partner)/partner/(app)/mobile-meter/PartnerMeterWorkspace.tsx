@@ -12,7 +12,7 @@ import { formatMonth } from "@/lib/format";
 
 import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
 import { PartnerConfirmDialog } from "../../../_components/PartnerConfirmDialog";
-import styles from "./mobile-meter.module.css";
+import { meterClasses as styles } from "./meterClasses";
 
 const KIND = [
   { k: "water", l: "수도", u: "㎥" },

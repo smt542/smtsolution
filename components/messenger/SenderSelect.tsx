@@ -6,7 +6,7 @@ import {
   useSaveSetupSender,
   useSetupConfig,
 } from "@/hooks/reactquery/setupConfig";
-import styles from "./messenger.module.css";
+import { messengerClasses as styles } from "./messengerClasses";
 
 interface SenderSelectProps {
   value: string;

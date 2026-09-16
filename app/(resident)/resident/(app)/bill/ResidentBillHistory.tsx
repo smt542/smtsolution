@@ -6,7 +6,7 @@ import { useState } from "react";
 import type { ResidentBillMonth } from "@/hooks/reactquery/residentBilling/apis";
 import { formatWon } from "@/lib/format";
 
-import styles from "./bill.module.css";
+import { billClasses as styles } from "./billClasses";
 
 type ResidentBillHistoryProps = {
   buildingName: string | null;

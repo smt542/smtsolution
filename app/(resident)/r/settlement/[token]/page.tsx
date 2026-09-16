@@ -5,8 +5,6 @@ import { formatDate as formatDateValue, formatWon } from "@/lib/format";
 
 import { getPublicSettlementByToken } from "./data";
 import PublicSettlementRetryState from "./PublicSettlementRetryState";
-import styles from "../../share.module.css";
-
 const formatDate = (value: string) => formatDateValue(value);
 const formatAmount = (value: number) => formatWon(value);
 
@@ -67,8 +65,8 @@ export default async function PublicSettlementPage({
           .filter(Boolean)
           .join(" · ")}
       >
-        <dl className={styles.details}>
-          <div className={styles.detailRow}>
+        <dl className="mt-[22px] border-t border-line pt-2 [&_dt]:text-[13px] [&_dt]:text-t3 [&_dd]:m-0 [&_dd]:text-right [&_dd]:text-[15px] [&_dd]:font-extrabold [&_dd]:text-t1">
+          <div className="flex items-baseline justify-between gap-5 border-b border-line py-3 last:border-b-0">
             <dt>퇴실일</dt>
             <dd>
               {settlement.moveOutDate
@@ -76,13 +74,13 @@ export default async function PublicSettlementPage({
                 : "-"}
             </dd>
           </div>
-          <div className={styles.detailRow}>
+          <div className="flex items-baseline justify-between gap-5 border-b border-line py-3 last:border-b-0">
             <dt>정산구분</dt>
             <dd>{settlement.settlementKind ?? "-"}</dd>
           </div>
-          <div className={styles.detailRow}>
+          <div className="flex items-baseline justify-between gap-5 border-b border-line py-3 last:border-b-0">
             <dt>정산금액</dt>
-            <dd className={styles.amount}>
+            <dd className="m-0 text-right text-xl font-extrabold text-blue-d">
               {settlement.settlementAmount === null
                 ? "-"
                 : formatAmount(settlement.settlementAmount)}

@@ -17,8 +17,6 @@ import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useComplaints } from "@/hooks/reactquery/complaints";
 
 import { hhmm, ymd } from "./constants";
-import styles from "./AsReportModal.module.css";
-
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const PRINT_SHEET_ID = "aspPrintSheet";
 const PRINT_STYLE_ID = "aspPrintCss";
@@ -444,7 +442,7 @@ export function AsReportModal({
     if (table) {
       table.removeAttribute("class");
       table.querySelectorAll("td").forEach((cell) => {
-        cell.className = cell.classList.contains(styles.c) ? "c" : "";
+        cell.className = cell.classList.contains("text-center") ? "c" : "";
       });
       table.querySelectorAll("span").forEach((span) => span.removeAttribute("class"));
     }
@@ -475,19 +473,19 @@ export function AsReportModal({
 
   return (
     <div
-      className={`${styles.aspScrim} ${styles.show} flex items-center justify-center fixed inset-0 z-[500] bg-scrim p-6`}
+      className="asp-scrim show fixed inset-0 z-[500] flex items-center justify-center bg-scrim p-6"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
       <section
-        className={`${styles.aspModal} bg-white rounded-[18px] w-[min(1180px,96vw)] max-h-[calc(100vh_-_48px)] flex flex-col overflow-hidden shadow-[0_30px_80px_-20px_rgba(0,0,0,0.4)]`}
+        className="asp-modal w-[min(1180px,96vw)] max-h-[calc(100vh_-_48px)] flex flex-col overflow-hidden rounded-[18px] bg-white shadow-[0_30px_80px_-20px_rgba(0,0,0,0.4)]"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
       >
         <div
-          className={`${styles.aspHead} flex items-center gap-3 px-[22px] py-[18px] border-b border-line flex-none`}
+          className="asp-head flex flex-none items-center gap-3 border-b border-line px-[22px] py-[18px]"
         >
           <h2 id={titleId} className="text-[17px] font-extrabold text-t1">
             A/S 접수 현황 출력
@@ -512,7 +510,7 @@ export function AsReportModal({
           </button>
         </div>
         <div
-          className={`${styles.aspBar} flex items-center gap-2 px-[22px] py-[14px] border-b border-line flex-none flex-wrap`}
+          className="asp-bar flex flex-none flex-wrap items-center gap-2 border-b border-line px-[22px] py-[14px]"
         >
           <div className="relative flex items-center flex-[0_0_260px]">
             <svg
@@ -551,16 +549,16 @@ export function AsReportModal({
           />
         </div>
         <div
-          className={`${styles.aspSheet} relative flex-[1_1_auto] min-h-[360px] overflow-auto px-[22px] py-5`}
+          className="asp-sheet relative min-h-[360px] flex-[1_1_auto] overflow-auto px-[22px] py-5"
         >
           {isReportDataRefreshing ? (
             <div className="absolute right-5 top-4 rounded-lg bg-white/95 shadow-card">
               <Spinner label="A/S 접수 내역 갱신 중" size="small" showLabel className="px-3 py-2" />
             </div>
           ) : null}
-          <h1>[ A/S 접수 현황 ]</h1>
+          <h1 className="mb-2.5 text-center text-[17px] font-extrabold tracking-[0.14em]">[ A/S 접수 현황 ]</h1>
           <div className="text-[12.5px] font-bold text-t2 mb-2">{meta}</div>
-          <table ref={tableRef} className={styles.aspTbl}>
+          <table ref={tableRef} className="asp-table w-full border-collapse text-[11.5px] [&_th]:border [&_th]:border-[#C8CCD0] [&_th]:bg-[#F1F3F5] [&_th]:px-1.5 [&_th]:py-[5px] [&_th]:text-center [&_th]:font-bold [&_th]:leading-[1.35] [&_td]:border [&_td]:border-[#C8CCD0] [&_td]:px-1.5 [&_td]:py-[5px] [&_td]:align-middle [&_td]:text-t1 [&_td_span]:mt-0.5 [&_td_span]:block">
             <thead>
               <tr>
                 <th style={{ width: 34 }}>NO</th>
@@ -595,28 +593,28 @@ export function AsReportModal({
                 !isError &&
                 filteredRows.map((row, index) => (
                   <tr key={row.id}>
-                    <td className={styles.c}>{index + 1}</td>
-                    <td className={styles.c}>
+                    <td className="text-center">{index + 1}</td>
+                    <td className="text-center">
                       {row.receivedDate}
-                      <span className={styles.aspSub2}>
+                      <span className="mt-0.5 block">
                         {row.completedDate}
                       </span>
                     </td>
                     <td>
                       {row.buildingName}
-                      <span className={styles.aspSub2}>{row.address}</span>
+                      <span className="mt-0.5 block">{row.address}</span>
                     </td>
-                    <td className={styles.c}>
+                    <td className="text-center">
                       {row.unit}
-                      <span className={styles.aspSub2}>{row.time}</span>
+                      <span className="mt-0.5 block">{row.time}</span>
                     </td>
-                    <td className={styles.c}>{row.category}</td>
+                    <td className="text-center">{row.category}</td>
                     <td>{row.content}</td>
-                    <td className={styles.c}>{row.reporterPhone}</td>
-                    <td className={styles.c}>{row.status}</td>
-                    <td className={styles.c}>
+                    <td className="text-center">{row.reporterPhone}</td>
+                    <td className="text-center">{row.status}</td>
+                    <td className="text-center">
                       {row.receiver}
-                      <span className={styles.aspSub2}>{row.assignee}</span>
+                      <span className="mt-0.5 block">{row.assignee}</span>
                     </td>
                   </tr>
                 ))}
@@ -633,7 +631,7 @@ export function AsReportModal({
           )}
         </div>
         <div
-          className={`${styles.aspFoot} flex justify-end gap-2 px-[22px] pt-[14px] pb-[18px] border-t border-line flex-none`}
+          className="asp-foot flex flex-none justify-end gap-2 border-t border-line px-[22px] pb-[18px] pt-[14px]"
         >
           <button
             type="button"

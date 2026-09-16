@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import styles from "./messenger.module.css";
+import { messengerClasses as styles } from "./messengerClasses";
 
 export interface ScheduleValue {
   scheduledAt: string | null;

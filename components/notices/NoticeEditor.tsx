@@ -12,8 +12,7 @@ import {
 import { NOTICE_IMAGE_NODE_TYPE, selectNoticeImageFiles } from "@/lib/notice/images";
 
 import { createNoticeEditorExtensions } from "./tiptap/noticeExtensions";
-import sharedStyles from "./noticeRichText.module.css";
-import styles from "./NoticeEditor.module.css";
+import { noticeRichTextClassName } from "./richTextClasses";
 
 type NoticeEditorProps = {
   value: NoticeDoc;
@@ -59,7 +58,7 @@ export function NoticeEditor({
     immediatelyRender: false,
     editorProps: {
       attributes: {
-        class: `${sharedStyles.root} ${styles.editable}`,
+        class: `${noticeRichTextClassName} min-h-[180px] max-h-[420px] overflow-y-auto px-3.5 py-3 outline-none`,
         role: "textbox",
         "aria-multiline": "true",
         "aria-label": ariaLabel ?? "공지 내용",
@@ -145,7 +144,7 @@ export function NoticeEditor({
       title={label}
       aria-pressed={active}
       disabled={disabled}
-      className={`${styles.tb} ${active ? styles.tbActive : ""}`}
+      className={`inline-flex h-[30px] min-w-8 items-center justify-center rounded-lg bg-transparent px-2 text-xs font-bold text-t2 hover:bg-bg disabled:cursor-default disabled:opacity-40 ${active ? "bg-brand text-white hover:bg-brand" : ""}`}
       onMouseDown={(event) => event.preventDefault()}
       onClick={onClick}
     >
@@ -156,21 +155,21 @@ export function NoticeEditor({
   const ready = Boolean(editor) && Boolean(state);
 
   return (
-    <div className={`${styles.wrap} ${invalid ? styles.invalid : ""}`}>
-      <div className={styles.toolbar} role="toolbar" aria-label="공지 서식">
+    <div className={`rounded-in border bg-surface ${invalid ? "border-danger" : "border-line"} focus-within:border-brand focus-within:shadow-[0_0_0_3px_rgba(20,164,151,0.12)]`}>
+      <div className="flex flex-wrap gap-1 border-b border-line p-1.5" role="toolbar" aria-label="공지 서식">
         {button("문단", false, !ready, () => editor?.chain().focus().setParagraph().run(), "문단")}
         {button("제목 1", Boolean(state?.isH2), !ready, () => editor?.chain().focus().toggleHeading({ level: 2 }).run(), "제목1")}
         {button("제목 2", Boolean(state?.isH3), !ready, () => editor?.chain().focus().toggleHeading({ level: 3 }).run(), "제목2")}
-        <span className={styles.divider} aria-hidden="true" />
+        <span className="my-0.5 w-px self-stretch bg-line" aria-hidden="true" />
         {button("굵게", Boolean(state?.isBold), !ready, () => editor?.chain().focus().toggleBold().run(), <b>B</b>)}
         {button("기울임", Boolean(state?.isItalic), !ready, () => editor?.chain().focus().toggleItalic().run(), <i>I</i>)}
-        <span className={styles.divider} aria-hidden="true" />
+        <span className="my-0.5 w-px self-stretch bg-line" aria-hidden="true" />
         {button("글머리 목록", Boolean(state?.isBullet), !ready, () => editor?.chain().focus().toggleBulletList().run(), "•")}
         {button("번호 목록", Boolean(state?.isOrdered), !ready, () => editor?.chain().focus().toggleOrderedList().run(), "1.")}
         {button("인용", Boolean(state?.isQuote), !ready, () => editor?.chain().focus().toggleBlockquote().run(), "❝")}
         {button("링크", Boolean(state?.isLink), !ready, openLink, "링크")}
         {button("이미지", false, !ready, () => imageInputRef.current?.click(), "이미지")}
-        <span className={styles.divider} aria-hidden="true" />
+        <span className="my-0.5 w-px self-stretch bg-line" aria-hidden="true" />
         {button("실행 취소", false, !ready || !state?.canUndo, () => editor?.chain().focus().undo().run(), "↶")}
         {button("다시 실행", false, !ready || !state?.canRedo, () => editor?.chain().focus().redo().run(), "↷")}
       </div>
@@ -191,13 +190,13 @@ export function NoticeEditor({
       />
 
       {linkOpen && (
-        <div className={styles.linkbar}>
+        <div className="flex flex-wrap items-center gap-1.5 border-t border-line p-2">
           <input
             type="url"
             inputMode="url"
             aria-label="링크 주소"
             placeholder="https://example.com"
-            className={styles.linkInput}
+            className="h-8 min-w-0 flex-[1_1_200px] rounded-lg border border-line px-2.5 text-[13px] outline-none focus:border-brand"
             value={linkValue}
             onChange={(event) => {
               setLinkValue(event.target.value);
@@ -210,18 +209,18 @@ export function NoticeEditor({
               }
             }}
           />
-          <button type="button" className={`${styles.linkBtn} ${styles.linkBtnPrimary}`} onClick={applyLink}>
+          <button type="button" className="h-8 rounded-lg bg-brand px-3 text-[13px] font-bold text-white" onClick={applyLink}>
             적용
           </button>
           {state?.isLink && (
-            <button type="button" className={styles.linkBtn} onClick={removeLink}>
+            <button type="button" className="h-8 rounded-lg bg-bg px-3 text-[13px] font-bold text-t2" onClick={removeLink}>
               제거
             </button>
           )}
-          <button type="button" className={styles.linkBtn} onClick={() => setLinkOpen(false)}>
+          <button type="button" className="h-8 rounded-lg bg-bg px-3 text-[13px] font-bold text-t2" onClick={() => setLinkOpen(false)}>
             취소
           </button>
-          {linkError && <p className={styles.linkError} role="alert">{linkError}</p>}
+          {linkError && <p className="m-0 basis-full text-xs text-danger" role="alert">{linkError}</p>}
         </div>
       )}
     </div>

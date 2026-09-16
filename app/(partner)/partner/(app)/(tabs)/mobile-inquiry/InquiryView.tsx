@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 
 import { PartnerListRow } from "../../../../_components/PartnerListRow";
 import { PartnerPhoneLink } from "../../../../_components/PartnerPhoneLink";
-import styles from "./mobile-inquiry.module.css";
+import { inquiryClasses as styles } from "./inquiryClasses";
 
 export type BuildingRow = {
   id: number;

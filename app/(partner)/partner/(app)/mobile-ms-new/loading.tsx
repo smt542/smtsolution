@@ -1,4 +1,4 @@
-import styles from "./mobile-ms-new.module.css";
+import { msClasses as styles } from "./msClasses";
 import { Spinner } from "@/components/common";
 
 export default function PartnerMsNewLoading() {

@@ -1,6 +1,4 @@
 import { ResidentPendingClient } from "./ResidentPendingClient";
-import styles from "./pending.module.css";
-
 export default function ResidentPendingPage() {
   return (
     <ResidentPendingClient
@@ -13,9 +11,9 @@ export default function ResidentPendingPage() {
         </>
       }
       icon={
-        <div className={styles.ring}>
-          <div className={styles.wave} />
-          <div className={styles.core}>
+        <div className="relative size-16 animate-[pop_0.45s_cubic-bezier(0.22,0.61,0.36,1)_both]">
+          <div className="absolute inset-0 animate-[pulse-ring_2.4s_ease-out_infinite] rounded-full bg-blue-t" />
+          <div className="absolute inset-0 flex items-center justify-center rounded-full bg-blue-t text-blue-d [&_svg]:size-[29px]">
             <svg
               viewBox="0 0 24 24"
               fill="none"

@@ -1,5 +1,5 @@
 import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
-import styles from "../_asform.module.css";
+import { asFormClasses as styles } from "../asFormClasses";
 
 export default function PartnerAsNewLoading() {
   return (

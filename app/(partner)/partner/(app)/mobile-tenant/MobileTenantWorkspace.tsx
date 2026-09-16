@@ -7,7 +7,7 @@ import { formatDate, formatMonth, formatWon } from "@/lib/format";
 
 import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
 import { PartnerPhoneLink } from "../../../_components/PartnerPhoneLink";
-import styles from "./mobile-tenant.module.css";
+import { tenantClasses as styles } from "./tenantClasses";
 import type { MobileTenantData } from "./types";
 
 type Tab = "info" | "pay" | "ms";

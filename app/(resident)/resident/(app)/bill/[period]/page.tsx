@@ -2,7 +2,7 @@ import BillDetailView from "@/app/(resident)/_components/BillDetailView";
 
 import { getResidentBillDetail } from "../data";
 import ResidentBillRetryState from "../ResidentBillRetryState";
-import styles from "./detail.module.css";
+import { billDetailPageClasses as styles } from "./detailClasses";
 import ResidentBillBackButton from "./ResidentBillBackButton";
 
 const PERIOD_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;

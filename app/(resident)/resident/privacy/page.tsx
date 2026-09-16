@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import ResidentScreenFrame from "@/app/(resident)/_components/ResidentScreenFrame";
 
-import styles from "../_legal.module.css";
+import { legalClasses } from "../legalClasses";
 
 // NOTE: 「관리비서」 세입자 서비스 개인정보 처리방침 — 클로드 디자인 원본
 // (staging resident-privacy.dc.html) 구성을 그대로 따른다(리드+시행일 최상단, 표·번호목록·부칙).
@@ -34,7 +34,7 @@ export default function ResidentPrivacyPage() {
         </>
       }
     >
-      <div className={styles.lead}>
+      <div className={legalClasses.lead}>
         에스엠티솔루션㈜(이하 <b>회사</b>)는 <b>관리비서</b> 서비스를 제공하며
         이용자의 개인정보를 「개인정보 보호법」 등 관련 법령에 따라 안전하게
         처리합니다.
@@ -42,20 +42,20 @@ export default function ResidentPrivacyPage() {
       </div>
 
       <h2>1. 수집하는 개인정보 항목</h2>
-      <div className={styles.tbl}>
-        <div className={`${styles.tr} ${styles.trHead}`}>
+      <div className={legalClasses.table}>
+        <div className={`${legalClasses.row} ${legalClasses.headerRow}`}>
           <div>구분</div>
           <div>항목</div>
         </div>
-        <div className={styles.tr}>
+        <div className={legalClasses.row}>
           <div>필수</div>
           <div>카카오 계정 식별자, 이름, 휴대전화번호</div>
         </div>
-        <div className={styles.tr}>
+        <div className={legalClasses.row}>
           <div>필수</div>
           <div>건물명·호실 등 세대 정보, 관리비 부과·납부 내역</div>
         </div>
-        <div className={styles.tr}>
+        <div className={legalClasses.row}>
           <div>자동수집</div>
           <div>접속 일시(로그인 이력)</div>
         </div>
@@ -91,12 +91,12 @@ export default function ResidentPrivacyPage() {
         회사는 이용자의 동의 없이 개인정보를 제3자에게 제공하지 않습니다. 다만
         서비스 제공을 위해 아래와 같이 제공합니다.
       </p>
-      <div className={styles.tbl}>
-        <div className={`${styles.tr} ${styles.trHead}`}>
+      <div className={legalClasses.table}>
+        <div className={`${legalClasses.row} ${legalClasses.headerRow}`}>
           <div>제공받는 자</div>
           <div>목적 · 항목 · 기간</div>
         </div>
-        <div className={styles.tr}>
+        <div className={legalClasses.row}>
           <div>
             관리주체<br />(관리사무소)
           </div>
@@ -108,16 +108,16 @@ export default function ResidentPrivacyPage() {
       </div>
 
       <h2>5. 개인정보 처리의 위탁</h2>
-      <div className={styles.tbl}>
-        <div className={`${styles.tr} ${styles.trHead}`}>
+      <div className={legalClasses.table}>
+        <div className={`${legalClasses.row} ${legalClasses.headerRow}`}>
           <div>수탁자</div>
           <div>위탁 업무</div>
         </div>
-        <div className={styles.tr}>
+        <div className={legalClasses.row}>
           <div>클라우드 사업자</div>
           <div>서비스 운영을 위한 데이터 보관 및 인프라 운영</div>
         </div>
-        <div className={styles.tr}>
+        <div className={legalClasses.row}>
           <div>메시지 발송 사업자</div>
           <div>인증·안내 문자 및 카카오 알림톡·팩스 발송</div>
         </div>
@@ -152,12 +152,12 @@ export default function ResidentPrivacyPage() {
       </ol>
 
       <h2>9. 개인정보 보호책임자</h2>
-      <div className={styles.tbl}>
-        <div className={styles.tr}>
+      <div className={legalClasses.table}>
+        <div className={legalClasses.row}>
           <div>보호책임자</div>
           <div>안정현</div>
         </div>
-        <div className={styles.tr}>
+        <div className={legalClasses.row}>
           <div>문의</div>
           <div>010-8227-6496</div>
         </div>
@@ -173,7 +173,7 @@ export default function ResidentPrivacyPage() {
         알립니다. 이용자에게 불리한 변경은 30일 전에 공지합니다.
       </p>
 
-      <div className={styles.tail}>
+      <div className={legalClasses.tail}>
         시행일 2026년 9월 7일 · 이전 버전은 문의 시 제공됩니다.
       </div>
     </ResidentScreenFrame>

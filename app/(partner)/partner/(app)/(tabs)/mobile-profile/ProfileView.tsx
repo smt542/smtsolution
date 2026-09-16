@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useAsyncAction } from "@/hooks/common";
 
-import styles from "./mobile-profile.module.css";
+import { profileClasses as styles } from "./profileClasses";
 
 export function ProfileView({
   fullName,

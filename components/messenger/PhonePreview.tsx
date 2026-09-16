@@ -5,7 +5,7 @@ import {
   buildRecipientRenderVariables,
   type MessageRecipient,
 } from "@/lib/messaging/preset";
-import styles from "./messenger.module.css";
+import { messengerClasses as styles } from "./messengerClasses";
 import type { ChannelMode } from "./types";
 
 interface PhonePreviewProps {

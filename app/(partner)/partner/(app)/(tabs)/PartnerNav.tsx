@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import styles from "./_tabs.module.css";
-
 const TABS = [
   {
     href: "/partner/mobile-home",
@@ -41,17 +39,16 @@ const TABS = [
 export function PartnerNav() {
   const pathname = usePathname();
   return (
-    <nav className={styles.nav}>
+    <nav className="flex h-[70px] flex-none border-t border-line bg-white px-0 pt-2">
       {TABS.map((t) => {
         const active = pathname === t.href;
         return (
           <Link
             key={t.href}
             href={t.href}
-            className={styles.navItem}
-            style={{ color: active ? "var(--blue)" : "var(--t4)" }}
+            className={`flex flex-1 flex-col items-center gap-[3px] text-xs font-semibold ${active ? "text-blue" : "text-t4"}`}
           >
-            {t.icon}
+            <span className="[&>svg]:size-7">{t.icon}</span>
             <span>{t.label}</span>
           </Link>
         );

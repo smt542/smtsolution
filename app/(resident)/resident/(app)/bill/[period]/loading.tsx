@@ -1,4 +1,4 @@
-import styles from "./detail.module.css";
+import { billDetailPageClasses as styles } from "./detailClasses";
 
 export default function ResidentBillDetailLoading() {
   return (

@@ -17,7 +17,7 @@ import { PartnerFormFieldRow } from "../../../_components/PartnerFormFieldRow";
 import { PartnerInlineError } from "../../../_components/PartnerInlineError";
 import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
 import { AS_STATUS, combineDateTime, fmtDateTime, splitDateTime } from "../_as";
-import styles from "../_asform.module.css";
+import { asFormClasses as styles } from "../asFormClasses";
 
 export function MobileAsWorkspace({ complaintId }: { complaintId: number | null }) {
   const complaintQuery = usePartnerComplaintEditor(complaintId);

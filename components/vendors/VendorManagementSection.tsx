@@ -4,7 +4,7 @@ import { z } from "zod";
 import { VendorCategorySidebar } from "./VendorCategorySidebar";
 import { VendorList } from "./VendorList";
 import { VendorFormModal } from "./VendorFormModal";
-import styles from "./VendorManagement.module.css";
+import { vendorClasses } from "./vendorClasses";
 import { useVendorCategories } from "@/hooks/reactquery/vendorCategories";
 import {
   useVendors,
@@ -152,7 +152,7 @@ export function VendorManagementSection() {
   };
 
   return (
-    <div className={styles.workspace}>
+    <div className={vendorClasses.workspace}>
       <VendorCategorySidebar
         categories={categories}
         allVendors={allVendors}
@@ -161,25 +161,25 @@ export function VendorManagementSection() {
       />
 
       {/* Right content */}
-      <section className={styles.panel} aria-label="협력업체 목록">
-        <div className={styles.panelHeader}>
-          <h2 className={styles.panelTitle}>{selectedCategoryLabel}</h2>
-          <span className={styles.countBadge}>{vendors.length}곳</span>
+      <section className={vendorClasses.panel} aria-label="협력업체 목록">
+        <div className={vendorClasses.panelHeader}>
+          <h2 className={vendorClasses.panelTitle}>{selectedCategoryLabel}</h2>
+          <span className={vendorClasses.countBadge}>{vendors.length}곳</span>
           {isVendorListRefreshing ? (
             <span role="status" aria-label="협력업체 목록 갱신 중" className="text-xs text-t3">
               갱신 중…
             </span>
           ) : null}
-          <span className={styles.panelSpacer} />
+          <span className={vendorClasses.panelSpacer} />
           <input
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="업체명·담당자·연락처 검색"
             aria-label="협력업체 검색"
-            className={styles.search}
+            className={vendorClasses.search}
           />
-          <button type="button" className={styles.addButton} onClick={openCreate}>
+          <button type="button" className={vendorClasses.addButton} onClick={openCreate}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
               <path d="M12 5v14M5 12h14" />
             </svg>

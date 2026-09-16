@@ -25,7 +25,7 @@ import {
   utilUsage,
   won,
 } from "./_ms";
-import styles from "./mobile-ms-new.module.css";
+import { msClasses as styles } from "./msClasses";
 
 type SectionKey = "basic" | "util" | "fee" | "etc" | "cleaning" | "settle" | "check";
 

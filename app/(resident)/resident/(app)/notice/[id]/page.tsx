@@ -7,7 +7,7 @@ import { formatDate } from "@/lib/format";
 
 import { getResidentNoticeDetailPageData } from "../data";
 import ResidentNoticeRetryState from "../ResidentNoticeRetryState";
-import styles from "./detail.module.css";
+import { noticeDetailClasses as styles } from "./detailClasses";
 
 const typeLabel: Record<ResidentNoticeType, string> = {
   normal: "일반",

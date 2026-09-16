@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates/queries";
 import type { MessageTemplate } from "@/hooks/reactquery/messageTemplates/apis";
-import styles from "./messenger.module.css";
+import { messengerClasses as styles } from "./messengerClasses";
 
 export const AUTO_VARS = new Set([
   "링크토큰",

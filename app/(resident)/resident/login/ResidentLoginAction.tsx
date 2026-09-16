@@ -7,7 +7,7 @@ import { useState } from "react";
 import ResidentBottomSheet from "@/app/(resident)/_components/ResidentBottomSheet";
 import { kakaoStubLogin } from "@/lib/resident/onboardingClient";
 
-import styles from "./login.module.css";
+import { loginClasses as styles } from "./loginClasses";
 
 export default function ResidentLoginAction() {
   const router = useRouter();

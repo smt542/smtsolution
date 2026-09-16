@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import ResidentScreenFrame from "@/app/(resident)/_components/ResidentScreenFrame";
 
-import styles from "../_legal.module.css";
+import { legalClasses } from "../legalClasses";
 
 // NOTE: 「관리비서」 세입자 서비스 이용약관 — 클로드 디자인 원본
 // (staging resident-terms.dc.html) 구성을 그대로 따른다(리드+시행일 최상단,
@@ -33,7 +33,7 @@ export default function ResidentTermsPage() {
         </>
       }
     >
-      <div className={styles.lead}>
+      <div className={legalClasses.lead}>
         본 약관은 에스엠티솔루션㈜(이하 <b>회사</b>)가 제공하는 주택관리 서비스{" "}
         <b>관리비서</b>(이하 서비스)의 이용 조건과 절차, 회사와 이용자의 권리·의무를
         정합니다.
@@ -96,7 +96,7 @@ export default function ResidentTermsPage() {
         <li>
           회사는 다음의 경우 이용 신청을 승낙하지 않거나 사후에 이용계약을 해지할 수
           있습니다.
-          <div className={styles.box}>
+          <div className={legalClasses.box}>
             <ul>
               <li>타인의 명의나 연락처를 도용한 경우</li>
               <li>해당 건물의 입주민임이 확인되지 않는 경우</li>
@@ -171,7 +171,7 @@ export default function ResidentTermsPage() {
         따릅니다.
       </p>
 
-      <div className={styles.tail}>
+      <div className={legalClasses.tail}>
         부칙 · 이 약관은 2026년 9월 7일부터 시행합니다.
       </div>
     </ResidentScreenFrame>

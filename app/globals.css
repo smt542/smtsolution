@@ -54,6 +54,8 @@
   --color-red-t: #FDECEE;
   --color-amber: #FF922B;
   --color-amber-t: #FFF3E6;
+  --color-kakao: #FEE500;
+  --color-kakao-t: #191600;
   --color-danger: #F04452; /* 기존 `danger` alias */
 
   /* radii — 디자인 시스템 정본: 옵션 8 · 버튼 11 · 카드 15 · 모달 20 */
@@ -81,6 +83,65 @@ body {
   color: var(--color-t1);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pop {
+  from { opacity: 0; transform: scale(0.86); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes pulse-ring {
+  0%, 100% { transform: scale(1); opacity: 0.55; }
+  50% { transform: scale(1.35); opacity: 0; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes grow {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+@keyframes fadeup2 {
+  from { opacity: 0; transform: translate(-50%, 6px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@keyframes rise-card {
+  from { opacity: 0; transform: translateY(22px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes rise-card-b {
+  from { opacity: 0; transform: translateY(22px) rotate(-4deg) scale(0.97); }
+  to { opacity: 0.55; transform: rotate(-4deg) translateY(-6px) scale(0.96); }
+}
+
+@keyframes float-big {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-16px) rotate(-1.4deg); }
+  50% { transform: translateY(-4px) rotate(0.6deg); }
+  75% { transform: translateY(-19px) rotate(1.2deg); }
+}
+
+@keyframes float-big-b {
+  0% { transform: rotate(-4deg) translateY(-6px); }
+  30% { transform: rotate(-6.5deg) translateY(-20px); }
+  60% { transform: rotate(-2.5deg) translateY(-8px); }
+  100% { transform: rotate(-4deg) translateY(-6px); }
 }
 
 /* Tailwind v4 Preflight는 버튼 기본 커서를 default로 둔다 → 클릭 가능한 버튼에 손 커서 복원.

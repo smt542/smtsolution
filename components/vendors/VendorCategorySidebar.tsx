@@ -2,7 +2,7 @@
 import React from "react";
 import type { VendorCategory } from "@/hooks/reactquery/vendorCategories";
 import type { Vendor } from "@/hooks/reactquery/vendors";
-import styles from "./VendorManagement.module.css";
+import { vendorClasses } from "./vendorClasses";
 
 interface Props {
   categories: VendorCategory[];
@@ -33,22 +33,22 @@ export function VendorCategorySidebar({
   const isActive = (id: string) => activeStr === id;
 
   return (
-    <aside className={styles.categories} aria-label="협력업체 구분">
-      <div className={styles.categoryHeader}>
-        <h2 className={styles.categoryTitle}>구분</h2>
+    <aside className={vendorClasses.categories} aria-label="협력업체 구분">
+      <div className={vendorClasses.categoryHeader}>
+        <h2 className={vendorClasses.categoryTitle}>구분</h2>
       </div>
 
-      <ul className={styles.categoryList}>
+      <ul className={vendorClasses.categoryList}>
         {/* "전체" item — single-click only, no rename */}
         <li key="__all__">
           <button
             type="button"
             onClick={() => onSelect(null)}
-            className={`${styles.categoryItem} ${isActive("__all__") ? styles.categoryItemActive : ""}`}
+            className={`${vendorClasses.categoryItem} ${isActive("__all__") ? vendorClasses.categoryItemActive : ""}`}
             aria-pressed={isActive("__all__")}
           >
-            <span className={styles.categoryLabel}>전체</span>
-            <span className={styles.categoryCount}>{allVendors.length}</span>
+            <span className={vendorClasses.categoryLabel}>전체</span>
+            <span className={`${vendorClasses.categoryCount} ${isActive("__all__") ? "bg-surface text-blue" : ""}`}>{allVendors.length}</span>
           </button>
         </li>
 
@@ -62,11 +62,11 @@ export function VendorCategorySidebar({
               <button
                 type="button"
                 onClick={() => onSelect(c.id)}
-                className={`${styles.categoryItem} ${active ? styles.categoryItemActive : ""}`}
+                className={`${vendorClasses.categoryItem} ${active ? vendorClasses.categoryItemActive : ""}`}
                 aria-pressed={active}
               >
-                <span className={styles.categoryLabel}>{c.label}</span>
-                <span className={styles.categoryCount}>{count}</span>
+                <span className={vendorClasses.categoryLabel}>{c.label}</span>
+                <span className={`${vendorClasses.categoryCount} ${active ? "bg-surface text-blue" : ""}`}>{count}</span>
               </button>
             </li>
           );

@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useAsyncAction } from "@/hooks/common";
 
-import styles from "./mobile-login.module.css";
+import { partnerLoginClasses as styles } from "./loginClasses";
 
 const AUTO_KEY = "erp_partner_login_auto";
 

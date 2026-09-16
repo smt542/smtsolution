@@ -3,8 +3,6 @@ import type { ReactNode } from "react";
 
 import ResidentScreenFrame from "@/app/(resident)/_components/ResidentScreenFrame";
 
-import styles from "./PublicTokenPageShell.module.css";
-
 type PublicTokenPageShellProps = {
   brand: ReactNode;
   subtitle: ReactNode;
@@ -25,14 +23,14 @@ export default function PublicTokenPageShell({
       variant="public"
       header={
         <>
-          <span className={styles.brand}>{brand}</span>
+          <span className="text-lg font-black tracking-[-0.04em] text-blue-d">{brand}</span>
           <span>{subtitle}</span>
         </>
       }
     >
       {children}
       {showCta ? (
-        <Link className={styles.cta} href="/resident/login">
+        <Link className="mt-3.5 flex min-h-[50px] items-center justify-center rounded-btn bg-blue text-sm font-extrabold text-white no-underline" href="/resident/login">
           {ctaLabel}
         </Link>
       ) : null}

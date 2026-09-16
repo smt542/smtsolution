@@ -22,7 +22,7 @@ import {
 } from "@/hooks/reactquery/residentMoveOut";
 import { formatDate } from "@/lib/format";
 
-import styles from "./MoveOutSection.module.css";
+import { moveOutClasses as styles } from "./moveOutClasses";
 
 type MoveOutSectionProps = {
   open: boolean;

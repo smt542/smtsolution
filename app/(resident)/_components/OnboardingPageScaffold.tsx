@@ -1,7 +1,5 @@
 import type { ReactNode } from "react";
 
-import styles from "./OnboardingPageScaffold.module.css";
-
 type OnboardingPageScaffoldBaseProps = {
   title: ReactNode;
   lead: ReactNode;
@@ -21,21 +19,21 @@ type OnboardingPageScaffoldProps =
     } & OnboardingPageScaffoldBaseProps);
 
 const bodyClassByVariant = {
-  flow: styles.flowBody,
-  block: styles.blockBody,
-  center: styles.centerBody,
+  flow: "flex min-h-0 flex-1 flex-col overflow-auto px-7 pb-2 pt-2.5",
+  block: "flex min-h-0 flex-1 flex-col overflow-auto px-7 pb-2 pt-[calc(env(safe-area-inset-top)+44px)]",
+  center: "flex min-h-0 flex-1 flex-col items-center overflow-auto px-7 pb-2 pt-[calc(env(safe-area-inset-top)+46px)] text-center",
 } as const;
 
 const titleClassByVariant = {
-  flow: styles.flowTitle,
-  block: styles.blockTitle,
-  center: styles.centerTitle,
+  flow: "mt-2 text-[24px] font-extrabold leading-[1.38] tracking-[-0.03em] animate-[rise_0.5s_cubic-bezier(0.22,0.61,0.36,1)_both]",
+  block: "mt-[18px] text-[24px] font-extrabold leading-[1.38] tracking-[-0.03em] animate-[rise_0.5s_60ms_cubic-bezier(0.22,0.61,0.36,1)_both]",
+  center: "mt-5 text-[24px] font-extrabold leading-[1.38] tracking-[-0.03em] animate-[rise_0.5s_60ms_cubic-bezier(0.22,0.61,0.36,1)_both]",
 } as const;
 
 const leadClassByVariant = {
-  flow: styles.flowLead,
-  block: styles.blockLead,
-  center: styles.centerLead,
+  flow: "mt-2.5 text-[14.5px] font-semibold leading-[1.62] text-t3 animate-[rise_0.5s_60ms_cubic-bezier(0.22,0.61,0.36,1)_both]",
+  block: "mt-2.5 text-[14.5px] font-semibold leading-[1.62] text-t3 animate-[rise_0.5s_100ms_cubic-bezier(0.22,0.61,0.36,1)_both]",
+  center: "mt-2.5 text-[14.5px] font-semibold leading-[1.62] text-t3 animate-[rise_0.5s_100ms_cubic-bezier(0.22,0.61,0.36,1)_both]",
 } as const;
 
 export default function OnboardingPageScaffold(
@@ -46,10 +44,10 @@ export default function OnboardingPageScaffold(
   return (
     <>
       {props.variant === "flow" ? (
-        <div className={styles.hdr}>
+        <div className="flex flex-none items-center px-3 pb-1 pt-[calc(env(safe-area-inset-top)+12px)]">
           <button
             type="button"
-            className={styles.bk}
+            className="flex size-[38px] items-center justify-center rounded-xl bg-transparent text-t2 hover:bg-bg [&_svg]:size-[22px]"
             aria-label={props.backLabel}
             onClick={props.onBack}
           >
@@ -73,7 +71,7 @@ export default function OnboardingPageScaffold(
         <p className={leadClassByVariant[variant]}>{lead}</p>
         {children}
       </div>
-      <div className={styles.foot}>{footer}</div>
+      <div className="flex flex-none flex-col gap-2.5 px-7 pb-[calc(env(safe-area-inset-bottom)+24px)] pt-3.5">{footer}</div>
     </>
   );
 }

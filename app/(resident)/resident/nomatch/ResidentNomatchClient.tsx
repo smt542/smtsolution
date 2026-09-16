@@ -7,8 +7,6 @@ import OnboardingPageScaffold from "@/app/(resident)/_components/OnboardingPageS
 import { normalizePhone } from "@/lib/format";
 import { loadSession, logout } from "@/lib/resident/onboardingClient";
 
-import styles from "./nomatch.module.css";
-
 function maskPhone(phone: string): string {
   const normalized = normalizePhone(phone);
   if (normalized.length >= 7) {
@@ -75,7 +73,7 @@ export default function ResidentNomatchClient({
       }
       lead={
         <>
-          <b className={styles.num}>{maskedPhone}</b> 번호로 연결된 세대가 없어요.
+          <b className="text-t2 tabular-nums">{maskedPhone}</b> 번호로 연결된 세대가 없어요.
           <br />
           관리사무소에 등록한 번호의 카카오 계정으로
           <br />
@@ -86,7 +84,7 @@ export default function ResidentNomatchClient({
       footer={
         <button
           type="button"
-          className={`${styles.btn} ${styles.pri}`}
+          className="h-14 w-full rounded-2xl bg-blue text-[16.5px] font-bold tracking-[-0.02em] text-white transition-transform hover:bg-blue-d active:scale-[0.985]"
           onClick={retryLogin}
         >
           다른 카카오 계정으로 로그인

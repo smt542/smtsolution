@@ -7,7 +7,7 @@ import { PartnerListRow } from "../../../_components/PartnerListRow";
 import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
 import { PartnerPhoneLink } from "../../../_components/PartnerPhoneLink";
 import type { Building, Unit, Vendor } from "./data";
-import styles from "./mobile-building.module.css";
+import { buildingClasses as styles } from "./buildingClasses";
 
 const VENDOR_LABEL: Record<string, string> = {
   elevator: "승강기",

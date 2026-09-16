@@ -5,7 +5,7 @@ import type { MessageRecipient } from "@/lib/messaging/preset";
 import { byteLen, smsProduct } from "@/lib/messenger/bytes";
 import { AUTO_VARS, extractAlimtalkVariables } from "./AlimtalkForm";
 import { formatScheduledAt } from "./SchedulePicker";
-import styles from "./messenger.module.css";
+import { messengerClasses as styles } from "./messengerClasses";
 import type { ChannelMode } from "./types";
 
 interface SendSummaryDialogProps {

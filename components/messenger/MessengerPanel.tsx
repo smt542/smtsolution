@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import styles from "./messenger.module.css";
+import { messengerClasses as styles } from "./messengerClasses";
 import type { ChannelMode } from "./types";
 
 interface Props {

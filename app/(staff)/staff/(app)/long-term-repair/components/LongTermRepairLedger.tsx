@@ -24,7 +24,7 @@ import {
   LongTermRepairPrintView,
   type LongTermRepairPrintRow,
 } from "./LongTermRepairPrintView";
-import styles from "./long-term-repair.module.css";
+import { longTermRepairClasses as styles } from "./longTermRepairClasses";
 
 const LEDGER_ENTITY_TYPE = "long_term_repair_ledger";
 

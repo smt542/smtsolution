@@ -17,7 +17,7 @@ import {
   type Candidate,
 } from "@/lib/resident/onboardingClient";
 
-import styles from "./verify.module.css";
+import { verifyClasses as styles } from "./verifyClasses";
 
 function highlightMatch(text: string, query: string): ReactNode {
   if (!query) return text;

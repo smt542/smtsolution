@@ -1,7 +1,7 @@
 import Image from "next/image";
 
 import ResidentLoginAction from "./ResidentLoginAction";
-import styles from "./login.module.css";
+import { loginClasses as styles } from "./loginClasses";
 
 export default function ResidentLoginPage() {
   return (

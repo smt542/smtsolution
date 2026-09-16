@@ -1,4 +1,4 @@
-import styles from "./mobile-building.module.css";
+import { buildingClasses as styles } from "./buildingClasses";
 import { Spinner } from "@/components/common";
 
 export default function PartnerBuildingLoading() {

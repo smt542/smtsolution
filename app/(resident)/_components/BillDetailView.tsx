@@ -8,7 +8,7 @@ import type {
 import { formatWon } from "@/lib/format";
 
 import CopyButton from "./CopyButton";
-import styles from "./BillDetailView.module.css";
+import { billDetailClasses as styles } from "./billDetailClasses";
 
 type BillDetailViewProps =
   | { mode: "authed"; detail: ResidentBillDetail }
