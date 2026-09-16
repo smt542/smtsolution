@@ -11,7 +11,7 @@ export const MODULE_KEYS = [
   "utilities",    // 지침·부과 입력
   "billing",      // 부과 확정
   "fee_items",    // 항목등록 관리
-  "bill_publish", // 고지서 발행
+  "bill_publish", // 서류 발행·출력
   "payment",      // 수납 처리
   "overdue",      // 미납 관리
   "vendors",      // 협력업체 관리
@@ -31,7 +31,7 @@ export const MODULE_LABELS: Record<ModuleKey, string> = {
   utilities: "지침·부과",
   billing: "부과 확정",
   fee_items: "항목등록 관리",
-  bill_publish: "고지서 발행",
+  bill_publish: "서류 발행·출력",
   payment: "수납 처리",
   overdue: "미납 관리",
   vendors: "협력업체 관리",
