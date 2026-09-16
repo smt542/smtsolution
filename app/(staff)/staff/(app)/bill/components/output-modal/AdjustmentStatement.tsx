@@ -77,6 +77,9 @@ const won = (value: number | null | undefined) =>
 const reading = (value: number | null | undefined) =>
   value == null ? "" : Number(value).toLocaleString("ko-KR");
 
+// 원본 폼 기준 항목 페어 컬럼 고정 슬롯 수. 실제 항목이 적으면 나머지는 공란(여분 칼럼)으로 채운다.
+const MIN_ITEM_PAIRS = 10;
+
 function feeItemPairs(names: string[]): [string, string | undefined][] {
   const pairs: [string, string | undefined][] = [];
   for (let index = 0; index < names.length; index += 2) {
@@ -87,8 +90,13 @@ function feeItemPairs(names: string[]): [string, string | undefined][] {
 
 /** 조정명세서 한 페이지(건물 1개). 화면·인쇄가 동일 DOM을 공유한다. */
 export function AdjustmentStatementPage({ page }: { page: AdjustmentStatementPageModel }) {
-  const pairs = feeItemPairs(page.feeItemNames);
-  const feeColWidth = pairs.length > 0 ? (100 - FIXED_SUM) / pairs.length : 0;
+  const realPairs = feeItemPairs(page.feeItemNames);
+  // 여분 칼럼: 항목 페어 컬럼을 고정 슬롯 수로 두고, 실제 항목 뒤는 공란으로 채운다.
+  const pairs: [string | undefined, string | undefined][] = Array.from(
+    { length: Math.max(MIN_ITEM_PAIRS, realPairs.length) },
+    (_, index) => realPairs[index] ?? [undefined, undefined],
+  );
+  const feeColWidth = (100 - FIXED_SUM) / pairs.length;
 
   return (
     <article className="adj-doc">
