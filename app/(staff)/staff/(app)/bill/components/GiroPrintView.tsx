@@ -58,6 +58,7 @@ export function GiroPrintView({
     <div className="space-y-5 text-black" data-testid="giro-print-view">
       {documents.map(({ building, document, target, dueDate }) => {
         const amount = giroDocumentAmount(document);
+        const autoDebit = document.autoDebit || target.autoDebit;
         const householdName = unitLabel(
           target.billNameDisplay,
           document.unitNo,
@@ -104,14 +105,14 @@ export function GiroPrintView({
                   <dt className="border-b border-r border-slate-400 bg-slate-100 p-2 font-bold">핸드폰</dt>
                   <dd className="border-b border-slate-400 p-2">{target.phone || "-"}</dd>
                   <dt className="border-r border-slate-400 bg-slate-100 p-2 font-bold">이체</dt>
-                  <dd className="p-2 font-bold">{document.autoDebit ? "자동이체" : "일반납부"}</dd>
+                  <dd className="p-2 font-bold">{autoDebit ? "자동이체" : "일반납부"}</dd>
                 </dl>
               </div>
 
               <div className="relative mt-5 rounded-sm border-2 border-black p-5 text-center">
                 <p className="text-xs font-bold tracking-[0.3em] text-slate-600">당월 납부 금액</p>
                 <p className="mt-2 text-4xl font-black tabular-nums">{formatBillAmount(amount)}</p>
-                {document.autoDebit && (
+                {autoDebit && (
                   <p className="mt-2 inline-flex rounded-full border border-black px-3 py-1 text-xs font-black">
                     자동이체 신청 세대
                   </p>
@@ -119,7 +120,7 @@ export function GiroPrintView({
                 <div className="absolute -right-2 -top-3 flex gap-2">
                   {stamps.reissue && (!stamps.reissueUnitIds || stamps.reissueUnitIds.includes(document.unitId)) && <span className="rotate-[-7deg] border-2 border-red-600 px-2 py-1 text-sm font-black text-red-600">재발행</span>}
                   {stamps.waterCutoffUnitIds.includes(document.unitId) && <span className="rotate-[5deg] border-2 border-blue-700 px-2 py-1 text-sm font-black text-blue-700">단수</span>}
-                  {stamps.autoDebit && document.autoDebit && (!stamps.autoDebitUnitIds || stamps.autoDebitUnitIds.includes(document.unitId)) && <span className="rotate-[-4deg] border-2 border-emerald-700 px-2 py-1 text-sm font-black text-emerald-700">자동이체</span>}
+                  {stamps.autoDebit && autoDebit && (!stamps.autoDebitUnitIds || stamps.autoDebitUnitIds.includes(document.unitId)) && <span className="rotate-[-4deg] border-2 border-emerald-700 px-2 py-1 text-sm font-black text-emerald-700">자동이체</span>}
                 </div>
               </div>
 

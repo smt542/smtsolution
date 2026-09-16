@@ -21,7 +21,7 @@ const stampItems: { key: GiroStampKind; label: string }[] = [
 
 export function GiroStampToolbar({ stamps, scope, disabled, onToggleStamp, onScopeChange }: GiroStampToolbarProps) {
   return (
-    <div className="flex h-[52px] shrink-0 items-center gap-[8px] border-b border-[#e8ebee] bg-white px-[12px]">
+    <div className="flex h-[52px] shrink-0 items-center gap-[8px] border-b border-[#e8ebee] bg-white px-[14px]">
       <div aria-label="지로 출력 표기" className="flex h-[32px] overflow-hidden rounded-[9px] border border-[#e8ebee] bg-white">
         {stampItems.map(({ key, label }) => {
           const active = stamps[key];
@@ -32,7 +32,7 @@ export function GiroStampToolbar({ stamps, scope, disabled, onToggleStamp, onSco
               aria-pressed={active}
               disabled={disabled}
               onClick={() => onToggleStamp(key)}
-              className={`h-full min-w-[58px] border-r border-[#e8ebee] px-[11px] text-[10.5px] font-semibold transition last:border-r-0 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#b7ebe4] ${active ? "bg-[#e2f5f1] text-[#0f857a]" : "text-[#8b95a1] hover:bg-[#f8f9fa]"} disabled:cursor-not-allowed disabled:opacity-50`}
+              className={`h-full min-w-[56px] border-r border-[#e8ebee] px-[11px] text-[10px] font-medium transition last:border-r-0 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#b7ebe4] ${active ? "bg-[#e2f5f1] text-[#0f857a]" : "text-[#8b95a1] hover:bg-[#f8f9fa]"} disabled:cursor-not-allowed disabled:opacity-50`}
             >
               {label}
             </button>
