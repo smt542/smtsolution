@@ -116,7 +116,7 @@ export function MessageComposer({
             </svg>
           </button>
           <div
-            className={`${styles.menu} ${styles["fmp-tplmenu"]}`}
+            className={`menu ${styles.menu} ${styles["fmp-tplmenu"]}`}
             style={menuPosition}
             onClick={(event) => event.stopPropagation()}
           >

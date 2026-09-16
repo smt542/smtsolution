@@ -168,7 +168,7 @@ export function MessengerPanel({
           <div
             className={
               channel === "sms"
-                ? `${styles["si"]} ${styles["on"]}`
+                ? `${styles["si"]} ${styles["seg-on"]}`
                 : `${styles["si"]} text-t3`
             }
             onClick={() => onChannel("sms")}
@@ -178,7 +178,7 @@ export function MessengerPanel({
           <div
             className={
               channel === "alim"
-                ? `${styles["si"]} ${styles["on"]}`
+                ? `${styles["si"]} ${styles["seg-on"]}`
                 : `${styles["si"]} text-t3`
             }
             onClick={() => onChannel("alim")}

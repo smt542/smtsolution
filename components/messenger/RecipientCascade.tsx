@@ -396,8 +396,8 @@ export function RecipientCascade({
         <span className={styles.v}>{type ? TYPE_LABEL[type] : "유형 선택"}</span>
         <Chevron />
         <div
-          className={styles.menu}
-          style={openMenu === "type" ? menuStyle : undefined}
+          className="menu"
+          style={openMenu === "type" ? { ...menuStyle, display: "flex" } : { display: "none" }}
           onClick={(event) => event.stopPropagation()}
         >
           {types.map((candidate) => (
@@ -434,8 +434,8 @@ export function RecipientCascade({
         </span>
         <Chevron />
         <div
-          className={styles.menu}
-          style={openMenu === "second" ? menuStyle : undefined}
+          className="menu"
+          style={openMenu === "second" ? { ...menuStyle, display: "flex" } : { display: "none" }}
           onClick={(event) => event.stopPropagation()}
         >
           {type === "staff" ? (
@@ -526,8 +526,8 @@ export function RecipientCascade({
           <span className={styles.v}>{tenantSelectionLabel}</span>
           <Chevron />
           <div
-            className={styles.menu}
-            style={openMenu === "third" ? menuStyle : undefined}
+            className="menu"
+            style={openMenu === "third" ? { ...menuStyle, display: "flex" } : { display: "none" }}
             onClick={(event) => event.stopPropagation()}
           >
             <SearchField

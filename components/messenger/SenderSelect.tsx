@@ -193,7 +193,7 @@ export function SenderSelect({ value, onChange }: SenderSelectProps) {
         <path d="M6 9l6 6 6-6" />
       </svg>
       <div
-        className={styles["fmp-frommenu"]}
+        className={`menu ${styles["fmp-frommenu"]}`}
         style={menuPosition}
         onClick={(event) => event.stopPropagation()}
       >
