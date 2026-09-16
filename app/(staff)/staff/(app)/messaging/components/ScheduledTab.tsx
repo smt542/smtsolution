@@ -7,6 +7,7 @@ import {
   type ScheduledMessage,
 } from "@/hooks/reactquery/messaging";
 import type { SendMode } from "@/lib/messaging/preset";
+import { MessageDetailModal } from "./MessageDetailModal";
 import { MessagingListCard } from "./MessagingListCard";
 import { SegmentedFilter } from "./SegmentedFilter";
 
@@ -61,7 +62,10 @@ function CancelButton({ id }: { id: number }) {
     <button
       type="button"
       disabled={isPending}
-      onClick={() => mutate(id)}
+      onClick={(event) => {
+        event.stopPropagation();
+        mutate(id);
+      }}
       className="text-[12.5px] font-bold text-[#f04452] disabled:opacity-50"
     >
       {isPending ? "취소 중…" : "예약 취소"}
@@ -75,6 +79,7 @@ export function ScheduledTab() {
   const isRefreshing = isFetching && !isLoading;
   const [filter, setFilter] = useState<RecurrenceFilter>("all");
   const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
+  const [selected, setSelected] = useState<ScheduledMessage | null>(null);
 
   const filtered = useMemo(() => {
     let result = messages.filter((m) => {
@@ -139,7 +144,8 @@ export function ScheduledTab() {
           {filtered.map((msg) => (
             <tr
               key={msg.id}
-              className="border-b border-[#f1f3f5] last:border-b-0 hover:bg-[#fbfcfd]"
+              onClick={() => setSelected(msg)}
+              className="cursor-pointer border-b border-[#f1f3f5] last:border-b-0 hover:bg-[#fbfcfd]"
             >
               <td className="h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
                 {channelLabel(msg.channel)}
@@ -171,6 +177,22 @@ export function ScheduledTab() {
           ))}
         </tbody>
       </table>
+
+      {selected && (
+        <MessageDetailModal
+          title="예약 발송 상세"
+          channel={selected.channel}
+          rows={[
+            { label: "수신자", value: recipientSummary(selected) },
+            { label: "발송시점", value: formatScheduledAt(selected.scheduledAt) },
+            { label: "유형", value: scheduleType(selected) },
+          ]}
+          recipients={selected.recipients}
+          recipientCount={selected.recipientCount}
+          body={selected.body}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </MessagingListCard>
   );
 }

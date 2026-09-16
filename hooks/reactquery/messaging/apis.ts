@@ -289,6 +289,7 @@ export interface ScheduledMessage {
   body: string;
   context: string;
   recipientCount: number;
+  recipients: MessageRecipient[];
   scheduledAt: string;
   recurrenceMode: "monthly" | null;
 }
@@ -299,6 +300,7 @@ type ScheduledMessageRow = {
   body: string;
   context: string;
   recipient_count: number;
+  recipients: MessageRecipient[] | null;
   scheduled_at: string;
   recurrence_mode: "monthly" | null;
 };
@@ -306,7 +308,7 @@ type ScheduledMessageRow = {
 export async function listScheduledMessages(): Promise<ScheduledMessage[]> {
   const { data, error } = await createClient()
     .from("message_schedules")
-    .select("id, channel, body, context, recipient_count, scheduled_at, recurrence_mode")
+    .select("id, channel, body, context, recipient_count, recipients, scheduled_at, recurrence_mode")
     .eq("status", "scheduled")
     .order("scheduled_at", { ascending: false });
   if (error) throw new Error(error.message);
@@ -316,6 +318,7 @@ export async function listScheduledMessages(): Promise<ScheduledMessage[]> {
     body: r.body,
     context: r.context,
     recipientCount: r.recipient_count,
+    recipients: r.recipients ?? [],
     scheduledAt: r.scheduled_at,
     recurrenceMode: r.recurrence_mode,
   }));

@@ -58,11 +58,15 @@ export function TemplatesTab() {
   } = useMessageTemplates();
   const deleteTemplate = useDeleteMessageTemplate();
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editTemplate, setEditTemplate] = useState<MessageTemplate | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
   const isRefreshing = isFetching && !isLoading;
 
   const openCreate = () => setIsFormOpen(true);
-  const closeForm = () => setIsFormOpen(false);
+  const closeForm = () => {
+    setIsFormOpen(false);
+    setEditTemplate(null);
+  };
 
   const remove = async (template: MessageTemplate) => {
     const ok = await confirm({
@@ -139,7 +143,8 @@ export function TemplatesTab() {
               return (
                 <tr
                   key={template.id}
-                  className="border-b border-[#f1f3f5] last:border-b-0 hover:bg-[#fbfcfd]"
+                  onClick={() => setEditTemplate(template)}
+                  className="cursor-pointer border-b border-[#f1f3f5] last:border-b-0 hover:bg-[#fbfcfd]"
                 >
                   <td className="whitespace-nowrap h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
                     {getChannelLabel(template.channelType)}
@@ -186,7 +191,10 @@ export function TemplatesTab() {
                       <button
                         type="button"
                         disabled={deleteTemplate.isPending}
-                        onClick={() => void remove(template)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void remove(template);
+                        }}
                         aria-label={`${template.title} 삭제`}
                         className="text-[12.5px] font-bold text-[#f04452] disabled:opacity-50"
                       >
@@ -201,7 +209,12 @@ export function TemplatesTab() {
         </table>
       </MessagingListCard>
 
-      <TemplateFormModal open={isFormOpen} onClose={closeForm} onSaved={closeForm} />
+      <TemplateFormModal
+        open={isFormOpen || editTemplate !== null}
+        template={editTemplate ?? undefined}
+        onClose={closeForm}
+        onSaved={closeForm}
+      />
     </>
   );
 }
