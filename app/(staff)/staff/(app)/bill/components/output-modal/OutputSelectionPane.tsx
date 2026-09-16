@@ -3,7 +3,7 @@
 import Image from "next/image";
 import type { BillTarget } from "@/hooks/reactquery/bill";
 import type { BillBuilding } from "../../types";
-import type { OutputDocumentType } from "../DocumentCards";
+import type { OutputDocumentType } from "../../types";
 import { SelectionCheck, SmallSelect } from "./OutputModalPrimitives";
 
 interface BuildingTargets {

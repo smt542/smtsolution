@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
+import { Spinner } from "@/components/common";
 import { useMessageLogs } from "@/hooks/reactquery/messaging";
 import { useScheduledMessages } from "@/hooks/reactquery/messaging";
 import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates";
@@ -10,16 +11,41 @@ import { TemplatesTab } from "./TemplatesTab";
 
 export type MessagingTab = "scheduled" | "history" | "templates";
 
+const subscribeToHydration = () => () => undefined;
+const getClientHydrationSnapshot = () => true;
+const getServerHydrationSnapshot = () => false;
+
+const loadingLabels: Record<MessagingTab, string> = {
+  scheduled: "예약 발송 목록 불러오는 중",
+  history: "발송 내역 불러오는 중",
+  templates: "템플릿 목록 불러오는 중",
+};
+
+function MessagingTabLoading({ tab }: { tab: MessagingTab }) {
+  return (
+    <div className="flex min-h-[240px] items-center justify-center rounded-[16px] bg-white shadow-[0px_1px_3px_0px_rgba(23,31,40,0.05)]">
+      <Spinner label={loadingLabels[tab]} showLabel />
+    </div>
+  );
+}
+
 export function MessagingTabs({ initialTab }: { initialTab: MessagingTab }) {
   const [tab, setTab] = useState<MessagingTab>(initialTab);
   const { data: scheduled = [] } = useScheduledMessages();
   const { data: logs = [] } = useMessageLogs();
   const { data: templates = [] } = useMessageTemplates();
+  // The server QueryClient starts empty, while a client navigation can reuse populated
+  // browser cache. Keep both hydration snapshots identical, then reveal cached data.
+  const isHydrated = useSyncExternalStore(
+    subscribeToHydration,
+    getClientHydrationSnapshot,
+    getServerHydrationSnapshot,
+  );
 
   const tabs: { id: MessagingTab; label: string; count: number }[] = [
-    { id: "scheduled", label: "예약 발송", count: scheduled.length },
-    { id: "history", label: "발송 내역", count: logs.length },
-    { id: "templates", label: "템플릿 관리", count: templates.length },
+    { id: "scheduled", label: "예약 발송", count: isHydrated ? scheduled.length : 0 },
+    { id: "history", label: "발송 내역", count: isHydrated ? logs.length : 0 },
+    { id: "templates", label: "템플릿 관리", count: isHydrated ? templates.length : 0 },
   ];
 
   return (
@@ -55,9 +81,10 @@ export function MessagingTabs({ initialTab }: { initialTab: MessagingTab }) {
         aria-labelledby={`messaging-tab-${tab}`}
         className="flex-1 bg-[#f2f4f6] px-[24px] pb-[30px] pt-[22px]"
       >
-        {tab === "scheduled" && <ScheduledTab />}
-        {tab === "history" && <HistoryTab />}
-        {tab === "templates" && <TemplatesTab />}
+        {!isHydrated ? <MessagingTabLoading tab={tab} /> : null}
+        {isHydrated && tab === "scheduled" ? <ScheduledTab /> : null}
+        {isHydrated && tab === "history" ? <HistoryTab /> : null}
+        {isHydrated && tab === "templates" ? <TemplatesTab /> : null}
       </div>
     </div>
   );

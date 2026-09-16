@@ -1,5 +1,7 @@
 import type { PrintableAccount } from "@/lib/bill/document";
 
+export type OutputDocumentType = "giro" | "adjustment" | "autoDebit" | "fax";
+
 export interface BillBuilding {
   id: number;
   code: string;

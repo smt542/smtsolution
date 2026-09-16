@@ -1,12 +1,5 @@
-"use client";
-
 import Image from "next/image";
-
-export type OutputDocumentType = "giro" | "adjustment" | "autoDebit" | "fax";
-
-interface DocumentCardsProps {
-  onOpen: (type: OutputDocumentType) => void;
-}
+import type { OutputDocumentType } from "../types";
 
 interface DocumentCardDefinition {
   type: OutputDocumentType;
@@ -62,7 +55,7 @@ const groups: DocumentCardGroup[] = [
   },
 ];
 
-export function DocumentCards({ onOpen }: DocumentCardsProps) {
+export function DocumentCards() {
   return (
     <div className="flex flex-col gap-[16px]">
       {groups.map((group) => {
@@ -84,7 +77,7 @@ export function DocumentCards({ onOpen }: DocumentCardsProps) {
                 <button
                   key={card.type}
                   type="button"
-                  onClick={() => onOpen(card.type)}
+                  data-output-document={card.type}
                   className="group flex h-[78px] w-full items-center gap-[14px] rounded-[15px] border border-[#e8ebee] bg-white px-[18px] py-[16px] text-left transition-colors hover:border-[#14a497]/40 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-[#e2f5f1]"
                 >
                   <span

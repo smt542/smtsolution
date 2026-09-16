@@ -11,10 +11,9 @@ import { billingKeys, getBillingPeriodSetting } from "@/hooks/reactquery/billing
 import { cmsDownloadUrl } from "@/hooks/reactquery/payments";
 import { currentPeriod, prevPeriod } from "@/lib/billing/period";
 import type { PrintableAccount } from "@/lib/bill/document";
-import type { BillBuilding } from "../types";
+import type { BillBuilding, OutputDocumentType } from "../types";
 import type { AdjustmentBuildingDocuments, AdjustmentPrintViewProps } from "./AdjustmentPrintView";
 import type { GiroOutputDocument, GiroPrintViewProps, GiroStampOptions } from "./GiroPrintView";
-import type { OutputDocumentType } from "./DocumentCards";
 import { AutoDebitTable } from "./output-modal/AutoDebitTable";
 import { CompactDocumentPreview } from "./output-modal/CompactDocumentPreview";
 import { FaxConfirmationModal } from "./output-modal/FaxConfirmationModal";

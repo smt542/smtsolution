@@ -1,36 +1,112 @@
 "use client";
 
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
-import { useState } from "react";
-import type { BillPageData } from "../types";
-import { DocumentCards, type OutputDocumentType } from "./DocumentCards";
+import type { MouseEvent, ReactNode } from "react";
+import { useEffect, useState } from "react";
+import { Spinner } from "@/components/common";
+import { fetchBillPageData } from "../pageDataClient";
+import type { OutputDocumentType } from "../types";
 import type { DocumentOutputModalProps } from "./DocumentOutputModal";
 
 const DocumentOutputModal = dynamic<DocumentOutputModalProps>(() =>
   import("./DocumentOutputModal").then((module) => module.DocumentOutputModal),
 );
 
-export function BillWorkspace({ buildings, companyName, accounts, customerNotice }: BillPageData) {
+const pageDataQuery = {
+  queryKey: ["bill", "page-data"] as const,
+  queryFn: fetchBillPageData,
+};
+
+const outputDocumentTypes = new Set<OutputDocumentType>([
+  "giro",
+  "adjustment",
+  "autoDebit",
+  "fax",
+]);
+
+interface BillWorkspaceProps {
+  children: ReactNode;
+}
+
+interface DataStateModalProps {
+  isError: boolean;
+  onClose: () => void;
+  onRetry: () => void;
+}
+
+function DataStateModal({ isError, onClose, onRetry }: DataStateModalProps) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(23,31,40,0.45)] p-3 print:hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label="서류 발행 정보"
+    >
+      <div className="flex min-h-[180px] w-[420px] max-w-[calc(100vw-24px)] flex-col items-center justify-center gap-5 rounded-[20px] bg-white p-8 shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)]">
+        {isError ? (
+          <>
+            <p role="alert" className="text-[14px] font-bold text-[#f04452]">
+              서류 발행 정보를 불러오지 못했습니다.
+            </p>
+            <div className="flex gap-2">
+              <button type="button" onClick={onClose} className="rounded-[10px] border border-[#e8ebee] px-4 py-2 text-[13px] font-bold text-[#4e5968]">
+                닫기
+              </button>
+              <button type="button" onClick={onRetry} className="rounded-[10px] bg-[#14a497] px-4 py-2 text-[13px] font-bold text-white">
+                다시 시도
+              </button>
+            </div>
+          </>
+        ) : (
+          <Spinner label="서류 발행 정보 불러오는 중" />
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function BillWorkspace({ children }: BillWorkspaceProps) {
   const [activeDocument, setActiveDocument] = useState<OutputDocumentType | null>(null);
+  const queryClient = useQueryClient();
+  const pageData = useQuery({
+    ...pageDataQuery,
+    enabled: activeDocument !== null,
+  });
+
+  useEffect(() => {
+    void queryClient.prefetchQuery(pageDataQuery);
+  }, [queryClient]);
+
+  const handleMenuClick = (event: MouseEvent<HTMLDivElement>) => {
+    const target = event.target as Element;
+    const button = target.closest<HTMLButtonElement>("button[data-output-document]");
+    if (!button || !event.currentTarget.contains(button)) return;
+
+    const type = button.dataset.outputDocument as OutputDocumentType | undefined;
+    if (type && outputDocumentTypes.has(type)) setActiveDocument(type);
+  };
 
   return (
     <>
-      <div className="min-h-[calc(100vh-62px)] bg-[#f2f4f6] px-[24px] pt-[22px] print:hidden">
-        <h1 className="sr-only">서류 발행·출력</h1>
-        <DocumentCards onOpen={setActiveDocument} />
-      </div>
+      <div onClick={handleMenuClick}>{children}</div>
 
-      {activeDocument && (
+      {activeDocument && pageData.data ? (
         <DocumentOutputModal
           key={activeDocument}
           type={activeDocument}
-          buildings={buildings}
-          companyName={companyName}
-          accounts={accounts}
-          customerNotice={customerNotice}
+          {...pageData.data}
           onClose={() => setActiveDocument(null)}
         />
-      )}
+      ) : null}
+
+      {activeDocument && !pageData.data ? (
+        <DataStateModal
+          isError={pageData.isError && !pageData.isFetching}
+          onClose={() => setActiveDocument(null)}
+          onRetry={() => void pageData.refetch()}
+        />
+      ) : null}
     </>
   );
 }
