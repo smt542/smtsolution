@@ -29,7 +29,14 @@ import { PaymentTable } from "./payment/PaymentTable";
 
 const BankImportModal = dynamic(
   () => import("./payment/BankImportModal").then((module) => module.BankImportModal),
-  { ssr: false, loading: () => <Spinner /> },
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex min-h-[420px] items-center justify-center">
+        <Spinner />
+      </div>
+    ),
+  },
 );
 
 export type VillaInitialView =

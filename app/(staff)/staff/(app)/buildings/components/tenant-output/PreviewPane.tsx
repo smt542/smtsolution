@@ -78,7 +78,7 @@ export function PreviewPane({
           {actionLabel}
         </button>
       </div>
-      <div className="flex min-h-0 flex-1 justify-center overflow-auto bg-[#e9ecef] p-[12px]">
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-[#e9ecef] p-[12px]">
         {loading ? (
           <Spinner label={`${title} 불러오는 중`} showLabel />
         ) : hasContent ? (

@@ -194,7 +194,7 @@ export function GiroLedgerModal({
 
       <div className="mt-4 overflow-x-auto rounded-xl border border-line">
         {isLoading ? (
-          <div className="py-10">
+          <div className="flex min-h-[300px] items-center justify-center">
             <Spinner />
           </div>
         ) : filtered.length === 0 ? (

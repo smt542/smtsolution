@@ -65,7 +65,7 @@ export function TenantOccupancyCard({
       {!selected ? (
         <TenantEmptyState />
       ) : isLoading ? (
-        <div className="flex justify-center py-16">
+        <div className="flex min-h-0 flex-1 items-center justify-center">
           <Spinner />
         </div>
       ) : isError ? (

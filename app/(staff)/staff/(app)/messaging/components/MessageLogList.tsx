@@ -40,7 +40,7 @@ export function MessageLogList({
   if (isLoading) {
     return (
       <Panel title="발송 이력">
-        <div className="min-h-[180px] py-8">
+        <div className="flex min-h-[180px] items-center justify-center">
           <Spinner label="발송 이력 불러오는 중" showLabel />
         </div>
       </Panel>

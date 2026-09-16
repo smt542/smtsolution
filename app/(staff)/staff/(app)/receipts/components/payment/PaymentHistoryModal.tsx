@@ -46,7 +46,9 @@ export function PaymentHistoryModal({
   return (
     <ComplaintDialog open={open} onClose={onClose} title="수납 이력" size="medium">
       {isLoading ? (
-        <Spinner />
+        <div className="flex min-h-80 items-center justify-center">
+          <Spinner />
+        </div>
       ) : payments.length === 0 ? (
         <EmptyState message="등록된 수납 이력이 없습니다" />
       ) : (

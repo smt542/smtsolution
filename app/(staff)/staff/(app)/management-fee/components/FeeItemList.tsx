@@ -20,7 +20,7 @@ interface Props {
 }
 
 export function FeeItemList({ items, isLoading, onEdit, onDelete, onMoveUp, onMoveDown }: Props) {
-  if (isLoading) return <Spinner />;
+  if (isLoading) return <div className="flex min-h-[200px] items-center justify-center"><Spinner /></div>;
 
   const required = items.filter((i) => i.isRequired);
   const optional = items.filter((i) => !i.isRequired);

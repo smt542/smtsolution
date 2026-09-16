@@ -21,8 +21,8 @@ import { ModalActionButton, ZoomControls } from "./output-modal/OutputModalPrimi
 import { OutputSelectionPane } from "./output-modal/OutputSelectionPane";
 import { GiroStampToolbar, type GiroStampKind, type GiroStampScope } from "./output-modal/GiroStampToolbar";
 
-const AdjustmentPrintView = dynamic<AdjustmentPrintViewProps>(() => import("./AdjustmentPrintView").then((module) => module.AdjustmentPrintView), { loading: () => <Spinner /> });
-const GiroPrintView = dynamic<GiroPrintViewProps>(() => import("./GiroPrintView").then((module) => module.GiroPrintView), { loading: () => <Spinner /> });
+const AdjustmentPrintView = dynamic<AdjustmentPrintViewProps>(() => import("./AdjustmentPrintView").then((module) => module.AdjustmentPrintView), { loading: () => <div className="flex min-h-[420px] items-center justify-center bg-[#e9edf1]"><Spinner /></div> });
+const GiroPrintView = dynamic<GiroPrintViewProps>(() => import("./GiroPrintView").then((module) => module.GiroPrintView), { loading: () => <div className="flex min-h-[420px] items-center justify-center bg-[#e9edf1]"><Spinner /></div> });
 
 export interface DocumentOutputModalProps {
   type: OutputDocumentType;

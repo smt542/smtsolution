@@ -19,7 +19,9 @@ export function BillingHistoryModal({ open, unitId, unitNo, period, onClose }: P
   return (
     <Modal open={open} onClose={onClose} title={`${unitNo} · 6개월 부과 이력`}>
       {isLoading ? (
-        <Spinner />
+        <div className="flex min-h-[200px] items-center justify-center">
+          <Spinner />
+        </div>
       ) : (
         <table className="w-full text-sm">
           <thead>

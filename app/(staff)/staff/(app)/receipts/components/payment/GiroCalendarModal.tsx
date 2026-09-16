@@ -140,7 +140,7 @@ export function GiroCalendarModal({ open, buildingId, period, onClose }: GiroCal
         {/* 캘린더 */}
         <div className="rounded-xl border border-line">
             {isLoading ? (
-              <div className="py-10">
+              <div className="flex min-h-[300px] items-center justify-center">
                 <Spinner />
               </div>
             ) : (

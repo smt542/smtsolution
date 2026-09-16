@@ -97,7 +97,7 @@ export function BuildingDirectoryCard({
       </header>
 
       {isLoading ? (
-        <div className="flex justify-center py-16">
+        <div className="flex min-h-[240px] items-center justify-center">
           <Spinner />
         </div>
       ) : isError ? (

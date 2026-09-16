@@ -265,7 +265,8 @@
 
 .loadingCell {
   display: flex;
-  height: 120px;
+  height: 100%;
+  min-height: 240px;
   align-items: center;
   justify-content: center;
   text-align: center;

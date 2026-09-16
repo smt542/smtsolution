@@ -237,7 +237,9 @@ export function ResidentClaimsPanel() {
 
         <div className="min-h-0 flex-1 overflow-auto">
           {isLoading ? (
-            <Spinner />
+            <div className="flex h-full min-h-[320px] items-center justify-center">
+              <Spinner />
+            </div>
           ) : isError ? (
             <EmptyState message="오류가 발생했습니다" />
           ) : (

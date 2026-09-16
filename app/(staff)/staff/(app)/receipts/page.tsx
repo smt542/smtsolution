@@ -11,7 +11,13 @@ export default function ReceiptManagementPage({
   searchParams: Promise<ReceiptSearchParams>;
 }) {
   return (
-    <Suspense fallback={<Spinner />}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-[calc(100vh-62px)] items-center justify-center p-6">
+          <Spinner />
+        </div>
+      }
+    >
       <ReceiptManagementContent searchParams={searchParams} />
     </Suspense>
   );
