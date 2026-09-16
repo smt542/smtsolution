@@ -21,8 +21,10 @@ export interface GiroOutputDocument {
 
 export interface GiroStampOptions {
   reissue: boolean;
+  reissueUnitIds?: number[];
   waterCutoffUnitIds: number[];
   autoDebit: boolean;
+  autoDebitUnitIds?: number[];
 }
 
 export interface GiroPrintViewProps {
@@ -115,9 +117,9 @@ export function GiroPrintView({
                   </p>
                 )}
                 <div className="absolute -right-2 -top-3 flex gap-2">
-                  {stamps.reissue && <span className="rotate-[-7deg] border-2 border-red-600 px-2 py-1 text-sm font-black text-red-600">재발행</span>}
+                  {stamps.reissue && (!stamps.reissueUnitIds || stamps.reissueUnitIds.includes(document.unitId)) && <span className="rotate-[-7deg] border-2 border-red-600 px-2 py-1 text-sm font-black text-red-600">재발행</span>}
                   {stamps.waterCutoffUnitIds.includes(document.unitId) && <span className="rotate-[5deg] border-2 border-blue-700 px-2 py-1 text-sm font-black text-blue-700">단수</span>}
-                  {stamps.autoDebit && document.autoDebit && <span className="rotate-[-4deg] border-2 border-emerald-700 px-2 py-1 text-sm font-black text-emerald-700">자동이체</span>}
+                  {stamps.autoDebit && document.autoDebit && (!stamps.autoDebitUnitIds || stamps.autoDebitUnitIds.includes(document.unitId)) && <span className="rotate-[-4deg] border-2 border-emerald-700 px-2 py-1 text-sm font-black text-emerald-700">자동이체</span>}
                 </div>
               </div>
 
