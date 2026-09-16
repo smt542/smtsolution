@@ -1,11 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { useEffect, useId, useMemo } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Button, Input, Modal, Select, Textarea } from "@/components/common";
-import { FormField } from "@/components/common/FormField";
 import { setSubmissionError } from "@/components/forms/formErrors";
 import { NoticeTargetChip } from "./NoticeTargetChip";
 import { plainTextToNoticeDoc } from "@/lib/notice/richText";
@@ -20,12 +18,18 @@ import {
   useUpdateNotice,
   type Notice,
   type NoticeInput,
+  type NoticeType,
 } from "@/hooks/reactquery/notices";
-import {
-  getPublishMode,
-  toDateTimeLocal,
-  type PublishMode,
-} from "../utils";
+import { NOTICE_TYPE_LABELS } from "../utils";
+
+const TYPE_ORDER: NoticeType[] = ["normal", "important", "urgent"];
+
+/** 유형별 안내 문구(Figma 41:26586). 신규 문구는 시안 그대로, 중요·긴급은 동일 톤으로 작성. */
+const TYPE_HINT: Record<NoticeType, string> = {
+  normal: "일반 안내 공지예요. 앱 공지 목록에 표시됩니다.",
+  important: "중요 공지예요. 목록 상단에 강조되어 표시됩니다.",
+  urgent: "긴급 공지예요. 앱에서 눈에 띄게 강조 표시됩니다.",
+};
 
 interface NoticeFormModalProps {
   open: boolean;
@@ -42,34 +46,16 @@ export function NoticeFormModal(props: NoticeFormModalProps) {
 }
 
 function NoticeFormContent({
-  open,
   onClose,
   editing,
   buildings,
   orgId,
   onSaved,
-}: {
-  open: boolean;
-  onClose: () => void;
-  editing: Notice | null;
-  buildings: Building[];
-  orgId: number;
-  onSaved: (notice: Notice) => void;
-}) {
-  const mode = editing ? getPublishMode(editing) : "now";
+}: NoticeFormModalProps) {
+  const titleId = useId();
   const createNotice = useCreateNotice();
   const updateNotice = useUpdateNotice();
-  const initialPublishMode: PublishMode = mode;
   const schema = useMemo(() => createNoticeFormSchema(), []);
-  const makeDefaults = (): NoticeFormInput => ({
-    buildingIds: editing?.buildingIds ?? [],
-    noticeType: editing?.noticeType ?? "normal",
-    title: editing?.title ?? "",
-    content: editing?.content ?? "",
-    publishMode: mode,
-    scheduledAt: mode === "scheduled" ? toDateTimeLocal(editing?.publishedAt) : "",
-    expiresAt: toDateTimeLocal(editing?.expiresAt),
-  });
   const {
     register,
     handleSubmit,
@@ -79,25 +65,38 @@ function NoticeFormContent({
     formState: { errors, isSubmitting },
   } = useForm<NoticeFormInput, unknown, NoticeFormValues>({
     resolver: zodResolver(schema),
-    defaultValues: makeDefaults(),
+    defaultValues: {
+      buildingIds: editing?.buildingIds ?? [],
+      noticeType: editing?.noticeType ?? "normal",
+      title: editing?.title ?? "",
+      content: editing?.content ?? "",
+      // 게시 방식 UI는 제거(Figma). 신규 등록은 즉시 게시로 고정하고 스키마만 충족한다.
+      publishMode: "now",
+      scheduledAt: "",
+      expiresAt: "",
+    },
     shouldFocusError: true,
   });
-  const publishMode = useWatch({ control, name: "publishMode" });
-  const isNoticeSavePending = createNotice.isPending || updateNotice.isPending || isSubmitting;
+
+  const isPending = createNotice.isPending || updateNotice.isPending || isSubmitting;
   const closeSafely = () => {
-    if (!isNoticeSavePending) onClose();
+    if (!isPending) onClose();
   };
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !isPending) onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [isPending, onClose]);
 
   const submit = async (values: NoticeFormValues) => {
     const now = new Date().toISOString();
-    const publishedAt = values.publishMode === "draft"
-      ? null
-      : values.publishMode === "scheduled"
-        ? values.scheduledAt
-        : editing && initialPublishMode === "now" && editing.publishedAt
-          ? editing.publishedAt
-          : now;
-
     const payload: NoticeInput = {
       orgId,
       buildingIds: values.buildingIds,
@@ -105,8 +104,9 @@ function NoticeFormContent({
       title: values.title,
       content: values.content,
       contentJson: plainTextToNoticeDoc(values.content),
-      publishedAt,
-      expiresAt: values.publishMode === "draft" ? null : values.expiresAt,
+      // 즉시 게시 고정. 수정 시에는 기존 게시/종료 시각을 보존해 예약·초안·종료 설정을 훼손하지 않는다.
+      publishedAt: editing ? editing.publishedAt : now,
+      expiresAt: editing ? editing.expiresAt : null,
     };
 
     try {
@@ -115,7 +115,7 @@ function NoticeFormContent({
         : await createNotice.mutateAsync(payload);
       toast.success(editing ? "공지가 수정되었습니다." : "공지가 등록되었습니다.");
       onSaved(saved);
-      reset(makeDefaults());
+      reset();
       onClose();
     } catch (saveError) {
       toast.error(saveError, "공지를 저장하지 못했습니다.");
@@ -124,94 +124,153 @@ function NoticeFormContent({
   };
 
   return (
-    <Modal open={open} onClose={closeSafely} title={editing ? "공지 수정" : "공지 등록"}>
-      <form onSubmit={handleSubmit(submit)} className="flex max-h-[75vh] flex-col gap-4 overflow-y-auto pr-1" noValidate>
-        <FormField htmlFor="notice-buildings" label="공지 대상 *" hint="전체 공지이거나 하나 이상의 건물을 선택할 수 있습니다.">
-          <Controller
-            control={control}
-            name="buildingIds"
-            render={({ field }) => {
-              const ids = field.value ?? [];
-              return (
-                <div className="flex flex-wrap gap-[8px]">
-                  <NoticeTargetChip label="전체 건물" checked={ids.length === 0} onClick={() => field.onChange([])} />
-                  {buildings.map((building) => (
-                    <NoticeTargetChip
-                      key={building.id}
-                      label={building.name}
-                      checked={ids.includes(building.id)}
-                      onClick={() =>
-                        field.onChange(
-                          ids.includes(building.id)
-                            ? ids.filter((x) => x !== building.id)
-                            : [...ids, building.id],
-                        )
-                      }
-                    />
-                  ))}
-                </div>
-              );
-            }}
-          />
-        </FormField>
-
-        <FormField htmlFor="notice-type" label="공지 유형 *" error={errors.noticeType?.message}>
-          <Select
-            id="notice-type"
-            {...register("noticeType")}
-            options={[
-              { value: "normal", label: "일반" },
-              { value: "important", label: "중요" },
-              { value: "urgent", label: "긴급" },
-            ]}
-          />
-        </FormField>
-
-        <FormField htmlFor="notice-title" label="제목 *" error={errors.title?.message}>
-          <Input id="notice-title" {...register("title")} maxLength={200} placeholder="공지 제목" />
-        </FormField>
-
-        <FormField htmlFor="notice-content" label="내용 *" error={errors.content?.message}>
-          <Textarea id="notice-content" {...register("content")} rows={6} maxLength={10000} placeholder="공지 내용" />
-        </FormField>
-
-        <fieldset>
-          <legend className="mb-2 text-xs font-semibold text-t2">게시 방식 *</legend>
-          <div className="grid grid-cols-3 gap-2">
-            {([
-              ["now", "즉시 게시"],
-              ["scheduled", "예약 게시"],
-              ["draft", "초안 저장"],
-            ] as const).map(([value, label]) => (
-              <label key={value} className={`cursor-pointer rounded-xl border px-3 py-3 text-center text-sm font-bold ${publishMode === value ? "border-brand bg-blue-t text-blue-d" : "border-line text-t2"}`}>
-                <input type="radio" value={value} {...register("publishMode")} className="sr-only" />
-                {label}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-
-        {publishMode === "scheduled" && (
-          <FormField htmlFor="notice-scheduled-at" label="예약 게시 일시 *" error={errors.scheduledAt?.message}>
-            <Input id="notice-scheduled-at" type="datetime-local" {...register("scheduledAt")} />
-          </FormField>
-        )}
-
-        {publishMode !== "draft" && (
-          <FormField htmlFor="notice-expires-at" label="게시 종료 일시" error={errors.expiresAt?.message} hint="비워 두면 종료 없이 계속 게시됩니다.">
-            <Input id="notice-expires-at" type="datetime-local" {...register("expiresAt")} />
-          </FormField>
-        )}
-
-        {errors.root?.server?.message && <p role="alert" className="rounded-xl bg-red-t px-3 py-2 text-sm font-semibold text-red">{errors.root.server.message}</p>}
-
-        <div className="sticky bottom-0 flex justify-end gap-2 border-t border-line bg-surface pt-4">
-          <Button type="button" variant="ghost" onClick={closeSafely} disabled={isNoticeSavePending}>취소</Button>
-          <Button type="submit" variant="primary" disabled={isNoticeSavePending}>
-            {isNoticeSavePending ? "저장 중…" : editing ? "수정" : "등록"}
-          </Button>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-4"
+      onClick={closeSafely}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        onClick={(event) => event.stopPropagation()}
+        className="flex max-h-[90vh] w-[660px] max-w-full flex-col rounded-[20px] bg-white p-[24px] drop-shadow-[0px_30px_35px_rgba(0,0,0,0.4)]"
+      >
+        {/* 헤더: 가운데 정렬 제목 */}
+        <div className="flex w-full flex-col items-center">
+          <h2 id={titleId} className="text-center text-[17px] font-extrabold leading-[normal] text-[#191f28]">
+            {editing ? "공지 수정" : "공지 등록"}
+          </h2>
         </div>
-      </form>
-    </Modal>
+
+        <form onSubmit={handleSubmit(submit)} noValidate className="flex flex-col">
+          {/* 본문 스크롤 영역 */}
+          <div className="flex h-[445px] flex-col gap-[20px] overflow-y-auto pr-[2px] pt-[20px]">
+            {/* 유형 */}
+            <Controller
+              control={control}
+              name="noticeType"
+              render={({ field }) => {
+                const active = (field.value ?? "normal") as NoticeType;
+                return (
+                  <div className="flex flex-col gap-[9px]">
+                    <span className="text-[12.5px] font-bold leading-[normal] text-[#8b95a1]">유형</span>
+                    <div className="inline-flex gap-[2px] self-start rounded-[9px] bg-[#edf0f3] p-[3px]">
+                      {TYPE_ORDER.map((value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          aria-pressed={active === value}
+                          onClick={() => field.onChange(value)}
+                          className={
+                            active === value
+                              ? "rounded-[7px] bg-white px-[11px] py-[5px] text-[12px] font-bold leading-[normal] text-[#191f28] drop-shadow-[0px_1px_1.5px_rgba(23,31,40,0.1)]"
+                              : "rounded-[7px] px-[11px] py-[5px] text-[12px] font-bold leading-[normal] text-[#8b95a1]"
+                          }
+                        >
+                          {NOTICE_TYPE_LABELS[value]}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="pt-[8px] text-[12px] font-semibold leading-[normal] text-[#8b95a1]">
+                      {TYPE_HINT[active]}
+                    </p>
+                  </div>
+                );
+              }}
+            />
+
+            {/* 제목 */}
+            <div className="flex flex-col gap-[9px]">
+              <label htmlFor="notice-title" className="text-[12.5px] font-bold leading-[normal] text-[#8b95a1]">제목</label>
+              <input
+                id="notice-title"
+                {...register("title")}
+                maxLength={200}
+                placeholder="예) 저수조 청소로 오전 단수 예정"
+                aria-invalid={errors.title ? true : undefined}
+                aria-describedby={errors.title ? "notice-title-error" : undefined}
+                className="h-[42px] w-full rounded-[11px] border border-[#e8ebee] bg-white px-[12px] text-[14px] font-medium text-[#191f28] outline-none placeholder:text-[#757575] focus:border-[#14a497]"
+              />
+              {errors.title && (
+                <p id="notice-title-error" className="text-[12px] font-medium text-[#f04452]">{errors.title.message}</p>
+              )}
+            </div>
+
+            {/* 내용 */}
+            <div className="flex flex-col gap-[9px]">
+              <label htmlFor="notice-content" className="text-[12.5px] font-bold leading-[normal] text-[#8b95a1]">내용</label>
+              <textarea
+                id="notice-content"
+                {...register("content")}
+                maxLength={10000}
+                placeholder="일시 · 대상 · 내용 순으로 적어 주세요"
+                aria-invalid={errors.content ? true : undefined}
+                aria-describedby={errors.content ? "notice-content-error" : undefined}
+                className="h-[150px] w-full resize-none rounded-[11px] border border-[#e8ebee] bg-white px-[13px] py-[12px] text-[13.5px] font-medium leading-[22.95px] text-[#191f28] outline-none placeholder:text-[#757575] focus:border-[#14a497]"
+              />
+              {errors.content && (
+                <p id="notice-content-error" className="text-[12px] font-medium text-[#f04452]">{errors.content.message}</p>
+              )}
+            </div>
+
+            {/* 대상 건물 */}
+            <Controller
+              control={control}
+              name="buildingIds"
+              render={({ field }) => {
+                const ids = field.value ?? [];
+                return (
+                  <div className="flex flex-col gap-[9px]">
+                    <span className="text-[12.5px] font-bold leading-[normal] text-[#8b95a1]">대상 건물</span>
+                    <div className="flex flex-wrap gap-[8px]">
+                      <NoticeTargetChip label="전체 건물" checked={ids.length === 0} onClick={() => field.onChange([])} />
+                      {buildings.map((building) => (
+                        <NoticeTargetChip
+                          key={building.id}
+                          label={building.name}
+                          checked={ids.includes(building.id)}
+                          onClick={() =>
+                            field.onChange(
+                              ids.includes(building.id)
+                                ? ids.filter((x) => x !== building.id)
+                                : [...ids, building.id],
+                            )
+                          }
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              }}
+            />
+          </div>
+
+          {errors.root?.server?.message && (
+            <p role="alert" className="mt-[12px] rounded-[11px] bg-[#fff1f1] px-[13px] py-[10px] text-[13px] font-semibold text-[#f04452]">
+              {errors.root.server.message}
+            </p>
+          )}
+
+          {/* 푸터 */}
+          <div className="flex w-full gap-[8px] pt-[20px]">
+            <button
+              type="button"
+              onClick={closeSafely}
+              disabled={isPending}
+              className="flex h-[40px] flex-1 items-center justify-center rounded-[11px] bg-[#f2f4f6] px-[18px] text-[13.5px] font-bold tracking-[-0.135px] text-[#4e5968] disabled:opacity-60"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              disabled={isPending}
+              className="flex h-[40px] flex-1 items-center justify-center rounded-[11px] bg-[#14a497] px-[18px] text-[13.5px] font-bold tracking-[-0.135px] text-white disabled:opacity-60"
+            >
+              {isPending ? "저장 중…" : editing ? "수정" : "등록"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
