@@ -116,7 +116,7 @@ export function MessageDetailModal({
             recipients.map((recipient, index) => (
               <div
                 key={`${recipient.phone ?? ""}:${index}`}
-                className="flex items-center justify-between border-b border-[#f1f3f5] px-[13px] py-[9px] last:border-b-0"
+                className="flex h-[34px] items-center justify-between border-b border-[#f1f3f5] px-[13px] last:border-b-0"
               >
                 <span className="text-[13px] font-semibold text-[#191f28]">
                   {recipient.name ?? "이름 없음"}
@@ -160,7 +160,7 @@ function SummaryRow({
   children: ReactNode;
 }) {
   return (
-    <div className="flex w-full gap-[10px] border-b border-[#f1f3f5] px-[13px] py-[9px] last:border-b-0">
+    <div className="flex h-[34px] w-full items-center gap-[10px] border-b border-[#f1f3f5] px-[13px] last:border-b-0">
       <span className="w-[64px] shrink-0 text-[13px] font-semibold text-[#8b95a1]">
         {label}
       </span>
