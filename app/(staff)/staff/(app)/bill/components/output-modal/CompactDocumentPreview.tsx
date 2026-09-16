@@ -7,7 +7,7 @@ import { GiroStampOverlays } from "./GiroStampOverlays";
 import { ZoomControls } from "./OutputModalPrimitives";
 
 interface CompactDocumentPreviewProps {
-  type: "giro" | "adjustment" | "fax";
+  type: "giro" | "fax";
   companyName: string;
   period: string;
   building?: BillBuilding;
@@ -58,23 +58,6 @@ function GiroPaper({ companyName, period, building, target, document, stamps }: 
   );
 }
 
-function AdjustmentPaper({ period, building, target }: Omit<CompactDocumentPreviewProps, "type" | "zoom" | "onZoom">) {
-  const [year, month] = period.split("-");
-  const headers = ["순번", "호수", "성명", "전기", "수도", "일반관리", "청소비", "승강기", "공용전기", "수선충당", "당월계", "전월계", "증감"];
-  return (
-    <div className="h-[435px] w-[616px] overflow-hidden border border-[#c5cbd1] bg-white px-[16px] text-[#20262d] shadow-[0_2px_7px_rgba(23,31,40,0.1)]">
-      <div className="text-center">
-        <strong className="text-[5px] tracking-[1px]">[ {year}년 {Number(month)}월분 조정명세서 ]</strong>
-        <p className="text-[3.5px]">[ {building?.code ?? "001"} {building?.name ?? "-"} ]</p>
-      </div>
-      <div className="grid grid-cols-[20px_31px_38px_repeat(10,minmax(0,1fr))] border-l border-t border-black text-[1.5px] leading-[2px]">
-        {headers.map((label) => <strong key={label} className="truncate border-b border-r border-black text-center">{label}</strong>)}
-        {Array.from({ length: 20 }, (_, index) => headers.map((_, column) => column === 0 ? String(index + 1) : column === 1 ? `${Math.floor(index / 5) + 1}0${index % 5 + 1}` : column === 2 ? (index === 0 ? target?.payerName || target?.tenantName || "김민수" : "") : column > 9 ? String(267000 + index * 1320) : String((index + 2) * (column + 3) * 110))).flat().map((value, index) => <span key={index} className="truncate border-b border-r border-black px-px text-right">{value}</span>)}
-      </div>
-    </div>
-  );
-}
-
 export function CompactDocumentPreview(props: CompactDocumentPreviewProps) {
   const { type, zoom, onZoom } = props;
   return (
@@ -87,7 +70,7 @@ export function CompactDocumentPreview(props: CompactDocumentPreviewProps) {
         </div>
       )}
       <div style={{ transform: `scale(${zoom / 100})`, transformOrigin: "center" }}>
-        {type === "adjustment" ? <AdjustmentPaper {...props} /> : <GiroPaper {...props} />}
+        <GiroPaper {...props} />
       </div>
       <ZoomControls zoom={zoom} onZoom={onZoom} />
     </section>

@@ -44,6 +44,7 @@ export async function getBillPageData(orgId: number): Promise<BillPageData> {
   const config = configResult.data as BillSetupConfigRow | null;
 
   return {
+    orgId,
     buildings: (buildingsResult.data ?? []) as BillBuilding[],
     companyName: organizationResult.data?.name ?? PROGRAM_COMPANY_NAME,
     accounts: printableAccounts(config ? {

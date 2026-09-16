@@ -10,6 +10,7 @@ export interface BillBuilding {
 }
 
 export interface BillPageData {
+  orgId: number;
   buildings: BillBuilding[];
   companyName: string;
   accounts: PrintableAccount[];

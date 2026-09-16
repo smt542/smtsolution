@@ -1,0 +1,184 @@
+import { useQueries, useQuery } from "@tanstack/react-query";
+import {
+  buildAdjustmentStatementPages,
+  type AdjustmentBuildingInput,
+  type AdjustmentStatementPageModel,
+} from "@/lib/bill/adjustmentStatement";
+import { listLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers/apis";
+import { lateFeeTierKeys } from "@/hooks/reactquery/lateFeeTiers/keys";
+import { listOverduePeriods } from "@/hooks/reactquery/overdue/apis";
+import { overdueKeys } from "@/hooks/reactquery/overdue/keys";
+import { listBuildingPaymentDates } from "@/hooks/reactquery/payments/apis";
+import { paymentKeys } from "@/hooks/reactquery/payments/keys";
+import { listUtilityRows, type UtilityType, type UtilityUnitRow } from "@/hooks/reactquery/utilities/apis";
+import { utilityKeys } from "@/hooks/reactquery/utilities/keys";
+import { getBillDocuments, listBillTargets } from "./apis";
+import { billKeys } from "./keys";
+
+// 검침 조회 종목 순서(빌더가 항목 순서로 표시 종목을 고르므로 3종목 모두 조회한다).
+const METER_UTILITIES: UtilityType[] = ["water", "electricity", "gas"];
+
+function toMeterInputs(rows: UtilityUnitRow[]) {
+  return rows.map((meter) => ({
+    unitId: meter.unitId,
+    unitNo: meter.unitNo,
+    dong: meter.dong,
+    currentReading: meter.currentReading,
+    previousReading: meter.previousReading,
+    usage: meter.usage,
+    occupancyStatus: meter.occupancyStatus,
+  }));
+}
+
+export interface AdjustmentStatementBuilding {
+  id: number;
+  code: string;
+  name: string;
+  address: string | null;
+}
+
+export interface UseAdjustmentStatementsParams {
+  buildings: AdjustmentStatementBuilding[];
+  period: string; // 'YYYY-MM-01'
+  orgId: number;
+  companyName: string;
+  outputDate: string;
+  enabled: boolean;
+}
+
+export interface UseAdjustmentStatementsResult {
+  pages: AdjustmentStatementPageModel[];
+  isLoading: boolean;
+  isRefreshing: boolean;
+  isError: boolean;
+  hasData: boolean;
+}
+
+/** 조정명세서 미리보기·인쇄용 페이지 모델을 건물별 정본 소스에서 조립한다.
+ *  targets/documents는 지로와 동일한 query key를 재사용하므로 캐시가 공유된다. */
+export function useAdjustmentStatements(
+  params: UseAdjustmentStatementsParams,
+): UseAdjustmentStatementsResult {
+  const { buildings, period, orgId, companyName, outputDate, enabled } = params;
+  const [yearStr, monthStr] = period.split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+
+  const targetQueries = useQueries({
+    queries: buildings.map((building) => ({
+      queryKey: billKeys.targets(building.id, period),
+      queryFn: () => listBillTargets(building.id, period),
+      enabled,
+    })),
+  });
+
+  const targetsByBuilding = buildings.map((building, index) => ({
+    building,
+    targets: targetQueries[index]?.data ?? [],
+  }));
+
+  const documentQueries = useQueries({
+    queries: targetsByBuilding.map(({ building, targets }) => {
+      const unitIds = targets.map((target) => target.unitId);
+      return {
+        queryKey: billKeys.documents(building.id, period, unitIds),
+        queryFn: () => getBillDocuments(building.id, period, unitIds),
+        enabled: enabled && unitIds.length > 0,
+      };
+    }),
+  });
+
+  const meterQueries = useQueries({
+    queries: buildings.flatMap((building) =>
+      METER_UTILITIES.map((utility) => ({
+        queryKey: utilityKeys.rows(building.id, utility, period),
+        queryFn: () => listUtilityRows(building.id, utility, period),
+        enabled,
+      })),
+    ),
+  });
+
+  const overdueQueries = useQueries({
+    queries: buildings.map((building) => ({
+      queryKey: overdueKeys.periods(building.id, year, month, "all"),
+      queryFn: () => listOverduePeriods(building.id, { year, month, scope: "all" as const }),
+      enabled,
+    })),
+  });
+
+  const paymentQueries = useQueries({
+    queries: buildings.map((building) => ({
+      queryKey: paymentKeys.statementDates(building.id, period, period),
+      queryFn: () => listBuildingPaymentDates(building.id, period, period),
+      enabled,
+    })),
+  });
+
+  const tiersQuery = useQuery({
+    queryKey: lateFeeTierKeys.list(orgId),
+    queryFn: () => listLateFeeRateTiers(orgId),
+    enabled: enabled && orgId > 0,
+  });
+
+  const buildingInputs: AdjustmentBuildingInput[] = buildings.map((building, index) => {
+    const paidDateByUnit = new Map<number, string>();
+    // 오름차순(paid_at)으로 정렬되어 오므로 마지막 값이 max(paid_at)로 남는다.
+    for (const row of paymentQueries[index]?.data ?? []) paidDateByUnit.set(row.unitId, row.paidAt);
+
+    return {
+      building,
+      targets: (targetQueries[index]?.data ?? []).map((target) => ({
+        unitId: target.unitId,
+        unitNo: target.unitNo,
+        dong: target.dong,
+        payerName: target.payerName,
+        tenantName: target.tenantName,
+        phone: target.phone,
+      })),
+      documents: (documentQueries[index]?.data ?? []).map((document) => ({
+        unitId: document.unitId,
+        totalAmount: document.totalAmount,
+        items: document.items,
+      })),
+      metersByUtility: {
+        water: toMeterInputs(meterQueries[index * 3]?.data ?? []),
+        electricity: toMeterInputs(meterQueries[index * 3 + 1]?.data ?? []),
+        gas: toMeterInputs(meterQueries[index * 3 + 2]?.data ?? []),
+      },
+      overduePeriods: (overdueQueries[index]?.data ?? []).map((row) => ({
+        unitId: row.unitId,
+        period: row.period,
+        unpaidPrincipal: row.unpaidPrincipal,
+        dueDate: row.dueDate,
+      })),
+      paidDateByUnit,
+    };
+  });
+
+  const pages = enabled
+    ? buildAdjustmentStatementPages({
+        buildings: buildingInputs,
+        period,
+        companyName,
+        outputDate,
+        tiers: tiersQuery.data ?? [],
+      })
+    : [];
+
+  const perBuilding = [
+    ...targetQueries,
+    ...documentQueries,
+    ...meterQueries,
+    ...overdueQueries,
+    ...paymentQueries,
+  ];
+  const allQueries = [...perBuilding, tiersQuery];
+
+  return {
+    pages,
+    isLoading: enabled && allQueries.some((query) => query.isLoading),
+    isRefreshing: enabled && allQueries.some((query) => query.isFetching && !query.isLoading),
+    isError: enabled && allQueries.some((query) => query.isError),
+    hasData: pages.some((page) => page.rows.length > 0),
+  };
+}

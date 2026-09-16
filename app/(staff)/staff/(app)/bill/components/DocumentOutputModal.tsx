@@ -6,26 +6,31 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Spinner } from "@/components/common";
-import { billKeys, getBillDocuments, listBillTargets, useIssueBills, useSendBillFaxes, type BillDocument, type BillTarget } from "@/hooks/reactquery/bill";
+import { billKeys, getBillDocuments, listBillTargets, useAdjustmentStatements, useIssueBills, useSendBillFaxes, type BillDocument, type BillTarget } from "@/hooks/reactquery/bill";
 import { billingKeys, getBillingPeriodSetting } from "@/hooks/reactquery/billing";
 import { cmsDownloadUrl } from "@/hooks/reactquery/payments";
-import { currentPeriod, prevPeriod } from "@/lib/billing/period";
+import { currentPeriod } from "@/lib/billing/period";
 import type { PrintableAccount } from "@/lib/bill/document";
 import type { BillBuilding, OutputDocumentType } from "../types";
-import type { AdjustmentBuildingDocuments, AdjustmentPrintViewProps } from "./AdjustmentPrintView";
 import type { GiroOutputDocument, GiroPrintViewProps, GiroStampOptions } from "./GiroPrintView";
 import { AutoDebitTable } from "./output-modal/AutoDebitTable";
+import { AdjustmentPreviewViewport, AdjustmentStatementPreview, AdjustmentStatementStyles } from "./output-modal/AdjustmentStatement";
 import { CompactDocumentPreview } from "./output-modal/CompactDocumentPreview";
 import { FaxConfirmationModal } from "./output-modal/FaxConfirmationModal";
 import { ModalActionButton, ZoomControls } from "./output-modal/OutputModalPrimitives";
 import { OutputSelectionPane } from "./output-modal/OutputSelectionPane";
 import { GiroStampToolbar, type GiroStampKind, type GiroStampScope } from "./output-modal/GiroStampToolbar";
 
-const AdjustmentPrintView = dynamic<AdjustmentPrintViewProps>(() => import("./AdjustmentPrintView").then((module) => module.AdjustmentPrintView), { loading: () => <div className="flex min-h-[420px] items-center justify-center bg-[#e9edf1]"><Spinner /></div> });
 const GiroPrintView = dynamic<GiroPrintViewProps>(() => import("./GiroPrintView").then((module) => module.GiroPrintView), { loading: () => <div className="flex min-h-[420px] items-center justify-center bg-[#e9edf1]"><Spinner /></div> });
+
+function formatOutputDate(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
 export interface DocumentOutputModalProps {
   type: OutputDocumentType;
+  orgId: number;
   buildings: BillBuilding[];
   companyName: string;
   accounts: PrintableAccount[];
@@ -50,17 +55,18 @@ function mergeGiroDocuments(building: BillBuilding, documents: BillDocument[], t
   });
 }
 
-export function DocumentOutputModal({ type, buildings, companyName, accounts, customerNotice, onClose }: DocumentOutputModalProps) {
+export function DocumentOutputModal({ type, orgId, buildings, companyName, accounts, customerNotice, onClose }: DocumentOutputModalProps) {
   const initial = initialYearMonth();
   const [year, setYear] = useState(initial.year);
   const [month, setMonth] = useState(initial.month);
+  const [outputDate] = useState(() => formatOutputDate(new Date()));
   const [search, setSearch] = useState("");
   const [selectedBuildingIds, setSelectedBuildingIds] = useState<number[]>(
     type === "autoDebit" ? buildings.map((building) => building.id) : type === "giro" ? [] : buildings[0] ? [buildings[0].id] : [],
   );
   const [selectedUnitIds, setSelectedUnitIds] = useState<number[]>([]);
   const [previewUnitId, setPreviewUnitId] = useState<number | null>(null);
-  const [zoom, setZoom] = useState(100);
+  const [zoom, setZoom] = useState(type === "adjustment" ? 55 : 100);
   const [group, setGroup] = useState(0);
   const [stamps, setStamps] = useState<GiroStampOptions>({ reissue: false, waterCutoffUnitIds: [], autoDebit: false });
   const [waterCutoffStamp, setWaterCutoffStamp] = useState(false);
@@ -76,19 +82,17 @@ export function DocumentOutputModal({ type, buildings, companyName, accounts, cu
   const handlePreviewReady = useCallback(() => setPreviewReady(true), []);
 
   const period = outputPeriod(year, month);
-  const previousPeriod = prevPeriod(period);
-  const needsDocuments = type === "giro" || type === "adjustment";
+  const needsDocuments = type === "giro";
   const selectedBuildings = useMemo(() => buildings.filter((building) => selectedBuildingIds.includes(building.id)), [buildings, selectedBuildingIds]);
   const normalizedSearch = search.trim().toLocaleLowerCase("ko-KR");
   const visibleBuildings = buildings.filter((building) => !normalizedSearch || `${building.code} ${building.name} ${building.address ?? ""}`.toLocaleLowerCase("ko-KR").includes(normalizedSearch));
 
   const currentTargetQueries = useQueries({ queries: selectedBuildings.map((building) => ({ queryKey: billKeys.targets(building.id, period), queryFn: () => listBillTargets(building.id, period) })) });
-  const previousTargetQueries = useQueries({ queries: selectedBuildings.map((building) => ({ queryKey: billKeys.targets(building.id, previousPeriod), queryFn: () => listBillTargets(building.id, previousPeriod), enabled: type === "adjustment" })) });
   const periodSettingQueries = useQueries({ queries: selectedBuildings.map((building) => ({ queryKey: billingKeys.periodSetting(building.id, period), queryFn: () => getBillingPeriodSetting(building.id, period), enabled: type === "giro" })) });
   const currentTargetsByBuilding = selectedBuildings.map((building, index) => ({ building, targets: currentTargetQueries[index]?.data ?? [] }));
-  const previousTargetsByBuilding = selectedBuildings.map((building, index) => ({ building, targets: previousTargetQueries[index]?.data ?? [] }));
   const currentDocumentQueries = useQueries({ queries: currentTargetsByBuilding.map(({ building, targets }) => ({ queryKey: billKeys.documents(building.id, period, targets.map((target) => target.unitId)), queryFn: () => getBillDocuments(building.id, period, targets.map((target) => target.unitId)), enabled: needsDocuments && targets.length > 0 })) });
-  const previousDocumentQueries = useQueries({ queries: previousTargetsByBuilding.map(({ building, targets }) => ({ queryKey: billKeys.documents(building.id, previousPeriod, targets.map((target) => target.unitId)), queryFn: () => getBillDocuments(building.id, previousPeriod, targets.map((target) => target.unitId)), enabled: type === "adjustment" && targets.length > 0 })) });
+
+  const adjustment = useAdjustmentStatements({ buildings: selectedBuildings, period, orgId, companyName, outputDate, enabled: type === "adjustment" });
 
   const allGiroDocuments = currentTargetsByBuilding.flatMap(({ building, targets }, index) => mergeGiroDocuments(building, currentDocumentQueries[index]?.data ?? [], targets, periodSettingQueries[index]?.data?.dueDate ?? null));
   const validSelectedUnitIds = selectedUnitIds.filter((unitId) => allGiroDocuments.some(({ document }) => document.unitId === unitId));
@@ -96,7 +100,6 @@ export function DocumentOutputModal({ type, buildings, companyName, accounts, cu
     ? previewUnitId
     : validSelectedUnitIds[0] ?? null;
   const giroDocuments = allGiroDocuments.filter(({ document }) => validSelectedUnitIds.includes(document.unitId));
-  const adjustmentBuildings: AdjustmentBuildingDocuments[] = currentTargetsByBuilding.map(({ building, targets }, index) => ({ building, targets, current: currentDocumentQueries[index]?.data ?? [], previous: previousDocumentQueries[index]?.data ?? [] }));
   const allTargets = currentTargetsByBuilding.flatMap(({ building, targets }) => targets.map((target) => ({ building, target })));
   const autoDebitRows = allTargets.filter(({ target }) => target.autoDebit);
   const faxReadyTargets = allTargets.filter(({ target }) => Boolean(target.faxNumber));
@@ -122,14 +125,14 @@ export function DocumentOutputModal({ type, buildings, companyName, accounts, cu
     setFaxRecipient(first.faxNumber ?? "");
   }, [faxReadyTargets, type]);
 
-  const allQueries = [...currentTargetQueries, ...(needsDocuments ? currentDocumentQueries : []), ...(type === "giro" ? periodSettingQueries : []), ...(type === "adjustment" ? [...previousTargetQueries, ...previousDocumentQueries] : [])];
-  const isPreviewInitialLoading = allQueries.some((query) => query.isLoading);
-  const isPreviewRefreshing = allQueries.some(
+  const allQueries = [...currentTargetQueries, ...(needsDocuments ? currentDocumentQueries : []), ...(type === "giro" ? periodSettingQueries : [])];
+  const isPreviewInitialLoading = (type === "adjustment" && adjustment.isLoading) || allQueries.some((query) => query.isLoading);
+  const isPreviewRefreshing = (type === "adjustment" && adjustment.isRefreshing) || allQueries.some(
     (query) => query.isFetching && !query.isLoading,
   );
   const isPreviewBusy = isPreviewInitialLoading || isPreviewRefreshing;
-  const isError = allQueries.some((query) => query.isError);
-  const hasPrintableData = type === "giro" ? giroDocuments.length > 0 : adjustmentBuildings.some((bundle) => bundle.current.length > 0 || bundle.previous.length > 0);
+  const isError = (type === "adjustment" && adjustment.isError) || allQueries.some((query) => query.isError);
+  const hasPrintableData = type === "giro" ? giroDocuments.length > 0 : type === "adjustment" ? adjustment.hasData : false;
 
   const resetPeriodSelection = () => {
     setSelectedUnitIds([]);
@@ -250,7 +253,7 @@ export function DocumentOutputModal({ type, buildings, companyName, accounts, cu
     }
   };
 
-  const printPreview = type === "giro" ? <GiroPrintView companyName={companyName} period={period} documents={giroDocuments} accounts={accounts} customerNotice={customerNotice} stamps={{ ...stamps, reissueUnitIds: stamps.reissue ? stampTargetIds : [], autoDebitUnitIds: stamps.autoDebit ? stampTargetIds : [], waterCutoffUnitIds: printWaterCutoffUnitIds }} onReady={handlePreviewReady} /> : type === "adjustment" ? <AdjustmentPrintView companyName={companyName} period={period} buildings={adjustmentBuildings} onReady={handlePreviewReady} /> : null;
+  const printPreview = type === "giro" ? <GiroPrintView companyName={companyName} period={period} documents={giroDocuments} accounts={accounts} customerNotice={customerNotice} stamps={{ ...stamps, reissueUnitIds: stamps.reissue ? stampTargetIds : [], autoDebitUnitIds: stamps.autoDebit ? stampTargetIds : [], waterCutoffUnitIds: printWaterCutoffUnitIds }} onReady={handlePreviewReady} /> : null;
   const selectedUnitCount = type === "fax" ? selectedFaxUnitIds.length : selectedUnitIds.length;
   const stampFooterLabel = type === "giro" && stampTargetIds.length > 0
     ? stampScope === "all"
@@ -296,9 +299,18 @@ export function DocumentOutputModal({ type, buildings, companyName, accounts, cu
                       출력할 호수를 선택해 주세요
                       <ZoomControls zoom={zoom} onZoom={setZoom} />
                     </div>
+                  ) : type === "adjustment" ? (
+                    adjustment.hasData ? (
+                      <AdjustmentPreviewViewport pages={adjustment.pages} zoom={zoom} onZoom={setZoom} refreshing={isPreviewRefreshing} />
+                    ) : (
+                      <div className="relative flex min-h-0 flex-1 items-center justify-center bg-[#e9edf1] text-[12px] text-[#8b95a1]">
+                        표시할 조정 명세 자료가 없습니다.
+                        <ZoomControls zoom={zoom} onZoom={setZoom} />
+                      </div>
+                    )
                   ) : (
                     <>
-                      <CompactDocumentPreview type={type} companyName={companyName} period={period} building={previewEntry?.building ?? fallbackPreview?.building ?? selectedBuildings[0]} target={previewEntry?.target ?? fallbackPreview?.target} document={previewEntry?.document ?? currentDocumentQueries[0]?.data?.[0]} stamps={type === "giro" ? { ...stamps, reissueUnitIds: stamps.reissue ? stampTargetIds : [], autoDebitUnitIds: stamps.autoDebit ? stampTargetIds : [], waterCutoffUnitIds: printWaterCutoffUnitIds } : undefined} zoom={zoom} onZoom={setZoom} />
+                      <CompactDocumentPreview type={type as "giro" | "fax"} companyName={companyName} period={period} building={previewEntry?.building ?? fallbackPreview?.building ?? selectedBuildings[0]} target={previewEntry?.target ?? fallbackPreview?.target} document={previewEntry?.document ?? currentDocumentQueries[0]?.data?.[0]} stamps={type === "giro" ? { ...stamps, reissueUnitIds: stamps.reissue ? stampTargetIds : [], autoDebitUnitIds: stamps.autoDebit ? stampTargetIds : [], waterCutoffUnitIds: printWaterCutoffUnitIds } : undefined} zoom={zoom} onZoom={setZoom} />
                       {isPreviewRefreshing ? (
                         <div className={`pointer-events-none absolute right-3 rounded-full bg-surface/95 shadow-card ${type === "giro" ? "top-[60px]" : "top-3"}`}>
                           <Spinner label="출력 미리보기 갱신 중" size="small" showLabel className="px-3 py-2" />
@@ -317,13 +329,15 @@ export function DocumentOutputModal({ type, buildings, companyName, accounts, cu
             </div>
             <div className="flex items-center gap-[8px]">
               {type === "autoDebit" && <><ModalActionButton variant="ghost" icon="/figma-assets/bill/download.svg" onClick={downloadAutoDebit} disabled={selectedBuildings.length === 0}>다운로드</ModalActionButton><ModalActionButton icon="/figma-assets/bill/print.svg" onClick={() => window.print()} disabled={autoDebitRows.length === 0}>인쇄</ModalActionButton></>}
-              {(type === "giro" || type === "adjustment") && <ModalActionButton icon="/figma-assets/bill/print.svg" onClick={() => void print()} disabled={!hasPrintableData || isPreviewBusy || !previewReady || issueBills.isPending}>{issueBills.isPending ? "발행 중…" : "인쇄"}</ModalActionButton>}
+              {(type === "giro" || type === "adjustment") && <ModalActionButton icon="/figma-assets/bill/print.svg" onClick={() => void print()} disabled={!hasPrintableData || isPreviewBusy || (type === "giro" && (!previewReady || issueBills.isPending))}>{type === "giro" && issueBills.isPending ? "발행 중…" : "인쇄"}</ModalActionButton>}
               {type === "fax" && <ModalActionButton onClick={openFaxConfirmation} disabled={selectedFaxUnitIds.length === 0 || sendFaxes.isPending}>{sendFaxes.isPending ? "발송 중…" : "발송"}</ModalActionButton>}
             </div>
           </footer>
         </div>
       </div>
-      {(type === "giro" || type === "adjustment") && hasPrintableData && <div className="hidden print:block" data-testid="document-output-print-root">{printPreview}</div>}
+      {type === "adjustment" && <AdjustmentStatementStyles />}
+      {type === "giro" && hasPrintableData && <div className="hidden print:block" data-testid="document-output-print-root">{printPreview}</div>}
+      {type === "adjustment" && adjustment.hasData && <div className="hidden print:block" data-testid="document-output-print-root"><AdjustmentStatementPreview pages={adjustment.pages} mode="print" /></div>}
       {type === "autoDebit" && autoDebitRows.length > 0 && (
         <table className="hidden w-full border-collapse text-xs print:table" data-testid="auto-debit-print-root"><thead><tr>{["건물", "호수", "회원명", "청구월", "결제일", "금액", "회원구분"].map((label) => <th key={label} className="border p-2">{label}</th>)}</tr></thead><tbody>{autoDebitRows.map(({ building, target }) => <tr key={`${building.id}-${target.unitId}`}><td className="border p-2">{building.name}</td><td className="border p-2">{target.unitNo}</td><td className="border p-2">{target.payerName || target.tenantName}</td><td className="border p-2">{year}.{String(month).padStart(2, "0")}</td><td className="border p-2">{target.dueDate}</td><td className="border p-2 text-right">{target.totalAmount.toLocaleString("ko-KR")}</td><td className="border p-2">자동이체</td></tr>)}</tbody></table>
       )}
