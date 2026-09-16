@@ -40,7 +40,7 @@ export function EntryAlertModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#171f28]/45 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-4"
       onMouseDown={onClose}
     >
       <section

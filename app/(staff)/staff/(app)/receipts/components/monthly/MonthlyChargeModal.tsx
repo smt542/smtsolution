@@ -134,7 +134,7 @@ export function MonthlyChargeModal({
     <>
       <style>{"@media print { @page { size: A4 landscape; margin: 8mm; } }"}</style>
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(23,31,40,0.45)] p-[24px] print:hidden"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-[24px] print:hidden"
         role="dialog"
         aria-modal="true"
         aria-labelledby="monthly-charge-title"

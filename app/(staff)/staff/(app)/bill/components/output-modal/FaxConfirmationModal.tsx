@@ -21,7 +21,7 @@ export function FaxConfirmationModal({ building, targets, period, senderLabel, r
   const validRecipient = /\d{2,4}-?\d{3,4}-?\d{4}/.test(recipient);
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[rgba(23,31,40,0.45)] p-3 print:hidden" role="dialog" aria-modal="true" aria-labelledby="fax-confirm-title">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-scrim p-3 print:hidden" role="dialog" aria-modal="true" aria-labelledby="fax-confirm-title">
       <div className="h-[410px] w-[440px] overflow-hidden rounded-[20px] bg-white px-[26px] pb-[24px] pt-[28px] shadow-[0_30px_70px_-20px_rgba(0,0,0,0.45)]">
         <h3 id="fax-confirm-title" className="text-[16.5px] font-extrabold leading-[21px] tracking-[-0.02em] text-[#191f28]">팩스 발송</h3>
 

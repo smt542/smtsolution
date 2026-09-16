@@ -135,7 +135,7 @@ export function VendorFormModal({
       onClose={() => closeModal()}
       title={editing ? "업체 수정" : "업체 추가"}
       className={styles.dialog}
-      overlayClassName="z-[320] bg-[rgba(23,31,40,.5)] p-6"
+      overlayClassName="z-[320] p-6"
     >
       <button
         type="button"
@@ -345,7 +345,7 @@ export function VendorFormModal({
         onClose={() => setConfirmDelete(false)}
         title="업체 삭제"
         className="max-w-[360px] rounded-[20px] shadow-hf-modal"
-        overlayClassName="z-[340] bg-[rgba(23,31,40,.5)] p-6"
+        overlayClassName="z-[340] p-6"
       >
         <p className="text-[13.5px] font-semibold leading-[1.6] text-t3">
           ‘<b className="font-bold text-t1">{editing?.name}</b>’ 업체를 삭제합니다. 삭제하면 되돌릴 수 없어요.

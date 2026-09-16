@@ -20,7 +20,7 @@ export function CarryOverDialog({ open, period, onCancel, onConfirm }: CarryOver
   const label = nextPeriod(period);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4" role="presentation" onMouseDown={onCancel}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-scrim p-4" role="presentation" onMouseDown={onCancel}>
       <section
         role="dialog"
         aria-modal="true"

@@ -475,7 +475,7 @@ export function AsReportModal({
 
   return (
     <div
-      className={`${styles.aspScrim} ${styles.show} flex items-center justify-center fixed inset-0 z-[500] bg-[rgba(23,31,40,0.45)] p-6`}
+      className={`${styles.aspScrim} ${styles.show} flex items-center justify-center fixed inset-0 z-[500] bg-scrim p-6`}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}

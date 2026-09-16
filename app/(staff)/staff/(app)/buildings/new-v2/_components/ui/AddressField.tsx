@@ -31,7 +31,7 @@ function AddressSearchDialog({ onClose, onSelect }: { onClose: () => void; onSel
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-[rgba(23,31,40,0.45)]"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-scrim"
       onMouseDown={onClose}
       role="presentation"
     >

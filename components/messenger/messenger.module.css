@@ -219,7 +219,7 @@
   .cal-d.today{color:var(--blue);font-weight:800}
   .cal-d.sel{background:var(--blue)!important;color:#fff!important;font-weight:800}
   .fmp-tlist{width:232px;padding:0}
-  .fmpc-scrim{position:fixed;inset:0;background:rgba(23,31,40,.5);display:none;align-items:center;justify-content:center;z-index:320;padding:24px}
+  .fmpc-scrim{position:fixed;inset:0;background:var(--color-scrim);display:none;align-items:center;justify-content:center;z-index:320;padding:24px}
   .fmpc-scrim.show{display:flex}
   .fmpc{background:#fff;border-radius:20px;width:min(360px,92%);padding:28px 26px 24px;text-align:center;box-shadow:0 30px 70px -20px rgba(0,0,0,.45);max-height:88vh;overflow:auto}
   .fmpc-ic{width:52px;height:52px;border-radius:16px;background:var(--amber-t);display:flex;align-items:center;justify-content:center;margin:0 auto 15px}

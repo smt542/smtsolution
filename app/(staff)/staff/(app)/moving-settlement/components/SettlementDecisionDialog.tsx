@@ -40,7 +40,7 @@ export function SettlementDecisionDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-[rgba(23,31,40,0.5)] p-[24px]"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-scrim p-[24px]"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !pending) onCancel();
       }}

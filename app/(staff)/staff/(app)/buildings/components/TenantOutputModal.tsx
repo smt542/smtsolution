@@ -102,7 +102,7 @@ export function TenantOutputModal({
   return (
     <>
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-[#171f28]/50 p-[28px] print:hidden"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-[28px] print:hidden"
         role="dialog"
         aria-modal="true"
         aria-labelledby="tenant-output-title"

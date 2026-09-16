@@ -55,7 +55,7 @@ export function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-[#171f28]/50 p-6"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-scrim p-6"
       onMouseDown={onCancel}
     >
       <div

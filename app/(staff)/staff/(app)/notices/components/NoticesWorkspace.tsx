@@ -193,7 +193,7 @@ export function NoticesWorkspace({
       {/* 상세 모달 (더미 항목은 열지 않음) */}
       {selectedListId !== null && selectedListId > 0 && (
         selectedNoticeQuery.isLoading || selectedNoticeQuery.isError ? (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setSelectedId(null)}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-4" onClick={() => setSelectedId(null)}>
             <div role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()} className="w-[660px] max-w-full rounded-[20px] bg-white p-[24px] drop-shadow-[0px_30px_35px_rgba(0,0,0,0.4)]">
               {selectedNoticeQuery.isLoading ? (
                 <div className="flex items-center justify-center py-16">

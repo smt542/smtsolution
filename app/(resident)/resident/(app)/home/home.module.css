@@ -471,7 +471,7 @@
   position: fixed;
   inset: 0;
   height: 100dvh;
-  background: rgba(23, 31, 40, 0.45);
+  background: var(--color-scrim);
   display: flex;
   align-items: center;
   justify-content: center;

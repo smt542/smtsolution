@@ -69,7 +69,7 @@ export function GasLedgerModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4 print:static print:block print:bg-white print:p-0" role="presentation">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-scrim p-4 print:static print:block print:bg-white print:p-0" role="presentation">
       <style>{`@media print {
         @page { size: A4 portrait; margin: 0; }
         body * { visibility: hidden !important; }

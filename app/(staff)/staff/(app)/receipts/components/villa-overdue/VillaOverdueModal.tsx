@@ -109,7 +109,7 @@ export function VillaOverdueModal({
     <>
       <style>{"@media print { @page { size: A4 landscape; margin: 8mm; } }"}</style>
       <div
-        className="fixed inset-0 z-[60] flex items-center justify-center bg-[#171f28]/45 p-6 print:hidden"
+        className="fixed inset-0 z-[60] flex items-center justify-center bg-scrim p-6 print:hidden"
         role="dialog"
         aria-modal="true"
         aria-labelledby="villa-overdue-title"

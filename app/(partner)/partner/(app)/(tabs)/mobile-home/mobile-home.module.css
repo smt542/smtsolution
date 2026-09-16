@@ -256,7 +256,7 @@
 .sheet {
   position: fixed;
   inset: 0;
-  background: rgba(23, 31, 40, 0.42);
+  background: var(--color-scrim);
   display: flex;
   align-items: flex-end;
   justify-content: center;

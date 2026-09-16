@@ -89,7 +89,7 @@ export function FeeItemFormDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#171f28]/50 px-4" onMouseDown={closeSafely}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim px-4" onMouseDown={closeSafely}>
       <form
         aria-label={item ? "관리 항목 수정" : "관리 항목 추가"}
         className="w-full max-w-[420px] -translate-y-[5px] overflow-hidden rounded-[20px] bg-white shadow-pop"

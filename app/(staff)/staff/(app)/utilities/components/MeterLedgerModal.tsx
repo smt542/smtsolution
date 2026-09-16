@@ -73,7 +73,7 @@ export function MeterLedgerModal({
   };
 
   return (
-    <div data-meter-ledger-overlay className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4" onMouseDown={onClose}>
+    <div data-meter-ledger-overlay className="fixed inset-0 z-[100] flex items-center justify-center bg-scrim p-4" onMouseDown={onClose}>
       <style>{`@media print {
         @page { size: A4 portrait; margin: 0; }
         body * { visibility: hidden !important; }

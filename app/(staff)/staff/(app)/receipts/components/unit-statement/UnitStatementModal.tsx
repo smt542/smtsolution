@@ -215,7 +215,7 @@ export function UnitStatementModal({
     <>
       <style>{"@media print { @page { size: A4 landscape; margin: 8mm; } }"}</style>
       <div
-        className="fixed inset-0 z-[70] flex items-center justify-center bg-[#171f28]/45 p-6 print:hidden"
+        className="fixed inset-0 z-[70] flex items-center justify-center bg-scrim p-6 print:hidden"
         onClick={onClose}
       >
         <section

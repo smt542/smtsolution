@@ -91,7 +91,7 @@ export function AppShell({ children }: AppShellProps) {
         <>
           {/* backdrop */}
           <div
-            className="fixed inset-0 z-40 bg-black/40 md:hidden print:hidden"
+            className="fixed inset-0 z-40 bg-scrim md:hidden print:hidden"
             onClick={() => setDrawerOpen(false)}
             aria-hidden="true"
           />

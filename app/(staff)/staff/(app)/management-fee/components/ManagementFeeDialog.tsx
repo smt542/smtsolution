@@ -76,7 +76,7 @@ export function ManagementFeeDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-[#191f28]/45 px-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-scrim px-4"
       role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !pending) onClose();

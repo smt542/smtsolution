@@ -60,7 +60,7 @@ export function PlatformShell({ children }: { children: React.ReactNode }) {
         <>
           <button
             type="button"
-            className="fixed inset-0 z-40 bg-black/40 md:hidden"
+            className="fixed inset-0 z-40 bg-scrim md:hidden"
             onClick={() => setDrawerOpen(false)}
             aria-label="메뉴 닫기"
           />

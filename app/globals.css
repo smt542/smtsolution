@@ -37,6 +37,10 @@
   --color-line: #E8EBEE;
   --color-line2: #F1F3F5;
 
+  /* modal/overlay scrim (정본: .fmpc-scrim·.lg-scrim·.up-scrim = rgba(23,31,40,.45) 슬레이트).
+     모든 모달·드로어 백드롭은 `bg-scrim` 한 클래스로 참조 → 톤 변경은 이 값만 수정. */
+  --color-scrim: rgba(23, 31, 40, 0.45);
+
   /* text scale */
   --color-t1: #191F28;
   --color-t2: #4E5968;

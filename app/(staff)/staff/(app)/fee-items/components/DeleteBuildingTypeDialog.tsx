@@ -28,7 +28,7 @@ export function DeleteBuildingTypeDialog({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#171f28]/50 px-4" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim px-4" onMouseDown={onClose}>
       <section
         role="alertdialog"
         aria-modal="true"

@@ -40,7 +40,7 @@ export function TenantManagementCardModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#171f28]/50 p-[20px]"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-[20px]"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) requestClose();
       }}

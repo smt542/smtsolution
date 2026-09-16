@@ -27,7 +27,7 @@ export function InvoicePreviewModal({
     <>
       <style>{"@media print { @page { size: A4; margin: 12mm; } }"}</style>
       <div
-        className="fixed inset-0 z-[60] flex items-center justify-center bg-black/45 p-3 print:hidden"
+        className="fixed inset-0 z-[60] flex items-center justify-center bg-scrim p-3 print:hidden"
         role="dialog"
         aria-modal="true"
         aria-labelledby="invoice-preview-title"
