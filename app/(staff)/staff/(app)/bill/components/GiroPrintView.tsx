@@ -11,6 +11,7 @@ import {
 } from "@/lib/bill/document";
 import type { BillBuilding } from "../types";
 import { QrCode } from "./QrCode";
+import { GiroStampOverlays } from "./output-modal/GiroStampOverlays";
 
 export interface GiroOutputDocument {
   building: BillBuilding;
@@ -79,6 +80,11 @@ export function GiroPrintView({
             <div className="pointer-events-none absolute inset-0 flex rotate-[-28deg] items-center justify-center text-6xl font-black text-slate-100">
               {companyName}
             </div>
+            <GiroStampOverlays
+              reissue={stamps.reissue && (!stamps.reissueUnitIds || stamps.reissueUnitIds.includes(document.unitId))}
+              waterCutoff={stamps.waterCutoffUnitIds.includes(document.unitId)}
+              autoDebit={stamps.autoDebit && (!stamps.autoDebitUnitIds || stamps.autoDebitUnitIds.includes(document.unitId))}
+            />
 
             <div className="relative">
               <header className="flex items-start justify-between border-b-2 border-black pb-4">
@@ -117,11 +123,6 @@ export function GiroPrintView({
                     자동이체 신청 세대
                   </p>
                 )}
-                <div className="absolute -right-2 -top-3 flex gap-2">
-                  {stamps.reissue && (!stamps.reissueUnitIds || stamps.reissueUnitIds.includes(document.unitId)) && <span className="rotate-[-7deg] border-2 border-red-600 px-2 py-1 text-sm font-black text-red-600">재발행</span>}
-                  {stamps.waterCutoffUnitIds.includes(document.unitId) && <span className="rotate-[5deg] border-2 border-blue-700 px-2 py-1 text-sm font-black text-blue-700">단수</span>}
-                  {stamps.autoDebit && (!stamps.autoDebitUnitIds || stamps.autoDebitUnitIds.includes(document.unitId)) && <span className="rotate-[-4deg] border-2 border-emerald-700 px-2 py-1 text-sm font-black text-emerald-700">자동이체</span>}
-                </div>
               </div>
 
               <table className="mt-5 w-full border-collapse text-xs">

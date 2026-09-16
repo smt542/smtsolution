@@ -28,8 +28,8 @@ describe("GiroPrintView", () => {
     expect(screen.getByText("김납부")).toBeInTheDocument();
     expect(screen.getByText("010-1234-5678")).toBeInTheDocument();
     expect(screen.getAllByText("35,400원").length).toBeGreaterThan(0);
-    expect(screen.getByText("재발행")).toBeInTheDocument();
-    expect(screen.getByText("단수")).toBeInTheDocument();
+    expect(screen.getByText("재 발 행 용")).toBeInTheDocument();
+    expect(screen.getByText("단수·단수·예고")).toBeInTheDocument();
     expect(screen.getAllByText(/자동이체/).length).toBeGreaterThan(0);
     expect(screen.getByText("2026-08-25")).toBeInTheDocument();
     expect(screen.getByLabelText("고지서 QR")).toBeInTheDocument();
