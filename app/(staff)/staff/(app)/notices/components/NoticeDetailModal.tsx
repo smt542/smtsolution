@@ -14,9 +14,9 @@ import {
   type NoticeInput,
   type NoticeType,
 } from "@/hooks/reactquery/notices";
-import { MessagingModal } from "../../messaging/components/MessagingModal";
-import { useNoticeMessaging } from "../useNoticeMessaging";
+import { useNoticeAlimtalkSend } from "../useNoticeAlimtalkSend";
 import { NOTICE_TYPE_LABELS } from "../utils";
+import { NoticeAlimtalkConfirmModal } from "./NoticeAlimtalkConfirmModal";
 import { NoticeTargetChip } from "./NoticeTargetChip";
 
 const TYPE_ORDER: NoticeType[] = ["normal", "important", "urgent"];
@@ -70,13 +70,15 @@ export function NoticeDetailModal({
 
   const updateNotice = useUpdateNotice();
   const deleteNotice = useDeleteNotice();
-  const messaging = useNoticeMessaging(notice, buildings, canSendMessages);
-  const sendSummary = useNoticeSendSummary(notice.id).data ?? null;
+  const alimtalk = useNoticeAlimtalkSend(notice, buildings, canSendMessages);
+  const [confirmSendOpen, setConfirmSendOpen] = useState(false);
+  const sendSummaryQuery = useNoticeSendSummary(notice.id);
+  const sendSummary = sendSummaryQuery.data ?? null;
   const isSaving = updateNotice.isPending;
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !confirmOpen && !messaging.open) onClose();
+      if (event.key === "Escape" && !confirmOpen && !confirmSendOpen) onClose();
     };
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
@@ -84,7 +86,7 @@ export function NoticeDetailModal({
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
     };
-  }, [confirmOpen, messaging.open, onClose]);
+  }, [confirmOpen, confirmSendOpen, onClose]);
 
   const handleSave = async () => {
     const trimmed = title.trim();
@@ -236,13 +238,13 @@ export function NoticeDetailModal({
               </div>
               <button
                 type="button"
-                onClick={() => void messaging.trigger()}
-                disabled={messaging.disabled}
+                onClick={() => setConfirmSendOpen(true)}
+                disabled={alimtalk.disabled}
                 title={!canSendMessages ? "문자 발송 권한이 필요합니다." : undefined}
                 className="flex h-[36px] shrink-0 items-center gap-[7px] rounded-[10px] border border-[#14a497] bg-white px-[14px] text-[13px] font-bold leading-[normal] text-[#14a497] disabled:opacity-50"
               >
                 <SendIcon className="size-[15px]" />
-                {messaging.isPreparing ? "발송 중…" : sendSummary ? "재전송" : "발송"}
+                {sendSummary ? "재전송" : "발송"}
               </button>
             </div>
           </div>
@@ -289,12 +291,26 @@ export function NoticeDetailModal({
         </div>
       </Modal>
 
-      {messaging.open && (
-        <MessagingModal
+      {confirmSendOpen && (
+        <NoticeAlimtalkConfirmModal
           open
-          preset={messaging.preset}
-          onClose={messaging.close}
-          onSent={messaging.onSent}
+          confirmLabel={sendSummary ? "재전송" : "발송"}
+          noticeTitle={notice.title}
+          buildingLabel={alimtalk.buildingLabel}
+          templateLabel={alimtalk.templateLabel}
+          recipientCount={alimtalk.recipientCount}
+          loading={alimtalk.recipientsLoading}
+          sending={alimtalk.isSending}
+          onCancel={() => { if (!alimtalk.isSending) setConfirmSendOpen(false); }}
+          onConfirm={() => {
+            void (async () => {
+              const ok = await alimtalk.sendNow();
+              if (ok) {
+                setConfirmSendOpen(false);
+                void sendSummaryQuery.refetch();
+              }
+            })();
+          }}
         />
       )}
     </>
