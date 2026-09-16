@@ -2,6 +2,7 @@
 
 import type { BillDocument, BillTarget } from "@/hooks/reactquery/bill";
 import type { BillBuilding } from "../../types";
+import type { GiroStampOptions } from "../GiroPrintView";
 import { ZoomControls } from "./OutputModalPrimitives";
 
 interface CompactDocumentPreviewProps {
@@ -11,6 +12,7 @@ interface CompactDocumentPreviewProps {
   building?: BillBuilding;
   target?: BillTarget;
   document?: BillDocument;
+  stamps?: GiroStampOptions;
   zoom: number;
   onZoom: (value: number) => void;
 }
@@ -26,10 +28,17 @@ function unitLabel(unitNo: string | undefined) {
   return unitNo.endsWith("호") ? unitNo : `${unitNo}호`;
 }
 
-function GiroPaper({ companyName, period, building, target, document }: Omit<CompactDocumentPreviewProps, "type" | "zoom" | "onZoom">) {
+function GiroPaper({ companyName, period, building, target, document, stamps }: Omit<CompactDocumentPreviewProps, "type" | "zoom" | "onZoom">) {
   const [year, month] = period.split("-");
   const total = document?.totalAmount ?? target?.totalAmount ?? 0;
   const rows = document?.items?.slice(0, 8) ?? feeNames.map((name) => ({ name, amount: 0 }));
+  const unitId = document?.unitId ?? target?.unitId;
+  const isStampedForUnit = (unitIds?: number[]) => unitId !== undefined && (!unitIds || unitIds.includes(unitId));
+  const visibleStamps = [
+    stamps?.reissue && isStampedForUnit(stamps.reissueUnitIds) ? { label: "재발행", className: "border-red-600 text-red-600 rotate-[-7deg]" } : null,
+    stamps?.waterCutoffUnitIds.includes(unitId ?? -1) ? { label: "단수", className: "border-blue-700 text-blue-700 rotate-[5deg]" } : null,
+    stamps?.autoDebit && document?.autoDebit && isStampedForUnit(stamps.autoDebitUnitIds) ? { label: "자동이체", className: "border-emerald-700 text-emerald-700 rotate-[-4deg]" } : null,
+  ].filter((stamp): stamp is { label: string; className: string } => stamp !== null);
 
   return (
     <div className="relative h-[464px] w-[628px] overflow-hidden border border-[#c5cbd1] bg-white text-[#20262d] shadow-[0_2px_7px_rgba(23,31,40,0.1)] [&>div:nth-of-type(4)]:text-[5.5px]">
@@ -42,6 +51,11 @@ function GiroPaper({ companyName, period, building, target, document }: Omit<Com
           {rows.slice(0, 7).map((row, index) => <div key={`${row.name}-${index}`} className="contents"><span className="border-b border-r border-black px-1">{row.name}</span><span className="border-b border-r border-black text-center">-</span><span className="border-b border-r border-black text-center">-</span><span className="border-b border-r border-black px-1 text-right">{amount(row.amount)}</span></div>)}
         </div>
       </div>
+      {visibleStamps.length > 0 && (
+        <div aria-label="지로 출력 표기" data-testid="giro-preview-stamps" className="absolute left-[276px] top-[246px] z-10 flex max-w-[245px] flex-wrap justify-end gap-[3px]">
+          {visibleStamps.map((stamp) => <span key={stamp.label} className={`border-[1.5px] px-[3px] py-[1px] text-[6px] font-black leading-[8px] ${stamp.className}`}>{stamp.label}</span>)}
+        </div>
+      )}
       <div className="absolute left-[405px] top-[205px] w-[206px] text-[6px] leading-[10px]"><p className="font-bold">●●●●● 꼭 읽어주세요 ●●●●●</p><p>납기일을 확인해 주세요.</p><p>문의사항은 관리사무소로 연락 바랍니다.</p><p>자동이체 세대는 별도 출금됩니다.</p></div>
       <div className="absolute left-[405px] top-[382px] grid w-[214px] grid-cols-5 border-l border-t border-black text-[4.5px] leading-[10px]">{["구분", "전기", "수도", "당월", "전월", ...Array.from({ length: 20 }, (_, index) => index % 5 === 0 ? `${year}.${String(Number(month) - Math.floor(index / 5)).padStart(2, "0")}` : String((index * 3) % 11))].map((value, index) => <span key={index} className="border-b border-r border-black text-center">{value}</span>)}</div>
       <div className="absolute left-[8px] top-[448px] h-px w-[611px] bg-black" />

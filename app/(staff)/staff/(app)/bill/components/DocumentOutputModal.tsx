@@ -298,7 +298,7 @@ export function DocumentOutputModal({ type, buildings, companyName, accounts, cu
                     </div>
                   ) : (
                     <>
-                      <CompactDocumentPreview type={type} companyName={companyName} period={period} building={previewEntry?.building ?? fallbackPreview?.building ?? selectedBuildings[0]} target={previewEntry?.target ?? fallbackPreview?.target} document={previewEntry?.document ?? currentDocumentQueries[0]?.data?.[0]} zoom={zoom} onZoom={setZoom} />
+                      <CompactDocumentPreview type={type} companyName={companyName} period={period} building={previewEntry?.building ?? fallbackPreview?.building ?? selectedBuildings[0]} target={previewEntry?.target ?? fallbackPreview?.target} document={previewEntry?.document ?? currentDocumentQueries[0]?.data?.[0]} stamps={type === "giro" ? { ...stamps, reissueUnitIds: stamps.reissue ? stampTargetIds : [], autoDebitUnitIds: stamps.autoDebit ? stampTargetIds : [], waterCutoffUnitIds: printWaterCutoffUnitIds } : undefined} zoom={zoom} onZoom={setZoom} />
                       {isPreviewRefreshing ? (
                         <div className={`pointer-events-none absolute right-3 rounded-full bg-surface/95 shadow-card ${type === "giro" ? "top-[60px]" : "top-3"}`}>
                           <Spinner label="출력 미리보기 갱신 중" size="small" showLabel className="px-3 py-2" />
