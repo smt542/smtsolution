@@ -32,7 +32,7 @@ function GiroPaper({ companyName, period, building, target, document }: Omit<Com
   const rows = document?.items?.slice(0, 8) ?? feeNames.map((name) => ({ name, amount: 0 }));
 
   return (
-    <div className="relative h-[464px] w-[628px] overflow-hidden border border-[#c5cbd1] bg-white text-[#20262d] shadow-[0_2px_7px_rgba(23,31,40,0.1)]">
+    <div className="relative h-[464px] w-[628px] overflow-hidden border border-[#c5cbd1] bg-white text-[#20262d] shadow-[0_2px_7px_rgba(23,31,40,0.1)] [&>div:nth-of-type(4)]:text-[5.5px]">
       <div className="absolute left-[88px] top-[48px] text-[9px] leading-[12px]"><p>{building?.address ?? "-"}</p><p>{building?.name ?? "-"} {unitLabel(target?.unitNo)}</p></div>
       <p className="absolute left-[23px] top-[198px] text-[7px]">농협 352-2224-0507-03　{companyName}</p>
       <div className="absolute left-[4px] top-[260px] w-[294px]">
