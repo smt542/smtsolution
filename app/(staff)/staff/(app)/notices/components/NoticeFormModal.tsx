@@ -133,7 +133,7 @@ function NoticeFormContent({
         aria-modal="true"
         aria-labelledby={titleId}
         onClick={(event) => event.stopPropagation()}
-        className="flex max-h-[90vh] w-[660px] max-w-full flex-col rounded-[20px] bg-white p-[24px] drop-shadow-[0px_30px_35px_rgba(0,0,0,0.4)]"
+        className="flex max-h-[90vh] w-[660px] max-w-full flex-col overflow-y-auto rounded-[20px] bg-white p-[24px] drop-shadow-[0px_30px_35px_rgba(0,0,0,0.4)]"
       >
         {/* 헤더: 가운데 정렬 제목 */}
         <div className="flex w-full flex-col items-center">
@@ -142,117 +142,115 @@ function NoticeFormContent({
           </h2>
         </div>
 
-        <form onSubmit={handleSubmit(submit)} noValidate className="flex flex-col">
-          {/* 본문 스크롤 영역 */}
-          <div className="flex h-[445px] flex-col gap-[20px] overflow-y-auto pr-[2px] pt-[20px]">
-            {/* 유형 */}
-            <Controller
-              control={control}
-              name="noticeType"
-              render={({ field }) => {
-                const active = (field.value ?? "normal") as NoticeType;
-                return (
-                  <div className="flex flex-col gap-[9px]">
-                    <span className="text-[12.5px] font-bold leading-[normal] text-[#8b95a1]">유형</span>
-                    <div className="inline-flex gap-[2px] self-start rounded-[9px] bg-[#edf0f3] p-[3px]">
-                      {TYPE_ORDER.map((value) => (
-                        <button
-                          key={value}
-                          type="button"
-                          aria-pressed={active === value}
-                          onClick={() => field.onChange(value)}
-                          className={
-                            active === value
-                              ? "rounded-[7px] bg-white px-[11px] py-[5px] text-[12px] font-bold leading-[normal] text-[#191f28] drop-shadow-[0px_1px_1.5px_rgba(23,31,40,0.1)]"
-                              : "rounded-[7px] px-[11px] py-[5px] text-[12px] font-bold leading-[normal] text-[#8b95a1]"
-                          }
-                        >
-                          {NOTICE_TYPE_LABELS[value]}
-                        </button>
-                      ))}
-                    </div>
-                    <p className="pt-[8px] text-[12px] font-semibold leading-[normal] text-[#8b95a1]">
-                      {TYPE_HINT[active]}
-                    </p>
+        {/* 본문: 시안 20px 리듬(헤더→본문 20 / 항목 간 20 / 본문→푸터 20). 높이는 내용에 맞춰 늘고 카드가 90vh에서 스크롤. */}
+        <form onSubmit={handleSubmit(submit)} noValidate className="flex flex-col gap-[20px] pt-[20px]">
+          {/* 유형 */}
+          <Controller
+            control={control}
+            name="noticeType"
+            render={({ field }) => {
+              const active = (field.value ?? "normal") as NoticeType;
+              return (
+                <div className="flex flex-col gap-[9px]">
+                  <span className="text-[12.5px] font-bold leading-[normal] text-[#8b95a1]">유형</span>
+                  <div className="inline-flex gap-[2px] self-start rounded-[9px] bg-[#edf0f3] p-[3px]">
+                    {TYPE_ORDER.map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        aria-pressed={active === value}
+                        onClick={() => field.onChange(value)}
+                        className={
+                          active === value
+                            ? "rounded-[7px] bg-white px-[11px] py-[5px] text-[12px] font-bold leading-[normal] text-[#191f28] drop-shadow-[0px_1px_1.5px_rgba(23,31,40,0.1)]"
+                            : "rounded-[7px] px-[11px] py-[5px] text-[12px] font-bold leading-[normal] text-[#8b95a1]"
+                        }
+                      >
+                        {NOTICE_TYPE_LABELS[value]}
+                      </button>
+                    ))}
                   </div>
-                );
-              }}
+                  <p className="pt-[8px] text-[12px] font-semibold leading-[normal] text-[#8b95a1]">
+                    {TYPE_HINT[active]}
+                  </p>
+                </div>
+              );
+            }}
+          />
+
+          {/* 제목 */}
+          <div className="flex flex-col gap-[9px]">
+            <label htmlFor="notice-title" className="text-[12.5px] font-bold leading-[normal] text-[#8b95a1]">제목</label>
+            <input
+              id="notice-title"
+              {...register("title")}
+              maxLength={200}
+              placeholder="예) 저수조 청소로 오전 단수 예정"
+              aria-invalid={errors.title ? true : undefined}
+              aria-describedby={errors.title ? "notice-title-error" : undefined}
+              className="h-[42px] w-full rounded-[11px] border border-[#e8ebee] bg-white px-[12px] text-[14px] font-medium text-[#191f28] outline-none placeholder:text-[#757575] focus:border-[#14a497]"
             />
-
-            {/* 제목 */}
-            <div className="flex flex-col gap-[9px]">
-              <label htmlFor="notice-title" className="text-[12.5px] font-bold leading-[normal] text-[#8b95a1]">제목</label>
-              <input
-                id="notice-title"
-                {...register("title")}
-                maxLength={200}
-                placeholder="예) 저수조 청소로 오전 단수 예정"
-                aria-invalid={errors.title ? true : undefined}
-                aria-describedby={errors.title ? "notice-title-error" : undefined}
-                className="h-[42px] w-full rounded-[11px] border border-[#e8ebee] bg-white px-[12px] text-[14px] font-medium text-[#191f28] outline-none placeholder:text-[#757575] focus:border-[#14a497]"
-              />
-              {errors.title && (
-                <p id="notice-title-error" className="text-[12px] font-medium text-[#f04452]">{errors.title.message}</p>
-              )}
-            </div>
-
-            {/* 내용 */}
-            <div className="flex flex-col gap-[9px]">
-              <label htmlFor="notice-content" className="text-[12.5px] font-bold leading-[normal] text-[#8b95a1]">내용</label>
-              <textarea
-                id="notice-content"
-                {...register("content")}
-                maxLength={10000}
-                placeholder="일시 · 대상 · 내용 순으로 적어 주세요"
-                aria-invalid={errors.content ? true : undefined}
-                aria-describedby={errors.content ? "notice-content-error" : undefined}
-                className="h-[150px] w-full resize-none rounded-[11px] border border-[#e8ebee] bg-white px-[13px] py-[12px] text-[13.5px] font-medium leading-[22.95px] text-[#191f28] outline-none placeholder:text-[#757575] focus:border-[#14a497]"
-              />
-              {errors.content && (
-                <p id="notice-content-error" className="text-[12px] font-medium text-[#f04452]">{errors.content.message}</p>
-              )}
-            </div>
-
-            {/* 대상 건물 */}
-            <Controller
-              control={control}
-              name="buildingIds"
-              render={({ field }) => {
-                const ids = field.value ?? [];
-                return (
-                  <div className="flex flex-col gap-[9px]">
-                    <span className="text-[12.5px] font-bold leading-[normal] text-[#8b95a1]">대상 건물</span>
-                    <div className="flex flex-wrap gap-[8px]">
-                      <NoticeTargetChip label="전체 건물" checked={ids.length === 0} onClick={() => field.onChange([])} />
-                      {buildings.map((building) => (
-                        <NoticeTargetChip
-                          key={building.id}
-                          label={building.name}
-                          checked={ids.includes(building.id)}
-                          onClick={() =>
-                            field.onChange(
-                              ids.includes(building.id)
-                                ? ids.filter((x) => x !== building.id)
-                                : [...ids, building.id],
-                            )
-                          }
-                        />
-                      ))}
-                    </div>
-                  </div>
-                );
-              }}
-            />
+            {errors.title && (
+              <p id="notice-title-error" className="text-[12px] font-medium text-[#f04452]">{errors.title.message}</p>
+            )}
           </div>
 
+          {/* 내용 */}
+          <div className="flex flex-col gap-[9px]">
+            <label htmlFor="notice-content" className="text-[12.5px] font-bold leading-[normal] text-[#8b95a1]">내용</label>
+            <textarea
+              id="notice-content"
+              {...register("content")}
+              maxLength={10000}
+              placeholder="일시 · 대상 · 내용 순으로 적어 주세요"
+              aria-invalid={errors.content ? true : undefined}
+              aria-describedby={errors.content ? "notice-content-error" : undefined}
+              className="h-[150px] w-full resize-none rounded-[11px] border border-[#e8ebee] bg-white px-[13px] py-[12px] text-[13.5px] font-medium leading-[22.95px] text-[#191f28] outline-none placeholder:text-[#757575] focus:border-[#14a497]"
+            />
+            {errors.content && (
+              <p id="notice-content-error" className="text-[12px] font-medium text-[#f04452]">{errors.content.message}</p>
+            )}
+          </div>
+
+          {/* 대상 건물 */}
+          <Controller
+            control={control}
+            name="buildingIds"
+            render={({ field }) => {
+              const ids = field.value ?? [];
+              return (
+                <div className="flex flex-col gap-[9px]">
+                  <span className="text-[12.5px] font-bold leading-[normal] text-[#8b95a1]">대상 건물</span>
+                  <div className="flex flex-wrap gap-[8px]">
+                    <NoticeTargetChip label="전체 건물" checked={ids.length === 0} onClick={() => field.onChange([])} />
+                    {buildings.map((building) => (
+                      <NoticeTargetChip
+                        key={building.id}
+                        label={building.name}
+                        checked={ids.includes(building.id)}
+                        onClick={() =>
+                          field.onChange(
+                            ids.includes(building.id)
+                              ? ids.filter((x) => x !== building.id)
+                              : [...ids, building.id],
+                          )
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            }}
+          />
+
           {errors.root?.server?.message && (
-            <p role="alert" className="mt-[12px] rounded-[11px] bg-[#fff1f1] px-[13px] py-[10px] text-[13px] font-semibold text-[#f04452]">
+            <p role="alert" className="rounded-[11px] bg-[#fff1f1] px-[13px] py-[10px] text-[13px] font-semibold text-[#f04452]">
               {errors.root.server.message}
             </p>
           )}
 
           {/* 푸터 */}
-          <div className="flex w-full gap-[8px] pt-[20px]">
+          <div className="flex w-full gap-[8px]">
             <button
               type="button"
               onClick={closeSafely}
