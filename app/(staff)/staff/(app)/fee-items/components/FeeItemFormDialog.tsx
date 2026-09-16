@@ -174,7 +174,7 @@ function SelectField({
         {label}
       </span>
       <div className="mt-1.5 [&_.uc-dd]:w-full [&_.uc-dd-btn]:h-11 [&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:justify-between [&_.uc-dd-btn]:text-[13px]">
-        <CustomDropdown ariaLabel={label} value={value} options={options} onChange={onChange} />
+        <CustomDropdown ariaLabel={label} value={value} options={options} onChange={onChange} variant="field" />
       </div>
     </div>
   );
