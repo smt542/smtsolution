@@ -9,6 +9,10 @@ import {
   useDeleteMessageTemplate,
   useMessageTemplates,
 } from "@/hooks/reactquery/messageTemplates";
+import {
+  fetchPopbillConsoleUrls,
+  useSyncAlimtalkTemplates,
+} from "@/hooks/reactquery/messageTemplates/popbillSync";
 import { MessagingListCard } from "./MessagingListCard";
 import { SegmentedFilter } from "./SegmentedFilter";
 import { TemplateFormModal } from "./TemplateFormModal";
@@ -60,12 +64,36 @@ export function TemplatesTab() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editTemplate, setEditTemplate] = useState<MessageTemplate | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
+  const [consoleLoading, setConsoleLoading] = useState(false);
+  const syncTemplates = useSyncAlimtalkTemplates();
   const isRefreshing = isFetching && !isLoading;
 
   const openCreate = () => setIsFormOpen(true);
   const closeForm = () => {
     setIsFormOpen(false);
     setEditTemplate(null);
+  };
+
+  const openPopbillConsole = async () => {
+    setConsoleLoading(true);
+    try {
+      const { templateUrl } = await fetchPopbillConsoleUrls();
+      if (templateUrl) window.open(templateUrl, "_blank", "noopener,noreferrer");
+      else toast.error("콘솔 주소를 받지 못했습니다.");
+    } catch (e) {
+      toast.error(e, "팝빌 콘솔을 열지 못했습니다.");
+    } finally {
+      setConsoleLoading(false);
+    }
+  };
+
+  const runPopbillSync = async () => {
+    try {
+      const { synced } = await syncTemplates.mutateAsync();
+      toast.success(`팝빌 승인 템플릿 ${synced}건을 동기화했습니다.`);
+    } catch (e) {
+      toast.error(e, "동기화 실패");
+    }
   };
 
   const remove = async (template: MessageTemplate) => {
@@ -116,6 +144,22 @@ export function TemplatesTab() {
               value={filter}
               onChange={(value) => setFilter(value)}
             />
+            <button
+              type="button"
+              onClick={() => void openPopbillConsole()}
+              disabled={consoleLoading}
+              className="flex h-[34px] items-center justify-center rounded-[9px] border border-[#e8ebee] bg-white px-[14px] text-[13px] font-bold text-[#4e5968] disabled:opacity-50"
+            >
+              {consoleLoading ? "여는 중…" : "팝빌에서 관리"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void runPopbillSync()}
+              disabled={syncTemplates.isPending}
+              className="flex h-[34px] items-center justify-center rounded-[9px] border border-[#14a497] bg-white px-[14px] text-[13px] font-bold text-[#14a497] disabled:opacity-50"
+            >
+              {syncTemplates.isPending ? "동기화 중…" : "팝빌 동기화"}
+            </button>
             <button
               type="button"
               onClick={openCreate}

@@ -116,6 +116,17 @@ declare module "popbill" {
     btns?: PopbillKakaoButton[];
   }
 
+  /** 알림톡 템플릿(ListATSTemplate) 응답 항목. 팝빌 필드가 유동적이라 방어적으로 다룬다. */
+  export interface PopbillATSTemplate {
+    templateCode?: string;
+    templateName?: string;
+    template?: string;
+    plusFriendID?: string;
+    state?: number;
+    stateName?: string;
+    buttons?: PopbillKakaoButton[];
+  }
+
   export interface KakaoService {
     checkSenderNumber(
       corpNum: string,
@@ -135,6 +146,24 @@ declare module "popbill" {
       requestNum: string,
       btns: PopbillKakaoButton[] | null,
       success: PopbillReceiptHandler,
+      error: PopbillErrorHandler,
+    ): void;
+    listATSTemplate(
+      corpNum: string,
+      userId: string,
+      success: (templates: PopbillATSTemplate[]) => void,
+      error: PopbillErrorHandler,
+    ): void;
+    getATSTemplateMgtURL(
+      corpNum: string,
+      userId: string,
+      success: (url: string) => void,
+      error: PopbillErrorHandler,
+    ): void;
+    getPlusFriendMgtURL(
+      corpNum: string,
+      userId: string,
+      success: (url: string) => void,
       error: PopbillErrorHandler,
     ): void;
     getMessages(
