@@ -15,12 +15,12 @@
        자체 line-height를 지정한 요소(.fmp-ta 1.6·.fmp-ck 1.4 등)는 그대로 override 유지. */
     line-height: normal;
   }
-  .fmp-fab{position:fixed;right:22px;bottom:22px;width:52px;height:52px;padding:0;justify-content:center;border-radius:999px;background:var(--blue);color:#fff;display:flex;align-items:center;gap:9px;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 12px 28px -8px rgba(20,164,151,.6);z-index:240;transition:.15s}
+  .fmp-fab{position:fixed;right:22px;bottom:22px;width:52px;height:52px;padding:0;justify-content:center;border-radius:999px;background:var(--blue);color:#fff;display:flex;align-items:center;gap:9px;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 12px 28px -8px rgba(20,164,151,.6);z-index:30;transition:.15s}
   .fmp-fab>span,.fmp-fab>b{display:none}
   .fmp-fab.hide{display:none!important}
   .fmp-fab:hover{background:var(--blue-d);transform:translateY(-2px)}
   .fmp-fab svg{width:20px;height:20px;stroke-width:2}
-  .fmp{position:fixed;width:820px;max-width:calc(100vw - 44px);background:#fff;border-radius:20px;box-shadow:0 30px 80px -20px rgba(23,31,40,.5);z-index:260;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--line);max-height:calc(100vh - 40px);opacity:0;visibility:hidden;transform:translateY(10px) scale(.97);transform-origin:bottom right;transition:opacity .2s ease,transform .2s cubic-bezier(.2,.8,.2,1),visibility .2s;pointer-events:none}
+  .fmp{position:fixed;width:820px;max-width:calc(100vw - 44px);background:#fff;border-radius:20px;box-shadow:0 30px 80px -20px rgba(23,31,40,.5);z-index:32;display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--line);max-height:calc(100vh - 40px);opacity:0;visibility:hidden;transform:translateY(10px) scale(.97);transform-origin:bottom right;transition:opacity .2s ease,transform .2s cubic-bezier(.2,.8,.2,1),visibility .2s;pointer-events:none}
   .fmp.show{opacity:1;visibility:visible;transform:none;pointer-events:auto}
   .fmp-h{display:flex;align-items:center;gap:9px;padding:13px 12px 13px 16px;border-bottom:1px solid var(--line);cursor:grab;flex:none;background:#fff;user-select:none}
   .fmp-h.drag{cursor:grabbing}
@@ -63,7 +63,7 @@
   .fmp-dd2.ph .v{color:var(--t4);font-weight:600}
   .fmp-dd2 .cv{flex:none;transition:.15s}
   .fmp-dd2.open .cv{transform:rotate(180deg)}
-  .fmp-dd2 .menu{position:fixed;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 16px 40px -12px rgba(23,31,40,.3);padding:6px;z-index:280;display:none;flex-direction:column;gap:2px;max-height:300px;overflow:hidden}
+  .fmp-dd2 .menu{position:fixed;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 16px 40px -12px rgba(23,31,40,.3);padding:6px;z-index:34;display:none;flex-direction:column;gap:2px;max-height:300px;overflow:hidden}
   .fmp-dd2.open .menu{display:flex}
   .fmp-dd2 .opt{padding:9px 11px;border-radius:9px;font-size:13px;font-weight:700;color:var(--t2);cursor:pointer;white-space:nowrap}
   .fmp-dd2 .opt:hover{background:var(--bg)}
@@ -153,7 +153,7 @@
   .fmp-fromsel.open .cv{transform:rotate(180deg)}
   .fmp-deftag{font-size:10.5px;font-weight:700;color:var(--blue-d);background:var(--blue-t);border-radius:6px;padding:2px 7px;flex:none}
   .fmp-deftag.hide{display:none}
-  .fmp-frommenu{position:fixed;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 16px 40px -12px rgba(23,31,40,.3);padding:6px;z-index:280;display:none;flex-direction:column;gap:2px;max-height:300px;overflow:hidden}
+  .fmp-frommenu{position:fixed;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 16px 40px -12px rgba(23,31,40,.3);padding:6px;z-index:34;display:none;flex-direction:column;gap:2px;max-height:300px;overflow:hidden}
   .fmp-fromsel.open .fmp-frommenu{display:flex}
   .fmp-fromlist{flex:1;overflow:auto;display:flex;flex-direction:column;gap:2px;min-height:0}
   .fmp-fromrow{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:9px;cursor:pointer}
@@ -193,7 +193,7 @@
   .fmp-tplsel svg{width:13px;height:13px}
   .fmp-tplsel:hover{background:var(--bg)}
   .fmp-tplsel.open{background:var(--bg)}
-  .fmp-tplmenu{position:fixed;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 16px 40px -12px rgba(23,31,40,.3);z-index:280;display:none;flex-direction:column;padding:6px;width:300px;max-height:320px}
+  .fmp-tplmenu{position:fixed;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 16px 40px -12px rgba(23,31,40,.3);z-index:34;display:none;flex-direction:column;padding:6px;width:300px;max-height:320px}
   .fmp-tplsel.open .fmp-tplmenu{display:flex}
   .fmp-tpllist{flex:1;overflow:auto;display:flex;flex-direction:column;gap:2px;min-height:0}
   .fmp-tplmenu .fmp-tpllist{max-height:270px}
@@ -202,7 +202,7 @@
   .fmp-dpick.ph .v{color:var(--t4);font-weight:600}
   .fmp-dpick .ic{width:16px;height:16px;color:var(--t3);flex:none}
   .fmp-dpick .v{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .fmp-dpick .menu{position:fixed;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 16px 40px -12px rgba(23,31,40,.3);z-index:280;display:none}
+  .fmp-dpick .menu{position:fixed;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 16px 40px -12px rgba(23,31,40,.3);z-index:34;display:none}
   .fmp-dpick.open .menu{display:block}
   .fmp-cal{width:288px;padding:14px}
   .cal-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
@@ -219,7 +219,7 @@
   .cal-d.today{color:var(--blue);font-weight:800}
   .cal-d.sel{background:var(--blue)!important;color:#fff!important;font-weight:800}
   .fmp-tlist{width:232px;padding:0}
-  .fmpc-scrim{position:fixed;inset:0;background:var(--color-scrim);display:none;align-items:center;justify-content:center;z-index:320;padding:24px}
+  .fmpc-scrim{position:fixed;inset:0;background:var(--color-scrim);display:none;align-items:center;justify-content:center;z-index:45;padding:24px}
   .fmpc-scrim.show{display:flex}
   .fmpc{background:#fff;border-radius:20px;width:min(360px,92%);padding:28px 26px 24px;text-align:center;box-shadow:0 30px 70px -20px rgba(0,0,0,.45);max-height:88vh;overflow:auto}
   .fmpc-ic{width:52px;height:52px;border-radius:16px;background:var(--amber-t);display:flex;align-items:center;justify-content:center;margin:0 auto 15px}
@@ -239,7 +239,7 @@
   .fmp-prog{height:6px;border-radius:999px;background:var(--line);overflow:hidden;margin-top:-4px}
   .fmp-prog i{display:block;height:100%;width:0;background:var(--blue);border-radius:999px;transition:width .3s}
   /* 최소화 버블 */
-  .fmp-bubble{position:fixed;right:22px;bottom:22px;height:52px;padding:0 16px 0 12px;border-radius:999px;background:#fff;border:1px solid var(--line);display:none;align-items:center;gap:10px;cursor:pointer;box-shadow:0 14px 34px -10px rgba(23,31,40,.35);z-index:250}
+  .fmp-bubble{position:fixed;right:22px;bottom:22px;height:52px;padding:0 16px 0 12px;border-radius:999px;background:#fff;border:1px solid var(--line);display:none;align-items:center;gap:10px;cursor:pointer;box-shadow:0 14px 34px -10px rgba(23,31,40,.35);z-index:30}
   .fmp-bubble.show{display:flex}
   .fmp-bubble .ring{width:34px;height:34px;flex:none;border-radius:50%;background:var(--blue-t);display:flex;align-items:center;justify-content:center;position:relative}
   .fmp-bubble .ring svg{width:17px;height:17px;stroke-width:2;color:var(--blue)}
