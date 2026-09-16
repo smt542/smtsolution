@@ -1,6 +1,5 @@
 import type { Notice, NoticeStatus, NoticeType } from "@/hooks/reactquery/notices";
 import { createNoticeFormSchema } from "@/components/forms/schema/notice";
-import { plainTextToNoticeDoc } from "@/lib/notice/richText";
 
 export const NOTICE_TYPE_LABELS: Record<NoticeType, string> = {
   normal: "신규",
@@ -101,7 +100,7 @@ export function validateNoticeForm({
     buildingIds: [],
     noticeType: "normal",
     title,
-    contentJson: plainTextToNoticeDoc(content),
+    content,
     publishMode,
     scheduledAt,
     expiresAt,
