@@ -92,13 +92,13 @@ export function OutputSelectionPane({
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder="코드·건물명·주소 검색"
-            className="h-full w-full rounded-[9px] border border-[#e8ebee] bg-white pl-[31px] pr-[10px] text-[11.5px] text-[#333d4b] outline-none placeholder:text-[#b0b8c1] focus:border-[#14a497] focus:ring-[3px] focus:ring-[#e2f5f1]"
+            className="h-full w-full rounded-[9px] border border-[#e8ebee] bg-white pl-[31px] pr-[10px] text-[12px] text-[#333d4b] outline-none placeholder:text-[#b0b8c1] focus:border-[#14a497] focus:ring-[3px] focus:ring-[#e2f5f1]"
           />
         </label>
       </div>
 
       <div className={`min-h-0 ${hasUnitTable ? "h-[211px] shrink-0" : "flex-1"} overflow-hidden border-b border-[#e8ebee]`}>
-        <div className="grid h-[39px] grid-cols-[34px_65px_104px_minmax(0,1fr)] items-center border-b border-[#e8ebee] bg-[#f8f9fa] text-[10.5px] font-bold text-[#6b7684]">
+        <div className="grid h-[39px] grid-cols-[34px_65px_104px_minmax(0,1fr)] items-center border-b border-[#e8ebee] bg-[#f8f9fa] text-[11px] font-bold text-[#6b7684]">
           <span className="flex justify-center"><SelectionCheck ariaLabel="건물 전체 선택" checked={allBuildingsSelected} onChange={onToggleAllBuildings} /></span>
           <span>코드</span>
           <span>건물명</span>
@@ -111,7 +111,7 @@ export function OutputSelectionPane({
               <div
                 key={building.id}
                 onClick={() => onToggleBuilding(building.id)}
-                className={`grid h-[42px] w-full grid-cols-[34px_65px_104px_minmax(0,1fr)] items-center border-b border-[#f1f3f5] text-left text-[10.5px] transition hover:bg-[#f8fbfb] ${selected ? "bg-[#f4fbfa]" : "bg-white"}`}
+                className="grid h-[42px] w-full grid-cols-[34px_65px_104px_minmax(0,1fr)] items-center border-b border-[#f1f3f5] bg-white text-left text-[12px] transition hover:bg-[#f8fbfb]"
               >
                 <span className="flex justify-center"><SelectionCheck ariaLabel={`${building.name} 선택`} checked={selected} onChange={() => onToggleBuilding(building.id)} /></span>
                 <span className="truncate pr-1 font-semibold text-[#4e5968]">{building.code}</span>
@@ -126,7 +126,7 @@ export function OutputSelectionPane({
 
       {hasUnitTable && (
         <div className="min-h-0 flex-1 overflow-hidden">
-          <div className="grid h-[39px] grid-cols-[34px_47px_76px_91px_49px] items-center border-b border-[#e8ebee] bg-[#f8f9fa] text-[10.5px] font-bold text-[#6b7684]">
+          <div className="grid h-[39px] grid-cols-[34px_47px_76px_91px_49px] items-center border-b border-[#e8ebee] bg-[#f8f9fa] text-[11px] font-bold text-[#6b7684]">
             <span className="flex justify-center"><SelectionCheck ariaLabel="호수 전체 선택" checked={allUnitsSelected} disabled={targets.length === 0} onChange={onToggleAllUnits} /></span>
             <span>호수</span>
             <span>세대주</span>
@@ -141,7 +141,7 @@ export function OutputSelectionPane({
                 <div
                   key={target.unitId}
                   onClick={() => { if (!disabled) onToggleUnit(target.unitId); }}
-                  className={`grid h-[42px] w-full grid-cols-[34px_47px_76px_91px_49px] items-center border-b border-[#f1f3f5] text-left text-[10.5px] transition hover:bg-[#f8fbfb] ${disabled ? "cursor-not-allowed opacity-45" : ""} ${selected ? "bg-[#f4fbfa]" : "bg-white"}`}
+                  className={`grid h-[42px] w-full grid-cols-[34px_47px_76px_91px_49px] items-center border-b border-[#f1f3f5] bg-white text-left text-[12px] transition hover:bg-[#f8fbfb] ${disabled ? "cursor-not-allowed opacity-45" : ""}`}
                 >
                   <span className="flex justify-center"><SelectionCheck ariaLabel={`${targetsByBuilding.find(({ targets: values }) => values.some(({ unitId }) => unitId === target.unitId))?.building.name ?? "건물"} · ${target.unitNo}호 · ${displayName(target)}`} checked={selected} disabled={disabled} onChange={() => onToggleUnit(target.unitId)} /></span>
                   <span className="truncate font-bold text-[#333d4b]">{displayUnitNo(target.unitNo)}</span>

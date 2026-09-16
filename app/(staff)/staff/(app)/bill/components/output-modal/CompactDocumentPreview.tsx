@@ -33,16 +33,16 @@ function GiroPaper({ companyName, period, building, target, document }: Omit<Com
 
   return (
     <div className="relative h-[464px] w-[628px] overflow-hidden border border-[#c5cbd1] bg-white text-[#20262d] shadow-[0_2px_7px_rgba(23,31,40,0.1)]">
-      <div className="absolute left-[88px] top-[48px] text-[8px] leading-[11px]"><p>{building?.address ?? "-"}</p><p>{building?.name ?? "-"} {unitLabel(target?.unitNo)}</p></div>
-      <p className="absolute left-[23px] top-[198px] text-[6px]">농협 352-2224-0507-03　{companyName}</p>
+      <div className="absolute left-[88px] top-[48px] text-[9px] leading-[12px]"><p>{building?.address ?? "-"}</p><p>{building?.name ?? "-"} {unitLabel(target?.unitNo)}</p></div>
+      <p className="absolute left-[23px] top-[198px] text-[7px]">농협 352-2224-0507-03　{companyName}</p>
       <div className="absolute left-[4px] top-[260px] w-[294px]">
-        <div className="flex items-end justify-between px-[17px] pb-[6px] text-[6px]"><span>{building?.name ?? "-"} {unitLabel(target?.unitNo)}<br />{target?.payerName || target?.tenantName || ""}</span><span className="text-right">{year}　 {month}<br /><strong className="text-[8px]">{amount(total)}</strong></span></div>
-        <div className="grid grid-cols-[77px_72px_72px_72px] border-l border-t border-black text-[5px] leading-[10px]">
+        <div className="flex items-end justify-between px-[17px] pb-[6px] text-[7px] leading-[11px]"><span>{building?.name ?? "-"} {unitLabel(target?.unitNo)}<br />{target?.payerName || target?.tenantName || ""}</span><span className="text-right">{year}　 {month}<br /><strong className="text-[9px]">{amount(total)}</strong></span></div>
+        <div className="grid grid-cols-[77px_72px_72px_72px] border-l border-t border-black text-[6px] leading-[10px]">
           {(["항목", "당월", "전월", "금액"] as const).map((label) => <strong key={label} className="border-b border-r border-black text-center">{label}</strong>)}
           {rows.slice(0, 7).map((row, index) => <div key={`${row.name}-${index}`} className="contents"><span className="border-b border-r border-black px-1">{row.name}</span><span className="border-b border-r border-black text-center">-</span><span className="border-b border-r border-black text-center">-</span><span className="border-b border-r border-black px-1 text-right">{amount(row.amount)}</span></div>)}
         </div>
       </div>
-      <div className="absolute left-[405px] top-[205px] w-[206px] text-[5px] leading-[8px]"><p className="font-bold">●●●●● 꼭 읽어주세요 ●●●●●</p><p>납기일을 확인해 주세요.</p><p>문의사항은 관리사무소로 연락 바랍니다.</p><p>자동이체 세대는 별도 출금됩니다.</p></div>
+      <div className="absolute left-[405px] top-[205px] w-[206px] text-[6px] leading-[10px]"><p className="font-bold">●●●●● 꼭 읽어주세요 ●●●●●</p><p>납기일을 확인해 주세요.</p><p>문의사항은 관리사무소로 연락 바랍니다.</p><p>자동이체 세대는 별도 출금됩니다.</p></div>
       <div className="absolute left-[405px] top-[382px] grid w-[214px] grid-cols-5 border-l border-t border-black text-[4.5px] leading-[10px]">{["구분", "전기", "수도", "당월", "전월", ...Array.from({ length: 20 }, (_, index) => index % 5 === 0 ? `${year}.${String(Number(month) - Math.floor(index / 5)).padStart(2, "0")}` : String((index * 3) % 11))].map((value, index) => <span key={index} className="border-b border-r border-black text-center">{value}</span>)}</div>
       <div className="absolute left-[8px] top-[448px] h-px w-[611px] bg-black" />
     </div>
@@ -69,7 +69,7 @@ function AdjustmentPaper({ period, building, target }: Omit<CompactDocumentPrevi
 export function CompactDocumentPreview(props: CompactDocumentPreviewProps) {
   const { type, zoom, onZoom } = props;
   return (
-    <section className={`relative flex min-h-0 flex-1 items-start justify-start overflow-hidden bg-[#e9edf1] ${type === "giro" ? "pl-[12px] pt-[1px]" : "pl-[17px] pt-[17px]"}`}>
+    <section className="relative flex min-h-0 flex-1 items-start justify-start overflow-hidden bg-[#e9edf1] pl-[17px] pt-[17px]">
       {type === "fax" && (
         <div className="absolute left-[17px] top-[14px] z-10 flex gap-[6px]">
           {["재발행", "단수", "자동이체"].map((label) => (
