@@ -7,12 +7,11 @@ import {
   NOTICE_PAGE_SIZE,
   useNotice,
   useNotices,
-  type Notice,
   type NoticeFilters as NoticeFilterValues,
   type NoticeType,
   type NoticeSummary,
 } from "@/hooks/reactquery/notices";
-import { NoticeDetail } from "./NoticeDetail";
+import { NoticeDetailModal } from "./NoticeDetailModal";
 import { NoticeFormModal } from "./NoticeFormModal";
 import { NoticeList } from "./NoticeList";
 
@@ -21,7 +20,7 @@ const DUMMY_NOTICES: NoticeSummary[] = [
   {
     id: -1,
     orgId: 0,
-    buildingId: null,
+    buildingIds: [],
     title: "9월 관리비 청구 안내 — 납기일 9월 25일",
     noticeType: "normal",
     publishedAt: "2026-09-14T00:00:00Z",
@@ -33,7 +32,7 @@ const DUMMY_NOTICES: NoticeSummary[] = [
   {
     id: -2,
     orgId: 0,
-    buildingId: null,
+    buildingIds: [],
     title: "엘리베이터 정기점검 안내 (9/15 오전 9시~12시)",
     noticeType: "important",
     publishedAt: "2026-09-13T00:00:00Z",
@@ -45,7 +44,7 @@ const DUMMY_NOTICES: NoticeSummary[] = [
   {
     id: -3,
     orgId: 0,
-    buildingId: null,
+    buildingIds: [],
     title: "긴급 단수 안내 — 9/14(일) 오후 2시~6시",
     noticeType: "urgent",
     publishedAt: "2026-09-14T08:00:00Z",
@@ -67,7 +66,6 @@ export function NoticesWorkspace({
   const [page, setPage] = useState(0);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Notice | null>(null);
 
   const filters = useMemo<NoticeFilterValues>(
     () => ({ noticeType: noticeType === "all" ? undefined : noticeType }),
@@ -102,16 +100,8 @@ export function NoticesWorkspace({
   const isNoticeListInitialLoading = buildingsQuery.isLoading || noticesQuery.isLoading;
   const isNoticeListRefreshing = [buildingsQuery, noticesQuery]
     .some((query) => query.isFetching && !query.isLoading);
-  const isSelectedNoticeRefreshing =
-    selectedNoticeQuery.isFetching && !selectedNoticeQuery.isLoading;
-
-  const openCreate = () => { setEditing(null); setFormOpen(true); };
-  const openEdit = () => {
-    if (!selectedNotice) return;
-    setEditing(selectedNotice);
-    setFormOpen(true);
-  };
-  const closeForm = () => { setFormOpen(false); setEditing(null); };
+  const openCreate = () => setFormOpen(true);
+  const closeForm = () => setFormOpen(false);
 
   const handleTypeChange = (type: NoticeType | "all") => {
     setNoticeType(type);
@@ -200,42 +190,39 @@ export function NoticesWorkspace({
         )}
       </div>
 
-      {/* 상세 오버레이 (더미 항목은 열지 않음) */}
+      {/* 상세 모달 (더미 항목은 열지 않음) */}
       {selectedListId !== null && selectedListId > 0 && (
-        <>
-          <div className="fixed inset-0 z-40 bg-black/20" onClick={() => setSelectedId(null)} />
-          <div className="fixed inset-y-0 right-0 z-50 w-[520px] bg-white shadow-xl overflow-y-auto">
-            {isSelectedNoticeRefreshing ? (
-              <div className="pointer-events-none absolute right-4 top-4 z-10 rounded-full bg-surface/95 shadow-card">
-                <Spinner label="공지 상세 갱신 중" size="small" showLabel className="px-3 py-2" />
-              </div>
-            ) : null}
-            {selectedNoticeQuery.isLoading ? (
-              <div className="flex items-center justify-center h-full py-16">
-                <Spinner label="공지 상세 불러오는 중" />
-              </div>
-            ) : selectedNoticeQuery.isError ? (
-              <div role="alert" className="flex h-full flex-col items-center justify-center gap-3 py-16 text-sm text-red">
-                <p>공지 상세를 불러오지 못했습니다.</p>
-                <button type="button" className="rounded-xl border border-line px-4 py-2 font-bold text-t2" onClick={() => void selectedNoticeQuery.refetch()}>다시 시도</button>
-              </div>
-            ) : selectedNotice ? (
-              <NoticeDetail
-                notice={selectedNotice}
-                buildings={buildings}
-                canSendMessages={canSendMessages}
-                onEdit={openEdit}
-                onDeleted={() => setSelectedId(null)}
-              />
-            ) : null}
+        selectedNoticeQuery.isLoading || selectedNoticeQuery.isError ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setSelectedId(null)}>
+            <div role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()} className="w-[660px] max-w-full rounded-[20px] bg-white p-[24px] drop-shadow-[0px_30px_35px_rgba(0,0,0,0.4)]">
+              {selectedNoticeQuery.isLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <Spinner label="공지 상세 불러오는 중" />
+                </div>
+              ) : (
+                <div role="alert" className="flex flex-col items-center justify-center gap-3 py-16 text-sm text-red">
+                  <p>공지 상세를 불러오지 못했습니다.</p>
+                  <button type="button" className="rounded-xl border border-line px-4 py-2 font-bold text-t2" onClick={() => void selectedNoticeQuery.refetch()}>다시 시도</button>
+                </div>
+              )}
+            </div>
           </div>
-        </>
+        ) : selectedNotice ? (
+          <NoticeDetailModal
+            key={selectedNotice.id}
+            notice={selectedNotice}
+            buildings={buildings}
+            canSendMessages={canSendMessages}
+            onClose={() => setSelectedId(null)}
+            onDeleted={() => setSelectedId(null)}
+          />
+        ) : null
       )}
 
       <NoticeFormModal
         open={formOpen}
         onClose={closeForm}
-        editing={editing}
+        editing={null}
         buildings={buildings}
         orgId={orgId}
         onSaved={(notice) => { setPage(0); setSelectedId(notice.id); }}

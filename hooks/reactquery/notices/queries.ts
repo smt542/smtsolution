@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   getNotice,
+  getNoticeSendSummary,
   listNotices,
   NOTICE_PAGE_SIZE,
   type NoticeFilters,
@@ -23,5 +24,13 @@ export function useNotice(id: number) {
     queryKey: noticeKeys.detail(id),
     queryFn: () => getNotice(id),
     enabled: id > 0,
+  });
+}
+
+export function useNoticeSendSummary(noticeId: number) {
+  return useQuery({
+    queryKey: noticeKeys.sendSummary(noticeId),
+    queryFn: () => getNoticeSendSummary(noticeId),
+    enabled: noticeId > 0,
   });
 }

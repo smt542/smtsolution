@@ -116,9 +116,11 @@ export function NoticeList({
                 const isSelected = selectedId === notice.id;
                 const isLast = idx === notices.length - 1;
                 const buildingLabel =
-                  notice.buildingId === null
+                  notice.buildingIds.length === 0
                     ? "전체 건물"
-                    : (buildingNames.get(notice.buildingId) ?? "삭제된 건물");
+                    : notice.buildingIds
+                        .map((id) => buildingNames.get(id) ?? "삭제된 건물")
+                        .join(", ");
 
                 return (
                   <tr
@@ -140,8 +142,8 @@ export function NoticeList({
                     <td className="px-[16px] py-[10px] font-bold text-[13.5px] text-[#191f28]">
                       <span className="block truncate">{notice.title}</span>
                     </td>
-                    <td className="px-[16px] py-[10px] text-[13.5px] text-[#191f28] whitespace-nowrap">
-                      {buildingLabel}
+                    <td className="px-[16px] py-[10px] text-[13.5px] text-[#191f28]">
+                      <span className="block truncate" title={buildingLabel}>{buildingLabel}</span>
                     </td>
                     <td className="px-[16px] py-[10px] text-[13.5px] text-[#191f28] whitespace-nowrap">
                       {formatPublishDate(notice.publishedAt)}

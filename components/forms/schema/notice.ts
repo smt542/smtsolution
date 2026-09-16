@@ -7,10 +7,7 @@ export const NOTICE_PUBLISH_MODES = ["now", "scheduled", "draft"] as const;
 
 export function createNoticeFormSchema(now = new Date()) {
   return z.object({
-    target: z.string().refine(
-      (value) => value === "organization" || /^\d+$/.test(value) && Number(value) > 0,
-      "공지 대상을 선택해 주세요",
-    ).transform((value) => value === "organization" ? null : Number(value)),
+    buildingIds: z.array(z.number().int().positive()).default([]),
     noticeType: z.enum(NOTICE_TYPES),
     title: z.string().trim().min(1, "제목을 입력해 주세요").max(200, "제목은 200자 이하로 입력해 주세요"),
     contentJson: z

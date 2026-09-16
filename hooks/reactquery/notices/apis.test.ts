@@ -9,6 +9,7 @@ const row = {
   id: 3,
   org_id: 9,
   building_id: null,
+  notice_buildings: [{ building_id: 11 }],
   title: "정기 소독 안내",
   content: "오전 10시에 소독합니다.",
   notice_type: "important",
@@ -32,19 +33,18 @@ function listBuilder(result = { data: [row], error: null, count: 1 }) {
 }
 
 describe("notices apis", () => {
-  it("listNotices: soft delete 제외, 필터 적용, snake_case 매핑", async () => {
+  it("listNotices: soft delete 제외, 필터 적용, 대상 건물 임베드 매핑", async () => {
     const builder = listBuilder();
     from.mockReturnValue(builder);
 
-    const result = await listNotices({ buildingId: null, noticeType: "important", search: "소독" });
+    const result = await listNotices({ noticeType: "important", search: "소독" });
 
     expect(from).toHaveBeenCalledWith("notices");
     expect(builder.is).toHaveBeenCalledWith("deleted_at", null);
-    expect(builder.is).toHaveBeenCalledWith("building_id", null);
     expect(builder.eq).toHaveBeenCalledWith("notice_type", "important");
     expect(builder.or).toHaveBeenCalledWith("title.ilike.%소독%,content.ilike.%소독%");
     expect(builder.select).toHaveBeenCalledWith(
-      "id, org_id, building_id, title, notice_type, published_at, expires_at, created_by, created_at, updated_at",
+      "id, org_id, title, notice_type, published_at, expires_at, created_by, created_at, updated_at, notice_buildings(building_id)",
       { count: "exact" },
     );
     expect(builder.range).toHaveBeenCalledWith(0, 19);
@@ -52,7 +52,7 @@ describe("notices apis", () => {
     expect(result.items[0]).toMatchObject({
       id: 3,
       orgId: 9,
-      buildingId: null,
+      buildingIds: [11],
       title: "정기 소독 안내",
       noticeType: "important",
     });
@@ -73,15 +73,21 @@ describe("notices apis", () => {
     expect(eq).toHaveBeenCalledWith("id", 3);
   });
 
-  it("createNotice: 폼 입력을 DB 컬럼으로 변환", async () => {
+  it("createNotice: 공지 삽입 후 대상 건물 링크를 upsert/정리", async () => {
     const single = vi.fn().mockResolvedValue({ data: row, error: null });
     const select = vi.fn(() => ({ single }));
     const insert = vi.fn(() => ({ select }));
-    from.mockReturnValue({ insert });
+    const upsert = vi.fn().mockResolvedValue({ error: null });
+    const deleteNot = vi.fn().mockResolvedValue({ error: null });
+    const deleteEq = vi.fn(() => ({ not: deleteNot }));
+    const del = vi.fn(() => ({ eq: deleteEq }));
+    from.mockImplementation((table: string) =>
+      table === "notices" ? { insert } : { upsert, delete: del },
+    );
 
     await createNotice({
       orgId: 9,
-      buildingId: null,
+      buildingIds: [11],
       title: "정기 소독 안내",
       content: "오전 10시에 소독합니다.",
       noticeType: "important",
@@ -89,15 +95,21 @@ describe("notices apis", () => {
       expiresAt: null,
     });
 
+    // building_id 컬럼은 더 이상 쓰지 않는다(레거시).
     expect(insert).toHaveBeenCalledWith({
       org_id: 9,
-      building_id: null,
       title: "정기 소독 안내",
       content: "오전 10시에 소독합니다.",
       notice_type: "important",
       published_at: "2026-08-12T01:00:00.000Z",
       expires_at: null,
     });
+    expect(upsert).toHaveBeenCalledWith(
+      [{ notice_id: 3, building_id: 11 }],
+      { onConflict: "notice_id,building_id", ignoreDuplicates: true },
+    );
+    expect(deleteEq).toHaveBeenCalledWith("notice_id", 3);
+    expect(deleteNot).toHaveBeenCalledWith("building_id", "in", "(11)");
   });
 
   it("updateNotice: 제공된 필드만 갱신", async () => {

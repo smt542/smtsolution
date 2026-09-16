@@ -13,6 +13,7 @@ const mintShareToken = vi.fn();
 vi.mock("@/hooks/reactquery/notices", () => ({
   useDeleteNotice: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useNoticeImageUrls: () => ({ urls: {}, isLoading: false }),
+  useAttachNoticeSendLog: () => ({ mutateAsync: vi.fn() }),
 }));
 vi.mock("@/hooks/reactquery/occupancies", () => ({
   useTenantList: (...args: unknown[]) => useTenantListMock(...args),
@@ -47,7 +48,7 @@ const buildings = [
 const notice: Notice = {
   id: 3,
   orgId: 9,
-  buildingId: 11,
+  buildingIds: [11],
   title: "정기 소독 안내",
   content: "8월 30일 오전 10시에 소독합니다.",
   contentJson: null,
@@ -187,7 +188,7 @@ describe("NoticeDetail messaging", () => {
 
     render(
       <NoticeDetail
-        notice={{ ...notice, buildingId: null, noticeType: "normal" }}
+        notice={{ ...notice, buildingIds: [], noticeType: "normal" }}
         buildings={buildings}
         canSendMessages
         onEdit={vi.fn()}
