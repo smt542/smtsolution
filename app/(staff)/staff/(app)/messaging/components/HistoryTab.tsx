@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useMessageLogs, type MessageLog } from "@/hooks/reactquery/messaging";
 import type { SendMode } from "@/lib/messaging/preset";
+import { MessageDetailModal } from "./MessageDetailModal";
 import { MessagingListCard } from "./MessagingListCard";
 import { SegmentedFilter } from "./SegmentedFilter";
 
@@ -53,6 +54,7 @@ export function HistoryTab() {
   const isRefreshing = isFetching && !isLoading;
   const [channelFilter, setChannelFilter] = useState<ChannelFilter>("all");
   const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
+  const [selected, setSelected] = useState<MessageLog | null>(null);
 
   const filteredLogs = useMemo(() => {
     let result = logs.filter((log) => {
@@ -117,7 +119,8 @@ export function HistoryTab() {
           {filteredLogs.map((log) => (
             <tr
               key={log.id}
-              className="border-b border-[#f1f3f5] last:border-b-0 hover:bg-[#fbfcfd]"
+              onClick={() => setSelected(log)}
+              className="cursor-pointer border-b border-[#f1f3f5] last:border-b-0 hover:bg-[#fbfcfd]"
             >
               <td className="h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
                 {channelLabel(log.channel)}
@@ -143,14 +146,38 @@ export function HistoryTab() {
                 {formatSentAt(log.sentAt)}
               </td>
               <td className="h-[49px] px-[16px] py-[12px]">
-                <span className="text-[12.5px] font-bold text-[#f04452]">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setSelected(log);
+                  }}
+                  className="text-[12.5px] font-bold text-[#14a497]"
+                >
                   상세 보기
-                </span>
+                </button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      {selected && (
+        <MessageDetailModal
+          title="발송 상세"
+          channel={selected.channel}
+          rows={[
+            { label: "수신자", value: recipientSummary(selected) },
+            { label: "발송시점", value: formatSentAt(selected.sentAt) },
+            { label: "유형", value: "즉시" },
+            { label: "상태", value: selected.result },
+          ]}
+          recipients={selected.recipients}
+          recipientCount={selected.recipientCount}
+          body={selected.body}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </MessagingListCard>
   );
 }
