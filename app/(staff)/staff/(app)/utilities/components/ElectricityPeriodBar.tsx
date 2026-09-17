@@ -1,4 +1,5 @@
 import { CloseIcon } from "@/components/icons";
+import { Button } from "@/components/common";
 import { DpDatePicker } from "@/components/common/DpDatePicker";
 
 interface ElectricityPeriodBarProps {
@@ -58,13 +59,14 @@ export function ElectricityPeriodBar({
 
       {editing ? (
         <>
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             type="button"
             onClick={onCalculate}
-            className="h-[26px] rounded-[8px] border border-line bg-white px-[10px] text-[11.5px] font-bold text-t2 hover:bg-bg"
           >
             계산
-          </button>
+          </Button>
           <button
             type="button"
             onClick={onSave}
