@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import type { BillTarget } from "@/hooks/reactquery/bill";
+import { transferMethodLabel } from "@/lib/bill/transferMethod";
 import type { BillBuilding } from "../../types";
 import type { OutputDocumentType } from "../../types";
 import { SelectionCheck, SmallSelect } from "./OutputModalPrimitives";
@@ -147,7 +148,7 @@ export function OutputSelectionPane({
                   <span className="truncate font-bold text-[#333d4b]">{displayUnitNo(target.unitNo)}</span>
                   <span className="truncate pr-1 text-[#4e5968]">{displayName(target)}</span>
                   <span className="truncate pr-1 text-[#8b95a1]">{target.phone || "-"}</span>
-                  <span className="truncate text-[#4e5968]">{target.autoDebit ? "자동" : "일반"}</span>
+                  <span className="truncate text-[#4e5968]">{transferMethodLabel(target.transferMethod)}</span>
                 </div>
               );
             })}

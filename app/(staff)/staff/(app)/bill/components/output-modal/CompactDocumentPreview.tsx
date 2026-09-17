@@ -1,9 +1,10 @@
 "use client";
 
 import type { BillDocument, BillTarget } from "@/hooks/reactquery/bill";
+import type { PrintableAccount } from "@/lib/bill/document";
 import type { BillBuilding } from "../../types";
 import type { GiroStampOptions } from "../GiroPrintView";
-import { GiroStampOverlays } from "./GiroStampOverlays";
+import { GiroPaper } from "./GiroPaper";
 import { ZoomControls } from "./OutputModalPrimitives";
 
 interface CompactDocumentPreviewProps {
@@ -13,63 +14,19 @@ interface CompactDocumentPreviewProps {
   building?: BillBuilding;
   target?: BillTarget;
   document?: BillDocument;
+  accounts: PrintableAccount[];
+  customerNotice: string | null;
+  dueDate: string | null;
   stamps?: GiroStampOptions;
   zoom: number;
   onZoom: (value: number) => void;
 }
 
-const feeNames = ["일반관리비", "청소비", "승강기유지비", "전기료", "수도료", "공용전기료", "장기수선충당금"];
-
-function amount(value: number | undefined) {
-  return (value ?? 0).toLocaleString("ko-KR");
-}
-
-function unitLabel(unitNo: string | undefined) {
-  if (!unitNo) return "-";
-  return unitNo.endsWith("호") ? unitNo : `${unitNo}호`;
-}
-
-function GiroPaper({ companyName, period, building, target, document, stamps }: Omit<CompactDocumentPreviewProps, "type" | "zoom" | "onZoom">) {
-  const [year, month] = period.split("-");
-  const total = document?.totalAmount ?? target?.totalAmount ?? 0;
-  const rows = document?.items?.slice(0, 8) ?? feeNames.map((name) => ({ name, amount: 0 }));
-  const unitId = document?.unitId ?? target?.unitId;
-  const isStampedForUnit = (unitIds?: number[]) => unitId !== undefined && (!unitIds || unitIds.includes(unitId));
-  const showReissue = Boolean(stamps?.reissue && isStampedForUnit(stamps.reissueUnitIds));
-  const showWaterCutoff = Boolean(stamps?.waterCutoffUnitIds.includes(unitId ?? -1));
-  const showAutoDebit = Boolean(stamps?.autoDebit && isStampedForUnit(stamps.autoDebitUnitIds));
-
-  return (
-    <div className="relative h-[464px] w-[628px] overflow-hidden border border-[#c5cbd1] bg-white text-[#20262d] shadow-[0_2px_7px_rgba(23,31,40,0.1)] [&>div:nth-of-type(4)]:text-[5.5px]">
-      <div className="absolute left-[88px] top-[48px] text-[9px] leading-[12px]"><p>{building?.address ?? "-"}</p><p>{building?.name ?? "-"} {unitLabel(target?.unitNo)}</p></div>
-      <p className="absolute left-[23px] top-[198px] text-[7px]">농협 352-2224-0507-03　{companyName}</p>
-      <div className="absolute left-[4px] top-[260px] w-[294px]">
-        <div className="flex items-end justify-between px-[17px] pb-[6px] text-[7px] leading-[11px]"><span>{building?.name ?? "-"} {unitLabel(target?.unitNo)}<br />{target?.payerName || target?.tenantName || ""}</span><span className="text-right">{year}　 {month}<br /><strong className="text-[9px]">{amount(total)}</strong></span></div>
-        <div className="grid grid-cols-[77px_72px_72px_72px] border-l border-t border-black text-[6px] leading-[10px]">
-          {(["항목", "당월", "전월", "금액"] as const).map((label) => <strong key={label} className="border-b border-r border-black text-center">{label}</strong>)}
-          {rows.slice(0, 7).map((row, index) => <div key={`${row.name}-${index}`} className="contents"><span className="border-b border-r border-black px-1">{row.name}</span><span className="border-b border-r border-black text-center">-</span><span className="border-b border-r border-black text-center">-</span><span className="border-b border-r border-black px-1 text-right">{amount(row.amount)}</span></div>)}
-        </div>
-      </div>
-      {(showReissue || showWaterCutoff || showAutoDebit) && <GiroStampOverlays reissue={showReissue} waterCutoff={showWaterCutoff} autoDebit={showAutoDebit} />}
-      <div className="absolute left-[405px] top-[205px] w-[206px] text-[6px] leading-[10px]"><p className="font-bold">●●●●● 꼭 읽어주세요 ●●●●●</p><p>납기일을 확인해 주세요.</p><p>문의사항은 관리사무소로 연락 바랍니다.</p><p>자동이체 세대는 별도 출금됩니다.</p></div>
-      <div className="absolute left-[405px] top-[382px] grid w-[214px] grid-cols-5 border-l border-t border-black text-[4.5px] leading-[10px]">{["구분", "전기", "수도", "당월", "전월", ...Array.from({ length: 20 }, (_, index) => index % 5 === 0 ? `${year}.${String(Number(month) - Math.floor(index / 5)).padStart(2, "0")}` : String((index * 3) % 11))].map((value, index) => <span key={index} className="border-b border-r border-black text-center">{value}</span>)}</div>
-      <div className="absolute left-[8px] top-[448px] h-px w-[611px] bg-black" />
-    </div>
-  );
-}
-
 export function CompactDocumentPreview(props: CompactDocumentPreviewProps) {
-  const { type, zoom, onZoom } = props;
+  const { zoom, onZoom } = props;
   return (
-    <section className="relative flex min-h-0 flex-1 items-start justify-start overflow-hidden bg-[#e9edf1] pl-[17px] pt-[17px]">
-      {type === "fax" && (
-        <div className="absolute left-[17px] top-[14px] z-10 flex gap-[6px]">
-          {["재발행", "단수", "자동이체"].map((label) => (
-            <span key={label} className="rounded-[7px] border border-[#dfe3e7] bg-white px-[9px] py-[5px] text-[9.5px] font-bold text-[#6b7684] shadow-sm">{label}</span>
-          ))}
-        </div>
-      )}
-      <div style={{ transform: `scale(${zoom / 100})`, transformOrigin: "center" }}>
+    <section className="relative flex min-h-0 flex-1 items-start justify-start overflow-hidden bg-[#e8ebee] p-[16px]">
+      <div style={{ transform: `scale(${0.796 * zoom / 100})`, transformOrigin: "top left" }}>
         <GiroPaper {...props} />
       </div>
       <ZoomControls zoom={zoom} onZoom={onZoom} />

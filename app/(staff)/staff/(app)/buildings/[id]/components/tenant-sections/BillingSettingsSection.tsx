@@ -2,6 +2,7 @@
 import React from "react";
 import { Checkbox, Select, Textarea } from "@/components/common";
 import type { TransferMethod } from "@/hooks/reactquery/occupancies";
+import { transferMethodOptions } from "@/lib/bill/transferMethod";
 
 export interface TenantBillingValue {
   billingEnabled: boolean;
@@ -11,14 +12,6 @@ export interface TenantBillingValue {
   billingNote: string;
   settlementNote: string;
 }
-
-const transferMethodOptions = [
-  { value: "giro", label: "지로" },
-  { value: "transfer", label: "이체" },
-  { value: "auto_transfer", label: "자동이체" },
-  { value: "deposit", label: "입금" },
-  { value: "none", label: "없음" },
-];
 
 export function BillingSettingsSection({ value, onChange }: {
   value: TenantBillingValue;
