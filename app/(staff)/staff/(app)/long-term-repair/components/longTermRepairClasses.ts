@@ -32,7 +32,7 @@ export const longTermRepairClasses = {
   ledgerBody: "flex min-h-0 flex-1 flex-col",
   emptyState: "flex min-h-0 flex-1 items-center justify-center p-8 text-[13.5px] font-semibold text-t4",
   tableScroll: "min-h-0 flex-1 overflow-auto",
-  ledgerTable: "w-full border-collapse whitespace-nowrap text-t1 [&_th]:sticky [&_th]:top-0 [&_th]:z-[2] [&_th]:border-b [&_th]:border-line [&_th]:bg-[#fbfcfd] [&_th]:px-4 [&_th]:py-[11px] [&_th]:text-left [&_th]:text-xs [&_th]:font-bold [&_th]:leading-normal [&_td]:border-b [&_td]:border-line2 [&_td]:px-4 [&_td]:text-[13.5px] [&_td]:font-medium [&_td]:leading-normal [&_tbody_tr:last-child_td]:border-b-0",
+  ledgerTable: "w-full border-collapse whitespace-nowrap text-t1 [&_th]:sticky [&_th]:top-0 [&_th]:z-[2] [&_th]:border-b [&_th]:border-line [&_th]:bg-[#fbfcfd] [&_th]:h-[36.5px] [&_th]:px-4 [&_th]:py-[11px] [&_th]:text-left [&_th]:text-xs [&_th]:font-bold [&_th]:leading-[13.5px] [&_th]:text-t3 [&_td]:border-b [&_td]:border-line2 [&_td]:px-4 [&_td]:text-[13.5px] [&_td]:font-medium [&_td]:leading-normal [&_tbody_tr:last-child_td]:border-b-0",
   /* 행 높이는 tr 단위로 준다. 공유 [&_td]에 세로 여백을 두면 합계행(41px)이 여백에 밀려 높이를 못 지킨다. */
   ledgerRow: "[&_td]:h-[57px] [&_td]:py-3",
   right: "text-right",
