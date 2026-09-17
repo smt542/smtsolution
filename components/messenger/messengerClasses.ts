@@ -1,6 +1,6 @@
 export const messengerClasses: Record<string, string> = {
   "fmp-fab": "fixed bottom-[22px] right-[22px] z-[45] flex size-[52px] items-center justify-center rounded-full bg-blue text-white shadow-[0_12px_28px_-8px_rgba(20,164,151,0.6)] transition hover:-translate-y-0.5 hover:bg-blue-d [&_span]:hidden [&_b]:hidden [&_svg]:size-5",
-  "fmp": "fixed z-[46] flex max-h-[calc(100vh-40px)] w-[820px] max-w-[calc(100vw-44px)] flex-col overflow-hidden rounded-[20px] border border-line bg-white opacity-0 shadow-[0_30px_80px_-20px_rgba(23,31,40,0.5)] invisible translate-y-2.5 scale-[0.97] transition duration-200",
+  "fmp": "fixed z-[46] flex max-h-[calc(100vh-40px)] w-[820px] max-w-[calc(100vw-44px)] flex-col overflow-hidden rounded-[20px] border border-line bg-white opacity-0 shadow-[0_30px_80px_-20px_rgba(23,31,40,0.5)] invisible transition duration-200",
   "fmp-bubble": "fixed bottom-[22px] right-[22px] z-[45] flex h-[52px] items-center gap-2.5 rounded-full border border-line bg-white px-3.5 pl-3 shadow-[0_14px_34px_-10px_rgba(23,31,40,0.35)]",
   "fmpc-scrim": "fixed inset-0 z-[48] flex items-center justify-center bg-scrim p-6",
   show: "pointer-events-auto visible flex opacity-100 translate-y-0 scale-100",
