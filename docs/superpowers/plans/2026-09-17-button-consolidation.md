@@ -153,10 +153,14 @@ font-size:13.5px; font-weight:700;
 **대가로 부분 수렴을 받아들인다.** 상위 5개 규격을 사이즈로 만들면 높이 보유 147개소 중 75개소(51%)를 흡수하고, 나머지 72개소는 raw `<button>`으로 남는다. 이는 미완성이 아니라 **의도된 경계**다.
 
 - [x] **선결 과제 — 정본 대조 완료.** 호출부를 하나씩 대조하는 대신 정본 화면들이 규격을 공유하는지 확인하는 방식으로 수행했다. 결과는 §9.
-- [x] `size` variant 신설 — `std`(정본 표준 40/r11/13.5) · `sm`(26/r8/11.5) · `legacy`(현행 44/r12/14, 기본값). **정본 근거가 확실한 2종만 만들었다.** 32px·36px은 패딩 표본이 빈약해 보류.
-- [ ] **base 교정** — `size`의 기본값을 `legacy`에서 `std`로 바꾸는 한 줄. 근거는 확보됐으나(§9) 140개소 표시가 바뀌므로 **사용자 결정 대기**.
-- [ ] **롱테일 근접값 검증(진행 중)** — `40px/r10/13px`(앱 4개소)는 의심이 확인됐다. 정본에서 `r10 + 13px` 조합의 높이는 36px(10회)·38px(4회)·42px(1회)이며 **40px은 0회**다. 대상: `utilities/components/CarryOverDialog.tsx`, `gas/CarryOverDialog.tsx`, `GasLedgerModal.tsx`, `MeterLedgerModal.tsx`. 각 모달의 정본 규격을 확인해 교정 여부를 정한다.
-- [ ] `TenantForm.tsx:493`의 `!important` 3개 제거. 해당 규격은 40px/r11 = 신설한 `std`와 높이·라운드가 같으므로 `size="std"`로 교체 가능한지 확인한다.
+- [x] `size` variant 신설 — `std`(정본 `.hf-btn`) · `sm`(26/r8/11.5) · `legacy`(구 44/r12/14). **정본 근거가 확실한 2종만 만들었다.** 32px·36px은 패딩 표본이 빈약해 보류.
+- [x] **base 교정 완료** — 기본값 `legacy` → `std`. `<Button>` 140개소가 정본 표준 규격이 됐다.
+- [x] `std` 패딩 18px → **15px** 교정. 18px은 `.mvq-b`·`.lg-print` 등 화면별 클래스의 값을 센 것이었고, 정본 표준 `.hf-btn`은 15px이다.
+- [x] **롱테일 근접값 검증 완료** — `40px/r10/13px`(앱 4개소)는 이식 오차가 맞았다. 처리 결과:
+  - `utilities/CarryOverDialog` → `<Button>` 전환(정본 `.hf-btn`). 취소=`ghost`, 이월=`primary` 정확히 일치.
+  - `GasLedgerModal`·`MeterLedgerModal` 인쇄 버튼 → 정본은 `.lg-print`(40/r11/13.5, **padding 0 18px, 그림자 없음**)라 `<Button>`(px-15 + `shadow-pri`)과 다르다. **raw 유지하고 값만 교정.**
+  - `gas/CarryOverDialog` → `bg-bg` 회색 버튼이라 기존 variant와 맞지 않고 정본 근거도 없어 **미변경**.
+- [x] `TenantForm`의 `!important` 7개 제거. 강제하던 값이 `std` + `primary` 기본값과 동일해졌다.
 
 ### Phase 2 — 단계적 수렴
 
@@ -199,7 +203,30 @@ staff 정본 9개 화면 + 로그인 4개 화면을 내려받아 액션 버튼 C
 
 그리고 **공통 `Button`의 현행 규격 `44/r12/14`는 업데이트 팝업 전용이었다.** staff-receipt 정본의 해당 2건은 `upClose`("오늘 그만보기") 등 팝업 하단 버튼의 인라인 스타일이며, 일반 액션 버튼이 아니다. 즉 공통 `Button`은 **팝업 예외 규격을 기본값으로 삼고 있다.**
 
-→ base를 `std`로 교정할 근거는 충분하다. 다만 기존 `<Button>` 140개소의 높이가 일괄 -4px 되므로 사용자 결정 사항으로 남긴다. 사용처 상위: receipts 37 · setup · utilities · buildings · points.
+### 정본에는 이미 디자인시스템 버튼이 있었다 — `.hf-btn`
+
+```css
+.hf-btn{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 15px;
+        border-radius:11px;font-size:13.5px;font-weight:700;cursor:pointer;
+        border:1px solid transparent;white-space:nowrap}
+.hf-btn.pri  {background:var(--blue);color:#fff;box-shadow:0 6px 14px -4px rgba(20,164,151,.5)}
+.hf-btn.sec  {background:#fff;color:var(--t2);border-color:var(--line)}
+.hf-btn.ghost{background:transparent;color:var(--t2)}
+```
+
+**7개 화면에서 69회 사용**되며 값이 전부 동일하다. 앱 `Button`의 `primary`/`ghost` variant는 `.hf-btn.pri`/`.sec`와 이미 일치했고(`--shadow-pri`가 `.pri`의 box-shadow와 정확히 같은 값), **어긋나 있던 것은 geometry뿐이었다.** `size="std"`가 이 클래스의 등가물이다.
+
+주의: 모든 40px 버튼이 `.hf-btn`은 아니다. `.lg-print`(검침대장 인쇄)는 같은 40/r11/13.5지만 **padding 18px에 그림자가 없어** `<Button>` 대상이 아니다. 화면별 일회성 클래스(`.mvq-b`·`.fmpc-btn`·`.asp-btn`)도 마찬가지다.
+
+### 검증
+
+pixel-diff `staff-building-register`(= `/staff/buildings/new`, `<Button>`이 보이는 화면) **0.068% / 804px**. diff 이미지에서 "등록 저장"·"뒤로가기" 버튼에 불일치 픽셀이 없다. 교정 후 재측정도 동일해 회귀 없음.
+
+측정 시 주의: 저장된 스태프 세션이 캡처 1~2회 만에 만료된다. `save-auth.mjs` 직후 연달아 캡처해야 하며, 그렇지 않으면 로그인 화면이 잡혀 58.8%가 나온다(정합 문제 아님).
+
+### 추가 발견: 브랜드 토큰이 3중 중복
+
+`--color-brand` · `--color-blue` · `--color-teal`이 모두 `#14A497`이다(각각 `-dark`/`-d`, `-tint`/`-t` 계열까지). 정본이 쓰는 이름은 `--blue`다. 정리는 이 계획의 범위 밖이지만 기록해 둔다.
 
 ## 결정 로그
 
@@ -208,4 +235,5 @@ staff 정본 9개 화면 + 로그인 4개 화면을 내려받아 액션 버튼 C
 | 2026-09-17 | 정본 유지 · 구조만 통일 (픽셀 통일 안 함) | 정본이 화면별로 규격을 다르게 규정 |
 | 2026-09-17 | `size` variant 단독 · `tailwind-merge` 미도입 | 정본 정합이 정책인 환경에서 "아무 값이나 통과"는 단점 |
 | 2026-09-17 | base 교정 여부는 **140개소 정본 대조 후** 결정 | 대조 없이 교정하면 정합 개선과 회귀가 뒤섞임 |
-| 2026-09-17 | 이번 라운드는 계획서 확정까지. 구현 미착수 | 사용자 지시 |
+| 2026-09-17 | 대조 결과 base를 `std`로 교정 **실행** | 정본 `.hf-btn`이 7화면 69회 표준, 구 기본값 44px은 팝업 1곳 전용 |
+| 2026-09-17 | `.lg-print` 계열은 공통 Button 대상에서 제외 | 정본이 그림자 없는 별도 규격 — 넣으면 정합이 깨진다 |
