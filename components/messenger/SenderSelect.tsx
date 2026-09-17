@@ -179,7 +179,7 @@ export function SenderSelect({ value, onChange }: SenderSelectProps) {
         {selectedLabel === "운영사 기본번호" ? "기본" : "등록"}
       </span>
       <svg
-        className={styles.cv}
+        className={`cv ${styles.cv}`}
         viewBox="0 0 24 24"
         width="15"
         height="15"

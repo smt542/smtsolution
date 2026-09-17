@@ -47,7 +47,7 @@ function toggleValue<T>(values: T[], value: T): T[] {
 function Chevron() {
   return (
     <svg
-      className={styles.cv}
+      className={`cv ${styles.cv}`}
       viewBox="0 0 24 24"
       width="15"
       height="15"
@@ -393,7 +393,7 @@ export function RecipientCascade({
         onClick={() => toggleMenu("type", typeRef)}
         aria-expanded={openMenu === "type"}
       >
-        <span className={styles.v}>{type ? TYPE_LABEL[type] : "유형 선택"}</span>
+        <span className={`v ${styles.v}`}>{type ? TYPE_LABEL[type] : "유형 선택"}</span>
         <Chevron />
         <div
           className="menu"
@@ -418,7 +418,7 @@ export function RecipientCascade({
         onClick={() => type && toggleMenu("second", secondRef)}
         aria-expanded={openMenu === "second"}
       >
-        <span className={styles.v}>
+        <span className={`v ${styles.v}`}>
           {!type ? (
             "유형을 먼저 선택"
           ) : type === "staff" ? (
@@ -523,7 +523,7 @@ export function RecipientCascade({
           onClick={() => toggleMenu("third", thirdRef)}
           aria-expanded={openMenu === "third"}
         >
-          <span className={styles.v}>{tenantSelectionLabel}</span>
+          <span className={`v ${styles.v}`}>{tenantSelectionLabel}</span>
           <Chevron />
           <div
             className="menu"

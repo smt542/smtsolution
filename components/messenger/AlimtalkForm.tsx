@@ -204,7 +204,7 @@ export function AlimtalkForm({
             </svg>
             템플릿
             <svg
-              className={styles.cv}
+              className={`cv ${styles.cv}`}
               width="13"
               height="13"
               viewBox="0 0 24 24"
