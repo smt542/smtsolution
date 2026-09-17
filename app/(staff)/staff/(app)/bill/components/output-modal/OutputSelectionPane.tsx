@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import type { BillTarget } from "@/hooks/reactquery/bill";
+import { displayUnitNo } from "@/lib/bill/document";
 import { transferMethodLabel } from "@/lib/bill/transferMethod";
 import type { BillBuilding } from "../../types";
 import type { OutputDocumentType } from "../../types";
@@ -34,10 +35,6 @@ interface OutputSelectionPaneProps {
 
 function displayName(target: BillTarget) {
   return target.payerName || target.tenantName || "-";
-}
-
-function displayUnitNo(unitNo: string) {
-  return unitNo.endsWith("호") ? unitNo : `${unitNo}호`;
 }
 
 export function OutputSelectionPane({
