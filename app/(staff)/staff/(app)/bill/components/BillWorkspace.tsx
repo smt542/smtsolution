@@ -1,9 +1,9 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import type { MouseEvent, ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Spinner } from "@/components/common";
 import { fetchBillPageData } from "../pageDataClient";
 import type { OutputDocumentType } from "../types";
@@ -69,15 +69,10 @@ function DataStateModal({ isError, onClose, onRetry }: DataStateModalProps) {
 
 export function BillWorkspace({ children }: BillWorkspaceProps) {
   const [activeDocument, setActiveDocument] = useState<OutputDocumentType | null>(null);
-  const queryClient = useQueryClient();
   const pageData = useQuery({
     ...pageDataQuery,
     enabled: activeDocument !== null,
   });
-
-  useEffect(() => {
-    void queryClient.prefetchQuery(pageDataQuery);
-  }, [queryClient]);
 
   const handleMenuClick = (event: MouseEvent<HTMLDivElement>) => {
     const target = event.target as Element;
