@@ -527,24 +527,40 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
                               </td>
                               <td className={styles.numberCell}>{row.entryNo || "-"}</td>
                               <td>
-                                <input aria-label="적립금 적요" readOnly={!canEditRow} className={`${styles.ledgerInput} ${canEditRow ? styles.editableInput : styles.readOnlyInput}`} value={row.fundNote} placeholder="적립금 적요" onChange={(event) => updateRow(row.clientKey, { fundNote: event.target.value })} />
+                                {canEditRow ? (
+                                  <input aria-label="적립금 적요" className={`${styles.ledgerInput} ${styles.editableInput}`} value={row.fundNote} placeholder="적립금 적요" onChange={(event) => updateRow(row.clientKey, { fundNote: event.target.value })} />
+                                ) : (
+                                  <span className={styles.plainCell}>{row.fundNote}</span>
+                                )}
                               </td>
                               <td>
-                                <input aria-label="적립금입금" readOnly={!canEditRow} inputMode="numeric" className={`${styles.ledgerInput} ${styles.moneyInput} ${canEditRow ? styles.editableInput : styles.readOnlyInput}`} value={row.deposit ? formatMoney(row.deposit) : ""} placeholder="0" onChange={(event) => updateRow(row.clientKey, { deposit: parseAmount(event.target.value) })} />
+                                {canEditRow ? (
+                                  <input aria-label="적립금입금" inputMode="numeric" className={`${styles.ledgerInput} ${styles.moneyInput} ${styles.editableInput}`} value={row.deposit ? formatMoney(row.deposit) : ""} placeholder="0" onChange={(event) => updateRow(row.clientKey, { deposit: parseAmount(event.target.value) })} />
+                                ) : (
+                                  <span className={`${styles.plainCell} ${styles.moneyInput}`}>{formatMoney(row.deposit)}</span>
+                                )}
                               </td>
                               <td>
-                                <input aria-label="적립금출금" readOnly={!canEditRow} inputMode="numeric" className={`${styles.ledgerInput} ${styles.moneyInput} ${canEditRow ? styles.editableInput : styles.readOnlyInput}`} value={row.withdrawal ? formatMoney(row.withdrawal) : ""} placeholder="0" onChange={(event) => updateRow(row.clientKey, { withdrawal: parseAmount(event.target.value) })} />
+                                {canEditRow ? (
+                                  <input aria-label="적립금출금" inputMode="numeric" className={`${styles.ledgerInput} ${styles.moneyInput} ${styles.editableInput}`} value={row.withdrawal ? formatMoney(row.withdrawal) : ""} placeholder="0" onChange={(event) => updateRow(row.clientKey, { withdrawal: parseAmount(event.target.value) })} />
+                                ) : (
+                                  <span className={`${styles.plainCell} ${styles.moneyInput}`}>{formatMoney(row.withdrawal)}</span>
+                                )}
                               </td>
                               <td className={`${styles.balanceCell} ${row.balance < 0 ? styles.negative : ""}`}>{formatMoney(row.balance)}</td>
                               <td>
                                 <div className={styles.noteCell}>
-                                  <input aria-label="적요" readOnly={!canEditRow} className={`${styles.ledgerInput} ${canEditRow ? styles.editableInput : styles.readOnlyInput}`} value={row.memo} placeholder="적요" onChange={(event) => updateRow(row.clientKey, { memo: event.target.value })} />
-                                  {canEditRow && (
-                                    <button type="button" aria-label={`${row.entryDate} ${row.entryNo} 행 삭제`} className={styles.deleteButton} onClick={() => removeRow(row)}>
-                                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
-                                        <path d="M6 6l12 12M18 6 6 18" />
-                                      </svg>
-                                    </button>
+                                  {canEditRow ? (
+                                    <>
+                                      <input aria-label="적요" className={`${styles.ledgerInput} ${styles.editableInput}`} value={row.memo} placeholder="적요" onChange={(event) => updateRow(row.clientKey, { memo: event.target.value })} />
+                                      <button type="button" aria-label={`${row.entryDate} ${row.entryNo} 행 삭제`} className={styles.deleteButton} onClick={() => removeRow(row)}>
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+                                          <path d="M6 6l12 12M18 6 6 18" />
+                                        </svg>
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <span className={styles.plainCell}>{row.memo}</span>
                                   )}
                                 </div>
                               </td>
@@ -579,16 +595,16 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
                   <span className="sr-only">적립금입금 합계</span>
                   <span className={styles.footerItem}>
                     <i className={styles.footerLabel}>적립금입금</i>
-                    <b className={styles.footerValue}>{formatMoney(depositTotal)}</b>
+                    <b className={`${styles.footerValue} ${styles.footerValueDefault}`}>{formatMoney(depositTotal)}</b>
                   </span>
                   <span className="sr-only">적립금출금 합계</span>
                   <span className={styles.footerItem}>
                     <i className={styles.footerLabel}>적립금출금</i>
-                    <b className={styles.footerValue}>{formatMoney(withdrawalTotal)}</b>
+                    <b className={`${styles.footerValue} ${styles.footerValueDefault}`}>{formatMoney(withdrawalTotal)}</b>
                   </span>
-                  <span className={`${styles.footerItem} ${styles.footerTotal}`}>
+                  <span className={styles.footerItem}>
                     <i className={styles.footerLabel}>현잔액</i>
-                    <b className={`${styles.footerValue} ${currentBalance < 0 ? styles.negative : ""}`}>{formatMoney(currentBalance)}</b>
+                    <b className={`${styles.footerValue} ${styles.footerValueTotal} ${currentBalance < 0 ? styles.negative : styles.footerTotalTone}`}>{formatMoney(currentBalance)}</b>
                   </span>
                 </div>
               </>
