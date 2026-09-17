@@ -487,7 +487,7 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
                     </thead>
                     <tbody>
                       {displayRows.length === 0 ? (
-                        <tr><td colSpan={9} className="text-center !text-t4">조회기간에 등록된 내역이 없습니다.</td></tr>
+                        <tr className={styles.ledgerRow}><td colSpan={9} className="text-center !text-t4">조회기간에 등록된 내역이 없습니다.</td></tr>
                       ) : displayRows.map((row, index) => {
                         const rowAttachments = row.id ? attachmentsByRow.get(row.id) ?? [] : [];
                         const receipts = rowAttachments.filter((attachment) => attachment.kind === "receipt");
@@ -503,7 +503,7 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
                         const monthWithdrawal = monthRows.reduce((sum, candidate) => sum + candidate.withdrawal, 0);
                         return (
                           <Fragment key={row.clientKey}>
-                            <tr className={!row.id ? styles.newRow : undefined}>
+                            <tr className={`${styles.ledgerRow} ${!row.id ? styles.newRow : ""}`}>
                               <td>
                                 {canEditRow ? (
                                   <DpDatePicker
