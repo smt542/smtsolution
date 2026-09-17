@@ -12,7 +12,7 @@ import { cmsDownloadUrl } from "@/hooks/reactquery/payments";
 import { currentPeriod } from "@/lib/billing/period";
 import { displayUnitNo, type PrintableAccount } from "@/lib/bill/document";
 import type { BillBuilding, OutputDocumentType } from "../types";
-import type { GiroOutputDocument, GiroPrintViewProps, GiroStampOptions } from "./GiroPrintView";
+import type { GiroOutputDocument, GiroPrintViewProps } from "./GiroPrintView";
 import { AutoDebitTable, deriveAutoDebitCells } from "./output-modal/AutoDebitTable";
 import { AdjustmentPreviewViewport, AdjustmentStatementPreview, AdjustmentStatementStyles } from "./output-modal/AdjustmentStatement";
 import { CompactDocumentPreview } from "./output-modal/CompactDocumentPreview";
@@ -67,8 +67,9 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
   const [previewUnitId, setPreviewUnitId] = useState<number | null>(null);
   const [zoom, setZoom] = useState(type === "adjustment" ? 55 : 100);
   const [group, setGroup] = useState(0);
-  const [stamps, setStamps] = useState<GiroStampOptions>({ reissue: false, waterCutoffUnitIds: [], autoDebit: false });
-  const [waterCutoffStamp, setWaterCutoffStamp] = useState(false);
+  const [reissueUnitIds, setReissueUnitIds] = useState<number[]>([]);
+  const [waterCutoffStampUnitIds, setWaterCutoffStampUnitIds] = useState<number[]>([]);
+  const [autoDebitUnitIds, setAutoDebitUnitIds] = useState<number[]>([]);
   const [stampScope, setStampScope] = useState<GiroStampScope>("individual");
   const [faxConfirmOpen, setFaxConfirmOpen] = useState(false);
   const [faxRecipient, setFaxRecipient] = useState("");
@@ -111,8 +112,22 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
     : effectiveIndividualId === null ? [] : [effectiveIndividualId];
   const printWaterCutoffUnitIds = [...new Set([
     ...waterCutoffUnitIds,
-    ...(waterCutoffStamp ? stampTargetIds : []),
+    ...waterCutoffStampUnitIds.filter((unitId) => validSelectedUnitIds.includes(unitId)),
   ])];
+  const isStampActiveForTarget = (unitIds: number[]) => stampTargetIds.length > 0 && (stampScope === "all"
+    ? stampTargetIds.every((unitId) => unitIds.includes(unitId))
+    : unitIds.includes(effectiveIndividualId ?? -1));
+  const toolbarStamps: Record<GiroStampKind, boolean> = {
+    reissue: isStampActiveForTarget(reissueUnitIds),
+    waterCutoff: isStampActiveForTarget(waterCutoffStampUnitIds) || Boolean(stampScope === "individual" && previewEntry?.target.waterCutoff),
+    autoDebit: isStampActiveForTarget(autoDebitUnitIds),
+  };
+  const disabledStampKinds: GiroStampKind[] = stampScope === "individual" && previewEntry?.target.waterCutoff ? ["waterCutoff"] : [];
+  const outputStamps = {
+    reissueUnitIds: reissueUnitIds.filter((unitId) => validSelectedUnitIds.includes(unitId)),
+    waterCutoffUnitIds: printWaterCutoffUnitIds,
+    autoDebitUnitIds: autoDebitUnitIds.filter((unitId) => validSelectedUnitIds.includes(unitId)),
+  };
 
   useEffect(() => {
     if (type !== "fax" || faxSelectionInitialized.current || faxReadyTargets.length === 0) return;
@@ -135,8 +150,9 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
   const resetPeriodSelection = () => {
     setSelectedUnitIds([]);
     setPreviewUnitId(null);
-    setStamps({ reissue: false, waterCutoffUnitIds: [], autoDebit: false });
-    setWaterCutoffStamp(false);
+    setReissueUnitIds([]);
+    setWaterCutoffStampUnitIds([]);
+    setAutoDebitUnitIds([]);
     setStampScope("individual");
     setFaxConfirmOpen(false);
     setFaxRecipient("");
@@ -185,12 +201,23 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
   };
   const toggleStamp = (kind: GiroStampKind) => {
     if (stampTargetIds.length === 0) return;
+    const toggleTargetIds = (current: number[]) => {
+      if (stampScope === "individual") {
+        const [unitId] = stampTargetIds;
+        if (unitId === undefined) return current;
+        return current.includes(unitId) ? current.filter((id) => id !== unitId) : [...current, unitId];
+      }
+      const allTargetIdsStamped = stampTargetIds.every((unitId) => current.includes(unitId));
+      return allTargetIdsStamped
+        ? current.filter((unitId) => !stampTargetIds.includes(unitId))
+        : [...new Set([...current, ...stampTargetIds])];
+    };
     if (kind === "reissue") {
-      setStamps((current) => ({ ...current, reissue: !current.reissue }));
+      setReissueUnitIds(toggleTargetIds);
     } else if (kind === "autoDebit") {
-      setStamps((current) => ({ ...current, autoDebit: !current.autoDebit }));
+      setAutoDebitUnitIds(toggleTargetIds);
     } else {
-      setWaterCutoffStamp((current) => !current);
+      setWaterCutoffStampUnitIds(toggleTargetIds);
     }
   };
 
@@ -247,12 +274,12 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
     }
   };
 
-  const printPreview = type === "giro" ? <GiroPrintView companyName={companyName} period={period} documents={giroDocuments} accounts={accounts} customerNotice={customerNotice} stamps={{ ...stamps, reissueUnitIds: stamps.reissue ? stampTargetIds : [], autoDebitUnitIds: stamps.autoDebit ? stampTargetIds : [], waterCutoffUnitIds: printWaterCutoffUnitIds }} onReady={handlePreviewReady} /> : null;
+  const printPreview = type === "giro" ? <GiroPrintView companyName={companyName} period={period} documents={giroDocuments} accounts={accounts} customerNotice={customerNotice} stamps={outputStamps} onReady={handlePreviewReady} /> : null;
   const selectedUnitCount = selectedUnitIds.length;
   const stampFooterLabel = (type === "giro" || type === "fax") && stampTargetIds.length > 0
     ? stampScope === "all"
-      ? "스탬프 · 전체"
-      : `스탬프 · ${previewEntry ? displayUnitNo(previewEntry.target.unitNo) : "-"}`
+      ? "도장 적용 범위 · 전체"
+      : `도장 적용 범위 · ${previewEntry ? displayUnitNo(previewEntry.target.unitNo) : "-"}`
     : null;
 
   return (
@@ -272,9 +299,10 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
                 <div className="relative flex min-w-0 flex-1 flex-col">
                   {(type === "giro" || type === "fax") && (
                     <GiroStampToolbar
-                      stamps={{ reissue: stamps.reissue, waterCutoff: waterCutoffStamp, autoDebit: stamps.autoDebit }}
+                      stamps={toolbarStamps}
                       scope={stampScope}
                       disabled={stampTargetIds.length === 0}
+                      disabledKinds={disabledStampKinds}
                       onToggleStamp={toggleStamp}
                       onScopeChange={setStampScope}
                     />
@@ -304,7 +332,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
                     )
                   ) : (
                     <>
-                      <CompactDocumentPreview companyName={companyName} period={period} pages={giroDocuments} accounts={accounts} customerNotice={customerNotice} stamps={{ ...stamps, reissueUnitIds: stamps.reissue ? stampTargetIds : [], autoDebitUnitIds: stamps.autoDebit ? stampTargetIds : [], waterCutoffUnitIds: printWaterCutoffUnitIds }} highlightedUnitIds={stampTargetIds} onSelectUnit={setPreviewUnitId} zoom={zoom} onZoom={setZoom} />
+                      <CompactDocumentPreview companyName={companyName} period={period} pages={giroDocuments} accounts={accounts} customerNotice={customerNotice} stamps={outputStamps} highlightedUnitIds={stampTargetIds} onSelectUnit={setPreviewUnitId} zoom={zoom} onZoom={setZoom} />
                       {isPreviewRefreshing ? (
                         <div className={`pointer-events-none absolute right-3 rounded-full bg-surface/95 shadow-card ${type === "giro" || type === "fax" ? "top-[60px]" : "top-3"}`}>
                           <Spinner label="출력 미리보기 갱신 중" size="small" showLabel className="px-3 py-2" />

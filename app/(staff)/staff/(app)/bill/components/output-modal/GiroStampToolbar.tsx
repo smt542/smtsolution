@@ -1,14 +1,13 @@
 "use client";
 
-import type { GiroStampOptions } from "../GiroPrintView";
-
 export type GiroStampKind = "reissue" | "waterCutoff" | "autoDebit";
 export type GiroStampScope = "individual" | "all";
 
 interface GiroStampToolbarProps {
-  stamps: Pick<GiroStampOptions, "reissue" | "autoDebit"> & { waterCutoff: boolean };
+  stamps: Record<GiroStampKind, boolean>;
   scope: GiroStampScope;
   disabled: boolean;
+  disabledKinds?: GiroStampKind[];
   onToggleStamp: (kind: GiroStampKind) => void;
   onScopeChange: (scope: GiroStampScope) => void;
 }
@@ -19,18 +18,28 @@ const stampItems: { key: GiroStampKind; label: string }[] = [
   { key: "autoDebit", label: "자동이체" },
 ];
 
-export function GiroStampToolbar({ stamps, scope, disabled, onToggleStamp, onScopeChange }: GiroStampToolbarProps) {
+export function GiroStampToolbar({ stamps, scope, disabled, disabledKinds = [], onToggleStamp, onScopeChange }: GiroStampToolbarProps) {
   return (
     <div className="flex h-[50px] shrink-0 items-center gap-[8px] border-b border-[#e8ebee] bg-white px-[14px]">
       <div aria-label="지로 출력 표기" className="flex h-[32px] shrink-0 items-center gap-[8px] overflow-hidden rounded-[9px] border border-[#edf0f3] bg-white p-[3px]">
         {stampItems.map(({ key, label }) => {
           const active = stamps[key];
+          const kindDisabled = disabledKinds.includes(key);
+          const buttonDisabled = disabled || kindDisabled;
+          const disabledTitle = buttonDisabled
+            ? kindDisabled && key === "waterCutoff"
+              ? "단수 예고 대상 세대라 항상 표기됩니다"
+              : disabled
+                ? "출력할 호수를 먼저 선택해 주세요"
+                : "현재 선택한 범위에 적용할 수 없습니다"
+            : undefined;
           return (
             <button
               key={key}
               type="button"
               aria-pressed={active}
-              disabled={disabled}
+              disabled={buttonDisabled}
+              title={disabledTitle}
               onClick={() => onToggleStamp(key)}
               className={`h-[24px] shrink-0 rounded-[7px] px-[9px] text-[10px] transition focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#b7ebe4] ${active ? "bg-[#e2f5f1] font-bold text-[#0f857a]" : "font-medium text-[#8b95a1] hover:bg-[#f8f9fa]"} disabled:cursor-not-allowed disabled:opacity-50`}
             >

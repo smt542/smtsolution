@@ -66,10 +66,9 @@ export function GiroPaper({ companyName, period, building, target, document, acc
   const total = document?.totalAmount ?? target?.totalAmount ?? 0;
   const unit = displayUnitNo(target?.unitNo ?? document?.unitNo);
   const unitId = document?.unitId ?? target?.unitId;
-  const isStampedForUnit = (unitIds?: number[]) => unitId !== undefined && (!unitIds || unitIds.includes(unitId));
-  const showReissue = Boolean(stamps?.reissue && isStampedForUnit(stamps.reissueUnitIds));
-  const showWaterCutoff = Boolean(stamps?.waterCutoffUnitIds.includes(unitId ?? -1));
-  const showAutoDebit = Boolean(stamps?.autoDebit && isStampedForUnit(stamps.autoDebitUnitIds));
+  const showReissue = stamps?.reissueUnitIds.includes(unitId ?? -1) ?? false;
+  const showWaterCutoff = stamps?.waterCutoffUnitIds.includes(unitId ?? -1) ?? false;
+  const showAutoDebit = stamps?.autoDebitUnitIds.includes(unitId ?? -1) ?? false;
   const chargedItems = (document?.items ?? []).filter((item) => item.charged).slice(0, 5);
   const noticeLines = customerNotice?.trim() ? customerNotice.split(/\r?\n/) : DEFAULT_NOTICE;
 
