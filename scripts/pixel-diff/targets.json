@@ -178,5 +178,14 @@
     "appSelector": null,
     "viewport": { "w": 1340, "h": 880 },
     "device": "desktop"
+  },
+  {
+    "id": "staff-vendor-management",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/vendor-management/vendor-management.dc.html",
+    "originSelector": ".hf-app",
+    "appPath": "/staff/vendor-management",
+    "appSelector": null,
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
   }
 ]
