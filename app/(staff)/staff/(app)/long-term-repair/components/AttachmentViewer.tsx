@@ -206,7 +206,7 @@ export function AttachmentViewer({
                   />
                   <button
                     type="button"
-                    className={`${styles.attachmentDrop} ${dragging ? styles.attachmentDropActive : ""}`}
+                    className={`${styles.attachmentDrop} ${dragging ? styles.attachmentDropActive : styles.attachmentDropIdle}`}
                     disabled={uploading || attachments.length >= 10}
                     onClick={() => fileRef.current?.click()}
                     onDragOver={(event) => {
@@ -252,7 +252,7 @@ export function AttachmentViewer({
             {printable.length > 0 && (
               <button
                 type="button"
-                className={styles.attachmentAction}
+                className={`${styles.attachmentAction} ${styles.attachmentActionNeutral}`}
                 onClick={() => window.print()}
                 disabled={areOriginalsLoading}
               >
