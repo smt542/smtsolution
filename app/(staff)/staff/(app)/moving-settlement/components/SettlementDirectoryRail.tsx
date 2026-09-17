@@ -180,7 +180,7 @@ export function SettlementDirectoryRail({
                 value={tenantSearch}
                 onChange={(event) => setTenantSearch(event.target.value)}
                 placeholder="호수·세대주 검색"
-                className="h-[32px] w-full rounded-[9px] border border-line bg-white pl-[31px] pr-[11px] text-[13px] font-semibold text-t1 outline-none placeholder:text-[#757575] focus:border-teal"
+                className="h-[32px] w-full rounded-[9px] border border-line bg-white pl-[31px] pr-[11px] text-[13px] font-semibold text-t1 outline-none placeholder:text-t4 focus:border-teal"
               />
             </label>
           </div>
@@ -243,7 +243,7 @@ export function SettlementDirectoryRail({
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="건물명·주소 검색"
-                className="h-[32px] w-full rounded-[9px] border border-line bg-white pl-[31px] pr-[11px] text-[13px] font-semibold text-t1 outline-none placeholder:text-[#757575] focus:border-teal"
+                className="h-[32px] w-full rounded-[9px] border border-line bg-white pl-[31px] pr-[11px] text-[13px] font-semibold text-t1 outline-none placeholder:text-t4 focus:border-teal"
               />
             </label>
             <button
