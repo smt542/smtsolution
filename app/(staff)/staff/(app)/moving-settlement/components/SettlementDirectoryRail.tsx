@@ -10,6 +10,29 @@ function displayDate(value: string | null): string {
   return value ? value.replaceAll("-", ".") : "";
 }
 
+function SettlementNoteCard({
+  note,
+  emptyMessage,
+}: {
+  note: string | null;
+  emptyMessage: string;
+}) {
+  const hasNote = Boolean(note);
+
+  return (
+    <section className="h-[132px] max-h-[168px] min-h-[132px] shrink-0 overflow-hidden rounded-[16px] bg-white shadow-card">
+      <div className="flex items-center border-b border-line2 px-[18px] py-[15px]">
+        <h2 className="text-[14px] font-semibold text-t1">이사정산시 적요</h2>
+      </div>
+      <p
+        className={`px-[16px] pb-[15px] pt-[13px] text-[13.5px] leading-[21.87px] ${hasNote ? "text-t1" : "text-t4"}`}
+      >
+        {hasNote ? note : emptyMessage}
+      </p>
+    </section>
+  );
+}
+
 export function SettlementDirectoryRail({
   buildings,
   units,
@@ -22,6 +45,8 @@ export function SettlementDirectoryRail({
   onSelectBuilding,
   onSelectUnit,
   onStartNew,
+  onSelectSettlement,
+  settlementSelected,
 }: {
   buildings: Building[];
   units: Unit[];
@@ -34,8 +59,11 @@ export function SettlementDirectoryRail({
   onSelectBuilding: (id: number | null) => void;
   onSelectUnit: (id: number | null) => void;
   onStartNew: () => void;
+  onSelectSettlement: () => void;
+  settlementSelected: boolean;
 }) {
   const [search, setSearch] = useState("");
+  const [tenantSearch, setTenantSearch] = useState("");
   const selectedBuilding =
     buildings.find((building) => building.id === buildingId) ?? null;
   const selectedUnit = units.find((unit) => unit.id === unitId) ?? null;
@@ -50,22 +78,38 @@ export function SettlementDirectoryRail({
     );
   }, [buildings, search]);
 
+  // 건물을 바꾸거나 목록으로 돌아갈 때 호실 검색어가 남아 다음 건물 목록을 잘못 거르지 않도록 초기화한다.
+  const selectBuilding = (id: number | null) => {
+    setTenantSearch("");
+    onSelectBuilding(id);
+  };
+
   const tenantQuery = useTenantList(buildingId ?? 0);
-  const tenants = tenantQuery.data ?? [];
+  const tenants = useMemo(() => tenantQuery.data ?? [], [tenantQuery.data]);
+  const visibleTenants = useMemo(() => {
+    const query = tenantSearch.trim().toLocaleLowerCase("ko-KR");
+    if (!query) return tenants;
+    return tenants.filter((tenant) =>
+      [tenant.unitNo, tenant.tenantName ?? ""]
+        .join(" ")
+        .toLocaleLowerCase("ko-KR")
+        .includes(query),
+    );
+  }, [tenantSearch, tenants]);
 
   if (selectedBuilding && selectedUnit) {
     return (
       <aside className="flex min-h-0 flex-col gap-[16px] overflow-hidden">
         <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[16px] bg-white shadow-card">
-          <div className="h-[96px] shrink-0 border-b border-line2 px-[18px] pt-[15px]">
-            <div className="flex h-[24px] items-center gap-[8px]">
+          <div className="flex shrink-0 flex-col gap-[9px] border-b border-line2 px-[18px] py-[15px]">
+            <div className="flex items-center gap-[8px]">
               <button
                 type="button"
                 aria-label="호실 목록으로 돌아가기"
                 onClick={() => onSelectUnit(null)}
                 className="grid size-[24px] place-items-center rounded-[7px] text-t2 hover:bg-bg"
               >
-                <ChevronLeftIcon className="size-[20px]" />
+                <ChevronLeftIcon className="size-[16px]" />
               </button>
               <h2 className="truncate text-[15px] font-extrabold text-t1">
                 {selectedBuilding.name} {selectedUnit.unitNo}
@@ -74,7 +118,7 @@ export function SettlementDirectoryRail({
             <button
               type="button"
               onClick={onStartNew}
-              className="mt-[9px] h-[32px] w-full rounded-[9px] bg-teal text-[13.5px] font-bold text-white hover:bg-teal-d"
+              className="h-[32px] w-full rounded-[9px] border border-teal bg-teal text-[13px] font-bold text-white hover:bg-teal-d"
             >
               새 이사정산 입력
             </button>
@@ -87,7 +131,8 @@ export function SettlementDirectoryRail({
             {settlementDate ? (
               <button
                 type="button"
-                className="grid h-[41px] w-full grid-cols-[52px_1fr] bg-teal-t text-left text-[13.5px] text-t1"
+                onClick={onSelectSettlement}
+                className={`grid h-[41px] w-full grid-cols-[52px_1fr] text-left text-[13.5px] text-t1 ${settlementSelected ? "bg-teal-t" : "border-b border-line2 bg-white hover:bg-[#fbfcfd]"}`}
               >
                 <span className="px-[16px] py-[12px]">1</span>
                 <span className="px-[16px] py-[12px]">
@@ -102,14 +147,10 @@ export function SettlementDirectoryRail({
           </div>
         </section>
 
-        <section className="h-[132px] shrink-0 overflow-hidden rounded-[16px] bg-white shadow-card">
-          <div className="flex h-[48px] items-center border-b border-line2 px-[18px]">
-            <h2 className="text-[14px] font-semibold text-t1">이사정산시 적요</h2>
-          </div>
-          <p className="px-[16px] py-[13px] text-[13.5px] leading-[22px] text-t1">
-            {settlementNote || "등록된 이사정산시 적요가 없어요"}
-          </p>
-        </section>
+        <SettlementNoteCard
+          note={settlementNote}
+          emptyMessage="등록된 이사정산시 적요가 없어요"
+        />
       </aside>
     );
   }
@@ -118,18 +159,30 @@ export function SettlementDirectoryRail({
     return (
       <aside className="flex min-h-0 flex-col gap-[16px] overflow-hidden">
         <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[16px] bg-white shadow-card">
-          <div className="flex h-[49px] shrink-0 items-center gap-[8px] border-b border-line2 px-[18px]">
-            <button
-              type="button"
-              aria-label="전체 건물로 돌아가기"
-              onClick={() => onSelectBuilding(null)}
-              className="grid size-[24px] place-items-center rounded-[7px] text-t2 hover:bg-bg"
-            >
-              <ChevronLeftIcon className="size-[20px]" />
-            </button>
-            <h2 className="truncate text-[15px] font-extrabold text-t1">
-              {selectedBuilding.name}
-            </h2>
+          <div className="flex shrink-0 flex-col gap-[9px] border-b border-line2 px-[18px] py-[15px]">
+            <div className="flex items-center gap-[8px]">
+              <button
+                type="button"
+                aria-label="전체 건물로 돌아가기"
+                onClick={() => selectBuilding(null)}
+                className="grid size-[24px] place-items-center rounded-[7px] text-t2 hover:bg-bg"
+              >
+                <ChevronLeftIcon className="size-[16px]" />
+              </button>
+              <h2 className="truncate text-[15px] font-extrabold text-t1">
+                {selectedBuilding.name}
+              </h2>
+            </div>
+            <label className="relative block">
+              <SearchIcon className="pointer-events-none absolute left-[11px] top-1/2 size-[15px] -translate-y-1/2 text-t3" />
+              <input
+                aria-label="호수·세대주 검색"
+                value={tenantSearch}
+                onChange={(event) => setTenantSearch(event.target.value)}
+                placeholder="호수·세대주 검색"
+                className="h-[32px] w-full rounded-[9px] border border-line bg-white pl-[31px] pr-[11px] text-[13px] font-semibold text-t1 outline-none placeholder:text-[#757575] focus:border-teal"
+              />
+            </label>
           </div>
           <div className="grid h-[37px] shrink-0 grid-cols-[64px_1fr] border-b border-line bg-[#fbfcfd] text-[12px] font-bold text-t3">
             <span className="px-[16px] py-[11px]">호수</span>
@@ -141,12 +194,17 @@ export function SettlementDirectoryRail({
                 호실을 불러오고 있어요
               </p>
             )}
-            {!unitsLoading && !tenantQuery.isLoading && tenants.length === 0 && (
+            {!unitsLoading && !tenantQuery.isLoading && tenantSearch.trim() !== "" && visibleTenants.length === 0 && (
+              <p className="px-[16px] py-[14px] text-[12.5px] text-t4">
+                검색 결과가 없어요
+              </p>
+            )}
+            {!unitsLoading && !tenantQuery.isLoading && tenantSearch.trim() === "" && tenants.length === 0 && (
               <p className="px-[16px] py-[14px] text-[12.5px] text-t4">
                 등록된 호실이 없어요
               </p>
             )}
-            {tenants.map((tenant) => {
+            {visibleTenants.map((tenant) => {
               const vacant = tenant.isVacant || !tenant.tenantName;
               return (
                 <button
@@ -164,14 +222,10 @@ export function SettlementDirectoryRail({
             })}
           </div>
         </section>
-        <section className="h-[132px] shrink-0 overflow-hidden rounded-[16px] bg-white shadow-card">
-          <div className="flex h-[48px] items-center border-b border-line2 px-[18px]">
-            <h2 className="text-[14px] font-semibold text-t1">이사정산시 적요</h2>
-          </div>
-          <p className="px-[16px] py-[13px] text-[13.5px] leading-[22px] text-t4">
-            호실을 선택하면 표시돼요
-          </p>
-        </section>
+        <SettlementNoteCard
+          note={null}
+          emptyMessage="건물과 호실을 선택하면 표시돼요"
+        />
       </aside>
     );
   }
@@ -179,9 +233,9 @@ export function SettlementDirectoryRail({
   return (
     <aside className="flex min-h-0 flex-col gap-[16px] overflow-hidden">
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[16px] bg-white shadow-card">
-        <div className="shrink-0 px-[18px] pb-[15px] pt-[15px]">
+        <div className="flex shrink-0 flex-col gap-[9px] border-b border-line2 px-[18px] py-[15px]">
           <h2 className="text-[15px] font-extrabold leading-[18px] text-t1">전체 건물</h2>
-          <div className="mt-[9px] flex items-center gap-[8px]">
+          <div className="flex items-center gap-[8px]">
             <label className="relative min-w-0 flex-1">
               <SearchIcon className="pointer-events-none absolute left-[11px] top-1/2 size-[15px] -translate-y-1/2 text-t3" />
               <input
@@ -189,7 +243,7 @@ export function SettlementDirectoryRail({
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="건물명·주소 검색"
-                className="h-[32px] w-full rounded-[9px] border border-line bg-white pl-[31px] pr-[11px] text-[13px] font-semibold text-t1 outline-none placeholder:text-t4 focus:border-teal"
+                className="h-[32px] w-full rounded-[9px] border border-line bg-white pl-[31px] pr-[11px] text-[13px] font-semibold text-t1 outline-none placeholder:text-[#757575] focus:border-teal"
               />
             </label>
             <button
@@ -200,7 +254,7 @@ export function SettlementDirectoryRail({
             </button>
           </div>
         </div>
-        <div className="grid h-[37px] shrink-0 grid-cols-[64px_96px_1fr] border-y border-line bg-[#fbfcfd] text-[12px] font-bold text-t3">
+        <div className="grid h-[37px] shrink-0 grid-cols-[64px_96px_1fr] border-b border-line bg-[#fbfcfd] text-[12px] font-bold text-t3">
           <span className="px-[16px] py-[11px]">코드</span>
           <span className="px-[16px] py-[11px]">건물명</span>
           <span className="px-[16px] py-[11px]">주소</span>
@@ -221,7 +275,7 @@ export function SettlementDirectoryRail({
             <button
               key={building.id}
               type="button"
-              onClick={() => onSelectBuilding(building.id)}
+              onClick={() => selectBuilding(building.id)}
               className="grid min-h-[41px] w-full grid-cols-[64px_96px_1fr] border-b border-line2 text-left text-[13.5px] leading-[normal] text-t1 hover:bg-[#fbfcfd]"
             >
               <span className="px-[16px] py-[12px]">{building.code}</span>
@@ -236,14 +290,10 @@ export function SettlementDirectoryRail({
         </div>
       </section>
 
-      <section className="h-[132px] shrink-0 overflow-hidden rounded-[16px] bg-white shadow-card">
-        <div className="flex h-[48px] items-center border-b border-line2 px-[18px]">
-          <h2 className="text-[14px] font-semibold text-t1">이사정산시 적요</h2>
-        </div>
-        <p className="px-[16px] py-[13px] text-[13.5px] leading-[22px] text-t4">
-          건물과 호실을 선택하면 표시돼요
-        </p>
-      </section>
+      <SettlementNoteCard
+        note={null}
+        emptyMessage="건물과 호실을 선택하면 표시돼요"
+      />
     </aside>
   );
 }

@@ -46,7 +46,7 @@ export function SettlementHistory({
             onChange={setDate}
             placeholder="날짜 선택"
             className="w-full"
-            triggerClassName="flex h-[34px] w-full cursor-pointer items-center gap-[7px] rounded-[9px] border border-line bg-white px-[10px] text-[13px] font-bold text-t1 outline-none [&>span]:min-w-0 [&>span]:flex-1 [&>span]:text-left"
+            triggerClassName={`flex h-[34px] w-full cursor-pointer items-center gap-[7px] rounded-[9px] border border-line bg-white px-[10px] text-[13px] outline-none [&>span]:min-w-0 [&>span]:flex-1 [&>span]:text-left ${date ? "font-bold text-t1" : "font-medium text-t4"}`}
             triggerOpenClassName="!border-teal ring-[3px] ring-teal-t"
             startAdornment={<CalendarIcon className="size-[15px] shrink-0 text-t3" aria-hidden="true" />}
             endAdornment={<ChevronDownIcon className="size-[14px] shrink-0 text-t3" aria-hidden="true" />}
