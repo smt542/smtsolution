@@ -2,8 +2,8 @@ import type { SettlementInquiryParams } from "./apis";
 
 export const movingSettlementKeys = {
   all: ["movingSettlement"] as const,
-  context: (unitId: number | null) =>
-    ["movingSettlement", "context", unitId] as const,
+  context: (unitId: number | null, settlementId: number | null = null) =>
+    ["movingSettlement", "context", unitId, settlementId] as const,
   list: (buildingId: number | null, from: string, to: string) =>
     ["movingSettlement", "list", buildingId, from, to] as const,
   inquiry: (params: SettlementInquiryParams) =>

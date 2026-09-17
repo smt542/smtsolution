@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ChevronDownIcon, ChevronLeftIcon, SearchIcon } from "@/components/icons";
 import type { Building } from "@/hooks/reactquery/buildings";
 import { useTenantList } from "@/hooks/reactquery/occupancies";
+import { useUnitSettlements } from "@/hooks/reactquery/movingSettlement/unitSettlements";
 import type { Unit } from "@/hooks/reactquery/units";
 
 function displayDate(value: string | null): string {
@@ -40,13 +41,12 @@ export function SettlementDirectoryRail({
   unitId,
   buildingsLoading,
   unitsLoading,
-  settlementDate,
+  selectedSettlementId,
   settlementNote,
   onSelectBuilding,
   onSelectUnit,
   onStartNew,
   onSelectSettlement,
-  settlementSelected,
 }: {
   buildings: Building[];
   units: Unit[];
@@ -54,19 +54,19 @@ export function SettlementDirectoryRail({
   unitId: number | null;
   buildingsLoading: boolean;
   unitsLoading: boolean;
-  settlementDate: string | null;
+  selectedSettlementId: number | null;
   settlementNote: string | null;
   onSelectBuilding: (id: number | null) => void;
   onSelectUnit: (id: number | null) => void;
   onStartNew: () => void;
-  onSelectSettlement: () => void;
-  settlementSelected: boolean;
+  onSelectSettlement: (settlementId: number) => void;
 }) {
   const [search, setSearch] = useState("");
   const [tenantSearch, setTenantSearch] = useState("");
   const selectedBuilding =
     buildings.find((building) => building.id === buildingId) ?? null;
   const selectedUnit = units.find((unit) => unit.id === unitId) ?? null;
+  const unitSettlementsQuery = useUnitSettlements(unitId);
   const visibleBuildings = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("ko-KR");
     if (!query) return buildings;
@@ -128,22 +128,31 @@ export function SettlementDirectoryRail({
               <span className="px-[16px] py-[11px]">No</span>
               <span className="px-[16px] py-[11px]">이사정산 입력 날짜</span>
             </div>
-            {settlementDate ? (
-              <button
-                type="button"
-                onClick={onSelectSettlement}
-                className={`grid h-[41px] w-full grid-cols-[52px_1fr] text-left text-[13.5px] text-t1 ${settlementSelected ? "bg-teal-t" : "border-b border-line2 bg-white hover:bg-[#fbfcfd]"}`}
-              >
-                <span className="px-[16px] py-[12px]">1</span>
-                <span className="px-[16px] py-[12px]">
-                  {displayDate(settlementDate)}
-                </span>
-              </button>
-            ) : (
+            {unitSettlementsQuery.isLoading && (
+              <p className="px-[16px] py-[14px] text-[12.5px] text-t4">
+                정산 이력을 불러오고 있어요
+              </p>
+            )}
+            {!unitSettlementsQuery.isLoading &&
+              (unitSettlementsQuery.data ?? []).length === 0 && (
               <p role="status" aria-label="호실 목록 불러오는 중" className="px-[16px] py-[14px] text-[12.5px] text-t4">
                 정산된 이사 항목이 없어요
               </p>
             )}
+            {!unitSettlementsQuery.isLoading &&
+              (unitSettlementsQuery.data ?? []).map((row, index) => (
+                <button
+                  key={row.id}
+                  type="button"
+                  onClick={() => onSelectSettlement(row.id)}
+                  className={`grid h-[41px] w-full grid-cols-[52px_1fr] border-b border-line2 text-left text-[13.5px] text-t1 ${row.id === selectedSettlementId ? "bg-teal-t" : "bg-white hover:bg-[#fbfcfd]"}`}
+                >
+                  <span className="px-[16px] py-[12px]">{index + 1}</span>
+                  <span className="px-[16px] py-[12px]">
+                    {displayDate(row.moveOutDate ?? row.createdAt.slice(0, 10))}
+                  </span>
+                </button>
+              ))}
           </div>
         </section>
 

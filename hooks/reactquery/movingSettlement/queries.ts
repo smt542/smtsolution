@@ -7,10 +7,13 @@ import {
 } from "./apis";
 import { movingSettlementKeys } from "./keys";
 
-export function useSettlementContext(unitId: number | null) {
+export function useSettlementContext(
+  unitId: number | null,
+  settlementId: number | null = null,
+) {
   return useQuery({
-    queryKey: movingSettlementKeys.context(unitId),
-    queryFn: () => getSettlementContext(unitId as number),
+    queryKey: movingSettlementKeys.context(unitId, settlementId),
+    queryFn: () => getSettlementContext(unitId as number, settlementId),
     enabled: unitId !== null,
   });
 }
