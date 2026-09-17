@@ -6,6 +6,10 @@ import type { BillBuilding } from "../../types";
 import type { GiroStampOptions } from "../GiroPrintView";
 import { GiroStampOverlays } from "./GiroStampOverlays";
 
+/** 자연 크기 = A4 @96dpi. 미리보기는 0.796배로 축소해 Figma 표시 크기(632×894)와 맞춘다. */
+export const GIRO_PAPER_WIDTH = 794;
+export const GIRO_PAPER_HEIGHT = 1123;
+
 export interface GiroPaperProps {
   companyName: string;
   period: string;

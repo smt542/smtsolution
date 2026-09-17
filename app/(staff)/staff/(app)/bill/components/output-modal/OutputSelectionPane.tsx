@@ -144,7 +144,7 @@ export function OutputSelectionPane({
                   onClick={() => { if (!disabled) onToggleUnit(target.unitId); }}
                   className={`grid h-[42px] w-full grid-cols-[34px_47px_76px_91px_49px] items-center border-b border-[#f1f3f5] bg-white text-left text-[12px] transition hover:bg-[#f8fbfb] ${disabled ? "cursor-not-allowed opacity-45" : ""}`}
                 >
-                  <span className="flex justify-center"><SelectionCheck ariaLabel={`${targetsByBuilding.find(({ targets: values }) => values.some(({ unitId }) => unitId === target.unitId))?.building.name ?? "건물"} · ${target.unitNo}호 · ${displayName(target)}`} checked={selected} disabled={disabled} onChange={() => onToggleUnit(target.unitId)} /></span>
+                  <span className="flex justify-center"><SelectionCheck ariaLabel={`${targetsByBuilding.find(({ targets: values }) => values.some(({ unitId }) => unitId === target.unitId))?.building.name ?? "건물"} · ${displayUnitNo(target.unitNo)} · ${displayName(target)}`} checked={selected} disabled={disabled} onChange={() => onToggleUnit(target.unitId)} /></span>
                   <span className="truncate font-bold text-[#333d4b]">{displayUnitNo(target.unitNo)}</span>
                   <span className="truncate pr-1 text-[#4e5968]">{displayName(target)}</span>
                   <span className="truncate pr-1 text-[#8b95a1]">{target.phone || "-"}</span>
