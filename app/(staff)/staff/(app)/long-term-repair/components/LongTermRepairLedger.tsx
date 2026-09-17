@@ -297,12 +297,23 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
         })),
         deletedIds,
       });
+      // 조회 범위(기본: 마감월까지)를 벗어난 일자로 저장하면 재조회 때 필터링돼 방금 넣은 행이 사라진다.
+      // 저장한 일자를 포함하도록 범위를 넓혀, 입력한 내역이 항상 목록에 남게 한다.
+      const savedMonths = draftRows.map((row) => row.entryDate.slice(0, 7));
+      const earliest = savedMonths.reduce((min, month) => (month < min ? month : min), startMonth);
+      const latest = savedMonths.reduce((max, month) => (month > max ? month : max), endMonth);
+      if (earliest < startMonth) setStartMonth(earliest);
+      if (latest > endMonth) setEndMonth(latest);
       setEditing(false);
       setAdding(false);
       setDirty(false);
       setDraftRows([]);
       setDeletedIds([]);
-      toast.success("적립금 내역을 저장했어요");
+      toast.success(
+        latest > endMonth || earliest < startMonth
+          ? "적립금 내역을 저장했어요 · 저장한 일자가 보이도록 조회 기간을 넓혔어요"
+          : "적립금 내역을 저장했어요",
+      );
     } catch (error) {
       toast.error(error, "적립금 내역을 저장하지 못했습니다.");
     }
