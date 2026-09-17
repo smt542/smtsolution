@@ -59,7 +59,9 @@ export const longTermRepairClasses = {
   attachmentCount: "font-bold tabular-nums text-inherit",
   attachmentCountEmpty: "font-semibold text-t4",
   subtotalRow: "[&_td]:h-[41px] [&_td]:py-0 [&_td]:bg-[#fafbfc] [&_td]:font-semibold [&_td]:text-t3 [&_td:nth-child(4)]:tabular-nums [&_td:nth-child(5)]:tabular-nums [&_td:nth-child(6)]:tabular-nums",
-  footer: "flex min-h-[47px] flex-none flex-wrap items-center justify-end gap-x-[26px] gap-y-2 border-t border-line bg-[#fbfcfd] px-[18px] py-[13px] leading-normal",
+  /* 합계는 좌측 정렬한다. Figma 정본은 우측 정렬이지만, 빠른발송 FAB이 fixed bottom-[22px] right-[22px]로
+     우하단에 떠 있어 현잔액을 가린다. 기획 협의로 좌측 정렬을 선택했으므로 픽셀 정합 작업 때 되돌리지 말 것. */
+  footer: "flex min-h-[47px] flex-none flex-wrap items-center justify-start gap-x-[26px] gap-y-2 border-t border-line bg-[#fbfcfd] px-[18px] py-[13px] leading-normal",
   footerItem: "flex items-baseline gap-[9px] whitespace-nowrap",
   footerLabel: "text-[12.5px] font-semibold not-italic text-t3",
   /* 전환 전 정본: `.footerTotal .footerValue { color: var(--color-blue); font-size: 17px; font-weight: 800 }`.
