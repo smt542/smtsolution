@@ -22,11 +22,9 @@ export interface GiroOutputDocument {
 }
 
 export interface GiroStampOptions {
-  reissue: boolean;
-  reissueUnitIds?: number[];
+  reissueUnitIds: number[];
   waterCutoffUnitIds: number[];
-  autoDebit: boolean;
-  autoDebitUnitIds?: number[];
+  autoDebitUnitIds: number[];
 }
 
 export interface GiroPrintViewProps {
@@ -82,9 +80,9 @@ export function GiroPrintView({
               {companyName}
             </div>
             <GiroStampOverlays
-              reissue={stamps.reissue && (!stamps.reissueUnitIds || stamps.reissueUnitIds.includes(document.unitId))}
+              reissue={stamps.reissueUnitIds.includes(document.unitId)}
               waterCutoff={stamps.waterCutoffUnitIds.includes(document.unitId)}
-              autoDebit={stamps.autoDebit && (!stamps.autoDebitUnitIds || stamps.autoDebitUnitIds.includes(document.unitId))}
+              autoDebit={stamps.autoDebitUnitIds.includes(document.unitId)}
             />
 
             <div className="relative">
