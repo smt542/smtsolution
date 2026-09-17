@@ -25,12 +25,13 @@ export function SettlementActionBar({
     "h-[40px] rounded-[11px] border border-teal bg-white px-[10px] text-[13.5px] font-bold text-teal-d hover:bg-teal-t disabled:cursor-wait disabled:opacity-60";
 
   return (
-    <div className="flex h-[62px] flex-wrap shrink-0 items-center gap-[8px] rounded-[14px] border border-line bg-white py-[10px] px-[14px]">
+    // pr-[72px]: 우하단 메신저 FAB(right-22 · 52px)에 버튼이 가리지 않도록 원본이 비워 둔 여백
+    <div className="flex h-[62px] shrink-0 items-center gap-[8px] rounded-[14px] border border-line bg-white py-[10px] pl-[14px] pr-[72px]">
       <button
         type="button"
         onClick={onSave}
         disabled={pending}
-        className="flex-[1_1_auto] min-w-max justify-center h-[40px] rounded-[11px] bg-teal px-[10px] text-[13.5px] font-bold text-white shadow-[0_6px_7px_rgba(20,164,151,0.5)] hover:bg-teal-d disabled:cursor-wait disabled:opacity-60"
+        className="flex-[1_1_auto] min-w-max justify-center h-[40px] rounded-[11px] border border-transparent bg-teal px-[10px] text-[13.5px] font-bold text-white shadow-[0_6px_7px_rgba(20,164,151,0.5)] hover:bg-teal-d disabled:cursor-wait disabled:opacity-60"
       >
         {pendingAction === "save" ? "저장 중…" : "저장"}
       </button>

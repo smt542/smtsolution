@@ -17,6 +17,8 @@ interface DpDatePickerProps {
   ariaLabel?: string;
   triggerClassName?: string;
   triggerOpenClassName?: string;
+  /** 컨트롤 왼쪽(값 앞)에 놓는 장식. 원본 `.dp-ctl`의 선행 달력 아이콘에 대응한다 */
+  startAdornment?: ReactNode;
   endAdornment?: ReactNode;
   /** 루트 래퍼(relative inline-flex)에 덧붙이는 클래스. grid/flex 셀에서 폭 제어(w-full 등)에 사용 */
   className?: string;
@@ -36,6 +38,7 @@ export function DpDatePicker({
   ariaLabel,
   triggerClassName,
   triggerOpenClassName,
+  startAdornment,
   endAdornment,
   className,
   displayFormatter,
@@ -130,7 +133,9 @@ export function DpDatePicker({
             disabled ? "cursor-default border-line2 bg-bg" : "cursor-pointer border-line bg-white"
           } ${open ? "border-blue shadow-[0_0_0_3px_var(--color-blue-t)]" : ""} ${value ? "text-t1" : "text-t4"}`}
       >
-        <span className={triggerClassName && !value ? "text-t4" : ""}>
+        {startAdornment}
+        {/* 원본 `.dp-val.ph{color:var(--t4);font-weight:500}` */}
+        <span className={triggerClassName && !value ? "font-medium text-t4" : ""}>
           {value ? (displayFormatter ? displayFormatter(value) : toDisplay(value)) : placeholder}
         </span>
         {endAdornment}

@@ -9,7 +9,7 @@ export function SettlementEmptyPanel({ onAction }: { onAction: () => void }) {
         </div>
         <div className="grid min-h-0 flex-1 place-items-center px-[20px] py-[34px] text-center">
           <div>
-            <p className="text-[15px] font-bold text-t1">건물과 호실을 선택해 주세요</p>
+            <p className="text-[15px] font-bold leading-[18px] text-t1">건물과 호실을 선택해 주세요</p>
             <p className="mt-[5px] text-[13px] leading-[20px] text-t3">
               선택한 세대의 이사정산 내역을
               <br />
@@ -17,9 +17,14 @@ export function SettlementEmptyPanel({ onAction }: { onAction: () => void }) {
             </p>
           </div>
         </div>
+        {/* 원본 `.ms-foot>span{display:flex;align-items:baseline;gap:6px}` */}
         <div className="flex h-[50px] shrink-0 items-center justify-end border-t border-[#dce1e7] bg-[#f7f9fa] px-[18px]">
-          <span className="text-[12px] font-bold text-t2">총 요금액</span>
-          <strong className="ml-[8px] text-[19px] font-extrabold text-t1">-</strong>
+          <span className="flex items-baseline gap-[6px]">
+            <span className="text-[12px] font-bold leading-[15px] text-t2">총 요금액</span>
+            <strong className="text-[19px] font-extrabold leading-[23px] tracking-[-0.02em] text-t1">
+              —
+            </strong>
+          </span>
         </div>
       </section>
       <SettlementActionBar
