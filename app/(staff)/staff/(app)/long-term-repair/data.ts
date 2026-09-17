@@ -10,25 +10,14 @@ export type LongTermRepairBuilding = {
 
 export async function getLongTermRepairPageData(orgId: number) {
   const supabase = await createClient();
-  const [buildingsResult, organizationResult] = await Promise.all([
-    supabase
-      .from("buildings")
-      .select("id, code, name")
-      .eq("org_id", orgId)
-      .is("deleted_at", null)
-      .order("name"),
-    supabase
-      .from("organizations")
-      .select("name")
-      .eq("id", orgId)
-      .maybeSingle(),
-  ]);
+  const { data, error } = await supabase
+    .from("buildings")
+    .select("id, code, name")
+    .eq("org_id", orgId)
+    .is("deleted_at", null)
+    .order("name");
 
-  if (buildingsResult.error) throw new Error(buildingsResult.error.message);
-  if (organizationResult.error) throw new Error(organizationResult.error.message);
+  if (error) throw new Error(error.message);
 
-  return {
-    buildings: (buildingsResult.data ?? []) as LongTermRepairBuilding[],
-    organizationName: organizationResult.data?.name ?? null,
-  };
+  return { buildings: (data ?? []) as LongTermRepairBuilding[] };
 }

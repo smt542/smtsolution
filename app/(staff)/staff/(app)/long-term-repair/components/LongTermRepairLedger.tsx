@@ -47,7 +47,6 @@ interface ViewerState {
 
 interface LongTermRepairLedgerProps {
   orgId: number;
-  companyName: string;
   buildings: Array<{ id: number; code: string; name: string }>;
 }
 
@@ -150,7 +149,7 @@ function AttachmentCell({
   );
 }
 
-export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTermRepairLedgerProps) {
+export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerProps) {
   const confirm = useConfirm();
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -597,7 +596,6 @@ export function LongTermRepairLedger({ orgId, companyName, buildings }: LongTerm
       {selectedBuilding && printableRows.length > 0 && !viewer && (
         <LongTermRepairPrintView
           buildingName={selectedBuilding.name}
-          companyName={companyName}
           startMonth={startMonth}
           endMonth={endMonth}
           rows={printableRows}
