@@ -153,12 +153,10 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
   const confirm = useConfirm();
   const now = new Date();
   const currentYear = now.getFullYear();
-  const latestClosedMonth = new Date(currentYear, now.getMonth(), 0);
-  const latestClosedMonthNumber = latestClosedMonth.getMonth() + 1;
-  const initialEndMonth = `${latestClosedMonth.getFullYear()}-${String(latestClosedMonthNumber).padStart(2, "0")}`;
-  const openingDecemberYear = latestClosedMonthNumber === 12
-    ? latestClosedMonth.getFullYear()
-    : latestClosedMonth.getFullYear() - 1;
+  // 조회 종료월 기본값은 이번 달. 마감월(전월)까지로 두면 이번 달에 입력한 내역이 목록에서 빠진다.
+  const currentMonthNumber = now.getMonth() + 1;
+  const initialEndMonth = `${currentYear}-${String(currentMonthNumber).padStart(2, "0")}`;
+  const openingDecemberYear = currentMonthNumber === 12 ? currentYear : currentYear - 1;
   const [startMonth, setStartMonth] = useState(`${openingDecemberYear}-12`);
   const [endMonth, setEndMonth] = useState(initialEndMonth);
   const [buildingId, setBuildingId] = useState<number | null>(null);
@@ -309,11 +307,7 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
       setDirty(false);
       setDraftRows([]);
       setDeletedIds([]);
-      toast.success(
-        latest > endMonth || earliest < startMonth
-          ? "적립금 내역을 저장했어요 · 저장한 일자가 보이도록 조회 기간을 넓혔어요"
-          : "적립금 내역을 저장했어요",
-      );
+      toast.success("적립금 내역을 저장했어요");
     } catch (error) {
       toast.error(error, "적립금 내역을 저장하지 못했습니다.");
     }
