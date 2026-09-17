@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Spinner } from "@/components/common";
+import { Button, Spinner } from "@/components/common";
 import {
   usePlatformSettings,
   useUpdatePlatformSettings,
@@ -104,14 +104,15 @@ export function PlatformSettingsWorkspace() {
             </button>
           </div>
         ) : (
-          <button
+          <Button
+            variant="primary"
             type="button"
             onClick={beginEditing}
             disabled={!settingsQuery.data}
-            className="inline-flex h-10 shrink-0 items-center justify-center rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-hf-btn transition-colors hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
+            className="shrink-0 transition-colors disabled:cursor-not-allowed"
           >
             수정
-          </button>
+          </Button>
         )}
       </PlatformTopBarActions>
 

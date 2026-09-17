@@ -4,7 +4,7 @@ import React, { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Input, Modal, Select } from "@/components/common";
+import { Button, Input, Modal, Select } from "@/components/common";
 import { FormField } from "@/components/common/FormField";
 import { setSubmissionError } from "@/components/forms/formErrors";
 import {
@@ -207,13 +207,14 @@ export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props
           >
             취소
           </button>
-          <button
+          <Button
+            variant="primary"
             type="submit"
             disabled={submitting || organizations.length === 0}
-            className="h-10 rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-hf-btn hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
+            className="submit disabled:cursor-not-allowed"
           >
             {submitting ? "발급 중…" : "계정 발급"}
-          </button>
+          </Button>
         </ModalActions>
       </form>
     </Modal>
