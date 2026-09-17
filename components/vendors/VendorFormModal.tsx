@@ -67,12 +67,13 @@ export function VendorFormModal({
     defaultValues: editing
       ? {
           name: editing.name,
+          manager: editing.manager ?? "",
           phone: editing.phone ?? "",
           bankAccount: editing.bankAccount ?? "",
           memo: editing.memo ?? "",
           categoryId: editing.categoryId ?? null,
         }
-      : { name: "", phone: "", bankAccount: "", memo: "", categoryId: defaultCategoryId },
+      : { name: "", manager: "", phone: "", bankAccount: "", memo: "", categoryId: defaultCategoryId },
     shouldFocusError: true,
   });
 
@@ -82,12 +83,13 @@ export function VendorFormModal({
         editing
           ? {
               name: editing.name,
+              manager: editing.manager ?? "",
               phone: editing.phone ?? "",
               bankAccount: editing.bankAccount ?? "",
               memo: editing.memo ?? "",
               categoryId: editing.categoryId ?? null,
             }
-          : { name: "", phone: "", bankAccount: "", memo: "", categoryId: defaultCategoryId }
+          : { name: "", manager: "", phone: "", bankAccount: "", memo: "", categoryId: defaultCategoryId }
       );
     }
   }, [open, editing, defaultCategoryId, reset]);
@@ -239,6 +241,13 @@ export function VendorFormModal({
                   )}
                 </div>
 
+                {/* 담당자 */}
+                <div>
+                  <label htmlFor="vendor-manager" className={vendorClasses.fieldLabel}>담당자</label>
+                  <input id="vendor-manager" {...register("manager")} placeholder="담당자" className={vendorClasses.fieldInput} aria-invalid={Boolean(errors.manager)} aria-describedby={errors.manager ? "vendor-manager-error" : undefined} />
+                  {errors.manager?.message && <p id="vendor-manager-error" className={vendorClasses.fieldError}>{errors.manager.message}</p>}
+                </div>
+
                 {/* 전화 */}
                 <div>
                   <label htmlFor="vendor-phone" className={vendorClasses.fieldLabel}>전화번호</label>
@@ -247,7 +256,7 @@ export function VendorFormModal({
                 </div>
 
                 {/* 계좌번호 */}
-                <div className={vendorClasses.fullField}>
+                <div>
                   <label htmlFor="vendor-bank-account" className={vendorClasses.fieldLabel}>계좌번호</label>
                   <input id="vendor-bank-account" {...register("bankAccount")} placeholder="계좌번호" className={vendorClasses.fieldInput} aria-invalid={Boolean(errors.bankAccount)} aria-describedby={errors.bankAccount ? "vendor-bank-account-error" : undefined} />
                   {errors.bankAccount?.message && <p id="vendor-bank-account-error" className={vendorClasses.fieldError}>{errors.bankAccount.message}</p>}

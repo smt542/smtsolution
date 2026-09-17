@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { z } from "zod";
+import { PlusIcon } from "@/components/icons";
 import { VendorCategorySidebar } from "./VendorCategorySidebar";
 import { VendorList } from "./VendorList";
 import { VendorFormModal } from "./VendorFormModal";
@@ -19,11 +20,14 @@ import {
   type Attachment,
 } from "@/hooks/reactquery/attachments";
 import { useAppToast } from "@/hooks/common/useAppToast";
+import { useDebouncedValue } from "@/hooks/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { vendorSchema } from "@/components/forms/schema/vendor";
 import type { Vendor } from "@/hooks/reactquery/vendors";
 
 type VendorFormOutput = z.output<typeof vendorSchema>;
+
+const SEARCH_DEBOUNCE_MS = 300;
 
 // Inner component that loads attachments only when editing an existing vendor
 function AttachmentLoader({
@@ -60,6 +64,7 @@ export function VendorManagementSection() {
   const { data: categories = [] } = categoriesQuery;
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search.trim(), SEARCH_DEBOUNCE_MS);
 
   // All vendors (no filter) for sidebar counts
   const allVendorsQuery = useVendors();
@@ -67,7 +72,7 @@ export function VendorManagementSection() {
   // Filtered vendors for the list
   const vendorsQuery = useVendors(
     selectedCategoryId ?? undefined,
-    search || undefined
+    debouncedSearch || undefined
   );
   const { data: vendors = [] } = vendorsQuery;
 
@@ -180,9 +185,7 @@ export function VendorManagementSection() {
             className={vendorClasses.search}
           />
           <button type="button" className={vendorClasses.addButton} onClick={openCreate}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
+            <PlusIcon className="size-[16px]" aria-hidden="true" />
             업체 추가
           </button>
         </div>
