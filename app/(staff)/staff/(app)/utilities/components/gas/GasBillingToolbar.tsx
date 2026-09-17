@@ -1,4 +1,5 @@
 import { CloseIcon } from "@/components/icons";
+import { Button } from "@/components/common";
 import { DpDatePicker } from "@/components/common/DpDatePicker";
 
 interface GasBillingToolbarProps {
@@ -55,9 +56,9 @@ export function GasBillingToolbar({
             </button>
           </>
         ) : (
-          <button type="button" onClick={onEdit} className="h-[26px] rounded-[8px] border border-line bg-white px-[10px] text-[11.5px] font-bold text-t2 hover:bg-bg">
+          <Button variant="ghost" size="sm" type="button" onClick={onEdit}>
             수정
-          </button>
+          </Button>
         )}
       </div>
     </section>

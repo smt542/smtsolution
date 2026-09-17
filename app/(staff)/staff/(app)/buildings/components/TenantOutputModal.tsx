@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDownIcon, CloseIcon, PrinterIcon, UnitCardIcon } from "@/components/icons";
+import { Button } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useBillDocuments, useBillOrganizationName, useBillTargets } from "@/hooks/reactquery/bill";
@@ -235,13 +236,13 @@ export function TenantOutputModal({
           <footer className="flex shrink-0 items-center gap-[10px] border-t border-line px-[22px] py-[14px]">
             <span className="text-[12.5px] font-semibold text-t3">{footerText}</span>
             <div className="flex-1" />
-            <button
+            <Button
+              variant="ghost"
               type="button"
               onClick={onClose}
-              className="h-[40px] rounded-[11px] border border-line bg-white px-[15px] text-[13.5px] font-bold text-t2 hover:bg-bg"
             >
               취소
-            </button>
+            </Button>
             <button
               type="button"
               onClick={() => setPrintScope("both")}

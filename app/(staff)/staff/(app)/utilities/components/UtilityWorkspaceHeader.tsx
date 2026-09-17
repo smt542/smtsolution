@@ -1,7 +1,7 @@
 "use client";
 
 import { PrinterIcon } from "@/components/icons";
-import { IconButton } from "@/components/common";
+import { Button, IconButton } from "@/components/common";
 
 interface UtilityWorkspaceHeaderProps {
   utilityLabel: string;
@@ -43,21 +43,23 @@ export function UtilityWorkspaceHeader({
       </div>
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
-        <button
+        <Button
+          variant="ghost"
           type="button"
           onClick={onOpenLedger}
-          className="flex h-10 items-center gap-1.5 whitespace-nowrap rounded-[11px] border border-line bg-white px-[15px] text-[13.5px] font-bold text-t2 transition-colors hover:bg-bg"
+          className="transition-colors"
         >
           <PrinterIcon className="size-4" />
           검침대장 출력
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="primary"
           type="button"
           onClick={onOpenCarryOver}
-          className="h-10 whitespace-nowrap rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white transition-colors hover:bg-blue-d"
+          className="transition-colors"
         >
           전체 이월
-        </button>
+        </Button>
       </div>
     </header>
   );

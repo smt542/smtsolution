@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { CloseIcon } from "@/components/icons";
+import { Button } from "@/components/common";
 import { useBillingPeriod, useSaveBillingPeriod } from "@/hooks/reactquery/utilities";
 import { defaultBillingDates } from "./BillingPeriodBar";
 import { isPrototypeFuturePeriod } from "./BillingBasisRequiredState";
@@ -87,7 +88,7 @@ export function UtilityWorkspaceBar({
           <button type="button" aria-label="수정 취소" onClick={cancel} className="grid size-[26px] place-items-center rounded-[8px] border border-line text-t3 hover:bg-bg"><CloseIcon className="size-3.5" /></button>
         </div>
       ) : canEdit ? (
-        <button type="button" onClick={() => onEditingChange(true)} className="h-[26px] rounded-[8px] border border-line bg-white px-[10px] text-[11.5px] font-bold text-t2 hover:bg-bg">수정</button>
+        <Button variant="ghost" size="sm" type="button" onClick={() => onEditingChange(true)}>수정</Button>
       ) : (
         <span className="text-[11px] text-t3">편집 권한 없음</span>
       )}
