@@ -162,9 +162,48 @@ font-size:13.5px; font-weight:700;
   - `gas/CarryOverDialog` → `bg-bg` 회색 버튼이라 기존 variant와 맞지 않고 정본 근거도 없어 **미변경**.
 - [x] `TenantForm`의 `!important` 7개 제거. 강제하던 값이 `std` + `primary` 기본값과 동일해졌다.
 
+### 10. 비활성 표시도 정본과 달랐다 (2026-09-17)
+
+정본의 `:disabled` 규칙은 전부 한 패턴이다.
+
+```css
+background: var(--bg);  color: var(--t4);   /* .pri · .lg-print · .fmpc-btn · .uc-mini · .fmp-din */
+```
+
+**opacity 기반은 정본 전체에서 페이저 한 곳(`opacity:.4`)뿐이고 `0.7`은 어디에도 없다.** 그런데 공통 `Button`은 `disabled:opacity-70`을 썼고, 그 결과 호출부들이 opacity를 40·45·50·60·70 다섯 갈래로 각자 정하거나(76개소) 정본 패턴(`disabled:bg-*`/`disabled:text-t4`)을 손으로 다시 썼다(18개소). **geometry가 44 vs 40으로 어긋나 있던 것과 같은 구조다.**
+
+교정: `disabled:opacity-70` → `disabled:bg-bg disabled:text-t4`.
+
+### 11. 오버라이드 양보 규칙
+
+호출부가 같은 유틸리티를 지정하면 컴포넌트 기본값을 문자열에서 뺀다(`dropOverridden`). 대상은 실제로 덮어써야 했던 `hover:bg-`와 비활성 표시 둘뿐이며, 색·크기 전반을 병합하지는 않는다 — 그건 `tailwind-merge`의 일이고 규격을 제한하려는 방침과 어긋난다.
+
+- 비활성 표시는 속성별이 아니라 **통째로** 양보한다. 호출부가 직접 정의했다면 그쪽이 의도한 전체 표현이기 때문이다.
+- 단 `disabled:cursor-*`는 양보를 유발하지 않는다. 커서는 시각 표현이 아니므로, 커서만 지정했다고 회색 처리를 잃으면 안 된다.
+
+### 12. 치환 판정은 이름이 아니라 값으로 해야 한다
+
+분석 초기에 `rounded-[11px]` vs `rounded-btn`, `bg-blue`/`bg-teal` vs `bg-brand`, `shadow-hf-btn` vs `shadow-pri`를 전부 충돌로 오판해 "안전 치환 0개소"가 나왔다. 전부 **값이 같은 다른 이름**이다(`--shadow-hf-btn`도 `--shadow-pri`와 값이 동일하다). 값 기준으로 비교하자 10개소가 드러났다.
+
+→ 앞으로 치환 후보를 뽑을 때는 반드시 값으로 정규화해 비교한다.
+
 ### Phase 2 — 단계적 수렴
 
-- [ ] 높이 보유 147개소를 규격 클러스터 단위로 배치 PR 분할. 엔트리포인트별 순차 진행(선례: `common-ui-extraction` 백로그의 9PR 방식).
+- [x] **배치 1 (6개소)** — 정본 `.hf-btn`/소형 규격과 클래스가 정확히 일치하는 지점. TenantOutputModal·UtilityWorkspaceHeader×2·ElectricityPeriodBar·UtilityWorkspaceBar·GasBillingToolbar.
+- [x] **양보 규칙 도입 후 2개소** — PreviewPane·GasBillingToolbar 계산(자체 `disabled:opacity`).
+- [x] **배치 2 (10개소)** — 값 기준 재분석으로 드러난 지점. platform-admin 3 · FeeItemFormDialog 2 · BillingPeriodSettingsBar · SettlementExtrasSection · SettlementDecisionDialog · ElectricityPeriodBar · UtilityWorkspaceBar.
+
+**누적 18개소 치환. `<Button>` 142 → 160개소.** 남은 raw 후보 36개소의 사유별 내역:
+
+| 사유 | 개소 | 성격 |
+|---|---|---|
+| variant 불명(정본에 없는 색 조합) | 20 | 디자인 판단 필요 |
+| 클래스 충돌 | 10 | 대부분 `px-[18px]`(정본 `.lg-print` 계열) · `flex` |
+| `sm` + 채움 | 6 | 정본에 규격 없음 — 유지 결정됨 |
+
+`px-[18px]` 충돌 6개소는 정본이 `.hf-btn`(15px)이 아니라 `.lg-print`(18px) 계열일 가능성이 있다. 다음 배치 전에 각 지점의 정본 카운터파트를 확인해야 한다.
+
+- [ ] 남은 36개소는 위 표의 사유별로 개별 판단. 기계적 일괄 치환 대상이 아니다.
 - [ ] 높이 없는 343개소는 **원칙적으로 비대상**. 다만 표본 검수로 액션 버튼 오분류가 없는지 확인한다.
 - [ ] 하드코딩 hex 138개소 토큰 치환(§8 잔여 측정 후).
 - [ ] 모바일 2종(resident·partner)의 클래스맵 체제는 **별도 트랙**. 공통 Button 수렴 전에 체제 통합 여부를 먼저 결정해야 한다.

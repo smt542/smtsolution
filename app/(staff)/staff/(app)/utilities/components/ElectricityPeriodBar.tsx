@@ -85,14 +85,16 @@ export function ElectricityPeriodBar({
           </button>
         </>
       ) : (
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           type="button"
           onClick={onEdit}
           disabled={disabled}
-          className="h-[26px] rounded-[8px] border border-line bg-white px-[10px] text-[11.5px] font-bold text-t2 hover:bg-bg disabled:cursor-default disabled:bg-line2 disabled:text-t4"
+          className="disabled:cursor-default disabled:bg-line2 disabled:text-t4"
         >
           수정
-        </button>
+        </Button>
       )}
     </section>
   );

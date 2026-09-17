@@ -41,12 +41,13 @@ const DISABLED = "disabled:bg-bg disabled:text-t4";
  * 색·크기 전반을 병합하지는 않는다(그건 `tailwind-merge`의 일이고, 규격을 제한하려는
  * 이 컴포넌트의 방침과 어긋난다). 호출부가 실제로 덮어써야 했던 것만 대상으로 한다.
  *
- * `disabled:`는 접두사별이 아니라 통째로 양보한다. 호출부가 비활성 표시를 직접 정의했다면
- * 그쪽이 의도한 전체 표현이지, 컴포넌트 기본값과 섞으라는 뜻이 아니기 때문이다.
+ * 비활성 표시는 속성별이 아니라 통째로 양보한다. 호출부가 직접 정의했다면 그쪽이 의도한
+ * 전체 표현이지, 컴포넌트 기본값과 섞으라는 뜻이 아니기 때문이다. 다만 `disabled:cursor-*`는
+ * 시각 표현이 아니므로 양보를 유발하지 않는다 — 커서만 지정했다고 회색 처리를 잃으면 안 된다.
  */
 function dropOverridden(defaults: string, className: string): string {
   if (!className) return defaults;
-  const yieldDisabled = className.includes("disabled:");
+  const yieldDisabled = /\bdisabled:(bg|text|opacity|border)-/.test(className);
   const yieldHover = className.includes("hover:bg-");
   return defaults
     .split(" ")

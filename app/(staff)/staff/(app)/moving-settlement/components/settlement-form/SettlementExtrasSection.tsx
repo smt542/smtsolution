@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type RefObject } from "react";
+import { Button } from "@/components/common";
 import { DpDatePicker } from "@/components/common/DpDatePicker";
 import { CalendarIcon } from "@/components/icons";
 import type { MovingSettlementValues } from "@/components/forms/schema/movingSettlement";
@@ -50,12 +51,14 @@ export function SettlementExtrasSection({
         <div className="flex h-[27px] items-center">
           <h3 className="text-[14px] font-extrabold text-t1">기타</h3>
           <span className="ml-auto text-[11.5px] font-semibold text-t3">1 / 15</span>
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             type="button"
-            className="ml-[9px] h-[26px] rounded-[8px] border border-line bg-white px-[10px] text-[11.5px] font-bold text-t2"
+            className="ml-[9px]"
           >
             항목 추가
-          </button>
+          </Button>
         </div>
         <div className="mt-[10px] grid grid-cols-[1fr_130px_28px] gap-[7px]">
           <input

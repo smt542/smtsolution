@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { CloseIcon } from "@/components/icons";
+import { Button } from "@/components/common";
 import {
   defaultBillingPeriodSetting,
   useBillingPeriodSetting,
@@ -157,14 +158,16 @@ export function BillingPeriodSettingsBar({
             </button>
           </>
         ) : (
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             type="button"
             disabled={!buildingId || settingQuery.isLoading || settingQuery.isError}
             onClick={ensureDraft}
-            className="h-[26px] rounded-[8px] border border-line bg-white px-[10px] text-[11.5px] font-bold text-t2 hover:border-[#C9D0D8] hover:bg-[#F7F9FA] disabled:bg-bg disabled:text-t4"
+            className="hover:border-[#C9D0D8] hover:bg-[#F7F9FA] disabled:bg-bg disabled:text-t4"
           >
             수정
-          </button>
+          </Button>
         )}
       </div>
     </section>
