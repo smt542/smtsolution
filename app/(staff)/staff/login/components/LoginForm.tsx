@@ -52,7 +52,7 @@ export function LoginForm() {
             aria-invalid={Boolean(errors.password)}
             aria-describedby={errors.password ? "password-error" : undefined} />
           <button type="button" aria-label="비밀번호 보기" onClick={() => setShowPw((v) => !v)}
-            className={`absolute right-2 flex h-8 w-8 items-center justify-center rounded-[9px] ${showPw ? "text-[#14A497]" : "text-t4"}`}>
+            className={`absolute right-2 flex h-8 w-8 items-center justify-center rounded-[9px] ${showPw ? "text-blue" : "text-t4"}`}>
             {showPw ? (
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" className="h-[18px] w-[18px]">
                 <path d="M3 3l18 18" />
@@ -71,7 +71,7 @@ export function LoginForm() {
       </FormField>
       <label className="flex cursor-pointer select-none items-center gap-2 text-[13.5px] font-semibold text-t2">
         <input type="checkbox" className="peer sr-only" {...register("autoLogin")} />
-        <span className="flex h-[19px] w-[19px] flex-none items-center justify-center rounded-md border-[1.6px] border-line bg-white transition-colors peer-checked:border-[#14A497] peer-checked:bg-[#14A497] peer-checked:[&_svg]:opacity-100 peer-focus-visible:ring-2 peer-focus-visible:ring-[#14A497]/40">
+        <span className="flex h-[19px] w-[19px] flex-none items-center justify-center rounded-md border-[1.6px] border-line bg-white transition-colors peer-checked:border-blue peer-checked:bg-blue peer-checked:[&_svg]:opacity-100 peer-focus-visible:ring-2 peer-focus-visible:ring-blue/40">
           <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 opacity-0" aria-hidden="true">
             <path d="M4 12.5l5 5L20 6.5" />
           </svg>
@@ -82,7 +82,7 @@ export function LoginForm() {
         <div role="alert" className="rounded-[11px] bg-red-t px-3 py-2.5 text-sm font-bold text-red">{errors.root.server.message}</div>
       )}
       <button type="submit" disabled={submitting}
-        className="mt-1.5 h-[50px] rounded-[14px] bg-[#14A497] text-[15px] font-extrabold text-white transition hover:bg-[#0E8677] disabled:opacity-70">
+        className="mt-1.5 h-[50px] rounded-[14px] bg-blue text-[15px] font-extrabold text-white transition hover:bg-blue-d disabled:opacity-70">
         {submitting ? "로그인 중…" : "로그인"}
       </button>
     </form>
