@@ -17,13 +17,7 @@ export const agreeOptions: Opt[] = [
   { value: "deny", label: "거부" },
 ];
 // 이체 방식 (원본: 지로 / 이체 / 자동이체 / 입금 / 없음)
-export const transferMethodOptions: Opt[] = [
-  { value: "giro", label: "지로" },
-  { value: "transfer", label: "이체" },
-  { value: "auto_transfer", label: "자동이체" },
-  { value: "deposit", label: "입금" },
-  { value: "none", label: "없음" },
-];
+export { transferMethodOptions } from "@/lib/bill/transferMethod";
 // 고지서 이름 출력 유형 (원본: 이름 미출력 / 이름 출력 / 코드번호 출력)
 export const billNameDisplayOptions: Opt[] = [
   { value: "none", label: "이름 미출력" },

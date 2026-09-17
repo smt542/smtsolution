@@ -21,7 +21,7 @@ import { ModalActionButton, ZoomControls } from "./output-modal/OutputModalPrimi
 import { OutputSelectionPane } from "./output-modal/OutputSelectionPane";
 import { GiroStampToolbar, type GiroStampKind, type GiroStampScope } from "./output-modal/GiroStampToolbar";
 
-const GiroPrintView = dynamic<GiroPrintViewProps>(() => import("./GiroPrintView").then((module) => module.GiroPrintView), { loading: () => <div className="flex min-h-[420px] items-center justify-center bg-[#e9edf1]"><Spinner /></div> });
+const GiroPrintView = dynamic<GiroPrintViewProps>(() => import("./GiroPrintView").then((module) => module.GiroPrintView), { loading: () => <div className="flex min-h-[420px] items-center justify-center bg-[#e8ebee]"><Spinner /></div> });
 
 function formatOutputDate(date: Date): string {
   const pad = (value: number) => String(value).padStart(2, "0");
@@ -62,7 +62,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
   const [outputDate] = useState(() => formatOutputDate(new Date()));
   const [search, setSearch] = useState("");
   const [selectedBuildingIds, setSelectedBuildingIds] = useState<number[]>(
-    type === "autoDebit" ? buildings.map((building) => building.id) : type === "giro" || type === "adjustment" ? [] : buildings[0] ? [buildings[0].id] : [],
+    type === "autoDebit" ? buildings.map((building) => building.id) : [],
   );
   const [selectedUnitIds, setSelectedUnitIds] = useState<number[]>([]);
   const [previewUnitId, setPreviewUnitId] = useState<number | null>(null);
@@ -71,7 +71,6 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
   const [stamps, setStamps] = useState<GiroStampOptions>({ reissue: false, waterCutoffUnitIds: [], autoDebit: false });
   const [waterCutoffStamp, setWaterCutoffStamp] = useState(false);
   const [stampScope, setStampScope] = useState<GiroStampScope>("individual");
-  const [selectedFaxUnitIds, setSelectedFaxUnitIds] = useState<number[]>([]);
   const [faxConfirmOpen, setFaxConfirmOpen] = useState(false);
   const [faxRecipient, setFaxRecipient] = useState("");
   const [faxError, setFaxError] = useState(false);
@@ -82,13 +81,13 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
   const handlePreviewReady = useCallback(() => setPreviewReady(true), []);
 
   const period = outputPeriod(year, month);
-  const needsDocuments = type === "giro";
+  const needsDocuments = type === "giro" || type === "fax";
   const selectedBuildings = useMemo(() => buildings.filter((building) => selectedBuildingIds.includes(building.id)), [buildings, selectedBuildingIds]);
   const normalizedSearch = search.trim().toLocaleLowerCase("ko-KR");
   const visibleBuildings = buildings.filter((building) => !normalizedSearch || `${building.code} ${building.name} ${building.address ?? ""}`.toLocaleLowerCase("ko-KR").includes(normalizedSearch));
 
   const currentTargetQueries = useQueries({ queries: selectedBuildings.map((building) => ({ queryKey: billKeys.targets(building.id, period), queryFn: () => listBillTargets(building.id, period) })) });
-  const periodSettingQueries = useQueries({ queries: selectedBuildings.map((building) => ({ queryKey: billingKeys.periodSetting(building.id, period), queryFn: () => getBillingPeriodSetting(building.id, period), enabled: type === "giro" })) });
+  const periodSettingQueries = useQueries({ queries: selectedBuildings.map((building) => ({ queryKey: billingKeys.periodSetting(building.id, period), queryFn: () => getBillingPeriodSetting(building.id, period), enabled: type === "giro" || type === "fax" })) });
   const currentTargetsByBuilding = selectedBuildings.map((building, index) => ({ building, targets: currentTargetQueries[index]?.data ?? [] }));
   const currentDocumentQueries = useQueries({ queries: currentTargetsByBuilding.map(({ building, targets }) => ({ queryKey: billKeys.documents(building.id, period, targets.map((target) => target.unitId)), queryFn: () => getBillDocuments(building.id, period, targets.map((target) => target.unitId)), enabled: needsDocuments && targets.length > 0 })) });
 
@@ -103,7 +102,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
   const allTargets = currentTargetsByBuilding.flatMap(({ building, targets }) => targets.map((target) => ({ building, target })));
   const autoDebitRows = allTargets.filter(({ target }) => target.autoDebit);
   const faxReadyTargets = allTargets.filter(({ target }) => Boolean(target.faxNumber));
-  const selectedFaxTargets = faxReadyTargets.filter(({ target }) => selectedFaxUnitIds.includes(target.unitId));
+  const selectedFaxTargets = faxReadyTargets.filter(({ target }) => selectedUnitIds.includes(target.unitId));
   const selectedFaxBuilding = selectedFaxTargets[0]?.building;
   const selectedFaxTargetValues = selectedFaxTargets.map(({ target }) => target);
   const previewEntry = allGiroDocuments.find(({ document }) => document.unitId === effectiveIndividualId);
@@ -121,11 +120,12 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
     if (type !== "fax" || faxSelectionInitialized.current || faxReadyTargets.length === 0) return;
     const first = faxReadyTargets[0].target;
     faxSelectionInitialized.current = true;
-    setSelectedFaxUnitIds([first.unitId]);
+    setSelectedUnitIds([first.unitId]);
+    setPreviewUnitId(first.unitId);
     setFaxRecipient(first.faxNumber ?? "");
   }, [faxReadyTargets, type]);
 
-  const allQueries = [...currentTargetQueries, ...(needsDocuments ? currentDocumentQueries : []), ...(type === "giro" ? periodSettingQueries : [])];
+  const allQueries = [...currentTargetQueries, ...(needsDocuments ? currentDocumentQueries : []), ...(type === "giro" || type === "fax" ? periodSettingQueries : [])];
   const isPreviewInitialLoading = (type === "adjustment" && adjustment.isLoading) || allQueries.some((query) => query.isLoading);
   const isPreviewRefreshing = (type === "adjustment" && adjustment.isRefreshing) || allQueries.some(
     (query) => query.isFetching && !query.isLoading,
@@ -140,21 +140,14 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
     setStamps({ reissue: false, waterCutoffUnitIds: [], autoDebit: false });
     setWaterCutoffStamp(false);
     setStampScope("individual");
-    setSelectedFaxUnitIds([]);
     setFaxConfirmOpen(false);
+    setFaxRecipient("");
     faxSelectionInitialized.current = false;
   };
   const changeYear = (value: number) => { setYear(value); resetPeriodSelection(); };
   const changeMonth = (value: number) => { setMonth(value); resetPeriodSelection(); };
   const toggleBuilding = (buildingId: number) => { setSelectedBuildingIds((selected) => selected.includes(buildingId) ? selected.filter((id) => id !== buildingId) : [...selected, buildingId]); resetPeriodSelection(); };
   const toggleUnit = (unitId: number) => {
-    if (type === "fax") {
-      setSelectedFaxUnitIds((current) => current.includes(unitId) ? current.filter((id) => id !== unitId) : [...current, unitId]);
-      const target = faxReadyTargets.find((entry) => entry.target.unitId === unitId)?.target;
-      if (target?.faxNumber) setFaxRecipient(target.faxNumber);
-      faxSelectionInitialized.current = true;
-      return;
-    }
     setSelectedUnitIds((current) => {
       if (current.includes(unitId)) {
         const next = current.filter((id) => id !== unitId);
@@ -164,6 +157,11 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
       setPreviewUnitId(unitId);
       return [...current, unitId];
     });
+    if (type === "fax") {
+      const target = faxReadyTargets.find((entry) => entry.target.unitId === unitId)?.target;
+      if (target?.faxNumber) setFaxRecipient(target.faxNumber);
+      faxSelectionInitialized.current = true;
+    }
   };
   const toggleAllBuildings = () => {
     const visibleIds = visibleBuildings.map((building) => building.id);
@@ -178,15 +176,13 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
       ? faxReadyTargets.map(({ target }) => target.unitId)
       : allTargets.map(({ target }) => target.unitId);
     if (availableIds.length === 0) return;
-    const selectedIds = type === "fax" ? selectedFaxUnitIds : validSelectedUnitIds;
+    const selectedIds = selectedUnitIds;
     const allSelected = availableIds.every((id) => selectedIds.includes(id));
+    setSelectedUnitIds(allSelected ? [] : availableIds);
+    setPreviewUnitId(allSelected ? null : availableIds[0] ?? null);
     if (type === "fax") {
-      setSelectedFaxUnitIds(allSelected ? [] : availableIds);
       setFaxRecipient(allSelected ? "" : faxReadyTargets[0]?.target.faxNumber ?? "");
       faxSelectionInitialized.current = true;
-    } else {
-      setSelectedUnitIds(allSelected ? [] : availableIds);
-      setPreviewUnitId(allSelected ? null : availableIds[0] ?? null);
     }
   };
   const toggleStamp = (kind: GiroStampKind) => {
@@ -254,8 +250,8 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
   };
 
   const printPreview = type === "giro" ? <GiroPrintView companyName={companyName} period={period} documents={giroDocuments} accounts={accounts} customerNotice={customerNotice} stamps={{ ...stamps, reissueUnitIds: stamps.reissue ? stampTargetIds : [], autoDebitUnitIds: stamps.autoDebit ? stampTargetIds : [], waterCutoffUnitIds: printWaterCutoffUnitIds }} onReady={handlePreviewReady} /> : null;
-  const selectedUnitCount = type === "fax" ? selectedFaxUnitIds.length : selectedUnitIds.length;
-  const stampFooterLabel = type === "giro" && stampTargetIds.length > 0
+  const selectedUnitCount = selectedUnitIds.length;
+  const stampFooterLabel = (type === "giro" || type === "fax") && stampTargetIds.length > 0
     ? stampScope === "all"
       ? "스탬프 · 전체"
       : `스탬프 · ${previewEntry ? displayUnitNo(previewEntry.target.unitNo) : "-"}`
@@ -274,9 +270,9 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
               <AutoDebitTable year={year} month={month} years={YEARS} months={MONTHS} group={group} rows={autoDebitRows} onYearChange={changeYear} onMonthChange={changeMonth} onGroupChange={setGroup} />
             ) : (
               <>
-                <div className="w-[340px] shrink-0"><OutputSelectionPane type={type} year={year} month={month} years={YEARS} months={MONTHS} search={search} buildings={visibleBuildings} selectedBuildingIds={selectedBuildingIds} targetsByBuilding={currentTargetsByBuilding} selectedUnitIds={type === "fax" ? selectedFaxUnitIds : validSelectedUnitIds} onYearChange={changeYear} onMonthChange={changeMonth} onSearchChange={setSearch} onToggleBuilding={toggleBuilding} onToggleAllBuildings={toggleAllBuildings} onToggleUnit={toggleUnit} onToggleAllUnits={toggleAllUnits} /></div>
+                <div className="w-[340px] shrink-0"><OutputSelectionPane type={type} year={year} month={month} years={YEARS} months={MONTHS} search={search} buildings={visibleBuildings} selectedBuildingIds={selectedBuildingIds} targetsByBuilding={currentTargetsByBuilding} selectedUnitIds={validSelectedUnitIds} onYearChange={changeYear} onMonthChange={changeMonth} onSearchChange={setSearch} onToggleBuilding={toggleBuilding} onToggleAllBuildings={toggleAllBuildings} onToggleUnit={toggleUnit} onToggleAllUnits={toggleAllUnits} /></div>
                 <div className="relative flex min-w-0 flex-1 flex-col">
-                  {type === "giro" && (
+                  {(type === "giro" || type === "fax") && (
                     <GiroStampToolbar
                       stamps={{ reissue: stamps.reissue, waterCutoff: waterCutoffStamp, autoDebit: stamps.autoDebit }}
                       scope={stampScope}
@@ -286,16 +282,16 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
                     />
                   )}
                   {selectedBuildingIds.length === 0 ? (
-                    <div className="relative flex min-h-0 flex-1 items-center justify-center bg-[#e9edf1] text-center text-[12px] leading-[19px] text-[#8b95a1]">
+                    <div className="relative flex min-h-0 flex-1 items-center justify-center bg-[#e8ebee] text-center text-[12px] leading-[19px] text-[#8b95a1]">
                       <p><strong className="block font-semibold">출력할 건물을 선택해 주세요</strong><span>선택한 건물의 {type === "adjustment" ? "조정명세서" : "지로 고지서"}가 여기에 표시돼요</span></p>
                       <ZoomControls zoom={zoom} onZoom={setZoom} />
                     </div>
                   ) : isError ? (
-                    <div role="alert" className="flex flex-1 items-center justify-center bg-[#e9edf1] text-[12px] font-bold text-[#f04452]">확정 부과 자료를 불러오지 못했습니다.</div>
+                    <div role="alert" className="flex flex-1 items-center justify-center bg-[#e8ebee] text-[12px] font-bold text-[#f04452]">확정 부과 자료를 불러오지 못했습니다.</div>
                   ) : isPreviewInitialLoading ? (
-                    <div className="flex min-h-[420px] flex-1 items-center justify-center bg-[#e9edf1]"><Spinner label="출력 미리보기 불러오는 중" /></div>
-                  ) : type === "giro" && validSelectedUnitIds.length === 0 ? (
-                    <div className="relative flex min-h-0 flex-1 items-center justify-center bg-[#e9edf1] text-[12px] text-[#8b95a1]">
+                    <div className="flex min-h-[420px] flex-1 items-center justify-center bg-[#e8ebee]"><Spinner label="출력 미리보기 불러오는 중" /></div>
+                  ) : (type === "giro" || type === "fax") && validSelectedUnitIds.length === 0 ? (
+                    <div className="relative flex min-h-0 flex-1 items-center justify-center bg-[#e8ebee] text-[12px] text-[#8b95a1]">
                       출력할 호수를 선택해 주세요
                       <ZoomControls zoom={zoom} onZoom={setZoom} />
                     </div>
@@ -303,16 +299,16 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
                     adjustment.hasData ? (
                       <AdjustmentPreviewViewport pages={adjustment.pages} zoom={zoom} onZoom={setZoom} refreshing={isPreviewRefreshing} />
                     ) : (
-                      <div className="relative flex min-h-0 flex-1 items-center justify-center bg-[#e9edf1] text-[12px] text-[#8b95a1]">
+                      <div className="relative flex min-h-0 flex-1 items-center justify-center bg-[#e8ebee] text-[12px] text-[#8b95a1]">
                         표시할 조정 명세 자료가 없습니다.
                         <ZoomControls zoom={zoom} onZoom={setZoom} />
                       </div>
                     )
                   ) : (
                     <>
-                      <CompactDocumentPreview type={type as "giro" | "fax"} companyName={companyName} period={period} building={previewEntry?.building ?? fallbackPreview?.building ?? selectedBuildings[0]} target={previewEntry?.target ?? fallbackPreview?.target} document={previewEntry?.document ?? currentDocumentQueries[0]?.data?.[0]} stamps={type === "giro" ? { ...stamps, reissueUnitIds: stamps.reissue ? stampTargetIds : [], autoDebitUnitIds: stamps.autoDebit ? stampTargetIds : [], waterCutoffUnitIds: printWaterCutoffUnitIds } : undefined} zoom={zoom} onZoom={setZoom} />
+                      <CompactDocumentPreview type={type as "giro" | "fax"} companyName={companyName} period={period} building={previewEntry?.building ?? fallbackPreview?.building ?? selectedBuildings[0]} target={previewEntry?.target ?? fallbackPreview?.target} document={previewEntry?.document ?? currentDocumentQueries[0]?.data?.[0]} accounts={accounts} customerNotice={customerNotice} dueDate={previewEntry?.dueDate ?? previewEntry?.target.dueDate ?? fallbackPreview?.target.dueDate ?? null} stamps={{ ...stamps, reissueUnitIds: stamps.reissue ? stampTargetIds : [], autoDebitUnitIds: stamps.autoDebit ? stampTargetIds : [], waterCutoffUnitIds: printWaterCutoffUnitIds }} zoom={zoom} onZoom={setZoom} />
                       {isPreviewRefreshing ? (
-                        <div className={`pointer-events-none absolute right-3 rounded-full bg-surface/95 shadow-card ${type === "giro" ? "top-[60px]" : "top-3"}`}>
+                        <div className={`pointer-events-none absolute right-3 rounded-full bg-surface/95 shadow-card ${type === "giro" || type === "fax" ? "top-[60px]" : "top-3"}`}>
                           <Spinner label="출력 미리보기 갱신 중" size="small" showLabel className="px-3 py-2" />
                         </div>
                       ) : null}
@@ -330,7 +326,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
             <div className="flex items-center gap-[8px]">
               {type === "autoDebit" && <><ModalActionButton variant="ghost" icon="/figma-assets/bill/download.svg" onClick={downloadAutoDebit} disabled={selectedBuildings.length === 0}>다운로드</ModalActionButton><ModalActionButton icon="/figma-assets/bill/print.svg" onClick={() => window.print()} disabled={autoDebitRows.length === 0}>인쇄</ModalActionButton></>}
               {(type === "giro" || type === "adjustment") && <ModalActionButton icon="/figma-assets/bill/print.svg" onClick={() => void print()} disabled={!hasPrintableData || isPreviewBusy || (type === "giro" && (!previewReady || issueBills.isPending))}>{type === "giro" && issueBills.isPending ? "발행 중…" : "인쇄"}</ModalActionButton>}
-              {type === "fax" && <ModalActionButton onClick={openFaxConfirmation} disabled={selectedFaxUnitIds.length === 0 || sendFaxes.isPending}>{sendFaxes.isPending ? "발송 중…" : "발송"}</ModalActionButton>}
+              {type === "fax" && <ModalActionButton icon="/figma-assets/bill/document-fax.svg" onClick={openFaxConfirmation} disabled={selectedFaxTargets.length === 0 || sendFaxes.isPending}>{sendFaxes.isPending ? "발송 중…" : "발송"}</ModalActionButton>}
             </div>
           </footer>
         </div>

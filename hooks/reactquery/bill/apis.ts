@@ -5,7 +5,7 @@ export interface BillTarget {
   unitId: number; unitNo: string; dong: string | null; occupancyId: number | null;
   tenantName: string | null; payerName: string | null; payerNo: string | null;
   billNameDisplay: BillNameDisplay; phone: string | null; secondaryPhone: string | null; faxNumber: string | null;
-  totalAmount: number; autoDebit: boolean;
+  totalAmount: number; autoDebit: boolean; transferMethod: string;
   issueType: string | null; dueDate: string | null; sendStatus: string | null; issuedAt: string | null;
   singlePrint: boolean; waterCutoff: boolean; scheduledAt: string | null; messageScheduleId: number | null;
   kakaoSendStatus: string | null; faxSendStatus: string | null;
@@ -13,7 +13,7 @@ export interface BillTarget {
 type BillTargetDbRow = {
   unit_id: number; unit_no: string; dong: string | null; occupancy_id: number | null;
   tenant_name: string | null; phone: string | null; phone2: string | null; fax_number: string | null;
-  total_amount: number; auto_debit: boolean;
+  total_amount: number; auto_debit: boolean; transfer_method: string;
   issue_type: string | null; due_date: string | null; send_status: string | null; issued_at: string | null;
   single_print: boolean; water_cutoff: boolean; scheduled_at: string | null; message_schedule_id: number | null;
   kakao_send_status: string | null; fax_send_status: string | null;
@@ -30,7 +30,7 @@ const rowToTarget = (
 ): BillTarget => ({
   unitId: r.unit_id, unitNo: r.unit_no, dong: r.dong, occupancyId: r.occupancy_id,
   tenantName: r.tenant_name, phone: r.phone, secondaryPhone: r.phone2, faxNumber: r.fax_number, ...enrichment,
-  totalAmount: r.total_amount, autoDebit: r.auto_debit,
+  totalAmount: r.total_amount, autoDebit: r.auto_debit, transferMethod: r.transfer_method ?? "none",
   issueType: r.issue_type, dueDate: r.due_date, sendStatus: r.send_status, issuedAt: r.issued_at,
   singlePrint: r.single_print, waterCutoff: r.water_cutoff,
   scheduledAt: r.scheduled_at, messageScheduleId: r.message_schedule_id,
