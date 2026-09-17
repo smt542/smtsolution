@@ -10,6 +10,7 @@ import {
   type AttachmentUploadBatchResult,
 } from "@/hooks/reactquery/attachments";
 import { selectImageFiles } from "@/lib/attachments/policy";
+import { AttachmentPrintSheet } from "./AttachmentPrintSheet";
 import { longTermRepairClasses as styles } from "./longTermRepairClasses";
 
 interface AttachmentViewerProps {
@@ -352,27 +353,15 @@ export function AttachmentViewer({
         </button>
       )}
 
-      <section className="hidden bg-white text-black print:block" aria-label={`${title} 인쇄물`}>
-        <h1 className="mb-6 border-b-2 border-black pb-3 text-center text-2xl font-black">{title}</h1>
-        <div className="space-y-8">
-          {printable.map(({ attachment, url }, index) => (
-            <figure key={attachment.id} className="break-after-page last:break-after-auto">
-              <div className="relative mx-auto h-[240mm] w-[180mm]">
-                <Image
-                  src={url ?? ""}
-                  alt={`${title} ${index + 1}`}
-                  fill
-                  unoptimized
-                  loading="eager"
-                  sizes="180mm"
-                  className="h-full w-full object-contain"
-                />
-              </div>
-              <figcaption className="mt-2 text-center text-xs">{index + 1}/{printable.length} · {attachment.fileName}</figcaption>
-            </figure>
-          ))}
-        </div>
-      </section>
+      <AttachmentPrintSheet
+        kindLabel={kindLabel}
+        description={description}
+        items={printable.map(({ attachment, url }) => ({
+          key: String(attachment.id),
+          url: url ?? "",
+          fileName: attachment.fileName,
+        }))}
+      />
     </>
   );
 }
