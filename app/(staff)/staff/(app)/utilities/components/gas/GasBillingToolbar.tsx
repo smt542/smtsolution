@@ -45,9 +45,9 @@ export function GasBillingToolbar({
         <span className="mx-[10px] h-[26px] w-px bg-line" />
         {editing ? (
           <>
-            <button type="button" onClick={onCalculate} disabled={pending} className="h-[26px] rounded-[8px] border border-line bg-white px-[10px] text-[11.5px] font-bold text-t2 hover:bg-bg disabled:opacity-50">
+            <Button size="sm" variant="ghost" type="button" onClick={onCalculate} disabled={pending} className="disabled:opacity-50">
               계산
-            </button>
+            </Button>
             <button type="button" onClick={onSave} disabled={pending} className="h-[26px] rounded-[8px] bg-blue px-[10px] text-[11.5px] font-bold text-white hover:bg-blue-d disabled:opacity-50">
               저장
             </button>
