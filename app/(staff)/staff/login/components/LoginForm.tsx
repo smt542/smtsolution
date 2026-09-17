@@ -15,7 +15,7 @@ import { useLogin } from "@/hooks/reactquery/auth";
 import { AUTO_LOGIN_KEY } from "@/lib/auth/sessionPersistence";
 
 const fieldBase =
-  "h-12 rounded-[13px] border border-line bg-white text-[14.5px] font-medium text-t1 outline-none transition focus:border-[#14A497] focus:ring-[3px] focus:ring-blue-t";
+  "h-12 rounded-[13px] border border-line bg-white text-[14.5px] font-medium text-t1 placeholder:text-[#757575] outline-none transition focus:border-[#14A497] focus:ring-[3px] focus:ring-blue-t";
 export function LoginForm() {
   const router = useRouter();
   const login = useLogin();

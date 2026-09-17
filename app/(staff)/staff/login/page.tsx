@@ -5,7 +5,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen bg-white">
       {/* 좌측 브랜드 히어로 (데스크톱 전용) */}
-      <aside className="relative hidden flex-1 flex-col justify-between overflow-hidden bg-[linear-gradient(160deg,#0E8677_0%,#14A497_58%,#31BFAF_100%)] px-16 py-14 text-white lg:flex">
+      <aside className="relative hidden flex-1 flex-col justify-between overflow-hidden bg-[linear-gradient(167deg,#0E8677_8.49%,#14A497_56.64%,#31BFAF_91.51%)] px-16 py-14 text-white lg:flex">
         <div aria-hidden className="pointer-events-none absolute -right-36 -top-32 h-[460px] w-[460px] rounded-full bg-white/[0.07]" />
         <div aria-hidden className="pointer-events-none absolute -bottom-44 right-16 h-[360px] w-[360px] rounded-full bg-white/[0.06]" />
 
