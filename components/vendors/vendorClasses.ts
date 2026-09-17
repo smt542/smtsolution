@@ -5,28 +5,28 @@ export const vendorClasses = {
   categories:
     "flex w-[230px] min-h-0 flex-none flex-col overflow-hidden rounded-2xl bg-surface shadow-card max-md:w-full max-md:max-h-[280px]",
   categoryHeader: "flex items-center gap-2 border-b border-line2 px-4 py-3.5",
-  categoryTitle: "text-sm font-extrabold text-t1",
+  categoryTitle: "text-sm font-extrabold leading-[normal] text-t1",
   categoryList: "flex min-h-0 flex-1 flex-col gap-1.5 overflow-auto p-2",
   categoryItem:
-    "relative flex w-full items-center gap-2 rounded-[10px] px-[11px] py-[9px] text-left text-[13.5px] font-bold leading-normal text-t2 transition-colors duration-100 hover:bg-bg focus-visible:bg-bg focus-visible:outline-none",
+    "relative flex w-full items-center gap-2 rounded-[10px] px-[11px] py-[9px] text-left text-[13.5px] font-bold leading-[normal] text-t2 transition-colors duration-100 hover:bg-bg focus-visible:bg-bg focus-visible:outline-none",
   categoryItemActive: "bg-blue-t text-blue hover:bg-blue-t focus-visible:bg-blue-t",
   categoryLabel: "min-w-0 overflow-hidden text-ellipsis whitespace-nowrap",
   categoryCount:
-    "ml-auto min-w-[22px] rounded-pill bg-bg px-[9px] py-px text-center text-xs font-bold leading-normal text-t2 transition-opacity duration-100",
+    "ml-auto min-w-[22px] rounded-pill bg-bg px-[9px] py-px text-center text-xs font-bold leading-[normal] text-t2 transition-opacity duration-100",
   panel:
     "flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden rounded-2xl bg-surface shadow-card max-md:min-h-[480px]",
   panelHeader:
     "flex flex-none flex-wrap items-center gap-2.5 gap-y-2 border-b border-line2 px-[18px] py-[15px]",
-  panelTitle: "text-[15px] font-extrabold text-t1",
+  panelTitle: "text-[15px] font-extrabold leading-[normal] text-t1",
   countBadge: "inline-flex items-center rounded-[7px] bg-bg px-[9px] py-[3px] text-xs font-bold leading-[1.4] text-t3",
   panelSpacer: "flex-1 max-md:hidden",
   search:
-    "h-9 w-full max-w-[260px] rounded-[10px] border border-line bg-surface px-3 text-[13.5px] font-semibold text-t1 outline-none placeholder:font-medium placeholder:text-t4 focus:border-blue max-md:order-3 max-md:max-w-none",
+    "h-9 max-w-[260px] flex-1 rounded-[10px] border border-line bg-surface px-3 text-[13.5px] font-semibold leading-[normal] text-t1 outline-none placeholder:text-[#757575] focus:border-blue max-md:order-3 max-md:max-w-none",
   addButton:
-    "inline-flex h-10 flex-none items-center gap-1.5 whitespace-nowrap rounded-btn bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-hf-btn hover:bg-blue-d focus-visible:bg-blue-d focus-visible:outline-none",
+    "inline-flex h-10 flex-none items-center gap-1.5 whitespace-nowrap rounded-btn bg-blue px-[15px] text-[13.5px] font-bold leading-[normal] text-white shadow-hf-btn hover:bg-blue-d focus-visible:bg-blue-d focus-visible:outline-none",
   tableWrap: "min-h-0 flex-1 overflow-auto",
   table:
-    "w-full min-w-[560px] border-collapse [&_th]:border-b [&_th]:border-line [&_th]:bg-[#fbfcfd] [&_th]:px-4 [&_th]:py-[11px] [&_th]:text-left [&_th]:text-xs [&_th]:font-bold [&_th]:leading-normal [&_th]:text-t3 [&_th]:whitespace-nowrap [&_th:first-child]:w-[150px] [&_td]:border-b [&_td]:border-line2 [&_td]:px-4 [&_td]:py-3 [&_td]:text-[13.5px] [&_td]:font-semibold [&_td]:leading-normal [&_td]:text-t2 [&_td]:whitespace-nowrap [&_tbody_tr:last-child_td]:border-b-0",
+    "w-full min-w-[560px] border-collapse [&_th]:border-b [&_th]:border-line [&_th]:bg-[#fbfcfd] [&_th]:px-4 [&_th]:py-[11px] [&_th]:text-left [&_th]:text-xs [&_th]:font-bold [&_th]:leading-[normal] [&_th]:text-t3 [&_th]:whitespace-nowrap [&_th:first-child]:w-[150px] [&_td]:border-b [&_td]:border-line2 [&_td]:px-4 [&_td]:py-3 [&_td]:text-[13.5px] [&_td]:font-semibold [&_td]:leading-[normal] [&_td]:text-t2 [&_td]:whitespace-nowrap [&_tbody_tr:last-child_td]:border-b-0",
   vendorRow:
     "cursor-pointer transition-colors duration-100 hover:[&_td]:bg-[#fbfcfd] focus-visible:[&_td]:bg-[#fbfcfd] focus-visible:outline-2 focus-visible:outline-blue focus-visible:outline-offset-[-2px]",
   vendorName: "!font-bold !text-t1",
