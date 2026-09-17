@@ -65,7 +65,7 @@ export function OutputSelectionPane({
   const allUnitsSelected = targets.length > 0 && targets.every((target) => selectedUnitIds.includes(target.unitId));
 
   return (
-    <aside className="flex min-h-0 flex-col border-r border-[#e8ebee] bg-white">
+    <aside className="flex h-full min-h-0 flex-col overflow-hidden border-r border-[#e8ebee] bg-white">
       <div className="h-[100px] shrink-0 border-b border-[#e8ebee] px-[12px] pt-[13px]">
         <div className="flex items-center gap-[6px]">
           <SmallSelect ariaLabel="출력 연도" value={String(year)} onChange={(event) => onYearChange(Number(event.target.value))} className="w-[88px]">
@@ -98,7 +98,7 @@ export function OutputSelectionPane({
         </label>
       </div>
 
-      <div className={`min-h-0 ${hasUnitTable ? "h-[211px] shrink-0" : "flex-1"} overflow-hidden border-b border-[#e8ebee]`}>
+      <div className={`min-h-0 ${hasUnitTable ? "h-[214.5px] shrink-0" : "flex-1"} overflow-hidden border-b border-[#e8ebee]`}>
         <div className="grid h-[39px] grid-cols-[34px_65px_104px_minmax(0,1fr)] items-center border-b border-[#e8ebee] bg-[#f8f9fa] text-[11px] font-bold text-[#6b7684]">
           <span className="flex justify-center"><SelectionCheck ariaLabel="건물 전체 선택" checked={allBuildingsSelected} onChange={onToggleAllBuildings} /></span>
           <span>코드</span>
