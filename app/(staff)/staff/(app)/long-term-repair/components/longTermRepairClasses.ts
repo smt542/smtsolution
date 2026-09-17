@@ -37,8 +37,10 @@ export const longTermRepairClasses = {
   balanceCell: "text-right font-semibold tabular-nums",
   negative: "text-red",
   ledgerInput: "h-8 w-full rounded-lg border px-2 text-[13px] font-medium text-t1 outline-none hover:border-line2 focus:border-blue focus:bg-white focus:ring-[3px] focus:ring-blue-t",
-  readOnlyInput: "border-transparent bg-transparent",
   editableInput: "border-line bg-white",
+  /* 조회 모드는 input이 아니라 평문으로 렌더링한다. readOnly input은 포커스 링·placeholder가 남아
+     편집 가능한 것처럼 보인다. px-2는 편집 모드 input과 좌측 정렬을 맞추기 위한 값. */
+  plainCell: "block min-w-0 truncate px-2 text-[13px] font-medium text-t1",
   dateControl: "relative flex h-8 w-[104px] items-center justify-between gap-2 rounded-lg border px-2 text-[13px] font-medium text-t1 outline-none [&_svg]:size-[13px] [&_svg]:flex-none [&_svg]:text-t3",
   editableDate: "cursor-pointer border-line bg-white",
   /* DpDatePicker는 open 클래스를 trigger 클래스 "뒤에 덧붙이는" 방식이라 editableDate의 border-line과 같은 층에서 충돌한다.
@@ -60,8 +62,13 @@ export const longTermRepairClasses = {
   footer: "flex min-h-[47px] flex-none flex-wrap items-center justify-end gap-x-[26px] gap-y-2 border-t border-line bg-[#fbfcfd] px-[18px] py-[13px] leading-normal",
   footerItem: "flex items-baseline gap-[9px] whitespace-nowrap",
   footerLabel: "text-[12.5px] font-semibold not-italic text-t3",
-  footerValue: "text-[14.5px] font-bold tabular-nums text-t1",
-  footerTotal: "[&_.footerValue]:text-[17px] [&_.footerValue]:font-extrabold [&_.footerValue]:text-blue",
+  /* 전환 전 정본: `.footerTotal .footerValue { color: var(--color-blue); font-size: 17px; font-weight: 800 }`.
+     Tailwind 전환으로 footerValue가 실제 클래스가 아니게 되면서 그 후손 선택자 훅이 죽어 현잔액이 일반값과
+     같은 색·크기로 렌더링됐다. 강조는 값 엘리먼트에 직접 준다. */
+  footerValue: "tabular-nums",
+  footerValueDefault: "text-[14.5px] font-bold text-t1",
+  footerValueTotal: "text-[17px] font-extrabold",
+  footerTotalTone: "text-blue",
   attachmentScrim: "fixed inset-0 z-[160] flex items-center justify-center bg-scrim leading-normal",
   attachmentModal: "flex max-h-[86vh] w-[min(680px,92vw)] flex-col overflow-hidden rounded-[18px] bg-white shadow-[0_24px_60px_-20px_rgba(23,31,40,0.4)]",
   attachmentHeader: "flex items-start px-[22px] pb-3.5 pt-[18px]",
