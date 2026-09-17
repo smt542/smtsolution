@@ -55,7 +55,9 @@ export function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-scrim p-6"
+      /* 확인 대화상자는 항상 최상단이어야 한다. 앱의 모달·드로어가 z-110~520을 쓰므로
+         그보다 위에 둔다(z-100이던 동안에는 모달 안에서 띄운 확인창이 뒤에 가려졌다). */
+      className="fixed inset-0 z-[600] flex items-center justify-center bg-scrim p-6"
       onMouseDown={onCancel}
     >
       <div

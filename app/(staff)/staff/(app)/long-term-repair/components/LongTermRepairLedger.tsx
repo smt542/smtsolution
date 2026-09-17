@@ -623,13 +623,15 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
         />
       )}
 
+      {/* 첨부는 원장 저장과 무관하게 즉시 저장된다. 수정 모드를 요구하면 저장 버튼이 켜지길
+          기대하게 되므로 분리했다. 저장 전 새 행은 연결할 id가 없어 아직 첨부할 수 없다. */}
       {viewer && (
         <AttachmentViewer
           title={`${viewer.kind === "receipt" ? "영수증" : "공사사진"} 첨부`}
           description={`${viewer.row.fundNote || "적립금 출금"} · ${viewer.row.entryDate.replaceAll("-", ".")} · 번호 ${viewer.row.entryNo || "-"}`}
           kindLabel={viewer.kind === "receipt" ? "영수증" : "공사사진"}
           attachments={viewerAttachments}
-          canEdit={editing && Boolean(viewer.row.id)}
+          canEdit={Boolean(viewer.row.id)}
           uploading={uploadAttachments.isPending}
           onClose={() => setViewer(null)}
           onUpload={(files) => uploadAttachments.mutateAsync({
@@ -641,6 +643,14 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
             files,
           })}
           onDelete={async (attachment) => {
+            const kindLabel = viewer.kind === "receipt" ? "영수증" : "공사사진";
+            const ok = await confirm({
+              title: `${kindLabel} 삭제`,
+              description: `이 ${kindLabel}을 삭제할까요? 바로 삭제되며 되돌릴 수 없어요.`,
+              confirmLabel: "삭제",
+              variant: "danger",
+            });
+            if (!ok) return;
             try {
               await deleteAttachment.mutateAsync({ id: attachment.id, path: attachment.fileUrl });
               toast.success("첨부파일을 삭제했어요");
