@@ -17,6 +17,8 @@ export interface PhotoUploadProps {
   accept?: string;
   disabled?: boolean;
   label?: string;
+  /** 바깥에서 이미 필드 라벨을 그렸을 때 내부 라벨을 숨긴다(파일 입력 aria-label은 유지). */
+  hideLabel?: boolean;
 }
 
 export function PhotoUpload({
@@ -26,6 +28,7 @@ export function PhotoUpload({
   accept = IMAGE_ATTACHMENT_ACCEPT,
   disabled = false,
   label = "계약서 사진",
+  hideLabel = false,
 }: PhotoUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const previews = useObjectUrls(files);
@@ -40,9 +43,11 @@ export function PhotoUpload({
 
   return (
     <div className="col-span-2 flex flex-col">
-      <div className="mb-1 text-[12.5px] font-bold text-t2">
-        {label} <span className="font-semibold text-t4">(최대 {max}장)</span>
-      </div>
+      {hideLabel ? null : (
+        <div className="mb-1 text-[12.5px] font-bold text-t2">
+          {label} <span className="font-semibold text-t4">(최대 {max}장)</span>
+        </div>
+      )}
       <div className="flex flex-nowrap items-start gap-[10px] overflow-x-auto pb-[4px] pt-[6px]">
         {files.map((file, index) => {
           const preview = previews[index];
