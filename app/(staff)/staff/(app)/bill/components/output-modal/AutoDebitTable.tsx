@@ -2,7 +2,7 @@
 
 import type { BillTarget } from "@/hooks/reactquery/bill";
 import type { BillBuilding } from "../../types";
-import { SmallSelect } from "./OutputModalPrimitives";
+import { FilterDropdown } from "./OutputModalPrimitives";
 
 interface AutoDebitRow {
   building: BillBuilding;
@@ -79,12 +79,8 @@ export function AutoDebitTable({ year, month, years, months, group, rows, onYear
   return (
     <main className="min-h-0 flex-1 overflow-hidden bg-white">
       <div className="flex h-[60px] items-center gap-[8px] border-b border-[#f1f3f5] px-[16px]">
-        <SmallSelect ariaLabel="출력 연도" value={String(year)} onChange={(event) => onYearChange(Number(event.target.value))} className="w-[88px]">
-          {years.map((value) => <option key={value} value={value}>{value}년</option>)}
-        </SmallSelect>
-        <SmallSelect ariaLabel="월분" value={String(month)} onChange={(event) => onMonthChange(Number(event.target.value))} className="w-[74px]">
-          {months.map((value) => <option key={value} value={value}>{value}월분</option>)}
-        </SmallSelect>
+        <FilterDropdown ariaLabel="출력 연도" width={88} value={String(year)} options={years.map((value) => ({ value: String(value), label: `${value}년` }))} onChange={(value) => onYearChange(Number(value))} />
+        <FilterDropdown ariaLabel="월분" width={74} value={String(month)} options={months.map((value) => ({ value: String(value), label: `${value}월분` }))} onChange={(value) => onMonthChange(Number(value))} />
         <div className="flex h-[33px] items-center gap-[2px] rounded-[9px] border border-[#e8ebee] bg-white p-[3px]">
           {GROUPS.map(({ value, label }) => (
             <button key={value} type="button" onClick={() => onGroupChange(value)} className={`${GROUP_BUTTON} ${group === value ? "bg-[#f2f4f6] text-[#191f28]" : "text-[#8b95a1]"}`}>{label}</button>

@@ -324,7 +324,8 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
             <div className="flex items-center gap-[8px]">
               {type === "autoDebit" && <><ModalActionButton variant="ghost" icon="/figma-assets/bill/download.svg" onClick={downloadAutoDebit} disabled={selectedBuildings.length === 0}>다운로드</ModalActionButton><ModalActionButton icon="/figma-assets/bill/print.svg" onClick={() => window.print()} disabled={autoDebitRows.length === 0}>인쇄</ModalActionButton></>}
               {(type === "giro" || type === "adjustment") && <ModalActionButton icon="/figma-assets/bill/print.svg" onClick={() => void print()} disabled={!hasPrintableData || isPreviewBusy || (type === "giro" && (!previewReady || issueBills.isPending))}>{type === "giro" && issueBills.isPending ? "발행 중…" : "인쇄"}</ModalActionButton>}
-              {type === "fax" && <ModalActionButton icon="/figma-assets/bill/document-fax.svg" onClick={openFaxConfirmation} disabled={selectedFaxTargets.length === 0 || sendFaxes.isPending}>{sendFaxes.isPending ? "발송 중…" : "발송"}</ModalActionButton>}
+              {/* 발송 버튼 아이콘은 Figma export가 print.svg(흰색 16px)와 동일한 글리프다 — 카드용 document-fax.svg는 청록 22px라 버튼 위에서 보이지 않는다. */}
+              {type === "fax" && <ModalActionButton icon="/figma-assets/bill/print.svg" onClick={openFaxConfirmation} disabled={selectedFaxTargets.length === 0 || sendFaxes.isPending}>{sendFaxes.isPending ? "발송 중…" : "발송"}</ModalActionButton>}
             </div>
           </footer>
         </div>

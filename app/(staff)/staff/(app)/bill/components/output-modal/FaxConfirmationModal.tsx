@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { CustomDropdown } from "@/components/common";
 import type { BillTarget } from "@/hooks/reactquery/bill";
 import { displayUnitNo } from "@/lib/bill/document";
 import type { BillBuilding } from "../../types";
@@ -28,23 +28,16 @@ export function FaxConfirmationModal({ building, targets, period, senderLabel, r
         <h3 id="fax-confirm-title" className="text-[16.5px] font-extrabold leading-[20px] text-[#191f28]">팩스 발송</h3>
 
         <div className="flex h-[101px] flex-col gap-[6px] pt-[14px]">
-          <label htmlFor="fax-sender" className="text-[12.5px] font-bold leading-[15px] text-[#4e5968]">발신 팩스번호</label>
-          <span className="relative block h-[40px]">
-            <select
-              id="fax-sender"
-              className="h-full w-full appearance-none rounded-[10px] border border-[#e8ebee] bg-white pl-[11px] pr-[32px] text-[13.5px] font-semibold tracking-[-0.135px] text-[#191f28] outline-none"
-            >
-              <option>{senderLabel}</option>
-            </select>
-            <Image
-              aria-hidden="true"
-              src="/figma-assets/bill/select-chevron.svg"
-              alt=""
-              width={14}
-              height={14}
-              className="pointer-events-none absolute right-[10px] top-1/2 size-[14px] -translate-y-1/2"
+          <span className="text-[12.5px] font-bold leading-[15px] text-[#4e5968]">발신 팩스번호</span>
+          <div className="[&_.uc-dd-btn]:h-[40px] [&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:justify-between [&_.uc-dd-btn]:rounded-[10px]">
+            <CustomDropdown
+              ariaLabel="발신 팩스번호"
+              value={senderLabel}
+              options={[{ value: senderLabel, label: senderLabel }]}
+              onChange={() => undefined}
+              variant="field"
             />
-          </span>
+          </div>
           <p className="h-[20px] pt-[6px] text-[11.5px] font-medium leading-[14px] text-[#b0b8c1]">프로필에 등록된 발신번호만 선택할 수 있어요</p>
         </div>
 
