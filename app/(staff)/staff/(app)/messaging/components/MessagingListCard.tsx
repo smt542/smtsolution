@@ -50,10 +50,10 @@ export function MessagingListCard({
     <div className="min-h-[240px] overflow-hidden rounded-[16px] bg-white shadow-[0px_1px_3px_0px_rgba(23,31,40,0.05)]">
       {/* 카드 헤더 */}
       <div className="flex items-center gap-[8px] border-b border-[#f1f3f5] px-[18px] py-[15px]">
-        <span className="text-[15px] font-extrabold leading-normal text-[#191f28]">
+        <span className="text-[15px] font-extrabold leading-[normal] text-[#191f28]">
           {title}
         </span>
-        <span className="text-[13px] font-semibold leading-normal text-[#8b95a1]">
+        <span className="text-[13px] font-semibold leading-[normal] text-[#8b95a1]">
           {count}
         </span>
         <div className="flex-1" />

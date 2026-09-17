@@ -163,7 +163,7 @@ export function TemplatesTab() {
             <button
               type="button"
               onClick={openCreate}
-              className="flex h-[34px] items-center justify-center rounded-[9px] border border-[#14a497] bg-[#14a497] px-[16px] text-[13px] font-bold leading-normal text-white"
+              className="flex h-[34px] items-center justify-center rounded-[9px] border border-[#14a497] bg-[#14a497] px-[16px] text-[13px] font-bold leading-[normal] text-white"
             >
               템플릿 등록
             </button>
@@ -202,7 +202,7 @@ export function TemplatesTab() {
                         {template.title}
                       </span>
                       {sys && (
-                        <span className="shrink-0 rounded-[6px] bg-[#f2f4f6] px-[7px] py-[2px] text-[11px] font-bold leading-normal text-[#8b95a1]">
+                        <span className="shrink-0 rounded-[6px] bg-[#f2f4f6] px-[7px] py-[2px] text-[11px] font-bold leading-[normal] text-[#8b95a1]">
                           기본
                         </span>
                       )}

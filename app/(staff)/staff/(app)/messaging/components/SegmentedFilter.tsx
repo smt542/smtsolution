@@ -37,8 +37,8 @@ export function SegmentedFilter<T extends string>({
           onClick={() => onChange(option.value)}
           className={
             value === option.value
-              ? "whitespace-nowrap rounded-[7px] bg-white px-[11px] py-[5px] text-[12px] font-bold leading-normal text-[#191f28] shadow-[0px_1px_3px_rgba(23,31,40,0.1)] transition-colors"
-              : "whitespace-nowrap rounded-[7px] px-[11px] py-[5px] text-[12px] font-bold leading-normal text-[#8b95a1] transition-colors"
+              ? "whitespace-nowrap rounded-[7px] bg-white px-[11px] py-[5px] text-[12px] font-bold leading-[normal] text-[#191f28] shadow-[0px_1px_3px_rgba(23,31,40,0.1)] transition-colors"
+              : "whitespace-nowrap rounded-[7px] px-[11px] py-[5px] text-[12px] font-bold leading-[normal] text-[#8b95a1] transition-colors"
           }
         >
           {option.label}
