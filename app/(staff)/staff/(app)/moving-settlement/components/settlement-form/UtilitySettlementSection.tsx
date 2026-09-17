@@ -38,8 +38,8 @@ export function UtilitySettlementSection({
 
   return (
     <section className="rounded-[14px] border border-[#dce1e7] bg-white px-[16px] pb-[16px] pt-[15px]">
-      <div className="flex items-center pb-px">
-        <h3 className="text-[14px] font-extrabold text-t1">공과금 정산</h3>
+      <div className="flex h-[18px] items-center pb-px">
+        <h3 className="text-[14px] font-extrabold leading-[17px] text-t1">공과금 정산</h3>
       </div>
       <div className="mt-[10px] overflow-x-auto">
         <div className="grid min-w-[900px] grid-cols-[86.609fr_127.641fr_132.188fr_109.406fr_77.484fr_154.984fr_237.047fr_200.641fr]">
@@ -118,10 +118,10 @@ export function UtilitySettlementSection({
         })}
         </div>
       </div>
-      <div className="mt-[6px] flex items-baseline justify-center border-t border-line pt-[11px]">
-        <span className="text-[14px] font-medium text-t1">① 공과금 소계</span>
-        <strong className="ml-[10px] text-[17px] font-extrabold tracking-[-0.17px] text-teal-d">{formatNumber(utilityTotal)}</strong>
-        <span className="ml-[3px] text-[12px] font-bold text-teal-d opacity-[0.62]">원</span>
+      <div className="mt-[10px] flex h-[32px] items-baseline justify-center border-t border-line pt-[11px]">
+        <span className="text-[14px] font-medium leading-[20px] text-t1">① 공과금 소계</span>
+        <strong className="ml-[10px] text-[17px] font-extrabold leading-[20px] tracking-[-0.17px] text-teal-d">{formatNumber(utilityTotal)}</strong>
+        <span className="ml-[3px] text-[12px] font-bold leading-[20px] text-teal-d opacity-[0.62]">원</span>
       </div>
     </section>
   );
