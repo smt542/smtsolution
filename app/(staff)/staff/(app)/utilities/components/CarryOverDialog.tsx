@@ -1,3 +1,5 @@
+import { Button } from "@/components/common";
+
 interface CarryOverDialogProps {
   open: boolean;
   period: string;
@@ -35,20 +37,12 @@ export function CarryOverDialog({ open, period, onCancel, onConfirm }: CarryOver
           모든 건물의 {label.current.replace(/^\d+년 /, "")}이 {label.next.replace(/^\d+년 /, "")}으로 이월됩니다.
         </p>
         <div className="mt-5 grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="h-10 rounded-[10px] border border-line bg-white text-[13px] font-bold text-t2 hover:bg-bg"
-          >
+          <Button type="button" variant="ghost" onClick={onCancel}>
             취소
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="h-10 rounded-[10px] bg-teal text-[13px] font-bold text-white hover:bg-teal-d"
-          >
+          </Button>
+          <Button type="button" onClick={onConfirm}>
             이월
-          </button>
+          </Button>
         </div>
       </section>
     </div>
