@@ -41,5 +41,7 @@ export const loginClasses = {
   alt: "self-center rounded-none bg-transparent px-1.5 py-1 text-[13.5px] font-semibold text-t3 underline decoration-1 underline-offset-[3px] hover:text-t2",
   sheetT: "text-lg font-extrabold tracking-[-0.02em]",
   sheetD: "mt-2 text-sm font-medium leading-[1.65] text-t2",
-  sheetBtn: "mt-5 h-[52px] w-full rounded-btn bg-blue text-[15.5px] font-bold text-white hover:bg-blue-d",
+  // 정본(resident-login.dc.html `.sheet-btn`)은 border-radius:14px. `rounded-btn`(11px)은
+  // 정본 표준 액션 버튼용 토큰이라 이 화면에는 맞지 않는다.
+  sheetBtn: "mt-5 h-[52px] w-full rounded-[14px] bg-blue text-[15.5px] font-bold text-white hover:bg-blue-d",
 } as const;
