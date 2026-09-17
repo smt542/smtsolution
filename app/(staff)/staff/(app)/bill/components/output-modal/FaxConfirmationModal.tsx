@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import type { BillTarget } from "@/hooks/reactquery/bill";
+import { displayUnitNo } from "@/lib/bill/document";
 import type { BillBuilding } from "../../types";
 import { ModalActionButton } from "./OutputModalPrimitives";
 
@@ -65,7 +66,7 @@ export function FaxConfirmationModal({ building, targets, period, senderLabel, r
                 <strong className="text-[13.5px] font-bold text-[#191f28]">{building?.name ?? "선택 건물"}</strong>
                 <span className="rounded-[6px] bg-[#e2f5f1] px-[7px] py-[2px] text-[11px] font-bold text-[#0e8677]">{targets.length}세대</span>
               </div>
-              <p className="truncate text-[12px] font-medium leading-[18px] text-[#8b95a1]">{targets.map((target) => `${target.unitNo}호`).join(", ") || "선택된 세대 없음"}</p>
+              <p className="truncate text-[12px] font-medium leading-[18px] text-[#8b95a1]">{targets.map((target) => displayUnitNo(target.unitNo)).join(", ") || "선택된 세대 없음"}</p>
             </div>
             <p className="pt-[9px] text-[12.5px] font-semibold text-[#4e5968]">{year}년 {Number(month)}월분 고지서 <strong className="font-extrabold text-[#191f28]">{targets.length}장</strong></p>
           </div>

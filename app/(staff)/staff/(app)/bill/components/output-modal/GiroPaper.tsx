@@ -1,7 +1,7 @@
 "use client";
 
 import type { BillDocument, BillTarget } from "@/hooks/reactquery/bill";
-import type { PrintableAccount } from "@/lib/bill/document";
+import { displayUnitNo, type PrintableAccount } from "@/lib/bill/document";
 import type { BillBuilding } from "../../types";
 import type { GiroStampOptions } from "../GiroPrintView";
 import { GiroStampOverlays } from "./GiroStampOverlays";
@@ -37,11 +37,6 @@ function amount(value: number) {
   return value.toLocaleString("ko-KR");
 }
 
-function unitLabel(unitNo: string | undefined) {
-  if (!unitNo) return "";
-  return unitNo.endsWith("호") ? unitNo : `${unitNo}호`;
-}
-
 function dueDateParts(dueDate: string | null) {
   const match = dueDate?.slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
   return match ? { year: match[1], month: match[2], day: match[3] } : null;
@@ -67,7 +62,7 @@ function accountLine(accounts: PrintableAccount[], companyName: string) {
 export function GiroPaper({ companyName, period, building, target, document, accounts, customerNotice, dueDate, stamps }: GiroPaperProps) {
   const [year = "", month = ""] = period.split("-");
   const total = document?.totalAmount ?? target?.totalAmount ?? 0;
-  const unit = unitLabel(target?.unitNo ?? document?.unitNo);
+  const unit = displayUnitNo(target?.unitNo ?? document?.unitNo);
   const unitId = document?.unitId ?? target?.unitId;
   const isStampedForUnit = (unitIds?: number[]) => unitId !== undefined && (!unitIds || unitIds.includes(unitId));
   const showReissue = Boolean(stamps?.reissue && isStampedForUnit(stamps.reissueUnitIds));

@@ -6,6 +6,7 @@ import {
   buildOutputQrPayload,
   formatBillAmount,
   giroDocumentAmount,
+  displayUnitNo,
   unitLabel,
   type PrintableAccount,
 } from "@/lib/bill/document";
@@ -103,7 +104,7 @@ export function GiroPrintView({
               <div className="mt-4 grid grid-cols-[1fr_1fr] border-y border-black text-sm">
                 <dl className="grid grid-cols-[72px_1fr] border-r border-black">
                   <dt className="border-b border-r border-slate-400 bg-slate-100 p-2 font-bold">호수</dt>
-                  <dd className="border-b border-slate-400 p-2 font-black">{document.dong ? `${document.dong} ` : ""}{document.unitNo}호</dd>
+                  <dd className="border-b border-slate-400 p-2 font-black">{document.dong ? `${document.dong} ` : ""}{displayUnitNo(document.unitNo)}</dd>
                   <dt className="border-r border-slate-400 bg-slate-100 p-2 font-bold">세대주</dt>
                   <dd className="p-2" data-testid={`giro-household-name-${document.unitId}`}>{householdName}</dd>
                 </dl>

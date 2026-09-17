@@ -6,6 +6,12 @@ export const PROGRAM_COMPANY_NAME = "관리비서";
 
 export type BillNameDisplay = "none" | "name" | "code";
 
+/** units.unit_no는 이미 `101호` 형태로 저장돼 있다 — 없을 때만 `호`를 붙인다(중복 방지). */
+export function displayUnitNo(unitNo: string | null | undefined): string {
+  if (!unitNo) return "";
+  return unitNo.endsWith("호") ? unitNo : `${unitNo}호`;
+}
+
 export function unitLabel(
   mode: BillNameDisplay,
   unitNo: string,

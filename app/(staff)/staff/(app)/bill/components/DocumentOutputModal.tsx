@@ -10,7 +10,7 @@ import { billKeys, getBillDocuments, listBillTargets, useAdjustmentStatements, u
 import { billingKeys, getBillingPeriodSetting } from "@/hooks/reactquery/billing";
 import { cmsDownloadUrl } from "@/hooks/reactquery/payments";
 import { currentPeriod } from "@/lib/billing/period";
-import type { PrintableAccount } from "@/lib/bill/document";
+import { displayUnitNo, type PrintableAccount } from "@/lib/bill/document";
 import type { BillBuilding, OutputDocumentType } from "../types";
 import type { GiroOutputDocument, GiroPrintViewProps, GiroStampOptions } from "./GiroPrintView";
 import { AutoDebitTable, deriveAutoDebitCells } from "./output-modal/AutoDebitTable";
@@ -47,7 +47,6 @@ function initialYearMonth() {
   return { year: Math.min(2026, Math.max(2019, rawYear)), month: rawMonth };
 }
 function outputPeriod(year: number, month: number) { return `${year}-${String(month).padStart(2, "0")}-01`; }
-function displayUnitNo(unitNo: string) { return unitNo.endsWith("호") ? unitNo : `${unitNo}호`; }
 function mergeGiroDocuments(building: BillBuilding, documents: BillDocument[], targets: BillTarget[], dueDate: string | null): GiroOutputDocument[] {
   return documents.flatMap((document) => {
     const target = targets.find((candidate) => candidate.unitId === document.unitId);
