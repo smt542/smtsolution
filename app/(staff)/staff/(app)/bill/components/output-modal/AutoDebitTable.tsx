@@ -4,7 +4,7 @@ import type { BillTarget } from "@/hooks/reactquery/bill";
 import type { BillBuilding } from "../../types";
 import { FilterDropdown } from "./OutputModalPrimitives";
 
-interface AutoDebitRow {
+export interface AutoDebitRow {
   building: BillBuilding;
   target: BillTarget;
 }
@@ -73,8 +73,12 @@ export function deriveAutoDebitCells(building: BillBuilding, target: BillTarget,
   };
 }
 
+export function filterAutoDebitRowsByGroup(rows: AutoDebitRow[], group: number): AutoDebitRow[] {
+  return rows.filter((row, index) => group === 0 || index % 5 === group - 1);
+}
+
 export function AutoDebitTable({ year, month, years, months, group, rows, onYearChange, onMonthChange, onGroupChange }: AutoDebitTableProps) {
-  const visibleRows = rows.filter((row, index) => group === 0 || index % 5 === group - 1);
+  const visibleRows = filterAutoDebitRowsByGroup(rows, group);
 
   return (
     <main className="min-h-0 flex-1 overflow-hidden bg-white">

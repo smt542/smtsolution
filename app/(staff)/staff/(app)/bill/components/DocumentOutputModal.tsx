@@ -13,8 +13,9 @@ import { currentPeriod } from "@/lib/billing/period";
 import { displayUnitNo, type PrintableAccount } from "@/lib/bill/document";
 import type { BillBuilding, OutputDocumentType } from "../types";
 import type { GiroOutputDocument, GiroPrintViewProps } from "./GiroPrintView";
-import { AutoDebitTable, deriveAutoDebitCells } from "./output-modal/AutoDebitTable";
+import { AutoDebitTable, filterAutoDebitRowsByGroup } from "./output-modal/AutoDebitTable";
 import { AdjustmentPreviewViewport, AdjustmentStatementPreview, AdjustmentStatementStyles } from "./output-modal/AdjustmentStatement";
+import { AutoDebitPrintDocument } from "./output-modal/AutoDebitPrintDocument";
 import { CompactDocumentPreview } from "./output-modal/CompactDocumentPreview";
 import { FaxConfirmationModal } from "./output-modal/FaxConfirmationModal";
 import { ModalActionButton, ZoomControls } from "./output-modal/OutputModalPrimitives";
@@ -101,6 +102,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
   const giroDocuments = allGiroDocuments.filter(({ document }) => validSelectedUnitIds.includes(document.unitId));
   const allTargets = currentTargetsByBuilding.flatMap(({ building, targets }) => targets.map((target) => ({ building, target })));
   const autoDebitRows = allTargets.filter(({ target }) => target.autoDebit);
+  const autoDebitPrintRows = filterAutoDebitRowsByGroup(autoDebitRows, group);
   const faxReadyTargets = allTargets.filter(({ target }) => Boolean(target.faxNumber));
   const selectedFaxTargets = faxReadyTargets.filter(({ target }) => selectedUnitIds.includes(target.unitId));
   const selectedFaxBuilding = selectedFaxTargets[0]?.building;
@@ -236,6 +238,13 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
     }
     window.print();
   };
+  const printAutoDebit = () => {
+    if (autoDebitPrintRows.length === 0) {
+      toast.info("인쇄할 세대가 없어요.");
+      return;
+    }
+    window.print();
+  };
   const downloadAutoDebit = () => {
     selectedBuildings.forEach((building) => {
       const anchor = document.createElement("a");
@@ -350,7 +359,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
               {stampFooterLabel && <span className="text-[11.5px] font-bold text-[#14a497]">{stampFooterLabel}</span>}
             </div>
             <div className="flex items-center gap-[8px]">
-              {type === "autoDebit" && <><ModalActionButton variant="ghost" icon="/figma-assets/bill/download.svg" onClick={downloadAutoDebit} disabled={selectedBuildings.length === 0}>다운로드</ModalActionButton><ModalActionButton icon="/figma-assets/bill/print.svg" onClick={() => window.print()} disabled={autoDebitRows.length === 0}>인쇄</ModalActionButton></>}
+              {type === "autoDebit" && <><ModalActionButton variant="ghost" icon="/figma-assets/bill/download.svg" onClick={downloadAutoDebit} disabled={selectedBuildings.length === 0}>다운로드</ModalActionButton><ModalActionButton icon="/figma-assets/bill/print.svg" onClick={printAutoDebit} disabled={isPreviewInitialLoading}>인쇄</ModalActionButton></>}
               {(type === "giro" || type === "adjustment") && <ModalActionButton icon="/figma-assets/bill/print.svg" onClick={() => void print()} disabled={!hasPrintableData || isPreviewBusy || (type === "giro" && (!previewReady || issueBills.isPending))}>{type === "giro" && issueBills.isPending ? "발행 중…" : "인쇄"}</ModalActionButton>}
               {/* 발송 버튼 아이콘은 Figma export가 print.svg(흰색 16px)와 동일한 글리프다 — 카드용 document-fax.svg는 청록 22px라 버튼 위에서 보이지 않는다. */}
               {type === "fax" && <ModalActionButton icon="/figma-assets/bill/print.svg" onClick={openFaxConfirmation} disabled={selectedFaxTargets.length === 0 || sendFaxes.isPending}>{sendFaxes.isPending ? "발송 중…" : "발송"}</ModalActionButton>}
@@ -361,12 +370,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
       {type === "adjustment" && <AdjustmentStatementStyles />}
       {type === "giro" && hasPrintableData && <div className="hidden print:block" data-testid="document-output-print-root">{printPreview}</div>}
       {type === "adjustment" && adjustment.hasData && <div className="hidden print:block" data-testid="document-output-print-root"><AdjustmentStatementPreview pages={adjustment.pages} mode="print" /></div>}
-      {type === "autoDebit" && autoDebitRows.length > 0 && (
-        <table className="hidden w-full border-collapse text-xs print:table" data-testid="auto-debit-print-root"><thead><tr>{["#", "청구타입", "회원번호", "계약번호", "회원명", "청구월", "약정일", "결제일(결제시작일)", "상품", "기본금액", "수량", "회원구분"].map((label) => <th key={label} className="border p-2">{label}</th>)}</tr></thead><tbody>{autoDebitRows.map(({ building, target }, index) => {
-          const cells = deriveAutoDebitCells(building, target, year, month);
-          return (<tr key={`${building.id}-${target.unitId}`}><td className="border p-2 text-center">{index + 1}</td><td className="border p-2">{cells.billType}</td><td className="border p-2">{cells.memberNo}</td><td className="border p-2">{cells.contractNo}</td><td className="border p-2">{cells.memberName}</td><td className="border p-2">{cells.billMonth}</td><td className="border p-2">{cells.agreedDay}</td><td className="border p-2">{cells.paymentDate}</td><td className="border p-2">{cells.product}</td><td className="border p-2 text-right">{cells.baseAmount}</td><td className="border p-2 text-center">{cells.quantity}</td><td className="border p-2">{cells.memberGroup}</td></tr>);
-        })}</tbody></table>
-      )}
+      {type === "autoDebit" && <AutoDebitPrintDocument year={year} month={month} group={group} rows={autoDebitRows} />}
       {faxConfirmOpen && <FaxConfirmationModal building={selectedFaxBuilding} targets={selectedFaxTargetValues} period={period} senderLabel="등록 발신번호 · 본사" recipient={faxRecipient} isPending={sendFaxes.isPending} error={faxError} onCancel={() => setFaxConfirmOpen(false)} onSend={() => void sendFax()} />}
     </>
   );
