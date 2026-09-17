@@ -6,7 +6,10 @@ export const longTermRepairClasses = {
   ledgerPanel: "flex min-w-0 flex-col overflow-hidden",
   panelHeader: "flex flex-none items-center gap-2.5 border-b border-line2 px-[18px] py-[15px]",
   buildingHeader: "gap-2",
-  panelTitle: "whitespace-nowrap text-[15px] font-extrabold leading-normal text-t1",
+  /* 줄높이 18px은 정본 .hf-panel-h 높이에서 역산한 값이다. 좌측 건물 패널은 제목만 들어가
+     헤더 높이를 제목 줄높이가 결정한다(15+18+15+border 1 = 49px). 우측 원장 패널은 h-[34px]
+     버튼이 더 높아 65px 그대로다. leading-normal(22.5px)이면 좌측이 53.5px로 4.5px 커진다. */
+  panelTitle: "whitespace-nowrap text-[15px] font-extrabold leading-[18px] text-t1",
   buildingScroll: "min-h-0 flex-1 overflow-x-hidden overflow-y-auto",
   buildingTableHeader: "grid h-[36.5px] flex-none grid-cols-[64px_minmax(0,1fr)] border-b border-line bg-[#fbfcfd] px-4 py-[11px] text-left text-xs font-bold text-t3",
   buildingRow: "grid h-[41px] w-full grid-cols-[64px_minmax(0,1fr)] items-center border-b border-line2 px-4 text-left text-[13.5px] font-normal leading-normal text-t1 transition-colors last:border-b-0",
