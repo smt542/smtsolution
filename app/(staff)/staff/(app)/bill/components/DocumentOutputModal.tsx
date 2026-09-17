@@ -105,7 +105,6 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
   const selectedFaxBuilding = selectedFaxTargets[0]?.building;
   const selectedFaxTargetValues = selectedFaxTargets.map(({ target }) => target);
   const previewEntry = allGiroDocuments.find(({ document }) => document.unitId === effectiveIndividualId);
-  const fallbackPreview = allTargets[0];
   const waterCutoffUnitIds = allGiroDocuments.filter(({ target }) => target.waterCutoff).map(({ document }) => document.unitId);
   const stampTargetIds = stampScope === "all"
     ? validSelectedUnitIds
@@ -305,7 +304,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
                     )
                   ) : (
                     <>
-                      <CompactDocumentPreview type={type as "giro" | "fax"} companyName={companyName} period={period} building={previewEntry?.building ?? fallbackPreview?.building ?? selectedBuildings[0]} target={previewEntry?.target ?? fallbackPreview?.target} document={previewEntry?.document ?? currentDocumentQueries[0]?.data?.[0]} accounts={accounts} customerNotice={customerNotice} dueDate={previewEntry?.dueDate ?? previewEntry?.target.dueDate ?? fallbackPreview?.target.dueDate ?? null} stamps={{ ...stamps, reissueUnitIds: stamps.reissue ? stampTargetIds : [], autoDebitUnitIds: stamps.autoDebit ? stampTargetIds : [], waterCutoffUnitIds: printWaterCutoffUnitIds }} zoom={zoom} onZoom={setZoom} />
+                      <CompactDocumentPreview companyName={companyName} period={period} pages={giroDocuments} accounts={accounts} customerNotice={customerNotice} stamps={{ ...stamps, reissueUnitIds: stamps.reissue ? stampTargetIds : [], autoDebitUnitIds: stamps.autoDebit ? stampTargetIds : [], waterCutoffUnitIds: printWaterCutoffUnitIds }} zoom={zoom} onZoom={setZoom} />
                       {isPreviewRefreshing ? (
                         <div className={`pointer-events-none absolute right-3 rounded-full bg-surface/95 shadow-card ${type === "giro" || type === "fax" ? "top-[60px]" : "top-3"}`}>
                           <Spinner label="출력 미리보기 갱신 중" size="small" showLabel className="px-3 py-2" />
