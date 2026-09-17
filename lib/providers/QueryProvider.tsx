@@ -59,7 +59,10 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      <ReactQueryDevtools initialIsOpen={false} />
+      {/* devtools는 dev에서만 렌더되지만, 그 dev에서 인쇄 미리보기에 끼어들지 않도록 제외한다. */}
+      <div className="contents print:hidden">
+        <ReactQueryDevtools initialIsOpen={false} />
+      </div>
     </QueryClientProvider>
   );
 }

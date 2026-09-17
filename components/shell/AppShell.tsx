@@ -83,8 +83,10 @@ export function AppShell({ children }: AppShellProps) {
       {/* 우측 A/S·퇴실 패널 (전역, print 제외) */}
       <AsReceptionRail />
 
-      {/* 스태프 전역 빠른발송 FAB */}
-      <MessengerFab />
+      {/* 스태프 전역 빠른발송 FAB (인쇄 제외) */}
+      <div className="contents print:hidden">
+        <MessengerFab />
+      </div>
 
       {/* Mobile drawer */}
       {drawerOpen && (
