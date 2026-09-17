@@ -46,6 +46,13 @@ const ADT_CSS = `
 .adt-table td{
   background:#fff;
 }
+/* 입주자명·건물명은 길이가 제각각이라 nowrap으로 두면 표가 A4 가로 폭을 밀어낸다.
+   이 두 칸만 줄바꿈을 허용해 남는 폭을 흡수한다(한글은 어절 단위 우선, 공백 없는 긴 이름은 마지막 수단으로 강제 분리). */
+.adt-table .adt-wrap{
+  white-space:normal;
+  word-break:keep-all;
+  overflow-wrap:anywhere;
+}
 .adt-table thead{
   display:table-header-group;
 }
@@ -58,18 +65,19 @@ const ADT_CSS = `
 }
 `;
 
-const COLUMN_LABELS = [
-  "청구타입",
-  "회원번호",
-  "계약번호",
-  "회원명",
-  "청구월",
-  "약정일",
-  "결제일(결제시작일)",
-  "상품",
-  "기본금액",
-  "수량",
-  "회원구분",
+// 원본 서식의 11개 컬럼. 순서는 고정이며, wrap은 길이가 들쭉날쭉해 줄바꿈을 허용할 칸이다.
+const COLUMNS: { label: string; wrap?: boolean }[] = [
+  { label: "청구타입" },
+  { label: "회원번호" },
+  { label: "계약번호" },
+  { label: "회원명", wrap: true },
+  { label: "청구월" },
+  { label: "약정일" },
+  { label: "결제일(결제시작일)" },
+  { label: "상품" },
+  { label: "기본금액" },
+  { label: "수량" },
+  { label: "회원구분", wrap: true },
 ];
 
 function AutoDebitPrintTitle({ year, month, group }: Pick<AutoDebitPrintDocumentProps, "year" | "month" | "group">) {
@@ -84,7 +92,7 @@ function AutoDebitPrintTable({ rows, year, month }: Pick<AutoDebitPrintDocumentP
   return (
     <table className="adt-table">
       <thead>
-        <tr>{COLUMN_LABELS.map((label) => <th key={label}>{label}</th>)}</tr>
+        <tr>{COLUMNS.map(({ label, wrap }) => <th key={label} className={wrap ? "adt-wrap" : undefined}>{label}</th>)}</tr>
       </thead>
       <tbody>
         {rows.map(({ building, target }) => {
@@ -94,14 +102,14 @@ function AutoDebitPrintTable({ rows, year, month }: Pick<AutoDebitPrintDocumentP
               <td>{cells.billType}</td>
               <td>{cells.memberNo}</td>
               <td>{cells.contractNo}</td>
-              <td>{cells.memberName}</td>
+              <td className="adt-wrap">{cells.memberName}</td>
               <td>{cells.billMonth}</td>
               <td>{cells.agreedDay}</td>
               <td>{cells.paymentDate}</td>
               <td>{cells.product}</td>
               <td>{cells.baseAmount}</td>
               <td>{cells.quantity}</td>
-              <td>{cells.memberGroup}</td>
+              <td className="adt-wrap">{cells.memberGroup}</td>
             </tr>
           );
         })}
