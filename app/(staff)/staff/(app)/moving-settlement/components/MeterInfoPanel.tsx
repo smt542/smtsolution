@@ -1,9 +1,5 @@
-import type { MeterSummary } from "@/hooks/reactquery/movingSettlement";
+import { useUnitMeterHistory } from "@/hooks/reactquery/movingSettlement/meterHistory";
 import { formatNumber } from "@/lib/format";
-
-function value(meter: MeterSummary | undefined, key: "previousReading" | "currentReading" | "usage") {
-  return formatNumber(meter?.[key] ?? null, { nullText: "-" });
-}
 
 function meterCellClass(index: number): string {
   if (index === 0) return "py-[8px] pl-[18px] pr-[7px] text-left";
@@ -13,14 +9,15 @@ function meterCellClass(index: number): string {
 }
 
 export function MeterInfoPanel({
-  meters,
+  unitId,
   selected = true,
 }: {
-  meters: MeterSummary[];
+  unitId: number | null;
   selected?: boolean;
 }) {
-  const byUtility = new Map(meters.map((meter) => [meter.utility, meter]));
-  const today = new Date();
+  const { data: rows = [], isLoading } = useUnitMeterHistory(
+    selected ? unitId : null,
+  );
 
   return (
     <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[16px] bg-white shadow-card">
@@ -34,6 +31,14 @@ export function MeterInfoPanel({
           <br />
           검침정보가 표시돼요
         </p>
+      ) : isLoading ? (
+        <p className="px-[18px] py-[14px] text-[12.5px] font-medium leading-[1.6] text-t4">
+          검침정보를 불러오고 있어요
+        </p>
+      ) : rows.length === 0 ? (
+        <p className="px-[18px] py-[14px] text-[12.5px] font-medium leading-[1.6] text-t4">
+          검침 이력이 없어요
+        </p>
       ) : (
         <div className="min-h-0 flex-1 overflow-auto">
           <div className="min-w-[564px]">
@@ -44,20 +49,25 @@ export function MeterInfoPanel({
                 <span key={`${label}-${index}`} className={meterCellClass(index)}>{label}</span>
               ))}
             </div>
-            <div className="grid h-[33px] grid-cols-[54.484px_28.75px_46.531px_46.531px_28.75px_46.531px_46.531px_28.75px_46.531px_46.531px_53.906px_90.063px] border-b border-line2 text-[11.5px] text-t1">
-              <span className={meterCellClass(0)}>{today.getFullYear()}</span>
-              <span className={meterCellClass(1)}>{String(today.getMonth() + 1).padStart(2, "0")}</span>
-              <span className={meterCellClass(2)}>{value(byUtility.get("water"), "previousReading")}</span>
-              <span className={meterCellClass(3)}>{value(byUtility.get("water"), "currentReading")}</span>
-              <span className={meterCellClass(4)}>{value(byUtility.get("water"), "usage")}</span>
-              <span className={meterCellClass(5)}>{value(byUtility.get("elec"), "previousReading")}</span>
-              <span className={meterCellClass(6)}>{value(byUtility.get("elec"), "currentReading")}</span>
-              <span className={meterCellClass(7)}>{value(byUtility.get("elec"), "usage")}</span>
-              <span className={meterCellClass(8)}>{value(byUtility.get("gas"), "previousReading")}</span>
-              <span className={meterCellClass(9)}>{value(byUtility.get("gas"), "currentReading")}</span>
-              <span className={meterCellClass(10)}>-</span>
-              <span className={meterCellClass(11)}>-</span>
-            </div>
+            {rows.map((row) => (
+              <div
+                key={row.period}
+                className="grid h-[33px] grid-cols-[54.484px_28.75px_46.531px_46.531px_28.75px_46.531px_46.531px_28.75px_46.531px_46.531px_53.906px_90.063px] border-b border-line2 text-[11.5px] text-t1"
+              >
+                <span className={meterCellClass(0)}>{row.year}</span>
+                <span className={meterCellClass(1)}>{String(row.month).padStart(2, "0")}</span>
+                <span className={meterCellClass(2)}>{formatNumber(row.waterPrev, { nullText: "-" })}</span>
+                <span className={meterCellClass(3)}>{formatNumber(row.waterCurr, { nullText: "-" })}</span>
+                <span className={meterCellClass(4)}>{formatNumber(row.waterUsage, { nullText: "-" })}</span>
+                <span className={meterCellClass(5)}>{formatNumber(row.elecPrev, { nullText: "-" })}</span>
+                <span className={meterCellClass(6)}>{formatNumber(row.elecCurr, { nullText: "-" })}</span>
+                <span className={meterCellClass(7)}>{formatNumber(row.elecUsage, { nullText: "-" })}</span>
+                <span className={meterCellClass(8)}>{formatNumber(row.gasPrev, { nullText: "-" })}</span>
+                <span className={meterCellClass(9)}>{formatNumber(row.gasCurr, { nullText: "-" })}</span>
+                <span className={meterCellClass(10)}>{formatNumber(row.monthTotal, { nullText: "-" })}</span>
+                <span className={meterCellClass(11)}>{row.paidAt?.replaceAll("-", ".") ?? "-"}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}

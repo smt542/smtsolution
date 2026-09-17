@@ -1,4 +1,7 @@
-import type { RefObject } from "react";
+"use client";
+
+import { useEffect, type RefObject } from "react";
+import { useManagementFeeRows } from "@/hooks/reactquery/movingSettlement/feeItemCharges";
 import type { MovingSettlementValues } from "@/components/forms/schema/movingSettlement";
 import type { ChecklistItem, MeterSummary } from "@/hooks/reactquery/movingSettlement";
 import { calculateSettlementAmount } from "@/hooks/reactquery/movingSettlement";
@@ -25,6 +28,8 @@ export function calculateProratedMgmtFee(
 
 export function SettlementForm({
   buildingName = "선택 세대",
+  buildingTypeId = null,
+  unitId = null,
   unitNo = "",
   contactPhone = "",
   value,
@@ -40,6 +45,8 @@ export function SettlementForm({
   paymentInputRef = EMPTY_INPUT_REF,
 }: {
   buildingName?: string;
+  buildingTypeId?: number | null;
+  unitId?: number | null;
   unitNo?: string;
   contactPhone?: string;
   value: SettlementDraft;
@@ -54,6 +61,21 @@ export function SettlementForm({
   onFinalPaidDateChange?: (date: string) => void;
   paymentInputRef?: RefObject<HTMLInputElement | null>;
 }) {
+  // 관리비 소계는 관리비 항목(fee_items)x당월 부과액에서 계산된다. 섹션 표시값과
+  // 하단 요약바/미수금/저장값이 어긋나지 않도록 계산 결과를 draft 에 되돌려 넣어
+  // 숫자 출처를 하나로 유지한다. 정본 헤더의 "정산액(일할 자동)" 동작이다.
+  const { subtotal: managementTotal } = useManagementFeeRows(
+    buildingTypeId,
+    unitId,
+    value.moveOutDate,
+  );
+  useEffect(() => {
+    if ((value.mgmtFeeProrated ?? 0) === managementTotal) return;
+    onChange({ ...value, mgmtFeeProrated: managementTotal });
+    // value/onChange 를 의존성에 넣으면 매 렌더 재실행되므로 계산값만 추적한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [managementTotal]);
+
   const set = <K extends keyof SettlementDraft>(
     key: K,
     next: SettlementDraft[K],
@@ -96,6 +118,9 @@ export function SettlementForm({
           />
           <UtilitySettlementSection value={value} meters={meters} onChange={onChange} />
           <ManagementFeeSection
+            buildingTypeId={buildingTypeId}
+            unitId={unitId}
+            moveOutDate={value.moveOutDate}
             monthly={value.mgmtFeeMonthly}
             prorated={value.mgmtFeeProrated}
             contactPhone={contactPhone}

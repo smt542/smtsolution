@@ -32,7 +32,7 @@ export function SettlementBasicSection({
         <input
           aria-label="계산일수 기준"
           readOnly
-          value="31"
+          value="30"
           className="h-[38px] w-full rounded-[10px] border border-[#dee3e8] bg-white px-[11px] text-right text-[13.5px] font-semibold text-t1 outline-none"
         />
       </label>

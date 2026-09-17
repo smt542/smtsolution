@@ -58,7 +58,7 @@ function SettlementEditor({
   forceNew,
   onDeleted,
 }: {
-  building: { id: number; name: string };
+  building: { id: number; name: string; typeId: number | null };
   context: SettlementContext;
   occupancy: NonNullable<SettlementContext["occupancy"]>;
   forceNew: boolean;
@@ -111,6 +111,8 @@ function SettlementEditor({
     <div className="flex min-h-0 flex-1 flex-col gap-[12px]">
       <SettlementForm
         buildingName={building.name}
+        buildingTypeId={building.typeId}
+        unitId={context.unit.id}
         unitNo={context.unit.unitNo}
         contactPhone={occupancy.phone ?? ""}
         value={draft}
@@ -268,7 +270,7 @@ export function MovingSettlementWorkspace() {
             onSelect={selectBuildingUnit}
           />
           <MeterInfoPanel
-            meters={context?.meterSummary ?? []}
+            unitId={unitId}
             selected={Boolean(context?.occupancy)}
           />
         </div>
