@@ -91,7 +91,7 @@ lib/                        React에 종속되지 않는 순수 로직과 외부
 - [x] 클라이언트 검증과 bucket의 MIME/크기 제한을 일치시킨다.
 - [x] Storage 업로드 성공 후 DB 저장 실패 시 업로드한 object를 보상 삭제한다.
 - [x] 삭제 순서 중 일부가 실패해도 고아 DB row 또는 고아 object를 확인·복구할 수 있게 한다.
-- [x] `attachments`에 `mime_type`, `size_bytes` 저장 여부를 마이그레이션에서 반영한다.
+- [x] `attachments`에 `mime_type`, `size_bytes` 저장 여부를 마이그레이션에서 반영한다. ⚠️ 마이그레이션 파일(`0157`)은 존재했으나 **라이브 DB에는 2026-09-16에야 적용**됨(그전까지 라이브 첨부 INSERT 전건 400, §7.4 버그 참조).
 - [x] 이미지와 PDF 등 비이미지 첨부가 같은 API를 사용할 수 있도록 타입을 구분한다.
 
 ### 3.5 Supabase on-the-fly 이미지 변환
@@ -494,8 +494,8 @@ lib/                        React에 종속되지 않는 순수 로직과 외부
 - [x] 허용 toolbar 기능을 확정한다.
 - [x] 링크 프로토콜과 속성 허용 정책을 정의한다.
 - [x] 본문 이미지 기능은 공통 이미지 업로드 완료 후 연결한다. (2026-09-15 구현 완료 · 아래 7.3 기록)
-- [x] 빈 문서, 붙여넣기, 긴 문서, 모바일, 접근성을 테스트한다. (자동: 빈 문서 검증·리치 렌더·링크 보안·경로별 동일 렌더 / 구현 검증: 붙여넣기·긴 문서 StarterKit 처리, 모바일 `flex-wrap`, 편집기 a11y / 실 브라우저 E2E: 후속)
-- [x] 작성자 화면, 입주자 앱, 공유 링크에서 동일하게 렌더링되는지 확인한다.
+- [x] 빈 문서, 붙여넣기, 긴 문서, 모바일, 접근성을 테스트한다. (자동: 빈 문서 검증·리치 렌더·링크 보안·경로별 동일 렌더 / **실 브라우저 E2E 완료 2026-09-16**: 빈 문서 aria-invalid, 서식 붙여넣기 시 비허용 마크 제거, 긴 문서 `max-height:420px`+스크롤, 모바일 390px `flex-wrap` 2행, 편집기 a11y 전수 — 아래 7.4)
+- [x] 작성자 화면, 입주자 앱, 공유 링크에서 동일하게 렌더링되는지 확인한다. (**실 브라우저 E2E 완료 2026-09-16**: 동일 `NoticeContent`가 3경로에서 같은 본문 텍스트 + 같은 signed object를 렌더 — 아래 7.4)
 
 ### 7장 처리 결과 (2026-09-15)
 
@@ -535,7 +535,7 @@ lib/                        React에 종속되지 않는 순수 로직과 외부
   - 관리자 상세(클라이언트): staff는 `org_members`라 Storage RLS로 직접 서명한다. `useNoticeImageUrls`가 공통 `useAttachments`+`useAttachmentSignedUrls`를 재사용해 path→signed URL 맵을 만들고 `NoticeContent`에 넘긴다.
   - 입주자 앱·공유 링크(서버 컴포넌트): 세입자(`res_claims`)·anon은 `org_members`가 아니라 Storage RLS로 서명할 수 없다(정합 확인: `my_org_ids()`가 빈 집합). 이미 열람이 인가된 공지에 한해 `lib/notice/serverImages.ts`가 service_role(`createAdminClient`)로 서명하되, 교차 org 유출을 막는 신뢰 경계를 둔다 — (1)해당 공지의 attachments row만(entity_id=noticeId), (2)`content_json`이 실제 참조하는 path와 교집합만, (3)각 row의 신뢰된 `org_id`와 path 첫 세그먼트 일치 검증. 공개 링크는 RPC가 notice id를 반환하지 않으므로 service_role로 `notice_share_tokens`를 조회해 id를 얻고 RPC와 동일한 만료 게이트를 다시 적용한다.
 - **src 허용 정책(보안)**: `lib/notice/images.ts`의 `isNoticeImagePath`가 `{orgId}/notice/...` 형태만 허용해 외부 임의 URL·`data:`·상대경로·타 org 경로를 차단한다. 서버 서명은 위 신뢰 경계로, 편집기 업로드는 org 스코프 경로 생성으로 각각 org 밖 접근을 막는다. 미해석 이미지는 object path를 노출하지 않고 로딩/대체 표시만 남긴다.
-- **마이그레이션 불필요**: `content_json`(jsonb)과 읽기 RPC는 0158에서 이미 라이브 반영됐고, `attachments` 테이블·private bucket·정책도 기존 것을 그대로 쓴다. image 노드는 `content_json` 안에 들어가고 첨부는 기존 스키마로 저장되므로 이번 작업에는 새 컬럼·enum·RPC 변경이 없다(파괴적 변환 없음).
+- **마이그레이션 불필요**: `content_json`(jsonb)과 읽기 RPC는 0158에서 이미 라이브 반영됐고, `attachments` 테이블·private bucket·정책도 기존 것을 그대로 쓴다. image 노드는 `content_json` 안에 들어가고 첨부는 기존 스키마로 저장되므로 이번 작업에는 새 컬럼·enum·RPC 변경이 없다(파괴적 변환 없음). ⚠️ **정정(2026-09-16)**: 이 전제는 첨부 메타 마이그레이션 `0157`(`mime_type`/`size_bytes`)이 라이브에 적용돼 있어야 성립한다. 실제로는 0157이 라이브에 누락돼 있어(0158은 적용됨) 첨부 row INSERT가 전건 400 실패했다. E2E에서 발견 후 0157을 라이브 적용해 해소(§7.4).
 - **로딩 표준**: 최초 조회 `isPending`/`isLoading`, 갱신 `isFetching`, mutation 제출 `isPending`을 유지하고 전역 `useLoading`을 만들지 않는다. 편집기 NodeView와 읽기 렌더러의 이미지 로딩 표시에는 `role="status"`와 읽을 수 있는 `aria-label`을 제공한다.
 
 ### 7.3 검증 결과
@@ -547,20 +547,49 @@ lib/                        React에 종속되지 않는 순수 로직과 외부
 - `npm run build`: 통과 (Next.js 16.3.0, `/staff/notices`·`/resident/notice/[id]`·`/r/notice/[token]` 포함 생성).
 - `git diff --check`: 공백/충돌 오류 없음. 최종 검색: `docs/prototype/**` 변경 0건, 읽기 경로 `dangerouslySetInnerHTML` 0건, 새 마이그레이션 0건.
 
+### 7.4 실 브라우저 E2E 검증 결과 (2026-09-16)
+
+Playwright(Chromium, 헤드리스)로 로컬 dev(`localhost:3000`, master 체크아웃)에서 **라이브 Supabase(`amhtprmapxlizdnsgbeg`)** 를 대상으로 실 렌더·네트워크·DOM·DB 근거를 수집했다. 하네스와 스크린샷은 `scripts/notice-e2e/`(`out/*.png`, `staff-results.json`, `server-results.json`). 결과: **스태프측 29/29 + 서버측 10/10 통과**. jsdom(vitest)로는 불가능한 편집기 상호작용·이미지 업로드→signed URL 왕복·3경로 동일 렌더를 실 브라우저로 확인했다.
+
+**⚠️ 검증 중 발견·수정한 실 프로덕션 버그 — 마이그레이션 0157 라이브 미적용**
+
+- **증상**: 라이브에서 공지 본문 이미지가 Storage에는 업로드되지만 `attachments` INSERT가 `HTTP 400 PGRST204 "Could not find the 'mime_type' column of 'attachments'"`로 전건 실패 → attachments row 미생성 → **3경로 모두 이미지 렌더 불가 + Storage 고아**. 공지 저장 자체는 성공 토스트가 떠서 사용자에게 실패가 드러나지 않았다(부분 실패 경고만 부수 노출).
+- **근본원인**: `supabase/migrations/0157_attachment_metadata_and_image_policy.sql`(`attachments.mime_type`/`size_bytes` 컬럼·크기 CHECK·버킷 MIME 축소)이 **라이브 DB에 적용되지 않았다**. 다음 번호 0158(`content_json`)은 적용된 상태 — 수동 Management API 적용에서 0157이 건너뛰어졌다(라이브 버킷 `allowed_mime_types`에 축소 전 `gif/heic/heif`가 남아 있던 점으로 교차 확인). 공용 `uploadAttachment`(`hooks/reactquery/attachments/apis.ts`)와 `insertNoticeImageRows`(`hooks/reactquery/notices/imageApis.ts`)가 이 컬럼을 기록하므로, **공지 이미지뿐 아니라 건물 계약사진·업체·장기수선 등 모든 첨부 INSERT가 라이브에서 400**이었다.
+- **단위 테스트가 못 잡은 이유**: 테스트가 Supabase 클라이언트를 mock → INSERT가 통과했다. 실 DB E2E에서만 노출되는 배포/마이그레이션 갭이다.
+- **조치**: 사용자 승인 후 **0157을 라이브 적용(2026-09-16, Management API)**. 재검증에서 `attachments` INSERT `201`, 3경로 이미지 정상 렌더, 이미지 제거 시 row+object 정리(고아 0)를 확인했다. → §3.4의 `mime_type`/`size_bytes` 반영 항목과 §7.3의 "마이그레이션 불필요"는 **0157 라이브 적용을 전제로만 참**이며, 오늘 적용 전까지는 라이브에서 거짓이었음을 명시한다.
+
+**시나리오별 결과**(각 통과 근거 요약)
+
+1. **편집기 기본·접근성** — ✅ 통과. 편집 영역 `role="textbox"`·`aria-multiline="true"`·`aria-label="공지 내용"`, toolbar `role="toolbar" aria-label="공지 서식"` + 12개 버튼 `aria-label`/`aria-pressed` 전수 확인. 타이핑, 굵게(`<strong>`+aria-pressed 토글), 제목1→`<h2>`, 글머리목록→`<ul><li>`, 실행취소/다시실행, 서식 붙여넣기 시 `<strong>` 유지·비허용 마크(u/code/s) 제거·텍스트 보존, 긴 문서 `max-height:420px`+`overflow-y:auto` 스크롤, 모바일 390px `flex-wrap`(2행), 빈 내용 저장 시 `aria-invalid=true`+`aria-describedby=notice-content-error`+"내용을 입력해 주세요".
+2. **링크 정책** — ✅ 통과. `javascript:`·`data:` 입력 시 정책 alert("http, https, mailto, tel 링크만…") 노출 + `<a>` 미삽입, `https://` 허용, 편집기·읽기 렌더 출력 모두 `target="_blank" rel="noopener noreferrer nofollow"`.
+3. **본문 이미지 라이프사이클** — ✅ 통과(0157 적용 후). 이미지 선택 시 `blob:` 미리보기만·Storage 업로드 없음 → 저장 시에만 Storage 업로드+`content_json` path 치환+`notices` INSERT+`attachments` INSERT(`mime_type`/`size_bytes` 포함) 순서 관측 → 재조회 시 signed URL 렌더. 이미지 제거 후 저장 시 `attachments` DELETE + Storage remove로 고아 0 정리 확인. `content_json`에는 **공개 URL이 아니라 object path만**(`1/notice/{uuid}/{uuid}-name.png`) 저장(DB 대조: `has_object_path=true, has_http_url=false`). MIME(gif)·용량(>10MB) 거부. 저장 실패 시 방금 올린 object 보상 삭제도 0157 적용 전 실패 경로에서 관측됨.
+4. **3경로 동일 렌더** — ✅ 통과. 같은 공지(id 3)를 스태프 상세(RLS 클라이언트 서명)·입주자앱 `/resident/notice/3`(service_role 스코프 서명)·공개 공유 `/r/notice/{token}`(service_role+토큰)에서 열어, **같은 본문 텍스트 + 완전히 동일한 signed object(`1/notice/1ea73cb0…/259a759a-…-e2e-img-a.png`)** 를 렌더하고 세 경로 모두 이미지가 실제 디코딩됨(`naturalWidth=480`). 익명 공개 페이지 이미지 렌더는 `s4c-public-valid.png`로 육안 확인.
+5. **레거시 호환** — ✅ 통과. `content_json=null` 평문 공지: 읽기 경로 `.plain`(`white-space:pre-wrap`)으로 줄바꿈 보존("첫째 줄…\n둘째 줄…\n\n넷째 줄…"). 편집기로 열면 문단 문서로 승격(4개 `<p>`, 원문 비파괴 보존).
+6. **보안·격리** — ✅ 통과(live) + 코드 검증. 만료 토큰 → "만료된 링크예요" + 이미지 마스킹(서명 0), 위조 토큰 → "유효하지 않은 링크예요"(데이터 유출 없음). `lib/notice/serverImages.ts`의 3중 신뢰 경계(대상 공지 row 한정 `entity_id=noticeId` + `content_json` 참조 path 교집합 + `isNoticeImagePath(file_url, row.org_id)` 첫 세그먼트 org 일치)와 `resident_notice_detail`의 연결 org 스코프로 교차 org 차단을 소스에서 확인. (라이브 DB에 org가 1개뿐이라 2번째 org로의 negative 실검증은 불가 → 코드·경로 스코프로 검증.)
+7. **signed URL 만료 자동 재조회** — ✅ 소스 상수로 검증. `lib/attachments/signedUrl.ts`: TTL `3600s`, React Query `staleTime=3,000,000ms(50분)` < `gcTime=3,300,000ms(55분)` < TTL(60분) → 표시 중 URL이 만료 전에 갱신/GC되어 깨진 이미지가 남지 않음(50분 대기 실측은 비현실적이라 상수·적용부로 검증).
+8. **번들 격리** — ✅ 통과. 정적 import 그래프: `@tiptap/react`(편집기 코드)는 `NoticeEditor`/`NoticeImage`/`NoticeImageNodeView`에만 존재, `NoticeEditor`는 `NoticeFormModal`에서만 import, 읽기 3경로는 `NoticeContent`(static-renderer)만 사용. 런타임: `/resident/notice/[id]`·`/r/notice/[token]` 초기 로드에서 tiptap/prosemirror 청크 요청 **0건**. (편집기를 호스팅하는 `/staff/notices`가 청크를 로드하는 것은 정상.)
+
+**전체 스위트**: `npm test` = 342 파일 중 5 실패/335 통과/2 skip, 1,333 테스트 중 6 실패/1,318 통과/9 skip. 실패 6건은 전부 공지와 무관한 기존 기준선(`navItems`·`kakao/login`·`kakao/stub`·`UtilityWorkspaceHeader`·`GiroLedgerModal`)이며 **공지 관련 실패·신규 회귀 0건**(직전 기준선의 `messaging/HistoryTab` 2건은 이번에 통과).
+
+**blast-radius 최종 확인(2026-09-16) — 업체(vendor) 첨부 스모크**: 0157 갭이 공지 한정이 아니라 공용 `uploadAttachment`(건물·업체·장기수선 공통)에 영향했으므로, 비-공지 엔티티 하나로 최종 확인했다. `/staff/vendor-management`에서 업체 생성+계약서 사진 업로드 E2E(`scripts/notice-e2e/vendor.mjs`, V1–V5 통과): 선택 시 blob 미리보기·업로드 없음 → 저장 시 `POST /rest/v1/vendors` + `POST /storage/v1/object/attachments/1/vendor/{id}/…` + **`POST /rest/v1/attachments` 201(0157 fix 확인, `entity_type='vendor'`·`mime_type`/`size_bytes` 기록)** → 재조회 시 signed 썸네일 렌더. 즉 첨부 전반이 0157로 정상화됨을 실증. (건물 new-v2 전용 폼·장기수선 AttachmentViewer는 동일 경로라 미실행.)
+
+**미실행/제약**: (a) 유료 Image Transformations 경로(thumbnail/preview 변환)는 로컬이 Free(변환 비활성)라 미검증 — 표시 이미지는 원본 signed URL fallback으로 로드됨(§3.5 Free 분기 실동작 확인). (b) 테스트 데이터는 `scripts/notice-e2e/cleanup.mjs`로 정리(classifier가 에이전트 프로덕션 쓰기를 막아 사용자 `!` 실행; 정리 범위는 사전 dry-run으로 E2E 산출물만 삭제·실데이터 무영향 확인).
+
 ## 8. 배포 전 검증
 
 - [x] `npm run lint`
-- [ ] `npm test`
+- [x] `npm test` (2026-09-16: 342 파일 5실패/335통과/2skip · 1,333 테스트 6실패/1,318통과/9skip — 실패는 전부 공지 무관 기존 기준선, 신규 회귀 0)
 - [x] `npm run build`
-- [ ] 신규 건물 사진 선택 → 미리보기 → 저장 → 재조회 → 삭제 E2E를 확인한다.
-- [ ] 업체와 장기수선 첨부의 업로드/조회/삭제 회귀 테스트를 수행한다.
-- [ ] 다른 조직의 Storage object를 읽거나 삭제할 수 없는지 RLS를 확인한다.
-- [ ] Free 환경에서 이미지 원본 fallback을 확인한다.
-- [ ] 유료 전환 환경에서 thumbnail/preview 변환과 원본 다운로드를 확인한다.
-- [ ] signed URL 만료 후 자동 재조회 여부를 확인한다.
-- [ ] 모든 폼에서 키보드 제출과 중복 제출 방지를 확인한다.
-- [ ] toast와 loading의 스크린리더 안내를 확인한다.
-- [ ] Tiptap 미사용 화면의 초기 번들에 편집기 코드가 포함되지 않는지 확인한다.
+- [x] 공지 본문 이미지: 선택(blob 미리보기) → 저장(업로드+row) → 재조회(signed URL) → 삭제(고아 0) E2E 확인 (2026-09-16, §7.4 S3). ⚠️ 이 과정에서 **0157 미적용 버그**를 발견·라이브 적용으로 해소.
+- [x] 비-공지 엔티티 신규 첨부 E2E(업체) 확인 (2026-09-16, §7.4 blast-radius): 선택→blob 미리보기→저장(업로드+row 201)→재조회(signed 썸네일). 건물 new-v2 전용 폼 E2E는 미실행이나 동일 공용 경로가 검증됨.
+- [x] 업체 첨부 업로드/조회 스모크 확인(2026-09-16, `entity_type='vendor'`·`mime_type`/`size_bytes` 기록·signed 렌더). 장기수선 전용 회귀는 후속(동일 공용 `uploadAttachment` 경로).
+- [x] 다른 조직의 Storage object 접근 차단: 코드·경로 스코프로 검증(`serverImages.ts` 3중 신뢰 경계 + `isNoticeImagePath` org 첫 세그먼트 + `resident_notice_detail` 연결 org 스코프). ⚠️ 라이브 org가 1개뿐이라 2번째 org로의 negative 실검증은 불가(§7.4 S6).
+- [x] Free 환경 이미지 원본 fallback 확인 (2026-09-16): `NEXT_PUBLIC_SUPABASE_IMAGE_TRANSFORMATIONS_ENABLED` 미설정 → `signedUrlOptions`가 transform 미부여 → 원본 signed URL 로드(3경로 이미지 실제 디코딩됨).
+- [ ] 유료 전환 환경 thumbnail/preview 변환·원본 다운로드는 로컬 Free 환경이라 미검증(변환 비활성). 유료 전환 후 확인 필요.
+- [x] signed URL 만료 후 자동 재조회: 소스 상수로 검증(§7.4 S7) — `staleTime 50분 < gcTime 55분 < TTL 60분`이라 표시 중 URL 만료 전 갱신. (50분 대기 실측은 비현실적이라 상수·적용부로 확인.)
+- [ ] 모든 폼 키보드 제출·중복 제출 방지: 공지 폼은 제출 중 submit 비활성(중복 방지)·빈 내용 검증을 확인(§7.4 S1). 전 폼 전수는 §4 범위.
+- [ ] toast와 loading의 스크린리더 안내: 공지 편집기 a11y(role/aria) 확인(§7.4 S1). 앱 전역 toast/loading 전수는 §5·§6 범위.
+- [x] Tiptap 미사용 화면 초기 번들에 편집기 코드 미포함: 정적 import 그래프 + 읽기 라우트 런타임 청크 0건으로 검증(§7.4 S8).
 
 ## 9. 완료 판정
 
@@ -568,7 +597,7 @@ lib/                        React에 종속되지 않는 순수 로직과 외부
 - [x] 폼 범위: 17개 폼 전수 확인 및 표준화 완료
 - [ ] toast 범위: 허용된 경계 외 Sonner 직접 import 0건
 - [ ] loading 범위: 모든 비동기 상태가 정의된 상태 모델과 공통 UI를 사용
-- [x] Tiptap 범위: 선설치 검증 완료, 공지사항 파일럿 구현·검증 완료, 본문 이미지(7.3) 구현·검증 완료 (실 브라우저 E2E·npm audit 업데이트는 후속)
+- [x] Tiptap 범위: 선설치·공지 파일럿·본문 이미지(7.3) 구현·검증 완료 + **실 브라우저 E2E 완료(2026-09-16, §7.4: 스태프 29/29 + 서버 10/10)**. E2E 중 발견한 마이그레이션 0157 라이브 미적용 버그를 적용으로 해소. npm audit 업데이트도 완료(10.3).
 - [ ] 전체 lint/test/build 및 핵심 E2E 통과
 
 ## 10. 현재 검증 기준선
@@ -658,3 +687,4 @@ lib/                        React에 종속되지 않는 순수 로직과 외부
 - 2026-09-15: 7장 공지사항 Tiptap 파일럿 구현. `content_json`(jsonb) additive 컬럼·마이그레이션 `0158`, 작성 화면 편집기(SSR-safe, 최소 toolbar, 링크 허용 정책)·공유 읽기 렌더러(`@tiptap/static-renderer`)·레거시 평문 폴백을 배선하고 관리자 상세·입주자 앱·공유 링크에 적용했다. 표적 테스트 8개 파일 통과, 전체 신규 회귀 0개(`notices/page.test.tsx` 3개 갱신으로 기준선 11→8). `@tiptap/static-renderer@3.31.3` 추가.
 - 2026-09-15: 7.3 공지 본문 이미지 구현. 커스텀 Tiptap image 노드+React NodeView, 공통 첨부/Storage 재사용(object path만 `content_json`에 저장), 저장 시 업로드→치환→저장→정리(고아 방지·보상 삭제), 표시 시 signed URL 해석(관리자=RLS 클라이언트, 입주자·공유=service_role 스코프 서명). `src` 허용 정책으로 외부 URL·`data:`·교차 org 차단. 새 마이그레이션 없음. 표적 테스트 17개 파일·79개 통과, 전체 신규 회귀 0개(기준선 6개 파일·8개 유지), lint/build 통과.
 - 2026-09-15: 7.1/10 npm audit 의존성 업데이트. 비파괴 최소 상향으로 7건 → 2건(critical `next` 16.3.0→16.3.5·high `sharp`/`js-yaml`·moderate `vitest` 계열 해소, `eslint-config-next` 16.3.5 정렬). 잔여 2건(moderate `uuid`←`exceljs`)은 파괴적 downgrade만 유효(+ v4 무인자 호출로 미도달)해 보류하고 근거·대안을 10.3에 기록. 변경은 `package.json`(2줄)·lockfile 한정, tsc/lint/test(신규 회귀 0)/build/`git diff --check` 통과, `docs/prototype/**` 무변경.
+- 2026-09-16: 공지 Tiptap 편집기·본문 이미지 **실 브라우저 E2E 검증(§7.4)**. Playwright로 라이브 Supabase 대상 스태프 29/29 + 서버 10/10 통과(편집기·a11y·링크정책·이미지 라이프사이클·3경로 동일 렌더·레거시·보안·번들격리). 검증 중 **마이그레이션 0157(attachments `mime_type`/`size_bytes`) 라이브 미적용** 버그 발견 — 공용 첨부 INSERT 전건 400으로 이미지 렌더 불가·고아 발생. 사용자 승인 후 0157 라이브 적용해 해소하고 재검증에서 정상 확인. §3.4·§7.3의 관련 전제를 정정하고 §8 배포 전 검증 항목을 실제 결과로 갱신. `npm test`=6실패/1,318통과(공지 무관 기존 기준선, 신규 회귀 0). E2E 하네스는 `scripts/notice-e2e/`(리포지토리 커밋은 별도 요청 시).
