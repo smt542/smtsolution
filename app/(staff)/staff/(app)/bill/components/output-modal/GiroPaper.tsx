@@ -98,13 +98,20 @@ export function GiroPaper({ companyName, period, building, target, document, acc
     ]).flat(),
   ];
 
+  // 사용량 추이는 당월부터 거슬러 5개월. 월 라벨만 period에서 유도하고 수치는 데이터가 없어 비워 둔다.
+  const trendMonths = Array.from({ length: 5 }, (_, index) => {
+    const base = new Date(Number(year), Number(month) - 1 - index, 1);
+    return `${base.getFullYear()}.${String(base.getMonth() + 1).padStart(2, "0")}`;
+  });
   const trendCells = [
     { value: "구분", className: "row-span-2 justify-center text-center" },
-    { value: "전   기", className: "col-span-2 justify-center text-center" },
+    { value: "전   기", className: "col-span-3 justify-center text-center" },
     { value: "수      도", className: "col-span-2 justify-center text-center" },
-    { value: "", className: "justify-center text-center" },
     ...["년  월", "금량", "전량", "증감", "금량"].map((value) => ({ value, className: "justify-center text-center" })),
-    ...Array.from({ length: 5 }, () => ["", "", "", "", "", ""]).flat().map((value) => ({ value, className: "justify-end text-right" })),
+    ...trendMonths.flatMap((label) => [
+      { value: label, className: "justify-center text-center" },
+      ...Array.from({ length: 5 }, () => ({ value: "", className: "justify-end text-right" })),
+    ]),
   ];
 
   return (
