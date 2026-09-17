@@ -1,6 +1,21 @@
+import type { ReactNode } from "react";
 import { SettlementActionBar } from "./SettlementActionBar";
 
-export function SettlementEmptyPanel({ onAction }: { onAction: () => void }) {
+export function SettlementEmptyPanel({
+  onAction,
+  title = "건물과 호실을 선택해 주세요",
+  description = (
+    <>
+      선택한 세대의 이사정산 내역을
+      <br />
+      여기에서 작성해요
+    </>
+  ),
+}: {
+  onAction: () => void;
+  title?: string;
+  description?: ReactNode;
+}) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-[12px]">
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[16px] bg-white shadow-card">
@@ -10,12 +25,8 @@ export function SettlementEmptyPanel({ onAction }: { onAction: () => void }) {
         {/* 원본 `.ms-body{padding:16px 18px 20px}` > `.ms-empty{gap:5px;padding:34px 20px}` */}
         <div className="flex min-h-0 flex-1 flex-col px-[18px] pb-[20px] pt-[16px]">
           <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[5px] px-[20px] py-[34px] text-center text-t3">
-            <p className="text-[15px] font-bold leading-[18px] text-t1">건물과 호실을 선택해 주세요</p>
-            <p className="text-[13px] leading-[1.55]">
-              선택한 세대의 이사정산 내역을
-              <br />
-              여기에서 작성해요
-            </p>
+            <p className="text-[15px] font-bold leading-[18px] text-t1">{title}</p>
+            <p className="text-[13px] leading-[20.15px] text-t3">{description}</p>
           </div>
         </div>
         {/* 원본 `.ms-foot>span{display:flex;align-items:baseline;gap:6px}` */}

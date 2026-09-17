@@ -153,6 +153,7 @@ export function MovingSettlementWorkspace() {
   const [buildingId, setBuildingId] = useState<number | null>(null);
   const [unitId, setUnitId] = useState<number | null>(null);
   const [forceNew, setForceNew] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
   const [editorVersion, setEditorVersion] = useState(0);
   const unitsQuery = useUnits(buildingId ?? 0);
   const contextQuery = useSettlementContext(unitId);
@@ -166,31 +167,36 @@ export function MovingSettlementWorkspace() {
   const selectedBuilding =
     buildings.find((building) => building.id === buildingId) ?? null;
   const selectedUnit = units.find((unit) => unit.id === unitId) ?? null;
-  const isSettlementWorkspaceRefreshing = [buildingsQuery, unitsQuery, contextQuery]
-    .some((query) => query.isFetching && !query.isLoading);
+  const isSettlementWorkspaceRefreshing =
+    [buildingsQuery, unitsQuery].some((query) => query.isFetching && !query.isLoading) ||
+    (editorOpen && contextQuery.isFetching && !contextQuery.isLoading);
 
   const selectBuilding = (value: string | number | null) => {
     const next = value === null || value === "" ? null : Number(value);
     setBuildingId(next);
     setUnitId(null);
     setForceNew(false);
+    setEditorOpen(false);
   };
 
   const selectUnit = (value: string | number | null) => {
     const next = value === null || value === "" ? null : Number(value);
     setUnitId(next);
     setForceNew(false);
+    setEditorOpen(false);
   };
 
   const selectBuildingUnit = (nextBuildingId: number, nextUnitId: number) => {
     setBuildingId(nextBuildingId);
     setUnitId(nextUnitId);
     setForceNew(false);
+    setEditorOpen(false);
   };
 
   const startNewSettlement = () => {
     if (unitId === null) return;
     setForceNew(true);
+    setEditorOpen(true);
     setEditorVersion((current) => current + 1);
   };
 
@@ -235,7 +241,7 @@ export function MovingSettlementWorkspace() {
         </select>
       </label>
 
-      <div className="mx-auto grid h-[calc(100dvh-102px)] min-h-[720px] min-w-[1340px] max-w-[1632px] grid-cols-[322px_322px_minmax(664px,1fr)] gap-[16px]">
+      <div className="mx-auto grid h-[calc(100dvh-102px)] min-h-[720px] min-w-[1340px] max-w-[1872px] grid-cols-[322px_322px_minmax(664px,1fr)] gap-[16px]">
         <SettlementDirectoryRail
           buildings={buildings}
           units={units}
@@ -248,6 +254,11 @@ export function MovingSettlementWorkspace() {
           onSelectBuilding={(id) => selectBuilding(id)}
           onSelectUnit={(id) => selectUnit(id)}
           onStartNew={startNewSettlement}
+          onSelectSettlement={() => {
+            setForceNew(false);
+            setEditorOpen(true);
+          }}
+          settlementSelected={editorOpen && !forceNew}
         />
 
         <div className="flex min-h-0 flex-col gap-[16px] overflow-hidden">
@@ -264,22 +275,35 @@ export function MovingSettlementWorkspace() {
 
         <div className="flex min-h-0 min-w-0 flex-col">
           {unitId === null && <SettlementEmptyPanel onAction={emptyAction} />}
-          {unitId !== null && contextQuery.isLoading && (
+          {unitId !== null && !editorOpen && (
+            <SettlementEmptyPanel
+              onAction={emptyAction}
+              title="정산된 이사 항목을 선택해 주세요"
+              description={
+                <>
+                  좌측 목록에서 항목을 고르거나
+                  <br />
+                  새 이사정산 입력을 눌러 작성해요
+                </>
+              }
+            />
+          )}
+          {editorOpen && contextQuery.isLoading && (
             <div className="grid min-h-[420px] flex-1 place-items-center rounded-[16px] bg-white shadow-card">
               <Spinner label="이사정산 정보 불러오는 중" />
             </div>
           )}
-          {unitId !== null && contextQuery.error && (
+          {editorOpen && contextQuery.error && (
             <div role="alert" className="grid min-h-[420px] flex-1 place-items-center rounded-[16px] bg-white shadow-card">
               <EmptyState message="정산 정보를 불러오지 못했어요" />
             </div>
           )}
-          {context && context.occupancy === null && (
+          {editorOpen && context && context.occupancy === null && (
             <div className="grid min-h-0 flex-1 place-items-center rounded-[16px] bg-white shadow-card">
               <EmptyState message="선택한 호실에 입주 정보가 없어요" />
             </div>
           )}
-          {context && context.occupancy && selectedBuilding && selectedUnit && (
+          {editorOpen && context && context.occupancy && selectedBuilding && selectedUnit && (
             <SettlementEditor
               key={`${context.unit.id}:${forceNew ? `new-${editorVersion}` : (context.latestSettlement?.id ?? "new")}`}
               building={selectedBuilding}
