@@ -1,6 +1,6 @@
 "use client";
 import type { CSSProperties, ReactNode } from "react";
-import { Spinner } from "@/components/common";
+import { Button, Spinner } from "@/components/common";
 import { PrinterIcon } from "@/components/icons";
 
 /** 미리보기 시트(190mm)를 좌우 패널 폭에 맞춰 축소하는 배율. */
@@ -68,15 +68,17 @@ export function PreviewPane({
             ›
           </button>
         </div>
-        <button
+        <Button
+          size="sm"
+          variant="ghost"
           type="button"
           onClick={onAction}
           disabled={actionDisabled}
-          className="inline-flex h-[26px] items-center gap-[5px] rounded-[8px] border border-line bg-white px-[10px] text-[11.5px] font-bold text-t2 hover:bg-bg disabled:opacity-40"
+          className="inline-flex items-center gap-[5px] disabled:opacity-40"
         >
           <PrinterIcon className="h-[13px] w-[13px]" />
           {actionLabel}
-        </button>
+        </Button>
       </div>
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-[#e9ecef] p-[12px]">
         {loading ? (
