@@ -20,6 +20,8 @@ export interface GiroPaperProps {
   customerNotice: string | null;
   dueDate: string | null;
   stamps?: GiroStampOptions;
+  /** 도장 적용 대상 표시(청록 테두리). 개별 범위에서는 클릭한 1장만 true. */
+  highlighted?: boolean;
 }
 
 const DEFAULT_NOTICE = [
@@ -59,7 +61,7 @@ function accountLine(accounts: PrintableAccount[], companyName: string) {
     .join(" / ");
 }
 
-export function GiroPaper({ companyName, period, building, target, document, accounts, customerNotice, dueDate, stamps }: GiroPaperProps) {
+export function GiroPaper({ companyName, period, building, target, document, accounts, customerNotice, dueDate, stamps, highlighted = false }: GiroPaperProps) {
   const [year = "", month = ""] = period.split("-");
   const total = document?.totalAmount ?? target?.totalAmount ?? 0;
   const unit = displayUnitNo(target?.unitNo ?? document?.unitNo);
@@ -115,8 +117,9 @@ export function GiroPaper({ companyName, period, building, target, document, acc
 
   return (
     <div
-      className={`relative h-[1123px] w-[794px] overflow-hidden rounded-[4px] border border-[#e8ebee] bg-white ${PAPER_TEXT} shadow-[0_0_0_2.5px_#14a497]`}
+      className={`relative h-[1123px] w-[794px] overflow-hidden rounded-[4px] border border-[#e8ebee] bg-white ${PAPER_TEXT} ${highlighted ? "shadow-[0_0_0_2.5px_#14a497]" : "shadow-none"}`}
       data-testid="giro-paper"
+      data-highlighted={highlighted || undefined}
     >
       <p className="absolute left-[111.57px] top-[58.48px] whitespace-nowrap text-[18px] leading-[23.4px]">{building?.address ?? ""}</p>
       <p className="absolute left-[111.71px] top-[78.66px] whitespace-nowrap text-[18px] leading-[23.4px]">{building?.name ? `${building.name} ${unit}` : unit}</p>
