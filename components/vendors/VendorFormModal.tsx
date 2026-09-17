@@ -311,6 +311,7 @@ export function VendorFormModal({
 
                   <PhotoUpload
                     label="계약서 사진"
+                    hideLabel
                     files={pendingPhotos}
                     onFilesChange={setPendingPhotos}
                     max={Math.max(0, 10 - attachments.length)}
