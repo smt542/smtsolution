@@ -490,15 +490,10 @@ export function TenantForm({
           </h2>
         </div>
         <div className="flex gap-[8px]">
-          <Button variant="ghost" className="!h-[40px] !rounded-[11px] !px-[15px]" onClick={onLeave}>
+          <Button variant="ghost" onClick={onLeave}>
             {presentation === "modal" ? "닫기" : "뒤로가기"}
           </Button>
-          <Button
-            variant="primary"
-            className="!h-[40px] !rounded-[11px] !bg-teal !px-[15px] !shadow-[0_6px_14px_-4px_rgba(20,164,151,0.5)] hover:!bg-teal-d"
-            onClick={onSave}
-            disabled={save.isPending}
-          >
+          <Button variant="primary" onClick={onSave} disabled={save.isPending}>
             {save.isPending ? "저장 중…" : presentation === "modal" ? "저장" : "등록 저장"}
           </Button>
         </div>

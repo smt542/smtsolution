@@ -157,7 +157,7 @@ export function GasLedgerModal({
 
         <footer data-gas-ledger-controls className="flex h-[69px] items-center border-t border-line px-5">
           <p className="text-[12px] font-bold text-t2"><strong className="text-teal">{selectedBuildings.length}곳</strong> 선택</p>
-          <button type="button" onClick={() => window.print()} disabled={selectedBuildings.length === 0 || isLedgerBusy || hasError} className="ml-auto flex h-10 items-center gap-1.5 rounded-[10px] bg-teal px-5 text-[13px] font-bold text-white hover:bg-teal-d disabled:cursor-not-allowed disabled:opacity-45">
+          <button type="button" onClick={() => window.print()} disabled={selectedBuildings.length === 0 || isLedgerBusy || hasError} className="ml-auto flex h-10 items-center gap-[7px] rounded-btn bg-teal px-[18px] text-[13.5px] font-bold text-white hover:bg-teal-d disabled:cursor-not-allowed disabled:opacity-45">
             <PrinterIcon className="size-4" />
             인쇄
           </button>

@@ -214,7 +214,7 @@ export function MeterLedgerModal({
               onPrinted?.();
             }}
             disabled={selectedIds.length === 0 || isLedgerBusy || hasError}
-            className="flex h-10 items-center gap-1.5 rounded-[10px] bg-teal px-5 text-[13px] font-bold text-white hover:bg-teal-d disabled:cursor-not-allowed disabled:opacity-45"
+            className="flex h-10 items-center gap-[7px] rounded-btn bg-teal px-[18px] text-[13.5px] font-bold text-white hover:bg-teal-d disabled:cursor-not-allowed disabled:opacity-45"
           >
             <PrinterIcon className="size-4" />
             인쇄
