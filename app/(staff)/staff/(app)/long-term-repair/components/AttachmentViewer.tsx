@@ -184,9 +184,8 @@ export function AttachmentViewer({
               )}
               {!canEdit && (
                 <p className={styles.attachmentReadOnly}>
-                  {attachments.length
-                    ? "수정을 누르면 파일을 올리거나 지울 수 있어요."
-                    : "수정을 누르면 파일을 올리거나 지울 수 있어요. 첨부된 파일이 없어요"}
+                  {/* 첨부는 저장된 행에만 붙일 수 있다(연결할 id가 필요). 수정 모드와는 무관하다. */}
+                  행을 먼저 저장하면 파일을 올릴 수 있어요.
                 </p>
               )}
               {canEdit && (
@@ -246,7 +245,7 @@ export function AttachmentViewer({
           </div>
           <footer className={styles.attachmentFooter}>
             <span className={styles.attachmentNote}>
-              {canEdit ? "JPG, PNG, WEBP 이미지만 첨부할 수 있어요" : "조회 전용이에요 · 첨부는 수정 상태에서 가능합니다"}
+              {canEdit ? "이미지 파일만 첨부할 수 있어요" : "조회 전용이에요 · 행을 저장하면 첨부할 수 있어요"}
             </span>
             <div className={styles.attachmentFooterSpacer} />
             {printable.length > 0 && (
