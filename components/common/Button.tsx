@@ -29,19 +29,29 @@ const VARIANTS = {
 } as const;
 
 /**
+ * 비활성 표시. 정본은 opacity가 아니라 회색 배경 + 흐린 글자를 쓴다
+ * (`.pri:disabled`·`.lg-print:disabled`·`.fmpc-btn:disabled` 등 전부 동일 패턴).
+ */
+const DISABLED = "disabled:bg-bg disabled:text-t4";
+
+/**
  * 호출부가 같은 유틸리티를 직접 지정했으면 컴포넌트 기본값을 뺀다. 둘 다 남기면 Tailwind
  * 명시도가 같아 승자가 CSS 생성 순서로 정해져 결과가 불확정해지기 때문이다.
  *
  * 색·크기 전반을 병합하지는 않는다(그건 `tailwind-merge`의 일이고, 규격을 제한하려는
- * 이 컴포넌트의 방침과 어긋난다). 호출부가 실제로 덮어써야 했던 두 가지만 대상으로 한다.
+ * 이 컴포넌트의 방침과 어긋난다). 호출부가 실제로 덮어써야 했던 것만 대상으로 한다.
+ *
+ * `disabled:`는 접두사별이 아니라 통째로 양보한다. 호출부가 비활성 표시를 직접 정의했다면
+ * 그쪽이 의도한 전체 표현이지, 컴포넌트 기본값과 섞으라는 뜻이 아니기 때문이다.
  */
-const OVERRIDABLE = ["disabled:opacity-", "hover:bg-"] as const;
-
 function dropOverridden(defaults: string, className: string): string {
   if (!className) return defaults;
+  const yieldDisabled = className.includes("disabled:");
+  const yieldHover = className.includes("hover:bg-");
   return defaults
     .split(" ")
-    .filter((c) => !OVERRIDABLE.some((p) => c.startsWith(p) && className.includes(p)))
+    .filter((c) => !(yieldDisabled && c.startsWith("disabled:")))
+    .filter((c) => !(yieldHover && c.startsWith("hover:bg-")))
     .join(" ");
 }
 
@@ -65,7 +75,7 @@ export function Button({ className = "", ...props }: ButtonProps) {
     variant?: keyof typeof VARIANTS;
   } & ButtonBaseProps;
   const resolved = variant ?? (size === "sm" ? "ghost" : "primary");
-  const defaults = `font-bold disabled:opacity-70 ${VARIANTS[resolved]}`;
+  const defaults = `font-bold ${DISABLED} ${VARIANTS[resolved]}`;
   return (
     <button
       className={`${SIZES[size]} ${dropOverridden(defaults, className)} ${className}`}
