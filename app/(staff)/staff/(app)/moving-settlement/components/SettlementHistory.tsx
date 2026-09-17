@@ -62,7 +62,7 @@ export function SettlementHistory({
       </div>
       <div className="min-h-0 flex-1 overflow-auto">
         {date === "" && (
-          <p className="px-[18px] py-[14px] text-[12.5px] leading-[20px] text-t4">
+          <p className="px-[18px] py-[14px] text-[12.5px] font-medium leading-[1.6] text-t4">
             날짜를 선택하면
             <br />
             해당일 이사정산 이력이 표시돼요

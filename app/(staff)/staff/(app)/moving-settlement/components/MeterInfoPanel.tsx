@@ -21,7 +21,8 @@ export function MeterInfoPanel({
         <h2 className="text-[15px] font-extrabold text-t1">검침정보</h2>
       </div>
       {!selected ? (
-        <p className="px-[18px] py-[14px] text-[12.5px] leading-[20px] text-t4">
+        // 원본 `.ms-mt-e{padding:14px 18px;font-size:12.5px;font-weight:500;line-height:1.6}`
+        <p className="px-[18px] py-[14px] text-[12.5px] font-medium leading-[1.6] text-t4">
           건물과 호실을 선택하면
           <br />
           검침정보가 표시돼요
