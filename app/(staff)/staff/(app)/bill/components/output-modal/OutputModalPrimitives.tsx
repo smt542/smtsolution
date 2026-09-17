@@ -18,7 +18,7 @@ export function SmallSelect({ ariaLabel, value, onChange, children, className = 
         aria-label={ariaLabel}
         value={value}
         onChange={onChange}
-        className="h-full w-full appearance-none rounded-[9px] border border-[#e8ebee] bg-white pl-[10px] pr-[27px] text-[12.5px] font-bold leading-none text-[#333d4b] outline-none transition focus:border-[#14a497] focus:ring-[3px] focus:ring-[#e2f5f1]"
+        className="h-full w-full appearance-none rounded-[9px] border border-[#e8ebee] bg-white pl-[11px] pr-[31px] text-[13px] font-bold leading-none tracking-[-0.13px] text-[#191f28] outline-none transition focus:border-[#14a497] focus:ring-[3px] focus:ring-[#e2f5f1]"
       >
         {children}
       </select>
@@ -28,7 +28,7 @@ export function SmallSelect({ ariaLabel, value, onChange, children, className = 
         alt=""
         width={14}
         height={14}
-        className="pointer-events-none absolute right-[8px] top-1/2 size-[14px] -translate-y-1/2"
+        className="pointer-events-none absolute right-[10px] top-1/2 size-[14px] -translate-y-1/2"
       />
     </span>
   );
