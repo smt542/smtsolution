@@ -56,8 +56,12 @@ export function UtilitySettlementSection({
         {UTILITY_ROWS.map((row) => {
           const meter = byUtility.get(row.utility);
           const usage = meter?.usage ?? 0;
-          const charge = value[row.chargeKey] ?? 0;
-          const unitPrice = usage > 0 ? Math.round(charge / usage) : 0;
+          const rawCharge = value[row.chargeKey];
+          const charge = rawCharge ?? 0;
+          // 정본은 단가가 입력이고 금액은 단가 x 량 계산값이다. 저장 필드는 금액(charge)이므로
+          // 단가는 charge/량 으로 되짚어 보여주고, 편집하면 charge 를 다시 계산해 넣는다.
+          // 량이 0이면 단가로 금액을 만들 수 없어 입력을 막고 저장된 금액을 그대로 지킨다.
+          const unitPrice = usage > 0 && rawCharge !== null ? Math.round(rawCharge / usage) : null;
           return (
             <div key={row.utility} className="col-span-8 grid h-[42px] grid-cols-subgrid items-center">
               <span className="py-[4px] pr-[4px] text-left text-[12.5px] font-bold text-t1">{row.label}</span>
@@ -72,9 +76,22 @@ export function UtilitySettlementSection({
                 </span>
               </div>
               <div className="p-[4px]">
-                <span className="flex h-[34px] w-full items-center justify-end rounded-[9px] border border-[#dee3e8] px-[8px] text-right text-[12.5px] font-semibold text-t1">
-                  {formatNumber(unitPrice)}
-                </span>
+                <input
+                  aria-label={`${row.label} 단가`}
+                  type="number"
+                  min={0}
+                  readOnly={usage === 0}
+                  value={unitPrice ?? ""}
+                  onChange={(event) => {
+                    if (usage === 0) return;
+                    const next = numericValue(event.target.value);
+                    onChange({
+                      ...value,
+                      [row.chargeKey]: next === null ? null : next * usage,
+                    });
+                  }}
+                  className="h-[34px] w-full rounded-[9px] border border-[#dee3e8] px-[8px] text-right text-[12.5px] font-semibold text-t1 outline-none focus:border-teal"
+                />
               </div>
               <div className="p-[4px]">
                 <span className="flex h-[34px] items-center justify-end text-right text-[12.5px] font-bold text-t1">
@@ -82,14 +99,12 @@ export function UtilitySettlementSection({
                 </span>
               </div>
               <div className="p-[4px]">
-                <input
-                  aria-label={`${row.label} 요금`}
-                  type="number"
-                  min={0}
-                  value={value[row.chargeKey] ?? ""}
-                  onChange={(event) => onChange({ ...value, [row.chargeKey]: numericValue(event.target.value) })}
-                  className="h-[34px] w-full rounded-[9px] border border-[#dee3e8] px-[8px] text-right text-[12.5px] font-bold text-t1 outline-none focus:border-teal"
-                />
+                <span
+                  aria-label={`${row.label} 금액`}
+                  className="flex h-[34px] items-center justify-end text-right text-[12.5px] font-bold text-t1"
+                >
+                  {formatNumber(charge)}
+                </span>
               </div>
               <div className="p-[4px]">
                 <input
