@@ -26,11 +26,11 @@ const displayUnitNo = (unitNo: string) => (unitNo.endsWith("호") ? unitNo : `${
 
 // Figma 열 너비(1020px 기준 px)를 비율로 옮겨, 세로 스크롤바가 생겨도 가로 스크롤 없이 모달 폭을 채운다.
 const COLUMNS =
-  "grid-cols-[minmax(0,28fr)_minmax(0,81fr)_minmax(0,107fr)_minmax(0,86fr)_minmax(0,129fr)_minmax(0,86fr)_minmax(0,65fr)_minmax(0,147fr)_minmax(0,81fr)_minmax(0,78fr)_minmax(0,51fr)_minmax(0,81fr)]";
+  "grid-cols-[minmax(0,81fr)_minmax(0,107fr)_minmax(0,86fr)_minmax(0,129fr)_minmax(0,86fr)_minmax(0,65fr)_minmax(0,147fr)_minmax(0,81fr)_minmax(0,78fr)_minmax(0,51fr)_minmax(0,81fr)]";
 // 셀 높이 24px = leading + border. 좌측 첫 칸에만 border-l을 둬 표 바깥선을 만든다.
-// 행 번호 칸은 폭이 28px뿐이라 Figma의 px-7을 그대로 두면 두 자리부터 잘린다 → 좌우 여백만 줄인다.
+// 마지막 칸은 모달 우측 끝에 딱 붙어 테두리가 겹쳐 보이므로 우측 선을 뺀다.
 const CELL =
-  "[&>span]:block [&>span]:truncate [&>span]:border-b [&>span]:border-r [&>span]:border-[#e5e8eb] [&>span:not(:first-child)]:px-[7px] [&>span:first-child]:border-l [&>span:first-child]:px-[2px]";
+  "[&>span]:block [&>span]:truncate [&>span]:border-b [&>span]:border-r [&>span]:border-[#e5e8eb] [&>span]:px-[7px] [&>span:first-child]:border-l [&>span:last-child]:border-r-0";
 const GROUP_BUTTON = "rounded-[7px] px-[11px] py-[5px] text-[12px] font-bold leading-[15px]";
 const GROUPS = [
   { value: 0, label: "부과 그룹 전체" },
@@ -93,13 +93,12 @@ export function AutoDebitTable({ year, month, years, months, group, rows, onYear
       </div>
       <div className="h-[470px] overflow-auto">
         <div className={`sticky top-0 z-10 grid h-[24px] ${COLUMNS} ${CELL} bg-[#f2f4f6] text-[10.5px] font-bold text-[#4e5968] [&>span]:border-t [&>span]:leading-[22px]`}>
-          <span aria-hidden="true" className="bg-[#f7f9fa]" /><span>청구타입</span><span>회원번호</span><span>계약번호</span><span>회원명</span><span>청구월</span><span>약정일</span><span>결제일(결제시작일)</span><span>상품</span><span>기본금액</span><span>수량</span><span>회원구분</span>
+          <span>청구타입</span><span>회원번호</span><span>계약번호</span><span>회원명</span><span>청구월</span><span>약정일</span><span>결제일(결제시작일)</span><span>상품</span><span>기본금액</span><span className="text-right">수량</span><span>회원구분</span>
         </div>
-        {visibleRows.map(({ building, target }, index) => {
+        {visibleRows.map(({ building, target }) => {
           const cells = deriveAutoDebitCells(building, target, year, month);
           return (
             <div key={`${building.id}-${target.unitId}`} className={`grid h-[24px] ${COLUMNS} ${CELL} text-[11px] font-medium text-[#191f28] hover:bg-[#f8fbfb] [&>span]:leading-[23px]`}>
-              <span className="num bg-[#f7f9fa] text-center text-[10px] font-bold text-[#b0b8c1]">{index + 1}</span>
               <span>{cells.billType}</span>
               <span className="num">{cells.memberNo}</span>
               <span className="num">{cells.contractNo}</span>
@@ -109,7 +108,7 @@ export function AutoDebitTable({ year, month, years, months, group, rows, onYear
               <span className="num">{cells.paymentDate}</span>
               <span>{cells.product}</span>
               <span className="num">{cells.baseAmount}</span>
-              <span className="num">{cells.quantity}</span>
+              <span className="num text-right">{cells.quantity}</span>
               <span>{cells.memberGroup}</span>
             </div>
           );
