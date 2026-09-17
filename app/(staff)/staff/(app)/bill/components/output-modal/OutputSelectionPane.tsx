@@ -6,7 +6,7 @@ import { displayUnitNo } from "@/lib/bill/document";
 import { transferMethodLabel } from "@/lib/bill/transferMethod";
 import type { BillBuilding } from "../../types";
 import type { OutputDocumentType } from "../../types";
-import { SelectionCheck, SmallSelect } from "./OutputModalPrimitives";
+import { FilterDropdown, SelectionCheck } from "./OutputModalPrimitives";
 
 interface BuildingTargets {
   building: BillBuilding;
@@ -65,15 +65,9 @@ export function OutputSelectionPane({
     <aside className="flex h-full min-h-0 flex-col overflow-hidden border-r border-[#e8ebee] bg-white">
       <div className="h-[100px] shrink-0 border-b border-[#e8ebee] px-[12px] pt-[13px]">
         <div className="flex items-center gap-[6px]">
-          <SmallSelect ariaLabel="출력 연도" value={String(year)} onChange={(event) => onYearChange(Number(event.target.value))} className="w-[88px]">
-            {years.map((value) => <option key={value} value={value}>{value}년</option>)}
-          </SmallSelect>
-          <SmallSelect ariaLabel="월분" value={String(month)} onChange={(event) => onMonthChange(Number(event.target.value))} className="w-[74px]">
-            {months.map((value) => <option key={value} value={value}>{value}월분</option>)}
-          </SmallSelect>
-          <SmallSelect ariaLabel="건물 그룹" value="all" onChange={() => undefined} className="w-[88px]">
-            <option value="all">그룹 전체</option>
-          </SmallSelect>
+          <FilterDropdown ariaLabel="출력 연도" width={88} value={String(year)} options={years.map((value) => ({ value: String(value), label: `${value}년` }))} onChange={(value) => onYearChange(Number(value))} />
+          <FilterDropdown ariaLabel="월분" width={74} value={String(month)} options={months.map((value) => ({ value: String(value), label: `${value}월분` }))} onChange={(value) => onMonthChange(Number(value))} />
+          <FilterDropdown ariaLabel="건물 그룹" width={88} value="all" options={[{ value: "all", label: "그룹 전체" }]} onChange={() => undefined} />
         </div>
 
         <label className="relative mt-[8px] block h-[34px]">

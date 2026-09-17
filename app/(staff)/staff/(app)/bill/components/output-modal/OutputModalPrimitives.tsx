@@ -1,36 +1,24 @@
 "use client";
 
 import Image from "next/image";
-import type { ChangeEventHandler, ReactNode } from "react";
+import type { ReactNode } from "react";
+import { CustomDropdown, type DropdownOption } from "@/components/common";
 
-interface SmallSelectProps {
+interface FilterDropdownProps {
   ariaLabel: string;
   value: string;
-  onChange: ChangeEventHandler<HTMLSelectElement>;
-  children: ReactNode;
-  className?: string;
+  options: DropdownOption[];
+  onChange: (value: string) => void;
+  /** Figma 실측 폭. 공용 드롭다운은 내용 너비라 필터 열 정렬을 위해 고정한다. */
+  width: number;
 }
 
-export function SmallSelect({ ariaLabel, value, onChange, children, className = "" }: SmallSelectProps) {
+/** 출력 모달 상단 필터용 드롭다운. 공용 CustomDropdown을 쓰되 폭만 Figma 값으로 고정한다. */
+export function FilterDropdown({ ariaLabel, value, options, onChange, width }: FilterDropdownProps) {
   return (
-    <span className={`relative block h-[32px] ${className}`}>
-      <select
-        aria-label={ariaLabel}
-        value={value}
-        onChange={onChange}
-        className="h-full w-full appearance-none rounded-[9px] border border-[#e8ebee] bg-white pl-[11px] pr-[31px] text-[13px] font-bold leading-none tracking-[-0.13px] text-[#191f28] outline-none transition focus:border-[#14a497] focus:ring-[3px] focus:ring-[#e2f5f1]"
-      >
-        {children}
-      </select>
-      <Image
-        aria-hidden="true"
-        src="/figma-assets/bill/select-chevron.svg"
-        alt=""
-        width={14}
-        height={14}
-        className="pointer-events-none absolute right-[10px] top-1/2 size-[14px] -translate-y-1/2"
-      />
-    </span>
+    <div style={{ width }} className="[&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:justify-between">
+      <CustomDropdown ariaLabel={ariaLabel} value={value} options={options} onChange={onChange} size="compact" variant="field" />
+    </div>
   );
 }
 
