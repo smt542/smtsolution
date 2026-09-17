@@ -155,7 +155,7 @@
     {
       "page_id": "de6fe18d-2b6f-4de8-8c71-4d79283a7be0",
       "page_title": "사무실 관리자_계정·직원 관리",
-      "keywords": ["staff-management", "staff", "계정", "권한", "직원"],
+      "keywords": ["staff-management", "계정", "권한", "직원"],
       "paths": ["accounts"]
     },
     {
@@ -199,6 +199,18 @@
       "page_title": "통합관리자_설정",
       "keywords": ["통합관리자 설정", "settings"],
       "paths": ["settings"]
+    },
+    {
+      "page_id": "edc1a9e9-7ff7-41ca-83e0-e555eac56641",
+      "page_title": "사무실 관리자_문자·알림톡 관리",
+      "keywords": ["messenger", "빠른발송", "fmp"],
+      "paths": ["messenger"]
+    },
+    {
+      "page_id": "56961aef-3884-4e8a-b813-08a1201b0d28",
+      "page_title": "사무실 관리자_수납관리·민원접수",
+      "keywords": ["as-rail", "A/S 접수 레일", "접수 레일"],
+      "paths": ["as-rail"]
     }
   ]
 }
