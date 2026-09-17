@@ -97,8 +97,8 @@ export async function getLedgerOpeningBalance(
   return Number(data ?? 0);
 }
 
-export async function saveLedger(input: SaveLongTermRepairLedgerInput): Promise<void> {
-  const { error } = await createClient().rpc("save_long_term_repair_ledger", {
+export async function saveLedger(input: SaveLongTermRepairLedgerInput): Promise<number[]> {
+  const { data, error } = await createClient().rpc("save_long_term_repair_ledger", {
     p_building_id: input.buildingId,
     p_rows: input.rows.map((row) => ({
       id: row.id ?? null,
@@ -112,4 +112,5 @@ export async function saveLedger(input: SaveLongTermRepairLedgerInput): Promise<
     p_deleted_ids: input.deletedIds,
   });
   if (error) throw new Error(error.message);
+  return Array.isArray(data) ? data.map(Number) : [];
 }
