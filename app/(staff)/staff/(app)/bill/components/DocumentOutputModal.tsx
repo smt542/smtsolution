@@ -62,7 +62,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
   const [outputDate] = useState(() => formatOutputDate(new Date()));
   const [search, setSearch] = useState("");
   const [selectedBuildingIds, setSelectedBuildingIds] = useState<number[]>(
-    type === "autoDebit" ? buildings.map((building) => building.id) : type === "giro" ? [] : buildings[0] ? [buildings[0].id] : [],
+    type === "autoDebit" ? buildings.map((building) => building.id) : type === "giro" || type === "adjustment" ? [] : buildings[0] ? [buildings[0].id] : [],
   );
   const [selectedUnitIds, setSelectedUnitIds] = useState<number[]>([]);
   const [previewUnitId, setPreviewUnitId] = useState<number | null>(null);
@@ -287,7 +287,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
                   )}
                   {selectedBuildingIds.length === 0 ? (
                     <div className="relative flex min-h-0 flex-1 items-center justify-center bg-[#e9edf1] text-center text-[12px] leading-[19px] text-[#8b95a1]">
-                      <p><strong className="block font-semibold">출력할 건물을 선택해 주세요</strong><span>선택한 건물의 지로 고지서가 여기에 표시돼요</span></p>
+                      <p><strong className="block font-semibold">출력할 건물을 선택해 주세요</strong><span>선택한 건물의 {type === "adjustment" ? "조정명세서" : "지로 고지서"}가 여기에 표시돼요</span></p>
                       <ZoomControls zoom={zoom} onZoom={setZoom} />
                     </div>
                   ) : isError ? (
