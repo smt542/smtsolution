@@ -216,12 +216,13 @@ export function SettlementDirectoryRail({
               검색 결과가 없어요
             </p>
           )}
+          {/* 원본 `.hf-tbl td{padding:12px 16px;font-size:13.5px}` → 행 높이 41px */}
           {visibleBuildings.map((building) => (
             <button
               key={building.id}
               type="button"
               onClick={() => onSelectBuilding(building.id)}
-              className="grid min-h-[41px] w-full grid-cols-[64px_96px_1fr] border-b border-line2 text-left text-[12.5px] text-t1 hover:bg-[#fbfcfd]"
+              className="grid min-h-[41px] w-full grid-cols-[64px_96px_1fr] border-b border-line2 text-left text-[13.5px] leading-[normal] text-t1 hover:bg-[#fbfcfd]"
             >
               <span className="px-[16px] py-[12px]">{building.code}</span>
               <span className="truncate px-[16px] py-[12px] font-bold">

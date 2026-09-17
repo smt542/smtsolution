@@ -7,10 +7,11 @@ export function SettlementEmptyPanel({ onAction }: { onAction: () => void }) {
         <div className="flex h-[49px] shrink-0 items-center border-b border-line2 px-[18px]">
           <h2 className="text-[15px] font-extrabold text-t1">이사정산 입력</h2>
         </div>
-        <div className="grid min-h-0 flex-1 place-items-center px-[20px] py-[34px] text-center">
-          <div>
+        {/* 원본 `.ms-body{padding:16px 18px 20px}` > `.ms-empty{gap:5px;padding:34px 20px}` */}
+        <div className="flex min-h-0 flex-1 flex-col px-[18px] pb-[20px] pt-[16px]">
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[5px] px-[20px] py-[34px] text-center text-t3">
             <p className="text-[15px] font-bold leading-[18px] text-t1">건물과 호실을 선택해 주세요</p>
-            <p className="mt-[5px] text-[13px] leading-[20px] text-t3">
+            <p className="text-[13px] leading-[1.55]">
               선택한 세대의 이사정산 내역을
               <br />
               여기에서 작성해요
