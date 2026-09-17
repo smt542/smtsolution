@@ -13,11 +13,14 @@ interface FilterDropdownProps {
   width: number;
 }
 
-/** 출력 모달 상단 필터용 드롭다운. 공용 CustomDropdown을 쓰고 폭 하한만 Figma 값으로 맞춘다. */
+/**
+ * 출력 모달 상단 필터용 드롭다운. 공용 CustomDropdown을 쓰고 폭 하한만 Figma 값으로 맞춘다.
+ * 정본이 선택 항목에 체크표시를 보여주므로 기본 variant("menu")를 그대로 쓴다 — field로 바꾸지 말 것.
+ */
 export function FilterDropdown({ ariaLabel, value, options, onChange, width }: FilterDropdownProps) {
   return (
     <div style={{ minWidth: width }} className="[&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:justify-between [&_.uc-dd-lbl]:whitespace-nowrap">
-      <CustomDropdown ariaLabel={ariaLabel} value={value} options={options} onChange={onChange} size="compact" variant="field" />
+      <CustomDropdown ariaLabel={ariaLabel} value={value} options={options} onChange={onChange} size="compact" />
     </div>
   );
 }
