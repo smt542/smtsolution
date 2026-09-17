@@ -28,8 +28,9 @@ const displayUnitNo = (unitNo: string) => (unitNo.endsWith("호") ? unitNo : `${
 const COLUMNS =
   "grid-cols-[minmax(0,28fr)_minmax(0,81fr)_minmax(0,107fr)_minmax(0,86fr)_minmax(0,129fr)_minmax(0,86fr)_minmax(0,65fr)_minmax(0,147fr)_minmax(0,81fr)_minmax(0,78fr)_minmax(0,51fr)_minmax(0,81fr)]";
 // 셀 높이 24px = leading + border. 좌측 첫 칸에만 border-l을 둬 표 바깥선을 만든다.
+// 행 번호 칸은 폭이 28px뿐이라 Figma의 px-7을 그대로 두면 두 자리부터 잘린다 → 좌우 여백만 줄인다.
 const CELL =
-  "[&>span]:block [&>span]:truncate [&>span]:border-b [&>span]:border-r [&>span]:border-[#e5e8eb] [&>span]:px-[7px] [&>span:first-child]:border-l";
+  "[&>span]:block [&>span]:truncate [&>span]:border-b [&>span]:border-r [&>span]:border-[#e5e8eb] [&>span:not(:first-child)]:px-[7px] [&>span:first-child]:border-l [&>span:first-child]:px-[2px]";
 const GROUP_BUTTON = "rounded-[7px] px-[11px] py-[5px] text-[12px] font-bold leading-[15px]";
 const GROUPS = [
   { value: 0, label: "부과 그룹 전체" },
@@ -98,7 +99,7 @@ export function AutoDebitTable({ year, month, years, months, group, rows, onYear
           const cells = deriveAutoDebitCells(building, target, year, month);
           return (
             <div key={`${building.id}-${target.unitId}`} className={`grid h-[24px] ${COLUMNS} ${CELL} text-[11px] font-medium text-[#191f28] hover:bg-[#f8fbfb] [&>span]:leading-[23px]`}>
-              <span className="bg-[#f7f9fa] text-center text-[10px] font-bold text-[#b0b8c1]">{index + 1}</span>
+              <span className="num bg-[#f7f9fa] text-center text-[10px] font-bold text-[#b0b8c1]">{index + 1}</span>
               <span>{cells.billType}</span>
               <span className="num">{cells.memberNo}</span>
               <span className="num">{cells.contractNo}</span>
