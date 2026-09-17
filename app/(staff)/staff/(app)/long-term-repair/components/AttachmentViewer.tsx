@@ -3,8 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { Spinner } from "@/components/common";
-import { useConfirm } from "@/components/common/ConfirmProvider";
-import { useAppToast } from "@/hooks/common";
+import { useAppToast, useObjectUrls } from "@/hooks/common";
 import {
   useAttachmentSignedUrls,
   type Attachment,
@@ -18,30 +17,44 @@ interface AttachmentViewerProps {
   description: string;
   kindLabel: string;
   attachments: Attachment[];
+  stagedFiles?: readonly File[];
+  staging?: boolean;
   canEdit: boolean;
   uploading: boolean;
   onClose: () => void;
   onUpload: (files: File[]) => Promise<AttachmentUploadBatchResult>;
+  onStageFiles?: (files: File[]) => void;
+  onRemoveStagedFile?: (file: File) => void;
   onDelete: (attachment: Attachment) => Promise<void>;
 }
+
+type PreviewTarget =
+  | { type: "attachment"; value: Attachment }
+  | { type: "staged"; value: File };
+
+const EMPTY_FILES: readonly File[] = [];
 
 export function AttachmentViewer({
   title,
   description,
   kindLabel,
   attachments,
+  stagedFiles = EMPTY_FILES,
+  staging = false,
   canEdit,
   uploading,
   onClose,
   onUpload,
+  onStageFiles,
+  onRemoveStagedFile,
   onDelete,
 }: AttachmentViewerProps) {
-  const confirm = useConfirm();
   const appToast = useAppToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
-  const [preview, setPreview] = useState<Attachment | null>(null);
+  const [preview, setPreview] = useState<PreviewTarget | null>(null);
   const [failedFiles, setFailedFiles] = useState<File[]>([]);
+  const stagedPreviewEntries = useObjectUrls(stagedFiles);
   const thumbnailResults = useAttachmentSignedUrls(attachments, "thumbnail");
   const previewResults = useAttachmentSignedUrls(attachments, "preview");
   const originalResults = useAttachmentSignedUrls(attachments, "original");
@@ -49,8 +62,11 @@ export function AttachmentViewer({
   const areOriginalsLoading = originalResults.some((item) => item.isPending);
   const printable = originalResults.filter((item) => item.url);
   const previewUrl = preview
-    ? previewResults.find((item) => item.attachment.id === preview.id)?.url
+    ? preview.type === "staged"
+      ? stagedPreviewEntries.find(({ file }) => file === preview.value)?.url ?? null
+      : previewResults.find((item) => item.attachment.id === preview.value.id)?.url
     : null;
+  const attachmentCount = attachments.length + stagedFiles.length;
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -68,12 +84,20 @@ export function AttachmentViewer({
 
   const uploadFiles = async (selected: FileList | readonly File[]) => {
     const { accepted, errors } = selectImageFiles(
-      [],
+      staging ? stagedFiles : [],
       Array.from(selected),
       Math.max(0, 10 - attachments.length),
     );
     if (errors.length > 0) appToast.error(errors.join("\n"));
     if (accepted.length === 0) return;
+
+    if (staging) {
+      if (!onStageFiles) return;
+      onStageFiles(accepted);
+      setFailedFiles([]);
+      appToast.success(`${accepted.length}장의 사진을 추가했습니다. 원장 저장 시 함께 업로드됩니다.`);
+      return;
+    }
 
     try {
       const result = await onUpload(accepted);
@@ -124,7 +148,7 @@ export function AttachmentViewer({
             <section className={styles.attachmentSection}>
               <div className={styles.attachmentSectionHeader}>
                 <b>{kindLabel}</b>
-                <span>{attachments.length}장</span>
+                <span>{attachmentCount}장</span>
               </div>
             {areThumbnailsLoading ? (
                 <div className="flex h-11 items-center justify-center"><Spinner label="첨부 사진 불러오는 중" /></div>
@@ -136,7 +160,7 @@ export function AttachmentViewer({
                         <button
                           type="button"
                           className="size-full"
-                          onClick={() => setPreview(attachment)}
+                          onClick={() => setPreview({ type: "attachment", value: attachment })}
                           aria-label={`${attachment.fileName} 크게 보기`}
                         >
                           <Image
@@ -165,13 +189,7 @@ export function AttachmentViewer({
                           disabled={uploading}
                           onClick={async (event) => {
                             event.stopPropagation();
-                            const ok = await confirm({
-                              title: "첨부파일 삭제",
-                              description: "첨부파일을 삭제할까요?",
-                              confirmLabel: "삭제",
-                              variant: "danger",
-                            });
-                            if (!ok) return;
+                            // 확인 대화상자는 onDelete 쪽에서 띄운다. 여기서도 띄우면 두 번 묻게 된다.
                             await onDelete(attachment);
                           }}
                         >
@@ -180,6 +198,53 @@ export function AttachmentViewer({
                       )}
                     </figure>
                   ))}
+                  {stagedFiles.map((file, index) => {
+                    const url = stagedPreviewEntries[index]?.url ?? null;
+                    return (
+                      <figure key={`staged-${file.name}-${file.lastModified}-${index}`} className={styles.attachmentThumb}>
+                        {url ? (
+                          <button
+                            type="button"
+                            className="size-full"
+                            onClick={() => setPreview({ type: "staged", value: file })}
+                            aria-label={`${file.name} 크게 보기`}
+                          >
+                            <Image
+                              src={url}
+                              alt={`${title} ${attachments.length + index + 1}`}
+                              fill
+                              unoptimized
+                              sizes="(max-width: 768px) 33vw, 180px"
+                              className="object-cover"
+                            />
+                          </button>
+                        ) : (
+                          <span
+                            role="status"
+                            aria-label={`${file.name} 미리보기 준비 중`}
+                            className="flex size-full items-center justify-center p-2 text-center text-xs text-t3"
+                          >
+                            미리보기 준비 중…
+                          </span>
+                        )}
+                        {canEdit && (
+                          <button
+                            type="button"
+                            className={styles.attachmentRemove}
+                            aria-label={`${file.name} 삭제`}
+                            disabled={uploading}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              // 아직 업로드 전인 파일이라 되돌리기 쉽다. 확인 없이 목록에서만 뺀다.
+                              onRemoveStagedFile?.(file);
+                            }}
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </figure>
+                    );
+                  })}
                 </div>
               )}
               {!canEdit && (
@@ -197,7 +262,7 @@ export function AttachmentViewer({
                     multiple
                     className="hidden"
                     aria-label={`${kindLabel} 이미지 첨부`}
-                    disabled={uploading || attachments.length >= 10}
+                    disabled={uploading || attachmentCount >= 10}
                     onChange={(event) => {
                       if (event.target.files) void uploadFiles(event.target.files);
                       event.target.value = "";
@@ -206,7 +271,7 @@ export function AttachmentViewer({
                   <button
                     type="button"
                     className={`${styles.attachmentDrop} ${dragging ? styles.attachmentDropActive : styles.attachmentDropIdle}`}
-                    disabled={uploading || attachments.length >= 10}
+                    disabled={uploading || attachmentCount >= 10}
                     onClick={() => fileRef.current?.click()}
                     onDragOver={(event) => {
                       event.preventDefault();
@@ -245,7 +310,11 @@ export function AttachmentViewer({
           </div>
           <footer className={styles.attachmentFooter}>
             <span className={styles.attachmentNote}>
-              {canEdit ? "이미지 파일만 첨부할 수 있어요" : "조회 전용이에요 · 행을 저장하면 첨부할 수 있어요"}
+              {staging
+                ? "이미지 파일만 첨부할 수 있어요 · 원장 저장 시 함께 업로드돼요"
+                : canEdit
+                  ? "이미지 파일만 첨부할 수 있어요"
+                  : "조회 전용이에요 · 행을 저장하면 첨부할 수 있어요"}
             </span>
             <div className={styles.attachmentFooterSpacer} />
             {printable.length > 0 && (
@@ -274,7 +343,7 @@ export function AttachmentViewer({
         <button type="button" className={`${styles.attachmentPreview} print:hidden`} onClick={() => setPreview(null)} aria-label="확대 이미지 닫기">
           <Image
             src={previewUrl}
-            alt={preview.fileName}
+            alt={preview.type === "staged" ? preview.value.name : preview.value.fileName}
             fill
             unoptimized
             sizes="100vw"

@@ -27,6 +27,13 @@ import {
 import { longTermRepairClasses as styles } from "./longTermRepairClasses";
 
 const LEDGER_ENTITY_TYPE = "long_term_repair_ledger";
+type AttachmentKind = "receipt" | "photo";
+const ATTACHMENT_KINDS: AttachmentKind[] = ["receipt", "photo"];
+const EMPTY_FILES: File[] = [];
+
+function stagedAttachmentKey(clientKey: string, kind: AttachmentKind) {
+  return `${clientKey}:${kind}`;
+}
 
 interface DraftLedgerRow {
   clientKey: string;
@@ -42,7 +49,7 @@ interface DraftLedgerRow {
 
 interface ViewerState {
   row: DraftLedgerRow;
-  kind: "receipt" | "photo";
+  kind: AttachmentKind;
 }
 
 interface LongTermRepairLedgerProps {
@@ -126,24 +133,27 @@ function nextEntryNo(rows: DraftLedgerRow[]) {
 function AttachmentCell({
   label,
   attachments,
+  stagedFiles = EMPTY_FILES,
   onOpen,
 }: {
   label: string;
   attachments: Attachment[];
+  stagedFiles?: readonly File[];
   onOpen: () => void;
 }) {
+  const attachmentCount = attachments.length + stagedFiles.length;
   return (
     <button
       type="button"
-      className={`${styles.attachmentButton} ${attachments.length ? styles.attachmentButtonActive : styles.attachmentButtonIdle}`}
+      className={`${styles.attachmentButton} ${attachmentCount ? styles.attachmentButtonActive : styles.attachmentButtonIdle}`}
       onClick={onOpen}
-      aria-label={`${label} ${attachments.length}장 열기`}
+      aria-label={`${label} ${attachmentCount}장 열기`}
     >
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M21 11.5 12.5 20a5 5 0 0 1-7-7l8-8a3.5 3.5 0 0 1 5 5l-8 8a2 2 0 0 1-3-3l7-7" />
       </svg>
-      <b className={`${styles.attachmentCount} ${attachments.length ? "" : styles.attachmentCountEmpty}`}>
-        {attachments.length}
+      <b className={`${styles.attachmentCount} ${attachmentCount ? "" : styles.attachmentCountEmpty}`}>
+        {attachmentCount}
       </b>
     </button>
   );
@@ -165,7 +175,9 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
   const [dirty, setDirty] = useState(false);
   const [draftRows, setDraftRows] = useState<DraftLedgerRow[]>([]);
   const [deletedIds, setDeletedIds] = useState<number[]>([]);
+  const [stagedFilesByKey, setStagedFilesByKey] = useState<Record<string, File[]>>({});
   const [viewer, setViewer] = useState<ViewerState | null>(null);
+  const [persisting, setPersisting] = useState(false);
   const tempKey = useRef(0);
 
   const ledgerQuery = useLongTermRepairLedger(buildingId, startMonth, endMonth);
@@ -207,14 +219,55 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
     }
     return grouped;
   }, [attachmentQuery.data]);
+  const viewerIsStaging = viewer?.row.id === undefined;
   const viewerAttachments = viewer?.row.id
     ? (attachmentsByRow.get(viewer.row.id) ?? []).filter((item) => item.kind === viewer.kind)
     : [];
+  const viewerStagedFiles = viewerIsStaging && viewer
+    ? stagedFilesByKey[stagedAttachmentKey(viewer.row.clientKey, viewer.kind)] ?? EMPTY_FILES
+    : EMPTY_FILES;
+
+  const clearStagedFiles = () => setStagedFilesByKey({});
+
+  const clearRowStagedFiles = (clientKey: string) => {
+    setStagedFilesByKey((current) => {
+      const next = { ...current };
+      for (const kind of ATTACHMENT_KINDS) delete next[stagedAttachmentKey(clientKey, kind)];
+      return next;
+    });
+  };
+
+  const stageFiles = (clientKey: string, kind: AttachmentKind, files: File[]) => {
+    setStagedFilesByKey((current) => {
+      const key = stagedAttachmentKey(clientKey, kind);
+      return { ...current, [key]: [...(current[key] ?? EMPTY_FILES), ...files] };
+    });
+    setDirty(true);
+  };
+
+  const removeStagedFile = (clientKey: string, kind: AttachmentKind, file: File) => {
+    setStagedFilesByKey((current) => {
+      const key = stagedAttachmentKey(clientKey, kind);
+      const files = current[key] ?? EMPTY_FILES;
+      const fileIndex = files.indexOf(file);
+      if (fileIndex < 0) return current;
+      const nextFiles = files.filter((_, index) => index !== fileIndex);
+      if (nextFiles.length === 0) {
+        const next = { ...current };
+        delete next[key];
+        return next;
+      }
+      return { ...current, [key]: nextFiles };
+    });
+    setDirty(true);
+  };
 
   const enterEdit = () => {
     if (!buildingId) return;
     setDraftRows(serverRows.map(toDraft));
     setDeletedIds([]);
+    clearStagedFiles();
+    setViewer(null);
     setDirty(false);
     setAdding(false);
     setEditing(true);
@@ -245,11 +298,13 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
   };
 
   const cancelEdit = () => {
+    setViewer(null);
     setEditing(false);
     setAdding(false);
     setDirty(false);
     setDraftRows([]);
     setDeletedIds([]);
+    clearStagedFiles();
     toast.success("변경을 취소했어요");
   };
 
@@ -262,6 +317,7 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
     const ok = await confirm({ title: "행 삭제", description: "행을 삭제할까요?", confirmLabel: "삭제", variant: "danger" });
     if (!ok) return;
     setDraftRows((current) => current.filter((candidate) => candidate.clientKey !== row.clientKey));
+    clearRowStagedFiles(row.clientKey);
     if (row.id) setDeletedIds((current) => [...new Set([...current, row.id as number])]);
     setDirty(true);
     toast.success("행을 삭제했어요");
@@ -281,10 +337,12 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
       toast.error("금액이 너무 큽니다");
       return;
     }
+    setPersisting(true);
     try {
-      await saveLedger.mutateAsync({
+      const rowsToSave = draftRows;
+      const savedIds = await saveLedger.mutateAsync({
         buildingId,
-        rows: draftRows.map((row) => ({
+        rows: rowsToSave.map((row) => ({
           id: row.id,
           entryDate: row.entryDate,
           entryNo: row.entryNo.trim(),
@@ -295,9 +353,43 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
         })),
         deletedIds,
       });
+
+      // RPC는 p_rows와 같은 길이·순서로 id를 돌려준다. 길이가 어긋나면 인덱스 매핑을 믿을 수 없으므로
+      // 엉뚱한 행에 첨부가 붙는 대신 업로드를 건너뛰고 실패로 알린다.
+      const idsAligned = savedIds.length === rowsToSave.length;
+      const stagedUploadTasks = rowsToSave.flatMap((row, index) => {
+        if (row.id !== undefined) return [];
+        const entityId = idsAligned ? savedIds[index] : undefined;
+        return ATTACHMENT_KINDS.flatMap((kind) => {
+          const files = stagedFilesByKey[stagedAttachmentKey(row.clientKey, kind)] ?? EMPTY_FILES;
+          if (files.length === 0) return [];
+          return [{ entityId, kind, files }];
+        });
+      });
+      let failedUploadCount = 0;
+      const uploadResults = await Promise.allSettled(
+        stagedUploadTasks.map(({ entityId, kind, files }) => {
+          if (entityId === undefined || !Number.isSafeInteger(entityId)) {
+            failedUploadCount += files.length;
+            return Promise.resolve(null);
+          }
+          return uploadAttachments.mutateAsync({
+            entityType: LEDGER_ENTITY_TYPE,
+            entityId,
+            orgId,
+            kind,
+            fileType: "image",
+            files,
+          });
+        }),
+      );
+      uploadResults.forEach((result, index) => {
+        if (result.status === "rejected") failedUploadCount += stagedUploadTasks[index]?.files.length ?? 0;
+        else if (result.value) failedUploadCount += result.value.failed.length;
+      });
       // 조회 범위(기본: 마감월까지)를 벗어난 일자로 저장하면 재조회 때 필터링돼 방금 넣은 행이 사라진다.
       // 저장한 일자를 포함하도록 범위를 넓혀, 입력한 내역이 항상 목록에 남게 한다.
-      const savedMonths = draftRows.map((row) => row.entryDate.slice(0, 7));
+      const savedMonths = rowsToSave.map((row) => row.entryDate.slice(0, 7));
       const earliest = savedMonths.reduce((min, month) => (month < min ? month : min), startMonth);
       const latest = savedMonths.reduce((max, month) => (month > max ? month : max), endMonth);
       if (earliest < startMonth) setStartMonth(earliest);
@@ -307,9 +399,18 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
       setDirty(false);
       setDraftRows([]);
       setDeletedIds([]);
-      toast.success("적립금 내역을 저장했어요");
+      setViewer(null);
+      clearStagedFiles();
+      if (failedUploadCount > 0) {
+        // 행 자체는 저장됐으므로 이제 id가 있다. 해당 행의 첨부 버튼으로 다시 올리면 된다.
+        toast.warning(`적립금 내역은 저장했지만 첨부파일 ${failedUploadCount}개를 업로드하지 못했습니다. 해당 행의 첨부 버튼에서 다시 올려 주세요.`);
+      } else {
+        toast.success("적립금 내역을 저장했어요");
+      }
     } catch (error) {
       toast.error(error, "적립금 내역을 저장하지 못했습니다.");
+    } finally {
+      setPersisting(false);
     }
   };
 
@@ -325,7 +426,7 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
     window.print();
   };
 
-  const openAttachments = (row: DraftLedgerRow, kind: "receipt" | "photo") => {
+  const openAttachments = (row: DraftLedgerRow, kind: AttachmentKind) => {
     setViewer({ row, kind });
   };
 
@@ -370,7 +471,9 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
                   type="button"
                   className={`${styles.buildingRow} ${building.id === buildingId ? styles.buildingRowSelected : styles.buildingRowDefault}`}
                   aria-pressed={building.id === buildingId}
+                  disabled={persisting}
                   onClick={async () => {
+                    if (persisting) return;
                     if (editing && dirty) {
                       const ok = await confirm({
                         title: "저장하지 않고 건물 변경",
@@ -385,6 +488,8 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
                     setDirty(false);
                     setDraftRows([]);
                     setDeletedIds([]);
+                    setViewer(null);
+                    clearStagedFiles();
                   }}
                 >
                   <span className={styles.buildingCode}>{building.code}</span>
@@ -446,16 +551,17 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
                 <span role="status" aria-label="적립금 내역 갱신 중" className={`${styles.miniButton} ${styles.neutralButton}`}>갱신 중…</span>
               ) : null}
               {(!editing || adding) && (
-                <button type="button" className={`${styles.miniButton} ${styles.neutralButton}`} onClick={addRow} disabled={isLedgerBusy}>추가</button>
+                <button type="button" className={`${styles.miniButton} ${styles.neutralButton}`} onClick={addRow} disabled={isLedgerBusy || persisting}>추가</button>
               )}
               {(!editing || !adding) && (
-                <button type="button" className={`${styles.miniButton} ${styles.neutralButton}`} onClick={enterEdit}>수정</button>
+                <button type="button" className={`${styles.miniButton} ${styles.neutralButton}`} onClick={enterEdit} disabled={persisting}>수정</button>
               )}
               {editing && (
                 <>
-                  <button type="button" className={`${styles.miniButton} ${styles.cancelButton}`} onClick={cancelEdit}>취소</button>
-                  <button type="button" className={`${styles.miniButton} ${styles.saveButton}`} onClick={() => void persist()} disabled={!dirty || saveLedger.isPending}>
-                    {saveLedger.isPending ? "저장 중…" : "저장"}
+                  {/* 저장 중 취소를 허용하면 UI만 취소되고 저장·첨부 업로드는 계속 진행돼 상태가 어긋난다. */}
+                  <button type="button" className={`${styles.miniButton} ${styles.cancelButton}`} onClick={cancelEdit} disabled={persisting}>취소</button>
+                  <button type="button" className={`${styles.miniButton} ${styles.saveButton}`} onClick={() => void persist()} disabled={!dirty || saveLedger.isPending || persisting}>
+                    {persisting ? "저장 중…" : "저장"}
                   </button>
                 </>
               )}
@@ -492,6 +598,12 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
                         const rowAttachments = row.id ? attachmentsByRow.get(row.id) ?? [] : [];
                         const receipts = rowAttachments.filter((attachment) => attachment.kind === "receipt");
                         const photos = rowAttachments.filter((attachment) => attachment.kind === "photo");
+                        const stagedReceipts = row.id === undefined
+                          ? stagedFilesByKey[stagedAttachmentKey(row.clientKey, "receipt")] ?? EMPTY_FILES
+                          : EMPTY_FILES;
+                        const stagedPhotos = row.id === undefined
+                          ? stagedFilesByKey[stagedAttachmentKey(row.clientKey, "photo")] ?? EMPTY_FILES
+                          : EMPTY_FILES;
                         const canEditRow = editing && (!adding || !row.id);
                         const monthKey = row.entryDate.slice(0, 7);
                         const nextMonthKey = displayRows[index + 1]?.entryDate.slice(0, 7);
@@ -565,10 +677,10 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
                                 </div>
                               </td>
                               <td className={styles.attachmentCell}>
-                                <AttachmentCell label="영수증" attachments={receipts} onOpen={() => openAttachments(row, "receipt")} />
+                                <AttachmentCell label="영수증" attachments={receipts} stagedFiles={stagedReceipts} onOpen={() => openAttachments(row, "receipt")} />
                               </td>
                               <td className={styles.attachmentCell}>
-                                <AttachmentCell label="사진" attachments={photos} onOpen={() => openAttachments(row, "photo")} />
+                                <AttachmentCell label="사진" attachments={photos} stagedFiles={stagedPhotos} onOpen={() => openAttachments(row, "photo")} />
                               </td>
                             </tr>
                             {isMonthEnd && (
@@ -623,15 +735,16 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
         />
       )}
 
-      {/* 첨부는 원장 저장과 무관하게 즉시 저장된다. 수정 모드를 요구하면 저장 버튼이 켜지길
-          기대하게 되므로 분리했다. 저장 전 새 행은 연결할 id가 없어 아직 첨부할 수 없다. */}
+      {/* 저장된 행은 즉시 업로드하고, 새 행은 원장 저장 전까지 파일을 로컬에 보관한다. */}
       {viewer && (
         <AttachmentViewer
           title={`${viewer.kind === "receipt" ? "영수증" : "공사사진"} 첨부`}
           description={`${viewer.row.fundNote || "적립금 출금"} · ${viewer.row.entryDate.replaceAll("-", ".")} · 번호 ${viewer.row.entryNo || "-"}`}
           kindLabel={viewer.kind === "receipt" ? "영수증" : "공사사진"}
           attachments={viewerAttachments}
-          canEdit={Boolean(viewer.row.id)}
+          stagedFiles={viewerStagedFiles}
+          staging={viewerIsStaging}
+          canEdit={viewerIsStaging || Boolean(viewer.row.id)}
           uploading={uploadAttachments.isPending}
           onClose={() => setViewer(null)}
           onUpload={(files) => uploadAttachments.mutateAsync({
@@ -642,6 +755,8 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
             fileType: "image",
             files,
           })}
+          onStageFiles={(files) => stageFiles(viewer.row.clientKey, viewer.kind, files)}
+          onRemoveStagedFile={(file) => removeStagedFile(viewer.row.clientKey, viewer.kind, file)}
           onDelete={async (attachment) => {
             const kindLabel = viewer.kind === "receipt" ? "영수증" : "공사사진";
             const ok = await confirm({
