@@ -17,3 +17,13 @@ API에서 가져오거나 변경하는 서버 상태는 **`@tanstack/react-query
 
 ## WBS 동기화 규칙
 커밋을 만든 직후, 그 커밋이 건드린 화면을 `wbs-commit-sync` 스킬로 동기화한다(고신뢰 자동 반영, 애매하면 질문). **주택관리ERP 버킷만** 대상이며, 개발 트랙(dev)만 갱신하고 `완료`는 자동으로 바꾸지 않는다.
+
+## 워크트리 작업 완료 → master 병합
+워크트리 브랜치(`PracLee/<name>`, `orca/workspaces/home_erp/<name>`)에서 작업할 때는 **사용자에게 완료 보고를 하기 전에 master 병합·push까지 끝내놓는다.** "로컬 마스터로 병합해줘"라는 지시를 기다리지 않는다. dev 서버는 master 체크아웃(`orca/projects/home_erp`, localhost:3000)에서만 돌기 때문에, 병합 전에는 사용자가 결과를 눈으로 확인할 수 없다.
+
+- **병합 조건**(전부 충족해야 병합): 요청 범위 구현 완료 + 커밋됨 + `tsc --noEmit`·lint 통과 + Claude 디프 리뷰 완료. 하나라도 미달이면 병합하지 말고 그 사실을 보고한다.
+- **워크트리 검증법**: 워크트리엔 node_modules가 없다. master 것을 정션 연결해 쓴다 — `New-Item -ItemType Junction -Path <worktree>\node_modules -Target C:\Users\leebj\orca\projects\home_erp\node_modules` → `node ./node_modules/typescript/bin/tsc --noEmit`(`npm run`·`npx`는 전역으로 끌려가 실패) → **끝나면 반드시 제거**(`cmd /c rmdir node_modules`, Git Bash에선 `cmd //c "rmdir node_modules"`). 정션을 남긴 채 워크트리에서 `npm install` 하면 master의 node_modules를 덮어쓴다. 정션은 검증 전용이며 `next dev` 실행용이 아니다.
+- **절차**: ① `git fetch` ② 마이그레이션을 추가했으면 `git ls-tree origin/master supabase/migrations/`로 번호 재확인(병렬 세션이 선점했을 수 있다) ③ master 체크아웃에서 병합 — `git -C C:/Users/leebj/orca/projects/home_erp merge --no-ff PracLee/<name> -m "Merge PracLee/<name>: <요약>"` ④ `git push origin master` ⑤ 서버 처리(아래) ⑥ 병합 커밋 해시와 **확인할 URL**(`http://localhost:3000/...`)을 함께 보고한다.
+- **서버**: 소스 변경만이면 Turbopack HMR이 자동 반영하므로 서버를 건드리지 않는다. `next.config*`·`package.json`·`.env*`·`proxy.ts`처럼 재시작이 필요한 변경일 때만 dev 서버를 재시작하고 그 사실을 보고한다.
+- **멈추고 물어볼 때**: 검증 실패, 병합 충돌, 다른 세션의 미커밋 변경 때문에 merge가 거부될 때. ⚠️ master는 여러 세션이 공유하는 라이브 트리다 — `git checkout -- .`·`git restore`·`git reset --hard` 같은 블랭킷 되돌리기 금지, 커밋은 내가 만든 파일만 `git add`로 스테이징한다.
+- **경계**: 워크트리 생성·삭제는 사용자(Orca) 몫이다. Claude는 `git worktree add`로 새로 만들지 않고, 병합 후 워크트리·브랜치도 지우지 않는다. 작업이 아직 중간 단계이거나 사용자가 병합하지 말라고 했으면 이 규칙을 적용하지 않는다.
