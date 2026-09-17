@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { DpDatePicker } from "@/components/common/DpDatePicker";
-import { CalendarIcon } from "@/components/icons";
+import { CalendarIcon, ChevronDownIcon } from "@/components/icons";
 import { useSettlementInquiry } from "@/hooks/reactquery/movingSettlement";
 
 export function SettlementHistory({
@@ -28,8 +28,8 @@ export function SettlementHistory({
   return (
     <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[16px] bg-white shadow-card">
       <div className="shrink-0 px-[18px] pt-[15px]">
-        <div className="flex h-[20px] items-center gap-[10px]">
-          <h2 className="text-[15px] font-extrabold text-t1">이사정산 이력 조회</h2>
+        <div className="flex h-[18px] items-center gap-[10px]">
+          <h2 className="text-[15px] font-extrabold leading-[18px] text-t1">이사정산 이력 조회</h2>
           {date !== "" && (
             <span className="ml-auto rounded-[7px] bg-blue-t px-[8px] py-[3px] text-[11.5px] font-extrabold text-blue-d">
               총 {rows.length}건
@@ -46,9 +46,10 @@ export function SettlementHistory({
             onChange={setDate}
             placeholder="날짜 선택"
             className="w-full"
-            triggerClassName="flex h-[34px] w-full cursor-pointer items-center justify-between gap-[7px] rounded-[9px] border border-line bg-white px-[10px] text-[13px] font-bold text-t1 outline-none"
+            triggerClassName="flex h-[34px] w-full cursor-pointer items-center gap-[7px] rounded-[9px] border border-line bg-white px-[10px] text-[13px] font-bold text-t1 outline-none [&>span]:min-w-0 [&>span]:flex-1 [&>span]:text-left"
             triggerOpenClassName="!border-teal ring-[3px] ring-teal-t"
-            endAdornment={<CalendarIcon className="size-[15px] shrink-0 text-t3" aria-hidden="true" />}
+            startAdornment={<CalendarIcon className="size-[15px] shrink-0 text-t3" aria-hidden="true" />}
+            endAdornment={<ChevronDownIcon className="size-[14px] shrink-0 text-t3" aria-hidden="true" />}
           />
         </div>
       </div>

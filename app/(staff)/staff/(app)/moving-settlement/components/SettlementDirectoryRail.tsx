@@ -179,24 +179,24 @@ export function SettlementDirectoryRail({
   return (
     <aside className="flex min-h-0 flex-col gap-[16px] overflow-hidden">
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[16px] bg-white shadow-card">
-        <div className="shrink-0 px-[18px] pb-[9px] pt-[15px]">
-          <h2 className="text-[15px] font-extrabold text-t1">전체 건물</h2>
-          <div className="mt-[9px] flex gap-[8px]">
+        <div className="shrink-0 px-[18px] pb-[15px] pt-[15px]">
+          <h2 className="text-[15px] font-extrabold leading-[18px] text-t1">전체 건물</h2>
+          <div className="mt-[9px] flex items-center gap-[8px]">
             <label className="relative min-w-0 flex-1">
-              <SearchIcon className="pointer-events-none absolute left-[10px] top-[9px] size-[15px] text-t3" />
+              <SearchIcon className="pointer-events-none absolute left-[11px] top-1/2 size-[15px] -translate-y-1/2 text-t3" />
               <input
                 aria-label="건물·주소 검색"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="건물명·주소 검색"
-                className="h-[34px] w-full rounded-[9px] border border-line bg-white pl-[31px] pr-[9px] text-[12px] text-t1 outline-none placeholder:text-t4 focus:border-teal"
+                className="h-[32px] w-full rounded-[9px] border border-line bg-white pl-[31px] pr-[11px] text-[13px] font-semibold text-t1 outline-none placeholder:text-t4 focus:border-teal"
               />
             </label>
             <button
               type="button"
-              className="flex h-[34px] w-[72px] items-center justify-center gap-[4px] rounded-[9px] border border-line bg-white text-[11px] font-bold text-t2"
+              className="flex h-[28px] shrink-0 items-center gap-[7px] rounded-[9px] border border-line bg-white pl-[9px] pr-[8px] text-[12px] font-bold tracking-[-0.12px] text-t1"
             >
-              그룹 전체 <ChevronDownIcon className="size-[12px]" />
+              그룹 전체 <ChevronDownIcon className="size-[14px] text-t3" />
             </button>
           </div>
         </div>
