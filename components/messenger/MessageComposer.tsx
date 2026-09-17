@@ -91,9 +91,11 @@ export function MessageComposer({
             type="button"
             onClick={toggleTemplates}
             aria-expanded={open}
-            style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
+            style={{ display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}
           >
             <svg
+              width="13"
+              height="13"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -101,16 +103,20 @@ export function MessageComposer({
               strokeLinecap="round"
               strokeLinejoin="round"
               aria-hidden="true"
+              style={{ flex: "none" }}
             >
               <path d="M4 6h16M4 12h16M4 18h10" />
             </svg>
             템플릿
             <svg
+              width="13"
+              height="13"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
               strokeWidth="2.2"
               aria-hidden="true"
+              style={{ flex: "none" }}
             >
               <path d="M6 9l6 6 6-6" />
             </svg>

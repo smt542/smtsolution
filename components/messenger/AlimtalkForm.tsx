@@ -186,9 +186,11 @@ export function AlimtalkForm({
             type="button"
             onClick={toggleTemplates}
             aria-expanded={open}
-            style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
+            style={{ display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}
           >
             <svg
+              width="13"
+              height="13"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -196,12 +198,15 @@ export function AlimtalkForm({
               strokeLinecap="round"
               strokeLinejoin="round"
               aria-hidden="true"
+              style={{ flex: "none" }}
             >
               <path d="M4 6h16M4 12h16M4 18h10" />
             </svg>
             템플릿
             <svg
               className={styles.cv}
+              width="13"
+              height="13"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
