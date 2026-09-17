@@ -61,8 +61,8 @@ export function ManagementFeeSection({
 }) {
   return (
     <section className="rounded-[14px] border border-[#dce1e7] bg-white px-[16px] pb-[16px] pt-[15px]">
-      <div className="flex items-center pb-px">
-        <h3 className="text-[14px] font-extrabold text-t1">관리비 항목</h3>
+      <div className="flex h-[18px] items-center pb-px">
+        <h3 className="text-[14px] font-extrabold leading-[17px] text-t1">관리비 항목</h3>
         <span className="ml-auto text-right text-[11.5px] font-semibold text-t3">부과액 / 정산액(일할 자동)</span>
       </div>
       <div className="mt-[10px] grid grid-cols-2 gap-x-[16px]">
@@ -115,7 +115,7 @@ export function ManagementFeeSection({
       </div>
       <div className="mt-[10px] grid grid-cols-2 gap-[11px]">
         <label>
-          <span className="mb-[6px] block text-[12px] font-bold text-t2">가수금</span>
+          <span className="mb-[6px] block h-[14px] text-[12px] font-bold leading-[14px] text-t2">가수금</span>
           <input
             aria-label="가수금"
             type="number"
@@ -125,7 +125,7 @@ export function ManagementFeeSection({
           />
         </label>
         <label>
-          <span className="mb-[6px] block text-[12px] font-bold text-t2">연락처</span>
+          <span className="mb-[6px] block h-[14px] text-[12px] font-bold leading-[14px] text-t2">연락처</span>
           <input
             aria-label="연락처"
             value={contactPhone ?? ""}
@@ -135,10 +135,10 @@ export function ManagementFeeSection({
           />
         </label>
       </div>
-      <div className="mt-[10px] flex items-baseline justify-center border-t border-line pt-[11px]">
-        <span className="text-[14px] font-medium text-t1">② 관리비 소계</span>
-        <strong className="ml-[10px] text-[17px] font-extrabold tracking-[-0.17px] text-teal-d">{formatNumber(prorated ?? 0)}</strong>
-        <span className="ml-[3px] text-[12px] font-bold text-teal-d opacity-[0.62]">원</span>
+      <div className="mt-[10px] flex h-[32px] items-baseline justify-center border-t border-line pt-[11px]">
+        <span className="text-[14px] font-medium leading-[20px] text-t1">② 관리비 소계</span>
+        <strong className="ml-[10px] text-[17px] font-extrabold leading-[20px] tracking-[-0.17px] text-teal-d">{formatNumber(prorated ?? 0)}</strong>
+        <span className="ml-[3px] text-[12px] font-bold leading-[20px] text-teal-d opacity-[0.62]">원</span>
       </div>
     </section>
   );

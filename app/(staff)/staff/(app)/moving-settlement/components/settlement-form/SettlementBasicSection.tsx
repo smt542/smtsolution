@@ -13,7 +13,7 @@ export function SettlementBasicSection({
   return (
     <section className="grid grid-cols-3 gap-[11px] rounded-[14px] border border-[#dce1e7] bg-white px-[16px] pb-[16px] pt-[15px]">
       <label>
-        <span className="mb-[6px] block text-[12px] font-bold text-t2">
+        <span className="mb-[6px] block h-[14px] text-[12px] font-bold leading-[14px] text-t2">
           퇴실일자<span className="text-red">*</span>
         </span>
         <DpDatePicker
@@ -28,7 +28,7 @@ export function SettlementBasicSection({
         />
       </label>
       <label>
-        <span className="mb-[6px] block text-[12px] font-bold text-t2">계산일수 · 기준</span>
+        <span className="mb-[6px] block h-[14px] text-[12px] font-bold leading-[14px] text-t2">계산일수 · 기준</span>
         <input
           aria-label="계산일수 기준"
           readOnly
@@ -37,7 +37,7 @@ export function SettlementBasicSection({
         />
       </label>
       <label>
-        <span className="mb-[6px] block text-[12px] font-bold text-t2">계산일수 · 부과</span>
+        <span className="mb-[6px] block h-[14px] text-[12px] font-bold leading-[14px] text-t2">계산일수 · 부과</span>
         <input
           aria-label="계산일수 부과"
           readOnly

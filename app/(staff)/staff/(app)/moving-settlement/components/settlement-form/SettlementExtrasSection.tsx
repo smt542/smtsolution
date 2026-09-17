@@ -18,7 +18,7 @@ const cardClass =
 const fieldClass =
   "h-[38px] w-full rounded-[10px] border border-[#dee3e8] bg-white px-[11px] text-t1 outline-none placeholder:text-t4 focus:border-teal";
 const amountFieldClass = `${fieldClass} text-right text-[13.5px] font-semibold`;
-const labelClass = "mb-[6px] block text-[12px] font-bold text-t2";
+const labelClass = "mb-[6px] block h-[14px] text-[12px] font-bold leading-[14px] text-t2";
 const dateTriggerClass =
   "flex h-[38px] w-full cursor-pointer items-center justify-between gap-[6px] rounded-[10px] border border-[#dee3e8] bg-white px-[11px] text-[13.5px] font-medium text-t1 outline-none";
 
@@ -58,7 +58,7 @@ export function SettlementExtrasSection({
     <>
       <section className={cardClass}>
         <div className="flex h-[27px] items-center pb-px">
-          <h3 className="text-[14px] font-extrabold text-t1">기타</h3>
+          <h3 className="text-[14px] font-extrabold leading-[17px] text-t1">기타</h3>
           <span className="ml-auto text-[11.5px] font-semibold text-t3">1 / 15</span>
           <button
             type="button"
@@ -96,18 +96,18 @@ export function SettlementExtrasSection({
             className="size-[26px] self-center rounded-[8px] border border-line opacity-0"
           />
         </div>
-        <div className="mt-[10px] flex items-baseline justify-center border-t border-line pt-[11px]">
-          <span className="text-[14px] font-medium text-t1">③ 기타 소계</span>
-          <strong className="ml-[10px] text-[17px] font-extrabold tracking-[-0.17px] text-teal-d">
+        <div className="mt-[10px] flex h-[32px] items-baseline justify-center border-t border-line pt-[11px]">
+          <span className="text-[14px] font-medium leading-[20px] text-t1">③ 기타 소계</span>
+          <strong className="ml-[10px] text-[17px] font-extrabold leading-[20px] tracking-[-0.17px] text-teal-d">
             {new Intl.NumberFormat("ko-KR").format(value.repairAmount ?? 0)}
           </strong>
-          <span className="ml-[3px] text-[12px] font-bold text-teal-d opacity-[0.62]">원</span>
+          <span className="ml-[3px] text-[12px] font-bold leading-[20px] text-teal-d opacity-[0.62]">원</span>
         </div>
       </section>
 
       <section className={cardClass}>
-        <div className="flex items-center pb-px">
-          <h3 className="text-[14px] font-extrabold text-t1">청소</h3>
+        <div className="flex h-[18px] items-center pb-px">
+          <h3 className="text-[14px] font-extrabold leading-[17px] text-t1">청소</h3>
         </div>
         <div className="mt-[10px] grid grid-cols-3 gap-[11px]">
           <label>
@@ -173,8 +173,8 @@ export function SettlementExtrasSection({
       </section>
 
       <section className={cardClass}>
-        <div className="flex items-center pb-px">
-          <h3 className="text-[14px] font-extrabold text-t1">정산</h3>
+        <div className="flex h-[18px] items-center pb-px">
+          <h3 className="text-[14px] font-extrabold leading-[17px] text-t1">정산</h3>
         </div>
         <div className="mt-[10px] grid grid-cols-3 gap-[11px]">
           <label>
@@ -222,8 +222,8 @@ export function SettlementExtrasSection({
       </section>
 
       <section className={cardClass}>
-        <div className="flex items-center pb-px">
-          <h3 className="text-[14px] font-extrabold text-t1">정산 체크</h3>
+        <div className="flex h-[18px] items-center pb-px">
+          <h3 className="text-[14px] font-extrabold leading-[17px] text-t1">정산 체크</h3>
         </div>
         {checklist.length === 0 ? (
           <p className="mt-[10px] text-[12.5px] text-t4">
@@ -258,8 +258,8 @@ export function SettlementExtrasSection({
       </section>
 
       <section className={cardClass}>
-        <div className="flex items-center pb-px">
-          <h3 className="text-[14px] font-extrabold text-t1">비고</h3>
+        <div className="flex h-[18px] items-center pb-px">
+          <h3 className="text-[14px] font-extrabold leading-[17px] text-t1">비고</h3>
         </div>
         <textarea
           aria-label="비고"
