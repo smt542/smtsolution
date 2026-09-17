@@ -168,7 +168,6 @@ export function AttachmentViewer({
                             src={url}
                             alt={`${title} ${index + 1}`}
                             fill
-                            unoptimized
                             sizes="(max-width: 768px) 33vw, 180px"
                             className="object-cover"
                           />
@@ -214,6 +213,7 @@ export function AttachmentViewer({
                               src={url}
                               alt={`${title} ${attachments.length + index + 1}`}
                               fill
+                              /* staged는 blob: URL이라 옵티마이저가 가져올 수 없다 */
                               unoptimized
                               sizes="(max-width: 768px) 33vw, 180px"
                               className="object-cover"
@@ -346,6 +346,7 @@ export function AttachmentViewer({
             src={previewUrl}
             alt={preview.type === "staged" ? preview.value.name : preview.value.fileName}
             fill
+            /* previewUrl은 staged일 때 blob: URL이다 */
             unoptimized
             sizes="100vw"
             className="object-contain"

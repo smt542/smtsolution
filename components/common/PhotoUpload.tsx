@@ -62,6 +62,7 @@ export function PhotoUpload({
                   alt={file.name}
                   width={84}
                   height={84}
+                  /* 업로드 전 blob: 미리보기 URL이라 옵티마이저가 가져올 수 없다 */
                   unoptimized
                   className="size-full object-cover"
                 />

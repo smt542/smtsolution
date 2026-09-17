@@ -175,6 +175,7 @@ export default function ResidentVerifyFlow() {
                 alt=""
                 width={46}
                 height={46}
+                /* 카카오 CDN은 remotePatterns 밖(외부 호스트) → 최적화 제외 */
                 unoptimized
                 referrerPolicy="no-referrer"
               />

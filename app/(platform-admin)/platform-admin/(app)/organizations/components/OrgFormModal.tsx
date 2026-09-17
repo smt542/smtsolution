@@ -185,7 +185,6 @@ function ContractFileField({
                 src={remotePreview.data}
                 alt="계약서 미리보기"
                 fill
-                unoptimized
                 sizes="100vw"
                 className="rounded-lg object-contain"
               />

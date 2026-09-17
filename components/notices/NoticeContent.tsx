@@ -46,7 +46,6 @@ function NoticeImageView({
         alt={alt}
         width={800}
         height={600}
-        unoptimized
         className={noticeImageClassName}
         style={{ width: "auto", height: "auto" }}
       />

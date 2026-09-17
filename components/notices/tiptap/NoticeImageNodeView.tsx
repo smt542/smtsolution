@@ -72,6 +72,7 @@ export function NoticeImageNodeView({ node, editor, deleteNode, selected }: Node
           alt={alt}
           width={800}
           height={600}
+          /* displayUrl은 저장 전 blob: URL일 수 있다 */
           unoptimized
           className={noticeImageClassName}
           style={{ width: "auto", height: "auto" }}

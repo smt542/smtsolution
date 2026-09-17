@@ -52,7 +52,6 @@ export function VendorCard({
                     alt=""
                     width={84}
                     height={84}
-                    unoptimized
                     className="size-full object-cover"
                   />
                 </button>

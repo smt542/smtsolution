@@ -172,6 +172,7 @@ export default function ResidentMeWorkspace() {
               alt=""
               width={52}
               height={52}
+              /* 카카오 CDN은 remotePatterns 밖(외부 호스트) → 최적화 제외 */
               unoptimized
               referrerPolicy="no-referrer"
             />

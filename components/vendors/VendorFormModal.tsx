@@ -278,7 +278,6 @@ export function VendorFormModal({
                               alt=""
                               width={40}
                               height={40}
-                              unoptimized
                               className="size-10 rounded object-cover"
                             />
                           ) : null}
