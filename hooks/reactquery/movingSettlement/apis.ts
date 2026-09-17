@@ -440,9 +440,13 @@ export function calculateSettlementAmount(values: Pick<
   );
 }
 
-export async function getSettlementContext(unitId: number): Promise<SettlementContext> {
+export async function getSettlementContext(
+  unitId: number,
+  settlementId: number | null = null,
+): Promise<SettlementContext> {
   const { data, error } = await createClient().rpc("get_settlement_context", {
     p_unit_id: unitId,
+    p_settlement_id: settlementId,
   });
   if (error) throw new Error(error.message);
   return rpcToSettlementContext(data as SettlementContextRpc);

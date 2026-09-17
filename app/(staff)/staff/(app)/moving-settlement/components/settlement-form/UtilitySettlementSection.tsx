@@ -41,8 +41,8 @@ export function UtilitySettlementSection({
       <div className="flex h-[18px] items-center pb-px">
         <h3 className="text-[14px] font-extrabold leading-[17px] text-t1">공과금 정산</h3>
       </div>
-      <div className="mt-[10px] overflow-x-auto">
-        <div className="grid min-w-[900px] grid-cols-[86.609fr_127.641fr_132.188fr_109.406fr_77.484fr_154.984fr_237.047fr_200.641fr]">
+      <div className="mt-[10px]">
+        <div className="grid grid-cols-[86.609fr_127.641fr_132.188fr_109.406fr_77.484fr_154.984fr_237.047fr_200.641fr]">
           <div className="col-span-8 grid h-[21px] grid-cols-subgrid text-[11.5px] font-bold text-t2">
             <span className="pb-[7px] pr-[7px] text-left">구분</span>
             <span className="px-[7px] pb-[7px] text-right">전월</span>

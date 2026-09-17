@@ -111,7 +111,7 @@ export function SettlementForm({
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto px-[18px] pb-[20px] pt-[16px]">
-        <div className="flex min-w-[760px] flex-col gap-[10px]">
+        <div className="flex flex-col gap-[10px]">
           <SettlementBasicSection
             moveOutDate={value.moveOutDate}
             onMoveOutDateChange={setMoveOutDate}

@@ -23,6 +23,8 @@ function draftFromContext(
   context: SettlementContext,
   forceNew = false,
 ): MovingSettlementValues {
+  // 마이그 0165 로 get_settlement_context 가 p_settlement_id 를 받는다.
+  // 선택 건을 지정해 조회하므로 latestSettlement 가 곧 화면에 열린 그 정산이다.
   const saved = forceNew ? null : context.latestSettlement;
 
   return {
@@ -156,9 +158,12 @@ export function MovingSettlementWorkspace() {
   const [unitId, setUnitId] = useState<number | null>(null);
   const [forceNew, setForceNew] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [selectedSettlementId, setSelectedSettlementId] = useState<number | null>(
+    null,
+  );
   const [editorVersion, setEditorVersion] = useState(0);
   const unitsQuery = useUnits(buildingId ?? 0);
-  const contextQuery = useSettlementContext(unitId);
+  const contextQuery = useSettlementContext(unitId, selectedSettlementId);
 
   const buildings = useMemo(
     () => buildingsQuery.data ?? [],
@@ -179,6 +184,7 @@ export function MovingSettlementWorkspace() {
     setUnitId(null);
     setForceNew(false);
     setEditorOpen(false);
+    setSelectedSettlementId(null);
   };
 
   const selectUnit = (value: string | number | null) => {
@@ -186,6 +192,7 @@ export function MovingSettlementWorkspace() {
     setUnitId(next);
     setForceNew(false);
     setEditorOpen(false);
+    setSelectedSettlementId(null);
   };
 
   const selectBuildingUnit = (nextBuildingId: number, nextUnitId: number) => {
@@ -193,10 +200,12 @@ export function MovingSettlementWorkspace() {
     setUnitId(nextUnitId);
     setForceNew(false);
     setEditorOpen(false);
+    setSelectedSettlementId(null);
   };
 
   const startNewSettlement = () => {
     if (unitId === null) return;
+    setSelectedSettlementId(null);
     setForceNew(true);
     setEditorOpen(true);
     setEditorVersion((current) => current + 1);
@@ -251,16 +260,16 @@ export function MovingSettlementWorkspace() {
           unitId={unitId}
           buildingsLoading={buildingsQuery.isLoading}
           unitsLoading={unitsQuery.isLoading}
-          settlementDate={context?.latestSettlement?.moveOutDate ?? null}
+          selectedSettlementId={selectedSettlementId}
           settlementNote={context?.occupancy?.settlementNote ?? null}
           onSelectBuilding={(id) => selectBuilding(id)}
           onSelectUnit={(id) => selectUnit(id)}
           onStartNew={startNewSettlement}
-          onSelectSettlement={() => {
+          onSelectSettlement={(id) => {
+            setSelectedSettlementId(id);
             setForceNew(false);
             setEditorOpen(true);
           }}
-          settlementSelected={editorOpen && !forceNew}
         />
 
         <div className="flex min-h-0 flex-col gap-[16px] overflow-hidden">
@@ -307,12 +316,13 @@ export function MovingSettlementWorkspace() {
           )}
           {editorOpen && context && context.occupancy && selectedBuilding && selectedUnit && (
             <SettlementEditor
-              key={`${context.unit.id}:${forceNew ? `new-${editorVersion}` : (context.latestSettlement?.id ?? "new")}`}
+              key={`${context.unit.id}:${forceNew ? `new-${editorVersion}` : (selectedSettlementId ?? "new")}`}
               building={selectedBuilding}
               context={context}
               occupancy={context.occupancy}
               forceNew={forceNew}
               onDeleted={() => {
+                setSelectedSettlementId(null);
                 setForceNew(true);
                 setEditorVersion((current) => current + 1);
               }}
