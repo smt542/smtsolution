@@ -304,7 +304,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
                     )
                   ) : (
                     <>
-                      <CompactDocumentPreview companyName={companyName} period={period} pages={giroDocuments} accounts={accounts} customerNotice={customerNotice} stamps={{ ...stamps, reissueUnitIds: stamps.reissue ? stampTargetIds : [], autoDebitUnitIds: stamps.autoDebit ? stampTargetIds : [], waterCutoffUnitIds: printWaterCutoffUnitIds }} zoom={zoom} onZoom={setZoom} />
+                      <CompactDocumentPreview companyName={companyName} period={period} pages={giroDocuments} accounts={accounts} customerNotice={customerNotice} stamps={{ ...stamps, reissueUnitIds: stamps.reissue ? stampTargetIds : [], autoDebitUnitIds: stamps.autoDebit ? stampTargetIds : [], waterCutoffUnitIds: printWaterCutoffUnitIds }} highlightedUnitIds={stampTargetIds} onSelectUnit={setPreviewUnitId} zoom={zoom} onZoom={setZoom} />
                       {isPreviewRefreshing ? (
                         <div className={`pointer-events-none absolute right-3 rounded-full bg-surface/95 shadow-card ${type === "giro" || type === "fax" ? "top-[60px]" : "top-3"}`}>
                           <Spinner label="출력 미리보기 갱신 중" size="small" showLabel className="px-3 py-2" />
