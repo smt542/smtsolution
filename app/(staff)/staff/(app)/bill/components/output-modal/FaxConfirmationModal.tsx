@@ -29,7 +29,7 @@ export function FaxConfirmationModal({ building, targets, period, senderLabel, r
 
         <div className="flex h-[101px] flex-col gap-[6px] pt-[14px]">
           <span className="text-[12.5px] font-bold leading-[15px] text-[#4e5968]">발신 팩스번호</span>
-          <div className="[&_.uc-dd-btn]:h-[40px] [&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:justify-between [&_.uc-dd-btn]:rounded-[10px]">
+          <div className="[&_.uc-dd-btn]:h-[40px] [&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:justify-between [&_.uc-dd-btn]:rounded-[10px] [&_.uc-dd-lbl]:whitespace-nowrap">
             <CustomDropdown
               ariaLabel="발신 팩스번호"
               value={senderLabel}

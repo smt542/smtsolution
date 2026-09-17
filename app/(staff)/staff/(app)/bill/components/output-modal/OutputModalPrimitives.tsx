@@ -9,14 +9,14 @@ interface FilterDropdownProps {
   value: string;
   options: DropdownOption[];
   onChange: (value: string) => void;
-  /** Figma 실측 폭. 공용 드롭다운은 내용 너비라 필터 열 정렬을 위해 고정한다. */
+  /** Figma 실측 폭. 필터 열 리듬을 지키되, 라벨이 더 길면 줄바꿈 대신 늘어나도록 하한으로만 쓴다. */
   width: number;
 }
 
-/** 출력 모달 상단 필터용 드롭다운. 공용 CustomDropdown을 쓰되 폭만 Figma 값으로 고정한다. */
+/** 출력 모달 상단 필터용 드롭다운. 공용 CustomDropdown을 쓰고 폭 하한만 Figma 값으로 맞춘다. */
 export function FilterDropdown({ ariaLabel, value, options, onChange, width }: FilterDropdownProps) {
   return (
-    <div style={{ width }} className="[&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:justify-between">
+    <div style={{ minWidth: width }} className="[&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:justify-between [&_.uc-dd-lbl]:whitespace-nowrap">
       <CustomDropdown ariaLabel={ariaLabel} value={value} options={options} onChange={onChange} size="compact" variant="field" />
     </div>
   );
