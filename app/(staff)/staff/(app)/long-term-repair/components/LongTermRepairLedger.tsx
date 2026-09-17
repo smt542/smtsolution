@@ -135,7 +135,7 @@ function AttachmentCell({
   return (
     <button
       type="button"
-      className={`${styles.attachmentButton} ${attachments.length ? styles.attachmentButtonActive : ""}`}
+      className={`${styles.attachmentButton} ${attachments.length ? styles.attachmentButtonActive : styles.attachmentButtonIdle}`}
       onClick={onOpen}
       aria-label={`${label} ${attachments.length}장 열기`}
     >
@@ -363,7 +363,7 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
                 <button
                   key={building.id}
                   type="button"
-                  className={`${styles.buildingRow} ${building.id === buildingId ? styles.buildingRowSelected : ""}`}
+                  className={`${styles.buildingRow} ${building.id === buildingId ? styles.buildingRowSelected : styles.buildingRowDefault}`}
                   aria-pressed={building.id === buildingId}
                   onClick={async () => {
                     if (editing && dirty) {
@@ -429,7 +429,7 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
                 disabled={editing}
                 onChange={(month) => changeEndMonth(`${endMonth.slice(0, 4)}-${month}`)}
               />
-              <button type="button" className={styles.miniButton} onClick={print}>
+              <button type="button" className={`${styles.miniButton} ${styles.neutralButton}`} onClick={print}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M7 8V4h10v4" />
                   <rect x="4" y="8" width="16" height="8" rx="2" />
@@ -438,13 +438,13 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
                 출력
               </button>
               {isLedgerRefreshing ? (
-                <span role="status" aria-label="적립금 내역 갱신 중" className={styles.miniButton}>갱신 중…</span>
+                <span role="status" aria-label="적립금 내역 갱신 중" className={`${styles.miniButton} ${styles.neutralButton}`}>갱신 중…</span>
               ) : null}
               {(!editing || adding) && (
-                <button type="button" className={styles.miniButton} onClick={addRow} disabled={isLedgerBusy}>추가</button>
+                <button type="button" className={`${styles.miniButton} ${styles.neutralButton}`} onClick={addRow} disabled={isLedgerBusy}>추가</button>
               )}
               {(!editing || !adding) && (
-                <button type="button" className={styles.miniButton} onClick={enterEdit}>수정</button>
+                <button type="button" className={`${styles.miniButton} ${styles.neutralButton}`} onClick={enterEdit}>수정</button>
               )}
               {editing && (
                 <>
@@ -522,18 +522,18 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
                               </td>
                               <td className={styles.numberCell}>{row.entryNo || "-"}</td>
                               <td>
-                                <input aria-label="적립금 적요" readOnly={!canEditRow} className={`${styles.ledgerInput} ${canEditRow ? styles.editableInput : ""}`} value={row.fundNote} placeholder="적립금 적요" onChange={(event) => updateRow(row.clientKey, { fundNote: event.target.value })} />
+                                <input aria-label="적립금 적요" readOnly={!canEditRow} className={`${styles.ledgerInput} ${canEditRow ? styles.editableInput : styles.readOnlyInput}`} value={row.fundNote} placeholder="적립금 적요" onChange={(event) => updateRow(row.clientKey, { fundNote: event.target.value })} />
                               </td>
                               <td>
-                                <input aria-label="적립금입금" readOnly={!canEditRow} inputMode="numeric" className={`${styles.ledgerInput} ${styles.moneyInput} ${canEditRow ? styles.editableInput : ""}`} value={row.deposit ? formatMoney(row.deposit) : ""} placeholder="0" onChange={(event) => updateRow(row.clientKey, { deposit: parseAmount(event.target.value) })} />
+                                <input aria-label="적립금입금" readOnly={!canEditRow} inputMode="numeric" className={`${styles.ledgerInput} ${styles.moneyInput} ${canEditRow ? styles.editableInput : styles.readOnlyInput}`} value={row.deposit ? formatMoney(row.deposit) : ""} placeholder="0" onChange={(event) => updateRow(row.clientKey, { deposit: parseAmount(event.target.value) })} />
                               </td>
                               <td>
-                                <input aria-label="적립금출금" readOnly={!canEditRow} inputMode="numeric" className={`${styles.ledgerInput} ${styles.moneyInput} ${canEditRow ? styles.editableInput : ""}`} value={row.withdrawal ? formatMoney(row.withdrawal) : ""} placeholder="0" onChange={(event) => updateRow(row.clientKey, { withdrawal: parseAmount(event.target.value) })} />
+                                <input aria-label="적립금출금" readOnly={!canEditRow} inputMode="numeric" className={`${styles.ledgerInput} ${styles.moneyInput} ${canEditRow ? styles.editableInput : styles.readOnlyInput}`} value={row.withdrawal ? formatMoney(row.withdrawal) : ""} placeholder="0" onChange={(event) => updateRow(row.clientKey, { withdrawal: parseAmount(event.target.value) })} />
                               </td>
                               <td className={`${styles.balanceCell} ${row.balance < 0 ? styles.negative : ""}`}>{formatMoney(row.balance)}</td>
                               <td>
                                 <div className={styles.noteCell}>
-                                  <input aria-label="적요" readOnly={!canEditRow} className={`${styles.ledgerInput} ${canEditRow ? styles.editableInput : ""}`} value={row.memo} placeholder="적요" onChange={(event) => updateRow(row.clientKey, { memo: event.target.value })} />
+                                  <input aria-label="적요" readOnly={!canEditRow} className={`${styles.ledgerInput} ${canEditRow ? styles.editableInput : styles.readOnlyInput}`} value={row.memo} placeholder="적요" onChange={(event) => updateRow(row.clientKey, { memo: event.target.value })} />
                                   {canEditRow && (
                                     <button type="button" aria-label={`${row.entryDate} ${row.entryNo} 행 삭제`} className={styles.deleteButton} onClick={() => removeRow(row)}>
                                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
