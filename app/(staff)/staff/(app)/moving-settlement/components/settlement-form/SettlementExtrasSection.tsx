@@ -59,7 +59,7 @@ export function SettlementExtrasSection({
       <section className={cardClass}>
         <div className="flex h-[27px] items-center pb-px">
           <h3 className="text-[14px] font-extrabold leading-[17px] text-t1">기타</h3>
-          <span className="ml-auto text-[11.5px] font-semibold text-t3">1 / 15</span>
+          <span className="ml-auto text-[11.5px] font-semibold leading-[14px] text-t3">1 / 15</span>
           <Button
             variant="ghost"
             size="sm"
@@ -100,10 +100,10 @@ export function SettlementExtrasSection({
         </div>
         <div className="mt-[10px] flex h-[32px] items-baseline justify-center border-t border-line pt-[11px]">
           <span className="text-[14px] font-medium leading-[20px] text-t1">③ 기타 소계</span>
-          <strong className="ml-[10px] text-[17px] font-extrabold leading-[20px] tracking-[-0.17px] text-teal-d">
+          <strong className="ml-[10px] text-[17px] font-extrabold leading-[21px] tracking-[-0.17px] text-teal-d">
             {new Intl.NumberFormat("ko-KR").format(value.repairAmount ?? 0)}
           </strong>
-          <span className="ml-[3px] text-[12px] font-bold leading-[20px] text-teal-d opacity-[0.62]">원</span>
+          <span className="ml-[3px] text-[12px] font-bold leading-[15px] text-teal-d opacity-[0.62]">원</span>
         </div>
       </section>
 
@@ -211,13 +211,14 @@ export function SettlementExtrasSection({
         <div className="mt-[10px] pt-[2px]">
           <label>
             <span className={labelClass}>비고</span>
+            {/* block: textarea 는 inline-block 이라 라벨/카드에 줄상자 여백(약 4~7px)이 덧붙는다 */}
             <textarea
               aria-label="정산 비고"
               value={settlementPrintNote}
               onChange={(event) => setSettlementPrintNote(event.target.value)}
               maxLength={120}
               placeholder="출력물 하단에 표기돼요 (최대 120자)"
-              className="h-[58.5px] min-h-[52px] w-full resize-none rounded-[10px] border border-[#dee3e8] bg-white px-[11px] py-[8px] text-[13px] leading-[19.5px] text-t1 outline-none placeholder:text-t4 focus:border-teal"
+              className="block h-[58.5px] min-h-[52px] w-full resize-none rounded-[10px] border border-[#dee3e8] bg-white px-[11px] py-[8px] text-[13px] leading-[19.5px] text-t1 outline-none placeholder:text-t4 focus:border-teal"
             />
           </label>
         </div>
@@ -268,7 +269,7 @@ export function SettlementExtrasSection({
           value={value.note ?? ""}
           onChange={(event) => onChange({ ...value, note: event.target.value })}
           placeholder="정산 관련 비고를 입력해 주세요"
-          className="mt-[10px] h-[100px] min-h-[100px] w-full resize-none rounded-[10px] border border-[#dee3e8] px-[11px] py-[9px] text-[13px] leading-[20.15px] text-t1 outline-none placeholder:text-t4 focus:border-teal"
+          className="mt-[10px] block h-[100px] min-h-[100px] w-full resize-none rounded-[10px] border border-[#dee3e8] px-[11px] py-[9px] text-[13px] leading-[20.15px] text-t1 outline-none placeholder:text-t4 focus:border-teal"
         />
       </section>
     </>

@@ -23,7 +23,7 @@ function SettlementNoteCard({
   return (
     <section className="h-[132px] max-h-[168px] min-h-[132px] shrink-0 overflow-hidden rounded-[16px] bg-white shadow-card">
       <div className="flex items-center border-b border-line2 px-[18px] py-[15px]">
-        <h2 className="text-[14px] font-semibold text-t1">이사정산시 적요</h2>
+        <h2 className="text-[14px] font-semibold leading-[17px] text-t1">이사정산시 적요</h2>
       </div>
       <p
         className={`px-[16px] pb-[15px] pt-[13px] text-[13.5px] leading-[21.87px] ${hasNote ? "text-t1" : "text-t4"}`}
@@ -111,7 +111,7 @@ export function SettlementDirectoryRail({
               >
                 <ChevronLeftIcon className="size-[16px]" />
               </button>
-              <h2 className="truncate text-[15px] font-extrabold text-t1">
+              <h2 className="truncate text-[15px] font-extrabold leading-[18px] text-t1">
                 {selectedBuilding.name} {selectedUnit.unitNo}
               </h2>
             </div>
@@ -124,7 +124,7 @@ export function SettlementDirectoryRail({
             </button>
           </div>
           <div className="min-h-0 flex-1 overflow-auto">
-            <div className="grid h-[37px] grid-cols-[52px_1fr] border-b border-line bg-[#fbfcfd] text-[12px] font-bold text-t3">
+            <div className="grid h-[37px] grid-cols-[52px_1fr] border-b border-line bg-[#fbfcfd] text-[12px] font-bold leading-[15px] text-t3">
               <span className="px-[16px] py-[11px]">No</span>
               <span className="px-[16px] py-[11px]">이사정산 입력 날짜</span>
             </div>
@@ -145,7 +145,7 @@ export function SettlementDirectoryRail({
                   key={row.id}
                   type="button"
                   onClick={() => onSelectSettlement(row.id)}
-                  className={`grid h-[41px] w-full grid-cols-[52px_1fr] border-b border-line2 text-left text-[13.5px] text-t1 ${row.id === selectedSettlementId ? "bg-teal-t" : "bg-white hover:bg-[#fbfcfd]"}`}
+                  className={`grid h-[41px] w-full grid-cols-[52px_1fr] border-b border-line2 text-left text-[13.5px] leading-[16px] text-t1 ${row.id === selectedSettlementId ? "bg-teal-t" : "bg-white hover:bg-[#fbfcfd]"}`}
                 >
                   <span className="px-[16px] py-[12px]">{index + 1}</span>
                   <span className="px-[16px] py-[12px]">
@@ -178,7 +178,7 @@ export function SettlementDirectoryRail({
               >
                 <ChevronLeftIcon className="size-[16px]" />
               </button>
-              <h2 className="truncate text-[15px] font-extrabold text-t1">
+              <h2 className="truncate text-[15px] font-extrabold leading-[18px] text-t1">
                 {selectedBuilding.name}
               </h2>
             </div>
@@ -193,7 +193,7 @@ export function SettlementDirectoryRail({
               />
             </label>
           </div>
-          <div className="grid h-[37px] shrink-0 grid-cols-[64px_1fr] border-b border-line bg-[#fbfcfd] text-[12px] font-bold text-t3">
+          <div className="grid h-[37px] shrink-0 grid-cols-[64px_1fr] border-b border-line bg-[#fbfcfd] text-[12px] font-bold leading-[15px] text-t3">
             <span className="px-[16px] py-[11px]">호수</span>
             <span className="px-[16px] py-[11px]">세대주</span>
           </div>
@@ -220,9 +220,11 @@ export function SettlementDirectoryRail({
                   key={tenant.unitId}
                   type="button"
                   onClick={() => onSelectUnit(tenant.unitId)}
-                  className="grid min-h-[41px] w-full grid-cols-[64px_1fr] border-b border-line2 text-left text-[13.5px] text-t1 hover:bg-[#fbfcfd]"
+                  className="grid min-h-[41px] w-full grid-cols-[64px_1fr] border-b border-line2 text-left text-[13.5px] leading-[16px] text-t1 hover:bg-[#fbfcfd]"
                 >
-                  <span className="px-[16px] py-[12px] font-bold">{tenant.unitNo}</span>
+                  {/* 정본 셀(64px)은 pl 16 + 텍스트 자동폭이라 "101호"가 패딩 영역으로
+                      넘치며 한 줄을 유지한다. nowrap 이 없으면 2줄로 접혀 행이 41→65px 로 커진다. */}
+                  <span className="whitespace-nowrap px-[16px] py-[12px] font-bold">{tenant.unitNo}</span>
                   <span className={`truncate px-[16px] py-[12px] ${vacant ? "text-t4" : ""}`}>
                     {vacant ? "공실" : tenant.tenantName}
                   </span>
@@ -257,13 +259,13 @@ export function SettlementDirectoryRail({
             </label>
             <button
               type="button"
-              className="flex h-[28px] shrink-0 items-center gap-[7px] rounded-[9px] border border-line bg-white pl-[9px] pr-[8px] text-[12px] font-bold tracking-[-0.12px] text-t1"
+              className="flex h-[28px] shrink-0 items-center gap-[7px] rounded-[9px] border border-line bg-white pl-[9px] pr-[8px] text-[12px] font-bold leading-[15px] tracking-[-0.12px] text-t1"
             >
               그룹 전체 <ChevronDownIcon className="size-[14px] text-t3" />
             </button>
           </div>
         </div>
-        <div className="grid h-[37px] shrink-0 grid-cols-[64px_96px_1fr] border-b border-line bg-[#fbfcfd] text-[12px] font-bold text-t3">
+        <div className="grid h-[37px] shrink-0 grid-cols-[64px_96px_1fr] border-b border-line bg-[#fbfcfd] text-[12px] font-bold leading-[15px] text-t3">
           <span className="px-[16px] py-[11px]">코드</span>
           <span className="px-[16px] py-[11px]">건물명</span>
           <span className="px-[16px] py-[11px]">주소</span>

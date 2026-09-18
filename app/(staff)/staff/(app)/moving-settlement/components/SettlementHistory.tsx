@@ -28,10 +28,12 @@ export function SettlementHistory({
   return (
     <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[16px] bg-white shadow-card">
       <div className="shrink-0 px-[18px] pt-[15px]">
-        <div className="flex h-[18px] items-center gap-[10px]">
+        {/* 정본은 배지가 붙으면 이 줄이 18→20px 로 커지고(Figma 69:62432 헤더 33→35)
+            아래 날짜 필드까지 2px 내려간다. 고정 높이로 묶으면 배지가 넘친다. */}
+        <div className="flex min-h-[18px] items-center gap-[10px]">
           <h2 className="text-[15px] font-extrabold leading-[18px] text-t1">이사정산 이력 조회</h2>
           {date !== "" && (
-            <span className="ml-auto rounded-[7px] bg-blue-t px-[8px] py-[3px] text-[11.5px] font-extrabold text-blue-d">
+            <span className="ml-auto rounded-[7px] bg-blue-t px-[8px] py-[3px] text-[11.5px] font-extrabold leading-[14px] text-blue-d">
               총 {rows.length}건
             </span>
           )}
@@ -53,7 +55,7 @@ export function SettlementHistory({
           />
         </div>
       </div>
-      <div className="mt-[12px] grid h-[37px] shrink-0 grid-cols-[32px_44px_54px_84px_1fr] border-y border-line bg-[#fbfcfd] text-[12px] font-bold text-t3">
+      <div className="mt-[12px] grid h-[37px] shrink-0 grid-cols-[32px_44px_54px_84px_1fr] border-y border-line bg-[#fbfcfd] text-[12px] font-bold leading-[15px] text-t3">
         <span className="py-[11px] pl-[16px] pr-[8px] text-right">No</span>
         <span className="px-[8px] py-[11px]">코드</span>
         <span className="px-[8px] py-[11px]">호수</span>
@@ -91,7 +93,7 @@ export function SettlementHistory({
               key={row.settlementId}
               type="button"
               onClick={() => onSelect(row.buildingId, row.unitId)}
-              className={`grid min-h-[41px] w-full grid-cols-[32px_44px_54px_84px_1fr] border-b border-line2 text-left text-[13.5px] text-t1 hover:bg-[#fbfcfd] ${on ? "bg-blue-t2" : ""}`}
+              className={`grid min-h-[41px] w-full grid-cols-[32px_44px_54px_84px_1fr] border-b border-line2 text-left text-[13.5px] leading-[16px] text-t1 hover:bg-[#fbfcfd] ${on ? "bg-blue-t2" : ""}`}
             >
               <span className="py-[12px] pl-[16px] pr-[8px] text-right tabular-nums">
                 {index + 1}

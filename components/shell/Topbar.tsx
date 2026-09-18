@@ -41,10 +41,11 @@ export function Topbar({ onMenu }: TopbarProps) {
 
       {isMovingInquiry || isMovingSettlement || isCustomerNumbers ? (
         <div className="min-w-0 flex-1 leading-none">
-          <p className={`${isMovingInquiry || isCustomerNumbers ? "text-[12px] leading-[15px]" : "text-[10px] leading-[12px]"} font-semibold text-t3`}>
+          {/* Figma 69:62372 — 라벨 15px · 제목 23px 블록이 맞붙어 38px(마진 없음) */}
+          <p className="text-[12px] font-semibold leading-[15px] text-t3">
             {isMovingInquiry || isMovingSettlement ? "이사정산" : "공과금 관리"}
           </p>
-          <h1 className={`${isMovingInquiry || isCustomerNumbers ? "text-[19px] leading-[23px]" : "text-[17px] leading-[21px]"} ${isCustomerNumbers ? "" : "mt-[3px]"} font-extrabold ${isCustomerNumbers ? "tracking-[-0.38px]" : "tracking-[-0.35px]"} text-t1`}>
+          <h1 className={`text-[19px] leading-[23px] ${isMovingInquiry ? "mt-[3px]" : ""} font-extrabold ${isCustomerNumbers ? "tracking-[-0.38px]" : "tracking-[-0.35px]"} text-t1`}>
             {isMovingInquiry
               ? pathname.endsWith("/all")
                 ? "전체 이사조회"
