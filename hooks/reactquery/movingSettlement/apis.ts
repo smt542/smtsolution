@@ -18,6 +18,7 @@ export interface MovingSettlement {
   waterCharge: number | null;
   elecCharge: number | null;
   gasCharge: number | null;
+  cleaningCost: number | null;
   elecPaidDate: string | null;
   gasPaidDate: string | null;
   repairAmount: number | null;
@@ -210,6 +211,7 @@ interface MovingSettlementRpc {
   water_charge: number | null;
   elec_charge: number | null;
   gas_charge: number | null;
+  cleaning_cost: number | null;
   elec_paid_date: string | null;
   gas_paid_date: string | null;
   repair_amount: number | null;
@@ -328,6 +330,7 @@ function rpcToMovingSettlement(r: MovingSettlementRpc): MovingSettlement {
     waterCharge: r.water_charge,
     elecCharge: r.elec_charge,
     gasCharge: r.gas_charge,
+    cleaningCost: r.cleaning_cost,
     elecPaidDate: r.elec_paid_date,
     gasPaidDate: r.gas_paid_date,
     repairAmount: r.repair_amount,
