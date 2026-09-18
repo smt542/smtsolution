@@ -47,6 +47,48 @@ export interface SettlementStatementPrintModel {
   organizationName: string | null;
 }
 
+/**
+ * 건물·호실을 고르지 않은 상태에서 [빈양식] 을 눌렀을 때 쓰는 모델.
+ * 정산 컨텍스트가 없으므로 점검 항목은 org 마스터(`settlement_check_items`)에서 받고,
+ * 관리비 항목명은 건물 유형에 따라 달라져 채울 수 없어 빈 행으로 둔다.
+ */
+export function emptyStatementPrintModel(params: {
+  checklistLabels: string[];
+  organizationName: string | null;
+}): SettlementStatementPrintModel {
+  return {
+    moveOutDate: "",
+    buildingName: "",
+    unitNo: "",
+    ownerPhone: null,
+    address: null,
+    occupantPhone: null,
+    meters: (["water", "elec", "gas"] as const).map((utility) => ({
+      utility,
+      previousReading: null,
+      currentReading: null,
+      usage: null,
+      unitPrice: null,
+      charge: null,
+    })),
+    chargeDays: null,
+    monthDays: null,
+    utilityTotal: null,
+    managementRows: [],
+    managementMonthlyTotal: null,
+    managementSettlementTotal: null,
+    repairMemo: null,
+    repairAmount: null,
+    billingUnpaid: null,
+    cleaningCost: null,
+    total: null,
+    settleAccount: null,
+    note: null,
+    checklist: params.checklistLabels.map((label) => ({ label, note: null })),
+    organizationName: params.organizationName,
+  };
+}
+
 const PRINT_SHEET_ID = "rcPrintSheet";
 const PRINT_STYLE_ID = "rcPrintCss";
 
@@ -418,9 +460,11 @@ export function printSettlementStatement(
   columns.append(left, right);
   sheet.appendChild(columns);
 
+  // 정본은 빈 양식에서도 하단 연도·회사명을 찍는다(`.stfoot` 은 blank 를 타지 않는다).
+  // 회사가 발행하는 양식이므로 발행처 표기는 남긴다.
   const footer = createElement("div", "stfoot");
-  const year = options.blank ? "" : String(new Date().getFullYear());
-  const organizationName = options.blank ? "" : formatText(printModel.organizationName);
+  const year = String(new Date().getFullYear());
+  const organizationName = formatText(model.organizationName);
   footer.textContent = `${year}년      월      일\u00a0\u00a0 ${organizationName}`;
   sheet.appendChild(footer);
 
