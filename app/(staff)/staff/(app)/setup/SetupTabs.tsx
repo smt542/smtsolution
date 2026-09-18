@@ -54,7 +54,8 @@ export function SetupTabs({ initialTab }: { initialTab: SetupTab }) {
 
   return (
     <SetupSaveProvider>
-      <div className="flex min-h-full flex-col bg-bg">
+      {/* 정본은 헤더·탭바가 고정이고 본문만 스크롤한다. AppShell이 이 경로를 뷰포트 고정으로 잡는다. */}
+      <div className="flex h-full min-h-0 flex-col bg-bg">
         <PageHeader title="셋업 설정" actions={<SetupSaveButton />} />
         {/* 정본 탭바(노드 72:69569)는 흰 배경 + 아래 1px 선 + 좌우 24px 여백이고,
             탭 버튼 자체는 공용 Tabs의 underline 규격과 픽셀 단위로 같다.
@@ -67,7 +68,7 @@ export function SetupTabs({ initialTab }: { initialTab: SetupTab }) {
             variant="underline"
           />
         </div>
-        <div className="flex-1 px-[24px] pb-[30px] pt-[22px]">
+        <div className="min-h-0 flex-1 overflow-auto px-[24px] pb-[30px] pt-[22px]">
           {tab === "company" && <CompanyInfoTab />}
           {tab === "billing" && <BillingSettingsTab />}
           {tab === "settlement" && <MovingSettlementSettingsTab />}
