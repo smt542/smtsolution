@@ -63,6 +63,7 @@ export function AllSettlementInquiryToolbar({
         options={years}
         onChange={onFromYearChange}
         size="compact"
+        position="fixed"
       />
       <CustomDropdown
         ariaLabel="조회 시작 월"
@@ -70,6 +71,7 @@ export function AllSettlementInquiryToolbar({
         options={months}
         onChange={onFromMonthChange}
         size="compact"
+        position="fixed"
       />
       <span className="text-[12px] font-bold text-t3">~</span>
       <CustomDropdown
@@ -78,6 +80,7 @@ export function AllSettlementInquiryToolbar({
         options={years}
         onChange={onToYearChange}
         size="compact"
+        position="fixed"
       />
       <CustomDropdown
         ariaLabel="조회 종료 월"
@@ -85,6 +88,7 @@ export function AllSettlementInquiryToolbar({
         options={months}
         onChange={onToMonthChange}
         size="compact"
+        position="fixed"
       />
 
       <span className="flex items-start px-[2px]" aria-hidden="true">
