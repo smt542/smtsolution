@@ -39,7 +39,16 @@ export interface MeterSummary {
   utility: SettlementUtility;
   previousReading: number | null;
   currentReading: number | null;
+  /** 그 달 검침에 적용된 단가. 단가 반영 ON 이면 금액을 usage x unitPrice 로 계산한다. */
+  unitPrice: number | null;
   usage: number | null;
+}
+
+/** /staff/setup?tab=settlement 의 이사정산 설정. 0167 에서 get_settlement_context 가 동봉한다. */
+export interface SettlementSettings {
+  waterUnitReflect: boolean;
+  electricUnitReflect: boolean;
+  vacancyPaymentMode: "manual" | "auto";
 }
 
 export interface ChecklistItem {
@@ -72,6 +81,7 @@ export interface SettlementContext {
     settleAcct: string | null;
     settleHolder: string | null;
   };
+  settlementSettings: SettlementSettings;
   checklist: ChecklistItem[];
   meterSummary: MeterSummary[];
 }
@@ -226,11 +236,17 @@ interface SettlementContextRpc {
     settle_acct: string | null;
     settle_holder: string | null;
   };
+  settlement_settings: {
+    water_unit_reflect: boolean;
+    electric_unit_reflect: boolean;
+    vacancy_payment_mode: "manual" | "auto";
+  } | null;
   checklist: { id: number; label: string; checked: boolean }[];
   meter_summary: {
     utility: SettlementUtility;
     previous_reading: number | null;
     current_reading: number | null;
+    unit_price: number | null;
     usage: number | null;
   }[];
 }
@@ -341,6 +357,12 @@ function rpcToSettlementContext(r: SettlementContextRpc): SettlementContext {
       settleAcct: r.settle_account.settle_acct,
       settleHolder: r.settle_account.settle_holder,
     },
+    // 0167 이전 응답에는 settlement_settings 가 없다 → 전부 off / auto 로 본다.
+    settlementSettings: {
+      waterUnitReflect: r.settlement_settings?.water_unit_reflect ?? false,
+      electricUnitReflect: r.settlement_settings?.electric_unit_reflect ?? false,
+      vacancyPaymentMode: r.settlement_settings?.vacancy_payment_mode ?? "auto",
+    },
     checklist: r.checklist.map((item) => ({
       id: item.id,
       label: item.label,
@@ -350,6 +372,7 @@ function rpcToSettlementContext(r: SettlementContextRpc): SettlementContext {
       utility: meter.utility,
       previousReading: meter.previous_reading,
       currentReading: meter.current_reading,
+      unitPrice: meter.unit_price ?? null,
       usage: meter.usage,
     })),
   };
@@ -504,14 +527,22 @@ export async function deletePartnerMovingSettlement(
   if (error) throw new Error(error.message);
 }
 
+export interface CompleteSettlementResult {
+  ok: boolean;
+  /** 0167: 공실 수납 방식. manual 이면 자동수납을 생략했다는 뜻이다. */
+  vacancy_payment_mode?: "manual" | "auto";
+  collected_count?: number;
+  collected_total?: number;
+}
+
 export async function completeMovingSettlement(
   settlementId: number,
-): Promise<{ ok: boolean }> {
+): Promise<CompleteSettlementResult> {
   const { data, error } = await createClient().rpc("complete_moving_settlement", {
     p_settlement_id: settlementId,
   });
   if (error) throw new Error(error.message);
-  return data as { ok: boolean };
+  return data as CompleteSettlementResult;
 }
 
 export async function midMoveoutSettlement(
