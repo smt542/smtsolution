@@ -22,13 +22,19 @@ interface AllSettlementInquiryTableProps {
   ) => void;
 }
 
-const TEXT_CELL = "h-[55px] border-b border-line2 px-[16px] py-[12px] text-[13.5px] font-normal text-t1";
+// 행 높이는 셀/행의 고정 높이로만 제어한다. 여기에 py-* 를 더하면 table-cell 에서
+// content + padding 이 고정 높이를 밀어내 행이 커진다(정본은 55/41/40.5px 고정).
+const CELL_BASE = "h-[55px] border-b border-line2 px-[16px] text-[13.5px] text-t1";
+const TEXT_CELL = `${CELL_BASE} font-normal`;
 const NUMBER_CELL = `${TEXT_CELL} text-right tabular-nums`;
-const MEDIUM_TEXT_CELL = `${TEXT_CELL} font-medium`;
-const HEADER_CELL = "sticky top-0 z-20 h-[36.5px] border-b border-line bg-[#fbfcfd] px-[16px] py-[11px] text-left text-[11.5px] font-medium text-t3";
+// font-normal 과 font-medium 을 한 className 에 같이 두면 Tailwind 출력 순서가 이겨
+// weight 가 뒤집힌다. 베이스에 weight 를 두지 않고 변형마다 하나씩만 준다.
+const MEDIUM_TEXT_CELL = `${CELL_BASE} font-medium`;
+const MEDIUM_NUMBER_CELL = `${MEDIUM_TEXT_CELL} text-right tabular-nums`;
+const HEADER_CELL = "sticky top-0 z-20 h-[36.5px] border-b border-line bg-[#fbfcfd] px-[16px] text-left text-[11.5px] font-medium text-t3";
 const NUMBER_HEADER_CELL = `${HEADER_CELL} text-right`;
-const SUBTOTAL_CELL = "border-b border-line2 px-[16px] py-[12px]";
-const TOTAL_CELL = "px-[16px] py-[12px]";
+const SUBTOTAL_CELL = "border-b border-line2 px-[16px]";
+const TOTAL_CELL = "border-t border-line bg-[#fbfcfd] px-[16px]";
 
 function sum(
   rows: SettlementInquiryRow[],
@@ -162,7 +168,7 @@ export function AllSettlementInquiryTable({
                           onChange={(value) => onEdit(row, "gasPaidDate", value)}
                         />
                       </td>
-                      <td className={`${NUMBER_CELL} font-medium`}>
+                      <td className={MEDIUM_NUMBER_CELL}>
                         {displayNumber(row.mgmtFeeProrated)}
                       </td>
                       <td className={TEXT_CELL}>{row.checkedByName ?? ""}</td>
@@ -212,7 +218,7 @@ export function AllSettlementInquiryTable({
           })}
         </tbody>
         <tfoot>
-          <tr className="sticky bottom-0 z-30 h-[40.5px] border-t border-line bg-[#fbfcfd] font-bold text-[13.5px] text-t1">
+          <tr className="sticky bottom-0 z-30 h-[40.5px] font-bold text-[13.5px] text-t1">
             <td colSpan={9} className={TOTAL_CELL}>합계 {formatNumber(total)}건</td>
             <td className={`${TOTAL_CELL} text-right tabular-nums`}>{displayNumber(totalElectric)}</td>
             <td className={TOTAL_CELL} />
