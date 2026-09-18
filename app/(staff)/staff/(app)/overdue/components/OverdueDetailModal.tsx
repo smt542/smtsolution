@@ -1,4 +1,5 @@
 import { Button, Modal, DetailField, DetailSection } from "@/components/common";
+import { MaskedPhone } from "@/components/common/MaskedPhone";
 import type { OverdueHousehold } from "@/hooks/reactquery/overdue";
 import { formatDate, formatWon } from "../utils";
 
@@ -28,7 +29,16 @@ export function OverdueDetailModal({
         <DetailSection title="입주자 정보">
           <DetailField label="입주자" value={household.tenantName || "미등록"} />
           <DetailField label="납부자" value={household.payerName || "-"} />
-          <DetailField label="연락처" value={household.phone || "-"} />
+          <DetailField
+            label="연락처"
+            value={household.phone ? (
+              <MaskedPhone
+                value={household.phone}
+                kind="phone"
+                reveal={{ targetKind: "occupancy", targetId: household.occupancyId, field: "phone" }}
+              />
+            ) : "-"}
+          />
           <DetailField label="거주 인원" value={household.residentCount != null ? `${household.residentCount}명` : "-"} />
         </DetailSection>
 
@@ -95,4 +105,3 @@ export function OverdueDetailModal({
     </Modal>
   );
 }
-

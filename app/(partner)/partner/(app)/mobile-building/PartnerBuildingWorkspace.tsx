@@ -108,7 +108,13 @@ export default function PartnerBuildingWorkspace({
                     <div className={styles.vendType}>{VENDOR_LABEL[v.vendor_type] ?? v.vendor_type}</div>
                     <div className={styles.vendBody}>
                       <span className={styles.vendName}>{v.name}</span>
-                      {v.phone && <PartnerPhoneLink phone={v.phone} />}
+                      {v.phone && (
+                        <PartnerPhoneLink
+                          phone={v.phone}
+                          alreadyMasked
+                          reveal={{ targetKind: "building_vendor", targetId: v.id, field: "phone" }}
+                        />
+                      )}
                     </div>
                     {v.memo && <div className={styles.vendMemo}>{v.memo}</div>}
                   </div>
@@ -122,7 +128,12 @@ export default function PartnerBuildingWorkspace({
               <div className={styles.row}>
                 <span className={styles.rowLabel}>전화번호</span>
                 <b className={styles.rowValue}>
-                  {building.owner_phone ? <PartnerPhoneLink phone={building.owner_phone} /> : "-"}
+                  {building.owner_phone ? (
+                    <PartnerPhoneLink
+                      phone={building.owner_phone}
+                      reveal={{ targetKind: "building", targetId: building.id, field: "owner_phone" }}
+                    />
+                  ) : "-"}
                 </b>
               </div>
             </div>

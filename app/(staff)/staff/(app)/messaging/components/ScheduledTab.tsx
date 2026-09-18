@@ -174,6 +174,7 @@ export function ScheduledTab() {
 
       {selected && (
         <MessageDetailModal
+          recipientsAlreadyMasked={false}
           title="예약 발송 상세"
           channel={selected.channel}
           rows={[

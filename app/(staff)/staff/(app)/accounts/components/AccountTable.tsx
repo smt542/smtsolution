@@ -1,5 +1,6 @@
 "use client";
 import { DataTable } from "@/components/common";
+import { MaskedPhone } from "@/components/common/MaskedPhone";
 import { isMaster } from "@/lib/auth/permissions";
 import type { Account } from "@/hooks/reactquery/accounts";
 
@@ -53,7 +54,13 @@ export function AccountTable({ accounts, onRowClick, hideType = false }: Props) 
       name: a.fullName,
       username: a.username,
       password: PASSWORD_MASK,
-      phone: a.phone ?? "-",
+      phone: a.phone ? (
+        <MaskedPhone
+          value={a.phone}
+          kind="phone"
+          reveal={{ targetKind: "profile", targetId: a.userId, field: "phone" }}
+        />
+      ) : "-",
       ...(hideType ? {} : { type: isMaster(a.role) ? "마스터" : "일반" }),
       status: a.isActive ? "활성화" : "비활성화",
     };

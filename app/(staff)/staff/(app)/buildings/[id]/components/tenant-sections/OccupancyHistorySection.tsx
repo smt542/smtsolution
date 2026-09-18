@@ -1,15 +1,22 @@
 "use client";
 import React from "react";
 import { DataTable } from "@/components/common";
+import { MaskedPhone } from "@/components/common/MaskedPhone";
 import type { OccupancyHistory } from "@/hooks/reactquery/occupancyHistory";
 
 export function OccupancyHistorySection({ history }: { history: OccupancyHistory[] }) {
   const rows = history.map((item) => ({
     moveOutDate: item.moveOutDate ?? "-",
     tenantName: item.tenantName ?? "-",
-    homePhone: item.phone3 ?? "-",
-    primaryPhone: item.phone ?? "-",
-    secondaryPhone: item.phone2 ?? "-",
+    homePhone: item.phone3 ? (
+      <MaskedPhone value={item.phone3} kind="phone" alreadyMasked reveal={{ targetKind: "occupancy_history", targetId: item.id, field: "phone3" }} />
+    ) : "-",
+    primaryPhone: item.phone ? (
+      <MaskedPhone value={item.phone} kind="phone" alreadyMasked reveal={{ targetKind: "occupancy_history", targetId: item.id, field: "phone" }} />
+    ) : "-",
+    secondaryPhone: item.phone2 ? (
+      <MaskedPhone value={item.phone2} kind="phone" alreadyMasked reveal={{ targetKind: "occupancy_history", targetId: item.id, field: "phone2" }} />
+    ) : "-",
     moveInDate: item.moveInDate ?? "-",
   }));
 

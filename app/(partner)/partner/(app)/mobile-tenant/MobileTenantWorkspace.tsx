@@ -4,7 +4,6 @@ import Link from "next/link";
 import { type ReactNode, useState } from "react";
 
 import { formatDate, formatMonth, formatWon } from "@/lib/format";
-
 import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
 import { PartnerPhoneLink } from "../../../_components/PartnerPhoneLink";
 import { tenantClasses as styles } from "./tenantClasses";
@@ -126,8 +125,14 @@ export function MobileTenantWorkspace({ data }: { data: MobileTenantData }) {
             <div className={styles.sec}>
               <div className={styles.row}>
                 <span className={styles.rowLabel}>전화번호</span>
-                {occ.phone ? (
-                  <PartnerPhoneLink phone={occ.phone} pushRight />
+                {occ.phone && occ.occupancy_id ? (
+                  <PartnerPhoneLink
+                    phone={occ.phone}
+                    pushRight
+                    reveal={{ targetKind: "occupancy", targetId: occ.occupancy_id, field: "phone" }}
+                  />
+                ) : occ.phone ? (
+                  <span className={styles.muted}>-</span>
                 ) : (
                   <span className={styles.muted}>등록된 연락처가 없어요</span>
                 )}

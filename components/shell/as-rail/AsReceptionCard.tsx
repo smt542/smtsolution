@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { MaskedPhone } from "@/components/common/MaskedPhone";
 
 import type { Complaint } from "@/hooks/reactquery/complaints";
 
@@ -70,7 +71,17 @@ export function AsReceptionCard({ complaint, nameOf }: AsReceptionCardProps) {
       </div>
       <div className="flex justify-between gap-2 text-[12px] mt-[5px]">
         <span className="text-t3 font-semibold">접수시 전화</span>
-        <span className="font-bold text-t2 num">{complaint.reporterPhone ?? "-"}</span>
+        <span className="font-bold text-t2 num">
+          {complaint.reporterPhone ? (
+            <MaskedPhone
+              value={complaint.reporterPhone}
+              kind="phone"
+              reveal={{ targetKind: "complaint", targetId: complaint.id, field: "reporter_phone" }}
+            />
+          ) : (
+            "-"
+          )}
+        </span>
       </div>
       <div className="flex justify-between gap-2 text-[12px] mt-[5px]">
         <span className="text-t3 font-semibold">담당자 / 접수</span>

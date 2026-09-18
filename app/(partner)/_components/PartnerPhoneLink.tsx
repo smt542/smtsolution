@@ -1,13 +1,17 @@
-type PartnerPhoneLinkProps = {
-  /** Raw phone number to display; non-digit characters are stripped for the `tel:` href. */
-  phone: string;
-  /** Adds `margin-left: auto` — for a pill placed directly in a flex row with no other spacer/`justify-content`. */
-  pushRight?: boolean;
-};
+import { MaskedPhone } from "@/components/common/MaskedPhone";
 
-function telHref(v: string) {
-  return `tel:${v.replace(/[^0-9]/g, "")}`;
-}
+type PartnerPhoneLinkProps = {
+  /** Raw or server-masked phone number to display. */
+  phone: string;
+  /** Adds `margin-left: auto` for a pill placed directly in a flex row. */
+  pushRight?: boolean;
+  alreadyMasked?: boolean;
+  reveal: {
+    targetKind: string;
+    targetId: string | number;
+    field: string;
+  };
+};
 
 function PhoneIcon() {
   return (
@@ -17,12 +21,18 @@ function PhoneIcon() {
   );
 }
 
-/** Pill-style `tel:` link with a handset icon, for partner mobile screens. */
-export function PartnerPhoneLink({ phone, pushRight }: PartnerPhoneLinkProps) {
+/** Pill-style phone reveal with a handset icon, for partner mobile screens. */
+export function PartnerPhoneLink({ phone, pushRight, alreadyMasked = false, reveal }: PartnerPhoneLinkProps) {
   return (
-    <a className={`inline-flex h-8 flex-none items-center gap-[5px] rounded-[10px] border border-line bg-white px-[11px] text-[13px] font-bold tabular-nums text-t2 ${pushRight ? "ml-auto" : ""}`} href={telHref(phone)}>
+    <span className={`inline-flex h-8 flex-none items-center gap-[5px] rounded-[10px] border border-line bg-white px-[11px] text-[13px] font-bold tabular-nums text-t2 ${pushRight ? "ml-auto" : ""}`}>
       <PhoneIcon />
-      {phone}
-    </a>
+      <MaskedPhone
+        value={phone}
+        kind="phone"
+        asTelLink
+        alreadyMasked={alreadyMasked}
+        reveal={reveal}
+      />
+    </span>
   );
 }

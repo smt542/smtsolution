@@ -128,7 +128,7 @@ export function AsReceptionRail() {
         </div>
         {tab === "as" ? <AsReceptionList /> : <MoveOutList />}
       </div>
-      <AsReportModal open={reportOpen} onClose={() => setReportOpen(false)} />
+      <AsReportModal open={reportOpen} onClose={() => setReportOpen(false)} maskReporterPhones />
     </aside>
   );
 }

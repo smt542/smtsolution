@@ -14,7 +14,7 @@ export const toHistory = (r: {
   moveInDate: r.move_in_date, moveOutDate: r.move_out_date, roomTypeLabel: r.room_type_label,
 });
 export async function listHistoryByUnit(unitId: number): Promise<OccupancyHistory[]> {
-  const { data, error } = await createClient().from("occupancy_history").select("*").eq("unit_id", unitId).order("move_out_date", { ascending: false });
+  const { data, error } = await createClient().rpc("list_occupancy_history", { p_unit_id: unitId });
   if (error) throw new Error(error.message);
   return (data ?? []).map(toHistory);
 }

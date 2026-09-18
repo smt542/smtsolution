@@ -2,6 +2,7 @@
 import { useRouter } from "next/navigation";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { EmptyState, Spinner } from "@/components/common";
+import { MaskedPhone } from "@/components/common/MaskedPhone";
 import type { TenantListRow } from "@/hooks/reactquery/occupancies";
 import { TENANT_COLUMNS, TENANT_TABLE_MIN_WIDTH } from "./tenantColumns";
 import { TenantEmptyState } from "./TenantEmptyState";
@@ -108,7 +109,19 @@ export function TenantOccupancyCard({
                       style={{ minWidth: col.w }}
                       className="h-[55px] whitespace-nowrap px-[16px] text-[13.5px] leading-[normal] text-t1"
                     >
-                      {col.get(t)}
+                      {col.key === "phone" && t.phone ? (
+                        t.occupancyId ? (
+                          <MaskedPhone
+                            value={t.phone}
+                            kind="phone"
+                            reveal={{ targetKind: "occupancy", targetId: t.occupancyId, field: "phone" }}
+                          />
+                        ) : (
+                          "-"
+                        )
+                      ) : (
+                        col.get(t)
+                      )}
                     </td>
                   ))}
                 </tr>

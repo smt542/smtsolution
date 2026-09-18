@@ -1,6 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { EmptyState, Pagination, Spinner } from "@/components/common";
+import { MaskedPhone } from "@/components/common/MaskedPhone";
 import type { BuildingDirectoryRow } from "@/hooks/reactquery/buildings";
 
 const PAGE_SIZES = [10, 20, 50] as const;
@@ -152,7 +153,15 @@ export function BuildingDirectoryCard({
                           </td>
                         ) : (
                           <td key={col.key} className="h-[55px] whitespace-nowrap px-[16px] text-[13.5px] leading-[normal] text-t1">
-                            {col.get?.(b) ?? ""}
+                            {col.key === "ownerPhone" && b.ownerPhone ? (
+                              <MaskedPhone
+                                value={b.ownerPhone}
+                                kind="phone"
+                                reveal={{ targetKind: "building", targetId: b.id, field: "owner_phone" }}
+                              />
+                            ) : (
+                              col.get?.(b) ?? ""
+                            )}
                           </td>
                         ),
                       )}

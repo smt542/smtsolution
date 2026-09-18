@@ -1,4 +1,5 @@
 export type OccupancyDetail = {
+  occupancy_id: number | null;
   unit_id: number;
   building_id: number;
   building_name: string;

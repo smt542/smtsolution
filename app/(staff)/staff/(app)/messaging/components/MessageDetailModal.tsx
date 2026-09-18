@@ -3,6 +3,7 @@
 import { useEffect, useId, type ReactNode } from "react";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
+import { MaskedPhone } from "@/components/common/MaskedPhone";
 import type { MessageRecipient, SendMode } from "@/lib/messaging/preset";
 import { channelLabel, senderLabel } from "./messageFormat";
 
@@ -20,6 +21,25 @@ interface MessageDetailModalProps {
   recipients: MessageRecipient[];
   recipientCount: number;
   body: string;
+  recipientsAlreadyMasked?: boolean;
+}
+
+function recipientReveal(recipient: MessageRecipient) {
+  const ref = recipient.ref;
+  if (recipient.kind === "tenant" && ref?.occupancyId != null) {
+    return {
+      targetKind: "occupancy",
+      targetId: ref.occupancyId,
+      field: recipient.phoneType === "secondary" ? "phone2" : "phone",
+    };
+  }
+  if (recipient.kind === "owner" && ref?.buildingId != null) {
+    return { targetKind: "building", targetId: ref.buildingId, field: "owner_phone" };
+  }
+  if ((recipient.kind === "staff" || recipient.kind === "cleaner") && ref?.userId) {
+    return { targetKind: "profile", targetId: ref.userId, field: "phone" };
+  }
+  return null;
 }
 
 const SECTION_LABEL =
@@ -37,6 +57,7 @@ export function MessageDetailModal({
   recipients,
   recipientCount,
   body,
+  recipientsAlreadyMasked = false,
 }: MessageDetailModalProps) {
   const titleId = useId();
   const { data: me } = useMe();
@@ -120,7 +141,23 @@ export function MessageDetailModal({
                   {recipient.name ?? "이름 없음"}
                 </span>
                 <span className="text-right text-[13px] font-medium text-[#8b95a1]">
-                  {recipient.phone ?? "-"}
+                  {recipient.phone ? (
+                    (() => {
+                      const reveal = recipientReveal(recipient);
+                      return reveal ? (
+                        <MaskedPhone
+                          value={recipient.phone}
+                          kind="phone"
+                          alreadyMasked={recipientsAlreadyMasked}
+                          reveal={reveal}
+                        />
+                      ) : (
+                        "-"
+                      );
+                    })()
+                  ) : (
+                    "-"
+                  )}
                 </span>
               </div>
             ))

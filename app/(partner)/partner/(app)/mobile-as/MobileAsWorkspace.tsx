@@ -10,6 +10,7 @@ import {
   type PartnerAsCategory,
   type PartnerComplaintDetail,
 } from "@/hooks/reactquery/complaints";
+import { MaskedPhone } from "@/components/common/MaskedPhone";
 
 import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
 import { PartnerConfirmDialog } from "../../../_components/PartnerConfirmDialog";
@@ -157,7 +158,15 @@ function MobileAsEditor({
               </select>
             </PartnerFormFieldRow>
             <PartnerFormFieldRow label="입주자 전화번호">
-              <span className={styles.ro}>{d.reporter_phone ?? "-"}</span>
+              {d.reporter_phone ? (
+                <MaskedPhone
+                  value={d.reporter_phone}
+                  kind="phone"
+                  reveal={{ targetKind: "complaint", targetId: d.id, field: "reporter_phone" }}
+                />
+              ) : (
+                <span className={styles.ro}>-</span>
+              )}
             </PartnerFormFieldRow>
             <PartnerFormFieldRow label="접수 내용" column>
               <textarea className={styles.textarea} value={content} onChange={(e) => setContent(e.target.value)} placeholder="접수 내용을 입력해 주세요" disabled={ro} />

@@ -2,6 +2,7 @@
 import React from "react";
 import { FormSection } from "../ui/FormSection";
 import { EmptyState } from "@/components/common";
+import { MaskedPhone } from "@/components/common/MaskedPhone";
 import type { OccupancyHistory } from "@/hooks/reactquery/occupancyHistory";
 
 const dash = (v: string | null) => (v && v.length > 0 ? v : "—");
@@ -31,9 +32,15 @@ export function MoveOutHistorySection({ history }: { history: OccupancyHistory[]
                 <tr key={h.id} className="cursor-pointer text-[13.5px] text-t1 hover:bg-[#fbfcfd] [&:last-child>td]:border-b-0">
                   <td className="whitespace-nowrap border-b border-line2 px-[16px] py-[12px]">{dash(h.moveOutDate)}</td>
                   <td className="whitespace-nowrap border-b border-line2 px-[16px] py-[12px]">{dash(h.tenantName)}</td>
-                  <td className="whitespace-nowrap border-b border-line2 px-[16px] py-[12px]">{dash(h.phone3)}</td>
-                  <td className="whitespace-nowrap border-b border-line2 px-[16px] py-[12px]">{dash(h.phone)}</td>
-                  <td className="whitespace-nowrap border-b border-line2 px-[16px] py-[12px]">{dash(h.phone2)}</td>
+                  <td className="whitespace-nowrap border-b border-line2 px-[16px] py-[12px]">
+                    {h.phone3 ? <MaskedPhone value={h.phone3} kind="phone" alreadyMasked reveal={{ targetKind: "occupancy_history", targetId: h.id, field: "phone3" }} /> : dash(h.phone3)}
+                  </td>
+                  <td className="whitespace-nowrap border-b border-line2 px-[16px] py-[12px]">
+                    {h.phone ? <MaskedPhone value={h.phone} kind="phone" alreadyMasked reveal={{ targetKind: "occupancy_history", targetId: h.id, field: "phone" }} /> : dash(h.phone)}
+                  </td>
+                  <td className="whitespace-nowrap border-b border-line2 px-[16px] py-[12px]">
+                    {h.phone2 ? <MaskedPhone value={h.phone2} kind="phone" alreadyMasked reveal={{ targetKind: "occupancy_history", targetId: h.id, field: "phone2" }} /> : dash(h.phone2)}
+                  </td>
                   <td className="whitespace-nowrap border-b border-line2 px-[16px] py-[12px]">{dash(h.moveInDate)}</td>
                 </tr>
               ))}

@@ -20,6 +20,11 @@ const OCCUPANCY_ORG = {
   select: "units!inner(buildings!inner(org_id))",
   path: ["units", "buildings", "org_id"],
 } as const;
+const OCCUPANCY_HISTORY_ORG = {
+  kind: "nested",
+  select: "units!inner(buildings!inner(org_id))",
+  path: ["units", "buildings", "org_id"],
+} as const;
 const PROFILE_ORG = {
   // profiles and org_members both reference auth.users, but have no direct FK;
   // resolve this ownership path with a second RLS-scoped lookup below.
@@ -27,6 +32,11 @@ const PROFILE_ORG = {
   table: "org_members",
   lookupColumn: "user_id",
   column: "org_id",
+} as const;
+const BUILDING_VENDOR_ORG = {
+  kind: "nested",
+  select: "buildings!inner(org_id)",
+  path: ["buildings", "org_id"],
 } as const;
 
 const REVEAL_TARGETS = {
@@ -36,6 +46,11 @@ const REVEAL_TARGETS = {
     phone3: { table: "occupancies", column: "phone3", idColumn: "id", idType: "bigint" as const, owner: OCCUPANCY_ORG },
     fax_number: { table: "occupancies", column: "fax_number", idColumn: "id", idType: "bigint" as const, owner: OCCUPANCY_ORG },
   },
+  occupancy_history: {
+    phone: { table: "occupancy_history", column: "phone", idColumn: "id", idType: "bigint" as const, owner: OCCUPANCY_HISTORY_ORG },
+    phone2: { table: "occupancy_history", column: "phone2", idColumn: "id", idType: "bigint" as const, owner: OCCUPANCY_HISTORY_ORG },
+    phone3: { table: "occupancy_history", column: "phone3", idColumn: "id", idType: "bigint" as const, owner: OCCUPANCY_HISTORY_ORG },
+  },
   complaint: {
     reporter_phone: { table: "complaints", column: "reporter_phone", idColumn: "id", idType: "bigint" as const, owner: DIRECT_ORG },
   },
@@ -44,6 +59,15 @@ const REVEAL_TARGETS = {
   },
   vendor: {
     phone: { table: "vendors", column: "phone", idColumn: "id", idType: "bigint" as const, owner: DIRECT_ORG },
+  },
+  building_vendor: {
+    phone: {
+      table: "building_vendors",
+      column: "phone",
+      idColumn: "id",
+      idType: "bigint" as const,
+      owner: BUILDING_VENDOR_ORG,
+    },
   },
   profile: {
     phone: { table: "profiles", column: "phone", idColumn: "user_id", idType: "uuid" as const, owner: PROFILE_ORG },
