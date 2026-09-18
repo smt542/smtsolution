@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Input, Panel } from "@/components/common";
+import { Input, Panel, PhoneInput } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useSetupConfig, useUpsertSetupConfig } from "@/hooks/reactquery/setupConfig";
 import { useRegisterSetupSave } from "../SetupSaveContext";
@@ -16,10 +16,14 @@ const EMPTY: F = {
   ceoName: "", companyAddress: "", operatingHours: "",
 };
 
-const FIELDS: { key: keyof F; label: string; hint?: string; placeholder: string; width: string }[] = [
+// kind=phone 인 행은 공용 PhoneInput을 쓴다 — 숫자만 받고 하이픈을 자동으로 붙인다.
+const FIELDS: {
+  key: keyof F; label: string; hint?: string; placeholder: string; width: string;
+  kind?: "phone";
+}[] = [
   { key: "companyName", label: "상호", hint: "세입자 앱과 고지서에 표기되는 회사명", placeholder: "상호", width: "w-[240px]" },
-  { key: "companyPhone", label: "대표 전화", hint: "세입자 문의 안내에 노출돼요. 건물별 담당 연락처가 없을 때 이 번호가 표기됩니다", placeholder: "042-000-0000", width: "w-[180px]" },
-  { key: "companyFax", label: "팩스", placeholder: "042-000-0000", width: "w-[180px]" },
+  { key: "companyPhone", label: "대표 전화", hint: "세입자 문의 안내에 노출돼요. 건물별 담당 연락처가 없을 때 이 번호가 표기됩니다", placeholder: "042-000-0000", width: "w-[180px]", kind: "phone" },
+  { key: "companyFax", label: "팩스", placeholder: "042-000-0000", width: "w-[180px]", kind: "phone" },
   { key: "bizRegNo", label: "사업자등록번호", placeholder: "000-00-00000", width: "w-[180px]" },
   { key: "ceoName", label: "대표자", placeholder: "대표자명", width: "w-[140px]" },
   { key: "companyAddress", label: "주소", placeholder: "주소", width: "w-[360px]" },
@@ -82,14 +86,25 @@ export function CompanyInfoTab() {
                 </div>
               )}
             </div>
-            <Input
-              size="38"
-              aria-label={field.label}
-              className={`shrink-0 ${field.width}`}
-              value={f[field.key]}
-              placeholder={field.placeholder}
-              onChange={(event) => upd(field.key, event.target.value)}
-            />
+            {field.kind === "phone" ? (
+              <PhoneInput
+                size="38"
+                aria-label={field.label}
+                className={`shrink-0 ${field.width}`}
+                value={f[field.key]}
+                placeholder={field.placeholder}
+                onChange={(next) => upd(field.key, next)}
+              />
+            ) : (
+              <Input
+                size="38"
+                aria-label={field.label}
+                className={`shrink-0 ${field.width}`}
+                value={f[field.key]}
+                placeholder={field.placeholder}
+                onChange={(event) => upd(field.key, event.target.value)}
+              />
+            )}
           </div>
         ))}
       </div>

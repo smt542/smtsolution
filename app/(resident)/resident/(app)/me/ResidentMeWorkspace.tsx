@@ -17,18 +17,10 @@ import {
 import { useWithdrawResident } from "@/hooks/reactquery/residentWithdrawal";
 import { formatDate } from "@/lib/format";
 import { resetOnboardingSession } from "@/lib/resident/onboardingClient";
+import { formatPhone } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 
 import { residentMeClasses as styles } from "./meClasses";
-
-function formatPhone(raw: string): string {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.length === 11)
-    return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
-  if (digits.length === 10)
-    return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
-  return raw;
-}
 
 function KakaoIcon() {
   return (
