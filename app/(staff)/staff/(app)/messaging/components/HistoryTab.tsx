@@ -1,70 +1,68 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type KeyboardEvent } from "react";
+import { useMe } from "@/hooks/reactquery/auth";
+import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useMessageLogs, type MessageLog } from "@/hooks/reactquery/messaging";
-import type { SendMode } from "@/lib/messaging/preset";
+import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
 import { MessageDetailModal } from "./MessageDetailModal";
+import { MessageResultBadge } from "./MessageResultBadge";
 import { MessagingListCard } from "./MessagingListCard";
+import {
+  buildRecipientSummary,
+  channelLabel,
+  formatMessageDateTime,
+  messageResultMeta,
+  senderLabel,
+  truncateBody,
+} from "./messageFormat";
 import { SegmentedFilter } from "./SegmentedFilter";
 
-type ChannelFilter = "all" | "sms" | "alimtalk";
+type StatusFilter = "all" | "done" | "failed" | "scheduled";
 type SortOrder = "newest" | "oldest";
 
-function formatSentAt(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  const parts = new Intl.DateTimeFormat("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: "Asia/Seoul",
-  }).formatToParts(date);
-  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-  return `${get("year")}.${get("month")}.${get("day")} ${get("hour")}:${get("minute")}`;
-}
-
-function channelLabel(channel: SendMode): string {
-  return channel === "alimtalk" ? "알림톡" : "문자";
-}
-
-function senderChannel(channel: SendMode): string {
-  if (channel === "alimtalk") return "카카오 채널";
-  return "SMS";
-}
-
-function recipientSummary(log: MessageLog): string {
-  const ctx = log.context !== "manual" ? `${log.context} / ` : "";
-  return `${ctx}${log.recipientCount}명`;
-}
-
-function truncateBody(body: string): string {
-  const normalized = body.replace(/\s+/g, " ").trim();
-  return normalized.length > 35 ? `${normalized.slice(0, 35)}…` : normalized;
-}
-
 const TH =
-  "px-[16px] py-[11px] text-left text-[12px] font-bold text-[#8b95a1] whitespace-nowrap";
+  "px-[16px] py-[11px] text-left text-[12px] font-bold leading-[normal] text-[#8b95a1] whitespace-nowrap";
+const TD =
+  "h-[47.8px] px-[16px] py-[12px] text-[13px] font-medium leading-[normal] text-[#191f28]";
 
 export function HistoryTab() {
-  const { data: logs = [], isLoading, isFetching, error, refetch } =
-    useMessageLogs();
+  const { data: logs = [], isLoading, isFetching, error, refetch } = useMessageLogs();
+  const { data: me } = useMe();
+  const { data: config } = useSetupConfig(me?.orgId);
+  const { data: buildings = [] } = useBuildings();
   const isRefreshing = isFetching && !isLoading;
-  const [channelFilter, setChannelFilter] = useState<ChannelFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
   const [selected, setSelected] = useState<MessageLog | null>(null);
 
+  const buildingNameById = useMemo(
+    () => new Map(buildings.map((building) => [building.id, building.name] as const)),
+    [buildings],
+  );
+
   const filteredLogs = useMemo(() => {
-    let result = logs.filter((log) => {
-      if (channelFilter === "all") return true;
-      if (channelFilter === "alimtalk") return log.channel === "alimtalk";
-      return log.channel !== "alimtalk";
+    const result = logs.filter((log) => {
+      if (statusFilter === "all") return true;
+      if (statusFilter === "done") return log.result === "sent";
+      if (statusFilter === "failed") return log.result === "failed" || log.result === "partial";
+      return log.isScheduled;
     });
-    if (sortOrder === "oldest") result = [...result].reverse();
-    return result;
-  }, [logs, channelFilter, sortOrder]);
+
+    return [...result].sort((a, b) => {
+      const aTime = new Date(a.sentAt).getTime();
+      const bTime = new Date(b.sentAt).getTime();
+      return sortOrder === "newest" ? bTime - aTime : aTime - bTime;
+    });
+  }, [logs, sortOrder, statusFilter]);
+
+  const openLog = (log: MessageLog) => setSelected(log);
+  const handleRowKeyDown = (event: KeyboardEvent<HTMLTableRowElement>, log: MessageLog) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openLog(log);
+    }
+  };
 
   return (
     <MessagingListCard
@@ -82,14 +80,15 @@ export function HistoryTab() {
       actions={
         <>
           <SegmentedFilter
-            ariaLabel="채널 필터"
+            ariaLabel="상태 필터"
             options={[
               { value: "all", label: "전체" },
-              { value: "sms", label: "문자(SMS)" },
-              { value: "alimtalk", label: "알림톡" },
+              { value: "done", label: "완료" },
+              { value: "failed", label: "실패" },
+              { value: "scheduled", label: "예약" },
             ]}
-            value={channelFilter}
-            onChange={(value) => setChannelFilter(value)}
+            value={statusFilter}
+            onChange={(value) => setStatusFilter(value)}
           />
           <SegmentedFilter
             ariaLabel="정렬"
@@ -103,62 +102,50 @@ export function HistoryTab() {
         </>
       }
     >
-      <table className="w-full min-w-[900px] border-collapse">
+      <table className="w-full min-w-[1180px] border-collapse">
         <thead>
           <tr className="border-b border-[#e8ebee] bg-[#fbfcfd]">
             <th className={`${TH} w-[125px]`}>채널</th>
-            <th className={`${TH} w-[200px]`}>발신자</th>
-            <th className={`${TH} w-[220px]`}>수신자</th>
+            <th className={`${TH} w-[232px]`}>발신자</th>
+            <th className={`${TH} w-[320px]`}>수신자</th>
             <th className={TH}>내용</th>
-            <th className={`${TH} w-[100px]`}>결과</th>
-            <th className={`${TH} w-[160px]`}>발송 일시</th>
-            <th className="w-[96px]" />
+            <th className={`${TH} w-[104px]`}>유형</th>
+            <th className={`${TH} w-[134px]`}>상태</th>
+            <th className={`${TH} w-[272px]`}>발송 일시</th>
           </tr>
         </thead>
         <tbody>
-          {filteredLogs.map((log) => (
-            <tr
-              key={log.id}
-              onClick={() => setSelected(log)}
-              className="cursor-pointer border-b border-[#f1f3f5] last:border-b-0 hover:bg-[#fbfcfd]"
-            >
-              <td className="h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
-                {channelLabel(log.channel)}
-              </td>
-              <td className="h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
-                {senderChannel(log.channel)}
-              </td>
-              <td className="h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
-                {recipientSummary(log)}
-              </td>
-              <td className="h-[49px] max-w-[260px] px-[16px] py-[12px]">
-                <span
-                  className="block truncate text-[13px] font-medium text-[#191f28]"
-                  title={log.body}
-                >
-                  {truncateBody(log.body)}
-                </span>
-              </td>
-              <td className="h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
-                {log.result}
-              </td>
-              <td className="h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
-                {formatSentAt(log.sentAt)}
-              </td>
-              <td className="h-[49px] px-[16px] py-[12px]">
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setSelected(log);
-                  }}
-                  className="text-[12.5px] font-bold text-[#14a497]"
-                >
-                  상세 보기
-                </button>
-              </td>
-            </tr>
-          ))}
+          {filteredLogs.map((log) => {
+            const sentAt = formatMessageDateTime(log.sentAt);
+            const rowLabel = `${channelLabel(log.channel)} ${sentAt} 발송 상세 보기`;
+
+            return (
+              <tr
+                key={log.id}
+                tabIndex={0}
+                aria-label={rowLabel}
+                onClick={() => openLog(log)}
+                onKeyDown={(event) => handleRowKeyDown(event, log)}
+                className="cursor-pointer border-b border-[#f1f3f5] last:border-b-0 hover:bg-[#fbfcfd]"
+              >
+                <td className={TD}>{channelLabel(log.channel)}</td>
+                <td className={TD}>{senderLabel(log.channel, config?.smsSender)}</td>
+                <td className={TD}>
+                  {buildRecipientSummary(log.recipients, log.recipientCount, buildingNameById)}
+                </td>
+                <td className={`${TD} max-w-[260px]`}>
+                  <span className="block truncate" title={log.body}>
+                    {truncateBody(log.body)}
+                  </span>
+                </td>
+                <td className={TD}>{log.isScheduled ? "예약" : "즉시"}</td>
+                <td className={TD}>
+                  <MessageResultBadge result={log.result} />
+                </td>
+                <td className={TD}>{sentAt}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 
@@ -167,10 +154,17 @@ export function HistoryTab() {
           title="발송 상세"
           channel={selected.channel}
           rows={[
-            { label: "수신자", value: recipientSummary(selected) },
-            { label: "발송시점", value: formatSentAt(selected.sentAt) },
-            { label: "유형", value: "즉시" },
-            { label: "상태", value: selected.result },
+            {
+              label: "수신자",
+              value: buildRecipientSummary(
+                selected.recipients,
+                selected.recipientCount,
+                buildingNameById,
+              ),
+            },
+            { label: "발송시점", value: formatMessageDateTime(selected.sentAt) },
+            { label: "유형", value: selected.isScheduled ? "예약" : "즉시" },
+            { label: "상태", value: messageResultMeta(selected.result).label },
           ]}
           recipients={selected.recipients}
           recipientCount={selected.recipientCount}

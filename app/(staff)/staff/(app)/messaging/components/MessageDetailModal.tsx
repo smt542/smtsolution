@@ -4,6 +4,7 @@ import { useEffect, useId, type ReactNode } from "react";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
 import type { MessageRecipient, SendMode } from "@/lib/messaging/preset";
+import { channelLabel, senderLabel } from "./messageFormat";
 
 export interface MessageDetailRow {
   label: string;
@@ -53,11 +54,8 @@ export function MessageDetailModal({
     };
   }, [onClose]);
 
-  const channelText = channel === "alimtalk" ? "알림톡" : "문자";
-  const senderNumber =
-    channel === "alimtalk"
-      ? "관리비서 채널"
-      : config?.smsSender ?? "발신번호 미등록";
+  const channelText = channelLabel(channel);
+  const senderNumber = senderLabel(channel, config?.smsSender);
 
   return (
     <div
