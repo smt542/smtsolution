@@ -141,6 +141,7 @@ function SettlementEditor({
         settlementId={activeSettlementId}
         amount={amount}
         receivedAmount={receivedAmount}
+        billingUnpaid={context.billingUnpaid}
         vacancyPaymentMode={context.settlementSettings.vacancyPaymentMode}
         createdAt={context.latestSettlement?.createdAt ?? null}
         paymentInputRef={paymentInputRef}

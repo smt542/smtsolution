@@ -90,6 +90,11 @@ export interface SettlementContext {
     settleHolder: string | null;
   };
   settlementSettings: SettlementSettings;
+  /**
+   * billing 미납액 = 확정 부과된 period 의 (부과액 - 유효수납) 합(0171).
+   * 정산건 미수금(정산금액 - 수납액)과는 **다른 숫자**다. 완료 가드는 둘 다 본다.
+   */
+  billingUnpaid: number;
   checklist: ChecklistItem[];
   meterSummary: MeterSummary[];
 }
@@ -249,6 +254,7 @@ interface SettlementContextRpc {
     electric_unit_reflect: boolean;
     vacancy_payment_mode: "manual" | "auto";
   } | null;
+  billing_unpaid: number | string | null;
   checklist: { id: number; label: string; checked: boolean }[];
   meter_summary: {
     utility: SettlementUtility;
@@ -373,6 +379,8 @@ function rpcToSettlementContext(r: SettlementContextRpc): SettlementContext {
       electricUnitReflect: r.settlement_settings?.electric_unit_reflect ?? false,
       vacancyPaymentMode: r.settlement_settings?.vacancy_payment_mode ?? "auto",
     },
+    // bigint 합계는 드라이버가 문자열로 줄 수 있다.
+    billingUnpaid: Number(r.billing_unpaid ?? 0),
     checklist: r.checklist.map((item) => ({
       id: item.id,
       label: item.label,
