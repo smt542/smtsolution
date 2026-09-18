@@ -4,7 +4,7 @@ import React, { useRef, useState } from "react";
 import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Button, Modal, PhotoUpload } from "@/components/common";
+import { applyPhoneFormat, Button, Modal, PHONE_INPUT_ATTRS, PhotoUpload } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { setSubmissionError } from "@/components/forms/formErrors";
 import { vendorSchema } from "@/components/forms/schema/vendor";
@@ -76,6 +76,7 @@ export function VendorFormModal({
       : { name: "", manager: "", phone: "", bankAccount: "", memo: "", categoryId: defaultCategoryId },
     shouldFocusError: true,
   });
+  const phoneRegister = register("phone");
 
   React.useEffect(() => {
     if (open) {
@@ -251,7 +252,19 @@ export function VendorFormModal({
                 {/* 전화 */}
                 <div>
                   <label htmlFor="vendor-phone" className={vendorClasses.fieldLabel}>전화번호</label>
-                  <input id="vendor-phone" {...register("phone")} placeholder="전화번호" className={`${vendorClasses.fieldInput} num`} aria-invalid={Boolean(errors.phone)} aria-describedby={errors.phone ? "vendor-phone-error" : undefined} />
+                  <input
+                    {...PHONE_INPUT_ATTRS}
+                    id="vendor-phone"
+                    {...phoneRegister}
+                    placeholder="전화번호"
+                    className={`${vendorClasses.fieldInput} num`}
+                    aria-invalid={Boolean(errors.phone)}
+                    aria-describedby={errors.phone ? "vendor-phone-error" : undefined}
+                    onChange={(event) => {
+                      applyPhoneFormat(event.currentTarget);
+                      return phoneRegister.onChange(event);
+                    }}
+                  />
                   {errors.phone?.message && <p id="vendor-phone-error" className={vendorClasses.fieldError}>{errors.phone.message}</p>}
                 </div>
 

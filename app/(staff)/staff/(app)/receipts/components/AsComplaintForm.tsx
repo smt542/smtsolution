@@ -3,7 +3,7 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Input, Select, Spinner, Textarea } from "@/components/common";
+import { Button, Input, PhoneInput, Select, Spinner, Textarea } from "@/components/common";
 import { FormField } from "@/components/common/FormField";
 import { setSubmissionError } from "@/components/forms/formErrors";
 import {
@@ -243,7 +243,7 @@ export function AsComplaintForm({
           <Select id={`${formId}-category`} aria-label="유형" {...register("categoryId")} options={[{ value: "", label: "유형 선택" }, ...categories.map((category) => ({ value: String(category.id), label: category.label }))]} />
         </FormField>
         <FormField htmlFor={`${formId}-phone`} label="입주자 전화번호" error={errors.reporterPhone?.message} className="space-y-2 text-sm font-bold text-t2">
-          <Input id={`${formId}-phone`} aria-label="입주자 전화번호" {...register("reporterPhone")} placeholder="010-0000-0000" />
+          <PhoneInput id={`${formId}-phone`} aria-label="입주자 전화번호" {...register("reporterPhone")} placeholder="010-0000-0000" />
         </FormField>
         <FormField htmlFor={`${formId}-content`} label={<>접수내용 <span className="text-red">*</span></>} error={errors.content?.message} className="space-y-2 text-sm font-bold text-t2 sm:col-span-3">
           <Textarea id={`${formId}-content`} aria-label="접수내용" {...register("content")} rows={3} placeholder="접수내용을 입력해 주세요" className="resize-y" />

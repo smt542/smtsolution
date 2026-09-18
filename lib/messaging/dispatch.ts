@@ -251,7 +251,10 @@ export async function dispatchMessages(
   );
   const effectiveConfig: PopbillConfig = {
     ...envConfig,
-    smsSender: orgSmsSender?.trim() || envConfig.smsSender,
+    // org 발신번호는 숫자만 넘긴다. 쓰기 경로(/api/setup/sender)가 이미 정규화하지만,
+    // 이 값은 실제 발송에 그대로 실려 나가므로 읽는 쪽에서도 보장한다.
+    // (이 파일에 이미 있는 로컬 normalizePhone — 숫자만 남긴다)
+    smsSender: normalizePhone(orgSmsSender) || envConfig.smsSender,
   };
 
   // 1) 서버 견적(인증 컨텍스트) — 최종 본문으로 sms/lms/alimtalk 판정

@@ -12,7 +12,7 @@ import {
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Modal, Input, Button, PhotoUpload } from "@/components/common";
+import { Modal, Input, Button, PhoneInput, PhotoUpload } from "@/components/common";
 import { FormField } from "@/components/common/FormField";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { setSubmissionError } from "@/components/forms/formErrors";
@@ -64,6 +64,7 @@ const ORGANIZATION_FIELDS: Array<{
   name: CommonFieldName;
   label: string;
   type?: React.HTMLInputTypeAttribute;
+  kind?: "phone";
   placeholder?: string;
   full?: boolean;
 }> = [
@@ -78,8 +79,8 @@ const ORGANIZATION_FIELDS: Array<{
     label: "사업자등록번호 *",
     placeholder: "000-00-00000",
   },
-  { name: "phone", label: "대표 전화 *", type: "tel", placeholder: "02-1234-5678" },
-  { name: "fax", label: "팩스 번호 *", type: "tel", placeholder: "02-1234-5679" },
+  { name: "phone", label: "대표 전화 *", placeholder: "02-1234-5678", kind: "phone" },
+  { name: "fax", label: "팩스 번호 *", placeholder: "02-1234-5679", kind: "phone" },
   {
     name: "email",
     label: "이메일 *",
@@ -120,6 +121,22 @@ function OrganizationFields<T extends FieldValues & EditInput>({
       {ORGANIZATION_FIELDS.map((field) => {
         const id = `${idPrefix}-${field.name}`;
         const error = errors[field.name] as FieldError | undefined;
+        const fieldInput = field.kind === "phone" ? (
+          <PhoneInput
+            id={id}
+            placeholder={field.placeholder}
+            className={ORGANIZATION_INPUT_CLASS}
+            {...register(field.name as Path<T>)}
+          />
+        ) : (
+          <Input
+            id={id}
+            type={field.type}
+            placeholder={field.placeholder}
+            className={ORGANIZATION_INPUT_CLASS}
+            {...register(field.name as Path<T>)}
+          />
+        );
         return (
           <FormField
             key={field.name}
@@ -128,13 +145,7 @@ function OrganizationFields<T extends FieldValues & EditInput>({
             error={error?.message}
             className={`${field.full ? "sm:col-span-2" : ""} ${FORM_FIELD_CLASS}`}
           >
-            <Input
-              id={id}
-              type={field.type}
-              placeholder={field.placeholder}
-              className={ORGANIZATION_INPUT_CLASS}
-              {...register(field.name as Path<T>)}
-            />
+            {fieldInput}
           </FormField>
         );
       })}
@@ -347,9 +358,8 @@ function CreateModal({ open, onClose, onSubmit, isPending }: Omit<CreateProps, "
             error={errors.ownerPhone?.message}
             className={`sm:col-span-2 ${FORM_FIELD_CLASS}`}
           >
-            <Input
+            <PhoneInput
               id="owner-phone"
-              type="tel"
               {...register("ownerPhone")}
               placeholder="010-1234-5678"
               className={ORGANIZATION_INPUT_CLASS}

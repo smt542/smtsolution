@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMe } from "@/hooks/reactquery/auth";
+import { applyPhoneFormat, PHONE_INPUT_ATTRS } from "@/components/common";
 import {
   useSaveSetupSender,
   useSetupConfig,
@@ -182,12 +183,13 @@ export function SenderSelect({ value, onChange }: SenderSelectProps) {
       >
         <div className={styles["fmp-fromadd"]}>
           <input
-            inputMode="tel"
+            {...PHONE_INPUT_ATTRS}
             aria-label="발신번호 직접 입력"
             placeholder="발신번호 직접 입력"
             value={input}
             onChange={(event) => {
-              setInput(formatPhone(event.target.value));
+              applyPhoneFormat(event.currentTarget);
+              setInput(event.currentTarget.value);
               setError("");
             }}
             onKeyDown={(event) => {
