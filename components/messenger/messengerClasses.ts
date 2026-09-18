@@ -3,7 +3,10 @@ export const messengerClasses: Record<string, string> = {
   "fmp": "fixed z-[46] flex max-h-[calc(100vh-40px)] w-[820px] max-w-[calc(100vw-44px)] flex-col overflow-hidden rounded-[20px] border border-line bg-white opacity-0 shadow-[0_30px_80px_-20px_rgba(23,31,40,0.5)] invisible transition duration-200",
   "fmp-bubble": "fixed bottom-[22px] right-[22px] z-[45] flex h-[52px] items-center gap-2.5 rounded-full border border-line bg-white px-3.5 pl-3 shadow-[0_14px_34px_-10px_rgba(23,31,40,0.35)]",
   "fmpc-scrim": "fixed inset-0 z-[48] flex items-center justify-center bg-scrim p-6",
-  show: "pointer-events-auto visible flex opacity-100 translate-y-0 scale-100",
+  // 정본 .fmp.show{transform:none}. translate-y-0 scale-100 은 겉보기엔 같지만 transform 이
+  // none 이 아니라 패널이 fixed 자손의 containing block 이 된다 → 패널 안의 .menu(position:fixed)가
+  // 뷰포트가 아니라 패널 기준으로 배치돼 화면 밖으로 밀린다. 반드시 transform-none 이어야 한다.
+  show: "pointer-events-auto visible flex opacity-100 transform-none",
   hide: "hidden",
   "fmp-h": "flex flex-none select-none items-center gap-[9px] border-b border-line bg-white pl-4 pr-3 py-[13px]",
   drag: "cursor-grabbing",
