@@ -1,6 +1,6 @@
 import type { SettlementInquiryRow } from "@/hooks/reactquery/movingSettlement";
 import { formatDate } from "@/lib/format";
-import { unitNoLabel } from "./AllSettlementInquiryTable";
+import { unitNoLabel } from "./settlementInquiryTypes";
 import {
   locationLabel,
   type SettlementInquiryEdits,
