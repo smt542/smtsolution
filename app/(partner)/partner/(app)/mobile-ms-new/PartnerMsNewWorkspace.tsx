@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { type ReactNode, useMemo, useState } from "react";
 
+import { formatPhone } from "@/lib/format";
 import {
   useDeletePartnerSettlement,
   useSavePartnerSettlement,
@@ -28,14 +29,6 @@ import {
 import { msClasses as styles } from "./msClasses";
 
 type SectionKey = "basic" | "util" | "fee" | "etc" | "cleaning" | "settle" | "check";
-
-function formatPhone(raw: string): string {
-  const d = raw.replace(/\D/g, "").slice(0, 11);
-  if (d.length < 4) return d;
-  if (d.length < 8) return `${d.slice(0, 3)}-${d.slice(3)}`;
-  if (d.length === 10) return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
-  return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
-}
 
 function ChevronDown({ folded }: { folded: boolean }) {
   return (

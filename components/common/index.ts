@@ -1,6 +1,7 @@
 export { Button } from "./Button";
 export { IconButton } from "./IconButton";
 export { Input } from "./Input";
+export { PhoneInput } from "./PhoneInput";
 export { Textarea } from "./Textarea";
 export { Switch } from "./Switch";
 export { SegmentedControl } from "./SegmentedControl";
