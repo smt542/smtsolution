@@ -26,8 +26,8 @@ export function SettlementExtrasSection({
   value,
   onChange,
   checklist,
-  checked,
-  onChecklistChange,
+  notes,
+  onChecklistNoteChange,
   receivedAmount,
   onReceivedAmountChange,
   finalPaidDate,
@@ -37,8 +37,8 @@ export function SettlementExtrasSection({
   value: MovingSettlementValues;
   onChange: (next: MovingSettlementValues) => void;
   checklist: ChecklistItem[];
-  checked: Record<number, boolean>;
-  onChecklistChange: (id: number, checked: boolean) => void;
+  notes: Record<number, string>;
+  onChecklistNoteChange: (id: number, note: string) => void;
   receivedAmount: number;
   onReceivedAmountChange: (amount: number) => void;
   finalPaidDate: string;
@@ -244,13 +244,16 @@ export function SettlementExtrasSection({
                     <span className="truncate text-[12px] font-semibold text-t2">
                       {item.label}
                     </span>
+                    {/* 항목별 메모(0172). 내용이 있으면 체크된 것으로 저장된다. */}
                     <input
                       aria-label={item.label}
-                      value={checked[item.id] ? "확인" : ""}
+                      value={notes[item.id] ?? ""}
                       onChange={(event) =>
-                        onChecklistChange(item.id, event.target.value.trim() !== "")
+                        onChecklistNoteChange(item.id, event.target.value)
                       }
-                      className="h-[34px] rounded-[9px] border border-[#dee3e8] px-[9px] text-[12.5px] text-t1 outline-none focus:border-teal"
+                      maxLength={100}
+                      placeholder="확인 내용 · 메모"
+                      className="h-[34px] rounded-[9px] border border-[#dee3e8] px-[9px] text-[12.5px] text-t1 outline-none placeholder:text-t4 focus:border-teal"
                     />
                   </label>
                 ))}

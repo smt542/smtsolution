@@ -49,8 +49,8 @@ export function SettlementForm({
   meters = [],
   settings = DEFAULT_SETTINGS,
   checklist = [],
-  checked = {},
-  onChecklistChange = () => undefined,
+  notes = {},
+  onChecklistNoteChange = () => undefined,
   receivedAmount = 0,
   onReceivedAmountChange = () => undefined,
   finalPaidDate = "",
@@ -67,8 +67,9 @@ export function SettlementForm({
   meters?: MeterSummary[];
   settings?: SettlementSettings;
   checklist?: ChecklistItem[];
-  checked?: Record<number, boolean>;
-  onChecklistChange?: (id: number, checked: boolean) => void;
+  /** 정산 체크 항목별 메모(0172). checked 는 이 값이 비어있지 않은지로 파생된다. */
+  notes?: Record<number, string>;
+  onChecklistNoteChange?: (id: number, note: string) => void;
   receivedAmount?: number;
   onReceivedAmountChange?: (amount: number) => void;
   finalPaidDate?: string;
@@ -162,8 +163,8 @@ export function SettlementForm({
             value={value}
             onChange={onChange}
             checklist={checklist}
-            checked={checked}
-            onChecklistChange={onChecklistChange}
+            notes={notes}
+            onChecklistNoteChange={onChecklistNoteChange}
             receivedAmount={receivedAmount}
             onReceivedAmountChange={onReceivedAmountChange}
             finalPaidDate={finalPaidDate}
