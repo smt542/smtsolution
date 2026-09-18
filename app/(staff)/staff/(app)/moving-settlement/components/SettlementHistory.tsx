@@ -62,14 +62,8 @@ export function SettlementHistory({
         <span className="px-[8px] py-[11px]">건물명</span>
         <span className="py-[11px] pl-[8px] pr-[16px]">주소</span>
       </div>
+      {/* 날짜 미선택 상태는 정본(Figma 69:66160)이 표 헤더 아래를 비워 두므로 안내 문구를 넣지 않는다. */}
       <div className="min-h-0 flex-1 overflow-auto">
-        {date === "" && (
-          <p className="px-[18px] py-[14px] text-[12.5px] font-medium leading-[1.6] text-t4">
-            날짜를 선택하면
-            <br />
-            해당일 이사정산 이력이 표시돼요
-          </p>
-        )}
         {date !== "" && query.isLoading && (
           <p role="status" aria-label="이사정산 이력 불러오는 중" className="px-[18px] py-[14px] text-[12.5px] text-t4">
             이력을 불러오고 있어요
