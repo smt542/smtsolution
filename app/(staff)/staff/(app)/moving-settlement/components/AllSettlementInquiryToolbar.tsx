@@ -55,7 +55,7 @@ export function AllSettlementInquiryToolbar({
   onSave,
 }: AllSettlementInquiryToolbarProps) {
   return (
-    <div className="moving-inquiry-toolbar flex min-h-[65px] min-w-[1270px] items-center gap-[8px] border-b border-line2 bg-white px-[16px] py-[13px]">
+    <div className="moving-inquiry-toolbar flex min-h-[65px] min-w-[1270px] items-center gap-[8px] rounded-t-[16px] border-b border-line2 bg-white px-[16px] py-[13px]">
       <span className="text-[12px] font-bold text-t3">조회일</span>
       <CustomDropdown
         ariaLabel="조회 시작 연도"
@@ -87,11 +87,13 @@ export function AllSettlementInquiryToolbar({
         size="compact"
       />
 
-      <span className="mx-[2px] h-[22px] w-px bg-line" aria-hidden="true" />
+      <span className="flex items-start px-[2px]" aria-hidden="true">
+        <span className="h-[22px] w-px bg-line" />
+      </span>
 
       <div
         aria-label="정산 상태"
-        className="flex rounded-[9px] bg-[#edf0f3] p-[3px]"
+        className="flex gap-[2px] rounded-[9px] bg-[#edf0f3] p-[3px]"
       >
         {[
           ["", "전체"],
@@ -103,7 +105,7 @@ export function AllSettlementInquiryToolbar({
             type="button"
             aria-pressed={status === value}
             onClick={() => onStatusChange(value as typeof status)}
-            className={`rounded-[7px] px-[11px] py-[5px] text-[12px] font-bold ${
+            className={`rounded-[7px] px-[11px] py-[5px] text-[12px] leading-[normal] font-bold ${
               status === value ? "bg-white text-t1" : "text-t3 hover:text-t2"
             }`}
           >
@@ -114,7 +116,7 @@ export function AllSettlementInquiryToolbar({
 
       <div
         aria-label="조회 정렬"
-        className="flex rounded-[9px] bg-[#edf0f3] p-[3px]"
+        className="flex gap-[2px] rounded-[9px] bg-[#edf0f3] p-[3px]"
       >
         {[
           ["code", "코드순"],
@@ -125,7 +127,7 @@ export function AllSettlementInquiryToolbar({
             type="button"
             aria-pressed={sort === value}
             onClick={() => onSortChange(value as SettlementInquirySort)}
-            className={`rounded-[7px] px-[11px] py-[5px] text-[12px] font-bold ${
+            className={`rounded-[7px] px-[11px] py-[5px] text-[12px] leading-[normal] font-bold ${
               sort === value ? "bg-white text-t1" : "text-t3 hover:text-t2"
             }`}
           >
@@ -147,7 +149,9 @@ export function AllSettlementInquiryToolbar({
         />
       </label>
 
-      <span className="mx-[2px] h-[22px] w-px bg-line" aria-hidden="true" />
+      <span className="flex items-start px-[2px]" aria-hidden="true">
+        <span className="h-[22px] w-px bg-line" />
+      </span>
 
       <button
         type="button"
@@ -162,7 +166,7 @@ export function AllSettlementInquiryToolbar({
         type="button"
         onClick={onSave}
         disabled={!dirty || saving}
-        className="h-[34px] rounded-[8px] border border-teal bg-teal px-[16px] text-[13px] font-bold text-white transition-colors hover:bg-teal-d disabled:border-line disabled:bg-line2 disabled:text-t4"
+        className="flex h-[34px] flex-col items-center justify-center rounded-[8px] border border-teal bg-teal px-[16px] text-[13px] font-bold text-white transition-colors hover:bg-teal-d disabled:border-line disabled:bg-line2 disabled:text-t4"
       >
         {saving ? "저장 중…" : "저장"}
       </button>

@@ -158,15 +158,6 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-.settlement-date-input::-webkit-calendar-picker-indicator {
-  position: absolute;
-  right: 0;
-  width: 30px;
-  height: 30px;
-  cursor: pointer;
-  opacity: 0;
-}
-
 /* 전체 이사조회는 화면에서는 고정 헤더/합계를 유지하고, 인쇄에서는 통합표 전체를 펼친다. */
 @media print {
   .moving-inquiry-scroll {
