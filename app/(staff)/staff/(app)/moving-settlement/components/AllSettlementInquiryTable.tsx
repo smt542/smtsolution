@@ -119,10 +119,6 @@ export function AllSettlementInquiryTable({
             const groupElectric = sum(group.rows, (row) => row.elecCharge);
             const groupGas = sum(group.rows, (row) => row.gasCharge);
             const groupMonthly = sum(group.rows, (row) => row.mgmtFeeProrated);
-            const groupCleaning = group.rows.reduce(
-              (amount, row) => amount + (cleaningValue(row, edits) ?? 0),
-              0,
-            );
 
             return (
               <Fragment key={group.key}>
@@ -216,9 +212,8 @@ export function AllSettlementInquiryTable({
                   <td className={`${SUBTOTAL_CELL} text-right tabular-nums`}>{displayNumber(groupGas)}</td>
                   <td className={SUBTOTAL_CELL} />
                   <td className={`${SUBTOTAL_CELL} text-right tabular-nums`}>{displayNumber(groupMonthly)}</td>
-                  <td className={SUBTOTAL_CELL} />
-                  <td className={`${SUBTOTAL_CELL} text-right tabular-nums`}>{displayNumber(groupCleaning)}</td>
-                  <td className={SUBTOTAL_CELL} />
+                  {/* 정본 소계행은 입력검사·청소비용·상태를 빈 colspan 하나로 묶는다(청소비용 소계 없음) */}
+                  <td className={SUBTOTAL_CELL} colSpan={3} />
                 </tr>
               </Fragment>
             );
