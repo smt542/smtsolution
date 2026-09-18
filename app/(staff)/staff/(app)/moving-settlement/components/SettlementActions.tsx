@@ -54,6 +54,7 @@ export function SettlementActions({
   settlementId,
   amount,
   receivedAmount = 0,
+  vacancyPaymentMode = "auto",
   createdAt = null,
   paymentInputRef = EMPTY_INPUT_REF,
   onSaved,
@@ -67,6 +68,8 @@ export function SettlementActions({
   settlementId: number | null;
   amount: number;
   receivedAmount?: number;
+  /** 셋업 > 이사정산 설정. auto 면 퇴실 처리 시 미납이 자동수납되고, manual 이면 미수금이 남는다. */
+  vacancyPaymentMode?: "manual" | "auto";
   createdAt?: string | null;
   paymentInputRef?: RefObject<HTMLInputElement | null>;
   onSaved: (id: number) => void;
@@ -138,9 +141,14 @@ export function SettlementActions({
   const completeMoveout = () => {
     if (settlementId === null) return;
     complete.mutate(settlementId, {
-      onSuccess: () => {
+      onSuccess: (result) => {
         setDialog(null);
-        toast.success("퇴실로 처리 완료했어요.");
+        const collected = result.collected_count ?? 0;
+        toast.success(
+          collected > 0
+            ? `퇴실로 처리 완료했어요. 미납 ${collected}건을 자동 수납했어요.`
+            : "퇴실로 처리 완료했어요.",
+        );
       },
       onError: () => toast.error("퇴실 처리에 실패했어요."),
     });
@@ -220,6 +228,7 @@ export function SettlementActions({
         <p>{occupancy.tenantName ?? "입주자 미등록"}의 정산 상태가 완료로 변경돼요.</p>
       </SettlementDecisionDialog>
 
+      {/* 문구는 셋업 > 이사정산 설정의 공실 수납 방식에 따라 갈린다(0167). */}
       <SettlementDecisionDialog
         open={dialog === "moveout-confirm"}
         title="퇴실 처리 전 확인"
@@ -229,8 +238,17 @@ export function SettlementActions({
         onCancel={() => setDialog(null)}
         onConfirm={completeMoveout}
       >
-        <p>{building.name} {unit.unitNo} 세대의 미납 관리비를 수납 처리하시겠습니까?</p>
-        <p>확인하면 남은 미납 관리비가 자동으로 수납 처리되고, 입주자 정보가 초기화되며 세대가 공실로 전환돼요.</p>
+        {vacancyPaymentMode === "auto" ? (
+          <>
+            <p>{building.name} {unit.unitNo} 세대의 미납 관리비를 수납 처리하시겠습니까?</p>
+            <p>확인하면 남은 미납 관리비가 자동으로 수납 처리되고, 입주자 정보가 초기화되며 세대가 공실로 전환돼요.</p>
+          </>
+        ) : (
+          <>
+            <p>{building.name} {unit.unitNo} 세대를 퇴실로 처리할까요?</p>
+            <p>확인하면 입주자 정보가 초기화되며 세대가 공실로 전환돼요. 공실 수납 방식이 <b>수동</b>이라 남은 미납 관리비는 <b>수납되지 않고 미수금으로 남아요</b> — 수납관리 화면에서 따로 처리해 주세요.</p>
+          </>
+        )}
       </SettlementDecisionDialog>
 
       <SettlementDecisionDialog

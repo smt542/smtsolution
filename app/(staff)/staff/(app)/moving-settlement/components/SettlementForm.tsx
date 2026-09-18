@@ -3,16 +3,28 @@
 import { useEffect, type RefObject } from "react";
 import { useManagementFeeRows } from "@/hooks/reactquery/movingSettlement/feeItemCharges";
 import type { MovingSettlementValues } from "@/components/forms/schema/movingSettlement";
-import type { ChecklistItem, MeterSummary } from "@/hooks/reactquery/movingSettlement";
+import type {
+  ChecklistItem,
+  MeterSummary,
+  SettlementSettings,
+} from "@/hooks/reactquery/movingSettlement";
 import { calculateSettlementAmount } from "@/hooks/reactquery/movingSettlement";
 import { ManagementFeeSection } from "./settlement-form/ManagementFeeSection";
 import { SettlementBasicSection } from "./settlement-form/SettlementBasicSection";
 import { SettlementExtrasSection } from "./settlement-form/SettlementExtrasSection";
 import { SettlementSummaryBar } from "./settlement-form/SettlementSummaryBar";
-import { UtilitySettlementSection } from "./settlement-form/UtilitySettlementSection";
+import {
+  reflectedUtilityCharges,
+  UtilitySettlementSection,
+} from "./settlement-form/UtilitySettlementSection";
 
 export type SettlementDraft = MovingSettlementValues;
 const EMPTY_INPUT_REF: RefObject<HTMLInputElement | null> = { current: null };
+const DEFAULT_SETTINGS: SettlementSettings = {
+  waterUnitReflect: false,
+  electricUnitReflect: false,
+  vacancyPaymentMode: "auto",
+};
 
 export function calculateProratedMgmtFee(
   monthly: number | null,
@@ -35,6 +47,7 @@ export function SettlementForm({
   value,
   onChange,
   meters = [],
+  settings = DEFAULT_SETTINGS,
   checklist = [],
   checked = {},
   onChecklistChange = () => undefined,
@@ -52,6 +65,7 @@ export function SettlementForm({
   value: SettlementDraft;
   onChange: (next: SettlementDraft) => void;
   meters?: MeterSummary[];
+  settings?: SettlementSettings;
   checklist?: ChecklistItem[];
   checked?: Record<number, boolean>;
   onChecklistChange?: (id: number, checked: boolean) => void;
@@ -69,12 +83,24 @@ export function SettlementForm({
     unitId,
     value.moveOutDate,
   );
+  // 단가 반영 ON 인 공과금 금액도 계산값이다. 관리비 소계와 **한 이펙트에서** 되돌려 넣는다 —
+  // 이펙트를 둘로 나누면 각자 stale 한 value 를 펼쳐 서로의 결과를 덮어쓴다.
+  const reflectedCharges = reflectedUtilityCharges(meters, settings);
+  const derivedKey = JSON.stringify([managementTotal, reflectedCharges]);
   useEffect(() => {
-    if ((value.mgmtFeeProrated ?? 0) === managementTotal) return;
-    onChange({ ...value, mgmtFeeProrated: managementTotal });
+    const patch: Partial<SettlementDraft> = {};
+    if ((value.mgmtFeeProrated ?? 0) !== managementTotal) {
+      patch.mgmtFeeProrated = managementTotal;
+    }
+    for (const [key, amount] of Object.entries(reflectedCharges)) {
+      const chargeKey = key as "waterCharge" | "elecCharge" | "gasCharge";
+      if ((value[chargeKey] ?? null) !== amount) patch[chargeKey] = amount;
+    }
+    if (Object.keys(patch).length === 0) return;
+    onChange({ ...value, ...patch });
     // value/onChange 를 의존성에 넣으면 매 렌더 재실행되므로 계산값만 추적한다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [managementTotal]);
+  }, [derivedKey]);
 
   const set = <K extends keyof SettlementDraft>(
     key: K,
@@ -116,7 +142,12 @@ export function SettlementForm({
             moveOutDate={value.moveOutDate}
             onMoveOutDateChange={setMoveOutDate}
           />
-          <UtilitySettlementSection value={value} meters={meters} onChange={onChange} />
+          <UtilitySettlementSection
+            value={value}
+            meters={meters}
+            settings={settings}
+            onChange={onChange}
+          />
           <ManagementFeeSection
             buildingTypeId={buildingTypeId}
             unitId={unitId}
