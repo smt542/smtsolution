@@ -4,7 +4,51 @@ import type { SVGProps } from "react";
 export function CalendarIcon({
   variant = "default",
   ...props
-}: SVGProps<SVGSVGElement> & { variant?: "default" | "building-register" }) {
+}: SVGProps<SVGSVGElement> & {
+  variant?: "default" | "building-register" | "messenger-date" | "messenger-repeat";
+}) {
+  if (variant === "messenger-date") {
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" {...props}>
+        <path
+          d="M12.3333 3H3.66667C2.74619 3 2 3.74619 2 4.66667V12C2 12.9205 2.74619 13.6667 3.66667 13.6667H12.3333C13.2538 13.6667 14 12.9205 14 12V4.66667C14 3.74619 13.2538 3 12.3333 3Z"
+          stroke="currentColor"
+          strokeWidth="1.26667"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M2 6H14M5.33333 2V4M10.6667 2V4"
+          stroke="currentColor"
+          strokeWidth="1.26667"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+
+  if (variant === "messenger-repeat") {
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" {...props}>
+        <path
+          d="M11.3333 1.33333V4M4.66667 1.33333V4M2 6.66667H14"
+          stroke="currentColor"
+          strokeWidth="1.26667"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M12.3333 3H3.66667C2.74619 3 2 3.74619 2 4.66667V12C2 12.9205 2.74619 13.6667 3.66667 13.6667H12.3333C13.2538 13.6667 14 12.9205 14 12V4.66667C14 3.74619 13.2538 3 12.3333 3Z"
+          stroke="currentColor"
+          strokeWidth="1.26667"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    );
+  }
+
   if (variant === "building-register") {
     return (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" {...props}>

@@ -14,6 +14,7 @@ interface DpDatePickerProps {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  minDate?: string;
   ariaLabel?: string;
   triggerClassName?: string;
   triggerOpenClassName?: string;
@@ -35,6 +36,7 @@ export function DpDatePicker({
   onChange,
   placeholder = "날짜",
   disabled = false,
+  minDate,
   ariaLabel,
   triggerClassName,
   triggerOpenClassName,
@@ -94,6 +96,9 @@ export function DpDatePicker({
   const selected = value ? value.split("-").map(Number) : null; // [y, m(1-based), d]
   const firstDow = new Date(view.y, view.m, 1).getDay();
   const daysInMonth = new Date(view.y, view.m + 1, 0).getDate();
+  const viewMonth = `${view.y}-${pad(view.m + 1)}`;
+  const minimumMonth = minDate?.slice(0, 7);
+  const previousMonthDisabled = Boolean(minimumMonth && viewMonth <= minimumMonth);
   const cells: (number | null)[] = [
     ...Array.from({ length: firstDow }, () => null),
     ...Array.from({ length: daysInMonth }, (_, index) => index + 1),
@@ -108,11 +113,15 @@ export function DpDatePicker({
     setOpen(true);
   };
   const pick = (day: number) => {
-    onChange(`${view.y}-${pad(view.m + 1)}-${pad(day)}`);
+    const nextValue = `${view.y}-${pad(view.m + 1)}-${pad(day)}`;
+    if (minDate && nextValue < minDate) return;
+    onChange(nextValue);
     setOpen(false);
   };
   const shiftMonth = (delta: number) =>
     setView((current) => {
+      const currentMonth = `${current.y}-${pad(current.m + 1)}`;
+      if (minDate && delta < 0 && currentMonth <= minDate.slice(0, 7)) return current;
       const next = current.m + delta;
       return { y: current.y + Math.floor(next / 12), m: ((next % 12) + 12) % 12 };
     });
@@ -151,7 +160,7 @@ export function DpDatePicker({
             style={{ left: pos.left, top: pos.top }}
           >
             <div className="mb-[10px] flex items-center justify-between">
-              <button type="button" aria-label="이전 달" onClick={() => shiftMonth(-1)} className="grid size-[30px] place-items-center rounded-[8px] text-[17px] text-t2 hover:bg-bg">‹</button>
+              <button type="button" aria-label="이전 달" disabled={previousMonthDisabled} onClick={() => shiftMonth(-1)} className="grid size-[30px] place-items-center rounded-[8px] text-[17px] text-t2 hover:bg-bg disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent">‹</button>
               <span className="text-[14px] font-extrabold text-t1">{view.y}년 {view.m + 1}월</span>
               <button type="button" aria-label="다음 달" onClick={() => shiftMonth(1)} className="grid size-[30px] place-items-center rounded-[8px] text-[17px] text-t2 hover:bg-bg">›</button>
             </div>
@@ -168,9 +177,12 @@ export function DpDatePicker({
                   <button
                     key={day}
                     type="button"
+                    disabled={Boolean(minDate && `${view.y}-${pad(view.m + 1)}-${pad(day)}` < minDate)}
                     onClick={() => pick(day)}
                     className={`grid h-[32px] place-items-center rounded-[8px] text-[13px] font-semibold ${
-                      selected && selected[0] === view.y && selected[1] === view.m + 1 && selected[2] === day
+                      minDate && `${view.y}-${pad(view.m + 1)}-${pad(day)}` < minDate
+                        ? "cursor-default text-t4 opacity-45"
+                        : selected && selected[0] === view.y && selected[1] === view.m + 1 && selected[2] === day
                         ? "bg-blue font-bold text-white"
                         : "text-t1 hover:bg-blue-t2"
                     }`}

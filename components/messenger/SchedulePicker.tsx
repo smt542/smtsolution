@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { messengerClasses as styles } from "./messengerClasses";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { DpDatePicker } from "@/components/common/DpDatePicker";
+import { CalendarIcon, CheckIcon, ClockIcon } from "@/components/icons";
 
 export interface ScheduleValue {
   scheduledAt: string | null;
@@ -12,6 +14,11 @@ interface SchedulePickerProps {
   value: ScheduleValue;
   onChange: (value: ScheduleValue) => void;
 }
+
+const CONTROL_CLASS_NAME =
+  "flex h-[44px] flex-1 min-w-0 items-center gap-[8px] rounded-[11px] border border-line bg-white px-[13px] text-[13.5px] font-bold text-t1 focus-within:border-blue";
+const TIME_INPUT_CLASS_NAME =
+  "min-w-0 flex-1 border-0 bg-transparent p-0 text-[13.5px] outline-none [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:m-0 [&::-webkit-calendar-picker-indicator]:h-auto [&::-webkit-calendar-picker-indicator]:w-auto [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0";
 
 function pad(value: number): string {
   return String(value).padStart(2, "0");
@@ -67,11 +74,53 @@ function toKstIso(date: string, time: string): string | null {
   return `${date}T${time}:00+09:00`;
 }
 
+type RepeatMenuPosition = { left: number; top: number };
+
 export function SchedulePicker({ value, onChange }: SchedulePickerProps) {
   const [minimumDate] = useState(() => defaultKstParts().date);
   const [repeatOpen, setRepeatOpen] = useState(false);
+  const [repeatMenuPosition, setRepeatMenuPosition] = useState<RepeatMenuPosition | null>(null);
+  const repeatTriggerRef = useRef<HTMLButtonElement>(null);
+  const repeatMenuRef = useRef<HTMLDivElement>(null);
   const enabled = value.scheduledAt !== null;
   const parts = scheduledParts(value.scheduledAt);
+
+  useEffect(() => {
+    if (!repeatOpen) return;
+    const placeMenu = () => {
+      const rect = repeatTriggerRef.current?.getBoundingClientRect();
+      if (rect) setRepeatMenuPosition({ left: rect.left, top: rect.bottom + 6 });
+    };
+    placeMenu();
+    window.addEventListener("scroll", placeMenu, true);
+    window.addEventListener("resize", placeMenu);
+    return () => {
+      window.removeEventListener("scroll", placeMenu, true);
+      window.removeEventListener("resize", placeMenu);
+    };
+  }, [repeatOpen]);
+
+  useEffect(() => {
+    if (!repeatOpen) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!repeatTriggerRef.current?.contains(target) && !repeatMenuRef.current?.contains(target)) {
+        setRepeatOpen(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setRepeatOpen(false);
+        repeatTriggerRef.current?.focus();
+      }
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [repeatOpen]);
 
   const toggle = () => {
     if (enabled) {
@@ -86,76 +135,64 @@ export function SchedulePicker({ value, onChange }: SchedulePickerProps) {
     });
   };
 
+  const toggleRepeat = () => {
+    if (repeatOpen) {
+      setRepeatOpen(false);
+      return;
+    }
+    const rect = repeatTriggerRef.current?.getBoundingClientRect();
+    if (rect) setRepeatMenuPosition({ left: rect.left, top: rect.bottom + 6 });
+    setRepeatOpen(true);
+  };
+
   return (
-    <div className={styles["fmp-resv"]}>
-      {/* 정본(Messenger.dc.html L543): 체크박스를 min-height:24px·align-items:center 행에
-          감싸 22px 라벨을 세로중앙 배치(텍스트 1px 아래로) — 앱 전용 margin 보정 대신 정본 구조 복제 */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 18,
-          marginBottom: 10,
-          flexWrap: "wrap",
-          minHeight: 24,
-        }}
-      >
+    <div className="flex flex-col items-start">
+      <div className="flex h-[24px] min-h-[24px] items-center">
         <button
           type="button"
-          className={`${styles["fmp-ck"]} ${enabled ? styles.on : ""}`}
+          className="inline-flex min-h-[22px] cursor-pointer select-none items-center gap-[8px]"
           onClick={toggle}
           aria-pressed={enabled}
         >
-          <span className={styles.box} aria-hidden="true" />
-          예약 전송
+          <span
+            className={`relative size-[19px] shrink-0 rounded-[6px] border-2 ${
+              enabled ? "border-blue bg-blue" : "border-line bg-white"
+            }`}
+            aria-hidden="true"
+          >
+            {enabled && (
+              <span className="absolute left-[1.14px] top-[0.51px] flex size-[12.728px] items-center justify-center">
+                <span className="h-[11px] w-[7px] rotate-45 border-b-2 border-r-2 border-white" />
+              </span>
+            )}
+          </span>
+          <span className="text-[13px] font-bold leading-[18.2px] text-t2">예약 전송</span>
         </button>
       </div>
+
       {enabled && (
-        <div className={styles["fmp-dt"]}>
-          <label className={`${styles["fmp-dpick"]} ${!parts.date ? styles.ph : ""}`}>
-            <svg
-              className={styles.ic}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.9"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <rect x="3" y="4.5" width="18" height="16" rx="2.5" />
-              <path d="M3 9h18M8 3v3M16 3v3" />
-            </svg>
+        <div className="flex w-full items-start gap-[8px] pb-[16px] pt-[10px]">
+          <DpDatePicker
+            className="min-w-0 flex-1"
+            triggerClassName={CONTROL_CLASS_NAME}
+            triggerOpenClassName="border-blue"
+            startAdornment={<CalendarIcon variant="messenger-date" className="size-[16px] shrink-0 text-t3" />}
+            placeholder="날짜 선택"
+            ariaLabel="예약 날짜"
+            value={parts.date}
+            onChange={(date) =>
+              onChange({
+                scheduledAt: toKstIso(date, parts.time),
+                recurrenceMode: value.recurrenceMode,
+              })
+            }
+            minDate={minimumDate}
+          />
+
+          <label className={`${CONTROL_CLASS_NAME} relative`}>
+            <ClockIcon className="size-[16px] shrink-0 text-t3" />
             <input
-              className={styles["fmp-tel"]}
-              type="date"
-              value={parts.date}
-              min={minimumDate}
-              aria-label="예약 날짜"
-              onChange={(event) =>
-                onChange({
-                  scheduledAt: toKstIso(event.target.value, parts.time),
-                  recurrenceMode: value.recurrenceMode,
-                })
-              }
-            />
-          </label>
-          <label className={`${styles["fmp-dpick"]} ${!parts.time ? styles.ph : ""}`}>
-            <svg
-              className={styles.ic}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.9"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 7.5V12l3 2" />
-            </svg>
-            <input
-              className={styles["fmp-tel"]}
+              className={`${TIME_INPUT_CLASS_NAME} ${parts.time ? "font-bold text-t1" : "font-semibold text-t4"}`}
               type="time"
               step={300}
               value={parts.time}
@@ -168,70 +205,57 @@ export function SchedulePicker({ value, onChange }: SchedulePickerProps) {
               }
             />
           </label>
-          <div
-            className={`${styles["fmp-dpick"]} ${repeatOpen ? styles.open : ""}`}
-            onBlur={(event) => {
-              if (!event.currentTarget.contains(event.relatedTarget)) setRepeatOpen(false);
-            }}
+
+          <button
+            ref={repeatTriggerRef}
+            type="button"
+            className={`${CONTROL_CLASS_NAME} ${repeatOpen ? "border-blue" : ""}`}
+            aria-haspopup="listbox"
+            aria-expanded={repeatOpen}
+            onClick={toggleRepeat}
           >
-            <svg
-              className={styles.ic}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.9"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M17 2v4M7 2v4M3 10h18" />
-              <rect x="3" y="4.5" width="18" height="16" rx="2.5" />
-            </svg>
-            <button
-              type="button"
-              className={styles.v}
-              aria-haspopup="listbox"
-              aria-expanded={repeatOpen}
-              onClick={() => setRepeatOpen((open) => !open)}
-            >
+            <CalendarIcon variant="messenger-repeat" className="size-[16px] shrink-0 text-t3" />
+            <span className={value.recurrenceMode === "monthly" ? "text-[13.5px] font-bold text-t1" : "text-[13.5px] font-semibold text-t4"}>
               {value.recurrenceMode === "monthly" ? "매월" : "반복 없음"}
-            </button>
-            <div
-              className={`${styles.menu} ${styles["fmp-rplist"]}`}
-              role="listbox"
-              aria-label="반복 주기"
-            >
-              {([
-                [null, "반복 없음"],
-                ["monthly", "매월"],
-              ] as const).map(([mode, label]) => (
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={value.recurrenceMode === mode}
-                  className={`${styles.opt} ${value.recurrenceMode === mode ? styles.on : ""}`}
-                  key={label}
-                  onClick={() => {
-                    onChange({ scheduledAt: value.scheduledAt, recurrenceMode: mode });
-                    setRepeatOpen(false);
-                  }}
-                >
-                  {label}
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.4"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <path d="M4 12.5l5 5L20 6.5" />
-                  </svg>
-                </button>
-              ))}
-            </div>
-          </div>
+            </span>
+          </button>
+
+          {repeatOpen && repeatMenuPosition &&
+            createPortal(
+              <div
+                ref={repeatMenuRef}
+                role="listbox"
+                aria-label="반복 주기"
+                className="fixed z-[47] min-w-[132px] flex flex-col gap-0.5 rounded-xl border border-line bg-white p-1.5 shadow-[0_16px_40px_-12px_rgba(23,31,40,0.3)]"
+                style={{ left: repeatMenuPosition.left, top: repeatMenuPosition.top }}
+              >
+                {([
+                  [null, "반복 없음"],
+                  ["monthly", "매월"],
+                ] as const).map(([mode, label]) => {
+                  const selected = value.recurrenceMode === mode;
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      role="option"
+                      aria-selected={selected}
+                      className={`flex w-full items-center justify-between gap-2 rounded-[9px] px-[11px] py-[9px] text-[13px] font-bold text-t2 hover:bg-bg ${
+                        selected ? "bg-blue-t text-blue-d" : ""
+                      }`}
+                      onClick={() => {
+                        onChange({ scheduledAt: value.scheduledAt, recurrenceMode: mode });
+                        setRepeatOpen(false);
+                      }}
+                    >
+                      {label}
+                      {selected && <CheckIcon className="size-[14px] shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>,
+              document.body,
+            )}
         </div>
       )}
     </div>
