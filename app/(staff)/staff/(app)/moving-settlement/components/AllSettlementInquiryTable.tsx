@@ -22,10 +22,13 @@ interface AllSettlementInquiryTableProps {
   ) => void;
 }
 
-const TEXT_CELL = "h-[55px] border-b border-line2 px-[16px] text-[13px] font-medium text-t1";
+const TEXT_CELL = "h-[55px] border-b border-line2 px-[16px] py-[12px] text-[13.5px] font-normal text-t1";
 const NUMBER_CELL = `${TEXT_CELL} text-right tabular-nums`;
-const HEADER_CELL = "sticky top-0 z-20 h-[37px] border-b border-line bg-[#f9fafb] px-[16px] text-left text-[12px] font-bold text-t3";
+const MEDIUM_TEXT_CELL = `${TEXT_CELL} font-medium`;
+const HEADER_CELL = "sticky top-0 z-20 h-[36.5px] border-b border-line bg-[#fbfcfd] px-[16px] py-[11px] text-left text-[11.5px] font-medium text-t3";
 const NUMBER_HEADER_CELL = `${HEADER_CELL} text-right`;
+const SUBTOTAL_CELL = "border-b border-line2 px-[16px] py-[12px]";
+const TOTAL_CELL = "px-[16px] py-[12px]";
 
 function sum(
   rows: SettlementInquiryRow[],
@@ -129,8 +132,8 @@ export function AllSettlementInquiryTable({
                       <td className={`${TEXT_CELL} truncate`} title={row.buildingAddress ?? undefined}>
                         {locationLabel(row.buildingAddress, row.dong)}
                       </td>
-                      <td className={`${TEXT_CELL} font-semibold`}>{row.buildingName}</td>
-                      <td className={TEXT_CELL}>{row.unitNo}</td>
+                      <td className={TEXT_CELL}>{row.buildingName}</td>
+                      <td className={MEDIUM_TEXT_CELL}>{row.unitNo}</td>
                       <td className={`${TEXT_CELL} tabular-nums`}>
                         {formatDate(row.moveOutDate, { nullText: "" })}
                       </td>
@@ -159,7 +162,7 @@ export function AllSettlementInquiryTable({
                           onChange={(value) => onEdit(row, "gasPaidDate", value)}
                         />
                       </td>
-                      <td className={`${NUMBER_CELL} font-semibold`}>
+                      <td className={`${NUMBER_CELL} font-medium`}>
                         {displayNumber(row.mgmtFeeProrated)}
                       </td>
                       <td className={TEXT_CELL}>{row.checkedByName ?? ""}</td>
@@ -188,39 +191,40 @@ export function AllSettlementInquiryTable({
                     </tr>
                   );
                 })}
-                <tr className="h-[41px] bg-[#fbfcfd] font-bold text-t1">
-                  <td className="border-b border-line2" />
-                  <td className="border-b border-line2 px-[16px] text-[12.5px]">{group.address}</td>
-                  <td className="border-b border-line2 px-[16px] text-[12.5px]">{group.buildingName}</td>
-                  <td className="border-b border-line2" colSpan={6} />
-                  <td className="border-b border-line2 px-[16px] text-right text-[13px] tabular-nums">{displayNumber(groupElectric)}</td>
-                  <td className="border-b border-line2" />
-                  <td className="border-b border-line2" colSpan={3} />
-                  <td className="border-b border-line2 px-[16px] text-right text-[13px] tabular-nums">{displayNumber(groupGas)}</td>
-                  <td className="border-b border-line2" />
-                  <td className="border-b border-line2 px-[16px] text-right text-[13px] tabular-nums">{displayNumber(groupMonthly)}</td>
-                  <td className="border-b border-line2" />
-                  <td className="border-b border-line2 px-[16px] text-right text-[13px] tabular-nums">{displayNumber(groupCleaning)}</td>
-                  <td className="border-b border-line2" />
+                <tr className="h-[41px] font-semibold text-[13.5px] text-t1">
+                  <td className={SUBTOTAL_CELL} />
+                  <td className={SUBTOTAL_CELL}>{group.address}</td>
+                  <td className={SUBTOTAL_CELL}>{group.buildingName}</td>
+                  <td className={SUBTOTAL_CELL} colSpan={3} />
+                  <td className={SUBTOTAL_CELL} colSpan={3} />
+                  <td className={`${SUBTOTAL_CELL} text-right tabular-nums`}>{displayNumber(groupElectric)}</td>
+                  <td className={SUBTOTAL_CELL} />
+                  <td className={SUBTOTAL_CELL} colSpan={3} />
+                  <td className={`${SUBTOTAL_CELL} text-right tabular-nums`}>{displayNumber(groupGas)}</td>
+                  <td className={SUBTOTAL_CELL} />
+                  <td className={`${SUBTOTAL_CELL} text-right tabular-nums`}>{displayNumber(groupMonthly)}</td>
+                  <td className={SUBTOTAL_CELL} />
+                  <td className={`${SUBTOTAL_CELL} text-right tabular-nums`}>{displayNumber(groupCleaning)}</td>
+                  <td className={SUBTOTAL_CELL} />
                 </tr>
               </Fragment>
             );
           })}
         </tbody>
         <tfoot>
-          <tr className="sticky bottom-0 z-30 h-[41px] bg-white font-extrabold text-t1 shadow-[0_-1px_0_#e8ebee]">
-            <td colSpan={9} className="px-[16px] text-[13px]">합계 {formatNumber(total)}건</td>
-            <td className="px-[16px] text-right text-[13px] tabular-nums">{displayNumber(totalElectric)}</td>
-            <td />
-            <td colSpan={3} />
-            <td className="px-[16px] text-right text-[13px] tabular-nums">{displayNumber(totalGas)}</td>
-            <td />
-            <td className="px-[16px] text-right text-[13px] tabular-nums">{displayNumber(totalMonthly)}</td>
-            <td />
-            <td className={`px-[16px] text-right text-[13px] tabular-nums ${totalCleaning < 0 ? "text-red" : ""}`}>
+          <tr className="sticky bottom-0 z-30 h-[40.5px] border-t border-line bg-[#fbfcfd] font-bold text-[13.5px] text-t1">
+            <td colSpan={9} className={TOTAL_CELL}>합계 {formatNumber(total)}건</td>
+            <td className={`${TOTAL_CELL} text-right tabular-nums`}>{displayNumber(totalElectric)}</td>
+            <td className={TOTAL_CELL} />
+            <td colSpan={3} className={TOTAL_CELL} />
+            <td className={`${TOTAL_CELL} text-right tabular-nums`}>{displayNumber(totalGas)}</td>
+            <td className={TOTAL_CELL} />
+            <td className={`${TOTAL_CELL} text-right tabular-nums`}>{displayNumber(totalMonthly)}</td>
+            <td className={TOTAL_CELL} />
+            <td className={`${TOTAL_CELL} text-right tabular-nums ${totalCleaning < 0 ? "text-red" : ""}`}>
               {displayNumber(totalCleaning)}
             </td>
-            <td />
+            <td className={TOTAL_CELL} />
           </tr>
         </tfoot>
       </table>
