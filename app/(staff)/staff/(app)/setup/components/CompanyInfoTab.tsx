@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Input, Panel, PhoneInput } from "@/components/common";
+import { BizRegNoInput, Input, Panel, PhoneInput } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useSetupConfig, useUpsertSetupConfig } from "@/hooks/reactquery/setupConfig";
 import { useRegisterSetupSave } from "../SetupSaveContext";
@@ -16,15 +16,15 @@ const EMPTY: F = {
   ceoName: "", companyAddress: "", operatingHours: "",
 };
 
-// kind=phone 인 행은 공용 PhoneInput을 쓴다 — 숫자만 받고 하이픈을 자동으로 붙인다.
+// 마스크가 걸린 행은 그 입력 컴포넌트를 직접 준다. 형식이 늘어도 렌더 분기를 늘리지 않는다.
 const FIELDS: {
   key: keyof F; label: string; hint?: string; placeholder: string; width: string;
-  kind?: "phone";
+  input?: typeof Input;
 }[] = [
   { key: "companyName", label: "상호", hint: "세입자 앱과 고지서에 표기되는 회사명", placeholder: "상호", width: "w-[240px]" },
-  { key: "companyPhone", label: "대표 전화", hint: "세입자 문의 안내에 노출돼요. 건물별 담당 연락처가 없을 때 이 번호가 표기됩니다", placeholder: "042-000-0000", width: "w-[180px]", kind: "phone" },
-  { key: "companyFax", label: "팩스", placeholder: "042-000-0000", width: "w-[180px]", kind: "phone" },
-  { key: "bizRegNo", label: "사업자등록번호", placeholder: "000-00-00000", width: "w-[180px]" },
+  { key: "companyPhone", label: "대표 전화", hint: "세입자 문의 안내에 노출돼요. 건물별 담당 연락처가 없을 때 이 번호가 표기됩니다", placeholder: "042-000-0000", width: "w-[180px]", input: PhoneInput },
+  { key: "companyFax", label: "팩스", placeholder: "042-000-0000", width: "w-[180px]", input: PhoneInput },
+  { key: "bizRegNo", label: "사업자등록번호", placeholder: "000-00-00000", width: "w-[180px]", input: BizRegNoInput },
   { key: "ceoName", label: "대표자", placeholder: "대표자명", width: "w-[140px]" },
   { key: "companyAddress", label: "주소", placeholder: "주소", width: "w-[360px]" },
   { key: "operatingHours", label: "운영 시간", hint: "세입자 안내 문구에 함께 표기돼요", placeholder: "평일 09:00 ~ 18:00", width: "w-[240px]" },
@@ -66,7 +66,7 @@ export function CompanyInfoTab() {
       subtitle="세입자 앱과 고지서·알림톡에 표기되는 대표 정보예요"
       variant="compact"
     >
-      <div className="flex flex-col">
+      <div className="flex flex-col gap-[10px]">
         {FIELDS.map((field, index) => (
           <div
             key={field.key}
@@ -87,8 +87,8 @@ export function CompanyInfoTab() {
               )}
             </div>
             {(() => {
-              // PhoneInput은 네이티브 input과 props 계약이 같아 그대로 갈아끼운다.
-              const Field = field.kind === "phone" ? PhoneInput : Input;
+              // 마스크 입력들은 네이티브 input과 props 계약이 같아 그대로 갈아끼운다.
+              const Field = field.input ?? Input;
               return (
                 <Field
                   size="38"

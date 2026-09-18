@@ -174,7 +174,7 @@ export function MovingSettlementSettingsTab() {
       </Panel>
 
       <Panel title="정산 기준" subtitle="이사정산 계산에 적용되는 기본 규칙이에요" variant="compact">
-        <div className="flex flex-col">
+        <div className="flex flex-col gap-[10px]">
           {SETTLEMENT_RULES.map((rule, index) => {
             const value = rule.key === "waterUnitReflect"
               ? String(waterUnitReflect)

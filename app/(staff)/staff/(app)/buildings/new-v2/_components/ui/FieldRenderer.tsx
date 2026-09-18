@@ -29,11 +29,9 @@ export function FieldRenderer({
       return <DateField {...common} />;
     case "textarea":
       return <TextAreaField {...common} minHeight={field.minHeight} />;
-    case "phone":
-      return <TextField {...common} format="phone" />;
     case "readonly":
       return <TextField {...common} readOnly />;
     default:
-      return <TextField {...common} />;
+      return <TextField {...common} mask={field.mask} />;
   }
 }

@@ -18,6 +18,10 @@ import {
 import { formatWon } from "@/lib/format";
 import { SettlementActionBar } from "./SettlementActionBar";
 import { SettlementDecisionDialog } from "./SettlementDecisionDialog";
+import {
+  printSettlementStatement,
+  type SettlementStatementPrintModel,
+} from "./movingSettlementPrint";
 
 type DialogState =
   | "outstanding"
@@ -57,6 +61,7 @@ export function SettlementActions({
   billingUnpaid = 0,
   vacancyPaymentMode = "auto",
   createdAt = null,
+  printModel,
   paymentInputRef = EMPTY_INPUT_REF,
   onSaved,
   onDeleted = () => undefined,
@@ -74,6 +79,7 @@ export function SettlementActions({
   /** 셋업 > 이사정산 설정. auto 면 퇴실 처리 시 미납이 자동수납되고, manual 이면 미수금이 남는다. */
   vacancyPaymentMode?: "manual" | "auto";
   createdAt?: string | null;
+  printModel: SettlementStatementPrintModel;
   paymentInputRef?: RefObject<HTMLInputElement | null>;
   onSaved: (id: number) => void;
   onDeleted?: () => void;
@@ -194,7 +200,7 @@ export function SettlementActions({
       toast.error("미수금이 음수인 정산은 내역서를 출력할 수 없어요.");
       return;
     }
-    window.print();
+    printSettlementStatement(printModel);
   };
 
   const outstandingDialog = dialog === "outstanding";
@@ -206,7 +212,7 @@ export function SettlementActions({
         onMidMoveout={() => requestCompletion("mid")}
         onMoveout={() => requestCompletion("moveout")}
         onPrint={print}
-        onBlankPrint={() => window.print()}
+        onBlankPrint={() => printSettlementStatement(printModel, { blank: true })}
         onDelete={() => setDialog("delete")}
         pending={isSettlementMutationPending}
         pendingAction={pendingAction}

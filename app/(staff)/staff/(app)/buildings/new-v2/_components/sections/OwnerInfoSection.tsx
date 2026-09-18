@@ -1,4 +1,5 @@
 "use client";
+import { phoneMask } from "@/components/common";
 import { CollapsibleFormSection } from "@/components/common/CollapsibleFormSection";
 import { FormGrid } from "@/components/common/FormGrid";
 import { TextField } from "../ui/TextField";
@@ -18,8 +19,8 @@ export function OwnerInfoSection({
     <CollapsibleFormSection index={4} title="건물주 정보">
       <FormGrid>
         <TextField label="건물주명" placeholder="건물주 이름" value={value.ownerName} onChange={(v) => patch({ ownerName: v })} />
-        <TextField label="건물주 전화번호(주)" placeholder="010-0000-0000 / 02-000-0000" inputMode="tel" format="phone" value={value.ownerPhone} onChange={(v) => patch({ ownerPhone: v })} />
-        <TextField label="건물주 전화번호(부)" placeholder="010-0000-0000 / 02-000-0000" inputMode="tel" format="phone" value={value.ownerPhoneSub} onChange={(v) => patch({ ownerPhoneSub: v })} />
+        <TextField label="건물주 전화번호(주)" placeholder="010-0000-0000 / 02-000-0000" inputMode="tel" mask={phoneMask} value={value.ownerPhone} onChange={(v) => patch({ ownerPhone: v })} />
+        <TextField label="건물주 전화번호(부)" placeholder="010-0000-0000 / 02-000-0000" inputMode="tel" mask={phoneMask} value={value.ownerPhoneSub} onChange={(v) => patch({ ownerPhoneSub: v })} />
         <AddressField label="건물주 주소" value={value.ownerAddress} detail={value.ownerAddressDetail} onChange={(v) => patch({ ownerAddress: v })} onDetailChange={(v) => patch({ ownerAddressDetail: v })} />
         <TextAreaField label="비고" placeholder="건물주 관련 메모를 입력하세요…" value={value.ownerMemo} onChange={(v) => patch({ ownerMemo: v })} />
       </FormGrid>
