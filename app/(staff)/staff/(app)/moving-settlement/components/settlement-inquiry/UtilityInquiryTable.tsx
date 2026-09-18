@@ -45,7 +45,7 @@ export function UtilityInquiryTable({
   const fields = getUtilityInquiryFieldMapping(type);
 
   return (
-    <div className="h-full overflow-auto bg-white settlement-inquiry-scroll print:h-auto print:overflow-visible">
+    <div className="h-full overflow-auto bg-white settlement-inquiry-scroll">
       <table className="w-[1632px] min-w-[1632px] table-fixed border-separate border-spacing-0 text-[13.5px] text-t1">
         <colgroup>
           {columns.map((column) => (
