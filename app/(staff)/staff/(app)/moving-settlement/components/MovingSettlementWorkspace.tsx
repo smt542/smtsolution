@@ -4,13 +4,16 @@ import { useMemo, useRef, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { EmptyState, Spinner } from "@/components/common";
 import type { MovingSettlementValues } from "@/components/forms/schema/movingSettlement";
-import { useBuildings } from "@/hooks/reactquery/buildings";
+import { useBuildings, type Building } from "@/hooks/reactquery/buildings";
+import { useMe } from "@/hooks/reactquery/auth";
+import { useBillOrganizationName } from "@/hooks/reactquery/bill";
 import {
   calculateSettlementAmount,
   useSettlementContext,
   type SaveSettlementInput,
   type SettlementContext,
 } from "@/hooks/reactquery/movingSettlement";
+import { useManagementFeeRows } from "@/hooks/reactquery/movingSettlement/feeItemCharges";
 import { useUnits } from "@/hooks/reactquery/units";
 import { MeterInfoPanel } from "./MeterInfoPanel";
 import { SettlementActions } from "./SettlementActions";
@@ -18,6 +21,8 @@ import { SettlementDirectoryRail } from "./SettlementDirectoryRail";
 import { SettlementEmptyPanel } from "./SettlementEmptyPanel";
 import { SettlementForm } from "./SettlementForm";
 import { SettlementHistory } from "./SettlementHistory";
+import type { SettlementStatementPrintModel } from "./movingSettlementPrint";
+import { reflectedUtilityCharges } from "./settlement-form/UtilitySettlementSection";
 
 function draftFromContext(
   context: SettlementContext,
@@ -60,7 +65,7 @@ function SettlementEditor({
   forceNew,
   onDeleted,
 }: {
-  building: { id: number; name: string; typeId: number | null };
+  building: Building;
   context: SettlementContext;
   occupancy: NonNullable<SettlementContext["occupancy"]>;
   forceNew: boolean;
@@ -83,6 +88,100 @@ function SettlementEditor({
     forceNew ? null : (context.latestSettlement?.id ?? null),
   );
   const paymentInputRef = useRef<HTMLInputElement>(null);
+  const { data: me } = useMe();
+  const { data: organizationName } = useBillOrganizationName(me?.orgId);
+  const managementFeeRows = useManagementFeeRows(
+    building.typeId,
+    context.unit.id,
+    draft.moveOutDate,
+  );
+
+  const reflectedCharges = reflectedUtilityCharges(
+    context.meterSummary,
+    context.settlementSettings,
+  );
+  const meterRows: SettlementStatementPrintModel["meters"] =
+    (["water", "elec", "gas"] as const).map((utility) => {
+      const meter = context.meterSummary.find((item) => item.utility === utility);
+      const chargeKey =
+        utility === "water"
+          ? "waterCharge"
+          : utility === "elec"
+            ? "elecCharge"
+            : "gasCharge";
+      return {
+        utility,
+        previousReading: meter?.previousReading ?? null,
+        currentReading: meter?.currentReading ?? null,
+        usage: meter?.usage ?? null,
+        unitPrice: meter?.unitPrice ?? null,
+        charge: reflectedCharges[chargeKey] ?? draft[chargeKey] ?? null,
+      };
+    });
+  const utilityTotal = meterRows.reduce(
+    (sum, meter) => sum + (meter.charge ?? 0),
+    0,
+  );
+  const managementMonthlyTotal = managementFeeRows.rows.reduce(
+    (sum, row) => sum + row.charge,
+    0,
+  );
+  const managementSettlementTotal = managementFeeRows.rows.reduce(
+    (sum, row) => sum + row.settlement,
+    0,
+  );
+  const repairAmount = draft.repairAmount ?? null;
+  const cleaningCost = context.latestSettlement?.cleaningCost ?? null;
+  const billingUnpaid = context.billingUnpaid;
+  const total =
+    utilityTotal +
+    managementSettlementTotal +
+    (repairAmount ?? 0) +
+    billingUnpaid +
+    (cleaningCost ?? 0);
+  // 정본 표기: `농협 352-1234-5678-91 · (주)스마일종합관리` — 은행·계좌는 공백, 예금주 앞만 구분점.
+  const settleAccount = [
+    [draft.settleBank, draft.settleAcct]
+      .map((value) => value?.trim() ?? "")
+      .filter(Boolean)
+      .join(" "),
+    draft.settleHolder?.trim() ?? "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const printModel: SettlementStatementPrintModel = {
+    moveOutDate: draft.moveOutDate,
+    buildingName: context.unit.buildingName,
+    unitNo: context.unit.unitNo,
+    ownerPhone: building.ownerPhone,
+    address: building.address,
+    occupantPhone: occupancy.phone,
+    meters: meterRows,
+    chargeDays: draft.moveOutDate
+      ? Number(draft.moveOutDate.slice(8, 10)) || 0
+      : null,
+    monthDays: draft.moveOutDate ? 30 : null,
+    utilityTotal,
+    managementRows: managementFeeRows.rows.map((row) => ({
+      name: row.item.name,
+      charge: row.charge,
+      settlement: row.settlement,
+    })),
+    managementMonthlyTotal,
+    managementSettlementTotal,
+    repairMemo: draft.repairMemo || null,
+    repairAmount,
+    billingUnpaid,
+    cleaningCost,
+    total,
+    settleAccount: settleAccount || null,
+    note: draft.note || null,
+    checklist: context.checklist.map((item) => ({
+      label: item.label,
+      note: item.note,
+    })),
+    organizationName: organizationName ?? null,
+  };
 
   const saveInput: SaveSettlementInput = {
     unitId: context.unit.id,
@@ -149,6 +248,7 @@ function SettlementEditor({
         billingUnpaid={context.billingUnpaid}
         vacancyPaymentMode={context.settlementSettings.vacancyPaymentMode}
         createdAt={context.latestSettlement?.createdAt ?? null}
+        printModel={printModel}
         paymentInputRef={paymentInputRef}
         onSaved={setActiveSettlementId}
         onDeleted={() => {
