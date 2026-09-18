@@ -3,6 +3,7 @@ import { SettlementActionBar } from "./SettlementActionBar";
 
 export function SettlementEmptyPanel({
   onAction,
+  onBlankPrint,
   title = "건물과 호실을 선택해 주세요",
   description = (
     <>
@@ -13,6 +14,8 @@ export function SettlementEmptyPanel({
   ),
 }: {
   onAction: () => void;
+  /** 빈 양식은 건물·호실을 고르지 않아도 인쇄된다(정산 데이터가 필요 없다). */
+  onBlankPrint: () => void;
   title?: string;
   description?: ReactNode;
 }) {
@@ -44,7 +47,7 @@ export function SettlementEmptyPanel({
         onMidMoveout={onAction}
         onMoveout={onAction}
         onPrint={onAction}
-        onBlankPrint={() => window.print()}
+        onBlankPrint={onBlankPrint}
         onDelete={onAction}
       />
     </div>

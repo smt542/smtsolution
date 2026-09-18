@@ -14,6 +14,7 @@ import {
   type SettlementContext,
 } from "@/hooks/reactquery/movingSettlement";
 import { useManagementFeeRows } from "@/hooks/reactquery/movingSettlement/feeItemCharges";
+import { useSettlementCheckItems } from "@/hooks/reactquery/settlementCheckItems";
 import { useUnits } from "@/hooks/reactquery/units";
 import { MeterInfoPanel } from "./MeterInfoPanel";
 import { SettlementActions } from "./SettlementActions";
@@ -21,7 +22,11 @@ import { SettlementDirectoryRail } from "./SettlementDirectoryRail";
 import { SettlementEmptyPanel } from "./SettlementEmptyPanel";
 import { SettlementForm } from "./SettlementForm";
 import { SettlementHistory } from "./SettlementHistory";
-import type { SettlementStatementPrintModel } from "./movingSettlementPrint";
+import {
+  emptyStatementPrintModel,
+  printSettlementStatement,
+  type SettlementStatementPrintModel,
+} from "./movingSettlementPrint";
 import { reflectedUtilityCharges } from "./settlement-form/UtilitySettlementSection";
 
 function draftFromContext(
@@ -262,6 +267,9 @@ function SettlementEditor({
 
 export function MovingSettlementWorkspace() {
   const buildingsQuery = useBuildings();
+  const { data: workspaceMe } = useMe();
+  const { data: workspaceOrganizationName } = useBillOrganizationName(workspaceMe?.orgId);
+  const checkItemsQuery = useSettlementCheckItems();
   const [buildingId, setBuildingId] = useState<number | null>(null);
   const [unitId, setUnitId] = useState<number | null>(null);
   const [forceNew, setForceNew] = useState(false);
@@ -321,6 +329,17 @@ export function MovingSettlementWorkspace() {
 
   const emptyAction = () =>
     toast.info("건물과 호실을 먼저 선택해 주세요.");
+
+  // 빈 양식은 정산 데이터가 필요 없으므로 건물·호실 선택 전에도 인쇄한다.
+  // 점검 항목만 org 마스터에서 받아 항목명을 채운다.
+  const printBlankStatement = () =>
+    printSettlementStatement(
+      emptyStatementPrintModel({
+        checklistLabels: (checkItemsQuery.data ?? []).map((item) => item.label),
+        organizationName: workspaceOrganizationName ?? null,
+      }),
+      { blank: true },
+    );
 
   return (
     <div className="relative min-h-[calc(100dvh-62px)] overflow-x-auto bg-bg px-[24px] pb-[22px] pt-[18px]">
@@ -393,10 +412,13 @@ export function MovingSettlementWorkspace() {
         </div>
 
         <div className="flex min-h-0 min-w-0 flex-col">
-          {unitId === null && <SettlementEmptyPanel onAction={emptyAction} />}
+          {unitId === null && (
+            <SettlementEmptyPanel onAction={emptyAction} onBlankPrint={printBlankStatement} />
+          )}
           {unitId !== null && !editorOpen && (
             <SettlementEmptyPanel
               onAction={emptyAction}
+              onBlankPrint={printBlankStatement}
               title="정산된 이사 항목을 선택해 주세요"
               description={
                 <>
