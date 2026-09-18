@@ -15,7 +15,10 @@ delete from settlement_checklist_results
 delete from moving_settlements where extra->>'seed' = 'demo-seed 2026-09-18';
 delete from payments where memo = 'demo-seed 2026-09-18';
 
--- A. settlement_check_items 24건 (org 1 전역)
+-- A. settlement_check_items 24건 (org 1 전역) — **더미가 아니라 초기 설정**
+--    사용자 결정(2026-09-18): 이 목록을 org 의 정산 체크 항목으로 그대로 쓴다.
+--    원래는 /staff/setup?tab=settlement 에서 사람이 등록하는 설정이고, 이후 수정·삭제도 거기서 한다.
+--    그래서 파일 끝 rollback 에는 포함하지 않는다(지우면 실 설정이 날아간다).
 insert into settlement_check_items (org_id, label, sort_order) values
   (1, '도시가스 정산', 10),
   (1, '전기 정산', 20),
@@ -533,30 +536,7 @@ commit;
 --    and period in ('2026-04-01', '2026-05-01', '2026-06-01', '2026-07-01', '2026-08-01', '2026-09-01');
 -- update occupancies set settlement_note = null
 --  where id in (1, 2, 3, 4, 5, 6, 7);
--- delete from settlement_check_items where org_id = 1 and label in (
---   '도시가스 정산',
---   '전기 정산',
---   '수도 정산',
---   '관리비 정산',
---   '장기수선충당금 반환',
---   '보증금 반환',
---   '현관 열쇠 반납',
---   '우편함 열쇠 반납',
---   '주차 스티커 반납',
---   '출입 카드키 반납',
---   '리모컨 반납',
---   '도어락 비밀번호 초기화',
---   '실내 청소 상태',
---   '벽지 상태',
---   '바닥·장판 상태',
---   '싱크대·수전 상태',
---   '화장실 상태',
---   '방충망 상태',
---   '유리창 파손',
---   '붙박이장 상태',
---   '보일러 작동',
---   '에어컨 작동',
---   '인터넷·TV 해지',
---   '관리사무소 통보'
--- );
+-- ⚠️ settlement_check_items 24건은 rollback 대상이 아니다.
+--    사용자 결정(2026-09-18): 이 목록을 org 의 정산 체크 항목으로 그대로 쓴다 → 더미가 아닌 실 설정이다.
+--    지우거나 이름을 바꾸려면 /staff/setup?tab=settlement 의 `이사정산 체크항목` 에서 한다.
 -- commit;

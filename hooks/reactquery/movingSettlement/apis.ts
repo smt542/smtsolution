@@ -39,8 +39,16 @@ export interface MeterSummary {
   utility: SettlementUtility;
   previousReading: number | null;
   currentReading: number | null;
-  /** 그 달 검침에 적용된 단가. 단가 반영 ON 이면 금액을 usage x unitPrice 로 계산한다. */
+  /** 그 달 검침에 적용된 단가(표시용). 할인·수동보정이 있으면 unitPrice x usage != charge 다. */
   unitPrice: number | null;
+  /** 수도 할인 등 그 달 검침의 할인액. charge 에 이미 반영돼 있다. */
+  discountAmount: number | null;
+  /**
+   * 그 달 검침의 실효 요금 = coalesce(manual_charge, calc_charge).
+   * `calc_charge` 자체가 `usage x unit_price - discount` 이므로 여기에 다시 곱하면 안 된다.
+   * 단가 반영 ON 이면 이 값을 공과금 금액으로 쓴다(0169).
+   */
+  charge: number | null;
   usage: number | null;
 }
 
@@ -247,6 +255,8 @@ interface SettlementContextRpc {
     previous_reading: number | null;
     current_reading: number | null;
     unit_price: number | null;
+    discount_amount: number | null;
+    charge: number | null;
     usage: number | null;
   }[];
 }
@@ -373,6 +383,8 @@ function rpcToSettlementContext(r: SettlementContextRpc): SettlementContext {
       previousReading: meter.previous_reading,
       currentReading: meter.current_reading,
       unitPrice: meter.unit_price ?? null,
+      discountAmount: meter.discount_amount ?? null,
+      charge: meter.charge ?? null,
       usage: meter.usage,
     })),
   };
