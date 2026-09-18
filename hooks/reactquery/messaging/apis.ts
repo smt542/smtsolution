@@ -14,6 +14,7 @@ export interface MessageLog {
   recipientCount: number;
   recipients: MessageRecipient[];
   result: string;
+  isScheduled: boolean;
   sentBy: string | null;
   sentAt: string;
   templateId: number | null;
@@ -100,6 +101,7 @@ type MessageLogRow = {
   recipient_count: number;
   recipients: MessageRecipient[];
   result: string;
+  is_scheduled?: boolean;
   sent_by: string | null;
   sent_at: string;
   template_id: number | null;
@@ -117,6 +119,7 @@ const rowToMessageLog = (row: MessageLogRow): MessageLog => ({
   recipientCount: row.recipient_count,
   recipients: row.recipients,
   result: row.result,
+  isScheduled: row.is_scheduled ?? false,
   sentBy: row.sent_by,
   sentAt: row.sent_at,
   templateId: row.template_id,
