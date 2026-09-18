@@ -20,14 +20,13 @@ import {
   type Attachment,
 } from "@/hooks/reactquery/attachments";
 import { useAppToast } from "@/hooks/common/useAppToast";
-import { useDebouncedValue } from "@/hooks/common";
+import { SEARCH_DEBOUNCE_MS, useDebouncedValue } from "@/hooks/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { vendorSchema } from "@/components/forms/schema/vendor";
 import type { Vendor } from "@/hooks/reactquery/vendors";
 
 type VendorFormOutput = z.output<typeof vendorSchema>;
 
-const SEARCH_DEBOUNCE_MS = 300;
 
 // Inner component that loads attachments only when editing an existing vendor
 function AttachmentLoader({

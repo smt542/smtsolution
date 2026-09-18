@@ -20,7 +20,7 @@ import {
 } from "@/hooks/reactquery/platform";
 import type { PointAdjustmentFormValues } from "@/components/forms/schema/pointAdjustment";
 import { formatNumber } from "@/lib/format";
-import { useDebouncedValue } from "@/hooks/common";
+import { SEARCH_DEBOUNCE_MS, useDebouncedValue } from "@/hooks/common";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import {
   PlatformPagination,
@@ -43,7 +43,6 @@ const dateFmt = new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyl
 const num = (n: number) => formatNumber(n);
 const ORGANIZATION_PAGE_SIZE = 25;
 const RESERVATION_PAGE_SIZE = 25;
-const SEARCH_DEBOUNCE_MS = 300;
 const MODAL_ORGANIZATION_QUERY = { pageSize: 100 } satisfies PlatformOrganizationQuery;
 const ACTIVE_RESERVATION_STATUSES: PointReservationStatus[] = [
   "reserved",

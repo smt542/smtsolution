@@ -1,6 +1,7 @@
 "use client";
 
-import { useDeferredValue, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { SEARCH_DEBOUNCE_MS, useDebouncedValue } from "@/hooks/common";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { EmptyState, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
@@ -61,7 +62,9 @@ export function AllSettlementInquiryPage() {
   const [sort, setSort] = useState<SettlementInquirySort>("code");
   const [search, setSearch] = useState("");
   const [edits, setEdits] = useState<SettlementInquiryEdits>({});
-  const deferredSearch = useDeferredValue(search);
+  // 서버 질의로 그대로 나가는 값이라 타이머 debounce를 건다.
+  // useDeferredValue는 렌더 우선순위만 미룰 뿐 요청을 막지 않는다.
+  const debouncedSearch = useDebouncedValue(search, SEARCH_DEBOUNCE_MS);
   const from = `${period.fromYear}-${period.fromMonth}-01`;
   const to = monthEnd(period.toYear, period.toMonth);
   const invalidRange = from > to;
@@ -69,7 +72,7 @@ export function AllSettlementInquiryPage() {
     type: "all",
     from,
     to,
-    search: deferredSearch.trim() || undefined,
+    search: debouncedSearch.trim() || undefined,
     status: status || undefined,
     sort,
     page: 1,

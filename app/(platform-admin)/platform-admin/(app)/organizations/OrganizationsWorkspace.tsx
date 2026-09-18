@@ -22,7 +22,7 @@ import {
   type PlatformOrganizationStatusFilter,
 } from "@/hooks/reactquery/platform";
 import { formatNumber } from "@/lib/format";
-import { useAsyncAction, useDebouncedValue } from "@/hooks/common";
+import { SEARCH_DEBOUNCE_MS, useAsyncAction, useDebouncedValue } from "@/hooks/common";
 import {
   PlatformPagination,
   QueryError,
@@ -45,7 +45,6 @@ const dateFormatter = new Intl.DateTimeFormat("ko-KR", {
   day: "2-digit",
 });
 const PAGE_SIZE = 25;
-const SEARCH_DEBOUNCE_MS = 300;
 const STATUS_FILTERS: Array<{
   id: "all" | PlatformOrganizationStatusFilter;
   label: string;
