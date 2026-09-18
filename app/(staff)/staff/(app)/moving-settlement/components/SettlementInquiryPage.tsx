@@ -4,7 +4,7 @@ import { useDeferredValue, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { EmptyState, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
-import { useOrganizationPrintInfo } from "@/hooks/reactquery/org/useOrganizationPrintInfo";
+import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
 import {
   useUpdateSettlementInquiryRows,
   useSettlementInquiry,
@@ -45,7 +45,7 @@ function monthEnd(month: string): string {
 export function SettlementInquiryPage({ type }: { type: UtilityInquiryType }) {
   const range = currentMonthRange();
   const { data: me } = useMe();
-  const { data: organization } = useOrganizationPrintInfo(me?.orgId);
+  const { data: setupConfig } = useSetupConfig(me?.orgId);
   const [fromMonth, setFromMonth] = useState(range.fromMonth);
   const [toMonth, setToMonth] = useState(range.toMonth);
   const [appliedFrom, setAppliedFrom] = useState(`${range.fromMonth}-01`);
@@ -125,7 +125,24 @@ export function SettlementInquiryPage({ type }: { type: UtilityInquiryType }) {
       toast.info("출력할 내역이 없어요.");
       return;
     }
-    printUtilityInquiry(type, rows, edits, appliedFrom, organization);
+    printUtilityInquiry(
+      type,
+      rows,
+      edits,
+      appliedFrom,
+      setupConfig
+        ? {
+            companyName: setupConfig.companyName,
+            companyPhone: setupConfig.companyPhone,
+            companyFax: setupConfig.companyFax,
+            ceoName: setupConfig.ceoName,
+            companyAddress: setupConfig.companyAddress,
+            settleBank: setupConfig.settleBank,
+            settleAcct: setupConfig.settleAcct,
+            settleHolder: setupConfig.settleHolder,
+          }
+        : undefined,
+    );
   };
 
   return (

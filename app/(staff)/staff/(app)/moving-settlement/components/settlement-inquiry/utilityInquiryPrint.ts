@@ -2,7 +2,6 @@ import type {
   SettlementInquiryRow,
   UpdateSettlementInquiryRow,
 } from "@/hooks/reactquery/movingSettlement";
-import type { OrganizationPrintInfo } from "@/hooks/reactquery/org/useOrganizationPrintInfo";
 import { locationLabel, unitNoLabel } from "../settlementInquiryTypes";
 import {
   getUtilityInquiryFieldMapping,
@@ -37,6 +36,17 @@ body>*:not(#msPrintSheet){display:none!important}
 interface PrintHeader {
   label: string;
   secondLine?: string;
+}
+
+interface UtilityInquiryPrintOrganization {
+  companyName: string | null;
+  companyPhone: string | null;
+  companyFax: string | null;
+  ceoName: string | null;
+  companyAddress: string | null;
+  settleBank: string | null;
+  settleAcct: string | null;
+  settleHolder: string | null;
 }
 
 function printNumber(value: number | string | null | undefined): string {
@@ -172,7 +182,7 @@ function appendMainTable(
 
 function appendOrganizationTable(
   sheet: HTMLElement,
-  organization: OrganizationPrintInfo | null | undefined,
+  organization: UtilityInquiryPrintOrganization | null | undefined,
 ): void {
   const table = createElement("table", "foot");
   const colGroup = createElement("colgroup");
@@ -186,31 +196,31 @@ function appendOrganizationTable(
   const body = createElement("tbody");
   const accountRow = createElement("tr");
   appendCell(accountRow, "th", "은행명");
-  appendCell(accountRow, "td", "");
+  appendCell(accountRow, "td", organization?.settleBank ?? "");
   appendCell(accountRow, "th", "계좌번호");
-  appendCell(accountRow, "td", "");
+  appendCell(accountRow, "td", organization?.settleAcct ?? "");
   appendCell(accountRow, "th", "예금주");
-  appendCell(accountRow, "td", "");
+  appendCell(accountRow, "td", organization?.settleHolder ?? "");
   appendCell(accountRow, "th", "주민번호");
   appendCell(accountRow, "td", "");
   body.appendChild(accountRow);
 
   const contactRow = createElement("tr");
   appendCell(contactRow, "th", "전화번호");
-  appendCell(contactRow, "td", organization?.phone ?? "");
+  appendCell(contactRow, "td", organization?.companyPhone ?? "");
   appendCell(contactRow, "th", "휴대번호");
   appendCell(contactRow, "td", "");
   appendCell(contactRow, "th", "팩스번호");
-  appendCell(contactRow, "td", organization?.fax ?? "");
+  appendCell(contactRow, "td", organization?.companyFax ?? "");
   appendCell(contactRow, "th", "대표자");
-  appendCell(contactRow, "td", organization?.representativeName ?? "");
+  appendCell(contactRow, "td", organization?.ceoName ?? "");
   body.appendChild(contactRow);
 
   const addressRow = createElement("tr");
   appendCell(addressRow, "th", "관리업체");
-  appendCell(addressRow, "td", organization?.name ?? "");
+  appendCell(addressRow, "td", organization?.companyName ?? "");
   appendCell(addressRow, "th", "주 소");
-  appendCell(addressRow, "td", organization?.address ?? "", undefined, 5);
+  appendCell(addressRow, "td", organization?.companyAddress ?? "", undefined, 5);
   body.appendChild(addressRow);
 
   table.appendChild(body);
@@ -227,7 +237,7 @@ export function printUtilityInquiry(
   rows: SettlementInquiryRow[],
   edits: Record<number, UpdateSettlementInquiryRow>,
   appliedFrom: string,
-  organization?: OrganizationPrintInfo | null,
+  organization?: UtilityInquiryPrintOrganization | null,
 ): void {
   removePrintArtifacts();
 
