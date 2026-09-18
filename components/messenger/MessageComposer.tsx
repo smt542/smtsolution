@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { SearchIcon } from "@/components/icons";
 import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates/queries";
 import { byteLen, smsProduct } from "@/lib/messenger/bytes";
 import { messengerClasses as styles } from "./messengerClasses";
@@ -23,7 +24,7 @@ export function MessageComposer({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [menuPosition, setMenuPosition] = useState<
-    { left: number; top: number; width: number } | undefined
+    { left: number; top: number; width: number; maxHeight: number } | undefined
   >();
   const rootRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -60,6 +61,7 @@ export function MessageComposer({
         left: Math.max(12, Math.min(rect.right - width, window.innerWidth - width - 12)),
         top: rect.bottom + 6,
         width,
+        maxHeight: Math.max(336, Math.min(360, window.innerHeight - rect.bottom - 16)),
       });
     }
     setOpen((current) => !current);
@@ -126,15 +128,17 @@ export function MessageComposer({
             style={menuPosition}
             onClick={(event) => event.stopPropagation()}
           >
-            <div className={styles["fmp-fromadd"]}>
+            <div className="relative mb-[4px] flex items-center border-b border-line2 px-[2px] pb-[8px] pt-[2px]">
+              <SearchIcon className="pointer-events-none absolute left-[11px] size-[14px] text-t3" />
               <input
+                className="h-[34px] w-full rounded-[8px] border border-line bg-white pl-[30px] pr-[10px] text-[12.5px] font-semibold text-t1 outline-none focus:border-blue"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="템플릿 검색"
                 aria-label="문자 템플릿 검색"
               />
             </div>
-            <div className={styles["fmp-tpllist"]}>
+            <div className={`${styles["fmp-tpllist"]} max-h-[270px]`}>
               {isLoading && (
                 <div className={styles["fmp-pempty"]} role="status" aria-label="문자 템플릿 불러오는 중">템플릿을 불러오는 중입니다.</div>
               )}
@@ -153,12 +157,14 @@ export function MessageComposer({
                 <button
                   type="button"
                   key={template.id}
-                  className={`${styles["fmp-fromrow"]} ${template.id === templateId ? styles.on : ""}`}
+                  className={`flex w-full cursor-pointer items-start gap-[8px] rounded-[9px] px-[10px] py-[9px] text-left hover:bg-bg ${template.id === templateId ? "bg-blue-t2" : ""}`}
                   onClick={() => chooseTemplate(template.id)}
                 >
-                  <span style={{ minWidth: 0, textAlign: "left" }}>
-                    <span className={styles.num}>{template.title}</span>
-                    <span className={styles.who} style={{ display: "block" }}>
+                  <span className="min-w-0 flex-1">
+                    <span className={`block text-[13px] font-bold ${template.id === templateId ? "text-blue-d" : "text-t1"}`}>
+                      {template.title}
+                    </span>
+                    <span className="mt-[2px] block truncate text-[11.5px] font-medium text-t3">
                       {template.body.replace(/\s+/g, " ")}
                     </span>
                   </span>
