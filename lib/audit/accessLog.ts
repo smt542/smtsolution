@@ -1,5 +1,7 @@
 import "server-only";
 
+import { headers } from "next/headers";
+
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const ACCESS_LOG_EVENTS = [
@@ -106,4 +108,28 @@ export function extractRequestMeta(req: Request): {
     ip,
     userAgent: req.headers.get("user-agent"),
   };
+}
+
+/**
+ * Extracts the same request metadata from a Server Component request context.
+ * Next.js 16 exposes headers() as an asynchronous API.
+ */
+export async function extractHeadersMeta(): Promise<{
+  ip: string | null;
+  userAgent: string | null;
+}> {
+  try {
+    const requestHeaders = await headers();
+    const ip =
+      requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim()
+      || requestHeaders.get("x-real-ip")?.trim()
+      || null;
+
+    return {
+      ip,
+      userAgent: requestHeaders.get("user-agent"),
+    };
+  } catch {
+    return { ip: null, userAgent: null };
+  }
 }

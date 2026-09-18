@@ -98,12 +98,14 @@ export interface SignedBillLinkRow {
   building_id: number;
   unit_no: string;
   sig: string;
+  issued_day?: number | null;
 }
 
 export interface SignedBillLink {
   buildingId: number;
   unitNo: string;
   sig: string;
+  issuedDay?: number | null;
 }
 
 export interface StaffSignBillUrlRow {
@@ -111,6 +113,7 @@ export interface StaffSignBillUrlRow {
   building_id: number;
   unit_no: string;
   sig: string;
+  issued_day?: number | null;
 }
 
 export interface StaffSignedBillLink {
@@ -118,6 +121,7 @@ export interface StaffSignedBillLink {
   buildingId: number;
   unitNo: string;
   sig: string;
+  issuedDay?: number | null;
 }
 
 export interface StaffSignBillUrlsPayload {
@@ -244,8 +248,16 @@ export function signedBillPath(link: {
   unitNo: string;
   period: string;
   sig: string;
+  issuedDay?: number | null;
 }): string {
-  return `/rb/${link.buildingId}/${encodeURIComponent(link.unitNo)}/${link.period.slice(0, 7)}?s=${link.sig}`;
+  // issued_day를 반환하지 않는 DB(마이그 0175 미적용)에서는 d를 붙이지 않는다. 그러면
+  // 검증기가 4-arg 레거시 경로를 타서, 코드가 마이그레이션보다 먼저 배포돼도 현행
+  // 동작을 그대로 유지한다(Amplify 배포와 DB 적용은 원자적이지 않다).
+  const issuedDayQuery =
+    typeof link.issuedDay === "number" && Number.isFinite(link.issuedDay)
+      ? `&d=${link.issuedDay}`
+      : "";
+  return `/rb/${link.buildingId}/${encodeURIComponent(link.unitNo)}/${link.period.slice(0, 7)}?s=${link.sig}${issuedDayQuery}`;
 }
 
 /** 세입자 본인 세대의 무로그인 서명 링크(building_id·unit_no·sig)를 자동 발급한다. */
@@ -258,7 +270,12 @@ export async function residentSignBillUrl(
   if (error) throw new Error(error.message);
   const row = ((data ?? []) as SignedBillLinkRow[])[0];
   return row
-    ? { buildingId: row.building_id, unitNo: row.unit_no, sig: row.sig }
+    ? {
+        buildingId: row.building_id,
+        unitNo: row.unit_no,
+        sig: row.sig,
+        issuedDay: row.issued_day,
+      }
     : null;
 }
 
@@ -276,5 +293,6 @@ export async function staffSignBillUrls(
     buildingId: row.building_id,
     unitNo: row.unit_no,
     sig: row.sig,
+    issuedDay: row.issued_day,
   }));
 }

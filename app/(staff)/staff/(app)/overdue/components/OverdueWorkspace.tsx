@@ -216,6 +216,7 @@ export function OverdueWorkspace({
           unitNo: signed.unitNo,
           period: latestPeriod.period,
           sig: signed.sig,
+          issuedDay: signed.issuedDay,
         })}`;
 
         return [row.phone, row.phone2]
