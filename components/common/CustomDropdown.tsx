@@ -14,7 +14,7 @@ interface CustomDropdownProps {
   options: DropdownOption[];
   onChange: (value: string) => void;
   disabled?: boolean;
-  size?: "default" | "compact";
+  size?: "default" | "compact" | "notification";
   compact?: boolean;
   /**
    * "menu"(기본): 툴바/레일용. 메뉴가 내용 너비로 우측 정렬되고 선택 항목에 체크표시.
@@ -38,7 +38,11 @@ export function CustomDropdown({
   const menuId = useId();
   const selected = options.find((option) => option.value === value) ?? options[0];
   const isCompact = size === "compact" || compact;
+  const isNotification = size === "notification";
   const isField = variant === "field";
+  const triggerSize = isNotification
+    ? "h-[34px] w-[64px] min-w-[64px] justify-between rounded-[9px] px-[10px] text-[13.5px] [&_svg]:h-[13px] [&_svg]:w-[13px]"
+    : `${isCompact ? "h-8" : "h-9"} rounded-[9px] pr-[10px] pl-[11px] text-[13px] [&_svg]:h-[15px] [&_svg]:w-[15px]`;
 
   useEffect(() => {
     if (!open) return;
@@ -64,11 +68,11 @@ export function CustomDropdown({
   return (
     <div
       ref={rootRef}
-      className={`uc-dd ${isCompact ? "uc-dd--compact" : ""} ${open ? "open" : ""} relative flex-none`}
+      className={`uc-dd ${isCompact ? "uc-dd--compact" : ""} ${isNotification ? "uc-dd--notification" : ""} ${open ? "open" : ""} relative flex-none`}
     >
       <button
         type="button"
-        className={`uc-dd-btn inline-flex ${isCompact ? "h-8" : "h-9"} items-center gap-[7px] rounded-[9px] border ${open ? "border-blue" : "border-line"} bg-surface py-0 pr-[10px] pl-[11px] text-[13px] font-bold tracking-[-0.01em] text-t1 outline-none transition-[border-color,box-shadow] duration-[120ms] hover:border-blue hover:shadow-[0_0_0_3px_var(--color-blue-t)] disabled:cursor-default disabled:opacity-[.55] disabled:shadow-none [&_svg]:h-[15px] [&_svg]:w-[15px] ${open ? "shadow-[0_0_0_3px_var(--color-blue-t)]" : ""}`}
+        className={`uc-dd-btn inline-flex ${triggerSize} items-center gap-[7px] border ${open ? "border-blue" : "border-line"} bg-surface py-0 font-bold tracking-[-0.01em] text-t1 outline-none transition-[border-color,box-shadow] duration-[120ms] hover:border-blue hover:shadow-[0_0_0_3px_var(--color-blue-t)] disabled:cursor-default disabled:opacity-[.55] disabled:shadow-none ${open ? "shadow-[0_0_0_3px_var(--color-blue-t)]" : ""}`}
         aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={open}

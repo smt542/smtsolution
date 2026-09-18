@@ -5,7 +5,7 @@ export { Textarea } from "./Textarea";
 export { Switch } from "./Switch";
 export { SegmentedControl } from "./SegmentedControl";
 export { Radio } from "./Radio";
-export { NumberedTagList } from "./NumberedTagList";
+export { NumberedTagList, nextDefaultLabel } from "./NumberedTagList";
 export { Select } from "./Select";
 export { Checkbox } from "./Checkbox";
 export { Modal } from "./Modal";
