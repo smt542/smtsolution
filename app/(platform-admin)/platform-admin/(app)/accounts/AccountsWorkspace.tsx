@@ -19,7 +19,7 @@ import {
   type PlatformAccountQuery,
 } from "@/hooks/reactquery/platform";
 import type { OrgMemberRole, StaffType } from "@/hooks/reactquery/auth";
-import { useDebouncedValue } from "@/hooks/common";
+import { SEARCH_DEBOUNCE_MS, useDebouncedValue } from "@/hooks/common";
 import { MODULE_KEYS, MODULE_LABELS } from "@/lib/auth/permissions";
 import { formatNumber } from "@/lib/format";
 import {
@@ -72,7 +72,6 @@ const dateFormatter = new Intl.DateTimeFormat("ko-KR", {
   day: "2-digit",
 });
 const PAGE_SIZE = 25;
-const SEARCH_DEBOUNCE_MS = 300;
 
 export function AccountsWorkspace() {
   const [search, setSearch] = useState("");
