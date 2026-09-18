@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { DpDatePicker } from "@/components/common/DpDatePicker";
+import { DpTimePicker } from "@/components/common/DpTimePicker";
 import { CalendarIcon, CheckIcon, ClockIcon } from "@/components/icons";
 
 export interface ScheduleValue {
@@ -17,8 +18,6 @@ interface SchedulePickerProps {
 
 const CONTROL_CLASS_NAME =
   "flex h-[44px] flex-1 min-w-0 items-center gap-[8px] rounded-[11px] border border-line bg-white px-[13px] text-[13.5px] font-bold text-t1 focus-within:border-blue";
-const TIME_INPUT_CLASS_NAME =
-  "min-w-0 flex-1 border-0 bg-transparent p-0 text-[13.5px] outline-none [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:m-0 [&::-webkit-calendar-picker-indicator]:h-auto [&::-webkit-calendar-picker-indicator]:w-auto [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0";
 
 function pad(value: number): string {
   return String(value).padStart(2, "0");
@@ -189,22 +188,21 @@ export function SchedulePicker({ value, onChange }: SchedulePickerProps) {
             minDate={minimumDate}
           />
 
-          <label className={`${CONTROL_CLASS_NAME} relative`}>
-            <ClockIcon className="size-[16px] shrink-0 text-t3" />
-            <input
-              className={`${TIME_INPUT_CLASS_NAME} ${parts.time ? "font-bold text-t1" : "font-semibold text-t4"}`}
-              type="time"
-              step={300}
-              value={parts.time}
-              aria-label="예약 시간"
-              onChange={(event) =>
-                onChange({
-                  scheduledAt: toKstIso(parts.date, event.target.value),
-                  recurrenceMode: value.recurrenceMode,
-                })
-              }
-            />
-          </label>
+          <DpTimePicker
+            className="min-w-0 flex-1"
+            triggerClassName={CONTROL_CLASS_NAME}
+            triggerOpenClassName="border-blue"
+            startAdornment={<ClockIcon className="size-[16px] shrink-0 text-t3" />}
+            placeholder="시간 선택"
+            ariaLabel="예약 시간"
+            value={parts.time}
+            onChange={(time) =>
+              onChange({
+                scheduledAt: toKstIso(parts.date, time),
+                recurrenceMode: value.recurrenceMode,
+              })
+            }
+          />
 
           <button
             ref={repeatTriggerRef}
@@ -241,7 +239,7 @@ export function SchedulePicker({ value, onChange }: SchedulePickerProps) {
                       role="option"
                       aria-selected={selected}
                       className={`flex w-full items-center justify-between gap-2 rounded-[9px] px-[11px] py-[9px] text-[13px] font-bold text-t2 hover:bg-bg ${
-                        selected ? "bg-blue-t text-blue-d" : ""
+                        selected ? "bg-blue-t2 text-blue-d" : ""
                       }`}
                       onClick={() => {
                         onChange({ scheduledAt: value.scheduledAt, recurrenceMode: mode });
