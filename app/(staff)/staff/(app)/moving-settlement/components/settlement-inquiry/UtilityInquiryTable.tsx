@@ -73,11 +73,20 @@ export function UtilityInquiryTable({
             return (
               <tr key={row.settlementId} className="h-[55px] hover:bg-[#FBFCFD]">
                 <td className="border-b border-line2 px-4 text-right num">{index + 1}</td>
-                <td className="border-b border-line2 px-4">
+                {/* 정본 셀은 모두 한 줄이다. 소재지에 동 이름이 없어 주소가 통째로
+                    들어오는 건물이 있어 고정 폭에서 두 줄로 접힌다 — 전체 이사조회와
+                    같이 잘라내고 전체 값은 title 로 남긴다. */}
+                <td
+                  className="truncate border-b border-line2 px-4"
+                  title={row.buildingAddress ?? undefined}
+                >
                   {locationLabel(row.buildingAddress, row.dong)}
                 </td>
                 <td className="border-b border-line2 px-4">{row.buildingName}</td>
-                <td className="border-b border-line2 px-4">
+                <td
+                  className="truncate border-b border-line2 px-4"
+                  title={row.buildingAddress ?? undefined}
+                >
                   {row.buildingAddress ?? ""}
                 </td>
                 <td className="border-b border-line2 px-4">{unitNoLabel(row.unitNo)}</td>
