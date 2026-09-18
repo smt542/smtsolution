@@ -39,8 +39,13 @@ function reflectsUnitPrice(
 }
 
 /**
- * 단가 반영 ON 인 유틸의 금액을 "그 달 검침 단가 x 사용량" 으로 계산한다(사용자 결정 2026-09-18).
- * 그 달 검침이 없어 단가가 null 이면 계산할 수 없으므로 제외하고 수동 입력을 지킨다.
+ * 단가 반영 ON 인 유틸의 금액을 **그 달 검침의 실효 요금**으로 잡는다(0169).
+ *
+ * `meter.charge` = `coalesce(manual_charge, calc_charge)` 이고 `calc_charge` 자체가
+ * `usage x unit_price - 할인` 이다. 여기서 단가를 다시 곱하면 수도 할인(water_discounts)과
+ * 담당자 수동 보정(manual_charge)이 빠져 /staff/utilities 의 그 달 요금과 어긋난다.
+ * 그 달 검침이 없어 charge 가 null 이면 제외하고 수동 입력을 지킨다.
+ *
  * SettlementForm 이 이 결과를 draft 로 되돌려 넣어 표시값·소계·요약바·저장값의 출처를 하나로 유지한다.
  */
 export function reflectedUtilityCharges(
@@ -53,8 +58,8 @@ export function reflectedUtilityCharges(
   for (const row of UTILITY_ROWS) {
     if (!reflectsUnitPrice(row.utility, settings)) continue;
     const meter = byUtility.get(row.utility);
-    if (!meter || meter.unitPrice === null) continue;
-    next[row.chargeKey] = Math.round(meter.unitPrice * (meter.usage ?? 0));
+    if (!meter || meter.charge === null) continue;
+    next[row.chargeKey] = meter.charge;
   }
   return next;
 }
