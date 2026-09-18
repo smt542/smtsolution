@@ -3,7 +3,7 @@
 import React from "react";
 import { Controller, useForm, useWatch, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Input, Modal, Select } from "@/components/common";
+import { Button, CustomDropdown, Input, Modal } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { FormField } from '@/components/common/FormField';
 import { setSubmissionError } from "@/components/forms/formErrors";
@@ -144,9 +144,11 @@ export function AccountFormModal({
           : "staff";
 
       const crossType: StaffType = isField ? "manager_staff" : "field_staff";
-      const staffCapabilities: StaffType[] = values.alsoCrossApp
-        ? [values.staffType, crossType]
-        : [values.staffType];
+      const staffCapabilities = isEdit && editing
+        ? editing.staffCapabilities
+        : values.alsoCrossApp
+          ? [values.staffType, crossType]
+          : [values.staffType];
 
       if (!isEdit) {
         const created = await onCreate({
@@ -208,20 +210,24 @@ export function AccountFormModal({
     }
   };
 
-  const title = isTenant
-    ? "계정 수정"
-    : `${isField ? "현장 관리자" : "사무실 관리자"} ${isEdit ? "수정" : "등록"}`;
+  const title = isEdit
+    ? "계정 정보"
+    : `${isField ? "현장 관리자" : "사무실 관리자"} 등록`;
 
   return (
     <Modal
       open={open}
       onClose={closeSafely}
       title={title}
-      className="max-h-[calc(100vh-2rem)] max-w-3xl overflow-hidden"
+      overlayClassName="items-start overflow-auto py-[20px]"
+      /* 정본 제목은 18px / line-height:normal. 공용 Modal의 text-lg가 28px 줄높이를
+         물고 오므로 자식 셀렉터로 되돌린다(Modal 자체는 다른 화면들이 쓰므로 무변경). */
+      className="my-auto flex max-h-[calc(100%-40px)] max-w-[560px] flex-col rounded-[20px] shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)] [&>h2]:text-[18px] [&>h2]:leading-[normal]"
+      bodyClassName="mt-[4px] flex min-h-0 flex-1 flex-col"
     >
       {isTenant ? (
         <div className="flex flex-col gap-3">
-          <p className="text-sm text-t2">
+          <p className="text-sm leading-[normal] text-t2">
             세입자 계정은 <b>입주자 상세에서</b> 생성·관리합니다. 이 화면에서는 조회·비활성·비밀번호 재설정만 가능합니다.
           </p>
           <div className="flex justify-end">
@@ -229,15 +235,16 @@ export function AccountFormModal({
           </div>
         </div>
       ) : (
-        <form onSubmit={handleSubmit(onValid)} className="flex max-h-[calc(100vh-7rem)] flex-col" noValidate>
-          <p className="text-sm font-semibold text-t3">필수 항목(*)을 입력해 주세요</p>
+        <form onSubmit={handleSubmit(onValid)} className="flex min-h-0 flex-1 flex-col" noValidate>
+          <p className="mb-[16px] flex-none text-[13px] font-semibold leading-[normal] text-t3">필수 항목(*)을 입력해 주세요</p>
 
-          <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="grid grid-cols-2 gap-x-[15px] gap-y-[13px]">
               <FormField
                 htmlFor="username"
                 label={<>아이디 <RequiredMark /></>}
                 error={errors.username && <>{errors.username.message}</>}
+                className="[&>label]:mb-[6px] [&>label]:text-[12.5px] [&>label]:font-bold [&>label]:leading-[normal] [&>label]:text-t2 [&>p]:leading-[normal]"
               >
                 <Input
                   id="username"
@@ -245,7 +252,7 @@ export function AccountFormModal({
                   {...register("username")}
                   placeholder="아이디 입력"
                   readOnly={isEdit}
-                  className={errors.username ? "border-danger" : ""}
+                  className={`h-[40px] w-full rounded-[11px]! border border-line bg-surface px-[12px] text-[14px] font-medium leading-[normal] text-t1 outline-none placeholder:text-[#757575]! focus:border-brand focus:shadow-[0_0_0_3px_var(--color-brand-tint)] ${errors.username ? "border-danger" : ""}`}
                 />
               </FormField>
 
@@ -253,6 +260,7 @@ export function AccountFormModal({
                 htmlFor="password"
                 label={<>비밀번호 {!isEdit && <RequiredMark />}</>}
                 error={errors.password && <>{errors.password.message}</>}
+                className="[&>label]:mb-[6px] [&>label]:text-[12.5px] [&>label]:font-bold [&>label]:leading-[normal] [&>label]:text-t2 [&>p]:leading-[normal]"
               >
                 <Input
                   id="password"
@@ -269,7 +277,7 @@ export function AccountFormModal({
                     void passwordField.onChange(event);
                   }}
                   placeholder="숫자 4자리"
-                  className={errors.password ? "border-danger" : ""}
+                  className={`h-[40px] w-full rounded-[11px]! border border-line bg-surface px-[12px] text-[14px] font-medium leading-[normal] text-t1 outline-none placeholder:text-[#757575]! focus:border-brand focus:shadow-[0_0_0_3px_var(--color-brand-tint)] num tabular-nums ${errors.password ? "border-danger" : ""}`}
                 />
               </FormField>
 
@@ -277,17 +285,22 @@ export function AccountFormModal({
                 htmlFor="fullName"
                 label={<>이름 <RequiredMark /></>}
                 error={errors.fullName && <>{errors.fullName.message}</>}
+                className="[&>label]:mb-[6px] [&>label]:text-[12.5px] [&>label]:font-bold [&>label]:leading-[normal] [&>label]:text-t2 [&>p]:leading-[normal]"
               >
                 <Input
                   id="fullName"
                   aria-label="이름"
                   {...register("fullName")}
                   placeholder="이름 입력"
-                  className={errors.fullName ? "border-danger" : ""}
+                  className={`h-[40px] w-full rounded-[11px]! border border-line bg-surface px-[12px] text-[14px] font-medium leading-[normal] text-t1 outline-none placeholder:text-[#757575]! focus:border-brand focus:shadow-[0_0_0_3px_var(--color-brand-tint)] ${errors.fullName ? "border-danger" : ""}`}
                 />
               </FormField>
 
-              <FormField htmlFor="phone" label="연락처">
+              <FormField
+                htmlFor="phone"
+                label="연락처"
+                className="[&>label]:mb-[6px] [&>label]:text-[12.5px] [&>label]:font-bold [&>label]:leading-[normal] [&>label]:text-t2 [&>p]:leading-[normal]"
+              >
                 <Input
                   id="phone"
                   aria-label="연락처"
@@ -295,98 +308,110 @@ export function AccountFormModal({
                   inputMode="numeric"
                   {...register("phone")}
                   placeholder="010-0000-0000"
+                  className="h-[40px] w-full rounded-[11px]! border border-line bg-surface px-[12px] text-[14px] font-medium leading-[normal] text-t1 outline-none placeholder:text-[#757575]! focus:border-brand focus:shadow-[0_0_0_3px_var(--color-brand-tint)] num tabular-nums"
                 />
               </FormField>
 
-              <FormField htmlFor="memberType" label="회원 유형">
-                <Controller
-                  control={control}
-                  name="isMaster"
-                  render={({ field }) => (
-                    <Select
-                      id="memberType"
-                      aria-label="회원 유형"
-                      options={MEMBER_TYPE_OPTIONS}
-                      value={field.value ? "master" : "normal"}
-                      disabled={!canEditPermissions}
-                      onChange={(event) => field.onChange(event.target.value === "master")}
-                    />
-                  )}
-                />
-              </FormField>
+              {!isField && (
+                <FormField
+                  htmlFor="memberType"
+                  label="회원 유형"
+                  className="[&>label]:mb-[6px] [&>label]:text-[12.5px] [&>label]:font-bold [&>label]:leading-[normal] [&>label]:text-t2 [&>p]:leading-[normal] [&_.uc-dd-btn]:h-[40px] [&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:justify-between [&_.uc-dd-btn]:rounded-[11px] [&_.uc-dd-btn]:px-[10px] [&_.uc-dd-btn]:text-[14px] [&_.uc-dd-btn]:font-semibold [&_.uc-dd-btn]:leading-[normal] [&_.uc-dd-lbl]:text-[13.5px]"
+                >
+                  <Controller
+                    control={control}
+                    name="isMaster"
+                    render={({ field }) => (
+                      <CustomDropdown
+                        ariaLabel="회원 유형"
+                        options={MEMBER_TYPE_OPTIONS}
+                        value={field.value ? "master" : "normal"}
+                        disabled={!canEditPermissions}
+                        variant="field"
+                        onChange={(value) => field.onChange(value === "master")}
+                      />
+                    )}
+                  />
+                </FormField>
+              )}
 
-              <FormField htmlFor="status" label="상태">
+              <FormField
+                htmlFor="status"
+                label="상태"
+                className="[&>label]:mb-[6px] [&>label]:text-[12.5px] [&>label]:font-bold [&>label]:leading-[normal] [&>label]:text-t2 [&>p]:leading-[normal] [&_.uc-dd-btn]:h-[40px] [&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:justify-between [&_.uc-dd-btn]:rounded-[11px] [&_.uc-dd-btn]:px-[10px] [&_.uc-dd-btn]:text-[14px] [&_.uc-dd-btn]:font-semibold [&_.uc-dd-btn]:leading-[normal] [&_.uc-dd-lbl]:text-[13.5px]"
+              >
                 <Controller
                   control={control}
                   name="isActive"
                   render={({ field }) => (
-                    <Select
-                      id="status"
-                      aria-label="상태"
+                    <CustomDropdown
+                      ariaLabel="상태"
                       options={STATUS_OPTIONS}
                       value={field.value ? "active" : "inactive"}
-                      onChange={(event) => field.onChange(event.target.value === "active")}
+                      variant="field"
+                      onChange={(value) => field.onChange(value === "active")}
                     />
                   )}
                 />
               </FormField>
             </div>
 
-            <div className="mt-4 rounded-xl border border-line bg-bg/40 p-3">
-              <Controller
-                control={control}
-                name="alsoCrossApp"
-                render={({ field }) => (
-                  <label className="flex items-center gap-2 text-sm font-semibold text-t2">
-                    <input
-                      type="checkbox"
-                      checked={field.value}
-                      onChange={(e) => field.onChange(e.target.checked)}
-                      aria-label="겸직 다른 앱 접근 허용"
+            {!isField && (
+              <div>
+                <h3 className="mt-[20px] mb-[10px] text-[13px] font-extrabold leading-[normal] text-t2">페이지별 권한</h3>
+                {!canEditPermissions && (
+                  <p className="mb-2 text-xs leading-[normal] text-t4">마스터 직원만 권한을 변경할 수 있습니다.</p>
+                )}
+                <Controller
+                  control={control}
+                  name="permissions"
+                  render={({ field }) => (
+                    <PermissionChecklist
+                      value={field.value ?? []}
+                      onChange={field.onChange}
+                      disabled={!canEditPermissions}
+                      allGranted={selectedMaster}
                     />
-                    {isField ? "사무실 앱도 접근 허용(겸직)" : "현장 앱도 접근 허용(겸직)"}
-                  </label>
-                )}
-              />
-              <p className="mt-1 text-xs text-t4">
-                체크하면 이 계정이 {isField ? "사무실 웹앱(/staff)" : "현장 모바일앱(/partner)"}에도
-                로그인·접근할 수 있습니다.
-              </p>
-            </div>
-
-            <div className="mt-5">
-              <h3 className="mb-2 text-sm font-extrabold text-t2">페이지별 권한</h3>
-              {!canEditPermissions && (
-                <p className="mb-2 text-xs text-t4">마스터 직원만 권한을 변경할 수 있습니다.</p>
-              )}
-              <Controller
-                control={control}
-                name="permissions"
-                render={({ field }) => (
-                  <PermissionChecklist
-                    value={field.value ?? []}
-                    onChange={field.onChange}
-                    disabled={!canEditPermissions}
-                    allGranted={selectedMaster}
-                  />
-                )}
-              />
-            </div>
+                  )}
+                />
+              </div>
+            )}
           </div>
 
           {errors.root?.server?.message && (
-            <p role="alert" className="mt-3 rounded-xl bg-red-t px-3 py-2 text-sm font-semibold text-red">
+            <p role="alert" className="mt-3 rounded-xl bg-red-t px-3 py-2 text-sm font-semibold leading-[normal] text-red">
               {errors.root.server.message}
             </p>
           )}
 
-          <div className="mt-5 flex items-center gap-2 border-t border-line pt-4">
+          <div className="mt-[18px] flex flex-none items-center gap-[8px]">
             {isEdit && (
-              <Button type="button" variant="danger" disabled={submitting} onClick={deactivate}>삭제</Button>
+              <Button
+                type="button"
+                variant="danger"
+                disabled={submitting}
+                onClick={deactivate}
+                className="h-[40px] rounded-[11px] border border-[#F04452] bg-[#F04452] px-[15px] text-[13.5px] font-bold leading-[normal] text-white"
+              >
+                삭제
+              </Button>
             )}
             <div className="flex-1" />
-            <Button type="button" variant="ghost" onClick={closeSafely} disabled={submitting}>취소</Button>
-            <Button type="submit" variant="primary" disabled={submitting}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={closeSafely}
+              disabled={submitting}
+              className="h-[40px] rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2"
+            >
+              취소
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={submitting}
+              className="h-[40px] rounded-[11px] border border-brand bg-brand px-[15px] text-[13.5px] font-bold leading-[normal] text-white shadow-[0_6px_14px_-4px_rgba(20,164,151,0.5)]"
+            >
               {submitting ? "저장 중…" : isEdit ? "저장" : "등록"}
             </Button>
           </div>

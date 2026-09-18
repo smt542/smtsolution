@@ -9,6 +9,9 @@ const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(ROOT, 'out');
 const APP_ORIGIN = process.env.APP_ORIGIN || 'http://localhost:3000';
 const AUTH = process.env.AUTH_STATE || path.join(ROOT, '.auth', 'staff.json');
+// AUTH_MODE=login 이면 storageState 대신 컨텍스트마다 STAFF_ID/STAFF_PW 로 로그인한다.
+const LOGIN_IN_SESSION =
+  process.env.AUTH_MODE === 'login' && !!process.env.STAFF_ID && !!process.env.STAFF_PW;
 
 const targets = JSON.parse(await readFile(path.join(ROOT, 'targets.json'), 'utf8'));
 const idArg = process.argv[2] || 'all';
@@ -54,9 +57,19 @@ try {
       const ctx = await browser.newContext({
         viewport: { width: t.viewport.w, height: t.viewport.h },
         deviceScaleFactor: 1,
-        storageState: AUTH,
+        ...(LOGIN_IN_SESSION ? {} : { storageState: AUTH }),
       });
       const page = await ctx.newPage();
+      // AUTH_MODE=login: 저장된 storageState 대신 이 컨텍스트에서 직접 로그인한다.
+      // Supabase refresh token 로테이션 때문에 storageState는 캡처 1회 뒤 무효화되고,
+      // 그때부터 클라 RPC가 anon 키로 나가 authenticated 전용 RPC가 401이 된다.
+      if (LOGIN_IN_SESSION) {
+        await page.goto(APP_ORIGIN + '/staff/login', { waitUntil: 'networkidle' });
+        await page.fill('#username', process.env.STAFF_ID);
+        await page.fill('#password', process.env.STAFF_PW);
+        await page.click('button[type="submit"]');
+        await page.waitForURL((u) => !u.pathname.includes('/login'), { timeout: 20000 });
+      }
       await page.goto(APP_ORIGIN + t.appPath, { waitUntil: 'networkidle' });
       await page.waitForTimeout(500); // 폰트·데이터 안정화
       // dev 전용 오버레이(next dev <nextjs-portal>·react-query devtools .tsqd-parent-container)가

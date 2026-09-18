@@ -2,9 +2,8 @@
 
 import React, { useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Tabs, SearchBar, Button, EmptyState, Spinner } from "@/components/common";
+import { Tabs, Button, EmptyState, Spinner } from "@/components/common";
 import type { StaffType } from "@/hooks/reactquery/auth";
-import { useDebouncedValue } from "@/hooks/common";
 import {
   useAccounts, useCreateAccount, useUpdateAccountBasic, useUpdatePermissions, useSetActive, useResetPassword,
   type Account, type AccountCreateInput, type AccountBasicInput, type PermissionInput,
@@ -25,24 +24,20 @@ const TYPES_BY_TAB: Record<string, StaffType[]> = {
 
 export function AccountsWorkspace({ canEditPermissions }: { canEditPermissions: boolean }) {
   const [tab, setTab] = useState("office");
-  const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Account | null>(null);
-  const debouncedSearch = useDebouncedValue(search, 300);
 
   const {
     data: accounts = [],
     isLoading: isAccountListLoading,
     isError: isAccountListError,
-    isFetching: isAccountListFetching,
     refetch: refetchAccounts,
-  } = useAccounts({ search: debouncedSearch || undefined });
+  } = useAccounts();
   const createM = useCreateAccount();
   const basicM = useUpdateAccountBasic();
   const permM = useUpdatePermissions();
   const activeM = useSetActive();
   const resetPasswordM = useResetPassword();
-  const isAccountListRefreshing = isAccountListFetching && !isAccountListLoading;
   const isAccountFormPending = createM.isPending
     || basicM.isPending
     || permM.isPending
@@ -87,66 +82,56 @@ export function AccountsWorkspace({ canEditPermissions }: { canEditPermissions: 
     }
     catch (e) { toast.error(e, "오류가 발생했습니다"); throw e; }
   };
-  const onToggleActive = async (account: Account) => {
-    try {
-      await onSetActive(account.userId, !account.isActive);
-    } catch {
-      // onSetActive shows the error toast.
-    }
-  };
-
   return (
-    <div className="flex h-full min-h-screen flex-col gap-4 p-6">
-      <div>
-        <h1 className="text-2xl font-extrabold text-t1">계정·직원 관리</h1>
+    <div className="flex h-[calc(100vh-62px)] min-h-[480px] flex-col overflow-hidden max-md:h-auto max-md:overflow-visible">
+      <div className="flex-none border-b border-line bg-surface px-[24px]">
+        <Tabs tabs={TABS} active={tab} onChange={setTab} variant="underline" />
       </div>
 
-      <Tabs tabs={TABS} active={tab} onChange={setTab} />
-
-      {tab === "tenant" ? (
-        <ResidentClaimsPanel />
-      ) : (
-        <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
-          <div className="flex flex-col gap-3 border-b border-line p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-extrabold text-t1">계정 목록</h2>
-              <span className="rounded-lg bg-bg px-2.5 py-1 text-xs font-bold text-t3">
+      <div className="flex min-h-0 flex-1 flex-col gap-[16px] overflow-hidden px-6 pt-[22px] pb-6">
+        {tab === "tenant" ? (
+          <ResidentClaimsPanel />
+        ) : (
+          <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl bg-surface shadow-card">
+            <div className="flex flex-none items-center gap-[10px] border-b border-line2 px-[18px] py-[15px]">
+              <h2 className="text-[15px] font-extrabold leading-[normal] text-t1">계정 목록</h2>
+              <span className="inline-flex items-center rounded-[7px] bg-bg px-[9px] py-[3px] text-[12px] font-bold leading-[1.4] text-t3">
                 {filtered.length}개
               </span>
-              {isAccountListRefreshing ? (
-                <Spinner label="계정 목록 갱신 중" size="small" showLabel className="px-2 py-1" />
-              ) : null}
-            </div>
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-              <div className="w-full sm:w-72">
-                <SearchBar value={search} onChange={setSearch} placeholder="이름·아이디·연락처 검색" />
-              </div>
-              <Button type="button" variant="primary" onClick={openCreate} className="shrink-0">
+              <div className="flex-1" />
+              <Button
+                type="button"
+                variant="primary"
+                onClick={openCreate}
+                className="h-[34px] flex-none rounded-[11px] px-[14px] text-[13px] font-bold leading-[normal]"
+              >
                 ＋ 계정 등록
               </Button>
             </div>
-          </div>
 
-          <div className="min-h-0 flex-1 overflow-auto p-4">
-            {isAccountListLoading ? (
-              <div className="flex min-h-[320px] items-center justify-center">
-                <Spinner label="계정 목록 불러오는 중" />
-              </div>
-            ) : isAccountListError ? (
-              <div role="alert" className="flex min-h-[320px] flex-col items-center justify-center gap-3 text-sm text-danger">
-                <p>계정 목록을 불러오지 못했습니다.</p>
-                <Button type="button" variant="ghost" onClick={() => void refetchAccounts()}>
-                  다시 시도
-                </Button>
-              </div>
-            ) : filtered.length === 0 ? (
-              <EmptyState message="조건에 맞는 계정이 없습니다" />
-            ) : (
-              <AccountTable accounts={filtered} onRowClick={openEdit} onToggleActive={onToggleActive} />
-            )}
-          </div>
-        </section>
-      )}
+            <div className="min-h-0 flex-1 overflow-auto">
+              {isAccountListLoading ? (
+                <div className="flex min-h-[320px] items-center justify-center p-4 leading-[normal]">
+                  <Spinner label="계정 목록 불러오는 중" />
+                </div>
+              ) : isAccountListError ? (
+                <div role="alert" className="flex min-h-[320px] flex-col items-center justify-center gap-3 p-4 text-sm leading-[normal] text-danger">
+                  <p>계정 목록을 불러오지 못했습니다.</p>
+                  <Button type="button" variant="ghost" onClick={() => void refetchAccounts()}>
+                    다시 시도
+                  </Button>
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="p-4">
+                  <EmptyState message="조건에 맞는 계정이 없습니다" />
+                </div>
+              ) : (
+                <AccountTable accounts={filtered} hideType={tab === "field"} onRowClick={openEdit} />
+              )}
+            </div>
+          </section>
+        )}
+      </div>
 
       {tab !== "tenant" && (
         <AccountFormModal
