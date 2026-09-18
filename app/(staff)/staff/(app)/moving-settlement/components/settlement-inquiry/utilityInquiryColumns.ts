@@ -48,7 +48,9 @@ export interface UtilityInquiryColumn {
   align: "left" | "right";
 }
 
-const COLUMN_DEFINITIONS: Omit<UtilityInquiryColumn, "label">[] = [
+type ColumnDefinition = Omit<UtilityInquiryColumn, "label">;
+
+const ELECTRIC_COLUMN_DEFINITIONS: ColumnDefinition[] = [
   { key: "no", width: 48.6875, align: "right" },
   { key: "location", width: 110.75, align: "left" },
   { key: "buildingName", width: 140.453125, align: "left" },
@@ -63,6 +65,27 @@ const COLUMN_DEFINITIONS: Omit<UtilityInquiryColumn, "label">[] = [
   { key: "charge", width: 118.84375, align: "right" },
   { key: "paidDate", width: 199.953125, align: "left" },
 ];
+
+const GAS_WATER_COLUMN_DEFINITIONS: ColumnDefinition[] = [
+  { key: "no", width: 48.6875, align: "right" },
+  { key: "location", width: 123.8125, align: "left" },
+  { key: "buildingName", width: 157.03125, align: "left" },
+  { key: "buildingAddress", width: 354.09375, align: "left" },
+  { key: "unitNo", width: 57.4375, align: "left" },
+  { key: "moveOutDate", width: 158.84375, align: "left" },
+  { key: "customerNo", width: 169.109375, align: "left" },
+  { key: "previousReading", width: 71.765625, align: "right" },
+  { key: "currentReading", width: 71.765625, align: "right" },
+  { key: "usage", width: 61.828125, align: "right" },
+  { key: "charge", width: 134.09375, align: "right" },
+  { key: "paidDate", width: 223.53125, align: "left" },
+];
+
+const COLUMN_DEFINITIONS: Record<UtilityInquiryType, ColumnDefinition[]> = {
+  electric: ELECTRIC_COLUMN_DEFINITIONS,
+  gas: GAS_WATER_COLUMN_DEFINITIONS,
+  water: GAS_WATER_COLUMN_DEFINITIONS,
+};
 
 const FIELD_MAPPINGS: Record<UtilityInquiryType, UtilityInquiryFieldMapping> = {
   electric: {
@@ -79,7 +102,7 @@ const FIELD_MAPPINGS: Record<UtilityInquiryType, UtilityInquiryFieldMapping> = {
     usage: "gasUsage",
     charge: "gasCharge",
     paidDate: "gasPaidDate",
-    paidDateLabel: "도시가스입금일",
+    paidDateLabel: "가스입금일",
   },
   water: {
     previousReading: "waterPreviousReading",
@@ -87,7 +110,7 @@ const FIELD_MAPPINGS: Record<UtilityInquiryType, UtilityInquiryFieldMapping> = {
     usage: "waterUsage",
     charge: "waterCharge",
     paidDate: "waterPaidDate",
-    paidDateLabel: "상수도입금일",
+    paidDateLabel: "수도입금일",
   },
 };
 
@@ -117,9 +140,8 @@ export function getUtilityInquiryColumns(
   type: UtilityInquiryType,
 ): UtilityInquiryColumn[] {
   const fields = FIELD_MAPPINGS[type];
-  return COLUMN_DEFINITIONS.map((column) => ({
+  return COLUMN_DEFINITIONS[type].map((column) => ({
     ...column,
     label: column.key === "paidDate" ? fields.paidDateLabel : BASE_LABELS[column.key],
   }));
 }
-

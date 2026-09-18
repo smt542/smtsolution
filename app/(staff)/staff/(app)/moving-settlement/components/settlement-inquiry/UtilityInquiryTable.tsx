@@ -72,52 +72,57 @@ export function UtilityInquiryTable({
               : row[fields.paidDate];
             return (
               <tr key={row.settlementId} className="h-[55px] hover:bg-[#FBFCFD]">
-                <td className="border-b border-line2 px-4 text-right num">{index + 1}</td>
-                {/* 정본 셀은 모두 한 줄이다. 소재지에 동 이름이 없어 주소가 통째로
-                    들어오는 건물이 있어 고정 폭에서 두 줄로 접힌다 — 전체 이사조회와
-                    같이 잘라내고 전체 값은 title 로 남긴다. */}
-                <td
-                  className="truncate border-b border-line2 px-4"
-                  title={row.buildingAddress ?? undefined}
-                >
-                  {locationLabel(row.buildingAddress, row.dong)}
-                </td>
-                <td className="border-b border-line2 px-4">{row.buildingName}</td>
-                <td
-                  className="truncate border-b border-line2 px-4"
-                  title={row.buildingAddress ?? undefined}
-                >
-                  {row.buildingAddress ?? ""}
-                </td>
-                <td className="border-b border-line2 px-4">{unitNoLabel(row.unitNo)}</td>
-                <td className="border-b border-line2 px-4">
-                  {formatDateCell(row.moveOutDate)}
-                </td>
-                <td className="border-b border-line2 px-4">{row.meterNo ?? ""}</td>
-                <td className="border-b border-line2 px-4">{row.customerNo ?? ""}</td>
-                <td className="border-b border-line2 px-4 text-right num">
-                  {formatNumberCell(row[fields.previousReading])}
-                </td>
-                <td className="border-b border-line2 px-4 text-right num">
-                  {formatNumberCell(row[fields.currentReading])}
-                </td>
-                <td className="border-b border-line2 px-4 text-right num">
-                  {formatNumberCell(row[fields.usage])}
-                </td>
-                <td className="border-b border-line2 px-4 text-right num">
-                  {formatNumberCell(row[fields.charge])}
-                </td>
-                <td className="border-b border-line2 px-4">
-                  <SettlementDateField
-                    ariaLabel={`${row.buildingName} ${row.unitNo} ${columns[12].label}`}
-                    value={paidDate ?? ""}
-                    onChange={(value) =>
-                      onEdit(row, {
-                        [fields.paidDate]: value || null,
-                      } as Partial<UpdateSettlementInquiryRow>)
-                    }
-                  />
-                </td>
+                {columns.map((column) => {
+                  const className = `border-b border-line2 px-4 ${column.align === "right" ? "text-right" : "text-left"}`;
+                  switch (column.key) {
+                    case "no":
+                      return <td key={column.key} className={`${className} num`}>{index + 1}</td>;
+                    case "location":
+                      return (
+                        <td key={column.key} className={`${className} truncate`} title={row.buildingAddress ?? undefined}>
+                          {locationLabel(row.buildingAddress, row.dong)}
+                        </td>
+                      );
+                    case "buildingName":
+                      return <td key={column.key} className={className}>{row.buildingName}</td>;
+                    case "buildingAddress":
+                      return (
+                        <td key={column.key} className={`${className} truncate`} title={row.buildingAddress ?? undefined}>
+                          {row.buildingAddress ?? ""}
+                        </td>
+                      );
+                    case "unitNo":
+                      return <td key={column.key} className={className}>{unitNoLabel(row.unitNo)}</td>;
+                    case "moveOutDate":
+                      return <td key={column.key} className={className}>{formatDateCell(row.moveOutDate)}</td>;
+                    case "meterNo":
+                      return <td key={column.key} className={className}>{row.meterNo ?? ""}</td>;
+                    case "customerNo":
+                      return <td key={column.key} className={className}>{row.customerNo ?? ""}</td>;
+                    case "previousReading":
+                      return <td key={column.key} className={`${className} num`}>{formatNumberCell(row[fields.previousReading])}</td>;
+                    case "currentReading":
+                      return <td key={column.key} className={`${className} num`}>{formatNumberCell(row[fields.currentReading])}</td>;
+                    case "usage":
+                      return <td key={column.key} className={`${className} num`}>{formatNumberCell(row[fields.usage])}</td>;
+                    case "charge":
+                      return <td key={column.key} className={`${className} num`}>{formatNumberCell(row[fields.charge])}</td>;
+                    case "paidDate":
+                      return (
+                        <td key={column.key} className={className}>
+                          <SettlementDateField
+                            ariaLabel={`${row.buildingName} ${row.unitNo} ${columns[columns.length - 1].label}`}
+                            value={paidDate ?? ""}
+                            onChange={(value) =>
+                              onEdit(row, {
+                                [fields.paidDate]: value || null,
+                              } as Partial<UpdateSettlementInquiryRow>)
+                            }
+                          />
+                        </td>
+                      );
+                  }
+                })}
               </tr>
             );
           })}
@@ -129,7 +134,7 @@ export function UtilityInquiryTable({
             <td colSpan={2} className="whitespace-nowrap px-4">
               합계 {formatNumber(total)}건
             </td>
-            <td colSpan={8} />
+            <td colSpan={columns.length - 5} />
             <td className="px-4 text-right num">
               {formatNumber(sumColumn(rows, fields.usage))}
             </td>
