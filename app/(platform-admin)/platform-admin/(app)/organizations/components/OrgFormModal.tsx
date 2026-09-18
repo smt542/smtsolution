@@ -12,7 +12,7 @@ import {
 } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Modal, Input, Button, PhoneInput, PhotoUpload } from "@/components/common";
+import { Modal, Input, Button, BizRegNoInput, PhoneInput, PhotoUpload } from "@/components/common";
 import { FormField } from "@/components/common/FormField";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { setSubmissionError } from "@/components/forms/formErrors";
@@ -64,7 +64,8 @@ const ORGANIZATION_FIELDS: Array<{
   name: CommonFieldName;
   label: string;
   type?: React.HTMLInputTypeAttribute;
-  kind?: "phone";
+  /** 마스크가 걸린 입력을 쓰는 필드는 그 컴포넌트를 직접 준다(형식이 늘어도 분기를 안 늘린다). */
+  input?: typeof Input;
   placeholder?: string;
   full?: boolean;
 }> = [
@@ -78,9 +79,10 @@ const ORGANIZATION_FIELDS: Array<{
     name: "businessRegistrationNumber",
     label: "사업자등록번호 *",
     placeholder: "000-00-00000",
+    input: BizRegNoInput,
   },
-  { name: "phone", label: "대표 전화 *", placeholder: "02-1234-5678", kind: "phone" },
-  { name: "fax", label: "팩스 번호 *", placeholder: "02-1234-5679", kind: "phone" },
+  { name: "phone", label: "대표 전화 *", placeholder: "02-1234-5678", input: PhoneInput },
+  { name: "fax", label: "팩스 번호 *", placeholder: "02-1234-5679", input: PhoneInput },
   {
     name: "email",
     label: "이메일 *",
@@ -121,22 +123,7 @@ function OrganizationFields<T extends FieldValues & EditInput>({
       {ORGANIZATION_FIELDS.map((field) => {
         const id = `${idPrefix}-${field.name}`;
         const error = errors[field.name] as FieldError | undefined;
-        const fieldInput = field.kind === "phone" ? (
-          <PhoneInput
-            id={id}
-            placeholder={field.placeholder}
-            className={ORGANIZATION_INPUT_CLASS}
-            {...register(field.name as Path<T>)}
-          />
-        ) : (
-          <Input
-            id={id}
-            type={field.type}
-            placeholder={field.placeholder}
-            className={ORGANIZATION_INPUT_CLASS}
-            {...register(field.name as Path<T>)}
-          />
-        );
+        const FieldInput = field.input ?? Input;
         return (
           <FormField
             key={field.name}
@@ -145,7 +132,13 @@ function OrganizationFields<T extends FieldValues & EditInput>({
             error={error?.message}
             className={`${field.full ? "sm:col-span-2" : ""} ${FORM_FIELD_CLASS}`}
           >
-            {fieldInput}
+            <FieldInput
+              id={id}
+              type={field.type}
+              placeholder={field.placeholder}
+              className={ORGANIZATION_INPUT_CLASS}
+              {...register(field.name as Path<T>)}
+            />
           </FormField>
         );
       })}

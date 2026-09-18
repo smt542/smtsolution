@@ -1,3 +1,4 @@
+import { phoneMask } from "@/components/common";
 import type { FieldDef } from "./types";
 
 /** 미리보기용 업체명 옵션(실제 화면에서는 등록된 협력업체 마스터로 대체). */
@@ -45,7 +46,7 @@ export const VENDORS: VendorDef[] = [
     fields: [
       ...base(),
       { label: "고객번호", kind: "text", placeholder: "고객번호" },
-      { label: "인터넷 전화", kind: "phone", placeholder: "인터넷 전화" },
+      { label: "인터넷 전화", kind: "text", mask: phoneMask, placeholder: "인터넷 전화" },
       { label: "인터넷 금액", kind: "text", placeholder: "인터넷 금액" },
       { label: "출력", kind: "select", options: ["Y", "N"] },
       { label: "납부일", kind: "date" },
@@ -67,7 +68,7 @@ export const VENDORS: VendorDef[] = [
     fields: [
       ...base(),
       { label: "납부일", kind: "date" },
-      { label: "인터넷 전화", kind: "phone", placeholder: "인터넷 전화" },
+      { label: "인터넷 전화", kind: "text", mask: phoneMask, placeholder: "인터넷 전화" },
       { label: "인터넷 금액", kind: "text", placeholder: "인터넷 금액" },
     ],
   },

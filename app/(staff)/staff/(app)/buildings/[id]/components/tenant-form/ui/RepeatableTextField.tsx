@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import type { InputMask } from "@/components/common";
 import { TextField } from "./Fields";
 
 /**
@@ -12,15 +13,15 @@ export function RepeatableTextField({
   placeholders,
   addLabel,
   type = "text",
-  format,
+  mask,
 }: {
   values: string[];
   onChange: (next: string[]) => void;
   placeholders: string[];
   addLabel: string;
   type?: "text" | "number";
-  /** 목록 전체에 적용되는 입력 형식. "phone"이면 숫자만 받고 하이픈을 자동으로 붙인다. */
-  format?: "phone";
+  /** 목록 전체에 적용되는 마스크(`components/common/maskedField`의 phoneMask 등). */
+  mask?: InputMask;
 }) {
   const list = values.length > 0 ? values : [""];
   const setAt = (i: number, v: string) => {
@@ -41,7 +42,7 @@ export function RepeatableTextField({
             onChange={(nv) => setAt(i, nv)}
             placeholder={placeholders[i] ?? placeholders[placeholders.length - 1]}
             type={type}
-            format={format}
+            mask={mask}
           />
           {i > 0 && (
             <button

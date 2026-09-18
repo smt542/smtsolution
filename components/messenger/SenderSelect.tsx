@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMe } from "@/hooks/reactquery/auth";
-import { applyPhoneFormat, PHONE_INPUT_ATTRS } from "@/components/common";
+import { applyMask, phoneMask, PHONE_INPUT_ATTRS } from "@/components/common";
 import {
   useSaveSetupSender,
   useSetupConfig,
@@ -188,7 +188,7 @@ export function SenderSelect({ value, onChange }: SenderSelectProps) {
             placeholder="발신번호 직접 입력"
             value={input}
             onChange={(event) => {
-              applyPhoneFormat(event.currentTarget);
+              applyMask(event.currentTarget, phoneMask);
               setInput(event.currentTarget.value);
               setError("");
             }}

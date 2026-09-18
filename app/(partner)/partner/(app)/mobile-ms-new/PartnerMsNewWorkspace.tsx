@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { type ReactNode, useMemo, useState } from "react";
 
-import { applyPhoneFormat, PHONE_INPUT_ATTRS } from "@/components/common";
+import { applyMask, phoneMask, PHONE_INPUT_ATTRS } from "@/components/common";
 import {
   useDeletePartnerSettlement,
   useSavePartnerSettlement,
@@ -359,7 +359,7 @@ export default function PartnerMsNewWorkspace({
                 className={styles.control}
                 maxLength={13}
                 value={state.advTel}
-                onChange={(e) => patch({ advTel: applyPhoneFormat(e.currentTarget) })}
+                onChange={(e) => patch({ advTel: applyMask(e.currentTarget, phoneMask) })}
                 placeholder="010-0000-0000"
               />
             </div>
