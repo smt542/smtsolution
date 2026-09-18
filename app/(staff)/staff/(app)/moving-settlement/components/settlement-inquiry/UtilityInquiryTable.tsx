@@ -3,8 +3,8 @@ import type {
   UpdateSettlementInquiryRow,
 } from "@/hooks/reactquery/movingSettlement";
 import { formatDate, formatNumber } from "@/lib/format";
+import { SettlementDateField } from "../SettlementDateField";
 import { locationLabel, unitNoLabel } from "../settlementInquiryTypes";
-import { SettlementInquiryDateField } from "./SettlementInquiryDateField";
 import type { SettlementInquiryTableProps } from "./SettlementInquiryTable";
 import {
   getUtilityInquiryColumns,
@@ -108,12 +108,12 @@ export function UtilityInquiryTable({
                   {formatNumberCell(row[fields.charge])}
                 </td>
                 <td className="border-b border-line2 px-4">
-                  <SettlementInquiryDateField
+                  <SettlementDateField
                     ariaLabel={`${row.buildingName} ${row.unitNo} ${columns[12].label}`}
-                    value={paidDate ?? null}
+                    value={paidDate ?? ""}
                     onChange={(value) =>
                       onEdit(row, {
-                        [fields.paidDate]: value,
+                        [fields.paidDate]: value || null,
                       } as Partial<UpdateSettlementInquiryRow>)
                     }
                   />

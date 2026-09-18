@@ -18,6 +18,7 @@ import { hasModule } from "@/lib/auth/permissions";
 import { PROGRAM_COMPANY_NAME } from "@/lib/bill/document";
 import { SettlementInquiryPrintHeader } from "./settlement-inquiry/SettlementInquiryPrintHeader";
 import { SettlementInquiryTable } from "./settlement-inquiry/SettlementInquiryTable";
+import type { UtilityInquiryType } from "./settlement-inquiry/utilityInquiryColumns";
 import { SettlementInquiryToolbar } from "./settlement-inquiry/SettlementInquiryToolbar";
 
 const TYPE_LABELS: Record<SettlementInquiryType, string> = {
@@ -41,7 +42,8 @@ function monthEnd(month: string): string {
   return `${month}-${String(new Date(year, value, 0).getDate()).padStart(2, "0")}`;
 }
 
-export function SettlementInquiryPage({ type }: { type: SettlementInquiryType }) {
+// `all` 은 라우트에서 AllSettlementInquiryPage 로 빠지므로 이 화면은 공과금 3종만 받는다.
+export function SettlementInquiryPage({ type }: { type: UtilityInquiryType }) {
   const range = currentMonthRange();
   const { data: me } = useMe();
   const { data: organizationName } = useBillOrganizationName(me?.orgId);
