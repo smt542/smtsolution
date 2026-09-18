@@ -104,6 +104,12 @@ function formatText(value: string | null | undefined): string {
   return value ?? "";
 }
 
+/** 정본 표기는 `2025.11.25` 다(프로토타입 `dstr()`). 폼의 ISO 값을 점 구분으로 바꾼다. */
+function formatPrintDate(value: string | null | undefined): string {
+  if (!value) return "";
+  return value.slice(0, 10).replaceAll("-", ".");
+}
+
 function createElement<K extends keyof HTMLElementTagNameMap>(
   tagName: K,
   className?: string,
@@ -269,7 +275,7 @@ function appendLeftColumn(parent: HTMLElement, model: SettlementStatementPrintMo
   parent.appendChild(title);
 
   appendBand(parent, [
-    ["이사일자:", formatText(model.moveOutDate)],
+    ["이사일자:", formatPrintDate(model.moveOutDate)],
     ["건물명:", [model.buildingName, model.unitNo].filter(Boolean).join(" ")],
     ["임대인연락처:", formatText(model.ownerPhone)],
   ]);
