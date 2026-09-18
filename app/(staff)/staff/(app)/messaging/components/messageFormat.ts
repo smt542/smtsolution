@@ -26,6 +26,8 @@ export function senderLabel(
   smsSender: string | null | undefined,
 ): string {
   if (channel === "alimtalk") return "관리비서 채널";
+  // undefined = 설정 조회 전(아직 모름). 로딩 중에 "미등록" 이라고 단정하지 않는다.
+  if (smsSender === undefined) return "";
   return smsSender ? formatPhone(smsSender) : "발신번호 미등록";
 }
 

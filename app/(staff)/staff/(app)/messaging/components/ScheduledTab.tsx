@@ -43,7 +43,7 @@ function CancelButton({ id }: { id: number }) {
         event.stopPropagation();
         mutate(id);
       }}
-      className="text-[12.5px] font-bold text-[#f04452] disabled:opacity-50"
+      className="whitespace-nowrap text-[12.5px] font-bold text-[#f04452] disabled:opacity-50"
     >
       {isPending ? "취소 중…" : "예약 취소"}
     </button>
