@@ -1,4 +1,4 @@
--- 0169_setup_late_fee_enabled.sql
+-- 0170_setup_late_fee_enabled.sql
 -- 셋업 설정 > 고지서 설정의 `관리비 연체 설정` 카드 on/off 토글.
 --
 -- 요율 값 자체는 0031의 late_fee_rate_tiers를 그대로 쓴다(/staff/overdue와 단일 원장).

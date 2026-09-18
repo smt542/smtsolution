@@ -22,14 +22,20 @@ type InputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> & {
 };
 
 /**
- * 호출부가 비활성 표시를 직접 정의했으면 컴포넌트 기본값을 뺀다. Button과 같은 방침이며,
- * 이유도 같다 — 둘 다 남기면 명시도가 같아 결과가 CSS 생성 순서에 좌우된다.
+ * 호출부가 직접 지정한 것과 겹치는 기본값을 뺀다. Button과 같은 방침이며, 이유도 같다 —
+ * 둘 다 남기면 명시도가 같아 결과가 CSS 생성 순서에 좌우된다.
+ *
+ * 폭이 특히 중요하다. 기본값 `w-full`을 남긴 채 호출부가 `w-[240px]`를 주면 둘 중
+ * 어느 쪽이 이길지 불확정이고, `w-full`이 이기면 인풋이 행을 다 먹어 옆의 라벨이 짓눌린다.
  */
 function dropOverridden(defaults: string, className: string): string {
-  if (!/\bdisabled:(bg|text|opacity|border)-/.test(className)) return defaults;
+  const yieldWidth = /(?:^|\s)!?w-/.test(className);
+  const yieldDisabled = /\bdisabled:(bg|text|opacity|border)-/.test(className);
+  if (!yieldWidth && !yieldDisabled) return defaults;
   return defaults
     .split(" ")
-    .filter((c) => !c.startsWith("disabled:"))
+    .filter((c) => !(yieldWidth && c === "w-full"))
+    .filter((c) => !(yieldDisabled && c.startsWith("disabled:")))
     .join(" ");
 }
 

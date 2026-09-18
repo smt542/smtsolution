@@ -10,8 +10,6 @@ const CompanyInfoTab = dynamic(() =>
   import("./components/CompanyInfoTab").then((module) => module.CompanyInfoTab));
 const BillingSettingsTab = dynamic(() =>
   import("./components/BillingSettingsTab").then((module) => module.BillingSettingsTab));
-const AccountSettingsTab = dynamic(() =>
-  import("./components/AccountSettingsTab").then((module) => module.AccountSettingsTab));
 const MovingSettlementSettingsTab = dynamic(() =>
   import("./components/MovingSettlementSettingsTab").then(
     (module) => module.MovingSettlementSettingsTab,
@@ -20,22 +18,18 @@ const AsSettingsTab = dynamic(() =>
   import("./components/AsSettingsTab").then((module) => module.AsSettingsTab));
 const NotificationSettingsTab = dynamic(() =>
   import("./components/NotificationSettingsTab").then((module) => module.NotificationSettingsTab));
-const SystemSettingsTab = dynamic(() =>
-  import("./components/SystemSettingsTab").then((module) => module.SystemSettingsTab));
 const DataMigrationTab = dynamic(() =>
   import("./components/DataMigrationTab").then((module) => module.DataMigrationTab));
 
-// 정본(Figma)은 6탭이다: 회사 정보 · 고지서 설정 · 이사정산 설정 · A/S 설정 · 알림 설정 · 데이터 이관.
-// 계좌 설정은 고지서/이사정산으로 흡수되고 시스템 설정은 삭제되지만, 그건 각 탭 본문 이관이
-// 끝난 뒤(Phase 2)에 잘라내야 중간 상태가 깨지지 않는다. 그때까지는 8탭을 유지한다.
+// 정본(Figma) 6탭. 계좌 설정은 고지서·이사정산 탭으로 흡수됐고,
+// 시스템 설정은 정본에 없어 삭제했다(2026-09-18 사용자 결정).
+// 룸타입·자주 보내는 문자 마스터는 테이블·훅이 그대로 살아 있고 편집 UI만 사라진 상태다.
 const TAB_DEFS = [
   { id: "company", label: "회사 정보" },
   { id: "billing", label: "고지서 설정" },
-  { id: "accounts", label: "계좌 설정" },
   { id: "settlement", label: "이사정산 설정" },
   { id: "as", label: "A/S 설정" },
   { id: "notifications", label: "알림 설정" },
-  { id: "system", label: "시스템 설정" },
   { id: "migration", label: "데이터 이관" },
 ] as const;
 
@@ -73,11 +67,9 @@ export function SetupTabs({ initialTab }: { initialTab: SetupTab }) {
         <div className="flex-1 px-[24px] pb-[30px] pt-[22px]">
           {tab === "company" && <CompanyInfoTab />}
           {tab === "billing" && <BillingSettingsTab />}
-          {tab === "accounts" && <AccountSettingsTab />}
           {tab === "settlement" && <MovingSettlementSettingsTab />}
           {tab === "as" && <AsSettingsTab />}
           {tab === "notifications" && <NotificationSettingsTab />}
-          {tab === "system" && <SystemSettingsTab />}
           {tab === "migration" && <DataMigrationTab />}
         </div>
       </div>

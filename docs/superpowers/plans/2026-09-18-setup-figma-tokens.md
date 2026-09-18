@@ -334,7 +334,7 @@ Figma는 `py-[12px]` + 비활성도 `border-b-2 border-transparent`다.
 | 수도 단가 출력 | `print_water_unit_price` |
 | 관리비 기간 출력 | `print_billing_period` |
 | 증감량 표시 | `print_delta` |
-| 연체 설정 on/off | `setup_config.late_fee_enabled` (마이그 0169) |
+| 연체 설정 on/off | `setup_config.late_fee_enabled` (마이그 0170) |
 
 `관리비 입금 계좌`는 현재 `계좌 설정` 탭에 있다. 이 탭으로 옮기고 원래 자리는 Phase 2에서 지운다.
 

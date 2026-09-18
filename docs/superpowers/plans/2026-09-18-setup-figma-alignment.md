@@ -139,7 +139,7 @@ Figma는 62px 바에 `셋업 설정` + 우측 teal `저장`. 현 `Topbar`엔 액
 - `?tab=accounts|system` 유입 시 기본 탭 폴백 (기존 `?tab=repair` → redirect 선례)
 
 ### Phase 3 — DB
-- 마이그 1건: `setup_config.late_fee_enabled boolean not null default true`
+- 마이그 1건(0170): `setup_config.late_fee_enabled boolean not null default true`
 - 번호는 **커밋 직전** `git ls-tree origin/master supabase/migrations/`로 재확인 (병렬 세션 선점 이력 있음)
 - `late_fee_rate_tiers` ↔ 12구간 어댑터 (`useLateFeeRateTiers` / `useReplaceLateFeeRateTiers` 재사용)
 
@@ -150,10 +150,26 @@ Figma는 62px 바에 `셋업 설정` + 우측 teal `저장`. 현 `Topbar`엔 액
 
 ## 6. 미해결
 
-1. **정산 기준 3항목이 `변경 불가`인지** — Figma 부제가 세 행 모두 `변경 불가`이고 세그먼트가 흐리게 그려져 있다. 현재 앱은 세 항목 모두 편집 가능하다. 읽기 전용으로 바꾸면 org가 정산 규칙을 못 바꾸게 되므로 착수 전 확인한다. Phase 0의 `get_design_context` 실측에서 disabled 색상이 확정되면 판단 근거가 된다
-2. **데이터 이관 실제 등록** — `BulkImportModal.register()`가 DB insert를 하지 않는다(CSV 검증·미리보기까지). 이번 정합 범위 밖이지만 별건으로 남아 있음
-3. **발신번호 편집기의 새 거처** — D2로 회사 정보에서 제거되면 org별 SMS/팩스 발신번호를 설정할 UI가 앱에 없다. 컬럼(`0125`)·API(`/api/setup/sender`)·훅은 살아 있으므로 어디에 붙일지만 정하면 된다 (출시 전 필요)
+1. **데이터 이관 실제 등록** — `BulkImportModal.register()`가 DB insert를 하지 않는다(CSV 검증·미리보기까지). 이번 정합 범위 밖이지만 별건으로 남아 있음
+2. **발신번호 편집기의 새 거처** — D2로 회사 정보에서 제거되면 org별 SMS/팩스 발신번호를 설정할 UI가 앱에 없다. 컬럼(`0125`)·API(`/api/setup/sender`)·훅은 살아 있으므로 어디에 붙일지만 정하면 된다 (출시 전 필요)
+
+3. **룸타입·자주 보내는 문자 편집기의 새 거처** — D1로 시스템 설정 탭이 사라지면서 두 마스터를
+   추가할 UI가 없다. 읽는 화면(`TenantForm`·`MessagingComposer`)은 그대로 동작한다.
 
 ### 해소된 항목
 - ~~고지서 설정의 앱 전용 필드 3개~~ → 제거 확정 (§2, 다른 화면이 읽지 않음)
 - ~~정산 기준 항목 전체~~ → 3행 실측 완료, 앱 필드와 1:1 (§2)
+- ~~정산 기준이 `변경 불가`인지~~ → 편집 가능 유지로 결정 (§2)
+
+## 7. 실제 검증 결과 (2026-09-18)
+
+워크트리 dev(:3100)에 admin으로 로그인해 6개 탭을 1920×911로 캡처했다. 전부 정본대로 렌더되고
+콘솔 에러 0건. 연체 12칸이 0031 시드 `(0,1] (1,3] (3,∞)`를 `1 / 1.2 / 1.2 / 1.5×9`로 정확히
+읽는 것까지 확인했다.
+
+정적 검사로 못 잡고 실제 렌더에서만 드러난 결함 3건:
+- `SetupSaveContext`가 렌더마다 새 클로저를 state에 등록해 무한 렌더 루프 → 로컬 ref + 고정 래퍼로 수정
+- `Input`의 기본 `w-full`이 호출부의 `w-[240px]`를 이겨 회사 정보 라벨 칼럼이 짓눌림 →
+  `dropOverridden`이 폭도 양보하도록 수정
+- `NumberedTagList`가 키 입력마다 저장을 날려 `(org_id, label)` 유니크 제약과 충돌 →
+  `onChange`/`onCommit` 분리
