@@ -1,3 +1,4 @@
+import { normalizePhone } from "@/lib/format";
 import {
   isPopbillConfigured,
   readPopbillConfig,
@@ -181,7 +182,8 @@ export async function drainSchedules(deps: DrainDeps): Promise<DrainResult> {
         const orgSmsSender = await loadOrgSmsSender(admin, scheduledOrgId);
         return {
           ...envConfig,
-          smsSender: orgSmsSender?.trim() || envConfig.smsSender,
+          // 발송에 그대로 실리는 값이라 읽는 쪽에서도 숫자만 보장한다.
+          smsSender: normalizePhone(orgSmsSender ?? "") || envConfig.smsSender,
         };
       })();
       effectiveConfigByOrgId.set(scheduledOrgId, config);

@@ -31,6 +31,7 @@ export function ContactSection({
             onChange={(v) => onChange({ phones: v })}
             placeholders={["010-0000-0000 (필수)", "010-0000-0000"]}
             addLabel="전화번호 추가"
+            format="phone"
           />
         </Field>
         <Field label="차량번호" full>

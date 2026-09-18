@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Checkbox, Input, Panel, Spinner } from "@/components/common";
+import { Checkbox, Input, Panel, PhoneInput, Spinner } from "@/components/common";
 import type { UnitOccupancyFull } from "@/hooks/reactquery/occupancies";
 import { useSaveOccupancyFields } from "@/hooks/reactquery/receipts";
 import { formatDate } from "../receiptFormat";
@@ -197,7 +197,7 @@ export function TenantInfoSection({
           </label>
           <label className="text-xs font-bold text-t3">
             전화번호
-            <Input
+            <PhoneInput
               className="mt-1"
               value={form.phone}
               onChange={(e) => patch({ phone: e.target.value })}

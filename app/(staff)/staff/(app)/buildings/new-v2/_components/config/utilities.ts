@@ -90,6 +90,6 @@ export const UTILITIES: UtilityDef[] = [
 /** 가스 아코디언 하단(고객번호 카드 밖) 공통 필드. */
 export const GAS_EXTRA: FieldDef[] = [
   { label: "가스회사", kind: "text", placeholder: "가스회사" },
-  { label: "가스전화", kind: "text", placeholder: "가스전화" },
+  { label: "가스전화", kind: "phone", placeholder: "가스전화" },
   { label: "계좌번호", kind: "text", placeholder: "계좌번호" },
 ];

@@ -3,7 +3,7 @@
 import React from "react";
 import { Controller, useForm, useWatch, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, CustomDropdown, Input, Modal } from "@/components/common";
+import { Button, CustomDropdown, Input, Modal, PhoneInput } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { FormField } from '@/components/common/FormField';
 import { setSubmissionError } from "@/components/forms/formErrors";
@@ -301,11 +301,9 @@ export function AccountFormModal({
                 label="연락처"
                 className="[&>label]:mb-[6px] [&>label]:text-[12.5px] [&>label]:font-bold [&>label]:leading-[normal] [&>label]:text-t2 [&>p]:leading-[normal]"
               >
-                <Input
+                <PhoneInput
                   id="phone"
                   aria-label="연락처"
-                  type="tel"
-                  inputMode="numeric"
                   {...register("phone")}
                   placeholder="010-0000-0000"
                   className="h-[40px] w-full rounded-[11px]! border border-line bg-surface px-[12px] text-[14px] font-medium leading-[normal] text-t1 outline-none placeholder:text-[#757575]! focus:border-brand focus:shadow-[0_0_0_3px_var(--color-brand-tint)] num tabular-nums"

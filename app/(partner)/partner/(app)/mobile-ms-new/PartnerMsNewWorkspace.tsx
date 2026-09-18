@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { type ReactNode, useMemo, useState } from "react";
 
-import { formatPhone } from "@/lib/format";
+import { applyPhoneFormat, PHONE_INPUT_ATTRS } from "@/components/common";
 import {
   useDeletePartnerSettlement,
   useSavePartnerSettlement,
@@ -355,11 +355,11 @@ export default function PartnerMsNewWorkspace({
             <div className={styles.fld}>
               <span className={styles.fldLabel}>연락처</span>
               <input
+                {...PHONE_INPUT_ATTRS}
                 className={styles.control}
-                inputMode="numeric"
                 maxLength={13}
                 value={state.advTel}
-                onChange={(e) => patch({ advTel: formatPhone(e.target.value) })}
+                onChange={(e) => patch({ advTel: applyPhoneFormat(e.currentTarget) })}
                 placeholder="010-0000-0000"
               />
             </div>

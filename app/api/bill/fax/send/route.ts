@@ -1,3 +1,4 @@
+import { normalizePhone } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -92,7 +93,8 @@ export async function POST(request: Request): Promise<Response> {
   const orgFaxSender = (setupConfig as { fax_sender?: string | null } | null)?.fax_sender;
   const effectiveConfig = {
     ...envConfig,
-    faxSender: orgFaxSender?.trim() || envConfig.faxSender,
+    // 발송에 그대로 실리는 값이라 읽는 쪽에서도 숫자만 보장한다.
+    faxSender: normalizePhone(orgFaxSender ?? "") || envConfig.faxSender,
   };
   let queued = 0;
   let failed = 0;

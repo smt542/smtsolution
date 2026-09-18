@@ -3,7 +3,7 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Input, Modal } from "@/components/common";
+import { Button, Input, Modal, PhoneInput } from "@/components/common";
 import { FormField } from "@/components/common/FormField";
 import { setSubmissionError } from "@/components/forms/formErrors";
 import {
@@ -88,7 +88,7 @@ export function AccountEditModal({ account, onClose, onSubmit, isPending }: Prop
         </FormField>
 
         <FormField label="전화번호" htmlFor="platform-account-edit-phone" error={errors.phone?.message} className={FORM_FIELD_CLASS}>
-          <Input
+          <PhoneInput
             id="platform-account-edit-phone"
             {...register("phone")}
             maxLength={30}

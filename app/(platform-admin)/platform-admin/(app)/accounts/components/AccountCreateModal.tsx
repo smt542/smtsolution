@@ -4,7 +4,7 @@ import React, { useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Button, Input, Modal, Select } from "@/components/common";
+import { Button, Input, Modal, PhoneInput, Select } from "@/components/common";
 import { FormField } from "@/components/common/FormField";
 import { setSubmissionError } from "@/components/forms/formErrors";
 import {
@@ -164,7 +164,7 @@ export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props
             />
           </FormField>
           <FormField label="연락처(선택)" htmlFor="platform-account-phone" error={errors.phone?.message} className={FORM_FIELD_CLASS}>
-            <Input
+            <PhoneInput
               id="platform-account-phone"
               aria-label="연락처"
               {...register("phone")}
