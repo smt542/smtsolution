@@ -1,75 +1,180 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Button, Input, Select, Checkbox, Panel } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
+import {
+  useLateFeeRateTiers,
+  useReplaceLateFeeRateTiers,
+} from "@/hooks/reactquery/lateFeeTiers";
 import { useSetupConfig, useUpsertSetupConfig } from "@/hooks/reactquery/setupConfig";
+import { useRegisterSetupSave } from "../SetupSaveContext";
+import { AccountDepositCard, type BillingAccount } from "./billing/AccountDepositCard";
+import { BillingOutputOptionsCard } from "./billing/BillingOutputOptionsCard";
+import { CustomerNoticeCard } from "./billing/CustomerNoticeCard";
+import { LateFeeSettingsCard } from "./billing/LateFeeSettingsCard";
+import {
+  lateFeeTiersToMonthlyRates,
+  monthlyRatesToLateFeeTiers,
+} from "./lateFeeTiersAdapter";
+
+const EMPTY_ACCOUNTS: BillingAccount[] = [
+  { bank: "", acct: "", holder: "", print: true },
+  { bank: "", acct: "", holder: "", print: false },
+];
 
 export function BillingSettingsTab() {
   const { data: me } = useMe();
-  const { data: config } = useSetupConfig(me?.orgId);
+  const orgId = me?.orgId ?? null;
+  const { data: config, isLoading: configLoading } = useSetupConfig(me?.orgId);
+  const { data: lateFeeTiers, isLoading: lateFeeTiersLoading } = useLateFeeRateTiers(orgId);
   const upsert = useUpsertSetupConfig();
+  const replaceLateFeeTiers = useReplaceLateFeeRateTiers();
 
+  const [accounts, setAccounts] = useState<BillingAccount[]>(EMPTY_ACCOUNTS);
   const [customerNotice, setCustomerNotice] = useState("");
-  const [unitLabelDefault, setUnitLabelDefault] = useState<"code" | "name">("code");
-  const [lateFeeMerge, setLateFeeMerge] = useState(false);
   const [printUtilityCutoff, setPrintUtilityCutoff] = useState(false);
   const [printWaterUnitPrice, setPrintWaterUnitPrice] = useState(false);
   const [printBillingPeriod, setPrintBillingPeriod] = useState(false);
   const [printDelta, setPrintDelta] = useState(false);
-  const [showAsOnMain, setShowAsOnMain] = useState(false);
   const [cutoffMonths, setCutoffMonths] = useState("");
+  const [lateFeeEnabled, setLateFeeEnabled] = useState(true);
+  const [lateFeeRates, setLateFeeRates] = useState<string[]>(() =>
+    Array.from({ length: 12 }, () => "0"),
+  );
 
   useEffect(() => {
     if (!config) return;
+    setAccounts.call(undefined, [
+      {
+        bank: config.mgmtBank1 ?? "",
+        acct: config.mgmtAcct1 ?? "",
+        holder: config.mgmtHolder1 ?? "",
+        print: config.mgmtPrint1 || !config.mgmtPrint2,
+      },
+      {
+        bank: config.mgmtBank2 ?? "",
+        acct: config.mgmtAcct2 ?? "",
+        holder: config.mgmtHolder2 ?? "",
+        print: !config.mgmtPrint1 && config.mgmtPrint2,
+      },
+    ]);
     setCustomerNotice.call(undefined, config.customerNotice ?? "");
-    setUnitLabelDefault.call(undefined, config.unitLabelDefault);
-    setLateFeeMerge.call(undefined, config.lateFeeMerge);
     setPrintUtilityCutoff.call(undefined, config.printUtilityCutoff);
     setPrintWaterUnitPrice.call(undefined, config.printWaterUnitPrice);
     setPrintBillingPeriod.call(undefined, config.printBillingPeriod);
     setPrintDelta.call(undefined, config.printDelta);
-    setShowAsOnMain.call(undefined, config.showAsOnMain);
     setCutoffMonths.call(undefined, config.cutoffMonths != null ? String(config.cutoffMonths) : "");
+    setLateFeeEnabled.call(undefined, config.lateFeeEnabled);
   }, [config]);
 
-  const save = async () => {
-    if (!me?.orgId) { toast.error("인증 정보가 없습니다"); return; }
-    try {
-      await upsert.mutateAsync({ orgId: me.orgId, patch: {
-        customerNotice, unitLabelDefault, lateFeeMerge, printUtilityCutoff, printWaterUnitPrice,
-        printBillingPeriod, printDelta, showAsOnMain,
-        cutoffMonths: cutoffMonths === "" ? undefined : Number(cutoffMonths),
-      } });
-      toast.success("저장되었습니다");
-    } catch (e) { toast.error(e, "고지서 설정을 저장하지 못했습니다."); }
+  useEffect(() => {
+    if (!lateFeeTiers) return;
+    setLateFeeRates.call(undefined, lateFeeTiersToMonthlyRates(lateFeeTiers).map(String));
+  }, [lateFeeTiers]);
+
+  const updateAccount = (index: number, field: keyof Omit<BillingAccount, "print">, value: string) => {
+    setAccounts((current) => current.map((account, accountIndex) =>
+      accountIndex === index ? { ...account, [field]: value } : account,
+    ));
   };
 
+  const selectPrintAccount = (index: number) => {
+    setAccounts((current) => current.map((account, accountIndex) => ({
+      ...account,
+      print: accountIndex === index,
+    })));
+  };
+
+  const save = async () => {
+    if (!orgId) {
+      toast.error("인증 정보가 없습니다");
+      return;
+    }
+    if (!lateFeeTiers) {
+      toast.error("연체 요율 정보를 불러오는 중입니다");
+      return;
+    }
+
+    const monthlyRates = lateFeeRates.map((rate) => {
+      const value = Number(rate);
+      return Number.isFinite(value) ? value : 0;
+    });
+
+    try {
+      await Promise.all([
+        upsert.mutateAsync({
+          orgId,
+          patch: {
+            customerNotice,
+            mgmtBank1: accounts[0].bank,
+            mgmtAcct1: accounts[0].acct,
+            mgmtHolder1: accounts[0].holder,
+            mgmtPrint1: accounts[0].print,
+            mgmtBank2: accounts[1].bank,
+            mgmtAcct2: accounts[1].acct,
+            mgmtHolder2: accounts[1].holder,
+            mgmtPrint2: accounts[1].print,
+            printUtilityCutoff,
+            printWaterUnitPrice,
+            printBillingPeriod,
+            printDelta,
+            cutoffMonths: cutoffMonths === "" ? null : Number(cutoffMonths),
+            lateFeeEnabled,
+          },
+        }),
+        replaceLateFeeTiers.mutateAsync({
+          orgId,
+          tiers: monthlyRatesToLateFeeTiers(monthlyRates),
+        }),
+      ]);
+      toast.success("저장되었습니다");
+    } catch (error) {
+      toast.error(error, "고지서 설정을 저장하지 못했습니다.");
+    }
+  };
+
+  useRegisterSetupSave(
+    save,
+    configLoading || lateFeeTiersLoading || upsert.isPending || replaceLateFeeTiers.isPending,
+  );
+
   return (
-    <Panel title="고지서 설정" action={<Button variant="primary" onClick={save} disabled={upsert.isPending}>{upsert.isPending ? "저장 중…" : "저장"}</Button>}>
-      <div className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1">
-          <span className="text-sm text-t2">고객 안내사항</span>
-          <textarea aria-label="고객 안내사항" value={customerNotice} onChange={(e) => setCustomerNotice(e.target.value)}
-            className="min-h-20 w-full rounded-xl border border-line bg-surface p-3 text-sm text-t1" />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-sm text-t2">세대 표기 방식 기본값</span>
-          <Select aria-label="세대 표기 방식 기본값" value={unitLabelDefault}
-            onChange={(e) => setUnitLabelDefault(e.target.value as "code" | "name")}
-            options={[{ value: "code", label: "코드출력" }, { value: "name", label: "이름출력" }]} />
-        </label>
-        <Checkbox label="연체료 합산" checked={lateFeeMerge} onChange={(e) => setLateFeeMerge(e.target.checked)} />
-        <Checkbox label="단전·단수 출력" checked={printUtilityCutoff} onChange={(e) => setPrintUtilityCutoff(e.target.checked)} />
-        <Checkbox label="수도 단가 출력" checked={printWaterUnitPrice} onChange={(e) => setPrintWaterUnitPrice(e.target.checked)} />
-        <Checkbox label="관리비 기간 출력" checked={printBillingPeriod} onChange={(e) => setPrintBillingPeriod(e.target.checked)} />
-        <Checkbox label="증감량 표시" checked={printDelta} onChange={(e) => setPrintDelta(e.target.checked)} />
-        <Checkbox label="AS현황 메인표시" checked={showAsOnMain} onChange={(e) => setShowAsOnMain(e.target.checked)} />
-        <label className="flex flex-col gap-1">
-          <span className="text-sm text-t2">단수 개월 수</span>
-          <Input aria-label="단수 개월 수" type="number" value={cutoffMonths} onChange={(e) => setCutoffMonths(e.target.value)} />
-        </label>
+    <div className="grid grid-cols-[minmax(0,770.47fr)_minmax(0,847.53fr)] gap-[14px]">
+      <div className="col-span-2">
+        <AccountDepositCard
+          accounts={accounts}
+          onChange={updateAccount}
+          onSelectPrint={selectPrintAccount}
+        />
       </div>
-    </Panel>
+      <CustomerNoticeCard value={customerNotice} onChange={setCustomerNotice} />
+      <BillingOutputOptionsCard
+        printUtilityCutoff={printUtilityCutoff}
+        printWaterUnitPrice={printWaterUnitPrice}
+        printBillingPeriod={printBillingPeriod}
+        printDelta={printDelta}
+        cutoffMonths={cutoffMonths}
+        onToggle={(key, value) => {
+          if (key === "printUtilityCutoff") setPrintUtilityCutoff(value);
+          if (key === "printWaterUnitPrice") setPrintWaterUnitPrice(value);
+          if (key === "printBillingPeriod") setPrintBillingPeriod(value);
+          if (key === "printDelta") setPrintDelta(value);
+        }}
+        onCutoffMonthsChange={setCutoffMonths}
+      />
+      <div className="col-span-2">
+        <LateFeeSettingsCard
+          enabled={lateFeeEnabled}
+          rates={lateFeeRates}
+          onEnabledChange={setLateFeeEnabled}
+          onRateChange={(index, value) => {
+            setLateFeeRates((current) => current.map((rate, rateIndex) =>
+              rateIndex === index ? value : rate,
+            ));
+          }}
+        />
+      </div>
+    </div>
   );
 }

@@ -10,11 +10,9 @@ type SetupSearchParams = {
 const SETUP_TAB_IDS: readonly SetupTab[] = [
   "company",
   "billing",
-  "accounts",
   "settlement",
   "as",
   "notifications",
-  "system",
   "migration",
 ];
 
@@ -22,7 +20,7 @@ function parseTab(value: string | string[] | undefined): SetupTab {
   const tab = Array.isArray(value) ? value[0] : value;
   return tab && SETUP_TAB_IDS.includes(tab as SetupTab)
     ? (tab as SetupTab)
-    : "billing";
+    : "company";
 }
 
 export default async function SetupPage({

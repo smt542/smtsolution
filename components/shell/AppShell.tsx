@@ -23,7 +23,8 @@ function hasIntegratedHeader(pathname: string): boolean {
     pathname === "/staff/buildings/new" ||
     pathname.startsWith("/staff/buildings/new-v2") ||
     pathname.startsWith("/staff/utilities") ||
-    pathname === "/staff/notices"
+    pathname === "/staff/notices" ||
+    pathname === "/staff/setup"
   );
 }
 
