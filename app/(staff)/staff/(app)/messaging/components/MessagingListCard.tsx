@@ -47,9 +47,9 @@ export function MessagingListCard({
   children,
 }: MessagingListCardProps) {
   return (
-    <div className="min-h-[240px] overflow-hidden rounded-[16px] bg-white shadow-[0px_1px_3px_0px_rgba(23,31,40,0.05)]">
+    <div className="flex h-full min-h-[240px] flex-col overflow-hidden rounded-[16px] bg-white shadow-[0px_1px_3px_0px_rgba(23,31,40,0.05)]">
       {/* 카드 헤더 */}
-      <div className="flex items-center gap-[8px] border-b border-[#f1f3f5] px-[18px] py-[15px]">
+      <div className="flex shrink-0 items-center gap-[8px] border-b border-[#f1f3f5] px-[18px] py-[15px]">
         <span className="text-[15px] font-extrabold leading-[normal] text-[#191f28]">
           {title}
         </span>
@@ -86,7 +86,7 @@ export function MessagingListCard({
           {emptyMessage}
         </p>
       ) : (
-        <div className="overflow-x-auto">{children}</div>
+        <div className="min-h-0 flex-1 overflow-auto">{children}</div>
       )}
     </div>
   );

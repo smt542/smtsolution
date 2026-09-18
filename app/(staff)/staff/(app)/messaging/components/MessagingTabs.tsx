@@ -49,8 +49,8 @@ export function MessagingTabs({ initialTab }: { initialTab: MessagingTab }) {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <div className="border-b border-[#e8ebee] bg-white px-[24px]">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="shrink-0 border-b border-[#e8ebee] bg-white px-[24px]">
         <div role="tablist" aria-label="메시징 메뉴" className="flex gap-[4px]">
           {tabs.map((item) => (
             <button
@@ -79,7 +79,7 @@ export function MessagingTabs({ initialTab }: { initialTab: MessagingTab }) {
         id={`messaging-panel-${tab}`}
         role="tabpanel"
         aria-labelledby={`messaging-tab-${tab}`}
-        className="flex-1 bg-[#f2f4f6] px-[24px] pb-[30px] pt-[22px]"
+        className="flex min-h-0 flex-1 flex-col bg-[#f2f4f6] px-[24px] pb-[30px] pt-[22px]"
       >
         {!isHydrated ? <MessagingTabLoading tab={tab} /> : null}
         {isHydrated && tab === "scheduled" ? <ScheduledTab /> : null}

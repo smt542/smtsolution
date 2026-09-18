@@ -34,7 +34,9 @@ export function AppShell({ children }: AppShellProps) {
   const isBuildingsIndex = pathname === "/staff/buildings";
   const isBuildingRegister =
     pathname === "/staff/buildings/new" || pathname.startsWith("/staff/buildings/new-v2");
-  const isViewportLocked = isBuildingsIndex || isBuildingRegister;
+  // 정본: 페이지는 뷰포트에 고정되고 스크롤은 목록 카드 안에서만 난다.
+  const isMessaging = pathname === "/staff/messaging";
+  const isViewportLocked = isBuildingsIndex || isBuildingRegister || isMessaging;
 
   useEffect(() => {
     const openDrawer = () => setDrawerOpen(true);
