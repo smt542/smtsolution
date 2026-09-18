@@ -67,9 +67,14 @@ function SettlementEditor({
   onDeleted: () => void;
 }) {
   const [draft, setDraft] = useState(() => draftFromContext(context, forceNew));
-  const [checked, setChecked] = useState<Record<number, boolean>>(() =>
+  // 정산 체크는 항목별 메모가 본문이고 checked 는 "메모가 비어있지 않음" 으로 파생된다(0172).
+  // note 가 없는데 checked 인 행(모바일 체크박스로만 켠 경우)은 기존 표시대로 '확인' 으로 읽는다.
+  const [notes, setNotes] = useState<Record<number, string>>(() =>
     Object.fromEntries(
-      context.checklist.map((item) => [item.id, item.checked]),
+      context.checklist.map((item) => [
+        item.id,
+        item.note ?? (item.checked ? "확인" : ""),
+      ]),
     ),
   );
   const [receivedAmount, setReceivedAmount] = useState(0);
@@ -101,10 +106,10 @@ function SettlementEditor({
       note: nullableText(draft.note),
       settlementNote: nullableText(draft.settlementNote),
     },
-    checklist: context.checklist.map((item) => ({
-      checkItemId: item.id,
-      checked: checked[item.id] ?? false,
-    })),
+    checklist: context.checklist.map((item) => {
+      const note = (notes[item.id] ?? "").trim();
+      return { checkItemId: item.id, checked: note !== "", note };
+    }),
   };
 
   const amount = calculateSettlementAmount(draft);
@@ -122,9 +127,9 @@ function SettlementEditor({
         meters={context.meterSummary}
         settings={context.settlementSettings}
         checklist={context.checklist}
-        checked={checked}
-        onChecklistChange={(id, next) =>
-          setChecked((current) => ({ ...current, [id]: next }))
+        notes={notes}
+        onChecklistNoteChange={(id, next) =>
+          setNotes((current) => ({ ...current, [id]: next }))
         }
         receivedAmount={receivedAmount}
         onReceivedAmountChange={setReceivedAmount}

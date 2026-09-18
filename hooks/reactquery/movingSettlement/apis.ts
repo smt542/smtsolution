@@ -63,6 +63,8 @@ export interface ChecklistItem {
   id: number;
   label: string;
   checked: boolean;
+  /** 항목별 메모(0172). staff 화면의 입력값이고 checked 는 이 값이 비어있지 않은지로 파생된다. */
+  note: string | null;
 }
 
 export interface SettlementContext {
@@ -123,7 +125,7 @@ export interface SaveSettlementInput {
   occupancyId: number | null;
   settlementId: number | null;
   data: SaveSettlementData;
-  checklist: { checkItemId: number; checked: boolean }[];
+  checklist: { checkItemId: number; checked: boolean; note: string | null }[];
 }
 
 export interface SavePartnerSettlementInput {
@@ -255,7 +257,7 @@ interface SettlementContextRpc {
     vacancy_payment_mode: "manual" | "auto";
   } | null;
   billing_unpaid: number | string | null;
-  checklist: { id: number; label: string; checked: boolean }[];
+  checklist: { id: number; label: string; checked: boolean; note: string | null }[];
   meter_summary: {
     utility: SettlementUtility;
     previous_reading: number | null;
@@ -385,6 +387,7 @@ function rpcToSettlementContext(r: SettlementContextRpc): SettlementContext {
       id: item.id,
       label: item.label,
       checked: item.checked,
+      note: item.note ?? null,
     })),
     meterSummary: r.meter_summary.map((meter) => ({
       utility: meter.utility,
@@ -506,6 +509,7 @@ export async function saveMovingSettlement(
     p_checklist: input.checklist.map((item) => ({
       check_item_id: item.checkItemId,
       checked: item.checked,
+      note: item.note,
     })),
   });
   if (error) throw new Error(error.message);
