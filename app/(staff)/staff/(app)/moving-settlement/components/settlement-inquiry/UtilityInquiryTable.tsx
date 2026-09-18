@@ -115,8 +115,12 @@ export function UtilityInquiryTable({
         </tbody>
         <tfoot className="sticky bottom-0 z-10 bg-white font-extrabold shadow-[0_-1px_0_#E8EBEE]">
           <tr className="h-[41px]">
-            <td className="px-4">합계 {formatNumber(total)}건</td>
-            <td colSpan={9} />
+            {/* NO 칸(48.7px)만으로는 `합계 N건`이 줄바꿈돼 행 높이가 41px를 넘는다.
+                정본도 텍스트가 소재지 칸까지 걸쳐 있어 2칸을 합친다. */}
+            <td colSpan={2} className="whitespace-nowrap px-4">
+              합계 {formatNumber(total)}건
+            </td>
+            <td colSpan={8} />
             <td className="px-4 text-right num">
               {formatNumber(sumColumn(rows, fields.usage))}
             </td>
