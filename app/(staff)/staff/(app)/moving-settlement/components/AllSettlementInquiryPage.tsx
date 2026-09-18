@@ -14,6 +14,7 @@ import {
 import { hasModule } from "@/lib/auth/permissions";
 import { AllSettlementInquiryTable } from "./AllSettlementInquiryTable";
 import { AllSettlementInquiryToolbar } from "./AllSettlementInquiryToolbar";
+import { printAllSettlementInquiry } from "./allSettlementInquiryPrint";
 import {
   monthEnd,
   numericInput,
@@ -156,30 +157,20 @@ export function AllSettlementInquiryPage() {
       toast.error("출력할 내역이 없어요.");
       return;
     }
-    window.print();
+    printAllSettlementInquiry(rows, edits);
   };
 
   return (
     <div
-      className="moving-inquiry-page relative flex h-[calc(100vh-62px)] min-h-[620px] flex-col overflow-hidden p-[22px_24px_24px] print:h-auto print:min-h-0 print:overflow-visible print:p-0"
+      className="moving-inquiry-page relative flex h-[calc(100vh-62px)] min-h-[620px] flex-col overflow-hidden p-[22px_24px_24px]"
       data-node-id="673:185380"
     >
-      <div className="moving-inquiry-print-title hidden print:mb-4 print:block">
-        <p className="text-sm font-bold text-t3">관리비서 · 이사정산</p>
-        <h1 className="mt-1 text-2xl font-extrabold text-t1">전체 이사조회</h1>
-        <p className="mt-1 text-sm text-t2">
-          {period.fromYear}.{period.fromMonth} ~ {period.toYear}.{period.toMonth}
-        </p>
-      </div>
-      <div className="moving-inquiry-watermark pointer-events-none absolute inset-0 hidden items-center justify-center text-[92px] font-black text-t1/[0.035] print:flex">
-        관리비서
-      </div>
       <section
-        className="moving-inquiry-card relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[16px] bg-white shadow-card print:overflow-visible print:rounded-none print:shadow-none"
+        className="moving-inquiry-card relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[16px] bg-white shadow-card"
         data-node-id="673:185381"
       >
         {isAllSettlementInquiryRefreshing ? (
-          <div className="absolute right-5 top-3 z-10 rounded-lg bg-white/95 shadow-card print:hidden">
+          <div className="absolute right-5 top-3 z-10 rounded-lg bg-white/95 shadow-card">
             <Spinner label="전체 이사조회 결과 갱신 중" size="small" showLabel className="px-3 py-2" />
           </div>
         ) : null}
