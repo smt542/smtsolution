@@ -33,6 +33,9 @@ const MEDIUM_TEXT_CELL = `${CELL_BASE} font-medium`;
 const MEDIUM_NUMBER_CELL = `${MEDIUM_TEXT_CELL} text-right tabular-nums`;
 const HEADER_CELL = "sticky top-0 z-20 h-[36.5px] border-b border-line bg-[#fbfcfd] px-[16px] text-left text-[11.5px] font-medium text-t3";
 const NUMBER_HEADER_CELL = `${HEADER_CELL} text-right`;
+// 정본 호실 셀은 접미사 없는 숫자다(404·101). DB `units.unit_no` 는 "101호" 로 저장하는데
+// 57px 컬럼에서 접미사까지 넣으면 두 줄로 접힌다. 표시에서만 뗀다(aria-label 은 "101호" 유지).
+const unitNoLabel = (unitNo: string | null) => (unitNo ?? "").replace(/호$/, "");
 const SUBTOTAL_CELL = "border-b border-line2 px-[16px]";
 const TOTAL_CELL = "border-t border-line bg-[#fbfcfd] px-[16px]";
 
@@ -139,7 +142,7 @@ export function AllSettlementInquiryTable({
                         {locationLabel(row.buildingAddress, row.dong)}
                       </td>
                       <td className={TEXT_CELL}>{row.buildingName}</td>
-                      <td className={MEDIUM_TEXT_CELL}>{row.unitNo}</td>
+                      <td className={MEDIUM_TEXT_CELL}>{unitNoLabel(row.unitNo)}</td>
                       <td className={`${TEXT_CELL} tabular-nums`}>
                         {formatDate(row.moveOutDate, { nullText: "" })}
                       </td>
