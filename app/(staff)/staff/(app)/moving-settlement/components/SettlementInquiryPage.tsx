@@ -4,7 +4,7 @@ import { useDeferredValue, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { EmptyState, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
-import { useBillOrganizationName } from "@/hooks/reactquery/bill";
+import { useOrganizationPrintInfo } from "@/hooks/reactquery/org/useOrganizationPrintInfo";
 import {
   useUpdateSettlementInquiryRows,
   useSettlementInquiry,
@@ -15,11 +15,10 @@ import {
   type SettlementInquiryType,
 } from "@/hooks/reactquery/movingSettlement";
 import { hasModule } from "@/lib/auth/permissions";
-import { PROGRAM_COMPANY_NAME } from "@/lib/bill/document";
-import { SettlementInquiryPrintHeader } from "./settlement-inquiry/SettlementInquiryPrintHeader";
 import { SettlementInquiryTable } from "./settlement-inquiry/SettlementInquiryTable";
 import type { UtilityInquiryType } from "./settlement-inquiry/utilityInquiryColumns";
 import { SettlementInquiryToolbar } from "./settlement-inquiry/SettlementInquiryToolbar";
+import { printUtilityInquiry } from "./settlement-inquiry/utilityInquiryPrint";
 
 const TYPE_LABELS: Record<SettlementInquiryType, string> = {
   water: "수도",
@@ -46,7 +45,7 @@ function monthEnd(month: string): string {
 export function SettlementInquiryPage({ type }: { type: UtilityInquiryType }) {
   const range = currentMonthRange();
   const { data: me } = useMe();
-  const { data: organizationName } = useBillOrganizationName(me?.orgId);
+  const { data: organization } = useOrganizationPrintInfo(me?.orgId);
   const [fromMonth, setFromMonth] = useState(range.fromMonth);
   const [toMonth, setToMonth] = useState(range.toMonth);
   const [appliedFrom, setAppliedFrom] = useState(`${range.fromMonth}-01`);
@@ -126,24 +125,18 @@ export function SettlementInquiryPage({ type }: { type: UtilityInquiryType }) {
       toast.info("출력할 내역이 없어요.");
       return;
     }
-    window.print();
+    printUtilityInquiry(type, rows, edits, appliedFrom, organization);
   };
 
   return (
-    <div className="h-[calc(100dvh-62px)] min-h-[560px] bg-bg px-[24px] pb-[22px] pt-[22px] print:h-auto print:min-h-0 print:bg-white print:p-0">
-      <section aria-label={`${TYPE_LABELS[type]} 이사조회`} className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] bg-white shadow-card print:overflow-visible print:rounded-none print:shadow-none">
+    <div className="h-[calc(100dvh-62px)] min-h-[560px] bg-bg px-[24px] pb-[22px] pt-[22px]">
+      <section aria-label={`${TYPE_LABELS[type]} 이사조회`} className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] bg-white shadow-card">
         {isSettlementInquiryRefreshing ? (
-          <div className="absolute right-5 top-3 z-10 rounded-lg bg-white/95 shadow-card print:hidden">
+          <div className="absolute right-5 top-3 z-10 rounded-lg bg-white/95 shadow-card">
             <Spinner label="이사정산 조회 결과 갱신 중" size="small" showLabel className="px-3 py-2" />
           </div>
         ) : null}
-        <SettlementInquiryPrintHeader
-          type={type}
-          companyName={organizationName ?? PROGRAM_COMPANY_NAME}
-          fromMonth={fromMonth}
-          toMonth={toMonth}
-        />
-        <div className="overflow-x-auto print:hidden">
+        <div className="overflow-x-auto">
           <SettlementInquiryToolbar
             fromMonth={fromMonth}
             toMonth={toMonth}
@@ -169,7 +162,7 @@ export function SettlementInquiryPage({ type }: { type: UtilityInquiryType }) {
             onSave={save}
           />
         </div>
-        <div className="min-h-0 flex-1 print:relative print:z-10">
+        <div className="min-h-0 flex-1">
         {invalidRange ? (
           <div className="py-16"><EmptyState message="조회 시작월은 종료월보다 늦을 수 없습니다." /></div>
         ) : inquiryQuery.isLoading ? (
