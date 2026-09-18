@@ -86,25 +86,20 @@ export function CompanyInfoTab() {
                 </div>
               )}
             </div>
-            {field.kind === "phone" ? (
-              <PhoneInput
-                size="38"
-                aria-label={field.label}
-                className={`shrink-0 ${field.width}`}
-                value={f[field.key]}
-                placeholder={field.placeholder}
-                onChange={(next) => upd(field.key, next)}
-              />
-            ) : (
-              <Input
-                size="38"
-                aria-label={field.label}
-                className={`shrink-0 ${field.width}`}
-                value={f[field.key]}
-                placeholder={field.placeholder}
-                onChange={(event) => upd(field.key, event.target.value)}
-              />
-            )}
+            {(() => {
+              // PhoneInput은 네이티브 input과 props 계약이 같아 그대로 갈아끼운다.
+              const Field = field.kind === "phone" ? PhoneInput : Input;
+              return (
+                <Field
+                  size="38"
+                  aria-label={field.label}
+                  className={`shrink-0 ${field.width}`}
+                  value={f[field.key]}
+                  placeholder={field.placeholder}
+                  onChange={(event) => upd(field.key, event.target.value)}
+                />
+              );
+            })()}
           </div>
         ))}
       </div>

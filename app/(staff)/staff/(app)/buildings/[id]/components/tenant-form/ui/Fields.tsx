@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
+import { applyPhoneFormat, PHONE_INPUT_ATTRS } from "@/components/common";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const pad2 = (n: number) => String(n).padStart(2, "0");
@@ -57,14 +58,17 @@ export const TextField = React.forwardRef<
     placeholder?: string;
     type?: "text" | "number" | "password";
     muted?: boolean;
+    /** "phone"이면 숫자만 받고 하이픈을 자동으로 붙인다(`components/common/phoneField`). */
+    format?: "phone";
   } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "type">
->(function TextField({ value, onChange, placeholder, type = "text", muted, ...rest }, ref) {
+>(function TextField({ value, onChange, placeholder, type = "text", muted, format, ...rest }, ref) {
+  const isPhone = format === "phone";
   return (
     <input
       ref={ref}
-      type={type}
+      {...(isPhone ? PHONE_INPUT_ATTRS : { type })}
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) => onChange(isPhone ? applyPhoneFormat(e.currentTarget) : e.target.value)}
       placeholder={placeholder}
       readOnly={muted}
       className={`${boxBase} text-[13.5px] font-semibold text-t1 placeholder:font-medium placeholder:text-t4 ${muted ? "bg-[#f2f4f6] text-t3" : ""}`}

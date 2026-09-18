@@ -1,4 +1,4 @@
-export type FieldKind = "text" | "textarea" | "readonly" | "select" | "date";
+export type FieldKind = "text" | "phone" | "textarea" | "readonly" | "select" | "date";
 
 export interface FieldDef {
   label: string;
