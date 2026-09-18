@@ -95,14 +95,19 @@ const PRINT_STYLE_ID = "rcPrintCss";
 const PRINT_CSS = `
 @media screen{#rcPrintSheet{display:none}}
 @media print{
-@page{size:A4 landscape;margin:8mm}
+/* 정본은 @page{margin:8mm} 였다. 그러면 인쇄영역 194mm 안에서 꼬릿말이 3.7mm 를
+   잡아먹어 본문 가용이 188.8mm 로 줄고, 한 줄만 접혀도 꼬릿말이 2쪽으로 밀렸다.
+   여백을 0 으로 내리고 그 자리를 시트 자신의 padding + 꼬릿말 영역으로 쓴다:
+   상단 8mm(여백) + 본문 194mm + 하단 8mm(꼬릿말 영역) = 210mm.
+   본문은 정본과 같은 194mm 를 통째로 쓰고, 꼬릿말은 예전 여백 자리에 들어간다. */
+@page{size:A4 landscape;margin:0}
 html,body{background:#fff!important;height:auto!important;overflow:visible!important}
 body>*:not(#rcPrintSheet){display:none!important}
 /* 정본은 display:block + .stl/.str{min-height:186mm} 이라, 186+하단 3.7 = 189.7mm 로
    인쇄영역(A4 가로 210 - 여백 16 = 194mm)과 여유가 2.8mm 뿐이다. 어느 셀이든 한 줄만
    접히면 하단 날짜·회사명이 2쪽으로 밀렸다. 시트를 인쇄영역 높이에 고정하고 하단을
    flex 로 바닥에 붙여, 본문이 늘어도 하단이 1쪽에 남게 한다. 본문 가용 높이도 188.8mm 로 늘어난다. */
-#rcPrintSheet{display:flex!important;flex-direction:column;height:194mm;font-family:Pretendard,sans-serif;color:#000;line-height:normal}
+#rcPrintSheet{display:flex!important;flex-direction:column;box-sizing:border-box;min-height:210mm;padding:8mm 8mm 0;font-family:Pretendard,sans-serif;color:#000;line-height:normal}
 #rcPrintSheet table{width:100%;border-collapse:collapse}
 #rcPrintSheet th,#rcPrintSheet td{border:.5pt solid #999;padding:1mm 1.5mm;font-size:8pt}
 #rcPrintSheet th{background:#F1F3F5;font-weight:700;text-align:left;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -110,7 +115,9 @@ body>*:not(#rcPrintSheet){display:none!important}
 #rcPrintSheet .c{text-align:center}
 #rcPrintSheet{page-break-inside:avoid}
 #rcPrintSheet table,#rcPrintSheet tr{page-break-inside:avoid}
-#rcPrintSheet .stwrap{display:grid;grid-template-columns:1fr 1fr;column-gap:6mm;align-items:stretch;position:relative;flex:1 1 auto;min-height:0}
+/* min-height:0 을 주면 안 된다 — 내용보다 작게 줄어들어 꼬릿말 위로 넘쳐 글자가 겹친다.
+   기본값(min-height:auto)이면 내용만큼은 유지하고, 정말 넘칠 때만 시트가 커진다. */
+#rcPrintSheet .stwrap{display:grid;grid-template-columns:1fr 1fr;column-gap:6mm;align-items:stretch;position:relative;flex:1 1 auto}
 #rcPrintSheet .stl,#rcPrintSheet .str{min-height:0;display:flex;flex-direction:column}
 #rcPrintSheet .stl{border-right:.4pt dashed #bbb;padding-right:3mm}
 #rcPrintSheet .str .tb{flex:1}
@@ -128,7 +135,8 @@ body>*:not(#rcPrintSheet){display:none!important}
 #rcPrintSheet .sum th,#rcPrintSheet .sum td{text-align:center;font-size:8pt}
 #rcPrintSheet .sum td.tot{font-weight:800;font-size:9.5pt}
 #rcPrintSheet .memo{border:.6pt solid #999;border-top:0;min-height:14mm;padding:1.5mm;font-size:8pt}
-#rcPrintSheet .stfoot{flex:0 0 auto;margin-top:1.5mm;text-align:right;font-size:8.5pt}
+/* 예전 하단 여백(8mm) 자리가 곧 꼬릿말 영역이다. 높이를 고정해 본문 194mm 를 침범하지 않는다. */
+#rcPrintSheet .stfoot{flex:0 0 auto;height:8mm;display:flex;align-items:center;justify-content:flex-end;text-align:right;font-size:8.5pt}
 }`;
 
 const UTILITY_LABELS: Array<{
