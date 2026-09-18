@@ -1,4 +1,5 @@
 import type { MessageRecipient, SendMode } from "@/lib/messaging/preset";
+import { formatPhone } from "@/lib/format";
 
 export function formatMessageDateTime(value: string): string {
   const date = new Date(value);
@@ -24,7 +25,8 @@ export function senderLabel(
   channel: SendMode,
   smsSender: string | null | undefined,
 ): string {
-  return channel === "alimtalk" ? "관리비서 채널" : smsSender ?? "발신번호 미등록";
+  if (channel === "alimtalk") return "관리비서 채널";
+  return smsSender ? formatPhone(smsSender) : "발신번호 미등록";
 }
 
 export function recipientKindLabel(kind: MessageRecipient["kind"]): string {
