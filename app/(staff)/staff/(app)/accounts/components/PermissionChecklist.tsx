@@ -16,9 +16,6 @@ const PERMISSION_GROUPS: {
       { label: "협력업체 관리", keys: ["vendors"] },
       { label: "장기수선비 관리", keys: ["long_term_repair"] },
       { label: "문자·알림톡 관리", keys: ["messaging"] },
-      { label: "수납 처리", keys: ["payment"] },
-      { label: "공지 관리", keys: ["notices"] },
-      { label: "민원·AS", keys: ["complaints"] },
     ],
   },
   { title: "공과금 관리", chips: [{ label: "공과금 관리 전체", keys: ["utilities"] }] },
@@ -52,13 +49,13 @@ export function PermissionChecklist({ value, onChange, disabled, allGranted }: P
   };
 
   return (
-    <div className="flex flex-col gap-4 rounded-xl border border-line p-4">
+    <div className="rounded-[12px] border border-line2 p-[14px]">
       {PERMISSION_GROUPS.map((group) => (
-        <section key={group.title} aria-labelledby={`permission-${group.title}`}>
-          <h4 id={`permission-${group.title}`} className="mb-2 text-xs font-medium text-t1">
+        <section key={group.title} className="mb-[14px] last:mb-0" aria-labelledby={`permission-${group.title}`}>
+          <h4 id={`permission-${group.title}`} className="mb-[8px] text-[12.5px] font-medium leading-[normal] tracking-[0] text-t1">
             {group.title}
           </h4>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-3 gap-[7px]">
             {group.chips.map((chip) => {
               const granted = !!allGranted || chip.keys.every((key) => value.includes(key));
               return (
@@ -68,7 +65,7 @@ export function PermissionChecklist({ value, onChange, disabled, allGranted }: P
                   aria-pressed={granted}
                   disabled={disabled || allGranted}
                   onClick={() => toggle(chip.keys)}
-                  className={`min-h-9 rounded-lg border px-2 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-70 ${
+                  className={`truncate whitespace-nowrap rounded-[9px] border px-[6px] py-[9px] text-[11.5px] font-semibold leading-[normal] transition duration-[120ms] disabled:cursor-not-allowed disabled:opacity-70 ${
                     granted
                       ? "border-brand bg-brand text-white"
                       : "border-line bg-surface text-t1 hover:border-brand hover:text-brand"

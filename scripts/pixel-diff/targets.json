@@ -187,5 +187,80 @@
     "appSelector": null,
     "viewport": { "w": 1340, "h": 880 },
     "device": "desktop"
+  },
+  {
+    "id": "staff-accounts-office",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/staff-management/staff-management.dc.html",
+    "originSelector": ".hf-app",
+    "appPath": "/staff/accounts",
+    "appSelector": null,
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
+  },
+  {
+    "id": "staff-accounts-field",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/staff-management/staff-management.dc.html",
+    "originSelector": ".hf-app",
+    "originActions": [{ "click": "#acTabs a[data-tab=\"field\"]" }, { "wait": 300 }],
+    "appPath": "/staff/accounts",
+    "appActions": [{ "click": "button:has-text(\"현장 관리자\")" }, { "wait": 500 }],
+    "appSelector": null,
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
+  },
+  {
+    "id": "staff-accounts-tenant",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/staff-management/staff-management.dc.html",
+    "originSelector": ".hf-app",
+    "originActions": [{ "click": "#acTabs a[data-tab=\"tenant\"]" }, { "wait": 400 }],
+    "appPath": "/staff/accounts",
+    "appActions": [{ "click": "button:has-text(\"입주자\")" }, { "wait": 2500 }],
+    "appSelector": null,
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
+  },
+  {
+    "id": "staff-accounts-modal-office-create",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/staff-management/staff-management.dc.html",
+    "originSelector": ".modal",
+    "originActions": [{ "click": ".hf-panel-h .hf-btn.pri" }, { "wait": 400 }],
+    "appPath": "/staff/accounts",
+    "appActions": [{ "click": "button:has-text(\"계정 등록\")" }, { "wait": 500 }],
+    "appSelector": "[role=\"dialog\"]",
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
+  },
+  {
+    "id": "staff-accounts-modal-office-edit",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/staff-management/staff-management.dc.html",
+    "originSelector": ".modal",
+    "originActions": [{ "click": "#acTbl tbody tr[data-ac=\"0\"]" }, { "wait": 400 }],
+    "appPath": "/staff/accounts",
+    "appActions": [{ "click": "table tbody tr:first-child" }, { "wait": 600 }],
+    "appSelector": "[role=\"dialog\"]",
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
+  },
+  {
+    "id": "staff-accounts-modal-field-create",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/staff-management/staff-management.dc.html",
+    "originSelector": ".modal",
+    "originActions": [{ "click": "#acTabs a[data-tab=\"field\"]" }, { "wait": 300 }, { "click": ".hf-panel-h .hf-btn.pri" }, { "wait": 400 }],
+    "appPath": "/staff/accounts",
+    "appActions": [{ "click": "button:has-text(\"현장 관리자\")" }, { "wait": 500 }, { "click": "button:has-text(\"계정 등록\")" }, { "wait": 500 }],
+    "appSelector": "[role=\"dialog\"]",
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
+  },
+  {
+    "id": "staff-accounts-modal-field-edit",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/staff-management/staff-management.dc.html",
+    "originSelector": ".modal",
+    "originActions": [{ "click": "#acTabs a[data-tab=\"field\"]" }, { "wait": 300 }, { "click": "#acTbl tbody tr[data-ac=\"2\"]" }, { "wait": 400 }],
+    "appPath": "/staff/accounts",
+    "appActions": [{ "click": "button:has-text(\"현장 관리자\")" }, { "wait": 500 }, { "click": "table tbody tr:first-child" }, { "wait": 600 }],
+    "appSelector": "[role=\"dialog\"]",
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
   }
 ]

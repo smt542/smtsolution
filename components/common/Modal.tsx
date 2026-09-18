@@ -8,6 +8,7 @@ export function Modal({
   children,
   className = "max-w-md",
   overlayClassName = "",
+  bodyClassName = "mt-4",
 }: {
   open: boolean;
   onClose: () => void;
@@ -15,6 +16,7 @@ export function Modal({
   children: React.ReactNode;
   className?: string;
   overlayClassName?: string;
+  bodyClassName?: string;
 }) {
   const titleId = useId();
   useEffect(() => {
@@ -45,7 +47,7 @@ export function Modal({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id={titleId} className="text-lg font-extrabold">{title}</h2>
-        <div className="mt-4">{children}</div>
+        <div className={bodyClassName}>{children}</div>
       </div>
     </div>
   );

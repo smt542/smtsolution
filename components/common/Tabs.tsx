@@ -8,6 +8,7 @@ export function Tabs({
   onAdd,
   onRename,
   onDelete,
+  variant = "default",
 }: {
   tabs: { id: string; label: string }[];
   active: string;
@@ -15,6 +16,7 @@ export function Tabs({
   onAdd?: () => void;
   onRename?: (id: string, label: string) => void;
   onDelete?: (id: string) => void;
+  variant?: "default" | "underline";
 }) {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -32,6 +34,27 @@ export function Tabs({
     setRenamingId(null);
     setRenameValue("");
   };
+
+  if (variant === "underline") {
+    return (
+      <div className="flex items-center gap-[4px]">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => onChange(t.id)}
+            className={`px-[16px] py-[12px] text-[14px] font-bold leading-[normal] border-b-2 -mb-px ${
+              active === t.id
+                ? "border-brand text-brand"
+                : "border-transparent text-t3"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-1 border-b border-line">
