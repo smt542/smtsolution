@@ -328,6 +328,7 @@ export function AccountFormModal({
                         value={field.value ? "master" : "normal"}
                         disabled={!canEditPermissions}
                         variant="field"
+                        position="fixed"
                         onChange={(value) => field.onChange(value === "master")}
                       />
                     )}
@@ -349,6 +350,7 @@ export function AccountFormModal({
                       options={STATUS_OPTIONS}
                       value={field.value ? "active" : "inactive"}
                       variant="field"
+                      position="fixed"
                       onChange={(value) => field.onChange(value === "active")}
                     />
                   )}
