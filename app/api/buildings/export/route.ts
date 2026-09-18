@@ -1,6 +1,7 @@
 import { requirePersonaApi } from "@/lib/api/requirePersona";
 import { createClient } from "@/lib/supabase/server";
 import { rowsToXlsxBuffer } from "@/lib/export/xlsx";
+import { extractRequestMeta, logAccess } from "@/lib/audit/accessLog";
 
 const VENDOR_NONE = "";
 type BuildingExportRow = {
@@ -59,6 +60,17 @@ export async function GET(request: Request) {
     ],
     table,
   );
+
+  const { ip, userAgent } = extractRequestMeta(request);
+  await logAccess({
+    event: "EXPORT_XLSX",
+    persona: "manager_staff",
+    orgId: gate.ctx.org_id ?? null,
+    targetKind: "buildings",
+    rowCount: table.length,
+    ip,
+    userAgent,
+  });
 
   const d = new Date();
   const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;

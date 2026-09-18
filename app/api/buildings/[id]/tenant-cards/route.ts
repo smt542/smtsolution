@@ -2,6 +2,7 @@
 import { requirePersonaApi } from "@/lib/api/requirePersona";
 import { createClient } from "@/lib/supabase/server";
 import { rowsToXlsxBuffer } from "@/lib/export/xlsx";
+import { extractRequestMeta, logAccess } from "@/lib/audit/accessLog";
 
 type TenantCardRow = {
   unit_no: string;
@@ -43,6 +44,17 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
     ],
     table,
   );
+  const { ip, userAgent } = extractRequestMeta(request);
+  await logAccess({
+    event: "EXPORT_XLSX",
+    persona: "manager_staff",
+    orgId: gate.ctx.org_id ?? null,
+    targetKind: "building",
+    targetId: String(buildingId),
+    rowCount: table.length,
+    ip,
+    userAgent,
+  });
   const d = new Date();
   const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
   return new Response(new Uint8Array(buffer), {
