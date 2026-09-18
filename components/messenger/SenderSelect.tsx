@@ -6,6 +6,7 @@ import {
   useSaveSetupSender,
   useSetupConfig,
 } from "@/hooks/reactquery/setupConfig";
+import { formatPhone } from "@/lib/format";
 import { messengerClasses as styles } from "./messengerClasses";
 
 interface SenderSelectProps {
@@ -21,24 +22,6 @@ interface SenderOption {
 
 function digits(value: string): string {
   return value.replace(/\D/g, "");
-}
-
-function formatPhone(value: string): string {
-  const number = digits(value).slice(0, 11);
-  if (number.startsWith("02")) {
-    if (number.length < 3) return number;
-    if (number.length < 6) return `${number.slice(0, 2)}-${number.slice(2)}`;
-    if (number.length < 10) {
-      return `${number.slice(0, 2)}-${number.slice(2, -4)}-${number.slice(-4)}`;
-    }
-    return `${number.slice(0, 2)}-${number.slice(2, 6)}-${number.slice(6, 10)}`;
-  }
-  if (number.length < 4) return number;
-  if (number.length < 8) return `${number.slice(0, 3)}-${number.slice(3)}`;
-  if (number.length < 11) {
-    return `${number.slice(0, 3)}-${number.slice(3, -4)}-${number.slice(-4)}`;
-  }
-  return `${number.slice(0, 3)}-${number.slice(3, 7)}-${number.slice(7, 11)}`;
 }
 
 export function SenderSelect({ value, onChange }: SenderSelectProps) {

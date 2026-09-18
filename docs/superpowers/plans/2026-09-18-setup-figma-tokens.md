@@ -171,14 +171,18 @@ PageHeader: { title: string; actions?: React.ReactNode }
 
 탭 폭은 내용에 따라 87 / 100 / 113 / 87 / 87 / 100 — 고정폭이 아니라 텍스트 폭이다.
 
-### 탭바 구현 방침 — `Tabs`에 size 변형 추가
+### 탭바 구현 방침 — 공용 `Tabs`의 `variant="underline"` 재사용
 
-공용 `Tabs`의 현재 값은 `px-4 py-2`이고 비활성에 `border-b-2`가 없다(활성 탭만 2px 더 높아지는 차이가 있다).
-Figma는 `py-[12px]` + 비활성도 `border-b-2 border-transparent`다.
+공용 `Tabs`의 기본값은 `px-4 py-2`이고 비활성에 `border-b-2`가 없다(활성 탭만 2px 더 높아진다).
+정본은 `py-[12px]` + 비활성도 `border-b-2 border-transparent`다.
 
-`Tabs`는 **9개 호출부**(partner 모바일·accounts·fee-items·management-fee·messaging·receipts 등)가 쓰고
-그 중 여럿은 이미 픽셀 정합이 끝난 화면이다. 공용 기본값을 바꾸면 전부 틀어진다.
-→ `size?: 'default' | 'page'`를 추가하고 **기본값은 현재 동작 그대로** 둔다. setup만 `size="page"`.
+처음에는 `size="page"` 변형을 새로 넣었는데, 병합 시점에 **다른 세션이 같은 규격을
+`variant="underline"`로 이미 master에 넣어 둔 것이 드러났다**(`/staff/accounts`가 쓴다).
+탭 버튼 클래스가 픽셀 단위로 동일해 중복이므로 **master 쪽 이름으로 통일**했다.
+
+정본 탭바에는 `variant="underline"`에 없는 컨테이너 크롬(흰 배경·아래 1px 선·좌우 24px)이 있다.
+그건 공용 컴포넌트에 넣지 않고 `SetupTabs`가 감싸는 div로 두른다 — `/staff/accounts` 쪽 표현을
+건드리지 않기 위해서다.
 
 ## 알림 설정 탭 (노드 `72:69596`)
 

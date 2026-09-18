@@ -120,6 +120,7 @@ function SettlementEditor({
         value={draft}
         onChange={setDraft}
         meters={context.meterSummary}
+        settings={context.settlementSettings}
         checklist={context.checklist}
         checked={checked}
         onChecklistChange={(id, next) =>
@@ -140,6 +141,7 @@ function SettlementEditor({
         settlementId={activeSettlementId}
         amount={amount}
         receivedAmount={receivedAmount}
+        vacancyPaymentMode={context.settlementSettings.vacancyPaymentMode}
         createdAt={context.latestSettlement?.createdAt ?? null}
         paymentInputRef={paymentInputRef}
         onSaved={setActiveSettlementId}

@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import {
   Button,
+  CustomDropdown,
   EmptyState,
+  Input,
   Modal,
-  SearchBar,
-  Select,
   Spinner,
 } from "@/components/common";
 import {
@@ -78,13 +78,13 @@ function claimPhone(claim: ResidentClaim): string {
 
 function StatusBadge({ state }: { state: LinkState }) {
   const color = {
-    on: "bg-green-t text-green",
+    on: "bg-[#E6F7EE] text-[#0F7B4F]",
     off: "bg-bg text-t3",
-    fail: "bg-red-t text-danger",
+    fail: "bg-[#FFF1F1] text-[#F04452]",
   }[state];
 
   return (
-    <span className={`inline-flex rounded-lg px-2.5 py-1 text-xs font-bold ${color}`}>
+    <span className={`inline-flex items-center rounded-[7px] px-[9px] py-[3px] text-[11.5px] font-bold leading-[normal] ${color}`}>
       {STATUS_LABELS[state]}
     </span>
   );
@@ -105,13 +105,13 @@ function OccupancyButton({
     <button
       type="button"
       onClick={onSelect}
-      className={`flex w-full items-center gap-3 border-b border-line2 px-4 py-3 text-left last:border-0 hover:bg-bg ${
-        selected ? "bg-brand-tint ring-1 ring-inset ring-brand" : "bg-surface"
+      className={`flex w-full cursor-pointer items-center gap-[10px] border-b border-line2 px-[14px] py-[12px] text-left last:border-0 hover:bg-[#F7F8FA] ${
+        selected ? "bg-brand-tint" : "bg-surface"
       }`}
     >
-      <b className="text-sm text-t1">{option.buildingName} {option.unitNo}호</b>
-      <span className="text-xs font-semibold text-t3">{option.tenantName ?? "-"}</span>
-      <i className="ml-auto text-xs font-semibold not-italic text-t3">
+      <b className="text-[13.5px] font-bold leading-[normal] text-t1">{option.buildingName} {option.unitNo}호</b>
+      <span className="text-[12px] font-semibold leading-[normal] text-t3">{option.tenantName ?? "-"}</span>
+      <i className="ml-auto text-[12px] font-semibold leading-[normal] not-italic text-t3">
         {linkedName ? <>연결됨 · {linkedName}</> : "미연결"}
       </i>
     </button>
@@ -198,35 +198,36 @@ export function ResidentClaimsPanel() {
 
   return (
     <>
-      <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
-        <div className="flex items-center gap-2 border-b border-line p-4">
-          <h2 className="text-base font-extrabold text-t1">계정 목록</h2>
-          <span className="rounded-lg bg-bg px-2.5 py-1 text-xs font-bold text-t3">
+      <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl bg-surface shadow-card">
+        <div className="flex flex-none items-center gap-[10px] border-b border-line2 px-[18px] py-[15px]">
+          <h2 className="text-[15px] font-extrabold leading-[normal] text-t1">계정 목록</h2>
+          <span className="inline-flex items-center rounded-[7px] bg-bg px-[9px] py-[3px] text-[12px] font-bold leading-[1.4] text-t3">
             {filteredClaims.length}개
           </span>
         </div>
 
-        <div className="flex flex-col gap-2 border-b border-line2 p-3 sm:flex-row sm:items-center sm:px-4">
-          <div className="w-full sm:w-44">
-            <Select
-              aria-label="건물 전체"
+        <div className="flex flex-none items-center gap-[10px] border-b border-line2 px-[16px] py-[12px]">
+          <div className="w-[170px] flex-none [&_.uc-dd-btn]:h-[40px] [&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:justify-between [&_.uc-dd-btn]:rounded-[11px] [&_.uc-dd-btn]:px-[10px] [&_.uc-dd-btn]:text-[14px] [&_.uc-dd-btn]:font-semibold [&_.uc-dd-btn]:leading-[normal] [&_.uc-dd-lbl]:text-[13.5px] [&_.uc-dd-btn_svg]:size-[14px] [&_.uc-dd-btn_svg]:text-t3 [&_.uc-dd.open_.uc-dd-btn_svg]:rotate-180">
+            <CustomDropdown
+              ariaLabel="건물 전체"
               value={building}
-              onChange={(event) => setBuilding(event.target.value)}
+              onChange={setBuilding}
               options={[
                 { value: "", label: "건물 전체" },
                 ...buildings.map((name) => ({ value: name, label: name })),
               ]}
-              className="h-10 rounded-lg"
+              variant="field"
+              position="fixed"
             />
           </div>
-          <div className="inline-flex w-fit rounded-xl bg-bg p-1">
+          <div className="inline-flex flex-none items-center gap-[2px] rounded-[9px] bg-[#EDF0F3] p-[3px]">
             {STATUS_FILTERS.map((option) => (
               <button
                 key={option.value}
                 type="button"
                 onClick={() => setStatus(option.value)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-bold ${
-                  status === option.value ? "bg-surface text-t1 shadow-card" : "text-t3 hover:text-t1"
+                className={`whitespace-nowrap rounded-[7px] px-[12px] py-[6px] text-[12.5px] font-bold leading-[normal] ${
+                  status === option.value ? "bg-surface text-t1 shadow-[0_1px_3px_rgba(23,31,40,0.1)]" : "text-t3"
                 }`}
               >
                 {option.label}
@@ -243,11 +244,11 @@ export function ResidentClaimsPanel() {
           ) : isError ? (
             <EmptyState message="오류가 발생했습니다" />
           ) : (
-            <table className="w-full min-w-[900px] text-sm">
-              <thead className="sticky top-0 z-10 bg-bg">
-                <tr className="border-b border-line">
+            <table className="w-full border-collapse">
+              <thead className="sticky top-0 z-10 bg-[#FBFCFD]">
+                <tr>
                   {COLUMNS.map((column) => (
-                    <th key={column} className="whitespace-nowrap px-3 py-3 text-left text-xs font-bold text-t2 first:pl-4 last:pr-4">
+                    <th key={column} className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-[12px] py-[11px] text-left text-[12px] font-bold leading-[normal] text-t3 first:pl-[16px] last:pr-[16px]">
                       {column}
                     </th>
                   ))}
@@ -255,8 +256,8 @@ export function ResidentClaimsPanel() {
               </thead>
               <tbody>
                 {filteredClaims.length === 0 ? (
-                  <tr>
-                    <td colSpan={COLUMNS.length}>
+                  <tr className="last:[&>td]:border-b-0">
+                    <td colSpan={COLUMNS.length} className="whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">
                       <EmptyState message="검색 결과가 없어요" />
                     </td>
                   </tr>
@@ -275,16 +276,19 @@ export function ResidentClaimsPanel() {
                           openLinkModal(claim);
                         }
                       }}
-                      className={`border-b border-line2 last:border-0 ${pending ? "cursor-pointer hover:bg-bg focus:bg-bg focus:outline-none" : ""}`}
+                      /* 정본 `.hf-tbl tbody tr:hover td{background:#FBFCFD}` 는 모든 행에 걸린다
+                         (#tnTbl 의 tr 배경 #FAFBFC 는 td 배경에 가려 보이지 않는다).
+                         cursor/focus 는 실제로 누를 수 있는 매핑실패 행에만 준다. */
+                      className={`last:[&>td]:border-b-0 hover:[&>td]:bg-[#FBFCFD] ${pending ? "cursor-pointer focus:outline-none focus:[&>td]:bg-[#FBFCFD]" : ""}`}
                     >
-                      <td className="whitespace-nowrap px-3 py-3 font-semibold text-t1 first:pl-4">{claim.buildingName ?? "-"}</td>
-                      <td className="whitespace-nowrap px-3 py-3 text-t1">{claimUnit(claim)}</td>
-                      <td className="whitespace-nowrap px-3 py-3 text-t1">{claimName(claim)}</td>
-                      <td className="num whitespace-nowrap px-3 py-3 text-t1">{claimPhone(claim)}</td>
-                      <td className="whitespace-nowrap px-3 py-3 text-t1">{claim.kakaoId ?? "-"}</td>
-                      <td className="whitespace-nowrap px-3 py-3 text-t1">{claim.kakaoName ?? "-"}</td>
-                      <td className="whitespace-nowrap px-3 py-3"><StatusBadge state={state} /></td>
-                      <td className="num whitespace-nowrap px-3 py-3 text-t1 last:pr-4">{claimDate(claim)}</td>
+                      <td className="whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">{claim.buildingName ?? "-"}</td>
+                      <td className="whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">{claimUnit(claim)}</td>
+                      <td className="whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">{claimName(claim)}</td>
+                      <td className="num whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">{claimPhone(claim)}</td>
+                      <td className="whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">{claim.kakaoId ?? "-"}</td>
+                      <td className="whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">{claim.kakaoName ?? "-"}</td>
+                      <td className="whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]"><StatusBadge state={state} /></td>
+                      <td className="num whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">{claimDate(claim)}</td>
                     </tr>
                   );
                 })}
@@ -298,27 +302,29 @@ export function ResidentClaimsPanel() {
         open={selectedClaim !== null && !confirmOpen}
         onClose={closeLinkModal}
         title="세대 연결"
-        className="max-w-xl"
+        className="!w-[92vw] max-h-[82vh] max-w-[520px] flex flex-col !rounded-[18px] bg-surface !p-[20px_22px_18px] shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)] [&>h2]:flex-none [&>h2]:text-[17px] [&>h2]:font-extrabold [&>h2]:leading-[normal] [&>h2]:tracking-[-0.02em]"
+        bodyClassName="mt-[8px] flex min-h-0 flex-1 flex-col"
+        overlayClassName="z-[200] bg-[rgba(23,31,40,0.45)]"
       >
         {selectedClaim && (
-          <div>
-            <p className="text-xs font-semibold leading-6 text-t3">
+          <div className="flex min-h-0 flex-1 flex-col">
+            <p className="flex-none text-[12.5px] font-semibold leading-[1.65] text-t3">
               이 카카오 계정을 연결할 세대를 선택해 주세요. 세입자가 입력한 건물·호실이 잘못됐어도 여기서 올바른 세대로 연결됩니다.
             </p>
-            <div className="mt-3 rounded-xl bg-bg px-4 py-3 text-sm font-bold text-t2">
+            <div className="mt-[12px] flex-none rounded-[11px] bg-bg px-[14px] py-[12px] text-[13px] font-bold leading-[normal] text-t2">
               카카오 {selectedClaim.kakaoName ?? "-"}
-              <span className="mt-1 block text-xs font-semibold text-t3">
+              <span className="num mt-[4px] block text-[12px] font-semibold leading-[normal] text-t3">
                 {selectedClaim.kakaoId ?? "-"} · {claimPhone(selectedClaim)}
               </span>
             </div>
-            <div className="mt-3">
-              <SearchBar
-                value={occupancySearch}
-                onChange={setOccupancySearch}
-                placeholder="건물명 또는 호실 검색"
-              />
-            </div>
-            <div className="mt-2 max-h-72 overflow-auto rounded-xl border border-line2">
+            <Input
+              type="text"
+              value={occupancySearch}
+              onChange={(event) => setOccupancySearch(event.target.value)}
+              placeholder="건물명 또는 호실 검색"
+              className="mt-[12px] !h-[38px] flex-none !rounded-[10px] border border-line bg-surface !px-[12px] !text-[13px] leading-[normal] text-t1 placeholder:text-t4 focus:border-brand focus:outline-none"
+            />
+            <div className="mt-[10px] min-h-0 flex-1 overflow-auto rounded-[12px] border border-line2">
               {occupancyLookup.isLoading ? (
                 <Spinner />
               ) : occupancyLookup.isError || occupancyOptions.length === 0 ? (
@@ -333,17 +339,20 @@ export function ResidentClaimsPanel() {
                 />
               ))}
             </div>
-            <div className="mt-4 flex items-center gap-2">
-              <Button type="button" variant="danger" onClick={reject} disabled={isResidentClaimMutationPending}>
+            <div className="mt-[16px] flex flex-none items-center gap-[8px]">
+              {/* 정본 .lk-a 에는 닫기·연결하기만 있다. 삭제(reject RPC)는 앱 전용이라
+                  정본 38px 지오메트리만 따르고 파괴적 동작 표시는 danger 를 유지한다. */}
+              <Button type="button" variant="danger" onClick={reject} disabled={isResidentClaimMutationPending} className="!h-[38px] !rounded-[10px] !px-[14px] !text-[13px] leading-[normal] !shadow-none">
                 {rejectClaim.isPending ? "삭제 중…" : "삭제"}
               </Button>
-              <Button type="button" variant="ghost" onClick={closeLinkModal} disabled={isResidentClaimMutationPending} className="ml-auto">
+              <Button type="button" variant="ghost" onClick={closeLinkModal} disabled={isResidentClaimMutationPending} className="!h-[38px] !rounded-[10px] !px-[14px] !text-[13px] leading-[normal] hover:bg-surface">
                 닫기
               </Button>
               <Button
                 type="button"
                 onClick={() => setConfirmOpen(true)}
                 disabled={!selectedOccupancy || isResidentClaimMutationPending}
+                className="ml-auto !h-[38px] !rounded-[10px] border border-brand bg-brand !px-[14px] !text-[13px] leading-[normal] !shadow-none hover:bg-brand disabled:cursor-not-allowed disabled:border-line disabled:bg-line disabled:text-t4"
               >
                 연결하기
               </Button>
@@ -356,12 +365,12 @@ export function ResidentClaimsPanel() {
         open={confirmOpen && selectedClaim !== null && selectedOccupancy !== null}
         onClose={() => setConfirmOpen(false)}
         title="이 세대로 연결할까요?"
-        className="max-w-sm"
+        className="max-w-sm [&>h2]:leading-[normal]"
       >
         {selectedClaim && selectedOccupancy && (
           <div>
-            <p className="text-sm font-semibold leading-6 text-t3">
-              <b className="text-t1">{selectedOccupancy.buildingName} {selectedOccupancy.unitNo}호</b>에 카카오 {selectedClaim.kakaoName ?? "-"}({selectedClaim.kakaoId ?? "-"}) 계정을 연결합니다.
+            <p className="text-[13px] font-semibold leading-[normal] text-t3">
+              <b className="leading-[normal] text-t1">{selectedOccupancy.buildingName} {selectedOccupancy.unitNo}호</b>에 카카오 {selectedClaim.kakaoName ?? "-"}({selectedClaim.kakaoId ?? "-"}) 계정을 연결합니다.
               <br />
               연결하면 이 세입자는 해당 호실의 관리비·공지 정보를 열람하게 됩니다.
             </p>

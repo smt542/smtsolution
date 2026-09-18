@@ -56,12 +56,15 @@ export function SetupTabs({ initialTab }: { initialTab: SetupTab }) {
     <SetupSaveProvider>
       <div className="flex min-h-full flex-col bg-bg">
         <PageHeader title="셋업 설정" actions={<SetupSaveButton />} />
-        <div className="shrink-0">
+        {/* 정본 탭바(노드 72:69569)는 흰 배경 + 아래 1px 선 + 좌우 24px 여백이고,
+            탭 버튼 자체는 공용 Tabs의 underline 규격과 픽셀 단위로 같다.
+            버튼은 공용 것을 쓰고 컨테이너 크롬만 여기서 두른다. */}
+        <div className="shrink-0 border-b border-line bg-white px-[24px]">
           <Tabs
             tabs={[...TAB_DEFS]}
             active={tab}
             onChange={(id) => setTab(id as SetupTab)}
-            size="page"
+            variant="underline"
           />
         </div>
         <div className="flex-1 px-[24px] pb-[30px] pt-[22px]">

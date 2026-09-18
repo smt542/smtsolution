@@ -1,59 +1,36 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type KeyboardEvent } from "react";
+import { useMe } from "@/hooks/reactquery/auth";
+import { useBuildings } from "@/hooks/reactquery/buildings";
 import {
   useScheduledMessages,
   useCancelScheduledMessage,
   type ScheduledMessage,
 } from "@/hooks/reactquery/messaging";
-import type { SendMode } from "@/lib/messaging/preset";
+import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
 import { MessageDetailModal } from "./MessageDetailModal";
 import { MessagingListCard } from "./MessagingListCard";
+import {
+  buildRecipientSummary,
+  channelLabel,
+  formatMessageDateTime,
+  senderLabel,
+  truncateBody,
+} from "./messageFormat";
 import { SegmentedFilter } from "./SegmentedFilter";
 
 type RecurrenceFilter = "all" | "monthly" | "once";
 type SortOrder = "newest" | "oldest";
 
-function formatScheduledAt(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  const parts = new Intl.DateTimeFormat("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: "Asia/Seoul",
-  }).formatToParts(date);
-  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-  return `${get("year")}.${get("month")}.${get("day")} ${get("hour")}:${get("minute")}`;
-}
-
-function channelLabel(channel: SendMode): string {
-  return channel === "alimtalk" ? "알림톡" : "문자";
-}
-
-function senderLabel(channel: SendMode): string {
-  return channel === "alimtalk" ? "관리비서 채널" : "SMS";
-}
-
-function recipientSummary(msg: ScheduledMessage): string {
-  const ctx = msg.context !== "manual" ? `${msg.context} / ` : "";
-  return `${ctx}${msg.recipientCount}명`;
-}
-
 function scheduleType(msg: ScheduledMessage): string {
   return msg.recurrenceMode === "monthly" ? "예약(매월)" : "예약";
 }
 
-function truncateBody(body: string): string {
-  const normalized = body.replace(/\s+/g, " ").trim();
-  return normalized.length > 35 ? `${normalized.slice(0, 35)}…` : normalized;
-}
-
 const TH =
-  "px-[16px] py-[11px] text-left text-[12px] font-bold text-[#8b95a1] whitespace-nowrap";
+  "px-[16px] py-[11px] text-left text-[12px] font-bold leading-[normal] text-[#8b95a1] whitespace-nowrap";
+const TD =
+  "h-[47.8px] px-[16px] py-[12px] text-[13px] font-medium leading-[normal] text-[#191f28]";
 
 function CancelButton({ id }: { id: number }) {
   const { mutate, isPending } = useCancelScheduledMessage();
@@ -66,7 +43,7 @@ function CancelButton({ id }: { id: number }) {
         event.stopPropagation();
         mutate(id);
       }}
-      className="text-[12.5px] font-bold text-[#f04452] disabled:opacity-50"
+      className="whitespace-nowrap text-[12.5px] font-bold text-[#f04452] disabled:opacity-50"
     >
       {isPending ? "취소 중…" : "예약 취소"}
     </button>
@@ -76,10 +53,18 @@ function CancelButton({ id }: { id: number }) {
 export function ScheduledTab() {
   const { data: messages = [], isLoading, isFetching, error, refetch } =
     useScheduledMessages();
+  const { data: me } = useMe();
+  const { data: config } = useSetupConfig(me?.orgId);
+  const { data: buildings = [] } = useBuildings();
   const isRefreshing = isFetching && !isLoading;
   const [filter, setFilter] = useState<RecurrenceFilter>("all");
   const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
   const [selected, setSelected] = useState<ScheduledMessage | null>(null);
+
+  const buildingNameById = useMemo(
+    () => new Map(buildings.map((building) => [building.id, building.name] as const)),
+    [buildings],
+  );
 
   const filtered = useMemo(() => {
     let result = messages.filter((m) => {
@@ -90,6 +75,18 @@ export function ScheduledTab() {
     if (sortOrder === "oldest") result = [...result].reverse();
     return result;
   }, [messages, filter, sortOrder]);
+
+  const openScheduledMessage = (message: ScheduledMessage) => setSelected(message);
+  const handleRowKeyDown = (
+    event: KeyboardEvent<HTMLTableRowElement>,
+    message: ScheduledMessage,
+  ) => {
+    if (event.target instanceof HTMLButtonElement) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openScheduledMessage(message);
+    }
+  };
 
   return (
     <MessagingListCard
@@ -141,40 +138,37 @@ export function ScheduledTab() {
           </tr>
         </thead>
         <tbody>
-          {filtered.map((msg) => (
-            <tr
-              key={msg.id}
-              onClick={() => setSelected(msg)}
-              className="cursor-pointer border-b border-[#f1f3f5] last:border-b-0 hover:bg-[#fbfcfd]"
-            >
-              <td className="h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
-                {channelLabel(msg.channel)}
-              </td>
-              <td className="h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
-                {senderLabel(msg.channel)}
-              </td>
-              <td className="h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
-                {recipientSummary(msg)}
-              </td>
-              <td className="h-[49px] max-w-[260px] px-[16px] py-[12px]">
-                <span
-                  className="block truncate text-[13px] font-medium text-[#191f28]"
-                  title={msg.body}
-                >
-                  {truncateBody(msg.body)}
-                </span>
-              </td>
-              <td className="h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
-                {scheduleType(msg)}
-              </td>
-              <td className="h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
-                {formatScheduledAt(msg.scheduledAt)}
-              </td>
-              <td className="h-[49px] px-[16px] py-[12px]">
-                <CancelButton id={msg.id} />
-              </td>
-            </tr>
-          ))}
+          {filtered.map((msg) => {
+            const scheduledAt = formatMessageDateTime(msg.scheduledAt);
+            const rowLabel = `${channelLabel(msg.channel)} ${scheduledAt} 예약 발송 상세 보기`;
+
+            return (
+              <tr
+                key={msg.id}
+                tabIndex={0}
+                aria-label={rowLabel}
+                onClick={() => openScheduledMessage(msg)}
+                onKeyDown={(event) => handleRowKeyDown(event, msg)}
+                className="cursor-pointer border-b border-[#f1f3f5] last:border-b-0 hover:bg-[#fbfcfd]"
+              >
+                <td className={TD}>{channelLabel(msg.channel)}</td>
+                <td className={TD}>{senderLabel(msg.channel, config?.smsSender)}</td>
+                <td className={TD}>
+                  {buildRecipientSummary(msg.recipients, msg.recipientCount, buildingNameById)}
+                </td>
+                <td className={`${TD} max-w-[260px]`}>
+                  <span className="block truncate" title={msg.body}>
+                    {truncateBody(msg.body)}
+                  </span>
+                </td>
+                <td className={TD}>{scheduleType(msg)}</td>
+                <td className={TD}>{scheduledAt}</td>
+                <td className={TD}>
+                  <CancelButton id={msg.id} />
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 
@@ -183,8 +177,15 @@ export function ScheduledTab() {
           title="예약 발송 상세"
           channel={selected.channel}
           rows={[
-            { label: "수신자", value: recipientSummary(selected) },
-            { label: "발송시점", value: formatScheduledAt(selected.scheduledAt) },
+            {
+              label: "수신자",
+              value: buildRecipientSummary(
+                selected.recipients,
+                selected.recipientCount,
+                buildingNameById,
+              ),
+            },
+            { label: "발송시점", value: formatMessageDateTime(selected.scheduledAt) },
             { label: "유형", value: scheduleType(selected) },
           ]}
           recipients={selected.recipients}
