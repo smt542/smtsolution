@@ -62,7 +62,8 @@ export function SettlementHistory({
         <span className="px-[8px] py-[11px]">건물명</span>
         <span className="py-[11px] pl-[8px] pr-[16px]">주소</span>
       </div>
-      {/* 날짜 미선택 상태는 정본(Figma 69:66160)이 표 헤더 아래를 비워 두므로 안내 문구를 넣지 않는다. */}
+      {/* 빈 상태(날짜 미선택 · 0건)는 정본이 표 헤더 아래를 비워 두므로 안내 문구를 넣지 않는다.
+          0건은 헤더의 "총 0건" 배지가 알린다. 로딩·에러는 정본이 다루지 않는 상태라 유지한다. */}
       <div className="min-h-0 flex-1 overflow-auto">
         {date !== "" && query.isLoading && (
           <p role="status" aria-label="이사정산 이력 불러오는 중" className="px-[18px] py-[14px] text-[12.5px] text-t4">
@@ -72,11 +73,6 @@ export function SettlementHistory({
         {date !== "" && query.error && (
           <p role="alert" className="px-[18px] py-[14px] text-[12.5px] text-red">
             이사정산 이력을 불러오지 못했어요
-          </p>
-        )}
-        {date !== "" && !query.isLoading && !query.error && rows.length === 0 && (
-          <p className="px-[12px] py-[26px] text-center text-[12.5px] leading-[1.6] text-t4">
-            이 날짜에 작성된 이사정산이 없어요
           </p>
         )}
         {rows.map((row, index) => {
