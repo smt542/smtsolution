@@ -5,6 +5,8 @@ import type {
   PublicBillDetail,
   PublicBillDetailRow,
 } from "@/hooks/reactquery/residentBilling/apis";
+import { extractHeadersMeta, logAccess } from "@/lib/audit/accessLog";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const rowToPublicBillDetail = (
@@ -37,16 +39,43 @@ export async function getPublicBillBySigned(
   unitNo: string,
   period: string,
   sig: string,
+  issuedDay?: number,
 ): Promise<PublicBillBySignedResult> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("public_bill_by_signed", {
+  const rpcParams = {
     p_building_id: buildingId,
     p_unit_no: unitNo,
     p_period: `${period.slice(0, 7)}-01`,
     p_sig: sig,
-  });
+    ...(issuedDay === undefined ? {} : { p_issued_day: issuedDay }),
+  };
+  const { data, error } = await supabase.rpc("public_bill_by_signed", rpcParams);
 
   if (error) throw new Error(error.message);
   const row = ((data ?? []) as PublicBillDetailRow[])[0];
-  return row ? rowToPublicBillDetail(row) : null;
+  const detail = row ? rowToPublicBillDetail(row) : null;
+  if (detail && !detail.isExpired) {
+    let orgId: number | null = null;
+    try {
+      const { data: building, error: orgError } = await createAdminClient()
+        .from("buildings")
+        .select("org_id")
+        .eq("id", buildingId)
+        .maybeSingle();
+      if (!orgError) orgId = building?.org_id ?? null;
+    } catch {
+      // Keep rendering the public bill when the audit scope lookup fails.
+    }
+    const requestMeta = await extractHeadersMeta();
+    await logAccess({
+      ...requestMeta,
+      orgId,
+      event: "PUBLIC_LINK_VIEW",
+      persona: "public",
+      targetKind: "bill_issue",
+      targetId: `${buildingId}:${unitNo}:${period.slice(0, 7)}`,
+    });
+  }
+
+  return detail;
 }

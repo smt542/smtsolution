@@ -98,12 +98,14 @@ export interface SignedBillLinkRow {
   building_id: number;
   unit_no: string;
   sig: string;
+  issued_day: number;
 }
 
 export interface SignedBillLink {
   buildingId: number;
   unitNo: string;
   sig: string;
+  issuedDay: number;
 }
 
 export interface StaffSignBillUrlRow {
@@ -111,6 +113,7 @@ export interface StaffSignBillUrlRow {
   building_id: number;
   unit_no: string;
   sig: string;
+  issued_day: number;
 }
 
 export interface StaffSignedBillLink {
@@ -118,6 +121,7 @@ export interface StaffSignedBillLink {
   buildingId: number;
   unitNo: string;
   sig: string;
+  issuedDay: number;
 }
 
 export interface StaffSignBillUrlsPayload {
@@ -244,8 +248,9 @@ export function signedBillPath(link: {
   unitNo: string;
   period: string;
   sig: string;
+  issuedDay: number;
 }): string {
-  return `/rb/${link.buildingId}/${encodeURIComponent(link.unitNo)}/${link.period.slice(0, 7)}?s=${link.sig}`;
+  return `/rb/${link.buildingId}/${encodeURIComponent(link.unitNo)}/${link.period.slice(0, 7)}?s=${link.sig}&d=${link.issuedDay}`;
 }
 
 /** 세입자 본인 세대의 무로그인 서명 링크(building_id·unit_no·sig)를 자동 발급한다. */
@@ -258,7 +263,12 @@ export async function residentSignBillUrl(
   if (error) throw new Error(error.message);
   const row = ((data ?? []) as SignedBillLinkRow[])[0];
   return row
-    ? { buildingId: row.building_id, unitNo: row.unit_no, sig: row.sig }
+    ? {
+        buildingId: row.building_id,
+        unitNo: row.unit_no,
+        sig: row.sig,
+        issuedDay: row.issued_day,
+      }
     : null;
 }
 
@@ -276,5 +286,6 @@ export async function staffSignBillUrls(
     buildingId: row.building_id,
     unitNo: row.unit_no,
     sig: row.sig,
+    issuedDay: row.issued_day,
   }));
 }

@@ -5,6 +5,8 @@ import type {
   PublicSettlementByTokenResult,
   PublicSettlementRow,
 } from "@/hooks/reactquery/residentSettlement/apis";
+import { extractHeadersMeta, logAccess } from "@/lib/audit/accessLog";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const rowToPublicSettlement = (
@@ -27,5 +29,29 @@ export async function getPublicSettlementByToken(
   });
 
   if (error) throw new Error(error.message);
-  return data ? rowToPublicSettlement(data as PublicSettlementRow) : null;
+  const settlement = data ? rowToPublicSettlement(data as PublicSettlementRow) : null;
+  if (settlement && !settlement.isExpired) {
+    let orgId: number | null = null;
+    try {
+      const { data: tokenRow, error: orgError } = await createAdminClient()
+        .from("settlement_share_tokens")
+        .select("org_id")
+        .eq("token", token)
+        .maybeSingle();
+      if (!orgError) orgId = tokenRow?.org_id ?? null;
+    } catch {
+      // Keep rendering the public settlement when the audit scope lookup fails.
+    }
+    const requestMeta = await extractHeadersMeta();
+    await logAccess({
+      ...requestMeta,
+      orgId,
+      event: "PUBLIC_LINK_VIEW",
+      persona: "public",
+      targetKind: "settlement",
+      targetId: token,
+    });
+  }
+
+  return settlement;
 }

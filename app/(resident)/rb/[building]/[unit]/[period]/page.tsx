@@ -20,7 +20,7 @@ export default async function PublicSignedBillPage({
   searchParams,
 }: {
   params: Promise<{ building: string; unit: string; period: string }>;
-  searchParams: Promise<{ s?: string | string[] }>;
+  searchParams: Promise<{ s?: string | string[]; d?: string | string[] }>;
 }) {
   const [routeParams, query] = await Promise.all([params, searchParams]);
   const buildingId = Number(routeParams.building);
@@ -30,12 +30,18 @@ export default async function PublicSignedBillPage({
   const period = routeParams.period ?? "";
   const sigValue = query.s;
   const sig = Array.isArray(sigValue) ? (sigValue[0] ?? "") : (sigValue ?? "");
+  const issuedDayValue = query.d;
+  const issuedDayText = Array.isArray(issuedDayValue)
+    ? (issuedDayValue[0] ?? "")
+    : (issuedDayValue ?? "");
+  const issuedDay = issuedDayText ? Number(issuedDayText) : undefined;
   const paramsValid =
     Number.isInteger(buildingId) &&
     buildingId > 0 &&
     Boolean(unitNo) &&
     PERIOD_PATTERN.test(period) &&
-    Boolean(sig);
+    Boolean(sig) &&
+    (issuedDay === undefined || (Number.isInteger(issuedDay) && issuedDay >= 0));
 
   if (!paramsValid) {
     return <BillDetailView mode="public" detail={null} />;
@@ -43,7 +49,7 @@ export default async function PublicSignedBillPage({
 
   let detail;
   try {
-    detail = await getPublicBillBySigned(buildingId, unitNo, period, sig);
+    detail = await getPublicBillBySigned(buildingId, unitNo, period, sig, issuedDay);
   } catch {
     return <PublicBillRetryState />;
   }

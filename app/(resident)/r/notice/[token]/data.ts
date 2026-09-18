@@ -5,6 +5,7 @@ import type {
   PublicNoticeByTokenResult,
   PublicNoticeRow,
 } from "@/hooks/reactquery/residentNotice/apis";
+import { extractHeadersMeta, logAccess } from "@/lib/audit/accessLog";
 import { collectNoticeImagePaths } from "@/lib/notice/images";
 import { resolveNoticeImageUrls } from "@/lib/notice/serverImages";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -33,6 +34,29 @@ export async function getPublicNoticeByToken(token: string): Promise<PublicNotic
 
   if (error) throw new Error(error.message);
   const notice = data ? rowToPublicNotice(data as PublicNoticeRow) : null;
+
+  if (notice && !notice.isExpired) {
+    let orgId: number | null = null;
+    try {
+      const { data: tokenRow, error: orgError } = await createAdminClient()
+        .from("notice_share_tokens")
+        .select("org_id")
+        .eq("token", token)
+        .maybeSingle();
+      if (!orgError) orgId = tokenRow?.org_id ?? null;
+    } catch {
+      // Keep rendering the public notice when the audit scope lookup fails.
+    }
+    const requestMeta = await extractHeadersMeta();
+    await logAccess({
+      ...requestMeta,
+      orgId,
+      event: "PUBLIC_LINK_VIEW",
+      persona: "public",
+      targetKind: "notice",
+      targetId: token,
+    });
+  }
 
   // 만료·무효 링크이거나 본문 이미지가 없으면 서명(및 service_role 조회)을 건너뛴다.
   if (
