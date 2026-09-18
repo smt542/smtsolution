@@ -56,7 +56,11 @@ const PRINT_CSS = `
 @page{size:A4 landscape;margin:8mm}
 html,body{background:#fff!important;height:auto!important;overflow:visible!important}
 body>*:not(#rcPrintSheet){display:none!important}
-#rcPrintSheet{display:block!important;font-family:Pretendard,sans-serif;color:#000;line-height:normal}
+/* 정본은 display:block + .stl/.str{min-height:186mm} 이라, 186+하단 3.7 = 189.7mm 로
+   인쇄영역(A4 가로 210 - 여백 16 = 194mm)과 여유가 2.8mm 뿐이다. 어느 셀이든 한 줄만
+   접히면 하단 날짜·회사명이 2쪽으로 밀렸다. 시트를 인쇄영역 높이에 고정하고 하단을
+   flex 로 바닥에 붙여, 본문이 늘어도 하단이 1쪽에 남게 한다. 본문 가용 높이도 188.8mm 로 늘어난다. */
+#rcPrintSheet{display:flex!important;flex-direction:column;height:194mm;font-family:Pretendard,sans-serif;color:#000;line-height:normal}
 #rcPrintSheet table{width:100%;border-collapse:collapse}
 #rcPrintSheet th,#rcPrintSheet td{border:.5pt solid #999;padding:1mm 1.5mm;font-size:8pt}
 #rcPrintSheet th{background:#F1F3F5;font-weight:700;text-align:left;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -64,8 +68,8 @@ body>*:not(#rcPrintSheet){display:none!important}
 #rcPrintSheet .c{text-align:center}
 #rcPrintSheet{page-break-inside:avoid}
 #rcPrintSheet table,#rcPrintSheet tr{page-break-inside:avoid}
-#rcPrintSheet .stwrap{display:grid;grid-template-columns:1fr 1fr;column-gap:6mm;align-items:stretch;position:relative}
-#rcPrintSheet .stl,#rcPrintSheet .str{min-height:186mm;display:flex;flex-direction:column}
+#rcPrintSheet .stwrap{display:grid;grid-template-columns:1fr 1fr;column-gap:6mm;align-items:stretch;position:relative;flex:1 1 auto;min-height:0}
+#rcPrintSheet .stl,#rcPrintSheet .str{min-height:0;display:flex;flex-direction:column}
 #rcPrintSheet .stl{border-right:.4pt dashed #bbb;padding-right:3mm}
 #rcPrintSheet .str .tb{flex:1}
 #rcPrintSheet .stt{text-align:center;font-size:13pt;font-weight:800;letter-spacing:.14em;border:.6pt solid #999;padding:1.2mm;margin-bottom:1mm}
@@ -82,7 +86,7 @@ body>*:not(#rcPrintSheet){display:none!important}
 #rcPrintSheet .sum th,#rcPrintSheet .sum td{text-align:center;font-size:8pt}
 #rcPrintSheet .sum td.tot{font-weight:800;font-size:9.5pt}
 #rcPrintSheet .memo{border:.6pt solid #999;border-top:0;min-height:14mm;padding:1.5mm;font-size:8pt}
-#rcPrintSheet .stfoot{margin-top:1.5mm;text-align:right;font-size:8.5pt}
+#rcPrintSheet .stfoot{flex:0 0 auto;margin-top:1.5mm;text-align:right;font-size:8.5pt}
 }`;
 
 const UTILITY_LABELS: Array<{
