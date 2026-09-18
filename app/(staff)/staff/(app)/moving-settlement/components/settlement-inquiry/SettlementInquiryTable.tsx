@@ -1,13 +1,13 @@
 import type {
   SettlementInquiryRow,
-  SettlementInquiryType,
   UpdateSettlementInquiryRow,
 } from "@/hooks/reactquery/movingSettlement";
-import { AllInquiryTable } from "./AllInquiryTable";
 import { UtilityInquiryTable } from "./UtilityInquiryTable";
+import type { UtilityInquiryType } from "./utilityInquiryColumns";
 
+// `all` 은 라우트에서 AllSettlementInquiryPage 로 따로 빠지므로 여기로 오지 않는다.
 export interface SettlementInquiryTableProps {
-  type: SettlementInquiryType;
+  type: UtilityInquiryType;
   rows: SettlementInquiryRow[];
   total?: number;
   edits: Record<number, UpdateSettlementInquiryRow>;
@@ -16,10 +16,7 @@ export interface SettlementInquiryTableProps {
     patch: Partial<UpdateSettlementInquiryRow>,
   ) => void;
 }
+
 export function SettlementInquiryTable(props: SettlementInquiryTableProps) {
-  const { type, ...rest } = props;
-  if (type === "all") {
-    return <AllInquiryTable type={type} {...rest} />;
-  }
-  return <UtilityInquiryTable type={type} {...rest} />;
+  return <UtilityInquiryTable {...props} />;
 }
