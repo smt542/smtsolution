@@ -20,7 +20,7 @@ import { SettlementActionBar } from "./SettlementActionBar";
 import { SettlementDecisionDialog } from "./SettlementDecisionDialog";
 
 type DialogState =
-  | "mid-outstanding"
+  | "outstanding"
   | "mid-confirm"
   | "moveout-confirm"
   | "delete"
@@ -54,6 +54,7 @@ export function SettlementActions({
   settlementId,
   amount,
   receivedAmount = 0,
+  billingUnpaid = 0,
   vacancyPaymentMode = "auto",
   createdAt = null,
   paymentInputRef = EMPTY_INPUT_REF,
@@ -68,6 +69,8 @@ export function SettlementActions({
   settlementId: number | null;
   amount: number;
   receivedAmount?: number;
+  /** 확정 부과분 미납액(0171). 정산건 미수금과는 다른 숫자이고, 완료 가드는 둘 다 본다. */
+  billingUnpaid?: number;
   /** 셋업 > 이사정산 설정. auto 면 퇴실 처리 시 미납이 자동수납되고, manual 이면 미수금이 남는다. */
   vacancyPaymentMode?: "manual" | "auto";
   createdAt?: string | null;
@@ -80,6 +83,8 @@ export function SettlementActions({
   const mid = useMidMoveout();
   const remove = useDeleteSettlement();
   const [dialog, setDialog] = useState<DialogState>(null);
+  // 미수금 경고에서 "그래도 처리" 를 눌렀을 때 어느 완료 확인으로 넘길지 기억한다.
+  const [pendingCompletion, setPendingCompletion] = useState<"mid" | "moveout" | null>(null);
   const isSettlementMutationPending =
     save.isPending || complete.isPending || mid.isPending || remove.isPending;
   const pendingAction = save.isPending
@@ -116,15 +121,21 @@ export function SettlementActions({
     });
   };
 
+  // 완료 가드(명세 3.12). 사용자 결정 2026-09-18:
+  //  · "미수금" 은 정산건 미수금(정산금액-수납액)과 billing 미납(확정부과-유효수납) **둘 다**.
+  //  · 자동수납(auto)이 있어도 중도퇴실 경로가 따로 있으므로 **auto 예외를 두지 않는다** — 두 액션 모두 확인.
+  //  · 서버 하드블록은 넣지 않는다 → 경고 후 "그래도 처리" 로 진행할 수 있다.
+  const confirmDialogOf = (kind: "mid" | "moveout") =>
+    kind === "mid" ? ("mid-confirm" as const) : ("moveout-confirm" as const);
+
   const requestCompletion = (kind: "mid" | "moveout") => {
     if (!validate() || !requireSaved()) return;
-    // 중도퇴실은 공실/자동수납이 없으므로 미수금이 남아 있으면 수납 입력을 먼저 안내한다.
-    // 정산완료+공실(퇴실)은 PRD상 미납 관리비를 자동 수납하므로 막지 않고 확인 팝업으로 바로 진행한다.
-    if (kind === "mid" && outstanding > 0) {
-      setDialog("mid-outstanding");
+    if (outstanding > 0 || billingUnpaid > 0) {
+      setPendingCompletion(kind);
+      setDialog("outstanding");
       return;
     }
-    setDialog(kind === "mid" ? "mid-confirm" : "moveout-confirm");
+    setDialog(confirmDialogOf(kind));
   };
 
   const completeMidMoveout = () => {
@@ -186,7 +197,7 @@ export function SettlementActions({
     window.print();
   };
 
-  const outstandingDialog = dialog === "mid-outstanding";
+  const outstandingDialog = dialog === "outstanding";
 
   return (
     <>
@@ -203,16 +214,28 @@ export function SettlementActions({
 
       <SettlementDecisionDialog
         open={outstandingDialog}
-        title="중도퇴실 처리 전 확인"
-        confirmLabel="수납액 입력"
+        title={pendingCompletion === "mid" ? "중도퇴실 처리 전 확인" : "퇴실 처리 전 확인"}
+        confirmLabel="그래도 처리"
+        confirmTone="danger"
         pending={false}
+        secondaryLabel="수납액 입력"
+        onSecondary={focusPayment}
         onCancel={() => setDialog(null)}
-        onConfirm={focusPayment}
+        onConfirm={() => {
+          if (pendingCompletion) setDialog(confirmDialogOf(pendingCompletion));
+        }}
       >
-        <p>
-          미수금 <strong className="font-bold text-red">{formatWon(outstanding)}</strong>이 남아 있어요.
-        </p>
-        <p>수납액을 먼저 입력해 미수금을 0원으로 맞춘 뒤 처리할 수 있어요.</p>
+        {outstanding > 0 && (
+          <p>
+            이 정산의 미수금 <strong className="font-bold text-red">{formatWon(outstanding)}</strong>이 남아 있어요.
+          </p>
+        )}
+        {billingUnpaid > 0 && (
+          <p>
+            확정 부과분 미납 <strong className="font-bold text-red">{formatWon(billingUnpaid)}</strong>이 남아 있어요.
+          </p>
+        )}
+        <p>수납액을 먼저 입력해 0원으로 맞추는 것을 권해요. 그대로 처리하면 미수금이 남은 채 완료돼요.</p>
       </SettlementDecisionDialog>
 
       <SettlementDecisionDialog

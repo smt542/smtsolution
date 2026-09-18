@@ -11,6 +11,8 @@ export function SettlementDecisionDialog({
   pendingLabel = `${confirmLabel} 중…`,
   confirmTone = "teal",
   pending = false,
+  secondaryLabel,
+  onSecondary,
   onCancel,
   onConfirm,
 }: {
@@ -21,6 +23,9 @@ export function SettlementDecisionDialog({
   pendingLabel?: string;
   confirmTone?: "teal" | "danger";
   pending?: boolean;
+  /** 취소·확인 사이의 보조 액션(예: 미수금 가드의 "수납액 입력"). 라벨과 핸들러를 함께 넘길 때만 그린다. */
+  secondaryLabel?: string;
+  onSecondary?: () => void;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
@@ -68,6 +73,17 @@ export function SettlementDecisionDialog({
           >
             취소
           </Button>
+          {secondaryLabel && onSecondary && (
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={onSecondary}
+              disabled={pending}
+              className="flex-1 disabled:opacity-60"
+            >
+              {secondaryLabel}
+            </Button>
+          )}
           <button
             type="button"
             onClick={onConfirm}
