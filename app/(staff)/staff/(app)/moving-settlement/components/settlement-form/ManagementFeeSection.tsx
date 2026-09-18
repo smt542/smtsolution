@@ -21,7 +21,7 @@ function Badge({
 
   return (
     <span
-      className={`${isMethod ? "border-line bg-white" : "border-line2 bg-[#f2f4f6]"} rounded-[5px] border px-[6px] py-[2px] text-[10.5px] font-extrabold text-t3`}
+      className={`${isMethod ? "border-line bg-white" : "border-line2 bg-[#f2f4f6]"} rounded-[5px] border px-[6px] py-[2px] text-[10.5px] font-extrabold leading-[13px] text-t3`}
     >
       {label}
     </span>
@@ -32,7 +32,7 @@ function Badges({ item }: { item: FeeItem }) {
   const rounding = item.rounding as Rounding;
 
   return (
-    <span className="inline-flex shrink-0">
+    <span className="inline-flex shrink-0 gap-[5px]">
       {item.dailyProration === true && <Badge kind="method" label="일할" />}
       <Badge kind="rounding" label={ROUNDING_LABELS[rounding]} />
     </span>
@@ -93,7 +93,7 @@ export function ManagementFeeSection({
     <section className="rounded-[14px] border border-[#dce1e7] bg-white px-[16px] pb-[16px] pt-[15px]">
       <div className="flex h-[18px] items-center pb-px">
         <h3 className="text-[14px] font-extrabold leading-[17px] text-t1">관리비 항목</h3>
-        <span className="ml-auto text-right text-[11.5px] font-semibold text-t3">부과액 / 정산액(일할 자동)</span>
+        <span className="ml-auto text-right text-[11.5px] font-semibold leading-[14px] text-t3">부과액 / 정산액(일할 자동)</span>
       </div>
       {isLoading ? (
         <p className="mt-[10px] text-[12.5px] text-t4">관리비 항목을 불러오고 있어요</p>
@@ -137,8 +137,8 @@ export function ManagementFeeSection({
       </div>
       <div className="mt-[10px] flex h-[32px] items-baseline justify-center border-t border-line pt-[11px]">
         <span className="text-[14px] font-medium leading-[20px] text-t1">② 관리비 소계</span>
-        <strong className="ml-[10px] text-[17px] font-extrabold leading-[20px] tracking-[-0.17px] text-teal-d">{formatNumber(subtotal)}</strong>
-        <span className="ml-[3px] text-[12px] font-bold leading-[20px] text-teal-d opacity-[0.62]">원</span>
+        <strong className="ml-[10px] text-[17px] font-extrabold leading-[21px] tracking-[-0.17px] text-teal-d">{formatNumber(subtotal)}</strong>
+        <span className="ml-[3px] text-[12px] font-bold leading-[15px] text-teal-d opacity-[0.62]">원</span>
       </div>
     </section>
   );

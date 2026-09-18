@@ -20,7 +20,7 @@ export function SettlementEmptyPanel({
     <div className="flex min-h-0 flex-1 flex-col gap-[12px]">
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[16px] bg-white shadow-card">
         <div className="flex h-[49px] shrink-0 items-center border-b border-line2 px-[18px]">
-          <h2 className="text-[15px] font-extrabold text-t1">이사정산 입력</h2>
+          <h2 className="text-[15px] font-extrabold leading-[18px] text-t1">이사정산 입력</h2>
         </div>
         {/* 원본 `.ms-body{padding:16px 18px 20px}` > `.ms-empty{gap:5px;padding:34px 20px}` */}
         <div className="flex min-h-0 flex-1 flex-col px-[18px] pb-[20px] pt-[16px]">

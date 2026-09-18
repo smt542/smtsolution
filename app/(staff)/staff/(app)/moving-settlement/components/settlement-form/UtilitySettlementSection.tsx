@@ -43,7 +43,7 @@ export function UtilitySettlementSection({
       </div>
       <div className="mt-[10px]">
         <div className="grid grid-cols-[86.609fr_127.641fr_132.188fr_109.406fr_77.484fr_154.984fr_237.047fr_200.641fr]">
-          <div className="col-span-8 grid h-[21px] grid-cols-subgrid text-[11.5px] font-bold text-t2">
+          <div className="col-span-8 grid h-[21px] grid-cols-subgrid text-[11.5px] font-bold leading-[14px] text-t2">
             <span className="pb-[7px] pr-[7px] text-left">구분</span>
             <span className="px-[7px] pb-[7px] text-right">전월</span>
             <span className="px-[7px] pb-[7px] text-right">이사</span>
@@ -134,9 +134,11 @@ export function UtilitySettlementSection({
         </div>
       </div>
       <div className="mt-[10px] flex h-[32px] items-baseline justify-center border-t border-line pt-[11px]">
+        {/* items-baseline 기준선은 가장 큰 금액(17/21)이 잡는다. 라벨 leading 을 정본 박스값(17)로
+            내리면 오히려 기준선이 1.6px 밀리므로 20 을 유지한다(정본 글리프 위치와 일치). */}
         <span className="text-[14px] font-medium leading-[20px] text-t1">① 공과금 소계</span>
-        <strong className="ml-[10px] text-[17px] font-extrabold leading-[20px] tracking-[-0.17px] text-teal-d">{formatNumber(utilityTotal)}</strong>
-        <span className="ml-[3px] text-[12px] font-bold leading-[20px] text-teal-d opacity-[0.62]">원</span>
+        <strong className="ml-[10px] text-[17px] font-extrabold leading-[21px] tracking-[-0.17px] text-teal-d">{formatNumber(utilityTotal)}</strong>
+        <span className="ml-[3px] text-[12px] font-bold leading-[15px] text-teal-d opacity-[0.62]">원</span>
       </div>
     </section>
   );

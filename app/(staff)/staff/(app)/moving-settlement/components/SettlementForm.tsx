@@ -105,7 +105,7 @@ export function SettlementForm({
   return (
     <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[16px] bg-white shadow-card">
       <div className="flex h-[49px] shrink-0 items-center border-b border-line2 px-[18px]">
-        <h2 className="text-[15px] font-extrabold text-t1">
+        <h2 className="text-[15px] font-extrabold leading-[18px] text-t1">
           {buildingName} {unitNo}
         </h2>
       </div>

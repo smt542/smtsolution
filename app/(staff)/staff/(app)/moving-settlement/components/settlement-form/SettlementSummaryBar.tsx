@@ -4,8 +4,8 @@ function SummaryItem({ label, value, tone = "default" }: { label: string; value:
   const color = tone === "red" ? "text-red" : tone === "teal" ? "text-teal-d" : "text-t1";
   return (
     <div className="mr-[14px] flex h-[16px] items-baseline gap-[6px] whitespace-nowrap border-r border-line pr-[14px]">
-      <span className="text-[11.5px] font-bold text-t3">{label}</span>
-      <strong className={`text-[14px] font-extrabold ${color}`}>{formatNumber(value)}</strong>
+      <span className="text-[11.5px] font-bold leading-[14px] text-t3">{label}</span>
+      <strong className={`text-[14px] font-extrabold leading-[17px] ${color}`}>{formatNumber(value)}</strong>
     </div>
   );
 }
@@ -34,8 +34,8 @@ export function SettlementSummaryBar({
       <SummaryItem label="미납 소계" value={total} tone="red" />
       <SummaryItem label="수납액" value={receivedAmount} tone="teal" />
       <div className="ml-auto flex items-baseline gap-[7px] whitespace-nowrap">
-        <span className="text-[12px] font-bold text-t2">미수금</span>
-        <strong className="text-[19px] font-extrabold tracking-[-0.38px] text-t1">{formatNumber(outstanding)}</strong>
+        <span className="text-[12px] font-bold leading-[15px] text-t2">미수금</span>
+        <strong className="text-[19px] font-extrabold leading-[23px] tracking-[-0.38px] text-t1">{formatNumber(outstanding)}</strong>
       </div>
     </div>
   );
