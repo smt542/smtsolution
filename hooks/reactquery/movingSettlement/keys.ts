@@ -14,6 +14,7 @@ export const movingSettlementKeys = {
       params.buildingId ?? null,
       params.from,
       params.to,
+      params.appliedFrom ?? null,
       params.search ?? "",
       params.status ?? null,
       params.sort ?? "date",
