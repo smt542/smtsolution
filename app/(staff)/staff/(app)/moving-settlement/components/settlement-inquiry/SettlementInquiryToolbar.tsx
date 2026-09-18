@@ -139,7 +139,9 @@ export function SettlementInquiryToolbar({
         onChange={(value) => onAppliedFromChange(`${appliedYear}-${appliedMonth}-${value}`)}
       />
 
-      <div className="flex shrink-0 items-start gap-[2px] rounded-[9px] bg-[#EDF0F3] p-[3px]" role="group" aria-label="정산 상태">
+      {/* 세그먼트는 컨테이너 폭을 Figma 실측값으로 잡고 버튼을 균등 분할한다 —
+          글리프 폭에 맡기면 정본보다 좁아진다(상태 -6.75px, 정렬 -5.75px). */}
+      <div className="flex w-[145px] shrink-0 items-start gap-[2px] rounded-[9px] bg-[#EDF0F3] p-[3px]" role="group" aria-label="정산 상태">
         {([
           ["", "전체"],
           ["completed", "완결"],
@@ -150,7 +152,7 @@ export function SettlementInquiryToolbar({
             type="button"
             aria-pressed={status === value}
             onClick={() => onStatusChange(value)}
-            className={`h-[24px] rounded-[7px] px-[11px] text-[12px] font-bold ${
+            className={`h-[24px] flex-1 rounded-[7px] text-[12px] font-bold ${
               status === value ? "bg-white text-t1 shadow-[0_1px_2px_rgba(23,31,40,.08)]" : "text-t3"
             }`}
           >
@@ -159,7 +161,7 @@ export function SettlementInquiryToolbar({
         ))}
       </div>
 
-      <div className="flex shrink-0 items-start gap-[2px] rounded-[9px] bg-[#EDF0F3] p-[3px]" role="group" aria-label="정렬">
+      <div className="flex w-[120px] shrink-0 items-start gap-[2px] rounded-[9px] bg-[#EDF0F3] p-[3px]" role="group" aria-label="정렬">
         {([
           ["code", "코드순"],
           ["date", "일자순"],
@@ -169,7 +171,7 @@ export function SettlementInquiryToolbar({
             type="button"
             aria-pressed={sort === value}
             onClick={() => onSortChange(value)}
-            className={`h-[24px] rounded-[7px] px-[11px] text-[12px] font-bold ${
+            className={`h-[24px] flex-1 rounded-[7px] text-[12px] font-bold ${
               sort === value ? "bg-white text-t1 shadow-[0_1px_2px_rgba(23,31,40,.08)]" : "text-t3"
             }`}
           >
@@ -197,7 +199,7 @@ export function SettlementInquiryToolbar({
       <button
         type="button"
         onClick={onPrint}
-        className="flex h-[34px] shrink-0 items-center gap-[6px] rounded-[8px] border border-line bg-white px-[14px] text-[13px] font-bold text-t2 hover:bg-bg"
+        className="flex h-[34px] min-w-[75px] shrink-0 items-center justify-center gap-[6px] whitespace-nowrap rounded-[8px] border border-line bg-white px-[14px] text-[13px] font-bold text-t2 hover:bg-bg"
       >
         <PrinterIcon className="size-[15px]" />
         출력
@@ -206,7 +208,7 @@ export function SettlementInquiryToolbar({
         type="button"
         disabled={changedCount === 0 || saving}
         onClick={onSave}
-        className="h-[34px] shrink-0 rounded-[8px] border border-teal bg-teal px-[16px] text-[13px] font-bold text-white hover:bg-teal-d disabled:border-line disabled:bg-line2 disabled:text-t4"
+        className="h-[34px] min-w-[58px] shrink-0 whitespace-nowrap rounded-[8px] border border-teal bg-teal px-[16px] text-[13px] font-bold text-white hover:bg-teal-d disabled:border-line disabled:bg-line2 disabled:text-t4"
       >
         {saving ? "저장 중…" : "저장"}
       </button>
