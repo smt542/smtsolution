@@ -18,12 +18,15 @@ export function DataTable({
   thClassName = CANON_TH,
   tdClassName = CANON_TD,
   rowClassName = CANON_ROW,
+  fixedLayout = false,
 }: {
   columns: {
     key: string;
     label: string;
     cellClassName?: string;
     headClassName?: string;
+    /** canon + fixedLayout 전용. 표 폭에 대한 비율(예: "13.52%"). */
+    width?: string;
   }[];
   rows: Record<string, React.ReactNode>[];
   onRowClick?: (row: Record<string, React.ReactNode>) => void;
@@ -33,16 +36,24 @@ export function DataTable({
   thClassName?: string;
   tdClassName?: string;
   rowClassName?: string;
+  /**
+   * canon 전용. `table-layout:fixed` + `columns[].width` 로 컬럼 폭을 고정한다.
+   * 정본 표는 `table-layout:auto` 라 컬럼 폭이 데이터 길이대로 나뉜다 — 앱 데이터가
+   * 다르면 같은 화면이라도 분배가 달라지므로, 정본의 렌더 비율을 폭으로 선언해 맞춘다.
+   * 폭을 넘는 내용은 말줄임 처리하고 `title` 로 전체 값을 남긴다.
+   */
+  fixedLayout?: boolean;
 }) {
   if (variant === "canon") {
     return (
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
+        <table className={`w-full border-collapse ${fixedLayout ? "table-fixed" : ""}`}>
           <thead>
             <tr>
               {columns.map((col) => (
                 <th
                   key={col.key}
+                  style={fixedLayout && col.width ? { width: col.width } : undefined}
                   className={`py-[11px] text-left font-bold leading-[normal] text-t3 bg-[#FBFCFD] border-b border-line whitespace-nowrap ${thClassName}${
                     col.headClassName ? ` ${col.headClassName}` : ""
                   }`}
@@ -63,9 +74,10 @@ export function DataTable({
                 {columns.map((col) => (
                   <td
                     key={col.key}
-                    className={`py-[12px] leading-[normal] border-b border-line2 whitespace-nowrap ${tdClassName}${
-                      col.cellClassName ? ` ${col.cellClassName}` : ""
-                    }`}
+                    title={fixedLayout && typeof row[col.key] === "string" ? (row[col.key] as string) : undefined}
+                    className={`py-[12px] leading-[normal] border-b border-line2 whitespace-nowrap ${
+                      fixedLayout ? "overflow-hidden text-ellipsis " : ""
+                    }${tdClassName}${col.cellClassName ? ` ${col.cellClassName}` : ""}`}
                   >
                     {row[col.key]}
                   </td>

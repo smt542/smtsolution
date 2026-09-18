@@ -31,15 +31,18 @@ const STATUS_FILTERS: { value: LinkFilter; label: string }[] = [
   { value: "fail", label: "매핑실패" },
 ];
 
-const COLUMNS = [
-  "건물명",
-  "호실",
-  "입주자명",
-  "연락처",
-  "카카오 ID",
-  "카카오 이름",
-  "연결 상태",
-  "연결일",
+// 정본 #tnTbl 은 `table-layout:auto` 라 컬럼 폭이 더미 데이터 길이대로 나뉜다.
+// 그 렌더 비율(뷰포트 1340 실측)을 폭으로 선언해 앱 데이터와 무관하게 맞춘다 —
+// 예: 카카오 ID 가 긴 스텁 값이면 auto 로는 170px -> 358px 로 벌어졌다.
+const COLUMNS: { label: string; width: string }[] = [
+  { label: "건물명", width: "12.02%" },
+  { label: "호실", width: "7.41%" },
+  { label: "입주자명", width: "9.35%" },
+  { label: "연락처", width: "17.88%" },
+  { label: "카카오 ID", width: "16.14%" },
+  { label: "카카오 이름", width: "11.23%" },
+  { label: "연결 상태", width: "11.67%" },
+  { label: "연결일", width: "14.31%" },
 ];
 
 const STATUS_LABELS: Record<LinkState, string> = {
@@ -244,12 +247,16 @@ export function ResidentClaimsPanel() {
           ) : isError ? (
             <EmptyState message="오류가 발생했습니다" />
           ) : (
-            <table className="w-full border-collapse">
+            <table className="w-full table-fixed border-collapse">
               <thead className="sticky top-0 z-10 bg-[#FBFCFD]">
                 <tr>
                   {COLUMNS.map((column) => (
-                    <th key={column} className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-[12px] py-[11px] text-left text-[12px] font-bold leading-[normal] text-t3 first:pl-[16px] last:pr-[16px]">
-                      {column}
+                    <th
+                      key={column.label}
+                      style={{ width: column.width }}
+                      className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-[12px] py-[11px] text-left text-[12px] font-bold leading-[normal] text-t3 first:pl-[16px] last:pr-[16px]"
+                    >
+                      {column.label}
                     </th>
                   ))}
                 </tr>
@@ -257,7 +264,7 @@ export function ResidentClaimsPanel() {
               <tbody>
                 {filteredClaims.length === 0 ? (
                   <tr className="last:[&>td]:border-b-0">
-                    <td colSpan={COLUMNS.length} className="whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">
+                    <td colSpan={COLUMNS.length} className="overflow-hidden text-ellipsis whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">
                       <EmptyState message="검색 결과가 없어요" />
                     </td>
                   </tr>
@@ -281,14 +288,14 @@ export function ResidentClaimsPanel() {
                          cursor/focus 는 실제로 누를 수 있는 매핑실패 행에만 준다. */
                       className={`last:[&>td]:border-b-0 hover:[&>td]:bg-[#FBFCFD] ${pending ? "cursor-pointer focus:outline-none focus:[&>td]:bg-[#FBFCFD]" : ""}`}
                     >
-                      <td className="whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">{claim.buildingName ?? "-"}</td>
-                      <td className="whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">{claimUnit(claim)}</td>
-                      <td className="whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">{claimName(claim)}</td>
-                      <td className="num whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">{claimPhone(claim)}</td>
-                      <td className="whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">{claim.kakaoId ?? "-"}</td>
-                      <td className="whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">{claim.kakaoName ?? "-"}</td>
-                      <td className="whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]"><StatusBadge state={state} /></td>
-                      <td className="num whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">{claimDate(claim)}</td>
+                      <td title={claim.buildingName ?? "-"} className="overflow-hidden text-ellipsis whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">{claim.buildingName ?? "-"}</td>
+                      <td title={claimUnit(claim)} className="overflow-hidden text-ellipsis whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">{claimUnit(claim)}</td>
+                      <td title={claimName(claim)} className="overflow-hidden text-ellipsis whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">{claimName(claim)}</td>
+                      <td title={claimPhone(claim)} className="num overflow-hidden text-ellipsis whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">{claimPhone(claim)}</td>
+                      <td title={claim.kakaoId ?? "-"} className="overflow-hidden text-ellipsis whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">{claim.kakaoId ?? "-"}</td>
+                      <td title={claim.kakaoName ?? "-"} className="overflow-hidden text-ellipsis whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">{claim.kakaoName ?? "-"}</td>
+                      <td className="overflow-hidden text-ellipsis whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]"><StatusBadge state={state} /></td>
+                      <td title={claimDate(claim)} className="num overflow-hidden text-ellipsis whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">{claimDate(claim)}</td>
                     </tr>
                   );
                 })}
