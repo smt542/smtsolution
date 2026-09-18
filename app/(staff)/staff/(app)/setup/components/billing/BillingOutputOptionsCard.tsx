@@ -20,20 +20,24 @@ const OUTPUT_OPTIONS = [
   {
     key: "printUtilityCutoff",
     label: "단전·단수 출력",
+    subtitle: "연속 미납이 지정 개월 수에 도달한 세대에 예정 문구 표기",
   },
   {
     key: "printWaterUnitPrice",
     label: "수도 단가 출력",
+    subtitle: "수도 항목에 단가와 사용량 함께 표기",
   },
   {
     key: "printBillingPeriod",
     label: "관리비 기간 출력",
+    subtitle: "고지서에 관리비 산정 기간 표기",
   },
   {
     key: "printDelta",
     label: "증감량 표시",
+    subtitle: "전월 대비 사용량 증감 표기",
   },
-] as const satisfies readonly { key: OutputKey; label: string }[];
+] as const satisfies readonly { key: OutputKey; label: string; subtitle: string }[];
 
 const PRINT_OPTIONS = [
   { value: "true", label: "출력" },
@@ -63,7 +67,7 @@ export function BillingOutputOptionsCard({
       variant="compact"
       className="h-[351px]"
     >
-      <div className="flex flex-col">
+      <div className="flex flex-col gap-[10px]">
         {OUTPUT_OPTIONS.map((option, index) => {
           const segment = (
             <SegmentedControl
@@ -86,6 +90,9 @@ export function BillingOutputOptionsCard({
             >
               <div className="min-w-0 flex-1">
                 <div className="h-[16px] text-[14px] font-bold leading-[16px] text-t1">{option.label}</div>
+                <div className="h-[18px] pt-[3px] text-[12.5px] font-medium leading-[15px] text-t3">
+                  {option.subtitle}
+                </div>
               </div>
               {index === 0 ? (
                 <div className="flex shrink-0 items-center gap-[10px]">
