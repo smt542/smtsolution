@@ -199,8 +199,12 @@ export function AllSettlementInquiryTable({
                 })}
                 <tr className="h-[41px] font-semibold text-[13.5px] text-t1">
                   <td className={SUBTOTAL_CELL} />
-                  <td className={SUBTOTAL_CELL}>{group.address}</td>
-                  <td className={SUBTOTAL_CELL}>{group.buildingName}</td>
+                  <td className={`${SUBTOTAL_CELL} truncate`} title={group.address ?? undefined}>
+                    {group.address}
+                  </td>
+                  <td className={`${SUBTOTAL_CELL} truncate`} title={group.buildingName ?? undefined}>
+                    {group.buildingName}
+                  </td>
                   <td className={SUBTOTAL_CELL} colSpan={3} />
                   <td className={SUBTOTAL_CELL} colSpan={3} />
                   <td className={`${SUBTOTAL_CELL} text-right tabular-nums`}>{displayNumber(groupElectric)}</td>
