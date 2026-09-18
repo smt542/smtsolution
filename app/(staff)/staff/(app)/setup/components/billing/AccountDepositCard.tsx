@@ -27,7 +27,7 @@ export function AccountDepositCard({
       variant="compact"
       className="h-[216px]"
     >
-      <div className="flex h-[132px] flex-col gap-[12px]">
+      <div className="flex h-[132px] flex-col gap-[10px]">
         {accounts.map((account, index) => (
           <div
             key={index}

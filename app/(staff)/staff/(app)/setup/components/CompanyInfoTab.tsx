@@ -66,7 +66,7 @@ export function CompanyInfoTab() {
       subtitle="세입자 앱과 고지서·알림톡에 표기되는 대표 정보예요"
       variant="compact"
     >
-      <div className="flex flex-col">
+      <div className="flex flex-col gap-[10px]">
         {FIELDS.map((field, index) => (
           <div
             key={field.key}
