@@ -8,6 +8,7 @@ import type {
 interface SettlementInquiryToolbarProps {
   fromMonth: string;
   toMonth: string;
+  appliedFrom: string;
   status: "" | SettlementInquiryStatus;
   sort: SettlementInquirySort;
   search: string;
@@ -15,6 +16,7 @@ interface SettlementInquiryToolbarProps {
   saving: boolean;
   onFromMonthChange: (value: string) => void;
   onToMonthChange: (value: string) => void;
+  onAppliedFromChange: (value: string) => void;
   onStatusChange: (value: "" | SettlementInquiryStatus) => void;
   onSortChange: (value: SettlementInquirySort) => void;
   onSearchChange: (value: string) => void;
@@ -31,10 +33,26 @@ const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => ({
   value: String(index + 1).padStart(2, "0"),
   label: `${String(index + 1).padStart(2, "0")}월`,
 }));
+function daysInMonth(year: string, month: string): number {
+  return new Date(Number(year), Number(month), 0).getDate();
+}
+
+function dayOptions(year: string, month: string) {
+  return Array.from({ length: daysInMonth(year, month) }, (_, index) => ({
+    value: String(index + 1).padStart(2, "0"),
+    label: `${String(index + 1).padStart(2, "0")}일`,
+  }));
+}
+
+/** 말일보다 큰 날짜(2월 31일 등)는 date 캐스팅에서 터지므로 말일로 접는다. */
+function clampDay(year: string, month: string, day: string): string {
+  return String(Math.min(Number(day), daysInMonth(year, month))).padStart(2, "0");
+}
 
 export function SettlementInquiryToolbar({
   fromMonth,
   toMonth,
+  appliedFrom,
   status,
   sort,
   search,
@@ -42,6 +60,7 @@ export function SettlementInquiryToolbar({
   saving,
   onFromMonthChange,
   onToMonthChange,
+  onAppliedFromChange,
   onStatusChange,
   onSortChange,
   onSearchChange,
@@ -50,10 +69,13 @@ export function SettlementInquiryToolbar({
 }: SettlementInquiryToolbarProps) {
   const [fromYear, fromValue] = fromMonth.split("-");
   const [toYear, toValue] = toMonth.split("-");
+  const [appliedYear, appliedMonth, appliedDay] = appliedFrom.split("-");
 
   return (
     <div className="flex h-[65px] min-w-[1160px] items-center gap-[8px] border-b border-line2 bg-white px-[16px] py-[13px]">
-      <span className="shrink-0 text-[12px] font-bold text-t3">조회일</span>
+      {/* 라벨 폭은 Figma 76:77716 실측값으로 고정한다 — 글리프 폭 차이(-2.9px)가
+          gap 8px 고정 레이아웃에서 뒤따르는 요소 전체에 누적되기 때문. */}
+      <span className="w-[34px] shrink-0 text-[12px] font-bold text-t3">조회일</span>
       <CustomDropdown
         compact
         ariaLabel="조회 시작 연도"
@@ -68,7 +90,7 @@ export function SettlementInquiryToolbar({
         options={MONTH_OPTIONS}
         onChange={(value) => onFromMonthChange(`${fromYear}-${value}`)}
       />
-      <span className="shrink-0 text-[12px] font-bold text-t3">~</span>
+      <span className="w-[9px] shrink-0 text-[12px] font-bold text-t3">~</span>
       <CustomDropdown
         compact
         ariaLabel="조회 종료 연도"
@@ -85,6 +107,37 @@ export function SettlementInquiryToolbar({
       />
 
       <span className="mx-[2px] h-[22px] w-px shrink-0 bg-line" aria-hidden="true" />
+
+      <span className="w-[34px] shrink-0 text-[12px] font-bold text-t3">신청일</span>
+      <CustomDropdown
+        compact
+        ariaLabel="신청일 연도"
+        value={appliedYear}
+        options={YEAR_OPTIONS}
+        onChange={(value) =>
+          onAppliedFromChange(
+            `${value}-${appliedMonth}-${clampDay(value, appliedMonth, appliedDay)}`,
+          )
+        }
+      />
+      <CustomDropdown
+        compact
+        ariaLabel="신청일 월"
+        value={appliedMonth}
+        options={MONTH_OPTIONS}
+        onChange={(value) =>
+          onAppliedFromChange(
+            `${appliedYear}-${value}-${clampDay(appliedYear, value, appliedDay)}`,
+          )
+        }
+      />
+      <CustomDropdown
+        compact
+        ariaLabel="신청일 일"
+        value={appliedDay}
+        options={dayOptions(appliedYear, appliedMonth)}
+        onChange={(value) => onAppliedFromChange(`${appliedYear}-${appliedMonth}-${value}`)}
+      />
 
       <div className="flex shrink-0 items-start gap-[2px] rounded-[9px] bg-[#EDF0F3] p-[3px]" role="group" aria-label="정산 상태">
         {([

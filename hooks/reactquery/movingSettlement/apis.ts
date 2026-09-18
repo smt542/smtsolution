@@ -154,6 +154,7 @@ export interface SettlementInquiryParams {
   buildingId?: number;
   from: string;
   to: string;
+  appliedFrom?: string;
   search?: string;
   status?: SettlementInquiryStatus;
   sort?: SettlementInquirySort;
@@ -179,14 +180,20 @@ export interface SettlementInquiryRow {
   waterCharge: number | null;
   elecCharge: number | null;
   gasCharge: number | null;
+  meterNo: string | null;
+  customerNo: string | null;
   elecPreviousReading: number | null;
   elecCurrentReading: number | null;
   elecUsage: number | null;
   gasPreviousReading: number | null;
   gasCurrentReading: number | null;
   gasUsage: number | null;
+  waterPreviousReading: number | null;
+  waterCurrentReading: number | null;
+  waterUsage: number | null;
   elecPaidDate: string | null;
   gasPaidDate: string | null;
+  waterPaidDate: string | null;
   repairAmount: number | null;
   cleaningCost: number | null;
   checkedByName: string | null;
@@ -300,14 +307,20 @@ interface SettlementInquiryRpc {
   water_charge: number | null;
   elec_charge: number | null;
   gas_charge: number | null;
+  meter_no: string | null;
+  customer_no: string | null;
   elec_previous_reading: number | null;
   elec_current_reading: number | null;
   elec_usage: number | null;
   gas_previous_reading: number | null;
   gas_current_reading: number | null;
   gas_usage: number | null;
+  water_previous_reading: number | null;
+  water_current_reading: number | null;
+  water_usage: number | null;
   elec_paid_date: string | null;
   gas_paid_date: string | null;
+  water_paid_date: string | null;
   repair_amount: number | null;
   cleaning_cost: number | null;
   checked_by_name: string | null;
@@ -456,14 +469,20 @@ function rpcToSettlementInquiryRow(r: SettlementInquiryRpc): SettlementInquiryRo
     waterCharge: r.water_charge,
     elecCharge: r.elec_charge,
     gasCharge: r.gas_charge,
+    meterNo: r.meter_no,
+    customerNo: r.customer_no,
     elecPreviousReading: r.elec_previous_reading,
     elecCurrentReading: r.elec_current_reading,
     elecUsage: r.elec_usage,
     gasPreviousReading: r.gas_previous_reading,
     gasCurrentReading: r.gas_current_reading,
     gasUsage: r.gas_usage,
+    waterPreviousReading: r.water_previous_reading,
+    waterCurrentReading: r.water_current_reading,
+    waterUsage: r.water_usage,
     elecPaidDate: r.elec_paid_date,
     gasPaidDate: r.gas_paid_date,
+    waterPaidDate: r.water_paid_date,
     repairAmount: r.repair_amount,
     cleaningCost: r.cleaning_cost,
     checkedByName: r.checked_by_name,
@@ -611,6 +630,7 @@ export async function listSettlementInquiries(
     p_building_id: params.buildingId ?? null,
     p_from: params.from,
     p_to: params.to,
+    p_applied_from: params.appliedFrom ?? null,
     p_search: params.search?.trim() || null,
     p_status: params.status ?? null,
     p_sort: params.sort ?? "date",
@@ -629,6 +649,7 @@ export interface UpdateSettlementInquiryRow {
   settlementId: number;
   elecPaidDate: string | null;
   gasPaidDate: string | null;
+  waterPaidDate: string | null;
   cleaningCost: number | null;
 }
 
@@ -642,6 +663,7 @@ export async function updateSettlementInquiryRows(
         settlement_id: row.settlementId,
         elec_paid_date: row.elecPaidDate,
         gas_paid_date: row.gasPaidDate,
+        water_paid_date: row.waterPaidDate,
         cleaning_cost: row.cleaningCost,
       })),
     },

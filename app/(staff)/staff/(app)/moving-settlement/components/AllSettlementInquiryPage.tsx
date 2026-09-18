@@ -135,6 +135,7 @@ export function AllSettlementInquiryPage() {
         settlementId: row.settlementId,
         elecPaidDate: edit.elecPaidDate ?? row.elecPaidDate,
         gasPaidDate: edit.gasPaidDate ?? row.gasPaidDate,
+        waterPaidDate: row.waterPaidDate,
         cleaningCost:
           edit.cleaningCost === undefined
             ? row.cleaningCost

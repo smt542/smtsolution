@@ -47,6 +47,8 @@ export function SettlementInquiryPage({ type }: { type: SettlementInquiryType })
   const { data: organizationName } = useBillOrganizationName(me?.orgId);
   const [fromMonth, setFromMonth] = useState(range.fromMonth);
   const [toMonth, setToMonth] = useState(range.toMonth);
+  const [appliedFrom, setAppliedFrom] = useState(`${range.fromMonth}-01`);
+  const [appliedFromManuallySet, setAppliedFromManuallySet] = useState(false);
   const [status, setStatus] = useState<"" | SettlementInquiryStatus>("");
   const [sort, setSort] = useState<SettlementInquirySort>("code");
   const [search, setSearch] = useState("");
@@ -59,6 +61,7 @@ export function SettlementInquiryPage({ type }: { type: SettlementInquiryType })
     type,
     from,
     to,
+    appliedFrom,
     search: deferredSearch || undefined,
     status: status || undefined,
     sort,
@@ -85,6 +88,7 @@ export function SettlementInquiryPage({ type }: { type: SettlementInquiryType })
         settlementId: row.settlementId,
         elecPaidDate: previous ? previous.elecPaidDate : row.elecPaidDate,
         gasPaidDate: previous ? previous.gasPaidDate : row.gasPaidDate,
+        waterPaidDate: previous ? previous.waterPaidDate : row.waterPaidDate,
         cleaningCost: previous ? previous.cleaningCost : row.cleaningCost,
         ...patch,
       };
@@ -92,6 +96,7 @@ export function SettlementInquiryPage({ type }: { type: SettlementInquiryType })
       if (
         next.elecPaidDate === row.elecPaidDate
         && next.gasPaidDate === row.gasPaidDate
+        && next.waterPaidDate === row.waterPaidDate
         && next.cleaningCost === row.cleaningCost
       ) {
         delete result[row.settlementId];
@@ -140,13 +145,21 @@ export function SettlementInquiryPage({ type }: { type: SettlementInquiryType })
           <SettlementInquiryToolbar
             fromMonth={fromMonth}
             toMonth={toMonth}
+            appliedFrom={appliedFrom}
             status={status}
             sort={sort}
             search={search}
             changedCount={Object.keys(edits).length}
             saving={saveEdits.isPending}
-            onFromMonthChange={setFromMonth}
+            onFromMonthChange={(value) => {
+              setFromMonth(value);
+              if (!appliedFromManuallySet) setAppliedFrom(`${value}-01`);
+            }}
             onToMonthChange={setToMonth}
+            onAppliedFromChange={(value) => {
+              setAppliedFrom(value);
+              setAppliedFromManuallySet(true);
+            }}
             onStatusChange={setStatus}
             onSortChange={setSort}
             onSearchChange={setSearch}
