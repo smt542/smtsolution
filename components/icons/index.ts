@@ -1,5 +1,7 @@
 export { CloseIcon } from "./CloseIcon";
 export { CalendarIcon } from "./CalendarIcon";
+export { CheckIcon } from "./CheckIcon";
+export { ClockIcon } from "./ClockIcon";
 export { ChevronDownIcon } from "./ChevronDownIcon";
 export { ChevronLeftIcon } from "./ChevronLeftIcon";
 export { PrinterIcon } from "./PrinterIcon";
