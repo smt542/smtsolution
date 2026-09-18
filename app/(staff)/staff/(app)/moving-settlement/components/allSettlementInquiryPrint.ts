@@ -15,7 +15,10 @@ const PRINT_CSS =
   "@page{size:A4 landscape;margin:10mm}" +
   "html,body{background:#fff!important;height:auto!important;overflow:visible!important}" +
   "body>*:not(#msPrintSheet){display:none!important}" +
-  "#msPrintSheet{display:block!important;background:#fff!important;color:#000}" +
+  // line-height:normal 은 정본 CSS 에 없지만 반드시 필요하다. 정본 문서는 전역 line-height 를
+  // 두지 않아 normal(Pretendard ≈1.30)로 찍히는데, 앱은 Tailwind preflight 의 html{line-height:1.5}
+  // 를 물려받아 행이 15.0pt -> 17.2pt 로 커진다.
+  "#msPrintSheet{display:block!important;background:#fff!important;color:#000;line-height:normal}" +
   "#msPrintSheet h1{text-align:center;font-size:14pt;font-weight:700;margin:0 0 4mm;text-decoration:underline}" +
   "#msPrintSheet thead{display:table-header-group}" +
   "#msPrintSheet tr{page-break-inside:avoid}" +
