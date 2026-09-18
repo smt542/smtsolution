@@ -43,6 +43,14 @@ export function groupSettlementRows(
   return [...groups.values()];
 }
 
+/**
+ * 정본 호실 셀은 접미사 없는 숫자다(404·101). DB `units.unit_no` 는 "101호" 로 저장하는데
+ * 57px 컬럼에서 접미사까지 넣으면 두 줄로 접힌다. 표시에서만 뗀다(aria-label 은 "101호" 유지).
+ */
+export function unitNoLabel(unitNo: string | null): string {
+  return (unitNo ?? "").replace(/호$/, "");
+}
+
 export function locationLabel(
   address: string | null,
   fallback: string | null,

@@ -3,7 +3,7 @@ import type {
   UpdateSettlementInquiryRow,
 } from "@/hooks/reactquery/movingSettlement";
 import { formatDate, formatNumber } from "@/lib/format";
-import { locationLabel } from "../settlementInquiryTypes";
+import { locationLabel, unitNoLabel } from "../settlementInquiryTypes";
 import { SettlementInquiryDateField } from "./SettlementInquiryDateField";
 import type { SettlementInquiryTableProps } from "./SettlementInquiryTable";
 import {
@@ -80,7 +80,7 @@ export function UtilityInquiryTable({
                 <td className="border-b border-line2 px-4">
                   {row.buildingAddress ?? ""}
                 </td>
-                <td className="border-b border-line2 px-4">{row.unitNo}</td>
+                <td className="border-b border-line2 px-4">{unitNoLabel(row.unitNo)}</td>
                 <td className="border-b border-line2 px-4">
                   {formatDateCell(row.moveOutDate)}
                 </td>
