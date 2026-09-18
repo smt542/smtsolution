@@ -11,6 +11,7 @@ export { DataTable } from "./DataTable";
 export { SidebarList } from "./SidebarList";
 export { SearchBar } from "./SearchBar";
 export { EmptyState } from "./EmptyState";
+export { ModuleGate } from "./ModuleGate";
 export { Spinner } from "./Spinner";
 export { Badge } from "./Badge";
 export { DetailField, DetailSection } from "./Detail";
