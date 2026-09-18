@@ -1,4 +1,5 @@
 "use client";
+import { phoneMask } from "@/components/common";
 import React from "react";
 import { FormSection } from "../ui/FormSection";
 import { FieldGrid, Field, TextField, SelectField } from "../ui/Fields";
@@ -31,7 +32,7 @@ export function ContactSection({
             onChange={(v) => onChange({ phones: v })}
             placeholders={["010-0000-0000 (필수)", "010-0000-0000"]}
             addLabel="전화번호 추가"
-            format="phone"
+            mask={phoneMask}
           />
         </Field>
         <Field label="차량번호" full>

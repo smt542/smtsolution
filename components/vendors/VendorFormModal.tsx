@@ -4,7 +4,7 @@ import React, { useRef, useState } from "react";
 import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { applyPhoneFormat, Button, Modal, PHONE_INPUT_ATTRS, PhotoUpload } from "@/components/common";
+import { applyMask, phoneMask, Button, Modal, PHONE_INPUT_ATTRS, PhotoUpload } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { setSubmissionError } from "@/components/forms/formErrors";
 import { vendorSchema } from "@/components/forms/schema/vendor";
@@ -261,7 +261,7 @@ export function VendorFormModal({
                     aria-invalid={Boolean(errors.phone)}
                     aria-describedby={errors.phone ? "vendor-phone-error" : undefined}
                     onChange={(event) => {
-                      applyPhoneFormat(event.currentTarget);
+                      applyMask(event.currentTarget, phoneMask);
                       return phoneRegister.onChange(event);
                     }}
                   />
