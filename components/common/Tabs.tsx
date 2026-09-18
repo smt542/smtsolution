@@ -1,6 +1,30 @@
 "use client";
 import React, { useState } from "react";
 
+/**
+ * 탭 규격.
+ *
+ * - `default` 기존 값. 호출부 9곳(partner 모바일·accounts·fee-items·management-fee·
+ *   messaging·receipts 등)이 쓰고 그 중 여럿은 픽셀 정합이 끝난 화면이라 **건드리지 않는다.**
+ * - `page`    화면 상단 페이지 탭바. Figma 노드 `72:69569` 실측
+ *   (`docs/superpowers/plans/2026-09-18-setup-figma-tokens.md`).
+ *   비활성에도 투명 `border-b-2`를 둬서 활성 탭만 2px 높아지는 흔들림이 없다.
+ */
+const TAB_SIZES = {
+  default: {
+    container: "",
+    tab: "px-4 py-2",
+    activeBorder: "border-b-2 border-brand",
+    idleBorder: "",
+  },
+  page: {
+    container: "bg-white px-[24px]",
+    tab: "px-[16px] py-[12px]",
+    activeBorder: "border-b-2 border-brand",
+    idleBorder: "border-b-2 border-transparent",
+  },
+} as const;
+
 export function Tabs({
   tabs,
   active,
@@ -8,6 +32,7 @@ export function Tabs({
   onAdd,
   onRename,
   onDelete,
+  size = "default",
 }: {
   tabs: { id: string; label: string }[];
   active: string;
@@ -15,7 +40,9 @@ export function Tabs({
   onAdd?: () => void;
   onRename?: (id: string, label: string) => void;
   onDelete?: (id: string) => void;
+  size?: keyof typeof TAB_SIZES;
 }) {
+  const spec = TAB_SIZES[size];
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
 
@@ -34,7 +61,7 @@ export function Tabs({
   };
 
   return (
-    <div className="flex items-center gap-1 border-b border-line">
+    <div className={`flex items-center gap-1 border-b border-line ${spec.container}`}>
       {tabs.map((t) => (
         <div key={t.id} className="relative flex items-center">
           {renamingId === t.id ? (
@@ -54,10 +81,10 @@ export function Tabs({
             <button
               onClick={() => onChange(t.id)}
               onDoubleClick={onRename ? () => startRename(t.id, t.label) : undefined}
-              className={`px-4 py-2 text-sm font-bold ${
+              className={`${spec.tab} text-sm font-bold ${
                 active === t.id
-                  ? "border-b-2 border-brand text-brand"
-                  : "text-t3"
+                  ? `${spec.activeBorder} text-brand`
+                  : `${spec.idleBorder} text-t3`
               }`}
             >
               {t.label}

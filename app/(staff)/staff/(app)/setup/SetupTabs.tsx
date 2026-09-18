@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { Tabs } from "@/components/common";
+import { Button, Tabs } from "@/components/common";
+import { PageHeader } from "@/components/shell/PageHeader";
+import { SetupSaveProvider, useSetupSaveTarget } from "./SetupSaveContext";
 
 const CompanyInfoTab = dynamic(() =>
   import("./components/CompanyInfoTab").then((module) => module.CompanyInfoTab));
@@ -23,8 +25,9 @@ const SystemSettingsTab = dynamic(() =>
 const DataMigrationTab = dynamic(() =>
   import("./components/DataMigrationTab").then((module) => module.DataMigrationTab));
 
-// 순서는 Claude Design 프로토타입(회사 정보 → 고지서 → 이사정산 → A/S → 알림 → 데이터 이관)에 맞춘다.
-// 계좌·시스템 탭은 프로토타입엔 없지만 기존 기능 보존을 위해 유지(계좌=고지서 옆, 시스템=알림 뒤).
+// 정본(Figma)은 6탭이다: 회사 정보 · 고지서 설정 · 이사정산 설정 · A/S 설정 · 알림 설정 · 데이터 이관.
+// 계좌 설정은 고지서/이사정산으로 흡수되고 시스템 설정은 삭제되지만, 그건 각 탭 본문 이관이
+// 끝난 뒤(Phase 2)에 잘라내야 중간 상태가 깨지지 않는다. 그때까지는 8탭을 유지한다.
 const TAB_DEFS = [
   { id: "company", label: "회사 정보" },
   { id: "billing", label: "고지서 설정" },
@@ -38,23 +41,46 @@ const TAB_DEFS = [
 
 export type SetupTab = (typeof TAB_DEFS)[number]["id"];
 
+/** 정본은 헤더에 저장 버튼이 하나뿐이고, 그 버튼이 지금 열린 탭의 폼을 저장한다. */
+function SetupSaveButton() {
+  const target = useSetupSaveTarget();
+  return (
+    <Button
+      type="button"
+      onClick={() => void target?.save()}
+      disabled={!target || target.saving}
+    >
+      저장
+    </Button>
+  );
+}
+
 export function SetupTabs({ initialTab }: { initialTab: SetupTab }) {
   const [tab, setTab] = useState<SetupTab>(initialTab);
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <h1 className="text-2xl font-extrabold text-t1">셋업 설정</h1>
-      <Tabs tabs={[...TAB_DEFS]} active={tab} onChange={(id) => setTab(id as SetupTab)} />
-      <div>
-        {tab === "company" && <CompanyInfoTab />}
-        {tab === "billing" && <BillingSettingsTab />}
-        {tab === "accounts" && <AccountSettingsTab />}
-        {tab === "settlement" && <MovingSettlementSettingsTab />}
-        {tab === "as" && <AsSettingsTab />}
-        {tab === "notifications" && <NotificationSettingsTab />}
-        {tab === "system" && <SystemSettingsTab />}
-        {tab === "migration" && <DataMigrationTab />}
+    <SetupSaveProvider>
+      <div className="flex min-h-full flex-col bg-bg">
+        <PageHeader title="셋업 설정" actions={<SetupSaveButton />} />
+        <div className="shrink-0">
+          <Tabs
+            tabs={[...TAB_DEFS]}
+            active={tab}
+            onChange={(id) => setTab(id as SetupTab)}
+            size="page"
+          />
+        </div>
+        <div className="flex-1 px-[24px] pb-[30px] pt-[22px]">
+          {tab === "company" && <CompanyInfoTab />}
+          {tab === "billing" && <BillingSettingsTab />}
+          {tab === "accounts" && <AccountSettingsTab />}
+          {tab === "settlement" && <MovingSettlementSettingsTab />}
+          {tab === "as" && <AsSettingsTab />}
+          {tab === "notifications" && <NotificationSettingsTab />}
+          {tab === "system" && <SystemSettingsTab />}
+          {tab === "migration" && <DataMigrationTab />}
+        </div>
       </div>
-    </div>
+    </SetupSaveProvider>
   );
 }
