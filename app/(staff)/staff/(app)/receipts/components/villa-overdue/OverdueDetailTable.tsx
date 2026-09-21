@@ -1,4 +1,5 @@
 import { formatNumber } from "@/lib/format";
+import { MaskedPhone } from "@/components/common/MaskedPhone";
 import type {
   OverdueDisplayGroup,
   OverdueLineOverride,
@@ -156,7 +157,20 @@ function DetailRow({
           className="h-[26px] w-[120px] rounded-[6px] border border-line bg-surface px-[8px] text-[12px] text-t1 focus:border-teal focus:outline-none"
         />
       </div>
-      <TextCell width={OVERDUE_COL.phone} value={isFirst ? group.phone ?? "" : ""} />
+      <div
+        style={{ width: OVERDUE_COL.phone }}
+        className="flex h-[50px] shrink-0 items-center px-[16px] text-[13px] tabular-nums text-t2"
+      >
+        {isFirst && group.phone ? (
+          <MaskedPhone
+            value={group.phone}
+            kind="phone"
+            reveal={{ targetKind: "occupancy", targetId: group.occupancyId, field: "phone" }}
+          />
+        ) : (
+          ""
+        )}
+      </div>
       <TextCell width={OVERDUE_COL.name} value={isFirst ? group.tenantName ?? "" : ""} />
     </div>
   );

@@ -16,6 +16,7 @@ export type BuildingRow = {
 };
 
 export type TenantRow = {
+  occupancy_id: number;
   unit_id: number;
   building_id: number;
   building_name: string;
@@ -42,7 +43,9 @@ export function InquiryView({ buildings, tenants }: { buildings: BuildingRow[]; 
   const tList = useMemo(
     () =>
       tenants.filter(
-        (t) => !kw || `${t.tenant_name ?? ""} ${t.building_name} ${t.phone ?? ""}`.toLowerCase().includes(kw),
+        // 연락처는 서버(partner_search_tenants)가 원문으로 검색한다. 여기서 t.phone은
+        // 이미 마스킹된 값이라 다시 걸면 서버가 찾아온 행을 오히려 버리게 된다.
+        (t) => !kw || `${t.tenant_name ?? ""} ${t.building_name}`.toLowerCase().includes(kw),
       ),
     [tenants, kw],
   );
@@ -101,7 +104,12 @@ export function InquiryView({ buildings, tenants }: { buildings: BuildingRow[]; 
                 {t.phone && (
                   <div className={styles.trow}>
                     <span className={styles.trowLabel}>연락처</span>
-                    <PartnerPhoneLink phone={t.phone} pushRight />
+                    <PartnerPhoneLink
+                      phone={t.phone}
+                      pushRight
+                      alreadyMasked
+                      reveal={{ targetKind: "occupancy", targetId: t.occupancy_id, field: "phone" }}
+                    />
                   </div>
                 )}
               </div>

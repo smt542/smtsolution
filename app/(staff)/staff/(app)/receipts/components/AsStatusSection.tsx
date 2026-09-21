@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
+import { MaskedPhone } from "@/components/common/MaskedPhone";
 import { Button, CustomDropdown, Panel, Spinner } from "@/components/common";
 import { useAccounts } from "@/hooks/reactquery/accounts";
 import { useAsCategories } from "@/hooks/reactquery/asCategories";
@@ -370,7 +371,15 @@ export function AsStatusSection({
                       {complaint.title || complaint.content || "-"}
                     </td>
                     <td className="whitespace-nowrap px-[16px] py-[12px] num">
-                      {complaint.reporterPhone ?? "-"}
+                      {complaint.reporterPhone ? (
+                        <MaskedPhone
+                          value={complaint.reporterPhone}
+                          kind="phone"
+                          reveal={{ targetKind: "complaint", targetId: complaint.id, field: "reporter_phone" }}
+                        />
+                      ) : (
+                        "-"
+                      )}
                     </td>
                     <td className="px-[16px] py-[12px]">
                       <span className={`inline-flex items-center rounded-[6px] px-[8px] py-[2px] text-[11px] font-bold leading-[normal] ${badgeStyle}`}>

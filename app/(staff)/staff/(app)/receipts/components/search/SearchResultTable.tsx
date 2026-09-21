@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 /** 통합 조회 모달의 개별 결과 테이블 카드. (Figma 669-12771) */
 
 export interface SearchColumn {
@@ -12,7 +14,7 @@ export interface SearchResultRow {
   key: string;
   buildingId: number;
   unitId: number | null;
-  cells: string[];
+  cells: ReactNode[];
 }
 
 export function SearchResultTable({

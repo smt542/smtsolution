@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useState } from "react";
 import { CloseIcon } from "@/components/icons";
+import { MaskedPhone } from "@/components/common/MaskedPhone";
 import type { Building } from "@/hooks/reactquery/buildings";
 import { useSettlementInquiry } from "@/hooks/reactquery/movingSettlement";
 import type { ReceiptPaymentRow } from "@/hooks/reactquery/receipts";
@@ -237,7 +238,15 @@ function UnifiedSearchModalBody({
           codeByBuilding.get(row.buildingId) ?? "-",
           row.buildingName,
           unitLabel(row) || "-",
-          row.phone ?? "-",
+          row.phone && row.occupancyId ? (
+            <MaskedPhone
+              value={row.phone}
+              kind="phone"
+              reveal={{ targetKind: "occupancy", targetId: row.occupancyId, field: "phone" }}
+            />
+          ) : (
+            "-"
+          ),
           toYm(period),
           formatCurrency(row.charged),
           formatDate(row.lastPaymentDate),
@@ -272,7 +281,15 @@ function UnifiedSearchModalBody({
           "-", // 거래처명 — 현재 조회 데이터 소스 없음
           "-", // 구분 — 현재 조회 데이터 소스 없음
           building.ownerName ?? "-",
-          building.ownerPhone ?? "-",
+          building.ownerPhone ? (
+            <MaskedPhone
+              value={building.ownerPhone}
+              kind="phone"
+              reveal={{ targetKind: "building", targetId: building.id, field: "owner_phone" }}
+            />
+          ) : (
+            "-"
+          ),
         ],
       }));
   }, [keyword, buildings]);

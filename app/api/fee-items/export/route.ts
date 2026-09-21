@@ -2,6 +2,7 @@ import type { FeeItemLookupRow } from "@/hooks/reactquery/feeItems";
 import { requirePersonaApi } from "@/lib/api/requirePersona";
 import { rowsToXlsxBuffer } from "@/lib/export/xlsx";
 import { createClient } from "@/lib/supabase/server";
+import { extractRequestMeta, logAccess } from "@/lib/audit/accessLog";
 import { buildFeeItemWorkbookData } from "./workbook";
 
 type FeeItemDbRow = {
@@ -64,6 +65,18 @@ export async function GET(request: Request) {
   }));
   const workbook = buildFeeItemWorkbookData(rows);
   const buffer = await rowsToXlsxBuffer(workbook.columns, workbook.rows);
+
+  const { ip, userAgent } = extractRequestMeta(request);
+  await logAccess({
+    event: "EXPORT_XLSX",
+    persona: "manager_staff",
+    orgId: gate.ctx.org_id ?? null,
+    targetKind: "fee_items",
+    targetId: typeId === null ? null : String(typeId),
+    rowCount: workbook.rows.length,
+    ip,
+    userAgent,
+  });
 
   const now = new Date();
   const ymd = [

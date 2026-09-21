@@ -110,6 +110,25 @@ export interface DispatchMessagesResult {
   reservationId?: number;
   queuedCount?: number;
   reservedPoints?: number;
+  channelCounts?: DispatchChannelCounts;
+}
+
+export interface DispatchChannelCounts {
+  sms: number;
+  alimtalk: number;
+}
+
+function emptyChannelCounts(): DispatchChannelCounts {
+  return { sms: 0, alimtalk: 0 };
+}
+
+function countChannelProducts(costs: Array<Record<string, unknown>>): DispatchChannelCounts {
+  const counts = emptyChannelCounts();
+  for (const cost of costs) {
+    if (cost.product === "alimtalk") counts.alimtalk += 1;
+    else if (cost.product === "sms" || cost.product === "lms") counts.sms += 1;
+  }
+  return counts;
 }
 
 interface QuoteData {
@@ -311,6 +330,9 @@ export async function dispatchMessages(
   // 멱등 replay: 기존 예약이 있으면 절대 재접수/재마킹/재작업생성하지 않는다. 저장된 예약 상태로만
   // 응답하며 어떤 경로도 provider를 다시 호출하지 않는다(중복 클릭·재시도·동시 호출의 이중 발송 방지).
   if (reserve.replayed) {
+    const replayedChannelCounts = countChannelProducts(
+      reserve.recipient_costs ?? quote.recipient_costs ?? [],
+    );
     switch (reserve.status) {
       case "released":
         // 이전 시도가 전부 확정 거절되어 예약이 반환됨 → 재발송 없이 동일한 안전 실패.
@@ -330,6 +352,7 @@ export async function dispatchMessages(
           logId: messageLogId,
           reservationId,
           reservedPoints,
+          channelCounts: replayedChannelCounts,
         };
       case "reconcile_required":
         // 접수 결과가 불명확 → 아직 성공 접수(queued)로 표기하지 않는다. 재조회/수동 확인 대상.
@@ -358,7 +381,7 @@ export async function dispatchMessages(
   const costs = reserve.recipient_costs ?? quote.recipient_costs ?? [];
 
   // 3~7) 배치 계획 → submitting 저장 → Popbill 접수 → provider_pending (예약/스케줄 공용)
-  const { queuedCount, markStatus } = await submitReservationBatches(
+  const { queuedCount, markStatus, channelCounts } = await submitReservationBatches(
     deps.admin,
     {
       reservationId,
@@ -380,6 +403,7 @@ export async function dispatchMessages(
       reservationId,
       queuedCount,
       reservedPoints,
+      channelCounts,
     };
   }
   // 전부 확정 거절(released) → 예약은 이미 반환됨. queued로 표기하지 않고 명확한 실패를 반환한다.
@@ -405,7 +429,15 @@ export async function dispatchMessages(
   }
   // 알 수 없는 mark 상태: receipt가 있으면 queued, 없으면 보수적으로 실패로 응답한다.
   if (queuedCount > 0) {
-    return { ok: true, status: "queued", logId: messageLogId, reservationId, queuedCount, reservedPoints };
+    return {
+      ok: true,
+      status: "queued",
+      logId: messageLogId,
+      reservationId,
+      queuedCount,
+      reservedPoints,
+      channelCounts,
+    };
   }
   return { ok: false, code: "SEND_FAILED", message: "발송을 접수하지 못했습니다.", httpStatus: 502, reservationId };
 }
@@ -488,7 +520,7 @@ export async function submitReservationBatches(
   admin: SupabaseClientLike,
   params: SubmitReservationParams,
   deps: SubmitReservationDeps,
-): Promise<{ queuedCount: number; markStatus: string }> {
+): Promise<{ queuedCount: number; markStatus: string; channelCounts: DispatchChannelCounts }> {
   const submitBatch = deps.submitBatch ?? submitMessageBatch;
   const reconcileBatch =
     deps.reconcileBatch ??
@@ -555,6 +587,7 @@ export async function submitReservationBatches(
 
   const outcomes: Array<Record<string, unknown>> = [];
   let queuedCount = 0;
+  const channelCounts = emptyChannelCounts();
   const submitOwner = randomUUID();
   for (const batch of plan) {
     const info = jobByReq.get(batch.requestNum);
@@ -567,6 +600,7 @@ export async function submitReservationBatches(
         submit_owner: submitOwner,
       });
       queuedCount += batch.recipients.length;
+      channelCounts[batch.product === "alimtalk" ? "alimtalk" : "sms"] += batch.recipients.length;
       continue;
     }
 
@@ -584,6 +618,7 @@ export async function submitReservationBatches(
         submit_owner: submitOwner,
       });
       queuedCount += batch.recipients.length;
+      channelCounts[batch.product === "alimtalk" ? "alimtalk" : "sms"] += batch.recipients.length;
       continue;
     }
 
@@ -607,7 +642,10 @@ export async function submitReservationBatches(
           })),
         p_next_poll_at: nextPollAt?.toISOString() ?? null,
       });
-      if (results.length > 0) queuedCount += batch.recipients.length;
+      if (results.length > 0) {
+        queuedCount += batch.recipients.length;
+        channelCounts[batch.product === "alimtalk" ? "alimtalk" : "sms"] += batch.recipients.length;
+      }
       continue;
     }
 
@@ -633,6 +671,7 @@ export async function submitReservationBatches(
         submit_owner: submitOwner,
       });
       queuedCount += batch.recipients.length;
+      channelCounts[batch.product === "alimtalk" ? "alimtalk" : "sms"] += batch.recipients.length;
     } catch (e) {
       const classified = classifySubmitError(e);
       outcomes.push({
@@ -650,5 +689,5 @@ export async function submitReservationBatches(
     p_outcomes: outcomes,
   })) as { status?: string } | null;
 
-  return { queuedCount, markStatus: mark?.status ?? "unknown" };
+  return { queuedCount, markStatus: mark?.status ?? "unknown", channelCounts };
 }

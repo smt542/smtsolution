@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Badge, Checkbox, EmptyState, Modal, Select, Spinner } from "@/components/common";
+import { MaskedPhone } from "@/components/common/MaskedPhone";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import type { PlatformAccountCreateValues } from "@/components/forms/schema/platformAccount";
 import {
@@ -279,7 +280,15 @@ export function AccountsWorkspace() {
                     <div className="mt-1 text-xs text-t3">{account.username ?? account.userId}</div>
                   </td>
                   <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] font-semibold text-t2">{account.organizationName}</td>
-                  <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] text-t2 num">{account.phone ?? "-"}</td>
+                  <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] text-t2 num">
+                    {account.phone ? (
+                      <MaskedPhone
+                        value={account.phone}
+                        kind="phone"
+                        reveal={{ targetKind: "profile", targetId: account.userId, field: "phone" }}
+                      />
+                    ) : "-"}
+                  </td>
                   <td className="max-w-64 border-b border-line2 px-4 py-3 text-[12.5px] text-t2">
                     <span className="line-clamp-2">{account.memo ?? "-"}</span>
                   </td>

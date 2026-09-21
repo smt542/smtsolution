@@ -1,4 +1,5 @@
 import type { KeyboardEvent } from "react";
+import { MaskedPhone } from "@/components/common/MaskedPhone";
 import type { OverdueHousehold, OverduePeriodRow } from "@/hooks/reactquery/overdue";
 
 interface OverdueTableProps {
@@ -156,7 +157,17 @@ export function OverdueTable({ rows, periods = [], onRowClick }: OverdueTablePro
                   <td className="border-b border-line2 px-[16px] text-right num">{money.format(line.lateFee)}</td>
                   <td className="border-b border-line2 px-[16px] text-right font-medium num">{money.format(line.principal + line.lateFee)}</td>
                   <td className="border-b border-line2 px-[16px] text-t3">{index === 0 ? group.household.memo ?? group.household.unitMemo ?? "" : ""}</td>
-                  <td className="border-b border-line2 px-[16px] num">{index === 0 ? group.household.phone ?? "" : ""}</td>
+                  <td className="border-b border-line2 px-[16px] num">
+                    {index === 0 && group.household.phone ? (
+                      <MaskedPhone
+                        value={group.household.phone}
+                        kind="phone"
+                        reveal={{ targetKind: "occupancy", targetId: group.household.occupancyId, field: "phone" }}
+                      />
+                    ) : (
+                      ""
+                    )}
+                  </td>
                   <td className="border-b border-line2 px-[16px]">{index === 0 ? group.household.tenantName ?? "미등록" : ""}</td>
                 </tr>
               )),

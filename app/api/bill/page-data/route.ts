@@ -1,4 +1,5 @@
 import { hasModule } from "@/lib/auth/permissions";
+import { extractRequestMeta, logAccess } from "@/lib/audit/accessLog";
 import { createClient } from "@/lib/supabase/server";
 import { getBillPageData } from "@/app/(staff)/staff/(app)/bill/data";
 import type { MyContext } from "@/hooks/reactquery/auth/apis";
@@ -16,7 +17,7 @@ function json(data: unknown, status = 200): Response {
   });
 }
 
-export async function GET(): Promise<Response> {
+export async function GET(request: Request): Promise<Response> {
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData?.user) return json({ error: "로그인이 필요합니다." }, 401);
@@ -42,7 +43,22 @@ export async function GET(): Promise<Response> {
   }
 
   try {
-    return json(await getBillPageData(context.orgId));
+    const pageData = await getBillPageData(context.orgId);
+    const output = new URL(request.url).searchParams.get("output");
+    if (output === "giro" || output === "adjustment" || output === "autoDebit") {
+      const { ip, userAgent } = extractRequestMeta(request);
+      await logAccess({
+        event: "PRINT",
+        persona: "manager_staff",
+        orgId: context.orgId,
+        actorId: userData.user.id,
+        targetKind: "bill_output",
+        detail: { output },
+        ip,
+        userAgent,
+      });
+    }
+    return json(pageData);
   } catch {
     return json({ error: "서류 발행 정보를 불러오지 못했습니다." }, 500);
   }

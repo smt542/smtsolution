@@ -1,6 +1,7 @@
 import { normalizePhone } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { extractRequestMeta, logAccess } from "@/lib/audit/accessLog";
 import {
   isPopbillConfigured,
   PopbillNotConfiguredError,
@@ -227,6 +228,21 @@ export async function POST(request: Request): Promise<Response> {
     }
     queued += 1;
     results.push({ billIssueId, status: "queued" });
+  }
+
+  if (queued > 0) {
+    const { ip, userAgent } = extractRequestMeta(request);
+    await logAccess({
+      event: "SEND_FAX",
+      persona: "manager_staff",
+      orgId: ctx.org_id,
+      actorId: userData.user.id,
+      targetKind: "bill_issue",
+      rowCount: queued,
+      detail: { requestedCount: billIssueIds.length },
+      ip,
+      userAgent,
+    });
   }
 
   return json({ queued, failed, skipped, reconcileRequired, results }, 202);

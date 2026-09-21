@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { extractRequestMeta, logAccess } from "@/lib/audit/accessLog";
 import {
   dispatchMessages,
   toPopbillButtons,
@@ -106,6 +107,27 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   // 접수 완료 — 아직 성공/확정 차감이 아니다(202 Accepted).
+  const { ip, userAgent } = extractRequestMeta(request);
+  const channelCounts = result.channelCounts ?? {
+    sms: mode === "alimtalk" ? 0 : result.queuedCount ?? 0,
+    alimtalk: mode === "alimtalk" ? result.queuedCount ?? 0 : 0,
+  };
+  const auditBase = {
+    persona: "manager_staff" as const,
+    orgId,
+    actorId: userId,
+    targetKind: "message_log",
+    targetId: result.logId == null ? null : String(result.logId),
+    ip,
+    userAgent,
+  };
+  if (channelCounts.sms > 0) {
+    await logAccess({ ...auditBase, event: "SEND_SMS", rowCount: channelCounts.sms });
+  }
+  if (channelCounts.alimtalk > 0) {
+    await logAccess({ ...auditBase, event: "SEND_ALIMTALK", rowCount: channelCounts.alimtalk });
+  }
+
   return json(
     {
       status: "queued",

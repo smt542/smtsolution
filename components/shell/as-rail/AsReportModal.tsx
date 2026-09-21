@@ -12,6 +12,7 @@ import {
 
 import { COMPLAINT_STATUS_LABEL } from "@/app/(staff)/staff/(app)/receipts/constants";
 import { Spinner } from "@/components/common";
+import { MaskedPhone } from "@/components/common/MaskedPhone";
 import { useAccounts } from "@/hooks/reactquery/accounts";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useComplaints } from "@/hooks/reactquery/complaints";
@@ -241,9 +242,11 @@ function csvCell(value: string | number) {
 export function AsReportModal({
   open,
   onClose,
+  maskReporterPhones = false,
 }: {
   open: boolean;
   onClose: () => void;
+  maskReporterPhones?: boolean;
 }) {
   const today = useMemo(() => toDateKey(new Date()), []);
   const [search, setSearch] = useState("");
@@ -444,6 +447,10 @@ export function AsReportModal({
       table.querySelectorAll("td").forEach((cell) => {
         cell.className = cell.classList.contains("text-center") ? "c" : "";
       });
+      table.querySelector("tbody")?.querySelectorAll("tr").forEach((row, index) => {
+        const phoneCell = row.cells[6];
+        if (phoneCell) phoneCell.textContent = filteredRows[index]?.reporterPhone ?? "";
+      });
       table.querySelectorAll("span").forEach((span) => span.removeAttribute("class"));
     }
     sheet.append(heading, metadata);
@@ -610,7 +617,17 @@ export function AsReportModal({
                     </td>
                     <td className="text-center">{row.category}</td>
                     <td>{row.content}</td>
-                    <td className="text-center">{row.reporterPhone}</td>
+                    <td className="text-center">
+                      {maskReporterPhones && row.reporterPhone !== "-" ? (
+                        <MaskedPhone
+                          value={row.reporterPhone}
+                          kind="phone"
+                          reveal={{ targetKind: "complaint", targetId: row.id, field: "reporter_phone" }}
+                        />
+                      ) : (
+                        row.reporterPhone
+                      )}
+                    </td>
                     <td className="text-center">{row.status}</td>
                     <td className="text-center">
                       {row.receiver}

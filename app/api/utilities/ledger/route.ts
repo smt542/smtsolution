@@ -1,6 +1,7 @@
 import { requirePersonaApi } from "@/lib/api/requirePersona";
 import { rowsToXlsxBuffer } from "@/lib/export/xlsx";
 import { createClient } from "@/lib/supabase/server";
+import { extractRequestMeta, logAccess } from "@/lib/audit/accessLog";
 
 const UTILITY_LABELS = {
   water: "수도",
@@ -103,6 +104,19 @@ export async function GET(request: Request) {
     ],
     table,
   );
+
+  const { ip, userAgent } = extractRequestMeta(request);
+  await logAccess({
+    event: "EXPORT_XLSX",
+    persona: "manager_staff",
+    orgId: gate.ctx.org_id ?? null,
+    targetKind: "building",
+    targetId: String(buildingId),
+    rowCount: table.length,
+    detail: { utility, period },
+    ip,
+    userAgent,
+  });
 
   const yyyymm = period.slice(0, 7).replace("-", "");
   const filename = `${building.name}_${UTILITY_LABELS[utility]}_검침대장_${yyyymm}.xlsx`;

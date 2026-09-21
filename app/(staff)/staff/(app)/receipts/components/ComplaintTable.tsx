@@ -1,4 +1,5 @@
 import { Badge, EmptyState, Spinner } from "@/components/common";
+import { MaskedPhone } from "@/components/common/MaskedPhone";
 import type { Account } from "@/hooks/reactquery/accounts";
 import type { Complaint } from "@/hooks/reactquery/complaints";
 import {
@@ -69,7 +70,17 @@ export function ComplaintTable({
                 <td className="px-4 py-4 text-t2">{complaint.categoryLabel ?? "-"}</td>
                 <td className="px-4 py-4">
                   <p className="text-t1">{complaint.reporterName ?? "-"}</p>
-                  <p className="mt-0.5 text-xs text-t3">{complaint.reporterPhone ?? ""}</p>
+                  <p className="mt-0.5 text-xs text-t3">
+                    <MaskedPhone
+                      value={complaint.reporterPhone}
+                      kind="phone"
+                      reveal={{
+                        targetKind: "complaint",
+                        targetId: complaint.id,
+                        field: "reporter_phone",
+                      }}
+                    />
+                  </p>
                 </td>
                 <td className="max-w-xs px-4 py-4">
                   <p className="font-bold text-t1">{complaint.title}</p>

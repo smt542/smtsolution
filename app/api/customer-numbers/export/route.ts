@@ -5,6 +5,7 @@ import type {
 import { requirePersonaApi } from "@/lib/api/requirePersona";
 import { rowsToXlsxBuffer } from "@/lib/export/xlsx";
 import { createClient } from "@/lib/supabase/server";
+import { extractRequestMeta, logAccess } from "@/lib/audit/accessLog";
 import { buildCustomerNumberWorkbookData } from "./workbook";
 
 const CUSTOMER_NUMBER_KINDS = new Set<CustomerNumberLookupKind>(["water", "common_elec"]);
@@ -67,6 +68,18 @@ export async function GET(request: Request) {
   }));
   const workbook = buildCustomerNumberWorkbookData(rows, kind);
   const buffer = await rowsToXlsxBuffer(workbook.columns, workbook.rows);
+
+  const { ip, userAgent } = extractRequestMeta(request);
+  await logAccess({
+    event: "EXPORT_XLSX",
+    persona: "manager_staff",
+    orgId: gate.ctx.org_id ?? null,
+    targetKind: "customer_numbers",
+    targetId: kind,
+    rowCount: workbook.rows.length,
+    ip,
+    userAgent,
+  });
 
   const now = new Date();
   const ymd = [

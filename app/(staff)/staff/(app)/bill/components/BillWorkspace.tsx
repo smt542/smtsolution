@@ -13,11 +13,6 @@ const DocumentOutputModal = dynamic<DocumentOutputModalProps>(() =>
   import("./DocumentOutputModal").then((module) => module.DocumentOutputModal),
 );
 
-const pageDataQuery = {
-  queryKey: ["bill", "page-data"] as const,
-  queryFn: fetchBillPageData,
-};
-
 const outputDocumentTypes = new Set<OutputDocumentType>([
   "giro",
   "adjustment",
@@ -70,7 +65,8 @@ function DataStateModal({ isError, onClose, onRetry }: DataStateModalProps) {
 export function BillWorkspace({ children }: BillWorkspaceProps) {
   const [activeDocument, setActiveDocument] = useState<OutputDocumentType | null>(null);
   const pageData = useQuery({
-    ...pageDataQuery,
+    queryKey: ["bill", "page-data", activeDocument] as const,
+    queryFn: () => fetchBillPageData(activeDocument ?? undefined),
     enabled: activeDocument !== null,
   });
 
