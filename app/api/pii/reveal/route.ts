@@ -1,4 +1,4 @@
-import { logAccess } from "@/lib/audit/accessLog";
+import { extractRequestMeta, logAccess } from "@/lib/audit/accessLog";
 import { requirePersonaApi, type WorkforcePersona } from "@/lib/api/requirePersona";
 import { createClient } from "@/lib/supabase/server";
 
@@ -12,17 +12,22 @@ type RevealTarget = {
     | { kind: "column"; column: "org_id" }
     | { kind: "nested"; select: string; path: readonly string[] }
     | { kind: "lookup"; table: "org_members"; lookupColumn: "user_id"; column: "org_id" };
+  // 현장 파트너 범위 판정용. RLS는 org 단위라 건물 경계를 막지 못하므로 여기서 건물을
+  // 해석해 partner_my_building_ids()와 대조한다. null이면 파트너는 이 대상을 열 수 없다.
+  buildingSelect: string | null;
+  buildingPath: readonly string[] | null;
 };
 
 const DIRECT_ORG = { kind: "column", column: "org_id" } as const;
 const OCCUPANCY_ORG = {
   kind: "nested",
-  select: "units!inner(buildings!inner(org_id))",
+  select: "units!inner(building_id,buildings!inner(org_id))",
   path: ["units", "buildings", "org_id"],
 } as const;
+const OCCUPANCY_BUILDING_PATH = ["units", "building_id"] as const;
 const OCCUPANCY_HISTORY_ORG = {
   kind: "nested",
-  select: "units!inner(buildings!inner(org_id))",
+  select: "units!inner(building_id,buildings!inner(org_id))",
   path: ["units", "buildings", "org_id"],
 } as const;
 const PROFILE_ORG = {
@@ -41,24 +46,25 @@ const BUILDING_VENDOR_ORG = {
 
 const REVEAL_TARGETS = {
   occupancy: {
-    phone: { table: "occupancies", column: "phone", idColumn: "id", idType: "bigint" as const, owner: OCCUPANCY_ORG },
-    phone2: { table: "occupancies", column: "phone2", idColumn: "id", idType: "bigint" as const, owner: OCCUPANCY_ORG },
-    phone3: { table: "occupancies", column: "phone3", idColumn: "id", idType: "bigint" as const, owner: OCCUPANCY_ORG },
-    fax_number: { table: "occupancies", column: "fax_number", idColumn: "id", idType: "bigint" as const, owner: OCCUPANCY_ORG },
+    phone: { table: "occupancies", column: "phone", idColumn: "id", idType: "bigint" as const, owner: OCCUPANCY_ORG, buildingSelect: null, buildingPath: OCCUPANCY_BUILDING_PATH },
+    phone2: { table: "occupancies", column: "phone2", idColumn: "id", idType: "bigint" as const, owner: OCCUPANCY_ORG, buildingSelect: null, buildingPath: OCCUPANCY_BUILDING_PATH },
+    phone3: { table: "occupancies", column: "phone3", idColumn: "id", idType: "bigint" as const, owner: OCCUPANCY_ORG, buildingSelect: null, buildingPath: OCCUPANCY_BUILDING_PATH },
+    fax_number: { table: "occupancies", column: "fax_number", idColumn: "id", idType: "bigint" as const, owner: OCCUPANCY_ORG, buildingSelect: null, buildingPath: OCCUPANCY_BUILDING_PATH },
   },
   occupancy_history: {
-    phone: { table: "occupancy_history", column: "phone", idColumn: "id", idType: "bigint" as const, owner: OCCUPANCY_HISTORY_ORG },
-    phone2: { table: "occupancy_history", column: "phone2", idColumn: "id", idType: "bigint" as const, owner: OCCUPANCY_HISTORY_ORG },
-    phone3: { table: "occupancy_history", column: "phone3", idColumn: "id", idType: "bigint" as const, owner: OCCUPANCY_HISTORY_ORG },
+    phone: { table: "occupancy_history", column: "phone", idColumn: "id", idType: "bigint" as const, owner: OCCUPANCY_HISTORY_ORG, buildingSelect: null, buildingPath: OCCUPANCY_BUILDING_PATH },
+    phone2: { table: "occupancy_history", column: "phone2", idColumn: "id", idType: "bigint" as const, owner: OCCUPANCY_HISTORY_ORG, buildingSelect: null, buildingPath: OCCUPANCY_BUILDING_PATH },
+    phone3: { table: "occupancy_history", column: "phone3", idColumn: "id", idType: "bigint" as const, owner: OCCUPANCY_HISTORY_ORG, buildingSelect: null, buildingPath: OCCUPANCY_BUILDING_PATH },
   },
   complaint: {
-    reporter_phone: { table: "complaints", column: "reporter_phone", idColumn: "id", idType: "bigint" as const, owner: DIRECT_ORG },
+    reporter_phone: { table: "complaints", column: "reporter_phone", idColumn: "id", idType: "bigint" as const, owner: DIRECT_ORG, buildingSelect: "building_id", buildingPath: ["building_id"] },
   },
   building: {
-    owner_phone: { table: "buildings", column: "owner_phone", idColumn: "id", idType: "bigint" as const, owner: DIRECT_ORG },
+    owner_phone: { table: "buildings", column: "owner_phone", idColumn: "id", idType: "bigint" as const, owner: DIRECT_ORG, buildingSelect: "id", buildingPath: ["id"] },
   },
   vendor: {
-    phone: { table: "vendors", column: "phone", idColumn: "id", idType: "bigint" as const, owner: DIRECT_ORG },
+    // 거래처는 org 자산이라 건물에 매이지 않는다. 파트너 화면에서 쓰지 않으므로 파트너는 열 수 없다.
+    phone: { table: "vendors", column: "phone", idColumn: "id", idType: "bigint" as const, owner: DIRECT_ORG, buildingSelect: null, buildingPath: null },
   },
   building_vendor: {
     phone: {
@@ -67,10 +73,13 @@ const REVEAL_TARGETS = {
       idColumn: "id",
       idType: "bigint" as const,
       owner: BUILDING_VENDOR_ORG,
+      buildingSelect: "building_id",
+      buildingPath: ["building_id"],
     },
   },
   profile: {
-    phone: { table: "profiles", column: "phone", idColumn: "user_id", idType: "uuid" as const, owner: PROFILE_ORG },
+    // 직원 프로필도 건물 소속이 아니다. 파트너는 열 수 없다.
+    phone: { table: "profiles", column: "phone", idColumn: "user_id", idType: "uuid" as const, owner: PROFILE_ORG, buildingSelect: null, buildingPath: null },
   },
 } as const satisfies Record<string, Record<string, RevealTarget>>;
 
@@ -116,7 +125,7 @@ function normalizeTargetId(
   return /^[1-9]\d*$/.test(normalized) ? normalized : null;
 }
 
-function normalizeOrgId(value: unknown): number | null {
+function normalizePositiveId(value: unknown): number | null {
   if (typeof value === "number") {
     return Number.isSafeInteger(value) && value > 0 ? value : null;
   }
@@ -141,20 +150,28 @@ function getNestedValue(row: Record<string, unknown>, path: readonly string[]): 
 
 function revealSelect(target: RevealTarget): string {
   if (target.owner.kind === "lookup") return target.column;
-  return `${target.column},${target.owner.kind === "column" ? target.owner.column : target.owner.select}`;
+  const owner = target.owner.kind === "column" ? target.owner.column : target.owner.select;
+  // buildingSelect가 null인 대상은 owner select 안에 building_id가 이미 들어 있거나
+  // (occupancy 계열) 건물에 매이지 않는 대상이다.
+  return [target.column, owner, target.buildingSelect].filter(Boolean).join(",");
 }
 
 async function authorizeReveal(sb: Awaited<ReturnType<typeof createClient>>): Promise<
-  | { ok: true; persona: WorkforcePersona; orgId: number | null }
+  | { ok: true; persona: WorkforcePersona; orgId: number | null; actorId: string | null }
   | { ok: false; response: Response }
 > {
+  // 감사 행은 누가 열었는지를 담아야 의미가 있다. requirePersonaApi는 org 컨텍스트만
+  // 돌려주므로 행위자 id는 여기서 따로 읽는다.
+  const { data: userData } = await sb.auth.getUser();
+  const actorId = userData?.user?.id ?? null;
+
   for (const persona of REVEAL_PERSONAS) {
     const gate = await requirePersonaApi(sb, persona);
     if (gate.ok) {
       const orgId = typeof gate.ctx.org_id === "number" && Number.isSafeInteger(gate.ctx.org_id)
         ? gate.ctx.org_id
         : null;
-      return { ok: true, persona, orgId };
+      return { ok: true, persona, orgId, actorId };
     }
 
     if (gate.response.status === 401) return { ok: false, response: gate.response };
@@ -211,9 +228,9 @@ export async function POST(request: Request) {
   const row = data as unknown as Record<string, unknown>;
   let ownerOrgId: number | null = null;
   if (target.owner.kind === "column") {
-    ownerOrgId = normalizeOrgId(row[target.owner.column]);
+    ownerOrgId = normalizePositiveId(row[target.owner.column]);
   } else if (target.owner.kind === "nested") {
-    ownerOrgId = normalizeOrgId(getNestedValue(row, target.owner.path));
+    ownerOrgId = normalizePositiveId(getNestedValue(row, target.owner.path));
   } else {
     const { data: member, error: memberError } = await sb
       .from(target.owner.table)
@@ -228,7 +245,7 @@ export async function POST(request: Request) {
       return Response.json({ error: "Unable to reveal this field" }, { status: 500 });
     }
 
-    ownerOrgId = isRecord(member) ? normalizeOrgId(member[target.owner.column]) : null;
+    ownerOrgId = isRecord(member) ? normalizePositiveId(member[target.owner.column]) : null;
     if (ownerOrgId === null) {
       // profiles can outlive org_members after membership removal, so no owning
       // org exists in that state; retain the actor's org as the only audit scope.
@@ -241,13 +258,46 @@ export async function POST(request: Request) {
     return Response.json({ error: "Unable to complete reveal" }, { status: 503 });
   }
 
+  // 현장 파트너는 담당 건물 밖을 열 수 없다. occupancies 등의 RLS는 org 단위라
+  // 이 경계를 막지 못하므로(파트너도 org 구성원이다) 여기서 건물을 대조한다.
+  // 존재 여부가 새지 않도록 범위를 벗어나면 404로 응답한다.
+  if (authorization.persona === "field_partner") {
+    if (!target.buildingPath) {
+      return Response.json({ error: "Record not found" }, { status: 404 });
+    }
+
+    const buildingId = normalizePositiveId(getNestedValue(row, target.buildingPath));
+    if (buildingId === null) {
+      return Response.json({ error: "Record not found" }, { status: 404 });
+    }
+
+    const { data: scope, error: scopeError } = await sb.rpc("partner_my_building_ids");
+    if (scopeError) {
+      console.error("PII reveal partner scope lookup failed", scopeError.message);
+      return Response.json({ error: "Unable to reveal this field" }, { status: 500 });
+    }
+
+    const scopedIds = Array.isArray(scope) ? scope : [];
+    const inScope = scopedIds.some((entry) => {
+      const value = isRecord(entry) ? entry.partner_my_building_ids : entry;
+      return normalizePositiveId(value) === buildingId;
+    });
+    if (!inScope) {
+      return Response.json({ error: "Record not found" }, { status: 404 });
+    }
+  }
+
+  const { ip, userAgent } = extractRequestMeta(request);
   const auditRecorded = await logAccess({
     event: "PII_REVEAL",
     persona: authorization.persona,
     orgId: ownerOrgId,
+    actorId: authorization.actorId,
     targetKind,
     targetId,
     field,
+    ip,
+    userAgent,
   });
   if (!auditRecorded) {
     // Never return plaintext unless the audit row was recorded successfully.
