@@ -352,6 +352,35 @@ Authorization: Bearer <CRON_SECRET>
 - **Popbill 잔액 부족**: 파트너/연동회원 잔액을 주기 모니터링(부족 시 접수 실패).
 - 상세 운영 절차는 `docs/ops/popbill-delivery.md` 참고.
 
+## 감사 로그 보존 purge (배선 완료됨)
+
+예약 발송과 **같은 Connection을 재사용**한다. 따라서 CRON_SECRET을 새로 만들 필요가 없다.
+
+2026-09-21 기준 계정 `256056996318`(ap-northeast-2)에 아래가 생성돼 있다. 기존 예약 발송
+리소스는 변경하지 않았다 — 역할이 destination ARN 단위로 한정돼 있어 전용 역할을 따로 뒀다.
+
+| 리소스 | 이름 |
+|---|---|
+| Rule | `home-erp-access-log-purge-daily` · `cron(0 18 * * ? *)` (18:00 UTC = **03:00 KST**) · ENABLED |
+| API destination | `home-erp-access-log-purge` → `POST /api/cron/purge-access-log` · 1 req/s |
+| Connection | `home-erp-scheduled-messaging` (재사용) |
+| IAM role | `home-erp-eventbridge-access-log-purge` (해당 destination만 invoke) |
+
+라우트는 인수를 넘기지 않는다. 보존기간은 DB 함수 `purge_access_log(p_retention_days default 730)`
+기본값 한 곳에만 있으므로 **기간 변경은 마이그레이션만으로 끝나고 코드 배포·배선 수정이 필요 없다.**
+365일 미만을 넘기면 함수가 예외를 던진다(법정 최소치 방어).
+
+정상 응답: `{ "deleted": N }`. 인증 실패는 401이며, 감사기록 삭제라 세션 폴백이 없다(CRON_SECRET 전용).
+
+### 동작 확인
+
+~~~bash
+export AWS_PROFILE=home-erp AWS_REGION=ap-northeast-2
+SECRET=$(aws amplify get-branch --app-id d1bbgt7v44nxj3 --branch-name master   --query 'branch.environmentVariables.CRON_SECRET' --output text)
+curl -s -X POST -H "Authorization: Bearer $SECRET"   https://master.d1bbgt7v44nxj3.amplifyapp.com/api/cron/purge-access-log
+unset SECRET
+~~~
+
 ## 참고
 
 - [EventBridge API destinations](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-api-destinations.html)
