@@ -410,7 +410,8 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
         {activeType ? (
           <FeeItemCard
             key={activeType.key}
-            type={activeType}
+            // 이름 입력 중에는 내부용 임시 이름 대신 탭에 치고 있는 이름을 보여준다.
+            type={initialNamingTypeKey === activeType.key ? { ...activeType, label: editingValue } : activeType}
             isRenamePending={renameBuildingTypeMutation.isPending}
             isReorderPending={reorderFeeItemsMutation.isPending}
             onAddItem={openAddItem}
