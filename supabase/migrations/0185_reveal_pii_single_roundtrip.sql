@@ -137,7 +137,7 @@ begin
       v_from := 'profiles o'; v_id_expr := 'o.user_id'; v_id_is_uuid := true;
       v_org_expr := '(select min(m.org_id) from org_members m where m.user_id = o.user_id)';
       v_building_expr := 'null::bigint';
-      v_allowed := array['phone'];
+      v_allowed := array['phone', 'phone_sub'];
     else
       raise exception 'unknown target kind' using errcode = '22023';
   end case;

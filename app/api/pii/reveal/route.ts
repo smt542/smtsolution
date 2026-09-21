@@ -44,6 +44,8 @@ const REVEAL_TARGETS = {
   profile: {
     // 직원 프로필도 건물 소속이 아니다. 파트너는 열 수 없다.
     phone: UUID_KEY,
+    // 직원 계정 편집 폼이 저장 전에 원문을 받아야 하는 보조 번호(1ec1516f).
+    phone_sub: UUID_KEY,
   },
 } as const satisfies Record<string, Record<string, RevealTarget>>;
 
