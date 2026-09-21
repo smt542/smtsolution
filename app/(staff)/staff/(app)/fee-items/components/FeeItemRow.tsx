@@ -30,7 +30,7 @@ export function FeeItemRow({
   dropPosition,
 }: FeeItemRowProps) {
   const rounding = ROUNDING_OPTIONS.find((option) => option.value === item.rounding)?.label;
-  const editable = !item.isRequired;
+  const editable = item.id != null;
   const interactive = !item.isRequired && item.id != null && !isReorderPending;
   const indicatorClass = dropPosition === "before"
     ? "[&>*]:shadow-[inset_0_2px_0_0_var(--color-teal)]"

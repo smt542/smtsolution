@@ -282,6 +282,8 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
     const item = editingItem;
     const input = {
       ...value,
+      // 필수 항목 명칭은 잠겨 있으므로 폼 값이 아니라 원래 이름을 그대로 보낸다.
+      name: item?.isRequired ? item.name : value.name,
       orgId,
       typeId: activeType.id,
       isRequired: item?.isRequired ?? false,

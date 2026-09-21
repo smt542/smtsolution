@@ -61,6 +61,8 @@ export function FeeItemFormDialog({
     shouldFocusError: true,
   });
   const submitting = isPending || isSubmitting;
+  // 필수 항목(전기·수도료·가스)은 공과금 계산식에 물려 있어 명칭만 잠근다. 계산 설정은 수정 가능.
+  const nameLocked = Boolean(item?.isRequired);
   const submittingRef = useRef(submitting);
   useEffect(() => {
     submittingRef.current = submitting;
@@ -113,12 +115,18 @@ export function FeeItemFormDialog({
               autoFocus
               maxLength={30}
               placeholder="예: 일반관리비"
-              className="mt-1.5 h-11 w-full rounded-[11px] border border-line px-3 text-[13px] font-semibold text-t1 outline-none placeholder:text-t4 focus:border-teal focus:ring-2 focus:ring-teal-t"
+              readOnly={nameLocked}
+              className={`mt-1.5 h-11 w-full rounded-[11px] border border-line px-3 text-[13px] font-semibold outline-none placeholder:text-t4 ${nameLocked ? "bg-bg text-t3" : "text-t1 focus:border-teal focus:ring-2 focus:ring-teal-t"}`}
               {...register("name")}
               aria-invalid={Boolean(errors.name)}
-              aria-describedby={errors.name ? "fee-item-dialog-name-error" : undefined}
+              aria-describedby={nameLocked ? "fee-item-dialog-name-lock" : errors.name ? "fee-item-dialog-name-error" : undefined}
             />
-            {errors.name?.message && <span id="fee-item-dialog-name-error" className="mt-1.5 block text-[11px] text-red">{errors.name.message}</span>}
+            {nameLocked && (
+              <span id="fee-item-dialog-name-lock" className="mt-[7px] block text-[12px] font-semibold leading-[1.5] text-t3">
+                공과금 관리 계산식에 연결된 필수 항목이라 명칭 변경·삭제가 불가해요
+              </span>
+            )}
+            {!nameLocked && errors.name?.message && <span id="fee-item-dialog-name-error" className="mt-1.5 block text-[11px] text-red">{errors.name.message}</span>}
           </label>
 
           <Controller control={control} name="rounding" render={({ field }) => (
