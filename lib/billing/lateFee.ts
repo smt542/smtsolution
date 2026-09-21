@@ -16,11 +16,15 @@ export interface LateFeePeriodResult {
   period: Period;
   months: number;
   cumulativeRatePct: number;
+  /** 월차별 구간 요율로 계산한 연체료("납.연체료"). */
   lateFee: number;
+  /** 납기후 가산금("납.후연체"). 월차와 무관한 정률이라 따로 둔다(0187). */
+  postDueFee: number;
 }
 
 export interface LateFeeResult {
   totalLateFee: number;
+  totalPostDueFee: number;
   byPeriod: LateFeePeriodResult[];
 }
 
@@ -62,14 +66,17 @@ export function computeLateFeeForPeriod(
   tiers: RateTier[],
   asOfYear: number,
   asOfMonth: number,
+  postDueRatePct = 0,
 ): LateFeePeriodResult {
   const months = monthsOverdue(input.dueDate, asOfYear, asOfMonth);
   const cumulativeRatePct = cumulativeRate(tiers, months);
   const lateFee = Math.round(
     (input.unpaidPrincipal * cumulativeRatePct) / 100,
   );
+  // 납기후 가산금("납.후연체"). 월차와 무관한 정률이라 구간 요율과 따로 계산한다(0187).
+  const postDueFee = Math.round((input.unpaidPrincipal * postDueRatePct) / 100);
 
-  return { period: input.period, months, cumulativeRatePct, lateFee };
+  return { period: input.period, months, cumulativeRatePct, lateFee, postDueFee };
 }
 
 export function computeLateFee(
@@ -77,14 +84,13 @@ export function computeLateFee(
   tiers: RateTier[],
   asOfYear: number,
   asOfMonth: number,
+  postDueRatePct = 0,
 ): LateFeeResult {
   const byPeriod = periods.map((period) =>
-    computeLateFeeForPeriod(period, tiers, asOfYear, asOfMonth),
+    computeLateFeeForPeriod(period, tiers, asOfYear, asOfMonth, postDueRatePct),
   );
-  const totalLateFee = byPeriod.reduce(
-    (sum, result) => sum + result.lateFee,
-    0,
-  );
+  const totalLateFee = byPeriod.reduce((sum, result) => sum + result.lateFee, 0);
+  const totalPostDueFee = byPeriod.reduce((sum, result) => sum + result.postDueFee, 0);
 
-  return { totalLateFee, byPeriod };
+  return { totalLateFee, totalPostDueFee, byPeriod };
 }

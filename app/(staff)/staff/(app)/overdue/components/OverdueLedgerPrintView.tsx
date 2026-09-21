@@ -116,9 +116,9 @@ export function OverdueLedgerPrintView({
                     <td className="c">{line.months}</td>
                     <td className="r">{nz(line.principal)}</td>
                     <td className="r">{nz(line.lateFee)}</td>
-                    <td className="r">{nz(0)}</td>
-                    <td className="r">{nz(line.lateFee)}</td>
-                    <td className="r">{nz(line.principal + line.lateFee)}</td>
+                    <td className="r">{nz(line.postDueFee)}</td>
+                    <td className="r">{nz(line.lateFee + line.postDueFee)}</td>
+                    <td className="r">{nz(line.principal + line.lateFee + line.postDueFee)}</td>
                     <td className="c">{index === 0 ? group.household.phone ?? "" : ""}</td>
                     <td>{index === 0 ? group.household.tenantName ?? "" : ""}</td>
                   </tr>
@@ -130,9 +130,9 @@ export function OverdueLedgerPrintView({
                   <td />
                   <td className="r">{nz(group.principal)}</td>
                   <td className="r">{nz(group.lateFee)}</td>
-                  <td className="r">{nz(0)}</td>
-                  <td className="r">{nz(group.lateFee)}</td>
-                  <td className="r">{nz(group.principal + group.lateFee)}</td>
+                  <td className="r">{nz(group.postDueFee)}</td>
+                  <td className="r">{nz(group.lateFee + group.postDueFee)}</td>
+                  <td className="r">{nz(group.principal + group.lateFee + group.postDueFee)}</td>
                   <td />
                   <td />
                 </tr>
@@ -143,9 +143,9 @@ export function OverdueLedgerPrintView({
             <td className="c" colSpan={4}>합계 {totals.lineCount} 건</td>
             <td className="r">{nz(totals.principal)}</td>
             <td className="r">{nz(totals.lateFee)}</td>
-            <td className="r">{nz(0)}</td>
-            <td className="r">{nz(totals.lateFee)}</td>
-            <td className="r">{nz(totals.principal + totals.lateFee)}</td>
+            <td className="r">{nz(totals.postDueFee)}</td>
+            <td className="r">{nz(totals.lateFee + totals.postDueFee)}</td>
+            <td className="r">{nz(totals.principal + totals.lateFee + totals.postDueFee)}</td>
             <td colSpan={2} />
           </tr>
         </tbody>

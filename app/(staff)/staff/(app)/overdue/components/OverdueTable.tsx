@@ -37,7 +37,12 @@ const money = new Intl.NumberFormat("ko-KR");
 
 export function OverdueTable({ rows, periods = [] }: OverdueTableProps) {
   const groups = buildOverdueGroups(rows, periods);
-  const { lineCount: itemCount, principal: principalTotal, lateFee: lateFeeTotal } = sumOverdueGroups(groups);
+  const {
+    lineCount: itemCount,
+    principal: principalTotal,
+    lateFee: lateFeeTotal,
+    postDueFee: postDueTotal,
+  } = sumOverdueGroups(groups);
 
   return (
     <div className="min-h-0 flex-1 overflow-auto rounded-b-[16px] bg-white">
@@ -70,9 +75,9 @@ export function OverdueTable({ rows, periods = [] }: OverdueTableProps) {
                   <td className="border-b border-line2 px-[16px] text-right num">{line.months}</td>
                   <td className="border-b border-line2 px-[16px] text-right num">{money.format(line.principal)}</td>
                   <td className="border-b border-line2 px-[16px] text-right num">{money.format(line.lateFee)}</td>
-                  <td className="border-b border-line2 px-[16px] text-right num">0</td>
-                  <td className="border-b border-line2 px-[16px] text-right num">{money.format(line.lateFee)}</td>
-                  <td className="border-b border-line2 px-[16px] text-right font-medium num">{money.format(line.principal + line.lateFee)}</td>
+                  <td className="border-b border-line2 px-[16px] text-right num">{money.format(line.postDueFee)}</td>
+                  <td className="border-b border-line2 px-[16px] text-right num">{money.format(line.lateFee + line.postDueFee)}</td>
+                  <td className="border-b border-line2 px-[16px] text-right font-medium num">{money.format(line.principal + line.lateFee + line.postDueFee)}</td>
                   <td className="border-b border-line2 px-[16px] text-t3">{index === 0 ? group.household.memo ?? group.household.unitMemo ?? "" : ""}</td>
                   <td className="border-b border-line2 px-[16px] num">
                     {index === 0 && group.household.phone ? (
@@ -95,9 +100,9 @@ export function OverdueTable({ rows, periods = [] }: OverdueTableProps) {
                 <td className="border-b border-line2 px-[16px]" />
                 <td className="border-b border-line2 px-[16px] text-right num">{money.format(group.principal)}</td>
                 <td className="border-b border-line2 px-[16px] text-right num">{money.format(group.lateFee)}</td>
-                <td className="border-b border-line2 px-[16px] text-right num">0</td>
-                <td className="border-b border-line2 px-[16px] text-right num">{money.format(group.lateFee)}</td>
-                <td className="border-b border-line2 px-[16px] text-right num">{money.format(group.principal + group.lateFee)}</td>
+                <td className="border-b border-line2 px-[16px] text-right num">{money.format(group.postDueFee)}</td>
+                <td className="border-b border-line2 px-[16px] text-right num">{money.format(group.lateFee + group.postDueFee)}</td>
+                <td className="border-b border-line2 px-[16px] text-right num">{money.format(group.principal + group.lateFee + group.postDueFee)}</td>
                 <td className="border-b border-line2 px-[16px]" />
                 <td className="border-b border-line2 px-[16px]" />
                 <td className="border-b border-line2 px-[16px]" />
@@ -113,9 +118,9 @@ export function OverdueTable({ rows, periods = [] }: OverdueTableProps) {
             <td className="border-t border-line bg-[#f7f9fa] px-[16px]" />
             <td className="border-t border-line bg-[#f7f9fa] px-[16px] text-right num">{money.format(principalTotal)}</td>
             <td className="border-t border-line bg-[#f7f9fa] px-[16px] text-right num">{money.format(lateFeeTotal)}</td>
-            <td className="border-t border-line bg-[#f7f9fa] px-[16px] text-right num">0</td>
-            <td className="border-t border-line bg-[#f7f9fa] px-[16px] text-right num">{money.format(lateFeeTotal)}</td>
-            <td className="border-t border-line bg-[#f7f9fa] px-[16px] text-right num">{money.format(principalTotal + lateFeeTotal)}</td>
+            <td className="border-t border-line bg-[#f7f9fa] px-[16px] text-right num">{money.format(postDueTotal)}</td>
+            <td className="border-t border-line bg-[#f7f9fa] px-[16px] text-right num">{money.format(lateFeeTotal + postDueTotal)}</td>
+            <td className="border-t border-line bg-[#f7f9fa] px-[16px] text-right num">{money.format(principalTotal + lateFeeTotal + postDueTotal)}</td>
             <td className="border-t border-line bg-[#f7f9fa] px-[16px]" />
             <td className="border-t border-line bg-[#f7f9fa] px-[16px]" />
             <td className="rounded-br-[16px] border-t border-line bg-[#f7f9fa] px-[16px]" />
