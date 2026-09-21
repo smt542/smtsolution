@@ -1,5 +1,11 @@
 import type { KeyboardEvent } from "react";
 import { MaskedPhone } from "@/components/common/MaskedPhone";
+import {
+  buildOverdueGroups,
+  formatOverduePeriod,
+  formatOverdueUnit,
+  sumOverdueGroups,
+} from "./overdueRowModel";
 import type { OverdueHousehold, OverduePeriodRow } from "@/hooks/reactquery/overdue";
 
 interface OverdueTableProps {
@@ -9,21 +15,6 @@ interface OverdueTableProps {
   selectedIds?: Set<number>;
   onToggleOne?: (occupancyId: number) => void;
   onToggleAll?: () => void;
-}
-
-interface PeriodLine {
-  key: string;
-  period: string;
-  months: number;
-  principal: number;
-  lateFee: number;
-}
-
-interface HouseholdGroup {
-  household: OverdueHousehold;
-  lines: PeriodLine[];
-  principal: number;
-  lateFee: number;
 }
 
 // 정본 `#ovBody` 표 헤더의 min-width/width 를 그대로 옮겼다. 정본은 table-layout:auto 라
@@ -46,56 +37,9 @@ const COLUMNS = [
 
 const money = new Intl.NumberFormat("ko-KR");
 
-function formatPeriod(value: string): string {
-  const [year, month] = value.split("-");
-  return year && month ? `${year}/${month}` : value;
-}
-
-function buildGroups(rows: OverdueHousehold[], periods: OverduePeriodRow[]): HouseholdGroup[] {
-  return rows.map((household) => {
-    const periodLateFee = new Map(
-      (household.lateFeeByPeriod ?? []).map((item) => [item.period, item]),
-    );
-    const householdPeriods = periods
-      .filter(
-        (period) =>
-          period.occupancyId === household.occupancyId &&
-          period.unitId === household.unitId,
-      )
-      .sort((a, b) => b.period.localeCompare(a.period));
-    const lines = householdPeriods.length > 0
-      ? householdPeriods.map((period) => {
-          const lateFee = periodLateFee.get(period.period);
-          return {
-            key: `${household.occupancyId}:${period.period}`,
-            period: period.period,
-            months: lateFee?.months ?? household.overdueMonths,
-            principal: period.unpaidPrincipal,
-            lateFee: lateFee?.lateFee ?? 0,
-          };
-        })
-      : [{
-          key: `${household.occupancyId}:aggregate`,
-          period: "-",
-          months: household.overdueMonths,
-          principal: household.overdueAmount,
-          lateFee: household.lateFeeAmount ?? 0,
-        }];
-
-    return {
-      household,
-      lines,
-      principal: lines.reduce((sum, line) => sum + line.principal, 0),
-      lateFee: lines.reduce((sum, line) => sum + line.lateFee, 0),
-    };
-  });
-}
-
 export function OverdueTable({ rows, periods = [], onRowClick }: OverdueTableProps) {
-  const groups = buildGroups(rows, periods);
-  const itemCount = groups.reduce((sum, group) => sum + group.lines.length, 0);
-  const principalTotal = groups.reduce((sum, group) => sum + group.principal, 0);
-  const lateFeeTotal = groups.reduce((sum, group) => sum + group.lateFee, 0);
+  const groups = buildOverdueGroups(rows, periods);
+  const { lineCount: itemCount, principal: principalTotal, lateFee: lateFeeTotal } = sumOverdueGroups(groups);
 
   const openWithKeyboard = (
     event: KeyboardEvent<HTMLTableRowElement>,
@@ -125,9 +69,7 @@ export function OverdueTable({ rows, periods = [], onRowClick }: OverdueTablePro
         </thead>
         <tbody>
           {groups.map((group) => {
-            const unit = [group.household.dong, group.household.unitNo]
-              .filter(Boolean)
-              .join("-");
+            const unit = formatOverdueUnit(group.household);
             return [
               ...group.lines.map((line, index) => (
                 <tr
@@ -140,7 +82,7 @@ export function OverdueTable({ rows, periods = [], onRowClick }: OverdueTablePro
                 >
                   <td className="border-b border-line2 px-[16px] font-medium">{index === 0 ? unit : ""}</td>
                   <td className="border-b border-line2 px-[16px]">{index === 0 ? group.household.buildingName : ""}</td>
-                  <td className="border-b border-line2 px-[16px] num">{line.period === "-" ? "-" : formatPeriod(line.period)}</td>
+                  <td className="border-b border-line2 px-[16px] num">{line.period === "-" ? "-" : formatOverduePeriod(line.period)}</td>
                   <td className="border-b border-line2 px-[16px] text-right num">{line.months}</td>
                   <td className="border-b border-line2 px-[16px] text-right num">{money.format(line.principal)}</td>
                   <td className="border-b border-line2 px-[16px] text-right num">{money.format(line.lateFee)}</td>
