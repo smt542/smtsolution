@@ -19,7 +19,6 @@ import { formatDate, formatKrw, formatPeriodMonth, formatUnit } from "@/lib/mess
 import { MessagingModal } from "../../messaging/components/MessagingModal";
 import { isDebtCollectionTarget } from "../utils";
 import { OverdueLedgerPrintView } from "./OverdueLedgerPrintView";
-import { OverdueDetailModal } from "./OverdueDetailModal";
 import { OverdueEmptyState } from "./OverdueEmptyState";
 import { OverdueFloatingActions } from "./OverdueFloatingActions";
 import { OverdueTable } from "./OverdueTable";
@@ -55,7 +54,6 @@ export function OverdueWorkspace({
   }>({ year: null, month: null });
   const [scope, setScope] = useState<OverdueScope>("all");
   const [debtFilterEnabled, setDebtFilterEnabled] = useState(false);
-  const [detailHousehold, setDetailHousehold] = useState<OverdueHousehold | null>(null);
   const [messageRecipients, setMessageRecipients] = useState<MessageRecipient[]>([]);
   const [isMessagingOpen, setIsMessagingOpen] = useState(false);
 
@@ -146,7 +144,6 @@ export function OverdueWorkspace({
 
   const resetResultState = () => {
     setDebtFilterEnabled(false);
-    setDetailHousehold(null);
     setMessageRecipients([]);
     setIsMessagingOpen(false);
   };
@@ -306,13 +303,11 @@ export function OverdueWorkspace({
             <OverdueTable
               rows={visibleHouseholds}
               periods={overduePeriods}
-              onRowClick={setDetailHousehold}
             />
           )}
         </section>
 
         <OverdueFloatingActions />
-        <OverdueDetailModal household={detailHousehold} onClose={() => setDetailHousehold(null)} />
         <MessagingModal
           open={isMessagingOpen}
           presentation="workspace"
