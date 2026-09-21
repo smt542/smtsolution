@@ -18,7 +18,8 @@ import type { MessageRecipient } from "@/lib/messaging/preset";
 import { residentOrigin } from "@/lib/messaging/residentOrigin";
 import { formatDate, formatKrw, formatPeriodMonth, formatUnit } from "@/lib/messaging/vars";
 import { MessagingModal } from "../../messaging/components/MessagingModal";
-import { downloadOverdueLedger, isDebtCollectionTarget } from "../utils";
+import { isDebtCollectionTarget } from "../utils";
+import { OverdueLedgerPrintView } from "./OverdueLedgerPrintView";
 import { OverdueDetailModal } from "./OverdueDetailModal";
 import { OverdueEmptyState } from "./OverdueEmptyState";
 import { OverdueFloatingActions } from "./OverdueFloatingActions";
@@ -164,18 +165,13 @@ export function OverdueWorkspace({
     resetResultState();
   };
 
+  // 정본 `#ovPrint` 와 같다 — 내려받기가 아니라 브라우저 인쇄로 A4 시트를 뽑는다.
   const exportLedger = () => {
     if (!selectedBuilding || visibleHouseholds.length === 0) {
-      toast.info("출력할 미납 세대가 없습니다.");
+      toast.info("출력할 내역이 없어요");
       return;
     }
-
-    try {
-      const filename = downloadOverdueLedger(selectedBuilding.name, visibleHouseholds);
-      toast.success(`${filename} 파일을 저장했습니다.`);
-    } catch {
-      toast.error("미납대장을 저장하지 못했습니다. 다시 시도해 주세요.");
-    }
+    window.print();
   };
 
   const openMessagingModal = async () => {
@@ -259,88 +255,99 @@ export function OverdueWorkspace({
   };
 
   return (
-    <div className="h-[calc(100dvh-62px)] min-h-[520px] bg-bg px-[24px] pb-[24px] pt-[22px]">
-      {/* 정본 `.hf-body>.hf-panel{overflow:visible}` — 툴바 드롭다운 메뉴가 패널 밖으로
-          나가야 해서 클리핑하지 않는다. 아래 모서리는 표 래퍼/합계행이 직접 둥글린다. */}
-      <section className="flex h-full min-h-0 flex-col overflow-visible rounded-[16px] bg-white shadow-card">
-        <OverdueToolbar
-          buildings={buildings}
-          selectedBuildingId={selectedBuildingId}
-          onBuildingChange={changeBuilding}
-          targetYear={targetPeriod.year}
-          targetMonth={targetPeriod.month}
-          scope={scope}
-          onPeriodChange={changePeriod}
-          onScopeChange={changeScope}
-          debtFilterEnabled={debtFilterEnabled}
-          onToggleDebtFilter={() => setDebtFilterEnabled((current) => !current)}
-          onSend={() => void openMessagingModal()}
-          onExport={exportLedger}
-          canSend={!isHouseholdsLoading && canSendMessages}
-          canExport={!isHouseholdsLoading}
-          disabled={isBuildingsLoading}
+    <>
+      <div className="h-[calc(100dvh-62px)] min-h-[520px] bg-bg px-[24px] pb-[24px] pt-[22px] print:hidden">
+        {/* 정본 `.hf-body>.hf-panel{overflow:visible}` — 툴바 드롭다운 메뉴가 패널 밖으로
+            나가야 해서 클리핑하지 않는다. 아래 모서리는 표 래퍼/합계행이 직접 둥글린다. */}
+        <section className="flex h-full min-h-0 flex-col overflow-visible rounded-[16px] bg-white shadow-card">
+          <OverdueToolbar
+            buildings={buildings}
+            selectedBuildingId={selectedBuildingId}
+            onBuildingChange={changeBuilding}
+            targetYear={targetPeriod.year}
+            targetMonth={targetPeriod.month}
+            scope={scope}
+            onPeriodChange={changePeriod}
+            onScopeChange={changeScope}
+            debtFilterEnabled={debtFilterEnabled}
+            onToggleDebtFilter={() => setDebtFilterEnabled((current) => !current)}
+            onSend={() => void openMessagingModal()}
+            onExport={exportLedger}
+            canSend={!isHouseholdsLoading && canSendMessages}
+            canExport={!isHouseholdsLoading}
+            disabled={isBuildingsLoading}
+          />
+
+          {/* 정본은 조회 준비 상태를 년·월만 보고 판단한다(`ready = !!(oy && om)`) — 건물은
+              표를 거르는 검색어일 뿐 선택 게이트가 없다. 앱은 조회 RPC에 건물이 필요해
+              게이트가 남지만, 문구는 정본의 한 가지로 통일한다(사용자 결정 2026-09-21). */}
+          {!hasPeriod || selectedBuildingId === null ? (
+            <OverdueEmptyState
+              title="년도와 월을 선택해 주세요"
+              description="조회 기간을 고르면 미납 내역이 표시돼요"
+            />
+          ) : isHouseholdsLoading ? (
+            <div className="flex min-h-[360px] flex-1 items-center justify-center">
+              <Spinner label="미납 세대 조회 중" showLabel />
+            </div>
+          ) : householdsError ? (
+            <div role="alert" className="flex min-h-[360px] flex-1 flex-col items-center justify-center gap-[12px] text-center">
+              <p className="text-[13.5px] text-t3">미납 내역을 불러오지 못했어요</p>
+              <button
+                type="button"
+                onClick={() => void refetch()}
+                className="h-[34px] rounded-[9px] border border-line bg-white px-[14px] text-[13px] font-bold text-t2"
+              >
+                다시 조회
+              </button>
+            </div>
+          ) : visibleHouseholds.length === 0 ? (
+            <OverdueEmptyState
+              title={debtFilterEnabled ? "독촉 대상이 없어요" : "조회 결과가 없어요"}
+              description={debtFilterEnabled ? "독촉 기준을 만족하는 미납 세대가 없어요" : "다른 조회 조건을 선택해 보세요"}
+            />
+          ) : (
+            <OverdueTable
+              rows={visibleHouseholds}
+              periods={overduePeriods}
+              onRowClick={setDetailHousehold}
+            />
+          )}
+        </section>
+
+        <OverdueFloatingActions />
+        <OverdueDetailModal household={detailHousehold} onClose={() => setDetailHousehold(null)} />
+        <MessagingModal
+          open={isMessagingOpen}
+          presentation="workspace"
+          itemCount={messageItemCount}
+          preset={{
+            context: "독촉",
+            buildingId: selectedBuildingId ?? undefined,
+            channel: "sms",
+            mode: "sms",
+            templateTitle: "관리비 미납 안내",
+            recipients: messageRecipients,
+            commonVariables: {
+              건물명: selectedBuilding?.name ?? "",
+              관리사무소연락처: orgContact?.phone ?? "",
+            },
+          }}
+          onClose={() => setIsMessagingOpen(false)}
+          onSent={() => {
+            setIsMessagingOpen(false);
+          }}
         />
+      </div>
 
-        {/* 정본은 조회 준비 상태를 년·월만 보고 판단한다(`ready = !!(oy && om)`) — 건물은
-            표를 거르는 검색어일 뿐 선택 게이트가 없다. 앱은 조회 RPC에 건물이 필요해
-            게이트가 남지만, 문구는 정본의 한 가지로 통일한다(사용자 결정 2026-09-21). */}
-        {!hasPeriod || selectedBuildingId === null ? (
-          <OverdueEmptyState
-            title="년도와 월을 선택해 주세요"
-            description="조회 기간을 고르면 미납 내역이 표시돼요"
-          />
-        ) : isHouseholdsLoading ? (
-          <div className="flex min-h-[360px] flex-1 items-center justify-center">
-            <Spinner label="미납 세대 조회 중" showLabel />
-          </div>
-        ) : householdsError ? (
-          <div role="alert" className="flex min-h-[360px] flex-1 flex-col items-center justify-center gap-[12px] text-center">
-            <p className="text-[13.5px] text-t3">미납 내역을 불러오지 못했어요</p>
-            <button
-              type="button"
-              onClick={() => void refetch()}
-              className="h-[34px] rounded-[9px] border border-line bg-white px-[14px] text-[13px] font-bold text-t2"
-            >
-              다시 조회
-            </button>
-          </div>
-        ) : visibleHouseholds.length === 0 ? (
-          <OverdueEmptyState
-            title={debtFilterEnabled ? "독촉 대상이 없어요" : "조회 결과가 없어요"}
-            description={debtFilterEnabled ? "독촉 기준을 만족하는 미납 세대가 없어요" : "다른 조회 조건을 선택해 보세요"}
-          />
-        ) : (
-          <OverdueTable
-            rows={visibleHouseholds}
-            periods={overduePeriods}
-            onRowClick={setDetailHousehold}
-          />
-        )}
-      </section>
-
-      <OverdueFloatingActions />
-      <OverdueDetailModal household={detailHousehold} onClose={() => setDetailHousehold(null)} />
-      <MessagingModal
-        open={isMessagingOpen}
-        presentation="workspace"
-        itemCount={messageItemCount}
-        preset={{
-          context: "독촉",
-          buildingId: selectedBuildingId ?? undefined,
-          channel: "sms",
-          mode: "sms",
-          templateTitle: "관리비 미납 안내",
-          recipients: messageRecipients,
-          commonVariables: {
-            건물명: selectedBuilding?.name ?? "",
-            관리사무소연락처: orgContact?.phone ?? "",
-          },
-        }}
-        onClose={() => setIsMessagingOpen(false)}
-        onSent={() => {
-          setIsMessagingOpen(false);
-        }}
-      />
-    </div>
+      {hasPeriod && visibleHouseholds.length > 0 && (
+        <OverdueLedgerPrintView
+          year={targetPeriod.year as number}
+          month={targetPeriod.month as number}
+          rows={visibleHouseholds}
+          periods={overduePeriods}
+        />
+      )}
+    </>
   );
 }
