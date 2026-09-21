@@ -35,6 +35,19 @@ interface PendingBuildingType {
   label: string;
 }
 
+// 아직 DB에 없는 필수 항목은 화면에만 놓는다. 유형을 만들면 DB 트리거가 실제 행을 채운다.
+function requiredPlaceholder(keyPrefix: string, name: string, index: number): FeeItemDraft {
+  return {
+    key: `${keyPrefix}-required-${index}`,
+    name,
+    rounding: "round",
+    dailyProration: true,
+    carryOver: true,
+    isRequired: true,
+    sortOrder: index,
+  };
+}
+
 function toTypeViews(types: BuildingType[], items: FeeItem[]): BuildingTypeDraft[] {
   return [...types]
     .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -44,17 +57,7 @@ function toTypeViews(types: BuildingType[], items: FeeItem[]): BuildingTypeDraft
         .sort((a, b) => a.sortOrder - b.sortOrder);
       const required = REQUIRED_ITEM_NAMES.map((name, itemIndex) => {
         const existingIndex = remaining.findIndex((item) => item.name.trim() === name);
-        if (existingIndex < 0) {
-          return {
-            key: `type-${type.id}-required-${itemIndex}`,
-            name,
-            rounding: "round" as const,
-            dailyProration: true,
-            carryOver: true,
-            isRequired: true,
-            sortOrder: itemIndex,
-          } satisfies FeeItemDraft;
-        }
+        if (existingIndex < 0) return requiredPlaceholder(`type-${type.id}`, name, itemIndex);
 
         const [existing] = remaining.splice(existingIndex, 1);
         return {
@@ -122,7 +125,7 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
           key: pendingType.key,
           label: pendingType.label,
           sortOrder: persistedTypes.length,
-          items: [],
+          items: REQUIRED_ITEM_NAMES.map((name, index) => requiredPlaceholder(pendingType.key, name, index)),
         } satisfies BuildingTypeDraft,
       ]
     : persistedTypes;
