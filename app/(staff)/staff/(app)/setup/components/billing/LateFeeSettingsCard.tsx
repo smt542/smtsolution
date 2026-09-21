@@ -3,8 +3,11 @@ import { Input, Panel, Switch } from "@/components/common";
 type LateFeeSettingsCardProps = {
   enabled: boolean;
   rates: readonly string[];
+  /** 납기후 가산율(%). 미납 표·고지서의 "납.후연체" 계산에 쓴다. */
+  postDueRate: string;
   onEnabledChange: (value: boolean) => void;
   onRateChange: (index: number, value: string) => void;
+  onPostDueRateChange: (value: string) => void;
 };
 
 const MONTH_LABELS = [
@@ -25,8 +28,10 @@ const MONTH_LABELS = [
 export function LateFeeSettingsCard({
   enabled,
   rates,
+  postDueRate,
   onEnabledChange,
   onRateChange,
+  onPostDueRateChange,
 }: LateFeeSettingsCardProps) {
   return (
     <Panel
@@ -34,7 +39,7 @@ export function LateFeeSettingsCard({
       subtitle="미납 개월 수에 따른 다른 요율 적용합니다. (단리)"
       variant="compact"
       action={<Switch ariaLabel="관리비 연체 설정" checked={enabled} onChange={onEnabledChange} />}
-      className="h-[202px]"
+      className="h-[268px]"
     >
       <div className="grid h-[116px] grid-cols-8 grid-rows-[54px_54px] gap-[8px]">
         {MONTH_LABELS.map((label, index) => (
@@ -59,6 +64,26 @@ export function LateFeeSettingsCard({
             </div>
           </div>
         ))}
+      </div>
+
+      {/* 월차 요율과 달리 월수와 무관한 정률이라 따로 둔다 — 미납 표의 "납.후연체" 열이 이 값이다. */}
+      <div className="mt-[12px] flex h-[54px] items-center justify-between rounded-[12px] border border-line2 bg-bg py-[8px] pl-[13px] pr-[10px]">
+        <div className="flex flex-col">
+          <span className="text-[13px] font-bold text-t2">납기후 가산율</span>
+          <span className="text-[11.5px] font-medium text-t3">납기일이 지나면 미납원금에 이 비율을 더해요</span>
+        </div>
+        <div className="flex items-center gap-[8px]">
+          <Input
+            size="36"
+            type="number"
+            step="any"
+            aria-label="납기후 가산율"
+            value={postDueRate}
+            onChange={(event) => onPostDueRateChange(event.target.value)}
+            className="w-[70px] shrink-0 text-right"
+          />
+          <span className="text-[13.5px] font-semibold text-t2">%</span>
+        </div>
       </div>
     </Panel>
   );

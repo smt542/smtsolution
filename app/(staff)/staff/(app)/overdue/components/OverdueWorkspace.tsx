@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Spinner } from "@/components/common";
 import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
+import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
 import { signedBillPath, useStaffSignBillUrls } from "@/hooks/reactquery/residentBilling";
 import {
   useOverdueHouseholds,
@@ -88,6 +89,9 @@ export function OverdueWorkspace({
   } = useOverdueHouseholds(null, overdueQuery, hasPeriod);
   const { data: overduePeriods = [] } = useOverduePeriods(null, overdueQuery, hasPeriod);
   const { data: lateFeeRateTiers = [] } = useLateFeeRateTiers(orgId);
+  // "납.후연체" 는 /staff/setup 고지서 설정의 납기후 가산율로 계산한다(0187).
+  const { data: setupConfig } = useSetupConfig(orgId);
+  const postDueRatePct = setupConfig?.lateFeePostDueRate ?? 0;
   const { data: orgContact } = useOverdueOrgContact(orgId);
   const signBillUrls = useStaffSignBillUrls();
 
@@ -115,14 +119,16 @@ export function OverdueWorkspace({
         lateFeeRateTiers,
         targetPeriod.year as number,
         targetPeriod.month as number,
+        postDueRatePct,
       );
       return {
         ...household,
         lateFeeAmount: result.totalLateFee,
+        postDueFeeAmount: result.totalPostDueFee,
         lateFeeByPeriod: result.byPeriod,
       };
     });
-  }, [households, lateFeeRateTiers, overduePeriods, targetPeriod.month, targetPeriod.year]);
+  }, [households, lateFeeRateTiers, overduePeriods, postDueRatePct, targetPeriod.month, targetPeriod.year]);
 
   // 정본은 미납이 있는 세대만 표에 넣는다(`build()` 가 미납 세대만 만든다).
   // 앱은 점유 세대를 전부 조회하므로 잔액 0 인 세대를 여기서 걸러낸다 —
@@ -240,7 +246,9 @@ export function OverdueWorkspace({
               세대: unit,
               // 정본 본문은 "연체료 포함" 금액과 미납 개월수를 쓴다.
               미납개월: String(row.overdueMonths),
-              미납금액: formatKrw(row.overdueAmount + (row.lateFeeAmount ?? 0)),
+              미납금액: formatKrw(
+                row.overdueAmount + (row.lateFeeAmount ?? 0) + (row.postDueFeeAmount ?? 0),
+              ),
               미납월: formatPeriodMonth(latestPeriod.period),
               납기일: formatDate(latestPeriod.dueDate),
               상세링크: detailLink,

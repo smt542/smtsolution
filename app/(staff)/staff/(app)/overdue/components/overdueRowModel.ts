@@ -13,6 +13,8 @@ export interface OverduePeriodLine {
   months: number;
   principal: number;
   lateFee: number;
+  /** 납기후 가산금("납.후연체"). */
+  postDueFee: number;
 }
 
 export interface OverdueHouseholdGroup {
@@ -20,6 +22,7 @@ export interface OverdueHouseholdGroup {
   lines: OverduePeriodLine[];
   principal: number;
   lateFee: number;
+  postDueFee: number;
 }
 
 /** 정본 `r.ym` 과 같은 `YYYY/MM`. */
@@ -57,6 +60,7 @@ export function buildOverdueGroups(
             months: lateFee?.months ?? household.overdueMonths,
             principal: period.unpaidPrincipal,
             lateFee: lateFee?.lateFee ?? 0,
+            postDueFee: lateFee?.postDueFee ?? 0,
           };
         })
       : [{
@@ -65,6 +69,7 @@ export function buildOverdueGroups(
           months: household.overdueMonths,
           principal: household.overdueAmount,
           lateFee: household.lateFeeAmount ?? 0,
+          postDueFee: household.postDueFeeAmount ?? 0,
         }];
 
     return {
@@ -72,6 +77,7 @@ export function buildOverdueGroups(
       lines,
       principal: lines.reduce((sum, line) => sum + line.principal, 0),
       lateFee: lines.reduce((sum, line) => sum + line.lateFee, 0),
+      postDueFee: lines.reduce((sum, line) => sum + line.postDueFee, 0),
     };
   });
 }
@@ -81,6 +87,7 @@ export interface OverdueTotals {
   lineCount: number;
   principal: number;
   lateFee: number;
+  postDueFee: number;
 }
 
 export function sumOverdueGroups(groups: OverdueHouseholdGroup[]): OverdueTotals {
@@ -88,5 +95,6 @@ export function sumOverdueGroups(groups: OverdueHouseholdGroup[]): OverdueTotals
     lineCount: groups.reduce((sum, group) => sum + group.lines.length, 0),
     principal: groups.reduce((sum, group) => sum + group.principal, 0),
     lateFee: groups.reduce((sum, group) => sum + group.lateFee, 0),
+    postDueFee: groups.reduce((sum, group) => sum + group.postDueFee, 0),
   };
 }

@@ -39,6 +39,8 @@ export function BillingSettingsTab() {
   const [printDelta, setPrintDelta] = useState(false);
   const [cutoffMonths, setCutoffMonths] = useState("");
   const [lateFeeEnabled, setLateFeeEnabled] = useState(true);
+  // 납기후 가산율(%). 문자열로 두는 건 다른 입력들과 같은 이유다 — 입력 중 빈칸을 허용한다.
+  const [lateFeePostDueRate, setLateFeePostDueRate] = useState("0");
   const [lateFeeRates, setLateFeeRates] = useState<string[]>(() =>
     Array.from({ length: 12 }, () => "0"),
   );
@@ -66,6 +68,7 @@ export function BillingSettingsTab() {
     setPrintDelta.call(undefined, config.printDelta);
     setCutoffMonths.call(undefined, config.cutoffMonths != null ? String(config.cutoffMonths) : "");
     setLateFeeEnabled.call(undefined, config.lateFeeEnabled);
+    setLateFeePostDueRate.call(undefined, String(config.lateFeePostDueRate ?? 0));
   }, [config]);
 
   useEffect(() => {
@@ -121,6 +124,7 @@ export function BillingSettingsTab() {
             printDelta,
             cutoffMonths: cutoffMonths === "" ? null : Number(cutoffMonths),
             lateFeeEnabled,
+            lateFeePostDueRate: lateFeePostDueRate === "" ? 0 : Number(lateFeePostDueRate),
           },
         }),
         replaceLateFeeTiers.mutateAsync({
@@ -167,7 +171,9 @@ export function BillingSettingsTab() {
         <LateFeeSettingsCard
           enabled={lateFeeEnabled}
           rates={lateFeeRates}
+          postDueRate={lateFeePostDueRate}
           onEnabledChange={setLateFeeEnabled}
+          onPostDueRateChange={setLateFeePostDueRate}
           onRateChange={(index, value) => {
             setLateFeeRates((current) => current.map((rate, rateIndex) =>
               rateIndex === index ? value : rate,

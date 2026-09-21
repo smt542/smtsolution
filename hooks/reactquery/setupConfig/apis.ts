@@ -6,6 +6,8 @@ export interface SetupConfig {
   unitLabelDefault: "code" | "name";
   lateFeeMerge: boolean;
   lateFeeEnabled: boolean;
+  /** 납기후 가산율(%). "납.후연체" = 미납원금 × 이 비율. 0이면 부과하지 않는다(0187). */
+  lateFeePostDueRate: number;
   printUtilityCutoff: boolean;
   printWaterUnitPrice: boolean;
   printBillingPeriod: boolean;
@@ -44,7 +46,8 @@ export type SetupConfigPatch = Partial<Omit<SetupConfig, "orgId" | ServerManaged
 
 type SetupConfigRow = {
   org_id: number; customer_notice: string | null; unit_label_default: "code" | "name";
-  late_fee_merge: boolean; late_fee_enabled: boolean; print_utility_cutoff: boolean; print_water_unit_price: boolean;
+  late_fee_merge: boolean; late_fee_enabled: boolean; late_fee_post_due_rate: number | string;
+  print_utility_cutoff: boolean; print_water_unit_price: boolean;
   print_billing_period: boolean; print_delta: boolean; show_as_on_main: boolean; cutoff_months: number | null;
   mgmt_bank1: string | null; mgmt_acct1: string | null; mgmt_holder1: string | null; mgmt_print1: boolean;
   mgmt_bank2: string | null; mgmt_acct2: string | null; mgmt_holder2: string | null; mgmt_print2: boolean;
@@ -60,7 +63,10 @@ type SetupConfigRow = {
 
 const rowToConfig = (r: SetupConfigRow): SetupConfig => ({
   orgId: r.org_id, customerNotice: r.customer_notice, unitLabelDefault: r.unit_label_default,
-  lateFeeMerge: r.late_fee_merge, lateFeeEnabled: r.late_fee_enabled, printUtilityCutoff: r.print_utility_cutoff,
+  lateFeeMerge: r.late_fee_merge, lateFeeEnabled: r.late_fee_enabled,
+  // PostgREST 는 numeric 을 문자열로 돌려준다 → 항상 Number 로 강제한다.
+  lateFeePostDueRate: Number(r.late_fee_post_due_rate ?? 0),
+  printUtilityCutoff: r.print_utility_cutoff,
   printWaterUnitPrice: r.print_water_unit_price, printBillingPeriod: r.print_billing_period,
   printDelta: r.print_delta, showAsOnMain: r.show_as_on_main, cutoffMonths: r.cutoff_months,
   mgmtBank1: r.mgmt_bank1, mgmtAcct1: r.mgmt_acct1, mgmtHolder1: r.mgmt_holder1, mgmtPrint1: r.mgmt_print1,
@@ -79,7 +85,7 @@ const rowToConfig = (r: SetupConfigRow): SetupConfig => ({
 
 const CAMEL_TO_SNAKE: Record<keyof SetupConfigPatch, string> = {
   customerNotice:"customer_notice", unitLabelDefault:"unit_label_default", lateFeeMerge:"late_fee_merge",
-  lateFeeEnabled:"late_fee_enabled",
+  lateFeeEnabled:"late_fee_enabled", lateFeePostDueRate:"late_fee_post_due_rate",
   printUtilityCutoff:"print_utility_cutoff", printWaterUnitPrice:"print_water_unit_price",
   printBillingPeriod:"print_billing_period", printDelta:"print_delta", showAsOnMain:"show_as_on_main",
   cutoffMonths:"cutoff_months", mgmtBank1:"mgmt_bank1", mgmtAcct1:"mgmt_acct1", mgmtHolder1:"mgmt_holder1",
