@@ -26,6 +26,24 @@ interface HouseholdGroup {
   lateFee: number;
 }
 
+// 정본 `#ovBody` 표 헤더의 min-width/width 를 그대로 옮겼다. 정본은 table-layout:auto 라
+// 이 값들이 하한이고 남는 폭은 자동 분배된다 — table-fixed + % 로 바꾸면 컬럼이 넓어져
+// "연체" 헤더가 줄바꿈되고 가로 스크롤이 과도해진다.
+const COLUMNS = [
+  { label: "동호", align: "text-left", width: "min-w-[82px]" },
+  { label: "거래처명", align: "text-left", width: "min-w-[96px]" },
+  { label: "년월", align: "text-left", width: "w-[74px]" },
+  { label: "연체", align: "text-right", width: "w-[46px]" },
+  { label: "미납액", align: "text-right", width: "min-w-[82px]" },
+  { label: "납.연체료", align: "text-right", width: "min-w-[82px]" },
+  { label: "납.후연체", align: "text-right", width: "min-w-[82px]" },
+  { label: "연체료계", align: "text-right", width: "min-w-[82px]" },
+  { label: "합계", align: "text-right", width: "min-w-[88px]" },
+  { label: "비고", align: "text-left", width: "min-w-[130px]" },
+  { label: "전화", align: "text-left", width: "min-w-[118px]" },
+  { label: "이름", align: "text-left", width: "min-w-[72px]" },
+] as const;
+
 const money = new Intl.NumberFormat("ko-KR");
 
 function formatPeriod(value: string): string {
@@ -90,42 +108,15 @@ export function OverdueTable({ rows, periods = [], onRowClick }: OverdueTablePro
   };
 
   return (
-    <div className="min-h-0 flex-1 overflow-auto">
-      <table className="w-full min-w-[1240px] table-fixed border-separate border-spacing-0 text-[13.5px] text-t1">
-        <colgroup>
-          <col className="w-[8.15%]" />
-          <col className="w-[9.37%]" />
-          <col className="w-[5.29%]" />
-          <col className="w-[3.18%]" />
-          <col className="w-[9.31%]" />
-          <col className="w-[8.15%]" />
-          <col className="w-[8.15%]" />
-          <col className="w-[8.15%]" />
-          <col className="w-[9.31%]" />
-          <col className="w-[11.93%]" />
-          <col className="w-[12.39%]" />
-          <col className="w-[6.61%]" />
-        </colgroup>
+    <div className="min-h-0 flex-1 overflow-auto rounded-b-[16px] bg-white">
+      <table className="w-full whitespace-nowrap border-separate border-spacing-0 text-[13.5px] text-t1">
         <thead className="sticky top-0 z-20 bg-[#f7f9fa] text-[11.5px] font-medium text-t3">
           <tr>
-            {[
-              ["동호", "text-left"],
-              ["거래처명", "text-left"],
-              ["년월", "text-left"],
-              ["연체", "text-right"],
-              ["미납액", "text-right"],
-              ["납.연체료", "text-right"],
-              ["납.후연체", "text-right"],
-              ["연체료계", "text-right"],
-              ["합계", "text-right"],
-              ["비고", "text-left"],
-              ["전화", "text-left"],
-              ["이름", "text-left"],
-            ].map(([label, align]) => (
+            {COLUMNS.map(({ label, align, width }) => (
               <th
                 key={label}
                 scope="col"
-                className={`h-[36.5px] border-b border-line2 px-[16px] ${align}`}
+                className={`h-[36.5px] border-b border-line bg-[#f7f9fa] px-[16px] font-medium ${align} ${width}`}
               >
                 {label}
               </th>
@@ -145,7 +136,7 @@ export function OverdueTable({ rows, periods = [], onRowClick }: OverdueTablePro
                   aria-label={`${unit} ${group.household.tenantName ?? "입주자 미등록"} 상세 보기`}
                   onClick={() => onRowClick(group.household)}
                   onKeyDown={(event) => openWithKeyboard(event, group.household)}
-                  className="h-[41px] cursor-pointer bg-white transition hover:bg-[#f7fbfb] focus:bg-[#f7fbfb] focus:outline-none"
+                  className="h-[41px] cursor-pointer bg-white transition hover:bg-[#fbfcfd] focus:bg-[#fbfcfd] focus:outline-none"
                 >
                   <td className="border-b border-line2 px-[16px] font-medium">{index === 0 ? unit : ""}</td>
                   <td className="border-b border-line2 px-[16px]">{index === 0 ? group.household.buildingName : ""}</td>
@@ -190,18 +181,18 @@ export function OverdueTable({ rows, periods = [], onRowClick }: OverdueTablePro
         </tbody>
         <tfoot className="sticky bottom-0 z-20 bg-[#f7f9fa] font-bold text-t1">
           <tr className="h-[38.5px]">
-            <th scope="row" colSpan={3} className="border-t border-line px-[16px] text-left">
+            <th scope="row" colSpan={3} className="rounded-bl-[16px] border-t border-line bg-[#f7f9fa] px-[16px] text-left">
               항목 {itemCount} / {rows.length}건
             </th>
-            <td className="border-t border-line px-[16px]" />
-            <td className="border-t border-line px-[16px] text-right num">{money.format(principalTotal)}</td>
-            <td className="border-t border-line px-[16px] text-right num">{money.format(lateFeeTotal)}</td>
-            <td className="border-t border-line px-[16px] text-right num">0</td>
-            <td className="border-t border-line px-[16px] text-right num">{money.format(lateFeeTotal)}</td>
-            <td className="border-t border-line px-[16px] text-right num">{money.format(principalTotal + lateFeeTotal)}</td>
-            <td className="border-t border-line px-[16px]" />
-            <td className="border-t border-line px-[16px]" />
-            <td className="border-t border-line px-[16px]" />
+            <td className="border-t border-line bg-[#f7f9fa] px-[16px]" />
+            <td className="border-t border-line bg-[#f7f9fa] px-[16px] text-right num">{money.format(principalTotal)}</td>
+            <td className="border-t border-line bg-[#f7f9fa] px-[16px] text-right num">{money.format(lateFeeTotal)}</td>
+            <td className="border-t border-line bg-[#f7f9fa] px-[16px] text-right num">0</td>
+            <td className="border-t border-line bg-[#f7f9fa] px-[16px] text-right num">{money.format(lateFeeTotal)}</td>
+            <td className="border-t border-line bg-[#f7f9fa] px-[16px] text-right num">{money.format(principalTotal + lateFeeTotal)}</td>
+            <td className="border-t border-line bg-[#f7f9fa] px-[16px]" />
+            <td className="border-t border-line bg-[#f7f9fa] px-[16px]" />
+            <td className="rounded-br-[16px] border-t border-line bg-[#f7f9fa] px-[16px]" />
           </tr>
         </tfoot>
       </table>

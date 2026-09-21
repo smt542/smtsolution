@@ -262,5 +262,43 @@
     "appSelector": "[role=\"dialog\"]",
     "viewport": { "w": 1340, "h": 880 },
     "device": "desktop"
+  },
+  {
+    "id": "staff-overdue",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/overdue-management/overdue-management.dc.html",
+    "originSelector": ".hf-app",
+    "appPath": "/staff/overdue",
+    "appSelector": null,
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
+  },
+  {
+    "id": "staff-overdue-year-open",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/overdue-management/overdue-management.dc.html",
+    "originSelector": ".hf-app",
+    "originActions": [{ "click": "#ovYear .uc-dd-btn" }, { "wait": 300 }],
+    "appPath": "/staff/overdue",
+    "appActions": [{ "click": "button[aria-label=\"조회 년도\"]" }, { "wait": 300 }],
+    "appSelector": null,
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
+  },
+  {
+    "id": "staff-overdue-table",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/overdue-management/overdue-management.dc.html",
+    "originSelector": ".hf-app",
+    "originActions": [
+      { "click": "#ovYear .uc-dd-btn" }, { "wait": 150 }, { "click": "#ovYear .uc-opt[data-v=\"2026\"]" }, { "wait": 150 },
+      { "click": "#ovMonth .uc-dd-btn" }, { "wait": 150 }, { "click": "#ovMonth .uc-opt[data-v=\"2\"]" }, { "wait": 400 }
+    ],
+    "appPath": "/staff/overdue",
+    "appActions": [
+      { "click": "button[aria-label=\"조회 년도\"]" }, { "wait": 150 }, { "click": "[role=\"option\"]:has-text(\"2026년\")" }, { "wait": 200 },
+      { "click": "button[aria-label=\"조회 월\"]" }, { "wait": 150 }, { "click": "[role=\"option\"]:has-text(\"2월\")" }, { "wait": 200 },
+      { "fill": ["#overdue-building", "그린빌라"] }, { "wait": 200 }, { "press": ["#overdue-building", "Tab"] }, { "wait": 1500 }
+    ],
+    "appSelector": null,
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
   }
 ]

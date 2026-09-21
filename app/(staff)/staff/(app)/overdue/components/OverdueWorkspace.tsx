@@ -116,13 +116,20 @@ export function OverdueWorkspace({
 
   const selectedBuilding =
     buildings.find((building) => building.id === selectedBuildingId) ?? null;
-  const messageTargets = useMemo(
-    () => rowsWithLateFee.filter(isDebtCollectionTarget),
+  // 정본은 미납이 있는 세대만 표에 넣는다(`build()` 가 미납 세대만 만든다).
+  // 앱은 건물의 점유 세대를 전부 조회하므로 잔액 0 인 세대를 여기서 걸러낸다 —
+  // 안 걸러내면 0원 행이 표를 채우고 합계행의 "항목 N / M건"도 전 세대 수가 된다.
+  const overdueHouseholds = useMemo(
+    () => rowsWithLateFee.filter((household) => household.overdueAmount > 0),
     [rowsWithLateFee],
   );
+  const messageTargets = useMemo(
+    () => overdueHouseholds.filter(isDebtCollectionTarget),
+    [overdueHouseholds],
+  );
   const visibleHouseholds = useMemo(
-    () => (debtFilterEnabled ? messageTargets : rowsWithLateFee),
-    [debtFilterEnabled, messageTargets, rowsWithLateFee],
+    () => (debtFilterEnabled ? messageTargets : overdueHouseholds),
+    [debtFilterEnabled, messageTargets, overdueHouseholds],
   );
   const messageTargetKeys = useMemo(
     () => new Set(messageTargets.map((row) => `${row.occupancyId}:${row.unitId}`)),
@@ -253,7 +260,9 @@ export function OverdueWorkspace({
 
   return (
     <div className="h-[calc(100dvh-62px)] min-h-[520px] bg-bg px-[24px] pb-[24px] pt-[22px]">
-      <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] bg-white shadow-card">
+      {/* 정본 `.hf-body>.hf-panel{overflow:visible}` — 툴바 드롭다운 메뉴가 패널 밖으로
+          나가야 해서 클리핑하지 않는다. 아래 모서리는 표 래퍼/합계행이 직접 둥글린다. */}
+      <section className="flex h-full min-h-0 flex-col overflow-visible rounded-[16px] bg-white shadow-card">
         <OverdueToolbar
           buildings={buildings}
           selectedBuildingId={selectedBuildingId}

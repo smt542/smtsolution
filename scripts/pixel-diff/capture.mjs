@@ -40,6 +40,8 @@ try {
       if (Array.isArray(t.originActions)) {
         for (const action of t.originActions) {
           if (action.click) await page.click(action.click);
+          if (action.fill) await page.fill(action.fill[0], action.fill[1]);
+          if (action.press) await page.press(action.press[0], action.press[1]);
           if (typeof action.wait === 'number') await page.waitForTimeout(action.wait);
           if (action.waitFor) await page.waitForSelector(action.waitFor, { timeout: 15000 });
         }
@@ -86,6 +88,8 @@ try {
       if (Array.isArray(t.appActions)) {
         for (const action of t.appActions) {
           if (action.click) await page.click(action.click);
+          if (action.fill) await page.fill(action.fill[0], action.fill[1]);
+          if (action.press) await page.press(action.press[0], action.press[1]);
           if (typeof action.wait === 'number') await page.waitForTimeout(action.wait);
           if (action.waitFor) await page.waitForSelector(action.waitFor, { timeout: 15000 });
         }
