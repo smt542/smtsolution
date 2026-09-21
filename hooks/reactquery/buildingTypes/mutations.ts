@@ -7,8 +7,8 @@ export function useCreateBuildingType() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (i: BuildingTypeInput) => createBuildingType(i),
-    // 유형과 필수 항목을 함께 만들기 때문에 부분 실패해도 목록을 다시 맞춘다.
-    onSettled: () => Promise.all([
+    // 트리거가 필수 항목까지 만들므로 fee_items 캐시도 함께 무효화한다.
+    onSuccess: () => Promise.all([
       qc.invalidateQueries({ queryKey: buildingTypeKeys.all }),
       qc.invalidateQueries({ queryKey: feeItemKeys.all }),
     ]),

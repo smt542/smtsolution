@@ -1,4 +1,3 @@
-import { REQUIRED_FEE_ITEM_NAMES } from "@/hooks/reactquery/feeItems/apis";
 import type { RoundingRule } from "./types";
 
 export const MAX_FEE_ITEMS = 20;
@@ -10,7 +9,7 @@ export const ROUNDING_OPTIONS: { value: RoundingRule; label: string }[] = [
   { value: "raw", label: "그대로" },
 ];
 
-export const REQUIRED_ITEM_NAMES = REQUIRED_FEE_ITEM_NAMES;
+export const REQUIRED_ITEM_NAMES = ["전기", "수도료", "가스"] as const;
 
 export const DEFAULT_FORM_VALUE = {
   name: "",
