@@ -47,7 +47,7 @@ export function BuildingTypeTabs({
                 <input
                   autoFocus
                   aria-label="건물 유형명"
-                  className="w-[86px] border-0 bg-transparent p-0 text-center text-[14px] font-bold text-teal outline-none placeholder:font-bold placeholder:text-t4"
+                  className="w-16 min-w-10 border-0 border-b-[1.5px] border-teal bg-transparent px-0 py-0.5 text-[14px] font-bold text-teal outline-none placeholder:font-bold placeholder:text-t4"
                   placeholder="유형명"
                   value={editingValue}
                   maxLength={20}
