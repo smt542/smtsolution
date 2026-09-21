@@ -1,39 +1,26 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { useAsyncAction } from "@/hooks/common";
 import { EmptyState, Spinner } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import {
-  createBuildingType,
-  deleteBuildingType,
-  getBuildingTypeUsage,
-  renameBuildingType,
-  reorderBuildingTypes,
   useBuildingTypes,
-  buildingTypeKeys,
+  useCreateBuildingType,
+  useDeleteBuildingType,
+  useRenameBuildingType,
   type BuildingType,
 } from "@/hooks/reactquery/buildingTypes";
 import {
-  createFeeItem,
-  deleteFeeItem,
-  listFeeItems,
-  reorderFeeItems,
-  updateFeeItem,
   useAllFeeItems,
-  feeItemKeys,
+  useCreateFeeItem,
+  useDeleteFeeItem,
+  useReorderFeeItems,
+  useUpdateFeeItem,
   type FeeItem,
 } from "@/hooks/reactquery/feeItems";
 import { BuildingTypeTabs } from "./BuildingTypeTabs";
-import {
-  createRequiredItems,
-  DEFAULT_FORM_VALUE,
-  ensureRequiredItems,
-  MAX_FEE_ITEMS,
-  REQUIRED_ITEM_NAMES,
-} from "./constants";
+import { MAX_FEE_ITEMS, REQUIRED_ITEM_NAMES } from "./constants";
 import { DeleteBuildingTypeDialog } from "./DeleteBuildingTypeDialog";
 import { FeeItemCard } from "./FeeItemCard";
 import { FeeItemFormDialog } from "./FeeItemFormDialog";
@@ -41,286 +28,273 @@ import type { BuildingTypeDraft, FeeItemDraft, FeeItemFormValue, RoundingRule } 
 
 interface FeeItemManagementProps { orgId: number; }
 
-function toDrafts(types: BuildingType[], items: FeeItem[]): BuildingTypeDraft[] {
-  return [...types].sort((a, b) => a.sortOrder - b.sortOrder).map((type, typeIndex) => ({
-    key: `type-${type.id}`,
-    id: type.id,
-    label: type.label,
-    sortOrder: typeIndex,
-    items: items.filter((item) => item.typeId === type.id).sort((a, b) => a.sortOrder - b.sortOrder).map((item, itemIndex) => ({
-      key: `item-${item.id}`,
-      id: item.id,
-      name: item.name,
-      rounding: item.rounding as RoundingRule,
-      dailyProration: item.dailyProration,
-      carryOver: item.carryOver,
-      isRequired: item.isRequired,
-      sortOrder: itemIndex,
-    })),
-  }));
+interface PendingBuildingType {
+  key: string;
+  label: string;
 }
 
-function cloneDrafts(types: BuildingTypeDraft[]): BuildingTypeDraft[] {
-  return types.map((type) => ({ ...type, items: type.items.map((item) => ({ ...item })) }));
-}
+function toTypeViews(types: BuildingType[], items: FeeItem[]): BuildingTypeDraft[] {
+  return [...types]
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((type, typeIndex) => {
+      const remaining = items
+        .filter((item) => item.typeId === type.id)
+        .sort((a, b) => a.sortOrder - b.sortOrder);
+      const required = REQUIRED_ITEM_NAMES.map((name, itemIndex) => {
+        const existingIndex = remaining.findIndex((item) => item.name.trim() === name);
+        if (existingIndex < 0) {
+          return {
+            key: `type-${type.id}-required-${itemIndex}`,
+            name,
+            rounding: "round" as const,
+            dailyProration: true,
+            carryOver: true,
+            isRequired: true,
+            sortOrder: itemIndex,
+          } satisfies FeeItemDraft;
+        }
 
-function ensureRequiredItemsByType(types: BuildingTypeDraft[]): BuildingTypeDraft[] {
-  return types.map((type) => ({
-    ...type,
-    items: ensureRequiredItems(type.key, type.items),
-  }));
-}
+        const [existing] = remaining.splice(existingIndex, 1);
+        return {
+          key: `item-${existing.id}`,
+          id: existing.id,
+          name,
+          rounding: existing.rounding as RoundingRule,
+          dailyProration: existing.dailyProration,
+          carryOver: existing.carryOver,
+          isRequired: true,
+          sortOrder: itemIndex,
+        } satisfies FeeItemDraft;
+      });
+      const optional = remaining.map((item, itemIndex) => ({
+        key: `item-${item.id}`,
+        id: item.id,
+        name: item.name,
+        rounding: item.rounding as RoundingRule,
+        dailyProration: item.dailyProration,
+        carryOver: item.carryOver,
+        isRequired: item.isRequired,
+        sortOrder: required.length + itemIndex,
+      } satisfies FeeItemDraft));
 
-function comparable(types: BuildingTypeDraft[]) {
-  return types.map((type, typeIndex) => ({
-    id: type.id,
-    label: type.label.trim(),
-    sortOrder: typeIndex,
-    items: type.items.map((item, itemIndex) => ({
-      id: item.id,
-      name: item.name.trim(),
-      rounding: item.rounding,
-      dailyProration: item.dailyProration,
-      carryOver: item.carryOver,
-      isRequired: item.isRequired,
-      sortOrder: itemIndex,
-    })),
-  }));
-}
-
-function feeItemChanged(current: FeeItemDraft, baseline: FeeItemDraft) {
-  return current.name.trim() !== baseline.name.trim()
-    || current.rounding !== baseline.rounding
-    || current.dailyProration !== baseline.dailyProration
-    || current.carryOver !== baseline.carryOver
-    || current.isRequired !== baseline.isRequired
-    || current.sortOrder !== baseline.sortOrder;
+      return {
+        key: `type-${type.id}`,
+        id: type.id,
+        label: type.label,
+        sortOrder: typeIndex,
+        items: [...required, ...optional],
+      };
+    });
 }
 
 export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
   const confirm = useConfirm();
-  const queryClient = useQueryClient();
   const buildingTypesQuery = useBuildingTypes();
   const feeItemsQuery = useAllFeeItems();
-  const [drafts, setDrafts] = useState<BuildingTypeDraft[] | null>(null);
-  const [baseline, setBaseline] = useState<BuildingTypeDraft[]>([]);
+  const createBuildingTypeMutation = useCreateBuildingType();
+  const renameBuildingTypeMutation = useRenameBuildingType();
+  const deleteBuildingTypeMutation = useDeleteBuildingType();
+  const createFeeItemMutation = useCreateFeeItem();
+  const updateFeeItemMutation = useUpdateFeeItem();
+  const deleteFeeItemMutation = useDeleteFeeItem();
+  const reorderFeeItemsMutation = useReorderFeeItems();
+
   const [activeKey, setActiveKey] = useState<string | null>(null);
+  const [pendingType, setPendingType] = useState<PendingBuildingType | null>(null);
   const [editingTypeKey, setEditingTypeKey] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<FeeItemDraft | null>(null);
+  const [editingItemKey, setEditingItemKey] = useState<string | null>(null);
   const [deleteTargetKey, setDeleteTargetKey] = useState<string | null>(null);
-  const saveAction = useAsyncAction();
-  const localSequence = useRef(0);
+  const sequenceRef = useRef(0);
 
-  if (drafts === null && buildingTypesQuery.data && feeItemsQuery.data) {
-    const persisted = toDrafts(buildingTypesQuery.data, feeItemsQuery.data);
-    const repaired = ensureRequiredItemsByType(persisted);
-    setDrafts(repaired);
-    setBaseline(cloneDrafts(persisted));
-    setActiveKey(repaired[0]?.key ?? null);
-  }
-
-  const activeType = drafts?.find((type) => type.key === activeKey) ?? null;
-  const deleteTarget = drafts?.find((type) => type.key === deleteTargetKey) ?? null;
-  const dirty = useMemo(() => drafts !== null && JSON.stringify(comparable(drafts)) !== JSON.stringify(comparable(baseline)), [baseline, drafts]);
-  const isManagementDataLoading = buildingTypesQuery.isLoading || feeItemsQuery.isLoading || drafts === null;
+  const persistedTypes = useMemo(
+    () => toTypeViews(buildingTypesQuery.data ?? [], feeItemsQuery.data ?? []),
+    [buildingTypesQuery.data, feeItemsQuery.data],
+  );
+  const types = pendingType
+    ? [
+        ...persistedTypes,
+        {
+          key: pendingType.key,
+          label: pendingType.label,
+          sortOrder: persistedTypes.length,
+          items: [],
+        } satisfies BuildingTypeDraft,
+      ]
+    : persistedTypes;
+  const selectedKey = activeKey && types.some((type) => type.key === activeKey)
+    ? activeKey
+    : types[0]?.key ?? null;
+  const activeType = types.find((type) => type.key === selectedKey) ?? null;
+  const editingItem = activeType?.items.find((item) => item.key === editingItemKey) ?? null;
+  const deleteTarget = types.find((type) => type.key === deleteTargetKey) ?? null;
+  const isManagementDataLoading = buildingTypesQuery.isLoading || feeItemsQuery.isLoading;
   const isManagementDataRefreshing = [buildingTypesQuery, feeItemsQuery]
     .some((query) => query.isFetching && !query.isLoading);
   const failed = buildingTypesQuery.isError || feeItemsQuery.isError;
+  const isItemMutationPending = createFeeItemMutation.isPending
+    || updateFeeItemMutation.isPending
+    || deleteFeeItemMutation.isPending;
 
-  const updateActiveType = (update: (type: BuildingTypeDraft) => BuildingTypeDraft) => {
-    if (!activeKey) return;
-    setDrafts((current) => current?.map((type) => (type.key === activeKey ? update(type) : type)) ?? current);
+  const discardPendingType = () => {
+    const discardedKey = pendingType?.key;
+    setPendingType(null);
+    if (editingTypeKey === discardedKey) setEditingTypeKey(null);
+    if (activeKey === discardedKey) setActiveKey(null);
   };
 
   const addType = () => {
-    const sequence = ++localSequence.current;
-    const key = `local-type-${Date.now()}-${sequence}`;
-    const nextType: BuildingTypeDraft = { key, label: "", sortOrder: drafts?.length ?? 0, items: createRequiredItems(key) };
-    setDrafts((current) => [...(current ?? []), nextType]);
+    if (pendingType || createBuildingTypeMutation.isPending) return;
+    sequenceRef.current += 1;
+    const key = `pending-type-${Date.now()}-${sequenceRef.current}`;
+    setPendingType({ key, label: "" });
     setActiveKey(key);
-    setEditingTypeKey(key); // + 클릭 즉시 탭에서 이름 편집(원본 동작)
+    setEditingTypeKey(key);
+  };
+
+  const commitPendingType = async (key: string) => {
+    if (!pendingType || pendingType.key !== key || createBuildingTypeMutation.isPending) return;
+    const label = pendingType.label.trim();
+    if (!label) {
+      discardPendingType();
+      return;
+    }
+
+    try {
+      const created = await createBuildingTypeMutation.mutateAsync({
+        orgId,
+        label,
+        sortOrder: persistedTypes.length,
+      });
+      setPendingType(null);
+      setEditingTypeKey(null);
+      setActiveKey(`type-${created.id}`);
+      toast.success("유형이 추가되었습니다.");
+    } catch (error) {
+      toast.error(error, "건물 유형을 추가하지 못했습니다.");
+    }
+  };
+
+  const renameType = async (id: number, label: string): Promise<boolean> => {
+    const persisted = buildingTypesQuery.data?.find((type) => type.id === id);
+    const trimmed = label.trim();
+    if (!persisted || !trimmed || trimmed === persisted.label.trim()) return true;
+    if (renameBuildingTypeMutation.isPending) return false;
+
+    try {
+      await renameBuildingTypeMutation.mutateAsync({ id, label: trimmed });
+      toast.success("유형명이 수정되었습니다.");
+      return true;
+    } catch (error) {
+      toast.error(error, "건물 유형명을 수정하지 못했습니다.");
+      return false;
+    }
   };
 
   const openAddItem = () => {
-    if (!activeType) return;
+    if (!activeType || activeType.id == null) return;
     if (activeType.items.length >= MAX_FEE_ITEMS) {
       toast.error(`관리 항목은 최대 ${MAX_FEE_ITEMS}개까지 등록할 수 있어요`);
       return;
     }
-    setEditingItem(null);
+    setEditingItemKey(null);
     setFormOpen(true);
   };
 
-  const submitItem = (value: FeeItemFormValue) => {
-    if (editingItem) {
-      updateActiveType((type) => ({ ...type, items: type.items.map((item) => item.key === editingItem.key ? { ...item, ...value } : item) }));
-    } else {
-      const sequence = ++localSequence.current;
-      updateActiveType((type) => ({
-        ...type,
-        items: [...type.items, { key: `local-item-${Date.now()}-${sequence}`, ...DEFAULT_FORM_VALUE, ...value, isRequired: false, sortOrder: type.items.length }],
-      }));
+  const submitItem = async (value: FeeItemFormValue) => {
+    if (!activeType?.id || isItemMutationPending) return;
+    const item = editingItem;
+    const input = {
+      ...value,
+      orgId,
+      typeId: activeType.id,
+      isRequired: item?.isRequired ?? false,
+      sortOrder: item?.sortOrder ?? activeType.items.length,
+    };
+
+    try {
+      if (item?.id != null) {
+        await updateFeeItemMutation.mutateAsync({ id: item.id, input });
+        toast.success("항목이 수정되었습니다.");
+      } else {
+        await createFeeItemMutation.mutateAsync(input);
+        toast.success("항목이 추가되었습니다.");
+      }
+      setFormOpen(false);
+      setEditingItemKey(null);
+    } catch (error) {
+      toast.error(error, "관리 항목을 반영하지 못했습니다.");
+      throw error;
     }
   };
 
   const deleteItem = async () => {
-    if (!editingItem || !activeType) return;
+    if (!editingItem?.id || editingItem.isRequired || deleteFeeItemMutation.isPending) return;
     const ok = await confirm({
       title: "관리 항목 삭제",
       description: `‘${editingItem.name}’ 항목을 삭제할까요?`,
       confirmLabel: "삭제",
       variant: "danger",
     });
-    if (!ok) return;
-    const removed = editingItem;
-    updateActiveType((type) => ({ ...type, items: type.items.filter((item) => item.key !== removed.key).map((item, index) => ({ ...item, sortOrder: index })) }));
-    setFormOpen(false);
-  };
+    if (!ok || deleteFeeItemMutation.isPending) return;
 
-  const reorderItems = (draggedKey: string, targetKey: string) => {
-    updateActiveType((type) => {
-      const required = type.items.filter((item) => item.isRequired);
-      const optional = type.items.filter((item) => !item.isRequired);
-      const from = optional.findIndex((item) => item.key === draggedKey);
-      const to = optional.findIndex((item) => item.key === targetKey);
-      if (from < 0 || to < 0) return type;
-      const moved = [...optional];
-      const [item] = moved.splice(from, 1);
-      moved.splice(to, 0, item);
-      return { ...type, items: [...required, ...moved].map((candidate, index) => ({ ...candidate, sortOrder: index })) };
-    });
-  };
-
-  const requestDeleteType = async () => {
-    if (!activeType) return;
-    if (activeType.id != null) {
-      try {
-        const usage = await getBuildingTypeUsage(activeType.id);
-        if (usage.buildings || usage.billing) {
-          toast.error("건물 또는 부과 내역에 사용 중인 유형은 삭제할 수 없습니다.");
-          return;
-        }
-      } catch (error) {
-        toast.error(error, "유형의 사용 여부를 확인하지 못했습니다.");
-        return;
-      }
+    try {
+      await deleteFeeItemMutation.mutateAsync({ id: editingItem.id, isRequired: editingItem.isRequired });
+      setFormOpen(false);
+      setEditingItemKey(null);
+      toast.success("항목이 삭제되었습니다.");
+    } catch (error) {
+      toast.error(error, "관리 항목을 삭제하지 못했습니다.");
     }
-    setDeleteTargetKey(activeType.key);
   };
 
-  const removeTargetType = () => {
-    if (!deleteTarget || !drafts) return;
-    const index = drafts.findIndex((type) => type.key === deleteTarget.key);
-    const next = drafts.filter((type) => type.key !== deleteTarget.key);
-    setDrafts(next.map((type, typeIndex) => ({ ...type, sortOrder: typeIndex })));
-    if (activeKey === deleteTarget.key) setActiveKey(next[Math.min(index, next.length - 1)]?.key ?? null);
-    setDeleteTargetKey(null);
-    toast.success("유형이 삭제되었습니다");
-  };
+  const reorderItems = async (draggedKey: string, targetKey: string) => {
+    if (!activeType || reorderFeeItemsMutation.isPending) return;
+    const optional = activeType.items.filter((item) => !item.isRequired && item.id != null);
+    const from = optional.findIndex((item) => item.key === draggedKey);
+    const to = optional.findIndex((item) => item.key === targetKey);
+    if (from < 0 || to < 0 || from === to) return;
 
-  const validate = () => {
-    if (!drafts?.length) return "최소 1개 유형은 있어야 해요";
-    const typeNames = drafts.map((type) => type.label.trim());
-    if (typeNames.some((name) => !name)) return "건물 유형명을 입력해 주세요.";
-    if (new Set(typeNames).size !== typeNames.length) return "건물 유형명은 중복될 수 없습니다.";
-    for (const type of drafts) {
-      if (type.items.length > MAX_FEE_ITEMS) return `${type.label} 유형은 항목을 ${MAX_FEE_ITEMS}개까지만 등록할 수 있습니다.`;
-      const itemNames = type.items.map((item) => item.name.trim());
-      if (itemNames.some((name) => !name)) return "항목 명칭을 입력해 주세요";
-      if (new Set(itemNames).size !== itemNames.length) return `${type.label} 유형에 중복된 항목 명칭이 있습니다.`;
-      const requiredNames = new Set(type.items.filter((item) => item.isRequired).map((item) => item.name.trim()));
-      if (REQUIRED_ITEM_NAMES.some((name) => !requiredNames.has(name))) {
-        return `${type.label} 유형에는 전기·수도료·가스 필수 항목이 모두 필요합니다.`;
-      }
+    const moved = [...optional];
+    const [item] = moved.splice(from, 1);
+    moved.splice(to, 0, item);
+    const requiredIds = activeType.items
+      .filter((candidate) => candidate.isRequired && candidate.id != null)
+      .map((candidate) => candidate.id as number);
+    const orderedIds = [...requiredIds, ...moved.map((candidate) => candidate.id as number)];
+
+    try {
+      await reorderFeeItemsMutation.mutateAsync(orderedIds);
+      toast.success("항목 순서가 변경되었습니다.");
+    } catch (error) {
+      toast.error(error, "항목 순서를 변경하지 못했습니다.");
     }
-    return null;
   };
 
-  const save = async () => {
-    if (!drafts || saveAction.isPending) return;
-    const validationError = validate();
-    if (validationError) {
-      toast.error(validationError);
+  const requestDeleteType = () => {
+    if (activeType) setDeleteTargetKey(activeType.key);
+  };
+
+  const removeTargetType = async () => {
+    if (!deleteTarget || deleteBuildingTypeMutation.isPending) return;
+    if (deleteTarget.id == null) {
+      discardPendingType();
+      setDeleteTargetKey(null);
       return;
     }
-    await saveAction.run(async () => {
-      try {
-      const currentPersistedIds = new Set(drafts.flatMap((type) => type.id == null ? [] : [type.id]));
-      for (const previousType of baseline) {
-        if (previousType.id != null && !currentPersistedIds.has(previousType.id)) await deleteBuildingType(previousType.id);
-      }
 
-      const savedTypeIds: number[] = [];
-      const savedTypeIdByKey = new Map<string, number>();
-      for (const [typeIndex, draftType] of drafts.entries()) {
-        const previousType = baseline.find((type) => type.id === draftType.id);
-        const savedType = draftType.id == null
-          ? await createBuildingType({ orgId, label: draftType.label.trim(), sortOrder: typeIndex })
-          : previousType && previousType.label.trim() !== draftType.label.trim()
-            ? await renameBuildingType(draftType.id, draftType.label.trim())
-            : { id: draftType.id };
-        const typeId = savedType.id;
-        savedTypeIds.push(typeId);
-        savedTypeIdByKey.set(draftType.key, typeId);
-        const seededItems = draftType.id == null ? await listFeeItems(typeId) : [];
-
-        const currentItemIds = new Set(draftType.items.flatMap((item) => item.id == null ? [] : [item.id]));
-        for (const previousItem of previousType?.items ?? []) {
-          if (previousItem.id != null && !currentItemIds.has(previousItem.id)) await deleteFeeItem({ id: previousItem.id, isRequired: previousItem.isRequired });
-        }
-
-        const savedItemIds: number[] = [];
-        for (const [itemIndex, draftItem] of draftType.items.entries()) {
-          const input = { orgId, typeId, name: draftItem.name.trim(), rounding: draftItem.rounding, dailyProration: draftItem.dailyProration, carryOver: draftItem.carryOver, isRequired: draftItem.isRequired, sortOrder: itemIndex };
-          if (draftItem.id == null) {
-            const seededItem = seededItems.find((item) => item.name.trim() === input.name);
-            if (seededItem) {
-              await updateFeeItem(seededItem.id, input);
-              savedItemIds.push(seededItem.id);
-            } else {
-              const created = await createFeeItem(input);
-              savedItemIds.push(created.id);
-            }
-          } else {
-            const previousItem = previousType?.items.find((item) => item.id === draftItem.id);
-            if (previousItem && feeItemChanged({ ...draftItem, sortOrder: itemIndex }, previousItem)) await updateFeeItem(draftItem.id, input);
-            savedItemIds.push(draftItem.id);
-          }
-        }
-        if (savedItemIds.length) await reorderFeeItems(savedItemIds);
+    try {
+      await deleteBuildingTypeMutation.mutateAsync(deleteTarget.id);
+      const index = types.findIndex((type) => type.key === deleteTarget.key);
+      const next = types.filter((type) => type.key !== deleteTarget.key);
+      if (selectedKey === deleteTarget.key) {
+        setActiveKey(next[Math.min(index, next.length - 1)]?.key ?? null);
       }
-      if (savedTypeIds.length) await reorderBuildingTypes(savedTypeIds);
-
-      const [typesResult, itemsResult] = await Promise.all([buildingTypesQuery.refetch(), feeItemsQuery.refetch()]);
-      if (!typesResult.data || !itemsResult.data) throw new Error("저장된 데이터를 다시 불러오지 못했습니다.");
-      const persisted = toDrafts(typesResult.data, itemsResult.data);
-      const refreshed = ensureRequiredItemsByType(persisted);
-      const previousActiveId = activeType?.id ?? (activeType ? savedTypeIdByKey.get(activeType.key) : undefined);
-      setDrafts(refreshed);
-      setBaseline(cloneDrafts(persisted));
-      setActiveKey(refreshed.find((type) => type.id === previousActiveId)?.key ?? refreshed[0]?.key ?? null);
-      toast.success("변경 내용을 저장했습니다.");
-      } catch (error) {
-      const [typesResult, itemsResult] = await Promise.all([
-        buildingTypesQuery.refetch(),
-        feeItemsQuery.refetch(),
-      ]);
-      if (typesResult.data && itemsResult.data) {
-        const persisted = toDrafts(typesResult.data, itemsResult.data);
-        const refreshed = ensureRequiredItemsByType(persisted);
-        setDrafts(refreshed);
-        setBaseline(cloneDrafts(persisted));
-        setActiveKey(refreshed[0]?.key ?? null);
-      }
-      toast.error(error, "변경 내용을 저장하지 못했습니다.");
-      } finally {
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: buildingTypeKeys.all, refetchType: "none" }),
-          queryClient.invalidateQueries({ queryKey: feeItemKeys.all, refetchType: "none" }),
-        ]);
-      }
-    });
+      setDeleteTargetKey(null);
+      toast.success("유형이 삭제되었습니다.");
+    } catch (error) {
+      toast.error(error, "건물 유형을 삭제하지 못했습니다.");
+    }
   };
 
   if (failed) {
@@ -341,32 +315,32 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
         </div>
       ) : null}
       <BuildingTypeTabs
-        types={drafts ?? []}
-        activeKey={activeKey}
+        types={types}
+        activeKey={selectedKey}
         editingKey={editingTypeKey}
+        editingValue={pendingType?.label ?? ""}
+        isPending={createBuildingTypeMutation.isPending}
+        canAdd={!pendingType && !createBuildingTypeMutation.isPending}
         onSelect={setActiveKey}
         onAdd={addType}
-        onLabelChange={(key, label) => setDrafts((current) => current?.map((type) => type.key === key ? { ...type, label } : type) ?? current)}
-        onFinishEditing={() => {
-          if (editingTypeKey) {
-            setDrafts((current) => current?.map((type) => type.key === editingTypeKey ? { ...type, label: type.label.trim() || baseline.find((item) => item.id === type.id)?.label || "유형명" } : type) ?? current);
-          }
-          setEditingTypeKey(null);
+        onLabelChange={(key, label) => {
+          if (pendingType?.key === key) setPendingType((current) => current ? { ...current, label } : current);
         }}
+        onFinishEditing={(key) => { void commitPendingType(key); }}
+        onCancelEditing={discardPendingType}
       />
       <main className="p-6 pt-[22px]">
         {activeType ? (
           <FeeItemCard
+            key={activeType.key}
             type={activeType}
-            dirty={dirty}
-            saving={saveAction.isPending}
+            isRenamePending={renameBuildingTypeMutation.isPending}
+            isReorderPending={reorderFeeItemsMutation.isPending}
             onAddItem={openAddItem}
-            onEditItem={(item) => { setEditingItem(item); setFormOpen(true); }}
-            onReorder={reorderItems}
-            onDeleteType={() => void requestDeleteType()}
-            onSave={() => void save()}
-            onLabelChange={(key, label) => setDrafts((current) => current?.map((type) => (type.key === key ? { ...type, label } : type)) ?? current)}
-            onFinishEditing={() => setDrafts((current) => current?.map((type) => (type.key === activeType.key ? { ...type, label: type.label.trim() || baseline.find((item) => item.id === type.id)?.label || "유형명" } : type)) ?? current)}
+            onEditItem={(item) => { setEditingItemKey(item.key); setFormOpen(true); }}
+            onReorder={(draggedKey, targetKey) => { void reorderItems(draggedKey, targetKey); }}
+            onDeleteType={requestDeleteType}
+            onRename={(label) => activeType.id == null ? Promise.resolve(false) : renameType(activeType.id, label)}
           />
         ) : (
           <div className="rounded-2xl bg-white p-10 shadow-card"><EmptyState message="등록된 건물 유형이 없습니다. 상단 + 버튼으로 유형을 추가해 주세요." /></div>
@@ -377,14 +351,16 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
         open={formOpen}
         item={editingItem}
         existingNames={(activeType?.items ?? []).filter((item) => item.key !== editingItem?.key).map((item) => item.name)}
-        onClose={() => setFormOpen(false)}
+        isPending={isItemMutationPending}
+        onClose={() => { setFormOpen(false); setEditingItemKey(null); }}
         onSubmit={submitItem}
         onDelete={deleteItem}
       />
       <DeleteBuildingTypeDialog
         open={deleteTarget != null}
         label={deleteTarget?.label ?? ""}
-        itemCount={deleteTarget?.items.length ?? 0}
+        itemCount={deleteTarget?.items.filter((item) => item.id != null).length ?? 0}
+        isPending={deleteBuildingTypeMutation.isPending}
         onClose={() => setDeleteTargetKey(null)}
         onConfirm={removeTargetType}
       />

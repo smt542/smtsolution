@@ -7,28 +7,30 @@ interface DeleteBuildingTypeDialogProps {
   open: boolean;
   label: string;
   itemCount: number;
+  isPending: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
 }
 
 export function DeleteBuildingTypeDialog({
   open,
   label,
   itemCount,
+  isPending,
   onClose,
   onConfirm,
 }: DeleteBuildingTypeDialogProps) {
   useEffect(() => {
     if (!open) return;
-    const closeOnEscape = (event: KeyboardEvent) => event.key === "Escape" && onClose();
+    const closeOnEscape = (event: KeyboardEvent) => event.key === "Escape" && !isPending && onClose();
     document.addEventListener("keydown", closeOnEscape);
     return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [onClose, open]);
+  }, [isPending, onClose, open]);
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim px-4" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim px-4" onMouseDown={() => { if (!isPending) onClose(); }}>
       <section
         role="alertdialog"
         aria-modal="true"
@@ -46,8 +48,8 @@ export function DeleteBuildingTypeDialog({
           <strong className="font-extrabold text-t1">&lsquo;{label}&rsquo;</strong> 유형과 등록된 관리 항목 {itemCount}개가 모두 삭제됩니다. 이 작업은 되돌릴 수 없어요.
         </p>
         <div className="mt-5 grid grid-cols-2 gap-2">
-          <button type="button" className="h-[46px] rounded-[13px] border border-line text-[14px] font-bold text-t2" onClick={onClose}>취소</button>
-          <button type="button" className="h-[46px] rounded-[13px] bg-red text-[14px] font-bold text-white shadow-[0_8px_14px_-5px_rgba(240,68,82,.65)]" onClick={onConfirm}>삭제</button>
+          <button type="button" disabled={isPending} className="h-[46px] rounded-[13px] border border-line text-[14px] font-bold text-t2 disabled:opacity-50" onClick={onClose}>취소</button>
+          <button type="button" disabled={isPending} className="h-[46px] rounded-[13px] bg-red text-[14px] font-bold text-white shadow-[0_8px_14px_-5px_rgba(240,68,82,.65)] disabled:cursor-not-allowed disabled:opacity-50" onClick={() => { void onConfirm(); }}>{isPending ? "삭제 중…" : "삭제"}</button>
         </div>
       </section>
     </div>

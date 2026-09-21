@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { REQUIRED_FEE_ITEM_NAMES } from "../feeItems/apis";
 
 export interface BuildingType { id: number; orgId: number; label: string; sortOrder: number; }
 export interface BuildingTypeInput { orgId: number; label: string; sortOrder?: number; }
@@ -23,9 +24,27 @@ export async function listBuildingTypes(): Promise<BuildingType[]> {
 }
 
 export async function createBuildingType(input: BuildingTypeInput): Promise<BuildingType> {
-  const { data, error } = await createClient().from("building_types").insert(inputToRow(input)).select().single();
+  const client = createClient();
+  const { data, error } = await client.from("building_types").insert(inputToRow(input)).select().single();
   if (error) throw new Error(error.message);
-  return rowToBuildingType(data);
+  const created = rowToBuildingType(data);
+
+  // 필수 항목은 유형과 함께 존재해야 하므로 화면 조작과 무관하게 생성 시점에 같이 넣는다.
+  const { error: requiredError } = await client.from("fee_items").insert(
+    REQUIRED_FEE_ITEM_NAMES.map((name, index) => ({
+      org_id: created.orgId,
+      type_id: created.id,
+      name,
+      rounding: "round",
+      daily_proration: true,
+      carry_over: true,
+      is_required: true,
+      sort_order: index,
+    })),
+  );
+  if (requiredError) throw new Error(requiredError.message);
+
+  return created;
 }
 
 export async function renameBuildingType(id: number, label: string): Promise<BuildingType> {

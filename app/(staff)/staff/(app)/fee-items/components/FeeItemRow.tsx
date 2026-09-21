@@ -6,20 +6,22 @@ import type { FeeItemDraft } from "./types";
 
 interface FeeItemRowProps {
   item: FeeItemDraft;
+  isReorderPending: boolean;
   onEdit: (item: FeeItemDraft) => void;
   onDragStart: (key: string) => void;
   onDrop: (key: string) => void;
 }
 
-export function FeeItemRow({ item, onEdit, onDragStart, onDrop }: FeeItemRowProps) {
+export function FeeItemRow({ item, isReorderPending, onEdit, onDragStart, onDrop }: FeeItemRowProps) {
   const rounding = ROUNDING_OPTIONS.find((option) => option.value === item.rounding)?.label;
-  const interactive = !item.isRequired;
+  const editable = !item.isRequired || item.id == null;
+  const interactive = !item.isRequired && item.id != null && !isReorderPending;
 
   return (
     <tr
       draggable={interactive}
       className={`${item.isRequired ? "h-[47px] bg-[#fbfcfd]" : "h-[51px]"} border-t border-line2 text-[13.5px] text-t2 ${interactive ? "cursor-pointer hover:bg-bg/60" : ""}`}
-      onClick={() => interactive && onEdit(item)}
+      onClick={() => editable && onEdit(item)}
       onDragStart={(event) => {
         if (!interactive) return;
         event.dataTransfer.effectAllowed = "move";

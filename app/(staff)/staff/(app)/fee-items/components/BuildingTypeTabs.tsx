@@ -7,20 +7,28 @@ interface BuildingTypeTabsProps {
   types: BuildingTypeDraft[];
   activeKey: string | null;
   editingKey: string | null;
+  editingValue: string;
+  isPending: boolean;
+  canAdd: boolean;
   onSelect: (key: string) => void;
   onAdd: () => void;
   onLabelChange: (key: string, label: string) => void;
-  onFinishEditing: () => void;
+  onFinishEditing: (key: string) => void;
+  onCancelEditing: () => void;
 }
 
 export function BuildingTypeTabs({
   types,
   activeKey,
   editingKey,
+  editingValue,
+  isPending,
+  canAdd,
   onSelect,
   onAdd,
   onLabelChange,
   onFinishEditing,
+  onCancelEditing,
 }: BuildingTypeTabsProps) {
   return (
     <nav aria-label="건물 유형" className="h-[42px] border-b border-line bg-white px-6">
@@ -40,13 +48,18 @@ export function BuildingTypeTabs({
                   autoFocus
                   aria-label="건물 유형명"
                   className="h-8 w-[86px] rounded-lg border border-teal px-2 text-[13px] font-bold text-t1 outline-none ring-2 ring-teal-t"
-                  value={type.label}
+                  value={editingValue}
                   maxLength={20}
+                  disabled={isPending}
                   onChange={(event) => onLabelChange(type.key, event.target.value)}
-                  onBlur={onFinishEditing}
+                  onBlur={() => onFinishEditing(type.key)}
                   onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === "Escape") {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
                       event.currentTarget.blur();
+                    } else if (event.key === "Escape") {
+                      event.preventDefault();
+                      onCancelEditing();
                     }
                   }}
                 />
@@ -62,8 +75,9 @@ export function BuildingTypeTabs({
         <button
           type="button"
           aria-label="건물 유형 추가"
-          className="flex h-full w-11 shrink-0 items-center justify-center"
+          className="flex h-full w-11 shrink-0 items-center justify-center disabled:cursor-not-allowed disabled:opacity-50"
           onClick={onAdd}
+          disabled={!canAdd}
         >
           <Image src="/icons/fee-items/add-tab.svg" alt="" width={18} height={18} />
         </button>
