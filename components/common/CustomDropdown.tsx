@@ -28,6 +28,12 @@ interface CustomDropdownProps {
    * 컨테이너를 늘려 모달에 스크롤바가 생기거나 `overflow:hidden` 에 잘린다.
    */
   position?: "absolute" | "fixed";
+  /**
+   * 값이 어떤 옵션과도 맞지 않을 때 버튼에 보일 미선택 라벨. 정본 `#ovYear`/`#ovMonth`
+   * 처럼 초기 상태가 "년도"·"월" 인 드롭다운에 쓴다. 메뉴 항목으로는 나오지 않는다.
+   * 주지 않으면 기존대로 첫 옵션 라벨로 대체한다.
+   */
+  placeholder?: string;
 }
 
 export function CustomDropdown({
@@ -40,6 +46,7 @@ export function CustomDropdown({
   compact = false,
   variant = "menu",
   position = "absolute",
+  placeholder,
 }: CustomDropdownProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -47,7 +54,8 @@ export function CustomDropdown({
   const menuRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
   const isFixed = position === "fixed";
-  const selected = options.find((option) => option.value === value) ?? options[0];
+  const matched = options.find((option) => option.value === value);
+  const selected = matched ?? (placeholder === undefined ? options[0] : undefined);
   const isCompact = size === "compact" || compact;
   const isNotification = size === "notification";
   const isField = variant === "field";
@@ -113,7 +121,7 @@ export function CustomDropdown({
         disabled={disabled}
         onClick={() => setOpen((current) => !current)}
       >
-        <span className="uc-dd-lbl">{selected?.label}</span>
+        <span className="uc-dd-lbl">{selected?.label ?? placeholder}</span>
         <ChevronDownIcon aria-hidden="true" />
       </button>
       {open && (
