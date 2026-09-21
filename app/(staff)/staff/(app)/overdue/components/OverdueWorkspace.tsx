@@ -14,9 +14,9 @@ import {
 } from "@/hooks/reactquery/overdue";
 import { computeLateFee, type OverduePeriodInput } from "@/lib/billing/lateFee";
 import type { MessageRecipient } from "@/lib/messaging/preset";
+import { openMessengerWith } from "@/lib/messaging/messengerHandoff";
 import { residentOrigin } from "@/lib/messaging/residentOrigin";
 import { formatDate, formatKrw, formatPeriodMonth, formatUnit } from "@/lib/messaging/vars";
-import { MessagingModal } from "../../messaging/components/MessagingModal";
 import { isDebtCollectionTarget } from "../utils";
 import { OverdueLedgerPrintView } from "./OverdueLedgerPrintView";
 import { OverdueEmptyState } from "./OverdueEmptyState";
@@ -24,6 +24,23 @@ import { OverdueFloatingActions } from "./OverdueFloatingActions";
 import { OverdueTable } from "./OverdueTable";
 import { OverdueToolbar } from "./OverdueToolbar";
 import { useOverdueOrgContact } from "./useOverdueOrgContact";
+
+/**
+ * 정본 `#ovDunSend` 가 `#fmpMsg` 에 채우는 본문 그대로다. 변수 표기만 앱 렌더러 문법
+ * (`#{키}`)으로 옮겼다 — `건물명`·`호수` 는 공용 렌더러가 수신자에서 채우고,
+ * `미납개월`·`미납금액` 은 아래에서 수신자별 변수로 넣는다.
+ */
+const DUNNING_BODY = [
+  "[관리비 미납 안내]",
+  "",
+  "#{건물명} #{호수} 세대주님께 안내드립니다.",
+  "",
+  "· 미납 개월 : #{미납개월}개월",
+  "· 미납 금액 : #{미납금액}원 (연체료 포함)",
+  "",
+  "2개월 이상 · 10만원 이상 장기 미납 상태입니다.",
+  "조속히 납부해 주시기 바라며, 계속 미납될 경우 연체료가 추가되고 관련 절차가 진행될 수 있습니다.",
+].join("\n");
 
 function latestOverduePeriod(
   household: OverdueHousehold,
@@ -54,8 +71,6 @@ export function OverdueWorkspace({
   }>({ year: null, month: null });
   const [scope, setScope] = useState<OverdueScope>("all");
   const [debtFilterEnabled, setDebtFilterEnabled] = useState(false);
-  const [messageRecipients, setMessageRecipients] = useState<MessageRecipient[]>([]);
-  const [isMessagingOpen, setIsMessagingOpen] = useState(false);
 
   // 정본과 같다 — 년·월만 고르면 org 전체 건물을 조회하고, 건물명은 결과를 거르는 검색어다.
   const hasPeriod = targetPeriod.year !== null && targetPeriod.month !== null;
@@ -131,21 +146,8 @@ export function OverdueWorkspace({
     () => (debtFilterEnabled ? messageTargets : overdueHouseholds),
     [debtFilterEnabled, messageTargets, overdueHouseholds],
   );
-  const messageTargetKeys = useMemo(
-    () => new Set(messageTargets.map((row) => `${row.occupancyId}:${row.unitId}`)),
-    [messageTargets],
-  );
-  const messageItemCount = useMemo(() => {
-    const count = overduePeriods.filter((period) =>
-      messageTargetKeys.has(`${period.occupancyId}:${period.unitId}`),
-    ).length;
-    return count || messageTargets.length;
-  }, [messageTargetKeys, messageTargets.length, overduePeriods]);
-
   const resetResultState = () => {
     setDebtFilterEnabled(false);
-    setMessageRecipients([]);
-    setIsMessagingOpen(false);
   };
 
   const changePeriod = (year: number | null, month: number | null) => {
@@ -190,30 +192,38 @@ export function OverdueWorkspace({
       ]);
     }
 
+    // 상세링크는 정본 본문에 없는 앱 전용 변수다. 만들지 못해도(예: 세입자 앱 origin 미설정)
+    // 발송 자체를 막지 않는다 — 링크만 비우고 진행한다. 예전에는 여기서 던져
+    // "미납 고지서 상세 링크를 만들지 못했습니다" 토스트만 뜨고 패널이 아예 안 열렸다.
+    let signedByUnitId = new Map<number, Awaited<ReturnType<typeof signBillUrls.mutateAsync>>[number]>();
+    let origin = "";
     try {
       const signedGroups = await Promise.all(
         [...unitIdsByPeriod].map(([period, unitIds]) =>
           signBillUrls.mutateAsync({ unitIds, period }),
         ),
       );
-      const signedByUnitId = new Map(
-        signedGroups.flat().map((link) => [link.unitId, link]),
-      );
-      const origin = residentOrigin();
+      signedByUnitId = new Map(signedGroups.flat().map((link) => [link.unitId, link]));
+      origin = residentOrigin();
+    } catch (error) {
+      console.error("미납 고지서 상세 링크 생성 실패 — 링크 없이 진행합니다", error);
+    }
+
+    {
       const recipients: MessageRecipient[] = messageTargets.flatMap((row) => {
         const latestPeriod = latestOverduePeriod(row, overduePeriods);
         const signed = signedByUnitId.get(row.unitId);
-        if (!latestPeriod || !signed) {
-          throw new Error("미납 고지서 상세 링크를 만들지 못했습니다.");
-        }
+        if (!latestPeriod) return [];
         const unit = formatUnit(row.dong, row.unitNo);
-        const detailLink = `${origin}${signedBillPath({
-          buildingId: signed.buildingId,
-          unitNo: signed.unitNo,
-          period: latestPeriod.period,
-          sig: signed.sig,
-          issuedDay: signed.issuedDay,
-        })}`;
+        const detailLink = signed && origin
+          ? `${origin}${signedBillPath({
+              buildingId: signed.buildingId,
+              unitNo: signed.unitNo,
+              period: latestPeriod.period,
+              sig: signed.sig,
+              issuedDay: signed.issuedDay,
+            })}`
+          : "";
 
         return [row.phone, row.phone2]
           .filter((phone, index, values): phone is string =>
@@ -228,10 +238,15 @@ export function OverdueWorkspace({
               // 전체 건물 조회라 수신자마다 건물이 다르다 → 건물명은 공통변수가 아니라 여기서 준다.
               건물명: row.buildingName,
               세대: unit,
-              미납금액: formatKrw(row.overdueAmount),
+              // 정본 본문은 "연체료 포함" 금액과 미납 개월수를 쓴다.
+              미납개월: String(row.overdueMonths),
+              미납금액: formatKrw(row.overdueAmount + (row.lateFeeAmount ?? 0)),
               미납월: formatPeriodMonth(latestPeriod.period),
               납기일: formatDate(latestPeriod.dueDate),
               상세링크: detailLink,
+              // FAB 경로에는 공통변수 개념이 없어, 예전 preset.commonVariables 로 주던 값도
+              // 수신자별 변수로 옮긴다(본문에서 #{관리사무소연락처} 를 계속 쓸 수 있게).
+              관리사무소연락처: orgContact?.phone ?? "",
             },
             ref: {
               occupancyId: row.occupancyId,
@@ -241,11 +256,9 @@ export function OverdueWorkspace({
           }));
       });
 
-      setMessageRecipients(recipients);
-      setIsMessagingOpen(true);
+      // 정본과 같다 — 별도 모달이 아니라 공용 메신저 FAB 패널을 열고 본문을 채운다.
+      openMessengerWith({ recipients, body: DUNNING_BODY, channel: "sms" });
       toast.success(`${messageTargets.length}세대를 수신자로 담았어요`);
-    } catch (error) {
-      toast.error(error, "미납 고지서 상세 링크를 만들지 못했습니다.");
     }
   };
 
@@ -308,26 +321,6 @@ export function OverdueWorkspace({
         </section>
 
         <OverdueFloatingActions />
-        <MessagingModal
-          open={isMessagingOpen}
-          presentation="workspace"
-          itemCount={messageItemCount}
-          preset={{
-            context: "독촉",
-            buildingId: undefined,
-            channel: "sms",
-            mode: "sms",
-            templateTitle: "관리비 미납 안내",
-            recipients: messageRecipients,
-            commonVariables: {
-              관리사무소연락처: orgContact?.phone ?? "",
-            },
-          }}
-          onClose={() => setIsMessagingOpen(false)}
-          onSent={() => {
-            setIsMessagingOpen(false);
-          }}
-        />
       </div>
 
       {hasPeriod && visibleHouseholds.length > 0 && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useBuildings } from "@/hooks/reactquery/buildings/queries";
@@ -20,6 +20,7 @@ import {
   type SendMode,
 } from "@/lib/messaging/preset";
 import { renderTemplate } from "@/lib/messaging/render";
+import { subscribeMessengerHandoff } from "@/lib/messaging/messengerHandoff";
 import {
   newUuid,
   resolveIdempotencyKey,
@@ -85,6 +86,22 @@ function MessengerFabContent() {
   const [sendFeedback, setSendFeedback] = useState<SendFeedback | null>(null);
   const [validationClock] = useState(() => Date.now());
   const idempotencyRef = useRef<IdempotencyState | null>(null);
+
+  // 화면에서 openMessengerWith() 로 넘긴 수신자·본문을 받아 패널을 연다.
+  // 정본의 `erp:dun` → `#fmpMsg` 채우기 → `fmpFab.click()` 과 같은 흐름이다.
+  useEffect(
+    () =>
+      subscribeMessengerHandoff((handoff) => {
+        setRecipients(handoff.recipients);
+        if (handoff.body !== undefined) {
+          setBody(handoff.body);
+          setTemplateId(null);
+        }
+        if (handoff.channel) setChannel(handoff.channel);
+        openPanel();
+      }),
+    [openPanel, setChannel],
+  );
 
   const { data: templates = [] } = useMessageTemplates();
   const { data: buildings = [] } = useBuildings();
