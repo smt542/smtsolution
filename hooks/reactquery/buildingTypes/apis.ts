@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
 import { AppError } from "@/hooks/common/useAppToast";
-import { REQUIRED_FEE_ITEM_NAMES } from "../feeItems/apis";
 
 export interface BuildingType { id: number; orgId: number; label: string; sortOrder: number; }
 export interface BuildingTypeInput { orgId: number; label: string; sortOrder?: number; }
@@ -9,17 +8,6 @@ type BuildingTypeRow = { id: number; org_id: number; label: string; sort_order: 
 
 // building_types 는 UNIQUE (org_id, label) 이라 같은 이름을 두 번 만들 수 없다.
 export const DUPLICATE_BUILDING_TYPE_LABEL = "이미 있는 유형명입니다. 다른 이름을 입력해 주세요.";
-
-/** 유형은 만들어졌지만 필수 항목 시딩만 실패한 경우. 유형 자체는 유효하므로 UI가 구분해서 처리한다. */
-export class BuildingTypeSeedError extends AppError {
-  constructor(public readonly created: BuildingType, cause?: string) {
-    super(
-      "유형은 추가됐지만 필수 항목을 만들지 못했습니다. 항목을 눌러 다시 저장해 주세요.",
-      cause ? { cause: new Error(cause) } : undefined,
-    );
-    this.name = "BuildingTypeSeedError";
-  }
-}
 
 function toLabelError(error: { code?: string; message: string }): Error {
   return error.code === "23505" ? new AppError(DUPLICATE_BUILDING_TYPE_LABEL) : new Error(error.message);
@@ -43,27 +31,10 @@ export async function listBuildingTypes(): Promise<BuildingType[]> {
 }
 
 export async function createBuildingType(input: BuildingTypeInput): Promise<BuildingType> {
-  const client = createClient();
-  const { data, error } = await client.from("building_types").insert(inputToRow(input)).select().single();
+  // 필수 항목(전기·수도료·가스)은 building_types_seed_required_utility_fee_items 트리거가 함께 만든다.
+  const { data, error } = await createClient().from("building_types").insert(inputToRow(input)).select().single();
   if (error) throw toLabelError(error);
-  const created = rowToBuildingType(data);
-
-  // 필수 항목은 유형과 함께 존재해야 하므로 화면 조작과 무관하게 생성 시점에 같이 넣는다.
-  const { error: requiredError } = await client.from("fee_items").insert(
-    REQUIRED_FEE_ITEM_NAMES.map((name, index) => ({
-      org_id: created.orgId,
-      type_id: created.id,
-      name,
-      rounding: "round",
-      daily_proration: true,
-      carry_over: true,
-      is_required: true,
-      sort_order: index,
-    })),
-  );
-  if (requiredError) throw new BuildingTypeSeedError(created, requiredError.message);
-
-  return created;
+  return rowToBuildingType(data);
 }
 
 export async function renameBuildingType(id: number, label: string): Promise<BuildingType> {

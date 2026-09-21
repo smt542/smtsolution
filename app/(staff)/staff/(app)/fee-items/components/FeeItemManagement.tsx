@@ -5,7 +5,6 @@ import { appToast as toast } from "@/hooks/common/useAppToast";
 import { EmptyState, Spinner } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import {
-  BuildingTypeSeedError,
   DUPLICATE_BUILDING_TYPE_LABEL,
   useBuildingTypes,
   useCreateBuildingType,
@@ -189,13 +188,6 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
       toast.success("유형이 추가되었습니다.");
     } catch (error) {
       toast.error(error, "건물 유형을 추가하지 못했습니다.");
-      if (error instanceof BuildingTypeSeedError) {
-        // 유형 자체는 만들어졌으니 임시 탭을 남기지 않고 실제 탭으로 넘긴다.
-        setPendingType(null);
-        setEditingTypeKey(null);
-        setActiveKey(`type-${error.created.id}`);
-        return;
-      }
       keepEditing();
     }
   };
