@@ -1,5 +1,4 @@
 import { extractRequestMeta } from "@/lib/audit/accessLog";
-import { requirePersonaApi, type WorkforcePersona } from "@/lib/api/requirePersona";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -48,12 +47,6 @@ const REVEAL_TARGETS = {
     phone_sub: UUID_KEY,
   },
 } as const satisfies Record<string, Record<string, RevealTarget>>;
-
-const REVEAL_PERSONAS = [
-  "manager_staff",
-  "field_partner",
-  "platform_admin",
-] as const satisfies readonly WorkforcePersona[];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -104,23 +97,8 @@ function isRevealResult(value: unknown): value is RevealResult {
   return value.values === undefined || isRecord(value.values);
 }
 
-async function authorizeReveal(sb: Awaited<ReturnType<typeof createClient>>): Promise<
-  { ok: true } | { ok: false; response: Response }
-> {
-  for (const persona of REVEAL_PERSONAS) {
-    const gate = await requirePersonaApi(sb, persona);
-    if (gate.ok) return { ok: true };
-
-    if (gate.response.status === 401) return { ok: false, response: gate.response };
-  }
-
-  return { ok: false, response: Response.json({ error: "Forbidden" }, { status: 403 }) };
-}
-
 export async function POST(request: Request) {
   const sb = await createClient();
-  const authorization = await authorizeReveal(sb);
-  if (!authorization.ok) return authorization.response;
 
   const body = await request.json().catch(() => null);
   if (!isRecord(body)) {
@@ -159,7 +137,9 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid reveal request" }, { status: 400 });
   }
 
-  // 레코드 읽기와 감사로그 기록을 한 왕복·한 트랜잭션으로 처리한다(마이그 0185).
+  // persona 게이트·레코드 읽기·감사로그를 이 한 번의 왕복에서 끝낸다(마이그 0185·0186).
+  // 인가 판정을 TS 로 옮겨 적지 않는 이유는 규칙이 두 곳으로 갈라지면 구멍이 나기 때문이다 —
+  // 함수 안에서 current_user_is_* 프레디킷이 그대로 유일한 기준으로 남는다.
   // 함수는 security invoker 라 읽기가 호출자 권한으로 돌고, 따라서 RLS 가 그대로 경계를
   // 지킨다. 기록이 실패하면 함수째로 롤백돼 원문이 나가지 않는다.
   const { ip, userAgent } = extractRequestMeta(request);
@@ -172,12 +152,20 @@ export async function POST(request: Request) {
   });
 
   if (error) {
+    // 세션이 없으면 authenticated 전용 함수라 PostgREST 가 권한에서 막는다 → 401.
+    if (/permission denied/i.test(error.message)) {
+      return Response.json({ error: "인증이 필요합니다." }, { status: 401 });
+    }
     console.error("PII reveal failed", error.message);
     return Response.json({ error: "Unable to reveal this field" }, { status: 500 });
   }
   if (!isRevealResult(data)) {
     console.error("PII reveal returned an unexpected payload");
     return Response.json({ error: "Unable to reveal this field" }, { status: 500 });
+  }
+  // 직원·파트너·플랫폼관리자가 아니면 403(예: 세입자 세션).
+  if (data.status === "forbidden") {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
   }
   // 행이 없을 때와 파트너 담당 건물 밖일 때를 구분하지 않는다 — 존재 여부가 새지 않도록.
   if (data.status !== "ok" || !data.values) {
