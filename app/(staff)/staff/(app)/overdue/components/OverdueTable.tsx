@@ -1,4 +1,3 @@
-import type { KeyboardEvent } from "react";
 import { MaskedPhone } from "@/components/common/MaskedPhone";
 import {
   buildOverdueGroups,
@@ -11,7 +10,6 @@ import type { OverdueHousehold, OverduePeriodRow } from "@/hooks/reactquery/over
 interface OverdueTableProps {
   rows: OverdueHousehold[];
   periods?: OverduePeriodRow[];
-  onRowClick: (row: OverdueHousehold) => void;
   selectedIds?: Set<number>;
   onToggleOne?: (occupancyId: number) => void;
   onToggleAll?: () => void;
@@ -37,19 +35,9 @@ const COLUMNS = [
 
 const money = new Intl.NumberFormat("ko-KR");
 
-export function OverdueTable({ rows, periods = [], onRowClick }: OverdueTableProps) {
+export function OverdueTable({ rows, periods = [] }: OverdueTableProps) {
   const groups = buildOverdueGroups(rows, periods);
   const { lineCount: itemCount, principal: principalTotal, lateFee: lateFeeTotal } = sumOverdueGroups(groups);
-
-  const openWithKeyboard = (
-    event: KeyboardEvent<HTMLTableRowElement>,
-    row: OverdueHousehold,
-  ) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      onRowClick(row);
-    }
-  };
 
   return (
     <div className="min-h-0 flex-1 overflow-auto rounded-b-[16px] bg-white">
@@ -74,11 +62,7 @@ export function OverdueTable({ rows, periods = [], onRowClick }: OverdueTablePro
               ...group.lines.map((line, index) => (
                 <tr
                   key={line.key}
-                  tabIndex={0}
-                  aria-label={`${unit} ${group.household.tenantName ?? "입주자 미등록"} 상세 보기`}
-                  onClick={() => onRowClick(group.household)}
-                  onKeyDown={(event) => openWithKeyboard(event, group.household)}
-                  className="h-[41px] cursor-pointer bg-white transition hover:bg-[#fbfcfd] focus:bg-[#fbfcfd] focus:outline-none"
+                  className="h-[41px] cursor-pointer bg-white transition hover:bg-[#fbfcfd]"
                 >
                   <td className="border-b border-line2 px-[16px] font-medium">{index === 0 ? unit : ""}</td>
                   <td className="border-b border-line2 px-[16px]">{index === 0 ? group.household.buildingName : ""}</td>
