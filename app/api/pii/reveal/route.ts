@@ -80,6 +80,7 @@ const REVEAL_TARGETS = {
   profile: {
     // 직원 프로필도 건물 소속이 아니다. 파트너는 열 수 없다.
     phone: { table: "profiles", column: "phone", idColumn: "user_id", idType: "uuid" as const, owner: PROFILE_ORG, buildingSelect: null, buildingPath: null },
+    phone_sub: { table: "profiles", column: "phone_sub", idColumn: "user_id", idType: "uuid" as const, owner: PROFILE_ORG, buildingSelect: null, buildingPath: null },
   },
 } as const satisfies Record<string, Record<string, RevealTarget>>;
 
