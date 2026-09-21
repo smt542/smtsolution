@@ -102,6 +102,9 @@ function resolveRevealTarget(targetKind: string, field: string): RevealTarget | 
   return fields[field as keyof typeof fields];
 }
 
+/** 한 레코드에서 한 번에 열람할 수 있는 필드 수 상한. 편집 폼이 쓰는 번호 필드는 최대 4개다. */
+const MAX_REVEAL_FIELDS = 8;
+
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -148,12 +151,14 @@ function getNestedValue(row: Record<string, unknown>, path: readonly string[]): 
   return current;
 }
 
-function revealSelect(target: RevealTarget): string {
-  if (target.owner.kind === "lookup") return target.column;
-  const owner = target.owner.kind === "column" ? target.owner.column : target.owner.select;
+function revealSelect(targets: readonly RevealTarget[]): string {
+  const primary = targets[0];
+  const columns = [...new Set(targets.map((target) => target.column))];
+  if (primary.owner.kind === "lookup") return columns.join(",");
+  const owner = primary.owner.kind === "column" ? primary.owner.column : primary.owner.select;
   // buildingSelect가 null인 대상은 owner select 안에 building_id가 이미 들어 있거나
   // (occupancy 계열) 건물에 매이지 않는 대상이다.
-  return [target.column, owner, target.buildingSelect].filter(Boolean).join(",");
+  return [...columns, owner, primary.buildingSelect].filter(Boolean).join(",");
 }
 
 async function authorizeReveal(sb: Awaited<ReturnType<typeof createClient>>): Promise<
@@ -185,17 +190,49 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid reveal request" }, { status: 400 });
   }
 
-  const { targetKind, targetId: rawTargetId, field } = body;
-  if (typeof targetKind !== "string" || typeof field !== "string") {
+  // 편집 폼은 한 레코드의 번호 필드를 한꺼번에 받아야 한다(목록이 마스킹돼도 폼에는 원문이
+  // 들어가야 마스킹 값이 저장되지 않는다). 그래서 fields 배열을 받되, 기존 단건 호출
+  // (field 문자열)도 그대로 지원한다.
+  const { targetKind, targetId: rawTargetId } = body;
+  const isBatch = Array.isArray(body.fields);
+  const requestedFields = isBatch
+    ? (body.fields as unknown[])
+    : typeof body.field === "string"
+      ? [body.field]
+      : null;
+
+  if (
+    typeof targetKind !== "string"
+    || requestedFields === null
+    || requestedFields.length === 0
+    || requestedFields.length > MAX_REVEAL_FIELDS
+    || !requestedFields.every((entry): entry is string => typeof entry === "string")
+  ) {
     return Response.json({ error: "Invalid reveal request" }, { status: 400 });
   }
 
-  const target = resolveRevealTarget(targetKind, field);
-  if (!target) {
+  const fields = [...new Set(requestedFields)];
+  const resolvedTargets: Array<{ field: string; target: RevealTarget }> = [];
+  for (const field of fields) {
+    const target = resolveRevealTarget(targetKind, field);
+    if (!target) {
+      return Response.json({ error: "Invalid reveal request" }, { status: 400 });
+    }
+    resolvedTargets.push({ field, target });
+  }
+
+  // 같은 targetKind 안의 필드는 같은 테이블·기본키를 공유한다. 방어적으로 확인해
+  // 서로 다른 레코드의 값이 한 응답에 섞이지 않게 한다.
+  const primary = resolvedTargets[0].target;
+  if (
+    resolvedTargets.some(
+      (entry) => entry.target.table !== primary.table || entry.target.idColumn !== primary.idColumn,
+    )
+  ) {
     return Response.json({ error: "Invalid reveal request" }, { status: 400 });
   }
 
-  const targetId = normalizeTargetId(rawTargetId, target.idType);
+  const targetId = normalizeTargetId(rawTargetId, primary.idType);
   if (!targetId) {
     return Response.json({ error: "Invalid reveal request" }, { status: 400 });
   }
@@ -203,9 +240,9 @@ export async function POST(request: Request) {
   // This query deliberately uses the RLS-scoped session client. RLS is the
   // authority that prevents a field partner from crossing building boundaries.
   const { data, error } = await sb
-    .from(target.table)
-    .select(revealSelect(target))
-    .eq(target.idColumn, targetId)
+    .from(primary.table)
+    .select(revealSelect(resolvedTargets.map((entry) => entry.target)))
+    .eq(primary.idColumn, targetId)
     .maybeSingle();
 
   if (error) {
@@ -214,24 +251,27 @@ export async function POST(request: Request) {
   }
   if (!data) return Response.json({ error: "Record not found" }, { status: 404 });
 
-  const value = (data as unknown as Record<string, unknown>)[target.column];
-  if (value !== null && typeof value !== "string") {
-    console.error("PII reveal returned an unexpected value type");
-    return Response.json({ error: "Unable to reveal this field" }, { status: 500 });
-  }
-
   const row = data as unknown as Record<string, unknown>;
+  const values: Record<string, string | null> = {};
+  for (const entry of resolvedTargets) {
+    const value = row[entry.target.column];
+    if (value !== null && value !== undefined && typeof value !== "string") {
+      console.error("PII reveal returned an unexpected value type");
+      return Response.json({ error: "Unable to reveal this field" }, { status: 500 });
+    }
+    values[entry.field] = (value as string | null | undefined) ?? null;
+  }
   let ownerOrgId: number | null = null;
-  if (target.owner.kind === "column") {
-    ownerOrgId = normalizePositiveId(row[target.owner.column]);
-  } else if (target.owner.kind === "nested") {
-    ownerOrgId = normalizePositiveId(getNestedValue(row, target.owner.path));
+  if (primary.owner.kind === "column") {
+    ownerOrgId = normalizePositiveId(row[primary.owner.column]);
+  } else if (primary.owner.kind === "nested") {
+    ownerOrgId = normalizePositiveId(getNestedValue(row, primary.owner.path));
   } else {
     const { data: member, error: memberError } = await sb
-      .from(target.owner.table)
-      .select(target.owner.column)
-      .eq(target.owner.lookupColumn, targetId)
-      .order(target.owner.column)
+      .from(primary.owner.table)
+      .select(primary.owner.column)
+      .eq(primary.owner.lookupColumn, targetId)
+      .order(primary.owner.column)
       .limit(1)
       .maybeSingle();
 
@@ -240,7 +280,7 @@ export async function POST(request: Request) {
       return Response.json({ error: "Unable to reveal this field" }, { status: 500 });
     }
 
-    ownerOrgId = isRecord(member) ? normalizePositiveId(member[target.owner.column]) : null;
+    ownerOrgId = isRecord(member) ? normalizePositiveId(member[primary.owner.column]) : null;
     if (ownerOrgId === null) {
       // profiles can outlive org_members after membership removal, so no owning
       // org exists in that state; retain the actor's org as the only audit scope.
@@ -257,11 +297,11 @@ export async function POST(request: Request) {
   // 이 경계를 막지 못하므로(파트너도 org 구성원이다) 여기서 건물을 대조한다.
   // 존재 여부가 새지 않도록 범위를 벗어나면 404로 응답한다.
   if (authorization.persona === "field_partner") {
-    if (!target.buildingPath) {
+    if (!primary.buildingPath) {
       return Response.json({ error: "Record not found" }, { status: 404 });
     }
 
-    const buildingId = normalizePositiveId(getNestedValue(row, target.buildingPath));
+    const buildingId = normalizePositiveId(getNestedValue(row, primary.buildingPath));
     if (buildingId === null) {
       return Response.json({ error: "Record not found" }, { status: 404 });
     }
@@ -290,7 +330,8 @@ export async function POST(request: Request) {
     actorId: authorization.actorId,
     targetKind,
     targetId,
-    field,
+    field: fields.join(","),
+    rowCount: fields.length,
     ip,
     userAgent,
   });
@@ -299,5 +340,6 @@ export async function POST(request: Request) {
     return Response.json({ error: "Unable to complete reveal" }, { status: 503 });
   }
 
-  return Response.json({ value });
+  // 기존 단건 호출(MaskedPhone 등)의 응답 형태는 바꾸지 않는다.
+  return Response.json(isBatch ? { values } : { value: values[fields[0]] });
 }
