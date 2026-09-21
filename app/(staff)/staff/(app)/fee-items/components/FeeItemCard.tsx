@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import type { BuildingTypeDraft, FeeItemDraft } from "./types";
 import { FeeItemTable } from "./FeeItemTable";
+import type { FeeItemDropPosition } from "./FeeItemRow";
 
 interface FeeItemCardProps {
   type: BuildingTypeDraft;
@@ -11,7 +12,7 @@ interface FeeItemCardProps {
   isReorderPending: boolean;
   onAddItem: () => void;
   onEditItem: (item: FeeItemDraft) => void;
-  onReorder: (draggedKey: string, targetKey: string) => void;
+  onReorder: (draggedKey: string, targetKey: string, position: FeeItemDropPosition) => void;
   onDeleteType: () => void;
   onRename: (label: string) => Promise<boolean>;
 }
