@@ -6,11 +6,12 @@ import { FeeItemRow } from "./FeeItemRow";
 
 interface FeeItemTableProps {
   items: FeeItemDraft[];
+  isReorderPending: boolean;
   onEdit: (item: FeeItemDraft) => void;
   onReorder: (draggedKey: string, targetKey: string) => void;
 }
 
-export function FeeItemTable({ items, onEdit, onReorder }: FeeItemTableProps) {
+export function FeeItemTable({ items, isReorderPending, onEdit, onReorder }: FeeItemTableProps) {
   const [draggedKey, setDraggedKey] = useState<string | null>(null);
 
   return (
@@ -30,6 +31,7 @@ export function FeeItemTable({ items, onEdit, onReorder }: FeeItemTableProps) {
             <FeeItemRow
               key={item.key}
               item={item}
+              isReorderPending={isReorderPending}
               onEdit={onEdit}
               onDragStart={setDraggedKey}
               onDrop={(targetKey) => {

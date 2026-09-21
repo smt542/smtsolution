@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/client";
 
+// 모든 건물 유형이 반드시 보유해야 하는 공과금 항목.
+export const REQUIRED_FEE_ITEM_NAMES = ["전기", "수도료", "가스"] as const;
+
 export interface FeeItem {
   id: number; orgId: number; typeId: number; name: string; rounding: string;
   dailyProration: boolean; carryOver: boolean; isRequired: boolean; sortOrder: number;
