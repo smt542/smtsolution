@@ -107,6 +107,18 @@ export interface TenantListRow {
   mgmtAccount?: string | null; waterAccount?: string | null; elecAccount?: string | null; gasAccount?: string | null;
   commonElecNo?: string | null;
 }
+
+export interface TenantCardRow {
+  unitId: number;
+  unitNo: string;
+  tenantName: string | null;
+  roomTypeLabel: string | null;
+  residentCount: number | null;
+  moveInDate: string | null;
+  phone: string | null;
+  isVacant: boolean;
+  isOverdue: boolean;
+}
 type TenantRow = {
   unit_id: number; occupancy_id: number | null; unit_no: string; tenant_name: string | null; phone: string | null;
   room_type_label: string | null; resident_count: number | null; move_in_date: string | null;
@@ -196,6 +208,15 @@ export async function listTenants(buildingId: number): Promise<TenantListRow[]> 
   const { data, error } = await createClient().rpc("list_tenants", { p_building_id: buildingId });
   if (error) throw new Error(error.message);
   return (data ?? []).map(rowToTenant);
+}
+
+export async function getTenantCardPrintData(buildingId: number): Promise<TenantCardRow[]> {
+  const response = await fetch(`/api/buildings/${buildingId}/tenant-cards/print`, { cache: "no-store" });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(data?.error ?? "입주자 카드 데이터를 불러오지 못했습니다.");
+  }
+  return data as TenantCardRow[];
 }
 
 export async function getUnitOccupancyFull(unitId: number): Promise<UnitOccupancyFull> {

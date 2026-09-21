@@ -157,6 +157,7 @@ export function BuildingDirectoryCard({
                               <MaskedPhone
                                 value={b.ownerPhone}
                                 kind="phone"
+                                alreadyMasked
                                 reveal={{ targetKind: "building", targetId: b.id, field: "owner_phone" }}
                               />
                             ) : (

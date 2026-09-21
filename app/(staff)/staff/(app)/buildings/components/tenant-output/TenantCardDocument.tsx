@@ -1,9 +1,9 @@
 import type { Building } from "@/hooks/reactquery/buildings";
-import type { TenantListRow } from "@/hooks/reactquery/occupancies";
+import type { TenantCardRow } from "@/hooks/reactquery/occupancies";
 
 interface TenantCardDocumentProps {
   building: Building;
-  tenant: TenantListRow;
+  tenant: TenantCardRow;
   companyName: string;
   year: number;
   month: number;

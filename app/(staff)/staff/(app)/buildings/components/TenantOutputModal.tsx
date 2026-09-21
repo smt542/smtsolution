@@ -5,7 +5,7 @@ import { Button } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useBillDocuments, useBillOrganizationName, useBillTargets } from "@/hooks/reactquery/bill";
-import { useTenantList } from "@/hooks/reactquery/occupancies";
+import { useTenantCardPrintData } from "@/hooks/reactquery/occupancies";
 import { currentPeriod } from "@/lib/billing/period";
 import { PROGRAM_COMPANY_NAME } from "@/lib/bill/document";
 import { BuildingPickerList } from "./tenant-output/BuildingPickerList";
@@ -51,7 +51,7 @@ export function TenantOutputModal({
   const selectedBuilding = buildings.find((building) => building.id === selectedBuildingId) ?? null;
   const period = `${year}-${String(month).padStart(2, "0")}-01`;
 
-  const { data: tenants = [], isLoading: tenantsLoading } = useTenantList(selectedBuildingId ?? 0);
+  const { data: tenants = [], isLoading: tenantsLoading } = useTenantCardPrintData(selectedBuildingId ?? 0);
   const { data: targets = [] } = useBillTargets(selectedBuildingId, period);
   const unitIds = useMemo(() => targets.map((target) => target.unitId), [targets]);
   const { data: documents = [] } = useBillDocuments(selectedBuildingId, period, unitIds);

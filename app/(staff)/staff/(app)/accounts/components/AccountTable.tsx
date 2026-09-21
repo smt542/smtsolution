@@ -58,6 +58,7 @@ export function AccountTable({ accounts, onRowClick, hideType = false }: Props) 
         <MaskedPhone
           value={a.phone}
           kind="phone"
+          alreadyMasked
           reveal={{ targetKind: "profile", targetId: a.userId, field: "phone" }}
         />
       ) : "-",

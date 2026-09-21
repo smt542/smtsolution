@@ -114,6 +114,7 @@ export function TenantOccupancyCard({
                           <MaskedPhone
                             value={t.phone}
                             kind="phone"
+                            alreadyMasked
                             reveal={{ targetKind: "occupancy", targetId: t.occupancyId, field: "phone" }}
                           />
                         ) : (
