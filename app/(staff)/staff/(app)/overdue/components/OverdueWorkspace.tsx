@@ -281,15 +281,13 @@ export function OverdueWorkspace({
           disabled={isBuildingsLoading}
         />
 
-        {!hasPeriod ? (
+        {/* 정본은 조회 준비 상태를 년·월만 보고 판단한다(`ready = !!(oy && om)`) — 건물은
+            표를 거르는 검색어일 뿐 선택 게이트가 없다. 앱은 조회 RPC에 건물이 필요해
+            게이트가 남지만, 문구는 정본의 한 가지로 통일한다(사용자 결정 2026-09-21). */}
+        {!hasPeriod || selectedBuildingId === null ? (
           <OverdueEmptyState
             title="년도와 월을 선택해 주세요"
             description="조회 기간을 고르면 미납 내역이 표시돼요"
-          />
-        ) : selectedBuildingId === null ? (
-          <OverdueEmptyState
-            title="건물명을 검색해 선택해 주세요"
-            description="선택한 건물의 미납 내역을 조회할 수 있어요"
           />
         ) : isHouseholdsLoading ? (
           <div className="flex min-h-[360px] flex-1 items-center justify-center">
