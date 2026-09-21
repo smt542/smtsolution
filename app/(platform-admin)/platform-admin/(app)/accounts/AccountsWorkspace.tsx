@@ -285,6 +285,7 @@ export function AccountsWorkspace() {
                       <MaskedPhone
                         value={account.phone}
                         kind="phone"
+                        alreadyMasked
                         reveal={{ targetKind: "profile", targetId: account.userId, field: "phone" }}
                       />
                     ) : "-"}
