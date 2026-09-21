@@ -13,7 +13,7 @@ export interface FeeItemDraft {
 
 export interface BuildingTypeDraft {
   key: string;
-  id?: number;
+  id: number;
   label: string;
   sortOrder: number;
   items: FeeItemDraft[];

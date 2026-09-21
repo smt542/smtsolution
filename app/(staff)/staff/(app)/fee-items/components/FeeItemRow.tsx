@@ -8,7 +8,6 @@ export type FeeItemDropPosition = "before" | "after";
 
 interface FeeItemRowProps {
   item: FeeItemDraft;
-  isTypeUnsaved: boolean;
   isReorderPending: boolean;
   onEdit: (item: FeeItemDraft) => void;
   onDragStart: (key: string) => void;
@@ -21,7 +20,6 @@ interface FeeItemRowProps {
 
 export function FeeItemRow({
   item,
-  isTypeUnsaved,
   isReorderPending,
   onEdit,
   onDragStart,
@@ -32,8 +30,8 @@ export function FeeItemRow({
   dropPosition,
 }: FeeItemRowProps) {
   const rounding = ROUNDING_OPTIONS.find((option) => option.value === item.rounding)?.label;
-  const editable = !isTypeUnsaved && (!item.isRequired || item.id == null);
-  const interactive = !isTypeUnsaved && !item.isRequired && item.id != null && !isReorderPending;
+  const editable = !item.isRequired;
+  const interactive = !item.isRequired && item.id != null && !isReorderPending;
   const indicatorClass = dropPosition === "before"
     ? "[&>*]:shadow-[inset_0_2px_0_0_var(--color-teal)]"
     : dropPosition === "after"

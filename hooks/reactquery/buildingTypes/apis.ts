@@ -9,8 +9,11 @@ type BuildingTypeRow = { id: number; org_id: number; label: string; sort_order: 
 // building_types 는 UNIQUE (org_id, label) 이라 같은 이름을 두 번 만들 수 없다.
 export const DUPLICATE_BUILDING_TYPE_LABEL = "이미 있는 유형명입니다. 다른 이름을 입력해 주세요.";
 
-function toLabelError(error: { code?: string; message: string }): Error {
-  return error.code === "23505" ? new AppError(DUPLICATE_BUILDING_TYPE_LABEL) : new Error(error.message);
+function toLabelError(error: { code?: string; message: string }): Error & { code?: string } {
+  const result = error.code === "23505"
+    ? new AppError(DUPLICATE_BUILDING_TYPE_LABEL)
+    : new Error(error.message);
+  return Object.assign(result, { code: error.code });
 }
 
 const rowToBuildingType = (r: BuildingTypeRow): BuildingType => ({

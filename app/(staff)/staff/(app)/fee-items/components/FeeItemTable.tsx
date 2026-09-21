@@ -6,14 +6,12 @@ import { FeeItemRow, type FeeItemDropPosition } from "./FeeItemRow";
 
 interface FeeItemTableProps {
   items: FeeItemDraft[];
-  /** 아직 저장되지 않은(임시) 유형이면 행을 눌러도 할 수 있는 게 없다. */
-  isTypeUnsaved: boolean;
   isReorderPending: boolean;
   onEdit: (item: FeeItemDraft) => void;
   onReorder: (draggedKey: string, targetKey: string, position: FeeItemDropPosition) => void;
 }
 
-export function FeeItemTable({ items, isTypeUnsaved, isReorderPending, onEdit, onReorder }: FeeItemTableProps) {
+export function FeeItemTable({ items, isReorderPending, onEdit, onReorder }: FeeItemTableProps) {
   const [draggedKey, setDraggedKey] = useState<string | null>(null);
   const [dropIndicator, setDropIndicator] = useState<{
     targetKey: string;
@@ -75,7 +73,6 @@ export function FeeItemTable({ items, isTypeUnsaved, isReorderPending, onEdit, o
             <FeeItemRow
               key={item.key}
               item={item}
-              isTypeUnsaved={isTypeUnsaved}
               isReorderPending={isReorderPending}
               onEdit={onEdit}
               dragged={draggedKey === item.key}

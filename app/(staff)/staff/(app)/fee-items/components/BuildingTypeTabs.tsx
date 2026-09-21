@@ -16,7 +16,7 @@ interface BuildingTypeTabsProps {
   onAdd: () => void;
   onLabelChange: (key: string, label: string) => void;
   onFinishEditing: (key: string) => void;
-  onCancelEditing: () => void;
+  onCancelEditing: (key: string) => void;
 }
 
 export function BuildingTypeTabs({
@@ -42,7 +42,7 @@ export function BuildingTypeTabs({
           return (
             <div
               key={type.key}
-              className={`relative flex h-full shrink-0 items-center justify-center px-4 text-[14px] font-bold ${type.id == null ? "min-w-24" : ""} ${
+              className={`relative flex h-full shrink-0 items-center justify-center px-4 text-[14px] font-bold ${
                 active ? "text-teal" : "text-t3"
               }`}
             >
@@ -64,7 +64,7 @@ export function BuildingTypeTabs({
                       event.currentTarget.blur();
                     } else if (event.key === "Escape") {
                       event.preventDefault();
-                      onCancelEditing();
+                      onCancelEditing(type.key);
                     }
                   }}
                 />

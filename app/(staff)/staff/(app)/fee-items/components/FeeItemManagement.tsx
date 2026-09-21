@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { EmptyState, Spinner } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
@@ -29,11 +29,6 @@ import type { FeeItemDropPosition } from "./FeeItemRow";
 import type { BuildingTypeDraft, FeeItemDraft, FeeItemFormValue, RoundingRule } from "./types";
 
 interface FeeItemManagementProps { orgId: number; }
-
-interface PendingBuildingType {
-  key: string;
-  label: string;
-}
 
 // 아직 DB에 없는 필수 항목은 화면에만 놓는다. 유형을 만들면 DB 트리거가 실제 행을 채운다.
 function requiredPlaceholder(keyPrefix: string, name: string, index: number): FeeItemDraft {
@@ -92,6 +87,25 @@ function toTypeViews(types: BuildingType[], items: FeeItem[]): BuildingTypeDraft
     });
 }
 
+const TEMPORARY_BUILDING_TYPE_LABEL = "새 유형";
+
+function isUniqueViolation(error: unknown): boolean {
+  return typeof error === "object"
+    && error !== null
+    && "code" in error
+    && error.code === "23505";
+}
+
+function nextTemporaryBuildingTypeLabel(types: BuildingType[], reservedLabels: Set<string>): string {
+  const labels = new Set(types.map((type) => type.label.trim()));
+  reservedLabels.forEach((label) => labels.add(label));
+  if (!labels.has(TEMPORARY_BUILDING_TYPE_LABEL)) return TEMPORARY_BUILDING_TYPE_LABEL;
+
+  let suffix = 2;
+  while (labels.has(`${TEMPORARY_BUILDING_TYPE_LABEL} ${suffix}`)) suffix += 1;
+  return `${TEMPORARY_BUILDING_TYPE_LABEL} ${suffix}`;
+}
+
 export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
   const confirm = useConfirm();
   const buildingTypesQuery = useBuildingTypes();
@@ -105,30 +119,20 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
   const reorderFeeItemsMutation = useReorderFeeItems();
 
   const [activeKey, setActiveKey] = useState<string | null>(null);
-  const [pendingType, setPendingType] = useState<PendingBuildingType | null>(null);
   const [editingTypeKey, setEditingTypeKey] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState("");
+  const [initialNamingTypeKey, setInitialNamingTypeKey] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingItemKey, setEditingItemKey] = useState<string | null>(null);
   const [deleteTargetKey, setDeleteTargetKey] = useState<string | null>(null);
   // 저장에 실패해 편집 상태로 되돌릴 때 인풋을 다시 마운트해 포커스를 되돌린다.
   const [typeNameRetryToken, setTypeNameRetryToken] = useState(0);
-  const sequenceRef = useRef(0);
 
   const persistedTypes = useMemo(
     () => toTypeViews(buildingTypesQuery.data ?? [], feeItemsQuery.data ?? []),
     [buildingTypesQuery.data, feeItemsQuery.data],
   );
-  const types = pendingType
-    ? [
-        ...persistedTypes,
-        {
-          key: pendingType.key,
-          label: pendingType.label,
-          sortOrder: persistedTypes.length,
-          items: REQUIRED_ITEM_NAMES.map((name, index) => requiredPlaceholder(pendingType.key, name, index)),
-        } satisfies BuildingTypeDraft,
-      ]
-    : persistedTypes;
+  const types = persistedTypes;
   const selectedKey = activeKey && types.some((type) => type.key === activeKey)
     ? activeKey
     : types[0]?.key ?? null;
@@ -143,56 +147,104 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
     || updateFeeItemMutation.isPending
     || deleteFeeItemMutation.isPending;
 
-  const discardPendingType = () => {
-    const discardedKey = pendingType?.key;
-    setPendingType(null);
-    if (editingTypeKey === discardedKey) setEditingTypeKey(null);
-    if (activeKey === discardedKey) setActiveKey(null);
-  };
-
-  const addType = () => {
-    if (pendingType || createBuildingTypeMutation.isPending) return;
-    sequenceRef.current += 1;
-    const key = `pending-type-${Date.now()}-${sequenceRef.current}`;
-    setPendingType({ key, label: "" });
-    setActiveKey(key);
+  const keepTypeNameEditing = (key: string) => {
     setEditingTypeKey(key);
+    setTypeNameRetryToken((token) => token + 1);
   };
 
-  const commitPendingType = async (key: string) => {
-    if (!pendingType || pendingType.key !== key || createBuildingTypeMutation.isPending) return;
-    const label = pendingType.label.trim();
-    if (!label) {
-      discardPendingType();
-      return;
+  const addType = async () => {
+    if (initialNamingTypeKey || createBuildingTypeMutation.isPending) return;
+
+    const loadedTypes = buildingTypesQuery.data ?? [];
+    const reservedLabels = new Set<string>();
+    let created: BuildingType | null = null;
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const label = nextTemporaryBuildingTypeLabel(loadedTypes, reservedLabels);
+      reservedLabels.add(label);
+
+      try {
+        created = await createBuildingTypeMutation.mutateAsync({
+          orgId,
+          label,
+          sortOrder: loadedTypes.length,
+        });
+        break;
+      } catch (error) {
+        if (!isUniqueViolation(error) || attempt === 4) {
+          toast.error(error, "건물 유형을 추가하지 못했습니다.");
+          return;
+        }
+      }
     }
 
-    const keepEditing = () => {
-      setEditingTypeKey(key);
-      setTypeNameRetryToken((token) => token + 1);
-    };
+    if (!created) return;
+    const key = `type-${created.id}`;
+    setActiveKey(key);
+    setEditingTypeKey(key);
+    setEditingValue("");
+    setInitialNamingTypeKey(key);
+  };
 
-    // 서버까지 가서 유니크 위반으로 튕기면 실패한 임시 탭이 중복 탭처럼 남는다. 먼저 걸러낸다.
-    if (persistedTypes.some((type) => type.label.trim() === label)) {
-      toast.error(DUPLICATE_BUILDING_TYPE_LABEL);
-      keepEditing();
+  const deleteInitialNamingType = async (key: string) => {
+    if (initialNamingTypeKey !== key || deleteBuildingTypeMutation.isPending) return;
+    const target = types.find((type) => type.key === key);
+    if (!target) {
+      setInitialNamingTypeKey(null);
+      setEditingTypeKey(null);
+      setEditingValue("");
       return;
     }
 
     try {
-      const created = await createBuildingTypeMutation.mutateAsync({
-        orgId,
-        label,
-        sortOrder: persistedTypes.length,
-      });
-      setPendingType(null);
+      await deleteBuildingTypeMutation.mutateAsync(target.id);
+      const index = types.findIndex((type) => type.key === key);
+      const next = types.filter((type) => type.key !== key);
+      if (selectedKey === key) {
+        setActiveKey((index > 0 ? next[index - 1] : next[0])?.key ?? null);
+      }
+      setInitialNamingTypeKey(null);
       setEditingTypeKey(null);
-      setActiveKey(`type-${created.id}`);
-      toast.success("유형이 추가되었습니다.");
+      setEditingValue("");
     } catch (error) {
-      toast.error(error, "건물 유형을 추가하지 못했습니다.");
-      keepEditing();
+      toast.error(error, "건물 유형을 삭제하지 못했습니다.");
+      keepTypeNameEditing(key);
     }
+  };
+
+  const finishTypeEditing = async (key: string) => {
+    if (key !== editingTypeKey || createBuildingTypeMutation.isPending) return;
+    const label = editingValue.trim();
+
+    if (!label) {
+      if (initialNamingTypeKey === key) {
+        await deleteInitialNamingType(key);
+      } else {
+        setEditingTypeKey(null);
+        setEditingValue("");
+      }
+      return;
+    }
+
+    const type = types.find((candidate) => candidate.key === key);
+    if (!type) return;
+    const updated = await renameType(type.id, label);
+    if (updated) {
+      setInitialNamingTypeKey(null);
+      setEditingTypeKey(null);
+      setEditingValue("");
+    } else {
+      keepTypeNameEditing(key);
+    }
+  };
+
+  const cancelTypeEditing = async (key: string) => {
+    if (initialNamingTypeKey === key) {
+      await deleteInitialNamingType(key);
+      return;
+    }
+    setEditingTypeKey(null);
+    setEditingValue("");
   };
 
   const renameType = async (id: number, label: string): Promise<boolean> => {
@@ -216,7 +268,7 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
   };
 
   const openAddItem = () => {
-    if (!activeType || activeType.id == null) return;
+    if (!activeType) return;
     if (activeType.items.length >= MAX_FEE_ITEMS) {
       toast.error(`관리 항목은 최대 ${MAX_FEE_ITEMS}개까지 등록할 수 있어요`);
       return;
@@ -226,7 +278,7 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
   };
 
   const submitItem = async (value: FeeItemFormValue) => {
-    if (!activeType?.id || isItemMutationPending) return;
+    if (!activeType || isItemMutationPending) return;
     const item = editingItem;
     const input = {
       ...value,
@@ -301,18 +353,18 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
 
   const removeTargetType = async () => {
     if (!deleteTarget || deleteBuildingTypeMutation.isPending) return;
-    if (deleteTarget.id == null) {
-      discardPendingType();
-      setDeleteTargetKey(null);
-      return;
-    }
 
     try {
       await deleteBuildingTypeMutation.mutateAsync(deleteTarget.id);
       const index = types.findIndex((type) => type.key === deleteTarget.key);
       const next = types.filter((type) => type.key !== deleteTarget.key);
       if (selectedKey === deleteTarget.key) {
-        setActiveKey(next[Math.min(index, next.length - 1)]?.key ?? null);
+        setActiveKey((index > 0 ? next[index - 1] : next[0])?.key ?? null);
+      }
+      if (initialNamingTypeKey === deleteTarget.key) {
+        setInitialNamingTypeKey(null);
+        setEditingTypeKey(null);
+        setEditingValue("");
       }
       setDeleteTargetKey(null);
       toast.success("유형이 삭제되었습니다.");
@@ -342,17 +394,17 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
         types={types}
         activeKey={selectedKey}
         editingKey={editingTypeKey}
-        editingValue={pendingType?.label ?? ""}
+        editingValue={editingValue}
         isPending={createBuildingTypeMutation.isPending}
         refocusToken={typeNameRetryToken}
-        canAdd={!pendingType && !createBuildingTypeMutation.isPending}
+        canAdd={!initialNamingTypeKey && !createBuildingTypeMutation.isPending}
         onSelect={setActiveKey}
         onAdd={addType}
         onLabelChange={(key, label) => {
-          if (pendingType?.key === key) setPendingType((current) => current ? { ...current, label } : current);
+          if (editingTypeKey === key) setEditingValue(label);
         }}
-        onFinishEditing={(key) => { void commitPendingType(key); }}
-        onCancelEditing={discardPendingType}
+        onFinishEditing={(key) => { void finishTypeEditing(key); }}
+        onCancelEditing={(key) => { void cancelTypeEditing(key); }}
       />
       <main className="p-6 pt-[22px]">
         {activeType ? (
@@ -365,7 +417,7 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
             onEditItem={(item) => { setEditingItemKey(item.key); setFormOpen(true); }}
             onReorder={(draggedKey, targetKey, position) => { void reorderItems(draggedKey, targetKey, position); }}
             onDeleteType={requestDeleteType}
-            onRename={(label) => activeType.id == null ? Promise.resolve(false) : renameType(activeType.id, label)}
+            onRename={(label) => renameType(activeType.id, label)}
           />
         ) : (
           <div className="rounded-2xl bg-white p-10 shadow-card"><EmptyState message="등록된 건물 유형이 없습니다. 상단 + 버튼으로 유형을 추가해 주세요." /></div>
