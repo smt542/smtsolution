@@ -110,6 +110,7 @@ export async function GET(request: Request) {
     event: "EXPORT_XLSX",
     persona: "manager_staff",
     orgId: gate.ctx.org_id ?? null,
+    actorId: gate.userId,
     targetKind: "building",
     targetId: String(buildingId),
     rowCount: table.length,

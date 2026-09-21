@@ -160,18 +160,13 @@ async function authorizeReveal(sb: Awaited<ReturnType<typeof createClient>>): Pr
   | { ok: true; persona: WorkforcePersona; orgId: number | null; actorId: string | null }
   | { ok: false; response: Response }
 > {
-  // 감사 행은 누가 열었는지를 담아야 의미가 있다. requirePersonaApi는 org 컨텍스트만
-  // 돌려주므로 행위자 id는 여기서 따로 읽는다.
-  const { data: userData } = await sb.auth.getUser();
-  const actorId = userData?.user?.id ?? null;
-
   for (const persona of REVEAL_PERSONAS) {
     const gate = await requirePersonaApi(sb, persona);
     if (gate.ok) {
       const orgId = typeof gate.ctx.org_id === "number" && Number.isSafeInteger(gate.ctx.org_id)
         ? gate.ctx.org_id
         : null;
-      return { ok: true, persona, orgId, actorId };
+      return { ok: true, persona, orgId, actorId: gate.userId };
     }
 
     if (gate.response.status === 401) return { ok: false, response: gate.response };
