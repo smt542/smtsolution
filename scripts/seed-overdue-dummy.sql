@@ -1,4 +1,4 @@
--- /staff/미납 관리 dummy seed (org 1 · 그린빌라(1) 기존 세대만)
+-- /staff/미납 관리 dummy seed (org 1 · 그린빌라(1)·블루타워(2) 기존 세대만)
 --
 -- 미납 표를 정본(overdue-management.dc.html)처럼 채우는 더미 데이터.
 -- 미납액 = billing_confirmations.total_amount − sum(payments.amount) 이므로 둘 다 넣는다.
@@ -79,7 +79,12 @@ with seed(unit_id, occupancy_id, period, total_amount, paid_amount) as (
     (29, 29, date '2026-01-01', 133850, 0),
     (29, 29, date '2025-12-01', 129400, 0),
     (30, 30, date '2026-02-01', 214700, 80000),
-    (30, 30, date '2026-01-01', 209350, 0)
+    (30, 30, date '2026-01-01', 209350, 0),
+    -- 블루타워(건물2) — 정본 출력물처럼 여러 건물이 한 조회/한 장에 섞이는지 보려고 넣는다.
+    --   미납 조회는 년·월만으로 org 전체를 훑으므로(마이그 0183) 건물이 둘 이상이어야 확인된다.
+    (6,  5,  date '2026-02-01', 312900, 0),
+    (6,  5,  date '2026-01-01', 298400, 0),
+    (7,  7,  date '2026-02-01', 145600, 0)
 ),
 ins_bc as (
   insert into billing_confirmations (unit_id, occupancy_id, period, total_amount, billing_note, confirmed_at)
@@ -100,7 +105,7 @@ commit;
 
 -- 검증(조회 조건: 건물 그린빌라 / 2026년 2월 / 전체)
 --   select * from list_overdue_periods(1, 2026, 2, 'all');
---   → 세대 27건 · 행 42건 (원본 출력물과 같은 분량 → A4 2페이지)
+--   → 세대 29건 · 행 45건 (그린빌라 27 + 블루타워 2, 원본 출력물과 같은 분량 → A4 2페이지)
 --
 -- rollback (더미 제거)
 --   begin;

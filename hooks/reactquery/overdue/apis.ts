@@ -225,8 +225,28 @@ export async function listOverdueBuildings(): Promise<OverdueBuilding[]> {
   }));
 }
 
+/**
+ * 동호 정렬용. "101호" 같은 값에서 숫자를 뽑아 자연순으로 비교한다(문자열 정렬이면 10호<2호).
+ */
+function unitSortKey(value?: string | null): [number, string] {
+  const text = value ?? "";
+  const digits = text.match(/\d+/);
+  return [digits ? Number(digits[0]) : Number.MAX_SAFE_INTEGER, text];
+}
+
+function compareHouseholds(a: OverdueHousehold, b: OverdueHousehold): number {
+  const byBuilding = a.buildingName.localeCompare(b.buildingName, "ko");
+  if (byBuilding !== 0) return byBuilding;
+  const byDong = (a.dong ?? "").localeCompare(b.dong ?? "", "ko");
+  if (byDong !== 0) return byDong;
+  const [aNo, aText] = unitSortKey(a.unitNo);
+  const [bNo, bText] = unitSortKey(b.unitNo);
+  return aNo - bNo || aText.localeCompare(bText, "ko");
+}
+
+/** `buildingId`가 null이면 org 전체 건물을 조회한다(정본과 동일 — 년·월만으로 조회된다). */
 export async function listOverdueHouseholds(
-  buildingId: number,
+  buildingId: number | null,
   params: OverdueQueryParams = {},
 ): Promise<OverdueHousehold[]> {
   const query = resolveOverdueQuery(params);
@@ -260,11 +280,15 @@ export async function listOverdueHouseholds(
         )
       )
     `)
-    .eq("units.building_id", buildingId)
     .eq("status", "occupied")
     .is("deleted_at", null)
     .is("units.deleted_at", null)
     .order("id");
+
+  // 전체 조회일 때는 건물 필터를 걸지 않는다. org 경계는 buildings RLS 가 지킨다.
+  const scopedOccupancies = buildingId === null
+    ? occupanciesRequest
+    : occupanciesRequest.eq("units.building_id", buildingId);
 
   const aggregatesRequest = client.rpc("list_overdue_aggregates", {
     p_building_id: buildingId,
@@ -274,7 +298,7 @@ export async function listOverdueHouseholds(
   });
 
   const [occupanciesResponse, aggregatesResponse] = await Promise.all([
-    occupanciesRequest,
+    scopedOccupancies,
     aggregatesRequest,
   ]);
 
@@ -296,11 +320,14 @@ export async function listOverdueHouseholds(
         : undefined;
       return rowToHousehold(row, aggregate);
     })
-    .filter((row): row is OverdueHousehold => row !== null);
+    .filter((row): row is OverdueHousehold => row !== null)
+    // 전체 조회에서는 건물이 섞이므로 건물 → 동 → 호수 순으로 정렬한다(정본 출력물 순서).
+    .sort(compareHouseholds);
 }
 
+/** `buildingId`가 null이면 org 전체 건물을 조회한다. */
 export async function listOverduePeriods(
-  buildingId: number,
+  buildingId: number | null,
   params: OverdueQueryParams = {},
 ): Promise<OverduePeriodRow[]> {
   const query = resolveOverdueQuery(params);
