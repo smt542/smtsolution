@@ -37,10 +37,11 @@
 | 0180 | **발송 번호를 클라이언트 값이 아니라 `ref`의 id로 서버 해석** |
 | 0181 | 계정 목록 마스킹(`list_accounts`, `platform_list_accounts`) |
 | 0182 | 건물·파트너세대 목록 마스킹(`list_buildings.owner_phone`, `partner_list_units.phone`) |
+| 0184 | 입주자 목록 마스킹(`list_tenants.phone`) + 인쇄 경로 서버 이관 + `alreadyMasked` 4곳 |
 
-**서버 마스킹 완료 8개**: `partner_search_tenants` · `partner_list_building_vendors` ·
+**서버 마스킹 완료 9개**: `partner_search_tenants` · `partner_list_building_vendors` ·
 `list_message_logs` · `list_occupancy_history` · `list_accounts` · `platform_list_accounts` ·
-`list_buildings` · `partner_list_units`
+`list_buildings` · `partner_list_units` · `list_tenants`
 
 **기반 도구**(이미 있음, 재사용할 것):
 - `POST /api/pii/reveal` — 화이트리스트·org 소유 검증·파트너 담당건물 게이트·fail-closed 감사.
@@ -49,6 +50,32 @@
 - SQL `public.mask_phone(text)` — `010-1234-5678` → `010-****-5678`, `02-` 접두 처리, service 전용 아님(authenticated).
 - 계정 2화면이 **레퍼런스 구현**이다. `AccountFormModal.tsx`와 platform `AccountEditModal.tsx`:
   폼 기본값 `phone: ""` → 열릴 때 reveal로 원문 수령 → 조회 전·실패 시 **저장 차단** → 저장 직전 재확인.
+
+## 3-1. ⚠️ 목록을 마스킹할 때 반드시 같이 할 일 — `alreadyMasked`
+
+`MaskedPhone` 은 받은 값을 **자기가 한 번 더 마스킹한다**. 서버에서 이미 마스킹된 값을 주면
+두 번 마스킹돼 무너진다. 0184 작업 중 발견했고, 실제로 `maskValue` 를 돌려 확인했다.
+
+```
+원문 010-1234-5678 → 서버 010-****-5678 → UI 가 또 마스킹 → *******
+```
+
+`maskValue` 는 숫자만 뽑아 `0105678`(7자리)로 보고 `middleLength = 7-3-4 = 0` 이 되면
+`<= 0` 분기로 빠져 **전체를 별표로** 바꾼다. 설계상 남겨야 할 뒤 4자리까지 사라진다.
+
+**그래서 목록 RPC 를 마스킹하는 마이그와 같은 커밋에 그 목록을 쓰는 `MaskedPhone` 소비자에
+`alreadyMasked` 를 넣어야 한다.** 0181·0182 는 이걸 빠뜨려 계정 2곳·건물 1곳이 프로덕션에서
+`*******` 로 보이고 있었다(0184 에서 같이 고침). 검증 환경의 `profiles`·`buildings` 에
+전화번호가 0건이라 화면에 `-` 만 떠서 드러나지 않았다 — 6절의 '검증용 데이터가 없다' 와 같은 함정이다.
+
+남은 목록을 마스킹할 때 같이 손봐야 할 소비자(현재는 원문을 받으므로 `alreadyMasked` 가 없다):
+
+| 마스킹 대상 | 같이 고칠 `MaskedPhone` |
+|---|---|
+| `list_receipts_workspace` (5-2) | `receipts/components/UnifiedSearchModal.tsx`(2곳) · `TenantInfoSection.tsx` |
+| `listOverdueHouseholds` (5-5) | `overdue/components/OverdueTable.tsx` · `OverdueDetailModal.tsx` · `villa-overdue/OverdueDetailTable.tsx` |
+| `listComplaints` (5-5) | `receipts/components/ComplaintTable.tsx` · `AsStatusSection.tsx` · `shell/as-rail/*` |
+| `listVendors` (5-5) | `components/vendors/VendorList.tsx` |
 
 ## 4. 마스킹하면 안 되는 것
 
@@ -64,12 +91,21 @@
 ⚠️ **"편집 폼이 상세를 따로 조회하니 마이그 한 줄이면 된다"는 판단은 틀렸다.** 편집 외 소비자
 (인쇄·클라이언트 검색·선택 UI)를 반드시 같이 훑어야 한다. 실제로 이 오판으로 4개 중 2개만 가능했다.
 
-### 5-1. `list_tenants.phone`
+### 5-1. `list_tenants.phone` — ✅ 완료 (마이그 0184, 머지 30041448)
 - **블로커**: 입주자카드 **인쇄**. `TenantCardDocument`가 `tenant: TenantListRow`(= `list_tenants` 행)를
   그대로 받는다. `TenantOutputModal`이 `useTenantList()`로 넘긴다.
 - **필요한 일**: 인쇄 데이터를 서버에서 조회하도록 이관. `app/api/buildings/export/route.ts`가
   이미 그 방식이다(클라이언트 payload를 안 쓰고 RPC로 재조회 + `logAccess`).
 - 발송 소비자(`useNoticeMessaging`·`useNoticeAlimtalkSend`)는 0180으로 **이미 해소됐다**.
+- **한 일**: `app/api/buildings/[id]/tenant-cards/print` 신설 — `list_tenants`(비-연락처 필드)와
+  `occupancies`(원문 연락처)를 서버에서 합쳐 내려주고 `PRINT` 이벤트로 감사기록한다. occupancy id 는
+  org 로 필터된 RPC 결과에서만 나오므로 외부 id 주입이 불가능하다. `TenantOutputModal` 은
+  `useTenantCardPrintData`(`gcTime: 0`)로 미리보기·일괄인쇄를 모두 대체한다.
+- **실측 결과**: 목록 37건 원문 → 37건 마스킹으로 뒤집혔고, 인쇄 라우트는 37건 원문 유지,
+  편집 폼은 마스킹 이후에도 `010-2222-3333` 원문을 실었으며, `save_unit_occupancy_full` 왕복 뒤에도
+  DB 원문·팩스·검침기 3건·계좌 1건이 모두 그대로였다. 오버로드는 1개 그대로.
+- 편집 폼은 `useUnitOccupancyFull`(occupancies 직접 조회)로 채워지므로 reveal 이 필요 없었다.
+  계정 화면과 달리 **목록이 폼을 먹이지 않는** 구조라 5-1 은 구조적으로 더 안전했다.
 
 ### 5-2. `list_receipts_workspace.phone` (+ nested `occupancy.phone`)
 - **블로커**: `UnifiedSearchModal.tsx`가 **클라이언트에서 번호를 필터링**한다 —
@@ -97,9 +133,12 @@
 - 미납 목록은 메시지 발송(0180으로 해소)과 **클라이언트 CSV/출력**에 쓰인다 — 5-2와 같은 유형.
 
 ### 권장 순서
-1. **5-1 `list_tenants`** — 효과 대비 명확하고(입주자 연락처가 가장 민감·건수 최다), 이관 방식의
-   본보기가 이미 있다(엑셀 라우트).
-2. 5-2 → 5-3 → 5-5(민원·거래처) → 5-4
+1. ~~5-1 `list_tenants`~~ — 완료(0184).
+2. **5-2 `list_receipts_workspace`** → 5-3 → 5-5(민원·거래처) → 5-4
+   - 5-2 는 `UnifiedSearchModal` 의 클라이언트 번호검색을 서버 검색으로 옮기는 게 본체다.
+     `RecipientCascade`(5-1 대상)도 번호를 검색 문자열에 넣지만 거기는 호실·이름이 주 키라
+     그대로 뒀다 — 마스킹 뒤 가운데 4자리 검색만 안 되고 앞 3자리·뒤 4자리는 그대로 걸린다.
+     계정 목록이 0181 이후 이미 같은 상태라 선례가 있다.
 
 ## 6. 작업 환경 — 이것 모르면 시간 날린다
 
@@ -109,6 +148,8 @@
 - 적용기: `node --env-file=.env.local scripts/db-query.mjs <sql파일>` (master에 있음, ref 가드 내장).
   출력이 `[]` 면 성공. Supabase MCP는 **무관한 프로젝트**만 붙어 있으니 쓰지 말 것.
 - 커밋 직전 `git ls-tree origin/master supabase/migrations/` 로 번호 재확인(병렬 세션이 선점한다).
+  0184 작업 중에도 실제로 선점당했다 — 작업 시작 시 0183 이 비어 있었는데 커밋 직전 확인하니
+  다른 세션의 `0183_overdue_all_buildings.sql` 이 올라와 있어 0184 로 밀었다. **이 확인은 생략 금지.**
 - ⚠️ Git Bash에서 `%TEMP%` 는 안 풀린다. 절대경로를 쓸 것.
 
 ### 검증 계정·세션
@@ -129,6 +170,20 @@
 빼기: update public.profiles set phone=null, phone_sub=null where username in ('admin','field1');
 ```
 **반드시 원복할 것.** 원래 전부 null이었다.
+
+### ⚠️ 이 환경에선 UI 저장이 아예 안 된다 (0184에서 확인)
+`room_types` 가 **0건**이고 `occupancies` 37건 전부 `room_type_id` 가 null 인데, 입주자 폼의
+zod 스키마는 `roomTypeId` 를 필수로 본다. 그래서 `등록 저장` 을 눌러도 검증에서 조기 반환되고
+RPC 가 **한 번도 호출되지 않는다**(토스트 `필수 항목을 확인해 주세요.` 만 뜬다).
+브라우저로 저장 왕복을 재려면 룸타입을 먼저 만들어야 한다.
+
+우회로: 폼이 들고 있는 값(= `occupancies` 직접 조회 결과)을 그대로 `save_unit_occupancy_full` 에
+PostgREST 로 태우면 같은 경로를 잰다. 자식 배열(`p_meters`·`p_accounts`·`p_lease`·`p_property`)은
+**replace 시맨틱**이라 반드시 현재 상태를 그대로 replay 해야 한다. 안 그러면 검침기·계좌가 날아간다.
+저장 전 전체 스냅샷(`to_jsonb`)을 떠 두고 저장 후 전 필드를 비교하는 방식이 안전했다.
+
+참고로 이 RPC 는 `discount_type` 을 `coalesce(nullif(...,''),'general')` 로 채운다. null 이던 값이
+저장 한 번에 `general` 이 되는 건 **폼으로 저장해도 똑같이 일어나는 기존 동작**이지, 왕복 테스트의 부작용이 아니다.
 
 ### 검증 레시피 (이번에 효과를 본 방식)
 1. **적용 전 기준선을 먼저 찍는다.** 마스킹 전 목록이 원문을 내리는 것을 기록해 두면 적용 후
@@ -160,14 +215,14 @@
 ```
 docs/superpowers/plans/2026-09-21-pii-masking-rollout.md 를 읽고 개인정보 서버 마스킹 이관을 이어가줘.
 
-지금 8개 목록이 서버 마스킹돼 있고, 남은 5개는 각각 원문이 필요한 소비자가 있어서
-마이그레이션 한 줄로는 안 된다. 문서 5절에 목록별 블로커와 필요한 작업이 정리돼 있다.
+지금 9개 목록이 서버 마스킹돼 있고(0184로 list_tenants 완료), 남은 4개는 각각 원문이 필요한
+소비자가 있어서 마이그레이션 한 줄로는 안 된다. 문서 5절에 목록별 블로커가 정리돼 있다.
 
-5-1 list_tenants 부터 하자. 입주자카드 인쇄가 목록 행을 그대로 받는 게 블로커이고,
-엑셀 라우트(app/api/buildings/export)가 이미 서버 재조회 방식이니 그걸 본보기로 삼으면 된다.
+5-2 list_receipts_workspace 부터 하자. UnifiedSearchModal이 클라이언트에서 번호를 필터링하는 게
+블로커라 번호 검색을 서버(RPC의 p_search)로 옮기는 게 본체다.
 
-지켜야 할 순서: 소비 경로를 서버로 옮긴 다음에 목록을 마스킹한다. 반대로 하면
-편집 폼에 마스킹 값이 들어가 DB 원문이 파괴된다.
+지켜야 할 순서: 소비 경로를 서버로 옮긴 다음에 목록을 마스킹한다. 그리고 3-1절대로 마스킹
+마이그와 같은 커밋에 그 목록을 쓰는 MaskedPhone 소비자에 alreadyMasked를 꼭 같이 넣어라.
 
 프로덕션 DB 쓰기는 네 권한으로 막히니 적용 명령은 나한테 하나씩 알려줘.
 검증은 문서 6절 레시피대로 적용 전 기준선부터 찍고, 편집 왕복을 실측해줘.
