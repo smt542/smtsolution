@@ -24,6 +24,7 @@ import { MAX_FEE_ITEMS, REQUIRED_ITEM_NAMES } from "./constants";
 import { DeleteBuildingTypeDialog } from "./DeleteBuildingTypeDialog";
 import { FeeItemCard } from "./FeeItemCard";
 import { FeeItemFormDialog } from "./FeeItemFormDialog";
+import type { FeeItemDropPosition } from "./FeeItemRow";
 import type { BuildingTypeDraft, FeeItemDraft, FeeItemFormValue, RoundingRule } from "./types";
 
 interface FeeItemManagementProps { orgId: number; }
@@ -248,20 +249,20 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
     }
   };
 
-  const reorderItems = async (draggedKey: string, targetKey: string) => {
+  const reorderItems = async (draggedKey: string, targetKey: string, position: FeeItemDropPosition) => {
     if (!activeType || reorderFeeItemsMutation.isPending) return;
     const optional = activeType.items.filter((item) => !item.isRequired && item.id != null);
-    const from = optional.findIndex((item) => item.key === draggedKey);
-    const to = optional.findIndex((item) => item.key === targetKey);
-    if (from < 0 || to < 0 || from === to) return;
-
-    const moved = [...optional];
-    const [item] = moved.splice(from, 1);
-    moved.splice(to, 0, item);
+    const draggedItem = optional.find((item) => item.key === draggedKey);
+    if (!draggedItem) return;
+    const rest = optional.filter((item) => item.key !== draggedKey);
+    const targetIndex = rest.findIndex((item) => item.key === targetKey);
+    if (targetIndex < 0) return;
+    const insertAt = position === "before" ? targetIndex : targetIndex + 1;
+    rest.splice(insertAt, 0, draggedItem);
     const requiredIds = activeType.items
       .filter((candidate) => candidate.isRequired && candidate.id != null)
       .map((candidate) => candidate.id as number);
-    const orderedIds = [...requiredIds, ...moved.map((candidate) => candidate.id as number)];
+    const orderedIds = [...requiredIds, ...rest.map((candidate) => candidate.id as number)];
 
     try {
       await reorderFeeItemsMutation.mutateAsync(orderedIds);
@@ -338,7 +339,7 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
             isReorderPending={reorderFeeItemsMutation.isPending}
             onAddItem={openAddItem}
             onEditItem={(item) => { setEditingItemKey(item.key); setFormOpen(true); }}
-            onReorder={(draggedKey, targetKey) => { void reorderItems(draggedKey, targetKey); }}
+            onReorder={(draggedKey, targetKey, position) => { void reorderItems(draggedKey, targetKey, position); }}
             onDeleteType={requestDeleteType}
             onRename={(label) => activeType.id == null ? Promise.resolve(false) : renameType(activeType.id, label)}
           />
