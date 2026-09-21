@@ -12,6 +12,7 @@ import {
   type PlatformAccountEditValues,
 } from "@/components/forms/schema/platformAccount";
 import type { PlatformAccount } from "@/hooks/reactquery/platform";
+import { useRevealPiiBatch } from "@/hooks/reactquery/pii/mutations";
 import { ModalActions } from "../../../../_components/ModalActions";
 import { InlineAlert } from "../../../../_components/InlineAlert";
 
@@ -30,9 +31,17 @@ const FORM_FIELD_CLASS =
   "[&>label]:mb-1.5 [&>label]:text-[12.5px] [&>label]:font-bold [&>label]:text-t2";
 
 export function AccountEditModal({ account, onClose, onSubmit, isPending }: Props) {
+  const piiReveal = useRevealPiiBatch(
+    {
+      targetKind: "profile",
+      targetId: account.userId,
+      fields: ["phone"],
+    },
+    true,
+  );
   const makeDefaults = React.useCallback((): PlatformAccountEditInput => ({
     fullName: account.fullName ?? "",
-    phone: account.phone ?? "",
+    phone: "",
     memo: account.memo ?? "",
   }), [account]);
   const {
@@ -40,13 +49,16 @@ export function AccountEditModal({ account, onClose, onSubmit, isPending }: Prop
     handleSubmit,
     reset,
     setError,
-    formState: { errors, isSubmitting },
+    getValues,
+    formState: { errors, isSubmitting, dirtyFields },
   } = useForm<PlatformAccountEditInput, unknown, PlatformAccountEditValues>({
     resolver: zodResolver(platformAccountEditSchema),
     defaultValues: makeDefaults(),
     shouldFocusError: true,
   });
-  const submitting = isPending || isSubmitting;
+  const piiRevealLoading = piiReveal.isPending || piiReveal.isFetching;
+  const piiRevealReady = piiReveal.isSuccess && !piiReveal.isFetching;
+  const submitting = isPending || isSubmitting || !piiRevealReady;
   const closeSafely = () => {
     if (!submitting) onClose();
   };
@@ -55,7 +67,25 @@ export function AccountEditModal({ account, onClose, onSubmit, isPending }: Prop
     reset(makeDefaults());
   }, [makeDefaults, reset]);
 
+  // 목록(platform_list_accounts)의 번호는 마스킹되므로 폼에 쓰지 않는다. 원문은 권한검증과
+  // 감사 기록을 거치는 /api/pii/reveal 로 따로 받아 채운다. 사용자가 이미 입력을 시작했으면
+  // 덮어쓰지 않는다.
+  React.useEffect(() => {
+    if (!piiReveal.isSuccess || piiReveal.isFetching || !piiReveal.data || dirtyFields.phone) return;
+    reset({ ...getValues(), phone: piiReveal.data.phone ?? "" }, { keepDirtyValues: true });
+  }, [dirtyFields.phone, getValues, piiReveal.data, piiReveal.isFetching, piiReveal.isSuccess, reset]);
+
   const submit = async (values: PlatformAccountEditValues) => {
+    // platform_update_account 는 profiles.phone 을 그대로 대입한다. 원문을 못 받은 상태로
+    // 저장하면 빈 값이 원문을 덮어쓴다. 저장을 막는다.
+    if (!piiReveal.isSuccess || piiReveal.isFetching || !piiReveal.data) {
+      setError("root.server", {
+        type: "server",
+        message: "전화번호 원문을 불러오지 못해 저장할 수 없습니다.",
+      });
+      return;
+    }
+
     try {
       await onSubmit(values);
       reset(makeDefaults());
@@ -76,6 +106,17 @@ export function AccountEditModal({ account, onClose, onSubmit, isPending }: Prop
         <p className="text-sm text-t2">
           <b>{account.username ?? account.userId}</b> · {account.organizationName}
         </p>
+
+        {piiRevealLoading && (
+          <p role="status" className="rounded-xl bg-blue-t px-3 py-2 text-sm font-semibold text-brand">
+            전화번호 원문을 불러오는 중입니다. 조회가 끝날 때까지 저장할 수 없습니다.
+          </p>
+        )}
+        {piiReveal.isError && (
+          <p role="alert" className="rounded-xl bg-red-t px-3 py-2 text-sm font-semibold text-red">
+            전화번호 원문을 불러오지 못했습니다. 저장할 수 없습니다.
+          </p>
+        )}
 
         <FormField label="이름" htmlFor="platform-account-edit-name" error={errors.fullName?.message} className={FORM_FIELD_CLASS}>
           <Input
