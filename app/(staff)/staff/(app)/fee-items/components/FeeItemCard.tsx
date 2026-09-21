@@ -80,24 +80,21 @@ export function FeeItemCard({
           ) : (
             <>
               <h1 className="text-[15px] font-extrabold text-t1">{type.label || "유형명"}</h1>
-              {type.id != null && (
-                <button
-                  type="button"
-                  aria-label="건물 유형명 수정"
-                  className="flex h-[21px] w-[21px] items-center justify-center rounded-md text-t4 hover:bg-bg hover:text-teal"
-                  onClick={() => { setLabelValue(type.label); setEditing(true); }}
-                  disabled={isRenamePending}
-                >
-                  <Image src="/icons/fee-items/edit.svg" alt="" width={15} height={15} />
-                </button>
-              )}
+              <button
+                type="button"
+                aria-label="건물 유형명 수정"
+                className="flex h-[21px] w-[21px] items-center justify-center rounded-md text-t4 hover:bg-bg hover:text-teal"
+                onClick={() => { setLabelValue(type.label); setEditing(true); }}
+                disabled={isRenamePending}
+              >
+                <Image src="/icons/fee-items/edit.svg" alt="" width={15} height={15} />
+              </button>
             </>
           )}
           <span className="rounded-lg bg-bg px-2 py-1 text-[11px] font-bold text-t3">{type.items.length}개</span>
         </div>
         <button
           type="button"
-          disabled={type.id == null}
           className="flex h-10 items-center gap-2 rounded-[12px] bg-teal px-4 text-[13px] font-bold text-white shadow-[0_7px_14px_-5px_rgba(20,164,151,.65)] disabled:cursor-not-allowed disabled:opacity-50"
           onClick={onAddItem}
         >
@@ -106,7 +103,7 @@ export function FeeItemCard({
         </button>
       </header>
 
-      <FeeItemTable items={type.items} isTypeUnsaved={type.id == null} isReorderPending={isReorderPending} onEdit={onEditItem} onReorder={onReorder} />
+      <FeeItemTable items={type.items} isReorderPending={isReorderPending} onEdit={onEditItem} onReorder={onReorder} />
 
       <footer className="flex h-[62px] items-center justify-end border-t border-line2 px-[18px]">
         <button type="button" disabled={isRenamePending} className="flex h-9 items-center gap-1.5 rounded-[10px] border border-line px-3 text-[12px] font-bold text-red hover:bg-red-t disabled:cursor-not-allowed disabled:opacity-50" onClick={onDeleteType}>

@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createBuildingType, renameBuildingType, deleteBuildingType, reorderBuildingTypes, type BuildingTypeInput } from "./apis";
+import { createBuildingType, renameBuildingType, deleteBuildingType, reorderBuildingTypes, type BuildingType, type BuildingTypeInput } from "./apis";
 import { buildingTypeKeys } from "./keys";
 import { feeItemKeys } from "../feeItems/keys";
 
@@ -8,10 +8,14 @@ export function useCreateBuildingType() {
   return useMutation({
     mutationFn: (i: BuildingTypeInput) => createBuildingType(i),
     // 트리거가 필수 항목까지 만들므로 fee_items 캐시도 함께 무효화한다.
-    onSuccess: () => Promise.all([
-      qc.invalidateQueries({ queryKey: buildingTypeKeys.all }),
-      qc.invalidateQueries({ queryKey: feeItemKeys.all }),
-    ]),
+    onSuccess: (created) => {
+      qc.setQueryData<BuildingType[]>(buildingTypeKeys.list(), (current) => [
+        ...(current ?? []),
+        created,
+      ]);
+      void qc.invalidateQueries({ queryKey: buildingTypeKeys.all });
+      void qc.invalidateQueries({ queryKey: feeItemKeys.all });
+    },
   });
 }
 
