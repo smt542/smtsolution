@@ -251,7 +251,11 @@ export function RecipientCascade({
   // emittedRecipients는 쿼리 로딩 중 기본값(data = [])이나 파생 memo 때문에 매 렌더 새 배열
   // 참조가 되기 쉽다. 그러면 내용이 같아도 이 effect가 매 렌더 부모 onChange(setRecipients)를
   // 호출해 무한 렌더 루프("Maximum update depth")가 난다. 내용 서명이 실제로 바뀔 때만 통지한다.
-  const lastEmittedSignatureRef = useRef<string | null>(null);
+  // 초기값을 빈 서명("")으로 둔다 — 마운트 직후 "선택 없음"을 부모로 통지하지 않기 위해서다.
+  // null 로 두면 패널이 열릴 때마다 onChange([]) 가 한 번 나가, 화면에서 밀어 넣은 수신자
+  // (openMessengerWith 핸드오프)를 캐스케이드가 곧바로 지워 버린다. 사용자가 실제로 골랐다가
+  // 다시 비우는 전환은 서명이 ""로 "바뀌는" 것이라 그대로 통지된다.
+  const lastEmittedSignatureRef = useRef<string | null>("");
   useEffect(() => {
     const signature = emittedRecipients.map((r) => `${r.kind}:${r.phone}`).join("|");
     if (signature === lastEmittedSignatureRef.current) return;
