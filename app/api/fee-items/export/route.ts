@@ -71,6 +71,7 @@ export async function GET(request: Request) {
     event: "EXPORT_XLSX",
     persona: "manager_staff",
     orgId: gate.ctx.org_id ?? null,
+    actorId: gate.userId,
     targetKind: "fee_items",
     targetId: typeId === null ? null : String(typeId),
     rowCount: workbook.rows.length,
