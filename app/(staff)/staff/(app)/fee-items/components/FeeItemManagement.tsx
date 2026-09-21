@@ -5,6 +5,8 @@ import { appToast as toast } from "@/hooks/common/useAppToast";
 import { EmptyState, Spinner } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import {
+  BuildingTypeSeedError,
+  DUPLICATE_BUILDING_TYPE_LABEL,
   useBuildingTypes,
   useCreateBuildingType,
   useDeleteBuildingType,
@@ -106,6 +108,8 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
   const [formOpen, setFormOpen] = useState(false);
   const [editingItemKey, setEditingItemKey] = useState<string | null>(null);
   const [deleteTargetKey, setDeleteTargetKey] = useState<string | null>(null);
+  // 저장에 실패해 편집 상태로 되돌릴 때 인풋을 다시 마운트해 포커스를 되돌린다.
+  const [typeNameRetryToken, setTypeNameRetryToken] = useState(0);
   const sequenceRef = useRef(0);
 
   const persistedTypes = useMemo(
@@ -161,6 +165,18 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
       return;
     }
 
+    const keepEditing = () => {
+      setEditingTypeKey(key);
+      setTypeNameRetryToken((token) => token + 1);
+    };
+
+    // 서버까지 가서 유니크 위반으로 튕기면 실패한 임시 탭이 중복 탭처럼 남는다. 먼저 걸러낸다.
+    if (persistedTypes.some((type) => type.label.trim() === label)) {
+      toast.error(DUPLICATE_BUILDING_TYPE_LABEL);
+      keepEditing();
+      return;
+    }
+
     try {
       const created = await createBuildingTypeMutation.mutateAsync({
         orgId,
@@ -173,6 +189,14 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
       toast.success("유형이 추가되었습니다.");
     } catch (error) {
       toast.error(error, "건물 유형을 추가하지 못했습니다.");
+      if (error instanceof BuildingTypeSeedError) {
+        // 유형 자체는 만들어졌으니 임시 탭을 남기지 않고 실제 탭으로 넘긴다.
+        setPendingType(null);
+        setEditingTypeKey(null);
+        setActiveKey(`type-${error.created.id}`);
+        return;
+      }
+      keepEditing();
     }
   };
 
@@ -181,6 +205,10 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
     const trimmed = label.trim();
     if (!persisted || !trimmed || trimmed === persisted.label.trim()) return true;
     if (renameBuildingTypeMutation.isPending) return false;
+    if ((buildingTypesQuery.data ?? []).some((type) => type.id !== id && type.label.trim() === trimmed)) {
+      toast.error(DUPLICATE_BUILDING_TYPE_LABEL);
+      return false;
+    }
 
     try {
       await renameBuildingTypeMutation.mutateAsync({ id, label: trimmed });
@@ -321,6 +349,7 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
         editingKey={editingTypeKey}
         editingValue={pendingType?.label ?? ""}
         isPending={createBuildingTypeMutation.isPending}
+        refocusToken={typeNameRetryToken}
         canAdd={!pendingType && !createBuildingTypeMutation.isPending}
         onSelect={setActiveKey}
         onAdd={addType}

@@ -10,6 +10,8 @@ interface BuildingTypeTabsProps {
   editingValue: string;
   isPending: boolean;
   canAdd: boolean;
+  /** 값이 바뀌면 편집 인풋을 다시 마운트해 포커스를 되돌린다(저장 실패 후 재입력). */
+  refocusToken: number;
   onSelect: (key: string) => void;
   onAdd: () => void;
   onLabelChange: (key: string, label: string) => void;
@@ -24,6 +26,7 @@ export function BuildingTypeTabs({
   editingValue,
   isPending,
   canAdd,
+  refocusToken,
   onSelect,
   onAdd,
   onLabelChange,
@@ -45,6 +48,7 @@ export function BuildingTypeTabs({
             >
               {editing ? (
                 <input
+                  key={refocusToken}
                   autoFocus
                   aria-label="건물 유형명"
                   className="w-16 min-w-10 border-0 border-b-[1.5px] border-teal bg-transparent px-0 py-0.5 text-[14px] leading-[normal] font-bold text-teal outline-none placeholder:font-bold placeholder:text-t4"
