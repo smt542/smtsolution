@@ -47,7 +47,8 @@ export function BuildingTypeTabs({
                 <input
                   autoFocus
                   aria-label="건물 유형명"
-                  className="h-8 w-[86px] rounded-lg border border-teal px-2 text-[13px] font-bold text-t1 outline-none ring-2 ring-teal-t"
+                  className="w-[86px] border-0 bg-transparent p-0 text-center text-[14px] font-bold text-teal outline-none placeholder:font-bold placeholder:text-t4"
+                  placeholder="유형명"
                   value={editingValue}
                   maxLength={20}
                   disabled={isPending}
@@ -68,7 +69,7 @@ export function BuildingTypeTabs({
                   {type.label || "유형명"}
                 </button>
               )}
-              {active && <span aria-hidden className="absolute inset-x-0 bottom-0 h-0.5 bg-teal" />}
+              {(active || editing) && <span aria-hidden className="absolute inset-x-0 bottom-0 h-0.5 bg-teal" />}
             </div>
           );
         })}
