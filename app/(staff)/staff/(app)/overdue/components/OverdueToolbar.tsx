@@ -1,7 +1,6 @@
 import Image from "next/image";
-import { useState } from "react";
 import { CustomDropdown } from "@/components/common";
-import type { OverdueBuilding, OverdueScope } from "@/hooks/reactquery/overdue";
+import type { OverdueScope } from "@/hooks/reactquery/overdue";
 
 // 정본 `#ovYear` 와 같은 최근 4개년(올해부터 3년 전까지).
 const YEAR_OPTIONS = Array.from({ length: 4 }, (_, index) => {
@@ -18,9 +17,9 @@ const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => ({
 const DD_MENU_PADDING = "[&_.uc-dd-menu]:p-[5px]";
 
 interface OverdueToolbarProps {
-  buildings: OverdueBuilding[];
-  selectedBuildingId: number | null;
-  onBuildingChange: (buildingId: number | null) => void;
+  /** 정본 `#ovQ` — 건물을 고르는 게 아니라 결과를 거르는 검색어다(건물명·동호). */
+  search: string;
+  onSearchChange: (value: string) => void;
   targetYear: number | null;
   targetMonth: number | null;
   scope: OverdueScope;
@@ -53,25 +52,14 @@ function Segment({
   );
 }
 
-function BuildingSearch({
-  buildings,
-  selectedBuildingId,
-  onBuildingChange,
+function OverdueSearch({
+  search,
+  onSearchChange,
   disabled,
-}: Pick<
-  OverdueToolbarProps,
-  "buildings" | "selectedBuildingId" | "onBuildingChange" | "disabled"
->) {
-  const selectedBuilding = buildings.find((building) => building.id === selectedBuildingId);
-  const [query, setQuery] = useState(selectedBuilding?.name ?? "");
-
-  const findBuilding = (value: string) => buildings.find(
-    (building) => building.name.trim().toLocaleLowerCase("ko-KR") === value.trim().toLocaleLowerCase("ko-KR"),
-  );
-
+}: Pick<OverdueToolbarProps, "search" | "onSearchChange" | "disabled">) {
   return (
     <label className="relative h-[38px] w-[200px] shrink-0">
-      <span className="sr-only">건물 선택</span>
+      <span className="sr-only">건물명 검색</span>
       <Image
         src="/icons/overdue/search.svg"
         alt=""
@@ -80,43 +68,21 @@ function BuildingSearch({
         className="pointer-events-none absolute left-[11px] top-[11.5px] z-10 size-[15px]"
       />
       <input
-        id="overdue-building"
-        aria-label="건물 선택"
-        list="overdue-building-options"
-        value={query}
+        id="overdue-search"
+        aria-label="건물명 검색"
+        value={search}
         placeholder="건물명 검색"
         disabled={disabled}
-        onChange={(event) => {
-          const nextQuery = event.target.value;
-          setQuery(nextQuery);
-          const matchedBuilding = findBuilding(nextQuery);
-          if (matchedBuilding) onBuildingChange(matchedBuilding.id);
-        }}
-        onBlur={() => {
-          const matchedBuilding = findBuilding(query);
-          if (matchedBuilding) {
-            setQuery(matchedBuilding.name);
-            onBuildingChange(matchedBuilding.id);
-          } else {
-            setQuery("");
-            onBuildingChange(null);
-          }
-        }}
+        onChange={(event) => onSearchChange(event.target.value)}
         className="h-[38px] w-full rounded-[10px] border border-line bg-white pl-[32px] pr-[11px] text-[13px] font-semibold text-t1 outline-none transition placeholder:text-t3 focus:border-teal disabled:opacity-60"
       />
-      <datalist id="overdue-building-options">
-        {buildings.map((building) => (
-          <option key={building.id} value={building.name} />
-        ))}
-      </datalist>
     </label>
   );
 }
 
 export function OverdueToolbar({
-  buildings,
-  selectedBuildingId,
-  onBuildingChange,
+  search,
+  onSearchChange,
   targetYear,
   targetMonth,
   scope,
@@ -189,13 +155,7 @@ export function OverdueToolbar({
 
       <div className="flex-1" />
 
-      <BuildingSearch
-        key={selectedBuildingId ?? "unselected"}
-        buildings={buildings}
-        selectedBuildingId={selectedBuildingId}
-        onBuildingChange={onBuildingChange}
-        disabled={disabled}
-      />
+      <OverdueSearch search={search} onSearchChange={onSearchChange} disabled={disabled} />
 
       <span aria-hidden="true" className="mx-[2px] h-[22px] w-px shrink-0 bg-line" />
 

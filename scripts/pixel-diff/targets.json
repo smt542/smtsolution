@@ -294,8 +294,7 @@
     "appPath": "/staff/overdue",
     "appActions": [
       { "click": "button[aria-label=\"조회 년도\"]" }, { "wait": 150 }, { "click": "[role=\"option\"]:has-text(\"2026년\")" }, { "wait": 200 },
-      { "click": "button[aria-label=\"조회 월\"]" }, { "wait": 150 }, { "click": "[role=\"option\"]:has-text(\"2월\")" }, { "wait": 200 },
-      { "fill": ["#overdue-building", "그린빌라"] }, { "wait": 200 }, { "press": ["#overdue-building", "Tab"] }, { "wait": 1500 }
+      { "click": "button[aria-label=\"조회 월\"]" }, { "wait": 150 }, { "click": "[role=\"option\"]:has-text(\"2월\")" }, { "wait": 1800 }
     ],
     "appSelector": null,
     "viewport": { "w": 1340, "h": 880 },

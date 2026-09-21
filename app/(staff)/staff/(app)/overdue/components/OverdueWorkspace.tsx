@@ -6,7 +6,6 @@ import { Spinner } from "@/components/common";
 import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
 import { signedBillPath, useStaffSignBillUrls } from "@/hooks/reactquery/residentBilling";
 import {
-  useOverdueBuildings,
   useOverdueHouseholds,
   useOverduePeriods,
   type OverdueHousehold,
@@ -49,10 +48,7 @@ export function OverdueWorkspace({
   orgId: number;
   canSendMessages: boolean;
 }) {
-  const { data: buildings = [], isLoading: isBuildingsLoading } =
-    useOverdueBuildings();
-
-  const [selectedBuildingId, setSelectedBuildingId] = useState<number | null>(null);
+  const [search, setSearch] = useState("");
   const [targetPeriod, setTargetPeriod] = useState<{
     year: number | null;
     month: number | null;
@@ -63,8 +59,8 @@ export function OverdueWorkspace({
   const [messageRecipients, setMessageRecipients] = useState<MessageRecipient[]>([]);
   const [isMessagingOpen, setIsMessagingOpen] = useState(false);
 
+  // 정본과 같다 — 년·월만 고르면 org 전체 건물을 조회하고, 건물명은 결과를 거르는 검색어다.
   const hasPeriod = targetPeriod.year !== null && targetPeriod.month !== null;
-  const readyBuildingId = hasPeriod ? selectedBuildingId : null;
   const overdueQuery = {
     year: targetPeriod.year ?? undefined,
     month: targetPeriod.month ?? undefined,
@@ -76,8 +72,8 @@ export function OverdueWorkspace({
     isLoading: isHouseholdsLoading,
     error: householdsError,
     refetch,
-  } = useOverdueHouseholds(readyBuildingId, overdueQuery);
-  const { data: overduePeriods = [] } = useOverduePeriods(readyBuildingId, overdueQuery);
+  } = useOverdueHouseholds(null, overdueQuery, hasPeriod);
+  const { data: overduePeriods = [] } = useOverduePeriods(null, overdueQuery, hasPeriod);
   const { data: lateFeeRateTiers = [] } = useLateFeeRateTiers(orgId);
   const { data: orgContact } = useOverdueOrgContact(orgId);
   const signBillUrls = useStaffSignBillUrls();
@@ -115,15 +111,20 @@ export function OverdueWorkspace({
     });
   }, [households, lateFeeRateTiers, overduePeriods, targetPeriod.month, targetPeriod.year]);
 
-  const selectedBuilding =
-    buildings.find((building) => building.id === selectedBuildingId) ?? null;
   // 정본은 미납이 있는 세대만 표에 넣는다(`build()` 가 미납 세대만 만든다).
-  // 앱은 건물의 점유 세대를 전부 조회하므로 잔액 0 인 세대를 여기서 걸러낸다 —
+  // 앱은 점유 세대를 전부 조회하므로 잔액 0 인 세대를 여기서 걸러낸다 —
   // 안 걸러내면 0원 행이 표를 채우고 합계행의 "항목 N / M건"도 전 세대 수가 된다.
-  const overdueHouseholds = useMemo(
-    () => rowsWithLateFee.filter((household) => household.overdueAmount > 0),
-    [rowsWithLateFee],
-  );
+  // 검색어는 정본 `view()` 와 같은 규칙(건물명 + 동호 부분일치, 대소문자 무시).
+  const overdueHouseholds = useMemo(() => {
+    const keyword = search.trim().toLocaleLowerCase("ko-KR");
+    return rowsWithLateFee.filter((household) => {
+      if (household.overdueAmount <= 0) return false;
+      if (!keyword) return true;
+      const haystack = `${household.buildingName}${household.dong ?? ""}${household.unitNo}`
+        .toLocaleLowerCase("ko-KR");
+      return haystack.includes(keyword);
+    });
+  }, [rowsWithLateFee, search]);
   const messageTargets = useMemo(
     () => overdueHouseholds.filter(isDebtCollectionTarget),
     [overdueHouseholds],
@@ -150,11 +151,6 @@ export function OverdueWorkspace({
     setIsMessagingOpen(false);
   };
 
-  const changeBuilding = (buildingId: number | null) => {
-    setSelectedBuildingId(buildingId);
-    resetResultState();
-  };
-
   const changePeriod = (year: number | null, month: number | null) => {
     setTargetPeriod({ year, month });
     resetResultState();
@@ -167,7 +163,7 @@ export function OverdueWorkspace({
 
   // 정본 `#ovPrint` 와 같다 — 내려받기가 아니라 브라우저 인쇄로 A4 시트를 뽑는다.
   const exportLedger = () => {
-    if (!selectedBuilding || visibleHouseholds.length === 0) {
+    if (visibleHouseholds.length === 0) {
       toast.info("출력할 내역이 없어요");
       return;
     }
@@ -232,6 +228,8 @@ export function OverdueWorkspace({
             unitNo: unit,
             kind: "tenant" as const,
             variables: {
+              // 전체 건물 조회라 수신자마다 건물이 다르다 → 건물명은 공통변수가 아니라 여기서 준다.
+              건물명: row.buildingName,
               세대: unit,
               미납금액: formatKrw(row.overdueAmount),
               미납월: formatPeriodMonth(latestPeriod.period),
@@ -261,9 +259,8 @@ export function OverdueWorkspace({
             나가야 해서 클리핑하지 않는다. 아래 모서리는 표 래퍼/합계행이 직접 둥글린다. */}
         <section className="flex h-full min-h-0 flex-col overflow-visible rounded-[16px] bg-white shadow-card">
           <OverdueToolbar
-            buildings={buildings}
-            selectedBuildingId={selectedBuildingId}
-            onBuildingChange={changeBuilding}
+            search={search}
+            onSearchChange={setSearch}
             targetYear={targetPeriod.year}
             targetMonth={targetPeriod.month}
             scope={scope}
@@ -275,13 +272,12 @@ export function OverdueWorkspace({
             onExport={exportLedger}
             canSend={!isHouseholdsLoading && canSendMessages}
             canExport={!isHouseholdsLoading}
-            disabled={isBuildingsLoading}
           />
 
           {/* 정본은 조회 준비 상태를 년·월만 보고 판단한다(`ready = !!(oy && om)`) — 건물은
               표를 거르는 검색어일 뿐 선택 게이트가 없다. 앱은 조회 RPC에 건물이 필요해
               게이트가 남지만, 문구는 정본의 한 가지로 통일한다(사용자 결정 2026-09-21). */}
-          {!hasPeriod || selectedBuildingId === null ? (
+          {!hasPeriod ? (
             <OverdueEmptyState
               title="년도와 월을 선택해 주세요"
               description="조회 기간을 고르면 미납 내역이 표시돼요"
@@ -323,13 +319,12 @@ export function OverdueWorkspace({
           itemCount={messageItemCount}
           preset={{
             context: "독촉",
-            buildingId: selectedBuildingId ?? undefined,
+            buildingId: undefined,
             channel: "sms",
             mode: "sms",
             templateTitle: "관리비 미납 안내",
             recipients: messageRecipients,
             commonVariables: {
-              건물명: selectedBuilding?.name ?? "",
               관리사무소연락처: orgContact?.phone ?? "",
             },
           }}
