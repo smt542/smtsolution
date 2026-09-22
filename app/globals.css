@@ -156,6 +156,20 @@ body {
   [role="button"]:not([aria-disabled="true"]):not(:disabled) {
     cursor: pointer;
   }
+
+  /* 정본은 숫자 칸을 inputmode="decimal" 텍스트 인풋으로 둬(예: setup.dc.html .st-in)
+     증감 화살표가 없다. 앱은 type="number"를 23개 파일 37곳에서 쓰므로 호출부를 전부
+     바꾸는 대신 UA 스피너만 숨긴다 — 숫자 키보드·입력 검증 같은 동작은 그대로 둔다. */
+  input[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+  }
 }
 
 /* 금액·날짜 등 숫자 정렬용 */
