@@ -76,7 +76,9 @@ export const messengerClasses: Record<string, string> = {
   owt2: "flex-none whitespace-nowrap text-xs font-semibold tabular-nums text-t2",
   owbld2: "break-all text-xs font-semibold text-t3",
   strole: "text-xs font-semibold text-t3",
-  "fmp-auto": "flex items-center gap-[9px] rounded-[11px] border border-blue bg-blue-t2 px-[13px] py-[11px] [&_.nm]:text-[13.5px] [&_.nm]:font-bold [&_.nm]:text-blue-d [&_.rl]:mt-0.5 [&_.rl]:text-[11.5px] [&_.rl]:font-semibold [&_.rl]:text-t3 [&_.tel]:ml-auto [&_.tel]:text-[12.5px] [&_.tel]:font-bold [&_.tel]:tabular-nums [&_.tel]:text-t2",
+  // 내부 .nm/.rl/.tel 훅은 리터럴 클래스가 없어 죽어 있었다 — RecipientCascade 에서
+  // 정본 값을 직접 쓰므로 여기서는 컨테이너 표현만 둔다.
+  "fmp-auto": "flex items-center gap-[9px] rounded-[11px] border border-blue bg-blue-t2 px-[13px] py-[11px]",
   "fmp-rtabs": "flex flex-wrap gap-[5px]",
   rt: "inline-flex items-center gap-1.5 rounded-[9px] border border-transparent bg-bg px-[11px] py-1.5 text-[12.5px] font-bold text-t3 hover:text-t2",
   cnt: "inline-flex size-[17px] items-center justify-center rounded-full bg-line px-[5px] text-[11px] font-extrabold tabular-nums text-t3",
