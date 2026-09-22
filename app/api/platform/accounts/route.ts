@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loginEmail } from "@/lib/auth/email";
-import { generateTempPassword } from "@/lib/auth/password";
+import { generateTempPassword, toAuthPassword } from "@/lib/auth/password";
 
 const ACCOUNT_ROLES = ["org_owner", "manager", "staff"] as const;
 const STAFF_TYPES = ["manager_staff", "field_staff", "support_staff"] as const;
@@ -35,8 +35,13 @@ export async function POST(req: Request) {
   ) {
     return NextResponse.json({ error: "필수 항목이 누락되었거나 올바르지 않습니다." }, { status: 422 });
   }
-  if (password != null && String(password).length > 0 && String(password).length < 4) {
-    return NextResponse.json({ error: "비밀번호는 4자 이상 입력해 주세요." }, { status: 422 });
+  if (
+    password != null
+    && String(password).length > 0
+    && !/^\d{4}$/.test(String(password))
+    && String(password).length < 6
+  ) {
+    return NextResponse.json({ error: "비밀번호는 숫자 4자리 또는 6자 이상으로 입력해 주세요." }, { status: 422 });
   }
 
   const admin = createAdminClient();
@@ -57,10 +62,11 @@ export async function POST(req: Request) {
   const email = loginEmail(org.slug, username);
   const { data: created, error: createError } = await admin.auth.admin.createUser({
     email,
-    password: accountPassword,
+    password: toAuthPassword(accountPassword),
     email_confirm: true,
   });
   if (createError || !created?.user) {
+    if (createError) console.error("[platform/accounts] createUser failed", createError.message);
     const duplicate = /already|exists|registered/i.test(createError?.message ?? "");
     return NextResponse.json(
       { error: duplicate ? "이미 존재하는 아이디입니다." : "계정 생성에 실패했습니다." },

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loginEmail } from "@/lib/auth/email";
-import { generateTempPassword } from "@/lib/auth/password";
+import { generateTempPassword, toAuthPassword } from "@/lib/auth/password";
 
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -87,7 +87,7 @@ export async function POST(req: Request) {
   const loginAddress = loginEmail(slug, owner.username);
   const tempPassword = generateTempPassword();
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
-    email: loginAddress, password: tempPassword, email_confirm: true,
+    email: loginAddress, password: toAuthPassword(tempPassword), email_confirm: true,
   });
   if (createErr || !created?.user) {
     await admin.from("organizations").delete().eq("id", orgRow.id); // 보상
