@@ -2,6 +2,7 @@ import Image from "next/image";
 import type { UtilityUnitRow } from "@/hooks/reactquery/utilities";
 import { formatNumber } from "@/lib/format";
 import { GridEmptyValue } from "./GridEmptyValue";
+import { UtilityGrid, type UtilityGridColumn } from "./UtilityGrid";
 
 export interface ElectricityDraft {
   currentReading: string;
@@ -36,6 +37,19 @@ function inputClass(): string {
   return "num h-[26px] rounded-[7px] border border-teal bg-white px-[7px] text-right text-[11.5px] font-semibold text-t1 outline-none placeholder:font-medium placeholder:text-t3";
 }
 
+interface ElectricityReadingsGridRow {
+  row: UtilityUnitRow;
+  draft: ElectricityDraft;
+  current: number | null;
+  usage: number | null;
+  invalidUsage: boolean;
+  vacant: boolean;
+  moving: boolean;
+  recent: boolean;
+  charge: number | null;
+  marker: string;
+}
+
 export function ElectricityReadingsTable({
   rows,
   drafts,
@@ -44,6 +58,234 @@ export function ElectricityReadingsTable({
   editing,
   onDraftChange,
 }: ElectricityReadingsTableProps) {
+  const preparedRows: ElectricityReadingsGridRow[] = rows.map((row) => {
+    const draft = drafts[row.unitId] ?? { currentReading: "", manualCharge: "", note: "" };
+    const current = optionalNumber(draft.currentReading) ?? row.currentReading;
+    const usage = current !== null && row.previousReading !== null
+      ? current - row.previousReading
+      : row.usage;
+    const invalidUsage = row.needsReview || (
+      current !== null
+      && row.previousReading !== null
+      && current - row.previousReading < 0
+    );
+    const vacant = row.occupancyStatus === "vacant" || row.occupancyId === null;
+    const moving = row.occupancyStatus === "moving_out";
+    const recent = !vacant && isNewOccupancy(row.moveInDate, referenceDate);
+    const charge = optionalNumber(draft.manualCharge) ?? row.manualCharge ?? row.automaticCharge;
+    const marker = moving
+      ? "shadow-[inset_3px_0_0_#3182F6]"
+      : vacant && (usage ?? 0) > 0
+        ? "shadow-[inset_3px_0_0_#F04452]"
+        : recent
+          ? "shadow-[inset_3px_0_0_#12B886]"
+          : "";
+
+    return { row, draft, current, usage, invalidUsage, vacant, moving, recent, charge, marker };
+  });
+
+  const columns: UtilityGridColumn<ElectricityReadingsGridRow>[] = [
+    {
+      key: "unitNo",
+      label: "호수",
+      width: 59,
+      align: "left",
+      cellClassName: (item) => `${item.marker} font-bold text-t1`,
+      render: (item) => item.row.unitNo.replace(/호$/, ""),
+    },
+    {
+      key: "moveInDate",
+      label: "입주일자",
+      width: 115,
+      align: "left",
+      cellClassName: (item) => item.row.moveInDate ? (item.recent ? "font-semibold text-green" : "text-t2") : "",
+      render: (item) => item.row.moveInDate ?? <GridEmptyValue />,
+    },
+    {
+      key: "moveOutDate",
+      label: "퇴실일자",
+      width: 112,
+      align: "left",
+      cellClassName: "",
+      render: () => <GridEmptyValue />,
+    },
+    {
+      key: "moveOutScheduledDate",
+      label: "퇴실예정일자",
+      width: 115,
+      align: "left",
+      cellClassName: "",
+      render: () => <GridEmptyValue />,
+    },
+    {
+      key: "previousReading",
+      label: "전월",
+      width: editing ? 88 : 57,
+      align: "right",
+      cellClassName: "tabular-nums text-t2",
+      render: (item) => editing
+        ? <input aria-label={`${item.row.unitNo} 전월 지침값`} readOnly value={item.row.previousReading ?? ""} placeholder="-" className={`${inputClass()} w-full`} />
+        : item.row.previousReading === null ? <GridEmptyValue /> : <span className="num">{formatNumber(item.row.previousReading)}</span>,
+    },
+    {
+      key: "currentReading",
+      label: "금월",
+      width: editing ? 88 : 59,
+      align: "right",
+      cellClassName: "tabular-nums text-t1",
+      render: (item) => editing ? (
+        <input
+          aria-label={`${item.row.unitNo} 당월 지침값`}
+          type="number"
+          min="0"
+          step="0.01"
+          value={item.draft.currentReading}
+          placeholder="-"
+          onChange={(event) => onDraftChange(item.row.unitId, { currentReading: event.target.value })}
+          className={`${inputClass()} w-full`}
+        />
+      ) : item.current === null ? <GridEmptyValue /> : <span className="num font-semibold">{formatNumber(item.current)}</span>,
+    },
+    {
+      key: "usage",
+      label: "량",
+      width: editing ? 115 : 49,
+      align: "right",
+      cellClassName: (item) => `font-semibold tabular-nums ${item.invalidUsage || (item.vacant && (item.usage ?? 0) > 0) ? "text-red" : "text-t1"}`,
+      render: (item) => item.invalidUsage ? (
+        <span className="text-red">확인 필요</span>
+      ) : editing ? (
+        <span className="flex items-center gap-[5px]">
+          <input aria-label={`${item.row.unitNo} 사용량`} readOnly value={item.usage ?? ""} placeholder="-" className={`${inputClass()} w-[56px]`} />
+          <span className="flex size-[22px] flex-none items-center justify-center"><Image src="/figma-assets/gas/lock.svg" alt="잠금" width={12} height={12} /></span>
+        </span>
+      ) : item.usage === null ? <GridEmptyValue /> : <span className="num">{formatNumber(item.usage)}</span>,
+    },
+    {
+      key: "previousUsage",
+      label: "전.량",
+      width: 56,
+      align: "right",
+      cellClassName: "num",
+      render: () => <GridEmptyValue />,
+    },
+    {
+      key: "change",
+      label: "증감",
+      width: 53,
+      align: "right",
+      cellClassName: "num",
+      render: () => <GridEmptyValue />,
+    },
+    {
+      key: "manualCharge",
+      label: "수동입력",
+      width: editing ? 115 : 74,
+      align: "right",
+      cellClassName: "",
+      render: (item) => editing ? (
+        <span className="flex items-center gap-[5px]">
+          <input
+            aria-label={`${item.row.unitNo} 수동 입력 요금`}
+            type="number"
+            min="0"
+            value={item.draft.manualCharge}
+            onChange={(event) => onDraftChange(item.row.unitId, { manualCharge: event.target.value })}
+            className={`${inputClass()} w-[56px]`}
+          />
+          <span className="flex size-[22px] flex-none items-center justify-center"><Image src="/figma-assets/gas/lock.svg" alt="잠금" width={12} height={12} /></span>
+        </span>
+      ) : item.row.manualCharge === null ? <GridEmptyValue /> : <span className="num text-t2">{formatNumber(item.row.manualCharge)}</span>,
+    },
+    {
+      key: "discountType",
+      label: "할인유형",
+      width: 90,
+      align: "left",
+      cellClassName: (item) => item.row.discountType === null ? "" : "text-t2",
+      render: (item) => item.row.discountType ?? <GridEmptyValue />,
+    },
+    {
+      key: "discountAmount",
+      label: "할인금액",
+      width: 76,
+      align: "right",
+      cellClassName: "num text-t2",
+      render: (item) => item.row.discountAmount === null ? <GridEmptyValue /> : formatNumber(item.row.discountAmount),
+    },
+    {
+      key: "charge",
+      label: "부과액",
+      width: 71,
+      align: "right",
+      cellClassName: "num font-semibold text-t1",
+      render: (item) => item.charge === null ? <GridEmptyValue /> : formatNumber(item.charge),
+    },
+    {
+      key: "note",
+      label: "적요",
+      width: editing ? 152 : 120,
+      align: "left",
+      cellClassName: "text-t2",
+      render: (item) => editing ? (
+        <input
+          aria-label={`${item.row.unitNo} 적요`}
+          value={item.draft.note}
+          onChange={(event) => onDraftChange(item.row.unitId, { note: event.target.value })}
+          className={`${inputClass()} w-full text-left`}
+        />
+      ) : item.row.note ?? <GridEmptyValue />,
+    },
+    {
+      key: "processedAt",
+      label: "처리일자",
+      width: 112,
+      align: "left",
+      cellClassName: "text-t3",
+      render: (item) => item.row.processedAt?.slice(0, 10) ?? <GridEmptyValue />,
+    },
+    {
+      key: "chargeBasis",
+      label: "부과기준",
+      width: 197,
+      align: "left",
+      cellClassName: "truncate text-t3",
+      render: (item) => item.row.unitPrice !== null ? `단가 ${formatNumber(item.row.unitPrice, { fractionDigits: 1 })}` : "단가 미설정",
+    },
+    {
+      key: "tenantName",
+      label: "이름",
+      width: 67,
+      align: "left",
+      cellClassName: "truncate text-t2",
+      render: (item) => item.row.tenantName ?? <GridEmptyValue />,
+    },
+    {
+      key: "phone",
+      label: "전화",
+      width: 137,
+      align: "left",
+      cellClassName: "",
+      render: () => <GridEmptyValue />,
+    },
+    {
+      key: "line",
+      label: "라인",
+      width: 53,
+      align: "left",
+      cellClassName: "truncate text-t2",
+      render: (item) => item.row.customerNumber ?? <GridEmptyValue />,
+    },
+    {
+      key: "residentCount",
+      label: "인원",
+      width: 53,
+      align: "right",
+      cellClassName: "num",
+      render: () => <GridEmptyValue />,
+    },
+  ];
+
   return (
     <section className="flex min-h-[360px] flex-1 flex-col overflow-hidden rounded-card bg-white shadow-card">
       <div className="flex h-[49px] flex-none items-center gap-2.5 border-b border-line2 px-[18px]">
@@ -56,144 +298,22 @@ export function ElectricityReadingsTable({
         </div>
       </div>
 
-      {rows.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-1.5 px-6 pb-14 pt-12 text-center">
-          <p className="text-[16px] font-semibold tracking-[-0.02em] text-t1">건물을 선택해 주세요</p>
-          <p className="text-[13px] font-normal leading-[1.55] text-t3">선택한 건물의 고객번호가 여기에 표시돼요</p>
-        </div>
-      ) : (
-        <div className="min-h-0 flex-1 overflow-auto">
-          <table className={`table-fixed border-collapse text-[11.5px] ${editing ? "w-[1922px]" : "w-[1722px]"}`}>
-            <colgroup>
-              {(editing
-                ? [59, 115, 112, 115, 88, 88, 115, 56, 53, 115, 90, 76, 71, 152, 112, 197, 67, 137, 53, 53]
-                : [59, 115, 112, 115, 57, 59, 49, 56, 53, 74, 90, 76, 71, 120, 112, 197, 67, 137, 53, 53]
-              ).map((width, index) => <col key={index} style={{ width }} />)}
-            </colgroup>
-            <thead className="sticky top-0 z-10 bg-[#fbfcfd] text-[12px] font-bold text-t3">
-              <tr className="h-[36px] border-b border-line2">
-                <th className="w-[59px] px-4 text-left">호수</th>
-                <th className="w-[115px] px-4 text-left">입주일자</th>
-                <th className="w-[112px] px-4 text-left">퇴실일자</th>
-                <th className="w-[115px] px-4 text-left">퇴실예정일자</th>
-                <th className={editing ? "w-[88px] px-4 text-right" : "w-[57px] px-4 text-right"}>전월</th>
-                <th className={editing ? "w-[88px] px-4 text-right" : "w-[59px] px-4 text-right"}>금월</th>
-                <th className={editing ? "w-[115px] px-4 text-right" : "w-[49px] px-4 text-right"}>량</th>
-                <th className="w-[56px] px-4 text-right">전.량</th>
-                <th className="w-[53px] px-4 text-right">증감</th>
-                <th className={editing ? "w-[115px] px-4 text-right" : "w-[74px] px-4 text-right"}>수동입력</th>
-                <th className="w-[90px] px-4 text-left">할인유형</th>
-                <th className="w-[76px] px-4 text-right">할인금액</th>
-                <th className="w-[72px] px-4 text-right">부과액</th>
-                <th className={editing ? "w-[152px] px-4 text-left" : "w-[120px] px-4 text-left"}>적요</th>
-                <th className="w-[112px] px-4 text-left">처리일자</th>
-                <th className="w-[197px] px-4 text-left">부과기준</th>
-                <th className="w-[67px] px-4 text-left">이름</th>
-                <th className="w-[137px] px-4 text-left">전화</th>
-                <th className="w-[53px] px-4 text-left">라인</th>
-                <th className="w-[53px] px-4 text-right">인원</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => {
-                const draft = drafts[row.unitId] ?? { currentReading: "", manualCharge: "", note: "" };
-                const current = optionalNumber(draft.currentReading) ?? row.currentReading;
-                const usage = current !== null && row.previousReading !== null
-                  ? current - row.previousReading
-                  : row.usage;
-                const invalidUsage = row.needsReview || (
-                  current !== null
-                  && row.previousReading !== null
-                  && current - row.previousReading < 0
-                );
-                const vacant = row.occupancyStatus === "vacant" || row.occupancyId === null;
-                const moving = row.occupancyStatus === "moving_out";
-                const recent = !vacant && isNewOccupancy(row.moveInDate, referenceDate);
-                const charge = optionalNumber(draft.manualCharge) ?? row.manualCharge ?? row.automaticCharge;
-                const marker = moving
-                  ? "shadow-[inset_3px_0_0_#3182F6]"
-                  : vacant && (usage ?? 0) > 0
-                    ? "shadow-[inset_3px_0_0_#F04452]"
-                    : recent
-                      ? "shadow-[inset_3px_0_0_#12B886]"
-                      : "";
-
-                return (
-                  <tr key={row.unitId} className={`${editing ? "h-[51px]" : "h-[41px]"} border-b border-line2 bg-white hover:bg-[#FBFCFD] ${vacant && (usage ?? 0) <= 0 ? "opacity-55" : ""}`}>
-                    <td className={`px-4 font-bold text-t1 ${marker}`}>{row.unitNo.replace(/호$/, "")}</td>
-                    <td className={`px-4 ${row.moveInDate ? (recent ? "font-semibold text-green" : "text-t2") : ""}`}>{row.moveInDate ?? <GridEmptyValue />}</td>
-                    <td className="px-4"><GridEmptyValue /></td>
-                    <td className="px-4"><GridEmptyValue /></td>
-                    <td className="px-4 text-right text-t2">
-                      {editing ? <input aria-label={`${row.unitNo} 전월 지침값`} readOnly value={row.previousReading ?? ""} placeholder="-" className={`${inputClass()} w-full`} /> : row.previousReading === null ? <GridEmptyValue /> : <span className="num">{formatNumber(row.previousReading)}</span>}
-                    </td>
-                    <td className="px-4 text-right text-t1">
-                      {editing ? (
-                        <input
-                          aria-label={`${row.unitNo} 당월 지침값`}
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={draft.currentReading}
-                          placeholder="-"
-                          onChange={(event) => onDraftChange(row.unitId, { currentReading: event.target.value })}
-                          className={`${inputClass()} w-full`}
-                        />
-                      ) : current === null ? <GridEmptyValue /> : <span className="num font-semibold">{formatNumber(current)}</span>}
-                    </td>
-                    <td className={`px-4 text-right font-semibold ${invalidUsage || (vacant && (usage ?? 0) > 0) ? "text-red" : "text-t1"}`}>
-                      {invalidUsage ? (
-                        <span className="text-red">확인 필요</span>
-                      ) : editing ? (
-                        <span className="flex items-center gap-[5px]">
-                          <input aria-label={`${row.unitNo} 사용량`} readOnly value={usage ?? ""} placeholder="-" className={`${inputClass()} w-[56px]`} />
-                          <span className="flex size-[22px] flex-none items-center justify-center"><Image src="/figma-assets/gas/lock.svg" alt="잠금" width={12} height={12} /></span>
-                        </span>
-                      ) : usage === null ? <GridEmptyValue /> : <span className="num">{formatNumber(usage)}</span>}
-                    </td>
-                    <td className="num px-4 text-right"><GridEmptyValue /></td>
-                    <td className="num px-4 text-right"><GridEmptyValue /></td>
-                    <td className="px-4 text-right">
-                      {editing ? (
-                        <span className="flex items-center gap-[5px]">
-                          <input
-                            aria-label={`${row.unitNo} 수동 입력 요금`}
-                            type="number"
-                            min="0"
-                            value={draft.manualCharge}
-                            onChange={(event) => onDraftChange(row.unitId, { manualCharge: event.target.value })}
-                            className={`${inputClass()} w-[56px]`}
-                          />
-                          <span className="flex size-[22px] flex-none items-center justify-center"><Image src="/figma-assets/gas/lock.svg" alt="잠금" width={12} height={12} /></span>
-                        </span>
-                      ) : row.manualCharge === null ? <GridEmptyValue /> : <span className="num text-t2">{formatNumber(row.manualCharge)}</span>}
-                    </td>
-                    <td className={`px-4 ${row.discountType === null ? "" : "text-t2"}`}>{row.discountType ?? <GridEmptyValue />}</td>
-                    <td className="num px-4 text-right text-t2">{row.discountAmount === null ? <GridEmptyValue /> : formatNumber(row.discountAmount)}</td>
-                    <td className="num px-4 text-right font-semibold text-t1">{charge === null ? <GridEmptyValue /> : formatNumber(charge)}</td>
-                    <td className="px-4 text-t2">
-                      {editing ? (
-                        <input
-                          aria-label={`${row.unitNo} 적요`}
-                          value={draft.note}
-                          onChange={(event) => onDraftChange(row.unitId, { note: event.target.value })}
-                          className={`${inputClass()} w-full text-left`}
-                        />
-                      ) : (row.note ?? <GridEmptyValue />)}
-                    </td>
-                    <td className="px-4 text-t3">{row.processedAt?.slice(0, 10) ?? <GridEmptyValue />}</td>
-                    <td className="truncate px-4 text-t3">{row.unitPrice !== null ? `단가 ${formatNumber(row.unitPrice, { fractionDigits: 1 })}` : "단가 미설정"}</td>
-                    <td className="truncate px-4 text-t2">{row.tenantName ?? <GridEmptyValue />}</td>
-                    <td className="px-4"><GridEmptyValue /></td>
-                    <td className="truncate px-4 text-t2">{row.customerNumber ?? <GridEmptyValue />}</td>
-                    <td className="num px-4 text-right"><GridEmptyValue /></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <UtilityGrid
+        columns={columns}
+        rows={preparedRows}
+        rowKey={(item) => item.row.unitId}
+        editing={editing}
+        layout="fixed"
+        tableWidth={editing ? 1922 : 1722}
+        rowClassName={(item) => `bg-white hover:bg-[#FBFCFD] ${item.vacant && (item.usage ?? 0) <= 0 ? "opacity-55" : ""}`}
+        empty={(
+          <div className="flex h-full flex-col items-center justify-center gap-1.5 px-6 pb-14 pt-12 text-center">
+            <p className="text-[16px] font-semibold tracking-[-0.02em] text-t1">건물을 선택해 주세요</p>
+            <p className="text-[13px] font-normal leading-[1.55] text-t3">선택한 건물의 고객번호가 여기에 표시돼요</p>
+          </div>
+        )}
+        className="min-h-0 flex-1"
+      />
     </section>
   );
 }

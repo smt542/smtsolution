@@ -1,5 +1,6 @@
 import { formatNumber } from "@/lib/format";
 import { GridEmptyValue } from "./GridEmptyValue";
+import { UtilityGrid, type UtilityGridColumn } from "./UtilityGrid";
 
 export interface ElectricityCustomerSummaryRow {
   id: number;
@@ -26,18 +27,9 @@ interface ElectricityCustomerSummaryProps {
   onDraftChange: (id: number, patch: Partial<ElectricityCustomerSummaryDraft>) => void;
 }
 
-const columns: { key: keyof ElectricityCustomerSummaryRow | "line"; label: string; align?: "right" }[] = [
-  { key: "line", label: "L" },
-  { key: "customerNumber", label: "고객번호" },
-  { key: "billedAmount", label: "고지금액", align: "right" },
-  { key: "chargeAmount", label: "부과액", align: "right" },
-  { key: "usage", label: "량", align: "right" },
-  { key: "unitPrice", label: "단가", align: "right" },
-  { key: "currentReading", label: "금월량", align: "right" },
-  { key: "previousReading", label: "전월량", align: "right" },
-  { key: "meterDifference", label: "감면", align: "right" },
-  { key: "movingCharge", label: "이사", align: "right" },
-];
+interface ElectricityCustomerSummaryGridRow extends ElectricityCustomerSummaryRow {
+  draft: ElectricityCustomerSummaryDraft;
+}
 
 export function ElectricityCustomerSummary({
   rows,
@@ -45,79 +37,131 @@ export function ElectricityCustomerSummary({
   editing,
   onDraftChange,
 }: ElectricityCustomerSummaryProps) {
-  if (rows.length === 0) {
-    return (
-      <section className="flex h-[150px] flex-none flex-col items-center justify-center gap-[5px] rounded-[16px] bg-white px-6 pb-10 pt-[34px] text-center shadow-card">
-        <p className="text-[15px] font-semibold tracking-[-0.02em] text-t1">건물을 선택해 주세요</p>
-        <p className="text-[13px] font-normal leading-[1.55] text-t3">선택한 건물의 고객번호가 여기에 표시돼요</p>
-      </section>
-    );
-  }
+  const preparedRows: ElectricityCustomerSummaryGridRow[] = rows.map((row) => ({
+    ...row,
+    draft: drafts[row.id] ?? {
+      customerNumber: row.customerNumber,
+      chargeAmount: String(row.chargeAmount),
+    },
+  }));
+
+  const columns: UtilityGridColumn<ElectricityCustomerSummaryGridRow>[] = [
+    {
+      key: "line",
+      label: "L",
+      width: editing ? 58 : 77,
+      align: "right",
+      cellClassName: "font-medium text-t1",
+      render: (_row, index) => index + 1,
+    },
+    {
+      key: "customerNumber",
+      label: "고객번호",
+      width: editing ? 300 : 230,
+      align: "left",
+      cellClassName: "truncate font-bold text-t1",
+      render: (row, index) => editing ? (
+        <input
+          aria-label={`${index + 1}번 고객번호`}
+          value={row.draft.customerNumber}
+          onChange={(event) => onDraftChange(row.id, { customerNumber: event.target.value })}
+          className="h-[26px] w-full rounded-[7px] border border-teal bg-white px-[7px] text-[11.5px] font-bold text-t1 outline-none"
+        />
+      ) : row.customerNumber,
+    },
+    {
+      key: "billedAmount",
+      label: "고지금액",
+      width: 136,
+      align: "right",
+      cellClassName: "num text-t2",
+      render: (row) => formatNumber(row.billedAmount),
+    },
+    {
+      key: "chargeAmount",
+      label: "부과액",
+      width: editing ? 300 : 136,
+      align: "right",
+      cellClassName: "num font-bold text-t1",
+      render: (row) => editing ? (
+        <input
+          aria-label={`${row.customerNumber} 부과액`}
+          type="number"
+          value={row.draft.chargeAmount}
+          onChange={(event) => onDraftChange(row.id, { chargeAmount: event.target.value })}
+          className="num h-[26px] w-full rounded-[7px] border border-teal bg-white px-[7px] text-right text-[11.5px] font-bold text-t1 outline-none"
+        />
+      ) : formatNumber(row.chargeAmount),
+    },
+    {
+      key: "usage",
+      label: "량",
+      width: editing ? 82 : 110,
+      align: "right",
+      cellClassName: "num text-t2",
+      render: (row) => formatNumber(row.usage),
+    },
+    {
+      key: "unitPrice",
+      label: "단가",
+      width: editing ? 87 : 116,
+      align: "right",
+      cellClassName: "num text-t2",
+      render: (row) => row.unitPrice === null ? <GridEmptyValue /> : formatNumber(row.unitPrice, { fractionDigits: 1 }),
+    },
+    {
+      key: "currentReading",
+      label: "금월량",
+      width: editing ? 90 : 120,
+      align: "right",
+      cellClassName: "num text-t2",
+      render: (row) => formatNumber(row.currentReading),
+    },
+    {
+      key: "previousReading",
+      label: "전월량",
+      width: editing ? 90 : 120,
+      align: "right",
+      cellClassName: "num text-t2",
+      render: (row) => formatNumber(row.previousReading),
+    },
+    {
+      key: "meterDifference",
+      label: "감면",
+      width: editing ? 107 : 144,
+      align: "right",
+      cellClassName: (row) => `num font-semibold ${row.meterDifference < 0 ? "text-red" : "text-t2"}`,
+      render: (row) => formatNumber(row.meterDifference),
+    },
+    {
+      key: "movingCharge",
+      label: "이사",
+      width: editing ? 75 : 101,
+      align: "right",
+      cellClassName: "num text-t2",
+      render: (row) => row.movingCharge ? formatNumber(row.movingCharge) : <GridEmptyValue />,
+    },
+  ];
 
   return (
     <section className="h-[150px] flex-none overflow-hidden rounded-card bg-white shadow-card">
-      <div className="h-full overflow-auto">
-        <table className="w-[1294px] table-fixed border-collapse text-[11.5px]">
-          <colgroup>
-            {(editing
-              ? [58, 300, 136, 300, 82, 87, 90, 90, 107, 75]
-              : [77, 230, 136, 136, 110, 116, 120, 120, 144, 101]
-            ).map((width, index) => <col key={index} style={{ width }} />)}
-          </colgroup>
-          <thead>
-            <tr className="h-[36.5px] bg-[#fbfcfd] text-[12px] font-bold text-t3">
-              {columns.map((column) => (
-                <th key={column.key} className={`border-b border-line2 px-2 ${column.align === "right" ? "text-right" : "text-left"}`}>
-                  {column.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, rowIndex) => {
-              const draft = drafts[row.id] ?? {
-                customerNumber: row.customerNumber,
-                chargeAmount: String(row.chargeAmount),
-              };
-              return (
-              <tr key={row.id} className={`border-b border-line2 last:border-b-0 ${editing ? "h-[51px]" : "h-[41px]"} ${!editing && rowIndex === 0 ? "bg-blue-t" : "bg-white hover:bg-blue-t2"}`}>
-                <td className="px-4 text-right font-medium text-t1">{rowIndex + 1}</td>
-                <td className="truncate px-4 font-bold text-t1">
-                  {editing ? (
-                    <input
-                      aria-label={`${rowIndex + 1}번 고객번호`}
-                      value={draft.customerNumber}
-                      onChange={(event) => onDraftChange(row.id, { customerNumber: event.target.value })}
-                      className="h-[26px] w-full rounded-[7px] border border-teal bg-white px-[7px] text-[11.5px] font-bold text-t1 outline-none"
-                    />
-                  ) : row.customerNumber}
-                </td>
-                <td className="num px-2 text-right text-t2">{formatNumber(row.billedAmount)}</td>
-                <td className="num px-4 text-right font-bold text-t1">
-                  {editing ? (
-                    <input
-                      aria-label={`${row.customerNumber} 부과액`}
-                      type="number"
-                      value={draft.chargeAmount}
-                      onChange={(event) => onDraftChange(row.id, { chargeAmount: event.target.value })}
-                      className="num h-[26px] w-full rounded-[7px] border border-teal bg-white px-[7px] text-right text-[11.5px] font-bold text-t1 outline-none"
-                    />
-                  ) : formatNumber(row.chargeAmount)}
-                </td>
-                <td className="num px-2 text-right text-t2">{formatNumber(row.usage)}</td>
-                <td className="num px-2 text-right text-t2">{row.unitPrice === null ? <GridEmptyValue /> : formatNumber(row.unitPrice, { fractionDigits: 1 })}</td>
-                <td className="num px-2 text-right text-t2">{formatNumber(row.currentReading)}</td>
-                <td className="num px-2 text-right text-t2">{formatNumber(row.previousReading)}</td>
-                <td className={`num px-2 text-right font-semibold ${row.meterDifference < 0 ? "text-red" : "text-t2"}`}>
-                  {formatNumber(row.meterDifference)}
-                </td>
-                <td className="num px-2 text-right text-t2">{row.movingCharge ? formatNumber(row.movingCharge) : <GridEmptyValue />}</td>
-              </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <UtilityGrid
+        columns={columns}
+        rows={preparedRows}
+        rowKey={(row) => row.id}
+        ariaLabel="전기 고객번호 요약"
+        editing={editing}
+        layout="fixed"
+        tableWidth={1294}
+        rowClassName={(_row, index) => !editing && index === 0 ? "bg-blue-t" : "bg-white hover:bg-blue-t2"}
+        empty={(
+          <div className="flex h-full flex-col items-center justify-center gap-[5px] px-6 pb-10 pt-[34px] text-center">
+            <p className="text-[15px] font-semibold tracking-[-0.02em] text-t1">건물을 선택해 주세요</p>
+            <p className="text-[13px] font-normal leading-[1.55] text-t3">선택한 건물의 고객번호가 여기에 표시돼요</p>
+          </div>
+        )}
+        className="h-full"
+      />
     </section>
   );
 }
