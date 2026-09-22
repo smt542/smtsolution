@@ -271,7 +271,7 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
         onOpenCarryOver={() => setCarryOpen(true)}
       />
 
-      <main className="grid min-h-[calc(100dvh-62px)] grid-cols-1 items-stretch gap-4 p-4 min-[1101px]:grid-cols-[minmax(0,322px)_minmax(0,1fr)] min-[1101px]:overflow-hidden min-[1101px]:p-[22px_24px_24px]">
+      <main className="grid min-h-[calc(100dvh-62px)] grid-cols-1 items-stretch gap-4 p-4 min-[1101px]:h-[calc(100dvh-62px)] min-[1101px]:min-h-0 min-[1101px]:grid-cols-[minmax(0,322px)_minmax(0,1fr)] min-[1101px]:grid-rows-[minmax(0,1fr)] min-[1101px]:overflow-hidden min-[1101px]:p-[22px_24px_24px]">
         <BuildingSelectionRail
           buildings={buildings}
           buildingId={buildingId}
