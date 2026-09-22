@@ -55,6 +55,7 @@ const COLUMNS = [
   { heading: "인원", width: 52, align: "right" },
 ] as const;
 const TABLE_WIDTH = COLUMNS.reduce((total, column) => total + column.width, 0);
+const REFERENCE_FONT = "Pretendard, -apple-system, system-ui, sans-serif";
 
 function parseNumber(value: string): number | null {
   if (!value.trim()) return null;
@@ -150,7 +151,7 @@ export function UtilityTable({
 }: UtilityTableProps) {
   return (
     <div className="min-h-0 flex-1 overflow-auto">
-      <table className="table-fixed border-collapse text-[11.5px]" style={{ width: TABLE_WIDTH }}>
+      <table className="table-fixed border-collapse text-[11.5px]" style={{ width: TABLE_WIDTH, fontFamily: REFERENCE_FONT }}>
         <colgroup>
           {COLUMNS.map(({ heading, width }) => <col key={heading} style={{ width }} />)}
         </colgroup>
@@ -161,7 +162,7 @@ export function UtilityTable({
             ))}
           </tr>
         </thead>
-        <tbody className="text-[11.5px] font-medium text-t1">
+        <tbody className="text-[11.5px] font-normal text-t1">
           {rows.map((row, index) => (
             <UtilityRow
               key={row.unitId}
@@ -238,10 +239,10 @@ const UtilityRow = memo(function UtilityRow({
       <td className={`${cellClass} text-left text-t3`}>{formatDate(row.moveOutDate ?? null)}</td>
       <td className={`${cellClass} text-left ${movingOut ? "text-blue2" : "text-t3"}`}>{formatDate(row.moveOutScheduledDate ?? null)}</td>
       <td className={`${cellClass} text-right tabular-nums`} onClick={(event) => event.stopPropagation()}>
-        {editing ? <ReadingInput label={`${row.unitNo} 전월 지침값`} value={draft.previousReading} disabled={vacant} step="0.01" onChange={(value) => onDraftChange(row.unitId, { previousReading: value })} /> : <ReadingValue value={row.previousReading} />}
+        {editing ? <ReadingInput label={`${row.unitNo} 전월 지침값`} value={draft.previousReading} disabled={vacant} step="0.01" onChange={(value) => onDraftChange(row.unitId, { previousReading: value })} /> : <span className="font-medium"><ReadingValue value={row.previousReading} /></span>}
       </td>
       <td className={`${cellClass} text-right tabular-nums`} onClick={(event) => event.stopPropagation()}>
-        {editing ? <ReadingInput label={`${row.unitNo} 금월 지침값`} value={draft.currentReading} disabled={vacant || row.fixedUsage !== null} step="0.01" onChange={(value) => onDraftChange(row.unitId, { currentReading: value })} /> : <ReadingValue value={row.currentReading} />}
+        {editing ? <ReadingInput label={`${row.unitNo} 금월 지침값`} value={draft.currentReading} disabled={vacant || row.fixedUsage !== null} step="0.01" onChange={(value) => onDraftChange(row.unitId, { currentReading: value })} /> : <span className="font-bold"><ReadingValue value={row.currentReading} /></span>}
       </td>
       <td className={`${cellClass} text-right tabular-nums`} onClick={(event) => event.stopPropagation()}>
         {editing ? (
@@ -251,8 +252,8 @@ const UtilityRow = memo(function UtilityRow({
           </div>
         ) : <span className={invalidUsage ? "font-semibold text-red" : ""}>{invalidUsage ? "확인 필요" : <ReadingValue value={usage} />}</span>}
       </td>
-      <td className={`${cellClass} text-right tabular-nums`}><ReadingValue value={previousUsage} /></td>
-      <td className={`${cellClass} text-right tabular-nums ${change !== null && change > 0 ? "text-red" : ""}`}><ReadingValue value={change} /></td>
+      <td className={`${cellClass} text-right tabular-nums`}><span className="font-medium"><ReadingValue value={previousUsage} /></span></td>
+      <td className={`${cellClass} text-right tabular-nums ${change !== null && change > 0 ? "text-red" : ""}`}><span className="font-semibold"><ReadingValue value={change} /></span></td>
       <td className={`${cellClass} text-right`} onClick={(event) => event.stopPropagation()}>
         {editing ? <ReadingInput label={`${row.unitNo} 수동입력`} value={draft.manualCharge} disabled={vacant} step="1" onChange={(value) => onDraftChange(row.unitId, { manualCharge: value })} /> : <ReadingValue value={row.manualCharge} />}
       </td>
