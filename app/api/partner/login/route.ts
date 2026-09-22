@@ -9,6 +9,7 @@ import {
 } from "@/lib/auth/loginRateLimit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { toAuthPassword } from "@/lib/auth/password";
 
 // 현장(field) 계정 유형. 이 유형만 파트너 모바일 앱에 로그인할 수 있다.
 const FIELD_TYPES = ["field_staff", "support_staff"];
@@ -94,7 +95,7 @@ async function handlePost(req: Request) {
     if (getErr || !email) continue;
     const { data: sess, error: signErr } = await sessionClient.auth.signInWithPassword({
       email,
-      password,
+      password: toAuthPassword(password),
     });
     if (!signErr && sess.session) {
       await recordLoginSuccess(admin, { ip, username, userId: uid });

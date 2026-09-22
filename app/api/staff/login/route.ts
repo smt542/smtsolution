@@ -9,6 +9,7 @@ import {
 } from "@/lib/auth/loginRateLimit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { toAuthPassword } from "@/lib/auth/password";
 
 const INVALID = "아이디 또는 비밀번호가 올바르지 않습니다.";
 const RATE_LIMITED = "너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도해 주세요.";
@@ -99,7 +100,7 @@ async function handlePost(req: Request) {
 
     const { data: authData, error: authError } = await sessionClient.auth.signInWithPassword({
       email,
-      password,
+      password: toAuthPassword(password),
     });
     if (authError || !authData.session) continue;
 

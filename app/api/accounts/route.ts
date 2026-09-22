@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loginEmail } from "@/lib/auth/email";
+import { toAuthPassword } from "@/lib/auth/password";
 
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -42,9 +43,10 @@ export async function POST(req: Request) {
   const admin = createAdminClient();
   const email = loginEmail(org.slug, username);
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
-    email, password, email_confirm: true,
+    email, password: toAuthPassword(password), email_confirm: true,
   });
   if (createErr || !created?.user) {
+    if (createErr) console.error("[accounts] createUser failed", createErr.message);
     const dup = /already|exists|registered/i.test(createErr?.message ?? "");
     return NextResponse.json(
       { error: dup ? "이미 존재하는 아이디입니다." : "계정 생성에 실패했습니다." },
@@ -61,6 +63,7 @@ export async function POST(req: Request) {
     p_staff_capabilities: staffCapabilities ?? null,
   });
   if (rpcErr) {
+    console.error("[accounts] provision_member failed", rpcErr.message);
     await admin.auth.admin.deleteUser(created.user.id); // 롤백(고아 방지)
     return NextResponse.json({ error: "계정 정보 저장에 실패했습니다." }, { status: 500 });
   }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { toAuthPassword } from "@/lib/auth/password";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ userId: string }> }) {
   const { userId } = await params;
@@ -35,8 +36,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ userId
     return NextResponse.json({ error: "비밀번호는 숫자 4자리를 입력해 주세요." }, { status: 422 });
 
   const admin = createAdminClient();
-  const { error } = await admin.auth.admin.updateUserById(userId, { password });
-  if (error) return NextResponse.json({ error: "비밀번호 변경에 실패했습니다." }, { status: 500 });
+  const { error } = await admin.auth.admin.updateUserById(userId, { password: toAuthPassword(password) });
+  if (error) {
+    console.error("[accounts] updateUserById failed", error.message);
+    return NextResponse.json({ error: "비밀번호 변경에 실패했습니다." }, { status: 500 });
+  }
 
   // 비밀번호 변경 후 대상 계정의 기존 세션을 폐기한다(리셋 후 구세션 잔존 방지). 폐기 실패가 변경을 막지 않는다.
   const { error: revokeError } = await admin.rpc("revoke_user_sessions", { p_user_id: userId });
