@@ -10,9 +10,24 @@ import {
   selectImageFiles,
 } from "@/lib/attachments/policy";
 
+/** 이미 저장된 사진. 새로 고른 파일과 같은 줄에, 앞쪽에 그린다. */
+export interface PhotoUploadExistingPhoto {
+  id: string | number;
+  /** 파일명 — 접근성 라벨에 쓴다. */
+  name: string;
+  /** 썸네일 URL. 아직 받지 못했으면 비워 둔다. */
+  url?: string | null;
+  /** 썸네일 URL을 받지 못했는지 여부 */
+  error?: boolean;
+  /** 주면 삭제 버튼을 그린다. 삭제 확인은 호출부 몫이다. */
+  onDelete?: () => void | Promise<void>;
+}
+
 export interface PhotoUploadProps {
   files: File[];
   onFilesChange: (files: File[]) => void;
+  /** 저장된 사진들. max는 새로 고를 수 있는 장수만 센다. */
+  existing?: readonly PhotoUploadExistingPhoto[];
   max?: number;
   accept?: string;
   disabled?: boolean;
@@ -21,9 +36,17 @@ export interface PhotoUploadProps {
   hideLabel?: boolean;
 }
 
+const tileClass =
+  "group relative size-[84px] shrink-0 overflow-hidden rounded-[10px] border border-line";
+const tileDeleteClass =
+  "absolute right-[4px] top-[4px] flex size-[20px] items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100 disabled:cursor-not-allowed disabled:opacity-40";
+const tilePlaceholderClass =
+  "flex size-full items-center justify-center p-2 text-center text-[10px] text-t3";
+
 export function PhotoUpload({
   files,
   onFilesChange,
+  existing = [],
   max = MAX_ATTACHMENT_FILES,
   accept = IMAGE_ATTACHMENT_ACCEPT,
   disabled = false,
@@ -49,13 +72,42 @@ export function PhotoUpload({
         </div>
       )}
       <div className="flex flex-nowrap items-start gap-[10px] overflow-x-auto pb-[4px] pt-[6px]">
+        {existing.map((photo) => (
+          <div key={photo.id} className={tileClass}>
+            {photo.url ? (
+              <Image
+                src={photo.url}
+                alt={photo.name}
+                width={84}
+                height={84}
+                className="size-full object-cover"
+              />
+            ) : (
+              <span
+                role={photo.error ? "alert" : "status"}
+                aria-label={`${photo.name} ${photo.error ? "미리보기 실패" : "불러오는 중"}`}
+                className={tilePlaceholderClass}
+              >
+                {photo.error ? "미리보기 실패" : "불러오는 중…"}
+              </span>
+            )}
+            {photo.onDelete && (
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => void photo.onDelete?.()}
+                className={tileDeleteClass}
+                aria-label={`${photo.name} 삭제`}
+              >
+                <CloseIcon className="size-[10px]" />
+              </button>
+            )}
+          </div>
+        ))}
         {files.map((file, index) => {
           const preview = previews[index];
           return (
-            <div
-              key={`${file.name}-${file.lastModified}-${index}`}
-              className="group relative size-[84px] shrink-0 overflow-hidden rounded-[10px] border border-line"
-            >
+            <div key={`${file.name}-${file.lastModified}-${index}`} className={tileClass}>
               {preview?.file === file ? (
                 <Image
                   src={preview.url}
@@ -67,15 +119,13 @@ export function PhotoUpload({
                   className="size-full object-cover"
                 />
               ) : (
-                <span className="flex size-full items-center justify-center p-2 text-center text-[10px] text-t3">
-                  {file.name}
-                </span>
+                <span className={tilePlaceholderClass}>{file.name}</span>
               )}
               <button
                 type="button"
                 disabled={disabled}
                 onClick={() => onFilesChange(files.filter((_, fileIndex) => fileIndex !== index))}
-                className="absolute right-[4px] top-[4px] flex size-[20px] items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100 disabled:cursor-not-allowed disabled:opacity-40"
+                className={tileDeleteClass}
                 aria-label={`${file.name} 삭제`}
               >
                 <CloseIcon className="size-[10px]" />

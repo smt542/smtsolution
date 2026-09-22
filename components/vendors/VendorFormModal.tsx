@@ -1,5 +1,4 @@
 "use client";
-import Image from "next/image";
 import React, { useRef, useState } from "react";
 import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -281,49 +280,26 @@ export function VendorFormModal({
                     계약서 사진 <span className="font-semibold text-t4">(최대 10장)</span>
                   </label>
 
-                  {attachments.length > 0 && (
-                    <ul className={vendorClasses.attachmentList}>
-                      {attachmentPreviews.map(({ attachment: att, url, error }) => (
-                        <li key={att.id} className={vendorClasses.attachmentItem}>
-                          {url ? (
-                            <Image
-                              src={url}
-                              alt=""
-                              width={40}
-                              height={40}
-                              className="size-10 rounded object-cover"
-                            />
-                          ) : null}
-                          <span className={vendorClasses.attachmentName}>
-                            {att.fileName}{error ? " (미리보기 실패)" : ""}
-                          </span>
-                          {onDeleteAttachment && (
-                            <button
-                              type="button"
-                              aria-label={`${att.fileName} 삭제`}
-                              onClick={async () => {
-                                const accepted = await confirm({
-                                  title: "계약서 사진 삭제",
-                                  description: `${att.fileName} 파일을 삭제할까요?`,
-                                  confirmLabel: "삭제",
-                                  variant: "danger",
-                                });
-                                if (accepted) await onDeleteAttachment(att);
-                              }}
-                              disabled={isPending || isSubmitting}
-                              className={vendorClasses.attachmentDelete}
-                            >
-                              삭제
-                            </button>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-
                   <PhotoUpload
                     label="계약서 사진"
                     hideLabel
+                    existing={attachmentPreviews.map(({ attachment: att, url, error }) => ({
+                      id: att.id,
+                      name: att.fileName,
+                      url,
+                      error: Boolean(error),
+                      onDelete: onDeleteAttachment
+                        ? async () => {
+                            const accepted = await confirm({
+                              title: "계약서 사진 삭제",
+                              description: `${att.fileName} 파일을 삭제할까요?`,
+                              confirmLabel: "삭제",
+                              variant: "danger",
+                            });
+                            if (accepted) await onDeleteAttachment(att);
+                          }
+                        : undefined,
+                    }))}
                     files={pendingPhotos}
                     onFilesChange={setPendingPhotos}
                     max={Math.max(0, 10 - attachments.length)}
