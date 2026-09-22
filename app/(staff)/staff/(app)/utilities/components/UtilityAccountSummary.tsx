@@ -44,7 +44,7 @@ export function UtilityAccountSummary({
           </colgroup>
           <thead className="sticky top-0 z-10 h-[37px] bg-[#FBFCFD] text-t3">
             <tr className="border-b border-line">
-              {HEADINGS.map((heading, index) => <th key={heading} className={`px-4 text-[12px] font-bold ${index === 1 ? "text-left" : "text-right"}`}>{heading}</th>)}
+              {HEADINGS.map((heading, index) => <th key={heading} className={`px-4 text-[11.5px] font-bold ${index === 1 ? "text-left" : "text-right"}`}>{heading}</th>)}
             </tr>
           </thead>
           <tbody>
