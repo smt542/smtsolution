@@ -18,8 +18,14 @@ export const messengerClasses: Record<string, string> = {
   "fmp-smswrap": "flex flex-col",
   "chan-alim": "",
   "fmp-top2": "flex flex-col gap-4",
-  "fmp-casc": "flex items-start gap-2",
+  // 정본: .fmp-casc>.fmp-dd2,.fmp-casc>.fmp-auto{flex:0 0 calc((100% - 16px)/3);min-width:0}
+  // + .fmp-casc.two>.fmp-dd2{flex:1 1 0}. 즉 기본은 3등분 고정폭이고 two 일 때만 남은 폭 균등분배다.
+  // two 가 빠지는 경우(입주자)에 기본 basis 가 없으면 필드가 내용폭(72~100px)으로 쪼그라들고,
+  // .menu 는 트리거 폭을 그대로 복사하므로(정본 posMenu 와 동일) 목록이 잘려 안 보인다.
+  // calc 는 (100% - gap-2*2)/3 과 동치 — 슬래시 없이 33.3333% - 5.3333px 로 쓴다.
+  "fmp-casc": "flex items-start gap-2 [&>.fmp-auto]:min-w-0 [&>.fmp-auto]:flex-[0_0_calc(33.3333%_-_5.3333px)]",
   two: "[&>.fmp-dd2]:flex-1",
+  three: "[&>.fmp-dd2]:flex-[0_0_calc(33.3333%_-_5.3333px)]",
   "fmp-seg": "flex w-full gap-0.5 rounded-[10px] bg-[#edf0f3] p-[3px]",
   si: "flex-1 cursor-pointer rounded-[7px] px-3.5 py-2 text-center text-[13px] font-bold leading-[1.45]",
   on: "border-blue bg-blue-t text-blue-d",
@@ -47,7 +53,9 @@ export const messengerClasses: Record<string, string> = {
   badr: "mt-0.5 break-all text-[11.5px] font-semibold text-t3",
   oc: "ml-auto text-[11px] font-bold tabular-nums text-t4",
   ocv: "mr-1.5 rounded bg-bg px-1.5 py-px text-[11px] font-bold tabular-nums text-t3",
-  ddsrch: "relative mb-1 flex items-center gap-1.5 border-b border-line2 px-0.5 pb-2 [&_input]:h-[34px] [&_input]:w-full [&_input]:rounded-lg [&_input]:border [&_input]:border-line [&_input]:pl-[30px] [&_input]:pr-2.5 [&_input]:text-[12.5px] [&_input]:font-semibold [&_input]:outline-none [&_input:focus]:border-blue",
+  // 정본 .ddsrch>svg{width:14px;height:14px;position:absolute;left:11px;stroke:#8B95A1;stroke-width:2}.
+  // 이 규칙이 빠지면 svg 가 고유크기(300x150)로 깔려 입력창을 밀어내고 메뉴가 빈 박스로 부풀었다.
+  ddsrch: "relative mb-1 flex items-center gap-1.5 border-b border-line2 px-0.5 pb-2 [&>svg]:absolute [&>svg]:left-[11px] [&>svg]:size-[14px] [&>svg]:stroke-[#8B95A1] [&>svg]:stroke-2 [&_input]:h-[34px] [&_input]:w-full [&_input]:rounded-lg [&_input]:border [&_input]:border-line [&_input]:pl-[30px] [&_input]:pr-2.5 [&_input]:text-[12.5px] [&_input]:font-semibold [&_input]:outline-none [&_input:focus]:border-blue",
   bsrch: "relative flex min-w-0 flex-1 items-center",
   ddopts: "flex max-h-[180px] flex-col gap-0.5 overflow-y-auto",
   chk: "relative flex items-center gap-[9px] font-semibold text-t2 before:flex before:size-[19px] before:flex-none before:rounded-md before:border-2 before:border-line before:content-['']",

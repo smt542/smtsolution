@@ -389,7 +389,7 @@ export function RecipientCascade({
   return (
     <div
       ref={rootRef}
-      className={`${styles["fmp-casc"]} ${useTwoColumns ? styles.two : ""}`}
+      className={`${styles["fmp-casc"]} ${useTwoColumns ? styles.two : styles.three}`}
     >
       <div
         ref={typeRef}
@@ -583,7 +583,7 @@ export function RecipientCascade({
       )}
 
       {autoRecipient && (
-        <div className={styles["fmp-auto"]}>
+        <div className={`fmp-auto ${styles["fmp-auto"]}`}>
           <div style={{ minWidth: 0 }}>
             <div className={styles.nm}>{autoRecipient.name}</div>
             <div className={styles.rl}>{autoRecipient.role}</div>
