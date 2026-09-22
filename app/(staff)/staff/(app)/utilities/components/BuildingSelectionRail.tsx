@@ -119,11 +119,11 @@ export function BuildingSelectionRail({
         <div className="min-h-0 flex-1 overflow-auto">
           <table className="w-full table-fixed border-collapse text-[13.5px]">
             <thead className="sticky top-0 z-10 bg-[#FBFCFD] text-[12px] font-bold text-t3">
-              <tr className="h-[37px] border-b border-line">
-                <th className="w-[70px] px-[11px] text-left">코드</th>
-                <th className="w-[118px] px-[11px] text-left">건물명</th>
-                <th className="px-[11px] text-left">주소</th>
-                <th className="w-[52px] px-[11px] text-right">수도</th>
+              <tr className="h-[36.5px]">
+                <th className="h-[36.5px] w-[70px] border-b border-line2 px-[11px] py-0 text-left leading-[15px]">코드</th>
+                <th className="h-[36.5px] w-[118px] border-b border-line2 px-[11px] py-0 text-left leading-[15px]">건물명</th>
+                <th className="h-[36.5px] border-b border-line2 px-[11px] py-0 text-left leading-[15px]">주소</th>
+                <th className="h-[36.5px] w-[52px] border-b border-line2 px-[11px] py-0 text-right leading-[15px]">수도</th>
               </tr>
             </thead>
             <tbody>
@@ -133,14 +133,14 @@ export function BuildingSelectionRail({
                   <tr
                     key={building.id}
                     onClick={() => onBuildingChange(building.id)}
-                    className={`h-[41px] cursor-pointer border-b border-line2 transition-colors ${
+                    className={`h-[41px] cursor-pointer transition-colors ${
                       selected ? "bg-blue-t text-t1" : "text-t1 hover:bg-blue-t2"
                     }`}
                   >
-                    <td className="truncate px-[11px] font-medium">{building.code || "-"}</td>
-                    <td className="truncate px-[11px] font-bold">{building.name}</td>
-                    <td className="truncate px-[11px] font-medium">{building.address || "-"}</td>
-                    <td className="num px-[11px] text-right font-bold">{customerNumberCounts[building.id] ?? 0}</td>
+                    <td className="h-[41px] truncate border-b border-line2 px-[11px] py-[12px] font-medium leading-[16px]">{building.code || "-"}</td>
+                    <td className="h-[41px] truncate border-b border-line2 px-[11px] py-[12px] font-bold leading-[16px]">{building.name}</td>
+                    <td className="h-[41px] truncate border-b border-line2 px-[11px] py-[12px] font-medium leading-[16px]">{building.address || "-"}</td>
+                    <td className="num h-[41px] border-b border-line2 px-[11px] py-[12px] text-right font-bold leading-[16px]">{customerNumberCounts[building.id] ?? 0}</td>
                   </tr>
                 );
               })}
