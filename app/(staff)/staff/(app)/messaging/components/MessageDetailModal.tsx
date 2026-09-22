@@ -5,7 +5,7 @@ import { useMe } from "@/hooks/reactquery/auth";
 import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
 import { MaskedPhone } from "@/components/common/MaskedPhone";
 import type { MessageRecipient, SendMode } from "@/lib/messaging/preset";
-import { channelLabel, senderLabel } from "./messageFormat";
+import { channelLabel, senderNumberLabel } from "./messageFormat";
 
 export interface MessageDetailRow {
   label: string;
@@ -76,7 +76,7 @@ export function MessageDetailModal({
   }, [onClose]);
 
   const channelText = channelLabel(channel);
-  const senderNumber = senderLabel(channel, config?.smsSender);
+  const senderNumber = senderNumberLabel(config?.smsSender);
 
   return (
     <div
