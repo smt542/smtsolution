@@ -30,6 +30,7 @@ import { FixedUsageModal } from "./components/FixedUsageModal";
 import { MeterLedgerModal } from "./components/MeterLedgerModal";
 import { UnitPriceModal } from "./components/UnitPriceModal";
 import { UtilityAccountSummary } from "./components/UtilityAccountSummary";
+import { defaultBillingDates } from "./components/BillingPeriodBar";
 import { UtilityPeriodBarPlaceholder } from "./components/UtilityPeriodBarPlaceholder";
 import { UtilityWorkspaceHeader } from "./components/UtilityWorkspaceHeader";
 import { UtilityTable, type UtilityDraft, type UtilityTableRow } from "./components/UtilityTable";
@@ -332,7 +333,19 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
                   {needsBasis ? (
                     <BillingBasisRequiredState onEdit={() => setEditing(true)} />
                   ) : rows.length === 0 ? <div className="grid flex-1 place-items-center text-[13px] text-t3">등록된 호실이 없어요.</div> : (
-                    <UtilityTable rows={rows} drafts={scopedDrafts} referenceDate={referenceDate} editing={editing} selectedRowId={effectiveSelectedRow?.unitId} onDraftChange={updateDraft} onRowClick={setSelectedRow} onDiscountClick={utilityType === "water" ? setDiscountRow : undefined} onFixedUsageClick={setFixedUsageRow} />
+                    <UtilityTable
+                      rows={rows}
+                      drafts={scopedDrafts}
+                      referenceDate={referenceDate}
+                      chargeStartDate={billingPeriodQuery.data?.chargeStartDate ?? (isPrototypeFuturePeriod(period) ? undefined : defaultBillingDates(period).chargeStartDate)}
+                      chargeEndDate={billingPeriodQuery.data?.chargeEndDate ?? (isPrototypeFuturePeriod(period) ? undefined : defaultBillingDates(period).chargeEndDate)}
+                      editing={editing}
+                      selectedRowId={effectiveSelectedRow?.unitId}
+                      onDraftChange={updateDraft}
+                      onRowClick={setSelectedRow}
+                      onDiscountClick={utilityType === "water" ? setDiscountRow : undefined}
+                      onFixedUsageClick={setFixedUsageRow}
+                    />
                   )}
                 </section>
               </>

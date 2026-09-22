@@ -106,11 +106,16 @@ export interface UtilityUnitRow {
   tenantName: string | null;
   occupancyStatus: "occupied" | "vacant" | "moving_out" | null;
   moveInDate: string | null;
+  moveOutDate?: string | null;
+  moveOutScheduledDate?: string | null;
+  phone?: string | null;
+  residentCount?: number | null;
   customerNumber: string | null;
   meterNumber: string | null;
   previousReading: number | null;
   currentReading: number | null;
   usage: number | null;
+  previousUsage?: number | null;
   unitPrice: number | null;
   resolvedUnitPrice: number | null;
   automaticCharge: number | null;
@@ -132,11 +137,16 @@ interface UtilityRowRpc {
   tenant_name: string | null;
   occupancy_status: UtilityUnitRow["occupancyStatus"];
   move_in_date: string | null;
+  move_out_date?: string | null;
+  move_out_scheduled_date?: string | null;
+  phone?: string | null;
+  resident_count?: number | null;
   customer_no: string | null;
   meter_no: string | null;
   previous_reading: number | null;
   current_reading: number | null;
   usage: number | null;
+  previous_usage?: number | null;
   unit_price: number | null;
   calc_charge: number | null;
   discount_amount: number | null;
@@ -157,11 +167,16 @@ function rpcToUtilityRow(r: UtilityRowRpc): UtilityUnitRow {
     tenantName: r.tenant_name,
     occupancyStatus: r.occupancy_status,
     moveInDate: r.move_in_date,
+    moveOutDate: r.move_out_date ?? null,
+    moveOutScheduledDate: r.move_out_scheduled_date ?? null,
+    phone: r.phone ?? null,
+    residentCount: r.resident_count ?? null,
     customerNumber: r.customer_no,
     meterNumber: r.meter_no,
     previousReading: r.previous_reading,
     currentReading: r.current_reading,
     usage: r.usage,
+    previousUsage: r.previous_usage ?? null,
     unitPrice: r.unit_price,
     resolvedUnitPrice: r.resolved_unit_price,
     automaticCharge: r.calc_charge,
