@@ -3,11 +3,11 @@ import { useRouter } from "next/navigation";
 import { EmptyState, Spinner } from "@/components/common";
 import { MaskedPhone } from "@/components/common/MaskedPhone";
 import type { TenantListRow } from "@/hooks/reactquery/occupancies";
-import { TENANT_COLUMNS, TENANT_TABLE_MIN_WIDTH } from "./tenantColumns";
+import { TENANT_COLUMNS } from "./tenantColumns";
 import { TenantEmptyState } from "./TenantEmptyState";
 
 /**
- * Figma 673:40286 — 호수·입주민 카드(33컬럼 가로 스크롤).
+ * Figma 673:40286 — 호수·입주민 카드(32컬럼 가로 스크롤).
  * 헤더(제목 + 엑셀/등록 버튼)는 항상 노출한다. 건물 미선택 시 제목은 "입주민",
  * 액션 버튼은 비활성(muted), 본문은 "건물을 선택해 주세요" 빈 상태.
  * 입주민 행 클릭/Enter → 해당 세대의 입주민 관리카드 모달.
@@ -78,13 +78,12 @@ export function TenantOccupancyCard({
         <EmptyState message="등록된 세대가 없습니다." />
       ) : (
         <div className="min-h-0 flex-1 overflow-auto">
-          <table className="border-collapse text-left" style={{ minWidth: TENANT_TABLE_MIN_WIDTH }}>
+          <table className="border-collapse text-left">
             <thead className="sticky top-0 z-[1]">
               <tr>
                 {TENANT_COLUMNS.map((col) => (
                   <th
                     key={col.key}
-                    style={{ minWidth: col.w }}
                     className="whitespace-nowrap border-b border-line bg-[#fbfcfd] px-[16px] py-[11px] text-[12px] font-bold leading-[normal] text-t3"
                   >
                     {col.label}
@@ -109,8 +108,7 @@ export function TenantOccupancyCard({
                   {TENANT_COLUMNS.map((col) => (
                     <td
                       key={col.key}
-                      style={{ minWidth: col.w }}
-                      className="h-[55px] whitespace-nowrap px-[16px] text-[13.5px] leading-[normal] text-t1"
+                      className="whitespace-nowrap px-[16px] py-[12px] text-[13.5px] leading-[normal] text-t1"
                     >
                       {col.key === "phone" && t.phone ? (
                         t.occupancyId ? (
