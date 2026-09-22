@@ -3,11 +3,8 @@ import { Input, Panel, Switch } from "@/components/common";
 type LateFeeSettingsCardProps = {
   enabled: boolean;
   rates: readonly string[];
-  /** 납기후 가산율(%). 미납 표·고지서의 "납.후연체" 계산에 쓴다. */
-  postDueRate: string;
   onEnabledChange: (value: boolean) => void;
   onRateChange: (index: number, value: string) => void;
-  onPostDueRateChange: (value: string) => void;
 };
 
 const MONTH_LABELS = [
@@ -28,10 +25,8 @@ const MONTH_LABELS = [
 export function LateFeeSettingsCard({
   enabled,
   rates,
-  postDueRate,
   onEnabledChange,
   onRateChange,
-  onPostDueRateChange,
 }: LateFeeSettingsCardProps) {
   return (
     <Panel
@@ -39,7 +34,7 @@ export function LateFeeSettingsCard({
       subtitle="미납 개월 수에 따른 다른 요율 적용합니다. (단리)"
       variant="compact"
       action={<Switch ariaLabel="관리비 연체 설정" checked={enabled} onChange={onEnabledChange} />}
-      className="min-h-[268px]"
+      className="min-h-[202px]"
     >
       {/* 정본 .st-tier 그대로 — 열 수를 고정하지 않고 셀 최소 폭 190px를 보장한다.
           8열은 Figma 프레임 폭(1594px)에서 나온 결과값일 뿐이라, 실제 그리드 폭
@@ -65,26 +60,6 @@ export function LateFeeSettingsCard({
             </div>
           </div>
         ))}
-      </div>
-
-      {/* 월차 요율과 달리 월수와 무관한 정률이라 따로 둔다 — 미납 표의 "납.후연체" 열이 이 값이다. */}
-      <div className="mt-[12px] flex h-[54px] items-center justify-between rounded-[12px] border border-line2 bg-bg py-[8px] pl-[13px] pr-[10px]">
-        <div className="flex flex-col">
-          <span className="text-[13px] font-bold text-t2">납기후 가산율</span>
-          <span className="text-[11.5px] font-medium text-t3">납기일이 지나면 미납원금에 이 비율을 더해요</span>
-        </div>
-        <div className="flex items-center gap-[8px]">
-          <Input
-            size="36"
-            type="number"
-            step="any"
-            aria-label="납기후 가산율"
-            value={postDueRate}
-            onChange={(event) => onPostDueRateChange(event.target.value)}
-            className="w-[70px] shrink-0 text-right"
-          />
-          <span className="text-[13.5px] font-semibold text-t2">%</span>
-        </div>
       </div>
     </Panel>
   );

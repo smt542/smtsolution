@@ -51,6 +51,12 @@
 - ✅ 단, 고정사용량(계량기 없는 호실)은 구현됨(`FixedUsageModal`, `0016:113-119`) — 최초 "미반영" 판정은 오탐.
 - 성격상 제품 결정 필요(정본대로 재설계 vs 현행 단가모델 유지).
 
+### H6. 납기후 가산율: 정본에 요율 규칙 없음 — ❗**[중간·정책]**
+- **개념은 정본에 있음**: 고지서 합계 5단(당월계·미납액·납기내금액·납기후연체·납기후금액)은 `e26d4b4b:docs/prototype/staff/bill-publish/bill-publish.dc.html:926`, 미납관리 표 3열(납.연체료·납.후연체·연체료계)은 `e26d4b4b:docs/prototype/staff/overdue-management/overdue-management.dc.html:357-358`에 있다.
+- **요율 규칙은 정본에 없음**: 고지서는 `lateFee=240` 상수 더미(`e26d4b4b:docs/prototype/staff/bill-publish/bill-publish.dc.html:904`)이고, 미납관리는 더미 데이터 생성기 안의 `미납액 × 0.02`(`postFee`) 및 같은 생성기의 `미납액 × 0.03`(`lateFee`)를 쓴다(`e26d4b4b:docs/prototype/staff/overdue-management/overdue-management.dc.html:543-544`). 이는 12단계 요율표와 무관한 더미다.
+- **결정 이력**: 2026-09-21 커밋 `19156359`와 마이그레이션 `0187`이 이를 org별 설정으로 만들었으나, 2026-09-22 사용자 결정으로 설정 UI를 걷고 앱 상수 2퍼센트로 고정했다.
+- **되돌림 여지**: DB 컬럼 `setup_config.late_fee_post_due_rate`는 남겨뒀다. 협의 결과가 org별 설정이면 UI와 앱 매핑만 복원하면 된다.
+
 ---
 
 ## 1. G1 건물·입주자 (`/staff/buildings/**`)
@@ -180,6 +186,6 @@
 2. **overdue ↔ payments 연동 (H3)** — 미납액 집계 RPC 신설 후 `listOverdueHouseholds` 배선. payments 원장(0015)은 이미 있음.
 3. **보안 (H4)** — admin 드릴다운 PII 노출 차단(경계 원칙 복원).
 4. **입주자 폼 보완** — 3.3 이체방식·부과일, 3.5 고지서, 3.9/3.10 부과모달·퇴실처리(데이터 계층 대체로 존재).
-5. **제품 방향 결정 (선행 필요)** — H5 공과금 계산 모델(top-down 재설계 vs 현행 유지), G7 admin 개념(발송비 청구 모델 vs 현행 콘솔). 단순 버그 아님.
+5. **제품 방향 결정 (선행 필요)** — H5 공과금 계산 모델(top-down 재설계 vs 현행 유지), G7 admin 개념(발송비 청구 모델 vs 현행 콘솔), 납기후 가산율 요율 주체(org별 설정 대 고정값). 단순 버그 아님.
 
 > 명세 원문 `docs/{role}.zip → {screen}/{screen}.md`, 횡단 정책 `policy/*.md`. 구현 근거(파일:라인)는 각 절 참조.

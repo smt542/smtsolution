@@ -236,7 +236,7 @@ export function buildAdjustmentStatementPages(
             tiers,
             asOfYear,
             asOfMonth,
-          ).lateFee
+          ).postDueFee
         : 0;
       // 납기후금액 = 당월계 + 납기후연체 (납기 후 당월 청구액)
       const afterDueTotal = currentTotal === null ? null : currentTotal + lateAfterDue;
