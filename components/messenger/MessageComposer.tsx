@@ -77,12 +77,11 @@ export function MessageComposer({
   };
 
   return (
-    <div className={styles["fmp-smswrap"]}>
+    <>
       <div
         className={styles["fmp-lbl"]}
         // 정본은 라벨이 .fmp-smswrap 밖(fmp-msgL 형제)이라 margin8+gap8=16px 간격.
-        // 앱은 라벨을 wrap 안에 두므로 동일 간격을 margin으로 재현(폰 컬럼 정렬 정합).
-        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
       >
         <span>메시지 내용</span>
         <div
@@ -175,23 +174,25 @@ export function MessageComposer({
         </div>
       </div>
 
-      <textarea
-        ref={textareaRef}
-        className={styles["fmp-ta"]}
-        value={body}
-        onChange={(event) => {
-          onTemplate(null);
-          onBody(event.target.value);
-        }}
-        placeholder="메시지 내용을 입력해 주세요 · 아래 변수를 눌러 넣을 수 있어요"
-        aria-label="문자 메시지 내용"
-      />
-      <div className={styles["fmp-varsrow"]}>
-        <div className={styles["fmp-bytes"]} aria-live="polite">
-          {body.length}자 · {bytes}byte ·{" "}
-          <b className={product === "LMS" ? styles.lms : undefined}>{product}</b>
+      <div className={styles["fmp-smswrap"]}>
+        <textarea
+          ref={textareaRef}
+          className={styles["fmp-ta"]}
+          value={body}
+          onChange={(event) => {
+            onTemplate(null);
+            onBody(event.target.value);
+          }}
+          placeholder="메시지 내용을 입력해 주세요 · 아래 변수를 눌러 넣을 수 있어요"
+          aria-label="문자 메시지 내용"
+        />
+        <div className={styles["fmp-varsrow"]}>
+          <div className={styles["fmp-bytes"]} aria-live="polite">
+            {body.length}자 · {bytes}byte ·{" "}
+            <b className={product === "LMS" ? styles.lms : undefined}>{product}</b>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

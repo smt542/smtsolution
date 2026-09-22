@@ -145,11 +145,11 @@ export function SchedulePicker({ value, onChange }: SchedulePickerProps) {
   };
 
   return (
-    <div className="flex flex-col items-start">
-      <div className="flex h-[24px] min-h-[24px] items-center">
+    <>
+      <div className="mb-[10px] flex min-h-[24px] flex-wrap items-center gap-[18px]">
         <button
           type="button"
-          className="inline-flex min-h-[22px] cursor-pointer select-none items-center gap-[8px]"
+          className="inline-flex min-h-[22px] cursor-pointer select-none items-center gap-[8px] text-[13px] font-bold leading-[1.4] text-t2"
           onClick={toggle}
           aria-pressed={enabled}
         >
@@ -165,12 +165,12 @@ export function SchedulePicker({ value, onChange }: SchedulePickerProps) {
               </span>
             )}
           </span>
-          <span className="text-[13px] font-bold leading-[18.2px] text-t2">예약 전송</span>
+          <span>예약 전송</span>
         </button>
       </div>
 
       {enabled && (
-        <div className="flex w-full items-start gap-[8px] pb-[16px] pt-[10px]">
+        <div className="mb-[16px] flex w-full items-start gap-[8px]">
           <DpDatePicker
             className="min-w-0 flex-1"
             triggerClassName={CONTROL_CLASS_NAME}
@@ -256,7 +256,7 @@ export function SchedulePicker({ value, onChange }: SchedulePickerProps) {
             )}
         </div>
       )}
-    </div>
+    </>
   );
 }
 

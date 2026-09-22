@@ -1,6 +1,7 @@
 "use client";
 
 import type { MessageTemplate } from "@/hooks/reactquery/messageTemplates/apis";
+import { formatPhone } from "@/lib/format/phone";
 import { messengerClasses as styles } from "./messengerClasses";
 import type { ChannelMode } from "./types";
 
@@ -40,6 +41,7 @@ export function PhonePreview({
 }: PhonePreviewProps) {
   const previewBody = channel === "alim" ? (template?.body ?? body) : body;
   const empty = !previewBody.trim() || (channel === "alim" && !template);
+  const displaySender = sender?.trim() ? formatPhone(sender) : "번호 미지정";
 
   return (
     <div className={styles["fmp-phonewrap"]}>
@@ -57,7 +59,7 @@ export function PhonePreview({
             <span className={styles["ph-from"]}>
               {channel === "alim"
                 ? "관리비서 채널"
-                : `발신 ${sender?.trim() || "번호 미지정"}`}
+                : `발신 ${displaySender}`}
             </span>
             <span
               className={`${styles["ph-ch"]} ${channel === "alim" ? styles.alim : styles.sms}`}
