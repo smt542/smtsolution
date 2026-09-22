@@ -7,7 +7,9 @@ import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, EmptyState, Spinner } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { occupancyBasicSchema } from "@/components/forms/schema/occupancy";
+import { PageHeader } from "@/components/shell/PageHeader";
 import { useCustomerNumbers, type CustomerNumberKind } from "@/hooks/reactquery/buildingCustomerNumbers";
+import { useBuildingFull } from "@/hooks/reactquery/buildings";
 import {
   useDeleteUnit,
   useSaveUnitOccupancy,
@@ -151,6 +153,7 @@ export function TenantForm({
   const save = useSaveUnitOccupancy();
   const del = useDeleteUnit();
   const { data: roomTypes } = useRoomTypes();
+  const { data: building } = useBuildingFull(buildingId);
   const { data: customerNumbers } = useCustomerNumbers(buildingId);
   const { data: full, isLoading, isError } = useUnitOccupancyFull(unitId ?? 0);
 
@@ -470,35 +473,51 @@ export function TenantForm({
     router.push(`/staff/buildings/${buildingId}/tenants`);
   };
 
+  const pageHeaderActions = (
+    <div className="flex gap-[8px]">
+      <Button variant="ghost" onClick={onLeave}>목록으로</Button>
+      <Button variant="primary" onClick={onSave} disabled={save.isPending}>
+        {save.isPending ? "저장 중…" : "저장"}
+      </Button>
+    </div>
+  );
+
+  const pageHeader = (
+    <PageHeader
+      breadcrumb="건물·입주자 관리"
+      title={building?.name ?? ""}
+      actions={pageHeaderActions}
+    />
+  );
+
   if (unitId && isLoading) {
-    return <div className="flex justify-center py-16"><Spinner /></div>;
+    if (presentation === "modal") {
+      return <div className="flex justify-center py-16"><Spinner /></div>;
+    }
+    return (
+      <div className="flex h-full min-h-0 flex-col overflow-hidden">
+        {pageHeader}
+        <div className="flex flex-1 items-center justify-center"><Spinner /></div>
+      </div>
+    );
   }
 
   if (unitId && isError) {
-    return <EmptyState message="입주자 정보를 불러오지 못했습니다. 다시 시도해 주세요." />;
-  }
-
-  return (
-    <div className="flex flex-col gap-[13px]">
-      <div className="flex flex-wrap items-center justify-between gap-[12px]">
-        <div>
-          <p className="text-[12px] font-semibold text-t3">
-            {presentation === "modal" ? "입주민 관리카드" : "건물·입주자 관리"}
-          </p>
-          <h2 className="pt-[2px] text-[19px] font-extrabold tracking-[-0.02em] text-t1">
-            {unitId ? `${basic.unitNo} · ${basic.tenantName || "입주민"}` : "호수·입주민 등록"}
-          </h2>
-        </div>
-        <div className="flex gap-[8px]">
-          <Button variant="ghost" onClick={onLeave}>
-            {presentation === "modal" ? "닫기" : "뒤로가기"}
-          </Button>
-          <Button variant="primary" onClick={onSave} disabled={save.isPending}>
-            {save.isPending ? "저장 중…" : presentation === "modal" ? "저장" : "등록 저장"}
-          </Button>
+    if (presentation === "modal") {
+      return <EmptyState message="입주자 정보를 불러오지 못했습니다. 다시 시도해 주세요." />;
+    }
+    return (
+      <div className="flex h-full min-h-0 flex-col overflow-hidden">
+        {pageHeader}
+        <div className="flex flex-1 items-center justify-center px-[24px]">
+          <EmptyState message="입주자 정보를 불러오지 못했습니다. 다시 시도해 주세요." />
         </div>
       </div>
+    );
+  }
 
+  const formContent = (
+    <>
       <BasicInfoSection
         value={basic}
         onChange={patch(setBasic)}
@@ -547,6 +566,37 @@ export function TenantForm({
           </button>
         </div>
       )}
+    </>
+  );
+
+  if (presentation === "modal") {
+    return (
+      <div className="flex flex-col gap-[13px]">
+        <div className="flex flex-wrap items-center justify-between gap-[12px]">
+          <div>
+            <p className="text-[12px] font-semibold text-t3">입주민 관리카드</p>
+            <h2 className="pt-[2px] text-[19px] font-extrabold tracking-[-0.02em] text-t1">
+              {unitId ? `${basic.unitNo} · ${basic.tenantName || "입주민"}` : "호수·입주민 등록"}
+            </h2>
+          </div>
+          <div className="flex gap-[8px]">
+            <Button variant="ghost" onClick={onLeave}>닫기</Button>
+            <Button variant="primary" onClick={onSave} disabled={save.isPending}>
+              {save.isPending ? "저장 중…" : "저장"}
+            </Button>
+          </div>
+        </div>
+        {formContent}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      {pageHeader}
+      <div className="flex min-h-0 flex-1 flex-col gap-[29px] overflow-y-auto px-[24px] pb-[24px] pt-[22px]">
+        {formContent}
+      </div>
     </div>
   );
 }
