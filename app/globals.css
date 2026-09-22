@@ -85,6 +85,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Utility reference screens use the non-variable Pretendard family. */
+.utility-reference-font {
+  font-family: Pretendard, -apple-system, system-ui, sans-serif;
+}
+
 @keyframes rise {
   from {
     opacity: 0;
