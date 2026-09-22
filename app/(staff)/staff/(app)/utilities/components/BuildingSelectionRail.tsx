@@ -56,7 +56,7 @@ export function BuildingSelectionRail({
   }, [buildings, query]);
 
   return (
-    <aside className={`flex min-h-0 w-full shrink-0 flex-col gap-4 transition-opacity min-[1101px]:w-[322px] ${disabled ? "pointer-events-none opacity-45" : ""}`}>
+    <aside className={`flex min-h-0 w-full shrink-0 flex-col gap-4 transition-opacity min-[1101px]:h-[650px] min-[1101px]:w-[322px] ${disabled ? "pointer-events-none opacity-45" : ""}`}>
       <select
         aria-label="건물 선택"
         value={buildingId ?? ""}
