@@ -8,6 +8,10 @@ import {
 } from "@/hooks/reactquery/buildings";
 import { useTenantList } from "@/hooks/reactquery/occupancies";
 import { useBuildingMeterDays, type CustomerNumberKind } from "@/hooks/reactquery/buildingCustomerNumbers";
+import { useBilling } from "@/hooks/reactquery/billing";
+import { currentPeriod } from "@/lib/billing/period";
+import { pivotBillingRows } from "@/lib/billing/pivot";
+import { billingItemsTotal } from "../../management-fee/components/billingTableModel";
 import {
   BuildingSearchCard,
   initialBuildingFilter,
@@ -117,7 +121,29 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
   }, [search]);
 
   const tenant = useTenantList(selected?.id ?? 0);
-  const tenantRows = tenant.data ?? [];
+  const billingPeriod = currentPeriod();
+  const billing = useBilling(selected?.id ?? null, billingPeriod);
+  const tenantRows = useMemo(() => {
+    const rows = tenant.data ?? [];
+    if (!billing.data || billing.data.length === 0) return rows;
+
+    const { units, columns } = pivotBillingRows(billing.data);
+    const monthlyFeeByUnit = new Map<number, number>();
+    for (const unit of units) {
+      const hasMonthlyData = unit.confirmedAt != null
+        || Object.values(unit.charges).some((charge) => charge.amount !== 0);
+      if (!hasMonthlyData) continue;
+      const amount = unit.confirmedAt && !unit.isDirty && unit.totalAmount != null
+        ? unit.totalAmount
+        : billingItemsTotal(unit, columns, billingPeriod);
+      monthlyFeeByUnit.set(unit.unitId, amount);
+    }
+
+    return rows.map((row) => {
+      const monthlyFee = monthlyFeeByUnit.get(row.unitId);
+      return monthlyFee == null ? row : { ...row, mgmtFeeAmount: monthlyFee };
+    });
+  }, [billing.data, billingPeriod, tenant.data]);
 
   const runSearch = () => {
     setSearch(searchInput);

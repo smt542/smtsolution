@@ -100,11 +100,16 @@ export interface TenantListRow {
   isVacant: boolean; isOverdue: boolean;
   payerName?: string | null; vehicleNo?: string | null; areaPyeong?: number | null;
   mgmtFeeAmount?: number | null;
+  expectedMoveInDate?: string | null; increaseAmount?: number | null; billingDay?: string | null;
   billingEnabled?: boolean | null; printEnabled?: boolean | null; billNameDisplay?: BillNameDisplay | null;
   moveOutDate?: string | null; lateFeeEnabled?: boolean | null; singlePrint?: boolean | null;
   transferMethod?: TransferMethod | null; smsOptIn?: boolean | null; billingNote?: string | null;
   billAuth?: boolean | null; billDelivery?: BillDelivery | null; createdAt?: string | null;
   kepcoCustomerNo?: string | null; kepcoMeterNo?: string | null;
+  waterCustomerNo?: string | null; waterMeterNo?: string | null;
+  elecCustomerNo?: string | null; elecMeterNo?: string | null;
+  commonElecCustomerNo?: string | null; commonElecMeterNo?: string | null;
+  gasCustomerNo?: string | null; gasMeterNo?: string | null;
   mgmtAccount?: string | null; waterAccount?: string | null; elecAccount?: string | null; gasAccount?: string | null;
   commonElecNo?: string | null;
 }
@@ -126,11 +131,16 @@ type TenantRow = {
   is_vacant: boolean; is_overdue: boolean;
   payer_name?: string | null; vehicle_no?: string | null; area_pyeong?: number | null;
   mgmt_fee_amount?: number | null;
+  expected_move_in_date?: string | null; increase_amount?: number | null; billing_day?: string | null;
   billing_enabled?: boolean | null; print_enabled?: boolean | null; bill_name_display?: BillNameDisplay | null;
   move_out_date?: string | null; late_fee_enabled?: boolean | null; single_print?: boolean | null;
   transfer_method?: TransferMethod | null; sms_opt_in?: boolean | null; billing_note?: string | null;
   bill_auth?: boolean | null; bill_delivery?: BillDelivery | null; occupancy_created_at?: string | null;
   kepco_customer_no?: string | null; kepco_meter_no?: string | null;
+  water_customer_no?: string | null; water_meter_no?: string | null;
+  elec_customer_no?: string | null; elec_meter_no?: string | null;
+  common_elec_customer_no?: string | null; common_elec_meter_no?: string | null;
+  gas_customer_no?: string | null; gas_meter_no?: string | null;
   mgmt_account?: string | null; water_account?: string | null; elec_account?: string | null; gas_account?: string | null;
   common_elec_no?: string | null;
 };
@@ -140,6 +150,8 @@ const rowToTenant = (r: TenantRow): TenantListRow => ({
   isVacant: r.is_vacant, isOverdue: r.is_overdue,
   payerName: r.payer_name ?? null, vehicleNo: r.vehicle_no ?? null, areaPyeong: r.area_pyeong ?? null,
   mgmtFeeAmount: r.mgmt_fee_amount ?? null,
+  expectedMoveInDate: r.expected_move_in_date ?? null, increaseAmount: r.increase_amount ?? null,
+  billingDay: r.billing_day ?? null,
   billingEnabled: r.billing_enabled ?? null, printEnabled: r.print_enabled ?? null,
   billNameDisplay: r.bill_name_display ?? null, moveOutDate: r.move_out_date ?? null,
   lateFeeEnabled: r.late_fee_enabled ?? null, singlePrint: r.single_print ?? null,
@@ -147,6 +159,10 @@ const rowToTenant = (r: TenantRow): TenantListRow => ({
   billingNote: r.billing_note ?? null, billAuth: r.bill_auth ?? null,
   billDelivery: r.bill_delivery ?? null, createdAt: r.occupancy_created_at ?? null,
   kepcoCustomerNo: r.kepco_customer_no ?? null, kepcoMeterNo: r.kepco_meter_no ?? null,
+  waterCustomerNo: r.water_customer_no ?? null, waterMeterNo: r.water_meter_no ?? null,
+  elecCustomerNo: r.elec_customer_no ?? null, elecMeterNo: r.elec_meter_no ?? null,
+  commonElecCustomerNo: r.common_elec_customer_no ?? null, commonElecMeterNo: r.common_elec_meter_no ?? null,
+  gasCustomerNo: r.gas_customer_no ?? null, gasMeterNo: r.gas_meter_no ?? null,
   mgmtAccount: r.mgmt_account ?? null, waterAccount: r.water_account ?? null,
   elecAccount: r.elec_account ?? null, gasAccount: r.gas_account ?? null,
   commonElecNo: r.common_elec_no ?? null,
