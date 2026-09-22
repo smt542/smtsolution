@@ -58,11 +58,6 @@ export const vendorClasses = {
   categoryOption:
     "block w-full whitespace-nowrap rounded-lg px-[11px] py-[9px] text-left text-[13px] font-semibold text-t2 hover:bg-bg focus-visible:bg-bg focus-visible:outline-none",
   categoryOptionSelected: "bg-blue-t font-bold text-blue hover:bg-blue-t focus-visible:bg-blue-t",
-  attachmentList: "flex flex-col gap-1.5",
-  attachmentItem:
-    "flex min-w-0 items-center justify-between gap-2 rounded-[9px] border border-line2 bg-[#fbfcfd] px-2.5 py-2 text-[12.5px] font-semibold text-t2",
-  attachmentName: "min-w-0 overflow-hidden text-ellipsis whitespace-nowrap",
-  attachmentDelete: "flex-none text-xs font-bold text-red",
   formFooter: "flex gap-[9px] border-t border-line px-[22px] py-[14px]",
   footerButton:
     "inline-flex h-10 items-center justify-center rounded-btn px-5 text-[13.5px] font-bold",
