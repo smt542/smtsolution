@@ -99,6 +99,7 @@ export interface TenantListRow {
   roomTypeLabel: string | null; residentCount: number | null; moveInDate: string | null;
   isVacant: boolean; isOverdue: boolean;
   payerName?: string | null; vehicleNo?: string | null; areaPyeong?: number | null;
+  mgmtFeeAmount?: number | null;
   billingEnabled?: boolean | null; printEnabled?: boolean | null; billNameDisplay?: BillNameDisplay | null;
   moveOutDate?: string | null; lateFeeEnabled?: boolean | null; singlePrint?: boolean | null;
   transferMethod?: TransferMethod | null; smsOptIn?: boolean | null; billingNote?: string | null;
@@ -124,6 +125,7 @@ type TenantRow = {
   room_type_label: string | null; resident_count: number | null; move_in_date: string | null;
   is_vacant: boolean; is_overdue: boolean;
   payer_name?: string | null; vehicle_no?: string | null; area_pyeong?: number | null;
+  mgmt_fee_amount?: number | null;
   billing_enabled?: boolean | null; print_enabled?: boolean | null; bill_name_display?: BillNameDisplay | null;
   move_out_date?: string | null; late_fee_enabled?: boolean | null; single_print?: boolean | null;
   transfer_method?: TransferMethod | null; sms_opt_in?: boolean | null; billing_note?: string | null;
@@ -137,6 +139,7 @@ const rowToTenant = (r: TenantRow): TenantListRow => ({
   roomTypeLabel: r.room_type_label, residentCount: r.resident_count, moveInDate: r.move_in_date,
   isVacant: r.is_vacant, isOverdue: r.is_overdue,
   payerName: r.payer_name ?? null, vehicleNo: r.vehicle_no ?? null, areaPyeong: r.area_pyeong ?? null,
+  mgmtFeeAmount: r.mgmt_fee_amount ?? null,
   billingEnabled: r.billing_enabled ?? null, printEnabled: r.print_enabled ?? null,
   billNameDisplay: r.bill_name_display ?? null, moveOutDate: r.move_out_date ?? null,
   lateFeeEnabled: r.late_fee_enabled ?? null, singlePrint: r.single_print ?? null,
