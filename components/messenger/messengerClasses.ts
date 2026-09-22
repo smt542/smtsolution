@@ -58,9 +58,18 @@ export const messengerClasses: Record<string, string> = {
   ddsrch: "relative mb-1 flex items-center gap-1.5 border-b border-line2 px-0.5 pb-2 [&>svg]:absolute [&>svg]:left-[11px] [&>svg]:size-[14px] [&>svg]:stroke-[#8B95A1] [&>svg]:stroke-2 [&_input]:h-[34px] [&_input]:w-full [&_input]:rounded-lg [&_input]:border [&_input]:border-line [&_input]:pl-[30px] [&_input]:pr-2.5 [&_input]:text-[12.5px] [&_input]:font-semibold [&_input]:outline-none [&_input:focus]:border-blue",
   bsrch: "relative flex min-w-0 flex-1 items-center",
   ddopts: "flex max-h-[180px] flex-col gap-0.5 overflow-y-auto",
-  chk: "relative flex items-center gap-[9px] font-semibold text-t2 before:flex before:size-[19px] before:flex-none before:rounded-md before:border-2 before:border-line before:content-['']",
+  // 정본 .opt.chk.on{background:transparent} — 체크된 "전체" 행은 행 배경을 칠하지 않고
+  // ::before 를 청록으로 채우고 ::after 로 흰 체크만 그린다. 그래서 on 대신 chk-on 을 쓴다.
+  chk: "relative flex items-center gap-[9px] font-semibold text-t2 before:flex before:size-[19px] before:flex-none before:rounded-md before:border-2 before:content-['']",
+  "chk-off": "before:border-line",
+  "chk-on":
+    "before:border-blue before:bg-blue after:absolute after:left-[20.5px] after:top-1/2 after:h-[9px] after:w-[5px] after:-translate-x-1/2 after:-translate-y-[60%] after:rotate-45 after:border-b-2 after:border-r-2 after:border-white after:content-['']",
   tnl: "flex items-center gap-[9px] px-2.5 py-2",
-  cbx: "relative size-[19px] flex-none rounded-md border-2 border-line",
+  // 정본 .opt.owl.on .cbx / .opt.tnl.on .cbx — 체크 시 박스를 청록으로 채우고 흰 체크를 얹는다.
+  cbx: "relative size-[19px] flex-none rounded-md border-2",
+  "cbx-off": "border-line",
+  "cbx-on":
+    "border-blue bg-blue after:absolute after:left-1/2 after:top-[46%] after:h-[9px] after:w-[5px] after:-translate-x-1/2 after:-translate-y-1/2 after:rotate-45 after:border-b-2 after:border-r-2 after:border-white after:content-['']",
   "ow-av": "flex size-7 flex-none items-center justify-center rounded-full bg-blue-t text-xs font-extrabold text-blue-d",
   "tnl-nm": "min-w-0 flex-1 truncate text-[13px] font-bold text-t1",
   "tnl-ho": "flex-none text-xs font-bold tabular-nums text-t3",

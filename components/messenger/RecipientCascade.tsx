@@ -451,7 +451,7 @@ export function RecipientCascade({
               />
               {activeStaff.length > 0 && (
                 <div
-                  className={`${styles.opt} ${styles.chk} ${selection.staffIds.length === activeStaff.length ? styles.on : ""}`}
+                  className={`${styles.opt} ${styles.chk} ${selection.staffIds.length === activeStaff.length ? styles["chk-on"] : styles["chk-off"]}`}
                   onClick={toggleAllStaff}
                 >
                   전체 ({activeStaff.length}명)
@@ -469,7 +469,9 @@ export function RecipientCascade({
                       }))
                     }
                   >
-                    <span className={styles.cbx} />
+                    <span
+                      className={`${styles.cbx} mt-px ${selection.staffIds.includes(account.userId) ? styles["cbx-on"] : styles["cbx-off"]}`}
+                    />
                     <div className={styles.owg}>
                       <div className={styles.owrow1}>
                         <span className={styles.ownm}>
@@ -541,7 +543,7 @@ export function RecipientCascade({
             />
             {eligibleTenants.length > 0 && (
               <div
-                className={`${styles.opt} ${styles.chk} ${selection.tenantUnitIds.length === eligibleTenants.length ? styles.on : ""}`}
+                className={`${styles.opt} ${styles.chk} ${selection.tenantUnitIds.length === eligibleTenants.length ? styles["chk-on"] : styles["chk-off"]}`}
                 onClick={toggleAllTenants}
               >
                 전체 ({eligibleTenants.length}명)
@@ -562,7 +564,9 @@ export function RecipientCascade({
                     }))
                   }
                 >
-                  <span className={styles.cbx} />
+                  <span
+                    className={`${styles.cbx} ${selection.tenantUnitIds.includes(tenant.unitId) ? styles["cbx-on"] : styles["cbx-off"]}`}
+                  />
                   <span className={styles["ow-av"]}>
                     {(tenant.tenantName ?? tenant.unitNo).slice(0, 1)}
                   </span>
