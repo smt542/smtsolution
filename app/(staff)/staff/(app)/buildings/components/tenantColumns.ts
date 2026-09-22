@@ -12,7 +12,13 @@ const empty = () => "";
 const ynLabel = (value: boolean | null | undefined) => value == null ? "" : value ? "Y" : "N";
 const oxLabel = (value: boolean | null | undefined) => value == null ? "" : value ? "O" : "X";
 const consentLabel = (value: boolean | null | undefined) => value == null ? "" : value ? "동의" : "거부";
-const datePart = (value: string | null | undefined) => value?.slice(0, 10) ?? "";
+const displayDate = (value: string | null | undefined) => value?.slice(0, 10).replaceAll("-", ".") ?? "";
+const dateOrDash = (value: string | null | undefined) => displayDate(value) || "—";
+const unitNoLabel = (value: string | null | undefined) => value?.replace(/\s*호$/, "") ?? "";
+const areaLabel = (value: number | null | undefined) => {
+  const formatted = formatNumber(value, { nullText: "" });
+  return formatted ? `${formatted}평` : "";
+};
 const meterLabel = (customerNo: string | null | undefined, meterNo: string | null | undefined) =>
   [customerNo, meterNo].filter(Boolean).join(" · ");
 const BILL_NAME_LABELS: Record<string, string> = { none: "이름 미출력", name: "이름 출력", code: "코드번호 출력" };
@@ -29,19 +35,19 @@ const enumLabel = (value: string | null | undefined, labels: Record<string, stri
  * 노출하지 않고, 상세 화면에서만 확인할 수 있도록 한다.
  */
 export const TENANT_COLUMNS: TenantColumn[] = [
-  { key: "unitNo", label: "호실", get: (t) => t.unitNo ?? "" },
+  { key: "unitNo", label: "호실", get: (t) => unitNoLabel(t.unitNo) },
   { key: "tenantName", label: "입주자명", get: (t) => (t.isVacant ? "공실" : (t.tenantName ?? "-")) },
   { key: "payerName", label: "입금자명", get: (t) => t.payerName ?? "" },
   { key: "roomType", label: "룸", get: (t) => t.roomTypeLabel ?? "" },
   { key: "residentCount", label: "인원", get: (t) => (t.residentCount != null ? `${t.residentCount}명` : "") },
   { key: "phone", label: "전화번호", get: (t) => t.phone ?? "" },
   { key: "vehicleNo", label: "차량번호", get: (t) => t.vehicleNo ?? "" },
-  { key: "moveInDate", label: "입주일", get: (t) => t.moveInDate ?? "" },
+  { key: "moveInDate", label: "입주일", get: (t) => displayDate(t.moveInDate) },
   { key: "managementFee", label: "관리비", get: (t) => formatNumber(t.mgmtFeeAmount, { nullText: "" }) },
-  { key: "moveOutDate", label: "퇴실일자", get: (t) => datePart(t.moveOutDate) },
-  { key: "moveInScheduled", label: "입주예정일", get: (t) => datePart(t.expectedMoveInDate) },
+  { key: "moveOutDate", label: "퇴실일자", get: (t) => dateOrDash(t.moveOutDate) },
+  { key: "moveInScheduled", label: "입주예정일", get: (t) => dateOrDash(t.expectedMoveInDate) },
   { key: "increaseAmount", label: "인상액", get: (t) => formatNumber(t.increaseAmount, { nullText: "" }) },
-  { key: "areaPyeong", label: "평형", get: (t) => t.areaPyeong == null ? "" : String(t.areaPyeong) },
+  { key: "areaPyeong", label: "평형", get: (t) => areaLabel(t.areaPyeong) },
   { key: "water", label: "수도", get: (t) => meterLabel(t.waterCustomerNo, t.waterMeterNo) },
   { key: "electricity", label: "전기", get: (t) => meterLabel(t.elecCustomerNo, t.elecMeterNo) },
   { key: "commonElectricity", label: "공용 전기", get: (t) => meterLabel(t.commonElecCustomerNo, t.commonElecMeterNo) || (t.commonElecNo ?? "") },
@@ -60,5 +66,5 @@ export const TENANT_COLUMNS: TenantColumn[] = [
   { key: "kepcoCustomerNo", label: "한전고객번호", get: (t) => t.kepcoCustomerNo ?? "" },
   { key: "kepcoMeterNo", label: "한전계기번호", get: (t) => t.kepcoMeterNo ?? "" },
   { key: "billingDay", label: "부과일", get: (t) => t.billingDay ?? "" },
-  { key: "createdAt", label: "등록일", get: (t) => datePart(t.createdAt) },
+  { key: "createdAt", label: "등록일", get: (t) => displayDate(t.createdAt) },
 ];
