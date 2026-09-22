@@ -67,20 +67,20 @@ export function UtilityWorkspaceBar({
   };
 
   return (
-    <section className={`sticky top-0 z-[4] flex min-h-[52px] shrink-0 flex-wrap items-center gap-2.5 rounded-[12px] border bg-white px-[14px] py-[10px] shadow-[0_1px_3px_rgba(23,31,40,0.05)] ${editing ? "border-blue shadow-[0_0_0_3px_#E2F5F1]" : "border-line"}`}>
-      <div className="mr-auto min-w-[220px]">
+    <section className={`sticky top-0 z-[4] flex h-auto min-h-[52px] shrink-0 flex-wrap items-center gap-2.5 rounded-[12px] border bg-white px-[14px] py-[10px] shadow-[0_1px_3px_rgba(23,31,40,0.05)] min-[1101px]:h-[52px] ${editing ? "border-blue shadow-[0_0_0_3px_#E2F5F1]" : "border-line"}`}>
+      <div className="min-w-0 flex-1">
         <h2 className="truncate text-[12.5px] font-bold text-t1">{buildingName}</h2>
         <p className="mt-px text-[11.5px] font-medium text-t3">{year}년 {month}월분 부과 편집</p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-[6px]">
         <span className="mr-1 text-[11.5px] font-bold text-t2">부과기준일</span>
         <DpDatePicker ariaLabel="부과 시작일" disabled={!editing} value={chargeStartDate} onChange={setStartDraft} placeholder="시작일" />
         <span className="text-[12px] font-bold text-t2">~</span>
         <DpDatePicker ariaLabel="부과 종료일" disabled={!editing} value={chargeEndDate} onChange={setEndDraft} placeholder="종료일" />
       </div>
 
-      <span className="mx-1 hidden h-[26px] w-px bg-line lg:block" />
+      <span aria-hidden="true" className="flex items-start px-1"><span className="h-[26px] w-px bg-line" /></span>
       {editing ? (
         <div className="flex items-center gap-1.5">
           <Button variant="ghost" size="sm" type="button" onClick={onCalculate}>계산</Button>
