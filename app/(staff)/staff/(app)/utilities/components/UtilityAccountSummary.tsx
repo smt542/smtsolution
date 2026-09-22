@@ -44,7 +44,7 @@ export function UtilityAccountSummary({
           </colgroup>
           <thead className="sticky top-0 z-10 h-[37px] bg-[#FBFCFD] text-t3">
             <tr className="border-b border-line">
-              {HEADINGS.map((heading, index) => <th key={heading} className={`border-r border-line2 px-4 text-[12px] font-bold last:border-r-0 ${index === 1 ? "text-left" : "text-right"}`}>{heading}</th>)}
+              {HEADINGS.map((heading, index) => <th key={heading} className={`px-4 text-[12px] font-bold ${index === 1 ? "text-left" : "text-right"}`}>{heading}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -62,29 +62,29 @@ export function UtilityAccountSummary({
                   onClick={() => onSelect(anchor)}
                   className={`${editing ? "h-[51px]" : "h-[41px]"} cursor-pointer border-b border-line2 ${selected ? "bg-blue-t" : "bg-white hover:bg-blue-t2"}`}
                 >
-                  <td className="border-r border-line2 px-4 text-right font-bold text-t2">{index + 1}</td>
-                  <td className="border-r border-line2 px-4 font-bold text-t1">
+                  <td className="px-4 text-right font-bold text-t2">{index + 1}</td>
+                  <td className="px-4 font-bold text-t1">
                     {editing ? (
                       <input aria-label={`${customerNumber} 고객번호`} value={customerNumber} readOnly className="h-[26px] w-[92px] rounded-md border border-teal bg-white px-2 text-[11px] outline-none" />
                     ) : customerNumber}
                   </td>
-                  <td className="border-r border-line2 px-4 text-right text-t2">당월</td>
-                  <td className="num border-r border-line2 px-4 text-right text-t2">{formatNumber(usage)}</td>
-                  <td className="num border-r border-line2 px-4 text-right text-t2">{display(manual, hasManual)}</td>
-                  <td className="num border-r border-line2 px-4 text-right text-red">{discount ? `-${formatNumber(discount)}` : "-"}</td>
-                  <td className="num border-r border-line2 px-4 text-right text-t3">-</td>
-                  <td className="num border-r border-line2 px-4 text-right font-bold text-t1">
+                  <td className="px-4 text-right text-t2">당월</td>
+                  <td className="num px-4 text-right text-t2">{formatNumber(usage)}</td>
+                  <td className="num px-4 text-right text-t2">{display(manual, hasManual)}</td>
+                  <td className="num px-4 text-right text-red">{discount ? `-${formatNumber(discount)}` : "-"}</td>
+                  <td className="num px-4 text-right text-t3">-</td>
+                  <td className="num px-4 text-right font-bold text-t1">
                     {editing ? (
                       <input aria-label={`${customerNumber} 부과액`} value={manual || charge || ""} readOnly className="h-[26px] w-[64px] rounded-md border border-teal bg-white px-2 text-right text-[11px] outline-none" />
                     ) : formatNumber(manual || charge)}
                   </td>
-                  <td className="num border-r border-line2 px-4 text-right text-t3">-</td>
-                  <td className="num border-r border-line2 px-4 text-right text-t2">
+                  <td className="num px-4 text-right text-t3">-</td>
+                  <td className="num px-4 text-right text-t2">
                     {(anchor.unitPrice ?? anchor.resolvedUnitPrice) ? formatNumber(anchor.unitPrice ?? anchor.resolvedUnitPrice) : <GridEmptyValue />}
                   </td>
-                  <td className="num border-r border-line2 px-4 text-right text-t3">-</td>
-                  <td className="num border-r border-line2 px-4 text-right text-t3">-</td>
-                  <td className="num border-r border-line2 px-4 text-right text-t2">{formatNumber(sum(group, "currentReading"))}</td>
+                  <td className="num px-4 text-right text-t3">-</td>
+                  <td className="num px-4 text-right text-t3">-</td>
+                  <td className="num px-4 text-right text-t2">{formatNumber(sum(group, "currentReading"))}</td>
                   <td className="num px-4 text-right text-t2">{formatNumber(sum(group, "previousReading"))}</td>
                 </tr>
               );

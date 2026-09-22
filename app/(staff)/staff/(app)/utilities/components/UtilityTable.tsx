@@ -157,7 +157,7 @@ export function UtilityTable({
         <thead className="sticky top-0 z-10 h-[37px] bg-[#FBFCFD] font-bold text-t3">
           <tr className="border-b border-line">
             {COLUMNS.map(({ heading, align }) => (
-              <th key={heading} className={`border-r border-line2 px-3 last:border-r-0 ${align === "right" ? "text-right" : "text-left"}`}>{heading}</th>
+              <th key={heading} className={`px-3 ${align === "right" ? "text-right" : "text-left"}`}>{heading}</th>
             ))}
           </tr>
         </thead>
@@ -229,7 +229,7 @@ const UtilityRow = memo(function UtilityRow({
         ? "shadow-[inset_3px_0_0_#12B886]"
         : "";
   const rowClass = `${editing ? "h-[51px]" : "h-[41px]"} cursor-pointer border-b border-line2 transition-colors ${selected ? "bg-blue-t" : "bg-white hover:bg-[#FBFCFD]"} ${vacant && (usage ?? 0) <= 0 ? "opacity-55" : ""}`;
-  const cellClass = "border-r border-line2 px-3 last:border-r-0 whitespace-nowrap";
+  const cellClass = "px-3 whitespace-nowrap";
 
   return (
     <tr onClick={() => onRowClick(row)} className={rowClass}>
