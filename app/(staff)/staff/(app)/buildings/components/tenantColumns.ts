@@ -1,4 +1,5 @@
 import type { TenantListRow } from "@/hooks/reactquery/occupancies";
+import { formatNumber } from "@/lib/format";
 
 export interface TenantColumn {
   key: string;
@@ -26,7 +27,7 @@ export const TENANT_COLUMNS: TenantColumn[] = [
   { key: "phone", label: "전화번호", get: (t) => t.phone ?? "" },
   { key: "vehicleNo", label: "차량번호", get: (t) => t.vehicleNo ?? "" },
   { key: "moveInDate", label: "입주일", get: (t) => t.moveInDate ?? "" },
-  { key: "managementFee", label: "관리비", get: (t) => t.mgmtAccount ?? "" },
+  { key: "managementFee", label: "관리비", get: (t) => formatNumber(t.mgmtFeeAmount, { nullText: "" }) },
   { key: "moveOutDate", label: "퇴실일자", get: (t) => datePart(t.moveOutDate) },
   { key: "moveInScheduled", label: "입주예정일", get: empty },
   { key: "increaseAmount", label: "인상액", get: empty },
