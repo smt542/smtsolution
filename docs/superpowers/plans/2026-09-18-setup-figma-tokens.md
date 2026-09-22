@@ -111,10 +111,15 @@ textarea  bg-white border border-line rounded-[12px] px-[13px] py-[12px]
 ## 연체 12칸 그리드
 
 ```
-grid-cols-8 gap-[8px] grid-rows-[54px_54px] w-[1594px]
+grid-cols-[repeat(auto-fill,minmax(190px,1fr))] auto-rows-[54px] gap-[8px]
 라벨     Bold 13px t2
 단위 %   SemiBold 13.5px t2 · 인풋과 gap-[8px]
-12번째   라벨이 `12개월차 이후`로 길어 gap-[10px] (justify-between 아님)
+칸       justify-between + gap-[10px] (정본 .st-tier-r 그대로, 예외 없음)
+
+열 수를 고정하지 말 것. 정본 `.st-tier` 는 `repeat(auto-fill,minmax(190px,1fr))` 이고,
+위 Figma 프레임 폭 `w-[1594px]` 에서 그 식이 내는 결과가 8열(셀 192.25px)일 뿐이다.
+앱의 실제 그리드 폭은 1313px 라 `grid-cols-8` 로 옮기면 셀이 157px 로 눌린다
+(10·11·12개월차는 오버플로). 이 폭에서는 auto-fill 이 6열·셀 212px 를 낸다.
 ```
 
 ## 정산 체크 항목 그리드 (노드 `72:70542`)
