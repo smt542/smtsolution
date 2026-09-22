@@ -11,7 +11,6 @@ import type { ChannelMode } from "./types";
 interface PhonePreviewProps {
   channel: ChannelMode;
   body: string;
-  renderedBody?: string;
   sampleRecipient?: MessageRecipient | null;
   template?: MessageTemplate | null;
   sender?: string;
@@ -77,7 +76,6 @@ function EmptyPreview() {
 export function PhonePreview({
   channel,
   body,
-  renderedBody,
   sampleRecipient,
   template,
   sender,
@@ -88,8 +86,7 @@ export function PhonePreview({
     undefined,
     recipient.variables?.건물명,
   );
-  const previewBody =
-    renderedBody ?? (channel === "alim" ? (template?.body ?? body) : body);
+  const previewBody = channel === "alim" ? (template?.body ?? body) : body;
   const empty = !previewBody.trim() || (channel === "alim" && !template);
 
   return (
