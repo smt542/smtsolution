@@ -207,7 +207,7 @@ export function UtilityTable({
       label: "입주일자",
       width: 115,
       align: "left",
-      cellClassName: (item) => item.state.recent ? "font-semibold text-green" : "text-t2",
+      cellClassName: (item) => !item.row.moveInDate ? "text-t3" : item.state.recent ? "font-semibold text-green" : "",
       render: (item) => formatDate(item.row.moveInDate),
     },
     {
@@ -215,7 +215,7 @@ export function UtilityTable({
       label: "퇴실일자",
       width: 112,
       align: "left",
-      cellClassName: "text-t3",
+      cellClassName: (item) => item.row.moveOutDate ? "" : "text-t3",
       render: (item) => formatDate(item.row.moveOutDate ?? null),
     },
     {
@@ -223,7 +223,7 @@ export function UtilityTable({
       label: "퇴실예정일자",
       width: 115,
       align: "left",
-      cellClassName: (item) => item.state.movingOut ? "text-blue2" : "text-t3",
+      cellClassName: (item) => item.state.movingOut ? "text-blue2" : item.row.moveOutScheduledDate ? "" : "text-t3",
       render: (item) => formatDate(item.row.moveOutScheduledDate ?? null),
     },
     {
@@ -291,7 +291,7 @@ export function UtilityTable({
       cellClassName: "",
       render: (item) => (
         <>
-          <span>{item.row.discountType || "-"}</span>
+          <span>{item.row.discountType || <GridEmptyValue />}</span>
           {editing && onDiscountClick && !item.state.vacant && <button type="button" aria-label={`${item.row.unitNo} 할인 설정`} onClick={(event) => { event.stopPropagation(); onDiscountClick(item.row); }} className="ml-1 rounded border border-line px-1 py-0.5 text-[10px] font-bold text-t3 hover:bg-bg">설정</button>}
         </>
       ),
@@ -310,7 +310,7 @@ export function UtilityTable({
       width: 71,
       align: "right",
       cellClassName: "font-bold tabular-nums",
-      render: (item) => formatNumber(item.state.charge),
+      render: (item) => item.state.charge === null ? <GridEmptyValue /> : formatNumber(item.state.charge),
     },
     {
       key: "note",
@@ -319,14 +319,14 @@ export function UtilityTable({
       align: "left",
       cellClassName: "",
       stopRowClick: true,
-      render: (item) => editing ? <input aria-label={`${item.row.unitNo} 적요`} value={item.draft.note} disabled={item.state.vacant} placeholder="-" onChange={(event) => onDraftChange(item.row.unitId, { note: event.target.value })} className="h-[26px] w-full rounded-[7px] border border-teal bg-white px-2 text-[11.5px] text-t1 outline-none focus:ring-1 focus:ring-teal/20 disabled:border-line disabled:bg-line2" /> : item.row.note || "-",
+      render: (item) => editing ? <input aria-label={`${item.row.unitNo} 적요`} value={item.draft.note} disabled={item.state.vacant} placeholder="-" onChange={(event) => onDraftChange(item.row.unitId, { note: event.target.value })} className="h-[26px] w-full rounded-[7px] border border-teal bg-white px-2 text-[11.5px] text-t1 outline-none focus:ring-1 focus:ring-teal/20 disabled:border-line disabled:bg-line2" /> : item.row.note || <GridEmptyValue />,
     },
     {
       key: "processedAt",
       label: "처리일자",
       width: 112,
       align: "left",
-      cellClassName: "tabular-nums text-t3",
+      cellClassName: (item) => item.row.processedAt ? "tabular-nums" : "tabular-nums text-t3",
       render: (item) => formatDate(item.row.processedAt),
     },
     {
@@ -334,7 +334,7 @@ export function UtilityTable({
       label: "부과기준",
       width: 197,
       align: "left",
-      cellClassName: "text-[10.5px] text-t3",
+      cellClassName: () => chargeStartDate && chargeEndDate ? "" : "text-t3",
       render: () => formatBasis(chargeStartDate, chargeEndDate),
     },
     {
@@ -350,7 +350,7 @@ export function UtilityTable({
       label: "전화",
       width: 137,
       align: "left",
-      cellClassName: "text-t3",
+      cellClassName: (item) => item.row.phone ? "" : "text-t3",
       render: (item) => item.row.phone || "-",
     },
     {
@@ -367,7 +367,7 @@ export function UtilityTable({
       width: 53,
       align: "right",
       cellClassName: "tabular-nums",
-      render: (item) => item.row.residentCount ?? "-",
+      render: (item) => item.row.residentCount ?? <GridEmptyValue />,
     },
   ];
 

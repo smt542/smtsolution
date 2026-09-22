@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { GasTableRow, GasUtilityDraft } from "./types";
+import { GridEmptyValue } from "../GridEmptyValue";
 import { UtilityGrid, type UtilityGridColumn } from "../UtilityGrid";
 
 interface GasReadingsTableProps {
@@ -23,6 +24,10 @@ function numberFrom(value: string): number | null {
 
 function format(value: number | null): string {
   return value === null ? "-" : value.toLocaleString("ko-KR", { maximumFractionDigits: 3 });
+}
+
+function ReadingValue({ value }: { value: number | null }) {
+  return value === null ? <GridEmptyValue /> : format(value);
 }
 
 function formatDate(value: string | null): string {
@@ -157,7 +162,7 @@ export function GasReadingsTable({
           readOnly
           onChange={() => {}}
         />
-      ) : format(item.row.previousReading),
+      ) : <ReadingValue value={item.row.previousReading} />,
     },
     {
       key: "currentReading",
@@ -172,7 +177,7 @@ export function GasReadingsTable({
           disabled={item.row.fixedUsage !== null}
           onChange={(value) => onDraftChange(item.row.unitId, { currentReading: value })}
         />
-      ) : format(item.row.currentReading),
+      ) : <ReadingValue value={item.row.currentReading} />,
     },
     {
       key: "usage",
@@ -192,7 +197,7 @@ export function GasReadingsTable({
             <Image src="/figma-assets/gas/lock.svg" alt="" width={12} height={12} />
           </button>
         </div>
-      ) : format(item.usage),
+      ) : <ReadingValue value={item.usage} />,
     },
     {
       key: "previousUsage",
@@ -200,7 +205,7 @@ export function GasReadingsTable({
       width: 56,
       align: "right",
       cellClassName: "tabular-nums",
-      render: (item) => format(item.previousUsage),
+      render: (item) => <ReadingValue value={item.previousUsage} />,
     },
     {
       key: "change",
@@ -208,7 +213,7 @@ export function GasReadingsTable({
       width: 53,
       align: "right",
       cellClassName: (item) => `tabular-nums ${item.change !== null && item.change > 0 ? "text-red" : ""}`,
-      render: (item) => format(item.change),
+      render: (item) => <ReadingValue value={item.change} />,
     },
     {
       key: "manualCharge",
@@ -222,7 +227,7 @@ export function GasReadingsTable({
           value={item.draft.manualCharge}
           onChange={(value) => onDraftChange(item.row.unitId, { manualCharge: value })}
         />
-      ) : format(item.row.manualCharge),
+      ) : <ReadingValue value={item.row.manualCharge} />,
     },
     {
       key: "discountType",
@@ -230,7 +235,7 @@ export function GasReadingsTable({
       width: 90,
       align: "left",
       cellClassName: "",
-      render: (item) => item.row.discountType ?? "-",
+      render: (item) => item.row.discountType || <GridEmptyValue />,
     },
     {
       key: "discountAmount",
@@ -246,7 +251,7 @@ export function GasReadingsTable({
       width: 71,
       align: "right",
       cellClassName: "font-semibold tabular-nums",
-      render: (item) => format(item.charge),
+      render: (item) => <ReadingValue value={item.charge} />,
     },
     {
       key: "note",
@@ -261,7 +266,7 @@ export function GasReadingsTable({
           onChange={(event) => onDraftChange(item.row.unitId, { note: event.target.value })}
           className="h-[26px] w-full rounded-[7px] border border-teal bg-white px-2 text-left text-[11.5px] outline-none"
         />
-      ) : item.row.note ?? "-",
+      ) : item.row.note || <GridEmptyValue />,
     },
     {
       key: "processedAt",
@@ -269,14 +274,14 @@ export function GasReadingsTable({
       width: 112,
       align: "left",
       cellClassName: "",
-      render: (item) => formatDate(item.row.processedAt),
+      render: (item) => item.row.processedAt ? formatDate(item.row.processedAt) : <GridEmptyValue />,
     },
     {
       key: "chargeBasis",
       label: "부과기준",
       width: 197,
       align: "left",
-      cellClassName: "text-[10.5px] text-t3",
+      cellClassName: "",
       render: (item) => item.chargeBasis,
     },
     {
@@ -293,7 +298,7 @@ export function GasReadingsTable({
       width: 137,
       align: "left",
       cellClassName: "text-t3",
-      render: () => "-",
+      render: () => <GridEmptyValue />,
     },
     {
       key: "line",
@@ -309,7 +314,7 @@ export function GasReadingsTable({
       width: 53,
       align: "right",
       cellClassName: "tabular-nums",
-      render: () => "-",
+      render: () => <GridEmptyValue />,
     },
   ];
 

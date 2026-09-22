@@ -1,4 +1,5 @@
 import type { GasTableRow, GasUtilityDraft } from "./types";
+import { GridEmptyValue } from "../GridEmptyValue";
 import { UtilityGrid, type UtilityGridColumn } from "../UtilityGrid";
 
 interface GasAccountSummaryProps {
@@ -114,7 +115,7 @@ export function GasAccountSummary({ rows, drafts, editing }: GasAccountSummaryPr
       width: 78,
       align: "right",
       cellClassName: "tabular-nums",
-      render: (line) => display(line.manualCharge),
+      render: (line) => line.manualCharge === null ? <GridEmptyValue /> : display(line.manualCharge),
     },
     {
       key: "discountAmount",
@@ -161,7 +162,7 @@ export function GasAccountSummary({ rows, drafts, editing }: GasAccountSummaryPr
       width: 75,
       align: "right",
       cellClassName: "tabular-nums",
-      render: (line) => display(line.unitPrice),
+      render: (line) => line.unitPrice === null ? <GridEmptyValue /> : display(line.unitPrice),
     },
     {
       key: "difference1",

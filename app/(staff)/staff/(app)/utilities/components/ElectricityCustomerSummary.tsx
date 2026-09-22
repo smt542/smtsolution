@@ -74,7 +74,7 @@ export function ElectricityCustomerSummary({
       label: "고지금액",
       width: 136,
       align: "right",
-      cellClassName: "num text-t2",
+      cellClassName: "num",
       render: (row) => formatNumber(row.billedAmount),
     },
     {
@@ -98,7 +98,7 @@ export function ElectricityCustomerSummary({
       label: "량",
       width: editing ? 82 : 110,
       align: "right",
-      cellClassName: "num text-t2",
+      cellClassName: "num",
       render: (row) => formatNumber(row.usage),
     },
     {
@@ -106,7 +106,7 @@ export function ElectricityCustomerSummary({
       label: "단가",
       width: editing ? 87 : 116,
       align: "right",
-      cellClassName: "num text-t2",
+      cellClassName: "num",
       render: (row) => row.unitPrice === null ? <GridEmptyValue /> : formatNumber(row.unitPrice, { fractionDigits: 1 }),
     },
     {
@@ -114,7 +114,7 @@ export function ElectricityCustomerSummary({
       label: "금월량",
       width: editing ? 90 : 120,
       align: "right",
-      cellClassName: "num text-t2",
+      cellClassName: "num",
       render: (row) => formatNumber(row.currentReading),
     },
     {
@@ -122,7 +122,7 @@ export function ElectricityCustomerSummary({
       label: "전월량",
       width: editing ? 90 : 120,
       align: "right",
-      cellClassName: "num text-t2",
+      cellClassName: "num",
       render: (row) => formatNumber(row.previousReading),
     },
     {
@@ -130,7 +130,7 @@ export function ElectricityCustomerSummary({
       label: "감면",
       width: editing ? 107 : 144,
       align: "right",
-      cellClassName: (row) => `num font-semibold ${row.meterDifference < 0 ? "text-red" : "text-t2"}`,
+      cellClassName: (row) => `num font-semibold ${row.meterDifference < 0 ? "text-red" : ""}`,
       render: (row) => formatNumber(row.meterDifference),
     },
     {
@@ -138,7 +138,7 @@ export function ElectricityCustomerSummary({
       label: "이사",
       width: editing ? 75 : 101,
       align: "right",
-      cellClassName: "num text-t2",
+      cellClassName: "num",
       render: (row) => row.movingCharge ? formatNumber(row.movingCharge) : <GridEmptyValue />,
     },
   ];

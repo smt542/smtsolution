@@ -98,7 +98,7 @@ export function ElectricityReadingsTable({
       label: "입주일자",
       width: 115,
       align: "left",
-      cellClassName: (item) => item.row.moveInDate ? (item.recent ? "font-semibold text-green" : "text-t2") : "",
+      cellClassName: (item) => item.row.moveInDate && item.recent ? "font-semibold text-green" : "",
       render: (item) => item.row.moveInDate ?? <GridEmptyValue />,
     },
     {
@@ -122,7 +122,7 @@ export function ElectricityReadingsTable({
       label: "전월",
       width: editing ? 88 : 57,
       align: "right",
-      cellClassName: "tabular-nums text-t2",
+      cellClassName: "tabular-nums",
       render: (item) => editing
         ? <input aria-label={`${item.row.unitNo} 전월 지침값`} readOnly value={item.row.previousReading ?? ""} placeholder="-" className={`${inputClass()} w-full`} />
         : item.row.previousReading === null ? <GridEmptyValue /> : <span className="num">{formatNumber(item.row.previousReading)}</span>,
@@ -195,14 +195,14 @@ export function ElectricityReadingsTable({
           />
           <span className="flex size-[22px] flex-none items-center justify-center"><Image src="/figma-assets/gas/lock.svg" alt="잠금" width={12} height={12} /></span>
         </span>
-      ) : item.row.manualCharge === null ? <GridEmptyValue /> : <span className="num text-t2">{formatNumber(item.row.manualCharge)}</span>,
+      ) : item.row.manualCharge === null ? <GridEmptyValue /> : <span className="num">{formatNumber(item.row.manualCharge)}</span>,
     },
     {
       key: "discountType",
       label: "할인유형",
       width: 90,
       align: "left",
-      cellClassName: (item) => item.row.discountType === null ? "" : "text-t2",
+      cellClassName: "",
       render: (item) => item.row.discountType ?? <GridEmptyValue />,
     },
     {
@@ -210,7 +210,7 @@ export function ElectricityReadingsTable({
       label: "할인금액",
       width: 76,
       align: "right",
-      cellClassName: "num text-t2",
+      cellClassName: "num",
       render: (item) => item.row.discountAmount === null ? <GridEmptyValue /> : formatNumber(item.row.discountAmount),
     },
     {
@@ -226,7 +226,7 @@ export function ElectricityReadingsTable({
       label: "적요",
       width: editing ? 152 : 120,
       align: "left",
-      cellClassName: "text-t2",
+      cellClassName: "",
       render: (item) => editing ? (
         <input
           aria-label={`${item.row.unitNo} 적요`}
@@ -241,7 +241,7 @@ export function ElectricityReadingsTable({
       label: "처리일자",
       width: 112,
       align: "left",
-      cellClassName: "text-t3",
+      cellClassName: (item) => item.row.processedAt ? "" : "text-t3",
       render: (item) => item.row.processedAt?.slice(0, 10) ?? <GridEmptyValue />,
     },
     {
@@ -249,7 +249,7 @@ export function ElectricityReadingsTable({
       label: "부과기준",
       width: 197,
       align: "left",
-      cellClassName: "truncate text-t3",
+      cellClassName: "truncate",
       render: (item) => item.row.unitPrice !== null ? `단가 ${formatNumber(item.row.unitPrice, { fractionDigits: 1 })}` : "단가 미설정",
     },
     {
@@ -257,7 +257,7 @@ export function ElectricityReadingsTable({
       label: "이름",
       width: 67,
       align: "left",
-      cellClassName: "truncate text-t2",
+      cellClassName: "truncate",
       render: (item) => item.row.tenantName ?? <GridEmptyValue />,
     },
     {
@@ -273,7 +273,7 @@ export function ElectricityReadingsTable({
       label: "라인",
       width: 53,
       align: "left",
-      cellClassName: "truncate text-t2",
+      cellClassName: "truncate",
       render: (item) => item.row.customerNumber ?? <GridEmptyValue />,
     },
     {
