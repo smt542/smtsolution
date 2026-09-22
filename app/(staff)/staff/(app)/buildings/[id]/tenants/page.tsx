@@ -9,9 +9,13 @@ type TenantsPageProps = {
 export default async function TenantsPage({ params }: TenantsPageProps) {
   const [{ id }, me] = await Promise.all([params, getStaffContext()]);
 
-  if (!hasModule(me, "tenants")) {
-    return <p className="text-sm text-t3">이 화면에 접근할 권한이 없습니다. (입주자 관리 권한 필요)</p>;
-  }
-
-  return <TenantList buildingId={Number(id)} />;
+  return (
+    <div className="p-6">
+      {!hasModule(me, "tenants") ? (
+        <p className="text-sm text-t3">이 화면에 접근할 권한이 없습니다. (입주자 관리 권한 필요)</p>
+      ) : (
+        <TenantList buildingId={Number(id)} />
+      )}
+    </div>
+  );
 }

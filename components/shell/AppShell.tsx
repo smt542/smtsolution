@@ -22,6 +22,7 @@ function hasIntegratedHeader(pathname: string): boolean {
     pathname === "/staff/buildings" ||
     pathname === "/staff/buildings/new" ||
     /^\/staff\/buildings\/[^/]+$/.test(pathname) ||
+    /^\/staff\/buildings\/[^/]+\/tenants\/[^/]+$/.test(pathname) ||
     pathname.startsWith("/staff/buildings/new-v2") ||
     pathname.startsWith("/staff/utilities") ||
     pathname === "/staff/notices" ||
@@ -37,11 +38,12 @@ export function AppShell({ children }: AppShellProps) {
   const isBuildingRegister =
     pathname === "/staff/buildings/new" || pathname.startsWith("/staff/buildings/new-v2");
   const isBuildingDetail = /^\/staff\/buildings\/[^/]+$/.test(pathname);
+  const isTenantForm = /^\/staff\/buildings\/[^/]+\/tenants\/[^/]+$/.test(pathname);
   // 정본: 페이지는 뷰포트에 고정되고 스크롤은 목록 카드 안에서만 난다.
   const isMessaging = pathname === "/staff/messaging";
   // 셋업도 정본이 헤더·탭바 고정에 본문만 스크롤이다.
   const isSetup = pathname === "/staff/setup";
-  const isViewportLocked = isBuildingsIndex || isBuildingRegister || isBuildingDetail || isMessaging || isSetup;
+  const isViewportLocked = isBuildingsIndex || isBuildingRegister || isBuildingDetail || isTenantForm || isMessaging || isSetup;
 
   useEffect(() => {
     const openDrawer = () => setDrawerOpen(true);

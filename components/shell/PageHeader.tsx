@@ -11,9 +11,11 @@
  * (`NoticesWorkspace`는 한 파일에서 두 번). 그쪽 이관은 별건으로 남긴다.
  */
 export function PageHeader({
+  breadcrumb,
   title,
   actions,
 }: {
+  breadcrumb?: string;
   title: string;
   actions?: React.ReactNode;
 }) {
@@ -39,9 +41,18 @@ export function PageHeader({
         </svg>
       </button>
 
-      <h1 className="text-[19px] font-extrabold tracking-[-0.38px] text-t1 whitespace-nowrap">
-        {title}
-      </h1>
+      {breadcrumb ? (
+        <div className="flex flex-col">
+          <p className="text-[12px] font-semibold leading-[normal] text-t3">{breadcrumb}</p>
+          <h1 className="text-[19px] font-extrabold tracking-[-0.38px] text-t1 whitespace-nowrap">
+            {title}
+          </h1>
+        </div>
+      ) : (
+        <h1 className="text-[19px] font-extrabold tracking-[-0.38px] text-t1 whitespace-nowrap">
+          {title}
+        </h1>
+      )}
 
       <div className="flex-1" />
 
