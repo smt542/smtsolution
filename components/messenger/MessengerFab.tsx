@@ -499,7 +499,6 @@ function MessengerFabContent() {
             <PhonePreview
               channel={ui.channel}
               body={body}
-              sampleRecipient={enrichedRecipients[0]}
               template={ui.channel === "alim" ? selectedTemplate : null}
               sender={sender}
             />

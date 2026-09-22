@@ -1,55 +1,14 @@
 "use client";
 
 import type { MessageTemplate } from "@/hooks/reactquery/messageTemplates/apis";
-import {
-  buildRecipientRenderVariables,
-  type MessageRecipient,
-} from "@/lib/messaging/preset";
 import { messengerClasses as styles } from "./messengerClasses";
 import type { ChannelMode } from "./types";
 
 interface PhonePreviewProps {
   channel: ChannelMode;
   body: string;
-  sampleRecipient?: MessageRecipient | null;
   template?: MessageTemplate | null;
   sender?: string;
-}
-
-const DEFAULT_SAMPLE: MessageRecipient = {
-  name: "김민준",
-  phone: "010-1111-2222",
-  unitNo: "101호",
-  kind: "tenant",
-  variables: {
-    건물명: "그린빌라",
-    입주자명: "김민준",
-    호실: "101호",
-    호수: "101",
-    건물주명: "홍길동",
-    청소담당자명: "문청소",
-  },
-};
-
-function ResolvedBody({
-  body,
-  variables,
-}: {
-  body: string;
-  variables: Record<string, string>;
-}) {
-  const parts = body.split(/(#?\{[^}]+\})/g);
-  return (
-    <>
-      {parts.map((part, index) => {
-        const token = part.match(/^#?\{([^}]+)\}$/);
-        if (!token) return part;
-        const name = token[1].trim();
-        if (!Object.prototype.hasOwnProperty.call(variables, name)) return part;
-        return <b key={`${name}-${index}`}>{variables[name]}</b>;
-      })}
-    </>
-  );
 }
 
 function EmptyPreview() {
@@ -76,16 +35,9 @@ function EmptyPreview() {
 export function PhonePreview({
   channel,
   body,
-  sampleRecipient,
   template,
   sender,
 }: PhonePreviewProps) {
-  const recipient = sampleRecipient ?? DEFAULT_SAMPLE;
-  const variables = buildRecipientRenderVariables(
-    recipient,
-    undefined,
-    recipient.variables?.건물명,
-  );
   const previewBody = channel === "alim" ? (template?.body ?? body) : body;
   const empty = !previewBody.trim() || (channel === "alim" && !template);
 
@@ -122,7 +74,7 @@ export function PhonePreview({
                 <div className={`${styles["ph-bubble"]} ${styles.kakao}`}>
                   <div className={styles["ph-ak-head"]}>알림톡 도착</div>
                   <div className={styles["ph-ak-body"]}>
-                    <ResolvedBody body={previewBody} variables={variables} />
+                    {previewBody}
                   </div>
                   {template?.buttons[0] && (
                     <div className={styles["ph-akbtn"]}>
@@ -132,7 +84,7 @@ export function PhonePreview({
                 </div>
               ) : (
                 <div className={`${styles["ph-bubble"]} ${styles["ph-sms-bubble"]}`}>
-                  <ResolvedBody body={previewBody} variables={variables} />
+                  {previewBody}
                 </div>
               )}
               <div className={styles["ph-time"]}>방금 전</div>
