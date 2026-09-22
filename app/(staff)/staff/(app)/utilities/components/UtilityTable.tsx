@@ -48,7 +48,7 @@ const COLUMNS = [
   { heading: "부과액", width: 66, align: "right" },
   { heading: "적요", width: 120, align: "left" },
   { heading: "처리일자", width: 84, align: "left" },
-  { heading: "부과기준", width: 112, align: "left" },
+  { heading: "부과기준", width: 168, align: "left" },
   { heading: "이름", width: 66, align: "left" },
   { heading: "전화", width: 104, align: "left" },
   { heading: "라인", width: 52, align: "right" },
