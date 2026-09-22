@@ -584,11 +584,16 @@ export function RecipientCascade({
 
       {autoRecipient && (
         <div className={`fmp-auto ${styles["fmp-auto"]}`}>
-          <div style={{ minWidth: 0 }}>
-            <div className={styles.nm}>{autoRecipient.name}</div>
-            <div className={styles.rl}>{autoRecipient.role}</div>
+          {/* 정본 .fmp-auto .nm/.rl/.tel 값을 직접 쓴다 — 공용 styles.nm/rl/tel 은
+              다른 화면용이라 값이 달랐고(rl 은 w-16 고정폭이라 역할이 3줄로 접혔다),
+              맵의 [&_.nm] 훅은 리터럴 클래스가 없어 매칭되지 않았다. 소비처가 여기뿐이다. */}
+          <div className="min-w-0">
+            <div className="text-[13.5px] font-bold text-blue-d">{autoRecipient.name}</div>
+            <div className="mt-0.5 text-[11.5px] font-semibold text-t3">{autoRecipient.role}</div>
           </div>
-          <span className={styles.tel}>{autoRecipient.phone}</span>
+          <span className="ml-auto text-[12.5px] font-bold tabular-nums text-t2">
+            {autoRecipient.phone}
+          </span>
         </div>
       )}
     </div>
