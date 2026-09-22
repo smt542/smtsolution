@@ -39,15 +39,16 @@ export function LateFeeSettingsCard({
       subtitle="미납 개월 수에 따른 다른 요율 적용합니다. (단리)"
       variant="compact"
       action={<Switch ariaLabel="관리비 연체 설정" checked={enabled} onChange={onEnabledChange} />}
-      className="h-[268px]"
+      className="min-h-[268px]"
     >
-      <div className="grid h-[116px] grid-cols-8 grid-rows-[54px_54px] gap-[8px]">
+      {/* 정본 .st-tier 그대로 — 열 수를 고정하지 않고 셀 최소 폭 190px를 보장한다.
+          8열은 Figma 프레임 폭(1594px)에서 나온 결과값일 뿐이라, 실제 그리드 폭
+          (1313px)에 그대로 옮기면 셀이 157px로 눌려 라벨·인풋·%가 붙는다. */}
+      <div className="grid auto-rows-[54px] grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-[8px]">
         {MONTH_LABELS.map((label, index) => (
           <div
             key={label}
-            className={`flex h-[54px] items-center rounded-[12px] border border-line2 bg-bg py-[8px] pl-[13px] pr-[10px] ${
-              index === MONTH_LABELS.length - 1 ? "gap-[10px]" : "justify-between"
-            }`}
+            className="flex h-[54px] items-center justify-between gap-[10px] rounded-[12px] border border-line2 bg-bg py-[8px] pl-[13px] pr-[10px]"
           >
             <span className="shrink-0 text-[13px] font-bold text-t2">{label}</span>
             <div className="flex items-center gap-[8px]">
