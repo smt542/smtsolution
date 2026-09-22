@@ -99,7 +99,7 @@ function NavGroupHeader({
       type="button"
       onClick={onToggle}
       aria-expanded={open}
-      className="flex h-[40px] w-full items-center gap-[11px] rounded-[11px] px-[12px] text-left text-[14px] font-semibold text-t1 hover:bg-bg"
+      className="flex h-[40px] w-full items-center gap-[11px] rounded-[11px] px-[12px] text-left text-[14px] font-semibold text-t2 hover:bg-bg"
     >
       <NavIcon svg={item.icon} />
       <span className="min-w-0 flex-1 truncate">{item.label}</span>
