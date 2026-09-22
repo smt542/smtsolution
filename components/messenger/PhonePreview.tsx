@@ -131,7 +131,7 @@ export function PhonePreview({
                   )}
                 </div>
               ) : (
-                <div className={`${styles["ph-bubble"]} ${styles.sms}`}>
+                <div className={`${styles["ph-bubble"]} ${styles["ph-sms-bubble"]}`}>
                   <ResolvedBody body={previewBody} variables={variables} />
                 </div>
               )}
