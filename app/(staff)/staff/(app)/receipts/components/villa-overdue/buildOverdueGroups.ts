@@ -15,6 +15,7 @@ export interface OverdueSeedLine {
   overdueMonths: number; // 연체 개월수
   unpaidPrincipal: number; // 미납액 시드
   lateFee: number; // 납.연체료 시드(계산값)
+  postDueFee: number; // 납.후연체(납기후 가산금)
 }
 
 export interface OverdueUnitGroup {
@@ -70,7 +71,7 @@ export function buildOverdueGroups(
   const groups = new Map<number, OverdueUnitGroup>();
   for (const period of periods) {
     const household = byOccupancy.get(period.occupancyId);
-    const { months, lateFee } = computeLateFeeForPeriod(
+    const { months, lateFee, postDueFee } = computeLateFeeForPeriod(
       {
         period: period.period,
         unpaidPrincipal: period.unpaidPrincipal,
@@ -86,6 +87,7 @@ export function buildOverdueGroups(
       overdueMonths: months,
       unpaidPrincipal: period.unpaidPrincipal,
       lateFee,
+      postDueFee,
     };
     let group = groups.get(period.occupancyId);
     if (!group) {
@@ -116,7 +118,7 @@ export function mergeLine(
 ): OverdueDisplayLine {
   const unpaid = override?.unpaid ?? seed.unpaidPrincipal;
   const displayLateFee = override?.lateFee ?? seed.lateFee;
-  const postLate = override?.postLate ?? 0;
+  const postLate = override?.postLate ?? seed.postDueFee;
   const lateTotal = displayLateFee + postLate;
   return {
     ...seed,

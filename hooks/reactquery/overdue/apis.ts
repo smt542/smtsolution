@@ -48,7 +48,7 @@ export interface OverdueHousehold {
   lastPaymentDate: string | null;
   billingAvailable: boolean;
   lateFeeAmount?: number;
-  /** 납기후 가산금 합계("납.후연체"). 0187 setup_config.late_fee_post_due_rate 기준. */
+  /** 납기후 가산금 합계("납.후연체"). 앱 상수 POST_DUE_FEE_RATE_PCT 기준. */
   postDueFeeAmount?: number;
   lateFeeByPeriod?: LateFeePeriodResult[];
 }
