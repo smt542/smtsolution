@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDownIcon } from "@/components/icons";
 
 export interface DropdownOption {
@@ -76,7 +77,10 @@ export function CustomDropdown({
     if (!open) return;
 
     const closeOutside = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      // fixed 메뉴는 body 포탈이라 rootRef 바깥이다. 메뉴 자신의 mousedown 을 바깥으로 치면
+      // 항목 click 이 닿기 전에 언마운트돼 선택이 먹지 않는다.
+      if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) setOpen(false);
     };
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
@@ -94,22 +98,37 @@ export function CustomDropdown({
   // 뷰포트를 넘치면 트리거 위로 뒤집는다. 높이를 알아야 하므로 0,0 에 놓고 측정한 뒤 확정한다.
   useLayoutEffect(() => {
     if (!isFixed || !open) return;
-    const trigger = triggerRef.current;
-    const menu = menuRef.current;
-    if (!trigger || !menu) return;
+    const place = () => {
+      const trigger = triggerRef.current;
+      const menu = menuRef.current;
+      if (!trigger || !menu) return;
 
-    const rect = trigger.getBoundingClientRect();
-    menu.style.width = `${rect.width}px`;
-    menu.style.left = "0px";
-    menu.style.top = "0px";
-    const height = menu.offsetHeight || 90;
-    menu.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - rect.width - 8))}px`;
-    menu.style.top = `${
-      rect.bottom + height + 8 > window.innerHeight
-        ? Math.max(8, rect.top - height - 5)
-        : rect.bottom + 5
-    }px`;
+      const rect = trigger.getBoundingClientRect();
+      menu.style.width = `${rect.width}px`;
+      menu.style.left = "0px";
+      menu.style.top = "0px";
+      const height = menu.offsetHeight || 90;
+      menu.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - rect.width - 8))}px`;
+      menu.style.top = `${
+        rect.bottom + height + 8 > window.innerHeight
+          ? Math.max(8, rect.top - height - 5)
+          : rect.bottom + 5
+      }px`;
+    };
+    place();
+    // body 포탈이라 스크롤 컨테이너를 따라가지 않는다 — dp 팝업처럼 트리거를 다시 좇는다.
+    window.addEventListener("scroll", place, true);
+    window.addEventListener("resize", place);
+    return () => {
+      window.removeEventListener("scroll", place, true);
+      window.removeEventListener("resize", place);
+    };
   }, [isFixed, open]);
+
+  // fixed 메뉴는 body 포탈로 내보낸다. `overflow:clip/hidden` 조상(Panel titlebar 등)이 잘라내고,
+  // drop-shadow 같은 `filter` 가 걸린 조상은 fixed 자손의 containing block 이 되어 같이 잘라낸다
+  // — 그때는 z-index 를 아무리 올려도 소용없다.
+  const wrapMenu = (node: ReactNode) => (isFixed ? createPortal(node, document.body) : node);
 
   // 프로토타입 공통 커스텀 드롭다운. 스타일은 Tailwind 유틸로 인라인화하되,
   // uc-dd/uc-dd-btn/uc-dd-menu/uc-opt 클래스명은 호출부의 [&_.uc-dd-btn]:… 오버라이드가
@@ -133,7 +152,7 @@ export function CustomDropdown({
         <span className="uc-dd-lbl">{selected?.label ?? placeholder}</span>
         <ChevronDownIcon aria-hidden="true" />
       </button>
-      {open && (
+      {open && wrapMenu(
         <div
           ref={menuRef}
           id={menuId}
@@ -141,7 +160,8 @@ export function CustomDropdown({
           aria-label={ariaLabel}
           className={`uc-dd-menu max-h-[236px] overflow-auto rounded-xl border border-line bg-surface p-[6px] shadow-[0_14px_32px_-10px_rgba(23,31,40,0.22),0_2px_6px_rgba(23,31,40,0.06)] ${
             isFixed
-              ? "fixed z-[1000] min-w-[140px]"
+              // field 는 메뉴 폭을 트리거에 맞추는 규격이라 140px 하한을 걸지 않는다.
+              ? `fixed z-[1000] ${isField ? "" : "min-w-[140px]"}`
               : `absolute top-[calc(100%_+_6px)] z-[80] ${isField ? "inset-x-0" : "right-0 min-w-[96px]"}`
           }`}
         >

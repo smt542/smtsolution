@@ -56,6 +56,7 @@ export function NotificationSettingsTab() {
                 ariaLabel="임대 만료 알림 시작 일수"
                 size="notification"
                 variant="field"
+                position="fixed"
                 value={String(leaseExpiryDays)}
                 onChange={(value) => setLeaseExpiryDays(Number(value))}
                 disabled={!notifyLeaseExpiry}
