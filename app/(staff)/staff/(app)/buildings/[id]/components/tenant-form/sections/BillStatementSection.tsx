@@ -31,7 +31,7 @@ export function BillStatementSection({
           <SelectField value={value.billDelivery} onChange={(v) => onChange({ billDelivery: v })} options={billDeliveryOptions} />
           {value.billDelivery === "alimtalk" && (
             <p className="pt-[6px] text-[12px] font-semibold leading-[18px] text-t3">
-              알림톡 수신 동의 세대는 이체 방식과 무관하게 알림톡 고지서로 발송돼요
+              알림톡 수신 동의 세대는 알림톡 고지서로 발송돼요
             </p>
           )}
         </Field>
