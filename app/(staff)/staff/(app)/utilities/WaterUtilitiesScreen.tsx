@@ -264,7 +264,7 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-bg">
+    <div className="utility-reference-font flex min-h-screen flex-col bg-bg">
       <UtilityWorkspaceHeader
         utilityLabel={TYPE_LABELS[utilityType]}
         onOpenLedger={() => setLedgerOpen(true)}

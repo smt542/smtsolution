@@ -240,7 +240,7 @@ export default function GasUtilitiesWorkspace() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col overflow-hidden bg-bg min-[1101px]:h-screen min-[1101px]:min-h-[700px]">
+    <div className="utility-reference-font flex min-h-screen flex-col overflow-hidden bg-bg min-[1101px]:h-screen min-[1101px]:min-h-[700px]">
       <GasWorkspaceHeader
         onOpenLedger={() => {
           if (buildings.length === 0) toast.info("출력할 건물이 없습니다.");

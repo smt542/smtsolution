@@ -353,7 +353,7 @@ export default function ElectricityUtilitiesWorkspace() {
         onOpenCarryOver={() => setCarryOverOpen(true)}
       />
 
-      <div className="relative min-h-[calc(100vh-62px)] bg-bg p-4 sm:p-[22px_24px_24px]">
+      <div className="utility-reference-font relative min-h-[calc(100vh-62px)] bg-bg p-4 sm:p-[22px_24px_24px]">
       <label className="sr-only">
         건물 선택
         <select
