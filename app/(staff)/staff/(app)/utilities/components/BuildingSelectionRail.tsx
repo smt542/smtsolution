@@ -29,6 +29,12 @@ interface BuildingSelectionRailProps {
 
 const YEARS = [2026, 2025, 2024];
 
+function signedNumber(value: number | null): string {
+  if (value === null || !Number.isFinite(value)) return "-";
+  if (value > 0) return `+${formatNumber(value)}`;
+  return formatNumber(value);
+}
+
 export function BuildingSelectionRail({
   buildings,
   buildingId,
@@ -67,7 +73,7 @@ export function BuildingSelectionRail({
         <option value="">건물을 선택해 주세요</option>
         {buildings.map((building) => <option key={building.id} value={building.id}>{building.name}</option>)}
       </select>
-      <section className="flex h-[433px] min-h-[190px] flex-none flex-col overflow-hidden rounded-[16px] bg-white shadow-card min-[1101px]:h-[650px] min-[1101px]:flex-none">
+      <section className="flex h-[433px] min-h-[190px] flex-none flex-col overflow-hidden rounded-[16px] bg-white shadow-card">
         <div className="flex flex-col items-stretch gap-[9px] border-b border-line2 px-[18px] py-[15px]">
           <div className="flex h-8 items-center gap-2">
             <h2 className="mr-auto whitespace-nowrap text-[15px] font-extrabold text-t1">전체 건물</h2>
@@ -161,25 +167,43 @@ export function BuildingSelectionRail({
         ) : historyQuery.isError ? (
           <div role="alert" className="flex flex-1 items-center justify-center text-[12px] text-red">이력을 불러오지 못했습니다.</div>
         ) : (
-          <div className="min-h-0 flex-1 overflow-auto">
-            <div className="border-b border-line2 px-4 py-3">
-              <p className="text-[12px] font-bold text-t1">{selectedRow.customerNumber || "고객번호 미등록"}</p>
-              <p className="mt-0.5 text-[11px] text-t3">{selectedRow.unitNo} · {selectedRow.tenantName || "공실"}</p>
-            </div>
-            <table className="w-full text-[14px]">
-              <thead className="sticky top-0 bg-[#FBFCFD] text-t3">
-                <tr className="border-b border-line"><th className="px-4 py-[9px] text-left font-bold">일시</th><th className="px-4 py-[9px] text-right font-bold">부과액</th><th className="px-4 py-[9px] text-right font-bold">단가</th></tr>
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <table className="w-[529.515px] table-fixed border-collapse text-[14px]">
+              <thead className="bg-[#FBFCFD] text-[14px] font-bold text-t3">
+                <tr className="h-[34.5px] border-b border-line2">
+                  <th className="w-[90.859px] px-4 py-[8.25px] text-left">일시</th>
+                  <th className="w-[80.406px] px-4 py-[8.25px] text-center">고지금액</th>
+                  <th className="w-[56.203px] px-4 py-[8.25px] text-center">증감</th>
+                  <th className="w-[80.734px] px-4 py-[8.25px] text-center">부과액</th>
+                  <th className="w-[95.734px] px-4 py-[8.25px] text-center">부과액 증감</th>
+                  <th className="w-[62.766px] px-4 py-[8.25px] text-center">단가</th>
+                  <th className="w-[62.813px] px-4 py-[8.25px] text-center">증감</th>
+                </tr>
               </thead>
               <tbody>
-                {(historyQuery.data ?? []).map((item) => (
-                  <tr key={item.period} className="border-b border-line2 font-semibold text-t1 hover:bg-[#F7F9FA]">
-                    <td className="px-4 py-[9px]">{item.period.slice(0, 7)}</td>
-                    <td className="num px-4 py-[9px] text-right font-bold">{formatNumber(item.charge)}</td>
-                    <td className="num px-4 py-[9px] text-right font-medium">{formatNumber(item.unitPrice)}</td>
-                  </tr>
-                ))}
+                {(historyQuery.data ?? []).map((item, index, history) => {
+                  const previous = history[index + 1];
+                  const chargeDelta = item.charge !== null && previous?.charge !== null && previous
+                    ? item.charge - previous.charge
+                    : null;
+                  const unitPriceDelta = item.unitPrice !== null && previous?.unitPrice !== null && previous
+                    ? item.unitPrice - previous.unitPrice
+                    : null;
+
+                  return (
+                    <tr key={item.period} className="h-[35px] border-b border-line2 font-semibold text-t1 hover:bg-[#F7F9FA]">
+                      <td className="w-[90.859px] px-4 py-[9px] whitespace-nowrap">{item.period.slice(0, 7)}</td>
+                      <td className="num w-[80.406px] px-4 py-[9px] text-right text-t3">-</td>
+                      <td className="num w-[56.203px] px-4 py-[9px] text-right text-t3">-</td>
+                      <td className="num w-[80.734px] px-4 py-[9px] text-right">{formatNumber(item.charge)}</td>
+                      <td className="num w-[95.734px] px-4 py-[9px] text-right">{signedNumber(chargeDelta)}</td>
+                      <td className="num w-[62.766px] px-4 py-[9px] text-right">{formatNumber(item.unitPrice)}</td>
+                      <td className="num w-[62.813px] px-4 py-[9px] text-right">{signedNumber(unitPriceDelta)}</td>
+                    </tr>
+                  );
+                })}
                 {(historyQuery.data ?? []).length === 0 && (
-                  <tr><td colSpan={3} className="h-28 text-center text-t3">최근 이력이 없습니다.</td></tr>
+                  <tr><td colSpan={7} className="h-28 text-center text-t3">최근 이력이 없습니다.</td></tr>
                 )}
               </tbody>
             </table>
