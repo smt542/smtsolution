@@ -56,7 +56,7 @@ export function BuildingSelectionRail({
   }, [buildings, query]);
 
   return (
-    <aside className={`flex min-h-0 w-full shrink-0 flex-col gap-4 transition-opacity min-[1101px]:h-[650px] min-[1101px]:w-[322px] ${disabled ? "pointer-events-none opacity-45" : ""}`}>
+    <aside className={`flex min-h-0 w-full shrink-0 flex-col gap-4 transition-opacity min-[1101px]:w-[322px] ${disabled ? "pointer-events-none opacity-45" : ""}`}>
       <select
         aria-label="건물 선택"
         value={buildingId ?? ""}
@@ -67,7 +67,7 @@ export function BuildingSelectionRail({
         <option value="">건물을 선택해 주세요</option>
         {buildings.map((building) => <option key={building.id} value={building.id}>{building.name}</option>)}
       </select>
-      <section className="flex h-[433px] min-h-[190px] flex-none flex-col overflow-hidden rounded-[16px] bg-white shadow-card min-[1101px]:h-auto min-[1101px]:flex-1">
+      <section className="flex h-[433px] min-h-[190px] flex-none flex-col overflow-hidden rounded-[16px] bg-white shadow-card min-[1101px]:h-[650px] min-[1101px]:flex-none">
         <div className="flex flex-col items-stretch gap-[9px] border-b border-line2 px-[18px] py-[15px]">
           <div className="flex h-8 items-center gap-2">
             <h2 className="mr-auto whitespace-nowrap text-[15px] font-extrabold text-t1">전체 건물</h2>
