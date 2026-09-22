@@ -292,7 +292,7 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
         />
 
         {!buildingId ? <UnselectedWorkspace period={period} /> : (
-          <div className="relative flex min-h-[650px] min-w-0 flex-1 flex-col gap-4 min-[1101px]:min-h-0">
+          <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-4">
             {isWaterWorkspaceRefreshing ? (
               <div className="absolute right-4 top-4 z-10 rounded-lg bg-white/95 shadow-card">
                 <Spinner label="수도 지침 갱신 중" size="small" showLabel />
@@ -320,7 +320,7 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
             ) : (
               <>
                 <UtilityAccountSummary rows={rows} selectedRow={effectiveSelectedRow} editing={editing} onSelect={setSelectedRow} />
-                <section className="flex min-h-[360px] flex-1 flex-col overflow-hidden rounded-[16px] bg-white shadow-card">
+                <section className="flex min-h-[360px] flex-1 flex-col overflow-hidden rounded-[16px] bg-white shadow-card min-[1101px]:min-h-0">
                   <div className="flex h-[49px] shrink-0 items-center border-b border-line2 px-[18px]">
                     <h2 className="text-[15px] font-extrabold text-t1">호실별 {TYPE_LABELS[utilityType]} 지침</h2>
                     <div className="ml-auto flex items-center gap-3 text-[11.5px] font-medium text-t3">
