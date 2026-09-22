@@ -21,17 +21,11 @@ export function channelLabel(channel: SendMode): string {
   return channel === "alimtalk" ? "알림톡" : "문자";
 }
 
-/** 그리드 '발신자' 컬럼용. 정본(Figma 68:57148)대로 알림톡은 채널명을 쓴다. */
 export function senderLabel(
   channel: SendMode,
   smsSender: string | null | undefined,
 ): string {
   if (channel === "alimtalk") return "관리비서 채널";
-  return senderNumberLabel(smsSender);
-}
-
-/** 상세 모달 '발신번호' 행용. 라벨이 번호를 가리키므로 알림톡도 실제 번호를 쓴다. */
-export function senderNumberLabel(smsSender: string | null | undefined): string {
   // undefined = 설정 조회 전(아직 모름). 로딩 중에 "미등록" 이라고 단정하지 않는다.
   if (smsSender === undefined) return "";
   return smsSender ? formatPhone(smsSender) : "발신번호 미등록";
