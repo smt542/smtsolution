@@ -33,26 +33,26 @@ interface UtilityTableProps {
 }
 
 const COLUMNS = [
-  { heading: "호수", width: 52, align: "left" },
-  { heading: "입주일자", width: 84, align: "left" },
-  { heading: "퇴실일자", width: 84, align: "left" },
-  { heading: "퇴실예정일자", width: 92, align: "left" },
-  { heading: "전월", width: 52, align: "right" },
-  { heading: "금월", width: 52, align: "right" },
-  { heading: "량", width: 52, align: "right" },
-  { heading: "전.량", width: 52, align: "right" },
-  { heading: "증감", width: 52, align: "right" },
-  { heading: "수동입력", width: 72, align: "right" },
-  { heading: "할인유형", width: 76, align: "left" },
-  { heading: "할인금액", width: 66, align: "right" },
-  { heading: "부과액", width: 66, align: "right" },
-  { heading: "적요", width: 120, align: "left" },
-  { heading: "처리일자", width: 84, align: "left" },
-  { heading: "부과기준", width: 168, align: "left" },
-  { heading: "이름", width: 66, align: "left" },
-  { heading: "전화", width: 104, align: "left" },
-  { heading: "라인", width: 52, align: "right" },
-  { heading: "인원", width: 52, align: "right" },
+  { heading: "호수", width: 59, align: "left" },
+  { heading: "입주일자", width: 115, align: "left" },
+  { heading: "퇴실일자", width: 112, align: "left" },
+  { heading: "퇴실예정일자", width: 115, align: "left" },
+  { heading: "전월", width: 88, align: "right" },
+  { heading: "금월", width: 88, align: "right" },
+  { heading: "량", width: 115, align: "right" },
+  { heading: "전.량", width: 56, align: "right" },
+  { heading: "증감", width: 53, align: "right" },
+  { heading: "수동입력", width: 115, align: "right" },
+  { heading: "할인유형", width: 90, align: "left" },
+  { heading: "할인금액", width: 75, align: "right" },
+  { heading: "부과액", width: 71, align: "right" },
+  { heading: "적요", width: 152, align: "left" },
+  { heading: "처리일자", width: 112, align: "left" },
+  { heading: "부과기준", width: 197, align: "left" },
+  { heading: "이름", width: 67, align: "left" },
+  { heading: "전화", width: 137, align: "left" },
+  { heading: "라인", width: 53, align: "right" },
+  { heading: "인원", width: 53, align: "right" },
 ] as const;
 const TABLE_WIDTH = COLUMNS.reduce((total, column) => total + column.width, 0);
 const REFERENCE_FONT = "Pretendard, -apple-system, system-ui, sans-serif";
@@ -151,18 +151,18 @@ export function UtilityTable({
 }: UtilityTableProps) {
   return (
     <div className="min-h-0 flex-1 overflow-auto">
-      <table className="table-fixed border-collapse text-[11.5px]" style={{ width: TABLE_WIDTH, fontFamily: REFERENCE_FONT }}>
+      <table className="table-fixed border-collapse text-[13.5px]" style={{ width: TABLE_WIDTH, fontFamily: REFERENCE_FONT }}>
         <colgroup>
           {COLUMNS.map(({ heading, width }) => <col key={heading} style={{ width }} />)}
         </colgroup>
-        <thead className="sticky top-0 z-10 h-[37px] bg-[#FBFCFD] font-bold text-t3">
+        <thead className="sticky top-0 z-10 h-[37px] bg-[#FBFCFD] text-[12px] font-bold text-t3">
           <tr className="border-b border-line">
             {COLUMNS.map(({ heading, align }) => (
               <th key={heading} className={`px-3 ${align === "right" ? "text-right" : "text-left"}`}>{heading}</th>
             ))}
           </tr>
         </thead>
-        <tbody className="text-[11.5px] font-normal text-t1">
+        <tbody className="text-[13.5px] font-medium text-t1">
           {rows.map((row, index) => (
             <UtilityRow
               key={row.unitId}
@@ -230,7 +230,7 @@ const UtilityRow = memo(function UtilityRow({
         ? "shadow-[inset_3px_0_0_#12B886]"
         : "";
   const rowClass = `${editing ? "h-[51px]" : "h-[41px]"} cursor-pointer border-b border-line2 transition-colors ${selected ? "bg-blue-t" : "bg-white hover:bg-[#FBFCFD]"} ${vacant && (usage ?? 0) <= 0 ? "opacity-55" : ""}`;
-  const cellClass = "px-3 whitespace-nowrap";
+  const cellClass = "px-4 whitespace-nowrap";
 
   return (
     <tr onClick={() => onRowClick(row)} className={rowClass}>
