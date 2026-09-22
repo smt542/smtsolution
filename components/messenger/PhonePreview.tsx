@@ -83,11 +83,17 @@ export function PhonePreview({
   sender,
 }: PhonePreviewProps) {
   const recipient = sampleRecipient ?? DEFAULT_SAMPLE;
-  const variables = buildRecipientRenderVariables(
+  const resolvedVariables = buildRecipientRenderVariables(
     recipient,
     undefined,
     recipient.variables?.건물명,
   );
+  const variables = {
+    ...DEFAULT_SAMPLE.variables,
+    ...Object.fromEntries(
+      Object.entries(resolvedVariables).filter(([, value]) => value.trim()),
+    ),
+  };
   const previewBody = channel === "alim" ? (template?.body ?? body) : body;
   const empty = !previewBody.trim() || (channel === "alim" && !template);
 
