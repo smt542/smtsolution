@@ -34,6 +34,14 @@ interface CustomDropdownProps {
    * 주지 않으면 기존대로 첫 옵션 라벨로 대체한다.
    */
   placeholder?: string;
+  /**
+   * 선택 항목의 체크표시. 기본 "selected" — 정본에 `.uc-opt.on svg{opacity:1}` 이 있는
+   * 화면용(receipt-management·moving-settlement 등).
+   * "never" 는 그 규칙이 없는 정본용(공과금 이사조회 moving-gas·moving-elec·moving-water):
+   * 정본은 `.uc-opt svg{opacity:0}` 만 두고 되살리지 않아 체크가 끝까지 보이지 않는다.
+   * svg 자체는 남긴다 — `.uc-opt` 가 space-between + gap:10px 이라 지우면 항목이 24px 좁아진다.
+   */
+  check?: "selected" | "never";
 }
 
 export function CustomDropdown({
@@ -47,6 +55,7 @@ export function CustomDropdown({
   variant = "menu",
   position = "absolute",
   placeholder,
+  check = "selected",
 }: CustomDropdownProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -160,7 +169,7 @@ export function CustomDropdown({
                     stroke="currentColor"
                     strokeWidth="2.4"
                     aria-hidden="true"
-                    className={`h-[14px] w-[14px] flex-none ${isSelected ? "opacity-100" : "opacity-0"}`}
+                    className={`h-[14px] w-[14px] flex-none ${isSelected && check === "selected" ? "opacity-100" : "opacity-0"}`}
                   >
                     <path d="M4 12.5l5 5L20 6.5" />
                   </svg>

@@ -76,12 +76,15 @@ export function SettlementInquiryToolbar({
       {/* 라벨 폭은 Figma 76:77716 실측값으로 고정한다 — 글리프 폭 차이(-2.9px)가
           gap 8px 고정 레이아웃에서 뒤따르는 요소 전체에 누적되기 때문. */}
       <span className="w-[34px] shrink-0 text-[12px] font-bold text-t3">조회일</span>
-      {/* 툴바를 감싼 `overflow-x-auto` 는 overflow-y 도 auto 로 계산돼 65px 높이의
+      {/* position: 툴바를 감싼 `overflow-x-auto` 는 overflow-y 도 auto 로 계산돼 65px 높이의
           스크롤포트가 된다 — absolute 메뉴는 여기서 잘려 그리드에 가린 것처럼 보인다.
-          정본 `.rg-dd .ac-dd-menu{position:fixed}` 대로 fixed 로 띄워 빠져나간다. */}
+          fixed 로 띄워 빠져나간다(전체 이사조회도 같은 사유로 fixed).
+          check: 정본 moving-gas·moving-elec·moving-water 는 `.uc-opt svg{opacity:0}` 만 두고
+          `.uc-opt.on svg{opacity:1}` 이 없다 — 선택 표시는 배경·색·굵기뿐이고 체크는 안 뜬다. */}
       <CustomDropdown
         compact
         position="fixed"
+        check="never"
         ariaLabel="조회 시작 연도"
         value={fromYear}
         options={YEAR_OPTIONS}
@@ -90,6 +93,7 @@ export function SettlementInquiryToolbar({
       <CustomDropdown
         compact
         position="fixed"
+        check="never"
         ariaLabel="조회 시작 월"
         value={fromValue}
         options={MONTH_OPTIONS}
@@ -99,6 +103,7 @@ export function SettlementInquiryToolbar({
       <CustomDropdown
         compact
         position="fixed"
+        check="never"
         ariaLabel="조회 종료 연도"
         value={toYear}
         options={YEAR_OPTIONS}
@@ -107,6 +112,7 @@ export function SettlementInquiryToolbar({
       <CustomDropdown
         compact
         position="fixed"
+        check="never"
         ariaLabel="조회 종료 월"
         value={toValue}
         options={MONTH_OPTIONS}
@@ -119,6 +125,7 @@ export function SettlementInquiryToolbar({
       <CustomDropdown
         compact
         position="fixed"
+        check="never"
         ariaLabel="신청일 연도"
         value={appliedYear}
         options={YEAR_OPTIONS}
@@ -131,6 +138,7 @@ export function SettlementInquiryToolbar({
       <CustomDropdown
         compact
         position="fixed"
+        check="never"
         ariaLabel="신청일 월"
         value={appliedMonth}
         options={MONTH_OPTIONS}
@@ -143,6 +151,7 @@ export function SettlementInquiryToolbar({
       <CustomDropdown
         compact
         position="fixed"
+        check="never"
         ariaLabel="신청일 일"
         value={appliedDay}
         options={dayOptions(appliedYear, appliedMonth)}
