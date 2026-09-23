@@ -14,6 +14,7 @@ import { useResidentProfile } from "@/hooks/reactquery/residentProfile";
 import { formatWon } from "@/lib/format";
 
 import { residentHomeClasses as styles } from "./homeClasses";
+import { ResidentButton } from "@/app/(resident)/_components/ResidentButton";
 
 const formatAmount = (amount: number) => formatWon(amount);
 const formatPlain = (amount: number) =>
@@ -352,13 +353,14 @@ export default function ResidentHomeWorkspace() {
                   : (noticeDetailQuery.data?.content ?? "공지 내용이 없어요.")}
             </div>
             <div className={styles.modalFoot}>
-              <button
+              <ResidentButton
+                variant="primary"
                 type="button"
-                className={styles.modalBtn}
+                className="w-full"
                 onClick={() => setNoticeOpen(false)}
               >
                 확인
-              </button>
+              </ResidentButton>
             </div>
           </div>
         </div>

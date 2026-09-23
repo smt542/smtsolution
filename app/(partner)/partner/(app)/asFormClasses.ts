@@ -14,8 +14,6 @@ export const asFormClasses = {
   textarea: "min-h-28 w-full resize-y rounded-[13px] border border-line bg-white px-3.5 py-[13px] text-[15px] font-semibold leading-[1.6] text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t disabled:bg-bg disabled:text-t2 disabled:[-webkit-text-fill-color:var(--t2)] disabled:opacity-100",
   dt: "flex flex-1 gap-2",
   btn: "flex h-[52px] flex-1 items-center justify-center rounded-[15px] border-0 text-[15.5px] font-bold disabled:opacity-70",
-  btnPri: "bg-blue text-white",
-  btnSec: "bg-bg text-t2",
   btnDel: "flex-[0_0_108px] bg-red-t text-red",
   note: "flex-1 self-center text-center text-[13px] font-semibold leading-[1.5] text-t3",
   none: "px-5 py-10 text-center text-sm font-semibold text-t3",

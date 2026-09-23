@@ -29,7 +29,4 @@ export const residentMeClasses = {
   confirmDesc: "mt-[9px] text-[13.5px] font-semibold leading-[1.65] text-t3 [text-wrap:pretty] [&_b]:font-extrabold [&_b]:text-t1",
   confirmError: "mt-3 text-[12.5px] font-bold text-red",
   confirmActions: "mt-[22px] flex gap-[9px]",
-  confirmBtn: "h-[50px] flex-1 rounded-[14px] border-0 bg-bg text-[15px] font-bold text-t2 hover:bg-line disabled:cursor-wait disabled:opacity-60",
-  confirmPri: "bg-blue text-white hover:bg-blue-d",
-  confirmDanger: "bg-red text-white hover:brightness-95",
 } as const;
