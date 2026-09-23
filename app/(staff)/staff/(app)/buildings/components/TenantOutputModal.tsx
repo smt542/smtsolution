@@ -14,7 +14,6 @@ import { PreviewPane } from "./tenant-output/PreviewPane";
 import { TenantCardDocument } from "./tenant-output/TenantCardDocument";
 import { buildChargeStatement, paginate } from "./tenant-output/statement";
 
-const YEAR_OPTIONS = Array.from({ length: 8 }, (_, index) => ({ value: String(2019 + index), label: `${2019 + index}년` }));
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => ({ value: String(index + 1), label: `${index + 1}월` }));
 const UNITS_PER_PAGE = 14;
 
@@ -42,8 +41,13 @@ export function TenantOutputModal({
 }) {
   const [initYear, initMonth] = useMemo(() => {
     const [rawYear, rawMonth] = currentPeriod().split("-").map(Number);
-    return [Math.min(2026, Math.max(2019, rawYear)), rawMonth] as const;
+    return [rawYear, rawMonth] as const;
   }, []);
+  // 정본 `#pmYear`: 올해부터 4개 연도 내림차순(2026년 기준 2026·2025·2024·2023).
+  const yearOptions = useMemo(
+    () => Array.from({ length: 4 }, (_, index) => ({ value: String(initYear - index), label: `${initYear - index}년` })),
+    [initYear],
+  );
   const [year, setYear] = useState(initYear);
   const [month, setMonth] = useState(initMonth);
   const [search, setSearch] = useState("");
@@ -133,7 +137,7 @@ export function TenantOutputModal({
               type="button"
               aria-label="닫기"
               onClick={onClose}
-              className="ml-auto flex h-[34px] w-[34px] items-center justify-center rounded-[10px] text-t3 hover:bg-bg"
+              className="ml-auto flex h-[34px] w-[34px] items-center justify-center rounded-[10px] text-t2 hover:bg-bg"
             >
               <CloseIcon className="h-5 w-5" />
             </button>
@@ -155,7 +159,7 @@ export function TenantOutputModal({
                   <CustomDropdown
                     ariaLabel="출력 연도"
                     value={String(year)}
-                    options={YEAR_OPTIONS}
+                    options={yearOptions}
                     onChange={(value) => setYear(Number(value))}
                   />
                 </div>
