@@ -51,7 +51,8 @@ export function ChargeStatementSheet({ page, year, month }: { page: StatementShe
                 )}
                 {cells.map((cell, group) => (
                   <Fragment key={group}>
-                    <td className={`${CELL} text-right tabular-nums`}>{cell.amount}</td>
+                    {/* 빈 칸도 줄 높이를 지키도록 공백 문자를 둔다(항목이 비면 행이 테두리 높이로 눌린다). */}
+                    <td className={`${CELL} text-right tabular-nums`}>{cell.amount || "\u00a0"}</td>
                     <td className={`${CELL} text-center`}>{cell.flag}</td>
                   </Fragment>
                 ))}

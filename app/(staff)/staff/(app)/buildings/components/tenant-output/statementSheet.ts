@@ -74,13 +74,15 @@ export function buildStatementSheetPages(
     .sort((a, b) => compareUnitNo(a.unitNo, b.unitNo))
     .map((doc): StatementUnitLine => {
       const byItem = new Map(doc.items.map((item) => [item.feeItemId, item]));
+      // D13: 항목 스냅샷이 없는 확정(시드·옛 데이터)은 부과 여부를 알 수 없어 Y/N을 비운다.
+      const hasSnapshot = doc.items.length > 0;
       const rows = [0, 1, 2].map((row) =>
         Array.from({ length: groupCount }, (_, group): StatementCell => {
           const slot = slots[group * 3 + row];
           if (!slot) return { amount: "", flag: "" };
           const item = byItem.get(slot.id);
           // D5: 확정 스냅샷에 있으면 부과(Y), 건물 항목인데 없으면 미부과(N).
-          if (!item || !item.charged) return { amount: "", flag: "N" };
+          if (!item || !item.charged) return { amount: "", flag: hasSnapshot ? "N" : "" };
           return { amount: item.amount ? formatNumber(item.amount, { nullText: "" }) : "", flag: "Y" };
         }),
       );

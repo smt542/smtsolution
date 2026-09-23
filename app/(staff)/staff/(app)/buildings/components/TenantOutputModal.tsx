@@ -31,8 +31,9 @@ const PERIOD_DROPDOWN = [
 ].join(" ");
 
 // 정본 doPrint: A4 세로 여백 11mm, 인쇄 시트만 남기고 나머지는 숨긴다(시트는 body 직속 포털 — D11).
+// html·body 규칙은 마지막 쪽 빈자리에 앱 배경이 찍히는 것과 모달 스크롤 잠금(overflow:hidden)을 막는다.
 const PRINT_CSS =
-  "@media print { @page { size: A4 portrait; margin: 11mm; } body > *:not([data-print-sheet]) { display: none !important; } }";
+  "@media print { @page { size: A4 portrait; margin: 11mm; } html, body { background: #fff !important; height: auto !important; overflow: visible !important; } body > *:not([data-print-sheet]) { display: none !important; } }";
 
 /** 입주자카드 및 부과내역 출력 모달(정본 building-list `#printModal`) — 건물 다중 선택 → 좌우 미리보기 → 개별/일괄 인쇄. */
 export function TenantOutputModal({ onClose }: { onClose: () => void }) {

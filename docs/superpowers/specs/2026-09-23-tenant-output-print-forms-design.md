@@ -34,8 +34,9 @@
 | D8 | 고객번호 표가 비었을 때 | 머리행 + 빈 행 1줄 | 정본 양식 모양 유지 |
 | D9 | 워터마크 | 제거 | 정본·PDF에 없음 |
 | D10 | 업체 설정 금액(청소 금액·정화조 금액·인터넷 금액) | 저장된 글자를 그대로 인쇄(숫자로 다시 포맷하지 않음) | 자유 입력 칸이라 "60,000"·"월 6만" 등 형식이 섞일 수 있다 |
-| D11 | 인쇄 격리 | 인쇄 시트를 `document.body` 직속 포털로 그리고, 인쇄 CSS에 `body > *:not([data-print-sheet]) { display: none !important }` | AppShell은 인쇄 때 사이드바·상단바만 숨기고 본문(main)은 찍는다 → 지금은 건물 화면 내용이 인쇄물 앞에 섞일 수 있다. 정본 `doPrint`의 `body>*:not(#cfPrintSheet){display:none}`과 같은 방식 |
+| D11 | 인쇄 격리 | 인쇄 시트를 `document.body` 직속 포털로 그리고, 인쇄 CSS에 `body > *:not([data-print-sheet]) { display: none !important }` + `html, body { background: #fff; height: auto; overflow: visible }`(모두 `!important`) | AppShell은 인쇄 때 사이드바·상단바만 숨기고 본문(main)은 찍는다 → 지금은 건물 화면 내용이 인쇄물 앞에 섞일 수 있다. 정본 `doPrint`의 `body>*:not(#cfPrintSheet){display:none}`·`html,body{…}`와 같은 방식. html·body 규칙이 없으면 마지막 쪽 빈자리에 앱 배경(회색)이 찍힌다(2026-09-23 PDF로 확인) |
 | D12 | 호수 표기 | 두 양식 모두 호수 끝의 "호"를 뗀다(예: 101) | 정본·PDF 표기 |
+| D13 | 항목 스냅샷이 없는 확정 세대 | Y/N 칸을 비운다(금액도 빈칸) | 확정 기록(`billing_confirmations`)은 있는데 `billing_history` 스냅샷이 없으면 부과 여부를 알 수 없다. 2026-09-23 확인: 현재 DB의 확정 37건(그린빌라·블루타워) 모두 스냅샷이 없다(시드 데이터). 정상 확정(`confirm_billing`)은 스냅샷을 함께 쓴다 |
 
 ## 3. 범위
 
