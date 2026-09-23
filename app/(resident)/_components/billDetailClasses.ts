@@ -10,8 +10,6 @@ export const billDetailClasses = {
   tot: "mt-2 text-[31px] font-extrabold tabular-nums tracking-[-0.045em] [&_i]:ml-0.5 [&_i]:text-lg [&_i]:font-bold [&_i]:not-italic",
   acct: "mt-4",
   abtns: "flex gap-1.5",
-  ab: "flex min-h-[42px] flex-1 items-center justify-center gap-1.5 rounded-xl border-0 bg-blue-t text-[13px] font-bold text-blue-d hover:bg-[#d3eee8] disabled:cursor-default disabled:opacity-55 [&_svg]:size-3.5",
-  pri: "bg-blue text-white hover:bg-blue-d",
   lbl: "mx-1 mb-[9px] mt-6 flex items-center text-[13px] font-bold text-t3 [&_span]:ml-auto [&_span]:font-semibold [&_span]:text-t4",
   card: "rounded-[18px] bg-white px-[18px] py-1 shadow-[0_1px_2px_rgba(23,31,40,0.06)]",
   it: "flex items-start gap-3 border-b border-line2 py-[13px] last:border-b-0",

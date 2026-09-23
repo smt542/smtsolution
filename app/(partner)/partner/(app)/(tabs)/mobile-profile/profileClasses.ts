@@ -10,9 +10,4 @@ export const profileClasses = {
   row: "flex items-center justify-between gap-3",
   rowLabel: "text-[13.5px] font-semibold text-t3",
   rowValue: "text-[14.5px] font-bold tabular-nums",
-  scrim: "fixed inset-0 z-[95] flex items-center justify-center bg-scrim p-6",
-  dialog: "w-full max-w-[330px] rounded-[20px] bg-white px-5 pb-4 pt-[22px] text-center",
-  dTitle: "text-[17px] font-extrabold",
-  dDesc: "mt-2 text-[13.5px] font-medium leading-[1.6] text-t3",
-  dActions: "mt-5 flex gap-2",
 } as const;

@@ -29,10 +29,15 @@ const SIZES = {
   login: "h-[50px] rounded-[14px] text-[15px] font-extrabold",
 } as const;
 
+/**
+ * - `dangerTint` 연빨강. 정본 입주자 상세 퇴실처리(`.hf-btn.sec`에 인라인으로 `--red-t` 배경·테두리,
+ *   `--red` 글자). 정본에 hover가 없다.
+ */
 const VARIANTS = {
   primary: "bg-brand text-white shadow-pri hover:bg-brand-dark",
   ghost: "bg-white text-t2 border border-line hover:bg-bg",
   danger: "bg-danger text-white",
+  dangerTint: "border border-red-t bg-red-t text-red",
 } as const;
 
 /**

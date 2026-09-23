@@ -15,7 +15,8 @@ import { dropOverridden } from "@/components/common/buttonOverride";
  * variant
  * - `primary`   청록 채움(`.pri`·`.k`)
  * - `secondary` 회색 채움(`.sec2`·`.c`)
- * - `danger`    빨강 채움(`.r`·`.del`)
+ * - `danger`    빨강 채움(`.r`·이사정산 `.del`)
+ * - `dangerTint` 연빨강(AS 상세 `.del`). 웹 Button의 `dangerTint`와 같은 뜻이다.
  * - `ghost`     흰 배경 + 테두리(프로필 로그아웃 `#pfOut`). 웹 Button의 `ghost`와 같은 뜻이다.
  *
  * 정본 버튼은 `display:flex`로 가운데 정렬하고, 폭(`flex:1`·`width:100%`)은 호출부가 정한다.
@@ -33,6 +34,7 @@ const VARIANTS = {
   primary: "bg-blue text-white",
   secondary: "bg-bg text-t2",
   danger: "bg-red text-white",
+  dangerTint: "bg-red-t text-red",
   ghost: "bg-white text-t2 border border-line",
 } as const;
 

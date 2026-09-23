@@ -25,6 +25,7 @@ import {
 import { formatDate } from "@/lib/format";
 
 import { moveOutClasses as styles } from "./moveOutClasses";
+import { ResidentButton } from "@/app/(resident)/_components/ResidentButton";
 
 type MoveOutSectionProps = {
   open: boolean;
@@ -213,13 +214,15 @@ export default function MoveOutSection({ open, onClose }: MoveOutSectionProps) {
           {createForm.formState.errors.root?.server?.message && (
             <p className={styles.error} role="alert">{createForm.formState.errors.root.server.message}</p>
           )}
-          <button
+          <ResidentButton
+            variant="primary"
+            size="moveOut"
             type="submit"
-            className={styles.primaryButton}
+            className="w-full disabled:cursor-wait disabled:bg-line disabled:text-t4"
             disabled={isMoveOutRequestSubmitting}
           >
             {isMoveOutRequestSubmitting ? "퇴실 신청 중…" : "퇴실 신청하기"}
-          </button>
+          </ResidentButton>
         </form>
       ) : request?.status === "pending" ? (
         <div className={styles.requestCard}>
@@ -265,32 +268,50 @@ export default function MoveOutSection({ open, onClose }: MoveOutSectionProps) {
                 <p className={styles.error} role="alert">{updateForm.formState.errors.root.server.message}</p>
               )}
               <div className={styles.actionRow}>
-                <button type="submit" disabled={isMoveOutUpdateSubmitting}>
+                <ResidentButton
+                  variant="primary"
+                  size="moveOut"
+                  type="submit"
+                  disabled={isMoveOutUpdateSubmitting}
+                  className="w-full disabled:cursor-wait disabled:bg-line disabled:text-t4"
+                >
                   {isMoveOutUpdateSubmitting ? "퇴실 신청 변경 중…" : "변경 저장"}
-                </button>
-                <button type="button" disabled={isMoveOutFormPending} onClick={() => setEditing(false)}>
+                </ResidentButton>
+                <ResidentButton
+                  variant="secondary"
+                  size="moveOut"
+                  type="button"
+                  disabled={isMoveOutFormPending}
+                  onClick={() => setEditing(false)}
+                  className="w-full"
+                >
                   닫기
-                </button>
+                </ResidentButton>
               </div>
             </form>
           ) : (
             <div className={styles.actionRow}>
-              <button
+              <ResidentButton
+                variant="primary"
+                size="moveOut"
                 type="button"
                 onClick={() => {
                   updateForm.reset({ desiredDate: request.desiredDate });
                   setEditing(true);
                 }}
+                className="w-full"
               >
                 희망 퇴실일 변경
-              </button>
-              <button
+              </ResidentButton>
+              <ResidentButton
+                variant="secondary"
+                size="moveOut"
                 type="button"
-                className={styles.dangerText}
+                className="w-full"
                 onClick={() => setShowCancelWarning(true)}
               >
                 신청 취소
-              </button>
+              </ResidentButton>
             </div>
           )}
         </div>
@@ -305,16 +326,18 @@ export default function MoveOutSection({ open, onClose }: MoveOutSectionProps) {
             </div>
           </dl>
           {canStartAgain ? (
-            <button
+            <ResidentButton
+              variant="primary"
+              size="moveOut"
               type="button"
-              className={styles.primaryButton}
               onClick={() => {
                 createForm.reset({ desiredDate: "", reason: "" });
                 setShowNewForm(true);
               }}
+              className="w-full"
             >
               다시 신청하기
-            </button>
+            </ResidentButton>
           ) : null}
         </div>
       ) : null}
@@ -337,9 +360,15 @@ export default function MoveOutSection({ open, onClose }: MoveOutSectionProps) {
             <div className={styles.modalIcon} aria-hidden="true">✓</div>
             <h3 id="move-out-created-title">퇴실 신청이 접수됐어요</h3>
             <p>담당자가 확인한 뒤 안내해 드릴게요.</p>
-            <button type="button" onClick={() => setShowCreated(false)}>
+            <ResidentButton
+              variant="primary"
+              size="moveOut"
+              type="button"
+              onClick={() => setShowCreated(false)}
+              className="w-full"
+            >
               확인
-            </button>
+            </ResidentButton>
           </div>
         </div>
       ) : null}
@@ -350,17 +379,26 @@ export default function MoveOutSection({ open, onClose }: MoveOutSectionProps) {
             <h3 id="move-out-cancel-title">퇴실 신청을 취소할까요?</h3>
             <p>취소하면 담당자가 확인 중인 신청이 종료돼요.</p>
             <div className={styles.modalActions}>
-              <button type="button" disabled={cancelMutation.isPending} onClick={() => setShowCancelWarning(false)}>
-                돌아가기
-              </button>
-              <button
+              <ResidentButton
+                variant="secondary"
+                size="md"
                 type="button"
-                className={styles.dangerButton}
+                disabled={cancelMutation.isPending}
+                onClick={() => setShowCancelWarning(false)}
+                className="flex-1"
+              >
+                돌아가기
+              </ResidentButton>
+              <ResidentButton
+                variant="danger"
+                size="md"
+                type="button"
+                className="flex-1"
                 disabled={cancelMutation.isPending}
                 onClick={() => void cancelRequest()}
               >
                 {cancelMutation.isPending ? "신청 취소 중…" : "신청 취소"}
-              </button>
+              </ResidentButton>
             </div>
           </div>
         </div>

@@ -49,10 +49,5 @@ export const msClasses = {
   stot: "mt-3 flex items-center justify-between gap-2.5 rounded-[14px] bg-white px-[15px] py-3.5 text-sm font-bold text-blue-d [&_b]:text-[19px] [&_b]:font-extrabold [&_b]:tabular-nums [&_b]:tracking-[-0.02em] [&_b]:text-blue-d [&_b.neg]:text-red",
   neg: "text-red",
   none: "px-5 py-10 text-center text-sm font-semibold text-t3",
-  scrim: "fixed inset-0 z-[120] flex items-center justify-center bg-scrim p-6",
-  dialog: "w-full max-w-[340px] rounded-[20px] bg-white px-[22px] pb-[18px] pt-6 text-center",
-  dTitle: "text-[17px] font-extrabold",
-  dDesc: "mt-2 text-sm font-medium leading-[1.6] text-t2",
-  dActions: "mt-[22px] flex gap-2",
   toast: "fixed bottom-24 left-1/2 z-[130] -translate-x-1/2 whitespace-nowrap rounded-[13px] bg-[#191f28] px-5 py-[13px] text-sm font-bold text-white",
 } as const;
