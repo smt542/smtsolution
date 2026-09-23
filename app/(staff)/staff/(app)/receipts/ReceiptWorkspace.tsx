@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
+import { useIsHydrated } from "@/hooks/common";
 import { Spinner } from "@/components/common";
 import { PrinterIcon } from "@/components/icons";
 import { useBuildings } from "@/hooks/reactquery/buildings";
@@ -24,6 +25,7 @@ import { UnitStatementModal } from "./components/unit-statement/UnitStatementMod
 import { VillaReceiptHistoryModal } from "./components/villa-receipts/VillaReceiptHistoryModal";
 
 type DropdownItem = { header: string } | { label: string; onClick: () => void };
+type ReceiptDropdownKey = "villa" | "unit" | "auto";
 
 async function downloadBankTemplate() {
   const bankTemplate = await import("./components/payment/bankTemplate");
@@ -35,19 +37,50 @@ function Dropdown({
   items,
   accent,
   inactive,
+  open,
+  onOpenChange,
 }: {
   label: string;
   items: DropdownItem[];
   accent?: "teal";
   inactive?: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
-  const summaryClass =
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerClass =
     accent === "teal"
-      ? "flex h-10 cursor-pointer list-none items-center gap-[5px] rounded-[11px] bg-teal px-[15px] text-[13.5px] font-bold leading-[normal] text-white hover:bg-teal-d"
-      : "flex h-10 cursor-pointer list-none items-center gap-[5px] rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg";
+      ? "flex h-10 cursor-pointer items-center gap-[5px] rounded-[11px] bg-teal px-[15px] text-[13.5px] font-bold leading-[normal] text-white hover:bg-teal-d"
+      : "flex h-10 cursor-pointer items-center gap-[5px] rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg";
+
+  useEffect(() => {
+    if (!open) return;
+
+    const closeOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!rootRef.current?.contains(target)) onOpenChange(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onOpenChange(false);
+    };
+
+    document.addEventListener("mousedown", closeOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [onOpenChange, open]);
+
   return (
-    <details className="group relative [&_summary::-webkit-details-marker]:hidden">
-      <summary className={`${summaryClass}${inactive ? " opacity-45 transition-opacity group-open:opacity-100" : ""}`}>
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => onOpenChange(!open)}
+        className={`${triggerClass}${inactive ? ` ${open ? "opacity-100" : "opacity-45"} transition-opacity` : ""}`}
+      >
         {label}
         <svg
           viewBox="0 0 24 24"
@@ -59,30 +92,35 @@ function Dropdown({
         >
           <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-      </summary>
-      <div className="absolute right-0 z-20 mt-1 min-w-[190px] rounded-xl border border-line bg-surface p-1 shadow-card">
-        {items.map((item, index) =>
-          "header" in item ? (
-            <p key={index} className="px-3 pb-1 pt-2 text-xs font-bold text-t4">
-              {item.header}
-            </p>
-          ) : (
-            <button
-              key={index}
-              type="button"
-              onClick={(event) => {
-                item.onClick();
-                const details = event.currentTarget.closest("details");
-                if (details) details.open = false;
-              }}
-              className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-t2 hover:bg-bg"
-            >
-              {item.label}
-            </button>
-          ),
-        )}
-      </div>
-    </details>
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 z-20 mt-1 min-w-[190px] rounded-xl border border-line bg-surface p-1 shadow-card"
+        >
+          {items.map((item, index) =>
+            "header" in item ? (
+              <p key={index} className="px-3 pb-1 pt-2 text-xs font-bold text-t4">
+                {item.header}
+              </p>
+            ) : (
+              <button
+                key={index}
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  item.onClick();
+                  onOpenChange(false);
+                }}
+                className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-t2 hover:bg-bg"
+              >
+                {item.label}
+              </button>
+            ),
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -111,11 +149,23 @@ export function ReceiptWorkspace({
   const [unitStatementOpen, setUnitStatementOpen] = useState(false);
   const [villa, setVilla] = useState<VillaPaymentModalInit | null>(null);
   const [overdueOpen, setOverdueOpen] = useState(false);
+  const isHydrated = useIsHydrated();
+  const [openDropdown, setOpenDropdown] = useState<ReceiptDropdownKey | null>(null);
+
+  const getDropdownProps = (key: ReceiptDropdownKey) => ({
+    open: openDropdown === key,
+    onOpenChange: (next: boolean) => {
+      setOpenDropdown((current) => (next ? key : current === key ? null : current));
+    },
+  });
 
   const buildingsQuery = useBuildings();
   const orgBuildings = useMemo(
-    () => (buildingsQuery.data ?? []).filter((building) => building.orgId === orgId),
-    [buildingsQuery.data, orgId],
+    () =>
+      isHydrated
+        ? (buildingsQuery.data ?? []).filter((building) => building.orgId === orgId)
+        : [],
+    [buildingsQuery.data, isHydrated, orgId],
   );
 
   const receiptQuery = useReceiptPaymentStatus(
@@ -247,6 +297,7 @@ export function ReceiptWorkspace({
               <Dropdown
                 label="빌라"
                 inactive={selectedBuildingId === null}
+                {...getDropdownProps("villa")}
                 items={[
                   {
                     label: "빌라 부과금액",
@@ -262,6 +313,7 @@ export function ReceiptWorkspace({
               <Dropdown
                 label="호실"
                 inactive={selectedUnitId === null}
+                {...getDropdownProps("unit")}
                 items={[
                   { label: "호실 명세서", onClick: openUnitStatement },
                   { label: "영수증 출력", onClick: openUnitReceipt },
@@ -271,6 +323,7 @@ export function ReceiptWorkspace({
               <Dropdown
                 label="자동수납"
                 accent="teal"
+                {...getDropdownProps("auto")}
                 items={[
                   { header: "지로" },
                   { label: "지로수납처리", onClick: () => openVilla({ view: "giro-upload" }) },
@@ -293,6 +346,7 @@ export function ReceiptWorkspace({
           buildings={orgBuildings}
           units={units}
           receiptRows={receiptRows}
+          isBuildingsLoading={!isHydrated || buildingsQuery.isLoading}
           isUnitsLoading={isUnitsLoading}
           canEdit={canEditPayment}
           selectedBuildingId={selectedBuildingId}

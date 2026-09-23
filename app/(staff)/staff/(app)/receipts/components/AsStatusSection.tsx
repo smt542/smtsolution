@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
+import { useIsHydrated } from "@/hooks/common";
 import { MaskedPhone } from "@/components/common/MaskedPhone";
 import { Button, CustomDropdown, Panel, Spinner } from "@/components/common";
 import { useAccounts } from "@/hooks/reactquery/accounts";
@@ -126,6 +127,7 @@ export function AsStatusSection({
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [messagingPreset, setMessagingPreset] = useState<MessagingPreset | null>(null);
+  const isHydrated = useIsHydrated();
 
   const { data: buildings = [] } = useBuildings();
   const { data: categories = [] } = useAsCategories();
@@ -337,7 +339,7 @@ export function AsStatusSection({
             message={scope === "building" ? "건물을 선택해 주세요" : "건물과 호수를 선택해 주세요"}
           />
         </div>
-      ) : isLoading ? (
+      ) : !isHydrated || isLoading ? (
         <div className="flex h-[260px] items-center justify-center"><Spinner /></div>
       ) : rows.length === 0 ? (
         <div className="overflow-x-auto">

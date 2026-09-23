@@ -30,6 +30,7 @@ export function BuildingUnitRail({
   buildings,
   units,
   receiptRows,
+  isBuildingsLoading,
   isUnitsLoading,
   canEdit,
   selectedBuildingId,
@@ -41,6 +42,7 @@ export function BuildingUnitRail({
   buildings: BuildingLite[];
   units: Unit[];
   receiptRows: ReceiptPaymentRow[];
+  isBuildingsLoading: boolean;
   isUnitsLoading: boolean;
   canEdit: boolean;
   selectedBuildingId: number | null;
@@ -129,7 +131,9 @@ export function BuildingUnitRail({
               </div>
             </div>
             <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
-            {filteredBuildings.length === 0 ? (
+            {isBuildingsLoading ? (
+              <div className="flex min-h-[128px] items-center justify-center"><Spinner /></div>
+            ) : filteredBuildings.length === 0 ? (
               <EmptyState message="건물이 없습니다" />
             ) : (
               <table
