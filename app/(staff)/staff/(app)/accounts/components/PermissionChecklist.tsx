@@ -1,6 +1,7 @@
 "use client";
 import type { ModuleKey } from "@/lib/auth/permissions";
 
+// 수납 처리(payment)·민원(complaints)은 DB 트리거(0194)가 사무실 직원에게 항상 넣으므로 칩이 없다.
 const PERMISSION_GROUPS: {
   title: string;
   chips: { label: string; keys: readonly ModuleKey[] }[];
