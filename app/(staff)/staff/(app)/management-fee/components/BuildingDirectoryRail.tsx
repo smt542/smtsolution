@@ -5,6 +5,10 @@ import { SearchIcon } from "@/components/icons";
 import { CustomDropdown } from "@/components/common/CustomDropdown";
 import type { Building } from "@/hooks/reactquery/buildings";
 import type { BuildingType } from "@/hooks/reactquery/buildingTypes";
+import {
+  BUILDING_GROUP_FILTER_OPTIONS,
+  matchesBuildingGroup,
+} from "@/lib/buildings/groupType";
 import { BillingReferencePanel } from "./BillingReferencePanel";
 
 const dropdownCallSiteClass = [
@@ -43,7 +47,7 @@ export function BuildingDirectoryRail({
   onPeriodChange,
 }: BuildingDirectoryRailProps) {
   const [search, setSearch] = useState("");
-  const [groupId, setGroupId] = useState("");
+  const [groupType, setGroupType] = useState("");
   const [year, month] = period.split("-").map(Number);
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 7 }, (_, index) => currentYear - 5 + index);
@@ -59,16 +63,9 @@ export function BuildingDirectoryRail({
     () => Array.from({ length: 12 }, (_, index) => ({ value: String(index + 1), label: `${index + 1}월분` })),
     [],
   );
-  const groupOptions = useMemo(
-    () => [
-      { value: "", label: "그룹 전체" },
-      ...buildingTypes.map((type) => ({ value: String(type.id), label: type.label })),
-    ],
-    [buildingTypes],
-  );
   const normalizedSearch = search.trim().toLocaleLowerCase("ko");
   const visibleBuildings = buildings.filter((building) => {
-    const matchesGroup = !groupId || String(building.typeId ?? "") === groupId;
+    const matchesGroup = matchesBuildingGroup(building, groupType);
     const matchesSearch = !normalizedSearch || [building.code, building.name, building.address ?? ""]
       .some((value) => value.toLocaleLowerCase("ko").includes(normalizedSearch));
     return matchesGroup && matchesSearch;
@@ -118,10 +115,10 @@ export function BuildingDirectoryRail({
             <div className={`flex-none ${dropdownCallSiteClass} [&_.uc-dd-menu]:min-w-[104px]`}>
               <CustomDropdown
                 ariaLabel="건물 그룹"
-                value={groupId}
-                options={groupOptions}
+                value={groupType}
+                options={BUILDING_GROUP_FILTER_OPTIONS}
                 compact
-                onChange={setGroupId}
+                onChange={setGroupType}
               />
             </div>
           </div>

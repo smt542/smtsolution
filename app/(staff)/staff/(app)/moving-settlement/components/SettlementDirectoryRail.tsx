@@ -1,11 +1,36 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDownIcon, ChevronLeftIcon, SearchIcon } from "@/components/icons";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
+import { ChevronLeftIcon, SearchIcon } from "@/components/icons";
 import type { Building } from "@/hooks/reactquery/buildings";
 import { useTenantList } from "@/hooks/reactquery/occupancies";
 import { useUnitSettlements } from "@/hooks/reactquery/movingSettlement/unitSettlements";
 import type { Unit } from "@/hooks/reactquery/units";
+import {
+  BUILDING_GROUP_FILTER_OPTIONS,
+  matchesBuildingGroup,
+} from "@/lib/buildings/groupType";
+
+// 정본 `.ms-hd .uc-dd-btn{height:28px;padding:0 8px 0 9px;font-size:12px}` 와 공통 `.uc-dd` 규칙
+// (호버 테두리 #C9D0D8·메뉴 padding 5px·옵션 gap 10px·옵션 호버 #F5F7F9)을 호출부에서 맞춘다.
+// 줄높이 15px 는 기존 정합 버튼 값을 그대로 둔다.
+const dropdownCallSiteClass = [
+  "[&_.uc-dd-btn]:h-[28px]",
+  "[&_.uc-dd-btn]:pl-[9px]",
+  "[&_.uc-dd-btn]:pr-[8px]",
+  "[&_.uc-dd-btn]:text-[12px]",
+  "[&_.uc-dd-btn]:leading-[15px]",
+  "[&_.uc-dd-btn_svg]:h-[14px]",
+  "[&_.uc-dd-btn_svg]:w-[14px]",
+  "[&_.uc-dd-btn_svg]:text-t3",
+  "[&_.uc-dd:not(.open)_.uc-dd-btn:hover]:border-[#C9D0D8]",
+  "[&_.uc-dd:not(.open)_.uc-dd-btn:hover]:shadow-none",
+  "[&_.uc-dd-menu]:min-w-[104px]",
+  "[&_.uc-dd-menu]:p-[5px]",
+  "[&_.uc-opt]:gap-[10px]",
+  "[&_.uc-opt:not(.on):hover]:bg-[#F5F7F9]",
+].join(" ");
 
 function displayDate(value: string | null): string {
   return value ? value.replaceAll("-", ".") : "";
@@ -63,20 +88,22 @@ export function SettlementDirectoryRail({
 }) {
   const [search, setSearch] = useState("");
   const [tenantSearch, setTenantSearch] = useState("");
+  const [groupType, setGroupType] = useState("");
   const selectedBuilding =
     buildings.find((building) => building.id === buildingId) ?? null;
   const selectedUnit = units.find((unit) => unit.id === unitId) ?? null;
   const unitSettlementsQuery = useUnitSettlements(unitId);
   const visibleBuildings = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("ko-KR");
-    if (!query) return buildings;
     return buildings.filter((building) =>
-      [building.code, building.name, building.address ?? ""]
-        .join(" ")
-        .toLocaleLowerCase("ko-KR")
-        .includes(query),
+      matchesBuildingGroup(building, groupType) &&
+      (!query ||
+        [building.code, building.name, building.address ?? ""]
+          .join(" ")
+          .toLocaleLowerCase("ko-KR")
+          .includes(query)),
     );
-  }, [buildings, search]);
+  }, [buildings, groupType, search]);
 
   // 건물을 바꾸거나 목록으로 돌아갈 때 호실 검색어가 남아 다음 건물 목록을 잘못 거르지 않도록 초기화한다.
   const selectBuilding = (id: number | null) => {
@@ -257,12 +284,15 @@ export function SettlementDirectoryRail({
                 className="h-[32px] w-full rounded-[9px] border border-line bg-white pl-[31px] pr-[11px] text-[13px] font-semibold text-t1 outline-none placeholder:text-t4 focus:border-teal"
               />
             </label>
-            <button
-              type="button"
-              className="flex h-[28px] shrink-0 items-center gap-[7px] rounded-[9px] border border-line bg-white pl-[9px] pr-[8px] text-[12px] font-bold leading-[15px] tracking-[-0.12px] text-t1"
-            >
-              그룹 전체 <ChevronDownIcon className="size-[14px] text-t3" />
-            </button>
+            <div className={`flex-none ${dropdownCallSiteClass}`}>
+              <CustomDropdown
+                ariaLabel="건물 그룹"
+                value={groupType}
+                options={BUILDING_GROUP_FILTER_OPTIONS}
+                compact
+                onChange={setGroupType}
+              />
+            </div>
           </div>
         </div>
         <div className="grid h-[37px] shrink-0 grid-cols-[64px_96px_1fr] border-b border-line bg-[#fbfcfd] text-[12px] font-bold leading-[15px] text-t3">
