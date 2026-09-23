@@ -83,6 +83,20 @@ begin
     raise exception 'list_billing must return mgmt_fee_amount';
   end if;
 
+  -- 0193: 필수 공과금 항목 기본값 = 그 달 산정값. 헬퍼는 내부 전용이고 세 계산 함수가 같은 헬퍼를 쓴다.
+  if to_regprocedure('public.billing_utility_default(bigint,date,boolean,text)') is null then
+    raise exception 'billing_utility_default missing';
+  end if;
+  if has_function_privilege('anon', 'public.billing_utility_default(bigint,date,boolean,text)'::regprocedure, 'EXECUTE')
+     or has_function_privilege('authenticated', 'public.billing_utility_default(bigint,date,boolean,text)'::regprocedure, 'EXECUTE') then
+    raise exception 'billing_utility_default must stay internal';
+  end if;
+  if pg_get_functiondef(v_list) not like '%billing_utility_default%'
+     or pg_get_functiondef(v_confirm) not like '%billing_utility_default%'
+     or pg_get_functiondef('public.charge_new_occupancies(bigint,date,bigint[])'::regprocedure) not like '%billing_utility_default%' then
+    raise exception 'billing calc functions must use billing_utility_default';
+  end if;
+
   if has_function_privilege('anon', v_round, 'EXECUTE')
      or has_function_privilege('anon', v_list, 'EXECUTE')
      or has_function_privilege('anon', v_history, 'EXECUTE')

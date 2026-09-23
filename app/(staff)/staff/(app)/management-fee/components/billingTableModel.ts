@@ -50,7 +50,10 @@ export function unitUtilityAmounts(unitId: number, utilities: UtilityRowSet): Un
   return { water, electricity, gas, sum: water + electricity + gas };
 }
 
-/** 항목(fee item) 합계만 — 일할/반올림은 effectiveAmount로 반영. 공과금은 제외. */
+/**
+ * 부과 항목(fee item) 합계 — 일할/반올림은 effectiveAmount로 반영.
+ * 0120 이후 필수 공과금(전기·수도료·가스)도 항목이라 이 값이 확정 합계(confirm_billing)와 같은 청구액이다.
+ */
 export function billingItemsTotal(
   unit: BillingUnitRow,
   columns: BillingColumn[],
@@ -65,16 +68,14 @@ export function billingItemsTotal(
   return unitTotal(lines, unit.moveInDate, period);
 }
 
-/** 총 관리비 line1 = 항목 합계 + 공과금 3종 합계. 공실은 0. */
-export function billingRowTotal(
+/** 고정 관리비 = 필수 공과금 항목(is_required: 전기·수도료·가스)을 뺀 항목 합계. 원본 rowFixed(공과금 제외 항목합) 대응. */
+export function billingFixedItemsTotal(
   unit: BillingUnitRow,
   columns: BillingColumn[],
   period: string,
-  utilities: UtilityRowSet,
   drafts?: Record<number, BillingChargeDraft>,
 ): number {
-  if (unit.isVacant) return 0;
-  return billingItemsTotal(unit, columns, period, drafts) + unitUtilityAmounts(unit.unitId, utilities).sum;
+  return billingItemsTotal(unit, columns.filter((column) => !column.isRequired), period, drafts);
 }
 
 /** 항목 셀의 화면 표시 금액(일할·반올림 반영값). 원본 proRate 대응. */
