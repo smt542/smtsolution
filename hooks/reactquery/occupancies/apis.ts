@@ -180,8 +180,8 @@ export interface SaveUnitOccupancyPayload {
     floor: number | null; usageType: UnitUsageType;
   };
   occupancy: {
-    tenantName: string; payerName: string; phone: string; phone2?: string | null; phone3?: string | null; faxNumber?: string | null;
-    vehicleNo?: string | null; residentCount?: number | null; roomTypeId: number | null; moveInDate: string;
+    tenantName: string | null; payerName: string | null; phone: string | null; phone2?: string | null; phone3?: string | null; faxNumber?: string | null;
+    vehicleNo?: string | null; residentCount?: number | null; roomTypeId: number | null; moveInDate: string | null;
     moveOutDate?: string | null; status: OccupancyStatus; billingEnabled: boolean; printEnabled: boolean;
     lateFeeEnabled: boolean; singlePrint: boolean; billingNote?: string | null; settlementNote?: string | null; facilityNote?: string | null;
     transferMethod: TransferMethod; billNameDisplay: BillNameDisplay; billDelivery: BillDelivery; billAuth: boolean;
@@ -271,10 +271,10 @@ export async function saveUnitOccupancy(p: SaveUnitOccupancyPayload): Promise<Sa
       room_count: p.unit.roomCount ?? null, floor: p.unit.floor, usage_type: p.unit.usageType,
     },
     p_occupancy: {
-      tenant_name: p.occupancy.tenantName, payer_name: p.occupancy.payerName, phone: p.occupancy.phone,
+      tenant_name: p.occupancy.tenantName ?? null, payer_name: p.occupancy.payerName ?? null, phone: p.occupancy.phone ?? null,
       phone2: p.occupancy.phone2 ?? null, phone3: p.occupancy.phone3 ?? null, vehicle_no: p.occupancy.vehicleNo ?? null,
-      resident_count: p.occupancy.residentCount ?? null, room_type_id: p.occupancy.roomTypeId,
-      move_in_date: p.occupancy.moveInDate, move_out_date: p.occupancy.moveOutDate ?? null, status: p.occupancy.status,
+      resident_count: p.occupancy.residentCount ?? null, room_type_id: p.occupancy.roomTypeId ?? null,
+      move_in_date: p.occupancy.moveInDate ?? null, move_out_date: p.occupancy.moveOutDate ?? null, status: p.occupancy.status,
       billing_enabled: p.occupancy.billingEnabled, print_enabled: p.occupancy.printEnabled,
       late_fee_enabled: p.occupancy.lateFeeEnabled, single_print: p.occupancy.singlePrint,
       billing_note: p.occupancy.billingNote ?? null, settlement_note: p.occupancy.settlementNote ?? null, facility_note: p.occupancy.facilityNote ?? null,

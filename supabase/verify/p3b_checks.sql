@@ -22,3 +22,24 @@ do $$ begin
     then raise exception 'P3b RPC missing'; end if;
 end $$;
 -- 수동: tenants 미보유 구성원 occupancies UPDATE 거부; save_unit_occupancy 신규 호실+입주+meters/accounts/lease upsert; 타 org building_id 거부.
+do $$
+begin
+  if exists (
+    select 1
+      from public.organizations o
+     where o.deleted_at is null
+       and exists (
+       select 1
+         from (values ('원룸'), ('1.5룸'), ('투룸'), ('쓰리룸'), ('기타')) as defaults(label)
+        where not exists (
+          select 1
+            from public.room_types rt
+           where rt.org_id = o.id
+             and rt.label = defaults.label
+             and rt.deleted_at is null
+        )
+     )
+  ) then
+    raise exception 'every organization must have the five active room types';
+  end if;
+end $$;
