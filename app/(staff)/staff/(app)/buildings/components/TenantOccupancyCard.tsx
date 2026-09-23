@@ -102,7 +102,7 @@ export function TenantOccupancyCard({
                     event.preventDefault();
                     router.push(`${base}/${t.unitId}`);
                   }}
-                  className="cursor-pointer border-b border-line2 outline-none last:border-0 hover:bg-bg focus-visible:bg-teal-t focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal"
+                  className="cursor-pointer border-b border-line2 outline-none last:border-0 hover:bg-[#fbfcfd] focus-visible:bg-teal-t focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal"
                 >
                   {TENANT_COLUMNS.map((col) => (
                     <td
