@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import Image from "next/image";
 
 export type ManagementFeeDialogKind =
+  | "no-building"
+  | "carry-all-done"
   | "utility-missing"
   | "zero-amount"
   | "carry-all"
@@ -17,6 +19,8 @@ interface ManagementFeeDialogProps {
   pending?: boolean;
   zeroAmountUnitCount?: number;
   zeroAmountItemCount?: number;
+  /** carry-all-done: 전월 자료가 있어 반영된 건물 수 */
+  carriedBuildingCount?: number;
   onClose: () => void;
   onConfirm: () => void;
 }
@@ -39,6 +43,7 @@ export function ManagementFeeDialog({
   pending = false,
   zeroAmountUnitCount = 0,
   zeroAmountItemCount = 0,
+  carriedBuildingCount = 0,
   onClose,
   onConfirm,
 }: ManagementFeeDialogProps) {
@@ -59,14 +64,20 @@ export function ManagementFeeDialog({
 
   const current = periodLabel(period);
   const previous = previousPeriodLabel(period);
+  const noBuilding = kind === "no-building";
+  const carryAllDone = kind === "carry-all-done";
   const utilityMissing = kind === "utility-missing";
+  // 원본 mfAsk: tone 미지정(info)은 청록 i 아이콘 + 확인 버튼 하나.
+  const infoTone = noBuilding || carryAllDone;
   const confirmLabel =
-    utilityMissing || kind === "important-building"
+    infoTone || utilityMissing || kind === "important-building"
       ? "확인"
       : kind === "zero-amount"
         ? "계속 확정"
         : "반영";
   const title = {
+    "no-building": "건물을 먼저 선택해 주세요",
+    "carry-all-done": carriedBuildingCount > 0 ? "전월 자료를 반영했어요" : "반영할 자료가 없어요",
     "utility-missing": "공과금 부과액이 아직 없어요",
     "zero-amount": "0원 부과 항목이 있어요",
     "carry-all": "전체 건물에 전월 자료를 반영할까요?",
@@ -93,23 +104,39 @@ export function ManagementFeeDialog({
         <div className="flex items-center gap-[9px]">
           <span
             className={`flex size-[34px] shrink-0 items-center justify-center rounded-[11px] ${
-              utilityMissing ? "bg-red-t" : "bg-amber-t"
+              utilityMissing ? "bg-red-t" : infoTone ? "bg-teal-t text-teal" : "bg-amber-t"
             }`}
           >
-            <Image
-              src={utilityMissing ? "/icons/management-fee-error.svg" : "/icons/management-fee-warning.svg"}
-              alt=""
-              width={19}
-              height={19}
-              className="size-[19px]"
-            />
+            {infoTone ? (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="size-[19px]" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 11v5M12 8h.01" />
+              </svg>
+            ) : (
+              <Image
+                src={utilityMissing ? "/icons/management-fee-error.svg" : "/icons/management-fee-warning.svg"}
+                alt=""
+                width={19}
+                height={19}
+                className="size-[19px]"
+              />
+            )}
           </span>
           <h2 id="management-fee-dialog-title" className="text-[16px] font-extrabold text-t1">
             {title}
           </h2>
         </div>
 
-        <div className="min-h-[56px] pt-[12px] text-[13.5px] font-medium leading-[22px] text-t2">
+        {/* 원본 mfAsk 본문엔 최소 높이가 없다 — utility-missing(원본 대응 없음)만 기존 높이 유지 */}
+        <div className={`${utilityMissing ? "min-h-[56px] " : ""}pt-[12px] text-[13.5px] font-medium leading-[22px] text-t2`}>
+          {noBuilding && <p>좌측 건물 목록에서 대상 건물을 선택한 뒤 다시 시도해 주세요.</p>}
+          {carryAllDone && (
+            <p>
+              {carriedBuildingCount > 0
+                ? `${carriedBuildingCount}개 건물의 ${current}에 전월 자료를 반영했습니다.`
+                : `${previous}에 저장된 자료가 없습니다.`}
+            </p>
+          )}
           {kind === "utility-missing" && (
             <>
               <p>
@@ -156,7 +183,7 @@ export function ManagementFeeDialog({
         </div>
 
         <div className={`flex gap-[8px] pt-[20px] ${utilityMissing ? "" : "justify-end"}`}>
-          {!utilityMissing && (
+          {!utilityMissing && !infoTone && (
             <button
               type="button"
               onClick={onClose}

@@ -6,6 +6,7 @@ import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Spinner } from "@/components/common";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useBuildingTypes } from "@/hooks/reactquery/buildingTypes";
+import { useCustomerNumbers } from "@/hooks/reactquery/buildingCustomerNumbers";
 import {
   useBilling,
   useBillingPeriodSetting,
@@ -17,7 +18,7 @@ import {
 } from "@/hooks/reactquery/billing";
 import { useSaveBuildingNotes } from "@/hooks/reactquery/receipts";
 import { useUtilityConfirmation, useUtilityRows } from "@/hooks/reactquery/utilities";
-import { currentPeriod, isFuturePeriod } from "@/lib/billing/period";
+import { currentPeriod, isFuturePeriod, prevPeriod } from "@/lib/billing/period";
 import { pivotBillingRows } from "@/lib/billing/pivot";
 import { formatWon } from "@/lib/format";
 import { BillingHistoryModal } from "./components/BillingHistoryModal";
@@ -44,6 +45,7 @@ export function ManagementFeeWorkspace() {
   const [noteDrafts, setNoteDrafts] = useState<Record<number, BillingNoteDraft>>({});
   const [historyUnit, setHistoryUnit] = useState<{ id: number; no: string } | null>(null);
   const [dialog, setDialog] = useState<ManagementFeeDialogKind | null>(null);
+  const [carriedBuildingCount, setCarriedBuildingCount] = useState(0);
 
   const billingQuery = useBilling(buildingId, period);
   const saveCharges = useSaveBillingCharges();
@@ -55,6 +57,10 @@ export function ManagementFeeWorkspace() {
   const waterRows = useUtilityRows(buildingId, "water", period);
   const electricityRows = useUtilityRows(buildingId, "electricity", period);
   const gasRows = useUtilityRows(buildingId, "gas", period);
+  const previousWaterRows = useUtilityRows(buildingId, "water", prevPeriod(period));
+  const previousElectricityRows = useUtilityRows(buildingId, "electricity", prevPeriod(period));
+  const previousGasRows = useUtilityRows(buildingId, "gas", prevPeriod(period));
+  const customerNumbersQuery = useCustomerNumbers(buildingId ?? 0);
   const waterConfirmation = useUtilityConfirmation(buildingId, "water", period);
   const electricityConfirmation = useUtilityConfirmation(buildingId, "electricity", period);
   const gasConfirmation = useUtilityConfirmation(buildingId, "gas", period);
@@ -209,11 +215,18 @@ export function ManagementFeeWorkspace() {
   };
 
   const openCarryBuilding = () => {
-    if (!selectedBuilding) return;
+    if (!selectedBuilding) {
+      setDialog("no-building");
+      return;
+    }
     setDialog(selectedBuilding.setupConfirmRequired ? "important-building" : "carry-building");
   };
 
   const confirmDialog = async () => {
+    if (dialog === "no-building" || dialog === "carry-all-done") {
+      setDialog(null);
+      return;
+    }
     if (dialog === "utility-missing") {
       setDialog(null);
       return;
@@ -237,9 +250,17 @@ export function ManagementFeeWorkspace() {
     if (buildingIds.length === 0) return;
     try {
       const result = await copyPrevious.mutateAsync({ buildingIds, period });
-      setDialog(null);
       setEditing(true);
-      toast.success(`전월 자료를 반영했습니다. (${result.buildingCount}개 건물 · ${result.unitCount}세대)`);
+      if (dialog === "carry-all") {
+        // 원본 runFillAll: 결과를 토스트가 아니라 안내창으로 알린다.
+        setCarriedBuildingCount(result.buildingCount);
+        setDialog("carry-all-done");
+      } else {
+        setDialog(null);
+        const [previousYear, previousMonth] = prevPeriod(period).split("-").map(Number);
+        const previousLabel = `${previousYear}년 ${previousMonth}월분`;
+        toast.success(result.unitCount > 0 ? `${previousLabel} 자료를 반영했어요` : `${previousLabel}에 저장된 자료가 없어요`);
+      }
     } catch (error) {
       toast.error(error, "전월 자료를 반영하지 못했습니다.");
     }
@@ -271,6 +292,9 @@ export function ManagementFeeWorkspace() {
     waterRows,
     electricityRows,
     gasRows,
+    previousWaterRows,
+    previousElectricityRows,
+    previousGasRows,
     billingQuery,
   ].some((query) => query.isFetching && !query.isLoading);
   return (
@@ -316,6 +340,13 @@ export function ManagementFeeWorkspace() {
           <UtilitySummaryPanel
             buildingSelected={buildingId !== null}
             rows={utilityRows}
+            previousRows={{
+              water: previousWaterRows.data ?? [],
+              electricity: previousElectricityRows.data ?? [],
+              gas: previousGasRows.data ?? [],
+            }}
+            customerNumbers={customerNumbersQuery.data ?? []}
+            customerNumbersLoading={customerNumbersQuery.isLoading}
             confirmations={utilityConfirmations}
             loading={{ water: waterRows.isLoading, electricity: electricityRows.isLoading, gas: gasRows.isLoading }}
           />
@@ -330,7 +361,7 @@ export function ManagementFeeWorkspace() {
 
             <div className="min-h-0 flex-1">
               {!buildingId && (
-                <div className="flex h-full min-h-[260px] flex-col items-center justify-center gap-[4px] text-center">
+                <div className="flex h-full min-h-[260px] flex-col items-center justify-center gap-[4px] px-[20px] pb-[26px] pt-[22px] text-center">
                   <span className="mb-[4px] flex size-[56px] items-center justify-center rounded-[17px] bg-[#e2f5f1]"><Image src="/icons/management-fee-empty.svg" alt="" width={27} height={27} className="size-[27px]" /></span>
                   <p className="text-[16px] font-bold tracking-[-0.02em] text-t1">건물을 선택해 주세요</p>
                   <p className="text-[13.5px] font-normal leading-[1.6] text-t3">선택한 건물의 세대별 관리비 항목이 표시돼요</p>
@@ -344,7 +375,7 @@ export function ManagementFeeWorkspace() {
                 </div>
               )}
               {buildingId && !billingQuery.isLoading && !billingQuery.error && needBasis && (
-                <div className="flex h-full min-h-[260px] flex-col items-center justify-center gap-[6px] text-center">
+                <div className="flex h-full min-h-[260px] flex-col items-center justify-center gap-[6px] px-[24px] pb-[48px] pt-[40px] text-center">
                   <span className="mb-[4px] flex size-[56px] items-center justify-center rounded-[17px] bg-[#e2f5f1] text-teal">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className="size-[27px]"><rect x="4" y="5" width="16" height="16" rx="2" /><path d="M8 3v4M16 3v4M4 11h16" /></svg>
                   </span>
@@ -388,6 +419,7 @@ export function ManagementFeeWorkspace() {
         pending={dialog === "zero-amount" ? isManagementFeeMutationPending : copyPrevious.isPending}
         zeroAmountUnitCount={zeroAmountSummary.unitCount}
         zeroAmountItemCount={zeroAmountSummary.itemCount}
+        carriedBuildingCount={carriedBuildingCount}
         onClose={() => setDialog(null)}
         onConfirm={() => void confirmDialog()}
       />

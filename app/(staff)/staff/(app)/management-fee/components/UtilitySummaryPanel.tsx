@@ -1,15 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import type { BuildingCustomerNumber } from "@/hooks/reactquery/buildingCustomerNumbers";
 import type { UtilityConfirmation, UtilityUnitRow } from "@/hooks/reactquery/utilities";
 import { formatNumber } from "@/lib/format";
 
 type UtilityTab = "water" | "electricity" | "common-electricity" | "gas";
 type SourceType = "water" | "electricity" | "gas";
+type UtilitySettingKind = "water" | "elec" | "gas";
 
 interface UtilitySummaryPanelProps {
   buildingSelected: boolean;
   rows: Record<SourceType, UtilityUnitRow[]>;
+  previousRows: Record<SourceType, UtilityUnitRow[]>;
+  customerNumbers: BuildingCustomerNumber[];
+  customerNumbersLoading: boolean;
   confirmations: Record<SourceType, UtilityConfirmation | null>;
   loading: Record<SourceType, boolean>;
 }
@@ -21,81 +26,201 @@ const tabs: { key: UtilityTab; label: string }[] = [
   { key: "gas", label: "가스" },
 ];
 
-type CellSpec = { text: string; muted?: boolean; weight?: string };
+type CellSpec = { text: string; muted?: boolean; weight?: string; className?: string };
 
-interface UtilityColumn {
+interface UtilityDisplayRow {
+  current: UtilityUnitRow;
+  previous?: UtilityUnitRow;
+  billingBasis: "prev" | "current" | null;
+}
+
+interface CommonElectricityRow {
+  id: number;
+  customerNumber: string;
+  billingBasis: "prev" | "current";
+}
+
+interface UtilityColumn<T> {
   key: string;
   label: string;
   minW: number;
   rt?: boolean; // 우측 정렬 (원본 c[0]==='rt')
   num?: boolean; // tabular-nums (원본 .num)
-  render: (row: UtilityUnitRow, index: number) => CellSpec;
+  render: (row: T, index: number) => CellSpec;
 }
 
-// 값 셀: 숫자면 표시, 없으면 흐린 '-' (원본 .dsh)
-const valueCell = (value: number | null | undefined, weight?: string): CellSpec =>
-  value == null ? { text: "-", muted: true } : { text: formatNumber(value), weight };
+// 값이 없는 셀: 흐린 '-' (원본 .dsh)
+const emptyCell = (): CellSpec => ({ text: "-", muted: true });
 
-// 원본 drawUtil 셀 정의를 실데이터 컬럼으로 1:1 매핑한다.
+const valueCell = (value: number | null | undefined, weight?: string): CellSpec =>
+  value == null ? emptyCell() : { text: formatNumber(value), weight };
+
+function chargeFor(row: UtilityUnitRow | undefined): number | null {
+  return row ? row.manualCharge ?? row.automaticCharge : null;
+}
+
+function priceFor(row: UtilityUnitRow | undefined): number | null {
+  return row ? row.resolvedUnitPrice ?? row.unitPrice : null;
+}
+
+function differenceCell(current: number | null, previous: number | null): CellSpec {
+  if (current == null || previous == null) return emptyCell();
+  const difference = current - previous;
+  return { text: formatNumber(difference), className: difference < 0 ? "text-red" : "" };
+}
+
+// 원본 drawUtil 셀 정의(UCOL)를 실데이터 컬럼으로 1:1 매핑한다.
+// 전월금액·전단가 = 전월분 같은 세대 행, 금-전 = 금월 − 전월(헤더 라벨 기준 — 원본 더미 수식은 부호가 반대).
 const COL = {
   L: { key: "L", label: "L", minW: 34, rt: true, num: true, render: (_row, index) => ({ text: String(index + 1) }) },
   cust: {
     key: "cust", label: "고객번호", minW: 104, num: true,
-    render: (row) => (row.customerNumber ? { text: row.customerNumber, weight: "font-bold" } : { text: "-", muted: true }),
+    render: (row) => row.current.customerNumber
+      ? { text: row.current.customerNumber, weight: "font-bold" }
+      : emptyCell(),
   },
-  usage: { key: "usage", label: "량", minW: 48, rt: true, num: true, render: (row) => valueCell(row.usage) },
+  month: {
+    key: "month", label: "월", minW: 48,
+    render: (row) => row.billingBasis ? { text: row.billingBasis === "prev" ? "전월" : "당월" } : emptyCell(),
+  },
+  usage: { key: "usage", label: "량", minW: 48, rt: true, num: true, render: (row) => valueCell(row.current.usage) },
   manual: {
     key: "manual", label: "수동입력", minW: 70, rt: true, num: true,
-    render: (row) => (row.manualCharge ? { text: formatNumber(row.manualCharge), weight: "font-semibold" } : { text: "-", muted: true }),
+    render: (row) => row.current.manualCharge
+      ? { text: formatNumber(row.current.manualCharge), weight: "font-semibold" }
+      : emptyCell(),
   },
   discount: {
     key: "discount", label: "할인금액", minW: 74, rt: true, num: true,
-    render: (row) => (row.discountAmount ? { text: `-${formatNumber(row.discountAmount)}`, weight: "font-semibold" } : { text: "-", muted: true }),
+    render: (row) => row.current.discountAmount
+      ? { text: `-${formatNumber(row.current.discountAmount)}`, weight: "font-semibold" }
+      : emptyCell(),
+  },
+  previousCharge: {
+    key: "previousCharge", label: "전월금액", minW: 76, rt: true, num: true,
+    render: (row) => valueCell(chargeFor(row.previous), "font-normal"),
   },
   charge: {
     key: "charge", label: "부과액", minW: 76, rt: true, num: true,
-    render: (row) => {
-      const value = row.manualCharge ?? row.automaticCharge;
-      return value == null ? { text: "-", muted: true } : { text: formatNumber(value), weight: "font-bold" };
-    },
+    render: (row) => valueCell(chargeFor(row.current), "font-bold"),
+  },
+  previousPrice: {
+    key: "previousPrice", label: "전단가", minW: 62, rt: true, num: true,
+    render: (row) => valueCell(priceFor(row.previous), "font-normal"),
   },
   price: {
     key: "price", label: "단가", minW: 58, rt: true, num: true,
-    render: (row) => {
-      const value = row.resolvedUnitPrice ?? row.unitPrice;
-      return value == null ? { text: "-", muted: true } : { text: formatNumber(value), weight: "font-semibold" };
-    },
+    render: (row) => valueCell(priceFor(row.current), "font-semibold"),
   },
-  curr: { key: "curr", label: "금월량", minW: 62, rt: true, num: true, render: (row) => valueCell(row.currentReading) },
-  prev: { key: "prev", label: "전월량", minW: 62, rt: true, num: true, render: (row) => valueCell(row.previousReading, "font-medium") },
+  chargeDifference: {
+    key: "chargeDifference", label: "금-전1", minW: 66, rt: true, num: true,
+    render: (row) => differenceCell(chargeFor(row.current), chargeFor(row.previous)),
+  },
+  priceDifference: {
+    key: "priceDifference", label: "금-전2", minW: 62, rt: true, num: true,
+    render: (row) => differenceCell(priceFor(row.current), priceFor(row.previous)),
+  },
+  curr: { key: "curr", label: "금월량", minW: 62, rt: true, num: true, render: (row) => valueCell(row.current.currentReading) },
+  prev: { key: "prev", label: "전월량", minW: 62, rt: true, num: true, render: (row) => valueCell(row.current.previousReading, "font-medium") },
+  notice: { key: "notice", label: "고지금액", minW: 76, rt: true, num: true, render: () => emptyCell() },
   reduce: {
     key: "reduce", label: "감면", minW: 62, rt: true, num: true,
-    render: (row) => (row.discountAmount ? { text: `-${formatNumber(row.discountAmount)}` } : { text: "0", muted: true }),
+    render: (row) => row.current.discountAmount
+      ? { text: `-${formatNumber(row.current.discountAmount)}` }
+      : { text: "0", muted: true },
   },
-} satisfies Record<string, UtilityColumn>;
+  moving: {
+    key: "moving", label: "이사", minW: 52, rt: true,
+    render: (row) => row.current.occupancyStatus === "moving_out" ? { text: "이사" } : emptyCell(),
+  },
+} satisfies Record<string, UtilityColumn<UtilityDisplayRow>>;
 
-const COLUMNS: Record<UtilityTab, UtilityColumn[]> = {
-  water: [COL.L, COL.cust, COL.usage, COL.manual, COL.discount, COL.charge, COL.price, COL.curr, COL.prev],
-  electricity: [COL.L, COL.cust, COL.charge, COL.usage, COL.price, COL.curr, COL.prev, COL.reduce],
-  "common-electricity": [COL.L, COL.cust, COL.curr, COL.prev, COL.charge, COL.price],
-  gas: [COL.L, COL.cust, COL.usage, COL.manual, COL.discount, COL.charge, COL.price, COL.curr, COL.prev],
+const COLUMNS: Record<Exclude<UtilityTab, "common-electricity">, UtilityColumn<UtilityDisplayRow>[]> = {
+  water: [COL.L, COL.cust, COL.month, COL.usage, COL.manual, COL.discount, COL.previousCharge, COL.charge, COL.previousPrice, COL.price, COL.chargeDifference, COL.priceDifference, COL.curr, COL.prev],
+  electricity: [COL.L, COL.cust, COL.notice, COL.charge, COL.usage, COL.price, COL.curr, COL.prev, COL.reduce, COL.moving],
+  gas: [COL.L, COL.cust, COL.month, COL.usage, COL.manual, COL.discount, COL.previousCharge, COL.charge, COL.previousPrice, COL.price, COL.chargeDifference, COL.priceDifference, COL.curr, COL.prev],
 };
 
-export function UtilitySummaryPanel({ buildingSelected, rows, confirmations, loading }: UtilitySummaryPanelProps) {
+// 공용전기: 건물 공용전기 고객번호(building_customer_numbers)만 실데이터 — 고객번호·월분 외 값은 저장 필드가 없어 '-'.
+const COMMON_COLUMNS: UtilityColumn<CommonElectricityRow>[] = [
+  { key: "L", label: "L", minW: 34, rt: true, num: true, render: (_row, index) => ({ text: String(index + 1) }) },
+  { key: "cust", label: "고객번호", minW: 104, num: true, render: (row) => ({ text: row.customerNumber, weight: "font-bold" }) },
+  { key: "notice", label: "고지액", minW: 76, rt: true, num: true, render: () => emptyCell() },
+  { key: "commonCharge", label: "공용부과액", minW: 86, rt: true, num: true, render: () => emptyCell() },
+  { key: "curr", label: "금월량", minW: 62, rt: true, num: true, render: () => emptyCell() },
+  { key: "prev", label: "전월량", minW: 62, rt: true, num: true, render: () => emptyCell() },
+  { key: "charge", label: "부과액", minW: 76, rt: true, num: true, render: () => emptyCell() },
+  { key: "price", label: "단가", minW: 58, rt: true, num: true, render: () => emptyCell() },
+  { key: "month", label: "월분", minW: 56, render: (row) => ({ text: row.billingBasis === "prev" ? "전월" : "당월" }) },
+];
+
+function settingKindFor(tab: Exclude<UtilityTab, "common-electricity" | "electricity">): UtilitySettingKind {
+  return tab === "water" ? "water" : "gas";
+}
+
+function settingForRow(
+  row: UtilityUnitRow,
+  kind: UtilitySettingKind,
+  customerNumbers: BuildingCustomerNumber[],
+): BuildingCustomerNumber | null {
+  const candidates = customerNumbers.filter((number) => number.kind === kind);
+  const direct = row.customerNumber
+    ? candidates.find((number) => number.customerNo === row.customerNumber)
+    : undefined;
+  return direct ?? (candidates.length === 1 ? candidates[0] : null);
+}
+
+export function UtilitySummaryPanel({
+  buildingSelected,
+  rows,
+  previousRows,
+  customerNumbers,
+  customerNumbersLoading,
+  confirmations,
+  loading,
+}: UtilitySummaryPanelProps) {
   const [activeTab, setActiveTab] = useState<UtilityTab>("water");
-  const sourceType: SourceType = activeTab === "common-electricity" ? "electricity" : activeTab;
-  const activeRows = rows[sourceType];
-  const confirmation = confirmations[sourceType];
-  const isActiveUtilityLoading = loading[sourceType];
-  const columns = COLUMNS[activeTab];
+  const normalTab = activeTab === "common-electricity" ? null : activeTab;
+  const previousByUnit = useMemo(
+    () => new Map((normalTab ? previousRows[normalTab] : []).map((row) => [row.unitId, row])),
+    [normalTab, previousRows],
+  );
+  const displayRows = useMemo(() => {
+    const kind = normalTab === "water" || normalTab === "gas" ? settingKindFor(normalTab) : null;
+    return (normalTab ? rows[normalTab] : []).map((row) => ({
+      current: row,
+      previous: previousByUnit.get(row.unitId),
+      billingBasis: kind ? settingForRow(row, kind, customerNumbers)?.billingBasis ?? null : null,
+    }));
+  }, [customerNumbers, normalTab, previousByUnit, rows]);
+  const commonRows = useMemo<CommonElectricityRow[]>(
+    () => customerNumbers
+      .filter((number) => number.kind === "common_elec")
+      .map((number) => ({ id: number.id, customerNumber: number.customerNo, billingBasis: number.billingBasis })),
+    [customerNumbers],
+  );
+  // 공용전기는 산정 데이터가 없어 산정 완료 배지를 띄우지 않는다.
+  const confirmation = normalTab ? confirmations[normalTab] : null;
+  const isActiveUtilityLoading = activeTab === "common-electricity"
+    ? customerNumbersLoading
+    : loading[activeTab];
+  const normalColumns = activeTab === "common-electricity" ? null : COLUMNS[activeTab];
+  const columns = normalColumns ?? COMMON_COLUMNS;
+  const hasRows = activeTab === "common-electricity" ? commonRows.length > 0 : displayRows.length > 0;
 
   const message = !buildingSelected
     ? "건물을 선택하면 표시돼요"
     : isActiveUtilityLoading
       ? "공과금 정보를 불러오는 중입니다."
-      : activeRows.length === 0
+      : !hasRows
         ? "등록된 고객번호가 없어요"
         : null;
+
+  const renderCell = (cell: CellSpec) => (
+    <span className={cell.muted ? "font-medium text-t3" : [cell.weight, cell.className].filter(Boolean).join(" ")}>
+      {cell.text}
+    </span>
+  );
 
   return (
     <section className="flex h-[196px] min-w-0 flex-col overflow-hidden rounded-[16px] bg-surface shadow-card">
@@ -155,32 +280,39 @@ export function UtilitySummaryPanel({ buildingSelected, rows, confirmations, loa
                   {message}
                 </td>
               </tr>
+            ) : activeTab === "common-electricity" ? (
+              commonRows.map((row, index) => (
+                <tr key={row.id} className="cursor-pointer text-t1 hover:bg-[#fbfcfd]">
+                  {COMMON_COLUMNS.map((col) => (
+                    <td
+                      key={col.key}
+                      className={`border-b border-line2 px-[16px] py-[12px] text-[13.5px] ${
+                        col.rt ? "text-right" : "text-left"
+                      } ${col.num ? "tabular-nums" : ""}`}
+                    >
+                      {renderCell(col.render(row, index))}
+                    </td>
+                  ))}
+                </tr>
+              ))
             ) : (
-              activeRows.map((row, index) => (
-                <tr key={row.unitId} className="cursor-pointer text-t1 hover:bg-[#fbfcfd]">
-                  {columns.map((col) => {
-                    const cell = col.render(row, index);
-                    return (
-                      <td
-                        key={col.key}
-                        className={`border-b border-line2 px-[16px] py-[12px] text-[13.5px] ${
-                          col.rt ? "text-right" : "text-left"
-                        } ${col.num ? "tabular-nums" : ""} ${cell.muted ? "font-medium text-t3" : cell.weight ?? ""}`}
-                      >
-                        {cell.text}
-                      </td>
-                    );
-                  })}
+              displayRows.map((row, index) => (
+                <tr key={row.current.unitId} className="cursor-pointer text-t1 hover:bg-[#fbfcfd]">
+                  {normalColumns!.map((col) => (
+                    <td
+                      key={col.key}
+                      className={`border-b border-line2 px-[16px] py-[12px] text-[13.5px] ${
+                        col.rt ? "text-right" : "text-left"
+                      } ${col.num ? "tabular-nums" : ""}`}
+                    >
+                      {renderCell(col.render(row, index))}
+                    </td>
+                  ))}
                 </tr>
               ))
             )}
           </tbody>
         </table>
-        {activeTab === "common-electricity" && buildingSelected && !isActiveUtilityLoading && activeRows.length > 0 && (
-          <p className="px-[18px] pb-[10px] pt-[6px] text-right text-[11px] text-t4">
-            공용전기는 전기 산정 내역에 포함되어 표시됩니다.
-          </p>
-        )}
       </div>
     </section>
   );

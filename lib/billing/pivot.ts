@@ -4,6 +4,7 @@ export interface BillingFlatRow {
   unitId: number; unitNo: string; dong: string | null; roomTypeLabel: string | null;
   areaPyeong: number | null;
   occupancyId: number | null; tenantName: string | null; moveInDate: string | null; isVacant: boolean;
+  mgmtFeeAmount: number | null;
   feeItemId: number; feeItemName: string; carryOver: boolean; dailyProration: boolean;
   rounding: Rounding; isRequired: boolean; sortOrder: number;
   charged: boolean; amount: number;
@@ -20,6 +21,7 @@ export interface BillingUnitRow {
   unitId: number; unitNo: string; dong: string | null; roomTypeLabel: string | null;
   areaPyeong: number | null;
   occupancyId: number | null; tenantName: string | null; moveInDate: string | null; isVacant: boolean;
+  mgmtFeeAmount: number | null;
   confirmedAt: string | null; confirmedByName: string | null; totalAmount: number | null;
   billingNote: string | null; unitNotice: string | null; isDirty: boolean;
   charges: Record<number, { charged: boolean; amount: number }>;
@@ -41,6 +43,7 @@ export function pivotBillingRows(rows: BillingFlatRow[]): { units: BillingUnitRo
         unitId: r.unitId, unitNo: r.unitNo, dong: r.dong, roomTypeLabel: r.roomTypeLabel,
         areaPyeong: r.areaPyeong,
         occupancyId: r.occupancyId, tenantName: r.tenantName, moveInDate: r.moveInDate, isVacant: r.isVacant,
+        mgmtFeeAmount: r.mgmtFeeAmount,
         confirmedAt: r.confirmedAt, confirmedByName: r.confirmedByName, totalAmount: r.totalAmount,
         billingNote: r.billingNote, unitNotice: r.unitNotice, isDirty: r.isDirty, charges: {},
       });

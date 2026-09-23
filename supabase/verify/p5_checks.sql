@@ -74,6 +74,15 @@ begin
     raise exception 'P5 RPC missing';
   end if;
 
+  if not exists (
+    select 1
+    from pg_proc p
+    where p.oid = v_list
+      and 'mgmt_fee_amount' = any(p.proargnames)
+  ) then
+    raise exception 'list_billing must return mgmt_fee_amount';
+  end if;
+
   if has_function_privilege('anon', v_round, 'EXECUTE')
      or has_function_privilege('anon', v_list, 'EXECUTE')
      or has_function_privilege('anon', v_history, 'EXECUTE')

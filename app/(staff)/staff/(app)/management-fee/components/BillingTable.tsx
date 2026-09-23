@@ -53,8 +53,8 @@ export function BillingTable({
           <tr>
             {/* 호수 — 56px sticky left:0 */}
             <th className={`sticky left-0 top-0 z-[4] w-[56px] min-w-[56px] max-w-[56px] ${HEAD_TH}`}>호수</th>
-            {/* 총 관리비 — 92px sticky left:56px (2줄) */}
-            <th className={`sticky left-[56px] top-0 z-[4] w-[92px] min-w-[92px] max-w-[92px] shadow-[1px_0_0_var(--color-line)] ${HEAD_TH}`}>
+            {/* 총 관리비 — 92px sticky left:56px (3줄) */}
+            <th className={`sticky left-[56px] top-0 z-[4] w-[92px] min-w-[92px] max-w-[92px] ${HEAD_TH}`}>
               총 관리비<br />건물 관리비<br />고정 관리비
             </th>
             {/* 성명 / 평수·룸타입 / 입주일 */}
