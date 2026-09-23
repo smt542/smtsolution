@@ -29,10 +29,11 @@ export function BuildingPickerList({
   return (
     <div className="flex w-[340px] shrink-0 flex-col border-r border-line bg-[#fbfcfd]">
       <div className="relative h-[69px] shrink-0 border-b border-line2">
-        <span aria-hidden className="absolute left-[28px] top-[26px] text-t4">
-          <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4">
-            <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M11 11l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        {/* 정본 `.pm-search svg` — 입력칸도 absolute라 z-index 없이는 입력칸 흰 배경에 가려진다. */}
+        <span aria-hidden className="pointer-events-none absolute left-[28px] top-[26px] z-[1] text-t3">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M20 20l-3-3" />
           </svg>
         </span>
         <input
@@ -56,17 +57,21 @@ export function BuildingPickerList({
                 key={building.id}
                 onClick={() => onSelect(building.id)}
                 aria-pressed={active}
-                className={`flex w-full flex-col items-start rounded-[12px] border px-[14px] py-[12px] text-left transition ${
-                  active
-                    ? "border-line bg-white shadow-[0_1px_3px_rgba(23,31,40,0.08)]"
-                    : "border-transparent hover:bg-white/70"
+                className={`flex w-full flex-col items-start rounded-[12px] border px-[14px] py-[12px] text-left transition duration-100 ${
+                  active ? "border-teal bg-teal-t" : "border-transparent hover:border-line hover:bg-white"
                 }`}
               >
                 <span className="flex items-center gap-[8px]">
-                  <span className="rounded-[6px] border border-line bg-white px-[7px] py-px text-[11px] font-bold text-t3">
+                  <span
+                    className={`rounded-[6px] border bg-white px-[7px] py-px text-[11px] font-bold text-t3 ${
+                      active ? "border-teal-t" : "border-line"
+                    }`}
+                  >
                     {building.code}
                   </span>
-                  <span className="text-[14px] font-extrabold tracking-[-0.14px] text-t1">{building.name}</span>
+                  <span className={`text-[14px] font-extrabold tracking-[-0.14px] ${active ? "text-teal-d" : "text-t1"}`}>
+                    {building.name}
+                  </span>
                 </span>
                 <span className="pt-[5px] text-[12px] leading-[16.8px] text-t3">{building.address ?? "-"}</span>
               </button>
