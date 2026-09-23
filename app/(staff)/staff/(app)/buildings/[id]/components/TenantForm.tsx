@@ -8,9 +8,7 @@ import { Button, EmptyState, Spinner } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { occupancyBasicSchema } from "@/components/forms/schema/occupancy";
 import { PageHeader } from "@/components/shell/PageHeader";
-import { displayUnitNo } from "@/lib/bill/document";
 import { useCustomerNumbers, type CustomerNumberKind } from "@/hooks/reactquery/buildingCustomerNumbers";
-import { useBuildingFull } from "@/hooks/reactquery/buildings";
 import {
   useDeleteUnit,
   useSaveUnitOccupancy,
@@ -148,7 +146,6 @@ export function TenantForm({
   const save = useSaveUnitOccupancy();
   const del = useDeleteUnit();
   const { data: roomTypes } = useRoomTypes();
-  const { data: building } = useBuildingFull(buildingId);
   const { data: customerNumbers } = useCustomerNumbers(buildingId);
   const { data: full, isLoading, isError } = useUnitOccupancyFull(unitId ?? 0);
 
@@ -487,15 +484,11 @@ export function TenantForm({
     </>
   );
 
-  // 정본 hf-h1 — 상세는 "그린빌라 101호"(입력 중인 값이 아니라 저장된 호실로 만든다), 등록은 "호수·입주민 등록".
-  const pageTitle = unitId
-    ? [building?.name, displayUnitNo(full?.unit.unitNo)].filter(Boolean).join(" ")
-    : "호수·입주민 등록";
-
+  // 제목은 등록·상세 모두 "호수·입주민 등록"이다 — 상세 정본의 "그린빌라 101호"(건물명+호실)를 쓰지 않는다(사용자 결정).
   const pageHeader = (
     <PageHeader
       breadcrumb="건물·입주자 관리"
-      title={pageTitle}
+      title="호수·입주민 등록"
       actions={pageHeaderActions}
     />
   );
