@@ -18,6 +18,7 @@ import { TenantInfoSection } from "./components/TenantInfoSection";
 import { UnifiedSearchModal } from "./components/UnifiedSearchModal";
 import { ChargeReceiptReportModal } from "./components/ChargeReceiptReportModal";
 import { VillaPaymentModal, type VillaPaymentModalInit } from "./components/VillaPaymentModal";
+import { AutoPaymentModals, type AutoPaymentView } from "./components/payment/AutoPaymentModals";
 import { VillaOverdueModal } from "./components/villa-overdue/VillaOverdueModal";
 import { ReceiptEntryAlerts } from "./components/entry-alerts/ReceiptEntryAlerts";
 import { MonthlyChargeModal } from "./components/monthly/MonthlyChargeModal";
@@ -192,6 +193,7 @@ export function ReceiptWorkspace({
   const [receiptHistoryOpen, setReceiptHistoryOpen] = useState(false);
   const [unitStatementOpen, setUnitStatementOpen] = useState(false);
   const [villa, setVilla] = useState<VillaPaymentModalInit | null>(null);
+  const [autoView, setAutoView] = useState<AutoPaymentView | null>(null);
   const [overdueOpen, setOverdueOpen] = useState(false);
   const isHydrated = useIsHydrated();
   const [openDropdown, setOpenDropdown] = useState<ReceiptDropdownKey | null>(null);
@@ -276,13 +278,6 @@ export function ReceiptWorkspace({
     setRailView("unit");
   };
 
-  const openVilla = (init: VillaPaymentModalInit) => {
-    if (selectedBuildingId === null) {
-      toast.warning("건물을 선택해 주세요");
-      return;
-    }
-    setVilla(init);
-  };
   const openOverdue = () => {
     if (selectedBuildingId === null) {
       toast.warning("건물을 선택해 주세요");
@@ -369,21 +364,18 @@ export function ReceiptWorkspace({
                   { label: "영수증 출력", onClick: openUnitReceipt },
                 ]}
               />
-              {/* 자동수납 메뉴는 각 Figma 모달로 바로 진입한다. */}
+              {/* 자동수납은 정본대로 건물 선택과 상관없이 조직 전체를 다룬다. */}
               <Dropdown
                 label="자동수납"
                 accent="teal"
                 {...getDropdownProps("auto")}
                 items={[
                   { header: "지로" },
-                  { label: "지로수납처리", onClick: () => openVilla({ view: "giro-upload" }) },
-                  { label: "지로수납원장 보기", onClick: () => openVilla({ view: "giro" }) },
-                  {
-                    label: "지로처리일자 확인",
-                    onClick: () => openVilla({ view: "giro-calendar" }),
-                  },
+                  { label: "지로수납처리", onClick: () => setAutoView("giro-upload") },
+                  { label: "지로수납원장 보기", onClick: () => setAutoView("giro-ledger") },
+                  { label: "지로처리일자 확인", onClick: () => setAutoView("giro-calendar") },
                   { header: "은행 입금" },
-                  { label: "은행 입금내역 업로드", onClick: () => openVilla({ view: "bank" }) },
+                  { label: "은행 입금내역 업로드", onClick: () => setAutoView("bank") },
                   { label: "은행 양식 다운", onClick: () => void downloadBankTemplate() },
                 ]}
               />
@@ -502,6 +494,12 @@ export function ReceiptWorkspace({
           onClose={() => setVilla(null)}
         />
       )}
+      <AutoPaymentModals
+        view={autoView}
+        period={period}
+        rows={receiptRows}
+        onClose={() => setAutoView(null)}
+      />
       {overdueOpen && selectedBuilding && (
         <VillaOverdueModal
           open

@@ -8,7 +8,7 @@ import { ComplaintDialog } from "../ComplaintDialog";
 
 interface GiroCalendarModalProps {
   open: boolean;
-  buildingId: number;
+  buildingId: number | null;
   period: string;
   onClose: () => void;
 }

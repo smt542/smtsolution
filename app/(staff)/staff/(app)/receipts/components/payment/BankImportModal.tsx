@@ -28,9 +28,9 @@ import { FileDropzone } from "./FileDropzone";
 
 interface BankImportModalProps {
   open: boolean;
-  buildingId: number;
+  buildingId: number | null;
   period: string;
-  rows: PaymentRow[];
+  rows: (PaymentRow & { buildingName?: string | null })[];
   onClose: () => void;
 }
 
@@ -45,7 +45,7 @@ const MAPPING_FIELDS: { key: MappingKey; label: string }[] = [
   { key: "paidAt", label: "입금일 열" },
 ];
 
-function rowsToMatchUnits(rows: PaymentRow[]): MatchUnit[] {
+function rowsToMatchUnits(rows: (PaymentRow & { buildingName?: string | null })[]): MatchUnit[] {
   return rows.map((row) => ({
     unitId: row.unitId,
     unitNo: row.unitNo,
@@ -53,7 +53,17 @@ function rowsToMatchUnits(rows: PaymentRow[]): MatchUnit[] {
     payerName: row.payerName,
     tenantName: row.tenantName,
     unpaid: row.unpaid,
+    buildingName: row.buildingName,
   }));
+}
+
+/** 조직 전체 업로드는 여러 건물 세대가 섞이므로 건물명을 앞에 붙인다. */
+function unitLocation(unit: Pick<MatchUnit, "unitNo" | "buildingName">) {
+  return unit.buildingName ? `${unit.buildingName} ${unit.unitNo}` : unit.unitNo;
+}
+
+function unitLabel(unit: Pick<MatchUnit, "unitNo" | "buildingName" | "tenantName">) {
+  return `${unitLocation(unit)}${unit.tenantName ? ` · ${unit.tenantName}` : ""}`;
 }
 
 function money(value: number | null) {
@@ -256,7 +266,7 @@ export function BankImportModal({
     { value: "", label: "세대 선택" },
     ...units.map((unit) => ({
       value: String(unit.unitId),
-      label: `${unit.unitNo}${unit.tenantName ? ` · ${unit.tenantName}` : ""}`,
+      label: unitLabel(unit),
     })),
   ];
 
@@ -401,7 +411,9 @@ export function BankImportModal({
                               onChange={(event) => toggleChecked(item.deposit.rowIndex, event.target.checked)}
                             />
                           </td>
-                          <td className="px-3 py-3 font-bold text-t1">{item.unitNo}</td>
+                          <td className="px-3 py-3 font-bold text-t1">
+                            {unitLocation(unitById.get(item.unitId) ?? item)}
+                          </td>
                           <td className="px-3 py-3 text-t2">{item.deposit.name || "-"}</td>
                           <td className="num px-3 py-3 text-right font-semibold text-t1">{money(item.deposit.amount)}</td>
                           <td className="num px-3 py-3 text-right text-t2">{money(item.unpaid)}</td>
@@ -457,7 +469,7 @@ export function BankImportModal({
                                 { value: "", label: `세대 선택 (후보 ${item.candidates.length})` },
                                 ...item.candidates.map((unit) => ({
                                   value: String(unit.unitId),
-                                  label: `${unit.unitNo}${unit.tenantName ? ` · ${unit.tenantName}` : ""}`,
+                                  label: unitLabel(unit),
                                 })),
                               ]}
                               onChange={(event) => {

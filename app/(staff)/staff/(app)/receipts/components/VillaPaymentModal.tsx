@@ -1,9 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import dynamic from "next/dynamic";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Button, Modal, SearchBar, Select, Spinner } from "@/components/common";
+import { Button, Modal, SearchBar, Select } from "@/components/common";
 import { useBillOrganizationName } from "@/hooks/reactquery/bill";
 import type { Building } from "@/hooks/reactquery/buildings";
 import {
@@ -21,32 +20,15 @@ import { toMonthInput } from "@/lib/billing/period";
 import { GiroCalendarModal } from "./payment/GiroCalendarModal";
 import { GiroLedgerModal } from "./payment/GiroLedgerModal";
 import { GiroUploadModal } from "./payment/GiroUploadModal";
+import { LazyBankImportModal } from "./payment/BankImportModalLazy";
 import { PaymentAmountModal } from "./payment/PaymentAmountModal";
 import { PaymentHistoryModal } from "./payment/PaymentHistoryModal";
 import { PaymentReceiptModal } from "./payment/PaymentReceiptModal";
 import { PaymentStatementModal } from "./payment/PaymentStatementModal";
 import { PaymentTable } from "./payment/PaymentTable";
 
-const BankImportModal = dynamic(
-  () => import("./payment/BankImportModal").then((module) => module.BankImportModal),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex min-h-[420px] items-center justify-center">
-        <Spinner />
-      </div>
-    ),
-  },
-);
-
-export type VillaInitialView =
-  | "table"
-  | "giro-upload"
-  | "giro"
-  | "giro-calendar"
-  | "bank"
-  | "statement"
-  | "receipt";
+// 지로·은행은 헤더 자동수납 메뉴가 조직 전체로 연다(AutoPaymentModals). 여기서는 툴바 버튼으로만 연다.
+export type VillaInitialView = "table" | "statement" | "receipt";
 export type VillaStatusFilter = "all" | "unpaid" | "paid";
 
 export interface VillaPaymentModalInit {
@@ -97,12 +79,10 @@ export function VillaPaymentModal({
     init?.view === "statement" ? { unitId: init.unitId ?? null } : null,
   );
   const [receiptState, setReceiptState] = useState<ReceiptState | null>(null);
-  const [bankOpen, setBankOpen] = useState(init?.view === "bank");
-  const [giroOpen, setGiroOpen] = useState(init?.view === "giro");
-  const [giroUploadOpen, setGiroUploadOpen] = useState(init?.view === "giro-upload");
-  const [giroCalendarOpen, setGiroCalendarOpen] = useState(
-    init?.view === "giro-calendar",
-  );
+  const [bankOpen, setBankOpen] = useState(false);
+  const [giroOpen, setGiroOpen] = useState(false);
+  const [giroUploadOpen, setGiroUploadOpen] = useState(false);
+  const [giroCalendarOpen, setGiroCalendarOpen] = useState(false);
   // 호실 영수증 진입: rows 로드 후 해당 세대 이력 자동 오픈(사용자 조작 전까지).
   const [receiptDismissed, setReceiptDismissed] = useState(false);
 
@@ -284,7 +264,6 @@ export function VillaPaymentModal({
       {giroUploadOpen && (
         <GiroUploadModal
           open
-          buildingId={building.id}
           period={period}
           onClose={() => setGiroUploadOpen(false)}
         />
@@ -294,8 +273,8 @@ export function VillaPaymentModal({
         <GiroLedgerModal
           open
           buildingId={building.id}
-          buildingName={building.name}
           period={period}
+          rows={rows}
           onClose={() => setGiroOpen(false)}
         />
       )}
@@ -310,7 +289,7 @@ export function VillaPaymentModal({
       )}
 
       {bankOpen && (
-        <BankImportModal
+        <LazyBankImportModal
           open
           buildingId={building.id}
           period={period}

@@ -5,7 +5,6 @@ import { Button, EmptyState, Spinner } from "@/components/common";
 import { DpDatePicker } from "@/components/common/DpDatePicker";
 import { CalendarIcon } from "@/components/icons";
 import {
-  usePaymentRows,
   useGiroPayments,
   type PaymentRow,
 } from "@/hooks/reactquery/payments";
@@ -15,9 +14,9 @@ import { ComplaintDialog } from "../ComplaintDialog";
 
 interface GiroLedgerModalProps {
   open: boolean;
-  buildingId: number;
-  buildingName: string;
+  buildingId: number | null;
   period: string;
+  rows: (PaymentRow & { buildingName?: string | null })[];
   onClose: () => void;
 }
 
@@ -44,6 +43,7 @@ interface LedgerRow {
   amount: number;
   charged: number;
   customerNo: string;
+  buildingName: string | null;
   isDup: boolean;
   matched: boolean;
 }
@@ -51,33 +51,32 @@ interface LedgerRow {
 export function GiroLedgerModal({
   open,
   buildingId,
-  buildingName,
   period,
+  rows,
   onClose,
 }: GiroLedgerModalProps) {
   const { data: giro = [], isLoading } = useGiroPayments(buildingId, period);
-  const { data: paymentRows = [] } = usePaymentRows(buildingId, period);
   const initialRange = monthRange(period);
   const [from, setFrom] = useState(initialRange.from);
   const [to, setTo] = useState(initialRange.to);
   const [errorFilter, setErrorFilter] = useState<ErrorFilter>("all");
 
   const unitMap = useMemo(() => {
-    const map = new Map<string, PaymentRow>();
-    for (const row of paymentRows) map.set(`${row.dong ?? ""}|${row.unitNo}`, row);
+    const map = new Map<number, (PaymentRow & { buildingName?: string | null })>();
+    for (const row of rows) map.set(row.unitId, row);
     return map;
-  }, [paymentRows]);
+  }, [rows]);
 
   const enriched = useMemo<LedgerRow[]>(() => {
     const active = giro.filter((row) => row.status === "active");
     const dupCount = new Map<string, number>();
     for (const row of active) {
-      const key = `${row.dong ?? ""}|${row.unitNo}|${row.amount}|${dateOnly(row.paidAt)}`;
+      const key = `${row.unitId}|${row.amount}|${dateOnly(row.paidAt)}`;
       dupCount.set(key, (dupCount.get(key) ?? 0) + 1);
     }
     return active.map((row, index) => {
-      const info = unitMap.get(`${row.dong ?? ""}|${row.unitNo}`);
-      const dupKey = `${row.dong ?? ""}|${row.unitNo}|${row.amount}|${dateOnly(row.paidAt)}`;
+      const info = unitMap.get(row.unitId);
+      const dupKey = `${row.unitId}|${row.amount}|${dateOnly(row.paidAt)}`;
       return {
         id: row.id,
         giroDate: dateOnly(row.paidAt),
@@ -86,6 +85,7 @@ export function GiroLedgerModal({
         amount: row.amount,
         charged: info?.charged ?? row.amount,
         customerNo: info?.payerNo ?? "-",
+        buildingName: row.buildingName || info?.buildingName || null,
         isDup: (dupCount.get(dupKey) ?? 0) > 1,
         matched: Boolean(info),
       };
@@ -235,7 +235,6 @@ export function GiroLedgerModal({
                     .slice(0, groupIndex)
                     .reduce((sum, item) => sum + item.rows.length, 0)}
                   yearMonth={yearMonth}
-                  buildingName={buildingName}
                 />
               ))}
             </tbody>
@@ -252,14 +251,12 @@ function GiroDateGroup({
   sub,
   startNo,
   yearMonth,
-  buildingName,
 }: {
   date: string;
   rows: LedgerRow[];
   sub: { amount: number };
   startNo: number;
   yearMonth: string;
-  buildingName: string;
 }) {
   return (
     <>
@@ -270,7 +267,7 @@ function GiroDateGroup({
           {/* 수납일: 서버에서 지로일자/수납일 분리 전까지 동일 표기(TODO backend). */}
           <td className="whitespace-nowrap px-2 py-1.5">{slashDate(row.giroDate)}</td>
           <td className="px-2 py-1.5">{row.code}</td>
-          <td className="whitespace-nowrap px-2 py-1.5 text-t1">{buildingName}</td>
+          <td className="whitespace-nowrap px-2 py-1.5 text-t1">{row.buildingName ?? "-"}</td>
           <td className="whitespace-nowrap px-2 py-1.5">{row.unitLabel}</td>
           <td className="whitespace-nowrap px-2 py-1.5">{yearMonth}</td>
           <td className="num px-2 py-1.5 text-right text-t1">{formatNumber(row.amount)}</td>
