@@ -17,10 +17,12 @@ const SIZES = {
   legacy: "h-11 rounded-xl px-4 text-sm",
 } as const;
 
+export type InputSize = keyof typeof SIZES;
+
 // ComponentPropsWithRef라서 ref가 그대로 내려간다(React 19에서 ref는 일반 prop이다).
 // PhoneInput처럼 커서를 직접 다뤄야 하는 래퍼가 이걸 쓴다.
 type InputProps = Omit<React.ComponentPropsWithRef<"input">, "size"> & {
-  size?: keyof typeof SIZES;
+  size?: InputSize;
 };
 
 /**
@@ -41,9 +43,11 @@ function dropOverridden(defaults: string, className: string): string {
     .join(" ");
 }
 
-export function Input({ className = "", size = "legacy", ...props }: InputProps) {
+export function inputClassName(size: InputSize = "legacy", className = ""): string {
   const defaults = `${SIZES[size]} w-full border border-line bg-surface text-t1 placeholder:text-t4 focus:border-brand focus:outline-none disabled:opacity-70`;
-  return (
-    <input className={`${dropOverridden(defaults, className)} ${className}`} {...props} />
-  );
+  return `${dropOverridden(defaults, className)} ${className}`;
+}
+
+export function Input({ className = "", size = "legacy", ...props }: InputProps) {
+  return <input className={inputClassName(size, className)} {...props} />;
 }

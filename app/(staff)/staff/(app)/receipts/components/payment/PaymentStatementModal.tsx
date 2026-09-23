@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { Button, Checkbox, Select, Spinner } from "@/components/common";
+import { DpMonthPicker } from "@/components/common/DpMonthPicker";
+import { CalendarIcon } from "@/components/icons";
 import type { Building } from "@/hooks/reactquery/buildings";
 import {
   type PaymentRow,
@@ -21,6 +23,9 @@ import {
   type PaymentStatementRow,
   type PaymentStatementUtility,
 } from "./PaymentStatementPrintView";
+
+const PAYMENT_STATEMENT_MONTH_TRIGGER_CLASS_NAME =
+  "h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm text-t1 flex items-center gap-2 text-left cursor-pointer outline-none focus:border-brand";
 
 interface PaymentStatementModalProps {
   building: Building;
@@ -262,24 +267,28 @@ export function PaymentStatementModal({
               <div className="grid grid-cols-2 gap-3">
                 <label className="space-y-1.5 text-xs font-bold text-t2">
                   시작월
-                  <input
-                    type="month"
-                    aria-label="명세서 시작월"
+                  <DpMonthPicker
+                    ariaLabel="명세서 시작월"
                     value={startMonth}
-                    max={endMonth}
-                    onChange={(event) => changeStartMonth(event.target.value)}
-                    className="h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm text-t1 focus:border-brand focus:outline-none"
+                    maxMonth={endMonth}
+                    onChange={changeStartMonth}
+                    className="w-full"
+                    triggerClassName={PAYMENT_STATEMENT_MONTH_TRIGGER_CLASS_NAME}
+                    triggerOpenClassName="border-brand"
+                    endAdornment={<CalendarIcon className="ml-auto size-4 shrink-0 text-t3" aria-hidden="true" />}
                   />
                 </label>
                 <label className="space-y-1.5 text-xs font-bold text-t2">
                   종료월
-                  <input
-                    type="month"
-                    aria-label="명세서 종료월"
+                  <DpMonthPicker
+                    ariaLabel="명세서 종료월"
                     value={endMonth}
-                    min={startMonth}
-                    onChange={(event) => changeEndMonth(event.target.value)}
-                    className="h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm text-t1 focus:border-brand focus:outline-none"
+                    minMonth={startMonth}
+                    onChange={changeEndMonth}
+                    className="w-full"
+                    triggerClassName={PAYMENT_STATEMENT_MONTH_TRIGGER_CLASS_NAME}
+                    triggerOpenClassName="border-brand"
+                    endAdornment={<CalendarIcon className="ml-auto size-4 shrink-0 text-t3" aria-hidden="true" />}
                   />
                 </label>
               </div>

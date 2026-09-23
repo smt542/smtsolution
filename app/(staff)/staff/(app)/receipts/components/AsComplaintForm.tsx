@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useId, useMemo, useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, Input, PhoneInput, Select, Spinner, Textarea } from "@/components/common";
+import { DateInput, TimeInput } from "@/components/common/DateInput";
 import { FormField } from "@/components/common/FormField";
 import { setSubmissionError } from "@/components/forms/formErrors";
 import {
@@ -237,7 +238,18 @@ export function AsComplaintForm({
           <Select id={`${formId}-assignee`} aria-label="담당자" {...register("assignedTo")} options={[{ value: "", label: "담당자 선택" }, ...assignees.map((account) => ({ value: account.userId, label: account.affiliation ? `${account.fullName} · ${account.affiliation}` : account.fullName }))]} />
         </FormField>
         <FormField htmlFor={`${formId}-received`} label={<>접수일시 <span className="text-red">*</span></>} error={errors.receivedDate?.message} className="space-y-2 text-sm font-bold text-t2">
-          <Input id={`${formId}-received`} aria-label="접수일시" type="date" {...register("receivedDate")} />
+          <Controller
+            name="receivedDate"
+            control={control}
+            render={({ field }) => (
+              <DateInput
+                id={`${formId}-received`}
+                ariaLabel="접수일시"
+                value={field.value ?? ""}
+                onChange={field.onChange}
+              />
+            )}
+          />
         </FormField>
         <FormField htmlFor={`${formId}-category`} label={<>유형 <span className="text-red">*</span></>} error={errors.categoryId?.message} className="space-y-2 text-sm font-bold text-t2">
           <Select id={`${formId}-category`} aria-label="유형" {...register("categoryId")} options={[{ value: "", label: "유형 선택" }, ...categories.map((category) => ({ value: String(category.id), label: category.label }))]} />
@@ -252,10 +264,32 @@ export function AsComplaintForm({
           <Select id={`${formId}-status`} aria-label="처리결과" {...register("status")} options={[{ value: "", label: "결과 선택" }, ...COMPLAINT_STATUS_OPTIONS]} />
         </FormField>
         <FormField htmlFor={`${formId}-resolved-date`} label="시행일자" error={errors.resolvedDate?.message} className="space-y-2 text-sm font-bold text-t2">
-          <Input id={`${formId}-resolved-date`} aria-label="시행일자" type="date" {...register("resolvedDate")} />
+          <Controller
+            name="resolvedDate"
+            control={control}
+            render={({ field }) => (
+              <DateInput
+                id={`${formId}-resolved-date`}
+                ariaLabel="시행일자"
+                value={field.value ?? ""}
+                onChange={field.onChange}
+              />
+            )}
+          />
         </FormField>
         <FormField htmlFor={`${formId}-resolved-time`} label="시간" error={errors.resolvedTime?.message} className="space-y-2 text-sm font-bold text-t2">
-          <Input id={`${formId}-resolved-time`} aria-label="시간" type="time" {...register("resolvedTime")} />
+          <Controller
+            name="resolvedTime"
+            control={control}
+            render={({ field }) => (
+              <TimeInput
+                id={`${formId}-resolved-time`}
+                ariaLabel="시간"
+                value={field.value ?? ""}
+                onChange={field.onChange}
+              />
+            )}
+          />
         </FormField>
         <FormField htmlFor={`${formId}-result`} label="처리결과 내용" error={errors.resultContent?.message} className="space-y-2 text-sm font-bold text-t2 sm:col-span-3">
           <Textarea id={`${formId}-result`} aria-label="처리결과 내용" {...register("resultContent")} rows={3} placeholder="처리결과 내용을 입력해 주세요" className="resize-y" />

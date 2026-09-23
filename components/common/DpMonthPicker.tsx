@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 interface DpMonthPickerProps {
+  id?: string;
   value: string; // "YYYY-MM" | ""
   onChange: (value: string) => void;
   placeholder?: string;
@@ -23,6 +24,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
 const toDisplay = (value: string) => (value ? value.replaceAll("-", ".") : "");
 
 export function DpMonthPicker({
+  id,
   value,
   onChange,
   placeholder = "월",
@@ -104,6 +106,7 @@ export function DpMonthPicker({
     <div className={`relative inline-flex${className ? ` ${className}` : ""}`}>
       <button
         ref={ctlRef}
+        id={id}
         type="button"
         aria-label={ariaLabel}
         aria-expanded={open}
