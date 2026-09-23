@@ -51,7 +51,7 @@ export function PreviewPane({
             aria-label="이전 페이지"
             onClick={onPrev}
             disabled={!hasContent || page <= 1}
-            className="flex h-[26px] w-[26px] items-center justify-center rounded-[8px] border border-line bg-white text-t2 disabled:opacity-40"
+            className="flex h-[26px] w-[26px] items-center justify-center rounded-[8px] border border-line bg-white text-t2 enabled:hover:border-teal enabled:hover:bg-bg enabled:hover:text-teal disabled:opacity-40"
           >
             ‹
           </button>
@@ -63,7 +63,7 @@ export function PreviewPane({
             aria-label="다음 페이지"
             onClick={onNext}
             disabled={!hasContent || page >= count}
-            className="flex h-[26px] w-[26px] items-center justify-center rounded-[8px] border border-line bg-white text-t2 disabled:opacity-40"
+            className="flex h-[26px] w-[26px] items-center justify-center rounded-[8px] border border-line bg-white text-t2 enabled:hover:border-teal enabled:hover:bg-bg enabled:hover:text-teal disabled:opacity-40"
           >
             ›
           </button>
@@ -74,7 +74,7 @@ export function PreviewPane({
           type="button"
           onClick={onAction}
           disabled={actionDisabled}
-          className="inline-flex items-center gap-[5px] disabled:opacity-40"
+          className="inline-flex items-center gap-[5px] enabled:hover:border-teal enabled:hover:bg-teal-t enabled:hover:text-teal disabled:opacity-40"
         >
           <PrinterIcon className="h-[13px] w-[13px]" />
           {actionLabel}

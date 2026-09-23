@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronDownIcon, CloseIcon, PrinterIcon, UnitCardIcon } from "@/components/icons";
-import { Button } from "@/components/common";
+import { CloseIcon, PrinterIcon, UnitCardIcon } from "@/components/icons";
+import { Button, CustomDropdown } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useBillDocuments, useBillOrganizationName, useBillTargets } from "@/hooks/reactquery/bill";
@@ -14,9 +14,20 @@ import { PreviewPane } from "./tenant-output/PreviewPane";
 import { TenantCardDocument } from "./tenant-output/TenantCardDocument";
 import { buildChargeStatement, paginate } from "./tenant-output/statement";
 
-const YEARS = Array.from({ length: 8 }, (_, index) => 2019 + index);
-const MONTHS = Array.from({ length: 12 }, (_, index) => index + 1);
+const YEAR_OPTIONS = Array.from({ length: 8 }, (_, index) => ({ value: String(2019 + index), label: `${2019 + index}년` }));
+const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => ({ value: String(index + 1), label: `${index + 1}월` }));
 const UNITS_PER_PAGE = 14;
+
+// 정본 `.pm-dd` 드롭다운. 트리거는 hover 효과 없이 열렸을 때만 청록 테두리, 옵션은 hover 시 --bg·선택 시
+// --blue 글자+--blue-t 배경이고 체크표시가 없다. 공용 CustomDropdown 기본값은 여기서만 덮는다.
+const PERIOD_DROPDOWN = [
+  "[&_.uc-dd-btn]:h-[34px] [&_.uc-dd-btn]:gap-[8px] [&_.uc-dd-btn]:px-[12px] [&_.uc-dd-btn]:tracking-normal",
+  "[&_.uc-dd-btn]:shadow-none [&_.uc-dd-btn]:transition-none [&_.uc-dd-btn]:hover:border-line [&_.uc-dd-btn]:hover:shadow-none",
+  "[&_.uc-dd.open_.uc-dd-btn]:border-teal",
+  "[&_.uc-dd-btn_svg]:h-[13px] [&_.uc-dd-btn_svg]:w-[13px] [&_.uc-dd-btn_svg]:text-t3 [&_.uc-dd-btn_svg]:transition-transform [&_.uc-dd-btn_svg]:duration-150 [&_.uc-dd.open_.uc-dd-btn_svg]:rotate-180",
+  "[&_.uc-dd-menu]:top-[calc(100%_+_5px)] [&_.uc-dd-menu]:right-auto [&_.uc-dd-menu]:left-0 [&_.uc-dd-menu]:z-[90] [&_.uc-dd-menu]:max-h-[240px] [&_.uc-dd-menu]:shadow-[0_14px_34px_-10px_rgba(23,31,40,0.28)]",
+  "[&_.uc-opt]:px-[11px] [&_.uc-opt]:py-[9px] [&_.uc-opt]:transition-none [&_.uc-opt_svg]:hidden [&_.uc-opt.on]:text-teal",
+].join(" ");
 
 type PrintScope = "both" | "card" | "statement";
 
@@ -140,31 +151,21 @@ export function TenantOutputModal({
             <div className="flex min-w-0 flex-1 flex-col bg-bg">
               <div className="flex shrink-0 items-center gap-[8px] border-b border-line bg-surface px-[18px] py-[11px]">
                 <span className="pr-[2px] text-[12.5px] font-bold text-t3">출력 기준</span>
-                <div className="relative">
-                  <select
-                    aria-label="출력 연도"
-                    value={year}
-                    onChange={(event) => setYear(Number(event.target.value))}
-                    className="h-[34px] appearance-none rounded-[9px] border border-line bg-surface pl-[12px] pr-[30px] text-[13px] font-bold text-t1 focus:border-brand focus:outline-none"
-                  >
-                    {YEARS.map((value) => (
-                      <option key={value} value={value}>{value}년</option>
-                    ))}
-                  </select>
-                  <ChevronDownIcon className="pointer-events-none absolute right-[10px] top-1/2 h-[13px] w-[13px] -translate-y-1/2 text-t3" />
+                <div className={PERIOD_DROPDOWN}>
+                  <CustomDropdown
+                    ariaLabel="출력 연도"
+                    value={String(year)}
+                    options={YEAR_OPTIONS}
+                    onChange={(value) => setYear(Number(value))}
+                  />
                 </div>
-                <div className="relative">
-                  <select
-                    aria-label="출력 월분"
-                    value={month}
-                    onChange={(event) => setMonth(Number(event.target.value))}
-                    className="h-[34px] appearance-none rounded-[9px] border border-line bg-surface pl-[12px] pr-[30px] text-[13px] font-bold text-t1 focus:border-brand focus:outline-none"
-                  >
-                    {MONTHS.map((value) => (
-                      <option key={value} value={value}>{value}월</option>
-                    ))}
-                  </select>
-                  <ChevronDownIcon className="pointer-events-none absolute right-[10px] top-1/2 h-[13px] w-[13px] -translate-y-1/2 text-t3" />
+                <div className={PERIOD_DROPDOWN}>
+                  <CustomDropdown
+                    ariaLabel="출력 월분"
+                    value={String(month)}
+                    options={MONTH_OPTIONS}
+                    onChange={(value) => setMonth(Number(value))}
+                  />
                 </div>
               </div>
 

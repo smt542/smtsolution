@@ -56,17 +56,21 @@ export function BuildingPickerList({
                 key={building.id}
                 onClick={() => onSelect(building.id)}
                 aria-pressed={active}
-                className={`flex w-full flex-col items-start rounded-[12px] border px-[14px] py-[12px] text-left transition ${
-                  active
-                    ? "border-line bg-white shadow-[0_1px_3px_rgba(23,31,40,0.08)]"
-                    : "border-transparent hover:bg-white/70"
+                className={`flex w-full flex-col items-start rounded-[12px] border px-[14px] py-[12px] text-left transition duration-100 ${
+                  active ? "border-teal bg-teal-t" : "border-transparent hover:border-line hover:bg-white"
                 }`}
               >
                 <span className="flex items-center gap-[8px]">
-                  <span className="rounded-[6px] border border-line bg-white px-[7px] py-px text-[11px] font-bold text-t3">
+                  <span
+                    className={`rounded-[6px] border bg-white px-[7px] py-px text-[11px] font-bold text-t3 ${
+                      active ? "border-teal-t" : "border-line"
+                    }`}
+                  >
                     {building.code}
                   </span>
-                  <span className="text-[14px] font-extrabold tracking-[-0.14px] text-t1">{building.name}</span>
+                  <span className={`text-[14px] font-extrabold tracking-[-0.14px] ${active ? "text-teal-d" : "text-t1"}`}>
+                    {building.name}
+                  </span>
                 </span>
                 <span className="pt-[5px] text-[12px] leading-[16.8px] text-t3">{building.address ?? "-"}</span>
               </button>
