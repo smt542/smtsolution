@@ -22,7 +22,8 @@ export interface UnitPayment {
   memo: string | null; paidAt: string; status: "active" | "canceled"; createdAt: string;
 }
 export interface GiroPayment {
-  id: number; unitNo: string; dong: string | null; tenantName: string | null;
+  id: number; unitId: number; buildingId: number; buildingName: string;
+  unitNo: string; dong: string | null; tenantName: string | null;
   amount: number; paidAt: string; status: "active" | "canceled"; memo: string | null;
 }
 export interface BankPaymentEntry { unitId: number; amount: number; paidAt: string | null; memo?: string | null; }
@@ -40,7 +41,8 @@ type UnitPaymentDb = {
   memo: string | null; paid_at: string; status: "active" | "canceled"; created_at: string;
 };
 type GiroPaymentDb = {
-  id: number; unit_no: string; dong: string | null; tenant_name: string | null;
+  id: number; unit_id: number; unit_no: string; dong: string | null;
+  building_id: number; building_name: string; tenant_name: string | null;
   amount: number; paid_at: string; status: "active" | "canceled"; memo: string | null;
 };
 
@@ -150,17 +152,18 @@ export async function listBuildingPaymentDates(
   }));
 }
 
-export async function listGiroPayments(buildingId: number, period: string): Promise<GiroPayment[]> {
+export async function listGiroPayments(buildingId: number | null, period: string): Promise<GiroPayment[]> {
   const { data, error } = await createClient().rpc("list_giro_payments", { p_building_id: buildingId, p_period: period });
   if (error) throw new Error(error.message);
   return ((data ?? []) as GiroPaymentDb[]).map((r) => ({
-    id: r.id, unitNo: r.unit_no, dong: r.dong, tenantName: r.tenant_name,
+    id: r.id, unitId: r.unit_id, buildingId: r.building_id, buildingName: r.building_name,
+    unitNo: r.unit_no, dong: r.dong, tenantName: r.tenant_name,
     amount: r.amount, paidAt: r.paid_at, status: r.status, memo: r.memo,
   }));
 }
 
 export async function recordBankPayments(
-  buildingId: number, period: string, entries: BankPaymentEntry[],
+  buildingId: number | null, period: string, entries: BankPaymentEntry[],
 ): Promise<{ recorded: number; skipped: number; duplicate: number }> {
   const { data, error } = await createClient().rpc("record_bank_payments", {
     p_building_id: buildingId, p_period: period,
@@ -172,7 +175,7 @@ export async function recordBankPayments(
   return { recorded: r.recorded, skipped: r.skipped, duplicate: r.duplicate ?? 0 };
 }
 
-export async function listBankPayments(buildingId: number, period: string): Promise<BankPaymentRef[]> {
+export async function listBankPayments(buildingId: number | null, period: string): Promise<BankPaymentRef[]> {
   const { data, error } = await createClient().rpc("list_bank_payments", { p_building_id: buildingId, p_period: period });
   if (error) throw new Error(error.message);
   return ((data ?? []) as { unit_id: number; amount: number; paid_at: string }[])

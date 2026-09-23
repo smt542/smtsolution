@@ -29,17 +29,19 @@ export function usePaymentReceiver(paymentId: number | null) {
     enabled: paymentId !== null,
   });
 }
+/** buildingId가 null이면 선택된 건물과 무관하게 조직 전체를 조회한다. */
 export function useBankPayments(buildingId: number | null, period: string) {
   return useQuery({
-    queryKey: paymentKeys.bank(buildingId ?? 0, period),
-    queryFn: () => listBankPayments(buildingId as number, period),
-    enabled: buildingId !== null && Boolean(period),
+    queryKey: paymentKeys.bank(buildingId, period),
+    queryFn: () => listBankPayments(buildingId, period),
+    enabled: Boolean(period),
   });
 }
+/** buildingId가 null이면 선택된 건물과 무관하게 조직 전체를 조회한다. */
 export function useGiroPayments(buildingId: number | null, period: string) {
   return useQuery({
-    queryKey: paymentKeys.giro(buildingId ?? 0, period),
-    queryFn: () => listGiroPayments(buildingId as number, period),
-    enabled: buildingId !== null && Boolean(period),
+    queryKey: paymentKeys.giro(buildingId, period),
+    queryFn: () => listGiroPayments(buildingId, period),
+    enabled: Boolean(period),
   });
 }

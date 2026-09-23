@@ -9,7 +9,6 @@ import { FileDropzone } from "./FileDropzone";
 
 interface GiroUploadModalProps {
   open: boolean;
-  buildingId: number;
   period: string;
   onClose: () => void;
 }
@@ -19,8 +18,7 @@ interface GiroUploadModalProps {
  * 현재는 프론트 재현 단계: 파일을 읽어 행 수를 확인하고 안내한다.
  * TODO(backend): 지로 TXT 파싱·수납 반영 RPC 연동은 후속 작업.
  */
-export function GiroUploadModal({ open, buildingId, period, onClose }: GiroUploadModalProps) {
-  void buildingId;
+export function GiroUploadModal({ open, period, onClose }: GiroUploadModalProps) {
   void period;
   const [file, setFile] = useState<File | null>(null);
   const processFileAction = useAsyncAction();

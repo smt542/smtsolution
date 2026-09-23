@@ -1,6 +1,14 @@
 import type { Deposit } from "./bankParse";
 
-export interface MatchUnit { unitId: number; unitNo: string; payerNo: string | null; payerName: string | null; tenantName: string | null; unpaid: number | null; }
+export interface MatchUnit {
+  unitId: number;
+  unitNo: string;
+  payerNo: string | null;
+  payerName: string | null;
+  tenantName: string | null;
+  unpaid: number | null;
+  buildingName?: string | null;
+}
 export interface MatchedDeposit {
   deposit: Deposit; unitId: number; unitNo: string; unpaid: number | null; delta: number | null;
   /** 입금액이 미납액을 초과하는가(초과분은 자동 수납 금지 → 수동 검토). unpaid=null이면 판정 불가로 false. */
@@ -37,8 +45,21 @@ function normalizeNameWithoutDigits(s: string): string {
 }
 
 export function matchDeposits(deposits: Deposit[], units: MatchUnit[]): MatchResult {
-  const byPayerNo = new Map<string, MatchUnit>();
-  for (const u of units) if (u.payerNo) byPayerNo.set(u.payerNo.trim(), u);
+  const byPayerNo = new Map<string, MatchUnit[]>();
+  for (const unit of units) {
+    if (!unit.payerNo) continue;
+    const key = unit.payerNo.trim();
+    const matches = byPayerNo.get(key) ?? [];
+    if (!matches.some((match) => match.unitId === unit.unitId)) matches.push(unit);
+    byPayerNo.set(key, matches);
+  }
+  const normalizedUnits = units.map((unit) => ({
+    unit,
+    payerName: unit.payerName ? normalizeName(unit.payerName) : null,
+    tenantName: unit.tenantName ? normalizeName(unit.tenantName) : null,
+    payerNameWithoutDigits: unit.payerName ? normalizeNameWithoutDigits(unit.payerName) : null,
+    tenantNameWithoutDigits: unit.tenantName ? normalizeNameWithoutDigits(unit.tenantName) : null,
+  }));
 
   const matched: MatchedDeposit[] = [];
   const ambiguous: AmbiguousDeposit[] = [];
@@ -48,13 +69,16 @@ export function matchDeposits(deposits: Deposit[], units: MatchUnit[]): MatchRes
     let hit: MatchUnit | undefined;
     // 복수 일치 시 자동 확정하지 않고 수동 선택 대상으로 넘길 후보 목록.
     let candidates: MatchUnit[] = [];
-    if (d.customerNo && byPayerNo.has(d.customerNo.trim())) {
-      hit = byPayerNo.get(d.customerNo.trim());
+    const payerMatches = d.customerNo ? byPayerNo.get(d.customerNo.trim()) : undefined;
+    if (payerMatches?.length === 1) {
+      hit = payerMatches[0];
+    } else if (payerMatches && payerMatches.length > 1) {
+      candidates = payerMatches;
     } else if (d.name) {
       const key = normalizeName(d.name);
-      const exactCandidates = units.filter(
-        (u) => (u.payerName && normalizeName(u.payerName) === key) || (u.tenantName && normalizeName(u.tenantName) === key),
-      );
+      const exactCandidates = normalizedUnits
+        .filter((item) => item.payerName === key || item.tenantName === key)
+        .map((item) => item.unit);
       if (exactCandidates.length === 1) {
         hit = exactCandidates[0];
       } else if (exactCandidates.length > 1) {
@@ -62,10 +86,12 @@ export function matchDeposits(deposits: Deposit[], units: MatchUnit[]): MatchRes
       } else {
         const digitlessKey = normalizeNameWithoutDigits(d.name);
         const fallbackCandidates = digitlessKey
-          ? units.filter(
-              (u) => (u.payerName && normalizeNameWithoutDigits(u.payerName) === digitlessKey)
-                || (u.tenantName && normalizeNameWithoutDigits(u.tenantName) === digitlessKey),
+          ? normalizedUnits
+            .filter(
+              (item) => item.payerNameWithoutDigits === digitlessKey
+                || item.tenantNameWithoutDigits === digitlessKey,
             )
+            .map((item) => item.unit)
           : [];
         if (fallbackCandidates.length === 1) hit = fallbackCandidates[0];
         else if (fallbackCandidates.length > 1) candidates = fallbackCandidates;
