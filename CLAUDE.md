@@ -8,6 +8,7 @@
 
 - `app/(staff)/staff/(app)/`: 관리사무소 직원용 내부 화면. 건물, 입주자, 고지서, 수납, 메시지 등 업무 기능이 위치한다.
 - `app/(resident)/resident/(app)/`: 입주민용 모바일 화면. 홈, 고지서, 공지, 내 정보, 알림 등이 위치한다.
+- `app/(resident)/share/`: 로그인 없이 여는 공개 공유 링크(공지·정산·고지서). proxy matcher 밖이라 인증을 거치지 않는다.
 - `app/(partner)/partner/(app)/`: 협력업체·현장 담당자용 화면. 건물, 세대, 검침, AS, 이사정산 등이 위치한다.
 - `app/(platform-admin)/platform-admin/(app)/`: 플랫폼 운영자용 화면. 계정, 조직, 포인트, 청구, 플랫폼 설정 등이 위치한다.
 

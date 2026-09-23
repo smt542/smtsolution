@@ -47,8 +47,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
   // 세입자앱 서버측 가드(클라 useResidentGuard와 동일 정책의 심층방어).
-  // /resident/login·/resident/privacy·/resident/terms만 공개. 공개 토큰
-  // 상세(/r/*)는 이 matcher 밖이라 영향 없음.
+  // /resident/login·/resident/privacy·/resident/terms만 공개. 공개 공유
+  // 링크(/share/*)는 이 matcher 밖이라 영향 없음.
   if (isResident && !isResidentPublic && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/resident/login";

@@ -131,7 +131,7 @@ export function BuildingDirectoryCard({
                       onClick={() => onSelect(b)}
                       aria-selected={selected}
                       className={`cursor-pointer border-b border-line2 last:border-0 ${
-                        selected ? "bg-blue-t2" : "hover:bg-bg"
+                        selected ? "bg-blue-t2" : "hover:bg-[#fbfcfd]"
                       }`}
                     >
                       {columns.map((col) =>

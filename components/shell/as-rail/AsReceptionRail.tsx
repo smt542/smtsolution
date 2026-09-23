@@ -37,11 +37,12 @@ export function AsReceptionRail() {
   return (
     <aside
       aria-label="A/S 접수·퇴실 신청 현황"
-      className="hidden print:hidden lg:block"
+      className="print:hidden"
     >
+      {/* 좁은 화면에서도 핸들(30px)이 화면 안에 남도록 패널 폭을 100vw-30px로 제한하고, 핸들 위치도 같은 값을 따른다. */}
       <button
         type="button"
-        className={`fixed top-1/2 -translate-y-1/2 z-[45] w-[30px] h-[70px] rounded-[12px_0_0_12px] bg-white border border-line border-r-0 flex items-center justify-center cursor-pointer text-t2 shadow-[-6px_0_16px_-8px_rgba(23,31,40,0.25)] transition-[right] duration-[180ms] [transition-timing-function:ease] hover:bg-bg hover:text-blue ${open ? "right-[404px]" : "right-0"}`}
+        className={`fixed top-1/2 -translate-y-1/2 z-[45] w-[30px] h-[70px] rounded-[12px_0_0_12px] bg-white border border-line border-r-0 flex items-center justify-center cursor-pointer text-t2 shadow-[-6px_0_16px_-8px_rgba(23,31,40,0.25)] transition-[right] duration-[180ms] [transition-timing-function:ease] hover:bg-bg hover:text-blue ${open ? "right-[min(404px,calc(100vw-30px))]" : "right-0"}`}
         title="A/S 접수 현황"
         aria-label={open ? "A/S 접수 현황 닫기" : "A/S 접수 현황 열기"}
         aria-expanded={open}
@@ -63,7 +64,7 @@ export function AsReceptionRail() {
         </svg>
       </button>
       <div
-        className={`fixed top-0 right-0 h-screen w-[404px] z-[45] bg-white border-l border-line flex flex-col overflow-hidden transition-transform duration-[180ms] [transition-timing-function:ease] ${open ? "translate-x-0 shadow-[-14px_0_36px_-18px_rgba(23,31,40,0.3)]" : "translate-x-full shadow-none"}`}
+        className={`fixed top-0 right-0 h-screen w-[404px] max-w-[calc(100vw-30px)] z-[45] bg-white border-l border-line flex flex-col overflow-hidden transition-transform duration-[180ms] [transition-timing-function:ease] ${open ? "translate-x-0 shadow-[-14px_0_36px_-18px_rgba(23,31,40,0.3)]" : "translate-x-full shadow-none"}`}
         data-testid="as-rail-panel"
       >
         <div className="h-[62px] flex-none flex items-center gap-2 px-[18px] border-b border-line">

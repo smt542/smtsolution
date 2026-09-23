@@ -103,7 +103,7 @@ export function useNoticeMessaging(
     }
     try {
       const token = await mintShareToken.mutateAsync(notice.id);
-      const detailLink = `${residentOrigin()}/r/notice/${token}`;
+      const detailLink = `${residentOrigin()}/share/notice/${token}`;
       setRecipients(nextRecipients.map((recipient) => ({
         ...recipient,
         variables: {

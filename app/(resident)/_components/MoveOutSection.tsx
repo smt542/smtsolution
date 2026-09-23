@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import ResidentBottomSheet from "@/app/(resident)/_components/ResidentBottomSheet";
+import { DpDatePicker } from "@/components/common/DpDatePicker";
 import { setSubmissionError } from "@/components/forms/formErrors";
+import { CalendarIcon } from "@/components/icons";
 import {
   moveOutCreateSchema,
   moveOutUpdateSchema,
@@ -172,12 +174,23 @@ export default function MoveOutSection({ open, onClose }: MoveOutSectionProps) {
           ) : null}
           <label>
             <span>희망 퇴실일 <em>필수</em></span>
-            <input
-              id="move-out-desired-date"
-              type="date"
-              {...createForm.register("desiredDate")}
-              aria-invalid={Boolean(createForm.formState.errors.desiredDate)}
-              aria-describedby={createForm.formState.errors.desiredDate ? "move-out-desired-date-error" : undefined}
+            <Controller
+              name="desiredDate"
+              control={createForm.control}
+              render={({ field }) => (
+                <DpDatePicker
+                  id="move-out-desired-date"
+                  ariaLabel="희망 퇴실일"
+                  ariaDescribedBy={createForm.formState.errors.desiredDate ? "move-out-desired-date-error" : undefined}
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  placeholder="날짜 선택"
+                  className={styles.datePickerRoot}
+                  triggerClassName={styles.datePicker}
+                  triggerOpenClassName={styles.datePickerOpen}
+                  endAdornment={<CalendarIcon className="ml-auto size-4 shrink-0 text-t3" aria-hidden="true" />}
+                />
+              )}
             />
             {createForm.formState.errors.desiredDate?.message && (
               <small id="move-out-desired-date-error" className={styles.error}>{createForm.formState.errors.desiredDate.message}</small>
@@ -226,12 +239,23 @@ export default function MoveOutSection({ open, onClose }: MoveOutSectionProps) {
             <form className={styles.editForm} onSubmit={updateForm.handleSubmit(updateRequest)} noValidate>
               <label>
                 <span>새 희망 퇴실일</span>
-                <input
-                  id="move-out-edit-date"
-                  type="date"
-                  {...updateForm.register("desiredDate")}
-                  aria-invalid={Boolean(updateForm.formState.errors.desiredDate)}
-                  aria-describedby={updateForm.formState.errors.desiredDate ? "move-out-edit-date-error" : undefined}
+                <Controller
+                  name="desiredDate"
+                  control={updateForm.control}
+                  render={({ field }) => (
+                    <DpDatePicker
+                      id="move-out-edit-date"
+                      ariaLabel="새 희망 퇴실일"
+                      ariaDescribedBy={updateForm.formState.errors.desiredDate ? "move-out-edit-date-error" : undefined}
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      placeholder="날짜 선택"
+                      className={styles.datePickerRoot}
+                      triggerClassName={styles.datePicker}
+                      triggerOpenClassName={styles.datePickerOpen}
+                      endAdornment={<CalendarIcon className="ml-auto size-4 shrink-0 text-t3" aria-hidden="true" />}
+                    />
+                  )}
                 />
                 {updateForm.formState.errors.desiredDate?.message && (
                   <small id="move-out-edit-date-error" className={styles.error}>{updateForm.formState.errors.desiredDate.message}</small>

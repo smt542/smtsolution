@@ -3,6 +3,7 @@
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, Checkbox, Panel, Select, Textarea } from "@/components/common";
+import { DateInput, joinDateTimeLocal, splitDateTimeLocal, TimeInput } from "@/components/common/DateInput";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { useAccounts, type Account } from "@/hooks/reactquery/accounts";
 import { useBuildings, type Building } from "@/hooks/reactquery/buildings";
@@ -374,6 +375,7 @@ export function MessagingComposer({
   const [scheduledAt, setScheduledAt] = useState(() =>
     toLocalDateTimeInput(preset?.scheduledAt),
   );
+  const { date: scheduledDate, time: scheduledTime } = splitDateTimeLocal(scheduledAt);
 
   const { data: buildings = [], isLoading: isBuildingsLoading } = useBuildings();
   const { data: tenants = [], isLoading: isTenantsLoading } =
@@ -835,16 +837,22 @@ export function MessagingComposer({
             />
           </label>
           {sendTiming === "scheduled" && (
-            <label>
+            // 날짜·시간 두 칸이 반 칸(약 150px)에 들어가지 않아 다음 줄 전체 폭을 쓴다
+            <div className="sm:col-span-2">
               <span className="mb-1.5 block text-xs font-bold text-t2">예약 발송 일시</span>
-              <input
-                type="datetime-local"
-                aria-label="예약 발송 일시"
-                value={scheduledAt}
-                onChange={(event) => setScheduledAt(event.target.value)}
-                className="h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm text-t1 focus:border-brand focus:outline-none"
-              />
-            </label>
+              <div className="grid grid-cols-2 gap-2">
+                <DateInput
+                  ariaLabel="예약 발송 날짜"
+                  value={scheduledDate}
+                  onChange={(value) => setScheduledAt(joinDateTimeLocal(value, scheduledTime))}
+                />
+                <TimeInput
+                  ariaLabel="예약 발송 시간"
+                  value={scheduledTime}
+                  onChange={(value) => setScheduledAt(joinDateTimeLocal(scheduledDate, value))}
+                />
+              </div>
+            </div>
           )}
         </div>
 
