@@ -175,16 +175,10 @@ export function TenantForm({
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [dirty]);
 
-  const roomTypeOptions = useMemo(() => {
-    const options = (roomTypes ?? []).map((roomType) => ({
-      value: String(roomType.id),
-      label: roomType.label,
-    }));
-    if (basic.roomTypeId && !options.some((option) => option.value === basic.roomTypeId)) {
-      options.unshift({ value: basic.roomTypeId, label: `룸 #${basic.roomTypeId}` });
-    }
-    return options;
-  }, [basic.roomTypeId, roomTypes]);
+  const roomTypeOptions = useMemo(
+    () => (roomTypes ?? []).map((roomType) => ({ value: String(roomType.id), label: roomType.label })),
+    [roomTypes],
+  );
 
   const customerOptions = useMemo<CustomerOptions>(() => {
     const optionsFor = (kind: CustomerNumberKind, current: string) => {
@@ -311,22 +305,26 @@ export function TenantForm({
   const onSave = async () => {
     const phones = withoutTrailingBlanks(contact.phones);
     const vehicles = withoutTrailingBlanks(contact.vehicles);
+    const tenantName = basic.tenantName.trim();
+    const payerName = basic.payerName.trim();
+    const roomTypeId = basic.roomTypeId.trim() === "" ? null : Number(basic.roomTypeId);
+    const moveInDate = basic.moveInDate.trim();
     const usageType = full?.unit.usageType ?? "residential";
     const floor = full?.unit.floor ?? null;
     const parsed = occupancyBasicSchema.safeParse({
       unitNo: basic.unitNo,
       floor,
       usageType,
-      tenantName: basic.tenantName,
-      payerName: basic.payerName,
+      tenantName,
+      payerName,
       phone: phones[0] ?? "",
       phone2: phones[1] ?? "",
       phone3: phones[2] ?? "",
       faxNumber: full?.occupancy?.faxNumber ?? "",
       vehicleNo: vehicles[0] ?? "",
       residentCount: optionalNumber(basic.residentCount),
-      roomTypeId: Number(basic.roomTypeId || 0),
-      moveInDate: basic.moveInDate,
+      roomTypeId,
+      moveInDate,
     });
 
     if (!parsed.success) {
@@ -355,6 +353,15 @@ export function TenantForm({
     setBasicErrors({});
     setPhoneError(undefined);
     const occupancy = full?.occupancy;
+    const hasResident = tenantName !== "" || phones.some((phone) => phone.trim() !== "");
+    // 이사중은 유지하고, 입주자명·전화번호가 있으면 입주, 기존 입주는 공실 입력에도 유지하며 나머지는 공실로 저장한다.
+    const status = occupancy?.status === "moving_out"
+      ? "moving_out"
+      : hasResident
+        ? "occupied"
+        : occupancy?.status === "occupied"
+          ? "occupied"
+          : "vacant";
     const payload: SaveUnitOccupancyPayload = {
       buildingId,
       unitId: unitId ?? null,
@@ -368,18 +375,18 @@ export function TenantForm({
         usageType: parsed.data.usageType,
       },
       occupancy: {
-        tenantName: parsed.data.tenantName,
-        payerName: parsed.data.payerName,
-        phone: parsed.data.phone,
+        tenantName: tenantName || null,
+        payerName: payerName || null,
+        phone: phones[0] || null,
         phone2: phones[1] || null,
         phone3: phones[2] || null,
         faxNumber: occupancy?.faxNumber ?? null,
         vehicleNo: vehicles[0] || null,
         residentCount: parsed.data.residentCount ?? null,
-        roomTypeId: parsed.data.roomTypeId,
-        moveInDate: parsed.data.moveInDate,
+        roomTypeId: parsed.data.roomTypeId ?? null,
+        moveInDate: parsed.data.moveInDate?.trim() || null,
         moveOutDate: occupancy?.moveOutDate ?? null,
-        status: occupancy?.status ?? "occupied",
+        status,
         billingEnabled: billing.billingEnabled,
         printEnabled: bill.printEnabled,
         lateFeeEnabled: billing.lateFeeEnabled,
@@ -473,17 +480,17 @@ export function TenantForm({
 
   const pageHeaderActions = (
     <>
-      <Button variant="ghost" onClick={onLeave}>목록으로</Button>
+      <Button variant="ghost" onClick={onLeave}>{unitId ? "목록으로" : "뒤로가기"}</Button>
       <Button variant="primary" onClick={onSave} disabled={save.isPending}>
-        {save.isPending ? "저장 중…" : "저장"}
+        {save.isPending ? "저장 중…" : unitId ? "저장" : "등록 저장"}
       </Button>
     </>
   );
 
-  // 정본 hf-h1 "그린빌라 101호" — 입력 중인 값이 아니라 저장된 호실로 만든다.
-  const pageTitle = [building?.name, unitId ? displayUnitNo(full?.unit.unitNo) : null]
-    .filter(Boolean)
-    .join(" ");
+  // 정본 hf-h1 — 상세는 "그린빌라 101호"(입력 중인 값이 아니라 저장된 호실로 만든다), 등록은 "호수·입주민 등록".
+  const pageTitle = unitId
+    ? [building?.name, displayUnitNo(full?.unit.unitNo)].filter(Boolean).join(" ")
+    : "호수·입주민 등록";
 
   const pageHeader = (
     <PageHeader
