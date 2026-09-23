@@ -66,6 +66,7 @@ export function FeeItemCard({
               maxLength={20}
               disabled={isRenamePending}
               onChange={(event) => setLabelValue(event.target.value)}
+              onFocus={(event) => event.currentTarget.select()}
               onBlur={() => { void finishEditing(); }}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
