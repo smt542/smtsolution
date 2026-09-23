@@ -42,5 +42,4 @@ export const residentHomeClasses = {
   modalMeta: "mt-[7px] text-[12.5px] font-semibold text-t3",
   modalBody: "min-h-0 flex-1 overflow-auto px-[22px] pb-[18px] pt-1 text-sm font-medium leading-[1.75] text-t2 [text-wrap:pretty] whitespace-pre-line",
   modalFoot: "flex-none px-[22px] pb-5",
-  modalBtn: "h-[52px] w-full rounded-[14px] border-0 bg-blue text-[15.5px] font-bold text-white hover:bg-blue-d",
 } as const;

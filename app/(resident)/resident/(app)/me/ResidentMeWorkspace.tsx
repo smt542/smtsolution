@@ -21,6 +21,7 @@ import { formatPhone } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 
 import { residentMeClasses as styles } from "./meClasses";
+import { ResidentButton } from "@/app/(resident)/_components/ResidentButton";
 
 function KakaoIcon() {
   return (
@@ -312,23 +313,27 @@ export default function ResidentMeWorkspace() {
               없어요.
             </p>
             <div className={styles.confirmActions}>
-              <button
+              <ResidentButton
+                variant="secondary"
+                size="md"
                 type="button"
-                className={styles.confirmBtn}
+                className="flex-1 disabled:cursor-wait disabled:opacity-60"
                 onClick={() => setAlimtalkWarningOpen(false)}
               >
                 닫기
-              </button>
-              <button
+              </ResidentButton>
+              <ResidentButton
+                variant="danger"
+                size="md"
                 type="button"
-                className={`${styles.confirmBtn} ${styles.confirmDanger}`}
+                className="flex-1 disabled:cursor-wait disabled:opacity-60"
                 onClick={() => {
                   notifyMutation.mutate({ alimtalk: false, sms: false });
                   setAlimtalkWarningOpen(false);
                 }}
               >
                 그래도 끄기
-              </button>
+              </ResidentButton>
             </div>
           </div>
         </div>
@@ -352,21 +357,25 @@ export default function ResidentMeWorkspace() {
               다시 카카오로 로그인하면 바로 이용할 수 있어요.
             </p>
             <div className={styles.confirmActions}>
-              <button
+              <ResidentButton
+                variant="secondary"
+                size="md"
                 type="button"
-                className={styles.confirmBtn}
+                className="flex-1 disabled:cursor-wait disabled:opacity-60"
                 onClick={() => setLogoutOpen(false)}
               >
                 닫기
-              </button>
-              <button
+              </ResidentButton>
+              <ResidentButton
+                variant="primary"
+                size="md"
                 type="button"
-                className={`${styles.confirmBtn} ${styles.confirmPri}`}
+                className="flex-1 disabled:cursor-wait disabled:opacity-60"
                 disabled={logoutAction.isPending}
                 onClick={() => void confirmLogout()}
               >
                 {logoutAction.isPending ? "로그아웃 중…" : "로그아웃"}
-              </button>
+              </ResidentButton>
             </div>
           </div>
         </div>
@@ -397,22 +406,26 @@ export default function ResidentMeWorkspace() {
               </p>
             ) : null}
             <div className={styles.confirmActions}>
-              <button
+              <ResidentButton
+                variant="secondary"
+                size="md"
                 type="button"
-                className={styles.confirmBtn}
+                className="flex-1 disabled:cursor-wait disabled:opacity-60"
                 onClick={() => setWithdrawOpen(false)}
                 disabled={withdrawResident.isPending}
               >
                 취소
-              </button>
-              <button
+              </ResidentButton>
+              <ResidentButton
+                variant="danger"
+                size="md"
                 type="button"
-                className={`${styles.confirmBtn} ${styles.confirmDanger}`}
+                className="flex-1 disabled:cursor-wait disabled:opacity-60"
                 disabled={withdrawResident.isPending}
                 onClick={() => void confirmWithdraw()}
               >
                 {withdrawResident.isPending ? "탈퇴 처리 중…" : "탈퇴하기"}
-              </button>
+              </ResidentButton>
             </div>
           </div>
         </div>

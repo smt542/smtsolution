@@ -13,6 +13,5 @@ export const partnerLoginClasses = {
   autoLabel: "text-sm font-semibold text-t2",
   spacer: "min-h-6 flex-1",
   foot: "flex flex-col gap-3.5 px-6 pb-[30px] pt-[18px]",
-  submit: "flex h-14 items-center justify-center rounded-[15px] border-0 bg-blue text-base font-bold text-white shadow-[0_10px_20px_-8px_rgba(20,164,151,0.55)] disabled:cursor-default disabled:opacity-70",
   help: "text-center text-[12.5px] font-medium leading-[1.7] text-t4",
 } as const;

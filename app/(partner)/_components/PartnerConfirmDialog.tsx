@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { PartnerButton } from "./PartnerButton";
 
 type PartnerConfirmDialogProps = {
   title: ReactNode;
@@ -33,21 +34,25 @@ export function PartnerConfirmDialog({
         <div className="text-[17px] font-extrabold">{title}</div>
         <div className="mt-2 text-[13.5px] font-medium leading-[1.6] text-t3">{description}</div>
         <div className="mt-5 flex gap-2">
-          <button
+          <PartnerButton
+            variant="secondary"
+            size="sm"
             type="button"
-            className="h-[46px] flex-1 rounded-[13px] bg-bg text-[14.5px] font-bold text-t2"
+            className="flex-1"
             onClick={onCancel}
           >
             {cancelLabel}
-          </button>
-          <button
+          </PartnerButton>
+          <PartnerButton
+            variant={confirmVariant === "danger" ? "danger" : "primary"}
+            size="sm"
             type="button"
-            className={`h-[46px] flex-1 rounded-[13px] text-[14.5px] font-bold text-white disabled:opacity-50 ${confirmVariant === "danger" ? "bg-red" : "bg-blue"}`}
+            className="flex-1 disabled:opacity-50"
             onClick={onConfirm}
             disabled={confirmDisabled}
           >
             {confirmLabel}
-          </button>
+          </PartnerButton>
         </div>
       </div>
     </div>

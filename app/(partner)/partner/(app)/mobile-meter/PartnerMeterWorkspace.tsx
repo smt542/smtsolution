@@ -15,6 +15,7 @@ import { formatMonth } from "@/lib/format";
 import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
 import { PartnerConfirmDialog } from "../../../_components/PartnerConfirmDialog";
 import { meterClasses as styles } from "./meterClasses";
+import { PartnerButton } from "../../../_components/PartnerButton";
 
 const KIND = [
   { k: "water", l: "수도", u: "㎥" },
@@ -205,9 +206,9 @@ export default function PartnerMeterWorkspace({ buildingId }: { buildingId: numb
       </div>
 
       <PartnerBottomActionBar>
-        <button type="button" className={styles.btn} onClick={() => setConfirm(true)} disabled={isSavingMeterData || isMeterDataLoading || units.length === 0}>
+        <PartnerButton variant="primary" type="button" className="flex-1" onClick={() => setConfirm(true)} disabled={isSavingMeterData || isMeterDataLoading || units.length === 0}>
           {isSavingMeterData ? "저장 중…" : saved ? "저장했어요" : "저장"}
-        </button>
+        </PartnerButton>
       </PartnerBottomActionBar>
 
       {confirm && (

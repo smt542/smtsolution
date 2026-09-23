@@ -6,6 +6,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import OnboardingPageScaffold from "@/app/(resident)/_components/OnboardingPageScaffold";
 import { normalizePhone } from "@/lib/format";
 import { loadSession, logout } from "@/lib/resident/onboardingClient";
+import { ResidentButton } from "@/app/(resident)/_components/ResidentButton";
 
 function maskPhone(phone: string): string {
   const normalized = normalizePhone(phone);
@@ -82,13 +83,15 @@ export default function ResidentNomatchClient({
       }
       icon={icon}
       footer={
-        <button
+        <ResidentButton
+          variant="primary"
+          size="xl"
           type="button"
-          className="h-14 w-full rounded-2xl bg-blue text-[16.5px] font-bold tracking-[-0.02em] text-white transition-transform hover:bg-blue-d active:scale-[0.985]"
+          className="w-full"
           onClick={retryLogin}
         >
           다른 카카오 계정으로 로그인
-        </button>
+        </ResidentButton>
       }
     >
       {children}

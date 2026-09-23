@@ -9,6 +9,7 @@ import {
   getPendingInfo,
   type PendingInfo,
 } from "@/lib/resident/onboardingClient";
+import { ResidentButton } from "@/app/(resident)/_components/ResidentButton";
 
 function pad2(value: number): string {
   return String(value).padStart(2, "0");
@@ -72,13 +73,15 @@ export function ResidentPendingClient({
       lead={lead}
       icon={icon}
       footer={
-        <button
+        <ResidentButton
+          variant="primary"
+          size="xl"
           type="button"
-          className="h-14 w-full rounded-2xl bg-blue text-[16.5px] font-bold tracking-[-0.02em] text-white transition-transform hover:bg-blue-d active:scale-[0.985]"
+          className="w-full"
           onClick={() => router.push("/resident/login")}
         >
           로그인 화면으로
-        </button>
+        </ResidentButton>
       }
     >
       <div className="mt-[26px] w-full rounded-[18px] border border-line px-4 py-1.5 text-left animate-[rise_0.5s_160ms_cubic-bezier(0.22,0.61,0.36,1)_both]">

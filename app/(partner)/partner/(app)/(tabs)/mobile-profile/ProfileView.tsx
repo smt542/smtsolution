@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useAsyncAction } from "@/hooks/common";
 
 import { profileClasses as styles } from "./profileClasses";
+import { PartnerButton } from "../../../../_components/PartnerButton";
 
 export function ProfileView({
   fullName,
@@ -56,9 +57,9 @@ export function ProfileView({
           </div>
         </div>
 
-        <button type="button" className={styles.logout} onClick={() => setConfirm(true)}>
+        <PartnerButton variant="ghost" type="button" className="mt-4 w-full" onClick={() => setConfirm(true)}>
           로그아웃
-        </button>
+        </PartnerButton>
       </div>
 
       {confirm && (
@@ -70,21 +71,25 @@ export function ProfileView({
             <div className={styles.dTitle}>로그아웃할까요?</div>
             <div className={styles.dDesc}>다시 이용하려면 로그인이 필요해요.</div>
             <div className={styles.dActions}>
-              <button
+              <PartnerButton
+                variant="secondary"
+                size="sm"
                 type="button"
-                className={`${styles.dBtn} ${styles.dCancel}`}
+                className="flex-1"
                 onClick={() => setConfirm(false)}
               >
                 취소
-              </button>
-              <button
+              </PartnerButton>
+              <PartnerButton
+                variant="danger"
+                size="sm"
                 type="button"
-                className={`${styles.dBtn} ${styles.dDanger}`}
+                className="flex-1"
                 onClick={logout}
                 disabled={logoutAction.isPending}
               >
                 {logoutAction.isPending ? "로그아웃 중…" : "로그아웃"}
-              </button>
+              </PartnerButton>
             </div>
           </div>
         </div>

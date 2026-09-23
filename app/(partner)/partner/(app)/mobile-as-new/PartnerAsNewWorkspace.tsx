@@ -19,6 +19,7 @@ import { PartnerInlineError } from "../../../_components/PartnerInlineError";
 import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
 import { AS_STATUS, combineDateTime } from "../_as";
 import { asFormClasses as styles } from "../asFormClasses";
+import { PartnerButton } from "../../../_components/PartnerButton";
 
 export type Building = { id: number; name: string };
 export type Cat = { id: number; label: string };
@@ -197,8 +198,8 @@ export default function PartnerAsNewWorkspace({
       </div>
 
       <PartnerBottomActionBar>
-        <button type="button" className={`${styles.btn} ${styles.btnSec}`} onClick={() => setConfirmCancel(true)} disabled={isRegisteringComplaint}>취소</button>
-        <button type="button" className={`${styles.btn} ${styles.btnPri}`} onClick={() => setConfirmReg(true)} disabled={isRegisteringComplaint}>{isRegisteringComplaint ? "접수 등록 중…" : "접수 등록"}</button>
+        <PartnerButton variant="secondary" type="button" className="flex-1" onClick={() => setConfirmCancel(true)} disabled={isRegisteringComplaint}>취소</PartnerButton>
+        <PartnerButton variant="primary" type="button" className="flex-1" onClick={() => setConfirmReg(true)} disabled={isRegisteringComplaint}>{isRegisteringComplaint ? "접수 등록 중…" : "접수 등록"}</PartnerButton>
       </PartnerBottomActionBar>
 
       {confirmReg && (
