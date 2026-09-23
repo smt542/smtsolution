@@ -81,9 +81,11 @@ export async function copyPreviousBilling(
     listBilling(buildingId, prevPeriod(period)),
     listBilling(buildingId, period),
   ]);
+  // 필수 공과금 항목(전기·수도료·가스)은 저장값이 없으면 그 달 산정값이 기본값이라(마이그 0193)
+  // 전월 금액을 저장해 고정하지 않는다.
   const previousByCell = new Map(
     previousRows
-      .filter((row) => row.carryOver)
+      .filter((row) => row.carryOver && !row.isRequired)
       .map((row) => [`${row.unitId}:${row.feeItemId}`, row]),
   );
   const charges = currentRows.flatMap((current) => {
