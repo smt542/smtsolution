@@ -28,6 +28,61 @@
     "device": "desktop"
   },
   {
+    "id": "staff-management-fee-selected",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/management-fee-setting/management-fee-setting.dc.html",
+    "originSelector": ".hf-app",
+    "originActions": [{ "click": "#mfBldBody tr[data-code]:has-text(\"그린빌라\")" }, { "wait": 500 }],
+    "appPath": "/staff/management-fee",
+    "appActions": [{ "click": "tr:has-text(\"그린빌라\")" }, { "wait": 3000 }],
+    "appSelector": null,
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
+  },
+  {
+    "id": "staff-management-fee-edit",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/management-fee-setting/management-fee-setting.dc.html",
+    "originSelector": ".hf-app",
+    "originActions": [{ "click": "#mfBldBody tr[data-code]:has-text(\"그린빌라\")" }, { "wait": 500 }, { "click": "#mfEdit" }, { "wait": 400 }],
+    "appPath": "/staff/management-fee",
+    "appActions": [{ "click": "tr:has-text(\"그린빌라\")" }, { "wait": 3000 }, { "click": "button:text-is(\"수정\")" }, { "wait": 800 }],
+    "appSelector": null,
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
+  },
+  {
+    "id": "staff-management-fee-util-elec",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/management-fee-setting/management-fee-setting.dc.html",
+    "originSelector": ".hf-app",
+    "originActions": [{ "click": "#mfBldBody tr[data-code]:has-text(\"그린빌라\")" }, { "wait": 500 }, { "click": "#mfUtil a[data-u=\"전기\"]" }, { "wait": 300 }],
+    "appPath": "/staff/management-fee",
+    "appActions": [{ "click": "tr:has-text(\"그린빌라\")" }, { "wait": 3000 }, { "click": "button:text-is(\"전기\")" }, { "wait": 1500 }],
+    "appSelector": null,
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
+  },
+  {
+    "id": "staff-management-fee-util-common",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/management-fee-setting/management-fee-setting.dc.html",
+    "originSelector": ".hf-app",
+    "originActions": [{ "click": "#mfBldBody tr[data-code]:has-text(\"그린빌라\")" }, { "wait": 500 }, { "click": "#mfUtil a[data-u=\"공용전기\"]" }, { "wait": 300 }],
+    "appPath": "/staff/management-fee",
+    "appActions": [{ "click": "tr:has-text(\"그린빌라\")" }, { "wait": 3000 }, { "click": "button:text-is(\"공용전기\")" }, { "wait": 1500 }],
+    "appSelector": null,
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
+  },
+  {
+    "id": "staff-management-fee-util-gas",
+    "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/management-fee-setting/management-fee-setting.dc.html",
+    "originSelector": ".hf-app",
+    "originActions": [{ "click": "#mfBldBody tr[data-code]:has-text(\"그린빌라\")" }, { "wait": 500 }, { "click": "#mfUtil a[data-u=\"가스\"]" }, { "wait": 300 }],
+    "appPath": "/staff/management-fee",
+    "appActions": [{ "click": "tr:has-text(\"그린빌라\")" }, { "wait": 3000 }, { "click": "button:text-is(\"가스\")" }, { "wait": 1500 }],
+    "appSelector": null,
+    "viewport": { "w": 1340, "h": 880 },
+    "device": "desktop"
+  },
+  {
     "id": "staff-buildings",
     "originUrl": "https://staging.d2h12382xiksft.amplifyapp.com/staff/building-list/building-list.dc.html",
     "originSelector": ".hf-app",

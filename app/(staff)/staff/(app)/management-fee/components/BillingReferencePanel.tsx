@@ -35,7 +35,7 @@ export function BillingReferencePanel({
         <label
           className={`ml-auto flex flex-none cursor-pointer select-none items-center gap-[7px] text-[12px] font-bold ${
             important ? "text-t1" : "text-t3"
-          }`}
+          } ${building ? "" : "pointer-events-none opacity-[.45]"}`}
         >
           <span
             className={`relative size-[17px] flex-none rounded-[5px] border-2 ${
@@ -78,11 +78,7 @@ export function BillingReferencePanel({
             등록된 참조사항이 없어요
           </div>
         )
-      ) : (
-        <p className="flex min-h-0 flex-1 items-center px-[16px] text-[13.5px] font-normal text-t4">
-          건물을 선택하면 표시돼요
-        </p>
-      )}
+      ) : null}
     </section>
   );
 }

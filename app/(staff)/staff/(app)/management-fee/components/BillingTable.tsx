@@ -30,7 +30,7 @@ interface BillingTableProps {
 const EMPTY_CHARGE_DRAFTS: Record<number, Record<number, BillingChargeDraft>> = {};
 const EMPTY_NOTE_DRAFTS: Record<number, BillingNoteDraft> = {};
 
-const HEAD_TH = "border-b border-r border-line bg-[#FBFCFD] px-[8px] py-[11px] text-left text-[12px] font-bold text-t3 whitespace-nowrap align-middle";
+const HEAD_TH = "border-b border-line bg-[#FBFCFD] px-[8px] py-[11px] text-left text-[12px] font-bold leading-[normal] text-t3 whitespace-nowrap align-middle";
 
 export function BillingTable({
   units,
@@ -48,14 +48,14 @@ export function BillingTable({
 
   return (
     <div className="h-full overflow-auto">
-      <table className="border-separate border-spacing-0 whitespace-nowrap text-[13.5px]">
+      <table className="w-full border-separate border-spacing-0 whitespace-nowrap text-[13.5px] [&_tbody_tr:last-child_td]:border-b-0">
         <thead>
           <tr>
             {/* 호수 — 56px sticky left:0 */}
             <th className={`sticky left-0 top-0 z-[4] w-[56px] min-w-[56px] max-w-[56px] ${HEAD_TH}`}>호수</th>
             {/* 총 관리비 — 92px sticky left:56px (2줄) */}
-            <th className={`sticky left-[56px] top-0 z-[4] w-[92px] min-w-[92px] max-w-[92px] ${HEAD_TH}`}>
-              총 관리비<br />고정 관리비
+            <th className={`sticky left-[56px] top-0 z-[4] w-[92px] min-w-[92px] max-w-[92px] shadow-[1px_0_0_var(--color-line)] ${HEAD_TH}`}>
+              총 관리비<br />건물 관리비<br />고정 관리비
             </th>
             {/* 성명 / 평수·룸타입 / 입주일 */}
             <th className={`sticky top-0 z-[3] min-w-[92px] ${HEAD_TH}`}>성명<br />평수/룸타입<br />입주일</th>
@@ -78,7 +78,7 @@ export function BillingTable({
             {/* 참조 / 공지 / 처리일자 */}
             <th className={`sticky top-0 z-[3] min-w-[150px] ${HEAD_TH}`}>부과시 참조사항</th>
             <th className={`sticky top-0 z-[3] min-w-[150px] ${HEAD_TH}`}>부과시 공지사항</th>
-            <th className={`sticky top-0 z-[3] min-w-[96px] border-r-0 ${HEAD_TH}`}>처리일자</th>
+            <th className={`sticky top-0 z-[3] min-w-[96px] ${HEAD_TH}`}>처리일자</th>
           </tr>
         </thead>
         <tbody>

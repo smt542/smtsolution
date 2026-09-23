@@ -1,7 +1,6 @@
 "use client";
 
 interface BillingSectionToolbarProps {
-  buildingSelected: boolean;
   hasBuildings: boolean;
   pending?: boolean;
   onCarryBuilding: () => void;
@@ -12,7 +11,6 @@ const miniClass =
   "h-[26px] rounded-[8px] border border-line bg-white px-[10px] text-[11.5px] font-bold text-t2 transition-[border-color,background-color] duration-[120ms] hover:border-[#C9D0D8] hover:bg-[#F7F9FA] disabled:cursor-not-allowed disabled:opacity-55";
 
 export function BillingSectionToolbar({
-  buildingSelected,
   hasBuildings,
   pending = false,
   onCarryBuilding,
@@ -22,7 +20,7 @@ export function BillingSectionToolbar({
     <div className="flex shrink-0 flex-wrap items-center gap-[10px] gap-y-[8px] border-b border-line2 px-[18px] py-[15px]">
       <h2 className="text-[15px] font-extrabold text-t1">세대별 관리비 항목</h2>
       <div className="ml-[10px] flex flex-none items-center gap-[6px]">
-        <button type="button" className={miniClass} disabled={!buildingSelected || pending} onClick={onCarryBuilding}>
+        <button type="button" className={miniClass} disabled={pending} onClick={onCarryBuilding}>
           빌라자료추가
         </button>
         <button type="button" className={miniClass} disabled={!hasBuildings || pending} onClick={onCarryAll}>

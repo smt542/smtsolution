@@ -274,7 +274,7 @@ export function ManagementFeeWorkspace() {
     billingQuery,
   ].some((query) => query.isFetching && !query.isLoading);
   return (
-    <div className="relative h-[calc(100dvh-62px)] min-h-[720px] overflow-hidden bg-bg px-[24px] pb-[24px] pt-[22px]">
+    <div className="relative h-[calc(100dvh-62px)] min-h-[720px] overflow-hidden bg-bg px-[24px] pb-[24px] pt-[22px] leading-[normal]">
       {isManagementFeeDataRefreshing ? (
         <div className="absolute right-6 top-3 z-10 rounded-lg bg-white/95 shadow-card">
           <Spinner label="관리비 자료 갱신 중" size="small" showLabel className="px-3 py-2" />
@@ -322,7 +322,6 @@ export function ManagementFeeWorkspace() {
 
           <section className="flex min-h-0 flex-col overflow-hidden rounded-[16px] bg-surface shadow-card">
             <BillingSectionToolbar
-              buildingSelected={buildingId !== null}
               hasBuildings={buildings.length > 0}
               pending={isManagementFeeMutationPending}
               onCarryBuilding={openCarryBuilding}

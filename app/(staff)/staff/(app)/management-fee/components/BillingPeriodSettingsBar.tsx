@@ -48,6 +48,7 @@ export function BillingPeriodSettingsBar({
   const values = draft ?? setting;
 
   const ensureDraft = () => {
+    if (!buildingId) return;
     setDraft({
       chargeStartDate: setting.chargeStartDate,
       chargeEndDate: setting.chargeEndDate,
@@ -162,9 +163,9 @@ export function BillingPeriodSettingsBar({
             variant="ghost"
             size="sm"
             type="button"
-            disabled={!buildingId || settingQuery.isLoading || settingQuery.isError}
+            disabled={disabled || (Boolean(buildingId) && (settingQuery.isLoading || settingQuery.isError))}
             onClick={ensureDraft}
-            className="hover:border-[#C9D0D8] hover:bg-[#F7F9FA] disabled:bg-bg disabled:text-t4"
+            className="leading-[normal] hover:border-[#C9D0D8] hover:bg-[#F7F9FA] disabled:bg-bg disabled:text-t4"
           >
             수정
           </Button>

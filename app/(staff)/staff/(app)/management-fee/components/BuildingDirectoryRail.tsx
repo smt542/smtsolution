@@ -7,6 +7,16 @@ import type { Building } from "@/hooks/reactquery/buildings";
 import type { BuildingType } from "@/hooks/reactquery/buildingTypes";
 import { BillingReferencePanel } from "./BillingReferencePanel";
 
+const dropdownCallSiteClass = [
+  "[&_.uc-dd-btn_svg]:h-[14px]",
+  "[&_.uc-dd-btn_svg]:w-[14px]",
+  "[&_.uc-dd:not(.open)_.uc-dd-btn:hover]:border-[#C9D0D8]",
+  "[&_.uc-dd:not(.open)_.uc-dd-btn:hover]:shadow-none",
+  "[&_.uc-dd-menu]:p-[5px]",
+  "[&_.uc-opt]:gap-[10px]",
+  "[&_.uc-opt:not(.on):hover]:bg-[#F5F7F9]",
+].join(" ");
+
 interface BuildingDirectoryRailProps {
   buildings: Building[];
   buildingTypes: BuildingType[];
@@ -73,20 +83,24 @@ export function BuildingDirectoryRail({
             <h2 className="whitespace-nowrap text-[15px] font-extrabold text-t1">전체 건물</h2>
             <div className="flex-1" />
             <div className="flex flex-none items-center gap-[6px]">
-              <CustomDropdown
-                ariaLabel="부과 연도"
-                value={String(year)}
-                options={yearOptions}
-                compact
-                onChange={(value) => onPeriodChange(Number(value), month)}
-              />
-              <CustomDropdown
-                ariaLabel="부과 월"
-                value={String(month)}
-                options={monthOptions}
-                compact
-                onChange={(value) => onPeriodChange(year, Number(value))}
-              />
+              <div className={`${dropdownCallSiteClass} [&_.uc-dd-menu]:min-w-[104px]`}>
+                <CustomDropdown
+                  ariaLabel="부과 연도"
+                  value={String(year)}
+                  options={yearOptions}
+                  compact
+                  onChange={(value) => onPeriodChange(Number(value), month)}
+                />
+              </div>
+              <div className={`${dropdownCallSiteClass} [&_.uc-dd-menu]:min-w-[112px]`}>
+                <CustomDropdown
+                  ariaLabel="부과 월"
+                  value={String(month)}
+                  options={monthOptions}
+                  compact
+                  onChange={(value) => onPeriodChange(year, Number(value))}
+                />
+              </div>
             </div>
           </div>
 
@@ -101,13 +115,15 @@ export function BuildingDirectoryRail({
                 className="h-[34px] w-full rounded-[9px] border border-line bg-white pl-[31px] pr-[11px] text-[13px] font-semibold text-t1 outline-none placeholder:text-[#757575] focus:border-teal"
               />
             </div>
-            <CustomDropdown
-              ariaLabel="건물 그룹"
-              value={groupId}
-              options={groupOptions}
-              compact
-              onChange={setGroupId}
-            />
+            <div className={`${dropdownCallSiteClass} [&_.uc-dd-menu]:min-w-[104px]`}>
+              <CustomDropdown
+                ariaLabel="건물 그룹"
+                value={groupId}
+                options={groupOptions}
+                compact
+                onChange={setGroupId}
+              />
+            </div>
           </div>
 
           <select
