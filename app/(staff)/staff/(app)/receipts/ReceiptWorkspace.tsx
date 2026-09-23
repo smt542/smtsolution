@@ -246,35 +246,35 @@ export function ReceiptWorkspace({
 
   const openVilla = (init: VillaPaymentModalInit) => {
     if (selectedBuildingId === null) {
-      toast.info("건물을 먼저 선택하세요.");
+      toast.info("건물을 선택해 주세요");
       return;
     }
     setVilla(init);
   };
   const openOverdue = () => {
     if (selectedBuildingId === null) {
-      toast.info("건물을 먼저 선택하세요.");
+      toast.info("건물을 선택해 주세요");
       return;
     }
     setOverdueOpen(true);
   };
   const requireBuilding = (open: () => void) => {
     if (selectedBuildingId === null) {
-      toast.info("건물을 먼저 선택하세요.");
+      toast.info("건물을 선택해 주세요");
       return;
     }
     open();
   };
   const openUnitStatement = () => {
     if (selectedBuildingId === null || selectedUnitId === null) {
-      toast.info("호실을 먼저 선택하세요.");
+      toast.info("호실을 선택해 주세요");
       return;
     }
     setUnitStatementOpen(true);
   };
   const openUnitReceipt = () => {
     if (selectedBuildingId === null || selectedUnitId === null) {
-      toast.info("호실을 먼저 선택하세요.");
+      toast.info("호실을 선택해 주세요");
       return;
     }
     setVilla({ view: "receipt", unitId: selectedUnitId });
@@ -311,7 +311,7 @@ export function ReceiptWorkspace({
               <Dropdown
                 label="빌라"
                 inactive={selectedBuildingId === null}
-                onInactiveClick={() => toast.info("건물을 먼저 선택하세요.")}
+                onInactiveClick={() => toast.info("건물을 선택해 주세요")}
                 {...getDropdownProps("villa")}
                 items={[
                   {
@@ -328,7 +328,7 @@ export function ReceiptWorkspace({
               <Dropdown
                 label="호실"
                 inactive={selectedUnitId === null}
-                onInactiveClick={() => toast.info("호실을 먼저 선택하세요.")}
+                onInactiveClick={() => toast.info("호실을 선택해 주세요")}
                 {...getDropdownProps("unit")}
                 items={[
                   { label: "호실 명세서", onClick: openUnitStatement },
