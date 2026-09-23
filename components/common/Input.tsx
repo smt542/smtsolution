@@ -11,6 +11,8 @@ import React from "react";
  * 네이티브 `size` 속성(문자 폭)은 이 저장소에서 쓰는 곳이 없어 타입에서 뺐다.
  */
 const SIZES = {
+  // 정본 표 셀 편집칸 `.hc-in`·`.tc-in`(수납관리 수납 이력·입주자정보): 26/r7/12/400, 포커스 3px 청록 링.
+  "26": "h-[26px] rounded-[7px] px-[7px] text-[12px] font-normal focus:ring-[3px] focus:ring-teal-t",
   "36": "h-[36px] rounded-[11px] px-[12px] text-[14px] font-bold",
   "38": "h-[38px] rounded-[11px] px-[12px] text-[14px] font-bold",
   "40": "h-[40px] rounded-[11px] px-[12px] text-[14px] font-bold",

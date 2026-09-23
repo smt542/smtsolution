@@ -15,7 +15,13 @@ interface CustomDropdownProps {
   options: DropdownOption[];
   onChange: (value: string) => void;
   disabled?: boolean;
-  size?: "default" | "compact" | "notification";
+  /**
+   * `cell` = 정본 표 셀 편집 드롭다운(`.hc-dd`·`.tc-dd .uc-dd-btn{height:26px;padding:0 8px;font-size:12px;font-weight:400}`).
+   * 칸 폭을 채우고(`w-full`), 좁으면 라벨이 말줄임된다.
+   */
+  size?: "default" | "compact" | "notification" | "cell";
+  /** 메뉴 최소 폭(px). 정본 표 셀 드롭다운은 인라인 `min-width:112px`(수납 이력)·`96px`(입주자정보)을 준다. */
+  menuMinWidth?: number;
   compact?: boolean;
   /**
    * "menu"(기본): 툴바/레일용. 메뉴가 내용 너비로 우측 정렬되고 선택 항목에 체크표시.
@@ -57,6 +63,7 @@ export function CustomDropdown({
   position = "absolute",
   placeholder,
   check = "selected",
+  menuMinWidth,
 }: CustomDropdownProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -68,10 +75,18 @@ export function CustomDropdown({
   const selected = matched ?? (placeholder === undefined ? options[0] : undefined);
   const isCompact = size === "compact" || compact;
   const isNotification = size === "notification";
+  const isCell = size === "cell";
   const isField = variant === "field";
-  const triggerSize = isNotification
-    ? "h-[34px] w-[64px] min-w-[64px] justify-between rounded-[9px] px-[10px] text-[13.5px] [&_svg]:h-[13px] [&_svg]:w-[13px]"
-    : `${isCompact ? "h-8" : "h-9"} rounded-[9px] pr-[10px] pl-[11px] text-[13px] [&_svg]:h-[15px] [&_svg]:w-[15px]`;
+  const triggerSize = isCell
+    ? "h-[26px] w-full min-w-0 justify-between rounded-[9px] px-[8px] text-[12px] [&_svg]:h-[14px] [&_svg]:w-[14px] [&_svg]:flex-none"
+    : isNotification
+      ? "h-[34px] w-[64px] min-w-[64px] justify-between rounded-[9px] px-[10px] text-[13.5px] [&_svg]:h-[13px] [&_svg]:w-[13px]"
+      : `${isCompact ? "h-8" : "h-9"} rounded-[9px] pr-[10px] pl-[11px] text-[13px] [&_svg]:h-[15px] [&_svg]:w-[15px]`;
+  // 굵기·hover 도 크기마다 하나만 둔다(같은 속성 유틸이 둘 남으면 CSS 생성 순서가 이긴다).
+  // 정본 셀 드롭다운은 400 이고 hover 는 `.uc-dd-btn:hover{border-color:#C9D0D8}` 뿐이다.
+  const triggerLook = isCell
+    ? "font-normal hover:border-[#C9D0D8]"
+    : "font-bold hover:border-blue hover:shadow-[0_0_0_3px_var(--color-blue-t)]";
 
   useEffect(() => {
     if (!open) return;
@@ -145,7 +160,7 @@ export function CustomDropdown({
       <button
         ref={triggerRef}
         type="button"
-        className={`uc-dd-btn inline-flex ${triggerSize} items-center gap-[7px] border ${open ? "border-blue" : "border-line"} bg-surface py-0 font-bold tracking-[-0.01em] text-t1 outline-none transition-[border-color,box-shadow] duration-[120ms] hover:border-blue hover:shadow-[0_0_0_3px_var(--color-blue-t)] disabled:cursor-default disabled:opacity-[.55] disabled:shadow-none ${open ? "shadow-[0_0_0_3px_var(--color-blue-t)]" : ""}`}
+        className={`uc-dd-btn inline-flex ${triggerSize} items-center gap-[7px] border ${open ? "border-blue" : "border-line"} bg-surface py-0 ${triggerLook} tracking-[-0.01em] text-t1 outline-none transition-[border-color,box-shadow] duration-[120ms] disabled:cursor-default disabled:opacity-[.55] disabled:shadow-none ${open ? "shadow-[0_0_0_3px_var(--color-blue-t)]" : ""}`}
         aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -153,7 +168,7 @@ export function CustomDropdown({
         disabled={disabled}
         onClick={() => setOpen((current) => !current)}
       >
-        <span className="uc-dd-lbl">{selected?.label ?? placeholder}</span>
+        <span className={`uc-dd-lbl${isCell ? " min-w-0 truncate" : ""}`}>{selected?.label ?? placeholder}</span>
         <ChevronDownIcon aria-hidden="true" />
       </button>
       {open && wrapMenu(
@@ -165,9 +180,10 @@ export function CustomDropdown({
           className={`uc-dd-menu max-h-[236px] overflow-auto rounded-xl border border-line bg-surface p-[6px] shadow-[0_14px_32px_-10px_rgba(23,31,40,0.22),0_2px_6px_rgba(23,31,40,0.06)] ${
             isFixed
               // field 는 메뉴 폭을 트리거에 맞추는 규격이라 140px 하한을 걸지 않는다.
-              ? `fixed z-[1000] ${isField ? "" : "min-w-[140px]"}`
-              : `absolute top-[calc(100%_+_6px)] z-[80] ${isField ? "inset-x-0" : "right-0 min-w-[96px]"}`
+              ? `fixed z-[1000] ${isField || menuMinWidth !== undefined ? "" : "min-w-[140px]"}`
+              : `absolute top-[calc(100%_+_6px)] z-[80] ${isField ? "inset-x-0" : `right-0 ${menuMinWidth !== undefined ? "" : "min-w-[96px]"}`}`
           }`}
+          style={menuMinWidth !== undefined ? { minWidth: menuMinWidth } : undefined}
         >
           {options.map((option) => {
             const isSelected = option.value === value;
