@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useState } from "react";
 import { Spinner } from "@/components/common";
+import { useIsHydrated } from "@/hooks/common";
 import { useMessageLogs } from "@/hooks/reactquery/messaging";
 import { useScheduledMessages } from "@/hooks/reactquery/messaging";
 import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates";
@@ -10,10 +11,6 @@ import { ScheduledTab } from "./ScheduledTab";
 import { TemplatesTab } from "./TemplatesTab";
 
 export type MessagingTab = "scheduled" | "history" | "templates";
-
-const subscribeToHydration = () => () => undefined;
-const getClientHydrationSnapshot = () => true;
-const getServerHydrationSnapshot = () => false;
 
 const loadingLabels: Record<MessagingTab, string> = {
   scheduled: "예약 발송 목록 불러오는 중",
@@ -34,13 +31,7 @@ export function MessagingTabs({ initialTab }: { initialTab: MessagingTab }) {
   const { data: scheduled = [] } = useScheduledMessages();
   const { data: logs = [] } = useMessageLogs();
   const { data: templates = [] } = useMessageTemplates();
-  // The server QueryClient starts empty, while a client navigation can reuse populated
-  // browser cache. Keep both hydration snapshots identical, then reveal cached data.
-  const isHydrated = useSyncExternalStore(
-    subscribeToHydration,
-    getClientHydrationSnapshot,
-    getServerHydrationSnapshot,
-  );
+  const isHydrated = useIsHydrated();
 
   const tabs: { id: MessagingTab; label: string; count: number }[] = [
     { id: "scheduled", label: "예약 발송", count: isHydrated ? scheduled.length : 0 },
