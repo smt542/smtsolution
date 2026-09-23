@@ -1,6 +1,7 @@
 "use client";
 
 import { memo } from "react";
+import { applyMask, NUMERIC_INPUT_ATTRS, type InputMask } from "@/components/common";
 import type { BillingColumn, BillingUnitRow } from "@/lib/billing/pivot";
 import { formatNumber } from "@/lib/format";
 import {
@@ -33,6 +34,12 @@ function num(value: number): string {
   return formatNumber(value);
 }
 
+// 원본 수정모드 .mf-in: 천단위 콤마로 보이고 0은 빈칸이다.
+const amountMask: InputMask = (raw) => {
+  const digits = raw.replace(/\D/g, "");
+  return digits ? num(Number(digits)) : "";
+};
+
 export const BillingTableRow = memo(function BillingTableRow({
   unit, columns, trios, period, editing, utilities, chargeDrafts, noteDraft, onChargeChange, onRowClick, onNoteChange,
 }: BillingTableRowProps) {
@@ -44,6 +51,8 @@ export const BillingTableRow = memo(function BillingTableRow({
     ? unit.totalAmount
     : billingItemsTotal(unit, columns, period, chargeDrafts);
   const displayTotal = unit.isVacant ? 0 : itemsTotal + util.sum;
+  // 건물 관리비 = 입주자 계약 관리비(occupancies.mgmt_fee_amount). 총 관리비에 합산하지 않는 참고값이며 공실은 원본처럼 0.
+  const buildingTotal = unit.isVacant ? 0 : unit.mgmtFeeAmount ?? 0;
   const fixedTotal = unit.confirmedAt && !unit.isDirty && unit.totalAmount != null
     ? unit.totalAmount
     : billingRowTotal(unit, columns, period, { water: [], electricity: [], gas: [] }, chargeDrafts);
@@ -65,12 +74,13 @@ export const BillingTableRow = memo(function BillingTableRow({
     <tr className={`align-top text-[13.5px] ${rowStateText}`}>
       {/* 호수 — 56px sticky left:0, .mf-nocell 700 중앙 */}
       <td className={`sticky left-0 z-[2] w-[56px] min-w-[56px] max-w-[56px] bg-surface px-[8px] py-[7px] text-center align-middle text-[13.5px] font-bold ${cellBorder} ${firstCellBar}`}>
-        <button type="button" className="font-bold text-teal hover:underline" onClick={() => onRowClick(unit.unitId)}>{unitNo}</button>
+        <button type="button" className="cursor-pointer whitespace-normal break-keep font-bold text-inherit" onClick={() => onRowClick(unit.unitId)}>{unitNo}</button>
       </td>
 
-      {/* 총 관리비 — 92px sticky left:56px, .mf-totcell (2줄: 총관리비 / 고정관리비) */}
-      <td className={`sticky left-[56px] z-[2] w-[92px] min-w-[92px] max-w-[92px] bg-surface px-[8px] py-[7px] text-left align-middle text-[13.5px] font-bold shadow-[1px_0_0_var(--color-line)] ${unit.isVacant ? "text-t4" : "text-t1"} ${cellBorder}`}>
+      {/* 총 관리비 — 92px sticky left:56px, .mf-totcell (3줄: 총관리비 / 건물관리비 / 고정관리비) */}
+      <td className={`sticky left-[56px] z-[2] w-[92px] min-w-[92px] max-w-[92px] bg-surface px-[8px] py-[7px] text-left align-middle text-[13.5px] font-bold ${unit.isVacant ? "text-t4" : "text-t1"} ${cellBorder}`}>
         <div className="tabular-nums leading-[normal]">{num(displayTotal)}</div>
+        <div className={`mt-[2px] text-[11.5px] font-semibold leading-[normal] tabular-nums ${unit.isVacant ? "text-t4" : "text-t3"}`}>{num(buildingTotal)}</div>
         <div className={`mt-[2px] text-[11.5px] font-semibold leading-[normal] tabular-nums ${unit.isVacant ? "text-t4" : "text-t3"}`}>{num(fixedTotal)}</div>
       </td>
 
@@ -99,11 +109,15 @@ export const BillingTableRow = memo(function BillingTableRow({
               <div key={column.feeItemId} className="flex items-center justify-start gap-[4px] leading-[1.5]">
                 {editing ? (
                   <input
-                    type="number"
+                    type="text"
+                    {...NUMERIC_INPUT_ATTRS}
                     aria-label={`${unitNo} ${column.name} 금액`}
-                    value={String(cell.amount)}
+                    value={cell.amount ? num(cell.amount) : ""}
                     disabled={unit.isVacant || !cell.charged}
-                    onChange={(event) => onChargeChange(unit.unitId, column.feeItemId, { amount: Number(event.target.value) || 0 })}
+                    onChange={(event) => {
+                      const masked = applyMask(event.currentTarget, amountMask);
+                      onChargeChange(unit.unitId, column.feeItemId, { amount: Number(masked.replace(/\D/g, "")) || 0 });
+                    }}
                     className="h-[26px] w-full min-w-0 rounded-[7px] border border-line bg-white px-[6px] text-[13.5px] font-normal text-t1 outline-none focus:border-teal focus:shadow-[0_0_0_3px_var(--color-blue-t)] disabled:bg-bg"
                   />
                 ) : (
@@ -173,10 +187,9 @@ export const BillingTableRow = memo(function BillingTableRow({
       </td>
 
       {/* 처리일자 — 96px */}
-      <td className={`min-w-[96px] px-[8px] py-[7px] text-right align-middle tabular-nums ${cellBorder}`}>
-        <span className={`text-[13.5px] font-normal ${unit.confirmedAt ? "text-t1" : "text-t4"}`}>{unit.confirmedAt ? unit.confirmedAt.slice(0, 10) : "-"}</span>
+      <td className={`min-w-[96px] px-[8px] py-[7px] text-left align-top tabular-nums ${cellBorder}`}>
+        <span className="text-[13.5px] font-normal text-t1">{unit.confirmedAt ? unit.confirmedAt.slice(0, 10) : "-"}</span>
         {unit.confirmedAt && unit.isDirty && <p className="text-[11.5px] font-bold text-amber">재확정 필요</p>}
-        {unit.confirmedAt && !unit.isDirty && <p className="text-[11.5px] font-bold text-teal">확정</p>}
       </td>
     </tr>
   );

@@ -83,7 +83,7 @@ export function BuildingDirectoryRail({
             <h2 className="whitespace-nowrap text-[15px] font-extrabold text-t1">전체 건물</h2>
             <div className="flex-1" />
             <div className="flex flex-none items-center gap-[6px]">
-              <div className={`${dropdownCallSiteClass} [&_.uc-dd-menu]:min-w-[104px]`}>
+              <div className={`flex-none ${dropdownCallSiteClass} [&_.uc-dd-menu]:min-w-[104px]`}>
                 <CustomDropdown
                   ariaLabel="부과 연도"
                   value={String(year)}
@@ -92,7 +92,7 @@ export function BuildingDirectoryRail({
                   onChange={(value) => onPeriodChange(Number(value), month)}
                 />
               </div>
-              <div className={`${dropdownCallSiteClass} [&_.uc-dd-menu]:min-w-[112px]`}>
+              <div className={`flex-none ${dropdownCallSiteClass} [&_.uc-dd-menu]:min-w-[112px]`}>
                 <CustomDropdown
                   ariaLabel="부과 월"
                   value={String(month)}
@@ -115,7 +115,7 @@ export function BuildingDirectoryRail({
                 className="h-[34px] w-full rounded-[9px] border border-line bg-white pl-[31px] pr-[11px] text-[13px] font-semibold text-t1 outline-none placeholder:text-[#757575] focus:border-teal"
               />
             </div>
-            <div className={`${dropdownCallSiteClass} [&_.uc-dd-menu]:min-w-[104px]`}>
+            <div className={`flex-none ${dropdownCallSiteClass} [&_.uc-dd-menu]:min-w-[104px]`}>
               <CustomDropdown
                 ariaLabel="건물 그룹"
                 value={groupId}

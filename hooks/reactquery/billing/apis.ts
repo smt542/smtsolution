@@ -6,6 +6,7 @@ type BillingFlatDbRow = {
   unit_id: number; unit_no: string; dong: string | null; room_type_label: string | null;
   area_pyeong: number | string | null;
   occupancy_id: number | null; tenant_name: string | null; move_in_date: string | null; is_vacant: boolean;
+  mgmt_fee_amount: number | string | null;
   fee_item_id: number; fee_item_name: string; carry_over: boolean; daily_proration: boolean;
   rounding: string; is_required: boolean; sort_order: number;
   charged: boolean; amount: number;
@@ -17,6 +18,7 @@ const rowToFlat = (r: BillingFlatDbRow): BillingFlatRow => ({
   unitId: r.unit_id, unitNo: r.unit_no, dong: r.dong, roomTypeLabel: r.room_type_label,
   areaPyeong: r.area_pyeong == null ? null : Number(r.area_pyeong),
   occupancyId: r.occupancy_id, tenantName: r.tenant_name, moveInDate: r.move_in_date, isVacant: r.is_vacant,
+  mgmtFeeAmount: r.mgmt_fee_amount == null ? null : Number(r.mgmt_fee_amount),
   feeItemId: r.fee_item_id, feeItemName: r.fee_item_name, carryOver: r.carry_over, dailyProration: r.daily_proration,
   rounding: r.rounding as BillingFlatRow["rounding"], isRequired: r.is_required, sortOrder: r.sort_order,
   charged: r.charged, amount: r.amount,
