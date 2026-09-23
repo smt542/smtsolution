@@ -59,19 +59,19 @@ export const BillingTableRow = memo(function BillingTableRow({
     : recent
       ? "shadow-[inset_3px_0_0_var(--color-green)]"
       : "";
-  const cellBorder = "border-b border-r border-line2";
+  const cellBorder = "border-b border-line2";
 
   return (
-    <tr className={`border-b border-line2 align-top text-[13.5px] ${rowStateText}`}>
+    <tr className={`align-top text-[13.5px] ${rowStateText}`}>
       {/* 호수 — 56px sticky left:0, .mf-nocell 700 중앙 */}
       <td className={`sticky left-0 z-[2] w-[56px] min-w-[56px] max-w-[56px] bg-surface px-[8px] py-[7px] text-center align-middle text-[13.5px] font-bold ${cellBorder} ${firstCellBar}`}>
         <button type="button" className="font-bold text-teal hover:underline" onClick={() => onRowClick(unit.unitId)}>{unitNo}</button>
       </td>
 
       {/* 총 관리비 — 92px sticky left:56px, .mf-totcell (2줄: 총관리비 / 고정관리비) */}
-      <td className={`sticky left-[56px] z-[2] w-[92px] min-w-[92px] max-w-[92px] bg-surface px-[8px] py-[7px] align-middle text-[13.5px] font-bold text-t1 shadow-[1px_0_0_var(--color-line)] ${cellBorder}`}>
-        <div className="tabular-nums">{num(displayTotal)}</div>
-        <div className="mt-[2px] text-[11.5px] font-semibold tabular-nums text-t3">{num(fixedTotal)}</div>
+      <td className={`sticky left-[56px] z-[2] w-[92px] min-w-[92px] max-w-[92px] bg-surface px-[8px] py-[7px] text-left align-middle text-[13.5px] font-bold shadow-[1px_0_0_var(--color-line)] ${unit.isVacant ? "text-t4" : "text-t1"} ${cellBorder}`}>
+        <div className="tabular-nums leading-[normal]">{num(displayTotal)}</div>
+        <div className={`mt-[2px] text-[11.5px] font-semibold leading-[normal] tabular-nums ${unit.isVacant ? "text-t4" : "text-t3"}`}>{num(fixedTotal)}</div>
       </td>
 
       {/* 성명 / 평수·룸타입 / 입주일 — 92px, 3줄 */}
@@ -82,7 +82,7 @@ export const BillingTableRow = memo(function BillingTableRow({
       </td>
 
       {/* 수도 / 전기 / 가스 금액 — 78px, 3줄 (이상 시 빨강) */}
-      <td className={`min-w-[78px] px-[8px] py-[7px] text-right tabular-nums ${cellBorder}`}>
+      <td className={`min-w-[78px] px-[8px] py-[7px] text-left tabular-nums ${cellBorder}`}>
         <div className={`text-[13.5px] font-normal leading-[1.5] ${anomaly ? "font-bold text-red" : ""}`}>{num(util.water)}</div>
         <div className={`text-[13.5px] font-normal leading-[1.5] ${anomaly ? "font-bold text-red" : ""}`}>{num(util.electricity)}</div>
         <div className={`text-[13.5px] font-normal leading-[1.5] ${anomaly ? "font-bold text-red" : ""}`}>{num(util.gas)}</div>
@@ -96,7 +96,7 @@ export const BillingTableRow = memo(function BillingTableRow({
             const shown = cell.charged ? effectiveChargeAmount(column, cell.amount, unit.moveInDate, period) : cell.amount;
             const prorated = shown !== cell.amount;
             return (
-              <div key={column.feeItemId} className="flex items-center gap-[4px] leading-[1.5]">
+              <div key={column.feeItemId} className="flex items-center justify-start gap-[4px] leading-[1.5]">
                 {editing ? (
                   <input
                     type="number"
@@ -104,11 +104,11 @@ export const BillingTableRow = memo(function BillingTableRow({
                     value={String(cell.amount)}
                     disabled={unit.isVacant || !cell.charged}
                     onChange={(event) => onChargeChange(unit.unitId, column.feeItemId, { amount: Number(event.target.value) || 0 })}
-                    className="h-[26px] w-full min-w-0 flex-1 rounded-[7px] border border-line bg-white px-[6px] text-right text-[13.5px] font-normal text-t1 outline-none focus:border-teal focus:shadow-[0_0_0_3px_var(--color-blue-t)] disabled:bg-bg"
+                    className="h-[26px] w-full min-w-0 rounded-[7px] border border-line bg-white px-[6px] text-[13.5px] font-normal text-t1 outline-none focus:border-teal focus:shadow-[0_0_0_3px_var(--color-blue-t)] disabled:bg-bg"
                   />
                 ) : (
                   <span
-                    className={`flex-1 text-right text-[13.5px] font-normal tabular-nums ${cell.charged ? "text-t1" : "text-red"}`}
+                    className={`${unit.isVacant ? "text-t4" : cell.charged ? "text-t1" : "text-red"} text-[13.5px] font-normal leading-[1.5] tabular-nums`}
                     title={prorated ? `${num(cell.amount)}원 · 일할` : undefined}
                   >
                     {shown ? num(shown) : "-"}
@@ -145,7 +145,7 @@ export const BillingTableRow = memo(function BillingTableRow({
           />
         ) : (
           <span
-            className={`line-clamp-2 block max-w-[150px] break-words text-[13.5px] font-normal leading-[1.4] ${billingNote ? "text-t1" : "text-t4"}`}
+            className={`line-clamp-2 block max-w-[150px] break-words text-[13.5px] font-normal leading-[1.5] ${unit.isVacant ? "text-t4" : "text-t1"}`}
             title={billingNote || undefined}
           >
             {billingNote || "-"}
@@ -164,7 +164,7 @@ export const BillingTableRow = memo(function BillingTableRow({
           />
         ) : (
           <span
-            className={`line-clamp-2 block max-w-[150px] break-words text-[13.5px] font-normal leading-[1.4] ${unitNotice ? "text-t1" : "text-t4"}`}
+            className={`line-clamp-2 block max-w-[150px] break-words text-[13.5px] font-normal leading-[1.5] ${unit.isVacant ? "text-t4" : "text-t1"}`}
             title={unitNotice || undefined}
           >
             {unitNotice || "-"}
