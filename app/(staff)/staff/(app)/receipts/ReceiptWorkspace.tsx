@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useIsHydrated } from "@/hooks/common";
 import { Button, Spinner } from "@/components/common";
@@ -50,15 +50,35 @@ function Dropdown({
   onInactiveClick?: () => void;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const isOpen = open && !inactive;
   const triggerClass =
     accent === "teal"
-      ? "flex h-10 cursor-pointer items-center gap-[5px] rounded-[11px] bg-teal px-[15px] text-[13.5px] font-bold leading-[normal] text-white hover:bg-teal-d"
+      ? "flex h-10 cursor-pointer items-center gap-[5px] rounded-[11px] border border-transparent bg-teal px-[15px] text-[13.5px] font-bold leading-[normal] text-white hover:bg-teal-d"
       : "flex h-10 cursor-pointer items-center gap-[5px] rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg";
 
   useEffect(() => {
     if (open && inactive) onOpenChange(false);
   }, [inactive, onOpenChange, open]);
+
+  // 정본 `.rc-gmenu` 는 fixed 다: left = clamp(버튼 right - 메뉴 폭, 10, 창 폭 - 메뉴 폭 - 10),
+  // top = 버튼 bottom + 6. 창 크기가 바뀌면 다시 잡는다.
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    const place = () => {
+      const button = buttonRef.current;
+      const menu = menuRef.current;
+      if (!button || !menu) return;
+      const rect = button.getBoundingClientRect();
+      const width = menu.offsetWidth || 172;
+      menu.style.left = `${Math.max(10, Math.min(rect.right - width, window.innerWidth - width - 10))}px`;
+      menu.style.top = `${rect.bottom + 6}px`;
+    };
+    place();
+    window.addEventListener("resize", place);
+    return () => window.removeEventListener("resize", place);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!open) return;
@@ -82,6 +102,7 @@ function Dropdown({
   return (
     <div ref={rootRef} className="relative">
       <button
+        ref={buttonRef}
         type="button"
         aria-haspopup="menu"
         aria-expanded={isOpen}
@@ -109,12 +130,16 @@ function Dropdown({
       </button>
       {isOpen && (
         <div
+          ref={menuRef}
           role="menu"
-          className="absolute right-0 z-20 mt-1 min-w-[190px] rounded-xl border border-line bg-surface p-1 shadow-card"
+          className="fixed z-[60] min-w-[172px] rounded-[12px] border border-line bg-surface p-[6px] leading-[normal] shadow-[0_14px_34px_-10px_rgba(23,31,40,0.28)]"
         >
           {items.map((item, index) =>
             "header" in item ? (
-              <p key={index} className="px-3 pb-1 pt-2 text-xs font-bold text-t4">
+              <p
+                key={index}
+                className="px-[11px] pb-[3px] pt-[7px] text-[10.5px] font-extrabold tracking-[.02em] text-t4"
+              >
                 {item.header}
               </p>
             ) : (
@@ -126,7 +151,7 @@ function Dropdown({
                   item.onClick();
                   onOpenChange(false);
                 }}
-                className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-t2 hover:bg-bg"
+                className="block w-full whitespace-nowrap rounded-[8px] px-[11px] py-[9px] text-left text-[13px] font-semibold text-t2 hover:bg-bg hover:text-t1"
               >
                 {item.label}
               </button>
@@ -156,6 +181,11 @@ export function ReceiptWorkspace({
   const [period] = useState(() => initialPeriod ?? currentPeriod());
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | null>(initialBuildingId);
   const [selectedUnitId, setSelectedUnitId] = useState<number | null>(initialUnitId);
+  // 정본 `setView`: 레일이 건물 목록/호실 목록 중 무엇을 보이는지는 선택과 따로 논다.
+  // 뒤로가기는 목록만 바꾸고 고른 건물·호실은 그대로 둔다(우측 패널도 유지).
+  const [railView, setRailView] = useState<"building" | "unit">(
+    initialBuildingId !== null ? "unit" : "building",
+  );
   const [searchOpen, setSearchOpen] = useState(false);
   const [monthlyOpen, setMonthlyOpen] = useState(false);
   const [chargeReportOpen, setChargeReportOpen] = useState(false);
@@ -198,9 +228,10 @@ export function ReceiptWorkspace({
     period,
   );
   const { data: unitPayments = [], isLoading: isPaymentsLoading } = paymentsQuery;
+  // 정본 `drawHist` 는 당월 포함 7개월을 보인다.
   const historyStartPeriod = useMemo(() => {
     let start = period;
-    for (let index = 0; index < 4; index += 1) start = prevPeriod(start);
+    for (let index = 0; index < 6; index += 1) start = prevPeriod(start);
     return start;
   }, [period]);
   const historyQuery = useReceiptStatementData(
@@ -234,14 +265,15 @@ export function ReceiptWorkspace({
   const selectBuilding = (id: number) => {
     setSelectedBuildingId(id);
     setSelectedUnitId(null);
+    setRailView("unit");
   };
   const backToBuildings = () => {
-    setSelectedBuildingId(null);
-    setSelectedUnitId(null);
+    setRailView("building");
   };
   const jumpTo = (buildingId: number, unitId: number | null) => {
     setSelectedBuildingId(buildingId);
     setSelectedUnitId(unitId);
+    setRailView("unit");
   };
 
   const openVilla = (init: VillaPaymentModalInit) => {
@@ -367,6 +399,7 @@ export function ReceiptWorkspace({
           isBuildingsLoading={!isHydrated || buildingsQuery.isLoading}
           isUnitsLoading={isUnitsLoading}
           canEdit={canEditPayment}
+          view={railView}
           selectedBuildingId={selectedBuildingId}
           selectedUnitId={selectedUnitId}
           onSelectBuilding={selectBuilding}
@@ -379,6 +412,8 @@ export function ReceiptWorkspace({
             key={`pay-${selectedUnitId ?? "none"}`}
             orgId={orgId}
             buildingId={selectedBuildingId}
+            buildingName={selectedBuilding?.name ?? selectedSummary?.buildingName ?? ""}
+            buildingAddress={selectedBuilding?.address ?? null}
             hasUnit={selectedUnitId !== null}
             isLoading={isPaymentHistoryLoading}
             payments={historyQuery.data?.payments ?? unitPayments}
