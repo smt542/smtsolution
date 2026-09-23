@@ -30,6 +30,7 @@ import {
 } from "./_ms";
 import { msClasses as styles } from "./msClasses";
 import { PartnerButton } from "../../../_components/PartnerButton";
+import { PartnerConfirmDialog } from "../../../_components/PartnerConfirmDialog";
 
 type SectionKey = "basic" | "util" | "fee" | "etc" | "cleaning" | "settle" | "check";
 
@@ -591,74 +592,43 @@ export default function PartnerMsNewWorkspace({
         </PartnerButton>
       </PartnerBottomActionBar>
 
-      {confirmKind ? (
-        <div
-          className={styles.scrim}
-          onClick={(e) => e.target === e.currentTarget && setConfirmKind(null)}
-        >
-          <div className={styles.dialog}>
-            {confirmKind === "save" && (
-              <>
-                <div className={styles.dTitle}>이사정산을 저장할까요?</div>
-                <div className={styles.dDesc}>입력한 값으로 정산 내역이 저장돼요.</div>
-                <div className={styles.dActions}>
-                  <PartnerButton variant="secondary" size="md" type="button" className="flex-1" onClick={() => setConfirmKind(null)}>
-                    취소
-                  </PartnerButton>
-                  <PartnerButton
-                    variant="primary"
-                    size="md"
-                    type="button"
-                    className="flex-1"
-                    onClick={() => {
-                      setConfirmKind(null);
-                      void doSave();
-                    }}
-                  >
-                    저장
-                  </PartnerButton>
-                </div>
-              </>
-            )}
-            {confirmKind === "cancel" && (
-              <>
-                <div className={styles.dTitle}>작성을 취소할까요?</div>
-                <div className={styles.dDesc}>입력한 내용은 저장되지 않아요.</div>
-                <div className={styles.dActions}>
-                  <PartnerButton variant="secondary" size="md" type="button" className="flex-1" onClick={() => setConfirmKind(null)}>
-                    계속 작성
-                  </PartnerButton>
-                  <PartnerButton variant="danger" size="md" type="button" className="flex-1" onClick={goBack}>
-                    나가기
-                  </PartnerButton>
-                </div>
-              </>
-            )}
-            {confirmKind === "delete" && (
-              <>
-                <div className={styles.dTitle}>이사정산을 삭제할까요?</div>
-                <div className={styles.dDesc}>삭제하면 이 정산 내역은 복구할 수 없어요.</div>
-                <div className={styles.dActions}>
-                  <PartnerButton variant="secondary" size="md" type="button" className="flex-1" onClick={() => setConfirmKind(null)}>
-                    취소
-                  </PartnerButton>
-                  <PartnerButton
-                    variant="danger"
-                    size="md"
-                    type="button"
-                    className="flex-1"
-                    onClick={() => {
-                      setConfirmKind(null);
-                      void doDelete();
-                    }}
-                  >
-                    삭제
-                  </PartnerButton>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+      {confirmKind === "save" ? (
+        <PartnerConfirmDialog
+          title="이사정산을 저장할까요?"
+          description="입력한 값으로 정산 내역이 저장돼요."
+          cancelLabel="취소"
+          confirmLabel="저장"
+          onCancel={() => setConfirmKind(null)}
+          onConfirm={() => {
+            setConfirmKind(null);
+            void doSave();
+          }}
+        />
+      ) : null}
+      {confirmKind === "cancel" ? (
+        <PartnerConfirmDialog
+          title="작성을 취소할까요?"
+          description="입력한 내용은 저장되지 않아요."
+          cancelLabel="계속 작성"
+          confirmLabel="나가기"
+          confirmVariant="danger"
+          onCancel={() => setConfirmKind(null)}
+          onConfirm={goBack}
+        />
+      ) : null}
+      {confirmKind === "delete" ? (
+        <PartnerConfirmDialog
+          title="이사정산을 삭제할까요?"
+          description="삭제하면 이 정산 내역은 복구할 수 없어요."
+          cancelLabel="취소"
+          confirmLabel="삭제"
+          confirmVariant="danger"
+          onCancel={() => setConfirmKind(null)}
+          onConfirm={() => {
+            setConfirmKind(null);
+            void doDelete();
+          }}
+        />
       ) : null}
 
       {toast ? <div className={styles.toast}>{toast}</div> : null}
