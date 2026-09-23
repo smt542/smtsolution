@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { Button } from "@/components/common";
 
 export function SettlementDecisionDialog({
   open,
@@ -64,25 +63,23 @@ export function SettlementDecisionDialog({
           {children}
         </div>
         <div className="flex h-[60px] items-end gap-[8px]">
-          <Button
-            variant="ghost"
+          <button
             type="button"
             onClick={onCancel}
             disabled={pending}
-            className="flex-1 disabled:opacity-60"
+            className="h-[40px] flex-1 rounded-[11px] border border-line bg-white text-[13.5px] font-bold text-t2 hover:bg-bg disabled:opacity-60"
           >
             취소
-          </Button>
+          </button>
           {secondaryLabel && onSecondary && (
-            <Button
-              variant="ghost"
+            <button
               type="button"
               onClick={onSecondary}
               disabled={pending}
-              className="flex-1 disabled:opacity-60"
+              className="h-[40px] flex-1 rounded-[11px] border border-line bg-white text-[13.5px] font-bold text-t2 hover:bg-bg disabled:opacity-60"
             >
               {secondaryLabel}
-            </Button>
+            </button>
           )}
           <button
             type="button"

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useIsHydrated } from "@/hooks/common";
-import { Spinner } from "@/components/common";
+import { Button, Spinner } from "@/components/common";
 import { PrinterIcon } from "@/components/icons";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useUnitOccupancyFull } from "@/hooks/reactquery/occupancies";
@@ -290,21 +290,23 @@ export function ReceiptWorkspace({
       ) : null}
 
       <div className="fixed right-[24px] top-[10.5px] z-[30] hidden items-center gap-[8px] md:flex print:hidden">
-          <button
+          <Button
+            variant="ghost"
             type="button"
             onClick={() => setSearchOpen(true)}
-            className="h-[40px] rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg"
+            className="leading-[normal]"
           >
             조회
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
             type="button"
             onClick={() => setMonthlyOpen(true)}
-            className="flex h-[40px] items-center gap-[6px] rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg"
+            className="leading-[normal]"
           >
             <PrinterIcon className="size-[16px]" aria-hidden="true" />
             월별 부과금액
-          </button>
+          </Button>
           {/* 빌라·호실·자동수납은 수납 콘솔(기록/취소 포함)이므로 payment 모듈 보유자만 노출 */}
           {canEditPayment && (
             <>

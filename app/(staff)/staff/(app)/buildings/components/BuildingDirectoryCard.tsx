@@ -1,6 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { EmptyState, Pagination, Spinner } from "@/components/common";
+import { Button, EmptyState, Pagination, Spinner } from "@/components/common";
 import { MaskedPhone } from "@/components/common/MaskedPhone";
 import type { BuildingDirectoryRow } from "@/hooks/reactquery/buildings";
 
@@ -87,13 +87,14 @@ export function BuildingDirectoryCard({
           >
             ⤓ 엑셀 다운
           </a>
-          <button
+          <Button
+            variant="primary"
             type="button"
             onClick={() => router.push("/staff/buildings/new")}
-            className="inline-flex h-[40px] items-center rounded-[11px] border border-transparent bg-teal px-[15px] text-[13.5px] font-bold leading-[normal] text-white shadow-[0_6px_14px_-4px_rgba(20,164,151,0.5)] hover:bg-teal-d"
+            className="border border-transparent leading-[normal]"
           >
             ＋ 건물 등록
-          </button>
+          </Button>
         </div>
       </header>
 

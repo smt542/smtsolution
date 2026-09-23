@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { IconButton } from "@/components/common";
+import { Button, IconButton } from "@/components/common";
 import {
   useBuildingFull,
   useBuildingList,
@@ -207,10 +207,11 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
           </svg>
         </IconButton>
         <h1 className="text-[19px] font-extrabold leading-[normal] tracking-[-0.38px] text-t1">건물·입주자 관리</h1>
-        <button
+        <Button
+          variant="ghost"
           type="button"
           onClick={() => setOutputOpen(true)}
-          className="ml-auto inline-flex h-[40px] items-center gap-[6px] rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg"
+          className="ml-auto leading-[normal]"
         >
           <svg
             viewBox="0 0 24 24"
@@ -227,7 +228,7 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
             <rect x="7" y="14" width="10" height="7" />
           </svg>
           입주자카드 및 부과내역 출력
-        </button>
+        </Button>
       </div>
 
       {/* Content */}

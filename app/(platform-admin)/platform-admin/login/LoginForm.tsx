@@ -13,6 +13,7 @@ import {
   type LoginFormValues,
 } from "@/components/forms/schema/auth";
 import { AUTO_LOGIN_KEY } from "@/lib/auth/sessionPersistence";
+import { Button } from "@/components/common";
 
 const fieldClass =
   "h-12 w-full rounded-[13px] border border-line bg-white px-3.5 text-[14.5px] font-medium text-t1 outline-none transition placeholder:text-t4 focus:border-blue focus:ring-[3px] focus:ring-blue-t";
@@ -123,13 +124,15 @@ export function LoginForm() {
         </div>
       )}
 
-      <button
+      <Button
+        variant="primary"
+        size="login"
         type="submit"
         disabled={isSubmitting}
-        className="mt-1.5 h-[50px] w-full rounded-[14px] bg-blue text-[15px] font-extrabold text-white transition hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
+        className="mt-1.5 w-full shadow-none transition disabled:cursor-not-allowed disabled:opacity-70"
       >
         {isSubmitting ? "로그인 중…" : "로그인"}
-      </button>
+      </Button>
     </form>
   );
 }

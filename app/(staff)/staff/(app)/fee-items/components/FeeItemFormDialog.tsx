@@ -6,7 +6,6 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DEFAULT_FORM_VALUE, ROUNDING_OPTIONS } from "./constants";
 import type { FeeItemDraft, FeeItemFormValue } from "./types";
-import { Button } from "@/components/common";
 import { CustomDropdown } from "@/components/common/CustomDropdown";
 import { setSubmissionError } from "@/components/forms/formErrors";
 import {
@@ -154,10 +153,10 @@ export function FeeItemFormDialog({
               {!item.isRequired && (
                 <button type="button" disabled={submitting} className="h-10 rounded-[11px] bg-red-t px-5 text-[13.5px] font-bold text-red hover:bg-[#fbdbe0] disabled:opacity-70" onClick={onDelete}>삭제</button>
               )}
-              <Button variant="primary" type="submit" disabled={submitting} className="flex-1">{submitting ? "저장 중…" : "수정"}</Button>
+              <button type="submit" disabled={submitting} className="h-10 flex-1 rounded-[11px] bg-teal text-[13.5px] font-bold text-white hover:bg-teal-d disabled:opacity-70">{submitting ? "저장 중…" : "수정"}</button>
             </>
           ) : (
-            <Button variant="primary" type="submit" disabled={submitting} className="w-full">{submitting ? "저장 중…" : "추가"}</Button>
+            <button type="submit" disabled={submitting} className="h-10 w-full rounded-[11px] bg-teal text-[13.5px] font-bold text-white hover:bg-teal-d disabled:opacity-70">{submitting ? "저장 중…" : "추가"}</button>
           )}
         </footer>
       </form>

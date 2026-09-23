@@ -13,6 +13,7 @@ import {
 } from "@/components/forms/schema/auth";
 import { useLogin } from "@/hooks/reactquery/auth";
 import { AUTO_LOGIN_KEY } from "@/lib/auth/sessionPersistence";
+import { Button } from "@/components/common";
 
 const fieldBase =
   "h-12 rounded-[13px] border border-line bg-white text-[14.5px] font-medium text-t1 placeholder:text-[#757575] outline-none transition focus:border-[#14A497] focus:ring-[3px] focus:ring-blue-t";
@@ -81,10 +82,10 @@ export function LoginForm() {
       {errors.root?.server?.message && (
         <div role="alert" className="rounded-[11px] bg-red-t px-3 py-2.5 text-sm font-bold text-red">{errors.root.server.message}</div>
       )}
-      <button type="submit" disabled={submitting}
-        className="mt-1.5 h-[50px] rounded-[14px] bg-blue text-[15px] font-extrabold text-white transition hover:bg-blue-d disabled:opacity-70">
+      <Button variant="primary" size="login" type="submit" disabled={submitting}
+        className="mt-1.5 shadow-none transition disabled:opacity-70">
         {submitting ? "로그인 중…" : "로그인"}
-      </button>
+      </Button>
     </form>
   );
 }

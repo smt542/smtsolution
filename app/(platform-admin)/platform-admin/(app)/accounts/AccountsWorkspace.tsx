@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Badge, Checkbox, EmptyState, Modal, Select, Spinner } from "@/components/common";
+import { Badge, Button, Checkbox, EmptyState, Modal, Select, Spinner } from "@/components/common";
 import { MaskedPhone } from "@/components/common/MaskedPhone";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import type { PlatformAccountCreateValues } from "@/components/forms/schema/platformAccount";
@@ -199,13 +199,14 @@ export function AccountsWorkspace() {
   return (
     <PlatformPageContainer>
       <PlatformTopBarActions>
-        <button
+        <Button
+          variant="primary"
           type="button"
           onClick={() => setCreateOpen(true)}
-          className="inline-flex h-10 shrink-0 items-center rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-hf-btn transition-colors hover:bg-blue-d"
+          className="shrink-0 transition-colors"
         >
           + 계정 발급
-        </button>
+        </Button>
       </PlatformTopBarActions>
 
       <section className="overflow-hidden rounded-2xl bg-surface shadow-card">
@@ -383,7 +384,8 @@ export function AccountsWorkspace() {
               </div>
             </div>
             <div className="flex justify-end pt-1">
-              <button
+              <Button
+                variant="primary"
                 type="button"
                 onClick={() => {
                   void navigator.clipboard?.writeText(
@@ -391,10 +393,9 @@ export function AccountsWorkspace() {
                   );
                   toast.success("복사했습니다.");
                 }}
-                className="h-10 rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-hf-btn hover:bg-blue-d"
               >
                 복사
-              </button>
+              </Button>
             </div>
           </div>
         </Modal>
@@ -527,21 +528,22 @@ function RoleChangeModal({
         </div>
 
         <ModalActions>
-          <button
+          <Button
+            variant="ghost"
             type="button"
             onClick={onClose}
-            className="h-10 rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold text-t2 hover:bg-bg"
           >
             취소
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
             type="button"
             disabled={isPending}
             onClick={() => void handleSubmit()}
-            className="h-10 rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-hf-btn hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
+            className="disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isPending ? "저장 중…" : "권한 저장"}
-          </button>
+          </Button>
         </ModalActions>
       </div>
     </Modal>

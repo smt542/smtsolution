@@ -1,6 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { EmptyState, Spinner } from "@/components/common";
+import { Button, EmptyState, Spinner } from "@/components/common";
 import { MaskedPhone } from "@/components/common/MaskedPhone";
 import type { TenantListRow } from "@/hooks/reactquery/occupancies";
 import { displayUnitNo } from "@/lib/bill/document";
@@ -53,15 +53,16 @@ export function TenantOccupancyCard({
           >
             ⤓ 엑셀 다운
           </a>
-          <button
+          <Button
+            variant="primary"
             type="button"
             disabled={!selected}
             title={selected ? undefined : "건물을 먼저 선택해 주세요"}
             onClick={() => router.push(`${base}/new`)}
-            className="inline-flex h-[40px] items-center rounded-[11px] border border-transparent bg-teal px-[15px] text-[13.5px] font-bold leading-[normal] text-white shadow-[0_6px_14px_-4px_rgba(20,164,151,0.5)] hover:bg-teal-d disabled:cursor-default disabled:opacity-[.45] disabled:shadow-none disabled:hover:bg-teal"
+            className="border border-transparent leading-[normal] hover:bg-teal-d disabled:cursor-default disabled:opacity-[.45] disabled:shadow-none disabled:hover:bg-teal"
           >
             ＋ 호수·입주민 등록
-          </button>
+          </Button>
         </div>
       </header>
 

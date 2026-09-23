@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Checkbox, Input, Panel, PhoneInput, Spinner } from "@/components/common";
+import { Button, Checkbox, Input, Panel, PhoneInput, Spinner } from "@/components/common";
 import { DateInput } from "@/components/common/DateInput";
 import { MaskedPhone } from "@/components/common/MaskedPhone";
 import type { UnitOccupancyFull } from "@/hooks/reactquery/occupancies";
@@ -150,22 +150,25 @@ export function TenantInfoSection({
         >
           {save.isPending ? "저장 중…" : "저장"}
         </button>
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           type="button"
           onClick={() => setEditing(false)}
-          className="h-[26px] rounded-[8px] border border-line bg-surface px-[10px] text-[11.5px] font-bold text-t2 hover:bg-bg"
         >
           취소
-        </button>
+        </Button>
       </div>
     ) : (
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         type="button"
         onClick={startEdit}
-        className="h-[26px] rounded-[8px] border border-line bg-surface px-[10px] text-[11.5px] font-bold leading-[normal] text-t2 hover:bg-bg"
+        className="leading-[normal]"
       >
         수정
-      </button>
+      </Button>
     )
   ) : undefined;
 
