@@ -240,7 +240,7 @@ export function TenantInfoSection({
 
   const startEdit = () => {
     if (!occ) {
-      if (hasUnit) toast.info("공실 세대는 입주자 등록 후 수정할 수 있어요");
+      if (hasUnit) toast.warning("공실 세대는 입주자 등록 후 수정할 수 있어요");
       return;
     }
     setForm({
@@ -287,7 +287,7 @@ export function TenantInfoSection({
       setEditing(false);
       setForm(null);
     } catch (error) {
-      toast.error(error, "저장에 실패했습니다.");
+      toast.error(error, "저장하지 못했어요");
     }
   };
 

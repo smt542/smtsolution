@@ -322,7 +322,7 @@ function BuildingNoteBlock({
         await persist();
         setEditing(false);
       } catch (error) {
-        toast.error(error, "저장에 실패했습니다.");
+        toast.error(error, "저장하지 못했어요");
         return;
       }
     }
@@ -331,7 +331,7 @@ function BuildingNoteBlock({
 
   const startEdit = () => {
     if (!building) {
-      toast.info("건물을 선택해 주세요");
+      toast.warning("건물을 선택해 주세요");
       return;
     }
     setDraft(storedActive);
@@ -345,7 +345,7 @@ function BuildingNoteBlock({
       toast.success("메모를 저장했어요");
       setEditing(false);
     } catch (error) {
-      toast.error(error, "저장에 실패했습니다.");
+      toast.error(error, "저장하지 못했어요");
     }
   };
 

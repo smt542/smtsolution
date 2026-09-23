@@ -336,7 +336,7 @@ export function AsStatusSection({
         type="button"
         onClick={() => {
           if (buildingId === null) {
-            toast.info("건물을 선택해 주세요");
+            toast.warning("건물을 선택해 주세요");
             return;
           }
           setFormOpen(true);

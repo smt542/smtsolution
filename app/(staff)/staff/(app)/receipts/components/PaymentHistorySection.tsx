@@ -411,7 +411,7 @@ export function PaymentHistorySection({
 
   const openAdd = () => {
     if (!hasUnit || unitId === null) {
-      toast.info("호실을 선택해 주세요");
+      toast.warning("호실을 선택해 주세요");
       return;
     }
     const row = createAddedRow();
@@ -543,7 +543,7 @@ export function PaymentHistorySection({
       );
       if (isCanceled || (!needsNewRecord && !needsEdit)) continue;
       if (needsEdit && normalizeAmount(row.fields.amount) <= 0) {
-        toast.error("수납액을 올바르게 입력하세요.");
+        toast.warning("수납액을 올바르게 입력해 주세요");
         return;
       }
     }
@@ -625,7 +625,7 @@ export function PaymentHistorySection({
           // 성공한 변동은 이미 서버에 반영됐으므로 실패 토스트는 원래 저장 실패만 알린다.
         }
       }
-      toast.error(error, "저장에 실패했습니다.");
+      toast.error(error, "저장하지 못했어요");
     }
   };
 
@@ -660,11 +660,11 @@ export function PaymentHistorySection({
   const sendUnpaidSms = () => {
     if (!summary) return;
     if (!canSendMessages) {
-      toast.info("문자 발송 권한이 필요합니다.");
+      toast.warning("문자 발송 권한이 필요해요");
       return;
     }
     if (!summary.phone) {
-      toast.info("등록된 입주자 연락처가 없습니다.");
+      toast.warning("등록된 입주자 연락처가 없어요");
       return;
     }
 
