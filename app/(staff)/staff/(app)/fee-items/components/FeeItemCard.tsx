@@ -107,7 +107,7 @@ export function FeeItemCard({
       <FeeItemTable items={type.items} isReorderPending={isReorderPending} onEdit={onEditItem} onReorder={onReorder} />
 
       <footer className="flex h-[62px] items-center justify-end border-t border-line2 px-[18px]">
-        <button type="button" disabled={isRenamePending} className="flex h-9 items-center gap-1.5 rounded-[10px] border border-line px-3 text-[12px] font-bold text-red hover:bg-red-t disabled:cursor-not-allowed disabled:opacity-50" onClick={onDeleteType}>
+        <button type="button" disabled={isRenamePending} className="flex h-8 items-center gap-1.5 rounded-[10px] border border-line px-3 text-[12px] font-bold text-red hover:bg-red-t disabled:cursor-not-allowed disabled:opacity-50" onClick={onDeleteType}>
           <Image src="/icons/fee-items/trash.svg" alt="" width={15} height={15} />
           건물 유형 삭제
         </button>
