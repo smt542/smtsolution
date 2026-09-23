@@ -1,15 +1,12 @@
 "use client";
-import { type CSSProperties, type ReactNode, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
 import { Button, Spinner } from "@/components/common";
 import { DocumentIcon, IdCardIcon, PrinterIcon } from "@/components/icons";
-import type { OutputQueryStatus } from "@/hooks/reactquery/bill";
+import type { OutputQueryStatus } from "@/hooks/reactquery/tenantOutput";
 
 /** 정본 `.pm-page` 종이 크기(px). */
 const PAGE_WIDTH = 420;
 const PAGE_HEIGHT = 594;
-/** 1단계: 현재 문서(190mm 폭)를 종이 폭에 맞춰 축소해 넣는다 — 2단계에서 정본 양식으로 교체. */
-const DOC_ZOOM = PAGE_WIDTH / ((190 * 96) / 25.4);
-const docStyle = { zoom: DOC_ZOOM } as CSSProperties;
 const PAGER_BUTTON =
   "flex h-[22px] w-[22px] items-center justify-center rounded-[7px] border border-line bg-white p-0 text-t2 enabled:hover:border-teal enabled:hover:bg-bg enabled:hover:text-teal disabled:opacity-40";
 const TITLES = { card: "입주자카드", statement: "관리비부과내역서" } as const;
@@ -61,13 +58,13 @@ function PaperPage({ children }: { children: ReactNode }) {
   return (
     <div ref={areaRef} className="relative min-h-0 flex-1 overflow-hidden bg-bg">
       <div
-        className="absolute left-1/2 top-1/2 h-[594px] w-[420px] overflow-hidden rounded-[3px] border border-line bg-white shadow-[0_6px_20px_-4px_rgba(23,31,40,0.18)]"
+        className="absolute left-1/2 top-1/2 h-[594px] w-[420px] overflow-hidden rounded-[3px] border border-line bg-white px-[34px] py-[40px] shadow-[0_6px_20px_-4px_rgba(23,31,40,0.18)]"
         style={{
           transform: `translate(-50%, -50%) scale(${scale ?? 1})`,
           visibility: scale === null ? "hidden" : undefined,
         }}
       >
-        <div style={docStyle}>{children}</div>
+        {children}
       </div>
     </div>
   );
