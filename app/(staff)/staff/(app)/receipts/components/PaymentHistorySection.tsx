@@ -198,7 +198,7 @@ export function PaymentHistorySection({
 
   const openAdd = () => {
     if (!hasUnit || unitId === null) {
-      toast.info("건물과 호수를 먼저 선택해 주세요.");
+      toast.info("호실을 선택해 주세요");
       return;
     }
     setEditingId(null);

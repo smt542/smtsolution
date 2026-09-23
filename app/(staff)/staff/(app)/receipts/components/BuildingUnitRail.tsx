@@ -281,7 +281,7 @@ function BuildingNoteBlock({
 
   const startEdit = () => {
     if (!building) {
-      toast.info("건물을 먼저 선택해 주세요.");
+      toast.info("건물을 선택해 주세요");
       return;
     }
     setDraft(storedActive);

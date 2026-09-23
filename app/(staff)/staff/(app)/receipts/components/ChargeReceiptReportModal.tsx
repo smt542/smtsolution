@@ -212,7 +212,7 @@ export function ChargeReceiptReportModal({
               refreshingLabel="부과·수납 자료 갱신 중"
               empty={building === null || !hasData}
               emptyMessage={
-                building === null ? "건물을 먼저 선택하세요" : "조회된 부과·수납 자료가 없습니다."
+                building === null ? "건물을 선택해 주세요" : "조회된 부과·수납 자료가 없습니다."
               }
             >
               <ChargeReportTable model={model} />
