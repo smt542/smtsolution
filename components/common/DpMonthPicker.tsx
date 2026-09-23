@@ -74,13 +74,23 @@ export function DpMonthPicker({
 
   useEffect(() => {
     if (!open) return;
-    // 바깥 탭 닫기 — iOS Safari 대응으로 mousedown 대신 pointerdown(DpDatePicker와 동일)
+    // 바깥 탭·Esc 닫기 — pointerdown·window 캡처 Esc는 DpDatePicker와 같은 이유
     const onDown = (event: PointerEvent) => {
       const target = event.target as Node;
       if (!ctlRef.current?.contains(target) && !popRef.current?.contains(target)) setOpen(false);
     };
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      setOpen(false);
+      ctlRef.current?.focus();
+    };
     document.addEventListener("pointerdown", onDown);
-    return () => document.removeEventListener("pointerdown", onDown);
+    window.addEventListener("keydown", onEscape, true);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("keydown", onEscape, true);
+    };
   }, [open]);
 
   const openPicker = () => {
@@ -134,7 +144,7 @@ export function DpMonthPicker({
             ref={popRef}
             role="dialog"
             aria-label={`${year}년 월 선택`}
-            className="fixed z-[200] flex w-[210px] flex-col items-start rounded-[12px] border border-[#e8ebee] bg-white p-[10px] drop-shadow-[0px_14px_17px_rgba(23,31,40,0.28)]"
+            className="fixed z-[1000] flex w-[210px] flex-col items-start rounded-[12px] border border-[#e8ebee] bg-white p-[10px] drop-shadow-[0px_14px_17px_rgba(23,31,40,0.28)]"
             style={{ left: pos.left, top: pos.top }}
           >
             {/* 헤더: 이전/다음 연도 + 연도 표시 */}

@@ -7,7 +7,8 @@ import { createPortal } from "react-dom";
  * 원본 프로토타입 `.dp`(uc-dpx) 커스텀 날짜 선택기. 네이티브 <input type="date">의 브라우저
  * 기본 달력 대신 원본과 동일한 팝업 달력을 띄운다. 값은 앱 배선과 동일하게 "YYYY-MM-DD"를 주고받되
  * 컨트롤 표시는 원본대로 점 구분("YYYY.MM.DD")으로 한다. 팝업은 원본 uc-dpx처럼 fixed 포탈로 띄워
- * 스크롤 컨테이너 클리핑을 피한다.
+ * 스크롤 컨테이너 클리핑을 피한다. z-index는 CustomDropdown fixed 메뉴와 같은 1000 — 모달(최대 z-[600])
+ * 안에서 열어도 그 위에 뜨고 토스트(2000)보다는 아래다(DpMonthPicker·DpTimePicker 동일).
  */
 interface DpDatePickerProps {
   id?: string;
@@ -34,6 +35,11 @@ interface DpDatePickerProps {
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const pad = (n: number) => String(n).padStart(2, "0");
 const toDisplay = (value: string) => (value ? value.replaceAll("-", ".") : "");
+// 값은 "YYYY-MM-DD"로 내보내지만, 점 구분("YYYY.MM.DD")으로 들어온 값도 읽는다(기존 화면 전용 달력 호환)
+const parseDate = (value: string): number[] | null => {
+  const parts = value.split(/[.-]/).map(Number);
+  return parts.length === 3 && parts.every(Number.isFinite) ? parts : null;
+};
 
 export function DpDatePicker({
   id,
@@ -59,10 +65,8 @@ export function DpDatePicker({
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
   const [view, setView] = useState(() => {
-    if (value) {
-      const [year, month] = value.split("-").map(Number);
-      return { y: year, m: month - 1 };
-    }
+    const parsed = parseDate(value);
+    if (parsed) return { y: parsed[0], m: parsed[1] - 1 };
     const now = new Date();
     return { y: now.getFullYear(), m: now.getMonth() };
   });
@@ -91,18 +95,29 @@ export function DpDatePicker({
     };
   }, [open]);
 
-  // 바깥 클릭 닫기. iOS Safari는 버튼이 아닌 곳을 탭하면 mousedown을 보내지 않아 pointerdown을 쓴다
+  // 바깥 클릭·Esc 닫기. iOS Safari는 버튼이 아닌 곳을 탭하면 mousedown을 보내지 않아 pointerdown을 쓴다.
+  // Esc는 window 캡처 단계에서 먼저 받아 전파를 멈춘다 — document에서 Esc를 받는 모달·시트가 함께 닫히지 않게
   useEffect(() => {
     if (!open) return;
     const onDown = (event: PointerEvent) => {
       const target = event.target as Node;
       if (!ctlRef.current?.contains(target) && !popRef.current?.contains(target)) setOpen(false);
     };
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      setOpen(false);
+      ctlRef.current?.focus();
+    };
     document.addEventListener("pointerdown", onDown);
-    return () => document.removeEventListener("pointerdown", onDown);
+    window.addEventListener("keydown", onEscape, true);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      window.removeEventListener("keydown", onEscape, true);
+    };
   }, [open]);
 
-  const selected = value ? value.split("-").map(Number) : null; // [y, m(1-based), d]
+  const selected = value ? parseDate(value) : null; // [y, m(1-based), d]
   const firstDow = new Date(view.y, view.m, 1).getDay();
   const daysInMonth = new Date(view.y, view.m + 1, 0).getDate();
   const viewMonth = `${view.y}-${pad(view.m + 1)}`;
@@ -117,10 +132,8 @@ export function DpDatePicker({
 
   // 팝업을 열 때 선택된 값의 달로 이동(effect 대신 열기 시점에 동기화 → 캐스케이드 렌더 회피)
   const openPicker = () => {
-    if (value) {
-      const [year, month] = value.split("-").map(Number);
-      setView({ y: year, m: month - 1 });
-    }
+    const parsed = parseDate(value);
+    if (parsed) setView({ y: parsed[0], m: parsed[1] - 1 });
     setOpen(true);
   };
   const pick = (day: number) => {
@@ -171,7 +184,7 @@ export function DpDatePicker({
             ref={popRef}
             role="dialog"
             aria-label={`${view.y}년 ${view.m + 1}월 달력`}
-            className="fixed z-[200] w-[262px] rounded-[14px] border border-line bg-white p-[14px] shadow-[0_16px_40px_-12px_rgba(23,31,40,0.28)]"
+            className="fixed z-[1000] w-[262px] rounded-[14px] border border-line bg-white p-[14px] shadow-[0_16px_40px_-12px_rgba(23,31,40,0.28)]"
             style={{ left: pos.left, top: pos.top }}
           >
             <div className="mb-[10px] flex items-center justify-between">
