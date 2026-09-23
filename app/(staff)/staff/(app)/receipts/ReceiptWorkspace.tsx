@@ -39,6 +39,7 @@ function Dropdown({
   inactive,
   open,
   onOpenChange,
+  onInactiveClick,
 }: {
   label: string;
   items: DropdownItem[];
@@ -46,12 +47,18 @@ function Dropdown({
   inactive?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onInactiveClick?: () => void;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const isOpen = open && !inactive;
   const triggerClass =
     accent === "teal"
       ? "flex h-10 cursor-pointer items-center gap-[5px] rounded-[11px] bg-teal px-[15px] text-[13.5px] font-bold leading-[normal] text-white hover:bg-teal-d"
       : "flex h-10 cursor-pointer items-center gap-[5px] rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg";
+
+  useEffect(() => {
+    if (open && inactive) onOpenChange(false);
+  }, [inactive, onOpenChange, open]);
 
   useEffect(() => {
     if (!open) return;
@@ -77,9 +84,16 @@ function Dropdown({
       <button
         type="button"
         aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => onOpenChange(!open)}
-        className={`${triggerClass}${inactive ? ` ${open ? "opacity-100" : "opacity-45"} transition-opacity` : ""}`}
+        aria-expanded={isOpen}
+        aria-disabled={inactive ? true : undefined}
+        onClick={() => {
+          if (inactive) {
+            onInactiveClick?.();
+            return;
+          }
+          onOpenChange(!isOpen);
+        }}
+        className={`${triggerClass}${inactive ? " opacity-45 transition-opacity" : ""}`}
       >
         {label}
         <svg
@@ -93,7 +107,7 @@ function Dropdown({
           <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
-      {open && (
+      {isOpen && (
         <div
           role="menu"
           className="absolute right-0 z-20 mt-1 min-w-[190px] rounded-xl border border-line bg-surface p-1 shadow-card"
@@ -297,6 +311,7 @@ export function ReceiptWorkspace({
               <Dropdown
                 label="빌라"
                 inactive={selectedBuildingId === null}
+                onInactiveClick={() => toast.info("건물을 먼저 선택하세요.")}
                 {...getDropdownProps("villa")}
                 items={[
                   {
@@ -313,6 +328,7 @@ export function ReceiptWorkspace({
               <Dropdown
                 label="호실"
                 inactive={selectedUnitId === null}
+                onInactiveClick={() => toast.info("호실을 먼저 선택하세요.")}
                 {...getDropdownProps("unit")}
                 items={[
                   { label: "호실 명세서", onClick: openUnitStatement },
