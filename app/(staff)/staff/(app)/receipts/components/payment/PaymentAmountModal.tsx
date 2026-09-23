@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, Input, Select } from "@/components/common";
+import { DateInput } from "@/components/common/DateInput";
 import { FormField } from "@/components/common/FormField";
 import { setSubmissionError } from "@/components/forms/formErrors";
 import {
@@ -50,6 +51,7 @@ function PaymentAmountForm({
   }), [defaultAmount, defaultMethod]);
   const {
     register,
+    control,
     handleSubmit,
     reset,
     setError,
@@ -107,7 +109,18 @@ function PaymentAmountForm({
           </FormField>
 
           <FormField htmlFor="payment-date" label="수납일" error={errors.paidAt?.message} className="space-y-2 text-sm font-bold text-t2">
-            <Input id="payment-date" aria-label="수납일" type="date" {...register("paidAt")} />
+            <Controller
+              name="paidAt"
+              control={control}
+              render={({ field }) => (
+                <DateInput
+                  id="payment-date"
+                  ariaLabel="수납일"
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                />
+              )}
+            />
           </FormField>
 
           <FormField htmlFor="payment-memo" label="비고" error={errors.memo?.message} className="space-y-2 text-sm font-bold text-t2">

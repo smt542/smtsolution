@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 interface DpTimePickerProps {
+  id?: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -52,6 +53,7 @@ function formatTime({ ap, h, m }: TimeParts): string {
 }
 
 export function DpTimePicker({
+  id,
   value,
   onChange,
   placeholder = "시간",
@@ -182,6 +184,7 @@ export function DpTimePicker({
     <div className={`relative inline-flex${className ? ` ${className}` : ""}`}>
       <button
         ref={ctlRef}
+        id={id}
         type="button"
         aria-label={ariaLabel}
         aria-expanded={open}

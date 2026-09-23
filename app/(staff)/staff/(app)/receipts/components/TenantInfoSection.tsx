@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Checkbox, Input, Panel, PhoneInput, Spinner } from "@/components/common";
+import { DateInput } from "@/components/common/DateInput";
 import { MaskedPhone } from "@/components/common/MaskedPhone";
 import type { UnitOccupancyFull } from "@/hooks/reactquery/occupancies";
 import { useSaveOccupancyFields } from "@/hooks/reactquery/receipts";
@@ -216,20 +217,18 @@ export function TenantInfoSection({
           </label>
           <label className="text-xs font-bold text-t3">
             입주일
-            <Input
-              type="date"
+            <DateInput
               className="mt-1"
               value={form.moveInDate}
-              onChange={(e) => patch({ moveInDate: e.target.value })}
+              onChange={(value) => patch({ moveInDate: value })}
             />
           </label>
           <label className="text-xs font-bold text-t3">
             퇴거일
-            <Input
-              type="date"
+            <DateInput
               className="mt-1"
               value={form.moveOutDate}
-              onChange={(e) => patch({ moveOutDate: e.target.value })}
+              onChange={(value) => patch({ moveOutDate: value })}
             />
           </label>
           <div className="col-span-2 flex flex-wrap items-center gap-4 rounded-xl border border-line bg-bg px-3 py-2 md:col-span-4">

@@ -10,6 +10,7 @@ import { createPortal } from "react-dom";
  * 스크롤 컨테이너 클리핑을 피한다.
  */
 interface DpDatePickerProps {
+  id?: string;
   value: string; // "YYYY-MM-DD" | ""
   onChange: (value: string) => void;
   placeholder?: string;
@@ -33,6 +34,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
 const toDisplay = (value: string) => (value ? value.replaceAll("-", ".") : "");
 
 export function DpDatePicker({
+  id,
   value,
   onChange,
   placeholder = "날짜",
@@ -138,6 +140,7 @@ export function DpDatePicker({
     <div className={`relative inline-flex${className ? ` ${className}` : ""}`}>
       <button
         ref={ctlRef}
+        id={id}
         type="button"
         aria-label={ariaLabel}
         aria-expanded={open}

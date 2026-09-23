@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { Button, EmptyState, Spinner } from "@/components/common";
+import { DpDatePicker } from "@/components/common/DpDatePicker";
+import { CalendarIcon } from "@/components/icons";
 import {
   usePaymentRows,
   useGiroPayments,
@@ -23,6 +25,8 @@ type ErrorFilter = "all" | "normal" | "dup";
 
 const dateOnly = (value: string) => (value ? value.slice(0, 10) : "");
 const slashDate = (value: string) => dateOnly(value).replaceAll("-", "/");
+const GIRO_DATE_TRIGGER_CLASS_NAME =
+  "h-9 w-[135px] rounded-lg border border-line bg-surface px-3 text-xs text-t1 flex items-center gap-2 text-left cursor-pointer outline-none focus:border-brand";
 
 function monthRange(period: string): { from: string; to: string } {
   const ym = period.slice(0, 7);
@@ -160,20 +164,22 @@ export function GiroLedgerModal({
     >
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-xs font-bold text-t2">조회일</span>
-        <input
-          type="date"
-          aria-label="조회 시작일"
+        <DpDatePicker
+          ariaLabel="조회 시작일"
           value={from}
-          onChange={(event) => setFrom(event.target.value)}
-          className="h-9 rounded-lg border border-line bg-surface px-3 text-xs text-t1 focus:border-brand focus:outline-none"
+          onChange={setFrom}
+          triggerClassName={GIRO_DATE_TRIGGER_CLASS_NAME}
+          triggerOpenClassName="border-brand"
+          endAdornment={<CalendarIcon className="ml-auto size-[14px] shrink-0 text-t3" aria-hidden="true" />}
         />
         <span className="text-xs text-t3">~</span>
-        <input
-          type="date"
-          aria-label="조회 종료일"
+        <DpDatePicker
+          ariaLabel="조회 종료일"
           value={to}
-          onChange={(event) => setTo(event.target.value)}
-          className="h-9 rounded-lg border border-line bg-surface px-3 text-xs text-t1 focus:border-brand focus:outline-none"
+          onChange={setTo}
+          triggerClassName={GIRO_DATE_TRIGGER_CLASS_NAME}
+          triggerOpenClassName="border-brand"
+          endAdornment={<CalendarIcon className="ml-auto size-[14px] shrink-0 text-t3" aria-hidden="true" />}
         />
         <span className="ml-2 text-xs font-bold text-t2">에러</span>
         <div className="flex rounded-lg border border-line p-0.5 text-xs font-bold">
