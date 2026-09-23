@@ -15,6 +15,7 @@ interface DpDatePickerProps {
   placeholder?: string;
   disabled?: boolean;
   minDate?: string;
+  maxDate?: string;
   ariaLabel?: string;
   triggerClassName?: string;
   triggerOpenClassName?: string;
@@ -37,6 +38,7 @@ export function DpDatePicker({
   placeholder = "날짜",
   disabled = false,
   minDate,
+  maxDate,
   ariaLabel,
   triggerClassName,
   triggerOpenClassName,
@@ -45,6 +47,8 @@ export function DpDatePicker({
   className,
   displayFormatter,
 }: DpDatePickerProps) {
+  const minimumDate = minDate || undefined;
+  const maximumDate = maxDate || undefined;
   const ctlRef = useRef<HTMLButtonElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -97,8 +101,10 @@ export function DpDatePicker({
   const firstDow = new Date(view.y, view.m, 1).getDay();
   const daysInMonth = new Date(view.y, view.m + 1, 0).getDate();
   const viewMonth = `${view.y}-${pad(view.m + 1)}`;
-  const minimumMonth = minDate?.slice(0, 7);
+  const minimumMonth = minimumDate?.slice(0, 7);
+  const maximumMonth = maximumDate?.slice(0, 7);
   const previousMonthDisabled = Boolean(minimumMonth && viewMonth <= minimumMonth);
+  const nextMonthDisabled = Boolean(maximumMonth && viewMonth >= maximumMonth);
   const cells: (number | null)[] = [
     ...Array.from({ length: firstDow }, () => null),
     ...Array.from({ length: daysInMonth }, (_, index) => index + 1),
@@ -114,14 +120,16 @@ export function DpDatePicker({
   };
   const pick = (day: number) => {
     const nextValue = `${view.y}-${pad(view.m + 1)}-${pad(day)}`;
-    if (minDate && nextValue < minDate) return;
+    if (minimumDate && nextValue < minimumDate) return;
+    if (maximumDate && nextValue > maximumDate) return;
     onChange(nextValue);
     setOpen(false);
   };
   const shiftMonth = (delta: number) =>
     setView((current) => {
       const currentMonth = `${current.y}-${pad(current.m + 1)}`;
-      if (minDate && delta < 0 && currentMonth <= minDate.slice(0, 7)) return current;
+      if (minimumMonth && delta < 0 && currentMonth <= minimumMonth) return current;
+      if (maximumMonth && delta > 0 && currentMonth >= maximumMonth) return current;
       const next = current.m + delta;
       return { y: current.y + Math.floor(next / 12), m: ((next % 12) + 12) % 12 };
     });
@@ -162,7 +170,7 @@ export function DpDatePicker({
             <div className="mb-[10px] flex items-center justify-between">
               <button type="button" aria-label="이전 달" disabled={previousMonthDisabled} onClick={() => shiftMonth(-1)} className="grid size-[30px] place-items-center rounded-[8px] text-[17px] text-t2 hover:bg-bg disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent">‹</button>
               <span className="text-[14px] font-extrabold text-t1">{view.y}년 {view.m + 1}월</span>
-              <button type="button" aria-label="다음 달" onClick={() => shiftMonth(1)} className="grid size-[30px] place-items-center rounded-[8px] text-[17px] text-t2 hover:bg-bg">›</button>
+              <button type="button" aria-label="다음 달" disabled={nextMonthDisabled} onClick={() => shiftMonth(1)} className="grid size-[30px] place-items-center rounded-[8px] text-[17px] text-t2 hover:bg-bg disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent">›</button>
             </div>
             <div className="mb-[4px] grid grid-cols-7">
               {WEEKDAYS.map((weekday) => (
@@ -177,10 +185,14 @@ export function DpDatePicker({
                   <button
                     key={day}
                     type="button"
-                    disabled={Boolean(minDate && `${view.y}-${pad(view.m + 1)}-${pad(day)}` < minDate)}
+                    disabled={Boolean(
+                      (minimumDate && `${view.y}-${pad(view.m + 1)}-${pad(day)}` < minimumDate)
+                      || (maximumDate && `${view.y}-${pad(view.m + 1)}-${pad(day)}` > maximumDate),
+                    )}
                     onClick={() => pick(day)}
                     className={`grid h-[32px] place-items-center rounded-[8px] text-[13px] font-semibold ${
-                      minDate && `${view.y}-${pad(view.m + 1)}-${pad(day)}` < minDate
+                      (minimumDate && `${view.y}-${pad(view.m + 1)}-${pad(day)}` < minimumDate)
+                      || (maximumDate && `${view.y}-${pad(view.m + 1)}-${pad(day)}` > maximumDate)
                         ? "cursor-default text-t4 opacity-45"
                         : selected && selected[0] === view.y && selected[1] === view.m + 1 && selected[2] === day
                         ? "bg-blue font-bold text-white"
