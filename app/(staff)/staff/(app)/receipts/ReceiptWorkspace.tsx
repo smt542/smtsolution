@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
+import { useIsHydrated } from "@/hooks/common";
 import { Spinner } from "@/components/common";
 import { PrinterIcon } from "@/components/icons";
 import { useBuildings } from "@/hooks/reactquery/buildings";
@@ -148,6 +149,7 @@ export function ReceiptWorkspace({
   const [unitStatementOpen, setUnitStatementOpen] = useState(false);
   const [villa, setVilla] = useState<VillaPaymentModalInit | null>(null);
   const [overdueOpen, setOverdueOpen] = useState(false);
+  const isHydrated = useIsHydrated();
   const [openDropdown, setOpenDropdown] = useState<ReceiptDropdownKey | null>(null);
 
   const getDropdownProps = (key: ReceiptDropdownKey) => ({
@@ -159,8 +161,11 @@ export function ReceiptWorkspace({
 
   const buildingsQuery = useBuildings();
   const orgBuildings = useMemo(
-    () => (buildingsQuery.data ?? []).filter((building) => building.orgId === orgId),
-    [buildingsQuery.data, orgId],
+    () =>
+      isHydrated
+        ? (buildingsQuery.data ?? []).filter((building) => building.orgId === orgId)
+        : [],
+    [buildingsQuery.data, isHydrated, orgId],
   );
 
   const receiptQuery = useReceiptPaymentStatus(
@@ -341,6 +346,7 @@ export function ReceiptWorkspace({
           buildings={orgBuildings}
           units={units}
           receiptRows={receiptRows}
+          isBuildingsLoading={!isHydrated || buildingsQuery.isLoading}
           isUnitsLoading={isUnitsLoading}
           canEdit={canEditPayment}
           selectedBuildingId={selectedBuildingId}
