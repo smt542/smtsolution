@@ -12,11 +12,15 @@ type TenantCardRpcRow = {
   move_in_date: string | null;
   is_vacant: boolean;
   is_overdue: boolean;
+  area_pyeong: number | string | null;
+  mgmt_fee_amount: number | string | null;
+  increase_amount: number | string | null;
 };
 
 type OccupancyPhoneRow = {
   id: number;
   phone: string | null;
+  phone3: string | null;
 };
 
 export async function GET(request: Request, ctx: { params: Promise<{ id: string }> }) {
@@ -43,12 +47,12 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
         .filter((occupancyId): occupancyId is number => occupancyId !== null),
     ),
   ];
-  const phoneByOccupancyId = new Map<number, string | null>();
+  const phoneByOccupancyId = new Map<number, { phone: string | null; phone3: string | null }>();
 
   if (occupancyIds.length > 0) {
     const { data: occupancyData, error: occupancyError } = await sb
       .from("occupancies")
-      .select("id, phone")
+      .select("id, phone, phone3")
       .in("id", occupancyIds);
     if (occupancyError) {
       console.error("buildings/[id]/tenant-cards/print occupancy lookup failed", occupancyError);
@@ -56,21 +60,30 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
     }
 
     for (const row of (occupancyData ?? []) as OccupancyPhoneRow[]) {
-      phoneByOccupancyId.set(row.id, row.phone);
+      phoneByOccupancyId.set(row.id, { phone: row.phone, phone3: row.phone3 });
     }
   }
 
-  const tenantCards = rows.map((row) => ({
-    unitId: row.unit_id,
-    unitNo: row.unit_no,
-    tenantName: row.tenant_name,
-    roomTypeLabel: row.room_type_label,
-    residentCount: row.resident_count,
-    moveInDate: row.move_in_date,
-    phone: row.occupancy_id === null ? null : (phoneByOccupancyId.get(row.occupancy_id) ?? null),
-    isVacant: row.is_vacant,
-    isOverdue: row.is_overdue,
-  }));
+  // PostgREST는 numeric을 문자열("8.50")로 줄 수 있어 숫자로 맞춘다.
+  const toNumber = (value: number | string | null) => (value == null ? null : Number(value));
+  const tenantCards = rows.map((row) => {
+    const phones = row.occupancy_id === null ? undefined : phoneByOccupancyId.get(row.occupancy_id);
+    return {
+      unitId: row.unit_id,
+      unitNo: row.unit_no,
+      tenantName: row.tenant_name,
+      roomTypeLabel: row.room_type_label,
+      residentCount: row.resident_count,
+      moveInDate: row.move_in_date,
+      phone: phones?.phone ?? null,
+      phone3: phones?.phone3 ?? null,
+      areaPyeong: toNumber(row.area_pyeong),
+      mgmtFeeAmount: toNumber(row.mgmt_fee_amount),
+      increaseAmount: toNumber(row.increase_amount),
+      isVacant: row.is_vacant,
+      isOverdue: row.is_overdue,
+    };
+  });
 
   const { ip, userAgent } = extractRequestMeta(request);
   await logAccess({
