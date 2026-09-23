@@ -6,6 +6,8 @@ import { PrinterIcon } from "@/components/icons";
 /** 미리보기 시트(190mm)를 좌우 패널 폭에 맞춰 축소하는 배율. */
 export const PREVIEW_SCALE = 0.44;
 const scaleStyle = { zoom: PREVIEW_SCALE } as CSSProperties;
+const PAGER_BUTTON =
+  "flex h-[22px] w-[22px] items-center justify-center rounded-[7px] border border-line bg-white p-0 text-t2 enabled:hover:border-teal enabled:hover:bg-bg enabled:hover:text-teal disabled:opacity-40";
 
 interface PreviewPaneProps {
   title: string;
@@ -45,28 +47,25 @@ export function PreviewPane({
         <span className="rounded-full bg-bg px-[8px] py-[2px] text-[11px] font-bold text-t3">총 {count}장</span>
       </div>
       <div className="flex items-center justify-between px-[14px] pb-[10px] pt-[8px]">
-        <div className="flex items-center gap-[6px]">
-          <button
-            type="button"
-            aria-label="이전 페이지"
-            onClick={onPrev}
-            disabled={!hasContent || page <= 1}
-            className="flex h-[26px] w-[26px] items-center justify-center rounded-[8px] border border-line bg-white text-t2 enabled:hover:border-teal enabled:hover:bg-bg enabled:hover:text-teal disabled:opacity-40"
-          >
-            ‹
-          </button>
-          <span className="text-[11.5px] font-bold text-t2">
+        {/* 정본 `.pm-pager` — 화살표는 2장 이상일 때만 그린다(1장 이하는 "1 / 1" 글자만). */}
+        <div className="inline-flex items-center gap-[3px] text-[11px] font-bold text-t2">
+          {count > 1 && (
+            <button type="button" aria-label="이전 페이지" onClick={onPrev} disabled={page <= 1} className={PAGER_BUTTON}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" className="h-[12px] w-[12px]" aria-hidden="true">
+                <path d="M15 6l-6 6 6 6" />
+              </svg>
+            </button>
+          )}
+          <span className="min-w-[34px] text-center tabular-nums">
             {hasContent ? page : 0} / {count}
           </span>
-          <button
-            type="button"
-            aria-label="다음 페이지"
-            onClick={onNext}
-            disabled={!hasContent || page >= count}
-            className="flex h-[26px] w-[26px] items-center justify-center rounded-[8px] border border-line bg-white text-t2 enabled:hover:border-teal enabled:hover:bg-bg enabled:hover:text-teal disabled:opacity-40"
-          >
-            ›
-          </button>
+          {count > 1 && (
+            <button type="button" aria-label="다음 페이지" onClick={onNext} disabled={page >= count} className={PAGER_BUTTON}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" className="h-[12px] w-[12px]" aria-hidden="true">
+                <path d="M9 6l6 6-6 6" />
+              </svg>
+            </button>
+          )}
         </div>
         <Button
           size="sm"

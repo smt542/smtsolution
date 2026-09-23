@@ -29,10 +29,11 @@ export function BuildingPickerList({
   return (
     <div className="flex w-[340px] shrink-0 flex-col border-r border-line bg-[#fbfcfd]">
       <div className="relative h-[69px] shrink-0 border-b border-line2">
-        <span aria-hidden className="absolute left-[28px] top-[26px] text-t4">
-          <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4">
-            <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M11 11l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        {/* 정본 `.pm-search svg` — 입력칸도 absolute라 z-index 없이는 입력칸 흰 배경에 가려진다. */}
+        <span aria-hidden className="pointer-events-none absolute left-[28px] top-[26px] z-[1] text-t3">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M20 20l-3-3" />
           </svg>
         </span>
         <input
