@@ -9,6 +9,7 @@ import type {
 import { emptyFacilities } from "@/hooks/reactquery/buildings";
 import type { BuildingCustomerNumber } from "@/hooks/reactquery/buildingCustomerNumbers";
 import type { BuildingVendor, VendorType } from "@/hooks/reactquery/buildingVendors";
+import { DEFAULT_BUILDING_GROUP_TYPE } from "@/lib/buildings/groupType";
 import { VENDORS } from "./vendors";
 import { UTILITIES } from "./utilities";
 
@@ -93,7 +94,7 @@ const emptyUtilities = (): Record<string, RegisterUtilityEntry> =>
 export function initialFormState(): RegisterFormState {
   return {
     code: "", name: "", buildingType: "빌라", gate: "", address: "", addressDetail: "",
-    groupType: "1", waterCount: "1", contractDate: "", terminationDate: "", standingNotice: "",
+    groupType: DEFAULT_BUILDING_GROUP_TYPE, waterCount: "1", contractDate: "", terminationDate: "", standingNotice: "",
     officeManager: "", siteManager: "", vendors: emptyVendors(),
     reserveFundType: "적립금", reserveFundMemo: "",
     ownerName: "", ownerPhone: "", ownerPhoneSub: "", ownerAddress: "", ownerAddressDetail: "", ownerMemo: "",
@@ -219,7 +220,7 @@ export function buildingToFormState(
     gate: b.entrancePassword ?? "",
     address: b.address ?? "",
     addressDetail: be?.addressDetail ?? "",
-    groupType: be?.groupType ?? "1",
+    groupType: be?.groupType ?? DEFAULT_BUILDING_GROUP_TYPE,
     waterCount: be?.waterCount ?? "1",
     contractDate: be?.contractDate ?? "",
     terminationDate: be?.terminationDate ?? "",

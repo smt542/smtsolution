@@ -6,9 +6,10 @@ import { SelectField } from "../ui/SelectField";
 import { DateField } from "../ui/DateField";
 import { AddressField } from "../ui/AddressField";
 import { TextAreaField } from "../ui/TextAreaField";
+import { BUILDING_GROUP_TYPES } from "@/lib/buildings/groupType";
 import type { RegisterFormState } from "../config/formState";
 
-const GROUP_TYPES = ["1", "2", "3", "4", "5"];
+const GROUP_TYPES = [...BUILDING_GROUP_TYPES];
 const WATER_COUNTS = ["1", "2", "3", "4", "5", "6", "7", "8", "10"];
 const PROTOTYPE_BUILDING_TYPES = ["빌라", "빌딩"];
 
