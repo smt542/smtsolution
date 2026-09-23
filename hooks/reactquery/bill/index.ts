@@ -3,4 +3,4 @@ export * from "./keys";
 export * from "./queries";
 export * from "./mutations";
 export * from "./useAdjustmentStatements";
-export * from "./useTenantOutputData";
+export type { OutputQueryStatus } from "../tenantOutput/useTenantOutputData";
