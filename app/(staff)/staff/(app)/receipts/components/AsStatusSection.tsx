@@ -25,7 +25,6 @@ import { MessagingModal } from "../../messaging/components/MessagingModal";
 import {
   COMPLAINT_STATUS_LABEL,
   COMPLAINT_STATUS_OPTIONS,
-  formatComplaintDate,
   formatUnitLabel,
 } from "../constants";
 import type { ResolutionDraft } from "./AsComplaintForm";
@@ -41,19 +40,21 @@ interface AsColumn {
   buildingOnly?: boolean;
 }
 
+// 정본 `.rc-as-wrap` th 의 min-width/max-width. 폭은 table-layout:auto 가 내용에 맞춰 나눈다
+// (1920 폭에서 재면 예전 Figma 고정값과 같아진다).
 const AS_COLUMNS: readonly AsColumn[] = [
-  { key: "no", label: "No", minWidth: 48, align: "right" },
+  { key: "no", label: "No", minWidth: 38, align: "right" },
   { key: "unit", label: "호수", minWidth: 58, buildingOnly: true },
-  { key: "receivedAt", label: "접수일시", minWidth: 110 },
-  { key: "type", label: "유형", minWidth: 90 },
-  { key: "content", label: "접수내용", minWidth: 285, maxWidth: 300 },
-  { key: "phone", label: "입주자 전화번호", minWidth: 135 },
-  { key: "result", label: "처리결과", minWidth: 73 },
-  { key: "resultContent", label: "처리결과 내용", minWidth: 240, maxWidth: 260 },
-  { key: "resolvedAt", label: "시행일자", minWidth: 110 },
-  { key: "time", label: "시간", minWidth: 69 },
-  { key: "reporter", label: "접수자", minWidth: 67 },
-  { key: "assignee", label: "담당자", minWidth: 67 },
+  { key: "receivedAt", label: "접수일시", minWidth: 86 },
+  { key: "type", label: "유형", minWidth: 80 },
+  { key: "content", label: "접수내용", minWidth: 240, maxWidth: 300 },
+  { key: "phone", label: "입주자 전화번호", minWidth: 112 },
+  { key: "result", label: "처리결과", minWidth: 70 },
+  { key: "resultContent", label: "처리결과 내용", minWidth: 200, maxWidth: 260 },
+  { key: "resolvedAt", label: "시행일자", minWidth: 86 },
+  { key: "time", label: "시간", minWidth: 52 },
+  { key: "reporter", label: "접수자", minWidth: 66 },
+  { key: "assignee", label: "담당자", minWidth: 66 },
 ];
 
 function visibleAsColumns(scope: "unit" | "building") {
@@ -63,11 +64,11 @@ function visibleAsColumns(scope: "unit" | "building") {
 function AsTableHeader({ scope }: { scope: "unit" | "building" }) {
   return (
     <thead>
-      <tr className="border-b border-[#e8ebee] bg-[#fbfcfd] text-[12px] font-bold leading-[normal] text-[#8b95a1]">
+      <tr>
         {visibleAsColumns(scope).map((column) => (
           <th
             key={column.key}
-            className={`overflow-hidden text-ellipsis whitespace-nowrap px-[16px] py-[11px] ${column.align === "right" ? "text-right" : ""}`}
+            className={`sticky top-0 z-[2] overflow-hidden text-ellipsis whitespace-nowrap border-b border-line bg-[#FBFCFD] px-[16px] py-[11px] text-[12px] font-bold text-t3 ${column.align === "right" ? "text-right" : "text-left"}`}
             style={{ minWidth: column.minWidth, maxWidth: column.maxWidth }}
           >
             {column.label}
@@ -78,9 +79,17 @@ function AsTableHeader({ scope }: { scope: "unit" | "building" }) {
   );
 }
 
+// 정본 `.hf-tbl`(12.5px·nowrap) — 셀 글자는 `.hf-tbl td{13.5px}` 가 정한다.
+const AS_TABLE_CLASS = "w-full border-collapse whitespace-nowrap text-[12.5px] leading-[normal]";
+// 정본 `#rcAsBody td{height:38px;white-space:nowrap;vertical-align:top}`.
+const AS_TD_CLASS = "h-[38px] whitespace-nowrap px-[16px] py-[12px] align-top text-[13.5px]";
+// 정본 `#rcAsBody td.memo{white-space:normal;word-break:break-word;line-height:1.5;min-width:240px;max-width:300px}`.
+const AS_MEMO_TD_CLASS =
+  "h-[38px] min-w-[240px] max-w-[300px] whitespace-normal break-words px-[16px] py-[12px] align-top text-[13.5px] leading-[1.5]";
+
 function AsEmptyTable({ message, scope }: { message: string; scope: "unit" | "building" }) {
   return (
-    <table className="w-full border-collapse whitespace-nowrap text-[13.5px] leading-[normal]">
+    <table className={AS_TABLE_CLASS}>
       <AsTableHeader scope={scope} />
       <tbody>
         <tr>
@@ -91,6 +100,25 @@ function AsEmptyTable({ message, scope }: { message: string; scope: "unit" | "bu
       </tbody>
     </table>
   );
+}
+
+const pad2 = (value: number) => String(value).padStart(2, "0");
+
+/** 정본 표기 `YYYY-MM-DD`(현지 날짜). */
+function asDate(value?: string | null): string {
+  if (!value) return "-";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
+/** 정본 시간 칸 `HH:MM`(현지 시각). */
+function asTime(value?: string | null): string {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return `${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
 }
 
 const AS_STATUS_BADGE: Record<string, string> = {
@@ -155,13 +183,13 @@ export function AsStatusSection({
     [assignees],
   );
 
+  // 정본 drawAs: No 는 범위(호실/건물 전체) 목록에서 매긴 번호이고, 결과 필터(asFilter)는 그 번호를 유지한 채 거른다.
   const rows = useMemo(
     () =>
-      complaints.filter((complaint) => {
-        if (scope === "unit" && unitId !== null && complaint.unitId !== unitId) return false;
-        if (resultFilter && complaint.status !== resultFilter) return false;
-        return true;
-      }),
+      complaints
+        .filter((complaint) => !(scope === "unit" && unitId !== null && complaint.unitId !== unitId))
+        .map((complaint, index) => ({ complaint, no: index + 1 }))
+        .filter(({ complaint }) => !resultFilter || complaint.status === resultFilter),
     [complaints, resultFilter, scope, unitId],
   );
 
@@ -296,7 +324,7 @@ export function AsStatusSection({
           건물 전체
         </button>
       </div>
-      <div className="[&_.uc-dd-btn]:h-[28px] [&_.uc-dd-btn]:w-[62px] [&_.uc-dd-btn]:whitespace-nowrap [&_.uc-dd-btn]:px-[9px] [&_.uc-dd-btn]:text-[12px] [&_.uc-dd-menu]:left-0 [&_.uc-dd-menu]:right-auto [&_.uc-dd-menu]:min-w-[96px]">
+      <div className="[&_.uc-dd-btn]:h-[28px] [&_.uc-dd-btn]:w-[62px] [&_.uc-dd-btn]:leading-[normal] [&_.uc-dd-btn]:whitespace-nowrap [&_.uc-dd-btn]:px-[9px] [&_.uc-dd-btn]:text-[12px] [&_.uc-dd-menu]:left-0 [&_.uc-dd-menu]:right-auto [&_.uc-dd-menu]:min-w-[96px]">
         <CustomDropdown
           ariaLabel="처리결과 필터"
           value={resultFilter}
@@ -308,7 +336,7 @@ export function AsStatusSection({
         type="button"
         onClick={() => {
           if (buildingId === null) {
-            toast.info("건물을 선택해 주세요");
+            toast.warning("건물을 선택해 주세요");
             return;
           }
           setFormOpen(true);
@@ -319,7 +347,7 @@ export function AsStatusSection({
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2"
+          strokeWidth="2.2"
           className="size-[13px]"
           aria-hidden="true"
         >
@@ -346,33 +374,32 @@ export function AsStatusSection({
           <AsEmptyTable scope={scope} message="접수 내역이 없어요" />
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse whitespace-nowrap text-[13.5px] leading-[normal]">
+        <div className="min-h-0 flex-1 overflow-auto">
+          <table className={AS_TABLE_CLASS}>
             <AsTableHeader scope={scope} />
             <tbody>
-              {rows.map((complaint, index) => {
+              {rows.map(({ complaint, no }) => {
                 const latest = complaint.resolutions[0];
                 const badgeStyle = AS_STATUS_BADGE[complaint.status] ?? "bg-bg text-t2";
                 return (
                   <tr
                     key={complaint.id}
                     onClick={() => setSelectedId(complaint.id)}
-                    className="cursor-pointer border-b border-[#f1f3f5] last:border-0 hover:bg-bg"
+                    className="cursor-pointer border-b border-line2 last:border-0 hover:bg-[#fbfcfd]"
                   >
-                    <td className="px-[16px] py-[12px] text-right num">{index + 1}</td>
+                    <td className={`${AS_TD_CLASS} text-right num`}>{no}</td>
                     {scope === "building" && (
-                      <td className="whitespace-nowrap px-[16px] py-[12px] num">
+                      <td className={`${AS_TD_CLASS} num`}>
                         {complaint.unitId === null ? "건물 전체" : complaint.unitNo ?? "-"}
                       </td>
                     )}
-                    <td className="whitespace-nowrap px-[16px] py-[12px] num">
-                      {formatComplaintDate(complaint.receivedAt, true)}
-                    </td>
-                    <td className="px-[16px] py-[12px]">{complaint.categoryLabel ?? "-"}</td>
-                    <td className="min-w-[240px] max-w-[300px] whitespace-normal break-words px-[16px] py-[12px] leading-[1.5]">
+                    <td className={`${AS_TD_CLASS} num`}>{asDate(complaint.receivedAt)}</td>
+                    <td className={AS_TD_CLASS}>{complaint.categoryLabel ?? "-"}</td>
+                    <td className={AS_MEMO_TD_CLASS}>
                       {complaint.title || complaint.content || "-"}
                     </td>
-                    <td className="whitespace-nowrap px-[16px] py-[12px] num">
+                    {/* MaskedPhone 의 [원문] 버튼(py-0.5·text-xs 16px)이 줄 높이를 20px 로 키우지 않게 셀에서만 덮는다. */}
+                    <td className={`${AS_TD_CLASS} num [&_button]:py-0 [&_button]:leading-[normal]`}>
                       {complaint.reporterPhone ? (
                         <MaskedPhone
                           value={complaint.reporterPhone}
@@ -383,24 +410,20 @@ export function AsStatusSection({
                         "-"
                       )}
                     </td>
-                    <td className="px-[16px] py-[12px]">
+                    <td className={AS_TD_CLASS}>
                       <span className={`inline-flex items-center rounded-[6px] px-[8px] py-[2px] text-[11px] font-bold leading-[normal] ${badgeStyle}`}>
                         {COMPLAINT_STATUS_LABEL[complaint.status]}
                       </span>
                     </td>
-                    <td className="min-w-[240px] max-w-[300px] whitespace-normal break-words px-[16px] py-[12px] leading-[1.5]">
-                      {latest?.resultContent ?? "-"}
+                    <td className={AS_MEMO_TD_CLASS}>{latest?.resultContent || "-"}</td>
+                    <td className={`${AS_TD_CLASS} num`}>
+                      {asDate(latest?.resolvedAt ?? complaint.completedAt)}
                     </td>
-                    <td className="whitespace-nowrap px-[16px] py-[12px] num">
-                      {formatComplaintDate(latest?.resolvedAt ?? complaint.completedAt)}
-                    </td>
-                    <td className="whitespace-nowrap px-[16px] py-[12px] num">
-                      {complaint.receivedAt?.slice(11, 16) || "-"}
-                    </td>
-                    <td className="px-[16px] py-[12px]">
+                    <td className={`${AS_TD_CLASS} num`}>{asTime(complaint.receivedAt)}</td>
+                    <td className={AS_TD_CLASS}>
                       {complaint.createdBy ? assigneeNames.get(complaint.createdBy) ?? "-" : "-"}
                     </td>
-                    <td className="px-[16px] py-[12px]">
+                    <td className={AS_TD_CLASS}>
                       {complaint.assignedTo ? assigneeNames.get(complaint.assignedTo) ?? "-" : "-"}
                     </td>
                   </tr>

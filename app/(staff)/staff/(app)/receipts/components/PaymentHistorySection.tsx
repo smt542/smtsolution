@@ -1,21 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { appToast as toast } from "@/hooks/common/useAppToast";
-import { CustomDropdown, Panel, Spinner } from "@/components/common";
+import { CustomDropdown, Input, Panel, Spinner } from "@/components/common";
 import { DpDatePicker } from "@/components/common/DpDatePicker";
-import { CalendarIcon, CloseIcon, UnitCardIcon } from "@/components/icons";
+import { CloseIcon, UnitCardIcon } from "@/components/icons";
+import { appToast as toast } from "@/hooks/common/useAppToast";
+import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
 import { useCancelPayment, useRecordPayment, useRecordPaymentEdit } from "@/hooks/reactquery/payments";
 import type { PaymentKind, PaymentMethod, UnitPayment } from "@/hooks/reactquery/payments";
+import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
 import {
   receiptKeys,
   type ReceiptPaymentRow,
   type ReceiptStatementPaymentRow,
 } from "@/hooks/reactquery/receipts";
+import { computeLateFeeForPeriod, type RateTier } from "@/lib/billing/lateFee";
+import type { Period } from "@/lib/billing/period";
 import { toMonthInput } from "@/lib/billing/period";
-import type { MessagingPreset } from "@/lib/messaging/preset";
-import { MessagingModal } from "../../messaging/components/MessagingModal";
+import { openMessengerWith } from "@/lib/messaging/messengerHandoff";
+import type { MessageRecipient } from "@/lib/messaging/preset";
 import {
   PAYMENT_KIND_LABEL,
   PAYMENT_METHOD_LABEL,
@@ -23,19 +27,23 @@ import {
   unitLabel,
 } from "../receiptFormat";
 
-// 피그마 정본 컬럼 폭(px) — node 20:18763 수납 이력 테이블
-const COLS: { label: string; minW: number }[] = [
-  { label: "년 월",    minW: 130 },
-  { label: "당월계",   minW: 127 },
-  { label: "연체",     minW: 104 },
-  { label: "수납액",   minW: 127 },
-  { label: "수료",     minW: 84  },
-  { label: "수납일자", minW: 159 },
-  { label: "은행",     minW: 142 },
-  { label: "구분",     minW: 89  },
-  { label: "비고",     minW: 177 },
-  { label: "기한",     minW: 156 },
-];
+// 정본 `#rcHistWrap thead th` — 보기 모드는 auto layout + th min-width(Figma 고정 전체 폭 없음).
+// 편집 모드는 사용자 결정(2026-09-23 "편집해도 표 폭 유지")으로 정본과 달리 패널 폭에 고정한다:
+// table-layout:fixed + editWidth(%) + 좌우 8px. 1639 창(패널 1013, 세로 스크롤바 시 998)에서
+// 가로 스크롤 없이 처리 버튼 4개·날짜·드롭다운 라벨이 잘리지 않게 실측으로 나눈 값이다.
+const COLUMNS = [
+  { key: "action", label: "처리", minWidth: 150, editWidth: "17.7%" },
+  { key: "period", label: "년 월", minWidth: 78, editWidth: "7.5%" },
+  { key: "charged", label: "당월계", minWidth: 86, editWidth: "8%", numeric: true },
+  { key: "lateFee", label: "연체", minWidth: 70, editWidth: "5.8%", numeric: true },
+  { key: "amount", label: "수납액", minWidth: 86, editWidth: "8%", numeric: true },
+  { key: "fee", label: "수료", minWidth: 56, editWidth: "6.1%", numeric: true },
+  { key: "paidAt", label: "수납일자", minWidth: 92, editWidth: "9.3%" },
+  { key: "method", label: "은행", minWidth: 96, editWidth: "10.5%" },
+  { key: "kind", label: "구분", minWidth: 60, editWidth: "8.1%" },
+  { key: "memo", label: "비고", minWidth: 120, editWidth: "9.9%" },
+  { key: "dueDate", label: "기한", minWidth: 80, editWidth: "9.1%" },
+] as const;
 
 const METHOD_OPTIONS = (Object.keys(PAYMENT_METHOD_LABEL) as PaymentMethod[]).map((value) => ({
   value,
@@ -46,7 +54,28 @@ const KIND_OPTIONS = (Object.keys(PAYMENT_KIND_LABEL) as PaymentKind[]).map((val
   label: PAYMENT_KIND_LABEL[value],
 }));
 
-interface PayForm {
+const TH_BASE =
+  "sticky top-0 z-[2] whitespace-nowrap border-b border-line bg-[#FBFCFD] py-[11px] text-[12px] font-bold text-t3";
+// 셀 색은 칸마다 하나만 준다(베이스에 두고 덧붙이면 CSS 생성 순서가 이긴다).
+const TD_BASE = "whitespace-nowrap border-b border-line2 py-[12px] text-[13.5px] font-normal";
+const TD_VIEW_PAD = "px-[16px]";
+const TD_EDIT_PAD = "overflow-hidden text-ellipsis px-[8px]";
+// 정본 `.uc-mini` — 색·굵기·패딩은 변형마다 한 벌씩(겹치면 CSS 생성 순서가 이긴다).
+const MINI_BASE =
+  "inline-flex h-[26px] items-center justify-center gap-[5px] rounded-[8px] border text-[11.5px] leading-[normal] disabled:cursor-not-allowed";
+const MINI_BUTTON_CLASS =
+  `${MINI_BASE} border-line bg-surface px-[10px] font-bold text-t2 hover:border-[#C9D0D8] hover:bg-[#F7F9FA] disabled:opacity-50`;
+const MINI_PRI_CLASS = `${MINI_BASE} border-teal bg-teal px-[10px] font-bold text-white hover:bg-teal-d disabled:opacity-50`;
+const MINI_X_CLASS =
+  "inline-flex size-[26px] items-center justify-center rounded-[8px] border border-line bg-surface p-0 text-t3 hover:border-[#C9D0D8] hover:bg-[#F7F9FA] hover:text-t2";
+// 처리 칸 버튼: 정본 `#rcHistBody td *{font-weight:400!important}` + `.rc-ab2{margin-right:3px}`.
+// 좌우 패딩은 편집 폭 유지를 위해 정본 10px → 6px.
+const ACT_BASE = `${MINI_BASE} mr-[3px] px-[6px] font-normal`;
+const ACT_CLASS = `${ACT_BASE} border-line bg-surface text-t2 hover:border-[#C9D0D8] hover:bg-[#F7F9FA] disabled:opacity-50`;
+const ACT_PRI_CLASS = `${ACT_BASE} border-teal bg-teal text-white hover:bg-teal-d disabled:opacity-50`;
+const ACT_DEL_CLASS = `${ACT_BASE} border-red-t bg-surface text-red hover:border-[#C9D0D8] hover:bg-[#F7F9FA] disabled:opacity-50`;
+
+interface PaymentFields {
   amount: string;
   fee: string;
   method: PaymentMethod;
@@ -55,18 +84,36 @@ interface PayForm {
   memo: string;
 }
 
+type DraftSource = "none" | "added" | "split" | "summary";
 type HistoryPayment = UnitPayment & { period?: string };
+
 interface HistoryDisplayRow {
   key: string;
   rowPeriod: string;
   rowSummary: ReceiptStatementPaymentRow | ReceiptPaymentRow | undefined;
+  dueDate: string | null;
   payment: HistoryPayment | null;
+  fields: PaymentFields;
+  originalFields: PaymentFields | null;
+  lateFee: number;
+  draftSource: DraftSource;
+  lateOnly: boolean;
+  cancelRequested: boolean;
+  cancelCompleted: boolean;
+  saved: boolean;
+}
+
+interface FooterPeriodRow {
+  period: string;
+  unpaidPrincipal: number;
+  lateFee: number;
+  total: number;
 }
 
 function todayInput(): string {
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const date = new Date();
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 function slashDate(value: string | null | undefined): string {
@@ -77,13 +124,189 @@ function dotDate(value: string | null | undefined): string {
   return value ? value.slice(0, 10).replaceAll("-", ".") : "-";
 }
 
-function emptyForm(): PayForm {
-  return { amount: "", fee: "0", method: "transfer", kind: "full", paidAt: todayInput(), memo: "" };
+function formatInputNumber(value: number): string {
+  return value > 0 ? value.toLocaleString("ko-KR") : "0";
+}
+
+function parseInputNumber(value: string): number | null {
+  const raw = value.replace(/[^0-9]/g, "");
+  if (!raw) return null;
+  const number = Number(raw);
+  return Number.isSafeInteger(number) ? number : null;
+}
+
+function normalizeAmount(value: string): number {
+  return parseInputNumber(value) ?? 0;
+}
+
+function emptyFields(method: PaymentMethod = "transfer", kind: PaymentKind = "full"): PaymentFields {
+  return { amount: "", fee: "0", method, kind, paidAt: "", memo: "" };
+}
+
+function paymentFields(payment: HistoryPayment): PaymentFields {
+  return {
+    amount: formatInputNumber(payment.amount),
+    fee: formatInputNumber(payment.fee),
+    method: payment.method,
+    kind: payment.kind,
+    paidAt: payment.paidAt.slice(0, 10),
+    memo: payment.memo ?? "",
+  };
+}
+
+function cloneRow(row: HistoryDisplayRow): HistoryDisplayRow {
+  return {
+    ...row,
+    fields: { ...row.fields },
+    originalFields: row.originalFields ? { ...row.originalFields } : null,
+  };
+}
+
+function cloneRows(rows: HistoryDisplayRow[]): HistoryDisplayRow[] {
+  return rows.map(cloneRow);
+}
+
+function isNewDraft(row: HistoryDisplayRow): boolean {
+  return row.payment === null && row.draftSource !== "none";
+}
+
+function fieldsEqual(left: PaymentFields, right: PaymentFields): boolean {
+  return normalizeAmount(left.amount) === normalizeAmount(right.amount)
+    && normalizeAmount(left.fee) === normalizeAmount(right.fee)
+    && left.method === right.method
+    && left.kind === right.kind
+    && left.paidAt.slice(0, 10) === right.paidAt.slice(0, 10)
+    && left.memo === right.memo;
+}
+
+function lateFeeForRow(
+  rowPeriod: string,
+  rowSummary: ReceiptStatementPaymentRow | ReceiptPaymentRow | undefined,
+  tiers: RateTier[],
+  asOfPeriod: string,
+): number {
+  const unpaidPrincipal = Math.max(rowSummary?.unpaid ?? 0, 0);
+  const dueDate = rowSummary?.dueDate?.slice(0, 10);
+  if (!unpaidPrincipal || !dueDate || dueDate >= todayInput()) return 0;
+
+  const asOfYear = Number(asOfPeriod.slice(0, 4));
+  const asOfMonth = Number(asOfPeriod.slice(5, 7));
+  if (!Number.isInteger(asOfYear) || !Number.isInteger(asOfMonth)) return 0;
+
+  const result = computeLateFeeForPeriod(
+    {
+      period: rowPeriod as Period,
+      unpaidPrincipal,
+      dueDate,
+    },
+    tiers,
+    asOfYear,
+    asOfMonth,
+  );
+  return result.lateFee + result.postDueFee;
+}
+
+function buildHistoryRows(
+  payments: HistoryPayment[],
+  historySummaries: ReceiptStatementPaymentRow[] | undefined,
+  summary: ReceiptPaymentRow | undefined,
+  period: string,
+  tiers: RateTier[],
+): HistoryDisplayRow[] {
+  const sortedSummaries = historySummaries?.length
+    ? [...historySummaries].sort((left, right) => right.period.localeCompare(left.period))
+    : [];
+
+  const makeRow = (
+    key: string,
+    rowPeriod: string,
+    rowSummary: ReceiptStatementPaymentRow | ReceiptPaymentRow | undefined,
+    payment: HistoryPayment | null,
+  ): HistoryDisplayRow => ({
+    key,
+    rowPeriod,
+    rowSummary,
+    dueDate: rowSummary?.dueDate ?? null,
+    payment,
+    fields: payment ? paymentFields(payment) : emptyFields(),
+    originalFields: payment ? paymentFields(payment) : null,
+    lateFee: lateFeeForRow(rowPeriod, rowSummary, tiers, period),
+    draftSource: "none",
+    lateOnly: false,
+    cancelRequested: false,
+    cancelCompleted: false,
+    saved: false,
+  });
+
+  if (sortedSummaries.length === 0) {
+    if (payments.length === 0) {
+      return [makeRow(`empty-${period}`, period, summary, null)];
+    }
+    return payments.map((payment, index) => makeRow(
+      `payment-${payment.id}`,
+      payment.period ?? period,
+      index === 0 ? summary : undefined,
+      payment,
+    ));
+  }
+
+  const rows: HistoryDisplayRow[] = [];
+  for (const rowSummary of sortedSummaries) {
+    const periodPayments = payments.filter(
+      (payment) => (payment.period ?? period) === rowSummary.period,
+    );
+    if (periodPayments.length === 0) {
+      rows.push(makeRow(`summary-${rowSummary.period}`, rowSummary.period, rowSummary, null));
+      continue;
+    }
+    periodPayments.forEach((payment, index) => {
+      rows.push(makeRow(
+        `payment-${payment.id}`,
+        rowSummary.period,
+        index === 0 ? rowSummary : undefined,
+        payment,
+      ));
+    });
+  }
+  return rows;
+}
+
+function NumericField({
+  value,
+  ariaLabel,
+  disabled,
+  autoFocus,
+  onChange,
+}: {
+  value: string;
+  ariaLabel: string;
+  disabled?: boolean;
+  autoFocus?: boolean;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <Input
+      size="26"
+      type="text"
+      inputMode="numeric"
+      aria-label={ariaLabel}
+      value={value}
+      autoFocus={autoFocus}
+      disabled={disabled}
+      onChange={(event) => {
+        const raw = event.target.value.replace(/[^0-9]/g, "");
+        onChange(raw ? Number(raw).toLocaleString("ko-KR") : "");
+      }}
+      className="text-right num"
+    />
+  );
 }
 
 export function PaymentHistorySection({
   orgId,
   buildingId,
+  buildingName,
+  buildingAddress,
   hasUnit,
   isLoading,
   payments,
@@ -96,6 +319,8 @@ export function PaymentHistorySection({
 }: {
   orgId: number;
   buildingId: number | null;
+  buildingName: string;
+  buildingAddress: string | null;
   hasUnit: boolean;
   isLoading: boolean;
   payments: HistoryPayment[];
@@ -106,73 +331,42 @@ export function PaymentHistorySection({
   canEdit: boolean;
   canSendMessages: boolean;
 }) {
-  const qc = useQueryClient();
+  const queryClient = useQueryClient();
   const record = useRecordPayment();
   const recordEdit = useRecordPaymentEdit();
   const cancel = useCancelPayment();
+  const { data: lateFeeRateTiers = [] } = useLateFeeRateTiers(hasUnit ? orgId : null);
+  const { data: setupConfig } = useSetupConfig(hasUnit ? orgId : undefined);
+  const draftId = useRef(0);
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftRows, setDraftRows] = useState<HistoryDisplayRow[]>([]);
+  const [focusRowKey, setFocusRowKey] = useState<string | null>(null);
+
+  const tiers = useMemo<RateTier[]>(
+    () => lateFeeRateTiers.map((tier) => ({
+      fromMonth: tier.fromMonth,
+      toMonth: tier.toMonth,
+      monthlyRate: tier.monthlyRate,
+    })),
+    [lateFeeRateTiers],
+  );
+  const historyRows = useMemo(
+    () => buildHistoryRows(payments, historySummaries, summary, period, tiers),
+    [historySummaries, payments, period, summary, tiers],
+  );
+  const visibleRows = isEditing && canEdit ? draftRows : historyRows;
   const isPaymentSavePending = record.isPending || recordEdit.isPending;
   const isPaymentMutationPending = isPaymentSavePending || cancel.isPending;
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [selectedPaymentId, setSelectedPaymentId] = useState<number | null>(null);
-  const [form, setForm] = useState<PayForm>(emptyForm);
-  const [messagingPreset, setMessagingPreset] = useState<MessagingPreset | null>(null);
-
-  const ym = toMonthInput(period);
-  const unpaid = summary?.unpaid ?? null;
-  const overduePrincipal = Math.max(summary?.overdueAmount ?? 0, unpaid ?? 0);
-  const lateFeeTotal = 0;
-  const historyRows: HistoryDisplayRow[] = (() => {
-    const summaries = historySummaries?.length
-      ? [...historySummaries].sort((a, b) => b.period.localeCompare(a.period))
-      : [];
-    if (summaries.length === 0) {
-      if (payments.length === 0) {
-        return [{ key: `empty-${period}`, rowPeriod: period, rowSummary: summary, payment: null }];
-      }
-      return payments.map((payment, index) => ({
-        key: `payment-${payment.id}`,
-        rowPeriod: payment.period ?? period,
-        rowSummary: index === 0 ? summary : undefined,
-        payment,
-      }));
-    }
-
-    const rows: HistoryDisplayRow[] = [];
-    for (const rowSummary of summaries) {
-      const periodPayments = payments.filter(
-        (payment) => (payment.period ?? period) === rowSummary.period,
-      );
-      if (periodPayments.length === 0) {
-        rows.push({
-          key: `summary-${rowSummary.period}`,
-          rowPeriod: rowSummary.period,
-          rowSummary,
-          payment: null,
-        });
-        continue;
-      }
-      periodPayments.forEach((payment, index) => {
-        rows.push({
-          key: `payment-${payment.id}`,
-          rowPeriod: rowSummary.period,
-          rowSummary: index === 0 ? rowSummary : undefined,
-          payment,
-        });
-      });
-    }
-    return rows;
-  })();
 
   const refreshSummary = async () => {
     const invalidations = [
-      qc.invalidateQueries({
+      queryClient.invalidateQueries({
         queryKey: receiptKeys.workspace(orgId, period),
         exact: true,
       }),
     ];
     if (buildingId !== null && unitId !== null) {
-      invalidations.push(qc.invalidateQueries({
+      invalidations.push(queryClient.invalidateQueries({
         predicate: (query) => {
           const key = query.queryKey;
           if (
@@ -196,261 +390,520 @@ export function PaymentHistorySection({
     await Promise.all(invalidations);
   };
 
+  const createAddedRow = (): HistoryDisplayRow => {
+    draftId.current += 1;
+    return {
+      key: `draft-${draftId.current}`,
+      rowPeriod: period,
+      rowSummary: undefined,
+      dueDate: summary?.dueDate ?? null,
+      payment: null,
+      fields: emptyFields(),
+      originalFields: null,
+      lateFee: 0,
+      draftSource: "added",
+      lateOnly: false,
+      cancelRequested: false,
+      cancelCompleted: false,
+      saved: false,
+    };
+  };
+
   const openAdd = () => {
     if (!hasUnit || unitId === null) {
-      toast.info("호실을 선택해 주세요");
+      toast.warning("호실을 선택해 주세요");
       return;
     }
-    setEditingId(null);
-    setForm(emptyForm());
-    setFormOpen(true);
-  };
-  const openEdit = (payment: UnitPayment) => {
-    setEditingId(payment.id);
-    setForm({
-      amount: String(payment.amount),
-      fee: String(payment.fee),
-      method: payment.method,
-      kind: payment.kind,
-      paidAt: payment.paidAt.slice(0, 10),
-      memo: payment.memo ?? "",
-    });
-    setFormOpen(true);
-  };
-  const openSelectedPayment = () => {
-    const payment = payments.find(
-      (candidate) => candidate.id === selectedPaymentId && candidate.status === "active",
-    );
-    if (payment) openEdit(payment);
-  };
-
-  const submit = async () => {
-    if (unitId === null) return;
-    const amount = Number(form.amount);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      toast.error("수납액을 올바르게 입력하세요.");
+    const row = createAddedRow();
+    setFocusRowKey(row.key);
+    if (isEditing && canEdit) {
+      setDraftRows((current) => [row, ...current]);
       return;
     }
-    // 수정 = record_payment_edit(취소+재기록 단일 트랜잭션), 추가 = record_payment.
-    const isEdit = editingId !== null;
-    const payload = {
-      unitId,
-      period,
-      amount,
-      fee: Number(form.fee) || 0,
-      method: form.method,
-      kind: form.kind,
-      paidAt: form.paidAt || null,
-      memo: form.memo || null,
-    };
-    try {
-      if (isEdit) {
-        await recordEdit.mutateAsync({ ...payload, oldPaymentId: editingId });
-      } else {
-        await record.mutateAsync(payload);
-      }
-      await refreshSummary();
-      toast.success(isEdit ? "수납 내역을 수정했습니다." : "수납 내역을 추가했습니다.");
-      setFormOpen(false);
-      setEditingId(null);
-    } catch (error) {
-      toast.error(error, "저장에 실패했습니다.");
-    }
+    setDraftRows([row, ...cloneRows(historyRows)]);
+    setIsEditing(true);
   };
 
-  const cancelRow = async (payment: UnitPayment) => {
-    try {
-      await cancel.mutateAsync(payment.id);
-      await refreshSummary();
-      toast.success("수납 내역을 취소했습니다.");
-    } catch (error) {
-      toast.error(error, "취소에 실패했습니다.");
-    }
-  };
-  const cancelEditingPayment = async () => {
-    const payment = payments.find((candidate) => candidate.id === editingId);
-    if (!payment) return;
-    await cancelRow(payment);
-    setFormOpen(false);
-    setEditingId(null);
-    setSelectedPaymentId(null);
+  const openEdit = () => {
+    if (historyRows.length === 0) return;
+    setFocusRowKey(null);
+    setDraftRows(cloneRows(historyRows));
+    setIsEditing(true);
   };
 
   const closeEditor = () => {
-    setFormOpen(false);
-    setEditingId(null);
+    setDraftRows([]);
+    setFocusRowKey(null);
+    setIsEditing(false);
   };
+
+  const updateRow = (key: string, update: (row: HistoryDisplayRow) => HistoryDisplayRow) => {
+    setDraftRows((current) => current.map((row) => (row.key === key ? update(row) : row)));
+  };
+
+  const applyAction = (key: string, action: "full" | "principal" | "split") => {
+    const row = draftRows.find((candidate) => candidate.key === key);
+    if (!row || row.cancelRequested || row.cancelCompleted || row.payment?.status === "canceled") return;
+
+    const unpaidPrincipal = Math.max(row.rowSummary?.unpaid ?? 0, 0);
+    const balance = unpaidPrincipal + row.lateFee;
+    if (action === "split") {
+      if (row.lateFee <= 0) return;
+      draftId.current += 1;
+      const splitRow: HistoryDisplayRow = {
+        key: `draft-${draftId.current}`,
+        rowPeriod: row.rowPeriod,
+        rowSummary: undefined,
+        dueDate: row.dueDate,
+        payment: null,
+        fields: {
+          ...emptyFields(row.fields.method, row.fields.kind),
+          fee: row.fields.fee,
+          memo: "연체료 이전",
+        },
+        originalFields: null,
+        lateFee: row.lateFee,
+        draftSource: "split",
+        lateOnly: true,
+        cancelRequested: false,
+        cancelCompleted: false,
+        saved: false,
+      };
+      setDraftRows((current) => {
+        const index = current.findIndex((candidate) => candidate.key === key);
+        if (index < 0) return current;
+        const next = [...current];
+        next[index] = { ...next[index], lateFee: 0 };
+        next.splice(index, 0, splitRow);
+        return next;
+      });
+      toast.success("연체료를 새 행으로 이전했어요");
+      return;
+    }
+
+    // 기존 수납 행이면 그 수납액에 남은 금액을 더한다(record_payment_edit 가 이 행을 새 금액으로
+    // 다시 기록하므로, 잔액만 넣으면 이미 낸 금액이 사라진다). 요약 행은 기존 금액이 0 이다.
+    const existingAmount = row.payment?.status === "active" ? row.payment.amount : 0;
+    updateRow(key, (current) => ({
+      ...current,
+      fields: {
+        ...current.fields,
+        amount: formatInputNumber(existingAmount + (action === "full" ? balance : unpaidPrincipal)),
+        paidAt: todayInput(),
+        kind: current.lateOnly ? "partial" : action === "full" ? "full" : "principal",
+        memo: current.lateOnly ? "연체료 이전" : action === "full" ? "" : "연체료 미수납",
+      },
+      draftSource: current.payment ? current.draftSource : current.draftSource === "none" ? "summary" : current.draftSource,
+      saved: false,
+    }));
+    toast.success(action === "full" ? "전액 수납 처리했어요" : "당월계를 수납 처리했어요");
+  };
+
+  const removeOrReserve = (key: string) => {
+    const row = draftRows.find((candidate) => candidate.key === key);
+    if (!row || row.cancelCompleted || row.payment?.status === "canceled") return;
+    if (row.draftSource === "added" || row.draftSource === "split") {
+      setDraftRows((current) => current.filter((candidate) => candidate.key !== key));
+      return;
+    }
+    if (row.draftSource === "summary") {
+      updateRow(key, (current) => ({
+        ...current,
+        fields: emptyFields(),
+        draftSource: "none",
+        saved: false,
+      }));
+      return;
+    }
+    if (row.payment?.status === "active") {
+      updateRow(key, (current) => ({ ...current, cancelRequested: !current.cancelRequested }));
+    }
+  };
+
+  const updateFields = (key: string, patch: Partial<PaymentFields>) => {
+    updateRow(key, (row) => ({ ...row, fields: { ...row.fields, ...patch }, saved: false }));
+  };
+
+  const save = async () => {
+    if (unitId === null) return;
+
+    for (const row of draftRows) {
+      const isCanceled = row.cancelRequested
+        || row.cancelCompleted
+        || row.payment?.status === "canceled";
+      const needsNewRecord = isNewDraft(row) && !row.saved;
+      const needsEdit = Boolean(
+        row.payment
+        && row.payment.status === "active"
+        && !row.cancelRequested
+        && !row.cancelCompleted
+        && !row.saved
+        && row.originalFields
+        && !fieldsEqual(row.fields, row.originalFields),
+      );
+      if (isCanceled || (!needsNewRecord && !needsEdit)) continue;
+      if (needsEdit && normalizeAmount(row.fields.amount) <= 0) {
+        toast.warning("수납액을 올바르게 입력해 주세요");
+        return;
+      }
+    }
+
+    const successfulKeys = new Set<string>();
+    let addedCount = 0;
+    try {
+      for (const row of draftRows) {
+        if (
+          row.cancelRequested
+          && row.payment?.status === "active"
+          && !row.cancelCompleted
+        ) {
+          await cancel.mutateAsync(row.payment.id);
+          successfulKeys.add(row.key);
+          continue;
+        }
+
+        const amount = normalizeAmount(row.fields.amount);
+        if (isNewDraft(row) && !row.saved) {
+          if (amount <= 0) continue;
+          await record.mutateAsync({
+            unitId,
+            period: row.rowPeriod,
+            amount,
+            fee: normalizeAmount(row.fields.fee),
+            method: row.fields.method,
+            kind: row.fields.kind,
+            paidAt: row.fields.paidAt || null,
+            memo: row.fields.memo || null,
+          });
+          addedCount += 1;
+          successfulKeys.add(row.key);
+          continue;
+        }
+
+        const needsEdit = Boolean(
+          row.payment
+          && row.payment.status === "active"
+          && !row.cancelRequested
+          && !row.cancelCompleted
+          && !row.saved
+          && row.originalFields
+          && !fieldsEqual(row.fields, row.originalFields),
+        );
+        if (needsEdit && row.payment) {
+          await recordEdit.mutateAsync({
+            oldPaymentId: row.payment.id,
+            unitId,
+            period: row.rowPeriod,
+            amount,
+            fee: normalizeAmount(row.fields.fee),
+            method: row.fields.method,
+            kind: row.fields.kind,
+            paidAt: row.fields.paidAt || null,
+            memo: row.fields.memo || null,
+          });
+          successfulKeys.add(row.key);
+        }
+      }
+
+      if (successfulKeys.size > 0) await refreshSummary();
+      setIsEditing(false);
+      setDraftRows([]);
+      setFocusRowKey(null);
+      toast.success(addedCount > 0 ? `${addedCount}건이 추가되었어요` : "수납 이력을 저장했어요");
+    } catch (error) {
+      setDraftRows((current) => current.map((row) => {
+        if (!successfulKeys.has(row.key)) return row;
+        if (row.cancelRequested && row.payment) {
+          return { ...row, cancelRequested: false, cancelCompleted: true, saved: true };
+        }
+        return { ...row, saved: true };
+      }));
+      if (successfulKeys.size > 0) {
+        try {
+          await refreshSummary();
+        } catch {
+          // 성공한 변동은 이미 서버에 반영됐으므로 실패 토스트는 원래 저장 실패만 알린다.
+        }
+      }
+      toast.error(error, "저장하지 못했어요");
+    }
+  };
+
+  const footerRows = useMemo<FooterPeriodRow[]>(() => {
+    const byPeriod = new Map<string, FooterPeriodRow>();
+    for (const row of visibleRows) {
+      const current = byPeriod.get(row.rowPeriod) ?? {
+        period: row.rowPeriod,
+        unpaidPrincipal: 0,
+        lateFee: 0,
+        total: 0,
+      };
+      if (row.rowSummary) {
+        current.unpaidPrincipal = Math.max(row.rowSummary.unpaid ?? 0, 0);
+      }
+      if (row.rowSummary || row.lateOnly) current.lateFee += row.lateFee;
+      byPeriod.set(row.rowPeriod, current);
+    }
+    return [...byPeriod.values()]
+      .map((row) => ({ ...row, total: row.unpaidPrincipal + row.lateFee }))
+      .filter((row) => row.total > 0);
+  }, [visibleRows]);
+  const footerTotals = footerRows.reduce(
+    (totals, row) => ({
+      unpaid: totals.unpaid + row.unpaidPrincipal,
+      lateFee: totals.lateFee + row.lateFee,
+      total: totals.total + row.total,
+    }),
+    { unpaid: 0, lateFee: 0, total: 0 },
+  );
 
   const sendUnpaidSms = () => {
     if (!summary) return;
     if (!canSendMessages) {
-      toast.info("문자 발송 권한이 필요합니다.");
+      toast.warning("문자 발송 권한이 필요해요");
       return;
     }
     if (!summary.phone) {
-      toast.info("등록된 입주자 연락처가 없습니다.");
+      toast.warning("등록된 입주자 연락처가 없어요");
       return;
     }
-    setMessagingPreset({
-      context: "미납 안내",
-      channel: "sms",
-      body: `${summary.tenantName ?? "입주자"}님, ${ym} 관리비 미납 안내입니다. 미납금액 ${formatCurrency(unpaid)}원, 납기일 ${summary.dueDate ?? "미정"}입니다.`,
-      recipients: [
-        {
-          name: summary.tenantName,
-          phone: summary.phone,
-          unitNo: unitLabel(summary),
-          kind: "tenant",
-          ref: { occupancyId: summary.occupancyId ?? undefined, buildingId: summary.buildingId },
-        },
-      ],
-    });
+
+    const recipient: MessageRecipient = {
+      name: summary.tenantName,
+      phone: summary.phone,
+      unitNo: unitLabel(summary),
+      kind: "tenant",
+      ref: {
+        occupancyId: summary.occupancyId ?? undefined,
+        unitId: summary.unitId,
+        buildingId: summary.buildingId,
+      },
+    };
+    const lines = [
+      [buildingName, unitLabel(summary)].filter(Boolean).join(" "),
+      buildingAddress ?? "",
+      "",
+      ...footerRows.map((row) => `${toMonthInput(row.period)}분  ${formatCurrency(row.total)}원`),
+      "",
+      `합계  ${formatCurrency(footerTotals.total)}원`,
+      "",
+      "입금 부탁드립니다.",
+    ];
+    const settleAccount = setupConfig?.settleBank && setupConfig.settleAcct && setupConfig.settleHolder
+      ? `${setupConfig.settleBank} ${setupConfig.settleAcct} (${setupConfig.settleHolder})`
+      : null;
+    if (settleAccount) lines.push(settleAccount);
+
+    openMessengerWith({ recipients: [recipient], body: lines.join("\n"), channel: "sms" });
   };
 
-  const miniButtonClass =
-    "h-[26px] rounded-[8px] border border-line bg-surface px-[10px] text-[11.5px] font-bold leading-[normal] text-t2 hover:bg-bg disabled:cursor-not-allowed disabled:opacity-50";
+  const renderActionCell = (row: HistoryDisplayRow) => {
+    const canceled = row.payment?.status === "canceled" || row.cancelCompleted;
+    const disabled = isPaymentMutationPending || row.saved;
+    if (canceled) return null;
+    return (
+      <div className="whitespace-nowrap">
+        {(row.draftSource === "added" || row.draftSource === "split" || row.draftSource === "summary") && !row.saved ? (
+          <button
+            type="button"
+            onClick={() => removeOrReserve(row.key)}
+            disabled={disabled}
+            className={ACT_DEL_CLASS}
+          >
+            삭제
+          </button>
+        ) : row.payment?.status === "active" ? (
+          <button
+            type="button"
+            onClick={() => removeOrReserve(row.key)}
+            disabled={isPaymentMutationPending || row.saved}
+            className={row.cancelRequested ? ACT_CLASS : ACT_DEL_CLASS}
+          >
+            {row.cancelRequested ? "되돌리기" : "삭제"}
+          </button>
+        ) : null}
+        {!row.cancelRequested && !row.saved && (
+          <>
+            <button
+              type="button"
+              onClick={() => applyAction(row.key, "full")}
+              disabled={disabled}
+              className={ACT_PRI_CLASS}
+            >
+              수납
+            </button>
+            <button
+              type="button"
+              onClick={() => applyAction(row.key, "principal")}
+              disabled={disabled}
+              className={ACT_CLASS}
+            >
+              원금
+            </button>
+            <button
+              type="button"
+              onClick={() => applyAction(row.key, "split")}
+              disabled={disabled}
+              className={ACT_CLASS}
+            >
+              수.연
+            </button>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const renderPaymentRow = (row: HistoryDisplayRow) => {
+    const canceled = row.payment?.status === "canceled" || row.cancelCompleted;
+    const reserved = row.cancelRequested;
+    const fieldsDisabled = canceled || reserved || row.saved || isPaymentMutationPending;
+    const unpaid = Math.max(row.rowSummary?.unpaid ?? 0, 0);
+    const isUnpaid = row.rowSummary ? unpaid + row.lateFee > 0 : row.lateOnly && row.lateFee > 0;
+    const td = `${TD_BASE} ${isEditing ? TD_EDIT_PAD : TD_VIEW_PAD}`;
+    const unpaidBar = isUnpaid ? " shadow-[inset_3px_0_0_var(--color-red)]" : "";
+
+    return (
+      <tr
+        key={row.key}
+        className={`leading-[normal] [&:hover>td]:bg-[#FBFCFD] ${canceled || reserved ? "opacity-50" : ""}`}
+      >
+        {/* 정본 `tr.unpaid>td:first-child` — 편집 모드에선 처리 칸이 첫 칸이다. */}
+        {isEditing && (
+          <td className={`${td} text-t1 align-middle${unpaidBar}`}>
+            {renderActionCell(row)}
+          </td>
+        )}
+        <td className={`${td} text-t1 num${isEditing ? "" : unpaidBar}`}>
+          {toMonthInput(row.rowPeriod)}
+        </td>
+        <td className={`${td} text-right text-t1 num`} title={isEditing ? formatCurrency(row.rowSummary?.charged ?? null) : undefined}>
+          {formatCurrency(row.rowSummary?.charged ?? null)}
+        </td>
+        <td className={`${td} text-right num ${row.lateFee > 0 ? "text-red" : "text-t1"}`}>
+          {formatCurrency(row.lateFee > 0 ? row.lateFee : null)}
+        </td>
+        <td className={`${td} text-right text-t1 num`}>
+          {isEditing && row.draftSource !== "none" ? (
+            <NumericField
+              value={row.fields.amount}
+              ariaLabel="수납액"
+              disabled={fieldsDisabled}
+              autoFocus={focusRowKey === row.key}
+              onChange={(amount) => updateFields(row.key, { amount })}
+            />
+          ) : isEditing && row.payment ? (
+            formatCurrency(normalizeAmount(row.fields.amount))
+          ) : formatCurrency(row.payment?.amount ?? null)}
+        </td>
+        <td className={`${td} text-right text-t1 num`}>
+          {isEditing ? (
+            <NumericField
+              value={row.fields.fee}
+              ariaLabel="수료"
+              disabled={fieldsDisabled}
+              onChange={(fee) => updateFields(row.key, { fee })}
+            />
+          ) : (
+            formatCurrency(row.payment?.fee ?? null)
+          )}
+        </td>
+        <td className={`${td} text-t1 num`}>
+          {isEditing && row.draftSource !== "none" ? (
+            <DpDatePicker
+              ariaLabel="수납일자"
+              value={row.fields.paidAt}
+              onChange={(paidAt) => updateFields(row.key, { paidAt })}
+              placeholder="날짜 선택"
+              disabled={fieldsDisabled}
+              displayFormatter={(value) => value.replaceAll("-", "/")}
+              triggerClassName="dp-ctl flex h-[26px] cursor-pointer items-center justify-between gap-[8px] whitespace-nowrap text-[13.5px] font-normal text-t1 disabled:cursor-default disabled:opacity-50"
+              triggerOpenClassName="text-t1"
+            />
+          ) : isEditing && row.payment ? slashDate(row.fields.paidAt) : slashDate(row.payment?.paidAt)}
+        </td>
+        <td className={`${td} text-t1`}>
+          {isEditing ? (
+            <CustomDropdown
+              ariaLabel="은행/방법"
+              size="cell"
+              position="fixed"
+              menuMinWidth={112}
+              value={row.fields.method}
+              options={METHOD_OPTIONS}
+              disabled={fieldsDisabled}
+              onChange={(method) => updateFields(row.key, { method: method as PaymentMethod })}
+            />
+          ) : (
+            row.payment ? PAYMENT_METHOD_LABEL[row.payment.method] ?? row.payment.method : "-"
+          )}
+        </td>
+        <td className={`${td} text-t1`}>
+          {isEditing ? (
+            <CustomDropdown
+              ariaLabel="구분"
+              size="cell"
+              position="fixed"
+              menuMinWidth={112}
+              value={row.fields.kind}
+              options={KIND_OPTIONS}
+              disabled={fieldsDisabled}
+              onChange={(kind) => updateFields(row.key, { kind: kind as PaymentKind })}
+            />
+          ) : (
+            row.payment ? PAYMENT_KIND_LABEL[row.payment.kind] ?? row.payment.kind : "-"
+          )}
+        </td>
+        <td className={`${td} text-t1`}>
+          {isEditing ? (
+            <Input
+              size="26"
+              aria-label="비고"
+              value={row.fields.memo}
+              disabled={fieldsDisabled}
+              onChange={(event) => updateFields(row.key, { memo: event.target.value })}
+            />
+          ) : (
+            row.payment?.memo || "-"
+          )}
+        </td>
+        <td className={`${td} text-t1 num`}>{dotDate(row.dueDate)}</td>
+      </tr>
+    );
+  };
+
   const action = canEdit ? (
     <div className="flex items-center gap-[6px]">
-      <button type="button" onClick={openAdd} className={miniButtonClass}>
+      <button type="button" onClick={openAdd} className={MINI_BUTTON_CLASS}>
         추가
       </button>
-      {formOpen ? (
+      {isEditing ? (
         <>
           <button
             type="button"
-            onClick={() => void submit()}
+            onClick={() => void save()}
             disabled={isPaymentMutationPending}
-            className={`${miniButtonClass} border-teal bg-teal text-white hover:bg-teal`}
+            className={MINI_PRI_CLASS}
           >
             {isPaymentSavePending ? "수납 저장 중…" : "저장"}
           </button>
           <button
             type="button"
             onClick={closeEditor}
-            className="flex size-[26px] items-center justify-center rounded-[8px] border border-line bg-surface text-t3 hover:bg-bg"
+            className={MINI_X_CLASS}
             title="취소"
             aria-label="수납 이력 편집 취소"
           >
-            <CloseIcon className="size-[14px]" aria-hidden="true" />
+            <CloseIcon className="size-[14px] stroke-[2.2]" aria-hidden="true" />
           </button>
         </>
       ) : (
-        <button type="button" onClick={openSelectedPayment} className={miniButtonClass}>
+        <button type="button" onClick={openEdit} className={MINI_BUTTON_CLASS}>
           수정
         </button>
       )}
     </div>
   ) : undefined;
-
-  const renderInlineEditor = ({
-    key,
-    rowPeriod,
-    rowSummary,
-  }: {
-    key: string;
-    rowPeriod: string;
-    rowSummary: ReceiptStatementPaymentRow | ReceiptPaymentRow | undefined;
-  }) => {
-    const suggestedAmount = (rowSummary?.unpaid ?? 0) > 0
-      ? rowSummary?.unpaid ?? 0
-      : rowSummary?.charged ?? 0;
-    const shortcut = (kind: PaymentKind, amount = suggestedAmount) => {
-      setForm((previous) => ({
-        ...previous,
-        kind,
-        amount: amount > 0 ? String(amount) : previous.amount,
-      }));
-    };
-    const fieldClass =
-      "h-[26px] rounded-[7px] border border-line bg-surface px-[7px] text-[12px] font-normal text-t1 outline-none focus:border-teal focus:ring-[3px] focus:ring-teal-t";
-
-    return (
-      <tr key={key} data-testid="payment-inline-editor" className="h-[40px] border-b border-line2 bg-teal-t2">
-        <td className="whitespace-nowrap px-2 py-[6px]">
-          <div className="flex items-center gap-[3px]">
-            <button
-              type="button"
-              onClick={() => editingId !== null ? void cancelEditingPayment() : closeEditor()}
-              disabled={cancel.isPending}
-              className={`${miniButtonClass} border-red-t px-[8px] font-medium text-red`}
-            >
-              {cancel.isPending ? "수납 취소 중…" : editingId !== null ? "수납 취소" : "삭제"}
-            </button>
-            <button type="button" onClick={() => shortcut("full")} className={`${miniButtonClass} border-teal bg-teal px-[8px] font-medium text-white hover:bg-teal`}>
-              수납
-            </button>
-            <button type="button" onClick={() => shortcut("principal", rowSummary?.charged ?? 0)} className={`${miniButtonClass} px-[8px] font-medium`}>
-              원금
-            </button>
-            <button type="button" onClick={() => shortcut("partial", 0)} className={`${miniButtonClass} px-[8px] font-medium`}>
-              수.연
-            </button>
-          </div>
-        </td>
-        <td className="whitespace-nowrap px-3 py-[6px] num">{toMonthInput(rowPeriod)}</td>
-        <td className="px-3 py-[6px] text-right num">{formatCurrency(rowSummary?.charged ?? null)}</td>
-        <td className="px-3 py-[6px] text-right text-red num">{formatCurrency(rowSummary?.unpaid ?? null)}</td>
-        <td className="px-2 py-[6px] text-right">
-          <input
-            type="number"
-            aria-label="수납액"
-            value={form.amount}
-            onChange={(event) => setForm((previous) => ({ ...previous, amount: event.target.value }))}
-            className={`${fieldClass} w-[88px] text-right num`}
-          />
-        </td>
-        <td className="px-2 py-[6px] text-right">
-          <input
-            type="number"
-            aria-label="수수료(수료)"
-            value={form.fee}
-            onChange={(event) => setForm((previous) => ({ ...previous, fee: event.target.value }))}
-            className={`${fieldClass} w-[76px] text-right num`}
-          />
-        </td>
-        <td className="px-2 py-[6px]">
-          <DpDatePicker
-            ariaLabel="수납일자"
-            value={form.paidAt}
-            onChange={(paidAt) => setForm((previous) => ({ ...previous, paidAt }))}
-            placeholder="날짜 선택"
-            triggerClassName={`${fieldClass} flex w-[124px] cursor-pointer items-center justify-between gap-[6px] whitespace-nowrap num`}
-            triggerOpenClassName="!border-teal ring-[3px] ring-teal-t"
-            endAdornment={<CalendarIcon className="size-[14px] shrink-0 text-t3" aria-hidden="true" />}
-          />
-        </td>
-        <td className="px-2 py-[6px]">
-          <div className="w-[104px] [&_.uc-dd]:w-full [&_.uc-dd-btn]:h-[26px] [&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:justify-between [&_.uc-dd-btn]:gap-[5px] [&_.uc-dd-btn]:rounded-[7px] [&_.uc-dd-btn]:px-[7px] [&_.uc-dd-btn]:text-[12px] [&_.uc-dd-btn]:font-normal [&_.uc-dd-menu]:left-0 [&_.uc-dd-menu]:right-auto [&_.uc-dd-menu]:min-w-[120px]">
-            <CustomDropdown
-              ariaLabel="은행/방법"
-              value={form.method}
-              onChange={(method) => setForm((previous) => ({ ...previous, method: method as PaymentMethod }))}
-              options={METHOD_OPTIONS}
-            />
-          </div>
-        </td>
-        <td className="px-2 py-[6px]">
-          <div className="w-[76px] [&_.uc-dd]:w-full [&_.uc-dd-btn]:h-[26px] [&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:justify-between [&_.uc-dd-btn]:gap-[5px] [&_.uc-dd-btn]:rounded-[7px] [&_.uc-dd-btn]:px-[7px] [&_.uc-dd-btn]:text-[12px] [&_.uc-dd-btn]:font-normal [&_.uc-dd-menu]:left-0 [&_.uc-dd-menu]:right-auto [&_.uc-dd-menu]:min-w-[96px]">
-            <CustomDropdown
-              ariaLabel="구분"
-              value={form.kind}
-              onChange={(kind) => setForm((previous) => ({ ...previous, kind: kind as PaymentKind }))}
-              options={KIND_OPTIONS}
-            />
-          </div>
-        </td>
-        <td className="px-2 py-[6px]">
-          <input
-            aria-label="비고"
-            value={form.memo}
-            onChange={(event) => setForm((previous) => ({ ...previous, memo: event.target.value }))}
-            className={`${fieldClass} w-[110px]`}
-          />
-        </td>
-        <td className="whitespace-nowrap px-3 py-[6px] num">{dotDate(rowSummary?.dueDate ?? null)}</td>
-      </tr>
-    );
-  };
 
   return (
     <Panel title="수납 이력" action={action} flush className="min-h-[266px] flex-1">
@@ -466,96 +919,63 @@ export function PaymentHistorySection({
         <div className="flex min-h-[246px] flex-1 items-center justify-center"><Spinner label="수납 이력 불러오는 중" /></div>
       ) : (
         <>
-          <div className="overflow-x-auto">
-            <table className={`w-full text-sm ${formOpen ? "min-w-[1485px]" : "min-w-[1295px]"}`}>
+          <div className="min-h-0 flex-1 overflow-auto">
+            <table
+              className={`w-full border-collapse whitespace-nowrap text-[12.5px] leading-[normal] ${
+                isEditing ? "min-w-[980px] table-fixed" : "table-auto"
+              }`}
+            >
+              {isEditing && (
+                <colgroup>
+                  {COLUMNS.map((column) => (
+                    <col key={column.key} style={{ width: column.editWidth }} />
+                  ))}
+                </colgroup>
+              )}
               <thead>
-                <tr className="h-[36.5px] border-b border-[#e8ebee] bg-[#fbfcfd] text-[12px] font-bold leading-[normal] text-[#8b95a1]">
-                  {formOpen && <th className="min-w-[190px] whitespace-nowrap px-[16px] py-[11px]">처리</th>}
-                  {COLS.map(({ label, minW }) => (
-                    <th key={label} style={{ minWidth: minW }} className={`whitespace-nowrap px-[16px] py-[11px] ${["당월계","연체","수납액","수료"].includes(label) ? "text-right" : "text-left"}`}>
-                      {label}
-                    </th>
+                <tr>
+                  {COLUMNS.map((column) => (
+                    (column.key === "action" && !isEditing) ? null : (
+                      <th
+                        key={column.key}
+                        style={isEditing ? undefined : { minWidth: column.minWidth }}
+                        className={`${TH_BASE} ${isEditing ? "px-[8px]" : "px-[16px]"} ${"numeric" in column && column.numeric ? "text-right" : "text-left"}`}
+                      >
+                        {column.label}
+                      </th>
+                    )
                   ))}
                 </tr>
               </thead>
-              <tbody>
-                {formOpen && editingId === null && renderInlineEditor({
-                  key: "new-payment",
-                  rowPeriod: period,
-                  rowSummary: summary,
-                })}
-                {historyRows.map(({ key, rowPeriod, rowSummary, payment }) => {
-                  const canceled = payment?.status === "canceled";
-                  const isUnpaid = !payment || canceled;
-                  if (formOpen && payment?.id === editingId) {
-                    return renderInlineEditor({
-                      key,
-                      rowPeriod,
-                      rowSummary: rowSummary ?? (rowPeriod === period ? summary : undefined),
-                    });
-                  }
-                  return (
-                    <tr
-                      key={key}
-                      onClick={() => payment && setSelectedPaymentId(payment.id)}
-                      className={`h-[41px] leading-[normal] border-b border-[#f1f3f5] last:border-0 ${
-                        payment ? "cursor-pointer" : ""
-                      } ${selectedPaymentId === payment?.id ? "bg-teal-t" : ""} ${canceled ? "opacity-50" : ""}`}
-                    >
-                      {formOpen && <td className="px-[16px] py-[12px]" />}
-                      <td className={`px-[16px] py-[12px] num ${isUnpaid ? "shadow-[inset_3px_0px_0px_0px_#f04452]" : ""}`}>{toMonthInput(rowPeriod)}</td>
-                      <td className="px-[16px] py-[12px] text-right num">{formatCurrency(rowSummary?.charged ?? null)}</td>
-                      <td className={`px-[16px] py-[12px] text-right num ${(rowSummary?.unpaid ?? 0) > 0 ? "text-[#f04452]" : ""}`}>{formatCurrency(rowSummary?.unpaid ?? null)}</td>
-                      <td className="px-[16px] py-[12px] text-right num">{payment ? formatCurrency(payment.amount) : "-"}</td>
-                      <td className="px-[16px] py-[12px] text-right num">{payment ? formatCurrency(payment.fee) : "-"}</td>
-                      <td className="whitespace-nowrap px-[16px] py-[12px]">{payment ? slashDate(payment.paidAt) : "-"}</td>
-                      <td className="px-[16px] py-[12px]">{payment ? PAYMENT_METHOD_LABEL[payment.method] ?? payment.method : "-"}</td>
-                      <td className="px-[16px] py-[12px]">{payment ? PAYMENT_KIND_LABEL[payment.kind] ?? payment.kind : "-"}</td>
-                      <td className="px-[16px] py-[12px]">{payment?.memo ?? "-"}</td>
-                      <td className="whitespace-nowrap px-[16px] py-[12px]">{dotDate(rowSummary?.dueDate ?? null)}</td>
-                    </tr>
-                  );
-                })}
+              <tbody className="[&>tr:last-child>td]:border-b-0">
+                {visibleRows.map(renderPaymentRow)}
               </tbody>
             </table>
           </div>
 
-          <div className="flex items-center gap-[10px] border-t border-[#e8ebee] bg-[#fbfcfd] px-[14px] py-[11px]">
-            <div className="flex items-center gap-[6px]">
-              <span className="text-[12px] font-medium leading-[normal] text-[#8b95a1]">미납</span>
-              <span className="num text-[12.5px] font-medium leading-[normal] text-[#f04452]">{formatCurrency(overduePrincipal)}</span>
-            </div>
-            <div className="flex items-center gap-[6px]">
-              <span className="text-[12px] font-medium leading-[normal] text-[#8b95a1]">연체료</span>
-              <span className="num text-[12.5px] font-medium leading-[normal] text-[#f04452]">{formatCurrency(lateFeeTotal)}</span>
-            </div>
-            <div className="flex items-center gap-[6px]">
-              <span className="text-[12px] font-medium leading-[normal] text-[#8b95a1]">미납합계</span>
-              <span className="num text-[12.5px] font-medium leading-[normal] text-[#f04452]">{formatCurrency(overduePrincipal + lateFeeTotal)}</span>
-            </div>
-            <div className="ml-auto">
-              <button
-                type="button"
-                onClick={sendUnpaidSms}
-                disabled={!summary || (unpaid ?? 0) <= 0}
-                className="h-[26px] rounded-[8px] border border-teal bg-teal px-[10px] text-[11.5px] font-bold leading-[normal] text-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                문자 전송
-              </button>
-            </div>
+          <div className="flex flex-none flex-wrap items-center gap-x-[10px] gap-y-[8px] border-t border-line bg-[#FBFCFD] px-[14px] py-[11px] num leading-[normal]">
+            <span className="inline-flex flex-none items-center gap-[6px] whitespace-nowrap text-[12.5px] font-medium text-t1">
+              <i className="not-italic text-[12px] font-medium text-t3">미납</i>
+              <b className="font-medium text-red">{formatCurrency(footerTotals.unpaid)}</b>
+            </span>
+            <span className="inline-flex flex-none items-center gap-[6px] whitespace-nowrap text-[12.5px] font-medium text-t1">
+              <i className="not-italic text-[12px] font-medium text-t3">연체료</i>
+              <b className="font-medium text-red">{formatCurrency(footerTotals.lateFee)}</b>
+            </span>
+            <span className="inline-flex flex-none items-center gap-[6px] whitespace-nowrap text-[12.5px] font-medium text-t1">
+              <i className="not-italic text-[12px] font-medium text-t3">미납합계</i>
+              <b className="font-medium text-red">{formatCurrency(footerTotals.total)}</b>
+            </span>
+            <button
+              type="button"
+              onClick={sendUnpaidSms}
+              disabled={footerTotals.total <= 0}
+              className={`${MINI_BASE} ml-auto border-teal bg-teal px-[10px] font-bold text-white hover:bg-teal-d disabled:pointer-events-none disabled:opacity-40`}
+            >
+              문자 전송
+            </button>
           </div>
         </>
-      )}
-
-      {messagingPreset && (
-        <MessagingModal
-          open
-          preset={messagingPreset}
-          onClose={() => setMessagingPreset(null)}
-          onSent={() => {
-            setMessagingPreset(null);
-          }}
-        />
       )}
     </Panel>
   );

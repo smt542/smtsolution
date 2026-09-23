@@ -5,9 +5,10 @@ export const COMPLAINT_STATUS_OPTIONS: {
   value: ComplaintStatus;
   label: string;
 }[] = [
+  // 정본 AS_ST 순서(미결·보류·완결·반복) — 결과 필터와 접수 폼 드롭다운이 같이 쓴다.
   { value: "pending", label: "미결" },
-  { value: "completed", label: "완결" },
   { value: "on_hold", label: "보류" },
+  { value: "completed", label: "완결" },
   { value: "repeat", label: "반복" },
 ];
 

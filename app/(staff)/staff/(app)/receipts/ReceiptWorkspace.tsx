@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useIsHydrated } from "@/hooks/common";
 import { Button, Spinner } from "@/components/common";
@@ -18,6 +18,7 @@ import { TenantInfoSection } from "./components/TenantInfoSection";
 import { UnifiedSearchModal } from "./components/UnifiedSearchModal";
 import { ChargeReceiptReportModal } from "./components/ChargeReceiptReportModal";
 import { VillaPaymentModal, type VillaPaymentModalInit } from "./components/VillaPaymentModal";
+import { AutoPaymentModals, type AutoPaymentView } from "./components/payment/AutoPaymentModals";
 import { VillaOverdueModal } from "./components/villa-overdue/VillaOverdueModal";
 import { ReceiptEntryAlerts } from "./components/entry-alerts/ReceiptEntryAlerts";
 import { MonthlyChargeModal } from "./components/monthly/MonthlyChargeModal";
@@ -50,15 +51,35 @@ function Dropdown({
   onInactiveClick?: () => void;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const isOpen = open && !inactive;
   const triggerClass =
     accent === "teal"
-      ? "flex h-10 cursor-pointer items-center gap-[5px] rounded-[11px] bg-teal px-[15px] text-[13.5px] font-bold leading-[normal] text-white hover:bg-teal-d"
+      ? "flex h-10 cursor-pointer items-center gap-[5px] rounded-[11px] border border-transparent bg-teal px-[15px] text-[13.5px] font-bold leading-[normal] text-white hover:bg-teal-d"
       : "flex h-10 cursor-pointer items-center gap-[5px] rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg";
 
   useEffect(() => {
     if (open && inactive) onOpenChange(false);
   }, [inactive, onOpenChange, open]);
+
+  // 정본 `.rc-gmenu` 는 fixed 다: left = clamp(버튼 right - 메뉴 폭, 10, 창 폭 - 메뉴 폭 - 10),
+  // top = 버튼 bottom + 6. 창 크기가 바뀌면 다시 잡는다.
+  useLayoutEffect(() => {
+    if (!isOpen) return;
+    const place = () => {
+      const button = buttonRef.current;
+      const menu = menuRef.current;
+      if (!button || !menu) return;
+      const rect = button.getBoundingClientRect();
+      const width = menu.offsetWidth || 172;
+      menu.style.left = `${Math.max(10, Math.min(rect.right - width, window.innerWidth - width - 10))}px`;
+      menu.style.top = `${rect.bottom + 6}px`;
+    };
+    place();
+    window.addEventListener("resize", place);
+    return () => window.removeEventListener("resize", place);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!open) return;
@@ -82,6 +103,7 @@ function Dropdown({
   return (
     <div ref={rootRef} className="relative">
       <button
+        ref={buttonRef}
         type="button"
         aria-haspopup="menu"
         aria-expanded={isOpen}
@@ -109,12 +131,16 @@ function Dropdown({
       </button>
       {isOpen && (
         <div
+          ref={menuRef}
           role="menu"
-          className="absolute right-0 z-20 mt-1 min-w-[190px] rounded-xl border border-line bg-surface p-1 shadow-card"
+          className="fixed z-[60] min-w-[172px] rounded-[12px] border border-line bg-surface p-[6px] leading-[normal] shadow-[0_14px_34px_-10px_rgba(23,31,40,0.28)]"
         >
           {items.map((item, index) =>
             "header" in item ? (
-              <p key={index} className="px-3 pb-1 pt-2 text-xs font-bold text-t4">
+              <p
+                key={index}
+                className="px-[11px] pb-[3px] pt-[7px] text-[10.5px] font-extrabold tracking-[.02em] text-t4"
+              >
                 {item.header}
               </p>
             ) : (
@@ -126,7 +152,7 @@ function Dropdown({
                   item.onClick();
                   onOpenChange(false);
                 }}
-                className="block w-full rounded-lg px-3 py-1.5 text-left text-sm text-t2 hover:bg-bg"
+                className="block w-full whitespace-nowrap rounded-[8px] px-[11px] py-[9px] text-left text-[13px] font-semibold text-t2 hover:bg-bg hover:text-t1"
               >
                 {item.label}
               </button>
@@ -156,12 +182,18 @@ export function ReceiptWorkspace({
   const [period] = useState(() => initialPeriod ?? currentPeriod());
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | null>(initialBuildingId);
   const [selectedUnitId, setSelectedUnitId] = useState<number | null>(initialUnitId);
+  // 정본 `setView`: 레일이 건물 목록/호실 목록 중 무엇을 보이는지는 선택과 따로 논다.
+  // 뒤로가기는 목록만 바꾸고 고른 건물·호실은 그대로 둔다(우측 패널도 유지).
+  const [railView, setRailView] = useState<"building" | "unit">(
+    initialBuildingId !== null ? "unit" : "building",
+  );
   const [searchOpen, setSearchOpen] = useState(false);
   const [monthlyOpen, setMonthlyOpen] = useState(false);
   const [chargeReportOpen, setChargeReportOpen] = useState(false);
   const [receiptHistoryOpen, setReceiptHistoryOpen] = useState(false);
   const [unitStatementOpen, setUnitStatementOpen] = useState(false);
   const [villa, setVilla] = useState<VillaPaymentModalInit | null>(null);
+  const [autoView, setAutoView] = useState<AutoPaymentView | null>(null);
   const [overdueOpen, setOverdueOpen] = useState(false);
   const isHydrated = useIsHydrated();
   const [openDropdown, setOpenDropdown] = useState<ReceiptDropdownKey | null>(null);
@@ -198,9 +230,10 @@ export function ReceiptWorkspace({
     period,
   );
   const { data: unitPayments = [], isLoading: isPaymentsLoading } = paymentsQuery;
+  // 정본 `drawHist` 는 당월 포함 7개월을 보인다.
   const historyStartPeriod = useMemo(() => {
     let start = period;
-    for (let index = 0; index < 4; index += 1) start = prevPeriod(start);
+    for (let index = 0; index < 6; index += 1) start = prevPeriod(start);
     return start;
   }, [period]);
   const historyQuery = useReceiptStatementData(
@@ -234,47 +267,41 @@ export function ReceiptWorkspace({
   const selectBuilding = (id: number) => {
     setSelectedBuildingId(id);
     setSelectedUnitId(null);
+    setRailView("unit");
   };
   const backToBuildings = () => {
-    setSelectedBuildingId(null);
-    setSelectedUnitId(null);
+    setRailView("building");
   };
   const jumpTo = (buildingId: number, unitId: number | null) => {
     setSelectedBuildingId(buildingId);
     setSelectedUnitId(unitId);
+    setRailView("unit");
   };
 
-  const openVilla = (init: VillaPaymentModalInit) => {
-    if (selectedBuildingId === null) {
-      toast.info("건물을 선택해 주세요");
-      return;
-    }
-    setVilla(init);
-  };
   const openOverdue = () => {
     if (selectedBuildingId === null) {
-      toast.info("건물을 선택해 주세요");
+      toast.warning("건물을 선택해 주세요");
       return;
     }
     setOverdueOpen(true);
   };
   const requireBuilding = (open: () => void) => {
     if (selectedBuildingId === null) {
-      toast.info("건물을 선택해 주세요");
+      toast.warning("건물을 선택해 주세요");
       return;
     }
     open();
   };
   const openUnitStatement = () => {
     if (selectedBuildingId === null || selectedUnitId === null) {
-      toast.info("호실을 선택해 주세요");
+      toast.warning("호실을 선택해 주세요");
       return;
     }
     setUnitStatementOpen(true);
   };
   const openUnitReceipt = () => {
     if (selectedBuildingId === null || selectedUnitId === null) {
-      toast.info("호실을 선택해 주세요");
+      toast.warning("호실을 선택해 주세요");
       return;
     }
     setVilla({ view: "receipt", unitId: selectedUnitId });
@@ -313,7 +340,7 @@ export function ReceiptWorkspace({
               <Dropdown
                 label="빌라"
                 inactive={selectedBuildingId === null}
-                onInactiveClick={() => toast.info("건물을 선택해 주세요")}
+                onInactiveClick={() => toast.warning("건물을 선택해 주세요")}
                 {...getDropdownProps("villa")}
                 items={[
                   {
@@ -330,28 +357,25 @@ export function ReceiptWorkspace({
               <Dropdown
                 label="호실"
                 inactive={selectedUnitId === null}
-                onInactiveClick={() => toast.info("호실을 선택해 주세요")}
+                onInactiveClick={() => toast.warning("호실을 선택해 주세요")}
                 {...getDropdownProps("unit")}
                 items={[
                   { label: "호실 명세서", onClick: openUnitStatement },
                   { label: "영수증 출력", onClick: openUnitReceipt },
                 ]}
               />
-              {/* 자동수납 메뉴는 각 Figma 모달로 바로 진입한다. */}
+              {/* 자동수납은 정본대로 건물 선택과 상관없이 조직 전체를 다룬다. */}
               <Dropdown
                 label="자동수납"
                 accent="teal"
                 {...getDropdownProps("auto")}
                 items={[
                   { header: "지로" },
-                  { label: "지로수납처리", onClick: () => openVilla({ view: "giro-upload" }) },
-                  { label: "지로수납원장 보기", onClick: () => openVilla({ view: "giro" }) },
-                  {
-                    label: "지로처리일자 확인",
-                    onClick: () => openVilla({ view: "giro-calendar" }),
-                  },
+                  { label: "지로수납처리", onClick: () => setAutoView("giro-upload") },
+                  { label: "지로수납원장 보기", onClick: () => setAutoView("giro-ledger") },
+                  { label: "지로처리일자 확인", onClick: () => setAutoView("giro-calendar") },
                   { header: "은행 입금" },
-                  { label: "은행 입금내역 업로드", onClick: () => openVilla({ view: "bank" }) },
+                  { label: "은행 입금내역 업로드", onClick: () => setAutoView("bank") },
                   { label: "은행 양식 다운", onClick: () => void downloadBankTemplate() },
                 ]}
               />
@@ -367,6 +391,7 @@ export function ReceiptWorkspace({
           isBuildingsLoading={!isHydrated || buildingsQuery.isLoading}
           isUnitsLoading={isUnitsLoading}
           canEdit={canEditPayment}
+          view={railView}
           selectedBuildingId={selectedBuildingId}
           selectedUnitId={selectedUnitId}
           onSelectBuilding={selectBuilding}
@@ -379,6 +404,8 @@ export function ReceiptWorkspace({
             key={`pay-${selectedUnitId ?? "none"}`}
             orgId={orgId}
             buildingId={selectedBuildingId}
+            buildingName={selectedBuilding?.name ?? selectedSummary?.buildingName ?? ""}
+            buildingAddress={selectedBuilding?.address ?? null}
             hasUnit={selectedUnitId !== null}
             isLoading={isPaymentHistoryLoading}
             payments={historyQuery.data?.payments ?? unitPayments}
@@ -467,6 +494,12 @@ export function ReceiptWorkspace({
           onClose={() => setVilla(null)}
         />
       )}
+      <AutoPaymentModals
+        view={autoView}
+        period={period}
+        rows={receiptRows}
+        onClose={() => setAutoView(null)}
+      />
       {overdueOpen && selectedBuilding && (
         <VillaOverdueModal
           open
