@@ -10,7 +10,7 @@ import { TenantEmptyState } from "./TenantEmptyState";
  * Figma 673:40286 — 호수·입주민 카드(32컬럼 가로 스크롤).
  * 헤더(제목 + 엑셀/등록 버튼)는 항상 노출한다. 건물 미선택 시 제목은 "입주민",
  * 액션 버튼은 비활성(muted), 본문은 "건물을 선택해 주세요" 빈 상태.
- * 입주민 행 클릭/Enter → 해당 세대의 입주민 관리카드 모달.
+ * 입주민 행 클릭/Enter → 해당 세대의 입주민 상세 화면.
  */
 export function TenantOccupancyCard({
   buildingId,
@@ -18,14 +18,12 @@ export function TenantOccupancyCard({
   rows,
   isLoading,
   isError,
-  onOpenManagementCard,
 }: {
   buildingId: number | null;
   buildingName: string | null;
   rows: TenantListRow[];
   isLoading: boolean;
   isError: boolean;
-  onOpenManagementCard: (tenant: TenantListRow) => void;
 }) {
   const router = useRouter();
   const selected = buildingId != null && buildingName != null;
@@ -96,12 +94,12 @@ export function TenantOccupancyCard({
                 <tr
                   key={t.unitId}
                   tabIndex={0}
-                  aria-label={`${t.unitNo}호 ${t.isVacant ? "공실" : (t.tenantName?.trim() || "입주자 미등록")} 입주민 관리카드 보기`}
-                  onClick={() => onOpenManagementCard(t)}
+                  aria-label={`${t.unitNo}호 ${t.isVacant ? "공실" : (t.tenantName?.trim() || "입주자 미등록")} 상세 보기`}
+                  onClick={() => router.push(`${base}/${t.unitId}`)}
                   onKeyDown={(event) => {
                     if (event.key !== "Enter" && event.key !== " ") return;
                     event.preventDefault();
-                    onOpenManagementCard(t);
+                    router.push(`${base}/${t.unitId}`);
                   }}
                   className="cursor-pointer border-b border-line2 outline-none last:border-0 hover:bg-bg focus-visible:bg-teal-t focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal"
                 >

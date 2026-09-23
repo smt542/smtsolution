@@ -1,7 +1,9 @@
 "use client";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { IconButton } from "@/components/common";
 import {
+  useBuildingFull,
   useBuildingList,
   useStaffOptions,
   type BuildingListResult,
@@ -21,13 +23,7 @@ import {
 } from "./BuildingSearchCard";
 import { BuildingDirectoryCard } from "./BuildingDirectoryCard";
 import { TenantOccupancyCard } from "./TenantOccupancyCard";
-import { TenantManagementCardModal } from "./TenantManagementCardModal";
 import { TenantOutputModal } from "./TenantOutputModal";
-
-interface ManagementCardRequest {
-  buildingId: number;
-  unitId: number;
-}
 
 const METER_KIND_MAP: Record<Exclude<MeterKind, "">, CustomerNumberKind> = {
   수도: "water",
@@ -41,14 +37,20 @@ const METER_KIND_MAP: Record<Exclude<MeterKind, "">, CustomerNumberKind> = {
  * 상단 건물 표에서 건물을 선택하면 하단 입주민 표가 해당 건물로 채워진다.
  */
 export function BuildingTenantManager({ initialData }: { initialData: BuildingListResult }) {
+  const searchParams = useSearchParams();
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [filter, setFilter] = useState<BuildingFilterState>(initialBuildingFilter);
-  const [selected, setSelected] = useState<{ id: number; name: string } | null>(null);
   const [outputOpen, setOutputOpen] = useState(false);
-  const [managementCardRequest, setManagementCardRequest] = useState<ManagementCardRequest | null>(null);
+
+  const selectedBuildingId = useMemo(() => {
+    const value = searchParams.get("building");
+    if (!value || !/^\d+$/.test(value)) return null;
+    const id = Number(value);
+    return Number.isSafeInteger(id) && id > 0 ? id : null;
+  }, [searchParams]);
 
   // 담당자(사무/현장/청소) 필터는 서버 재조회, 등록일/검침일 정렬은 현재 페이지 클라이언트 정렬.
   const params = {
@@ -113,6 +115,20 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
     return list;
   }, [rawRows, meterActive, meterDayByBuilding, filter.meterDir, filter.regSort]);
 
+  const selectedBuildingName = useMemo(
+    () => rows.find((building) => building.id === selectedBuildingId)?.name,
+    [rows, selectedBuildingId],
+  );
+  const { data: selectedBuilding } = useBuildingFull(
+    selectedBuildingId != null && selectedBuildingName == null ? selectedBuildingId : 0,
+  );
+  const selected = selectedBuildingId == null
+    ? null
+    : {
+        id: selectedBuildingId,
+        name: selectedBuildingName ?? selectedBuilding?.name ?? "",
+      };
+
   const exportHref = useMemo(() => {
     const q = new URLSearchParams();
     if (search) q.set("search", search);
@@ -159,6 +175,13 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
       setPage(1);
     }
     setFilter(next);
+  };
+
+  const selectBuilding = (building: BuildingListResult["rows"][number]) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("building", String(building.id));
+    const query = params.toString();
+    window.history.replaceState(null, "", query ? `${window.location.pathname}?${query}` : window.location.pathname);
   };
 
   return (
@@ -221,7 +244,7 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
           rows={rows}
           total={total}
           selectedId={selected?.id ?? null}
-          onSelect={(b) => setSelected({ id: b.id, name: b.name })}
+          onSelect={selectBuilding}
           isLoading={isLoading}
           isError={isError}
           hasFilter={!!search || isFilterActive(filter)}
@@ -243,10 +266,6 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
           rows={tenantRows}
           isLoading={tenant.isLoading}
           isError={tenant.isError}
-          onOpenManagementCard={(tenantRow) => {
-            if (!selected) return;
-            setManagementCardRequest({ buildingId: selected.id, unitId: tenantRow.unitId });
-          }}
         />
       </div>
 
@@ -257,14 +276,6 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
         />
       )}
 
-      {managementCardRequest && (
-        <TenantManagementCardModal
-          key={`${managementCardRequest.buildingId}-${managementCardRequest.unitId}`}
-          buildingId={managementCardRequest.buildingId}
-          unitId={managementCardRequest.unitId}
-          onClose={() => setManagementCardRequest(null)}
-        />
-      )}
     </div>
   );
 }
