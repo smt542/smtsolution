@@ -248,7 +248,7 @@ v2는 값 기준 variant 판정, 추가·소실 속성 검사, 문자열·중괄
 | 문맥 패딩(`.ms-actbar`) — size로 표현 불가 | 2 |
 | Button에 없는 색(연빨강 1 · 투명 2) — raw 유지 결정 | 3 |
 
-제외 대상은 `btn-safe.mjs`의 `EXCLUDE` 목록에 사유와 함께 들어 있어, 다음 분석에서도 따로 표시된다.
+제외 대상은 `btn-safe.mjs`의 `EXCLUDE` 목록에 사유와 함께 들어 있어, 다음 분석에서도 따로 표시된다. 분석·사전 검증 도구는 `scripts/button-audit/`에 있다(사용법은 그 폴더의 README).
 
 #### 로그인 버튼
 
