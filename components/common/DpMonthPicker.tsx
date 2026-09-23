@@ -8,6 +8,8 @@ interface DpMonthPickerProps {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  minMonth?: string;
+  maxMonth?: string;
   ariaLabel?: string;
   triggerClassName?: string;
   triggerOpenClassName?: string;
@@ -25,12 +27,16 @@ export function DpMonthPicker({
   onChange,
   placeholder = "월",
   disabled = false,
+  minMonth,
+  maxMonth,
   ariaLabel,
   triggerClassName,
   triggerOpenClassName,
   endAdornment,
   className,
 }: DpMonthPickerProps) {
+  const minimumMonth = minMonth || undefined;
+  const maximumMonth = maxMonth || undefined;
   const ctlRef = useRef<HTMLButtonElement>(null);
   const popRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -80,10 +86,17 @@ export function DpMonthPicker({
   };
 
   const pick = (month: number) => {
-    onChange(`${year}-${pad(month)}`);
+    const nextValue = `${year}-${pad(month)}`;
+    if (minimumMonth && nextValue < minimumMonth) return;
+    if (maximumMonth && nextValue > maximumMonth) return;
+    onChange(nextValue);
     setOpen(false);
   };
 
+  const minimumYear = minimumMonth ? parseInt(minimumMonth.slice(0, 4), 10) : null;
+  const maximumYear = maximumMonth ? parseInt(maximumMonth.slice(0, 4), 10) : null;
+  const previousYearDisabled = minimumYear !== null && year <= minimumYear;
+  const nextYearDisabled = maximumYear !== null && year >= maximumYear;
   const selectedYear = value ? parseInt(value.slice(0, 4), 10) : null;
   const selectedMonth = value ? parseInt(value.slice(5, 7), 10) : null;
 
@@ -125,8 +138,9 @@ export function DpMonthPicker({
               <button
                 type="button"
                 aria-label="이전 년도"
+                disabled={previousYearDisabled}
                 onClick={() => setYear((y) => y - 1)}
-                className="flex size-[26px] items-center justify-center rounded-[8px] hover:bg-bg"
+                className="flex size-[26px] items-center justify-center rounded-[8px] hover:bg-bg disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent"
               >
                 <span className="text-[16px] leading-[normal] whitespace-nowrap text-[#8b95a1]">‹</span>
               </button>
@@ -136,8 +150,9 @@ export function DpMonthPicker({
               <button
                 type="button"
                 aria-label="다음 년도"
+                disabled={nextYearDisabled}
                 onClick={() => setYear((y) => y + 1)}
-                className="flex size-[26px] items-center justify-center rounded-[8px] hover:bg-bg"
+                className="flex size-[26px] items-center justify-center rounded-[8px] hover:bg-bg disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent"
               >
                 <span className="text-[16px] leading-[normal] whitespace-nowrap text-[#8b95a1]">›</span>
               </button>
@@ -146,14 +161,22 @@ export function DpMonthPicker({
             <div className="mt-[8px] grid w-full grid-cols-[44.5px_44.5px_44.5px_44.5px] grid-rows-[32px_32px_32px] gap-[4px]">
               {MONTHS.map((label, idx) => {
                 const m = idx + 1;
+                const monthValue = `${year}-${pad(m)}`;
+                const monthDisabled = Boolean(
+                  (minimumMonth && monthValue < minimumMonth)
+                  || (maximumMonth && monthValue > maximumMonth),
+                );
                 const isSelected = selectedYear === year && selectedMonth === m;
                 return (
                   <button
                     key={m}
                     type="button"
+                    disabled={monthDisabled}
                     onClick={() => pick(m)}
                     className={`flex h-[32px] items-center justify-center rounded-[8px] ${
-                      isSelected
+                      monthDisabled
+                        ? "cursor-default font-semibold text-t4 opacity-45"
+                        : isSelected
                         ? "bg-teal font-bold text-white"
                         : "font-semibold text-[#4e5968] hover:bg-bg"
                     }`}
