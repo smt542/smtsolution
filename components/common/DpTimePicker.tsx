@@ -125,22 +125,24 @@ export function DpTimePicker({
   useEffect(() => {
     if (!open) return;
 
-    const closeOnOutsideClick = (event: MouseEvent) => {
+    // 바깥 탭·Esc 닫기 — pointerdown·window 캡처 Esc는 DpDatePicker와 같은 이유
+    const closeOnOutsideClick = (event: PointerEvent) => {
       const target = event.target as Node;
       if (!ctlRef.current?.contains(target) && !popRef.current?.contains(target)) setOpen(false);
     };
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        event.stopPropagation();
         setOpen(false);
         ctlRef.current?.focus();
       }
     };
 
-    document.addEventListener("mousedown", closeOnOutsideClick);
-    document.addEventListener("keydown", closeOnEscape);
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    window.addEventListener("keydown", closeOnEscape, true);
     return () => {
-      document.removeEventListener("mousedown", closeOnOutsideClick);
-      document.removeEventListener("keydown", closeOnEscape);
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      window.removeEventListener("keydown", closeOnEscape, true);
     };
   }, [open]);
 
@@ -208,7 +210,7 @@ export function DpTimePicker({
             ref={popRef}
             role="dialog"
             aria-label="시간 선택"
-            className="fixed z-[200] w-[232px] overflow-auto rounded-[14px] border border-line bg-white p-0 shadow-[0_16px_40px_-12px_rgba(23,31,40,0.3)]"
+            className="fixed z-[1000] w-[232px] overflow-auto rounded-[14px] border border-line bg-white p-0 shadow-[0_16px_40px_-12px_rgba(23,31,40,0.3)]"
             style={{ left: pos.left, top: pos.top, maxHeight: pos.maxHeight }}
           >
             <div className="tp3 flex h-[206px] gap-[4px] p-[8px]">

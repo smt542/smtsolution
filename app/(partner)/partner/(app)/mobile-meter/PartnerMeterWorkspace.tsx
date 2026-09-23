@@ -8,6 +8,8 @@ import {
   useSavePartnerMeterReadings,
   type PartnerMeterValue,
 } from "@/hooks/reactquery/utilities";
+import { DpMonthPicker } from "@/components/common/DpMonthPicker";
+import { CalendarIcon } from "@/components/icons";
 import { formatMonth } from "@/lib/format";
 
 import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
@@ -134,7 +136,16 @@ export default function PartnerMeterWorkspace({ buildingId }: { buildingId: numb
     <div className={styles.root}>
       {header}
       <div className={styles.bar}>
-        <input type="month" className={styles.month} value={month} onChange={(e) => setMonth(e.target.value)} aria-label="검침 년월" />
+        <DpMonthPicker
+          value={month}
+          onChange={setMonth}
+          ariaLabel="검침 년월"
+          placeholder="월 선택"
+          className={styles.monthPickerRoot}
+          triggerClassName={styles.monthPicker}
+          triggerOpenClassName={styles.monthPickerOpen}
+          endAdornment={<CalendarIcon className="ml-auto size-4 shrink-0 text-t3" aria-hidden="true" />}
+        />
         <span className={`${styles.count} ${doneCount === 0 ? styles.countZero : ""}`}>
           {doneCount} / {units.length}세대 입력
         </span>

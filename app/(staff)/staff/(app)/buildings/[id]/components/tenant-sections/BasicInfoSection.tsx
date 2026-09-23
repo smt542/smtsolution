@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { Input, Select } from "@/components/common";
+import { DateInput } from "@/components/common/DateInput";
 import type { UnitUsageType } from "@/hooks/reactquery/units";
 
 export interface TenantBasicValue {
@@ -66,7 +67,7 @@ export function BasicInfoSection({
         {field("차량번호", "vehicleNo")}
         <label className="flex flex-col gap-1">
           <span className="text-sm text-t2">입주일 *</span>
-          <Input aria-label="입주일" type="date" value={value.moveInDate} onChange={(e) => onChange({ moveInDate: e.target.value })} />
+          <DateInput ariaLabel="입주일" value={value.moveInDate} onChange={(nextValue) => onChange({ moveInDate: nextValue })} />
           {errors?.moveInDate && <span className="text-xs text-danger">{errors.moveInDate}</span>}
         </label>
       </div>

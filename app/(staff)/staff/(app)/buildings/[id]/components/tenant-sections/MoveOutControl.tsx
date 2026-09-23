@@ -1,7 +1,8 @@
 "use client";
 import React, { useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Button, Input, Modal } from "@/components/common";
+import { Button, Modal } from "@/components/common";
+import { DateInput } from "@/components/common/DateInput";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import {
   useCancelMoveOutSchedule,
@@ -113,12 +114,11 @@ export function MoveOutControl({ occupancyId, scheduledDate, isVacant }: {
               <p className="text-sm font-bold text-t1">퇴실 날짜 지정</p>
               <p className="mt-1 text-xs text-t3">예정일이 되면 목록·상세 진입 시 자동 공실 처리합니다.</p>
               <div className="mt-4 flex gap-2">
-                <Input
-                  aria-label="퇴실 예정일"
-                  type="date"
-                  min={todayLocal()}
+                <DateInput
+                  ariaLabel="퇴실 예정일"
+                  minDate={todayLocal()}
                   value={draft.date}
-                  onChange={(event) => setDraft((current) => ({ ...current, date: event.target.value }))}
+                  onChange={(value) => setDraft((current) => ({ ...current, date: value }))}
                 />
                 <Button variant="primary" onClick={handleSchedule} disabled={isMoveOutMutationPending}>
                   {schedule.isPending ? "퇴실 예약 중…" : "퇴실 예약"}
