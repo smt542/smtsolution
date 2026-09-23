@@ -243,14 +243,15 @@ export function TenantOutputModal({
             >
               취소
             </Button>
-            <button
+            <Button
+              variant="primary"
               type="button"
               onClick={() => setPrintScope("both")}
               disabled={!canPrintBoth}
-              className="h-[40px] rounded-[11px] bg-teal px-[15px] text-[13.5px] font-bold text-white shadow-[0px_6px_7px_rgba(20,164,151,0.5)] hover:bg-teal-d disabled:opacity-45 disabled:shadow-none"
+              className="disabled:opacity-45 disabled:shadow-none"
             >
               둘 다 인쇄
-            </button>
+            </Button>
           </footer>
         </div>
       </div>

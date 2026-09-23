@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { EmptyState, IconButton, Spinner } from "@/components/common";
+import { Button, EmptyState, IconButton, Spinner } from "@/components/common";
 import type { Building } from "@/hooks/reactquery/buildings";
 import { useSaveBuildingNotes } from "@/hooks/reactquery/receipts";
 import type { ReceiptPaymentRow } from "@/hooks/reactquery/receipts";
@@ -340,13 +340,15 @@ function BuildingNoteBlock({
               {save.isPending ? "저장 중…" : "저장"}
             </button>
           ) : (
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               type="button"
               onClick={startEdit}
-              className="h-[26px] rounded-[8px] border border-line bg-surface px-[10px] text-[11.5px] font-bold leading-[normal] text-t2 hover:bg-bg"
+              className="leading-[normal]"
             >
               수정
-            </button>
+            </Button>
           )
         )}
       </div>

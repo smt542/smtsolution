@@ -196,13 +196,14 @@ export default function OrganizationsWorkspace() {
       paddingClassName="px-5 py-[22px] sm:px-6 sm:pb-[30px]"
     >
       <PlatformTopBarActions>
-        <button
+        <Button
+          variant="primary"
           type="button"
           onClick={() => setCreateOpen(true)}
-          className="inline-flex h-10 shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-[11px] border border-transparent bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-hf-btn transition-colors hover:bg-blue-d"
+          className="shrink-0 cursor-pointer border border-transparent transition-colors"
         >
           + 관리회사 입점
-        </button>
+        </Button>
       </PlatformTopBarActions>
 
       <section className="grid gap-[13px] sm:grid-cols-2 xl:grid-cols-4" aria-label="계약 현황">

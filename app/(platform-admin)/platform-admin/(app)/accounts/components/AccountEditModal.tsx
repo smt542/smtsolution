@@ -156,14 +156,15 @@ export function AccountEditModal({ account, onClose, onSubmit, isPending }: Prop
         )}
 
         <ModalActions>
-          <button
+          <Button
+            variant="ghost"
             type="button"
             onClick={closeSafely}
             disabled={submitting}
-            className="h-10 rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold text-t2 hover:bg-bg disabled:cursor-not-allowed disabled:opacity-70"
+            className="disabled:cursor-not-allowed disabled:opacity-70"
           >
             취소
-          </button>
+          </Button>
           <Button
             variant="primary"
             type="submit"

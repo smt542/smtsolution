@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Badge, Modal, Spinner } from "@/components/common";
+import { Badge, Button, Modal, Spinner } from "@/components/common";
 import {
   listPlatformOrganizations,
   platformKeys,
@@ -223,14 +223,15 @@ export default function PointsWorkspace() {
           {isPointSummaryRefreshing ? (
             <Spinner label="팝빌 포인트 요약 갱신 중" size="small" showLabel className="px-2 py-1" />
           ) : null}
-          <button
+          <Button
+            variant="primary"
             type="button"
             onClick={() => setChargeModalOpen(true)}
             disabled={pickerUnavailable}
-            className="inline-flex h-10 shrink-0 items-center justify-center whitespace-nowrap rounded-[11px] border border-transparent bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-hf-btn transition-colors hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-60"
+            className="shrink-0 border border-transparent transition-colors disabled:cursor-not-allowed disabled:opacity-60"
           >
             충전 기록
-          </button>
+          </Button>
         </div>
 
         {isPointSummaryInitialLoading ? (

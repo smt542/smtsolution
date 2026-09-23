@@ -1,3 +1,5 @@
+import { Button } from "@/components/common";
+
 interface UtilityPeriodBarPlaceholderProps {
   period: string;
 }
@@ -18,7 +20,7 @@ export function UtilityPeriodBarPlaceholder({ period }: UtilityPeriodBarPlacehol
         <span className="flex h-7 min-w-[106px] items-center justify-center rounded-[8px] border border-line2 bg-bg px-[10px] text-[12px] font-medium text-t4">종료일</span>
       </div>
       <span className="mx-1 hidden h-[26px] w-px bg-line lg:block" />
-      <button type="button" disabled className="h-[26px] cursor-default rounded-[8px] border border-line bg-bg px-[10px] text-[11.5px] font-bold text-t4">수정</button>
+      <Button variant="ghost" size="sm" type="button" disabled className="cursor-default">수정</Button>
     </section>
   );
 }

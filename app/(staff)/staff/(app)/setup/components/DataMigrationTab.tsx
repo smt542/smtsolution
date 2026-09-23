@@ -4,6 +4,7 @@ import { appToast as toast } from "@/hooks/common/useAppToast";
 import { MIGRATION_GROUPS, DEP, type EntitySchema } from "./dataMigration/schemas";
 import { downloadCsv, buildTemplateRows } from "./dataMigration/csv";
 import { BulkImportModal } from "./BulkImportModal";
+import { Button } from "@/components/common";
 
 const LOG_KEY = "erp_migrate_log";
 type LogEntry = { n: number; at: string };
@@ -47,7 +48,7 @@ export function DataMigrationTab() {
           <div className="h-[26px] pt-[5px] text-[13px] font-medium leading-[20.15px] text-t3">기존 서비스의 데이터를 엑셀로 옮겨요. 아래 순서대로 진행해야 참조가 어긋나지 않습니다.</div>
         </div>
         <div className="flex-1" />
-        <button type="button" onClick={resetLog} className="h-[40px] flex-none rounded-[11px] border border-line bg-white px-[15px] text-[13.5px] font-bold text-t2 hover:bg-bg">진행 기록 초기화</button>
+        <Button variant="ghost" type="button" onClick={resetLog} className="flex-none">진행 기록 초기화</Button>
       </div>
 
       {MIGRATION_GROUPS.map((g) => (

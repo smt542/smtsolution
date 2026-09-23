@@ -15,6 +15,7 @@ import {
 } from "./search/SearchResultTable";
 import { SearchSection } from "./search/SearchSection";
 import { ReportDateField } from "./report-controls/ReportDateField";
+import { Button } from "@/components/common";
 
 type BuildingLite = Pick<
   Building,
@@ -480,13 +481,13 @@ function UnifiedSearchModalBody({
 
         {/* 닫기 */}
         <div className="flex justify-end pt-3">
-          <button
+          <Button
+            variant="ghost"
             type="button"
             onClick={onClose}
-            className="flex h-10 items-center rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold text-t2 hover:bg-bg"
           >
             닫기
-          </button>
+          </Button>
         </div>
       </section>
     </div>

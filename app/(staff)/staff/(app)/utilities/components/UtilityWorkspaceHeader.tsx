@@ -56,7 +56,7 @@ export function UtilityWorkspaceHeader({
           variant="primary"
           type="button"
           onClick={onOpenCarryOver}
-          className="transition-colors"
+          className="shadow-none transition-colors"
         >
           전체 이월
         </Button>

@@ -31,7 +31,7 @@ export function SettlementActionBar({
         type="button"
         onClick={onSave}
         disabled={pending}
-        className="flex-[1_1_auto] min-w-max justify-center h-[40px] rounded-[11px] border border-transparent bg-teal px-[10px] text-[13.5px] font-bold text-white shadow-[0_6px_7px_rgba(20,164,151,0.5)] hover:bg-teal-d disabled:cursor-wait disabled:opacity-60"
+        className="flex-[1_1_auto] min-w-max justify-center h-[40px] rounded-[11px] border border-transparent bg-teal px-[10px] text-[13.5px] font-bold text-white shadow-pri hover:bg-teal-d disabled:cursor-wait disabled:opacity-60"
       >
         {pendingAction === "save" ? "저장 중…" : "저장"}
       </button>

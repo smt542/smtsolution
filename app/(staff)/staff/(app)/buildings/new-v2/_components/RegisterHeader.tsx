@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/common";
+
 /** Figma 상단 헤더 바 (16:15324): 햄버거 + 브레드크럼 + 제목 + 뒤로가기/저장. */
 export function RegisterHeader({
   title,
@@ -43,22 +45,24 @@ export function RegisterHeader({
         <p className="leading-[normal] text-[19px] font-extrabold tracking-[-0.38px] text-t1">{title}</p>
       </div>
       <div className="flex-1" />
-      <button
+      <Button
+        variant="ghost"
         type="button"
         onClick={onBack}
         disabled={saving}
-        className="flex h-[40px] items-center rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold leading-[normal] text-t2 hover:bg-bg disabled:cursor-not-allowed disabled:opacity-50"
+        className="leading-[normal] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {backLabel}
-      </button>
-      <button
+      </Button>
+      <Button
+        variant="primary"
         type="button"
         onClick={onSave}
         disabled={saving}
-        className="flex h-[40px] items-center rounded-[11px] border border-transparent bg-teal px-[15px] text-[13.5px] font-bold leading-[normal] text-white shadow-[0_6px_14px_-4px_rgba(20,164,151,0.5)] hover:bg-teal-d disabled:opacity-60"
+        className="border border-transparent leading-[normal] disabled:opacity-60"
       >
         {saving ? "저장 중…" : saveLabel}
-      </button>
+      </Button>
     </div>
   );
 }

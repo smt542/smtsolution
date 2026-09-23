@@ -86,22 +86,24 @@ export function PlatformSettingsWorkspace() {
       <PlatformTopBarActions>
         {isEditing ? (
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="primary"
               type="button"
               onClick={() => void save()}
               disabled={updateSettings.isPending}
-              className="inline-flex h-10 shrink-0 items-center justify-center rounded-[11px] bg-blue px-[15px] text-[13.5px] font-bold text-white shadow-hf-btn transition-colors hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-70"
+              className="shrink-0 transition-colors disabled:cursor-not-allowed disabled:opacity-70"
             >
               {updateSettings.isPending ? "저장 중…" : "저장"}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
               type="button"
               onClick={cancelEditing}
               disabled={updateSettings.isPending}
-              className="inline-flex h-10 shrink-0 items-center justify-center rounded-[11px] border border-line bg-surface px-[15px] text-[13.5px] font-bold text-t2 transition-colors hover:bg-bg disabled:cursor-not-allowed disabled:opacity-70"
+              className="shrink-0 transition-colors disabled:cursor-not-allowed disabled:opacity-70"
             >
               취소
-            </button>
+            </Button>
           </div>
         ) : (
           <Button
