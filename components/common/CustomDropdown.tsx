@@ -82,15 +82,19 @@ export function CustomDropdown({
       // 항목 click 이 닿기 전에 언마운트돼 선택이 먹지 않는다.
       if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) setOpen(false);
     };
+    // 열린 메뉴의 Esc는 메뉴만 닫는다. Dp*Picker와 같은 규약(window 캡처 + 전파 중단)이라
+    // 모달·확인창의 document keydown(Esc 닫기)까지 번지지 않는다.
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      setOpen(false);
     };
 
     document.addEventListener("mousedown", closeOutside);
-    document.addEventListener("keydown", closeOnEscape);
+    window.addEventListener("keydown", closeOnEscape, true);
     return () => {
       document.removeEventListener("mousedown", closeOutside);
-      document.removeEventListener("keydown", closeOnEscape);
+      window.removeEventListener("keydown", closeOnEscape, true);
     };
   }, [open]);
 
