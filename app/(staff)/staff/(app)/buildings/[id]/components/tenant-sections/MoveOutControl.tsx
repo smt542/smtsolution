@@ -75,13 +75,13 @@ export function MoveOutControl({ occupancyId, scheduledDate, isVacant }: {
 
   return (
     <div className="flex justify-end pt-[16px]">
-      <button
+      <Button
+        variant="dangerTint"
         type="button"
         onClick={() => setOpen(true)}
-        className="flex h-[40px] items-center rounded-[11px] border border-[#fdecee] bg-[#fdecee] px-[15px] text-[13.5px] font-bold text-[#f04452]"
       >
         퇴실처리
-      </button>
+      </Button>
       <Modal open={open} onClose={() => setOpen(false)} title="퇴실 처리">
         <p className="text-[13px] text-t3">
           이사정산은 자동으로 처리되지 않으며 별도 화면에서 진행해야 합니다.

@@ -20,7 +20,8 @@ export const loginClasses = {
   divider: "my-[15px] h-px bg-line2 [@media(max-height:660px)]:my-3 [@media(max-height:560px)]:my-2",
   metric: "flex items-center justify-between gap-2.5 text-[13px] font-semibold text-t2 [&+&]:mt-2 [@media(max-height:660px)]:text-[12.5px] [@media(max-height:660px)]:[&+&]:mt-1.5 [&_b]:font-bold [&_b]:tabular-nums",
   footer: "mt-auto flex flex-none flex-col items-stretch gap-3.5 px-7 pb-[calc(env(safe-area-inset-bottom)+26px)] pt-5 animate-[rise_0.55s_300ms_cubic-bezier(0.22,0.61,0.36,1)_both] [@media(max-height:660px)]:gap-[11px] [@media(max-height:660px)]:pt-3.5 [@media(max-height:560px)]:gap-[9px] [@media(max-height:560px)]:pt-2.5",
-  kakao: "flex h-14 w-full items-center justify-center gap-[9px] rounded-2xl bg-kakao text-[16.5px] font-bold tracking-[-0.02em] text-kakao-t no-underline transition-transform hover:brightness-[0.97] active:scale-[0.985] [@media(max-height:560px)]:h-[50px] [@media(max-height:560px)]:text-[15.5px] [&_svg]:size-[21px]",
+  // 크기·색은 ResidentButton(xl·kakao)이 준다. 여기는 카카오 로그인 배치 전용(아이콘 간격·낮은 화면 축소).
+  kakao: "flex w-full items-center justify-center gap-[9px] no-underline [@media(max-height:560px)]:h-[50px] [@media(max-height:560px)]:text-[15.5px] [&_svg]:size-[21px]",
   alternate: "self-center rounded-none bg-transparent px-1.5 py-1 text-[13.5px] font-semibold text-t3 underline decoration-1 underline-offset-[3px] hover:text-t2",
   note: "text-center text-[11.5px] font-medium leading-[1.7] text-t4 [&_a]:text-t3 [&_a]:no-underline [&_a]:hover:text-blue-d",
   sheetTitle: "text-lg font-extrabold tracking-[-0.02em]",
@@ -43,5 +44,4 @@ export const loginClasses = {
   sheetD: "mt-2 text-sm font-medium leading-[1.65] text-t2",
   // 정본(resident-login.dc.html `.sheet-btn`)은 border-radius:14px. `rounded-btn`(11px)은
   // 정본 표준 액션 버튼용 토큰이라 이 화면에는 맞지 않는다.
-  sheetBtn: "mt-5 h-[52px] w-full rounded-[14px] bg-blue text-[15.5px] font-bold text-white hover:bg-blue-d",
 } as const;

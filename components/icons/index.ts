@@ -13,3 +13,5 @@ export { SearchIcon } from "./SearchIcon";
 export { ResidentsIcon } from "./ResidentsIcon";
 export { PlusIcon } from "./PlusIcon";
 export { SendIcon } from "./SendIcon";
+export { IdCardIcon } from "./IdCardIcon";
+export { DocumentIcon } from "./DocumentIcon";

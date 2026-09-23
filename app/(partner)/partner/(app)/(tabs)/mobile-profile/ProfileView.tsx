@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useAsyncAction } from "@/hooks/common";
 
 import { profileClasses as styles } from "./profileClasses";
+import { PartnerButton } from "../../../../_components/PartnerButton";
+import { PartnerConfirmDialog } from "../../../../_components/PartnerConfirmDialog";
 
 export function ProfileView({
   fullName,
@@ -56,38 +58,23 @@ export function ProfileView({
           </div>
         </div>
 
-        <button type="button" className={styles.logout} onClick={() => setConfirm(true)}>
+        <PartnerButton variant="ghost" type="button" className="mt-4 w-full" onClick={() => setConfirm(true)}>
           로그아웃
-        </button>
+        </PartnerButton>
       </div>
 
       {confirm && (
-        <div
-          className={styles.scrim}
-          onClick={(e) => e.target === e.currentTarget && setConfirm(false)}
-        >
-          <div className={styles.dialog}>
-            <div className={styles.dTitle}>로그아웃할까요?</div>
-            <div className={styles.dDesc}>다시 이용하려면 로그인이 필요해요.</div>
-            <div className={styles.dActions}>
-              <button
-                type="button"
-                className={`${styles.dBtn} ${styles.dCancel}`}
-                onClick={() => setConfirm(false)}
-              >
-                취소
-              </button>
-              <button
-                type="button"
-                className={`${styles.dBtn} ${styles.dDanger}`}
-                onClick={logout}
-                disabled={logoutAction.isPending}
-              >
-                {logoutAction.isPending ? "로그아웃 중…" : "로그아웃"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <PartnerConfirmDialog
+          compact
+          title="로그아웃할까요?"
+          description="다시 이용하려면 로그인이 필요해요."
+          cancelLabel="취소"
+          confirmLabel={logoutAction.isPending ? "로그아웃 중…" : "로그아웃"}
+          confirmVariant="danger"
+          onCancel={() => setConfirm(false)}
+          onConfirm={logout}
+          confirmDisabled={logoutAction.isPending}
+        />
       )}
     </div>
   );

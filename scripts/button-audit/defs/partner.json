@@ -1,0 +1,16 @@
+{
+  "SIZES": {
+    "std": "flex items-center justify-center h-[52px] rounded-[15px] text-[15.5px] font-bold",
+    "md": "flex items-center justify-center h-12 rounded-[14px] text-[15px] font-bold",
+    "sm": "flex items-center justify-center h-[46px] rounded-[13px] text-[14.5px] font-bold",
+    "login": "flex items-center justify-center h-14 rounded-[15px] text-base font-bold shadow-[0_10px_20px_-8px_rgba(20,164,151,0.55)]"
+  },
+  "VARIANTS": {
+    "primary": "bg-blue text-white",
+    "secondary": "bg-bg text-t2",
+    "danger": "bg-red text-white",
+    "dangerTint": "bg-red-t text-red",
+    "ghost": "bg-white text-t2 border border-line"
+  },
+  "DISABLED": "disabled:opacity-70"
+}

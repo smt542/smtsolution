@@ -18,6 +18,7 @@ import {
 } from "@/lib/resident/onboardingClient";
 
 import { verifyClasses as styles } from "./verifyClasses";
+import { ResidentButton } from "@/app/(resident)/_components/ResidentButton";
 
 function highlightMatch(text: string, query: string): ReactNode {
   if (!query) return text;
@@ -147,14 +148,16 @@ export default function ResidentVerifyFlow() {
         }
         footer={
           <>
-            <button
+            <ResidentButton
+              variant="primary"
+              size="xl"
               id="rvOk"
               type="button"
-              className={`${styles.btn} ${styles.pri}`}
+              className="w-full"
               onClick={confirmHousehold}
             >
               네, 맞아요
-            </button>
+            </ResidentButton>
             <button
               id="rvNo"
               type="button"
@@ -397,15 +400,17 @@ export default function ResidentVerifyFlow() {
             <div className={styles.uhint}>
               숫자만 입력해 주세요. 예) 지하 1층 101호 → B101은 관리사무소 확인이 필요해요.
             </div>
-            <button
+            <ResidentButton
+              variant="primary"
+              size="lg"
               id="rvReq"
               type="button"
-              className={styles.sbtn}
+              className="mt-4 w-full flex-none disabled:cursor-not-allowed"
               disabled={!selectedBuilding || !unitValue}
               onClick={requestUnitClaim}
             >
               확인 요청하기
-            </button>
+            </ResidentButton>
           </div>
         )}
       </ResidentBottomSheet>

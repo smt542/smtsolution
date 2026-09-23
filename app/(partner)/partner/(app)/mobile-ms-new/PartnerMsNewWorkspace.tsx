@@ -29,6 +29,8 @@ import {
   won,
 } from "./_ms";
 import { msClasses as styles } from "./msClasses";
+import { PartnerButton } from "../../../_components/PartnerButton";
+import { PartnerConfirmDialog } from "../../../_components/PartnerConfirmDialog";
 
 type SectionKey = "basic" | "util" | "fee" | "etc" | "cleaning" | "settle" | "check";
 
@@ -239,9 +241,9 @@ export default function PartnerMsNewWorkspace({
         {header}
         <div className={styles.none}>정산 정보를 불러오지 못했어요</div>
         <PartnerBottomActionBar>
-          <button type="button" className={`${styles.btn} ${styles.btnSec}`} onClick={goBack}>
+          <PartnerButton variant="secondary" type="button" className="flex-1" onClick={goBack}>
             돌아가기
-          </button>
+          </PartnerButton>
         </PartnerBottomActionBar>
       </div>
     );
@@ -577,83 +579,56 @@ export default function PartnerMsNewWorkspace({
 
       <PartnerBottomActionBar>
         {isEdit ? (
-          <button type="button" className={`${styles.btn} ${styles.btnDel}`} onClick={() => setConfirmKind("delete")} disabled={isSettlementMutating}>
+          <PartnerButton variant="danger" type="button" className="flex-1" onClick={() => setConfirmKind("delete")} disabled={isSettlementMutating}>
             {deleteMutation.isPending ? "삭제 중…" : "삭제"}
-          </button>
+          </PartnerButton>
         ) : (
-          <button type="button" className={`${styles.btn} ${styles.btnSec}`} onClick={() => setConfirmKind("cancel")} disabled={isSettlementMutating}>
+          <PartnerButton variant="secondary" type="button" className="flex-1" onClick={() => setConfirmKind("cancel")} disabled={isSettlementMutating}>
             취소
-          </button>
+          </PartnerButton>
         )}
-        <button type="button" className={`${styles.btn} ${styles.btnPri}`} onClick={() => setConfirmKind("save")} disabled={isSettlementMutating}>
+        <PartnerButton variant="primary" type="button" className="flex-1" onClick={() => setConfirmKind("save")} disabled={isSettlementMutating}>
           {saveMutation.isPending ? "저장 중…" : "저장"}
-        </button>
+        </PartnerButton>
       </PartnerBottomActionBar>
 
-      {confirmKind ? (
-        <div
-          className={styles.scrim}
-          onClick={(e) => e.target === e.currentTarget && setConfirmKind(null)}
-        >
-          <div className={styles.dialog}>
-            {confirmKind === "save" && (
-              <>
-                <div className={styles.dTitle}>이사정산을 저장할까요?</div>
-                <div className={styles.dDesc}>입력한 값으로 정산 내역이 저장돼요.</div>
-                <div className={styles.dActions}>
-                  <button type="button" className={`${styles.dBtn} ${styles.dCancel}`} onClick={() => setConfirmKind(null)}>
-                    취소
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.dBtn} ${styles.dOk}`}
-                    onClick={() => {
-                      setConfirmKind(null);
-                      void doSave();
-                    }}
-                  >
-                    저장
-                  </button>
-                </div>
-              </>
-            )}
-            {confirmKind === "cancel" && (
-              <>
-                <div className={styles.dTitle}>작성을 취소할까요?</div>
-                <div className={styles.dDesc}>입력한 내용은 저장되지 않아요.</div>
-                <div className={styles.dActions}>
-                  <button type="button" className={`${styles.dBtn} ${styles.dCancel}`} onClick={() => setConfirmKind(null)}>
-                    계속 작성
-                  </button>
-                  <button type="button" className={`${styles.dBtn} ${styles.dDanger}`} onClick={goBack}>
-                    나가기
-                  </button>
-                </div>
-              </>
-            )}
-            {confirmKind === "delete" && (
-              <>
-                <div className={styles.dTitle}>이사정산을 삭제할까요?</div>
-                <div className={styles.dDesc}>삭제하면 이 정산 내역은 복구할 수 없어요.</div>
-                <div className={styles.dActions}>
-                  <button type="button" className={`${styles.dBtn} ${styles.dCancel}`} onClick={() => setConfirmKind(null)}>
-                    취소
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.dBtn} ${styles.dDanger}`}
-                    onClick={() => {
-                      setConfirmKind(null);
-                      void doDelete();
-                    }}
-                  >
-                    삭제
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+      {confirmKind === "save" ? (
+        <PartnerConfirmDialog
+          title="이사정산을 저장할까요?"
+          description="입력한 값으로 정산 내역이 저장돼요."
+          cancelLabel="취소"
+          confirmLabel="저장"
+          onCancel={() => setConfirmKind(null)}
+          onConfirm={() => {
+            setConfirmKind(null);
+            void doSave();
+          }}
+        />
+      ) : null}
+      {confirmKind === "cancel" ? (
+        <PartnerConfirmDialog
+          title="작성을 취소할까요?"
+          description="입력한 내용은 저장되지 않아요."
+          cancelLabel="계속 작성"
+          confirmLabel="나가기"
+          confirmVariant="danger"
+          onCancel={() => setConfirmKind(null)}
+          onConfirm={goBack}
+        />
+      ) : null}
+      {confirmKind === "delete" ? (
+        <PartnerConfirmDialog
+          title="이사정산을 삭제할까요?"
+          description="삭제하면 이 정산 내역은 복구할 수 없어요."
+          cancelLabel="취소"
+          confirmLabel="삭제"
+          confirmVariant="danger"
+          onCancel={() => setConfirmKind(null)}
+          onConfirm={() => {
+            setConfirmKind(null);
+            void doDelete();
+          }}
+        />
       ) : null}
 
       {toast ? <div className={styles.toast}>{toast}</div> : null}

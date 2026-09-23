@@ -22,6 +22,7 @@ import { PartnerInlineError } from "../../../_components/PartnerInlineError";
 import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
 import { AS_STATUS, combineDateTime, fmtDateTime, splitDateTime } from "../_as";
 import { asFormClasses as styles } from "../asFormClasses";
+import { PartnerButton } from "../../../_components/PartnerButton";
 
 export function MobileAsWorkspace({ complaintId }: { complaintId: number | null }) {
   const complaintQuery = usePartnerComplaintEditor(complaintId);
@@ -228,8 +229,8 @@ function MobileAsEditor({
         </PartnerBottomActionBar>
       ) : (
         <PartnerBottomActionBar>
-          <button type="button" className={`${styles.btn} ${styles.btnDel}`} onClick={() => setConfirmDel(true)} disabled={isComplaintMutating}>{deleteMutation.isPending ? "삭제 중…" : "삭제"}</button>
-          <button type="button" className={`${styles.btn} ${styles.btnPri}`} onClick={() => setConfirmSave(true)} disabled={isComplaintMutating}>{updateMutation.isPending ? "저장 중…" : "저장"}</button>
+          <PartnerButton variant="dangerTint" type="button" className="flex-[0_0_108px]" onClick={() => setConfirmDel(true)} disabled={isComplaintMutating}>{deleteMutation.isPending ? "삭제 중…" : "삭제"}</PartnerButton>
+          <PartnerButton variant="primary" type="button" className="flex-1" onClick={() => setConfirmSave(true)} disabled={isComplaintMutating}>{updateMutation.isPending ? "저장 중…" : "저장"}</PartnerButton>
         </PartnerBottomActionBar>
       )}
 

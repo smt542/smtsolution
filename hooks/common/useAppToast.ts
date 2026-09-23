@@ -1,6 +1,6 @@
 "use client";
 
-const DEFAULT_ERROR_MESSAGE = "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+const DEFAULT_ERROR_MESSAGE = "요청을 처리하지 못했어요. 잠시 후 다시 시도해 주세요";
 
 const TOAST_VISIBLE_MS = 1800;
 const TOAST_FADE_OUT_MS = 300;
@@ -78,11 +78,7 @@ function scheduleToastDismissal(id: AppToastId, record: ToastRecord) {
   );
 }
 
-function showToast(
-  message: string,
-  options?: AppToastOptions,
-  autoDismiss = true,
-): AppToastId {
+function showToast(message: string, options?: AppToastOptions): AppToastId {
   const id = options?.id ?? createToastId();
   if (typeof document === "undefined") return id;
 
@@ -93,7 +89,7 @@ function showToast(
     clearToastTimers(existing);
     existing.element.textContent = message;
     existing.element.classList.add("show");
-    if (autoDismiss) scheduleToastDismissal(id, existing);
+    scheduleToastDismissal(id, existing);
     return id;
   }
 
@@ -111,7 +107,7 @@ function showToast(
     record.animationFrameId = undefined;
     element.classList.add("show");
   });
-  if (autoDismiss) scheduleToastDismissal(id, record);
+  scheduleToastDismissal(id, record);
   return id;
 }
 
@@ -135,22 +131,21 @@ const showError: AppToastError = (
   return showToast(message, fallbackOrOptions);
 };
 
+// 모양은 정본 .erp-toast 하나뿐이고, 메서드는 문구 유형을 구분한다.
+// 문구는 해요체로 쓰고 끝에 마침표를 붙이지 않는다.
+//   success  완료: {대상}을 {동작}했어요
+//   warning  입력 누락: {항목}을 입력해/선택해 주세요
+//            대상 없음: {동작}할 {대상}이 없어요
+//            제한 안내: 유형은 최대 6개까지예요
+//   info     진행 중: ~하고 있어요
+//            상태 전환·기타: 전체 기간으로 조회했어요
+//   error    실패: ~하지 못했어요 / ~에 실패했어요
+// 입력 누락·대상 없음·제한 안내를 error로 띄우지 않는다. 유형별 스타일이 생기면 실패처럼 보인다.
 export interface AppToast {
   success: AppToastMessage;
   info: AppToastMessage;
   warning: AppToastMessage;
   error: AppToastError;
-  loading: (message: string) => AppToastId;
-  dismiss: (id?: AppToastId) => void;
-}
-
-function dismissToast(id: AppToastId) {
-  const record = activeToasts.get(id);
-  if (record) fadeOutToast(id, record);
-}
-
-function dismissAllToasts() {
-  for (const [id, record] of activeToasts) fadeOutToast(id, record);
 }
 
 export const appToast: AppToast = {
@@ -158,8 +153,6 @@ export const appToast: AppToast = {
   info: (message, options) => showToast(message, options),
   warning: (message, options) => showToast(message, options),
   error: showError,
-  loading: (message) => showToast(message, undefined, false),
-  dismiss: (id) => (id === undefined ? dismissAllToasts() : dismissToast(id)),
 };
 
 export function useAppToast() {

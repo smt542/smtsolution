@@ -5,18 +5,30 @@ interface BuildingPickerListProps {
   buildings: Building[];
   search: string;
   onSearch: (value: string) => void;
-  selectedId: number | null;
-  onSelect: (id: number) => void;
+  selectedIds: ReadonlySet<number>;
+  onToggle: (id: number) => void;
+  /** 정본 `.pm-all` — 검색과 무관하게 목록 전체를 선택/해제한다. */
+  onToggleAll: () => void;
 }
 
-/** 좌측 건물 선택 패널 — 코드·건물명·주소 검색 + 단일 선택 리스트. */
-export function BuildingPickerList({
-  buildings,
-  search,
-  onSearch,
-  selectedId,
-  onSelect,
-}: BuildingPickerListProps) {
+/** 정본 `.pm-ck` — 17px 체크박스(선택 시 청록 + 흰 체크). */
+function PickerCheck({ on }: { on: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={`relative h-[17px] w-[17px] flex-none rounded-[5px] border-[1.6px] ${
+        on ? "border-teal bg-teal" : "border-line bg-white"
+      }`}
+    >
+      {on && (
+        <span className="absolute left-[5px] top-[1.5px] h-[8px] w-[4px] rotate-45 border-solid border-white [border-width:0_2px_2px_0]" />
+      )}
+    </span>
+  );
+}
+
+/** 좌측 건물 선택 패널(정본 `.pm-left`) — 코드·건물명·주소 검색 + 다중 선택. */
+export function BuildingPickerList({ buildings, search, onSearch, selectedIds, onToggle, onToggleAll }: BuildingPickerListProps) {
   const keyword = search.trim().toLocaleLowerCase("ko-KR");
   const visible = keyword
     ? buildings.filter((building) =>
@@ -25,14 +37,17 @@ export function BuildingPickerList({
           .includes(keyword),
       )
     : buildings;
+  const selectedCount = buildings.filter((building) => selectedIds.has(building.id)).length;
+  const allSelected = buildings.length > 0 && selectedCount === buildings.length;
 
   return (
-    <div className="flex w-[340px] shrink-0 flex-col border-r border-line bg-[#fbfcfd]">
+    <div className="flex w-[340px] shrink-0 flex-col border-r border-line bg-[#fbfcfd] leading-[normal]">
       <div className="relative h-[69px] shrink-0 border-b border-line2">
-        <span aria-hidden className="absolute left-[28px] top-[26px] text-t4">
-          <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4">
-            <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M11 11l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        {/* 정본 `.pm-search svg` — 입력칸도 absolute라 z-index 없이는 입력칸 흰 배경에 가려진다. */}
+        <span aria-hidden className="pointer-events-none absolute left-[28px] top-[26px] z-[1] text-t3">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M20 20l-3-3" />
           </svg>
         </span>
         <input
@@ -44,25 +59,38 @@ export function BuildingPickerList({
           className="absolute left-[16px] top-[14px] h-[40px] w-[307px] rounded-[11px] border border-line bg-white pl-[34px] pr-[12px] text-[13.5px] font-semibold text-t1 placeholder:text-[#757575] focus:border-brand focus:outline-none"
         />
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-[8px]">
+      <button
+        type="button"
+        onClick={onToggleAll}
+        aria-pressed={allSelected}
+        className="group mb-[4px] flex shrink-0 items-center gap-[9px] border-b border-line2 px-[14px] py-[9px] text-left"
+      >
+        <PickerCheck on={allSelected} />
+        <b className={`text-[13.5px] font-bold ${allSelected ? "text-t1" : "text-t2 group-hover:text-t1"}`}>건물 전체</b>
+        <i className="ml-auto text-[12px] font-bold not-italic tabular-nums text-t3">
+          {selectedCount > 0 ? `${selectedCount}곳 선택` : ""}
+        </i>
+      </button>
+      <div role="group" aria-label="출력할 건물" className="flex min-h-0 flex-1 flex-col gap-[2px] overflow-y-auto p-[8px]">
         {visible.length === 0 ? (
-          <p className="p-6 text-center text-[12.5px] text-t3">검색 결과가 없습니다.</p>
+          <p className="px-[14px] py-[28px] text-center text-[13px] font-semibold text-t3">검색 결과가 없어요</p>
         ) : (
           visible.map((building) => {
-            const active = building.id === selectedId;
+            const active = selectedIds.has(building.id);
             return (
               <button
                 type="button"
                 key={building.id}
-                onClick={() => onSelect(building.id)}
+                onClick={() => onToggle(building.id)}
                 aria-pressed={active}
-                className={`flex w-full flex-col items-start rounded-[12px] border px-[14px] py-[12px] text-left transition duration-100 ${
+                className={`block w-full rounded-[12px] border px-[14px] py-[12px] text-left transition duration-100 ${
                   active ? "border-teal bg-teal-t" : "border-transparent hover:border-line hover:bg-white"
                 }`}
               >
                 <span className="flex items-center gap-[8px]">
+                  <PickerCheck on={active} />
                   <span
-                    className={`rounded-[6px] border bg-white px-[7px] py-px text-[11px] font-bold text-t3 ${
+                    className={`flex-none rounded-[6px] border bg-white px-[7px] py-px text-[11px] font-bold tabular-nums text-t3 ${
                       active ? "border-teal-t" : "border-line"
                     }`}
                   >
@@ -72,7 +100,9 @@ export function BuildingPickerList({
                     {building.name}
                   </span>
                 </span>
-                <span className="pt-[5px] text-[12px] leading-[16.8px] text-t3">{building.address ?? "-"}</span>
+                <span className="ml-[26px] mt-[5px] block text-[12px] font-semibold leading-[1.4] text-t3">
+                  {building.address ?? "-"}
+                </span>
               </button>
             );
           })

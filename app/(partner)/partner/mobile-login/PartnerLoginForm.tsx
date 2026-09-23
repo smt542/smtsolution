@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAsyncAction } from "@/hooks/common";
 
 import { partnerLoginClasses as styles } from "./loginClasses";
+import { PartnerButton } from "../../_components/PartnerButton";
 
 const AUTO_KEY = "erp_partner_login_auto";
 
@@ -144,9 +145,9 @@ export function PartnerLoginForm({ children }: { children: ReactNode }) {
       <div className={styles.spacer} />
 
       <div className={styles.foot}>
-        <button type="button" className={styles.submit} onClick={submit} disabled={loginAction.isPending}>
+        <PartnerButton variant="primary" size="login" type="button" className="disabled:cursor-default" onClick={submit} disabled={loginAction.isPending}>
           {loginAction.isPending ? "로그인 중…" : "로그인"}
-        </button>
+        </PartnerButton>
         {children}
       </div>
     </>

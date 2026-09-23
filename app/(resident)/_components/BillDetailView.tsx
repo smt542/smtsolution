@@ -9,6 +9,7 @@ import { formatWon } from "@/lib/format";
 
 import CopyButton from "./CopyButton";
 import { billDetailClasses as styles } from "./billDetailClasses";
+import { residentButtonClass } from "@/app/(resident)/_components/ResidentButton";
 
 type BillDetailViewProps =
   | { mode: "authed"; detail: ResidentBillDetail }
@@ -162,12 +163,12 @@ export default function BillDetailView(props: BillDetailViewProps) {
               <CopyButton
                 text={account}
                 label="계좌 복사"
-                className={styles.ab}
+                className={residentButtonClass({ size: "sm", variant: "primaryTint", className: "flex-1 disabled:cursor-default disabled:opacity-55" })}
               />
               <CopyButton
                 text={accountWithAmount}
                 label="계좌·금액 복사"
-                className={`${styles.ab} ${styles.pri}`}
+                className={residentButtonClass({ size: "sm", variant: "primary", className: "flex-1 disabled:cursor-default disabled:opacity-55" })}
               />
             </div>
           </div>

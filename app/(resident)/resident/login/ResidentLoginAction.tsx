@@ -8,6 +8,7 @@ import ResidentBottomSheet from "@/app/(resident)/_components/ResidentBottomShee
 import { kakaoStubLogin } from "@/lib/resident/onboardingClient";
 
 import { loginClasses as styles } from "./loginClasses";
+import { ResidentButton, residentButtonClass } from "@/app/(resident)/_components/ResidentButton";
 
 export default function ResidentLoginAction() {
   const router = useRouter();
@@ -25,14 +26,16 @@ export default function ResidentLoginAction() {
     <>
       <div className={styles.foot}>
         {realKakaoLoginEnabled ? (
-          <a className={styles.kakao} href="/api/resident/kakao/login">
+          <a className={residentButtonClass({ size: "xl", variant: "kakao", className: styles.kakao })} href="/api/resident/kakao/login">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M12 3.6c-4.86 0-8.8 3.02-8.8 6.75 0 2.4 1.62 4.51 4.06 5.72l-.98 3.6c-.9.33.25.6.53.43l4.32-2.84c.28.02.57.04.87.04 4.86 0 8.8-3.02 8.8-6.95S16.86 3.6 12 3.6z" />
             </svg>
             카카오톡으로 3초 만에 시작
           </a>
         ) : (
-          <button
+          <ResidentButton
+            variant="kakao"
+            size="xl"
             type="button"
             className={styles.kakao}
             onClick={() => setSheetOpen(true)}
@@ -41,7 +44,7 @@ export default function ResidentLoginAction() {
               <path d="M12 3.6c-4.86 0-8.8 3.02-8.8 6.75 0 2.4 1.62 4.51 4.06 5.72l-.98 3.6c-.9.33.25.6.53.43l4.32-2.84c.28.02.57.04.87.04 4.86 0 8.8-3.02 8.8-6.95S16.86 3.6 12 3.6z" />
             </svg>
             카카오톡으로 3초 만에 시작
-          </button>
+          </ResidentButton>
         )}
         <div className={styles.note}>
           <Link href="/resident/terms">이용약관</Link> ·{" "}
@@ -58,13 +61,14 @@ export default function ResidentLoginAction() {
         <div className={styles.sheetD}>
           카카오톡에 등록된 휴대폰 번호로 세대 정보를 자동으로 찾아드려요.
         </div>
-        <button
+        <ResidentButton
+          variant="primary"
           type="button"
-          className={styles.sheetBtn}
+          className="mt-5 w-full"
           onClick={continueWithMatchedIdentity}
         >
           계속하기
-        </button>
+        </ResidentButton>
       </ResidentBottomSheet>
     </>
   );

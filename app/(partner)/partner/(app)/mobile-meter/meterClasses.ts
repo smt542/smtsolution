@@ -28,6 +28,5 @@ export const meterClasses = {
   fld: "flex min-w-0 flex-col gap-1.5 [&>span]:text-xs [&>span]:font-semibold [&>span]:text-t3",
   fin: "h-[46px] w-full rounded-xl border border-line bg-white px-3 text-right text-[15px] font-semibold text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t",
   usage: "flex h-[46px] items-center justify-end rounded-xl bg-bg px-3 text-[15px] font-bold tabular-nums text-blue-d",
-  btn: "h-[52px] flex-1 rounded-[15px] border-0 bg-blue text-[15.5px] font-bold text-white disabled:opacity-70",
   none: "px-5 py-10 text-center text-sm font-semibold text-t3",
 } as const;
