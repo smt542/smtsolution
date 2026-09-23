@@ -1,21 +1,19 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { CloseIcon, PrinterIcon, UnitCardIcon } from "@/components/icons";
+import { CloseIcon, DocumentIcon, PrinterIcon } from "@/components/icons";
 import { Button, CustomDropdown } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
-import { useBillDocuments, useBillOrganizationName, useBillTargets } from "@/hooks/reactquery/bill";
-import { useTenantCardPrintData } from "@/hooks/reactquery/occupancies";
+import { useBillOrganizationName, useTenantOutputData } from "@/hooks/reactquery/bill";
 import { currentPeriod } from "@/lib/billing/period";
 import { PROGRAM_COMPANY_NAME } from "@/lib/bill/document";
 import { BuildingPickerList } from "./tenant-output/BuildingPickerList";
 import { ChargeStatementDocument } from "./tenant-output/ChargeStatementDocument";
 import { PreviewPane } from "./tenant-output/PreviewPane";
 import { TenantCardDocument } from "./tenant-output/TenantCardDocument";
-import { buildChargeStatement, paginate } from "./tenant-output/statement";
+import { buildOutputPages, outputHint, printSequence, type PrintScope } from "./tenant-output/outputPages";
 
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => ({ value: String(index + 1), label: `${index + 1}월` }));
-const UNITS_PER_PAGE = 14;
 
 // 정본 `.pm-dd` 드롭다운. 트리거는 hover 효과 없이 열렸을 때만 청록 테두리, 옵션은 hover 시 --bg·선택 시
 // --blue 글자+--blue-t 배경이고 체크표시가 없다. 공용 CustomDropdown 기본값은 여기서만 덮는다.
@@ -28,17 +26,8 @@ const PERIOD_DROPDOWN = [
   "[&_.uc-opt]:px-[11px] [&_.uc-opt]:py-[9px] [&_.uc-opt]:transition-none [&_.uc-opt_svg]:hidden [&_.uc-opt.on]:text-teal",
 ].join(" ");
 
-type PrintScope = "both" | "card" | "statement";
-
-/** 입주자카드 및 부과내역 출력 모달 — 건물 선택 → 좌우 미리보기 → 개별/일괄 인쇄. */
-export function TenantOutputModal({
-  onClose,
-  initialBuildingId,
-}: {
-  onClose: () => void;
-  /** 본 화면에서 이미 선택된 건물을 초기 선택값으로 사용(PRD §3.4). */
-  initialBuildingId?: number | null;
-}) {
+/** 입주자카드 및 부과내역 출력 모달(정본 building-list `#printModal`) — 건물 다중 선택 → 좌우 미리보기 → 개별/일괄 인쇄. */
+export function TenantOutputModal({ onClose }: { onClose: () => void }) {
   const [initYear, initMonth] = useMemo(() => {
     const [rawYear, rawMonth] = currentPeriod().split("-").map(Number);
     return [rawYear, rawMonth] as const;
@@ -51,7 +40,8 @@ export function TenantOutputModal({
   const [year, setYear] = useState(initYear);
   const [month, setMonth] = useState(initMonth);
   const [search, setSearch] = useState("");
-  const [selectedBuildingId, setSelectedBuildingId] = useState<number | null>(initialBuildingId ?? null);
+  // 정본 openModal: 선택 없이 연다(스펙 §2-2).
+  const [selectedIds, setSelectedIds] = useState<ReadonlySet<number>>(() => new Set<number>());
   const [cardPage, setCardPage] = useState(0);
   const [statementPage, setStatementPage] = useState(0);
   const [printScope, setPrintScope] = useState<PrintScope | null>(null);
@@ -63,20 +53,20 @@ export function TenantOutputModal({
   const { data: orgName } = useBillOrganizationName(orgId);
   const companyName = orgName ?? PROGRAM_COMPANY_NAME;
 
-  const selectedBuilding = buildings.find((building) => building.id === selectedBuildingId) ?? null;
+  // 표시·조회·인쇄 순서는 항상 건물 목록 순서다(정본 selBlds) — 클릭 순서가 아니다.
+  const selected = useMemo(() => buildings.filter((building) => selectedIds.has(building.id)), [buildings, selectedIds]);
+  const selectedIdList = useMemo(() => selected.map((building) => building.id), [selected]);
   const period = `${year}-${String(month).padStart(2, "0")}-01`;
+  const outputData = useTenantOutputData(selectedIdList, period);
+  const pages = buildOutputPages(selected, outputData);
 
-  const { data: tenants = [], isLoading: tenantsLoading } = useTenantCardPrintData(selectedBuildingId ?? 0);
-  const { data: targets = [] } = useBillTargets(selectedBuildingId, period);
-  const unitIds = useMemo(() => targets.map((target) => target.unitId), [targets]);
-  const { data: documents = [] } = useBillDocuments(selectedBuildingId, period, unitIds);
-  const statement = useMemo(() => buildChargeStatement(documents), [documents]);
-  const statementPages = useMemo(() => paginate(statement.rows, UNITS_PER_PAGE), [statement]);
-
-  const cardCount = tenants.length;
-  const statementCount = statementPages.length;
+  const cardCount = pages.cards.length;
+  const statementCount = pages.statements.length;
+  // 연·월이 바뀌어 쪽수가 줄면 마지막 쪽으로 당긴다(정본 renderDocs clamp).
   const cardIdx = Math.min(cardPage, Math.max(0, cardCount - 1));
   const statementIdx = Math.min(statementPage, Math.max(0, statementCount - 1));
+  const card = pages.cards[cardIdx];
+  const statement = pages.statements[statementIdx];
 
   useEffect(() => {
     if (!printScope) return;
@@ -100,20 +90,37 @@ export function TenantOutputModal({
     };
   }, [onClose]);
 
-  const selectBuilding = (id: number) => {
-    setSelectedBuildingId(id);
+  // 정본 syncSel: 선택이 바뀌면 두 미리보기를 1쪽으로 되돌린다.
+  const resetPages = () => {
     setCardPage(0);
     setStatementPage(0);
   };
+  const toggleBuilding = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    resetPages();
+  };
+  // 정본 pmAll: 목록 전체가 이미 선택돼 있으면 모두 해제, 아니면 전체 선택(검색으로 좁힌 목록과 무관).
+  const toggleAll = () => {
+    setSelectedIds((prev) =>
+      buildings.length > 0 && buildings.every((building) => prev.has(building.id))
+        ? new Set<number>()
+        : new Set(buildings.map((building) => building.id)),
+    );
+    resetPages();
+  };
 
-  const hasBuilding = !!selectedBuilding;
-  const canPrintCards = hasBuilding && cardCount > 0;
-  const canPrintStatement = hasBuilding && statementCount > 0;
-  const canPrintBoth = canPrintCards || canPrintStatement;
-
-  const footerText = hasBuilding
-    ? `${selectedBuilding.name} 선택됨 · 카드 ${cardCount}장 · 내역서 ${statementCount}장`
-    : "건물을 선택해 주세요";
+  const hasSelection = selected.length > 0;
+  const canPrintCards = pages.cardStatus === "ready" && cardCount > 0;
+  const canPrintStatement = pages.statementStatus === "ready" && statementCount > 0;
+  // 조회가 끝나지 않았거나 실패가 있으면 일부 건물이 빠진 채 인쇄될 수 있어 막는다.
+  const settled = pages.cardStatus === "ready" && pages.statementStatus === "ready";
+  const canPrintBoth = hasSelection && settled && (cardCount > 0 || statementCount > 0);
+  const printItems = printScope ? printSequence(printScope, pages) : [];
 
   return (
     <>
@@ -125,7 +132,7 @@ export function TenantOutputModal({
         onClick={onClose}
       >
         <div
-          className="flex h-[760px] max-h-[calc(100vh-40px)] w-[1120px] max-w-[calc(100vw-40px)] flex-col overflow-hidden rounded-[22px] bg-white shadow-[0px_40px_90px_-24px_rgba(0,0,0,0.5)]"
+          className="flex h-[min(760px,92vh)] w-[min(1120px,96vw)] flex-col overflow-hidden rounded-[22px] bg-white shadow-[0px_40px_90px_-24px_rgba(0,0,0,0.5)]"
           onClick={(event) => event.stopPropagation()}
         >
           <header className="flex shrink-0 items-center gap-[10px] border-b border-line px-[22px] py-[18px]">
@@ -148,8 +155,9 @@ export function TenantOutputModal({
               buildings={buildings}
               search={search}
               onSearch={setSearch}
-              selectedId={selectedBuildingId}
-              onSelect={selectBuilding}
+              selectedIds={selectedIds}
+              onToggle={toggleBuilding}
+              onToggleAll={toggleAll}
             />
 
             <div className="flex min-w-0 flex-1 flex-col bg-bg">
@@ -173,63 +181,66 @@ export function TenantOutputModal({
                 </div>
               </div>
 
-              {!hasBuilding ? (
-                <div className="flex flex-1 flex-col items-center justify-center gap-[6px] p-[18px] text-center">
-                  <UnitCardIcon className="h-[26px] w-[26px] text-t3" />
+              {!hasSelection ? (
+                <div className="flex flex-1 flex-col items-center justify-center gap-[6px] p-[18px] text-center leading-[normal]">
+                  <DocumentIcon strokeWidth={1.8} className="h-[26px] w-[26px] text-teal" />
                   <p className="text-[14px] font-semibold text-t2">왼쪽에서 건물을 선택해 주세요</p>
                   <p className="text-[12.5px] font-medium text-t3">입주자카드와 관리비부과내역서 미리보기가 좌우로 표시돼요</p>
                 </div>
               ) : (
                 <div className="grid min-h-0 flex-1 grid-cols-2 gap-[16px] p-[18px]">
                   <PreviewPane
-                    title="입주자카드"
+                    kind="card"
                     count={cardCount}
                     page={cardIdx + 1}
+                    buildingLabel={card ? `${card.building.code} · ${card.building.name}` : ""}
                     onPrev={() => setCardPage(Math.max(0, cardIdx - 1))}
                     onNext={() => setCardPage(Math.min(cardCount - 1, cardIdx + 1))}
                     actionLabel="카드만 인쇄"
                     onAction={() => setPrintScope("card")}
                     actionDisabled={!canPrintCards}
-                    loading={tenantsLoading}
+                    status={pages.cardStatus}
                     emptyMessage="등록된 세대가 없습니다"
                   >
-                    {cardCount > 0 && (
+                    {card && (
                       <TenantCardDocument
-                        building={selectedBuilding}
-                        tenant={tenants[cardIdx]}
+                        building={card.building}
+                        tenant={card.tenant}
                         companyName={companyName}
                         year={year}
                         month={month}
-                        pageIndex={cardIdx}
-                        pageCount={cardCount}
+                        pageIndex={card.pageIndex}
+                        pageCount={card.pageCount}
                       />
                     )}
                   </PreviewPane>
 
                   <PreviewPane
-                    title="관리비부과내역서"
+                    kind="statement"
                     count={statementCount}
                     page={statementIdx + 1}
-                    onPrev={() => setStatementPage((page) => Math.max(0, page - 1))}
-                    onNext={() => setStatementPage((page) => Math.min(statementCount - 1, page + 1))}
+                    buildingLabel={statement ? `${statement.building.code} · ${statement.building.name}` : ""}
+                    onPrev={() => setStatementPage(Math.max(0, statementIdx - 1))}
+                    onNext={() => setStatementPage(Math.min(statementCount - 1, statementIdx + 1))}
                     actionLabel="내역서만 인쇄"
                     onAction={() => setPrintScope("statement")}
                     actionDisabled={!canPrintStatement}
+                    status={pages.statementStatus}
                     emptyMessage="확정된 부과 내역이 없습니다"
                     emptyHint="관리비 부과 확정(P5) 후 표시됩니다"
                   >
-                    {statementCount > 0 && (
+                    {statement && (
                       <ChargeStatementDocument
-                        building={selectedBuilding}
+                        building={statement.building}
                         companyName={companyName}
                         year={year}
                         month={month}
                         feeNames={statement.feeNames}
-                        rows={statementPages[statementIdx]}
-                        pageIndex={statementIdx}
-                        pageCount={statementCount}
-                        totals={statementIdx === statementCount - 1 ? statement.totals : undefined}
-                        grandTotal={statementIdx === statementCount - 1 ? statement.grandTotal : undefined}
+                        rows={statement.rows}
+                        pageIndex={statement.pageIndex}
+                        pageCount={statement.pageCount}
+                        totals={statement.totals}
+                        grandTotal={statement.grandTotal}
                       />
                     )}
                   </PreviewPane>
@@ -239,13 +250,9 @@ export function TenantOutputModal({
           </div>
 
           <footer className="flex shrink-0 items-center gap-[10px] border-t border-line px-[22px] py-[14px]">
-            <span className="text-[12.5px] font-semibold text-t3">{footerText}</span>
+            <span className="text-[12.5px] font-semibold text-t3">{outputHint(selected, cardCount, statementCount)}</span>
             <div className="flex-1" />
-            <Button
-              variant="ghost"
-              type="button"
-              onClick={onClose}
-            >
+            <Button variant="ghost" type="button" onClick={onClose}>
               취소
             </Button>
             <Button
@@ -261,38 +268,37 @@ export function TenantOutputModal({
         </div>
       </div>
 
-      {hasBuilding && printScope && (
-        <div className="hidden print:block">
+      {printItems.length > 0 && (
+        <div data-print-sheet className="hidden print:block">
           <style>{"@media print { @page { size: A4; margin: 0; } }"}</style>
-          {(printScope === "both" || printScope === "card") &&
-            tenants.map((tenant, index) => (
+          {printItems.map((item) =>
+            item.kind === "card" ? (
               <TenantCardDocument
-                key={`card-${tenant.unitId}`}
-                building={selectedBuilding}
-                tenant={tenant}
+                key={item.page.key}
+                building={item.page.building}
+                tenant={item.page.tenant}
                 companyName={companyName}
                 year={year}
                 month={month}
-                pageIndex={index}
-                pageCount={cardCount}
+                pageIndex={item.page.pageIndex}
+                pageCount={item.page.pageCount}
               />
-            ))}
-          {(printScope === "both" || printScope === "statement") &&
-            statementPages.map((rows, index) => (
+            ) : (
               <ChargeStatementDocument
-                key={`statement-${index}`}
-                building={selectedBuilding}
+                key={item.page.key}
+                building={item.page.building}
                 companyName={companyName}
                 year={year}
                 month={month}
-                feeNames={statement.feeNames}
-                rows={rows}
-                pageIndex={index}
-                pageCount={statementCount}
-                totals={index === statementCount - 1 ? statement.totals : undefined}
-                grandTotal={index === statementCount - 1 ? statement.grandTotal : undefined}
+                feeNames={item.page.feeNames}
+                rows={item.page.rows}
+                pageIndex={item.page.pageIndex}
+                pageCount={item.page.pageCount}
+                totals={item.page.totals}
+                grandTotal={item.page.grandTotal}
               />
-            ))}
+            ),
+          )}
         </div>
       )}
     </>
