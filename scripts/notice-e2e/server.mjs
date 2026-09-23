@@ -43,17 +43,17 @@ try {
   const anonChunks = []; chunkTracker(ap, anonChunks);
 
   // valid token
-  await ap.goto(`${ORIGIN}/r/notice/${VALID_TOKEN}`, { waitUntil: 'networkidle' });
+  await ap.goto(`${ORIGIN}/share/notice/${VALID_TOKEN}`, { waitUntil: 'networkidle' });
   await ap.waitForTimeout(1200);
   publicImageText = norm(await ap.locator('body').innerText());
   const pubImg = await signedImgInfo(ap);
   pubObjPath = pubImg?.objectPath ?? null;
-  check('S4c: public /r/notice/{token} renders body image via service_role signed URL (loads, naturalWidth>0)', pubImg && pubImg.naturalWidth > 0, pubImg);
+  check('S4c: public /share/notice/{token} renders body image via service_role signed URL (loads, naturalWidth>0)', pubImg && pubImg.naturalWidth > 0, pubImg);
   check('S8: public read route pulls NO tiptap/prosemirror editor chunk', anonChunks.length === 0, { chunks: anonChunks });
   await ap.screenshot({ path: path.join(OUT, 's4c-public-valid.png') });
 
   // expired token
-  await ap.goto(`${ORIGIN}/r/notice/${EXPIRED_TOKEN}`, { waitUntil: 'networkidle' });
+  await ap.goto(`${ORIGIN}/share/notice/${EXPIRED_TOKEN}`, { waitUntil: 'networkidle' });
   await ap.waitForTimeout(500);
   const expiredText = norm(await ap.locator('body').innerText());
   const expiredImg = await signedImgInfo(ap);
@@ -61,7 +61,7 @@ try {
   await ap.screenshot({ path: path.join(OUT, 's6-expired.png') });
 
   // invalid token
-  await ap.goto(`${ORIGIN}/r/notice/${INVALID_TOKEN}`, { waitUntil: 'networkidle' });
+  await ap.goto(`${ORIGIN}/share/notice/${INVALID_TOKEN}`, { waitUntil: 'networkidle' });
   const invalidText = norm(await ap.locator('body').innerText());
   check('S6: invalid token → "유효하지 않은 링크" (no data leak)', /유효하지 않은 링크/.test(invalidText), { invalidText: invalidText.slice(0, 80) });
   await anon.close();

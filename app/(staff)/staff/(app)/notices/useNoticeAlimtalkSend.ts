@@ -143,7 +143,7 @@ export function useNoticeAlimtalkSend(
     idempotencyRef.current = key;
     try {
       const token = await mintShareToken.mutateAsync(notice.id);
-      const detailLink = `${residentOrigin()}/r/notice/${token}`;
+      const detailLink = `${residentOrigin()}/share/notice/${token}`;
       const consentByOccupancy = new Map(
         (consentQuery.data ?? []).map((consent) => [consent.occupancyId, consent.alimtalkOptIn]),
       );

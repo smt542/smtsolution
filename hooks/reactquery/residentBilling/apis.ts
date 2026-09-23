@@ -239,7 +239,7 @@ export async function residentBillDetail(
 }
 
 /**
- * 서명 무로그인 상세 경로 `/rb/{building}/{unit}/{YYYY-MM}?s={sig}`.
+ * 서명 무로그인 상세 경로 `/share/bill/{building}/{unit}/{YYYY-MM}?s={sig}`.
  * period는 "YYYY-MM" 또는 "YYYY-MM-01" 모두 허용(앞 7자만 사용).
  * sig는 base64url(URL-safe)이라 별도 인코딩 불필요, unit_no만 인코딩한다.
  */
@@ -257,7 +257,7 @@ export function signedBillPath(link: {
     typeof link.issuedDay === "number" && Number.isFinite(link.issuedDay)
       ? `&d=${link.issuedDay}`
       : "";
-  return `/rb/${link.buildingId}/${encodeURIComponent(link.unitNo)}/${link.period.slice(0, 7)}?s=${link.sig}${issuedDayQuery}`;
+  return `/share/bill/${link.buildingId}/${encodeURIComponent(link.unitNo)}/${link.period.slice(0, 7)}?s=${link.sig}${issuedDayQuery}`;
 }
 
 /** 세입자 본인 세대의 무로그인 서명 링크(building_id·unit_no·sig)를 자동 발급한다. */
