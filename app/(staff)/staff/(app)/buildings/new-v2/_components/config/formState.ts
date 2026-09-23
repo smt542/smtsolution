@@ -167,7 +167,7 @@ function mergeUtilities(
 }
 
 /** JSONB의 업체별 보충 필드와 정규화 업체를 유형/순서에 맞춰 병합한다. */
-function mergeVendors(
+export function mergeVendors(
   saved: BuildingVendorDetails["vendors"] | null | undefined,
   normalized: BuildingVendor[],
 ): Record<string, RegisterVendorEntry> {
