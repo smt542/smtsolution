@@ -1,10 +1,8 @@
 "use client";
 
 import {
-  useCallback,
   useEffect,
   useId,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -12,18 +10,15 @@ import {
 
 import { COMPLAINT_STATUS_LABEL } from "@/app/(staff)/staff/(app)/receipts/constants";
 import { Spinner } from "@/components/common";
+import { DpDatePicker } from "@/components/common/DpDatePicker";
 import { MaskedPhone } from "@/components/common/MaskedPhone";
 import { useAccounts } from "@/hooks/reactquery/accounts";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useComplaints } from "@/hooks/reactquery/complaints";
 
 import { hhmm, ymd } from "./constants";
-const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const PRINT_SHEET_ID = "aspPrintSheet";
 const PRINT_STYLE_ID = "aspPrintCss";
-
-const DP_CELL_BASE =
-  "h-8 flex items-center justify-center text-[13px] rounded-lg";
 
 const pad = (value: number) => String(value).padStart(2, "0");
 
@@ -38,11 +33,6 @@ function dotted(value: string) {
   return value.replaceAll("-", ".");
 }
 
-function dateParts(value: string) {
-  const [year, month] = value.split("-").map(Number);
-  return { year, month: month - 1 };
-}
-
 interface DatePickerProps {
   ariaLabel: string;
   value: string;
@@ -50,85 +40,15 @@ interface DatePickerProps {
 }
 
 function DatePicker({ ariaLabel, value, onChange }: DatePickerProps) {
-  const initial = dateParts(value);
-  const [open, setOpen] = useState(false);
-  const [viewYear, setViewYear] = useState(initial.year);
-  const [viewMonth, setViewMonth] = useState(initial.month);
-  const [position, setPosition] = useState({ left: 8, top: 8 });
-  const rootRef = useRef<HTMLDivElement>(null);
-  const controlRef = useRef<HTMLButtonElement>(null);
-  const popupRef = useRef<HTMLDivElement>(null);
-
-  const placePopup = useCallback(() => {
-    const control = controlRef.current;
-    const popup = popupRef.current;
-    if (!control || !popup) return;
-
-    const rect = control.getBoundingClientRect();
-    const height = popup.offsetHeight || 300;
-    const width = popup.offsetWidth || 262;
-    setPosition({
-      left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)),
-      top:
-        rect.bottom + height + 8 > window.innerHeight
-          ? Math.max(8, rect.top - height - 6)
-          : rect.bottom + 6,
-    });
-  }, []);
-
-  useLayoutEffect(() => {
-    if (open) placePopup();
-  }, [open, placePopup, viewMonth, viewYear]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const closeOutside = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", closeOutside);
-    window.addEventListener("resize", placePopup);
-    window.addEventListener("scroll", placePopup, true);
-    return () => {
-      document.removeEventListener("mousedown", closeOutside);
-      window.removeEventListener("resize", placePopup);
-      window.removeEventListener("scroll", placePopup, true);
-    };
-  }, [open, placePopup]);
-
-  const toggle = () => {
-    if (!open) {
-      const selected = dateParts(value);
-      setViewYear(selected.year);
-      setViewMonth(selected.month);
-    }
-    setOpen((current) => !current);
-  };
-
-  const moveMonth = (offset: number) => {
-    const next = new Date(viewYear, viewMonth + offset, 1);
-    setViewYear(next.getFullYear());
-    setViewMonth(next.getMonth());
-  };
-
-  const firstWeekday = new Date(viewYear, viewMonth, 1).getDay();
-  const dayCount = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const cells = [
-    ...Array.from({ length: firstWeekday }, () => null),
-    ...Array.from({ length: dayCount }, (_, index) => index + 1),
-  ];
-
   return (
-    <div ref={rootRef} className="relative">
-      <button
-        ref={controlRef}
-        type="button"
-        className={`flex items-center gap-[7px] h-[34px] px-[11px] border rounded-[9px] bg-white cursor-pointer text-[13px] font-semibold text-t1 whitespace-nowrap ${open ? "border-blue shadow-[0_0_0_3px_var(--color-blue-t)]" : "border-line"}`}
-        aria-label={ariaLabel}
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        onClick={toggle}
-      >
+    <DpDatePicker
+      ariaLabel={ariaLabel}
+      value={value}
+      onChange={onChange}
+      placeholder="날짜 선택"
+      triggerClassName="flex items-center gap-[7px] h-[34px] px-[11px] border border-line rounded-[9px] bg-white cursor-pointer text-[13px] font-semibold text-t1 whitespace-nowrap"
+      triggerOpenClassName="border-blue shadow-[0_0_0_3px_var(--color-blue-t)]"
+      startAdornment={(
         <svg
           viewBox="0 0 24 24"
           fill="none"
@@ -141,78 +61,8 @@ function DatePicker({ ariaLabel, value, onChange }: DatePickerProps) {
           <rect x="3" y="4.5" width="18" height="16" rx="2.5" />
           <path d="M3 9h18M8 3v3M16 3v3" />
         </svg>
-        <span>{value ? dotted(value) : "날짜 선택"}</span>
-      </button>
-      <div
-        ref={popupRef}
-        className={`${open ? "block" : "hidden"} fixed z-[520] bg-white border border-line rounded-[14px] shadow-[0_16px_40px_-12px_rgba(23,31,40,0.28)] p-[14px] w-[262px]`}
-        role="dialog"
-        aria-label={`${ariaLabel} 달력`}
-        style={position}
-      >
-        <div className="flex items-center justify-between mb-[10px]">
-          <button
-            type="button"
-            className="w-[30px] h-[30px] rounded-lg flex items-center justify-center cursor-pointer text-t2 text-[17px] select-none hover:bg-bg"
-            aria-label="이전 달"
-            onClick={() => moveMonth(-1)}
-          >
-            ‹
-          </button>
-          <div className="text-[14px] font-extrabold">
-            {viewYear}.{pad(viewMonth + 1)}
-          </div>
-          <button
-            type="button"
-            className="w-[30px] h-[30px] rounded-lg flex items-center justify-center cursor-pointer text-t2 text-[17px] select-none hover:bg-bg"
-            aria-label="다음 달"
-            onClick={() => moveMonth(1)}
-          >
-            ›
-          </button>
-        </div>
-        <div className="grid grid-cols-7 mb-1">
-          {WEEKDAYS.map((weekday) => (
-            <span
-              key={weekday}
-              className="text-center text-[11px] font-bold text-t4 py-1"
-            >
-              {weekday}
-            </span>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-[2px]">
-          {cells.map((day, index) => {
-            if (day === null) {
-              return (
-                <div
-                  key={`empty-${index}`}
-                  className={`${DP_CELL_BASE} font-semibold`}
-                  aria-hidden="true"
-                />
-              );
-            }
-            const dateValue = `${viewYear}-${pad(viewMonth + 1)}-${pad(day)}`;
-            const selected = value === dateValue;
-            return (
-              <button
-                key={dateValue}
-                type="button"
-                className={`${DP_CELL_BASE} cursor-pointer ${selected ? "bg-blue text-white font-bold" : "text-t1 font-semibold hover:bg-blue-t2"}`}
-                aria-label={`${viewYear}년 ${viewMonth + 1}월 ${day}일`}
-                aria-pressed={selected}
-                onClick={() => {
-                  onChange(dateValue);
-                  setOpen(false);
-                }}
-              >
-                {day}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
+      )}
+    />
   );
 }
 

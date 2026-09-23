@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Button, Input, Spinner } from "@/components/common";
+import { Button, Spinner } from "@/components/common";
+import { DateInput } from "@/components/common/DateInput";
 import {
   useBillingPeriod,
   useSaveBillingPeriod,
@@ -76,20 +77,18 @@ export function BillingPeriodBar({
           <span role="alert" className="text-sm font-semibold text-red">부과기준일을 불러오지 못했습니다.</span>
         ) : editing ? (
           <div className="flex flex-1 flex-wrap items-center gap-2">
-            <Input
-              aria-label="부과 시작일"
-              type="date"
+            <DateInput
+              ariaLabel="부과 시작일"
               value={chargeStartDate}
-              onChange={(event) => setChargeStartDate(event.target.value)}
-              className="h-9 w-auto"
+              onChange={(value) => setChargeStartDate(value)}
+              className="h-9 w-[150px]"
             />
             <span className="text-sm text-t3">~</span>
-            <Input
-              aria-label="부과 종료일"
-              type="date"
+            <DateInput
+              ariaLabel="부과 종료일"
               value={chargeEndDate}
-              onChange={(event) => setChargeEndDate(event.target.value)}
-              className="h-9 w-auto"
+              onChange={(value) => setChargeEndDate(value)}
+              className="h-9 w-[150px]"
             />
             <Button
               type="button"

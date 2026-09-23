@@ -2,6 +2,10 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { DpDatePicker } from "@/components/common/DpDatePicker";
+import { DpTimePicker } from "@/components/common/DpTimePicker";
+import { joinDateTimeLocal, splitDateTimeLocal } from "@/components/common/DateInput";
+import { CalendarIcon, ClockIcon } from "@/components/icons";
 import type { MessageTemplate } from "@/hooks/reactquery/messageTemplates";
 import type { MessageRecipient, SendMode } from "@/lib/messaging/preset";
 import { MessagingWorkspacePreview } from "./MessagingWorkspacePreview";
@@ -31,6 +35,8 @@ interface MessagingWorkspaceViewProps {
 }
 
 const selectClass = "h-[40px] min-w-0 flex-1 appearance-none rounded-[11px] border border-line bg-white px-[13px] text-[13.5px] font-semibold text-t1 outline-none disabled:bg-bg disabled:text-t4";
+const SCHEDULED_PICKER_TRIGGER_CLASS_NAME =
+  "h-[36px] rounded-[9px] border border-line bg-white px-[11px] text-[12px] text-t1 outline-none focus:border-teal flex items-center gap-[6px] text-left cursor-pointer";
 
 export function MessagingWorkspaceView({
   mode,
@@ -58,6 +64,7 @@ export function MessagingWorkspaceView({
   const [showRecipients, setShowRecipients] = useState(false);
   const byteLength = new TextEncoder().encode(body).length;
   const messageType = byteLength > 90 ? "LMS" : "SMS";
+  const { date: scheduledDate, time: scheduledTime } = splitDateTimeLocal(scheduledAt);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -148,13 +155,26 @@ export function MessagingWorkspaceView({
             예약 전송
           </label>
           {sendTiming === "scheduled" && (
-            <input
-              type="datetime-local"
-              aria-label="예약 발송 일시"
-              value={scheduledAt}
-              onChange={(event) => onScheduledAtChange(event.target.value)}
-              className="ml-[14px] h-[36px] rounded-[9px] border border-line px-[11px] text-[12px] text-t1 outline-none focus:border-teal"
-            />
+            <div className="ml-[14px] flex items-center gap-[6px]">
+              <DpDatePicker
+                ariaLabel="예약 발송 날짜"
+                value={scheduledDate}
+                onChange={(value) => onScheduledAtChange(joinDateTimeLocal(value, scheduledTime))}
+                placeholder="날짜 선택"
+                triggerClassName={`${SCHEDULED_PICKER_TRIGGER_CLASS_NAME} w-[118px]`}
+                triggerOpenClassName="border-teal"
+                endAdornment={<CalendarIcon className="ml-auto size-[14px] shrink-0 text-t3" aria-hidden="true" />}
+              />
+              <DpTimePicker
+                ariaLabel="예약 발송 시간"
+                value={scheduledTime}
+                onChange={(value) => onScheduledAtChange(joinDateTimeLocal(scheduledDate, value))}
+                placeholder="시간 선택"
+                triggerClassName={`${SCHEDULED_PICKER_TRIGGER_CLASS_NAME} w-[104px]`}
+                triggerOpenClassName="border-teal"
+                endAdornment={<ClockIcon className="ml-auto size-[14px] shrink-0 text-t3" aria-hidden="true" />}
+              />
+            </div>
           )}
         </div>
 

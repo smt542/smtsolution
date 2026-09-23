@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { type ReactNode, useMemo, useState } from "react";
 
 import { applyMask, phoneMask, PHONE_INPUT_ATTRS } from "@/components/common";
+import { DpDatePicker } from "@/components/common/DpDatePicker";
+import { CalendarIcon } from "@/components/icons";
 import {
   useDeletePartnerSettlement,
   useSavePartnerSettlement,
@@ -258,11 +260,15 @@ export default function PartnerMsNewWorkspace({
         <Section title="기본" folded={fold.basic} onToggle={() => setFold((f) => ({ ...f, basic: !f.basic }))}>
           <div className={styles.row}>
             <label className={styles.rowLabel}>퇴실일자</label>
-            <input
-              type="date"
-              className={styles.control}
+            <DpDatePicker
               value={state.moveOutDate}
-              onChange={(e) => patch({ moveOutDate: e.target.value })}
+              onChange={(value) => patch({ moveOutDate: value })}
+              ariaLabel="퇴실일자"
+              placeholder="날짜 선택"
+              className={styles.pickerRoot}
+              triggerClassName={styles.picker}
+              triggerOpenClassName={styles.pickerOpen}
+              endAdornment={<CalendarIcon className="ml-auto size-4 shrink-0 text-t3" aria-hidden="true" />}
             />
           </div>
           <div className={styles.row}>
@@ -304,11 +310,15 @@ export default function PartnerMsNewWorkspace({
                 </div>
                 <div className={`${styles.fld} ${styles.fldWide}`}>
                   <span className={styles.fldLabel}>입금일</span>
-                  <input
-                    type="date"
-                    className={styles.control}
+                  <DpDatePicker
                     value={u.payDate}
-                    onChange={(e) => patchUtil(i, { payDate: e.target.value })}
+                    onChange={(value) => patchUtil(i, { payDate: value })}
+                    ariaLabel={`${UTILITY_LABEL[u.k]} 입금일`}
+                    placeholder="날짜 선택"
+                    className={styles.pickerRoot}
+                    triggerClassName={styles.picker}
+                    triggerOpenClassName={styles.pickerOpen}
+                    endAdornment={<CalendarIcon className="ml-auto size-4 shrink-0 text-t3" aria-hidden="true" />}
                   />
                 </div>
               </div>
@@ -437,11 +447,15 @@ export default function PartnerMsNewWorkspace({
           </div>
           <div className={styles.row}>
             <label className={styles.rowLabel}>청소완료일</label>
-            <input
-              type="date"
-              className={styles.control}
+            <DpDatePicker
               value={state.clnDone}
-              onChange={(e) => patch({ clnDone: e.target.value })}
+              onChange={(value) => patch({ clnDone: value })}
+              ariaLabel="청소완료일"
+              placeholder="날짜 선택"
+              className={styles.pickerRoot}
+              triggerClassName={styles.picker}
+              triggerOpenClassName={styles.pickerOpen}
+              endAdornment={<CalendarIcon className="ml-auto size-4 shrink-0 text-t3" aria-hidden="true" />}
             />
           </div>
           <div className={styles.row}>
@@ -476,11 +490,15 @@ export default function PartnerMsNewWorkspace({
           </div>
           <div className={styles.row}>
             <label className={styles.rowLabel}>최종 수납일</label>
-            <input
-              type="date"
-              className={styles.control}
+            <DpDatePicker
               value={state.lastPaidDate}
-              onChange={(e) => patch({ lastPaidDate: e.target.value })}
+              onChange={(value) => patch({ lastPaidDate: value })}
+              ariaLabel="최종 수납일"
+              placeholder="날짜 선택"
+              className={styles.pickerRoot}
+              triggerClassName={styles.picker}
+              triggerOpenClassName={styles.pickerOpen}
+              endAdornment={<CalendarIcon className="ml-auto size-4 shrink-0 text-t3" aria-hidden="true" />}
             />
           </div>
           {settleAccountText ? (

@@ -43,7 +43,13 @@ export function MessagingModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={preset?.channel === "alimtalk" ? "카톡 고지서 발송" : "문자 발송"}>
+    // 작성기가 화면보다 길어(약 1,200px) 위아래가 잘리고 발송 버튼에 닿지 못해 패널 안에서 스크롤한다
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={preset?.channel === "alimtalk" ? "카톡 고지서 발송" : "문자 발송"}
+      className="max-w-md max-h-[calc(100dvh-32px)] overflow-y-auto"
+    >
       <MessagingComposer
         preset={preset}
         onSent={onSent}

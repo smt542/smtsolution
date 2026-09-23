@@ -10,7 +10,10 @@ import {
   type PartnerAsCategory,
   type PartnerComplaintDetail,
 } from "@/hooks/reactquery/complaints";
+import { DpDatePicker } from "@/components/common/DpDatePicker";
+import { DpTimePicker } from "@/components/common/DpTimePicker";
 import { MaskedPhone } from "@/components/common/MaskedPhone";
+import { CalendarIcon, ClockIcon } from "@/components/icons";
 
 import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
 import { PartnerConfirmDialog } from "../../../_components/PartnerConfirmDialog";
@@ -185,10 +188,30 @@ function MobileAsEditor({
               </select>
             </PartnerFormFieldRow>
             <PartnerFormFieldRow label={<>시행일자{!ro && <b className={styles.req}>*</b>}</>}>
-              <input type="date" className={styles.control} value={date} onChange={(e) => setDate(e.target.value)} disabled={ro} />
+              <DpDatePicker
+                value={date}
+                onChange={setDate}
+                ariaLabel="시행일자"
+                placeholder="날짜 선택"
+                disabled={ro}
+                className={styles.pickerRoot}
+                triggerClassName={styles.picker}
+                triggerOpenClassName={styles.pickerOpen}
+                endAdornment={<CalendarIcon className="ml-auto size-4 shrink-0 text-t3" aria-hidden="true" />}
+              />
             </PartnerFormFieldRow>
             <PartnerFormFieldRow label="시간">
-              <input type="time" className={styles.control} value={time} onChange={(e) => setTime(e.target.value)} disabled={ro} />
+              <DpTimePicker
+                value={time}
+                onChange={setTime}
+                ariaLabel="시간"
+                placeholder="시간 선택"
+                disabled={ro}
+                className={styles.pickerRoot}
+                triggerClassName={styles.picker}
+                triggerOpenClassName={styles.pickerOpen}
+                endAdornment={<ClockIcon className="ml-auto size-4 shrink-0 text-t3" aria-hidden="true" />}
+              />
             </PartnerFormFieldRow>
             <PartnerFormFieldRow label="처리결과 내용" column>
               <textarea className={styles.textarea} value={result} onChange={(e) => setResult(e.target.value)} placeholder="처리한 내용을 입력해 주세요" disabled={ro} />

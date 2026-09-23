@@ -1,11 +1,16 @@
 import { useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, Modal } from "@/components/common";
+import { DpMonthPicker } from "@/components/common/DpMonthPicker";
+import { CalendarIcon } from "@/components/icons";
 import {
   useClearFixedUsage,
   useSetFixedUsage,
   type UtilityType,
 } from "@/hooks/reactquery/utilities";
+
+const FIXED_USAGE_MONTH_TRIGGER_CLASS_NAME =
+  "h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm font-semibold text-t1 focus:border-blue focus:outline-none flex items-center gap-2 text-left cursor-pointer outline-none";
 
 interface FixedUsageModalProps {
   open: boolean;
@@ -99,12 +104,15 @@ export function FixedUsageModal({
         {utility === "gas" && (
           <label className="block">
             <span className="mb-1.5 block text-xs font-bold text-t2">적용 시작월</span>
-            <input
-              aria-label="적용 시작월"
-              type="month"
+            <DpMonthPicker
+              ariaLabel="적용 시작월"
+              placeholder="월 선택"
               value={fixedUsageFrom}
-              onChange={(event) => setFixedUsageFrom(event.target.value)}
-              className="h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm font-semibold text-t1 focus:border-blue focus:outline-none"
+              onChange={setFixedUsageFrom}
+              className="w-full"
+              triggerClassName={FIXED_USAGE_MONTH_TRIGGER_CLASS_NAME}
+              triggerOpenClassName="border-blue"
+              endAdornment={<CalendarIcon className="ml-auto size-4 shrink-0 text-t3" aria-hidden="true" />}
             />
           </label>
         )}

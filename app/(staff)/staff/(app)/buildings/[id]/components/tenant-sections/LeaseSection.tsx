@@ -2,6 +2,7 @@
 "use client";
 import React from "react";
 import { Input, Checkbox } from "@/components/common";
+import { DateInput } from "@/components/common/DateInput";
 
 export interface TenantLeaseValue { deposit: number | null; monthlyRent: number | null; startDate: string; endDate: string; expiryAlert: boolean; }
 
@@ -15,9 +16,9 @@ export function LeaseSection({ value, onChange }: { value: TenantLeaseValue; onC
         <label className="flex flex-col gap-1"><span className="text-sm text-t2">월세</span>
           <Input aria-label="월세" type="number" min={0} value={value.monthlyRent ?? ""} onChange={(e) => onChange({ monthlyRent: e.target.value ? Number(e.target.value) : null })} /></label>
         <label className="flex flex-col gap-1"><span className="text-sm text-t2">계약 시작일</span>
-          <Input aria-label="계약 시작일" type="date" value={value.startDate} onChange={(e) => onChange({ startDate: e.target.value })} /></label>
+          <DateInput ariaLabel="계약 시작일" value={value.startDate} onChange={(nextValue) => onChange({ startDate: nextValue })} /></label>
         <label className="flex flex-col gap-1"><span className="text-sm text-t2">계약 종료일</span>
-          <Input aria-label="계약 종료일" type="date" value={value.endDate} onChange={(e) => onChange({ endDate: e.target.value })} /></label>
+          <DateInput ariaLabel="계약 종료일" value={value.endDate} onChange={(nextValue) => onChange({ endDate: nextValue })} /></label>
         <Checkbox label="계약 만료 알림" checked={value.expiryAlert} onChange={(e) => onChange({ expiryAlert: e.target.checked })} />
       </div>
     </section>
