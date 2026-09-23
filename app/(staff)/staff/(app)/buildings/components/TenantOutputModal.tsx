@@ -1,16 +1,20 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { CloseIcon, DocumentIcon, PrinterIcon } from "@/components/icons";
 import { Button, CustomDropdown } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
-import { useBuildings } from "@/hooks/reactquery/buildings";
-import { useBillOrganizationName, useTenantOutputData } from "@/hooks/reactquery/bill";
+import { useBillOrganizationName } from "@/hooks/reactquery/bill";
+import { useBuildings, useStaffOptions } from "@/hooks/reactquery/buildings";
+import { useOrgContact } from "@/hooks/reactquery/org/useOrgContact";
+import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
+import { useTenantOutputData } from "@/hooks/reactquery/tenantOutput";
 import { currentPeriod } from "@/lib/billing/period";
-import { PROGRAM_COMPANY_NAME } from "@/lib/bill/document";
 import { BuildingPickerList } from "./tenant-output/BuildingPickerList";
-import { ChargeStatementDocument } from "./tenant-output/ChargeStatementDocument";
+import { ChargeStatementSheet } from "./tenant-output/ChargeStatementSheet";
+import type { CardOrgInfo } from "./tenant-output/cardSheet";
 import { PreviewPane } from "./tenant-output/PreviewPane";
-import { TenantCardDocument } from "./tenant-output/TenantCardDocument";
+import { TenantCardSheet } from "./tenant-output/TenantCardSheet";
 import { buildOutputPages, outputHint, printSequence, type PrintScope } from "./tenant-output/outputPages";
 
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => ({ value: String(index + 1), label: `${index + 1}월` }));
@@ -26,6 +30,11 @@ const PERIOD_DROPDOWN = [
   "[&_.uc-opt]:px-[11px] [&_.uc-opt]:py-[9px] [&_.uc-opt]:transition-none [&_.uc-opt_svg]:hidden [&_.uc-opt.on]:text-teal",
 ].join(" ");
 
+// 정본 doPrint: A4 세로 여백 11mm, 인쇄 시트만 남기고 나머지는 숨긴다(시트는 body 직속 포털 — D11).
+// html·body 규칙은 마지막 쪽 빈자리에 앱 배경이 찍히는 것과 모달 스크롤 잠금(overflow:hidden)을 막는다.
+const PRINT_CSS =
+  "@media print { @page { size: A4 portrait; margin: 11mm; } html, body { background: #fff !important; height: auto !important; overflow: visible !important; } body > *:not([data-print-sheet]) { display: none !important; } }";
+
 /** 입주자카드 및 부과내역 출력 모달(정본 building-list `#printModal`) — 건물 다중 선택 → 좌우 미리보기 → 개별/일괄 인쇄. */
 export function TenantOutputModal({ onClose }: { onClose: () => void }) {
   const [initYear, initMonth] = useMemo(() => {
@@ -40,7 +49,7 @@ export function TenantOutputModal({ onClose }: { onClose: () => void }) {
   const [year, setYear] = useState(initYear);
   const [month, setMonth] = useState(initMonth);
   const [search, setSearch] = useState("");
-  // 정본 openModal: 선택 없이 연다(스펙 §2-2).
+  // 정본 openModal: 선택 없이 연다.
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<number>>(() => new Set<number>());
   const [cardPage, setCardPage] = useState(0);
   const [statementPage, setStatementPage] = useState(0);
@@ -51,14 +60,24 @@ export function TenantOutputModal({ onClose }: { onClose: () => void }) {
   const { data: allBuildings = [] } = useBuildings();
   const buildings = useMemo(() => allBuildings.filter((building) => building.orgId === orgId), [allBuildings, orgId]);
   const { data: orgName } = useBillOrganizationName(orgId);
-  const companyName = orgName ?? PROGRAM_COMPANY_NAME;
+  const { data: setup } = useSetupConfig(orgId);
+  const { data: orgContact } = useOrgContact();
+  const { data: accounts = [] } = useStaffOptions();
+  // 스펙 §4.1: 관리업체 = 설정 회사명 → 조직명, 전화번호 = 회사 대표전화 → 조직 전화.
+  const org = useMemo<CardOrgInfo>(
+    () => ({
+      companyName: setup?.companyName?.trim() || orgName || "",
+      companyPhone: setup?.companyPhone?.trim() || orgContact?.phone || "",
+      cleaningManagerName: (userId) => (userId ? (accounts.find((account) => account.userId === userId)?.fullName ?? "") : ""),
+    }),
+    [setup, orgName, orgContact, accounts],
+  );
 
-  // 표시·조회·인쇄 순서는 항상 건물 목록 순서다(정본 selBlds) — 클릭 순서가 아니다.
+  // 표시·조회·인쇄 순서는 항상 건물 목록 순서다(정본 selBlds).
   const selected = useMemo(() => buildings.filter((building) => selectedIds.has(building.id)), [buildings, selectedIds]);
-  const selectedIdList = useMemo(() => selected.map((building) => building.id), [selected]);
   const period = `${year}-${String(month).padStart(2, "0")}-01`;
-  const outputData = useTenantOutputData(selectedIdList, period);
-  const pages = buildOutputPages(selected, outputData);
+  const outputData = useTenantOutputData(selected, period);
+  const pages = buildOutputPages(selected, outputData, org);
 
   const cardCount = pages.cards.length;
   const statementCount = pages.statements.length;
@@ -202,17 +221,7 @@ export function TenantOutputModal({ onClose }: { onClose: () => void }) {
                     status={pages.cardStatus}
                     emptyMessage="등록된 세대가 없습니다"
                   >
-                    {card && (
-                      <TenantCardDocument
-                        building={card.building}
-                        tenant={card.tenant}
-                        companyName={companyName}
-                        year={year}
-                        month={month}
-                        pageIndex={card.pageIndex}
-                        pageCount={card.pageCount}
-                      />
-                    )}
+                    {card && <TenantCardSheet page={card} year={year} month={month} />}
                   </PreviewPane>
 
                   <PreviewPane
@@ -229,20 +238,7 @@ export function TenantOutputModal({ onClose }: { onClose: () => void }) {
                     emptyMessage="확정된 부과 내역이 없습니다"
                     emptyHint="관리비 부과 확정(P5) 후 표시됩니다"
                   >
-                    {statement && (
-                      <ChargeStatementDocument
-                        building={statement.building}
-                        companyName={companyName}
-                        year={year}
-                        month={month}
-                        feeNames={statement.feeNames}
-                        rows={statement.rows}
-                        pageIndex={statement.pageIndex}
-                        pageCount={statement.pageCount}
-                        totals={statement.totals}
-                        grandTotal={statement.grandTotal}
-                      />
-                    )}
+                    {statement && <ChargeStatementSheet page={statement} year={year} month={month} />}
                   </PreviewPane>
                 </div>
               )}
@@ -268,39 +264,22 @@ export function TenantOutputModal({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
-      {printItems.length > 0 && (
-        <div data-print-sheet className="hidden print:block">
-          <style>{"@media print { @page { size: A4; margin: 0; } }"}</style>
-          {printItems.map((item) =>
-            item.kind === "card" ? (
-              <TenantCardDocument
-                key={item.page.key}
-                building={item.page.building}
-                tenant={item.page.tenant}
-                companyName={companyName}
-                year={year}
-                month={month}
-                pageIndex={item.page.pageIndex}
-                pageCount={item.page.pageCount}
-              />
-            ) : (
-              <ChargeStatementDocument
-                key={item.page.key}
-                building={item.page.building}
-                companyName={companyName}
-                year={year}
-                month={month}
-                feeNames={item.page.feeNames}
-                rows={item.page.rows}
-                pageIndex={item.page.pageIndex}
-                pageCount={item.page.pageCount}
-                totals={item.page.totals}
-                grandTotal={item.page.grandTotal}
-              />
-            ),
-          )}
-        </div>
-      )}
+      {printItems.length > 0 &&
+        createPortal(
+          <div data-print-sheet className="hidden bg-white text-black print:block">
+            <style>{PRINT_CSS}</style>
+            {printItems.map((item) => (
+              <section key={item.page.key} className="break-after-page last:break-after-auto">
+                {item.kind === "card" ? (
+                  <TenantCardSheet page={item.page} year={year} month={month} />
+                ) : (
+                  <ChargeStatementSheet page={item.page} year={year} month={month} />
+                )}
+              </section>
+            ))}
+          </div>,
+          document.body,
+        )}
     </>
   );
 }
