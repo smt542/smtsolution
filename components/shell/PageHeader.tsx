@@ -44,7 +44,8 @@ export function PageHeader({
       {breadcrumb ? (
         <div className="flex flex-col">
           <p className="text-[12px] font-semibold leading-[normal] text-t3">{breadcrumb}</p>
-          <h1 className="text-[19px] font-extrabold tracking-[-0.38px] text-t1 whitespace-nowrap">
+          {/* 정본 .hf-h1 은 line-height 무선언(normal) — 기본 1.5면 2단 스택이 5.5px 커져 crumb 가 위로 뜬다. */}
+          <h1 className="text-[19px] font-extrabold leading-[normal] tracking-[-0.38px] text-t1 whitespace-nowrap">
             {title}
           </h1>
         </div>

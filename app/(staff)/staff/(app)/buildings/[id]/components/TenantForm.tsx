@@ -8,6 +8,7 @@ import { Button, EmptyState, Spinner } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { occupancyBasicSchema } from "@/components/forms/schema/occupancy";
 import { PageHeader } from "@/components/shell/PageHeader";
+import { displayUnitNo } from "@/lib/bill/document";
 import { useCustomerNumbers, type CustomerNumberKind } from "@/hooks/reactquery/buildingCustomerNumbers";
 import { useBuildingFull } from "@/hooks/reactquery/buildings";
 import {
@@ -480,7 +481,7 @@ export function TenantForm({
   );
 
   // 정본 hf-h1 "그린빌라 101호" — 입력 중인 값이 아니라 저장된 호실로 만든다.
-  const pageTitle = [building?.name, unitId && full?.unit.unitNo ? `${full.unit.unitNo}호` : null]
+  const pageTitle = [building?.name, unitId ? displayUnitNo(full?.unit.unitNo) : null]
     .filter(Boolean)
     .join(" ");
 

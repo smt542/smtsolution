@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { EmptyState, Spinner } from "@/components/common";
 import { MaskedPhone } from "@/components/common/MaskedPhone";
 import type { TenantListRow } from "@/hooks/reactquery/occupancies";
+import { displayUnitNo } from "@/lib/bill/document";
 import { TENANT_COLUMNS } from "./tenantColumns";
 import { TenantEmptyState } from "./TenantEmptyState";
 
@@ -94,7 +95,7 @@ export function TenantOccupancyCard({
                 <tr
                   key={t.unitId}
                   tabIndex={0}
-                  aria-label={`${t.unitNo}호 ${t.isVacant ? "공실" : (t.tenantName?.trim() || "입주자 미등록")} 상세 보기`}
+                  aria-label={`${displayUnitNo(t.unitNo)} ${t.isVacant ? "공실" : (t.tenantName?.trim() || "입주자 미등록")} 상세 보기`}
                   onClick={() => router.push(`${base}/${t.unitId}`)}
                   onKeyDown={(event) => {
                     if (event.key !== "Enter" && event.key !== " ") return;
