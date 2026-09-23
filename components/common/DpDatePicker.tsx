@@ -18,6 +18,8 @@ interface DpDatePickerProps {
   minDate?: string;
   maxDate?: string;
   ariaLabel?: string;
+  /** 폼 검증 에러 문구 연결용(트리거 버튼의 aria-describedby). button 역할은 aria-invalid를 지원하지 않는다 */
+  ariaDescribedBy?: string;
   triggerClassName?: string;
   triggerOpenClassName?: string;
   /** 컨트롤 왼쪽(값 앞)에 놓는 장식. 원본 `.dp-ctl`의 선행 달력 아이콘에 대응한다 */
@@ -42,6 +44,7 @@ export function DpDatePicker({
   minDate,
   maxDate,
   ariaLabel,
+  ariaDescribedBy,
   triggerClassName,
   triggerOpenClassName,
   startAdornment,
@@ -88,15 +91,15 @@ export function DpDatePicker({
     };
   }, [open]);
 
-  // 바깥 클릭 닫기
+  // 바깥 클릭 닫기. iOS Safari는 버튼이 아닌 곳을 탭하면 mousedown을 보내지 않아 pointerdown을 쓴다
   useEffect(() => {
     if (!open) return;
-    const onDown = (event: MouseEvent) => {
+    const onDown = (event: PointerEvent) => {
       const target = event.target as Node;
       if (!ctlRef.current?.contains(target) && !popRef.current?.contains(target)) setOpen(false);
     };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
   }, [open]);
 
   const selected = value ? value.split("-").map(Number) : null; // [y, m(1-based), d]
@@ -143,6 +146,7 @@ export function DpDatePicker({
         id={id}
         type="button"
         aria-label={ariaLabel}
+        aria-describedby={ariaDescribedBy}
         aria-expanded={open}
         aria-haspopup="dialog"
         disabled={disabled}

@@ -74,12 +74,13 @@ export function DpMonthPicker({
 
   useEffect(() => {
     if (!open) return;
-    const onDown = (event: MouseEvent) => {
+    // 바깥 탭 닫기 — iOS Safari 대응으로 mousedown 대신 pointerdown(DpDatePicker와 동일)
+    const onDown = (event: PointerEvent) => {
       const target = event.target as Node;
       if (!ctlRef.current?.contains(target) && !popRef.current?.contains(target)) setOpen(false);
     };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
   }, [open]);
 
   const openPicker = () => {

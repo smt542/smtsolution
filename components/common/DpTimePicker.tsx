@@ -125,7 +125,8 @@ export function DpTimePicker({
   useEffect(() => {
     if (!open) return;
 
-    const closeOnOutsideClick = (event: MouseEvent) => {
+    // 바깥 탭 닫기 — iOS Safari 대응으로 mousedown 대신 pointerdown(DpDatePicker와 동일)
+    const closeOnOutsideClick = (event: PointerEvent) => {
       const target = event.target as Node;
       if (!ctlRef.current?.contains(target) && !popRef.current?.contains(target)) setOpen(false);
     };
@@ -136,10 +137,10 @@ export function DpTimePicker({
       }
     };
 
-    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("pointerdown", closeOnOutsideClick);
     document.addEventListener("keydown", closeOnEscape);
     return () => {
-      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, [open]);
