@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
+import { SegmentedControl } from "@/components/common/SegmentedControl";
 import { CloseIcon, PrinterIcon } from "@/components/icons";
 import type { Building } from "@/hooks/reactquery/buildings";
 import { useReceiptStatementData } from "@/hooks/reactquery/receipts";
@@ -8,6 +10,7 @@ import type { UtilityType } from "@/hooks/reactquery/utilities";
 import { formatNumber } from "@/lib/format";
 import { AsyncContentState } from "../AsyncContentState";
 import { shiftMonth } from "../monthly/buildMonthlyReport";
+import { ReportTable3, type ReportColumn, type ReportLine } from "../report-table/ReportTable3";
 import {
   buildUnitStatementReport,
   type UnitStatementReportModel,
@@ -21,103 +24,77 @@ const UTILITY_OPTIONS: Array<{ type: UtilityType; label: string }> = [
   { type: "gas", label: "가스 표시" },
 ];
 
-const FIXED_WIDTHS = [140, 115, 110, 80, 80];
-const FEE_WIDTH = 103;
-// Figma 명세서가 사용하는 고정 열 앵커. 열 박스는 인쇄 폭을 유지하고 텍스트만 시안 위치에 정렬한다.
-const HEADER_CONTENT_OFFSETS = [-15, -20, -41, -48, -37, -25, -33, -22, -20, -13, -5, 7];
-const DATA_CONTENT_OFFSETS = [6, -26, -39, -49, -42, -27, -30, -22, -19, -13, -5, 7];
 const pad = (value: number) => String(value).padStart(2, "0");
 const toPeriod = (month: string) => `${month}-01`;
 const textValue = (value: number | null) => (value === null ? "" : formatNumber(value));
 
-function periodsEndingAt(month: string) {
-  return Array.from({ length: 5 }, (_, index) => toPeriod(shiftMonth(month, index - 4)));
-}
+// 정본 openUnitStmt: 선택한 달부터 거꾸로 12개월(`for(let k=0;k<12;k++)`).
+const STATEMENT_MONTHS = 12;
 
-function StackCell({
-  width,
-  lines,
-  align = "right",
-  header = false,
-  contentOffset = 0,
-}: {
-  width: number;
-  lines: string[];
-  align?: "left" | "center" | "right";
-  header?: boolean;
-  contentOffset?: number;
-}) {
-  const alignment = align === "left" ? "text-left" : align === "center" ? "text-center" : "text-right";
-  return (
-    <div
-      style={{ width }}
-      className={`flex h-[73px] shrink-0 flex-col justify-center px-[10px] ${alignment} ${header ? "text-[11px] font-medium text-t1" : "text-[12px] font-medium tabular-nums text-t1"}`}
-    >
-      {lines.map((line, index) => (
-        <span
-          key={index}
-          style={{ transform: `translateX(${contentOffset}px)` }}
-          className="block min-h-[17px] truncate leading-[17px]"
-          title={line}
-        >
-          {line || " "}
-        </span>
-      ))}
-    </div>
+function periodsEndingAt(month: string) {
+  return Array.from({ length: STATEMENT_MONTHS }, (_, index) =>
+    toPeriod(shiftMonth(month, index - (STATEMENT_MONTHS - 1))),
   );
 }
 
-function rowCells(row: UnitStatementRow) {
+function reportLines(lines: string[]): ReportLine[] {
+  return lines.map((text) => ({ text }));
+}
+
+function rowCells(row: UnitStatementRow): ReportLine[][] {
   return [
-    [row.periodLabel, row.paymentDateLabel],
-    [textValue(row.charged), textValue(row.lateFee), textValue(row.paid)],
-    row.utilityAmounts.map(textValue),
-    row.meterReadings.map(textValue),
-    [textValue(row.unitPrice)],
-    ...row.feeValues.map((values) => values.map(textValue)),
+    reportLines([row.periodLabel, "", row.paymentDateLabel]),
+    reportLines([textValue(row.charged), textValue(row.lateFee), textValue(row.paid)]),
+    reportLines(row.utilityAmounts.map(textValue)),
+    reportLines(row.meterReadings.map(textValue)),
+    reportLines([textValue(row.unitPrice)]),
+    ...row.feeValues.map((values) => reportLines(values.map(textValue))),
   ];
 }
 
-function StatementTable({ model }: { model: UnitStatementReportModel }) {
-  const headers = [
-    ["년 월", "수납일"],
-    ["당월계", "연체료", "수납액"],
-    ["전기금액", "수도금액", "가스금액"],
-    ["금월", "전월", "량"],
-    ["단가"],
-    ...model.feeColumns.map((column) => column.labels),
+const footerCellClass =
+  "sticky bottom-0 border-t-[1.5px] border-line bg-[#F7F9FA] px-[16px] py-[9px] align-middle text-[13.5px] font-normal text-red";
+
+// 정본 `#usFoot`의 `.us-tot` 빨강 합계를 표 안 한 행으로 유지한다.
+function StatementFooter({ model, columnCount }: { model: UnitStatementReportModel; columnCount: number }) {
+  return (
+    <tr>
+      <td className={`${footerCellClass} text-center`}>미납액</td>
+      <td className={`${footerCellClass} num text-right`}>{formatNumber(model.totals.unpaid)}</td>
+      <td className={`${footerCellClass} text-center`}>연체료</td>
+      <td className={`${footerCellClass} num text-right`}>{formatNumber(model.totals.lateFee)}</td>
+      <td className={`${footerCellClass} text-center`}>미납합계</td>
+      <td className={`${footerCellClass} num text-right`}>{formatNumber(model.totals.total)}</td>
+      <td colSpan={columnCount - 6} className={footerCellClass} />
+    </tr>
+  );
+}
+
+function StatementTable({ model, showFooter = true }: { model: UnitStatementReportModel; showFooter?: boolean }) {
+  // 정본 `.hf-tbl.ac-tbl.us-tbl`의 호실 명세서 열 폭과 머리 3줄을 유지한다.
+  const columns: ReportColumn[] = [
+    { key: "period", minWidth: 84, align: "left", headerAlign: "center", header: ["년 월", "", "수납일"] },
+    { key: "monthly", minWidth: 80, align: "right", headerAlign: "right", header: ["당월계", "연체료", "수납액"] },
+    { key: "utilities", minWidth: 84, align: "right", headerAlign: "right", header: ["전기금액", "수도금액", "가스금액"] },
+    { key: "meter", minWidth: 66, align: "right", headerAlign: "right", header: ["금월", "전월", "량"] },
+    { key: "unit-price", minWidth: 64, align: "right", headerAlign: "right", header: ["단가", "", ""] },
+    ...model.feeColumns.map((column): ReportColumn => ({
+      key: column.key,
+      minWidth: 96,
+      align: "right",
+      headerAlign: "right",
+      header: [column.labels[0] ?? "", column.labels[1] ?? "", column.labels[2] ?? ""],
+    })),
   ];
-  const widths = [...FIXED_WIDTHS, ...model.feeColumns.map(() => FEE_WIDTH)];
-  const totalWidth = Math.max(1240, widths.reduce((sum, width) => sum + width, 0));
+  const rows = model.rows.map((row) => ({ key: row.key, cells: rowCells(row) }));
 
   return (
-    <div className="min-w-full" style={{ width: totalWidth }}>
-      <div className="sticky top-0 z-10 flex border-b border-line bg-[#f7f9fa]">
-        {headers.map((lines, index) => (
-          <StackCell
-            key={index}
-            width={widths[index]}
-            lines={lines}
-            align="center"
-            header
-            contentOffset={HEADER_CONTENT_OFFSETS[index] ?? 0}
-          />
-        ))}
-      </div>
-      {model.rows.map((row) => (
-        <div key={row.key} className="flex border-b border-line2">
-          {rowCells(row).map((lines, index) => (
-            <StackCell
-              key={index}
-              width={widths[index]}
-              lines={lines}
-              align={index === 0 ? "left" : "center"}
-              contentOffset={DATA_CONTENT_OFFSETS[index] ?? 0}
-            />
-          ))}
-        </div>
-      ))}
-    </div>
+    <ReportTable3
+      columns={columns}
+      rows={rows}
+      lineWeight="normal"
+      footer={showFooter ? <StatementFooter model={model} columnCount={columns.length} /> : undefined}
+    />
   );
 }
 
@@ -131,14 +108,16 @@ function ToggleCheckbox({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-[6px] text-[12px] font-bold text-t2">
+    <label className={`flex cursor-pointer items-center gap-[6px] text-[12px] font-semibold ${checked ? "text-t1" : "text-t3"}`}>
       <input
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="peer sr-only"
+        className="sr-only"
       />
-      <span className="flex h-[17px] w-[17px] items-center justify-center rounded-[6px] border border-line bg-surface text-[11px] text-transparent peer-checked:border-teal peer-checked:bg-teal peer-checked:text-white">
+      <span
+        className={`flex h-[17px] w-[17px] items-center justify-center rounded-[5px] border text-[11px] ${checked ? "border-teal bg-teal text-white" : "border-line bg-surface text-transparent"}`}
+      >
         ✓
       </span>
       {label}
@@ -204,12 +183,19 @@ export function UnitStatementModal({
 
   if (!open) return null;
 
-  const years = Array.from({ length: 11 }, (_, index) => initialYear - 5 + index);
   const isStatementInitialLoading = query.isLoading;
   const isStatementRefreshing = query.isFetching && !query.isLoading;
   const isStatementBusy = isStatementInitialLoading || isStatementRefreshing;
   const hasData = model.rows.length > 0;
   const resolvedUnitLabel = model.unitLabel === "선택 호실" ? unitLabel : model.unitLabel;
+  // 정본 제목은 호수와 '호' 사이를 띄운다(`[ 광원타운 101 호 ]`).
+  const titleUnitLabel = resolvedUnitLabel.replace(/\s*호$/, " 호");
+  const years = Array.from({ length: 3 }, (_, index) => initialYear - index);
+  const yearOptions = years.map((value) => ({ value: String(value), label: `${value}년` }));
+  const monthOptions = Array.from({ length: 12 }, (_, index) => {
+    const value = index + 1;
+    return { value: String(value), label: `${value}월` };
+  });
 
   return (
     <>
@@ -222,7 +208,7 @@ export function UnitStatementModal({
           role="dialog"
           aria-modal="true"
           aria-labelledby="unit-statement-title"
-          className="flex h-[720px] max-h-[calc(100vh-48px)] w-[1240px] max-w-[calc(100vw-48px)] flex-col overflow-hidden rounded-[20px] bg-surface shadow-pop"
+          className="flex h-[720px] max-h-[calc(100vh-48px)] w-[1240px] max-w-[calc(100vw-48px)] flex-col overflow-hidden rounded-[20px] bg-surface leading-[normal] shadow-pop"
           onClick={(event) => event.stopPropagation()}
         >
           <header className="flex h-[61px] shrink-0 items-center border-b border-line px-[20px]">
@@ -232,57 +218,62 @@ export function UnitStatementModal({
               type="button"
               aria-label="닫기"
               onClick={onClose}
-              className="flex h-[26px] w-[26px] items-center justify-center rounded-[8px] border border-line text-t3 hover:bg-bg"
+              className="flex h-[26px] w-[26px] items-center justify-center rounded-[8px] border border-line bg-surface text-t3 transition-[border-color,background] duration-[120ms] hover:border-[#C9D0D8] hover:bg-[#F7F9FA] hover:text-t2"
             >
               <CloseIcon className="h-[14px] w-[14px]" />
             </button>
           </header>
 
-          <div className="flex h-[59px] shrink-0 items-center gap-[8px] border-b border-line px-[16px]">
-            <select
-              aria-label="명세서 연도"
-              value={year}
-              onChange={(event) => setYear(Number(event.target.value))}
-              className="h-[32px] rounded-[9px] border border-line bg-surface px-[11px] text-[13px] font-bold text-t1 outline-none focus:border-teal"
-            >
-              {years.map((value) => <option key={value} value={value}>{value}년</option>)}
-            </select>
-            <select
-              aria-label="명세서 월"
-              value={month}
-              onChange={(event) => setMonth(Number(event.target.value))}
-              className="h-[32px] rounded-[9px] border border-line bg-surface px-[11px] text-[13px] font-bold text-t1 outline-none focus:border-teal"
-            >
-              {Array.from({ length: 12 }, (_, index) => index + 1).map((value) => (
-                <option key={value} value={value}>{value}월</option>
-              ))}
-            </select>
-            <div className="flex rounded-[10px] bg-bg p-[2px] text-[12px] font-bold">
-              {(["all", "unpaid"] as const).map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setScope(value)}
-                  className={`h-[28px] rounded-[8px] px-[13px] ${scope === value ? "bg-surface text-t1 shadow-sm" : "text-t4"}`}
-                >
-                  {value === "all" ? "전체" : "미납만"}
-                </button>
+          <div className="flex shrink-0 items-center gap-[8px] border-b border-line bg-surface px-[16px] py-[13px]">
+            {/* 정본 `.auto-bar`의 compact `.uc-dd` 필터 규격을 사용한다. */}
+            <CustomDropdown
+              ariaLabel="명세서 연도"
+              value={String(year)}
+              options={yearOptions}
+              onChange={(value) => setYear(Number(value))}
+              size="compact"
+              position="fixed"
+              menuMinWidth={100}
+            />
+            <CustomDropdown
+              ariaLabel="명세서 월"
+              value={String(month)}
+              options={monthOptions}
+              onChange={(value) => setMonth(Number(value))}
+              size="compact"
+              position="fixed"
+              menuMinWidth={100}
+            />
+            <SegmentedControl
+              options={[
+                { value: "all", label: "전체" },
+                { value: "unpaid", label: "미납만" },
+              ]}
+              value={scope}
+              onChange={(value) => {
+                if (value === "all" || value === "unpaid") setScope(value);
+              }}
+              size="sm"
+            />
+            <div className="ml-[4px] flex items-center gap-[10px]">
+              {UTILITY_OPTIONS.map(({ type, label }) => (
+                <ToggleCheckbox
+                  key={type}
+                  checked={utilitySelection[type]}
+                  label={label}
+                  onChange={(checked) =>
+                    setUtilitySelection((current) => ({ ...current, [type]: checked }))
+                  }
+                />
               ))}
             </div>
-            {UTILITY_OPTIONS.map(({ type, label }) => (
-              <ToggleCheckbox
-                key={type}
-                checked={utilitySelection[type]}
-                label={label}
-                onChange={(checked) =>
-                  setUtilitySelection((current) => ({ ...current, [type]: checked }))
-                }
-              />
-            ))}
           </div>
 
-          <div className="flex h-[59px] shrink-0 items-center justify-center border-b border-line">
-            <p className="text-[15px] font-bold text-t1">[ {building.name} {resolvedUnitLabel} ]</p>
+          {/* 정본 `.ac-head{padding:15px 16px 13px}` + `.ac-title{margin-bottom:10px}` — KPI 줄이 없어도 제목 아래 10px을 남긴다. */}
+          <div className="shrink-0 border-b border-line bg-surface px-[16px] pb-[13px] pt-[15px]">
+            <p className="mb-[10px] text-center text-[15px] font-bold tracking-[-0.02em] text-t1">
+              [ {building.name} {titleUnitLabel} ]
+            </p>
           </div>
 
           <AsyncContentState
@@ -298,11 +289,6 @@ export function UnitStatementModal({
             <StatementTable model={model} />
           </AsyncContentState>
 
-          <div className="flex h-[36px] shrink-0 items-center gap-[34px] border-t border-line bg-[#f7f9fa] px-[38px] text-[13px] font-medium text-red tabular-nums">
-            <span>미납액</span><strong>{formatNumber(model.totals.unpaid)}</strong>
-            <span>연체료</span><strong>{formatNumber(model.totals.lateFee)}</strong>
-            <span>미납합계</span><strong>{formatNumber(model.totals.total)}</strong>
-          </div>
           <footer className="flex h-[69px] shrink-0 items-center justify-end border-t border-line px-[20px]">
             <button
               type="button"
@@ -320,7 +306,7 @@ export function UnitStatementModal({
       {hasData && (
         <article className="hidden print:block" data-testid="unit-statement-print-root">
           <h1 className="mb-3 text-center text-xl font-bold">[ {building.name} {resolvedUnitLabel} ]</h1>
-          <StatementTable model={model} />
+          <StatementTable model={model} showFooter={false} />
         </article>
       )}
     </>

@@ -116,7 +116,7 @@ export function VillaOverdueModal({
         onClick={onClose}
       >
         <div
-          className="flex h-[700px] max-h-[calc(100vh-48px)] w-[1180px] max-w-[calc(100vw-48px)] flex-col overflow-hidden rounded-[20px] bg-surface shadow-pop"
+          className="flex h-[700px] max-h-[calc(100vh-48px)] w-[1180px] max-w-[calc(100vw-48px)] flex-col overflow-hidden rounded-[20px] bg-surface leading-[normal] shadow-pop"
           onClick={(event) => event.stopPropagation()}
         >
           {/* 헤더 */}
@@ -132,7 +132,7 @@ export function VillaOverdueModal({
               type="button"
               aria-label="닫기"
               onClick={onClose}
-              className="flex h-[26px] w-[26px] items-center justify-center rounded-[8px] border border-line text-t2 hover:bg-bg"
+              className="flex h-[26px] w-[26px] items-center justify-center rounded-[8px] border border-line bg-surface text-t3 transition-[border-color,background] duration-[120ms] hover:border-[#C9D0D8] hover:bg-[#F7F9FA] hover:text-t2"
             >
               <CloseIcon />
             </button>

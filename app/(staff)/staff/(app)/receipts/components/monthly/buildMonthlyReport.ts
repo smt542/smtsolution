@@ -5,7 +5,6 @@ import {
   type MonthlyReportModel,
   type MonthlyReportRow,
   type MonthlySummary,
-  FEE_COLUMN_WIDTH,
   formatCollectionRate,
   formatNumber,
   METRIC_COLUMNS,
@@ -142,16 +141,18 @@ function aggregate(
   return { months, feeItems };
 }
 
-const periodLabel = (period: string) => `${period.slice(0, 4)}.${period.slice(5, 7)}`;
+const periodLabel = (period: string) => `${period.slice(0, 4)} ${period.slice(5, 7)}`;
 
 /** 메트릭 4열(ym/current/paid/unpaid)의 셀 라인. */
 function metricCells(month: MonthAgg | null, isTotal: boolean): CellLine[][] {
   if (isTotal || month === null) return [];
-  const currentLines: CellLine[] = [moneyLine(month.charged)];
-  if (month.rate !== null) {
-    currentLines.push({ text: formatCollectionRate(month.rate), tone: "red" });
-  }
-  currentLines.push({ text: formatNumber(month.fee), tone: month.fee < 0 ? "red" : "default" });
+  const currentLines: CellLine[] = [
+    moneyLine(month.charged),
+    month.rate === null
+      ? { text: "" }
+      : { text: formatCollectionRate(month.rate), tone: "red" },
+    { text: formatNumber(month.fee), tone: month.fee < 0 ? "red" : "default" },
+  ];
 
   return [
     [{ text: periodLabel(month.period) }, { text: String(month.households) }],
@@ -188,9 +189,9 @@ export function buildMonthlyReport(
 
   const feeColumns: MonthlyColumn[] = feeGroups.map((group, index) => ({
     key: `fee-${index}`,
-    width: FEE_COLUMN_WIDTH,
+    minWidth: 96,
     align: "right",
-    header: group.map((item) => item.name),
+    header: [group[0]?.name, group[1]?.name, group[2]?.name],
   }));
   const columns = [...METRIC_COLUMNS, ...feeColumns];
 
@@ -218,7 +219,11 @@ export function buildMonthlyReport(
     key: "총계",
     cells: [
       [{ text: "총 계" }],
-      [moneyLine(totalCharged), { text: formatNumber(totalFee), tone: totalFee < 0 ? "red" : "default" }],
+      [
+        moneyLine(totalCharged),
+        { text: "" },
+        { text: formatNumber(totalFee), tone: totalFee < 0 ? "red" : "default" },
+      ],
       [moneyLine(totalPaid), moneyLine(totalLateFee), moneyLine(totalNetPaid)],
       [moneyLine(totalUnpaid), moneyLine(totalLateFee), moneyLine(totalCharged)],
       ...feeGroups.map((group) =>
