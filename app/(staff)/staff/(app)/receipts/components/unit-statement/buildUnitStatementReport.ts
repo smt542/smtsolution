@@ -1,5 +1,6 @@
 import type { ReceiptStatementData } from "@/hooks/reactquery/receipts";
 import type { UtilityType } from "@/hooks/reactquery/utilities";
+import { LATE_FEE_PATTERN, orderFeeItems } from "../chargeReport/feeItemOrder";
 
 export type UnitStatementScope = "all" | "unpaid";
 
@@ -30,7 +31,6 @@ export interface UnitStatementReportModel {
   totals: { unpaid: number; lateFee: number; total: number };
 }
 
-const LATE_FEE_PATTERN = /연체|가산/;
 const UTILITY_ITEM_PATTERN: Record<UtilityType, RegExp> = {
   electricity: /전기/,
   water: /수도/,
@@ -70,31 +70,24 @@ export function buildUnitStatementReport(
   periods: string[],
   utilityTypes: UtilityType[],
   scope: UnitStatementScope,
+  configuredFeeItems?: Array<{ id: number; name: string; sortOrder: number }>,
 ): UnitStatementReportModel {
   const periodSet = new Set(periods);
   const documents = (data?.documents ?? []).filter(
     (document) => document.unitId === unitId && periodSet.has(document.period),
   );
 
-  const feeItems = new Map<number, string>();
-  for (const document of documents) {
-    for (const item of document.items) {
-      if (
-        item.charged &&
-        !LATE_FEE_PATTERN.test(item.name)
-      ) {
-        feeItems.set(item.feeItemId, item.name);
-      }
-    }
-  }
-  const dynamicFeeColumns = chunk(
-    [...feeItems.entries()].sort(([a], [b]) => a - b),
-    3,
-  ).map((group, index): UnitStatementFeeColumn => ({
-    key: `fee-${index}`,
-    labels: group.map(([, name]) => name),
-    feeItemIds: group.map(([id]) => id),
-  }));
+  // 머리글 = 건물 유형 항목 설정(빌라·월별 부과금액과 같은 규칙), 스냅샷에만 있는 항목은 뒤에.
+  const snapshotFeeItems = documents.flatMap((document) =>
+    document.items.filter((item) => item.charged),
+  );
+  const dynamicFeeColumns = chunk(orderFeeItems(configuredFeeItems, snapshotFeeItems), 3).map(
+    (group, index): UnitStatementFeeColumn => ({
+      key: `fee-${index}`,
+      labels: group.map((item) => item.name),
+      feeItemIds: group.map((item) => item.feeItemId),
+    }),
+  );
   const feeColumns = Array.from(
     { length: Math.max(FIGMA_FEE_COLUMN_COUNT, dynamicFeeColumns.length) },
     (_, index): UnitStatementFeeColumn =>

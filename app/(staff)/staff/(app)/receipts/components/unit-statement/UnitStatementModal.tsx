@@ -5,6 +5,7 @@ import { CustomDropdown } from "@/components/common/CustomDropdown";
 import { SegmentedControl } from "@/components/common/SegmentedControl";
 import { CloseIcon, PrinterIcon } from "@/components/icons";
 import type { Building } from "@/hooks/reactquery/buildings";
+import { useFeeItems } from "@/hooks/reactquery/feeItems";
 import { useReceiptStatementData } from "@/hooks/reactquery/receipts";
 import type { UtilityType } from "@/hooks/reactquery/utilities";
 import { formatNumber } from "@/lib/format";
@@ -178,9 +179,18 @@ export function UnitStatementModal({
     periods.at(-1) ?? periods[0],
     open,
   );
+  const feeItemsQuery = useFeeItems(open && building.typeId !== null ? building.typeId : 0);
   const model = useMemo(
-    () => buildUnitStatementReport(query.data, unitId, periods, utilityTypes, scope),
-    [query.data, unitId, periods, utilityTypes, scope],
+    () =>
+      buildUnitStatementReport(
+        query.data,
+        unitId,
+        periods,
+        utilityTypes,
+        scope,
+        feeItemsQuery.data,
+      ),
+    [query.data, unitId, periods, utilityTypes, scope, feeItemsQuery.data],
   );
 
   if (!open) return null;
