@@ -26,7 +26,7 @@ export function ProfileView({
   const logout = async () => {
     await logoutAction.run(async () => {
       try {
-        await createClient().auth.signOut();
+        await createClient().auth.signOut({ scope: "local" });
       } catch {
         /* signOut 실패해도 로그인 화면으로 이동 */
       }
