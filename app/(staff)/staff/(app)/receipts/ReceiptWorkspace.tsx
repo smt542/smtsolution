@@ -22,6 +22,7 @@ import { UnitReceiptPrint } from "./components/UnitReceiptPrint";
 import { UnifiedSearchModal } from "./components/UnifiedSearchModal";
 import { ChargeReceiptReportModal } from "./components/ChargeReceiptReportModal";
 import { AutoPaymentModals, type AutoPaymentView } from "./components/payment/AutoPaymentModals";
+import { downloadBankTemplate } from "./components/payment/bankTemplate";
 import { VillaOverdueModal } from "./components/villa-overdue/VillaOverdueModal";
 import { ReceiptEntryAlerts } from "./components/entry-alerts/ReceiptEntryAlerts";
 import { MonthlyChargeModal } from "./components/monthly/MonthlyChargeModal";
@@ -30,11 +31,6 @@ import { VillaReceiptHistoryModal } from "./components/villa-receipts/VillaRecei
 
 type DropdownItem = { header: string } | { label: string; onClick: () => void };
 type ReceiptDropdownKey = "villa" | "unit" | "auto";
-
-async function downloadBankTemplate() {
-  const bankTemplate = await import("./components/payment/bankTemplate");
-  await bankTemplate.downloadBankTemplate();
-}
 
 function Dropdown({
   label,
@@ -409,7 +405,7 @@ export function ReceiptWorkspace({
                   { label: "지로처리일자 확인", onClick: () => setAutoView("giro-calendar") },
                   { header: "은행 입금" },
                   { label: "은행 입금내역 업로드", onClick: () => setAutoView("bank") },
-                  { label: "은행 양식 다운", onClick: () => void downloadBankTemplate() },
+                  { label: "은행 양식 다운", onClick: downloadBankTemplate },
                 ]}
               />
             </>
