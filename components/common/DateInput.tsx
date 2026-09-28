@@ -53,6 +53,9 @@ function pickerRootClassName(className: string): string {
 const pickerTriggerClassName = (size: InputSize, className: string) =>
   `${inputClassName(size, className)} flex items-center gap-2 text-left cursor-pointer disabled:cursor-default`;
 
+// 정본 `.as-dp .dp-ctl svg`: 모달 입력칸만 15px, 기존 피커는 size-4를 유지한다.
+const pickerIconSize = (size: InputSize) => (size === "38-13" ? "size-[15px]" : "size-4");
+
 export function DateInput({
   id,
   value,
@@ -78,7 +81,7 @@ export function DateInput({
       className={pickerRootClassName(className)}
       triggerClassName={pickerTriggerClassName(size, className)}
       triggerOpenClassName="border-brand"
-      endAdornment={<CalendarIcon className="ml-auto size-4 shrink-0 text-t3" aria-hidden="true" />}
+      endAdornment={<CalendarIcon className={`ml-auto ${pickerIconSize(size)} shrink-0 text-t3`} aria-hidden="true" />}
     />
   );
 }
@@ -106,7 +109,7 @@ export function TimeInput({
       className={pickerRootClassName(className)}
       triggerClassName={pickerTriggerClassName(size, className)}
       triggerOpenClassName="border-brand"
-      endAdornment={<ClockIcon className="ml-auto size-4 shrink-0 text-t3" aria-hidden="true" />}
+      endAdornment={<ClockIcon className={`ml-auto ${pickerIconSize(size)} shrink-0 text-t3`} aria-hidden="true" />}
     />
   );
 }

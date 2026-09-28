@@ -13,6 +13,8 @@ import React from "react";
 const SIZES = {
   // 정본 표 셀 편집칸 `.hc-in`·`.tc-in`(수납관리 수납 이력·입주자정보): 26/r7/12/400, 포커스 3px 청록 링.
   "26": "h-[26px] rounded-[7px] px-[7px] text-[12px] font-normal focus:ring-[3px] focus:ring-teal-t",
+  // 정본 모달 입력칸 `.as-in`·`.lk-q`: 38/r10/px11/13, 포커스 청록 테두리+3px 링. 읽기 전용은 `.fmpc input[readonly]`.
+  "38-13": "h-[38px] rounded-[10px] px-[11px] text-[13px] placeholder:font-medium focus:ring-[3px] focus:ring-teal-t [&[readonly]]:cursor-default [&[readonly]]:border-line2 [&[readonly]]:bg-bg [&[readonly]:focus]:border-line2 [&[readonly]:focus]:ring-0",
   "36": "h-[36px] rounded-[11px] px-[12px] text-[14px] font-bold",
   "38": "h-[38px] rounded-[11px] px-[12px] text-[14px] font-bold",
   "40": "h-[40px] rounded-[11px] px-[12px] text-[14px] font-bold",

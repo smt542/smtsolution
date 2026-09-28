@@ -8,6 +8,7 @@ export interface FormFieldProps {
   hint?: ReactNode;
   children: ReactNode;
   className?: string;
+  labelClassName?: string;
 }
 
 export function FormField({
@@ -18,6 +19,7 @@ export function FormField({
   hint,
   children,
   className,
+  labelClassName,
 }: FormFieldProps) {
   const errorId = `${htmlFor}-error`;
   const hintId = `${htmlFor}-hint`;
@@ -33,7 +35,7 @@ export function FormField({
 
   return (
     <div className={className}>
-      <label htmlFor={htmlFor} className="mb-1 block text-xs font-semibold text-t3">
+      <label htmlFor={htmlFor} className={labelClassName ?? "mb-1 block text-xs font-semibold text-t3"}>
         {label}
         {required && " *"}
       </label>
