@@ -5,7 +5,7 @@ import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useAsyncAction } from "@/hooks/common";
 import { Button } from "@/components/common";
 import { ComplaintDialog } from "../ComplaintDialog";
-import { FileDropzone } from "./FileDropzone";
+import { FileDropzone, FileDropzoneFileRow } from "./FileDropzone";
 
 interface GiroUploadModalProps {
   open: boolean;
@@ -43,23 +43,34 @@ export function GiroUploadModal({ open, period, onClose }: GiroUploadModalProps)
       onClose={onClose}
       title="지로수납처리"
       subtitle="은행에서 받은 지로 수납 파일을 첨부해 주세요"
-      size="wide"
+      look="canon-wide"
       footer={
-        <div className="flex justify-end">
-          <Button type="button" disabled={!file || processFileAction.isPending} onClick={() => void handleProcess()}>
+        <>
+          <div className="flex-1" />
+          <Button
+            type="button"
+            size="modal"
+            className="border border-brand shadow-none disabled:border-line disabled:bg-bg disabled:text-t4"
+            disabled={!file || processFileAction.isPending}
+            onClick={() => void handleProcess()}
+          >
             {processFileAction.isPending ? "지로 파일 확인 중…" : "처리"}
           </Button>
-        </div>
+        </>
       }
     >
-      <FileDropzone
-        accept=".txt"
-        helperText="txt 파일만 첨부할 수 있어요"
-        fileName={file?.name}
-        disabled={processFileAction.isPending}
-        onFile={setFile}
-        ariaLabel="지로 수납 파일 첨부"
-      />
+      {file ? (
+        <FileDropzoneFileRow file={file} onRemove={() => setFile(null)} />
+      ) : (
+        <FileDropzone
+          accept=".txt"
+          helperText="txt 파일만 첨부할 수 있어요"
+          rejectText="txt 파일만 첨부할 수 있어요"
+          disabled={processFileAction.isPending}
+          onFile={setFile}
+          ariaLabel="지로 수납 파일 첨부"
+        />
+      )}
     </ComplaintDialog>
   );
 }
