@@ -1,23 +1,26 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useIsHydrated } from "@/hooks/common";
 import { Button, Spinner } from "@/components/common";
 import { PrinterIcon } from "@/components/icons";
 import { useBuildings } from "@/hooks/reactquery/buildings";
+import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
 import { useUnitOccupancyFull } from "@/hooks/reactquery/occupancies";
 import { useUnitPayments } from "@/hooks/reactquery/payments";
 import { useReceiptPaymentStatus, useReceiptStatementData } from "@/hooks/reactquery/receipts";
 import { useUnits } from "@/hooks/reactquery/units";
+import type { RateTier } from "@/lib/billing/lateFee";
 import { currentPeriod, prevPeriod } from "@/lib/billing/period";
 import { AsStatusSection } from "./components/AsStatusSection";
 import { BuildingUnitRail } from "./components/BuildingUnitRail";
 import { PaymentHistorySection } from "./components/PaymentHistorySection";
+import { buildHistoryRows, type HistoryDisplayRow } from "./components/paymentHistoryRows";
 import { TenantInfoSection } from "./components/TenantInfoSection";
+import { UnitReceiptPrint } from "./components/UnitReceiptPrint";
 import { UnifiedSearchModal } from "./components/UnifiedSearchModal";
 import { ChargeReceiptReportModal } from "./components/ChargeReceiptReportModal";
-import { VillaPaymentModal, type VillaPaymentModalInit } from "./components/VillaPaymentModal";
 import { AutoPaymentModals, type AutoPaymentView } from "./components/payment/AutoPaymentModals";
 import { VillaOverdueModal } from "./components/villa-overdue/VillaOverdueModal";
 import { ReceiptEntryAlerts } from "./components/entry-alerts/ReceiptEntryAlerts";
@@ -192,7 +195,7 @@ export function ReceiptWorkspace({
   const [chargeReportOpen, setChargeReportOpen] = useState(false);
   const [receiptHistoryOpen, setReceiptHistoryOpen] = useState(false);
   const [unitStatementOpen, setUnitStatementOpen] = useState(false);
-  const [villa, setVilla] = useState<VillaPaymentModalInit | null>(null);
+  const [unitReceiptRows, setUnitReceiptRows] = useState<HistoryDisplayRow[] | null>(null);
   const [autoView, setAutoView] = useState<AutoPaymentView | null>(null);
   const [overdueOpen, setOverdueOpen] = useState(false);
   const isHydrated = useIsHydrated();
@@ -263,6 +266,30 @@ export function ReceiptWorkspace({
       }`
     : "";
   const selectedSummary = receiptRows.find((row) => row.unitId === selectedUnitId);
+  const { data: lateFeeRateTiers = [] } = useLateFeeRateTiers(selectedUnitId !== null ? orgId : null);
+  const tiers = useMemo<RateTier[]>(
+    () => lateFeeRateTiers.map((tier) => ({
+      fromMonth: tier.fromMonth,
+      toMonth: tier.toMonth,
+      monthlyRate: tier.monthlyRate,
+    })),
+    [lateFeeRateTiers],
+  );
+  // 수납 이력 표와 영수증이 같은 행을 쓰도록 한 번만 거른다(매 렌더 새 배열이면 아래 memo가 매번 다시 돈다).
+  const historySummaries = useMemo(
+    () => historyQuery.data?.paymentRows.filter((row) => row.unitId === selectedUnitId),
+    [historyQuery.data, selectedUnitId],
+  );
+  const historyRows = useMemo(
+    () => buildHistoryRows(
+      historyQuery.data?.payments ?? unitPayments,
+      historySummaries,
+      selectedSummary,
+      period,
+      tiers,
+    ),
+    [historyQuery.data?.payments, historySummaries, period, selectedSummary, tiers, unitPayments],
+  );
 
   const selectBuilding = (id: number) => {
     setSelectedBuildingId(id);
@@ -304,8 +331,14 @@ export function ReceiptWorkspace({
       toast.warning("호실을 선택해 주세요");
       return;
     }
-    setVilla({ view: "receipt", unitId: selectedUnitId });
+    const printableRows = historyRows.filter((row) => row.payment && row.payment.amount > 0);
+    if (printableRows.length === 0) {
+      toast.warning("수납 내역이 없어요");
+      return;
+    }
+    setUnitReceiptRows(printableRows);
   };
+  const closeUnitReceipt = useCallback(() => setUnitReceiptRows(null), []);
 
   return (
     <div className="relative flex h-[calc(100vh-62px)] flex-col overflow-hidden px-[24px] pb-[22px] pt-[18px]">
@@ -409,9 +442,7 @@ export function ReceiptWorkspace({
             hasUnit={selectedUnitId !== null}
             isLoading={isPaymentHistoryLoading}
             payments={historyQuery.data?.payments ?? unitPayments}
-            historySummaries={historyQuery.data?.paymentRows.filter(
-              (row) => row.unitId === selectedUnitId,
-            )}
+            historySummaries={historySummaries}
             summary={selectedSummary}
             period={period}
             unitId={selectedUnitId}
@@ -479,14 +510,14 @@ export function ReceiptWorkspace({
           period={period}
         />
       )}
-      {villa && selectedBuilding && (
-        <VillaPaymentModal
-          open
-          building={selectedBuilding}
+      {unitReceiptRows && selectedBuilding && (
+        <UnitReceiptPrint
           orgId={orgId}
-          period={period}
-          init={villa}
-          onClose={() => setVilla(null)}
+          buildingName={selectedBuilding.name}
+          unitLabel={selectedUnitLabel}
+          tenantName={selectedSummary?.tenantName ?? null}
+          rows={unitReceiptRows}
+          onClose={closeUnitReceipt}
         />
       )}
       <AutoPaymentModals
