@@ -1,13 +1,11 @@
 import { formatNumber, type MonthlySummary } from "./monthlyChargeData";
 
-// 상단 요약 바: 중앙 제목 + 요약 필드들(라벨 t3 / 값 t1). 값은 실데이터 총계.
-
 function SummaryField({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center gap-[7px]">
-      <span className="text-[11.5px] font-medium text-t3">{label}</span>
-      <span className="num text-[12px] font-medium text-t1">{value}</span>
-    </div>
+    <span className="inline-flex items-center gap-[7px]">
+      <i className="text-[11.5px] font-medium not-italic text-t3">{label}</i>
+      <b className="num text-[12px] font-medium tabular-nums text-t1">{value}</b>
+    </span>
   );
 }
 
@@ -18,16 +16,19 @@ export function MonthlyChargeSummary({
   title: string;
   summary: MonthlySummary;
 }) {
+  // 정본 .ac-head의 제목·조건·KPI 배치를 그대로 유지한다.
   return (
-    <div className="flex h-[70px] w-full shrink-0 flex-col items-start justify-center border-b border-line bg-surface px-[16px]">
-      <p className="w-full text-center text-[15px] font-bold tracking-[-0.3px] text-t1">{title}</p>
-      <div className="flex w-full flex-wrap items-center justify-center gap-[18px] pt-[7px]">
-        <div className="flex items-center gap-[7px] border-r border-line pr-[12px]">
-          <span className="text-[11.5px] font-medium text-t3">기준월</span>
-          <span className="num text-[12px] font-medium text-t1">{summary.periodRange}</span>
-          <span className="pl-[6px] text-[11.5px] font-medium text-t3">수납일</span>
-          <span className="text-[12px] font-medium text-t1">{summary.paymentDate}</span>
-        </div>
+    <div className="shrink-0 border-b border-line bg-white px-[16px] pb-[13px] pt-[15px]">
+      <p className="mb-[10px] text-center text-[15px] font-bold tracking-[-0.02em] text-t1">
+        {title}
+      </p>
+      <div className="flex flex-wrap items-center justify-center gap-[18px]">
+        <span className="inline-flex items-center gap-[6px] border-r border-line pr-[12px] text-[12px] font-medium text-t1">
+          <i className="text-[11.5px] font-medium not-italic text-t3">기준월</i>
+          {summary.periodRange}
+          <i className="ml-[6px] text-[11.5px] font-medium not-italic text-t3">수납일</i>
+          {summary.paymentDate}
+        </span>
         <SummaryField label="총당월수납액" value={formatNumber(summary.totalCurrentPaid)} />
         <SummaryField label="총연체료" value={formatNumber(summary.totalLateFee)} />
         <SummaryField label="총수수료" value={formatNumber(summary.totalFee)} />

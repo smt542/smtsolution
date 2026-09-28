@@ -31,6 +31,8 @@ export interface OverdueLineOverride {
   unpaid?: number;
   lateFee?: number;
   postLate?: number;
+  /** 정본 feeSumFix: 연체료계를 직접 고치면 납.연체료+납.후연체 대신 이 값을 쓴다. */
+  lateTotal?: number;
   note?: string;
 }
 
@@ -119,7 +121,7 @@ export function mergeLine(
   const unpaid = override?.unpaid ?? seed.unpaidPrincipal;
   const displayLateFee = override?.lateFee ?? seed.lateFee;
   const postLate = override?.postLate ?? seed.postDueFee;
-  const lateTotal = displayLateFee + postLate;
+  const lateTotal = override?.lateTotal ?? displayLateFee + postLate;
   return {
     ...seed,
     unpaid,

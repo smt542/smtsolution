@@ -8,6 +8,8 @@ export type VillaReceiptScope = "all" | "paid";
 export interface VillaReceiptReportRow {
   key: string;
   unitLabel: string;
+  /** 같은 호실의 첫 행에만 호수를 보인다(정본 pd-head). */
+  showUnit: boolean;
   periodLabel: string;
   charged: number | null;
   paid: number;
@@ -63,11 +65,13 @@ export function buildVillaReceiptReport(
   const rows = (data?.paymentRows ?? [])
     .filter((row) => periodSet.has(row.period))
     .filter((row) => scope === "all" || row.paid > 0)
-    .map((row): VillaReceiptReportRow => {
+    .map((row): Omit<VillaReceiptReportRow, "showUnit"> => {
       const payment = latestPayment(paymentsByHousehold.get(paymentKey(row.period, row.unitId)) ?? []);
       return {
         key: paymentKey(row.period, row.unitId),
-        unitLabel: row.dong ? `${row.dong}-${row.unitNo}` : row.unitNo,
+        unitLabel: row.dong
+          ? `${row.dong} ${row.unitNo.replace(/호$/, "")}`
+          : row.unitNo.replace(/호$/, ""),
         periodLabel: row.period.slice(0, 7),
         charged: row.charged,
         paid: row.paid,
@@ -77,12 +81,16 @@ export function buildVillaReceiptReport(
         memo: payment?.memo ?? "",
       };
     })
+    // 정본 openPaid build(): 호실별로 묶고 호실 안에서는 최근 달이 위(`months().slice().reverse()`).
     .sort((a, b) => {
-      const byPeriod = b.periodLabel.localeCompare(a.periodLabel);
-      return byPeriod !== 0
-        ? byPeriod
-        : a.unitLabel.localeCompare(b.unitLabel, "ko-KR", { numeric: true });
-    });
+      const byUnit = a.unitLabel.localeCompare(b.unitLabel, "ko-KR", { numeric: true });
+      return byUnit !== 0 ? byUnit : b.periodLabel.localeCompare(a.periodLabel);
+    })
+    // 정본 `head?r.no:''`: 호수는 같은 호실의 첫 행에만 적는다.
+    .map((row, index, sorted) => ({
+      ...row,
+      showUnit: index === 0 || sorted[index - 1].unitLabel !== row.unitLabel,
+    }));
 
   return {
     rows,

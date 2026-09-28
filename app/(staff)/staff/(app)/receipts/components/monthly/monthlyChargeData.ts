@@ -2,27 +2,23 @@
 //
 // 표 = 고정 메트릭 열(년월/당월분/당월수납액/미납액) + 건물의 실제 관리비 항목으로
 // 만든 동적 열(3개씩 스택). 실데이터 집계는 buildMonthlyReport.ts 참고.
-// 시각 상수(폭·색·문구)는 Figma 시안(node 673-15261) 실측값을 유지한다.
+// 시각 규격은 정본 `.hf-tbl.ac-tbl`과 공용 ReportTable3가 책임진다.
+import type {
+  ReportColumn,
+  ReportLine,
+  ReportRow,
+  ReportTone,
+} from "../report-table/ReportTable3";
 
-export type CellTone = "default" | "red";
-export type ColumnAlign = "left" | "right";
+export type CellTone = ReportTone;
+export type ColumnAlign = ReportColumn["align"];
 
 /** 셀 한 줄: 문구 + 색조(음수·수납율은 red). */
-export type CellLine = { text: string; tone?: CellTone };
+export type CellLine = ReportLine;
 
-/** 열: 폭(px, 시안 실측)·정렬·머리글 라인(위→아래, 시안 문구 그대로). */
-export type MonthlyColumn = {
-  key: string;
-  width: number;
-  align: ColumnAlign;
-  header: string[];
-};
-
-/** 한 행: columns 순서에 대응하는 셀 라인 묶음. */
-export type MonthlyReportRow = {
-  key: string;
-  cells: CellLine[][];
-};
+/** 열·행 모델은 정본 3줄 보고서 표의 공용 타입을 그대로 사용한다. */
+export type MonthlyColumn = ReportColumn;
+export type MonthlyReportRow = ReportRow;
 
 export type MonthlySummary = {
   periodRange: string; // 기준월 범위 '2026.01 ~ 2026.08'
@@ -40,16 +36,19 @@ export type MonthlyReportModel = {
   summary: MonthlySummary;
 };
 
-// 고정 메트릭 열(폭=시안 실측). 관리비 항목 열은 런타임에 동적 생성한다.
+// 정본 `.acHead`의 고정 메트릭 열. 관리비 항목 열은 런타임에 동적 생성한다.
 export const METRIC_COLUMNS: MonthlyColumn[] = [
-  { key: "ym", width: 93.766, align: "left", header: ["년 월", "건수"] },
-  { key: "current", width: 129.141, align: "right", header: ["당 월 분", "수 수 료"] },
-  { key: "paid", width: 115.375, align: "right", header: ["당월수납액", "연 체 료", "실수납액"] },
-  { key: "unpaid", width: 115.375, align: "right", header: ["미 납 액", "연 체 료", "납기내금액"] },
+  { key: "ym", minWidth: 78, align: "left", header: ["년 월", "건수"] },
+  {
+    key: "current",
+    minWidth: 96,
+    align: "right",
+    header: ["당 월 분", "수 수 료"],
+    redTail: true,
+  },
+  { key: "paid", minWidth: 96, align: "right", header: ["당월수납액", "연 체 료", "실수납액"] },
+  { key: "unpaid", minWidth: 96, align: "right", header: ["미 납 액", "연 체 료", "납기내금액"] },
 ];
-
-// 관리비 항목 열 1개 폭(시안 실측, 3개 항목 스택).
-export const FEE_COLUMN_WIDTH = 112.328;
 
 /** 숫자 → ko-KR 천단위(음수 부호 유지). */
 export function formatNumber(value: number): string {

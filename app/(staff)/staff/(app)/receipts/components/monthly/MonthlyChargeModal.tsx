@@ -4,12 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { CloseIcon, PrinterIcon } from "@/components/icons";
 import type { Building } from "@/hooks/reactquery/buildings";
+import { useBuildingTypes } from "@/hooks/reactquery/buildingTypes";
 import {
   getReceiptStatementData,
   receiptKeys,
   type ReceiptStatementData,
 } from "@/hooks/reactquery/receipts";
 import { toMonthInput } from "@/lib/billing/period";
+import { matchesBuildingGroup } from "@/lib/buildings/groupType";
 import { AsyncContentState } from "../AsyncContentState";
 import { buildMonthlyReport, periodsBetween, shiftMonth } from "./buildMonthlyReport";
 import { MonthlyChargeSummary } from "./MonthlyChargeSummary";
@@ -40,6 +42,33 @@ export function MonthlyChargeModal({
   const [appliedEnd, setAppliedEnd] = useState(currentMonth);
   const [paymentStart, setPaymentStart] = useState("");
   const [paymentEnd, setPaymentEnd] = useState("");
+  const [selectedBuildingTypeId, setSelectedBuildingTypeId] = useState<number | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState("");
+  const { data: buildingTypes = [] } = useBuildingTypes();
+
+  const buildingTypeOptions = useMemo(
+    () =>
+      [...buildingTypes]
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .map((buildingType) => ({
+          value: String(buildingType.id),
+          label: buildingType.label,
+        })),
+    [buildingTypes],
+  );
+  // 정본처럼 '전체' 없이 첫 유형(sortOrder 순)이 기본이다.
+  const effectiveBuildingTypeId =
+    selectedBuildingTypeId ??
+    (buildingTypeOptions[0] ? Number(buildingTypeOptions[0].value) : null);
+  const reportBuildings = useMemo(
+    () =>
+      buildings.filter(
+        (building) =>
+          building.typeId === effectiveBuildingTypeId &&
+          matchesBuildingGroup(building, selectedGroup),
+      ),
+    [buildings, effectiveBuildingTypeId, selectedGroup],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -59,9 +88,9 @@ export function MonthlyChargeModal({
     [appliedStart, appliedEnd],
   );
 
-  const canLoad = open && buildings.length > 0 && periods.length > 0;
+  const canLoad = open && reportBuildings.length > 0 && periods.length > 0;
   const queries = useQueries({
-    queries: buildings.map((building) => ({
+    queries: reportBuildings.map((building) => ({
       queryKey: receiptKeys.statement(
         building.id,
         null,
@@ -141,7 +170,7 @@ export function MonthlyChargeModal({
         onClick={onClose}
       >
         <div
-          className="flex h-[720px] max-h-[calc(100vh-48px)] w-[1240px] max-w-[calc(100vw-48px)] flex-col overflow-clip rounded-[20px] bg-surface shadow-[0px_30px_70px_-20px_rgba(0,0,0,0.4)]"
+          className="flex h-[720px] max-h-[calc(100vh-48px)] w-[1240px] max-w-[calc(100vw-48px)] flex-col overflow-clip rounded-[20px] bg-surface leading-[normal] shadow-[0px_30px_70px_-20px_rgba(0,0,0,0.4)]"
           onClick={(event) => event.stopPropagation()}
         >
           {/* 헤더 */}
@@ -154,7 +183,7 @@ export function MonthlyChargeModal({
               type="button"
               aria-label="닫기"
               onClick={onClose}
-              className="flex h-[26px] w-[26px] items-center justify-center rounded-lg border border-line bg-surface text-t3 hover:bg-bg"
+              className="flex h-[26px] w-[26px] items-center justify-center rounded-[8px] border border-line bg-surface text-t3 transition-[border-color,background] duration-[120ms] hover:border-[#C9D0D8] hover:bg-[#F7F9FA] hover:text-t2"
             >
               <CloseIcon className="h-[14px] w-[14px]" />
             </button>
@@ -162,12 +191,15 @@ export function MonthlyChargeModal({
 
           {/* 필터 · 요약 */}
           <MonthlyChargeToolbar
-            buildingTypeLabel="빌라"
-            groupLabel="전체"
+            buildingTypeValue={effectiveBuildingTypeId === null ? "" : String(effectiveBuildingTypeId)}
+            buildingTypeOptions={buildingTypeOptions}
+            groupValue={selectedGroup}
             startMonth={pendingStart}
             endMonth={pendingEnd}
             paymentStart={paymentStart}
             paymentEnd={paymentEnd}
+            onBuildingType={(value) => setSelectedBuildingTypeId(Number(value))}
+            onGroup={setSelectedGroup}
             onStartMonth={setPendingStart}
             onEndMonth={setPendingEnd}
             onPaymentStart={setPaymentStart}
@@ -184,9 +216,9 @@ export function MonthlyChargeModal({
             loadingLabel="월별 부과·수납 자료 불러오는 중"
             refreshing={isReportRefreshing}
             refreshingLabel="월별 부과·수납 자료 갱신 중"
-            empty={buildings.length === 0 || !hasData}
+            empty={reportBuildings.length === 0 || !hasData}
             emptyMessage={
-              buildings.length === 0
+              reportBuildings.length === 0
                 ? "조회 가능한 건물이 없습니다."
                 : "조회된 부과·수납 자료가 없습니다."
             }

@@ -1,5 +1,6 @@
 import type { OverdueScope } from "@/hooks/reactquery/overdue";
-import { ChevronDownIcon } from "@/components/icons";
+import { CustomDropdown, type DropdownOption } from "@/components/common/CustomDropdown";
+import { SegmentedControl } from "@/components/common/SegmentedControl";
 import { padMonthCount } from "./format";
 
 interface OverdueFilterBarProps {
@@ -13,38 +14,6 @@ interface OverdueFilterBarProps {
   onScope: (scope: OverdueScope) => void;
 }
 
-function ChipSelect({
-  value,
-  onChange,
-  options,
-  ariaLabel,
-  width,
-}: {
-  value: number;
-  onChange: (value: number) => void;
-  options: { value: number; label: string }[];
-  ariaLabel: string;
-  width: number;
-}) {
-  return (
-    <div className="relative" style={{ width }}>
-      <select
-        aria-label={ariaLabel}
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
-        className="h-[32px] w-full appearance-none rounded-[10px] border border-line bg-surface pl-[12px] pr-[28px] text-[13px] font-medium text-t1 focus:border-teal focus:outline-none"
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDownIcon className="pointer-events-none absolute right-[9px] top-1/2 -translate-y-1/2 text-t3" />
-    </div>
-  );
-}
-
 export function OverdueFilterBar({
   year,
   month,
@@ -55,68 +24,63 @@ export function OverdueFilterBar({
   onMinOverdue,
   onScope,
 }: OverdueFilterBarProps) {
-  const yearOptions = Array.from({ length: 6 }, (_, index) => year - 4 + index).map(
-    (value) => ({ value, label: `${value}년` }),
+  const yearOptions: DropdownOption[] = Array.from(
+    { length: 6 },
+    (_, index) => year - 4 + index,
+  ).map((value) => ({ value: String(value), label: `${value}년` }));
+  const monthOptions: DropdownOption[] = Array.from({ length: 12 }, (_, index) => index + 1).map(
+    (value) => ({ value: String(value), label: `${value}월` }),
   );
-  const monthOptions = Array.from({ length: 12 }, (_, index) => index + 1).map((value) => ({
-    value,
-    label: `${value}월`,
-  }));
-  const minOverdueOptions = Array.from({ length: 13 }, (_, index) => index).map((value) => ({
-    value,
-    label: padMonthCount(value),
-  }));
+  const minOverdueOptions: DropdownOption[] = Array.from({ length: 37 }, (_, index) => index).map(
+    (value) => ({ value: String(value), label: padMonthCount(value) }),
+  );
 
   return (
-    <div className="flex h-[59px] shrink-0 items-center gap-[7px] border-b border-line px-[16px]">
-      <ChipSelect
+    <div className="relative z-[5] flex shrink-0 flex-wrap items-center gap-[8px] border-b border-line bg-surface px-[16px] py-[13px]">
+      {/* 정본 `.auto-bar`의 compact `.uc-dd`와 `.auto-lbl` 필터 규격을 사용한다. */}
+      <CustomDropdown
         ariaLabel="조회 연도"
-        value={year}
-        onChange={onYear}
+        value={String(year)}
         options={yearOptions}
-        width={88}
+        onChange={(value) => onYear(Number(value))}
+        size="compact"
+        position="fixed"
+        menuMinWidth={104}
       />
-      <ChipSelect
+      <CustomDropdown
         ariaLabel="조회 월"
-        value={month}
-        onChange={onMonth}
+        value={String(month)}
         options={monthOptions}
-        width={64}
+        onChange={(value) => onMonth(Number(value))}
+        size="compact"
+        position="fixed"
+        menuMinWidth={104}
       />
-      <span className="px-[2px] text-[12px] text-t3">까지</span>
-      <span className="text-[12px] text-t3">연체</span>
-      <ChipSelect
+      <span className="text-[12px] font-bold text-t3">까지</span>
+      <span className="ml-[6px] text-[12px] font-bold text-t3">연체</span>
+      <CustomDropdown
         ariaLabel="연체 개월 하한"
-        value={minOverdue}
-        onChange={onMinOverdue}
+        value={String(minOverdue)}
         options={minOverdueOptions}
-        width={62}
+        onChange={(value) => onMinOverdue(Number(value))}
+        size="compact"
+        position="fixed"
+        menuMinWidth={96}
       />
 
       <div className="flex-1" />
 
-      <div className="flex h-[30px] items-center rounded-[8px] bg-bg p-[3px]">
-        {(
-          [
-            { value: "all", label: "전체" },
-            { value: "current", label: "당계" },
-          ] as const
-        ).map((option) => {
-          const active = scope === option.value;
-          return (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => onScope(option.value)}
-              className={`h-[24px] rounded-[6px] px-[13px] text-[12px] font-medium transition ${
-                active ? "bg-surface text-t1 shadow-sm" : "text-t3 hover:text-t2"
-              }`}
-            >
-              {option.label}
-            </button>
-          );
-        })}
-      </div>
+      <SegmentedControl
+        options={[
+          { value: "all", label: "전체" },
+          { value: "current", label: "당계" },
+        ]}
+        value={scope}
+        onChange={(value) => {
+          if (value === "all" || value === "current") onScope(value);
+        }}
+        size="sm"
+      />
     </div>
   );
 }

@@ -1,29 +1,29 @@
-import { ChevronDownIcon } from "@/components/icons";
+import type { ReactNode } from "react";
+import { Button } from "@/components/common/Button";
+import { CustomDropdown, type DropdownOption } from "@/components/common/CustomDropdown";
+import { BUILDING_GROUP_TYPES } from "@/lib/buildings/groupType";
 import { ReportDateField } from "../report-controls/ReportDateField";
 
-// 필터/툴바 (시안 픽셀 재현 + 실필터 배선).
-// 건물유형/그룹 = 현재 선택 컨텍스트 표시(정적), 기준월/수납일 = 실제 입력, 검색 = 재조회.
-
-function FilterLabel({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <span className={`text-[12px] font-bold text-t3 ${className}`}>{children}</span>;
+// 정본 .auto-bar.ac-bar의 필터 라벨·간격을 공용 컨트롤로 구성한다.
+function FilterLabel({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <span className={"text-[12px] font-bold text-t3 " + className}>{children}</span>;
 }
 
-function SelectButton({ value }: { value: string }) {
-  return (
-    <span className="flex h-[32px] items-center gap-[7px] rounded-[9px] border border-line bg-surface pl-[11px] pr-[10px] text-[13px] font-bold tracking-[-0.13px] text-t1">
-      <span>{value}</span>
-      <ChevronDownIcon className="h-[14px] w-[14px] text-t3" />
-    </span>
-  );
-}
+const groupOptions: DropdownOption[] = [
+  { value: "", label: "전체" },
+  ...BUILDING_GROUP_TYPES.map((value) => ({ value, label: value })),
+];
 
 export interface MonthlyChargeToolbarProps {
-  buildingTypeLabel: string;
-  groupLabel: string;
+  buildingTypeValue: string;
+  buildingTypeOptions: DropdownOption[];
+  groupValue: string;
   startMonth: string;
   endMonth: string;
   paymentStart: string;
   paymentEnd: string;
+  onBuildingType: (value: string) => void;
+  onGroup: (value: string) => void;
   onStartMonth: (value: string) => void;
   onEndMonth: (value: string) => void;
   onPaymentStart: (value: string) => void;
@@ -32,12 +32,15 @@ export interface MonthlyChargeToolbarProps {
 }
 
 export function MonthlyChargeToolbar({
-  buildingTypeLabel,
-  groupLabel,
+  buildingTypeValue,
+  buildingTypeOptions,
+  groupValue,
   startMonth,
   endMonth,
   paymentStart,
   paymentEnd,
+  onBuildingType,
+  onGroup,
   onStartMonth,
   onEndMonth,
   onPaymentStart,
@@ -47,10 +50,28 @@ export function MonthlyChargeToolbar({
   return (
     <div className="flex w-full shrink-0 flex-wrap items-center gap-[8px] border-b border-line bg-surface px-[16px] py-[13px]">
       <FilterLabel>건물 유형</FilterLabel>
-      <SelectButton value={buildingTypeLabel} />
-      <FilterLabel className="pl-[6px]">그룹</FilterLabel>
-      <SelectButton value={groupLabel} />
-      <FilterLabel className="pl-[6px]">기준월</FilterLabel>
+      <CustomDropdown
+        ariaLabel="건물 유형"
+        value={buildingTypeValue}
+        options={buildingTypeOptions}
+        onChange={onBuildingType}
+        disabled={buildingTypeOptions.length === 0}
+        placeholder="-"
+        size="compact"
+        position="fixed"
+        menuMinWidth={120}
+      />
+      <FilterLabel className="ml-[6px]">그룹</FilterLabel>
+      <CustomDropdown
+        ariaLabel="그룹"
+        value={groupValue}
+        options={groupOptions}
+        onChange={onGroup}
+        size="compact"
+        position="fixed"
+        menuMinWidth={96}
+      />
+      <FilterLabel className="ml-[6px]">기준월</FilterLabel>
       <ReportDateField
         type="month"
         ariaLabel="기준월 시작"
@@ -66,12 +87,13 @@ export function MonthlyChargeToolbar({
         min={startMonth}
         onValueChange={onEndMonth}
       />
-      <FilterLabel className="pl-[6px]">수납일</FilterLabel>
+      <FilterLabel className="ml-[6px]">수납일</FilterLabel>
       <ReportDateField
         type="date"
         ariaLabel="수납일 시작"
         placeholder="시작일"
         value={paymentStart}
+        max={paymentEnd || undefined}
         onValueChange={onPaymentStart}
       />
       <FilterLabel>~</FilterLabel>
@@ -80,16 +102,13 @@ export function MonthlyChargeToolbar({
         ariaLabel="수납일 종료"
         placeholder="종료일"
         value={paymentEnd}
+        min={paymentStart || undefined}
         onValueChange={onPaymentEnd}
       />
       <div className="min-w-px flex-1" />
-      <button
-        type="button"
-        onClick={onSearch}
-        className="flex h-[38px] items-center rounded-[11px] bg-teal px-[15px] text-[13.5px] font-bold text-white hover:bg-teal-d"
-      >
+      <Button type="button" size="md" onClick={onSearch} className="shadow-none">
         검색
-      </button>
+      </Button>
     </div>
   );
 }
