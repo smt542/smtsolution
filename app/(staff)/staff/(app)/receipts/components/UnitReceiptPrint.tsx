@@ -1,24 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
 import type { CSSProperties } from "react";
-import { createPortal } from "react-dom";
+import { PrintSheet } from "@/components/common/PrintSheet";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
 import { PAYMENT_METHOD_LABEL } from "../receiptFormat";
 import type { HistoryDisplayRow } from "./paymentHistoryRows";
 
-const PRINT_CSS = `
-@media screen {
-  #unit-receipt-print { display: none; }
-}
-@media print {
-  @page { size: A4 portrait; margin: 16mm; }
-  html, body { background: #fff !important; }
-  body > *:not(#unit-receipt-print) { display: none !important; }
-  #unit-receipt-print { display: block !important; background: #fff; color: #000; }
-}
-`;
+const PRINT_CSS = "@page { size: A4 portrait; margin: 16mm; }";
 
 const cellStyle: CSSProperties = {
   border: "1px solid #000",
@@ -75,32 +64,8 @@ export function UnitReceiptPrint({
 }) {
   const { data: setupConfig, isLoading: isConfigLoading } = useSetupConfig(orgId);
   const { data: me, isLoading: isMeLoading } = useMe();
-  const portalRoot = typeof document === "undefined" ? null : document.body;
   // 회사명(설정 → 조직명)이 채워진 뒤에 인쇄한다. 캐시가 비어 있으면 조회가 끝날 때까지 기다린다.
   const ready = !isConfigLoading && !isMeLoading;
-
-  useEffect(() => {
-    if (!portalRoot || !ready) return;
-
-    let closed = false;
-    const close = () => {
-      if (closed) return;
-      closed = true;
-      window.removeEventListener("afterprint", close);
-      onClose();
-    };
-    const printTimer = window.setTimeout(() => window.print(), 0);
-    const closeTimer = window.setTimeout(close, 1500);
-    window.addEventListener("afterprint", close);
-
-    return () => {
-      window.clearTimeout(printTimer);
-      window.clearTimeout(closeTimer);
-      window.removeEventListener("afterprint", close);
-    };
-  }, [onClose, portalRoot, ready]);
-
-  if (!portalRoot) return null;
 
   const companyName = setupConfig?.companyName?.trim() || me?.orgName?.trim() || "";
   const printableRows = rows.filter((row) => row.payment && row.payment.amount > 0);
@@ -113,11 +78,10 @@ export function UnitReceiptPrint({
     { charged: 0, lateFee: 0, amount: 0 },
   );
 
-  return createPortal(
-    <>
-      <style>{PRINT_CSS}</style>
+  return (
+    <PrintSheet id="unit-receipt-print" css={PRINT_CSS} ready={ready} onDone={onClose}>
       {/* 정본 `#unit-receipt-print` — 영수증은 모달 없이 바로 인쇄한다. */}
-      <div id="unit-receipt-print" style={{ maxWidth: "150mm", margin: "0 auto" }} data-testid="unit-receipt-print-content">
+      <div style={{ maxWidth: "150mm", margin: "0 auto" }} data-testid="unit-receipt-print-content">
         <h1
           style={{
             textAlign: "center",
@@ -180,8 +144,6 @@ export function UnitReceiptPrint({
                 </tr>
               );
             })}
-          </tbody>
-          <tfoot>
             <tr>
               <td style={{ ...receiptBodyStyle, backgroundColor: "#F2F2F2", fontWeight: 700, textAlign: "center" }}>합계</td>
               <td style={{ ...receiptBodyStyle, backgroundColor: "#F2F2F2", fontWeight: 700, textAlign: "right" }}>
@@ -193,14 +155,14 @@ export function UnitReceiptPrint({
               <td style={{ ...receiptBodyStyle, backgroundColor: "#F2F2F2", fontWeight: 700, textAlign: "right" }}>
                 {formatAmount(totals.amount)}
               </td>
-              <td colSpan={2} style={{ ...receiptBodyStyle, backgroundColor: "#F2F2F2", fontWeight: 700 }} />
+              {/* 정본 칸은 border만 준 td라 padding은 브라우저 기본값 1px(앱은 preflight가 0으로 지움). */}
+              <td colSpan={2} style={{ border: "1px solid #000", padding: "1px" }} />
             </tr>
-          </tfoot>
+          </tbody>
         </table>
 
         <div style={{ marginTop: "12mm", textAlign: "right", fontSize: "10pt" }}>{companyName}</div>
       </div>
-    </>,
-    portalRoot,
+    </PrintSheet>
   );
 }

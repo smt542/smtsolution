@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { CloseIcon, PrinterIcon } from "@/components/icons";
 import type { Building } from "@/hooks/reactquery/buildings";
@@ -17,8 +17,10 @@ import { buildMonthlyReport, periodsBetween, shiftMonth } from "./buildMonthlyRe
 import { MonthlyChargeSummary } from "./MonthlyChargeSummary";
 import { MonthlyChargeTable } from "./MonthlyChargeTable";
 import { MonthlyChargeToolbar } from "./MonthlyChargeToolbar";
+import { ChargeReportPrint } from "../print/ChargeReportPrint";
 
 const monthDot = (month: string) => month.replace("-", ".");
+const dayDot = (day: string) => (day ? day.replaceAll("-", ".") : "—");
 
 // "월별 부과금액" 리포트 모달 (Figma 시안 픽셀 재현 + 실데이터 배선).
 // 오케스트레이터: 오버레이 + Esc/스크롤락 + 필터 상태 + 데이터 집계, 조각은 import해 조립.
@@ -44,7 +46,13 @@ export function MonthlyChargeModal({
   const [paymentEnd, setPaymentEnd] = useState("");
   const [selectedBuildingTypeId, setSelectedBuildingTypeId] = useState<number | null>(null);
   const [selectedGroup, setSelectedGroup] = useState("");
+  const [printing, setPrinting] = useState(false);
   const { data: buildingTypes = [] } = useBuildingTypes();
+
+  const handleClose = useCallback(() => {
+    setPrinting(false);
+    onClose();
+  }, [onClose]);
 
   const buildingTypeOptions = useMemo(
     () =>
@@ -73,7 +81,7 @@ export function MonthlyChargeModal({
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") handleClose();
     };
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
@@ -81,7 +89,7 @@ export function MonthlyChargeModal({
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
     };
-  }, [open, onClose]);
+  }, [open, handleClose]);
 
   const periods = useMemo(
     () => periodsBetween(appliedStart, appliedEnd),
@@ -125,8 +133,9 @@ export function MonthlyChargeModal({
   const summaryMeta = useMemo(
     () => ({
       periodRange: `${monthDot(appliedStart)} ~ ${monthDot(appliedEnd)}`,
+      // 정본 #acCond·인쇄 .ac-meta 형식: 날짜는 YYYY.MM.DD, 비어 있는 쪽은 —, 둘 다 비면 전체.
       paymentDate:
-        paymentStart || paymentEnd ? `${paymentStart || "…"} ~ ${paymentEnd || "…"}` : "전체",
+        paymentStart || paymentEnd ? `${dayDot(paymentStart)} ~ ${dayDot(paymentEnd)}` : "전체",
     }),
     [appliedStart, appliedEnd, paymentStart, paymentEnd],
   );
@@ -161,13 +170,12 @@ export function MonthlyChargeModal({
 
   return (
     <>
-      <style>{"@media print { @page { size: A4 landscape; margin: 8mm; } }"}</style>
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-[24px] print:hidden"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-[24px]"
         role="dialog"
         aria-modal="true"
         aria-labelledby="monthly-charge-title"
-        onClick={onClose}
+        onClick={handleClose}
       >
         <div
           className="flex h-[720px] max-h-[calc(100vh-48px)] w-[1240px] max-w-[calc(100vw-48px)] flex-col overflow-clip rounded-[20px] bg-surface leading-[normal] shadow-[0px_30px_70px_-20px_rgba(0,0,0,0.4)]"
@@ -182,7 +190,7 @@ export function MonthlyChargeModal({
             <button
               type="button"
               aria-label="닫기"
-              onClick={onClose}
+              onClick={handleClose}
               className="flex h-[26px] w-[26px] items-center justify-center rounded-[8px] border border-line bg-surface text-t3 transition-[border-color,background] duration-[120ms] hover:border-[#C9D0D8] hover:bg-[#F7F9FA] hover:text-t2"
             >
               <CloseIcon className="h-[14px] w-[14px]" />
@@ -230,7 +238,10 @@ export function MonthlyChargeModal({
           <div className="flex h-[69px] shrink-0 items-center justify-end border-t border-line px-[20px]">
             <button
               type="button"
-              onClick={() => window.print()}
+              onClick={() => {
+                if (printing) return;
+                setPrinting(true);
+              }}
               disabled={!hasData || isReportBusy || isError}
               className="flex h-[40px] items-center gap-[6px] rounded-[11px] bg-teal px-[14px] text-[13.5px] font-bold text-white hover:bg-teal-d disabled:opacity-40"
             >
@@ -241,14 +252,15 @@ export function MonthlyChargeModal({
         </div>
       </div>
 
-      {hasData && (
-        <div className="hidden print:block" data-testid="monthly-charge-print-root">
-          <div className="mx-auto w-max bg-white p-[10mm] text-black">
-            <p className="mb-2 text-center text-[15px] font-bold">{title}</p>
-            <p className="mb-3 text-center text-[11px]">기준월 · {summaryMeta.periodRange}</p>
-            <MonthlyChargeTable model={model} />
-          </div>
-        </div>
+      {open && printing && (
+        <ChargeReportPrint
+          variant="monthly"
+          model={model}
+          buildingName=""
+          rangeLabel={model.summary.periodRange}
+          paymentDayLabel={model.summary.paymentDate}
+          onDone={() => setPrinting(false)}
+        />
       )}
     </>
   );
