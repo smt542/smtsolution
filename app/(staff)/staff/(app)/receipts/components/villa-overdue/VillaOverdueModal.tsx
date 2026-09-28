@@ -19,8 +19,12 @@ import {
 import { OverdueDetailTable } from "./OverdueDetailTable";
 import { OverdueFilterBar } from "./OverdueFilterBar";
 import { OverdueTotalsBar } from "./OverdueTotalsBar";
-import { VillaOverduePrintView } from "./VillaOverduePrintView";
-import { padMonthCount } from "./format";
+import { UnpaidLedgerPrint } from "../print/UnpaidLedgerPrint";
+
+function stamp(value: Date): string {
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())} ${pad(value.getHours())}:${pad(value.getMinutes())}:${pad(value.getSeconds())}`;
+}
 
 /**
  * 빌라 미납내역 — 동호·부과월별 미납원금 + 연체료 내역 조회/인쇄 모달 (Figma 673:21715).
@@ -44,6 +48,7 @@ export function VillaOverdueModal({
   const [minOverdue, setMinOverdue] = useState(0);
   const [scope, setScope] = useState<OverdueScope>("all");
   const [overrides, setOverrides] = useState<Record<string, OverdueLineOverride>>({});
+  const [printStamp, setPrintStamp] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -102,14 +107,15 @@ export function VillaOverdueModal({
   const isReportBusy = isReportInitialLoading || isReportRefreshing;
   const isError = periodsQuery.isError || householdsQuery.isError || tiersQuery.isError;
   const hasData = displayGroups.length > 0;
-  const asOfLabel = `${year}/${padMonthCount(month)} 까지`;
-  const scopeLabel = scope === "all" ? "전체" : "당월";
+  const handlePrint = () => {
+    if (printStamp !== null) return;
+    setPrintStamp(stamp(new Date()));
+  };
 
   return (
     <>
-      <style>{"@media print { @page { size: A4 landscape; margin: 8mm; } }"}</style>
       <div
-        className="fixed inset-0 z-[60] flex items-center justify-center bg-scrim p-6 print:hidden"
+        className="fixed inset-0 z-[60] flex items-center justify-center bg-scrim p-6"
         role="dialog"
         aria-modal="true"
         aria-labelledby="villa-overdue-title"
@@ -173,7 +179,7 @@ export function VillaOverdueModal({
             <OverdueTotalsBar totals={totals} />
             <button
               type="button"
-              onClick={() => window.print()}
+              onClick={handlePrint}
               disabled={!hasData || isReportBusy || isError}
               className="flex h-[40px] shrink-0 items-center gap-[7px] rounded-[11px] bg-teal px-[18px] text-[13.5px] font-bold text-white hover:bg-teal-d disabled:opacity-40"
             >
@@ -184,17 +190,16 @@ export function VillaOverdueModal({
         </div>
       </div>
 
-      {hasData && (
-        <div className="hidden print:block" data-testid="villa-overdue-print-root">
-          <VillaOverduePrintView
-            groups={displayGroups}
-            totals={totals}
-            buildingName={building.name}
-            billerName={building.name}
-            asOfLabel={asOfLabel}
-            scopeLabel={scopeLabel}
-          />
-        </div>
+      {printStamp !== null && (
+        <UnpaidLedgerPrint
+          groups={displayGroups}
+          totals={totals}
+          buildingName={building.name}
+          year={year}
+          month={month}
+          printedAt={printStamp}
+          onDone={() => setPrintStamp(null)}
+        />
       )}
     </>
   );

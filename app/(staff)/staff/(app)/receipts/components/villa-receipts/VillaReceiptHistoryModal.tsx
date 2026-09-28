@@ -8,6 +8,7 @@ import { CloseIcon, PrinterIcon } from "@/components/icons";
 import type { Building } from "@/hooks/reactquery/buildings";
 import { useReceiptStatementData } from "@/hooks/reactquery/receipts";
 import { formatNumber } from "@/lib/format";
+import { VillaReceiptHistoryPrint } from "../print/VillaReceiptHistoryPrint";
 import {
   buildVillaReceiptReport,
   type VillaReceiptReportModel,
@@ -106,6 +107,7 @@ export function VillaReceiptHistoryModal({
   const [endYear, setEndYear] = useState(initialYear);
   const [endMonth, setEndMonth] = useState(initialMonth);
   const [scope, setScope] = useState<VillaReceiptScope>("all");
+  const [printing, setPrinting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -148,12 +150,15 @@ export function VillaReceiptHistoryModal({
   const isHistoryRefreshing = query.isFetching && !query.isLoading;
   const isHistoryBusy = isHistoryInitialLoading || isHistoryRefreshing;
   const hasData = model.rows.length > 0;
+  const handlePrint = () => {
+    if (printing) return;
+    setPrinting(true);
+  };
 
   return (
     <>
-      <style>{"@media print { @page { size: A4 landscape; margin: 8mm; } }"}</style>
       <div
-        className="fixed inset-0 z-[60] flex items-center justify-center bg-scrim p-6 print:hidden"
+        className="fixed inset-0 z-[60] flex items-center justify-center bg-scrim p-6"
         onClick={onClose}
       >
         <section
@@ -255,7 +260,7 @@ export function VillaReceiptHistoryModal({
           <footer className="flex h-[69px] shrink-0 items-center justify-end border-t border-line px-[20px]">
             <button
               type="button"
-              onClick={() => window.print()}
+              onClick={handlePrint}
               disabled={!hasData || isHistoryBusy || query.isError}
               className="flex h-[40px] items-center gap-[7px] rounded-[11px] bg-teal px-[18px] text-[13.5px] font-bold text-white hover:bg-teal-d disabled:opacity-40"
             >
@@ -266,11 +271,14 @@ export function VillaReceiptHistoryModal({
         </section>
       </div>
 
-      {hasData && (
-        <article className="hidden print:block" data-testid="villa-receipt-history-print-root">
-          <h1 className="mb-3 text-center text-xl font-bold">{building.name} 빌라 수납내역</h1>
-          <ReportTable model={model} />
-        </article>
+      {printing && (
+        <VillaReceiptHistoryPrint
+          buildingName={building.name}
+          address={building.address}
+          rows={model.rows}
+          totals={model.totals}
+          onDone={() => setPrinting(false)}
+        />
       )}
     </>
   );
