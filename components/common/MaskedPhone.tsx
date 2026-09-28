@@ -1,5 +1,6 @@
 "use client";
 
+import { type ReactNode } from "react";
 import { useRevealPii } from "@/hooks/reactquery/pii/mutations";
 import { maskValue, type MaskKind } from "@/lib/privacy/mask";
 
@@ -15,12 +16,16 @@ export function MaskedPhone({
   reveal,
   asTelLink = false,
   alreadyMasked = false,
+  compact = false,
+  valueSuffix,
 }: {
   value: string | null | undefined;
   kind: MaskKind;
   reveal: MaskedPhoneReveal;
   asTelLink?: boolean;
   alreadyMasked?: boolean;
+  compact?: boolean;
+  valueSuffix?: ReactNode;
 }) {
   const revealMutation = useRevealPii();
   const maskedValue = alreadyMasked ? value ?? "" : maskValue(kind, value);
@@ -39,11 +44,18 @@ export function MaskedPhone({
 
   return (
     <span className="inline-flex items-center gap-1.5">
-      <span>{isRevealed ? revealedContent : maskedValue}</span>
+      {valueSuffix ? (
+        <span className="inline-flex items-center gap-[5px]">
+          <span>{isRevealed ? revealedContent : maskedValue}</span>
+          {valueSuffix}
+        </span>
+      ) : (
+        <span>{isRevealed ? revealedContent : maskedValue}</span>
+      )}
       {!isRevealed ? (
         <button
           type="button"
-          className="rounded px-1 py-0.5 text-xs font-bold text-brand hover:bg-blue-t2 disabled:cursor-wait disabled:opacity-60"
+          className={`rounded px-1 ${compact ? "py-0 leading-[normal]" : "py-0.5"} text-xs font-bold text-brand hover:bg-blue-t2 disabled:cursor-wait disabled:opacity-60`}
           disabled={isRevealing}
           onClick={(event) => {
             event.stopPropagation();

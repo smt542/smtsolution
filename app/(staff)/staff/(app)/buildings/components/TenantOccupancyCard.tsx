@@ -1,10 +1,11 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { Button, EmptyState, Spinner } from "@/components/common";
+import { Button, EmptyState, MultiValueToggle, Spinner } from "@/components/common";
 import { MaskedPhone } from "@/components/common/MaskedPhone";
+import { useCustomerNumbers } from "@/hooks/reactquery/buildingCustomerNumbers";
 import type { TenantListRow } from "@/hooks/reactquery/occupancies";
 import { displayUnitNo } from "@/lib/bill/document";
-import { TENANT_COLUMNS } from "./tenantColumns";
+import { TENANT_COLUMNS, type TenantColumnContext } from "./tenantColumns";
 import { TenantEmptyState } from "./TenantEmptyState";
 
 /**
@@ -30,6 +31,58 @@ export function TenantOccupancyCard({
   const selected = buildingId != null && buildingName != null;
   const base = selected ? `/staff/buildings/${buildingId}/tenants` : "";
   const occupiedCount = rows.filter((row) => !row.isVacant).length;
+  const customerNumbersQuery = useCustomerNumbers(buildingId ?? 0);
+  const customerLabel: TenantColumnContext["customerLabel"] = (kind, customerNo) => {
+    if (!customerNo) return "";
+    if (customerNumbersQuery.isLoading || !customerNumbersQuery.data) return customerNo;
+    const ordinal = customerNumbersQuery.data
+      .filter((row) => row.kind === kind)
+      .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+      .findIndex((row) => row.customerNo === customerNo);
+    return ordinal < 0 ? customerNo : `${ordinal + 1}번 · ${customerNo}`;
+  };
+  const columnContext: TenantColumnContext = { customerLabel };
+
+  const renderPhone = (t: TenantListRow) => {
+    if (t.isVacant) return "—";
+    if (t.phone) {
+      if (t.occupancyId == null) return "—";
+      return (
+        <MaskedPhone
+          value={t.phone}
+          kind="phone"
+          alreadyMasked
+          compact
+          reveal={{ targetKind: "occupancy", targetId: t.occupancyId, field: "phone" }}
+          valueSuffix={t.phonesMore.length
+            ? <MultiValueToggle label="전화번호" items={[t.phone, ...t.phonesMore]} />
+            : undefined}
+        />
+      );
+    }
+    if (t.phonesMore.length === 0) return "";
+    return (
+      <span className="inline-flex items-center gap-[5px]">
+        {t.phonesMore[0]}
+        {t.phonesMore.length > 1
+          ? <MultiValueToggle label="전화번호" items={t.phonesMore} />
+          : null}
+      </span>
+    );
+  };
+
+  const renderVehicle = (t: TenantListRow) => {
+    if (t.isVacant) return "—";
+    const allValues = t.vehicleNo ? [t.vehicleNo, ...t.vehiclesMore] : t.vehiclesMore;
+    const primary = allValues[0] ?? "";
+    if (!primary) return "";
+    return allValues.length > 1 ? (
+      <span className="inline-flex items-center gap-[5px]">
+        {primary}
+        <MultiValueToggle label="차량번호" items={allValues} />
+      </span>
+    ) : primary;
+  };
 
   return (
     <section className="flex min-h-[220px] flex-1 flex-col overflow-hidden rounded-2xl bg-surface shadow-card">
@@ -78,13 +131,14 @@ export function TenantOccupancyCard({
         <EmptyState message="등록된 세대가 없습니다." />
       ) : (
         <div className="min-h-0 flex-1 overflow-auto">
-          <table className="border-collapse text-left">
-            <thead className="sticky top-0 z-[1]">
+          <table className="w-full border-collapse text-left">
+            <thead>
               <tr>
                 {TENANT_COLUMNS.map((col) => (
                   <th
                     key={col.key}
-                    className="whitespace-nowrap border-b border-line bg-[#fbfcfd] px-[16px] py-[11px] text-[12px] font-bold leading-[normal] text-t3"
+                    style={{ minWidth: `${col.minWidth}px` }}
+                    className="sticky top-0 z-[2] whitespace-nowrap border-b border-line bg-[#fbfcfd] px-[16px] py-[11px] text-[12px] font-bold leading-[normal] text-t3"
                   >
                     {col.label}
                   </th>
@@ -103,27 +157,14 @@ export function TenantOccupancyCard({
                     event.preventDefault();
                     router.push(`${base}/${t.unitId}`);
                   }}
-                  className="cursor-pointer border-b border-line2 outline-none last:border-0 hover:bg-[#fbfcfd] focus-visible:bg-teal-t focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal"
+                  className="cursor-pointer outline-none last:[&>td]:border-b-0 hover:bg-[#fbfcfd] focus-visible:bg-teal-t focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal"
                 >
                   {TENANT_COLUMNS.map((col) => (
                     <td
                       key={col.key}
-                      className="whitespace-nowrap px-[16px] py-[12px] text-[13.5px] leading-[normal] text-t1"
+                      className="whitespace-nowrap border-b border-line2 px-[16px] py-[12px] text-[13.5px] leading-[normal] text-t1"
                     >
-                      {col.key === "phone" && t.phone ? (
-                        t.occupancyId ? (
-                          <MaskedPhone
-                            value={t.phone}
-                            kind="phone"
-                            alreadyMasked
-                            reveal={{ targetKind: "occupancy", targetId: t.occupancyId, field: "phone" }}
-                          />
-                        ) : (
-                          "-"
-                        )
-                      ) : (
-                        col.get(t)
-                      )}
+                      {col.key === "phone" ? renderPhone(t) : col.key === "vehicleNo" ? renderVehicle(t) : col.get(t, columnContext)}
                     </td>
                   ))}
                 </tr>
