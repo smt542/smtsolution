@@ -26,7 +26,7 @@ export function ContactSection({
   return (
     <FormSection index={2} title="연락처·차량">
       <div className="flex flex-col gap-[16px]">
-        <Field label="전화번호" full error={errors?.phones}>
+        <Field label="전화번호" required full error={errors?.phones}>
           <RepeatableTextField
             values={value.phones}
             onChange={(v) => onChange({ phones: v })}
