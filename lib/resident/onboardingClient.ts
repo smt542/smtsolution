@@ -210,7 +210,7 @@ export function getPendingInfo(): PendingInfo | null {
 export async function logout(): Promise<void> {
   resetOnboardingSession();
   try {
-    await createClient().auth.signOut();
+    await createClient().auth.signOut({ scope: "local" });
   } catch {
     // best-effort sign-out; client state is already cleared
   }
