@@ -1,7 +1,6 @@
 import type { ReceiptStatementData } from "@/hooks/reactquery/receipts";
+import { LATE_FEE_PATTERN, orderFeeItems } from "./feeItemOrder";
 
-// 연체료·가산금 항목은 별도 "연체료" 메트릭 컬럼으로 노출하므로 관리비 항목 컬럼에서 제외한다.
-const LATE_FEE_PATTERN = /연체|가산/;
 const FIGMA_FEE_COLUMN_COUNT = 7;
 
 export interface ChargeReportFeeItem {
@@ -41,6 +40,7 @@ export interface ChargeReportModel {
 export interface ChargeReportOptions {
   paymentStartDate?: string | null; // 수납일 필터 시작('YYYY-MM-DD')
   paymentEndDate?: string | null; // 수납일 필터 종료
+  configuredFeeItems?: Array<{ id: number; name: string; sortOrder: number }>;
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -154,7 +154,7 @@ export function buildChargeReport(
     };
   }).sort((a, b) => b.period.localeCompare(a.period));
 
-  const feeItems = feeItemOrder.sort((a, b) => a.feeItemId - b.feeItemId);
+  const feeItems = orderFeeItems(options.configuredFeeItems, feeItemOrder);
 
   const totalCharged = sumBy(months, "charged");
   const totalPaid = sumBy(months, "paid");

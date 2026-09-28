@@ -5,6 +5,7 @@ import { useQueries } from "@tanstack/react-query";
 import { CloseIcon, PrinterIcon } from "@/components/icons";
 import type { Building } from "@/hooks/reactquery/buildings";
 import { useBuildingTypes } from "@/hooks/reactquery/buildingTypes";
+import { useFeeItems } from "@/hooks/reactquery/feeItems";
 import {
   getReceiptStatementData,
   receiptKeys,
@@ -68,6 +69,7 @@ export function MonthlyChargeModal({
   const effectiveBuildingTypeId =
     selectedBuildingTypeId ??
     (buildingTypeOptions[0] ? Number(buildingTypeOptions[0].value) : null);
+  const feeItemsQuery = useFeeItems(open && effectiveBuildingTypeId !== null ? effectiveBuildingTypeId : 0);
   const reportBuildings = useMemo(
     () =>
       buildings.filter(
@@ -145,8 +147,9 @@ export function MonthlyChargeModal({
       buildMonthlyReport(canLoad ? statementData : undefined, periods, summaryMeta, {
         paymentStartDate: paymentStart || null,
         paymentEndDate: paymentEnd || null,
+        configuredFeeItems: feeItemsQuery.data,
       }),
-    [canLoad, statementData, periods, summaryMeta, paymentStart, paymentEnd],
+    [canLoad, statementData, periods, summaryMeta, paymentStart, paymentEnd, feeItemsQuery.data],
   );
 
   if (!open) return null;
