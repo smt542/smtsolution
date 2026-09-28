@@ -16,7 +16,7 @@ export default async function TenantDetailPage({ params }: TenantDetailPageProps
   if (!hasModule(me, "tenants")) {
     return (
       <div className="flex h-full min-h-0 flex-col overflow-hidden">
-        <PageHeader breadcrumb="건물·입주자 관리" title="호수·입주민 등록" />
+        <PageHeader breadcrumb="건물·입주자 관리" title="입주자 관리" />
         <div className="px-[24px] pt-[22px]">
           <p className="text-sm text-t3">이 화면에 접근할 권한이 없습니다. (입주자 관리 권한 필요)</p>
         </div>
