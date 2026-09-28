@@ -20,7 +20,10 @@ import {
   type SendMode,
 } from "@/lib/messaging/preset";
 import { renderTemplate } from "@/lib/messaging/render";
-import { subscribeMessengerHandoff } from "@/lib/messaging/messengerHandoff";
+import {
+  subscribeMessengerHandoff,
+  type RecipientCascadePreset,
+} from "@/lib/messaging/messengerHandoff";
 import {
   newUuid,
   resolveIdempotencyKey,
@@ -75,6 +78,10 @@ function MessengerFabContent() {
   const { ui, openPanel, closePanel, toggleMin, setPos, setChannel } =
     useMessengerState();
   const [recipients, setRecipients] = useState<MessageRecipient[]>([]);
+  const [cascadeSeed, setCascadeSeed] = useState<{
+    seq: number;
+    preset: RecipientCascadePreset | null;
+  }>({ seq: 0, preset: null });
   const [sender, setSender] = useState("");
   const [body, setBody] = useState("");
   const [templateId, setTemplateId] = useState<number | null>(null);
@@ -92,7 +99,12 @@ function MessengerFabContent() {
   useEffect(
     () =>
       subscribeMessengerHandoff((handoff) => {
-        setRecipients(handoff.recipients);
+        setRecipients(handoff.cascade ? [] : (handoff.recipients ?? []));
+        // 핸드오프마다 캐스케이드를 다시 마운트해 수신자 칸을 프리셋과 맞춘다.
+        setCascadeSeed((current) => ({
+          seq: current.seq + 1,
+          preset: handoff.cascade ?? null,
+        }));
         if (handoff.body !== undefined) {
           setBody(handoff.body);
           setTemplateId(null);
@@ -279,7 +291,14 @@ function MessengerFabContent() {
   const changeChannel = (channel: ChannelMode) => {
     if (channel === ui.channel) return;
     setChannel(channel);
-    setRecipients([]);
+    // 캐스케이드는 채널 전환 때 입주자·건물주 선택을 유지하고 선택이 그대로면 onChange를 다시 보내지 않으므로,
+    // 부모 수신자를 비우면 칸에는 입주자가 선택돼 있는데 발송 인원이 0명이 된다.
+    // 직원·청소담당은 알림톡 전환 때 캐스케이드가 선택을 지우고 []를 통지한다.
+    setRecipients((current) =>
+      channel === "alim"
+        ? current.filter((recipient) => recipient.kind === "tenant" || recipient.kind === "owner")
+        : current,
+    );
     setBody("");
     setTemplateId(null);
     setAlimtalkVars({});
@@ -405,6 +424,7 @@ function MessengerFabContent() {
 
   const confirmClose = () => {
     setRecipients([]);
+    setCascadeSeed((current) => ({ ...current, preset: null }));
     setSender("");
     setBody("");
     setTemplateId(null);
@@ -463,7 +483,9 @@ function MessengerFabContent() {
             <div>
               <div className={styles["fmp-lbl"]}>수신자</div>
               <RecipientCascade
+                key={cascadeSeed.seq}
                 channel={ui.channel}
+                preset={cascadeSeed.preset}
                 onChange={changeRecipients}
               />
             </div>

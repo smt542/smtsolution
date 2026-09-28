@@ -18,7 +18,6 @@ import {
 import type { RateTier } from "@/lib/billing/lateFee";
 import { toMonthInput } from "@/lib/billing/period";
 import { openMessengerWith } from "@/lib/messaging/messengerHandoff";
-import type { MessageRecipient } from "@/lib/messaging/preset";
 import {
   PAYMENT_KIND_LABEL,
   PAYMENT_METHOD_LABEL,
@@ -499,17 +498,6 @@ export function PaymentHistorySection({
       return;
     }
 
-    const recipient: MessageRecipient = {
-      name: summary.tenantName,
-      phone: summary.phone,
-      unitNo: unitLabel(summary),
-      kind: "tenant",
-      ref: {
-        occupancyId: summary.occupancyId ?? undefined,
-        unitId: summary.unitId,
-        buildingId: summary.buildingId,
-      },
-    };
     const lines = [
       [buildingName, unitLabel(summary)].filter(Boolean).join(" "),
       buildingAddress ?? "",
@@ -525,7 +513,15 @@ export function PaymentHistorySection({
       : null;
     if (settleAccount) lines.push(settleAccount);
 
-    openMessengerWith({ recipients: [recipient], body: lines.join("\n"), channel: "sms" });
+    openMessengerWith({
+      cascade: {
+        type: "tenant",
+        buildingId: summary.buildingId,
+        unitIds: [summary.unitId],
+      },
+      body: lines.join("\n"),
+      channel: "sms",
+    });
   };
 
   const renderActionCell = (row: HistoryDisplayRow) => {

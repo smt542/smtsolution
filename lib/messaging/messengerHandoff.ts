@@ -1,5 +1,12 @@
 import type { MessageRecipient } from "./preset";
 
+/** 수신자 칸을 미리 고를 값 — 정본 `__fmpPrefill`(입주자 > 건물 > 호수). */
+export interface RecipientCascadePreset {
+  type: "tenant";
+  buildingId: number;
+  unitIds: number[];
+}
+
 /**
  * 화면에서 공용 메신저 FAB 패널을 열고 수신자·본문을 밀어 넣는 통로.
  *
@@ -11,10 +18,13 @@ import type { MessageRecipient } from "./preset";
  * `window` 이벤트를 쓴다.
  */
 export interface MessengerHandoff {
-  recipients: MessageRecipient[];
+  /** 바로 넣을 수신자. `cascade` 를 주면 쓰지 않고, 수신자 칸에서 고른 값이 수신자가 된다. */
+  recipients?: MessageRecipient[];
   /** 본문 초안. `#{키}` 변수는 수신자별로 렌더된다. */
   body?: string;
   channel?: "sms" | "alim";
+  /** 수신자 칸을 이 값으로 고른 채 연다. */
+  cascade?: RecipientCascadePreset;
 }
 
 const HANDOFF_EVENT = "erp:messenger-handoff";
