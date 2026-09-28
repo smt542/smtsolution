@@ -1,10 +1,12 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { appToast as toast } from "@/hooks/common/useAppToast";
+import { useAppToast } from "@/hooks/common/useAppToast";
 import { useIsHydrated } from "@/hooks/common";
 import { MaskedPhone } from "@/components/common/MaskedPhone";
 import { Button, CustomDropdown, Panel, Spinner } from "@/components/common";
+import { useMe } from "@/hooks/reactquery/auth";
 import { useAccounts } from "@/hooks/reactquery/accounts";
 import { useAsCategories } from "@/hooks/reactquery/asCategories";
 import { useBuildings } from "@/hooks/reactquery/buildings";
@@ -19,15 +21,15 @@ import {
   type ComplaintInput,
   type ComplaintStatus,
 } from "@/hooks/reactquery/complaints";
-import { useOrgContact } from "@/hooks/reactquery/org/useOrgContact";
-import type { MessagingPreset } from "@/lib/messaging/preset";
-import { MessagingModal } from "../../messaging/components/MessagingModal";
+import { listUnits, unitKeys } from "@/hooks/reactquery/units";
+import { openMessengerWith } from "@/lib/messaging/messengerHandoff";
+import type { MessageRecipient } from "@/lib/messaging/preset";
 import {
   COMPLAINT_STATUS_LABEL,
   COMPLAINT_STATUS_OPTIONS,
   formatUnitLabel,
 } from "../constants";
-import type { ResolutionDraft } from "./AsComplaintForm";
+import type { ComplaintMessageDraft, ResolutionDraft } from "./AsComplaintForm";
 import { ComplaintDetailModal } from "./ComplaintDetailModal";
 import { ComplaintFormModal } from "./ComplaintFormModal";
 
@@ -137,33 +139,28 @@ export function AsStatusSection({
   buildingId,
   unitId,
   canSendMessages,
-  resident,
 }: {
   orgId: number;
   buildingId: number | null;
   unitId: number | null;
   canSendMessages: boolean;
-  resident: {
-    occupancyId: number;
-    name: string | null;
-    phone: string | null;
-    alimtalkOptIn: boolean;
-  } | null;
 }) {
+  const toast = useAppToast();
+  const queryClient = useQueryClient();
   const [scope, setScope] = useState<"unit" | "building">("unit");
   const [resultFilter, setResultFilter] = useState<"" | ComplaintStatus>("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [formOpen, setFormOpen] = useState(false);
-  const [messagingPreset, setMessagingPreset] = useState<MessagingPreset | null>(null);
   const isHydrated = useIsHydrated();
 
+  const { data: me } = useMe();
   const { data: buildings = [] } = useBuildings();
   const { data: categories = [] } = useAsCategories();
   const { data: assignees = [] } = useAccounts({ type: "field_staff" });
+  const { data: accounts = [] } = useAccounts();
   const { data: complaints = [], isLoading } = useComplaints({
     buildingId: buildingId ?? undefined,
   });
-  const { data: orgContact } = useOrgContact();
 
   const createComplaint = useCreateComplaint();
   const updateComplaint = useUpdateComplaint();
@@ -178,9 +175,9 @@ export function AsStatusSection({
     updateResolution.isPending ||
     deleteComplaint.isPending;
 
-  const assigneeNames = useMemo(
-    () => new Map(assignees.map((account) => [account.userId, account.fullName])),
-    [assignees],
+  const accountNames = useMemo(
+    () => new Map(accounts.map((account) => [account.userId, account.fullName])),
+    [accounts],
   );
 
   // 정본 drawAs: No 는 범위(호실/건물 전체) 목록에서 매긴 번호이고, 결과 필터(asFilter)는 그 번호를 유지한 채 거른다.
@@ -207,9 +204,9 @@ export function AsStatusSection({
           resolvedAt: resolution.resolvedAt,
         });
       }
-      toast.success("A/S 접수가 저장되었습니다.");
+      toast.success("A/S 접수를 등록했어요");
     } catch (error) {
-      toast.error(error, "저장 중 오류가 발생했습니다.");
+      toast.error(error, "A/S 접수를 저장하지 못했어요");
       throw error;
     }
   };
@@ -234,9 +231,9 @@ export function AsStatusSection({
           await createResolution.mutateAsync({ complaintId: selected.id, ...resolutionInput });
         }
       }
-      toast.success("A/S 접수를 저장했습니다.");
+      toast.success("접수 내용을 저장했어요");
     } catch (error) {
-      toast.error(error, "저장 중 오류가 발생했습니다.");
+      toast.error(error, "A/S 접수를 저장하지 못했어요");
       throw error;
     }
   };
@@ -245,61 +242,57 @@ export function AsStatusSection({
     try {
       await deleteComplaint.mutateAsync(complaint.id);
       setSelectedId(null);
-      toast.success("A/S 접수를 삭제했습니다.");
+      toast.success("접수를 삭제했어요");
     } catch (error) {
-      toast.error(error, "삭제에 실패했습니다.");
+      toast.error(error, "A/S 접수를 삭제하지 못했어요");
     }
   };
 
-  // 확인문자 보내기 = 입주자 안내(알림톡 자동 라우팅, 미동의 시 SMS 전환) — 기존 통합 유지.
-  const messageResident = (complaint: Complaint) => {
+  const sendComplaintMessage = async (complaint: Complaint, draft: ComplaintMessageDraft) => {
     if (!canSendMessages) {
-      toast.info("문자 발송 권한이 필요합니다.");
+      toast.warning("문자 발송 권한이 필요해요");
       return;
     }
-    if (!resident?.occupancyId || !resident.phone) {
-      toast.info("입주자 연락처가 등록되어 있지 않습니다.");
-      return;
+    setSelectedId(null);
+
+    const draftBuildingId = Number(draft.buildingId);
+    const building = buildings.find((item) => item.id === draftBuildingId);
+    let unitLabel = "";
+    const draftUnitId = Number(draft.unitId);
+    if (draft.unitId !== "all" && draftUnitId > 0) {
+      try {
+        const units = await queryClient.ensureQueryData({
+          queryKey: unitKeys.byBuilding(draftBuildingId),
+          queryFn: () => listUnits(draftBuildingId),
+        });
+        const unit = units.find((item) => item.id === draftUnitId);
+        unitLabel = unit ? formatUnitLabel(unit) : "";
+      } catch {
+        if (complaint.unitId === draftUnitId && complaint.unitNo) {
+          unitLabel = formatUnitLabel({ unitNo: complaint.unitNo, dong: complaint.unitDong });
+        }
+      }
     }
 
-    const assignee = assignees.find((account) => account.userId === complaint.assignedTo);
-    const unit = formatUnitLabel({ unitNo: complaint.unitNo, dong: complaint.unitDong });
-    const buildingName =
-      complaint.buildingName ??
-      buildings.find((building) => building.id === complaint.buildingId)?.name ??
-      "";
+    const assignee = assignees.find((account) => account.userId === draft.assignedTo);
+    const recipients: MessageRecipient[] = assignee?.phone
+      ? [{
+          name: assignee.fullName,
+          phone: assignee.phone,
+          kind: "staff",
+          ref: { userId: assignee.userId, buildingId: draftBuildingId },
+        }]
+      : [];
+    const firstLine = [building?.name ?? "", unitLabel, building?.address ?? ""]
+      .filter(Boolean)
+      .join(" ");
+    const body = [
+      firstLine,
+      `접수 내용 : ${draft.content}`,
+      `입주자 전화번호 : ${draft.reporterPhone}`,
+    ].join("\n");
 
-    setMessagingPreset({
-      context: "민원·AS",
-      buildingId: complaint.buildingId,
-      channel: "alimtalk",
-      mode: "auto",
-      templateTitle: "민원·AS 처리 안내",
-      recipients: [
-        {
-          name: resident.name,
-          phone: resident.phone,
-          unitNo: unit,
-          kind: "tenant",
-          alimtalkOptIn: resident.alimtalkOptIn,
-          variables: {
-            세대: unit,
-            접수내용: complaint.content ?? complaint.title,
-            처리상태: COMPLAINT_STATUS_LABEL[complaint.status],
-            담당자: assignee?.fullName ?? "",
-          },
-          ref: {
-            occupancyId: resident.occupancyId,
-            unitId: complaint.unitId ?? undefined,
-            buildingId: complaint.buildingId,
-          },
-        },
-      ],
-      commonVariables: {
-        건물명: buildingName,
-        관리사무소연락처: orgContact?.phone ?? "",
-      },
-    });
+    openMessengerWith({ recipients, body, channel: "sms" });
   };
 
   const action = (
@@ -421,10 +414,10 @@ export function AsStatusSection({
                     </td>
                     <td className={`${AS_TD_CLASS} num`}>{asTime(complaint.receivedAt)}</td>
                     <td className={AS_TD_CLASS}>
-                      {complaint.createdBy ? assigneeNames.get(complaint.createdBy) ?? "-" : "-"}
+                      {complaint.createdBy ? accountNames.get(complaint.createdBy) ?? "-" : "-"}
                     </td>
                     <td className={AS_TD_CLASS}>
-                      {complaint.assignedTo ? assigneeNames.get(complaint.assignedTo) ?? "-" : "-"}
+                      {complaint.assignedTo ? accountNames.get(complaint.assignedTo) ?? "-" : "-"}
                     </td>
                   </tr>
                 );
@@ -441,6 +434,11 @@ export function AsStatusSection({
           buildings={buildings}
           categories={categories}
           assignees={assignees}
+          createDefaults={{
+            buildingId,
+            unitId: scope === "building" ? "all" : unitId,
+          }}
+          receiverName={me?.fullName ?? "-"}
           isPending={isComplaintSavePending}
           onClose={closeForm}
           onSubmit={createAs}
@@ -451,6 +449,7 @@ export function AsStatusSection({
         <ComplaintDetailModal
           open
           complaint={selected}
+          receiverName={selected.createdBy ? accountNames.get(selected.createdBy) ?? "-" : "-"}
           orgId={orgId}
           buildings={buildings}
           categories={categories}
@@ -459,18 +458,7 @@ export function AsStatusSection({
           onClose={() => setSelectedId(null)}
           onSubmit={updateAs}
           onDelete={removeComplaint}
-          onSendMessage={messageResident}
-        />
-      )}
-
-      {messagingPreset && (
-        <MessagingModal
-          open
-          preset={messagingPreset}
-          onClose={() => setMessagingPreset(null)}
-          onSent={() => {
-            setMessagingPreset(null);
-          }}
+          onSendMessage={sendComplaintMessage}
         />
       )}
     </Panel>

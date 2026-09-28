@@ -10,6 +10,8 @@ export interface DropdownOption {
 }
 
 interface CustomDropdownProps {
+  /** 트리거 버튼 id. 폼의 `<label htmlFor>`가 드롭다운을 가리키게 할 때 준다. */
+  id?: string;
   ariaLabel: string;
   value: string;
   options: DropdownOption[];
@@ -19,7 +21,7 @@ interface CustomDropdownProps {
    * `cell` = 정본 표 셀 편집 드롭다운(`.hc-dd`·`.tc-dd .uc-dd-btn{height:26px;padding:0 8px;font-size:12px;font-weight:400}`).
    * 칸 폭을 채우고(`w-full`), 좁으면 라벨이 말줄임된다.
    */
-  size?: "default" | "compact" | "notification" | "cell";
+  size?: "default" | "compact" | "notification" | "cell" | "form";
   /** 메뉴 최소 폭(px). 정본 표 셀 드롭다운은 인라인 `min-width:112px`(수납 이력)·`96px`(입주자정보)을 준다. */
   menuMinWidth?: number;
   compact?: boolean;
@@ -35,6 +37,8 @@ interface CustomDropdownProps {
    * 컨테이너를 늘려 모달에 스크롤바가 생기거나 `overflow:hidden` 에 잘린다.
    */
   position?: "absolute" | "fixed";
+  /** fixed 메뉴의 정렬. `start`는 트리거 왼쪽, `end`는 트리거 오른쪽 끝에 맞춘다. */
+  menuAlign?: "start" | "end";
   /**
    * 값이 어떤 옵션과도 맞지 않을 때 버튼에 보일 미선택 라벨. 정본 `#ovYear`/`#ovMonth`
    * 처럼 초기 상태가 "년도"·"월" 인 드롭다운에 쓴다. 메뉴 항목으로는 나오지 않는다.
@@ -52,6 +56,7 @@ interface CustomDropdownProps {
 }
 
 export function CustomDropdown({
+  id,
   ariaLabel,
   value,
   options,
@@ -61,6 +66,7 @@ export function CustomDropdown({
   compact = false,
   variant = "menu",
   position = "absolute",
+  menuAlign = "start",
   placeholder,
   check = "selected",
   menuMinWidth,
@@ -76,15 +82,19 @@ export function CustomDropdown({
   const isCompact = size === "compact" || compact;
   const isNotification = size === "notification";
   const isCell = size === "cell";
+  const isForm = size === "form";
   const isField = variant === "field";
-  const triggerSize = isCell
-    ? "h-[26px] w-full min-w-0 justify-between rounded-[9px] px-[8px] text-[12px] [&_svg]:h-[14px] [&_svg]:w-[14px] [&_svg]:flex-none"
-    : isNotification
-      ? "h-[34px] w-[64px] min-w-[64px] justify-between rounded-[9px] px-[10px] text-[13.5px] [&_svg]:h-[13px] [&_svg]:w-[13px]"
-      : `${isCompact ? "h-8" : "h-9"} rounded-[9px] pr-[10px] pl-[11px] text-[13px] [&_svg]:h-[15px] [&_svg]:w-[15px]`;
+  // 정본 `.as-dd .uc-dd-btn`: 폼 드롭다운은 38px/100%/14px 아이콘 규격이다.
+  const triggerSize = isForm
+    ? `h-[38px] w-full min-w-0 justify-between rounded-[9px] pl-[11px] pr-[10px] text-[13px] [&_svg]:h-[14px] [&_svg]:w-[14px] [&_svg]:flex-none [&_svg]:transition-transform [&_svg]:duration-[160ms] ${open ? "[&_svg]:rotate-180 [&_svg]:text-blue" : "[&_svg]:text-t3"}`
+    : isCell
+      ? "h-[26px] w-full min-w-0 justify-between rounded-[9px] px-[8px] text-[12px] [&_svg]:h-[14px] [&_svg]:w-[14px] [&_svg]:flex-none"
+      : isNotification
+        ? "h-[34px] w-[64px] min-w-[64px] justify-between rounded-[9px] px-[10px] text-[13.5px] [&_svg]:h-[13px] [&_svg]:w-[13px]"
+        : `${isCompact ? "h-8" : "h-9"} rounded-[9px] pr-[10px] pl-[11px] text-[13px] [&_svg]:h-[15px] [&_svg]:w-[15px]`;
   // 굵기·hover 도 크기마다 하나만 둔다(같은 속성 유틸이 둘 남으면 CSS 생성 순서가 이긴다).
   // 정본 셀 드롭다운은 400 이고 hover 는 `.uc-dd-btn:hover{border-color:#C9D0D8}` 뿐이다.
-  const triggerLook = isCell
+  const triggerLook = isCell || isForm
     ? "font-normal hover:border-[#C9D0D8]"
     : "font-bold hover:border-blue hover:shadow-[0_0_0_3px_var(--color-blue-t)]";
 
@@ -123,11 +133,13 @@ export function CustomDropdown({
       if (!trigger || !menu) return;
 
       const rect = trigger.getBoundingClientRect();
-      menu.style.width = `${rect.width}px`;
+      menu.style.width = menuAlign === "end" ? "" : `${rect.width}px`;
       menu.style.left = "0px";
       menu.style.top = "0px";
       const height = menu.offsetHeight || 90;
-      menu.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - rect.width - 8))}px`;
+      const width = menuAlign === "end" ? menu.offsetWidth : rect.width;
+      const left = menuAlign === "end" ? rect.right - width : rect.left;
+      menu.style.left = `${Math.max(8, Math.min(left, window.innerWidth - width - 8))}px`;
       menu.style.top = `${
         rect.bottom + height + 8 > window.innerHeight
           ? Math.max(8, rect.top - height - 5)
@@ -142,7 +154,7 @@ export function CustomDropdown({
       window.removeEventListener("scroll", place, true);
       window.removeEventListener("resize", place);
     };
-  }, [isFixed, open]);
+  }, [isFixed, menuAlign, open]);
 
   // fixed 메뉴는 body 포탈로 내보낸다. `overflow:clip/hidden` 조상(Panel titlebar 등)이 잘라내고,
   // drop-shadow 같은 `filter` 가 걸린 조상은 fixed 자손의 containing block 이 되어 같이 잘라낸다
@@ -159,6 +171,7 @@ export function CustomDropdown({
     >
       <button
         ref={triggerRef}
+        id={id}
         type="button"
         className={`uc-dd-btn inline-flex ${triggerSize} items-center gap-[7px] border ${open ? "border-blue" : "border-line"} bg-surface py-0 ${triggerLook} tracking-[-0.01em] text-t1 outline-none transition-[border-color,box-shadow] duration-[120ms] disabled:cursor-default disabled:opacity-[.55] disabled:shadow-none ${open ? "shadow-[0_0_0_3px_var(--color-blue-t)]" : ""}`}
         aria-label={ariaLabel}
@@ -168,7 +181,11 @@ export function CustomDropdown({
         disabled={disabled}
         onClick={() => setOpen((current) => !current)}
       >
-        <span className={`uc-dd-lbl${isCell ? " min-w-0 truncate" : ""}`}>{selected?.label ?? placeholder}</span>
+        <span
+          className={`uc-dd-lbl${isCell || isForm ? " min-w-0 truncate" : ""}${isForm && selected === undefined && placeholder !== undefined ? " font-medium text-t4" : ""}`}
+        >
+          {selected?.label ?? placeholder}
+        </span>
         <ChevronDownIcon aria-hidden="true" />
       </button>
       {open && wrapMenu(
@@ -177,10 +194,10 @@ export function CustomDropdown({
           id={menuId}
           role="listbox"
           aria-label={ariaLabel}
-          className={`uc-dd-menu max-h-[236px] overflow-auto rounded-xl border border-line bg-surface p-[6px] shadow-[0_14px_32px_-10px_rgba(23,31,40,0.22),0_2px_6px_rgba(23,31,40,0.06)] ${
+          className={`uc-dd-menu ${isForm ? "max-h-[230px] p-[5px]" : "max-h-[236px] p-[6px]"} overflow-auto rounded-xl border border-line bg-surface shadow-[0_14px_32px_-10px_rgba(23,31,40,0.22),0_2px_6px_rgba(23,31,40,0.06)] ${
             isFixed
               // field 는 메뉴 폭을 트리거에 맞추는 규격이라 140px 하한을 걸지 않는다.
-              ? `fixed z-[1000] ${isField || menuMinWidth !== undefined ? "" : "min-w-[140px]"}`
+              ? `fixed z-[1000] ${isField || menuAlign === "end" || menuMinWidth !== undefined ? "" : "min-w-[140px]"}`
               : `absolute top-[calc(100%_+_6px)] z-[80] ${isField ? "inset-x-0" : `right-0 ${menuMinWidth !== undefined ? "" : "min-w-[96px]"}`}`
           }`}
           style={menuMinWidth !== undefined ? { minWidth: menuMinWidth } : undefined}

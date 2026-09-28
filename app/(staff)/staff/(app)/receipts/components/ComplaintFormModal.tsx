@@ -4,10 +4,16 @@ import type { Account } from "@/hooks/reactquery/accounts";
 import type { AsCategory } from "@/hooks/reactquery/asCategories";
 import type { Building } from "@/hooks/reactquery/buildings";
 import type { ComplaintInput } from "@/hooks/reactquery/complaints";
-import { AsComplaintForm, type ResolutionDraft } from "./AsComplaintForm";
+import {
+  AsComplaintForm,
+  type ComplaintCreateDefaults,
+  type ResolutionDraft,
+} from "./AsComplaintForm";
 
 interface ComplaintFormModalProps {
   open: boolean;
+  createDefaults: ComplaintCreateDefaults;
+  receiverName: string;
   orgId?: number;
   buildings: Building[];
   categories: AsCategory[];
@@ -20,6 +26,8 @@ interface ComplaintFormModalProps {
 /** A/S 접수 추가(Figma) — 단일 플랫 폼 래퍼. */
 export function ComplaintFormModal({
   open,
+  createDefaults,
+  receiverName,
   orgId,
   buildings,
   categories,
@@ -33,6 +41,8 @@ export function ComplaintFormModal({
       open={open}
       mode="create"
       editing={null}
+      createDefaults={createDefaults}
+      receiverName={receiverName}
       orgId={orgId}
       buildings={buildings}
       categories={categories}

@@ -10,11 +10,13 @@ export function MoveInAlertModal({
   moveIns,
   actionHref,
   onClose,
+  onCloseAll,
   onDismissToday,
 }: {
   moveIns: TodayMoveIn[];
   actionHref?: string;
   onClose: () => void;
+  onCloseAll: () => void;
   onDismissToday: () => void;
 }) {
   return (
@@ -23,6 +25,7 @@ export function MoveInAlertModal({
       subtitle={`입주예정일이 오늘인 세대가 ${moveIns.length}건 있어요.`}
       actionHref={actionHref}
       onClose={onClose}
+      onCloseAll={onCloseAll}
       onDismissToday={onDismissToday}
     >
       {moveIns.map((moveIn) => (

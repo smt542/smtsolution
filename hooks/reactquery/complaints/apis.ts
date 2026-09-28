@@ -238,9 +238,16 @@ export async function getComplaint(id: number): Promise<Complaint> {
 }
 
 export async function createComplaint(input: ComplaintInput): Promise<Complaint> {
-  const { data, error } = await createClient()
+  const supabase = createClient();
+  // 접수자 = 등록한 직원(정본 A/S 폼의 접수자 칸). 호출부가 주지 않으면 로그인 사용자로 채운다.
+  let inputWithCreator = input;
+  if (input.createdBy === undefined) {
+    const { data: auth } = await supabase.auth.getUser();
+    inputWithCreator = { ...input, createdBy: auth.user?.id ?? null };
+  }
+  const { data, error } = await supabase
     .from("complaints")
-    .insert(complaintInputToRow(input))
+    .insert(complaintInputToRow(inputWithCreator))
     .select(COMPLAINT_SELECT)
     .single();
   if (error) throw new Error(error.message);

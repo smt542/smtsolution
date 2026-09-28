@@ -10,11 +10,13 @@ export function LeaseExpiryAlertModal({
   expiries,
   actionHref,
   onClose,
+  onCloseAll,
   onDismissToday,
 }: {
   expiries: UpcomingLeaseExpiry[];
   actionHref?: string;
   onClose: () => void;
+  onCloseAll: () => void;
   onDismissToday: () => void;
 }) {
   return (
@@ -23,6 +25,7 @@ export function LeaseExpiryAlertModal({
       subtitle={`임대 계약 만료가 다가온 세대가 ${expiries.length}건 있어요.`}
       actionHref={actionHref}
       onClose={onClose}
+      onCloseAll={onCloseAll}
       onDismissToday={onDismissToday}
     >
       {expiries.map((expiry) => (

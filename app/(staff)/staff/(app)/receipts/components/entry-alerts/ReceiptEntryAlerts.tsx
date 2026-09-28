@@ -49,16 +49,25 @@ export function ReceiptEntryAlerts() {
       expiries.length > 0,
   );
 
+  // 정본 upAlerts: X는 남은 알림까지 닫고(upHide), [오늘 그만보기]는 오늘 알림 전부를 숨긴다(키 하나).
+  const closeAll = () => {
+    setMoveInClosed(true);
+    setExpiryClosed(true);
+  };
+  const dismissAllToday = () => {
+    moveInDismiss.dismiss();
+    expiryDismiss.dismiss();
+    closeAll();
+  };
+
   if (showMoveIn && moveIns) {
     return (
       <MoveInAlertModal
         moveIns={moveIns}
         actionHref={ALERT_SETTINGS_HREF}
         onClose={() => setMoveInClosed(true)}
-        onDismissToday={() => {
-          moveInDismiss.dismiss();
-          setMoveInClosed(true);
-        }}
+        onCloseAll={closeAll}
+        onDismissToday={dismissAllToday}
       />
     );
   }
@@ -69,10 +78,8 @@ export function ReceiptEntryAlerts() {
         expiries={expiries}
         actionHref={ALERT_SETTINGS_HREF}
         onClose={() => setExpiryClosed(true)}
-        onDismissToday={() => {
-          expiryDismiss.dismiss();
-          setExpiryClosed(true);
-        }}
+        onCloseAll={closeAll}
+        onDismissToday={dismissAllToday}
       />
     );
   }

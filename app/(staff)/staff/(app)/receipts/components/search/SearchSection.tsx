@@ -14,17 +14,18 @@ export function SearchSection({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-xl bg-bg p-[13px]">
-      <div className="mb-[19px] flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-[7px]">
-          <span className="h-[14px] w-[3px] shrink-0 rounded-[2px] bg-[#14a497]" aria-hidden />
-          <h3 className="whitespace-nowrap text-[13.5px] font-extrabold tracking-[-0.27px] text-t1">
-            {title}
-          </h3>
-        </div>
-        <div className="flex flex-1 flex-wrap items-center justify-end gap-2">{actions}</div>
+    <section className="flex min-h-0 flex-1 flex-col rounded-[14px] border border-line bg-bg px-[12px] pb-[12px] pt-[11px]">
+      <div className="mb-[12px] flex shrink-0 items-center gap-[8px]">
+        <h3 className="mr-[4px] inline-flex flex-none items-center gap-[7px] whitespace-nowrap text-[13.5px] font-extrabold tracking-[-0.02em] text-t1">
+          <span aria-hidden className="h-[14px] w-[3px] flex-none rounded-[2px] bg-blue" />
+          {title}
+        </h3>
+        <div className="flex-1" />
+        {actions}
       </div>
-      <div className="flex flex-col gap-[10px] md:flex-row">{children}</div>
+      <div className="mt-[10px] grid min-h-0 flex-1 grid-cols-1 gap-[10px] min-[1041px]:grid-cols-2">
+        {children}
+      </div>
     </section>
   );
 }

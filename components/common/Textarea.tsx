@@ -11,6 +11,8 @@ const VARIANTS = {
   default: "rounded-xl px-4 py-3 text-sm",
   compact:
     "rounded-[12px] px-[13px] py-[12px] text-[14px] font-medium leading-[22.4px] placeholder:text-[14px] placeholder:font-medium placeholder:leading-[22.4px]",
+  // 정본 `.as-in.as-ta`: 86px/10px/9·11px/13px, 세로 리사이즈·3px 청록 링.
+  form: "min-h-[86px] resize-y rounded-[10px] px-[11px] py-[9px] text-[13px] leading-[1.6] placeholder:font-medium focus:ring-[3px] focus:ring-teal-t",
 } as const;
 
 export function Textarea({

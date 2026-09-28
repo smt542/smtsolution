@@ -434,12 +434,6 @@ export function ReceiptWorkspace({
             buildingId={selectedBuildingId}
             unitId={selectedUnitId}
             canSendMessages={canSendMessages}
-            resident={occFull?.occupancy ? {
-              occupancyId: occFull.occupancy.id,
-              name: occFull.occupancy.tenantName,
-              phone: occFull.occupancy.phone,
-              alimtalkOptIn: occFull.occupancy.alimtalkOptIn,
-            } : null}
           />
         </div>
       </div>
@@ -447,6 +441,7 @@ export function ReceiptWorkspace({
       <UnifiedSearchModal
         open={searchOpen}
         onClose={() => setSearchOpen(false)}
+        orgId={orgId}
         buildings={orgBuildings}
         receiptRows={receiptRows}
         period={period}

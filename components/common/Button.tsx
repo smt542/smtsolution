@@ -16,6 +16,9 @@ import { dropOverridden } from "./buttonOverride";
  *            기본값에서 내렸다. 정본이 실제로 44px인 팝업 버튼에만 명시적으로 쓴다.
  * - `login`  로그인 제출 버튼(50/r14/15, 굵기 800). 정본 staff·admin 로그인의 `#lgSubmit`과
  *            동일하다. 정본에 그림자가 없으므로 호출부에서 `shadow-none`을 준다.
+ * - `md`     정본 조회 모달 `.hf-btn.sec.lk-go`(인라인 height:38px). `.lk-go{padding:0 14px;font-size:13px}`는
+ *            뒤에 오는 `.hf-btn` 규칙에 눌려 실제 렌더는 `std`와 같은 13.5px·padding 15px다.
+ * - `wide`   정본 `.lg-print`·`.fmpc-btn` 와이드 버튼(40/r11/13.5, padding 0 18px, gap 7px).
  *
  * 굵기도 규격의 일부라 size가 정한다(`login`만 800). 기본값으로 따로 두면 `font-bold`와
  * 호출부 굵기가 함께 남아 위와 같은 명시도 문제가 생긴다.
@@ -27,6 +30,8 @@ const SIZES = {
   sm: "h-[26px] rounded-lg px-[10px] text-[11.5px] font-bold",
   legacy: "h-11 rounded-xl px-4 text-sm font-bold",
   login: "h-[50px] rounded-[14px] text-[15px] font-extrabold",
+  md: "inline-flex items-center justify-center gap-1.5 h-[38px] rounded-btn px-[15px] text-[13.5px] font-bold whitespace-nowrap",
+  wide: "inline-flex items-center justify-center gap-[7px] h-10 rounded-btn px-[18px] text-[13.5px] font-bold tracking-[-0.01em] whitespace-nowrap",
 } as const;
 
 /**
@@ -38,6 +43,8 @@ const VARIANTS = {
   ghost: "bg-white text-t2 border border-line hover:bg-bg",
   danger: "bg-danger text-white",
   dangerTint: "border border-red-t bg-red-t text-red",
+  // 정본 A/S 상세 삭제 `.hf-btn.sec`: 빨간 테두리·글자, hover 없음.
+  dangerOutline: "border border-red bg-white text-red",
 } as const;
 
 /**
@@ -56,7 +63,7 @@ type ButtonBaseProps = Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "clas
  */
 type ButtonProps = ButtonBaseProps &
   (
-    | { size?: "std" | "legacy" | "login"; variant?: keyof typeof VARIANTS }
+    | { size?: "std" | "legacy" | "login" | "md" | "wide"; variant?: keyof typeof VARIANTS }
     | { size: "sm"; variant?: "ghost" }
   );
 
