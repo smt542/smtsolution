@@ -326,11 +326,23 @@ export function TenantForm({
       roomTypeId,
       moveInDate,
     });
+    const occupancy = full?.occupancy;
+    const hasResident = tenantName !== "" || phones.some((phone) => phone.trim() !== "");
+    // 이사중은 유지하고, 입주자명·전화번호가 있으면 입주, 기존 입주는 공실 입력에도 유지하며 나머지는 공실로 저장한다.
+    const status = occupancy?.status === "moving_out"
+      ? "moving_out"
+      : hasResident
+        ? "occupied"
+        : occupancy?.status === "occupied"
+          ? "occupied"
+          : "vacant";
+    // 공실로 저장되는 호수만 전화번호 없이 저장한다. 나머지는 첫 칸(전화번호(주))이 있어야 한다.
+    const phoneMissing = status !== "vacant" && !phones[0];
 
-    if (!parsed.success) {
+    if (!parsed.success || phoneMissing) {
       const nextBasicErrors: BasicErrors = {};
-      let nextPhoneError: string | undefined;
-      for (const issue of parsed.error.issues) {
+      let nextPhoneError = phoneMissing ? "전화번호를 입력해 주세요" : undefined;
+      for (const issue of parsed.error?.issues ?? []) {
         const key = String(issue.path[0]);
         if (key === "phone") nextPhoneError ??= issue.message;
         if (
@@ -352,16 +364,6 @@ export function TenantForm({
 
     setBasicErrors({});
     setPhoneError(undefined);
-    const occupancy = full?.occupancy;
-    const hasResident = tenantName !== "" || phones.some((phone) => phone.trim() !== "");
-    // 이사중은 유지하고, 입주자명·전화번호가 있으면 입주, 기존 입주는 공실 입력에도 유지하며 나머지는 공실로 저장한다.
-    const status = occupancy?.status === "moving_out"
-      ? "moving_out"
-      : hasResident
-        ? "occupied"
-        : occupancy?.status === "occupied"
-          ? "occupied"
-          : "vacant";
     const payload: SaveUnitOccupancyPayload = {
       buildingId,
       unitId: unitId ?? null,
