@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import type { BillDocument } from "@/hooks/reactquery/bill";
 import type {
   PaymentMethod,
@@ -152,6 +152,28 @@ export function useReceiptPaymentStatus(
     enabled: enabled && orgId > 0 && Boolean(period),
   });
   return { ...query, data: query.data ?? EMPTY_PAYMENT_STATUS };
+}
+
+export function useReceiptPaymentStatusPeriods(
+  orgId: number,
+  periods: string[],
+  enabled: boolean,
+) {
+  const queries = useQueries({
+    queries: periods.map((period) => ({
+      queryKey: receiptKeys.workspace(orgId, period),
+      queryFn: () => listReceiptPaymentStatus(orgId, period),
+      enabled: enabled && orgId > 0 && Boolean(period),
+    })),
+  });
+
+  return {
+    periods: periods.map((period, index) => ({
+      period,
+      rows: queries[index]?.data?.rows ?? [],
+    })),
+    isLoading: enabled && queries.some((query) => query.isLoading),
+  };
 }
 
 interface StatementPaymentRowDb {

@@ -8,6 +8,9 @@ export interface SearchColumn {
   label: string;
   /** 금액 등 숫자 컬럼은 우측 정렬 */
   align?: "right";
+  width?: number;
+  minWidth?: number;
+  strong?: boolean;
 }
 
 export interface SearchResultRow {
@@ -23,62 +26,77 @@ export function SearchResultTable({
   rows,
   placeholder,
   onJump,
+  clickable = true,
 }: {
   title: string;
   columns: SearchColumn[];
   rows: SearchResultRow[];
   placeholder: string;
   onJump: (buildingId: number, unitId: number | null) => void;
+  clickable?: boolean;
 }) {
   return (
-    <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-line bg-surface">
-      <div className="flex items-center justify-between border-b border-line2 bg-[#fbfcfd] px-[13px] py-[9px]">
-        <p className="text-[12.5px] font-extrabold text-t2">{title}</p>
-        <p className="num text-[12.5px] font-bold text-t3">{rows.length}건</p>
+    <div className="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-[12px] border border-line bg-surface">
+      <div className="flex shrink-0 items-center justify-between gap-[8px] border-b border-line2 bg-[#FBFCFD] px-[13px] py-[9px] text-[12.5px] font-extrabold text-t2">
+        <span>{title}</span>
+        <span className="num text-[12.5px] font-bold text-t3">{rows.length}건</span>
       </div>
-      <div className="min-h-[204px] flex-1 overflow-x-auto">
-        {rows.length === 0 ? (
-          <div className="flex h-[204px] items-center justify-center px-4 text-center">
-            <p className="text-[13.5px] font-medium text-t3">{placeholder}</p>
-          </div>
-        ) : (
-          <table className="w-full text-[13px]">
-            <thead>
-              <tr className="bg-[#fbfcfd]">
-                {columns.map((column) => (
-                  <th
-                    key={column.label}
-                    className={`whitespace-nowrap border-b border-line px-[16px] py-[11px] text-[12px] font-bold text-t3 ${
-                      column.align === "right" ? "text-right" : "text-left"
-                    }`}
-                  >
-                    {column.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
+      <div className="min-h-[110px] flex-1 overflow-auto">
+        <table className="w-full border-collapse whitespace-nowrap">
+          <thead>
+            <tr>
+              {columns.map((column) => (
+                <th
+                  key={column.label}
+                  style={{ width: column.width, minWidth: column.minWidth }}
+                  className={`sticky top-0 z-[2] whitespace-nowrap border-b border-line bg-[#FBFCFD] px-[16px] py-[11px] text-[12px] font-bold text-t3 ${
+                    column.align === "right" ? "text-right" : "text-left"
+                  }`}
+                >
+                  {column.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length ? (
+              rows.map((row) => (
                 <tr
                   key={row.key}
-                  onClick={() => onJump(row.buildingId, row.unitId)}
-                  className="cursor-pointer border-b border-line2 last:border-0 hover:bg-blue-t2"
+                  onClick={clickable ? () => onJump(row.buildingId, row.unitId) : undefined}
+                  className={clickable ? "cursor-pointer [&:hover>td]:bg-blue-t2" : undefined}
                 >
-                  {row.cells.map((cell, index) => (
-                    <td
-                      key={index}
-                      className={`whitespace-nowrap px-[16px] py-[10px] text-t1 ${
-                        columns[index]?.align === "right" ? "num text-right" : "text-left"
-                      }`}
-                    >
-                      {cell}
-                    </td>
-                  ))}
+                  {/* 정본 조회 표의 `-`는 `<span class="dsh">`지만 `.dsh` 규칙이 호실 표(`#rcUnitBody td.dsh`)에만
+                    있어 셀 글자와 같은 색·굵기로 렌더된다. 그래서 `-`도 따로 꾸미지 않는다. */}
+                  {row.cells.map((cell, index) => {
+                    const column = columns[index];
+                    return (
+                      <td
+                        key={index}
+                        className={`${
+                          column?.align === "right" ? "num text-right" : "text-left"
+                        } whitespace-nowrap border-b border-line2 px-[16px] py-[12px] text-[13.5px] text-t1 ${
+                          column?.strong ? "font-semibold" : ""
+                        }`}
+                      >
+                        {cell}
+                      </td>
+                    );
+                  })}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan={columns.length}
+                  className="py-[34px] text-center text-[13.5px] font-medium text-t3"
+                >
+                  {placeholder}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

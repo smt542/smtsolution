@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { useEffect, useId, useMemo } from "react";
+import { Controller, useForm, useWatch, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Input, PhoneInput, Select, Spinner, Textarea } from "@/components/common";
+import { Button, CustomDropdown, Input, PhoneInput, Textarea } from "@/components/common";
 import { DateInput, TimeInput } from "@/components/common/DateInput";
+import { useConfirm } from "@/components/common/ConfirmProvider";
 import { FormField } from "@/components/common/FormField";
-import { setSubmissionError } from "@/components/forms/formErrors";
+import { useAppToast } from "@/hooks/common/useAppToast";
 import {
   complaintFormSchema,
   type ComplaintFormInput,
@@ -26,10 +27,25 @@ export interface ResolutionDraft {
   resolvedAt: string | null;
 }
 
+export interface ComplaintCreateDefaults {
+  buildingId: number | null;
+  unitId: number | "all" | null;
+}
+
+export interface ComplaintMessageDraft {
+  buildingId: string;
+  unitId: string;
+  assignedTo: string;
+  content: string;
+  reporterPhone: string;
+}
+
 interface AsComplaintFormProps {
   open: boolean;
   mode: "create" | "detail";
   editing: Complaint | null;
+  createDefaults?: ComplaintCreateDefaults;
+  receiverName: string;
   orgId?: number;
   buildings: Building[];
   categories: AsCategory[];
@@ -38,7 +54,7 @@ interface AsComplaintFormProps {
   onClose: () => void;
   onSubmit: (input: ComplaintInput, resolution: ResolutionDraft | null) => Promise<void>;
   onDelete?: (complaint: Complaint) => void | Promise<void>;
-  onSendMessage?: (complaint: Complaint) => void;
+  onSendMessage?: (complaint: Complaint, draft: ComplaintMessageDraft) => void;
 }
 
 function toDateInput(value?: string | null) {
@@ -63,13 +79,20 @@ function todayInput() {
   return local.toISOString().slice(0, 10);
 }
 
-function defaultsFor(editing: Complaint | null): ComplaintFormInput {
+function defaultsFor(
+  editing: Complaint | null,
+  createDefaults: ComplaintCreateDefaults | undefined,
+  defaultAssignedTo: string,
+): ComplaintFormInput {
   const resolution = editing?.resolutions?.[0] ?? null;
   return {
-    buildingId: editing ? String(editing.buildingId) : "",
-    unitId: editing?.unitId ? String(editing.unitId) : "",
-    reporterName: editing?.reporterName ?? "",
-    assignedTo: editing?.assignedTo ?? "",
+    buildingId: editing ? String(editing.buildingId) : String(createDefaults?.buildingId ?? ""),
+    unitId: editing
+      ? editing.unitId === null || editing.unitId === undefined ? "all" : String(editing.unitId)
+      : createDefaults?.unitId === null || createDefaults?.unitId === undefined
+        ? "all"
+        : String(createDefaults.unitId),
+    assignedTo: editing?.assignedTo ?? defaultAssignedTo,
     receivedDate: editing ? toDateInput(editing.receivedAt) : todayInput(),
     categoryId: editing?.categoryId ? String(editing.categoryId) : "",
     reporterPhone: editing?.reporterPhone ?? "",
@@ -85,6 +108,8 @@ export function AsComplaintForm({
   open,
   mode,
   editing,
+  createDefaults,
+  receiverName,
   orgId,
   buildings,
   categories,
@@ -96,15 +121,35 @@ export function AsComplaintForm({
   onSendMessage,
 }: AsComplaintFormProps) {
   const formId = useId();
-  const defaults = useMemo(() => defaultsFor(editing), [editing]);
+  const toast = useAppToast();
+  const confirm = useConfirm();
+  const createDefaultBuildingId = createDefaults?.buildingId;
+  const createDefaultUnitId = createDefaults?.unitId;
+  const defaultAssignedTo = useMemo(() => {
+    if (mode !== "create") return "";
+    const building = buildings.find((item) => item.id === createDefaultBuildingId);
+    return building?.managerUserId && assignees.some((account) => account.userId === building.managerUserId)
+      ? building.managerUserId
+      : "";
+  }, [assignees, buildings, createDefaultBuildingId, mode]);
+  const defaults = useMemo(
+    () => defaultsFor(
+      editing,
+      { buildingId: createDefaultBuildingId ?? null, unitId: createDefaultUnitId ?? "all" },
+      defaultAssignedTo,
+    ),
+    [createDefaultBuildingId, createDefaultUnitId, defaultAssignedTo, editing],
+  );
   const {
     register,
     control,
     handleSubmit,
     reset,
+    resetField,
     setValue,
-    setError,
-    formState: { errors, dirtyFields, isSubmitting },
+    setFocus,
+    getValues,
+    formState: { dirtyFields, isSubmitting },
   } = useForm<ComplaintFormInput, unknown, ComplaintFormValues>({
     resolver: zodResolver(complaintFormSchema),
     defaultValues: defaults,
@@ -113,10 +158,9 @@ export function AsComplaintForm({
   const buildingValue = useWatch({ control, name: "buildingId" });
   const unitValue = useWatch({ control, name: "unitId" });
   const selectedBuildingId = Number(buildingValue) || 0;
-  const selectedUnitId = Number(unitValue) || 0;
+  const selectedUnitId = unitValue === "all" ? 0 : Number(unitValue) || 0;
   const { data: units = [], isLoading: unitsLoading } = useUnits(selectedBuildingId);
   const { data: occupancies = [] } = useOccupancies(selectedUnitId);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const submitting = isPending || isSubmitting;
 
   const currentOccupancy = selectedUnitId
@@ -129,30 +173,22 @@ export function AsComplaintForm({
 
   useEffect(() => {
     if (mode !== "create" || !currentOccupancy) return;
-    if (!dirtyFields.reporterName) {
-      setValue("reporterName", currentOccupancy.tenantName ?? "", { shouldDirty: false });
-    }
     if (!dirtyFields.reporterPhone) {
       setValue("reporterPhone", currentOccupancy.phone ?? "", { shouldDirty: false });
     }
-  }, [currentOccupancy, dirtyFields.reporterName, dirtyFields.reporterPhone, mode, setValue]);
+  }, [currentOccupancy, dirtyFields.reporterPhone, mode, setValue]);
 
   const unitOptions = useMemo(
-    () => [
-      { value: "", label: selectedBuildingId ? "호수 선택" : "건물 먼저 선택" },
-      ...units.map((unit) => ({ value: String(unit.id), label: formatUnitLabel(unit) })),
-    ],
-    [selectedBuildingId, units],
+    () => [{ value: "all", label: "건물 전체" }, ...units.map((unit) => ({ value: String(unit.id), label: formatUnitLabel(unit) }))],
+    [units],
   );
-  const buildingField = register("buildingId");
-  const unitField = register("unitId");
   const closeSafely = () => {
     if (!submitting) onClose();
   };
 
   const submit = async (values: ComplaintFormValues) => {
     if (!orgId) {
-      setError("root.server", { type: "server", message: "인증 정보를 확인할 수 없습니다." });
+      toast.error("인증 정보를 확인할 수 없어요");
       return;
     }
 
@@ -170,7 +206,6 @@ export function AsComplaintForm({
       title: values.content.split("\n")[0].slice(0, 60) || "A/S 접수",
       content: values.content,
       status: values.status,
-      reporterName: values.reporterName,
       reporterPhone: values.reporterPhone,
       assignedTo: values.assignedTo,
       receivedAt: startOfDayIso(values.receivedDate),
@@ -181,63 +216,157 @@ export function AsComplaintForm({
 
     try {
       await onSubmit(input, resolution);
-      reset(defaults);
-      onClose();
-    } catch (error) {
-      setSubmissionError(error, setError, "A/S 접수를 저장하지 못했습니다.");
+    } catch {
+      // 실패 안내는 onSubmit(AsStatusSection)이 토스트로 띄운다. 입력을 지키려고 창은 열어 둔다.
+      return;
     }
+    reset(defaults);
+    onClose();
+  };
+
+  const onInvalid = (validationErrors: FieldErrors<ComplaintFormInput>) => {
+    const fieldOrder = [
+      "buildingId",
+      "receivedDate",
+      "categoryId",
+      "content",
+      "resolvedDate",
+      "unitId",
+    ] as const;
+    const field = fieldOrder.find((name) => validationErrors[name])
+      ?? Object.keys(validationErrors)[0] as keyof ComplaintFormInput | undefined;
+    if (!field) return;
+    const message = validationErrors[field]?.message;
+    if (typeof message === "string") toast.warning(message);
+    setFocus(field);
+  };
+
+  const confirmDelete = async () => {
+    if (!editing || !onDelete || submitting) return;
+    const confirmed = await confirm({
+      title: "이 접수를 삭제할까요?",
+      description: "삭제하면 되돌릴 수 없어요.",
+      confirmLabel: "삭제",
+      variant: "danger",
+    });
+    if (confirmed) await onDelete(editing);
+  };
+
+  const sendMessage = () => {
+    if (!editing || !onSendMessage || submitting) return;
+    const values = getValues();
+    onSendMessage(editing, {
+      buildingId: String(values.buildingId ?? ""),
+      unitId: String(values.unitId ?? ""),
+      assignedTo: String(values.assignedTo ?? ""),
+      content: String(values.content ?? ""),
+      reporterPhone: String(values.reporterPhone ?? ""),
+    });
   };
 
   const footer = mode === "create" ? (
-    <div className="flex justify-end">
-      <Button type="submit" form={formId} disabled={submitting}>{submitting ? "추가 중…" : "추가"}</Button>
+    <div className="flex items-center gap-[8px]">
+      <div className="flex-1" />
+      <Button size="wide" type="submit" form={formId} disabled={submitting} className="shadow-none">추가</Button>
     </div>
   ) : (
-    <div className="flex items-center justify-between gap-2">
-      {confirmDelete ? (
-        <div className="flex items-center gap-2">
-          <Button type="button" variant="danger" disabled={submitting} onClick={() => editing && void onDelete?.(editing)}>삭제 확인</Button>
-          <Button type="button" variant="ghost" disabled={submitting} onClick={() => setConfirmDelete(false)}>취소</Button>
-        </div>
-      ) : (
-        <Button type="button" variant="danger" disabled={submitting} onClick={() => setConfirmDelete(true)}>삭제</Button>
-      )}
-      <div className="flex gap-2">
-        <Button type="button" variant="ghost" disabled={submitting} onClick={() => editing && onSendMessage?.(editing)}>확인문자 보내기</Button>
-        <Button type="submit" form={formId} disabled={submitting}>{submitting ? "저장 중…" : "저장"}</Button>
-      </div>
+    <div className="flex items-center gap-[8px]">
+      <Button type="button" variant="dangerOutline" disabled={submitting} onClick={() => void confirmDelete()}>삭제</Button>
+      <div className="flex-1" />
+      <Button type="button" variant="ghost" disabled={submitting} onClick={sendMessage}>확인문자 보내기</Button>
+      <Button size="wide" type="submit" form={formId} disabled={submitting} className="shadow-none">저장</Button>
     </div>
   );
 
   return (
-    <ComplaintDialog open={open} onClose={closeSafely} title={mode === "create" ? "A/S 접수 추가" : "A/S 접수 상세"} size="medium" footer={footer}>
-      <form id={formId} className="grid grid-cols-1 gap-4 sm:grid-cols-3" onSubmit={handleSubmit(submit)} noValidate>
-        <FormField htmlFor={`${formId}-building`} label={<>건물 <span className="text-red">*</span></>} error={errors.buildingId?.message} className="space-y-2 text-sm font-bold text-t2">
-          <Select id={`${formId}-building`} aria-label="건물" {...buildingField} onChange={(event) => {
-            void buildingField.onChange(event);
-            setValue("unitId", "", { shouldDirty: true });
-            setValue("reporterName", "", { shouldDirty: false });
-            setValue("reporterPhone", "", { shouldDirty: false });
-          }} options={[{ value: "", label: "건물 선택" }, ...buildings.map((building) => ({ value: String(building.id), label: building.name }))]} />
+    <ComplaintDialog open={open} onClose={closeSafely} title={mode === "create" ? "A/S 접수 추가" : "A/S 접수 상세"} look="canon" footer={footer}>
+      <form id={formId} className="grid grid-cols-3 gap-[12px]" onSubmit={handleSubmit(submit, onInvalid)} noValidate>
+        <FormField htmlFor={`${formId}-building`} label={<>건물<b className="ml-[3px] font-bold text-red">*</b></>} className="flex min-w-0 flex-col gap-[6px]" labelClassName="block text-[12px] font-medium text-t1">
+          <Controller
+            name="buildingId"
+            control={control}
+            render={({ field }) => (
+              <CustomDropdown
+                id={`${formId}-building`}
+                ariaLabel="건물"
+                value={String(field.value ?? "")}
+                onChange={(value) => {
+                  field.onChange(value);
+                  setValue("unitId", "all", { shouldDirty: true });
+                  const building = buildings.find((item) => item.id === Number(value));
+                  const managerUserId = building?.managerUserId && assignees.some(
+                    (account) => account.userId === building.managerUserId,
+                  ) ? building.managerUserId : "";
+                  setValue("assignedTo", managerUserId, { shouldDirty: true });
+                  resetField("reporterPhone", { defaultValue: "" });
+                }}
+                options={buildings.map((building) => ({ value: String(building.id), label: building.name }))}
+                placeholder="건물 선택"
+                size="form"
+                position="fixed"
+                menuAlign="end"
+                menuMinWidth={132}
+                variant="menu"
+              />
+            )}
+          />
         </FormField>
 
-        <FormField htmlFor={`${formId}-unit`} label={<>호수 <span className="text-red">*</span></>} error={errors.unitId?.message} className="space-y-2 text-sm font-bold text-t2">
-          {unitsLoading ? <div className="flex h-11 items-center"><Spinner /></div> : (
-            <Select id={`${formId}-unit`} aria-label="호수" {...unitField} disabled={!selectedBuildingId} onChange={(event) => {
-              void unitField.onChange(event);
-              setValue("reporterName", "", { shouldDirty: false });
-              setValue("reporterPhone", "", { shouldDirty: false });
-            }} options={unitOptions} />
-          )}
+        <FormField htmlFor={`${formId}-unit`} label={<>호수<b className="ml-[3px] font-bold text-red">*</b></>} className="flex min-w-0 flex-col gap-[6px]" labelClassName="block text-[12px] font-medium text-t1">
+          <Controller
+            name="unitId"
+            control={control}
+            render={({ field }) => (
+              <CustomDropdown
+                id={`${formId}-unit`}
+                ariaLabel="호수"
+                value={String(field.value ?? "")}
+                onChange={(value) => {
+                  field.onChange(value);
+                  if (value === "all") {
+                    resetField("reporterPhone", { defaultValue: "" });
+                  } else if (!dirtyFields.reporterPhone) {
+                    setValue("reporterPhone", "", { shouldDirty: false });
+                  }
+                }}
+                options={unitsLoading ? [] : unitOptions}
+                placeholder="호수 선택"
+                disabled={!selectedBuildingId}
+                size="form"
+                position="fixed"
+                menuAlign="end"
+                menuMinWidth={132}
+                variant="menu"
+              />
+            )}
+          />
         </FormField>
 
-        <FormField htmlFor={`${formId}-reporter`} label="접수자" error={errors.reporterName?.message} className="space-y-2 text-sm font-bold text-t2">
-          <Input id={`${formId}-reporter`} aria-label="접수자" {...register("reporterName")} placeholder="접수자 이름" />
+        <FormField htmlFor={`${formId}-reporter`} label="접수자" className="flex min-w-0 flex-col gap-[6px]" labelClassName="block text-[12px] font-medium text-t1">
+          <Input id={`${formId}-reporter`} aria-label="접수자" size="38-13" value={receiverName || "-"} readOnly tabIndex={-1} />
         </FormField>
-        <FormField htmlFor={`${formId}-assignee`} label="담당자" error={errors.assignedTo?.message} className="space-y-2 text-sm font-bold text-t2">
-          <Select id={`${formId}-assignee`} aria-label="담당자" {...register("assignedTo")} options={[{ value: "", label: "담당자 선택" }, ...assignees.map((account) => ({ value: account.userId, label: account.affiliation ? `${account.fullName} · ${account.affiliation}` : account.fullName }))]} />
+        <FormField htmlFor={`${formId}-assignee`} label="담당자" className="flex min-w-0 flex-col gap-[6px]" labelClassName="block text-[12px] font-medium text-t1">
+          <Controller
+            name="assignedTo"
+            control={control}
+            render={({ field }) => (
+              <CustomDropdown
+                id={`${formId}-assignee`}
+                ariaLabel="담당자"
+                value={String(field.value ?? "")}
+                onChange={field.onChange}
+                options={assignees.map((account) => ({ value: account.userId, label: account.fullName }))}
+                placeholder="담당자 선택"
+                size="form"
+                position="fixed"
+                menuAlign="end"
+                menuMinWidth={132}
+                variant="menu"
+              />
+            )}
+          />
         </FormField>
-        <FormField htmlFor={`${formId}-received`} label={<>접수일시 <span className="text-red">*</span></>} error={errors.receivedDate?.message} className="space-y-2 text-sm font-bold text-t2">
+        <FormField htmlFor={`${formId}-received`} label={<>접수일시<b className="ml-[3px] font-bold text-red">*</b></>} className="flex min-w-0 flex-col gap-[6px]" labelClassName="block text-[12px] font-medium text-t1">
           <Controller
             name="receivedDate"
             control={control}
@@ -247,23 +376,60 @@ export function AsComplaintForm({
                 ariaLabel="접수일시"
                 value={field.value ?? ""}
                 onChange={field.onChange}
+                size="38-13"
               />
             )}
           />
         </FormField>
-        <FormField htmlFor={`${formId}-category`} label={<>유형 <span className="text-red">*</span></>} error={errors.categoryId?.message} className="space-y-2 text-sm font-bold text-t2">
-          <Select id={`${formId}-category`} aria-label="유형" {...register("categoryId")} options={[{ value: "", label: "유형 선택" }, ...categories.map((category) => ({ value: String(category.id), label: category.label }))]} />
+        <FormField htmlFor={`${formId}-category`} label={<>유형<b className="ml-[3px] font-bold text-red">*</b></>} className="flex min-w-0 flex-col gap-[6px]" labelClassName="block text-[12px] font-medium text-t1">
+          <Controller
+            name="categoryId"
+            control={control}
+            render={({ field }) => (
+              <CustomDropdown
+                id={`${formId}-category`}
+                ariaLabel="유형"
+                value={String(field.value ?? "")}
+                onChange={field.onChange}
+                options={categories.map((category) => ({ value: String(category.id), label: category.label }))}
+                placeholder="유형 선택"
+                size="form"
+                position="fixed"
+                menuAlign="end"
+                menuMinWidth={132}
+                variant="menu"
+              />
+            )}
+          />
         </FormField>
-        <FormField htmlFor={`${formId}-phone`} label="입주자 전화번호" error={errors.reporterPhone?.message} className="space-y-2 text-sm font-bold text-t2">
-          <PhoneInput id={`${formId}-phone`} aria-label="입주자 전화번호" {...register("reporterPhone")} placeholder="010-0000-0000" />
+        <FormField htmlFor={`${formId}-phone`} label="입주자 전화번호" className="flex min-w-0 flex-col gap-[6px]" labelClassName="block text-[12px] font-medium text-t1">
+          <PhoneInput id={`${formId}-phone`} aria-label="입주자 전화번호" size="38-13" {...register("reporterPhone")} />
         </FormField>
-        <FormField htmlFor={`${formId}-content`} label={<>접수내용 <span className="text-red">*</span></>} error={errors.content?.message} className="space-y-2 text-sm font-bold text-t2 sm:col-span-3">
-          <Textarea id={`${formId}-content`} aria-label="접수내용" {...register("content")} rows={3} placeholder="접수내용을 입력해 주세요" className="resize-y" />
+        <FormField htmlFor={`${formId}-content`} label={<>접수내용<b className="ml-[3px] font-bold text-red">*</b></>} className="col-span-3 flex min-w-0 flex-col gap-[6px]" labelClassName="block text-[12px] font-medium text-t1">
+          <Textarea id={`${formId}-content`} aria-label="접수내용" {...register("content")} variant="form" placeholder="접수내용을 입력해 주세요" />
         </FormField>
-        <FormField htmlFor={`${formId}-status`} label="처리결과" error={errors.status?.message} className="space-y-2 text-sm font-bold text-t2">
-          <Select id={`${formId}-status`} aria-label="처리결과" {...register("status")} options={[{ value: "", label: "결과 선택" }, ...COMPLAINT_STATUS_OPTIONS]} />
+        <FormField htmlFor={`${formId}-status`} label="처리결과" className="flex min-w-0 flex-col gap-[6px]" labelClassName="block text-[12px] font-medium text-t1">
+          <Controller
+            name="status"
+            control={control}
+            render={({ field }) => (
+              <CustomDropdown
+                id={`${formId}-status`}
+                ariaLabel="처리결과"
+                value={String(field.value ?? "")}
+                onChange={field.onChange}
+                options={COMPLAINT_STATUS_OPTIONS}
+                placeholder="결과 선택"
+                size="form"
+                position="fixed"
+                menuAlign="end"
+                menuMinWidth={132}
+                variant="menu"
+              />
+            )}
+          />
         </FormField>
-        <FormField htmlFor={`${formId}-resolved-date`} label="시행일자" error={errors.resolvedDate?.message} className="space-y-2 text-sm font-bold text-t2">
+        <FormField htmlFor={`${formId}-resolved-date`} label={<>시행일자<b className="ml-[3px] font-bold text-red">*</b></>} className="flex min-w-0 flex-col gap-[6px]" labelClassName="block text-[12px] font-medium text-t1">
           <Controller
             name="resolvedDate"
             control={control}
@@ -273,11 +439,12 @@ export function AsComplaintForm({
                 ariaLabel="시행일자"
                 value={field.value ?? ""}
                 onChange={field.onChange}
+                size="38-13"
               />
             )}
           />
         </FormField>
-        <FormField htmlFor={`${formId}-resolved-time`} label="시간" error={errors.resolvedTime?.message} className="space-y-2 text-sm font-bold text-t2">
+        <FormField htmlFor={`${formId}-resolved-time`} label="시간" className="flex min-w-0 flex-col gap-[6px]" labelClassName="block text-[12px] font-medium text-t1">
           <Controller
             name="resolvedTime"
             control={control}
@@ -287,14 +454,15 @@ export function AsComplaintForm({
                 ariaLabel="시간"
                 value={field.value ?? ""}
                 onChange={field.onChange}
+                placeholder="00:00"
+                size="38-13"
               />
             )}
           />
         </FormField>
-        <FormField htmlFor={`${formId}-result`} label="처리결과 내용" error={errors.resultContent?.message} className="space-y-2 text-sm font-bold text-t2 sm:col-span-3">
-          <Textarea id={`${formId}-result`} aria-label="처리결과 내용" {...register("resultContent")} rows={3} placeholder="처리결과 내용을 입력해 주세요" className="resize-y" />
+        <FormField htmlFor={`${formId}-result`} label="처리결과 내용" className="col-span-3 flex min-w-0 flex-col gap-[6px]" labelClassName="block text-[12px] font-medium text-t1">
+          <Textarea id={`${formId}-result`} aria-label="처리결과 내용" {...register("resultContent")} variant="form" placeholder="처리결과 내용을 입력해 주세요" />
         </FormField>
-        {errors.root?.server?.message && <p role="alert" className="text-sm font-semibold text-red sm:col-span-3">{errors.root.server.message}</p>}
       </form>
     </ComplaintDialog>
   );
