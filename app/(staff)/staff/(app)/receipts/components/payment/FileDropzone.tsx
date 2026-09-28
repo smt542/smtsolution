@@ -156,10 +156,11 @@ export function FileDropzone({
 interface FileDropzoneFileRowProps {
   file: File;
   onRemove: () => void;
+  disabled?: boolean;
 }
 
 /** 지로 업로드에 선택된 파일을 표시하는 공용 파일 행. */
-export function FileDropzoneFileRow({ file, onRemove }: FileDropzoneFileRowProps) {
+export function FileDropzoneFileRow({ file, onRemove, disabled = false }: FileDropzoneFileRowProps) {
   const sizeInKb = `${Math.max(1, Math.round(file.size / 1024))}KB`;
 
   return (
@@ -171,7 +172,8 @@ export function FileDropzoneFileRow({ file, onRemove }: FileDropzoneFileRowProps
         type="button"
         title="첨부 삭제"
         aria-label="첨부 삭제"
-        className="ml-[8px] inline-flex size-[24px] shrink-0 items-center justify-center rounded-[7px] border border-line bg-surface text-t3 hover:border-red"
+        disabled={disabled}
+        className="ml-[8px] inline-flex size-[24px] shrink-0 items-center justify-center rounded-[7px] border border-line bg-surface text-t3 hover:border-red disabled:cursor-not-allowed disabled:opacity-50"
         onClick={onRemove}
       >
         <TrashIcon className="size-[17px] text-t3" aria-hidden="true" />

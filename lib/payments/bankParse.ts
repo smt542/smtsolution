@@ -2,6 +2,22 @@ export interface ParsedSheet { headers: string[]; rows: string[][]; }
 export interface ColumnMapping { customerNo: number | null; name: number | null; amount: number | null; paidAt: number | null; }
 export interface Deposit { customerNo: string; name: string; amount: number; paidAt: string | null; rowIndex: number; }
 
+export type DepositFileErrorCode = "unsupported-xls" | "read-failed";
+
+export class DepositFileError extends Error {
+  public readonly code: DepositFileErrorCode;
+
+  constructor(
+    code: DepositFileErrorCode,
+    message: string,
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
+    this.code = code;
+    this.name = "DepositFileError";
+  }
+}
+
 const cell = (v: unknown): string => {
   if (v == null) return "";
   if (typeof v === "object" && "text" in (v as Record<string, unknown>)) return String((v as { text: unknown }).text ?? "");
@@ -22,6 +38,85 @@ export async function parseBankWorkbook(buffer: ArrayBuffer): Promise<ParsedShee
   });
   const [headers = [], ...rows] = matrix;
   return { headers, rows };
+}
+
+function parseDelimitedLine(line: string, delimiter: "\t" | ","): string[] {
+  const cells: string[] = [];
+  let cellValue = "";
+  let quoted = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+    if (character === '"') {
+      if (quoted && line[index + 1] === '"') {
+        cellValue += '"';
+        index += 1;
+      } else {
+        quoted = !quoted;
+      }
+    } else if (character === delimiter && !quoted) {
+      cells.push(cellValue.trim());
+      cellValue = "";
+    } else {
+      cellValue += character;
+    }
+  }
+  cells.push(cellValue.trim());
+  return cells;
+}
+
+function parseDelimitedText(text: string): ParsedSheet {
+  const lines = text.split(/\r\n|\n/).filter((line) => line.trim() !== "");
+  if (lines.length === 0) return { headers: [], rows: [] };
+
+  const delimiter = lines[0].includes("\t") ? "\t" : ",";
+  const [headers = [], ...rows] = lines.map((line) => parseDelimitedLine(line, delimiter));
+  return { headers, rows };
+}
+
+async function decodeDepositText(buffer: ArrayBuffer): Promise<string> {
+  const bytes = new Uint8Array(buffer);
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes).replace(/^\uFEFF/, "");
+  } catch (error) {
+    try {
+      return new TextDecoder("euc-kr").decode(bytes).replace(/^\uFEFF/, "");
+    } catch (decodeError) {
+      throw new DepositFileError(
+        "read-failed",
+        "입금내역 파일을 읽지 못했어요",
+        { cause: decodeError instanceof Error ? decodeError : error },
+      );
+    }
+  }
+}
+
+/** 은행·지로 업로드가 공유하는 파일 판독 진입점. */
+export async function parseDepositFile(file: File): Promise<ParsedSheet> {
+  const extension = file.name.toLowerCase().slice(file.name.lastIndexOf("."));
+  if (extension === ".xls") {
+    throw new DepositFileError(
+      "unsupported-xls",
+      "xls 파일은 xlsx로 저장한 뒤 첨부해 주세요",
+    );
+  }
+
+  try {
+    const buffer = await file.arrayBuffer();
+    if (extension === ".xlsx") return parseBankWorkbook(buffer);
+    if (extension === ".csv" || extension === ".txt") {
+      return parseDelimitedText(await decodeDepositText(buffer));
+    }
+  } catch (error) {
+    if (error instanceof DepositFileError) throw error;
+    throw new DepositFileError(
+      "read-failed",
+      "입금내역 파일을 읽지 못했어요",
+      { cause: error },
+    );
+  }
+
+  throw new DepositFileError("read-failed", "지원하지 않는 입금내역 파일 형식이에요");
 }
 
 // 힌트 순서가 우선순위다(머리글이 정확히 같은 힌트를 앞에서부터 찾는다).

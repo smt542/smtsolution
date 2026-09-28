@@ -15,8 +15,13 @@ export function useAsyncAction(): AsyncActionController {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<unknown>(null);
 
-  useEffect(() => () => {
-    mountedRef.current = false;
+  // StrictMode(개발)는 effect를 해제했다가 다시 붙인다. 다시 붙을 때 true로 돌려놓지 않으면
+  // 첫 해제 뒤로 영영 unmounted로 남아 isPending이 false로 안 돌아온다.
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const run = useCallback(<T,>(action: () => Promise<T>): Promise<T> => {

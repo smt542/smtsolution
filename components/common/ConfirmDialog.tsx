@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef } from "react";
 
 export type ConfirmVariant = "default" | "danger";
+export type ConfirmLook = "default" | "check";
 
 export interface ConfirmOptions {
   title: string;
@@ -10,6 +11,7 @@ export interface ConfirmOptions {
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: ConfirmVariant;
+  look?: ConfirmLook;
 }
 
 export function ConfirmDialog({
@@ -19,6 +21,7 @@ export function ConfirmDialog({
   confirmLabel = "확인",
   cancelLabel = "취소",
   variant = "default",
+  look = "default",
   onConfirm,
   onCancel,
 }: ConfirmOptions & {
@@ -52,6 +55,70 @@ export function ConfirmDialog({
     variant === "danger"
       ? "bg-red text-white hover:bg-[#d93c49]"
       : "bg-blue text-white hover:bg-blue-d";
+
+  if (look === "check") {
+    return (
+      <div
+        className="fixed inset-0 z-[600] flex items-center justify-center bg-scrim p-6"
+        onMouseDown={onCancel}
+      >
+        <div
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          aria-describedby={description != null ? descId : undefined}
+          className="max-h-[88vh] w-[min(400px,92%)] overflow-auto rounded-[20px] bg-white px-[26px] pb-6 pt-7 text-left leading-[normal] shadow-[0_30px_70px_-20px_rgba(0,0,0,0.45)]"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <div className="mb-3 flex items-center gap-[9px]">
+            <div className="flex size-[34px] shrink-0 items-center justify-center rounded-[11px] bg-blue-t">
+              <svg
+                className="size-[19px]"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="var(--color-blue)"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M4 12.5l5 5L20 6.5" />
+              </svg>
+            </div>
+            <h2 id={titleId} className="text-[16px] font-extrabold text-t1">
+              {title}
+            </h2>
+          </div>
+          {description != null && (
+            <p
+              id={descId}
+              className="whitespace-pre-line text-[13.5px] font-medium leading-[1.65] text-t2 [&_b]:font-bold [&_b]:text-t1 [&_strong]:font-bold [&_strong]:text-t1"
+            >
+              {description}
+            </p>
+          )}
+          <div className="mt-5 flex gap-2">
+            <button
+              ref={cancelRef}
+              type="button"
+              onClick={onCancel}
+              className="flex h-10 flex-1 items-center justify-center rounded-[11px] border border-line bg-white px-[18px] text-[13.5px] font-bold tracking-[-0.01em] text-t2 hover:bg-bg"
+            >
+              {cancelLabel}
+            </button>
+            <button
+              ref={confirmRef}
+              type="button"
+              onClick={onConfirm}
+              className="flex h-10 flex-1 items-center justify-center rounded-[11px] border border-blue bg-blue px-[18px] text-[13.5px] font-bold tracking-[-0.01em] text-white shadow-none hover:bg-blue-d"
+            >
+              {confirmLabel}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

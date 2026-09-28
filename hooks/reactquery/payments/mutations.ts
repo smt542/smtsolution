@@ -7,7 +7,10 @@ export function useRecordPayment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: RecordPaymentInput) => recordPayment(input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: paymentKeys.all }),
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: paymentKeys.all }),
+      qc.invalidateQueries({ queryKey: receiptKeys.all }),
+    ]),
   });
 }
 export function useRecordPaymentEdit() {
