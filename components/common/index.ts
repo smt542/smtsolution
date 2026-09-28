@@ -34,3 +34,4 @@ export { PhotoUpload } from "./PhotoUpload";
 export type { PhotoUploadProps } from "./PhotoUpload";
 export { CustomDropdown } from "./CustomDropdown";
 export type { DropdownOption } from "./CustomDropdown";
+export { MultiValueToggle } from "./MultiValueToggle";
