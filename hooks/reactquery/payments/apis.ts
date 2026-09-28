@@ -26,8 +26,12 @@ export interface GiroPayment {
   unitNo: string; dong: string | null; tenantName: string | null;
   amount: number; paidAt: string; status: "active" | "canceled"; memo: string | null;
 }
+export interface GiroPaymentDetail {
+  id: number; fee: number; buildingCode: string | null;
+}
 export interface BankPaymentEntry { unitId: number; amount: number; paidAt: string | null; memo?: string | null; }
 export interface BankPaymentRef { unitId: number; amount: number; paidAt: string; }
+export interface PaidDatePayment { amount: number; method: PaymentMethod; paidAt: string; }
 
 type PaymentRowDb = {
   unit_id: number; unit_no: string; dong: string | null; occupancy_id: number | null;
@@ -44,6 +48,16 @@ type GiroPaymentDb = {
   id: number; unit_id: number; unit_no: string; dong: string | null;
   building_id: number; building_name: string; tenant_name: string | null;
   amount: number; paid_at: string; status: "active" | "canceled"; memo: string | null;
+};
+type GiroPaymentDetailDb = {
+  id: number;
+  fee: number | null;
+  units: { buildings: { code: string | null } | null } | null;
+};
+type PaidDatePaymentDb = {
+  amount: number;
+  method: PaymentMethod;
+  paid_at: string;
 };
 
 export async function listPaymentRows(buildingId: number, period: string): Promise<PaymentRow[]> {
@@ -159,6 +173,67 @@ export async function listGiroPayments(buildingId: number | null, period: string
     id: r.id, unitId: r.unit_id, buildingId: r.building_id, buildingName: r.building_name,
     unitNo: r.unit_no, dong: r.dong, tenantName: r.tenant_name,
     amount: r.amount, paidAt: r.paid_at, status: r.status, memo: r.memo,
+  }));
+}
+
+/**
+ * PostgREST는 한 응답을 최대 1,000행(Supabase 기본 max_rows)으로 자른다. 조직 전체를 읽는 조회는
+ * 같은 정렬로 1,000행씩 이어 받아 합친다(합계가 조용히 잘리지 않도록).
+ */
+const PAGE_ROWS = 1000;
+async function selectAllPages<T>(
+  page: (fromRow: number, toRow: number) => PromiseLike<{ data: unknown[] | null; error: { message: string } | null }>,
+): Promise<T[]> {
+  const rows: T[] = [];
+  for (let fromRow = 0; ; fromRow += PAGE_ROWS) {
+    const { data, error } = await page(fromRow, fromRow + PAGE_ROWS - 1);
+    if (error) throw new Error(error.message);
+    rows.push(...((data ?? []) as T[]));
+    if (!data || data.length < PAGE_ROWS) return rows;
+  }
+}
+
+/** 지로 원장 보조 정보. RPC가 반환하지 않는 수수료·건물 코드를 payments에서 조회한다. */
+export async function listGiroPaymentDetails(period: string): Promise<GiroPaymentDetail[]> {
+  const rows = await selectAllPages<GiroPaymentDetailDb>((fromRow, toRow) =>
+    createClient()
+      .from("payments")
+      .select("id, fee, units!inner(buildings!inner(code))")
+      .eq("method", "giro")
+      .eq("period", period)
+      .eq("status", "active")
+      .order("id", { ascending: true })
+      .range(fromRow, toRow),
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    fee: row.fee ?? 0,
+    buildingCode: row.units?.buildings?.code ?? null,
+  }));
+}
+
+/** 조직 전체의 활성 수납을 수납일 기준으로 조회한다. RLS가 조직 범위를 보장한다. */
+export async function listPaymentsByPaidDate(
+  from: string,
+  to: string,
+): Promise<PaidDatePayment[]> {
+  const rows = await selectAllPages<PaidDatePaymentDb>((fromRow, toRow) =>
+    createClient()
+      .from("payments")
+      .select("amount, method, paid_at, units!inner(deleted_at, buildings!inner(deleted_at))")
+      .eq("status", "active")
+      .gte("paid_at", from)
+      .lte("paid_at", to)
+      .is("units.deleted_at", null)
+      .is("units.buildings.deleted_at", null)
+      .order("paid_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(fromRow, toRow),
+  );
+  return rows.map((row) => ({
+    amount: row.amount,
+    method: row.method,
+    paidAt: row.paid_at,
   }));
 }
 

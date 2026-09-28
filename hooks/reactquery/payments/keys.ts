@@ -7,4 +7,6 @@ export const paymentKeys = {
     ["payments", "statement-dates", buildingId, startPeriod, endPeriod] as const,
   bank: (buildingId: number | null, period: string) => ["payments", "bank", buildingId, period] as const,
   giro: (buildingId: number | null, period: string) => ["payments", "giro", buildingId, period] as const,
+  giroDetails: (period: string) => ["payments", "giro-details", period] as const,
+  paidDate: (year: number, month: number) => ["payments", "paid-date", year, month] as const,
 };

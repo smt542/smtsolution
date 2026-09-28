@@ -39,7 +39,7 @@ export function AutoPaymentModals({
     );
   }
   if (view === "giro-calendar") {
-    return <GiroCalendarModal open buildingId={null} period={period} onClose={onClose} />;
+    return <GiroCalendarModal key={period} open buildingId={null} period={period} onClose={onClose} />;
   }
   return (
     <LazyBankImportModal

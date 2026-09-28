@@ -1,16 +1,32 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Button, EmptyState, Spinner } from "@/components/common";
+import { Button, SegmentedControl, Spinner } from "@/components/common";
 import { DpDatePicker } from "@/components/common/DpDatePicker";
-import { CalendarIcon } from "@/components/icons";
 import {
+  useGiroPaymentDetails,
   useGiroPayments,
   type PaymentRow,
 } from "@/hooks/reactquery/payments";
-import { formatNumber } from "@/lib/format";
 import { toMonthInput } from "@/lib/billing/period";
+import { formatNumber } from "@/lib/format";
 import { ComplaintDialog } from "../ComplaintDialog";
+import {
+  giroEmptyClass,
+  giroFooterClass,
+  giroFooterDividerClass,
+  giroFooterItemClass,
+  giroFooterLabelClass,
+  giroFooterUnitClass,
+  giroFooterValueClass,
+  giroGroupFirstClass,
+  giroRightClass,
+  giroSubtotalClass,
+  giroTableClass,
+  giroTdClass,
+  giroThClass,
+  giroWrapClass,
+} from "./giroClasses";
 
 interface GiroLedgerModalProps {
   open: boolean;
@@ -24,8 +40,29 @@ type ErrorFilter = "all" | "normal" | "dup";
 
 const dateOnly = (value: string) => (value ? value.slice(0, 10) : "");
 const slashDate = (value: string) => dateOnly(value).replaceAll("-", "/");
-const GIRO_DATE_TRIGGER_CLASS_NAME =
-  "h-9 w-[135px] rounded-lg border border-line bg-surface px-3 text-xs text-t1 flex items-center gap-2 text-left cursor-pointer outline-none focus:border-brand";
+const displayDate = (value: string) => value.replaceAll("-", ".");
+const giroDateTriggerClassName =
+  "box-border flex h-[36px] w-[132px] cursor-pointer items-center justify-start rounded-[10px] border border-line bg-surface px-[11px] text-[13px] font-semibold leading-[normal] text-t1 outline-none";
+const giroDateTriggerOpenClassName =
+  "border-brand shadow-[0_0_0_3px_var(--color-blue-t)]";
+
+const GIRO_COLUMNS = [
+  { label: "No", minWidth: "min-w-[48.59px]", right: true },
+  { label: "지로일자", minWidth: "min-w-[112.69px]" },
+  { label: "수납일", minWidth: "min-w-[107.36px]" },
+  { label: "코드", minWidth: "min-w-[56.89px]" },
+  { label: "건물명", minWidth: "min-w-[104px]" },
+  { label: "호수", minWidth: "min-w-[56.89px]" },
+  { label: "년월", minWidth: "min-w-[87.61px]" },
+  { label: "수납액", minWidth: "min-w-[82px]", right: true },
+  { label: "수수료", minWidth: "min-w-[63.13px]", right: true },
+  { label: "실입금액", minWidth: "min-w-[84px]", right: true },
+  { label: "부과금액", minWidth: "min-w-[84px]", right: true },
+  { label: "에러", minWidth: "min-w-[78.67px]" },
+  { label: "고객번호", minWidth: "min-w-[114.94px]" },
+  { label: "수납구분", minWidth: "min-w-[113.69px]" },
+  { label: "장표", minWidth: "min-w-[70px]" },
+] as const;
 
 function monthRange(period: string): { from: string; to: string } {
   const ym = period.slice(0, 7);
@@ -39,13 +76,23 @@ interface LedgerRow {
   id: number;
   giroDate: string;
   code: string;
+  buildingName: string;
+  unitNo: string;
   unitLabel: string;
+  yearMonth: string;
   amount: number;
-  charged: number;
+  fee: number;
+  netAmount: number;
+  charged: number | null;
   customerNo: string;
-  buildingName: string | null;
   isDup: boolean;
   matched: boolean;
+}
+
+interface GiroDateGroup {
+  date: string;
+  rows: LedgerRow[];
+  subtotal: { amount: number; fee: number; netAmount: number };
 }
 
 export function GiroLedgerModal({
@@ -55,7 +102,8 @@ export function GiroLedgerModal({
   rows,
   onClose,
 }: GiroLedgerModalProps) {
-  const { data: giro = [], isLoading } = useGiroPayments(buildingId, period);
+  const giroQuery = useGiroPayments(buildingId, period);
+  const detailQuery = useGiroPaymentDetails(period);
   const initialRange = monthRange(period);
   const [from, setFrom] = useState(initialRange.from);
   const [to, setTo] = useState(initialRange.to);
@@ -67,30 +115,42 @@ export function GiroLedgerModal({
     return map;
   }, [rows]);
 
+  const detailMap = useMemo(
+    () => new Map((detailQuery.data ?? []).map((detail) => [detail.id, detail])),
+    [detailQuery.data],
+  );
+
   const enriched = useMemo<LedgerRow[]>(() => {
-    const active = giro.filter((row) => row.status === "active");
+    const active = (giroQuery.data ?? []).filter((row) => row.status === "active");
     const dupCount = new Map<string, number>();
     for (const row of active) {
       const key = `${row.unitId}|${row.amount}|${dateOnly(row.paidAt)}`;
       dupCount.set(key, (dupCount.get(key) ?? 0) + 1);
     }
-    return active.map((row, index) => {
+
+    return active.map((row) => {
       const info = unitMap.get(row.unitId);
+      const detail = detailMap.get(row.id);
       const dupKey = `${row.unitId}|${row.amount}|${dateOnly(row.paidAt)}`;
+      const fee = detail?.fee ?? 0;
       return {
         id: row.id,
         giroDate: dateOnly(row.paidAt),
-        code: String(index + 1).padStart(3, "0"),
+        code: detail?.buildingCode || "-",
+        buildingName: row.buildingName || "-",
+        unitNo: row.unitNo,
         unitLabel: row.dong ? `${row.dong} ${row.unitNo}` : row.unitNo,
+        yearMonth: toMonthInput(period),
         amount: row.amount,
-        charged: info?.charged ?? row.amount,
-        customerNo: info?.payerNo ?? "-",
-        buildingName: row.buildingName || info?.buildingName || null,
+        fee,
+        netAmount: row.amount - fee,
+        charged: info?.charged ?? null,
+        customerNo: info?.payerNo || "-",
         isDup: (dupCount.get(dupKey) ?? 0) > 1,
         matched: Boolean(info),
       };
     });
-  }, [giro, unitMap]);
+  }, [detailMap, giroQuery.data, period, unitMap]);
 
   const filtered = useMemo(
     () =>
@@ -104,7 +164,7 @@ export function GiroLedgerModal({
     [enriched, from, to, errorFilter],
   );
 
-  const groups = useMemo(() => {
+  const groups = useMemo<GiroDateGroup[]>(() => {
     const map = new Map<string, LedgerRow[]>();
     for (const row of filtered) {
       const list = map.get(row.giroDate) ?? [];
@@ -113,29 +173,44 @@ export function GiroLedgerModal({
     }
     return [...map.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, list]) => ({
-        date,
-        rows: list,
-        sub: list.reduce(
-          (acc, row) => ({ amount: acc.amount + row.amount }),
-          { amount: 0 },
-        ),
-      }));
+      .map(([date, groupRows]) => {
+        const sortedRows = [...groupRows].sort(
+          (a, b) =>
+            a.code.localeCompare(b.code, "ko-KR", { numeric: true })
+            || a.unitNo.localeCompare(b.unitNo, "ko-KR", { numeric: true })
+            || a.id - b.id,
+        );
+        return {
+          date,
+          rows: sortedRows,
+          subtotal: sortedRows.reduce(
+            (subtotal, row) => ({
+              amount: subtotal.amount + row.amount,
+              fee: subtotal.fee + row.fee,
+              netAmount: subtotal.netAmount + row.netAmount,
+            }),
+            { amount: 0, fee: 0, netAmount: 0 },
+          ),
+        };
+      });
   }, [filtered]);
 
   const totals = useMemo(
     () =>
       filtered.reduce(
-        (acc, row) => ({
-          count: acc.count + 1,
-          amount: acc.amount + row.amount,
+        (total, row) => ({
+          count: total.count + 1,
+          amount: total.amount + row.amount,
+          fee: total.fee + row.fee,
+          netAmount: total.netAmount + row.netAmount,
         }),
-        { count: 0, amount: 0 },
+        { count: 0, amount: 0, fee: 0, netAmount: 0 },
       ),
     [filtered],
   );
 
-  const yearMonth = toMonthInput(period);
+  const isError = giroQuery.isError || detailQuery.isError;
+  const isLoading = !isError && (giroQuery.data === undefined || detailQuery.data === undefined);
   const errorTabs: { value: ErrorFilter; label: string }[] = [
     { value: "all", label: "전체" },
     { value: "normal", label: "정상" },
@@ -148,98 +223,117 @@ export function GiroLedgerModal({
       onClose={onClose}
       title="지로수납원장"
       subtitle="처리 완료된 지로 수납 내역이에요"
-      size="wide"
+      look="canon-wide"
       footer={
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-t3">
-            <span>총건수 <strong className="num text-t1">{formatNumber(totals.count)}</strong>건</span>
-            <span className="text-line">|</span>
-            <span>총 수납액 <strong className="num text-t1">{formatNumber(totals.amount)}</strong>원</span>
+        <>
+          <div className={giroFooterClass}>
+            <span className={giroFooterItemClass}>
+              <i className={giroFooterLabelClass}>총건수</i>
+              <b className={giroFooterValueClass}>{formatNumber(totals.count)}</b>
+              <em className={giroFooterUnitClass}>건</em>
+            </span>
+            <span className={giroFooterDividerClass} />
+            <span className={giroFooterItemClass}>
+              <i className={giroFooterLabelClass}>총 수납액</i>
+              <b className={giroFooterValueClass}>{formatNumber(totals.amount)}</b>
+              <em className={giroFooterUnitClass}>원</em>
+            </span>
+            <span className={giroFooterDividerClass} />
+            <span className={giroFooterItemClass}>
+              <i className={giroFooterLabelClass}>총 수수료</i>
+              <b className={giroFooterValueClass}>{formatNumber(totals.fee)}</b>
+              <em className={giroFooterUnitClass}>원</em>
+            </span>
+            <span className={giroFooterDividerClass} />
+            <span className={giroFooterItemClass}>
+              <i className={giroFooterLabelClass}>총 실입금액</i>
+              <b className={giroFooterValueClass}>{formatNumber(totals.netAmount)}</b>
+              <em className={giroFooterUnitClass}>원</em>
+            </span>
           </div>
-          <Button type="button" variant="ghost" onClick={onClose}>
+          <div className="flex-1" />
+          <Button type="button" size="modal" variant="ghost" onClick={onClose}>
             닫기
           </Button>
-        </div>
+        </>
       }
     >
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="text-xs font-bold text-t2">조회일</span>
+      <div className="mb-[12px] flex flex-none items-center gap-[8px] border-b border-line pb-[12px] leading-[normal]">
+        <span className="mr-[2px] text-[13px] font-extrabold text-t2">조회일</span>
         <DpDatePicker
           ariaLabel="조회 시작일"
           value={from}
           onChange={setFrom}
-          triggerClassName={GIRO_DATE_TRIGGER_CLASS_NAME}
-          triggerOpenClassName="border-brand"
-          endAdornment={<CalendarIcon className="ml-auto size-[14px] shrink-0 text-t3" aria-hidden="true" />}
+          triggerClassName={giroDateTriggerClassName}
+          triggerOpenClassName={giroDateTriggerOpenClassName}
+          displayFormatter={displayDate}
         />
-        <span className="text-xs text-t3">~</span>
+        <span className="text-[13px] font-bold text-t3">~</span>
         <DpDatePicker
           ariaLabel="조회 종료일"
           value={to}
           onChange={setTo}
-          triggerClassName={GIRO_DATE_TRIGGER_CLASS_NAME}
-          triggerOpenClassName="border-brand"
-          endAdornment={<CalendarIcon className="ml-auto size-[14px] shrink-0 text-t3" aria-hidden="true" />}
+          triggerClassName={giroDateTriggerClassName}
+          triggerOpenClassName={giroDateTriggerOpenClassName}
+          displayFormatter={displayDate}
         />
-        <span className="ml-2 text-xs font-bold text-t2">에러</span>
-        <div className="flex rounded-lg border border-line p-0.5 text-xs font-bold">
-          {errorTabs.map((tab) => (
-            <button
-              key={tab.value}
-              type="button"
-              onClick={() => setErrorFilter(tab.value)}
-              className={`rounded-md px-2.5 py-1 ${
-                errorFilter === tab.value ? "bg-blue text-white" : "text-t3"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        <span className="ml-[14px] mr-[2px] text-[13px] font-extrabold text-t2">에러</span>
+        <SegmentedControl
+          size="sm"
+          options={errorTabs}
+          value={errorFilter}
+          onChange={(value) => setErrorFilter(value as ErrorFilter)}
+        />
       </div>
 
-      <div className="mt-4 overflow-x-auto rounded-xl border border-line">
-        {isLoading ? (
-          <div className="flex min-h-[300px] items-center justify-center">
-            <Spinner />
-          </div>
-        ) : filtered.length === 0 ? (
-          <EmptyState message="지로 수납 내역이 없습니다" />
-        ) : (
-          <table className="w-full min-w-[900px] text-[11px]">
-            <thead>
-              <tr className="border-b border-line bg-bg text-left font-bold text-t3">
-                <th className="px-2 py-2 text-right">No</th>
-                <th className="px-2 py-2">지로일자</th>
-                <th className="px-2 py-2">수납일</th>
-                <th className="px-2 py-2">코드</th>
-                <th className="px-2 py-2">건물명</th>
-                <th className="px-2 py-2">호수</th>
-                <th className="px-2 py-2">년월</th>
-                <th className="px-2 py-2 text-right">수납액</th>
-                <th className="px-2 py-2 text-right">부과금액</th>
-                <th className="px-2 py-2">에러</th>
-                <th className="px-2 py-2">고객번호</th>
-                <th className="px-2 py-2">수납구분</th>
-                <th className="px-2 py-2">장표</th>
+      <div className={giroWrapClass}>
+        <table className={giroTableClass}>
+          <thead>
+            <tr>
+              {GIRO_COLUMNS.map((column) => (
+                <th
+                  key={column.label}
+                  className={`${giroThClass} ${column.minWidth} ${"right" in column && column.right ? giroRightClass : ""}`}
+                >
+                  {column.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {isError ? (
+              <tr>
+                <td colSpan={15} role="alert" className={`${giroTdClass} !px-0 !py-[34px] text-center font-medium !text-red`}>
+                  지로 수납 내역을 불러오지 못했어요
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {groups.map((group, groupIndex) => (
+            ) : isLoading ? (
+              <tr>
+                <td colSpan={15} className={`${giroTdClass} ${giroEmptyClass}`}>
+                  <div className="flex justify-center"><Spinner /></div>
+                </td>
+              </tr>
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan={15} className={`${giroTdClass} ${giroEmptyClass}`}>
+                  조회 결과가 없어요
+                </td>
+              </tr>
+            ) : (
+              groups.map((group, groupIndex) => (
                 <GiroDateGroup
                   key={group.date}
                   date={group.date}
                   rows={group.rows}
-                  sub={group.sub}
+                  subtotal={group.subtotal}
                   startNo={groups
                     .slice(0, groupIndex)
                     .reduce((sum, item) => sum + item.rows.length, 0)}
-                  yearMonth={yearMonth}
                 />
-              ))}
-            </tbody>
-          </table>
-        )}
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </ComplaintDialog>
   );
@@ -248,49 +342,55 @@ export function GiroLedgerModal({
 function GiroDateGroup({
   date,
   rows,
-  sub,
+  subtotal,
   startNo,
-  yearMonth,
 }: {
   date: string;
   rows: LedgerRow[];
-  sub: { amount: number };
+  subtotal: GiroDateGroup["subtotal"];
   startNo: number;
-  yearMonth: string;
 }) {
   return (
     <>
-      {rows.map((row, index) => (
-        <tr key={row.id} className="border-b border-line text-t2">
-          <td className="num px-2 py-1.5 text-right">{startNo + index + 1}</td>
-          <td className="whitespace-nowrap px-2 py-1.5">{slashDate(row.giroDate)}</td>
-          {/* 수납일: 서버에서 지로일자/수납일 분리 전까지 동일 표기(TODO backend). */}
-          <td className="whitespace-nowrap px-2 py-1.5">{slashDate(row.giroDate)}</td>
-          <td className="px-2 py-1.5">{row.code}</td>
-          <td className="whitespace-nowrap px-2 py-1.5 text-t1">{row.buildingName ?? "-"}</td>
-          <td className="whitespace-nowrap px-2 py-1.5">{row.unitLabel}</td>
-          <td className="whitespace-nowrap px-2 py-1.5">{yearMonth}</td>
-          <td className="num px-2 py-1.5 text-right text-t1">{formatNumber(row.amount)}</td>
-          <td className="num px-2 py-1.5 text-right">{formatNumber(row.charged)}</td>
-          <td className="px-2 py-1.5">
-            {row.isDup ? (
-              <span className="font-bold text-red">이중수납</span>
-            ) : (
-              <span className="text-t3">정상</span>
-            )}
-          </td>
-          <td className="whitespace-nowrap px-2 py-1.5">{row.customerNo}</td>
-          <td className="whitespace-nowrap px-2 py-1.5">인터넷지로</td>
-          <td className="px-2 py-1.5">{row.matched ? "정상" : "비정상"}</td>
-        </tr>
-      ))}
-      <tr className="border-b border-line bg-bg font-bold text-t1">
-        <td className="px-2 py-1.5" />
-        <td className="whitespace-nowrap px-2 py-1.5">{slashDate(date)}</td>
-        <td className="px-2 py-1.5">{rows.length}건</td>
-        <td className="px-2 py-1.5" colSpan={4} />
-        <td className="num px-2 py-1.5 text-right">{formatNumber(sub.amount)}</td>
-        <td className="px-2 py-1.5" colSpan={5} />
+      {rows.map((row, index) => {
+        const cellClass = `${giroTdClass} ${index === 0 ? giroGroupFirstClass : ""}`;
+        return (
+          <tr key={row.id}>
+            <td className={`${cellClass} ${giroRightClass} tabular-nums`}>{startNo + index + 1}</td>
+            <td className={`${cellClass} tabular-nums`}>{index === 0 ? slashDate(date) : ""}</td>
+            <td className={`${cellClass} tabular-nums`}>{slashDate(row.giroDate)}</td>
+            <td className={cellClass}>{row.code}</td>
+            <td className={cellClass}>{row.buildingName}</td>
+            <td className={cellClass}>{row.unitLabel}</td>
+            <td className={`${cellClass} tabular-nums`}>{row.yearMonth}</td>
+            <td className={`${cellClass} ${giroRightClass} tabular-nums`}>{formatNumber(row.amount)}</td>
+            <td className={`${cellClass} ${giroRightClass} tabular-nums`}>{formatNumber(row.fee)}</td>
+            <td className={`${cellClass} ${giroRightClass} tabular-nums`}>{formatNumber(row.netAmount)}</td>
+            <td className={`${cellClass} ${giroRightClass} tabular-nums`}>{formatNumber(row.charged)}</td>
+            <td className={cellClass}>
+              {row.isDup ? <span className="font-bold text-red">이중수납</span> : "정상"}
+            </td>
+            <td className={`${cellClass} tabular-nums`}>{row.customerNo}</td>
+            <td className={cellClass}>-</td>
+            <td className={cellClass}>
+              {row.matched ? "정상" : <span className="font-bold text-red">비정상</span>}
+            </td>
+          </tr>
+        );
+      })}
+      <tr>
+        <td className={`${giroTdClass} ${giroSubtotalClass}`} />
+        <td className={`${giroTdClass} ${giroSubtotalClass} tabular-nums`}>{slashDate(date)}</td>
+        <td colSpan={4} className={`${giroTdClass} ${giroSubtotalClass}`}>{rows.length}건</td>
+        <td className={`${giroTdClass} ${giroSubtotalClass}`} />
+        <td className={`${giroTdClass} ${giroSubtotalClass} ${giroRightClass} tabular-nums`}>{formatNumber(subtotal.amount)}</td>
+        <td className={`${giroTdClass} ${giroSubtotalClass} ${giroRightClass} tabular-nums`}>{formatNumber(subtotal.fee)}</td>
+        <td className={`${giroTdClass} ${giroSubtotalClass} ${giroRightClass} tabular-nums`}>{formatNumber(subtotal.netAmount)}</td>
+        <td className={`${giroTdClass} ${giroSubtotalClass}`} />
+        <td className={`${giroTdClass} ${giroSubtotalClass}`} />
+        <td className={`${giroTdClass} ${giroSubtotalClass}`} />
+        <td className={`${giroTdClass} ${giroSubtotalClass}`} />
+        <td className={`${giroTdClass} ${giroSubtotalClass}`} />
       </tr>
     </>
   );

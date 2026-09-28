@@ -30,7 +30,7 @@ import { dropOverridden } from "./buttonOverride";
  */
 const SIZES = {
   std: "inline-flex items-center justify-center gap-1.5 h-10 rounded-btn px-[15px] text-[13.5px] font-bold whitespace-nowrap",
-  sm: "h-[26px] rounded-lg px-[10px] text-[11.5px] font-bold",
+  sm: "inline-flex items-center justify-center h-[26px] rounded-lg px-[10px] text-[11.5px] font-bold",
   legacy: "h-11 rounded-xl px-4 text-sm font-bold",
   login: "h-[50px] rounded-[14px] text-[15px] font-extrabold",
   md: "inline-flex items-center justify-center gap-1.5 h-[38px] rounded-btn px-[15px] text-[13.5px] font-bold whitespace-nowrap",
