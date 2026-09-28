@@ -2,7 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getPaymentReceiverName,
   listBankPayments,
+  listGiroPaymentDetails,
   listGiroPayments,
+  listPaymentsByPaidDate,
   listPaymentRows,
   listUnitPayments,
 } from "./apis";
@@ -43,5 +45,24 @@ export function useGiroPayments(buildingId: number | null, period: string) {
     queryKey: paymentKeys.giro(buildingId, period),
     queryFn: () => listGiroPayments(buildingId, period),
     enabled: Boolean(period),
+  });
+}
+export function useGiroPaymentDetails(period: string) {
+  return useQuery({
+    queryKey: paymentKeys.giroDetails(period),
+    queryFn: () => listGiroPaymentDetails(period),
+    enabled: Boolean(period),
+  });
+}
+
+export function usePaymentsByPaidDate(year: number, month: number) {
+  const from = `${year}-${String(month).padStart(2, "0")}-01`;
+  const toDate = new Date(Date.UTC(year, month, 0));
+  const to = toDate.toISOString().slice(0, 10);
+
+  return useQuery({
+    queryKey: paymentKeys.paidDate(year, month),
+    queryFn: () => listPaymentsByPaidDate(from, to),
+    enabled: Number.isInteger(year) && Number.isInteger(month) && month >= 1 && month <= 12,
   });
 }
