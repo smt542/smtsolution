@@ -508,10 +508,18 @@ export function PaymentHistorySection({
       "",
       "입금 부탁드립니다.",
     ];
-    const settleAccount = setupConfig?.settleBank && setupConfig.settleAcct && setupConfig.settleHolder
-      ? `${setupConfig.settleBank} ${setupConfig.settleAcct} (${setupConfig.settleHolder})`
+    // 입금 계좌 = 고지서에 인쇄되는 관리비 계좌(고지서 설정과 같은 규칙: 계좌 2에 출력을 고른 경우만 계좌 2).
+    // 정본 문구 `국민 123-45-6789 (스마일종합관리)` 형식이며, 예금주가 없으면 괄호를 뺀다.
+    const mgmtAccount = setupConfig
+      ? !setupConfig.mgmtPrint1 && setupConfig.mgmtPrint2
+        ? { bank: setupConfig.mgmtBank2, acct: setupConfig.mgmtAcct2, holder: setupConfig.mgmtHolder2 }
+        : { bank: setupConfig.mgmtBank1, acct: setupConfig.mgmtAcct1, holder: setupConfig.mgmtHolder1 }
       : null;
-    if (settleAccount) lines.push(settleAccount);
+    if (mgmtAccount?.bank && mgmtAccount.acct) {
+      lines.push(
+        `${mgmtAccount.bank} ${mgmtAccount.acct}${mgmtAccount.holder ? ` (${mgmtAccount.holder})` : ""}`,
+      );
+    }
 
     openMessengerWith({
       cascade: {
