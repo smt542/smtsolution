@@ -9,6 +9,7 @@ import {
   validRecipients,
   type MessageRecipient,
 } from "@/lib/messaging/preset";
+import type { RecipientCascadePreset } from "@/lib/messaging/messengerHandoff";
 import { messengerClasses as styles } from "./messengerClasses";
 import type { ChannelMode, RecipientType } from "./types";
 
@@ -90,12 +91,27 @@ function SearchField({
 
 export function RecipientCascade({
   channel,
+  preset,
   onChange,
 }: {
   channel: ChannelMode;
+  preset?: RecipientCascadePreset | null;
   onChange: (r: MessageRecipient[]) => void;
 }) {
-  const [selection, setSelection] = useState(EMPTY_SELECTION);
+  const types: RecipientType[] =
+    channel === "alim"
+      ? ["tenant", "owner"]
+      : ["staff", "tenant", "owner", "cleaner"];
+  const [selection, setSelection] = useState(() =>
+    preset && types.includes(preset.type)
+      ? {
+          ...EMPTY_SELECTION,
+          type: preset.type,
+          buildingId: preset.buildingId,
+          tenantUnitIds: preset.unitIds,
+        }
+      : EMPTY_SELECTION,
+  );
   const [openMenu, setOpenMenu] = useState<OpenMenu>(null);
   const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
   const [secondSearch, setSecondSearch] = useState("");
@@ -124,10 +140,6 @@ export function RecipientCascade({
     setThirdSearch("");
   }
 
-  const types: RecipientType[] =
-    channel === "alim"
-      ? ["tenant", "owner"]
-      : ["staff", "tenant", "owner", "cleaner"];
   const type = types.includes(selection.type as RecipientType)
     ? selection.type
     : "";
@@ -145,6 +157,13 @@ export function RecipientCascade({
   const eligibleTenants = useMemo(
     () => tenants.filter((tenant) => !tenant.isVacant && hasPhone(tenant.phone)),
     [tenants],
+  );
+  const selectedTenantUnitIds = useMemo(
+    () =>
+      selection.tenantUnitIds.filter((unitId) =>
+        eligibleTenants.some((tenant) => tenant.unitId === unitId),
+      ),
+    [eligibleTenants, selection.tenantUnitIds],
   );
   const cleanerByBuildingId = useMemo(
     () =>
@@ -317,7 +336,7 @@ export function RecipientCascade({
     setSelection((current) => ({
       ...current,
       tenantUnitIds:
-        current.tenantUnitIds.length === eligibleTenants.length
+        selectedTenantUnitIds.length === eligibleTenants.length
           ? []
           : eligibleTenants.map((tenant) => tenant.unitId),
     }));
@@ -352,20 +371,20 @@ export function RecipientCascade({
             )?.fullName ?? "직원 1명")
           : `${activeStaff.find((account) => selection.staffIds.includes(account.userId))?.fullName ?? "직원"} 외 ${selection.staffIds.length - 1}명`;
   const tenantSelectionLabel =
-    selection.tenantUnitIds.length === 0
+    selectedTenantUnitIds.length === 0
       ? "입주자 선택"
-      : selection.tenantUnitIds.length === eligibleTenants.length
+      : selectedTenantUnitIds.length === eligibleTenants.length
         ? `전체 (${eligibleTenants.length}명)`
-        : selection.tenantUnitIds.length === 1
+        : selectedTenantUnitIds.length === 1
           ? (() => {
               const tenant = eligibleTenants.find((candidate) =>
-                selection.tenantUnitIds.includes(candidate.unitId),
+                selectedTenantUnitIds.includes(candidate.unitId),
               );
               return tenant
                 ? `${tenant.unitNo} ${tenant.tenantName ?? ""}`.trim()
                 : "입주자 1명";
             })()
-          : `${eligibleTenants.find((tenant) => selection.tenantUnitIds.includes(tenant.unitId))?.tenantName ?? "입주자"} 외 ${selection.tenantUnitIds.length - 1}명`;
+          : `${eligibleTenants.find((tenant) => selectedTenantUnitIds.includes(tenant.unitId))?.tenantName ?? "입주자"} 외 ${selectedTenantUnitIds.length - 1}명`;
   const menuStyle = menuPosition ?? undefined;
   const autoRecipient =
     type === "owner" && selectedBuilding
@@ -525,7 +544,7 @@ export function RecipientCascade({
       {type === "tenant" && selectedBuilding && (
         <div
           ref={thirdRef}
-          className={`fmp-dd2 ${styles["fmp-dd2"]} ${selection.tenantUnitIds.length === 0 ? styles.ph : ""} ${openMenu === "third" ? styles.open : ""}`}
+          className={`fmp-dd2 ${styles["fmp-dd2"]} ${selectedTenantUnitIds.length === 0 ? styles.ph : ""} ${openMenu === "third" ? styles.open : ""}`}
           onClick={() => toggleMenu("third", thirdRef)}
           aria-expanded={openMenu === "third"}
         >
@@ -543,7 +562,7 @@ export function RecipientCascade({
             />
             {eligibleTenants.length > 0 && (
               <div
-                className={`${styles.opt} ${styles.chk} ${selection.tenantUnitIds.length === eligibleTenants.length ? styles["chk-on"] : styles["chk-off"]}`}
+                className={`${styles.opt} ${styles.chk} ${selectedTenantUnitIds.length === eligibleTenants.length ? styles["chk-on"] : styles["chk-off"]}`}
                 onClick={toggleAllTenants}
               >
                 전체 ({eligibleTenants.length}명)
@@ -553,7 +572,7 @@ export function RecipientCascade({
               {filteredTenants.map((tenant) => (
                 <div
                   key={tenant.unitId}
-                  className={`${styles.opt} ${styles.tnl} ${selection.tenantUnitIds.includes(tenant.unitId) ? styles.on : ""}`}
+                  className={`${styles.opt} ${styles.tnl} ${selectedTenantUnitIds.includes(tenant.unitId) ? styles.on : ""}`}
                   onClick={() =>
                     setSelection((current) => ({
                       ...current,
@@ -565,7 +584,7 @@ export function RecipientCascade({
                   }
                 >
                   <span
-                    className={`${styles.cbx} ${selection.tenantUnitIds.includes(tenant.unitId) ? styles["cbx-on"] : styles["cbx-off"]}`}
+                    className={`${styles.cbx} ${selectedTenantUnitIds.includes(tenant.unitId) ? styles["cbx-on"] : styles["cbx-off"]}`}
                   />
                   <span className={styles["ow-av"]}>
                     {(tenant.tenantName ?? tenant.unitNo).slice(0, 1)}
