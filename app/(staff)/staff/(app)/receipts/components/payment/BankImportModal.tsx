@@ -304,6 +304,7 @@ export function BankImportModal({
             <FileDropzone
               accept=".xlsx,.xls,.csv"
               helperText="xlsx · xls · csv 파일을 첨부할 수 있어요"
+              rejectText="xlsx · xls · csv 파일만 첨부할 수 있어요"
               fileName={selectedFile?.name}
               disabled={parseFileAction.isPending}
               onFile={setSelectedFile}

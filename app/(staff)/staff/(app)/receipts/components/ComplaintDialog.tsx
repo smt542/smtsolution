@@ -26,7 +26,7 @@ export function ComplaintDialog({
   children: React.ReactNode;
   footer?: React.ReactNode;
   size?: keyof typeof SIZE_CLASS;
-  look?: "legacy" | "canon";
+  look?: "legacy" | "canon" | "canon-wide";
 }) {
   const titleId = useId();
 
@@ -44,6 +44,58 @@ export function ComplaintDialog({
   }, [open, onClose]);
 
   if (!open) return null;
+
+  if (look === "canon-wide") {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-4"
+        onMouseDown={onClose}
+      >
+        <section
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          className="flex max-h-[90vh] w-[min(1080px,96%)] flex-col overflow-auto rounded-[20px] bg-surface px-[26px] pb-[24px] pt-[28px] text-left leading-[normal] shadow-[0_30px_70px_-20px_rgba(0,0,0,0.45)]"
+          onMouseDown={(event) => event.stopPropagation()}
+        >
+          <div className="flex shrink-0 items-start gap-[8px]">
+            <div className="min-w-0">
+              <h2 id={titleId} className="mb-[4px] text-[16.5px] font-extrabold text-t1">
+                {title}
+              </h2>
+            </div>
+            <div className="flex-1" />
+            <button
+              type="button"
+              aria-label="닫기"
+              className="flex size-[26px] shrink-0 items-center justify-center rounded-[8px] border border-line bg-surface text-t3 transition-[border-color,background] duration-[120ms] hover:border-[#C9D0D8] hover:bg-[#F7F9FA] hover:text-t2"
+              onClick={onClose}
+            >
+              <svg
+                className="size-[14px]"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                aria-hidden="true"
+              >
+                <path d="M6 6l12 12" />
+                <path d="M18 6L6 18" />
+              </svg>
+            </button>
+          </div>
+          {subtitle && (
+            <p className="mb-[16px] shrink-0 text-[12.5px] font-medium text-t3">{subtitle}</p>
+          )}
+          {children}
+          {footer && (
+            <div className="mt-[16px] flex shrink-0 items-center gap-[10px]">{footer}</div>
+          )}
+        </section>
+      </div>
+    );
+  }
 
   if (look === "canon") {
     return (
