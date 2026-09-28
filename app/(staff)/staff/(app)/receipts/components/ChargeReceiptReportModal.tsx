@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/common/Button";
 import { CloseIcon, PrinterIcon } from "@/components/icons";
 import type { Building } from "@/hooks/reactquery/buildings";
+import { useFeeItems } from "@/hooks/reactquery/feeItems";
 import { useReceiptStatementData } from "@/hooks/reactquery/receipts";
 import { toMonthInput } from "@/lib/billing/period";
 import { AsyncContentState } from "./AsyncContentState";
@@ -61,6 +62,7 @@ export function ChargeReceiptReportModal({
   );
 
   const canLoad = open && building !== null && periods.length > 0;
+  const feeItemsQuery = useFeeItems(open && building?.typeId != null ? building.typeId : 0);
   const query = useReceiptStatementData(
     building?.id ?? 0,
     null,
@@ -74,8 +76,9 @@ export function ChargeReceiptReportModal({
       buildChargeReport(canLoad ? query.data : undefined, periods, {
         paymentStartDate: paymentStartDate || null,
         paymentEndDate: paymentEndDate || null,
+        configuredFeeItems: feeItemsQuery.data,
       }),
-    [canLoad, query.data, periods, paymentStartDate, paymentEndDate],
+    [canLoad, query.data, periods, paymentStartDate, paymentEndDate, feeItemsQuery.data],
   );
 
   if (!open) return null;
