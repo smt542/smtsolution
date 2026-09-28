@@ -17,6 +17,7 @@ import {
   type UnitStatementRow,
   type UnitStatementScope,
 } from "./buildUnitStatementReport";
+import { UnitStatementPrint } from "../print/UnitStatementPrint";
 
 const UTILITY_OPTIONS: Array<{ type: UtilityType; label: string }> = [
   { type: "electricity", label: "전기 표시" },
@@ -150,6 +151,7 @@ export function UnitStatementModal({
     water: true,
     gas: true,
   });
+  const [printing, setPrinting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -199,9 +201,8 @@ export function UnitStatementModal({
 
   return (
     <>
-      <style>{"@media print { @page { size: A4 landscape; margin: 8mm; } }"}</style>
       <div
-        className="fixed inset-0 z-[70] flex items-center justify-center bg-scrim p-6 print:hidden"
+        className="fixed inset-0 z-[70] flex items-center justify-center bg-scrim p-6"
         onClick={onClose}
       >
         <section
@@ -292,7 +293,10 @@ export function UnitStatementModal({
           <footer className="flex h-[69px] shrink-0 items-center justify-end border-t border-line px-[20px]">
             <button
               type="button"
-              onClick={() => window.print()}
+              onClick={() => {
+                if (printing) return;
+                setPrinting(true);
+              }}
               disabled={!hasData || isStatementBusy || query.isError}
               className="flex h-[40px] items-center gap-[7px] rounded-[11px] bg-teal px-[18px] text-[13.5px] font-bold text-white hover:bg-teal-d disabled:opacity-40"
             >
@@ -303,11 +307,15 @@ export function UnitStatementModal({
         </section>
       </div>
 
-      {hasData && (
-        <article className="hidden print:block" data-testid="unit-statement-print-root">
-          <h1 className="mb-3 text-center text-xl font-bold">[ {building.name} {resolvedUnitLabel} ]</h1>
-          <StatementTable model={model} showFooter={false} />
-        </article>
+      {printing && (
+        <UnitStatementPrint
+          buildingName={building.name}
+          titleUnitLabel={titleUnitLabel}
+          rows={model.rows}
+          feeColumns={model.feeColumns}
+          totals={model.totals}
+          onDone={() => setPrinting(false)}
+        />
       )}
     </>
   );

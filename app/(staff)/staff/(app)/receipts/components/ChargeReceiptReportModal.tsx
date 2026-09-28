@@ -13,11 +13,12 @@ import {
   shiftMonth,
 } from "./chargeReport/buildChargeReport";
 import { ChargeReportInfoBar } from "./chargeReport/ChargeReportInfoBar";
-import { ChargeReportPrintView } from "./chargeReport/ChargeReportPrintView";
 import { ChargeReportTable } from "./chargeReport/ChargeReportTable";
+import { ChargeReportPrint } from "./print/ChargeReportPrint";
 import { ReportDateField } from "./report-controls/ReportDateField";
 
 const monthLabel = (month: string) => month.replace("-", ".");
+const dayLabel = (day: string) => (day ? day.replaceAll("-", ".") : "—");
 
 export function ChargeReceiptReportModal({
   open,
@@ -39,6 +40,7 @@ export function ChargeReceiptReportModal({
   const [appliedEnd, setAppliedEnd] = useState(currentMonth);
   const [paymentStartDate, setPaymentStartDate] = useState("");
   const [paymentEndDate, setPaymentEndDate] = useState("");
+  const [printing, setPrinting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -90,9 +92,10 @@ export function ChargeReceiptReportModal({
   );
   const buildingName = building?.name ?? "";
   const rangeLabel = `${monthLabel(appliedStart)} ~ ${monthLabel(appliedEnd)}`;
+  // 정본 #acCond·인쇄 .ac-meta 형식: 날짜는 YYYY.MM.DD, 비어 있는 쪽은 —, 둘 다 비면 전체.
   const paymentDayLabel =
     paymentStartDate || paymentEndDate
-      ? `${paymentStartDate || "…"} ~ ${paymentEndDate || "…"}`
+      ? `${dayLabel(paymentStartDate)} ~ ${dayLabel(paymentEndDate)}`
       : "전체";
 
   const applySearch = () => {
@@ -102,9 +105,8 @@ export function ChargeReceiptReportModal({
 
   return (
     <>
-      <style>{"@media print { @page { size: A4 landscape; margin: 8mm; } }"}</style>
       <div
-        className="fixed inset-0 z-[60] flex items-center justify-center bg-scrim p-6 print:hidden"
+        className="fixed inset-0 z-[60] flex items-center justify-center bg-scrim p-6"
         role="dialog"
         aria-modal="true"
         aria-labelledby="charge-report-title"
@@ -214,7 +216,10 @@ export function ChargeReceiptReportModal({
           <footer className="flex shrink-0 items-center justify-end border-t border-line px-[20px] py-[14px]">
             <button
               type="button"
-              onClick={() => window.print()}
+              onClick={() => {
+                if (printing) return;
+                setPrinting(true);
+              }}
               disabled={!hasData || isReportBusy || isError}
               className="flex h-[40px] items-center gap-[7px] rounded-[11px] bg-teal px-[18px] text-[13.5px] font-bold text-white hover:bg-teal-d disabled:opacity-40"
             >
@@ -225,10 +230,15 @@ export function ChargeReceiptReportModal({
         </div>
       </div>
 
-      {hasData && (
-        <div className="hidden print:block" data-testid="charge-report-print-root">
-          <ChargeReportPrintView model={model} buildingName={buildingName} rangeLabel={rangeLabel} />
-        </div>
+      {printing && (
+        <ChargeReportPrint
+          variant="building"
+          model={model}
+          buildingName={buildingName}
+          rangeLabel={rangeLabel}
+          paymentDayLabel={paymentDayLabel}
+          onDone={() => setPrinting(false)}
+        />
       )}
     </>
   );
