@@ -6,11 +6,15 @@ import { shouldSignOutOnBoot, AUTO_LOGIN_KEY, SESSION_ALIVE_KEY } from "@/lib/au
 export function AuthBoot() {
   useEffect(() => {
     const autoLogin = localStorage.getItem(AUTO_LOGIN_KEY) === "1";
-    const sessionAlive = sessionStorage.getItem(SESSION_ALIVE_KEY) === "1";
+    // 표식을 탭마다 따로인 sessionStorage에 두면 새 탭을 브라우저 재시작으로 오판한다. 쿠키로 옮기기 전부터 열려 있던 탭은 sessionStorage 표식도 본다.
+    const sessionAlive =
+      document.cookie.split("; ").includes(`${SESSION_ALIVE_KEY}=1`) ||
+      sessionStorage.getItem(SESSION_ALIVE_KEY) === "1";
     if (shouldSignOutOnBoot(autoLogin, sessionAlive)) {
-      void createClient().auth.signOut().catch(() => {});
+      // 기본 범위(global)는 같은 계정의 다른 PC·브라우저 세션까지 끊으므로 이 브라우저 세션만 끝낸다.
+      void createClient().auth.signOut({ scope: "local" }).catch(() => {});
     }
-    sessionStorage.setItem(SESSION_ALIVE_KEY, "1");
+    document.cookie = `${SESSION_ALIVE_KEY}=1; path=/; samesite=lax`;
   }, []);
   return null;
 }

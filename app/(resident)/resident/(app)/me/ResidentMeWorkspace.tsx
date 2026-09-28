@@ -121,7 +121,7 @@ export default function ResidentMeWorkspace() {
   const confirmLogout = async () => {
     await logoutAction.run(async () => {
       try {
-        await createClient().auth.signOut();
+        await createClient().auth.signOut({ scope: "local" });
       } finally {
         resetOnboardingSession();
         router.replace("/resident/login");

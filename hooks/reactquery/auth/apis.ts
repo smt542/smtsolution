@@ -38,7 +38,7 @@ export async function login(input: LoginInput): Promise<MyContext> {
 
 export async function logout(): Promise<void> {
   const supabase = createClient();
-  await supabase.auth.signOut();
+  await supabase.auth.signOut({ scope: "local" });
 }
 
 export async function getMyContext(): Promise<MyContext | null> {
