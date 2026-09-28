@@ -31,6 +31,7 @@ export const receiptKeys = {
 
 export interface ReceiptPaymentRow extends PaymentRow {
   buildingId: number;
+  buildingCode: string;
   buildingName: string;
   phone: string | null;
   overdueMonths: number;
@@ -59,6 +60,7 @@ type ReceiptFeeTotalDbRow = {
 
 export interface ReceiptWorkspaceDbRow {
   building_id: number;
+  building_code: string;
   building_name: string;
   unit_id: number;
   unit_no: string;
@@ -116,6 +118,7 @@ export function mapReceiptWorkspaceRows(
       unpaid: row.unpaid === null ? null : Number(row.unpaid),
       payStatus: row.pay_status,
       buildingId: row.building_id,
+      buildingCode: row.building_code,
       buildingName: row.building_name,
       phone: row.phone,
       overdueMonths: Number(row.overdue_months),

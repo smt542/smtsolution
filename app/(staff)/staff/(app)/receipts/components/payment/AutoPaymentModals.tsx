@@ -25,7 +25,7 @@ export function AutoPaymentModals({
   if (view === null) return null;
 
   if (view === "giro-upload") {
-    return <GiroUploadModal open period={period} onClose={onClose} />;
+    return <GiroUploadModal open period={period} rows={rows} onClose={onClose} />;
   }
   if (view === "giro-ledger") {
     return (
