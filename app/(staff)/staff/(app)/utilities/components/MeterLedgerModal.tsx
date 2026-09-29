@@ -159,7 +159,7 @@ export function MeterLedgerModal({
                   {filteredBuildings.map((building) => {
                     const checked = selectedIds.includes(building.id);
                     return (
-                      <tr key={building.id} className={`h-[39px] border-b border-line2 ${checked ? "bg-teal-t" : "hover:bg-bg"}`}>
+                      <tr key={building.id} className={`h-[39px] border-b border-line2 ${checked ? "bg-teal-t" : "hover:bg-[#FBFCFD]"}`}>
                         <td className="text-center">
                           <input
                             type="checkbox"

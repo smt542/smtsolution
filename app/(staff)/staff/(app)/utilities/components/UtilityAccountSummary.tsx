@@ -133,7 +133,7 @@ export function UtilityAccountSummary({
         editing={editing}
         rowClassName={(row) => selectedRow && row.unitIds.includes(selectedRow.unitId)
           ? "bg-blue-t"
-          : "bg-white hover:bg-blue-t2"}
+          : "bg-white hover:bg-[#FBFCFD]"}
         onRowClick={(row) => onSelect(row.anchor)}
         empty={<div className="grid h-[96px] place-items-center text-[13px] text-t3">등록된 고객번호가 없어요.</div>}
         className="h-full"

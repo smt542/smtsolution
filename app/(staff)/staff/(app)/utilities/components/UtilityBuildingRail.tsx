@@ -113,7 +113,7 @@ export function UtilityBuildingRail({
                 <tr
                   key={building.id}
                   onClick={() => onSelectBuilding(building.id)}
-                  className={`h-[41px] cursor-pointer border-b border-line2 text-[13.5px] transition-colors ${selected ? "bg-blue-t" : "bg-white hover:bg-blue-t2"}`}
+                  className={`h-[41px] cursor-pointer border-b border-line2 text-[13.5px] transition-colors ${selected ? "bg-blue-t" : "bg-white hover:bg-[#FBFCFD]"}`}
                   aria-selected={selected}
                 >
                   <td className={`truncate px-[11px] font-semibold ${selected ? "text-t1" : "text-t3"}`}>

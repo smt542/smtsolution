@@ -122,7 +122,7 @@ export function GasLedgerModal({
                   {filteredBuildings.map((building) => {
                     const checked = selectedBuildingIds.includes(building.id);
                     return (
-                      <tr key={building.id} className={`h-[41px] border-b border-line2 ${checked ? "bg-teal-t" : "hover:bg-bg"}`}>
+                      <tr key={building.id} className={`h-[41px] border-b border-line2 ${checked ? "bg-teal-t" : "hover:bg-[#FBFCFD]"}`}>
                         <td className="pl-[11px]"><span className="flex items-center gap-2"><input aria-label={building.name} type="checkbox" checked={checked} onChange={(event) => toggleBuilding(building.id, event.target.checked)} className="size-4 shrink-0 accent-[#14a497]" /><span className="truncate text-t3">{building.code ?? building.id}</span></span></td>
                         <td className="truncate pr-2">{building.name}</td>
                         <td className="truncate pr-2 text-[10.5px] text-t3">{building.address ?? "-"}</td>
