@@ -67,10 +67,10 @@ export function UtilityWorkspaceBar({
   };
 
   return (
-    <section className={`sticky top-0 z-[4] flex h-auto min-h-[52px] shrink-0 flex-wrap items-center gap-2.5 rounded-[12px] border bg-white px-[14px] py-[10px] shadow-[0_1px_3px_rgba(23,31,40,0.05)] min-[1101px]:h-[52px] ${editing ? "border-blue shadow-[0_0_0_3px_#E2F5F1]" : "border-line"}`}>
+    <section className={`sticky top-0 z-[4] flex min-h-[52px] shrink-0 flex-wrap items-center gap-2.5 rounded-[12px] border bg-white px-[14px] py-[10px] shadow-[0_1px_3px_rgba(23,31,40,0.05)] ${editing ? "border-blue shadow-[0_0_0_3px_#E2F5F1]" : "border-line"}`}>
       <div className="min-w-0 flex-1">
-        <h2 className="truncate text-[12.5px] font-bold text-t1">{buildingName}</h2>
-        <p className="mt-px text-[11.5px] font-medium text-t3">{year}년 {month}월분 부과 편집</p>
+        <h2 className="truncate text-[12.5px] font-bold leading-[normal] text-t1">{buildingName}</h2>
+        <p className="mt-px text-[11.5px] font-medium leading-[normal] text-t3">{year}년 {month}월분 부과 편집</p>
       </div>
 
       <div className="flex flex-wrap items-center gap-[6px]">
