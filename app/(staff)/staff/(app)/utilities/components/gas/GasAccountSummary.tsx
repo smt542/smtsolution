@@ -208,7 +208,7 @@ export function GasAccountSummary({ rows, drafts, editing }: GasAccountSummaryPr
         editing={editing}
         layout="fixed"
         tableWidth={SUMMARY_TABLE_WIDTH}
-        rowClassName={(_row, index) => !editing && index === 0 ? "bg-blue-t" : "bg-white hover:bg-blue-t2"}
+        rowClassName={(_row, index) => !editing && index === 0 ? "bg-blue-t" : "bg-white hover:bg-[#FBFCFD]"}
         empty={<p className="flex h-[51px] w-[1294px] items-center justify-center text-[13px] text-t3">등록된 고객번호가 없어요.</p>}
         className="h-full"
       />
