@@ -392,8 +392,8 @@ export default function ElectricityUtilitiesWorkspace() {
           <ElectricityPeriodBar
             buildingName={selectedBuilding?.name ?? null}
             period={period}
-            startDate={startDate}
-            endDate={endDate}
+            startDate={buildingId === null ? "" : startDate}
+            endDate={buildingId === null ? "" : endDate}
             editing={editing}
             saving={isElectricitySavePending}
             onStartDateChange={setEditStartDate}

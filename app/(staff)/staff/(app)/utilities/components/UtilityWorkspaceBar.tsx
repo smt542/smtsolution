@@ -74,7 +74,7 @@ export function UtilityWorkspaceBar({
       </div>
 
       <div className="flex flex-wrap items-center gap-[6px]">
-        <span className="mr-1 text-[11.5px] font-bold text-t2">부과기준일</span>
+        <span className="text-[11.5px] font-bold text-t2">부과기준일</span>
         <DpDatePicker ariaLabel="부과 시작일" disabled={!editing} value={chargeStartDate} onChange={setStartDraft} placeholder="시작일" />
         <span className="text-[12px] font-bold text-t2">~</span>
         <DpDatePicker ariaLabel="부과 종료일" disabled={!editing} value={chargeEndDate} onChange={setEndDraft} placeholder="종료일" />
@@ -84,7 +84,7 @@ export function UtilityWorkspaceBar({
       {editing ? (
         <div className="flex items-center gap-1.5">
           <Button variant="ghost" size="sm" type="button" onClick={onCalculate}>계산</Button>
-          <button type="button" onClick={save} disabled={saving || savePeriod.isPending} className="h-[26px] rounded-[8px] bg-blue px-[10px] text-[11.5px] font-bold text-white hover:bg-blue-d disabled:opacity-60">{saving || savePeriod.isPending ? "저장 중…" : "저장"}</button>
+          <button type="button" onClick={save} disabled={saving || savePeriod.isPending} className="h-[26px] rounded-[8px] border border-blue bg-blue px-[10px] text-[11.5px] font-bold text-white hover:bg-blue-d disabled:opacity-60">{saving || savePeriod.isPending ? "저장 중…" : "저장"}</button>
           <button type="button" aria-label="수정 취소" onClick={cancel} className="grid size-[26px] place-items-center rounded-[8px] border border-line text-t3 hover:bg-bg"><CloseIcon className="size-3.5" /></button>
         </div>
       ) : canEdit ? (
