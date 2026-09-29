@@ -59,10 +59,10 @@ function TrashIcon(props: SVGProps<SVGSVGElement>) {
 }
 
 interface FileDropzoneProps {
-  accept: string;
+  accept?: string;
   helperText: string;
   /** 확장자가 `accept`에 없을 때 띄우는 안내(정본 `show()`의 토스트 문구). */
-  rejectText: string;
+  rejectText?: string;
   fileName?: string | null;
   disabled?: boolean;
   onFile: (file: File) => void;
@@ -71,9 +71,9 @@ interface FileDropzoneProps {
 
 /** 정본 `.gr-drop` 드롭존 — 지로수납처리·은행 입금내역 업로드에서 재사용. */
 export function FileDropzone({
-  accept,
+  accept = "",
   helperText,
-  rejectText,
+  rejectText = "",
   fileName,
   disabled = false,
   onFile,
@@ -92,7 +92,7 @@ export function FileDropzone({
     if (!file) return;
 
     const lowerName = file.name.toLowerCase();
-    if (!acceptedExtensions.some((extension) => lowerName.endsWith(extension))) {
+    if (acceptedExtensions.length > 0 && !acceptedExtensions.some((extension) => lowerName.endsWith(extension))) {
       appToast.warning(rejectText);
       return;
     }
@@ -132,7 +132,7 @@ export function FileDropzone({
       <input
         ref={inputRef}
         type="file"
-        accept={accept}
+        {...(accept ? { accept } : {})}
         disabled={disabled}
         className="hidden"
         onChange={(event) => {

@@ -11,6 +11,7 @@ export type AutoPaymentView = "giro-upload" | "giro-ledger" | "giro-calendar" | 
 interface AutoPaymentModalsProps {
   view: AutoPaymentView | null;
   period: string;
+  orgId: number;
   rows: ReceiptPaymentRow[];
   onClose: () => void;
 }
@@ -19,13 +20,14 @@ interface AutoPaymentModalsProps {
 export function AutoPaymentModals({
   view,
   period,
+  orgId,
   rows,
   onClose,
 }: AutoPaymentModalsProps) {
   if (view === null) return null;
 
   if (view === "giro-upload") {
-    return <GiroUploadModal open period={period} rows={rows} onClose={onClose} />;
+    return <GiroUploadModal open orgId={orgId} onClose={onClose} />;
   }
   if (view === "giro-ledger") {
     return (
