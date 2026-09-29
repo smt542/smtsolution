@@ -40,7 +40,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
   // 인증 상태로 파트너 로그인 진입 시 홈으로. 비-field 계정은 홈의 (app) 가드가
-  // /staff로 되돌리므로(로그인 화면이 아님) 리다이렉트 루프가 생기지 않는다.
+  // /api/auth/switch-entry로 보내 세션을 끊은 뒤 로그인 화면으로 오므로 루프가 생기지 않는다.
   if (isPartnerLogin && user) {
     const url = request.nextUrl.clone();
     url.pathname = "/partner/mobile-home";
