@@ -30,7 +30,7 @@ export interface ReportTable3Props {
   lineWeight?: "medium" | "normal";
 }
 
-const rowClass = "[&:hover>td]:bg-[#FBFCFD] [&:last-child>td]:border-b-0";
+const rowClass = "[&:hover>td]:bg-row-hover [&:last-child>td]:border-b-0";
 
 function ReportLines({
   lines,

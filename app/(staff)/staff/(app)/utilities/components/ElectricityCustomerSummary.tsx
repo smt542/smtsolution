@@ -153,7 +153,7 @@ export function ElectricityCustomerSummary({
         editing={editing}
         layout="fixed"
         tableWidth={1294}
-        rowClassName={(_row, index) => !editing && index === 0 ? "bg-blue-t" : "bg-white hover:bg-[#FBFCFD]"}
+        rowClassName={(_row, index) => !editing && index === 0 ? "bg-blue-t" : "bg-white hover:bg-row-hover"}
         empty={(
           <div className="flex h-full flex-col items-center justify-center gap-[5px] px-6 pb-10 pt-[34px] text-center">
             <p className="text-[15px] font-semibold tracking-[-0.02em] text-t1">건물을 선택해 주세요</p>

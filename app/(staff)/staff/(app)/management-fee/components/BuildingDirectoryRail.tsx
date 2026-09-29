@@ -157,7 +157,7 @@ export function BuildingDirectoryRail({
                     aria-selected={selected}
                     title={typeById.get(building.typeId ?? -1) ?? undefined}
                     onClick={() => onBuildingChange(String(building.id))}
-                    className={`h-[41px] cursor-pointer border-b border-line2 ${selected ? "bg-[#e2f5f1] font-bold" : "hover:bg-blue-t2"}`}
+                    className={`h-[41px] cursor-pointer border-b border-line2 ${selected ? "bg-[#e2f5f1] font-bold" : "hover:bg-row-hover"}`}
                   >
                     <td className="truncate px-[11px]">{building.code}</td>
                     <td className="truncate px-[11px]">{building.name}</td>

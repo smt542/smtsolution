@@ -16,7 +16,7 @@ const PASSWORD_MASK = "●●●●";
 //   #acTbl tbody tr:hover>td { background:var(--blue-t2) }
 const AC_TH = "px-[12px] text-[12px] first:pl-[16px] last:pr-[16px]";
 const AC_TD = "px-[12px] text-[13px] font-medium text-t1 first:pl-[16px] last:pr-[16px]";
-const AC_ROW = "cursor-pointer hover:[&>td]:bg-blue-t2";
+const AC_ROW = "cursor-pointer hover:[&>td]:bg-row-hover-accent";
 
 // 정본은 `table-layout:auto` 라 컬럼 폭이 더미 데이터 길이대로 나뉜다. 그 렌더 비율을
 // 실측해 폭으로 선언한다 — 그러지 않으면 앱 데이터 길이에 따라 분배가 달라진다

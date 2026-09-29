@@ -67,7 +67,7 @@ export function OverdueTable({ rows, periods = [] }: OverdueTableProps) {
               ...group.lines.map((line, index) => (
                 <tr
                   key={line.key}
-                  className="h-[41px] cursor-pointer bg-white transition hover:bg-[#fbfcfd]"
+                  className="h-[41px] cursor-pointer bg-white transition hover:bg-row-hover"
                 >
                   <td className="border-b border-line2 px-[16px] font-medium">{index === 0 ? unit : ""}</td>
                   <td className="border-b border-line2 px-[16px]">{index === 0 ? group.household.buildingName : ""}</td>

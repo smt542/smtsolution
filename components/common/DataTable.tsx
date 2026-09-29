@@ -7,7 +7,7 @@ import React from "react";
 //   tbody tr:hover td { background:#FBFCFD; cursor:pointer }
 const CANON_TH = "px-[16px] text-[12px]";
 const CANON_TD = "px-[16px] text-[13.5px] text-t1";
-const CANON_ROW = "cursor-pointer hover:[&>td]:bg-[#FBFCFD]";
+const CANON_ROW = "cursor-pointer hover:[&>td]:bg-row-hover";
 
 export function DataTable({
   columns,

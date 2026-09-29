@@ -134,7 +134,7 @@ export function BuildingSelectionRail({
                     key={building.id}
                     onClick={() => onBuildingChange(building.id)}
                     className={`h-[41px] cursor-pointer transition-colors ${
-                      selected ? "bg-blue-t text-t1" : "text-t1 hover:bg-[#FBFCFD]"
+                      selected ? "bg-blue-t text-t1" : "text-t1 hover:bg-row-hover"
                     }`}
                   >
                     <td className="h-[41px] truncate border-b border-line2 px-[11px] py-[12px] font-medium leading-[16px]">{building.code || "-"}</td>
@@ -191,7 +191,7 @@ export function BuildingSelectionRail({
                     : null;
 
                   return (
-                    <tr key={item.period} className="h-[35px] border-b border-line2 font-semibold text-t1 hover:bg-[#FBFCFD]">
+                    <tr key={item.period} className="h-[35px] border-b border-line2 font-semibold text-t1 hover:bg-row-hover">
                       <td className="w-[90.859px] px-4 py-[9px] whitespace-nowrap">{item.period.slice(0, 7)}</td>
                       <td className="num w-[80.406px] px-4 py-[9px] text-right text-t3">-</td>
                       <td className="num w-[56.203px] px-4 py-[9px] text-right text-t3">-</td>

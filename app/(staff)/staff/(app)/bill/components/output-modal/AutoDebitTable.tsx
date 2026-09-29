@@ -97,8 +97,9 @@ export function AutoDebitTable({ year, month, years, months, group, rows, onYear
         </div>
         {visibleRows.map(({ building, target }) => {
           const cells = deriveAutoDebitCells(building, target, year, month);
+          // hover #F7F9FA는 정본 `.cms-tbl` 전용 값이다 — 공통 row-hover(#FBFCFD)로 바꾸지 않는다.
           return (
-            <div key={`${building.id}-${target.unitId}`} className={`grid h-[24px] ${COLUMNS} ${CELL} text-[11px] font-medium text-[#191f28] hover:bg-[#f8fbfb] [&>span]:leading-[23px]`}>
+            <div key={`${building.id}-${target.unitId}`} className={`grid h-[24px] ${COLUMNS} ${CELL} text-[11px] font-medium text-[#191f28] hover:bg-[#F7F9FA] [&>span]:leading-[23px]`}>
               <span>{cells.billType}</span>
               <span className="num">{cells.memberNo}</span>
               <span className="num">{cells.contractNo}</span>

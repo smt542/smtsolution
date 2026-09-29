@@ -282,7 +282,7 @@ export function UtilitySummaryPanel({
               </tr>
             ) : activeTab === "common-electricity" ? (
               commonRows.map((row, index) => (
-                <tr key={row.id} className="cursor-pointer text-t1 hover:bg-[#fbfcfd]">
+                <tr key={row.id} className="cursor-pointer text-t1 hover:bg-row-hover">
                   {COMMON_COLUMNS.map((col) => (
                     <td
                       key={col.key}
@@ -297,7 +297,7 @@ export function UtilitySummaryPanel({
               ))
             ) : (
               displayRows.map((row, index) => (
-                <tr key={row.current.unitId} className="cursor-pointer text-t1 hover:bg-[#fbfcfd]">
+                <tr key={row.current.unitId} className="cursor-pointer text-t1 hover:bg-row-hover">
                   {normalColumns!.map((col) => (
                     <td
                       key={col.key}

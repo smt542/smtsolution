@@ -83,7 +83,7 @@ export function SettlementHistory({
               key={row.settlementId}
               type="button"
               onClick={() => onSelect(row.buildingId, row.unitId)}
-              className={`grid min-h-[41px] w-full grid-cols-[32px_44px_54px_84px_1fr] border-b border-line2 text-left text-[13.5px] leading-[16px] text-t1 hover:bg-[#fbfcfd] ${on ? "bg-blue-t2" : ""}`}
+              className={`grid min-h-[41px] w-full grid-cols-[32px_44px_54px_84px_1fr] border-b border-line2 text-left text-[13.5px] leading-[16px] text-t1 hover:bg-row-hover ${on ? "bg-blue-t2" : ""}`}
             >
               <span className="py-[12px] pl-[16px] pr-[8px] text-right tabular-nums">
                 {index + 1}

@@ -378,7 +378,7 @@ export function AsStatusSection({
                   <tr
                     key={complaint.id}
                     onClick={() => setSelectedId(complaint.id)}
-                    className="cursor-pointer border-b border-line2 last:border-0 hover:bg-[#fbfcfd]"
+                    className="cursor-pointer border-b border-line2 last:border-0 hover:bg-row-hover"
                   >
                     <td className={`${AS_TD_CLASS} text-right num`}>{no}</td>
                     {scope === "building" && (

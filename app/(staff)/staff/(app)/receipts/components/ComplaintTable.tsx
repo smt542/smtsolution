@@ -49,7 +49,7 @@ export function ComplaintTable({
               <tr
                 key={complaint.id}
                 tabIndex={0}
-                className="cursor-pointer border-b border-line last:border-0 hover:bg-blue-t2 focus:bg-blue-t2 focus:outline-none"
+                className="cursor-pointer border-b border-line last:border-0 hover:bg-row-hover focus:bg-blue-t2 focus:outline-none"
                 onClick={() => onSelect(complaint)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {

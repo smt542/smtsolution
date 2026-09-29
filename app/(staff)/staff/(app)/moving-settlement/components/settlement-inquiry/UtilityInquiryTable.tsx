@@ -71,7 +71,7 @@ export function UtilityInquiryTable({
               ? edit[fields.paidDate]
               : row[fields.paidDate];
             return (
-              <tr key={row.settlementId} className="h-[55px] hover:bg-[#FBFCFD]">
+              <tr key={row.settlementId} className="h-[55px] hover:bg-row-hover">
                 {columns.map((column) => {
                   const className = `border-b border-line2 px-4 ${column.align === "right" ? "text-right" : "text-left"}`;
                   switch (column.key) {

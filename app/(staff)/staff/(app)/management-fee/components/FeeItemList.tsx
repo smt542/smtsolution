@@ -51,7 +51,7 @@ export function FeeItemList({ items, isLoading, onEdit, onDelete, onMoveUp, onMo
           const isGroupLast = groupIdx === groupItems.length - 1;
 
           return (
-            <tr key={item.id} className="border-b border-line hover:bg-bg" role="row">
+            <tr key={item.id} className="border-b border-line hover:bg-row-hover" role="row">
               <td className="py-2 pr-4 font-medium text-t1">
                 {item.name}
                 {item.isRequired && (

@@ -108,7 +108,7 @@ function DetailRow({
   const isFirst = lineIndex === 0;
   return (
     <div
-      className={`flex border-b border-line2 ${isEven ? "bg-[#fcfdfd]" : "bg-surface"} hover:bg-blue-t2`}
+      className={`flex border-b border-line2 ${isEven ? "bg-[#fcfdfd]" : "bg-surface"} hover:bg-row-hover-accent`}
     >
       <TextCell width={OVERDUE_COL.unit} value={isFirst ? group.unitLabel : ""} />
       <TextCell width={OVERDUE_COL.biller} value={isFirst ? billerName : ""} />

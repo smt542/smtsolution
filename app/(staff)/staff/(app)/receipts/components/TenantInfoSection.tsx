@@ -118,7 +118,7 @@ function EmptyOccupancyTable() {
     <TenantTable editing={false}>
       <TenantTableHead />
       <tbody className="[&>tr:last-child>td]:border-b-0">
-        <tr className="hover:[&>td]:bg-[#FBFCFD]">
+        <tr className="hover:[&>td]:bg-row-hover">
           {TENANT_COLUMNS.map((column) => (
             <td key={column.label} className={VIEW_TD_CLASS}>
               -
@@ -322,7 +322,7 @@ export function TenantInfoSection({
   ) : undefined;
 
   const midMonthMoveOutDay = !editing ? getMidMonthMoveOutDay(occ?.moveOutDate ?? null, period) : null;
-  const rowClassName = "hover:[&>td]:bg-[#FBFCFD]";
+  const rowClassName = "hover:[&>td]:bg-row-hover";
 
   return (
     <Panel title="입주자정보" action={action} flush className="max-h-[210px] shrink-0">

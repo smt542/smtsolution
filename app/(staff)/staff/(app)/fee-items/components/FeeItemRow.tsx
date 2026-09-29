@@ -41,7 +41,7 @@ export function FeeItemRow({
   return (
     <tr
       draggable={interactive}
-      className={`${item.isRequired ? "h-[47px] bg-[#fbfcfd]" : "h-[51px]"} border-t border-line2 text-[13.5px] text-t2 transition-opacity duration-150 ease-out [&>*]:transition-shadow [&>*]:duration-150 [&>*]:ease-out ${interactive ? "cursor-pointer hover:bg-bg/60" : ""} ${dragged ? "opacity-40" : "opacity-100"} ${indicatorClass}`}
+      className={`${item.isRequired ? "h-[47px] bg-[#fbfcfd]" : "h-[51px]"} border-t border-line2 text-[13.5px] text-t2 transition-opacity duration-150 ease-out [&>*]:transition-shadow [&>*]:duration-150 [&>*]:ease-out ${interactive ? "cursor-pointer hover:bg-row-hover" : ""} ${dragged ? "opacity-40" : "opacity-100"} ${indicatorClass}`}
       onClick={() => editable && onEdit(item)}
       onDragStart={(event) => {
         if (!interactive) return;

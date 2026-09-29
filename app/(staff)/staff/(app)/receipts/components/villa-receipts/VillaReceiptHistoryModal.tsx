@@ -62,7 +62,7 @@ function ReportTable({ model }: { model: VillaReceiptReportModel }) {
         ) : model.rows.map((row) => (
           <tr
             key={row.key}
-            className="[&:nth-child(even)>td]:bg-[#FCFDFD] [&:hover>td]:!bg-blue-t2 [&:last-child>td]:border-b-0"
+            className="[&:nth-child(even)>td]:bg-[#FCFDFD] [&:hover>td]:!bg-row-hover-accent [&:last-child>td]:border-b-0"
           >
             <td className={`${bodyCellClass} num`}>{row.showUnit ? row.unitLabel : ""}</td>
             <td className={`${bodyCellClass} num`}>{row.periodLabel}</td>

@@ -149,7 +149,7 @@ export function ScheduledTab() {
                 aria-label={rowLabel}
                 onClick={() => openScheduledMessage(msg)}
                 onKeyDown={(event) => handleRowKeyDown(event, msg)}
-                className="cursor-pointer border-b border-[#f1f3f5] last:border-b-0 hover:bg-[#fbfcfd]"
+                className="cursor-pointer border-b border-[#f1f3f5] last:border-b-0 hover:bg-row-hover-accent"
               >
                 <td className={TD}>{channelLabel(msg.channel)}</td>
                 <td className={TD}>{senderLabel(msg.channel, config?.smsSender)}</td>

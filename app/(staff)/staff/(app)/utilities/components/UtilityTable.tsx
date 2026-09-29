@@ -379,7 +379,7 @@ export function UtilityTable({
       editing={editing}
       layout="fixed"
       tableWidth={TABLE_WIDTH}
-      rowClassName={(item) => `transition-colors ${selectedRowId === item.row.unitId ? "bg-blue-t" : "bg-white hover:bg-[#FBFCFD]"} ${item.state.vacant && (item.state.usage ?? 0) <= 0 ? "opacity-55" : ""}`}
+      rowClassName={(item) => `transition-colors ${selectedRowId === item.row.unitId ? "bg-blue-t" : "bg-white hover:bg-row-hover"} ${item.state.vacant && (item.state.usage ?? 0) <= 0 ? "opacity-55" : ""}`}
       onRowClick={(item) => onRowClick(item.row)}
       className="min-h-0 flex-1"
     />
