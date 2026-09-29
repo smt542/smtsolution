@@ -36,7 +36,7 @@ export function BillingHistoryModal({ open, unitId, unitNo, period, onClose }: P
               const prev = data[i + 1]; // data는 최신순(period desc)
               const delta = prev ? h.totalAmount - prev.totalAmount : null;
               return (
-                <tr key={h.period} className="border-b border-line2">
+                <tr key={h.period} className="border-b border-line2 hover:bg-row-hover">
                   <td className="py-2">{h.period.slice(0, 7)}</td>
                   <td className="py-2 text-right font-bold">{won(h.totalAmount)}</td>
                   <td

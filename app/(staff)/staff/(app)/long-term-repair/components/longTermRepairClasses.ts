@@ -35,6 +35,7 @@ export const longTermRepairClasses = {
   ledgerTable: "w-full border-collapse whitespace-nowrap text-t1 [&_th]:sticky [&_th]:top-0 [&_th]:z-[2] [&_th]:border-b [&_th]:border-line [&_th]:bg-[#fbfcfd] [&_th]:h-[36.5px] [&_th]:px-4 [&_th]:py-[11px] [&_th]:text-left [&_th]:text-xs [&_th]:font-bold [&_th]:leading-[13.5px] [&_th]:text-t3 [&_td]:border-b [&_td]:border-line2 [&_td]:px-4 [&_td]:text-[13.5px] [&_td]:font-medium [&_td]:leading-normal [&_tbody_tr:last-child_td]:border-b-0",
   /* 행 높이는 tr 단위로 준다. 공유 [&_td]에 세로 여백을 두면 합계행(41px)이 여백에 밀려 높이를 못 지킨다. */
   ledgerRow: "[&_td]:h-[57px] [&_td]:py-3",
+  ledgerRowHover: "[&:hover>td]:bg-row-hover",
   right: "text-right",
   numberCell: "text-right font-semibold tabular-nums text-t2",
   balanceCell: "text-right font-semibold tabular-nums",
@@ -61,7 +62,7 @@ export const longTermRepairClasses = {
   ledgerTableEditing: "[&_button]:border-line [&_button]:bg-white",
   attachmentCount: "font-bold tabular-nums text-inherit",
   attachmentCountEmpty: "font-semibold text-t4",
-  subtotalRow: "[&_td]:h-[41px] [&_td]:py-0 [&_td]:bg-[#fafbfc] [&_td]:font-semibold [&_td]:text-t3 [&_td:nth-child(4)]:tabular-nums [&_td:nth-child(5)]:tabular-nums [&_td:nth-child(6)]:tabular-nums",
+  subtotalRow: "[&_td]:h-[41px] [&_td]:py-0 [&_td]:bg-[#fafbfc] [&:hover>td]:bg-row-hover [&_td]:font-semibold [&_td]:text-t3 [&_td:nth-child(4)]:tabular-nums [&_td:nth-child(5)]:tabular-nums [&_td:nth-child(6)]:tabular-nums",
   /* 합계는 좌측 정렬한다. Figma 정본은 우측 정렬이지만, 빠른발송 FAB이 fixed bottom-[22px] right-[22px]로
      우하단에 떠 있어 현잔액을 가린다. 기획 협의로 좌측 정렬을 선택했으므로 픽셀 정합 작업 때 되돌리지 말 것. */
   footer: "flex min-h-[47px] flex-none flex-wrap items-center justify-start gap-x-[26px] gap-y-2 border-t border-line bg-[#fbfcfd] px-[18px] py-[13px] leading-normal",

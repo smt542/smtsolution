@@ -70,7 +70,7 @@ export const BillingTableRow = memo(function BillingTableRow({
   const cellBorder = "border-b border-line2";
 
   return (
-    <tr className={`align-top text-[13.5px] ${rowStateText}`}>
+    <tr className={`align-top text-[13.5px] hover:bg-row-hover ${rowStateText}`}>
       {/* 호수 — 56px sticky left:0, .mf-nocell 700 중앙 */}
       <td className={`sticky left-0 z-[2] w-[56px] min-w-[56px] max-w-[56px] bg-surface px-[8px] py-[7px] text-center align-middle text-[13.5px] font-bold ${cellBorder} ${firstCellBar}`}>
         <button type="button" className="cursor-pointer whitespace-normal break-keep font-bold text-inherit" onClick={() => onRowClick(unit.unitId)}>{unitNo}</button>
