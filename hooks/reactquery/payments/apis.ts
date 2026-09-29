@@ -31,6 +31,24 @@ export interface GiroPaymentDetail {
 }
 export interface BankPaymentEntry { unitId: number; amount: number; paidAt: string | null; memo?: string | null; }
 export interface BankPaymentRef { unitId: number; amount: number; paidAt: string; }
+export interface GiroPaymentEntry {
+  unitId: number;
+  period: string;
+  amount: number;
+  fee: number;
+  paidAt: string;
+  externalRef: string;
+}
+export interface RecordGiroPaymentsResult {
+  recorded: number;
+  duplicate: number;
+  skipped: number;
+  results: Array<{
+    index: number;
+    externalRef: string | null;
+    status: "recorded" | "duplicate" | "skipped";
+  }>;
+}
 export interface PaidDatePayment { amount: number; method: PaymentMethod; paidAt: string; }
 
 type PaymentRowDb = {
@@ -248,6 +266,42 @@ export async function recordBankPayments(
   // duplicate = 서버 멱등 스킵(이미 반영된 동일 입금). skipped는 무효행 포함 합계.
   const r = data as { recorded: number; skipped: number; duplicate?: number };
   return { recorded: r.recorded, skipped: r.skipped, duplicate: r.duplicate ?? 0 };
+}
+
+export async function recordGiroPayments(
+  entries: GiroPaymentEntry[],
+): Promise<RecordGiroPaymentsResult> {
+  const { data, error } = await createClient().rpc("record_giro_payments", {
+    p_entries: entries.map((entry) => ({
+      unit_id: entry.unitId,
+      period: entry.period,
+      amount: entry.amount,
+      fee: entry.fee,
+      paid_at: entry.paidAt,
+      external_ref: entry.externalRef,
+    })),
+  });
+  if (error) throw new Error(error.message);
+  const result = data as {
+    recorded: number;
+    duplicate: number;
+    skipped: number;
+    results?: Array<{
+      index: number;
+      external_ref: string | null;
+      status: "recorded" | "duplicate" | "skipped";
+    }>;
+  };
+  return {
+    recorded: Number(result.recorded ?? 0),
+    duplicate: Number(result.duplicate ?? 0),
+    skipped: Number(result.skipped ?? 0),
+    results: (result.results ?? []).map((item) => ({
+      index: item.index,
+      externalRef: item.external_ref,
+      status: item.status,
+    })),
+  };
 }
 
 export async function listBankPayments(buildingId: number | null, period: string): Promise<BankPaymentRef[]> {

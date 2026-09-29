@@ -1,6 +1,16 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { receiptKeys } from "@/hooks/reactquery/receipts/queries";
-import { cancelPayment, recordBankPayments, recordPayment, recordPaymentEdit, type BankPaymentEntry, type RecordPaymentEditInput, type RecordPaymentInput } from "./apis";
+import {
+  cancelPayment,
+  recordBankPayments,
+  recordGiroPayments,
+  recordPayment,
+  recordPaymentEdit,
+  type BankPaymentEntry,
+  type GiroPaymentEntry,
+  type RecordPaymentEditInput,
+  type RecordPaymentInput,
+} from "./apis";
 import { paymentKeys } from "./keys";
 
 export function useRecordPayment() {
@@ -32,6 +42,16 @@ export function useRecordBankPayments() {
   return useMutation({
     mutationFn: (v: { buildingId: number | null; period: string; entries: BankPaymentEntry[] }) =>
       recordBankPayments(v.buildingId, v.period, v.entries),
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: paymentKeys.all }),
+      qc.invalidateQueries({ queryKey: receiptKeys.all }),
+    ]),
+  });
+}
+export function useRecordGiroPayments() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (entries: GiroPaymentEntry[]) => recordGiroPayments(entries),
     onSuccess: () => Promise.all([
       qc.invalidateQueries({ queryKey: paymentKeys.all }),
       qc.invalidateQueries({ queryKey: receiptKeys.all }),

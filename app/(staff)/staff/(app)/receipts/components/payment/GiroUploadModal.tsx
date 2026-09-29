@@ -5,22 +5,22 @@ import { useConfirm } from "@/components/common/ConfirmProvider";
 import { useAsyncAction } from "@/hooks/common";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import {
-  useGiroPayments,
-  useRecordPayment,
+  useGiroPaymentsPeriods,
+  useRecordGiroPayments,
 } from "@/hooks/reactquery/payments";
 import type { ReceiptPaymentRow } from "@/hooks/reactquery/receipts";
+import { useReceiptPaymentStatusPeriods } from "@/hooks/reactquery/receipts";
 import {
-  DepositFileError,
-  guessColumns,
-  parseDepositFile,
-  toDeposits,
-  type Deposit,
-} from "@/lib/payments/bankParse";
-import {
-  buildDepositPreview,
-  type DepositPreviewRow,
+  buildGiroPreview,
   type DepositPreviewUnit,
+  type GiroPreviewRow,
 } from "@/lib/payments/depositPreview";
+import {
+  displayGiroRoomNumber,
+  GiroFileError,
+  parseGiroFile,
+  type GiroFile,
+} from "@/lib/payments/giroFile";
 import { formatWon } from "@/lib/format";
 import { ComplaintDialog } from "../ComplaintDialog";
 import { DepositUploadFooter } from "./DepositUploadFooter";
@@ -29,8 +29,7 @@ import { giroTableClass, giroTdClass, giroThClass, giroWrapClass } from "./giroC
 
 interface GiroUploadModalProps {
   open: boolean;
-  period: string;
-  rows: ReceiptPaymentRow[];
+  orgId: number;
   onClose: () => void;
 }
 
@@ -64,13 +63,23 @@ function dateDots(value: string | null) {
   return value ? value.replace(/-/g, ".") : "-";
 }
 
-function locationValues(row: DepositPreviewRow, period: string) {
-  if (!row.unit) return { buildingCode: "", buildingName: "", unitNo: "", year: "", month: "" };
-  const dong = row.unit.dong?.trim();
+function locationValues(row: GiroPreviewRow) {
+  const { record, unit } = row;
+  const period = record.period;
+  if (!unit) {
+    return {
+      buildingCode: record.buildingCode,
+      buildingName: "",
+      unitNo: displayGiroRoomNumber(record.roomNo),
+      year: period.slice(0, 4),
+      month: period.slice(5, 7),
+    };
+  }
+  const dong = unit.dong?.trim();
   return {
-    buildingCode: row.unit.buildingCode ?? "",
-    buildingName: row.unit.buildingName ?? "",
-    unitNo: dong ? `${dong} ${row.unit.unitNo}` : row.unit.unitNo,
+    buildingCode: record.buildingCode,
+    buildingName: unit.buildingName ?? "",
+    unitNo: dong ? `${dong} ${unit.unitNo}` : unit.unitNo,
     year: period.slice(0, 4),
     month: period.slice(5, 7),
   };
@@ -100,11 +109,9 @@ function GiroPreviewCell({
 
 function GiroPreviewTable({
   rows,
-  period,
   completed,
 }: {
-  rows: DepositPreviewRow[];
-  period: string;
+  rows: GiroPreviewRow[];
   completed: Set<number>;
 }) {
   return (
@@ -127,16 +134,15 @@ function GiroPreviewTable({
         </thead>
         <tbody>
           {rows.map((row, index) => {
-            const isDone = completed.has(row.deposit.rowIndex);
-            const location = locationValues(row, period);
+            const isDone = completed.has(row.record.rowIndex);
+            const location = locationValues(row);
             const error = isDone ? "-" : row.error === "정상" ? "-" : row.error;
-            // 반영을 마친 행은 다시 조회된 지로 수납과 겹쳐 '이중수납'으로 판정되므로 완료 표시를 우선한다.
-            const duplicateDate = !isDone && row.error === "이중수납" ? dateDots(row.deposit.paidAt) : "-";
+            const duplicateDate = !isDone && row.error === "이중수납" ? dateDots(row.duplicatePaidAt) : "-";
             return (
-              <tr key={row.deposit.rowIndex}>
+              <tr key={row.record.rowIndex}>
                 <GiroPreviewCell value={String(index + 1)} done={isDone} className="num text-right" />
-                <GiroPreviewCell value={dateDots(row.deposit.paidAt)} done={isDone} />
-                <GiroPreviewCell value={row.deposit.paidAt ?? "-"} done={isDone} />
+                <GiroPreviewCell value={dateDots(row.record.depositedAt)} done={isDone} />
+                <GiroPreviewCell value={row.record.paidAt} done={isDone} />
                 <GiroPreviewCell value={row.dueStatus} done={isDone}>
                   {row.dueStatus === "납기후" ? <span className="text-red">납기후</span> : row.dueStatus}
                 </GiroPreviewCell>
@@ -145,11 +151,11 @@ function GiroPreviewTable({
                 <GiroPreviewCell value={location.unitNo} done={isDone} />
                 <GiroPreviewCell value={location.year} done={isDone} className="num" />
                 <GiroPreviewCell value={location.month} done={isDone} className="num" />
-                <GiroPreviewCell value={amountText(row.deposit.amount)} done={isDone} className="num text-right" />
+                <GiroPreviewCell value={amountText(row.record.amount)} done={isDone} className="num text-right" />
                 <GiroPreviewCell value={error} done={isDone}>
                   {error === "-" ? error : <span className="text-red">{error}</span>}
                 </GiroPreviewCell>
-                <GiroPreviewCell value="-" done={isDone} className="text-right" />
+                <GiroPreviewCell value={amountText(row.record.fee)} done={isDone} className="num text-right" />
                 <GiroPreviewCell value={duplicateDate} done={isDone} />
                 <GiroPreviewCell value="-" done={isDone} className="text-right" />
                 <GiroPreviewCell value="-" done={isDone} className="text-right" />
@@ -162,68 +168,76 @@ function GiroPreviewTable({
   );
 }
 
-export function GiroUploadModal({ open, period, rows, onClose }: GiroUploadModalProps) {
+function toPreviewRowsByPeriod(
+  periods: Array<{ period: string; rows: ReceiptPaymentRow[] }>,
+): Map<string, DepositPreviewUnit[]> {
+  return new Map(periods.map(({ period, rows }) => [period, toPreviewUnits(rows)]));
+}
+
+export function GiroUploadModal({ open, orgId, onClose }: GiroUploadModalProps) {
   const [file, setFile] = useState<File | null>(null);
-  const [deposits, setDeposits] = useState<Deposit[]>([]);
+  const [giroFile, setGiroFile] = useState<GiroFile | null>(null);
   const [completed, setCompleted] = useState<Set<number>>(new Set());
   const [isProcessing, setIsProcessing] = useState(false);
   const parseFileAction = useAsyncAction();
   const confirm = useConfirm();
-  const recordPayment = useRecordPayment();
-  const { data: giroPayments = [] } = useGiroPayments(null, period);
-  const activeGiroPayments = useMemo(
-    () => giroPayments
+  const recordGiroPayments = useRecordGiroPayments();
+  const periods = useMemo(
+    () => [...new Set(giroFile?.records.map((record) => record.period) ?? [])].sort(),
+    [giroFile],
+  );
+  const workspacePeriods = useReceiptPaymentStatusPeriods(orgId, periods, Boolean(giroFile));
+  const giroPaymentPeriods = useGiroPaymentsPeriods(periods, Boolean(giroFile));
+  const isPeriodDataLoading = Boolean(giroFile)
+    && (workspacePeriods.isLoading || giroPaymentPeriods.isLoading);
+  const unitsByPeriod = useMemo(
+    () => toPreviewRowsByPeriod(workspacePeriods.periods),
+    [workspacePeriods.periods],
+  );
+  const existingGiroPayments = useMemo(
+    () => giroPaymentPeriods.periods.flatMap(({ period, data }) => data
       .filter((payment) => payment.status === "active")
       .map((payment) => ({
         unitId: payment.unitId,
+        period,
         amount: payment.amount,
         paidAt: payment.paidAt,
-      })),
-    [giroPayments],
+      }))),
+    [giroPaymentPeriods.periods],
   );
   const previewRows = useMemo(
-    () => buildDepositPreview(deposits, toPreviewUnits(rows), activeGiroPayments),
-    [activeGiroPayments, deposits, rows],
+    () => buildGiroPreview(giroFile?.records ?? [], unitsByPeriod, existingGiroPayments),
+    [existingGiroPayments, giroFile, unitsByPeriod],
   );
   const processableRows = useMemo(
-    () => previewRows.filter((row) => row.error === "정상" && !completed.has(row.deposit.rowIndex)),
+    () => previewRows.filter((row) => row.error === "정상" && !completed.has(row.record.rowIndex)),
     [completed, previewRows],
   );
   const total = useMemo(
-    () => processableRows.reduce((sum, row) => sum + row.deposit.amount, 0),
+    () => processableRows.reduce((sum, row) => sum + row.record.amount, 0),
     [processableRows],
   );
-  const busy = parseFileAction.isPending || isProcessing;
+  const busy = parseFileAction.isPending || isPeriodDataLoading || isProcessing || recordGiroPayments.isPending;
 
   const resetFile = () => {
     if (busy) return;
     setFile(null);
-    setDeposits([]);
+    setGiroFile(null);
     setCompleted(new Set());
   };
 
   const parseFile = async (nextFile: File) => {
     setFile(nextFile);
+    setGiroFile(null);
     setCompleted(new Set());
     await parseFileAction.run(async () => {
       try {
-        const parsed = await parseDepositFile(nextFile);
-        const mapping = guessColumns(parsed.headers);
-        if (mapping.amount == null || (mapping.customerNo == null && mapping.name == null)) {
-          toast.warning("입금내역 머리글을 읽지 못했어요");
-          setFile(null);
-          setDeposits([]);
-          return;
-        }
-        setDeposits(toDeposits(parsed.rows, mapping));
+        setGiroFile(await parseGiroFile(nextFile));
       } catch (error) {
-        toast.warning(
-          error instanceof DepositFileError && error.code === "unsupported-xls"
-            ? error.message
-            : "입금내역 파일을 읽지 못했어요",
-        );
+        toast.warning(error instanceof GiroFileError ? error.message : "파일을 읽지 못했어요");
         setFile(null);
-        setDeposits([]);
+        setGiroFile(null);
+        setCompleted(new Set());
       }
     });
   };
@@ -249,40 +263,41 @@ export function GiroUploadModal({ open, period, rows, onClose }: GiroUploadModal
     if (!accepted || busy) return;
 
     setIsProcessing(true);
-    const doneRows = new Set(completed);
-    let failed = 0;
     try {
-      for (const row of processableRows) {
-        if (!row.unit) {
-          failed += 1;
-          continue;
-        }
-        try {
-          await recordPayment.mutateAsync({
-            unitId: row.unit.unitId,
-            period,
-            amount: row.deposit.amount,
-            method: "giro",
-            kind: "full",
-            memo: row.deposit.name || null,
-            paidAt: row.deposit.paidAt,
-            fee: 0,
-          });
-          doneRows.add(row.deposit.rowIndex);
-        } catch {
-          failed += 1;
-        }
-        setCompleted(new Set(doneRows));
+      const result = await recordGiroPayments.mutateAsync(processableRows.map((row) => ({
+        unitId: row.unit?.unitId ?? 0,
+        period: row.record.period,
+        amount: row.record.amount,
+        fee: row.record.fee,
+        paidAt: row.record.paidAt,
+        externalRef: row.record.externalRef,
+      })));
+      const rowsByRef = new Map(processableRows.map((row) => [row.record.externalRef, row]));
+      const doneRows = new Set(completed);
+      for (const item of result.results) {
+        if (item.status !== "recorded" && item.status !== "duplicate") continue;
+        const row = (item.externalRef ? rowsByRef.get(item.externalRef) : undefined)
+          ?? processableRows[item.index];
+        if (row) doneRows.add(row.record.rowIndex);
       }
+      setCompleted(doneRows);
+
+      if (result.skipped > 0) {
+        toast.error(`${result.skipped}건은 반영하지 못했어요`);
+        return;
+      }
+      if (result.recorded === 0 && result.duplicate > 0) {
+        toast.info(`${result.duplicate}건은 이미 반영돼 있었어요`);
+      } else if (result.duplicate > 0) {
+        toast.success(`${result.recorded}건을 수납 반영했어요 · ${result.duplicate}건은 이미 반영돼 있었어요`);
+      } else {
+        toast.success(`${result.recorded}건을 수납 반영했어요`);
+      }
+      onClose();
+    } catch {
+      toast.error("지로 수납을 반영하지 못했어요");
     } finally {
       setIsProcessing(false);
-    }
-
-    if (failed === 0) {
-      toast.success(`${processableRows.length}건을 수납 반영했어요`);
-      onClose();
-    } else {
-      toast.error(`${failed}건은 반영하지 못했어요`);
     }
   };
 
@@ -297,8 +312,8 @@ export function GiroUploadModal({ open, period, rows, onClose }: GiroUploadModal
         <DepositUploadFooter
           amount={total}
           count={processableRows.length}
-          disabled={!file || parseFileAction.isPending || processableRows.length === 0 || isProcessing}
-          pending={isProcessing}
+          disabled={!file || parseFileAction.isPending || isPeriodDataLoading || processableRows.length === 0 || isProcessing || recordGiroPayments.isPending}
+          pending={isProcessing || recordGiroPayments.isPending}
           onProcess={() => void processPayments()}
         />
       }
@@ -306,19 +321,17 @@ export function GiroUploadModal({ open, period, rows, onClose }: GiroUploadModal
       {file ? (
         <>
           <FileDropzoneFileRow file={file} disabled={busy} onRemove={resetFile} />
-          {parseFileAction.isPending ? (
+          {parseFileAction.isPending || isPeriodDataLoading ? (
             <p role="status" className="mt-[12px] text-center text-[13px] font-medium text-t3">
               파일을 읽고 있어요…
             </p>
           ) : (
-            <GiroPreviewTable rows={previewRows} period={period} completed={completed} />
+            <GiroPreviewTable rows={previewRows} completed={completed} />
           )}
         </>
       ) : (
         <FileDropzone
-          accept=".txt"
-          helperText="txt 파일만 첨부할 수 있어요"
-          rejectText="txt 파일만 첨부할 수 있어요"
+          helperText="e지로 수납 파일(GR15…)을 첨부할 수 있어요"
           disabled={busy}
           onFile={(nextFile) => void parseFile(nextFile)}
           ariaLabel="지로 수납 파일 첨부"

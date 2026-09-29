@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import {
   getPaymentReceiverName,
   listBankPayments,
@@ -46,6 +46,23 @@ export function useGiroPayments(buildingId: number | null, period: string) {
     queryFn: () => listGiroPayments(buildingId, period),
     enabled: Boolean(period),
   });
+}
+export function useGiroPaymentsPeriods(periods: string[], enabled: boolean) {
+  const queries = useQueries({
+    queries: periods.map((period) => ({
+      queryKey: paymentKeys.giro(null, period),
+      queryFn: () => listGiroPayments(null, period),
+      enabled: enabled && Boolean(period),
+    })),
+  });
+
+  return {
+    periods: periods.map((period, index) => ({
+      period,
+      data: queries[index]?.data ?? [],
+    })),
+    isLoading: enabled && queries.some((query) => query.isLoading),
+  };
 }
 export function useGiroPaymentDetails(period: string) {
   return useQuery({

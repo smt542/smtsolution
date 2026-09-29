@@ -519,6 +519,7 @@ export function ReceiptWorkspace({
       <AutoPaymentModals
         view={autoView}
         period={period}
+        orgId={orgId}
         rows={receiptRows}
         onClose={() => setAutoView(null)}
       />
