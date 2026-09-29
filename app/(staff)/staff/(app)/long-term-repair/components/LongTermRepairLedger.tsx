@@ -615,7 +615,7 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
                         const monthWithdrawal = monthRows.reduce((sum, candidate) => sum + candidate.withdrawal, 0);
                         return (
                           <Fragment key={row.clientKey}>
-                            <tr className={`${styles.ledgerRow} ${!row.id ? styles.newRow : ""}`}>
+                            <tr className={`${styles.ledgerRow} ${styles.ledgerRowHover} ${!row.id ? styles.newRow : ""}`}>
                               <td>
                                 {canEditRow ? (
                                   <DpDatePicker

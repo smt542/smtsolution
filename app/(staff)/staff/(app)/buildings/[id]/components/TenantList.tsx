@@ -36,15 +36,18 @@ export function TenantList({ buildingId }: { buildingId: number }) {
       ) : rows.length === 0 ? (
         <EmptyState message="등록된 세대가 없습니다." />
       ) : (
-        <DataTable
-          columns={[
-            { key: "unitNo", label: "호실명" }, { key: "tenant", label: "입주자명" },
-            { key: "roomType", label: "룸타입" }, { key: "resident", label: "인원" },
-            { key: "moveIn", label: "입주일" }, { key: "vacancy", label: "공실여부" }, { key: "overdue", label: "연체여부" },
-          ]}
-          rows={rows}
-          onRowDoubleClick={(r) => router.push(`${base}/${r._unitId}`)}
-        />
+        // 공용 DataTable 기본 hover(bg-bg)는 통합관리자와 같이 쓰므로 여기서만 공통 토큰으로 덮는다.
+        <div className="[&_tbody_tr:hover_td]:bg-row-hover">
+          <DataTable
+            columns={[
+              { key: "unitNo", label: "호실명" }, { key: "tenant", label: "입주자명" },
+              { key: "roomType", label: "룸타입" }, { key: "resident", label: "인원" },
+              { key: "moveIn", label: "입주일" }, { key: "vacancy", label: "공실여부" }, { key: "overdue", label: "연체여부" },
+            ]}
+            rows={rows}
+            onRowDoubleClick={(r) => router.push(`${base}/${r._unitId}`)}
+          />
+        </div>
       )}
     </div>
   );
