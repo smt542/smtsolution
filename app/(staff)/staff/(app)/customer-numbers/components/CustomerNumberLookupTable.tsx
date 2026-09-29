@@ -53,7 +53,7 @@ export function CustomerNumberLookupTable({
           {rows.map((row) => (
             <tr
               key={row.id}
-              className="cursor-pointer border-b border-line2 text-[13.5px] text-t1 last:border-0 hover:bg-[#FBFCFD] leading-[normal]"
+              className="cursor-pointer border-b border-line2 text-[13.5px] text-t1 last:border-0 hover:bg-row-hover leading-[normal]"
             >
               <td className="num h-[41px] truncate px-4 py-[12px]" title={row.buildingCode}>
                 {row.buildingCode}

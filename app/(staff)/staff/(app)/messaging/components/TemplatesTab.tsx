@@ -188,7 +188,7 @@ export function TemplatesTab() {
                 <tr
                   key={template.id}
                   onClick={() => setEditTemplate(template)}
-                  className="cursor-pointer border-b border-[#f1f3f5] last:border-b-0 hover:bg-[#fbfcfd]"
+                  className="cursor-pointer border-b border-[#f1f3f5] last:border-b-0 hover:bg-row-hover"
                 >
                   <td className="whitespace-nowrap h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
                     {getChannelLabel(template.channelType)}

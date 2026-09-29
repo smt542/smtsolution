@@ -172,7 +172,7 @@ export function SettlementDirectoryRail({
                   key={row.id}
                   type="button"
                   onClick={() => onSelectSettlement(row.id)}
-                  className={`grid h-[41px] w-full grid-cols-[52px_1fr] border-b border-line2 text-left text-[13.5px] leading-[16px] text-t1 ${row.id === selectedSettlementId ? "bg-teal-t" : "bg-white hover:bg-[#fbfcfd]"}`}
+                  className={`grid h-[41px] w-full grid-cols-[52px_1fr] border-b border-line2 text-left text-[13.5px] leading-[16px] text-t1 ${row.id === selectedSettlementId ? "bg-teal-t" : "bg-white hover:bg-row-hover-accent"}`}
                 >
                   <span className="px-[16px] py-[12px]">{index + 1}</span>
                   <span className="px-[16px] py-[12px]">
@@ -247,7 +247,7 @@ export function SettlementDirectoryRail({
                   key={tenant.unitId}
                   type="button"
                   onClick={() => onSelectUnit(tenant.unitId)}
-                  className="grid min-h-[41px] w-full grid-cols-[64px_1fr] border-b border-line2 text-left text-[13.5px] leading-[16px] text-t1 hover:bg-[#fbfcfd]"
+                  className="grid min-h-[41px] w-full grid-cols-[64px_1fr] border-b border-line2 text-left text-[13.5px] leading-[16px] text-t1 hover:bg-row-hover-accent"
                 >
                   {/* 정본 셀(64px)은 pl 16 + 텍스트 자동폭이라 "101호"가 패딩 영역으로
                       넘치며 한 줄을 유지한다. nowrap 이 없으면 2줄로 접혀 행이 41→65px 로 커진다. */}
@@ -317,7 +317,7 @@ export function SettlementDirectoryRail({
               key={building.id}
               type="button"
               onClick={() => selectBuilding(building.id)}
-              className="grid min-h-[41px] w-full grid-cols-[64px_96px_1fr] border-b border-line2 text-left text-[13.5px] leading-[normal] text-t1 hover:bg-[#fbfcfd]"
+              className="grid min-h-[41px] w-full grid-cols-[64px_96px_1fr] border-b border-line2 text-left text-[13.5px] leading-[normal] text-t1 hover:bg-row-hover-accent"
             >
               <span className="px-[16px] py-[12px]">{building.code}</span>
               <span className="truncate px-[16px] py-[12px] font-bold">

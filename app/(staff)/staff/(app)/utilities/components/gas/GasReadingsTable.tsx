@@ -335,7 +335,7 @@ export function GasReadingsTable({
         editing={editing}
         layout="fixed"
         tableWidth={TABLE_WIDTH}
-        rowClassName={(item) => `bg-white hover:bg-[#FBFCFD] ${item.vacant && !item.vacantUsage ? "opacity-55" : ""}`}
+        rowClassName={(item) => `bg-white hover:bg-row-hover ${item.vacant && !item.vacantUsage ? "opacity-55" : ""}`}
         empty={<div className="flex h-[220px] w-full items-center justify-center text-[13px] text-t3">등록된 호실이 없어요.</div>}
         className="min-h-0 flex-1"
       />

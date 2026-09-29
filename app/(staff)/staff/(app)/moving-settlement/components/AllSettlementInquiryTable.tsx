@@ -130,7 +130,7 @@ export function AllSettlementInquiryTable({
                   const rowLabel = `${row.buildingName} ${row.unitNo}`;
 
                   return (
-                    <tr key={row.settlementId} className="bg-white hover:bg-[#fbfcfd]">
+                    <tr key={row.settlementId} className="bg-white hover:bg-row-hover">
                       <td className={NUMBER_CELL}>{rowNumbers.get(row.settlementId)}</td>
                       <td className={`${TEXT_CELL} truncate`} title={row.buildingAddress ?? undefined}>
                         {locationLabel(row.buildingAddress, row.dong)}

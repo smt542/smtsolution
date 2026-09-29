@@ -13,7 +13,7 @@ export const longTermRepairClasses = {
   buildingScroll: "min-h-0 flex-1 overflow-x-hidden overflow-y-auto",
   buildingTableHeader: "grid h-[36.5px] flex-none grid-cols-[64px_minmax(0,1fr)] border-b border-line bg-[#fbfcfd] px-4 py-[11px] text-left text-xs font-bold text-t3",
   buildingRow: "grid h-[41px] w-full grid-cols-[64px_minmax(0,1fr)] items-center border-b border-line2 px-4 text-left text-[13.5px] font-normal leading-normal text-t1 transition-colors last:border-b-0",
-  buildingRowDefault: "hover:bg-blue-t2",
+  buildingRowDefault: "hover:bg-row-hover-accent",
   buildingRowSelected: "bg-blue-t hover:bg-blue-t",
   buildingCode: "overflow-hidden text-ellipsis whitespace-nowrap tabular-nums",
   buildingName: "overflow-hidden text-ellipsis whitespace-nowrap font-bold",

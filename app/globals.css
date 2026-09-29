@@ -24,6 +24,13 @@
   --color-blue-t: #E2F5F1;
   --color-blue-t2: #EFFBF8;
 
+  /* 표 행 hover (정본 공통 `.hf-tbl tbody tr:hover td{background:#FBFCFD}`).
+     row-hover-accent = 정본이 td에 민트를 덧씌운 표만(수납·이사정산 건물/세대 목록·정산 목록, 빌라 미납/수납 내역,
+     조회 결과, 장기수선 건물 목록, 계정 목록, 메시지 예약/발송 내역). tr에만 건 정본 규칙은 td에 가려 안 보이므로 row-hover.
+     표 행 hover는 이 두 토큰으로만 쓴다 → 톤 변경은 여기 한 줄. */
+  --color-row-hover: #FBFCFD;
+  --color-row-hover-accent: var(--color-blue-t2);
+
   /* 보조 파랑 (정본 --blue2) — 공과금·관리비 세팅 등에서 청록 주색과 함께 쓰는 액센트 */
   --color-blue2: #3182F6;
 

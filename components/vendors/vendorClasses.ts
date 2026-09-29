@@ -28,7 +28,7 @@ export const vendorClasses = {
   table:
     "w-full min-w-[560px] border-collapse [&_th]:border-b [&_th]:border-line [&_th]:bg-[#fbfcfd] [&_th]:px-4 [&_th]:py-[11px] [&_th]:text-left [&_th]:text-xs [&_th]:font-bold [&_th]:leading-[normal] [&_th]:text-t3 [&_th]:whitespace-nowrap [&_th:first-child]:w-[150px] [&_td]:border-b [&_td]:border-line2 [&_td]:px-4 [&_td]:py-3 [&_td]:text-[13.5px] [&_td]:font-semibold [&_td]:leading-[normal] [&_td]:text-t2 [&_td]:whitespace-nowrap [&_tbody_tr:last-child_td]:border-b-0",
   vendorRow:
-    "cursor-pointer transition-colors duration-100 hover:[&_td]:bg-[#fbfcfd] focus-visible:[&_td]:bg-[#fbfcfd] focus-visible:outline-2 focus-visible:outline-blue focus-visible:outline-offset-[-2px]",
+    "cursor-pointer transition-colors duration-100 hover:[&_td]:bg-row-hover focus-visible:[&_td]:bg-row-hover focus-visible:outline-2 focus-visible:outline-blue focus-visible:outline-offset-[-2px]",
   vendorName: "!font-bold !text-t1",
   stateCell: "h-[72px] !text-center !font-medium !text-t4",
   loadingCell: "flex h-full min-h-[240px] items-center justify-center text-center",

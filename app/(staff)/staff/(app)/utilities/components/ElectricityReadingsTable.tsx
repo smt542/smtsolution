@@ -305,7 +305,7 @@ export function ElectricityReadingsTable({
         editing={editing}
         layout="fixed"
         tableWidth={editing ? 1922 : 1722}
-        rowClassName={(item) => `bg-white hover:bg-[#FBFCFD] ${item.vacant && (item.usage ?? 0) <= 0 ? "opacity-55" : ""}`}
+        rowClassName={(item) => `bg-white hover:bg-row-hover ${item.vacant && (item.usage ?? 0) <= 0 ? "opacity-55" : ""}`}
         empty={(
           <div className="flex h-full flex-col items-center justify-center gap-1.5 px-6 pb-14 pt-12 text-center">
             <p className="text-[16px] font-semibold tracking-[-0.02em] text-t1">건물을 선택해 주세요</p>

@@ -601,7 +601,7 @@ export function PaymentHistorySection({
     return (
       <tr
         key={row.key}
-        className={`leading-[normal] [&:hover>td]:bg-[#FBFCFD] ${canceled || reserved ? "opacity-50" : ""}`}
+        className={`leading-[normal] [&:hover>td]:bg-row-hover ${canceled || reserved ? "opacity-50" : ""}`}
       >
         {/* 정본 `tr.unpaid>td:first-child` — 편집 모드에선 처리 칸이 첫 칸이다. */}
         {isEditing && (

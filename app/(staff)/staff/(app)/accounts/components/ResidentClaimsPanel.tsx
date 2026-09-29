@@ -286,7 +286,7 @@ export function ResidentClaimsPanel() {
                       /* 정본 `.hf-tbl tbody tr:hover td{background:#FBFCFD}` 는 모든 행에 걸린다
                          (#tnTbl 의 tr 배경 #FAFBFC 는 td 배경에 가려 보이지 않는다).
                          cursor/focus 는 실제로 누를 수 있는 매핑실패 행에만 준다. */
-                      className={`last:[&>td]:border-b-0 hover:[&>td]:bg-[#FBFCFD] ${pending ? "cursor-pointer focus:outline-none focus:[&>td]:bg-[#FBFCFD]" : ""}`}
+                      className={`last:[&>td]:border-b-0 hover:[&>td]:bg-row-hover ${pending ? "cursor-pointer focus:outline-none focus:[&>td]:bg-row-hover" : ""}`}
                     >
                       <td title={claim.buildingName ?? "-"} className="overflow-hidden text-ellipsis whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">{claim.buildingName ?? "-"}</td>
                       <td title={claimUnit(claim)} className="overflow-hidden text-ellipsis whitespace-nowrap border-b border-line2 px-[12px] py-[12px] text-[13px] font-medium leading-[normal] text-t1 first:pl-[16px] last:pr-[16px]">{claimUnit(claim)}</td>

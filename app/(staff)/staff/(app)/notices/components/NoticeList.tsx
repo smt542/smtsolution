@@ -129,7 +129,7 @@ export function NoticeList({
                     className={[
                       "cursor-pointer transition-colors",
                       !isLast ? "border-b border-[#f1f3f5]" : "",
-                      isSelected ? "bg-[#f2f4f6]" : "hover:bg-[#fafbfc]",
+                      isSelected ? "bg-[#f2f4f6]" : "hover:bg-row-hover",
                     ].join(" ")}
                   >
                     <td className="px-[16px] py-[10px]">

@@ -29,7 +29,7 @@ export function MoveOutHistorySection({ history }: { history: OccupancyHistory[]
             </thead>
             <tbody>
               {history.map((h) => (
-                <tr key={h.id} className="cursor-pointer text-[13.5px] font-normal text-t1 hover:bg-[#fbfcfd] [&:last-child>td]:border-b-0">
+                <tr key={h.id} className="cursor-pointer text-[13.5px] font-normal text-t1 hover:bg-row-hover [&:last-child>td]:border-b-0">
                   <td className="whitespace-nowrap border-b border-line2 px-[16px] py-[12px]">{dash(h.moveOutDate)}</td>
                   <td className="whitespace-nowrap border-b border-line2 px-[16px] py-[12px]">{dash(h.tenantName)}</td>
                   <td className="whitespace-nowrap border-b border-line2 px-[16px] py-[12px]">

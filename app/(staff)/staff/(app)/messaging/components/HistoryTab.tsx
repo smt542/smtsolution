@@ -126,7 +126,7 @@ export function HistoryTab() {
                 aria-label={rowLabel}
                 onClick={() => openLog(log)}
                 onKeyDown={(event) => handleRowKeyDown(event, log)}
-                className="cursor-pointer border-b border-[#f1f3f5] last:border-b-0 hover:bg-[#fbfcfd]"
+                className="cursor-pointer border-b border-[#f1f3f5] last:border-b-0 hover:bg-row-hover-accent"
               >
                 <td className={TD}>{channelLabel(log.channel)}</td>
                 <td className={TD}>{senderLabel(log.channel, config?.smsSender)}</td>

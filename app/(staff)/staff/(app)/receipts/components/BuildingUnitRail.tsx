@@ -163,7 +163,7 @@ export function BuildingUnitRail({
                       <tr
                         key={b.id}
                         onClick={() => selectBuilding(b)}
-                        className={`cursor-pointer border-b border-line2 last:border-0 ${active ? "bg-teal-t" : "hover:bg-blue-t2"}`}
+                        className={`cursor-pointer border-b border-line2 last:border-0 ${active ? "bg-teal-t" : "hover:bg-row-hover-accent"}`}
                       >
                         <td className={`${TD_FIRST_CLASS} text-t1 num`}>{b.code}</td>
                         <td className={`${TD_CLASS} font-bold text-t1`} title={b.name}>{b.name}</td>
@@ -238,7 +238,7 @@ export function BuildingUnitRail({
                               key={u.id}
                               onClick={() => onSelectUnit(u.id)}
                               className={`cursor-pointer border-b border-line2 last:border-0 ${
-                                active ? "bg-teal-t" : "hover:bg-blue-t2"
+                                active ? "bg-teal-t" : "hover:bg-row-hover-accent"
                               }`}
                             >
                               <td className={`${TD_FIRST_CLASS} font-bold text-t1`}>

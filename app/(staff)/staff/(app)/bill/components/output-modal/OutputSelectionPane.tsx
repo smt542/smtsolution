@@ -103,7 +103,7 @@ export function OutputSelectionPane({
               <div
                 key={building.id}
                 onClick={() => onToggleBuilding(building.id)}
-                className="grid h-[42px] w-full grid-cols-[34px_65px_104px_minmax(0,1fr)] items-center border-b border-[#f1f3f5] bg-white text-left text-[12px] transition hover:bg-[#f8fbfb]"
+                className="grid h-[42px] w-full grid-cols-[34px_65px_104px_minmax(0,1fr)] items-center border-b border-[#f1f3f5] bg-white text-left text-[12px] transition hover:bg-row-hover"
               >
                 <span className="flex justify-center"><SelectionCheck ariaLabel={`${building.name} 선택`} checked={selected} onChange={() => onToggleBuilding(building.id)} /></span>
                 <span className="truncate pr-1 font-semibold text-[#4e5968]">{building.code}</span>
@@ -133,7 +133,7 @@ export function OutputSelectionPane({
                 <div
                   key={target.unitId}
                   onClick={() => { if (!disabled) onToggleUnit(target.unitId); }}
-                  className={`grid h-[42px] w-full grid-cols-[34px_47px_76px_91px_49px] items-center border-b border-[#f1f3f5] bg-white text-left text-[12px] transition hover:bg-[#f8fbfb] ${disabled ? "cursor-not-allowed opacity-45" : ""}`}
+                  className={`grid h-[42px] w-full grid-cols-[34px_47px_76px_91px_49px] items-center border-b border-[#f1f3f5] bg-white text-left text-[12px] transition hover:bg-row-hover ${disabled ? "cursor-not-allowed opacity-45" : ""}`}
                 >
                   <span className="flex justify-center"><SelectionCheck ariaLabel={`${targetsByBuilding.find(({ targets: values }) => values.some(({ unitId }) => unitId === target.unitId))?.building.name ?? "건물"} · ${displayUnitNo(target.unitNo)} · ${displayName(target)}`} checked={selected} disabled={disabled} onChange={() => onToggleUnit(target.unitId)} /></span>
                   <span className="truncate font-bold text-[#333d4b]">{displayUnitNo(target.unitNo)}</span>

@@ -64,7 +64,7 @@ export function SearchResultTable({
                 <tr
                   key={row.key}
                   onClick={clickable ? () => onJump(row.buildingId, row.unitId) : undefined}
-                  className={clickable ? "cursor-pointer [&:hover>td]:bg-blue-t2" : undefined}
+                  className={clickable ? "cursor-pointer [&:hover>td]:bg-row-hover-accent" : undefined}
                 >
                   {/* 정본 조회 표의 `-`는 `<span class="dsh">`지만 `.dsh` 규칙이 호실 표(`#rcUnitBody td.dsh`)에만
                     있어 셀 글자와 같은 색·굵기로 렌더된다. 그래서 `-`도 따로 꾸미지 않는다. */}
