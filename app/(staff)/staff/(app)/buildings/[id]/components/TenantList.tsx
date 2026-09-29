@@ -36,8 +36,9 @@ export function TenantList({ buildingId }: { buildingId: number }) {
       ) : rows.length === 0 ? (
         <EmptyState message="등록된 세대가 없습니다." />
       ) : (
-        // 공용 DataTable 기본 hover(bg-bg)는 통합관리자와 같이 쓰므로 여기서만 공통 토큰으로 덮는다.
-        <div className="[&_tbody_tr:hover_td]:bg-row-hover">
+        // 공용 DataTable 기본형(통합관리자와 공유)은 배경이 없고 hover가 bg-bg라,
+        // 여기서만 정본 표처럼 흰 배경 + 공통 hover 토큰으로 덮는다.
+        <div className="[&>div]:bg-white [&_tbody_tr:hover_td]:bg-row-hover">
           <DataTable
             columns={[
               { key: "unitNo", label: "호실명" }, { key: "tenant", label: "입주자명" },
