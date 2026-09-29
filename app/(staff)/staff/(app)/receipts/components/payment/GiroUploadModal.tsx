@@ -331,7 +331,7 @@ export function GiroUploadModal({ open, orgId, onClose }: GiroUploadModalProps) 
         </>
       ) : (
         <FileDropzone
-          helperText="e지로 수납 파일을 첨부할 수 있어요"
+          helperText="수납 파일 원본을 첨부할 수 있어요"
           disabled={busy}
           onFile={(nextFile) => void parseFile(nextFile)}
           ariaLabel="지로 수납 파일 첨부"
