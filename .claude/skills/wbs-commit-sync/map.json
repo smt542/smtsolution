@@ -211,6 +211,30 @@
       "page_title": "사무실 관리자_수납관리·민원접수",
       "keywords": ["as-rail", "A/S 접수 레일", "접수 레일"],
       "paths": ["as-rail"]
+    },
+    {
+      "page_id": "059db78a-484b-4afa-bef4-5f87a9a27867",
+      "page_title": "사무실 관리자_로그인",
+      "keywords": ["switch-entry", "엔트리 포인트"],
+      "paths": ["switch-entry"]
+    },
+    {
+      "page_id": "9e4cd125-b179-47a9-897d-5971077c64af",
+      "page_title": "통합관리자_로그인",
+      "keywords": ["switch-entry", "엔트리 포인트", "PlatformAdminGuard"],
+      "paths": ["switch-entry"]
+    },
+    {
+      "page_id": "41da6758-0c1d-4726-af5b-43e16136be28",
+      "page_title": "현장 관리자_현장관리자 로그인",
+      "keywords": ["switch-entry", "엔트리 포인트"],
+      "paths": ["switch-entry"]
+    },
+    {
+      "page_id": "b515edf1-2e5d-4b86-ab3d-41dc952b6a98",
+      "page_title": "세입자_로그인카카오 시작",
+      "keywords": ["switch-entry", "엔트리 포인트"],
+      "paths": ["switch-entry"]
     }
   ]
 }
