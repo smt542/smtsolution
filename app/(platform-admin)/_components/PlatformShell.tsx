@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Badge, IconButton } from "@/components/common";
+import { IconButton } from "@/components/common";
 import { useLogout, useMe } from "@/hooks/reactquery/auth";
 import {
   PLATFORM_NAV_ITEMS,
@@ -94,7 +94,11 @@ function PlatformSidebar({ pathname, onNavigate }: { pathname: string; onNavigat
   return (
     <aside className="flex h-full w-64 flex-col border-r border-line bg-white px-3.5 py-[18px]">
       {/* 캔버스 hf-hqb: 로고마크 + 관리비서 / HQ CONSOLE (라이트) */}
-      <div className="flex items-center gap-2.5 px-2.5 pb-[18px] pt-2">
+      <Link
+        href="/platform-admin"
+        onClick={onNavigate}
+        className="flex items-center gap-2.5 px-2.5 pb-[18px] pt-2"
+      >
         <Image
           src="/logo-mark.png"
           alt=""
@@ -107,7 +111,7 @@ function PlatformSidebar({ pathname, onNavigate }: { pathname: string; onNavigat
           <div className="text-[17px] font-extrabold tracking-[-0.02em] text-[#16375A]">관리비서</div>
           <div className="mt-0.5 text-[10.5px] font-bold tracking-[0.08em] text-t4">HQ CONSOLE</div>
         </div>
-      </div>
+      </Link>
 
       <nav className="flex flex-1 flex-col gap-[2px] overflow-y-auto" aria-label="플랫폼 관리 메뉴">
         {PLATFORM_NAV_ITEMS.map((item) => (
@@ -153,9 +157,6 @@ function PlatformSidebar({ pathname, onNavigate }: { pathname: string; onNavigat
               disabled={logout.isPending}
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[13px] font-bold text-red transition-colors hover:bg-red-t disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true">
-                <path d="M10 17l5-5-5-5M15 12H3M14 4h5a2 2 0 012 2v12a2 2 0 01-2 2h-5" />
-              </svg>
               {logout.isPending ? "로그아웃 중…" : "로그아웃"}
             </button>
           </div>
@@ -211,8 +212,6 @@ function PlatformTopbar({
   onToggleCollapse: () => void;
   slotRef: (el: HTMLElement | null) => void;
 }) {
-  const { data: me } = useMe();
-
   return (
     <header className="flex h-[62px] flex-none items-center gap-3 border-b border-line bg-white px-5 sm:px-6">
       {/* 모바일: 사이드 드로어 열기 */}
@@ -239,14 +238,6 @@ function PlatformTopbar({
       <h1 className="min-w-0 flex-1 truncate text-[19px] font-extrabold tracking-tight text-t1">{title}</h1>
       {/* 페이지 액션 슬롯 (PlatformTopBarActions가 여기로 포털) */}
       <div ref={slotRef} className="flex items-center gap-2" />
-      {me && (
-        <div className="hidden items-center gap-2 sm:flex">
-          <Badge tone="blue" className="inline-flex px-[9px] py-[3px] leading-[1.4]">
-            MASTER
-          </Badge>
-          <span className="text-sm font-semibold text-t2">{me.fullName}</span>
-        </div>
-      )}
     </header>
   );
 }

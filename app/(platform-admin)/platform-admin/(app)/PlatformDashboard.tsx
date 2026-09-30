@@ -1,20 +1,15 @@
 "use client";
 
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState, Spinner } from "@/components/common";
+import { DpMonthPicker } from "@/components/common/DpMonthPicker";
 import {
   usePlatformOrgBilling,
   usePlatformOverviewMetrics,
 } from "@/hooks/reactquery/platform";
 import { formatNumber } from "@/lib/format";
-import {
-  BoundedMonthStepper,
-  PlatformPagination,
-  QueryError,
-} from "../../_components/PageElements";
+import { PlatformPagination, QueryError } from "../../_components/PageElements";
 import { PlatformPageContainer } from "../../_components/PlatformPageContainer";
-import { PlatformTopBarActions } from "../../_components/PlatformShell";
-import { TableFrame } from "../../_components/TableFrame";
 import { MonthlySendCostChart } from "../_components/MonthlySendCostChart";
 
 const num = (n: number) => formatNumber(n);
@@ -35,10 +30,46 @@ function signed(n: number): string {
 }
 
 export function PlatformDashboard() {
-  const [month, setMonth] = useState(currentMonthIso);
+  const [currentMonth] = useState(currentMonthIso);
+  const [month, setMonth] = useState(currentMonth);
   const [page, setPage] = useState(1);
-  const metricsQuery = usePlatformOverviewMetrics(month);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const metricsQuery = usePlatformOverviewMetrics(currentMonth);
   const billingQuery = usePlatformOrgBilling(month);
+
+  // 정본 fitPer: 패널 남는 높이에 들어가는 만큼 한 쪽 행 수(최소 3). lg 미만(1열)은 6행 고정.
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+
+    const measurePageSize = () => {
+      const head = scroller.querySelector("thead");
+      const row = scroller.querySelector("tbody tr");
+      if (!head || !row) return;
+
+      if (window.getComputedStyle(scroller).position !== "absolute") {
+        setPageSize((current) => current === PAGE_SIZE ? current : PAGE_SIZE);
+        return;
+      }
+
+      const headerHeight = head.getBoundingClientRect().height;
+      const rowHeight = row.getBoundingClientRect().height || 41;
+      const nextPageSize = Math.max(
+        3,
+        Math.floor((scroller.clientHeight - headerHeight) / rowHeight),
+      );
+      setPageSize((current) => current === nextPageSize ? current : nextPageSize);
+    };
+
+    const observer = new ResizeObserver(measurePageSize);
+    observer.observe(scroller);
+    const frame = requestAnimationFrame(measurePageSize);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [billingQuery.data]);
 
   const metrics = metricsQuery.data;
   const appRate = metrics && metrics.unitCount > 0
@@ -50,25 +81,15 @@ export function PlatformDashboard() {
     () => billingQuery.data ?? [],
     [billingQuery.data],
   );
-  const totalPages = Math.max(1, Math.ceil(tenantRows.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(tenantRows.length / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const pagedRows = tenantRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const pagedRows = tenantRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <PlatformPageContainer
       maxWidthClassName="max-w-none"
       paddingClassName="flex flex-col gap-4 px-6 pb-[30px] pt-[22px]"
     >
-      <PlatformTopBarActions>
-        <BoundedMonthStepper
-          month={month}
-          onChange={(nextMonth) => {
-            setMonth(nextMonth);
-            setPage(1);
-          }}
-        />
-      </PlatformTopBarActions>
-
       <section aria-label="핵심 지표">
         {metricsQuery.isPending ? (
           <div className="rounded-2xl bg-surface py-16"><Spinner /></div>
@@ -99,7 +120,7 @@ export function PlatformDashboard() {
               sub={`앱 연결 ${num(metrics.linkedUnitCount)}세대 (${appRate}%)`}
             />
             <KpiCard
-              label={`${monthLabel(month).split(" ")[1]} 발송 비용`}
+              label={`${monthLabel(currentMonth).split(" ")[1]} 발송 비용`}
               value={num(metrics.sendCostKrw)}
               unit="원"
               sub={
@@ -118,57 +139,70 @@ export function PlatformDashboard() {
       <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-[1.5fr_1fr]">
         <MonthlySendCostChart />
 
-        <section aria-label="테넌트별 발송 비용" className="overflow-hidden rounded-2xl bg-surface shadow-card">
+        <section aria-label="테넌트별 발송 비용" className="flex min-h-0 flex-col overflow-hidden rounded-2xl bg-surface shadow-card">
           <div className="flex items-center gap-2.5 border-b border-line2 px-[18px] py-[15px]">
-            <div>
-              <h3 className="text-[15px] font-extrabold text-t1">테넌트별 발송 비용</h3>
-              <p className="text-[12px] font-semibold text-t3">{monthLabel(month)} · 채널별 공급가액 (부가세 제외)</p>
+            <h3 className="flex-1 text-[15px] font-extrabold text-t1">테넌트별 발송 비용</h3>
+            <DpMonthPicker
+              value={month.slice(0, 7)}
+              onChange={(nextMonth) => {
+                setMonth(`${nextMonth}-01`);
+                setPage(1);
+              }}
+              variant="hq"
+              align="end"
+              minMonth="2025-01"
+              maxMonth={currentMonth.slice(0, 7)}
+              ariaLabel="발송 비용 조회 월"
+            />
+          </div>
+          <div className="relative min-h-0 flex-1">
+            <div ref={scrollerRef} className="overflow-auto lg:absolute lg:inset-0">
+              {billingQuery.isPending ? (
+                <div className="py-16"><Spinner /></div>
+              ) : billingQuery.isError ? (
+                <div className="p-4">
+                  <QueryError onRetry={() => void billingQuery.refetch()} />
+                </div>
+              ) : tenantRows.length === 0 ? (
+                <EmptyState message="조회 가능한 업체가 없습니다" />
+              ) : (
+                <table className="w-full border-collapse leading-[normal]">
+                  <thead>
+                    <tr>
+                      <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-left text-[12px] font-bold text-t3 whitespace-nowrap">업체명</th>
+                      <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-[12px] font-bold text-t3 whitespace-nowrap">알림톡</th>
+                      <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-[12px] font-bold text-t3 whitespace-nowrap">문자</th>
+                      <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-[12px] font-bold text-t3 whitespace-nowrap">팩스</th>
+                      <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-[12px] font-bold text-t3 whitespace-nowrap">합계</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagedRows.map((row) => (
+                      <tr key={row.orgId} className="hover:bg-row-hover [&:last-child>td]:border-b-0">
+                        <td className="break-keep border-b border-line2 px-4 py-3 text-[13.5px] font-bold text-t1 whitespace-normal">{row.orgName}</td>
+                        <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] text-t1 whitespace-nowrap num">
+                          {num(row.alimtalkAmountKrw)}
+                        </td>
+                        <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] text-t1 whitespace-nowrap num">
+                          {num(row.smsAmountKrw)}
+                        </td>
+                        <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] text-t1 whitespace-nowrap num">
+                          {num(row.faxAmountKrw)}
+                        </td>
+                        <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] font-extrabold text-t1 whitespace-nowrap num">{num(row.subtotalKrw)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
-          {billingQuery.isPending ? (
-            <div className="py-16"><Spinner /></div>
-          ) : billingQuery.isError ? (
-            <div className="p-4">
-              <QueryError onRetry={() => void billingQuery.refetch()} />
-            </div>
-          ) : tenantRows.length === 0 ? (
-            <EmptyState message="조회 가능한 업체가 없습니다" />
-          ) : (
-            <TableFrame minWidthClassName="min-w-[720px]">
-              <thead>
-                <tr className="border-b border-line bg-[#FBFCFD] text-left text-[12px] font-bold text-t3">
-                  <th className="whitespace-nowrap px-4 py-[11px]">업체명</th>
-                  <th className="whitespace-nowrap px-4 py-[11px] text-right">알림톡(원)</th>
-                  <th className="whitespace-nowrap px-4 py-[11px] text-right">문자(원)</th>
-                  <th className="whitespace-nowrap px-4 py-[11px] text-right">팩스(원)</th>
-                  <th className="whitespace-nowrap px-4 py-[11px] text-right">합계(원)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagedRows.map((row) => (
-                  <tr key={row.orgId} className="border-b border-line2 text-[13.5px] last:border-0 hover:bg-[#FBFCFD]">
-                    <td className="whitespace-nowrap px-4 py-3 font-bold text-t1">{row.orgName}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-t1 num">
-                      {num(row.alimtalkAmountKrw)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-t1 num">
-                      {num(row.smsAmountKrw)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-t1 num">
-                      {num(row.faxAmountKrw)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right font-extrabold text-t1 num">{num(row.subtotalKrw)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </TableFrame>
-          )}
           {!billingQuery.isPending
             && !billingQuery.isError
             && (
               <PlatformPagination
                 page={currentPage}
-                pageSize={PAGE_SIZE}
+                pageSize={pageSize}
                 totalCount={tenantRows.length}
                 onPageChange={setPage}
                 numeric
