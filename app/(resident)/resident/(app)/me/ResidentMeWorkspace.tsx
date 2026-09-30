@@ -8,6 +8,7 @@ import { useState } from "react";
 import BottomNav from "@/app/(resident)/_components/BottomNav";
 import MoveOutSection from "@/app/(resident)/_components/MoveOutSection";
 import ResidentAsyncState from "@/app/(resident)/_components/ResidentAsyncState";
+import ResidentConfirmDialog from "@/app/(resident)/_components/ResidentConfirmDialog";
 import { useAsyncAction } from "@/hooks/common";
 import { useMoveOutRequest } from "@/hooks/reactquery/residentMoveOut";
 import {
@@ -21,7 +22,6 @@ import { formatPhone } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 
 import { residentMeClasses as styles } from "./meClasses";
-import { ResidentButton } from "@/app/(resident)/_components/ResidentButton";
 
 function KakaoIcon() {
   return (
@@ -112,11 +112,9 @@ export default function ResidentMeWorkspace() {
 
   const moveOut = moveOutQuery.data;
   const moveOutSubtitle =
-    moveOut?.status === "pending"
+    moveOut?.status === "pending" || moveOut?.status === "confirmed"
       ? `${formatDate(moveOut.desiredDate)} 신청 · 확인 중`
-      : moveOut?.status === "confirmed"
-        ? `${formatDate(moveOut.desiredDate)} 퇴실 예정`
-        : "희망 퇴실일을 알려주세요";
+      : "희망 퇴실일을 알려주세요";
 
   const confirmLogout = async () => {
     await logoutAction.run(async () => {
@@ -230,8 +228,7 @@ export default function ResidentMeWorkspace() {
               role="switch"
               aria-checked={notifyOn}
               aria-label="알림톡"
-              disabled={notifyMutation.isPending}
-              className={`${styles.sw} ${notifyOn ? styles.on : ""}`}
+              className={`${styles.sw} ${notifyOn ? styles.swOn : styles.swOff}`}
               onClick={() => {
                 if (notifyMutation.isPending) return;
                 if (notifyOn) {
@@ -293,143 +290,42 @@ export default function ResidentMeWorkspace() {
         onClose={() => setMoveOutOpen(false)}
       />
 
-      {alimtalkWarningOpen ? (
-        <div
-          className={styles.confirm}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="alimtalk-warning-title"
-          onClick={(event) => {
-            if (event.target === event.currentTarget)
-              setAlimtalkWarningOpen(false);
-          }}
-        >
-          <div className={styles.confirmBody}>
-            <h2 className={styles.confirmTitle} id="alimtalk-warning-title">
-              알림톡을 끌까요?
-            </h2>
-            <p className={styles.confirmDesc}>
-              관리비가 확정돼도 <b>금액 · 납부 계좌 · 기한</b>을 알려드릴 수
-              없어요.
-            </p>
-            <div className={styles.confirmActions}>
-              <ResidentButton
-                variant="secondary"
-                size="md"
-                type="button"
-                className="flex-1 disabled:cursor-wait disabled:opacity-60"
-                onClick={() => setAlimtalkWarningOpen(false)}
-              >
-                닫기
-              </ResidentButton>
-              <ResidentButton
-                variant="danger"
-                size="md"
-                type="button"
-                className="flex-1 disabled:cursor-wait disabled:opacity-60"
-                onClick={() => {
-                  notifyMutation.mutate({ alimtalk: false, sms: false });
-                  setAlimtalkWarningOpen(false);
-                }}
-              >
-                그래도 끄기
-              </ResidentButton>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ResidentConfirmDialog
+        open={alimtalkWarningOpen}
+        title="알림톡을 끌까요?"
+        description={<>관리비가 확정돼도 <b>금액 · 납부 계좌 · 기한</b>을 알려드릴 수 없어요.</>}
+        confirmLabel="그래도 끄기"
+        tone="danger"
+        onCancel={() => setAlimtalkWarningOpen(false)}
+        onConfirm={() => {
+          notifyMutation.mutate({ alimtalk: false, sms: false });
+          setAlimtalkWarningOpen(false);
+        }}
+      />
 
-      {logoutOpen ? (
-        <div
-          className={styles.confirm}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="logout-title"
-          onClick={(event) => {
-            if (event.target === event.currentTarget) setLogoutOpen(false);
-          }}
-        >
-          <div className={styles.confirmBody}>
-            <h2 className={styles.confirmTitle} id="logout-title">
-              로그아웃할까요?
-            </h2>
-            <p className={styles.confirmDesc}>
-              다시 카카오로 로그인하면 바로 이용할 수 있어요.
-            </p>
-            <div className={styles.confirmActions}>
-              <ResidentButton
-                variant="secondary"
-                size="md"
-                type="button"
-                className="flex-1 disabled:cursor-wait disabled:opacity-60"
-                onClick={() => setLogoutOpen(false)}
-              >
-                닫기
-              </ResidentButton>
-              <ResidentButton
-                variant="primary"
-                size="md"
-                type="button"
-                className="flex-1 disabled:cursor-wait disabled:opacity-60"
-                disabled={logoutAction.isPending}
-                onClick={() => void confirmLogout()}
-              >
-                {logoutAction.isPending ? "로그아웃 중…" : "로그아웃"}
-              </ResidentButton>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ResidentConfirmDialog
+        open={logoutOpen}
+        title="로그아웃할까요?"
+        description="다시 카카오로 로그인하면 바로 이용할 수 있어요."
+        confirmLabel={logoutAction.isPending ? "로그아웃 중…" : "로그아웃"}
+        busy={logoutAction.isPending}
+        onCancel={() => setLogoutOpen(false)}
+        onConfirm={() => void confirmLogout()}
+      />
 
-      {withdrawOpen ? (
-        <div
-          className={styles.confirm}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="withdraw-title"
-          onClick={(event) => {
-            if (event.target === event.currentTarget && !withdrawResident.isPending)
-              setWithdrawOpen(false);
-          }}
-        >
-          <div className={styles.confirmBody}>
-            <h2 className={styles.confirmTitle} id="withdraw-title">
-              정말 탈퇴할까요?
-            </h2>
-            <p className={styles.confirmDesc}>
-              세대 연결과 알림 설정이 모두 삭제돼요. 부과 · 납부 내역은
-              관리사무소에 보관됩니다.
-            </p>
-            {withdrawError ? (
-              <p className={styles.confirmError} role="alert">
-                {withdrawError}
-              </p>
-            ) : null}
-            <div className={styles.confirmActions}>
-              <ResidentButton
-                variant="secondary"
-                size="md"
-                type="button"
-                className="flex-1 disabled:cursor-wait disabled:opacity-60"
-                onClick={() => setWithdrawOpen(false)}
-                disabled={withdrawResident.isPending}
-              >
-                취소
-              </ResidentButton>
-              <ResidentButton
-                variant="danger"
-                size="md"
-                type="button"
-                className="flex-1 disabled:cursor-wait disabled:opacity-60"
-                disabled={withdrawResident.isPending}
-                onClick={() => void confirmWithdraw()}
-              >
-                {withdrawResident.isPending ? "탈퇴 처리 중…" : "탈퇴하기"}
-              </ResidentButton>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ResidentConfirmDialog
+        open={withdrawOpen}
+        title="정말 탈퇴할까요?"
+        description="세대 연결과 알림 설정이 모두 삭제돼요. 부과 · 납부 내역은 관리사무소에 보관됩니다."
+        error={withdrawError}
+        cancelLabel="취소"
+        confirmLabel={withdrawResident.isPending ? "탈퇴 처리 중…" : "탈퇴하기"}
+        tone="danger"
+        busy={withdrawResident.isPending}
+        cancelDisabled={withdrawResident.isPending}
+        onCancel={() => setWithdrawOpen(false)}
+        onConfirm={() => void confirmWithdraw()}
+      />
     </div>
   );
 }

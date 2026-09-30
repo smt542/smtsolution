@@ -1,16 +1,10 @@
 import { z } from "zod";
-import { nullableTrimmedString, requiredDate } from "./common";
+import { requiredDate } from "./common";
 
-export const moveOutCreateSchema = z.object({
-  desiredDate: requiredDate("희망 퇴실일을 입력해 주세요"),
-  reason: nullableTrimmedString(500, "사유는 500자 이하로 입력해 주세요"),
+// 세입자 퇴실 신청·희망 퇴실일 변경 — 원본 바텀시트는 날짜 하나만 받는다(사유 칸 없음)
+export const moveOutDateSchema = z.object({
+  desiredDate: requiredDate("희망 퇴실일을 선택해 주세요"),
 });
 
-export const moveOutUpdateSchema = z.object({
-  desiredDate: requiredDate("새 희망 퇴실일을 입력해 주세요"),
-});
-
-export type MoveOutCreateInput = z.input<typeof moveOutCreateSchema>;
-export type MoveOutCreateValues = z.output<typeof moveOutCreateSchema>;
-export type MoveOutUpdateInput = z.input<typeof moveOutUpdateSchema>;
-export type MoveOutUpdateValues = z.output<typeof moveOutUpdateSchema>;
+export type MoveOutDateInput = z.input<typeof moveOutDateSchema>;
+export type MoveOutDateValues = z.output<typeof moveOutDateSchema>;
