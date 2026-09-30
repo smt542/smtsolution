@@ -150,25 +150,25 @@ export function BulkImportModal({
       <div className="mt-5 flex items-center gap-2 border-t border-line2 pt-4">
         {step === 1 && (
           <>
-            <button type="button" onClick={() => downloadCsv(schema.file, buildTemplateRows(schema))} className="h-10 rounded-xl border border-line bg-white px-4 text-sm font-bold text-t2 hover:bg-bg">양식 다운로드</button>
+            <button type="button" onClick={() => downloadCsv(schema.file, buildTemplateRows(schema))} className="h-10 rounded-[11px] border border-line bg-white px-4 text-[13.5px] font-bold text-t2 hover:bg-bg">양식 다운로드</button>
             <div className="flex-1" />
-            <button type="button" onClick={onClose} className="h-10 rounded-xl border border-line bg-white px-4 text-sm font-bold text-t2 hover:bg-bg">닫기</button>
+            <button type="button" onClick={onClose} className="h-10 rounded-[11px] border border-line bg-white px-4 text-[13.5px] font-bold text-t2 hover:bg-bg">닫기</button>
           </>
         )}
         {step === 2 && (
           <>
-            <button type="button" onClick={() => { setStep(1); setResult(null); }} className="h-10 rounded-xl border border-line bg-white px-4 text-sm font-bold text-t2 hover:bg-bg">다시 선택</button>
+            <button type="button" onClick={() => { setStep(1); setResult(null); }} className="h-10 rounded-[11px] border border-line bg-white px-4 text-[13.5px] font-bold text-t2 hover:bg-bg">다시 선택</button>
             <div className="flex-1" />
-            <button type="button" onClick={register} disabled={!canRegister} className="h-10 rounded-xl bg-brand px-4 text-sm font-bold text-white shadow-pri hover:bg-brand-dark disabled:cursor-default disabled:opacity-40">{ok ? `${ok}건 등록` : "등록할 행이 없어요"}</button>
+            <button type="button" onClick={register} disabled={!canRegister} className="h-10 rounded-[11px] bg-brand px-4 text-[13.5px] font-bold text-white shadow-pri hover:bg-brand-dark disabled:cursor-default disabled:opacity-40">{ok ? `${ok}건 등록` : "등록할 행이 없어요"}</button>
           </>
         )}
         {step === 3 && (
           <>
             {imported.ng > 0 && result && (
-              <button type="button" onClick={() => downloadCsv(schema.file + "_오류", buildErrorRows(schema, result))} className="h-10 rounded-xl border border-line bg-white px-4 text-sm font-bold text-t2 hover:bg-bg">오류 내역 다운로드</button>
+              <button type="button" onClick={() => downloadCsv(schema.file + "_오류", buildErrorRows(schema, result))} className="h-10 rounded-[11px] border border-line bg-white px-4 text-[13.5px] font-bold text-t2 hover:bg-bg">오류 내역 다운로드</button>
             )}
             <div className="flex-1" />
-            <button type="button" onClick={onClose} className="h-10 rounded-xl bg-brand px-4 text-sm font-bold text-white shadow-pri hover:bg-brand-dark">완료</button>
+            <button type="button" onClick={onClose} className="h-10 rounded-[11px] bg-brand px-4 text-[13.5px] font-bold text-white shadow-pri hover:bg-brand-dark">완료</button>
           </>
         )}
       </div>

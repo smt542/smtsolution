@@ -227,7 +227,7 @@ export function NoticesWorkspace({
               ) : (
                 <div role="alert" className="flex flex-col items-center justify-center gap-3 py-16 text-sm text-red">
                   <p>공지 상세를 불러오지 못했습니다.</p>
-                  <button type="button" className="rounded-xl border border-line px-4 py-2 font-bold text-t2" onClick={() => void selectedNoticeQuery.refetch()}>다시 시도</button>
+                  <button type="button" className="inline-flex h-10 items-center justify-center rounded-[11px] border border-line px-4 text-[13.5px] font-bold text-t2" onClick={() => void selectedNoticeQuery.refetch()}>다시 시도</button>
                 </div>
               )}
             </div>

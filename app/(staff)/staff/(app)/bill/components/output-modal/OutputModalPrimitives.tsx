@@ -85,7 +85,7 @@ export function ModalActionButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`flex h-[40px] items-center justify-center gap-[7px] rounded-[11px] px-[17px] text-[13.5px] font-extrabold transition disabled:cursor-not-allowed disabled:opacity-45 ${
+      className={`flex h-[40px] items-center justify-center gap-[7px] rounded-[11px] px-[17px] text-[13.5px] font-bold transition disabled:cursor-not-allowed disabled:opacity-45 ${
         variant === "primary"
           ? "bg-[#14a497] text-white shadow-[0_7px_14px_-6px_rgba(20,164,151,0.5)] hover:bg-[#0f857a]"
           : "border border-[#e8ebee] bg-white text-[#4e5968] hover:bg-[#f8f9fa]"

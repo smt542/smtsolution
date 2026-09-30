@@ -246,7 +246,7 @@ export function MonthlyChargeModal({
                 setPrinting(true);
               }}
               disabled={!hasData || isReportBusy || isError}
-              className="flex h-[40px] items-center gap-[6px] rounded-[11px] bg-teal px-[14px] text-[13.5px] font-bold text-white hover:bg-teal-d disabled:opacity-40"
+              className="flex h-[40px] items-center gap-[7px] rounded-[11px] bg-teal px-[14px] text-[13.5px] font-bold text-white hover:bg-teal-d disabled:opacity-40"
             >
               <PrinterIcon className="h-[16px] w-[16px]" />
               인쇄
