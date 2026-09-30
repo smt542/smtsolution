@@ -70,8 +70,8 @@ const emptyBilling = (): BillingValue => ({
   transferMethod: "giro",
   cmsMemberNo: "",
   cmsContractNo: "",
-  lateFeeEnabled: false,
-  singlePrint: false,
+  lateFeeEnabled: true,
+  singlePrint: true,
   billingNote: "",
 });
 
@@ -85,7 +85,7 @@ const emptyUtility = (): UtilityValue => ({
 });
 
 const emptyBill = (): BillStatementValue => ({
-  printEnabled: true,
+  printEnabled: false,
   billNameDisplay: "none",
   billDelivery: "alimtalk",
   billAuthInfo: "",
@@ -212,6 +212,7 @@ export function TenantForm({
   if (full && full !== previousFull) {
     setPreviousFull(full);
     const occupancy = full.occupancy;
+    const alimtalkOptIn = occupancy?.alimtalkOptIn ?? true;
     const meterLine = (kind: "water" | "elec" | "elec_shared" | "gas" | "kepco") => {
       const meter = full.meters.find((row) => row.utility === kind);
       return { customerNo: meter?.customerNo ?? "", meterNo: meter?.meterNo ?? "" };
@@ -240,7 +241,7 @@ export function TenantForm({
       ]),
       vehicles: withInputSlot([occupancy?.vehicleNo ?? "", ...(occupancy?.vehiclesExtra ?? [])]),
       smsOptIn: occupancy?.smsOptIn ?? true,
-      alimtalkOptIn: occupancy?.alimtalkOptIn ?? true,
+      alimtalkOptIn,
       homepagePassword: occupancy?.homepagePassword ?? "",
     });
     setBilling({
@@ -266,7 +267,7 @@ export function TenantForm({
     setBill({
       printEnabled: occupancy?.printEnabled ?? true,
       billNameDisplay: occupancy?.billNameDisplay ?? "none",
-      billDelivery: occupancy?.billDelivery ?? "alimtalk",
+      billDelivery: alimtalkOptIn ? "alimtalk" : "post",
       billAuthInfo: occupancy?.billAuthInfo ?? "",
     });
     setLease({
@@ -303,6 +304,17 @@ export function TenantForm({
   const patch = <T,>(setter: React.Dispatch<React.SetStateAction<T>>) => (value: Partial<T>) => {
     setter((current) => ({ ...current, ...value }));
     setDirty(true);
+  };
+
+  const onContactChange = (value: Partial<ContactValue>) => {
+    patch(setContact)(value);
+    if (typeof value.alimtalkOptIn !== "boolean") return;
+
+    setBill((current) => ({
+      ...current,
+      billDelivery: value.alimtalkOptIn ? "alimtalk" : "post",
+      ...(!unitId ? { printEnabled: !value.alimtalkOptIn } : {}),
+    }));
   };
 
   const onSave = async () => {
@@ -401,7 +413,7 @@ export function TenantForm({
         facilityNote: occupancy?.facilityNote ?? null,
         transferMethod: billing.transferMethod as SaveUnitOccupancyPayload["occupancy"]["transferMethod"],
         billNameDisplay: bill.billNameDisplay as SaveUnitOccupancyPayload["occupancy"]["billNameDisplay"],
-        billDelivery: bill.billDelivery as SaveUnitOccupancyPayload["occupancy"]["billDelivery"],
+        billDelivery: contact.alimtalkOptIn ? "alimtalk" : "post",
         billAuth: occupancy?.billAuth ?? false,
         moveOutScheduledDate: occupancy?.moveOutScheduledDate ?? null,
         smsOptIn: contact.smsOptIn,
@@ -552,10 +564,10 @@ export function TenantForm({
           />
         ) : undefined}
       />
-      <ContactSection value={contact} onChange={patch(setContact)} errors={{ phones: phoneError }} />
+      <ContactSection value={contact} onChange={onContactChange} errors={{ phones: phoneError }} />
       <BillingSection value={billing} onChange={patch(setBilling)} />
       <UtilityCustomerSection value={utility} onChange={patch(setUtility)} customerOptions={customerOptions} />
-      <BillStatementSection value={bill} onChange={patch(setBill)} />
+      <BillStatementSection value={bill} alimtalkOptIn={contact.alimtalkOptIn} onChange={patch(setBill)} />
       <div
         ref={moveOutHistoryRef}
         className={`rounded-[14px] transition-shadow duration-300 ${moveOutHistoryHighlighted ? "shadow-[0_0_0_2px_var(--color-blue)]" : ""}`}
