@@ -9,7 +9,8 @@ import { formatNumber } from "@/lib/format";
  * 호실별 지침 자물쇠 — 정본 `utility-electric|water|gas.dc.html` 의 `.uc-pin`('이 값을 다음 달에도 고정').
  * 세 탭이 같은 코드라 여기 한 벌로 둔다. 고정값은 unit_fixed_values(0203)에 달별 이력으로 쌓인다 —
  * 량(kind usage)·수동입력(kind manual) 모두 켠 달부터 이후 달에 걸리고, 나중 달에 풀거나 바꾸면
- * 그 달부터만 바뀐다(이전 달은 잠금과 그때 값 그대로). 수정 모드에서 잠긴 칸은 입력할 수 없다.
+ * 그 달부터만 바뀐다(이전 달은 잠금과 그때 값 그대로). 수정 모드에서 잠긴 칸은 모양은 정본 그대로 두고
+ * 입력만 막는다(readOnly — 2026-09-30 사용자 결정. 정본은 켠 채로 입력 가능). 고정 칸 색은 보기 모드에서만.
  */
 export interface LockDraft {
   /** 량 자물쇠. 켜 두고 저장하면 lockedUsage 가 이 달부터 고정된다. */
@@ -195,13 +196,6 @@ export function LockedValue({ value }: { value: number | null }) {
     </span>
   );
 }
-
-/**
- * 수정 모드에서 자물쇠가 켜진 입력칸(disabled 와 함께 쓴다): 보기 모드 고정 칸과 같은 #F5F7F9 배경·회색
- * 테두리·진한 글자(2026-09-30 사용자 결정). 크기 클래스는 각 표의 입력칸 것을 그대로 붙이고, 공실용
- * `disabled:` 클래스는 섞지 않는다(Tailwind 에서 `disabled:` 가 이 색들을 덮는다).
- */
-export const LOCKED_INPUT = "border border-line bg-[#F5F7F9] text-t1 cursor-default";
 
 /** 정본 `#ucUnitBody td.uc-fixed{background:#F5F7F9}` — 보기 모드의 고정 칸. */
 export const FIXED_LOCK_CELL = "bg-[#F5F7F9]";

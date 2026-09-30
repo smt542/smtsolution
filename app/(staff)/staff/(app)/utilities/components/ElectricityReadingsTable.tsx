@@ -4,7 +4,6 @@ import { GridEmptyValue } from "./GridEmptyValue";
 import { UtilityGrid, type UtilityGridColumn } from "./UtilityGrid";
 import {
   FIXED_LOCK_CELL,
-  LOCKED_INPUT,
   LockedValue,
   LockPin,
   manualLockPatch,
@@ -48,11 +47,6 @@ function isNewOccupancy(moveInDate: string | null, referenceDate: string): boole
 
 function inputClass(): string {
   return "num h-[26px] rounded-[7px] border border-teal bg-white px-[7px] text-right text-[11.5px] font-semibold text-t1 outline-none placeholder:font-medium placeholder:text-t3";
-}
-
-/** 자물쇠가 켜진 입력칸: inputClass 와 같은 크기에 고정 칸 색. */
-function lockedInputClass(): string {
-  return `num h-[26px] rounded-[7px] px-[7px] text-right text-[11.5px] font-semibold outline-none ${LOCKED_INPUT}`;
 }
 
 interface ElectricityReadingsGridRow {
@@ -201,10 +195,10 @@ export function ElectricityReadingsTable({
             min="0"
             step="0.01"
             value={item.draft.usageLocked ? item.draft.lockedUsage : item.draft.usage}
-            disabled={item.draft.usageLocked}
+            readOnly={item.draft.usageLocked}
             placeholder="-"
             onChange={(event) => onDraftChange(item.row.unitId, { usage: event.target.value, usageEdited: true })}
-            className={`${item.draft.usageLocked ? lockedInputClass() : inputClass()} w-[56px]`}
+            className={`${inputClass()} w-[56px]`}
           />
           <LockPin
             locked={item.draft.usageLocked}
@@ -251,8 +245,8 @@ export function ElectricityReadingsTable({
             min="0"
             value={item.draft.manualCharge}
             onChange={(event) => onDraftChange(item.row.unitId, { manualCharge: event.target.value })}
-            disabled={item.draft.manualLocked}
-            className={`${item.draft.manualLocked ? lockedInputClass() : inputClass()} w-[56px]`}
+            readOnly={item.draft.manualLocked}
+            className={`${inputClass()} w-[56px]`}
           />
           <LockPin
             locked={item.draft.manualLocked}
