@@ -37,31 +37,31 @@ export function invoiceConfigFromSettings(
   };
 }
 
-function invoiceNo(month: string, orgId: number): string {
+export function invoiceNo(month: string, orgId: number): string {
   // month is YYYY-MM-01 → INV-YYYYMM-{orgId}
   const [year, mon] = month.split("-");
   return `INV-${year}${mon}-${String(orgId).padStart(3, "0")}`;
 }
 
-function todayLabel(): string {
+export function todayLabel(): string {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${now.getFullYear()}.${pad(now.getMonth() + 1)}.${pad(now.getDate())}`;
 }
 
-function periodLabel(month: string): string {
+export function periodLabel(month: string): string {
   const [year, mon] = month.split("-").map(Number);
   return `${year}년 ${mon}월 발송분`;
 }
 
-interface LineItem {
+export interface LineItem {
   name: string;
   count: number;
   unitPriceKrw: number;
   amountKrw: number;
 }
 
-function lineItems(row: PlatformOrgBilling, settings: PlatformSettings | undefined): LineItem[] {
+export function lineItems(row: PlatformOrgBilling, settings: PlatformSettings | undefined): LineItem[] {
   const items: LineItem[] = [];
   if (row.alimtalkCount > 0) {
     items.push({
@@ -94,10 +94,9 @@ function lineItems(row: PlatformOrgBilling, settings: PlatformSettings | undefin
 }
 
 /**
- * Pure, print-ready invoice document for a single organization. The markup mirrors
- * the admin prototype (docs/prototype/admin/usage.dc.html) invoice preview. Rendered
- * both inside the preview modal and in the bulk print root, so it must not carry any
- * modal chrome or interactivity.
+ * Invoice document for a single organization, shown in the preview modal. The markup mirrors
+ * the admin prototype (docs/prototype/admin/usage.dc.html) invoice preview (.iv-*). The PDF
+ * download (InvoicePdf) draws the same data with the same helpers, so keep the two in step.
  */
 export function InvoiceDocument({
   row,

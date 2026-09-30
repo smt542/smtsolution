@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Badge, EmptyState, Spinner } from "@/components/common";
 import { DpMonthPicker } from "@/components/common/DpMonthPicker";
@@ -15,7 +15,6 @@ import { formatNumber } from "@/lib/format";
 import { PlatformPagination, QueryError } from "../../../_components/PageElements";
 import { PlatformPageContainer } from "../../../_components/PlatformPageContainer";
 import { useFitPageSize } from "../../../_components/useFitPageSize";
-import { InvoiceBulkPrintRoot } from "./_components/InvoiceBulkPrintRoot";
 import { invoiceConfigFromSettings } from "./_components/InvoiceDocument";
 import { InvoicePreviewModal } from "./_components/InvoicePreviewModal";
 
@@ -52,7 +51,7 @@ export function BillingWorkspace() {
   const [tab, setTab] = useState<"all" | PlatformOrgBillingStatus>("all");
   const [page, setPage] = useState(1);
   const [previewOrgId, setPreviewOrgId] = useState<number | null>(null);
-  const [bulkRows, setBulkRows] = useState<PlatformOrgBilling[]>([]);
+  const [publishingAll, setPublishingAll] = useState(false);
   const [togglingOrgIds, setTogglingOrgIds] = useState<ReadonlySet<number>>(() => new Set());
   const scrollerRef = useRef<HTMLDivElement>(null);
   const billingQuery = usePlatformOrgBilling(month);
@@ -62,14 +61,6 @@ export function BillingWorkspace() {
     () => invoiceConfigFromSettings(settingsQuery.data),
     [settingsQuery.data],
   );
-
-  // Unmount the bulk print root once the print dialog closes so a later single-invoice
-  // print does not also emit every organization's invoice.
-  useEffect(() => {
-    const clearBulk = () => setBulkRows([]);
-    window.addEventListener("afterprint", clearBulk);
-    return () => window.removeEventListener("afterprint", clearBulk);
-  }, []);
 
   const rows = useMemo(() => billingQuery.data ?? [], [billingQuery.data]);
   const totals = useMemo(
@@ -133,19 +124,26 @@ export function BillingWorkspace() {
     }
   };
 
-  // "전체 발행": generate an invoice document for every billable (청구액 > 0) org in
-  // the current filter, then open the browser print dialog. No state is persisted.
-  const handlePublishAll = () => {
+  // "전체 발행": 지금 목록(탭)에서 청구액이 있는 업체마다 PDF 청구서를 차례로 내려받는다. 저장되는 상태 없음.
+  // 문구는 정본 #bmAll('N곳의 청구서를 만들고 있어요' → 'N곳의 청구서를 저장했어요'). 만드는 동안 다시 눌러도 무시
+  const handlePublishAll = async () => {
+    if (publishingAll) return;
     const billable = filtered.filter((row) => row.subtotalKrw > 0);
     if (billable.length === 0) {
-      toast.error("발행할 청구서가 없습니다.");
+      toast.warning("발행할 청구서가 없어요");
       return;
     }
-    setPreviewOrgId(null);
-    setBulkRows(billable);
-    requestAnimationFrame(() => {
-      window.print();
-    });
+    setPublishingAll(true);
+    toast.info(`${billable.length}곳의 청구서를 만들고 있어요`);
+    try {
+      const { downloadInvoicePdfs } = await import("./_components/InvoicePdf");
+      await downloadInvoicePdfs(billable, month, invoiceConfig, settingsQuery.data);
+      toast.success(`${billable.length}곳의 청구서를 저장했어요`);
+    } catch (error) {
+      toast.error(error, "저장에 실패했어요");
+    } finally {
+      setPublishingAll(false);
+    }
   };
 
   // 정본 hf-body(패딩 22·24·30, 간격 16) — 안내는 내용 높이, 목록 패널이 남는 높이를 채운다(최소 280)
@@ -211,7 +209,7 @@ export function BillingWorkspace() {
           <div className="flex-1" />
           <button
             type="button"
-            onClick={handlePublishAll}
+            onClick={() => void handlePublishAll()}
             disabled={filtered.every((row) => row.subtotalKrw <= 0)}
             className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[11px] border border-transparent bg-blue px-[14px] text-[12.5px] font-bold whitespace-nowrap text-white shadow-hf-btn hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -264,10 +262,7 @@ export function BillingWorkspace() {
                           <div className="inline-flex justify-end gap-1.5">
                             <button
                               type="button"
-                              onClick={() => {
-                                setBulkRows([]);
-                                setPreviewOrgId(row.orgId);
-                              }}
+                              onClick={() => setPreviewOrgId(row.orgId)}
                               className="inline-flex h-7 cursor-pointer items-center rounded-lg border border-line bg-surface px-[11px] text-xs font-bold text-t2 hover:bg-bg"
                             >
                               발행
@@ -315,15 +310,6 @@ export function BillingWorkspace() {
           config={invoiceConfig}
           settings={settingsQuery.data}
           onClose={() => setPreviewOrgId(null)}
-        />
-      )}
-
-      {bulkRows.length > 0 && (
-        <InvoiceBulkPrintRoot
-          rows={bulkRows}
-          month={month}
-          config={invoiceConfig}
-          settings={settingsQuery.data}
         />
       )}
     </PlatformPageContainer>
