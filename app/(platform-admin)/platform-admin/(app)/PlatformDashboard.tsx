@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useMemo, useRef, useState } from "react";
 import { EmptyState, Spinner } from "@/components/common";
 import { DpMonthPicker } from "@/components/common/DpMonthPicker";
 import {
@@ -10,6 +10,7 @@ import {
 import { formatNumber } from "@/lib/format";
 import { PlatformPagination, QueryError } from "../../_components/PageElements";
 import { PlatformPageContainer } from "../../_components/PlatformPageContainer";
+import { useFitPageSize } from "../../_components/useFitPageSize";
 import { MonthlySendCostChart } from "../_components/MonthlySendCostChart";
 
 const num = (n: number) => formatNumber(n);
@@ -33,43 +34,15 @@ export function PlatformDashboard() {
   const [currentMonth] = useState(currentMonthIso);
   const [month, setMonth] = useState(currentMonth);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const metricsQuery = usePlatformOverviewMetrics(currentMonth);
   const billingQuery = usePlatformOrgBilling(month);
-
-  // 정본 fitPer: 패널 남는 높이에 들어가는 만큼 한 쪽 행 수(최소 3). lg 미만(1열)은 6행 고정.
-  useEffect(() => {
-    const scroller = scrollerRef.current;
-    if (!scroller) return;
-
-    const measurePageSize = () => {
-      const head = scroller.querySelector("thead");
-      const row = scroller.querySelector("tbody tr");
-      if (!head || !row) return;
-
-      if (window.getComputedStyle(scroller).position !== "absolute") {
-        setPageSize((current) => current === PAGE_SIZE ? current : PAGE_SIZE);
-        return;
-      }
-
-      const headerHeight = head.getBoundingClientRect().height;
-      const rowHeight = row.getBoundingClientRect().height || 41;
-      const nextPageSize = Math.max(
-        3,
-        Math.floor((scroller.clientHeight - headerHeight) / rowHeight),
-      );
-      setPageSize((current) => current === nextPageSize ? current : nextPageSize);
-    };
-
-    const observer = new ResizeObserver(measurePageSize);
-    observer.observe(scroller);
-    const frame = requestAnimationFrame(measurePageSize);
-    return () => {
-      cancelAnimationFrame(frame);
-      observer.disconnect();
-    };
-  }, [billingQuery.data]);
+  // 정본 fitPer: 패널 남는 높이에 맞춘 한 쪽 행 수. 스크롤러가 absolute인 xl(1280) 이상만 재고, 1열(xl 미만)은 6행.
+  const pageSize = useFitPageSize(scrollerRef, {
+    fallback: PAGE_SIZE,
+    onlyWhenAbsolute: true,
+    watch: billingQuery.data,
+  });
 
   const metrics = metricsQuery.data;
   const appRate = metrics && metrics.unitCount > 0
@@ -136,7 +109,7 @@ export function PlatformDashboard() {
         )}
       </section>
 
-      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-[1.5fr_1fr]">
+      <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-[1.5fr_1fr]">
         <MonthlySendCostChart />
 
         <section aria-label="테넌트별 발송 비용" className="flex min-h-0 flex-col overflow-hidden rounded-2xl bg-surface shadow-card">
@@ -156,7 +129,7 @@ export function PlatformDashboard() {
             />
           </div>
           <div className="relative min-h-0 flex-1">
-            <div ref={scrollerRef} className="overflow-auto lg:absolute lg:inset-0">
+            <div ref={scrollerRef} className="overflow-auto xl:absolute xl:inset-0">
               {billingQuery.isPending ? (
                 <div className="py-16"><Spinner /></div>
               ) : billingQuery.isError ? (
@@ -179,7 +152,8 @@ export function PlatformDashboard() {
                   <tbody>
                     {pagedRows.map((row) => (
                       <tr key={row.orgId} className="hover:bg-row-hover [&:last-child>td]:border-b-0">
-                        <td className="break-keep border-b border-line2 px-4 py-3 text-[13.5px] font-bold text-t1 whitespace-normal">{row.orgName}</td>
+                        {/* 패널이 좁으면 가로 스크롤 대신 업체명만 줄바꿈(띄어쓰기 없는 이름도 칸에 맞춰 끊음) */}
+                        <td className="break-keep border-b border-line2 px-4 py-3 text-[13.5px] font-bold text-t1 whitespace-normal [overflow-wrap:anywhere]">{row.orgName}</td>
                         <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] text-t1 whitespace-nowrap num">
                           {num(row.alimtalkAmountKrw)}
                         </td>
