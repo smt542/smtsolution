@@ -36,6 +36,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
         cancelLabel={options?.cancelLabel}
         variant={options?.variant}
         look={options?.look}
+        hideCancel={options?.hideCancel}
         onConfirm={() => settle(true)}
         onCancel={() => settle(false)}
       />

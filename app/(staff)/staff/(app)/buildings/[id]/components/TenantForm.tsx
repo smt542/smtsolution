@@ -1,7 +1,7 @@
 // app/(staff)/staff/buildings/[id]/components/TenantForm.tsx
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, EmptyState, Spinner } from "@/components/common";
@@ -70,8 +70,8 @@ const emptyBilling = (): BillingValue => ({
   transferMethod: "giro",
   cmsMemberNo: "",
   cmsContractNo: "",
-  lateFeeEnabled: false,
-  singlePrint: false,
+  lateFeeEnabled: true,
+  singlePrint: true,
   billingNote: "",
 });
 
@@ -85,7 +85,7 @@ const emptyUtility = (): UtilityValue => ({
 });
 
 const emptyBill = (): BillStatementValue => ({
-  printEnabled: true,
+  printEnabled: false,
   billNameDisplay: "none",
   billDelivery: "alimtalk",
   billAuthInfo: "",
@@ -163,6 +163,9 @@ export function TenantForm({
   const [basicErrors, setBasicErrors] = useState<BasicErrors>({});
   const [phoneError, setPhoneError] = useState<string>();
   const [previousFull, setPreviousFull] = useState<typeof full>();
+  const formBodyRef = useRef<HTMLDivElement>(null);
+  const moveOutHistoryRef = useRef<HTMLDivElement>(null);
+  const [moveOutHistoryHighlighted, setMoveOutHistoryHighlighted] = useState(false);
 
   useEffect(() => {
     if (!dirty) return;
@@ -209,6 +212,7 @@ export function TenantForm({
   if (full && full !== previousFull) {
     setPreviousFull(full);
     const occupancy = full.occupancy;
+    const alimtalkOptIn = occupancy?.alimtalkOptIn ?? true;
     const meterLine = (kind: "water" | "elec" | "elec_shared" | "gas" | "kepco") => {
       const meter = full.meters.find((row) => row.utility === kind);
       return { customerNo: meter?.customerNo ?? "", meterNo: meter?.meterNo ?? "" };
@@ -237,7 +241,7 @@ export function TenantForm({
       ]),
       vehicles: withInputSlot([occupancy?.vehicleNo ?? "", ...(occupancy?.vehiclesExtra ?? [])]),
       smsOptIn: occupancy?.smsOptIn ?? true,
-      alimtalkOptIn: occupancy?.alimtalkOptIn ?? true,
+      alimtalkOptIn,
       homepagePassword: occupancy?.homepagePassword ?? "",
     });
     setBilling({
@@ -263,7 +267,7 @@ export function TenantForm({
     setBill({
       printEnabled: occupancy?.printEnabled ?? true,
       billNameDisplay: occupancy?.billNameDisplay ?? "none",
-      billDelivery: occupancy?.billDelivery ?? "alimtalk",
+      billDelivery: alimtalkOptIn ? "alimtalk" : "post",
       billAuthInfo: occupancy?.billAuthInfo ?? "",
     });
     setLease({
@@ -300,6 +304,17 @@ export function TenantForm({
   const patch = <T,>(setter: React.Dispatch<React.SetStateAction<T>>) => (value: Partial<T>) => {
     setter((current) => ({ ...current, ...value }));
     setDirty(true);
+  };
+
+  const onContactChange = (value: Partial<ContactValue>) => {
+    patch(setContact)(value);
+    if (typeof value.alimtalkOptIn !== "boolean") return;
+
+    setBill((current) => ({
+      ...current,
+      billDelivery: value.alimtalkOptIn ? "alimtalk" : "post",
+      ...(!unitId ? { printEnabled: !value.alimtalkOptIn } : {}),
+    }));
   };
 
   const onSave = async () => {
@@ -398,7 +413,7 @@ export function TenantForm({
         facilityNote: occupancy?.facilityNote ?? null,
         transferMethod: billing.transferMethod as SaveUnitOccupancyPayload["occupancy"]["transferMethod"],
         billNameDisplay: bill.billNameDisplay as SaveUnitOccupancyPayload["occupancy"]["billNameDisplay"],
-        billDelivery: bill.billDelivery as SaveUnitOccupancyPayload["occupancy"]["billDelivery"],
+        billDelivery: contact.alimtalkOptIn ? "alimtalk" : "post",
         billAuth: occupancy?.billAuth ?? false,
         moveOutScheduledDate: occupancy?.moveOutScheduledDate ?? null,
         smsOptIn: contact.smsOptIn,
@@ -480,6 +495,17 @@ export function TenantForm({
     router.push(`/staff/buildings?building=${buildingId}`);
   };
 
+  const scrollToMoveOutHistory = () => {
+    const body = formBodyRef.current;
+    const section = moveOutHistoryRef.current;
+    if (!body || !section) return;
+
+    const top = section.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop;
+    body.scrollTop = Math.max(0, top - 12);
+    setMoveOutHistoryHighlighted(true);
+    window.setTimeout(() => setMoveOutHistoryHighlighted(false), 1200);
+  };
+
   const pageHeaderActions = (
     <>
       <Button variant="ghost" onClick={onLeave}>{unitId ? "목록으로" : "뒤로가기"}</Button>
@@ -534,14 +560,20 @@ export function TenantForm({
             occupancyId={full.occupancy.id}
             scheduledDate={full.occupancy.moveOutScheduledDate}
             isVacant={full.occupancy.status === "vacant"}
+            onImmediateMoveOutComplete={scrollToMoveOutHistory}
           />
         ) : undefined}
       />
-      <ContactSection value={contact} onChange={patch(setContact)} errors={{ phones: phoneError }} />
+      <ContactSection value={contact} onChange={onContactChange} errors={{ phones: phoneError }} />
       <BillingSection value={billing} onChange={patch(setBilling)} />
       <UtilityCustomerSection value={utility} onChange={patch(setUtility)} customerOptions={customerOptions} />
-      <BillStatementSection value={bill} onChange={patch(setBill)} />
-      <MoveOutHistorySection history={full?.history ?? []} />
+      <BillStatementSection value={bill} alimtalkOptIn={contact.alimtalkOptIn} onChange={patch(setBill)} />
+      <div
+        ref={moveOutHistoryRef}
+        className={`rounded-[14px] transition-shadow duration-300 ${moveOutHistoryHighlighted ? "shadow-[0_0_0_2px_var(--color-blue)]" : ""}`}
+      >
+        <MoveOutHistorySection history={full?.history ?? []} />
+      </div>
       <LeaseInfoSection value={lease} onChange={patch(setLease)} />
       <PropertyInfoSection value={property} onChange={patch(setProperty)} />
 
@@ -551,10 +583,12 @@ export function TenantForm({
             type="button"
             onClick={async () => {
               const ok = await confirm({
+                look: "plain",
                 title: "호수 삭제",
-                description: "이 호수(세대)와 입주자 정보를 삭제하시겠습니까? 되돌릴 수 없습니다.",
-                confirmLabel: "삭제",
                 variant: "danger",
+                description: "정말 이 호수를 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.",
+                cancelLabel: "취소",
+                confirmLabel: "삭제",
               });
               if (!ok) return;
               try {
@@ -578,7 +612,7 @@ export function TenantForm({
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       {pageHeader}
-      <div className="flex min-h-0 flex-1 flex-col gap-[29px] overflow-y-auto px-[24px] pb-[30px] pt-[22px]">
+      <div ref={formBodyRef} className="flex min-h-0 flex-1 flex-col gap-[29px] overflow-y-auto px-[24px] pb-[30px] pt-[22px]">
         {formContent}
       </div>
     </div>

@@ -13,9 +13,11 @@ export interface BillStatementValue {
 
 export function BillStatementSection({
   value,
+  alimtalkOptIn,
   onChange,
 }: {
   value: BillStatementValue;
+  alimtalkOptIn: boolean;
   onChange: (patch: Partial<BillStatementValue>) => void;
 }) {
   return (
@@ -28,12 +30,14 @@ export function BillStatementSection({
           <SelectField value={value.billNameDisplay} onChange={(v) => onChange({ billNameDisplay: v })} options={billNameDisplayOptions} />
         </Field>
         <Field label="발송">
-          <SelectField value={value.billDelivery} onChange={(v) => onChange({ billDelivery: v })} options={billDeliveryOptions} />
-          {value.billDelivery === "alimtalk" && (
-            <p className="pt-[6px] text-[12px] font-semibold leading-[18px] text-t3">
-              알림톡 수신 동의 세대는 알림톡 고지서로 발송돼요
-            </p>
-          )}
+          <div inert aria-disabled="true" className="pointer-events-none opacity-60">
+            <SelectField value={value.billDelivery} onChange={(v) => onChange({ billDelivery: v })} options={billDeliveryOptions} />
+          </div>
+          <p className="mt-[6px] text-[12px] font-semibold leading-[1.5] text-t3">
+            {alimtalkOptIn
+              ? "알림톡 수신 동의 세대는 알림톡 고지서로 발송돼요"
+              : "알림톡 수신 거부 세대는 우편으로 발송돼요"}
+          </p>
         </Field>
         <Field label="인증">
           <TextField value={value.billAuthInfo} onChange={(v) => onChange({ billAuthInfo: v })} placeholder="인증 정보" />
