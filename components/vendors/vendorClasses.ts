@@ -7,12 +7,17 @@ export const vendorClasses = {
   categoryHeader: "flex items-center gap-2 border-b border-line2 px-4 py-3.5",
   categoryTitle: "text-sm font-extrabold leading-[normal] text-t1",
   categoryList: "flex min-h-0 flex-1 flex-col gap-1.5 overflow-auto p-2",
+  // 색·배경은 상태별 클래스에만 둔다. 기본에 text-t2를 두고 선택 클래스(text-blue)를 이어 붙이면
+  // Tailwind 출력 순서상 text-t2가 이겨 선택 항목 글자가 회색으로 남는다(정본 .vm-cat.on은 청록).
   categoryItem:
-    "relative flex w-full items-center gap-2 rounded-[10px] px-[11px] py-[9px] text-left text-[13.5px] font-bold leading-[normal] text-t2 transition-colors duration-100 hover:bg-bg focus-visible:bg-bg focus-visible:outline-none",
-  categoryItemActive: "bg-blue-t text-blue hover:bg-blue-t focus-visible:bg-blue-t",
+    "relative flex w-full items-center gap-2 rounded-[10px] px-[11px] py-[9px] text-left text-[13.5px] font-bold leading-[normal] transition-colors duration-100 focus-visible:outline-none",
+  categoryItemIdle: "text-t2 hover:bg-bg focus-visible:bg-bg",
+  categoryItemActive: "bg-blue-t text-blue",
   categoryLabel: "min-w-0 overflow-hidden text-ellipsis whitespace-nowrap",
   categoryCount:
-    "ml-auto min-w-[22px] rounded-pill bg-bg px-[9px] py-px text-center text-xs font-bold leading-[normal] text-t2 transition-opacity duration-100",
+    "ml-auto min-w-[22px] rounded-pill px-[9px] py-px text-center text-xs font-bold leading-[normal] transition-opacity duration-100",
+  categoryCountIdle: "bg-bg text-t2",
+  categoryCountActive: "bg-surface text-blue",
   panel:
     "flex min-w-0 min-h-0 flex-1 flex-col overflow-hidden rounded-2xl bg-surface shadow-card max-md:min-h-[480px]",
   panelHeader:
@@ -35,7 +40,7 @@ export const vendorClasses = {
   dialog:
     "relative max-w-[520px] overflow-visible rounded-modal! p-0! shadow-[0_30px_70px_-20px_rgba(0,0,0,0.45)] [&>h2]:flex [&>h2]:h-[68px] [&>h2]:items-center [&>h2]:border-b [&>h2]:border-line [&>h2]:px-[22px] [&>h2]:pr-14 [&>h2]:text-[17px] [&>h2]:font-extrabold [&>h2]:tracking-[-0.02em] [&>div]:mt-0!",
   closeButton:
-    "absolute right-4 top-[18px] z-[1] inline-flex size-8 items-center justify-center rounded-[9px] text-t3 hover:bg-bg hover:text-t1 focus-visible:bg-bg focus-visible:text-t1 focus-visible:outline-none",
+    "absolute right-4 top-[18px] z-[1] size-8 rounded-[9px] text-t3 hover:bg-bg hover:text-t1 focus-visible:bg-bg focus-visible:text-t1 focus-visible:outline-none",
   formCategory: "px-[22px] pb-0.5 pt-[18px]",
   formBody: "overflow-visible px-[22px] pb-5 pt-3",
   formFields: "h-[439px] overflow-y-auto",
@@ -60,7 +65,8 @@ export const vendorClasses = {
   categoryOptionSelected: "bg-blue-t font-bold text-blue hover:bg-blue-t focus-visible:bg-blue-t",
   formFooter: "flex gap-[9px] border-t border-line px-[22px] py-[14px]",
   footerButton:
-    "inline-flex h-10 items-center justify-center rounded-btn px-5 text-[13.5px] font-bold",
+    "inline-flex h-10 items-center justify-center gap-[7px] rounded-btn px-5 text-[13.5px] font-bold tracking-[-0.01em]",
   submitButton: "flex-1 bg-blue text-white hover:bg-blue-d disabled:cursor-default disabled:opacity-60",
-  deleteButton: "flex-none bg-red-t text-red hover:bg-[#fbdbe0]",
+  // 정본 파일의 .fmpc-btn.danger는 연빨강이지만 뒤에 붙는 공용 메신저 CSS가 솔리드 빨강으로 덮는다(렌더 실측).
+  deleteButton: "flex-none bg-red text-white hover:bg-[#d63a46]",
 } as const;
