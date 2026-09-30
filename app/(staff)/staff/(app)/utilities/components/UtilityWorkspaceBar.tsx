@@ -84,7 +84,8 @@ export function UtilityWorkspaceBar({
       {editing ? (
         <div className="flex items-center gap-1.5">
           <Button variant="ghost" size="sm" type="button" onClick={onCalculate}>계산</Button>
-          <button type="button" onClick={save} disabled={saving || savePeriod.isPending} className="h-[26px] rounded-[8px] border border-blue bg-blue px-[10px] text-[11.5px] font-bold text-white hover:bg-blue-d disabled:opacity-60">{saving || savePeriod.isPending ? "저장 중…" : "저장"}</button>
+          {/* 정본은 저장 중에도 버튼 모양·문구가 그대로다. disabled는 두 번 저장만 막는다. */}
+          <button type="button" onClick={save} disabled={saving || savePeriod.isPending} className="h-[26px] rounded-[8px] border border-blue bg-blue px-[10px] text-[11.5px] font-bold text-white hover:bg-blue-d">저장</button>
           <button type="button" aria-label="수정 취소" onClick={cancel} className="grid size-[26px] place-items-center rounded-[8px] border border-line text-t3 hover:bg-bg"><CloseIcon className="size-3.5" /></button>
         </div>
       ) : canEdit ? (

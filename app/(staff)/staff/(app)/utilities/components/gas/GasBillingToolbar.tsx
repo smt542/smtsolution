@@ -46,13 +46,14 @@ export function GasBillingToolbar({
       <span aria-hidden="true" className="flex items-start px-1"><span className="h-[26px] w-px bg-line" /></span>
       {editing ? (
         <div className="flex items-center gap-1.5">
-          <Button size="sm" variant="ghost" type="button" onClick={onCalculate} disabled={pending} className="disabled:opacity-50">
+          <Button size="sm" variant="ghost" type="button" onClick={onCalculate}>
             계산
           </Button>
-          <button type="button" onClick={onSave} disabled={pending} className="h-[26px] rounded-[8px] border border-blue bg-blue px-[10px] text-[11.5px] font-bold text-white hover:bg-blue-d disabled:opacity-50">
+          {/* 정본은 저장 중에도 버튼 모양이 그대로다(전기·수도와 같음). disabled는 두 번 저장만 막는다. */}
+          <button type="button" onClick={onSave} disabled={pending} className="h-[26px] rounded-[8px] border border-blue bg-blue px-[10px] text-[11.5px] font-bold text-white hover:bg-blue-d">
             저장
           </button>
-          <button type="button" aria-label="수정 취소" onClick={onCancel} disabled={pending} className="flex size-[26px] items-center justify-center rounded-[8px] border border-line bg-white text-t3 hover:bg-bg disabled:opacity-50">
+          <button type="button" aria-label="수정 취소" onClick={onCancel} className="flex size-[26px] items-center justify-center rounded-[8px] border border-line bg-white text-t3 hover:bg-bg">
             <CloseIcon />
           </button>
         </div>

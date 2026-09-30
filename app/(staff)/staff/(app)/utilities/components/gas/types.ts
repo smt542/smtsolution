@@ -1,12 +1,10 @@
 import type { UtilityUnitRow } from "@/hooks/reactquery/utilities";
+import type { LockDraft } from "../UtilityLock";
 
-export interface GasUtilityDraft {
+export interface GasUtilityDraft extends LockDraft {
   currentReading: string;
   manualCharge: string;
   note: string;
 }
 
-export interface GasTableRow extends UtilityUnitRow {
-  fixedUsage: number | null;
-  fixedUsageFrom?: string | null;
-}
+export type GasTableRow = UtilityUnitRow;

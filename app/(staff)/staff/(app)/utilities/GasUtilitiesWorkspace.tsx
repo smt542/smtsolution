@@ -12,10 +12,12 @@ import {
 } from "@/hooks/reactquery/buildingCustomerNumbers";
 import {
   useBillingPeriod,
-  useFixedUsages,
+  useFixedValues,
   useSaveBillingPeriod,
+  useSaveFixedValues,
   useSaveMeterReadings,
   useUtilityRows,
+  type FixedValueRow,
   type UtilityUnitRow,
 } from "@/hooks/reactquery/utilities";
 import { hasModule } from "@/lib/auth/permissions";
@@ -31,10 +33,10 @@ import { GasBillingToolbar } from "./components/gas/GasBillingToolbar";
 import { UtilityBuildingRail } from "./components/UtilityBuildingRail";
 import { GasReadingsTable } from "./components/gas/GasReadingsTable";
 import { GasWorkspaceHeader } from "./components/gas/GasWorkspaceHeader";
-import type { GasTableRow, GasUtilityDraft } from "./components/gas/types";
-import { FixedUsageModal } from "./components/FixedUsageModal";
+import type { GasUtilityDraft } from "./components/gas/types";
 import { MeterLedgerModal } from "./components/MeterLedgerModal";
 import { UtilityPeriodBarPlaceholder } from "./components/UtilityPeriodBarPlaceholder";
+import { fixedChangeFor, initialLockDraft } from "./components/UtilityLock";
 
 function pad(value: number): string {
   return String(value).padStart(2, "0");
@@ -44,11 +46,11 @@ function monthEnd(year: number, month: number): string {
   return `${year}-${pad(month)}-${pad(new Date(year, month, 0).getDate())}`;
 }
 
-function initialDraft(row: UtilityUnitRow): GasUtilityDraft {
+function initialDraft(row: UtilityUnitRow, fixed: FixedValueRow | undefined, period: string): GasUtilityDraft {
   return {
     currentReading: row.currentReading === null ? "" : String(row.currentReading),
-    manualCharge: row.manualCharge === null ? "" : String(row.manualCharge),
     note: row.note ?? "",
+    ...initialLockDraft(fixed, period, row.manualCharge),
   };
 }
 
@@ -74,17 +76,17 @@ export default function GasUtilitiesWorkspace() {
   const [editStartDate, setEditStartDate] = useState("");
   const [editEndDate, setEditEndDate] = useState("");
   const [drafts, setDrafts] = useState<Record<string, GasUtilityDraft>>({});
-  const [fixedUsageRow, setFixedUsageRow] = useState<GasTableRow | null>(null);
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const [carryOverOpen, setCarryOverOpen] = useState(false);
 
   const period = `${year}-${pad(month)}-01`;
   const referenceDate = monthEnd(year, month);
   const rowsQuery = useUtilityRows(buildingId, "gas", period);
-  const fixedUsagesQuery = useFixedUsages(buildingId, "gas");
+  const fixedValuesQuery = useFixedValues(buildingId, "gas");
   const billingPeriodQuery = useBillingPeriod(buildingId, period);
   const saveMeter = useSaveMeterReadings();
   const saveBillingPeriod = useSaveBillingPeriod();
+  const saveFixedValues = useSaveFixedValues();
   const buildings = useMemo(() => buildingsQuery.data ?? [], [buildingsQuery.data]);
   const customerNumberQueries = useQueries({
     queries: buildings.map((building) => ({
@@ -99,31 +101,24 @@ export default function GasUtilitiesWorkspace() {
   const selectedBuilding = buildings.find((building) => building.id === buildingId) ?? null;
   const scopeKey = `${buildingId ?? "none"}:gas:${period}`;
 
-  const rows = useMemo<GasTableRow[]>(() => {
-    const fixedByUnit = new Map((fixedUsagesQuery.data ?? []).map((item) => [item.unitId, item]));
-    return (rowsQuery.data ?? []).map((row) => ({
-      ...row,
-      fixedUsage: fixedByUnit.get(row.unitId)?.fixedUsage ?? null,
-      fixedUsageFrom: fixedByUnit.get(row.unitId)?.fromMonth ?? null,
-    }));
-  }, [fixedUsagesQuery.data, rowsQuery.data]);
+  const rows = useMemo(() => rowsQuery.data ?? [], [rowsQuery.data]);
+  const fixedByUnit = useMemo(
+    () => new Map((fixedValuesQuery.data ?? []).map((item) => [item.unitId, item])),
+    [fixedValuesQuery.data],
+  );
 
   const rowsById = useMemo(() => new Map(rows.map((row) => [row.unitId, row])), [rows]);
   const scopedDrafts = useMemo<Record<number, GasUtilityDraft>>(
     () => Object.fromEntries(rows.map((row) => [
       row.unitId,
-      drafts[`${scopeKey}:${row.unitId}`] ?? initialDraft(row),
+      drafts[`${scopeKey}:${row.unitId}`] ?? initialDraft(row, fixedByUnit.get(row.unitId), period),
     ])),
-    [drafts, rows, scopeKey],
+    [drafts, fixedByUnit, period, rows, scopeKey],
   );
   const isGasWorkspaceLoading =
-    rowsQuery.isLoading || fixedUsagesQuery.isLoading || billingPeriodQuery.isLoading;
-  const isGasWorkspaceRefreshing =
-    (rowsQuery.isFetching && !rowsQuery.isLoading) ||
-    (fixedUsagesQuery.isFetching && !fixedUsagesQuery.isLoading) ||
-    (billingPeriodQuery.isFetching && !billingPeriodQuery.isLoading);
-  const isGasSavePending = saveMeter.isPending || saveBillingPeriod.isPending;
-  const rowsError = rowsQuery.error ?? fixedUsagesQuery.error;
+    rowsQuery.isLoading || fixedValuesQuery.isLoading || billingPeriodQuery.isLoading;
+  const isGasSavePending = saveFixedValues.isPending || saveMeter.isPending || saveBillingPeriod.isPending;
+  const rowsError = rowsQuery.error ?? fixedValuesQuery.error;
   const defaults = useMemo(() => defaultBillingDates(period), [period]);
   const useDefaultBasis = !isPrototypeFuturePeriod(period);
   const chargeStartDate = editing
@@ -143,16 +138,15 @@ export default function GasUtilitiesWorkspace() {
     const key = `${scopeKey}:${unitId}`;
     setDrafts((current) => ({
       ...current,
-      [key]: { ...(current[key] ?? initialDraft(row)), ...patch },
+      [key]: { ...(current[key] ?? initialDraft(row, fixedByUnit.get(unitId), period)), ...patch },
     }));
-  }, [rowsById, scopeKey]);
+  }, [fixedByUnit, period, rowsById, scopeKey]);
 
   if (me === undefined) return null;
 
   const selectBuilding = (id: number) => {
     if (editing) return;
     setBuildingId(id);
-    setFixedUsageRow(null);
   };
 
   const resetScopeDrafts = () => {
@@ -166,7 +160,7 @@ export default function GasUtilitiesWorkspace() {
       toast.error("부과기준일을 먼저 설정해 주세요.");
       return;
     }
-    if (rows.every((row) => row.fixedUsage === null && scopedDrafts[row.unitId].currentReading.trim() === "")) {
+    if (rows.every((row) => !scopedDrafts[row.unitId].usageLocked && scopedDrafts[row.unitId].currentReading.trim() === "")) {
       toast.error("입력된 당월 지침이 없습니다.");
       return;
     }
@@ -185,16 +179,28 @@ export default function GasUtilitiesWorkspace() {
       toast.error("부과 시작일과 종료일을 확인해 주세요.");
       return;
     }
+    // 고정한 호실은 지침이 비어도 저장해야 이 달 부과에 고정값이 들어간다(량=서버가 fixed_usage 로 계산).
     const payloadRows = rows
-      .filter((row) => row.fixedUsage !== null || scopedDrafts[row.unitId].currentReading.trim() !== "")
+      .filter((row) => {
+        const draft = scopedDrafts[row.unitId];
+        return draft.usageLocked || draft.manualLocked || draft.currentReading.trim() !== "";
+      })
       .map((row) => ({
         unit_id: row.unitId,
-        ...(row.fixedUsage === null ? { current_reading: scopedDrafts[row.unitId].currentReading.trim() } : {}),
+        current_reading: scopedDrafts[row.unitId].currentReading.trim(),
         manual_charge: scopedDrafts[row.unitId].manualCharge.trim(),
         note: scopedDrafts[row.unitId].note.trim(),
       }));
+    const fixedChanges = rows.flatMap((row) => {
+      const change = fixedChangeFor(row.unitId, scopedDrafts[row.unitId], fixedByUnit.get(row.unitId), period);
+      return change ? [change] : [];
+    });
 
     try {
+      // 고정값을 먼저 써야 save_meter_readings 가 바뀐 고정 사용량으로 량을 계산한다.
+      if (fixedChanges.length > 0) {
+        await saveFixedValues.mutateAsync({ buildingId, utilityType: "gas", rows: fixedChanges });
+      }
       const [, meterResult] = await Promise.all([
         saveBillingPeriod.mutateAsync({
           buildingId,
@@ -222,7 +228,7 @@ export default function GasUtilitiesWorkspace() {
       return;
     }
     const carryRows = rows.filter((row) => (
-      row.fixedUsage === null
+      !scopedDrafts[row.unitId].usageLocked
       && row.previousReading !== null
       && scopedDrafts[row.unitId].currentReading.trim() === ""
     ));
@@ -230,7 +236,10 @@ export default function GasUtilitiesWorkspace() {
       const next = { ...current };
       carryRows.forEach((row) => {
         const key = `${scopeKey}:${row.unitId}`;
-        next[key] = { ...(current[key] ?? initialDraft(row)), currentReading: String(row.previousReading) };
+        next[key] = {
+          ...(current[key] ?? initialDraft(row, fixedByUnit.get(row.unitId), period)),
+          currentReading: String(row.previousReading),
+        };
       });
       return next;
     });
@@ -276,11 +285,6 @@ export default function GasUtilitiesWorkspace() {
           {/* 행을 minmax(0,1fr)로 묶고 min-h-0을 줘야 호실 표가 칸 안에서 스크롤된다(수도와 같음).
               없으면 건물을 고를 때 표 높이만큼 칸이 늘어나 화면 아래로 잘린다. */}
           <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-4">
-            {selectedBuilding && isGasWorkspaceRefreshing ? (
-              <div className="absolute right-4 top-4 z-10 rounded-lg bg-white/95 shadow-card">
-                <Spinner label="가스 지침 갱신 중" size="small" showLabel />
-              </div>
-            ) : null}
             {selectedBuilding ? (
               <GasBillingToolbar
                 buildingName={selectedBuilding.name}
@@ -352,7 +356,6 @@ export default function GasUtilitiesWorkspace() {
                     chargeStartDate={chargeStartDate}
                     chargeEndDate={chargeEndDate}
                     onDraftChange={updateDraft}
-                    onOpenFixedUsage={setFixedUsageRow}
                   />
                 )}
               </>
@@ -377,24 +380,6 @@ export default function GasUtilitiesWorkspace() {
           period={period}
           utilityType="gas"
           onClose={() => setLedgerOpen(false)}
-        />
-      )}
-
-      {fixedUsageRow && buildingId !== null && (
-        <FixedUsageModal
-          key={`${fixedUsageRow.unitId}:${fixedUsageRow.fixedUsage ?? "none"}`}
-          open
-          buildingId={buildingId}
-          unitId={fixedUsageRow.unitId}
-          unitNo={fixedUsageRow.unitNo}
-          utility="gas"
-          currentFixedUsage={fixedUsageRow.fixedUsage}
-          currentFixedUsageFrom={fixedUsageRow.fixedUsageFrom}
-          onSaved={() => {
-            setFixedUsageRow(null);
-            fixedUsagesQuery.refetch();
-          }}
-          onClose={() => setFixedUsageRow(null)}
         />
       )}
     </div>

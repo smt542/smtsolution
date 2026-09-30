@@ -2,56 +2,20 @@ import type { UtilityUnitRow } from "@/hooks/reactquery/utilities";
 import { formatNumber } from "@/lib/format";
 import { GridEmptyValue } from "./GridEmptyValue";
 import { UtilityGrid, type UtilityGridColumn } from "./UtilityGrid";
+import {
+  FIXED_LOCK_CELL,
+  LockedValue,
+  LockPin,
+  manualLockPatch,
+  usageLockPatch,
+  type LockDraft,
+} from "./UtilityLock";
 
-export interface ElectricityDraft {
+export interface ElectricityDraft extends LockDraft {
   currentReading: string;
   manualCharge: string;
   note: string;
-  /** 량 자물쇠(정본 `.uc-pin[data-pin=use]`). 켜 두고 저장하면 lockedUsage 가 이 달부터 고정된다. */
-  usageLocked: boolean;
-  lockedUsage: string;
-  /** 수동입력 자물쇠. 켜 두고 저장하면 manualCharge 가 이 달부터 고정된다. */
-  manualLocked: boolean;
 }
-
-const LOCK_PATHS = (
-  <>
-    <rect x="5" y="11" width="14" height="9" rx="2" />
-    <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-  </>
-);
-
-/** 정본 `.uc-pin`: 22px 자물쇠 토글. 켜지면 청록 틴트·테두리. */
-function LockPin({ locked, label, onToggle }: { locked: boolean; label: string; onToggle: () => void }) {
-  return (
-    <button
-      type="button"
-      aria-pressed={locked}
-      aria-label={label}
-      title="이 값을 다음 달에도 고정"
-      onClick={onToggle}
-      className={`flex size-[22px] flex-none items-center justify-center rounded-[6px] border ${locked ? "border-blue bg-blue-t text-blue-d" : "border-transparent text-t4 hover:bg-[#EDF0F3] hover:text-t2"}`}
-    >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="size-3">
-        {LOCK_PATHS}
-      </svg>
-    </button>
-  );
-}
-
-/** 정본 `td.uc-fixed` 의 값: 11px 자물쇠 + 값(칸 배경은 cellClassName 이 준다). */
-function LockedValue({ value }: { value: number | null }) {
-  return (
-    <span title="고정된 값이에요" className="num">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mr-1 inline-block size-[11px] align-[-1px] text-t3">
-        {LOCK_PATHS}
-      </svg>
-      {formatNumber(value, { nullText: "0" })}
-    </span>
-  );
-}
-
-const FIXED_CELL = "bg-[#F5F7F9]";
 
 interface ElectricityReadingsTableProps {
   rows: UtilityUnitRow[];
@@ -205,7 +169,7 @@ export function ElectricityReadingsTable({
       label: "량",
       width: editing ? 115 : 49,
       align: "right",
-      cellClassName: (item) => `font-semibold tabular-nums ${item.invalidUsage || (item.vacant && (item.usage ?? 0) > 0) ? "text-red" : "text-t1"} ${!editing && item.draft.usageLocked ? FIXED_CELL : ""}`,
+      cellClassName: (item) => `font-semibold tabular-nums ${item.invalidUsage || (item.vacant && (item.usage ?? 0) > 0) ? "text-red" : "text-t1"} ${!editing && item.draft.usageLocked ? FIXED_LOCK_CELL : ""}`,
       render: (item) => item.invalidUsage ? (
         <span className="text-red">확인 필요</span>
       ) : editing ? (
@@ -214,10 +178,7 @@ export function ElectricityReadingsTable({
           <LockPin
             locked={item.draft.usageLocked}
             label={`${item.row.unitNo} 량 고정`}
-            // 정본 `parseInt(raw)||0`: 켤 때의 량(없으면 0)을 고정값으로 잡는다.
-            onToggle={() => onDraftChange(item.row.unitId, item.draft.usageLocked
-              ? { usageLocked: false, lockedUsage: "" }
-              : { usageLocked: true, lockedUsage: String(item.computedUsage ?? 0) })}
+            onToggle={() => onDraftChange(item.row.unitId, usageLockPatch(item.draft.usageLocked, item.computedUsage))}
           />
         </span>
       ) : item.draft.usageLocked ? <LockedValue value={item.usage} />
@@ -244,7 +205,7 @@ export function ElectricityReadingsTable({
       label: "수동입력",
       width: editing ? 115 : 74,
       align: "right",
-      cellClassName: (item) => !editing && item.draft.manualLocked ? FIXED_CELL : "",
+      cellClassName: (item) => !editing && item.draft.manualLocked ? FIXED_LOCK_CELL : "",
       render: (item) => editing ? (
         <span className="flex items-center gap-[5px]">
           <input
@@ -258,9 +219,7 @@ export function ElectricityReadingsTable({
           <LockPin
             locked={item.draft.manualLocked}
             label={`${item.row.unitNo} 수동입력 고정`}
-            onToggle={() => onDraftChange(item.row.unitId, item.draft.manualLocked
-              ? { manualLocked: false }
-              : { manualLocked: true, manualCharge: item.draft.manualCharge.trim() === "" ? "0" : item.draft.manualCharge })}
+            onToggle={() => onDraftChange(item.row.unitId, manualLockPatch(item.draft.manualLocked, item.draft.manualCharge))}
           />
         </span>
       ) : item.draft.manualLocked ? <LockedValue value={optionalNumber(item.draft.manualCharge)} />

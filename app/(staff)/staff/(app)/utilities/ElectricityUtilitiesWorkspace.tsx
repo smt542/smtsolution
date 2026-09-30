@@ -40,64 +40,15 @@ import {
 } from "./components/ElectricityReadingsTable";
 import { MeterLedgerModal } from "./components/MeterLedgerModal";
 import { UtilityWorkspaceHeader } from "./components/UtilityWorkspaceHeader";
+import { fixedChangeFor, initialLockDraft, parseDraftNumber } from "./components/UtilityLock";
 
 const INITIAL_PERIOD = "2026-07-01";
 
-/** 고정값은 적용 시작월(월 1일)부터 이후 달에 걸린다. 시작월이 없으면(옛 상가 고정 사용량) 늘 걸린다. */
-function lockState(fixed: FixedValueRow | undefined, period: string) {
-  const appliesAt = (from: string | null) => from === null || from <= period;
-  return {
-    usageLocked: fixed?.fixedUsage != null && appliesAt(fixed.fixedUsageFrom),
-    manualLocked: fixed?.fixedManualCharge != null && appliesAt(fixed.fixedManualChargeFrom),
-  };
-}
-
 function draftFor(row: UtilityUnitRow, fixed: FixedValueRow | undefined, period: string): ElectricityDraft {
-  const { usageLocked, manualLocked } = lockState(fixed, period);
-  const manualCharge = row.manualCharge ?? (manualLocked ? fixed?.fixedManualCharge ?? null : null);
   return {
     currentReading: row.currentReading === null ? "" : String(row.currentReading),
-    manualCharge: manualCharge === null ? "" : String(manualCharge),
     note: row.note ?? "",
-    usageLocked,
-    lockedUsage: usageLocked ? String(fixed?.fixedUsage ?? 0) : "",
-    manualLocked,
-  };
-}
-
-function parsedNumber(value: string): number | null {
-  if (!value.trim()) return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-/**
- * 자물쇠 상태를 저장할 고정값으로 바꾼다. 켜고 끄지 않았고 값도 그대로면 건드리지 않는다
- * (다른 달에서 건 고정도 그대로 둔다). 새로 켜면 이 달부터, 이미 걸려 있으면 원래 시작월을 유지한다.
- */
-function fixedChangeFor(
-  unitId: number,
-  draft: ElectricityDraft,
-  fixed: FixedValueRow | undefined,
-  period: string,
-): FixedValueRow | null {
-  const was = lockState(fixed, period);
-  const usage = draft.usageLocked ? parsedNumber(draft.lockedUsage) ?? 0 : null;
-  const manualParsed = draft.manualLocked ? parsedNumber(draft.manualCharge) ?? 0 : null;
-  const manual = manualParsed === null ? null : Math.round(manualParsed);
-  const usageSame = draft.usageLocked === was.usageLocked && (!draft.usageLocked || usage === fixed?.fixedUsage);
-  const manualSame = draft.manualLocked === was.manualLocked && (!draft.manualLocked || manual === fixed?.fixedManualCharge);
-  if (usageSame && manualSame) return null;
-  return {
-    unitId,
-    fixedUsage: usageSame ? fixed?.fixedUsage ?? null : usage,
-    fixedUsageFrom: usageSame
-      ? fixed?.fixedUsageFrom ?? null
-      : usage === null ? null : was.usageLocked ? fixed?.fixedUsageFrom ?? null : period,
-    fixedManualCharge: manualSame ? fixed?.fixedManualCharge ?? null : manual,
-    fixedManualChargeFrom: manualSame
-      ? fixed?.fixedManualChargeFrom ?? null
-      : manual === null ? null : was.manualLocked ? fixed?.fixedManualChargeFrom ?? null : period,
+    ...initialLockDraft(fixed, period, row.manualCharge),
   };
 }
 
@@ -183,7 +134,7 @@ export default function ElectricityUtilitiesWorkspace() {
       const previousReading = groupRows.reduce((total, row) => total + (row.previousReading ?? 0), 0);
       const discountAmount = groupRows.reduce((total, row) => total + (row.discountAmount ?? 0), 0);
       const baseUnitPrice = price?.unitPrice ?? groupRows.find((row) => row.unitPrice !== null)?.unitPrice ?? null;
-      const draftedPrice = price ? parsedNumber(priceDrafts[price.customerNumberId] ?? "") : null;
+      const draftedPrice = price ? parseDraftNumber(priceDrafts[price.customerNumberId] ?? "") : null;
       return {
         id: price?.customerNumberId ?? -(index + 1),
         customerNumber,
@@ -341,7 +292,7 @@ export default function ElectricityUtilitiesWorkspace() {
     const prices = (pricesQuery.data ?? [])
       .map((price) => ({
         customer_number_id: price.customerNumberId,
-        unit_price: parsedNumber(priceDrafts[price.customerNumberId] ?? "") ?? price.unitPrice,
+        unit_price: parseDraftNumber(priceDrafts[price.customerNumberId] ?? "") ?? price.unitPrice,
       }))
       .filter((price): price is { customer_number_id: number; unit_price: number } => price.unit_price !== null);
 

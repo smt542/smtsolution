@@ -60,8 +60,12 @@ export function BuildingSelectionRail({
     );
   }, [buildings, query]);
 
+  // 정본 수정 모드 잠금: 연·월 드롭다운 `.uc-dd.locked{opacity:.45}`, 검색창은 disabled만(모양 그대로),
+  // 건물 표 `#ucBldWrap.uc-locked{opacity:.55;pointer-events:none}`. 패널·최근 6개월 이력은 흐리지 않는다.
+  const lockedDropdown = disabled ? "[&_.uc-dd-btn:disabled]:opacity-45" : "";
+
   return (
-    <aside className={`flex min-h-0 w-full shrink-0 flex-col gap-4 transition-opacity min-[1101px]:w-[322px] ${disabled ? "pointer-events-none opacity-45" : ""}`}>
+    <aside className="flex min-h-0 w-full shrink-0 flex-col gap-4 min-[1101px]:w-[322px]">
       <select
         aria-label="건물 선택"
         value={buildingId ?? ""}
@@ -76,7 +80,7 @@ export function BuildingSelectionRail({
         <div className="flex flex-col items-stretch gap-[9px] border-b border-line2 px-[18px] py-[15px]">
           <div className="flex h-8 items-center gap-2">
             <h2 className="mr-auto whitespace-nowrap text-[15px] font-extrabold text-t1">전체 건물</h2>
-            <div className="[&_.uc-dd-menu]:min-w-[104px]">
+            <div className={`[&_.uc-dd-menu]:min-w-[104px] ${lockedDropdown}`}>
               <CustomDropdown
                 ariaLabel="부과 연도"
                 value={String(year)}
@@ -86,7 +90,7 @@ export function BuildingSelectionRail({
                 onChange={(value) => onPeriodChange(Number(value), month)}
               />
             </div>
-            <div className="[&_.uc-dd-menu]:min-w-[112px]">
+            <div className={`[&_.uc-dd-menu]:min-w-[112px] ${lockedDropdown}`}>
               <CustomDropdown
                 ariaLabel="부과 월"
                 value={String(month)}
@@ -115,7 +119,7 @@ export function BuildingSelectionRail({
           </label>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-auto">
+        <div className={`min-h-0 flex-1 overflow-auto ${disabled ? "pointer-events-none opacity-55" : ""}`}>
           <table className="w-full table-fixed border-collapse text-[13.5px]">
             <thead className="sticky top-0 z-10 bg-[#FBFCFD] text-[12px] font-bold text-t3">
               <tr className="h-[36.5px]">

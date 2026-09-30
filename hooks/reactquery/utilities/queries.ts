@@ -4,7 +4,6 @@ import {
   getPartnerMeterWorkspace,
   getUtilityConfirmation,
   getUtilitySupplier,
-  listFixedUsages,
   listFixedValues,
   listMeterHistory,
   listScopedPrices,
@@ -56,17 +55,6 @@ export function useScopedPrices(
   return useQuery({
     queryKey: utilityKeys.scopedPrices(buildingId, utilityType),
     queryFn: () => listScopedPrices(buildingId as number, utilityType),
-    enabled: buildingId !== null,
-  });
-}
-
-export function useFixedUsages(
-  buildingId: number | null,
-  utilityType: UtilityType,
-) {
-  return useQuery({
-    queryKey: utilityKeys.fixedUsages(buildingId, utilityType),
-    queryFn: () => listFixedUsages(buildingId as number, utilityType),
     enabled: buildingId !== null,
   });
 }
