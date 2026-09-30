@@ -3,6 +3,8 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { DpCalendar, parseDpDate as parseDate } from "./DpCalendar";
+
 /**
  * 원본 프로토타입 `.dp`(uc-dpx) 커스텀 날짜 선택기. 네이티브 <input type="date">의 브라우저
  * 기본 달력 대신 원본과 동일한 팝업 달력을 띄운다. 값은 앱 배선과 동일하게 "YYYY-MM-DD"를 주고받되
@@ -32,14 +34,7 @@ interface DpDatePickerProps {
   displayFormatter?: (value: string) => string;
 }
 
-const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
-const pad = (n: number) => String(n).padStart(2, "0");
 const toDisplay = (value: string) => (value ? value.replaceAll("-", ".") : "");
-// 값은 "YYYY-MM-DD"로 내보내지만, 점 구분("YYYY.MM.DD")으로 들어온 값도 읽는다(기존 화면 전용 달력 호환)
-const parseDate = (value: string): number[] | null => {
-  const parts = value.split(/[.-]/).map(Number);
-  return parts.length === 3 && parts.every(Number.isFinite) ? parts : null;
-};
 
 export function DpDatePicker({
   id,
@@ -117,40 +112,16 @@ export function DpDatePicker({
     };
   }, [open]);
 
-  const selected = value ? parseDate(value) : null; // [y, m(1-based), d]
-  const firstDow = new Date(view.y, view.m, 1).getDay();
-  const daysInMonth = new Date(view.y, view.m + 1, 0).getDate();
-  const viewMonth = `${view.y}-${pad(view.m + 1)}`;
-  const minimumMonth = minimumDate?.slice(0, 7);
-  const maximumMonth = maximumDate?.slice(0, 7);
-  const previousMonthDisabled = Boolean(minimumMonth && viewMonth <= minimumMonth);
-  const nextMonthDisabled = Boolean(maximumMonth && viewMonth >= maximumMonth);
-  const cells: (number | null)[] = [
-    ...Array.from({ length: firstDow }, () => null),
-    ...Array.from({ length: daysInMonth }, (_, index) => index + 1),
-  ];
-
   // 팝업을 열 때 선택된 값의 달로 이동(effect 대신 열기 시점에 동기화 → 캐스케이드 렌더 회피)
   const openPicker = () => {
     const parsed = parseDate(value);
     if (parsed) setView({ y: parsed[0], m: parsed[1] - 1 });
     setOpen(true);
   };
-  const pick = (day: number) => {
-    const nextValue = `${view.y}-${pad(view.m + 1)}-${pad(day)}`;
-    if (minimumDate && nextValue < minimumDate) return;
-    if (maximumDate && nextValue > maximumDate) return;
+  const pick = (nextValue: string) => {
     onChange(nextValue);
     setOpen(false);
   };
-  const shiftMonth = (delta: number) =>
-    setView((current) => {
-      const currentMonth = `${current.y}-${pad(current.m + 1)}`;
-      if (minimumMonth && delta < 0 && currentMonth <= minimumMonth) return current;
-      if (maximumMonth && delta > 0 && currentMonth >= maximumMonth) return current;
-      const next = current.m + delta;
-      return { y: current.y + Math.floor(next / 12), m: ((next % 12) + 12) % 12 };
-    });
 
   return (
     <div className={`relative inline-flex${className ? ` ${className}` : ""}`}>
@@ -187,43 +158,14 @@ export function DpDatePicker({
             className="fixed z-[1000] w-[262px] rounded-[14px] border border-line bg-white p-[14px] shadow-[0_16px_40px_-12px_rgba(23,31,40,0.28)]"
             style={{ left: pos.left, top: pos.top }}
           >
-            <div className="mb-[10px] flex items-center justify-between">
-              <button type="button" aria-label="이전 달" disabled={previousMonthDisabled} onClick={() => shiftMonth(-1)} className="grid size-[30px] place-items-center rounded-[8px] text-[17px] text-t2 hover:bg-bg disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent">‹</button>
-              <span className="text-[14px] font-extrabold text-t1">{view.y}년 {view.m + 1}월</span>
-              <button type="button" aria-label="다음 달" disabled={nextMonthDisabled} onClick={() => shiftMonth(1)} className="grid size-[30px] place-items-center rounded-[8px] text-[17px] text-t2 hover:bg-bg disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent">›</button>
-            </div>
-            <div className="mb-[4px] grid grid-cols-7">
-              {WEEKDAYS.map((weekday) => (
-                <span key={weekday} className="py-[4px] text-center text-[11px] font-bold text-t4">{weekday}</span>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-[2px]">
-              {cells.map((day, index) =>
-                day === null ? (
-                  <span key={`empty-${index}`} className="h-[32px]" />
-                ) : (
-                  <button
-                    key={day}
-                    type="button"
-                    disabled={Boolean(
-                      (minimumDate && `${view.y}-${pad(view.m + 1)}-${pad(day)}` < minimumDate)
-                      || (maximumDate && `${view.y}-${pad(view.m + 1)}-${pad(day)}` > maximumDate),
-                    )}
-                    onClick={() => pick(day)}
-                    className={`grid h-[32px] place-items-center rounded-[8px] text-[13px] font-semibold ${
-                      (minimumDate && `${view.y}-${pad(view.m + 1)}-${pad(day)}` < minimumDate)
-                      || (maximumDate && `${view.y}-${pad(view.m + 1)}-${pad(day)}` > maximumDate)
-                        ? "cursor-default text-t4 opacity-45"
-                        : selected && selected[0] === view.y && selected[1] === view.m + 1 && selected[2] === day
-                        ? "bg-blue font-bold text-white"
-                        : "text-t1 hover:bg-blue-t2"
-                    }`}
-                  >
-                    {day}
-                  </button>
-                ),
-              )}
-            </div>
+            <DpCalendar
+              view={view}
+              onViewChange={setView}
+              value={value}
+              onPick={pick}
+              minDate={minimumDate}
+              maxDate={maximumDate}
+            />
           </div>,
           document.body,
         )}

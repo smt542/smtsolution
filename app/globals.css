@@ -197,6 +197,12 @@ body {
   to { background-position: 0 0; }
 }
 
+/* 세입자 퇴실 신청 바텀시트 열림 — 정본 resident-home `.ms-b`(up). */
+@keyframes resident-sheet-up {
+  from { transform: translateY(24px); opacity: 0.6; }
+  to { transform: none; opacity: 1; }
+}
+
 /* Tailwind v4 Preflight는 버튼 기본 커서를 default로 둔다 → 클릭 가능한 버튼에 손 커서 복원.
    @layer base에 두어 개별 cursor-* 유틸리티가 계속 우선하도록 한다(:disabled 제외). */
 @layer base {
