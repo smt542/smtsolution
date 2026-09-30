@@ -412,7 +412,7 @@ export function RecipientCascade({
     >
       <div
         ref={typeRef}
-        className={`fmp-dd2 ${styles["fmp-dd2"]} ${!type ? styles.ph : ""} ${openMenu === "type" ? styles.open : ""}`}
+        className={`fmp-dd2 ${styles["fmp-dd2"]} ${styles["dd2-on"]} ${!type ? styles.ph : ""} ${openMenu === "type" ? styles.open : ""}`}
         onClick={() => toggleMenu("type", typeRef)}
         aria-expanded={openMenu === "type"}
       >
@@ -437,7 +437,7 @@ export function RecipientCascade({
 
       <div
         ref={secondRef}
-        className={`fmp-dd2 ${styles["fmp-dd2"]} ${!type ? styles.disabled : ""} ${type && ((type === "staff" && selection.staffIds.length === 0) || (type !== "staff" && !selectedBuilding)) ? styles.ph : ""} ${openMenu === "second" ? styles.open : ""}`}
+        className={`fmp-dd2 ${styles["fmp-dd2"]} ${type ? styles["dd2-on"] : styles["dd2-off"]} ${type && ((type === "staff" && selection.staffIds.length === 0) || (type !== "staff" && !selectedBuilding)) ? styles.ph : ""} ${openMenu === "second" ? styles.open : ""}`}
         onClick={() => type && toggleMenu("second", secondRef)}
         aria-expanded={openMenu === "second"}
       >
@@ -544,7 +544,7 @@ export function RecipientCascade({
       {type === "tenant" && selectedBuilding && (
         <div
           ref={thirdRef}
-          className={`fmp-dd2 ${styles["fmp-dd2"]} ${selectedTenantUnitIds.length === 0 ? styles.ph : ""} ${openMenu === "third" ? styles.open : ""}`}
+          className={`fmp-dd2 ${styles["fmp-dd2"]} ${styles["dd2-on"]} ${selectedTenantUnitIds.length === 0 ? styles.ph : ""} ${openMenu === "third" ? styles.open : ""}`}
           onClick={() => toggleMenu("third", thirdRef)}
           aria-expanded={openMenu === "third"}
         >

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useBuildings } from "@/hooks/reactquery/buildings/queries";
@@ -93,12 +93,36 @@ function MessengerFabContent() {
   const [sendFeedback, setSendFeedback] = useState<SendFeedback | null>(null);
   const [validationClock] = useState(() => Date.now());
   const idempotencyRef = useRef<IdempotencyState | null>(null);
+  // 닫기를 확인하면 패널은 0.2초 닫힘 전환을 마친 뒤에 내리고, 그때 작성 내용을 비운다.
+  const [closing, setClosing] = useState(false);
+  const [draftSeq, setDraftSeq] = useState(0);
+  const closeTimerRef = useRef<number | undefined>(undefined);
+
+  const finishClose = useCallback(() => {
+    window.clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = undefined;
+    setClosing(false);
+    // 닫히는 도중 다시 열면 패널이 내려가지 않으므로 key 를 바꿔 새 작성으로 다시 마운트한다.
+    setDraftSeq((seq) => seq + 1);
+    setRecipients([]);
+    setCascadeSeed((current) => ({ ...current, preset: null }));
+    setSender("");
+    setBody("");
+    setTemplateId(null);
+    setAlimtalkVars({});
+    setScheduledAt(null);
+    setRecurrenceMode(null);
+    setSummaryOpen(false);
+    setSendFeedback(null);
+    idempotencyRef.current = null;
+  }, []);
 
   // 화면에서 openMessengerWith() 로 넘긴 수신자·본문을 받아 패널을 연다.
   // 정본의 `erp:dun` → `#fmpMsg` 채우기 → `fmpFab.click()` 과 같은 흐름이다.
   useEffect(
     () =>
       subscribeMessengerHandoff((handoff) => {
+        if (closing) finishClose();
         setRecipients(handoff.cascade ? [] : (handoff.recipients ?? []));
         // 핸드오프마다 캐스케이드를 다시 마운트해 수신자 칸을 프리셋과 맞춘다.
         setCascadeSeed((current) => ({
@@ -112,7 +136,7 @@ function MessengerFabContent() {
         if (handoff.channel) setChannel(handoff.channel);
         openPanel();
       }),
-    [openPanel, setChannel],
+    [closing, finishClose, openPanel, setChannel],
   );
 
   const { data: templates = [] } = useMessageTemplates();
@@ -422,20 +446,19 @@ function MessengerFabContent() {
     }
   };
 
+  // 정본 closeFmp: 패널은 .show 가 빠지며 닫힘 전환을 타고, FAB 은 바로 다시 보인다.
   const confirmClose = () => {
-    setRecipients([]);
-    setCascadeSeed((current) => ({ ...current, preset: null }));
-    setSender("");
-    setBody("");
-    setTemplateId(null);
-    setAlimtalkVars({});
-    setScheduledAt(null);
-    setRecurrenceMode(null);
-    setSummaryOpen(false);
     setCloseConfirmOpen(false);
-    setSendFeedback(null);
-    idempotencyRef.current = null;
+    setClosing(true);
     closePanel();
+    // transitionend 를 못 받는 경우(탭 전환 등)에도 패널이 남지 않게 전환 시간 뒤 내린다.
+    window.clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = window.setTimeout(finishClose, 250);
+  };
+
+  const openFromFab = () => {
+    if (closing) finishClose();
+    openPanel();
   };
 
   return (
@@ -445,7 +468,7 @@ function MessengerFabContent() {
           type="button"
           aria-label="문자·알림톡 발송"
           className={styles["fmp-fab"]}
-          onClick={openPanel}
+          onClick={openFromFab}
         >
           <svg
             viewBox="0 0 24 24"
@@ -458,10 +481,13 @@ function MessengerFabContent() {
           </svg>
         </button>
       )}
-      {ui.open && (
+      {(ui.open || closing) && (
         <MessengerPanel
+          key={draftSeq}
           channel={ui.channel}
           minimized={ui.minimized}
+          closing={closing}
+          onClosed={finishClose}
           pos={ui.pos}
           onChannel={changeChannel}
           onMin={toggleMin}
@@ -471,7 +497,6 @@ function MessengerFabContent() {
           sendLabel={footerLabel}
           sendDisabled={footerDisabled}
           sending={sendMessages.isPending}
-          recipientCount={eligibleRecipients.length}
         >
           <div className={styles["fmp-top2"]}>
             {ui.channel === "sms" && (
