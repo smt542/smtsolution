@@ -7,7 +7,7 @@ import { formatDate, formatMonth, formatWon } from "@/lib/format";
 import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
 import { PartnerPhoneLink } from "../../../_components/PartnerPhoneLink";
 import { tenantClasses as styles } from "./tenantClasses";
-import type { MobileTenantData } from "./types";
+import type { MobileTenantData, MovingSettlement } from "./types";
 
 type Tab = "info" | "pay" | "ms";
 
@@ -41,13 +41,27 @@ function methodsLabel(csv: string | null) {
     .join(", ");
 }
 
-function Row({ label, children }: { label: string; children: ReactNode }) {
+function Row({
+  label,
+  children,
+  valueClassName = styles.rowValue,
+}: {
+  label: string;
+  children: ReactNode;
+  valueClassName?: string;
+}) {
   return (
     <div className={styles.row}>
       <span className={styles.rowLabel}>{label}</span>
-      <b className={styles.rowValue}>{children}</b>
+      <b className={valueClassName}>{children}</b>
     </div>
   );
+}
+
+// 이사정산 카드 금액(정본 .amt2 수납액 | 미수금). 수납액 = 파트너 이사정산 등록 화면이 저장한 값(extra.paid),
+// 미수금 = 정산 금액(공과금·관리비·기타·청소 합계) − 수납액 — 등록 화면 하단 미수금과 같은 식이다.
+function settlementAmounts(s: MovingSettlement) {
+  return { paid: s.paid_amount, due: (s.settlement_amount ?? 0) - s.paid_amount };
 }
 
 export function MobileTenantWorkspace({ data }: { data: MobileTenantData }) {
@@ -162,14 +176,26 @@ export function MobileTenantWorkspace({ data }: { data: MobileTenantData }) {
                     </button>
                     {open && (
                       <div className={styles.pdet}>
-                        <div className={styles.sec}>
-                          <Row label="연체">
-                            {p.unpaid > 0 ? <span className={styles.neg}>{won(p.unpaid)}</span> : <span className={styles.muted}>-</span>}
+                        <div className={styles.pdetSec}>
+                          <Row label="연체" valueClassName={styles.pdetValue}>
+                            {p.unpaid > 0 ? <span className={styles.neg}>{won(p.unpaid)}</span> : <span className={styles.pdetEmpty}>-</span>}
                           </Row>
-                          <Row label="수납액">{won(p.paid)}</Row>
-                          <Row label="수납일자">{p.last_paid_at ? fmtDate(p.last_paid_at) : "-"}</Row>
-                          <Row label="구분">{methodsLabel(p.methods) || "-"}</Row>
-                          <Row label="비고">{p.memo || "-"}</Row>
+                          <Row label="수납액" valueClassName={styles.pdetValue}>
+                            <span className={styles.num}>{won(p.paid)}</span>
+                          </Row>
+                          <Row label="수납일자" valueClassName={styles.pdetValue}>
+                            {p.last_paid_at ? (
+                              <span className={styles.num}>{fmtDate(p.last_paid_at)}</span>
+                            ) : (
+                              <span className={styles.pdetEmpty}>—</span>
+                            )}
+                          </Row>
+                          <Row label="구분" valueClassName={styles.pdetValue}>
+                            {methodsLabel(p.methods) || <span className={styles.pdetEmpty}>—</span>}
+                          </Row>
+                          <Row label="비고" valueClassName={styles.pdetValue}>
+                            <span className={styles.pdetMemo}>{p.memo || "—"}</span>
+                          </Row>
                         </div>
                       </div>
                     )}
@@ -187,16 +213,16 @@ export function MobileTenantWorkspace({ data }: { data: MobileTenantData }) {
             ) : (
               settlements.map((s, i) => {
                 const done = s.status === "completed";
+                const { paid, due } = settlementAmounts(s);
                 return (
                   <Link
                     key={s.id}
                     href={`/partner/mobile-ms-new?unitId=${occ.unit_id}&settlementId=${s.id}`}
                     className={styles.mscard}
-                    style={{ display: "block" }}
                   >
                     <div className={styles.mstop}>
                       <span className={styles.msname}>
-                        No.{settlements.length - i} {s.tenant_name || occ.tenant_name || "-"}
+                        No.{settlements.length - i} {s.tenant_name || occ.tenant_name || "—"}
                       </span>
                       <span className={`${styles.chip} ${done ? styles.chipOk : styles.chipNo}`}>{done ? "완료" : "미결"}</span>
                       <span className={styles.msSpacer} />
@@ -204,16 +230,19 @@ export function MobileTenantWorkspace({ data }: { data: MobileTenantData }) {
                         <path d="M9 5l7 7-7 7" />
                       </svg>
                     </div>
-                    <div className={styles.msamtRow}>
-                      <span className={styles.msamtLabel}>정산액</span>
-                      <b className={styles.msamtVal}>{won(s.settlement_amount ?? 0)}</b>
+                    <div className={styles.msamt2}>
+                      <div className={styles.msamtPaid}>
+                        <span className={styles.msamtLabel}>수납액</span>
+                        <b className={styles.msamtVal}>{won(paid)}</b>
+                      </div>
+                      <div className={styles.msamtDue}>
+                        <span className={styles.msamtLabel}>미수금</span>
+                        <b className={due !== 0 ? styles.msamtValNeg : styles.msamtVal}>{won(due)}</b>
+                      </div>
                     </div>
-                    <div className={styles.msmeta}>
-                      <span>
-                        퇴실일 <b>{s.move_out_date ? fmtDate(s.move_out_date) : "-"}</b>
-                      </span>
-                      <span>
-                        등록일자 <b>{fmtDate(s.created_at) || "-"}</b>
+                    <div className={styles.msdrow}>
+                      <span className={styles.msdate}>
+                        등록일자 <b className={styles.msdateVal}>{fmtDate(s.created_at) || "—"}</b>
                       </span>
                     </div>
                   </Link>
