@@ -14,6 +14,8 @@ export const utilityKeys = {
     ["utilities", "scoped-prices", buildingId, utilityType] as const,
   fixedUsages: (buildingId: number | null, utilityType: UtilityType) =>
     ["utilities", "fixed-usages", buildingId, utilityType] as const,
+  fixedValues: (buildingId: number | null, utilityType: UtilityType) =>
+    ["utilities", "fixed-values", buildingId, utilityType] as const,
   supplier: (buildingId: number | null, utilityType: UtilityType) =>
     ["utilities", "supplier", buildingId, utilityType] as const,
   billingPeriod: (buildingId: number | null, period: string) =>

@@ -1,7 +1,6 @@
 "use client";
 
-import Image from "next/image";
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { CustomDropdown } from "@/components/common/CustomDropdown";
 import type { Building } from "@/hooks/reactquery/buildings";
 import {
@@ -157,15 +156,18 @@ export function BuildingSelectionRail({
           <h2 className="text-[15px] font-extrabold text-t1">최근 6개월 이력</h2>
         </div>
         {!selectedRow ? (
-          <div className="flex flex-1 flex-col items-center justify-center px-6 pb-5 text-center">
-            <Image src="/figma-assets/utility-history-empty.svg" alt="" width={40} height={40} />
-            <p className="mt-3 text-[15px] font-semibold tracking-[-0.02em] text-t1">고객번호를 선택해 주세요</p>
-            <p className="mt-1 text-[13px] leading-[1.55] text-t3">선택한 고객번호의<br />최근 6개월 이력이 표시돼요</p>
-          </div>
+          <HistoryEmptyState title={<>고객번호를&nbsp;선택해 주세요</>}>
+            선택한 고객번호의<br />최근 6개월 이력이 표시돼요
+          </HistoryEmptyState>
         ) : historyQuery.isLoading ? (
           <div role="status" aria-label="최근 6개월 이력 불러오는 중" className="flex flex-1 items-center justify-center text-[12px] text-t3">이력을 불러오는 중입니다.</div>
         ) : historyQuery.isError ? (
           <div role="alert" className="flex flex-1 items-center justify-center text-[12px] text-red">이력을 불러오지 못했습니다.</div>
+        ) : (historyQuery.data ?? []).length === 0 ? (
+          // 정본에 없는 상태 — 고객번호 선택 전과 같은 모양으로 둔다(문구는 기획 확인 전 임시).
+          <HistoryEmptyState title="최근 6개월 이력이 없어요">
+            선택한 고객번호의 부과 이력이 아직 없어요
+          </HistoryEmptyState>
         ) : (
           <div className="min-h-0 flex-1 overflow-hidden">
             <table className="w-[529.515px] table-fixed border-collapse text-[14px]">
@@ -202,14 +204,36 @@ export function BuildingSelectionRail({
                     </tr>
                   );
                 })}
-                {(historyQuery.data ?? []).length === 0 && (
-                  <tr><td colSpan={7} className="h-28 text-center text-t3">최근 이력이 없습니다.</td></tr>
-                )}
               </tbody>
             </table>
           </div>
         )}
       </section>
     </aside>
+  );
+}
+
+/** 정본 `#ucHistEmpty`: 52px 청록 타일 아이콘 + 제목 15/600 + 설명 13/400. */
+function HistoryEmptyState({ title, children }: { title: ReactNode; children: ReactNode }) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-[5px] overflow-auto px-[22px] pb-[42px] pt-[36px] text-center">
+      <span className="mb-1 flex size-[52px] items-center justify-center rounded-[16px] bg-blue-t">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+          className="size-[26px] text-blue"
+        >
+          <path d="M4 19V5M4 19h16" />
+          <path d="M8 15l3.5-4 3 2.5L19 8" />
+        </svg>
+      </span>
+      <p className="text-[15px] font-semibold leading-[normal] tracking-[-0.02em] text-t1">{title}</p>
+      <p className="text-[13px] font-normal leading-[1.55] text-t3">{children}</p>
+    </div>
   );
 }

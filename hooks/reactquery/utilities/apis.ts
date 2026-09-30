@@ -481,6 +481,72 @@ export async function clearFixedUsage(input: ClearFixedUsageInput): Promise<void
   if (error) throw new Error(error.message);
 }
 
+/**
+ * 호실별 지침 자물쇠(정본 '이 값을 다음 달에도 고정') 고정값. 량은 fixed_usage, 수동입력은
+ * fixed_manual_charge(0199) 이고, 각각 적용 시작월(`*_from`, 월 1일)부터 이후 달에 적용된다.
+ */
+export interface FixedValueRow {
+  unitId: number;
+  fixedUsage: number | null;
+  fixedUsageFrom: string | null;
+  fixedManualCharge: number | null;
+  fixedManualChargeFrom: string | null;
+}
+
+interface FixedValueDbRow {
+  unit_id: number;
+  fixed_usage: number | string | null;
+  fixed_usage_from: string | null;
+  fixed_manual_charge: number | null;
+  fixed_manual_charge_from: string | null;
+}
+
+export async function listFixedValues(
+  buildingId: number,
+  utilityType: UtilityType,
+): Promise<FixedValueRow[]> {
+  const { data, error } = await createClient()
+    .from("unit_meters")
+    .select("unit_id, fixed_usage, fixed_usage_from, fixed_manual_charge, fixed_manual_charge_from, units!inner(building_id)")
+    .eq("utility", dbUtility(utilityType))
+    .eq("units.building_id", buildingId)
+    .is("units.deleted_at", null)
+    .or("fixed_usage.not.is.null,fixed_manual_charge.not.is.null");
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as unknown as FixedValueDbRow[]).map((row) => ({
+    unitId: row.unit_id,
+    fixedUsage: row.fixed_usage === null ? null : Number(row.fixed_usage),
+    fixedUsageFrom: row.fixed_usage_from,
+    fixedManualCharge: row.fixed_manual_charge,
+    fixedManualChargeFrom: row.fixed_manual_charge_from,
+  }));
+}
+
+export interface SaveFixedValuesInput {
+  buildingId: number;
+  utilityType: UtilityType;
+  rows: FixedValueRow[];
+}
+
+/** 호실마다 두 고정값을 통째로 쓴다(null 이면 해제). 계량기 행이 없는 호실은 새로 만든다. */
+export async function saveFixedValues(input: SaveFixedValuesInput): Promise<void> {
+  if (input.rows.length === 0) return;
+  const { error } = await createClient()
+    .from("unit_meters")
+    .upsert(
+      input.rows.map((row) => ({
+        unit_id: row.unitId,
+        utility: dbUtility(input.utilityType),
+        fixed_usage: row.fixedUsage,
+        fixed_usage_from: row.fixedUsageFrom,
+        fixed_manual_charge: row.fixedManualCharge,
+        fixed_manual_charge_from: row.fixedManualChargeFrom,
+      })),
+      { onConflict: "unit_id,utility" },
+    );
+  if (error) throw new Error(error.message);
+}
+
 export interface ConfirmUtilitiesInput {
   buildingId: number;
   utilityType: UtilityType;

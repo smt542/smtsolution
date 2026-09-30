@@ -47,17 +47,21 @@ export function UtilityBuildingRail({
       .includes(keyword);
   });
 
+  // 정본 수정 모드 잠금: 연·월 드롭다운 `.uc-dd.locked{opacity:.45}`, 검색창은 disabled만(모양 그대로),
+  // 건물 표 `#ucBldWrap.uc-locked{opacity:.55;pointer-events:none}`. 패널 전체를 흐리지 않는다.
+  const lockedDropdown = disabled ? "[&_.uc-dd-btn:disabled]:opacity-45" : "";
+
   return (
     <aside
       aria-label="전체 건물"
-      className={`flex min-h-[420px] min-w-0 flex-col overflow-hidden rounded-[16px] bg-white shadow-card transition-opacity min-[1101px]:h-full min-[1101px]:w-[322px] ${disabled ? "pointer-events-none opacity-45" : ""}`}
+      className="flex min-h-[420px] min-w-0 flex-col overflow-hidden rounded-[16px] bg-white shadow-card min-[1101px]:h-full min-[1101px]:w-[322px]"
     >
       <div className="h-[106px] flex-none border-b border-line2 px-[18px] pt-[15px]">
         <div className="flex h-8 items-center gap-1.5">
           <h2 className="min-w-0 flex-1 text-[15px] font-extrabold leading-[normal] tracking-[-0.2px] text-t1">
             전체 건물
           </h2>
-          <div className="flex-none [&_.uc-dd-menu]:min-w-[104px]">
+          <div className={`flex-none [&_.uc-dd-menu]:min-w-[104px] ${lockedDropdown}`}>
             <CustomDropdown
               ariaLabel="연도 선택"
               value={year}
@@ -67,7 +71,7 @@ export function UtilityBuildingRail({
               onChange={(value) => onPeriodChange(`${value}-${month}-01`)}
             />
           </div>
-          <div className="flex-none [&_.uc-dd-menu]:min-w-[112px]">
+          <div className={`flex-none [&_.uc-dd-menu]:min-w-[112px] ${lockedDropdown}`}>
             <CustomDropdown
               ariaLabel="월 선택"
               value={month}
@@ -96,7 +100,7 @@ export function UtilityBuildingRail({
         </label>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className={`min-h-0 flex-1 overflow-auto ${disabled ? "pointer-events-none opacity-55" : ""}`}>
         <table className="w-full table-fixed border-collapse text-left">
           <thead className="sticky top-0 z-10 bg-[#fbfcfd] text-[12px] font-bold text-t3">
             <tr className="h-[37px] border-b border-line">
