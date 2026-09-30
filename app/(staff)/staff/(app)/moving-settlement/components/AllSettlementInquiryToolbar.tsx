@@ -113,7 +113,7 @@ export function AllSettlementInquiryToolbar({
             type="button"
             aria-pressed={status === value}
             onClick={() => onStatusChange(value as typeof status)}
-            className={`rounded-[7px] px-[11px] py-[5px] text-[12px] leading-[15px] font-bold ${
+            className={`rounded-[7px] px-[11px] py-[5px] text-[12px] leading-[normal] font-bold ${
               status === value ? "bg-white text-t1" : "text-t3 hover:text-t2"
             }`}
           >
@@ -135,7 +135,7 @@ export function AllSettlementInquiryToolbar({
             type="button"
             aria-pressed={sort === value}
             onClick={() => onSortChange(value as SettlementInquirySort)}
-            className={`rounded-[7px] px-[11px] py-[5px] text-[12px] leading-[15px] font-bold ${
+            className={`rounded-[7px] px-[11px] py-[5px] text-[12px] leading-[normal] font-bold ${
               sort === value ? "bg-white text-t1" : "text-t3 hover:text-t2"
             }`}
           >

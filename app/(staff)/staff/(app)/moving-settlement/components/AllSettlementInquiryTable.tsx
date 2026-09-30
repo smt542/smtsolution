@@ -82,12 +82,13 @@ export function AllSettlementInquiryTable({
       {/* 설명은 caption 대신 aria-label — sr-only caption 이 있으면 표 행 전체가 0.5px 아래로 밀린다. */}
       <table
         aria-label="전기·가스 검침, 입금일과 청소비를 포함한 전체 이사조회 결과"
-        className="moving-inquiry-table h-full w-[1739px] min-w-[1739px] table-fixed border-collapse"
+        className="moving-inquiry-table h-full w-[1738.921875px] min-w-[1738.921875px] table-fixed border-collapse"
       >
         <colgroup>
           {[
-            49, 88, 110, 57, 105, 105, 72, 72, 49, 80,
-            148, 72, 72, 49, 89, 148, 101, 78, 128, 68,
+            // 정본 moving-status 실측 열 폭(합 1738.921875) — Figma 정수값은 글자가 가로로 최대 1.4px 어긋났다.
+            48.6875, 88, 110, 57.4375, 105.203125, 105.203125, 71.765625, 71.765625, 48.59375, 79.984375,
+            148, 71.765625, 71.765625, 48.59375, 88.8125, 148, 101.453125, 78, 128, 67.890625,
           ].map((width, index) => (
             <col key={index} style={{ width }} />
           ))}

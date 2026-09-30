@@ -231,6 +231,7 @@ export function CustomDropdown({
   // 프로토타입 공통 커스텀 드롭다운. 스타일은 Tailwind 유틸로 인라인화하되,
   // uc-dd/uc-dd-btn/uc-dd-menu/uc-opt 클래스명은 호출부의 [&_.uc-dd-btn]:… 오버라이드가
   // 계속 바인딩되도록 셀렉터 훅으로 유지한다(전역 CSS는 제거).
+  // 트리거 줄높이는 정본 `.uc-dd-btn{font:inherit}`(= normal) — 기본 1.5 면 글자가 0.25px 뜬다.
   return (
     <div
       ref={rootRef}
@@ -240,7 +241,7 @@ export function CustomDropdown({
         ref={triggerRef}
         id={id}
         type="button"
-        className={`uc-dd-btn inline-flex ${triggerSize} items-center ${isModal ? "" : "gap-[7px] tracking-[-0.01em]"} border ${open ? "border-blue" : "border-line"} bg-surface py-0 ${triggerLook} text-t1 outline-none transition-[border-color,box-shadow] duration-[120ms] disabled:cursor-default disabled:opacity-[.55] disabled:shadow-none ${open && !isModal ? "shadow-[0_0_0_3px_var(--color-blue-t)]" : ""} ${chevronMotion}`}
+        className={`uc-dd-btn inline-flex ${triggerSize} items-center leading-[normal] ${isModal ? "" : "gap-[7px] tracking-[-0.01em]"} border ${open ? "border-blue" : "border-line"} bg-surface py-0 ${triggerLook} text-t1 outline-none transition-[border-color,box-shadow] duration-[120ms] disabled:cursor-default disabled:opacity-[.55] disabled:shadow-none ${open && !isModal ? "shadow-[0_0_0_3px_var(--color-blue-t)]" : ""} ${chevronMotion}`}
         aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={open}
