@@ -1,6 +1,7 @@
 export const partnerLoginClasses = {
   wrap: "flex min-h-0 flex-1 flex-col overflow-auto",
   logo: "flex justify-center px-6 pb-0.5 pt-10",
+  logoImg: "h-auto w-[168px]",
   form: "flex flex-col gap-3 px-6 pt-[30px]",
   label: "mb-2 block text-[13px] font-bold text-t2",
   input: "h-[54px] w-full rounded-[14px] border border-line bg-white px-4 text-base font-medium text-t1 outline-none transition focus:border-blue focus:ring-[3px] focus:ring-blue-t",
