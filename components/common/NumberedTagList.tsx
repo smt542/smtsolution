@@ -9,13 +9,16 @@ export type NumberedTagItem = {
 
 export type NumberedTagListProps = {
   items: NumberedTagItem[];
-  max: number;
   columns: number;
   /** 입력 중(키 입력마다). 부모의 초안 상태를 갱신한다. */
   onChange: (id: string, label: string) => void;
   /** 확정(blur 또는 Enter). 여기서만 저장한다. */
   onCommit: (id: string, label: string) => void;
   onDelete: (id: string) => void;
+  /**
+   * 추가 버튼은 가득 차도 비활성으로 바꾸지 않고 늘 이것을 부른다. 최대 개수 판단과
+   * 안내 토스트('항목은 최대 24개까지예요')는 부모가 한다 — 정본 `#ckAdd`·`#asAdd` 클릭 처리와 같다.
+   */
   onAdd: () => void;
   addLabel: string;
   className?: string;
@@ -30,7 +33,6 @@ export type NumberedTagListProps = {
  */
 export function NumberedTagList({
   items,
-  max,
   columns,
   onChange,
   onCommit,
@@ -79,15 +81,13 @@ export function NumberedTagList({
       {/* 정본은 추가 버튼이 그리드 아래 왼쪽에 단독으로 놓인다.
           `n / max` 카운터는 이 목록이 아니라 카드 헤더 우측에 있으므로(Panel의 action)
           여기서 그리지 않는다.
-          규격은 정본 `.st-ck-add`(카드 본문 gap 10 + margin-top 2, 점선 #C9D0D8, 폭은 글자에 맞춤,
-          비활성 = 흐림 .45 + 실선). hover 는 글자만 청록 — 테두리 변화는 QA S26 에서 뺐다.
-          비활성 hover 는 정본 렌더 그대로(`.st-ck-add:hover`에 :enabled 가 없다) 테두리·글자 모두 청록
-          — 가득 찬 직후 마우스가 버튼 위에 있을 때 보이는 모양이다(사용자 결정 2026-09-30). */}
+          규격은 정본 `.st-ck-add`(카드 본문 gap 10 + margin-top 2, 점선 #C9D0D8, 폭은 글자에 맞춤).
+          hover 는 글자만 청록 — 테두리 변화는 QA S26 에서 뺐다. 가득 차도 모양은 그대로다
+          (정본은 처음 열었을 때 가득 찬 목록에서 버튼을 비활성으로 두지 않고 누르면 토스트만 띄운다). */}
       <button
         type="button"
         onClick={onAdd}
-        disabled={items.length >= max}
-        className="mt-[12px] h-[38px] rounded-[11px] border border-dashed border-[#C9D0D8] bg-white px-[16px] text-[13px] font-bold leading-[normal] text-t2 hover:text-brand disabled:cursor-default disabled:border-solid disabled:opacity-45 disabled:hover:border-brand"
+        className="mt-[12px] h-[38px] rounded-[11px] border border-dashed border-[#C9D0D8] bg-white px-[16px] text-[13px] font-bold leading-[normal] text-t2 hover:text-brand"
       >
         {addLabel}
       </button>

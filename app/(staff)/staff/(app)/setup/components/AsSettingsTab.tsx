@@ -47,7 +47,12 @@ export function AsSettingsTab() {
   };
 
   const onAdd = () => {
-    if (!orgId || cats.length >= MAX) return;
+    if (!orgId || create.isPending) return;
+    // 정본 #asAdd: 가득 차도 버튼은 그대로 두고 누르면 안내만 한다.
+    if (cats.length >= MAX) {
+      toast.warning(`유형은 최대 ${MAX}개까지예요`);
+      return;
+    }
     // as_categories는 (org_id, label)이 유니크라 기본 이름을 그대로 쓰면 두 번째 추가가 실패한다.
     const label = nextDefaultLabel(cats.map((category) => category.label), "새 유형");
     void create.mutateAsync({ orgId, label }).catch((e) => {
@@ -71,7 +76,6 @@ export function AsSettingsTab() {
     >
       <NumberedTagList
         items={cats.map((category) => ({ id: String(category.id), label: labels[category.id] ?? category.label }))}
-        max={MAX}
         columns={5}
         onChange={onChange}
         onCommit={commitRename}
