@@ -26,7 +26,7 @@ export function MoveOutConfirmDialog({
       onClose={onCancel}
       title="퇴실 신청을 처리 완료할까요?"
       overlayClassName="z-[800]"
-      className="w-[min(400px,92%)] rounded-[20px] pt-[24px] px-[24px] pb-[20px] text-left shadow-hf-modal [&>h2]:text-[17px] [&>h2]:leading-[normal] [&>h2]:mb-2 [&>div]:mt-0"
+      className="max-w-[min(400px,92%)] rounded-[20px] pt-[24px] px-[24px] pb-[20px] text-left shadow-hf-modal [&>h2]:text-[17px] [&>h2]:leading-[normal] [&>h2]:mb-2 [&>div]:mt-0"
     >
       <div className="text-[13.5px] font-medium text-t2 leading-[1.65] [&_b]:font-bold [&_b]:text-t1">
         <b>{moveOutUnitTitle(request)}</b> 퇴실 신청을 목록에서 정리해요.
