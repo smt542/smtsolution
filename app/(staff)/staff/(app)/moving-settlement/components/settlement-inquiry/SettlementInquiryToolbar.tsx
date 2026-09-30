@@ -236,7 +236,7 @@ export function SettlementInquiryToolbar({
         onClick={onSave}
         className="h-[34px] min-w-[58px] shrink-0 whitespace-nowrap rounded-[8px] border border-teal bg-teal px-[16px] text-[13px] font-bold text-white hover:bg-teal-d disabled:border-line disabled:bg-line2 disabled:text-t4"
       >
-        {saving ? "저장 중…" : "저장"}
+        저장
       </button>
     </div>
   );

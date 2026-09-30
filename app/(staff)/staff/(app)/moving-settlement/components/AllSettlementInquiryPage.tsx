@@ -225,9 +225,7 @@ export function AllSettlementInquiryPage() {
             <EmptyState message="전체 이사조회 결과를 불러오지 못했습니다." />
           </div>
         ) : rows.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center p-8">
-            <EmptyState message="조건에 맞는 이사정산 내역이 없습니다." />
-          </div>
+          <EmptyState title="조회 결과가 없어요" description="조회 기간이나 검색어를 바꿔 보세요" />
         ) : (
           <AllSettlementInquiryTable
             rows={rows}

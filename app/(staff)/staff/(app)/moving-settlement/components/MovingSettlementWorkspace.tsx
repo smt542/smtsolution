@@ -63,6 +63,15 @@ function nullableText(value: string | undefined): string | null {
   return value && value.trim() !== "" ? value.trim() : null;
 }
 
+type RailView = "bld" | "unit" | "set";
+// 정본 setView 의 단계 D={bld:0,unit:1,set:2}. 더 얕은 단계로 가면 isBack(.back).
+const RAIL_DEPTH: Record<RailView, number> = { bld: 0, unit: 1, set: 2 };
+
+function railViewOf(buildingId: number | null, unitId: number | null): RailView {
+  if (unitId !== null) return "set";
+  return buildingId !== null ? "unit" : "bld";
+}
+
 function SettlementEditor({
   building,
   context,
@@ -93,6 +102,7 @@ function SettlementEditor({
     forceNew ? null : (context.latestSettlement?.id ?? null),
   );
   const paymentInputRef = useRef<HTMLInputElement>(null);
+  const formBodyRef = useRef<HTMLDivElement>(null);
   const { data: me } = useMe();
   const { data: organizationName } = useBillOrganizationName(me?.orgId);
   const managementFeeRows = useManagementFeeRows(
@@ -240,21 +250,21 @@ function SettlementEditor({
         finalPaidDate={finalPaidDate}
         onFinalPaidDateChange={setFinalPaidDate}
         paymentInputRef={paymentInputRef}
+        bodyRef={formBodyRef}
       />
       <SettlementActions
         building={building}
         unit={context.unit}
-        occupancy={occupancy}
         draft={draft}
         input={saveInput}
         settlementId={activeSettlementId}
         amount={amount}
         receivedAmount={receivedAmount}
         billingUnpaid={context.billingUnpaid}
-        vacancyPaymentMode={context.settlementSettings.vacancyPaymentMode}
         createdAt={context.latestSettlement?.createdAt ?? null}
         printModel={printModel}
         paymentInputRef={paymentInputRef}
+        formBodyRef={formBodyRef}
         onSaved={setActiveSettlementId}
         onDeleted={() => {
           setActiveSettlementId(null);
@@ -278,6 +288,9 @@ export function MovingSettlementWorkspace() {
     null,
   );
   const [editorVersion, setEditorVersion] = useState(0);
+  // 정본 setView 는 부를 때마다(같은 목록에 다시 와도) 들어오는 표의 slide 를 처음부터 재생하고,
+  // 더 얕은 단계로 돌아가면 .back 으로 반대쪽에서 민다 → 전환 횟수와 방향을 레일에 내려준다.
+  const [railMotion, setRailMotion] = useState({ seq: 0, back: false });
   const unitsQuery = useUnits(buildingId ?? 0);
   const contextQuery = useSettlementContext(unitId, selectedSettlementId);
 
@@ -294,8 +307,16 @@ export function MovingSettlementWorkspace() {
     [buildingsQuery, unitsQuery].some((query) => query.isFetching && !query.isLoading) ||
     (editorOpen && contextQuery.isFetching && !contextQuery.isLoading);
 
+  const moveRail = (nextBuildingId: number | null, nextUnitId: number | null) => {
+    const back =
+      RAIL_DEPTH[railViewOf(nextBuildingId, nextUnitId)] <
+      RAIL_DEPTH[railViewOf(buildingId, unitId)];
+    setRailMotion((current) => ({ seq: current.seq + 1, back }));
+  };
+
   const selectBuilding = (value: string | number | null) => {
     const next = value === null || value === "" ? null : Number(value);
+    moveRail(next, null);
     setBuildingId(next);
     setUnitId(null);
     setForceNew(false);
@@ -305,6 +326,7 @@ export function MovingSettlementWorkspace() {
 
   const selectUnit = (value: string | number | null) => {
     const next = value === null || value === "" ? null : Number(value);
+    moveRail(buildingId, next);
     setUnitId(next);
     setForceNew(false);
     setEditorOpen(false);
@@ -312,6 +334,7 @@ export function MovingSettlementWorkspace() {
   };
 
   const selectBuildingUnit = (nextBuildingId: number, nextUnitId: number) => {
+    moveRail(nextBuildingId, nextUnitId);
     setBuildingId(nextBuildingId);
     setUnitId(nextUnitId);
     setForceNew(false);
@@ -389,6 +412,8 @@ export function MovingSettlementWorkspace() {
           unitsLoading={unitsQuery.isLoading}
           selectedSettlementId={selectedSettlementId}
           settlementNote={context?.occupancy?.settlementNote ?? null}
+          viewSeq={railMotion.seq}
+          viewBack={railMotion.back}
           onSelectBuilding={(id) => selectBuilding(id)}
           onSelectUnit={(id) => selectUnit(id)}
           onStartNew={startNewSettlement}
