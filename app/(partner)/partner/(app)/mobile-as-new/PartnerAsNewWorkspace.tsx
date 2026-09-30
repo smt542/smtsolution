@@ -1,28 +1,32 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   useCreatePartnerComplaint,
   usePartnerUnits,
   type PartnerUnitOption,
 } from "@/hooks/reactquery/complaints";
-import { DpDatePicker } from "@/components/common/DpDatePicker";
-import { DpTimePicker } from "@/components/common/DpTimePicker";
-import { CalendarIcon, ClockIcon } from "@/components/icons";
+import { applyMask, NUMERIC_INPUT_ATTRS } from "@/components/common";
 
 import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
 import { PartnerConfirmDialog } from "../../../_components/PartnerConfirmDialog";
+import { PartnerDateSheet } from "../../../_components/PartnerDateSheet";
+import { PartnerDropdown } from "../../../_components/PartnerDropdown";
 import { PartnerFormFieldRow } from "../../../_components/PartnerFormFieldRow";
-import { PartnerInlineError } from "../../../_components/PartnerInlineError";
 import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
-import { AS_STATUS, combineDateTime } from "../_as";
+import { PartnerToast, usePartnerToast } from "../../../_components/PartnerToast";
+import { AS_STATUS, combineDateTime, normalizeTime, timeMask } from "../_as";
 import { asFormClasses as styles } from "../asFormClasses";
 import { PartnerButton } from "../../../_components/PartnerButton";
 
 export type Building = { id: number; name: string };
 export type Cat = { id: number; label: string };
+
+/** 정본은 등록 토스트를 보여 준 뒤 0.7초 있다가 홈으로 간다. */
+const LEAVE_DELAY_MS = 700;
+const STATUS_OPTIONS = AS_STATUS.map((s) => ({ value: s.db, label: s.ko }));
 
 function unitLabel(u: PartnerUnitOption) {
   return `${u.dong ? `${u.dong} ` : ""}${u.unit_no}`;
@@ -40,39 +44,54 @@ export default function PartnerAsNewWorkspace({
   today: string;
 }) {
   const router = useRouter();
+  const { toastMessage, showToast } = usePartnerToast();
+  const contentRef = useRef<HTMLTextAreaElement>(null);
 
   const [buildingId, setBuildingId] = useState(() => buildings[0] ? String(buildings[0].id) : "");
   const [unitId, setUnitId] = useState("");
-  const [categoryId, setCategoryId] = useState("");
+  // 정본: 유형은 첫 항목(A/S신청)이 기본이고 '선택 안 함'은 없다.
+  const [categoryId, setCategoryId] = useState(() => cats[0] ? String(cats[0].id) : "");
   const [content, setContent] = useState("");
   const [status, setStatus] = useState("pending");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [result, setResult] = useState("");
 
-  const [err, setErr] = useState("");
   const [confirmReg, setConfirmReg] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  // 등록 뒤 홈으로 가기 전 0.7초 동안 버튼을 다시 누르지 못하게 한다.
+  const [leaving, setLeaving] = useState(false);
+  const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const unitsQuery = usePartnerUnits(buildingId ? Number(buildingId) : null);
   const createMutation = useCreatePartnerComplaint();
   const units = unitsQuery.data ?? [];
-  const isRegisteringComplaint = createMutation.isPending;
+  const isRegisteringComplaint = createMutation.isPending || leaving;
 
   const selectedUnit = units.find((u) => String(u.unit_id) === unitId);
   const reporterPhone = selectedUnit?.phone ?? "";
 
-  const register = async () => {
+  useEffect(() => () => {
+    if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
+  }, []);
+
+  // 정본 `#anSave`: 입력을 먼저 확인하고, 통과하면 등록 확인창을 연다.
+  const requestRegister = () => {
     if (isRegisteringComplaint) return;
-    setErr("");
     if (!buildingId) {
-      setErr("건물을 선택해 주세요");
+      showToast("건물을 선택해 주세요");
       return;
     }
     if (!content.trim()) {
-      setErr("접수 내용을 입력해 주세요");
+      showToast("접수 내용을 입력해 주세요");
+      contentRef.current?.focus();
       return;
     }
+    setConfirmReg(true);
+  };
+
+  const register = async () => {
+    if (isRegisteringComplaint) return;
     try {
       await createMutation.mutateAsync({
         buildingId: Number(buildingId),
@@ -84,9 +103,11 @@ export default function PartnerAsNewWorkspace({
         resultContent: result.trim(),
         reporterPhone,
       });
-      router.push("/partner/mobile-home");
+      setLeaving(true);
+      showToast("접수를 등록했어요");
+      leaveTimerRef.current = setTimeout(() => router.push("/partner/mobile-home"), LEAVE_DELAY_MS);
     } catch {
-      setErr("접수 등록에 실패했어요. 다시 시도해 주세요.");
+      showToast("접수 등록에 실패했어요. 다시 시도해 주세요.");
     }
   };
 
@@ -98,108 +119,86 @@ export default function PartnerAsNewWorkspace({
       <div className={styles.scroll}>
         <div className={styles.sec}>
           <div className={styles.secTitle}>대상 세대</div>
-          <div className={styles.box}>
-            <PartnerFormFieldRow label="건물">
-              <select
-                className={styles.control}
-                value={buildingId}
-                onChange={(e) => {
-                  setBuildingId(e.target.value);
-                  setUnitId("");
-                }}
-              >
-                {buildings.length === 0 && <option value="">담당 건물 없음</option>}
-                {buildings.map((b) => (
-                  <option key={b.id} value={String(b.id)}>{b.name}</option>
-                ))}
-              </select>
-            </PartnerFormFieldRow>
-            <PartnerFormFieldRow label="호수">
-              <select className={styles.control} value={unitId} onChange={(e) => setUnitId(e.target.value)}>
-                <option value="">건물 전체</option>
-                {units.map((u) => (
-                  <option key={u.unit_id} value={String(u.unit_id)}>{unitLabel(u)}</option>
-                ))}
-              </select>
-            </PartnerFormFieldRow>
-          </div>
+          <PartnerFormFieldRow label="건물">
+            <PartnerDropdown
+              ariaLabel="건물"
+              value={buildingId}
+              options={buildings.map((b) => ({ value: String(b.id), label: b.name }))}
+              onChange={(value) => {
+                // 정본: 건물을 고르면 호수 목록을 다시 만들고 '건물 전체'로 돌린다.
+                setBuildingId(value);
+                setUnitId("");
+              }}
+              placeholder="담당 건물 없음"
+            />
+          </PartnerFormFieldRow>
+          <PartnerFormFieldRow label="호수">
+            <PartnerDropdown
+              ariaLabel="호수"
+              value={unitId}
+              options={[{ value: "", label: "건물 전체" }, ...units.map((u) => ({ value: String(u.unit_id), label: unitLabel(u) }))]}
+              onChange={setUnitId}
+            />
+          </PartnerFormFieldRow>
         </div>
 
         <div className={styles.sec}>
           <div className={styles.secTitle}>접수 정보</div>
-          <div className={styles.box}>
-            <PartnerFormFieldRow label="접수자">
-              <span className={styles.ro}>{myName || "-"}</span>
-            </PartnerFormFieldRow>
-            <PartnerFormFieldRow label="담당자">
-              <span className={styles.ro}>{myName || "-"}</span>
-            </PartnerFormFieldRow>
-            <PartnerFormFieldRow label="접수일시">
-              <span className={styles.ro}>{today}</span>
-            </PartnerFormFieldRow>
-            <PartnerFormFieldRow label="유형">
-              <select className={styles.control} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-                <option value="">선택 안 함</option>
-                {cats.map((c) => (
-                  <option key={c.id} value={String(c.id)}>{c.label}</option>
-                ))}
-              </select>
-            </PartnerFormFieldRow>
-            <PartnerFormFieldRow label="입주자 전화번호">
-              <span className={styles.ro}>{reporterPhone || "-"}</span>
-            </PartnerFormFieldRow>
-            <PartnerFormFieldRow label="접수 내용" column>
-              <textarea className={styles.textarea} value={content} onChange={(e) => setContent(e.target.value)} placeholder="접수 내용을 입력해 주세요" />
-            </PartnerFormFieldRow>
-          </div>
+          <PartnerFormFieldRow label="접수자">
+            <span className={styles.ro}>{myName || "-"}</span>
+          </PartnerFormFieldRow>
+          <PartnerFormFieldRow label="담당자">
+            <span className={styles.ro}>{myName || "-"}</span>
+          </PartnerFormFieldRow>
+          <PartnerFormFieldRow label="접수일시">
+            <span className={`${styles.ro} tabular-nums`}>{today}</span>
+          </PartnerFormFieldRow>
+          <PartnerFormFieldRow label="유형">
+            <PartnerDropdown
+              ariaLabel="유형"
+              value={categoryId}
+              options={cats.map((c) => ({ value: String(c.id), label: c.label }))}
+              onChange={setCategoryId}
+              placeholder="유형 선택"
+            />
+          </PartnerFormFieldRow>
+          <PartnerFormFieldRow label="입주자 전화번호">
+            <span className={`${styles.ro} tabular-nums`}>{reporterPhone || "-"}</span>
+          </PartnerFormFieldRow>
+          <PartnerFormFieldRow label="접수 내용" column>
+            <textarea ref={contentRef} className={styles.textarea} value={content} onChange={(e) => setContent(e.target.value)} placeholder="접수 내용을 입력해 주세요" />
+          </PartnerFormFieldRow>
         </div>
 
         <div className={styles.sec}>
           <div className={styles.secTitle}>처리</div>
-          <div className={styles.box}>
-            <PartnerFormFieldRow label="처리결과">
-              <select className={styles.control} value={status} onChange={(e) => setStatus(e.target.value)}>
-                {AS_STATUS.map((s) => (
-                  <option key={s.db} value={s.db}>{s.ko}</option>
-                ))}
-              </select>
-            </PartnerFormFieldRow>
-            <PartnerFormFieldRow label="시행일자">
-              <DpDatePicker
-                value={date}
-                onChange={setDate}
-                ariaLabel="시행일자"
-                placeholder="날짜 선택"
-                className={styles.pickerRoot}
-                triggerClassName={styles.picker}
-                triggerOpenClassName={styles.pickerOpen}
-                endAdornment={<CalendarIcon className="ml-auto size-4 shrink-0 text-t3" aria-hidden="true" />}
-              />
-            </PartnerFormFieldRow>
-            <PartnerFormFieldRow label="시간">
-              <DpTimePicker
-                value={time}
-                onChange={setTime}
-                ariaLabel="시간"
-                placeholder="시간 선택"
-                className={styles.pickerRoot}
-                triggerClassName={styles.picker}
-                triggerOpenClassName={styles.pickerOpen}
-                endAdornment={<ClockIcon className="ml-auto size-4 shrink-0 text-t3" aria-hidden="true" />}
-              />
-            </PartnerFormFieldRow>
-            <PartnerFormFieldRow label="처리결과 내용" column>
-              <textarea className={styles.textarea} value={result} onChange={(e) => setResult(e.target.value)} placeholder="처리한 내용을 입력해 주세요" />
-            </PartnerFormFieldRow>
-          </div>
+          <PartnerFormFieldRow label="처리결과">
+            <PartnerDropdown ariaLabel="처리결과" value={status} options={STATUS_OPTIONS} onChange={setStatus} />
+          </PartnerFormFieldRow>
+          <PartnerFormFieldRow label="시행일자">
+            <PartnerDateSheet value={date} onChange={setDate} ariaLabel="시행일자" />
+          </PartnerFormFieldRow>
+          <PartnerFormFieldRow label="시간">
+            <input
+              className={styles.time}
+              {...NUMERIC_INPUT_ATTRS}
+              placeholder="00:00"
+              maxLength={5}
+              aria-label="시간"
+              value={time}
+              onChange={(e) => setTime(applyMask(e.currentTarget, timeMask))}
+              onBlur={() => setTime(normalizeTime(time))}
+            />
+          </PartnerFormFieldRow>
+          <PartnerFormFieldRow label="처리결과 내용" column>
+            <textarea className={styles.textarea} value={result} onChange={(e) => setResult(e.target.value)} placeholder="처리한 내용을 입력해 주세요" />
+          </PartnerFormFieldRow>
         </div>
-
-        {err && <PartnerInlineError message={err} />}
       </div>
 
       <PartnerBottomActionBar>
         <PartnerButton variant="secondary" type="button" className="flex-1" onClick={() => setConfirmCancel(true)} disabled={isRegisteringComplaint}>취소</PartnerButton>
-        <PartnerButton variant="primary" type="button" className="flex-1" onClick={() => setConfirmReg(true)} disabled={isRegisteringComplaint}>{isRegisteringComplaint ? "접수 등록 중…" : "접수 등록"}</PartnerButton>
+        <PartnerButton variant="primary" type="button" className="flex-1" onClick={requestRegister} disabled={isRegisteringComplaint}>접수 등록</PartnerButton>
       </PartnerBottomActionBar>
 
       {confirmReg && (
@@ -225,6 +224,8 @@ export default function PartnerAsNewWorkspace({
           onConfirm={() => router.push("/partner/mobile-home")}
         />
       )}
+
+      <PartnerToast message={toastMessage} />
     </div>
   );
 }

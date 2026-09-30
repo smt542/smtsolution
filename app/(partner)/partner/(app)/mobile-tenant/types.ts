@@ -30,6 +30,8 @@ export type MovingSettlement = {
   tenant_name: string | null;
   status: string;
   settlement_amount: number | null;
+  /** 파트너 이사정산 등록 화면이 저장한 수납액(moving_settlements.extra.paid). 없으면 0. */
+  paid_amount: number;
   move_out_date: string | null;
   created_at: string;
 };
