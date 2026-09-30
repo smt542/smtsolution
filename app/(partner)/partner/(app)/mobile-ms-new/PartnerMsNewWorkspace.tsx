@@ -4,13 +4,13 @@ import { useRouter } from "next/navigation";
 import { type ReactNode, useMemo, useState } from "react";
 
 import { applyMask, phoneMask, PHONE_INPUT_ATTRS } from "@/components/common";
-import { DpDatePicker } from "@/components/common/DpDatePicker";
-import { CalendarIcon } from "@/components/icons";
 import {
   useDeletePartnerSettlement,
   useSavePartnerSettlement,
 } from "@/hooks/reactquery/movingSettlement";
 import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
+import { PartnerDateSheet } from "../../../_components/PartnerDateSheet";
+import { PartnerDropdown } from "../../../_components/PartnerDropdown";
 import { PartnerInlineError } from "../../../_components/PartnerInlineError";
 import {
   buildSaveData,
@@ -33,6 +33,11 @@ import { PartnerButton } from "../../../_components/PartnerButton";
 import { PartnerConfirmDialog } from "../../../_components/PartnerConfirmDialog";
 
 type SectionKey = "basic" | "util" | "fee" | "etc" | "cleaning" | "settle" | "check";
+
+const CLEANING_STATUS_OPTIONS = [
+  { value: "미결", label: "미결" },
+  { value: "완료", label: "완료" },
+];
 
 function ChevronDown({ folded }: { folded: boolean }) {
   return (
@@ -262,15 +267,11 @@ export default function PartnerMsNewWorkspace({
         <Section title="기본" folded={fold.basic} onToggle={() => setFold((f) => ({ ...f, basic: !f.basic }))}>
           <div className={styles.row}>
             <label className={styles.rowLabel}>퇴실일자</label>
-            <DpDatePicker
+            <PartnerDateSheet
+              look="settlement"
               value={state.moveOutDate}
               onChange={(value) => patch({ moveOutDate: value })}
               ariaLabel="퇴실일자"
-              placeholder="날짜 선택"
-              className={styles.pickerRoot}
-              triggerClassName={styles.picker}
-              triggerOpenClassName={styles.pickerOpen}
-              endAdornment={<CalendarIcon className="ml-auto size-4 shrink-0 text-t3" aria-hidden="true" />}
             />
           </div>
           <div className={styles.row}>
@@ -312,15 +313,11 @@ export default function PartnerMsNewWorkspace({
                 </div>
                 <div className={`${styles.fld} ${styles.fldWide}`}>
                   <span className={styles.fldLabel}>입금일</span>
-                  <DpDatePicker
+                  <PartnerDateSheet
+                    look="settlement"
                     value={u.payDate}
                     onChange={(value) => patchUtil(i, { payDate: value })}
                     ariaLabel={`${UTILITY_LABEL[u.k]} 입금일`}
-                    placeholder="날짜 선택"
-                    className={styles.pickerRoot}
-                    triggerClassName={styles.picker}
-                    triggerOpenClassName={styles.pickerOpen}
-                    endAdornment={<CalendarIcon className="ml-auto size-4 shrink-0 text-t3" aria-hidden="true" />}
                   />
                 </div>
               </div>
@@ -438,26 +435,21 @@ export default function PartnerMsNewWorkspace({
           </div>
           <div className={styles.row}>
             <label className={styles.rowLabel}>청소처리</label>
-            <select
-              className={styles.control}
+            <PartnerDropdown
+              look="settlement"
+              ariaLabel="청소처리"
               value={state.clnStatus}
-              onChange={(e) => patch({ clnStatus: e.target.value === "완료" ? "완료" : "미결" })}
-            >
-              <option value="미결">미결</option>
-              <option value="완료">완료</option>
-            </select>
+              options={CLEANING_STATUS_OPTIONS}
+              onChange={(value) => patch({ clnStatus: value === "완료" ? "완료" : "미결" })}
+            />
           </div>
           <div className={styles.row}>
             <label className={styles.rowLabel}>청소완료일</label>
-            <DpDatePicker
+            <PartnerDateSheet
+              look="settlement"
               value={state.clnDone}
               onChange={(value) => patch({ clnDone: value })}
               ariaLabel="청소완료일"
-              placeholder="날짜 선택"
-              className={styles.pickerRoot}
-              triggerClassName={styles.picker}
-              triggerOpenClassName={styles.pickerOpen}
-              endAdornment={<CalendarIcon className="ml-auto size-4 shrink-0 text-t3" aria-hidden="true" />}
             />
           </div>
           <div className={styles.row}>
@@ -492,15 +484,11 @@ export default function PartnerMsNewWorkspace({
           </div>
           <div className={styles.row}>
             <label className={styles.rowLabel}>최종 수납일</label>
-            <DpDatePicker
+            <PartnerDateSheet
+              look="settlement"
               value={state.lastPaidDate}
               onChange={(value) => patch({ lastPaidDate: value })}
               ariaLabel="최종 수납일"
-              placeholder="날짜 선택"
-              className={styles.pickerRoot}
-              triggerClassName={styles.picker}
-              triggerOpenClassName={styles.pickerOpen}
-              endAdornment={<CalendarIcon className="ml-auto size-4 shrink-0 text-t3" aria-hidden="true" />}
             />
           </div>
           {settleAccountText ? (
@@ -588,7 +576,7 @@ export default function PartnerMsNewWorkspace({
           </PartnerButton>
         )}
         <PartnerButton variant="primary" type="button" className="flex-1" onClick={() => setConfirmKind("save")} disabled={isSettlementMutating}>
-          {saveMutation.isPending ? "저장 중…" : "저장"}
+          저장
         </PartnerButton>
       </PartnerBottomActionBar>
 

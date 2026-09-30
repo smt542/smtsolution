@@ -5,6 +5,7 @@
  * 같은 부품을 `look`만 바꿔 그대로 놓는다 — 날짜 선택 코드는 이 파일 하나다.
  * - `popup`: DpDatePicker 팝업(원본 `.dp`)
  * - `sheet`: 세입자 퇴실 신청 바텀시트에 펼친 달력(원본 resident-home `.cal`: 테두리 상자·38px 칸·일요일 빨강)
+ * - `bottomSheet`: 현장 앱 날짜 바텀시트 본체(원본 partner `.cal`, PartnerDateSheet가 시트를 그린다)
  * 값은 "YYYY-MM-DD"로 주고받는다. 보이는 달(view)은 호출부가 들고 있다(팝업은 열 때 선택 값의 달로 맞춘다).
  */
 export type DpCalendarView = { y: number; m: number }; // m: 0-based
@@ -16,7 +17,7 @@ type DpCalendarProps = {
   onPick: (value: string) => void;
   minDate?: string;
   maxDate?: string;
-  look?: "popup" | "sheet";
+  look?: "popup" | "sheet" | "bottomSheet";
 };
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
@@ -30,12 +31,15 @@ export function parseDpDate(value: string): number[] | null {
 
 type DayState = { off: boolean; selected: boolean; sunday: boolean };
 
+const koreanMonth = ({ y, m }: DpCalendarView) => `${y}년 ${m + 1}월`;
+
 const LOOKS = {
   popup: {
     root: undefined,
     head: "mb-[10px] flex items-center justify-between",
     nav: "grid size-[30px] place-items-center rounded-[8px] text-[17px] text-t2 hover:bg-bg disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent",
     title: "text-[14px] font-extrabold text-t1",
+    label: koreanMonth,
     week: "mb-[4px] grid grid-cols-7",
     weekday: "py-[4px] text-center text-[11px] font-bold text-t4",
     grid: "grid grid-cols-7 gap-[2px]",
@@ -51,6 +55,7 @@ const LOOKS = {
     head: "flex items-center gap-1.5 px-0.5 pb-2.5 pt-0.5",
     nav: "flex size-8 items-center justify-center rounded-[10px] text-t2 hover:bg-bg disabled:cursor-not-allowed disabled:text-line disabled:hover:bg-transparent [&_svg]:size-[17px]",
     title: "flex-1 text-center text-[14.5px] font-extrabold tracking-[-0.02em]",
+    label: koreanMonth,
     week: "grid grid-cols-7",
     weekday: "pb-1 text-center text-[11.5px] font-bold text-t4",
     grid: "grid grid-cols-7",
@@ -58,6 +63,22 @@ const LOOKS = {
     day: ({ off, selected, sunday }: DayState) => `h-[38px] rounded-[11px] text-[13.5px] font-bold tabular-nums ${
       off ? "cursor-not-allowed opacity-45" : selected ? "" : "hover:bg-bg"
     } ${selected ? "bg-blue text-white" : sunday ? "text-red" : off ? "text-t4" : "text-t1"}`,
+  },
+  // 원본 partner `.cal`(mobile-as·mobile-as-new·mobile-ms-new 세 파일 CSS 동일): 머리 `‹ 2026.08 ›`·36px 이동 버튼,
+  // 요일 12px/700, 42px 칸·gap 3·15px/700. 날짜 칸 hover·일요일 빨강은 원본에 없다.
+  bottomSheet: {
+    root: undefined,
+    head: "mb-3 flex items-center justify-between",
+    nav: "flex size-9 items-center justify-center rounded-[11px] text-[20px] text-t2 hover:bg-bg disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent",
+    title: "text-[16px] font-extrabold",
+    label: ({ y, m }: DpCalendarView) => `${y}.${pad(m + 1)}`,
+    week: "mb-1 grid grid-cols-7",
+    weekday: "py-1.5 text-center text-[12px] font-bold text-t4",
+    grid: "grid grid-cols-7 gap-[3px]",
+    empty: "h-[42px]",
+    day: ({ off, selected }: DayState) => `flex h-[42px] items-center justify-center rounded-[12px] text-[15px] font-bold ${
+      off ? "cursor-default text-t4 opacity-45" : selected ? "bg-blue text-white" : "text-t1"
+    }`,
   },
 } as const;
 
@@ -114,7 +135,7 @@ export function DpCalendar({
         <button type="button" aria-label="이전 달" disabled={previousMonthDisabled} onClick={() => shiftMonth(-1)} className={classes.nav}>
           {look === "sheet" ? <SheetChevron d="M15 5l-7 7 7 7" /> : "‹"}
         </button>
-        <span className={classes.title}>{view.y}년 {view.m + 1}월</span>
+        <span className={classes.title}>{classes.label(view)}</span>
         <button type="button" aria-label="다음 달" disabled={nextMonthDisabled} onClick={() => shiftMonth(1)} className={classes.nav}>
           {look === "sheet" ? <SheetChevron d="M9 5l7 7-7 7" /> : "›"}
         </button>
