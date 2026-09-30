@@ -4,7 +4,7 @@ import { useEffect, useId, useRef } from "react";
 import { Button } from "./Button";
 
 export type ConfirmVariant = "default" | "danger";
-export type ConfirmLook = "default" | "check" | "plain";
+export type ConfirmLook = "default" | "check" | "plain" | "split";
 
 export interface ConfirmOptions {
   title: string;
@@ -117,6 +117,59 @@ export function ConfirmDialog({
             >
               {confirmLabel}
             </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 정본 메시징 예약 취소(#cxScrim): `.modal` 문구형 + `.fmpc-btn` 두 버튼이 줄을 반씩 채운다.
+  if (look === "split") {
+    return (
+      <div
+        className="fixed inset-0 z-[600] flex items-center justify-center bg-scrim p-6"
+        onMouseDown={onCancel}
+      >
+        <div
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          aria-describedby={description != null ? descId : undefined}
+          className={`max-h-[88vh] overflow-auto rounded-[20px] bg-white p-6 text-left leading-[normal] shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)] ${widthClassName}`}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <h2 id={titleId} className="mb-[6px] text-[17px] font-extrabold text-t1">
+            {title}
+          </h2>
+          {description != null && (
+            <p
+              id={descId}
+              className="whitespace-pre-line text-[13.5px] font-medium leading-[1.6] text-t3 [&_b]:font-bold [&_b]:text-t1 [&_strong]:font-bold [&_strong]:text-t1"
+            >
+              {description}
+            </p>
+          )}
+          {children}
+          <div className="mt-[22px] flex justify-end gap-[8px]">
+            {!hideCancel && (
+              <button
+                ref={cancelRef}
+                type="button"
+                onClick={onCancel}
+                className="flex h-10 flex-1 items-center justify-center gap-[7px] rounded-[11px] bg-bg px-[18px] text-[13.5px] font-bold tracking-[-0.01em] text-t2 hover:bg-line2"
+              >
+                {cancelLabel}
+              </button>
+            )}
+            <button
+              ref={confirmRef}
+              type="button"
+              onClick={onConfirm}
+              disabled={confirmDisabled}
+              className={`flex h-10 flex-1 items-center justify-center gap-[7px] rounded-[11px] px-[18px] text-[13.5px] font-bold tracking-[-0.01em] text-white disabled:opacity-60 ${variant === "danger" ? "bg-red" : "bg-blue hover:bg-blue-d"}`}
+            >
+              {confirmLabel}
+            </button>
           </div>
         </div>
       </div>

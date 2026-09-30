@@ -16,8 +16,8 @@ interface SelectMenuProps<T extends string> {
 }
 
 /**
- * 템플릿 수정 모달 공용 커스텀 드롭다운(Figma 28-21455).
- * 열리면 테두리 청록, 선택 항목은 청록 볼드 + 체크로 표시한다.
+ * 템플릿 등록·수정 모달 커스텀 드롭다운(정본 messaging.dc.html `.tf-dd`).
+ * 열리면 청록 테두리 + 3px 링, 선택 항목은 blue-t2 바탕·blue-d 볼드 + 체크로 표시한다.
  */
 export function SelectMenu<T extends string>({
   value,
@@ -56,19 +56,18 @@ export function SelectMenu<T extends string>({
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
-        className={`flex h-[42px] w-full items-center justify-between rounded-[11px] border bg-white px-[12px] text-[14px] font-semibold text-[#191f28] outline-none ${
-          open ? "border-[#14a497]" : "border-[#e8ebee]"
+        className={`flex h-[42px] w-full items-center justify-between gap-[8px] rounded-[11px] border bg-white px-[12px] text-[14px] font-semibold leading-[normal] text-t1 outline-none ${
+          open ? "border-blue shadow-[0_0_0_3px_var(--color-blue-t)]" : "border-line"
         }`}
       >
         <span>{selectedLabel}</span>
         <svg
           viewBox="0 0 24 24"
-          className={`size-[15px] shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`size-[15px] shrink-0 text-t3 transition-transform duration-150 ease-[ease] ${open ? "rotate-180" : ""}`}
           fill="none"
-          stroke="#8b95a1"
-          strokeWidth="2.2"
+          stroke="currentColor"
+          strokeWidth="2"
           strokeLinecap="round"
-          strokeLinejoin="round"
           aria-hidden="true"
         >
           <path d="M6 9l6 6 6-6" />
@@ -79,7 +78,7 @@ export function SelectMenu<T extends string>({
         <ul
           role="listbox"
           aria-label={ariaLabel}
-          className="absolute left-0 right-0 top-[calc(100%+6px)] z-20 overflow-hidden rounded-[11px] border border-[#e8ebee] bg-white py-[6px] shadow-[0px_10px_24px_rgba(23,31,40,0.12)]"
+          className="absolute left-0 right-0 top-[calc(100%+5px)] z-30 rounded-[12px] border border-line bg-white p-[6px] shadow-[0_14px_34px_-10px_rgba(23,31,40,0.26)]"
         >
           {options.map((option) => {
             const isSelected = option.value === value;
@@ -91,27 +90,25 @@ export function SelectMenu<T extends string>({
                     onChange(option.value);
                     setOpen(false);
                   }}
-                  className={`flex w-full items-center justify-between px-[14px] py-[9px] text-left text-[14px] ${
+                  className={`flex w-full items-center justify-between gap-[8px] rounded-[9px] px-[11px] py-[9px] text-left text-[13.5px] leading-[normal] ${
                     isSelected
-                      ? "bg-[#f0faf9] font-bold text-[#14a497]"
-                      : "font-medium text-[#191f28] hover:bg-[#f7f8fa]"
+                      ? "bg-blue-t2 font-bold text-blue-d"
+                      : "font-semibold text-t2 hover:bg-bg"
                   }`}
                 >
                   <span>{option.label}</span>
-                  {isSelected && (
-                    <svg
-                      viewBox="0 0 24 24"
-                      className="size-[16px] shrink-0"
-                      fill="none"
-                      stroke="#14a497"
-                      strokeWidth="2.4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M5 12l5 5L20 7" />
-                    </svg>
-                  )}
+                  <svg
+                    viewBox="0 0 24 24"
+                    className={`size-[14px] shrink-0 ${isSelected ? "opacity-100" : "opacity-0"}`}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M4 12.5l5 5L20 6.5" />
+                  </svg>
                 </button>
               </li>
             );

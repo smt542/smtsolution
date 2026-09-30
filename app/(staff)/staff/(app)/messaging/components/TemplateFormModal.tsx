@@ -21,8 +21,8 @@ type ChannelType = "sms" | "alimtalk";
 type CategoryType = "정기" | "공지";
 
 const CHANNEL_OPTIONS: { value: ChannelType; label: string }[] = [
-  { value: "alimtalk", label: "알림톡" },
   { value: "sms", label: "문자" },
+  { value: "alimtalk", label: "알림톡" },
 ];
 
 const CATEGORY_OPTIONS: { value: CategoryType; label: string }[] = [
@@ -48,11 +48,14 @@ const CONTENT_VARIABLES = [
 // 링크 URL에 삽입할 수 있는 변수.
 const URL_VARIABLES = ["링크토큰", "공지ID"];
 
-const LABEL = "text-[12.5px] font-bold text-[#8b95a1]";
+// 정본 messaging.dc.html #tplScrim(.tf-*) 규격. 줄높이는 모달 루트의 leading-[normal]을 따른다.
+const LABEL = "text-[12.5px] font-bold text-t3";
 const FIELD =
-  "h-[42px] rounded-[11px] border border-[#e8ebee] bg-white px-[12px] text-[14px] font-medium text-[#191f28] outline-none placeholder:text-[#757575] focus:border-[#14a497]";
+  "h-[42px] rounded-[11px] border border-line bg-white px-[12px] text-[14px] font-medium text-t1 outline-none placeholder:text-[#757575] focus:border-blue focus:shadow-[0_0_0_3px_var(--color-blue-t)]";
 const VAR_CHIP =
-  "rounded-[8px] bg-[#e2f5f1] px-[10px] py-[4px] text-[12px] font-bold text-[#14a497] hover:bg-[#d4efe9]";
+  "whitespace-nowrap rounded-[8px] border border-transparent bg-[color-mix(in_srgb,var(--color-blue)_10%,#fff)] px-[10px] py-[4px] text-[12px] font-bold text-blue hover:border-blue-t";
+const FOOTER_BUTTON =
+  "flex h-[40px] flex-1 items-center justify-center gap-[7px] rounded-[11px] px-[18px] text-[13.5px] font-bold tracking-[-0.01em]";
 
 export function TemplateFormModal({
   open,
@@ -178,26 +181,28 @@ function TemplateForm({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-scrim py-4"
       onClick={onClose}
     >
+      {/* 정본처럼 모달은 스크롤하지 않는다. 화면이 낮으면 본문(overflow hidden) 안에서
+          템플릿 내용 칸만 줄어든다(180px → 최소 96px). */}
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         onClick={(event) => event.stopPropagation()}
-        className="flex max-h-[90vh] w-[620px] max-w-full flex-col overflow-y-auto rounded-[20px] bg-white p-[24px] drop-shadow-[0px_30px_35px_rgba(0,0,0,0.4)]"
+        className="flex max-h-[calc(100%-32px)] w-[min(620px,94%)] flex-col rounded-[20px] bg-white p-[24px] leading-[normal] shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)]"
       >
         <p
           id={titleId}
-          className="text-center text-[17px] font-extrabold text-[#191f28]"
+          className="shrink-0 text-center text-[17px] font-extrabold text-t1"
         >
           {template ? "템플릿 수정" : "템플릿 등록"}
         </p>
 
-        <div className="mt-[20px] flex flex-col gap-[20px]">
+        <div className="mt-[20px] flex min-h-0 flex-[1_1_auto] flex-col gap-[20px] overflow-hidden">
           {/* 템플릿 유형 */}
-          <div className="flex flex-col gap-[9px]">
+          <div className="flex shrink-0 flex-col gap-[9px]">
             <span className={LABEL}>템플릿 유형</span>
             <div className="flex gap-[8px]">
               <SelectMenu
@@ -220,7 +225,7 @@ function TemplateForm({
           </div>
 
           {/* 템플릿명 */}
-          <div className="flex flex-col gap-[9px]">
+          <div className="flex shrink-0 flex-col gap-[9px]">
             <span className={LABEL}>템플릿명</span>
             <input
               aria-label="템플릿명"
@@ -231,18 +236,18 @@ function TemplateForm({
             />
           </div>
 
-          {/* 템플릿 내용 */}
-          <div className="flex flex-col gap-[9px]">
-            <span className={LABEL}>템플릿 내용</span>
+          {/* 템플릿 내용 — 남는 높이를 이 칸이 가져가고, 모자라면 이 칸만 줄어든다. */}
+          <div className="flex min-h-0 flex-[1_1_auto] flex-col gap-[9px]">
+            <span className={`${LABEL} shrink-0`}>템플릿 내용</span>
             <textarea
               ref={bodyRef}
               aria-label="템플릿 내용"
               value={body}
               onChange={(event) => setBody(event.target.value)}
               placeholder="메시지 내용을 입력해 주세요"
-              className="min-h-[180px] w-full resize-none rounded-[11px] border border-[#e8ebee] bg-white px-[13px] py-[12px] text-[13.5px] font-medium leading-[22.95px] text-[#191f28] outline-none placeholder:text-[#757575] focus:border-[#14a497]"
+              className="min-h-[96px] w-full flex-[1_1_180px] resize-none rounded-[11px] border border-line bg-white px-[13px] py-[12px] text-[13.5px] font-medium leading-[1.7] text-t1 outline-none placeholder:text-[#757575] focus:border-blue focus:shadow-[0_0_0_3px_var(--color-blue-t)]"
             />
-            <div className="flex flex-wrap gap-[6px]">
+            <div className="mt-[2px] flex shrink-0 flex-wrap gap-[6px]">
               {CONTENT_VARIABLES.map((name) => (
                 <button
                   key={name}
@@ -259,7 +264,7 @@ function TemplateForm({
           {/* 알림톡 전용: 템플릿코드 + 링크 버튼 */}
           {channelType === "alimtalk" && (
             <>
-              <div className="flex flex-col gap-[9px]">
+              <div className="flex shrink-0 flex-col gap-[9px]">
                 <span className={LABEL}>알림톡 템플릿코드</span>
                 <input
                   aria-label="알림톡 템플릿코드"
@@ -270,9 +275,9 @@ function TemplateForm({
                 />
               </div>
 
-              <div className="flex flex-col gap-[9px]">
+              <div className="flex shrink-0 flex-col gap-[9px]">
                 <span className={LABEL}>
-                  링크 <span className="font-medium text-[#b0b8c1]">알림톡 버튼</span>
+                  링크 <span className="font-medium text-t4">알림톡 버튼</span>
                 </span>
                 <div className="flex gap-[8px]">
                   <input
@@ -290,10 +295,8 @@ function TemplateForm({
                     className={`${FIELD} min-w-0 flex-1`}
                   />
                 </div>
-                <div className="flex flex-wrap items-center gap-[6px] pt-[2px]">
-                  <span className="text-[12px] font-medium text-[#8b95a1]">
-                    URL에도 변수를 쓸 수 있어요
-                  </span>
+                <div className="mt-[8px] flex flex-wrap items-center gap-[6px] text-[12px] font-medium text-t3">
+                  <span>URL에도 변수를 쓸 수 있어요</span>
                   {URL_VARIABLES.map((name) => (
                     <button
                       key={name}
@@ -311,11 +314,11 @@ function TemplateForm({
         </div>
 
         {/* 푸터 */}
-        <div className="mt-[20px] flex gap-[8px]">
+        <div className="mt-[20px] flex shrink-0 justify-end gap-[8px]">
           <button
             type="button"
             onClick={onClose}
-            className="flex h-[40px] flex-1 items-center justify-center rounded-[11px] bg-[#f2f4f6] px-[18px] text-[13.5px] font-bold tracking-[-0.135px] text-[#4e5968]"
+            className={`${FOOTER_BUTTON} bg-bg text-t2 hover:bg-line2`}
           >
             취소
           </button>
@@ -323,7 +326,7 @@ function TemplateForm({
             type="button"
             onClick={() => void save()}
             disabled={isPending}
-            className="flex h-[40px] flex-1 items-center justify-center rounded-[11px] bg-[#14a497] px-[18px] text-[13.5px] font-bold tracking-[-0.135px] text-white transition hover:bg-teal-d disabled:opacity-60"
+            className={`${FOOTER_BUTTON} bg-blue text-white transition hover:bg-blue-d disabled:opacity-60`}
           >
             {isPending ? "저장 중…" : "저장"}
           </button>
