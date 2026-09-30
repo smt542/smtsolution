@@ -5,35 +5,37 @@ import { formatNumber } from "@/lib/format";
 
 const num = (n: number) => formatNumber(n);
 
+/** 설정(통합관리자 > 설정 > 청구 계좌·청구 기준)에 값이 없을 때 청구서에 찍는 문구 */
+export const INVOICE_UNSET = "미등록";
+
+/** 청구서에 그대로 찍는 발행처·입금 정보(미리보기·PDF 공통). 설정이 비었으면 '미등록' */
 export interface InvoiceConfig {
-  bank: string;
-  accountNo: string;
+  /** 발행처 이름 겸 예금주 */
   accountHolder: string;
   businessRegNo: string;
-  notice: string;
-  dueDays: number;
-  vatRate: number;
   contactPerson: string;
+  /** 은행 + 계좌번호 */
+  account: string;
+  /** 입금 기한 — '발행일로부터 N일'(0일 = 미등록) */
+  due: string;
+  /** 청구서 안내 문구 — 비었으면 줄을 그리지 않는다 */
+  notice: string;
+  vatRate: number;
 }
 
-/**
- * Derive the invoice document config from platform settings, falling back to the
- * prototype's default copy when a field has not been filled in yet.
- */
 export function invoiceConfigFromSettings(
   settings: PlatformSettings | undefined,
 ): InvoiceConfig {
+  const text = (value: string | null | undefined) => value?.trim() ?? "";
+  const dueDays = settings?.paymentDueDays ?? 0;
   return {
-    bank: settings?.billingBank?.trim() || "농협은행",
-    accountNo: settings?.billingAccountNo?.trim() || "-",
-    accountHolder: settings?.billingAccountHolder?.trim() || "주식회사 관리비서",
-    businessRegNo: settings?.businessRegNo?.trim() || "-",
-    notice:
-      settings?.invoiceNotice?.trim()
-      || "입금 시 업체명으로 입금해 주세요. 세금계산서는 입금 확인 후 발행됩니다.",
-    dueDays: settings?.paymentDueDays ?? 14,
+    accountHolder: text(settings?.billingAccountHolder) || INVOICE_UNSET,
+    businessRegNo: text(settings?.businessRegNo) || INVOICE_UNSET,
+    contactPerson: text(settings?.contactPerson) || INVOICE_UNSET,
+    account: [text(settings?.billingBank), text(settings?.billingAccountNo)].filter(Boolean).join(" ") || INVOICE_UNSET,
+    due: dueDays > 0 ? `발행일로부터 ${dueDays}일` : INVOICE_UNSET,
+    notice: text(settings?.invoiceNotice),
     vatRate: settings?.vatRate ?? 10,
-    contactPerson: settings?.contactPerson?.trim() || "관리비서 담당",
   };
 }
 
@@ -190,16 +192,16 @@ export function InvoiceDocument({
       {/* 입금 계좌 */}
       <div className="mt-6 rounded-xl bg-bg px-[18px] py-4">
         <div className="mb-2 text-[12px] font-bold text-t3">
-          입금 계좌 · 기한 발행일로부터 {config.dueDays}일
+          입금 계좌 · 기한 {config.due}
         </div>
         <div className="text-[15px] font-extrabold tracking-[-0.01em] num">
-          {config.bank} {config.accountNo}
+          {config.account}
         </div>
         <div className="mt-1 text-[12.5px] font-semibold text-t3">예금주 {config.accountHolder}</div>
       </div>
 
       {/* 안내 문구 */}
-      <div className="mt-3.5 text-[12px] font-semibold leading-[1.6] text-t4">{config.notice}</div>
+      {config.notice && <div className="mt-3.5 text-[12px] font-semibold leading-[1.6] text-t4">{config.notice}</div>}
     </div>
   );
 }
