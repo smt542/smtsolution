@@ -125,7 +125,7 @@ export function PartnerLoginForm({ children }: { children: ReactNode }) {
           tabIndex={0}
           onKeyDown={(e) => (e.key === " " || e.key === "Enter") && setAuto((v) => !v)}
         >
-          <div className={`${styles.autoBox} ${auto ? styles.on : ""}`}>
+          <div className={`${styles.autoBox} ${auto ? styles.autoBoxOn : styles.autoBoxOff}`}>
             <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
               <path d="M4 12.5l5 5L20 6.5" />
             </svg>
