@@ -199,9 +199,10 @@ export function SenderSelect({ value, onChange }: SenderSelectProps) {
               }
             }}
           />
+          {/* 정본 .fmp-fromadd .go — [&_.go] 훅은 리터럴 클래스가 없어 먹지 않았다(여백 없는 글자만 보였다). */}
           <button
             type="button"
-            className={styles.go}
+            className="flex h-[38px] flex-none cursor-pointer items-center rounded-[9px] bg-blue px-3.5 text-[12.5px] font-extrabold text-white hover:bg-blue-d"
             disabled={saveSender.isPending}
             onClick={() => void verifyAndUse()}
           >
@@ -213,7 +214,6 @@ export function SenderSelect({ value, onChange }: SenderSelectProps) {
             {error}
           </div>
         )}
-        <div className={styles["fmp-fromhd"]}>등록 발신번호</div>
         <div className={styles["fmp-fromlist"]}>
           {options.map((option) => (
             <div
