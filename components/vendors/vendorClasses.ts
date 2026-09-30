@@ -50,10 +50,11 @@ export const vendorClasses = {
   formGrid: "grid grid-cols-2 gap-x-3.5 gap-y-3 max-md:grid-cols-1",
   fullField: "col-span-full max-md:col-auto",
   fieldLabel: "mb-[5px] block text-xs font-bold leading-[normal] text-t2",
+  // 정본 .vm-f는 placeholder 규칙이 없어 브라우저 기본 #757575에 굵기는 칸 글자(600) 그대로다.
   fieldInput:
-    "h-10 w-full rounded-[9px] border border-line bg-surface px-[11px] text-[13.5px] font-semibold text-t1 outline-none placeholder:font-medium placeholder:text-t3 focus:border-blue",
+    "h-10 w-full rounded-[9px] border border-line bg-surface px-[11px] text-[13.5px] font-semibold text-t1 outline-none placeholder:text-[#757575] focus:border-blue",
   fieldTextarea:
-    "min-h-[58px] w-full resize-y rounded-[9px] border border-line bg-surface px-[11px] py-[9px] text-[13.5px] font-semibold text-t1 outline-none placeholder:font-medium placeholder:text-t3 focus:border-blue",
+    "min-h-[58px] w-full resize-y rounded-[9px] border border-line bg-surface px-[11px] py-[9px] text-[13.5px] font-semibold text-t1 outline-none placeholder:text-[#757575] focus:border-blue",
   fieldError: "mt-[5px] text-xs font-semibold text-red",
   categoryDropdown: "relative w-full",
   categoryControl:
