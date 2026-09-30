@@ -157,44 +157,48 @@ export function BuildingSearchCard({
         </button>
       </form>
 
-      {open && (
-        <div className="mt-[13px] flex flex-col gap-[11px] border-t border-line2 pt-[13px]">
-          <ChipGroup label="등록일">
-            <Chip active={filter.regSort === "desc"} onClick={() => patch({ regSort: "desc" })}>
-              최신순
-            </Chip>
-            <Chip active={filter.regSort === "asc"} onClick={() => patch({ regSort: "asc" })}>
-              오래된 순
-            </Chip>
-          </ChipGroup>
+      {/* 정본 .flt-panel — 닫혀도 그려 두고 max-height·opacity·margin-top·padding-top을 전환한다(윗선 색은 즉시 바뀜). */}
+      <div
+        inert={!open}
+        className={`flex flex-col gap-[11px] overflow-hidden border-t [transition:max-height_.3s_ease,opacity_.25s_ease,margin-top_.3s_ease,padding-top_.3s_ease] ${
+          open ? "mt-[13px] max-h-[400px] border-line2 pt-[13px] opacity-100" : "mt-0 max-h-0 border-transparent pt-0 opacity-0"
+        }`}
+      >
+        <ChipGroup label="등록일">
+          <Chip active={filter.regSort === "desc"} onClick={() => patch({ regSort: "desc" })}>
+            최신순
+          </Chip>
+          <Chip active={filter.regSort === "asc"} onClick={() => patch({ regSort: "asc" })}>
+            오래된 순
+          </Chip>
+        </ChipGroup>
 
-          <ChipGroup label="사무 담당자">{staffChips(filter.managerUserId, "managerUserId")}</ChipGroup>
-          <ChipGroup label="현장 관리자">{staffChips(filter.meterUserId, "meterUserId")}</ChipGroup>
+        <ChipGroup label="사무 담당자">{staffChips(filter.managerUserId, "managerUserId")}</ChipGroup>
+        <ChipGroup label="현장 관리자">{staffChips(filter.meterUserId, "meterUserId")}</ChipGroup>
 
-          <ChipGroup label="검침일">
-            <Chip active={filter.meterKind === ""} onClick={() => patch({ meterKind: "" })}>
-              기준 없음
+        <ChipGroup label="검침일">
+          <Chip active={filter.meterKind === ""} onClick={() => patch({ meterKind: "" })}>
+            기준 없음
+          </Chip>
+          {METER_KINDS.map((k) => (
+            <Chip key={k} active={filter.meterKind === k} onClick={() => patch({ meterKind: k })}>
+              {k}
             </Chip>
-            {METER_KINDS.map((k) => (
-              <Chip key={k} active={filter.meterKind === k} onClick={() => patch({ meterKind: k })}>
-                {k}
+          ))}
+          {filter.meterKind !== "" && (
+            <div className="ml-[8px] flex items-center gap-[7px] border-l border-line2 pl-[12px]">
+              <Chip active={filter.meterDir === "asc"} onClick={() => patch({ meterDir: "asc" })}>
+                빠른 순
               </Chip>
-            ))}
-            {filter.meterKind !== "" && (
-              <div className="ml-[8px] flex items-center gap-[7px] border-l border-line2 pl-[12px]">
-                <Chip active={filter.meterDir === "asc"} onClick={() => patch({ meterDir: "asc" })}>
-                  빠른 순
-                </Chip>
-                <Chip active={filter.meterDir === "desc"} onClick={() => patch({ meterDir: "desc" })}>
-                  늦은 순
-                </Chip>
-              </div>
-            )}
-          </ChipGroup>
+              <Chip active={filter.meterDir === "desc"} onClick={() => patch({ meterDir: "desc" })}>
+                늦은 순
+              </Chip>
+            </div>
+          )}
+        </ChipGroup>
 
-          <ChipGroup label="청소 담당자">{staffChips(filter.cleaningUserId, "cleaningUserId")}</ChipGroup>
-        </div>
-      )}
+        <ChipGroup label="청소 담당자">{staffChips(filter.cleaningUserId, "cleaningUserId")}</ChipGroup>
+      </div>
     </div>
   );
 }
