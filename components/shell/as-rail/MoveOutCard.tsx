@@ -1,7 +1,7 @@
 import type { StaffMoveOutRequest } from "@/hooks/reactquery/staffMoveOut/apis";
 import { MaskedPhone } from "@/components/common/MaskedPhone";
 
-import { MOVE_OUT_BADGE, ymd } from "./constants";
+import { MOVE_OUT_BADGE, moveOutUnitTitle, ymd } from "./constants";
 
 interface MoveOutCardProps {
   request: StaffMoveOutRequest;
@@ -13,7 +13,6 @@ export function MoveOutCard({ request, onDone }: MoveOutCardProps) {
     request.status === "pending" || request.status === "confirmed"
       ? MOVE_OUT_BADGE[request.status]
       : null;
-  const unitLabel = `${request.unitDong ?? ""}${request.unitNo ?? ""}`;
   const query = new URLSearchParams({
     bld: request.buildingId === null ? "" : String(request.buildingId),
     unit: request.unitId === null ? "" : String(request.unitId),
@@ -27,7 +26,7 @@ export function MoveOutCard({ request, onDone }: MoveOutCardProps) {
     >
       <div className="flex items-center gap-2 mb-[7px]">
         <b className="text-[13.5px] font-extrabold text-t1">
-          {request.buildingName ?? "-"} {unitLabel || "-"}호
+          {moveOutUnitTitle(request)}
         </b>
         <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--color-t3)" }}>
           {request.tenantName ?? "-"}

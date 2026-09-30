@@ -251,6 +251,7 @@ function SettlementEditor({
         onFinalPaidDateChange={setFinalPaidDate}
         paymentInputRef={paymentInputRef}
         bodyRef={formBodyRef}
+        billingUnpaid={context.billingUnpaid}
       />
       <SettlementActions
         building={building}
@@ -261,6 +262,7 @@ function SettlementEditor({
         amount={amount}
         receivedAmount={receivedAmount}
         billingUnpaid={context.billingUnpaid}
+        vacancyPaymentMode={context.settlementSettings.vacancyPaymentMode}
         createdAt={context.latestSettlement?.createdAt ?? null}
         printModel={printModel}
         paymentInputRef={paymentInputRef}

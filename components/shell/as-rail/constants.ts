@@ -19,6 +19,16 @@ export const MOVE_OUT_BADGE = {
   confirmed: { label: "확인", cls: "mvCk" as const },
 };
 
+/** 퇴실 신청 카드 제목·처리 완료 모달 이름(정본 `.mv-top b` = "그린빌라 101호"). 호실 번호에 이미 '호'가 있으면 한 번만 붙인다. */
+export function moveOutUnitTitle(request: {
+  buildingName: string | null;
+  unitDong: string | null;
+  unitNo: string | null;
+}): string {
+  const unit = `${request.unitDong ?? ""}${request.unitNo ?? ""}`.replace(/호$/, "");
+  return `${request.buildingName ?? "-"} ${unit || "-"}호`;
+}
+
 function d(iso?: string | null): Date | null {
   if (!iso) return null;
   const dt = new Date(iso);
