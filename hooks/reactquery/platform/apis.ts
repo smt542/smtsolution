@@ -8,7 +8,8 @@ import { createPrivateAssetSignedUrl } from "@/lib/attachments/signedUrl";
 import { formatNumber } from "@/lib/format";
 import type { OrgMemberRole, StaffType } from "@/hooks/reactquery/auth";
 
-export type OrganizationStatus = "active" | "suspended" | "trial";
+// 정본 조직 상태 = 운영·정지(해지는 deleted_at). org_status 타입의 'trial'은 쓰지 않는다(0207).
+export type OrganizationStatus = "active" | "suspended";
 export type PlatformOrganizationStatusFilter = "operating" | "suspended" | "terminated";
 
 export type PointTxType = "charge" | "usage" | "adjustment";

@@ -43,15 +43,6 @@ export function QueryError({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-export function StatusBadge({ status }: { status: "active" | "suspended" | "trial" }) {
-  const styles = {
-    active: { label: "운영 중", className: "bg-blue-t text-blue-d" },
-    suspended: { label: "정지", className: "bg-red-t text-red" },
-    trial: { label: "체험", className: "bg-amber-t text-amber" },
-  }[status];
-  return <Badge className={`inline-flex px-[9px] py-[3px] leading-[1.4] ${styles.className}`}>{styles.label}</Badge>;
-}
-
 type PaginationItem = number | "start-ellipsis" | "end-ellipsis";
 
 function paginationItems(page: number, totalPages: number): PaginationItem[] {
