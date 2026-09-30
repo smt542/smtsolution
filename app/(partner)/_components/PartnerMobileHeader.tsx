@@ -56,7 +56,7 @@ export function PartnerMobileHeader({ title, backHref, onBack, subtitle, action,
           {subtitle != null ? <div className="mt-0.5 text-[13px] font-semibold text-t3">{subtitle}</div> : null}
         </div>
       ) : (
-        <div className={`min-w-0 flex-1 overflow-hidden whitespace-nowrap font-extrabold tracking-[-0.02em] ${compact ? "text-xl" : "text-[21px]"}`}>{title}</div>
+        <div className={`min-w-0 flex-1 overflow-hidden whitespace-nowrap font-extrabold tracking-[-0.02em] ${compact ? "text-[20px]" : "text-[21px]"}`}>{title}</div>
       )}
       {action}
     </div>
