@@ -11,6 +11,8 @@ export const noticeClasses = {
   kindImportant: "rounded-[6px] bg-amber-t px-[7px] py-[3px] text-[11px] font-extrabold text-amber",
   kindUrgent: "rounded-[6px] bg-red px-[7px] py-[3px] text-[11px] font-extrabold text-white",
   title: "block text-[14.5px] font-bold tracking-[-0.01em]",
+  // 원본 `.tx .p` — 본문 앞부분 한 줄 말줄임
+  preview: "mt-1 line-clamp-1 text-[12.5px] font-semibold leading-[1.6] text-t3",
   date: "mt-1.5 block text-[11.5px] font-semibold tabular-nums text-t4",
   center: "flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-10 text-center text-[13px] text-t3 [&_b]:text-[17px] [&_b]:text-t1 [&_button]:mt-4 [&_button]:h-[42px] [&_button]:rounded-xl [&_button]:border-0 [&_button]:bg-blue [&_button]:px-[17px] [&_button]:font-extrabold [&_button]:text-white",
   empty: "flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-10 text-center text-[13px] text-t3 [&_b]:text-[17px] [&_b]:text-t1 [&_span]:mt-[7px]",
