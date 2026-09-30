@@ -94,7 +94,7 @@ export function AsList({ rows }: { rows: AsRow[] }) {
             <button
               key={f.v}
               type="button"
-              className={`${styles.pill} ${stF === f.v ? styles.pillOn : ""}`}
+              className={`${styles.pill} ${stF === f.v ? styles.pillOn : styles.pillOff}`}
               onClick={() => setStF(f.v)}
             >
               {f.label}
@@ -157,7 +157,7 @@ export function AsList({ rows }: { rows: AsRow[] }) {
               <button
                 key={v}
                 type="button"
-                className={`${styles.sheetOpt} ${sort === v ? styles.sheetOptOn : ""}`}
+                className={`${styles.sheetOpt} ${sort === v ? styles.sheetOptOn : styles.sheetOptOff}`}
                 onClick={() => {
                   setSort(v);
                   setSortOpen(false);

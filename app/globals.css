@@ -69,6 +69,8 @@
   --color-red-t: #FDECEE;
   --color-amber: #FF922B;
   --color-amber-t: #FFF3E6;
+  --color-violet: #7048E8; /* 정본 --violet (현장 A/S '반복' 칩) */
+  --color-violet-t: #F0EBFF;
   --color-kakao: #FEE500;
   --color-kakao-t: #191600;
   --color-danger: #F04452; /* 기존 `danger` alias */

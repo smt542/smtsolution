@@ -8,7 +8,8 @@ export const homeClasses: Record<string, string> = {
   search: "h-[46px] w-full rounded-[14px] border border-line bg-white px-3.5 pl-10 text-[15px] font-medium text-t1 outline-none transition focus:border-blue focus:ring-[3px] focus:ring-blue-t",
   filterRow: "flex items-center gap-2 px-5 pb-2.5",
   pills: "flex min-w-0 flex-1 gap-[7px] overflow-auto",
-  pill: "inline-flex h-[34px] flex-none items-center whitespace-nowrap rounded-full border border-line bg-white px-[15px] text-[13.5px] font-bold text-t3",
+  pill: "inline-flex h-[34px] flex-none items-center whitespace-nowrap rounded-full border px-[15px] text-[13.5px] font-bold",
+  pillOff: "border-line bg-white text-t3",
   pillOn: "border-blue bg-blue text-white",
   sortBtn: "inline-flex h-[34px] flex-none items-center gap-[5px] rounded-[11px] border border-line bg-white px-3 text-[13px] font-bold text-t2 [&_svg]:size-[15px]",
   scroll: "min-h-0 flex-1 overflow-auto",
@@ -32,6 +33,7 @@ export const homeClasses: Record<string, string> = {
   sheet: "fixed inset-0 z-[90] flex items-end justify-center bg-scrim",
   sheetBody: "w-full max-w-[440px] rounded-t-[22px] bg-white px-3 pb-[26px] pt-2.5",
   sheetH: "px-0 py-3 pb-1.5 text-center text-[13px] font-extrabold text-t3",
-  sheetOpt: "flex w-full items-center justify-between gap-2.5 rounded-[14px] border-0 bg-transparent px-3.5 py-4 text-base font-bold text-t1 [&_svg]:size-[18px] [&_svg]:text-blue [&_svg]:opacity-0",
+  sheetOpt: "flex w-full items-center justify-between gap-2.5 rounded-[14px] border-0 bg-transparent px-3.5 py-4 text-base font-bold [&_svg]:size-[18px] [&_svg]:text-blue",
+  sheetOptOff: "text-t1 [&_svg]:opacity-0",
   sheetOptOn: "text-blue-d [&_svg]:opacity-100",
 };
