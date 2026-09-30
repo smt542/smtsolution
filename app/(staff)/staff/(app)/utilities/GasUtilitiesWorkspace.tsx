@@ -33,7 +33,7 @@ import { GasReadingsTable } from "./components/gas/GasReadingsTable";
 import { GasWorkspaceHeader } from "./components/gas/GasWorkspaceHeader";
 import type { GasTableRow, GasUtilityDraft } from "./components/gas/types";
 import { FixedUsageModal } from "./components/FixedUsageModal";
-import { GasLedgerModal } from "./components/GasLedgerModal";
+import { MeterLedgerModal } from "./components/MeterLedgerModal";
 import { UtilityPeriodBarPlaceholder } from "./components/UtilityPeriodBarPlaceholder";
 
 function pad(value: number): string {
@@ -254,7 +254,7 @@ export default function GasUtilitiesWorkspace() {
           <EmptyState message="이 화면에 접근할 권한이 없습니다. (지침·부과 권한 필요)" />
         </div>
       ) : (
-        <main className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-4 overflow-auto p-4 min-[1101px]:grid-cols-[minmax(0,322px)_minmax(0,1fr)] min-[1101px]:overflow-hidden min-[1101px]:p-[22px_24px_24px]">
+        <main className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-4 overflow-auto p-4 min-[1101px]:grid-cols-[minmax(0,322px)_minmax(0,1fr)] min-[1101px]:grid-rows-[minmax(0,1fr)] min-[1101px]:overflow-hidden min-[1101px]:p-[22px_24px_24px]">
           <UtilityBuildingRail
             buildings={buildings}
             selectedBuildingId={buildingId}
@@ -273,7 +273,9 @@ export default function GasUtilitiesWorkspace() {
             onSelectBuilding={selectBuilding}
           />
 
-          <div className="relative flex min-w-0 flex-1 flex-col gap-4">
+          {/* 행을 minmax(0,1fr)로 묶고 min-h-0을 줘야 호실 표가 칸 안에서 스크롤된다(수도와 같음).
+              없으면 건물을 고를 때 표 높이만큼 칸이 늘어나 화면 아래로 잘린다. */}
+          <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-4">
             {selectedBuilding && isGasWorkspaceRefreshing ? (
               <div className="absolute right-4 top-4 z-10 rounded-lg bg-white/95 shadow-card">
                 <Spinner label="가스 지침 갱신 중" size="small" showLabel />
@@ -368,20 +370,12 @@ export default function GasUtilitiesWorkspace() {
       />
 
       {ledgerOpen && buildings.length > 0 && (
-        <GasLedgerModal
+        <MeterLedgerModal
           open
-          buildings={buildings.map((building) => ({
-            id: building.id,
-            code: building.code,
-            name: building.name,
-            address: building.address,
-            entrancePassword: building.entrancePassword,
-            contactPhone: building.ownerPhone,
-            cleaningMemo: building.facilities?.cleaning?.memo,
-            gasCustomerNumberCount: gasCustomerNumberCounts[building.id] ?? 0,
-          }))}
-          currentBuildingId={buildingId ?? buildings[0].id}
+          buildings={buildings}
+          currentBuildingId={buildingId}
           period={period}
+          utilityType="gas"
           onClose={() => setLedgerOpen(false)}
         />
       )}

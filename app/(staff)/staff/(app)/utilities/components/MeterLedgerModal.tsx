@@ -1,16 +1,27 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
-import { Spinner } from "@/components/common";
-import { ChevronDownIcon, CloseIcon, PrinterIcon, SearchIcon } from "@/components/icons";
+import { Button, IconButton } from "@/components/common";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
+import { PrintSheet } from "@/components/common/PrintSheet";
+import { CloseIcon, PrinterIcon, SearchIcon } from "@/components/icons";
 import type { Building } from "@/hooks/reactquery/buildings";
+import {
+  customerNumberKeys,
+  listCustomerNumbersByBuilding,
+} from "@/hooks/reactquery/buildingCustomerNumbers";
 import {
   listUtilityRows,
   utilityKeys,
   type UtilityType,
 } from "@/hooks/reactquery/utilities";
-import { MeterLedgerDocument } from "./MeterLedgerDocument";
+import {
+  LEDGER_PAGE_WIDTH,
+  METER_LEDGER_PRINT_CSS,
+  MeterLedgerDocument,
+  type MeterLedgerSource,
+} from "./MeterLedgerDocument";
 
 interface MeterLedgerModalProps {
   open: boolean;
@@ -19,9 +30,80 @@ interface MeterLedgerModalProps {
   period: string;
   utilityType?: UtilityType;
   onClose: () => void;
-  onPrinted?: () => void;
 }
 
+const YEAR_OPTIONS = [2026, 2025, 2024].map((year) => ({ value: String(year), label: `${year}년` }));
+const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => ({
+  value: String(index + 1).padStart(2, "0"),
+  label: `${index + 1}월분`,
+}));
+
+// 정본 `.lg-srch .uc-dd`: 메뉴 왼쪽 정렬·패딩 5·옵션 간격 10·옵션 hover #F5F7F9·버튼 hover 테두리만.
+const LEDGER_DROPDOWN = [
+  "[&_.uc-dd-btn_svg]:h-[14px]",
+  "[&_.uc-dd-btn_svg]:w-[14px]",
+  "[&_.uc-dd:not(.open)_.uc-dd-btn:hover]:border-[#C9D0D8]",
+  "[&_.uc-dd:not(.open)_.uc-dd-btn:hover]:shadow-none",
+  "[&_.uc-dd-menu]:left-0",
+  "[&_.uc-dd-menu]:right-auto",
+  "[&_.uc-dd-menu]:p-[5px]",
+  "[&_.uc-opt]:gap-[10px]",
+  "[&_.uc-opt:not(.on):hover]:bg-[#F5F7F9]",
+].join(" ");
+
+const LIST_TH = "sticky top-0 z-[2] border-b border-line bg-[#FBFCFD] py-[11px] text-left text-[12px] font-bold whitespace-nowrap text-t3";
+const LIST_TD = "truncate border-b border-line2 py-3 text-[13.5px] font-medium text-t1";
+
+function byCode(a: Building, b: Building): number {
+  return String(a.code ?? "").localeCompare(String(b.code ?? ""), "en", { numeric: true });
+}
+
+/** 정본 `.lg-ck`: 17px 체크 상자. 행 체크는 행 클릭이 토글하므로 키보드만 여기서 받는다. */
+function LedgerCheck({
+  checked,
+  label,
+  onToggle,
+  clickable = false,
+}: {
+  checked: boolean;
+  label: string;
+  onToggle: () => void;
+  clickable?: boolean;
+}) {
+  return (
+    <span
+      role="checkbox"
+      aria-checked={checked}
+      aria-label={label}
+      tabIndex={0}
+      onClick={clickable ? onToggle : undefined}
+      onKeyDown={(event) => {
+        if (event.key !== " " && event.key !== "Enter") return;
+        event.preventDefault();
+        onToggle();
+      }}
+      className={`flex size-[17px] flex-none cursor-pointer items-center justify-center rounded-[5px] border-[1.5px] outline-none ${checked ? "border-blue bg-blue" : "border-line bg-white"}`}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        className={`size-[11px] text-white ${checked ? "opacity-100" : "opacity-0"}`}
+      >
+        <path d="M4 12.5l5 5L20 6.5" />
+      </svg>
+    </span>
+  );
+}
+
+/**
+ * 검침대장 출력 모달. 정본 `utility-electric|water|gas.dc.html` 의 `#ucLedger` 모달(`.lg-*`)은
+ * 세 파일이 같은 코드라 세 탭이 이 모달 하나를 쓴다. 검침 칸은 출력한 탭의 공과금만 채운다.
+ */
 export function MeterLedgerModal({
   open,
   buildings,
@@ -29,204 +111,243 @@ export function MeterLedgerModal({
   period,
   utilityType = "electricity",
   onClose,
-  onPrinted,
 }: MeterLedgerModalProps) {
   const [selectedIds, setSelectedIds] = useState<number[]>(
     currentBuildingId !== null ? [currentBuildingId] : [],
   );
   const [search, setSearch] = useState("");
   const [printPeriod, setPrintPeriod] = useState(period);
+  const [printing, setPrinting] = useState(false);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const stackRef = useRef<HTMLDivElement>(null);
+  const year = printPeriod.slice(0, 4);
+  const month = printPeriod.slice(5, 7);
 
+  const orderedBuildings = useMemo(() => [...buildings].sort(byCode), [buildings]);
   const selectedBuildings = useMemo(
-    () => buildings.filter((building) => selectedIds.includes(building.id)),
-    [buildings, selectedIds],
+    () => orderedBuildings.filter((building) => selectedIds.includes(building.id)),
+    [orderedBuildings, selectedIds],
   );
   const filteredBuildings = useMemo(() => {
     const keyword = search.trim().toLocaleLowerCase("ko-KR");
-    if (!keyword) return buildings;
-    return buildings.filter((building) => [building.code, building.name, building.address ?? ""]
-      .join(" ")
+    if (!keyword) return orderedBuildings;
+    return orderedBuildings.filter((building) => `${building.name}${building.code ?? ""}${building.address ?? ""}`
       .toLocaleLowerCase("ko-KR")
       .includes(keyword));
-  }, [buildings, search]);
-  const queries = useQueries({
+  }, [orderedBuildings, search]);
+
+  const rowQueries = useQueries({
     queries: selectedBuildings.map((building) => ({
       queryKey: utilityKeys.rows(building.id, utilityType, printPeriod),
       queryFn: () => listUtilityRows(building.id, utilityType, printPeriod),
     })),
   });
-  const previewBuilding = selectedBuildings[0] ?? null;
-  const previewRows = queries[0]?.data ?? [];
-  const isLedgerLoading = queries.some((query) => query.isLoading);
-  const isLedgerRefreshing = queries.some((query) => query.isFetching && !query.isLoading);
-  const isLedgerBusy = isLedgerLoading || isLedgerRefreshing;
-  const hasError = queries.some((query) => query.error);
-  const year = printPeriod.slice(0, 4);
-  const month = printPeriod.slice(5, 7);
+  const numberQueries = useQueries({
+    queries: selectedBuildings.map((building) => ({
+      queryKey: customerNumberKeys.byBuilding(building.id),
+      queryFn: () => listCustomerNumbersByBuilding(building.id),
+    })),
+  });
+  const queries = [...rowQueries, ...numberQueries];
+  const loading = queries.some((query) => query.isLoading);
+  const failed = queries.some((query) => query.error);
+  const sources: MeterLedgerSource[] = selectedBuildings.map((building, index) => {
+    const numbers = numberQueries[index]?.data ?? [];
+    return {
+      building,
+      rows: rowQueries[index]?.data ?? [],
+      waterCustomerNumbers: numbers.filter((item) => item.kind === "water").map((item) => item.customerNo),
+      // 건물 단위 전기 고객번호는 대부분 공용전기(common_elec)다 — 전기 탭 레일 '전기' 칸도 이 종류를 센다.
+      electricityCustomerNumbers: numbers
+        .filter((item) => item.kind === "elec" || item.kind === "common_elec")
+        .map((item) => item.customerNo),
+    };
+  });
+  const showPreview = selectedBuildings.length > 0 && !loading && !failed;
+  const allSelected = orderedBuildings.length > 0 && selectedIds.length === orderedBuildings.length;
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [open, onClose]);
+
+  // 정본 fitPages(): 794px 쪽 묶음을 미리보기 폭(패딩 16×2 제외)에 맞춰 축소하고 가운데 둔다.
+  useLayoutEffect(() => {
+    const panel = previewRef.current;
+    const stack = stackRef.current;
+    if (!panel || !stack) return;
+    const fit = () => {
+      const available = panel.clientWidth - 32;
+      const scale = Math.min(1, available / LEDGER_PAGE_WIDTH);
+      const height = stack.scrollHeight;
+      stack.style.transform = `scale(${scale})`;
+      stack.style.marginBottom = `${height * scale - height}px`;
+      stack.style.marginLeft = `${Math.max(0, (available - LEDGER_PAGE_WIDTH * scale) / 2)}px`;
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(panel);
+    observer.observe(stack);
+    return () => observer.disconnect();
+  }, [showPreview]);
 
   if (!open) return null;
 
-  const toggleBuilding = (buildingId: number, checked: boolean) => {
-    setSelectedIds((current) => checked
-      ? current.includes(buildingId) ? current : [...current, buildingId]
-      : current.filter((id) => id !== buildingId));
+  const toggleBuilding = (buildingId: number) => {
+    setSelectedIds((current) => current.includes(buildingId)
+      ? current.filter((id) => id !== buildingId)
+      : [...current, buildingId]);
+  };
+  const toggleAll = () => {
+    setSelectedIds(allSelected ? [] : orderedBuildings.map((building) => building.id));
   };
 
+  const previewMessage = selectedBuildings.length === 0
+    ? <>출력할 건물을 선택해 주세요<br />선택한 건물의 검침대장이 여기에 표시돼요</>
+    : loading
+      ? "검침대장을 불러오는 중이에요"
+      : failed
+        ? "검침대장을 불러오지 못했어요"
+        : null;
+
   return (
-    <div data-meter-ledger-overlay className="fixed inset-0 z-[100] flex items-center justify-center bg-scrim p-4" onMouseDown={onClose}>
-      <style>{`@media print {
-        @page { size: A4 portrait; margin: 0; }
-        body * { visibility: hidden !important; }
-        [data-meter-ledger-overlay], [data-meter-ledger-print], [data-meter-ledger-print] * { visibility: visible !important; }
-        [data-meter-ledger-overlay] { position: static !important; display: block !important; padding: 0 !important; background: white !important; }
-        [data-meter-ledger-dialog] { display: none !important; }
-        [data-meter-ledger-print] { position: absolute !important; inset: 0 auto auto 0 !important; display: block !important; width: 100% !important; }
-        [data-meter-ledger-document] { break-after: page; }
-        [data-meter-ledger-document]:last-child { break-after: auto; }
-      }`}</style>
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-scrim p-6 leading-[normal]"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
       <section
-        data-meter-ledger-dialog
         role="dialog"
         aria-modal="true"
         aria-labelledby="meter-ledger-title"
-        onMouseDown={(event) => event.stopPropagation()}
-        className="flex h-[660px] w-[1020px] max-w-[calc(100vw-32px)] flex-col overflow-hidden rounded-card bg-white shadow-pop"
+        className="flex h-[min(660px,92%)] w-[min(1020px,96%)] flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)]"
       >
-        <header className="flex h-[61px] flex-none items-center gap-2.5 border-b border-line px-5">
-          <h2 id="meter-ledger-title" className="text-[15px] font-extrabold text-t1">검침대장 출력</h2>
-          <span className="h-px flex-1 bg-line2" />
-          <button type="button" aria-label="검침대장 닫기" onClick={onClose} className="flex size-[26px] items-center justify-center rounded-[7px] text-t3 hover:bg-bg hover:text-t1">
-            <CloseIcon className="size-4" />
-          </button>
+        <header className="flex flex-none items-center gap-2.5 border-b border-line px-5 py-[17px]">
+          <h2 id="meter-ledger-title" className="text-[16px] font-extrabold tracking-[-0.02em] text-t1">검침대장 출력</h2>
+          <span className="flex-1" />
+          <IconButton
+            aria-label="검침대장 닫기"
+            onClick={onClose}
+            className="size-[26px] rounded-[8px] border border-line bg-white text-t2 transition-[border-color,background-color] duration-[120ms] hover:border-[#C9D0D8] hover:bg-[#F7F9FA]"
+          >
+            <CloseIcon className="size-3.5 flex-none" />
+          </IconButton>
         </header>
 
-        <div className="grid min-h-0 flex-1 grid-cols-[340px_minmax(0,1fr)]">
-          <aside className="flex min-h-0 flex-col border-r border-line">
-            <div className="h-[99px] flex-none border-b border-line2 p-3">
-              <div className="flex gap-2">
-                <label className="relative flex-1">
-                  <span className="sr-only">출력 연도</span>
-                  <select
-                    aria-label="출력 연도"
+        <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
+          <div className="flex min-h-0 flex-col border-r border-line">
+            <div className="flex-none border-b border-line2 p-3">
+              <div className={`mb-2 flex items-center gap-1.5 ${LEDGER_DROPDOWN}`}>
+                <div className="[&_.uc-dd-menu]:min-w-[104px]">
+                  <CustomDropdown
+                    ariaLabel="출력 연도"
                     value={year}
-                    onChange={(event) => setPrintPeriod(`${event.target.value}-${month}-01`)}
-                    className="h-8 w-full appearance-none rounded-[8px] border border-line bg-white px-2.5 pr-7 text-[11px] font-bold text-t1 outline-none focus:border-teal"
-                  >
-                    {[2024, 2025, 2026, 2027, 2028].map((value) => <option key={value} value={value}>{value}년</option>)}
-                  </select>
-                  <ChevronDownIcon className="pointer-events-none absolute right-2 top-2 size-4 text-t3" />
-                </label>
-                <label className="relative flex-1">
-                  <span className="sr-only">출력 월</span>
-                  <select
-                    aria-label="출력 월"
+                    compact
+                    options={YEAR_OPTIONS}
+                    onChange={(value) => setPrintPeriod(`${value}-${month}-01`)}
+                  />
+                </div>
+                <div className="[&_.uc-dd-menu]:min-w-[112px]">
+                  <CustomDropdown
+                    ariaLabel="출력 월"
                     value={month}
-                    onChange={(event) => setPrintPeriod(`${year}-${event.target.value}-01`)}
-                    className="h-8 w-full appearance-none rounded-[8px] border border-line bg-white px-2.5 pr-7 text-[11px] font-bold text-t1 outline-none focus:border-teal"
-                  >
-                    {Array.from({ length: 12 }, (_, index) => {
-                      const value = String(index + 1).padStart(2, "0");
-                      return <option key={value} value={value}>{index + 1}월분</option>;
-                    })}
-                  </select>
-                  <ChevronDownIcon className="pointer-events-none absolute right-2 top-2 size-4 text-t3" />
-                </label>
+                    compact
+                    options={MONTH_OPTIONS}
+                    onChange={(value) => setPrintPeriod(`${year}-${value}-01`)}
+                  />
+                </div>
               </div>
-              <label className="relative mt-2 block">
+              <label className="relative block">
                 <span className="sr-only">코드·건물명·주소 검색</span>
-                <SearchIcon className="pointer-events-none absolute left-2.5 top-2 size-4 text-t3" />
+                <SearchIcon className="pointer-events-none absolute left-[11px] top-1/2 size-[15px] -translate-y-1/2 text-t3" />
                 <input
                   aria-label="코드·건물명·주소 검색"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="코드·건물명·주소 검색"
-                  className="h-8 w-full rounded-[8px] border border-line bg-white pl-8 pr-3 text-[11px] font-medium outline-none placeholder:text-t4 focus:border-teal"
+                  className="h-[34px] w-full rounded-[9px] border border-line bg-white pl-[31px] pr-[11px] text-[13px] font-semibold text-t1 outline-none placeholder:text-t4"
                 />
               </label>
             </div>
 
             <div className="min-h-0 flex-1 overflow-auto">
-              <table className="w-full table-fixed border-collapse text-[10px]">
-                <thead className="sticky top-0 bg-[#fbfcfd] text-t3">
-                  <tr className="h-8 border-b border-line2">
-                    <th className="w-9 text-center"><span className="sr-only">선택</span></th>
-                    <th className="w-[52px] px-1 text-left">코드</th>
-                    <th className="w-[82px] px-1 text-left">건물명</th>
-                    <th className="px-1 text-left">주소</th>
+              <table className="w-full table-fixed border-collapse">
+                <thead>
+                  <tr>
+                    <th className={`${LIST_TH} w-[38px] pl-3 pr-0`}>
+                      <LedgerCheck checked={allSelected} label="전체 건물 선택" onToggle={toggleAll} clickable />
+                    </th>
+                    <th className={`${LIST_TH} w-[70px] px-4`}>코드</th>
+                    <th className={`${LIST_TH} w-[100px] px-4`}>건물명</th>
+                    <th className={`${LIST_TH} px-4`}>주소</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredBuildings.map((building) => {
                     const checked = selectedIds.includes(building.id);
                     return (
-                      <tr key={building.id} className={`h-[39px] border-b border-line2 ${checked ? "bg-teal-t" : "hover:bg-row-hover"}`}>
-                        <td className="text-center">
-                          <input
-                            type="checkbox"
-                            aria-label={`${building.name} 출력 선택`}
-                            checked={checked}
-                            onChange={(event) => toggleBuilding(building.id, event.target.checked)}
-                            className="size-3.5 accent-teal"
-                          />
+                      <tr
+                        key={building.id}
+                        aria-selected={checked}
+                        onClick={() => toggleBuilding(building.id)}
+                        className={`cursor-pointer [&:last-child>td]:border-b-0 ${checked ? "bg-blue-t" : "hover:bg-row-hover"}`}
+                      >
+                        <td className={`${LIST_TD} pl-3 pr-0`}>
+                          <LedgerCheck checked={checked} label={`${building.name} 출력 선택`} onToggle={() => toggleBuilding(building.id)} />
                         </td>
-                        <td className="truncate px-1 font-semibold text-t3">{building.code}</td>
-                        <td className="truncate px-1 font-bold text-t1">{building.name}</td>
-                        <td className="truncate px-1 text-t3">{building.address ?? "-"}</td>
+                        <td className={`${LIST_TD} px-4 tabular-nums`}>{building.code}</td>
+                        <td className={`${LIST_TD} px-4`}>{building.name}</td>
+                        <td className={`${LIST_TD} px-4`}>{building.address?.trim() || "-"}</td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
             </div>
-          </aside>
+          </div>
 
-          <div className="relative min-h-0 overflow-auto bg-[#eef1f4] p-4">
-            {previewBuilding ? (
-              isLedgerLoading ? (
-                <div role="status" aria-label="검침대장 불러오는 중" className="flex h-full items-center justify-center text-xs font-semibold text-t3">검침대장을 불러오는 중입니다.</div>
-              ) : hasError ? (
-                <div className="flex h-full items-center justify-center text-xs font-semibold text-red">검침대장을 불러오지 못했습니다.</div>
-              ) : (
-                <>
-                  <div data-testid="meter-ledger-preview" className="w-[633px]">
-                    <MeterLedgerDocument building={previewBuilding} period={printPeriod} rows={previewRows} utilityType={utilityType} />
-                  </div>
-                  {isLedgerRefreshing ? (
-                    <div className="pointer-events-none absolute right-3 top-3 rounded-full bg-surface/95 shadow-card">
-                      <Spinner label="검침대장 갱신 중" size="small" showLabel className="px-3 py-2" />
-                    </div>
-                  ) : null}
-                </>
-              )
+          <div ref={previewRef} className="min-h-0 overflow-y-auto overflow-x-hidden bg-[#E8EBEE] p-4">
+            {showPreview ? (
+              <div ref={stackRef} className="flex w-[794px] origin-top-left flex-col items-start">
+                <MeterLedgerDocument sources={sources} period={printPeriod} utilityType={utilityType} />
+              </div>
             ) : (
-              <div className="flex h-full items-center justify-center text-xs font-semibold text-t3">출력할 건물을 선택해 주세요.</div>
+              <div className={`flex h-full items-center justify-center text-center text-[13px] font-medium leading-[1.6] ${failed ? "text-red" : "text-t3"}`}>
+                {previewMessage}
+              </div>
             )}
           </div>
         </div>
 
-        <footer className="flex h-[69px] flex-none items-center gap-2 border-t border-line px-5">
-          <span className="text-[12px] font-semibold text-t2">{selectedIds.length}곳 선택</span>
-          <span className="h-px flex-1 bg-line2" />
-          <button
+        <footer className="flex flex-none items-center gap-[9px] border-t border-line px-5 py-3.5">
+          <span className="text-[12.5px] font-semibold text-t3">
+            <b className="font-bold text-t1">{selectedIds.length}</b>곳 선택
+          </span>
+          <span className="flex-1" />
+          <Button
             type="button"
-            onClick={() => {
-              window.print();
-              onPrinted?.();
-            }}
-            disabled={selectedIds.length === 0 || isLedgerBusy || hasError}
-            className="flex h-10 items-center gap-[7px] rounded-btn bg-teal px-[18px] text-[13.5px] font-bold text-white hover:bg-teal-d disabled:cursor-not-allowed disabled:opacity-45"
+            size="wide"
+            className="shadow-none"
+            disabled={!showPreview || printing}
+            onClick={() => setPrinting(true)}
           >
-            <PrinterIcon className="size-4" />
+            <PrinterIcon className="size-4 flex-none" />
             인쇄
-          </button>
+          </Button>
         </footer>
       </section>
 
-      <div data-meter-ledger-print className="hidden print:block">
-        {selectedBuildings.map((building, index) => (
-          <MeterLedgerDocument key={building.id} building={building} period={printPeriod} rows={queries[index]?.data ?? []} utilityType={utilityType} />
-        ))}
-      </div>
+      {printing && (
+        <PrintSheet id="meterLedgerPrint" css={METER_LEDGER_PRINT_CSS} onDone={() => setPrinting(false)}>
+          <MeterLedgerDocument sources={sources} period={printPeriod} utilityType={utilityType} />
+        </PrintSheet>
+      )}
     </div>
   );
 }

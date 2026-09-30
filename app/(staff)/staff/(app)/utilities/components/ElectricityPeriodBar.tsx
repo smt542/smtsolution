@@ -66,13 +66,14 @@ export function ElectricityPeriodBar({
           >
             계산
           </Button>
+          {/* 정본은 저장 중에도 버튼 모양·문구가 그대로다. disabled는 두 번 저장만 막는다. */}
           <button
             type="button"
             onClick={onSave}
             disabled={saving}
-            className="h-[26px] rounded-[8px] border border-blue bg-blue px-[10px] text-[11.5px] font-bold text-white hover:bg-blue-d disabled:opacity-60"
+            className="h-[26px] rounded-[8px] border border-blue bg-blue px-[10px] text-[11.5px] font-bold text-white hover:bg-blue-d"
           >
-            {saving ? "저장 중…" : "저장"}
+            저장
           </button>
           <button
             type="button"

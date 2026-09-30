@@ -8,12 +8,14 @@ import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useCustomerNumberLookup } from "@/hooks/reactquery/buildingCustomerNumbers";
 import {
   useBillingPeriod,
-  useFixedUsages,
+  useFixedValues,
   useSaveBillingPeriod,
+  useSaveFixedValues,
   useSaveMeterReadings,
   useSaveUtilityUnitPrices,
   useUtilityPrices,
   useUtilityRows,
+  type FixedValueRow,
   type UtilityType,
   type UtilityUnitRow,
 } from "@/hooks/reactquery/utilities";
@@ -41,11 +43,25 @@ import { UtilityWorkspaceHeader } from "./components/UtilityWorkspaceHeader";
 
 const INITIAL_PERIOD = "2026-07-01";
 
-function draftFor(row: UtilityUnitRow): ElectricityDraft {
+/** 고정값은 적용 시작월(월 1일)부터 이후 달에 걸린다. 시작월이 없으면(옛 상가 고정 사용량) 늘 걸린다. */
+function lockState(fixed: FixedValueRow | undefined, period: string) {
+  const appliesAt = (from: string | null) => from === null || from <= period;
+  return {
+    usageLocked: fixed?.fixedUsage != null && appliesAt(fixed.fixedUsageFrom),
+    manualLocked: fixed?.fixedManualCharge != null && appliesAt(fixed.fixedManualChargeFrom),
+  };
+}
+
+function draftFor(row: UtilityUnitRow, fixed: FixedValueRow | undefined, period: string): ElectricityDraft {
+  const { usageLocked, manualLocked } = lockState(fixed, period);
+  const manualCharge = row.manualCharge ?? (manualLocked ? fixed?.fixedManualCharge ?? null : null);
   return {
     currentReading: row.currentReading === null ? "" : String(row.currentReading),
-    manualCharge: row.manualCharge === null ? "" : String(row.manualCharge),
+    manualCharge: manualCharge === null ? "" : String(manualCharge),
     note: row.note ?? "",
+    usageLocked,
+    lockedUsage: usageLocked ? String(fixed?.fixedUsage ?? 0) : "",
+    manualLocked,
   };
 }
 
@@ -53,6 +69,36 @@ function parsedNumber(value: string): number | null {
   if (!value.trim()) return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+/**
+ * 자물쇠 상태를 저장할 고정값으로 바꾼다. 켜고 끄지 않았고 값도 그대로면 건드리지 않는다
+ * (다른 달에서 건 고정도 그대로 둔다). 새로 켜면 이 달부터, 이미 걸려 있으면 원래 시작월을 유지한다.
+ */
+function fixedChangeFor(
+  unitId: number,
+  draft: ElectricityDraft,
+  fixed: FixedValueRow | undefined,
+  period: string,
+): FixedValueRow | null {
+  const was = lockState(fixed, period);
+  const usage = draft.usageLocked ? parsedNumber(draft.lockedUsage) ?? 0 : null;
+  const manualParsed = draft.manualLocked ? parsedNumber(draft.manualCharge) ?? 0 : null;
+  const manual = manualParsed === null ? null : Math.round(manualParsed);
+  const usageSame = draft.usageLocked === was.usageLocked && (!draft.usageLocked || usage === fixed?.fixedUsage);
+  const manualSame = draft.manualLocked === was.manualLocked && (!draft.manualLocked || manual === fixed?.fixedManualCharge);
+  if (usageSame && manualSame) return null;
+  return {
+    unitId,
+    fixedUsage: usageSame ? fixed?.fixedUsage ?? null : usage,
+    fixedUsageFrom: usageSame
+      ? fixed?.fixedUsageFrom ?? null
+      : usage === null ? null : was.usageLocked ? fixed?.fixedUsageFrom ?? null : period,
+    fixedManualCharge: manualSame ? fixed?.fixedManualCharge ?? null : manual,
+    fixedManualChargeFrom: manualSame
+      ? fixed?.fixedManualChargeFrom ?? null
+      : manual === null ? null : was.manualLocked ? fixed?.fixedManualChargeFrom ?? null : period,
+  };
 }
 
 export default function ElectricityUtilitiesWorkspace() {
@@ -72,19 +118,20 @@ export default function ElectricityUtilitiesWorkspace() {
   const [priceDrafts, setPriceDrafts] = useState<Record<number, string>>({});
 
   const rowsQuery = useUtilityRows(buildingId, utilityType, period);
-  const fixedUsagesQuery = useFixedUsages(buildingId, utilityType);
+  const fixedValuesQuery = useFixedValues(buildingId, utilityType);
   const pricesQuery = useUtilityPrices(buildingId, utilityType);
   const customerNumbersQuery = useCustomerNumberLookup({ kind: "common_elec", pageSize: 100 });
   const billingPeriodQuery = useBillingPeriod(buildingId, period);
   const saveMeterReadings = useSaveMeterReadings();
   const saveBillingPeriod = useSaveBillingPeriod();
   const saveUtilityPrices = useSaveUtilityUnitPrices();
+  const saveFixedValues = useSaveFixedValues();
 
   const buildings = useMemo(() => buildingsQuery.data ?? [], [buildingsQuery.data]);
   const rows = useMemo(() => rowsQuery.data ?? [], [rowsQuery.data]);
-  const fixedUsageByUnit = useMemo(
-    () => new Map((fixedUsagesQuery.data ?? []).map((row) => [row.unitId, row.fixedUsage])),
-    [fixedUsagesQuery.data],
+  const fixedByUnit = useMemo(
+    () => new Map((fixedValuesQuery.data ?? []).map((row) => [row.unitId, row])),
+    [fixedValuesQuery.data],
   );
   const selectedBuilding = useMemo(
     () => buildings.find((building) => building.id === buildingId) ?? null,
@@ -102,9 +149,9 @@ export default function ElectricityUtilitiesWorkspace() {
   const scopedDrafts = useMemo<Record<number, ElectricityDraft>>(
     () => Object.fromEntries(rows.map((row) => [
       row.unitId,
-      drafts[`${draftScope}:${row.unitId}`] ?? draftFor(row),
+      drafts[`${draftScope}:${row.unitId}`] ?? draftFor(row, fixedByUnit.get(row.unitId), period),
     ])),
-    [draftScope, drafts, rows],
+    [draftScope, drafts, fixedByUnit, period, rows],
   );
 
   const defaults = useMemo(() => defaultBillingDates(period), [period]);
@@ -170,9 +217,9 @@ export default function ElectricityUtilitiesWorkspace() {
     const key = `${draftScope}:${unitId}`;
     setDrafts((current) => ({
       ...current,
-      [key]: { ...(current[key] ?? draftFor(row)), ...patch },
+      [key]: { ...(current[key] ?? draftFor(row, fixedByUnit.get(unitId), period)), ...patch },
     }));
-  }, [draftScope, rows]);
+  }, [draftScope, fixedByUnit, period, rows]);
 
   const updateSummaryDraft = useCallback((id: number, patch: Partial<ElectricityCustomerSummaryDraft>) => {
     const row = customerSummaryRows.find((item) => item.id === id);
@@ -236,7 +283,10 @@ export default function ElectricityUtilitiesWorkspace() {
     ])));
     setDrafts((current) => ({
       ...current,
-      ...Object.fromEntries(rows.map((row) => [`${draftScope}:${row.unitId}`, draftFor(row)])),
+      ...Object.fromEntries(rows.map((row) => [
+        `${draftScope}:${row.unitId}`,
+        draftFor(row, fixedByUnit.get(row.unitId), period),
+      ])),
     }));
     setSummaryDrafts((current) => ({
       ...current,
@@ -270,18 +320,24 @@ export default function ElectricityUtilitiesWorkspace() {
       return;
     }
 
+    // 고정한 호실은 지침이 비어도 저장해야 이 달 부과에 고정값이 들어간다(량=서버가 fixed_usage 로 계산).
     const meterRows = rows
       .map((row) => ({ row, draft: scopedDrafts[row.unitId] }))
-      .filter(({ row, draft }) => fixedUsageByUnit.has(row.unitId)
+      .filter(({ draft }) => draft.usageLocked
+        || draft.manualLocked
         || draft.currentReading.trim() !== ""
         || draft.manualCharge.trim() !== ""
         || draft.note.trim() !== "")
       .map(({ row, draft }) => ({
         unit_id: row.unitId,
-        ...(fixedUsageByUnit.has(row.unitId) ? {} : { current_reading: draft.currentReading.trim() }),
+        current_reading: draft.currentReading.trim(),
         manual_charge: draft.manualCharge.trim(),
         note: draft.note.trim(),
       }));
+    const fixedChanges = rows.flatMap((row) => {
+      const change = fixedChangeFor(row.unitId, scopedDrafts[row.unitId], fixedByUnit.get(row.unitId), period);
+      return change ? [change] : [];
+    });
     const prices = (pricesQuery.data ?? [])
       .map((price) => ({
         customer_number_id: price.customerNumberId,
@@ -290,6 +346,10 @@ export default function ElectricityUtilitiesWorkspace() {
       .filter((price): price is { customer_number_id: number; unit_price: number } => price.unit_price !== null);
 
     try {
+      // 고정값을 먼저 써야 save_meter_readings 가 바뀐 고정 사용량으로 량을 계산한다.
+      if (fixedChanges.length > 0) {
+        await saveFixedValues.mutateAsync({ buildingId, utilityType, rows: fixedChanges });
+      }
       await Promise.all([
         saveBillingPeriod.mutateAsync({
           buildingId,
@@ -318,7 +378,7 @@ export default function ElectricityUtilitiesWorkspace() {
     const targets = rows.filter((row) => (
       row.occupancyId !== null
       && row.occupancyStatus !== "vacant"
-      && !fixedUsageByUnit.has(row.unitId)
+      && !scopedDrafts[row.unitId].usageLocked
       && scopedDrafts[row.unitId].currentReading.trim() === ""
       && row.previousReading !== null
     ));
@@ -332,14 +392,10 @@ export default function ElectricityUtilitiesWorkspace() {
   const utilityLabel = utilityType === "water" ? "수도" : utilityType === "gas" ? "가스" : "전기";
   const isElectricityWorkspaceLoading =
     rowsQuery.isLoading ||
-    fixedUsagesQuery.isLoading ||
+    fixedValuesQuery.isLoading ||
     (buildingId !== null && billingPeriodQuery.isLoading);
-  const isElectricityWorkspaceRefreshing =
-    (rowsQuery.isFetching && !rowsQuery.isLoading) ||
-    (fixedUsagesQuery.isFetching && !fixedUsagesQuery.isLoading) ||
-    (billingPeriodQuery.isFetching && !billingPeriodQuery.isLoading);
   const isElectricitySavePending =
-    saveMeterReadings.isPending || saveBillingPeriod.isPending || saveUtilityPrices.isPending;
+    saveFixedValues.isPending || saveMeterReadings.isPending || saveBillingPeriod.isPending || saveUtilityPrices.isPending;
   const needsBasis = buildingId !== null
     && !billingPeriodQuery.isLoading
     && isPrototypeFuturePeriod(period)
@@ -384,11 +440,6 @@ export default function ElectricityUtilitiesWorkspace() {
         />
 
         <main className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-4 min-[1101px]:overflow-auto">
-          {buildingId !== null && isElectricityWorkspaceRefreshing ? (
-            <div className="absolute right-4 top-4 z-10 rounded-lg bg-white/95 shadow-card">
-              <Spinner label="전기 지침 갱신 중" size="small" showLabel />
-            </div>
-          ) : null}
           <ElectricityPeriodBar
             buildingName={selectedBuilding?.name ?? null}
             period={period}

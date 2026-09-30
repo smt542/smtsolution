@@ -362,10 +362,6 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
           period={period}
           utilityType="water"
           onClose={() => setLedgerOpen(false)}
-          onPrinted={() => {
-            setLedgerOpen(false);
-            toast.success("검침대장 출력 처리되었습니다.");
-          }}
         />
       )}
       <CarryOverConfirmModal open={carryOpen} year={year} month={month} onCancel={() => setCarryOpen(false)} onConfirm={carryOver} />

@@ -3,6 +3,7 @@ import {
   clearFixedUsage,
   confirmUtilities,
   saveBillingPeriod,
+  saveFixedValues,
   setFixedUsage,
   saveScopedPrices,
   saveMeterReadings,
@@ -14,6 +15,7 @@ import {
   type ConfirmUtilitiesInput,
   type ClearFixedUsageInput,
   type SaveBillingPeriodInput,
+  type SaveFixedValuesInput,
   type SaveScopedPricesInput,
   type SaveMeterReadingsInput,
   type SavePartnerMeterReadingsInput,
@@ -77,6 +79,17 @@ export function useDeleteWaterDiscount() {
     onSuccess: (_result, input) => qc.invalidateQueries({
       queryKey: utilityKeys.rows(input.buildingId, "water", input.period),
     }),
+  });
+}
+
+export function useSaveFixedValues() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: SaveFixedValuesInput) => saveFixedValues(input),
+    onSuccess: (_result, input) => {
+      qc.invalidateQueries({ queryKey: utilityKeys.fixedValues(input.buildingId, input.utilityType) });
+      qc.invalidateQueries({ queryKey: utilityKeys.fixedUsages(input.buildingId, input.utilityType) });
+    },
   });
 }
 

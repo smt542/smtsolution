@@ -5,6 +5,7 @@ import {
   getUtilityConfirmation,
   getUtilitySupplier,
   listFixedUsages,
+  listFixedValues,
   listMeterHistory,
   listScopedPrices,
   listUtilityPrices,
@@ -66,6 +67,18 @@ export function useFixedUsages(
   return useQuery({
     queryKey: utilityKeys.fixedUsages(buildingId, utilityType),
     queryFn: () => listFixedUsages(buildingId as number, utilityType),
+    enabled: buildingId !== null,
+  });
+}
+
+/** 호실별 지침 자물쇠 고정값(량·수동입력). */
+export function useFixedValues(
+  buildingId: number | null,
+  utilityType: UtilityType,
+) {
+  return useQuery({
+    queryKey: utilityKeys.fixedValues(buildingId, utilityType),
+    queryFn: () => listFixedValues(buildingId as number, utilityType),
     enabled: buildingId !== null,
   });
 }
