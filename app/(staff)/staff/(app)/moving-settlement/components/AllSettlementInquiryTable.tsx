@@ -32,7 +32,8 @@ const NUMBER_CELL = `${TEXT_CELL} text-right tabular-nums`;
 // weight 가 뒤집힌다. 베이스에 weight 를 두지 않고 변형마다 하나씩만 준다.
 const MEDIUM_TEXT_CELL = `${CELL_BASE} font-medium`;
 const MEDIUM_NUMBER_CELL = `${MEDIUM_TEXT_CELL} text-right tabular-nums`;
-const HEADER_CELL = "sticky top-0 z-20 h-[36.5px] border-b border-line bg-[#fbfcfd] px-[16px] text-left text-[11.5px] font-medium text-t3";
+// 머리글 줄높이는 정본처럼 normal — 기본 1.5 면 글자가 정본(칸 위 11px)보다 0.6px 뜬다.
+const HEADER_CELL = "sticky top-0 z-20 h-[36.5px] border-b border-line bg-[#fbfcfd] px-[16px] text-left text-[11.5px] leading-[normal] font-medium text-t3";
 const NUMBER_HEADER_CELL = `${HEADER_CELL} text-right`;
 const SUBTOTAL_CELL = "border-b border-line2 px-[16px]";
 const TOTAL_CELL = "border-t border-line bg-[#fbfcfd] px-[16px]";
@@ -78,10 +79,11 @@ export function AllSettlementInquiryTable({
     <div className="moving-inquiry-scroll min-h-0 flex-1 overflow-auto bg-white">
       {/* h-full: 행이 적어도 합계 행이 목록 하단에 붙게 표를 스크롤 영역 높이로 늘린다.
           남는 높이는 tbody 끝의 빈 행이 가져가고, 행이 넘치면 합계 행은 sticky 로 하단에 남는다. */}
-      <table className="moving-inquiry-table h-full w-[1739px] min-w-[1739px] table-fixed border-collapse">
-        <caption className="sr-only">
-          전기·가스 검침, 입금일과 청소비를 포함한 전체 이사조회 결과
-        </caption>
+      {/* 설명은 caption 대신 aria-label — sr-only caption 이 있으면 표 행 전체가 0.5px 아래로 밀린다. */}
+      <table
+        aria-label="전기·가스 검침, 입금일과 청소비를 포함한 전체 이사조회 결과"
+        className="moving-inquiry-table h-full w-[1739px] min-w-[1739px] table-fixed border-collapse"
+      >
         <colgroup>
           {[
             49, 88, 110, 57, 105, 105, 72, 72, 49, 80,

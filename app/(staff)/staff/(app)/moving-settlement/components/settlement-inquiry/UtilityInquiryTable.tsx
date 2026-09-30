@@ -60,9 +60,10 @@ export function UtilityInquiryTable({
         <thead className="sticky top-0 z-10 bg-[#FBFCFD] text-[11.5px] font-medium text-t3">
           <tr className="h-[36.5px]">
             {columns.map((column) => (
+              // 정본 .hf-tbl th — 위 11px·줄높이 normal. separate 표라 아래 1px 선이 칸 안에 들어가 아래는 10.5px(행 36.5 유지).
               <th
                 key={column.key}
-                className={`border-b border-line px-4 font-medium ${column.align === "right" ? "text-right" : "text-left"}`}
+                className={`border-b border-line px-4 pb-[10.5px] pt-[11px] font-medium leading-[normal] ${column.align === "right" ? "text-right" : "text-left"}`}
               >
                 {column.label}
               </th>
