@@ -1,33 +1,20 @@
 "use client";
 import { useState, type FormEvent } from "react";
-import { Button, CustomDropdown, Modal } from "@/components/common";
+import { Button, Modal } from "@/components/common";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import type { PlatformOrganization } from "@/hooks/reactquery/platform";
 import { formatNumber } from "@/lib/format";
-import {
-  ADMIN_DROPDOWN_MENU_CLASS,
-  ADMIN_FORM_DROPDOWN_CLASS,
-} from "../../../../_components/adminDropdownClasses";
-
-interface ChargeValues {
-  orgId: number;
-  points: number;
-  amountKrw: number;
-}
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  organizations: PlatformOrganization[];
-  onSubmit: (values: ChargeValues) => Promise<void>;
+  /** 충전 금액(원). 1원 = 1P */
+  onSubmit: (amount: number) => Promise<void>;
   isPending: boolean;
 }
 
 // 정본 admin/points #chScrim .modal: min(420px,90%)·r20·p24·줄높이 normal, 제목 17/800/-.02em
 const MODAL_CLASS =
   "max-w-[min(420px,90%)] rounded-[20px] shadow-hf-modal leading-[normal] [&>h2]:text-[17px] [&>h2]:leading-[normal] [&>h2]:tracking-[-0.02em] [&>h2]:text-t1";
-// 정본 .hf-fl2
-const LABEL_CLASS = "mb-1.5 block text-[12.5px] font-bold text-t2";
 // 정본 .hf-in2 — placeholder 규칙이 없어 브라우저 기본색
 const INPUT_CLASS =
   "h-[42px] w-full rounded-[10px] border border-line bg-surface px-[13px] text-[13.5px] font-semibold text-t1 outline-none placeholder:text-[#757575] focus:border-blue focus:ring-[3px] focus:ring-blue-t";
@@ -41,14 +28,11 @@ const QUICK_AMOUNTS = [
 
 const digitsOf = (text: string) => text.replace(/[^0-9]/g, "");
 
-export function PointChargeModal({ open, onClose, organizations, onSubmit, isPending }: Props) {
-  const [orgId, setOrgId] = useState(organizations[0]?.id);
+/** 본사가 팝빌에서 결제한 금액을 기록한다(팝빌 잔액은 자동으로 못 가져온다) — 대상 조직 없음 */
+export function PointChargeModal({ open, onClose, onSubmit, isPending }: Props) {
   const [amount, setAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const busy = isPending || submitting;
-  // 정본은 조직 선택 없이 팝빌 포인트를 충전한다. 앱 포인트는 아직 조직별이라
-  // 조직이 하나면 그 조직에 넣고, 둘 이상일 때만 대상 조직을 고르게 한다.
-  const pickOrganization = organizations.length > 1;
 
   const closeSafely = () => {
     if (!busy) onClose();
@@ -60,7 +44,7 @@ export function PointChargeModal({ open, onClose, organizations, onSubmit, isPen
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (busy || orgId == null) return;
+    if (busy) return;
     const value = Number(digitsOf(amount));
     if (!value) {
       toast.warning("충전 금액을 입력해 주세요");
@@ -68,8 +52,7 @@ export function PointChargeModal({ open, onClose, organizations, onSubmit, isPen
     }
     setSubmitting(true);
     try {
-      // 1원 = 1P
-      await onSubmit({ orgId, points: value, amountKrw: value });
+      await onSubmit(value);
       onClose();
     } catch {
       // 실패 토스트는 호출부가 띄운다 — 입력값을 남긴 채 모달을 둔다
@@ -90,28 +73,8 @@ export function PointChargeModal({ open, onClose, organizations, onSubmit, isPen
           팝빌에서 결제한 충전 금액을 입력해 주세요. 1원 = 1P로 반영됩니다.
         </p>
 
-        {pickOrganization && (
-          <div className="mt-4">
-            <label htmlFor="pc-org" className={LABEL_CLASS}>대상 조직</label>
-            <div className={ADMIN_FORM_DROPDOWN_CLASS}>
-              <CustomDropdown
-                chevron="rotate"
-                chevronMs={180}
-                id="pc-org"
-                ariaLabel="대상 조직"
-                value={orgId == null ? "" : String(orgId)}
-                options={organizations.map((o) => ({ value: String(o.id), label: o.name }))}
-                position="fixed"
-                menuMinWidth={0}
-                menuClassName={ADMIN_DROPDOWN_MENU_CLASS}
-                onChange={(value) => setOrgId(Number(value))}
-              />
-            </div>
-          </div>
-        )}
-
         <div className="mt-4">
-          <label htmlFor="pc-amount" className={LABEL_CLASS}>충전 금액</label>
+          <label htmlFor="pc-amount" className="mb-1.5 block text-[12.5px] font-bold text-t2">충전 금액</label>
           <input
             id="pc-amount"
             inputMode="numeric"

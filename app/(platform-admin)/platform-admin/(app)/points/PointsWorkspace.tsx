@@ -192,14 +192,19 @@ export default function PointsWorkspace() {
     ]);
   };
 
-  const handleCharge = async (values: {
-    orgId: number;
-    points: number;
-    amountKrw: number;
-  }) => {
+  // 팝빌 포인트 충전 = 본사의 팝빌 결제 기록(대상 조직 없음). 포인트 원장은 아직 조직별이라
+  // 단일 풀로 바뀌기 전까지 가장 먼저 만든 운영 중 조직에 기록한다.
+  const chargeTargetOrgId = useMemo(() => {
+    const byOldest = [...modalOrganizations].sort((a, b) => a.id - b.id);
+    return (byOldest.find((organization) => organization.status === "active") ?? byOldest[0])?.id;
+  }, [modalOrganizations]);
+
+  const handleCharge = async (amount: number) => {
     try {
-      await charge.mutateAsync(values);
-      toast.success(`${num(values.points)}P를 충전했어요`);
+      if (chargeTargetOrgId == null) throw new Error("충전을 기록할 조직이 없습니다.");
+      // 1원 = 1P
+      await charge.mutateAsync({ orgId: chargeTargetOrgId, points: amount, amountKrw: amount });
+      toast.success(`${num(amount)}P를 충전했어요`);
       setHistoryPage(1);
     } catch (error) {
       toast.error(error, "충전 기록에 실패했습니다.");
@@ -392,7 +397,6 @@ export default function PointsWorkspace() {
           <PointChargeModal
             open
             onClose={() => setChargeModalOpen(false)}
-            organizations={modalOrganizations}
             onSubmit={handleCharge}
             isPending={charge.isPending}
           />
