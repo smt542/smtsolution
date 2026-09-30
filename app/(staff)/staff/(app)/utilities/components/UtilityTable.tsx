@@ -5,7 +5,6 @@ import { GridEmptyValue } from "./GridEmptyValue";
 import { UtilityGrid, type UtilityGridColumn } from "./UtilityGrid";
 import {
   FIXED_LOCK_CELL,
-  LOCKED_INPUT,
   LockedValue,
   LockPin,
   manualLockPatch,
@@ -150,16 +149,12 @@ function getUtilityRowState(row: UtilityTableRow, draft: UtilityDraft, reference
 }
 
 const inputClass = "h-[26px] w-14 rounded-[7px] border border-teal bg-white px-[7px] text-right text-[11.5px] font-semibold text-t1 outline-none focus:ring-1 focus:ring-teal/20 disabled:border-line disabled:bg-line2 disabled:text-t4";
-/** 자물쇠가 켜진 입력칸: inputClass 와 같은 크기에 고정 칸 색(공실용 disabled: 스타일은 섞지 않는다). */
-const lockedInputClass = `h-[26px] w-14 rounded-[7px] px-[7px] text-right text-[11.5px] font-semibold outline-none ${LOCKED_INPUT}`;
 
 function ReadingInput({
   label,
   value,
   disabled,
   readOnly = false,
-  hideZero = true,
-  className = inputClass,
   step,
   onChange,
 }: {
@@ -167,13 +162,11 @@ function ReadingInput({
   value: string;
   disabled?: boolean;
   readOnly?: boolean;
-  hideZero?: boolean;
-  className?: string;
   step?: string;
   onChange: (value: string) => void;
 }) {
   const [focused, setFocused] = useState(false);
-  const displayValue = hideZero && !focused && parseNumber(value) === 0 ? "" : value;
+  const displayValue = !focused && parseNumber(value) === 0 ? "" : value;
 
   return (
     <input
@@ -188,7 +181,7 @@ function ReadingInput({
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
       onChange={(event) => onChange(event.target.value)}
-      className={className}
+      className={inputClass}
     />
   );
 }
@@ -276,13 +269,13 @@ export function UtilityTable({
       stopRowClick: true,
       render: (item) => editing ? (
         <div className="flex items-center justify-end gap-[5px]">
-          {/* 자물쇠를 켠 동안은 입력할 수 없다 — 값을 바꾸려면 풀고 고친 뒤 다시 잠근다(2026-09-30 사용자 결정. 정본은 켠 채로 입력). */}
+          {/* 자물쇠를 켠 동안은 칸 모양은 그대로 두고 입력만 막는다 — 값을 바꾸려면 풀고 고친 뒤 다시 잠근다
+              (2026-09-30 사용자 결정. 정본은 켠 채로 입력 가능). */}
           <ReadingInput
             label={`${item.row.unitNo} 사용량`}
             value={item.draft.usageLocked ? item.draft.lockedUsage : item.draft.usage}
-            disabled={item.state.vacant || item.draft.usageLocked}
-            hideZero={!item.draft.usageLocked}
-            className={item.draft.usageLocked && !item.state.vacant ? lockedInputClass : inputClass}
+            disabled={item.state.vacant}
+            readOnly={item.draft.usageLocked}
             step="0.01"
             onChange={(value) => onDraftChange(item.row.unitId, { usage: value, usageEdited: true })}
           />
@@ -329,7 +322,7 @@ export function UtilityTable({
       stopRowClick: true,
       render: (item) => editing ? (
         <div className="flex items-center justify-end gap-[5px]">
-          <ReadingInput label={`${item.row.unitNo} 수동입력`} value={item.draft.manualCharge} disabled={item.state.vacant || item.draft.manualLocked} hideZero={!item.draft.manualLocked} className={item.draft.manualLocked && !item.state.vacant ? lockedInputClass : inputClass} step="1" onChange={(value) => onDraftChange(item.row.unitId, { manualCharge: value })} />
+          <ReadingInput label={`${item.row.unitNo} 수동입력`} value={item.draft.manualCharge} disabled={item.state.vacant} readOnly={item.draft.manualLocked} step="1" onChange={(value) => onDraftChange(item.row.unitId, { manualCharge: value })} />
           {item.state.vacant ? <span aria-hidden="true" className="size-[22px] flex-none" /> : (
             <LockPin
               locked={item.draft.manualLocked}
