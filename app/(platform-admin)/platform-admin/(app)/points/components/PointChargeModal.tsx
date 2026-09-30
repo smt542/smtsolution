@@ -85,6 +85,8 @@ export function PointChargeModal({ open, onClose, organizations, onSubmit, isPen
               name="orgId"
               render={({ field }) => (
                 <CustomDropdown
+                  chevron="rotate"
+                  chevronMs={180}
                   id="pc-org"
                   ariaLabel="대상 조직"
                   value={field.value == null ? "" : String(field.value)}

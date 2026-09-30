@@ -57,6 +57,7 @@ export function SettlementForm({
   onFinalPaidDateChange = () => undefined,
   paymentInputRef = EMPTY_INPUT_REF,
   bodyRef,
+  billingUnpaid = 0,
 }: {
   buildingName?: string;
   buildingTypeId?: number | null;
@@ -78,6 +79,8 @@ export function SettlementForm({
   paymentInputRef?: RefObject<HTMLInputElement | null>;
   /** 폼 본문 스크롤 영역(정본 #msBody). [수납액 입력]이 이 영역을 수납액 칸까지 부드럽게 올린다. */
   bodyRef?: RefObject<HTMLDivElement | null>;
+  /** 확정 부과분 미납(0171). 하단 요약바의 미납 소계·미수금에 쓴다. */
+  billingUnpaid?: number;
 }) {
   // 관리비 소계는 관리비 항목(fee_items)x당월 부과액에서 계산된다. 섹션 표시값과
   // 하단 요약바/미수금/저장값이 어긋나지 않도록 계산 결과를 draft 에 되돌려 넣어
@@ -183,6 +186,7 @@ export function SettlementForm({
         otherTotal={value.repairAmount ?? 0}
         receivedAmount={receivedAmount}
         total={amount}
+        billingUnpaid={billingUnpaid}
       />
     </section>
   );

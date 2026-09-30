@@ -82,6 +82,7 @@ export function SettlementInquiryToolbar({
           check: 정본 moving-gas·moving-elec·moving-water 는 `.uc-opt svg{opacity:0}` 만 두고
           `.uc-opt.on svg{opacity:1}` 이 없다 — 선택 표시는 배경·색·굵기뿐이고 체크는 안 뜬다. */}
       <CustomDropdown
+        menuTransition
         compact
         position="fixed"
         check="never"
@@ -91,6 +92,7 @@ export function SettlementInquiryToolbar({
         onChange={(value) => onFromMonthChange(`${value}-${fromValue}`)}
       />
       <CustomDropdown
+        menuTransition
         compact
         position="fixed"
         check="never"
@@ -101,6 +103,7 @@ export function SettlementInquiryToolbar({
       />
       <span className="w-[9px] shrink-0 text-[12px] font-bold text-t3">~</span>
       <CustomDropdown
+        menuTransition
         compact
         position="fixed"
         check="never"
@@ -110,6 +113,7 @@ export function SettlementInquiryToolbar({
         onChange={(value) => onToMonthChange(`${value}-${toValue}`)}
       />
       <CustomDropdown
+        menuTransition
         compact
         position="fixed"
         check="never"
@@ -123,6 +127,7 @@ export function SettlementInquiryToolbar({
 
       <span className="w-[34px] shrink-0 text-[12px] font-bold text-t3">신청일</span>
       <CustomDropdown
+        menuTransition
         compact
         position="fixed"
         check="never"
@@ -136,6 +141,7 @@ export function SettlementInquiryToolbar({
         }
       />
       <CustomDropdown
+        menuTransition
         compact
         position="fixed"
         check="never"
@@ -149,6 +155,7 @@ export function SettlementInquiryToolbar({
         }
       />
       <CustomDropdown
+        menuTransition
         compact
         position="fixed"
         check="never"

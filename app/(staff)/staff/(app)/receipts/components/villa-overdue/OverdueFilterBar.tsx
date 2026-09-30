@@ -39,6 +39,8 @@ export function OverdueFilterBar({
     <div className="relative z-[5] flex shrink-0 flex-wrap items-center gap-[8px] border-b border-line bg-surface px-[16px] py-[13px]">
       {/* 정본 `.auto-bar`의 compact `.uc-dd`와 `.auto-lbl` 필터 규격을 사용한다. */}
       <CustomDropdown
+        chevron="accent"
+        menuTransition
         ariaLabel="조회 연도"
         value={String(year)}
         options={yearOptions}
@@ -48,6 +50,8 @@ export function OverdueFilterBar({
         menuMinWidth={104}
       />
       <CustomDropdown
+        chevron="accent"
+        menuTransition
         ariaLabel="조회 월"
         value={String(month)}
         options={monthOptions}
@@ -59,6 +63,8 @@ export function OverdueFilterBar({
       <span className="text-[12px] font-bold text-t3">까지</span>
       <span className="ml-[6px] text-[12px] font-bold text-t3">연체</span>
       <CustomDropdown
+        chevron="accent"
+        menuTransition
         ariaLabel="연체 개월 하한"
         value={String(minOverdue)}
         options={minOverdueOptions}

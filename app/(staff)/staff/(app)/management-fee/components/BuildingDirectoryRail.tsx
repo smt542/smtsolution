@@ -82,6 +82,8 @@ export function BuildingDirectoryRail({
             <div className="flex flex-none items-center gap-[6px]">
               <div className={`flex-none ${dropdownCallSiteClass} [&_.uc-dd-menu]:min-w-[104px]`}>
                 <CustomDropdown
+                  chevron="accent"
+                  menuTransition
                   ariaLabel="부과 연도"
                   value={String(year)}
                   options={yearOptions}
@@ -91,6 +93,8 @@ export function BuildingDirectoryRail({
               </div>
               <div className={`flex-none ${dropdownCallSiteClass} [&_.uc-dd-menu]:min-w-[112px]`}>
                 <CustomDropdown
+                  chevron="accent"
+                  menuTransition
                   ariaLabel="부과 월"
                   value={String(month)}
                   options={monthOptions}
@@ -114,6 +118,8 @@ export function BuildingDirectoryRail({
             </div>
             <div className={`flex-none ${dropdownCallSiteClass} [&_.uc-dd-menu]:min-w-[104px]`}>
               <CustomDropdown
+                chevron="accent"
+                menuTransition
                 ariaLabel="건물 그룹"
                 value={groupType}
                 options={BUILDING_GROUP_FILTER_OPTIONS}

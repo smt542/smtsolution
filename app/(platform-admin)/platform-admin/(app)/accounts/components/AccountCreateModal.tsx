@@ -124,6 +124,8 @@ export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props
               name="orgId"
               render={({ field }) => (
                 <CustomDropdown
+                  chevron="rotate"
+                  chevronMs={180}
                   id="platform-account-org"
                   ariaLabel="대상 조직"
                   value={field.value == null ? "" : String(field.value)}
@@ -198,6 +200,8 @@ export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props
                 name="role"
                 render={({ field }) => (
                   <CustomDropdown
+                    chevron="rotate"
+                    chevronMs={180}
                     id="platform-account-role"
                     ariaLabel="역할"
                     value={String(field.value ?? "")}
@@ -218,6 +222,8 @@ export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props
                 name="staffType"
                 render={({ field }) => (
                   <CustomDropdown
+                    chevron="rotate"
+                    chevronMs={180}
                     id="platform-account-staff-type"
                     ariaLabel="직원 유형"
                     value={String(field.value ?? "")}
