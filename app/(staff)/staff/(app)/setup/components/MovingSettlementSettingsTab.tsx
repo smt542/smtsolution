@@ -91,7 +91,12 @@ export function MovingSettlementSettingsTab() {
   }, [data]);
 
   const onAdd = () => {
-    if (!orgId || items.length >= MAX_CHECK_ITEMS) return;
+    if (!orgId || createItem.isPending) return;
+    // 정본 #ckAdd: 가득 차도 버튼은 그대로 두고 누르면 안내만 한다.
+    if (items.length >= MAX_CHECK_ITEMS) {
+      toast.warning(`항목은 최대 ${MAX_CHECK_ITEMS}개까지예요`);
+      return;
+    }
     // settlement_check_items는 (org_id, label)이 유니크라 기본 이름을 그대로 쓰면 두 번째 추가가 실패한다.
     const label = nextDefaultLabel(items.map((item) => item.label), "새 항목");
     void createItem.mutateAsync({ orgId, label }).catch((e) => {
@@ -162,7 +167,6 @@ export function MovingSettlementSettingsTab() {
       >
         <NumberedTagList
           items={items.map((item) => ({ id: String(item.id), label: labels[item.id] ?? item.label }))}
-          max={MAX_CHECK_ITEMS}
           columns={5}
           onChange={onChangeLabel}
           onCommit={onCommitRename}
