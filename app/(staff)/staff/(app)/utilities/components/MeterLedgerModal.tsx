@@ -2,10 +2,10 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
-import { Button, IconButton } from "@/components/common";
+import { Button, IconButton, Spinner } from "@/components/common";
 import { CustomDropdown } from "@/components/common/CustomDropdown";
 import { PrintSheet } from "@/components/common/PrintSheet";
-import { CloseIcon, PrinterIcon, SearchIcon } from "@/components/icons";
+import { CloseIcon, PrinterIcon } from "@/components/icons";
 import type { Building } from "@/hooks/reactquery/buildings";
 import {
   customerNumberKeys,
@@ -39,9 +39,16 @@ const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => ({
 }));
 
 // 정본 `.lg-srch .uc-dd`: 메뉴 왼쪽 정렬·패딩 5·옵션 간격 10·옵션 hover #F5F7F9·버튼 hover 테두리만.
+// 화살표는 평소 t3, 열리면 .16s 동안 180° 돌며 청록(`.uc-dd.open .uc-dd-btn svg`).
 const LEDGER_DROPDOWN = [
   "[&_.uc-dd-btn_svg]:h-[14px]",
   "[&_.uc-dd-btn_svg]:w-[14px]",
+  "[&_.uc-dd-btn_svg]:text-t3",
+  "[&_.uc-dd-btn_svg]:transition-transform",
+  "[&_.uc-dd-btn_svg]:duration-[160ms]",
+  "[&_.uc-dd-btn_svg]:ease-[ease]",
+  "[&_.uc-dd.open_.uc-dd-btn_svg]:rotate-180",
+  "[&_.uc-dd.open_.uc-dd-btn_svg]:text-blue",
   "[&_.uc-dd:not(.open)_.uc-dd-btn:hover]:border-[#C9D0D8]",
   "[&_.uc-dd:not(.open)_.uc-dd-btn:hover]:shadow-none",
   "[&_.uc-dd-menu]:left-0",
@@ -148,22 +155,24 @@ export function MeterLedgerModal({
       queryFn: () => listCustomerNumbersByBuilding(building.id),
     })),
   });
-  const queries = [...rowQueries, ...numberQueries];
-  const loading = queries.some((query) => query.isLoading);
-  const failed = queries.some((query) => query.error);
-  const sources: MeterLedgerSource[] = selectedBuildings.map((building, index) => {
-    const numbers = numberQueries[index]?.data ?? [];
-    return {
+  const failed = [...rowQueries, ...numberQueries].some((query) => query.error);
+  // 다 불러온 건물부터 보인다 — 건물을 더 고를 때 이미 그린 쪽이 사라졌다 다시 나오지 않게 한다.
+  const sources: MeterLedgerSource[] = selectedBuildings.flatMap((building, index) => {
+    const rows = rowQueries[index]?.data;
+    const numbers = numberQueries[index]?.data;
+    if (!rows || !numbers) return [];
+    return [{
       building,
-      rows: rowQueries[index]?.data ?? [],
+      rows,
       waterCustomerNumbers: numbers.filter((item) => item.kind === "water").map((item) => item.customerNo),
       // 건물 단위 전기 고객번호는 대부분 공용전기(common_elec)다 — 전기 탭 레일 '전기' 칸도 이 종류를 센다.
       electricityCustomerNumbers: numbers
         .filter((item) => item.kind === "elec" || item.kind === "common_elec")
         .map((item) => item.customerNo),
-    };
+    }];
   });
-  const showPreview = selectedBuildings.length > 0 && !loading && !failed;
+  const allLoaded = selectedBuildings.length > 0 && sources.length === selectedBuildings.length;
+  const showPreview = sources.length > 0 && !failed;
   const allSelected = orderedBuildings.length > 0 && selectedIds.length === orderedBuildings.length;
 
   useEffect(() => {
@@ -208,11 +217,9 @@ export function MeterLedgerModal({
 
   const previewMessage = selectedBuildings.length === 0
     ? <>출력할 건물을 선택해 주세요<br />선택한 건물의 검침대장이 여기에 표시돼요</>
-    : loading
-      ? "검침대장을 불러오는 중이에요"
-      : failed
-        ? "검침대장을 불러오지 못했어요"
-        : null;
+    : failed
+      ? "검침대장을 불러오지 못했어요"
+      : null;
 
   return (
     <div
@@ -249,6 +256,7 @@ export function MeterLedgerModal({
                     ariaLabel="출력 연도"
                     value={year}
                     compact
+                    menuTransition
                     options={YEAR_OPTIONS}
                     onChange={(value) => setPrintPeriod(`${value}-${month}-01`)}
                   />
@@ -258,6 +266,7 @@ export function MeterLedgerModal({
                     ariaLabel="출력 월"
                     value={month}
                     compact
+                    menuTransition
                     options={MONTH_OPTIONS}
                     onChange={(value) => setPrintPeriod(`${year}-${value}-01`)}
                   />
@@ -265,13 +274,25 @@ export function MeterLedgerModal({
               </div>
               <label className="relative block">
                 <span className="sr-only">코드·건물명·주소 검색</span>
-                <SearchIcon className="pointer-events-none absolute left-[11px] top-1/2 size-[15px] -translate-y-1/2 text-t3" />
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-[11px] top-1/2 size-[15px] -translate-y-1/2 text-t3"
+                >
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M20 20l-3-3" />
+                </svg>
+                {/* 정본 #lgSrch 는 placeholder 색을 따로 주지 않아 브라우저 기본(#757575)이다. */}
                 <input
                   aria-label="코드·건물명·주소 검색"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="코드·건물명·주소 검색"
-                  className="h-[34px] w-full rounded-[9px] border border-line bg-white pl-[31px] pr-[11px] text-[13px] font-semibold text-t1 outline-none placeholder:text-t4"
+                  className="h-[34px] w-full rounded-[9px] border border-line bg-white pl-[31px] pr-[11px] text-[13px] font-semibold text-t1 outline-none placeholder:text-[#757575]"
                 />
               </label>
             </div>
@@ -317,9 +338,14 @@ export function MeterLedgerModal({
               <div ref={stackRef} className="flex w-[794px] origin-top-left flex-col items-start">
                 <MeterLedgerDocument sources={sources} period={printPeriod} utilityType={utilityType} />
               </div>
-            ) : (
+            ) : previewMessage ? (
               <div className={`flex h-full items-center justify-center text-center text-[13px] font-medium leading-[1.6] ${failed ? "text-red" : "text-t3"}`}>
                 {previewMessage}
+              </div>
+            ) : (
+              // 정본은 즉시 그리지만 앱은 건물 자료를 불러와야 한다 — 처음 불러오는 동안만 공용 스피너.
+              <div className="flex h-full items-center justify-center">
+                <Spinner label="검침대장 불러오는 중" showLabel />
               </div>
             )}
           </div>
@@ -334,7 +360,7 @@ export function MeterLedgerModal({
             type="button"
             size="wide"
             className="shadow-none"
-            disabled={!showPreview || printing}
+            disabled={!allLoaded || failed || printing}
             onClick={() => setPrinting(true)}
           >
             <PrinterIcon className="size-4 flex-none" />
