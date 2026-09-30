@@ -73,7 +73,8 @@ export interface PlatformOrganization {
   address: string | null;
   region: string | null;
   operatingHours: string | null;
-  contractFilePath: string | null;
+  /** 계약서 사진 경로들(정본 '여러 장 가능', 0209) */
+  contractFilePaths: string[];
   unitCount: number;
   employeeCount: number;
   tenantCount: number;
@@ -158,6 +159,7 @@ interface OrganizationRpcRow {
   region?: string | null;
   operating_hours?: string | null;
   contract_file_path?: string | null;
+  contract_file_paths?: string[] | null;
   account_count: number | string;
   building_count: number | string;
   unit_count?: number | string;
@@ -234,7 +236,7 @@ function mapPlatformOrganization(row: OrganizationRpcRow): PlatformOrganization 
     address: row.address ?? null,
     region: row.region ?? null,
     operatingHours: row.operating_hours ?? null,
-    contractFilePath: row.contract_file_path ?? null,
+    contractFilePaths: row.contract_file_paths ?? (row.contract_file_path ? [row.contract_file_path] : []),
     unitCount: Number(row.unit_count ?? 0),
     employeeCount: Number(row.employee_count ?? 0),
     tenantCount: Number(row.tenant_count ?? 0),
@@ -462,7 +464,7 @@ export interface CreateOrgInput {
   address: string;
   region: string;
   operatingHours?: string | null;
-  contractFilePath?: string | null;
+  contractFilePaths?: string[];
   /** 정본 신규 테넌트: 관리자 아이디 + 초기 비밀번호(숫자 4자리). 관리자 이름은 서버가 대표자명으로 채운다. */
   owner: { username: string; password: string };
 }
@@ -501,7 +503,8 @@ export async function updatePlatformOrganization(id: number, input: UpdateOrgInp
     p_address: input.address,
     p_region: input.region,
     p_operating_hours: input.operatingHours || null,
-    p_contract_file_path: input.contractFilePath || null,
+    p_contract_file_path: input.contractFilePaths?.[0] ?? null,
+    p_contract_file_paths: input.contractFilePaths ?? [],
   });
   if (error) throw new Error(error.message);
 }
