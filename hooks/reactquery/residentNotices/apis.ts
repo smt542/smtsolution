@@ -71,3 +71,9 @@ export async function residentNoticeDetail(
   const row = ((data ?? []) as ResidentNoticeDetailRow[])[0];
   return row ? rowToNoticeDetail(row) : null;
 }
+
+export async function residentBuildingNotice(): Promise<string | null> {
+  const { data, error } = await createClient().rpc("resident_building_notice");
+  if (error) throw new Error(error.message);
+  return typeof data === "string" && data.trim() ? data : null;
+}

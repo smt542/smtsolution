@@ -13,8 +13,8 @@ export const loginClasses = {
   card: "relative rounded-[20px] bg-white p-5 shadow-[0_18px_40px_-18px_rgba(23,31,40,0.35),0_2px_6px_rgba(23,31,40,0.06)] animate-[rise-card_0.6s_240ms_cubic-bezier(0.22,0.61,0.36,1)_both,float-big_7s_1s_ease-in-out_infinite] [@media(max-height:660px)]:p-[17px] [@media(max-height:560px)]:p-[15px]",
   cardContent: "block",
   cardHeader: "flex items-center justify-between gap-2.5 [&>span:first-child]:text-[12.5px] [&>span:first-child]:font-semibold [&>span:first-child]:text-t3",
-  chip: "rounded-[7px] bg-red-t px-2 py-1 text-[11.5px] font-extrabold text-red",
-  chipOk: "bg-blue-t text-blue-d",
+  // 정본 렌더값: `.cw span`(12.5px·600)이 `.chip` 글자 크기·굵기를 덮고, 색은 `.chip.ok`(청록)다.
+  chip: "rounded-[7px] bg-blue-t px-2 py-1 text-[12.5px] font-semibold leading-[normal] text-blue-d",
   amount: "mt-[9px] text-[30px] font-extrabold tabular-nums tracking-[-0.04em] [@media(max-height:760px)]:text-[27px] [@media(max-height:660px)]:text-[25px] [@media(max-height:560px)]:mt-1.5 [@media(max-height:560px)]:text-[23px] [&_i]:ml-0.5 [&_i]:text-[17px] [&_i]:font-bold [&_i]:not-italic",
   meta: "mt-[7px] flex items-center gap-1.5 text-[12.5px] font-semibold text-t3 [@media(max-height:560px)]:mt-[5px] [@media(max-height:560px)]:text-[11.5px] [&_b]:font-bold [&_b]:text-t2",
   divider: "my-[15px] h-px bg-line2 [@media(max-height:660px)]:my-3 [@media(max-height:560px)]:my-2",
@@ -34,13 +34,12 @@ export const loginClasses = {
   cardIn: "block",
   h1: "mt-[26px] text-[27px] font-extrabold leading-[1.35] tracking-[-0.035em] animate-[rise_0.55s_60ms_cubic-bezier(0.22,0.61,0.36,1)_both] [&_span]:text-blue",
   cw: "flex items-center justify-between gap-2.5 [&>span:first-child]:text-[12.5px] [&>span:first-child]:font-semibold [&>span:first-child]:text-t3",
-  ok: "bg-blue-t text-blue-d",
   amt: "mt-[9px] text-[30px] font-extrabold tabular-nums tracking-[-0.04em] [&_i]:ml-0.5 [&_i]:text-[17px] [&_i]:font-bold [&_i]:not-italic",
   split: "my-[15px] h-px bg-line2",
   mini: "flex items-center justify-between gap-2.5 text-[13px] font-semibold text-t2 [&+&]:mt-2 [&_b]:font-bold [&_b]:tabular-nums",
   foot: "mt-auto flex flex-none flex-col items-stretch gap-3.5 px-7 pb-[calc(env(safe-area-inset-bottom)+26px)] pt-5",
   alt: "self-center rounded-none bg-transparent px-1.5 py-1 text-[13.5px] font-semibold text-t3 underline decoration-1 underline-offset-[3px] hover:text-t2",
-  sheetT: "text-lg font-extrabold tracking-[-0.02em]",
+  sheetT: "text-lg font-extrabold leading-[normal] tracking-[-0.02em]",
   sheetD: "mt-2 text-sm font-medium leading-[1.65] text-t2",
   // 정본(resident-login.dc.html `.sheet-btn`)은 border-radius:14px. `rounded-btn`(11px)은
   // 정본 표준 액션 버튼용 토큰이라 이 화면에는 맞지 않는다.

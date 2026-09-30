@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import type { ResidentBillMonth } from "@/hooks/reactquery/residentBilling/apis";
 import { formatWon } from "@/lib/format";
+import ResidentStatusChip from "@/app/(resident)/_components/ResidentStatusChip";
 
 import { billClasses as styles } from "./billClasses";
 
@@ -82,7 +83,9 @@ export default function ResidentBillHistory({
                 role="tab"
                 aria-selected={year === activeYear}
                 className={
-                  year === activeYear ? `${styles.yb} ${styles.ybOn}` : styles.yb
+                  year === activeYear
+                    ? `${styles.yb} ${styles.ybOn}`
+                    : `${styles.yb} ${styles.ybOff}`
                 }
                 onClick={() => setSelectedYear(year)}
                 key={year}
@@ -163,15 +166,7 @@ export default function ResidentBillHistory({
                         )}
                       </div>
                     </div>
-                    <span
-                      className={
-                        paid
-                          ? `${styles.chip} ${styles.chipPaid}`
-                          : `${styles.chip} ${styles.chipDue}`
-                      }
-                    >
-                      {paid ? "완납" : "미납"}
-                    </span>
+                    <ResidentStatusChip paid={paid} />
                     <ChevronIcon />
                   </Link>
                 );

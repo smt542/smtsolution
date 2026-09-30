@@ -4,6 +4,7 @@ import { Document, Font, Page, StyleSheet, Text, View, pdf } from "@react-pdf/re
 import type { PlatformOrgBilling, PlatformSettings } from "@/hooks/reactquery/platform";
 import { formatNumber } from "@/lib/format";
 import {
+  INVOICE_UNSET,
   type InvoiceConfig,
   invoiceNo,
   lineItems,
@@ -127,7 +128,7 @@ function InvoicePdfDocument({ row, month, config, settings }: InvoicePdfInput) {
   const items = lineItems(row, settings);
   const [year, mon] = month.split("-").map(Number);
   return (
-    <Document title={`${year}년 ${mon}월 발송비 청구서 — ${row.orgName}`} author={config.accountHolder} language="ko">
+    <Document title={`${year}년 ${mon}월 발송비 청구서 — ${row.orgName}`} author={config.accountHolder === INVOICE_UNSET ? undefined : config.accountHolder} language="ko">
       <Page size="A4" style={styles.page}>
         {/* .iv-hd: 제목·번호 / 발행처 */}
         <View style={styles.hd}>
@@ -188,13 +189,13 @@ function InvoicePdfDocument({ row, month, config, settings }: InvoicePdfInput) {
 
         {/* .iv-acc */}
         <View style={styles.acc}>
-          <Text style={styles.accLabel}>입금 계좌 · 기한 발행일로부터 {config.dueDays}일</Text>
-          <Text style={styles.accNo}>{config.bank} {config.accountNo}</Text>
+          <Text style={styles.accLabel}>입금 계좌 · 기한 {config.due}</Text>
+          <Text style={styles.accNo}>{config.account}</Text>
           <Text style={styles.accHolder}>예금주 {config.accountHolder}</Text>
         </View>
 
         {/* .iv-memo */}
-        <Text style={styles.memo}>{config.notice}</Text>
+        {config.notice ? <Text style={styles.memo}>{config.notice}</Text> : null}
       </Page>
     </Document>
   );

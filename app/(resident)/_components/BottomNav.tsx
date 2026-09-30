@@ -40,7 +40,10 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="z-20 grid min-h-[68px] flex-none grid-cols-3 gap-1 border-t border-line bg-white px-3 pb-[calc(8px+env(safe-area-inset-bottom))] pt-2" aria-label="주요 메뉴">
+    <nav
+      className="z-20 flex flex-none border-t border-line bg-white pt-[9px] pb-[calc(env(safe-area-inset-bottom)+10px)] leading-[normal]"
+      aria-label="주요 메뉴"
+    >
       {tabs.map((tab) => {
         const active =
           pathname === tab.href || pathname.startsWith(`${tab.href}/`);
@@ -48,11 +51,12 @@ export default function BottomNav() {
         return (
           <Link
             href={tab.href}
-            className={`flex min-w-0 flex-col items-center justify-center gap-[3px] rounded-xl text-[11px] font-bold text-t3 no-underline hover:bg-blue-t2 hover:text-blue-d ${active ? "text-blue-d" : ""}`}
+            className={`flex flex-1 flex-col items-center gap-1 text-[11.5px] font-bold no-underline cursor-pointer ${active ? "text-blue" : "text-t4"}`}
             aria-current={active ? "page" : undefined}
             key={tab.href}
           >
-            <svg className="h-[22px] w-[22px]"
+            <svg
+              className="size-[25px]"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
