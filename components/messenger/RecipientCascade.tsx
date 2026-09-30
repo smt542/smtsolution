@@ -600,7 +600,7 @@ export function RecipientCascade({
                 {filteredBuildings.map((building) => (
                   <div
                     key={building.id}
-                    className={`${styles.opt} ${styles["opt-plain"]} ${styles.bld} ${building.id === selection.buildingId ? `${styles.on} ${styles["opt-ck-bld"]}` : ""}`}
+                    className={`${styles.opt} ${styles["opt-plain"]} ${styles.bld} ${building.id === selection.buildingId ? `${styles.on} ${styles["opt-ck"]}` : ""}`}
                     onClick={() => chooseBuilding(building.id)}
                   >
                     <span className={styles.oc}>{building.code}</span>
