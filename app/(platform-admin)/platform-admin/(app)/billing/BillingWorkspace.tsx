@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Badge, EmptyState, Spinner } from "@/components/common";
+import { DpMonthPicker } from "@/components/common/DpMonthPicker";
 import {
   useMarkOrgBillingPaid,
   usePlatformOrgBilling,
@@ -11,13 +12,9 @@ import {
   type PlatformOrgBillingStatus,
 } from "@/hooks/reactquery/platform";
 import { formatNumber } from "@/lib/format";
-import {
-  BoundedMonthStepper,
-  PlatformPagination,
-  QueryError,
-} from "../../../_components/PageElements";
+import { PlatformPagination, QueryError } from "../../../_components/PageElements";
 import { PlatformPageContainer } from "../../../_components/PlatformPageContainer";
-import { TableFrame } from "../../../_components/TableFrame";
+import { useFitPageSize } from "../../../_components/useFitPageSize";
 import { InvoiceBulkPrintRoot } from "./_components/InvoiceBulkPrintRoot";
 import { invoiceConfigFromSettings } from "./_components/InvoiceDocument";
 import { InvoicePreviewModal } from "./_components/InvoicePreviewModal";
@@ -49,11 +46,13 @@ const STATUS_TABS: { id: "all" | PlatformOrgBillingStatus; label: string }[] = [
 ];
 
 export function BillingWorkspace() {
-  const [month, setMonth] = useState(currentMonthIso);
+  const [currentMonth] = useState(currentMonthIso);
+  const [month, setMonth] = useState(currentMonth);
   const [tab, setTab] = useState<"all" | PlatformOrgBillingStatus>("all");
   const [page, setPage] = useState(1);
   const [previewOrgId, setPreviewOrgId] = useState<number | null>(null);
   const [bulkRows, setBulkRows] = useState<PlatformOrgBilling[]>([]);
+  const scrollerRef = useRef<HTMLDivElement>(null);
   const billingQuery = usePlatformOrgBilling(month);
   const settingsQuery = usePlatformSettings();
   const markPaid = useMarkOrgBillingPaid();
@@ -100,9 +99,11 @@ export function BillingWorkspace() {
     () => (tab === "all" ? rows : rows.filter((row) => row.status === tab)),
     [rows, tab],
   );
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  // 정본 fitBm: 목록 영역 남는 높이에 들어가는 만큼 한 쪽 행 수(최소 3)
+  const pageSize = useFitPageSize(scrollerRef, { fallback: PAGE_SIZE, watch: filtered });
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const pagedRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const pagedRows = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const previewRow = useMemo(
     () => rows.find((row) => row.orgId === previewOrgId) ?? null,
@@ -134,41 +135,26 @@ export function BillingWorkspace() {
     });
   };
 
-  const handleCsvDownload = () => {
-    const header = ["업체명", "이메일", "알림톡", "문자(SMS)", "장문(LMS)", "팩스(발송 건수)", "청구액(공급가액)", "전월비", "상태"];
-    const body = filtered.map((row) => [
-      row.orgName,
-      row.orgEmail ?? "",
-      row.alimtalkCount,
-      row.smsCount,
-      row.lmsCount,
-      row.faxCount,
-      row.subtotalKrw,
-      deltaPercentLabel(row.totalKrw, row.prevTotalKrw),
-      STATUS_TABS.find((t) => t.id === row.status)?.label ?? row.status,
-    ]);
-    const csv = [header, ...body]
-      .map((line) => line.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
-      .join("\r\n");
-    const blob = new Blob([`﻿${csv}`], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `청구원장_${month.slice(0, 7)}.csv`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-  };
-
+  // 정본 hf-body(패딩 22·24·30, 간격 16) — 안내는 내용 높이, 목록 패널이 남는 높이를 채운다(최소 280)
   return (
-    <PlatformPageContainer>
-      <section className="rounded-[18px] bg-surface px-6 py-[22px] shadow-card">
+    <PlatformPageContainer
+      maxWidthClassName="max-w-none"
+      paddingClassName="flex h-[calc(100dvh-62px)] flex-col gap-4 overflow-auto px-6 pb-[30px] pt-[22px]"
+    >
+      <section className="flex-none rounded-[18px] bg-surface px-6 py-[22px] shadow-card">
         <div className="mb-[14px] flex items-center">
-          <BoundedMonthStepper
-            month={month}
+          {/* 정본 #bmDd: .hq-dd 트리거 + .hq-ymp 연·월 팝업(트리거 왼쪽 맞춤, 2025년 1월 ~ 이번 달) */}
+          <DpMonthPicker
+            value={month.slice(0, 7)}
             onChange={(nextMonth) => {
-              setMonth(nextMonth);
+              setMonth(`${nextMonth}-01`);
               setPage(1);
             }}
+            variant="hq"
+            align="start"
+            minMonth="2025-01"
+            maxMonth={currentMonth.slice(0, 7)}
+            ariaLabel="청구 월"
           />
         </div>
         <p className="text-[25px] font-extrabold leading-[1.4] tracking-[-0.03em] text-t1">
@@ -187,8 +173,8 @@ export function BillingWorkspace() {
         </div>
       </section>
 
-      <section className="mt-4 overflow-hidden rounded-2xl bg-surface shadow-card">
-        <div className="flex items-center gap-2.5 overflow-x-auto border-b border-line2 px-[18px] py-[15px]">
+      <section className="flex min-h-[280px] flex-1 flex-col overflow-hidden rounded-2xl bg-surface shadow-card">
+        <div className="flex flex-none items-center gap-2.5 overflow-x-auto border-b border-line2 px-[18px] py-[15px]">
           <div className="inline-flex shrink-0 gap-0.5 rounded-[11px] bg-[#EDF0F3] p-[3px]">
             {STATUS_TABS.map((statusTab) => (
               <button
@@ -218,85 +204,79 @@ export function BillingWorkspace() {
           >
             전체 발행
           </button>
-          <button
-            type="button"
-            onClick={handleCsvDownload}
-            disabled={filtered.length === 0}
-            className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[11px] border border-line bg-surface px-[14px] text-[12.5px] font-bold whitespace-nowrap text-t2 hover:bg-bg disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            원장 CSV
-          </button>
         </div>
 
-        {billingQuery.isPending ? (
-          <div className="py-16"><Spinner /></div>
-        ) : billingQuery.isError ? (
-          <div className="p-4"><QueryError onRetry={() => void billingQuery.refetch()} /></div>
-        ) : filtered.length === 0 ? (
-          <EmptyState message="해당 조건의 청구 내역이 없습니다" />
-        ) : (
-          <TableFrame minWidthClassName="min-w-[900px]">
-            <thead>
-              <tr className="text-left">
-                <th className="w-[15%] border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-xs font-bold whitespace-nowrap text-t3">업체명</th>
-                <th className="w-[18%] border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-xs font-bold whitespace-nowrap text-t3">이메일</th>
-                <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">알림톡</th>
-                <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">문자</th>
-                <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">장문</th>
-                <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">팩스</th>
-                <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">청구액(공급가액)</th>
-                <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">전월비</th>
-                <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-xs font-bold whitespace-nowrap text-t3">상태</th>
-                <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">처리</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pagedRows.map((row) => (
-                <tr key={row.orgId} className="cursor-pointer hover:bg-[#FBFCFD] [&:last-child>td]:border-b-0">
-                  <td className="border-b border-line2 px-4 py-3 text-[13.5px] font-bold whitespace-nowrap text-t1">{row.orgName}</td>
-                  <td className="border-b border-line2 px-4 py-3 text-[12.5px] font-semibold whitespace-nowrap text-t3">{row.orgEmail ?? "-"}</td>
-                  <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.alimtalkCount)}</td>
-                  <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.smsCount)}</td>
-                  <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.lmsCount)}</td>
-                  <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.faxCount)}</td>
-                  <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] font-extrabold whitespace-nowrap text-t1 num">{num(row.subtotalKrw)}</td>
-                  <td className="border-b border-line2 px-4 py-3 text-right text-[12.5px] font-bold whitespace-nowrap text-t3 num">{deltaPercentLabel(row.totalKrw, row.prevTotalKrw)}</td>
-                  <td className="border-b border-line2 px-4 py-3 text-[13.5px] whitespace-nowrap"><BillingStatusBadge status={row.status} /></td>
-                  <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap">
-                    {row.status === "none" ? (
-                      <span className="text-t4">-</span>
-                    ) : (
-                      <div className="inline-flex justify-end gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setBulkRows([]);
-                            setPreviewOrgId(row.orgId);
-                          }}
-                          className="inline-flex h-7 cursor-pointer items-center rounded-lg border border-line bg-surface px-[11px] text-xs font-bold text-t2 hover:bg-bg"
-                        >
-                          발행
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void handleToggle(row)}
-                          disabled={markPaid.isPending}
-                          className="inline-flex h-7 cursor-pointer items-center rounded-lg border border-line bg-surface px-[11px] text-xs font-bold text-t2 hover:bg-bg disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {markPaid.isPending ? "입금 처리 중…" : row.status === "paid" ? "입금 취소" : "입금 확인"}
-                        </button>
-                      </div>
-                    )}
-                  </td>
+        <div ref={scrollerRef} className="min-h-0 flex-1 overflow-auto">
+          {billingQuery.isPending ? (
+            <div className="py-16"><Spinner /></div>
+          ) : billingQuery.isError ? (
+            <div className="p-4"><QueryError onRetry={() => void billingQuery.refetch()} /></div>
+          ) : filtered.length === 0 ? (
+            <EmptyState message="해당 조건의 청구 내역이 없습니다" />
+          ) : (
+            <table className="w-full min-w-[900px] text-sm">
+              <thead>
+                <tr className="text-left">
+                  <th className="w-[15%] border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-xs font-bold whitespace-nowrap text-t3">업체명</th>
+                  <th className="w-[18%] border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-xs font-bold whitespace-nowrap text-t3">이메일</th>
+                  <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">알림톡</th>
+                  <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">문자</th>
+                  <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">장문</th>
+                  <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">팩스</th>
+                  <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">청구액(공급가액)</th>
+                  <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">전월비</th>
+                  <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-xs font-bold whitespace-nowrap text-t3">상태</th>
+                  <th className="border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold whitespace-nowrap text-t3">처리</th>
                 </tr>
-              ))}
-            </tbody>
-          </TableFrame>
-        )}
+              </thead>
+              <tbody>
+                {pagedRows.map((row) => (
+                  <tr key={row.orgId} className="cursor-pointer hover:bg-[#FBFCFD] [&:last-child>td]:border-b-0">
+                    <td className="border-b border-line2 px-4 py-3 text-[13.5px] font-bold whitespace-nowrap text-t1">{row.orgName}</td>
+                    <td className="border-b border-line2 px-4 py-3 text-[12.5px] font-semibold whitespace-nowrap text-t3">{row.orgEmail ?? "-"}</td>
+                    <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.alimtalkCount)}</td>
+                    <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.smsCount)}</td>
+                    <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.lmsCount)}</td>
+                    <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.faxCount)}</td>
+                    <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] font-extrabold whitespace-nowrap text-t1 num">{num(row.subtotalKrw)}</td>
+                    <td className="border-b border-line2 px-4 py-3 text-right text-[12.5px] font-bold whitespace-nowrap text-t3 num">{deltaPercentLabel(row.totalKrw, row.prevTotalKrw)}</td>
+                    <td className="border-b border-line2 px-4 py-3 text-[13.5px] whitespace-nowrap"><BillingStatusBadge status={row.status} /></td>
+                    <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap">
+                      {row.status === "none" ? (
+                        <span className="inline-flex h-7 items-center text-t4">-</span>
+                      ) : (
+                        <div className="inline-flex justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBulkRows([]);
+                              setPreviewOrgId(row.orgId);
+                            }}
+                            className="inline-flex h-7 cursor-pointer items-center rounded-lg border border-line bg-surface px-[11px] text-xs font-bold text-t2 hover:bg-bg"
+                          >
+                            발행
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleToggle(row)}
+                            disabled={markPaid.isPending}
+                            className="inline-flex h-7 cursor-pointer items-center rounded-lg border border-line bg-surface px-[11px] text-xs font-bold text-t2 hover:bg-bg disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {markPaid.isPending ? "입금 처리 중…" : row.status === "paid" ? "입금 취소" : "입금 확인"}
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
         {!billingQuery.isPending && !billingQuery.isError && (
           <PlatformPagination
             page={currentPage}
-            pageSize={PAGE_SIZE}
+            pageSize={pageSize}
             totalCount={filtered.length}
             onPageChange={setPage}
             numeric
