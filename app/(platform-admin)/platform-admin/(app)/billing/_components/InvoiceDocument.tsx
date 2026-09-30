@@ -37,31 +37,31 @@ export function invoiceConfigFromSettings(
   };
 }
 
-function invoiceNo(month: string, orgId: number): string {
+export function invoiceNo(month: string, orgId: number): string {
   // month is YYYY-MM-01 → INV-YYYYMM-{orgId}
   const [year, mon] = month.split("-");
   return `INV-${year}${mon}-${String(orgId).padStart(3, "0")}`;
 }
 
-function todayLabel(): string {
+export function todayLabel(): string {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${now.getFullYear()}.${pad(now.getMonth() + 1)}.${pad(now.getDate())}`;
 }
 
-function periodLabel(month: string): string {
+export function periodLabel(month: string): string {
   const [year, mon] = month.split("-").map(Number);
   return `${year}년 ${mon}월 발송분`;
 }
 
-interface LineItem {
+export interface LineItem {
   name: string;
   count: number;
   unitPriceKrw: number;
   amountKrw: number;
 }
 
-function lineItems(row: PlatformOrgBilling, settings: PlatformSettings | undefined): LineItem[] {
+export function lineItems(row: PlatformOrgBilling, settings: PlatformSettings | undefined): LineItem[] {
   const items: LineItem[] = [];
   if (row.alimtalkCount > 0) {
     items.push({
@@ -94,10 +94,9 @@ function lineItems(row: PlatformOrgBilling, settings: PlatformSettings | undefin
 }
 
 /**
- * Pure, print-ready invoice document for a single organization. The markup mirrors
- * the admin prototype (docs/prototype/admin/usage.dc.html) invoice preview. Rendered
- * both inside the preview modal and in the bulk print root, so it must not carry any
- * modal chrome or interactivity.
+ * Invoice document for a single organization, shown in the preview modal. The markup mirrors
+ * the admin prototype (docs/prototype/admin/usage.dc.html) invoice preview (.iv-*). The PDF
+ * download (InvoicePdf) draws the same data with the same helpers, so keep the two in step.
  */
 export function InvoiceDocument({
   row,
@@ -116,16 +115,16 @@ export function InvoiceDocument({
   const total = row.totalKrw;
 
   return (
-    <div className="mx-auto w-full max-w-[640px] bg-white p-8 text-t1">
+    <div className="mx-auto w-full max-w-[640px] bg-white px-[34px] py-8 leading-[normal] text-t1">
       {/* Header: 발행처(본사) */}
-      <div className="flex items-start gap-4 border-b-2 border-t1 pb-5">
+      <div className="flex items-start gap-[14px] border-b-2 border-t1 pb-5">
         <div>
-          <div className="text-xl font-extrabold tracking-tight">발송비 청구서</div>
-          <div className="mt-1.5 text-xs font-semibold text-t3 num">
+          <div className="text-[20px] font-extrabold tracking-[-0.03em]">발송비 청구서</div>
+          <div className="mt-1.5 text-[12.5px] font-semibold text-t3 num">
             {invoiceNo(month, row.orgId)} · 발행일 {todayLabel()}
           </div>
         </div>
-        <div className="ml-auto text-right text-xs font-semibold leading-7 text-t3">
+        <div className="ml-auto text-right text-[12px] font-semibold leading-[1.7] text-t3">
           <b className="mb-0.5 block text-[13.5px] font-extrabold text-t1">{config.accountHolder}</b>
           사업자등록번호 {config.businessRegNo}
           <br />
@@ -134,39 +133,39 @@ export function InvoiceDocument({
       </div>
 
       {/* 수신(업체) */}
-      <div className="flex items-baseline gap-2.5 py-4">
-        <div className="text-[17px] font-extrabold tracking-tight">{row.orgName}</div>
-        <div className="text-xs font-semibold text-t3">{periodLabel(month)}</div>
+      <div className="flex items-baseline gap-2.5 pb-4 pt-[18px]">
+        <div className="text-[17px] font-extrabold tracking-[-0.02em]">{row.orgName}</div>
+        <div className="text-[12.5px] font-semibold text-t3">{periodLabel(month)}</div>
       </div>
 
       {/* 항목표 */}
       <table className="w-full border-collapse text-[13px]">
         <thead>
           <tr>
-            <th className="border-y border-line py-2.5 text-left text-xs font-bold text-t3">항목</th>
-            <th className="border-y border-line py-2.5 text-right text-xs font-bold text-t3">발송 건수</th>
-            <th className="border-y border-line py-2.5 text-right text-xs font-bold text-t3">단가</th>
-            <th className="border-y border-line py-2.5 text-right text-xs font-bold text-t3">금액</th>
+            <th className="border-y border-line py-[9px] text-left text-[12px] font-bold text-t3">항목</th>
+            <th className="border-y border-line py-[9px] text-right text-[12px] font-bold text-t3">발송 건수</th>
+            <th className="border-y border-line py-[9px] text-right text-[12px] font-bold text-t3">단가</th>
+            <th className="border-y border-line py-[9px] text-right text-[12px] font-bold text-t3">금액</th>
           </tr>
         </thead>
         <tbody>
           {items.length === 0 ? (
             <tr>
-              <td className="border-b border-line2 py-3 text-t3" colSpan={4}>
+              <td className="border-b border-line2 py-[11px] text-t3" colSpan={4}>
                 청구할 발송 내역이 없습니다.
               </td>
             </tr>
           ) : (
             items.map((item) => (
               <tr key={item.name}>
-                <td className="border-b border-line2 py-2.5 font-bold text-t1">{item.name}</td>
-                <td className="border-b border-line2 py-2.5 text-right font-semibold text-t2 num">
+                <td className="border-b border-line2 py-[11px] font-bold text-t1">{item.name}</td>
+                <td className="border-b border-line2 py-[11px] text-right font-semibold text-t2 num">
                   {num(item.count)}건
                 </td>
-                <td className="border-b border-line2 py-2.5 text-right font-semibold text-t2 num">
+                <td className="border-b border-line2 py-[11px] text-right font-semibold text-t2 num">
                   {num(item.unitPriceKrw)}원
                 </td>
-                <td className="border-b border-line2 py-2.5 text-right font-semibold text-t2 num">
+                <td className="border-b border-line2 py-[11px] text-right font-semibold text-t2 num">
                   {num(item.amountKrw)}원
                 </td>
               </tr>
@@ -176,31 +175,31 @@ export function InvoiceDocument({
       </table>
 
       {/* 합계 */}
-      <div className="ml-auto mt-4 flex w-[280px] flex-col gap-2.5">
+      <div className="ml-auto mt-4 flex w-[280px] flex-col gap-[9px]">
         <div className="flex items-center text-[13px] font-semibold text-t3">
           공급가액<span className="ml-auto font-bold text-t2 num">{num(supply)}원</span>
         </div>
         <div className="flex items-center text-[13px] font-semibold text-t3">
           부가세 ({config.vatRate}%)<span className="ml-auto font-bold text-t2 num">{num(vat)}원</span>
         </div>
-        <div className="flex items-center border-t-2 border-t1 pt-2.5 text-[15px] font-extrabold text-t1">
-          청구 합계<span className="ml-auto text-lg font-extrabold text-blue num">{num(total)}원</span>
+        <div className="flex items-center border-t-2 border-t1 pt-[11px] text-[15px] font-extrabold text-t1">
+          청구 합계<span className="ml-auto text-[18px] font-extrabold text-blue num">{num(total)}원</span>
         </div>
       </div>
 
       {/* 입금 계좌 */}
       <div className="mt-6 rounded-xl bg-bg px-[18px] py-4">
-        <div className="mb-2 text-xs font-bold text-t3">
+        <div className="mb-2 text-[12px] font-bold text-t3">
           입금 계좌 · 기한 발행일로부터 {config.dueDays}일
         </div>
-        <div className="text-[15px] font-extrabold tracking-tight num">
+        <div className="text-[15px] font-extrabold tracking-[-0.01em] num">
           {config.bank} {config.accountNo}
         </div>
-        <div className="mt-1 text-xs font-semibold text-t3">예금주 {config.accountHolder}</div>
+        <div className="mt-1 text-[12.5px] font-semibold text-t3">예금주 {config.accountHolder}</div>
       </div>
 
       {/* 안내 문구 */}
-      <div className="mt-3.5 text-xs font-semibold leading-6 text-t4">{config.notice}</div>
+      <div className="mt-3.5 text-[12px] font-semibold leading-[1.6] text-t4">{config.notice}</div>
     </div>
   );
 }

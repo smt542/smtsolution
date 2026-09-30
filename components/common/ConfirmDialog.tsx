@@ -108,7 +108,7 @@ export function ConfirmDialog({
               type="button"
               size="std"
               variant={variant === "danger" ? "danger" : "primary"}
-              className={variant === "danger" ? "shadow-none" : ""}
+              className={variant === "danger" ? "border border-red shadow-none" : "border border-transparent"}
               onClick={onConfirm}
               autoFocus={hideCancel || variant !== "danger"}
               disabled={confirmDisabled}

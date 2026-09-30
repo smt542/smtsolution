@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -6,6 +7,12 @@ import { toAuthPassword } from "@/lib/auth/password";
 
 // 정본 신규 테넌트: 관리자 초기 비밀번호 = 숫자 4자리(Auth 저장은 toAuthPassword).
 const OWNER_PIN = /^\d{4}$/;
+
+// 정본 생성 모달엔 회사코드 칸이 없어 서버가 만든다. 관리자 로그인 이메일 {회사코드}.{아이디}@… 에만 쓰이고
+// 화면엔 보이지 않는다(로그인은 아이디 단독).
+function generateSlug(): string {
+  return `t${Date.now().toString(36)}${randomBytes(3).toString("hex")}`;
+}
 
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -20,7 +27,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const {
     name,
-    slug,
+    slug: requestedSlug,
     phone,
     contractStartDate,
     contractEndDate,
@@ -31,12 +38,11 @@ export async function POST(req: Request) {
     address,
     region,
     operatingHours,
-    contractFilePath,
+    contractFilePaths,
     owner,
   } = body ?? {};
   if (
     !name
-    || !slug
     || !phone
     || !contractStartDate
     || !contractEndDate
@@ -53,10 +59,24 @@ export async function POST(req: Request) {
   if (!OWNER_PIN.test(String(owner.password)))
     return NextResponse.json({ error: "관리자 비밀번호는 숫자 4자리입니다." }, { status: 422 });
 
-  // 3a) 조직 생성(RPC)
-  const { data: org, error: orgErr } = await supabase.rpc("platform_create_organization", {
+  const contractPaths: string[] = Array.isArray(contractFilePaths)
+    ? contractFilePaths.filter((path: unknown): path is string => typeof path === "string" && path.trim() !== "")
+    : [];
+
+  // 3a) 조직 생성(RPC). 자동 회사코드가 겹치면(극히 드묾) 새로 만들어 다시 시도한다.
+  const fixedSlug = typeof requestedSlug === "string" && requestedSlug.trim()
+    ? requestedSlug.trim().toLowerCase()
+    : null;
+  let slug = fixedSlug ?? generateSlug();
+  let { data: org, error: orgErr } = await supabase.rpc("platform_create_organization", {
     p_name: name, p_slug: slug, p_phone: phone ?? null,
   });
+  for (let attempt = 0; attempt < 2 && orgErr && !fixedSlug && /duplicate|unique|slug/i.test(orgErr.message); attempt += 1) {
+    slug = generateSlug();
+    ({ data: org, error: orgErr } = await supabase.rpc("platform_create_organization", {
+      p_name: name, p_slug: slug, p_phone: phone ?? null,
+    }));
+  }
   if (orgErr || !org) {
     const dup = /duplicate|unique|slug/i.test(orgErr?.message ?? "");
     return NextResponse.json(
@@ -80,7 +100,8 @@ export async function POST(req: Request) {
     p_address: address,
     p_region: region,
     p_operating_hours: operatingHours || null,
-    p_contract_file_path: contractFilePath || null,
+    p_contract_file_path: contractPaths[0] ?? null,
+    p_contract_file_paths: contractPaths,
   });
   if (contractError) {
     await createAdminClient().from("organizations").delete().eq("id", orgRow.id);

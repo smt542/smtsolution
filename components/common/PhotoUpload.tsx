@@ -79,7 +79,8 @@ export function PhotoUpload({
 
   const addDropFiles = (selected: FileList | readonly File[] | null) => {
     if (!selected || disabled) return;
-    const { accepted, errors } = selectImageFiles([], Array.from(selected), max, accept);
+    // max 1이면 새로 고른 파일이 기존 선택을 대체하므로 기존 장수를 세지 않는다.
+    const { accepted, errors } = selectImageFiles(max === 1 ? [] : files, Array.from(selected), max, accept);
     if (errors.length > 0) appToast.error(errors.join("\n"));
     if (accepted.length > 0) {
       onFilesChange(max === 1 ? [accepted[0]] : [...files, ...accepted]);
@@ -151,7 +152,7 @@ export function PhotoUpload({
             <path d="M4 17v2a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-2" />
           </svg>
           <b className="text-[13px] font-bold">사진을 끌어다 놓거나 클릭해서 선택</b>
-          <span className="text-xs font-medium text-t3">{hint}</span>
+          <span className="text-[12px] font-medium text-t3">{hint}</span>
           <input
             ref={inputRef}
             type="file"
@@ -168,90 +169,89 @@ export function PhotoUpload({
           />
         </div>
 
-        {(existing.length > 0 || files.length > 0) && (
-          <div className="mt-2.5 flex flex-wrap gap-2.5">
-            {existing.map((photo) => (
-              <div key={photo.id} className="relative w-[92px]">
-                {photo.url ? (
+        {/* 정본 .ct-list: 비어 있어도 드롭존 아래 여백 10px을 차지한다 */}
+        <div className="mt-2.5 flex flex-wrap gap-2.5">
+          {existing.map((photo) => (
+            <div key={photo.id} className="relative w-[92px]">
+              {photo.url ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (photo.onOpen) photo.onOpen();
+                    else setViewer({ url: photo.url as string, name: photo.name });
+                  }}
+                  className="block cursor-pointer"
+                  aria-label={`${photo.name} 미리보기`}
+                >
+                  <Image
+                    src={photo.url}
+                    alt={photo.name}
+                    width={92}
+                    height={92}
+                    className="block size-[92px] cursor-pointer rounded-[10px] border border-line object-cover"
+                  />
+                </button>
+              ) : (
+                <span
+                  role={photo.error ? "alert" : "status"}
+                  className="flex size-[92px] items-center justify-center rounded-[10px] border border-line p-2 text-center text-[10px] text-t3"
+                >
+                  {photo.error ? "미리보기 실패" : "불러오는 중…"}
+                </span>
+              )}
+              {photo.onDelete && (
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => void photo.onDelete?.()}
+                  aria-label={`${photo.name} 삭제`}
+                  className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-[#191F28] text-[11px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  ×
+                </button>
+              )}
+              <div className="mt-[5px] truncate text-[11px] font-semibold text-t4">{photo.name}</div>
+            </div>
+          ))}
+          {files.map((file, index) => {
+            const preview = previews[index];
+            return (
+              <div key={`${file.name}-${file.lastModified}-${index}`} className="relative w-[92px]">
+                {preview?.file === file ? (
                   <button
                     type="button"
-                    onClick={() => {
-                      if (photo.onOpen) photo.onOpen();
-                      else setViewer({ url: photo.url as string, name: photo.name });
-                    }}
+                    onClick={() => setViewer({ url: preview.url, name: file.name })}
                     className="block cursor-pointer"
-                    aria-label={`${photo.name} 미리보기`}
+                    aria-label={`${file.name} 미리보기`}
                   >
                     <Image
-                      src={photo.url}
-                      alt={photo.name}
+                      src={preview.url}
+                      alt={file.name}
                       width={92}
                       height={92}
+                      unoptimized
                       className="block size-[92px] cursor-pointer rounded-[10px] border border-line object-cover"
                     />
                   </button>
                 ) : (
-                  <span
-                    role={photo.error ? "alert" : "status"}
-                    className="flex size-[92px] items-center justify-center rounded-[10px] border border-line p-2 text-center text-[10px] text-t3"
-                  >
-                    {photo.error ? "미리보기 실패" : "불러오는 중…"}
+                  <span className="flex size-[92px] items-center justify-center rounded-[10px] border border-line p-2 text-center text-[10px] text-t3">
+                    {file.name}
                   </span>
                 )}
-                {photo.onDelete && (
-                  <button
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => void photo.onDelete?.()}
-                    aria-label={`${photo.name} 삭제`}
-                    className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-[#191F28] text-[11px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    ×
-                  </button>
-                )}
-                <div className="mt-[5px] truncate text-[11px] font-semibold text-t4">{photo.name}</div>
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => onFilesChange(files.filter((_, fileIndex) => fileIndex !== index))}
+                  aria-label={`${file.name} 삭제`}
+                  className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-[#191F28] text-[11px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  ×
+                </button>
+                <div className="mt-[5px] truncate text-[11px] font-semibold text-t4">{file.name}</div>
               </div>
-            ))}
-            {files.map((file, index) => {
-              const preview = previews[index];
-              return (
-                <div key={`${file.name}-${file.lastModified}-${index}`} className="relative w-[92px]">
-                  {preview?.file === file ? (
-                    <button
-                      type="button"
-                      onClick={() => setViewer({ url: preview.url, name: file.name })}
-                      className="block cursor-pointer"
-                      aria-label={`${file.name} 미리보기`}
-                    >
-                      <Image
-                        src={preview.url}
-                        alt={file.name}
-                        width={92}
-                        height={92}
-                        unoptimized
-                        className="block size-[92px] cursor-pointer rounded-[10px] border border-line object-cover"
-                      />
-                    </button>
-                  ) : (
-                    <span className="flex size-[92px] items-center justify-center rounded-[10px] border border-line p-2 text-center text-[10px] text-t3">
-                      {file.name}
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => onFilesChange(files.filter((_, fileIndex) => fileIndex !== index))}
-                    aria-label={`${file.name} 삭제`}
-                    className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-[#191F28] text-[11px] font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    ×
-                  </button>
-                  <div className="mt-[5px] truncate text-[11px] font-semibold text-t4">{file.name}</div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+            );
+          })}
+        </div>
 
         {viewer && (
           <div

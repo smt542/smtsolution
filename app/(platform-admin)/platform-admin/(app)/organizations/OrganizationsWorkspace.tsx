@@ -45,16 +45,8 @@ function TenantStatusBadge({ organization }: { organization: PlatformOrganizatio
     ? "bg-bg text-t3"
     : organization.status === "suspended"
       ? "bg-red-t text-red"
-      : organization.status === "trial"
-        ? "bg-amber-t text-amber"
-        : "bg-blue-t text-blue-d";
-  const label = organization.deletedAt
-    ? "해지"
-    : organization.status === "suspended"
-      ? "정지"
-      : organization.status === "trial"
-        ? "체험"
-        : "운영";
+      : "bg-blue-t text-blue-d";
+  const label = organization.deletedAt ? "해지" : organization.status === "suspended" ? "정지" : "운영";
 
   return (
     <span className={["inline-flex items-center gap-1 rounded-[7px] px-[9px] py-[3px] text-xs font-bold leading-[1.4]", style].join(" ")}>
@@ -135,13 +127,13 @@ export default function OrganizationsWorkspace() {
             detail: "최근 12개월",
           },
         ].map((kpi) => (
-          <div key={kpi.label} className="rounded-[15px] bg-surface px-[18px] py-[17px] shadow-card">
+          <div key={kpi.label} className="rounded-[15px] bg-surface px-[18px] py-[17px] leading-[normal] shadow-card">
             <div className="text-[12.5px] font-bold text-t3">{kpi.label}</div>
             <div className="mt-[9px] text-[26px] font-extrabold tracking-[-0.03em] text-t1 num">
               {contractKpis.isPending ? "-" : formatNumber(kpi.value ?? 0)}
-              <span className="ml-[3px] text-sm font-bold tracking-normal text-t3">곳</span>
+              <span className="ml-[3px] text-[14px] font-bold tracking-normal text-t3">곳</span>
             </div>
-            <div className={["mt-[7px] text-xs font-bold num", kpi.label === "정지" ? "text-red" : "text-t3"].join(" ")}>
+            <div className={["mt-[7px] text-[12px] font-bold num", kpi.label === "정지" ? "text-red" : "text-t3"].join(" ")}>
               {kpi.detail}
             </div>
           </div>
@@ -150,7 +142,7 @@ export default function OrganizationsWorkspace() {
 
       <div className="flex flex-none flex-col flex-wrap gap-2.5 sm:flex-row sm:items-center">
         <div
-          className="inline-flex w-fit flex-wrap items-center gap-0.5 rounded-[11px] bg-[#EDF0F3] p-1"
+          className="inline-flex w-fit flex-wrap items-center gap-0.5 rounded-[11px] bg-[#EDF0F3] p-1 leading-[normal]"
           aria-label="테넌트 상태 필터"
         >
           {STATUS_FILTERS.map((filter) => (
@@ -163,7 +155,7 @@ export default function OrganizationsWorkspace() {
                 resetPage();
               }}
               className={[
-                "cursor-pointer rounded-lg px-[15px] py-[7px] text-sm font-bold transition-colors",
+                "cursor-pointer rounded-lg px-[15px] py-[7px] text-[14px] font-bold transition-colors",
                 statusFilter === filter.id
                   ? "bg-surface text-t1 shadow-[0_2px_6px_rgba(23,31,40,0.1)]"
                   : "text-t3 hover:text-t1",
@@ -202,11 +194,12 @@ export default function OrganizationsWorkspace() {
       </div>
 
       <section className="flex min-h-[280px] flex-1 flex-col overflow-hidden rounded-2xl bg-surface shadow-card">
-        <div className="flex flex-none items-center gap-2.5 border-b border-line2 px-[18px] py-[15px]">
+        <div className="flex flex-none items-center gap-2.5 border-b border-line2 px-[18px] py-[15px] leading-[normal]">
           <h3 className="text-[15px] font-extrabold text-t1">테넌트 목록</h3>
-          <span className="text-xs font-semibold text-t3">{formatNumber(totalCount)}곳</span>
+          <span className="text-[12px] font-semibold text-t3">{formatNumber(totalCount)}곳</span>
           {isOrganizationListRefreshing ? (
-            <Spinner label="테넌트 목록 갱신 중" size="small" showLabel className="px-2 py-1" />
+            // 머리 줄(18px) 안에 들어가게 — 머리가 커지면 한 쪽 행 수가 바뀌어 다시 불러오기가 반복될 수 있다.
+            <Spinner label="테넌트 목록 갱신 중" size="small" showLabel className="px-2 py-0 leading-[normal]" />
           ) : null}
         </div>
 
@@ -214,14 +207,14 @@ export default function OrganizationsWorkspace() {
           <table className="w-full border-collapse leading-[normal]">
             <thead>
               <tr>
-                <th className="w-[24%] whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-left text-xs font-bold text-t3">업체명</th>
-                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold text-t3">건물</th>
-                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold text-t3">세대</th>
-                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold text-t3">직원</th>
-                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold text-t3">세입자</th>
-                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-left text-xs font-bold text-t3">상태</th>
-                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-left text-xs font-bold text-t3">계약 시작</th>
-                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-left text-xs font-bold text-t3">계약 만료</th>
+                <th className="w-[24%] whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-left text-[12px] font-bold text-t3">업체명</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-[12px] font-bold text-t3">건물</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-[12px] font-bold text-t3">세대</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-[12px] font-bold text-t3">직원</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-[12px] font-bold text-t3">세입자</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-left text-[12px] font-bold text-t3">상태</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-left text-[12px] font-bold text-t3">계약 시작</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-left text-[12px] font-bold text-t3">계약 만료</th>
               </tr>
             </thead>
             <tbody className="[&>tr:last-child>td]:border-b-0">
@@ -236,8 +229,8 @@ export default function OrganizationsWorkspace() {
                   className="cursor-pointer hover:bg-row-hover"
                 >
                   <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] text-t1">
-                    <div className="text-sm font-extrabold tracking-[-0.01em] text-t1">{organization.name}</div>
-                    <span className="mt-[3px] block text-xs font-semibold text-t3">{organization.region ?? "지역 미설정"}</span>
+                    <div className="text-[14px] font-extrabold tracking-[-0.01em] text-t1">{organization.name}</div>
+                    <span className="mt-[3px] block text-[12px] font-semibold text-t3">{organization.region ?? "지역 미설정"}</span>
                   </td>
                   <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-right text-[13.5px] text-t1 num">{formatNumber(organization.buildingCount)}</td>
                   <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-right text-[13.5px] text-t1 num">{formatNumber(organization.unitCount)}</td>
