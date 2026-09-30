@@ -36,6 +36,7 @@ export function Field({
 
 const boxBase =
   "h-[42px] w-full rounded-[10px] border border-line bg-white px-[13px] outline-none focus:border-brand focus:shadow-[0_0_0_3px_#e2f5f1]";
+const readOnlyBox = "h-[42px] w-full cursor-not-allowed rounded-[10px] border border-line bg-bg px-[13px] text-t3 outline-none";
 
 export const TextField = React.forwardRef<
   HTMLInputElement,
@@ -45,10 +46,11 @@ export const TextField = React.forwardRef<
     placeholder?: string;
     type?: "text" | "number" | "password";
     muted?: boolean;
+    readOnly?: boolean;
     /** 숫자 입력에 구분자를 끼우는 마스크(`components/common/maskedField`의 phoneMask 등). */
     mask?: InputMask;
-  } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "type">
->(function TextField({ value, onChange, placeholder, type = "text", muted, mask, ...rest }, ref) {
+  } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "type" | "readOnly">
+>(function TextField({ value, onChange, placeholder, type = "text", muted, readOnly, mask, ...rest }, ref) {
   return (
     <input
       ref={ref}
@@ -56,8 +58,13 @@ export const TextField = React.forwardRef<
       value={value}
       onChange={(e) => onChange(mask ? applyMask(e.currentTarget, mask) : e.target.value)}
       placeholder={placeholder}
-      readOnly={muted}
-      className={`${boxBase} text-[13.5px] font-semibold text-t1 placeholder:font-medium placeholder:text-t4 ${muted ? "bg-[#f2f4f6] text-t3" : ""}`}
+      readOnly={muted || readOnly}
+      className={
+        readOnly
+          ? // 정본 `input.hf-in2[readonly]`(배경 --bg·글자 t3·not-allowed). 클릭해도 테두리가 바뀌지 않도록 포커스 스타일을 두지 않는다.
+            `${readOnlyBox} text-[13.5px] font-semibold placeholder:font-medium placeholder:text-t4`
+          : `${boxBase} text-[13.5px] font-semibold text-t1 placeholder:font-medium placeholder:text-t4 ${muted ? "bg-[#f2f4f6] text-t3" : ""}`
+      }
       {...rest}
     />
   );
@@ -111,11 +118,14 @@ export function SelectField({
   onChange,
   options,
   placeholder = "선택",
+  disabled,
 }: {
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
   placeholder?: string;
+  /** 수정 불가 칸. Field가 `<label>`이라 감싼 div를 inert로 막아도 라벨이 버튼에 클릭을 넘기므로 버튼 자체를 끈다. */
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -132,6 +142,7 @@ export function SelectField({
     <div ref={rootRef} className="relative">
       <button
         type="button"
+        disabled={disabled}
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}

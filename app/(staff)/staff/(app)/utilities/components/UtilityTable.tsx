@@ -8,6 +8,8 @@ import {
   LockedValue,
   LockPin,
   manualLockPatch,
+  usageFromReadings,
+  usageTextFromReadings,
   usageLockPatch,
   type LockDraft,
 } from "./UtilityLock";
@@ -16,6 +18,7 @@ export interface UtilityDraft extends LockDraft {
   previousReading: string;
   currentReading: string;
   usage: string;
+  usageEdited: boolean;
   manualCharge: string;
   note: string;
 }
@@ -24,6 +27,7 @@ const EMPTY_DRAFT: UtilityDraft = {
   previousReading: "",
   currentReading: "",
   usage: "",
+  usageEdited: false,
   manualCharge: "",
   note: "",
   usageLocked: false,
@@ -89,19 +93,11 @@ function ReadingValue({ value }: { value: number | null }) {
   return value === null || value === 0 ? <GridEmptyValue /> : formatNumber(value);
 }
 
-/** 입력한 량, 없으면 지침으로 계산한 량. 량을 고정하면 이 값이 고정값이 된다. */
-function computedUsageFor(row: UtilityTableRow, draft: UtilityDraft): number | null {
-  const enteredUsage = parseNumber(draft.usage);
-  if (enteredUsage !== null) return enteredUsage;
-  const current = parseNumber(draft.currentReading);
-  const previous = parseNumber(draft.previousReading);
-  if (current === null || previous === null) return row.usage;
-  return current - previous;
-}
-
-// 고정한 량은 지침과 무관하게 그 값으로 부과된다(서버 save_meter_readings 도 같다).
-function usageFor(row: UtilityTableRow, draft: UtilityDraft): number | null {
-  return draft.usageLocked ? parseNumber(draft.lockedUsage) : computedUsageFor(row, draft);
+// 고정한 량은 지침과 무관하게 그 값으로, 직접 넣은 량은 지침 차이보다 우선해 부과된다(서버 save_meter_readings 도 같다).
+function usageFor(draft: UtilityDraft): number | null {
+  if (draft.usageLocked) return parseNumber(draft.lockedUsage);
+  if (draft.usageEdited) return parseNumber(draft.usage);
+  return usageFromReadings(draft.previousReading, draft.currentReading);
 }
 
 function isVacant(row: UtilityUnitRow): boolean {
@@ -133,11 +129,12 @@ function getUtilityRowState(row: UtilityTableRow, draft: UtilityDraft, reference
   const vacant = isVacant(row);
   const movingOut = row.occupancyStatus === "moving_out";
   const recent = !vacant && isNewOccupancy(row.moveInDate, referenceDate);
-  const computedUsage = computedUsageFor(row, draft);
-  const usage = usageFor(row, draft);
+  const computedUsage = usageFromReadings(draft.previousReading, draft.currentReading);
+  const usage = usageFor(draft);
   const previousUsage = row.previousUsage ?? null;
   const change = usage === null || previousUsage === null ? null : usage - previousUsage;
-  const invalidUsage = !draft.usageLocked && (Boolean(row.needsReview) || (usage !== null && usage < 0));
+  const invalidUsage = !draft.usageLocked && !draft.usageEdited
+    && (Boolean(row.needsReview) || (usage !== null && usage < 0));
   const manual = parseNumber(draft.manualCharge);
   const charge = manual ?? row.automaticCharge;
   const marker = movingOut
@@ -252,7 +249,7 @@ export function UtilityTable({
       align: "right",
       cellClassName: "tabular-nums",
       stopRowClick: true,
-      render: (item) => editing ? <ReadingInput label={`${item.row.unitNo} 전월 지침값`} value={item.draft.previousReading} disabled={item.state.vacant} step="0.01" onChange={(value) => onDraftChange(item.row.unitId, { previousReading: value })} /> : <span className="font-medium"><ReadingValue value={item.row.previousReading} /></span>,
+      render: (item) => editing ? <ReadingInput label={`${item.row.unitNo} 전월 지침값`} value={item.draft.previousReading} disabled={item.state.vacant} step="0.01" onChange={(value) => onDraftChange(item.row.unitId, { previousReading: value, ...(!item.draft.usageEdited ? { usage: usageTextFromReadings(value, item.draft.currentReading) } : {}) })} /> : <span className="font-medium"><ReadingValue value={item.row.previousReading} /></span>,
     },
     {
       key: "currentReading",
@@ -261,7 +258,7 @@ export function UtilityTable({
       align: "right",
       cellClassName: "tabular-nums",
       stopRowClick: true,
-      render: (item) => editing ? <ReadingInput label={`${item.row.unitNo} 금월 지침값`} value={item.draft.currentReading} disabled={item.state.vacant} step="0.01" onChange={(value) => onDraftChange(item.row.unitId, { currentReading: value })} /> : <span className="font-bold"><ReadingValue value={item.row.currentReading} /></span>,
+      render: (item) => editing ? <ReadingInput label={`${item.row.unitNo} 금월 지침값`} value={item.draft.currentReading} disabled={item.state.vacant} step="0.01" onChange={(value) => onDraftChange(item.row.unitId, { currentReading: value, ...(!item.draft.usageEdited ? { usage: usageTextFromReadings(item.draft.previousReading, value) } : {}) })} /> : <span className="font-bold"><ReadingValue value={item.row.currentReading} /></span>,
     },
     {
       key: "usage",
@@ -272,20 +269,28 @@ export function UtilityTable({
       stopRowClick: true,
       render: (item) => editing ? (
         <div className="flex items-center justify-end gap-[5px]">
-          {/* 고정해 둔 동안은 입력이 고정값을 고친다(정본: 저장 때 켜진 자물쇠는 입력값으로 다시 고정). */}
+          {/* 자물쇠를 켠 동안은 칸 모양은 그대로 두고 입력만 막는다 — 값을 바꾸려면 풀고 고친 뒤 다시 잠근다
+              (2026-09-30 사용자 결정. 정본은 켠 채로 입력 가능). */}
           <ReadingInput
             label={`${item.row.unitNo} 사용량`}
             value={item.draft.usageLocked ? item.draft.lockedUsage : item.draft.usage}
             disabled={item.state.vacant}
+            readOnly={item.draft.usageLocked}
             step="0.01"
-            onChange={(value) => onDraftChange(item.row.unitId, item.draft.usageLocked ? { lockedUsage: value } : { usage: value })}
+            onChange={(value) => onDraftChange(item.row.unitId, { usage: value, usageEdited: true })}
           />
           {/* 공실은 저장 대상이 아니라(activeRows) 자물쇠 자리만 비워 둔다. */}
           {item.state.vacant ? <span aria-hidden="true" className="size-[22px] flex-none" /> : (
             <LockPin
               locked={item.draft.usageLocked}
               label={`${item.row.unitNo} 량 고정`}
-              onToggle={() => onDraftChange(item.row.unitId, usageLockPatch(item.draft.usageLocked, item.state.computedUsage))}
+              onToggle={() => onDraftChange(item.row.unitId, {
+                ...usageLockPatch(item.draft.usageLocked, item.state.usage),
+                ...(item.draft.usageLocked ? {
+                  usageEdited: false,
+                  usage: usageTextFromReadings(item.draft.previousReading, item.draft.currentReading),
+                } : {}),
+              })}
             />
           )}
         </div>
@@ -317,7 +322,7 @@ export function UtilityTable({
       stopRowClick: true,
       render: (item) => editing ? (
         <div className="flex items-center justify-end gap-[5px]">
-          <ReadingInput label={`${item.row.unitNo} 수동입력`} value={item.draft.manualCharge} disabled={item.state.vacant} step="1" onChange={(value) => onDraftChange(item.row.unitId, { manualCharge: value })} />
+          <ReadingInput label={`${item.row.unitNo} 수동입력`} value={item.draft.manualCharge} disabled={item.state.vacant} readOnly={item.draft.manualLocked} step="1" onChange={(value) => onDraftChange(item.row.unitId, { manualCharge: value })} />
           {item.state.vacant ? <span aria-hidden="true" className="size-[22px] flex-none" /> : (
             <LockPin
               locked={item.draft.manualLocked}

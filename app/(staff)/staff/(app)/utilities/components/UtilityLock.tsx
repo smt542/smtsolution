@@ -1,10 +1,16 @@
-import type { FixedValueRow } from "@/hooks/reactquery/utilities";
+import type {
+  FixedValueChange,
+  FixedValueEntry,
+  FixedValueKind,
+} from "@/hooks/reactquery/utilities";
 import { formatNumber } from "@/lib/format";
 
 /**
  * 호실별 지침 자물쇠 — 정본 `utility-electric|water|gas.dc.html` 의 `.uc-pin`('이 값을 다음 달에도 고정').
- * 세 탭이 같은 코드라 여기 한 벌로 둔다. 량은 unit_meters.fixed_usage, 수동입력은 fixed_manual_charge(0199)이고,
- * 각각 적용 시작월(`*_from`)부터 이후 달에 걸린다.
+ * 세 탭이 같은 코드라 여기 한 벌로 둔다. 고정값은 unit_fixed_values(0203)에 달별 이력으로 쌓인다 —
+ * 량(kind usage)·수동입력(kind manual) 모두 켠 달부터 이후 달에 걸리고, 나중 달에 풀거나 바꾸면
+ * 그 달부터만 바뀐다(이전 달은 잠금과 그때 값 그대로). 수정 모드에서 잠긴 칸은 모양은 정본 그대로 두고
+ * 입력만 막는다(readOnly — 2026-09-30 사용자 결정. 정본은 켠 채로 입력 가능). 고정 칸 색은 보기 모드에서만.
  */
 export interface LockDraft {
   /** 량 자물쇠. 켜 두고 저장하면 lockedUsage 가 이 달부터 고정된다. */
@@ -12,6 +18,7 @@ export interface LockDraft {
   lockedUsage: string;
   /** 수동입력 자물쇠. 켜 두고 저장하면 그 칸의 수동입력 값이 이 달부터 고정된다. */
   manualLocked: boolean;
+  manualCharge: string;
 }
 
 export function parseDraftNumber(value: string): number | null {
@@ -20,59 +27,124 @@ export function parseDraftNumber(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-/** 고정값은 적용 시작월(월 1일)부터 이후 달에 걸린다. 시작월이 없으면(옛 고정 사용량) 늘 걸린다. */
-export function lockStateFor(fixed: FixedValueRow | undefined, period: string) {
-  const appliesAt = (from: string | null) => from === null || from <= period;
+export function round3(value: number): number {
+  return Number(value.toFixed(3));
+}
+
+/** 전월·금월 지침으로 계산한 량. 가스는 음수가 되지 않도록 보정한다. */
+export function usageFromReadings(
+  previousReading: string,
+  currentReading: string,
+  clampNonNegative = false,
+): number | null {
+  const previous = parseDraftNumber(previousReading);
+  const current = parseDraftNumber(currentReading);
+  if (previous === null || current === null) return null;
+  const usage = current - previous;
+  return round3(clampNonNegative ? Math.max(0, usage) : usage);
+}
+
+export function usageTextFromReadings(
+  previousReading: string,
+  currentReading: string,
+  clampNonNegative = false,
+): string {
+  const usage = usageFromReadings(previousReading, currentReading, clampNonNegative);
+  return usage === null ? "" : String(usage);
+}
+
+/**
+ * 저장된 량이 직접 넣은 값(또는 고정값)인지. 서버는 명시 량이 없으면 금월−전월을 그대로 저장하므로
+ * (음수는 검토 표시와 함께) 그 차이와 다르면 직접 넣은 값이다. 가스 화면의 0 보정과 비교하면
+ * 저장된 음수가 직접 입력으로 잘못 잡혀 다음 저장 때 검토 표시가 풀리므로 보정 없이 비교한다.
+ */
+export function usageEditedForRow(
+  previousReading: number | null,
+  currentReading: number | null,
+  usage: number | null,
+): boolean {
+  if (usage === null) return false;
+  if (previousReading === null || currentReading === null) return true;
+  return round3(currentReading - previousReading) !== round3(usage);
+}
+
+export function groupFixedValues(entries: FixedValueEntry[]): Map<number, FixedValueEntry[]> {
+  const grouped = new Map<number, FixedValueEntry[]>();
+  entries.forEach((entry) => {
+    grouped.set(entry.unitId, [...(grouped.get(entry.unitId) ?? []), entry]);
+  });
+  grouped.forEach((unitEntries) => {
+    unitEntries.sort((left, right) => left.fromPeriod.localeCompare(right.fromPeriod));
+  });
+  return grouped;
+}
+
+/** 그 달에 걸린 고정값 = 시작월이 그 달 이하인 이력 중 가장 최근 것의 값(null = 해제·없음). */
+export function fixedValueAt(
+  entries: FixedValueEntry[] | undefined,
+  kind: FixedValueKind,
+  period: string,
+): number | null {
+  let latest: FixedValueEntry | undefined;
+  entries?.forEach((entry) => {
+    if (entry.kind === kind && entry.fromPeriod <= period
+      && (!latest || entry.fromPeriod > latest.fromPeriod)) {
+      latest = entry;
+    }
+  });
+  return latest?.value ?? null;
+}
+
+export function lockStateFor(
+  entries: FixedValueEntry[] | undefined,
+  period: string,
+) {
+  const usageValue = fixedValueAt(entries, "usage", period);
+  const manualValue = fixedValueAt(entries, "manual", period);
   return {
-    usageLocked: fixed?.fixedUsage != null && appliesAt(fixed.fixedUsageFrom),
-    manualLocked: fixed?.fixedManualCharge != null && appliesAt(fixed.fixedManualChargeFrom),
+    usageLocked: usageValue !== null,
+    usageValue,
+    manualLocked: manualValue !== null,
+    manualValue,
   };
 }
 
 /** 이 달에 걸린 고정값으로 자물쇠를 켠 초안 칸. 수동입력 기본값은 저장된 값이 없을 때만 고정값을 쓴다. */
 export function initialLockDraft(
-  fixed: FixedValueRow | undefined,
+  entries: FixedValueEntry[] | undefined,
   period: string,
   savedManualCharge: number | null,
-): LockDraft & { manualCharge: string } {
-  const { usageLocked, manualLocked } = lockStateFor(fixed, period);
-  const manual = savedManualCharge ?? (manualLocked ? fixed?.fixedManualCharge ?? null : null);
+): LockDraft {
+  const { usageLocked, usageValue, manualLocked, manualValue } = lockStateFor(entries, period);
+  const manual = savedManualCharge ?? (manualLocked ? manualValue : null);
   return {
     usageLocked,
-    lockedUsage: usageLocked ? String(fixed?.fixedUsage ?? 0) : "",
+    lockedUsage: usageLocked ? String(usageValue) : "",
     manualLocked,
     manualCharge: manual === null ? "" : String(manual),
   };
 }
 
 /**
- * 자물쇠 상태를 저장할 고정값으로 바꾼다. 켜고 끄지 않았고 값도 그대로면 건드리지 않는다
- * (다른 달에서 건 고정도 그대로 둔다). 새로 켜면 이 달부터, 이미 걸려 있으면 원래 시작월을 유지한다.
+ * 자물쇠 초안을 이 달 이력 변경으로 바꾼다. 그 달에 걸린 값과 같으면 보내지 않는다(다른 달 이력은 그대로).
+ * 서버(save_unit_fixed_values)가 이 달 이전 값과 같아진 이력은 지우고 뒤따르는 중복 이력도 정리한다.
  */
-export function fixedChangeFor(
+export function fixedChangesFor(
   unitId: number,
-  draft: LockDraft & { manualCharge: string },
-  fixed: FixedValueRow | undefined,
+  draft: LockDraft,
+  entries: FixedValueEntry[] | undefined,
   period: string,
-): FixedValueRow | null {
-  const was = lockStateFor(fixed, period);
-  const usage = draft.usageLocked ? parseDraftNumber(draft.lockedUsage) ?? 0 : null;
-  const manualParsed = draft.manualLocked ? parseDraftNumber(draft.manualCharge) ?? 0 : null;
-  const manual = manualParsed === null ? null : Math.round(manualParsed);
-  const usageSame = draft.usageLocked === was.usageLocked && (!draft.usageLocked || usage === fixed?.fixedUsage);
-  const manualSame = draft.manualLocked === was.manualLocked && (!draft.manualLocked || manual === fixed?.fixedManualCharge);
-  if (usageSame && manualSame) return null;
-  return {
-    unitId,
-    fixedUsage: usageSame ? fixed?.fixedUsage ?? null : usage,
-    fixedUsageFrom: usageSame
-      ? fixed?.fixedUsageFrom ?? null
-      : usage === null ? null : was.usageLocked ? fixed?.fixedUsageFrom ?? null : period,
-    fixedManualCharge: manualSame ? fixed?.fixedManualCharge ?? null : manual,
-    fixedManualChargeFrom: manualSame
-      ? fixed?.fixedManualChargeFrom ?? null
-      : manual === null ? null : was.manualLocked ? fixed?.fixedManualChargeFrom ?? null : period,
-  };
+): FixedValueChange[] {
+  const usageWas = fixedValueAt(entries, "usage", period);
+  const usageNow = draft.usageLocked ? parseDraftNumber(draft.lockedUsage) ?? 0 : null;
+  const manualWas = fixedValueAt(entries, "manual", period);
+  const manualNow = draft.manualLocked
+    ? Math.round(parseDraftNumber(draft.manualCharge) ?? 0)
+    : null;
+  const changes: FixedValueChange[] = [];
+  if (usageNow !== usageWas) changes.push({ unitId, kind: "usage", value: usageNow });
+  if (manualNow !== manualWas) changes.push({ unitId, kind: "manual", value: manualNow });
+  return changes;
 }
 
 /** 켤 때 초안에 넣을 값: 량은 지금 량(없으면 0), 수동입력은 비어 있으면 0 — 정본 `parseInt(raw)||0`. */
@@ -82,7 +154,7 @@ export function usageLockPatch(locked: boolean, currentUsage: number | null): Pa
     : { usageLocked: true, lockedUsage: String(currentUsage ?? 0) };
 }
 
-export function manualLockPatch(locked: boolean, manualCharge: string): Partial<LockDraft> & { manualCharge?: string } {
+export function manualLockPatch(locked: boolean, manualCharge: string): Partial<LockDraft> {
   return locked
     ? { manualLocked: false }
     : { manualLocked: true, manualCharge: manualCharge.trim() === "" ? "0" : manualCharge };

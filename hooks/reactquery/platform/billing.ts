@@ -29,7 +29,8 @@ export interface PlatformOverviewMetrics {
   orgSuspended: number;
   orgTerminated: number;
   buildingCount: number;
-  buildingAddedThisMonth: number;
+  /** 관리 건물 전월 대비 순증감(이 달 1일 → 지금, 삭제 반영·음수 가능). RPC 컬럼 building_added_this_month(0205). */
+  buildingMonthDelta: number;
   unitCount: number;
   linkedUnitCount: number;
   sendCostKrw: number;
@@ -158,7 +159,7 @@ function mapOverviewMetrics(row: PlatformOverviewMetricsRow): PlatformOverviewMe
     orgSuspended: row.org_suspended,
     orgTerminated: row.org_terminated,
     buildingCount: row.building_count,
-    buildingAddedThisMonth: row.building_added_this_month,
+    buildingMonthDelta: row.building_added_this_month,
     unitCount: row.unit_count,
     linkedUnitCount: row.linked_unit_count,
     sendCostKrw: Number(row.send_cost_krw),

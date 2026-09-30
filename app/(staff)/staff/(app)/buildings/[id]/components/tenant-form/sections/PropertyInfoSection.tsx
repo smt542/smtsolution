@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef } from "react";
+import { useAddressSearchPopup } from "@/hooks/common/useAddressSearchPopup";
 import { FormSection } from "../ui/FormSection";
 import { FieldGrid, Field, TextField, AmountField, SelectField, DateField } from "../ui/Fields";
 import { FacilityField } from "../ui/FacilityField";
@@ -30,7 +30,7 @@ export function PropertyInfoSection({
   value: PropertyValue;
   onChange: (patch: Partial<PropertyValue>) => void;
 }) {
-  const addressRef = useRef<HTMLInputElement>(null);
+  const openAddressSearch = useAddressSearchPopup((address) => onChange({ address }));
   return (
     <FormSection index={8} title="부동산 정보">
       <div>
@@ -41,10 +41,15 @@ export function PropertyInfoSection({
           </Field>
           <Field label="물건 주소" full>
             <div className="flex items-center gap-[8px]">
-              <TextField ref={addressRef} value={value.address} onChange={(v) => onChange({ address: v })} placeholder="주소 검색으로 입력" />
+              <TextField
+                value={value.address}
+                onChange={(v) => onChange({ address: v })}
+                placeholder="주소 검색으로 입력"
+                readOnly
+              />
               <button
                 type="button"
-                onClick={() => addressRef.current?.focus()}
+                onClick={openAddressSearch}
                 className="flex h-[42px] shrink-0 items-center gap-[6px] rounded-[11px] border border-line bg-white px-[15px] text-[13.5px] font-bold text-t2"
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">

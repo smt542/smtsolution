@@ -7,12 +7,17 @@ import {
   LockedValue,
   LockPin,
   manualLockPatch,
+  usageFromReadings,
+  usageTextFromReadings,
   usageLockPatch,
   type LockDraft,
 } from "./UtilityLock";
 
 export interface ElectricityDraft extends LockDraft {
+  previousReading: string;
   currentReading: string;
+  usage: string;
+  usageEdited: boolean;
   manualCharge: string;
   note: string;
 }
@@ -69,23 +74,24 @@ export function ElectricityReadingsTable({
 }: ElectricityReadingsTableProps) {
   const preparedRows: ElectricityReadingsGridRow[] = rows.map((row) => {
     const draft = drafts[row.unitId] ?? {
+      previousReading: row.previousReading === null ? "" : String(row.previousReading),
       currentReading: "",
+      usage: row.usage === null ? "" : String(row.usage),
+      usageEdited: false,
       manualCharge: "",
       note: "",
       usageLocked: false,
       lockedUsage: "",
       manualLocked: false,
     };
-    const current = optionalNumber(draft.currentReading) ?? row.currentReading;
-    const computedUsage = current !== null && row.previousReading !== null
-      ? current - row.previousReading
-      : row.usage;
+    const current = optionalNumber(draft.currentReading);
+    const computedUsage = usageFromReadings(draft.previousReading, draft.currentReading);
     // 고정한 량은 지침과 무관하게 그 값으로 부과된다(서버 save_meter_readings 도 같다).
-    const usage = draft.usageLocked ? optionalNumber(draft.lockedUsage) : computedUsage;
-    const invalidUsage = !draft.usageLocked && (row.needsReview || (
-      current !== null
-      && row.previousReading !== null
-      && current - row.previousReading < 0
+    const usage = draft.usageLocked
+      ? optionalNumber(draft.lockedUsage)
+      : draft.usageEdited ? optionalNumber(draft.usage) : computedUsage;
+    const invalidUsage = !draft.usageLocked && !draft.usageEdited && (row.needsReview || (
+      computedUsage !== null && computedUsage < 0
     ));
     const vacant = row.occupancyStatus === "vacant" || row.occupancyId === null;
     const moving = row.occupancyStatus === "moving_out";
@@ -141,9 +147,18 @@ export function ElectricityReadingsTable({
       width: editing ? 88 : 57,
       align: "right",
       cellClassName: "tabular-nums",
-      render: (item) => editing
-        ? <input aria-label={`${item.row.unitNo} 전월 지침값`} readOnly value={item.row.previousReading ?? ""} placeholder="-" className={`${inputClass()} w-full`} />
-        : item.row.previousReading === null ? <GridEmptyValue /> : <span className="num">{formatNumber(item.row.previousReading)}</span>,
+      render: (item) => editing ? (
+        <input
+          aria-label={`${item.row.unitNo} 전월 지침값`}
+          type="number"
+          min="0"
+          step="0.01"
+          value={item.draft.previousReading}
+          placeholder="-"
+          onChange={(event) => onDraftChange(item.row.unitId, { previousReading: event.target.value, ...(!item.draft.usageEdited ? { usage: usageTextFromReadings(event.target.value, item.draft.currentReading) } : {}) })}
+          className={`${inputClass()} w-full`}
+        />
+      ) : item.row.previousReading === null ? <GridEmptyValue /> : <span className="num">{formatNumber(item.row.previousReading)}</span>,
     },
     {
       key: "currentReading",
@@ -159,7 +174,7 @@ export function ElectricityReadingsTable({
           step="0.01"
           value={item.draft.currentReading}
           placeholder="-"
-          onChange={(event) => onDraftChange(item.row.unitId, { currentReading: event.target.value })}
+          onChange={(event) => onDraftChange(item.row.unitId, { currentReading: event.target.value, ...(!item.draft.usageEdited ? { usage: usageTextFromReadings(item.draft.previousReading, event.target.value) } : {}) })}
           className={`${inputClass()} w-full`}
         />
       ) : item.current === null ? <GridEmptyValue /> : <span className="num font-semibold">{formatNumber(item.current)}</span>,
@@ -170,15 +185,31 @@ export function ElectricityReadingsTable({
       width: editing ? 115 : 49,
       align: "right",
       cellClassName: (item) => `font-semibold tabular-nums ${item.invalidUsage || (item.vacant && (item.usage ?? 0) > 0) ? "text-red" : "text-t1"} ${!editing && item.draft.usageLocked ? FIXED_LOCK_CELL : ""}`,
-      render: (item) => item.invalidUsage ? (
+      render: (item) => !editing && item.invalidUsage ? (
         <span className="text-red">확인 필요</span>
       ) : editing ? (
         <span className="flex items-center gap-[5px]">
-          <input aria-label={`${item.row.unitNo} 사용량`} readOnly value={item.usage ?? ""} placeholder="-" className={`${inputClass()} w-[56px]`} />
+          <input
+            aria-label={`${item.row.unitNo} 사용량`}
+            type="number"
+            min="0"
+            step="0.01"
+            value={item.draft.usageLocked ? item.draft.lockedUsage : item.draft.usage}
+            readOnly={item.draft.usageLocked}
+            placeholder="-"
+            onChange={(event) => onDraftChange(item.row.unitId, { usage: event.target.value, usageEdited: true })}
+            className={`${inputClass()} w-[56px]`}
+          />
           <LockPin
             locked={item.draft.usageLocked}
             label={`${item.row.unitNo} 량 고정`}
-            onToggle={() => onDraftChange(item.row.unitId, usageLockPatch(item.draft.usageLocked, item.computedUsage))}
+            onToggle={() => onDraftChange(item.row.unitId, {
+              ...usageLockPatch(item.draft.usageLocked, item.usage),
+              ...(item.draft.usageLocked ? {
+                usageEdited: false,
+                usage: usageTextFromReadings(item.draft.previousReading, item.draft.currentReading),
+              } : {}),
+            })}
           />
         </span>
       ) : item.draft.usageLocked ? <LockedValue value={item.usage} />
@@ -214,6 +245,7 @@ export function ElectricityReadingsTable({
             min="0"
             value={item.draft.manualCharge}
             onChange={(event) => onDraftChange(item.row.unitId, { manualCharge: event.target.value })}
+            readOnly={item.draft.manualLocked}
             className={`${inputClass()} w-[56px]`}
           />
           <LockPin
