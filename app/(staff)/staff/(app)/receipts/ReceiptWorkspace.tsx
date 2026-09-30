@@ -186,6 +186,12 @@ export function ReceiptWorkspace({
   const [railView, setRailView] = useState<"building" | "unit">(
     initialBuildingId !== null ? "unit" : "building",
   );
+  // 정본 setView 는 부를 때마다(조회로 같은 목록에 다시 와도) 들어오는 표의 slide 를 처음부터 재생한다 → 호출 수를 센다.
+  const [railViewSeq, setRailViewSeq] = useState(0);
+  const changeRailView = (next: "building" | "unit") => {
+    setRailView(next);
+    setRailViewSeq((seq) => seq + 1);
+  };
   const [searchOpen, setSearchOpen] = useState(false);
   const [monthlyOpen, setMonthlyOpen] = useState(false);
   const [chargeReportOpen, setChargeReportOpen] = useState(false);
@@ -290,15 +296,15 @@ export function ReceiptWorkspace({
   const selectBuilding = (id: number) => {
     setSelectedBuildingId(id);
     setSelectedUnitId(null);
-    setRailView("unit");
+    changeRailView("unit");
   };
   const backToBuildings = () => {
-    setRailView("building");
+    changeRailView("building");
   };
   const jumpTo = (buildingId: number, unitId: number | null) => {
     setSelectedBuildingId(buildingId);
     setSelectedUnitId(unitId);
-    setRailView("unit");
+    changeRailView("unit");
   };
 
   const openOverdue = () => {
@@ -421,6 +427,7 @@ export function ReceiptWorkspace({
           isUnitsLoading={isUnitsLoading}
           canEdit={canEditPayment}
           view={railView}
+          viewSeq={railViewSeq}
           selectedBuildingId={selectedBuildingId}
           selectedUnitId={selectedUnitId}
           onSelectBuilding={selectBuilding}
