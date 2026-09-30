@@ -1,15 +1,16 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Spinner } from "@/components/common";
+import { Button, IconButton, Spinner } from "@/components/common";
+import { CloseIcon, PrinterIcon } from "@/components/icons";
 import { billKeys, getBillDocuments, listBillTargets, useAdjustmentStatements, useIssueBills, useSendBillFaxes, type BillDocument, type BillTarget } from "@/hooks/reactquery/bill";
 import { billingKeys, getBillingPeriodSetting } from "@/hooks/reactquery/billing";
 import { cmsDownloadUrl } from "@/hooks/reactquery/payments";
 import { currentPeriod } from "@/lib/billing/period";
+import { matchesBuildingGroup } from "@/lib/buildings/groupType";
 import { displayUnitNo, type PrintableAccount } from "@/lib/bill/document";
 import type { BillBuilding, OutputDocumentType } from "../types";
 import type { GiroOutputDocument, GiroPrintViewProps } from "./GiroPrintView";
@@ -40,12 +41,15 @@ export interface DocumentOutputModalProps {
 }
 
 const TITLES: Record<OutputDocumentType, string> = { giro: "지로 고지서 출력", adjustment: "조정명세서 출력", autoDebit: "자동이체 세대 출력", fax: "팩스 발송" };
-const YEARS = Array.from({ length: 8 }, (_, index) => 2019 + index);
 const MONTHS = Array.from({ length: 12 }, (_, index) => index + 1);
 
 function initialYearMonth() {
-  const [rawYear, rawMonth] = currentPeriod().split("-").map(Number);
-  return { year: Math.min(2026, Math.max(2019, rawYear)), month: rawMonth };
+  const [year, month] = currentPeriod().split("-").map(Number);
+  return { year, month };
+}
+// 정본 연도 목록 = 올해부터 8개 내림차순.
+function outputYears(currentYear: number) {
+  return Array.from({ length: 8 }, (_, index) => currentYear - index);
 }
 function outputPeriod(year: number, month: number) { return `${year}-${String(month).padStart(2, "0")}-01`; }
 function mergeGiroDocuments(building: BillBuilding, documents: BillDocument[], targets: BillTarget[], dueDate: string | null): GiroOutputDocument[] {
@@ -57,21 +61,26 @@ function mergeGiroDocuments(building: BillBuilding, documents: BillDocument[], t
 
 export function DocumentOutputModal({ type, orgId, buildings, companyName, accounts, customerNotice, onClose }: DocumentOutputModalProps) {
   const initial = initialYearMonth();
+  const [years] = useState(() => outputYears(initial.year));
   const [year, setYear] = useState(initial.year);
   const [month, setMonth] = useState(initial.month);
   const [outputDate] = useState(() => formatOutputDate(new Date()));
   const [search, setSearch] = useState("");
+  const [buildingGroup, setBuildingGroup] = useState("");
   const [selectedBuildingIds, setSelectedBuildingIds] = useState<number[]>(
     type === "autoDebit" ? buildings.map((building) => building.id) : [],
   );
   const [selectedUnitIds, setSelectedUnitIds] = useState<number[]>([]);
   const [previewUnitId, setPreviewUnitId] = useState<number | null>(null);
-  const [zoom, setZoom] = useState(type === "adjustment" ? 55 : 100);
+  // 정본 `.adj-zoom`: 100% = 용지 폭을 미리보기 폭에 맞춘 배율(지로·조정명세서 모두).
+  const [zoom, setZoom] = useState(100);
   const [group, setGroup] = useState(0);
   const [reissueUnitIds, setReissueUnitIds] = useState<number[]>([]);
   const [waterCutoffStampUnitIds, setWaterCutoffStampUnitIds] = useState<number[]>([]);
   const [autoDebitUnitIds, setAutoDebitUnitIds] = useState<number[]>([]);
   const [stampScope, setStampScope] = useState<GiroStampScope>("individual");
+  // 정본 syncBar: 대상 없이 스탬프를 누르면 다음 선택 전까지 푸터 안내가 바뀐다.
+  const [stampHint, setStampHint] = useState<string | null>(null);
   const [faxConfirmOpen, setFaxConfirmOpen] = useState(false);
   const [faxRecipient, setFaxRecipient] = useState("");
   const [faxError, setFaxError] = useState(false);
@@ -85,7 +94,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
   const needsDocuments = type === "giro" || type === "fax";
   const selectedBuildings = useMemo(() => buildings.filter((building) => selectedBuildingIds.includes(building.id)), [buildings, selectedBuildingIds]);
   const normalizedSearch = search.trim().toLocaleLowerCase("ko-KR");
-  const visibleBuildings = buildings.filter((building) => !normalizedSearch || `${building.code} ${building.name} ${building.address ?? ""}`.toLocaleLowerCase("ko-KR").includes(normalizedSearch));
+  const visibleBuildings = buildings.filter((building) => matchesBuildingGroup(building, buildingGroup) && (!normalizedSearch || `${building.code} ${building.name} ${building.address ?? ""}`.toLocaleLowerCase("ko-KR").includes(normalizedSearch)));
 
   const currentTargetQueries = useQueries({ queries: selectedBuildings.map((building) => ({ queryKey: billKeys.targets(building.id, period), queryFn: () => listBillTargets(building.id, period) })) });
   const periodSettingQueries = useQueries({ queries: selectedBuildings.map((building) => ({ queryKey: billingKeys.periodSetting(building.id, period), queryFn: () => getBillingPeriodSetting(building.id, period), enabled: type === "giro" || type === "fax" })) });
@@ -124,7 +133,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
     waterCutoff: isStampActiveForTarget(waterCutoffStampUnitIds) || Boolean(stampScope === "individual" && previewEntry?.target.waterCutoff),
     autoDebit: isStampActiveForTarget(autoDebitUnitIds),
   };
-  const disabledStampKinds: GiroStampKind[] = stampScope === "individual" && previewEntry?.target.waterCutoff ? ["waterCutoff"] : [];
+  const lockedStampKinds: GiroStampKind[] = stampScope === "individual" && previewEntry?.target.waterCutoff ? ["waterCutoff"] : [];
   const outputStamps = {
     reissueUnitIds: reissueUnitIds.filter((unitId) => validSelectedUnitIds.includes(unitId)),
     waterCutoffUnitIds: printWaterCutoffUnitIds,
@@ -156,14 +165,17 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
     setWaterCutoffStampUnitIds([]);
     setAutoDebitUnitIds([]);
     setStampScope("individual");
+    setStampHint(null);
     setFaxConfirmOpen(false);
     setFaxRecipient("");
     faxSelectionInitialized.current = false;
   };
   const changeYear = (value: number) => { setYear(value); resetPeriodSelection(); };
   const changeMonth = (value: number) => { setMonth(value); resetPeriodSelection(); };
+  const changeBuildingGroup = (value: string) => { setBuildingGroup(value); setSelectedBuildingIds([]); resetPeriodSelection(); };
   const toggleBuilding = (buildingId: number) => { setSelectedBuildingIds((selected) => selected.includes(buildingId) ? selected.filter((id) => id !== buildingId) : [...selected, buildingId]); resetPeriodSelection(); };
   const toggleUnit = (unitId: number) => {
+    setStampHint(null);
     setSelectedUnitIds((current) => {
       if (current.includes(unitId)) {
         const next = current.filter((id) => id !== unitId);
@@ -192,6 +204,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
       ? faxReadyTargets.map(({ target }) => target.unitId)
       : allTargets.map(({ target }) => target.unitId);
     if (availableIds.length === 0) return;
+    setStampHint(null);
     const selectedIds = selectedUnitIds;
     const allSelected = availableIds.every((id) => selectedIds.includes(id));
     setSelectedUnitIds(allSelected ? [] : availableIds);
@@ -201,8 +214,29 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
       faxSelectionInitialized.current = true;
     }
   };
+  // 정본 `#adjUnits tr.ugrp`: 건물 묶음 머리를 누르면 그 건물 호수를 모두 켜거나 끈다.
+  const toggleUnits = (unitIds: number[]) => {
+    if (unitIds.length === 0) return;
+    setStampHint(null);
+    const allSelected = unitIds.every((id) => selectedUnitIds.includes(id));
+    const next = allSelected
+      ? selectedUnitIds.filter((id) => !unitIds.includes(id))
+      : [...new Set([...selectedUnitIds, ...unitIds])];
+    setSelectedUnitIds(next);
+    setPreviewUnitId((preview) => preview !== null && next.includes(preview) ? preview : next[0] ?? null);
+    if (type === "fax") {
+      const first = faxReadyTargets.find(({ target }) => next.includes(target.unitId))?.target;
+      setFaxRecipient(first?.faxNumber ?? "");
+      faxSelectionInitialized.current = true;
+    }
+  };
+  const changeStampScope = (scope: GiroStampScope) => { setStampHint(null); setStampScope(scope); };
+  const selectPreviewUnit = (unitId: number) => { setStampHint(null); setPreviewUnitId(unitId); };
   const toggleStamp = (kind: GiroStampKind) => {
-    if (stampTargetIds.length === 0) return;
+    if (stampTargetIds.length === 0) {
+      if (stampScope === "individual") setStampHint("고지서를 먼저 클릭하세요");
+      return;
+    }
     const toggleTargetIds = (current: number[]) => {
       if (stampScope === "individual") {
         const [unitId] = stampTargetIds;
@@ -224,7 +258,10 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
   };
 
   const print = async () => {
-    if (!hasPrintableData) return;
+    if (!hasPrintableData) {
+      if (type === "giro") toast.info("출력할 호수를 선택해 주세요");
+      return;
+    }
     if (type === "giro") {
       try {
         for (const [buildingIndex, building] of selectedBuildings.entries()) {
@@ -254,7 +291,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
     });
   };
   const openFaxConfirmation = () => {
-    if (selectedFaxTargets.length === 0) return;
+    if (selectedFaxTargets.length === 0) { toast.info("발송할 호수를 선택해 주세요"); return; }
     setFaxRecipient(selectedFaxTargets[0]?.target.faxNumber ?? "");
     setFaxError(false);
     setFaxConfirmOpen(true);
@@ -285,85 +322,100 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
 
   const printPreview = type === "giro" ? <GiroPrintView companyName={companyName} period={period} documents={giroDocuments} accounts={accounts} customerNotice={customerNotice} stamps={outputStamps} onReady={handlePreviewReady} /> : null;
   const selectedUnitCount = selectedUnitIds.length;
-  const stampFooterLabel = (type === "giro" || type === "fax") && stampTargetIds.length > 0
-    ? stampScope === "all"
-      ? "도장 적용 범위 · 전체"
-      : `도장 적용 범위 · ${previewEntry ? displayUnitNo(previewEntry.target.unitNo) : "-"}`
+  const hasStampBar = type === "giro" || type === "fax";
+  // 정본 `#giroFoc`: 스탬프를 찍을 고지서(개별) 또는 전체 건수.
+  const stampFooterLabel = hasStampBar
+    ? stampHint ?? (stampScope === "all"
+      ? `스탬프 · 전체 ${validSelectedUnitIds.length}건`
+      : previewEntry ? `스탬프 · ${displayUnitNo(previewEntry.target.unitNo)}` : "스탬프 대상 미선택")
     : null;
+  // 정본 `.lg-print`는 건물만 고르면 켜진다(`pb.disabled=!sel.size`). 호수가 없으면 누를 때 안내한다.
+  const printDisabled = type === "giro"
+    ? selectedBuildingIds.length === 0 || isPreviewBusy || isError || issueBills.isPending || (hasPrintableData && !previewReady)
+    : !hasPrintableData || isPreviewBusy;
+  // 정본 빈 상태 문구(`adjPreview`): 13px/500 t3, 줄 간격 1.6.
+  const previewMessage = "relative flex min-h-0 flex-1 items-center justify-center text-center text-[13px] font-medium leading-[1.6]";
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-3 print:hidden" role="dialog" aria-modal="true" aria-labelledby="output-modal-title" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-        <div className="flex h-[660px] w-[1020px] max-h-[calc(100vh-24px)] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)]">
-          <header className="flex h-[61px] shrink-0 items-center justify-between border-b border-[#e8ebee] px-[20px]">
-            <h2 id="output-modal-title" className="text-[16px] font-extrabold leading-[21px] tracking-[-0.02em] text-[#191f28]">{TITLES[type]}</h2>
-            <button type="button" aria-label="출력 모달 닫기" onClick={onClose} className="flex size-[26px] items-center justify-center rounded-[8px] border border-[#e8ebee] bg-white hover:bg-[#f8f9fa]"><Image src="/figma-assets/bill/modal-close.svg" alt="" width={14} height={14} className="size-[14px]" /></button>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-6 print:hidden" role="dialog" aria-modal="true" aria-labelledby="output-modal-title" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+        <div className="flex h-[min(660px,92%)] w-[min(1020px,96%)] flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)]">
+          <header className="flex flex-none items-center gap-2.5 border-b border-line px-5 py-[17px]">
+            <h2 id="output-modal-title" className="text-[16px] font-extrabold leading-[normal] tracking-[-0.02em] text-t1">{TITLES[type]}</h2>
+            <span className="flex-1" />
+            <IconButton
+              aria-label="출력 모달 닫기"
+              title="닫기"
+              onClick={onClose}
+              className="size-[26px] rounded-[8px] border border-line bg-white text-t2 transition-[border-color,background-color] duration-[120ms] hover:border-[#C9D0D8] hover:bg-[#F7F9FA]"
+            >
+              <CloseIcon className="size-3.5 flex-none" />
+            </IconButton>
           </header>
-          <div className="flex h-[530px] min-h-0 shrink-0">
+          <div className="flex min-h-0 flex-1">
             {type === "autoDebit" ? (
-              <AutoDebitTable year={year} month={month} years={YEARS} months={MONTHS} group={group} rows={autoDebitRows} onYearChange={changeYear} onMonthChange={changeMonth} onGroupChange={setGroup} />
+              <AutoDebitTable year={year} month={month} years={years} months={MONTHS} group={group} rows={autoDebitRows} onYearChange={changeYear} onMonthChange={changeMonth} onGroupChange={setGroup} />
             ) : (
               <>
-                <div className="w-[340px] shrink-0"><OutputSelectionPane type={type} year={year} month={month} years={YEARS} months={MONTHS} search={search} buildings={visibleBuildings} selectedBuildingIds={selectedBuildingIds} targetsByBuilding={currentTargetsByBuilding} selectedUnitIds={validSelectedUnitIds} onYearChange={changeYear} onMonthChange={changeMonth} onSearchChange={setSearch} onToggleBuilding={toggleBuilding} onToggleAllBuildings={toggleAllBuildings} onToggleUnit={toggleUnit} onToggleAllUnits={toggleAllUnits} /></div>
-                <div className="relative flex min-w-0 flex-1 flex-col">
-                  {(type === "giro" || type === "fax") && (
+                <div className="w-[340px] shrink-0"><OutputSelectionPane type={type} year={year} month={month} years={years} months={MONTHS} group={buildingGroup} search={search} buildings={visibleBuildings} selectedBuildingIds={selectedBuildingIds} targetsByBuilding={currentTargetsByBuilding} selectedUnitIds={validSelectedUnitIds} onYearChange={changeYear} onMonthChange={changeMonth} onGroupChange={changeBuildingGroup} onSearchChange={setSearch} onToggleBuilding={toggleBuilding} onToggleAllBuildings={toggleAllBuildings} onToggleUnit={toggleUnit} onToggleUnits={toggleUnits} onToggleAllUnits={toggleAllUnits} /></div>
+                <div className="relative flex min-w-0 flex-1 flex-col bg-[#e8ebee]">
+                  {hasStampBar && (
                     <GiroStampToolbar
                       stamps={toolbarStamps}
                       scope={stampScope}
-                      disabled={stampTargetIds.length === 0}
-                      disabledKinds={disabledStampKinds}
+                      lockedKinds={lockedStampKinds}
                       onToggleStamp={toggleStamp}
-                      onScopeChange={setStampScope}
+                      onScopeChange={changeStampScope}
                     />
                   )}
-                  {selectedBuildingIds.length === 0 ? (
-                    <div className="relative flex min-h-0 flex-1 items-center justify-center bg-[#e8ebee] text-center text-[12px] leading-[19px] text-[#8b95a1]">
-                      <p><strong className="block font-semibold">출력할 건물을 선택해 주세요</strong><span>선택한 건물의 {type === "adjustment" ? "조정명세서" : "지로 고지서"}가 여기에 표시돼요</span></p>
-                      <ZoomControls zoom={zoom} onZoom={setZoom} />
-                    </div>
-                  ) : isError ? (
-                    <div role="alert" className="flex flex-1 items-center justify-center bg-[#e8ebee] text-[12px] font-bold text-[#f04452]">확정 부과 자료를 불러오지 못했습니다.</div>
-                  ) : isPreviewInitialLoading ? (
-                    <div className="flex min-h-[420px] flex-1 items-center justify-center bg-[#e8ebee]"><Spinner label="출력 미리보기 불러오는 중" /></div>
-                  ) : (type === "giro" || type === "fax") && validSelectedUnitIds.length === 0 ? (
-                    <div className="relative flex min-h-0 flex-1 items-center justify-center bg-[#e8ebee] text-[12px] text-[#8b95a1]">
-                      출력할 호수를 선택해 주세요
-                      <ZoomControls zoom={zoom} onZoom={setZoom} />
-                    </div>
-                  ) : type === "adjustment" ? (
-                    adjustment.hasData ? (
-                      <AdjustmentPreviewViewport pages={adjustment.pages} zoom={zoom} onZoom={setZoom} refreshing={isPreviewRefreshing} />
-                    ) : (
-                      <div className="relative flex min-h-0 flex-1 items-center justify-center bg-[#e8ebee] text-[12px] text-[#8b95a1]">
-                        표시할 조정 명세 자료가 없습니다.
+                  {/* 정본 `.giro-bar`(51px)는 미리보기 위에 떠 있고, 미리보기는 그 아래 52px부터 시작한다. */}
+                  <div className={`relative flex min-h-0 flex-1 flex-col ${hasStampBar ? "mt-px" : ""}`}>
+                    {selectedBuildingIds.length === 0 ? (
+                      <div className={`${previewMessage} text-t3`}>
+                        <p>출력할 건물을 선택해 주세요<br />선택한 건물의 {type === "adjustment" ? "조정명세서" : "지로 고지서"}가 여기에 표시돼요</p>
                         <ZoomControls zoom={zoom} onZoom={setZoom} />
                       </div>
-                    )
-                  ) : (
-                    <>
-                      <CompactDocumentPreview companyName={companyName} period={period} pages={giroDocuments} accounts={accounts} customerNotice={customerNotice} stamps={outputStamps} highlightedUnitIds={stampTargetIds} onSelectUnit={setPreviewUnitId} zoom={zoom} onZoom={setZoom} />
-                      {isPreviewRefreshing ? (
-                        <div className={`pointer-events-none absolute right-3 rounded-full bg-surface/95 shadow-card ${type === "giro" || type === "fax" ? "top-[60px]" : "top-3"}`}>
-                          <Spinner label="출력 미리보기 갱신 중" size="small" showLabel className="px-3 py-2" />
+                    ) : isError ? (
+                      <div role="alert" className={`${previewMessage} text-red`}>확정 부과 자료를 불러오지 못했습니다.</div>
+                    ) : isPreviewInitialLoading ? (
+                      <div className="flex min-h-0 flex-1 items-center justify-center"><Spinner label="출력 미리보기 불러오는 중" /></div>
+                    ) : hasStampBar && validSelectedUnitIds.length === 0 ? (
+                      <div className={`${previewMessage} text-t3`}>
+                        출력할 호수를 선택해 주세요
+                        <ZoomControls zoom={zoom} onZoom={setZoom} />
+                      </div>
+                    ) : type === "adjustment" ? (
+                      adjustment.hasData ? (
+                        <AdjustmentPreviewViewport pages={adjustment.pages} zoom={zoom} onZoom={setZoom} refreshing={isPreviewRefreshing} />
+                      ) : (
+                        <div className={`${previewMessage} text-t3`}>
+                          표시할 조정 명세 자료가 없습니다.
+                          <ZoomControls zoom={zoom} onZoom={setZoom} />
                         </div>
-                      ) : null}
-                    </>
-                  )}
+                      )
+                    ) : (
+                      <>
+                        <CompactDocumentPreview companyName={companyName} period={period} pages={giroDocuments} accounts={accounts} customerNotice={customerNotice} stamps={outputStamps} highlightedUnitIds={stampTargetIds} onSelectUnit={selectPreviewUnit} zoom={zoom} onZoom={setZoom} />
+                        {isPreviewRefreshing ? (
+                          <div className="pointer-events-none absolute right-3 top-2 rounded-full bg-surface/95 shadow-card">
+                            <Spinner label="출력 미리보기 갱신 중" size="small" showLabel className="px-3 py-2" />
+                          </div>
+                        ) : null}
+                      </>
+                    )}
+                  </div>
                 </div>
               </>
             )}
           </div>
-          <footer className="flex h-[69px] shrink-0 items-center justify-between border-t border-[#e8ebee] px-[20px]">
-            <div className="flex items-center gap-[14px]">
-              <p className="text-[11.5px] font-semibold text-[#8b95a1]">{type === "autoDebit" ? "" : type === "adjustment" ? `${selectedBuildingIds.length}곳 선택` : `건물 ${selectedBuildingIds.length}개 / 호수 ${selectedUnitCount}개 선택`}</p>
-              {stampFooterLabel && <span className="text-[11.5px] font-bold text-[#14a497]">{stampFooterLabel}</span>}
-            </div>
-            <div className="flex items-center gap-[8px]">
-              {type === "autoDebit" && <><ModalActionButton variant="ghost" icon="/figma-assets/bill/download.svg" onClick={downloadAutoDebit} disabled={selectedBuildings.length === 0}>다운로드</ModalActionButton><ModalActionButton icon="/figma-assets/bill/print.svg" onClick={printAutoDebit} disabled={isPreviewInitialLoading}>인쇄</ModalActionButton></>}
-              {(type === "giro" || type === "adjustment") && <ModalActionButton icon="/figma-assets/bill/print.svg" onClick={() => void print()} disabled={!hasPrintableData || isPreviewBusy || (type === "giro" && (!previewReady || issueBills.isPending))}>{type === "giro" && issueBills.isPending ? "발행 중…" : "인쇄"}</ModalActionButton>}
-              {/* 발송 버튼 아이콘은 Figma export가 print.svg(흰색 16px)와 동일한 글리프다 — 카드용 document-fax.svg는 청록 22px라 버튼 위에서 보이지 않는다. */}
-              {type === "fax" && <ModalActionButton icon="/figma-assets/bill/print.svg" onClick={openFaxConfirmation} disabled={selectedFaxTargets.length === 0 || sendFaxes.isPending}>{sendFaxes.isPending ? "발송 중…" : "발송"}</ModalActionButton>}
-            </div>
+          <footer className="flex flex-none items-center gap-[9px] border-t border-line px-5 py-3.5 leading-[normal]">
+            {type !== "autoDebit" && <span className="text-[12.5px] font-bold text-t3">{type === "adjustment" ? `${selectedBuildingIds.length}곳 선택` : `건물 ${selectedBuildingIds.length}개 / 호수 ${selectedUnitCount}개 선택`}</span>}
+            {stampFooterLabel && <span className="ml-[9px] whitespace-nowrap border-l border-line pl-[9px] text-[12px] font-bold text-blue-d">{stampFooterLabel}</span>}
+            <span className="flex-1" />
+            {type === "autoDebit" && <><ModalActionButton variant="ghost" icon="/figma-assets/bill/download.svg" onClick={downloadAutoDebit} disabled={selectedBuildings.length === 0}>다운로드</ModalActionButton><Button type="button" size="wide" className="shadow-none" onClick={printAutoDebit} disabled={isPreviewInitialLoading}><PrinterIcon className="size-4 flex-none" />인쇄</Button></>}
+            {(type === "giro" || type === "adjustment") && <Button type="button" size="wide" className="shadow-none" onClick={() => void print()} disabled={printDisabled}><PrinterIcon className="size-4 flex-none" />{type === "giro" && issueBills.isPending ? "발행 중…" : "인쇄"}</Button>}
+            {/* 정본 팩스 발송 버튼도 `.lg-print`(인쇄 아이콘)다. */}
+            {type === "fax" && <Button type="button" size="wide" className="shadow-none" onClick={openFaxConfirmation} disabled={selectedBuildingIds.length === 0 || sendFaxes.isPending}><PrinterIcon className="size-4 flex-none" />{sendFaxes.isPending ? "발송 중…" : "발송"}</Button>}
           </footer>
         </div>
       </div>

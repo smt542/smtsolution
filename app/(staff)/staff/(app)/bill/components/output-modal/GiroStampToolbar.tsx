@@ -6,8 +6,8 @@ export type GiroStampScope = "individual" | "all";
 interface GiroStampToolbarProps {
   stamps: Record<GiroStampKind, boolean>;
   scope: GiroStampScope;
-  disabled: boolean;
-  disabledKinds?: GiroStampKind[];
+  /** 늘 켜져 있어 끌 수 없는 표기. 단수 예고 대상 세대의 '단수'가 그렇다. */
+  lockedKinds?: GiroStampKind[];
   onToggleStamp: (kind: GiroStampKind) => void;
   onScopeChange: (scope: GiroStampScope) => void;
 }
@@ -18,44 +18,41 @@ const stampItems: { key: GiroStampKind; label: string }[] = [
   { key: "autoDebit", label: "자동이체" },
 ];
 
-export function GiroStampToolbar({ stamps, scope, disabled, disabledKinds = [], onToggleStamp, onScopeChange }: GiroStampToolbarProps) {
+// 정본 `.giro-stamps a`·`.giro-scope a`: 11.5px/700·padding 5px 10px·모서리 7. 정본에 hover 효과는 없다.
+const SEGMENT =
+  "cursor-pointer whitespace-nowrap rounded-[7px] px-2.5 py-[5px] text-[11.5px] font-bold leading-[normal] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#b7ebe4]";
+
+/** 정본 `.giro-bar`: 스탬프 유형(흰 칸·켜지면 청록 틴트) + 적용 범위 스위치(회색 칸·켜지면 흰 칩). */
+export function GiroStampToolbar({ stamps, scope, lockedKinds = [], onToggleStamp, onScopeChange }: GiroStampToolbarProps) {
   return (
-    <div className="flex h-[50px] shrink-0 items-center gap-[8px] border-b border-[#e8ebee] bg-white px-[14px]">
-      <div aria-label="지로 출력 표기" className="flex h-[32px] shrink-0 items-center gap-[8px] overflow-hidden rounded-[9px] border border-[#edf0f3] bg-white p-[3px]">
+    <div className="flex flex-none items-center gap-[7px] whitespace-nowrap border-b border-line bg-white px-3 py-[9px]">
+      <div aria-label="지로 출력 표기" className="inline-flex gap-[3px] rounded-[9px] border border-line bg-white p-[3px]">
         {stampItems.map(({ key, label }) => {
           const active = stamps[key];
-          const kindDisabled = disabledKinds.includes(key);
-          const buttonDisabled = disabled || kindDisabled;
-          const disabledTitle = buttonDisabled
-            ? kindDisabled && key === "waterCutoff"
-              ? "단수 예고 대상 세대라 항상 표기됩니다"
-              : disabled
-                ? "출력할 호수를 먼저 선택해 주세요"
-                : "현재 선택한 범위에 적용할 수 없습니다"
-            : undefined;
+          const locked = lockedKinds.includes(key);
           return (
             <button
               key={key}
               type="button"
               aria-pressed={active}
-              disabled={buttonDisabled}
-              title={disabledTitle}
+              disabled={locked}
+              title={locked ? "단수 예고 대상 세대라 항상 표기됩니다" : undefined}
               onClick={() => onToggleStamp(key)}
-              className={`h-[24px] shrink-0 rounded-[7px] px-[9px] text-[10px] transition focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#b7ebe4] ${active ? "bg-[#e2f5f1] font-bold text-[#0f857a]" : "font-medium text-[#8b95a1] hover:bg-[#f8f9fa]"} disabled:cursor-not-allowed disabled:opacity-50`}
+              className={`${SEGMENT} disabled:cursor-default ${active ? "bg-blue-t text-blue-d" : "text-t3"}`}
             >
               {label}
             </button>
           );
         })}
       </div>
-      <div aria-label="표기 적용 범위" className="flex h-[32px] overflow-hidden rounded-[9px] border border-[#e8ebee] bg-[#edf0f3] p-[2px]">
+      <div aria-label="표기 적용 범위" className="inline-flex gap-[2px] rounded-[9px] bg-[#EDF0F3] p-[3px]">
         {(["individual", "all"] as const).map((value) => (
           <button
             key={value}
             type="button"
             aria-pressed={scope === value}
             onClick={() => onScopeChange(value)}
-            className={`h-[26px] rounded-[7px] px-[10px] text-[10.5px] font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#b7ebe4] ${scope === value ? "bg-white text-[#333d4b] shadow-sm" : "text-[#8b95a1] hover:text-[#4e5968]"}`}
+            className={`${SEGMENT} ${scope === value ? "bg-white text-t1 shadow-[0_2px_5px_rgba(23,31,40,0.1)]" : "text-t3"}`}
           >
             {value === "individual" ? "개별" : "전체"}
           </button>

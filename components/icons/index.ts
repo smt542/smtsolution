@@ -15,3 +15,5 @@ export { PlusIcon } from "./PlusIcon";
 export { SendIcon } from "./SendIcon";
 export { IdCardIcon } from "./IdCardIcon";
 export { DocumentIcon } from "./DocumentIcon";
+export { ZoomInIcon } from "./ZoomInIcon";
+export { ZoomOutIcon } from "./ZoomOutIcon";
