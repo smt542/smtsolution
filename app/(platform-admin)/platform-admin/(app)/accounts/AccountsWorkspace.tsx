@@ -103,7 +103,7 @@ export function AccountsWorkspace() {
                 setPage(1);
               }}
               placeholder="이름 · 아이디 검색"
-              className="w-[170px] bg-transparent text-[13px] font-semibold leading-[normal] text-t1 outline-none placeholder:font-medium placeholder:text-t4"
+              className="w-[170px] bg-transparent px-[2px] py-px text-[13px] font-semibold leading-[normal] text-t1 outline-none placeholder:font-medium placeholder:text-t4"
             />
           </label>
         </div>
@@ -130,7 +130,7 @@ export function AccountsWorkspace() {
                   "상태",
                   "생성일",
                 ].map((label) => (
-                  <th key={label} className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-left text-xs font-bold text-t3">
+                  <th key={label} className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-left text-[12px] font-bold text-t3">
                     {label}
                   </th>
                 ))}

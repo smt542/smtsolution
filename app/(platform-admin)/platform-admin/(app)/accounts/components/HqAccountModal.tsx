@@ -298,6 +298,7 @@ export function HqAccountModal({ mode, account, onClose }: HqAccountModalProps) 
                   onChange={(value) => setField("hqRole", value as HqRole)}
                   position="fixed"
                   menuMinWidth={0}
+                  menuOffset={6}
                   menuClassName={ADMIN_DROPDOWN_MENU_CLASS}
                   chevron="rotate"
                   chevronMs={180}
@@ -321,7 +322,7 @@ export function HqAccountModal({ mode, account, onClose }: HqAccountModalProps) 
             <div className="col-span-2 my-[3px] h-px bg-line2" />
 
             <div>
-              <FieldLabel required={mode === "create"}>아이디</FieldLabel>
+              <FieldLabel required>아이디</FieldLabel>
               <Input
                 id="aId"
                 size="42"
@@ -371,7 +372,7 @@ export function HqAccountModal({ mode, account, onClose }: HqAccountModalProps) 
 
         <div className="flex items-center gap-2 border-t border-line2 px-6 pb-5 pt-4">
           {mode === "edit" ? (
-            <Button type="button" size="std" variant="danger" className="shadow-none" onClick={() => void handleDelete()} disabled={requestPending}>
+            <Button type="button" size="std" variant="danger" className="border border-transparent shadow-none" onClick={() => void handleDelete()} disabled={requestPending}>
               삭제
             </Button>
           ) : null}
@@ -379,7 +380,7 @@ export function HqAccountModal({ mode, account, onClose }: HqAccountModalProps) 
           <Button type="button" size="std" variant="ghost" onClick={onClose} disabled={requestPending}>
             취소
           </Button>
-          <Button type="submit" size="std" variant="primary" disabled={requestPending}>
+          <Button type="submit" size="std" variant="primary" className="border border-transparent" disabled={requestPending}>
             {mode === "create" ? "생성" : "저장"}
           </Button>
         </div>

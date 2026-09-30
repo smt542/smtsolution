@@ -41,6 +41,8 @@ interface CustomDropdownProps {
   position?: "absolute" | "fixed";
   /** fixed 메뉴의 정렬. `start`는 트리거 왼쪽, `end`는 트리거 오른쪽 끝에 맞춘다. */
   menuAlign?: "start" | "end";
+  /** fixed 메뉴와 트리거 사이 간격(px). 기본 5 = 직원 계정 정본 `.rg-dd`, 통합관리자 계정 정본 `.ac-dd-menu{top:calc(100% + 6px)}`은 6. */
+  menuOffset?: number;
   /**
    * 메뉴 쪽 덮어쓰기. fixed 메뉴는 body 포탈이라 호출부 래퍼의 `[&_.uc-dd-menu]`·`[&_.uc-opt]` 덮어쓰기가
    * 닿지 않는다. 같은 명시도의 기본 유틸을 이기도록 메뉴 자신은 `[&.uc-dd-menu]:…`, 옵션은 `[&_.uc-opt]:…`로 쓴다.
@@ -99,6 +101,7 @@ export function CustomDropdown({
   variant = "menu",
   position = "absolute",
   menuAlign = "start",
+  menuOffset = 5,
   placeholder,
   check = "selected",
   menuMinWidth,
@@ -210,8 +213,8 @@ export function CustomDropdown({
       menu.style.left = `${Math.max(8, Math.min(left, window.innerWidth - width - 8))}px`;
       menu.style.top = `${
         rect.bottom + height + 8 > window.innerHeight
-          ? Math.max(8, rect.top - height - 5)
-          : rect.bottom + 5
+          ? Math.max(8, rect.top - height - menuOffset)
+          : rect.bottom + menuOffset
       }px`;
     };
     place();
@@ -222,7 +225,7 @@ export function CustomDropdown({
       window.removeEventListener("scroll", place, true);
       window.removeEventListener("resize", place);
     };
-  }, [isFixed, menuAlign, open]);
+  }, [isFixed, menuAlign, menuOffset, open]);
 
   // fixed 메뉴는 body 포탈로 내보낸다. `overflow:clip/hidden` 조상(Panel titlebar 등)이 잘라내고,
   // drop-shadow 같은 `filter` 가 걸린 조상은 fixed 자손의 containing block 이 되어 같이 잘라낸다
