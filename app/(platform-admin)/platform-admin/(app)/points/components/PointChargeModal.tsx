@@ -1,14 +1,18 @@
 "use client";
 import React from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Modal, Input, Button, Select } from "@/components/common";
+import { Modal, Input, Button, CustomDropdown } from "@/components/common";
 import { FormField } from "@/components/common/FormField";
 import { setSubmissionError } from "@/components/forms/formErrors";
 import { pointChargeSchema } from "@/components/forms/schema/pointCharge";
 import type { PlatformOrganization } from "@/hooks/reactquery/platform";
 import { ModalActions } from "../../../../_components/ModalActions";
+import {
+  ADMIN_DROPDOWN_MENU_CLASS,
+  ADMIN_FORM_DROPDOWN_CLASS,
+} from "../../../../_components/adminDropdownClasses";
 
 type Input$ = z.input<typeof pointChargeSchema>;
 type Values = z.output<typeof pointChargeSchema>;
@@ -32,6 +36,7 @@ const BUTTON_CLASS = "h-10 rounded-[11px] px-[15px] text-[13.5px]";
 export function PointChargeModal({ open, onClose, organizations, onSubmit, isPending }: Props) {
   const {
     register,
+    control,
     handleSubmit,
     reset,
     setError,
@@ -74,13 +79,24 @@ export function PointChargeModal({ open, onClose, organizations, onSubmit, isPen
           error={errors.orgId?.message}
           className={FORM_FIELD_CLASS}
         >
-          <Select
-            id="pc-org"
-            aria-label="대상 조직"
-            {...register("orgId")}
-            options={organizations.map((o) => ({ value: String(o.id), label: o.name }))}
-            className={INPUT_CLASS}
-          />
+          <div className={ADMIN_FORM_DROPDOWN_CLASS}>
+            <Controller
+              control={control}
+              name="orgId"
+              render={({ field }) => (
+                <CustomDropdown
+                  id="pc-org"
+                  ariaLabel="대상 조직"
+                  value={field.value == null ? "" : String(field.value)}
+                  options={organizations.map((o) => ({ value: String(o.id), label: o.name }))}
+                  position="fixed"
+                  menuMinWidth={0}
+                  menuClassName={ADMIN_DROPDOWN_MENU_CLASS}
+                  onChange={field.onChange}
+                />
+              )}
+            />
+          </div>
         </FormField>
 
         <FormField
