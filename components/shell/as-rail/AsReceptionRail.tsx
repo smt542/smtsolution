@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { complaintKeys } from "@/hooks/reactquery/complaints";
@@ -9,14 +9,20 @@ import { staffMoveOutKeys } from "@/hooks/reactquery/staffMoveOut/keys";
 import { AsReportModal } from "./AsReportModal";
 import { AsReceptionList } from "./AsReceptionList";
 import { MoveOutList } from "./MoveOutList";
+import { RailRefreshBar } from "./RailRefreshIndicators";
 import { useRailOpen } from "./useRailOpen";
 
 type RailTab = "as" | "mv";
+
+// 정본은 새로고침을 누르면 막대·스켈레톤을 1.2초 보여 준다. 다시 불러오기가 더 걸리면 끝날 때까지 유지한다.
+const REFRESH_MIN_MS = 1200;
 
 export function AsReceptionRail() {
   const { open, toggle } = useRailOpen();
   const [tab, setTab] = useState<RailTab>("as");
   const [reportOpen, setReportOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const refreshSeq = useRef(0);
   const queryClient = useQueryClient();
 
   const chooseTab = (next: RailTab) => setTab(next);
@@ -30,8 +36,16 @@ export function AsReceptionRail() {
     }
   };
   const refresh = () => {
-    void queryClient.invalidateQueries({ queryKey: complaintKeys.all });
-    void queryClient.invalidateQueries({ queryKey: staffMoveOutKeys.all });
+    // 다시 누르면 정본처럼 처음부터 다시 센다 — 앞선 새로고침의 완료는 무시한다.
+    const seq = ++refreshSeq.current;
+    setRefreshing(true);
+    void Promise.allSettled([
+      queryClient.invalidateQueries({ queryKey: complaintKeys.all }),
+      queryClient.invalidateQueries({ queryKey: staffMoveOutKeys.all }),
+      new Promise((resolve) => setTimeout(resolve, REFRESH_MIN_MS)),
+    ]).then(() => {
+      if (refreshSeq.current === seq) setRefreshing(false);
+    });
   };
 
   return (
@@ -67,6 +81,7 @@ export function AsReceptionRail() {
         className={`fixed top-0 right-0 h-screen w-[404px] max-w-[calc(100vw-30px)] z-[45] bg-white border-l border-line flex flex-col overflow-hidden transition-transform duration-[180ms] [transition-timing-function:ease] ${open ? "translate-x-0 shadow-[-14px_0_36px_-18px_rgba(23,31,40,0.3)]" : "translate-x-full shadow-none"}`}
         data-testid="as-rail-panel"
       >
+        {refreshing ? <RailRefreshBar /> : null}
         <div className="h-[62px] flex-none flex items-center gap-2 px-[18px] border-b border-line">
           <svg
             width="18"
@@ -107,7 +122,7 @@ export function AsReceptionRail() {
         </div>
         <div className="flex-none flex gap-0.5 pt-2 px-3 pb-0 border-b border-line" role="tablist">
           <a
-            className={`flex-1 justify-center pt-[9px] px-3 pb-[10px] text-[14px] font-semibold cursor-pointer border-b-2 -mb-px whitespace-nowrap inline-flex items-center gap-1.5 ${tab === "as" ? "text-blue border-blue" : "text-t3 border-transparent"}`}
+            className={`flex-1 justify-center pt-[9px] px-3 pb-[10px] text-[14px] font-semibold leading-[normal] cursor-pointer border-b-2 -mb-px whitespace-nowrap inline-flex items-center gap-1.5 ${tab === "as" ? "text-blue border-blue" : "text-t3 border-transparent"}`}
             role="tab"
             tabIndex={0}
             aria-selected={tab === "as"}
@@ -117,7 +132,7 @@ export function AsReceptionRail() {
             A/S 접수
           </a>
           <a
-            className={`flex-1 justify-center pt-[9px] px-3 pb-[10px] text-[14px] font-semibold cursor-pointer border-b-2 -mb-px whitespace-nowrap inline-flex items-center gap-1.5 ${tab === "mv" ? "text-blue border-blue" : "text-t3 border-transparent"}`}
+            className={`flex-1 justify-center pt-[9px] px-3 pb-[10px] text-[14px] font-semibold leading-[normal] cursor-pointer border-b-2 -mb-px whitespace-nowrap inline-flex items-center gap-1.5 ${tab === "mv" ? "text-blue border-blue" : "text-t3 border-transparent"}`}
             role="tab"
             tabIndex={0}
             aria-selected={tab === "mv"}
@@ -127,7 +142,7 @@ export function AsReceptionRail() {
             퇴실 신청
           </a>
         </div>
-        {tab === "as" ? <AsReceptionList /> : <MoveOutList />}
+        {tab === "as" ? <AsReceptionList refreshing={refreshing} /> : <MoveOutList refreshing={refreshing} />}
       </div>
       <AsReportModal open={reportOpen} onClose={() => setReportOpen(false)} maskReporterPhones />
     </aside>

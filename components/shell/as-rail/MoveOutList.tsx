@@ -15,6 +15,11 @@ import { useStaffMoveOutRequests } from "@/hooks/reactquery/staffMoveOut/queries
 import { FilterDropdown, type DdOption } from "./FilterDropdown";
 import { MoveOutCard } from "./MoveOutCard";
 import { MoveOutConfirmDialog } from "./MoveOutConfirmDialog";
+import { RailRefreshSkeleton } from "./RailRefreshIndicators";
+
+interface MoveOutListProps {
+  refreshing?: boolean;
+}
 
 type MoveOutSort = NonNullable<StaffMoveOutFilters["sort"]>;
 
@@ -25,7 +30,7 @@ const SORT_OPTIONS: DdOption[] = [
   { value: "desired_desc", label: "희망일 늦은순" },
 ];
 
-export function MoveOutList() {
+export function MoveOutList({ refreshing = false }: MoveOutListProps = {}) {
   const [buildingId, setBuildingId] = useState<number>();
   const [sort, setSort] = useState<MoveOutSort>("created_desc");
   const [selected, setSelected] = useState<StaffMoveOutRequest | null>(null);
@@ -78,7 +83,8 @@ export function MoveOutList() {
           ariaLabel="퇴실 신청 정렬"
         />
       </div>
-      <div className="relative flex-1 min-h-0 overflow-auto p-3 flex flex-col gap-2 bg-white">
+      {refreshing ? <RailRefreshSkeleton /> : null}
+      <div className={`relative flex-1 min-h-0 overflow-auto p-3 flex-col gap-2 bg-white ${refreshing ? "hidden" : "flex"}`}>
         {isMoveOutListRefreshing ? (
           <div className="sticky right-2 top-2 z-10 ml-auto w-fit rounded-lg bg-white/95 shadow-card">
             <Spinner label="퇴실 신청 목록 갱신 중" size="small" showLabel className="px-3 py-2" />

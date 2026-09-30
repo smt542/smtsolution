@@ -175,6 +175,17 @@ body {
   to { opacity: 1; transform: none; }
 }
 
+/* A/S·퇴실 우측 패널 새로고침 — 정본 Messenger `.rnb-prog i`(rnbBar)·`.rnb-skel .ln`(rnbSk). */
+@keyframes rnb-bar {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(280%); }
+}
+
+@keyframes rnb-sk {
+  from { background-position: 100% 0; }
+  to { background-position: 0 0; }
+}
+
 /* Tailwind v4 Preflight는 버튼 기본 커서를 default로 둔다 → 클릭 가능한 버튼에 손 커서 복원.
    @layer base에 두어 개별 cursor-* 유틸리티가 계속 우선하도록 한다(:disabled 제외). */
 @layer base {
