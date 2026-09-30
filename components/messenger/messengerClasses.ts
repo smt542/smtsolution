@@ -28,7 +28,9 @@ export const messengerClasses: Record<string, string> = {
   sub: "text-[11px] font-semibold text-t3",
   "fmp-ic": "flex size-[30px] items-center justify-center rounded-lg text-t3 hover:bg-bg hover:text-t2 [&_svg]:size-[17px] [&_svg]:[stroke-width:2.2]",
   "fmp-body": "group flex min-h-0 flex-1 flex-col gap-4 overflow-auto px-5 py-[18px]",
-  "fmp-smswrap": "flex flex-col",
+  // 정본 .fmp-smswrap 은 display 규칙이 없어 block — textarea(inline-block)가 글자 기준선에 앉아 아래로 4px 틈이 생기고
+  // 그 틈까지가 정본 패널 높이(759)다. flex 로 두면 틈이 사라져 4px 짧아진다.
+  "fmp-smswrap": "block",
   "chan-alim": "",
   "fmp-top2": "flex flex-col gap-4",
   // 정본: .fmp-casc>.fmp-dd2,.fmp-casc>.fmp-auto{flex:0 0 calc((100% - 16px)/3);min-width:0}
