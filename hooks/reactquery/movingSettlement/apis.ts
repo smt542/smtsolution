@@ -109,6 +109,8 @@ export interface SaveSettlementData {
   waterCharge: number | null;
   elecCharge: number | null;
   gasCharge: number | null;
+  /** 조회 화면에서 입력한 청소비도 정산 총액에 포함해 보존한다. */
+  cleaningCost: number | null;
   elecPaidDate: string | null;
   gasPaidDate: string | null;
   repairAmount: number | null;
@@ -425,6 +427,7 @@ function settlementDataToRpc(data: SaveSettlementData) {
     water_charge: data.waterCharge,
     elec_charge: data.elecCharge,
     gas_charge: data.gasCharge,
+    cleaning_cost: data.cleaningCost,
     elec_paid_date: data.elecPaidDate,
     gas_paid_date: data.gasPaidDate,
     repair_amount: data.repairAmount,

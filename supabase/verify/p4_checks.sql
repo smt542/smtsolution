@@ -37,7 +37,8 @@ end $$;
 
 do $$
 declare
-  v_send regprocedure := to_regprocedure('public.send_messages(text,text,text,jsonb)');
+  v_send regprocedure := to_regprocedure('public.send_messages(text,text,text,jsonb,bigint)');
+  v_quote regprocedure := to_regprocedure('public.resolve_message_point_quote(bigint,text,jsonb,bigint,text)');
   v_list regprocedure := to_regprocedure('public.list_message_logs(integer)');
   v_tenants regprocedure := to_regprocedure('public.list_tenants(bigint)');
   v_send_def text;
@@ -47,6 +48,9 @@ declare
 begin
   if v_send is null then
     raise exception 'send_messages missing';
+  end if;
+  if v_quote is null then
+    raise exception 'resolve_message_point_quote missing';
   end if;
   if v_list is null then
     raise exception 'list_message_logs missing';
@@ -58,7 +62,7 @@ begin
 
   v_send_def := regexp_replace(lower(pg_get_functiondef(v_send)), '[[:space:]]+', '', 'g');
   v_list_def := regexp_replace(lower(pg_get_functiondef(v_list)), '[[:space:]]+', '', 'g');
-  v_insert_pos := position('insertintomessage_logs' in v_send_def);
+  v_insert_pos := position('insertintopublic.message_logs' in v_send_def);
   v_list_query_pos := position('returnqueryselect' in v_list_def);
 
   if v_insert_pos = 0 then
@@ -72,32 +76,17 @@ begin
      or position('current_user_has_module(''messaging'')' in v_send_def) > v_insert_pos then
     raise exception 'send_messages must gate by messaging module';
   end if;
-  if position('p_channelisdistinctfrom''sms''' in v_send_def) = 0
-     or position('p_channelisdistinctfrom''sms''' in v_send_def) > v_insert_pos then
-    raise exception 'send_messages must reject non-SMS channels';
-  end if;
-  if position('btrim(p_body)=''''' in v_send_def) = 0
-     or position('btrim(p_body)=''''' in v_send_def) > v_insert_pos then
+  if position('btrim(coalesce(p_body' in v_send_def) = 0
+     or position('btrim(coalesce(p_body' in v_send_def) > v_insert_pos then
     raise exception 'send_messages must reject blank bodies';
   end if;
-  if position('jsonb_typeof(p_recipients)<>''array''' in v_send_def) = 0
-     or position('jsonb_typeof(p_recipients)<>''array''' in v_send_def) > v_insert_pos
-     or position('jsonb_array_length(p_recipients)=0' in v_send_def) = 0
-     or position('jsonb_array_length(p_recipients)=0' in v_send_def) > v_insert_pos then
-    raise exception 'send_messages must require a nonempty recipients array';
-  end if;
-  if position('jsonb_typeof(r.recipient->''phone'')isdistinctfrom''string''' in v_send_def) = 0
-     or position('jsonb_typeof(r.recipient->''phone'')isdistinctfrom''string''' in v_send_def) > v_insert_pos
-     or position('regexp_replace(r.recipient->>''phone'',''[^0-9]'','''',''g'')=''''' in v_send_def) = 0
-     or position('regexp_replace(r.recipient->>''phone'',''[^0-9]'','''',''g'')=''''' in v_send_def) > v_insert_pos then
-    raise exception 'send_messages must validate and normalize recipient phones';
-  end if;
-  if position('havingcount(*)>1' in v_send_def) = 0
-     or position('havingcount(*)>1' in v_send_def) > v_insert_pos then
-    raise exception 'send_messages must reject duplicate normalized phones';
+  -- 수신자·채널·템플릿·전화번호 검증은 공통 견적 RPC가 담당한다.
+  if position('resolve_message_point_quote' in v_send_def) = 0
+     or position('resolve_message_point_quote' in v_send_def) > v_insert_pos then
+    raise exception 'send_messages must resolve and validate the quote before insert';
   end if;
   if position('jsonb_build_object(''result'',''stub'')' in v_send_def) = 0
-     or position('v_recipients,''stub'',auth.uid()' in v_send_def) = 0 then
+     or position('v_log_recipients' in v_send_def) = 0 then
     raise exception 'send_messages must preserve stub results';
   end if;
   if v_list_query_pos = 0 then
@@ -109,6 +98,9 @@ begin
   end if;
   if position('greatest(1,least(coalesce(p_limit,50),100))' in v_list_def) = 0 then
     raise exception 'list_message_logs must clamp the requested limit';
+  end if;
+  if position('mask_phone' in v_list_def) = 0 then
+    raise exception 'list_message_logs must mask recipient phones';
   end if;
   if has_function_privilege('anon', v_send, 'EXECUTE')
      or has_function_privilege('anon', v_list, 'EXECUTE')

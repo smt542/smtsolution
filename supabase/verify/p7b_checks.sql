@@ -18,13 +18,13 @@ do $$ begin
 
   if has_function_privilege(
     'anon',
-    'public.list_settlement_inquiries(text,bigint,date,date,text,text,text,integer,integer)',
+    'public.list_settlement_inquiries(text,bigint,date,date,text,text,text,integer,integer,date)',
     'EXECUTE'
   ) then raise exception 'P7b RPC must not be executable by anon'; end if;
 
   if not has_function_privilege(
     'authenticated',
-    'public.list_settlement_inquiries(text,bigint,date,date,text,text,text,integer,integer)',
+    'public.list_settlement_inquiries(text,bigint,date,date,text,text,text,integer,integer,date)',
     'EXECUTE'
   ) then raise exception 'P7b RPC must be executable by authenticated'; end if;
 

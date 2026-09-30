@@ -209,6 +209,7 @@ function SettlementEditor({
       waterCharge: draft.waterCharge,
       elecCharge: draft.elecCharge,
       gasCharge: draft.gasCharge,
+      cleaningCost,
       elecPaidDate: nullableText(draft.elecPaidDate),
       gasPaidDate: nullableText(draft.gasPaidDate),
       repairAmount: draft.repairAmount,
