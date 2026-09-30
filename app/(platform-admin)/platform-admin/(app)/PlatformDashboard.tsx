@@ -50,8 +50,9 @@ export function PlatformDashboard() {
     : 0;
   const costDelta = metrics ? metrics.sendCostKrw - metrics.sendCostPrevKrw : 0;
 
+  // 정본 drawTc: 합계 큰 순(같으면 받은 순서)
   const tenantRows = useMemo(
-    () => billingQuery.data ?? [],
+    () => [...(billingQuery.data ?? [])].sort((a, b) => b.subtotalKrw - a.subtotalKrw),
     [billingQuery.data],
   );
   const totalPages = Math.max(1, Math.ceil(tenantRows.length / pageSize));
@@ -82,7 +83,10 @@ export function PlatformDashboard() {
               unit="곳"
               sub={
                 <>
-                  이번 달 <em className="not-italic text-blue">+{num(metrics.buildingAddedThisMonth)}곳</em>
+                  전월 대비{" "}
+                  <em className={`not-italic ${metrics.buildingMonthDelta < 0 ? "text-red" : "text-blue"}`}>
+                    {signed(metrics.buildingMonthDelta)}곳
+                  </em>
                 </>
               }
             />
@@ -191,9 +195,10 @@ export function PlatformDashboard() {
 }
 
 // 정본 admin/overview .hq-k: 텍스트 전용(아이콘 없음) — label 12.5/t3, value 26/-.03em + 작은 단위, sub 12/t3(컬러 델타).
+// 정본은 줄높이 선언이 없어 normal(카드 110px).
 function KpiCard({ label, value, unit, sub }: { label: string; value: string; unit: string; sub: ReactNode }) {
   return (
-    <article className="rounded-[15px] bg-surface px-[18px] py-[17px] shadow-card">
+    <article className="rounded-[15px] bg-surface px-[18px] py-[17px] leading-[normal] shadow-card">
       <div className="text-[12.5px] font-bold text-t3">{label}</div>
       <div className="mt-[9px] whitespace-nowrap text-[26px] font-extrabold tracking-[-0.03em] text-t1 num">
         {value}

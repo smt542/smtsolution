@@ -14,9 +14,9 @@ import {
 } from "../../_components/adminDropdownClasses";
 
 const CHANNELS = [
-  { label: "알림톡", color: "bg-blue" },
-  { label: "문자", color: "bg-[#7CC7BF]" },
-  { label: "팩스", color: "bg-[#C6D3DC]" },
+  { label: "알림톡", color: "bg-blue", amount: (cost: PlatformMonthlySendCost) => cost.alimtalkKrw },
+  { label: "문자", color: "bg-[#7CC7BF]", amount: (cost: PlatformMonthlySendCost) => cost.smsKrw },
+  { label: "팩스", color: "bg-[#C6D3DC]", amount: (cost: PlatformMonthlySendCost) => cost.faxKrw },
 ] as const;
 
 function totalCost(cost: PlatformMonthlySendCost): number {
@@ -108,6 +108,8 @@ function MonthlySendCostBars({
               {channel.label}
             </div>
           ))}
+          <div className="flex-1" />
+          <div className="text-[12.5px] font-semibold text-t4">막대에 마우스를 올리면 채널별 금액이 보여요</div>
         </div>
 
         <div className="flex flex-col gap-[9px] mt-4">
@@ -118,7 +120,21 @@ function MonthlySendCostBars({
             const stackWidth = summary.max > 0 ? (total / summary.max) * 100 : 0;
 
             return (
-              <div key={cost.month} className="flex items-center gap-3">
+              <div key={cost.month} className="group relative flex items-center gap-3">
+                {/* 정본 .hq-tip: 행에 마우스를 올리면 막대 위로 채널별 금액 */}
+                {!isEmpty && (
+                  <div className="absolute bottom-[calc(100%+6px)] left-[52px] z-[60] hidden whitespace-nowrap rounded-[10px] bg-[#191F28] px-3 py-[9px] text-[12px] font-bold leading-[1.7] text-white shadow-[0_10px_24px_-8px_rgba(0,0,0,0.4)] group-hover:block">
+                    {CHANNELS.map((channel) => (
+                      <div key={channel.label} className="flex items-center gap-[7px]">
+                        <span className={`h-2 w-2 flex-none rounded-[2px] ${channel.color}`} />
+                        {channel.label}
+                        <span className="ml-auto pl-[14px] text-[rgba(255,255,255,0.86)] num">
+                          {formatNumber(channel.amount(cost))}원
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div
                   className={`w-11 flex-none text-[12.5px] font-bold ${isLatest ? "text-t1" : "text-t3"}`}
                 >
@@ -126,11 +142,11 @@ function MonthlySendCostBars({
                 </div>
                 <div className="flex-1 min-w-0 flex">
                   {isEmpty ? (
-                    <div className="flex h-[26px] w-[18%] overflow-hidden rounded-lg bg-[repeating-linear-gradient(45deg,#F4F6F8_0_6px,#EDF0F3_6px_12px)] transition-[width] duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)]" />
+                    <div className="flex h-[26px] w-[18%] overflow-hidden rounded-lg bg-[repeating-linear-gradient(45deg,#F4F6F8_0_6px,#EDF0F3_6px_12px)] group-hover:brightness-[1.04] transition-[width] duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)]" />
                   ) : (
                     <div
                       aria-label={`${cost.month}월 발송 비용 ${formatNumber(total)}원`}
-                      className="flex h-[26px] overflow-hidden rounded-lg bg-line2 transition-[width] duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)]"
+                      className="flex h-[26px] overflow-hidden rounded-lg bg-line2 group-hover:brightness-[1.04] transition-[width] duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)]"
                       role="img"
                       style={{ width: `${stackWidth}%` }}
                     >

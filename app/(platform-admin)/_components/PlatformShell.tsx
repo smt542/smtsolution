@@ -38,7 +38,7 @@ export function PlatformShell({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen bg-bg">
       <div
         className={`sticky top-0 hidden h-screen shrink-0 overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.22,0.61,0.36,1)] md:flex ${
-          collapsed ? "md:w-0" : "md:w-64"
+          collapsed ? "md:w-0" : "md:w-[240px]"
         }`}
       >
         <PlatformSidebar pathname={pathname} />
@@ -92,7 +92,7 @@ function PlatformSidebar({ pathname, onNavigate }: { pathname: string; onNavigat
   };
 
   return (
-    <aside className="flex h-full w-64 flex-col border-r border-line bg-white px-3.5 py-[18px]">
+    <aside className="flex h-full w-[240px] flex-col border-r border-line bg-white px-3.5 py-[18px]">
       {/* 캔버스 hf-hqb: 로고마크 + 관리비서 / HQ CONSOLE (라이트) */}
       <Link
         href="/platform-admin"
@@ -125,7 +125,7 @@ function PlatformSidebar({ pathname, onNavigate }: { pathname: string; onNavigat
       </nav>
 
       {me && (
-        <details className="group relative">
+        <details className="relative">
           <summary
             className="flex cursor-pointer list-none items-center gap-2.5 rounded-xl bg-bg p-2.5 transition-colors hover:bg-line2 [&::-webkit-details-marker]:hidden"
             aria-label="프로필 메뉴"
@@ -133,22 +133,11 @@ function PlatformSidebar({ pathname, onNavigate }: { pathname: string; onNavigat
             <div className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full bg-[#DCE3EA] text-sm font-bold text-t2">
               {me.fullName.charAt(0)}
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-[13px] font-bold text-t1">{me.fullName}</div>
-              <div className="truncate text-[11px] text-t3">
-                {me.role === "platform_admin" ? "플랫폼 관리자" : "조직 소유자"}
-              </div>
+            {/* 정본 hf-side-foot: 이름 13.5/700 + 둘째 줄 11.5/600 t3(정본 이메일 자리 = 로그인 아이디), 화살표 없음 */}
+            <div className="min-w-0 flex-1 leading-[normal]">
+              <div className="truncate text-[13.5px] font-bold text-t1">{me.fullName}</div>
+              <div className="mt-[2px] truncate text-[11.5px] font-semibold text-t3">{me.username}</div>
             </div>
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="h-4 w-4 flex-none text-t3 transition-transform group-open:rotate-180"
-              aria-hidden="true"
-            >
-              <path d="M6 15l6-6 6 6" />
-            </svg>
           </summary>
           <div className="absolute bottom-full left-0 right-0 z-20 mb-2 rounded-xl border border-line bg-white p-1.5 shadow-[0_16px_40px_-12px_rgba(16,24,40,0.4)]">
             <button
