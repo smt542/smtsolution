@@ -1,37 +1,46 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Badge, Button, Modal, Spinner } from "@/components/common";
 import {
   listPlatformOrganizations,
+  listPointTransactions,
   platformKeys,
   useChargePoints,
   useMessagePointRates,
   usePlatformOrgBilling,
   usePlatformSettings,
-  usePlatformTransactions,
   type PlatformOrganizationQuery,
+  type PointTransaction,
+  type PointTransactionCursor,
+  type PointTransactionQuery,
 } from "@/hooks/reactquery/platform";
 import { formatNumber } from "@/lib/format";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { QueryError } from "../../../_components/PageElements";
+import { PlatformPagination, QueryError } from "../../../_components/PageElements";
 import { PlatformPageContainer } from "../../../_components/PlatformPageContainer";
+import { useFitPageSize } from "../../../_components/useFitPageSize";
 
 const PointChargeModal = dynamic(() =>
   import("./components/PointChargeModal").then((module) => module.PointChargeModal),
 );
 
 const ALL_ORGANIZATIONS_QUERY = { pageSize: 200 } satisfies PlatformOrganizationQuery;
-const CHARGE_HISTORY_PAGE_SIZE = 8;
+const CHARGE_HISTORY_QUERY = { type: "charge", pageSize: 100 } satisfies Omit<PointTransactionQuery, "cursor">;
 const dateFmt = new Intl.DateTimeFormat("ko-KR", {
   year: "numeric",
   month: "2-digit",
   day: "2-digit",
 });
 const num = (value: number) => formatNumber(value);
+
+// 정본 충전 이력 날짜 2026.08.01 — 기록 시각(timestamptz)을 브라우저 현지 날짜로
+function formatChargeDate(value: string): string {
+  const parts = Object.fromEntries(dateFmt.formatToParts(new Date(value)).map((part) => [part.type, part.value]));
+  return `${parts.year}.${parts.month}.${parts.day}`;
+}
 
 function currentMonthIso(): string {
   const now = new Date();
@@ -59,8 +68,23 @@ async function listAllPlatformOrganizations() {
   };
 }
 
+async function listAllChargeTransactions() {
+  const rows: PointTransaction[] = [];
+  let cursor: PointTransactionCursor | null = null;
+  let totalCount = 0;
+  do {
+    const page = await listPointTransactions({ ...CHARGE_HISTORY_QUERY, cursor });
+    rows.push(...page.rows);
+    totalCount = page.totalCount;
+    cursor = page.rows.length < page.pageSize ? null : page.nextCursor;
+  } while (cursor && rows.length < totalCount);
+  return { rows, totalCount };
+}
+
 export default function PointsWorkspace() {
   const [chargeModalOpen, setChargeModalOpen] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+  const historyScrollerRef = useRef<HTMLDivElement>(null);
   const modalOrgsQuery = useQuery({
     queryKey: platformKeys.organizations(ALL_ORGANIZATIONS_QUERY),
     queryFn: listAllPlatformOrganizations,
@@ -68,9 +92,10 @@ export default function PointsWorkspace() {
   const billingQuery = usePlatformOrgBilling(currentMonthIso());
   const ratesQuery = useMessagePointRates();
   const settingsQuery = usePlatformSettings();
-  const txQuery = usePlatformTransactions({
-    type: "charge",
-    pageSize: CHARGE_HISTORY_PAGE_SIZE,
+  const chargeHistoryQuery = useQuery({
+    // 충전하면 useChargePoints가 transactions 접두 키를 무효화한다
+    queryKey: [...platformKeys.transactions(CHARGE_HISTORY_QUERY), "all"],
+    queryFn: listAllChargeTransactions,
   });
   const charge = useChargePoints();
 
@@ -110,9 +135,22 @@ export default function PointsWorkspace() {
     [ratesQuery.data],
   );
   const chargeTransactions = useMemo(
-    () => (txQuery.data?.pages.flatMap((page) => page.rows) ?? [])
+    () => (chargeHistoryQuery.data?.rows ?? [])
       .filter((transaction) => transaction.type === "charge"),
-    [txQuery.data],
+    [chargeHistoryQuery.data],
+  );
+  // 정본 fitLog: 목록 영역 높이에 들어가는 행 수(최소 3). 표가 아니라 머리 없음·행 = li
+  const historyPageSize = useFitPageSize(historyScrollerRef, {
+    fallback: 6,
+    headSelector: null,
+    rowSelector: "li",
+    watch: chargeTransactions,
+  });
+  const historyTotalPages = Math.max(1, Math.ceil(chargeTransactions.length / historyPageSize));
+  const currentHistoryPage = Math.min(historyPage, historyTotalPages);
+  const pagedChargeTransactions = chargeTransactions.slice(
+    (currentHistoryPage - 1) * historyPageSize,
+    currentHistoryPage * historyPageSize,
   );
 
   const alimtalkPoints = billingTotals.alimtalkCount * (activeRates.get("alimtalk") ?? 0);
@@ -143,7 +181,7 @@ export default function PointsWorkspace() {
   const pickerUnavailable = modalOrgsQuery.data
     ? modalOrganizations.length === 0
     : modalOrgsQuery.isPending;
-  const chargeTotalCount = txQuery.data?.pages[0]?.totalCount ?? 0;
+  const chargeTotalCount = chargeHistoryQuery.data?.totalCount ?? 0;
 
   const retrySummary = () => {
     void Promise.all([
@@ -163,6 +201,7 @@ export default function PointsWorkspace() {
     try {
       await charge.mutateAsync(values);
       toast.success("포인트 충전을 기록했습니다.");
+      setHistoryPage(1);
     } catch (error) {
       toast.error(error, "충전 기록에 실패했습니다.");
       throw error;
@@ -170,30 +209,12 @@ export default function PointsWorkspace() {
   };
 
   return (
-    <PlatformPageContainer>
-      <div className="mb-3 flex justify-end">
-        <Link
-          href="/platform-admin/points/organizations"
-          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] font-bold text-t3 transition-colors hover:bg-surface hover:text-t1"
-        >
-          조직별 포인트 관리
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-4 w-4"
-            aria-hidden="true"
-          >
-            <path d="m9 18 6-6-6-6" />
-          </svg>
-        </Link>
-      </div>
-
+    <PlatformPageContainer
+      maxWidthClassName="max-w-none"
+      paddingClassName="flex h-[calc(100dvh-62px)] flex-col gap-4 overflow-auto px-5 pb-[22px] pt-[22px] leading-[normal] sm:px-6 sm:pb-[30px]"
+    >
       {sendingStopped && (
-        <div className="mb-4 flex items-start gap-[9px] rounded-[14px] border border-[#F3C5C5] bg-red-t px-4 py-3.5 text-[13.5px] font-semibold leading-[1.6] text-[#A32020]">
+        <div className="flex flex-none items-start gap-[9px] rounded-[14px] border border-[#F3C5C5] bg-red-t px-4 py-3.5 text-[13.5px] font-semibold leading-[1.6] text-[#A32020]">
           <svg
             viewBox="0 0 24 24"
             fill="none"
@@ -215,7 +236,7 @@ export default function PointsWorkspace() {
         </div>
       )}
 
-      <section className="relative min-h-[260px] overflow-hidden rounded-2xl bg-surface shadow-card">
+      <section className="relative min-h-[260px] flex-none overflow-hidden rounded-2xl bg-surface shadow-card">
         <div className="flex items-center gap-2.5 border-b border-line2 px-[18px] py-[15px]">
           <h2 className="text-[15px] font-extrabold text-t1">팝빌 포인트</h2>
           <p className="text-xs font-semibold text-t3">1원 = 1P · 알림톡·문자·팩스 공통 차감</p>
@@ -230,7 +251,7 @@ export default function PointsWorkspace() {
             disabled={pickerUnavailable}
             className="shrink-0 border border-transparent transition-colors disabled:cursor-not-allowed disabled:opacity-60"
           >
-            충전 기록
+            포인트 충전
           </Button>
         </div>
 
@@ -313,57 +334,51 @@ export default function PointsWorkspace() {
         )}
       </section>
 
-      <section className="mt-4 flex min-h-[360px] flex-col overflow-hidden rounded-2xl bg-surface shadow-card">
+      <section className="flex min-h-[360px] flex-1 flex-col overflow-hidden rounded-2xl bg-surface shadow-card">
         <div className="flex items-center gap-2.5 border-b border-line2 px-[18px] py-[15px]">
           <h2 className="text-[15px] font-extrabold text-t1">충전 이력</h2>
           <span className="text-xs font-semibold text-t3 tabular-nums">{num(chargeTotalCount)}건</span>
         </div>
-        <div className="min-h-0 flex-1">
-          {txQuery.isPending ? (
+        <div ref={historyScrollerRef} className="min-h-0 flex-1 overflow-auto">
+          {chargeHistoryQuery.isPending ? (
             <div className="py-16"><Spinner /></div>
-          ) : txQuery.isError ? (
-            <div className="p-4"><QueryError onRetry={() => void txQuery.refetch()} /></div>
+          ) : chargeHistoryQuery.isError ? (
+            <div className="p-4"><QueryError onRetry={() => void chargeHistoryQuery.refetch()} /></div>
           ) : chargeTransactions.length === 0 ? (
             <div className="px-[18px] py-[34px] text-center text-[13.5px] font-semibold text-t3">
               충전 이력이 없습니다.
             </div>
           ) : (
-            chargeTransactions.map((transaction) => (
-              <div
-                key={transaction.id}
-                className="flex items-center gap-3 border-b border-line2 px-[18px] py-[14px] last:border-b-0"
-              >
-                <div className="min-w-0 flex-1 text-sm font-bold text-t1 tabular-nums">
-                  {num(transaction.points)}P
-                  <em className="mt-[3px] block truncate text-[12.5px] font-semibold not-italic text-t3 tabular-nums">
-                    {dateFmt.format(new Date(transaction.createdAt))} · {transaction.createdByName ?? "기록자 미상"} · {transaction.organizationName}
-                  </em>
-                </div>
-                {transaction.memo && (
-                  <span className="max-w-[40%] truncate text-[13px] font-bold text-t3">
-                    {transaction.memo}
+            <ul>
+              {pagedChargeTransactions.map((transaction) => (
+                <li
+                  key={transaction.id}
+                  className="flex items-center gap-3 border-b border-line2 px-[18px] py-[14px] last:border-b-0"
+                >
+                  <div className="min-w-0 flex-1 text-[14px] font-bold text-t1">
+                    {num(transaction.points)}P
+                    <em className="mt-[3px] block text-[12.5px] font-semibold not-italic text-t3 tabular-nums">
+                      {formatChargeDate(transaction.createdAt)}
+                    </em>
+                  </div>
+                  <span className="text-[13px] font-bold text-t3 tabular-nums">
+                    {transaction.createdByName ?? "기록자 미상"}
                   </span>
-                )}
-              </div>
-            ))
+                </li>
+              ))}
+            </ul>
           )}
         </div>
-        {txQuery.hasNextPage && (
-          <div className="flex justify-center border-t border-line2 px-[14px] py-[11px]">
-            <button
-              type="button"
-              onClick={() => void txQuery.fetchNextPage()}
-              disabled={txQuery.isFetchingNextPage}
-              className="h-7 rounded-lg px-3 text-[12.5px] font-bold text-t3 transition-colors hover:bg-bg hover:text-t1 disabled:cursor-not-allowed disabled:text-t4"
-            >
-              {txQuery.isFetchingNextPage ? "충전 이력 불러오는 중…" : "충전 이력 더 보기"}
-            </button>
-            {txQuery.isFetchingNextPage ? (
-              <span role="status" aria-label="충전 이력 불러오는 중" className="sr-only">
-                충전 이력 불러오는 중…
-              </span>
-            ) : null}
-          </div>
+        {!chargeHistoryQuery.isPending && !chargeHistoryQuery.isError && (
+          <PlatformPagination
+            page={currentHistoryPage}
+            pageSize={historyPageSize}
+            totalCount={chargeTransactions.length}
+            onPageChange={setHistoryPage}
+            numeric
+            compact
+            totalLabel={`${currentHistoryPage}/${historyTotalPages}`}
+          />
         )}
       </section>
 
