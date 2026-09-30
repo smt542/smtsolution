@@ -136,7 +136,8 @@ export interface SavePartnerSettlementInput {
   occupancyId: number | null;
   settlementId: number | null;
   data: Record<string, unknown>;
-  checklist: { check_item_id: number; checked: boolean }[];
+  /** note 키가 있으면 항목 메모도 갱신한다(0172). 없으면 기존 메모를 유지한다. */
+  checklist: { check_item_id: number; checked: boolean; note?: string }[];
 }
 
 export interface SettlementListRow {
