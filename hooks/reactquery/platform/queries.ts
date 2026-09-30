@@ -1,13 +1,13 @@
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
   getPlatformOverview,
   getPlatformOrganizationContractKpis,
   getOrganizationContractFilePreview,
   getPlatformOrganizationOwner,
-  listPlatformAccounts,
+  listPlatformHqAccounts,
   listPlatformOrganizations,
   listPointTransactions,
-  type PlatformAccountQuery,
+  type PlatformHqAccountQuery,
   type PlatformOrganizationQuery,
   type PointTransactionCursor,
   type PointTransactionQuery,
@@ -52,10 +52,11 @@ export function useOrganizationContractFilePreview(path: string | null) {
   });
 }
 
-export function usePlatformAccounts(opts: PlatformAccountQuery = {}) {
+export function usePlatformHqAccounts(opts: PlatformHqAccountQuery = {}) {
   return useQuery({
-    queryKey: platformKeys.accounts(opts),
-    queryFn: () => listPlatformAccounts(opts),
+    queryKey: platformKeys.hqAccounts(opts),
+    queryFn: () => listPlatformHqAccounts(opts),
+    placeholderData: keepPreviousData,
   });
 }
 

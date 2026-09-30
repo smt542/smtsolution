@@ -73,6 +73,7 @@ export function PlatformPagination({
   numeric = false,
   compact = false,
   totalLabel,
+  alwaysShow = false,
 }: {
   page: number;
   pageSize: number;
@@ -81,10 +82,11 @@ export function PlatformPagination({
   numeric?: boolean;
   compact?: boolean;
   totalLabel?: string;
+  alwaysShow?: boolean;
 }) {
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
-  if (totalPages <= 1 && !totalLabel) return null;
+  if (totalPages <= 1 && !totalLabel && !alwaysShow) return null;
   const directionButtonClassName = compact
     ? "flex h-7 min-w-7 items-center justify-center rounded-lg px-2 text-[12.5px] font-bold text-t3 hover:bg-bg disabled:cursor-not-allowed disabled:text-t4"
     : "rounded-lg border border-line px-3 py-1.5 text-xs font-bold text-t2 disabled:cursor-not-allowed disabled:opacity-40";

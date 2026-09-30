@@ -13,7 +13,7 @@ export type SegmentedControlProps = {
   disabled?: boolean;
   className?: string;
   size?: "md" | "sm";
-  variant?: "track" | "outline";
+  variant?: "track" | "outline" | "hq";
 };
 
 export function SegmentedControl({
@@ -25,6 +25,38 @@ export function SegmentedControl({
   size = "md",
   variant = "track",
 }: SegmentedControlProps) {
+  if (variant === "hq") {
+    return (
+      <div
+        role="radiogroup"
+        className={["inline-flex h-[34px] gap-[2px] rounded-[11px] bg-[#EDF0F3] p-[3px]", className]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        {options.map((option) => {
+          const selected = option.value === value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              disabled={disabled}
+              onClick={() => onChange(option.value)}
+              className={[
+                "flex h-full items-start rounded-[8px] px-[15px] pb-0 pt-[7px] text-[14px] font-bold leading-[normal]",
+                selected ? "bg-white text-t1 shadow-[0_2px_6px_rgba(23,31,40,0.1)]" : "text-t3",
+                "disabled:cursor-default",
+              ].filter(Boolean).join(" ")}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
   if (variant === "outline") {
     return (
       <div
