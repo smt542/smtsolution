@@ -165,7 +165,7 @@ export function AllSettlementInquiryToolbar({
         type="button"
         onClick={onPrint}
         aria-disabled={!hasRows}
-        className="flex h-[34px] items-center gap-[6px] rounded-[8px] border border-line bg-white px-[14px] text-[13px] font-bold text-t2 transition-colors hover:bg-bg"
+        className="flex h-[34px] items-center gap-[6px] rounded-[8px] border border-line bg-white px-[14px] text-[13px] font-bold leading-[normal] text-t2 transition-colors hover:bg-bg"
       >
         <PrinterIcon className="size-[15px]" />
         출력
@@ -174,7 +174,7 @@ export function AllSettlementInquiryToolbar({
         type="button"
         onClick={onSave}
         disabled={!dirty || saving}
-        className="flex h-[34px] flex-col items-center justify-center rounded-[8px] border border-teal bg-teal px-[16px] text-[13px] font-bold text-white transition-colors hover:bg-teal-d disabled:border-line disabled:bg-line2 disabled:text-t4"
+        className="flex h-[34px] flex-col items-center justify-center rounded-[8px] border border-teal bg-teal px-[16px] text-[13px] font-bold leading-[normal] text-white transition-colors hover:bg-teal-d disabled:border-line disabled:bg-line2 disabled:text-t4"
       >
         저장
       </button>

@@ -224,7 +224,7 @@ export function SettlementInquiryToolbar({
       <button
         type="button"
         onClick={onPrint}
-        className="flex h-[34px] shrink-0 items-center justify-center gap-[6px] whitespace-nowrap rounded-[8px] border border-line bg-white px-[14px] text-[13px] font-bold text-t2 hover:bg-bg"
+        className="flex h-[34px] shrink-0 items-center justify-center gap-[6px] whitespace-nowrap rounded-[8px] border border-line bg-white px-[14px] text-[13px] font-bold leading-[normal] text-t2 hover:bg-bg"
       >
         <PrinterIcon className="size-[15px]" />
         출력
@@ -233,7 +233,7 @@ export function SettlementInquiryToolbar({
         type="button"
         disabled={changedCount === 0 || saving}
         onClick={onSave}
-        className="h-[34px] shrink-0 whitespace-nowrap rounded-[8px] border border-teal bg-teal px-[16px] text-[13px] font-bold text-white hover:bg-teal-d disabled:border-line disabled:bg-line2 disabled:text-t4"
+        className="h-[34px] shrink-0 whitespace-nowrap rounded-[8px] border border-teal bg-teal px-[16px] text-[13px] font-bold leading-[normal] text-white hover:bg-teal-d disabled:border-line disabled:bg-line2 disabled:text-t4"
       >
         저장
       </button>
