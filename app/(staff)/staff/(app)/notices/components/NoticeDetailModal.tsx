@@ -15,9 +15,14 @@ import {
   type NoticeType,
 } from "@/hooks/reactquery/notices";
 import { useNoticeAlimtalkSend } from "../useNoticeAlimtalkSend";
-import { NOTICE_TYPE_LABELS } from "../utils";
+import {
+  NOTICE_TYPE_LABELS,
+  toNoticeBuildingIds,
+  toNoticeTargetSelection,
+  type NoticeTargetSelection,
+} from "../utils";
 import { NoticeAlimtalkConfirmModal } from "./NoticeAlimtalkConfirmModal";
-import { NoticeTargetChip } from "./NoticeTargetChip";
+import { NoticeTargetBuildings } from "./NoticeTargetBuildings";
 
 const TYPE_ORDER: NoticeType[] = ["normal", "important", "urgent"];
 
@@ -61,12 +66,11 @@ export function NoticeDetailModal({
   const [type, setType] = useState<NoticeType>(notice.noticeType);
   const [title, setTitle] = useState(notice.title);
   const [content, setContent] = useState(notice.content);
-  // 대상 건물: 빈 배열 = 전체 공지, 그 외 = 지정 건물들(다중 선택).
-  const [buildingIds, setBuildingIds] = useState<number[]>(notice.buildingIds);
+  // 대상 건물: 저장값 빈 배열 = 전체 공지 → 전체 건물로 연다.
+  const [targets, setTargets] = useState<NoticeTargetSelection>(() =>
+    toNoticeTargetSelection(notice.buildingIds),
+  );
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const isAllBuildings = buildingIds.length === 0;
-  const toggleBuilding = (id: number) =>
-    setBuildingIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   const updateNotice = useUpdateNotice();
   const deleteNotice = useDeleteNotice();
@@ -92,6 +96,11 @@ export function NoticeDetailModal({
     const trimmed = title.trim();
     if (!trimmed) {
       toast.error("제목을 입력해 주세요.");
+      return;
+    }
+    const buildingIds = toNoticeBuildingIds(targets, buildings);
+    if (!buildingIds) {
+      toast.warning("대상 건물을 선택해 주세요");
       return;
     }
     const input: Partial<NoticeInput> = {
@@ -202,20 +211,7 @@ export function NoticeDetailModal({
             </div>
 
             {/* 대상 건물 */}
-            <div className="flex flex-col gap-[9px]">
-              <span className="text-[12.5px] font-bold leading-[normal] text-[#8b95a1]">대상 건물</span>
-              <div className="flex flex-wrap gap-[8px]">
-                <NoticeTargetChip label="전체 건물" checked={isAllBuildings} onClick={() => setBuildingIds([])} />
-                {buildings.map((building) => (
-                  <NoticeTargetChip
-                    key={building.id}
-                    label={building.name}
-                    checked={buildingIds.includes(building.id)}
-                    onClick={() => toggleBuilding(building.id)}
-                  />
-                ))}
-              </div>
-            </div>
+            <NoticeTargetBuildings buildings={buildings} value={targets} onChange={setTargets} />
 
             {/* 알림톡 발송 상태 + 재전송/발송 (실 발송 이력 기반) */}
             <div className="flex w-full items-center gap-[12px] rounded-[12px] bg-[#f2f4f6] px-[14px] py-[12px]">
@@ -273,7 +269,7 @@ export function NoticeDetailModal({
               disabled={isSaving}
               className="flex h-[40px] w-[132px] items-center justify-center rounded-[11px] bg-[#14a497] px-[18px] text-[13.5px] font-bold tracking-[-0.135px] text-white disabled:opacity-60"
             >
-              {isSaving ? "저장 중…" : "저장"}
+              저장
             </button>
           </div>
         </div>

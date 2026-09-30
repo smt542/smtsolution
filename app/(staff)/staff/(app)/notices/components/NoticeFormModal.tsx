@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useId, useMemo } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { setSubmissionError } from "@/components/forms/formErrors";
-import { NoticeTargetChip } from "./NoticeTargetChip";
+import { NoticeTargetBuildings } from "./NoticeTargetBuildings";
 import { plainTextToNoticeDoc } from "@/lib/notice/richText";
 import {
   createNoticeFormSchema,
@@ -20,7 +20,12 @@ import {
   type NoticeInput,
   type NoticeType,
 } from "@/hooks/reactquery/notices";
-import { NOTICE_TYPE_LABELS } from "../utils";
+import {
+  NOTICE_TYPE_LABELS,
+  toNoticeBuildingIds,
+  toNoticeTargetSelection,
+  type NoticeTargetSelection,
+} from "../utils";
 
 const TYPE_ORDER: NoticeType[] = ["normal", "important", "urgent"];
 
@@ -56,6 +61,10 @@ function NoticeFormContent({
   const createNotice = useCreateNotice();
   const updateNotice = useUpdateNotice();
   const schema = useMemo(() => createNoticeFormSchema(), []);
+  // 대상 건물: 신규는 전체 건물로 시작한다(정본).
+  const [targets, setTargets] = useState<NoticeTargetSelection>(() =>
+    toNoticeTargetSelection(editing?.buildingIds ?? []),
+  );
   const {
     register,
     handleSubmit,
@@ -66,7 +75,6 @@ function NoticeFormContent({
   } = useForm<NoticeFormInput, unknown, NoticeFormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      buildingIds: editing?.buildingIds ?? [],
       noticeType: editing?.noticeType ?? "normal",
       title: editing?.title ?? "",
       content: editing?.content ?? "",
@@ -96,10 +104,15 @@ function NoticeFormContent({
   }, [isPending, onClose]);
 
   const submit = async (values: NoticeFormValues) => {
+    const buildingIds = toNoticeBuildingIds(targets, buildings);
+    if (!buildingIds) {
+      toast.warning("대상 건물을 선택해 주세요");
+      return;
+    }
     const now = new Date().toISOString();
     const payload: NoticeInput = {
       orgId,
-      buildingIds: values.buildingIds,
+      buildingIds,
       noticeType: values.noticeType,
       title: values.title,
       content: values.content,
@@ -213,35 +226,7 @@ function NoticeFormContent({
           </div>
 
           {/* 대상 건물 */}
-          <Controller
-            control={control}
-            name="buildingIds"
-            render={({ field }) => {
-              const ids = field.value ?? [];
-              return (
-                <div className="flex flex-col gap-[9px]">
-                  <span className="text-[12.5px] font-bold leading-[normal] text-[#8b95a1]">대상 건물</span>
-                  <div className="flex flex-wrap gap-[8px]">
-                    <NoticeTargetChip label="전체 건물" checked={ids.length === 0} onClick={() => field.onChange([])} />
-                    {buildings.map((building) => (
-                      <NoticeTargetChip
-                        key={building.id}
-                        label={building.name}
-                        checked={ids.includes(building.id)}
-                        onClick={() =>
-                          field.onChange(
-                            ids.includes(building.id)
-                              ? ids.filter((x) => x !== building.id)
-                              : [...ids, building.id],
-                          )
-                        }
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            }}
-          />
+          <NoticeTargetBuildings buildings={buildings} value={targets} onChange={setTargets} />
 
           {errors.root?.server?.message && (
             <p role="alert" className="rounded-[11px] bg-[#fff1f1] px-[13px] py-[10px] text-[13px] font-semibold text-[#f04452]">
@@ -264,7 +249,7 @@ function NoticeFormContent({
               disabled={isPending}
               className="flex h-[40px] flex-1 items-center justify-center rounded-[11px] bg-[#14a497] px-[18px] text-[13.5px] font-bold tracking-[-0.135px] text-white disabled:opacity-60"
             >
-              {isPending ? "저장 중…" : editing ? "수정" : "등록"}
+              {editing ? "수정" : "등록"}
             </button>
           </div>
         </form>
