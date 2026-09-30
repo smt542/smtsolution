@@ -32,10 +32,11 @@ function monthLabel(iso: string): string {
   return `${year}년 ${month}월`;
 }
 
-function deltaPercentLabel(current: number, previous: number): string {
-  if (previous === 0) return current === 0 ? "-" : "신규";
+// 정본 .dlt: 늘었으면 빨강(up), 아니면 회색 — 전월 0원에서 생긴 청구(신규)도 늘어난 쪽
+function deltaPercent(current: number, previous: number): { label: string; up: boolean } {
+  if (previous === 0) return current === 0 ? { label: "-", up: false } : { label: "신규", up: true };
   const percentage = Math.round(((current - previous) / previous) * 100);
-  return `${percentage > 0 ? "+" : ""}${percentage}%`;
+  return { label: `${percentage > 0 ? "+" : ""}${percentage}%`, up: percentage > 0 };
 }
 
 const STATUS_TABS: { id: "all" | PlatformOrgBillingStatus; label: string }[] = [
@@ -52,6 +53,7 @@ export function BillingWorkspace() {
   const [page, setPage] = useState(1);
   const [previewOrgId, setPreviewOrgId] = useState<number | null>(null);
   const [bulkRows, setBulkRows] = useState<PlatformOrgBilling[]>([]);
+  const [togglingOrgIds, setTogglingOrgIds] = useState<ReadonlySet<number>>(() => new Set());
   const scrollerRef = useRef<HTMLDivElement>(null);
   const billingQuery = usePlatformOrgBilling(month);
   const settingsQuery = usePlatformSettings();
@@ -95,10 +97,11 @@ export function BillingWorkspace() {
     ),
     [rows],
   );
-  const filtered = useMemo(
-    () => (tab === "all" ? rows : rows.filter((row) => row.status === tab)),
-    [rows, tab],
-  );
+  // 정본 draw: 청구액 큰 순(같으면 받은 순서 = 업체명 순)
+  const filtered = useMemo(() => {
+    const list = tab === "all" ? rows : rows.filter((row) => row.status === tab);
+    return [...list].sort((a, b) => b.subtotalKrw - a.subtotalKrw);
+  }, [rows, tab]);
   // 정본 fitBm: 목록 영역 남는 높이에 들어가는 만큼 한 쪽 행 수(최소 3)
   const pageSize = useFitPageSize(scrollerRef, { fallback: PAGE_SIZE, watch: filtered });
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -110,13 +113,23 @@ export function BillingWorkspace() {
     [rows, previewOrgId],
   );
 
+  // 누른 행만 잠근다 — 목록이 새 상태로 다시 그려질 때까지(무효화로 이미 도는 재조회를 기다려 중복 요청 없음)
   const handleToggle = async (row: PlatformOrgBilling) => {
+    if (togglingOrgIds.has(row.orgId)) return;
     const nextPaid = row.status !== "paid";
+    setTogglingOrgIds((current) => new Set(current).add(row.orgId));
     try {
       await markPaid.mutateAsync({ orgId: row.orgId, month, paid: nextPaid });
-      toast.success(nextPaid ? "입금 처리했습니다." : "입금을 취소했습니다.");
+      toast.success(nextPaid ? "입금을 확인했어요" : "입금 확인을 취소했어요");
+      await billingQuery.refetch({ cancelRefetch: false });
     } catch (error) {
       toast.error(error, "처리에 실패했습니다.");
+    } finally {
+      setTogglingOrgIds((current) => {
+        const next = new Set(current);
+        next.delete(row.orgId);
+        return next;
+      });
     }
   };
 
@@ -230,45 +243,54 @@ export function BillingWorkspace() {
                 </tr>
               </thead>
               <tbody>
-                {pagedRows.map((row) => (
-                  <tr key={row.orgId} className="cursor-pointer hover:bg-[#FBFCFD] [&:last-child>td]:border-b-0">
-                    <td className="border-b border-line2 px-4 py-3 text-[13.5px] font-bold whitespace-nowrap text-t1">{row.orgName}</td>
-                    <td className="border-b border-line2 px-4 py-3 text-[12.5px] font-semibold whitespace-nowrap text-t3">{row.orgEmail ?? "-"}</td>
-                    <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.alimtalkCount)}</td>
-                    <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.smsCount)}</td>
-                    <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.lmsCount)}</td>
-                    <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.faxCount)}</td>
-                    <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] font-extrabold whitespace-nowrap text-t1 num">{num(row.subtotalKrw)}</td>
-                    <td className="border-b border-line2 px-4 py-3 text-right text-[12.5px] font-bold whitespace-nowrap text-t3 num">{deltaPercentLabel(row.totalKrw, row.prevTotalKrw)}</td>
-                    <td className="border-b border-line2 px-4 py-3 text-[13.5px] whitespace-nowrap"><BillingStatusBadge status={row.status} /></td>
-                    <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap">
-                      {row.status === "none" ? (
-                        <span className="inline-flex h-7 items-center text-t4">-</span>
-                      ) : (
-                        <div className="inline-flex justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setBulkRows([]);
-                              setPreviewOrgId(row.orgId);
-                            }}
-                            className="inline-flex h-7 cursor-pointer items-center rounded-lg border border-line bg-surface px-[11px] text-xs font-bold text-t2 hover:bg-bg"
-                          >
-                            발행
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void handleToggle(row)}
-                            disabled={markPaid.isPending}
-                            className="inline-flex h-7 cursor-pointer items-center rounded-lg border border-line bg-surface px-[11px] text-xs font-bold text-t2 hover:bg-bg disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            {markPaid.isPending ? "입금 처리 중…" : row.status === "paid" ? "입금 취소" : "입금 확인"}
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {pagedRows.map((row) => {
+                  const delta = deltaPercent(row.totalKrw, row.prevTotalKrw);
+                  const toggling = togglingOrgIds.has(row.orgId);
+                  return (
+                    <tr key={row.orgId} className="cursor-pointer hover:bg-[#FBFCFD] [&:last-child>td]:border-b-0">
+                      <td className="border-b border-line2 px-4 py-3 text-[13.5px] font-bold whitespace-nowrap text-t1">{row.orgName}</td>
+                      <td className="border-b border-line2 px-4 py-3 text-[12.5px] font-semibold whitespace-nowrap text-t3">{row.orgEmail ?? "-"}</td>
+                      <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.alimtalkCount)}</td>
+                      <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.smsCount)}</td>
+                      <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.lmsCount)}</td>
+                      <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.faxCount)}</td>
+                      <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] font-extrabold whitespace-nowrap text-t1 num">{num(row.subtotalKrw)}</td>
+                      <td className={`border-b border-line2 px-4 py-3 text-right text-[12.5px] font-bold whitespace-nowrap num ${delta.up ? "text-red" : "text-t3"}`}>{delta.label}</td>
+                      <td className="border-b border-line2 px-4 py-3 text-[13.5px] whitespace-nowrap"><BillingStatusBadge status={row.status} /></td>
+                      <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap">
+                        {row.status === "none" ? (
+                          <span className="inline-flex h-7 items-center text-t4">-</span>
+                        ) : (
+                          <div className="inline-flex justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setBulkRows([]);
+                                setPreviewOrgId(row.orgId);
+                              }}
+                              className="inline-flex h-7 cursor-pointer items-center rounded-lg border border-line bg-surface px-[11px] text-xs font-bold text-t2 hover:bg-bg"
+                            >
+                              발행
+                            </button>
+                            {/* 정본 .bm-a / .bm-a.pri — 입금 확인만 청록 채움(hover 변화 없음) */}
+                            <button
+                              type="button"
+                              onClick={() => void handleToggle(row)}
+                              disabled={toggling}
+                              className={`inline-flex h-7 cursor-pointer items-center rounded-lg border px-[11px] text-xs font-bold disabled:cursor-not-allowed disabled:opacity-50 ${
+                                row.status === "paid"
+                                  ? "border-line bg-surface text-t2 hover:bg-bg"
+                                  : "border-blue bg-blue text-white"
+                              }`}
+                            >
+                              {row.status === "paid" ? "입금 취소" : "입금 확인"}
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -317,11 +339,16 @@ function SummaryCard({ label, value }: { label: string; value: number }) {
   );
 }
 
+// 정본 LB: 미입금 .b-amber · 입금완료 .b-blue · 청구 없음 .b-gray
 function BillingStatusBadge({ status }: { status: PlatformOrgBillingStatus }) {
   const view = {
-    paid: { label: "입금완료", className: "bg-green-t text-green" },
-    unpaid: { label: "미입금", className: "bg-red-t text-red" },
-    none: { label: "청구 없음", className: "bg-bg text-t3" },
-  }[status];
-  return <Badge className={`inline-flex items-center gap-1 px-[9px] py-[3px] leading-[1.4] ${view.className}`}>{view.label}</Badge>;
+    paid: { label: "입금완료", tone: "blue" },
+    unpaid: { label: "미입금", tone: "amber" },
+    none: { label: "청구 없음", tone: "gray" },
+  } as const;
+  return (
+    <Badge tone={view[status].tone} className="inline-flex items-center gap-1 px-[9px] py-[3px] leading-[1.4]">
+      {view[status].label}
+    </Badge>
+  );
 }
