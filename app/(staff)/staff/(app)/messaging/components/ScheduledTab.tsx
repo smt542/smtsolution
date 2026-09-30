@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState, type KeyboardEvent } from "react";
+import { useConfirm } from "@/components/common/ConfirmProvider";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import {
@@ -32,8 +34,26 @@ const TH =
 const TD =
   "h-[47.8px] px-[16px] py-[12px] text-[13px] font-medium leading-[normal] text-[#191f28]";
 
-function CancelButton({ id }: { id: number }) {
+function CancelButton({ message }: { message: ScheduledMessage }) {
+  const confirm = useConfirm();
   const { mutate, isPending } = useCancelScheduledMessage();
+
+  // 정본 #cxScrim: 표에 보이는 내용·예약 일시로 안내한다.
+  const cancel = async () => {
+    const ok = await confirm({
+      title: "예약을 취소할까요?",
+      description: `${truncateBody(message.body)} · ${formatMessageDateTime(message.scheduledAt)} 예약이 삭제되며 되돌릴 수 없어요.`,
+      cancelLabel: "닫기",
+      confirmLabel: "예약 취소",
+      variant: "danger",
+      look: "split",
+    });
+    if (!ok) return;
+    mutate(message.id, {
+      onSuccess: () => toast.success("예약이 취소되었습니다"),
+      onError: (error) => toast.error(error, "예약을 취소하지 못했어요"),
+    });
+  };
 
   return (
     <button
@@ -41,7 +61,7 @@ function CancelButton({ id }: { id: number }) {
       disabled={isPending}
       onClick={(event) => {
         event.stopPropagation();
-        mutate(id);
+        void cancel();
       }}
       className="whitespace-nowrap text-[12.5px] font-bold text-[#f04452] disabled:opacity-50"
     >
@@ -164,7 +184,7 @@ export function ScheduledTab() {
                 <td className={TD}>{scheduleType(msg)}</td>
                 <td className={TD}>{scheduledAt}</td>
                 <td className={TD}>
-                  <CancelButton id={msg.id} />
+                  <CancelButton message={msg} />
                 </td>
               </tr>
             );
