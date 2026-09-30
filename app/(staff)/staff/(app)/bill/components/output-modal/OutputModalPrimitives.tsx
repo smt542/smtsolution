@@ -17,17 +17,9 @@ interface FilterDropdownProps {
 }
 
 // 정본 `.lg-srch .uc-dd`: 메뉴 왼쪽 정렬·패딩 5·옵션 간격 10·옵션 hover #F5F7F9·버튼 hover 테두리만.
-// 화살표는 평소 t3, 열리면 .16s 동안 180° 돌며 청록(`.uc-dd.open .uc-dd-btn svg`). 검침대장 모달과 같은 정본 규칙이다.
+// 화살표 회전·청록과 메뉴 페이드는 CustomDropdown chevron="accent"·menuTransition 이 맡는다(검침대장 모달과 같은 정본 규칙).
 const FILTER_DROPDOWN = [
   "[&_.uc-dd-lbl]:whitespace-nowrap",
-  "[&_.uc-dd-btn_svg]:h-[14px]",
-  "[&_.uc-dd-btn_svg]:w-[14px]",
-  "[&_.uc-dd-btn_svg]:text-t3",
-  "[&_.uc-dd-btn_svg]:transition-transform",
-  "[&_.uc-dd-btn_svg]:duration-[160ms]",
-  "[&_.uc-dd-btn_svg]:ease-[ease]",
-  "[&_.uc-dd.open_.uc-dd-btn_svg]:rotate-180",
-  "[&_.uc-dd.open_.uc-dd-btn_svg]:text-blue",
   "[&_.uc-dd:not(.open)_.uc-dd-btn:hover]:border-[#C9D0D8]",
   "[&_.uc-dd:not(.open)_.uc-dd-btn:hover]:shadow-none",
   "[&_.uc-dd-menu]:left-0",
@@ -51,6 +43,7 @@ export function FilterDropdown({ ariaLabel, value, options, onChange, menuMinWid
         onChange={onChange}
         size="compact"
         menuMinWidth={menuMinWidth}
+        chevron="accent"
         menuTransition
       />
     </div>
