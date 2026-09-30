@@ -577,9 +577,7 @@ function EditModal({ organization, onClose }: Omit<EditProps, "mode">) {
         await setDeleted.mutateAsync({ id: organization.id, deleted: false });
       }
       if (editStatus !== "terminated") {
-        const nextStatus: OrganizationStatus = editStatus === "suspended"
-          ? "suspended"
-          : organization.status === "trial" ? "trial" : "active";
+        const nextStatus: OrganizationStatus = editStatus === "suspended" ? "suspended" : "active";
         if (nextStatus !== organization.status) {
           await updateStatus.mutateAsync({ id: organization.id, status: nextStatus });
         }

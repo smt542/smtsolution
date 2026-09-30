@@ -45,16 +45,8 @@ function TenantStatusBadge({ organization }: { organization: PlatformOrganizatio
     ? "bg-bg text-t3"
     : organization.status === "suspended"
       ? "bg-red-t text-red"
-      : organization.status === "trial"
-        ? "bg-amber-t text-amber"
-        : "bg-blue-t text-blue-d";
-  const label = organization.deletedAt
-    ? "해지"
-    : organization.status === "suspended"
-      ? "정지"
-      : organization.status === "trial"
-        ? "체험"
-        : "운영";
+      : "bg-blue-t text-blue-d";
+  const label = organization.deletedAt ? "해지" : organization.status === "suspended" ? "정지" : "운영";
 
   return (
     <span className={["inline-flex items-center gap-1 rounded-[7px] px-[9px] py-[3px] text-xs font-bold leading-[1.4]", style].join(" ")}>
