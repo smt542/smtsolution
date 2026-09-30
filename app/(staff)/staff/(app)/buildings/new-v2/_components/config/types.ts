@@ -1,4 +1,5 @@
-export type FieldKind = "text" | "textarea" | "readonly" | "select" | "date";
+/** vendorName·vendorContact = 업체 아코디언 선두 칸(VendorCard가 협력업체 선택·직접입력 상태로 직접 그린다). */
+export type FieldKind = "text" | "textarea" | "readonly" | "select" | "date" | "vendorName" | "vendorContact";
 
 import type { InputMask } from "@/components/common";
 

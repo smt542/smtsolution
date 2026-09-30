@@ -1,14 +1,12 @@
 import { phoneMask } from "@/components/common";
 import type { FieldDef } from "./types";
 
-/** 미리보기용 업체명 옵션(실제 화면에서는 등록된 협력업체 마스터로 대체). */
-const VENDOR_NAME_OPTIONS = ["직접 입력", "○○업체", "△△업체", "□□업체"];
-
-/** 모든 업체 공통 선두 3필드: 업체명(선택) → 전화번호·계좌번호(선택 시 자동 채움 → readonly). */
+/** 모든 업체 공통 선두 3필드(정본 building-detail 업체 드롭다운): 업체명 = 협력업체 관리의 같은 구분 업체 + 직접입력.
+ *  업체를 고르면 전화번호·계좌번호를 채우고 잠그며, 직접입력이면 셋 다 직접 쓴다. */
 const base = (): FieldDef[] => [
-  { label: "업체명", kind: "select", placeholder: "업체 선택", options: VENDOR_NAME_OPTIONS },
-  { label: "전화번호", kind: "readonly", placeholder: "전화번호" },
-  { label: "계좌번호", kind: "readonly", placeholder: "계좌번호" },
+  { label: "업체명", kind: "vendorName", placeholder: "업체 선택" },
+  { label: "전화번호", kind: "vendorContact", placeholder: "전화번호", mask: phoneMask },
+  { label: "계좌번호", kind: "vendorContact", placeholder: "계좌번호" },
 ];
 
 export interface VendorDef {

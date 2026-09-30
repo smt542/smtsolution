@@ -1,6 +1,13 @@
 import { applyMask, type InputMask, NUMERIC_INPUT_ATTRS } from "@/components/common";
 import { FieldLabel } from "./FieldLabel";
 
+/** 입력칸 모양 — 읽기 전용은 회색 바탕이고 눌러도 포커스 테두리·그림자를 그리지 않는다(QA S4). */
+export function textFieldInputClass(readOnly?: boolean): string {
+  return `h-[42px] w-full rounded-[10px] border border-line px-[13px] text-[16px] font-normal leading-[normal] text-t1 outline-none placeholder:font-medium placeholder:text-t4 ${
+    readOnly ? "bg-bg" : "bg-surface focus:border-teal focus:shadow-[0_0_0_3px_var(--color-teal-t)]"
+  }`;
+}
+
 /** Figma text input: h-42 rounded-10 border-line, 14px value, t4 placeholder. readOnly → grey bg (#F2F4F6). */
 export function TextField({
   label,
@@ -45,10 +52,7 @@ export function TextField({
           // 호출부가 inputMode를 주지 않았을 때 위 스프레드 값이 undefined로 덮이지 않게 한다.
           inputMode={inputMode ?? (mask ? NUMERIC_INPUT_ATTRS.inputMode : undefined)}
           maxLength={maxLength}
-          // 읽기 전용은 눌러도 포커스 테두리·그림자를 그리지 않는다(QA S4).
-          className={`h-[42px] w-full rounded-[10px] border border-line px-[13px] text-[16px] font-normal leading-[normal] text-t1 outline-none placeholder:font-medium placeholder:text-t4 ${
-            readOnly ? "bg-bg" : "bg-surface focus:border-teal focus:shadow-[0_0_0_3px_var(--color-teal-t)]"
-          }`}
+          className={textFieldInputClass(readOnly)}
         />
       </div>
     </div>
