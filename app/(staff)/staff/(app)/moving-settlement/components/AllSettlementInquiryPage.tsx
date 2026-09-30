@@ -83,7 +83,6 @@ export function AllSettlementInquiryPage() {
     () => inquiryQuery.data?.rows ?? [],
     [inquiryQuery.data?.rows],
   );
-  const isAllSettlementInquiryRefreshing = inquiryQuery.isFetching && !inquiryQuery.isLoading;
   const currentYear = Number(period.toYear);
   const years = useMemo(
     () =>
@@ -173,11 +172,6 @@ export function AllSettlementInquiryPage() {
         className="moving-inquiry-card relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[16px] bg-white shadow-card"
         data-node-id="673:185381"
       >
-        {isAllSettlementInquiryRefreshing ? (
-          <div className="absolute right-5 top-3 z-10 rounded-lg bg-white/95 shadow-card">
-            <Spinner label="전체 이사조회 결과 갱신 중" size="small" showLabel className="px-3 py-2" />
-          </div>
-        ) : null}
         <div className="overflow-x-auto overflow-y-hidden">
           <AllSettlementInquiryToolbar
             years={years}
@@ -225,9 +219,7 @@ export function AllSettlementInquiryPage() {
             <EmptyState message="전체 이사조회 결과를 불러오지 못했습니다." />
           </div>
         ) : rows.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center p-8">
-            <EmptyState message="조건에 맞는 이사정산 내역이 없습니다." />
-          </div>
+          <EmptyState title="조회 결과가 없어요" description="조회 기간이나 검색어를 바꿔 보세요" />
         ) : (
           <AllSettlementInquiryTable
             rows={rows}

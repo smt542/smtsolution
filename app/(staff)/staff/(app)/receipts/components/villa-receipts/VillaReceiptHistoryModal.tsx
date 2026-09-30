@@ -186,6 +186,8 @@ export function VillaReceiptHistoryModal({
           {/* 정본 `.auto-bar`의 compact `.uc-dd`와 `.auto-lbl` 필터 규격을 유지한다. */}
           <div className="flex shrink-0 items-center gap-[8px] border-b border-line bg-surface px-[16px] py-[13px]">
             <CustomDropdown
+              chevron="accent"
+              menuTransition
               ariaLabel="시작 연도"
               value={String(startYear)}
               options={yearOptions}
@@ -195,6 +197,8 @@ export function VillaReceiptHistoryModal({
               menuMinWidth={104}
             />
             <CustomDropdown
+              chevron="accent"
+              menuTransition
               ariaLabel="시작 월"
               value={String(startMonth)}
               options={monthOptions}
@@ -205,6 +209,8 @@ export function VillaReceiptHistoryModal({
             />
             <span className="text-[12px] font-bold text-t3">~</span>
             <CustomDropdown
+              chevron="accent"
+              menuTransition
               ariaLabel="종료 연도"
               value={String(endYear)}
               options={yearOptions}
@@ -214,6 +220,8 @@ export function VillaReceiptHistoryModal({
               menuMinWidth={104}
             />
             <CustomDropdown
+              chevron="accent"
+              menuTransition
               ariaLabel="종료 월"
               value={String(endMonth)}
               options={monthOptions}

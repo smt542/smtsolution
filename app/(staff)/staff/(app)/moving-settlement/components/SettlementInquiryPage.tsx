@@ -83,7 +83,6 @@ export function SettlementInquiryPage({ type }: { type: UtilityInquiryType }) {
   }
 
   const rows = inquiryQuery.data?.rows ?? [];
-  const isSettlementInquiryRefreshing = inquiryQuery.isFetching && !inquiryQuery.isLoading;
   const invalidRange = fromMonth > toMonth;
   const editRow = (row: SettlementInquiryRow, patch: Partial<UpdateSettlementInquiryRow>) => {
     setEdits((current) => {
@@ -149,13 +148,8 @@ export function SettlementInquiryPage({ type }: { type: UtilityInquiryType }) {
   };
 
   return (
-    <div className="h-[calc(100dvh-62px)] min-h-[560px] bg-bg px-[24px] pb-[22px] pt-[22px]">
+    <div className="h-[calc(100dvh-62px)] min-h-[560px] bg-bg px-[24px] pb-[24px] pt-[22px]">
       <section aria-label={`${TYPE_LABELS[type]} 이사조회`} className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] bg-white shadow-card">
-        {isSettlementInquiryRefreshing ? (
-          <div className="absolute right-5 top-3 z-10 rounded-lg bg-white/95 shadow-card">
-            <Spinner label="이사정산 조회 결과 갱신 중" size="small" showLabel className="px-3 py-2" />
-          </div>
-        ) : null}
         <div className="overflow-x-auto">
           <SettlementInquiryToolbar
             fromMonth={fromMonth}
@@ -182,7 +176,7 @@ export function SettlementInquiryPage({ type }: { type: UtilityInquiryType }) {
             onSave={save}
           />
         </div>
-        <div className="min-h-0 flex-1">
+        <div className="flex min-h-0 flex-1 flex-col">
         {invalidRange ? (
           <div className="py-16"><EmptyState message="조회 시작월은 종료월보다 늦을 수 없습니다." /></div>
         ) : inquiryQuery.isLoading ? (
@@ -190,7 +184,7 @@ export function SettlementInquiryPage({ type }: { type: UtilityInquiryType }) {
         ) : inquiryQuery.error ? (
           <div role="alert" className="flex min-h-[360px] flex-1 items-center justify-center"><EmptyState message="이사정산 조회 결과를 불러오지 못했습니다." /></div>
         ) : rows.length === 0 ? (
-          <div className="py-16"><EmptyState message="조회 결과가 없어요 · 조회 기간이나 검색어를 바꿔 보세요" /></div>
+          <EmptyState title="조회 결과가 없어요" description="조회 기간이나 검색어를 바꿔 보세요" />
         ) : (
           <SettlementInquiryTable
             type={type}

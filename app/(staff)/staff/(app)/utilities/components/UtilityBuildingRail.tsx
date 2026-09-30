@@ -1,5 +1,6 @@
 import { CustomDropdown } from "@/components/common/CustomDropdown";
 import { SearchIcon } from "@/components/icons";
+import { UC_DROPDOWN_CLASS } from "./ucDropdown";
 
 export interface UtilityBuildingRailBuilding {
   id: number;
@@ -61,8 +62,10 @@ export function UtilityBuildingRail({
           <h2 className="min-w-0 flex-1 text-[15px] font-extrabold leading-[normal] tracking-[-0.2px] text-t1">
             전체 건물
           </h2>
-          <div className={`flex-none [&_.uc-dd-menu]:min-w-[104px] ${lockedDropdown}`}>
+          <div className={`flex-none ${UC_DROPDOWN_CLASS} [&_.uc-dd-menu]:min-w-[104px] ${lockedDropdown}`}>
             <CustomDropdown
+              chevron="accent"
+              menuTransition
               ariaLabel="연도 선택"
               value={year}
               disabled={disabled}
@@ -71,8 +74,10 @@ export function UtilityBuildingRail({
               onChange={(value) => onPeriodChange(`${value}-${month}-01`)}
             />
           </div>
-          <div className={`flex-none [&_.uc-dd-menu]:min-w-[112px] ${lockedDropdown}`}>
+          <div className={`flex-none ${UC_DROPDOWN_CLASS} [&_.uc-dd-menu]:min-w-[112px] ${lockedDropdown}`}>
             <CustomDropdown
+              chevron="accent"
+              menuTransition
               ariaLabel="월 선택"
               value={month}
               disabled={disabled}

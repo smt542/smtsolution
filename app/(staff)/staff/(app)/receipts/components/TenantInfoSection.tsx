@@ -175,6 +175,8 @@ function DateCell({
 function ConsentCell({ value, onChange, ariaLabel }: { value: boolean; onChange: (value: boolean) => void; ariaLabel: string }) {
   return (
     <CustomDropdown
+      chevron="accent"
+      menuTransition
       ariaLabel={ariaLabel}
       size="cell"
       position="fixed"
@@ -189,6 +191,8 @@ function ConsentCell({ value, onChange, ariaLabel }: { value: boolean; onChange:
 function YesNoCell({ value, onChange, ariaLabel }: { value: boolean; onChange: (value: boolean) => void; ariaLabel: string }) {
   return (
     <CustomDropdown
+      chevron="accent"
+      menuTransition
       ariaLabel={ariaLabel}
       size="cell"
       position="fixed"

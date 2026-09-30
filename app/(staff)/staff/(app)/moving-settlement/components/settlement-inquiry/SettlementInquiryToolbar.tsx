@@ -82,6 +82,7 @@ export function SettlementInquiryToolbar({
           check: 정본 moving-gas·moving-elec·moving-water 는 `.uc-opt svg{opacity:0}` 만 두고
           `.uc-opt.on svg{opacity:1}` 이 없다 — 선택 표시는 배경·색·굵기뿐이고 체크는 안 뜬다. */}
       <CustomDropdown
+        menuTransition
         compact
         position="fixed"
         check="never"
@@ -91,6 +92,7 @@ export function SettlementInquiryToolbar({
         onChange={(value) => onFromMonthChange(`${value}-${fromValue}`)}
       />
       <CustomDropdown
+        menuTransition
         compact
         position="fixed"
         check="never"
@@ -101,6 +103,7 @@ export function SettlementInquiryToolbar({
       />
       <span className="w-[9px] shrink-0 text-[12px] font-bold text-t3">~</span>
       <CustomDropdown
+        menuTransition
         compact
         position="fixed"
         check="never"
@@ -110,6 +113,7 @@ export function SettlementInquiryToolbar({
         onChange={(value) => onToMonthChange(`${value}-${toValue}`)}
       />
       <CustomDropdown
+        menuTransition
         compact
         position="fixed"
         check="never"
@@ -123,6 +127,7 @@ export function SettlementInquiryToolbar({
 
       <span className="w-[34px] shrink-0 text-[12px] font-bold text-t3">신청일</span>
       <CustomDropdown
+        menuTransition
         compact
         position="fixed"
         check="never"
@@ -136,6 +141,7 @@ export function SettlementInquiryToolbar({
         }
       />
       <CustomDropdown
+        menuTransition
         compact
         position="fixed"
         check="never"
@@ -149,6 +155,7 @@ export function SettlementInquiryToolbar({
         }
       />
       <CustomDropdown
+        menuTransition
         compact
         position="fixed"
         check="never"
@@ -204,7 +211,6 @@ export function SettlementInquiryToolbar({
       <label className="relative h-[38px] w-[200px] shrink-0">
         <SearchIcon className="pointer-events-none absolute left-[11px] top-[11.5px] z-10 size-[15px] text-t3" />
         <input
-          type="search"
           aria-label="건물명·소재지 검색"
           value={search}
           placeholder="건물명·소재지 검색"
@@ -218,7 +224,7 @@ export function SettlementInquiryToolbar({
       <button
         type="button"
         onClick={onPrint}
-        className="flex h-[34px] min-w-[75px] shrink-0 items-center justify-center gap-[6px] whitespace-nowrap rounded-[8px] border border-line bg-white px-[14px] text-[13px] font-bold text-t2 hover:bg-bg"
+        className="flex h-[34px] shrink-0 items-center justify-center gap-[6px] whitespace-nowrap rounded-[8px] border border-line bg-white px-[14px] text-[13px] font-bold text-t2 hover:bg-bg"
       >
         <PrinterIcon className="size-[15px]" />
         출력
@@ -227,9 +233,9 @@ export function SettlementInquiryToolbar({
         type="button"
         disabled={changedCount === 0 || saving}
         onClick={onSave}
-        className="h-[34px] min-w-[58px] shrink-0 whitespace-nowrap rounded-[8px] border border-teal bg-teal px-[16px] text-[13px] font-bold text-white hover:bg-teal-d disabled:border-line disabled:bg-line2 disabled:text-t4"
+        className="h-[34px] shrink-0 whitespace-nowrap rounded-[8px] border border-teal bg-teal px-[16px] text-[13px] font-bold text-white hover:bg-teal-d disabled:border-line disabled:bg-line2 disabled:text-t4"
       >
-        {saving ? "저장 중…" : "저장"}
+        저장
       </button>
     </div>
   );

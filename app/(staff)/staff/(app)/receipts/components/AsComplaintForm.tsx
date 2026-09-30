@@ -287,6 +287,7 @@ export function AsComplaintForm({
             control={control}
             render={({ field }) => (
               <CustomDropdown
+                menuTransition
                 id={`${formId}-building`}
                 ariaLabel="건물"
                 value={String(field.value ?? "")}
@@ -318,6 +319,7 @@ export function AsComplaintForm({
             control={control}
             render={({ field }) => (
               <CustomDropdown
+                menuTransition
                 id={`${formId}-unit`}
                 ariaLabel="호수"
                 value={String(field.value ?? "")}
@@ -351,6 +353,7 @@ export function AsComplaintForm({
             control={control}
             render={({ field }) => (
               <CustomDropdown
+                menuTransition
                 id={`${formId}-assignee`}
                 ariaLabel="담당자"
                 value={String(field.value ?? "")}
@@ -387,6 +390,7 @@ export function AsComplaintForm({
             control={control}
             render={({ field }) => (
               <CustomDropdown
+                menuTransition
                 id={`${formId}-category`}
                 ariaLabel="유형"
                 value={String(field.value ?? "")}
@@ -414,6 +418,7 @@ export function AsComplaintForm({
             control={control}
             render={({ field }) => (
               <CustomDropdown
+                menuTransition
                 id={`${formId}-status`}
                 ariaLabel="처리결과"
                 value={String(field.value ?? "")}

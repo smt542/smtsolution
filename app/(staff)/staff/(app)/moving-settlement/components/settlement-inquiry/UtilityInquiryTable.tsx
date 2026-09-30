@@ -16,6 +16,9 @@ type UtilityInquiryTableProps = Omit<SettlementInquiryTableProps, "type"> & {
   type: UtilityInquiryType;
 };
 
+// 정본 `#msTbl tfoot td` — 배경은 tfoot 이 칠하고, 위 선은 칸마다 1px 테두리로 긋는다.
+const FOOT_CELL = "border-t border-line";
+
 function formatNumberCell(value: number | null | undefined): string {
   return value == null ? "" : formatNumber(value);
 }
@@ -46,7 +49,9 @@ export function UtilityInquiryTable({
 
   return (
     <div className="h-full overflow-auto bg-white settlement-inquiry-scroll">
-      <table className="w-[1632px] min-w-[1632px] table-fixed border-separate border-spacing-0 text-[13.5px] text-t1">
+      {/* h-full: 행이 적어도 합계 행이 목록 하단에 붙게 표를 스크롤 영역 높이로 늘린다.
+          남는 높이는 tbody 끝의 빈 행이 가져가고, 행이 넘치면 합계 행은 sticky 로 하단에 남는다. */}
+      <table className="h-full w-[1632px] min-w-[1632px] table-fixed border-separate border-spacing-0 text-[13.5px] text-t1">
         <colgroup>
           {columns.map((column) => (
             <col key={column.key} style={{ width: column.width }} />
@@ -92,7 +97,7 @@ export function UtilityInquiryTable({
                         </td>
                       );
                     case "unitNo":
-                      return <td key={column.key} className={className}>{unitNoLabel(row.unitNo)}</td>;
+                      return <td key={column.key} className={`${className} font-medium`}>{unitNoLabel(row.unitNo)}</td>;
                     case "moveOutDate":
                       return <td key={column.key} className={className}>{formatDateCell(row.moveOutDate)}</td>;
                     case "meterNo":
@@ -106,7 +111,7 @@ export function UtilityInquiryTable({
                     case "usage":
                       return <td key={column.key} className={`${className} num`}>{formatNumberCell(row[fields.usage])}</td>;
                     case "charge":
-                      return <td key={column.key} className={`${className} num`}>{formatNumberCell(row[fields.charge])}</td>;
+                      return <td key={column.key} className={`${className} num font-medium`}>{formatNumberCell(row[fields.charge])}</td>;
                     case "paidDate":
                       return (
                         <td key={column.key} className={className}>
@@ -126,22 +131,25 @@ export function UtilityInquiryTable({
               </tr>
             );
           })}
+          <tr aria-hidden="true">
+            <td colSpan={columns.length} className="border-0 p-0" />
+          </tr>
         </tbody>
-        <tfoot className="sticky bottom-0 z-10 bg-white font-extrabold shadow-[0_-1px_0_#E8EBEE]">
-          <tr className="h-[41px]">
+        <tfoot className="sticky bottom-0 z-10 bg-[#FBFCFD] font-bold">
+          <tr className="h-[40.5px]">
             {/* NO 칸(48.7px)만으로는 `합계 N건`이 줄바꿈돼 행 높이가 41px를 넘는다.
                 정본도 텍스트가 소재지 칸까지 걸쳐 있어 2칸을 합친다. */}
-            <td colSpan={2} className="whitespace-nowrap px-4">
+            <td colSpan={2} className={`${FOOT_CELL} whitespace-nowrap px-4`}>
               합계 {formatNumber(total)}건
             </td>
-            <td colSpan={columns.length - 5} />
-            <td className="px-4 text-right num">
+            <td colSpan={columns.length - 5} className={FOOT_CELL} />
+            <td className={`${FOOT_CELL} px-4 text-right num`}>
               {formatNumber(sumColumn(rows, fields.usage))}
             </td>
-            <td className="px-4 text-right num">
+            <td className={`${FOOT_CELL} px-4 text-right num`}>
               {formatNumber(sumColumn(rows, fields.charge))}
             </td>
-            <td />
+            <td className={FOOT_CELL} />
           </tr>
         </tfoot>
       </table>

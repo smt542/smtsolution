@@ -319,6 +319,8 @@ export function AsStatusSection({
       </div>
       <div className="[&_.uc-dd-btn]:h-[28px] [&_.uc-dd-btn]:w-[62px] [&_.uc-dd-btn]:leading-[normal] [&_.uc-dd-btn]:whitespace-nowrap [&_.uc-dd-btn]:px-[9px] [&_.uc-dd-btn]:text-[12px] [&_.uc-dd-menu]:left-0 [&_.uc-dd-menu]:right-auto [&_.uc-dd-menu]:min-w-[96px]">
         <CustomDropdown
+          chevron="accent"
+          menuTransition
           ariaLabel="처리결과 필터"
           value={resultFilter}
           onChange={(value) => setResultFilter(value as "" | ComplaintStatus)}

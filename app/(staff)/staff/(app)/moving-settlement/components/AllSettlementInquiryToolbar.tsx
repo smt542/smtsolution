@@ -58,6 +58,7 @@ export function AllSettlementInquiryToolbar({
     <div className="moving-inquiry-toolbar flex min-h-[65px] min-w-[1270px] items-center gap-[8px] rounded-t-[16px] border-b border-line2 bg-white px-[16px] py-[13px]">
       <span className="text-[12px] font-bold text-t3">조회일</span>
       <CustomDropdown
+        menuTransition
         ariaLabel="조회 시작 연도"
         value={fromYear}
         options={years}
@@ -66,6 +67,7 @@ export function AllSettlementInquiryToolbar({
         position="fixed"
       />
       <CustomDropdown
+        menuTransition
         ariaLabel="조회 시작 월"
         value={fromMonth}
         options={months}
@@ -75,6 +77,7 @@ export function AllSettlementInquiryToolbar({
       />
       <span className="text-[12px] font-bold text-t3">~</span>
       <CustomDropdown
+        menuTransition
         ariaLabel="조회 종료 연도"
         value={toYear}
         options={years}
@@ -83,6 +86,7 @@ export function AllSettlementInquiryToolbar({
         position="fixed"
       />
       <CustomDropdown
+        menuTransition
         ariaLabel="조회 종료 월"
         value={toMonth}
         options={months}
@@ -172,7 +176,7 @@ export function AllSettlementInquiryToolbar({
         disabled={!dirty || saving}
         className="flex h-[34px] flex-col items-center justify-center rounded-[8px] border border-teal bg-teal px-[16px] text-[13px] font-bold text-white transition-colors hover:bg-teal-d disabled:border-line disabled:bg-line2 disabled:text-t4"
       >
-        {saving ? "저장 중…" : "저장"}
+        저장
       </button>
     </div>
   );

@@ -210,8 +210,9 @@ export function ResidentClaimsPanel() {
         </div>
 
         <div className="flex flex-none items-center gap-[10px] border-b border-line2 px-[16px] py-[12px]">
-          <div className="w-[170px] flex-none [&_.uc-dd-btn]:h-[40px] [&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:justify-between [&_.uc-dd-btn]:rounded-[11px] [&_.uc-dd-btn]:px-[10px] [&_.uc-dd-btn]:text-[14px] [&_.uc-dd-btn]:font-semibold [&_.uc-dd-btn]:leading-[normal] [&_.uc-dd-lbl]:text-[13.5px] [&_.uc-dd-btn_svg]:size-[14px] [&_.uc-dd-btn_svg]:text-t3 [&_.uc-dd.open_.uc-dd-btn_svg]:rotate-180">
+          <div className="w-[170px] flex-none [&_.uc-dd-btn]:h-[40px] [&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:justify-between [&_.uc-dd-btn]:rounded-[11px] [&_.uc-dd-btn]:px-[10px] [&_.uc-dd-btn]:text-[14px] [&_.uc-dd-btn]:font-semibold [&_.uc-dd-btn]:leading-[normal] [&_.uc-dd-lbl]:text-[13.5px] [&_.uc-dd-btn_svg]:size-[14px] [&_.uc-dd-btn_svg]:text-t3">
             <CustomDropdown
+              chevron="rotate"
               ariaLabel="건물 전체"
               value={building}
               onChange={setBuilding}

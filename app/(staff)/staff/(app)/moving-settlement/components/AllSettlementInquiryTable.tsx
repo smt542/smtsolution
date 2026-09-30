@@ -76,7 +76,9 @@ export function AllSettlementInquiryTable({
 
   return (
     <div className="moving-inquiry-scroll min-h-0 flex-1 overflow-auto bg-white">
-      <table className="moving-inquiry-table w-[1739px] min-w-[1739px] table-fixed border-collapse">
+      {/* h-full: 행이 적어도 합계 행이 목록 하단에 붙게 표를 스크롤 영역 높이로 늘린다.
+          남는 높이는 tbody 끝의 빈 행이 가져가고, 행이 넘치면 합계 행은 sticky 로 하단에 남는다. */}
+      <table className="moving-inquiry-table h-full w-[1739px] min-w-[1739px] table-fixed border-collapse">
         <caption className="sr-only">
           전기·가스 검침, 입금일과 청소비를 포함한 전체 이사조회 결과
         </caption>
@@ -216,6 +218,9 @@ export function AllSettlementInquiryTable({
               </Fragment>
             );
           })}
+          <tr aria-hidden="true">
+            <td colSpan={20} className="border-0 p-0" />
+          </tr>
         </tbody>
         <tfoot>
           <tr className="sticky bottom-0 z-30 h-[40.5px] font-bold text-[13.5px] text-t1">

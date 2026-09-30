@@ -369,6 +369,7 @@ export function AccountFormModal({
                     name="isMaster"
                     render={({ field }) => (
                       <CustomDropdown
+                        chevron="rotate"
                         ariaLabel="회원 유형"
                         options={MEMBER_TYPE_OPTIONS}
                         value={field.value ? "master" : "normal"}
@@ -392,6 +393,7 @@ export function AccountFormModal({
                   name="isActive"
                   render={({ field }) => (
                     <CustomDropdown
+                      chevron="rotate"
                       ariaLabel="상태"
                       options={STATUS_OPTIONS}
                       value={field.value ? "active" : "inactive"}
