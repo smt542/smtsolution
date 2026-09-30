@@ -1,5 +1,5 @@
 import type {
-  PlatformAccountQuery,
+  PlatformHqAccountQuery,
   PlatformOrganizationQuery,
   PointTransactionQuery,
 } from "./apis";
@@ -20,15 +20,15 @@ export const platformKeys = {
         opts.pageSize ?? 25,
       ] as const
     : [...platformKeys.all, "organizations"] as const,
-  accounts: (opts?: PlatformAccountQuery) => opts
+  hqAccounts: (opts?: PlatformHqAccountQuery) => opts
     ? [
         ...platformKeys.all,
-        "accounts",
+        "hq-accounts",
         opts.search?.trim() ?? "",
         opts.page ?? 1,
-        opts.pageSize ?? 25,
+        opts.pageSize ?? 10,
       ] as const
-    : [...platformKeys.all, "accounts"] as const,
+    : [...platformKeys.all, "hq-accounts"] as const,
   settings: () => [...platformKeys.all, "settings"] as const,
   billing: (month: string) => [...platformKeys.all, "billing", month] as const,
   monthlySendCost: (year: number) =>

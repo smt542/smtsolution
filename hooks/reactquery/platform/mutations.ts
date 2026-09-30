@@ -14,15 +14,13 @@ import {
   type UpdateOrgInput,
 } from "./apis";
 import {
-  createPlatformAccount,
-  platformUpdateAccount,
   platformResetPassword,
-  platformSetActive,
-  platformUpdateRole,
-  type PlatformCreateAccountInput,
-  type PlatformUpdateAccountInput,
+  createPlatformHqAccount,
+  updatePlatformHqAccount,
+  deletePlatformHqAccount,
+  type PlatformCreateHqAccountInput,
+  type PlatformUpdateHqAccountInput,
 } from "./accounts";
-import type { OrgMemberRole, StaffType } from "@/hooks/reactquery/auth";
 import { platformKeys } from "./keys";
 import {
   releaseStalePointReservation,
@@ -134,55 +132,33 @@ export function useDeletePlatformOrganization() {
   });
 }
 
-export function useCreatePlatformAccount() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: PlatformCreateAccountInput) => createPlatformAccount(input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: platformKeys.accounts() }),
-  });
-}
-
-export function usePlatformUpdateRole() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (account: {
-      orgId: number;
-      userId: string;
-      role: OrgMemberRole;
-      staffType: StaffType;
-      permissions: string[];
-    }) =>
-      platformUpdateRole(
-        account.orgId,
-        account.userId,
-        account.role,
-        account.staffType,
-        account.permissions,
-      ),
-    onSuccess: () => qc.invalidateQueries({ queryKey: platformKeys.accounts() }),
-  });
-}
-
-export function usePlatformUpdateAccount() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: PlatformUpdateAccountInput) => platformUpdateAccount(input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: platformKeys.accounts() }),
-  });
-}
-
-export function usePlatformSetActive() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (account: { orgId: number; userId: string; active: boolean }) =>
-      platformSetActive(account.orgId, account.userId, account.active),
-    onSuccess: () => qc.invalidateQueries({ queryKey: platformKeys.accounts() }),
-  });
-}
-
 export function usePlatformResetPassword() {
   return useMutation({
     mutationFn: (account: { userId: string; password: string }) =>
       platformResetPassword(account.userId, account.password),
+  });
+}
+
+export function useCreatePlatformHqAccount() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: PlatformCreateHqAccountInput) => createPlatformHqAccount(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: platformKeys.hqAccounts() }),
+  });
+}
+
+export function useUpdatePlatformHqAccount() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: PlatformUpdateHqAccountInput) => updatePlatformHqAccount(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: platformKeys.hqAccounts() }),
+  });
+}
+
+export function useDeletePlatformHqAccount() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => deletePlatformHqAccount(userId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: platformKeys.hqAccounts() }),
   });
 }

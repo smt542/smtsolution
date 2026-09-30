@@ -6,11 +6,11 @@ import {
 } from "@/lib/attachments/policy";
 import { createPrivateAssetSignedUrl } from "@/lib/attachments/signedUrl";
 import { formatNumber } from "@/lib/format";
-import type { OrgMemberRole, StaffType } from "@/hooks/reactquery/auth";
 
 // 정본 조직 상태 = 운영·정지(해지는 deleted_at). org_status 타입의 'trial'은 쓰지 않는다(0207).
 export type OrganizationStatus = "active" | "suspended";
 export type PlatformOrganizationStatusFilter = "operating" | "suspended" | "terminated";
+export type HqRole = "master" | "operations" | "support" | "sales" | "accounting" | "other";
 
 export type PointTxType = "charge" | "usage" | "adjustment";
 
@@ -87,18 +87,14 @@ export interface PlatformOrganizationContractKpis {
   terminatedLast12MonthsCount: number;
 }
 
-export interface PlatformAccount {
-  orgId: number;
-  organizationName: string;
+export interface PlatformHqAccount {
   userId: string;
-  username: string | null;
-  fullName: string | null;
-  phone: string | null;
+  username: string;
+  fullName: string;
+  phone: string;
   memo: string | null;
-  role: OrgMemberRole;
-  staffType: StaffType;
-  permissions: string[];
-  isActive: boolean | null;
+  hqRole: HqRole | null;
+  isActive: boolean;
   createdAt: string;
 }
 
@@ -117,7 +113,7 @@ export interface PlatformOrganizationQuery {
   pageSize?: number;
 }
 
-export interface PlatformAccountQuery {
+export interface PlatformHqAccountQuery {
   search?: string;
   page?: number;
   pageSize?: number;
@@ -171,18 +167,14 @@ interface OrganizationRpcRow {
   total_count: number | string;
 }
 
-interface AccountRpcRow {
-  org_id: number;
-  organization_name: string;
+interface HqAccountRpcRow {
   user_id: string;
-  username: string | null;
-  full_name: string | null;
-  phone: string | null;
+  username: string;
+  full_name: string;
+  phone: string;
   memo: string | null;
-  role: OrgMemberRole;
-  staff_type: StaffType;
-  feature_permissions: unknown;
-  is_active: boolean | null;
+  hq_role: HqRole | null;
+  is_active: boolean;
   created_at: string;
   total_count: number | string;
 }
@@ -310,39 +302,31 @@ export async function getPlatformOrganizationContractKpis(): Promise<PlatformOrg
   };
 }
 
-export async function listPlatformAccounts(
-  opts: PlatformAccountQuery = {},
-): Promise<PaginatedResult<PlatformAccount>> {
+export async function listPlatformHqAccounts(
+  opts: PlatformHqAccountQuery = {},
+): Promise<{ rows: PlatformHqAccount[]; totalCount: number }> {
   const page = positiveInteger(opts.page, 1);
-  const pageSize = Math.min(positiveInteger(opts.pageSize, 25), 100);
-  const client = createClient();
-  const { data, error } = await client.rpc("platform_list_accounts", {
+  const pageSize = Math.min(positiveInteger(opts.pageSize, 10), 100);
+  const { data, error } = await createClient().rpc("platform_list_hq_accounts", {
     p_search: opts.search?.trim() || null,
     p_limit: pageSize,
     p_offset: (page - 1) * pageSize,
   });
-
   if (error) throw new Error(error.message);
-  const rows = (data ?? []) as AccountRpcRow[];
 
+  const rows = (data ?? []) as HqAccountRpcRow[];
   return {
     rows: rows.map((row) => ({
-      orgId: row.org_id,
-      organizationName: row.organization_name,
       userId: row.user_id,
       username: row.username,
       fullName: row.full_name,
       phone: row.phone,
       memo: row.memo,
-      role: row.role,
-      staffType: row.staff_type,
-      permissions: Array.isArray(row.feature_permissions) ? row.feature_permissions : [],
+      hqRole: row.hq_role,
       isActive: row.is_active,
       createdAt: row.created_at,
     })),
     totalCount: rows.length > 0 ? Number(rows[0].total_count) : 0,
-    page,
-    pageSize,
   };
 }
 
