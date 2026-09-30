@@ -9,11 +9,11 @@ import {
   type PartnerUnitOption,
 } from "@/hooks/reactquery/complaints";
 import { applyMask, NUMERIC_INPUT_ATTRS } from "@/components/common";
-import { DpDatePicker } from "@/components/common/DpDatePicker";
-import { CalendarIcon } from "@/components/icons";
 
 import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
 import { PartnerConfirmDialog } from "../../../_components/PartnerConfirmDialog";
+import { PartnerDateSheet } from "../../../_components/PartnerDateSheet";
+import { PartnerDropdown } from "../../../_components/PartnerDropdown";
 import { PartnerFormFieldRow } from "../../../_components/PartnerFormFieldRow";
 import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
 import { PartnerToast, usePartnerToast } from "../../../_components/PartnerToast";
@@ -26,6 +26,7 @@ export type Cat = { id: number; label: string };
 
 /** 정본은 등록 토스트를 보여 준 뒤 0.7초 있다가 홈으로 간다. */
 const LEAVE_DELAY_MS = 700;
+const STATUS_OPTIONS = AS_STATUS.map((s) => ({ value: s.db, label: s.ko }));
 
 function unitLabel(u: PartnerUnitOption) {
   return `${u.dong ? `${u.dong} ` : ""}${u.unit_no}`;
@@ -119,28 +120,25 @@ export default function PartnerAsNewWorkspace({
         <div className={styles.sec}>
           <div className={styles.secTitle}>대상 세대</div>
           <PartnerFormFieldRow label="건물">
-            <select
-              className={styles.control}
+            <PartnerDropdown
+              ariaLabel="건물"
               value={buildingId}
-              aria-label="건물"
-              onChange={(e) => {
-                setBuildingId(e.target.value);
+              options={buildings.map((b) => ({ value: String(b.id), label: b.name }))}
+              onChange={(value) => {
+                // 정본: 건물을 고르면 호수 목록을 다시 만들고 '건물 전체'로 돌린다.
+                setBuildingId(value);
                 setUnitId("");
               }}
-            >
-              {buildings.length === 0 && <option value="">담당 건물 없음</option>}
-              {buildings.map((b) => (
-                <option key={b.id} value={String(b.id)}>{b.name}</option>
-              ))}
-            </select>
+              placeholder="담당 건물 없음"
+            />
           </PartnerFormFieldRow>
           <PartnerFormFieldRow label="호수">
-            <select className={styles.control} value={unitId} onChange={(e) => setUnitId(e.target.value)} aria-label="호수">
-              <option value="">건물 전체</option>
-              {units.map((u) => (
-                <option key={u.unit_id} value={String(u.unit_id)}>{unitLabel(u)}</option>
-              ))}
-            </select>
+            <PartnerDropdown
+              ariaLabel="호수"
+              value={unitId}
+              options={[{ value: "", label: "건물 전체" }, ...units.map((u) => ({ value: String(u.unit_id), label: unitLabel(u) }))]}
+              onChange={setUnitId}
+            />
           </PartnerFormFieldRow>
         </div>
 
@@ -156,11 +154,13 @@ export default function PartnerAsNewWorkspace({
             <span className={`${styles.ro} tabular-nums`}>{today}</span>
           </PartnerFormFieldRow>
           <PartnerFormFieldRow label="유형">
-            <select className={styles.control} value={categoryId} onChange={(e) => setCategoryId(e.target.value)} aria-label="유형">
-              {cats.map((c) => (
-                <option key={c.id} value={String(c.id)}>{c.label}</option>
-              ))}
-            </select>
+            <PartnerDropdown
+              ariaLabel="유형"
+              value={categoryId}
+              options={cats.map((c) => ({ value: String(c.id), label: c.label }))}
+              onChange={setCategoryId}
+              placeholder="유형 선택"
+            />
           </PartnerFormFieldRow>
           <PartnerFormFieldRow label="입주자 전화번호">
             <span className={`${styles.ro} tabular-nums`}>{reporterPhone || "-"}</span>
@@ -173,23 +173,10 @@ export default function PartnerAsNewWorkspace({
         <div className={styles.sec}>
           <div className={styles.secTitle}>처리</div>
           <PartnerFormFieldRow label="처리결과">
-            <select className={styles.control} value={status} onChange={(e) => setStatus(e.target.value)} aria-label="처리결과">
-              {AS_STATUS.map((s) => (
-                <option key={s.db} value={s.db}>{s.ko}</option>
-              ))}
-            </select>
+            <PartnerDropdown ariaLabel="처리결과" value={status} options={STATUS_OPTIONS} onChange={setStatus} />
           </PartnerFormFieldRow>
           <PartnerFormFieldRow label="시행일자">
-            <DpDatePicker
-              value={date}
-              onChange={setDate}
-              ariaLabel="시행일자"
-              placeholder="날짜 선택"
-              className={styles.pickerRoot}
-              triggerClassName={styles.picker}
-              triggerOpenClassName={styles.pickerOpen}
-              endAdornment={<CalendarIcon className="ml-auto size-4 shrink-0 text-t3" aria-hidden="true" />}
-            />
+            <PartnerDateSheet value={date} onChange={setDate} ariaLabel="시행일자" />
           </PartnerFormFieldRow>
           <PartnerFormFieldRow label="시간">
             <input

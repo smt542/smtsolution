@@ -10,13 +10,13 @@ import {
   type PartnerAsCategory,
   type PartnerComplaintDetail,
 } from "@/hooks/reactquery/complaints";
-import { DpDatePicker } from "@/components/common/DpDatePicker";
 import { MaskedPhone } from "@/components/common/MaskedPhone";
 import { applyMask, NUMERIC_INPUT_ATTRS } from "@/components/common";
-import { CalendarIcon } from "@/components/icons";
 
 import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
 import { PartnerConfirmDialog } from "../../../_components/PartnerConfirmDialog";
+import { PartnerDateSheet } from "../../../_components/PartnerDateSheet";
+import { PartnerDropdown } from "../../../_components/PartnerDropdown";
 import { PartnerFormFieldRow } from "../../../_components/PartnerFormFieldRow";
 import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
 import { PartnerToast, usePartnerToast } from "../../../_components/PartnerToast";
@@ -26,6 +26,7 @@ import { PartnerButton } from "../../../_components/PartnerButton";
 
 /** 정본은 저장·삭제 토스트를 보여 준 뒤 0.7초 있다가 홈으로 간다. */
 const LEAVE_DELAY_MS = 700;
+const STATUS_OPTIONS = AS_STATUS.map((s) => ({ value: s.db, label: s.ko }));
 
 export function MobileAsWorkspace({ complaintId }: { complaintId: number | null }) {
   const complaintQuery = usePartnerComplaintEditor(complaintId);
@@ -178,12 +179,13 @@ function MobileAsEditor({
             {ro ? (
               <span className={styles.ro}>{categoryLabel ?? "-"}</span>
             ) : (
-              <select className={styles.control} value={categoryId} onChange={(e) => setCategoryId(e.target.value)} aria-label="유형">
-                {categoryId === "" && <option value="">유형 선택</option>}
-                {cats.map((c) => (
-                  <option key={c.id} value={String(c.id)}>{c.label}</option>
-                ))}
-              </select>
+              <PartnerDropdown
+                ariaLabel="유형"
+                value={categoryId}
+                options={cats.map((c) => ({ value: String(c.id), label: c.label }))}
+                onChange={setCategoryId}
+                placeholder="유형 선택"
+              />
             )}
           </PartnerFormFieldRow>
           <PartnerFormFieldRow label="입주자 전화번호">
@@ -215,27 +217,14 @@ function MobileAsEditor({
             {ro ? (
               <span className={styles.ro}>{statusKo(status)}</span>
             ) : (
-              <select className={styles.control} value={status} onChange={(e) => setStatus(e.target.value)} aria-label="처리결과">
-                {AS_STATUS.map((s) => (
-                  <option key={s.db} value={s.db}>{s.ko}</option>
-                ))}
-              </select>
+              <PartnerDropdown ariaLabel="처리결과" value={status} options={STATUS_OPTIONS} onChange={setStatus} />
             )}
           </PartnerFormFieldRow>
           <PartnerFormFieldRow label={<>시행일자<b className={styles.req}>*</b></>}>
             {ro ? (
               <span className={styles.ro}>{date ? date.replaceAll("-", ".") : "-"}</span>
             ) : (
-              <DpDatePicker
-                value={date}
-                onChange={setDate}
-                ariaLabel="시행일자"
-                placeholder="날짜 선택"
-                className={styles.pickerRoot}
-                triggerClassName={styles.picker}
-                triggerOpenClassName={styles.pickerOpen}
-                endAdornment={<CalendarIcon className="ml-auto size-4 shrink-0 text-t3" aria-hidden="true" />}
-              />
+              <PartnerDateSheet value={date} onChange={setDate} ariaLabel="시행일자" />
             )}
           </PartnerFormFieldRow>
           <PartnerFormFieldRow label="시간">
