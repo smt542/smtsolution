@@ -73,9 +73,9 @@ export function SettlementInquiryToolbar({
 
   return (
     <div className="flex h-[65px] min-w-[1160px] items-center gap-[8px] border-b border-line2 bg-white px-[16px] py-[13px]">
-      {/* 라벨 폭은 Figma 76:77716 실측값으로 고정한다 — 글리프 폭 차이(-2.9px)가
-          gap 8px 고정 레이아웃에서 뒤따르는 요소 전체에 누적되기 때문. */}
-      <span className="w-[34px] shrink-0 text-[12px] font-bold text-t3">조회일</span>
+      {/* 라벨·세그먼트는 정본 .ov-lbl·.adj-seg2 처럼 글자 폭 그대로 둔다 — 09-18 Figma 고정 폭
+          (라벨 34·9px, 세그먼트 145·120px)은 정본 .dc.html 과 최대 16px 어긋났다. */}
+      <span className="shrink-0 text-[12px] font-bold text-t3">조회일</span>
       {/* position: 툴바를 감싼 `overflow-x-auto` 는 overflow-y 도 auto 로 계산돼 65px 높이의
           스크롤포트가 된다 — absolute 메뉴는 여기서 잘려 그리드에 가린 것처럼 보인다.
           fixed 로 띄워 빠져나간다(전체 이사조회도 같은 사유로 fixed).
@@ -101,7 +101,7 @@ export function SettlementInquiryToolbar({
         options={MONTH_OPTIONS}
         onChange={(value) => onFromMonthChange(`${fromYear}-${value}`)}
       />
-      <span className="w-[9px] shrink-0 text-[12px] font-bold text-t3">~</span>
+      <span className="shrink-0 text-[12px] font-bold text-t3">~</span>
       <CustomDropdown
         menuTransition
         compact
@@ -125,7 +125,7 @@ export function SettlementInquiryToolbar({
 
       <span className="mx-[2px] h-[22px] w-px shrink-0 bg-line" aria-hidden="true" />
 
-      <span className="w-[34px] shrink-0 text-[12px] font-bold text-t3">신청일</span>
+      <span className="shrink-0 text-[12px] font-bold text-t3">신청일</span>
       <CustomDropdown
         menuTransition
         compact
@@ -165,9 +165,8 @@ export function SettlementInquiryToolbar({
         onChange={(value) => onAppliedFromChange(`${appliedYear}-${appliedMonth}-${value}`)}
       />
 
-      {/* 세그먼트는 컨테이너 폭을 Figma 실측값으로 잡고 버튼을 균등 분할한다 —
-          글리프 폭에 맡기면 정본보다 좁아진다(상태 -6.75px, 정렬 -5.75px). */}
-      <div className="flex w-[145px] shrink-0 items-start gap-[2px] rounded-[9px] bg-[#EDF0F3] p-[3px]" role="group" aria-label="정산 상태">
+      {/* 정본 .adj-seg2 — 버튼 패딩 5/11px·줄높이 normal(높이 24, 틀 30), 선택 버튼 그림자 없음 */}
+      <div className="flex shrink-0 gap-[2px] rounded-[9px] bg-[#EDF0F3] p-[3px]" role="group" aria-label="정산 상태">
         {([
           ["", "전체"],
           ["completed", "완결"],
@@ -178,8 +177,8 @@ export function SettlementInquiryToolbar({
             type="button"
             aria-pressed={status === value}
             onClick={() => onStatusChange(value)}
-            className={`h-[24px] flex-1 rounded-[7px] text-[12px] font-bold ${
-              status === value ? "bg-white text-t1 shadow-[0_1px_2px_rgba(23,31,40,.08)]" : "text-t3"
+            className={`whitespace-nowrap rounded-[7px] px-[11px] py-[5px] text-[12px] font-bold leading-[normal] ${
+              status === value ? "bg-white text-t1" : "text-t3"
             }`}
           >
             {label}
@@ -187,7 +186,7 @@ export function SettlementInquiryToolbar({
         ))}
       </div>
 
-      <div className="flex w-[120px] shrink-0 items-start gap-[2px] rounded-[9px] bg-[#EDF0F3] p-[3px]" role="group" aria-label="정렬">
+      <div className="flex shrink-0 gap-[2px] rounded-[9px] bg-[#EDF0F3] p-[3px]" role="group" aria-label="정렬">
         {([
           ["code", "코드순"],
           ["date", "일자순"],
@@ -197,8 +196,8 @@ export function SettlementInquiryToolbar({
             type="button"
             aria-pressed={sort === value}
             onClick={() => onSortChange(value)}
-            className={`h-[24px] flex-1 rounded-[7px] text-[12px] font-bold ${
-              sort === value ? "bg-white text-t1 shadow-[0_1px_2px_rgba(23,31,40,.08)]" : "text-t3"
+            className={`whitespace-nowrap rounded-[7px] px-[11px] py-[5px] text-[12px] font-bold leading-[normal] ${
+              sort === value ? "bg-white text-t1" : "text-t3"
             }`}
           >
             {label}
