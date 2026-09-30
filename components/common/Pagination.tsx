@@ -1,9 +1,9 @@
 import { Button } from "./Button";
-import { Select } from "./Select";
+import { CustomDropdown } from "./CustomDropdown";
 
 /**
  * 1-based 페이지네이션 컨트롤: 이전/다음 + `{page} / {totalPages}` 표시.
- * 페이지 크기 select는 `pageSize`·`pageSizeOptions`·`onPageSizeChange`가 모두
+ * 페이지 크기 드롭다운은 `pageSize`·`pageSizeOptions`·`onPageSizeChange`가 모두
  * 주어질 때만 왼쪽에 노출된다(그때 컨테이너는 justify-between, 없으면 justify-end).
  * 페이지 상태는 호출부가 소유하고, 여기서는 표시와 콜백만 담당한다.
  */
@@ -38,16 +38,19 @@ export function Pagination({
         .join(" ")}
     >
       {showPageSize && (
-        <Select
-          aria-label="페이지당 건수"
-          className="w-28"
-          options={pageSizeOptions.map((n) => ({
-            value: String(n),
-            label: `${n}건`,
-          }))}
-          value={String(pageSize)}
-          onChange={(e) => onPageSizeChange(Number(e.target.value))}
-        />
+        // 네이티브 select 금지(QA 공통 규칙) — 트리거는 예전 select 크기(44px·112px·r12·14px) 그대로
+        <div className="[&_.uc-dd-btn]:h-11 [&_.uc-dd-btn]:w-28 [&_.uc-dd-btn]:justify-between [&_.uc-dd-btn]:rounded-xl [&_.uc-dd-btn]:pl-4 [&_.uc-dd-btn]:pr-4 [&_.uc-dd-btn]:text-sm [&_.uc-dd-btn]:font-normal">
+          <CustomDropdown
+            ariaLabel="페이지당 건수"
+            value={String(pageSize)}
+            options={pageSizeOptions.map((n) => ({
+              value: String(n),
+              label: `${n}건`,
+            }))}
+            position="fixed"
+            onChange={(value) => onPageSizeChange(Number(value))}
+          />
+        </div>
       )}
       <div className="flex items-center gap-2">
         <Button
