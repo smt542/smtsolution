@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { IconButton } from "@/components/common";
 import type { BuildingTypeDraft } from "./types";
 
 interface BuildingTypeTabsProps {
@@ -77,15 +77,18 @@ export function BuildingTypeTabs({
             </div>
           );
         })}
-        <button
-          type="button"
+        {/* 정본 .mf-addtype: 탭과 10px 간격(gap-1 + ml-1.5), hover 시 청록 틴트 */}
+        <IconButton
           aria-label="건물 유형 추가"
-          className="flex h-full w-11 shrink-0 items-center justify-center disabled:cursor-not-allowed disabled:opacity-50"
+          title="유형 추가"
+          className="ml-1.5 h-[30px] w-[30px] shrink-0 rounded-lg text-t3 enabled:hover:bg-blue-t enabled:hover:text-blue-d disabled:cursor-not-allowed disabled:opacity-50"
           onClick={onAdd}
           disabled={!canAdd}
         >
-          <Image src="/icons/fee-items/add-tab.svg" alt="" width={18} height={18} />
-        </button>
+          <svg viewBox="0 0 24 24" width={17} height={17} fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </IconButton>
       </div>
     </nav>
   );

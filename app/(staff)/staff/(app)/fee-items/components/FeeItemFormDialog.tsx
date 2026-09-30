@@ -1,12 +1,12 @@
 "use client";
 
-import Image from "next/image";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DEFAULT_FORM_VALUE, ROUNDING_OPTIONS } from "./constants";
 import type { FeeItemDraft, FeeItemFormValue } from "./types";
 import { CustomDropdown } from "@/components/common/CustomDropdown";
+import { IconButton } from "@/components/common/IconButton";
 import { setSubmissionError } from "@/components/forms/formErrors";
 import {
   createFeeItemSchema,
@@ -28,6 +28,28 @@ const booleanOptions = [
   { value: "true", label: "적용" },
   { value: "false", label: "안함" },
 ];
+
+// 정본 fee-item.dc.html .mf-tip 문구. 반올림 단위는 lib/billing/proration.ts roundCharge와 같다(10원).
+const ROUNDING_TIP = (
+  <>
+    <b>절상</b> : 무조건 10원 올림(12,342→12,350)<br />
+    <b>4사5입</b> : 1~4 버림 / 5~9 올림<br />
+    <b>절하</b> : 무조건 10원 내림(12,342→12,340)<br />
+    <b>그대로</b> : 1원 단위 그대로
+  </>
+);
+const DAILY_PRORATION_TIP = (
+  <>
+    <b>일자계산</b> : 실거주 기간만 일할 부과(중간 입주·퇴실 반영)<br />
+    <b>안함</b> : 고정금액 부과
+  </>
+);
+const CARRY_OVER_TIP = (
+  <>
+    <b>이월</b> : 전월 부과 금액을 다음달에 그대로 유지<br />
+    <b>안함</b> : 이월 안 함(예: 수리비)
+  </>
+);
 
 export function FeeItemFormDialog({
   open,
@@ -101,9 +123,17 @@ export function FeeItemFormDialog({
       >
         <header className="flex h-[68px] items-center justify-between border-b border-line px-[22px]">
           <h2 className="text-[17px] font-extrabold text-t1">관리 항목 {item ? "수정" : "추가"}</h2>
-          <button type="button" aria-label="닫기" onClick={closeSafely} disabled={submitting}>
-            <Image src="/icons/fee-items/close.svg" alt="" width={20} height={20} />
-          </button>
+          {/* 정본 .mf-x */}
+          <IconButton
+            aria-label="닫기"
+            className="-mr-1.5 h-8 w-8 rounded-[9px] text-t3 enabled:hover:bg-bg enabled:hover:text-t1"
+            onClick={closeSafely}
+            disabled={submitting}
+          >
+            <svg viewBox="0 0 24 24" width={18} height={18} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </IconButton>
         </header>
 
         <div className="space-y-[13px] px-[22px] pb-[37px] pt-5">
@@ -129,14 +159,15 @@ export function FeeItemFormDialog({
           </label>
 
           <Controller control={control} name="rounding" render={({ field }) => (
-            <SelectField label="반올림" value={field.value ?? "round"} options={ROUNDING_OPTIONS} onChange={field.onChange} />
+            <SelectField label="반올림" tip={ROUNDING_TIP} value={field.value ?? "round"} options={ROUNDING_OPTIONS} onChange={field.onChange} />
           )} />
           <Controller control={control} name="dailyProration" render={({ field }) => (
-            <SelectField label="일자계산" value={String(field.value)} options={booleanOptions} onChange={(value) => field.onChange(value === "true")} />
+            <SelectField label="일자계산" tip={DAILY_PRORATION_TIP} value={String(field.value)} options={booleanOptions} onChange={(value) => field.onChange(value === "true")} />
           )} />
           <Controller control={control} name="carryOver" render={({ field }) => (
             <SelectField
               label="이월"
+              tip={CARRY_OVER_TIP}
               value={String(field.value)}
               options={[{ value: "true", label: "이월" }, { value: "false", label: "안함" }]}
               onChange={(value) => field.onChange(value === "true")}
@@ -166,20 +197,29 @@ export function FeeItemFormDialog({
 
 function SelectField({
   label,
+  tip,
   value,
   options,
   onChange,
 }: {
   label: string;
+  tip: ReactNode;
   value: string;
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
 }) {
   return (
     <div className="text-xs font-bold text-t2">
-      <span className="flex items-center gap-1.5">
-        <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-t3 text-[9px] font-bold text-t3">i</span>
+      {/* 정본 .mf-info: i 아이콘·라벨에 hover하면 아이콘이 청록이 되고 설명(.mf-tip)이 내려온다 */}
+      <span className="group relative flex w-fit items-center gap-[5px]">
+        <span className="flex h-[15px] w-[15px] flex-none items-center justify-center rounded-full border-[1.4px] border-t4 text-[10px] font-extrabold text-t3 group-hover:border-teal group-hover:text-teal">i</span>
         {label}
+        <span
+          role="tooltip"
+          className="invisible absolute left-[-4px] top-[calc(100%+9px)] z-[60] w-[280px] -translate-y-1 rounded-[10px] bg-[#191F28] px-[13px] py-[11px] text-[12px] font-semibold leading-[1.7] text-white opacity-0 shadow-[0_14px_32px_-10px_rgba(0,0,0,.5)] transition-all duration-150 ease-[ease] before:absolute before:bottom-full before:left-3 before:border-[6px] before:border-transparent before:border-b-[#191F28] before:content-[''] group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 [&_b]:font-extrabold"
+        >
+          {tip}
+        </span>
       </span>
       <div className="mt-1.5 [&_.uc-dd]:w-full [&_.uc-dd-btn]:h-11 [&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:justify-between [&_.uc-dd-btn]:text-[13px]">
         <CustomDropdown ariaLabel={label} value={value} options={options} onChange={onChange} variant="field" />
