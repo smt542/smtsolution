@@ -62,6 +62,12 @@ interface CustomDropdownProps {
    * svg 자체는 남긴다 — `.uc-opt` 가 space-between + gap:10px 이라 지우면 항목이 24px 좁아진다.
    */
   check?: "selected" | "never";
+  /**
+   * 정본 `.uc-dd-menu{opacity:0;transform:translateY(-4px);transition:opacity .13s ease,transform .13s ease}` +
+   * `.uc-dd.open .uc-dd-menu{opacity:1;transform:none}` — 메뉴를 늘 그려 두고 열고 닫을 때 흐려지며 4px 움직인다.
+   * absolute 메뉴 전용(fixed 는 body 포탈이라 적용하지 않는다). 닫힌 동안은 inert 라 포커스·클릭이 닿지 않는다.
+   */
+  menuTransition?: boolean;
 }
 
 export function CustomDropdown({
@@ -81,6 +87,7 @@ export function CustomDropdown({
   menuMinWidth,
   menuClassName,
   triggerLabel,
+  menuTransition = false,
 }: CustomDropdownProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -88,6 +95,7 @@ export function CustomDropdown({
   const menuRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
   const isFixed = position === "fixed";
+  const animatedMenu = menuTransition && !isFixed;
   const matched = options.find((option) => option.value === value);
   const selected = matched ?? (placeholder === undefined ? options[0] : undefined);
   const isCompact = size === "compact" || compact;
@@ -204,18 +212,19 @@ export function CustomDropdown({
         </span>
         <ChevronDownIcon aria-hidden="true" />
       </button>
-      {open && wrapMenu(
+      {(open || animatedMenu) && wrapMenu(
         <div
           ref={menuRef}
           id={menuId}
           role="listbox"
           aria-label={ariaLabel}
+          inert={animatedMenu && !open ? true : undefined}
           className={`uc-dd-menu ${isForm ? "max-h-[230px] p-[5px]" : isModal ? "max-h-[240px] p-[6px]" : "max-h-[236px] p-[6px]"} overflow-auto rounded-xl border border-line bg-surface ${isModal ? "shadow-[0_14px_34px_-10px_rgba(23,31,40,0.28)]" : "shadow-[0_14px_32px_-10px_rgba(23,31,40,0.22),0_2px_6px_rgba(23,31,40,0.06)]"} ${
             isFixed
               // field 는 메뉴 폭을 트리거에 맞추는 규격이라 140px 하한을 걸지 않는다.
               ? `fixed z-[1000] ${isField || menuAlign === "end" || menuMinWidth !== undefined ? "" : "min-w-[140px]"}`
               : `absolute ${isModal ? "top-[calc(100%_+_5px)]" : "top-[calc(100%_+_6px)]"} z-[80] ${isField ? "inset-x-0" : `right-0 ${menuMinWidth !== undefined ? "" : "min-w-[96px]"}`}`
-          }${menuClassName ? ` ${menuClassName}` : ""}`}
+          }${animatedMenu ? ` transition-[opacity,translate] duration-[130ms] ease-[ease] ${open ? "opacity-100" : "pointer-events-none -translate-y-1 opacity-0"}` : ""}${menuClassName ? ` ${menuClassName}` : ""}`}
           style={menuMinWidth !== undefined ? { minWidth: menuMinWidth } : undefined}
         >
           {options.map((option) => {
