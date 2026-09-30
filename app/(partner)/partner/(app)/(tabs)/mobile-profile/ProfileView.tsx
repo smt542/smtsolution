@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
 import { useAsyncAction } from "@/hooks/common";
+import { usePartnerMyPin } from "@/hooks/reactquery/partnerProfile";
 
 import { profileClasses as styles } from "./profileClasses";
 import { PartnerButton } from "../../../../_components/PartnerButton";
@@ -21,6 +22,8 @@ export function ProfileView({
 }) {
   const router = useRouter();
   const [confirm, setConfirm] = useState(false);
+  const [pinShown, setPinShown] = useState(false);
+  const myPin = usePartnerMyPin(pinShown);
   const logoutAction = useAsyncAction();
 
   const logout = async () => {
@@ -35,6 +38,14 @@ export function ProfileView({
   };
 
   const initial = fullName.trim().charAt(0) || "·";
+  // 정본 #pfPw: 끄면 ••••, 켜면 본인 비밀번호. 저장된 값이 없거나 불러오지 못하면 '-'.
+  const pinText = !pinShown
+    ? "••••"
+    : myPin.isSuccess
+      ? (myPin.data ?? "-")
+      : myPin.isError
+        ? "-"
+        : "••••";
 
   return (
     <div className={styles.root}>
@@ -53,7 +64,21 @@ export function ProfileView({
             </div>
             <div className={styles.row}>
               <span className={styles.rowLabel}>비밀번호</span>
-              <b className={styles.rowValue}>••••••</b>
+              <span className={styles.pw}>
+                <b className={styles.rowValue}>{pinText}</b>
+                <button
+                  type="button"
+                  className={`${styles.eye} ${pinShown ? styles.eyeOn : styles.eyeOff}`}
+                  onClick={() => setPinShown((v) => !v)}
+                  aria-label={pinShown ? "비밀번호 숨기기" : "비밀번호 보기"}
+                  aria-pressed={pinShown}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" aria-hidden="true">
+                    <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" />
+                    <circle cx="12" cy="12" r="2.8" />
+                  </svg>
+                </button>
+              </span>
             </div>
           </div>
         </div>
