@@ -150,7 +150,7 @@ export default function OrganizationsWorkspace() {
 
       <div className="flex flex-none flex-col flex-wrap gap-2.5 sm:flex-row sm:items-center">
         <div
-          className="inline-flex w-fit flex-wrap items-center gap-0.5 rounded-[11px] bg-[#EDF0F3] p-1"
+          className="inline-flex w-fit flex-wrap items-center gap-0.5 rounded-[11px] bg-[#EDF0F3] p-1 leading-[normal]"
           aria-label="테넌트 상태 필터"
         >
           {STATUS_FILTERS.map((filter) => (
@@ -163,7 +163,7 @@ export default function OrganizationsWorkspace() {
                 resetPage();
               }}
               className={[
-                "cursor-pointer rounded-lg px-[15px] py-[7px] text-sm font-bold transition-colors",
+                "cursor-pointer rounded-lg px-[15px] py-[7px] text-[14px] font-bold transition-colors",
                 statusFilter === filter.id
                   ? "bg-surface text-t1 shadow-[0_2px_6px_rgba(23,31,40,0.1)]"
                   : "text-t3 hover:text-t1",
