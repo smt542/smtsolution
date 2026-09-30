@@ -1,4 +1,5 @@
 import BillDetailView from "@/app/(resident)/_components/BillDetailView";
+import MobileBackHeader from "@/app/(resident)/_components/MobileBackHeader";
 
 import { getResidentBillDetail } from "../data";
 import ResidentBillRetryState from "../ResidentBillRetryState";
@@ -41,11 +42,11 @@ export default async function ResidentBillDetailPage({
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <ResidentBillBackButton />
-        <h1>{monthTitle(period)}</h1>
-        <span aria-hidden="true" />
-      </header>
+      <MobileBackHeader
+        variant="bar"
+        title={monthTitle(period)}
+        back={<ResidentBillBackButton />}
+      />
 
       <main className={styles.scroll}>
         {!detail ? (

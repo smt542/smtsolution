@@ -4,12 +4,15 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import BottomNav from "@/app/(resident)/_components/BottomNav";
+import MoveOutSection from "@/app/(resident)/_components/MoveOutSection";
 import ResidentAsyncState from "@/app/(resident)/_components/ResidentAsyncState";
+import ResidentStatusChip from "@/app/(resident)/_components/ResidentStatusChip";
 import { useResidentBillMonths } from "@/hooks/reactquery/residentBilling";
 import {
-  useResidentNoticeDetail,
+  useResidentBuildingNotice,
   useResidentNotices,
 } from "@/hooks/reactquery/residentNotices";
+import { useMoveOutRequest } from "@/hooks/reactquery/residentMoveOut";
 import { useResidentProfile } from "@/hooks/reactquery/residentProfile";
 import { formatWon } from "@/lib/format";
 
@@ -26,17 +29,29 @@ const formatDate = (date: string | null) => {
 const formatPeriod = (period: string) => `${Number(period.slice(5, 7))}월`;
 const formatBillLabel = (period: string) =>
   `${period.slice(0, 4)}년 ${Number(period.slice(5, 7))}월 관리비`;
+const formatDottedDate = (date: string) =>
+  `${date.slice(0, 4)}.${date.slice(5, 7)}.${date.slice(8, 10)}`;
+const moveOutDday = (desiredDate: string) => {
+  const [year, month, day] = desiredDate.slice(0, 10).split("-").map(Number);
+  if (![year, month, day].every(Number.isFinite)) return "지난 일정";
 
-type ChipInfo = { label: string; className: string };
-const chipFor = (status: string): ChipInfo => {
-  if (status === "paid" || status === "none") {
-    return { label: "완납", className: `${styles.chip} ${styles.chipOk}` };
-  }
-  if (status === "partial") {
-    return { label: "부분", className: `${styles.chip} ${styles.chipWarn}` };
-  }
-  return { label: "미납", className: styles.chip };
+  const today = new Date();
+  const todayUtc = Date.UTC(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+  );
+  const desiredUtc = Date.UTC(year, month - 1, day);
+  const days = Math.round((desiredUtc - todayUtc) / 86_400_000);
+  return days > 0 ? `D-${days}` : days === 0 ? "D-day" : "지난 일정";
 };
+
+const trendBarDelays = [styles.barDelay0, styles.barDelay1, styles.barDelay2];
+const trendValueDelays = [
+  styles.valueDelay0,
+  styles.valueDelay1,
+  styles.valueDelay2,
+];
 
 function BellIcon() {
   return (
@@ -75,9 +90,10 @@ export default function ResidentHomeWorkspace() {
   const profileQuery = useResidentProfile();
   const monthsQuery = useResidentBillMonths();
   const noticesQuery = useResidentNotices();
-  const latestNotice = noticesQuery.data?.[0];
-  const noticeDetailQuery = useResidentNoticeDetail(latestNotice?.id ?? 0);
+  const buildingNoticeQuery = useResidentBuildingNotice();
+  const moveOutQuery = useMoveOutRequest();
   const [noticeOpen, setNoticeOpen] = useState(false);
+  const [moveOutOpen, setMoveOutOpen] = useState(false);
 
   useEffect(() => {
     if (!noticeOpen) return;
@@ -94,9 +110,18 @@ export default function ResidentHomeWorkspace() {
   }, [noticeOpen]);
 
   const isHomeInitialLoading =
-    profileQuery.isPending || monthsQuery.isPending || noticesQuery.isPending;
-  const isHomeRefreshing = [profileQuery, monthsQuery, noticesQuery, noticeDetailQuery]
-    .some((query) => query.isFetching && !query.isPending);
+    profileQuery.isPending ||
+    monthsQuery.isPending ||
+    noticesQuery.isPending ||
+    buildingNoticeQuery.isPending ||
+    moveOutQuery.isPending;
+  const isHomeRefreshing = [
+    profileQuery,
+    monthsQuery,
+    noticesQuery,
+    buildingNoticeQuery,
+    moveOutQuery,
+  ].some((query) => query.isFetching && !query.isPending);
   const error = profileQuery.error || monthsQuery.error || noticesQuery.error;
 
   if (isHomeInitialLoading) {
@@ -141,7 +166,6 @@ export default function ResidentHomeWorkspace() {
   const currentMonth = months[0];
   const lateFee = currentMonth?.lateFee ?? 0;
   const totalBilled = currentMonth ? currentMonth.totalAmount + lateFee : 0;
-  const chip = currentMonth ? chipFor(currentMonth.payStatus) : null;
 
   const trend = months.slice(0, 3).reverse();
   const trendValues = trend.map((month) => month.totalAmount);
@@ -161,13 +185,18 @@ export default function ResidentHomeWorkspace() {
   const showComparison = trend.length >= 2 && trendDiff !== 0;
 
   const hasNotice = (noticesQuery.data?.length ?? 0) > 0;
-  const noticePreview =
-    noticeDetailQuery.data?.content ?? "공지 내용을 확인해 보세요.";
+  const buildingNotice = buildingNoticeQuery.data;
+  // 정본 .mocard: 신청이 살아 있으면(확인 중·확정) 보인다. 취소·반려되면 숨긴다.
+  const moveOut = moveOutQuery.data;
+  const activeMoveOut =
+    moveOut && (moveOut.status === "pending" || moveOut.status === "confirmed")
+      ? moveOut
+      : null;
 
   return (
     <div className={styles.page}>
       {isHomeRefreshing ? (
-        <div role="status" aria-label="홈 정보 갱신 중" className="fixed right-4 top-4 z-30 rounded-full bg-white px-3 py-2 text-xs font-bold text-t3 shadow-card">갱신 중…</div>
+        <div role="status" aria-label="홈 정보 갱신 중" className="fixed right-4 top-4 z-30 rounded-full bg-white px-3 py-2 text-[12px] font-bold text-t3 shadow-card">갱신 중…</div>
       ) : null}
       <header className={styles.header}>
         <div className={styles.unit}>
@@ -189,7 +218,7 @@ export default function ResidentHomeWorkspace() {
       </header>
 
       <main className={styles.scroll}>
-        {latestNotice ? (
+        {buildingNotice ? (
           <button
             type="button"
             className={styles.notice}
@@ -199,30 +228,25 @@ export default function ResidentHomeWorkspace() {
               <NoticeIcon />
             </span>
             <span className={styles.noticeText}>
-              <b>{latestNotice.title}</b>
-              <span>{noticePreview}</span>
+              <b className={styles.noticeTitle}>건물 공지</b>
+              <span className={styles.noticePreview}>{buildingNotice}</span>
             </span>
           </button>
-        ) : (
-          <Link href="/resident/notice" className={styles.notice}>
-            <span className={styles.noticeIcon}>
-              <NoticeIcon />
-            </span>
-            <span className={styles.noticeText}>
-              <b>공지사항</b>
-              <span>새로운 공지가 없습니다.</span>
-            </span>
-          </Link>
-        )}
+        ) : null}
 
         <section className={styles.bill} aria-labelledby="current-bill-title">
-          {currentMonth && chip ? (
+          {currentMonth ? (
             <>
               <div className={styles.billHead}>
-                <span id="current-bill-title">
+                <span className={styles.billLabel} id="current-bill-title">
                   {formatBillLabel(currentMonth.period)}
                 </span>
-                <span className={chip.className}>{chip.label}</span>
+                <ResidentStatusChip
+                  paid={
+                    currentMonth.payStatus === "paid" ||
+                    currentMonth.payStatus === "none"
+                  }
+                />
               </div>
               <div className={styles.amount}>
                 {formatPlain(totalBilled)}
@@ -232,14 +256,14 @@ export default function ResidentHomeWorkspace() {
                 납부기한 <b>{formatDate(currentMonth.dueDate)}</b>
               </div>
               <div className={styles.divider} />
-              <div className={styles.li}>
+              <div className={`${styles.li} ${styles.liMain}`}>
                 <span>당월 부과액</span>
-                <b>{formatAmount(currentMonth.totalAmount)}</b>
+                <b className={styles.liValue}>{formatAmount(currentMonth.totalAmount)}</b>
               </div>
               {lateFee > 0 ? (
                 <div className={`${styles.li} ${styles.liSub}`}>
                   <span>연체료</span>
-                  <b>{formatAmount(lateFee)}</b>
+                  <b className={styles.liSubValue}>{formatAmount(lateFee)}</b>
                 </div>
               ) : null}
               <div className={styles.cta}>
@@ -256,16 +280,44 @@ export default function ResidentHomeWorkspace() {
           )}
         </section>
 
+        {activeMoveOut ? (
+          <button
+            type="button"
+            className={styles.moveOut}
+            onClick={() => setMoveOutOpen(true)}
+          >
+            <span className={styles.moveOutIcon} aria-hidden="true">
+              <svg
+                className="size-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M4 19V9l8-5 8 5v10" />
+                <path d="M10 19v-6h4v6" />
+              </svg>
+            </span>
+            <span className={styles.moveOutText}>
+              <b className={styles.moveOutTitle}>퇴실 신청 확인 중</b>
+              <span className={styles.moveOutDate}>
+                희망 퇴실일 {formatDottedDate(activeMoveOut.desiredDate)}
+              </span>
+            </span>
+            <span className={styles.moveOutDday}>
+              {moveOutDday(activeMoveOut.desiredDate)}
+            </span>
+          </button>
+        ) : null}
+
         <div className={styles.trendGap} />
         <section className={styles.trend} aria-labelledby="trend-title">
           {trend.length > 0 ? (
             <>
               <div
-                className={
-                  showComparison && trendDiff > 0
-                    ? `${styles.thead} ${styles.theadRed}`
-                    : styles.thead
-                }
+                className={styles.thead}
                 id="trend-title"
               >
                 {showComparison ? (
@@ -290,7 +342,7 @@ export default function ResidentHomeWorkspace() {
                   const on = index === trend.length - 1;
                   return (
                     <div
-                      className={on ? `${styles.tb} ${styles.tbOn}` : styles.tb}
+                      className={styles.tb}
                       key={month.period}
                     >
                       <div className={styles.plot}>
@@ -298,13 +350,25 @@ export default function ResidentHomeWorkspace() {
                           className={styles.stack}
                           style={{ height: `${barHeight(month.totalAmount)}%` }}
                         >
-                          <div className={styles.tv}>
+                          <div
+                            className={[
+                              styles.tv,
+                              on ? styles.tvOn : styles.tvOff,
+                              trendValueDelays[index],
+                            ].join(" ")}
+                          >
                             {formatPlain(month.totalAmount)}
                           </div>
-                          <div className={styles.tr} />
+                          <div
+                            className={[
+                              styles.tr,
+                              on ? styles.trOn : styles.trOff,
+                              trendBarDelays[index],
+                            ].join(" ")}
+                          />
                         </div>
                       </div>
-                      <div className={styles.tm}>
+                      <div className={on ? styles.tmOn : styles.tmOff}>
                         {formatPeriod(month.period)}
                       </div>
                     </div>
@@ -313,7 +377,7 @@ export default function ResidentHomeWorkspace() {
               </div>
               {trend.length >= 2 ? (
                 <div className={styles.tfoot}>
-                  최근 {trend.length}개월 평균 <b>{formatAmount(trendAvg)}</b> ·
+                  {trend.length}개월 평균 <b>{formatAmount(trendAvg)}</b> ·
                   이번 달 <b>{formatAmount(trendCurrent)}</b>
                 </div>
               ) : null}
@@ -326,7 +390,12 @@ export default function ResidentHomeWorkspace() {
 
       <BottomNav />
 
-      {noticeOpen && latestNotice ? (
+      <MoveOutSection
+        open={moveOutOpen}
+        onClose={() => setMoveOutOpen(false)}
+      />
+
+      {noticeOpen && buildingNotice ? (
         <div
           className={styles.modalBackdrop}
           role="dialog"
@@ -339,18 +408,11 @@ export default function ResidentHomeWorkspace() {
           <div className={styles.modalCard}>
             <div className={styles.modalHead}>
               <h2 className={styles.modalTitle} id="notice-modal-title">
-                {latestNotice.title}
+                건물 공지
               </h2>
-              {latestNotice.buildingName ? (
-                <p className={styles.modalMeta}>{latestNotice.buildingName}</p>
-              ) : null}
             </div>
             <div className={styles.modalBody}>
-              {noticeDetailQuery.isPending
-                ? "공지 내용을 불러오고 있어요."
-                : noticeDetailQuery.error
-                  ? "공지 내용을 불러오지 못했어요."
-                  : (noticeDetailQuery.data?.content ?? "공지 내용이 없어요.")}
+              {buildingNotice}
             </div>
             <div className={styles.modalFoot}>
               <ResidentButton

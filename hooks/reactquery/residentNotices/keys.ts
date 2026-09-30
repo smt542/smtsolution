@@ -4,4 +4,5 @@ export const residentNoticeKeys = {
   list: () => ["residentNotices", "list"] as const,
   details: () => ["residentNotices", "detail"] as const,
   detail: (id: number) => ["residentNotices", "detail", id] as const,
+  buildingNotice: () => ["residentNotices", "building-notice"] as const,
 };

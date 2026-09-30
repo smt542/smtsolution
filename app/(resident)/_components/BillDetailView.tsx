@@ -8,6 +8,7 @@ import type {
 import { formatWon } from "@/lib/format";
 
 import CopyButton from "./CopyButton";
+import ResidentStatusChip from "./ResidentStatusChip";
 import { billDetailClasses as styles } from "./billDetailClasses";
 import { residentButtonClass } from "@/app/(resident)/_components/ResidentButton";
 
@@ -149,9 +150,7 @@ export default function BillDetailView(props: BillDetailViewProps) {
             <b>{account || "계좌 미등록"}</b>
             {detail.mgmtHolder ? <em>{detail.mgmtHolder}</em> : null}
           </div>
-          <span className={`${styles.chip} ${isDue ? styles.due : styles.paid}`}>
-            {isDue ? "미납" : "완납"}
-          </span>
+          <ResidentStatusChip paid={!isDue} />
         </div>
         <div className={styles.tot}>
           {plainWon(grandTotal)}
@@ -163,11 +162,13 @@ export default function BillDetailView(props: BillDetailViewProps) {
               <CopyButton
                 text={account}
                 label="계좌 복사"
+                toastMessage="계좌번호를 복사했어요"
                 className={residentButtonClass({ size: "sm", variant: "primaryTint", className: "flex-1 disabled:cursor-default disabled:opacity-55" })}
               />
               <CopyButton
                 text={accountWithAmount}
                 label="계좌·금액 복사"
+                toastMessage="계좌번호와 금액을 복사했어요"
                 className={residentButtonClass({ size: "sm", variant: "primary", className: "flex-1 disabled:cursor-default disabled:opacity-55" })}
               />
             </div>
