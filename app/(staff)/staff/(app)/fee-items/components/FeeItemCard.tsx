@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { Badge, Button } from "@/components/common";
 import type { BuildingTypeDraft, FeeItemDraft } from "./types";
 import { FeeItemTable } from "./FeeItemTable";
 import type { FeeItemDropPosition } from "./FeeItemRow";
@@ -56,7 +57,7 @@ export function FeeItemCard({
   return (
     <section className="overflow-hidden rounded-2xl bg-white shadow-card">
       <header className="flex h-[70px] items-center justify-between border-b border-line2 px-[18px]">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {editing ? (
             <input
               autoFocus
@@ -92,16 +93,16 @@ export function FeeItemCard({
               </button>
             </>
           )}
-          <span className="rounded-lg bg-bg px-2 py-1 text-[11px] font-bold text-t3">{type.items.length}개</span>
+          {/* 정본 .badge.b-gray: 제목·연필과 6px, 칩은 10px(gap-1.5 + ml-1) */}
+          <Badge tone="gray" className="ml-1 inline-flex px-[9px] py-[3px] leading-[1.4]">{type.items.length}개</Badge>
         </div>
-        <button
-          type="button"
-          className="flex h-10 items-center gap-2 rounded-[12px] bg-teal px-4 text-[13px] font-bold text-white shadow-[0_7px_14px_-5px_rgba(20,164,151,.65)] disabled:cursor-not-allowed disabled:opacity-50"
-          onClick={onAddItem}
-        >
-          <Image src="/icons/fee-items/plus.svg" alt="" width={16} height={16} />
+        {/* 정본 .hf-btn.pri는 hover 색 변화가 없어 기존처럼 hover 없음을 유지한다 */}
+        <Button className="hover:bg-brand" onClick={onAddItem}>
+          <svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
           항목 추가
-        </button>
+        </Button>
       </header>
 
       <FeeItemTable items={type.items} isReorderPending={isReorderPending} onEdit={onEditItem} onReorder={onReorder} />
