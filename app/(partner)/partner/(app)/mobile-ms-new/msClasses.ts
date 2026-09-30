@@ -79,5 +79,4 @@ export const msClasses = {
   stotValueNeg: "text-[19px] font-extrabold tabular-nums tracking-[-0.02em] text-red",
 
   none: "px-5 py-10 text-center text-[14px] font-semibold text-t3",
-  toast: "fixed bottom-24 left-1/2 z-[130] -translate-x-1/2 whitespace-nowrap rounded-[13px] bg-[#191f28] px-5 py-[13px] text-[14px] font-bold text-white",
 } as const;

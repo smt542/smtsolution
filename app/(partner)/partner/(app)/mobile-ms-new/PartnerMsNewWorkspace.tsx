@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { type ReactNode, useMemo, useRef, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 
 import { applyMask, phoneMask, PHONE_INPUT_ATTRS } from "@/components/common";
 import {
@@ -12,6 +12,7 @@ import { PartnerBottomActionBar } from "../../../_components/PartnerBottomAction
 import { PartnerDateSheet } from "../../../_components/PartnerDateSheet";
 import { PartnerDropdown } from "../../../_components/PartnerDropdown";
 import { PartnerInlineError } from "../../../_components/PartnerInlineError";
+import { PartnerToast, usePartnerToast } from "../../../_components/PartnerToast";
 import {
   buildSaveData,
   computeTotals,
@@ -38,9 +39,6 @@ const CLEANING_STATUS_OPTIONS = [
   { value: "미결", label: "미결" },
   { value: "완료", label: "완료" },
 ];
-
-// 정본 toast는 1.7초 뒤 사라진다
-const TOAST_MS = 1700;
 
 function ChevronDown({ folded }: { folded: boolean }) {
   return (
@@ -151,8 +149,7 @@ export default function PartnerMsNewWorkspace({
   });
   const [activeId, setActiveId] = useState<number | null>(editId);
   const [err, setErr] = useState("");
-  const [toast, setToast] = useState("");
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { toastMessage, showToast } = usePartnerToast();
   const [confirmKind, setConfirmKind] = useState<null | "save" | "cancel" | "delete">(null);
   const [fold, setFold] = useState<Record<SectionKey, boolean>>({
     basic: false,
@@ -173,11 +170,6 @@ export default function PartnerMsNewWorkspace({
   const goBack = () => router.push(backHref);
   const isEdit = activeId !== null;
 
-  const showToast = (message: string) => {
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast(message);
-    toastTimer.current = setTimeout(() => setToast(""), TOAST_MS);
-  };
   const toggleFold = (key: SectionKey) => setFold((f) => ({ ...f, [key]: !f[key] }));
 
   const patch = (p: Partial<MSState>) => setState((s) => (s ? { ...s, ...p } : s));
@@ -635,7 +627,7 @@ export default function PartnerMsNewWorkspace({
         />
       ) : null}
 
-      {toast ? <div className={styles.toast}>{toast}</div> : null}
+      <PartnerToast message={toastMessage} />
     </div>
   );
 }
