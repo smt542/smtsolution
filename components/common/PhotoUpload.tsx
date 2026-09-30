@@ -37,9 +37,10 @@ export interface PhotoUploadProps {
 }
 
 const tileClass =
-  "group relative size-[84px] shrink-0 overflow-hidden rounded-[10px] border border-line";
+  "relative size-[84px] shrink-0 overflow-hidden rounded-[10px] border border-line";
+/* 정본 .gal-rm: 삭제 버튼은 hover 없이도 항상 보인다 */
 const tileDeleteClass =
-  "absolute right-[4px] top-[4px] flex size-[20px] items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100 disabled:cursor-not-allowed disabled:opacity-40";
+  "absolute right-[4px] top-[4px] flex size-[20px] items-center justify-center rounded-full bg-[rgba(15,20,26,.62)] text-white enabled:hover:bg-[rgba(15,20,26,.85)] disabled:cursor-not-allowed disabled:opacity-40";
 const tilePlaceholderClass =
   "flex size-full items-center justify-center p-2 text-center text-[10px] text-t3";
 
