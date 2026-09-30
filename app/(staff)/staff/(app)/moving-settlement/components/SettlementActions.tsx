@@ -31,6 +31,7 @@ type DialogState =
   | null;
 
 const EMPTY_INPUT_REF: RefObject<HTMLInputElement | null> = { current: null };
+const EMPTY_BODY_REF: RefObject<HTMLDivElement | null> = { current: null };
 
 function formatCreatedAt(value: string | null): string {
   if (!value) return "작성 중인";
@@ -52,23 +53,21 @@ function formatCreatedAt(value: string | null): string {
 export function SettlementActions({
   building,
   unit,
-  occupancy,
   draft,
   input,
   settlementId,
   amount,
   receivedAmount = 0,
   billingUnpaid = 0,
-  vacancyPaymentMode = "auto",
   createdAt = null,
   printModel,
   paymentInputRef = EMPTY_INPUT_REF,
+  formBodyRef = EMPTY_BODY_REF,
   onSaved,
   onDeleted = () => undefined,
 }: {
   building: { id: number; name: string };
   unit: SettlementContext["unit"];
-  occupancy: NonNullable<SettlementContext["occupancy"]>;
   draft: MovingSettlementValues;
   input: SaveSettlementInput;
   settlementId: number | null;
@@ -76,11 +75,11 @@ export function SettlementActions({
   receivedAmount?: number;
   /** 확정 부과분 미납액(0171). 정산건 미수금과는 다른 숫자이고, 완료 가드는 둘 다 본다. */
   billingUnpaid?: number;
-  /** 셋업 > 이사정산 설정. auto 면 퇴실 처리 시 미납이 자동수납되고, manual 이면 미수금이 남는다. */
-  vacancyPaymentMode?: "manual" | "auto";
   createdAt?: string | null;
   printModel: SettlementStatementPrintModel;
   paymentInputRef?: RefObject<HTMLInputElement | null>;
+  /** 폼 본문 스크롤 영역(정본 #msBody). [수납액 입력]이 이 영역을 수납액 칸까지 부드럽게 올린다. */
+  formBodyRef?: RefObject<HTMLDivElement | null>;
   onSaved: (id: number) => void;
   onDeleted?: () => void;
 }) {
@@ -89,7 +88,7 @@ export function SettlementActions({
   const mid = useMidMoveout();
   const remove = useDeleteSettlement();
   const [dialog, setDialog] = useState<DialogState>(null);
-  // 미수금 경고에서 "그래도 처리" 를 눌렀을 때 어느 완료 확인으로 넘길지 기억한다.
+  // 미수금 경고가 어느 완료(중도퇴실·퇴실) 앞에서 떴는지 — 제목에 쓴다.
   const [pendingCompletion, setPendingCompletion] = useState<"mid" | "moveout" | null>(null);
   const isSettlementMutationPending =
     save.isPending || complete.isPending || mid.isPending || remove.isPending;
@@ -130,7 +129,8 @@ export function SettlementActions({
   // 완료 가드(명세 3.12). 사용자 결정 2026-09-18:
   //  · "미수금" 은 정산건 미수금(정산금액-수납액)과 billing 미납(확정부과-유효수납) **둘 다**.
   //  · 자동수납(auto)이 있어도 중도퇴실 경로가 따로 있으므로 **auto 예외를 두지 않는다** — 두 액션 모두 확인.
-  //  · 서버 하드블록은 넣지 않는다 → 경고 후 "그래도 처리" 로 진행할 수 있다.
+  // 사용자 결정 2026-09-30(QA W09): 정본대로 [취소][수납액 입력] 두 버튼 — 미수금이 남으면 완료하지 않는다
+  // ("그래도 처리" 삭제). 확정 부과분 미납은 수납관리에서 먼저 수납해야 한다.
   const confirmDialogOf = (kind: "mid" | "moveout") =>
     kind === "mid" ? ("mid-confirm" as const) : ("moveout-confirm" as const);
 
@@ -187,12 +187,26 @@ export function SettlementActions({
     });
   };
 
+  // 정본 msConfirm [수납액 입력]: 모달을 닫고 폼 본문을 수납액 칸이 가운데보다 40px 위에 오도록 부드럽게 올린 뒤
+  // 0.32초 뒤에 포커스하고 값을 전체 선택한다(스크롤과 같이 focus 하면 브라우저가 스크롤을 곧바로 점프시킨다).
   const focusPayment = () => {
     setDialog(null);
+    const input = paymentInputRef.current;
+    const body = formBodyRef.current;
+    if (!input) return;
+    if (body) {
+      const top =
+        input.getBoundingClientRect().top -
+        body.getBoundingClientRect().top +
+        body.scrollTop -
+        body.clientHeight / 2 +
+        40;
+      body.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    }
     window.setTimeout(() => {
-      paymentInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      paymentInputRef.current?.focus();
-    }, 0);
+      input.focus();
+      input.select();
+    }, 320);
   };
 
   const print = () => {
@@ -218,22 +232,18 @@ export function SettlementActions({
         pendingAction={pendingAction}
       />
 
+      {/* 정본: `미수금 <b>N원</b>이 남아 있어요.<br>수납액을 먼저 입력해 미수금을 0원으로 맞춘 뒤 처리할 수 있어요.`
+          확정 부과분 미납은 폼 수납액으로 지울 수 없어 따로 한 줄씩 알린다. */}
       <SettlementDecisionDialog
         open={outstandingDialog}
         title={pendingCompletion === "mid" ? "중도퇴실 처리 전 확인" : "퇴실 처리 전 확인"}
-        confirmLabel="그래도 처리"
-        confirmTone="danger"
-        pending={false}
-        secondaryLabel="수납액 입력"
-        onSecondary={focusPayment}
+        confirmLabel="수납액 입력"
         onCancel={() => setDialog(null)}
-        onConfirm={() => {
-          if (pendingCompletion) setDialog(confirmDialogOf(pendingCompletion));
-        }}
+        onConfirm={focusPayment}
       >
         {outstanding > 0 && (
           <p>
-            이 정산의 미수금 <strong className="font-bold text-red">{formatWon(outstanding)}</strong>이 남아 있어요.
+            미수금 <strong className="font-bold text-red">{formatWon(outstanding)}</strong>이 남아 있어요.
           </p>
         )}
         {billingUnpaid > 0 && (
@@ -241,43 +251,47 @@ export function SettlementActions({
             확정 부과분 미납 <strong className="font-bold text-red">{formatWon(billingUnpaid)}</strong>이 남아 있어요.
           </p>
         )}
-        <p>수납액을 먼저 입력해 0원으로 맞추는 것을 권해요. 그대로 처리하면 미수금이 남은 채 완료돼요.</p>
+        {outstanding > 0 && <p>수납액을 먼저 입력해 미수금을 0원으로 맞춘 뒤 처리할 수 있어요.</p>}
+        {billingUnpaid > 0 && <p>확정 부과분 미납은 수납관리에서 먼저 수납해야 처리할 수 있어요.</p>}
       </SettlementDecisionDialog>
 
+      {/* 정본 형식(제목·확인 버튼·첫 줄) + 작은 줄은 mid_moveout_settlement 가 실제로 바꾸는 값(0008). */}
       <SettlementDecisionDialog
         open={dialog === "mid-confirm"}
-        title="중도퇴실 처리 전 확인"
-        confirmLabel="중도퇴실 처리"
+        title="중도퇴실 처리"
+        confirmLabel="정산완료+중도퇴실"
         pending={mid.isPending}
         pendingLabel="중도퇴실 처리 중…"
         onCancel={() => setDialog(null)}
         onConfirm={completeMidMoveout}
       >
-        <p>{building.name} {unit.unitNo} 세대를 중도퇴실로 처리할까요?</p>
-        <p>{occupancy.tenantName ?? "입주자 미등록"}의 정산 상태가 완료로 변경돼요.</p>
+        <p>
+          {building.name} {unit.unitNo} 세대를 중도퇴실로 처리 완료 하시겠습니까?
+          <br />
+          <span className="text-[12.5px] text-t3">
+            공실 처리 없이 고지서 출력 여부가 N으로, 부과시 참조사항이 &quot;중도퇴실&quot;로 바뀌어요.
+          </span>
+        </p>
       </SettlementDecisionDialog>
 
-      {/* 문구는 셋업 > 이사정산 설정의 공실 수납 방식에 따라 갈린다(0167). */}
+      {/* 작은 줄은 complete_moving_settlement 동작(퇴실일로 전출 이력 추가·공실 전환, 0167). 미납이 0일 때만 여기까지 오므로
+          공실 수납 방식(자동수납·미수금) 안내는 해당이 없다. */}
       <SettlementDecisionDialog
         open={dialog === "moveout-confirm"}
-        title="퇴실 처리 전 확인"
-        confirmLabel="퇴실 처리"
+        title="퇴실 처리"
+        confirmLabel="정산완료+퇴실"
         pending={complete.isPending}
         pendingLabel="퇴실 처리 중…"
         onCancel={() => setDialog(null)}
         onConfirm={completeMoveout}
       >
-        {vacancyPaymentMode === "auto" ? (
-          <>
-            <p>{building.name} {unit.unitNo} 세대의 미납 관리비를 수납 처리하시겠습니까?</p>
-            <p>확인하면 남은 미납 관리비가 자동으로 수납 처리되고, 입주자 정보가 초기화되며 세대가 공실로 전환돼요.</p>
-          </>
-        ) : (
-          <>
-            <p>{building.name} {unit.unitNo} 세대를 퇴실로 처리할까요?</p>
-            <p>확인하면 입주자 정보가 초기화되며 세대가 공실로 전환돼요. 공실 수납 방식이 <b>수동</b>이라 남은 미납 관리비는 <b>수납되지 않고 미수금으로 남아요</b> — 수납관리 화면에서 따로 처리해 주세요.</p>
-          </>
-        )}
+        <p>
+          {building.name} {unit.unitNo} 세대를 퇴실로 처리 완료 하시겠습니까?
+          <br />
+          <span className="text-[12.5px] text-t3">
+            퇴실일로 전출 정보에 추가되고 입주자 정보가 초기화돼요.
+          </span>
+        </p>
       </SettlementDecisionDialog>
 
       <SettlementDecisionDialog
