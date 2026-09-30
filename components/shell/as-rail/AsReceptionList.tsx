@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { EmptyState, Spinner } from "@/components/common";
 import { useAccounts } from "@/hooks/reactquery/accounts";
@@ -18,10 +18,14 @@ import {
   type DdOption,
 } from "./FilterDropdown";
 import { AS_STATUS_LABEL } from "./constants";
+import { RailRefreshSkeleton } from "./RailRefreshIndicators";
 
 interface AsReceptionListProps {
-  refreshSignal?: number;
+  refreshing?: boolean;
 }
+
+// 결과 필터 기본값 = 미결·반복(정본 `.asf-dd.multi` data-value="mig,rep", '미결 외 1').
+const DEFAULT_STATUSES: ComplaintStatus[] = ["pending", "repeat"];
 
 const STATUS_OPTIONS: DdOption[] = [
   { value: "", label: "결과 전체" },
@@ -36,9 +40,9 @@ const SORT_OPTIONS: DdOption[] = [
   { value: "asc", label: "오래된순" },
 ];
 
-export function AsReceptionList({ refreshSignal }: AsReceptionListProps = {}) {
+export function AsReceptionList({ refreshing = false }: AsReceptionListProps = {}) {
   const [buildingId, setBuildingId] = useState<number>();
-  const [statuses, setStatuses] = useState<ComplaintStatus[]>([]);
+  const [statuses, setStatuses] = useState<ComplaintStatus[]>(DEFAULT_STATUSES);
   const [managerId, setManagerId] = useState("");
   const [receiverId, setReceiverId] = useState("");
   const [categoryId, setCategoryId] = useState<number>();
@@ -52,15 +56,9 @@ export function AsReceptionList({ refreshSignal }: AsReceptionListProps = {}) {
     search,
   });
   const isComplaintListRefreshing = complaintsQuery.isFetching && !complaintsQuery.isLoading;
-  const { refetch } = complaintsQuery;
   const { data: buildings = [] } = useBuildings();
   const { data: accounts = [] } = useAccounts();
   const { data: categories = [] } = useAsCategories();
-
-  useEffect(() => {
-    if (refreshSignal === undefined) return;
-    void refetch();
-  }, [refetch, refreshSignal]);
 
   const accountNames = useMemo(
     () => new Map(accounts.map((account) => [account.userId, account.fullName])),
@@ -175,7 +173,8 @@ export function AsReceptionList({ refreshSignal }: AsReceptionListProps = {}) {
           ariaLabel="A/S 정렬"
         />
       </div>
-      <div className="relative flex-1 overflow-auto p-3 flex flex-col gap-2 bg-white">
+      {refreshing ? <RailRefreshSkeleton /> : null}
+      <div className={`relative flex-1 overflow-auto p-3 flex-col gap-2 bg-white ${refreshing ? "hidden" : "flex"}`}>
         {isComplaintListRefreshing ? (
           <div className="sticky right-2 top-2 z-10 ml-auto w-fit rounded-lg bg-white/95 shadow-card">
             <Spinner label="A/S 접수 목록 갱신 중" size="small" showLabel className="px-3 py-2" />
