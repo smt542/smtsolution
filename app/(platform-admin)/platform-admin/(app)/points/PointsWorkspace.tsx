@@ -196,11 +196,10 @@ export default function PointsWorkspace() {
     orgId: number;
     points: number;
     amountKrw: number;
-    memo?: string;
   }) => {
     try {
       await charge.mutateAsync(values);
-      toast.success("포인트 충전을 기록했습니다.");
+      toast.success(`${num(values.points)}P를 충전했어요`);
       setHistoryPage(1);
     } catch (error) {
       toast.error(error, "충전 기록에 실패했습니다.");
@@ -436,7 +435,7 @@ function OrganizationPickerQueryModal({
     <Modal
       open
       onClose={onClose}
-      title="포인트 충전 기록"
+      title="팝빌 포인트 충전"
       className="max-w-[440px] rounded-[20px] shadow-hf-modal [&>h2]:text-[17px] [&>h2]:tracking-[-0.02em] [&>h2]:text-t1"
     >
       {isError ? <QueryError onRetry={onRetry} /> : <Spinner />}
