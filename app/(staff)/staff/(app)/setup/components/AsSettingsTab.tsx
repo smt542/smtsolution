@@ -48,9 +48,10 @@ export function AsSettingsTab() {
 
   const onAdd = () => {
     if (!orgId || create.isPending) return;
-    // 정본 #asAdd: 가득 차도 버튼은 그대로 두고 누르면 안내만 한다.
+    // 정본 #asAdd: 가득 차도 버튼은 그대로 두고 누르면 안내만 한다. 문구는 정본 화면에 뜨는 그대로
+    // (정본 toast 가 안내문 뒤에 ' 처리되었습니다'를 붙인다 — 사용자 결정 2026-09-30).
     if (cats.length >= MAX) {
-      toast.warning(`유형은 최대 ${MAX}개까지예요`);
+      toast.warning(`유형은 최대 ${MAX}개까지예요 처리되었습니다`);
       return;
     }
     // as_categories는 (org_id, label)이 유니크라 기본 이름을 그대로 쓰면 두 번째 추가가 실패한다.

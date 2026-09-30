@@ -17,7 +17,7 @@ export type NumberedTagListProps = {
   onDelete: (id: string) => void;
   /**
    * 추가 버튼은 가득 차도 비활성으로 바꾸지 않고 늘 이것을 부른다. 최대 개수 판단과
-   * 안내 토스트('항목은 최대 24개까지예요')는 부모가 한다 — 정본 `#ckAdd`·`#asAdd` 클릭 처리와 같다.
+   * 안내 토스트('항목은 최대 24개까지예요 처리되었습니다')는 부모가 한다 — 정본 `#ckAdd`·`#asAdd` 클릭 처리와 같다.
    */
   onAdd: () => void;
   addLabel: string;
