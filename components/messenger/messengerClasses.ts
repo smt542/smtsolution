@@ -4,7 +4,9 @@ export const messengerClasses: Record<string, string> = {
   // 정본 .fmp: 열기·닫기·최소화 모두 같은 0.2초 전환이고 우하단(FAB 자리)을 기준으로 커진다.
   // 닫힘(fmp-off)·열림(fmp-show)은 상호배타 클래스다 — opacity·visibility·transform 을 base 와
   // show 에 같이 두면 어느 쪽이 이길지 Tailwind 출력 순서에 달린다.
-  "fmp": "fixed z-[46] flex max-h-[calc(100vh-40px)] w-[820px] max-w-[calc(100vw-44px)] flex-col overflow-hidden rounded-[20px] border border-line bg-white shadow-[0_30px_80px_-20px_rgba(23,31,40,0.5)] origin-bottom-right [transition:opacity_0.2s_ease,transform_0.2s_cubic-bezier(0.2,0.8,0.2,1),visibility_0.2s]",
+  // 줄높이: 정본 body 는 normal 이고 명시한 곳(.fmp-ta 1.6 등)만 따로 준다. 앱 html 의 1.5 를 물려받지 않게
+  // 패널·확인창 루트에서 normal 로 끊는다. text-xs·text-sm 같은 이름 있는 크기는 줄높이까지 정하므로 px 로 쓴다.
+  "fmp": "fixed z-[46] flex max-h-[calc(100vh-40px)] w-[820px] max-w-[calc(100vw-44px)] flex-col overflow-hidden leading-[normal] rounded-[20px] border border-line bg-white shadow-[0_30px_80px_-20px_rgba(23,31,40,0.5)] origin-bottom-right [transition:opacity_0.2s_ease,transform_0.2s_cubic-bezier(0.2,0.8,0.2,1),visibility_0.2s]",
   "fmp-off": "pointer-events-none invisible opacity-0 [transform:translateY(10px)_scale(0.97)]",
   // 정본 .fmp.show{transform:none}. translate-y-0 scale-100 은 겉보기엔 같지만 transform 이
   // none 이 아니라 패널이 fixed 자손의 containing block 이 된다 → 패널 안의 .menu(position:fixed)가
@@ -14,13 +16,15 @@ export const messengerClasses: Record<string, string> = {
   "fmp-show": "pointer-events-auto visible opacity-100 transform-none starting:invisible starting:opacity-0 starting:[transform:translateY(10px)_scale(0.97)]",
   // 정본 .fmp-bubble{padding:0 16px 0 12px;cursor:pointer} — 줄높이는 body 기본(normal)이다.
   "fmp-bubble": "fixed bottom-[22px] right-[22px] z-[45] flex h-[52px] cursor-pointer items-center gap-2.5 rounded-full border border-line bg-white pl-3 pr-4 leading-[normal] shadow-[0_14px_34px_-10px_rgba(23,31,40,0.35)]",
-  "fmpc-scrim": "fixed inset-0 z-[48] flex items-center justify-center bg-scrim p-6",
+  "fmpc-scrim": "fixed inset-0 z-[48] flex items-center justify-center bg-scrim p-6 leading-[normal]",
   show: "pointer-events-auto visible flex opacity-100 transform-none",
   hide: "hidden",
   "fmp-h": "flex flex-none select-none items-center gap-[9px] border-b border-line bg-white pl-4 pr-3 py-[13px]",
+  // 정본 .fmp-h{cursor:grab} · .fmp-h.drag{cursor:grabbing}(끄는 동안만) — 둘 중 하나만 붙인다.
+  grab: "cursor-grab",
   drag: "cursor-grabbing",
-  dot: "flex size-[26px] flex-none items-center justify-center rounded-lg bg-blue-t [&_svg]:size-[15px] [&_svg]:text-blue",
-  t: "text-sm font-extrabold tracking-[-0.01em]",
+  dot: "flex size-[26px] flex-none items-center justify-center rounded-lg bg-blue-t [&_svg]:size-[15px] [&_svg]:stroke-2 [&_svg]:text-blue",
+  t: "text-[14px] font-extrabold tracking-[-0.01em]",
   sub: "text-[11px] font-semibold text-t3",
   "fmp-ic": "flex size-[30px] items-center justify-center rounded-lg text-t3 hover:bg-bg hover:text-t2 [&_svg]:size-[17px] [&_svg]:[stroke-width:2.2]",
   "fmp-body": "group flex min-h-0 flex-1 flex-col gap-4 overflow-auto px-5 py-[18px]",
@@ -36,10 +40,10 @@ export const messengerClasses: Record<string, string> = {
   two: "[&>.fmp-dd2]:flex-1",
   three: "[&>.fmp-dd2]:flex-[0_0_calc(33.3333%_-_5.3333px)]",
   "fmp-seg": "flex w-full gap-0.5 rounded-[10px] bg-[#edf0f3] p-[3px]",
-  si: "flex-1 cursor-pointer rounded-[7px] px-3.5 py-2 text-center text-[13px] font-bold leading-[1.45]",
+  si: "flex-1 cursor-pointer rounded-[7px] px-3.5 py-2 text-center text-[13px] font-bold",
   on: "border-blue bg-blue-t text-blue-d",
   "seg-on": "bg-white text-t1 shadow-[0px_2px_2.5px_rgba(23,31,40,0.1)]",
-  "fmp-lbl": "mb-2 text-[12.5px] font-bold leading-[1.5] text-t2",
+  "fmp-lbl": "mb-2 text-[12.5px] font-bold text-t2",
   "fmp-chips": "flex flex-wrap gap-1.5",
   "fmp-chip": "cursor-pointer rounded-lg border border-transparent bg-bg px-[11px] py-[5px] text-xs font-bold text-t3",
   "fmp-ta": "min-h-[260px] w-full resize-y rounded-[11px] border border-line bg-white px-3.5 py-[13px] text-sm font-medium leading-[1.6] text-t1 outline-none focus:border-blue",
@@ -48,7 +52,7 @@ export const messengerClasses: Record<string, string> = {
   "fmp-var": "cursor-pointer rounded-lg border border-blue-t bg-blue-t2 px-2.5 py-[5px] text-[11.5px] font-bold text-blue-d hover:border-blue hover:bg-blue-t",
   "fmp-prev": "mt-[9px] hidden break-words whitespace-pre-wrap rounded-[10px] border border-line border-l-[3px] border-l-blue bg-bg px-[13px] py-[11px] text-[13px] font-medium leading-[1.6] text-t2 [&_.ph]:mb-1.5 [&_.ph]:block [&_.ph]:text-[11px] [&_.ph]:font-bold [&_.ph]:text-t4 [&_b]:rounded [&_b]:bg-blue-t [&_b]:px-1 [&_b]:font-bold [&_b]:text-blue-d",
   "fmp-recip": "flex items-center gap-[9px] rounded-[11px] border border-line bg-blue-t2 px-[13px] py-[11px] [&_.c]:text-xl [&_.c]:font-extrabold [&_.c]:tabular-nums [&_.c]:text-blue-d",
-  "fmp-dd2": "relative flex min-w-0 items-center gap-[9px] rounded-[11px] border border-line px-[13px] py-[11px] text-[13.5px] font-bold leading-[1.45] [&_.v]:min-w-0 [&_.v]:flex-1 [&_.v]:truncate [&_.cv]:flex-none [&_.cv]:transition [&_.menu]:fixed [&_.menu]:z-[47] [&_.menu]:hidden [&_.menu]:max-h-[300px] [&_.menu]:flex-col [&_.menu]:gap-0.5 [&_.menu]:overflow-hidden [&_.menu]:rounded-xl [&_.menu]:border [&_.menu]:border-line [&_.menu]:bg-white [&_.menu]:p-1.5 [&_.menu]:shadow-[0_16px_40px_-12px_rgba(23,31,40,0.3)]",
+  "fmp-dd2": "relative flex min-w-0 items-center gap-[9px] rounded-[11px] border border-line px-[13px] py-[11px] text-[13.5px] font-bold [&_.v]:min-w-0 [&_.v]:flex-1 [&_.v]:truncate [&_.cv]:flex-none [&_.cv]:transition [&_.menu]:fixed [&_.menu]:z-[47] [&_.menu]:hidden [&_.menu]:max-h-[300px] [&_.menu]:flex-col [&_.menu]:gap-0.5 [&_.menu]:overflow-hidden [&_.menu]:rounded-xl [&_.menu]:border [&_.menu]:border-line [&_.menu]:bg-white [&_.menu]:p-1.5 [&_.menu]:shadow-[0_16px_40px_-12px_rgba(23,31,40,0.3)]",
   open: "border-blue [&_.menu]:flex [&_.cv]:rotate-180",
   // 정본 .fmp-dd2{background:#fff;color:var(--t1);cursor:pointer} ↔ .fmp-dd2.disabled{background:var(--bg);
   // color:var(--t4);cursor:default;pointer-events:none}. 같은 속성을 base 와 비활성에 같이 두면 bg-white·
@@ -84,21 +88,21 @@ export const messengerClasses: Record<string, string> = {
   "cbx-off": "border-line",
   "cbx-on":
     "border-blue bg-blue after:absolute after:left-1/2 after:top-[46%] after:h-[9px] after:w-[5px] after:-translate-x-1/2 after:-translate-y-1/2 after:rotate-45 after:border-b-2 after:border-r-2 after:border-white after:content-['']",
-  "ow-av": "flex size-7 flex-none items-center justify-center rounded-full bg-blue-t text-xs font-extrabold text-blue-d",
+  "ow-av": "flex size-7 flex-none items-center justify-center rounded-full bg-blue-t text-[12px] font-extrabold text-blue-d",
   "tnl-nm": "min-w-0 flex-1 truncate text-[13px] font-bold text-t1",
-  "tnl-ho": "flex-none text-xs font-bold tabular-nums text-t3",
+  "tnl-ho": "flex-none text-[12px] font-bold tabular-nums text-t3",
   owl: "flex items-start gap-2.5 px-[11px] py-[11px]",
   owg: "flex min-w-0 flex-1 flex-col gap-1",
   owrow1: "flex items-baseline justify-between gap-2.5",
   owrow: "flex items-baseline justify-between gap-2.5",
   owrow2: "flex items-baseline justify-between gap-2.5",
-  ownm: "min-w-0 truncate whitespace-nowrap text-sm font-extrabold text-t1",
-  owtels: "flex flex-none flex-col gap-0.5 text-right text-xs font-semibold tabular-nums text-t2",
+  ownm: "min-w-0 truncate whitespace-nowrap text-[14px] font-extrabold text-t1",
+  owtels: "flex flex-none flex-col gap-0.5 text-right text-[12px] font-semibold tabular-nums text-t2",
   owt: "flex-none whitespace-nowrap text-xs font-semibold tabular-nums text-t2",
   owadr: "min-w-0 truncate whitespace-nowrap text-xs font-semibold text-t3",
   owt2: "flex-none whitespace-nowrap text-xs font-semibold tabular-nums text-t2",
   owbld2: "break-all text-xs font-semibold text-t3",
-  strole: "text-xs font-semibold text-t3",
+  strole: "text-[12px] font-semibold text-t3",
   // 내부 .nm/.rl/.tel 훅은 리터럴 클래스가 없어 죽어 있었다 — RecipientCascade 에서
   // 정본 값을 직접 쓰므로 여기서는 컨테이너 표현만 둔다.
   "fmp-auto": "flex items-center gap-[9px] rounded-[11px] border border-blue bg-blue-t2 px-[13px] py-[11px]",
@@ -120,7 +124,7 @@ export const messengerClasses: Record<string, string> = {
   mt: "mt-px text-[11px] font-semibold text-t3",
   tel: "ml-auto text-[11.5px] font-semibold tabular-nums text-t3",
   "fmp-in": "flex items-center gap-[9px] rounded-[11px] border border-line bg-white px-[13px] py-[11px] focus-within:border-blue",
-  "fmp-fromsel": "relative flex cursor-pointer items-center gap-[9px] rounded-[11px] border border-line bg-white px-[13px] py-[11px] text-[13.5px] font-bold leading-[1.45] text-t1",
+  "fmp-fromsel": "relative flex cursor-pointer items-center gap-[9px] rounded-[11px] border border-line bg-white px-[13px] py-[11px] text-[13.5px] font-bold text-t1",
   "fmp-deftag": "flex-none rounded-md bg-blue-t px-[7px] py-0.5 text-[10.5px] font-bold text-blue-d",
   "fmp-frommenu": "fixed z-[47] hidden max-h-[300px] flex-col gap-0.5 overflow-hidden rounded-xl border border-line bg-white p-1.5 shadow-[0_16px_40px_-12px_rgba(23,31,40,0.3)]",
   "fmp-fromlist": "flex min-h-0 flex-1 flex-col gap-0.5 overflow-auto",
@@ -132,7 +136,7 @@ export const messengerClasses: Record<string, string> = {
   go: "",
   "fmp-addbtn": "mt-2 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-dashed border-line bg-blue-t2 px-2.5 py-1.5 text-[12.5px] font-bold text-blue hover:border-blue hover:bg-blue-t",
   "fmp-din": "h-[42px] flex-1 rounded-[10px] border border-line bg-white px-3 text-[13px] font-semibold text-t1 outline-none focus:border-blue disabled:bg-bg disabled:text-t4",
-  "fmp-tplsel": "relative inline-flex items-center gap-1.5 rounded-lg bg-transparent px-[9px] py-1.5 text-xs font-bold text-t2 hover:bg-bg",
+  "fmp-tplsel": "relative inline-flex items-center gap-[5px] rounded-lg bg-transparent px-[9px] py-[5px] text-[12px] font-bold text-t2 hover:bg-bg",
   "fmp-tplmenu": "fixed z-[47] hidden max-h-80 w-[300px] flex-col rounded-xl border border-line bg-white p-1.5 shadow-[0_16px_40px_-12px_rgba(23,31,40,0.3)]",
   "fmp-tpllist": "flex min-h-0 flex-1 flex-col gap-0.5 overflow-auto",
   ic: "size-4 flex-none text-t3",
@@ -181,7 +185,7 @@ export const messengerClasses: Record<string, string> = {
   "ak-autochips": "flex flex-wrap gap-1",
   "ak-autochip": "rounded-[7px] border border-line2 bg-white px-2 py-[3px] text-[11.5px] font-bold text-t3",
   "ak-autohint": "text-[11px] font-medium leading-[1.5] text-t4",
-  "ak-vrow": "flex items-center gap-2.5 [&_label]:w-[76px] [&_label]:flex-none [&_label]:text-xs [&_label]:font-bold [&_label]:text-t2 [&_input]:h-9 [&_input]:min-w-0 [&_input]:flex-1 [&_input]:rounded-[9px] [&_input]:border [&_input]:border-line [&_input]:px-[11px] [&_input]:text-[13px] [&_input]:outline-none [&_input:focus]:border-blue",
+  "ak-vrow": "flex items-center gap-2.5 [&_label]:w-[76px] [&_label]:flex-none [&_label]:text-[12px] [&_label]:font-bold [&_label]:text-t2 [&_input]:h-9 [&_input]:min-w-0 [&_input]:flex-1 [&_input]:rounded-[9px] [&_input]:border [&_input]:border-line [&_input]:px-[11px] [&_input]:text-[13px] [&_input]:outline-none [&_input:focus]:border-blue",
   "ak-btnbox": "flex flex-col gap-2 rounded-[11px] border border-line px-[11px] py-2.5 [&_input]:h-9 [&_input]:rounded-[9px] [&_input]:border [&_input]:border-line [&_input]:px-[11px] [&_input]:text-[12.5px] [&_input]:outline-none",
   "ak-btnlbl": "flex items-center gap-1.5 text-[11.5px] font-extrabold text-t2 [&_svg]:size-3.5 [&_svg]:text-t3",
   "ak-status": "flex-none rounded-md px-1.5 py-0.5 text-[10px] font-extrabold",

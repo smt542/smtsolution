@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { messengerClasses as styles } from "./messengerClasses";
 import type { ChannelMode } from "./types";
 
@@ -39,6 +39,7 @@ export function MessengerPanel({
   children,
 }: Props) {
   const drag = useRef<{ dx: number; dy: number } | null>(null);
+  const [dragging, setDragging] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const shown = !minimized && !closing;
 
@@ -61,19 +62,23 @@ export function MessengerPanel({
       dx: event.clientX - base.x,
       dy: event.clientY - base.y,
     };
+    setDragging(true);
     (event.target as HTMLElement).setPointerCapture(event.pointerId);
   };
 
   const onPointerMove = (event: React.PointerEvent) => {
-    if (!drag.current) return;
-    onPos({
-      x: event.clientX - drag.current.dx,
-      y: event.clientY - drag.current.dy,
-    });
+    const panel = panelRef.current;
+    if (!drag.current || !panel) return;
+    // 정본 pointermove: 끄는 동안 패널이 화면 밖으로 나가지 않게 가둔다(left 0~innerWidth-w, top 0~innerHeight-h).
+    // 위치는 right = 22 - x, bottom = 22 - y 라서 x·y 의 범위로 바꿔 건다.
+    const x = Math.min(22, Math.max(panel.offsetWidth + 22 - window.innerWidth, event.clientX - drag.current.dx));
+    const y = Math.min(22, Math.max(panel.offsetHeight + 22 - window.innerHeight, event.clientY - drag.current.dy));
+    onPos({ x, y });
   };
 
   const onPointerUp = (event: React.PointerEvent) => {
     drag.current = null;
+    setDragging(false);
     try {
       (event.target as HTMLElement).releasePointerCapture(event.pointerId);
     } catch {
@@ -131,7 +136,7 @@ export function MessengerPanel({
       }}
     >
       <div
-        className={`${styles["fmp-h"]} ${styles["drag"]}`}
+        className={`${styles["fmp-h"]} ${dragging ? styles.drag : styles.grab}`}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}

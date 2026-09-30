@@ -232,7 +232,7 @@ export function SenderSelect({ value, onChange }: SenderSelectProps) {
                   className={styles.ck}
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="var(--blue)"
+                  stroke="var(--color-blue)"
                   strokeWidth="2.4"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -256,7 +256,7 @@ export function SenderSelect({ value, onChange }: SenderSelectProps) {
                 className={styles.ck}
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="var(--blue)"
+                stroke="var(--color-blue)"
                 strokeWidth="2.4"
                 strokeLinecap="round"
                 strokeLinejoin="round"
