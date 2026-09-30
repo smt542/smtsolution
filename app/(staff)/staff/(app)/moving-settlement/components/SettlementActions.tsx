@@ -59,6 +59,7 @@ export function SettlementActions({
   amount,
   receivedAmount = 0,
   billingUnpaid = 0,
+  vacancyPaymentMode = "auto",
   createdAt = null,
   printModel,
   paymentInputRef = EMPTY_INPUT_REF,
@@ -73,8 +74,10 @@ export function SettlementActions({
   settlementId: number | null;
   amount: number;
   receivedAmount?: number;
-  /** 확정 부과분 미납액(0171). 정산건 미수금과는 다른 숫자이고, 완료 가드는 둘 다 본다. */
+  /** 확정 부과분 미납액(0171). 정본 미수금 식(정산 금액+미납 소계−수납액)의 미납 소계. */
   billingUnpaid?: number;
+  /** 셋업 > 이사정산 설정. auto 면 퇴실 처리 때 확정 부과분 미납이 자동수납되고, manual 이면 미수금으로 남는다. */
+  vacancyPaymentMode?: "manual" | "auto";
   createdAt?: string | null;
   printModel: SettlementStatementPrintModel;
   paymentInputRef?: RefObject<HTMLInputElement | null>;
@@ -101,7 +104,8 @@ export function SettlementActions({
         : remove.isPending
           ? "delete"
           : null;
-  const outstanding = amount - receivedAmount;
+  // 정본 msCalc `due = (공과금+관리비+기타+미납 소계) − 수납액` — 하단 요약바 미수금과 같은 식이다.
+  const outstanding = amount + billingUnpaid - receivedAmount;
 
   const validate = () => {
     const result = movingSettlementSchema.safeParse(draft);
@@ -130,13 +134,13 @@ export function SettlementActions({
   //  · "미수금" 은 정산건 미수금(정산금액-수납액)과 billing 미납(확정부과-유효수납) **둘 다**.
   //  · 자동수납(auto)이 있어도 중도퇴실 경로가 따로 있으므로 **auto 예외를 두지 않는다** — 두 액션 모두 확인.
   // 사용자 결정 2026-09-30(QA W09): 정본대로 [취소][수납액 입력] 두 버튼 — 미수금이 남으면 완료하지 않는다
-  // ("그래도 처리" 삭제). 확정 부과분 미납은 수납관리에서 먼저 수납해야 한다.
+  // ("그래도 처리" 삭제). 미수금은 정본 식이라 확정 부과분 미납까지 수납액으로 맞추면 통과한다.
   const confirmDialogOf = (kind: "mid" | "moveout") =>
     kind === "mid" ? ("mid-confirm" as const) : ("moveout-confirm" as const);
 
   const requestCompletion = (kind: "mid" | "moveout") => {
     if (!validate() || !requireSaved()) return;
-    if (outstanding > 0 || billingUnpaid > 0) {
+    if (outstanding > 0) {
       setPendingCompletion(kind);
       setDialog("outstanding");
       return;
@@ -232,8 +236,7 @@ export function SettlementActions({
         pendingAction={pendingAction}
       />
 
-      {/* 정본: `미수금 <b>N원</b>이 남아 있어요.<br>수납액을 먼저 입력해 미수금을 0원으로 맞춘 뒤 처리할 수 있어요.`
-          확정 부과분 미납은 폼 수납액으로 지울 수 없어 따로 한 줄씩 알린다. */}
+      {/* 정본: `미수금 <b>N원</b>이 남아 있어요.<br>수납액을 먼저 입력해 미수금을 0원으로 맞춘 뒤 처리할 수 있어요.` */}
       <SettlementDecisionDialog
         open={outstandingDialog}
         title={pendingCompletion === "mid" ? "중도퇴실 처리 전 확인" : "퇴실 처리 전 확인"}
@@ -241,21 +244,15 @@ export function SettlementActions({
         onCancel={() => setDialog(null)}
         onConfirm={focusPayment}
       >
-        {outstanding > 0 && (
-          <p>
-            미수금 <strong className="font-bold text-red">{formatWon(outstanding)}</strong>이 남아 있어요.
-          </p>
-        )}
-        {billingUnpaid > 0 && (
-          <p>
-            확정 부과분 미납 <strong className="font-bold text-red">{formatWon(billingUnpaid)}</strong>이 남아 있어요.
-          </p>
-        )}
-        {outstanding > 0 && <p>수납액을 먼저 입력해 미수금을 0원으로 맞춘 뒤 처리할 수 있어요.</p>}
-        {billingUnpaid > 0 && <p>확정 부과분 미납은 수납관리에서 먼저 수납해야 처리할 수 있어요.</p>}
+        <p>
+          미수금 <strong className="font-bold text-red">{formatWon(outstanding)}</strong>이 남아 있어요.
+          <br />
+          수납액을 먼저 입력해 미수금을 0원으로 맞춘 뒤 처리할 수 있어요.
+        </p>
       </SettlementDecisionDialog>
 
-      {/* 정본 형식(제목·확인 버튼·첫 줄) + 작은 줄은 mid_moveout_settlement 가 실제로 바꾸는 값(0008). */}
+      {/* 정본 형식(제목·확인 버튼·첫 줄) + 작은 줄은 mid_moveout_settlement 가 실제로 바꾸는 값(0008).
+          수납액이 확정 부과분 미납까지 덮어 여기 온 경우, 중도퇴실은 그 미납을 수납하지 않는다. */}
       <SettlementDecisionDialog
         open={dialog === "mid-confirm"}
         title="중도퇴실 처리"
@@ -270,12 +267,13 @@ export function SettlementActions({
           <br />
           <span className="text-[12.5px] text-t3">
             공실 처리 없이 고지서 출력 여부가 N으로, 부과시 참조사항이 &quot;중도퇴실&quot;로 바뀌어요.
+            {billingUnpaid > 0 && ` 확정 부과분 미납 ${formatWon(billingUnpaid)}은 미수금으로 남아요.`}
           </span>
         </p>
       </SettlementDecisionDialog>
 
-      {/* 작은 줄은 complete_moving_settlement 동작(퇴실일로 전출 이력 추가·공실 전환, 0167). 미납이 0일 때만 여기까지 오므로
-          공실 수납 방식(자동수납·미수금) 안내는 해당이 없다. */}
+      {/* 작은 줄은 complete_moving_settlement 동작(퇴실일로 전출 이력 추가·공실 전환, 0167). 확정 부과분 미납이 남아 있으면
+          셋업 > 이사정산 설정의 공실 수납 방식대로 자동수납되거나(auto) 미수금으로 남는다(manual). */}
       <SettlementDecisionDialog
         open={dialog === "moveout-confirm"}
         title="퇴실 처리"
@@ -290,6 +288,10 @@ export function SettlementActions({
           <br />
           <span className="text-[12.5px] text-t3">
             퇴실일로 전출 정보에 추가되고 입주자 정보가 초기화돼요.
+            {billingUnpaid > 0 &&
+              (vacancyPaymentMode === "auto"
+                ? ` 확정 부과분 미납 ${formatWon(billingUnpaid)}은 자동으로 수납 처리돼요.`
+                : ` 공실 수납 방식이 수동이라 확정 부과분 미납 ${formatWon(billingUnpaid)}은 미수금으로 남아요.`)}
           </span>
         </p>
       </SettlementDecisionDialog>

@@ -16,14 +16,18 @@ export function SettlementSummaryBar({
   otherTotal,
   receivedAmount,
   total,
+  billingUnpaid,
 }: {
   utilityTotal: number;
   managementTotal: number;
   otherTotal: number;
   receivedAmount: number;
   total: number;
+  /** 확정 부과분 미납(0171) = 정본 `미납 소계`. */
+  billingUnpaid: number;
 }) {
-  const outstanding = total - receivedAmount;
+  // 정본 msCalc `due = (공과금+관리비+기타+미납 소계) − 수납액` — 완료 전 미수금 경고와 같은 숫자.
+  const outstanding = total + billingUnpaid - receivedAmount;
 
   return (
     <div className="flex h-[50px] shrink-0 items-center border-t border-[#dce1e7] bg-[#f7f9fa] px-[18px]">
@@ -31,7 +35,7 @@ export function SettlementSummaryBar({
       <SummaryItem label="② 관리비" value={managementTotal} />
       <SummaryItem label="③ 기타" value={otherTotal} />
       <SummaryItem label="청소" value={0} />
-      <SummaryItem label="미납 소계" value={total} tone="red" />
+      <SummaryItem label="미납 소계" value={billingUnpaid} tone="red" />
       <SummaryItem label="수납액" value={receivedAmount} tone="teal" />
       <div className="ml-auto flex items-baseline gap-[7px] whitespace-nowrap">
         <span className="text-[12px] font-bold leading-[15px] text-t2">미수금</span>
