@@ -10,20 +10,23 @@ export const VENDOR_MANUAL_OPTION = "직접입력";
 export function VendorNameField({
   label,
   placeholder,
-  names,
+  vendors,
+  selectedValue,
   manual,
-  value,
+  name,
   onPick,
   onManual,
   onNameChange,
 }: {
   label: string;
   placeholder?: string;
-  /** 드롭다운에 보일 업체명(같은 구분). */
-  names: string[];
+  /** 같은 구분의 협력업체(값 = 업체 키, 글자 = 업체명 — 이름이 같은 업체도 따로 보인다). */
+  vendors: { value: string; label: string }[];
+  /** 지금 고른 업체의 값. 목록과 맞는 업체가 없으면 업체명을 그대로 보인다. */
+  selectedValue: string | null;
   manual: boolean;
-  value: string;
-  onPick: (name: string) => void;
+  name: string;
+  onPick: (value: string) => void;
   onManual: () => void;
   onNameChange: (name: string) => void;
 }) {
@@ -33,8 +36,8 @@ export function VendorNameField({
       <SelectField
         label={label}
         placeholder={placeholder}
-        options={[...names, VENDOR_MANUAL_OPTION]}
-        value={manual ? VENDOR_MANUAL_OPTION : value}
+        options={[...vendors, VENDOR_MANUAL_OPTION]}
+        value={manual ? VENDOR_MANUAL_OPTION : selectedValue ?? name}
         onChange={(option) => {
           if (option !== VENDOR_MANUAL_OPTION) {
             onPick(option);
@@ -48,7 +51,7 @@ export function VendorNameField({
       {manual && (
         <input
           ref={inputRef}
-          value={value}
+          value={name}
           onChange={(e) => onNameChange(e.target.value)}
           placeholder="업체명 직접입력"
           aria-label={`${label} 직접입력`}

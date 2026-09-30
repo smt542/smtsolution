@@ -23,6 +23,7 @@ export interface VendorNameOptions {
 const NAME = "업체명";
 const PHONE = "전화번호";
 const ACCOUNT = "계좌번호";
+const vendorKey = (vendor: Vendor) => `vendor:${vendor.id}`;
 
 /** 한 업체 아코디언의 펼침 내용(제어형): 필드 그리드 + 계약서 사진(저장된 사진과 새 사진을 한 줄에) + 비고. */
 export function VendorCard({
@@ -51,13 +52,20 @@ export function VendorCard({
   // 고른 적이 없으면 저장된 업체명이 목록에 없을 때만 직접입력으로 본다(목록을 받는 동안은 잠금).
   const [chosenMode, setChosenMode] = useState<"pick" | "manual" | null>(null);
   const name = value.fields[NAME] ?? "";
-  const vendorsByName = new Map((nameOptions?.vendors ?? []).map((vendor) => [vendor.name, vendor] as const));
+  const vendorList = nameOptions?.vendors ?? [];
+  // 이름이 같은 업체가 있을 수 있어 전화번호·계좌번호까지 맞는 업체를 고른 업체로 본다.
+  const selectedVendor = vendorList.find(
+    (vendor) =>
+      vendor.name === name &&
+      (vendor.phone ?? "") === (value.fields[PHONE] ?? "") &&
+      (vendor.bankAccount ?? "") === (value.fields[ACCOUNT] ?? ""),
+  );
   const manual =
     nameOptions === null
       ? true
       : chosenMode
         ? chosenMode === "manual"
-        : !nameOptions.loading && name !== "" && !vendorsByName.has(name);
+        : !nameOptions.loading && name !== "" && !vendorList.some((vendor) => vendor.name === name);
 
   return (
     <FormGrid>
@@ -73,13 +81,15 @@ export function VendorCard({
               key={f.label}
               label={f.label}
               placeholder={f.placeholder}
-              names={[...vendorsByName.keys()]}
+              vendors={vendorList.map((vendor) => ({ value: vendorKey(vendor), label: vendor.name }))}
+              selectedValue={selectedVendor ? vendorKey(selectedVendor) : null}
               manual={manual}
-              value={name}
-              onPick={(picked) => {
-                const vendor = vendorsByName.get(picked);
+              name={name}
+              onPick={(key) => {
+                const vendor = vendorList.find((item) => vendorKey(item) === key);
+                if (!vendor) return;
                 setChosenMode("pick");
-                setVendorFields({ [NAME]: picked, [PHONE]: vendor?.phone ?? "", [ACCOUNT]: vendor?.bankAccount ?? "" });
+                setVendorFields({ [NAME]: vendor.name, [PHONE]: vendor.phone ?? "", [ACCOUNT]: vendor.bankAccount ?? "" });
               }}
               onManual={() => {
                 setChosenMode("manual");
