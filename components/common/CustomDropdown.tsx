@@ -132,7 +132,8 @@ export function CustomDropdown({
     : isCell
       ? "h-[26px] w-full min-w-0 justify-between rounded-[9px] px-[8px] text-[12px] [&_svg]:h-[14px] [&_svg]:w-[14px] [&_svg]:flex-none"
       : isNotification
-        ? "h-[34px] w-[64px] min-w-[64px] justify-between rounded-[9px] px-[10px] text-[13.5px] [&_svg]:h-[13px] [&_svg]:w-[13px]"
+        // 정본 `.mf-daydd .dd-ctl{min-width:64px;gap:8px}` — 폭은 글자에 맞춰 늘고('30일' 72px) 줄바꿈하지 않는다.
+        ? "h-[34px] min-w-[64px] justify-between whitespace-nowrap rounded-[9px] px-[10px] text-[13.5px] [&_svg]:h-[13px] [&_svg]:w-[13px]"
         : `${isCompact ? "h-8" : "h-9"} rounded-[9px] pr-[10px] pl-[11px] text-[13px] ${chevron === "accent" ? "[&_svg]:h-[14px] [&_svg]:w-[14px]" : "[&_svg]:h-[15px] [&_svg]:w-[15px]"}`;
   const chevronMotion = isForm || isModal || chevron === "static"
     ? ""
@@ -241,7 +242,7 @@ export function CustomDropdown({
         ref={triggerRef}
         id={id}
         type="button"
-        className={`uc-dd-btn inline-flex ${triggerSize} items-center leading-[normal] ${isModal ? "" : "gap-[7px] tracking-[-0.01em]"} border ${open ? "border-blue" : "border-line"} bg-surface py-0 ${triggerLook} text-t1 outline-none transition-[border-color,box-shadow] duration-[120ms] disabled:cursor-default disabled:opacity-[.55] disabled:shadow-none ${open && !isModal ? "shadow-[0_0_0_3px_var(--color-blue-t)]" : ""} ${chevronMotion}`}
+        className={`uc-dd-btn inline-flex ${triggerSize} items-center leading-[normal] ${isModal ? "" : isNotification ? "gap-[8px]" : "gap-[7px] tracking-[-0.01em]"} border ${open ? "border-blue" : "border-line"} bg-surface py-0 ${triggerLook} text-t1 outline-none transition-[border-color,box-shadow] duration-[120ms] disabled:cursor-default disabled:opacity-[.55] disabled:shadow-none ${open && !isModal ? "shadow-[0_0_0_3px_var(--color-blue-t)]" : ""} ${chevronMotion}`}
         aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={open}

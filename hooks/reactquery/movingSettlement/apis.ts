@@ -393,11 +393,11 @@ function rpcToSettlementContext(r: SettlementContextRpc): SettlementContext {
       settleAcct: r.settle_account.settle_acct,
       settleHolder: r.settle_account.settle_holder,
     },
-    // 0167 이전 응답에는 settlement_settings 가 없다 → 전부 off / auto 로 본다.
+    // 0167 이전 응답에는 settlement_settings 가 없다 → 셋업 고정값(수도·전기 반영, 공실 수납 수동, 0202)으로 본다.
     settlementSettings: {
-      waterUnitReflect: r.settlement_settings?.water_unit_reflect ?? false,
-      electricUnitReflect: r.settlement_settings?.electric_unit_reflect ?? false,
-      vacancyPaymentMode: r.settlement_settings?.vacancy_payment_mode ?? "auto",
+      waterUnitReflect: r.settlement_settings?.water_unit_reflect ?? true,
+      electricUnitReflect: r.settlement_settings?.electric_unit_reflect ?? true,
+      vacancyPaymentMode: r.settlement_settings?.vacancy_payment_mode ?? "manual",
     },
     // bigint 합계는 드라이버가 문자열로 줄 수 있다.
     billingUnpaid: Number(r.billing_unpaid ?? 0),

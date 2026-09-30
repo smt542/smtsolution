@@ -68,7 +68,8 @@ export function NumberedTagList({
               type="button"
               aria-label={`${item.label} 삭제`}
               onClick={() => onDelete(item.id)}
-              className="grid size-[28px] shrink-0 place-items-center rounded-[8px] text-t4 hover:bg-white hover:text-danger"
+              // 정본 `.st-ck-x:hover`·`.st-as-x:hover{background:#FFECEC;color:var(--red)}`
+              className="grid size-[28px] shrink-0 place-items-center rounded-[8px] text-t4 hover:bg-[#FFECEC] hover:text-danger"
             >
               <CloseIcon className="size-[14px]" />
             </button>
@@ -77,12 +78,14 @@ export function NumberedTagList({
       </div>
       {/* 정본은 추가 버튼이 그리드 아래 왼쪽에 단독으로 놓인다.
           `n / max` 카운터는 이 목록이 아니라 카드 헤더 우측에 있으므로(Panel의 action)
-          여기서 그리지 않는다. */}
+          여기서 그리지 않는다.
+          규격은 정본 `.st-ck-add`(카드 본문 gap 10 + margin-top 2, 점선 #C9D0D8, 폭은 글자에 맞춤,
+          비활성 = 흐림 .45 + 실선). hover 는 글자만 청록 — 테두리 변화는 QA S26 에서 뺐다. */}
       <button
         type="button"
         onClick={onAdd}
         disabled={items.length >= max}
-        className="mt-[10px] h-[38px] w-[101px] rounded-[11px] border border-line bg-white px-[8px] text-[13.5px] font-bold text-t2 hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:bg-bg disabled:text-t4"
+        className="mt-[12px] h-[38px] rounded-[11px] border border-dashed border-[#C9D0D8] bg-white px-[16px] text-[13px] font-bold leading-[normal] text-t2 enabled:hover:text-brand disabled:cursor-default disabled:border-solid disabled:opacity-45"
       >
         {addLabel}
       </button>

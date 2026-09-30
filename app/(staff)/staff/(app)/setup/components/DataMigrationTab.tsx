@@ -74,12 +74,13 @@ export function DataMigrationTab() {
                   <span className={`min-w-[120px] text-right text-[12.5px] font-bold tabular-nums ${done ? "text-brand" : "text-t4"} ${locked && !done ? "opacity-55" : ""}`}>
                     {done ? `${done.n}건 · ${done.at}` : "미실행"}
                   </span>
-                  <button type="button" onClick={() => downloadCsv(row.schema.file, buildTemplateRows(row.schema))} className="h-[34px] flex-none rounded-[11px] border border-line bg-white px-[13px] text-[12.5px] font-bold text-t2 hover:bg-bg">양식</button>
+                  {/* 줄높이는 정본 .hf-btn 처럼 normal — 기본 1.5면 글자가 0.87px 위로 뜬다. */}
+                  <button type="button" onClick={() => downloadCsv(row.schema.file, buildTemplateRows(row.schema))} className="h-[34px] flex-none rounded-[11px] border border-line bg-white px-[13px] text-[12.5px] font-bold leading-[normal] text-t2 hover:bg-bg">양식</button>
                   <button
                     type="button"
                     disabled={locked}
                     onClick={() => setActive({ kind: row.kind, schema: row.schema })}
-                    className="h-[34px] flex-none rounded-[11px] bg-brand px-[13px] text-[12.5px] font-bold text-white shadow-pri hover:bg-brand-dark disabled:cursor-default disabled:opacity-40"
+                    className="h-[34px] flex-none rounded-[11px] bg-brand px-[13px] text-[12.5px] font-bold leading-[normal] text-white shadow-pri hover:bg-brand-dark disabled:cursor-default disabled:opacity-40"
                   >업로드</button>
                 </div>
               );

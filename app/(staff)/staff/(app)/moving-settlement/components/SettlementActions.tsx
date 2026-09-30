@@ -59,7 +59,7 @@ export function SettlementActions({
   amount,
   receivedAmount = 0,
   billingUnpaid = 0,
-  vacancyPaymentMode = "auto",
+  vacancyPaymentMode = "manual",
   createdAt = null,
   printModel,
   paymentInputRef = EMPTY_INPUT_REF,
