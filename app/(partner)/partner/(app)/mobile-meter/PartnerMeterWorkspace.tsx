@@ -93,7 +93,7 @@ export default function PartnerMeterWorkspace({ buildingId }: { buildingId: numb
   const [sheetOpen, setSheetOpen] = useState(false);
   const [spike, setSpike] = useState<{ inputId: string; text: string } | null>(null);
   const warned = useRef(new Set<string>());
-  const toast = usePartnerToast();
+  const { toastMessage, showToast } = usePartnerToast();
 
   const period = `${month}-01`;
   const scope = `${buildingId ?? "none"}:${period}`;
@@ -218,7 +218,7 @@ export default function PartnerMeterWorkspace({ buildingId }: { buildingId: numb
     const next = shiftMonth(month, delta);
     const [nextYear, nextMonth] = next.split("-").map(Number);
     if (!isOpenMonth(nextYear, nextMonth)) {
-      toast.show(`${formatMonth(next)} 자료는 아직 생성되지 않았어요`);
+      showToast(`${formatMonth(next)} 자료는 아직 생성되지 않았어요`);
       return;
     }
     goMonth(next);
@@ -240,9 +240,9 @@ export default function PartnerMeterWorkspace({ buildingId }: { buildingId: numb
     try {
       await saveMutation.mutateAsync({ buildingId, period, readings });
       setDraft({ scope: "", values: {} });
-      toast.show("검침 자료를 저장했어요");
+      showToast("검침 자료를 저장했어요");
     } catch {
-      toast.show("저장에 실패했어요. 다시 시도해 주세요.");
+      showToast("저장에 실패했어요. 다시 시도해 주세요.");
     }
   };
 
@@ -372,7 +372,7 @@ export default function PartnerMeterWorkspace({ buildingId }: { buildingId: numb
         />
       )}
 
-      <PartnerToast message={toast.message} />
+      <PartnerToast message={toastMessage} />
     </div>
   );
 }

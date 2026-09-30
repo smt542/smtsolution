@@ -33,7 +33,7 @@ function BackArrowIcon() {
 
 export function PartnerMobileHeader({ title, backHref, onBack, subtitle, action, variant = "default" }: PartnerMobileHeaderProps) {
   const compact = variant === "compact";
-  const backClassName = "flex size-[38px] flex-none items-center justify-center rounded-xl text-t2 hover:bg-bg";
+  const backClassName = `flex size-[38px] flex-none items-center justify-center rounded-xl text-t2 ${compact ? "hover:bg-[#E4E8EC]" : "hover:bg-bg"}`;
 
   const backControl = onBack ? (
     <button type="button" className={backClassName} onClick={onBack} aria-label="뒤로">
@@ -56,7 +56,7 @@ export function PartnerMobileHeader({ title, backHref, onBack, subtitle, action,
           {subtitle != null ? <div className="mt-0.5 text-[13px] font-semibold text-t3">{subtitle}</div> : null}
         </div>
       ) : (
-        <div className={`min-w-0 flex-1 overflow-hidden whitespace-nowrap font-extrabold tracking-[-0.02em] ${compact ? "text-xl" : "text-[21px]"}`}>{title}</div>
+        <div className={`min-w-0 flex-1 overflow-hidden whitespace-nowrap font-extrabold tracking-[-0.02em] ${compact ? "text-[20px]" : "text-[21px]"}`}>{title}</div>
       )}
       {action}
     </div>

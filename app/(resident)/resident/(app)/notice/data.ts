@@ -21,6 +21,7 @@ const rowToNotice = (row: ResidentNoticeRow): ResidentNotice => ({
   buildingName: row.building_name,
   publishedAt: row.published_at,
   createdAt: row.created_at,
+  preview: row.preview ?? null,
 });
 
 const rowToNoticeDetail = (

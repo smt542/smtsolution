@@ -55,6 +55,8 @@
   /* modal/overlay scrim (정본: .fmpc-scrim·.lg-scrim·.up-scrim = rgba(23,31,40,.45) 슬레이트).
      모든 모달·드로어 백드롭은 `bg-scrim` 한 클래스로 참조 → 톤 변경은 이 값만 수정. */
   --color-scrim: rgba(23, 31, 40, 0.45);
+  /* 정본 현장 홈 정렬 시트(mobile-home `.sheet`)만 .42 — 파트너 정본에서 이 시트 하나뿐(09-30 사용자 결정). */
+  --color-scrim-sheet: rgba(23, 31, 40, 0.42);
 
   /* text scale */
   --color-t1: #191F28;
@@ -69,6 +71,8 @@
   --color-red-t: #FDECEE;
   --color-amber: #FF922B;
   --color-amber-t: #FFF3E6;
+  --color-violet: #7048E8; /* 정본 --violet (현장 A/S '반복' 칩) */
+  --color-violet-t: #F0EBFF;
   --color-kakao: #FEE500;
   --color-kakao-t: #191600;
   --color-danger: #F04452; /* 기존 `danger` alias */

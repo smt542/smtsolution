@@ -43,7 +43,8 @@ export type MSState = {
   paid: number;
   lastPaidDate: string;
   memo: string;
-  checked: Record<number, boolean>;
+  /** 정산 체크 항목별 메모(0172). 저장할 때 checked = 메모가 비어 있지 않음(사무실 화면과 같은 규칙). */
+  notes: Record<number, string>;
 };
 
 export type PartnerMeter = {
@@ -53,7 +54,7 @@ export type PartnerMeter = {
   usage: number | null;
 };
 
-export type PartnerChecklistItem = { id: number; label: string; checked: boolean };
+export type PartnerChecklistItem = { id: number; label: string; checked: boolean; note: string | null };
 
 export type PartnerSettlement = {
   id: number;
@@ -168,7 +169,8 @@ export function computeTotals(state: MSState): MSTotals {
 
 // ===== 초기 상태 =====
 function seededUtil(meters: PartnerMeter[], saved?: MSExtra["util"]): UtilRow[] {
-  const order: Utility[] = ["water", "elec", "gas"];
+  // 정본 카드 순서: 전기 · 수도 · 가스
+  const order: Utility[] = ["elec", "water", "gas"];
   return order.map((k) => {
     const savedRow = saved?.find((r) => r.k === k);
     if (savedRow) {
@@ -196,8 +198,9 @@ function seededUtil(meters: PartnerMeter[], saved?: MSExtra["util"]): UtilRow[] 
 export function initialState(ctx: PartnerSettlementContext): MSState {
   const saved = ctx.latestSettlement;
   const extra = saved?.extra ?? null;
-  const checked: Record<number, boolean> = {};
-  for (const item of ctx.checklist) checked[item.id] = item.checked;
+  // 메모 없이 체크만 켜진 항목(예전 모바일 체크박스로 저장한 건)은 사무실 화면처럼 '확인'으로 읽는다.
+  const notes: Record<number, string> = {};
+  for (const item of ctx.checklist) notes[item.id] = item.note ?? (item.checked ? "확인" : "");
 
   const util = seededUtil(ctx.meterSummary, extra?.util);
   // 저장된 정산의 입금일이 있으면 util 행에 반영(extra가 없던 레거시 대비).
@@ -232,7 +235,7 @@ export function initialState(ctx: PartnerSettlementContext): MSState {
     paid: extra?.paid ?? 0,
     lastPaidDate: extra?.lastPaidDate ?? "",
     memo: saved?.note ?? "",
-    checked,
+    notes,
   };
 }
 
@@ -333,7 +336,7 @@ export type ContextJson = {
   } | null;
   latest_settlement: SettlementJson | null;
   settle_account: { settle_bank: string | null; settle_acct: string | null; settle_holder: string | null };
-  checklist: { id: number; label: string; checked: boolean }[];
+  checklist: { id: number; label: string; checked: boolean; note?: string | null }[];
   meter_summary: {
     utility: Utility;
     previous_reading: number | null;
@@ -382,7 +385,7 @@ export function mapContext(r: ContextJson): PartnerSettlementContext {
       settleAcct: r.settle_account.settle_acct,
       settleHolder: r.settle_account.settle_holder,
     },
-    checklist: r.checklist.map((c) => ({ id: c.id, label: c.label, checked: c.checked })),
+    checklist: r.checklist.map((c) => ({ id: c.id, label: c.label, checked: c.checked, note: c.note ?? null })),
     meterSummary: r.meter_summary.map((m) => ({
       utility: m.utility,
       previousReading: m.previous_reading,

@@ -45,6 +45,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ userId
   // 비밀번호 변경 후 대상 계정의 기존 세션을 폐기한다(리셋 후 구세션 잔존 방지). 폐기 실패가 변경을 막지 않는다.
   const { error: revokeError } = await admin.rpc("revoke_user_sessions", { p_user_id: userId });
   if (revokeError) console.error("[accounts] revoke_user_sessions failed", revokeError.message);
+  // 파트너 프로필 비밀번호 보기(0212)에 저장해 둔 옛 비밀번호를 지운다 — 다시 로그인하면 새 값이 저장된다.
+  const { error: pinError } = await admin.from("partner_login_pins").delete().eq("user_id", userId);
+  if (pinError) console.error("[accounts] partner_login_pins clear failed", pinError.message);
 
   return NextResponse.json({ ok: true }, { status: 200 });
 }
