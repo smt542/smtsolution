@@ -81,6 +81,9 @@ export default async function ResidentNoticePage() {
                       <span className={kindClass}>{typeLabel[notice.noticeType]}</span>
                     </span>
                     <strong className={styles.title}>{notice.title}</strong>
+                    {notice.preview ? (
+                      <span className={styles.preview}>{notice.preview}</span>
+                    ) : null}
                     <time
                       className={styles.date}
                       dateTime={notice.publishedAt}

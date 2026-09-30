@@ -12,6 +12,8 @@ export interface ResidentNoticeRow {
   building_name: string | null;
   published_at: string;
   created_at: string;
+  /** 목록(resident_notices)만 준다 — 본문 평문 앞 120자(0213). 상세 RPC엔 없음 */
+  preview?: string | null;
 }
 
 export interface ResidentNotice {
@@ -22,6 +24,7 @@ export interface ResidentNotice {
   buildingName: string | null;
   publishedAt: string;
   createdAt: string;
+  preview: string | null;
 }
 
 export interface ResidentNoticeDetailRow extends ResidentNoticeRow {
@@ -45,6 +48,7 @@ const rowToNotice = (row: ResidentNoticeRow): ResidentNotice => ({
   buildingName: row.building_name,
   publishedAt: row.published_at,
   createdAt: row.created_at,
+  preview: row.preview ?? null,
 });
 
 const rowToNoticeDetail = (
