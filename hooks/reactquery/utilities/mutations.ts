@@ -1,10 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  clearFixedUsage,
   confirmUtilities,
   saveBillingPeriod,
   saveFixedValues,
-  setFixedUsage,
   saveScopedPrices,
   saveMeterReadings,
   savePartnerMeterReadings,
@@ -13,7 +11,6 @@ import {
   saveWaterDiscount,
   deleteWaterDiscount,
   type ConfirmUtilitiesInput,
-  type ClearFixedUsageInput,
   type SaveBillingPeriodInput,
   type SaveFixedValuesInput,
   type SaveScopedPricesInput,
@@ -22,7 +19,6 @@ import {
   type SaveUtilityUnitPricesInput,
   type SaveUtilitySupplierInput,
   type SaveWaterDiscountInput,
-  type SetFixedUsageInput,
 } from "./apis";
 import { utilityKeys } from "./keys";
 
@@ -88,37 +84,6 @@ export function useSaveFixedValues() {
     mutationFn: (input: SaveFixedValuesInput) => saveFixedValues(input),
     onSuccess: (_result, input) => {
       qc.invalidateQueries({ queryKey: utilityKeys.fixedValues(input.buildingId, input.utilityType) });
-      qc.invalidateQueries({ queryKey: utilityKeys.fixedUsages(input.buildingId, input.utilityType) });
-    },
-  });
-}
-
-export function useSetFixedUsage() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: SetFixedUsageInput) => setFixedUsage(input),
-    onSuccess: (_result, input) => {
-      qc.invalidateQueries({
-        queryKey: utilityKeys.fixedUsages(input.buildingId, input.utilityType),
-      });
-      qc.invalidateQueries({
-        queryKey: utilityKeys.rowsScope(input.buildingId, input.utilityType),
-      });
-    },
-  });
-}
-
-export function useClearFixedUsage() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (input: ClearFixedUsageInput) => clearFixedUsage(input),
-    onSuccess: (_result, input) => {
-      qc.invalidateQueries({
-        queryKey: utilityKeys.fixedUsages(input.buildingId, input.utilityType),
-      });
-      qc.invalidateQueries({
-        queryKey: utilityKeys.rowsScope(input.buildingId, input.utilityType),
-      });
     },
   });
 }

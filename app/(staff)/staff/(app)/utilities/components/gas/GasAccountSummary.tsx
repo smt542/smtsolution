@@ -43,7 +43,8 @@ function summarize(rows: GasTableRow[], drafts: Record<number, GasUtilityDraft>)
       const draft = drafts[row.unitId];
       const current = numeric(draft?.currentReading ?? "") ?? row.currentReading ?? row.previousReading ?? 0;
       const previous = row.previousReading ?? 0;
-      const usage = row.fixedUsage ?? Math.max(0, current - previous);
+      const locked = draft?.usageLocked ? numeric(draft.lockedUsage) : null;
+      const usage = locked ?? Math.max(0, current - previous);
       const manual = numeric(draft?.manualCharge ?? "");
       line.usage += usage;
       line.currentReading += current;

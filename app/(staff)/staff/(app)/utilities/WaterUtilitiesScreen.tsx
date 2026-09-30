@@ -12,9 +12,11 @@ import {
 } from "@/hooks/reactquery/buildingCustomerNumbers";
 import {
   useBillingPeriod,
-  useFixedUsages,
+  useFixedValues,
+  useSaveFixedValues,
   useSaveMeterReadings,
   useUtilityRows,
+  type FixedValueRow,
   type UtilityType,
   type UtilityUnitRow,
 } from "@/hooks/reactquery/utilities";
@@ -26,15 +28,15 @@ import {
   isPrototypeFuturePeriod,
 } from "./components/BillingBasisRequiredState";
 import { CarryOverConfirmModal } from "./components/CarryOverConfirmModal";
-import { FixedUsageModal } from "./components/FixedUsageModal";
 import { MeterLedgerModal } from "./components/MeterLedgerModal";
 import { UnitPriceModal } from "./components/UnitPriceModal";
 import { UtilityAccountSummary } from "./components/UtilityAccountSummary";
 import { defaultBillingDates } from "./components/BillingPeriodBar";
 import { UtilityPeriodBarPlaceholder } from "./components/UtilityPeriodBarPlaceholder";
 import { UtilityWorkspaceHeader } from "./components/UtilityWorkspaceHeader";
-import { UtilityTable, type UtilityDraft, type UtilityTableRow } from "./components/UtilityTable";
+import { UtilityTable, type UtilityDraft } from "./components/UtilityTable";
 import { UtilityWorkspaceBar } from "./components/UtilityWorkspaceBar";
+import { fixedChangeFor, initialLockDraft } from "./components/UtilityLock";
 import { WaterDiscountModal } from "./components/WaterDiscountModal";
 
 const TYPE_LABELS: Record<UtilityType, string> = {
@@ -61,13 +63,13 @@ function isVacant(row: UtilityUnitRow): boolean {
   return row.occupancyStatus === "vacant" || row.occupancyId === null;
 }
 
-function initialDraft(row: UtilityUnitRow): UtilityDraft {
+function initialDraft(row: UtilityUnitRow, fixed: FixedValueRow | undefined, period: string): UtilityDraft {
   return {
     previousReading: row.previousReading === null ? "" : String(row.previousReading),
     currentReading: row.currentReading === null ? "" : String(row.currentReading),
     usage: row.usage === null ? "" : String(row.usage),
-    manualCharge: row.manualCharge === null ? "" : String(row.manualCharge),
     note: row.note ?? "",
+    ...initialLockDraft(fixed, period, row.manualCharge),
   };
 }
 
@@ -98,7 +100,6 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
   const [carryOpen, setCarryOpen] = useState(false);
   const [priceModalOpen, setPriceModalOpen] = useState(false);
   const [discountRow, setDiscountRow] = useState<UtilityUnitRow | null>(null);
-  const [fixedUsageRow, setFixedUsageRow] = useState<UtilityTableRow | null>(null);
 
   const year = Number(referenceDate.slice(0, 4));
   const month = Number(referenceDate.slice(5, 7));
@@ -106,9 +107,10 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
   const buildings = useMemo(() => buildingsQuery.data ?? [], [buildingsQuery.data]);
   const selectedBuilding = buildings.find((building) => building.id === buildingId) ?? null;
   const rowsQuery = useUtilityRows(buildingId, utilityType, period);
-  const fixedUsagesQuery = useFixedUsages(buildingId, utilityType);
+  const fixedValuesQuery = useFixedValues(buildingId, utilityType);
   const billingPeriodQuery = useBillingPeriod(buildingId, period);
   const saveMeter = useSaveMeterReadings();
+  const saveFixedValues = useSaveFixedValues();
   const customerNumberQueries = useQueries({
     queries: buildings.map((building) => ({
       queryKey: customerNumberKeys.byBuilding(building.id),
@@ -120,31 +122,27 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
     (customerNumberQueries[index]?.data ?? []).filter((item) => item.kind === "water").length,
   ]));
 
-  const rows = useMemo<UtilityTableRow[]>(() => {
-    const fixed = new Map((fixedUsagesQuery.data ?? []).map((row) => [row.unitId, row]));
-    return (rowsQuery.data ?? []).map((row) => ({
-      ...row,
-      fixedUsage: fixed.get(row.unitId)?.fixedUsage ?? null,
-      ...(utilityType === "gas" ? { fixedUsageFrom: fixed.get(row.unitId)?.fromMonth ?? null } : {}),
-    }));
-  }, [fixedUsagesQuery.data, rowsQuery.data, utilityType]);
+  const rows = useMemo(() => rowsQuery.data ?? [], [rowsQuery.data]);
+  const fixedByUnit = useMemo(
+    () => new Map((fixedValuesQuery.data ?? []).map((row) => [row.unitId, row])),
+    [fixedValuesQuery.data],
+  );
   const scopeKey = `${buildingId ?? "none"}:${utilityType}:${period}`;
   const rowsById = useMemo(() => new Map(rows.map((row) => [row.unitId, row])), [rows]);
   const scopedDrafts = useMemo<Record<number, UtilityDraft>>(
-    () => Object.fromEntries(rows.map((row) => [row.unitId, drafts[`${scopeKey}:${row.unitId}`] ?? initialDraft(row)])),
-    [drafts, rows, scopeKey],
+    () => Object.fromEntries(rows.map((row) => [
+      row.unitId,
+      drafts[`${scopeKey}:${row.unitId}`] ?? initialDraft(row, fixedByUnit.get(row.unitId), period),
+    ])),
+    [drafts, fixedByUnit, period, rows, scopeKey],
   );
   const activeRows = useMemo(() => rows.filter((row) => !isVacant(row)), [rows]);
   const effectiveSelectedRow = rows.find((row) => row.unitId === selectedRow?.unitId) ?? rows[0] ?? null;
   const isWaterWorkspaceLoading =
     rowsQuery.isLoading ||
-    fixedUsagesQuery.isLoading ||
+    fixedValuesQuery.isLoading ||
     (buildingId !== null && billingPeriodQuery.isLoading);
-  const isWaterWorkspaceRefreshing =
-    (rowsQuery.isFetching && !rowsQuery.isLoading) ||
-    (fixedUsagesQuery.isFetching && !fixedUsagesQuery.isLoading) ||
-    (billingPeriodQuery.isFetching && !billingPeriodQuery.isLoading);
-  const rowsError = rowsQuery.error ?? fixedUsagesQuery.error;
+  const rowsError = rowsQuery.error ?? fixedValuesQuery.error;
   const needsBasis = buildingId !== null
     && !billingPeriodQuery.isLoading
     && isPrototypeFuturePeriod(period)
@@ -179,8 +177,11 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
     const row = rowsById.get(unitId);
     if (!row) return;
     const key = `${scopeKey}:${unitId}`;
-    setDrafts((current) => ({ ...current, [key]: { ...(current[key] ?? initialDraft(row)), ...patch } }));
-  }, [rowsById, scopeKey]);
+    setDrafts((current) => ({
+      ...current,
+      [key]: { ...(current[key] ?? initialDraft(row, fixedByUnit.get(unitId), period)), ...patch },
+    }));
+  }, [fixedByUnit, period, rowsById, scopeKey]);
 
   if (me === undefined) return null;
   if (!hasModule(me, "utilities")) {
@@ -193,16 +194,18 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
     setEditing(false);
     setPriceModalOpen(false);
     setDiscountRow(null);
-    setFixedUsageRow(null);
   };
 
-  const saveReadings = (finishEditing: boolean) => {
+  const saveReadings = async (finishEditing: boolean) => {
     if (buildingId === null) return;
+    // 고정한 호실은 지침이 비어도 저장해야 이 달 부과에 고정값이 들어간다. 고정한 량은 서버가
+    // fixed_usage 로 계산하므로 usage 를 보내지 않는다(보내면 지침과 맞춰 보는 H6 검사에 걸린다).
     const payloadRows = activeRows
       .map((row) => ({ row, draft: scopedDrafts[row.unitId] }))
       .filter(({ row, draft }) => (
-        row.fixedUsage !== null
-        || draft.previousReading.trim() !== initialDraft(row).previousReading
+        draft.usageLocked
+        || draft.manualLocked
+        || draft.previousReading.trim() !== (row.previousReading === null ? "" : String(row.previousReading))
         || draft.currentReading.trim() !== ""
         || draft.usage.trim() !== ""
         || draft.manualCharge.trim() !== ""
@@ -212,11 +215,15 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
         unit_id: row.unitId,
         ...(draft.previousReading.trim() === "" ? {} : { previous_reading: draft.previousReading.trim() }),
         ...(draft.currentReading.trim() === "" ? {} : { current_reading: draft.currentReading.trim() }),
-        ...(draft.usage.trim() === "" ? {} : { usage: draft.usage.trim() }),
+        ...(draft.usageLocked || draft.usage.trim() === "" ? {} : { usage: draft.usage.trim() }),
         manual_charge: draft.manualCharge.trim(),
         note: draft.note.trim(),
       }));
-    if (payloadRows.length === 0) {
+    const fixedChanges = activeRows.flatMap((row) => {
+      const change = fixedChangeFor(row.unitId, scopedDrafts[row.unitId], fixedByUnit.get(row.unitId), period);
+      return change ? [change] : [];
+    });
+    if (payloadRows.length === 0 && fixedChanges.length === 0) {
       if (finishEditing) {
         setEditing(false);
         return;
@@ -224,16 +231,21 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
       toast.error("입력된 검침 정보가 없습니다.");
       return;
     }
-    saveMeter.mutate(
-      { buildingId, utilityType, period, rows: payloadRows },
-      {
-        onSuccess: (result) => {
-          toast.success(`${result.saved}개 호실의 검침을 저장했습니다.`);
-          if (finishEditing) setEditing(false);
-        },
-        onError: () => toast.error("검침 저장에 실패했습니다."),
-      },
-    );
+    try {
+      // 고정값을 먼저 써야 save_meter_readings 가 바뀐 고정 사용량으로 량을 계산한다.
+      if (fixedChanges.length > 0) {
+        await saveFixedValues.mutateAsync({ buildingId, utilityType, rows: fixedChanges });
+      }
+      if (payloadRows.length > 0) {
+        const result = await saveMeter.mutateAsync({ buildingId, utilityType, period, rows: payloadRows });
+        toast.success(`${result.saved}개 호실의 검침을 저장했습니다.`);
+      } else {
+        toast.success("고정값을 저장했습니다.");
+      }
+      if (finishEditing) setEditing(false);
+    } catch {
+      toast.error("검침 저장에 실패했습니다.");
+    }
   };
 
   const carryOver = () => {
@@ -247,10 +259,10 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
           const source = scopedDrafts[row.unitId];
           const carried = source.currentReading.trim() || (row.previousReading === null ? "" : String(row.previousReading));
           next[`${nextScope}:${row.unitId}`] = {
+            ...initialLockDraft(fixedByUnit.get(row.unitId), nextPeriod, null),
             previousReading: carried,
             currentReading: carried,
             usage: "0",
-            manualCharge: "",
             note: "",
           };
         });
@@ -293,11 +305,6 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
 
         {!buildingId ? <UnselectedWorkspace period={period} /> : (
           <div className="relative flex min-h-0 min-w-0 flex-1 flex-col gap-4">
-            {isWaterWorkspaceRefreshing ? (
-              <div className="absolute right-4 top-4 z-10 rounded-lg bg-white/95 shadow-card">
-                <Spinner label="수도 지침 갱신 중" size="small" showLabel />
-              </div>
-            ) : null}
             {selectedBuilding && (
               <UtilityWorkspaceBar
                 key={`${buildingId}:${period}`}
@@ -308,15 +315,15 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
                 canEdit
                 saving={saveMeter.isPending}
                 onEditingChange={setEditing}
-                onCalculate={() => saveReadings(false)}
-                onSave={() => saveReadings(true)}
+                onCalculate={() => void saveReadings(false)}
+                onSave={() => void saveReadings(true)}
               />
             )}
 
             {isWaterWorkspaceLoading ? (
               <section className="grid min-h-[360px] flex-1 place-items-center rounded-xl border border-line bg-white"><Spinner label="수도 호실 정보 불러오는 중" showLabel /></section>
             ) : rowsError || billingPeriodQuery.error ? (
-              <section role="alert" className="grid min-h-[360px] flex-1 place-items-center rounded-xl border border-red/20 bg-red-t text-center"><div><p className="text-[13px] font-bold text-red">호실 정보를 불러오지 못했습니다.</p><button type="button" onClick={() => { rowsQuery.refetch(); fixedUsagesQuery.refetch(); billingPeriodQuery.refetch(); }} className="mt-3 h-8 rounded-lg border border-line bg-white px-3 text-[11px] font-bold text-t2">다시 시도</button></div></section>
+              <section role="alert" className="grid min-h-[360px] flex-1 place-items-center rounded-xl border border-red/20 bg-red-t text-center"><div><p className="text-[13px] font-bold text-red">호실 정보를 불러오지 못했습니다.</p><button type="button" onClick={() => { rowsQuery.refetch(); fixedValuesQuery.refetch(); billingPeriodQuery.refetch(); }} className="mt-3 h-8 rounded-lg border border-line bg-white px-3 text-[11px] font-bold text-t2">다시 시도</button></div></section>
             ) : (
               <>
                 <UtilityAccountSummary rows={rows} selectedRow={effectiveSelectedRow} editing={editing} onSelect={setSelectedRow} />
@@ -344,7 +351,6 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
                       onDraftChange={updateDraft}
                       onRowClick={setSelectedRow}
                       onDiscountClick={utilityType === "water" ? setDiscountRow : undefined}
-                      onFixedUsageClick={setFixedUsageRow}
                     />
                   )}
                 </section>
@@ -367,7 +373,6 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
       <CarryOverConfirmModal open={carryOpen} year={year} month={month} onCancel={() => setCarryOpen(false)} onConfirm={carryOver} />
       <UnitPriceModal open={priceModalOpen} buildingId={buildingId} utilityType={utilityType} onClose={() => setPriceModalOpen(false)} />
       {discountRow && <WaterDiscountModal open buildingId={buildingId as number} period={period} row={discountRow} onClose={() => setDiscountRow(null)} />}
-      {fixedUsageRow && buildingId !== null && <FixedUsageModal open buildingId={buildingId} unitId={fixedUsageRow.unitId} unitNo={fixedUsageRow.unitNo} utility={utilityType} currentFixedUsage={fixedUsageRow.fixedUsage} currentFixedUsageFrom={utilityType === "gas" ? fixedUsageRow.fixedUsageFrom ?? null : undefined} onSaved={() => setFixedUsageRow(null)} onClose={() => setFixedUsageRow(null)} />}
     </div>
   );
 }

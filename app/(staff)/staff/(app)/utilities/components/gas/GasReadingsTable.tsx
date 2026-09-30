@@ -1,7 +1,7 @@
-import Image from "next/image";
 import type { GasTableRow, GasUtilityDraft } from "./types";
 import { GridEmptyValue } from "../GridEmptyValue";
 import { UtilityGrid, type UtilityGridColumn } from "../UtilityGrid";
+import { FIXED_LOCK_CELL, LockedValue, LockPin, manualLockPatch, usageLockPatch } from "../UtilityLock";
 
 interface GasReadingsTableProps {
   rows: GasTableRow[];
@@ -11,7 +11,6 @@ interface GasReadingsTableProps {
   chargeStartDate: string;
   chargeEndDate: string;
   onDraftChange: (unitId: number, patch: Partial<GasUtilityDraft>) => void;
-  onOpenFixedUsage: (row: GasTableRow) => void;
 }
 
 const TABLE_WIDTH = 1922;
@@ -44,6 +43,8 @@ function isRecent(moveInDate: string | null, referenceDate: string): boolean {
 interface GasReadingsGridRow {
   row: GasTableRow;
   draft: GasUtilityDraft;
+  /** 지침으로 계산한 량. 량을 고정하면 이 값이 고정값이 된다. */
+  computedUsage: number | null;
   usage: number | null;
   previousUsage: number | null;
   change: number | null;
@@ -90,13 +91,14 @@ export function GasReadingsTable({
   chargeStartDate,
   chargeEndDate,
   onDraftChange,
-  onOpenFixedUsage,
 }: GasReadingsTableProps) {
   const chargeBasis = `${chargeStartDate.replaceAll("-", ".")} ~ ${chargeEndDate.replaceAll("-", ".")}`;
   const preparedRows: GasReadingsGridRow[] = rows.map((row) => {
     const draft = drafts[row.unitId];
     const current = numberFrom(draft.currentReading);
-    const usage = row.fixedUsage ?? (current === null || row.previousReading === null ? row.usage : Math.max(0, current - row.previousReading));
+    const computedUsage = current === null || row.previousReading === null ? row.usage : Math.max(0, current - row.previousReading);
+    // 고정한 량은 지침과 무관하게 그 값으로 부과된다(서버 save_meter_readings 도 같다).
+    const usage = draft.usageLocked ? numberFrom(draft.lockedUsage) : computedUsage;
     const previousUsage = row.usage;
     const change = usage === null || previousUsage === null ? null : usage - previousUsage;
     const manual = numberFrom(draft.manualCharge);
@@ -113,7 +115,7 @@ export function GasReadingsTable({
           ? "shadow-[inset_3px_0_0_#12B886]"
           : "";
 
-    return { row, draft, usage, previousUsage, change, charge, vacant, vacantUsage, movingOut, recent, marker, chargeBasis };
+    return { row, draft, computedUsage, usage, previousUsage, change, charge, vacant, vacantUsage, movingOut, recent, marker, chargeBasis };
   });
 
   const columns: UtilityGridColumn<GasReadingsGridRow>[] = [
@@ -174,7 +176,6 @@ export function GasReadingsTable({
         <ReadingInput
           label={`${item.row.unitNo} 당월 지침값`}
           value={item.draft.currentReading}
-          disabled={item.row.fixedUsage !== null}
           onChange={(value) => onDraftChange(item.row.unitId, { currentReading: value })}
         />
       ) : <ReadingValue value={item.row.currentReading} />,
@@ -184,7 +185,7 @@ export function GasReadingsTable({
       label: "량",
       width: 115,
       align: "right",
-      cellClassName: "tabular-nums",
+      cellClassName: (item) => `tabular-nums ${!editing && item.draft.usageLocked ? FIXED_LOCK_CELL : ""}`,
       render: (item) => editing ? (
         <div className="flex items-center justify-center gap-[5px]">
           <ReadingInput
@@ -193,11 +194,13 @@ export function GasReadingsTable({
             readOnly
             onChange={() => {}}
           />
-          <button type="button" aria-label={`${item.row.unitNo} 고정 사용량 설정`} onClick={() => onOpenFixedUsage(item.row)} className="flex size-[22px] items-center justify-center rounded-md border border-line bg-white hover:bg-bg">
-            <Image src="/figma-assets/gas/lock.svg" alt="" width={12} height={12} />
-          </button>
+          <LockPin
+            locked={item.draft.usageLocked}
+            label={`${item.row.unitNo} 량 고정`}
+            onToggle={() => onDraftChange(item.row.unitId, usageLockPatch(item.draft.usageLocked, item.computedUsage))}
+          />
         </div>
-      ) : <ReadingValue value={item.usage} />,
+      ) : item.draft.usageLocked ? <LockedValue value={item.usage} /> : <ReadingValue value={item.usage} />,
     },
     {
       key: "previousUsage",
@@ -220,14 +223,21 @@ export function GasReadingsTable({
       label: "수동입력",
       width: 115,
       align: "right",
-      cellClassName: "tabular-nums",
+      cellClassName: (item) => `tabular-nums ${!editing && item.draft.manualLocked ? FIXED_LOCK_CELL : ""}`,
       render: (item) => editing ? (
-        <ReadingInput
-          label={`${item.row.unitNo} 수동 입력 요금`}
-          value={item.draft.manualCharge}
-          onChange={(value) => onDraftChange(item.row.unitId, { manualCharge: value })}
-        />
-      ) : <ReadingValue value={item.row.manualCharge} />,
+        <div className="flex items-center justify-center gap-[5px]">
+          <ReadingInput
+            label={`${item.row.unitNo} 수동 입력 요금`}
+            value={item.draft.manualCharge}
+            onChange={(value) => onDraftChange(item.row.unitId, { manualCharge: value })}
+          />
+          <LockPin
+            locked={item.draft.manualLocked}
+            label={`${item.row.unitNo} 수동입력 고정`}
+            onToggle={() => onDraftChange(item.row.unitId, manualLockPatch(item.draft.manualLocked, item.draft.manualCharge))}
+          />
+        </div>
+      ) : item.draft.manualLocked ? <LockedValue value={numberFrom(item.draft.manualCharge)} /> : <ReadingValue value={item.row.manualCharge} />,
     },
     {
       key: "discountType",

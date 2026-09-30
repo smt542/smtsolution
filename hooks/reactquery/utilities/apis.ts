@@ -355,62 +355,6 @@ export interface SaveScopedPricesInput {
   rows: ScopedPriceRow[];
 }
 
-export interface FixedUsageRow {
-  unitId: number;
-  fixedUsage: number;
-  fromMonth: string | null;
-}
-
-interface FixedUsageDbRow {
-  unit_id: number;
-  fixed_usage: number | string;
-  fixed_usage_from: string | null;
-}
-
-export async function listFixedUsages(
-  buildingId: number,
-  utilityType: UtilityType,
-): Promise<FixedUsageRow[]> {
-  const { data, error } = await createClient()
-    .from("unit_meters")
-    .select("unit_id, fixed_usage, fixed_usage_from, units!inner(building_id)")
-    .eq("utility", dbUtility(utilityType))
-    .eq("units.building_id", buildingId)
-    .is("units.deleted_at", null)
-    .not("fixed_usage", "is", null);
-  if (error) throw new Error(error.message);
-  return ((data ?? []) as unknown as FixedUsageDbRow[]).map((row) => ({
-    unitId: row.unit_id,
-    fixedUsage: Number(row.fixed_usage),
-    fromMonth: row.fixed_usage_from,
-  }));
-}
-
-export interface SetFixedUsageInput {
-  buildingId: number;
-  unitId: number;
-  utilityType: UtilityType;
-  fixedUsage: number;
-  fixedUsageFrom?: string | null;
-}
-
-export async function setFixedUsage(input: SetFixedUsageInput): Promise<void> {
-  const { error } = await createClient()
-    .from("unit_meters")
-    .upsert(
-      {
-        unit_id: input.unitId,
-        utility: dbUtility(input.utilityType),
-        fixed_usage: input.fixedUsage,
-        ...(input.fixedUsageFrom === undefined
-          ? {}
-          : { fixed_usage_from: input.fixedUsageFrom }),
-      },
-      { onConflict: "unit_id,utility" },
-    );
-  if (error) throw new Error(error.message);
-}
-
 export interface BillingPeriodRow {
   chargeStartDate: string;
   chargeEndDate: string;
@@ -463,21 +407,6 @@ export async function saveBillingPeriod(input: SaveBillingPeriodInput): Promise<
       },
       { onConflict: "building_id,period" },
     );
-  if (error) throw new Error(error.message);
-}
-
-export interface ClearFixedUsageInput {
-  buildingId: number;
-  unitId: number;
-  utilityType: UtilityType;
-}
-
-export async function clearFixedUsage(input: ClearFixedUsageInput): Promise<void> {
-  const { error } = await createClient()
-    .from("unit_meters")
-    .update({ fixed_usage: null })
-    .eq("unit_id", input.unitId)
-    .eq("utility", dbUtility(input.utilityType));
   if (error) throw new Error(error.message);
 }
 
