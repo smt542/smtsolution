@@ -38,7 +38,7 @@ import {
   uploadOrganizationContractFile,
   useCreatePlatformOrganization,
   useDeletePlatformOrganization,
-  useOrganizationContractFilePreview,
+  useOrganizationContractFilePreviews,
   usePlatformOrganizationOwner,
   usePlatformResetPassword,
   useSetOrgDeleted,
@@ -48,6 +48,7 @@ import {
   type PlatformOrganization,
 } from "@/hooks/reactquery/platform";
 import { formatNumber } from "@/lib/format";
+import { MAX_ATTACHMENT_FILES } from "@/lib/attachments/policy";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { HqPasswordInput } from "../../../../_components/HqPasswordInput";
 
@@ -169,8 +170,9 @@ function OrganizationFormFields({
   errors,
   editStatus,
   onStatusChange,
-  contractFile,
-  onContractFileChange,
+  contractFiles,
+  onContractFilesChange,
+  maxNewFiles,
   existing,
   disabled,
   ownerUsername,
@@ -183,8 +185,10 @@ function OrganizationFormFields({
   errors: FieldErrors<OrganizationFormValues>;
   editStatus?: EditStatus;
   onStatusChange?: (value: EditStatus) => void;
-  contractFile: File | null;
-  onContractFileChange: (file: File | null) => void;
+  contractFiles: File[];
+  onContractFilesChange: (files: File[]) => void;
+  /** 새로 더 고를 수 있는 장수(저장된 사진 제외) */
+  maxNewFiles: number;
   existing: readonly PhotoUploadExistingPhoto[];
   disabled: boolean;
   ownerUsername?: string;
@@ -281,11 +285,10 @@ function OrganizationFormFields({
         <PhotoUpload
           variant="drop"
           hideLabel
-          files={contractFile ? [contractFile] : []}
+          files={contractFiles}
           existing={existing}
-          onFilesChange={(files) => onContractFileChange(files[0] ?? null)}
-          max={1}
-          hint="JPG · PNG · 1장"
+          onFilesChange={onContractFilesChange}
+          max={maxNewFiles}
           accept="image/jpeg,image/png,image/webp"
           disabled={disabled}
         />
@@ -363,7 +366,7 @@ function Description({ organization }: { organization: PlatformOrganization }) {
 function CreateModal({ onClose }: { onClose: () => void }) {
   const confirm = useConfirm();
   const createOrg = useCreatePlatformOrganization();
-  const [contractFile, setContractFile] = useState<File | null>(null);
+  const [contractFiles, setContractFiles] = useState<File[]>([]);
   const {
     register,
     control,
@@ -388,9 +391,9 @@ function CreateModal({ onClose }: { onClose: () => void }) {
     });
     if (!accepted) return;
 
-    let uploadedPath: string | null = null;
+    const uploadedPaths: string[] = [];
     try {
-      if (contractFile) uploadedPath = await uploadOrganizationContractFile(contractFile);
+      for (const file of contractFiles) uploadedPaths.push(await uploadOrganizationContractFile(file));
       await createOrg.mutateAsync({
         name: values.name,
         phone: values.phone,
@@ -403,13 +406,13 @@ function CreateModal({ onClose }: { onClose: () => void }) {
         address: values.address,
         region: regionFromAddress(values.address),
         operatingHours: values.operatingHours || null,
-        contractFilePath: uploadedPath,
+        contractFilePaths: uploadedPaths,
         owner: { username: values.ownerUsername, password: values.ownerPassword },
       });
       toast.success("테넌트를 생성했어요 · 관리자 계정 발급 완료");
       onClose();
     } catch (error) {
-      if (uploadedPath) await removeOrganizationContractFile(uploadedPath).catch(() => undefined);
+      await Promise.all(uploadedPaths.map((path) => removeOrganizationContractFile(path).catch(() => undefined)));
       setSubmissionError(error, setError, "테넌트 생성에 실패했습니다.");
       toast.error(error, "테넌트 생성에 실패했습니다.");
     }
@@ -447,8 +450,9 @@ function CreateModal({ onClose }: { onClose: () => void }) {
             register={register as unknown as UseFormRegister<OrganizationFormValues>}
             control={control as unknown as Control<OrganizationFormValues>}
             errors={errors as unknown as FieldErrors<OrganizationFormValues>}
-            contractFile={contractFile}
-            onContractFileChange={setContractFile}
+            contractFiles={contractFiles}
+            onContractFilesChange={setContractFiles}
+            maxNewFiles={MAX_ATTACHMENT_FILES}
             existing={[]}
             disabled={submitting}
           />
@@ -476,8 +480,9 @@ function EditModal({ organization, onClose }: Omit<EditProps, "mode">) {
   const setDeleted = useSetOrgDeleted();
   const resetPassword = usePlatformResetPassword();
   const deleteOrg = useDeletePlatformOrganization();
-  const [contractFile, setContractFile] = useState<File | null>(null);
-  const [removeExisting, setRemoveExisting] = useState(false);
+  const [contractFiles, setContractFiles] = useState<File[]>([]);
+  // 저장된 계약서 사진 중 이번에 지운 것(저장할 때 반영)
+  const [removedPaths, setRemovedPaths] = useState<string[]>([]);
   const [editStatus, setEditStatus] = useState<EditStatus>(() => statusFromOrganization(organization));
   // 삭제 확인창이 떠 있는 동안 Esc가 이 모달까지 닫지 않게 막는다(저장 확인창은 isSubmitting이 막는다).
   const [deleting, setDeleting] = useState(false);
@@ -508,17 +513,16 @@ function EditModal({ organization, onClose }: Omit<EditProps, "mode">) {
     shouldFocusError: false,
   });
   const submitting = isSubmitting || deleting || updateOrg.isPending || updateStatus.isPending || setDeleted.isPending || resetPassword.isPending || deleteOrg.isPending;
-  const existingPath = organization.contractFilePath;
-  const previewQuery = useOrganizationContractFilePreview(!contractFile && !removeExisting ? existingPath : null);
-  const existing: readonly PhotoUploadExistingPhoto[] = existingPath && !contractFile && !removeExisting
-    ? [{
-        id: existingPath,
-        name: storedFileName(existingPath),
-        url: previewQuery.data,
-        error: previewQuery.isError,
-        onDelete: () => setRemoveExisting(true),
-      }]
-    : [];
+  const savedPaths = organization.contractFilePaths;
+  const keptPaths = savedPaths.filter((path) => !removedPaths.includes(path));
+  const previews = useOrganizationContractFilePreviews(keptPaths);
+  const existing: readonly PhotoUploadExistingPhoto[] = keptPaths.map((path, index) => ({
+    id: path,
+    name: storedFileName(path),
+    url: previews[index]?.data,
+    error: previews[index]?.isError,
+    onDelete: () => setRemovedPaths((current) => [...current, path]),
+  }));
 
   const onValid = async (values: OrgEditFormValues) => {
     const statusChangedToRestricted = editStatus !== statusFromOrganization(organization)
@@ -533,12 +537,11 @@ function EditModal({ organization, onClose }: Omit<EditProps, "mode">) {
     });
     if (!accepted) return;
 
-    let uploadedPath: string | null = null;
+    const uploadedPaths: string[] = [];
     let organizationUpdated = false;
-    const contractFilePath = contractFile ? null : removeExisting ? null : existingPath;
     try {
-      if (contractFile) uploadedPath = await uploadOrganizationContractFile(contractFile, organization.id);
-      const nextContractFilePath = uploadedPath ?? contractFilePath;
+      for (const file of contractFiles) uploadedPaths.push(await uploadOrganizationContractFile(file, organization.id));
+      const nextContractFilePaths = [...keptPaths, ...uploadedPaths];
       await updateOrg.mutateAsync({
         id: organization.id,
         input: {
@@ -554,7 +557,7 @@ function EditModal({ organization, onClose }: Omit<EditProps, "mode">) {
           address: values.address,
           region: regionFromAddress(values.address),
           operatingHours: values.operatingHours || null,
-          contractFilePath: nextContractFilePath,
+          contractFilePaths: nextContractFilePaths,
         },
       });
       organizationUpdated = true;
@@ -573,15 +576,18 @@ function EditModal({ organization, onClose }: Omit<EditProps, "mode">) {
       if (values.ownerPassword && ownerQuery.data) {
         await resetPassword.mutateAsync({ userId: ownerQuery.data.userId, password: values.ownerPassword });
       }
-      if (existingPath && existingPath !== nextContractFilePath) {
-        await removeOrganizationContractFile(existingPath).catch(() => {
+      const removedFiles = savedPaths.filter((path) => !nextContractFilePaths.includes(path));
+      if (removedFiles.length > 0) {
+        await Promise.all(removedFiles.map((path) => removeOrganizationContractFile(path))).catch(() => {
           toast.warning("이전 계약서 파일 정리가 필요합니다.");
         });
       }
       toast.success("저장했어요");
       onClose();
     } catch (error) {
-      if (uploadedPath && !organizationUpdated) await removeOrganizationContractFile(uploadedPath).catch(() => undefined);
+      if (!organizationUpdated) {
+        await Promise.all(uploadedPaths.map((path) => removeOrganizationContractFile(path).catch(() => undefined)));
+      }
       setSubmissionError(error, setError, "테넌트 정보를 저장하지 못했습니다.");
       toast.error(error, "테넌트 정보를 저장하지 못했습니다.");
     }
@@ -641,11 +647,9 @@ function EditModal({ organization, onClose }: Omit<EditProps, "mode">) {
             errors={errors as unknown as FieldErrors<OrganizationFormValues>}
             editStatus={editStatus}
             onStatusChange={setEditStatus}
-            contractFile={contractFile}
-            onContractFileChange={(file) => {
-              setContractFile(file);
-              if (file) setRemoveExisting(false);
-            }}
+            contractFiles={contractFiles}
+            onContractFilesChange={setContractFiles}
+            maxNewFiles={Math.max(0, MAX_ATTACHMENT_FILES - keptPaths.length)}
             existing={existing}
             disabled={submitting}
             ownerUsername={ownerQuery.data?.username ?? undefined}

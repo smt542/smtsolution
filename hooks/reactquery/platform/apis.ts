@@ -6,11 +6,11 @@ import {
 } from "@/lib/attachments/policy";
 import { createPrivateAssetSignedUrl } from "@/lib/attachments/signedUrl";
 import { formatNumber } from "@/lib/format";
-import type { OrgMemberRole, StaffType } from "@/hooks/reactquery/auth";
 
 // 정본 조직 상태 = 운영·정지(해지는 deleted_at). org_status 타입의 'trial'은 쓰지 않는다(0207).
 export type OrganizationStatus = "active" | "suspended";
 export type PlatformOrganizationStatusFilter = "operating" | "suspended" | "terminated";
+export type HqRole = "master" | "operations" | "support" | "sales" | "accounting" | "other";
 
 export type PointTxType = "charge" | "usage" | "adjustment";
 
@@ -73,7 +73,8 @@ export interface PlatformOrganization {
   address: string | null;
   region: string | null;
   operatingHours: string | null;
-  contractFilePath: string | null;
+  /** 계약서 사진 경로들(정본 '여러 장 가능', 0209) */
+  contractFilePaths: string[];
   unitCount: number;
   employeeCount: number;
   tenantCount: number;
@@ -86,18 +87,14 @@ export interface PlatformOrganizationContractKpis {
   terminatedLast12MonthsCount: number;
 }
 
-export interface PlatformAccount {
-  orgId: number;
-  organizationName: string;
+export interface PlatformHqAccount {
   userId: string;
-  username: string | null;
-  fullName: string | null;
-  phone: string | null;
+  username: string;
+  fullName: string;
+  phone: string;
   memo: string | null;
-  role: OrgMemberRole;
-  staffType: StaffType;
-  permissions: string[];
-  isActive: boolean | null;
+  hqRole: HqRole | null;
+  isActive: boolean;
   createdAt: string;
 }
 
@@ -116,7 +113,7 @@ export interface PlatformOrganizationQuery {
   pageSize?: number;
 }
 
-export interface PlatformAccountQuery {
+export interface PlatformHqAccountQuery {
   search?: string;
   page?: number;
   pageSize?: number;
@@ -158,6 +155,7 @@ interface OrganizationRpcRow {
   region?: string | null;
   operating_hours?: string | null;
   contract_file_path?: string | null;
+  contract_file_paths?: string[] | null;
   account_count: number | string;
   building_count: number | string;
   unit_count?: number | string;
@@ -169,18 +167,14 @@ interface OrganizationRpcRow {
   total_count: number | string;
 }
 
-interface AccountRpcRow {
-  org_id: number;
-  organization_name: string;
+interface HqAccountRpcRow {
   user_id: string;
-  username: string | null;
-  full_name: string | null;
-  phone: string | null;
+  username: string;
+  full_name: string;
+  phone: string;
   memo: string | null;
-  role: OrgMemberRole;
-  staff_type: StaffType;
-  feature_permissions: unknown;
-  is_active: boolean | null;
+  hq_role: HqRole | null;
+  is_active: boolean;
   created_at: string;
   total_count: number | string;
 }
@@ -234,7 +228,7 @@ function mapPlatformOrganization(row: OrganizationRpcRow): PlatformOrganization 
     address: row.address ?? null,
     region: row.region ?? null,
     operatingHours: row.operating_hours ?? null,
-    contractFilePath: row.contract_file_path ?? null,
+    contractFilePaths: row.contract_file_paths ?? (row.contract_file_path ? [row.contract_file_path] : []),
     unitCount: Number(row.unit_count ?? 0),
     employeeCount: Number(row.employee_count ?? 0),
     tenantCount: Number(row.tenant_count ?? 0),
@@ -308,39 +302,31 @@ export async function getPlatformOrganizationContractKpis(): Promise<PlatformOrg
   };
 }
 
-export async function listPlatformAccounts(
-  opts: PlatformAccountQuery = {},
-): Promise<PaginatedResult<PlatformAccount>> {
+export async function listPlatformHqAccounts(
+  opts: PlatformHqAccountQuery = {},
+): Promise<{ rows: PlatformHqAccount[]; totalCount: number }> {
   const page = positiveInteger(opts.page, 1);
-  const pageSize = Math.min(positiveInteger(opts.pageSize, 25), 100);
-  const client = createClient();
-  const { data, error } = await client.rpc("platform_list_accounts", {
+  const pageSize = Math.min(positiveInteger(opts.pageSize, 10), 100);
+  const { data, error } = await createClient().rpc("platform_list_hq_accounts", {
     p_search: opts.search?.trim() || null,
     p_limit: pageSize,
     p_offset: (page - 1) * pageSize,
   });
-
   if (error) throw new Error(error.message);
-  const rows = (data ?? []) as AccountRpcRow[];
 
+  const rows = (data ?? []) as HqAccountRpcRow[];
   return {
     rows: rows.map((row) => ({
-      orgId: row.org_id,
-      organizationName: row.organization_name,
       userId: row.user_id,
       username: row.username,
       fullName: row.full_name,
       phone: row.phone,
       memo: row.memo,
-      role: row.role,
-      staffType: row.staff_type,
-      permissions: Array.isArray(row.feature_permissions) ? row.feature_permissions : [],
+      hqRole: row.hq_role,
       isActive: row.is_active,
       createdAt: row.created_at,
     })),
     totalCount: rows.length > 0 ? Number(rows[0].total_count) : 0,
-    page,
-    pageSize,
   };
 }
 
@@ -462,7 +448,7 @@ export interface CreateOrgInput {
   address: string;
   region: string;
   operatingHours?: string | null;
-  contractFilePath?: string | null;
+  contractFilePaths?: string[];
   /** 정본 신규 테넌트: 관리자 아이디 + 초기 비밀번호(숫자 4자리). 관리자 이름은 서버가 대표자명으로 채운다. */
   owner: { username: string; password: string };
 }
@@ -501,7 +487,8 @@ export async function updatePlatformOrganization(id: number, input: UpdateOrgInp
     p_address: input.address,
     p_region: input.region,
     p_operating_hours: input.operatingHours || null,
-    p_contract_file_path: input.contractFilePath || null,
+    p_contract_file_path: input.contractFilePaths?.[0] ?? null,
+    p_contract_file_paths: input.contractFilePaths ?? [],
   });
   if (error) throw new Error(error.message);
 }

@@ -4,7 +4,7 @@ import { useEffect, useId, useRef } from "react";
 import { Button } from "./Button";
 
 export type ConfirmVariant = "default" | "danger";
-export type ConfirmLook = "default" | "check" | "plain" | "split" | "left" | "hq";
+export type ConfirmLook = "default" | "check" | "plain" | "split" | "left" | "hq" | "hqCompact";
 
 export interface ConfirmOptions {
   title: string;
@@ -109,6 +109,61 @@ export function ConfirmDialog({
               size="std"
               variant={variant === "danger" ? "danger" : "primary"}
               className={variant === "danger" ? "border border-red shadow-none" : "border border-transparent"}
+              onClick={onConfirm}
+              autoFocus={hideCancel || variant !== "danger"}
+              disabled={confirmDisabled}
+            >
+              {confirmLabel}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (look === "hqCompact") {
+    return (
+      <div
+        className="fixed inset-0 z-[600] flex items-center justify-center bg-scrim p-6"
+        onMouseDown={onCancel}
+      >
+        <div
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          aria-describedby={description != null ? descId : undefined}
+          className="max-h-[88vh] w-[min(400px,90vw)] overflow-auto rounded-[18px] bg-white px-6 pb-[18px] pt-[22px] text-left leading-[normal] shadow-[0_24px_60px_-20px_rgba(23,31,40,0.4)]"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <h2 id={titleId} className="text-[16px] font-extrabold tracking-[-0.02em] text-t1">
+            {title}
+          </h2>
+          {description != null && (
+            <p
+              id={descId}
+              className="mt-2 whitespace-pre-line text-[13px] font-medium leading-[1.6] text-t3 [&_b]:font-bold [&_b]:text-t1 [&_strong]:font-bold [&_strong]:text-t1"
+            >
+              {description}
+            </p>
+          )}
+          {children}
+          <div className="mt-5 flex justify-end gap-2">
+            {!hideCancel && (
+              <Button
+                type="button"
+                size="std"
+                variant="ghost"
+                onClick={onCancel}
+                autoFocus={variant === "danger"}
+              >
+                {cancelLabel}
+              </Button>
+            )}
+            <Button
+              type="button"
+              size="std"
+              variant={variant === "danger" ? "danger" : "primary"}
+              className={variant === "danger" ? "shadow-none" : ""}
               onClick={onConfirm}
               autoFocus={hideCancel || variant !== "danger"}
               disabled={confirmDisabled}

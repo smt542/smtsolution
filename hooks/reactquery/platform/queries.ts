@@ -1,13 +1,13 @@
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useQueries, useQuery } from "@tanstack/react-query";
 import {
   getPlatformOverview,
   getPlatformOrganizationContractKpis,
   getOrganizationContractFilePreview,
   getPlatformOrganizationOwner,
-  listPlatformAccounts,
+  listPlatformHqAccounts,
   listPlatformOrganizations,
   listPointTransactions,
-  type PlatformAccountQuery,
+  type PlatformHqAccountQuery,
   type PlatformOrganizationQuery,
   type PointTransactionCursor,
   type PointTransactionQuery,
@@ -41,21 +41,24 @@ export function usePlatformOrganizationContractKpis() {
   });
 }
 
-export function useOrganizationContractFilePreview(path: string | null) {
-  return useQuery({
-    queryKey: platformKeys.organizationContractFile(path ?? ""),
-    queryFn: () => getOrganizationContractFilePreview(path as string),
-    enabled: Boolean(path),
-    staleTime: SIGNED_URL_STALE_TIME_MS,
-    gcTime: SIGNED_URL_GC_TIME_MS,
-    retry: 1,
+/** 계약서 사진 여러 장의 미리보기 서명 URL(경로 순서대로) */
+export function useOrganizationContractFilePreviews(paths: readonly string[]) {
+  return useQueries({
+    queries: paths.map((path) => ({
+      queryKey: platformKeys.organizationContractFile(path),
+      queryFn: () => getOrganizationContractFilePreview(path),
+      staleTime: SIGNED_URL_STALE_TIME_MS,
+      gcTime: SIGNED_URL_GC_TIME_MS,
+      retry: 1,
+    })),
   });
 }
 
-export function usePlatformAccounts(opts: PlatformAccountQuery = {}) {
+export function usePlatformHqAccounts(opts: PlatformHqAccountQuery = {}) {
   return useQuery({
-    queryKey: platformKeys.accounts(opts),
-    queryFn: () => listPlatformAccounts(opts),
+    queryKey: platformKeys.hqAccounts(opts),
+    queryFn: () => listPlatformHqAccounts(opts),
+    placeholderData: keepPreviousData,
   });
 }
 
