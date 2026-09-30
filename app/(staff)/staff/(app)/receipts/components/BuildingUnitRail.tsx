@@ -34,6 +34,9 @@ const TD_CLASS = "overflow-hidden text-ellipsis whitespace-nowrap px-[16px] py-[
 const TD_FIRST_CLASS = "overflow-visible whitespace-nowrap px-[16px] py-[12px] text-[13.5px] [text-overflow:clip]";
 // 정본 빈 행 `<td class="dsh" style="text-align:center;padding:26px 0">` (#rcUnitBody td.dsh = t4·400).
 const EMPTY_TD_CLASS = "py-[26px] text-center text-[13.5px] font-normal text-t4";
+// 정본 `#rcUnitTbl.slide`(rcInR)·`#rcBldTbl.slide`(rcInL): 들어오는 표만 옆에서 밀려 들어오고, 나가는 표는 바로 사라진다.
+const SLIDE_IN_UNITS_CLASS = "animate-[rc-in-r_0.22s_cubic-bezier(0.22,0.8,0.3,1)_both] motion-reduce:animate-none";
+const SLIDE_IN_BUILDINGS_CLASS = "animate-[rc-in-l_0.22s_cubic-bezier(0.22,0.8,0.3,1)_both] motion-reduce:animate-none";
 
 export function BuildingUnitRail({
   buildings,
@@ -43,6 +46,7 @@ export function BuildingUnitRail({
   isUnitsLoading,
   canEdit,
   view,
+  viewSeq,
   selectedBuildingId,
   selectedUnitId,
   onSelectBuilding,
@@ -56,6 +60,8 @@ export function BuildingUnitRail({
   isUnitsLoading: boolean;
   canEdit: boolean;
   view: "building" | "unit";
+  /** 목록 전환 횟수(정본 `setView` 호출 수). 바뀔 때마다 목록을 맨 위로 올리고 들어오는 표의 슬라이드를 처음부터 재생한다. */
+  viewSeq: number;
   selectedBuildingId: number | null;
   selectedUnitId: number | null;
   onSelectBuilding: (id: number) => void;
@@ -67,6 +73,9 @@ export function BuildingUnitRail({
   const [noteTab, setNoteTab] = useState<NoteTab>("memo");
   const selectedBuilding = buildings.find((b) => b.id === selectedBuildingId) ?? null;
   const showUnits = view === "unit" && selectedBuilding !== null;
+  const searchLabel = showUnits ? "호수·세대주 검색" : "건물명·주소 검색";
+  // 첫 화면은 전환이 아니므로 재생하지 않는다.
+  const slideClass = viewSeq === 0 ? "" : showUnits ? SLIDE_IN_UNITS_CLASS : SLIDE_IN_BUILDINGS_CLASS;
 
   const selectBuilding = (building: BuildingLite) => {
     setSearch("");
@@ -113,156 +122,126 @@ export function BuildingUnitRail({
   return (
     <aside className="flex h-full w-full min-h-0 flex-col gap-[16px]">
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden rounded-2xl bg-surface shadow-[0_1px_3px_rgba(23,31,40,0.05)]">
-        <div
-          data-testid="building-unit-view-track"
-          className={`flex h-full min-h-0 w-[200%] transition-transform duration-[220ms] ease-[cubic-bezier(0.22,0.8,0.3,1)] motion-reduce:transition-none ${showUnits ? "-translate-x-1/2" : ""}`}
-        >
-          <div
-            className="flex h-full min-h-0 w-1/2 flex-[0_0_50%] flex-col"
-            aria-hidden={showUnits}
-            inert={showUnits}
-          >
-            <div className="flex flex-wrap items-center gap-[8px] px-[18px] py-[15px] border-b border-line2">
-              <h2 className="whitespace-nowrap text-[15px] font-extrabold leading-[normal] text-t1">전체 건물</h2>
-              <div className="relative basis-full w-full">
-                <SearchIcon />
-                <input
-                  type="search"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="건물명·주소 검색"
-                  aria-label="건물명·주소 검색"
-                  className="h-[32px] w-full rounded-[9px] border border-line bg-surface pl-[31px] pr-[11px] text-[13px] font-semibold leading-[normal] text-t1 placeholder:text-[#757575] outline-none focus:border-teal"
-                />
-              </div>
-            </div>
-            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
-            {isBuildingsLoading ? (
-              <div className="flex min-h-[128px] items-center justify-center"><Spinner /></div>
-            ) : (
-              <table
-                aria-label="건물 목록"
-                className="w-full table-fixed leading-[normal]"
-              >
-                <colgroup>
-                  <col className="w-[64px]" />
-                  <col className="w-[96px]" />
-                  <col />
-                </colgroup>
-                <thead>
-                  <tr>
-                    <th className={TH_CLASS}>코드</th>
-                    <th className={TH_CLASS}>건물명</th>
-                    <th className={TH_CLASS}>주소</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredBuildings.map((b) => {
-                    const active = b.id === selectedBuildingId;
-                    return (
-                      <tr
-                        key={b.id}
-                        onClick={() => selectBuilding(b)}
-                        className={`cursor-pointer border-b border-line2 last:border-0 ${active ? "bg-teal-t" : "hover:bg-row-hover-accent"}`}
-                      >
-                        <td className={`${TD_FIRST_CLASS} text-t1 num`}>{b.code}</td>
-                        <td className={`${TD_CLASS} font-bold text-t1`} title={b.name}>{b.name}</td>
-                        <td className={`${TD_CLASS} text-t1`} title={b.address ?? "-"}>{b.address ?? "-"}</td>
-                      </tr>
-                    );
-                  })}
-                  {/* 정본 drawBld 는 검색 결과가 없으면 빈 tbody 다. 건물이 아예 없는 조직은 정본에 없는 상태라 안내만 한 줄 둔다. */}
-                  {buildings.length === 0 && (
-                    <tr>
-                      <td colSpan={3} className={EMPTY_TD_CLASS}>등록된 건물이 없어요</td>
+        {/* 정본 `.rc-bld > .hf-panel-h`: 머리는 전환 때 움직이지 않고 뒤로가기·제목(#rcPanelT)·검색 문구만 바뀐다. */}
+        <div className="flex flex-wrap items-center gap-[8px] px-[18px] py-[15px] border-b border-line2">
+          {showUnits && (
+            <IconButton
+              onClick={showBuildingList}
+              aria-label="건물 목록으로"
+              title="건물 목록으로"
+              className="size-[24px] flex-none rounded-[7px] text-t2 transition-transform duration-[120ms] ease-[ease] hover:bg-bg hover:text-t1 active:-translate-x-0.5"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="size-[16px]">
+                <path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </IconButton>
+          )}
+          <h2 className="min-w-0 truncate whitespace-nowrap text-[15px] font-extrabold leading-[normal] text-t1">
+            {showUnits ? selectedBuilding.name : "전체 건물"}
+          </h2>
+          <div className="relative basis-full w-full">
+            <SearchIcon />
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={searchLabel}
+              aria-label={searchLabel}
+              className="h-[32px] w-full rounded-[9px] border border-line bg-surface pl-[31px] pr-[11px] text-[13px] font-semibold leading-[normal] text-t1 placeholder:text-[#757575] outline-none focus:border-teal"
+            />
+          </div>
+        </div>
+        {/* 정본 #rcListWrap: 슬라이드 중 가로 스크롤을 막고 전환마다 scrollTop=0. 전환 횟수를 key 로 다시 그려
+            스크롤 위치와 들어오는 표의 애니메이션을 함께 처음으로 돌린다. */}
+        <div key={viewSeq} className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
+          {!showUnits && (isBuildingsLoading ? (
+            <div className="flex min-h-[128px] items-center justify-center"><Spinner /></div>
+          ) : (
+            <table
+              aria-label="건물 목록"
+              className={`w-full table-fixed leading-[normal] ${slideClass}`}
+            >
+              <colgroup>
+                <col className="w-[64px]" />
+                <col className="w-[96px]" />
+                <col />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th className={TH_CLASS}>코드</th>
+                  <th className={TH_CLASS}>건물명</th>
+                  <th className={TH_CLASS}>주소</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredBuildings.map((b) => {
+                  const active = b.id === selectedBuildingId;
+                  return (
+                    <tr
+                      key={b.id}
+                      onClick={() => selectBuilding(b)}
+                      className={`cursor-pointer border-b border-line2 last:border-0 ${active ? "bg-teal-t" : "hover:bg-row-hover-accent"}`}
+                    >
+                      <td className={`${TD_FIRST_CLASS} text-t1 num`}>{b.code}</td>
+                      <td className={`${TD_CLASS} font-bold text-t1`} title={b.name}>{b.name}</td>
+                      <td className={`${TD_CLASS} text-t1`} title={b.address ?? "-"}>{b.address ?? "-"}</td>
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            )}
-            </div>
-          </div>
-          <div
-            className="flex h-full min-h-0 w-1/2 flex-[0_0_50%] flex-col"
-            aria-hidden={!showUnits}
-            inert={!showUnits}
-          >
-            {selectedBuilding !== null && (
-              <>
-                <div className="flex flex-wrap items-center gap-[8px] px-[18px] py-[15px] border-b border-line2">
-                  <IconButton
-                    onClick={showBuildingList}
-                    aria-label="건물 목록으로"
-                    title="건물 목록으로"
-                    className="size-[24px] rounded-[7px] text-t2 transition-transform duration-[120ms] ease-[ease] hover:bg-bg hover:text-t1 active:-translate-x-0.5"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="size-[16px]">
-                      <path d="M15 6l-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </IconButton>
-                  <span className="min-w-0 truncate whitespace-nowrap text-[15px] font-extrabold leading-[normal] text-t1">{selectedBuilding.name}</span>
-                  <div className="relative basis-full w-full">
-                    <SearchIcon />
-                    <input
-                      type="search"
-                      value={search}
-                      onChange={(event) => setSearch(event.target.value)}
-                      placeholder="호수·세대주 검색"
-                      aria-label="호수·세대주 검색"
-                      className="h-[32px] w-full rounded-[9px] border border-line bg-surface pl-[31px] pr-[11px] text-[13px] font-semibold leading-[normal] text-t1 placeholder:text-[#757575] outline-none focus:border-teal"
-                    />
-                  </div>
-                </div>
-                <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
-                  {isUnitsLoading ? (
-                    <div className="flex min-h-[128px] items-center justify-center"><Spinner /></div>
-                  ) : (
-                    <table aria-label="호실 목록" className="w-full table-fixed leading-[normal]">
-                      <colgroup>
-                        {/* 정본 호수 칸은 64px(`101호`). 동이 붙는 건물(`A동 101호`)은 64px 을 넘쳐 세대주와 붙으므로 넓힌다. */}
-                        <col className={units.some((unit) => unit.dong) ? "w-[96px]" : "w-[64px]"} />
-                        <col />
-                      </colgroup>
-                      <thead>
-                        <tr>
-                          <th className={TH_CLASS}>호수</th>
-                          <th className={TH_CLASS}>세대주</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredUnits.map((u) => {
-                          const active = u.id === selectedUnitId;
-                          const tenantName = tenantByUnit.get(u.id);
-                          return (
-                            <tr
-                              key={u.id}
-                              onClick={() => onSelectUnit(u.id)}
-                              className={`cursor-pointer border-b border-line2 last:border-0 ${
-                                active ? "bg-teal-t" : "hover:bg-row-hover-accent"
-                              }`}
-                            >
-                              <td className={`${TD_FIRST_CLASS} font-bold text-t1`}>
-                                {unitLabel(u)}
-                              </td>
-                              <td className={`${TD_CLASS} ${tenantName ? "text-t1" : "font-normal text-t4"}`} title={tenantName}>
-                                {tenantName ?? "공실"}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                        {/* 정본 drawUnits: 목록이 비면 `검색 결과가 없어요` 한 줄. */}
-                        {filteredUnits.length === 0 && (
-                          <tr>
-                            <td colSpan={2} className={EMPTY_TD_CLASS}>검색 결과가 없어요</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
+                  );
+                })}
+                {/* 정본 drawBld 는 검색 결과가 없으면 빈 tbody 다. 건물이 아예 없는 조직은 정본에 없는 상태라 안내만 한 줄 둔다. */}
+                {buildings.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className={EMPTY_TD_CLASS}>등록된 건물이 없어요</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          ))}
+          {showUnits && (isUnitsLoading ? (
+            <div className="flex min-h-[128px] items-center justify-center"><Spinner /></div>
+          ) : (
+            <table aria-label="호실 목록" className={`w-full table-fixed leading-[normal] ${slideClass}`}>
+              <colgroup>
+                {/* 정본 호수 칸은 64px(`101호`). 동이 붙는 건물(`A동 101호`)은 64px 을 넘쳐 세대주와 붙으므로 넓힌다. */}
+                <col className={units.some((unit) => unit.dong) ? "w-[96px]" : "w-[64px]"} />
+                <col />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th className={TH_CLASS}>호수</th>
+                  <th className={TH_CLASS}>세대주</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUnits.map((u) => {
+                  const active = u.id === selectedUnitId;
+                  const tenantName = tenantByUnit.get(u.id);
+                  return (
+                    <tr
+                      key={u.id}
+                      onClick={() => onSelectUnit(u.id)}
+                      className={`cursor-pointer border-b border-line2 last:border-0 ${
+                        active ? "bg-teal-t" : "hover:bg-row-hover-accent"
+                      }`}
+                    >
+                      <td className={`${TD_FIRST_CLASS} font-bold text-t1`}>
+                        {unitLabel(u)}
+                      </td>
+                      <td className={`${TD_CLASS} ${tenantName ? "text-t1" : "font-normal text-t4"}`} title={tenantName}>
+                        {tenantName ?? "공실"}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {/* 정본 drawUnits: 목록이 비면 `검색 결과가 없어요` 한 줄. */}
+                {filteredUnits.length === 0 && (
+                  <tr>
+                    <td colSpan={2} className={EMPTY_TD_CLASS}>검색 결과가 없어요</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          ))}
         </div>
       </div>
 
