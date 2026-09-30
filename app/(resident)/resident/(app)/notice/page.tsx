@@ -30,9 +30,10 @@ export default async function ResidentNoticePage() {
   return (
     <div className={styles.page}>
       <MobileBackHeader
+        variant="list"
         href="/resident/home"
         label="홈으로 돌아가기"
-        title="공지사항"
+        title="공지"
       />
 
       <main className={styles.scroll}>
@@ -43,22 +44,53 @@ export default async function ResidentNoticePage() {
           </div>
         ) : (
           <section className={styles.list} aria-label="공지 목록">
-            {notices.map((notice) => (
-              <Link href={`/resident/notice/${notice.id}`} key={notice.id}>
-                <div className={styles.rowTop}>
-                  <span className={`${styles.badge} ${styles[notice.noticeType]}`}>
-                    {typeLabel[notice.noticeType]}
+            {notices.map((notice) => {
+              const iconClass =
+                notice.noticeType === "normal"
+                  ? styles.iconNormal
+                  : styles.iconWarning;
+              const kindClass =
+                notice.noticeType === "normal"
+                  ? styles.kindNormal
+                  : notice.noticeType === "important"
+                    ? styles.kindImportant
+                    : styles.kindUrgent;
+
+              return (
+                <Link
+                  href={`/resident/notice/${notice.id}`}
+                  className={styles.row}
+                  key={notice.id}
+                >
+                  <span className={iconClass}>
+                    <svg
+                      className="size-[18px]"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.9"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M4 8h9l5-3v14l-5-3H4z" />
+                    </svg>
                   </span>
-                  <time dateTime={notice.publishedAt}>
-                    {formatDate(notice.publishedAt)}
-                  </time>
-                </div>
-                <strong>{notice.title}</strong>
-                <svg className={styles.chevron} viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-            ))}
+                  <span className={styles.text}>
+                    <span className={styles.top}>
+                      <span className={kindClass}>{typeLabel[notice.noticeType]}</span>
+                    </span>
+                    <strong className={styles.title}>{notice.title}</strong>
+                    <time
+                      className={styles.date}
+                      dateTime={notice.publishedAt}
+                    >
+                      {formatDate(notice.publishedAt)}
+                    </time>
+                  </span>
+                </Link>
+              );
+            })}
           </section>
         )}
       </main>

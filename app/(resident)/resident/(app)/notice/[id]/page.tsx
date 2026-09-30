@@ -15,6 +15,24 @@ const typeLabel: Record<ResidentNoticeType, string> = {
   urgent: "긴급",
 };
 
+function NoticeKindIcon() {
+  return (
+    <svg
+      className="size-3"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 4l9 16H3z" />
+      <path d="M12 10v4M12 17v.4" />
+    </svg>
+  );
+}
+
 export default async function ResidentNoticeDetailPage({
   params,
 }: {
@@ -26,10 +44,10 @@ export default async function ResidentNoticeDetailPage({
 
   const header = (
     <MobileBackHeader
+      variant="detail"
       href="/resident/notice"
       label="공지 목록으로 돌아가기"
-      title="공지사항"
-      divider
+      title="공지"
     />
   );
 
@@ -73,21 +91,36 @@ export default async function ResidentNoticeDetailPage({
     );
   }
 
+  const buildingName = residentBuildingName ?? detail.buildingName;
+  const isHighlighted = detail.noticeType !== "normal";
+
   return (
     <div className={styles.page}>
       {header}
       <main className={styles.scroll}>
-        <article className={styles.article}>
-          <span className={`${styles.badge} ${styles[detail.noticeType]}`}>
+        <article>
+          <span className={`${styles.tag} ${styles[detail.noticeType]}`}>
+            {isHighlighted ? <NoticeKindIcon /> : null}
             {typeLabel[detail.noticeType]}
           </span>
-          <h2>{detail.title}</h2>
+          <h2 className={styles.title}>{detail.title}</h2>
           <p className={styles.metadata}>
-            <time dateTime={detail.publishedAt}>{formatDate(detail.publishedAt)}</time>
-            <span aria-hidden="true">·</span>
-            <span>{detail.buildingName ?? residentBuildingName ?? "전체 공지"}</span>
+            <time className="tabular-nums" dateTime={detail.publishedAt}>
+              {formatDate(detail.publishedAt)}
+            </time>
+            {buildingName ? (
+              <>
+                <span aria-hidden="true">·</span>
+                <span>{buildingName} 관리사무소</span>
+              </>
+            ) : null}
           </p>
-          <NoticeContent json={detail.contentJson} fallbackText={detail.content} imageUrls={imageUrls} className={styles.content} />
+          <NoticeContent
+            json={detail.contentJson}
+            fallbackText={detail.content}
+            imageUrls={imageUrls}
+            className={styles.content}
+          />
         </article>
       </main>
     </div>
