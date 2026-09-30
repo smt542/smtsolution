@@ -59,7 +59,7 @@ export function FacilityField({
             {f.on && (
               <span
                 aria-hidden="true"
-                className="absolute left-1/2 top-[46%] h-[9px] w-[5px] -translate-x-1/2 -translate-y-1/2 rotate-45 border-b-2 border-r-2 border-white"
+                className="absolute left-1/2 top-[46%] box-content h-[9px] w-[5px] -translate-x-1/2 -translate-y-1/2 rotate-45 border-b-2 border-r-2 border-white"
               />
             )}
           </button>
