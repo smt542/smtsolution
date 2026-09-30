@@ -32,3 +32,32 @@ select org_id, count(*) as role_count from staff_roles group by org_id order by 
 select r.routine_name, has_function_privilege('anon', p.oid, 'execute') as anon_can_exec
   from pg_proc p join information_schema.routines r on r.specific_name = p.proname||'_'||p.oid
   where p.proname in ('provision_member','admin_set_member_permissions','list_accounts');
+
+-- anon/PUBLIC 실행권한이 남아 있으면 검증 실패로 처리한다.
+-- 함수 내부에서 auth.uid()를 다시 검사하더라도, security definer RPC는
+-- 최소권한 원칙상 authenticated/service_role에만 노출해야 한다.
+do $$
+declare
+  v_bad text;
+begin
+  select string_agg(
+    p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')',
+    ', ' order by p.proname
+  )
+  into v_bad
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public'
+    and p.proname in (
+      'provision_member',
+      'admin_set_member_permissions',
+      'admin_update_member_basic',
+      'admin_set_active',
+      'list_accounts'
+    )
+    and has_function_privilege('anon', p.oid, 'EXECUTE');
+
+  if v_bad is not null then
+    raise exception 'P2a RPCs must not be executable by anon: %', v_bad;
+  end if;
+end $$;

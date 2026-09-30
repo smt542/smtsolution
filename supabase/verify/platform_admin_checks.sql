@@ -39,12 +39,21 @@ begin
     from pg_policies
     where schemaname = 'public'
       and tablename = 'point_transactions'
-      and policyname = 'pt_platform'
-      and cmd = 'ALL'
+      and policyname = 'pt_platform_select'
+      and cmd = 'SELECT'
       and coalesce(qual, '') like '%current_user_is_platform_admin%'
-      and coalesce(with_check, '') like '%current_user_is_platform_admin%'
   ) then
-    raise exception 'point_transactions platform-admin policy missing';
+    raise exception 'point_transactions platform-admin select policy missing';
+  end if;
+
+  if exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'point_transactions'
+      and cmd <> 'SELECT'
+  ) then
+    raise exception 'point_transactions must remain append-only';
   end if;
 end $$;
 
