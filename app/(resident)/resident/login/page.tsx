@@ -32,7 +32,7 @@ export default function ResidentLoginPage() {
             <div className={styles.cardIn}>
               <div className={styles.cw}>
                 <span>2026년 8월 관리비</span>
-                <span className={`${styles.chip} ${styles.ok}`}>납부 완료</span>
+                <span className={styles.chip}>납부 완료</span>
               </div>
               <div className={styles.amt}>
                 128,400<i>원</i>
