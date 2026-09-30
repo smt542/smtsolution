@@ -40,7 +40,7 @@ export function BillingReferencePanel({
           <span
             className={`relative size-[17px] flex-none rounded-[5px] border-2 ${
               important
-                ? "border-teal bg-teal after:absolute after:left-1/2 after:top-[46%] after:h-[9px] after:w-[5px] after:-translate-x-1/2 after:-translate-y-1/2 after:rotate-45 after:border-b-2 after:border-r-2 after:border-white after:content-['']"
+                ? "border-teal bg-teal after:absolute after:left-1/2 after:top-[46%] after:box-content after:h-[9px] after:w-[5px] after:-translate-x-1/2 after:-translate-y-1/2 after:rotate-45 after:border-b-2 after:border-r-2 after:border-white after:content-['']"
                 : "border-line"
             }`}
           />
