@@ -202,11 +202,12 @@ export default function OrganizationsWorkspace() {
       </div>
 
       <section className="flex min-h-[280px] flex-1 flex-col overflow-hidden rounded-2xl bg-surface shadow-card">
-        <div className="flex flex-none items-center gap-2.5 border-b border-line2 px-[18px] py-[15px]">
+        <div className="flex flex-none items-center gap-2.5 border-b border-line2 px-[18px] py-[15px] leading-[normal]">
           <h3 className="text-[15px] font-extrabold text-t1">테넌트 목록</h3>
-          <span className="text-xs font-semibold text-t3">{formatNumber(totalCount)}곳</span>
+          <span className="text-[12px] font-semibold text-t3">{formatNumber(totalCount)}곳</span>
           {isOrganizationListRefreshing ? (
-            <Spinner label="테넌트 목록 갱신 중" size="small" showLabel className="px-2 py-1" />
+            // 머리 줄(18px) 안에 들어가게 — 머리가 커지면 한 쪽 행 수가 바뀌어 다시 불러오기가 반복될 수 있다.
+            <Spinner label="테넌트 목록 갱신 중" size="small" showLabel className="px-2 py-0 leading-[normal]" />
           ) : null}
         </div>
 
