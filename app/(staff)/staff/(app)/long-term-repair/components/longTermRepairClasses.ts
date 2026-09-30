@@ -89,7 +89,8 @@ export const longTermRepairClasses = {
   attachmentGrid: "grid grid-cols-[repeat(auto-fill,minmax(96px,1fr))] gap-2 empty:hidden",
   attachmentThumb: "relative aspect-square cursor-zoom-in overflow-hidden rounded-[11px] bg-bg [&_img]:block [&_img]:size-full [&_img]:object-cover",
   attachmentRemove: "absolute right-1.5 top-1.5 flex size-[22px] items-center justify-center rounded-full bg-[rgba(23,31,40,0.62)] text-[11px] leading-none text-white hover:bg-red",
-  attachmentReadOnly: "px-0 py-1.5 pb-0.5 text-[12.5px] font-semibold text-t4",
+  /* 정본 .lt-at-ro 줄높이는 normal이다. 모달 scrim의 leading-normal(1.5)을 물려받지 않게 명시한다. */
+  attachmentReadOnly: "px-0 py-1.5 pb-0.5 text-[12.5px] font-semibold leading-[normal] text-t4",
   attachmentDrop: "mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-[11px] border-[1.5px] border-dashed text-[13px] font-bold hover:border-blue hover:bg-[rgba(20,164,151,0.05)] hover:text-blue disabled:cursor-wait disabled:opacity-55 [&_svg]:size-[17px]",
   attachmentDropIdle: "border-line bg-white text-t3",
   attachmentDropActive: "border-blue bg-[rgba(20,164,151,0.05)] text-blue",
