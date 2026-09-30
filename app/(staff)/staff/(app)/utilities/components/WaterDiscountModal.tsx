@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Button, Modal, Select } from "@/components/common";
+import { Button, CustomDropdown, Modal } from "@/components/common";
 import {
   useSaveWaterDiscount,
   useDeleteWaterDiscount,
@@ -67,12 +67,18 @@ export function WaterDiscountModal({ open, buildingId, period, row, onClose }: W
       <div className="flex flex-col gap-4">
         <label className="block">
           <span className="mb-1.5 block text-xs font-bold text-t2">할인 구분</span>
-          <Select
-            aria-label="할인 구분"
-            value={discountType}
-            onChange={(e) => setDiscountType(e.target.value as WaterDiscountType)}
-            options={TYPE_OPTIONS}
-          />
+          {/* 네이티브 select 금지(QA 공통 규칙) — 트리거는 아래 할인 금액 칸과 같은 44px·r12·14px */}
+          <div className="[&_.uc-dd-btn]:h-11 [&_.uc-dd-btn]:rounded-xl [&_.uc-dd-btn]:pl-4 [&_.uc-dd-btn]:pr-4 [&_.uc-dd-btn]:text-sm [&_.uc-dd-btn]:font-normal">
+            <CustomDropdown
+              ariaLabel="할인 구분"
+              value={discountType}
+              options={TYPE_OPTIONS}
+              size="form"
+              variant="field"
+              position="fixed"
+              onChange={(value) => setDiscountType(value as WaterDiscountType)}
+            />
+          </div>
         </label>
         <label className="block">
           <span className="mb-1.5 block text-xs font-bold text-t2">할인 금액</span>
