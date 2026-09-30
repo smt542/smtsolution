@@ -3,7 +3,7 @@ import React, { useRef, useState } from "react";
 import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { applyMask, phoneMask, Button, Modal, PHONE_INPUT_ATTRS, PhotoUpload } from "@/components/common";
+import { applyMask, phoneMask, IconButton, Modal, PHONE_INPUT_ATTRS, PhotoUpload } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { setSubmissionError } from "@/components/forms/formErrors";
 import { vendorSchema } from "@/components/forms/schema/vendor";
@@ -49,7 +49,6 @@ export function VendorFormModal({
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
   const categoryControlId = React.useId();
   const categoryMenuId = React.useId();
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [pendingPhotos, setPendingPhotos] = useState<File[]>([]);
   const attachmentPreviews = useAttachmentSignedUrls(attachments, "thumbnail");
@@ -114,8 +113,21 @@ export function VendorFormModal({
     if (!force && (isPending || isSubmitting)) return;
     setPendingPhotos([]);
     setCategoryDropdownOpen(false);
-    setConfirmDelete(false);
     onClose();
+  };
+
+  const requestDeleteVendor = async () => {
+    if (!editing || !onDeleteVendor) return;
+    const { id, name } = editing;
+    const accepted = await confirm({
+      title: "업체 삭제",
+      description: <>‘<b>{name}</b>’ 업체를 삭제합니다. 삭제하면 되돌릴 수 없어요.</>,
+      confirmLabel: "삭제",
+      variant: "danger",
+    });
+    if (!accepted) return;
+    closeModal(true);
+    await onDeleteVendor(id);
   };
 
   const onValid = async (values: VendorFormOutput) => {
@@ -140,17 +152,17 @@ export function VendorFormModal({
       className={vendorClasses.dialog}
       overlayClassName="z-[320] p-6"
     >
-      <button
-        type="button"
+      <IconButton
         onClick={() => closeModal()}
         disabled={isPending || isSubmitting}
         className={vendorClasses.closeButton}
         aria-label="닫기"
       >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+        {/* 정본 .mf-x svg 18px — 크기가 없으면 버튼(32px)만큼 커진다 */}
+        <svg className="size-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M6 6l12 12M18 6 6 18" />
         </svg>
-      </button>
+      </IconButton>
 
       <form onSubmit={handleSubmit(onValid)}>
         {/* 구분 (category) */}
@@ -327,7 +339,7 @@ export function VendorFormModal({
           {editing && onDeleteVendor ? (
             <button
               type="button"
-              onClick={() => setConfirmDelete(true)}
+              onClick={() => void requestDeleteVendor()}
               className={`${vendorClasses.footerButton} ${vendorClasses.deleteButton}`}
             >
               삭제
@@ -342,36 +354,6 @@ export function VendorFormModal({
           </button>
         </div>
       </form>
-
-      {/* Delete confirm modal */}
-      <Modal
-        open={confirmDelete}
-        onClose={() => setConfirmDelete(false)}
-        title="업체 삭제"
-        className="max-w-[360px] rounded-[20px] shadow-hf-modal"
-        overlayClassName="z-[340] p-6"
-      >
-        <p className="text-[13.5px] font-semibold leading-[1.6] text-t3">
-          ‘<b className="font-bold text-t1">{editing?.name}</b>’ 업체를 삭제합니다. 삭제하면 되돌릴 수 없어요.
-        </p>
-        <div className="mt-4 flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={() => setConfirmDelete(false)}>
-            취소
-          </Button>
-          <Button
-            type="button"
-            variant="primary"
-            onClick={async () => {
-              if (!editing || !onDeleteVendor) return;
-              setConfirmDelete(false);
-               closeModal(true);
-              await onDeleteVendor(editing.id);
-            }}
-          >
-            삭제
-          </Button>
-        </div>
-      </Modal>
     </Modal>
   );
 }

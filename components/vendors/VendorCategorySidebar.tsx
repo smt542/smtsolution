@@ -44,11 +44,11 @@ export function VendorCategorySidebar({
           <button
             type="button"
             onClick={() => onSelect(null)}
-            className={`${vendorClasses.categoryItem} ${isActive("__all__") ? vendorClasses.categoryItemActive : ""}`}
+            className={`${vendorClasses.categoryItem} ${isActive("__all__") ? vendorClasses.categoryItemActive : vendorClasses.categoryItemIdle}`}
             aria-pressed={isActive("__all__")}
           >
             <span className={vendorClasses.categoryLabel}>전체</span>
-            <span className={`${vendorClasses.categoryCount} ${isActive("__all__") ? "bg-surface text-blue" : ""}`}>{allVendors.length}</span>
+            <span className={`${vendorClasses.categoryCount} ${isActive("__all__") ? vendorClasses.categoryCountActive : vendorClasses.categoryCountIdle}`}>{allVendors.length}</span>
           </button>
         </li>
 
@@ -62,11 +62,11 @@ export function VendorCategorySidebar({
               <button
                 type="button"
                 onClick={() => onSelect(c.id)}
-                className={`${vendorClasses.categoryItem} ${active ? vendorClasses.categoryItemActive : ""}`}
+                className={`${vendorClasses.categoryItem} ${active ? vendorClasses.categoryItemActive : vendorClasses.categoryItemIdle}`}
                 aria-pressed={active}
               >
                 <span className={vendorClasses.categoryLabel}>{c.label}</span>
-                <span className={`${vendorClasses.categoryCount} ${active ? "bg-surface text-blue" : ""}`}>{count}</span>
+                <span className={`${vendorClasses.categoryCount} ${active ? vendorClasses.categoryCountActive : vendorClasses.categoryCountIdle}`}>{count}</span>
               </button>
             </li>
           );
