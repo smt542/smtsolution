@@ -39,14 +39,14 @@ const TABS = [
 export function PartnerNav() {
   const pathname = usePathname();
   return (
-    <nav className="flex h-[70px] flex-none border-t border-line bg-white px-0 pt-2">
+    <nav className="flex h-[70px] flex-none border-t border-line bg-white px-0 pt-2 leading-[normal]">
       {TABS.map((t) => {
         const active = pathname === t.href;
         return (
           <Link
             key={t.href}
             href={t.href}
-            className={`flex flex-1 flex-col items-center gap-[3px] text-xs font-semibold ${active ? "text-blue" : "text-t4"}`}
+            className={`flex flex-1 flex-col items-center gap-[3px] text-[12px] font-semibold ${active ? "text-blue" : "text-t4"}`}
           >
             <span className="[&>svg]:size-7">{t.icon}</span>
             <span>{t.label}</span>

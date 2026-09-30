@@ -110,40 +110,37 @@ export function AsList({ rows }: { rows: AsRow[] }) {
       </div>
 
       <div className={styles.scroll}>
-        {view.length === 0 ? (
-          <div className={styles.none}>해당하는 접수 내역이 없어요</div>
-        ) : (
-          <div className={styles.list}>
-            {view.map((r) => {
-              const st = STATUS[r.status] ?? { label: r.status, cls: "chip_r" };
-              return (
-                <button
-                  key={r.id}
-                  type="button"
-                  className={styles.card}
-                  onClick={() => router.push(`/partner/mobile-as?id=${r.id}`)}
-                >
-                  <div className={styles.cardTop}>
-                    {r.category_label && <span className={styles.cat}>{r.category_label}</span>}
-                    <span className={styles.gap} />
-                    <span className={`${styles.chip} ${styles[st.cls]}`}>{st.label}</span>
-                  </div>
-                  <div className={styles.place}>
-                    {r.building_name}
-                    {r.unit_label ? ` ${r.unit_label}` : ""}
-                  </div>
-                  {r.content && <div className={styles.desc}>{r.content}</div>}
-                  <div className={styles.meta}>
-                    <span className={styles.num}>{fmtDate(r.received_at)}</span>
-                    <span className={`${styles.mgr} ${r.is_mine ? styles.mgrMe : ""}`}>
-                      {r.is_mine ? "내 담당" : r.assigned_name ?? "-"}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
+        <div className={styles.list}>
+          {view.map((r) => {
+            const st = STATUS[r.status] ?? { label: r.status, cls: "chip_r" };
+            return (
+              <button
+                key={r.id}
+                type="button"
+                className={styles.card}
+                onClick={() => router.push(`/partner/mobile-as?id=${r.id}`)}
+              >
+                <div className={styles.cardTop}>
+                  {r.category_label && <span className={styles.cat}>{r.category_label}</span>}
+                  <span className={styles.gap} />
+                  <span className={`${styles.chip} ${styles[st.cls]}`}>{st.label}</span>
+                </div>
+                <div className={styles.place}>
+                  {r.building_name}
+                  {r.unit_label ? ` ${r.unit_label}` : ""}
+                </div>
+                {r.content && <div className={styles.desc}>{r.content}</div>}
+                <div className={styles.meta}>
+                  <span className={styles.num}>{fmtDate(r.received_at)}</span>
+                  <span className={`${styles.mgr} ${r.is_mine ? styles.mgrMe : styles.mgrOff}`}>
+                    {r.is_mine ? "내 담당" : r.assigned_name ?? "-"}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+        {view.length === 0 && <div className={styles.none}>해당하는 접수 내역이 없어요</div>}
       </div>
 
       {sortOpen && (
