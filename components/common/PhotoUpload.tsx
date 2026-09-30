@@ -77,7 +77,9 @@ export function PhotoUpload({
           {label} <span className="font-semibold text-t4">(최대 {totalMax ?? max}장)</span>
         </div>
       )}
-      <div className="flex flex-nowrap items-start gap-[10px] overflow-x-auto pb-[4px] pt-[6px]">
+      {/* 위 여백은 내부 라벨과의 간격이다. 호출부가 라벨을 그리면(hideLabel) 그 라벨 여백만 쓴다
+          (정본 협력업체 모달 .vm-flbl margin-bottom 5px 바로 아래 .gal). */}
+      <div className={`flex flex-nowrap items-start gap-[10px] overflow-x-auto pb-[4px] ${hideLabel ? "" : "pt-[6px]"}`}>
         {existing.map((photo) => (
           <div key={photo.id} className={tileClass}>
             {photo.url && photo.onOpen ? (

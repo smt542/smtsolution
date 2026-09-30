@@ -37,8 +37,10 @@ export const vendorClasses = {
   vendorName: "!font-bold !text-t1",
   stateCell: "h-[72px] !text-center !font-medium !text-t4",
   loadingCell: "flex h-full min-h-[240px] items-center justify-center text-center",
+  // 정본 모달은 줄높이 선언이 없어 전부 normal이다(앱 기본 1.5면 비고 칸·드롭다운 항목이 커진다).
+  // 머리 69px = 정본 padding 18 + 닫기 32 + 18 + 아래 선 1.
   dialog:
-    "relative max-w-[520px] overflow-visible rounded-modal! p-0! shadow-[0_30px_70px_-20px_rgba(0,0,0,0.45)] [&>h2]:flex [&>h2]:h-[68px] [&>h2]:items-center [&>h2]:border-b [&>h2]:border-line [&>h2]:px-[22px] [&>h2]:pr-14 [&>h2]:text-[17px] [&>h2]:font-extrabold [&>h2]:tracking-[-0.02em] [&>div]:mt-0!",
+    "relative max-w-[520px] overflow-visible rounded-modal! p-0! leading-[normal] shadow-[0_30px_70px_-20px_rgba(0,0,0,0.45)] [&>h2]:flex [&>h2]:h-[69px] [&>h2]:items-center [&>h2]:border-b [&>h2]:border-line [&>h2]:px-[22px] [&>h2]:pr-14 [&>h2]:text-[17px] [&>h2]:leading-[normal] [&>h2]:font-extrabold [&>h2]:tracking-[-0.02em] [&>div]:mt-0!",
   closeButton:
     "absolute right-4 top-[18px] z-[1] size-8 rounded-[9px] text-t3 hover:bg-bg hover:text-t1 focus-visible:bg-bg focus-visible:text-t1 focus-visible:outline-none",
   formCategory: "px-[22px] pb-0.5 pt-[18px]",
@@ -47,7 +49,7 @@ export const vendorClasses = {
   categoryHelp: "px-0 py-2 text-[13px] font-semibold text-t4",
   formGrid: "grid grid-cols-2 gap-x-3.5 gap-y-3 max-md:grid-cols-1",
   fullField: "col-span-full max-md:col-auto",
-  fieldLabel: "mb-[5px] block text-xs font-bold text-t2",
+  fieldLabel: "mb-[5px] block text-xs font-bold leading-[normal] text-t2",
   fieldInput:
     "h-10 w-full rounded-[9px] border border-line bg-surface px-[11px] text-[13.5px] font-semibold text-t1 outline-none placeholder:font-medium placeholder:text-t3 focus:border-blue",
   fieldTextarea:
