@@ -20,23 +20,25 @@ type SettlementAccount = {
 
 const EMPTY_ACCOUNT: SettlementAccount = { settleBank: "", settleAcct: "", settleHolder: "" };
 
+// 정산 기준은 고정값이다(QA S26·마이그 0202): 수도·전기 단가 반영, 공실 수납 수동.
+// 정본 `.st-seg.lock`처럼 잠근 채 저장값을 보여 주고, 이 탭의 저장은 계좌만 보낸다.
 const SETTLEMENT_RULES = [
   {
     key: "waterUnitReflect",
     label: "수도 단가 반영",
-    subtitle: "정산 시 수도 단가를 금액에 반영",
+    subtitle: "정산 시 수도 단가를 금액에 반영 · 변경 불가",
     options: [{ value: "true", label: "반영" }, { value: "false", label: "안함" }],
   },
   {
     key: "electricUnitReflect",
     label: "전기 단가 반영",
-    subtitle: "정산 시 전기 단가를 금액에 반영",
+    subtitle: "정산 시 전기 단가를 금액에 반영 · 변경 불가",
     options: [{ value: "true", label: "반영" }, { value: "false", label: "안함" }],
   },
   {
     key: "vacancyPaymentMode",
     label: "공실 수납 처리",
-    subtitle: "퇴실 후 공실 세대의 수납 처리 방식",
+    subtitle: "퇴실 후 공실 세대의 수납 처리 방식 · 변경 불가",
     options: [{ value: "manual", label: "수동" }, { value: "auto", label: "자동" }],
   },
 ] as const;
@@ -48,9 +50,6 @@ export function MovingSettlementSettingsTab() {
   const upsert = useUpsertSetupConfig();
 
   const [account, setAccount] = useState<SettlementAccount>(EMPTY_ACCOUNT);
-  const [waterUnitReflect, setWater] = useState(false);
-  const [electricUnitReflect, setElec] = useState(false);
-  const [vacancyPaymentMode, setMode] = useState<"manual" | "auto">("manual");
 
   useEffect(() => {
     if (!config) return;
@@ -59,18 +58,18 @@ export function MovingSettlementSettingsTab() {
       settleAcct: config.settleAcct ?? "",
       settleHolder: config.settleHolder ?? "",
     });
-    setWater.call(undefined, config.waterUnitReflect);
-    setElec.call(undefined, config.electricUnitReflect);
-    setMode.call(undefined, config.vacancyPaymentMode);
   }, [config]);
+
+  const ruleValue = (key: (typeof SETTLEMENT_RULES)[number]["key"]): string => {
+    if (key === "waterUnitReflect") return String(config?.waterUnitReflect ?? true);
+    if (key === "electricUnitReflect") return String(config?.electricUnitReflect ?? true);
+    return config?.vacancyPaymentMode ?? "manual";
+  };
 
   const save = async () => {
     if (!orgId) { toast.error("인증 정보가 없습니다"); return; }
     try {
-      await upsert.mutateAsync({
-        orgId,
-        patch: { ...account, waterUnitReflect, electricUnitReflect, vacancyPaymentMode },
-      });
+      await upsert.mutateAsync({ orgId, patch: { ...account } });
       toast.success("저장되었습니다");
     } catch (e) {
       toast.error(e, "이사정산 설정을 저장하지 못했습니다.");
@@ -175,40 +174,29 @@ export function MovingSettlementSettingsTab() {
 
       <Panel title="정산 기준" subtitle="이사정산 계산에 적용되는 기본 규칙이에요" variant="compact">
         <div className="flex flex-col gap-[10px]">
-          {SETTLEMENT_RULES.map((rule, index) => {
-            const value = rule.key === "waterUnitReflect"
-              ? String(waterUnitReflect)
-              : rule.key === "electricUnitReflect"
-                ? String(electricUnitReflect)
-                : vacancyPaymentMode;
-
-            return (
-              <div
-                key={rule.key}
-                className={`flex items-center gap-[16px] ${
-                  index === 0
-                    ? "border-b border-line2 pb-[12px]"
-                    : index === SETTLEMENT_RULES.length - 1
-                      ? "pt-[12px]"
-                      : "border-b border-line2 py-[12px]"
-                }`}
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="h-[16px] text-[14px] font-bold leading-[16px] text-t1">{rule.label}</div>
-                  <div className="h-[18px] pt-[3px] text-[12.5px] font-medium leading-[15px] text-t3">{rule.subtitle}</div>
-                </div>
-                <SegmentedControl
-                  options={[...rule.options]}
-                  value={value}
-                  onChange={(next) => {
-                    if (rule.key === "waterUnitReflect") setWater(next === "true");
-                    else if (rule.key === "electricUnitReflect") setElec(next === "true");
-                    else setMode(next as "manual" | "auto");
-                  }}
-                />
+          {SETTLEMENT_RULES.map((rule, index) => (
+            <div
+              key={rule.key}
+              className={`flex items-center gap-[16px] ${
+                index === 0
+                  ? "border-b border-line2 pb-[12px]"
+                  : index === SETTLEMENT_RULES.length - 1
+                    ? "pt-[12px]"
+                    : "border-b border-line2 py-[12px]"
+              }`}
+            >
+              <div className="min-w-0 flex-1">
+                <div className="h-[16px] text-[14px] font-bold leading-[16px] text-t1">{rule.label}</div>
+                <div className="h-[18px] pt-[3px] text-[12.5px] font-medium leading-[15px] text-t3">{rule.subtitle}</div>
               </div>
-            );
-          })}
+              <SegmentedControl
+                options={[...rule.options]}
+                value={ruleValue(rule.key)}
+                onChange={() => {}}
+                disabled
+              />
+            </div>
+          ))}
         </div>
       </Panel>
     </div>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { Button, Tabs } from "@/components/common";
 import { PageHeader } from "@/components/shell/PageHeader";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import { SetupSaveProvider, useSetupSaveTarget } from "./SetupSaveContext";
 
 const CompanyInfoTab = dynamic(() =>
@@ -35,15 +36,22 @@ const TAB_DEFS = [
 
 export type SetupTab = (typeof TAB_DEFS)[number]["id"];
 
-/** 정본은 헤더에 저장 버튼이 하나뿐이고, 그 버튼이 지금 열린 탭의 폼을 저장한다. */
+/**
+ * 정본은 헤더에 저장 버튼이 하나뿐이고, 그 버튼이 지금 열린 탭의 폼을 저장한다.
+ * 버튼은 늘 켜 둔다(QA S26). 폼이 없는 탭(A/S 설정·데이터 이관 — 목록은 즉시 저장)에서는
+ * 정본처럼 '저장되었습니다'만 띄우고, 저장 중에 다시 누른 것은 무시한다.
+ */
 function SetupSaveButton() {
   const target = useSetupSaveTarget();
+  const onSave = () => {
+    if (!target) {
+      toast.success("저장되었습니다");
+      return;
+    }
+    if (!target.saving) void target.save();
+  };
   return (
-    <Button
-      type="button"
-      onClick={() => void target?.save()}
-      disabled={!target || target.saving}
-    >
+    <Button type="button" onClick={onSave}>
       저장
     </Button>
   );

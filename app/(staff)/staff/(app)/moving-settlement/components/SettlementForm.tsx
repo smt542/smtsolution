@@ -21,9 +21,9 @@ import {
 export type SettlementDraft = MovingSettlementValues;
 const EMPTY_INPUT_REF: RefObject<HTMLInputElement | null> = { current: null };
 const DEFAULT_SETTINGS: SettlementSettings = {
-  waterUnitReflect: false,
-  electricUnitReflect: false,
-  vacancyPaymentMode: "auto",
+  waterUnitReflect: true,
+  electricUnitReflect: true,
+  vacancyPaymentMode: "manual",
 };
 
 export function calculateProratedMgmtFee(
