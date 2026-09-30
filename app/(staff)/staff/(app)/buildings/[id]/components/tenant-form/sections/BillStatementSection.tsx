@@ -30,8 +30,8 @@ export function BillStatementSection({
           <SelectField value={value.billNameDisplay} onChange={(v) => onChange({ billNameDisplay: v })} options={billNameDisplayOptions} />
         </Field>
         <Field label="발송">
-          <div inert aria-disabled="true" className="pointer-events-none opacity-60">
-            <SelectField value={value.billDelivery} onChange={(v) => onChange({ billDelivery: v })} options={billDeliveryOptions} />
+          <div className="pointer-events-none opacity-60">
+            <SelectField value={value.billDelivery} onChange={(v) => onChange({ billDelivery: v })} options={billDeliveryOptions} disabled />
           </div>
           <p className="mt-[6px] text-[12px] font-semibold leading-[1.5] text-t3">
             {alimtalkOptIn

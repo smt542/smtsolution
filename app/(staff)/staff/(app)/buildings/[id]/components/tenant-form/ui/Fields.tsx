@@ -118,11 +118,14 @@ export function SelectField({
   onChange,
   options,
   placeholder = "선택",
+  disabled,
 }: {
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
   placeholder?: string;
+  /** 수정 불가 칸. Field가 `<label>`이라 감싼 div를 inert로 막아도 라벨이 버튼에 클릭을 넘기므로 버튼 자체를 끈다. */
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -139,6 +142,7 @@ export function SelectField({
     <div ref={rootRef} className="relative">
       <button
         type="button"
+        disabled={disabled}
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
