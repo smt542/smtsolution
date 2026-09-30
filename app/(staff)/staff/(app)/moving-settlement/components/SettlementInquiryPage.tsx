@@ -83,7 +83,6 @@ export function SettlementInquiryPage({ type }: { type: UtilityInquiryType }) {
   }
 
   const rows = inquiryQuery.data?.rows ?? [];
-  const isSettlementInquiryRefreshing = inquiryQuery.isFetching && !inquiryQuery.isLoading;
   const invalidRange = fromMonth > toMonth;
   const editRow = (row: SettlementInquiryRow, patch: Partial<UpdateSettlementInquiryRow>) => {
     setEdits((current) => {
@@ -151,11 +150,6 @@ export function SettlementInquiryPage({ type }: { type: UtilityInquiryType }) {
   return (
     <div className="h-[calc(100dvh-62px)] min-h-[560px] bg-bg px-[24px] pb-[24px] pt-[22px]">
       <section aria-label={`${TYPE_LABELS[type]} 이사조회`} className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-[16px] bg-white shadow-card">
-        {isSettlementInquiryRefreshing ? (
-          <div className="absolute right-5 top-3 z-10 rounded-lg bg-white/95 shadow-card">
-            <Spinner label="이사정산 조회 결과 갱신 중" size="small" showLabel className="px-3 py-2" />
-          </div>
-        ) : null}
         <div className="overflow-x-auto">
           <SettlementInquiryToolbar
             fromMonth={fromMonth}
