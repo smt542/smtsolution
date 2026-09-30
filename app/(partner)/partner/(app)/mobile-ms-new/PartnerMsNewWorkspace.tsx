@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useMemo, useRef, useState } from "react";
 
 import { applyMask, phoneMask, PHONE_INPUT_ATTRS } from "@/components/common";
 import {
@@ -39,6 +39,9 @@ const CLEANING_STATUS_OPTIONS = [
   { value: "완료", label: "완료" },
 ];
 
+// 정본 toast는 1.7초 뒤 사라진다
+const TOAST_MS = 1700;
+
 function ChevronDown({ folded }: { folded: boolean }) {
   return (
     <svg
@@ -49,6 +52,7 @@ function ChevronDown({ folded }: { folded: boolean }) {
       strokeWidth={2.1}
       strokeLinecap="round"
       strokeLinejoin="round"
+      aria-hidden="true"
     >
       <path d="M6 9l6 6 6-6" />
     </svg>
@@ -58,24 +62,30 @@ function ChevronDown({ folded }: { folded: boolean }) {
 function Section({
   title,
   hint,
+  action,
   folded,
   onToggle,
   children,
 }: {
   title: string;
   hint?: string;
+  /** 머리 오른쪽 버튼(기타 [항목 추가]). 눌러도 섹션은 접히지 않는다. */
+  action?: ReactNode;
   folded: boolean;
   onToggle: () => void;
   children: ReactNode;
 }) {
+  // 정본 `.sec-t`: 머리 어디를 눌러도 접고 펼친다. 제목 버튼의 클릭도 여기로 올라와 한 번만 바뀐다(키보드 포함).
   return (
     <div className={styles.sec}>
-      <button type="button" className={styles.secHead} onClick={onToggle}>
-        <span>{title}</span>
-        {hint ? <span className={styles.secHint}>{hint}</span> : null}
-        <span className={styles.secSpacer} />
+      <div className={styles.secHead} onClick={onToggle}>
+        <button type="button" className={styles.secToggle} aria-expanded={!folded}>
+          <span>{title}</span>
+          {hint ? <span className={styles.secHint}>{hint}</span> : null}
+        </button>
+        {action}
         <ChevronDown folded={folded} />
-      </button>
+      </div>
       {folded ? null : children}
     </div>
   );
@@ -84,30 +94,25 @@ function Section({
 function NumberField({
   value,
   onChange,
-  placeholder,
   className,
+  placeholder = "0",
+  ariaLabel,
 }: {
   value: number;
   onChange: (n: number) => void;
+  className: string;
   placeholder?: string;
-  className?: string;
+  ariaLabel?: string;
 }) {
   return (
     <input
-      className={className ?? `${styles.control} ${styles.num}`}
+      className={className}
       inputMode="numeric"
       value={value ? value.toLocaleString() : ""}
       onChange={(e) => onChange(toNumber(e.target.value))}
-      placeholder={placeholder ?? "0"}
+      placeholder={placeholder}
+      aria-label={ariaLabel}
     />
-  );
-}
-
-function CheckMark() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 12.5l5 5L20 6.5" />
-    </svg>
   );
 }
 
@@ -133,13 +138,21 @@ export default function PartnerMsNewWorkspace({
   }
   const [state, setState] = useState<MSState | null>(() => {
     if (!ctx) return null;
+    // 새 등록은 빈 양식이다. 조회 RPC는 정산 id 없이 부르면 진행 중인 직전 정산과 그 체크 메모를 함께 주므로 둘 다 비운다.
     const forInit =
-      editId === null ? { ...ctx, latestSettlement: null } : ctx;
+      editId === null
+        ? {
+            ...ctx,
+            latestSettlement: null,
+            checklist: ctx.checklist.map((item) => ({ ...item, checked: false, note: null })),
+          }
+        : ctx;
     return initialState(forInit);
   });
   const [activeId, setActiveId] = useState<number | null>(editId);
   const [err, setErr] = useState("");
   const [toast, setToast] = useState("");
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [confirmKind, setConfirmKind] = useState<null | "save" | "cancel" | "delete">(null);
   const [fold, setFold] = useState<Record<SectionKey, boolean>>({
     basic: false,
@@ -160,6 +173,13 @@ export default function PartnerMsNewWorkspace({
   const goBack = () => router.push(backHref);
   const isEdit = activeId !== null;
 
+  const showToast = (message: string) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast(message);
+    toastTimer.current = setTimeout(() => setToast(""), TOAST_MS);
+  };
+  const toggleFold = (key: SectionKey) => setFold((f) => ({ ...f, [key]: !f[key] }));
+
   const patch = (p: Partial<MSState>) => setState((s) => (s ? { ...s, ...p } : s));
   const patchUtil = (i: number, p: Partial<MSState["util"][number]>) =>
     setState((s) => (s ? { ...s, util: s.util.map((u, idx) => (idx === i ? { ...u, ...p } : u)) } : s));
@@ -177,22 +197,23 @@ export default function PartnerMsNewWorkspace({
       const next = s.etcItems.filter((_, idx) => idx !== i);
       return { ...s, etcItems: next.length ? next : [{ name: "", amount: 0 }] };
     });
-  const toggleCheck = (id: number) =>
-    setState((s) => (s ? { ...s, checked: { ...s.checked, [id]: !s.checked[id] } } : s));
+  const patchNote = (id: number, note: string) =>
+    setState((s) => (s ? { ...s, notes: { ...s.notes, [id]: note } } : s));
 
   const doSave = async () => {
     if (!state || !ctx || isSettlementMutating) return;
     if (!state.moveOutDate) {
-      setToast("퇴실일자를 선택해 주세요");
+      showToast("퇴실일자를 선택해 주세요");
       return;
     }
     setErr("");
     try {
       const data = buildSaveData(state, ctx);
-      const checklist = ctx.checklist.map((c) => ({
-        check_item_id: c.id,
-        checked: state.checked[c.id] ?? false,
-      }));
+      // 사무실 화면과 같은 규칙: 메모가 있으면 체크된 것으로 저장한다(0172).
+      const checklist = ctx.checklist.map((c) => {
+        const note = (state.notes[c.id] ?? "").trim();
+        return { check_item_id: c.id, checked: note !== "", note };
+      });
       const res = await saveMutation.mutateAsync({
         unitId,
         occupancyId: ctx.occupancy?.id ?? null,
@@ -201,7 +222,7 @@ export default function PartnerMsNewWorkspace({
         checklist,
       });
       setActiveId(res.settlementId);
-      setToast("이사정산을 저장했어요");
+      showToast("이사정산을 저장했어요");
       setTimeout(goBack, 700);
     } catch {
       setErr("저장에 실패했어요. 다시 시도해 주세요.");
@@ -213,7 +234,7 @@ export default function PartnerMsNewWorkspace({
     setErr("");
     try {
       await deleteMutation.mutateAsync(activeId);
-      setToast("이사정산을 삭제했어요");
+      showToast("이사정산을 삭제했어요");
       setTimeout(goBack, 700);
     } catch {
       setErr("삭제에 실패했어요. 다시 시도해 주세요.");
@@ -254,17 +275,13 @@ export default function PartnerMsNewWorkspace({
     );
   }
 
-  const settleAccountText = [ctx.settleAccount.settleBank, ctx.settleAccount.settleAcct, ctx.settleAccount.settleHolder]
-    .filter(Boolean)
-    .join(" ");
-
   return (
     <div className={styles.root}>
       {header}
 
       <div className={styles.scroll}>
         {/* ===== 기본 ===== */}
-        <Section title="기본" folded={fold.basic} onToggle={() => setFold((f) => ({ ...f, basic: !f.basic }))}>
+        <Section title="기본" folded={fold.basic} onToggle={() => toggleFold("basic")}>
           <div className={styles.row}>
             <label className={styles.rowLabel}>퇴실일자</label>
             <PartnerDateSheet
@@ -276,96 +293,95 @@ export default function PartnerMsNewWorkspace({
           </div>
           <div className={styles.row}>
             <label className={styles.rowLabel}>계산일수 · 기준</label>
-            <NumberField value={state.dTotal} onChange={(n) => patch({ dTotal: n })} placeholder="30" />
+            <NumberField className={styles.rowNum} value={state.dTotal} onChange={(n) => patch({ dTotal: n })} placeholder="30" />
           </div>
           <div className={styles.row}>
             <label className={styles.rowLabel}>계산일수 · 부과</label>
-            <NumberField value={state.dDays} onChange={(n) => patch({ dDays: n })} placeholder="0" />
+            <NumberField className={styles.rowNum} value={state.dDays} onChange={(n) => patch({ dDays: n })} />
           </div>
         </Section>
 
         {/* ===== 공과금 정산 ===== */}
-        <Section title="공과금 정산" folded={fold.util} onToggle={() => setFold((f) => ({ ...f, util: !f.util }))}>
+        <Section title="공과금 정산" folded={fold.util} onToggle={() => toggleFold("util")}>
           {state.util.map((u, i) => (
             <div key={u.k} className={styles.ucard}>
               <div className={styles.ucardTitle}>{UTILITY_LABEL[u.k]}</div>
-              <div className={styles.g2}>
+              <div className={styles.ucardFields}>
                 <div className={styles.fld}>
                   <span className={styles.fldLabel}>전월 지침</span>
-                  <NumberField value={u.prev} onChange={(n) => patchUtil(i, { prev: n })} />
+                  <NumberField className={styles.fldNum} value={u.prev} onChange={(n) => patchUtil(i, { prev: n })} />
                 </div>
                 <div className={styles.fld}>
                   <span className={styles.fldLabel}>이사 지침</span>
-                  <NumberField value={u.cur} onChange={(n) => patchUtil(i, { cur: n })} />
+                  <NumberField className={styles.fldNum} value={u.cur} onChange={(n) => patchUtil(i, { cur: n })} />
                 </div>
                 <div className={styles.fld}>
                   <span className={styles.fldLabel}>단가</span>
-                  <NumberField value={u.price} onChange={(n) => patchUtil(i, { price: n })} />
+                  <NumberField className={styles.fldNum} value={u.price} onChange={(n) => patchUtil(i, { price: n })} />
                 </div>
                 <div className={styles.fld}>
                   <span className={styles.fldLabel}>입금계좌</span>
                   <input
-                    className={styles.control}
+                    className={styles.fldInput}
                     value={u.acct}
                     onChange={(e) => patchUtil(i, { acct: e.target.value })}
                     placeholder="입금계좌"
                   />
                 </div>
-                <div className={`${styles.fld} ${styles.fldWide}`}>
-                  <span className={styles.fldLabel}>입금일</span>
-                  <PartnerDateSheet
-                    look="settlement"
-                    value={u.payDate}
-                    onChange={(value) => patchUtil(i, { payDate: value })}
-                    ariaLabel={`${UTILITY_LABEL[u.k]} 입금일`}
-                  />
-                </div>
+              </div>
+              <div className={styles.fldPayDate}>
+                <span className={styles.fldLabel}>입금일</span>
+                <PartnerDateSheet
+                  look="settlement"
+                  value={u.payDate}
+                  onChange={(value) => patchUtil(i, { payDate: value })}
+                  ariaLabel={`${UTILITY_LABEL[u.k]} 입금일`}
+                />
               </div>
               <div className={styles.calc}>
                 <span>
-                  사용량 <b>{utilUsage(u).toLocaleString()}</b>
+                  사용량 <b className={styles.calcValue}>{utilUsage(u).toLocaleString()}</b>
                 </span>
-                <b>{won(utilAmount(u))}</b>
+                <b className={styles.calcAmount}>{won(utilAmount(u))}</b>
               </div>
             </div>
           ))}
-          <div className={`${styles.calc} ${styles.calcSub}`}>
+          <div className={styles.calcSub}>
             <span>① 공과금 소계</span>
-            <b>{won(totals.s1)}</b>
+            <b className={styles.calcSubValue}>{won(totals.s1)}</b>
           </div>
         </Section>
 
         {/* ===== 관리비 항목 ===== */}
-        <Section
-          title="관리비 항목"
-          hint="부과액 / 정산액"
-          folded={fold.fee}
-          onToggle={() => setFold((f) => ({ ...f, fee: !f.fee }))}
-        >
-          {state.feeItems.map((f, i) => (
-            <div key={`${f.name}-${i}`} className={styles.feer}>
-              <span className={styles.feerName}>
-                {f.name}
-                {f.daily ? <em className={styles.tag}>일할</em> : null}
-              </span>
-              <NumberField
-                value={f.charged}
-                onChange={(n) => patchFee(i, n)}
-                className={`${styles.control} ${styles.num}`}
-              />
-              <span className={styles.feerVal}>{feeProrated(f, state.dTotal, state.dDays).toLocaleString()}</span>
-            </div>
-          ))}
-          <div className={styles.g2} style={{ marginTop: 12 }}>
+        <Section title="관리비 항목" hint="부과액 / 정산액" folded={fold.fee} onToggle={() => toggleFold("fee")}>
+          {/* 정본 #mnFee: 마지막 항목 아래 줄이 없도록 항목만 묶는다(last:border-b-0) */}
+          <div>
+            {state.feeItems.map((f, i) => (
+              <div key={`${f.name}-${i}`} className={styles.feer}>
+                <span className={styles.feerName}>
+                  {f.name}
+                  {f.daily ? <em className={styles.tag}>일할</em> : null}
+                </span>
+                <NumberField
+                  className={styles.feerInput}
+                  value={f.charged}
+                  onChange={(n) => patchFee(i, n)}
+                  ariaLabel={`${f.name} 부과액`}
+                />
+                <span className={styles.feerVal}>{feeProrated(f, state.dTotal, state.dDays).toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+          <div className={styles.feeExtra}>
             <div className={styles.fld}>
               <span className={styles.fldLabel}>가수금</span>
-              <NumberField value={state.adv} onChange={(n) => patch({ adv: n })} />
+              <NumberField className={styles.fldNum} value={state.adv} onChange={(n) => patch({ adv: n })} />
             </div>
             <div className={styles.fld}>
               <span className={styles.fldLabel}>연락처</span>
               <input
                 {...PHONE_INPUT_ATTRS}
-                className={styles.control}
+                className={styles.fldInput}
                 maxLength={13}
                 value={state.advTel}
                 onChange={(e) => patch({ advTel: applyMask(e.currentTarget, phoneMask) })}
@@ -373,9 +389,9 @@ export default function PartnerMsNewWorkspace({
               />
             </div>
           </div>
-          <div className={`${styles.calc} ${styles.calcSub}`}>
+          <div className={styles.calcSub}>
             <span>② 관리비 소계</span>
-            <b>{won(totals.s2)}</b>
+            <b className={styles.calcSubValue}>{won(totals.s2)}</b>
           </div>
         </Section>
 
@@ -383,51 +399,55 @@ export default function PartnerMsNewWorkspace({
         <Section
           title="기타"
           hint={`${state.etcItems.length} / ${MAX_ETC_ITEMS}`}
-          folded={fold.etc}
-          onToggle={() => setFold((f) => ({ ...f, etc: !f.etc }))}
-        >
-          <div style={{ display: "flex", justifyContent: "flex-end", paddingTop: 8 }}>
+          action={
             <button
               type="button"
               className={styles.mini}
-              onClick={addEtc}
+              onClick={(e) => {
+                e.stopPropagation();
+                addEtc();
+              }}
               disabled={state.etcItems.length >= MAX_ETC_ITEMS}
             >
               항목 추가
             </button>
-          </div>
+          }
+          folded={fold.etc}
+          onToggle={() => toggleFold("etc")}
+        >
           {state.etcItems.map((x, i) => (
             <div key={i} className={styles.etcr}>
               <input
-                className={styles.control}
+                className={styles.etcName}
                 value={x.name}
                 onChange={(e) => patchEtc(i, { name: e.target.value })}
                 placeholder="기타 항목"
               />
-              <NumberField
-                value={x.amount}
-                onChange={(n) => patchEtc(i, { amount: n })}
-                className={`${styles.control} ${styles.num} ${styles.etcrAmt}`}
-              />
-              <button type="button" className={styles.xbtn} onClick={() => removeEtc(i)} aria-label="항목 삭제">
+              <NumberField className={styles.etcAmount} value={x.amount} onChange={(n) => patchEtc(i, { amount: n })} />
+              <button
+                type="button"
+                className={state.etcItems.length < 2 ? styles.xbtnHidden : styles.xbtn}
+                onClick={() => removeEtc(i)}
+                aria-label="항목 삭제"
+              >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round">
                   <path d="M18 6 6 18M6 6l12 12" />
                 </svg>
               </button>
             </div>
           ))}
-          <div className={`${styles.calc} ${styles.calcSub}`}>
+          <div className={styles.calcSub}>
             <span>③ 기타 소계</span>
-            <b>{won(totals.s3)}</b>
+            <b className={styles.calcSubValue}>{won(totals.s3)}</b>
           </div>
         </Section>
 
         {/* ===== 청소 ===== */}
-        <Section title="청소" folded={fold.cleaning} onToggle={() => setFold((f) => ({ ...f, cleaning: !f.cleaning }))}>
+        <Section title="청소" folded={fold.cleaning} onToggle={() => toggleFold("cleaning")}>
           <div className={styles.row}>
             <label className={styles.rowLabel}>청소담당</label>
             <input
-              className={styles.control}
+              className={styles.rowInput}
               value={state.clnBy}
               onChange={(e) => patch({ clnBy: e.target.value })}
               placeholder="청소담당"
@@ -454,19 +474,19 @@ export default function PartnerMsNewWorkspace({
           </div>
           <div className={styles.row}>
             <label className={styles.rowLabel}>청소금액</label>
-            <NumberField value={state.clnAmt} onChange={(n) => patch({ clnAmt: n })} />
+            <NumberField className={styles.rowNum} value={state.clnAmt} onChange={(n) => patch({ clnAmt: n })} />
           </div>
           <div className={styles.row}>
             <label className={styles.rowLabel}>청소계좌</label>
             <input
-              className={styles.control}
+              className={styles.rowInput}
               value={state.clnAcct}
               onChange={(e) => patch({ clnAcct: e.target.value })}
               placeholder="은행 계좌번호"
             />
           </div>
-          <div className={`${styles.row} ${styles.rowCol}`}>
-            <label className={styles.rowLabel}>청소 적요</label>
+          <div className={styles.rowCol}>
+            <label className={styles.rowColLabel}>청소 적요</label>
             <textarea
               className={styles.textarea}
               value={state.clnNote}
@@ -477,10 +497,10 @@ export default function PartnerMsNewWorkspace({
         </Section>
 
         {/* ===== 정산 ===== */}
-        <Section title="정산" folded={fold.settle} onToggle={() => setFold((f) => ({ ...f, settle: !f.settle }))}>
+        <Section title="정산" folded={fold.settle} onToggle={() => toggleFold("settle")}>
           <div className={styles.row}>
             <label className={styles.rowLabel}>수납액</label>
-            <NumberField value={state.paid} onChange={(n) => patch({ paid: n })} />
+            <NumberField className={styles.rowNum} value={state.paid} onChange={(n) => patch({ paid: n })} />
           </div>
           <div className={styles.row}>
             <label className={styles.rowLabel}>최종 수납일</label>
@@ -491,14 +511,8 @@ export default function PartnerMsNewWorkspace({
               ariaLabel="최종 수납일"
             />
           </div>
-          {settleAccountText ? (
-            <div className={styles.row}>
-              <label className={styles.rowLabel}>정산 입금계좌</label>
-              <span className={styles.ro}>{settleAccountText}</span>
-            </div>
-          ) : null}
-          <div className={`${styles.row} ${styles.rowCol}`}>
-            <label className={styles.rowLabel}>비고</label>
+          <div className={styles.rowCol}>
+            <label className={styles.rowColLabel}>비고</label>
             <textarea
               className={styles.textarea}
               value={state.memo}
@@ -508,57 +522,59 @@ export default function PartnerMsNewWorkspace({
           </div>
         </Section>
 
-        {/* ===== 정산 체크 ===== */}
-        <Section title="정산 체크" folded={fold.check} onToggle={() => setFold((f) => ({ ...f, check: !f.check }))}>
+        {/* ===== 정산 체크 — 항목별 메모(정본 `.c-in`) ===== */}
+        <Section title="정산 체크" folded={fold.check} onToggle={() => toggleFold("check")}>
           {ctx.checklist.length === 0 ? (
             <div className={styles.emptyHint}>등록된 점검 항목이 없어요</div>
           ) : (
-            ctx.checklist.map((item) => {
-              const on = state.checked[item.id] ?? false;
-              return (
-                <button key={item.id} type="button" className={styles.check} onClick={() => toggleCheck(item.id)}>
-                  <span className={`${styles.checkBox} ${on ? styles.checkBoxOn : ""}`}>
-                    <CheckMark />
-                  </span>
-                  <span className={styles.checkLabel}>{item.label}</span>
-                </button>
-              );
-            })
+            ctx.checklist.map((item) => (
+              <div key={item.id} className={styles.row}>
+                <label className={styles.checkLabel} htmlFor={`ms-check-${item.id}`}>
+                  {item.label}
+                </label>
+                <input
+                  id={`ms-check-${item.id}`}
+                  className={styles.rowInput}
+                  value={state.notes[item.id] ?? ""}
+                  onChange={(e) => patchNote(item.id, e.target.value)}
+                  maxLength={100}
+                  placeholder="입력"
+                />
+              </div>
+            ))
           )}
         </Section>
 
         {/* ===== 합계 (teal) ===== */}
-        <div className={`${styles.sec} ${styles.tot}`}>
-          <div className={`${styles.secHead} ${styles.totHead}`}>
-            <span>합계</span>
-          </div>
+        <div className={styles.tot}>
+          <div className={styles.totHead}>합계</div>
           <div className={styles.srow}>
             <span>① 공과금</span>
-            <b>{won(totals.s1)}</b>
+            <b className={styles.srowValue}>{won(totals.s1)}</b>
           </div>
           <div className={styles.srow}>
             <span>② 관리비</span>
-            <b>{won(totals.s2)}</b>
+            <b className={styles.srowValue}>{won(totals.s2)}</b>
           </div>
           <div className={styles.srow}>
             <span>③ 기타</span>
-            <b>{won(totals.s3)}</b>
+            <b className={styles.srowValue}>{won(totals.s3)}</b>
           </div>
           <div className={styles.srow}>
             <span>④ 청소</span>
-            <b>{won(totals.cleaning)}</b>
+            <b className={styles.srowValue}>{won(totals.cleaning)}</b>
           </div>
           <div className={styles.srow}>
             <span>미납 소계</span>
-            <b>{won(totals.unpaidSubtotal)}</b>
+            <b className={styles.srowValue}>{won(totals.unpaidSubtotal)}</b>
           </div>
           <div className={styles.srow}>
             <span>수납액</span>
-            <b>{won(state.paid)}</b>
+            <b className={styles.srowValue}>{won(state.paid)}</b>
           </div>
           <div className={styles.stot}>
             <span>미수금</span>
-            <b className={totals.balance < 0 ? styles.neg : ""}>{won(totals.balance)}</b>
+            <b className={totals.balance < 0 ? styles.stotValueNeg : styles.stotValue}>{won(totals.balance)}</b>
           </div>
         </div>
 
