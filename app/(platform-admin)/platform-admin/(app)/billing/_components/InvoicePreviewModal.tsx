@@ -26,45 +26,29 @@ export function InvoicePreviewModal({
   return (
     <>
       <style>{"@media print { @page { size: A4; margin: 12mm; } }"}</style>
+      {/* 정본 .iv-scrim(패딩 28) + .iv-modal(min(620px,94vw)·최대 90vh·r18) — 머리글 없이 청구서가 바로 본문 */}
       <div
-        className="fixed inset-0 z-[60] flex items-center justify-center bg-scrim p-3 print:hidden"
+        className="fixed inset-0 z-[60] flex items-center justify-center bg-scrim p-7 print:hidden"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="invoice-preview-title"
+        aria-label={`${row.orgName} 발송비 청구서`}
         onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
       >
-        <div className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-surface shadow-hf-modal">
-          <header className="flex items-center justify-between border-b border-line px-5 py-4">
-            <div>
-              <p className="text-xs font-bold text-blue">청구서 미리보기</p>
-              <h2 id="invoice-preview-title" className="mt-0.5 text-xl font-extrabold text-t1">
-                {row.orgName} 발송비 청구서
-              </h2>
-            </div>
-            <button
-              type="button"
-              aria-label="청구서 미리보기 닫기"
-              onClick={onClose}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-t3 hover:bg-bg"
-            >
-              ×
-            </button>
-          </header>
+        <div className="flex max-h-[90vh] w-[min(620px,94vw)] flex-col overflow-hidden rounded-[18px] bg-surface shadow-[0_24px_60px_-20px_rgba(23,31,40,0.4)]">
+          <div className="min-h-0 flex-1 overflow-auto">
+            <InvoiceDocument row={row} month={month} config={config} settings={settings} />
+          </div>
 
-          <main className="min-h-0 flex-1 overflow-auto bg-slate-200/70 p-5">
-            <div className="shadow-card">
-              <InvoiceDocument row={row} month={month} config={config} settings={settings} />
-            </div>
-          </main>
-
-          <footer className="flex items-center justify-end gap-2 border-t border-line px-5 py-3">
+          {/* 정본 .iv-ft: 닫기(.hf-btn.sec) 왼쪽 · 청구서 다운로드(.hf-btn.pri) 오른쪽 */}
+          <div className="flex items-center gap-2 border-t border-line2 px-[22px] pb-[18px] pt-[14px]">
             <Button type="button" variant="ghost" onClick={onClose}>
               닫기
             </Button>
-            <Button type="button" onClick={() => window.print()}>
+            <div className="flex-1" />
+            <Button type="button" className="border border-transparent shadow-hf-btn" onClick={() => window.print()}>
               청구서 다운로드
             </Button>
-          </footer>
+          </div>
         </div>
       </div>
 
