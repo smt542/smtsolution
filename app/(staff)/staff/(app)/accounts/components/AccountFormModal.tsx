@@ -233,10 +233,11 @@ export function AccountFormModal({
   const deactivate = async () => {
     if (!editing) return;
     const ok = await confirm({
-      title: "계정 삭제",
-      description: "계정을 삭제할까요?", // 원문 고정 (test assertion)
+      title: "계정을 삭제할까요?",
+      description: `${editing.fullName} 계정이 삭제되며 되돌릴 수 없어요.`,
       confirmLabel: "삭제",
       variant: "danger",
+      look: "left",
     });
     if (!ok) return;
     try {
@@ -462,7 +463,7 @@ export function AccountFormModal({
               disabled={submitting}
               className="h-[40px] rounded-[11px] border border-brand bg-brand px-[15px] text-[13.5px] font-bold leading-[normal] text-white shadow-[0_6px_14px_-4px_rgba(20,164,151,0.5)]"
             >
-              {submitting ? "저장 중…" : isEdit ? "저장" : "등록"}
+              {isEdit ? "저장" : "등록"}
             </Button>
           </div>
         </form>

@@ -4,7 +4,7 @@ import { useEffect, useId, useRef } from "react";
 import { Button } from "./Button";
 
 export type ConfirmVariant = "default" | "danger";
-export type ConfirmLook = "default" | "check" | "plain" | "split";
+export type ConfirmLook = "default" | "check" | "plain" | "split" | "left";
 
 export interface ConfirmOptions {
   title: string;
@@ -167,6 +167,59 @@ export function ConfirmDialog({
               onClick={onConfirm}
               disabled={confirmDisabled}
               className={`flex h-10 flex-1 items-center justify-center gap-[7px] rounded-[11px] px-[18px] text-[13.5px] font-bold tracking-[-0.01em] text-white disabled:opacity-60 ${variant === "danger" ? "bg-red" : "bg-blue hover:bg-blue-d"}`}
+            >
+              {confirmLabel}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 정본 계정 삭제(#rgDel): 기본 `.fmpc` 카드를 폭 380·왼쪽 정렬로 덮어쓴 문구형.
+  // 두 버튼이 줄을 반씩 채우고, hover는 둘 다 밝기 .97(`.fmpc-btn:hover`)이다.
+  if (look === "left") {
+    return (
+      <div
+        className="fixed inset-0 z-[600] flex items-center justify-center bg-scrim p-6"
+        onMouseDown={onCancel}
+      >
+        <div
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          aria-describedby={description != null ? descId : undefined}
+          className="max-h-[88vh] w-[min(380px,92%)] overflow-auto rounded-[20px] bg-white px-[26px] pb-6 pt-7 text-left leading-[normal] shadow-[0_30px_70px_-20px_rgba(0,0,0,0.45)]"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <h2 id={titleId} className="mb-2 text-[16px] font-extrabold text-t1">
+            {title}
+          </h2>
+          {description != null && (
+            <p
+              id={descId}
+              className="whitespace-pre-line text-[13.5px] font-medium leading-[1.65] text-t2 [&_b]:font-bold [&_b]:text-t1 [&_strong]:font-bold [&_strong]:text-t1"
+            >
+              {description}
+            </p>
+          )}
+          <div className="mt-5 flex gap-2">
+            {!hideCancel && (
+              <button
+                ref={cancelRef}
+                type="button"
+                onClick={onCancel}
+                className="flex h-10 flex-1 items-center justify-center gap-[7px] rounded-[11px] bg-bg px-[18px] text-[13.5px] font-bold tracking-[-0.01em] text-t2 hover:brightness-[.97]"
+              >
+                {cancelLabel}
+              </button>
+            )}
+            <button
+              ref={confirmRef}
+              type="button"
+              onClick={onConfirm}
+              disabled={confirmDisabled}
+              className={`flex h-10 flex-1 items-center justify-center gap-[7px] rounded-[11px] px-[18px] text-[13.5px] font-bold tracking-[-0.01em] text-white hover:brightness-[.97] disabled:opacity-60 ${variant === "danger" ? "bg-red" : "bg-blue"}`}
             >
               {confirmLabel}
             </button>
