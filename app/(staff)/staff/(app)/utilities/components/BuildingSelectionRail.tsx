@@ -10,6 +10,7 @@ import {
 } from "@/hooks/reactquery/utilities";
 import { SearchIcon } from "@/components/icons";
 import { formatNumber } from "@/lib/format";
+import { UC_DROPDOWN_CLASS } from "./ucDropdown";
 
 interface BuildingSelectionRailProps {
   buildings: Building[];
@@ -80,8 +81,10 @@ export function BuildingSelectionRail({
         <div className="flex flex-col items-stretch gap-[9px] border-b border-line2 px-[18px] py-[15px]">
           <div className="flex h-8 items-center gap-2">
             <h2 className="mr-auto whitespace-nowrap text-[15px] font-extrabold text-t1">전체 건물</h2>
-            <div className={`[&_.uc-dd-menu]:min-w-[104px] ${lockedDropdown}`}>
+            <div className={`${UC_DROPDOWN_CLASS} [&_.uc-dd-menu]:min-w-[104px] ${lockedDropdown}`}>
               <CustomDropdown
+                chevron="accent"
+                menuTransition
                 ariaLabel="부과 연도"
                 value={String(year)}
                 disabled={disabled}
@@ -90,8 +93,10 @@ export function BuildingSelectionRail({
                 onChange={(value) => onPeriodChange(Number(value), month)}
               />
             </div>
-            <div className={`[&_.uc-dd-menu]:min-w-[112px] ${lockedDropdown}`}>
+            <div className={`${UC_DROPDOWN_CLASS} [&_.uc-dd-menu]:min-w-[112px] ${lockedDropdown}`}>
               <CustomDropdown
+                chevron="accent"
+                menuTransition
                 ariaLabel="부과 월"
                 value={String(month)}
                 disabled={disabled}

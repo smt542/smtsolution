@@ -507,6 +507,7 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
               <div className={styles.toolbarSpacer} />
               <span className={styles.toolbarLabel}>조회일</span>
               <CustomDropdown
+                menuTransition
                 ariaLabel="조회 시작 연도"
                 value={startMonth.slice(0, 4)}
                 options={yearOptions}
@@ -515,6 +516,7 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
                 onChange={(year) => changeStartMonth(`${year}-${startMonth.slice(5, 7)}`)}
               />
               <CustomDropdown
+                menuTransition
                 ariaLabel="조회 시작 월"
                 value={startMonth.slice(5, 7)}
                 options={MONTH_OPTIONS}
@@ -524,6 +526,7 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
               />
               <span className={styles.rangeSeparator}>~</span>
               <CustomDropdown
+                menuTransition
                 ariaLabel="조회 종료 연도"
                 value={endMonth.slice(0, 4)}
                 options={yearOptions}
@@ -532,6 +535,7 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
                 onChange={(year) => changeEndMonth(`${year}-${endMonth.slice(5, 7)}`)}
               />
               <CustomDropdown
+                menuTransition
                 ariaLabel="조회 종료 월"
                 value={endMonth.slice(5, 7)}
                 options={MONTH_OPTIONS}

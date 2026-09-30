@@ -23,7 +23,6 @@ const dropdownCallSiteClass = [
   "[&_.uc-dd-btn]:leading-[15px]",
   "[&_.uc-dd-btn_svg]:h-[14px]",
   "[&_.uc-dd-btn_svg]:w-[14px]",
-  "[&_.uc-dd-btn_svg]:text-t3",
   "[&_.uc-dd:not(.open)_.uc-dd-btn:hover]:border-[#C9D0D8]",
   "[&_.uc-dd:not(.open)_.uc-dd-btn:hover]:shadow-none",
   "[&_.uc-dd-menu]:min-w-[104px]",
@@ -194,6 +193,8 @@ export function SettlementDirectoryRail({
             {view === "bld" && (
               <div className={`flex-none ${dropdownCallSiteClass}`}>
                 <CustomDropdown
+                  chevron="accent"
+                  menuTransition
                   ariaLabel="건물 그룹"
                   value={groupType}
                   options={BUILDING_GROUP_FILTER_OPTIONS}
