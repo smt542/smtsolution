@@ -245,7 +245,7 @@ export function CloseConfirmDialog({
           <svg
             viewBox="0 0 24 24"
             fill="none"
-            stroke="var(--amber)"
+            stroke="var(--color-amber)"
             strokeWidth="1.9"
             strokeLinecap="round"
             strokeLinejoin="round"

@@ -1,28 +1,32 @@
 "use client";
 
-import { useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { messengerClasses as styles } from "./messengerClasses";
 import type { ChannelMode } from "./types";
 
 interface Props {
   channel: ChannelMode;
   minimized: boolean;
+  /** 닫기를 확인해 닫히는 전환(0.2초)이 도는 중. 끝나면 onClosed 를 부른다. */
+  closing?: boolean;
+  onClosed?: () => void;
   pos: { x: number; y: number } | null;
   onChannel: (channel: ChannelMode) => void;
   onMin: () => void;
   onClose: () => void;
-  onPos: (pos: { x: number; y: number }) => void;
+  onPos: (pos: { x: number; y: number } | null) => void;
   onSend?: () => void;
   sendLabel?: string;
   sendDisabled?: boolean;
   sending?: boolean;
-  recipientCount?: number;
   children?: React.ReactNode;
 }
 
 export function MessengerPanel({
   channel,
   minimized,
+  closing = false,
+  onClosed,
   pos,
   onChannel,
   onMin,
@@ -32,10 +36,23 @@ export function MessengerPanel({
   sendLabel = "수신자를 선택해 주세요",
   sendDisabled = true,
   sending = false,
-  recipientCount = 0,
   children,
 }: Props) {
   const drag = useRef<{ dx: number; dy: number } | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const shown = !minimized && !closing;
+
+  // 정본 openFmp: 열 때마다 패널이 화면 가장자리 8px 안쪽을 넘으면 첫 위치(FAB 자리)로 되돌린다.
+  useLayoutEffect(() => {
+    const panel = panelRef.current;
+    if (!shown || !panel) return;
+    const style = getComputedStyle(panel);
+    const right = parseFloat(style.right);
+    const bottom = parseFloat(style.bottom);
+    const left = window.innerWidth - right - panel.offsetWidth;
+    const top = window.innerHeight - bottom - panel.offsetHeight;
+    if (left < 8 || top < 8 || right < 8 || bottom < 8) onPos(null);
+  }, [shown, onPos]);
 
   const onPointerDown = (event: React.PointerEvent) => {
     if ((event.target as HTMLElement).closest("button")) return;
@@ -64,12 +81,11 @@ export function MessengerPanel({
     }
   };
 
+  // 첫 위치 = FAB 자리(right 22·bottom 22). 끌어 옮긴 만큼 right·bottom 을 줄인다 — transform 은
+  // 열기·닫기 전환이 쓰고, 열린 상태는 transform:none 이어야 안쪽 fixed 메뉴가 뷰포트 기준으로 뜬다.
   const panelStyle = {
-    right: 22,
-    bottom: 22,
-    ...(pos
-      ? { transform: `translate(${pos.x}px, ${pos.y}px)` }
-      : undefined),
+    right: 22 - (pos?.x ?? 0),
+    bottom: 22 - (pos?.y ?? 0),
   };
 
   return (
@@ -94,16 +110,25 @@ export function MessengerPanel({
         </div>
         <div style={{ minWidth: 0 }}>
           <div className={styles["bt"]}>문자·알림톡 발송</div>
-          <div className={styles["bs"]}>작성 중 · {recipientCount}명</div>
+          {/* 정본 minFmp: '작성 중'(발송 중이면 '발송 중') · 발송 버튼 문구 */}
+          <div className={styles["bs"]}>
+            {sending ? "발송 중" : "작성 중"} · {sendLabel}
+          </div>
         </div>
       </div>
       )}
     <div
-      className={`${styles["fmp"]} ${!minimized ? styles.show : ""}`}
+      ref={panelRef}
+      className={`${styles["fmp"]} ${shown ? styles["fmp-show"] : styles["fmp-off"]}`}
       style={panelStyle}
       role="dialog"
       aria-modal="false"
       aria-label="문자·알림톡 발송"
+      onTransitionEnd={(event) => {
+        if (closing && event.target === event.currentTarget && event.propertyName === "opacity") {
+          onClosed?.();
+        }
+      }}
     >
       <div
         className={`${styles["fmp-h"]} ${styles["drag"]}`}
