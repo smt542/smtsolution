@@ -208,7 +208,8 @@ export function SettlementInquiryToolbar({
       <div className="min-w-[18px] flex-1" />
 
       <label className="relative h-[38px] w-[200px] shrink-0">
-        <SearchIcon className="pointer-events-none absolute left-[11px] top-[11.5px] z-10 size-[15px] text-t3" />
+        {/* building-register 도형 = 정본 .ov-search 돋보기(24칸 원 r7·선 2)를 16칸으로 환산한 것과 같다 */}
+        <SearchIcon variant="building-register" className="pointer-events-none absolute left-[11px] top-[11.5px] z-10 size-[15px] text-t3" />
         <input
           aria-label="건물명·소재지 검색"
           value={search}
