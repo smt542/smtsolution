@@ -286,6 +286,8 @@ export function SettlementDirectoryRail({
             </label>
             <div className={`flex-none ${dropdownCallSiteClass}`}>
               <CustomDropdown
+                chevron="accent"
+                menuTransition
                 ariaLabel="건물 그룹"
                 value={groupType}
                 options={BUILDING_GROUP_FILTER_OPTIONS}

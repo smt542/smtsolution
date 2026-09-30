@@ -41,6 +41,7 @@ export function Pagination({
         // 네이티브 select 금지(QA 공통 규칙) — 트리거는 예전 select 크기(44px·112px·r12·14px) 그대로
         <div className="[&_.uc-dd-btn]:h-11 [&_.uc-dd-btn]:w-28 [&_.uc-dd-btn]:justify-between [&_.uc-dd-btn]:rounded-xl [&_.uc-dd-btn]:pl-4 [&_.uc-dd-btn]:pr-4 [&_.uc-dd-btn]:text-sm [&_.uc-dd-btn]:font-normal">
           <CustomDropdown
+            chevron="rotate"
             ariaLabel="페이지당 건수"
             value={String(pageSize)}
             options={pageSizeOptions.map((n) => ({

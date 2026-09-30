@@ -22,6 +22,8 @@ export function OrgStatusControl({ status, onChange, isPending }: Props) {
   return (
     <div className="[&_.uc-dd-btn]:h-8 [&_.uc-dd-btn]:rounded-[9px] [&_.uc-dd-btn]:px-[10px] [&_.uc-dd-btn]:text-[12.5px] [&_.uc-dd-btn]:font-bold [&_.uc-dd-btn]:text-t2 [&_.uc-dd-btn]:hover:border-line [&_.uc-dd-btn]:hover:shadow-none [&_.uc-dd.open_.uc-dd-btn]:border-line [&_.uc-dd.open_.uc-dd-btn]:shadow-none [&_.uc-dd-btn_svg]:h-[14px] [&_.uc-dd-btn_svg]:w-[14px]">
       <CustomDropdown
+        chevron="rotate"
+        chevronMs={180}
         ariaLabel="조직 상태 변경"
         value={status}
         options={OPTIONS}

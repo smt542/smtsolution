@@ -660,6 +660,8 @@ export function PaymentHistorySection({
         <td className={`${td} text-t1`}>
           {isEditing ? (
             <CustomDropdown
+              chevron="accent"
+              menuTransition
               ariaLabel="은행/방법"
               size="cell"
               position="fixed"
@@ -676,6 +678,8 @@ export function PaymentHistorySection({
         <td className={`${td} text-t1`}>
           {isEditing ? (
             <CustomDropdown
+              chevron="accent"
+              menuTransition
               ariaLabel="구분"
               size="cell"
               position="fixed"

@@ -124,6 +124,7 @@ export function SettlementExtrasSection({
             <span className={labelClass}>청소처리</span>
             <div className="w-full [&_.uc-dd]:w-full [&_.uc-dd-btn]:flex [&_.uc-dd-btn]:h-[38px] [&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:items-center [&_.uc-dd-btn]:justify-between [&_.uc-dd-btn]:rounded-[10px] [&_.uc-dd-btn]:border-[#dee3e8] [&_.uc-dd-btn]:bg-white [&_.uc-dd-btn]:px-[11px] [&_.uc-dd-btn]:py-0 [&_.uc-dd-btn]:text-[13.5px] [&_.uc-dd-btn]:font-semibold [&_.uc-dd-btn]:tracking-[-0.135px] [&_.uc-dd-btn]:text-t1 [&_.uc-dd-btn]:shadow-none [&_.uc-dd-btn_svg]:size-[14px] [&_.uc-dd-btn_svg]:text-t3">
               <CustomDropdown
+                chevron="rotate"
                 ariaLabel="청소처리"
                 value={cleaningStatus}
                 options={[{ value: "completed", label: "완료" }]}

@@ -121,6 +121,8 @@ export function PointAdjustmentModal({
               name="orgId"
               render={({ field }) => (
                 <CustomDropdown
+                  chevron="rotate"
+                  chevronMs={180}
                   id="pa-org"
                   ariaLabel="대상 조직"
                   value={field.value == null ? "" : String(field.value)}
@@ -150,6 +152,8 @@ export function PointAdjustmentModal({
               name="kind"
               render={({ field }) => (
                 <CustomDropdown
+                  chevron="rotate"
+                  chevronMs={180}
                   id="pa-kind"
                   ariaLabel="조정 구분"
                   value={String(field.value ?? "")}

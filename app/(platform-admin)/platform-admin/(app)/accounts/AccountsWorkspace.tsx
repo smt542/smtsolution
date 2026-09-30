@@ -491,6 +491,8 @@ function RoleChangeModal({
             </label>
             <div className={ADMIN_FORM_DROPDOWN_CLASS}>
               <CustomDropdown
+                chevron="rotate"
+                chevronMs={180}
                 id="platform-role"
                 ariaLabel="역할"
                 value={role}
@@ -508,6 +510,8 @@ function RoleChangeModal({
             </label>
             <div className={ADMIN_FORM_DROPDOWN_CLASS}>
               <CustomDropdown
+                chevron="rotate"
+                chevronMs={180}
                 id="platform-staff-type"
                 ariaLabel="직원 유형"
                 value={staffType}

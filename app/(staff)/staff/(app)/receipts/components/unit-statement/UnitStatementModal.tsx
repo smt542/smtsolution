@@ -238,6 +238,8 @@ export function UnitStatementModal({
           <div className="flex shrink-0 items-center gap-[8px] border-b border-line bg-surface px-[16px] py-[13px]">
             {/* 정본 `.auto-bar`의 compact `.uc-dd` 필터 규격을 사용한다. */}
             <CustomDropdown
+              chevron="accent"
+              menuTransition
               ariaLabel="명세서 연도"
               value={String(year)}
               options={yearOptions}
@@ -247,6 +249,8 @@ export function UnitStatementModal({
               menuMinWidth={100}
             />
             <CustomDropdown
+              chevron="accent"
+              menuTransition
               ariaLabel="명세서 월"
               value={String(month)}
               options={monthOptions}

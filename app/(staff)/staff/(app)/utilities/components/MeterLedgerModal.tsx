@@ -22,6 +22,7 @@ import {
   MeterLedgerDocument,
   type MeterLedgerSource,
 } from "./MeterLedgerDocument";
+import { UC_DROPDOWN_CLASS } from "./ucDropdown";
 
 interface MeterLedgerModalProps {
   open: boolean;
@@ -39,24 +40,8 @@ const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => ({
 }));
 
 // 정본 `.lg-srch .uc-dd`: 메뉴 왼쪽 정렬·패딩 5·옵션 간격 10·옵션 hover #F5F7F9·버튼 hover 테두리만.
-// 화살표는 평소 t3, 열리면 .16s 동안 180° 돌며 청록(`.uc-dd.open .uc-dd-btn svg`).
-const LEDGER_DROPDOWN = [
-  "[&_.uc-dd-btn_svg]:h-[14px]",
-  "[&_.uc-dd-btn_svg]:w-[14px]",
-  "[&_.uc-dd-btn_svg]:text-t3",
-  "[&_.uc-dd-btn_svg]:transition-transform",
-  "[&_.uc-dd-btn_svg]:duration-[160ms]",
-  "[&_.uc-dd-btn_svg]:ease-[ease]",
-  "[&_.uc-dd.open_.uc-dd-btn_svg]:rotate-180",
-  "[&_.uc-dd.open_.uc-dd-btn_svg]:text-blue",
-  "[&_.uc-dd:not(.open)_.uc-dd-btn:hover]:border-[#C9D0D8]",
-  "[&_.uc-dd:not(.open)_.uc-dd-btn:hover]:shadow-none",
-  "[&_.uc-dd-menu]:left-0",
-  "[&_.uc-dd-menu]:right-auto",
-  "[&_.uc-dd-menu]:p-[5px]",
-  "[&_.uc-opt]:gap-[10px]",
-  "[&_.uc-opt:not(.on):hover]:bg-[#F5F7F9]",
-].join(" ");
+// 화살표 회전·청록과 메뉴 페이드는 CustomDropdown chevron="accent"·menuTransition 이 맡는다.
+const LEDGER_DROPDOWN = `${UC_DROPDOWN_CLASS} [&_.uc-dd-menu]:left-0 [&_.uc-dd-menu]:right-auto`;
 
 const LIST_TH = "sticky top-0 z-[2] border-b border-line bg-[#FBFCFD] py-[11px] text-left text-[12px] font-bold whitespace-nowrap text-t3";
 const LIST_TD = "truncate border-b border-line2 py-3 text-[13.5px] font-medium text-t1";
@@ -256,6 +241,7 @@ export function MeterLedgerModal({
                     ariaLabel="출력 연도"
                     value={year}
                     compact
+                    chevron="accent"
                     menuTransition
                     options={YEAR_OPTIONS}
                     onChange={(value) => setPrintPeriod(`${value}-${month}-01`)}
@@ -266,6 +252,7 @@ export function MeterLedgerModal({
                     ariaLabel="출력 월"
                     value={month}
                     compact
+                    chevron="accent"
                     menuTransition
                     options={MONTH_OPTIONS}
                     onChange={(value) => setPrintPeriod(`${year}-${value}-01`)}

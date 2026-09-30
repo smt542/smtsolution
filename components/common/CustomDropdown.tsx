@@ -63,12 +63,29 @@ interface CustomDropdownProps {
    */
   check?: "selected" | "never";
   /**
-   * 정본 `.uc-dd-menu{opacity:0;transform:translateY(-4px);transition:opacity .13s ease,transform .13s ease}` +
-   * `.uc-dd.open .uc-dd-menu{opacity:1;transform:none}` — 메뉴를 늘 그려 두고 열고 닫을 때 흐려지며 4px 움직인다.
-   * absolute 메뉴 전용(fixed 는 body 포탈이라 적용하지 않는다). 닫힌 동안은 inert 라 포커스·클릭이 닿지 않는다.
+   * 정본 `.uc-dd-menu`·`.uc-cdd-menu{opacity:0;transform:translateY(-4px);transition:opacity .13s ease,transform .13s ease}`
+   * + `.open …-menu{opacity:1;transform:none}` — 열고 닫을 때 흐려지며 4px 움직인다(absolute·fixed 모두).
+   * 첫 표시는 @starting-style 로, 닫힐 때는 전환이 끝난 뒤 내린다(닫히는 동안 inert). 메뉴가 display 로
+   * 바로 뜨는 정본 계열(`.dd`·`.ac-dd`·`.hq-dd`·`.mf-dd`)은 끈다.
    */
   menuTransition?: boolean;
+  /**
+   * 트리거 화살표 움직임(form·modal 크기는 자체 규격이라 무시). 정본 드롭다운 계열마다 다르다.
+   * - "static"(기본): 규칙 없음 — 인라인 15px·글자색·회전 없음(이사조회·미납·장기수선비 `.uc-dd`).
+   * - "accent": `.uc-dd-btn svg{14px;t3;transform .16s ease}` + 열리면 180°·청록(수납·이사정산·관리비·고지서·공과금).
+   * - "rotate": t3, 열리면 180°만(색 그대로) — `.dd .dd-cv`·`.ac-dd`(.15s), 통합관리자 `.hq-dd`·`.ac-dd`(.18s, chevronMs).
+   */
+  chevron?: "static" | "accent" | "rotate";
+  /** 화살표 회전 시간(ms). 기본 accent 160·rotate 150. */
+  chevronMs?: 150 | 160 | 180;
 }
+
+// Tailwind 가 찾을 수 있게 시간 클래스는 문자열 그대로 둔다.
+const CHEVRON_DURATION = {
+  150: "[&_svg]:duration-150",
+  160: "[&_svg]:duration-[160ms]",
+  180: "[&_svg]:duration-[180ms]",
+} as const;
 
 export function CustomDropdown({
   id,
@@ -88,14 +105,17 @@ export function CustomDropdown({
   menuClassName,
   triggerLabel,
   menuTransition = false,
+  chevron = "static",
+  chevronMs,
 }: CustomDropdownProps) {
   const [open, setOpen] = useState(false);
+  // 닫히는 전환이 끝날 때까지 메뉴를 그려 둔다(menuTransition 일 때만).
+  const [closing, setClosing] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
   const isFixed = position === "fixed";
-  const animatedMenu = menuTransition && !isFixed;
   const matched = options.find((option) => option.value === value);
   const selected = matched ?? (placeholder === undefined ? options[0] : undefined);
   const isCompact = size === "compact" || compact;
@@ -113,7 +133,12 @@ export function CustomDropdown({
       ? "h-[26px] w-full min-w-0 justify-between rounded-[9px] px-[8px] text-[12px] [&_svg]:h-[14px] [&_svg]:w-[14px] [&_svg]:flex-none"
       : isNotification
         ? "h-[34px] w-[64px] min-w-[64px] justify-between rounded-[9px] px-[10px] text-[13.5px] [&_svg]:h-[13px] [&_svg]:w-[13px]"
-        : `${isCompact ? "h-8" : "h-9"} rounded-[9px] pr-[10px] pl-[11px] text-[13px] [&_svg]:h-[15px] [&_svg]:w-[15px]`;
+        : `${isCompact ? "h-8" : "h-9"} rounded-[9px] pr-[10px] pl-[11px] text-[13px] ${chevron === "accent" ? "[&_svg]:h-[14px] [&_svg]:w-[14px]" : "[&_svg]:h-[15px] [&_svg]:w-[15px]"}`;
+  const chevronMotion = isForm || isModal || chevron === "static"
+    ? ""
+    : `[&_svg]:flex-none [&_svg]:transition-transform ${CHEVRON_DURATION[chevronMs ?? (chevron === "accent" ? 160 : 150)]} [&_svg]:ease-[ease] ${
+      open ? `[&_svg]:rotate-180 ${chevron === "accent" ? "[&_svg]:text-blue" : "[&_svg]:text-t3"}` : "[&_svg]:text-t3"
+    }`;
   // 굵기·hover 도 크기마다 하나만 둔다(같은 속성 유틸이 둘 남으면 CSS 생성 순서가 이긴다).
   // 정본 셀 드롭다운은 400 이고 hover 는 `.uc-dd-btn:hover{border-color:#C9D0D8}` 뿐이다.
   const triggerLook = isModal
@@ -125,18 +150,25 @@ export function CustomDropdown({
   useEffect(() => {
     if (!open) return;
 
+    const close = () => {
+      setOpen(false);
+      if (!menuTransition) return;
+      setClosing(true);
+      // transitionend 를 못 받는 경우(탭 전환 등)에도 메뉴가 남지 않게 전환 시간 뒤 내린다.
+      window.setTimeout(() => setClosing(false), 200);
+    };
     const closeOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       // fixed 메뉴는 body 포탈이라 rootRef 바깥이다. 메뉴 자신의 mousedown 을 바깥으로 치면
       // 항목 click 이 닿기 전에 언마운트돼 선택이 먹지 않는다.
-      if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) setOpen(false);
+      if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) close();
     };
     // 열린 메뉴의 Esc는 메뉴만 닫는다. Dp*Picker와 같은 규약(window 캡처 + 전파 중단)이라
     // 모달·확인창의 document keydown(Esc 닫기)까지 번지지 않는다.
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       event.stopPropagation();
-      setOpen(false);
+      close();
     };
 
     document.addEventListener("mousedown", closeOutside);
@@ -145,7 +177,18 @@ export function CustomDropdown({
       document.removeEventListener("mousedown", closeOutside);
       window.removeEventListener("keydown", closeOnEscape, true);
     };
-  }, [open]);
+  }, [menuTransition, open]);
+
+  const openMenu = () => {
+    setClosing(false);
+    setOpen(true);
+  };
+  const closeMenu = () => {
+    setOpen(false);
+    if (!menuTransition) return;
+    setClosing(true);
+    window.setTimeout(() => setClosing(false), 200);
+  };
 
   // 정본 `.rg-dd` 열기 좌표 계산을 그대로 옮겼다: 폭은 트리거에 맞추고, 아래로 펼쳤을 때
   // 뷰포트를 넘치면 트리거 위로 뒤집는다. 높이를 알아야 하므로 0,0 에 놓고 측정한 뒤 확정한다.
@@ -197,13 +240,13 @@ export function CustomDropdown({
         ref={triggerRef}
         id={id}
         type="button"
-        className={`uc-dd-btn inline-flex ${triggerSize} items-center ${isModal ? "" : "gap-[7px] tracking-[-0.01em]"} border ${open ? "border-blue" : "border-line"} bg-surface py-0 ${triggerLook} text-t1 outline-none transition-[border-color,box-shadow] duration-[120ms] disabled:cursor-default disabled:opacity-[.55] disabled:shadow-none ${open && !isModal ? "shadow-[0_0_0_3px_var(--color-blue-t)]" : ""}`}
+        className={`uc-dd-btn inline-flex ${triggerSize} items-center ${isModal ? "" : "gap-[7px] tracking-[-0.01em]"} border ${open ? "border-blue" : "border-line"} bg-surface py-0 ${triggerLook} text-t1 outline-none transition-[border-color,box-shadow] duration-[120ms] disabled:cursor-default disabled:opacity-[.55] disabled:shadow-none ${open && !isModal ? "shadow-[0_0_0_3px_var(--color-blue-t)]" : ""} ${chevronMotion}`}
         aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={menuId}
         disabled={disabled}
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => (open ? closeMenu() : openMenu())}
       >
         <span
           className={`uc-dd-lbl${isCell || isForm || isModal ? " min-w-0 truncate" : ""}${(isForm || isModal) && selected === undefined && placeholder !== undefined ? " font-medium text-t4" : ""}`}
@@ -212,19 +255,22 @@ export function CustomDropdown({
         </span>
         <ChevronDownIcon aria-hidden="true" />
       </button>
-      {(open || animatedMenu) && wrapMenu(
+      {(open || closing) && wrapMenu(
         <div
           ref={menuRef}
           id={menuId}
           role="listbox"
           aria-label={ariaLabel}
-          inert={animatedMenu && !open ? true : undefined}
+          inert={!open ? true : undefined}
+          onTransitionEnd={menuTransition ? (event) => {
+            if (!open && event.target === event.currentTarget) setClosing(false);
+          } : undefined}
           className={`uc-dd-menu ${isForm ? "max-h-[230px] p-[5px]" : isModal ? "max-h-[240px] p-[6px]" : "max-h-[236px] p-[6px]"} overflow-auto rounded-xl border border-line bg-surface ${isModal ? "shadow-[0_14px_34px_-10px_rgba(23,31,40,0.28)]" : "shadow-[0_14px_32px_-10px_rgba(23,31,40,0.22),0_2px_6px_rgba(23,31,40,0.06)]"} ${
             isFixed
               // field 는 메뉴 폭을 트리거에 맞추는 규격이라 140px 하한을 걸지 않는다.
               ? `fixed z-[1000] ${isField || menuAlign === "end" || menuMinWidth !== undefined ? "" : "min-w-[140px]"}`
               : `absolute ${isModal ? "top-[calc(100%_+_5px)]" : "top-[calc(100%_+_6px)]"} z-[80] ${isField ? "inset-x-0" : `right-0 ${menuMinWidth !== undefined ? "" : "min-w-[96px]"}`}`
-          }${animatedMenu ? ` transition-[opacity,translate] duration-[130ms] ease-[ease] ${open ? "opacity-100" : "pointer-events-none -translate-y-1 opacity-0"}` : ""}${menuClassName ? ` ${menuClassName}` : ""}`}
+          }${menuTransition ? ` transition-[opacity,translate] duration-[130ms] ease-[ease] starting:-translate-y-1 starting:opacity-0 ${open ? "" : "pointer-events-none -translate-y-1 opacity-0"}` : ""}${menuClassName ? ` ${menuClassName}` : ""}`}
           style={menuMinWidth !== undefined ? { minWidth: menuMinWidth } : undefined}
         >
           {options.map((option) => {
@@ -240,7 +286,7 @@ export function CustomDropdown({
                 className={`uc-opt ${isSelected ? "on" : ""} flex w-full items-center ${isField ? "justify-start" : "justify-between"} gap-2 rounded-lg ${isModal ? "px-[11px] py-[9px]" : "px-[10px] py-2"} text-[13px] leading-[normal] whitespace-nowrap transition-[background] duration-100 ${isSelected ? `bg-blue-t font-bold ${isModal ? "text-blue" : "text-blue-d"}` : "font-semibold text-t2 hover:bg-bg"}`}
                 onClick={() => {
                   onChange(option.value);
-                  setOpen(false);
+                  closeMenu();
                 }}
               >
                 <span>{option.label}</span>

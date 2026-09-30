@@ -51,6 +51,8 @@ export function MonthlyChargeToolbar({
     <div className="flex w-full shrink-0 flex-wrap items-center gap-[8px] border-b border-line bg-surface px-[16px] py-[13px]">
       <FilterLabel>건물 유형</FilterLabel>
       <CustomDropdown
+        chevron="accent"
+        menuTransition
         ariaLabel="건물 유형"
         value={buildingTypeValue}
         options={buildingTypeOptions}
@@ -63,6 +65,8 @@ export function MonthlyChargeToolbar({
       />
       <FilterLabel className="ml-[6px]">그룹</FilterLabel>
       <CustomDropdown
+        chevron="accent"
+        menuTransition
         ariaLabel="그룹"
         value={groupValue}
         options={groupOptions}

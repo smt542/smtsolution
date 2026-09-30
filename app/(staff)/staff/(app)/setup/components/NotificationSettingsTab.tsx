@@ -53,6 +53,7 @@ export function NotificationSettingsTab() {
             <div className="flex items-center gap-[6px]">
               <span className="text-[12.5px] font-bold text-t2">만료</span>
               <CustomDropdown
+                chevron="rotate"
                 ariaLabel="임대 만료 알림 시작 일수"
                 size="notification"
                 variant="field"

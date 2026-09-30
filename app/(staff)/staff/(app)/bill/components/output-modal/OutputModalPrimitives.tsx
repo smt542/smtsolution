@@ -25,7 +25,7 @@ export function FilterDropdown({ ariaLabel, value, options, onChange, width }: F
       style={{ minWidth: width }}
       className="[&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:justify-between [&_.uc-dd-lbl]:whitespace-nowrap [&_.uc-dd-menu]:left-0 [&_.uc-dd-menu]:right-auto"
     >
-      <CustomDropdown ariaLabel={ariaLabel} value={value} options={options} onChange={onChange} size="compact" />
+      <CustomDropdown chevron="accent" menuTransition ariaLabel={ariaLabel} value={value} options={options} onChange={onChange} size="compact" />
     </div>
   );
 }

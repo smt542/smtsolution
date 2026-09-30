@@ -41,6 +41,8 @@ export function MonthlySendCostChart() {
         <label className={`relative ml-auto ${ADMIN_TOOLBAR_DROPDOWN_CLASS}`}>
           <span className="sr-only">발송 비용 연도</span>
           <CustomDropdown
+            chevron="rotate"
+            chevronMs={180}
             ariaLabel="발송 비용 연도"
             value={String(year)}
             options={yearOptions.map((option) => ({ value: String(option), label: `${option}년` }))}

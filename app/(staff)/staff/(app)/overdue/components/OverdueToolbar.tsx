@@ -106,6 +106,7 @@ export function OverdueToolbar({
       {/* 정본 `#ovYear .uc-dd-menu{min-width:104px}` — 기본값(96px)보다 넓다. */}
       <div className={`${DD_MENU_PADDING} [&_.uc-dd-menu]:min-w-[104px]`}>
         <CustomDropdown
+          menuTransition
           ariaLabel="조회 년도"
           value={targetYear === null ? "" : String(targetYear)}
           options={YEAR_OPTIONS}
@@ -118,6 +119,7 @@ export function OverdueToolbar({
 
       <div className={DD_MENU_PADDING}>
         <CustomDropdown
+          menuTransition
           ariaLabel="조회 월"
           value={targetMonth === null ? "" : String(targetMonth)}
           options={MONTH_OPTIONS}
