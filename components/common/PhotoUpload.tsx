@@ -21,6 +21,8 @@ export interface PhotoUploadExistingPhoto {
   error?: boolean;
   /** 주면 삭제 버튼을 그린다. 삭제 확인은 호출부 몫이다. */
   onDelete?: () => void | Promise<void>;
+  /** 주면 썸네일을 눌러 크게 본다(정본 .gal-item img cursor:zoom-in). */
+  onOpen?: () => void;
 }
 
 export interface PhotoUploadProps {
@@ -29,6 +31,8 @@ export interface PhotoUploadProps {
   /** 저장된 사진들. max는 새로 고를 수 있는 장수만 센다. */
   existing?: readonly PhotoUploadExistingPhoto[];
   max?: number;
+  /** 라벨 "(최대 N장)"에 적을 전체 장수(저장된 사진 포함). 없으면 max. */
+  totalMax?: number;
   accept?: string;
   disabled?: boolean;
   label?: string;
@@ -39,7 +43,7 @@ export interface PhotoUploadProps {
 const tileClass =
   "relative size-[84px] shrink-0 overflow-hidden rounded-[10px] border border-line";
 /* 정본 .gal-rm: 삭제 버튼은 hover 없이도 항상 보인다 */
-export const photoTileDeleteClass =
+const tileDeleteClass =
   "absolute right-[4px] top-[4px] flex size-[20px] items-center justify-center rounded-full bg-[rgba(15,20,26,.62)] text-white enabled:hover:bg-[rgba(15,20,26,.85)] disabled:cursor-not-allowed disabled:opacity-40";
 const tilePlaceholderClass =
   "flex size-full items-center justify-center p-2 text-center text-[10px] text-t3";
@@ -49,6 +53,7 @@ export function PhotoUpload({
   onFilesChange,
   existing = [],
   max = MAX_ATTACHMENT_FILES,
+  totalMax,
   accept = IMAGE_ATTACHMENT_ACCEPT,
   disabled = false,
   label = "계약서 사진",
@@ -69,13 +74,22 @@ export function PhotoUpload({
     <div className="col-span-2 flex flex-col">
       {hideLabel ? null : (
         <div className="mb-1 text-[12.5px] font-bold text-t2">
-          {label} <span className="font-semibold text-t4">(최대 {max}장)</span>
+          {label} <span className="font-semibold text-t4">(최대 {totalMax ?? max}장)</span>
         </div>
       )}
       <div className="flex flex-nowrap items-start gap-[10px] overflow-x-auto pb-[4px] pt-[6px]">
         {existing.map((photo) => (
           <div key={photo.id} className={tileClass}>
-            {photo.url ? (
+            {photo.url && photo.onOpen ? (
+              <button
+                type="button"
+                className="size-full cursor-zoom-in"
+                onClick={photo.onOpen}
+                aria-label={`${photo.name} 미리보기`}
+              >
+                <Image src={photo.url} alt="" width={84} height={84} className="size-full object-cover" />
+              </button>
+            ) : photo.url ? (
               <Image
                 src={photo.url}
                 alt={photo.name}
@@ -97,7 +111,7 @@ export function PhotoUpload({
                 type="button"
                 disabled={disabled}
                 onClick={() => void photo.onDelete?.()}
-                className={photoTileDeleteClass}
+                className={tileDeleteClass}
                 aria-label={`${photo.name} 삭제`}
               >
                 <CloseIcon className="size-[10px]" />
@@ -126,7 +140,7 @@ export function PhotoUpload({
                 type="button"
                 disabled={disabled}
                 onClick={() => onFilesChange(files.filter((_, fileIndex) => fileIndex !== index))}
-                className={photoTileDeleteClass}
+                className={tileDeleteClass}
                 aria-label={`${file.name} 삭제`}
               >
                 <CloseIcon className="size-[10px]" />
