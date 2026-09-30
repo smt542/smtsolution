@@ -43,7 +43,9 @@ export const messengerClasses: Record<string, string> = {
   three: "[&>.fmp-dd2]:flex-[0_0_calc(33.3333%_-_5.3333px)]",
   "fmp-seg": "flex w-full gap-0.5 rounded-[10px] bg-[#edf0f3] p-[3px]",
   si: "flex-1 cursor-pointer rounded-[7px] px-3.5 py-2 text-center text-[13px] font-bold",
-  on: "border-blue bg-blue-t text-blue-d",
+  // 정본 .opt.on·.fmp-fromrow.on{background:var(--blue-t2);color:var(--blue-d)} — 정본은 .on 이 :hover 보다 뒤라
+  // 선택 행은 hover 에도 그대로다. 앱은 hover:bg-bg 가 변형이라 뒤에 생성되므로 !로 이긴다.
+  on: "!bg-blue-t2 text-blue-d",
   "seg-on": "bg-white text-t1 shadow-[0px_2px_2.5px_rgba(23,31,40,0.1)]",
   "fmp-lbl": "mb-2 text-[12.5px] font-bold text-t2",
   "fmp-chips": "flex flex-wrap gap-1.5",
@@ -68,15 +70,30 @@ export const messengerClasses: Record<string, string> = {
   menu: "flex flex-col gap-0.5",
   opt: "cursor-pointer whitespace-nowrap rounded-[9px] px-[11px] py-[9px] text-[13px] font-bold text-t2 hover:bg-bg",
   bld: "flex items-start gap-[7px]",
+  // 정본 .fmp-dd2 .opt:not(.chk):not(.owl):not(.tnl){padding-right:32px} + .on::after 체크(유형·건물 행).
+  // 건물 행은 .opt.bld.on::after{top:22px}. top 이 달라 키를 둘로 둔다.
+  "opt-plain": "relative pr-8",
+  "opt-ck": "after:absolute after:right-[13px] after:top-[calc(50%-1px)] after:h-[11px] after:w-[6px] after:-translate-y-[60%] after:rotate-45 after:border-solid after:border-blue after:border-r-[2.4px] after:border-b-[2.4px] after:content-['']",
+  "opt-ck-bld": "after:absolute after:right-[13px] after:top-[22px] after:h-[11px] after:w-[6px] after:-translate-y-[60%] after:rotate-45 after:border-solid after:border-blue after:border-r-[2.4px] after:border-b-[2.4px] after:content-['']",
   btxt: "min-w-0 flex-1",
-  bnm: "text-[13px] font-bold text-t1",
-  badr: "mt-0.5 break-all text-[11.5px] font-semibold text-t3",
-  oc: "ml-auto text-[11px] font-bold tabular-nums text-t4",
+  bnm: "whitespace-normal break-all text-[13px] font-bold text-t1",
+  badr: "mt-[3px] whitespace-normal break-all text-[11.5px] font-semibold text-t3",
+  // 정본 .fmp-dd2 .opt.bld .oc — 건물 코드는 회색 알약(소비처 = 건물 행뿐)
+  oc: "mt-px flex-none rounded-[5px] bg-bg px-1.5 py-px text-[11px] font-bold tabular-nums text-t3",
   ocv: "mr-1.5 rounded bg-bg px-1.5 py-px text-[11px] font-bold tabular-nums text-t3",
   // 정본 .ddsrch>svg{width:14px;height:14px;position:absolute;left:11px;stroke:#8B95A1;stroke-width:2}.
   // 이 규칙이 빠지면 svg 가 고유크기(300x150)로 깔려 입력창을 밀어내고 메뉴가 빈 박스로 부풀었다.
-  ddsrch: "relative mb-1 flex items-center gap-1.5 border-b border-line2 px-0.5 pb-2 [&>svg]:absolute [&>svg]:left-[11px] [&>svg]:size-[14px] [&>svg]:stroke-[#8B95A1] [&>svg]:stroke-2 [&_input]:h-[34px] [&_input]:w-full [&_input]:rounded-lg [&_input]:border [&_input]:border-line [&_input]:pl-[30px] [&_input]:pr-2.5 [&_input]:text-[12.5px] [&_input]:font-semibold [&_input]:outline-none [&_input:focus]:border-blue",
-  bsrch: "relative flex min-w-0 flex-1 items-center",
+  ddsrch: "relative mb-1 flex items-center gap-1.5 border-b border-line2 px-0.5 pb-2 pt-0.5 [&>svg]:absolute [&>svg]:left-[11px] [&>svg]:size-[14px] [&>svg]:stroke-[#8B95A1] [&>svg]:stroke-2 [&_input]:h-[34px] [&_input]:w-full [&_input]:rounded-lg [&_input]:border [&_input]:border-line [&_input]:pl-[30px] [&_input]:pr-2.5 [&_input]:text-[12.5px] [&_input]:font-semibold [&_input]:outline-none [&_input:focus]:border-blue",
+  bsrch: "relative flex min-w-0 flex-1 items-center [&>svg]:absolute [&>svg]:left-[11px] [&>svg]:size-[14px] [&>svg]:stroke-[#8B95A1] [&>svg]:stroke-2",
+  // 정본 건물 메뉴 '그룹 전체'(.grp-dd/.grp-btn/.grp-menu/.grp-opt). 열림·선택은 상호배타 클래스로 가른다.
+  "grp-dd": "relative flex-none",
+  "grp-btn": "flex h-[34px] cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-lg border bg-white px-2.5 text-[12.5px] font-bold [&_svg]:size-[14px] [&_svg]:flex-none [&_svg]:text-t3 [&_svg]:transition-transform [&_svg]:duration-150",
+  "grp-btn-off": "border-line text-t2",
+  "grp-btn-on": "border-blue text-blue-d [&_svg]:rotate-180",
+  "grp-menu": "fixed z-[48] min-w-[132px] rounded-xl border border-line bg-white p-1.5 shadow-[0_14px_34px_-10px_rgba(23,31,40,0.26)]",
+  "grp-opt": "flex cursor-pointer items-center justify-between gap-2 whitespace-nowrap rounded-lg px-2.5 py-2 text-[12.5px] font-bold [&_svg]:size-[13px] [&_svg]:flex-none",
+  "grp-opt-off": "text-t2 hover:bg-bg [&_svg]:opacity-0",
+  "grp-opt-on": "bg-blue-t2 text-blue-d",
   ddopts: "flex max-h-[180px] flex-col gap-0.5 overflow-y-auto",
   // 정본 .opt.chk.on{background:transparent} — 체크된 "전체" 행은 행 배경을 칠하지 않고
   // ::before 를 청록으로 채우고 ::after 로 흰 체크만 그린다. 그래서 on 대신 chk-on 을 쓴다.
@@ -122,7 +139,7 @@ export const messengerClasses: Record<string, string> = {
   "fmp-prow": "flex cursor-pointer items-center gap-[9px] rounded-lg px-[9px] py-2 hover:bg-bg",
   "fmp-pempty": "p-[22px] text-center text-[12.5px] font-semibold text-t3",
   nm: "text-[13px] font-bold text-t1",
-  num: "tabular-nums",
+  num: "text-[13px] font-bold tabular-nums",
   mt: "mt-px text-[11px] font-semibold text-t3",
   tel: "ml-auto text-[11.5px] font-semibold tabular-nums text-t3",
   "fmp-in": "flex items-center gap-[9px] rounded-[11px] border border-line bg-white px-[13px] py-[11px] focus-within:border-blue",
@@ -134,7 +151,7 @@ export const messengerClasses: Record<string, string> = {
   who: "mt-0.5 text-[11px] font-semibold text-t3",
   ck: "ml-auto size-[17px] flex-none",
   "fmp-fromhd": "px-2.5 pb-1 pt-2 text-[11px] font-bold tracking-[0.02em] text-t4",
-  "fmp-fromadd": "mb-0.5 flex gap-1.5 border-b border-line2 px-1 pb-2 pt-0.5 [&_input]:h-[38px] [&_input]:min-w-0 [&_input]:flex-1 [&_input]:rounded-[9px] [&_input]:border [&_input]:border-line [&_input]:px-[11px] [&_input]:font-bold [&_input]:outline-none [&_.go]:flex [&_.go]:h-[38px] [&_.go]:items-center [&_.go]:rounded-[9px] [&_.go]:bg-blue [&_.go]:px-3.5 [&_.go]:text-[12.5px] [&_.go]:font-extrabold [&_.go]:text-white",
+  "fmp-fromadd": "mb-0.5 flex gap-1.5 border-b border-line2 px-1 pb-2 pt-0.5 [&_input]:h-[38px] [&_input]:min-w-0 [&_input]:flex-1 [&_input]:rounded-[9px] [&_input]:border [&_input]:border-line [&_input]:px-[11px] [&_input]:text-[13px] [&_input]:font-bold [&_input]:outline-none [&_input:focus]:border-blue",
   go: "",
   "fmp-addbtn": "mt-2 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-dashed border-line bg-blue-t2 px-2.5 py-1.5 text-[12.5px] font-bold text-blue hover:border-blue hover:bg-blue-t",
   "fmp-din": "h-[42px] flex-1 rounded-[10px] border border-line bg-white px-3 text-[13px] font-semibold text-t1 outline-none focus:border-blue disabled:bg-bg disabled:text-t4",

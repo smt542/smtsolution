@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { BUILDING_GROUP_TYPES, matchesBuildingGroup } from "@/lib/buildings/groupType";
 import { useAccounts } from "@/hooks/reactquery/accounts/queries";
 import { useBuildings } from "@/hooks/reactquery/buildings/queries";
 import { useTenantList } from "@/hooks/reactquery/occupancies/queries";
@@ -19,6 +20,12 @@ const TYPE_LABEL: Record<RecipientType, string> = {
   owner: "건물주",
   cleaner: "청소 담당자",
 };
+
+// 정본 GRP_OPTS — 건물 메뉴 '그룹 전체' 필터. 값은 건물 고지서 부과 그룹 유형(basic_extra.groupType, 미지정=1).
+const GROUP_OPTIONS = [
+  { value: "", label: "그룹 전체" },
+  ...BUILDING_GROUP_TYPES.map((value) => ({ value, label: `그룹 ${value}` })),
+];
 
 const EMPTY_SELECTION = {
   type: "" as RecipientType | "",
@@ -116,10 +123,14 @@ export function RecipientCascade({
   const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
   const [secondSearch, setSecondSearch] = useState("");
   const [thirdSearch, setThirdSearch] = useState("");
+  const [buildingGroup, setBuildingGroup] = useState("");
+  const [groupMenuOpen, setGroupMenuOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const typeRef = useRef<HTMLDivElement>(null);
   const secondRef = useRef<HTMLDivElement>(null);
   const thirdRef = useRef<HTMLDivElement>(null);
+  const groupButtonRef = useRef<HTMLButtonElement>(null);
+  const groupMenuRef = useRef<HTMLDivElement>(null);
   const onChangeRef = useRef(onChange);
 
   // 채널(문자↔알림톡) 전환 시 선택 조정 — effect가 아닌 렌더 중 조정(React 권장 패턴).
@@ -290,10 +301,25 @@ export function RecipientCascade({
     return () => document.removeEventListener("mousedown", closeOnOutsideClick);
   }, []);
 
+  // 정본 grp-btn 클릭: 메뉴 오른쪽을 버튼 오른쪽에 맞추고(화면 8px 안), 아래가 모자라면 위로 연다.
+  // 크기를 알아야 해서 그린 뒤 재어 바로 자리를 잡는다(건물 메뉴가 overflow:hidden 이라 fixed 로 띄운다).
+  const groupMenuVisible = groupMenuOpen && openMenu === "second";
+  useLayoutEffect(() => {
+    const button = groupButtonRef.current;
+    const menu = groupMenuRef.current;
+    if (!groupMenuVisible || !button || !menu) return;
+    const rect = button.getBoundingClientRect();
+    const width = menu.offsetWidth || 132;
+    const height = menu.offsetHeight || 200;
+    menu.style.left = `${Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8))}px`;
+    menu.style.top = `${rect.bottom + height + 8 > window.innerHeight ? Math.max(8, rect.top - height - 5) : rect.bottom + 5}px`;
+  }, [groupMenuVisible]);
+
   const toggleMenu = (
     menu: Exclude<OpenMenu, null>,
     ref: React.RefObject<HTMLDivElement | null>,
   ) => {
+    setGroupMenuOpen(false);
     if (openMenu === menu) {
       setOpenMenu(null);
       return;
@@ -319,6 +345,7 @@ export function RecipientCascade({
       tenantUnitIds: [],
     }));
     setThirdSearch("");
+    setGroupMenuOpen(false);
     setOpenMenu(null);
   };
 
@@ -348,11 +375,15 @@ export function RecipientCascade({
       .toLowerCase()
       .includes(normalizedSecondSearch),
   );
-  const filteredBuildings = eligibleBuildings.filter((building) =>
-    `${building.code} ${building.name} ${building.address ?? ""}`
-      .toLowerCase()
-      .includes(normalizedSecondSearch),
+  const filteredBuildings = eligibleBuildings.filter(
+    (building) =>
+      matchesBuildingGroup(building, buildingGroup) &&
+      `${building.code} ${building.name} ${building.address ?? ""}`
+        .toLowerCase()
+        .includes(normalizedSecondSearch),
   );
+  const buildingGroupLabel =
+    GROUP_OPTIONS.find((option) => option.value === buildingGroup)?.label ?? GROUP_OPTIONS[0].label;
   const normalizedThirdSearch = thirdSearch.trim().toLowerCase();
   const filteredTenants = eligibleTenants.filter((tenant) =>
     `${tenant.unitNo} ${tenant.tenantName ?? ""} ${tenant.phone}`
@@ -426,7 +457,7 @@ export function RecipientCascade({
           {types.map((candidate) => (
             <div
               key={candidate}
-              className={`${styles.opt} ${candidate === type ? styles.on : ""}`}
+              className={`${styles.opt} ${styles["opt-plain"]} ${candidate === type ? `${styles.on} ${styles["opt-ck"]}` : ""}`}
               onClick={() => chooseType(candidate)}
             >
               {TYPE_LABEL[candidate]}
@@ -459,7 +490,11 @@ export function RecipientCascade({
         <div
           className="menu"
           style={openMenu === "second" ? { ...menuStyle, display: "flex" } : { display: "none" }}
-          onClick={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            // 정본: 그룹 드롭다운 밖을 누르면 그룹 메뉴만 닫는다.
+            if (!(event.target as HTMLElement).closest("[data-grp-dd]")) setGroupMenuOpen(false);
+          }}
         >
           {type === "staff" ? (
             <>
@@ -511,16 +546,61 @@ export function RecipientCascade({
             </>
           ) : (
             <>
-              <SearchField
-                value={secondSearch}
-                placeholder="건물명·주소 검색"
-                onChange={setSecondSearch}
-              />
+              {/* 정본 fillBldMenu: 검색(.bsrch) 옆에 '그룹 전체' 드롭다운(.grp-dd) */}
+              <div className={styles.ddsrch}>
+                <div className={styles.bsrch}>
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="11" cy="11" r="7" />
+                    <path d="M20 20l-3-3" />
+                  </svg>
+                  <input
+                    value={secondSearch}
+                    placeholder="건물명·주소 검색"
+                    onChange={(event) => setSecondSearch(event.target.value)}
+                  />
+                </div>
+                <div className={styles["grp-dd"]} data-grp-dd="">
+                  <button
+                    ref={groupButtonRef}
+                    type="button"
+                    className={`${styles["grp-btn"]} ${groupMenuVisible ? styles["grp-btn-on"] : styles["grp-btn-off"]}`}
+                    aria-haspopup="listbox"
+                    aria-expanded={groupMenuVisible}
+                    onClick={() => setGroupMenuOpen((current) => !current)}
+                  >
+                    <span>{buildingGroupLabel}</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                  </button>
+                  {groupMenuVisible && (
+                    <div ref={groupMenuRef} role="listbox" aria-label="건물 그룹" className={styles["grp-menu"]}>
+                      {GROUP_OPTIONS.map((option) => (
+                        <div
+                          key={option.value}
+                          role="option"
+                          aria-selected={option.value === buildingGroup}
+                          className={`${styles["grp-opt"]} ${option.value === buildingGroup ? styles["grp-opt-on"] : styles["grp-opt-off"]}`}
+                          onClick={() => {
+                            setBuildingGroup(option.value);
+                            setGroupMenuOpen(false);
+                          }}
+                        >
+                          {option.label}
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M4 12.5l5 5L20 6.5" />
+                          </svg>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
               <div className={styles.ddopts}>
                 {filteredBuildings.map((building) => (
                   <div
                     key={building.id}
-                    className={`${styles.opt} ${styles.bld} ${building.id === selection.buildingId ? styles.on : ""}`}
+                    className={`${styles.opt} ${styles["opt-plain"]} ${styles.bld} ${building.id === selection.buildingId ? `${styles.on} ${styles["opt-ck-bld"]}` : ""}`}
                     onClick={() => chooseBuilding(building.id)}
                   >
                     <span className={styles.oc}>{building.code}</span>

@@ -224,7 +224,7 @@ export function SchedulePicker({ value, onChange }: SchedulePickerProps) {
                 ref={repeatMenuRef}
                 role="listbox"
                 aria-label="반복 주기"
-                className="fixed z-[47] min-w-[132px] flex flex-col gap-0.5 rounded-xl border border-line bg-white p-1.5 leading-[normal] shadow-[0_16px_40px_-12px_rgba(23,31,40,0.3)]"
+                className="fixed z-[47] min-w-[132px] flex flex-col rounded-[14px] border border-line bg-white p-1.5 leading-[normal] shadow-[0_16px_40px_-12px_rgba(23,31,40,0.3)]"
                 style={{ left: repeatMenuPosition.left, top: repeatMenuPosition.top }}
               >
                 {([
