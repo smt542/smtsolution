@@ -11,7 +11,14 @@ type PartnerPhoneLinkProps = {
     targetId: string | number;
     field: string;
   };
+  /** 정본 `.btel` 규격. 기본 32px/r10, `lg`는 검침 자료 카드 34px/r11. */
+  size?: "default" | "lg";
 };
+
+const PILL_SIZE = {
+  default: "h-8 rounded-[10px]",
+  lg: "h-[34px] rounded-[11px]",
+} as const;
 
 function PhoneIcon() {
   return (
@@ -22,9 +29,9 @@ function PhoneIcon() {
 }
 
 /** Pill-style phone reveal with a handset icon, for partner mobile screens. */
-export function PartnerPhoneLink({ phone, pushRight, alreadyMasked = false, reveal }: PartnerPhoneLinkProps) {
+export function PartnerPhoneLink({ phone, pushRight, alreadyMasked = false, reveal, size = "default" }: PartnerPhoneLinkProps) {
   return (
-    <span className={`inline-flex h-8 flex-none items-center gap-[5px] rounded-[10px] border border-line bg-white px-[11px] text-[13px] font-bold tabular-nums text-t2 ${pushRight ? "ml-auto" : ""}`}>
+    <span className={`inline-flex ${PILL_SIZE[size]} flex-none items-center gap-[5px] border border-line bg-white px-[11px] text-[13px] font-bold tabular-nums text-t2 ${pushRight ? "ml-auto" : ""}`}>
       <PhoneIcon />
       <MaskedPhone
         value={phone}

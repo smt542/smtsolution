@@ -621,12 +621,31 @@ export interface PartnerMeterValue {
   current: string;
 }
 
+export type PartnerMeterUtility = "water" | "elec" | "gas";
+
+export interface PartnerMeterOverduePeriod {
+  period: string;
+  unpaidPrincipal: number;
+  dueDate: string;
+}
+
 export interface PartnerMeterUnit {
   unitId: number;
   unitNo: string;
   dong: string | null;
   tenantName: string | null;
   meters: Record<string, PartnerMeterValue>;
+  /** 지금 입주 중인 점유. 공실이면 null. */
+  occupancyId: number | null;
+  moveInDate: string | null;
+  /** 서버에서 마스킹한 연락처. */
+  phone: string | null;
+  /** 그 달 공과금별 적요(빈 값 제외). */
+  notes: Partial<Record<PartnerMeterUtility, string>>;
+  /** 공과금별 사용량 [1개월 전, 2개월 전, 3개월 전]. */
+  usageHistory: Partial<Record<PartnerMeterUtility, (number | null)[]>>;
+  /** 선택한 달까지 부과확정 고지서 중 덜 낸 달(미납관리와 같은 식, 0214). */
+  overduePeriods: PartnerMeterOverduePeriod[];
 }
 
 export interface PartnerMeterWorkspaceData {
@@ -644,15 +663,40 @@ interface PartnerMeterRpcRow {
   current_reading: number | null;
 }
 
-function groupPartnerMeterRows(rows: PartnerMeterRpcRow[]): PartnerMeterUnit[] {
+interface PartnerMeterCardRpcRow {
+  unit_id: number;
+  occupancy_id: number | null;
+  move_in_date: string | null;
+  phone: string | null;
+  notes: Partial<Record<PartnerMeterUtility, string>> | null;
+  usage_history: Partial<Record<PartnerMeterUtility, (number | null)[]>> | null;
+  overdue_periods: { period: string; unpaid_principal: number; due_date: string }[] | null;
+}
+
+function groupPartnerMeterRows(
+  rows: PartnerMeterRpcRow[],
+  cards: PartnerMeterCardRpcRow[],
+): PartnerMeterUnit[] {
+  const cardByUnit = new Map(cards.map((card) => [card.unit_id, card]));
   const units = new Map<number, PartnerMeterUnit>();
   for (const row of rows) {
+    const card = cardByUnit.get(row.unit_id);
     const unit = units.get(row.unit_id) ?? {
       unitId: row.unit_id,
       unitNo: row.unit_no,
       dong: row.dong,
       tenantName: row.tenant_name,
       meters: {},
+      occupancyId: card?.occupancy_id ?? null,
+      moveInDate: card?.move_in_date ?? null,
+      phone: card?.phone ?? null,
+      notes: card?.notes ?? {},
+      usageHistory: card?.usage_history ?? {},
+      overduePeriods: (card?.overdue_periods ?? []).map((item) => ({
+        period: item.period,
+        unpaidPrincipal: Number(item.unpaid_principal),
+        dueDate: item.due_date,
+      })),
     };
     unit.meters[row.utility] = {
       previous: row.previous_reading === null ? "" : String(row.previous_reading),
@@ -668,15 +712,20 @@ export async function getPartnerMeterWorkspace(
   period: string,
 ): Promise<PartnerMeterWorkspaceData> {
   const supabase = createClient();
-  const [buildingResult, readingsResult] = await Promise.all([
+  const [buildingResult, readingsResult, cardsResult] = await Promise.all([
     supabase.rpc("partner_get_building", { p_building_id: buildingId }),
     supabase.rpc("partner_list_meter_readings", {
+      p_building_id: buildingId,
+      p_period: period,
+    }),
+    supabase.rpc("partner_list_meter_cards", {
       p_building_id: buildingId,
       p_period: period,
     }),
   ]);
   if (buildingResult.error) throw new Error(buildingResult.error.message);
   if (readingsResult.error) throw new Error(readingsResult.error.message);
+  if (cardsResult.error) throw new Error(cardsResult.error.message);
 
   const building = Array.isArray(buildingResult.data)
     ? buildingResult.data[0]
@@ -686,6 +735,9 @@ export async function getPartnerMeterWorkspace(
     units: groupPartnerMeterRows(
       Array.isArray(readingsResult.data)
         ? (readingsResult.data as PartnerMeterRpcRow[])
+        : [],
+      Array.isArray(cardsResult.data)
+        ? (cardsResult.data as PartnerMeterCardRpcRow[])
         : [],
     ),
   };
