@@ -44,8 +44,8 @@ export const messengerClasses: Record<string, string> = {
   "fmp-seg": "flex w-full gap-0.5 rounded-[10px] bg-[#edf0f3] p-[3px]",
   si: "flex-1 cursor-pointer rounded-[7px] px-3.5 py-2 text-center text-[13px] font-bold",
   // 정본 .opt.on·.fmp-fromrow.on{background:var(--blue-t2);color:var(--blue-d)} — 정본은 .on 이 :hover 보다 뒤라
-  // 선택 행은 hover 에도 그대로다. 앱은 hover:bg-bg 가 변형이라 뒤에 생성되므로 !로 이긴다.
-  on: "!bg-blue-t2 text-blue-d",
+  // 선택 행은 hover 에도 그대로다. 앱은 hover:bg-bg 가 변형이라 뒤에 생성되고 opt 의 text-t2 와도 같은 속성이라 !로 이긴다.
+  on: "!bg-blue-t2 !text-blue-d",
   "seg-on": "bg-white text-t1 shadow-[0px_2px_2.5px_rgba(23,31,40,0.1)]",
   "fmp-lbl": "mb-2 text-[12.5px] font-bold text-t2",
   "fmp-chips": "flex flex-wrap gap-1.5",
@@ -71,10 +71,9 @@ export const messengerClasses: Record<string, string> = {
   opt: "cursor-pointer whitespace-nowrap rounded-[9px] px-[11px] py-[9px] text-[13px] font-bold text-t2 hover:bg-bg",
   bld: "flex items-start gap-[7px]",
   // 정본 .fmp-dd2 .opt:not(.chk):not(.owl):not(.tnl){padding-right:32px} + .on::after 체크(유형·건물 행).
-  // 건물 행은 .opt.bld.on::after{top:22px}. top 이 달라 키를 둘로 둔다.
+  // 정본 CSS 의 .opt.bld.on::after{top:22px} 는 명시도가 낮아 렌더에 안 먹는다(실측 top = calc(50% - 1px)).
   "opt-plain": "relative pr-8",
   "opt-ck": "after:absolute after:right-[13px] after:top-[calc(50%-1px)] after:h-[11px] after:w-[6px] after:-translate-y-[60%] after:rotate-45 after:border-solid after:border-blue after:border-r-[2.4px] after:border-b-[2.4px] after:content-['']",
-  "opt-ck-bld": "after:absolute after:right-[13px] after:top-[22px] after:h-[11px] after:w-[6px] after:-translate-y-[60%] after:rotate-45 after:border-solid after:border-blue after:border-r-[2.4px] after:border-b-[2.4px] after:content-['']",
   btxt: "min-w-0 flex-1",
   bnm: "whitespace-normal break-all text-[13px] font-bold text-t1",
   badr: "mt-[3px] whitespace-normal break-all text-[11.5px] font-semibold text-t3",
