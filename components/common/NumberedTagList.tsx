@@ -80,12 +80,14 @@ export function NumberedTagList({
           `n / max` 카운터는 이 목록이 아니라 카드 헤더 우측에 있으므로(Panel의 action)
           여기서 그리지 않는다.
           규격은 정본 `.st-ck-add`(카드 본문 gap 10 + margin-top 2, 점선 #C9D0D8, 폭은 글자에 맞춤,
-          비활성 = 흐림 .45 + 실선). hover 는 글자만 청록 — 테두리 변화는 QA S26 에서 뺐다. */}
+          비활성 = 흐림 .45 + 실선). hover 는 글자만 청록 — 테두리 변화는 QA S26 에서 뺐다.
+          비활성 hover 는 정본 렌더 그대로(`.st-ck-add:hover`에 :enabled 가 없다) 테두리·글자 모두 청록
+          — 가득 찬 직후 마우스가 버튼 위에 있을 때 보이는 모양이다(사용자 결정 2026-09-30). */}
       <button
         type="button"
         onClick={onAdd}
         disabled={items.length >= max}
-        className="mt-[12px] h-[38px] rounded-[11px] border border-dashed border-[#C9D0D8] bg-white px-[16px] text-[13px] font-bold leading-[normal] text-t2 enabled:hover:text-brand disabled:cursor-default disabled:border-solid disabled:opacity-45"
+        className="mt-[12px] h-[38px] rounded-[11px] border border-dashed border-[#C9D0D8] bg-white px-[16px] text-[13px] font-bold leading-[normal] text-t2 hover:text-brand disabled:cursor-default disabled:border-solid disabled:opacity-45 disabled:hover:border-brand"
       >
         {addLabel}
       </button>
