@@ -222,6 +222,7 @@ function OrganizationFormFields({
               onChange={field.onChange}
               disabled={disabled}
               placeholder={placeholders.start}
+              displayFormatter={(value) => value}
               triggerClassName={dateClass("contractStartDate")}
               triggerOpenClassName={DATE_OPEN_CLASS}
               endAdornment={<CalendarIcon className="size-4 shrink-0 text-t3" aria-hidden="true" />}
@@ -241,6 +242,7 @@ function OrganizationFormFields({
               onChange={field.onChange}
               disabled={disabled}
               placeholder={placeholders.end}
+              displayFormatter={(value) => value}
               triggerClassName={dateClass("contractEndDate")}
               triggerOpenClassName={DATE_OPEN_CLASS}
               endAdornment={<CalendarIcon className="size-4 shrink-0 text-t3" aria-hidden="true" />}
@@ -469,7 +471,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
         <div className="mt-4 flex gap-2 border-t border-line2 px-6 pt-4">
           <div className="flex-1" />
           <Button type="button" size="std" variant="ghost" onClick={onClose} disabled={submitting}>취소</Button>
-          <Button type="submit" size="std" variant="primary" disabled={submitting}>생성</Button>
+          <Button type="submit" size="std" variant="primary" className="border border-transparent" disabled={submitting}>생성</Button>
         </div>
       </form>
     </Modal>
@@ -671,10 +673,10 @@ function EditModal({ organization, onClose }: Omit<EditProps, "mode">) {
           )}
         </div>
         <div className="mt-4 flex gap-2 border-t border-line2 px-6 pt-4">
-          <Button type="button" size="std" variant="danger" className="shadow-none" onClick={() => void handleDelete()} disabled={submitting}>삭제</Button>
+          <Button type="button" size="std" variant="danger" className="border border-red shadow-none" onClick={() => void handleDelete()} disabled={submitting}>삭제</Button>
           <div className="flex-1" />
           <Button type="button" size="std" variant="ghost" onClick={onClose} disabled={submitting}>취소</Button>
-          <Button type="submit" size="std" variant="primary" disabled={submitting}>저장</Button>
+          <Button type="submit" size="std" variant="primary" className="border border-transparent" disabled={submitting}>저장</Button>
         </div>
       </form>
     </Modal>
