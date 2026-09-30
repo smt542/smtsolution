@@ -1,6 +1,7 @@
 import type { GasTableRow, GasUtilityDraft } from "./types";
 import { GridEmptyValue } from "../GridEmptyValue";
 import { UtilityGrid, type UtilityGridColumn } from "../UtilityGrid";
+import { usageFromReadings } from "../UtilityLock";
 
 interface GasAccountSummaryProps {
   rows: GasTableRow[];
@@ -42,9 +43,17 @@ function summarize(rows: GasTableRow[], drafts: Record<number, GasUtilityDraft>)
     (line, row) => {
       const draft = drafts[row.unitId];
       const current = numeric(draft?.currentReading ?? "") ?? row.currentReading ?? row.previousReading ?? 0;
-      const previous = row.previousReading ?? 0;
-      const locked = draft?.usageLocked ? numeric(draft.lockedUsage) : null;
-      const usage = locked ?? Math.max(0, current - previous);
+      const previous = numeric(draft?.previousReading ?? "") ?? row.previousReading ?? 0;
+      const calculated = usageFromReadings(
+        draft?.previousReading ?? "",
+        draft?.currentReading ?? "",
+        true,
+      );
+      const usage = draft?.usageLocked
+        ? numeric(draft.lockedUsage) ?? 0
+        : draft?.usageEdited
+          ? numeric(draft.usage) ?? 0
+          : calculated ?? 0;
       const manual = numeric(draft?.manualCharge ?? "");
       line.usage += usage;
       line.currentReading += current;

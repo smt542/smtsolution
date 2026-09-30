@@ -1,7 +1,16 @@
 import type { GasTableRow, GasUtilityDraft } from "./types";
 import { GridEmptyValue } from "../GridEmptyValue";
 import { UtilityGrid, type UtilityGridColumn } from "../UtilityGrid";
-import { FIXED_LOCK_CELL, LockedValue, LockPin, manualLockPatch, usageLockPatch } from "../UtilityLock";
+import {
+  FIXED_LOCK_CELL,
+  LOCKED_INPUT,
+  LockedValue,
+  LockPin,
+  manualLockPatch,
+  usageFromReadings,
+  usageTextFromReadings,
+  usageLockPatch,
+} from "../UtilityLock";
 
 interface GasReadingsTableProps {
   rows: GasTableRow[];
@@ -57,17 +66,22 @@ interface GasReadingsGridRow {
   chargeBasis: string;
 }
 
+/** 자물쇠가 켜진 입력칸: 아래 기본 입력칸과 같은 크기에 고정 칸 색(disabled: 스타일은 섞지 않는다). */
+const LOCKED_READING_INPUT = `h-[26px] w-14 rounded-[7px] px-1.5 text-right text-[11.5px] font-semibold tabular-nums outline-none ${LOCKED_INPUT}`;
+
 function ReadingInput({
   label,
   value,
   disabled,
   readOnly,
+  className,
   onChange,
 }: {
   label: string;
   value: string;
   disabled?: boolean;
   readOnly?: boolean;
+  className?: string;
   onChange: (value: string) => void;
 }) {
   return (
@@ -78,7 +92,7 @@ function ReadingInput({
       disabled={disabled}
       readOnly={readOnly}
       onChange={(event) => onChange(event.target.value)}
-      className="h-[26px] w-14 rounded-[7px] border border-teal bg-white px-1.5 text-right text-[11.5px] font-semibold tabular-nums text-t2 outline-none disabled:border-line disabled:bg-bg disabled:text-t4"
+      className={className ?? "h-[26px] w-14 rounded-[7px] border border-teal bg-white px-1.5 text-right text-[11.5px] font-semibold tabular-nums text-t2 outline-none disabled:border-line disabled:bg-bg disabled:text-t4"}
     />
   );
 }
@@ -94,11 +108,22 @@ export function GasReadingsTable({
 }: GasReadingsTableProps) {
   const chargeBasis = `${chargeStartDate.replaceAll("-", ".")} ~ ${chargeEndDate.replaceAll("-", ".")}`;
   const preparedRows: GasReadingsGridRow[] = rows.map((row) => {
-    const draft = drafts[row.unitId];
-    const current = numberFrom(draft.currentReading);
-    const computedUsage = current === null || row.previousReading === null ? row.usage : Math.max(0, current - row.previousReading);
+    const draft = drafts[row.unitId] ?? {
+      previousReading: row.previousReading === null ? "" : String(row.previousReading),
+      currentReading: row.currentReading === null ? "" : String(row.currentReading),
+      usage: row.usage === null ? "" : String(row.usage),
+      usageEdited: false,
+      manualCharge: "",
+      note: "",
+      usageLocked: false,
+      lockedUsage: "",
+      manualLocked: false,
+    };
+    const computedUsage = usageFromReadings(draft.previousReading, draft.currentReading, true);
     // 고정한 량은 지침과 무관하게 그 값으로 부과된다(서버 save_meter_readings 도 같다).
-    const usage = draft.usageLocked ? numberFrom(draft.lockedUsage) : computedUsage;
+    const usage = draft.usageLocked
+      ? numberFrom(draft.lockedUsage)
+      : draft.usageEdited ? numberFrom(draft.usage) : computedUsage;
     const previousUsage = row.usage;
     const change = usage === null || previousUsage === null ? null : usage - previousUsage;
     const manual = numberFrom(draft.manualCharge);
@@ -160,9 +185,11 @@ export function GasReadingsTable({
       render: (item) => editing ? (
         <ReadingInput
           label={`${item.row.unitNo} 전월 지침값`}
-          value={item.row.previousReading === null ? "" : String(item.row.previousReading)}
-          readOnly
-          onChange={() => {}}
+          value={item.draft.previousReading}
+          onChange={(value) => onDraftChange(item.row.unitId, {
+            previousReading: value,
+            ...(!item.draft.usageEdited ? { usage: usageTextFromReadings(value, item.draft.currentReading, true) } : {}),
+          })}
         />
       ) : <ReadingValue value={item.row.previousReading} />,
     },
@@ -176,7 +203,10 @@ export function GasReadingsTable({
         <ReadingInput
           label={`${item.row.unitNo} 당월 지침값`}
           value={item.draft.currentReading}
-          onChange={(value) => onDraftChange(item.row.unitId, { currentReading: value })}
+          onChange={(value) => onDraftChange(item.row.unitId, {
+            currentReading: value,
+            ...(!item.draft.usageEdited ? { usage: usageTextFromReadings(item.draft.previousReading, value, true) } : {}),
+          })}
         />
       ) : <ReadingValue value={item.row.currentReading} />,
     },
@@ -190,14 +220,21 @@ export function GasReadingsTable({
         <div className="flex items-center justify-center gap-[5px]">
           <ReadingInput
             label={`${item.row.unitNo} 사용량`}
-            value={item.usage === null ? "" : String(item.usage)}
-            readOnly
-            onChange={() => {}}
+            value={item.draft.usageLocked ? item.draft.lockedUsage : item.draft.usage}
+            disabled={item.draft.usageLocked}
+            className={item.draft.usageLocked ? LOCKED_READING_INPUT : undefined}
+            onChange={(value) => onDraftChange(item.row.unitId, { usage: value, usageEdited: true })}
           />
           <LockPin
             locked={item.draft.usageLocked}
             label={`${item.row.unitNo} 량 고정`}
-            onToggle={() => onDraftChange(item.row.unitId, usageLockPatch(item.draft.usageLocked, item.computedUsage))}
+            onToggle={() => onDraftChange(item.row.unitId, {
+              ...usageLockPatch(item.draft.usageLocked, item.usage),
+              ...(item.draft.usageLocked ? {
+                usageEdited: false,
+                usage: usageTextFromReadings(item.draft.previousReading, item.draft.currentReading, true),
+              } : {}),
+            })}
           />
         </div>
       ) : item.draft.usageLocked ? <LockedValue value={item.usage} /> : <ReadingValue value={item.usage} />,
@@ -229,6 +266,8 @@ export function GasReadingsTable({
           <ReadingInput
             label={`${item.row.unitNo} 수동 입력 요금`}
             value={item.draft.manualCharge}
+            disabled={item.draft.manualLocked}
+            className={item.draft.manualLocked ? LOCKED_READING_INPUT : undefined}
             onChange={(value) => onDraftChange(item.row.unitId, { manualCharge: value })}
           />
           <LockPin

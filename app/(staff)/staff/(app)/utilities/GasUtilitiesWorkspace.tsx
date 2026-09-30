@@ -17,7 +17,7 @@ import {
   useSaveFixedValues,
   useSaveMeterReadings,
   useUtilityRows,
-  type FixedValueRow,
+  type FixedValueEntry,
   type UtilityUnitRow,
 } from "@/hooks/reactquery/utilities";
 import { hasModule } from "@/lib/auth/permissions";
@@ -36,7 +36,13 @@ import { GasWorkspaceHeader } from "./components/gas/GasWorkspaceHeader";
 import type { GasUtilityDraft } from "./components/gas/types";
 import { MeterLedgerModal } from "./components/MeterLedgerModal";
 import { UtilityPeriodBarPlaceholder } from "./components/UtilityPeriodBarPlaceholder";
-import { fixedChangeFor, initialLockDraft } from "./components/UtilityLock";
+import {
+  fixedChangesFor,
+  groupFixedValues,
+  initialLockDraft,
+  usageEditedForRow,
+  usageTextFromReadings,
+} from "./components/UtilityLock";
 
 function pad(value: number): string {
   return String(value).padStart(2, "0");
@@ -46,9 +52,16 @@ function monthEnd(year: number, month: number): string {
   return `${year}-${pad(month)}-${pad(new Date(year, month, 0).getDate())}`;
 }
 
-function initialDraft(row: UtilityUnitRow, fixed: FixedValueRow | undefined, period: string): GasUtilityDraft {
+function initialDraft(row: UtilityUnitRow, fixed: FixedValueEntry[] | undefined, period: string): GasUtilityDraft {
+  const previousReading = row.previousReading === null ? "" : String(row.previousReading);
+  const currentReading = row.currentReading === null ? "" : String(row.currentReading);
+  const usageEdited = usageEditedForRow(row.previousReading, row.currentReading, row.usage);
   return {
-    currentReading: row.currentReading === null ? "" : String(row.currentReading),
+    previousReading,
+    currentReading,
+    // 직접 넣은 량이 아니면 칸에는 화면 계산값(가스는 0 보정)을 보여 준다 — 저장된 음수(검토 표시)가 칸에 뜨지 않게.
+    usage: usageEdited ? String(row.usage) : usageTextFromReadings(previousReading, currentReading, true),
+    usageEdited,
     note: row.note ?? "",
     ...initialLockDraft(fixed, period, row.manualCharge),
   };
@@ -103,7 +116,7 @@ export default function GasUtilitiesWorkspace() {
 
   const rows = useMemo(() => rowsQuery.data ?? [], [rowsQuery.data]);
   const fixedByUnit = useMemo(
-    () => new Map((fixedValuesQuery.data ?? []).map((item) => [item.unitId, item])),
+    () => groupFixedValues(fixedValuesQuery.data ?? []),
     [fixedValuesQuery.data],
   );
 
@@ -179,27 +192,39 @@ export default function GasUtilitiesWorkspace() {
       toast.error("부과 시작일과 종료일을 확인해 주세요.");
       return;
     }
-    // 고정한 호실은 지침이 비어도 저장해야 이 달 부과에 고정값이 들어간다(량=서버가 fixed_usage 로 계산).
+    // 고정한 호실은 지침이 비어도 저장해야 이 달 부과에 고정값이 들어간다.
     const payloadRows = rows
       .filter((row) => {
         const draft = scopedDrafts[row.unitId];
-        return draft.usageLocked || draft.manualLocked || draft.currentReading.trim() !== "";
+        return draft.usageLocked
+          || draft.manualLocked
+          || draft.previousReading.trim() !== (row.previousReading === null ? "" : String(row.previousReading))
+          || draft.currentReading.trim() !== ""
+          || draft.usageEdited
+          || draft.manualCharge.trim() !== ""
+          || draft.note.trim() !== "";
       })
       .map((row) => ({
         unit_id: row.unitId,
+        ...(scopedDrafts[row.unitId].previousReading.trim() === "" ? {} : { previous_reading: scopedDrafts[row.unitId].previousReading.trim() }),
         current_reading: scopedDrafts[row.unitId].currentReading.trim(),
+        ...(scopedDrafts[row.unitId].usageLocked || !scopedDrafts[row.unitId].usageEdited || scopedDrafts[row.unitId].usage.trim() === ""
+          ? {}
+          : { usage: scopedDrafts[row.unitId].usage.trim() }),
         manual_charge: scopedDrafts[row.unitId].manualCharge.trim(),
         note: scopedDrafts[row.unitId].note.trim(),
       }));
-    const fixedChanges = rows.flatMap((row) => {
-      const change = fixedChangeFor(row.unitId, scopedDrafts[row.unitId], fixedByUnit.get(row.unitId), period);
-      return change ? [change] : [];
-    });
+    const fixedChanges = rows.flatMap((row) => fixedChangesFor(
+      row.unitId,
+      scopedDrafts[row.unitId],
+      fixedByUnit.get(row.unitId),
+      period,
+    ));
 
     try {
       // 고정값을 먼저 써야 save_meter_readings 가 바뀐 고정 사용량으로 량을 계산한다.
       if (fixedChanges.length > 0) {
-        await saveFixedValues.mutateAsync({ buildingId, utilityType: "gas", rows: fixedChanges });
+        await saveFixedValues.mutateAsync({ buildingId, utilityType: "gas", period, changes: fixedChanges });
       }
       const [, meterResult] = await Promise.all([
         saveBillingPeriod.mutateAsync({

@@ -410,69 +410,71 @@ export async function saveBillingPeriod(input: SaveBillingPeriodInput): Promise<
   if (error) throw new Error(error.message);
 }
 
-/**
- * 호실별 지침 자물쇠(정본 '이 값을 다음 달에도 고정') 고정값. 량은 fixed_usage, 수동입력은
- * fixed_manual_charge(0199) 이고, 각각 적용 시작월(`*_from`, 월 1일)부터 이후 달에 적용된다.
- */
-export interface FixedValueRow {
+/** 호실별 지침 자물쇠는 unit_fixed_values 의 달별 이력으로 저장한다. */
+export type FixedValueKind = "usage" | "manual";
+
+/** 호실별 자물쇠 이력 한 줄: fromPeriod 월부터 value 로 고정, null 이면 해제. */
+export interface FixedValueEntry {
   unitId: number;
-  fixedUsage: number | null;
-  fixedUsageFrom: string | null;
-  fixedManualCharge: number | null;
-  fixedManualChargeFrom: string | null;
+  kind: FixedValueKind;
+  fromPeriod: string;
+  value: number | null;
 }
 
 interface FixedValueDbRow {
   unit_id: number;
-  fixed_usage: number | string | null;
-  fixed_usage_from: string | null;
-  fixed_manual_charge: number | null;
-  fixed_manual_charge_from: string | null;
+  kind: FixedValueKind;
+  from_period: string;
+  value: number | string | null;
 }
 
 export async function listFixedValues(
   buildingId: number,
   utilityType: UtilityType,
-): Promise<FixedValueRow[]> {
+): Promise<FixedValueEntry[]> {
   const { data, error } = await createClient()
-    .from("unit_meters")
-    .select("unit_id, fixed_usage, fixed_usage_from, fixed_manual_charge, fixed_manual_charge_from, units!inner(building_id)")
+    .from("unit_fixed_values")
+    .select("unit_id, kind, from_period, value, units!inner(building_id, deleted_at)")
     .eq("utility", dbUtility(utilityType))
     .eq("units.building_id", buildingId)
     .is("units.deleted_at", null)
-    .or("fixed_usage.not.is.null,fixed_manual_charge.not.is.null");
+    .order("unit_id")
+    .order("from_period");
   if (error) throw new Error(error.message);
   return ((data ?? []) as unknown as FixedValueDbRow[]).map((row) => ({
     unitId: row.unit_id,
-    fixedUsage: row.fixed_usage === null ? null : Number(row.fixed_usage),
-    fixedUsageFrom: row.fixed_usage_from,
-    fixedManualCharge: row.fixed_manual_charge,
-    fixedManualChargeFrom: row.fixed_manual_charge_from,
+    kind: row.kind,
+    fromPeriod: row.from_period,
+    value: row.value === null ? null : Number(row.value),
   }));
+}
+
+export interface FixedValueChange {
+  unitId: number;
+  kind: FixedValueKind;
+  value: number | null;
 }
 
 export interface SaveFixedValuesInput {
   buildingId: number;
   utilityType: UtilityType;
-  rows: FixedValueRow[];
+  period: string;
+  changes: FixedValueChange[];
 }
 
-/** 호실마다 두 고정값을 통째로 쓴다(null 이면 해제). 계량기 행이 없는 호실은 새로 만든다. */
+/** 호실별 자물쇠 변경을 해당 월의 이력 행으로 저장한다(null 이면 해제). */
 export async function saveFixedValues(input: SaveFixedValuesInput): Promise<void> {
-  if (input.rows.length === 0) return;
-  const { error } = await createClient()
-    .from("unit_meters")
-    .upsert(
-      input.rows.map((row) => ({
-        unit_id: row.unitId,
-        utility: dbUtility(input.utilityType),
-        fixed_usage: row.fixedUsage,
-        fixed_usage_from: row.fixedUsageFrom,
-        fixed_manual_charge: row.fixedManualCharge,
-        fixed_manual_charge_from: row.fixedManualChargeFrom,
-      })),
-      { onConflict: "unit_id,utility" },
-    );
+  if (input.changes.length === 0) return;
+  const { error } = await createClient().rpc("save_unit_fixed_values", {
+    p_building_id: input.buildingId,
+    p_utility: dbUtility(input.utilityType),
+    p_period: input.period,
+    p_rows: input.changes.map((change) => ({
+      unit_id: change.unitId,
+      kind: change.kind,
+      value: change.value,
+    })),
+  });
   if (error) throw new Error(error.message);
 }
 

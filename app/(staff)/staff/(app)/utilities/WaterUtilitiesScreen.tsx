@@ -16,7 +16,7 @@ import {
   useSaveFixedValues,
   useSaveMeterReadings,
   useUtilityRows,
-  type FixedValueRow,
+  type FixedValueEntry,
   type UtilityType,
   type UtilityUnitRow,
 } from "@/hooks/reactquery/utilities";
@@ -36,7 +36,12 @@ import { UtilityPeriodBarPlaceholder } from "./components/UtilityPeriodBarPlaceh
 import { UtilityWorkspaceHeader } from "./components/UtilityWorkspaceHeader";
 import { UtilityTable, type UtilityDraft } from "./components/UtilityTable";
 import { UtilityWorkspaceBar } from "./components/UtilityWorkspaceBar";
-import { fixedChangeFor, initialLockDraft } from "./components/UtilityLock";
+import {
+  fixedChangesFor,
+  groupFixedValues,
+  initialLockDraft,
+  usageEditedForRow,
+} from "./components/UtilityLock";
 import { WaterDiscountModal } from "./components/WaterDiscountModal";
 
 const TYPE_LABELS: Record<UtilityType, string> = {
@@ -63,11 +68,12 @@ function isVacant(row: UtilityUnitRow): boolean {
   return row.occupancyStatus === "vacant" || row.occupancyId === null;
 }
 
-function initialDraft(row: UtilityUnitRow, fixed: FixedValueRow | undefined, period: string): UtilityDraft {
+function initialDraft(row: UtilityUnitRow, fixed: FixedValueEntry[] | undefined, period: string): UtilityDraft {
   return {
     previousReading: row.previousReading === null ? "" : String(row.previousReading),
     currentReading: row.currentReading === null ? "" : String(row.currentReading),
     usage: row.usage === null ? "" : String(row.usage),
+    usageEdited: usageEditedForRow(row.previousReading, row.currentReading, row.usage),
     note: row.note ?? "",
     ...initialLockDraft(fixed, period, row.manualCharge),
   };
@@ -124,7 +130,7 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
 
   const rows = useMemo(() => rowsQuery.data ?? [], [rowsQuery.data]);
   const fixedByUnit = useMemo(
-    () => new Map((fixedValuesQuery.data ?? []).map((row) => [row.unitId, row])),
+    () => groupFixedValues(fixedValuesQuery.data ?? []),
     [fixedValuesQuery.data],
   );
   const scopeKey = `${buildingId ?? "none"}:${utilityType}:${period}`;
@@ -198,8 +204,8 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
 
   const saveReadings = async (finishEditing: boolean) => {
     if (buildingId === null) return;
-    // 고정한 호실은 지침이 비어도 저장해야 이 달 부과에 고정값이 들어간다. 고정한 량은 서버가
-    // fixed_usage 로 계산하므로 usage 를 보내지 않는다(보내면 지침과 맞춰 보는 H6 검사에 걸린다).
+    // 고정한 호실은 지침이 비어도 저장해야 이 달 부과에 고정값이 들어간다.
+    // 고정 사용량은 이력값으로 서버가 계산하므로 usage 를 보내지 않는다.
     const payloadRows = activeRows
       .map((row) => ({ row, draft: scopedDrafts[row.unitId] }))
       .filter(({ row, draft }) => (
@@ -208,6 +214,7 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
         || draft.previousReading.trim() !== (row.previousReading === null ? "" : String(row.previousReading))
         || draft.currentReading.trim() !== ""
         || draft.usage.trim() !== ""
+        || draft.usageEdited
         || draft.manualCharge.trim() !== ""
         || draft.note.trim() !== ""
       ))
@@ -215,14 +222,16 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
         unit_id: row.unitId,
         ...(draft.previousReading.trim() === "" ? {} : { previous_reading: draft.previousReading.trim() }),
         ...(draft.currentReading.trim() === "" ? {} : { current_reading: draft.currentReading.trim() }),
-        ...(draft.usageLocked || draft.usage.trim() === "" ? {} : { usage: draft.usage.trim() }),
+        ...(draft.usageLocked || !draft.usageEdited || draft.usage.trim() === "" ? {} : { usage: draft.usage.trim() }),
         manual_charge: draft.manualCharge.trim(),
         note: draft.note.trim(),
       }));
-    const fixedChanges = activeRows.flatMap((row) => {
-      const change = fixedChangeFor(row.unitId, scopedDrafts[row.unitId], fixedByUnit.get(row.unitId), period);
-      return change ? [change] : [];
-    });
+    const fixedChanges = activeRows.flatMap((row) => fixedChangesFor(
+      row.unitId,
+      scopedDrafts[row.unitId],
+      fixedByUnit.get(row.unitId),
+      period,
+    ));
     if (payloadRows.length === 0 && fixedChanges.length === 0) {
       if (finishEditing) {
         setEditing(false);
@@ -234,7 +243,7 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
     try {
       // 고정값을 먼저 써야 save_meter_readings 가 바뀐 고정 사용량으로 량을 계산한다.
       if (fixedChanges.length > 0) {
-        await saveFixedValues.mutateAsync({ buildingId, utilityType, rows: fixedChanges });
+        await saveFixedValues.mutateAsync({ buildingId, utilityType, period, changes: fixedChanges });
       }
       if (payloadRows.length > 0) {
         const result = await saveMeter.mutateAsync({ buildingId, utilityType, period, rows: payloadRows });
@@ -263,6 +272,7 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
             previousReading: carried,
             currentReading: carried,
             usage: "0",
+            usageEdited: false,
             note: "",
           };
         });
