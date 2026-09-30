@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     address,
     region,
     operatingHours,
-    contractFilePath,
+    contractFilePaths,
     owner,
   } = body ?? {};
   if (
@@ -58,6 +58,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "필수 항목이 누락되었습니다." }, { status: 422 });
   if (!OWNER_PIN.test(String(owner.password)))
     return NextResponse.json({ error: "관리자 비밀번호는 숫자 4자리입니다." }, { status: 422 });
+
+  const contractPaths: string[] = Array.isArray(contractFilePaths)
+    ? contractFilePaths.filter((path: unknown): path is string => typeof path === "string" && path.trim() !== "")
+    : [];
 
   // 3a) 조직 생성(RPC). 자동 회사코드가 겹치면(극히 드묾) 새로 만들어 다시 시도한다.
   const fixedSlug = typeof requestedSlug === "string" && requestedSlug.trim()
@@ -96,7 +100,8 @@ export async function POST(req: Request) {
     p_address: address,
     p_region: region,
     p_operating_hours: operatingHours || null,
-    p_contract_file_path: contractFilePath || null,
+    p_contract_file_path: contractPaths[0] ?? null,
+    p_contract_file_paths: contractPaths,
   });
   if (contractError) {
     await createAdminClient().from("organizations").delete().eq("id", orgRow.id);

@@ -79,7 +79,8 @@ export function PhotoUpload({
 
   const addDropFiles = (selected: FileList | readonly File[] | null) => {
     if (!selected || disabled) return;
-    const { accepted, errors } = selectImageFiles([], Array.from(selected), max, accept);
+    // max 1이면 새로 고른 파일이 기존 선택을 대체하므로 기존 장수를 세지 않는다.
+    const { accepted, errors } = selectImageFiles(max === 1 ? [] : files, Array.from(selected), max, accept);
     if (errors.length > 0) appToast.error(errors.join("\n"));
     if (accepted.length > 0) {
       onFilesChange(max === 1 ? [accepted[0]] : [...files, ...accepted]);
