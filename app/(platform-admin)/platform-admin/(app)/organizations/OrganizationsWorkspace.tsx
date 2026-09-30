@@ -135,13 +135,13 @@ export default function OrganizationsWorkspace() {
             detail: "최근 12개월",
           },
         ].map((kpi) => (
-          <div key={kpi.label} className="rounded-[15px] bg-surface px-[18px] py-[17px] shadow-card">
+          <div key={kpi.label} className="rounded-[15px] bg-surface px-[18px] py-[17px] leading-[normal] shadow-card">
             <div className="text-[12.5px] font-bold text-t3">{kpi.label}</div>
             <div className="mt-[9px] text-[26px] font-extrabold tracking-[-0.03em] text-t1 num">
               {contractKpis.isPending ? "-" : formatNumber(kpi.value ?? 0)}
-              <span className="ml-[3px] text-sm font-bold tracking-normal text-t3">곳</span>
+              <span className="ml-[3px] text-[14px] font-bold tracking-normal text-t3">곳</span>
             </div>
-            <div className={["mt-[7px] text-xs font-bold num", kpi.label === "정지" ? "text-red" : "text-t3"].join(" ")}>
+            <div className={["mt-[7px] text-[12px] font-bold num", kpi.label === "정지" ? "text-red" : "text-t3"].join(" ")}>
               {kpi.detail}
             </div>
           </div>
@@ -214,14 +214,14 @@ export default function OrganizationsWorkspace() {
           <table className="w-full border-collapse leading-[normal]">
             <thead>
               <tr>
-                <th className="w-[24%] whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-left text-xs font-bold text-t3">업체명</th>
-                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold text-t3">건물</th>
-                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold text-t3">세대</th>
-                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold text-t3">직원</th>
-                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold text-t3">세입자</th>
-                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-left text-xs font-bold text-t3">상태</th>
-                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-left text-xs font-bold text-t3">계약 시작</th>
-                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-left text-xs font-bold text-t3">계약 만료</th>
+                <th className="w-[24%] whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-left text-[12px] font-bold text-t3">업체명</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-[12px] font-bold text-t3">건물</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-[12px] font-bold text-t3">세대</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-[12px] font-bold text-t3">직원</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-[12px] font-bold text-t3">세입자</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-left text-[12px] font-bold text-t3">상태</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-left text-[12px] font-bold text-t3">계약 시작</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-left text-[12px] font-bold text-t3">계약 만료</th>
               </tr>
             </thead>
             <tbody className="[&>tr:last-child>td]:border-b-0">
@@ -236,8 +236,8 @@ export default function OrganizationsWorkspace() {
                   className="cursor-pointer hover:bg-row-hover"
                 >
                   <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] text-t1">
-                    <div className="text-sm font-extrabold tracking-[-0.01em] text-t1">{organization.name}</div>
-                    <span className="mt-[3px] block text-xs font-semibold text-t3">{organization.region ?? "지역 미설정"}</span>
+                    <div className="text-[14px] font-extrabold tracking-[-0.01em] text-t1">{organization.name}</div>
+                    <span className="mt-[3px] block text-[12px] font-semibold text-t3">{organization.region ?? "지역 미설정"}</span>
                   </td>
                   <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-right text-[13.5px] text-t1 num">{formatNumber(organization.buildingCount)}</td>
                   <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-right text-[13.5px] text-t1 num">{formatNumber(organization.unitCount)}</td>
