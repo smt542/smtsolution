@@ -15,7 +15,6 @@ export { Switch } from "./Switch";
 export { SegmentedControl } from "./SegmentedControl";
 export { Radio } from "./Radio";
 export { NumberedTagList, nextDefaultLabel } from "./NumberedTagList";
-export { Select } from "./Select";
 export { Checkbox } from "./Checkbox";
 export { Modal } from "./Modal";
 export { Tabs } from "./Tabs";
