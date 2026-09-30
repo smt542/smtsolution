@@ -3,29 +3,56 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { CustomDropdown, type DropdownOption } from "@/components/common";
+import { ZoomInIcon, ZoomOutIcon } from "@/components/icons";
 
 interface FilterDropdownProps {
   ariaLabel: string;
   value: string;
   options: DropdownOption[];
   onChange: (value: string) => void;
-  /** Figma 실측 폭. 필터 열 리듬을 지키되, 라벨이 더 길면 줄바꿈 대신 늘어나도록 하한으로만 쓴다. */
-  width: number;
+  /** 정본 인라인 메뉴 최소 폭(연도 104·월분 112·그룹 118). */
+  menuMinWidth?: number;
+  /** 버튼 최소 폭(px). 주지 않으면 정본처럼 글자 폭대로 둔다(자동이체 세대 출력 모달만 Figma 폭을 하한으로 준다). */
+  width?: number;
 }
 
-/**
- * 출력 모달 상단 필터용 드롭다운. 공용 CustomDropdown을 쓰고 폭 하한만 Figma 값으로 맞춘다.
- * - 정본이 선택 항목에 체크표시를 보여주므로 기본 variant("menu")를 그대로 쓴다 — field로 바꾸지 말 것.
- * - 기본 menu는 우측 정렬(right-0)이라 패널 왼쪽 끝 필터에서 메뉴가 왼쪽으로 삐져나가 잘린다.
- *   필터는 좌측부터 배치되므로 트리거 왼쪽에 맞춘다.
- */
-export function FilterDropdown({ ariaLabel, value, options, onChange, width }: FilterDropdownProps) {
+// 정본 `.lg-srch .uc-dd`: 메뉴 왼쪽 정렬·패딩 5·옵션 간격 10·옵션 hover #F5F7F9·버튼 hover 테두리만.
+// 화살표는 평소 t3, 열리면 .16s 동안 180° 돌며 청록(`.uc-dd.open .uc-dd-btn svg`). 검침대장 모달과 같은 정본 규칙이다.
+const FILTER_DROPDOWN = [
+  "[&_.uc-dd-lbl]:whitespace-nowrap",
+  "[&_.uc-dd-btn_svg]:h-[14px]",
+  "[&_.uc-dd-btn_svg]:w-[14px]",
+  "[&_.uc-dd-btn_svg]:text-t3",
+  "[&_.uc-dd-btn_svg]:transition-transform",
+  "[&_.uc-dd-btn_svg]:duration-[160ms]",
+  "[&_.uc-dd-btn_svg]:ease-[ease]",
+  "[&_.uc-dd.open_.uc-dd-btn_svg]:rotate-180",
+  "[&_.uc-dd.open_.uc-dd-btn_svg]:text-blue",
+  "[&_.uc-dd:not(.open)_.uc-dd-btn:hover]:border-[#C9D0D8]",
+  "[&_.uc-dd:not(.open)_.uc-dd-btn:hover]:shadow-none",
+  "[&_.uc-dd-menu]:left-0",
+  "[&_.uc-dd-menu]:right-auto",
+  "[&_.uc-dd-menu]:p-[5px]",
+  "[&_.uc-opt]:gap-[10px]",
+  "[&_.uc-opt:not(.on):hover]:bg-[#F5F7F9]",
+].join(" ");
+
+/** 출력 모달 상단 필터용 드롭다운. 정본은 선택 항목에 체크표시를 보여주므로 기본 variant("menu")를 쓴다. */
+export function FilterDropdown({ ariaLabel, value, options, onChange, menuMinWidth, width }: FilterDropdownProps) {
   return (
     <div
-      style={{ minWidth: width }}
-      className="[&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:justify-between [&_.uc-dd-lbl]:whitespace-nowrap [&_.uc-dd-menu]:left-0 [&_.uc-dd-menu]:right-auto"
+      style={width === undefined ? undefined : { minWidth: width }}
+      className={`${FILTER_DROPDOWN}${width === undefined ? "" : " [&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:justify-between"}`}
     >
-      <CustomDropdown chevron="accent" menuTransition ariaLabel={ariaLabel} value={value} options={options} onChange={onChange} size="compact" />
+      <CustomDropdown
+        ariaLabel={ariaLabel}
+        value={value}
+        options={options}
+        onChange={onChange}
+        size="compact"
+        menuMinWidth={menuMinWidth}
+        menuTransition
+      />
     </div>
   );
 }
@@ -37,14 +64,8 @@ interface SelectionCheckProps {
   disabled?: boolean;
 }
 
+/** 정본 `.lg-ck`: 17px·모서리 5·테두리 1.5px, 켜지면 청록 바탕에 흰 체크(stroke 3). */
 export function SelectionCheck({ checked, ariaLabel, onChange, disabled = false }: SelectionCheckProps) {
-  const contents = checked && (
-    <Image src="/figma-assets/bill/check.svg" alt="" width={11} height={11} className="size-[11px]" />
-  );
-  const className = `flex size-[17px] shrink-0 items-center justify-center rounded-[5px] border transition ${
-    checked ? "border-[#14a497] bg-[#14a497]" : "border-[#d1d6db] bg-white"
-  } disabled:cursor-not-allowed disabled:opacity-35`;
-
   return (
     <button
       type="button"
@@ -56,9 +77,22 @@ export function SelectionCheck({ checked, ariaLabel, onChange, disabled = false 
         event.stopPropagation();
         onChange();
       }}
-      className={className}
+      className={`flex size-[17px] flex-none cursor-pointer items-center justify-center rounded-[5px] border-[1.5px] disabled:cursor-not-allowed disabled:opacity-35 ${
+        checked ? "border-blue bg-blue" : "border-line bg-white"
+      }`}
     >
-      {contents}
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        className={`size-[11px] text-white ${checked ? "opacity-100" : "opacity-0"}`}
+      >
+        <path d="M4 12.5l5 5L20 6.5" />
+      </svg>
     </button>
   );
 }
@@ -97,37 +131,40 @@ export function ModalActionButton({
   );
 }
 
+/** 정본 `setZoom`: 100% = 용지 폭을 미리보기 폭에 맞춘 배율, 25%씩 50~400%. */
+export const ZOOM_MIN = 50;
+export const ZOOM_MAX = 400;
+export const ZOOM_STEP = 25;
+
 interface ZoomControlsProps {
   zoom: number;
   onZoom: (value: number) => void;
 }
 
+const ZOOM_BUTTON = "inline-flex h-6 w-[26px] items-center justify-center rounded-[6px] text-t2 hover:bg-bg hover:text-t1";
+
+/** 정본 `.adj-zoom`: 미리보기 아래 가운데에 떠 있는 배율 조절(버튼 사이 구분선 없음). */
 export function ZoomControls({ zoom, onZoom }: ZoomControlsProps) {
   return (
-    <div className="absolute bottom-[14px] left-1/2 z-10 flex h-[32px] -translate-x-1/2 items-center overflow-hidden rounded-[9px] border border-[#dfe3e7] bg-white shadow-[0_4px_14px_rgba(23,31,40,0.12)]">
+    <div className="absolute bottom-[14px] left-1/2 z-[3] inline-flex -translate-x-1/2 items-center gap-[2px] rounded-[10px] border border-line bg-white p-[3px] leading-[normal] shadow-[0_4px_14px_-4px_rgba(23,31,40,0.24)]">
       <button
         type="button"
+        title="축소"
         aria-label="미리보기 축소"
-        onClick={() => onZoom(Math.max(50, zoom - 10))}
-        className="flex h-full w-[31px] items-center justify-center hover:bg-[#f2f4f6]"
+        onClick={() => onZoom(Math.max(ZOOM_MIN, zoom - ZOOM_STEP))}
+        className={ZOOM_BUTTON}
       >
-        <Image src="/figma-assets/bill/zoom-out.svg" alt="" width={14} height={14} />
+        <ZoomOutIcon aria-hidden="true" className="size-[14px]" />
       </button>
+      <span className="min-w-[38px] text-center text-[11px] font-bold tabular-nums text-t2">{zoom}%</span>
       <button
         type="button"
-        aria-label="미리보기 배율 초기화"
-        onClick={() => onZoom(100)}
-        className="h-full w-[40px] border-x border-[#e8ebee] text-[10.5px] font-bold text-[#4e5968] hover:bg-[#f2f4f6]"
-      >
-        {zoom}%
-      </button>
-      <button
-        type="button"
+        title="확대"
         aria-label="미리보기 확대"
-        onClick={() => onZoom(Math.min(140, zoom + 10))}
-        className="flex h-full w-[31px] items-center justify-center hover:bg-[#f2f4f6]"
+        onClick={() => onZoom(Math.min(ZOOM_MAX, zoom + ZOOM_STEP))}
+        className={ZOOM_BUTTON}
       >
-        <Image src="/figma-assets/bill/zoom-in.svg" alt="" width={14} height={14} />
+        <ZoomInIcon aria-hidden="true" className="size-[14px]" />
       </button>
     </div>
   );

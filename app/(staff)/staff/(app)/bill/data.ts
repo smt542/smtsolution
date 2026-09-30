@@ -4,6 +4,10 @@ import { printableAccounts, PROGRAM_COMPANY_NAME } from "@/lib/bill/document";
 import { createClient } from "@/lib/supabase/server";
 import type { BillBuilding, BillPageData } from "./types";
 
+type BillBuildingRow = Omit<BillBuilding, "basicExtra"> & {
+  basic_extra: { groupType?: string | null } | null;
+};
+
 type BillSetupConfigRow = {
   customer_notice: string | null;
   mgmt_bank1: string | null;
@@ -21,7 +25,7 @@ export async function getBillPageData(orgId: number): Promise<BillPageData> {
   const [buildingsResult, organizationResult, configResult] = await Promise.all([
     supabase
       .from("buildings")
-      .select("id, code, name, address")
+      .select("id, code, name, address, basic_extra")
       .eq("org_id", orgId)
       .is("deleted_at", null)
       .order("name"),
@@ -45,7 +49,10 @@ export async function getBillPageData(orgId: number): Promise<BillPageData> {
 
   return {
     orgId,
-    buildings: (buildingsResult.data ?? []) as BillBuilding[],
+    buildings: ((buildingsResult.data ?? []) as BillBuildingRow[]).map(({ basic_extra, ...building }) => ({
+      ...building,
+      basicExtra: basic_extra ? { groupType: basic_extra.groupType ?? null } : null,
+    })),
     companyName: organizationResult.data?.name ?? PROGRAM_COMPANY_NAME,
     accounts: printableAccounts(config ? {
       mgmtBank1: config.mgmt_bank1,

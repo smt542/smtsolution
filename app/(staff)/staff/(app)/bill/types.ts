@@ -7,6 +7,8 @@ export interface BillBuilding {
   code: string;
   name: string;
   address: string | null;
+  /** 고지서 부과 그룹 유형(`basic_extra.groupType`, 1~5). 출력 모달 '그룹' 필터가 쓴다. */
+  basicExtra: { groupType?: string | null } | null;
 }
 
 export interface BillPageData {

@@ -8,6 +8,7 @@ import { ZoomControls } from "./OutputModalPrimitives";
 // 문서 기준 크기(px) = A4 landscape @96dpi. 실제 인쇄는 @page A4 landscape.
 const DOC_WIDTH = 1123;
 const DOC_HEIGHT = 794;
+const FIT_SCALE = 632 / DOC_WIDTH;
 
 // 고정 컬럼 폭(%) — 나머지는 관리비 항목(2개씩 묶음) 컬럼이 균등 분배.
 const FIXED_WIDTHS = {
@@ -284,12 +285,13 @@ export function AdjustmentPreviewViewport({
     return () => observer.disconnect();
   }, [pages]);
 
-  const scale = zoom / 100;
+  // 정본 fitAdj: 100% = 가로 A4를 미리보기 폭(680 − 패딩 32 − 여유 16 = 632px)에 맞춘 배율. 왼쪽 정렬.
+  const scale = (FIT_SCALE * zoom) / 100;
 
   return (
     <section className="relative flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-auto bg-[#e8ebee] p-[16px]">
-        <div className="mx-auto" style={{ width: size.width * scale, height: size.height * scale }}>
+        <div style={{ width: size.width * scale, height: size.height * scale }}>
           <div
             ref={contentRef}
             style={{ width: DOC_WIDTH, transform: `scale(${scale})`, transformOrigin: "top left" }}
