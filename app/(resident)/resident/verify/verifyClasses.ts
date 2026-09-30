@@ -22,7 +22,8 @@ export const verifyClasses = {
   sheetHeading: "min-w-0 flex-1",
   sback: "-ml-1.5 -mt-0.5 flex size-8 flex-none items-center justify-center rounded-[10px] border-0 bg-transparent p-0 text-t2 [&_svg]:size-5 hover:bg-bg",
   stepno: "mt-0.5 flex-none rounded-full bg-bg px-2.5 py-[5px] text-xs font-bold leading-[normal] text-t4",
-  srch: "mt-4 flex h-[52px] flex-none items-center gap-2 rounded-[14px] bg-bg px-3.5 [&_svg]:size-[18px] [&_svg]:flex-none [&_svg]:text-t3 [&_input]:min-w-0 [&_input]:flex-1 [&_input]:border-0 [&_input]:bg-transparent [&_input]:text-base [&_input]:font-semibold [&_input]:leading-[normal] [&_input]:text-t1 [&_input]:outline-none [&_input::placeholder]:font-medium [&_input::placeholder]:text-t4",
+  // 검색칸 input 여백 1px·2px = 정본 입력칸의 브라우저 기본값(정본엔 초기화가 없다).
+  srch: "mt-4 flex h-[52px] flex-none items-center gap-2 rounded-[14px] bg-bg px-3.5 [&_svg]:size-[18px] [&_svg]:flex-none [&_svg]:text-t3 [&_input]:min-w-0 [&_input]:flex-1 [&_input]:border-0 [&_input]:bg-transparent [&_input]:px-0.5 [&_input]:py-px [&_input]:text-base [&_input]:font-semibold [&_input]:leading-[normal] [&_input]:text-t1 [&_input]:outline-none [&_input::placeholder]:font-medium [&_input::placeholder]:text-t4",
   sclear: "flex size-[26px] flex-none items-center justify-center rounded-full border-0 bg-[#dde2e7] p-0 text-white [&_svg]:size-[13px]",
   cnt: "flex-none px-1 pt-3.5 text-[12.5px] font-semibold leading-[normal] text-t3",
   empty: "px-2.5 pb-4 pt-[34px] text-center leading-[normal] [&_b]:block [&_b]:text-[15.5px] [&_b]:font-extrabold [&_b]:tracking-[-0.02em] [&_span]:mt-2 [&_span]:block [&_span]:text-[13px] [&_span]:font-semibold [&_span]:leading-[1.65] [&_span]:text-t3",
