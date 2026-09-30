@@ -13,6 +13,7 @@ export type SegmentedControlProps = {
   disabled?: boolean;
   className?: string;
   size?: "md" | "sm";
+  variant?: "track" | "outline";
 };
 
 export function SegmentedControl({
@@ -22,7 +23,40 @@ export function SegmentedControl({
   disabled = false,
   className = "",
   size = "md",
+  variant = "track",
 }: SegmentedControlProps) {
+  if (variant === "outline") {
+    return (
+      <div
+        role="radiogroup"
+        className={["inline-flex overflow-hidden rounded-[9px] border border-line text-[12.5px] font-bold leading-[normal]", className]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        {options.map((option, index) => {
+          const selected = option.value === value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              disabled={disabled}
+              onClick={() => onChange(option.value)}
+              className={[
+                "px-4 py-2 text-t3 hover:bg-bg disabled:cursor-default",
+                index > 0 ? "border-l border-line" : "",
+                selected ? "bg-blue text-white hover:bg-blue" : "",
+              ].filter(Boolean).join(" ")}
+            >
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
   // 정본 `.adj-seg2`의 sm 규격과 기존 md 규격을 분리한다.
   const containerSizeClass =
     size === "sm"

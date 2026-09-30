@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loginEmail } from "@/lib/auth/email";
-import { generateTempPassword, toAuthPassword } from "@/lib/auth/password";
+import { toAuthPassword } from "@/lib/auth/password";
+
+// 정본 신규 테넌트: 관리자 초기 비밀번호 = 숫자 4자리(Auth 저장은 toAuthPassword).
+const OWNER_PIN = /^\d{4}$/;
 
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -44,9 +47,11 @@ export async function POST(req: Request) {
     || !address
     || !region
     || !owner?.username
-    || !owner?.fullName
+    || !owner?.password
   )
     return NextResponse.json({ error: "필수 항목이 누락되었습니다." }, { status: 422 });
+  if (!OWNER_PIN.test(String(owner.password)))
+    return NextResponse.json({ error: "관리자 비밀번호는 숫자 4자리입니다." }, { status: 422 });
 
   // 3a) 조직 생성(RPC)
   const { data: org, error: orgErr } = await supabase.rpc("platform_create_organization", {
@@ -85,9 +90,8 @@ export async function POST(req: Request) {
   // 3c) owner Auth user
   const admin = createAdminClient();
   const loginAddress = loginEmail(slug, owner.username);
-  const tempPassword = generateTempPassword();
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
-    email: loginAddress, password: toAuthPassword(tempPassword), email_confirm: true,
+    email: loginAddress, password: toAuthPassword(String(owner.password)), email_confirm: true,
   });
   if (createErr || !created?.user) {
     await admin.from("organizations").delete().eq("id", orgRow.id); // 보상
@@ -97,10 +101,10 @@ export async function POST(req: Request) {
       { status: dup ? 409 : 500 });
   }
 
-  // 3d) owner provision(cross-org)
+  // 3d) owner provision(cross-org). 정본 생성 모달엔 관리자 이름·연락처 칸이 없어 이름 = 대표자명, 연락처는 비운다.
   const { error: rpcErr } = await supabase.rpc("provision_member", {
-    p_user_id: created.user.id, p_username: owner.username, p_full_name: owner.fullName,
-    p_phone: owner.phone ?? null, p_phone_sub: null,
+    p_user_id: created.user.id, p_username: owner.username, p_full_name: representativeName,
+    p_phone: null, p_phone_sub: null,
     p_role: "org_owner", p_staff_type: "manager_staff", p_permissions: [],
     p_affiliation: null, p_role_ids: null, p_target_org_id: orgRow.id,
   });
@@ -112,6 +116,6 @@ export async function POST(req: Request) {
 
   return NextResponse.json(
     { organization: { id: orgRow.id, name: orgRow.name, slug: orgRow.slug },
-      owner: { username: owner.username, tempPassword } },
+      owner: { username: owner.username } },
     { status: 201 });
 }

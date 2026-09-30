@@ -461,12 +461,13 @@ export interface CreateOrgInput {
   region: string;
   operatingHours?: string | null;
   contractFilePath?: string | null;
-  owner: { username: string; fullName: string; phone?: string | null };
+  /** 정본 신규 테넌트: 관리자 아이디 + 초기 비밀번호(숫자 4자리). 관리자 이름은 서버가 대표자명으로 채운다. */
+  owner: { username: string; password: string };
 }
 
 export interface CreateOrgResult {
   organization: { id: number; name: string; slug: string | null };
-  owner: { username: string; tempPassword: string };
+  owner: { username: string };
 }
 
 export async function createPlatformOrganization(input: CreateOrgInput): Promise<CreateOrgResult> {
@@ -541,4 +542,47 @@ export async function setPlatformOrganizationDeleted(id: number, deleted: boolea
     .update({ deleted_at: deleted ? new Date().toISOString() : null })
     .eq("id", id);
   if (error) throw new Error(error.message);
+}
+
+export interface DeleteOrgResult {
+  /** 로그인 계정까지 지운 직원 수 */
+  deletedAccounts: number;
+  /** 로그인 계정 삭제에 실패한 직원 수(소속은 이미 제거됨) */
+  failedAccounts: number;
+}
+
+/** 되돌릴 수 없는 완전 삭제 — 조직과 딸린 데이터·관리자 계정·파일을 모두 지운다(서버 라우트). */
+export async function deletePlatformOrganization(id: number): Promise<DeleteOrgResult> {
+  const res = await fetch(`/api/platform/organizations/${id}`, { method: "DELETE" });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json?.error ?? "테넌트 삭제에 실패했습니다.");
+  return json as DeleteOrgResult;
+}
+
+export interface PlatformOrganizationOwner {
+  userId: string;
+  username: string | null;
+}
+
+/** 테넌트 관리자(org_owner) — 가장 먼저 등록된 소유자. 통합관리자는 org_members·profiles를 직접 읽을 수 있다(0011 정책). */
+export async function getPlatformOrganizationOwner(orgId: number): Promise<PlatformOrganizationOwner | null> {
+  const client = createClient();
+  const { data: member, error } = await client
+    .from("org_members")
+    .select("user_id")
+    .eq("org_id", orgId)
+    .eq("role", "org_owner")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!member) return null;
+
+  const { data: profile, error: profileError } = await client
+    .from("profiles")
+    .select("username")
+    .eq("user_id", member.user_id)
+    .maybeSingle();
+  if (profileError) throw new Error(profileError.message);
+  return { userId: member.user_id as string, username: (profile?.username as string | null) ?? null };
 }

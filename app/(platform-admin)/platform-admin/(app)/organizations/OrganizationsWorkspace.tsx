@@ -1,50 +1,31 @@
 "use client";
 
-import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Badge, Button, EmptyState, Modal, Spinner } from "@/components/common";
-import { appToast as toast } from "@/hooks/common/useAppToast";
+import { useMemo, useRef, useState } from "react";
+import { Button, EmptyState, Spinner } from "@/components/common";
 import {
   listPlatformOrganizations,
   platformKeys,
   usePlatformOrganizationContractKpis,
-  useUpdateOrganizationStatus,
-  useCreatePlatformOrganization,
-  useUpdatePlatformOrganization,
-  useSetOrgDeleted,
-  uploadOrganizationContractFile,
-  removeOrganizationContractFile,
-  type OrganizationStatus,
   type PlatformOrganization,
   type PlatformOrganizationQuery,
   type PlatformOrganizationStatusFilter,
 } from "@/hooks/reactquery/platform";
+import { SEARCH_DEBOUNCE_MS, useDebouncedValue } from "@/hooks/common";
 import { formatNumber } from "@/lib/format";
-import { SEARCH_DEBOUNCE_MS, useAsyncAction, useDebouncedValue } from "@/hooks/common";
+import { useFitPageSize } from "../../../_components/useFitPageSize";
 import {
   PlatformPagination,
   QueryError,
-  StatusBadge,
 } from "../../../_components/PageElements";
 import { PlatformPageContainer } from "../../../_components/PlatformPageContainer";
 import { PlatformTopBarActions } from "../../../_components/PlatformShell";
-import { TableFrame } from "../../../_components/TableFrame";
-import { OrgStatusControl } from "./components/OrgStatusControl";
-import type { OrgCreateSubmitValues, OrgEditSubmitValues } from "./components/OrgFormModal";
-import { OrgRowActions } from "./components/OrgRowActions";
 
 const OrgFormModal = dynamic(() =>
   import("./components/OrgFormModal").then((module) => module.OrgFormModal),
 );
 
-const dateFormatter = new Intl.DateTimeFormat("ko-KR", {
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
-const PAGE_SIZE = 25;
 const STATUS_FILTERS: Array<{
   id: "all" | PlatformOrganizationStatusFilter;
   label: string;
@@ -55,22 +36,52 @@ const STATUS_FILTERS: Array<{
   { id: "terminated", label: "해지" },
 ];
 
+function formatContractDate(value: string | null): string {
+  return value ? value.slice(0, 10).replaceAll("-", ".") : "-";
+}
+
+function TenantStatusBadge({ organization }: { organization: PlatformOrganization }) {
+  const style = organization.deletedAt
+    ? "bg-bg text-t3"
+    : organization.status === "suspended"
+      ? "bg-red-t text-red"
+      : organization.status === "trial"
+        ? "bg-amber-t text-amber"
+        : "bg-blue-t text-blue-d";
+  const label = organization.deletedAt
+    ? "해지"
+    : organization.status === "suspended"
+      ? "정지"
+      : organization.status === "trial"
+        ? "체험"
+        : "운영";
+
+  return (
+    <span className={["inline-flex items-center gap-1 rounded-[7px] px-[9px] py-[3px] text-xs font-bold leading-[1.4]", style].join(" ")}>
+      {label}
+    </span>
+  );
+}
+
 export default function OrganizationsWorkspace() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | PlatformOrganizationStatusFilter>("all");
-  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ page: 1, pageSize: 10 });
   const [createOpen, setCreateOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<PlatformOrganization | null>(null);
-  const [pwNotice, setPwNotice] = useState<{ username: string; tempPassword: string } | null>(null);
+  const [detailTarget, setDetailTarget] = useState<PlatformOrganization | null>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
 
   const debouncedSearch = useDebouncedValue(search.trim(), SEARCH_DEBOUNCE_MS);
+  // 표(thead)는 늘 그려 두므로 훅이 처음부터 표를 관찰한다 — 행이 들어오거나 바뀌면 표 높이가 변해 다시 잰다.
+  const pageSize = useFitPageSize(scrollerRef, { fallback: 10 });
+  const page = pagination.pageSize === pageSize ? pagination.page : 1;
   const query = useMemo<PlatformOrganizationQuery>(() => ({
     includeDeleted: true,
     status: statusFilter === "all" ? undefined : statusFilter,
     search: debouncedSearch,
     page,
-    pageSize: PAGE_SIZE,
-  }), [debouncedSearch, page, statusFilter]);
+    pageSize,
+  }), [debouncedSearch, page, pageSize, statusFilter]);
   const { data, isPending, isError, isFetching, refetch } = useQuery({
     queryKey: platformKeys.organizations(query),
     queryFn: () => listPlatformOrganizations(query),
@@ -78,122 +89,17 @@ export default function OrganizationsWorkspace() {
   });
   const organizations = data?.rows ?? [];
   const contractKpis = usePlatformOrganizationContractKpis();
-  const updateStatus = useUpdateOrganizationStatus();
-  const createOrg = useCreatePlatformOrganization();
-  const updateOrg = useUpdatePlatformOrganization();
-  const setDeleted = useSetOrgDeleted();
-  const createContractFileAction = useAsyncAction();
-  const updateContractFileAction = useAsyncAction();
-  const isCreatingOrganization = createOrg.isPending || createContractFileAction.isPending;
-  const isUpdatingOrganization = updateOrg.isPending || updateContractFileAction.isPending;
   const isOrganizationListRefreshing = isFetching && !isPending;
+  const totalCount = data?.totalCount ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
-  const handleStatus = async (id: number, next: OrganizationStatus) => {
-    try {
-      await updateStatus.mutateAsync({ id, status: next });
-      toast.success("조직 상태를 변경했습니다.");
-    } catch (e) {
-      toast.error(e, "상태 변경에 실패했습니다.");
-    }
-  };
-
-  const handleCreate = async (v: OrgCreateSubmitValues) => {
-    let uploadedPath: string | null = null;
-    try {
-      if (v.contractFile) {
-        uploadedPath = await createContractFileAction.run(() =>
-          uploadOrganizationContractFile(v.contractFile as File),
-        );
-      }
-      const result = await createOrg.mutateAsync({
-        name: v.name,
-        slug: v.slug,
-        phone: v.phone,
-        contractStartDate: v.contractStartDate,
-        contractEndDate: v.contractEndDate,
-        representativeName: v.representativeName,
-        businessRegistrationNumber: v.businessRegistrationNumber,
-        fax: v.fax,
-        email: v.email,
-        address: v.address,
-        region: v.region,
-        operatingHours: v.operatingHours || null,
-        contractFilePath: uploadedPath,
-        owner: {
-          username: v.ownerUsername,
-          fullName: v.ownerFullName,
-          phone: v.ownerPhone || null,
-        },
-      });
-      setPwNotice(result.owner);
-      toast.success("관리회사를 입점했습니다.");
-    } catch (e) {
-      if (uploadedPath) {
-        await removeOrganizationContractFile(uploadedPath).catch(() => undefined);
-      }
-      toast.error(e, "입점에 실패했습니다.");
-      throw e;
-    }
-  };
-
-  const handleEdit = async (v: OrgEditSubmitValues) => {
-    if (!editTarget) return;
-    let uploadedPath: string | null = null;
-    const previousPath = editTarget.contractFilePath;
-    try {
-      if (v.contractFile) {
-        uploadedPath = await updateContractFileAction.run(() =>
-          uploadOrganizationContractFile(v.contractFile as File, editTarget.id),
-        );
-      }
-      const contractFilePath = uploadedPath
-        ?? (v.removeContractFile ? null : previousPath);
-      await updateOrg.mutateAsync({
-        id: editTarget.id,
-        input: {
-          name: v.name,
-          slug: v.slug,
-          phone: v.phone,
-          contractStartDate: v.contractStartDate,
-          contractEndDate: v.contractEndDate,
-          representativeName: v.representativeName,
-          businessRegistrationNumber: v.businessRegistrationNumber,
-          fax: v.fax,
-          email: v.email,
-          address: v.address,
-          region: v.region,
-          operatingHours: v.operatingHours || null,
-          contractFilePath,
-        },
-      });
-      if (previousPath && previousPath !== contractFilePath) {
-        await removeOrganizationContractFile(previousPath).catch(() => {
-          toast.warning("이전 계약서 파일 정리가 필요합니다.");
-        });
-      }
-      toast.success("조직 계약 정보를 수정했습니다.");
-    } catch (e) {
-      if (uploadedPath) {
-        await removeOrganizationContractFile(uploadedPath).catch(() => undefined);
-      }
-      toast.error(e, "수정에 실패했습니다.");
-      throw e;
-    }
-  };
-
-  const handleToggleDeleted = async (id: number, deleted: boolean) => {
-    try {
-      await setDeleted.mutateAsync({ id, deleted });
-      toast.success(deleted ? "조직을 해지했습니다." : "조직을 복구했습니다.");
-    } catch (e) {
-      toast.error(e, "처리에 실패했습니다.");
-    }
-  };
+  const resetPage = () => setPagination({ page: 1, pageSize });
+  const changePage = (nextPage: number) => setPagination({ page: nextPage, pageSize });
 
   return (
     <PlatformPageContainer
       maxWidthClassName="max-w-none"
-      paddingClassName="px-5 py-[22px] sm:px-6 sm:pb-[30px]"
+      paddingClassName="flex h-[calc(100dvh-62px)] flex-col gap-4 overflow-auto px-5 pb-[22px] pt-[22px] sm:px-6 sm:pb-[30px]"
     >
       <PlatformTopBarActions>
         <Button
@@ -202,11 +108,11 @@ export default function OrganizationsWorkspace() {
           onClick={() => setCreateOpen(true)}
           className="shrink-0 cursor-pointer border border-transparent transition-colors"
         >
-          + 관리회사 입점
+          ＋ 신규 테넌트
         </Button>
       </PlatformTopBarActions>
 
-      <section className="grid gap-[13px] sm:grid-cols-2 xl:grid-cols-4" aria-label="계약 현황">
+      <section className="grid flex-none gap-[13px] sm:grid-cols-2 xl:grid-cols-4" aria-label="계약 현황">
         {[
           {
             label: "운영 중",
@@ -235,21 +141,17 @@ export default function OrganizationsWorkspace() {
               {contractKpis.isPending ? "-" : formatNumber(kpi.value ?? 0)}
               <span className="ml-[3px] text-sm font-bold tracking-normal text-t3">곳</span>
             </div>
-            <div
-              className={`mt-[7px] text-xs font-bold num ${
-                kpi.label === "정지" ? "text-red" : "text-t3"
-              }`}
-            >
+            <div className={["mt-[7px] text-xs font-bold num", kpi.label === "정지" ? "text-red" : "text-t3"].join(" ")}>
               {kpi.detail}
             </div>
           </div>
         ))}
       </section>
 
-      <div className="mt-4 flex flex-col flex-wrap gap-2.5 sm:flex-row sm:items-center">
+      <div className="flex flex-none flex-col flex-wrap gap-2.5 sm:flex-row sm:items-center">
         <div
           className="inline-flex w-fit flex-wrap items-center gap-0.5 rounded-[11px] bg-[#EDF0F3] p-1"
-          aria-label="조직 상태 필터"
+          aria-label="테넌트 상태 필터"
         >
           {STATUS_FILTERS.map((filter) => (
             <button
@@ -258,13 +160,14 @@ export default function OrganizationsWorkspace() {
               aria-pressed={statusFilter === filter.id}
               onClick={() => {
                 setStatusFilter(filter.id);
-                setPage(1);
+                resetPage();
               }}
-              className={`cursor-pointer rounded-lg px-[15px] py-[7px] text-sm font-bold transition-colors ${
+              className={[
+                "cursor-pointer rounded-lg px-[15px] py-[7px] text-sm font-bold transition-colors",
                 statusFilter === filter.id
                   ? "bg-surface text-t1 shadow-[0_2px_6px_rgba(23,31,40,0.1)]"
-                  : "text-t3 hover:text-t1"
-              }`}
+                  : "text-t3 hover:text-t1",
+              ].join(" ")}
             >
               {filter.label}
             </button>
@@ -290,7 +193,7 @@ export default function OrganizationsWorkspace() {
             value={search}
             onChange={(event) => {
               setSearch(event.target.value);
-              setPage(1);
+              resetPage();
             }}
             placeholder="업체명 · 지역 검색"
             className="w-full bg-transparent text-[13.5px] font-semibold text-t1 outline-none placeholder:font-medium placeholder:text-t4"
@@ -298,206 +201,92 @@ export default function OrganizationsWorkspace() {
         </label>
       </div>
 
-      <section className="mt-4 overflow-hidden rounded-2xl bg-surface shadow-card">
-        <div className="flex items-center gap-2.5 border-b border-line2 px-[18px] py-[15px]">
-          <h3 className="text-[15px] font-extrabold text-t1">조직 목록</h3>
-          <span className="text-xs font-semibold text-t3">
-            {formatNumber(data?.totalCount ?? 0)}곳
-          </span>
+      <section className="flex min-h-[280px] flex-1 flex-col overflow-hidden rounded-2xl bg-surface shadow-card">
+        <div className="flex flex-none items-center gap-2.5 border-b border-line2 px-[18px] py-[15px]">
+          <h3 className="text-[15px] font-extrabold text-t1">테넌트 목록</h3>
+          <span className="text-xs font-semibold text-t3">{formatNumber(totalCount)}곳</span>
           {isOrganizationListRefreshing ? (
-            <Spinner label="조직 목록 갱신 중" size="small" showLabel className="px-2 py-1" />
+            <Spinner label="테넌트 목록 갱신 중" size="small" showLabel className="px-2 py-1" />
           ) : null}
         </div>
 
-        {isPending ? (
-          <div className="py-16">
-            <Spinner label="조직 목록 불러오는 중" />
-          </div>
-        ) : isError ? (
-          <div className="p-4">
-            <QueryError onRetry={() => void refetch()} />
-          </div>
-        ) : organizations.length === 0 ? (
-          <EmptyState
-            message={
-              search || statusFilter !== "all"
-                ? "해당 조건의 조직이 없습니다"
-                : "조회 가능한 조직이 없습니다"
-            }
-          />
-        ) : (
-          <TableFrame minWidthClassName="min-w-[1480px]">
+        <div ref={scrollerRef} className="min-h-0 flex-1 overflow-auto">
+          <table className="w-full border-collapse leading-[normal]">
             <thead>
-              <tr className="border-b border-line bg-[#FBFCFD] text-left text-xs font-bold text-t3">
-                <th className="w-[24%] whitespace-nowrap px-4 py-[11px]">조직</th>
-                <th className="whitespace-nowrap px-4 py-[11px] text-right">건물</th>
-                <th className="whitespace-nowrap px-4 py-[11px] text-right">세대</th>
-                <th className="whitespace-nowrap px-4 py-[11px] text-right">직원</th>
-                <th className="whitespace-nowrap px-4 py-[11px] text-right">세입자</th>
-                <th className="whitespace-nowrap px-4 py-[11px]">상태</th>
-                <th className="whitespace-nowrap px-4 py-[11px]">계약 시작</th>
-                <th className="whitespace-nowrap px-4 py-[11px]">계약 만료</th>
-                <th className="whitespace-nowrap px-4 py-[11px] text-right">계정</th>
-                <th className="whitespace-nowrap px-4 py-[11px] text-right">포인트 잔액</th>
-                <th className="whitespace-nowrap px-4 py-[11px]">등록일</th>
-                <th className="whitespace-nowrap px-4 py-[11px] text-right">관리</th>
+              <tr>
+                <th className="w-[24%] whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-left text-xs font-bold text-t3">업체명</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold text-t3">건물</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold text-t3">세대</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold text-t3">직원</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold text-t3">세입자</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-left text-xs font-bold text-t3">상태</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-left text-xs font-bold text-t3">계약 시작</th>
+                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-left text-xs font-bold text-t3">계약 만료</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="[&>tr:last-child>td]:border-b-0">
               {organizations.map((organization) => (
                 <tr
                   key={organization.id}
-                  className="cursor-pointer border-b border-line2 text-[13.5px] text-t1 last:border-0 hover:bg-[#FBFCFD]"
+                  tabIndex={0}
+                  onClick={() => setDetailTarget(organization)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") setDetailTarget(organization);
+                  }}
+                  className="cursor-pointer hover:bg-row-hover"
                 >
-                  <td className="whitespace-nowrap px-4 py-3">
-                    <Link
-                      href={`/platform-admin/organizations/${organization.id}`}
-                      className="text-sm font-extrabold tracking-[-0.01em] text-t1 hover:text-blue"
-                    >
-                      {organization.name}
-                    </Link>
-                    <div className="mt-[3px] text-xs font-semibold text-t3">
-                      {organization.region ?? "지역 미설정"}
-                      <span className="mx-1 text-t4">·</span>
-                      {organization.slug ?? "회사코드 미설정"}
-                    </div>
+                  <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] text-t1">
+                    <div className="text-sm font-extrabold tracking-[-0.01em] text-t1">{organization.name}</div>
+                    <span className="mt-[3px] block text-xs font-semibold text-t3">{organization.region ?? "지역 미설정"}</span>
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right text-t1 num">
-                    {formatNumber(organization.buildingCount)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right text-t1 num">
-                    {formatNumber(organization.unitCount)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right text-t1 num">
-                    {formatNumber(organization.employeeCount)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right text-t1 num">
-                    {formatNumber(organization.tenantCount)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3">
-                    {organization.deletedAt ? (
-                      <Badge tone="gray" className="inline-flex px-[9px] py-[3px] leading-[1.4]">
-                        해지됨
-                      </Badge>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <StatusBadge status={organization.status} />
-                        <OrgStatusControl
-                          status={organization.status}
-                          isPending={updateStatus.isPending}
-                          onChange={(next) => handleStatus(organization.id, next)}
-                        />
-                      </div>
-                    )}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-t3 num">
-                    {organization.contractStartDate ?? "-"}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-t3 num">
-                    {organization.contractEndDate ?? "-"}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-bold text-t1 num">
-                    {formatNumber(organization.accountCount)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right font-extrabold text-t1 num">
-                    {formatNumber(organization.pointBalance)} P
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-t3 num">
-                    {dateFormatter.format(new Date(organization.createdAt))}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3">
-                    <div className="flex justify-end">
-                      <OrgRowActions
-                        org={organization}
-                        onEdit={() => setEditTarget(organization)}
-                        onToggleDeleted={(deleted) => handleToggleDeleted(organization.id, deleted)}
-                        disabled={setDeleted.isPending}
-                        isPending={setDeleted.isPending && setDeleted.variables?.id === organization.id}
-                      />
-                    </div>
-                  </td>
+                  <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-right text-[13.5px] text-t1 num">{formatNumber(organization.buildingCount)}</td>
+                  <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-right text-[13.5px] text-t1 num">{formatNumber(organization.unitCount)}</td>
+                  <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-right text-[13.5px] text-t1 num">{formatNumber(organization.employeeCount)}</td>
+                  <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-right text-[13.5px] text-t1 num">{formatNumber(organization.tenantCount)}</td>
+                  <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] text-t1"><TenantStatusBadge organization={organization} /></td>
+                  <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] text-t3 num">{formatContractDate(organization.contractStartDate)}</td>
+                  <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] text-t3 num">{formatContractDate(organization.contractEndDate)}</td>
                 </tr>
               ))}
             </tbody>
-          </TableFrame>
-        )}
-        <PlatformPagination
-          page={page}
-          pageSize={PAGE_SIZE}
-          totalCount={data?.totalCount ?? 0}
-          onPageChange={setPage}
-          numeric
-          compact
-          totalLabel={`전체 ${formatNumber(data?.totalCount ?? 0)}곳 · ${formatNumber(page)}/${formatNumber(Math.max(1, Math.ceil((data?.totalCount ?? 0) / PAGE_SIZE)))}`}
-        />
+          </table>
+          {isPending ? (
+            <div className="py-16">
+              <Spinner label="테넌트 목록 불러오는 중" />
+            </div>
+          ) : isError ? (
+            <div className="p-4">
+              <QueryError onRetry={() => void refetch()} />
+            </div>
+          ) : organizations.length === 0 ? (
+            <EmptyState
+              message={
+                search || statusFilter !== "all"
+                  ? "해당 조건의 테넌트가 없습니다"
+                  : "조회 가능한 테넌트가 없습니다"
+              }
+            />
+          ) : null}
+        </div>
+
+        <div className="flex-none">
+          <PlatformPagination
+            page={page}
+            pageSize={pageSize}
+            totalCount={totalCount}
+            onPageChange={changePage}
+            numeric
+            compact
+            totalLabel={`전체 ${formatNumber(totalCount)}곳 · ${formatNumber(page)}/${formatNumber(totalPages)}`}
+          />
+        </div>
       </section>
 
       {createOpen && (
-        <OrgFormModal
-          mode="create"
-          open
-          onClose={() => setCreateOpen(false)}
-          onSubmit={handleCreate}
-          isPending={isCreatingOrganization}
-        />
+        <OrgFormModal mode="create" onClose={() => setCreateOpen(false)} />
       )}
-
-      {editTarget && (
-        <OrgFormModal
-          mode="edit"
-          open
-          onClose={() => setEditTarget(null)}
-          defaultValues={{
-            name: editTarget.name,
-            slug: editTarget.slug ?? "",
-            phone: editTarget.phone ?? "",
-            contractStartDate: editTarget.contractStartDate ?? "",
-            contractEndDate: editTarget.contractEndDate ?? "",
-            representativeName: editTarget.representativeName ?? "",
-            businessRegistrationNumber: editTarget.businessRegistrationNumber ?? "",
-            fax: editTarget.fax ?? "",
-            email: editTarget.email ?? "",
-            address: editTarget.address ?? "",
-            region: editTarget.region ?? "",
-            operatingHours: editTarget.operatingHours ?? "",
-          }}
-          defaultContractFilePath={editTarget.contractFilePath}
-          onSubmit={handleEdit}
-          isPending={isUpdatingOrganization}
-        />
-      )}
-
-      {pwNotice && (
-        <Modal open onClose={() => setPwNotice(null)} title="관리자 임시 비밀번호">
-          <div className="flex flex-col gap-3 text-sm">
-            <p className="text-t2">
-              아래 계정 정보를 관리자에게 <b>안전하게 전달</b>하세요. 이 창을 닫으면 다시 볼 수 없습니다.
-            </p>
-            <div className="rounded-xl border border-line bg-bg/50 p-3 font-mono">
-              <div>
-                아이디: <b>{pwNotice.username}</b>
-              </div>
-              <div>
-                임시 비밀번호: <b>{pwNotice.tempPassword}</b>
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-1">
-              <Button
-                type="button"
-                variant="primary"
-                className="h-10 cursor-pointer whitespace-nowrap rounded-[11px] px-[15px] text-[13.5px]"
-                onClick={() => {
-                  void navigator.clipboard?.writeText(
-                    `아이디: ${pwNotice.username} / 임시비밀번호: ${pwNotice.tempPassword}`,
-                  );
-                  toast.success("복사했습니다.");
-                }}
-              >
-                복사
-              </Button>
-            </div>
-          </div>
-        </Modal>
+      {detailTarget && (
+        <OrgFormModal mode="edit" organization={detailTarget} onClose={() => setDetailTarget(null)} />
       )}
     </PlatformPageContainer>
   );
