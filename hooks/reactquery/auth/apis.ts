@@ -12,7 +12,7 @@ export interface MyContext {
   /** 소속 회사(조직)명 — 로그인 컨텍스트(get_my_context)에서 제공. 마이그 0152 이전/목에서는 undefined. */
   orgName?: string | null;
   role: OrgMemberRole;
-  orgStatus: "active" | "suspended" | "trial";
+  orgStatus: "active" | "suspended";
   username: string;
   fullName: string;
   isActive: boolean;
