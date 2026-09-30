@@ -739,16 +739,17 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
         />
       )}
 
-      {/* 저장된 행은 즉시 업로드하고, 새 행은 원장 저장 전까지 파일을 로컬에 보관한다. */}
+      {/* 첨부는 수정·추가 상태에서만 올리고 지운다(정본 .lt-at-modal.ro — 조회 상태는 보기 전용).
+          저장된 행은 즉시 업로드하고, 새 행은 원장 저장 전까지 파일을 로컬에 보관한다. */}
       {viewer && (
         <AttachmentViewer
-          title={`${viewer.kind === "receipt" ? "영수증" : "공사사진"} 첨부`}
+          title={viewer.kind === "receipt" ? "영수증" : "공사사진"}
           description={`${viewer.row.fundNote || "적립금 출금"} · ${viewer.row.entryDate.replaceAll("-", ".")} · 번호 ${viewer.row.entryNo || "-"}`}
           kindLabel={viewer.kind === "receipt" ? "영수증" : "공사사진"}
           attachments={viewerAttachments}
           stagedFiles={viewerStagedFiles}
           staging={viewerIsStaging}
-          canEdit={viewerIsStaging || Boolean(viewer.row.id)}
+          canEdit={editing}
           uploading={uploadAttachments.isPending}
           onClose={() => setViewer(null)}
           onUpload={(files) => uploadAttachments.mutateAsync({

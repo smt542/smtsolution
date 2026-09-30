@@ -250,8 +250,8 @@ export function AttachmentViewer({
               )}
               {!canEdit && (
                 <p className={styles.attachmentReadOnly}>
-                  {/* 첨부는 저장된 행에만 붙일 수 있다(연결할 id가 필요). 수정 모드와는 무관하다. */}
-                  행을 먼저 저장하면 파일을 올릴 수 있어요.
+                  {/* 정본 .lt-at-ro — 목록이 비면 ::after로 ' 첨부된 파일이 없어요'가 붙는다. */}
+                  수정을 누르면 파일을 올리거나 지울 수 있어요.{attachmentCount === 0 ? " 첨부된 파일이 없어요" : ""}
                 </p>
               )}
               {canEdit && (
@@ -315,7 +315,7 @@ export function AttachmentViewer({
                 ? "이미지 파일만 첨부할 수 있어요 · 원장 저장 시 함께 업로드돼요"
                 : canEdit
                   ? "이미지 파일만 첨부할 수 있어요"
-                  : "조회 전용이에요 · 행을 저장하면 첨부할 수 있어요"}
+                  : "조회 전용이에요 · 첨부는 수정 상태에서 가능합니다"}
             </span>
             <div className={styles.attachmentFooterSpacer} />
             {printable.length > 0 && (
