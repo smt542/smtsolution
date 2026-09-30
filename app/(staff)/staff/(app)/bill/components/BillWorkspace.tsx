@@ -46,10 +46,10 @@ function DataStateModal({ isError, onClose, onRetry }: DataStateModalProps) {
               서류 발행 정보를 불러오지 못했습니다.
             </p>
             <div className="flex gap-2">
-              <button type="button" onClick={onClose} className="rounded-[10px] border border-[#e8ebee] px-4 py-2 text-[13px] font-bold text-[#4e5968]">
+              <button type="button" onClick={onClose} className="inline-flex h-10 items-center justify-center rounded-[11px] border border-[#e8ebee] px-4 text-[13.5px] font-bold text-[#4e5968]">
                 닫기
               </button>
-              <button type="button" onClick={onRetry} className="rounded-[10px] bg-[#14a497] px-4 py-2 text-[13px] font-bold text-white">
+              <button type="button" onClick={onRetry} className="inline-flex h-10 items-center justify-center rounded-[11px] bg-[#14a497] px-4 text-[13.5px] font-bold text-white">
                 다시 시도
               </button>
             </div>

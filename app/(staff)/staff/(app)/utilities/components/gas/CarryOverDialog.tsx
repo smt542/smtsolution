@@ -15,8 +15,8 @@ export function CarryOverDialog({ open, year, month, onClose, onConfirm }: Carry
         <h2 id="carry-over-title" className="text-[18px] font-extrabold leading-5 text-t1">{year}년 {month}월분 이월을 진행할까요?</h2>
         <p className="mt-2 text-[12.5px] font-medium text-t3">모든 건물의 {month}월분이 {month === 12 ? 1 : month + 1}월분으로 이월됩니다.</p>
         <div className="mt-[25px] flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="h-10 min-w-[60px] rounded-[10px] bg-bg px-4 text-[13px] font-bold text-t2 hover:bg-line">취소</button>
-          <button type="button" onClick={onConfirm} className="h-10 min-w-[60px] rounded-[10px] bg-teal px-4 text-[13px] font-bold text-white hover:bg-teal-d">이월</button>
+          <button type="button" onClick={onClose} className="h-10 min-w-[60px] rounded-[11px] bg-bg px-4 text-[13.5px] font-bold text-t2 hover:bg-line">취소</button>
+          <button type="button" onClick={onConfirm} className="h-10 min-w-[60px] rounded-[11px] bg-teal px-4 text-[13.5px] font-bold text-white hover:bg-teal-d">이월</button>
         </div>
       </section>
     </div>
