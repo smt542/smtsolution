@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Button, Input, Modal, PhoneInput, Select } from "@/components/common";
+import { Button, CustomDropdown, Input, Modal, PhoneInput } from "@/components/common";
 import { FormField } from "@/components/common/FormField";
 import { setSubmissionError } from "@/components/forms/formErrors";
 import {
@@ -14,6 +14,10 @@ import {
 import { usePlatformOrganizations } from "@/hooks/reactquery/platform";
 import { ModalActions } from "../../../../_components/ModalActions";
 import { InlineAlert } from "../../../../_components/InlineAlert";
+import {
+  ADMIN_DROPDOWN_MENU_CLASS,
+  ADMIN_FORM_DROPDOWN_CLASS,
+} from "../../../../_components/adminDropdownClasses";
 
 type FormInput = z.input<typeof platformAccountCreateSchema>;
 
@@ -53,6 +57,7 @@ export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props
   const defaultOrgId = organizations[0]?.id;
   const {
     register,
+    control,
     handleSubmit,
     reset,
     setError,
@@ -113,16 +118,27 @@ export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props
           error={errors.orgId?.message}
           className={FORM_FIELD_CLASS}
         >
-          <Select
-            id="platform-account-org"
-            aria-label="대상 조직"
-            {...register("orgId")}
-            options={organizations.map((organization) => ({
-              value: String(organization.id),
-              label: organization.name,
-            }))}
-            className={INPUT_CLASS}
-          />
+          <div className={ADMIN_FORM_DROPDOWN_CLASS}>
+            <Controller
+              control={control}
+              name="orgId"
+              render={({ field }) => (
+                <CustomDropdown
+                  id="platform-account-org"
+                  ariaLabel="대상 조직"
+                  value={field.value == null ? "" : String(field.value)}
+                  options={organizations.map((organization) => ({
+                    value: String(organization.id),
+                    label: organization.name,
+                  }))}
+                  position="fixed"
+                  menuMinWidth={0}
+                  menuClassName={ADMIN_DROPDOWN_MENU_CLASS}
+                  onChange={field.onChange}
+                />
+              )}
+            />
+          </div>
         </FormField>
 
         {organizations.length === 0 && (
@@ -176,15 +192,44 @@ export function AccountCreateModal({ open, onClose, onSubmit, isPending }: Props
 
         <div className="grid grid-cols-2 gap-[13px] gap-x-[15px]">
           <FormField label="역할" htmlFor="platform-account-role" error={errors.role?.message} className={FORM_FIELD_CLASS}>
-            <Select id="platform-account-role" {...register("role")} options={ROLE_OPTIONS} className={INPUT_CLASS} />
+            <div className={ADMIN_FORM_DROPDOWN_CLASS}>
+              <Controller
+                control={control}
+                name="role"
+                render={({ field }) => (
+                  <CustomDropdown
+                    id="platform-account-role"
+                    ariaLabel="역할"
+                    value={String(field.value ?? "")}
+                    options={ROLE_OPTIONS}
+                    position="fixed"
+                    menuMinWidth={0}
+                    menuClassName={ADMIN_DROPDOWN_MENU_CLASS}
+                    onChange={field.onChange}
+                  />
+                )}
+              />
+            </div>
           </FormField>
           <FormField label="직원 유형" htmlFor="platform-account-staff-type" error={errors.staffType?.message} className={FORM_FIELD_CLASS}>
-            <Select
-              id="platform-account-staff-type"
-              {...register("staffType")}
-              options={STAFF_TYPE_OPTIONS}
-              className={INPUT_CLASS}
-            />
+            <div className={ADMIN_FORM_DROPDOWN_CLASS}>
+              <Controller
+                control={control}
+                name="staffType"
+                render={({ field }) => (
+                  <CustomDropdown
+                    id="platform-account-staff-type"
+                    ariaLabel="직원 유형"
+                    value={String(field.value ?? "")}
+                    options={STAFF_TYPE_OPTIONS}
+                    position="fixed"
+                    menuMinWidth={0}
+                    menuClassName={ADMIN_DROPDOWN_MENU_CLASS}
+                    onChange={field.onChange}
+                  />
+                )}
+              />
+            </div>
           </FormField>
         </div>
 

@@ -74,8 +74,8 @@ export function BuildingUnitRail({
   const selectedBuilding = buildings.find((b) => b.id === selectedBuildingId) ?? null;
   const showUnits = view === "unit" && selectedBuilding !== null;
   const searchLabel = showUnits ? "호수·세대주 검색" : "건물명·주소 검색";
-  // 첫 화면은 전환이 아니므로 재생하지 않는다.
-  const slideClass = viewSeq === 0 ? "" : showUnits ? SLIDE_IN_UNITS_CLASS : SLIDE_IN_BUILDINGS_CLASS;
+  // 정본은 첫 화면에서도 setView('bld') 로 건물 표를 한 번 밀어 넣는다 → 표가 처음 그려질 때도 재생한다.
+  const slideClass = showUnits ? SLIDE_IN_UNITS_CLASS : SLIDE_IN_BUILDINGS_CLASS;
 
   const selectBuilding = (building: BuildingLite) => {
     setSearch("");

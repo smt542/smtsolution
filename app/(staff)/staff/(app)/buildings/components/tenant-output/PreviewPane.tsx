@@ -40,7 +40,9 @@ function PaperMessage({ children }: { children: ReactNode }) {
 /** 정본 `.pm-paper` + `.pm-page` — 420×594 종이를 영역에 맞춰 축소해 가운데 둔다(배율 = min((W−28)/420, (H−28)/594)). */
 function PaperPage({ children }: { children: ReactNode }) {
   const areaRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState<number | null>(null);
+  const [fit, setFit] = useState(1);
 
   useLayoutEffect(() => {
     const area = areaRef.current;
@@ -55,6 +57,23 @@ function PaperPage({ children }: { children: ReactNode }) {
     return () => observer.disconnect();
   }, []);
 
+  // 화면용 양식은 인쇄용(pt)보다 글자가 커서 고객번호 줄이 많으면 종이 아래로 넘친다 → 넘칠 때만 내용을 줄여 한 쪽을 다 보인다(인쇄는 그대로).
+  useLayoutEffect(() => {
+    const content = contentRef.current;
+    const paper = content?.parentElement;
+    if (!content || !paper) return;
+    const measure = () => {
+      const style = getComputedStyle(paper);
+      const room = paper.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+      const height = content.offsetHeight; // transform은 레이아웃 높이를 바꾸지 않는다
+      setFit(height > room ? room / height : 1);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div ref={areaRef} className="relative min-h-0 flex-1 overflow-hidden bg-bg">
       <div
@@ -64,7 +83,9 @@ function PaperPage({ children }: { children: ReactNode }) {
           visibility: scale === null ? "hidden" : undefined,
         }}
       >
-        {children}
+        <div ref={contentRef} className="origin-top" style={fit < 1 ? { transform: `scale(${fit})` } : undefined}>
+          {children}
+        </div>
       </div>
     </div>
   );

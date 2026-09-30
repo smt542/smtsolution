@@ -1,22 +1,36 @@
 "use client";
-import Image from "next/image";
+import { useState } from "react";
 import { FormGrid } from "@/components/common/FormGrid";
 import { FieldRenderer } from "../ui/FieldRenderer";
 import { PhotoUpload } from "../ui/PhotoUpload";
 import { TextAreaField } from "../ui/TextAreaField";
+import { TextField } from "../ui/TextField";
+import { VendorNameField } from "../ui/VendorNameField";
 import type { FieldDef } from "../config/types";
 import type { RegisterVendorEntry } from "../config/formState";
 import {
   useAttachmentSignedUrls,
   type Attachment,
 } from "@/hooks/reactquery/attachments";
+import type { Vendor } from "@/hooks/reactquery/vendors";
 
-/** 한 업체 아코디언의 펼침 내용(제어형): 필드 그리드 + 계약서 사진 + 비고.
- *  계약서 사진은 프로토타입 동작(로컬 미리보기)만 제공하며 서버 저장 대상이 아니다. */
+/** 업체명 드롭다운 목록 = 협력업체 관리에서 아코디언 제목과 같은 구분의 업체. null = 맞는 구분이 없어 직접 입력만 한다. */
+export interface VendorNameOptions {
+  loading: boolean;
+  vendors: Vendor[];
+}
+
+const NAME = "업체명";
+const PHONE = "전화번호";
+const ACCOUNT = "계좌번호";
+const vendorKey = (vendor: Vendor) => `vendor:${vendor.id}`;
+
+/** 한 업체 아코디언의 펼침 내용(제어형): 필드 그리드 + 계약서 사진(저장된 사진과 새 사진을 한 줄에) + 비고. */
 export function VendorCard({
   fields,
   value,
   onChange,
+  nameOptions,
   attachments = [],
   onDeleteAttachment,
   disabled = false,
@@ -24,6 +38,7 @@ export function VendorCard({
   fields: FieldDef[];
   value: RegisterVendorEntry;
   onChange: (next: RegisterVendorEntry) => void;
+  nameOptions: VendorNameOptions | null;
   attachments?: Attachment[];
   onDeleteAttachment?: (attachment: Attachment) => Promise<void>;
   disabled?: boolean;
@@ -31,59 +46,88 @@ export function VendorCard({
   const thumbnails = useAttachmentSignedUrls(attachments, "thumbnail");
   const previews = useAttachmentSignedUrls(attachments, "preview");
   const setField = (label: string, v: string) => onChange({ ...value, fields: { ...value.fields, [label]: v } });
+  const setVendorFields = (next: Record<string, string>) => onChange({ ...value, fields: { ...value.fields, ...next } });
+
+  // 정본: 업체를 고르면 전화번호·계좌번호를 채우고 잠근다, 직접입력이면 셋 다 비우고 직접 쓴다.
+  // 고른 적이 없으면 저장된 업체명이 목록에 없을 때만 직접입력으로 본다(목록을 받는 동안은 잠금).
+  const [chosenMode, setChosenMode] = useState<"pick" | "manual" | null>(null);
+  const name = value.fields[NAME] ?? "";
+  const vendorList = nameOptions?.vendors ?? [];
+  // 이름이 같은 업체가 있을 수 있어 전화번호·계좌번호까지 맞는 업체를 고른 업체로 본다.
+  const selectedVendor = vendorList.find(
+    (vendor) =>
+      vendor.name === name &&
+      (vendor.phone ?? "") === (value.fields[PHONE] ?? "") &&
+      (vendor.bankAccount ?? "") === (value.fields[ACCOUNT] ?? ""),
+  );
+  const manual =
+    nameOptions === null
+      ? true
+      : chosenMode
+        ? chosenMode === "manual"
+        : !nameOptions.loading && name !== "" && !vendorList.some((vendor) => vendor.name === name);
+
   return (
     <FormGrid>
-      {fields.map((f) => (
-        <FieldRenderer key={f.label} field={f} value={value.fields[f.label]} onChange={(v) => setField(f.label, v)} />
-      ))}
-      {thumbnails.length > 0 ? (
-        <div className="col-span-2 flex gap-2 overflow-x-auto" aria-label="저장된 계약서 사진">
-          {thumbnails.map(({ attachment, url, error }, index) => (
-            <div key={attachment.id} className="relative size-[84px] shrink-0 overflow-hidden rounded-[10px] border border-line">
-              {url ? (
-                <button
-                  type="button"
-                  className="size-full"
-                  onClick={() => window.open(previews[index]?.url ?? url, "_blank", "noopener,noreferrer")}
-                  aria-label={`${attachment.fileName} 미리보기`}
-                >
-                  <Image
-                    src={url}
-                    alt=""
-                    width={84}
-                    height={84}
-                    className="size-full object-cover"
-                  />
-                </button>
-              ) : (
-                <span
-                  role={error ? "alert" : "status"}
-                  aria-label={error ? `${attachment.fileName} 미리보기 실패` : `${attachment.fileName} 불러오는 중`}
-                  className="flex size-full items-center justify-center p-2 text-center text-[10px] text-t3"
-                >
-                  {error ? "미리보기 실패" : "불러오는 중…"}
-                </span>
-              )}
-              {onDeleteAttachment ? (
-                <button
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => void onDeleteAttachment(attachment)}
-                  className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-full bg-black/60 text-xs text-white disabled:opacity-40"
-                  aria-label={`${attachment.fileName} 삭제`}
-                >
-                  ×
-                </button>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      ) : null}
+      {fields.map((f) => {
+        if (f.kind === "vendorName") {
+          if (nameOptions === null) {
+            return (
+              <TextField key={f.label} label={f.label} placeholder={f.label} value={name} onChange={(v) => setField(f.label, v)} />
+            );
+          }
+          return (
+            <VendorNameField
+              key={f.label}
+              label={f.label}
+              placeholder={f.placeholder}
+              vendors={vendorList.map((vendor) => ({ value: vendorKey(vendor), label: vendor.name }))}
+              selectedValue={selectedVendor ? vendorKey(selectedVendor) : null}
+              manual={manual}
+              name={name}
+              onPick={(key) => {
+                const vendor = vendorList.find((item) => vendorKey(item) === key);
+                if (!vendor) return;
+                setChosenMode("pick");
+                setVendorFields({ [NAME]: vendor.name, [PHONE]: vendor.phone ?? "", [ACCOUNT]: vendor.bankAccount ?? "" });
+              }}
+              onManual={() => {
+                setChosenMode("manual");
+                setVendorFields({ [NAME]: "", [PHONE]: "", [ACCOUNT]: "" });
+              }}
+              onNameChange={(v) => setField(f.label, v)}
+            />
+          );
+        }
+        if (f.kind === "vendorContact") {
+          return (
+            <TextField
+              key={f.label}
+              label={f.label}
+              placeholder={f.placeholder}
+              value={value.fields[f.label] ?? ""}
+              onChange={(v) => setField(f.label, v)}
+              readOnly={!manual}
+              mask={manual ? f.mask : undefined}
+            />
+          );
+        }
+        return <FieldRenderer key={f.label} field={f} value={value.fields[f.label]} onChange={(v) => setField(f.label, v)} />;
+      })}
       <PhotoUpload
         label="계약서 사진"
         files={value.pendingFiles}
         onFilesChange={(pendingFiles) => onChange({ ...value, pendingFiles })}
+        existing={thumbnails.map(({ attachment, url, error }, index) => ({
+          id: attachment.id,
+          name: attachment.fileName,
+          url,
+          error: Boolean(error),
+          onOpen: url ? () => window.open(previews[index]?.url ?? url, "_blank", "noopener,noreferrer") : undefined,
+          onDelete: onDeleteAttachment ? () => onDeleteAttachment(attachment) : undefined,
+        }))}
         max={Math.max(0, 10 - attachments.length)}
+        totalMax={10}
         accept="image/jpeg,image/png,image/webp"
         disabled={disabled}
       />

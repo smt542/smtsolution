@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { CustomDropdown } from "@/components/common/CustomDropdown";
 import { DpDatePicker } from "@/components/common/DpDatePicker";
 import { DpTimePicker } from "@/components/common/DpTimePicker";
 import { joinDateTimeLocal, splitDateTimeLocal } from "@/components/common/DateInput";
@@ -34,7 +35,31 @@ interface MessagingWorkspaceViewProps {
   canSend: boolean;
 }
 
-const selectClass = "h-[40px] min-w-0 flex-1 appearance-none rounded-[11px] border border-line bg-white px-[13px] text-[13.5px] font-semibold text-t1 outline-none disabled:bg-bg disabled:text-t4";
+const disabledDropdownClass = [
+  "[&_.uc-dd]:min-w-0 [&_.uc-dd]:w-full",
+  "[&_.uc-dd-btn]:h-[40px] [&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:justify-between",
+  "[&_.uc-dd-btn]:rounded-[11px] [&_.uc-dd-btn]:px-[13px]",
+  "[&_.uc-dd-btn]:text-[13.5px] [&_.uc-dd-btn]:font-semibold",
+  "[&_.uc-dd-btn]:disabled:bg-bg [&_.uc-dd-btn]:disabled:text-t4 [&_.uc-dd-btn]:disabled:opacity-100",
+  "[&_.uc-dd-btn_svg]:h-[14px] [&_.uc-dd-btn_svg]:w-[14px]",
+].join(" ");
+const templateDropdownClass = [
+  "[&_.uc-dd-btn]:h-[24px] [&_.uc-dd-btn]:rounded-[8px] [&_.uc-dd-btn]:border-transparent",
+  "[&_.uc-dd-btn]:bg-transparent [&_.uc-dd-btn]:px-0 [&_.uc-dd-btn]:text-[12px]",
+  "[&_.uc-dd-btn]:font-bold [&_.uc-dd-btn]:text-t2 [&_.uc-dd-btn]:shadow-none",
+  "[&_.uc-dd-btn]:hover:border-transparent [&_.uc-dd-btn]:hover:shadow-none",
+  "[&_.uc-dd.open_.uc-dd-btn]:border-transparent [&_.uc-dd.open_.uc-dd-btn]:shadow-none",
+  "[&_.uc-dd-btn_svg]:h-[13px] [&_.uc-dd-btn_svg]:w-[13px]",
+].join(" ");
+const templateDropdownMenuClass = [
+  "[&.uc-dd-menu]:rounded-[12px] [&.uc-dd-menu]:p-[6px]",
+  "[&.uc-dd-menu]:shadow-[0_16px_40px_-12px_rgba(23,31,40,0.3)]",
+  "[&.uc-dd-menu]:w-[300px] [&.uc-dd-menu]:max-h-[320px]",
+  "[&_.uc-opt]:gap-[8px] [&_.uc-opt]:rounded-[9px] [&_.uc-opt]:px-[10px] [&_.uc-opt]:py-[9px]",
+  "[&_.uc-opt]:text-[13px] [&_.uc-opt]:font-bold [&_.uc-opt]:text-t1",
+  "[&_.uc-opt:not(.on):hover]:bg-bg",
+  "[&_.uc-opt.on]:bg-blue-t2 [&_.uc-opt.on]:text-blue-d",
+].join(" ");
 const SCHEDULED_PICKER_TRIGGER_CLASS_NAME =
   "h-[36px] rounded-[9px] border border-line bg-white px-[11px] text-[12px] text-t1 outline-none focus:border-teal flex items-center gap-[6px] text-left cursor-pointer";
 
@@ -134,12 +159,26 @@ export function MessagingWorkspaceView({
               </div>
             )}
             <div className="mt-[8px] flex gap-[8px] opacity-45">
-              <select aria-label="수신자 유형" disabled className={selectClass}>
-                <option>유형 선택</option>
-              </select>
-              <select aria-label="수신자 세부 유형" disabled className={selectClass}>
-                <option>유형을 먼저 선택</option>
-              </select>
+              <div className={`min-w-0 flex-1 ${disabledDropdownClass}`}>
+                <CustomDropdown
+                  ariaLabel="수신자 유형"
+                  value=""
+                  options={[{ value: "", label: "유형 선택" }]}
+                  disabled
+                  variant="field"
+                  onChange={() => undefined}
+                />
+              </div>
+              <div className={`min-w-0 flex-1 ${disabledDropdownClass}`}>
+                <CustomDropdown
+                  ariaLabel="수신자 세부 유형"
+                  value=""
+                  options={[{ value: "", label: "유형을 먼저 선택" }]}
+                  disabled
+                  variant="field"
+                  onChange={() => undefined}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -186,20 +225,23 @@ export function MessagingWorkspaceView({
               </label>
               <label className="relative flex items-center gap-[5px] rounded-[8px] px-[9px] py-[5px] text-[12px] font-bold text-t2">
                 <Image src="/icons/overdue/template.svg" alt="" width={13} height={13} className="size-[13px]" />
-                <span>템플릿</span>
-                <select
-                  aria-label="메시지 템플릿"
-                  value={effectiveTemplateId ?? ""}
-                  disabled={isTemplatesLoading}
-                  onChange={(event) => onTemplateChange(event.target.value)}
-                  className="absolute inset-0 cursor-pointer opacity-0"
-                >
-                  <option value="">선택</option>
-                  {templates.map((template) => (
-                    <option key={template.id} value={template.id}>{template.title}</option>
-                  ))}
-                </select>
-                <Image src="/icons/overdue/template-chevron.svg" alt="" width={13} height={13} className="size-[13px]" />
+                <div className={templateDropdownClass}>
+                  <CustomDropdown
+                    ariaLabel="메시지 템플릿"
+                    value={effectiveTemplateId?.toString() ?? ""}
+                    options={[
+                      { value: "", label: "선택" },
+                      ...templates.map((template) => ({ value: String(template.id), label: template.title })),
+                    ]}
+                    disabled={isTemplatesLoading}
+                    position="fixed"
+                    menuAlign="end"
+                    menuClassName={templateDropdownMenuClass}
+                    triggerLabel="템플릿"
+                    check="never"
+                    onChange={onTemplateChange}
+                  />
+                </div>
               </label>
             </div>
             <textarea

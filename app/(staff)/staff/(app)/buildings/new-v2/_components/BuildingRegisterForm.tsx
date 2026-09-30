@@ -89,6 +89,10 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
 
   const onSave = async () => {
     if (isSavingBuilding) return;
+    if (!/^\d{3}$/.test(state.code)) {
+      appToast.warning("건물 코드를 숫자 3자리로 입력해 주세요.");
+      return;
+    }
     if (!state.name.trim()) {
       appToast.error("건물명을 입력해 주세요.");
       return;

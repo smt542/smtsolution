@@ -1,14 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { EmptyState, Spinner } from "@/components/common";
-import { ChevronDownIcon } from "@/components/icons";
+import { CustomDropdown, EmptyState, Spinner } from "@/components/common";
 import {
   type PlatformMonthlySendCost,
   usePlatformMonthlySendCost,
 } from "@/hooks/reactquery/platform";
 import { formatNumber } from "@/lib/format";
 import { QueryError } from "../../_components/PageElements";
+import {
+  ADMIN_DROPDOWN_MENU_CLASS,
+  ADMIN_TOOLBAR_DROPDOWN_CLASS,
+} from "../../_components/adminDropdownClasses";
 
 const CHANNELS = [
   { label: "알림톡", color: "bg-blue" },
@@ -35,19 +38,18 @@ export function MonthlySendCostChart() {
         <h3 className="text-[15px] font-extrabold text-t1">
           알림톡 · 문자 · 팩스 발송 비용
         </h3>
-        <label className="relative ml-auto">
+        <label className={`relative ml-auto ${ADMIN_TOOLBAR_DROPDOWN_CLASS}`}>
           <span className="sr-only">발송 비용 연도</span>
-          <select
-            aria-label="발송 비용 연도"
-            className="h-[36px] cursor-pointer appearance-none rounded-[11px] border border-line bg-surface pl-[12px] pr-[34px] text-[13.5px] font-bold text-t1 outline-none transition-colors hover:bg-bg"
-            value={year}
-            onChange={(event) => setYear(Number(event.target.value))}
-          >
-            {yearOptions.map((option) => (
-              <option key={option} value={option}>{option}년</option>
-            ))}
-          </select>
-          <ChevronDownIcon className="pointer-events-none absolute right-[12px] top-1/2 size-[14px] -translate-y-1/2 stroke-[2.2] text-t3" />
+          <CustomDropdown
+            ariaLabel="발송 비용 연도"
+            value={String(year)}
+            options={yearOptions.map((option) => ({ value: String(option), label: `${option}년` }))}
+            position="fixed"
+            menuAlign="end"
+            menuMinWidth={150}
+            menuClassName={ADMIN_DROPDOWN_MENU_CLASS}
+            onChange={(value) => setYear(Number(value))}
+          />
         </label>
       </div>
 

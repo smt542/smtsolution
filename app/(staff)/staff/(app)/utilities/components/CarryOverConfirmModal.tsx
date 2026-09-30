@@ -24,8 +24,8 @@ export function CarryOverConfirmModal({
         <h2 id="carry-over-title" className="text-[17px] font-extrabold leading-6 text-t1">{year}년 {month}월분 이월을 진행할까요?</h2>
         <p id="carry-over-description" className="mt-2 text-[13.5px] leading-5 text-t3">모든 건물의 {month}월분이 {nextYear === year ? "" : `${nextYear}년 `}{nextMonth}월분으로 이월됩니다.</p>
         <div className="mt-5 grid grid-cols-2 gap-2">
-          <button type="button" onClick={onCancel} className="h-10 rounded-[11px] bg-bg text-[13px] font-bold text-t2 hover:bg-line2">취소</button>
-          <button type="button" onClick={onConfirm} className="h-10 rounded-[11px] bg-teal text-[13px] font-bold text-white hover:bg-brand-dark">이월</button>
+          <button type="button" onClick={onCancel} className="h-10 rounded-[11px] bg-bg text-[13.5px] font-bold text-t2 hover:bg-line2">취소</button>
+          <button type="button" onClick={onConfirm} className="h-10 rounded-[11px] bg-teal text-[13.5px] font-bold text-white hover:bg-brand-dark">이월</button>
         </div>
       </section>
     </div>
