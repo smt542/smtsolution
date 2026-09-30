@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Button, Input, Modal, Select } from "@/components/common";
+import { Button, CustomDropdown, Input, Modal } from "@/components/common";
 import { FormField } from "@/components/common/FormField";
 import { setSubmissionError } from "@/components/forms/formErrors";
 import {
@@ -14,6 +14,10 @@ import {
 import type { PlatformOrganization } from "@/hooks/reactquery/platform";
 import { ModalActions } from "../../../../_components/ModalActions";
 import { InlineAlert } from "../../../../_components/InlineAlert";
+import {
+  ADMIN_DROPDOWN_MENU_CLASS,
+  ADMIN_FORM_DROPDOWN_CLASS,
+} from "../../../../_components/adminDropdownClasses";
 
 type FormInput = z.input<typeof pointAdjustmentSchema>;
 
@@ -111,16 +115,27 @@ export function PointAdjustmentModal({
           error={errors.orgId?.message}
           className={FORM_FIELD_CLASS}
         >
-          <Select
-            id="pa-org"
-            aria-label="대상 조직"
-            {...register("orgId")}
-            options={organizations.map((organization) => ({
-              value: String(organization.id),
-              label: organization.name,
-            }))}
-            className={INPUT_CLASS}
-          />
+          <div className={ADMIN_FORM_DROPDOWN_CLASS}>
+            <Controller
+              control={control}
+              name="orgId"
+              render={({ field }) => (
+                <CustomDropdown
+                  id="pa-org"
+                  ariaLabel="대상 조직"
+                  value={field.value == null ? "" : String(field.value)}
+                  options={organizations.map((organization) => ({
+                    value: String(organization.id),
+                    label: organization.name,
+                  }))}
+                  position="fixed"
+                  menuMinWidth={0}
+                  menuClassName={ADMIN_DROPDOWN_MENU_CLASS}
+                  onChange={field.onChange}
+                />
+              )}
+            />
+          </div>
         </FormField>
 
         <FormField
@@ -129,7 +144,24 @@ export function PointAdjustmentModal({
           error={errors.kind?.message}
           className={FORM_FIELD_CLASS}
         >
-          <Select id="pa-kind" aria-label="조정 구분" {...register("kind")} options={KIND_OPTIONS} className={INPUT_CLASS} />
+          <div className={ADMIN_FORM_DROPDOWN_CLASS}>
+            <Controller
+              control={control}
+              name="kind"
+              render={({ field }) => (
+                <CustomDropdown
+                  id="pa-kind"
+                  ariaLabel="조정 구분"
+                  value={String(field.value ?? "")}
+                  options={KIND_OPTIONS}
+                  position="fixed"
+                  menuMinWidth={0}
+                  menuClassName={ADMIN_DROPDOWN_MENU_CLASS}
+                  onChange={field.onChange}
+                />
+              )}
+            />
+          </div>
         </FormField>
 
         <FormField

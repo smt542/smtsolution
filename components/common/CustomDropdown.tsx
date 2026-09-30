@@ -40,6 +40,13 @@ interface CustomDropdownProps {
   /** fixed 메뉴의 정렬. `start`는 트리거 왼쪽, `end`는 트리거 오른쪽 끝에 맞춘다. */
   menuAlign?: "start" | "end";
   /**
+   * 메뉴 쪽 덮어쓰기. fixed 메뉴는 body 포탈이라 호출부 래퍼의 `[&_.uc-dd-menu]`·`[&_.uc-opt]` 덮어쓰기가
+   * 닿지 않는다. 같은 명시도의 기본 유틸을 이기도록 메뉴 자신은 `[&.uc-dd-menu]:…`, 옵션은 `[&_.uc-opt]:…`로 쓴다.
+   */
+  menuClassName?: string;
+  /** 트리거에 선택 항목 대신 늘 보일 고정 라벨. 정본 메신저 `.fmp-tplsel`처럼 골라도 '템플릿'으로 남는 트리거에 쓴다. */
+  triggerLabel?: string;
+  /**
    * 값이 어떤 옵션과도 맞지 않을 때 버튼에 보일 미선택 라벨. 정본 `#ovYear`/`#ovMonth`
    * 처럼 초기 상태가 "년도"·"월" 인 드롭다운에 쓴다. 메뉴 항목으로는 나오지 않는다.
    * 주지 않으면 기존대로 첫 옵션 라벨로 대체한다.
@@ -70,6 +77,8 @@ export function CustomDropdown({
   placeholder,
   check = "selected",
   menuMinWidth,
+  menuClassName,
+  triggerLabel,
 }: CustomDropdownProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -184,7 +193,7 @@ export function CustomDropdown({
         <span
           className={`uc-dd-lbl${isCell || isForm ? " min-w-0 truncate" : ""}${isForm && selected === undefined && placeholder !== undefined ? " font-medium text-t4" : ""}`}
         >
-          {selected?.label ?? placeholder}
+          {triggerLabel ?? selected?.label ?? placeholder}
         </span>
         <ChevronDownIcon aria-hidden="true" />
       </button>
@@ -199,7 +208,7 @@ export function CustomDropdown({
               // field 는 메뉴 폭을 트리거에 맞추는 규격이라 140px 하한을 걸지 않는다.
               ? `fixed z-[1000] ${isField || menuAlign === "end" || menuMinWidth !== undefined ? "" : "min-w-[140px]"}`
               : `absolute top-[calc(100%_+_6px)] z-[80] ${isField ? "inset-x-0" : `right-0 ${menuMinWidth !== undefined ? "" : "min-w-[96px]"}`}`
-          }`}
+          }${menuClassName ? ` ${menuClassName}` : ""}`}
           style={menuMinWidth !== undefined ? { minWidth: menuMinWidth } : undefined}
         >
           {options.map((option) => {
