@@ -3,6 +3,7 @@ import {
   getPlatformOverview,
   getPlatformOrganizationContractKpis,
   getOrganizationContractFilePreview,
+  getPlatformOrganizationOwner,
   listPlatformAccounts,
   listPlatformOrganizations,
   listPointTransactions,
@@ -11,7 +12,6 @@ import {
   type PointTransactionCursor,
   type PointTransactionQuery,
 } from "./apis";
-import { getOrgBuildings, getBuildingTenants, getUnitOccupancy } from "./drilldown";
 import {
   listMessagePointRates,
   listPointReservations,
@@ -88,26 +88,11 @@ export function usePointReservations(opts: PointReservationQuery = {}) {
   });
 }
 
-export function useOrgBuildings(orgId: number) {
+/** 테넌트 상세 모달의 관리자 아이디(읽기 전용)·비밀번호 변경 대상 */
+export function usePlatformOrganizationOwner(orgId: number | null) {
   return useQuery({
-    queryKey: platformKeys.orgBuildings(orgId),
-    queryFn: () => getOrgBuildings(orgId),
-    enabled: Number.isFinite(orgId) && orgId > 0,
-  });
-}
-
-export function useBuildingTenants(buildingId: number) {
-  return useQuery({
-    queryKey: platformKeys.buildingTenants(buildingId),
-    queryFn: () => getBuildingTenants(buildingId),
-    enabled: Number.isFinite(buildingId) && buildingId > 0,
-  });
-}
-
-export function useUnitOccupancy(unitId: number) {
-  return useQuery({
-    queryKey: platformKeys.unit(unitId),
-    queryFn: () => getUnitOccupancy(unitId),
-    enabled: Number.isFinite(unitId) && unitId > 0,
+    queryKey: platformKeys.organizationOwner(orgId ?? 0),
+    queryFn: () => getPlatformOrganizationOwner(orgId as number),
+    enabled: orgId != null && orgId > 0,
   });
 }

@@ -52,9 +52,7 @@ export const platformKeys = {
       opts?.page ?? 1,
       opts?.pageSize ?? 25,
     ] as const,
-  orgBuildings: (orgId: number) => [...platformKeys.all, "org-buildings", orgId] as const,
-  buildingTenants: (buildingId: number) => [...platformKeys.all, "building-tenants", buildingId] as const,
-  unit: (unitId: number) => [...platformKeys.all, "unit", unitId] as const,
+  organizationOwner: (orgId: number) => [...platformKeys.all, "organization-owner", orgId] as const,
   organizationContractFile: (path: string) =>
     [...platformKeys.all, "organization-contract-file", path, "preview"] as const,
 };

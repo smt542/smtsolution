@@ -9,6 +9,10 @@ interface FitPageSizeOptions {
   min?: number;
   /** true면 스크롤러가 absolute일 때만 잰다 — 일반 흐름이면 높이가 행 수를 따라가 계산이 줄어들기만 한다 */
   onlyWhenAbsolute?: boolean;
+  /** 행 선택자(기본 표 `tbody tr`). 표가 아닌 목록은 headSelector null + rowSelector */
+  rowSelector?: string;
+  /** 머리 선택자(기본 `thead`). null이면 머리 없음(높이 0) */
+  headSelector?: string | null;
   /** 바뀌면 다시 잰다(표가 새로 그려질 때 — 보통 목록 데이터) */
   watch?: unknown;
 }
@@ -20,7 +24,14 @@ interface FitPageSizeOptions {
  */
 export function useFitPageSize(
   scrollerRef: RefObject<HTMLElement | null>,
-  { fallback, min = 3, onlyWhenAbsolute = false, watch }: FitPageSizeOptions,
+  {
+    fallback,
+    min = 3,
+    onlyWhenAbsolute = false,
+    rowSelector = "tbody tr",
+    headSelector = "thead",
+    watch,
+  }: FitPageSizeOptions,
 ): number {
   const [pageSize, setPageSize] = useState(fallback);
 
@@ -29,16 +40,16 @@ export function useFitPageSize(
     if (!scroller) return;
 
     const measure = () => {
-      const head = scroller.querySelector("thead");
-      const row = scroller.querySelector("tbody tr");
-      if (!head || !row) return;
+      const head = headSelector ? scroller.querySelector(headSelector) : null;
+      const row = scroller.querySelector(rowSelector);
+      if ((headSelector && !head) || !row) return;
 
       const next = onlyWhenAbsolute && window.getComputedStyle(scroller).position !== "absolute"
         ? fallback
         : Math.max(
           min,
           Math.floor(
-            (scroller.clientHeight - head.getBoundingClientRect().height)
+            (scroller.clientHeight - (head ? head.getBoundingClientRect().height : 0))
               / (row.getBoundingClientRect().height || 41),
           ),
         );
@@ -47,14 +58,14 @@ export function useFitPageSize(
 
     const observer = new ResizeObserver(measure);
     observer.observe(scroller);
-    const table = scroller.querySelector("table");
-    if (table) observer.observe(table);
+    const observedContent = scroller.querySelector("table") ?? scroller.firstElementChild;
+    if (observedContent) observer.observe(observedContent);
     const frame = requestAnimationFrame(measure);
     return () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
     };
-  }, [scrollerRef, fallback, min, onlyWhenAbsolute, watch]);
+  }, [scrollerRef, fallback, min, onlyWhenAbsolute, rowSelector, headSelector, watch]);
 
   return pageSize;
 }

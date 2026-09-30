@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { toAuthPassword } from "@/lib/auth/password";
 
 export async function PATCH(
   req: Request,
@@ -32,7 +33,10 @@ export async function PATCH(
     return NextResponse.json({ error: "대상 계정을 찾을 수 없습니다." }, { status: 404 });
   }
 
-  const { error } = await admin.auth.admin.updateUserById(userId, { password });
+  // 4자리 PIN은 Auth 최소 길이(6) 때문에 변환해서 저장한다 — 로그인 검증도 같은 변환을 쓴다.
+  const { error } = await admin.auth.admin.updateUserById(userId, {
+    password: toAuthPassword(String(password)),
+  });
   if (error) {
     return NextResponse.json({ error: "비밀번호 변경에 실패했습니다." }, { status: 500 });
   }

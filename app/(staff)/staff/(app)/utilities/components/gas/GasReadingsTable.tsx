@@ -3,7 +3,6 @@ import { GridEmptyValue } from "../GridEmptyValue";
 import { UtilityGrid, type UtilityGridColumn } from "../UtilityGrid";
 import {
   FIXED_LOCK_CELL,
-  LOCKED_INPUT,
   LockedValue,
   LockPin,
   manualLockPatch,
@@ -66,22 +65,17 @@ interface GasReadingsGridRow {
   chargeBasis: string;
 }
 
-/** 자물쇠가 켜진 입력칸: 아래 기본 입력칸과 같은 크기에 고정 칸 색(disabled: 스타일은 섞지 않는다). */
-const LOCKED_READING_INPUT = `h-[26px] w-14 rounded-[7px] px-1.5 text-right text-[11.5px] font-semibold tabular-nums outline-none ${LOCKED_INPUT}`;
-
 function ReadingInput({
   label,
   value,
   disabled,
   readOnly,
-  className,
   onChange,
 }: {
   label: string;
   value: string;
   disabled?: boolean;
   readOnly?: boolean;
-  className?: string;
   onChange: (value: string) => void;
 }) {
   return (
@@ -92,7 +86,7 @@ function ReadingInput({
       disabled={disabled}
       readOnly={readOnly}
       onChange={(event) => onChange(event.target.value)}
-      className={className ?? "h-[26px] w-14 rounded-[7px] border border-teal bg-white px-1.5 text-right text-[11.5px] font-semibold tabular-nums text-t2 outline-none disabled:border-line disabled:bg-bg disabled:text-t4"}
+      className="h-[26px] w-14 rounded-[7px] border border-teal bg-white px-1.5 text-right text-[11.5px] font-semibold tabular-nums text-t2 outline-none disabled:border-line disabled:bg-bg disabled:text-t4"
     />
   );
 }
@@ -221,8 +215,7 @@ export function GasReadingsTable({
           <ReadingInput
             label={`${item.row.unitNo} 사용량`}
             value={item.draft.usageLocked ? item.draft.lockedUsage : item.draft.usage}
-            disabled={item.draft.usageLocked}
-            className={item.draft.usageLocked ? LOCKED_READING_INPUT : undefined}
+            readOnly={item.draft.usageLocked}
             onChange={(value) => onDraftChange(item.row.unitId, { usage: value, usageEdited: true })}
           />
           <LockPin
@@ -266,8 +259,7 @@ export function GasReadingsTable({
           <ReadingInput
             label={`${item.row.unitNo} 수동 입력 요금`}
             value={item.draft.manualCharge}
-            disabled={item.draft.manualLocked}
-            className={item.draft.manualLocked ? LOCKED_READING_INPUT : undefined}
+            readOnly={item.draft.manualLocked}
             onChange={(value) => onDraftChange(item.row.unitId, { manualCharge: value })}
           />
           <LockPin

@@ -6,6 +6,7 @@ import {
   createPlatformOrganization,
   updatePlatformOrganization,
   setPlatformOrganizationDeleted,
+  deletePlatformOrganization,
   type AdjustPointsInput,
   type ChargePointsInput,
   type OrganizationStatus,
@@ -121,6 +122,15 @@ export function useSetOrgDeleted() {
       void qc.invalidateQueries({ queryKey: platformKeys.overview() });
       void qc.invalidateQueries({ queryKey: platformKeys.organizationContractKpis() });
     },
+  });
+}
+
+/** 완전 삭제는 목록·KPI·계정·포인트·청구 전부에 걸리므로 통합관리자 캐시를 통째로 무효화한다. */
+export function useDeletePlatformOrganization() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => deletePlatformOrganization(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: platformKeys.all }),
   });
 }
 
