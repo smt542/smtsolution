@@ -110,13 +110,13 @@ export function MobileTenantWorkspace({ data }: { data: MobileTenantData }) {
     <div className={styles.root}>
       {header}
       <div className={styles.tabs}>
-        <button type="button" className={`${styles.tab} ${tab === "info" ? styles.tabOn : ""}`} onClick={() => setTab("info")}>
+        <button type="button" className={`${styles.tab} ${tab === "info" ? styles.tabActive : styles.tabIdle}`} onClick={() => setTab("info")}>
           입주자 정보
         </button>
-        <button type="button" className={`${styles.tab} ${tab === "pay" ? styles.tabOn : ""}`} onClick={() => setTab("pay")}>
+        <button type="button" className={`${styles.tab} ${tab === "pay" ? styles.tabActive : styles.tabIdle}`} onClick={() => setTab("pay")}>
           수납정보
         </button>
-        <button type="button" className={`${styles.tab} ${tab === "ms" ? styles.tabOn : ""}`} onClick={() => setTab("ms")}>
+        <button type="button" className={`${styles.tab} ${tab === "ms" ? styles.tabActive : styles.tabIdle}`} onClick={() => setTab("ms")}>
           이사정산 <span className={styles.count}>{settlements.length}</span>
         </button>
       </div>
@@ -127,12 +127,20 @@ export function MobileTenantWorkspace({ data }: { data: MobileTenantData }) {
             <div className={styles.sectionTitle}>입주자 정보</div>
             <div className={styles.sec}>
               <Row label="건물명">{occ.building_name}</Row>
-              <Row label="호수">{unitLabel(occ.dong, occ.unit_no)}</Row>
+              <Row label="호수">
+                <span className={styles.num}>{unitLabel(occ.dong, occ.unit_no)}</span>
+              </Row>
               <div className={styles.row}>
                 <span className={styles.rowLabel}>입주자명</span>
                 {occ.tenant_name ? <b className={styles.rowValue}>{occ.tenant_name}</b> : <span className={styles.uvac}>공실</span>}
               </div>
-              <Row label="입주일">{fmtDate(occ.move_in_date) || "-"}</Row>
+              <Row label="입주일">
+                {occ.move_in_date ? (
+                  <span className={styles.num}>{fmtDate(occ.move_in_date)}</span>
+                ) : (
+                  <span className={styles.empty}>—</span>
+                )}
+              </Row>
             </div>
 
             <div className={styles.sectionTitle}>연락처</div>
@@ -178,7 +186,7 @@ export function MobileTenantWorkspace({ data }: { data: MobileTenantData }) {
                       <div className={styles.pdet}>
                         <div className={styles.pdetSec}>
                           <Row label="연체" valueClassName={styles.pdetValue}>
-                            {p.unpaid > 0 ? <span className={styles.neg}>{won(p.unpaid)}</span> : <span className={styles.pdetEmpty}>-</span>}
+                            {p.unpaid > 0 ? <span className={styles.neg}>{won(p.unpaid)}</span> : <span className={styles.empty}>-</span>}
                           </Row>
                           <Row label="수납액" valueClassName={styles.pdetValue}>
                             <span className={styles.num}>{won(p.paid)}</span>
@@ -187,11 +195,11 @@ export function MobileTenantWorkspace({ data }: { data: MobileTenantData }) {
                             {p.last_paid_at ? (
                               <span className={styles.num}>{fmtDate(p.last_paid_at)}</span>
                             ) : (
-                              <span className={styles.pdetEmpty}>—</span>
+                              <span className={styles.empty}>—</span>
                             )}
                           </Row>
                           <Row label="구분" valueClassName={styles.pdetValue}>
-                            {methodsLabel(p.methods) || <span className={styles.pdetEmpty}>—</span>}
+                            {methodsLabel(p.methods) || <span className={styles.empty}>—</span>}
                           </Row>
                           <Row label="비고" valueClassName={styles.pdetValue}>
                             <span className={styles.pdetMemo}>{p.memo || "—"}</span>
