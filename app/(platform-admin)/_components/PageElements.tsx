@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge, IconButton } from "@/components/common";
+import { Badge } from "@/components/common";
 import { formatNumber } from "@/lib/format";
 
 export function PageHeader({
@@ -50,61 +50,6 @@ export function StatusBadge({ status }: { status: "active" | "suspended" | "tria
     trial: { label: "체험", className: "bg-amber-t text-amber" },
   }[status];
   return <Badge className={`inline-flex px-[9px] py-[3px] leading-[1.4] ${styles.className}`}>{styles.label}</Badge>;
-}
-
-function shiftMonth(iso: string, delta: number): string {
-  const [year, month] = iso.split("-").map(Number);
-  const shifted = new Date(year, month - 1 + delta, 1);
-  return `${shifted.getFullYear()}-${String(shifted.getMonth() + 1).padStart(2, "0")}-01`;
-}
-
-function currentMonthIso(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-}
-
-function monthLabel(iso: string): string {
-  const [year, month] = iso.split("-").map(Number);
-  return `${year}년 ${month}월`;
-}
-
-export function BoundedMonthStepper({
-  month,
-  onChange,
-  minYear = 2025,
-}: {
-  month: string;
-  onChange: (month: string) => void;
-  minYear?: number;
-}) {
-  const minMonth = `${minYear}-01-01`;
-  const maxMonth = currentMonthIso();
-  const previousDisabled = month <= minMonth;
-  const nextDisabled = month >= maxMonth;
-
-  return (
-    <div className="flex items-center gap-1 rounded-xl border border-line bg-surface p-1">
-      <IconButton
-        aria-label="이전 달"
-        onClick={() => onChange(shiftMonth(month, -1))}
-        disabled={previousDisabled}
-        className="h-8 w-8 rounded-lg text-t3 hover:bg-bg hover:text-t1 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-t3"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
-      </IconButton>
-      <span className="min-w-[92px] text-center text-sm font-extrabold text-t1">
-        {monthLabel(month)}
-      </span>
-      <IconButton
-        aria-label="다음 달"
-        onClick={() => onChange(shiftMonth(month, 1))}
-        disabled={nextDisabled}
-        className="h-8 w-8 rounded-lg text-t3 hover:bg-bg hover:text-t1 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-t3"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
-      </IconButton>
-    </div>
-  );
 }
 
 type PaginationItem = number | "start-ellipsis" | "end-ellipsis";
