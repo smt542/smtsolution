@@ -20,8 +20,9 @@ function PickerCheck({ on }: { on: boolean }) {
         on ? "border-teal bg-teal" : "border-line bg-white"
       }`}
     >
+      {/* 정본 ::after는 content-box라 선 두께가 4×8 바깥에 붙는다(6×10) — preflight border-box면 체크가 작아진다. */}
       {on && (
-        <span className="absolute left-[5px] top-[1.5px] h-[8px] w-[4px] rotate-45 border-solid border-white [border-width:0_2px_2px_0]" />
+        <span className="absolute left-[5px] top-[1.5px] box-content h-[8px] w-[4px] rotate-45 border-solid border-white [border-width:0_2px_2px_0]" />
       )}
     </span>
   );

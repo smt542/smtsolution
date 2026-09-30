@@ -1,6 +1,8 @@
 "use client";
 import Image from "next/image";
 import { FormGrid } from "@/components/common/FormGrid";
+import { photoTileDeleteClass } from "@/components/common/PhotoUpload";
+import { CloseIcon } from "@/components/icons";
 import { FieldRenderer } from "../ui/FieldRenderer";
 import { PhotoUpload } from "../ui/PhotoUpload";
 import { TextAreaField } from "../ui/TextAreaField";
@@ -69,10 +71,10 @@ export function VendorCard({
                   type="button"
                   disabled={disabled}
                   onClick={() => void onDeleteAttachment(attachment)}
-                  className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-full bg-black/60 text-xs text-white disabled:opacity-40"
+                  className={photoTileDeleteClass}
                   aria-label={`${attachment.fileName} 삭제`}
                 >
-                  ×
+                  <CloseIcon className="size-[10px]" />
                 </button>
               ) : null}
             </div>
