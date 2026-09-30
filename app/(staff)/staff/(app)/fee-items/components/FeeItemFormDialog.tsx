@@ -222,7 +222,7 @@ function SelectField({
   return (
     <div className="text-[12.5px] leading-[normal] font-bold text-t2">
       {/* 정본 .mf-info: i 아이콘·라벨에 hover하면 아이콘이 청록이 되고 설명(.mf-tip)이 내려온다 */}
-      <span className="group relative flex w-fit items-center gap-[5px]">
+      <span className="group relative inline-flex items-center gap-[5px]">
         <span className="flex h-[15px] w-[15px] flex-none items-center justify-center rounded-full border-[1.4px] border-t4 text-[10px] font-extrabold text-t3 group-hover:border-teal group-hover:text-teal">i</span>
         {label}
         <span
