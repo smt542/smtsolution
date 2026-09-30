@@ -26,6 +26,35 @@ export const NOTICE_STATUS_LABELS: Record<Exclude<NoticeStatus, "all">, string> 
 
 export type PublishMode = "now" | "scheduled" | "draft";
 
+/**
+ * 공지 대상 건물 선택 상태(정본 notice-management `.nc-blds`).
+ * "all" = 전체 건물, 배열 = 켠 건물(빈 배열 = 선택 없음). 저장값은 빈 배열이 전체 공지다.
+ */
+export type NoticeTargetSelection = "all" | number[];
+
+export function toNoticeTargetSelection(buildingIds: number[]): NoticeTargetSelection {
+  return buildingIds.length === 0 ? "all" : buildingIds;
+}
+
+/** 전체 건물 칩 상태: 전체 선택이거나 건물이 모두 켜져 있으면 켜진다. */
+export function isAllNoticeTargets(
+  selection: NoticeTargetSelection,
+  buildings: ReadonlyArray<{ id: number }>,
+): boolean {
+  if (selection === "all") return true;
+  const ids = new Set(selection);
+  return buildings.length > 0 && buildings.every((building) => ids.has(building.id));
+}
+
+/** 저장할 buildingIds: 모두 켜져 있으면 전체 공지([]), 하나도 안 켜져 있으면 null. */
+export function toNoticeBuildingIds(
+  selection: NoticeTargetSelection,
+  buildings: ReadonlyArray<{ id: number }>,
+): number[] | null {
+  if (selection === "all" || isAllNoticeTargets(selection, buildings)) return [];
+  return selection.length > 0 ? selection : null;
+}
+
 export function getNoticeStatus(
   notice: Pick<Notice, "publishedAt" | "expiresAt">,
   now = new Date(),
