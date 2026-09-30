@@ -13,7 +13,7 @@ export const residentMeClasses = {
   card: "rounded-[18px] bg-white px-[18px] py-0.5 shadow-[0_1px_2px_rgba(23,31,40,0.06)]",
   row: "flex w-full cursor-pointer items-center gap-3 border-b border-line2 py-[15px] text-left last:border-b-0",
   rowKey: "flex-none text-[13.5px] font-semibold text-t3",
-  rowVal: "min-w-0 flex-1 text-right text-sm font-bold tabular-nums tracking-[-0.01em]",
+  rowVal: "min-w-0 flex-1 text-right text-[14px] font-bold tabular-nums tracking-[-0.01em]",
   rowText: "min-w-0 flex-1 [&_b]:block [&_b]:text-[14.5px] [&_b]:font-bold [&_b]:tracking-[-0.01em] [&>span]:mt-1 [&>span]:block [&>span]:text-xs [&>span]:font-semibold [&>span]:leading-[1.5] [&>span]:text-t3",
   go: "border-0 bg-transparent font-inherit text-blue no-underline [&:hover_b]:text-blue-d [&:hover_svg]:text-t2",
   chev: "size-[17px] flex-none text-t4",
