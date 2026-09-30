@@ -14,7 +14,7 @@ import { matchesBuildingGroup } from "@/lib/buildings/groupType";
 import { displayUnitNo, type PrintableAccount } from "@/lib/bill/document";
 import type { BillBuilding, OutputDocumentType } from "../types";
 import type { GiroOutputDocument, GiroPrintViewProps } from "./GiroPrintView";
-import { AutoDebitTable, filterAutoDebitRowsByGroup } from "./output-modal/AutoDebitTable";
+import { AutoDebitTable, filterAutoDebitRowsByGroup, isBuildingInAutoDebitGroup } from "./output-modal/AutoDebitTable";
 import { AdjustmentPreviewViewport, AdjustmentStatementPreview, AdjustmentStatementStyles } from "./output-modal/AdjustmentStatement";
 import { AutoDebitPrintDocument } from "./output-modal/AutoDebitPrintDocument";
 import { CompactDocumentPreview } from "./output-modal/CompactDocumentPreview";
@@ -283,7 +283,13 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
     window.print();
   };
   const downloadAutoDebit = () => {
-    selectedBuildings.forEach((building) => {
+    // 정본 cmsDownload: 고른 부과 그룹의 건물만 내려받는다.
+    const groupBuildings = selectedBuildings.filter((building) => isBuildingInAutoDebitGroup(building, group));
+    if (groupBuildings.length === 0) {
+      toast.info("내려받을 세대가 없어요");
+      return;
+    }
+    groupBuildings.forEach((building) => {
       const anchor = document.createElement("a");
       anchor.href = cmsDownloadUrl(building.id, period);
       anchor.download = "";

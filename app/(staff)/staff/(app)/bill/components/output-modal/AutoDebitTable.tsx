@@ -1,6 +1,7 @@
 "use client";
 
 import type { BillTarget } from "@/hooks/reactquery/bill";
+import { matchesBuildingGroup } from "@/lib/buildings/groupType";
 import type { BillBuilding } from "../../types";
 import { FilterDropdown } from "./OutputModalPrimitives";
 
@@ -73,8 +74,13 @@ export function deriveAutoDebitCells(building: BillBuilding, target: BillTarget,
   };
 }
 
+// 정본 cmsRows: 부과 그룹(건물 고지서 부과 그룹 유형, 미지정=1그룹)으로 건물을 거른다. 0 = 부과 그룹 전체.
+export function isBuildingInAutoDebitGroup(building: BillBuilding, group: number): boolean {
+  return matchesBuildingGroup(building, group === 0 ? "" : String(group));
+}
+
 export function filterAutoDebitRowsByGroup(rows: AutoDebitRow[], group: number): AutoDebitRow[] {
-  return rows.filter((row, index) => group === 0 || index % 5 === group - 1);
+  return rows.filter(({ building }) => isBuildingInAutoDebitGroup(building, group));
 }
 
 export function AutoDebitTable({ year, month, years, months, group, rows, onYearChange, onMonthChange, onGroupChange }: AutoDebitTableProps) {
