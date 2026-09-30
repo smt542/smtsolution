@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useId, useRef } from "react";
+import { Button } from "./Button";
 
 export type ConfirmVariant = "default" | "danger";
-export type ConfirmLook = "default" | "check";
+export type ConfirmLook = "default" | "check" | "plain";
 
 export interface ConfirmOptions {
   title: string;
@@ -12,6 +13,7 @@ export interface ConfirmOptions {
   cancelLabel?: string;
   variant?: ConfirmVariant;
   look?: ConfirmLook;
+  hideCancel?: boolean;
 }
 
 export function ConfirmDialog({
@@ -22,12 +24,22 @@ export function ConfirmDialog({
   cancelLabel = "취소",
   variant = "default",
   look = "default",
+  hideCancel = false,
   onConfirm,
   onCancel,
+  children,
+  confirmDisabled = false,
+  widthClassName = "w-[min(400px,92%)]",
+  titleSpacingClassName = "mb-2",
 }: ConfirmOptions & {
   open: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  children?: React.ReactNode;
+  confirmDisabled?: boolean;
+  widthClassName?: string;
+  /** plain look 제목 아래 간격. 정본은 문구형 8px, 선택형(퇴실 처리 안내) 6px이다. */
+  titleSpacingClassName?: string;
 }) {
   const titleId = useId();
   const descId = useId();
@@ -42,12 +54,12 @@ export function ConfirmDialog({
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
     // 파괴적 확인은 취소 버튼에 포커스(오작동 방지), 그 외 확인 버튼에 포커스
-    (variant === "danger" ? cancelRef : confirmRef).current?.focus();
+    (hideCancel ? confirmRef : variant === "danger" ? cancelRef : confirmRef).current?.focus();
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
     };
-  }, [open, onCancel, variant]);
+  }, [hideCancel, onCancel, open, variant]);
 
   if (!open) return null;
 
@@ -55,6 +67,61 @@ export function ConfirmDialog({
     variant === "danger"
       ? "bg-red text-white hover:bg-[#d93c49]"
       : "bg-blue text-white hover:bg-blue-d";
+
+  if (look === "plain") {
+    return (
+      <div
+        className="fixed inset-0 z-[600] flex items-center justify-center bg-scrim p-6"
+        onMouseDown={onCancel}
+      >
+        <div
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          aria-describedby={description != null ? descId : undefined}
+          className={`max-h-[88vh] overflow-auto rounded-[20px] bg-white p-6 text-left shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)] ${widthClassName}`}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <h2 id={titleId} className={`${titleSpacingClassName} text-[17px] font-extrabold text-t1`}>
+            {title}
+          </h2>
+          {description != null && (
+            <p
+              id={descId}
+              className="whitespace-pre-line text-[13.5px] font-semibold leading-[1.6] text-t2 [&_b]:font-bold [&_b]:text-t1 [&_strong]:font-bold [&_strong]:text-t1"
+            >
+              {description}
+            </p>
+          )}
+          {children}
+          <div className="mt-[18px] flex justify-end gap-[8px]">
+            {!hideCancel && (
+              <Button
+                type="button"
+                size="std"
+                variant="ghost"
+                onClick={onCancel}
+                autoFocus={variant === "danger" && !hideCancel}
+              >
+                {cancelLabel}
+              </Button>
+            )}
+            <Button
+              type="button"
+              size="std"
+              variant={variant === "danger" ? "danger" : "primary"}
+              className={variant === "danger" ? "shadow-none hover:bg-red" : ""}
+              onClick={onConfirm}
+              autoFocus={hideCancel || variant !== "danger"}
+              disabled={confirmDisabled}
+            >
+              {confirmLabel}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (look === "check") {
     return (

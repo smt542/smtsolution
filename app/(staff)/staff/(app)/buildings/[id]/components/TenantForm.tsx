@@ -1,7 +1,7 @@
 // app/(staff)/staff/buildings/[id]/components/TenantForm.tsx
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, EmptyState, Spinner } from "@/components/common";
@@ -163,6 +163,9 @@ export function TenantForm({
   const [basicErrors, setBasicErrors] = useState<BasicErrors>({});
   const [phoneError, setPhoneError] = useState<string>();
   const [previousFull, setPreviousFull] = useState<typeof full>();
+  const formBodyRef = useRef<HTMLDivElement>(null);
+  const moveOutHistoryRef = useRef<HTMLDivElement>(null);
+  const [moveOutHistoryHighlighted, setMoveOutHistoryHighlighted] = useState(false);
 
   useEffect(() => {
     if (!dirty) return;
@@ -480,6 +483,17 @@ export function TenantForm({
     router.push(`/staff/buildings?building=${buildingId}`);
   };
 
+  const scrollToMoveOutHistory = () => {
+    const body = formBodyRef.current;
+    const section = moveOutHistoryRef.current;
+    if (!body || !section) return;
+
+    const top = section.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop;
+    body.scrollTop = Math.max(0, top - 12);
+    setMoveOutHistoryHighlighted(true);
+    window.setTimeout(() => setMoveOutHistoryHighlighted(false), 1200);
+  };
+
   const pageHeaderActions = (
     <>
       <Button variant="ghost" onClick={onLeave}>{unitId ? "목록으로" : "뒤로가기"}</Button>
@@ -534,6 +548,7 @@ export function TenantForm({
             occupancyId={full.occupancy.id}
             scheduledDate={full.occupancy.moveOutScheduledDate}
             isVacant={full.occupancy.status === "vacant"}
+            onImmediateMoveOutComplete={scrollToMoveOutHistory}
           />
         ) : undefined}
       />
@@ -541,7 +556,12 @@ export function TenantForm({
       <BillingSection value={billing} onChange={patch(setBilling)} />
       <UtilityCustomerSection value={utility} onChange={patch(setUtility)} customerOptions={customerOptions} />
       <BillStatementSection value={bill} onChange={patch(setBill)} />
-      <MoveOutHistorySection history={full?.history ?? []} />
+      <div
+        ref={moveOutHistoryRef}
+        className={`rounded-[14px] transition-shadow duration-300 ${moveOutHistoryHighlighted ? "shadow-[0_0_0_2px_var(--color-blue)]" : ""}`}
+      >
+        <MoveOutHistorySection history={full?.history ?? []} />
+      </div>
       <LeaseInfoSection value={lease} onChange={patch(setLease)} />
       <PropertyInfoSection value={property} onChange={patch(setProperty)} />
 
@@ -551,10 +571,12 @@ export function TenantForm({
             type="button"
             onClick={async () => {
               const ok = await confirm({
+                look: "plain",
                 title: "호수 삭제",
-                description: "이 호수(세대)와 입주자 정보를 삭제하시겠습니까? 되돌릴 수 없습니다.",
-                confirmLabel: "삭제",
                 variant: "danger",
+                description: "정말 이 호수를 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.",
+                cancelLabel: "취소",
+                confirmLabel: "삭제",
               });
               if (!ok) return;
               try {
@@ -578,7 +600,7 @@ export function TenantForm({
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       {pageHeader}
-      <div className="flex min-h-0 flex-1 flex-col gap-[29px] overflow-y-auto px-[24px] pb-[30px] pt-[22px]">
+      <div ref={formBodyRef} className="flex min-h-0 flex-1 flex-col gap-[29px] overflow-y-auto px-[24px] pb-[30px] pt-[22px]">
         {formContent}
       </div>
     </div>

@@ -188,10 +188,12 @@ export function DateField({
   value,
   onChange,
   placeholder = "날짜 선택",
+  minDate,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
+  minDate?: string;
 }) {
   return (
     <div>
@@ -200,6 +202,7 @@ export function DateField({
         onChange={onChange}
         placeholder={placeholder}
         ariaLabel={placeholder}
+        minDate={minDate}
         className="w-full"
         triggerClassName="flex h-[42px] w-full items-center justify-between gap-[8px] rounded-[10px] border border-line bg-white px-[13px] text-left text-[13.5px] font-semibold text-t1 outline-none"
         triggerOpenClassName="border-brand shadow-[0_0_0_3px_#e2f5f1]"
