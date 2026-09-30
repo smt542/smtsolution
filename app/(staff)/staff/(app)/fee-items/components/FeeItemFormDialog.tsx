@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, type DefaultValues, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DEFAULT_FORM_VALUE, ROUNDING_OPTIONS } from "./constants";
 import type { FeeItemDraft, FeeItemFormValue } from "./types";
 import { CustomDropdown } from "@/components/common/CustomDropdown";
 import { IconButton } from "@/components/common/IconButton";
 import { setSubmissionError } from "@/components/forms/formErrors";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 import {
   createFeeItemSchema,
   type FeeItemFormInput,
@@ -61,7 +62,7 @@ export function FeeItemFormDialog({
   isPending = false,
 }: FeeItemFormDialogProps) {
   const schema = useMemo(() => createFeeItemSchema(existingNames), [existingNames]);
-  const makeDefaults = useCallback((): FeeItemFormInput => item
+  const makeDefaults = useCallback((): DefaultValues<FeeItemFormInput> => item
     ? {
         name: item.name,
         rounding: item.rounding,
@@ -112,17 +113,24 @@ export function FeeItemFormDialog({
     }
   };
 
+  // 정본 순서: 명칭을 먼저 보고(칸 아래 안내), 그다음 반올림·일자계산·이월을 모두 골랐는지 본다(토스트).
+  const warnMissingSelection = (formErrors: FieldErrors<FeeItemFormInput>) => {
+    if (formErrors.name) return;
+    const message = (formErrors.rounding ?? formErrors.dailyProration ?? formErrors.carryOver)?.message;
+    if (message) toast.warning(message);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim px-4" onMouseDown={closeSafely}>
       <form
         aria-label={item ? "관리 항목 수정" : "관리 항목 추가"}
-        className="w-full max-w-[420px] -translate-y-[5px] overflow-hidden rounded-[20px] bg-white shadow-pop"
-        onSubmit={handleSubmit(submit)}
+        className="w-full max-w-[420px] rounded-[20px] bg-white shadow-[0_30px_70px_-20px_rgba(0,0,0,0.45)]"
+        onSubmit={handleSubmit(submit, warnMissingSelection)}
         onMouseDown={(event) => event.stopPropagation()}
         noValidate
       >
-        <header className="flex h-[68px] items-center justify-between border-b border-line px-[22px]">
-          <h2 className="text-[17px] font-extrabold text-t1">관리 항목 {item ? "수정" : "추가"}</h2>
+        <header className="flex items-center justify-between border-b border-line px-[22px] py-[18px]">
+          <h2 className="text-[17px] leading-[normal] font-extrabold tracking-[-0.02em] text-t1">관리 항목 {item ? "수정" : "추가"}</h2>
           {/* 정본 .mf-x */}
           <IconButton
             aria-label="닫기"
@@ -136,16 +144,17 @@ export function FeeItemFormDialog({
           </IconButton>
         </header>
 
-        <div className="space-y-[13px] px-[22px] pb-[37px] pt-5">
-          <label htmlFor="fee-item-dialog-name" className="block text-xs font-bold text-t2">
+        <div className="space-y-[13px] px-[22px] py-5">
+          <label htmlFor="fee-item-dialog-name" className="block text-[12.5px] leading-[normal] font-bold text-t2">
             항목 명칭
+            {/* 정본 .mf-mname — 잠긴 필수 항목 칸도 열릴 때 포커스를 받아 청록 테두리로 보인다(사용자 결정 09-30) */}
             <input
               id="fee-item-dialog-name"
               autoFocus
               maxLength={30}
               placeholder="예: 일반관리비"
               readOnly={nameLocked}
-              className={`mt-1.5 h-11 w-full rounded-[11px] border border-line px-3 text-[13px] font-semibold outline-none placeholder:text-t4 ${nameLocked ? "bg-bg text-t3" : "text-t1 focus:border-teal focus:ring-2 focus:ring-teal-t"}`}
+              className={`mt-1.5 h-11 w-full rounded-[10px] border border-line px-[13px] text-[14px] font-semibold outline-none placeholder:text-t4 focus:border-teal ${nameLocked ? "bg-bg text-t3" : "text-t1"}`}
               {...register("name")}
               aria-invalid={Boolean(errors.name)}
               aria-describedby={nameLocked ? "fee-item-dialog-name-lock" : errors.name ? "fee-item-dialog-name-error" : undefined}
@@ -158,17 +167,18 @@ export function FeeItemFormDialog({
             {!nameLocked && errors.name?.message && <span id="fee-item-dialog-name-error" className="mt-1.5 block text-[11px] text-red">{errors.name.message}</span>}
           </label>
 
+          {/* 새 항목은 셋 다 비어 있고('선택') 값이 없으면 어떤 옵션과도 맞지 않는 ""를 넘긴다 */}
           <Controller control={control} name="rounding" render={({ field }) => (
-            <SelectField label="반올림" tip={ROUNDING_TIP} value={field.value ?? "round"} options={ROUNDING_OPTIONS} onChange={field.onChange} />
+            <SelectField label="반올림" tip={ROUNDING_TIP} value={field.value ?? ""} options={ROUNDING_OPTIONS} onChange={field.onChange} />
           )} />
           <Controller control={control} name="dailyProration" render={({ field }) => (
-            <SelectField label="일자계산" tip={DAILY_PRORATION_TIP} value={String(field.value)} options={booleanOptions} onChange={(value) => field.onChange(value === "true")} />
+            <SelectField label="일자계산" tip={DAILY_PRORATION_TIP} value={String(field.value ?? "")} options={booleanOptions} onChange={(value) => field.onChange(value === "true")} />
           )} />
           <Controller control={control} name="carryOver" render={({ field }) => (
             <SelectField
               label="이월"
               tip={CARRY_OVER_TIP}
-              value={String(field.value)}
+              value={String(field.value ?? "")}
               options={[{ value: "true", label: "이월" }, { value: "false", label: "안함" }]}
               onChange={(value) => field.onChange(value === "true")}
             />
@@ -181,13 +191,14 @@ export function FeeItemFormDialog({
         <footer className="flex h-[69px] items-center gap-[9px] border-t border-line px-[22px]">
           {item ? (
             <>
+              {/* 정본 .fmpc-btn.danger는 뒤에 오는 공용 규칙이 덮어 솔리드 빨강(hover #D63A46)으로 그려진다 */}
               {!item.isRequired && (
-                <button type="button" disabled={submitting} className="h-10 rounded-[11px] bg-red-t px-5 text-[13.5px] font-bold text-red hover:bg-[#fbdbe0] disabled:opacity-70" onClick={onDelete}>삭제</button>
+                <button type="button" disabled={submitting} className="h-10 rounded-[11px] bg-red px-5 text-[13.5px] font-bold tracking-[-0.01em] text-white hover:bg-[#d63a46] disabled:opacity-70" onClick={onDelete}>삭제</button>
               )}
-              <button type="submit" disabled={submitting} className="h-10 flex-1 rounded-[11px] bg-teal text-[13.5px] font-bold text-white hover:bg-teal-d disabled:opacity-70">{submitting ? "저장 중…" : "수정"}</button>
+              <button type="submit" disabled={submitting} className="h-10 flex-1 rounded-[11px] bg-teal text-[13.5px] font-bold tracking-[-0.01em] text-white hover:bg-teal-d disabled:opacity-70">{submitting ? "저장 중…" : "수정"}</button>
             </>
           ) : (
-            <button type="submit" disabled={submitting} className="h-10 w-full rounded-[11px] bg-teal text-[13.5px] font-bold text-white hover:bg-teal-d disabled:opacity-70">{submitting ? "저장 중…" : "추가"}</button>
+            <button type="submit" disabled={submitting} className="h-10 w-full rounded-[11px] bg-teal text-[13.5px] font-bold tracking-[-0.01em] text-white hover:bg-teal-d disabled:opacity-70">{submitting ? "저장 중…" : "추가"}</button>
           )}
         </footer>
       </form>
@@ -209,7 +220,7 @@ function SelectField({
   onChange: (value: string) => void;
 }) {
   return (
-    <div className="text-xs font-bold text-t2">
+    <div className="text-[12.5px] leading-[normal] font-bold text-t2">
       {/* 정본 .mf-info: i 아이콘·라벨에 hover하면 아이콘이 청록이 되고 설명(.mf-tip)이 내려온다 */}
       <span className="group relative flex w-fit items-center gap-[5px]">
         <span className="flex h-[15px] w-[15px] flex-none items-center justify-center rounded-full border-[1.4px] border-t4 text-[10px] font-extrabold text-t3 group-hover:border-teal group-hover:text-teal">i</span>
@@ -221,8 +232,8 @@ function SelectField({
           {tip}
         </span>
       </span>
-      <div className="mt-1.5 [&_.uc-dd]:w-full [&_.uc-dd-btn]:h-11 [&_.uc-dd-btn]:w-full [&_.uc-dd-btn]:justify-between [&_.uc-dd-btn]:text-[13px]">
-        <CustomDropdown ariaLabel={label} value={value} options={options} onChange={onChange} variant="field" />
+      <div className="mt-1.5">
+        <CustomDropdown ariaLabel={label} value={value} options={options} onChange={onChange} size="modal" variant="field" placeholder="선택" />
       </div>
     </div>
   );

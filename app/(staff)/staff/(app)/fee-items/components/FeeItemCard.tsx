@@ -96,8 +96,8 @@ export function FeeItemCard({
           {/* 정본 .badge.b-gray: 제목·연필과 6px, 칩은 10px(gap-1.5 + ml-1) */}
           <Badge tone="gray" className="ml-1 inline-flex px-[9px] py-[3px] leading-[1.4]">{type.items.length}개</Badge>
         </div>
-        {/* 정본 .hf-btn.pri는 hover 색 변화가 없어 기존처럼 hover 없음을 유지한다 */}
-        <Button className="hover:bg-brand" onClick={onAddItem}>
+        {/* 정본 .hf-btn.pri: 1px 투명 테두리까지 폭에 들어가고, hover 색 변화가 없다(기존처럼 hover 없음 유지) */}
+        <Button className="border border-transparent hover:bg-brand" onClick={onAddItem}>
           <svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M12 5v14M5 12h14" />
           </svg>
