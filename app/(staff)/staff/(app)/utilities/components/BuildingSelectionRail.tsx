@@ -173,10 +173,10 @@ export function BuildingSelectionRail({
         ) : historyQuery.isError ? (
           <div role="alert" className="flex flex-1 items-center justify-center text-[12px] text-red">이력을 불러오지 못했습니다.</div>
         ) : (historyQuery.data ?? []).length === 0 ? (
-          // 정본에 없는 상태 — 고객번호 선택 전과 같은 모양으로 둔다(문구는 기획 확인 전 임시).
-          <HistoryEmptyState title="최근 6개월 이력이 없어요">
-            선택한 고객번호의 부과 이력이 아직 없어요
-          </HistoryEmptyState>
+          // 정본에 없는 상태 — Figma 921:76177: 여백은 선택 전 상태와 같고 문구 한 줄(14/400/21·t3)만.
+          <div className="flex flex-1 flex-col items-center justify-center px-[22px] pb-[42px] pt-[36px] text-center">
+            <p className="text-[14px] font-normal leading-[21px] text-t3">최근 이력이 없습니다.</p>
+          </div>
         ) : (
           <div className="min-h-0 flex-1 overflow-hidden">
             <table className="w-[529.515px] table-fixed border-collapse text-[14px]">
