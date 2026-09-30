@@ -310,7 +310,7 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
     if (!editingItem?.id || editingItem.isRequired || deleteFeeItemMutation.isPending) return;
     const ok = await confirm({
       title: "관리 항목 삭제",
-      description: `‘${editingItem.name}’ 항목을 삭제할까요?`,
+      description: <>‘<b>{editingItem.name}</b>’ 항목을 삭제합니다. 삭제하면 되돌릴 수 없어요.</>,
       confirmLabel: "삭제",
       variant: "danger",
     });

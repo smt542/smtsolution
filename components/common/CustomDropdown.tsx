@@ -20,8 +20,10 @@ interface CustomDropdownProps {
   /**
    * `cell` = 정본 표 셀 편집 드롭다운(`.hc-dd`·`.tc-dd .uc-dd-btn{height:26px;padding:0 8px;font-size:12px;font-weight:400}`).
    * 칸 폭을 채우고(`w-full`), 좁으면 라벨이 말줄임된다.
+   * `modal` = 정본 모달 폼 드롭다운 `.fmpc .mf-dd`(항목등록·협력업체): 44px·13.5px/700·padding 0 11px·gap 8,
+   * hover 효과 없음·열림은 테두리만 청록, 화살표 13px 회색이 열리면 뒤집힌다. 메뉴는 `.dd-menu`·`.dd-opt` 규격.
    */
-  size?: "default" | "compact" | "notification" | "cell" | "form";
+  size?: "default" | "compact" | "notification" | "cell" | "form" | "modal";
   /** 메뉴 최소 폭(px). 정본 표 셀 드롭다운은 인라인 `min-width:112px`(수납 이력)·`96px`(입주자정보)을 준다. */
   menuMinWidth?: number;
   compact?: boolean;
@@ -92,9 +94,12 @@ export function CustomDropdown({
   const isNotification = size === "notification";
   const isCell = size === "cell";
   const isForm = size === "form";
+  const isModal = size === "modal";
   const isField = variant === "field";
   // 정본 `.as-dd .uc-dd-btn`: 폼 드롭다운은 38px/100%/14px 아이콘 규격이다.
-  const triggerSize = isForm
+  const triggerSize = isModal
+    ? `h-11 w-full min-w-0 justify-between gap-2 rounded-[9px] px-[11px] text-[13.5px] [&_svg]:h-[13px] [&_svg]:w-[13px] [&_svg]:flex-none [&_svg]:text-t3 [&_svg]:transition-transform [&_svg]:duration-150 [&_svg]:ease-[ease] ${open ? "[&_svg]:rotate-180" : ""}`
+    : isForm
     ? `h-[38px] w-full min-w-0 justify-between rounded-[9px] pl-[11px] pr-[10px] text-[13px] [&_svg]:h-[14px] [&_svg]:w-[14px] [&_svg]:flex-none [&_svg]:transition-transform [&_svg]:duration-[160ms] ${open ? "[&_svg]:rotate-180 [&_svg]:text-blue" : "[&_svg]:text-t3"}`
     : isCell
       ? "h-[26px] w-full min-w-0 justify-between rounded-[9px] px-[8px] text-[12px] [&_svg]:h-[14px] [&_svg]:w-[14px] [&_svg]:flex-none"
@@ -103,9 +108,11 @@ export function CustomDropdown({
         : `${isCompact ? "h-8" : "h-9"} rounded-[9px] pr-[10px] pl-[11px] text-[13px] [&_svg]:h-[15px] [&_svg]:w-[15px]`;
   // 굵기·hover 도 크기마다 하나만 둔다(같은 속성 유틸이 둘 남으면 CSS 생성 순서가 이긴다).
   // 정본 셀 드롭다운은 400 이고 hover 는 `.uc-dd-btn:hover{border-color:#C9D0D8}` 뿐이다.
-  const triggerLook = isCell || isForm
-    ? "font-normal hover:border-[#C9D0D8]"
-    : "font-bold hover:border-blue hover:shadow-[0_0_0_3px_var(--color-blue-t)]";
+  const triggerLook = isModal
+    ? "font-bold"
+    : isCell || isForm
+      ? "font-normal hover:border-[#C9D0D8]"
+      : "font-bold hover:border-blue hover:shadow-[0_0_0_3px_var(--color-blue-t)]";
 
   useEffect(() => {
     if (!open) return;
@@ -182,7 +189,7 @@ export function CustomDropdown({
         ref={triggerRef}
         id={id}
         type="button"
-        className={`uc-dd-btn inline-flex ${triggerSize} items-center gap-[7px] border ${open ? "border-blue" : "border-line"} bg-surface py-0 ${triggerLook} tracking-[-0.01em] text-t1 outline-none transition-[border-color,box-shadow] duration-[120ms] disabled:cursor-default disabled:opacity-[.55] disabled:shadow-none ${open ? "shadow-[0_0_0_3px_var(--color-blue-t)]" : ""}`}
+        className={`uc-dd-btn inline-flex ${triggerSize} items-center ${isModal ? "" : "gap-[7px] tracking-[-0.01em]"} border ${open ? "border-blue" : "border-line"} bg-surface py-0 ${triggerLook} text-t1 outline-none transition-[border-color,box-shadow] duration-[120ms] disabled:cursor-default disabled:opacity-[.55] disabled:shadow-none ${open && !isModal ? "shadow-[0_0_0_3px_var(--color-blue-t)]" : ""}`}
         aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -191,7 +198,7 @@ export function CustomDropdown({
         onClick={() => setOpen((current) => !current)}
       >
         <span
-          className={`uc-dd-lbl${isCell || isForm ? " min-w-0 truncate" : ""}${isForm && selected === undefined && placeholder !== undefined ? " font-medium text-t4" : ""}`}
+          className={`uc-dd-lbl${isCell || isForm || isModal ? " min-w-0 truncate" : ""}${(isForm || isModal) && selected === undefined && placeholder !== undefined ? " font-medium text-t4" : ""}`}
         >
           {triggerLabel ?? selected?.label ?? placeholder}
         </span>
@@ -203,11 +210,11 @@ export function CustomDropdown({
           id={menuId}
           role="listbox"
           aria-label={ariaLabel}
-          className={`uc-dd-menu ${isForm ? "max-h-[230px] p-[5px]" : "max-h-[236px] p-[6px]"} overflow-auto rounded-xl border border-line bg-surface shadow-[0_14px_32px_-10px_rgba(23,31,40,0.22),0_2px_6px_rgba(23,31,40,0.06)] ${
+          className={`uc-dd-menu ${isForm ? "max-h-[230px] p-[5px]" : isModal ? "max-h-[240px] p-[6px]" : "max-h-[236px] p-[6px]"} overflow-auto rounded-xl border border-line bg-surface ${isModal ? "shadow-[0_14px_34px_-10px_rgba(23,31,40,0.28)]" : "shadow-[0_14px_32px_-10px_rgba(23,31,40,0.22),0_2px_6px_rgba(23,31,40,0.06)]"} ${
             isFixed
               // field 는 메뉴 폭을 트리거에 맞추는 규격이라 140px 하한을 걸지 않는다.
               ? `fixed z-[1000] ${isField || menuAlign === "end" || menuMinWidth !== undefined ? "" : "min-w-[140px]"}`
-              : `absolute top-[calc(100%_+_6px)] z-[80] ${isField ? "inset-x-0" : `right-0 ${menuMinWidth !== undefined ? "" : "min-w-[96px]"}`}`
+              : `absolute ${isModal ? "top-[calc(100%_+_5px)]" : "top-[calc(100%_+_6px)]"} z-[80] ${isField ? "inset-x-0" : `right-0 ${menuMinWidth !== undefined ? "" : "min-w-[96px]"}`}`
           }${menuClassName ? ` ${menuClassName}` : ""}`}
           style={menuMinWidth !== undefined ? { minWidth: menuMinWidth } : undefined}
         >
@@ -221,7 +228,7 @@ export function CustomDropdown({
                 aria-selected={isSelected}
                 // 정본 `.ac-opt` 에는 line-height 선언이 없어 `normal`(≈1.2)이다.
                 // 명시하지 않으면 Tailwind 기본 1.5가 걸려 옵션이 항목당 ~4px 부푼다.
-                className={`uc-opt ${isSelected ? "on" : ""} flex w-full items-center ${isField ? "justify-start" : "justify-between"} gap-2 rounded-lg px-[10px] py-2 text-[13px] leading-[normal] whitespace-nowrap transition-[background] duration-100 ${isSelected ? "bg-blue-t font-bold text-blue-d" : "font-semibold text-t2 hover:bg-bg"}`}
+                className={`uc-opt ${isSelected ? "on" : ""} flex w-full items-center ${isField ? "justify-start" : "justify-between"} gap-2 rounded-lg ${isModal ? "px-[11px] py-[9px]" : "px-[10px] py-2"} text-[13px] leading-[normal] whitespace-nowrap transition-[background] duration-100 ${isSelected ? `bg-blue-t font-bold ${isModal ? "text-blue" : "text-blue-d"}` : "font-semibold text-t2 hover:bg-bg"}`}
                 onClick={() => {
                   onChange(option.value);
                   setOpen(false);
