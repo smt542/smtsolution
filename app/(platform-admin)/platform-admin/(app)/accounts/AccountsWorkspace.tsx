@@ -1,229 +1,87 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Badge, Button, Checkbox, CustomDropdown, EmptyState, Modal, Spinner } from "@/components/common";
-import { MaskedPhone } from "@/components/common/MaskedPhone";
-import { useConfirm } from "@/components/common/ConfirmProvider";
-import type { PlatformAccountCreateValues } from "@/components/forms/schema/platformAccount";
+import { Badge, Button, EmptyState, Spinner } from "@/components/common";
+import { useDebouncedValue, SEARCH_DEBOUNCE_MS } from "@/hooks/common";
 import {
-  useCreatePlatformAccount,
-  listPlatformAccounts,
-  platformKeys,
-  usePlatformResetPassword,
-  usePlatformSetActive,
-  usePlatformUpdateAccount,
-  usePlatformUpdateRole,
-  type PlatformAccount,
-  type PlatformAccountQuery,
+  usePlatformHqAccounts,
+  type PlatformHqAccount,
+  type PlatformHqAccountQuery,
 } from "@/hooks/reactquery/platform";
-import type { OrgMemberRole, StaffType } from "@/hooks/reactquery/auth";
-import { SEARCH_DEBOUNCE_MS, useDebouncedValue } from "@/hooks/common";
-import { MODULE_KEYS, MODULE_LABELS } from "@/lib/auth/permissions";
-import { formatNumber } from "@/lib/format";
-import {
-  PlatformPagination,
-  QueryError,
-} from "../../../_components/PageElements";
+import { formatDate, formatNumber } from "@/lib/format";
+import { PlatformPagination, QueryError } from "../../../_components/PageElements";
 import { PlatformPageContainer } from "../../../_components/PlatformPageContainer";
 import { PlatformTopBarActions } from "../../../_components/PlatformShell";
-import { TableFrame } from "../../../_components/TableFrame";
-import { ModalActions } from "../../../_components/ModalActions";
-import { InlineAlert } from "../../../_components/InlineAlert";
-import {
-  ADMIN_DROPDOWN_MENU_CLASS,
-  ADMIN_FORM_DROPDOWN_CLASS,
-} from "../../../_components/adminDropdownClasses";
-import type { AccountEditValues } from "./components/AccountEditModal";
-import { AccountRowActions } from "./components/AccountRowActions";
+import { HqAccountModal } from "./components/HqAccountModal";
+import { HQ_ROLE_LABELS } from "./hqRoles";
 
-const AccountCreateModal = dynamic(() =>
-  import("./components/AccountCreateModal").then((module) => module.AccountCreateModal),
-);
-const AccountEditModal = dynamic(() =>
-  import("./components/AccountEditModal").then((module) => module.AccountEditModal),
-);
+const PAGE_SIZE = 10;
 
-const ROLE_LABELS: Record<PlatformAccount["role"], string> = {
-  platform_admin: "플랫폼 관리자",
-  org_owner: "조직 소유자",
-  manager: "관리자",
-  staff: "직원",
-  field: "현장 직원",
-  tenant: "입주자",
-};
+type ModalState =
+  | { mode: "create"; account?: undefined }
+  | { mode: "edit"; account: PlatformHqAccount };
 
-type EditableRole = "org_owner" | "manager" | "staff" | "platform_admin";
+function AccountStatus({ active }: { active: boolean }) {
+  return (
+    <Badge
+      tone={active ? "green" : "gray"}
+      className="inline-flex px-[9px] py-[3px] leading-[1.4]"
+    >
+      {active ? "활성" : "정지"}
+    </Badge>
+  );
+}
 
-const ROLE_OPTIONS: Array<{ value: EditableRole; label: string }> = [
-  { value: "org_owner", label: "조직 소유자" },
-  { value: "manager", label: "관리자" },
-  { value: "staff", label: "직원" },
-  { value: "platform_admin", label: "플랫폼 관리자(주의)" },
-];
-
-const STAFF_TYPE_OPTIONS: Array<{ value: StaffType; label: string }> = [
-  { value: "manager_staff", label: "직원(내근)" },
-  { value: "field_staff", label: "현장 직원" },
-  { value: "support_staff", label: "지원 직원" },
-  { value: "tenant", label: "입주자" },
-];
-
-const dateFormatter = new Intl.DateTimeFormat("ko-KR", {
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
-const PAGE_SIZE = 25;
+function Cell({ value, className = "" }: { value: string; className?: string }) {
+  return (
+    <td
+      title={value}
+      className={`overflow-hidden text-ellipsis whitespace-nowrap border-b border-line2 px-4 py-3 text-t1 ${className}`}
+    >
+      {value}
+    </td>
+  );
+}
 
 export function AccountsWorkspace() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<PlatformAccount | null>(null);
-  const [roleTarget, setRoleTarget] = useState<PlatformAccount | null>(null);
-  const [passwordNotice, setPasswordNotice] = useState<{
-    username: string;
-    tempPassword: string;
-  } | null>(null);
-
+  const [modal, setModal] = useState<ModalState | null>(null);
   const debouncedSearch = useDebouncedValue(search.trim(), SEARCH_DEBOUNCE_MS);
-  const query = useMemo<PlatformAccountQuery>(() => ({
+  const query = useMemo<PlatformHqAccountQuery>(() => ({
     search: debouncedSearch,
     page,
     pageSize: PAGE_SIZE,
   }), [debouncedSearch, page]);
-  const { data, isPending, isError, isFetching, refetch } = useQuery({
-    queryKey: platformKeys.accounts(query),
-    queryFn: () => listPlatformAccounts(query),
-    placeholderData: keepPreviousData,
-  });
+  const { data, isPending, isError, isFetching, refetch } = usePlatformHqAccounts(query);
   const accounts = data?.rows ?? [];
-  const createAccount = useCreatePlatformAccount();
-  const updateAccount = usePlatformUpdateAccount();
-  const updateRole = usePlatformUpdateRole();
-  const setActive = usePlatformSetActive();
-  const resetPassword = usePlatformResetPassword();
-  const isAccountActionPending = updateAccount.isPending
-    || updateRole.isPending
-    || setActive.isPending
-    || resetPassword.isPending;
-  const isAccountListRefreshing = isFetching && !isPending;
+  const total = data?.totalCount ?? 0;
 
-  const handleCreate = async (values: PlatformAccountCreateValues) => {
-    try {
-      const result = await createAccount.mutateAsync({
-        orgId: values.orgId,
-        username: values.username,
-        password: values.password ?? "",
-        fullName: values.fullName,
-        phone: values.phone || null,
-        role: values.role,
-        staffType: values.staffType,
-      });
-      if (result.tempPassword) {
-        setPasswordNotice({ username: values.username, tempPassword: result.tempPassword });
-      }
-      toast.success("계정을 발급했습니다.");
-    } catch (error) {
-      toast.error(error, "계정 발급에 실패했습니다.");
-      throw error;
-    }
-  };
-
-  const handleRoleChange = async (values: {
-    role: OrgMemberRole;
-    staffType: StaffType;
-    permissions: string[];
-  }) => {
-    if (!roleTarget) return;
-    try {
-      await updateRole.mutateAsync({
-        orgId: roleTarget.orgId,
-        userId: roleTarget.userId,
-        ...values,
-      });
-      setRoleTarget(null);
-      toast.success("계정 권한을 변경했습니다.");
-    } catch (error) {
-      toast.error(error, "권한 변경에 실패했습니다.");
-      throw error;
-    }
-  };
-
-  const handleAccountUpdate = async (values: AccountEditValues) => {
-    if (!editTarget) return;
-    try {
-      await updateAccount.mutateAsync({
-        orgId: editTarget.orgId,
-        userId: editTarget.userId,
-        ...values,
-      });
-      toast.success("계정 정보를 저장했습니다.");
-    } catch (error) {
-      toast.error(error, "계정 정보 저장에 실패했습니다.");
-      throw error;
-    }
-  };
-
-  const handleToggleActive = async (account: PlatformAccount) => {
-    try {
-      await setActive.mutateAsync({
-        orgId: account.orgId,
-        userId: account.userId,
-        active: !account.isActive,
-      });
-      toast.success(account.isActive ? "계정을 비활성화했습니다." : "계정을 활성화했습니다.");
-    } catch (error) {
-      toast.error(error, "계정 상태 변경에 실패했습니다.");
-    }
-  };
-
-  const handleResetPassword = async (account: PlatformAccount) => {
-    const password = window.prompt("새 임시 비밀번호를 입력해 주세요. (4자 이상)");
-    if (password === null) return;
-    if (password.length < 4) {
-      toast.error("비밀번호는 4자 이상 입력해 주세요.");
-      return;
-    }
-    try {
-      await resetPassword.mutateAsync({ userId: account.userId, password });
-      setPasswordNotice({
-        username: account.username ?? account.userId,
-        tempPassword: password,
-      });
-      toast.success("비밀번호를 초기화했습니다.");
-    } catch (error) {
-      toast.error(error, "비밀번호 초기화에 실패했습니다.");
-    }
-  };
+  // 삭제로 마지막 쪽이 비면 첫 쪽으로 돌아간다(정본 drawAc: 쪽 수보다 크면 당긴다). 범위 밖 쪽은 행·전체 건수가 0으로 온다.
+  if (page > 1 && data && !isFetching && accounts.length === 0) setPage(1);
 
   return (
-    <PlatformPageContainer>
+    <PlatformPageContainer
+      maxWidthClassName="max-w-none"
+      paddingClassName="flex h-[calc(100dvh-62px)] flex-col gap-4 overflow-auto px-5 pb-[22px] pt-[22px] sm:px-6 sm:pb-[30px]"
+    >
       <PlatformTopBarActions>
         <Button
           variant="primary"
           type="button"
-          onClick={() => setCreateOpen(true)}
-          className="shrink-0 transition-colors"
+          onClick={() => setModal({ mode: "create" })}
+          className="shrink-0 cursor-pointer border border-transparent transition-colors"
         >
-          + 계정 발급
+          ＋ 본사 계정 추가
         </Button>
       </PlatformTopBarActions>
 
-      <section className="overflow-hidden rounded-2xl bg-surface shadow-card">
-        <div className="flex items-center gap-2.5 border-b border-line2 px-[18px] py-[15px]">
-          <h3 className="text-[15px] font-extrabold text-t1">소속 계정 목록</h3>
-          <span className="text-xs font-semibold text-t3">
-            총 {formatNumber(data?.totalCount ?? 0)}개
-          </span>
-          {isAccountListRefreshing ? (
-            <Spinner label="소속 계정 목록 갱신 중" size="small" showLabel className="px-2 py-1" />
-          ) : null}
+      <section className="flex min-h-[280px] flex-1 flex-col overflow-hidden rounded-2xl bg-surface shadow-card">
+        <div className="flex flex-none items-center gap-2.5 border-b border-line2 px-[18px] py-[15px]">
+          <h3 className="text-[15px] font-extrabold leading-[normal] text-t1">본사 계정</h3>
+          <span className="text-xs font-semibold leading-[normal] text-t3">{formatNumber(total)}개</span>
           <div className="flex-1" />
-          <label className="flex h-8 min-w-60 items-center gap-[7px] rounded-[10px] border border-transparent bg-bg px-[11px] focus-within:border-blue focus-within:bg-surface focus-within:ring-[3px] focus-within:ring-[rgba(20,164,151,0.13)]">
+          <label className="flex h-8 items-center gap-[7px] rounded-[10px] border border-transparent bg-bg px-[11px] transition-[background,border,box-shadow] duration-[120ms] focus-within:border-blue focus-within:bg-surface focus-within:ring-[3px] focus-within:ring-[rgba(20,164,151,0.13)]">
             <svg
               viewBox="0 0 24 24"
               fill="none"
@@ -234,336 +92,132 @@ export function AccountsWorkspace() {
               className="h-3.5 w-3.5 shrink-0 text-t4"
               aria-hidden="true"
             >
-              <circle cx="11" cy="11" r="6.5" />
-              <path d="m16 16 4 4" />
+              <circle cx="11" cy="11" r="7" />
+              <path d="M20 20l-3.5-3.5" />
             </svg>
             <input
-              type="search"
+              type="text"
               value={search}
               onChange={(event) => {
-                setSearch(event.target.value);
+                setSearch(event.currentTarget.value);
                 setPage(1);
               }}
-              placeholder="조직·이름·아이디 검색"
-              className="w-full bg-transparent text-[13px] font-semibold text-t1 outline-none placeholder:font-medium placeholder:text-t4"
+              placeholder="이름 · 아이디 검색"
+              className="w-[170px] bg-transparent px-[2px] py-px text-[13px] font-semibold leading-[normal] text-t1 outline-none placeholder:font-medium placeholder:text-t4"
             />
           </label>
         </div>
 
-        {isPending ? (
-          <div className="py-16">
-            <Spinner label="소속 계정 목록 불러오는 중" />
-          </div>
-        ) : isError ? (
-          <div className="p-4">
-            <QueryError onRetry={() => void refetch()} />
-          </div>
-        ) : accounts.length === 0 ? (
-          <EmptyState message={search ? "검색 결과가 없습니다" : "조회 가능한 계정이 없습니다"} />
-        ) : (
-          <TableFrame minWidthClassName="min-w-[1420px]">
+        <div className="min-h-0 flex-1 overflow-auto">
+          <table className="w-full table-fixed border-collapse leading-[normal]">
+            <colgroup>
+              <col className="w-[10.135%]" />
+              <col className="w-[10.135%]" />
+              <col className="w-[14.532%]" />
+              <col className="w-[20.402%]" />
+              <col className="w-[18.181%]" />
+              <col className="w-[10.7%]" />
+              <col className="w-[15.915%]" />
+            </colgroup>
             <thead>
-              <tr className="text-left">
-                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-xs font-bold text-t3">계정</th>
-                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-xs font-bold text-t3">조직</th>
-                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-xs font-bold text-t3">전화번호</th>
-                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-xs font-bold text-t3">메모</th>
-                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-xs font-bold text-t3">권한</th>
-                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-xs font-bold text-t3">상태</th>
-                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-xs font-bold text-t3">소속일</th>
-                <th className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-right text-xs font-bold text-t3">관리</th>
+              <tr>
+                {[
+                  "이름",
+                  "역할",
+                  "아이디",
+                  "전화번호",
+                  "메모",
+                  "상태",
+                  "생성일",
+                ].map((label) => (
+                  <th key={label} className="whitespace-nowrap border-b border-line bg-[#FBFCFD] px-4 py-[11px] text-left text-[12px] font-bold text-t3">
+                    {label}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody>
-              {accounts.map((account) => (
-                <tr
-                  key={`${account.orgId}:${account.userId}`}
-                  className="cursor-pointer hover:bg-[#FBFCFD] [&:last-child>td]:border-b-0"
-                >
-                  <td className="border-b border-line2 px-4 py-3 text-[13.5px]">
-                    <div className="font-extrabold text-t1">{account.fullName ?? "프로필 없음"}</div>
-                    <div className="mt-1 text-xs text-t3">{account.username ?? account.userId}</div>
-                  </td>
-                  <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] font-semibold text-t2">{account.organizationName}</td>
-                  <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] text-t2 num">
-                    {account.phone ? (
-                      <MaskedPhone
-                        value={account.phone}
-                        kind="phone"
-                        alreadyMasked
-                        reveal={{ targetKind: "profile", targetId: account.userId, field: "phone" }}
-                      />
-                    ) : "-"}
-                  </td>
-                  <td className="max-w-64 border-b border-line2 px-4 py-3 text-[12.5px] text-t2">
-                    <span className="line-clamp-2">{account.memo ?? "-"}</span>
-                  </td>
-                  <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] text-t2">{ROLE_LABELS[account.role]}</td>
-                  <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px]">
-                    <AccountStatus active={account.isActive} />
-                  </td>
-                  <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] text-t2 num">
-                    {dateFormatter.format(new Date(account.createdAt))}
-                  </td>
-                  <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-right text-[13.5px]">
-                    <AccountRowActions
-                      account={account}
-                      onEditDetails={() => setEditTarget(account)}
-                      onChangeRole={() => setRoleTarget(account)}
-                      onToggleActive={() => void handleToggleActive(account)}
-                      onResetPassword={() => void handleResetPassword(account)}
-                      isPending={isAccountActionPending}
-                      pendingAction={
-                        setActive.isPending && setActive.variables?.userId === account.userId
-                          ? "toggle"
-                          : resetPassword.isPending && resetPassword.variables?.userId === account.userId
-                            ? "reset"
-                            : undefined
-                      }
-                    />
+            {isPending ? (
+              <tbody>
+                <tr>
+                  <td colSpan={7} className="border-b-0 p-0">
+                    <div className="py-16">
+                      <Spinner label="본사 계정 목록 불러오는 중" />
+                    </div>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </TableFrame>
-        )}
-        <PlatformPagination
-          page={page}
-          pageSize={PAGE_SIZE}
-          totalCount={data?.totalCount ?? 0}
-          onPageChange={setPage}
-          numeric
-          compact
-          totalLabel={`전체 ${formatNumber(data?.totalCount ?? 0)}개 · ${formatNumber(page)}/${formatNumber(Math.max(1, Math.ceil((data?.totalCount ?? 0) / PAGE_SIZE)))}`}
-        />
+              </tbody>
+            ) : isError ? (
+              <tbody>
+                <tr>
+                  <td colSpan={7} className="border-b-0 p-4">
+                    <QueryError onRetry={() => void refetch()} />
+                  </td>
+                </tr>
+              </tbody>
+            ) : accounts.length === 0 ? (
+              <tbody>
+                <tr>
+                  <td colSpan={7} className="border-b-0 p-0">
+                    <EmptyState message={search.trim() ? "검색 결과가 없습니다" : "등록된 본사 계정이 없습니다"} />
+                  </td>
+                </tr>
+              </tbody>
+            ) : (
+              <tbody className="[&>tr:last-child>td]:border-b-0">
+                {accounts.map((account) => {
+                  const name = account.fullName;
+                  const role = account.hqRole ? HQ_ROLE_LABELS[account.hqRole] : "-";
+                  const phone = account.phone || "-";
+                  const memo = account.memo || "—";
+                  const createdAt = formatDate(account.createdAt);
+                  return (
+                    <tr
+                      key={account.userId}
+                      tabIndex={0}
+                      className="cursor-pointer hover:bg-row-hover"
+                      onClick={() => setModal({ mode: "edit", account })}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") setModal({ mode: "edit", account });
+                      }}
+                    >
+                      <Cell value={name} className="text-[13.5px] font-bold" />
+                      <Cell value={role} className="text-[13.5px] font-normal" />
+                      <Cell value={account.username} className="text-[13.5px] font-normal" />
+                      <Cell value={phone} className="num text-[13.5px] font-normal" />
+                      <Cell value={memo} className="text-[12.5px] font-normal" />
+                      <td title={account.isActive ? "활성" : "정지"} className="overflow-hidden text-ellipsis whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] font-normal text-t1">
+                        <AccountStatus active={account.isActive} />
+                      </td>
+                      <Cell value={createdAt} className="num text-[13.5px] font-normal" />
+                    </tr>
+                  );
+                })}
+              </tbody>
+            )}
+          </table>
+        </div>
+
+        <div className="flex-none">
+          <PlatformPagination
+            page={page}
+            pageSize={PAGE_SIZE}
+            totalCount={total}
+            onPageChange={setPage}
+            numeric
+            compact
+            alwaysShow
+          />
+        </div>
       </section>
 
-      {createOpen && (
-        <AccountCreateModal
-          open
-          onClose={() => setCreateOpen(false)}
-          onSubmit={handleCreate}
-          isPending={createAccount.isPending}
+      {modal ? (
+        <HqAccountModal
+          key={modal.mode === "edit" ? modal.account.userId : "create"}
+          mode={modal.mode}
+          account={modal.mode === "edit" ? modal.account : undefined}
+          onClose={() => setModal(null)}
         />
-      )}
-
-      {editTarget && (
-        <AccountEditModal
-          key={`${editTarget.orgId}:${editTarget.userId}`}
-          account={editTarget}
-          onClose={() => setEditTarget(null)}
-          onSubmit={handleAccountUpdate}
-          isPending={updateAccount.isPending}
-        />
-      )}
-
-      {roleTarget && (
-        <RoleChangeModal
-          key={`${roleTarget.orgId}:${roleTarget.userId}`}
-          account={roleTarget}
-          onClose={() => setRoleTarget(null)}
-          onSubmit={handleRoleChange}
-          isPending={updateRole.isPending}
-        />
-      )}
-
-      {passwordNotice && (
-        <Modal
-          open
-          onClose={() => setPasswordNotice(null)}
-          title="계정 임시 비밀번호"
-          className="max-w-[480px] rounded-[20px] [&>h2]:text-[17px] [&>h2]:font-extrabold [&>h2]:tracking-[-0.02em]"
-        >
-          <div className="flex flex-col gap-3 text-sm">
-            <p className="text-t2">
-              아래 계정 정보를 사용자에게 <b>안전하게 전달</b>하세요. 이 창을 닫으면 다시 볼 수
-              없습니다.
-            </p>
-            <div className="rounded-[10px] border border-line bg-bg/50 p-3 font-mono">
-              <div>
-                아이디: <b>{passwordNotice.username}</b>
-              </div>
-              <div>
-                임시 비밀번호: <b>{passwordNotice.tempPassword}</b>
-              </div>
-            </div>
-            <div className="flex justify-end pt-1">
-              <Button
-                variant="primary"
-                type="button"
-                onClick={() => {
-                  void navigator.clipboard?.writeText(
-                    `아이디: ${passwordNotice.username} / 임시비밀번호: ${passwordNotice.tempPassword}`,
-                  );
-                  toast.success("복사했습니다.");
-                }}
-              >
-                복사
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
+      ) : null}
     </PlatformPageContainer>
-  );
-}
-
-function AccountStatus({ active }: { active: boolean | null }) {
-  if (active === null) {
-    return (
-      <Badge tone="gray" className="inline-flex px-[9px] py-[3px] leading-[1.4]">확인 불가</Badge>
-    );
-  }
-  return (
-    <Badge
-      tone={active ? "green" : "gray"}
-      className="inline-flex px-[9px] py-[3px] leading-[1.4]"
-    >
-      {active ? "활성" : "비활성"}
-    </Badge>
-  );
-}
-
-function RoleChangeModal({
-  account,
-  onClose,
-  onSubmit,
-  isPending,
-}: {
-  account: PlatformAccount;
-  onClose: () => void;
-  onSubmit: (values: {
-    role: OrgMemberRole;
-    staffType: StaffType;
-    permissions: string[];
-  }) => Promise<void>;
-  isPending: boolean;
-}) {
-  const confirm = useConfirm();
-  const [role, setRole] = useState<EditableRole>(
-    account.role === "field" || account.role === "tenant" ? "staff" : account.role,
-  );
-  const [staffType, setStaffType] = useState<StaffType>(account.staffType);
-  const [permissions, setPermissions] = useState<string[]>(account.permissions);
-
-  const handleSubmit = async () => {
-    if (role === "platform_admin" && account.role !== "platform_admin") {
-      const ok = await confirm({
-        title: "플랫폼 관리자 권한 부여",
-        description: "이 계정에 모든 조직을 관리할 수 있는 플랫폼 관리자 권한을 부여할까요? 매우 높은 권한입니다.",
-        confirmLabel: "권한 부여",
-      });
-      if (!ok) return;
-    }
-    if (account.role === "platform_admin" && role !== "platform_admin") {
-      const ok = await confirm({
-        title: "플랫폼 관리자 권한 해제",
-        description: "플랫폼 관리자 권한을 해제하고 일반 조직 역할로 강등할까요?",
-        confirmLabel: "권한 해제",
-      });
-      if (!ok) return;
-    }
-    await onSubmit({ role, staffType, permissions });
-  };
-
-  return (
-    <Modal
-      open
-      onClose={onClose}
-      title="계정 권한 변경"
-      className="max-w-[480px] rounded-[20px] [&>h2]:text-[17px] [&>h2]:font-extrabold [&>h2]:tracking-[-0.02em]"
-    >
-      <div className="flex flex-col gap-4">
-        <p className="text-sm text-t2">
-          <b>{account.fullName ?? account.username ?? account.userId}</b> · {account.organizationName}
-        </p>
-
-        {account.role === "platform_admin" && (
-          <InlineAlert tone="danger">
-            현재 플랫폼 관리자입니다. 다른 역할을 저장하면 플랫폼 관리자 권한이 해제됩니다.
-          </InlineAlert>
-        )}
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label htmlFor="platform-role" className="mb-1.5 block text-[12.5px] font-bold text-t2">
-              역할
-            </label>
-            <div className={ADMIN_FORM_DROPDOWN_CLASS}>
-              <CustomDropdown
-                chevron="rotate"
-                chevronMs={180}
-                id="platform-role"
-                ariaLabel="역할"
-                value={role}
-                onChange={(value) => setRole(value as EditableRole)}
-                options={ROLE_OPTIONS}
-                position="fixed"
-                menuMinWidth={0}
-                menuClassName={ADMIN_DROPDOWN_MENU_CLASS}
-              />
-            </div>
-          </div>
-          <div>
-            <label htmlFor="platform-staff-type" className="mb-1.5 block text-[12.5px] font-bold text-t2">
-              직원 유형
-            </label>
-            <div className={ADMIN_FORM_DROPDOWN_CLASS}>
-              <CustomDropdown
-                chevron="rotate"
-                chevronMs={180}
-                id="platform-staff-type"
-                ariaLabel="직원 유형"
-                value={staffType}
-                onChange={(value) => setStaffType(value as StaffType)}
-                options={STAFF_TYPE_OPTIONS}
-                position="fixed"
-                menuMinWidth={0}
-                menuClassName={ADMIN_DROPDOWN_MENU_CLASS}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <p className="mb-2 text-[12.5px] font-bold text-t2">기능별 권한</p>
-          <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
-            {MODULE_KEYS.map((permission) => (
-              <Checkbox
-                key={permission}
-                label={MODULE_LABELS[permission]}
-                checked={permissions.includes(permission)}
-                onChange={() =>
-                  setPermissions((current) =>
-                    current.includes(permission)
-                      ? current.filter((item) => item !== permission)
-                      : [...current, permission],
-                  )
-                }
-              />
-            ))}
-          </div>
-        </div>
-
-        <ModalActions>
-          <Button
-            variant="ghost"
-            type="button"
-            onClick={onClose}
-          >
-            취소
-          </Button>
-          <Button
-            variant="primary"
-            type="button"
-            disabled={isPending}
-            onClick={() => void handleSubmit()}
-            className="disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            {isPending ? "저장 중…" : "권한 저장"}
-          </Button>
-        </ModalActions>
-      </div>
-    </Modal>
   );
 }

@@ -18,6 +18,9 @@ const SIZES = {
   "36": "h-[36px] rounded-[11px] px-[12px] text-[14px] font-bold",
   "38": "h-[38px] rounded-[11px] px-[12px] text-[14px] font-bold",
   "40": "h-[40px] rounded-[11px] px-[12px] text-[14px] font-bold",
+  // 정본 통합관리자 모달 입력칸 `.hf-in2`(계정·권한): 42/r10/px13/13.5/600. placeholder 규칙이 없어 Chrome 기본 #757575(굵기는 칸 글자 600),
+  // 포커스 청록 테두리+3px 링. 오류 표시는 호출부가 `border-red!`(정본 `.bad{border-color:red!important}`)로 준다.
+  "42": "h-[42px] rounded-[10px] px-[13px] text-[13.5px] font-semibold leading-[normal] placeholder:text-[#757575] focus:ring-[3px] focus:ring-[rgba(20,164,151,0.14)]",
   legacy: "h-11 rounded-xl px-4 text-sm",
 } as const;
 
@@ -48,7 +51,9 @@ function dropOverridden(defaults: string, className: string): string {
 }
 
 export function inputClassName(size: InputSize = "legacy", className = ""): string {
-  const defaults = `${SIZES[size]} w-full border border-line bg-surface text-t1 placeholder:text-t4 focus:border-brand focus:outline-none disabled:opacity-70`;
+  // size가 placeholder 색을 정하면(정본 `.hf-in2`) 기본 t4를 넣지 않는다 — 둘이 남으면 CSS 순서가 이긴다.
+  const placeholderDefault = SIZES[size].includes("placeholder:text-") ? "" : " placeholder:text-t4";
+  const defaults = `${SIZES[size]} w-full border border-line bg-surface text-t1${placeholderDefault} focus:border-brand focus:outline-none disabled:opacity-70`;
   return `${dropOverridden(defaults, className)} ${className}`;
 }
 
