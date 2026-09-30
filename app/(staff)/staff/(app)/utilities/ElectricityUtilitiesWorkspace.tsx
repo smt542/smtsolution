@@ -15,7 +15,7 @@ import {
   useSaveUtilityUnitPrices,
   useUtilityPrices,
   useUtilityRows,
-  type FixedValueRow,
+  type FixedValueEntry,
   type UtilityType,
   type UtilityUnitRow,
 } from "@/hooks/reactquery/utilities";
@@ -40,13 +40,22 @@ import {
 } from "./components/ElectricityReadingsTable";
 import { MeterLedgerModal } from "./components/MeterLedgerModal";
 import { UtilityWorkspaceHeader } from "./components/UtilityWorkspaceHeader";
-import { fixedChangeFor, initialLockDraft, parseDraftNumber } from "./components/UtilityLock";
+import {
+  fixedChangesFor,
+  groupFixedValues,
+  initialLockDraft,
+  parseDraftNumber,
+  usageEditedForRow,
+} from "./components/UtilityLock";
 
 const INITIAL_PERIOD = "2026-07-01";
 
-function draftFor(row: UtilityUnitRow, fixed: FixedValueRow | undefined, period: string): ElectricityDraft {
+function draftFor(row: UtilityUnitRow, fixed: FixedValueEntry[] | undefined, period: string): ElectricityDraft {
   return {
+    previousReading: row.previousReading === null ? "" : String(row.previousReading),
     currentReading: row.currentReading === null ? "" : String(row.currentReading),
+    usage: row.usage === null ? "" : String(row.usage),
+    usageEdited: usageEditedForRow(row.previousReading, row.currentReading, row.usage),
     note: row.note ?? "",
     ...initialLockDraft(fixed, period, row.manualCharge),
   };
@@ -81,7 +90,7 @@ export default function ElectricityUtilitiesWorkspace() {
   const buildings = useMemo(() => buildingsQuery.data ?? [], [buildingsQuery.data]);
   const rows = useMemo(() => rowsQuery.data ?? [], [rowsQuery.data]);
   const fixedByUnit = useMemo(
-    () => new Map((fixedValuesQuery.data ?? []).map((row) => [row.unitId, row])),
+    () => groupFixedValues(fixedValuesQuery.data ?? []),
     [fixedValuesQuery.data],
   );
   const selectedBuilding = useMemo(
@@ -271,24 +280,30 @@ export default function ElectricityUtilitiesWorkspace() {
       return;
     }
 
-    // 고정한 호실은 지침이 비어도 저장해야 이 달 부과에 고정값이 들어간다(량=서버가 fixed_usage 로 계산).
+    // 고정한 호실은 지침이 비어도 저장해야 이 달 부과에 고정값이 들어간다.
     const meterRows = rows
       .map((row) => ({ row, draft: scopedDrafts[row.unitId] }))
-      .filter(({ draft }) => draft.usageLocked
+      .filter(({ row, draft }) => draft.usageLocked
         || draft.manualLocked
+        || draft.previousReading.trim() !== (row.previousReading === null ? "" : String(row.previousReading))
         || draft.currentReading.trim() !== ""
+        || draft.usageEdited
         || draft.manualCharge.trim() !== ""
         || draft.note.trim() !== "")
       .map(({ row, draft }) => ({
         unit_id: row.unitId,
+        ...(draft.previousReading.trim() === "" ? {} : { previous_reading: draft.previousReading.trim() }),
         current_reading: draft.currentReading.trim(),
+        ...(draft.usageLocked || !draft.usageEdited || draft.usage.trim() === "" ? {} : { usage: draft.usage.trim() }),
         manual_charge: draft.manualCharge.trim(),
         note: draft.note.trim(),
       }));
-    const fixedChanges = rows.flatMap((row) => {
-      const change = fixedChangeFor(row.unitId, scopedDrafts[row.unitId], fixedByUnit.get(row.unitId), period);
-      return change ? [change] : [];
-    });
+    const fixedChanges = rows.flatMap((row) => fixedChangesFor(
+      row.unitId,
+      scopedDrafts[row.unitId],
+      fixedByUnit.get(row.unitId),
+      period,
+    ));
     const prices = (pricesQuery.data ?? [])
       .map((price) => ({
         customer_number_id: price.customerNumberId,
@@ -299,7 +314,7 @@ export default function ElectricityUtilitiesWorkspace() {
     try {
       // 고정값을 먼저 써야 save_meter_readings 가 바뀐 고정 사용량으로 량을 계산한다.
       if (fixedChanges.length > 0) {
-        await saveFixedValues.mutateAsync({ buildingId, utilityType, rows: fixedChanges });
+        await saveFixedValues.mutateAsync({ buildingId, utilityType, period, changes: fixedChanges });
       }
       await Promise.all([
         saveBillingPeriod.mutateAsync({
