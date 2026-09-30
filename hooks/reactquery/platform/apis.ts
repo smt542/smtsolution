@@ -450,7 +450,8 @@ export async function updateOrganizationStatus(
 
 export interface CreateOrgInput {
   name: string;
-  slug: string;
+  /** 비우면 서버가 만든다(정본 생성 모달엔 회사코드 칸이 없다). */
+  slug?: string;
   phone: string;
   contractStartDate: string;
   contractEndDate: string;
@@ -482,7 +483,8 @@ export async function createPlatformOrganization(input: CreateOrgInput): Promise
   return json as CreateOrgResult;
 }
 
-export type UpdateOrgInput = Omit<CreateOrgInput, "owner">;
+// 수정은 기존 회사코드를 그대로 넘긴다(RPC가 빈 값이면 NULL로 지운다).
+export type UpdateOrgInput = Omit<CreateOrgInput, "owner" | "slug"> & { slug: string };
 
 export async function updatePlatformOrganization(id: number, input: UpdateOrgInput): Promise<void> {
   const { error } = await createClient().rpc("platform_update_organization_contract", {

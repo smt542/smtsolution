@@ -28,6 +28,7 @@ import { setSubmissionError } from "@/components/forms/formErrors";
 import {
   orgCreateSchema,
   orgEditSchema,
+  regionFromAddress,
   type OrgCreateFormValues,
   type OrgEditFormValues,
 } from "@/components/forms/schema/platformOrganization";
@@ -78,7 +79,6 @@ const DATE_OPEN_CLASS = "border-blue ring-[3px] ring-blue-t";
 
 const CREATE_DEFAULTS: CreateInput = {
   name: "",
-  slug: "",
   phone: "",
   contractStartDate: "",
   contractEndDate: "",
@@ -87,7 +87,6 @@ const CREATE_DEFAULTS: CreateInput = {
   fax: "",
   email: "",
   address: "",
-  region: "",
   operatingHours: "",
   ownerUsername: "",
   ownerPassword: "",
@@ -257,12 +256,6 @@ function OrganizationFormFields({
       <HqField id="organization-name" label="상호" required full>
         <Input id="organization-name" placeholder="예) 스마일종합관리" className={inputClass(error("name"))} {...registerField("name")} />
       </HqField>
-      <HqField id="organization-slug" label="회사코드" required>
-        <Input id="organization-slug" placeholder="영문 소문자·숫자·하이픈" className={inputClass(error("slug"))} {...registerField("slug")} />
-      </HqField>
-      <HqField id="organization-region" label="지역" required>
-        <Input id="organization-region" placeholder="예) 대전 유성구" className={inputClass(error("region"))} {...registerField("region")} />
-      </HqField>
       <HqField id="organization-representative" label="대표자" required>
         <Input id="organization-representative" placeholder="예) 최서윤" className={inputClass(error("representativeName"))} {...registerField("representativeName")} />
       </HqField>
@@ -336,8 +329,6 @@ function buildValidationMessage<T extends FieldValues>(
 ): string {
   const required = [
     ["name", "상호"],
-    ["slug", "회사코드"],
-    ["region", "지역"],
     ["representativeName", "대표자"],
     ["businessRegistrationNumber", "사업자등록번호"],
     ["phone", "대표 전화"],
@@ -402,7 +393,6 @@ function CreateModal({ onClose }: { onClose: () => void }) {
       if (contractFile) uploadedPath = await uploadOrganizationContractFile(contractFile);
       await createOrg.mutateAsync({
         name: values.name,
-        slug: values.slug,
         phone: values.phone,
         contractStartDate: values.contractStartDate,
         contractEndDate: values.contractEndDate,
@@ -411,7 +401,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
         fax: values.fax,
         email: values.email,
         address: values.address,
-        region: values.region,
+        region: regionFromAddress(values.address),
         operatingHours: values.operatingHours || null,
         contractFilePath: uploadedPath,
         owner: { username: values.ownerUsername, password: values.ownerPassword },
@@ -493,7 +483,6 @@ function EditModal({ organization, onClose }: Omit<EditProps, "mode">) {
   const [deleting, setDeleting] = useState(false);
   const defaultValues: EditInput = useMemo(() => ({
     name: organization.name,
-    slug: organization.slug ?? "",
     phone: organization.phone ?? "",
     contractStartDate: organization.contractStartDate ?? "",
     contractEndDate: organization.contractEndDate ?? "",
@@ -502,7 +491,6 @@ function EditModal({ organization, onClose }: Omit<EditProps, "mode">) {
     fax: organization.fax ?? "",
     email: organization.email ?? "",
     address: organization.address ?? "",
-    region: organization.region ?? "",
     operatingHours: organization.operatingHours ?? "",
     ownerPassword: "",
   }), [organization]);
@@ -555,7 +543,7 @@ function EditModal({ organization, onClose }: Omit<EditProps, "mode">) {
         id: organization.id,
         input: {
           name: values.name,
-          slug: values.slug,
+          slug: organization.slug ?? "",
           phone: values.phone,
           contractStartDate: values.contractStartDate,
           contractEndDate: values.contractEndDate,
@@ -564,7 +552,7 @@ function EditModal({ organization, onClose }: Omit<EditProps, "mode">) {
           fax: values.fax,
           email: values.email,
           address: values.address,
-          region: values.region,
+          region: regionFromAddress(values.address),
           operatingHours: values.operatingHours || null,
           contractFilePath: nextContractFilePath,
         },
