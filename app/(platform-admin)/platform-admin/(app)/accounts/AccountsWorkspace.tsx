@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Badge, Button, Checkbox, EmptyState, Modal, Select, Spinner } from "@/components/common";
+import { Badge, Button, Checkbox, CustomDropdown, EmptyState, Modal, Spinner } from "@/components/common";
 import { MaskedPhone } from "@/components/common/MaskedPhone";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import type { PlatformAccountCreateValues } from "@/components/forms/schema/platformAccount";
@@ -32,6 +32,10 @@ import { PlatformTopBarActions } from "../../../_components/PlatformShell";
 import { TableFrame } from "../../../_components/TableFrame";
 import { ModalActions } from "../../../_components/ModalActions";
 import { InlineAlert } from "../../../_components/InlineAlert";
+import {
+  ADMIN_DROPDOWN_MENU_CLASS,
+  ADMIN_FORM_DROPDOWN_CLASS,
+} from "../../../_components/adminDropdownClasses";
 import type { AccountEditValues } from "./components/AccountEditModal";
 import { AccountRowActions } from "./components/AccountRowActions";
 
@@ -485,25 +489,35 @@ function RoleChangeModal({
             <label htmlFor="platform-role" className="mb-1.5 block text-[12.5px] font-bold text-t2">
               역할
             </label>
-            <Select
-              id="platform-role"
-              value={role}
-              onChange={(event) => setRole(event.target.value as EditableRole)}
-              options={ROLE_OPTIONS}
-              className="h-[42px] w-full rounded-[10px] border border-line bg-surface px-[13px] text-[13.5px] font-semibold text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t"
-            />
+            <div className={ADMIN_FORM_DROPDOWN_CLASS}>
+              <CustomDropdown
+                id="platform-role"
+                ariaLabel="역할"
+                value={role}
+                onChange={(value) => setRole(value as EditableRole)}
+                options={ROLE_OPTIONS}
+                position="fixed"
+                menuMinWidth={0}
+                menuClassName={ADMIN_DROPDOWN_MENU_CLASS}
+              />
+            </div>
           </div>
           <div>
             <label htmlFor="platform-staff-type" className="mb-1.5 block text-[12.5px] font-bold text-t2">
               직원 유형
             </label>
-            <Select
-              id="platform-staff-type"
-              value={staffType}
-              onChange={(event) => setStaffType(event.target.value as StaffType)}
-              options={STAFF_TYPE_OPTIONS}
-              className="h-[42px] w-full rounded-[10px] border border-line bg-surface px-[13px] text-[13.5px] font-semibold text-t1 outline-none focus:border-blue focus:ring-[3px] focus:ring-blue-t"
-            />
+            <div className={ADMIN_FORM_DROPDOWN_CLASS}>
+              <CustomDropdown
+                id="platform-staff-type"
+                ariaLabel="직원 유형"
+                value={staffType}
+                onChange={(value) => setStaffType(value as StaffType)}
+                options={STAFF_TYPE_OPTIONS}
+                position="fixed"
+                menuMinWidth={0}
+                menuClassName={ADMIN_DROPDOWN_MENU_CLASS}
+              />
+            </div>
           </div>
         </div>
 
