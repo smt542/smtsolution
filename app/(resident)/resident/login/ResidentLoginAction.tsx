@@ -25,27 +25,19 @@ export default function ResidentLoginAction() {
   return (
     <>
       <div className={styles.foot}>
-        {realKakaoLoginEnabled ? (
-          <a className={residentButtonClass({ size: "xl", variant: "kakao", className: styles.kakao })} href="/api/resident/kakao/login">
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M12 3.6c-4.86 0-8.8 3.02-8.8 6.75 0 2.4 1.62 4.51 4.06 5.72l-.98 3.6c-.9.33.25.6.53.43l4.32-2.84c.28.02.57.04.87.04 4.86 0 8.8-3.02 8.8-6.95S16.86 3.6 12 3.6z" />
-            </svg>
-            카카오톡으로 3초 만에 시작
-          </a>
-        ) : (
-          <ResidentButton
-            variant="kakao"
-            size="xl"
-            type="button"
-            className={styles.kakao}
-            onClick={() => setSheetOpen(true)}
-          >
-            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M12 3.6c-4.86 0-8.8 3.02-8.8 6.75 0 2.4 1.62 4.51 4.06 5.72l-.98 3.6c-.9.33.25.6.53.43l4.32-2.84c.28.02.57.04.87.04 4.86 0 8.8-3.02 8.8-6.95S16.86 3.6 12 3.6z" />
-            </svg>
-            카카오톡으로 3초 만에 시작
-          </ResidentButton>
-        )}
+        {/* 정본처럼 카카오 버튼은 연결 확인 시트를 먼저 연다. 실 OAuth·스텁 분기는 시트의 [계속하기]에서 한다. */}
+        <ResidentButton
+          variant="kakao"
+          size="xl"
+          type="button"
+          className={styles.kakao}
+          onClick={() => setSheetOpen(true)}
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 3.6c-4.86 0-8.8 3.02-8.8 6.75 0 2.4 1.62 4.51 4.06 5.72l-.98 3.6c-.9.33.25.6.53.43l4.32-2.84c.28.02.57.04.87.04 4.86 0 8.8-3.02 8.8-6.95S16.86 3.6 12 3.6z" />
+          </svg>
+          카카오톡으로 3초 만에 시작
+        </ResidentButton>
         <div className={styles.note}>
           <Link href="/resident/terms">이용약관</Link> ·{" "}
           <Link href="/resident/privacy">개인정보 처리방침</Link>에 동의하고 시작합니다
@@ -61,14 +53,24 @@ export default function ResidentLoginAction() {
         <div className={styles.sheetD}>
           카카오톡에 등록된 휴대폰 번호로 세대 정보를 자동으로 찾아드려요.
         </div>
-        <ResidentButton
-          variant="primary"
-          type="button"
-          className="mt-5 w-full"
-          onClick={continueWithMatchedIdentity}
-        >
-          계속하기
-        </ResidentButton>
+        {realKakaoLoginEnabled ? (
+          <a
+            className={residentButtonClass({ className: "mt-5 flex w-full items-center justify-center" })}
+            href="/api/resident/kakao/login"
+            onClick={() => setSheetOpen(false)}
+          >
+            계속하기
+          </a>
+        ) : (
+          <ResidentButton
+            variant="primary"
+            type="button"
+            className="mt-5 w-full"
+            onClick={continueWithMatchedIdentity}
+          >
+            계속하기
+          </ResidentButton>
+        )}
       </ResidentBottomSheet>
     </>
   );
