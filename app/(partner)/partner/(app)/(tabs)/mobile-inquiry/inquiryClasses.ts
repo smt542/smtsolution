@@ -5,8 +5,10 @@ export const inquiryClasses = {
   searchIcon: "absolute left-[34px] top-3.5 size-[18px] text-t4",
   search: "h-[46px] w-full rounded-[14px] border border-line bg-white px-3.5 pl-10 text-[15px] font-medium text-t1 outline-none transition focus:border-blue focus:ring-[3px] focus:ring-blue-t",
   tabs: "mx-5 mb-1 flex border-b border-line",
-  tab: "-mb-px flex-1 border-0 border-b-2 border-transparent bg-transparent py-3 pb-[11px] text-center text-[15px] font-bold text-t3",
-  tabOn: "border-b-blue text-blue",
+  // 탭 색은 켜짐/꺼짐 클래스를 따로 둔다 — 기본 클래스에 text-t3를 두고 text-blue를 이어 붙이면 CSS 순서상 t3가 이긴다.
+  tab: "-mb-px flex-1 border-0 border-b-2 bg-transparent py-3 pb-[11px] text-center text-[15px] font-bold",
+  tabIdle: "border-transparent text-t3",
+  tabActive: "border-blue text-blue",
   scroll: "min-h-0 flex-1 overflow-auto",
   list: "px-5 pb-[18px]",
   none: "px-5 py-10 text-center text-sm font-semibold text-t3",

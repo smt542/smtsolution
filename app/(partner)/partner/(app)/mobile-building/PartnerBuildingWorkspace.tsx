@@ -77,10 +77,10 @@ export default function PartnerBuildingWorkspace({
     <div className={styles.root}>
       {header(building.name)}
       <div className={styles.tabs}>
-        <button type="button" className={`${styles.tab} ${tab === "info" ? styles.tabOn : ""}`} onClick={() => setTab("info")}>
+        <button type="button" className={`${styles.tab} ${tab === "info" ? styles.tabActive : styles.tabIdle}`} onClick={() => setTab("info")}>
           건물 정보
         </button>
-        <button type="button" className={`${styles.tab} ${tab === "ten" ? styles.tabOn : ""}`} onClick={() => setTab("ten")}>
+        <button type="button" className={`${styles.tab} ${tab === "ten" ? styles.tabActive : styles.tabIdle}`} onClick={() => setTab("ten")}>
           입주자 정보 <span className={styles.count}>{units.length}</span>
         </button>
       </div>

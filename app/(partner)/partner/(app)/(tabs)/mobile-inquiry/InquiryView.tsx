@@ -71,10 +71,10 @@ export function InquiryView({ buildings, tenants }: { buildings: BuildingRow[]; 
       </div>
 
       <div className={styles.tabs}>
-        <button type="button" className={`${styles.tab} ${tab === "bld" ? styles.tabOn : ""}`} onClick={() => setTab("bld")}>
+        <button type="button" className={`${styles.tab} ${tab === "bld" ? styles.tabActive : styles.tabIdle}`} onClick={() => setTab("bld")}>
           건물
         </button>
-        <button type="button" className={`${styles.tab} ${tab === "ten" ? styles.tabOn : ""}`} onClick={() => setTab("ten")}>
+        <button type="button" className={`${styles.tab} ${tab === "ten" ? styles.tabActive : styles.tabIdle}`} onClick={() => setTab("ten")}>
           입주자
         </button>
       </div>

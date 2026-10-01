@@ -2,8 +2,10 @@ export const buildingClasses = {
   root: "flex min-h-0 flex-1 flex-col bg-white",
   meterBtn: "inline-flex h-9 flex-none items-center gap-[5px] rounded-[11px] bg-blue px-[13px] text-[13px] font-bold text-white hover:bg-blue-d [&_svg]:size-[15px]",
   tabs: "mx-5 flex border-b border-line",
-  tab: "-mb-px flex-1 border-0 border-b-2 border-transparent bg-transparent py-3 pb-[11px] text-center text-[15px] font-bold text-t3",
-  tabOn: "border-b-blue text-blue",
+  // 탭 색은 켜짐/꺼짐 클래스를 따로 둔다 — 기본 클래스에 text-t3를 두고 text-blue를 이어 붙이면 CSS 순서상 t3가 이긴다.
+  tab: "-mb-px flex-1 border-0 border-b-2 bg-transparent py-3 pb-[11px] text-center text-[15px] font-bold",
+  tabIdle: "border-transparent text-t3",
+  tabActive: "border-blue text-blue",
   count: "font-bold text-t3",
   scroll: "min-h-0 flex-1 overflow-auto",
   pad: "px-5 pb-6 pt-4",
