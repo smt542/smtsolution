@@ -371,7 +371,9 @@ export function UtilityTable({
       align: "left",
       cellClassName: "",
       stopRowClick: true,
-      render: (item) => editing ? <Input unstyled aria-label={`${item.row.unitNo} 적요`} value={item.draft.note} disabled={item.state.vacant} placeholder="-" onChange={(event) => onDraftChange(item.row.unitId, { note: event.target.value })} className="h-[26px] w-full rounded-[7px] border border-teal bg-white px-2 text-[11.5px] text-t1 outline-none focus:ring-1 focus:ring-teal/20 disabled:border-line disabled:bg-line2" /> : item.row.note || <GridEmptyValue />,
+      render: (item) => editing ? <Input unstyled aria-label={`${item.row.unitNo} 적요`} value={item.draft.note} disabled={item.state.vacant} placeholder="-" onChange={(event) => onDraftChange(item.row.unitId, { note: event.target.value })} className="h-[26px] w-full rounded-[7px] border border-teal bg-white px-2 text-[11.5px] text-t1 outline-none focus:ring-1 focus:ring-teal/20 disabled:border-line disabled:bg-line2" /> : item.row.note ? (
+        <span className="block w-full min-w-0 truncate" title={item.row.note}>{item.row.note}</span>
+      ) : <GridEmptyValue />,
     },
     {
       key: "processedAt",

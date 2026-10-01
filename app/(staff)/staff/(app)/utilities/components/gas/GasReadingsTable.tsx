@@ -310,7 +310,9 @@ export function GasReadingsTable({
           onChange={(event) => onDraftChange(item.row.unitId, { note: event.target.value })}
           className="h-[26px] w-full rounded-[7px] border border-teal bg-white px-2 text-left text-[11.5px] outline-none"
         />
-      ) : item.row.note || <GridEmptyValue />,
+      ) : item.row.note ? (
+        <span className="block w-full min-w-0 truncate" title={item.row.note}>{item.row.note}</span>
+      ) : <GridEmptyValue />,
     },
     {
       key: "processedAt",

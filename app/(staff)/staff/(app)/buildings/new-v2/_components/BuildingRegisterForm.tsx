@@ -180,7 +180,7 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
         appToast.success("저장되었습니다.");
         setDirty(false);
         if (buildingId) router.refresh();
-        else router.replace(`/staff/buildings/${result.buildingId}`);
+        else router.replace(`/staff/buildings?building=${result.buildingId}`);
       } catch (error) {
         appToast.error(error, "건물을 저장하지 못했습니다.");
       }

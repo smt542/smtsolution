@@ -478,10 +478,10 @@ export function TenantForm({
     };
 
     try {
-      const result = await save.mutateAsync(payload);
+      await save.mutateAsync(payload);
       toast.success("저장되었습니다.");
       setDirty(false);
-      if (!unitId) router.replace(`/staff/buildings/${buildingId}/tenants/${result.unitId}`);
+      if (!unitId) router.replace(`/staff/buildings?building=${buildingId}`);
     } catch (error) {
       toast.error(error, "저장에 실패했습니다.");
     }

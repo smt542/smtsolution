@@ -300,7 +300,9 @@ export function ElectricityReadingsTable({
           onChange={(event) => onDraftChange(item.row.unitId, { note: event.target.value })}
           className={`${inputClass()} w-full text-left`}
         />
-      ) : item.row.note ?? <GridEmptyValue />,
+      ) : item.row.note ? (
+        <span className="block w-full min-w-0 truncate" title={item.row.note}>{item.row.note}</span>
+      ) : <GridEmptyValue />,
     },
     {
       key: "processedAt",
