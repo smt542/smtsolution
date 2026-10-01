@@ -60,9 +60,9 @@ export default async function PublicNoticePage({
 
   return (
     <PublicTokenPageShell
-      brand="관리비ON"
+      brand="관리비서"
       subtitle="공개 공지사항"
-      ctaLabel="관리비ON 시작하기"
+      ctaLabel="관리비서 시작하기"
     >
       <PublicShareArticleCard
         eyebrow={notice.noticeType ? noticeTypeLabels[notice.noticeType] : "공지사항"}

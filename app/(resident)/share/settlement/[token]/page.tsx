@@ -54,9 +54,9 @@ export default async function PublicSettlementPage({
 
   return (
     <PublicTokenPageShell
-      brand="관리비ON"
+      brand="관리비서"
       subtitle="공개 이사정산 내역"
-      ctaLabel="관리비ON 시작하기"
+      ctaLabel="관리비서 시작하기"
     >
       <PublicShareArticleCard
         eyebrow="이사정산"
