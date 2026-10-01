@@ -239,6 +239,8 @@ export function Sidebar() {
   const isUtilitiesPage = pathname.startsWith("/staff/utilities");
   const isCustomerNumbersPage = pathname.startsWith("/staff/customer-numbers");
   const isMovingSettlementSection = pathname.startsWith("/staff/moving-settlement");
+  const isSetupPage = pathname.startsWith("/staff/setup");
+  const isAccountsPage = pathname.startsWith("/staff/accounts");
   const visibleItems = OFFICE_NAV_ITEMS.filter((item) =>
     item.modules
       ? item.modules.some((module) => hasModule(me ?? null, module))
@@ -365,7 +367,8 @@ export function Sidebar() {
                       role="menuitem"
                       href="/staff/accounts"
                       onClick={() => setProfileMenuOpen(false)}
-                      className="block rounded-[9px] px-3 py-2.5 text-[13.5px] font-semibold text-t2 transition-colors hover:bg-bg"
+                      aria-current={isAccountsPage ? "page" : undefined}
+                      className={`block rounded-[9px] px-3 py-2.5 text-[13.5px] transition-colors ${isAccountsPage ? "bg-blue-t font-bold text-blue" : "font-semibold text-t2 hover:bg-bg"}`}
                     >
                       계정·직원
                     </Link>
@@ -375,7 +378,8 @@ export function Sidebar() {
                       role="menuitem"
                       href="/staff/setup"
                       onClick={() => setProfileMenuOpen(false)}
-                      className="block rounded-[9px] px-3 py-2.5 text-[13.5px] font-semibold text-t2 transition-colors hover:bg-bg"
+                      aria-current={isSetupPage ? "page" : undefined}
+                      className={`block rounded-[9px] px-3 py-2.5 text-[13.5px] transition-colors ${isSetupPage ? "bg-blue-t font-bold text-blue" : "font-semibold text-t2 hover:bg-bg"}`}
                     >
                       셋업 설정
                     </Link>

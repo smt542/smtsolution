@@ -44,7 +44,8 @@ insert into settlement_check_items (org_id, label, sort_order) values
   (1, '에어컨 작동', 220),
   (1, '인터넷·TV 해지', 230),
   (1, '관리사무소 통보', 240)
-on conflict (org_id, label) do update set sort_order = excluded.sort_order, deleted_at = null;
+on conflict (org_id, label) where deleted_at is null
+do update set sort_order = excluded.sort_order, deleted_at = null;
 
 -- B. meter_readings 6개월 x 3유틸
 insert into meter_readings (unit_id, utility, period, previous_reading, current_reading, usage, unit_price, calc_charge, note) values
