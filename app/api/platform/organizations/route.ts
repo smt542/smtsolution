@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loginEmail } from "@/lib/auth/email";
+import { storeAccountLoginPin } from "@/lib/auth/loginPin";
 import { toAuthPassword } from "@/lib/auth/password";
 
 // 정본 신규 테넌트: 관리자 초기 비밀번호 = 숫자 4자리(Auth 저장은 toAuthPassword).
@@ -135,6 +136,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "관리자 계정 저장에 실패했습니다." }, { status: 500 });
   }
 
+  await storeAccountLoginPin(admin, created.user.id, String(owner.password), "[platform/organizations]");
   return NextResponse.json(
     { organization: { id: orgRow.id, name: orgRow.name, slug: orgRow.slug },
       owner: { username: owner.username } },

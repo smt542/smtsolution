@@ -3,8 +3,6 @@ import { DataTable, PhoneText } from "@/components/common";
 import { isMaster } from "@/lib/auth/permissions";
 import type { Account } from "@/hooks/reactquery/accounts";
 
-const PASSWORD_MASK = "●●●●";
-
 // 정본 `#acTbl` 오버라이드 층. td 규칙이 `!important` 라서 마크업의 인라인
 // `font-weight:700`(이름)과 `.muted` 색(아이디·비밀번호·연락처)까지 덮어쓴다 —
 // 즉 본문 셀은 전부 13px / 500 / --t1 로 균일하다. 열별 굵기·색을 주면 어긋난다.
@@ -33,11 +31,12 @@ const WIDTHS_FIELD: Record<string, string> = {
 
 interface Props {
   accounts: Account[];
+  pinByUserId: ReadonlyMap<string, string>;
   onRowClick: (a: Account) => void;
   hideType?: boolean;
 }
 
-export function AccountTable({ accounts, onRowClick, hideType = false }: Props) {
+export function AccountTable({ accounts, pinByUserId, onRowClick, hideType = false }: Props) {
   const widths = hideType ? WIDTHS_FIELD : WIDTHS_OFFICE;
   const columns = [
     { key: "name", label: "이름" },
@@ -52,7 +51,7 @@ export function AccountTable({ accounts, onRowClick, hideType = false }: Props) 
     return {
       name: a.fullName,
       username: a.username,
-      password: PASSWORD_MASK,
+      password: pinByUserId.get(a.userId) ?? "-",
       phone: a.phone ? (
         <PhoneText value={a.phone} />
       ) : "-",

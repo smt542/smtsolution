@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { storeAccountLoginPin } from "@/lib/auth/loginPin";
 import { loginEmail } from "@/lib/auth/email";
 import { toAuthPassword } from "@/lib/auth/password";
 
@@ -67,5 +68,6 @@ export async function POST(req: Request) {
     await admin.auth.admin.deleteUser(created.user.id); // 롤백(고아 방지)
     return NextResponse.json({ error: "계정 정보 저장에 실패했습니다." }, { status: 500 });
   }
+  await storeAccountLoginPin(admin, created.user.id, password, "[accounts]");
   return NextResponse.json({ userId: created.user.id }, { status: 201 });
 }

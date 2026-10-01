@@ -32,6 +32,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   editing: Account | null;
+  storedPin?: string;
   createStaffType: StaffType;
   canEditPermissions: boolean;
   onCreate: (input: AccountCreateInput) => Promise<{ userId: string }>;
@@ -63,6 +64,7 @@ export function AccountFormModal({
   open,
   onClose,
   editing,
+  storedPin,
   createStaffType,
   canEditPermissions,
   onCreate,
@@ -82,7 +84,7 @@ export function AccountFormModal({
       editing
         ? {
             username: editing.username,
-            password: "",
+            password: storedPin ?? "",
             fullName: editing.fullName,
             phone: editing.phone ?? "",
             staffType: editing.staffType,
@@ -111,7 +113,7 @@ export function AccountFormModal({
             roleIds: [],
             alsoCrossApp: false,
           },
-    [createStaffType, editing],
+    [createStaffType, editing, storedPin],
   );
 
   const {
@@ -192,7 +194,9 @@ export function AccountFormModal({
             roleIds: null,
           });
         }
-        if (values.password) await onResetPassword(editing.userId, values.password);
+        if (values.password && values.password !== storedPin) {
+          await onResetPassword(editing.userId, values.password);
+        }
         if (values.isActive !== editing.isActive) {
           await onSetActive(editing.userId, values.isActive);
         }
@@ -277,7 +281,7 @@ export function AccountFormModal({
                 <Input
                   id="password"
                   aria-label="비밀번호"
-                  type="password"
+                  type="text"
                   inputMode="numeric"
                   maxLength={4}
                   pattern="[0-9]{4}"

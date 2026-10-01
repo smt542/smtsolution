@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { storeAccountLoginPin } from "@/lib/auth/loginPin";
 import { toAuthPassword } from "@/lib/auth/password";
 
 export async function PATCH(
@@ -43,8 +44,7 @@ export async function PATCH(
   // 비밀번호 변경 후 대상 계정의 기존 세션을 폐기한다(리셋 후 구세션 잔존 방지). 폐기 실패가 변경을 막지 않는다.
   const { error: revokeError } = await admin.rpc("revoke_user_sessions", { p_user_id: userId });
   if (revokeError) console.error("[platform accounts] revoke_user_sessions failed", revokeError.message);
-  // 파트너 프로필 비밀번호 보기(0212)에 저장해 둔 옛 비밀번호를 지운다 — 다시 로그인하면 새 값이 저장된다.
-  const { error: pinError } = await admin.from("partner_login_pins").delete().eq("user_id", userId);
-  if (pinError) console.error("[platform accounts] partner_login_pins clear failed", pinError.message);
+  // 실제로 입력한 새 PIN을 저장한다. 저장 실패는 비밀번호 변경을 막지 않는다.
+  await storeAccountLoginPin(admin, userId, String(password), "[platform accounts]");
   return NextResponse.json({ ok: true }, { status: 200 });
 }

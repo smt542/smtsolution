@@ -9,6 +9,7 @@ import {
 } from "@/lib/auth/loginRateLimit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { storeAccountLoginPin } from "@/lib/auth/loginPin";
 import { toAuthPassword } from "@/lib/auth/password";
 
 // 현장(field) 계정 유형. 이 유형만 파트너 모바일 앱에 로그인할 수 있다.
@@ -101,11 +102,7 @@ async function handlePost(req: Request) {
       await recordLoginSuccess(admin, { ip, username, userId: uid });
       // 프로필 비밀번호 보기(정본 mobile-profile)용으로 로그인에 성공한 비밀번호를 암호화해 둔다(0212).
       // 저장 실패가 로그인을 막지 않는다(프로필에서 '-'로 보인다).
-      const { error: pinError } = await admin.rpc("partner_store_login_pin", {
-        p_user_id: uid,
-        p_pin: password,
-      });
-      if (pinError) console.error("[partner/login] partner_store_login_pin failed", pinError.message);
+      await storeAccountLoginPin(admin, uid, password, "[partner/login]");
       return NextResponse.json({ userId: uid });
     }
   }

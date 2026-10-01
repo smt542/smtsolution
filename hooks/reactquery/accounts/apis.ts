@@ -8,6 +8,10 @@ export interface Account {
   isActive: boolean; permissions: string[]; roleLabels: string[];
   staffCapabilities?: StaffType[];
 }
+export interface AccountLoginPin {
+  userId: string;
+  pin: string;
+}
 export interface AccountCreateInput {
   username: string; password: string; fullName: string;
   phone?: string; phoneSub?: string;
@@ -47,6 +51,17 @@ export async function listAccounts(params?: { search?: string; type?: StaffType 
   });
   if (error) throw new Error(error.message);
   return (data ?? []).map(rowToAccount);
+}
+
+type AccountLoginPinRow = { user_id: string; pin: string };
+
+export async function listAccountLoginPins(): Promise<AccountLoginPin[]> {
+  const { data, error } = await createClient().rpc("list_account_login_pins");
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as AccountLoginPinRow[]).map((row) => ({
+    userId: row.user_id,
+    pin: row.pin,
+  }));
 }
 
 export async function createAccount(input: AccountCreateInput): Promise<{ userId: string }> {

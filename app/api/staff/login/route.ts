@@ -9,6 +9,7 @@ import {
 } from "@/lib/auth/loginRateLimit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { storeAccountLoginPin } from "@/lib/auth/loginPin";
 import { toAuthPassword } from "@/lib/auth/password";
 
 const INVALID = "아이디 또는 비밀번호가 올바르지 않습니다.";
@@ -132,6 +133,7 @@ async function handlePost(req: Request) {
     };
 
     await recordLoginSuccess(admin, { ip, username, userId });
+    await storeAccountLoginPin(admin, userId, password, "[staff/login]");
     return NextResponse.json(context);
   }
 

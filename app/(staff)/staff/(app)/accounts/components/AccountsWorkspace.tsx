@@ -5,7 +5,7 @@ import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Tabs, Button, EmptyState, Spinner } from "@/components/common";
 import type { StaffType } from "@/hooks/reactquery/auth";
 import {
-  useAccounts, useCreateAccount, useUpdateAccountBasic, useUpdatePermissions, useSetActive, useResetPassword,
+  useAccounts, useAccountLoginPins, useCreateAccount, useUpdateAccountBasic, useUpdatePermissions, useSetActive, useResetPassword,
   type Account, type AccountCreateInput, type AccountBasicInput, type PermissionInput,
 } from "@/hooks/reactquery/accounts";
 import { AccountTable } from "./AccountTable";
@@ -33,6 +33,11 @@ export function AccountsWorkspace({ canEditPermissions }: { canEditPermissions: 
     isError: isAccountListError,
     refetch: refetchAccounts,
   } = useAccounts();
+  const { data: accountLoginPins = [] } = useAccountLoginPins();
+  const pinByUserId = React.useMemo(
+    () => new Map(accountLoginPins.map(({ userId, pin }) => [userId, pin])),
+    [accountLoginPins],
+  );
   const createM = useCreateAccount();
   const basicM = useUpdateAccountBasic();
   const permM = useUpdatePermissions();
@@ -126,7 +131,12 @@ export function AccountsWorkspace({ canEditPermissions }: { canEditPermissions: 
                   <EmptyState message="조건에 맞는 계정이 없습니다" />
                 </div>
               ) : (
-                <AccountTable accounts={filtered} hideType={tab === "field"} onRowClick={openEdit} />
+                <AccountTable
+                  accounts={filtered}
+                  pinByUserId={pinByUserId}
+                  hideType={tab === "field"}
+                  onRowClick={openEdit}
+                />
               )}
             </div>
           </section>
@@ -138,6 +148,7 @@ export function AccountsWorkspace({ canEditPermissions }: { canEditPermissions: 
           open={modalOpen}
           onClose={closeModal}
           editing={editing}
+          storedPin={editing ? pinByUserId.get(editing.userId) : undefined}
           createStaffType={tab === "field" ? "field_staff" : "manager_staff"}
           canEditPermissions={canEditPermissions}
           onCreate={onCreate}
