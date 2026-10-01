@@ -220,7 +220,7 @@ export default function PartnerAsNewWorkspace({
           description="입력한 내용은 저장되지 않아요."
           cancelLabel="취소"
           confirmLabel="나가기"
-          confirmVariant="danger"
+          confirmVariant="ok"
           onCancel={() => setConfirmCancel(false)}
           onConfirm={() => router.push("/partner/mobile-home")}
         />

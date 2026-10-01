@@ -1,5 +1,5 @@
 export const partnerLoginClasses = {
-  wrap: "flex min-h-0 flex-1 flex-col overflow-auto",
+  wrap: "flex min-h-0 flex-1 flex-col overflow-auto bg-white",
   logo: "flex justify-center px-6 pb-0.5 pt-10",
   // 원본(727×519) 비율 고정 — 최적화된 256px 이미지(256×183)의 반올림 비율로 높이가 0.17px 커지는 것 방지
   logoImg: "aspect-[727/519] h-auto w-[168px]",

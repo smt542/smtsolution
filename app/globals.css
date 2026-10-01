@@ -235,3 +235,10 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Keep the partner login's full-bleed and safe-area background white without changing other partner screens. */
+html:has([data-partner-login]),
+body:has([data-partner-login]),
+body:has([data-partner-login]) [data-partner-shell] {
+  background-color: #ffffff;
+}
+

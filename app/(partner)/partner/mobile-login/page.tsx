@@ -1,10 +1,15 @@
 import Image from "next/image";
+import type { Viewport } from "next";
 import { PartnerLoginForm } from "./PartnerLoginForm";
 import { partnerLoginClasses as styles } from "./loginClasses";
 
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
+};
+
 export default function PartnerLoginPage() {
   return (
-    <div className={styles.wrap}>
+    <div data-partner-login className={styles.wrap}>
       <div className={styles.logo}>
         <Image src="/logo.png" alt="관리비서" width={168} height={120} className={styles.logoImg} />
       </div>

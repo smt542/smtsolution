@@ -7,7 +7,7 @@ export const homeClasses: Record<string, string> = {
   searchIcon: "absolute left-[34px] top-3.5 size-[18px] text-t4",
   search: "h-[46px] w-full rounded-[14px] border border-line bg-white px-3.5 pl-10 text-[15px] font-medium text-t1 outline-none placeholder:text-[#757575] focus:border-blue focus:ring-[3px] focus:ring-blue-t",
   filterRow: "flex items-center gap-2 px-5 pb-2.5",
-  pills: "flex min-w-0 flex-1 gap-[7px] overflow-auto",
+  pills: "flex min-w-0 flex-1 gap-[7px] overflow-x-auto overflow-y-hidden",
   pill: "inline-flex h-[34px] flex-none items-center whitespace-nowrap rounded-full border px-[15px] text-[13.5px] font-bold",
   pillOff: "border-line bg-white text-t3",
   pillOn: "border-blue bg-blue text-white",
