@@ -111,8 +111,6 @@ export default function PartnerBuildingWorkspace({
                       {v.phone && (
                         <PartnerPhoneLink
                           phone={v.phone}
-                          alreadyMasked
-                          reveal={{ targetKind: "building_vendor", targetId: v.id, field: "phone" }}
                         />
                       )}
                     </div>
@@ -131,7 +129,6 @@ export default function PartnerBuildingWorkspace({
                   {building.owner_phone ? (
                     <PartnerPhoneLink
                       phone={building.owner_phone}
-                      reveal={{ targetKind: "building", targetId: building.id, field: "owner_phone" }}
                     />
                   ) : "-"}
                 </b>

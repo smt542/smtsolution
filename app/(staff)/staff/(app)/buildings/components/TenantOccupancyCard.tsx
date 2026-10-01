@@ -1,10 +1,10 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { Button, EmptyState, MultiValueToggle, Spinner } from "@/components/common";
-import { MaskedPhone } from "@/components/common/MaskedPhone";
+import { Button, EmptyState, MultiValueToggle, PhoneText, Spinner } from "@/components/common";
 import { useCustomerNumbers } from "@/hooks/reactquery/buildingCustomerNumbers";
 import type { TenantListRow } from "@/hooks/reactquery/occupancies";
 import { displayUnitNo } from "@/lib/bill/document";
+import { formatPhone } from "@/lib/format";
 import { TENANT_COLUMNS, type TenantColumnContext } from "./tenantColumns";
 import { TenantEmptyState } from "./TenantEmptyState";
 
@@ -48,24 +48,20 @@ export function TenantOccupancyCard({
     if (t.phone) {
       if (t.occupancyId == null) return "—";
       return (
-        <MaskedPhone
-          value={t.phone}
-          kind="phone"
-          alreadyMasked
-          compact
-          reveal={{ targetKind: "occupancy", targetId: t.occupancyId, field: "phone" }}
-          valueSuffix={t.phonesMore.length
-            ? <MultiValueToggle label="전화번호" items={[t.phone, ...t.phonesMore]} />
-            : undefined}
-        />
+        <span className="inline-flex items-center gap-1.5">
+          <PhoneText value={t.phone} />
+          {t.phonesMore.length
+            ? <MultiValueToggle label="전화번호" items={[t.phone, ...t.phonesMore].map(formatPhone)} />
+            : null}
+        </span>
       );
     }
     if (t.phonesMore.length === 0) return "";
     return (
       <span className="inline-flex items-center gap-[5px]">
-        {t.phonesMore[0]}
+        <PhoneText value={t.phonesMore[0]} />
         {t.phonesMore.length > 1
-          ? <MultiValueToggle label="전화번호" items={t.phonesMore} />
+          ? <MultiValueToggle label="전화번호" items={t.phonesMore.map(formatPhone)} />
           : null}
       </span>
     );

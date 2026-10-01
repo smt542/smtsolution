@@ -1,6 +1,5 @@
 import { formatNumber } from "@/lib/format";
-import { Input } from "@/components/common";
-import { MaskedPhone } from "@/components/common/MaskedPhone";
+import { Input, PhoneText } from "@/components/common";
 import type {
   OverdueDisplayGroup,
   OverdueLineOverride,
@@ -160,11 +159,7 @@ function DetailRow({
         className="flex h-[50px] shrink-0 items-center px-[16px] py-[12px] text-[13.5px] font-medium leading-[normal] tabular-nums text-t1"
       >
         {isFirst && group.phone ? (
-          <MaskedPhone
-            value={group.phone}
-            kind="phone"
-            reveal={{ targetKind: "occupancy", targetId: group.occupancyId, field: "phone" }}
-          />
+          <PhoneText value={group.phone} />
         ) : (
           ""
         )}

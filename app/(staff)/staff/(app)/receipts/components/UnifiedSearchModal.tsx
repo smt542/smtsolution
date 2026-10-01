@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useState } from "react";
 import { CloseIcon } from "@/components/icons";
-import { MaskedPhone } from "@/components/common/MaskedPhone";
+import { PhoneText } from "@/components/common";
 import type { Building } from "@/hooks/reactquery/buildings";
 import { useSettlementInquiry } from "@/hooks/reactquery/movingSettlement";
 import {
@@ -293,13 +293,7 @@ function UnifiedSearchModalBody({
           row.buildingName,
           toUnit(row),
           row.phone && row.occupancyId ? (
-            <span className="[&_button]:py-0 [&_button]:leading-[normal]">
-              <MaskedPhone
-                value={row.phone}
-                kind="phone"
-                reveal={{ targetKind: "occupancy", targetId: row.occupancyId, field: "phone" }}
-              />
-            </span>
+            <PhoneText value={row.phone} />
           ) : (
             "-"
           ),
@@ -337,13 +331,7 @@ function UnifiedSearchModalBody({
           "-", // 구분 — 현재 조회 데이터 소스 없음
           building.ownerName ?? "-",
           building.ownerPhone ? (
-            <span className="[&_button]:py-0 [&_button]:leading-[normal]">
-              <MaskedPhone
-                value={building.ownerPhone}
-                kind="phone"
-                reveal={{ targetKind: "building", targetId: building.id, field: "owner_phone" }}
-              />
-            </span>
+            <PhoneText value={building.ownerPhone} />
           ) : (
             "-"
           ),

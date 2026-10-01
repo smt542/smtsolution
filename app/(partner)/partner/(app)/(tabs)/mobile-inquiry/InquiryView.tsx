@@ -109,8 +109,6 @@ export function InquiryView({ buildings, tenants }: { buildings: BuildingRow[]; 
                     <PartnerPhoneLink
                       phone={t.phone}
                       pushRight
-                      alreadyMasked
-                      reveal={{ targetKind: "occupancy", targetId: t.occupancy_id, field: "phone" }}
                     />
                   </div>
                 )}

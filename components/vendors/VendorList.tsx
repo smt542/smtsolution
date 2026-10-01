@@ -1,7 +1,6 @@
 "use client";
 import React from "react";
-import { Spinner } from "@/components/common";
-import { MaskedPhone } from "@/components/common/MaskedPhone";
+import { PhoneText, Spinner } from "@/components/common";
 import type { Vendor } from "@/hooks/reactquery/vendors";
 import type { VendorCategory } from "@/hooks/reactquery/vendorCategories";
 import { vendorClasses } from "./vendorClasses";
@@ -78,11 +77,7 @@ export function VendorList({ vendors, categories, isLoading, isError, onRetry, o
               <td className={vendorClasses.vendorName}>{vendor.name}</td>
               <td className="num">
                 {vendor.phone ? (
-                  <MaskedPhone
-                    value={vendor.phone}
-                    kind="phone"
-                    reveal={{ targetKind: "vendor", targetId: vendor.id, field: "phone" }}
-                  />
+                  <PhoneText value={vendor.phone} />
                 ) : "-"}
               </td>
             </tr>

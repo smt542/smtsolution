@@ -151,7 +151,6 @@ export function HistoryTab() {
 
       {selected && (
         <MessageDetailModal
-          recipientsAlreadyMasked
           title="발송 상세"
           channel={selected.channel}
           rows={[

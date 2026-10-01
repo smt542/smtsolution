@@ -147,11 +147,10 @@ export function MobileTenantWorkspace({ data }: { data: MobileTenantData }) {
             <div className={styles.sec}>
               <div className={styles.row}>
                 <span className={styles.rowLabel}>전화번호</span>
-                {occ.phone && occ.occupancy_id ? (
+                {occ.phone ? (
                   <PartnerPhoneLink
                     phone={occ.phone}
                     pushRight
-                    reveal={{ targetKind: "occupancy", targetId: occ.occupancy_id, field: "phone" }}
                   />
                 ) : occ.phone ? (
                   <span className={styles.muted}>-</span>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { MaskedPhone } from "@/components/common/MaskedPhone";
+import { PhoneText } from "@/components/common";
 
 import type { Complaint } from "@/hooks/reactquery/complaints";
 
@@ -73,11 +73,7 @@ export function AsReceptionCard({ complaint, nameOf }: AsReceptionCardProps) {
         <span className="text-t3 font-semibold">접수시 전화</span>
         <span className="font-bold text-t2 num">
           {complaint.reporterPhone ? (
-            <MaskedPhone
-              value={complaint.reporterPhone}
-              kind="phone"
-              reveal={{ targetKind: "complaint", targetId: complaint.id, field: "reporter_phone" }}
-            />
+            <PhoneText value={complaint.reporterPhone} />
           ) : (
             "-"
           )}

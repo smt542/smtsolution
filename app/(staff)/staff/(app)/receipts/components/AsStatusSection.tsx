@@ -4,8 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useAppToast } from "@/hooks/common/useAppToast";
 import { useIsHydrated } from "@/hooks/common";
-import { MaskedPhone } from "@/components/common/MaskedPhone";
-import { Button, CustomDropdown, Panel, Spinner } from "@/components/common";
+import { Button, CustomDropdown, Panel, PhoneText, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useAccounts } from "@/hooks/reactquery/accounts";
 import { useAsCategories } from "@/hooks/reactquery/asCategories";
@@ -393,14 +392,9 @@ export function AsStatusSection({
                     <td className={AS_MEMO_TD_CLASS}>
                       {complaint.title || complaint.content || "-"}
                     </td>
-                    {/* MaskedPhone 의 [원문] 버튼(py-0.5·text-xs 16px)이 줄 높이를 20px 로 키우지 않게 셀에서만 덮는다. */}
-                    <td className={`${AS_TD_CLASS} num [&_button]:py-0 [&_button]:leading-[normal]`}>
+                    <td className={`${AS_TD_CLASS} num`}>
                       {complaint.reporterPhone ? (
-                        <MaskedPhone
-                          value={complaint.reporterPhone}
-                          kind="phone"
-                          reveal={{ targetKind: "complaint", targetId: complaint.id, field: "reporter_phone" }}
-                        />
+                        <PhoneText value={complaint.reporterPhone} />
                       ) : (
                         "-"
                       )}

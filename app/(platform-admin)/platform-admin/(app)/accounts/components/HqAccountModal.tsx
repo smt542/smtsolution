@@ -46,6 +46,8 @@ type InvalidField = "fullName" | "hqRole" | "phone" | "username" | "password";
 
 const PHONE_PATTERN = /^01\d-\d{3,4}-\d{4}$/;
 const PASSWORD_PATTERN = /^\d{4}$/;
+const isMaskedPhone = (value: string | null | undefined) => Boolean(value && value.includes("*"));
+const MASKED_PHONE_ERROR = "전화번호가 가려진 상태라 저장할 수 없습니다. 잠시 후 다시 시도해 주세요.";
 
 function initialValues(mode: HqAccountModalProps["mode"], account?: PlatformHqAccount): FormValues {
   if (mode === "edit" && account) {
@@ -163,6 +165,10 @@ export function HqAccountModal({ mode, account, onClose }: HqAccountModalProps) 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (requestPending) return;
+    if (mode === "edit" && isMaskedPhone(values.phone)) {
+      setError(MASKED_PHONE_ERROR);
+      return;
+    }
     const prepared = validate();
     if (!prepared) return;
 

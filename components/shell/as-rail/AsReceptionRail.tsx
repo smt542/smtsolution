@@ -144,7 +144,7 @@ export function AsReceptionRail() {
         </div>
         {tab === "as" ? <AsReceptionList refreshing={refreshing} /> : <MoveOutList refreshing={refreshing} />}
       </div>
-      <AsReportModal open={reportOpen} onClose={() => setReportOpen(false)} maskReporterPhones />
+      <AsReportModal open={reportOpen} onClose={() => setReportOpen(false)} />
     </aside>
   );
 }

@@ -1,16 +1,10 @@
-import { MaskedPhone } from "@/components/common/MaskedPhone";
+import { PhoneText } from "@/components/common";
 
 type PartnerPhoneLinkProps = {
-  /** Raw or server-masked phone number to display. */
+  /** Phone number to display. */
   phone: string;
   /** Adds `margin-left: auto` for a pill placed directly in a flex row. */
   pushRight?: boolean;
-  alreadyMasked?: boolean;
-  reveal: {
-    targetKind: string;
-    targetId: string | number;
-    field: string;
-  };
   /** 정본 `.btel` 규격. 기본 32px/r10, `lg`는 검침 자료 카드 34px/r11. */
   size?: "default" | "lg";
 };
@@ -28,18 +22,15 @@ function PhoneIcon() {
   );
 }
 
-/** Pill-style phone reveal with a handset icon, for partner mobile screens. */
-export function PartnerPhoneLink({ phone, pushRight, alreadyMasked = false, reveal, size = "default" }: PartnerPhoneLinkProps) {
+/** Pill-style phone link with a handset icon, for partner mobile screens. */
+export function PartnerPhoneLink({ phone, pushRight, size = "default" }: PartnerPhoneLinkProps) {
   return (
-    <span className={`inline-flex ${PILL_SIZE[size]} flex-none items-center gap-[5px] border border-line bg-white px-[11px] text-[13px] font-bold tabular-nums text-t2 ${pushRight ? "ml-auto" : ""}`}>
+    <a
+      href={`tel:${phone}`}
+      className={`inline-flex ${PILL_SIZE[size]} flex-none items-center gap-[5px] border border-line bg-white px-[11px] text-[13px] font-bold tabular-nums text-t2 ${pushRight ? "ml-auto" : ""}`}
+    >
       <PhoneIcon />
-      <MaskedPhone
-        value={phone}
-        kind="phone"
-        asTelLink
-        alreadyMasked={alreadyMasked}
-        reveal={reveal}
-      />
-    </span>
+      <PhoneText value={phone} />
+    </a>
   );
 }

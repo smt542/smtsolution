@@ -22,8 +22,11 @@ import type {
   PermissionInput,
 } from "@/hooks/reactquery/accounts";
 import type { StaffType } from "@/hooks/reactquery/auth";
-import { useRevealPiiBatch } from "@/hooks/reactquery/pii/mutations";
 import { PermissionChecklist } from "./PermissionChecklist";
+
+// 마이그 0219 적용 전 배포 구간에는 목록이 아직 별표 번호(010-****-1234)를 줄 수 있다.
+// 그대로 저장하면 원문이 별표로 덮이고, 빈 값으로 보내면 RPC(nullif)가 번호를 지운다 → 별표가 보이면 저장을 막는다.
+const isMaskedPhone = (value: string | null | undefined) => Boolean(value && value.includes("*"));
 
 interface Props {
   open: boolean;
@@ -74,15 +77,6 @@ export function AccountFormModal({
   const isTenant = editing?.staffType === "tenant";
   const modalStaffType = editing?.staffType ?? createStaffType;
   const isField = modalStaffType === "field_staff" || modalStaffType === "support_staff";
-  const piiReveal = useRevealPiiBatch(
-    {
-      targetKind: "profile",
-      targetId: editing?.userId ?? "",
-      fields: ["phone", "phone_sub"],
-    },
-    open && isEdit && !isTenant,
-  );
-
   const makeDefaults = React.useCallback(
     (): FormInput =>
       editing
@@ -90,7 +84,7 @@ export function AccountFormModal({
             username: editing.username,
             password: "",
             fullName: editing.fullName,
-            phone: "",
+            phone: editing.phone ?? "",
             staffType: editing.staffType,
             isMaster: editing.role === "org_owner" || editing.role === "platform_admin",
             isActive: editing.isActive,
@@ -126,18 +120,13 @@ export function AccountFormModal({
     handleSubmit,
     reset,
     setError,
-    getValues,
-    formState: { errors, isSubmitting, dirtyFields },
+    formState: { errors, isSubmitting },
   } = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(isEdit ? accountEditSchema : accountCreateSchema) as unknown as Resolver<FormInput, unknown, FormValues>,
     defaultValues: makeDefaults(),
     shouldFocusError: true,
   });
-  const piiRevealLoading = open && isEdit && !isTenant
-    && (piiReveal.isPending || piiReveal.isFetching);
-  const piiRevealReady = !isEdit || isTenant
-    || (piiReveal.isSuccess && !piiReveal.isFetching);
-  const submitting = isPending || isSubmitting || !piiRevealReady;
+  const submitting = isPending || isSubmitting;
   const closeSafely = () => {
     if (!submitting) onClose();
   };
@@ -146,29 +135,14 @@ export function AccountFormModal({
     if (open) reset(makeDefaults());
   }, [makeDefaults, open, reset]);
 
-  React.useEffect(() => {
-    if (
-      !open
-      || !isEdit
-      || isTenant
-      || !piiReveal.isSuccess
-      || piiReveal.isFetching
-      || !piiReveal.data
-      || dirtyFields.phone
-    ) return;
-
-    reset({ ...getValues(), phone: piiReveal.data.phone ?? "" }, { keepDirtyValues: true });
-  }, [dirtyFields.phone, getValues, isEdit, isTenant, open, piiReveal.data, piiReveal.isFetching, piiReveal.isSuccess, reset]);
-
   const selectedMaster = useWatch({ control, name: "isMaster" });
   const passwordField = register("password");
 
   const onValid = async (values: FormValues) => {
-    const revealedPii = piiReveal.data;
-    if (isEdit && !isTenant && (!piiReveal.isSuccess || piiReveal.isFetching || !revealedPii)) {
+    if (isEdit && editing && (isMaskedPhone(values.phone) || isMaskedPhone(editing.phoneSub))) {
       setError("root.server", {
         type: "server",
-        message: "전화번호 원문을 불러오지 못해 저장할 수 없습니다.",
+        message: "전화번호가 가려진 상태라 저장할 수 없습니다. 잠시 후 다시 시도해 주세요.",
       });
       return;
     }
@@ -204,7 +178,7 @@ export function AccountFormModal({
         await onUpdateBasic(editing.userId, {
           fullName: values.fullName,
           phone: values.phone || undefined,
-          phoneSub: revealedPii?.phone_sub ?? undefined,
+          phoneSub: editing.phoneSub ?? undefined,
           staffType: values.staffType,
           affiliation: editing.affiliation || undefined,
           roleIds: null,
@@ -275,17 +249,6 @@ export function AccountFormModal({
       ) : (
         <form onSubmit={handleSubmit(onValid)} className="flex min-h-0 flex-1 flex-col" noValidate>
           <p className="mb-[16px] flex-none text-[13px] font-semibold leading-[normal] text-t3">필수 항목(*)을 입력해 주세요</p>
-
-          {piiRevealLoading && (
-            <p role="status" className="mb-3 rounded-xl bg-blue-t px-3 py-2 text-sm font-semibold leading-[normal] text-brand">
-              전화번호 원문을 불러오는 중입니다. 조회가 끝날 때까지 저장할 수 없습니다.
-            </p>
-          )}
-          {open && isEdit && !isTenant && piiReveal.isError && (
-            <p role="alert" className="mb-3 rounded-xl bg-red-t px-3 py-2 text-sm font-semibold leading-[normal] text-red">
-              전화번호 원문을 불러오지 못했습니다. 저장할 수 없습니다.
-            </p>
-          )}
 
           <div className="min-h-0 flex-1 overflow-y-auto">
             <div className="grid grid-cols-2 gap-x-[15px] gap-y-[13px]">

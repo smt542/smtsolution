@@ -11,10 +11,10 @@ import {
 import { COMPLAINT_STATUS_LABEL } from "@/app/(staff)/staff/(app)/receipts/constants";
 import { Input, Spinner } from "@/components/common";
 import { DpDatePicker } from "@/components/common/DpDatePicker";
-import { MaskedPhone } from "@/components/common/MaskedPhone";
 import { useAccounts } from "@/hooks/reactquery/accounts";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useComplaints } from "@/hooks/reactquery/complaints";
+import { formatPhone } from "@/lib/format";
 
 import { hhmm, ymd } from "./constants";
 const PRINT_SHEET_ID = "aspPrintSheet";
@@ -92,11 +92,9 @@ function csvCell(value: string | number) {
 export function AsReportModal({
   open,
   onClose,
-  maskReporterPhones = false,
 }: {
   open: boolean;
   onClose: () => void;
-  maskReporterPhones?: boolean;
 }) {
   const today = useMemo(() => toDateKey(new Date()), []);
   const [search, setSearch] = useState("");
@@ -164,7 +162,9 @@ export function AsReportModal({
           time: hhmm(complaint.receivedAt),
           category: complaint.categoryLabel ?? "-",
           content: complaint.content?.trim() || complaint.title,
-          reporterPhone: complaint.reporterPhone ?? "-",
+          reporterPhone: complaint.reporterPhone?.trim()
+            ? formatPhone(complaint.reporterPhone)
+            : "-",
           status: COMPLAINT_STATUS_LABEL[complaint.status],
           receiver: complaint.createdBy
             ? accountNameById.get(complaint.createdBy) ?? "-"
@@ -468,17 +468,7 @@ export function AsReportModal({
                     </td>
                     <td className="text-center">{row.category}</td>
                     <td>{row.content}</td>
-                    <td className="text-center">
-                      {maskReporterPhones && row.reporterPhone !== "-" ? (
-                        <MaskedPhone
-                          value={row.reporterPhone}
-                          kind="phone"
-                          reveal={{ targetKind: "complaint", targetId: row.id, field: "reporter_phone" }}
-                        />
-                      ) : (
-                        row.reporterPhone
-                      )}
-                    </td>
+                    <td className="text-center">{row.reporterPhone}</td>
                     <td className="text-center">{row.status}</td>
                     <td className="text-center">
                       {row.receiver}

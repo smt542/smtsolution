@@ -1,5 +1,5 @@
 import type { StaffMoveOutRequest } from "@/hooks/reactquery/staffMoveOut/apis";
-import { MaskedPhone } from "@/components/common/MaskedPhone";
+import { PhoneText } from "@/components/common";
 
 import { MOVE_OUT_BADGE, moveOutUnitTitle, ymd } from "./constants";
 
@@ -50,11 +50,7 @@ export function MoveOutCard({ request, onDone }: MoveOutCardProps) {
         <span>연락처</span>
         <b className="font-bold text-t2 tabular-nums">
           {request.phone && request.occupancyId ? (
-            <MaskedPhone
-              value={request.phone}
-              kind="phone"
-              reveal={{ targetKind: "occupancy", targetId: request.occupancyId, field: "phone" }}
-            />
+            <PhoneText value={request.phone} />
           ) : (
             "-"
           )}

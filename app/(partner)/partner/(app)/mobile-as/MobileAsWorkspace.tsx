@@ -10,8 +10,7 @@ import {
   type PartnerAsCategory,
   type PartnerComplaintDetail,
 } from "@/hooks/reactquery/complaints";
-import { MaskedPhone } from "@/components/common/MaskedPhone";
-import { applyMask, Input, NUMERIC_INPUT_ATTRS, Textarea } from "@/components/common";
+import { applyMask, Input, NUMERIC_INPUT_ATTRS, PhoneText, Textarea } from "@/components/common";
 
 import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
 import { PartnerConfirmDialog } from "../../../_components/PartnerConfirmDialog";
@@ -191,12 +190,7 @@ function MobileAsEditor({
           <PartnerFormFieldRow label="입주자 전화번호">
             <span className={`${styles.ro} tabular-nums`}>
               {d.reporter_phone ? (
-                <MaskedPhone
-                  value={d.reporter_phone}
-                  kind="phone"
-                  compact
-                  reveal={{ targetKind: "complaint", targetId: d.id, field: "reporter_phone" }}
-                />
+                <PhoneText value={d.reporter_phone} />
               ) : (
                 "-"
               )}

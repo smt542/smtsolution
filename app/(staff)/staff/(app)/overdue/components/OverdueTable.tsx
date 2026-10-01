@@ -1,4 +1,4 @@
-import { MaskedPhone } from "@/components/common/MaskedPhone";
+import { PhoneText } from "@/components/common";
 import {
   buildOverdueGroups,
   formatOverduePeriod,
@@ -81,11 +81,7 @@ export function OverdueTable({ rows, periods = [] }: OverdueTableProps) {
                   <td className="border-b border-line2 px-[16px] text-t3">{index === 0 ? group.household.memo ?? group.household.unitMemo ?? "" : ""}</td>
                   <td className="border-b border-line2 px-[16px] num">
                     {index === 0 && group.household.phone ? (
-                      <MaskedPhone
-                        value={group.household.phone}
-                        kind="phone"
-                        reveal={{ targetKind: "occupancy", targetId: group.household.occupancyId, field: "phone" }}
-                      />
+                      <PhoneText value={group.household.phone} />
                     ) : (
                       ""
                     )}

@@ -461,7 +461,6 @@ export function ReceiptWorkspace({
             isLoading={isOccLoading}
             hasUnit={selectedUnitId !== null}
             canEdit={canEditPayment}
-            maskReadOnlyPhone
           />
           <AsStatusSection
             orgId={orgId}

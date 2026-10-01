@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { CustomDropdown, Input, Panel, PhoneInput, Spinner } from "@/components/common";
+import { CustomDropdown, Input, Panel, PhoneInput, PhoneText, Spinner } from "@/components/common";
 import { DpDatePicker } from "@/components/common/DpDatePicker";
-import { MaskedPhone } from "@/components/common/MaskedPhone";
 import { CalendarIcon, CloseIcon } from "@/components/icons";
 import type { UnitOccupancyFull } from "@/hooks/reactquery/occupancies";
 import { useSaveOccupancyFields } from "@/hooks/reactquery/receipts";
@@ -226,7 +225,6 @@ export function TenantInfoSection({
   isLoading,
   hasUnit,
   canEdit,
-  maskReadOnlyPhone,
 }: {
   orgId: number;
   buildingId: number | null;
@@ -235,7 +233,6 @@ export function TenantInfoSection({
   isLoading: boolean;
   hasUnit: boolean;
   canEdit: boolean;
-  maskReadOnlyPhone?: boolean;
 }) {
   const occ = data?.occupancy ?? null;
   const [editing, setEditing] = useState(false);
@@ -397,16 +394,8 @@ export function TenantInfoSection({
                   {occ.tenantName || "-"}
                 </td>
                 <td className={VIEW_TD_CLASS}>{occ.payerName || "-"}</td>
-                <td className={`${VIEW_TD_CLASS} num [&_button]:py-0 [&_button]:leading-[normal]`}>
-                  {occ.phone && maskReadOnlyPhone ? (
-                    <MaskedPhone
-                      value={occ.phone}
-                      kind="phone"
-                      reveal={{ targetKind: "occupancy", targetId: occ.id, field: "phone" }}
-                    />
-                  ) : (
-                    occ.phone || "-"
-                  )}
+                <td className={`${VIEW_TD_CLASS} num`}>
+                  {occ.phone ? <PhoneText value={occ.phone} /> : "-"}
                 </td>
                 <td className={`${VIEW_TD_CLASS} num`}>{formatDate(occ.moveInDate)}</td>
                 <td
