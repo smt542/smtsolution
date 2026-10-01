@@ -8,6 +8,7 @@ import { formatDate } from "@/lib/format";
 import { getResidentNoticeDetailPageData } from "../data";
 import ResidentNoticeRetryState from "../ResidentNoticeRetryState";
 import { noticeDetailClasses as styles } from "./detailClasses";
+import ResidentNoticeReadTracker from "./ResidentNoticeReadTracker";
 
 const typeLabel: Record<ResidentNoticeType, string> = {
   normal: "일반",
@@ -97,6 +98,7 @@ export default async function ResidentNoticeDetailPage({
   return (
     <div className={styles.page}>
       {header}
+      <ResidentNoticeReadTracker noticeId={detail.id} />
       <main className={styles.scroll}>
         <article>
           <span className={`${styles.tag} ${styles[detail.noticeType]}`}>

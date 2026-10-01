@@ -3,6 +3,8 @@ export const noticeClasses = {
   scroll: "min-h-0 flex-1 overflow-auto px-5 pt-3.5 pb-[calc(env(safe-area-inset-bottom)+24px)]",
   list: "rounded-[18px] bg-white px-4 py-0.5 shadow-[0_1px_2px_rgba(23,31,40,0.06)] animate-[rise_0.45s_cubic-bezier(0.22,0.61,0.36,1)_both]",
   row: "flex cursor-pointer items-start gap-[11px] border-b border-line2 py-4 text-t1 no-underline last:border-b-0",
+  /** 정본 .tx .unread — 종류 칩 바로 뒤(.top gap 6px) 6px 빨간 점 */
+  unreadBadge: "inline-block size-1.5 rounded-full bg-red",
   iconNormal: "flex size-9 flex-none items-center justify-center rounded-xl bg-blue-t2 text-blue-d",
   iconWarning: "flex size-9 flex-none items-center justify-center rounded-xl bg-amber-t text-amber",
   text: "min-w-0 flex-1",

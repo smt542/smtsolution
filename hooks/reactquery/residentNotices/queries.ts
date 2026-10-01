@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   residentBuildingNotice,
   residentNoticeDetail,
+  residentNoticeReadIds,
   residentNotices,
 } from "./apis";
 import { residentNoticeKeys } from "./keys";
@@ -21,6 +22,13 @@ export function useResidentNoticeDetail(id: number) {
     queryKey: residentNoticeKeys.detail(id),
     queryFn: () => residentNoticeDetail(id),
     enabled: Number.isInteger(id) && id > 0,
+  });
+}
+
+export function useResidentNoticeReadIds() {
+  return useQuery({
+    queryKey: residentNoticeKeys.readIds(),
+    queryFn: residentNoticeReadIds,
   });
 }
 

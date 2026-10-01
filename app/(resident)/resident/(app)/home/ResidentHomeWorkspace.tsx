@@ -10,6 +10,7 @@ import ResidentStatusChip from "@/app/(resident)/_components/ResidentStatusChip"
 import { useResidentBillMonths } from "@/hooks/reactquery/residentBilling";
 import {
   useResidentBuildingNotice,
+  useResidentNoticeReadIds,
   useResidentNotices,
 } from "@/hooks/reactquery/residentNotices";
 import { useMoveOutRequest } from "@/hooks/reactquery/residentMoveOut";
@@ -90,6 +91,7 @@ export default function ResidentHomeWorkspace() {
   const profileQuery = useResidentProfile();
   const monthsQuery = useResidentBillMonths();
   const noticesQuery = useResidentNotices();
+  const noticeReadIdsQuery = useResidentNoticeReadIds();
   const buildingNoticeQuery = useResidentBuildingNotice();
   const moveOutQuery = useMoveOutRequest();
   const [noticeOpen, setNoticeOpen] = useState(false);
@@ -122,6 +124,7 @@ export default function ResidentHomeWorkspace() {
     buildingNoticeQuery,
     moveOutQuery,
   ].some((query) => query.isFetching && !query.isPending);
+  // 읽음 기록(noticeReadIdsQuery)은 새 공지 점에만 쓴다 — 로딩·오류 판정에 넣지 않는다(0221 적용 전에도 홈이 떠야 함).
   const error = profileQuery.error || monthsQuery.error || noticesQuery.error;
 
   if (isHomeInitialLoading) {
@@ -184,7 +187,10 @@ export default function ResidentHomeWorkspace() {
   const trendDiff = trendCurrent - trendAvg;
   const showComparison = trend.length >= 2 && trendDiff !== 0;
 
-  const hasNotice = (noticesQuery.data?.length ?? 0) > 0;
+  const readNoticeIds = new Set(noticeReadIdsQuery.data ?? []);
+  const hasNotice = noticeReadIdsQuery.isSuccess && (noticesQuery.data ?? []).some(
+    (notice) => !readNoticeIds.has(notice.id),
+  );
   const buildingNotice = buildingNoticeQuery.data;
   // 정본 .mocard: 신청이 살아 있으면(확인 중·확정) 보인다. 취소·반려되면 숨긴다.
   const moveOut = moveOutQuery.data;

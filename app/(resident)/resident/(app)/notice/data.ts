@@ -4,6 +4,8 @@ import type {
   ResidentNotice,
   ResidentNoticeDetail,
   ResidentNoticeDetailRow,
+  ResidentNoticeListItem,
+  ResidentNoticeReadIdRow,
   ResidentNoticeRow,
 } from "@/hooks/reactquery/residentNotices/apis";
 import { resolveNoticeImageUrls } from "@/lib/notice/serverImages";
@@ -32,12 +34,26 @@ const rowToNoticeDetail = (
   contentJson: row.content_json ?? null,
 });
 
-export async function getResidentNotices(): Promise<ResidentNotice[]> {
+export async function getResidentNotices(): Promise<ResidentNoticeListItem[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("resident_notices");
+  const [noticesResult, readIdsResult] = await Promise.all([
+    supabase.rpc("resident_notices"),
+    supabase.rpc("resident_notice_read_ids"),
+  ]);
 
-  if (error) throw new Error(error.message);
-  return ((data ?? []) as ResidentNoticeRow[]).map(rowToNotice);
+  if (noticesResult.error) throw new Error(noticesResult.error.message);
+  // 읽음 기록 조회가 실패해도(예: 0221 적용 전) 목록은 그대로 보여 준다 — 점만 안 찍힌다.
+
+  const readIds = new Set(
+    ((readIdsResult.data ?? []) as ResidentNoticeReadIdRow[]).map(
+      (row) => row.notice_id,
+    ),
+  );
+
+  return ((noticesResult.data ?? []) as ResidentNoticeRow[]).map((row) => ({
+    ...rowToNotice(row),
+    isRead: Boolean(readIdsResult.error) || readIds.has(row.id),
+  }));
 }
 
 export async function getResidentNoticeDetailPageData(id: number): Promise<{

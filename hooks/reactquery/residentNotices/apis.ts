@@ -37,6 +37,14 @@ export interface ResidentNoticeDetail extends ResidentNotice {
   contentJson: NoticeDoc | null;
 }
 
+export interface ResidentNoticeListItem extends ResidentNotice {
+  isRead: boolean;
+}
+
+export interface ResidentNoticeReadIdRow {
+  notice_id: number;
+}
+
 export type ResidentNoticesResult = ResidentNotice[];
 export type ResidentNoticeDetailResult = ResidentNoticeDetail | null;
 
@@ -74,6 +82,21 @@ export async function residentNoticeDetail(
   if (error) throw new Error(error.message);
   const row = ((data ?? []) as ResidentNoticeDetailRow[])[0];
   return row ? rowToNoticeDetail(row) : null;
+}
+
+export async function residentNoticeReadIds(): Promise<number[]> {
+  const { data, error } = await createClient().rpc("resident_notice_read_ids");
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as ResidentNoticeReadIdRow[]).map(
+    (row) => row.notice_id,
+  );
+}
+
+export async function residentMarkNoticeRead(noticeId: number): Promise<void> {
+  const { error } = await createClient().rpc("resident_mark_notice_read", {
+    p_notice_id: noticeId,
+  });
+  if (error) throw new Error(error.message);
 }
 
 export async function residentBuildingNotice(): Promise<string | null> {

@@ -79,6 +79,9 @@ export default async function ResidentNoticePage() {
                   <span className={styles.text}>
                     <span className={styles.top}>
                       <span className={kindClass}>{typeLabel[notice.noticeType]}</span>
+                      {!notice.isRead ? (
+                        <i className={styles.unreadBadge} role="img" aria-label="읽지 않은 공지" />
+                      ) : null}
                     </span>
                     <strong className={styles.title}>{notice.title}</strong>
                     {notice.preview ? (
