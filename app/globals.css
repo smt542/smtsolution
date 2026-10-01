@@ -242,3 +242,10 @@ body:has([data-partner-login]) [data-partner-shell] {
   background-color: #ffffff;
 }
 
+/* Keep the resident login's full-bleed and safe-area background white without changing other resident screens. */
+html:has([data-resident-login]),
+body:has([data-resident-login]),
+body:has([data-resident-login]) [data-resident-shell] {
+  background-color: #ffffff;
+}
+

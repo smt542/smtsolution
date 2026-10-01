@@ -1,11 +1,16 @@
 import Image from "next/image";
+import type { Viewport } from "next";
 
 import ResidentLoginAction from "./ResidentLoginAction";
 import { loginClasses as styles } from "./loginClasses";
 
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
+};
+
 export default function ResidentLoginPage() {
   return (
-    <>
+    <div data-resident-login className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
       <div className={styles.glow} />
       <div className={styles.top}>
         <div className={styles.brand}>
@@ -56,6 +61,6 @@ export default function ResidentLoginPage() {
         </div>
       </div>
       <ResidentLoginAction />
-    </>
+    </div>
   );
 }

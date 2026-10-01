@@ -1,11 +1,15 @@
 "use client";
 
-import { showResidentToast } from "./residentToast";
+import {
+  showResidentToast,
+  type ResidentToastOffset,
+} from "./residentToast";
 
 interface CopyButtonProps {
   text: string;
   label: string;
   toastMessage: string;
+  toastOffset?: ResidentToastOffset;
   className?: string;
   disabled?: boolean;
 }
@@ -14,6 +18,7 @@ export default function CopyButton({
   text,
   label,
   toastMessage,
+  toastOffset = "page",
   className,
   disabled = false,
 }: CopyButtonProps) {
@@ -24,13 +29,13 @@ export default function CopyButton({
       } else {
         fallbackCopy(text);
       }
-      showResidentToast(toastMessage);
+      showResidentToast(toastMessage, toastOffset);
     } catch {
       try {
         fallbackCopy(text);
-        showResidentToast(toastMessage);
+        showResidentToast(toastMessage, toastOffset);
       } catch {
-        showResidentToast("복사하지 못했어요");
+        showResidentToast("복사하지 못했어요", toastOffset);
       }
     }
   };

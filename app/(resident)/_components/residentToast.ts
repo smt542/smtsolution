@@ -1,10 +1,11 @@
-export type ResidentToastOffset = "page" | "nav";
+export type ResidentToastOffset = "page" | "nav" | "billDetail";
 
 const toastBaseClass =
   "fixed left-1/2 z-[90] -translate-x-1/2 whitespace-nowrap rounded-[13px] bg-[#191F28] px-5 py-[13px] text-[14px] font-bold leading-[normal] text-white";
 const toastOffsetClass: Record<ResidentToastOffset, string> = {
   page: "bottom-[56px]",
   nav: "bottom-[96px]",
+  billDetail: "bottom-[calc(12px+env(safe-area-inset-bottom))]",
 };
 
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
@@ -27,7 +28,11 @@ export function showResidentToast(
     toast.style.display = "none";
     document.body.appendChild(toast);
   } else {
-    toast.classList.remove("bottom-[56px]", "bottom-[96px]");
+    toast.classList.remove(
+      "bottom-[56px]",
+      "bottom-[96px]",
+      "bottom-[calc(12px+env(safe-area-inset-bottom))]",
+    );
     toast.classList.add(toastOffsetClass[offset]);
   }
 

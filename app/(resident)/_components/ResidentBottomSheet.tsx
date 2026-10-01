@@ -44,7 +44,7 @@ export default function ResidentBottomSheet({
   return (
     <div
       id={id}
-      className={`fixed inset-0 z-[90] items-end justify-center overflow-hidden bg-scrim ${open ? "flex" : "hidden"}`}
+      className={`fixed inset-0 ${variant === "moveOut" ? "z-[115]" : "z-[90]"} items-end justify-center overflow-hidden bg-scrim ${open ? "flex" : "hidden"}`}
       onClick={(event) => {
         if (event.target === event.currentTarget) {
           onDismiss();

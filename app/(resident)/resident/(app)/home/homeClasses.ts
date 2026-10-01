@@ -57,6 +57,6 @@ export const residentHomeClasses = {
   modalCard: "flex max-h-[calc(100dvh-120px)] w-full max-w-[380px] flex-col overflow-hidden rounded-[20px] bg-white",
   modalHead: "flex-none px-[22px] pb-3.5 pt-[22px]",
   modalTitle: "m-0 text-[18px] font-extrabold leading-[1.4] tracking-[-0.02em]",
-  modalBody: "min-h-0 flex-1 overflow-auto px-[22px] pb-[18px] pt-1 text-[14px] font-medium leading-[1.75] text-t2 [text-wrap:pretty] whitespace-pre-line",
+  modalBody: "min-h-0 flex-1 overflow-auto px-[22px] pb-[18px] pt-1 text-[14px] font-medium leading-[1.75] text-t2 [text-wrap:pretty] whitespace-pre-line [word-break:keep-all] [overflow-wrap:anywhere]",
   modalFoot: "flex-none px-[22px] pb-5",
 } as const;

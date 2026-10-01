@@ -163,12 +163,14 @@ export default function BillDetailView(props: BillDetailViewProps) {
                 text={account}
                 label="계좌 복사"
                 toastMessage="계좌번호를 복사했어요"
+                toastOffset="billDetail"
                 className={residentButtonClass({ size: "sm", variant: "primaryTint", className: "flex-1 disabled:cursor-default disabled:opacity-55" })}
               />
               <CopyButton
                 text={accountWithAmount}
                 label="계좌·금액 복사"
                 toastMessage="계좌번호와 금액을 복사했어요"
+                toastOffset="billDetail"
                 className={residentButtonClass({ size: "sm", variant: "primary", className: "flex-1 disabled:cursor-default disabled:opacity-55" })}
               />
             </div>
