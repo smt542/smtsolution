@@ -2,6 +2,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   adjustPoints,
   chargePoints,
+  deletePointCharge,
+  updatePointCharge,
   updateOrganizationStatus,
   createPlatformOrganization,
   updatePlatformOrganization,
@@ -9,6 +11,7 @@ import {
   deletePlatformOrganization,
   type AdjustPointsInput,
   type ChargePointsInput,
+  type UpdatePointChargeInput,
   type OrganizationStatus,
   type CreateOrgInput,
   type UpdateOrgInput,
@@ -32,6 +35,28 @@ export function useChargePoints() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: ChargePointsInput) => chargePoints(input),
+    onSuccess: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: platformKeys.organizations() }),
+      queryClient.invalidateQueries({ queryKey: [...platformKeys.all, "transactions"] }),
+    ]),
+  });
+}
+
+export function useUpdatePointCharge() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: UpdatePointChargeInput) => updatePointCharge(input),
+    onSuccess: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: platformKeys.organizations() }),
+      queryClient.invalidateQueries({ queryKey: [...platformKeys.all, "transactions"] }),
+    ]),
+  });
+}
+
+export function useDeletePointCharge() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => deletePointCharge(id),
     onSuccess: () => Promise.all([
       queryClient.invalidateQueries({ queryKey: platformKeys.organizations() }),
       queryClient.invalidateQueries({ queryKey: [...platformKeys.all, "transactions"] }),

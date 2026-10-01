@@ -36,6 +36,11 @@ export interface ChargePointsInput {
   memo?: string | null;
 }
 
+export interface UpdatePointChargeInput {
+  id: number;
+  points: number; // > 0
+}
+
 export interface AdjustPointsInput {
   orgId: number;
   kind: PointAdjustmentKind;
@@ -377,6 +382,35 @@ export async function chargePoints(input: ChargePointsInput): Promise<void> {
     p_points: input.points,
     p_amount_krw: input.amountKrw,
     p_memo: input.memo?.trim() || null,
+  });
+  if (error) throw new Error(error.message);
+  assertPointOperationResult(data);
+}
+
+export async function updatePointCharge(input: UpdatePointChargeInput): Promise<void> {
+  if (!Number.isInteger(input.id) || input.id <= 0) {
+    throw new Error("충전 기록 식별자는 1 이상의 정수여야 합니다.");
+  }
+  if (!Number.isInteger(input.points) || input.points <= 0) {
+    throw new Error("충전 포인트는 1 이상의 정수여야 합니다.");
+  }
+
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("platform_update_point_charge", {
+    p_tx_id: input.id,
+    p_points: input.points,
+  });
+  if (error) throw new Error(error.message);
+  assertPointOperationResult(data);
+}
+
+export async function deletePointCharge(id: number): Promise<void> {
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error("충전 기록 식별자는 1 이상의 정수여야 합니다.");
+  }
+
+  const { data, error } = await createClient().rpc("platform_delete_point_charge", {
+    p_tx_id: id,
   });
   if (error) throw new Error(error.message);
   assertPointOperationResult(data);

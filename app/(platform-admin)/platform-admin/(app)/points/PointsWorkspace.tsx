@@ -9,9 +9,11 @@ import {
   listPointTransactions,
   platformKeys,
   useChargePoints,
+  useDeletePointCharge,
   useMessagePointRates,
   usePlatformOrgBilling,
   usePlatformSettings,
+  useUpdatePointCharge,
   type PlatformOrganizationQuery,
   type PointTransaction,
   type PointTransactionCursor,
@@ -83,6 +85,7 @@ async function listAllChargeTransactions() {
 
 export default function PointsWorkspace() {
   const [chargeModalOpen, setChargeModalOpen] = useState(false);
+  const [selectedCharge, setSelectedCharge] = useState<PointTransaction | null>(null);
   const [historyPage, setHistoryPage] = useState(1);
   const historyScrollerRef = useRef<HTMLDivElement>(null);
   const modalOrgsQuery = useQuery({
@@ -98,6 +101,8 @@ export default function PointsWorkspace() {
     queryFn: listAllChargeTransactions,
   });
   const charge = useChargePoints();
+  const updateCharge = useUpdatePointCharge();
+  const deleteCharge = useDeletePointCharge();
 
   const modalOrganizations = useMemo(
     () => (modalOrgsQuery.data?.rows ?? []).filter((organization) => !organization.deletedAt),
@@ -208,6 +213,30 @@ export default function PointsWorkspace() {
       setHistoryPage(1);
     } catch (error) {
       toast.error(error, "충전 기록에 실패했습니다.");
+      throw error;
+    }
+  };
+
+  const handleUpdateCharge = async (amount: number) => {
+    if (!selectedCharge) return;
+    try {
+      await updateCharge.mutateAsync({ id: selectedCharge.id, points: amount });
+      toast.success("충전 기록을 수정했어요");
+      setHistoryPage(1);
+    } catch (error) {
+      toast.error(error, "충전 기록을 수정하지 못했습니다.");
+      throw error;
+    }
+  };
+
+  const handleDeleteCharge = async () => {
+    if (!selectedCharge) return;
+    try {
+      await deleteCharge.mutateAsync(selectedCharge.id);
+      toast.success("충전 기록을 삭제했어요");
+      setHistoryPage(1);
+    } catch (error) {
+      toast.error(error, "충전 기록을 삭제하지 못했습니다.");
       throw error;
     }
   };
@@ -357,17 +386,23 @@ export default function PointsWorkspace() {
               {pagedChargeTransactions.map((transaction) => (
                 <li
                   key={transaction.id}
-                  className="flex items-center gap-3 border-b border-line2 px-[18px] py-[14px] last:border-b-0"
+                  className="border-b border-line2 last:border-b-0"
                 >
-                  <div className="min-w-0 flex-1 text-[14px] font-bold text-t1">
-                    {num(transaction.points)}P
-                    <em className="mt-[3px] block text-[12.5px] font-semibold not-italic text-t3 tabular-nums">
-                      {formatChargeDate(transaction.createdAt)}
-                    </em>
-                  </div>
-                  <span className="text-[13px] font-bold text-t3 tabular-nums">
-                    {transaction.createdByName ?? "기록자 미상"}
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCharge(transaction)}
+                    className="flex w-full cursor-pointer items-center gap-3 px-[18px] py-[14px] text-left hover:bg-row-hover"
+                  >
+                    <span className="block min-w-0 flex-1 text-[14px] font-bold text-t1">
+                      {num(transaction.points)}P
+                      <em className="mt-[3px] block text-[12.5px] font-semibold not-italic text-t3 tabular-nums">
+                        {formatChargeDate(transaction.createdAt)}
+                      </em>
+                    </span>
+                    <span className="text-[13px] font-bold text-t3 tabular-nums">
+                      {transaction.createdByName ?? "기록자 미상"}
+                    </span>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -401,6 +436,19 @@ export default function PointsWorkspace() {
             isPending={charge.isPending}
           />
         )
+      )}
+
+      {selectedCharge && (
+        <PointChargeModal
+          key={selectedCharge.id}
+          open
+          mode="edit"
+          initialAmount={selectedCharge.points}
+          onClose={() => setSelectedCharge(null)}
+          onSubmit={handleUpdateCharge}
+          onDelete={handleDeleteCharge}
+          isPending={updateCharge.isPending || deleteCharge.isPending}
+        />
       )}
     </PlatformPageContainer>
   );

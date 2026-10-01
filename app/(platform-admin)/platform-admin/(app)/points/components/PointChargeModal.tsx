@@ -2,13 +2,19 @@
 import { useState, type FormEvent } from "react";
 import { Button, Input, Modal } from "@/components/common";
 import { appToast as toast } from "@/hooks/common/useAppToast";
+import { useConfirm } from "@/components/common/ConfirmProvider";
 import { formatNumber } from "@/lib/format";
+
+type PointChargeModalMode = "create" | "edit";
 
 interface Props {
   open: boolean;
   onClose: () => void;
+  mode?: PointChargeModalMode;
+  initialAmount?: number;
   /** 충전 금액(원). 1원 = 1P */
   onSubmit: (amount: number) => Promise<void>;
+  onDelete?: () => Promise<void>;
   isPending: boolean;
 }
 
@@ -29,10 +35,22 @@ const QUICK_AMOUNTS = [
 const digitsOf = (text: string) => text.replace(/[^0-9]/g, "");
 
 /** 본사가 팝빌에서 결제한 금액을 기록한다(팝빌 잔액은 자동으로 못 가져온다) — 대상 조직 없음 */
-export function PointChargeModal({ open, onClose, onSubmit, isPending }: Props) {
-  const [amount, setAmount] = useState("");
+export function PointChargeModal({
+  open,
+  onClose,
+  mode = "create",
+  initialAmount,
+  onSubmit,
+  onDelete,
+  isPending,
+}: Props) {
+  const confirm = useConfirm();
+  const [amount, setAmount] = useState(() => (
+    mode === "edit" && initialAmount != null ? formatNumber(initialAmount) : ""
+  ));
   const [submitting, setSubmitting] = useState(false);
-  const busy = isPending || submitting;
+  const [confirming, setConfirming] = useState(false);
+  const busy = isPending || submitting || confirming;
 
   const closeSafely = () => {
     if (!busy) onClose();
@@ -46,7 +64,7 @@ export function PointChargeModal({ open, onClose, onSubmit, isPending }: Props) 
     event.preventDefault();
     if (busy) return;
     const value = Number(digitsOf(amount));
-    if (!value) {
+    if (!Number.isInteger(value) || value <= 0) {
       toast.warning("충전 금액을 입력해 주세요");
       return;
     }
@@ -60,11 +78,34 @@ export function PointChargeModal({ open, onClose, onSubmit, isPending }: Props) 
     }
   };
 
+  const deleteCharge = async () => {
+    if (busy || mode !== "edit" || !onDelete) return;
+    setConfirming(true);
+    try {
+      const accepted = await confirm({
+        title: "충전 기록 삭제",
+        description: `${formatNumber(initialAmount ?? Number(digitsOf(amount)))}P 충전 기록을 삭제합니다. 삭제하면 되돌릴 수 없어요.`,
+        confirmLabel: "삭제",
+        variant: "danger",
+      });
+      if (!accepted) return;
+
+      setSubmitting(true);
+      await onDelete();
+      onClose();
+    } catch {
+      // 실패 토스트는 호출부가 띄운다 — 삭제에 실패하면 모달을 둔다
+      setSubmitting(false);
+    } finally {
+      setConfirming(false);
+    }
+  };
+
   return (
     <Modal
       open={open}
       onClose={closeSafely}
-      title="팝빌 포인트 충전"
+      title={mode === "edit" ? "팝빌 포인트" : "팝빌 포인트 충전"}
       className={MODAL_CLASS}
       bodyClassName=""
     >
@@ -100,9 +141,23 @@ export function PointChargeModal({ open, onClose, onSubmit, isPending }: Props) 
         </div>
 
         <div className="mt-5 flex justify-end gap-2">
+          {mode === "edit" && (
+            <>
+              <Button
+                type="button"
+                variant="danger"
+                onClick={() => void deleteCharge()}
+                disabled={busy}
+                className="border border-red"
+              >
+                삭제
+              </Button>
+              <div className="flex-1" />
+            </>
+          )}
           <Button type="button" variant="ghost" onClick={closeSafely} disabled={busy}>취소</Button>
           <Button type="submit" variant="primary" disabled={busy} className="border border-transparent">
-            충전
+            {mode === "edit" ? "수정" : "충전"}
           </Button>
         </div>
       </form>
