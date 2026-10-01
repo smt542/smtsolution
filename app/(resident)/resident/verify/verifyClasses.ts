@@ -7,7 +7,7 @@ export const verifyClasses = {
   r: "flex items-center justify-between gap-2.5 py-2 text-[13.5px] font-semibold text-t3 [&_b]:text-sm [&_b]:font-bold [&_b]:text-t1",
   hint: "mt-3.5 flex gap-2 rounded-[13px] bg-blue-t2 px-3.5 py-[13px] text-[12.5px] font-semibold leading-[1.6] text-blue-d [&_svg]:mt-px [&_svg]:size-[15px] [&_svg]:flex-none animate-[rise_0.5s_0.18s_cubic-bezier(0.22,0.61,0.36,1)_both]",
   btn: "h-14 w-full rounded-2xl border-0 text-[16.5px] font-bold tracking-[-0.02em] transition active:scale-[0.985]",
-  alt: "h-11 bg-transparent text-sm font-semibold text-t3 underline decoration-1 underline-offset-[3px] hover:text-t2",
+  alt: "h-11 w-full rounded-2xl border-0 bg-transparent text-sm font-semibold leading-[normal] tracking-[-0.02em] text-t3 underline decoration-1 underline-offset-[3px] transition active:scale-[0.985] hover:text-t2",
   sheetT: "flex-none text-lg font-extrabold leading-[normal] tracking-[-0.02em]",
   sheetD: "mt-[7px] flex-none text-[13.5px] font-medium leading-[1.65] text-t3",
   list: "min-h-0 flex-1 touch-pan-y overscroll-contain overflow-auto px-1.5 -mx-1.5 mt-4",

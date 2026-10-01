@@ -161,7 +161,7 @@ export default function ResidentVerifyFlow() {
             <button
               id="rvNo"
               type="button"
-              className={`${styles.btn} ${styles.alt}`}
+              className={styles.alt}
               onClick={openSheet}
             >
               제 세대가 아니에요

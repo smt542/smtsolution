@@ -9,6 +9,7 @@ import BottomNav from "@/app/(resident)/_components/BottomNav";
 import MoveOutSection from "@/app/(resident)/_components/MoveOutSection";
 import ResidentAsyncState from "@/app/(resident)/_components/ResidentAsyncState";
 import ResidentConfirmDialog from "@/app/(resident)/_components/ResidentConfirmDialog";
+import { showResidentToast } from "@/app/(resident)/_components/residentToast";
 import { useAsyncAction } from "@/hooks/common";
 import { useMoveOutRequest } from "@/hooks/reactquery/residentMoveOut";
 import {
@@ -109,6 +110,20 @@ export default function ResidentMeWorkspace() {
   const displayName = profile.kakaoName || profile.tenantName || "사용자";
   const avatarChar = Array.from(displayName.trim())[0] ?? "세";
   const notifyOn = profile.alimtalkOptIn;
+
+  const saveNotifyPrefs = (alimtalk: boolean) => {
+    notifyMutation.mutate(
+      { alimtalk, sms: alimtalk },
+      {
+        onSuccess: () => {
+          showResidentToast(
+            `알림톡 ${alimtalk ? "받기로 했어요" : "끄기 완료"}`,
+            "nav",
+          );
+        },
+      },
+    );
+  };
 
   const moveOut = moveOutQuery.data;
   const moveOutSubtitle =
@@ -234,7 +249,7 @@ export default function ResidentMeWorkspace() {
                 if (notifyOn) {
                   setAlimtalkWarningOpen(true);
                 } else {
-                  notifyMutation.mutate({ alimtalk: true, sms: true });
+                  saveNotifyPrefs(true);
                 }
               }}
             />
@@ -293,12 +308,12 @@ export default function ResidentMeWorkspace() {
       <ResidentConfirmDialog
         open={alimtalkWarningOpen}
         title="알림톡을 끌까요?"
-        description={<>관리비가 확정돼도 <b>금액 · 납부 계좌 · 기한</b>을 알려드릴 수 없어요.</>}
+        description={<>관리비가 확정돼도<br /><b>금액 · 납부 계좌 · 기한</b>을 알려드릴 수 없어요.</>}
         confirmLabel="그래도 끄기"
         tone="danger"
         onCancel={() => setAlimtalkWarningOpen(false)}
         onConfirm={() => {
-          notifyMutation.mutate({ alimtalk: false, sms: false });
+          saveNotifyPrefs(false);
           setAlimtalkWarningOpen(false);
         }}
       />
@@ -307,7 +322,7 @@ export default function ResidentMeWorkspace() {
         open={logoutOpen}
         title="로그아웃할까요?"
         description="다시 카카오로 로그인하면 바로 이용할 수 있어요."
-        confirmLabel={logoutAction.isPending ? "로그아웃 중…" : "로그아웃"}
+        confirmLabel="로그아웃"
         busy={logoutAction.isPending}
         onCancel={() => setLogoutOpen(false)}
         onConfirm={() => void confirmLogout()}
@@ -316,10 +331,10 @@ export default function ResidentMeWorkspace() {
       <ResidentConfirmDialog
         open={withdrawOpen}
         title="정말 탈퇴할까요?"
-        description="세대 연결과 알림 설정이 모두 삭제돼요. 부과 · 납부 내역은 관리사무소에 보관됩니다."
+        description={<>세대 연결과 알림 설정이 모두 삭제돼요.<br />부과·납부 내역은 관리사무소에 보관됩니다.</>}
         error={withdrawError}
         cancelLabel="취소"
-        confirmLabel={withdrawResident.isPending ? "탈퇴 처리 중…" : "탈퇴하기"}
+        confirmLabel="탈퇴하기"
         tone="danger"
         busy={withdrawResident.isPending}
         cancelDisabled={withdrawResident.isPending}
