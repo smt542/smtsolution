@@ -17,6 +17,12 @@ export function getNoticeTemplateTitle(noticeType: NoticeType): string {
   return NOTICE_TEMPLATE_TITLES[noticeType];
 }
 
+export function getNoticeCreatorLabel(
+  notice: Pick<Notice, "createdBy" | "createdByName">,
+): string {
+  return notice.createdByName ?? (notice.createdBy ? "작성자 미상" : "-");
+}
+
 export const NOTICE_STATUS_LABELS: Record<Exclude<NoticeStatus, "all">, string> = {
   draft: "초안",
   scheduled: "예약",

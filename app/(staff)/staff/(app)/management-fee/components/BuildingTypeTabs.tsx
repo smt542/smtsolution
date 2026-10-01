@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { Tabs } from "@/components/common";
+import { Input, Tabs } from "@/components/common";
 import type { BuildingType } from "@/hooks/reactquery/buildingTypes";
 
 interface Props {
@@ -51,7 +51,8 @@ export function BuildingTypeTabs({ types, activeId, onChange, onAdd, onRename, o
       />
       {showAddInput && (
         <div className="flex items-center gap-2 border-b border-line px-4 py-2">
-          <input
+          <Input
+            unstyled
             autoFocus
             className="h-9 rounded-lg border border-line bg-bg px-3 text-sm text-t1 focus:border-brand focus:outline-none"
             placeholder="유형명 입력"

@@ -1,6 +1,7 @@
 "use client";
 
 import { appToast as toast } from "@/hooks/common/useAppToast";
+import { Textarea } from "@/components/common";
 import { useSetBuildingSetupConfirm, type Building } from "@/hooks/reactquery/buildings";
 
 interface BillingReferencePanelProps {
@@ -62,7 +63,8 @@ export function BillingReferencePanel({
 
       {building ? (
         editing ? (
-          <textarea
+          <Textarea
+            unstyled
             aria-label="부과시 참조사항"
             value={note}
             onChange={(event) => onNoteChange(event.target.value)}

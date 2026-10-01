@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Input } from "@/components/common";
 
 export interface DdOption {
   value: string;
@@ -146,7 +147,8 @@ export function FilterDropdown({
               <circle cx="11" cy="11" r="7" />
               <path d="M20 20l-3-3" />
             </svg>
-            <input
+            <Input
+              unstyled
               className="w-full h-[36px] border border-line rounded-[10px] pl-8 pr-[11px] text-[12.5px] font-medium text-t1 outline-none bg-white focus:border-blue"
               value={query}
               onChange={(event) => setQuery(event.target.value)}

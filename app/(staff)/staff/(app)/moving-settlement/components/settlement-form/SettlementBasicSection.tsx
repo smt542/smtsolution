@@ -1,3 +1,4 @@
+import { Input } from "@/components/common";
 import { DpDatePicker } from "@/components/common/DpDatePicker";
 import { CalendarIcon } from "@/components/icons";
 
@@ -29,7 +30,8 @@ export function SettlementBasicSection({
       </label>
       <label>
         <span className="mb-[6px] block h-[14px] text-[12px] font-bold leading-[14px] text-t2">계산일수 · 기준</span>
-        <input
+        <Input
+          unstyled
           aria-label="계산일수 기준"
           readOnly
           value="30"
@@ -38,7 +40,8 @@ export function SettlementBasicSection({
       </label>
       <label>
         <span className="mb-[6px] block h-[14px] text-[12px] font-bold leading-[14px] text-t2">계산일수 · 부과</span>
-        <input
+        <Input
+          unstyled
           aria-label="계산일수 부과"
           readOnly
           value={day}

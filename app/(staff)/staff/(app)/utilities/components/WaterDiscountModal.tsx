@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Button, CustomDropdown, Modal } from "@/components/common";
+import { Button, CustomDropdown, Input, Modal } from "@/components/common";
 import {
   useSaveWaterDiscount,
   useDeleteWaterDiscount,
@@ -82,7 +82,8 @@ export function WaterDiscountModal({ open, buildingId, period, row, onClose }: W
         </label>
         <label className="block">
           <span className="mb-1.5 block text-xs font-bold text-t2">할인 금액</span>
-          <input
+          <Input
+            unstyled
             aria-label="할인 금액"
             type="number"
             min="0"

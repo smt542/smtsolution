@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Input } from "@/components/common";
 import { BUILDING_GROUP_TYPES, matchesBuildingGroup } from "@/lib/buildings/groupType";
 import { useAccounts } from "@/hooks/reactquery/accounts/queries";
 import { useBuildings } from "@/hooks/reactquery/buildings/queries";
@@ -86,7 +87,8 @@ function SearchField({
         <circle cx="11" cy="11" r="7" />
         <path d="M20 20l-3-3" />
       </svg>
-      <input
+      <Input
+        unstyled
         value={value}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
@@ -553,7 +555,8 @@ export function RecipientCascade({
                     <circle cx="11" cy="11" r="7" />
                     <path d="M20 20l-3-3" />
                   </svg>
-                  <input
+                  <Input
+                    unstyled
                     value={secondSearch}
                     placeholder="건물명·주소 검색"
                     onChange={(event) => setSecondSearch(event.target.value)}

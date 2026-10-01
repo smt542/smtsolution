@@ -1,5 +1,6 @@
 "use client";
 import { useRef } from "react";
+import { Input } from "@/components/common";
 import { SelectField } from "./SelectField";
 import { textFieldInputClass } from "./TextField";
 
@@ -49,7 +50,8 @@ export function VendorNameField({
         }}
       />
       {manual && (
-        <input
+        <Input
+          unstyled
           ref={inputRef}
           value={name}
           onChange={(e) => onNameChange(e.target.value)}

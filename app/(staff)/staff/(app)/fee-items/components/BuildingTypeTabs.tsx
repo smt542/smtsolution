@@ -1,6 +1,6 @@
 "use client";
 
-import { IconButton } from "@/components/common";
+import { IconButton, Input } from "@/components/common";
 import type { BuildingTypeDraft } from "./types";
 
 interface BuildingTypeTabsProps {
@@ -47,7 +47,8 @@ export function BuildingTypeTabs({
               }`}
             >
               {editing ? (
-                <input
+                <Input
+                  unstyled
                   key={refocusToken}
                   autoFocus
                   aria-label="건물 유형명"

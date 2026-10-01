@@ -1,3 +1,4 @@
+import { Textarea } from "@/components/common";
 import { FieldLabel } from "./FieldLabel";
 
 /** Figma textarea: rounded-10 border-line, px-13 py-11, 14px value, optional helper/counter footer. */
@@ -34,7 +35,8 @@ export function TextAreaField({
         </FieldLabel>
       )}
       <div className={label ? "pt-[6px]" : ""}>
-        <textarea
+        <Textarea
+          unstyled
           value={value ?? ""}
           onChange={(e) => onChange?.(e.target.value)}
           placeholder={placeholder}

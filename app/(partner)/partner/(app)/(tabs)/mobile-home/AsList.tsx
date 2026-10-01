@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
+import { Input } from "@/components/common";
 import { formatDate } from "@/lib/format";
 
 import { homeClasses as styles } from "./homeClasses";
@@ -79,7 +80,8 @@ export function AsList({ rows }: { rows: AsRow[] }) {
           <circle cx="11" cy="11" r="7" />
           <path d="M20 20l-3-3" />
         </svg>
-        <input
+        <Input
+          unstyled
           className={styles.search}
           value={q}
           onChange={(e) => setQ(e.target.value)}

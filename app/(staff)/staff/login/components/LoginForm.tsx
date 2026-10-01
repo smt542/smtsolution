@@ -13,7 +13,7 @@ import {
 } from "@/components/forms/schema/auth";
 import { useLogin } from "@/hooks/reactquery/auth";
 import { AUTO_LOGIN_KEY } from "@/lib/auth/sessionPersistence";
-import { Button } from "@/components/common";
+import { Button, Input } from "@/components/common";
 
 const fieldBase =
   "h-12 rounded-[13px] border border-line bg-white text-[14.5px] font-medium text-t1 placeholder:text-[#757575] outline-none transition focus:border-[#14A497] focus:ring-[3px] focus:ring-blue-t";
@@ -43,12 +43,12 @@ export function LoginForm() {
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-3.5" noValidate>
       <FormField htmlFor="username" label="아이디" error={errors.username?.message} className="flex flex-col gap-[7px]">
-        <input id="username" autoComplete="username" placeholder="아이디를 입력해 주세요"
+        <Input unstyled id="username" autoComplete="username" placeholder="아이디를 입력해 주세요"
           className={`${fieldBase} px-3.5`} {...register("username")} />
       </FormField>
       <FormField htmlFor="password" label="비밀번호" error={errors.password?.message} className="flex flex-col gap-[7px]">
         <div className="relative flex items-center">
-          <input id="password" type={showPw ? "text" : "password"} autoComplete="current-password" placeholder="비밀번호를 입력해 주세요"
+          <Input unstyled id="password" type={showPw ? "text" : "password"} autoComplete="current-password" placeholder="비밀번호를 입력해 주세요"
             className={`${fieldBase} w-full pl-3.5 pr-12`} {...register("password")}
             aria-invalid={Boolean(errors.password)}
             aria-describedby={errors.password ? "password-error" : undefined} />

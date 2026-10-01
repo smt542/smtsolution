@@ -113,7 +113,7 @@ export function MessengerPanel({
             <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.38 8.38 0 0 1 4 11.5 8.5 8.5 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5z" />
           </svg>
         </div>
-        <div style={{ minWidth: 0 }}>
+        <div className="min-w-0">
           <div className={styles["bt"]}>문자·알림톡 발송</div>
           {/* 정본 minFmp: '작성 중'(발송 중이면 '발송 중') · 발송 버튼 문구 */}
           <div className={styles["bs"]}>
@@ -152,11 +152,11 @@ export function MessengerPanel({
             <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.38 8.38 0 0 1 4 11.5 8.5 8.5 0 0 1 12.5 3 8.38 8.38 0 0 1 21 11.5z" />
           </svg>
         </div>
-        <div style={{ minWidth: 0 }}>
+        <div className="min-w-0">
           <div className={styles["t"]}>문자·알림톡 발송</div>
           <div className={styles["sub"]}>화면을 보면서 발송할 수 있어요</div>
         </div>
-        <div style={{ flex: 1 }} />
+        <div className="flex-1" />
         <button
           type="button"
           aria-label="최소화"

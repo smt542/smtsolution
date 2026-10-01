@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { Input } from "@/components/common";
 import { PartnerListRow } from "../../../../_components/PartnerListRow";
 import { PartnerPhoneLink } from "../../../../_components/PartnerPhoneLink";
 import { inquiryClasses as styles } from "./inquiryClasses";
@@ -61,7 +62,8 @@ export function InquiryView({ buildings, tenants }: { buildings: BuildingRow[]; 
           <circle cx="11" cy="11" r="7" />
           <path d="M20 20l-3-3" />
         </svg>
-        <input
+        <Input
+          unstyled
           className={styles.search}
           value={q}
           onChange={(e) => setQ(e.target.value)}

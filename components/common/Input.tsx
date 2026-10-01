@@ -29,7 +29,9 @@ export type InputSize = keyof typeof SIZES;
 // ComponentPropsWithRef라서 ref가 그대로 내려간다(React 19에서 ref는 일반 prop이다).
 // PhoneInput처럼 커서를 직접 다뤄야 하는 래퍼가 이걸 쓴다.
 type InputProps = Omit<React.ComponentPropsWithRef<"input">, "size"> & {
-  size?: InputSize;
+  size?: InputSize | number;
+  /** 기존 화면의 고유 className/스타일을 그대로 유지하며 공통 DOM만 재사용한다. */
+  unstyled?: boolean;
 };
 
 /**
@@ -57,6 +59,8 @@ export function inputClassName(size: InputSize = "legacy", className = ""): stri
   return `${dropOverridden(defaults, className)} ${className}`;
 }
 
-export function Input({ className = "", size = "legacy", ...props }: InputProps) {
-  return <input className={inputClassName(size, className)} {...props} />;
+export function Input({ className = "", size = "legacy", unstyled = false, ...props }: InputProps) {
+  const nativeSize = typeof size === "number" ? size : undefined;
+  const styledSize = typeof size === "number" ? "legacy" : size;
+  return <input size={nativeSize} className={unstyled ? className : inputClassName(styledSize, className)} {...props} />;
 }

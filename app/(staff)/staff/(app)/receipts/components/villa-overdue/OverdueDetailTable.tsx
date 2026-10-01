@@ -1,4 +1,5 @@
 import { formatNumber } from "@/lib/format";
+import { Input } from "@/components/common";
 import { MaskedPhone } from "@/components/common/MaskedPhone";
 import type {
   OverdueDisplayGroup,
@@ -75,7 +76,8 @@ function AmountCell({
       style={{ width }}
       className="flex h-[50px] shrink-0 items-center justify-end px-[16px] py-[12px]"
     >
-      <input
+      <Input
+        unstyled
         type="text"
         inputMode="numeric"
         aria-label={ariaLabel}
@@ -144,7 +146,8 @@ function DetailRow({
         style={{ width: OVERDUE_COL.note }}
         className="flex h-[50px] shrink-0 items-center px-[16px] py-[12px]"
       >
-        <input
+        <Input
+          unstyled
           type="text"
           aria-label={`${group.unitLabel} ${formatPeriodSlash(line.period)} 비고`}
           value={line.note}

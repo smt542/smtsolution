@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
 import Image from "next/image";
+import { useDismissOnEscape } from "@/hooks/common";
 
 export type ManagementFeeDialogKind =
   | "no-building"
@@ -47,18 +47,12 @@ export function ManagementFeeDialog({
   onClose,
   onConfirm,
 }: ManagementFeeDialogProps) {
-  useEffect(() => {
-    if (!kind) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !pending) onClose();
-    };
-    document.addEventListener("keydown", onKeyDown);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = "";
-    };
-  }, [kind, onClose, pending]);
+  useDismissOnEscape({
+    enabled: kind !== null,
+    onDismiss: onClose,
+    disabled: pending,
+    lockBodyScroll: true,
+  });
 
   if (!kind) return null;
 

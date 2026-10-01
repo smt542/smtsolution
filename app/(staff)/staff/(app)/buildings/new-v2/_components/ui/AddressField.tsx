@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Input } from "@/components/common";
 import { FieldLabel } from "./FieldLabel";
 import { SearchIcon } from "@/components/icons";
 
@@ -48,7 +49,8 @@ function AddressSearchDialog({ onClose, onSelect }: { onClose: () => void; onSel
         <p className="mb-[13px] text-[12.5px] font-semibold leading-[normal] text-t3">
           카카오 주소 API · 도로명·건물명·지번 검색
         </p>
-        <input
+        <Input
+          unstyled
           ref={inputRef}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
@@ -98,7 +100,8 @@ export function AddressField({
     <div className="col-span-2 flex flex-col">
       <FieldLabel required={required}>{label}</FieldLabel>
       <div className="flex gap-[8px] pt-[6px]">
-        <input
+        <Input
+          unstyled
           value={value}
           readOnly
           placeholder="주소 검색으로 입력"
@@ -114,7 +117,8 @@ export function AddressField({
         </button>
       </div>
       <div className="pt-[8px]">
-        <input
+        <Input
+          unstyled
           value={detail}
           onChange={(event) => onDetailChange?.(event.target.value)}
           placeholder={detailPlaceholder}

@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Button, Modal, Spinner } from "@/components/common";
+import { Button, Input, Modal, Spinner } from "@/components/common";
 import {
   useSaveScopedPrices,
   useSaveUtilityUnitPrices,
@@ -267,7 +267,8 @@ export function UnitPriceModal({
                       {row.holderName ?? "명의 미등록"}
                     </small>
                   </span>
-                  <input
+                  <Input
+                    unstyled
                     aria-label={`${row.customerNo} 단가`}
                     type="number"
                     min="0"
@@ -342,7 +343,8 @@ export function UnitPriceModal({
                           key={row.id}
                           className="grid grid-cols-[minmax(0,5.5rem)_minmax(0,1fr)_auto] items-center gap-2"
                         >
-                          <input
+                          <Input
+                            unstyled
                             aria-label={`${usageLabel} ${index + 1} 층`}
                             type="number"
                             step="1"
@@ -351,7 +353,8 @@ export function UnitPriceModal({
                             onChange={(event) => updateScopedRow(row.id, "floor", event.target.value)}
                             className="num h-10 w-full rounded-lg border border-line bg-surface px-3 text-right text-sm font-bold text-t1 focus:border-brand focus:outline-none"
                           />
-                          <input
+                          <Input
+                            unstyled
                             aria-label={`${usageLabel} ${index + 1} 단가`}
                             type="number"
                             min="0"

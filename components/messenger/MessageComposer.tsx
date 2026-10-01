@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Input, Textarea } from "@/components/common";
 import { SearchIcon } from "@/components/icons";
 import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates/queries";
 import { byteLen, smsProduct } from "@/lib/messenger/bytes";
@@ -79,9 +80,8 @@ export function MessageComposer({
   return (
     <>
       <div
-        className={styles["fmp-lbl"]}
+        className={`${styles["fmp-lbl"]} flex items-center justify-between`}
         // 정본은 라벨이 .fmp-smswrap 밖(fmp-msgL 형제)이라 margin8+gap8=16px 간격.
-        style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
       >
         <span>메시지 내용</span>
         <div
@@ -92,7 +92,7 @@ export function MessageComposer({
             type="button"
             onClick={toggleTemplates}
             aria-expanded={open}
-            style={{ display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}
+            className="inline-flex items-center gap-[5px] whitespace-nowrap"
           >
             <svg
               width="13"
@@ -104,7 +104,7 @@ export function MessageComposer({
               strokeLinecap="round"
               strokeLinejoin="round"
               aria-hidden="true"
-              style={{ flex: "none" }}
+              className="flex-none"
             >
               <path d="M4 6h16M4 12h16M4 18h10" />
             </svg>
@@ -117,7 +117,7 @@ export function MessageComposer({
               stroke="currentColor"
               strokeWidth="2.2"
               aria-hidden="true"
-              style={{ flex: "none" }}
+              className="flex-none"
             >
               <path d="M6 9l6 6 6-6" />
             </svg>
@@ -129,7 +129,8 @@ export function MessageComposer({
           >
             <div className="relative mb-[4px] flex items-center border-b border-line2 px-[2px] pb-[8px] pt-[2px]">
               <SearchIcon className="pointer-events-none absolute left-[11px] size-[14px] text-t3" />
-              <input
+              <Input
+                unstyled
                 className="h-[34px] w-full rounded-[8px] border border-line bg-white pl-[30px] pr-[10px] text-[12.5px] font-semibold text-t1 outline-none focus:border-blue"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -175,7 +176,8 @@ export function MessageComposer({
       </div>
 
       <div className={styles["fmp-smswrap"]}>
-        <textarea
+        <Textarea
+          unstyled
           ref={textareaRef}
           className={styles["fmp-ta"]}
           value={body}

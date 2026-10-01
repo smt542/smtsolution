@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Button, IconButton, Spinner } from "@/components/common";
+import { Button, IconButton, Input, Spinner, Textarea } from "@/components/common";
 import type { Building } from "@/hooks/reactquery/buildings";
 import { useSaveBuildingNotes } from "@/hooks/reactquery/receipts";
 import type { ReceiptPaymentRow } from "@/hooks/reactquery/receipts";
@@ -141,7 +141,8 @@ export function BuildingUnitRail({
           </h2>
           <div className="relative basis-full w-full">
             <SearchIcon />
-            <input
+            <Input
+              unstyled
               type="search"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -384,7 +385,8 @@ function BuildingNoteBlock({
         )}
       </div>
       {editing ? (
-        <textarea
+        <Textarea
+          unstyled
           autoFocus
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
@@ -393,7 +395,8 @@ function BuildingNoteBlock({
           className={NOTE_TEXTAREA_EDIT}
         />
       ) : (
-        <textarea
+        <Textarea
+          unstyled
           readOnly
           value={storedActive}
           placeholder={placeholder}

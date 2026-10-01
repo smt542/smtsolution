@@ -1,5 +1,6 @@
 "use client";
 
+import { Input } from "@/components/common";
 import type { BillTarget } from "@/hooks/reactquery/bill";
 import { displayUnitNo } from "@/lib/bill/document";
 import { transferMethodLabel } from "@/lib/bill/transferMethod";
@@ -107,7 +108,8 @@ export function OutputSelectionPane({
             <path d="M20 20l-3-3" />
           </svg>
           {/* 정본 #adjSrch 는 placeholder 색을 따로 주지 않아 브라우저 기본(#757575)이다. */}
-          <input
+          <Input
+            unstyled
             aria-label="건물 검색"
             value={search}
             onChange={(event) => onSearchChange(event.target.value)}

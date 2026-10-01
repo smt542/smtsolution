@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { Badge, Button } from "@/components/common";
+import { Badge, Button, Input } from "@/components/common";
 import type { BuildingTypeDraft, FeeItemDraft } from "./types";
 import { FeeItemTable } from "./FeeItemTable";
 import type { FeeItemDropPosition } from "./FeeItemRow";
@@ -59,7 +59,8 @@ export function FeeItemCard({
       <header className="flex h-[70px] items-center justify-between border-b border-line2 px-[18px]">
         <div className="flex items-center gap-1.5">
           {editing ? (
-            <input
+            <Input
+              unstyled
               autoFocus
               aria-label="건물 유형명"
               className="w-[130px] border-0 border-b-[1.5px] border-teal bg-transparent p-0 text-[15px] font-extrabold text-teal outline-none"

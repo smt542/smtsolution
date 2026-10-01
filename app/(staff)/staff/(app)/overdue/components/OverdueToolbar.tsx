@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { CustomDropdown } from "@/components/common";
+import { CustomDropdown, Input } from "@/components/common";
 import type { OverdueScope } from "@/hooks/reactquery/overdue";
 
 // 정본 `#ovYear` 와 같은 최근 4개년(올해부터 3년 전까지).
@@ -67,7 +67,8 @@ function OverdueSearch({
         height={15}
         className="pointer-events-none absolute left-[11px] top-[11.5px] z-10 size-[15px]"
       />
-      <input
+      <Input
+        unstyled
         id="overdue-search"
         aria-label="건물명 검색"
         value={search}

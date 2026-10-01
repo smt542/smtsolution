@@ -3,7 +3,7 @@ import React, { useRef, useState } from "react";
 import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { applyMask, phoneMask, IconButton, Modal, PHONE_INPUT_ATTRS, PhotoUpload } from "@/components/common";
+import { applyMask, phoneMask, IconButton, Input, Modal, PHONE_INPUT_ATTRS, PhotoUpload, Textarea } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { setSubmissionError } from "@/components/forms/formErrors";
 import { vendorSchema } from "@/components/forms/schema/vendor";
@@ -240,7 +240,8 @@ export function VendorFormModal({
                 {/* 업체명 (required) */}
                 <div>
                   <label htmlFor="vendor-name" className={vendorClasses.fieldLabel}>업체명</label>
-                  <input
+                  <Input
+                    unstyled
                     id="vendor-name"
                     {...register("name")}
                     placeholder="업체명"
@@ -256,14 +257,15 @@ export function VendorFormModal({
                 {/* 담당자 */}
                 <div>
                   <label htmlFor="vendor-manager" className={vendorClasses.fieldLabel}>담당자</label>
-                  <input id="vendor-manager" {...register("manager")} placeholder="담당자" className={vendorClasses.fieldInput} aria-invalid={Boolean(errors.manager)} aria-describedby={errors.manager ? "vendor-manager-error" : undefined} />
+                  <Input unstyled id="vendor-manager" {...register("manager")} placeholder="담당자" className={vendorClasses.fieldInput} aria-invalid={Boolean(errors.manager)} aria-describedby={errors.manager ? "vendor-manager-error" : undefined} />
                   {errors.manager?.message && <p id="vendor-manager-error" className={vendorClasses.fieldError}>{errors.manager.message}</p>}
                 </div>
 
                 {/* 전화 */}
                 <div>
                   <label htmlFor="vendor-phone" className={vendorClasses.fieldLabel}>전화번호</label>
-                  <input
+                  <Input
+                    unstyled
                     {...PHONE_INPUT_ATTRS}
                     id="vendor-phone"
                     {...phoneRegister}
@@ -282,7 +284,7 @@ export function VendorFormModal({
                 {/* 계좌번호 */}
                 <div>
                   <label htmlFor="vendor-bank-account" className={vendorClasses.fieldLabel}>계좌번호</label>
-                  <input id="vendor-bank-account" {...register("bankAccount")} placeholder="계좌번호" className={vendorClasses.fieldInput} aria-invalid={Boolean(errors.bankAccount)} aria-describedby={errors.bankAccount ? "vendor-bank-account-error" : undefined} />
+                  <Input unstyled id="vendor-bank-account" {...register("bankAccount")} placeholder="계좌번호" className={vendorClasses.fieldInput} aria-invalid={Boolean(errors.bankAccount)} aria-describedby={errors.bankAccount ? "vendor-bank-account-error" : undefined} />
                   {errors.bankAccount?.message && <p id="vendor-bank-account-error" className={vendorClasses.fieldError}>{errors.bankAccount.message}</p>}
                 </div>
 
@@ -323,7 +325,7 @@ export function VendorFormModal({
                 {/* 비고 */}
                 <div className={vendorClasses.fullField}>
                   <label htmlFor="vendor-memo" className={vendorClasses.fieldLabel}>비고</label>
-                  <textarea id="vendor-memo" {...register("memo")} placeholder="비고" className={vendorClasses.fieldTextarea} aria-invalid={Boolean(errors.memo)} aria-describedby={errors.memo ? "vendor-memo-error" : undefined} />
+                  <Textarea unstyled id="vendor-memo" {...register("memo")} placeholder="비고" className={vendorClasses.fieldTextarea} aria-invalid={Boolean(errors.memo)} aria-describedby={errors.memo ? "vendor-memo-error" : undefined} />
                   {errors.memo?.message && <p id="vendor-memo-error" className={vendorClasses.fieldError}>{errors.memo.message}</p>}
                 </div>
               </div>

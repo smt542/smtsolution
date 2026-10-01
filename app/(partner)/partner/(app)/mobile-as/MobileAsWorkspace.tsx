@@ -11,7 +11,7 @@ import {
   type PartnerComplaintDetail,
 } from "@/hooks/reactquery/complaints";
 import { MaskedPhone } from "@/components/common/MaskedPhone";
-import { applyMask, NUMERIC_INPUT_ATTRS } from "@/components/common";
+import { applyMask, Input, NUMERIC_INPUT_ATTRS, Textarea } from "@/components/common";
 
 import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
 import { PartnerConfirmDialog } from "../../../_components/PartnerConfirmDialog";
@@ -206,7 +206,7 @@ function MobileAsEditor({
             {ro ? (
               <div className={styles.roText}>{content || "—"}</div>
             ) : (
-              <textarea ref={contentRef} className={styles.textarea} value={content} onChange={(e) => setContent(e.target.value)} placeholder="접수 내용을 입력해 주세요" />
+              <Textarea unstyled ref={contentRef} className={styles.textarea} value={content} onChange={(e) => setContent(e.target.value)} placeholder="접수 내용을 입력해 주세요" />
             )}
           </PartnerFormFieldRow>
         </div>
@@ -231,7 +231,8 @@ function MobileAsEditor({
             {ro ? (
               <span className={styles.ro}>{time || "—"}</span>
             ) : (
-              <input
+              <Input
+                unstyled
                 className={styles.time}
                 {...NUMERIC_INPUT_ATTRS}
                 placeholder="00:00"
@@ -247,7 +248,7 @@ function MobileAsEditor({
             {ro ? (
               <div className={styles.roText}>{result || "—"}</div>
             ) : (
-              <textarea className={styles.textarea} value={result} onChange={(e) => setResult(e.target.value)} placeholder="처리한 내용을 입력해 주세요" />
+              <Textarea unstyled className={styles.textarea} value={result} onChange={(e) => setResult(e.target.value)} placeholder="처리한 내용을 입력해 주세요" />
             )}
           </PartnerFormFieldRow>
         </div>

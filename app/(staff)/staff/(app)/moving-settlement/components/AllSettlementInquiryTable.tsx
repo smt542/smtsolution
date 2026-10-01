@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import { Input } from "@/components/common";
 import { formatDate, formatNumber } from "@/lib/format";
 import type { SettlementInquiryRow } from "@/hooks/reactquery/movingSettlement";
 import { SettlementDateField } from "./SettlementDateField";
@@ -175,7 +176,8 @@ export function AllSettlementInquiryTable({
                       </td>
                       <td className={TEXT_CELL}>{row.checkedByName ?? ""}</td>
                       <td className={`${TEXT_CELL} py-[12px]`}>
-                        <input
+                        <Input
+                          unstyled
                           aria-label={`${rowLabel} 청소비용`}
                           inputMode="numeric"
                           value={displayNumericInput(cleaning)}

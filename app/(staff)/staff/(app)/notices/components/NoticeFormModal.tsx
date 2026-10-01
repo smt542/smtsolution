@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { appToast as toast } from "@/hooks/common/useAppToast";
+import { useDismissOnEscape } from "@/hooks/common";
+import { Input, Textarea } from "@/components/common";
 import { setSubmissionError } from "@/components/forms/formErrors";
 import { NoticeTargetBuildings } from "./NoticeTargetBuildings";
 import { plainTextToNoticeDoc } from "@/lib/notice/richText";
@@ -91,17 +93,12 @@ function NoticeFormContent({
     if (!isPending) onClose();
   };
 
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !isPending) onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [isPending, onClose]);
+  useDismissOnEscape({
+    enabled: true,
+    onDismiss: onClose,
+    disabled: isPending,
+    lockBodyScroll: true,
+  });
 
   const submit = async (values: NoticeFormValues) => {
     const buildingIds = toNoticeBuildingIds(targets, buildings);
@@ -194,7 +191,8 @@ function NoticeFormContent({
           {/* 제목 */}
           <div className="flex flex-col gap-[9px]">
             <label htmlFor="notice-title" className="text-[12.5px] font-bold leading-[normal] text-[#8b95a1]">제목</label>
-            <input
+            <Input
+              unstyled
               id="notice-title"
               {...register("title")}
               maxLength={200}
@@ -211,7 +209,8 @@ function NoticeFormContent({
           {/* 내용 */}
           <div className="flex flex-col gap-[9px]">
             <label htmlFor="notice-content" className="text-[12.5px] font-bold leading-[normal] text-[#8b95a1]">내용</label>
-            <textarea
+            <Textarea
+              unstyled
               id="notice-content"
               {...register("content")}
               maxLength={10000}

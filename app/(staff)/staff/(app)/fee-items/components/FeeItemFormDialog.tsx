@@ -7,6 +7,7 @@ import { DEFAULT_FORM_VALUE, ROUNDING_OPTIONS } from "./constants";
 import type { FeeItemDraft, FeeItemFormValue } from "./types";
 import { CustomDropdown } from "@/components/common/CustomDropdown";
 import { IconButton } from "@/components/common/IconButton";
+import { Input } from "@/components/common/Input";
 import { setSubmissionError } from "@/components/forms/formErrors";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import {
@@ -148,7 +149,8 @@ export function FeeItemFormDialog({
           <label htmlFor="fee-item-dialog-name" className="block text-[12.5px] leading-[normal] font-bold text-t2">
             항목 명칭
             {/* 정본 .mf-mname — 잠긴 필수 항목 칸도 열릴 때 포커스를 받아 청록 테두리로 보인다(사용자 결정 09-30) */}
-            <input
+            <Input
+              unstyled
               id="fee-item-dialog-name"
               autoFocus
               maxLength={30}

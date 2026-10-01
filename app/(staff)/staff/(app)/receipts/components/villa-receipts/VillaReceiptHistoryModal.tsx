@@ -42,15 +42,15 @@ function ReportTable({ model }: { model: VillaReceiptReportModel }) {
     <table className="w-full border-collapse whitespace-nowrap">
       <thead>
         <tr>
-          <th style={{ width: 64 }} className={headerLeftCellClass}>호수</th>
-          <th style={{ width: 88 }} className={headerLeftCellClass}>년월</th>
-          <th style={{ minWidth: 88 }} className={headerRightCellClass}>당월계</th>
-          <th style={{ minWidth: 88 }} className={headerRightCellClass}>수납액</th>
-          <th style={{ minWidth: 104 }} className={headerLeftCellClass}>수납일자</th>
-          <th style={{ minWidth: 84 }} className={headerLeftCellClass}>은행</th>
-          <th style={{ width: 64 }} className={headerLeftCellClass}>chk</th>
-          <th style={{ width: 46 }} className={headerLeftCellClass}>C</th>
-          <th style={{ minWidth: 150 }} className={headerLeftCellClass}>비고</th>
+          <th className={`${headerLeftCellClass} w-[64px]`}>호수</th>
+          <th className={`${headerLeftCellClass} w-[88px]`}>년월</th>
+          <th className={`${headerRightCellClass} min-w-[88px]`}>당월계</th>
+          <th className={`${headerRightCellClass} min-w-[88px]`}>수납액</th>
+          <th className={`${headerLeftCellClass} min-w-[104px]`}>수납일자</th>
+          <th className={`${headerLeftCellClass} min-w-[84px]`}>은행</th>
+          <th className={`${headerLeftCellClass} w-[64px]`}>chk</th>
+          <th className={`${headerLeftCellClass} w-[46px]`}>C</th>
+          <th className={`${headerLeftCellClass} min-w-[150px]`}>비고</th>
         </tr>
       </thead>
       <tbody>

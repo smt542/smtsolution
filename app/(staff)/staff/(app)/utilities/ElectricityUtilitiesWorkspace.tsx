@@ -457,7 +457,7 @@ export default function ElectricityUtilitiesWorkspace() {
         </main>
       </div>
 
-      <button type="button" aria-label="화면 도우미 열기" className="fixed right-0 top-1/2 hidden h-[70px] w-4 -translate-y-1/2 rounded-l-md bg-t2 text-[8px] font-bold text-white xl:block" style={{ writingMode: "vertical-rl" }}>
+      <button type="button" aria-label="화면 도우미 열기" className="fixed right-0 top-1/2 hidden h-[70px] w-4 -translate-y-1/2 rounded-l-md bg-t2 text-[8px] font-bold text-white [writing-mode:vertical-rl] xl:block">
         화면도움
       </button>
       <button type="button" aria-label="도움말" className="fixed bottom-5 right-5 flex size-11 items-center justify-center rounded-full bg-teal text-lg font-extrabold text-white shadow-pop">?</button>

@@ -1,5 +1,7 @@
 "use client";
 
+import { Input } from "./Input";
+
 export function SearchBar({
   value,
   onChange,
@@ -16,7 +18,8 @@ export function SearchBar({
           <circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" />
         </svg>
       </span>
-      <input
+      <Input
+        unstyled
         type="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Input } from "@/components/common";
 import { SearchIcon } from "@/components/icons";
 import { CustomDropdown } from "@/components/common/CustomDropdown";
 import type { Building } from "@/hooks/reactquery/buildings";
@@ -108,7 +109,8 @@ export function BuildingDirectoryRail({
           <div className="flex w-full items-center gap-[8px]">
             <div className="relative w-full">
               <SearchIcon className="pointer-events-none absolute left-[11px] top-1/2 size-[15px] -translate-y-1/2 text-t3" />
-              <input
+              <Input
+                unstyled
                 aria-label="건물명·주소 검색"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}

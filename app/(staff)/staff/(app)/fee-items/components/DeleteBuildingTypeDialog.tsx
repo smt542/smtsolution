@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect } from "react";
+import { useDismissOnEscape } from "@/hooks/common";
 
 interface DeleteBuildingTypeDialogProps {
   open: boolean;
@@ -20,12 +20,7 @@ export function DeleteBuildingTypeDialog({
   onClose,
   onConfirm,
 }: DeleteBuildingTypeDialogProps) {
-  useEffect(() => {
-    if (!open) return;
-    const closeOnEscape = (event: KeyboardEvent) => event.key === "Escape" && !isPending && onClose();
-    document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [isPending, onClose, open]);
+  useDismissOnEscape({ enabled: open, onDismiss: onClose, disabled: isPending });
 
   if (!open) return null;
 

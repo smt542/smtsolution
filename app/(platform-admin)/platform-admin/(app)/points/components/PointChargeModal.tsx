@@ -1,6 +1,6 @@
 "use client";
 import { useState, type FormEvent } from "react";
-import { Button, Modal } from "@/components/common";
+import { Button, Input, Modal } from "@/components/common";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { formatNumber } from "@/lib/format";
 
@@ -75,7 +75,8 @@ export function PointChargeModal({ open, onClose, onSubmit, isPending }: Props) 
 
         <div className="mt-4">
           <label htmlFor="pc-amount" className="mb-1.5 block text-[12.5px] font-bold text-t2">충전 금액</label>
-          <input
+          <Input
+            unstyled
             id="pc-amount"
             inputMode="numeric"
             autoComplete="off"

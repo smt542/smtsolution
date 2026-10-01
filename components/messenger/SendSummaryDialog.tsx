@@ -166,11 +166,10 @@ export function SendSummaryDialog({
         )}
 
         <div
-          className={styles["dt-lbl"]}
-          style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}
+          className={`${styles["dt-lbl"]} flex items-baseline justify-between`}
         >
           수신자 목록
-          <span style={{ fontWeight: 700 }}>{recipients.length}명</span>
+          <span className="font-bold">{recipients.length}명</span>
         </div>
         <div className={styles["dt-list"]}>
           {recipients.map((recipient, index) => (
@@ -192,12 +191,12 @@ export function SendSummaryDialog({
           )}
         </div>
 
-        <div className={styles["dt-lbl"]} style={{ marginTop: 12 }}>
+        <div className={`${styles["dt-lbl"]} !mt-3`}>
           전송 내용
         </div>
         <div className={styles["dt-msg"]}>{body}</div>
 
-        <div className={styles["fmpc-btns"]} style={{ marginTop: 20 }}>
+        <div className={`${styles["fmpc-btns"]} !mt-5`}>
           <button
             type="button"
             className={`${styles["fmpc-btn"]} ${styles.cancel}`}

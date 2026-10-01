@@ -6,6 +6,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import OnboardingPageScaffold from "@/app/(resident)/_components/OnboardingPageScaffold";
 import ResidentBottomSheet from "@/app/(resident)/_components/ResidentBottomSheet";
+import { Input } from "@/components/common";
 import {
   automatch,
   confirm,
@@ -295,7 +296,8 @@ export default function ResidentVerifyFlow() {
                 <circle cx="11" cy="11" r="7" />
                 <path d="M20 20l-3-3" />
               </svg>
-              <input
+              <Input
+                unstyled
                 id="rvQ"
                 value={query}
                 placeholder="예: 그린빌라 · 봉명동"
@@ -385,7 +387,8 @@ export default function ResidentVerifyFlow() {
                 <span>{selectedBuilding?.address}</span>
               </div>
             </div>
-            <input
+            <Input
+              unstyled
               id="rvUnit"
               className={styles.fin}
               value={unitValue}

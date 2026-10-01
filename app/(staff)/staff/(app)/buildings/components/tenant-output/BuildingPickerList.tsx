@@ -1,4 +1,5 @@
 "use client";
+import { Input } from "@/components/common";
 import type { Building } from "@/hooks/reactquery/buildings";
 
 interface BuildingPickerListProps {
@@ -51,7 +52,8 @@ export function BuildingPickerList({ buildings, search, onSearch, selectedIds, o
             <path d="M20 20l-3-3" />
           </svg>
         </span>
-        <input
+        <Input
+          unstyled
           type="search"
           value={search}
           onChange={(event) => onSearch(event.target.value)}

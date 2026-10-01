@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Input } from "@/components/common";
 import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates/queries";
 import type { MessageTemplate } from "@/hooks/reactquery/messageTemplates/apis";
 import { messengerClasses as styles } from "./messengerClasses";
@@ -165,17 +166,11 @@ export function AlimtalkForm({
   const kind = selected ? templateKind(selected) : "notice";
 
   return (
-    <div className={styles["fmp-akwrap"]} style={{ display: "flex" }}>
+    <div className={`${styles["fmp-akwrap"]} flex`}>
       {/* 정본: "템플릿 내용" 라벨 + 우측 "≡ 템플릿" 버튼(.fmp-tplsel, SMS와 동일 스타일) */}
       <div
-        className={styles["fmp-lbl"]}
+        className={`${styles["fmp-lbl"]} flex items-center justify-between mb-2`}
         // .fmp-akwrap는 gap:8이라 라벨→akForm 간격이 +8 된다. 정본(16px)에 맞춰 margin은 8만.
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 8,
-        }}
       >
         <span>템플릿 내용</span>
         <div
@@ -186,7 +181,7 @@ export function AlimtalkForm({
             type="button"
             onClick={toggleTemplates}
             aria-expanded={open}
-            style={{ display: "inline-flex", alignItems: "center", gap: 5, whiteSpace: "nowrap" }}
+            className="inline-flex items-center gap-[5px] whitespace-nowrap"
           >
             <svg
               width="13"
@@ -198,7 +193,7 @@ export function AlimtalkForm({
               strokeLinecap="round"
               strokeLinejoin="round"
               aria-hidden="true"
-              style={{ flex: "none" }}
+              className="flex-none"
             >
               <path d="M4 6h16M4 12h16M4 18h10" />
             </svg>
@@ -267,7 +262,7 @@ export function AlimtalkForm({
         </div>
       </div>
 
-      <div className={styles["fmp-akform"]} style={{ display: "flex" }}>
+      <div className={`${styles["fmp-akform"]} flex`}>
         {!selected ? (
           <div className={styles["ak-emptyhint"]}>
             우측 <b>템플릿</b> 버튼에서 승인 템플릿을 선택하면
@@ -292,7 +287,8 @@ export function AlimtalkForm({
                 {manualVariables.map((name) => (
                   <div className={styles["ak-vrow"]} key={name}>
                     <label htmlFor={`messenger-alim-${name}`}>{name}</label>
-                    <input
+                    <Input
+                      unstyled
                       id={`messenger-alim-${name}`}
                       value={vars[name] ?? ""}
                       placeholder={`${name} 입력`}

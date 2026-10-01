@@ -2,6 +2,7 @@
 
 import { Fragment } from "react";
 
+import { Input } from "@/components/common";
 import type { PartnerMeterUnit, PartnerMeterUtility } from "@/hooks/reactquery/utilities";
 import { formatDate, formatNumber, formatWon } from "@/lib/format";
 
@@ -68,7 +69,8 @@ function ReadingField({
   return (
     <label className={styles.fld}>
       <span className={styles.fldLabel}>{label}</span>
-      <input
+      <Input
+        unstyled
         id={id}
         className={styles.fin}
         inputMode="decimal"
@@ -85,7 +87,7 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
   return (
     <div className={styles.fld}>
       <span className={styles.fldLabel}>{label}</span>
-      <input className={styles.finRo} value={value} readOnly tabIndex={-1} aria-label={label} />
+      <Input unstyled className={styles.finRo} value={value} readOnly tabIndex={-1} aria-label={label} />
     </div>
   );
 }

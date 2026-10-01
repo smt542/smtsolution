@@ -1,6 +1,6 @@
 "use client";
 
-import { CustomDropdown } from "@/components/common";
+import { CustomDropdown, Input } from "@/components/common";
 import type { BillTarget } from "@/hooks/reactquery/bill";
 import { displayUnitNo } from "@/lib/bill/document";
 import type { BillBuilding } from "../../types";
@@ -45,7 +45,8 @@ export function FaxConfirmationModal({ building, targets, period, senderLabel, r
 
         <div className="flex flex-col gap-[6px] pt-[12px]">
           <label htmlFor="fax-recipient" className="text-[12.5px] font-bold leading-[15px] text-[#4e5968]">수신 팩스번호</label>
-          <input
+          <Input
+            unstyled
             id="fax-recipient"
             value={recipient}
             readOnly

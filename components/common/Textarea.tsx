@@ -15,21 +15,29 @@ const VARIANTS = {
   form: "min-h-[86px] resize-y rounded-[10px] px-[11px] py-[9px] text-[13px] leading-[1.6] placeholder:font-medium focus:ring-[3px] focus:ring-teal-t",
 } as const;
 
-export function Textarea({
+type TextareaProps = React.ComponentPropsWithRef<"textarea"> & {
+  error?: boolean;
+  variant?: keyof typeof VARIANTS;
+  showCount?: boolean;
+  /** 기존 화면의 고유 className/스타일을 그대로 유지하며 공통 DOM만 재사용한다. */
+  unstyled?: boolean;
+};
+
+export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea({
   className = "",
   error = false,
   variant = "default",
   showCount = false,
+  unstyled = false,
   ...props
-}: React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
-  error?: boolean;
-  variant?: keyof typeof VARIANTS;
-  showCount?: boolean;
-}) {
+}, ref) {
   const border = error ? "border-red focus:border-red" : "border-line focus:border-brand";
   const field = (
     <textarea
-      className={`w-full border ${border} ${VARIANTS[variant]} bg-surface text-t1 placeholder:text-t4 focus:outline-none disabled:opacity-70 ${className}`}
+      ref={ref}
+      className={unstyled
+        ? className
+        : `w-full border ${border} ${VARIANTS[variant]} bg-surface text-t1 placeholder:text-t4 focus:outline-none disabled:opacity-70 ${className}`}
       {...props}
     />
   );
@@ -45,4 +53,4 @@ export function Textarea({
       </p>
     </div>
   );
-}
+});

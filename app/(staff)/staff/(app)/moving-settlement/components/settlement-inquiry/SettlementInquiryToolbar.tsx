@@ -1,4 +1,4 @@
-import { CustomDropdown } from "@/components/common";
+import { CustomDropdown, Input } from "@/components/common";
 import { PrinterIcon, SearchIcon } from "@/components/icons";
 import type {
   SettlementInquirySort,
@@ -210,7 +210,8 @@ export function SettlementInquiryToolbar({
       <label className="relative h-[38px] w-[200px] shrink-0">
         {/* building-register 도형 = 정본 .ov-search 돋보기(24칸 원 r7·선 2)를 16칸으로 환산한 것과 같다 */}
         <SearchIcon variant="building-register" className="pointer-events-none absolute left-[11px] top-1/2 z-10 size-[15px] -translate-y-1/2 text-t3" />
-        <input
+        <Input
+          unstyled
           aria-label="건물명·소재지 검색"
           value={search}
           placeholder="건물명·소재지 검색"

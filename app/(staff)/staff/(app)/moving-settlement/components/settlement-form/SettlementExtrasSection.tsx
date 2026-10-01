@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type RefObject } from "react";
-import { Button, CustomDropdown } from "@/components/common";
+import { Button, CustomDropdown, Input, Textarea } from "@/components/common";
 import { DpDatePicker } from "@/components/common/DpDatePicker";
 import { CalendarIcon } from "@/components/icons";
 import type { MovingSettlementValues } from "@/components/forms/schema/movingSettlement";
@@ -70,7 +70,8 @@ export function SettlementExtrasSection({
           </Button>
         </div>
         <div className="mt-[10px] grid grid-cols-[1fr_130px_28px] gap-[7px]">
-          <input
+          <Input
+            unstyled
             aria-label="수리 메모"
             value={value.repairMemo ?? ""}
             onChange={(event) =>
@@ -79,7 +80,8 @@ export function SettlementExtrasSection({
             placeholder="기타 항목"
             className={`${fieldClass} text-[13px] placeholder:font-medium`}
           />
-          <input
+          <Input
+            unstyled
             aria-label="수리비"
             type="number"
             min={0}
@@ -114,7 +116,8 @@ export function SettlementExtrasSection({
         <div className="mt-[10px] grid grid-cols-3 gap-[11px]">
           <label>
             <span className={labelClass}>청소담당</span>
-            <input
+            <Input
+              unstyled
               aria-label="청소담당"
               placeholder="청소담당"
               className={`${fieldClass} text-[13.5px] font-semibold placeholder:font-medium placeholder:text-[13px]`}
@@ -151,7 +154,8 @@ export function SettlementExtrasSection({
           <div className="grid grid-cols-3 gap-[11px]">
             <label>
               <span className={labelClass}>청소금액</span>
-              <input
+              <Input
+                unstyled
                 aria-label="청소금액"
                 type="number"
                 min={0}
@@ -161,11 +165,12 @@ export function SettlementExtrasSection({
             </label>
             <label>
               <span className={labelClass}>청소계좌</span>
-              <input aria-label="청소계좌" className={`${fieldClass} text-[13px]`} />
+              <Input unstyled aria-label="청소계좌" className={`${fieldClass} text-[13px]`} />
             </label>
             <label>
               <span className={labelClass}>청소 적요</span>
-              <input
+              <Input
+                unstyled
                 aria-label="청소 적요"
                 placeholder="청소 관련 적요"
                 className={`${fieldClass} text-[13px] font-medium placeholder:font-medium placeholder:text-[13px]`}
@@ -182,7 +187,8 @@ export function SettlementExtrasSection({
         <div className="mt-[10px] grid grid-cols-3 gap-[11px]">
           <label>
             <span className={labelClass}>수납액</span>
-            <input
+            <Input
+              unstyled
               ref={paymentInputRef}
               aria-label="수납액"
               type="number"
@@ -213,7 +219,8 @@ export function SettlementExtrasSection({
           <label>
             <span className={labelClass}>비고</span>
             {/* block: textarea 는 inline-block 이라 라벨/카드에 줄상자 여백(약 4~7px)이 덧붙는다 */}
-            <textarea
+            <Textarea
+              unstyled
               aria-label="정산 비고"
               value={settlementPrintNote}
               onChange={(event) => setSettlementPrintNote(event.target.value)}
@@ -246,7 +253,8 @@ export function SettlementExtrasSection({
                       {item.label}
                     </span>
                     {/* 항목별 메모(0172). 내용이 있으면 체크된 것으로 저장된다. */}
-                    <input
+                    <Input
+                      unstyled
                       aria-label={item.label}
                       value={notes[item.id] ?? ""}
                       onChange={(event) =>
@@ -268,7 +276,8 @@ export function SettlementExtrasSection({
         <div className="flex h-[18px] items-center pb-px">
           <h3 className="text-[14px] font-extrabold leading-[17px] text-t1">비고</h3>
         </div>
-        <textarea
+        <Textarea
+          unstyled
           aria-label="비고"
           value={value.note ?? ""}
           onChange={(event) => onChange({ ...value, note: event.target.value })}

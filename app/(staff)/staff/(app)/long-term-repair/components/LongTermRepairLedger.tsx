@@ -2,7 +2,7 @@
 
 import { Fragment, useMemo, useRef, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Spinner } from "@/components/common";
+import { Input, Spinner } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { DpDatePicker } from "@/components/common/DpDatePicker";
 import {
@@ -589,15 +589,15 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
                   <table className={`${styles.ledgerTable} ${editing ? styles.ledgerTableEditing : ""}`}>
                     <thead>
                       <tr>
-                        <th style={{ width: 96 }}>일자</th>
-                        <th style={{ width: 76 }}>번호</th>
+                        <th className="w-[96px]">일자</th>
+                        <th className="w-[76px]">번호</th>
                         <th>적립금 적요</th>
-                        <th className={styles.right} style={{ width: 104 }}>적립금입금</th>
-                        <th className={styles.right} style={{ width: 104 }}>적립금출금</th>
-                        <th className={styles.right} style={{ width: 112 }}>차인잔액</th>
-                        <th style={{ width: 96 }}>적요</th>
-                        <th style={{ width: 72 }}>영수증</th>
-                        <th style={{ width: 72 }}>사진</th>
+                        <th className={`${styles.right} w-[104px]`}>적립금입금</th>
+                        <th className={`${styles.right} w-[104px]`}>적립금출금</th>
+                        <th className={`${styles.right} w-[112px]`}>차인잔액</th>
+                        <th className="w-[96px]">적요</th>
+                        <th className="w-[72px]">영수증</th>
+                        <th className="w-[72px]">사진</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -649,21 +649,21 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
                               <td className={styles.numberCell}>{row.entryNo || "-"}</td>
                               <td>
                                 {canEditRow ? (
-                                  <input aria-label="적립금 적요" className={`${styles.ledgerInput} ${styles.editableInput}`} value={row.fundNote} placeholder="적립금 적요" onChange={(event) => updateRow(row.clientKey, { fundNote: event.target.value })} />
+                                  <Input unstyled aria-label="적립금 적요" className={`${styles.ledgerInput} ${styles.editableInput}`} value={row.fundNote} placeholder="적립금 적요" onChange={(event) => updateRow(row.clientKey, { fundNote: event.target.value })} />
                                 ) : (
                                   <span className={styles.plainCell}>{row.fundNote}</span>
                                 )}
                               </td>
                               <td>
                                 {canEditRow ? (
-                                  <input aria-label="적립금입금" inputMode="numeric" className={`${styles.ledgerInput} ${styles.moneyInput} ${styles.editableInput}`} value={row.deposit ? formatMoney(row.deposit) : ""} placeholder="0" onChange={(event) => updateRow(row.clientKey, { deposit: parseAmount(event.target.value) })} />
+                                  <Input unstyled aria-label="적립금입금" inputMode="numeric" className={`${styles.ledgerInput} ${styles.moneyInput} ${styles.editableInput}`} value={row.deposit ? formatMoney(row.deposit) : ""} placeholder="0" onChange={(event) => updateRow(row.clientKey, { deposit: parseAmount(event.target.value) })} />
                                 ) : (
                                   <span className={`${styles.plainCell} ${styles.moneyInput}`}>{formatMoney(row.deposit)}</span>
                                 )}
                               </td>
                               <td>
                                 {canEditRow ? (
-                                  <input aria-label="적립금출금" inputMode="numeric" className={`${styles.ledgerInput} ${styles.moneyInput} ${styles.editableInput}`} value={row.withdrawal ? formatMoney(row.withdrawal) : ""} placeholder="0" onChange={(event) => updateRow(row.clientKey, { withdrawal: parseAmount(event.target.value) })} />
+                                  <Input unstyled aria-label="적립금출금" inputMode="numeric" className={`${styles.ledgerInput} ${styles.moneyInput} ${styles.editableInput}`} value={row.withdrawal ? formatMoney(row.withdrawal) : ""} placeholder="0" onChange={(event) => updateRow(row.clientKey, { withdrawal: parseAmount(event.target.value) })} />
                                 ) : (
                                   <span className={`${styles.plainCell} ${styles.moneyInput}`}>{formatMoney(row.withdrawal)}</span>
                                 )}
@@ -673,7 +673,7 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
                                 <div className={styles.noteCell}>
                                   {canEditRow ? (
                                     <>
-                                      <input aria-label="적요" className={`${styles.ledgerInput} ${styles.editableInput}`} value={row.memo} placeholder="적요" onChange={(event) => updateRow(row.clientKey, { memo: event.target.value })} />
+                                      <Input unstyled aria-label="적요" className={`${styles.ledgerInput} ${styles.editableInput}`} value={row.memo} placeholder="적요" onChange={(event) => updateRow(row.clientKey, { memo: event.target.value })} />
                                       <button type="button" aria-label={`${row.entryDate} ${row.entryNo} 행 삭제`} className={styles.deleteButton} onClick={() => removeRow(row)}>
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
                                           <path d="M6 6l12 12M18 6 6 18" />

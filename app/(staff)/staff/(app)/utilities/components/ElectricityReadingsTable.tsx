@@ -1,3 +1,4 @@
+import { Input } from "@/components/common";
 import type { UtilityUnitRow } from "@/hooks/reactquery/utilities";
 import { formatNumber } from "@/lib/format";
 import { GridEmptyValue } from "./GridEmptyValue";
@@ -148,7 +149,8 @@ export function ElectricityReadingsTable({
       align: "right",
       cellClassName: "tabular-nums",
       render: (item) => editing ? (
-        <input
+        <Input
+          unstyled
           aria-label={`${item.row.unitNo} 전월 지침값`}
           type="number"
           min="0"
@@ -167,7 +169,8 @@ export function ElectricityReadingsTable({
       align: "right",
       cellClassName: "tabular-nums text-t1",
       render: (item) => editing ? (
-        <input
+        <Input
+          unstyled
           aria-label={`${item.row.unitNo} 당월 지침값`}
           type="number"
           min="0"
@@ -189,7 +192,8 @@ export function ElectricityReadingsTable({
         <span className="text-red">확인 필요</span>
       ) : editing ? (
         <span className="flex items-center gap-[5px]">
-          <input
+          <Input
+            unstyled
             aria-label={`${item.row.unitNo} 사용량`}
             type="number"
             min="0"
@@ -239,7 +243,8 @@ export function ElectricityReadingsTable({
       cellClassName: (item) => !editing && item.draft.manualLocked ? FIXED_LOCK_CELL : "",
       render: (item) => editing ? (
         <span className="flex items-center gap-[5px]">
-          <input
+          <Input
+            unstyled
             aria-label={`${item.row.unitNo} 수동 입력 요금`}
             type="number"
             min="0"
@@ -288,7 +293,8 @@ export function ElectricityReadingsTable({
       align: "left",
       cellClassName: "",
       render: (item) => editing ? (
-        <input
+        <Input
+          unstyled
           aria-label={`${item.row.unitNo} 적요`}
           value={item.draft.note}
           onChange={(event) => onDraftChange(item.row.unitId, { note: event.target.value })}

@@ -28,7 +28,7 @@ export function MoveOutCard({ request, onDone }: MoveOutCardProps) {
         <b className="text-[13.5px] font-extrabold text-t1">
           {moveOutUnitTitle(request)}
         </b>
-        <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--color-t3)" }}>
+        <span className="text-[12.5px] font-semibold text-t3">
           {request.tenantName ?? "-"}
         </span>
         {badge &&

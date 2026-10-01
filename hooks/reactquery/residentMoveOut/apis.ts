@@ -4,7 +4,8 @@ export type ResidentMoveOutStatus =
   | "pending"
   | "confirmed"
   | "canceled"
-  | "rejected";
+  | "rejected"
+  | "done";
 
 export interface ResidentMoveOutRow {
   id: number;

@@ -19,6 +19,7 @@ export interface Notice {
   publishedAt: string | null;
   expiresAt: string | null;
   createdBy: string | null;
+  createdByName: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -59,6 +60,11 @@ interface NoticeBuildingLinkRow {
   building_id: number;
 }
 
+interface ProfileNameRow {
+  user_id: string;
+  full_name: string;
+}
+
 interface NoticeRow {
   id: number;
   org_id: number;
@@ -79,7 +85,26 @@ type NoticeSummaryRow = Omit<NoticeRow, "content" | "content_json">;
 const linkBuildingIds = (row: { notice_buildings?: NoticeBuildingLinkRow[] | null }): number[] =>
   (row.notice_buildings ?? []).map((link) => link.building_id);
 
-const rowToNotice = (row: NoticeRow): Notice => ({
+async function fetchCreatorNames(
+  creatorIds: ReadonlyArray<string | null | undefined>,
+): Promise<Map<string, string>> {
+  const uniqueIds = Array.from(new Set(creatorIds.filter((id): id is string => Boolean(id))));
+  if (uniqueIds.length === 0) return new Map();
+
+  const { data, error } = await createClient()
+    .from("profiles")
+    .select("user_id, full_name")
+    .in("user_id", uniqueIds);
+
+  // 작성자 이름 조회 실패가 공지 목록/상세 조회 자체를 막지는 않도록 원본 UUID만 보존한다.
+  if (error) return new Map();
+
+  return new Map(
+    ((data ?? []) as ProfileNameRow[]).map((profile) => [profile.user_id, profile.full_name]),
+  );
+}
+
+const rowToNotice = (row: NoticeRow, creatorNames: ReadonlyMap<string, string> = new Map()): Notice => ({
   id: row.id,
   orgId: row.org_id,
   buildingIds: linkBuildingIds(row),
@@ -90,11 +115,15 @@ const rowToNotice = (row: NoticeRow): Notice => ({
   publishedAt: row.published_at,
   expiresAt: row.expires_at,
   createdBy: row.created_by,
+  createdByName: row.created_by ? creatorNames.get(row.created_by) ?? null : null,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
 
-const rowToNoticeSummary = (row: NoticeSummaryRow): NoticeSummary => ({
+const rowToNoticeSummary = (
+  row: NoticeSummaryRow,
+  creatorNames: ReadonlyMap<string, string> = new Map(),
+): NoticeSummary => ({
   id: row.id,
   orgId: row.org_id,
   buildingIds: linkBuildingIds(row),
@@ -103,6 +132,7 @@ const rowToNoticeSummary = (row: NoticeSummaryRow): NoticeSummary => ({
   publishedAt: row.published_at,
   expiresAt: row.expires_at,
   createdBy: row.created_by,
+  createdByName: row.created_by ? creatorNames.get(row.created_by) ?? null : null,
   createdAt: row.created_at,
   updatedAt: row.updated_at,
 });
@@ -198,7 +228,9 @@ export async function listNotices(
     .range(firstRow, firstRow + pageSize - 1);
 
   if (error) throw new Error(error.message);
-  const items = ((data ?? []) as NoticeSummaryRow[]).map(rowToNoticeSummary);
+  const rows = (data ?? []) as NoticeSummaryRow[];
+  const creatorNames = await fetchCreatorNames(rows.map((row) => row.created_by));
+  const items = rows.map((row) => rowToNoticeSummary(row, creatorNames));
   return {
     items,
     total: count ?? items.length,
@@ -216,20 +248,31 @@ export async function getNotice(id: number): Promise<Notice> {
     .single();
 
   if (error) throw new Error(error.message);
-  return rowToNotice(data as NoticeRow);
+  const row = data as NoticeRow;
+  const creatorNames = await fetchCreatorNames([row.created_by]);
+  return rowToNotice(row, creatorNames);
 }
 
 export async function createNotice(input: NoticeInput): Promise<Notice> {
-  const { data, error } = await createClient()
+  const client = createClient();
+  let inputWithCreator = input;
+  if (input.createdBy === undefined) {
+    const { data: auth } = await client.auth.getUser();
+    inputWithCreator = { ...input, createdBy: auth.user?.id ?? null };
+  }
+
+  const { data, error } = await client
     .from("notices")
-    .insert(inputToRow(input))
+    .insert(inputToRow(inputWithCreator))
     .select()
     .single();
 
   if (error) throw new Error(error.message);
-  const desired = Array.from(new Set(input.buildingIds));
+  const row = data as NoticeRow;
+  const desired = Array.from(new Set(inputWithCreator.buildingIds));
   await setNoticeBuildings((data as NoticeRow).id, desired);
-  return { ...rowToNotice(data as NoticeRow), buildingIds: desired };
+  const creatorNames = await fetchCreatorNames([row.created_by]);
+  return { ...rowToNotice(row, creatorNames), buildingIds: desired };
 }
 
 export async function updateNotice(
@@ -245,12 +288,14 @@ export async function updateNotice(
     .single();
 
   if (error) throw new Error(error.message);
+  const row = data as NoticeRow;
+  const creatorNames = await fetchCreatorNames([row.created_by]);
   if (input.buildingIds !== undefined) {
     const desired = Array.from(new Set(input.buildingIds));
     await setNoticeBuildings(id, desired);
-    return { ...rowToNotice(data as NoticeRow), buildingIds: desired };
+    return { ...rowToNotice(row, creatorNames), buildingIds: desired };
   }
-  return rowToNotice(data as NoticeRow);
+  return rowToNotice(row, creatorNames);
 }
 
 /** 이력 보존을 위해 물리 삭제하지 않고 deleted_at만 기록한다. */

@@ -13,7 +13,7 @@ import {
   type LoginFormValues,
 } from "@/components/forms/schema/auth";
 import { AUTO_LOGIN_KEY } from "@/lib/auth/sessionPersistence";
-import { Button } from "@/components/common";
+import { Button, Input } from "@/components/common";
 
 const fieldClass =
   "h-12 w-full rounded-[13px] border border-line bg-white px-3.5 text-[14.5px] font-medium text-t1 outline-none transition placeholder:text-t4 focus:border-blue focus:ring-[3px] focus:ring-blue-t";
@@ -63,7 +63,8 @@ export function LoginForm() {
         label="아이디"
         error={errors.username?.message}
       >
-        <input
+        <Input
+          unstyled
           id="hq-username"
           type="text"
           autoComplete="username"
@@ -80,7 +81,8 @@ export function LoginForm() {
         error={errors.password?.message}
       >
         <span className="relative flex items-center">
-          <input
+          <Input
+            unstyled
             id="hq-password"
             type={showPassword ? "text" : "password"}
             autoComplete="current-password"

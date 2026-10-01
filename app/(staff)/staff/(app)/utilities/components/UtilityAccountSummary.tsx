@@ -1,3 +1,4 @@
+import { Input } from "@/components/common";
 import type { UtilityUnitRow } from "@/hooks/reactquery/utilities";
 import { formatNumber } from "@/lib/format";
 import { GridEmptyValue } from "./GridEmptyValue";
@@ -76,7 +77,7 @@ export function UtilityAccountSummary({
       minWidth: 104,
       cellClassName: "font-bold",
       render: (row) => editing
-        ? <input aria-label={`${row.customerNumber} 고객번호`} value={row.customerNumber} readOnly className={`${inputClass} w-[92px]`} />
+        ? <Input unstyled aria-label={`${row.customerNumber} 고객번호`} value={row.customerNumber} readOnly className={`${inputClass} w-[92px]`} />
         : row.customerNumber,
     },
     { key: "month", label: "월", minWidth: 48, render: () => "당월" },
@@ -105,7 +106,7 @@ export function UtilityAccountSummary({
       align: "right",
       cellClassName: "num font-bold",
       render: (row) => editing
-        ? <input aria-label={`${row.customerNumber} 부과액`} value={row.manual || row.charge || ""} readOnly className={`${inputClass} w-[64px] text-right`} />
+        ? <Input unstyled aria-label={`${row.customerNumber} 부과액`} value={row.manual || row.charge || ""} readOnly className={`${inputClass} w-[64px] text-right`} />
         : formatNumber(row.manual || row.charge),
     },
     { key: "previousUnitPrice", label: "전단가", minWidth: 62, align: "right", cellClassName: DASH, render: () => "-" },

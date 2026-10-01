@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 
+import { Input } from "@/components/common";
 import { useAppToast } from "@/hooks/common";
 import { isNoticeAllowedHref, type NoticeDoc } from "@/lib/notice/richText";
 import {
@@ -191,7 +192,8 @@ export function NoticeEditor({
 
       {linkOpen && (
         <div className="flex flex-wrap items-center gap-1.5 border-t border-line p-2">
-          <input
+          <Input
+            unstyled
             type="url"
             inputMode="url"
             aria-label="링크 주소"

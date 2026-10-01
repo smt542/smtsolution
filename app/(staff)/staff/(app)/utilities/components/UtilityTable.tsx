@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Input } from "@/components/common";
 import type { UtilityUnitRow } from "@/hooks/reactquery/utilities";
 import { formatNumber } from "@/lib/format";
 import { GridEmptyValue } from "./GridEmptyValue";
@@ -169,7 +170,8 @@ function ReadingInput({
   const displayValue = !focused && parseNumber(value) === 0 ? "" : value;
 
   return (
-    <input
+    <Input
+      unstyled
       aria-label={label}
       type="number"
       min="0"
@@ -369,7 +371,7 @@ export function UtilityTable({
       align: "left",
       cellClassName: "",
       stopRowClick: true,
-      render: (item) => editing ? <input aria-label={`${item.row.unitNo} 적요`} value={item.draft.note} disabled={item.state.vacant} placeholder="-" onChange={(event) => onDraftChange(item.row.unitId, { note: event.target.value })} className="h-[26px] w-full rounded-[7px] border border-teal bg-white px-2 text-[11.5px] text-t1 outline-none focus:ring-1 focus:ring-teal/20 disabled:border-line disabled:bg-line2" /> : item.row.note || <GridEmptyValue />,
+      render: (item) => editing ? <Input unstyled aria-label={`${item.row.unitNo} 적요`} value={item.draft.note} disabled={item.state.vacant} placeholder="-" onChange={(event) => onDraftChange(item.row.unitId, { note: event.target.value })} className="h-[26px] w-full rounded-[7px] border border-teal bg-white px-2 text-[11.5px] text-t1 outline-none focus:ring-1 focus:ring-teal/20 disabled:border-line disabled:bg-line2" /> : item.row.note || <GridEmptyValue />,
     },
     {
       key: "processedAt",

@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { type ReactNode, useMemo, useState } from "react";
 
-import { applyMask, phoneMask, PHONE_INPUT_ATTRS } from "@/components/common";
+import { applyMask, Input, phoneMask, PHONE_INPUT_ATTRS, Textarea } from "@/components/common";
 import {
   useDeletePartnerSettlement,
   useSavePartnerSettlement,
@@ -103,7 +103,8 @@ function NumberField({
   ariaLabel?: string;
 }) {
   return (
-    <input
+    <Input
+      unstyled
       className={className}
       inputMode="numeric"
       value={value ? value.toLocaleString() : ""}
@@ -313,7 +314,8 @@ export default function PartnerMsNewWorkspace({
                 </div>
                 <div className={styles.fld}>
                   <span className={styles.fldLabel}>입금계좌</span>
-                  <input
+                  <Input
+                    unstyled
                     className={styles.fldInput}
                     value={u.acct}
                     onChange={(e) => patchUtil(i, { acct: e.target.value })}
@@ -371,7 +373,8 @@ export default function PartnerMsNewWorkspace({
             </div>
             <div className={styles.fld}>
               <span className={styles.fldLabel}>연락처</span>
-              <input
+              <Input
+                unstyled
                 {...PHONE_INPUT_ATTRS}
                 className={styles.fldInput}
                 maxLength={13}
@@ -409,7 +412,8 @@ export default function PartnerMsNewWorkspace({
         >
           {state.etcItems.map((x, i) => (
             <div key={i} className={styles.etcr}>
-              <input
+              <Input
+                unstyled
                 className={styles.etcName}
                 value={x.name}
                 onChange={(e) => patchEtc(i, { name: e.target.value })}
@@ -438,7 +442,8 @@ export default function PartnerMsNewWorkspace({
         <Section title="청소" folded={fold.cleaning} onToggle={() => toggleFold("cleaning")}>
           <div className={styles.row}>
             <label className={styles.rowLabel}>청소담당</label>
-            <input
+            <Input
+              unstyled
               className={styles.rowInput}
               value={state.clnBy}
               onChange={(e) => patch({ clnBy: e.target.value })}
@@ -470,7 +475,8 @@ export default function PartnerMsNewWorkspace({
           </div>
           <div className={styles.row}>
             <label className={styles.rowLabel}>청소계좌</label>
-            <input
+            <Input
+              unstyled
               className={styles.rowInput}
               value={state.clnAcct}
               onChange={(e) => patch({ clnAcct: e.target.value })}
@@ -479,7 +485,8 @@ export default function PartnerMsNewWorkspace({
           </div>
           <div className={styles.rowCol}>
             <label className={styles.rowColLabel}>청소 적요</label>
-            <textarea
+            <Textarea
+              unstyled
               className={styles.textarea}
               value={state.clnNote}
               onChange={(e) => patch({ clnNote: e.target.value })}
@@ -505,7 +512,8 @@ export default function PartnerMsNewWorkspace({
           </div>
           <div className={styles.rowCol}>
             <label className={styles.rowColLabel}>비고</label>
-            <textarea
+            <Textarea
+              unstyled
               className={styles.textarea}
               value={state.memo}
               onChange={(e) => patch({ memo: e.target.value })}
@@ -524,7 +532,8 @@ export default function PartnerMsNewWorkspace({
                 <label className={styles.checkLabel} htmlFor={`ms-check-${item.id}`}>
                   {item.label}
                 </label>
-                <input
+                <Input
+                  unstyled
                   id={`ms-check-${item.id}`}
                   className={styles.rowInput}
                   value={state.notes[item.id] ?? ""}

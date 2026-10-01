@@ -1,5 +1,6 @@
 "use client";
 import { useState, type ReactNode } from "react";
+import { Input } from "@/components/common";
 
 export type MeterKind = "" | "수도" | "전기" | "가스" | "공용전기";
 
@@ -141,7 +142,8 @@ export function BuildingSearchCard({
               <path d="M20 20l-3-3" />
             </svg>
           </span>
-          <input
+          <Input
+            unstyled
             type="search"
             value={value}
             onChange={(e) => onChange(e.target.value)}

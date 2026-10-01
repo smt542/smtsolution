@@ -1,3 +1,4 @@
+import { Input } from "@/components/common";
 import { formatNumber } from "@/lib/format";
 import { type FeeItem } from "@/hooks/reactquery/feeItems";
 import { useManagementFeeRows } from "@/hooks/reactquery/movingSettlement/feeItemCharges";
@@ -116,7 +117,8 @@ export function ManagementFeeSection({
       <div className="mt-[10px] grid grid-cols-2 gap-[11px]">
         <label>
           <span className="mb-[6px] block h-[14px] text-[12px] font-bold leading-[14px] text-t2">가수금</span>
-          <input
+          <Input
+            unstyled
             aria-label="가수금"
             type="number"
             min={0}
@@ -126,7 +128,8 @@ export function ManagementFeeSection({
         </label>
         <label>
           <span className="mb-[6px] block h-[14px] text-[12px] font-bold leading-[14px] text-t2">연락처</span>
-          <input
+          <Input
+            unstyled
             aria-label="연락처"
             value={contactPhone ?? ""}
             readOnly

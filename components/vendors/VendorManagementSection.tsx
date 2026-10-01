@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { z } from "zod";
+import { Input } from "@/components/common";
 import { PlusIcon } from "@/components/icons";
 import { VendorCategorySidebar } from "./VendorCategorySidebar";
 import { VendorList } from "./VendorList";
@@ -175,7 +176,8 @@ export function VendorManagementSection() {
             </span>
           ) : null}
           <span className={vendorClasses.panelSpacer} />
-          <input
+          <Input
+            unstyled
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}

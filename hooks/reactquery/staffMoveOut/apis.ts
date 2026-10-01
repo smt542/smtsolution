@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 
-export type MoveOutStatus = "pending" | "confirmed" | "canceled" | "rejected";
+export type MoveOutStatus = "pending" | "confirmed" | "canceled" | "rejected" | "done";
 
 export interface StaffMoveOutRequest {
   id: number;

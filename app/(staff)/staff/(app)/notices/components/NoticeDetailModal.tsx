@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Button, Modal } from "@/components/common";
+import { useDismissOnEscape } from "@/hooks/common";
+import { Button, Input, Modal, Textarea } from "@/components/common";
 import { SendIcon } from "@/components/icons";
 import { plainTextToNoticeDoc } from "@/lib/notice/richText";
 import type { Building } from "@/hooks/reactquery/buildings";
@@ -17,6 +18,7 @@ import {
 import { useNoticeAlimtalkSend } from "../useNoticeAlimtalkSend";
 import {
   NOTICE_TYPE_LABELS,
+  getNoticeCreatorLabel,
   toNoticeBuildingIds,
   toNoticeTargetSelection,
   type NoticeTargetSelection,
@@ -80,17 +82,12 @@ export function NoticeDetailModal({
   const sendSummary = sendSummaryQuery.data ?? null;
   const isSaving = updateNotice.isPending;
 
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !confirmOpen && !confirmSendOpen) onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [confirmOpen, confirmSendOpen, onClose]);
+  useDismissOnEscape({
+    enabled: true,
+    onDismiss: onClose,
+    disabled: confirmOpen || confirmSendOpen,
+    lockBodyScroll: true,
+  });
 
   const handleSave = async () => {
     const trimmed = title.trim();
@@ -158,7 +155,7 @@ export function NoticeDetailModal({
             </h2>
             <span className="shrink-0 text-[12.5px] font-semibold leading-[normal] text-[#8b95a1]">
               {formatDotDate(notice.publishedAt)}
-              {notice.createdBy ? ` · ${notice.createdBy}` : ""}
+              {notice.createdBy ? ` · ${getNoticeCreatorLabel(notice)}` : ""}
             </span>
           </div>
 
@@ -188,7 +185,8 @@ export function NoticeDetailModal({
             {/* 제목 */}
             <div className="flex flex-col gap-[9px]">
               <label htmlFor="notice-detail-title" className="text-[12.5px] font-bold leading-[normal] text-[#8b95a1]">제목</label>
-              <input
+              <Input
+                unstyled
                 id="notice-detail-title"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
@@ -201,7 +199,8 @@ export function NoticeDetailModal({
             {/* 내용 */}
             <div className="flex flex-col gap-[9px]">
               <label htmlFor="notice-detail-content" className="text-[12.5px] font-bold leading-[normal] text-[#8b95a1]">내용</label>
-              <textarea
+              <Textarea
+                unstyled
                 id="notice-detail-content"
                 value={content}
                 onChange={(event) => setContent(event.target.value)}

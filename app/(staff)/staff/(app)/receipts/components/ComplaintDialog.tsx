@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useId } from "react";
+import { useId } from "react";
 import { CloseIcon } from "@/components/icons";
+import { useDismissOnEscape } from "@/hooks/common";
 
 const SIZE_CLASS = {
   medium: "max-w-2xl",
@@ -30,18 +31,7 @@ export function ComplaintDialog({
 }) {
   const titleId = useId();
 
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKeyDown);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = "";
-    };
-  }, [open, onClose]);
+  useDismissOnEscape({ enabled: open, onDismiss: onClose, lockBodyScroll: true });
 
   if (!open) return null;
 

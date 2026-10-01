@@ -356,7 +356,7 @@ export function AsStatusSection({
   return (
     <Panel title="A/S 현황" action={action} actionClassName="flex-1" flush className="h-[320px] shrink-0 [&>div:first-child]:gap-[14px] [&>div:first-child]:px-[12px]">
       {buildingId === null || (scope === "unit" && unitId === null) ? (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-hidden">
           <AsEmptyTable
             scope={scope}
             message={scope === "building" ? "건물을 선택해 주세요" : "건물과 호수를 선택해 주세요"}
@@ -365,7 +365,7 @@ export function AsStatusSection({
       ) : !isHydrated || isLoading ? (
         <div className="flex h-[260px] items-center justify-center"><Spinner /></div>
       ) : rows.length === 0 ? (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-hidden">
           <AsEmptyTable scope={scope} message="접수 내역이 없어요" />
         </div>
       ) : (

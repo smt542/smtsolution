@@ -1,3 +1,4 @@
+import { Input } from "@/components/common";
 import type { GasTableRow, GasUtilityDraft } from "./types";
 import { GridEmptyValue } from "../GridEmptyValue";
 import { UtilityGrid, type UtilityGridColumn } from "../UtilityGrid";
@@ -95,7 +96,8 @@ export function GasAccountSummary({ rows, drafts, editing }: GasAccountSummaryPr
       align: "left",
       cellClassName: "font-bold",
       render: (line) => editing ? (
-        <input
+        <Input
+          unstyled
           aria-label={`${line.customerNumber} 고객번호`}
           readOnly
           value={line.customerNumber}
@@ -150,7 +152,8 @@ export function GasAccountSummary({ rows, drafts, editing }: GasAccountSummaryPr
       align: "right",
       cellClassName: "tabular-nums",
       render: (line) => editing ? (
-        <input
+        <Input
+          unstyled
           aria-label={`${line.customerNumber} 부과액`}
           readOnly
           value={line.charge.toLocaleString("ko-KR")}

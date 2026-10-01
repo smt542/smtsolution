@@ -2,6 +2,7 @@
 
 import { type ReactNode, useMemo, useState } from "react";
 import { CustomDropdown } from "@/components/common/CustomDropdown";
+import { Input } from "@/components/common/Input";
 import type { Building } from "@/hooks/reactquery/buildings";
 import {
   useMeterHistory,
@@ -113,7 +114,8 @@ export function BuildingSelectionRail({
           <label className="relative block">
             <span className="sr-only">건물명·주소 검색</span>
             <SearchIcon className="pointer-events-none absolute left-[11px] top-1/2 size-[15px] -translate-y-1/2 text-t3" />
-            <input
+            <Input
+              unstyled
               aria-label="건물명·주소 검색"
               value={query}
               disabled={disabled}

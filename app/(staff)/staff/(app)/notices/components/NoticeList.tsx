@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import type { Building } from "@/hooks/reactquery/buildings";
 import type { NoticeSummary, NoticeType } from "@/hooks/reactquery/notices";
+import { getNoticeCreatorLabel } from "../utils";
 
 const TYPE_TABS: Array<{ value: NoticeType | "all"; label: string }> = [
   { value: "all",       label: "전체" },
@@ -152,7 +153,7 @@ export function NoticeList({
                       -
                     </td>
                     <td className="px-[16px] py-[10px] text-[13.5px] text-[#191f28] whitespace-nowrap">
-                      {notice.createdBy ?? "-"}
+                      {getNoticeCreatorLabel(notice)}
                     </td>
                   </tr>
                 );

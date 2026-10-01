@@ -1,3 +1,4 @@
+import { Input } from "@/components/common";
 import type { GasTableRow, GasUtilityDraft } from "./types";
 import { GridEmptyValue } from "../GridEmptyValue";
 import { UtilityGrid, type UtilityGridColumn } from "../UtilityGrid";
@@ -79,7 +80,8 @@ function ReadingInput({
   onChange: (value: string) => void;
 }) {
   return (
-    <input
+    <Input
+      unstyled
       aria-label={label}
       type="number"
       value={value}
@@ -301,7 +303,8 @@ export function GasReadingsTable({
       align: "left",
       cellClassName: "",
       render: (item) => editing ? (
-        <input
+        <Input
+          unstyled
           aria-label={`${item.row.unitNo} 적요`}
           value={item.draft.note}
           onChange={(event) => onDraftChange(item.row.unitId, { note: event.target.value })}

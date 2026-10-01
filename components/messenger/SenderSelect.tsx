@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMe } from "@/hooks/reactquery/auth";
-import { applyMask, phoneMask, PHONE_INPUT_ATTRS } from "@/components/common";
+import { applyMask, Input, phoneMask, PHONE_INPUT_ATTRS } from "@/components/common";
 import {
   useSaveSetupSender,
   useSetupConfig,
@@ -182,7 +182,8 @@ export function SenderSelect({ value, onChange }: SenderSelectProps) {
         onClick={(event) => event.stopPropagation()}
       >
         <div className={styles["fmp-fromadd"]}>
-          <input
+          <Input
+            unstyled
             {...PHONE_INPUT_ATTRS}
             aria-label="발신번호 직접 입력"
             placeholder="발신번호 직접 입력"
@@ -221,7 +222,7 @@ export function SenderSelect({ value, onChange }: SenderSelectProps) {
               className={`${styles["fmp-fromrow"]} ${option.number === normalizedValue ? styles.on : ""}`}
               onClick={() => choose(option.number)}
             >
-              <div style={{ minWidth: 0 }}>
+              <div className="min-w-0">
                 <div className={styles.num}>{formatPhone(option.number)}</div>
                 <div className={styles.who}>
                   {option.label} · {option.detail}
@@ -247,7 +248,7 @@ export function SenderSelect({ value, onChange }: SenderSelectProps) {
             className={`${styles["fmp-fromrow"]} ${!normalizedValue ? styles.on : ""}`}
             onClick={() => void applyOperatorDefault()}
           >
-            <div style={{ minWidth: 0 }}>
+            <div className="min-w-0">
               <div className={styles.num}>운영사 기본번호</div>
               <div className={styles.who}>미설정 시 자동 적용</div>
             </div>

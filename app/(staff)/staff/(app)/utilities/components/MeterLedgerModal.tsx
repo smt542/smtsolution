@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
-import { Button, IconButton, Spinner } from "@/components/common";
+import { Button, IconButton, Input, Spinner } from "@/components/common";
 import { CustomDropdown } from "@/components/common/CustomDropdown";
 import { PrintSheet } from "@/components/common/PrintSheet";
 import { CloseIcon, PrinterIcon } from "@/components/icons";
@@ -274,7 +274,8 @@ export function MeterLedgerModal({
                   <path d="M20 20l-3-3" />
                 </svg>
                 {/* 정본 #lgSrch 는 placeholder 색을 따로 주지 않아 브라우저 기본(#757575)이다. */}
-                <input
+                <Input
+                  unstyled
                   aria-label="코드·건물명·주소 검색"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}

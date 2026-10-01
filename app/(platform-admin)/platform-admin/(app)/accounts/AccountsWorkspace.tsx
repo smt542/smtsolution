@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Badge, Button, EmptyState, Spinner } from "@/components/common";
+import { Badge, Button, EmptyState, Input, Spinner } from "@/components/common";
 import { useDebouncedValue, SEARCH_DEBOUNCE_MS } from "@/hooks/common";
 import {
   usePlatformHqAccounts,
@@ -95,7 +95,8 @@ export function AccountsWorkspace() {
               <circle cx="11" cy="11" r="7" />
               <path d="M20 20l-3.5-3.5" />
             </svg>
-            <input
+            <Input
+              unstyled
               type="text"
               value={search}
               onChange={(event) => {

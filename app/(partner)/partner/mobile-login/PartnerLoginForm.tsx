@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { Input } from "@/components/common";
 import { useAsyncAction } from "@/hooks/common";
 
 import { partnerLoginClasses as styles } from "./loginClasses";
@@ -76,7 +77,8 @@ export function PartnerLoginForm({ children }: { children: ReactNode }) {
       <div className={styles.form}>
         <div>
           <div className={styles.label}>아이디</div>
-          <input
+          <Input
+            unstyled
             className={styles.input}
             value={username}
             onChange={(e) => setUsername(e.target.value)}
@@ -90,7 +92,8 @@ export function PartnerLoginForm({ children }: { children: ReactNode }) {
         <div>
           <div className={styles.label}>비밀번호</div>
           <div className={styles.pwWrap}>
-            <input
+            <Input
+              unstyled
               className={styles.input}
               type={showPw ? "text" : "password"}
               value={password}

@@ -1,4 +1,4 @@
-import { applyMask, type InputMask, NUMERIC_INPUT_ATTRS } from "@/components/common";
+import { applyMask, Input, type InputMask, NUMERIC_INPUT_ATTRS } from "@/components/common";
 import { FieldLabel } from "./FieldLabel";
 
 /** 입력칸 모양 — 읽기 전용은 회색 바탕이고 눌러도 포커스 테두리·그림자를 그리지 않는다(QA S4). */
@@ -41,7 +41,8 @@ export function TextField({
         {label}
       </FieldLabel>
       <div className="pt-[6px]">
-        <input
+        <Input
+          unstyled
           {...(mask ? NUMERIC_INPUT_ATTRS : {})}
           value={value ?? ""}
           onChange={(e) =>

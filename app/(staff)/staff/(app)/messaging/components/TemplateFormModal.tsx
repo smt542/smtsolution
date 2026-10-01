@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
+import { Input, Textarea } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import {
   type MessageTemplate,
@@ -227,7 +228,8 @@ function TemplateForm({
           {/* 템플릿명 */}
           <div className="flex shrink-0 flex-col gap-[9px]">
             <span className={LABEL}>템플릿명</span>
-            <input
+            <Input
+              unstyled
               aria-label="템플릿명"
               value={title}
               onChange={(event) => setTitle(event.target.value)}
@@ -239,7 +241,8 @@ function TemplateForm({
           {/* 템플릿 내용 — 남는 높이를 이 칸이 가져가고, 모자라면 이 칸만 줄어든다. */}
           <div className="flex min-h-0 flex-[1_1_auto] flex-col gap-[9px]">
             <span className={`${LABEL} shrink-0`}>템플릿 내용</span>
-            <textarea
+            <Textarea
+              unstyled
               ref={bodyRef}
               aria-label="템플릿 내용"
               value={body}
@@ -266,7 +269,8 @@ function TemplateForm({
             <>
               <div className="flex shrink-0 flex-col gap-[9px]">
                 <span className={LABEL}>알림톡 템플릿코드</span>
-                <input
+                <Input
+                  unstyled
                   aria-label="알림톡 템플릿코드"
                   value={alimtalkTemplateCode}
                   onChange={(event) => setAlimtalkTemplateCode(event.target.value)}
@@ -280,14 +284,16 @@ function TemplateForm({
                   링크 <span className="font-medium text-t4">알림톡 버튼</span>
                 </span>
                 <div className="flex gap-[8px]">
-                  <input
+                  <Input
+                    unstyled
                     aria-label="버튼명"
                     value={buttonName}
                     onChange={(event) => setButtonName(event.target.value)}
                     placeholder="버튼명 (예: 자세히 보기)"
                     className={`${FIELD} w-[160px] shrink-0`}
                   />
-                  <input
+                  <Input
+                    unstyled
                     aria-label="연결 URL"
                     value={buttonUrl}
                     onChange={(event) => setButtonUrl(event.target.value)}

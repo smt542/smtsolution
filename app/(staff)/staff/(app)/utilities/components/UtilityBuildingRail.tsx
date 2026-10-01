@@ -1,3 +1,4 @@
+import { Input } from "@/components/common";
 import { CustomDropdown } from "@/components/common/CustomDropdown";
 import { SearchIcon } from "@/components/icons";
 import { UC_DROPDOWN_CLASS } from "./ucDropdown";
@@ -93,7 +94,8 @@ export function UtilityBuildingRail({
         <label className="relative mt-[9px] block">
           <span className="sr-only">건물명·주소 검색</span>
           <SearchIcon className="pointer-events-none absolute left-[11px] top-1/2 size-[15px] -translate-y-1/2 text-t3" />
-          <input
+          <Input
+            unstyled
             type="search"
             aria-label="건물명·주소 검색"
             value={search}

@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
-import { applyMask, type InputMask, NUMERIC_INPUT_ATTRS } from "@/components/common";
+import { applyMask, Input, Textarea, type InputMask, NUMERIC_INPUT_ATTRS } from "@/components/common";
 import { DpDatePicker } from "@/components/common/DpDatePicker";
 
 /** 2열 필드 그리드 (Figma: grid-cols-2 gap-x-[18px] gap-y-[16px]). full 필드는 col-span-2. */
@@ -52,7 +52,8 @@ export const TextField = React.forwardRef<
   } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "type" | "readOnly">
 >(function TextField({ value, onChange, placeholder, type = "text", muted, readOnly, mask, ...rest }, ref) {
   return (
-    <input
+    <Input
+      unstyled
       ref={ref}
       {...(mask ? NUMERIC_INPUT_ATTRS : { type })}
       value={value}
@@ -83,7 +84,8 @@ export function AmountField({
   const digits = value.replace(/[^\d]/g, "");
   const display = digits === "" ? "" : Number(digits).toLocaleString("en-US");
   return (
-    <input
+    <Input
+      unstyled
       inputMode="numeric"
       value={display}
       onChange={(e) => onChange(e.target.value.replace(/[^\d]/g, ""))}
@@ -103,7 +105,8 @@ export function TextAreaField({
   placeholder?: string;
 }) {
   return (
-    <textarea
+    <Textarea
+      unstyled
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}

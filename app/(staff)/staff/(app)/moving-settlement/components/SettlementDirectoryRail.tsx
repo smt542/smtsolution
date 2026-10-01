@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Input } from "@/components/common";
 import { CustomDropdown } from "@/components/common/CustomDropdown";
 import { ChevronLeftIcon, SearchIcon } from "@/components/icons";
 import type { Building } from "@/hooks/reactquery/buildings";
@@ -178,7 +179,8 @@ export function SettlementDirectoryRail({
             ) : (
               <label className="relative min-w-0 flex-1">
                 <SearchIcon className="pointer-events-none absolute left-[11px] top-1/2 size-[15px] -translate-y-1/2 text-t3" />
-                <input
+                <Input
+                  unstyled
                   aria-label={view === "unit" ? "호수·세대주 검색" : "건물·주소 검색"}
                   value={view === "unit" ? tenantSearch : search}
                   onChange={(event) => {

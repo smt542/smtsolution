@@ -9,7 +9,7 @@ import {
 } from "react";
 
 import { COMPLAINT_STATUS_LABEL } from "@/app/(staff)/staff/(app)/receipts/constants";
-import { Spinner } from "@/components/common";
+import { Input, Spinner } from "@/components/common";
 import { DpDatePicker } from "@/components/common/DpDatePicker";
 import { MaskedPhone } from "@/components/common/MaskedPhone";
 import { useAccounts } from "@/hooks/reactquery/accounts";
@@ -382,7 +382,8 @@ export function AsReportModal({
               <circle cx="11" cy="11" r="7" />
               <path d="M20 20l-3-3" />
             </svg>
-            <input
+            <Input
+              unstyled
               aria-label="A/S 접수 현황 검색"
               placeholder="건물명·주소·호실 검색"
               value={search}
@@ -418,27 +419,27 @@ export function AsReportModal({
           <table ref={tableRef} className="asp-table w-full border-collapse text-[11.5px] [&_th]:border [&_th]:border-[#C8CCD0] [&_th]:bg-[#F1F3F5] [&_th]:px-1.5 [&_th]:py-[5px] [&_th]:text-center [&_th]:font-bold [&_th]:leading-[1.35] [&_td]:border [&_td]:border-[#C8CCD0] [&_td]:px-1.5 [&_td]:py-[5px] [&_td]:align-middle [&_td]:text-t1 [&_td_span]:mt-0.5 [&_td_span]:block">
             <thead>
               <tr>
-                <th style={{ width: 34 }}>NO</th>
-                <th style={{ width: 78 }}>
+                <th className="w-[34px]">NO</th>
+                <th className="w-[78px]">
                   접수일
                   <br />
                   시행일
                 </th>
-                <th style={{ width: 150 }}>
+                <th className="w-[150px]">
                   빌라명
                   <br />
                   주소
                 </th>
-                <th style={{ width: 58 }}>
+                <th className="w-[58px]">
                   호실
                   <br />
                   시간
                 </th>
-                <th style={{ width: 84 }}>유형</th>
+                <th className="w-[84px]">유형</th>
                 <th>접수내용</th>
-                <th style={{ width: 104 }}>입주자 전화번호</th>
-                <th style={{ width: 70 }}>처리결과</th>
-                <th style={{ width: 84 }}>
+                <th className="w-[104px]">입주자 전화번호</th>
+                <th className="w-[70px]">처리결과</th>
+                <th className="w-[84px]">
                   접수자
                   <br />
                   처리자

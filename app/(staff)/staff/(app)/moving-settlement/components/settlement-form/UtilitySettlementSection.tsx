@@ -1,3 +1,4 @@
+import { Input } from "@/components/common";
 import { DpDatePicker } from "@/components/common/DpDatePicker";
 import { CalendarIcon } from "@/components/icons";
 import type { MovingSettlementValues } from "@/components/forms/schema/movingSettlement";
@@ -136,7 +137,8 @@ export function UtilitySettlementSection({
                     {formatNumber(shownUnitPrice, { nullText: "-" })}
                   </span>
                 ) : (
-                  <input
+                  <Input
+                    unstyled
                     aria-label={`${row.label} 단가`}
                     type="number"
                     min={0}
@@ -168,7 +170,8 @@ export function UtilitySettlementSection({
                 </span>
               </div>
               <div className="p-[4px]">
-                <input
+                <Input
+                  unstyled
                   aria-label={`${row.label} 입금계좌`}
                   value={value.settleAcct ?? ""}
                   onChange={(event) => onChange({ ...value, settleAcct: event.target.value })}

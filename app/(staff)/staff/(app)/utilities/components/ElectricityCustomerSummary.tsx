@@ -1,3 +1,4 @@
+import { Input } from "@/components/common";
 import { formatNumber } from "@/lib/format";
 import { GridEmptyValue } from "./GridEmptyValue";
 import { UtilityGrid, type UtilityGridColumn } from "./UtilityGrid";
@@ -61,7 +62,8 @@ export function ElectricityCustomerSummary({
       align: "left",
       cellClassName: "truncate font-bold text-t1",
       render: (row, index) => editing ? (
-        <input
+        <Input
+          unstyled
           aria-label={`${index + 1}번 고객번호`}
           value={row.draft.customerNumber}
           onChange={(event) => onDraftChange(row.id, { customerNumber: event.target.value })}
@@ -84,7 +86,8 @@ export function ElectricityCustomerSummary({
       align: "right",
       cellClassName: "num font-bold text-t1",
       render: (row) => editing ? (
-        <input
+        <Input
+          unstyled
           aria-label={`${row.customerNumber} 부과액`}
           type="number"
           value={row.draft.chargeAmount}

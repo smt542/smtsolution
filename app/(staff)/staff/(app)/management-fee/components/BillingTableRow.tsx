@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { applyMask, NUMERIC_INPUT_ATTRS, type InputMask } from "@/components/common";
+import { applyMask, Input, NUMERIC_INPUT_ATTRS, type InputMask } from "@/components/common";
 import type { BillingColumn, BillingUnitRow } from "@/lib/billing/pivot";
 import { formatNumber } from "@/lib/format";
 import {
@@ -107,7 +107,8 @@ export const BillingTableRow = memo(function BillingTableRow({
             return (
               <div key={column.feeItemId} className="flex items-center justify-start gap-[4px] leading-[1.5]">
                 {editing ? (
-                  <input
+                  <Input
+                    unstyled
                     type="text"
                     {...NUMERIC_INPUT_ATTRS}
                     aria-label={`${unitNo} ${column.name} 금액`}
@@ -150,7 +151,8 @@ export const BillingTableRow = memo(function BillingTableRow({
       {/* 부과시 참조사항 — 150px 인라인 편집 */}
       <td className={`min-w-[150px] px-[8px] py-[7px] ${cellBorder}`}>
         {editing ? (
-          <input
+          <Input
+            unstyled
             aria-label={`${unitNo} 부과시 참조사항`}
             value={billingNote}
             onChange={(event) => onNoteChange(unit.unitId, { billingNote: event.target.value })}
@@ -169,7 +171,8 @@ export const BillingTableRow = memo(function BillingTableRow({
       {/* 부과시 공지사항 — 150px 인라인 편집 */}
       <td className={`min-w-[150px] px-[8px] py-[7px] ${cellBorder}`}>
         {editing ? (
-          <input
+          <Input
+            unstyled
             aria-label={`${unitNo} 부과시 공지사항`}
             value={unitNotice}
             onChange={(event) => onNoteChange(unit.unitId, { unitNotice: event.target.value })}

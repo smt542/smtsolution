@@ -552,7 +552,7 @@ function MessengerFabContent() {
           </div>
           {sendMessages.isPending && (
             <div className={styles["fmp-prog"]}>
-              <i style={{ width: "100%" }} />
+              <i className="w-full" />
             </div>
           )}
         </MessengerPanel>

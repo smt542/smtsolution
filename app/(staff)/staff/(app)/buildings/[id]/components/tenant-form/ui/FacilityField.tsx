@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import { Input } from "@/components/common";
 import type { Facility } from "@/hooks/reactquery/occupancies";
 
 /**
@@ -64,7 +65,8 @@ export function FacilityField({
             )}
           </button>
           {editingIndex === i ? (
-            <input
+            <Input
+              unstyled
               autoFocus /* 정본은 추가 즉시 입력에 포커스한다 */
               value={f.label}
               onChange={(e) => setAt(i, { label: e.target.value })}

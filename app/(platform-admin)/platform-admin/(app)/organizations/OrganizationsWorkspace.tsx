@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
-import { Button, EmptyState, Spinner } from "@/components/common";
+import { Button, EmptyState, Input, Spinner } from "@/components/common";
 import {
   listPlatformOrganizations,
   platformKeys,
@@ -180,7 +180,8 @@ export default function OrganizationsWorkspace() {
             <circle cx="11" cy="11" r="6.5" />
             <path d="m16 16 4 4" />
           </svg>
-          <input
+          <Input
+            unstyled
             type="search"
             value={search}
             onChange={(event) => {

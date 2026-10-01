@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
-import { Button, Spinner } from "@/components/common";
+import { Button, Input, Spinner, Textarea } from "@/components/common";
 import {
   usePlatformSettings,
   useUpdatePlatformSettings,
@@ -173,7 +173,8 @@ export function PlatformSettingsWorkspace() {
               <label className="col-span-full block bg-surface p-[16px] px-[18px]">
                 <span className="block text-[12.5px] font-bold text-t3">청구서 안내 문구</span>
                 {isEditing ? (
-                  <textarea
+                  <Textarea
+                    unstyled
                     aria-label="청구서 안내 문구"
                     value={draft.invoiceNotice}
                     onChange={(event) => change("invoiceNotice", event.target.value)}
@@ -258,7 +259,8 @@ function TextSetting({
     <label className="block bg-surface p-[16px] px-[18px]">
       {!hideLabel && <span className="block text-[12.5px] font-bold text-t3">{label}</span>}
       {editing ? (
-        <input
+        <Input
+          unstyled
           aria-label={label}
           value={value}
           onChange={(event) => onChange(event.target.value)}
@@ -295,7 +297,8 @@ function NumberSetting({
       {!hideLabel && <span className="block text-[12.5px] font-bold text-t3">{label}</span>}
       {editing ? (
         <span className="mt-[9px] flex items-center gap-[7px]">
-          <input
+          <Input
+            unstyled
             aria-label={label}
             type="number"
             min="0"

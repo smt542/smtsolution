@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, type ReactNode } from "react";
+import { useId, type ReactNode } from "react";
+import { useDismissOnEscape } from "@/hooks/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
 import { MaskedPhone } from "@/components/common/MaskedPhone";
@@ -63,17 +64,7 @@ export function MessageDetailModal({
   const { data: me } = useMe();
   const { data: config } = useSetupConfig(me?.orgId);
 
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [onClose]);
+  useDismissOnEscape({ enabled: true, onDismiss: onClose, lockBodyScroll: true });
 
   const channelText = channelLabel(channel);
   const senderNumber = senderLabel(channel, config?.smsSender);

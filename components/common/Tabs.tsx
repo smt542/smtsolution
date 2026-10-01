@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import { Input } from "./Input";
 
 export function Tabs({
   tabs,
@@ -61,7 +62,8 @@ export function Tabs({
       {tabs.map((t) => (
         <div key={t.id} className="relative flex items-center">
           {renamingId === t.id ? (
-            <input
+            <Input
+              unstyled
               autoFocus
               aria-label="유형 이름 변경"
               value={renameValue}
