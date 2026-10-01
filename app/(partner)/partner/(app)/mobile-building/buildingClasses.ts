@@ -1,5 +1,5 @@
 export const buildingClasses = {
-  root: "flex min-h-0 flex-1 flex-col bg-white",
+  root: "flex min-h-0 flex-1 flex-col bg-white leading-[normal]",
   meterBtn: "inline-flex h-9 flex-none items-center gap-[5px] rounded-[11px] bg-blue px-[13px] text-[13px] font-bold text-white hover:bg-blue-d [&_svg]:size-[15px]",
   tabs: "mx-5 flex border-b border-line",
   // 탭 색은 켜짐/꺼짐 클래스를 따로 둔다 — 기본 클래스에 text-t3를 두고 text-blue를 이어 붙이면 CSS 순서상 t3가 이긴다.
@@ -16,9 +16,9 @@ export const buildingClasses = {
   rowValue: "min-w-0 flex-1 text-right text-[14.5px] font-bold",
   uho: "flex-none text-[17px] font-extrabold tracking-[-0.01em] text-blue-d",
   unm: "text-[15px] font-bold text-t2",
-  uvac: "rounded-[7px] bg-bg px-[9px] py-[3px] text-xs font-extrabold text-t4",
+  uvac: "rounded-[7px] bg-bg px-[9px] py-[3px] text-[12px] font-extrabold text-t4",
   uspacer: "flex-1",
-  none: "px-5 py-10 text-center text-sm font-semibold text-t3",
+  none: "px-5 py-10 text-center text-[14px] font-semibold text-t3",
   vend: "border-b border-line2 py-3 last:border-b-0",
   vendType: "text-[12.5px] font-medium text-t1",
   vendBody: "mt-1.5 flex items-center justify-between gap-2.5",

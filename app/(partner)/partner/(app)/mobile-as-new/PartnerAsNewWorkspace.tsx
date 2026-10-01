@@ -217,7 +217,7 @@ export default function PartnerAsNewWorkspace({
         <PartnerConfirmDialog
           title="작성을 취소할까요?"
           description="입력한 내용은 저장되지 않아요."
-          cancelLabel="계속 작성"
+          cancelLabel="취소"
           confirmLabel="나가기"
           confirmVariant="danger"
           onCancel={() => setConfirmCancel(false)}
