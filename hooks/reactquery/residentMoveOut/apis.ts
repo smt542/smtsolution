@@ -35,6 +35,25 @@ export interface CreateMoveOutInput {
 
 export type ResidentMoveOutResult = ResidentMoveOutRequest | null;
 
+type MoveOutRpcError = { code?: string; message: string };
+
+// RPC 예외(영문 식별 문구)를 세입자 화면 문구로 바꾼다. 모르는 오류는 동작별 기본 문구.
+function moveOutRpcError(
+  error: MoveOutRpcError,
+  fallback: string,
+): Error & { code?: string } {
+  const message = error.code === "23505" || error.message.includes("already exists")
+    ? "이미 접수된 퇴실 신청이 있어요."
+    : error.message.includes("pending move-out request not found")
+      ? "퇴실 신청을 찾을 수 없어요. 화면을 새로고침해 주세요."
+      : error.message.includes("linked occupancy not found")
+        ? "연결된 세대 정보를 찾을 수 없어요."
+        : error.code === "22023" || error.message.includes("desired date required")
+          ? "희망 퇴실일을 선택해 주세요."
+          : fallback;
+  return Object.assign(new Error(message), { code: error.code });
+}
+
 const rowToMoveOut = (row: ResidentMoveOutRow): ResidentMoveOutRequest => ({
   id: row.id,
   desiredDate: row.desired_date,
@@ -57,7 +76,7 @@ export async function residentCreateMoveOut(
       p_reason: reason ?? null,
     },
   );
-  if (error) throw new Error(error.message);
+  if (error) throw moveOutRpcError(error, "퇴실 신청을 접수하지 못했어요.");
   if (typeof data !== "number") {
     throw new Error("퇴실 신청을 접수하지 못했어요.");
   }
@@ -77,10 +96,10 @@ export async function residentUpdateMoveOut(
   const { error } = await createClient().rpc("resident_update_move_out", {
     p_desired_date: desiredDate,
   });
-  if (error) throw new Error(error.message);
+  if (error) throw moveOutRpcError(error, "희망 퇴실일을 변경하지 못했어요.");
 }
 
 export async function residentCancelMoveOut(): Promise<void> {
   const { error } = await createClient().rpc("resident_cancel_move_out");
-  if (error) throw new Error(error.message);
+  if (error) throw moveOutRpcError(error, "퇴실 신청을 취소하지 못했어요.");
 }
