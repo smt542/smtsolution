@@ -98,7 +98,7 @@ function MonthlySendCostBars({
   return (
     <>
       <div className="px-5 pt-[18px] pb-1.5">
-        <div className="flex items-center gap-4 flex-wrap pb-4 border-b border-line2">
+        <div className="flex items-center gap-4 flex-wrap pb-4 border-b border-line2 leading-[normal]">
           {CHANNELS.map((channel) => (
             <div
               key={channel.label}
@@ -136,7 +136,7 @@ function MonthlySendCostBars({
                   </div>
                 )}
                 <div
-                  className={`w-11 flex-none text-[12.5px] font-bold ${isLatest ? "text-t1" : "text-t3"}`}
+                  className={`w-11 flex-none text-[12.5px] font-bold leading-[normal] ${isLatest ? "text-t1" : "text-t3"}`}
                 >
                   {cost.month}월
                 </div>
@@ -166,11 +166,15 @@ function MonthlySendCostBars({
                   )}
                 </div>
                 <div
-                  className={`w-[88px] flex-none text-right text-[12.5px] font-extrabold num ${
-                    isLatest ? "text-t1" : "text-t2"
+                  className={`w-[88px] flex-none text-right text-[12.5px] leading-[normal] num ${
+                    isEmpty
+                      ? "font-bold text-t4"
+                      : isLatest
+                        ? "font-extrabold text-t1"
+                        : "font-extrabold text-t2"
                   }`}
                 >
-                  {isEmpty ? "-" : `${formatNumber(total)}원`}
+                  {isEmpty ? "—" : `${formatNumber(total)}원`}
                 </div>
               </div>
             );
@@ -178,7 +182,7 @@ function MonthlySendCostBars({
         </div>
       </div>
 
-      <div className="mt-3.5 flex items-center gap-[9px] border-t border-line2 px-5 pb-[18px] pt-3.5">
+      <div className="mt-3.5 flex items-center gap-[9px] border-t border-line2 px-5 pb-[18px] pt-3.5 leading-[normal]">
         <div className="text-[13px] font-bold text-t2">{year}년 누계</div>
         <div className="text-[12px] font-semibold text-t3 num">
           {summary.dataMonths}개월 · 월 평균 {formatNumber(summary.average)}원

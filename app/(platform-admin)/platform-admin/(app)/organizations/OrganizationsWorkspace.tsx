@@ -226,7 +226,7 @@ export default function OrganizationsWorkspace() {
                   onKeyDown={(event) => {
                     if (event.key === "Enter") setDetailTarget(organization);
                   }}
-                  className="cursor-pointer hover:bg-row-hover"
+                  className="h-[58px] cursor-pointer hover:bg-row-hover"
                 >
                   <td className="whitespace-nowrap border-b border-line2 px-4 py-3 text-[13.5px] text-t1">
                     <div className="text-[14px] font-extrabold tracking-[-0.01em] text-t1">{organization.name}</div>

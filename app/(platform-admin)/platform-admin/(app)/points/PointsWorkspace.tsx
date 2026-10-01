@@ -341,7 +341,7 @@ export default function PointsWorkspace() {
       <section className="flex min-h-[360px] flex-1 flex-col overflow-hidden rounded-2xl bg-surface shadow-card">
         <div className="flex items-center gap-2.5 border-b border-line2 px-[18px] py-[15px]">
           <h2 className="text-[15px] font-extrabold text-t1">충전 이력</h2>
-          <span className="text-xs font-semibold text-t3 tabular-nums">{num(chargeTotalCount)}건</span>
+          <span className="text-xs font-semibold leading-[normal] text-t3">{num(chargeTotalCount)}건</span>
         </div>
         <div ref={historyScrollerRef} className="min-h-0 flex-1 overflow-auto">
           {chargeHistoryQuery.isPending ? (

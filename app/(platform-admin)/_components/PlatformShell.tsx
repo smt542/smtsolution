@@ -77,6 +77,7 @@ function PlatformSidebar({ pathname, onNavigate }: { pathname: string; onNavigat
   const { data: me } = useMe();
   const router = useRouter();
   const logout = useLogout();
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const handleLogout = async () => {
     if (logout.isPending) return;
@@ -125,9 +126,14 @@ function PlatformSidebar({ pathname, onNavigate }: { pathname: string; onNavigat
       </nav>
 
       {me && (
-        <details className="relative">
+        <details
+          className="relative"
+          onToggle={(event) => setProfileOpen(event.currentTarget.open)}
+        >
           <summary
-            className="flex cursor-pointer list-none items-center gap-2.5 rounded-xl bg-bg p-2.5 transition-colors hover:bg-line2 [&::-webkit-details-marker]:hidden"
+            className={`flex cursor-pointer list-none items-center gap-2.5 rounded-xl p-2.5 transition-colors [&::-webkit-details-marker]:hidden ${
+              profileOpen ? "bg-blue-t hover:bg-blue-t" : "bg-bg hover:bg-bg"
+            }`}
             aria-label="프로필 메뉴"
           >
             <div className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-full bg-[#DCE3EA] text-sm font-bold text-t2">
@@ -144,7 +150,7 @@ function PlatformSidebar({ pathname, onNavigate }: { pathname: string; onNavigat
               type="button"
               onClick={() => void handleLogout()}
               disabled={logout.isPending}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[13px] font-bold text-red transition-colors hover:bg-red-t disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[13.5px] font-semibold leading-[normal] text-red transition-colors hover:bg-red-t disabled:cursor-not-allowed disabled:opacity-60"
             >
               {logout.isPending ? "로그아웃 중…" : "로그아웃"}
             </button>
