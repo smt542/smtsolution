@@ -46,8 +46,9 @@ export interface PhotoUploadProps {
 const tileClass =
   "relative size-[84px] shrink-0 overflow-hidden rounded-[10px] border border-line";
 /* 정본 .gal-rm: 삭제 버튼은 hover 없이도 항상 보인다 */
-const tileDeleteClass =
+export const PHOTO_UPLOAD_REMOVE_BUTTON_CLASS =
   "absolute right-[4px] top-[4px] flex size-[20px] items-center justify-center rounded-full bg-[rgba(15,20,26,.62)] text-white enabled:hover:bg-[rgba(15,20,26,.85)] disabled:cursor-not-allowed disabled:opacity-40";
+const tileDeleteClass = PHOTO_UPLOAD_REMOVE_BUTTON_CLASS;
 const tilePlaceholderClass =
   "flex size-full items-center justify-center p-2 text-center text-[10px] text-t3";
 

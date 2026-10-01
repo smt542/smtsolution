@@ -29,7 +29,7 @@ export { Badge } from "./Badge";
 export { DetailField, DetailSection } from "./Detail";
 export { SummaryCard } from "./SummaryCard";
 export { Pagination } from "./Pagination";
-export { PhotoUpload } from "./PhotoUpload";
+export { PhotoUpload, PHOTO_UPLOAD_REMOVE_BUTTON_CLASS } from "./PhotoUpload";
 export type { PhotoUploadProps } from "./PhotoUpload";
 export { CustomDropdown } from "./CustomDropdown";
 export type { DropdownOption } from "./CustomDropdown";

@@ -757,14 +757,18 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
           canEdit={editing}
           uploading={uploadAttachments.isPending}
           onClose={() => setViewer(null)}
-          onUpload={(files) => uploadAttachments.mutateAsync({
-            entityType: LEDGER_ENTITY_TYPE,
-            entityId: viewer.row.id as number,
-            orgId,
-            kind: viewer.kind,
-            fileType: "image",
-            files,
-          })}
+          onUpload={async (files) => {
+            const result = await uploadAttachments.mutateAsync({
+              entityType: LEDGER_ENTITY_TYPE,
+              entityId: viewer.row.id as number,
+              orgId,
+              kind: viewer.kind,
+              fileType: "image",
+              files,
+            });
+            if (result.succeeded.length > 0) setDirty(true);
+            return result;
+          }}
           onStageFiles={(files) => stageFiles(viewer.row.clientKey, viewer.kind, files)}
           onRemoveStagedFile={(file) => removeStagedFile(viewer.row.clientKey, viewer.kind, file)}
           onDelete={async (attachment) => {
@@ -778,6 +782,7 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
             if (!ok) return;
             try {
               await deleteAttachment.mutateAsync({ id: attachment.id, path: attachment.fileUrl });
+              setDirty(true);
               toast.success("첨부파일을 삭제했어요");
             } catch (error) {
               toast.error(error, "첨부파일을 삭제하지 못했습니다.");

@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { Spinner } from "@/components/common";
+import { PHOTO_UPLOAD_REMOVE_BUTTON_CLASS, Spinner } from "@/components/common";
+import { CloseIcon } from "@/components/icons";
 import { useAppToast, useObjectUrls } from "@/hooks/common";
 import {
   useAttachmentSignedUrls,
@@ -184,7 +185,7 @@ export function AttachmentViewer({
                       {canEdit && (
                         <button
                           type="button"
-                          className={styles.attachmentRemove}
+                          className={PHOTO_UPLOAD_REMOVE_BUTTON_CLASS}
                           aria-label={`${attachment.fileName} 삭제`}
                           disabled={uploading}
                           onClick={async (event) => {
@@ -193,7 +194,7 @@ export function AttachmentViewer({
                             await onDelete(attachment);
                           }}
                         >
-                          ✕
+                          <CloseIcon className="size-[10px]" />
                         </button>
                       )}
                     </figure>
@@ -231,7 +232,7 @@ export function AttachmentViewer({
                         {canEdit && (
                           <button
                             type="button"
-                            className={styles.attachmentRemove}
+                            className={PHOTO_UPLOAD_REMOVE_BUTTON_CLASS}
                             aria-label={`${file.name} 삭제`}
                             disabled={uploading}
                             onClick={(event) => {
@@ -240,7 +241,7 @@ export function AttachmentViewer({
                               onRemoveStagedFile?.(file);
                             }}
                           >
-                            ✕
+                            <CloseIcon className="size-[10px]" />
                           </button>
                         )}
                       </figure>
