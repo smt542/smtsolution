@@ -110,7 +110,7 @@ export function WaterDiscountModal({ open, buildingId, period, row, onClose }: W
             취소
           </Button>
           <Button onClick={submit} disabled={saveDiscount.isPending}>
-            {saveDiscount.isPending ? "저장 중…" : "저장"}
+            저장
           </Button>
         </div>
       </div>

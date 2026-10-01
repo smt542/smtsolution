@@ -328,7 +328,7 @@ function TemplateForm({
             disabled={isPending}
             className={`${FOOTER_BUTTON} bg-blue text-white transition hover:bg-blue-d disabled:opacity-60`}
           >
-            {isPending ? "저장 중…" : "저장"}
+            저장
           </button>
         </div>
       </div>

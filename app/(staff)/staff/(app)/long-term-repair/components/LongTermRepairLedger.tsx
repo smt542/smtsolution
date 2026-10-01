@@ -565,7 +565,7 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
                   {/* 저장 중 취소를 허용하면 UI만 취소되고 저장·첨부 업로드는 계속 진행돼 상태가 어긋난다. */}
                   <button type="button" className={`${styles.miniButton} ${styles.cancelButton}`} onClick={cancelEdit} disabled={persisting}>취소</button>
                   <button type="button" className={`${styles.miniButton} ${styles.saveButton}`} onClick={() => void persist()} disabled={!dirty || saveLedger.isPending || persisting}>
-                    {persisting ? "저장 중…" : "저장"}
+                    저장
                   </button>
                 </>
               )}

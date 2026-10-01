@@ -93,7 +93,7 @@ export function PlatformSettingsWorkspace() {
               disabled={updateSettings.isPending}
               className="shrink-0 transition-colors disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {updateSettings.isPending ? "저장 중…" : "저장"}
+              저장
             </Button>
             <Button
               variant="ghost"

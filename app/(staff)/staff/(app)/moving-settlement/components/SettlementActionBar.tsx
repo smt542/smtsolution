@@ -33,7 +33,7 @@ export function SettlementActionBar({
         disabled={pending}
         className="flex-[1_1_auto] min-w-max justify-center h-[40px] rounded-[11px] border border-transparent bg-teal px-[10px] text-[13.5px] font-bold text-white shadow-pri hover:bg-teal-d disabled:cursor-wait disabled:opacity-60"
       >
-        {pendingAction === "save" ? "저장 중…" : "저장"}
+        저장
       </button>
       <button type="button" onClick={onMidMoveout} disabled={pending} className={`${outlined} flex-[1_1_auto] min-w-max justify-center`}>
         {pendingAction === "mid" ? "중도퇴실 처리 중…" : "정산완료+중도퇴실"}

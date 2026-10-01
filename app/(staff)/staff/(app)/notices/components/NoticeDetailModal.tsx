@@ -282,7 +282,7 @@ export function NoticeDetailModal({
         <div className="mt-5 flex justify-end gap-2">
           <Button type="button" variant="ghost" onClick={() => setConfirmOpen(false)}>취소</Button>
           <Button type="button" variant="danger" onClick={handleDelete} disabled={deleteNotice.isPending}>
-            {deleteNotice.isPending ? "삭제 중…" : "삭제"}
+            삭제
           </Button>
         </div>
       </Modal>

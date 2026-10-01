@@ -306,7 +306,7 @@ export function TenantInfoSection({
           disabled={save.isPending}
           className={SAVE_BUTTON_CLASS}
         >
-          {save.isPending ? "저장 중…" : "저장"}
+          저장
         </button>
         <button
           type="button"

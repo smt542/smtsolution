@@ -61,7 +61,7 @@ export function RegisterHeader({
         disabled={saving}
         className="border border-transparent leading-[normal] disabled:opacity-60"
       >
-        {saving ? "저장 중…" : saveLabel}
+        {saveLabel}
       </Button>
     </div>
   );

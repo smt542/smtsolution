@@ -195,10 +195,10 @@ export function FeeItemFormDialog({
               {!item.isRequired && (
                 <button type="button" disabled={submitting} className="h-10 rounded-[11px] bg-red px-5 text-[13.5px] font-bold tracking-[-0.01em] text-white hover:bg-[#d63a46] disabled:opacity-70" onClick={onDelete}>삭제</button>
               )}
-              <button type="submit" disabled={submitting} className="h-10 flex-1 rounded-[11px] bg-teal text-[13.5px] font-bold tracking-[-0.01em] text-white hover:bg-teal-d disabled:opacity-70">{submitting ? "저장 중…" : "수정"}</button>
+              <button type="submit" disabled={submitting} className="h-10 flex-1 rounded-[11px] bg-teal text-[13.5px] font-bold tracking-[-0.01em] text-white hover:bg-teal-d disabled:opacity-70">수정</button>
             </>
           ) : (
-            <button type="submit" disabled={submitting} className="h-10 w-full rounded-[11px] bg-teal text-[13.5px] font-bold tracking-[-0.01em] text-white hover:bg-teal-d disabled:opacity-70">{submitting ? "저장 중…" : "추가"}</button>
+            <button type="submit" disabled={submitting} className="h-10 w-full rounded-[11px] bg-teal text-[13.5px] font-bold tracking-[-0.01em] text-white hover:bg-teal-d disabled:opacity-70">추가</button>
           )}
         </footer>
       </form>

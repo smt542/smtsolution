@@ -510,7 +510,7 @@ export function TenantForm({
     <>
       <Button variant="ghost" onClick={onLeave}>{unitId ? "목록으로" : "뒤로가기"}</Button>
       <Button variant="primary" onClick={onSave} disabled={save.isPending}>
-        {save.isPending ? "저장 중…" : unitId ? "저장" : "등록 저장"}
+        {unitId ? "저장" : "등록 저장"}
       </Button>
     </>
   );

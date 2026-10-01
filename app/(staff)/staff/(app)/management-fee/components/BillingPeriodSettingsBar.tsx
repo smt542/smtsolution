@@ -145,7 +145,7 @@ export function BillingPeriodSettingsBar({
               onClick={() => void save()}
               className="h-[26px] rounded-[8px] border border-teal bg-teal px-[10px] text-[11.5px] font-bold text-white hover:bg-teal-d disabled:opacity-50"
             >
-              {disabled ? "저장 중…" : "저장"}
+              저장
             </button>
             <button
               type="button"

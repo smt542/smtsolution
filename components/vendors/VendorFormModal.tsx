@@ -350,7 +350,7 @@ export function VendorFormModal({
             disabled={isPending || isSubmitting}
             className={`${vendorClasses.footerButton} ${vendorClasses.submitButton}`}
           >
-            {isPending || isSubmitting ? "저장 중…" : editing ? "수정" : "추가"}
+            {editing ? "수정" : "추가"}
           </button>
         </div>
       </form>

@@ -368,7 +368,7 @@ function BuildingNoteBlock({
               disabled={save.isPending}
               className="h-[26px] rounded-[8px] border border-teal bg-teal px-[10px] text-[11.5px] font-bold leading-[normal] text-white hover:bg-teal-d disabled:opacity-60"
             >
-              {save.isPending ? "저장 중…" : "저장"}
+              저장
             </button>
           ) : (
             <Button

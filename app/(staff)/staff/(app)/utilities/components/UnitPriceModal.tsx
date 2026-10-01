@@ -287,7 +287,7 @@ export function UnitPriceModal({
               onClick={submit}
               disabled={savePrices.isPending || prices.length === 0}
             >
-              {savePrices.isPending ? "저장 중…" : "저장"}
+              저장
             </Button>
           </div>
         </section>
@@ -383,7 +383,7 @@ export function UnitPriceModal({
               onClick={submitScoped}
               disabled={saveScoped.isPending || scopedPricesQuery.isLoading || scopedRows.length === 0}
             >
-              {saveScoped.isPending ? "저장 중…" : "용도/층별 단가 저장"}
+              용도/층별 단가 저장
             </Button>
           </div>
         </section>

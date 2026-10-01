@@ -351,7 +351,7 @@ export function ResidentClaimsPanel() {
               {/* 정본 .lk-a 에는 닫기·연결하기만 있다. 삭제(reject RPC)는 앱 전용이라
                   정본 38px 지오메트리만 따르고 파괴적 동작 표시는 danger 를 유지한다. */}
               <Button type="button" variant="danger" onClick={reject} disabled={isResidentClaimMutationPending} className="!h-[38px] !rounded-[10px] !px-[14px] !text-[13px] leading-[normal] !shadow-none">
-                {rejectClaim.isPending ? "삭제 중…" : "삭제"}
+                삭제
               </Button>
               <Button type="button" variant="ghost" onClick={closeLinkModal} disabled={isResidentClaimMutationPending} className="!h-[38px] !rounded-[10px] !px-[14px] !text-[13px] leading-[normal] hover:bg-surface">
                 닫기

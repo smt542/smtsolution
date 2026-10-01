@@ -724,7 +724,7 @@ export function PaymentHistorySection({
             disabled={isPaymentMutationPending}
             className={MINI_PRI_CLASS}
           >
-            {isPaymentSavePending ? "수납 저장 중…" : "저장"}
+            저장
           </button>
           <button
             type="button"

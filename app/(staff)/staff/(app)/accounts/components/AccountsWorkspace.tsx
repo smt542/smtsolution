@@ -75,10 +75,10 @@ export function AccountsWorkspace({ canEditPermissions }: { canEditPermissions: 
     }
     catch (e) { toast.error(e, "오류가 발생했습니다"); throw e; }
   };
-  const onSetActive = async (userId: string, active: boolean) => {
+  const onSetActive = async (userId: string, active: boolean, successMessage = "변경되었습니다") => {
     try {
       await activeM.mutateAsync({ userId, active });
-      toast.success("변경되었습니다");
+      toast.success(successMessage);
     }
     catch (e) { toast.error(e, "오류가 발생했습니다"); throw e; }
   };

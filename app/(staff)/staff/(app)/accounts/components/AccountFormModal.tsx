@@ -35,7 +35,7 @@ interface Props {
   onUpdateBasic: (userId: string, input: AccountBasicInput) => Promise<void>;
   onUpdatePermissions: (userId: string, input: PermissionInput) => Promise<void>;
   onResetPassword: (userId: string, password: string) => Promise<void>;
-  onSetActive: (userId: string, active: boolean) => Promise<void>;
+  onSetActive: (userId: string, active: boolean, successMessage?: string) => Promise<void>;
   isPending: boolean;
 }
 
@@ -241,7 +241,7 @@ export function AccountFormModal({
     });
     if (!ok) return;
     try {
-      await onSetActive(editing.userId, false);
+      await onSetActive(editing.userId, false, "계정을 삭제했어요");
       onClose();
     } catch {
       // The page handler keeps the modal open and shows the error toast.
