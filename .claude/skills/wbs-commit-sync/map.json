@@ -235,6 +235,12 @@
       "page_title": "세입자_로그인카카오 시작",
       "keywords": ["switch-entry", "엔트리 포인트"],
       "paths": ["switch-entry"]
+    },
+    {
+      "page_id": "a27e5a12-a839-4f8c-a77b-25d4415e0a55",
+      "page_title": "세입자_내 정보",
+      "keywords": ["퇴실 신청", "residentMoveOut", "MoveOutSection", "move_out_requests"],
+      "paths": ["residentMoveOut", "MoveOutSection"]
     }
   ]
 }
