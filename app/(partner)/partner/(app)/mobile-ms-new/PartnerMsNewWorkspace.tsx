@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { type ReactNode, useMemo, useState } from "react";
+import Image from "next/image";
+import { type ReactNode, useMemo, useRef, useState } from "react";
 
 import { applyMask, Input, phoneMask, PHONE_INPUT_ATTRS, Textarea } from "@/components/common";
 import {
@@ -34,6 +35,7 @@ import { PartnerButton } from "../../../_components/PartnerButton";
 import { PartnerConfirmDialog } from "../../../_components/PartnerConfirmDialog";
 
 type SectionKey = "basic" | "util" | "fee" | "etc" | "cleaning" | "settle" | "check";
+type ConfirmKind = "save" | "cancel" | "delete" | "statementNegative";
 
 const CLEANING_STATUS_OPTIONS = [
   { value: "미결", label: "미결" },
@@ -115,6 +117,31 @@ function NumberField({
   );
 }
 
+function statementDate(value: string): string {
+  return value ? value.replaceAll("-", ".") : "—";
+}
+
+function todayStatementDate(): string {
+  const now = new Date();
+  return `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}.${String(now.getDate()).padStart(2, "0")}`;
+}
+
+function compactStatementDate(value: string): string {
+  return value.replace(/[^0-9]/g, "") || todayStatementDate().replace(/[^0-9]/g, "");
+}
+
+function safeFilePart(value: string): string {
+  return value.replace(/[\\/:*?"<>|]/g, "_").trim() || "호실";
+}
+
+function settlementAccountLabel(ctx: PartnerSettlementContext): string {
+  const account = [ctx.settleAccount.settleBank, ctx.settleAccount.settleAcct]
+    .map((value) => value?.trim() ?? "")
+    .filter(Boolean)
+    .join(" ");
+  return [account, ctx.settleAccount.settleHolder?.trim() ?? ""].filter(Boolean).join(" · ") || "등록된 정산 계좌가 없습니다.";
+}
+
 type PartnerMsNewWorkspaceProps = {
   unitId: number;
   editId: number | null;
@@ -151,7 +178,10 @@ export default function PartnerMsNewWorkspace({
   const [activeId, setActiveId] = useState<number | null>(editId);
   const [err, setErr] = useState("");
   const { toastMessage, showToast } = usePartnerToast();
-  const [confirmKind, setConfirmKind] = useState<null | "save" | "cancel" | "delete">(null);
+  const [confirmKind, setConfirmKind] = useState<ConfirmKind | null>(null);
+  const [statementOpen, setStatementOpen] = useState(false);
+  const [statementSavePending, setStatementSavePending] = useState(false);
+  const statementSheetRef = useRef<HTMLDivElement>(null);
   const [fold, setFold] = useState<Record<SectionKey, boolean>>({
     basic: false,
     util: true,
@@ -170,6 +200,80 @@ export default function PartnerMsNewWorkspace({
   const backHref = Number.isFinite(unitId) ? `/partner/mobile-tenant?id=${unitId}` : "/partner/mobile-inquiry";
   const goBack = () => router.push(backHref);
   const isEdit = activeId !== null;
+
+  const openStatement = () => {
+    if (!isEdit || !state || !totals) return;
+    if (totals.balance < 0) {
+      setConfirmKind("statementNegative");
+      return;
+    }
+    setStatementOpen(true);
+  };
+
+  const saveStatementImage = async () => {
+    if (statementSavePending || !state || !ctx || !statementSheetRef.current) return;
+
+    showToast("이미지를 만들고 있어요");
+    setStatementSavePending(true);
+
+    let toPng: typeof import("html-to-image").toPng;
+    let getFontEmbedCSS: typeof import("html-to-image").getFontEmbedCSS;
+    try {
+      ({ toPng, getFontEmbedCSS } = await import("html-to-image"));
+    } catch {
+      showToast("이미지 변환을 불러오지 못했어요");
+      setStatementSavePending(false);
+      return;
+    }
+
+    let captureBox: HTMLDivElement | null = null;
+    try {
+      captureBox = document.createElement("div");
+      captureBox.style.cssText =
+        "position:fixed;left:-10000px;top:0;width:480px;background:#fff;z-index:-1;pointer-events:none";
+      const clone = statementSheetRef.current.cloneNode(true) as HTMLDivElement;
+      clone.style.width = "480px";
+      clone.style.maxHeight = "none";
+      clone.style.overflow = "visible";
+      captureBox.appendChild(clone);
+      document.body.appendChild(captureBox);
+
+      const images = [...clone.querySelectorAll<HTMLImageElement>("img")];
+      await Promise.all(
+        images.map(
+          (image) =>
+            image.complete
+              ? Promise.resolve()
+              : new Promise<void>((resolve) => {
+                  image.addEventListener("load", () => resolve(), { once: true });
+                  image.addEventListener("error", () => resolve(), { once: true });
+                }),
+        ),
+      );
+
+      let fontCSS = "";
+      try {
+        fontCSS = await getFontEmbedCSS(clone);
+      } catch {
+        // 폰트 임베드가 막혀도 시스템 폰트로 이미지 저장은 계속한다.
+      }
+      const dataUrl = await toPng(clone, {
+        backgroundColor: "#ffffff",
+        pixelRatio: 2,
+        fontEmbedCSS: fontCSS || undefined,
+      });
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = `이사정산내역서_${safeFilePart(ctx.unit.unitNo)}_${compactStatementDate(state.moveOutDate)}.png`;
+      link.click();
+      showToast("이미지를 저장했어요");
+    } catch {
+      showToast("이미지 저장에 실패했어요");
+    } finally {
+      captureBox?.remove();
+      setStatementSavePending(false);
+    }
+  };
 
   const toggleFold = (key: SectionKey) => setFold((f) => ({ ...f, [key]: !f[key] }));
 
@@ -251,6 +355,15 @@ export default function PartnerMsNewWorkspace({
           </div>
         ) : null}
       </div>
+      {isEdit ? (
+        <button type="button" className={styles.doc} onClick={openStatement} aria-label="내역서 열기">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M6 3h9l4 4v14H6z" />
+            <path d="M9 12h7M9 16h7" />
+          </svg>
+          내역서
+        </button>
+      ) : null}
     </div>
   );
 
@@ -267,6 +380,15 @@ export default function PartnerMsNewWorkspace({
       </div>
     );
   }
+
+  const statementUnit = [ctx.unit.dong, ctx.unit.unitNo].filter(Boolean).join(" ");
+  const statementLocation = [[ctx.unit.buildingName, statementUnit].filter(Boolean).join(" "), ctx.occupancy?.tenantName]
+    .filter(Boolean)
+    .join(" · ");
+  const accountLabel = settlementAccountLabel(ctx);
+  const statementToday = todayStatementDate();
+  const feeHasRows = state.feeItems.some((fee) => feeProrated(fee, state.dTotal, state.dDays) !== 0) || state.adv !== 0;
+  const hasEtcRows = state.etcItems.some((item) => item.name.trim() !== "" || item.amount !== 0);
 
   return (
     <div className={styles.root}>
@@ -597,6 +719,143 @@ export default function PartnerMsNewWorkspace({
         </PartnerButton>
       </PartnerBottomActionBar>
 
+      {statementOpen ? (
+        <div className={styles.statementScrim} role="dialog" aria-modal="true" aria-label="이사정산 내역서">
+          <div className={styles.statementStage}>
+            <div className={styles.statementCard}>
+              <div className={styles.statementBody}>
+                <div ref={statementSheetRef} className={styles.statementSheet}>
+                  <div className={styles.statementBrand}>
+                    <span className={styles.statementMark}>
+                      <Image src="/logo-mark.png" alt="관리비서" width={24} height={24} unoptimized className={styles.statementMarkImage} />
+                    </span>
+                    <span className={styles.statementWordmark}>
+                      관리<em className={styles.statementWordmarkAccent}>비서</em>
+                    </span>
+                  </div>
+
+                  <div className={styles.statementHeader}>
+                    <div className="min-w-0">
+                      <h1 className={styles.statementTitle}>이사정산 내역서</h1>
+                      <div className={styles.statementLocation}>{statementLocation}</div>
+                    </div>
+                    <div className={styles.statementDate}>
+                      퇴실일자
+                      <br />
+                      <b className={styles.statementDateValue}>{statementDate(state.moveOutDate)}</b>
+                      <br />
+                      발행 {statementToday}
+                    </div>
+                  </div>
+
+                  <div className={styles.statementGroup}>공과금</div>
+                  {state.util.map((utility) => (
+                    <div key={utility.k} className={styles.statementRow}>
+                      <span className={styles.statementRowLabel}>
+                        {UTILITY_LABEL[utility.k]}{" "}
+                        <span className={styles.statementRowMeta}>
+                          {utilUsage(utility).toLocaleString()} × {utility.price.toLocaleString()}
+                        </span>
+                      </span>
+                      <b className={styles.statementRowValue}>{won(utilAmount(utility))}</b>
+                    </div>
+                  ))}
+
+                  <div className={styles.statementGroup}>관리비</div>
+                  {feeHasRows ? (
+                    <>
+                      {state.feeItems.map((fee, index) => {
+                        const amount = feeProrated(fee, state.dTotal, state.dDays);
+                        return amount !== 0 ? (
+                          <div key={`fee-${index}`} className={styles.statementRow}>
+                            <span className={styles.statementRowLabel}>{fee.name}</span>
+                            <b className={styles.statementRowValue}>{won(amount)}</b>
+                          </div>
+                        ) : null;
+                      })}
+                      {state.adv !== 0 ? (
+                        <div className={styles.statementRow}>
+                          <span className={styles.statementRowLabel}>가수금</span>
+                          <b className={styles.statementRowValue}>{won(state.adv)}</b>
+                        </div>
+                      ) : null}
+                    </>
+                  ) : (
+                    <div className={styles.statementRow}>
+                      <span className={styles.statementRowLabel}>내역 없음</span>
+                      <b className={styles.statementRowValue}>0원</b>
+                    </div>
+                  )}
+
+                  {hasEtcRows ? (
+                    <>
+                      <div className={styles.statementGroup}>기타</div>
+                      {state.etcItems.map((item, index) =>
+                        item.name.trim() !== "" || item.amount !== 0 ? (
+                          <div key={`etc-${index}`} className={styles.statementRow}>
+                            <span className={styles.statementRowLabel}>{item.name.trim() || "기타"}</span>
+                            <b className={styles.statementRowValue}>{won(item.amount)}</b>
+                          </div>
+                        ) : null,
+                      )}
+                    </>
+                  ) : null}
+
+                  {state.clnAmt !== 0 ? (
+                    <>
+                      <div className={styles.statementGroup}>청소</div>
+                      <div className={styles.statementRow}>
+                        <span className={styles.statementRowLabel}>
+                          {state.clnBy.trim() || "청소비"}{" "}
+                          <span className={styles.statementRowMeta}>{state.clnStatus}</span>
+                        </span>
+                        <b className={styles.statementRowValue}>{won(state.clnAmt)}</b>
+                      </div>
+                    </>
+                  ) : null}
+
+                  <div className={styles.statementGroup}>정산</div>
+                  <div className={styles.statementRow}>
+                    <span className={styles.statementRowLabel}>미납 소계</span>
+                    <b className={styles.statementRowValue}>{won(totals.unpaidSubtotal)}</b>
+                  </div>
+                  <div className={styles.statementRow}>
+                    <span className={styles.statementRowLabel}>수납액</span>
+                    <b className={styles.statementRowValue}>{won(state.paid)}</b>
+                  </div>
+                  <div
+                    className={`${styles.statementSum} ${totals.balance < 0 ? styles.statementSumNegative : ""}`}
+                    style={totals.balance < 0 ? { backgroundColor: "#FDECEE", color: "#F04452" } : undefined}
+                  >
+                    <span>미수금</span>
+                    <b className={styles.statementSumValue}>{won(totals.balance)}</b>
+                  </div>
+
+                  {state.memo.trim() ? <div className={styles.statementNote}>{state.memo}</div> : null}
+
+                  <div className={styles.statementAccount}>
+                    <span className={styles.statementAccountLabel}>정산금 입금계좌</span>
+                    <b className={styles.statementAccountValue}>{accountLabel}</b>
+                  </div>
+
+                  <div className={styles.statementFooter}>
+                    계산일수 {state.dDays} / {state.dTotal}일 기준 · 문의는 관리사무소로 연락 주세요.
+                  </div>
+                </div>
+              </div>
+              <div className={styles.statementActions}>
+                <PartnerButton size="sm" variant="secondary" type="button" className="flex-1" onClick={() => setStatementOpen(false)}>
+                  닫기
+                </PartnerButton>
+                <PartnerButton size="sm" variant="primary" type="button" className="flex-1" onClick={() => void saveStatementImage()} disabled={statementSavePending}>
+                  이미지로 저장
+                </PartnerButton>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {confirmKind === "save" ? (
         <PartnerConfirmDialog
           title="이사정산을 저장할까요?"
@@ -633,6 +892,15 @@ export default function PartnerMsNewWorkspace({
             setConfirmKind(null);
             void doDelete();
           }}
+        />
+      ) : null}
+      {confirmKind === "statementNegative" ? (
+        <PartnerConfirmDialog
+          title="입력값을 다시 확인해 주세요"
+          description={`수납액이 미납 소계보다 많아 미수금이 ${won(totals.balance)}으로 계산됐어요. 내역서를 만들 수 없어요.`}
+          confirmLabel="확인"
+          onCancel={() => setConfirmKind(null)}
+          onConfirm={() => setConfirmKind(null)}
         />
       ) : null}
 
