@@ -97,7 +97,7 @@ export function AsReceptionRail() {
             <path d="M9 4h6a1 1 0 0 1 1 1v1h2a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h2V5a1 1 0 0 1 1-1z" />
             <path d="M9 12h6M9 16h4" />
           </svg>
-          <div className="text-[15px] font-extrabold whitespace-nowrap">A/S 접수·퇴실 신청 현황</div>
+          <div className="text-[15px] font-extrabold leading-[normal] whitespace-nowrap">A/S 접수·퇴실 신청 현황</div>
           <div className="inline-flex items-center gap-2 ml-auto">
             <button
               type="button"

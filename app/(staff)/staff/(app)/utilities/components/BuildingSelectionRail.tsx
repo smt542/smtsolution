@@ -162,7 +162,7 @@ export function BuildingSelectionRail({
 
       <section className="flex min-h-[250px] flex-1 basis-[52%] flex-col overflow-hidden rounded-[16px] bg-white shadow-card min-[1101px]:max-h-[354px]">
         <div className="flex min-h-[49px] shrink-0 items-center border-b border-line2 px-[18px] py-[15px]">
-          <h2 className="text-[15px] font-extrabold text-t1">최근 6개월 이력</h2>
+          <h2 className="text-[15px] font-extrabold leading-[normal] text-t1">최근 6개월 이력</h2>
         </div>
         {!selectedRow ? (
           <HistoryEmptyState title={<>고객번호를&nbsp;선택해 주세요</>}>

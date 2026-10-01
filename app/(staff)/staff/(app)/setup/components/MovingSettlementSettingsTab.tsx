@@ -169,6 +169,7 @@ export function MovingSettlementSettingsTab() {
         <NumberedTagList
           items={items.map((item) => ({ id: String(item.id), label: labels[item.id] ?? item.label }))}
           columns={5}
+          canonical
           onChange={onChangeLabel}
           onCommit={onCommitRename}
           onDelete={onDelete}
@@ -199,6 +200,7 @@ export function MovingSettlementSettingsTab() {
                 value={ruleValue(rule.key)}
                 onChange={() => {}}
                 disabled
+                className="leading-[normal]"
               />
             </div>
           ))}

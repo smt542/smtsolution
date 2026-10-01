@@ -151,7 +151,7 @@ export const messengerClasses: Record<string, string> = {
   ck: "ml-auto size-[17px] flex-none",
   "fmp-fromhd": "px-2.5 pb-1 pt-2 text-[11px] font-bold tracking-[0.02em] text-t4",
   "fmp-fromadd": "mb-0.5 flex gap-1.5 border-b border-line2 px-1 pb-2 pt-0.5 [&_input]:h-[38px] [&_input]:min-w-0 [&_input]:flex-1 [&_input]:rounded-[9px] [&_input]:border [&_input]:border-line [&_input]:px-[11px] [&_input]:text-[13px] [&_input]:font-bold [&_input]:outline-none [&_input:focus]:border-blue",
-  go: "",
+  go: "bg-blue text-white hover:bg-blue-d",
   "fmp-addbtn": "mt-2 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-dashed border-line bg-blue-t2 px-2.5 py-1.5 text-[12.5px] font-bold text-blue hover:border-blue hover:bg-blue-t",
   "fmp-din": "h-[42px] flex-1 rounded-[10px] border border-line bg-white px-3 text-[13px] font-semibold text-t1 outline-none focus:border-blue disabled:bg-bg disabled:text-t4",
   "fmp-tplsel": "relative inline-flex items-center gap-[5px] rounded-lg bg-transparent px-[9px] py-[5px] text-[12px] font-bold text-t2 hover:bg-bg",

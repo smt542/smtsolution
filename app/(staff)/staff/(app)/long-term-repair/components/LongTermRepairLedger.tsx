@@ -134,18 +134,23 @@ function AttachmentCell({
   label,
   attachments,
   stagedFiles = EMPTY_FILES,
+  editing,
   onOpen,
 }: {
   label: string;
   attachments: Attachment[];
   stagedFiles?: readonly File[];
+  editing: boolean;
   onOpen: () => void;
 }) {
   const attachmentCount = attachments.length + stagedFiles.length;
+  const buttonTone = attachmentCount
+    ? editing ? styles.attachmentButtonActive : styles.attachmentButtonActiveReadOnly
+    : editing ? styles.attachmentButtonIdleEditing : styles.attachmentButtonIdle;
   return (
     <button
       type="button"
-      className={`${styles.attachmentButton} ${attachmentCount ? styles.attachmentButtonActive : styles.attachmentButtonIdle}`}
+      className={`${styles.attachmentButton} ${buttonTone}`}
       onClick={onOpen}
       aria-label={`${label} ${attachmentCount}장 열기`}
     >
@@ -681,10 +686,10 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
                                 </div>
                               </td>
                               <td className={styles.attachmentCell}>
-                                <AttachmentCell label="영수증" attachments={receipts} stagedFiles={stagedReceipts} onOpen={() => openAttachments(row, "receipt")} />
+                                <AttachmentCell label="영수증" attachments={receipts} stagedFiles={stagedReceipts} editing={editing} onOpen={() => openAttachments(row, "receipt")} />
                               </td>
                               <td className={styles.attachmentCell}>
-                                <AttachmentCell label="사진" attachments={photos} stagedFiles={stagedPhotos} onOpen={() => openAttachments(row, "photo")} />
+                                <AttachmentCell label="사진" attachments={photos} stagedFiles={stagedPhotos} editing={editing} onOpen={() => openAttachments(row, "photo")} />
                               </td>
                             </tr>
                             {isMonthEnd && (

@@ -97,7 +97,7 @@ export function AutoDebitTable({ year, month, years, months, group, rows, onYear
           ))}
         </div>
       </div>
-      <div className="h-[470px] overflow-auto">
+      <div className={`h-[470px] overflow-auto ${visibleRows.length === 0 ? "flex flex-col" : ""}`}>
         <div className={`sticky top-0 z-10 grid h-[24px] ${COLUMNS} ${CELL} bg-[#f2f4f6] text-[10.5px] font-bold text-[#4e5968] [&>span]:border-t [&>span]:leading-[22px]`}>
           <span>청구타입</span><span>회원번호</span><span>계약번호</span><span>회원명</span><span>청구월</span><span>약정일</span><span>결제일(결제시작일)</span><span>상품</span><span>기본금액</span><span className="text-right">수량</span><span>회원구분</span>
         </div>
@@ -120,7 +120,7 @@ export function AutoDebitTable({ year, month, years, months, group, rows, onYear
             </div>
           );
         })}
-        {visibleRows.length === 0 && <p className="py-16 text-center text-[12px] text-[#8b95a1]">선택한 월에 자동이체 자료가 없습니다.</p>}
+        {visibleRows.length === 0 && <p className="flex flex-1 items-center justify-center text-center text-[13px] font-medium leading-[normal] text-t3">선택한 기간의 자동이체 세대가 여기에 표시돼요</p>}
       </div>
     </main>
   );

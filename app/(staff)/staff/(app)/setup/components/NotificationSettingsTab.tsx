@@ -62,6 +62,7 @@ export function NotificationSettingsTab() {
                 onChange={(value) => setLeaseExpiryDays(Number(value))}
                 disabled={!notifyLeaseExpiry}
                 options={DAY_OPTIONS}
+                menuClassName="leading-[normal] [&.uc-dd-menu]:shadow-[0_14px_34px_-10px_rgba(23,31,40,0.28)] [&_.uc-opt]:px-[11px] [&_.uc-opt]:py-[9px] [&_.uc-opt.on]:bg-blue-t [&_.uc-opt.on]:text-blue"
               />
               <span className="text-[12.5px] font-bold text-t2">전부터</span>
             </div>

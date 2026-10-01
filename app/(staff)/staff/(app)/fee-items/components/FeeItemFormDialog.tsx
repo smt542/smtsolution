@@ -154,7 +154,7 @@ export function FeeItemFormDialog({
               maxLength={30}
               placeholder="예: 일반관리비"
               readOnly={nameLocked}
-              className={`mt-1.5 h-11 w-full rounded-[10px] border border-line px-[13px] text-[14px] font-semibold outline-none placeholder:text-t4 focus:border-teal ${nameLocked ? "bg-bg text-t3" : "text-t1"}`}
+              className={`mt-1.5 h-11 w-full rounded-[10px] border border-line px-[13px] text-[14px] font-semibold outline-none placeholder:text-[#757575] focus:border-teal ${nameLocked ? "bg-bg text-t3" : "text-t1"}`}
               {...register("name")}
               aria-invalid={Boolean(errors.name)}
               aria-describedby={nameLocked ? "fee-item-dialog-name-lock" : errors.name ? "fee-item-dialog-name-error" : undefined}

@@ -80,7 +80,7 @@ export function DataMigrationTab() {
                     type="button"
                     disabled={locked}
                     onClick={() => setActive({ kind: row.kind, schema: row.schema })}
-                    className="h-[34px] flex-none rounded-[11px] bg-brand px-[13px] text-[12.5px] font-bold leading-[normal] text-white shadow-pri hover:bg-brand-dark disabled:cursor-default disabled:opacity-40"
+                    className="h-[34px] flex-none rounded-[11px] border border-transparent bg-brand px-[13px] text-[12.5px] font-bold leading-[normal] text-white shadow-pri hover:bg-brand-dark disabled:cursor-default disabled:opacity-40"
                   >업로드</button>
                 </div>
               );

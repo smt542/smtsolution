@@ -10,6 +10,8 @@ export type NumberedTagItem = {
 export type NumberedTagListProps = {
   items: NumberedTagItem[];
   columns: number;
+  /** 정본 `.st-ck*` 규격을 쓰는 셋업 화면 전용 오버라이드. 기본 레이아웃은 유지한다. */
+  canonical?: boolean;
   /** 입력 중(키 입력마다). 부모의 초안 상태를 갱신한다. */
   onChange: (id: string, label: string) => void;
   /** 확정(blur 또는 Enter). 여기서만 저장한다. */
@@ -40,19 +42,25 @@ export function NumberedTagList({
   onAdd,
   addLabel,
   className = "",
+  canonical = false,
 }: NumberedTagListProps) {
   return (
     <div className={className}>
       <div
-        className="grid grid-cols-[repeat(var(--numbered-tag-columns),minmax(0,1fr))] gap-[8px]"
-        style={{ "--numbered-tag-columns": columns } as React.CSSProperties}
+        className={`grid ${canonical ? "grid-cols-[repeat(auto-fill,minmax(260px,1fr))] leading-[normal]" : "grid-cols-[repeat(var(--numbered-tag-columns),minmax(0,1fr))]"} gap-[8px]`}
+        style={canonical ? undefined : { "--numbered-tag-columns": columns } as React.CSSProperties}
       >
         {items.map((item, index) => (
           <div
             key={item.id}
-            className="flex h-[52px] min-w-0 items-center gap-[8px] rounded-[12px] border border-line2 bg-bg pl-[11px] pr-[9px]"
+            className={canonical
+              ? "flex min-w-0 items-center gap-[8px] rounded-[12px] border border-line2 bg-bg py-[7px] pl-[10px] pr-[8px]"
+              : "flex h-[52px] min-w-0 items-center gap-[8px] rounded-[12px] border border-line2 bg-bg pl-[11px] pr-[9px]"}
           >
-            <span className="w-[22px] shrink-0 text-[13px] font-bold leading-none text-t4 tabular-nums">
+            <span className={canonical
+              ? "w-[22px] shrink-0 text-center text-[12px] font-bold leading-[normal] text-t4 tabular-nums"
+              : "w-[22px] shrink-0 text-[13px] font-bold leading-none text-t4 tabular-nums"}
+            >
               {index + 1}
             </span>
             <Input
