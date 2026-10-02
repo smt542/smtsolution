@@ -426,10 +426,13 @@ function MessengerFabContent() {
       idempotencyRef.current = null;
       setSummaryOpen(false);
       setSendFeedback(null);
+      const blocked = result.status === "scheduled" ? 0 : (result.blockedCount ?? 0);
       toast.success(
         result.status === "scheduled"
           ? `예약 발송이 등록되었습니다 · ${result.count}건`
-          : `발송을 접수했습니다 · ${result.queuedCount ?? result.count}건 · 결과 확인 중`,
+          : `발송을 접수했습니다 · ${result.queuedCount ?? result.count}건 · 결과 확인 중${
+              blocked > 0 ? ` · 발송 제한 번호 ${blocked}명 제외` : ""
+            }`,
       );
     } catch (error) {
       const code = error instanceof MessageSendError ? error.code : null;
@@ -440,7 +443,9 @@ function MessengerFabContent() {
             ? "포인트가 부족해 발송할 수 없어요."
             : code === "SENDER_NOT_REGISTERED"
               ? "알림톡 발신 설정 준비 중"
-              : "메시지를 발송하지 못했습니다.";
+              : code === "RECIPIENT_NOT_ALLOWED"
+                ? "발송 제한 번호라 보내지 않았어요."
+                : "메시지를 발송하지 못했습니다.";
       setSendFeedback({ code, message });
       toast.error(message);
     }

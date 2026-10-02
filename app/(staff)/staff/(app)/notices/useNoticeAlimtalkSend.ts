@@ -200,7 +200,9 @@ export function useNoticeAlimtalkSend(
           ? "포인트가 부족합니다."
           : code === "PROVIDER_NOT_CONFIGURED"
             ? "발송 공급자가 설정되지 않아 발송할 수 없습니다."
-            : "발송하지 못했습니다.",
+            : code === "RECIPIENT_NOT_ALLOWED"
+              ? "발송 제한 번호라 보내지 않았습니다."
+              : "발송하지 못했습니다.",
       );
       return false;
     } finally {

@@ -7,6 +7,7 @@ import {
   readPopbillConfig,
   type PopbillConfig,
 } from "@/lib/popbill/config";
+import { isLiveRecipientAllowed, RECIPIENT_NOT_ALLOWED } from "@/lib/popbill/allowlist";
 import { submitMessageBatch } from "@/lib/popbill/messages";
 import {
   PopbillSubmitError,
@@ -109,6 +110,8 @@ export interface DispatchMessagesResult {
   logId?: number;
   reservationId?: number;
   queuedCount?: number;
+  /** 운영 허용 목록 밖이라 팝빌로 보내지 않은 수신자 수. */
+  blockedCount?: number;
   reservedPoints?: number;
   channelCounts?: DispatchChannelCounts;
 }
@@ -189,6 +192,14 @@ function classifySubmitError(e: unknown): {
   return { outcome: "unknown", code: "SUBMIT_ERROR", message: "발송 접수 중 오류가 발생했습니다." };
 }
 
+/** 전부 거절된 발송의 대표 사유. 화면 안내가 있는 코드만 돌려주고, 그 밖은 null(SEND_REJECTED). */
+export function rejectReasonFromCodes(codes: string[]): string | null {
+  if (codes.length > 0 && codes.every((code) => code === RECIPIENT_NOT_ALLOWED)) {
+    return RECIPIENT_NOT_ALLOWED;
+  }
+  return null;
+}
+
 // === L6: 공급자 '구조화된 거절'에 한해 제한적 재시도(백오프) ===
 // 안전 원칙(이중발송 방지): 접수번호(receipt)가 발급되지 않은 '확정 거절'만 재시도한다.
 // 공급자가 요청을 받아 코드로 반려한 경우는 접수가 성립하지 않았으므로, 동일 requestNum 재접수가
@@ -201,6 +212,8 @@ const NON_RETRYABLE_SUBMIT_CODES = new Set<string>([
   "SENDER_NOT_REGISTERED",
   // 코드 없는 SDK/전송 오류. 접수 여부가 불명확하므로(이중발송 위험) 재시도하지 않는다.
   "PROVIDER_ERROR",
+  // 운영 허용 목록 밖(팝빌을 부르지 않은 확정 실패).
+  RECIPIENT_NOT_ALLOWED,
 ]);
 
 export function isRetryableSubmitError(e: unknown): boolean {
@@ -381,7 +394,7 @@ export async function dispatchMessages(
   const costs = reserve.recipient_costs ?? quote.recipient_costs ?? [];
 
   // 3~7) 배치 계획 → submitting 저장 → Popbill 접수 → provider_pending (예약/스케줄 공용)
-  const { queuedCount, markStatus, channelCounts } = await submitReservationBatches(
+  const { queuedCount, markStatus, channelCounts, blockedCount, failureCodes } = await submitReservationBatches(
     deps.admin,
     {
       orgId: input.orgId,
@@ -403,6 +416,7 @@ export async function dispatchMessages(
       logId: messageLogId,
       reservationId,
       queuedCount,
+      blockedCount,
       reservedPoints,
       channelCounts,
     };
@@ -411,7 +425,7 @@ export async function dispatchMessages(
   if (markStatus === "released") {
     return {
       ok: false,
-      code: "SEND_REJECTED",
+      code: rejectReasonFromCodes(failureCodes) ?? "SEND_REJECTED",
       message: "모든 발송이 확정 거절되었습니다.",
       httpStatus: 502,
       reservationId,
@@ -523,7 +537,13 @@ export async function submitReservationBatches(
   admin: SupabaseClientLike,
   params: SubmitReservationParams,
   deps: SubmitReservationDeps,
-): Promise<{ queuedCount: number; markStatus: string; channelCounts: DispatchChannelCounts }> {
+): Promise<{
+  queuedCount: number;
+  markStatus: string;
+  channelCounts: DispatchChannelCounts;
+  blockedCount: number;
+  failureCodes: string[];
+}> {
   const submitBatch = deps.submitBatch ?? submitMessageBatch;
   const reconcileBatch =
     deps.reconcileBatch ??
@@ -572,7 +592,23 @@ export async function submitReservationBatches(
       buttons: renderedButtons,
     });
   }
-  const plan = buildSubmissionPlan({ scope: "m", id: params.reservationId, recipients: planRecipients });
+  // 운영 모드 허용 번호 목록(spec 4.1): 목록 밖 수신자는 별도 작업(scope "mx")으로 만들고 팝빌로 넘기지 않는다.
+  // 같은 입력의 재시도는 같은 분할·같은 requestNum을 만든다(결정적).
+  const providerConfig = deps.config ?? readPopbillConfig();
+  const isAllowed = (recipient: PlanRecipient) =>
+    isLiveRecipientAllowed(params.orgId, recipient.phone, providerConfig);
+  const allowedPlan = buildSubmissionPlan({
+    scope: "m",
+    id: params.reservationId,
+    recipients: planRecipients.filter(isAllowed),
+  });
+  const blockedPlan = buildSubmissionPlan({
+    scope: "mx",
+    id: params.reservationId,
+    recipients: planRecipients.filter((recipient) => !isAllowed(recipient)),
+  });
+  const blockedRequestNums = new Set(blockedPlan.map((batch) => batch.requestNum));
+  const plan = [...allowedPlan, ...blockedPlan];
 
   const created = (await rpcData(admin, "create_provider_dispatch_jobs", {
     p_reservation_id: params.reservationId,
@@ -590,6 +626,8 @@ export async function submitReservationBatches(
 
   const outcomes: Array<Record<string, unknown>> = [];
   let queuedCount = 0;
+  let blockedCount = 0;
+  const failureCodes: string[] = [];
   const channelCounts = emptyChannelCounts();
   const submitOwner = randomUUID();
   for (const batch of plan) {
@@ -655,6 +693,20 @@ export async function submitReservationBatches(
     // Only the owner returned by the atomic DB claim may cross the provider boundary.
     if (claim?.ok !== true || claim.action !== "submit") continue;
 
+    if (blockedRequestNums.has(batch.requestNum)) {
+      // 허용 목록 밖: 팝빌을 부르지 않고 확정 실패로 기록한다. 수신자 실패·미차감은 기존 정산 경로가 처리한다.
+      outcomes.push({
+        request_num: batch.requestNum,
+        outcome: "failed",
+        error_code: RECIPIENT_NOT_ALLOWED,
+        error_message: "운영 발송 허용 목록에 없는 번호입니다.",
+        submit_owner: submitOwner,
+      });
+      blockedCount += batch.recipients.length;
+      failureCodes.push(RECIPIENT_NOT_ALLOWED);
+      continue;
+    }
+
     const content: MessageContent =
       batch.product === "alimtalk"
         ? { body: params.body, templateCode: alimtalk.templateCode, buttons: alimtalk.buttons }
@@ -682,6 +734,7 @@ export async function submitReservationBatches(
       channelCounts[batch.product === "alimtalk" ? "alimtalk" : "sms"] += batch.recipients.length;
     } catch (e) {
       const classified = classifySubmitError(e);
+      if (classified.outcome === "failed") failureCodes.push(classified.code);
       outcomes.push({
         request_num: batch.requestNum,
         outcome: classified.outcome,
@@ -697,5 +750,5 @@ export async function submitReservationBatches(
     p_outcomes: outcomes,
   })) as { status?: string } | null;
 
-  return { queuedCount, markStatus: mark?.status ?? "unknown", channelCounts };
+  return { queuedCount, markStatus: mark?.status ?? "unknown", channelCounts, blockedCount, failureCodes };
 }

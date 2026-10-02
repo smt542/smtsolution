@@ -9,6 +9,7 @@ import {
 } from "@/lib/popbill/config";
 import { loadFaxDocumentData } from "@/lib/bill/faxData";
 import { renderFaxPdf } from "@/lib/bill/faxPdf";
+import { isLiveRecipientAllowed, RECIPIENT_NOT_ALLOWED } from "@/lib/popbill/allowlist";
 import { submitFax } from "@/lib/popbill/fax";
 import { PopbillSubmitError, PopbillTimeoutError } from "@/lib/popbill/types";
 
@@ -149,6 +150,23 @@ export async function POST(request: Request): Promise<Response> {
       continue;
     }
     const jobId = created.job_id;
+
+    // 운영 모드 허용 번호 목록(spec 4.1): 목록 밖이면 팝빌을 부르지 않고 작업을 확정 실패로 마감한다.
+    if (!isLiveRecipientAllowed(ctx.org_id, doc.faxNumber, effectiveConfig)) {
+      const markErr = await markFaxResult(admin, {
+        p_job_id: jobId,
+        p_outcome: "failed",
+        p_error_code: RECIPIENT_NOT_ALLOWED,
+      });
+      if (markErr) {
+        reconcileRequired += 1;
+        results.push({ billIssueId, status: "mark_failed" });
+      } else {
+        failed += 1;
+        results.push({ billIssueId, status: "recipient_not_allowed" });
+      }
+      continue;
+    }
 
     // 여기부터 submitting 작업이 DB에 존재한다. 접수 전 어떤 실패든 job을 failed로 마킹해
     // submitting 잔류(stranded)를 막고 재시도를 허용한다.
