@@ -17,3 +17,4 @@ export { IdCardIcon } from "./IdCardIcon";
 export { DocumentIcon } from "./DocumentIcon";
 export { ZoomInIcon } from "./ZoomInIcon";
 export { ZoomOutIcon } from "./ZoomOutIcon";
+export { PhoneIcon } from "./PhoneIcon";
