@@ -17,6 +17,5 @@ export const billDetailClasses = {
   fin: "rounded-[18px] bg-white px-[18px] pb-[18px] pt-1.5 shadow-[0_1px_2px_rgba(23,31,40,0.06)] [&_.nm]:font-semibold [&_.nm]:text-t2",
   grand: "mt-3.5 flex items-baseline gap-3 border-t-2 border-t1 pt-[15px] [&_.nm]:flex-1 [&_.nm]:text-[14.5px] [&_.nm]:font-extrabold [&_.vv]:text-[22px] [&_.vv]:font-extrabold [&_.vv]:tracking-[-0.035em]",
   state: "flex min-h-[300px] flex-col items-center justify-center px-6 py-11 text-center [&_b]:text-[20px] [&_span]:mt-2 [&_span]:text-[14px] [&_span]:text-t3",
-  cta: "mt-[18px] rounded-[18px] bg-blue-t2 p-[18px] [&_b]:block [&_b]:text-[15px] [&_b]:font-extrabold [&_b]:tracking-[-0.02em] [&_b]:text-blue-d [&_span]:mt-1.5 [&_span]:block [&_span]:text-[13px] [&_span]:font-semibold [&_span]:leading-[1.6] [&_span]:text-t3 [&_a]:mt-3.5 [&_a]:flex [&_a]:h-[50px] [&_a]:items-center [&_a]:justify-center [&_a]:rounded-[14px] [&_a]:bg-blue [&_a]:text-[15px] [&_a]:font-bold [&_a]:text-white [&_a]:no-underline [&_a:hover]:bg-blue-d",
   gnote: "mt-3.5 text-[11.5px] font-medium leading-[1.7] text-t4",
 } as const;

@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import type {
   PublicBillDetail,
   ResidentBillDetail,
@@ -8,6 +6,7 @@ import type {
 import { formatWon } from "@/lib/format";
 
 import CopyButton from "./CopyButton";
+import ResidentGuestCta from "./ResidentGuestCta";
 import ResidentStatusChip from "./ResidentStatusChip";
 import { billDetailClasses as styles } from "./billDetailClasses";
 import { residentButtonClass } from "@/app/(resident)/_components/ResidentButton";
@@ -139,9 +138,9 @@ export default function BillDetailView(props: BillDetailViewProps) {
   return (
     <article className={styles.detail}>
       {props.mode === "public" ? (
-        <p className={styles.gt}>
+        <h1 className={styles.gt}>
           {detail.buildingName} {detail.unitNo} · {monthTitle(detail.period)}
-        </p>
+        </h1>
       ) : null}
 
       <section className={styles.hero}>
@@ -228,11 +227,11 @@ export default function BillDetailView(props: BillDetailViewProps) {
 
       {props.mode === "public" ? (
         <>
-          <div className={styles.cta}>
-            <b>지난 달 내역도 앱에서 확인하세요</b>
-            <span>월별 부과 내역과 공지를 카카오 로그인 한 번으로 볼 수 있어요.</span>
-            <Link href="/resident/login">관리비서 시작하기</Link>
-          </div>
+          <ResidentGuestCta
+            className="mt-[18px]"
+            title="지난 달 내역도 앱에서 확인하세요"
+            description="월별 부과 내역과 공지를 카카오 로그인 한 번으로 볼 수 있어요."
+          />
           {publicExpiry ? (
             <p className={styles.gnote}>
               이 링크는 관리비 확인 전용이며 {publicExpiry}까지 열람할 수 있습니다.

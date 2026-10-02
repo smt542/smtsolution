@@ -1,6 +1,5 @@
 import MobileBackHeader from "@/app/(resident)/_components/MobileBackHeader";
-
-import { noticeDetailClasses as styles } from "./detailClasses";
+import { noticeDetailClasses as styles } from "@/app/(resident)/_components/noticeDetailClasses";
 
 export default function ResidentNoticeDetailLoading() {
   return (

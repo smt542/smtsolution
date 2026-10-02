@@ -1,4 +1,4 @@
-import { billDetailPageClasses as styles } from "./detailClasses";
+import { billDetailPageClasses as styles } from "@/app/(resident)/_components/billDetailPageClasses";
 
 export default function ResidentBillDetailLoading() {
   return (

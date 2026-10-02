@@ -1,7 +1,8 @@
 import BillDetailView from "@/app/(resident)/_components/BillDetailView";
-import PublicTokenPageShell from "@/app/(resident)/_components/PublicTokenPageShell";
+import { billDetailPageClasses as styles } from "@/app/(resident)/_components/billDetailPageClasses";
 
 import { getPublicBillBySigned } from "./data";
+import PublicBillFrame from "./PublicBillFrame";
 import PublicBillRetryState from "./PublicBillRetryState";
 
 const PERIOD_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -43,27 +44,25 @@ export default async function PublicSignedBillPage({
     Boolean(sig) &&
     (issuedDay === undefined || (Number.isInteger(issuedDay) && issuedDay >= 0));
 
-  if (!paramsValid) {
-    return <BillDetailView mode="public" detail={null} />;
+  let detail: Awaited<ReturnType<typeof getPublicBillBySigned>> = null;
+  if (paramsValid) {
+    try {
+      detail = await getPublicBillBySigned(buildingId, unitNo, period, sig, issuedDay);
+    } catch {
+      return (
+        <PublicBillFrame>
+          <PublicBillRetryState />
+        </PublicBillFrame>
+      );
+    }
   }
 
-  let detail;
-  try {
-    detail = await getPublicBillBySigned(buildingId, unitNo, period, sig, issuedDay);
-  } catch {
-    return <PublicBillRetryState />;
-  }
-
-  // 앱 유도 CTA·열람 안내는 BillDetailView(public 모드)가 정본대로 렌더하므로
-  // 셸의 기본 CTA 버튼은 끈다(중복 방지).
+  // 건물·호수 줄·앱 안내 카드·열람 안내는 BillDetailView(public 모드)가 정본대로 그린다.
   return (
-    <PublicTokenPageShell
-      brand="관리비서"
-      subtitle="공개 관리비 고지서"
-      ctaLabel="관리비서 시작하기"
-      showCta={false}
-    >
-      <BillDetailView mode="public" detail={detail} />
-    </PublicTokenPageShell>
+    <PublicBillFrame>
+      <main className={styles.scroll}>
+        <BillDetailView mode="public" detail={detail} />
+      </main>
+    </PublicBillFrame>
   );
 }
