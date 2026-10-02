@@ -1,38 +1,12 @@
 import Link from "next/link";
 
 import MobileBackHeader from "@/app/(resident)/_components/MobileBackHeader";
-import type { ResidentNoticeType } from "@/hooks/reactquery/residentNotices/apis";
-import { NoticeContent } from "@/components/notices/NoticeContent";
-import { formatDate } from "@/lib/format";
+import NoticeDocument from "@/app/(resident)/_components/NoticeDocument";
+import { noticeDetailClasses as styles } from "@/app/(resident)/_components/noticeDetailClasses";
 
 import { getResidentNoticeDetailPageData } from "../data";
 import ResidentNoticeRetryState from "../ResidentNoticeRetryState";
-import { noticeDetailClasses as styles } from "./detailClasses";
 import ResidentNoticeReadTracker from "./ResidentNoticeReadTracker";
-
-const typeLabel: Record<ResidentNoticeType, string> = {
-  normal: "일반",
-  important: "중요",
-  urgent: "긴급",
-};
-
-function NoticeKindIcon() {
-  return (
-    <svg
-      className="size-3"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.4"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M12 4l9 16H3z" />
-      <path d="M12 10v4M12 17v.4" />
-    </svg>
-  );
-}
 
 export default async function ResidentNoticeDetailPage({
   params,
@@ -92,38 +66,20 @@ export default async function ResidentNoticeDetailPage({
     );
   }
 
-  const buildingName = residentBuildingName ?? detail.buildingName;
-  const isHighlighted = detail.noticeType !== "normal";
-
   return (
     <div className={styles.page}>
       {header}
       <ResidentNoticeReadTracker noticeId={detail.id} />
       <main className={styles.scroll}>
-        <article>
-          <span className={`${styles.tag} ${styles[detail.noticeType]}`}>
-            {isHighlighted ? <NoticeKindIcon /> : null}
-            {typeLabel[detail.noticeType]}
-          </span>
-          <h2 className={styles.title}>{detail.title}</h2>
-          <p className={styles.metadata}>
-            <time className="tabular-nums" dateTime={detail.publishedAt}>
-              {formatDate(detail.publishedAt)}
-            </time>
-            {buildingName ? (
-              <>
-                <span aria-hidden="true">·</span>
-                <span>{buildingName} 관리사무소</span>
-              </>
-            ) : null}
-          </p>
-          <NoticeContent
-            json={detail.contentJson}
-            fallbackText={detail.content}
-            imageUrls={imageUrls}
-            className={styles.content}
-          />
-        </article>
+        <NoticeDocument
+          noticeType={detail.noticeType}
+          title={detail.title}
+          publishedAt={detail.publishedAt}
+          buildingName={residentBuildingName ?? detail.buildingName}
+          contentJson={detail.contentJson}
+          content={detail.content}
+          imageUrls={imageUrls}
+        />
       </main>
     </div>
   );

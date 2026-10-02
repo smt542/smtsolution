@@ -20,7 +20,7 @@ export const residentBackIconClass: Record<MobileBackHeaderVariant, string> = {
   bar: "size-[21px]",
 };
 
-const headerClass: Record<MobileBackHeaderVariant, string> = {
+export const mobileHeaderClass: Record<MobileBackHeaderVariant, string> = {
   list: "flex flex-none items-center gap-1.5 bg-white px-3 pb-3 pt-[calc(env(safe-area-inset-top)+12px)] leading-[normal]",
   detail:
     "flex flex-none items-center gap-2 border-b border-line2 bg-white px-3 pb-3 pt-[calc(env(safe-area-inset-top)+12px)] leading-[normal]",
@@ -58,7 +58,7 @@ export default function MobileBackHeader({
   );
 
   return (
-    <header className={headerClass[variant]}>
+    <header className={mobileHeaderClass[variant]}>
       {backControl}
       <h1 className={titleClass[variant]}>{title}</h1>
     </header>

@@ -1,9 +1,9 @@
 import BillDetailView from "@/app/(resident)/_components/BillDetailView";
+import { billDetailPageClasses as styles } from "@/app/(resident)/_components/billDetailPageClasses";
 import MobileBackHeader from "@/app/(resident)/_components/MobileBackHeader";
 
 import { getResidentBillDetail } from "../data";
 import ResidentBillRetryState from "../ResidentBillRetryState";
-import { billDetailPageClasses as styles } from "./detailClasses";
 import ResidentBillBackButton from "./ResidentBillBackButton";
 
 const PERIOD_PATTERN = /^\d{4}-(0[1-9]|1[0-2])$/;
