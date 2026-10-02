@@ -73,8 +73,8 @@ function ItemRow({ item }: { item: ViewItem }) {
 function Subtotal({ label, amount }: { label: string; amount: number }) {
   return (
     <div className={styles.sub}>
-      <div className={styles.nm}>{label}</div>
-      <div className={styles.vv}>{formatWon(amount)}</div>
+      <div className={styles.subNm}>{label}</div>
+      <div className={styles.subVv}>{formatWon(amount)}</div>
     </div>
   );
 }
@@ -208,20 +208,20 @@ export default function BillDetailView(props: BillDetailViewProps) {
       <div className={styles.lbl}>정산</div>
       <section className={styles.fin} aria-label="정산">
         <div className={styles.it}>
-          <div className={styles.nm}>당월 부과액</div>
+          <div className={styles.finNm}>당월 부과액</div>
           <div className={styles.vv}>{formatWon(charge)}</div>
         </div>
         <div className={styles.it}>
-          <div className={styles.nm}>미납액</div>
+          <div className={styles.finNm}>미납액</div>
           <div className={styles.vv}>{formatWon(unpaidAmount)}</div>
         </div>
         <div className={styles.it}>
-          <div className={styles.nm}>연체료</div>
+          <div className={styles.finNm}>연체료</div>
           <div className={styles.vv}>{formatWon(lateFee)}</div>
         </div>
         <div className={styles.grand}>
-          <div className={styles.nm}>총 관리비</div>
-          <div className={styles.vv}>{formatWon(grandTotal)}</div>
+          <div className={styles.grandNm}>총 관리비</div>
+          <div className={styles.grandVv}>{formatWon(grandTotal)}</div>
         </div>
       </section>
 
