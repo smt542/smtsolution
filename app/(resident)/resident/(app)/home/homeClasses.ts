@@ -57,6 +57,7 @@ export const residentHomeClasses = {
   modalCard: "flex max-h-[calc(100dvh-120px)] w-full max-w-[380px] flex-col overflow-hidden rounded-[20px] bg-white",
   modalHead: "flex-none px-[22px] pb-3.5 pt-[22px]",
   modalTitle: "m-0 text-[18px] font-extrabold leading-[1.4] tracking-[-0.02em]",
-  modalBody: "min-h-0 flex-1 overflow-auto px-[22px] pb-[18px] pt-1 text-[14px] font-medium leading-[1.75] text-t2 [text-wrap:pretty] whitespace-pre-line",
+  // 정본 .nm-body의 text-wrap: pretty는 뺐다. 사파리 26은 문단 전체 줄 길이를 고르게 맞춰서 줄이 짧아지고 한글이 단어 중간에서 끊긴다.
+  modalBody: "min-h-0 flex-1 overflow-auto px-[22px] pb-[18px] pt-1 text-[14px] font-medium leading-[1.75] text-t2 whitespace-pre-line",
   modalFoot: "flex-none px-[22px] pb-5",
 } as const;
