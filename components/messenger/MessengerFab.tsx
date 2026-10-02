@@ -445,7 +445,9 @@ function MessengerFabContent() {
               ? "알림톡 발신 설정 준비 중"
               : code === "RECIPIENT_NOT_ALLOWED"
                 ? "발송 제한 번호라 보내지 않았어요."
-                : "메시지를 발송하지 못했습니다.";
+                : code === "PROVIDER_INSUFFICIENT_BALANCE"
+                  ? "팝빌 충전 잔액이 부족해 발송하지 못했어요. 운영사에 충전을 요청해 주세요."
+                  : "메시지를 발송하지 못했습니다.";
       setSendFeedback({ code, message });
       toast.error(message);
     }

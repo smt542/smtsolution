@@ -171,6 +171,15 @@ function normalizePhone(phone: unknown): string {
   return String(phone ?? "").replace(/\D/g, "");
 }
 
+/** 팝빌 잔액 부족(공통 오류코드, 2026-10-02 오류코드표). 충전 전에는 같은 요청이 계속 실패한다. */
+const POPBILL_INSUFFICIENT_BALANCE_CODES = new Set<string>([
+  "-99005001", // 파트너 잔여포인트가 부족합니다.
+  "-99005003", // 차감할 충전포인트가 부족합니다.
+  "-99005004", // 차감할 보너스포인트가 부족합니다.
+  "-99005005", // 잔여포인트가 부족합니다.
+]);
+export const PROVIDER_INSUFFICIENT_BALANCE = "PROVIDER_INSUFFICIENT_BALANCE";
+
 function classifySubmitError(e: unknown): {
   outcome: "failed" | "unknown";
   code: string;
@@ -186,6 +195,10 @@ function classifySubmitError(e: unknown): {
     return { outcome: "unknown", code: e.code, message: e.message };
   }
   if (e instanceof PopbillSubmitError) {
+    if (POPBILL_INSUFFICIENT_BALANCE_CODES.has(e.code)) {
+      // 원본 코드는 메시지에 남겨 운영 확인에 쓴다.
+      return { outcome: "failed", code: PROVIDER_INSUFFICIENT_BALANCE, message: `팝빌 잔액 부족(${e.code})` };
+    }
     return { outcome: "failed", code: e.code, message: e.message };
   }
   // 예기치 못한 예외는 접수 여부가 불분명하므로 보수적으로 unknown(reconcile_required)으로 남긴다.
@@ -194,6 +207,7 @@ function classifySubmitError(e: unknown): {
 
 /** 전부 거절된 발송의 대표 사유. 화면 안내가 있는 코드만 돌려주고, 그 밖은 null(SEND_REJECTED). */
 export function rejectReasonFromCodes(codes: string[]): string | null {
+  if (codes.includes(PROVIDER_INSUFFICIENT_BALANCE)) return PROVIDER_INSUFFICIENT_BALANCE;
   if (codes.length > 0 && codes.every((code) => code === RECIPIENT_NOT_ALLOWED)) {
     return RECIPIENT_NOT_ALLOWED;
   }
@@ -214,6 +228,11 @@ const NON_RETRYABLE_SUBMIT_CODES = new Set<string>([
   "PROVIDER_ERROR",
   // 운영 허용 목록 밖(팝빌을 부르지 않은 확정 실패).
   RECIPIENT_NOT_ALLOWED,
+  // 팝빌 잔액·한도·접속 IP 문제는 같은 요청을 다시 보내도 실패한다.
+  ...POPBILL_INSUFFICIENT_BALANCE_CODES,
+  "-99005002", // 후불 월한도를 초과하였습니다.
+  "-99005013", // 후불 일한도를 초과하였습니다.
+  "-10010039", // 팝빌에 허용되지 않은 IP에서는 메시지를 전송할 수 없습니다.
 ]);
 
 export function isRetryableSubmitError(e: unknown): boolean {
