@@ -14,8 +14,9 @@ const panelClassByVariant = {
   compact: "w-full max-w-[440px] rounded-t-[22px] bg-white px-6 pb-[calc(env(safe-area-inset-bottom)+24px)] pt-2.5",
   stepped: "flex h-[min(640px,calc(100dvh-40px))] max-h-[calc(100dvh-40px)] w-full max-w-[440px] flex-col rounded-t-[22px] bg-white px-6 pb-[calc(env(safe-area-inset-bottom)+22px)] pt-2.5",
   // 원본 resident-home `.ms-b` 치수·열릴 때 `up` .3s. 세로 flex라 신청 폼·현황은 제목·버튼을 고정하고
-  // 가운데만 스크롤한다(3차 QA, Figma 1084:269). 그렇게 나누지 않은 내용은 넘치면 시트째 스크롤한다.
-  moveOut: "flex max-h-[calc(100dvh-32px)] w-full max-w-[440px] animate-[resident-sheet-up_0.3s_cubic-bezier(.22,.61,.36,1)_both] flex-col overflow-auto overscroll-contain rounded-t-[22px] bg-white px-[22px] pb-[calc(env(safe-area-inset-bottom)+18px)] pt-2",
+  // 가운데만 스크롤한다(3차 QA, Figma 1091:4533). 그렇게 나누지 않은 내용은 넘치면 시트째 스크롤한다.
+  // 아래 여백은 내용이 정한다(버튼 고정 영역 = Figma modal_foot 15px, 나머지 = 원본 18px).
+  moveOut: "flex max-h-[calc(100dvh-32px)] w-full max-w-[440px] animate-[resident-sheet-up_0.3s_cubic-bezier(.22,.61,.36,1)_both] flex-col overflow-auto overscroll-contain rounded-t-[22px] bg-white px-[22px] pb-[env(safe-area-inset-bottom)] pt-2",
 } as const;
 
 const grabClassByVariant = {
