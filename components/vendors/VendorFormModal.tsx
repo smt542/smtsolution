@@ -302,17 +302,8 @@ export function VendorFormModal({
                       name: att.fileName,
                       url,
                       error: Boolean(error),
-                      onDelete: onDeleteAttachment
-                        ? async () => {
-                            const accepted = await confirm({
-                              title: "계약서 사진 삭제",
-                              description: `${att.fileName} 파일을 삭제할까요?`,
-                              confirmLabel: "삭제",
-                              variant: "danger",
-                            });
-                            if (accepted) await onDeleteAttachment(att);
-                          }
-                        : undefined,
+                      // 계약서 사진은 확인창 없이 바로 지운다(3차 QA 결정). 업체 삭제 확인창은 그대로 둔다.
+                      onDelete: onDeleteAttachment ? () => onDeleteAttachment(att) : undefined,
                     }))}
                     files={pendingPhotos}
                     onFilesChange={setPendingPhotos}
