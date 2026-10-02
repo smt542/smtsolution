@@ -84,15 +84,25 @@ export function ResidentPendingClient({
       lead={lead}
       icon={icon}
       footer={
-        <ResidentButton
-          variant="primary"
-          size="xl"
-          type="button"
-          className="w-full leading-[normal]"
-          onClick={() => router.push("/resident/login")}
-        >
-          로그인 화면으로
-        </ResidentButton>
+        <>
+          <ResidentButton
+            variant="primary"
+            size="xl"
+            type="button"
+            className="w-full leading-[normal]"
+            onClick={() => router.push("/resident/login")}
+          >
+            로그인 화면으로
+          </ResidentButton>
+          {/* 정본 `.btn.alt` 시연 버튼. 정본처럼 알림 설정으로 가며, 승인 전이면 그 화면의 가드가 세대 확인으로 돌려보낸다. */}
+          <button
+            type="button"
+            className="h-10 w-full rounded-2xl bg-transparent text-[13px] font-semibold leading-[normal] tracking-[-0.02em] text-t4 underline underline-offset-[3px] transition-transform duration-[120ms] ease-[ease] hover:text-t3 active:scale-[0.985]"
+            onClick={() => router.push("/resident/notify")}
+          >
+            테스트: 승인되었다고 가정하고 홈으로
+          </button>
+        </>
       }
     >
       <div className="mt-[26px] w-full rounded-[18px] border border-line px-4 py-1.5 text-left leading-[normal] animate-[rise_0.5s_160ms_cubic-bezier(0.22,0.61,0.36,1)_both]">
