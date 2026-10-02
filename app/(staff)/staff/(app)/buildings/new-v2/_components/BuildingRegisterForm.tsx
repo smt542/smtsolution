@@ -1,6 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { useAppToast } from "@/hooks/common";
 import { useMe } from "@/hooks/reactquery/auth";
@@ -10,7 +11,7 @@ import {
   useUploadAttachments,
   type Attachment,
 } from "@/hooks/reactquery/attachments";
-import { useSaveBuilding, useStaffOptions, useBuildingFull } from "@/hooks/reactquery/buildings";
+import { useDeleteBuilding, useSaveBuilding, useStaffOptions, useBuildingFull } from "@/hooks/reactquery/buildings";
 import { useBuildingTypes } from "@/hooks/reactquery/buildingTypes";
 import { RegisterHeader } from "./RegisterHeader";
 import { BasicInfoSection } from "./sections/BasicInfoSection";
@@ -35,6 +36,7 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
   const appToast = useAppToast();
   const router = useRouter();
   const save = useSaveBuilding();
+  const deleteBuilding = useDeleteBuilding();
   const uploadAttachments = useUploadAttachments();
   const deleteAttachment = useDeleteAttachment();
   const isSavingBuilding = save.isPending || uploadAttachments.isPending;
@@ -202,6 +204,27 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
     }
   };
 
+  // 호수·입주자도 함께 지워진다(soft_delete_building). 뒤로 가기로 지운 건물 상세에 돌아오지 않게 replace로 목록에 간다.
+  const onDeleteBuilding = async () => {
+    if (!buildingId || deleteBuilding.isPending) return;
+    const accepted = await confirm({
+      look: "plain",
+      title: "건물 삭제",
+      variant: "danger",
+      description: "정말 이 건물을 삭제하시겠습니까?\n호수·입주자 정보도 함께 삭제되며 복구할 수 없습니다.",
+      cancelLabel: "취소",
+      confirmLabel: "삭제",
+    });
+    if (!accepted) return;
+    try {
+      await deleteBuilding.mutateAsync(buildingId);
+      appToast.success("건물을 삭제했어요");
+      router.replace("/staff/buildings");
+    } catch (error) {
+      appToast.error(error, "건물을 삭제하지 못했어요");
+    }
+  };
+
   const onBack = async () => {
     if (dirty) {
       const ok = await confirm({ title: "저장하지 않고 나가기", description: "저장하지 않고 나가시겠습니까?", confirmLabel: "나가기" });
@@ -242,6 +265,20 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
           <OwnerInfoSection value={state} patch={patch} />
           <ExtraInfoSection value={state} patch={patch} />
           <BuildingMemoSection value={state} patch={patch} />
+          {buildingId ? (
+            // Figma 1086:4104 — 위아래 4px 여백 안에 가로로 꽉 찬 삭제 버튼(1086:4105).
+            <div className="py-[4px]">
+              <Button
+                type="button"
+                size="block"
+                variant="danger"
+                onClick={onDeleteBuilding}
+                disabled={deleteBuilding.isPending || isSavingBuilding}
+              >
+                건물 삭제
+              </Button>
+            </div>
+          ) : null}
         </div>
       )}
     </div>

@@ -22,6 +22,8 @@ import { dropOverridden } from "./buttonOverride";
  * - `modal`  정본 지로·은행 모달(`.fmpc.gr`) 하단 버튼. `.fmpc-btn`에 인라인
  *            `min-width:96px;padding:0 20px`을 더한 규격이다. 정본 `.fmpc-btn`은 채움·비활성에도
  *            1px 테두리가 있어 채움 버튼은 호출부가 테두리색과 비활성 표현을 함께 준다.
+ * - `block`  상세 화면 맨 아래에 가로로 꽉 차는 버튼(44/r11/13.5, padding 0 15px).
+ *            Figma 1086:4105 건물 삭제. 입주자 상세 '호수 삭제'와 같은 규격이다.
  *
  * 굵기도 규격의 일부라 size가 정한다(`login`만 800). 기본값으로 따로 두면 `font-bold`와
  * 호출부 굵기가 함께 남아 위와 같은 명시도 문제가 생긴다.
@@ -36,6 +38,7 @@ const SIZES = {
   md: "inline-flex items-center justify-center gap-1.5 h-[38px] rounded-btn px-[15px] text-[13.5px] font-bold whitespace-nowrap",
   wide: "inline-flex items-center justify-center gap-[7px] h-10 rounded-btn px-[18px] text-[13.5px] font-bold tracking-[-0.01em] whitespace-nowrap",
   modal: "inline-flex items-center justify-center gap-[7px] h-10 min-w-[96px] rounded-btn px-[20px] text-[13.5px] font-bold tracking-[-0.01em] whitespace-nowrap",
+  block: "flex w-full items-center justify-center h-11 rounded-btn px-[15px] text-[13.5px] font-bold whitespace-nowrap",
 } as const;
 
 /**
@@ -67,7 +70,7 @@ type ButtonBaseProps = Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "clas
  */
 type ButtonProps = ButtonBaseProps &
   (
-    | { size?: "std" | "legacy" | "login" | "md" | "wide" | "modal"; variant?: keyof typeof VARIANTS }
+    | { size?: "std" | "legacy" | "login" | "md" | "wide" | "modal" | "block"; variant?: keyof typeof VARIANTS }
     | { size: "sm"; variant?: "ghost" }
   );
 
