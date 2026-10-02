@@ -205,13 +205,14 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
   };
 
   // 호수·입주자도 함께 지워진다(soft_delete_building). 뒤로 가기로 지운 건물 상세에 돌아오지 않게 replace로 목록에 간다.
+  // 확인창 = Figma 공통 삭제 확인창(917:42014, '정말 이 {대상}을(를) 삭제하시겠습니까?') 대상만 건물로.
   const onDeleteBuilding = async () => {
     if (!buildingId || deleteBuilding.isPending) return;
     const accepted = await confirm({
       look: "plain",
       title: "건물 삭제",
       variant: "danger",
-      description: "정말 이 건물을 삭제하시겠습니까?\n호수·입주자 정보도 함께 삭제되며 복구할 수 없습니다.",
+      description: "정말 이 건물을 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.",
       cancelLabel: "취소",
       confirmLabel: "삭제",
     });
