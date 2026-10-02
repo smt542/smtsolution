@@ -219,6 +219,24 @@ export async function residentMyLink(): Promise<ResidentLink | null> {
   return row ? rowToResidentLink(row) : null;
 }
 
+export interface ResidentPendingContact {
+  companyName: string;
+  companyPhone: string | null;
+}
+
+type ResidentPendingContactRow = {
+  company_name: string;
+  company_phone: string | null;
+};
+
+// 확인 대기 신청이 속한 관리 조직의 상호·대표 전화(셋업 회사 정보, 비면 조직 정보). 신청이 없으면 null.
+export async function residentPendingContact(): Promise<ResidentPendingContact | null> {
+  const { data, error } = await createClient().rpc("resident_pending_contact");
+  if (error) throw new Error(error.message);
+  const row = ((data ?? []) as ResidentPendingContactRow[])[0];
+  return row ? { companyName: row.company_name, companyPhone: row.company_phone } : null;
+}
+
 export async function listResidentClaims(
   status?: ResidentClaimStatus,
 ): Promise<ResidentClaim[]> {

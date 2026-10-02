@@ -14,6 +14,7 @@ import { dropOverridden } from "@/components/common/buttonOverride";
  * - `xl`      온보딩 CTA `.btn`·카카오 `.kakao`(56/r16/16.5, 자간 -.02em, 누르면 98.5%로 줄어듦)
  * - `moveOut` 퇴실 신청 `.ms-btn`(52/r14/15.5, 굵기 800, 자간 -.02em). 정본 비활성은 `--line` 배경이라
  *             호출부에서 `disabled:bg-line disabled:text-t4`를 준다.
+ * - `call`    확인 요청 완료 문의 카드 [전화] `.call a`(38/r12/13.5, 좌우 14px). `tel:` 링크라 `residentButtonClass()`로 쓴다.
  *
  * variant — hover는 정본 규칙을 따른다.
  * - `primary`     청록 채움, hover 진한 청록
@@ -21,6 +22,7 @@ import { dropOverridden } from "@/components/common/buttonOverride";
  * - `secondary`   회색 채움, hover `--line`(`.ms-btn.ghost`·`.cf-btn`)
  * - `danger`      빨강 채움, hover 밝기 94%
  * - `kakao`       카카오 노랑, hover 밝기 97%
+ * - `outline`     흰 배경 + `--line` 테두리, 글자 `--t2`(`.call a`). 정본에 hover가 없다
  *
  * 비활성은 정본 `.sbtn:disabled`처럼 회색 배경 + 흐린 글자다. 폭은 호출부가 정한다.
  * 링크(`<a>`)를 같은 규격으로 그려야 하면 `residentButtonClass()`를 쓴다(카카오 로그인).
@@ -32,6 +34,7 @@ const SIZES = {
   lg: "h-[54px] rounded-[15px] text-base font-bold",
   xl: "h-14 rounded-2xl text-[16.5px] font-bold tracking-[-0.02em] transition-transform active:scale-[0.985]",
   moveOut: "h-[52px] rounded-[14px] text-[15.5px] font-extrabold tracking-[-0.02em]",
+  call: "inline-flex h-[38px] flex-none items-center rounded-xl px-3.5 text-[13.5px] font-bold",
 } as const;
 
 const VARIANTS = {
@@ -40,6 +43,7 @@ const VARIANTS = {
   secondary: "bg-bg text-t2 hover:bg-line",
   danger: "bg-red text-white hover:brightness-[.94]",
   kakao: "bg-kakao text-kakao-t hover:brightness-[0.97]",
+  outline: "border border-line bg-white text-t2",
 } as const;
 
 const DISABLED = "disabled:bg-bg disabled:text-t4";

@@ -33,7 +33,8 @@ const titleClassByVariant = {
 const leadClassByVariant = {
   flow: "mt-2.5 text-[14.5px] font-semibold leading-[1.62] text-t3 animate-[rise_0.5s_60ms_cubic-bezier(0.22,0.61,0.36,1)_both]",
   block: "mt-2.5 text-[14.5px] font-semibold leading-[1.62] text-t3 animate-[rise_0.5s_100ms_cubic-bezier(0.22,0.61,0.36,1)_both]",
-  center: "mt-2.5 text-[14.5px] font-semibold leading-[1.62] text-t3 animate-[rise_0.5s_100ms_cubic-bezier(0.22,0.61,0.36,1)_both]",
+  // 정본 `.lead`는 margin-top만 정해 `<p>` 기본 아래 여백(1em = 14.5px)이 남는다(Figma 1029:256593 pb 14.5).
+  center: "mt-2.5 mb-[14.5px] text-[14.5px] font-semibold leading-[1.62] text-t3 animate-[rise_0.5s_100ms_cubic-bezier(0.22,0.61,0.36,1)_both]",
 } as const;
 
 export default function OnboardingPageScaffold(

@@ -1,5 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { listResidentClaims, residentAutomatch, residentMyLink, residentSearchBuildings } from "./apis";
+import {
+  listResidentClaims,
+  residentAutomatch,
+  residentMyLink,
+  residentPendingContact,
+  residentSearchBuildings,
+} from "./apis";
 import type { ResidentClaimStatus } from "./apis";
 import { residentClaimKeys } from "./keys";
 
@@ -14,6 +20,14 @@ export function useResidentMyLink() {
   return useQuery({
     queryKey: residentClaimKeys.myLink(),
     queryFn: residentMyLink,
+  });
+}
+
+export function useResidentPendingContact(enabled = true) {
+  return useQuery({
+    queryKey: residentClaimKeys.pendingContact(),
+    queryFn: residentPendingContact,
+    enabled,
   });
 }
 
