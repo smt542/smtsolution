@@ -87,54 +87,60 @@ function MoveOutDateForm({ current, submitting, onSubmit }: DateFormProps) {
   });
 
   return (
-    <form onSubmit={submit} noValidate>
-      <div className={styles.title}>{current ? "희망 퇴실일 변경" : "퇴실 신청"}</div>
-      <p className={styles.desc}>
-        {current ? (
-          <>현재 <b>{formatDate(current)}</b>로 신청되어 있어요. 새로 희망하는 날짜를 선택해 주세요.</>
-        ) : (
-          <>희망하는 퇴실일을 선택해 주세요. 신청하면 <b>담당자가 확인 후 연락</b>드려요.</>
+    <form onSubmit={submit} noValidate className={styles.sheet}>
+      <div className={styles.formHead}>
+        <div className={styles.title}>{current ? "희망 퇴실일 변경" : "퇴실 신청"}</div>
+        <p className={styles.desc}>
+          {current ? (
+            <>현재 <b>{formatDate(current)}</b>로 신청되어 있어요. 새로 희망하는 날짜를 선택해 주세요.</>
+          ) : (
+            <>희망하는 퇴실일을 선택해 주세요. 신청하면 <b>담당자가 확인 후 연락</b>드려요.</>
+          )}
+        </p>
+      </div>
+      <div className={styles.formBody}>
+        <div className={styles.fieldLabel}>희망 퇴실일</div>
+        <Controller
+          name="desiredDate"
+          control={form.control}
+          render={({ field }) => (
+            <DpCalendar
+              look="sheet"
+              view={view}
+              onViewChange={setView}
+              value={field.value ?? ""}
+              onPick={field.onChange}
+              minDate={range.min}
+              maxDate={range.max}
+            />
+          )}
+        />
+        <p className={styles.hint}>최종 검침을 위해 3일 이상 여유를 두고 신청해 주세요. 일정은 통화 중 조정할 수 있어요.</p>
+        {current ? null : (
+          <div className={styles.note}>
+            <b>신청 후 진행 순서</b>
+            <ul>
+              <li>담당자가 확인 후 1영업일 안에 전화로 연락드려요.</li>
+              <li>확정된 퇴실일에 최종 검침을 하고 관리비를 확정해요.</li>
+              <li>미납·연체료를 차감한 정산 결과를 안내해 드려요.</li>
+            </ul>
+          </div>
         )}
-      </p>
-      <div className={styles.fieldLabel}>희망 퇴실일</div>
-      <Controller
-        name="desiredDate"
-        control={form.control}
-        render={({ field }) => (
-          <DpCalendar
-            look="sheet"
-            view={view}
-            onViewChange={setView}
-            value={field.value ?? ""}
-            onPick={field.onChange}
-            minDate={range.min}
-            maxDate={range.max}
-          />
-        )}
-      />
-      <p className={styles.hint}>최종 검침을 위해 3일 이상 여유를 두고 신청해 주세요. 일정은 통화 중 조정할 수 있어요.</p>
-      {current ? null : (
-        <div className={styles.note}>
-          <b>신청 후 진행 순서</b>
-          <ul>
-            <li>담당자가 확인 후 1영업일 안에 전화로 연락드려요.</li>
-            <li>확정된 퇴실일에 최종 검침을 하고 관리비를 확정해요.</li>
-            <li>미납·연체료를 차감한 정산 결과를 안내해 드려요.</li>
-          </ul>
-        </div>
-      )}
-      {form.formState.errors.root?.server?.message ? (
-        <p className={styles.error} role="alert">{form.formState.errors.root.server.message}</p>
-      ) : null}
-      <ResidentButton
-        variant="primary"
-        size="moveOut"
-        type="submit"
-        className={styles.submit}
-        disabled={!pickable || busy}
-      >
-        {current ? "변경 저장하기" : "퇴실 신청하기"}
-      </ResidentButton>
+      </div>
+      <div className={styles.foot}>
+        {form.formState.errors.root?.server?.message ? (
+          <p className={styles.error} role="alert">{form.formState.errors.root.server.message}</p>
+        ) : null}
+        <ResidentButton
+          variant="primary"
+          size="moveOut"
+          type="submit"
+          className={styles.submit}
+          disabled={!pickable || busy}
+        >
+          {current ? "변경 저장하기" : "퇴실 신청하기"}
+        </ResidentButton>
+      </div>
     </form>
   );
 }
@@ -238,49 +244,55 @@ export default function MoveOutSection({ open, onClose }: MoveOutSectionProps) {
     );
   } else if (active && !editing) {
     content = (
-      <div>
-        <div className={styles.title}>퇴실 신청 현황</div>
-        <p className={styles.desc}>담당자가 확인 중이에요. 확인 후 <b>전화로 연락</b>드려요.</p>
-        <div className={`${styles.sum} ${styles.sumFirst}`}>
-          <span>희망 퇴실일</span>
-          <b>{withWeekday(active.desiredDate)}</b>
+      <div className={styles.sheet}>
+        <div className={styles.viewHead}>
+          <div className={styles.title}>퇴실 신청 현황</div>
+          <p className={styles.desc}>담당자가 확인 중이에요. 확인 후 <b>전화로 연락</b>드려요.</p>
         </div>
-        <div className={`${styles.sum} ${styles.sumNext}`}>
-          <span>신청일</span>
-          <b>{formatDate(dateKey(new Date(active.createdAt)))}</b>
+        <div className={styles.viewBody}>
+          <div className={styles.sum}>
+            <span>희망 퇴실일</span>
+            <b>{withWeekday(active.desiredDate)}</b>
+          </div>
+          <div className={`${styles.sum} ${styles.sumNext}`}>
+            <span>신청일</span>
+            <b>{formatDate(dateKey(new Date(active.createdAt)))}</b>
+          </div>
+          <div className={styles.note}>
+            <b>안내</b>
+            <ul>
+              <li>담당자와 통화 전이라면 희망일을 변경할 수 있어요.</li>
+              <li>퇴실을 취소하려면 신청 취소를 눌러주세요.</li>
+            </ul>
+          </div>
         </div>
-        <div className={styles.note}>
-          <b>안내</b>
-          <ul>
-            <li>담당자와 통화 전이라면 희망일을 변경할 수 있어요.</li>
-            <li>퇴실을 취소하려면 신청 취소를 눌러주세요.</li>
-          </ul>
+        <div className={styles.foot}>
+          {cancelError ? <p className={styles.error} role="alert">{cancelError}</p> : null}
+          <ResidentButton
+            variant="primary"
+            size="moveOut"
+            type="button"
+            className={styles.submit}
+            onClick={() => {
+              setCancelError(null);
+              setEditing(true);
+            }}
+          >
+            희망 퇴실일 변경
+          </ResidentButton>
+          <ResidentButton
+            variant="secondary"
+            size="moveOut"
+            type="button"
+            className={styles.ghost}
+            onClick={() => {
+              setCancelError(null);
+              setCancelOpen(true);
+            }}
+          >
+            신청 취소
+          </ResidentButton>
         </div>
-        {cancelError ? <p className={styles.error} role="alert">{cancelError}</p> : null}
-        <ResidentButton
-          variant="primary"
-          size="moveOut"
-          type="button"
-          className={styles.submit}
-          onClick={() => {
-            setCancelError(null);
-            setEditing(true);
-          }}
-        >
-          희망 퇴실일 변경
-        </ResidentButton>
-        <ResidentButton
-          variant="secondary"
-          size="moveOut"
-          type="button"
-          className={styles.ghost}
-          onClick={() => {
-            setCancelError(null);
-            setCancelOpen(true);
-          }}
-        >
-          신청 취소
-        </ResidentButton>
       </div>
     );
   } else {
