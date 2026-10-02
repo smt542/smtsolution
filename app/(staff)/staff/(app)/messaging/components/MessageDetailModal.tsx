@@ -3,9 +3,11 @@
 import { useId, type ReactNode } from "react";
 import { useDismissOnEscape } from "@/hooks/common";
 import { useMe } from "@/hooks/reactquery/auth";
+import { useSenderDefaults } from "@/hooks/reactquery/senderDefaults";
 import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
 import { PhoneText } from "@/components/common";
 import type { MessageRecipient, SendMode } from "@/lib/messaging/preset";
+import { resolveDisplaySender } from "@/lib/messaging/senderDisplay";
 import { channelLabel, senderLabel } from "./messageFormat";
 
 export interface MessageDetailRow {
@@ -43,11 +45,13 @@ export function MessageDetailModal({
   const titleId = useId();
   const { data: me } = useMe();
   const { data: config } = useSetupConfig(me?.orgId);
+  const senderDefaults = useSenderDefaults();
+  const smsSender = resolveDisplaySender(config, senderDefaults.isError ? null : senderDefaults.data, "sms");
 
   useDismissOnEscape({ enabled: true, onDismiss: onClose, lockBodyScroll: true });
 
   const channelText = channelLabel(channel);
-  const senderNumber = senderLabel(channel, config?.smsSender);
+  const senderNumber = senderLabel(channel, smsSender);
 
   return (
     <div

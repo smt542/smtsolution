@@ -102,3 +102,22 @@ Popbill은 카카오 메시지 발송 대행사이므로 카카오비즈니스 �
   claim하고 `submitting` 재접수는 `ALREADY_IN_FLIGHT`로 막히므로, 운영자가 **job의 `request_num`으로 Popbill 결과를
   대조**해 실제 접수번호/결과를 확인하고 수동으로 확정해야 한다. `request_num` 기반 광범위 자동 복구(RN recovery)는
   이번 범위에 포함하지 않는다(향후 결정). mark 재시도는 **같은 mark 호출만** 반복하며 provider 재접수는 하지 않는다.
+
+## 운영 전환 (2026-10-02 설계)
+
+설계: `docs/superpowers/specs/2026-10-02-popbill-live-switch-design.md`
+
+| 환경변수 | 뜻 |
+|---|---|
+| `POPBILL_IS_TEST` | `false`면 운영 환경(실발송). 기본 `true` |
+| `POPBILL_LIVE_ALLOWLIST` | 운영 모드에서 보낼 수 있는 번호(쉼표 구분, 하이픈 무시). `*` = 전체. 비우면 전부 차단 |
+| `POPBILL_LIVE_RESTRICTED_ORG_IDS` | `*`를 무시하고 목록 번호로만 보내는 조직 id(데모 조직) |
+
+- 막힌 수신자는 팝빌로 넘기지 않고 `RECIPIENT_NOT_ALLOWED`로 실패한다(포인트 미차감). 팩스도 같다.
+- 접수 작업 `provider_dispatch_jobs.provider_env`(test/live). 결과 재조회는 자기 환경 작업만 조회한다 — 로컬 테스트 키로 보낸 건을 운영 크론이 조회하지 않는다.
+- 팝빌 잔액 부족(`-99005001`·`-99005003`·`-99005004`·`-99005005`)은 `PROVIDER_INSUFFICIENT_BALANCE`로 기록하고 재시도하지 않는다.
+- 되돌리기: 허용 목록을 담당자 번호만 남기고 재배포한다. `POPBILL_IS_TEST=true`는 이미 나간 live 작업의 재조회를 멈추므로 마지막 수단이다.
+- 형식 검사: 허용 번호는 `*` 또는 숫자·하이픈·공백으로 된 8~12자리, 조직 id는 양의 정수만. 하나라도 틀리면(`;`·공백 구분, `+82`, 따옴표 등) 운영 모드에서 전부 막고 서버 로그에 `[popbill] … 형식이 틀려 운영 발송을 모두 막습니다.`를 남긴다.
+- 재시도(replay) 보호: 예약에 작업이 이미 있으면 처음 만든 작업 구성이 기준이다(`create_provider_dispatch_jobs`가 새 작업·수신자를 더하지 않는다).
+- **환경변수 변경 절차** (`POPBILL_IS_TEST`·`POPBILL_LIVE_*`를 바꿀 때마다): ① 예약 발송 EventBridge 규칙을 끈다 ② `message_schedules`의 `status='sending'`이 0건이 될 때까지 기다린다(결과 재조회 크론은 계속) ③ 환경변수를 바꾸고 재배포한다 ④ 규칙을 다시 켠다. Amplify 빌드 설정이 서버 런타임으로 내보내는 환경변수 목록에 새 변수가 들어가는지도 확인한다.
+- 출시(`*`로 열기) 전: 실제 고객이 아닌 조직(데모·테스트) 전부를 `POPBILL_LIVE_RESTRICTED_ORG_IDS`에 넣는다. 연 직후 데모 조직에서 010-0000-0000 세대로 1건 보내 '발송 제한 번호'를 확인한다.

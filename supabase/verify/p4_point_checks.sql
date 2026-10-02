@@ -173,10 +173,11 @@ begin
     raise exception 'provider_dispatch_recipients must not be directly writable by anon/authenticated';
   end if;
 
-  if has_function_privilege('authenticated', 'public.claim_provider_dispatch_jobs(integer)', 'EXECUTE') then
+  -- 0224부터 시그니처가 (integer, text)다(p_provider_env 추가).
+  if has_function_privilege('authenticated', 'public.claim_provider_dispatch_jobs(integer,text)', 'EXECUTE') then
     raise exception 'authenticated must not execute claim_provider_dispatch_jobs';
   end if;
-  if not has_function_privilege('service_role', 'public.claim_provider_dispatch_jobs(integer)', 'EXECUTE') then
+  if not has_function_privilege('service_role', 'public.claim_provider_dispatch_jobs(integer,text)', 'EXECUTE') then
     raise exception 'service_role cannot execute claim_provider_dispatch_jobs';
   end if;
 

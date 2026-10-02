@@ -27,6 +27,21 @@ export function resolveIdempotencyKey(
   return { signature, key: generate() };
 }
 
+/** 예약이 반환된 확정 거절 코드. 같은 초안을 다시 보내면 새 발송이어야 하므로 키를 바꾼다. */
+const ROTATE_AFTER_CODES = new Set<string>([
+  "RECIPIENT_NOT_ALLOWED",
+  "PROVIDER_INSUFFICIENT_BALANCE",
+  "SEND_REJECTED",
+]);
+
+/**
+ * 발송 실패 뒤 멱등 키를 바꿔야 하는지. 확정 거절이면 true(충전·허용 목록 변경 뒤 재시도가 replay로
+ * 막히지 않게), 접수 여부가 불분명하거나 진행 중(SEND_UNCONFIRMED·SEND_IN_PROGRESS)이면 false(중복 발송 방지).
+ */
+export function shouldRotateAfterSendError(code: string | null): boolean {
+  return code !== null && ROTATE_AFTER_CODES.has(code);
+}
+
 /** 표준 UUID(v4) 생성. crypto.randomUUID가 없으면 getRandomValues로 대체한다(브라우저·jsdom 안전). */
 export function newUuid(): string {
   const c = globalThis.crypto;

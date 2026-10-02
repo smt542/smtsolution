@@ -9,6 +9,10 @@ import { CloseIcon, PrinterIcon } from "@/components/icons";
 import { billKeys, getBillDocuments, listBillTargets, useAdjustmentStatements, useIssueBills, useSendBillFaxes, type BillDocument, type BillTarget } from "@/hooks/reactquery/bill";
 import { billingKeys, getBillingPeriodSetting } from "@/hooks/reactquery/billing";
 import { cmsDownloadUrl } from "@/hooks/reactquery/payments";
+import { useSenderDefaults } from "@/hooks/reactquery/senderDefaults";
+import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
+import { formatPhone } from "@/lib/format";
+import { resolveDisplaySender } from "@/lib/messaging/senderDisplay";
 import { currentPeriod } from "@/lib/billing/period";
 import { matchesBuildingGroup } from "@/lib/buildings/groupType";
 import { displayUnitNo, type PrintableAccount } from "@/lib/bill/document";
@@ -102,6 +106,10 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
   const currentDocumentQueries = useQueries({ queries: currentTargetsByBuilding.map(({ building, targets }) => ({ queryKey: billKeys.documents(building.id, period, targets.map((target) => target.unitId)), queryFn: () => getBillDocuments(building.id, period, targets.map((target) => target.unitId)), enabled: needsDocuments && targets.length > 0 })) });
 
   const adjustment = useAdjustmentStatements({ buildings: selectedBuildings, period, orgId, companyName, outputDate, enabled: type === "adjustment" });
+  const { data: setupConfig } = useSetupConfig(orgId);
+  const senderDefaults = useSenderDefaults();
+  const faxSender = resolveDisplaySender(setupConfig, senderDefaults.isError ? null : senderDefaults.data, "fax");
+  const faxSenderLabel = faxSender === undefined ? "" : faxSender ? formatPhone(faxSender) : "발신번호 미등록";
 
   const allGiroDocuments = currentTargetsByBuilding.flatMap(({ building, targets }, index) => mergeGiroDocuments(building, currentDocumentQueries[index]?.data ?? [], targets, periodSettingQueries[index]?.data?.dueDate ?? null));
   const validSelectedUnitIds = selectedUnitIds.filter((unitId) => allGiroDocuments.some(({ document }) => document.unitId === unitId));
@@ -429,7 +437,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
       {type === "giro" && hasPrintableData && <div className="hidden print:block" data-testid="document-output-print-root">{printPreview}</div>}
       {type === "adjustment" && adjustment.hasData && <div className="hidden print:block" data-testid="document-output-print-root"><AdjustmentStatementPreview pages={adjustment.pages} mode="print" /></div>}
       {type === "autoDebit" && <AutoDebitPrintDocument year={year} month={month} group={group} rows={autoDebitRows} />}
-      {faxConfirmOpen && <FaxConfirmationModal building={selectedFaxBuilding} targets={selectedFaxTargetValues} period={period} senderLabel="등록 발신번호 · 본사" recipient={faxRecipient} isPending={sendFaxes.isPending} error={faxError} onCancel={() => setFaxConfirmOpen(false)} onSend={() => void sendFax()} />}
+      {faxConfirmOpen && <FaxConfirmationModal building={selectedFaxBuilding} targets={selectedFaxTargetValues} period={period} senderLabel={faxSenderLabel} recipient={faxRecipient} isPending={sendFaxes.isPending} error={faxError} onCancel={() => setFaxConfirmOpen(false)} onSend={() => void sendFax()} />}
     </>
   );
 }

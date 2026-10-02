@@ -27,6 +27,7 @@ import {
 import {
   newUuid,
   resolveIdempotencyKey,
+  shouldRotateAfterSendError,
   type IdempotencyState,
 } from "@/lib/messaging/idempotencyKey";
 import { canonicalSendPayload } from "@/lib/messaging/sendSignature";
@@ -426,13 +427,18 @@ function MessengerFabContent() {
       idempotencyRef.current = null;
       setSummaryOpen(false);
       setSendFeedback(null);
+      const blocked = result.status === "scheduled" ? 0 : (result.blockedCount ?? 0);
       toast.success(
         result.status === "scheduled"
           ? `예약 발송이 등록되었습니다 · ${result.count}건`
-          : `발송을 접수했습니다 · ${result.queuedCount ?? result.count}건 · 결과 확인 중`,
+          : `발송을 접수했습니다 · ${result.queuedCount ?? result.count}건 · 결과 확인 중${
+              blocked > 0 ? ` · 발송 제한 번호 ${blocked}명 제외` : ""
+            }`,
       );
     } catch (error) {
       const code = error instanceof MessageSendError ? error.code : null;
+      // 확정 거절(예약 반환)이면 키를 바꿔, 충전·허용 목록 변경 뒤 같은 초안 재시도가 새 발송이 되게 한다.
+      if (shouldRotateAfterSendError(code)) idempotencyRef.current = null;
       const message =
         code === "PROVIDER_NOT_CONFIGURED"
           ? "발송 설정 준비 중"
@@ -440,7 +446,11 @@ function MessengerFabContent() {
             ? "포인트가 부족해 발송할 수 없어요."
             : code === "SENDER_NOT_REGISTERED"
               ? "알림톡 발신 설정 준비 중"
-              : "메시지를 발송하지 못했습니다.";
+              : code === "RECIPIENT_NOT_ALLOWED"
+                ? "발송 제한 번호라 보내지 않았어요."
+                : code === "PROVIDER_INSUFFICIENT_BALANCE"
+                  ? "팝빌 충전 잔액이 부족해 발송하지 못했어요. 운영사에 충전을 요청해 주세요."
+                  : "메시지를 발송하지 못했습니다.";
       setSendFeedback({ code, message });
       toast.error(message);
     }

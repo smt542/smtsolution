@@ -1,6 +1,8 @@
 "use client";
 
 import type { MessageTemplate } from "@/hooks/reactquery/messageTemplates/apis";
+import { useSenderDefaults } from "@/hooks/reactquery/senderDefaults";
+import { formatPhone } from "@/lib/format";
 import type { MessageRecipient } from "@/lib/messaging/preset";
 import { byteLen, smsProduct } from "@/lib/messenger/bytes";
 import { AUTO_VARS, extractAlimtalkVariables } from "./AlimtalkForm";
@@ -75,6 +77,8 @@ export function SendSummaryDialog({
   disabledReason,
   isSending = false,
 }: SendSummaryDialogProps) {
+  const senderDefaults = useSenderDefaults();
+  const defaultSms = senderDefaults.data?.smsSender ?? null;
   const bytes = byteLen(body);
   const product = smsProduct(bytes);
   const unresolved = unresolvedVariables(body, recipients, vars);
@@ -118,7 +122,13 @@ export function SendSummaryDialog({
           <div className={styles.r}>
             <span className={styles.rl}>{channel === "alim" ? "채널" : "발신번호"}</span>
             <span className={styles.rv}>
-              {channel === "alim" ? "관리비서 채널" : sender?.trim() || "운영사 기본번호"}
+              {channel === "alim"
+                ? "관리비서 채널"
+                : sender?.trim()
+                  ? formatPhone(sender.trim())
+                  : defaultSms
+                    ? formatPhone(defaultSms)
+                    : "운영사 기본번호"}
             </span>
           </div>
           <div className={styles.r}>

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMe } from "@/hooks/reactquery/auth";
+import { useSenderDefaults } from "@/hooks/reactquery/senderDefaults";
 import { applyMask, Input, phoneMask, PHONE_INPUT_ATTRS } from "@/components/common";
 import {
   useSaveSetupSender,
@@ -28,6 +29,10 @@ function digits(value: string): string {
 export function SenderSelect({ value, onChange }: SenderSelectProps) {
   const { data: me } = useMe();
   const { data: config } = useSetupConfig(me?.orgId);
+  const senderDefaults = useSenderDefaults();
+  const defaultSms = senderDefaults.data?.smsSender ?? null;
+  // '운영사 기본번호' 글자 자리에 실제 기본번호를 보여 준다(spec 4.3). 모르면 기존 글자.
+  const defaultDisplay = defaultSms ? formatPhone(defaultSms) : "운영사 기본번호";
   const saveSender = useSaveSetupSender();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -157,7 +162,7 @@ export function SenderSelect({ value, onChange }: SenderSelectProps) {
       aria-expanded={open}
     >
       <span className={styles.v}>
-        {normalizedValue ? formatPhone(normalizedValue) : "운영사 기본번호"}
+        {normalizedValue ? formatPhone(normalizedValue) : defaultDisplay}
       </span>
       <span className={styles["fmp-deftag"]}>
         {selectedLabel === "운영사 기본번호" ? "기본" : "등록"}
@@ -249,7 +254,7 @@ export function SenderSelect({ value, onChange }: SenderSelectProps) {
             onClick={() => void applyOperatorDefault()}
           >
             <div className="min-w-0">
-              <div className={styles.num}>운영사 기본번호</div>
+              <div className={styles.num}>{defaultDisplay}</div>
               <div className={styles.who}>미설정 시 자동 적용</div>
             </div>
             {!normalizedValue && (

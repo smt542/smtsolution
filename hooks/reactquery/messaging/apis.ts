@@ -52,6 +52,8 @@ export interface SendMessagesResult {
   /** 접수된 수신자 수(즉시발송). 성공 확정 수가 아니다. */
   queuedCount?: number;
   reservedPoints?: number;
+  /** 운영 허용 목록 밖이라 팝빌로 보내지 않은 수신자 수(즉시발송). */
+  blockedCount?: number;
 }
 
 export interface MessagePointQuoteInput {
@@ -239,6 +241,7 @@ export async function sendMessages(
     messageLogId?: number;
     queuedCount?: number;
     reservedPoints?: number;
+    blockedCount?: number;
     error?: string;
     message?: string;
   } | null;
@@ -257,6 +260,7 @@ export async function sendMessages(
     recipients: input.recipients,
     queuedCount: data?.queuedCount ?? 0,
     reservedPoints: data?.reservedPoints ?? 0,
+    blockedCount: data?.blockedCount ?? 0,
   };
 }
 

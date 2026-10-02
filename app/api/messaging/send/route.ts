@@ -135,6 +135,7 @@ export async function POST(request: Request): Promise<Response> {
       reservationId: result.reservationId,
       queuedCount: result.queuedCount ?? 0,
       reservedPoints: result.reservedPoints ?? 0,
+      blockedCount: result.blockedCount ?? 0,
     },
     202,
   );

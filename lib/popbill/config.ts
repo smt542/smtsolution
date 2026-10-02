@@ -1,3 +1,10 @@
+import {
+  isValidLiveAllowlist,
+  isValidOrgIdList,
+  parseLiveAllowlist,
+  parseOrgIdList,
+} from "./allowlist";
+
 /**
  * Popbill 공통 설정 — **서버 전용**.
  *
@@ -18,6 +25,12 @@ export type PopbillConfig = {
   smsSender: string;
   kakaoSender: string;
   faxSender: string;
+  /** 운영 모드 실발송 허용 번호(숫자) 또는 "*". 비어 있으면 운영 모드에서 전부 차단. */
+  liveAllowlist: string[];
+  /** "*"를 무시하고 목록 번호로만 보내는 조직 id(데모 조직). */
+  liveRestrictedOrgIds: number[];
+  /** 두 운영 발송 설정(POPBILL_LIVE_*)의 형식이 올바른지. false면 운영 모드에서 전부 차단. */
+  liveSettingsValid: boolean;
 };
 
 export type PopbillSenderProduct = "sms" | "lms" | "alimtalk" | "fax";
@@ -45,6 +58,9 @@ export function parsePopbillBoolean(value: string | undefined, fallback: boolean
 
 type Env = Record<string, string | undefined>;
 
+/** 운영 발송 설정 형식 오류는 프로세스마다 한 번만 로그에 남긴다(비밀값 없음). */
+let warnedInvalidLiveSettings = false;
+
 /**
  * 서버 환경변수에서 Popbill 설정을 읽는다. 필수(linkId/secretKey/corpNum)가 없으면 던진다.
  * IS_TEST 기본값은 true(테스트 모드)로 안전측에 둔다. 운영은 POPBILL_IS_TEST=false로 명시한다.
@@ -56,18 +72,31 @@ export function readPopbillConfig(env: Env = process.env): PopbillConfig {
   if (!linkId || !secretKey || !corpNum) {
     throw new PopbillNotConfiguredError();
   }
+  const isTest = parsePopbillBoolean(env.POPBILL_IS_TEST, true);
+  const liveSettingsValid =
+    isValidLiveAllowlist(env.POPBILL_LIVE_ALLOWLIST) &&
+    isValidOrgIdList(env.POPBILL_LIVE_RESTRICTED_ORG_IDS);
+  if (!isTest && !liveSettingsValid && !warnedInvalidLiveSettings) {
+    warnedInvalidLiveSettings = true;
+    console.error(
+      "[popbill] POPBILL_LIVE_ALLOWLIST 또는 POPBILL_LIVE_RESTRICTED_ORG_IDS 형식이 틀려 운영 발송을 모두 막습니다.",
+    );
+  }
   return {
     linkId,
     secretKey,
     corpNum,
     userId: (env.POPBILL_USER_ID ?? "").trim() || undefined,
-    isTest: parsePopbillBoolean(env.POPBILL_IS_TEST, true),
+    isTest,
     ipRestrictOn: parsePopbillBoolean(env.POPBILL_IP_RESTRICT_ON, true),
     useStaticIp: parsePopbillBoolean(env.POPBILL_USE_STATIC_IP, false),
     useLocalTime: parsePopbillBoolean(env.POPBILL_USE_LOCAL_TIME, true),
     smsSender: (env.POPBILL_SMS_SENDER ?? "").replace(/[^0-9]/g, ""),
     kakaoSender: (env.POPBILL_KAKAO_SENDER ?? "").trim(),
     faxSender: (env.POPBILL_FAX_SENDER ?? "").replace(/[^0-9]/g, ""),
+    liveAllowlist: parseLiveAllowlist(env.POPBILL_LIVE_ALLOWLIST),
+    liveRestrictedOrgIds: parseOrgIdList(env.POPBILL_LIVE_RESTRICTED_ORG_IDS),
+    liveSettingsValid,
   };
 }
 
