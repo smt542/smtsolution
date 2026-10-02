@@ -1,3 +1,5 @@
+import { parseLiveAllowlist, parseOrgIdList } from "./allowlist";
+
 /**
  * Popbill 공통 설정 — **서버 전용**.
  *
@@ -18,6 +20,10 @@ export type PopbillConfig = {
   smsSender: string;
   kakaoSender: string;
   faxSender: string;
+  /** 운영 모드 실발송 허용 번호(숫자) 또는 "*". 비어 있으면 운영 모드에서 전부 차단. */
+  liveAllowlist: string[];
+  /** "*"를 무시하고 목록 번호로만 보내는 조직 id(데모 조직). */
+  liveRestrictedOrgIds: number[];
 };
 
 export type PopbillSenderProduct = "sms" | "lms" | "alimtalk" | "fax";
@@ -68,6 +74,8 @@ export function readPopbillConfig(env: Env = process.env): PopbillConfig {
     smsSender: (env.POPBILL_SMS_SENDER ?? "").replace(/[^0-9]/g, ""),
     kakaoSender: (env.POPBILL_KAKAO_SENDER ?? "").trim(),
     faxSender: (env.POPBILL_FAX_SENDER ?? "").replace(/[^0-9]/g, ""),
+    liveAllowlist: parseLiveAllowlist(env.POPBILL_LIVE_ALLOWLIST),
+    liveRestrictedOrgIds: parseOrgIdList(env.POPBILL_LIVE_RESTRICTED_ORG_IDS),
   };
 }
 
