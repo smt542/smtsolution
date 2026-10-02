@@ -267,7 +267,8 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
           <BuildingMemoSection value={state} patch={patch} />
           {buildingId ? (
             // Figma 1086:4104 — 위아래 4px 여백 안에 가로로 꽉 찬 삭제 버튼(1086:4105).
-            <div className="py-[4px]">
+            // Figma 메모 섹션(1086:4092)은 아래 마진이 없어 메모→버튼이 gap 16px뿐이다 → 섹션 공통 mb-[13px]을 상쇄한다.
+            <div className="-mt-[13px] py-[4px]">
               <Button
                 type="button"
                 size="block"
