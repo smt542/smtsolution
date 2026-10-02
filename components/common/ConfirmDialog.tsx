@@ -190,7 +190,8 @@ export function ConfirmDialog({
           className={`max-h-[88vh] overflow-auto rounded-[20px] bg-white p-6 text-left shadow-[0_30px_70px_-20px_rgba(0,0,0,0.4)] ${widthClassName}`}
           onMouseDown={(e) => e.stopPropagation()}
         >
-          <h2 id={titleId} className={`${titleSpacingClassName} text-[17px] font-extrabold text-t1`}>
+          {/* 정본 .modal 제목은 줄높이를 따로 주지 않아 normal(17px → 20px)이다. 앱 기본 1.5를 물려받으면 5px 커진다. */}
+          <h2 id={titleId} className={`${titleSpacingClassName} text-[17px] font-extrabold leading-[normal] text-t1`}>
             {title}
           </h2>
           {description != null && (
