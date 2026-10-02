@@ -1,4 +1,4 @@
-import { readPopbillConfig, type PopbillConfig } from "@/lib/popbill/config";
+import { isPopbillConfigured, readPopbillConfig, type PopbillConfig } from "@/lib/popbill/config";
 import {
   computeNextPollAt,
   defaultFetchFax,
@@ -74,8 +74,13 @@ export async function reconcilePendingDeliveries(deps: ReconcileDeps): Promise<R
     deps.fetchResultsByRequestNum ??
     ((job) => defaultFetchResultsByRequestNum(job, config ?? readPopbillConfig()));
 
+  // 같은 환경(test/live)에서 접수한 작업만 재조회한다(spec 4.2②). 팝빌 설정이 없으면 기존처럼 전체.
+  const envConfig = config ?? (isPopbillConfigured() ? readPopbillConfig() : null);
+  const providerEnv = envConfig ? (envConfig.isTest ? "test" : "live") : null;
+
   const jobs = (await rpcData(deps.admin, "claim_provider_dispatch_jobs", {
     p_limit: limit,
+    p_provider_env: providerEnv,
   })) as ReconcileJob[] | null;
 
   const result: ReconcileResult = { processed: 0, pending: 0, finalized: 0, reconcileRequired: 0 };

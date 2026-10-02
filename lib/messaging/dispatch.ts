@@ -635,6 +635,7 @@ export async function submitReservationBatches(
       product: b.product,
       request_num: b.requestNum,
       schedule_id: params.scheduleId ?? null,
+      provider_env: providerConfig.isTest ? "test" : "live",
       recipients: b.recipients.map((r) => ({
         recipient_key: r.recipientKey,
         provider_ref_key: r.providerRefKey,

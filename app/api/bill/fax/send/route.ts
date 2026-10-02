@@ -129,7 +129,10 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     // 2) 세대별 독립 작업 생성(재시도는 새 attempt로 append-only). RPC 오류를 무시하지 않는다.
-    const createRes = await admin.rpc("create_fax_dispatch_job", { p_bill_issue_id: billIssueId });
+    const createRes = await admin.rpc("create_fax_dispatch_job", {
+      p_bill_issue_id: billIssueId,
+      p_provider_env: effectiveConfig.isTest ? "test" : "live",
+    });
     if (createRes.error) {
       failed += 1;
       results.push({ billIssueId, status: "job_create_failed" });
