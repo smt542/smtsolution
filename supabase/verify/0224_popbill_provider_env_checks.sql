@@ -43,4 +43,20 @@ begin
   if position('provider_env' in pg_get_functiondef('public.create_provider_dispatch_jobs(bigint,jsonb)'::regprocedure)) = 0 then
     raise exception '0224: create_provider_dispatch_jobs does not write provider_env';
   end if;
+
+  -- 배포 공백 호환: 새 인자는 기본값이 있어야 옛 인자 호출이 같은 함수로 연결된다.
+  if (select pronargdefaults from pg_proc where oid = 'public.claim_provider_dispatch_jobs(integer,text)'::regprocedure) <> 2 then
+    raise exception '0224: claim_provider_dispatch_jobs must default both args';
+  end if;
+  if (select pronargdefaults from pg_proc where oid = 'public.create_fax_dispatch_job(bigint,text)'::regprocedure) <> 1 then
+    raise exception '0224: create_fax_dispatch_job must default p_provider_env';
+  end if;
+  -- 오버로드 금지: 이름별 함수가 정확히 1개.
+  select count(*) into v_count
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public'
+     and p.proname in ('claim_provider_dispatch_jobs', 'create_fax_dispatch_job', 'create_provider_dispatch_jobs');
+  if v_count <> 3 then
+    raise exception '0224: expected exactly one overload each for 3 functions, found % rows', v_count;
+  end if;
 end $$;

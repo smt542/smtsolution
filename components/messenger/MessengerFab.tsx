@@ -27,6 +27,7 @@ import {
 import {
   newUuid,
   resolveIdempotencyKey,
+  shouldRotateAfterSendError,
   type IdempotencyState,
 } from "@/lib/messaging/idempotencyKey";
 import { canonicalSendPayload } from "@/lib/messaging/sendSignature";
@@ -436,6 +437,8 @@ function MessengerFabContent() {
       );
     } catch (error) {
       const code = error instanceof MessageSendError ? error.code : null;
+      // 확정 거절(예약 반환)이면 키를 바꿔, 충전·허용 목록 변경 뒤 같은 초안 재시도가 새 발송이 되게 한다.
+      if (shouldRotateAfterSendError(code)) idempotencyRef.current = null;
       const message =
         code === "PROVIDER_NOT_CONFIGURED"
           ? "발송 설정 준비 중"

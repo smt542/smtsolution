@@ -18,6 +18,8 @@ comment on column public.provider_dispatch_jobs.provider_env is
   '접수 환경(test=팝빌 테스트베드, live=운영). 결과 재조회는 같은 환경 작업만 조회한다.';
 
 -- 메시지 작업 생성: p_jobs[].provider_env(없으면 test)를 기록한다. 시그니처는 그대로다.
+-- 이 예약에 작업이 이미 있으면(replay) 처음 만든 구성이 기준이다: 새 작업·수신자를 더하지 않고 기존 작업만 돌려준다.
+-- 허용 목록·환경이 바뀐 뒤 재claim돼도 접수된 작업에 수신자가 덧붙어 결과가 영영 확정되지 않는 일을 막는다.
 -- p_jobs: [{ product, request_num, schedule_id, provider_env, recipients: [{ recipient_key, provider_ref_key }] }]
 create or replace function public.create_provider_dispatch_jobs(
   p_reservation_id bigint,
@@ -43,6 +45,18 @@ begin
   if not found then return jsonb_build_object('ok', false, 'code', 'RESERVATION_NOT_FOUND'); end if;
   if p_jobs is null or jsonb_typeof(p_jobs) <> 'array' then
     raise exception 'invalid jobs payload' using errcode = '22023';
+  end if;
+
+  -- replay: 작업 생성은 한 트랜잭션이라 작업이 하나라도 있으면 처음 구성 전체가 이미 있다.
+  if exists (select 1 from public.provider_dispatch_jobs where reservation_id = p_reservation_id) then
+    select coalesce(jsonb_agg(jsonb_build_object(
+             'request_num', job.request_num, 'job_id', job.id,
+             'status', job.status, 'receipt_num', job.receipt_num
+           ) order by job.id), '[]'::jsonb)
+      into v_result
+      from public.provider_dispatch_jobs job
+     where job.reservation_id = p_reservation_id;
+    return jsonb_build_object('ok', true, 'jobs', v_result);
   end if;
 
   for v_job in select value from jsonb_array_elements(p_jobs) loop
@@ -142,11 +156,12 @@ $$;
 revoke all on function public.create_fax_dispatch_job(bigint, text) from public, anon, authenticated;
 grant execute on function public.create_fax_dispatch_job(bigint, text) to service_role;
 
--- 결과 재조회 claim: p_provider_env가 있으면 그 환경 작업만, null이면 기존 동작(전체).
+-- 결과 재조회 claim: p_provider_env 환경의 작업만 가져온다. 생략하면 test(옛 클라이언트는 테스트 모드뿐),
+-- null을 명시하면 전체(팝빌 설정이 없을 때의 기존 동작).
 drop function if exists public.claim_provider_dispatch_jobs(integer);
 create or replace function public.claim_provider_dispatch_jobs(
   p_limit integer default 50,
-  p_provider_env text default null
+  p_provider_env text default 'test'
 )
 returns setof public.provider_dispatch_jobs
 language plpgsql
