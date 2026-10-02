@@ -1,5 +1,6 @@
 import { hasUnresolvedVariables } from "@/lib/messaging/render";
 import type { PopbillError } from "popbill";
+import { assertLiveRecipientsAllowed } from "./allowlist";
 import { readPopbillConfig, requirePopbillSender, type PopbillConfig } from "./config";
 import { getKakaoService, getMessageService } from "./sdk";
 import { checkSenderRegistered } from "./senders";
@@ -34,6 +35,8 @@ export async function submitMessageBatch(
   config: PopbillConfig = readPopbillConfig(),
   options: SubmitOptions = {},
 ): Promise<ProviderSubmission> {
+  // 운영 모드 마지막 확인: 허용 목록 밖 번호가 있으면 SDK를 부르지 않는다(발송 단계 필터의 안전망).
+  assertLiveRecipientsAllowed(batch.orgId, batch.recipients.map((r) => r.phone), config);
   const receiptNum =
     batch.product === "alimtalk"
       ? await submitAlimtalk(batch, content, config, options)

@@ -5,6 +5,8 @@ export type ProviderProduct = "sms" | "lms" | "alimtalk";
 
 /** 한 배치(=하나의 requestNum) 접수 입력. 본문/제목/템플릿은 MessageContent로 분리 전달한다. */
 export interface MessageBatchInput {
+  /** 발송 조직. 운영 모드 허용 번호 판정(데모 조직 제한)에 쓴다. */
+  orgId: number;
   product: ProviderProduct;
   requestNum: string;
   recipients: Array<{

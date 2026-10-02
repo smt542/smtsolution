@@ -384,6 +384,7 @@ export async function dispatchMessages(
   const { queuedCount, markStatus, channelCounts } = await submitReservationBatches(
     deps.admin,
     {
+      orgId: input.orgId,
       reservationId,
       scheduleId: null,
       body: input.body,
@@ -474,6 +475,8 @@ function renderAlimtalkButtons(
 }
 
 export interface SubmitReservationParams {
+  /** 발송 조직. 운영 모드 허용 번호 판정(데모 조직 제한)에 쓴다. */
+  orgId: number;
   reservationId: number;
   scheduleId?: number | null;
   body: string;
@@ -659,7 +662,12 @@ export async function submitReservationBatches(
     try {
       const submission = await submitBatchWithRetry(
         submitBatch,
-        { product: batch.product, requestNum: batch.requestNum, recipients: batch.recipients },
+        {
+          orgId: params.orgId,
+          product: batch.product,
+          requestNum: batch.requestNum,
+          recipients: batch.recipients,
+        },
         content,
         deps.config,
         deps.sleep,

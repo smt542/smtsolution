@@ -1,3 +1,4 @@
+import { assertLiveRecipientsAllowed } from "./allowlist";
 import { readPopbillConfig, requirePopbillSender, type PopbillConfig } from "./config";
 import { getFaxService } from "./sdk";
 import { checkSenderRegistered } from "./senders";
@@ -11,6 +12,8 @@ import { PopbillSubmitError, submitWithTimeout } from "./types";
  */
 
 export interface FaxSubmitInput {
+  /** 발송 조직. 운영 모드 허용 번호 판정(데모 조직 제한)에 쓴다. */
+  orgId: number;
   requestNum: string;
   receiver: string;
   receiverName?: string | null;
@@ -35,6 +38,8 @@ export async function submitFax(
   config: PopbillConfig = readPopbillConfig(),
   options: FaxSubmitOptions = {},
 ): Promise<FaxSubmission> {
+  // 운영 모드 마지막 확인: 허용 목록 밖 팩스번호면 SDK를 부르지 않는다.
+  assertLiveRecipientsAllowed(input.orgId, [input.receiver], config);
   // 설정 오류(발신번호 미등록)는 타임아웃 이전에 즉시 확정 실패로 거절한다.
   const sender = requirePopbillSender(config, "fax");
   const service = getFaxService(config);

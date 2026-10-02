@@ -130,6 +130,7 @@ async function processRow(
   const { markStatus } = await submitReservationBatches(
     admin,
     {
+      orgId: row.org_id,
       reservationId: reserve.reservation_id as number,
       scheduleId: row.id,
       body: row.body,

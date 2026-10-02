@@ -178,6 +178,7 @@ export async function POST(request: Request): Promise<Response> {
     try {
       const submission = await submitFax(
         {
+          orgId: ctx.org_id,
           requestNum: created.request_num,
           receiver: doc.faxNumber,
           receiverName: doc.householdName,
