@@ -18,11 +18,13 @@ export type NumberedTagListProps = {
   onCommit: (id: string, label: string) => void;
   onDelete: (id: string) => void;
   /**
-   * 추가 버튼은 가득 차도 비활성으로 바꾸지 않고 늘 이것을 부른다. 최대 개수 판단과
+   * 추가 버튼은 가득 차도 늘 이것을 부른다. 최대 개수 판단과
    * 안내 토스트('항목은 최대 24개까지예요 처리되었습니다')는 부모가 한다 — 정본 `#ckAdd`·`#asAdd` 클릭 처리와 같다.
    */
   onAdd: () => void;
   addLabel: string;
+  /** 최대 개수에 닿았으면 추가 버튼을 흐린 모양으로 그린다(클릭은 그대로 onAdd). */
+  full?: boolean;
   className?: string;
 };
 
@@ -43,6 +45,7 @@ export function NumberedTagList({
   addLabel,
   className = "",
   canonical = false,
+  full = false,
 }: NumberedTagListProps) {
   return (
     <div className={className}>
@@ -90,12 +93,14 @@ export function NumberedTagList({
           `n / max` 카운터는 이 목록이 아니라 카드 헤더 우측에 있으므로(Panel의 action)
           여기서 그리지 않는다.
           규격은 정본 `.st-ck-add`(카드 본문 gap 10 + margin-top 2, 점선 #C9D0D8, 폭은 글자에 맞춤).
-          hover 는 글자만 청록 — 테두리 변화는 QA S26 에서 뺐다. 가득 차도 모양은 그대로다
-          (정본은 처음 열었을 때 가득 찬 목록에서 버튼을 비활성으로 두지 않고 누르면 토스트만 띄운다). */}
+          hover 는 글자만 청록 — 테두리 변화는 QA S26 에서 뺐다.
+          가득 차면(full) Figma 924:203856 — 실선 테두리·45% 흐림·hover 없음. 누르면 토스트는 그대로 뜬다
+          (3차 QA·사용자 결정 2026-10-02). */}
       <button
         type="button"
         onClick={onAdd}
-        className="mt-[12px] h-[38px] rounded-[11px] border border-dashed border-[#C9D0D8] bg-white px-[16px] text-[13px] font-bold leading-[normal] text-t2 hover:text-brand"
+        aria-disabled={full || undefined}
+        className={`mt-[12px] h-[38px] rounded-[11px] border border-[#C9D0D8] bg-white px-[16px] text-[13px] font-bold leading-[normal] text-t2 ${full ? "opacity-[0.45]" : "border-dashed hover:text-brand"}`}
       >
         {addLabel}
       </button>
