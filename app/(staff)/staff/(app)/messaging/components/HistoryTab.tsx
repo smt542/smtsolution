@@ -4,7 +4,9 @@ import { useMemo, useState, type KeyboardEvent } from "react";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useMessageLogs, type MessageLog } from "@/hooks/reactquery/messaging";
+import { useSenderDefaults } from "@/hooks/reactquery/senderDefaults";
 import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
+import { resolveDisplaySender } from "@/lib/messaging/senderDisplay";
 import { MessageDetailModal } from "./MessageDetailModal";
 import { MessageResultBadge } from "./MessageResultBadge";
 import { MessagingListCard } from "./MessagingListCard";
@@ -30,6 +32,8 @@ export function HistoryTab() {
   const { data: logs = [], isLoading, isFetching, error, refetch } = useMessageLogs();
   const { data: me } = useMe();
   const { data: config } = useSetupConfig(me?.orgId);
+  const senderDefaults = useSenderDefaults();
+  const smsSender = resolveDisplaySender(config, senderDefaults.isError ? null : senderDefaults.data, "sms");
   const { data: buildings = [] } = useBuildings();
   const isRefreshing = isFetching && !isLoading;
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -129,7 +133,7 @@ export function HistoryTab() {
                 className="cursor-pointer border-b border-[#f1f3f5] last:border-b-0 hover:bg-row-hover-accent"
               >
                 <td className={TD}>{channelLabel(log.channel)}</td>
-                <td className={TD}>{senderLabel(log.channel, config?.smsSender)}</td>
+                <td className={TD}>{senderLabel(log.channel, smsSender)}</td>
                 <td className={TD}>
                   {buildRecipientSummary(log.recipients, log.recipientCount, buildingNameById)}
                 </td>

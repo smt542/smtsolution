@@ -10,7 +10,9 @@ import {
   useCancelScheduledMessage,
   type ScheduledMessage,
 } from "@/hooks/reactquery/messaging";
+import { useSenderDefaults } from "@/hooks/reactquery/senderDefaults";
 import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
+import { resolveDisplaySender } from "@/lib/messaging/senderDisplay";
 import { MessageDetailModal } from "./MessageDetailModal";
 import { MessagingListCard } from "./MessagingListCard";
 import {
@@ -75,6 +77,8 @@ export function ScheduledTab() {
     useScheduledMessages();
   const { data: me } = useMe();
   const { data: config } = useSetupConfig(me?.orgId);
+  const senderDefaults = useSenderDefaults();
+  const smsSender = resolveDisplaySender(config, senderDefaults.isError ? null : senderDefaults.data, "sms");
   const { data: buildings = [] } = useBuildings();
   const isRefreshing = isFetching && !isLoading;
   const [filter, setFilter] = useState<RecurrenceFilter>("all");
@@ -172,7 +176,7 @@ export function ScheduledTab() {
                 className="cursor-pointer border-b border-[#f1f3f5] last:border-b-0 hover:bg-row-hover-accent"
               >
                 <td className={TD}>{channelLabel(msg.channel)}</td>
-                <td className={TD}>{senderLabel(msg.channel, config?.smsSender)}</td>
+                <td className={TD}>{senderLabel(msg.channel, smsSender)}</td>
                 <td className={TD}>
                   {buildRecipientSummary(msg.recipients, msg.recipientCount, buildingNameById)}
                 </td>
