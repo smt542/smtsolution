@@ -83,6 +83,7 @@ export function AsSettingsTab() {
         onDelete={onDelete}
         onAdd={onAdd}
         addLabel="＋ 유형 추가"
+        full={cats.length >= MAX}
       />
     </Panel>
   );

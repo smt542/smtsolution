@@ -175,6 +175,7 @@ export function MovingSettlementSettingsTab() {
           onDelete={onDelete}
           onAdd={onAdd}
           addLabel="＋ 항목 추가"
+          full={items.length >= MAX_CHECK_ITEMS}
         />
       </Panel>
 
