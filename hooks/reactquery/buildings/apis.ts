@@ -132,6 +132,18 @@ export async function listAllBuildings(): Promise<Building[]> {
   return (data ?? []).map(rowToBuilding);
 }
 
+/**
+ * 건물 코드가 이미 쓰이고 있는지 확인한다. `buildings_org_id_code_key`가 삭제된 건물까지 포함한 (org, code) 유니크라
+ * soft delete된 건물도 센다. RLS가 조직을 걸러 주므로 코드만 비교한다. 수정 모드는 자기 자신(excludeId)을 뺀다.
+ */
+export async function isBuildingCodeTaken(code: string, excludeId?: number): Promise<boolean> {
+  let query = createClient().from("buildings").select("id").eq("code", code).limit(1);
+  if (excludeId) query = query.neq("id", excludeId);
+  const { data, error } = await query;
+  if (error) throw new Error(error.message);
+  return (data ?? []).length > 0;
+}
+
 export interface BuildingFull extends Building {
   customerNumbers: BuildingCustomerNumber[];
   vendors: BuildingVendor[];

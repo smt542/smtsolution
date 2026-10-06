@@ -21,6 +21,7 @@ export function TextField({
   inputMode,
   maxLength,
   mask,
+  error,
 }: {
   label: string;
   required?: boolean;
@@ -34,6 +35,8 @@ export function TextField({
   maxLength?: number;
   /** 숫자 입력에 구분자를 끼우는 마스크(`components/common/maskedField`의 phoneMask 등). */
   mask?: InputMask;
+  /** 입력칸 아래에 붉은 글씨로 보여 줄 문구. 있으면 테두리도 붉게 바뀐다. */
+  error?: string;
 }) {
   return (
     <div className={`flex flex-col ${full ? "col-span-2" : ""}`}>
@@ -53,8 +56,14 @@ export function TextField({
           // 호출부가 inputMode를 주지 않았을 때 위 스프레드 값이 undefined로 덮이지 않게 한다.
           inputMode={inputMode ?? (mask ? NUMERIC_INPUT_ATTRS.inputMode : undefined)}
           maxLength={maxLength}
-          className={textFieldInputClass(readOnly)}
+          aria-invalid={error ? true : undefined}
+          className={`${textFieldInputClass(readOnly)}${error ? " !border-red" : ""}`}
         />
+        {error && (
+          <p role="alert" className="pt-[6px] text-[12px] font-semibold leading-[normal] text-red">
+            {error}
+          </p>
+        )}
       </div>
     </div>
   );
