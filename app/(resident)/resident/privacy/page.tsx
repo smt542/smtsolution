@@ -8,8 +8,8 @@ import { legalClasses } from "../legalClasses";
 // (staging resident-privacy.dc.html) 구성을 그대로 따른다(리드+시행일 최상단, 표·번호목록·부칙).
 // 개인정보처리자(회사) = 에스엠티솔루션㈜(원본의 스마일종합관리 치환, 대표 최서윤),
 // 보호책임자 = 안정현(010-8227-6496), 시행일 2026-09-07.
-// 수집항목 표는 실제 수집분만 반영 — 카카오 스코프에 없는 이메일·프로필 이미지,
-// 기기 정보·앱 버전 자동수집은 미수집이라 제외(처리방침 허위 기재 방지).
+// 수집항목 표는 실제 수집분만 반영 — 카카오 스코프의 프로필 이미지는 선택 수집(정책서 세입자_개인정보 처리방침 3.1),
+// 스코프에 없는 이메일과 기기 정보·앱 버전 자동수집은 미수집이라 제외(처리방침 허위 기재 방지).
 
 export default function ResidentPrivacyPage() {
   return (
@@ -56,13 +56,17 @@ export default function ResidentPrivacyPage() {
           <div>건물명·호실 등 세대 정보, 관리비 부과·납부 내역</div>
         </div>
         <div className={legalClasses.row}>
+          <div>선택</div>
+          <div>카카오 프로필 이미지</div>
+        </div>
+        <div className={legalClasses.row}>
           <div>자동수집</div>
           <div>접속 일시(로그인 이력)</div>
         </div>
       </div>
       <p>
-        회사는 이름·휴대전화번호 외의 카카오 계정 정보(이메일·프로필 이미지 등)나
-        민감정보는 수집하지 않습니다.
+        회사는 위 항목 외의 카카오 계정 정보(이메일 등)나 민감정보는 수집하지
+        않습니다.
       </p>
 
       <h2>2. 개인정보의 수집·이용 목적</h2>

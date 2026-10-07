@@ -69,3 +69,6 @@ scripts/pixel-diff/.auth/
 
 # Supabase CLI 로컬 상태(link 정보 등)
 supabase/.temp/
+
+# Edge Function용 앱 코드 묶음(scripts/build-edge-app.mjs 생성물)
+supabase/functions/_shared/app/

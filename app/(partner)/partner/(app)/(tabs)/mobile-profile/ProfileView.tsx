@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { createClient } from "@/lib/supabase/client";
 import { useAsyncAction } from "@/hooks/common";
+import { useLogout } from "@/hooks/reactquery/auth";
 import { usePartnerMyPin } from "@/hooks/reactquery/partnerProfile";
 
 import { profileClasses as styles } from "./profileClasses";
@@ -25,11 +25,13 @@ export function ProfileView({
   const [pinShown, setPinShown] = useState(false);
   const myPin = usePartnerMyPin(pinShown);
   const logoutAction = useAsyncAction();
+  const logoutMutation = useLogout();
 
   const logout = async () => {
     await logoutAction.run(async () => {
       try {
-        await createClient().auth.signOut({ scope: "local" });
+        // 공용 useLogout: signOut(local) 후 React Query 캐시를 비운다.
+        await logoutMutation.mutateAsync();
       } catch {
         /* signOut 실패해도 로그인 화면으로 이동 */
       }

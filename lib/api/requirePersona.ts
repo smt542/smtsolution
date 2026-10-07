@@ -1,5 +1,6 @@
 // lib/api/requirePersona.ts
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { ModuleKey } from "@/lib/auth/permissions";
 
 type OrgContext = {
   org_id?: number | null;
@@ -25,6 +26,7 @@ export type WorkforcePersona = keyof typeof PREDICATE;
 export async function requirePersonaApi(
   sb: SupabaseClient,
   persona: WorkforcePersona,
+  options?: { module?: ModuleKey },
 ): Promise<
   { ok: true; ctx: OrgContext; userId: string } | { ok: false; response: Response }
 > {
@@ -35,6 +37,15 @@ export async function requirePersonaApi(
   const { data: allowed, error } = await sb.rpc(PREDICATE[persona]);
   if (error || allowed !== true) {
     return { ok: false, response: Response.json({ error: "권한이 없습니다." }, { status: 403 }) };
+  }
+  // 모듈 권한 검사(선택): 화면 접근과 같은 모듈 키를 DB 함수로 확인한다(마스터는 DB 함수에서 통과).
+  if (options?.module) {
+    const { data: hasModule, error: moduleError } = await sb.rpc("current_user_has_module", {
+      p_key: options.module,
+    });
+    if (moduleError || hasModule !== true) {
+      return { ok: false, response: Response.json({ error: "권한이 없습니다." }, { status: 403 }) };
+    }
   }
   const { data: ctxData } = await sb.rpc("get_my_context");
   const ctx = (Array.isArray(ctxData) ? ctxData[0] : ctxData) as OrgContext | null;

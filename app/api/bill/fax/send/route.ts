@@ -32,6 +32,8 @@ export const runtime = "nodejs";
 
 interface FaxSendBody {
   billIssueIds: number[];
+  /** 확인 모달에서 수신번호를 고친 경우. 지정되면 세대 등록 번호 대신 이 번호로 보낸다. */
+  recipientOverride?: string;
 }
 
 function json(data: Record<string, unknown>, status = 200): Response {
@@ -52,6 +54,11 @@ export async function POST(request: Request): Promise<Response> {
   if (billIssueIds.length === 0) return json({ error: "no bill issues" }, 400);
   if (billIssueIds.length > 500) {
     return json({ error: "한 번에 최대 500건까지 전송할 수 있습니다." }, 400);
+  }
+  const recipientOverride =
+    typeof input.recipientOverride === "string" ? normalizePhone(input.recipientOverride) : "";
+  if (input.recipientOverride != null && !/^0\d{7,10}$/.test(recipientOverride)) {
+    return json({ error: "invalid recipient", message: "수신 팩스번호를 확인해 주세요." }, 400);
   }
 
   const sb = await createClient();
@@ -114,6 +121,7 @@ export async function POST(request: Request): Promise<Response> {
       results.push({ billIssueId, status: "failed" });
       continue;
     }
+    if (recipientOverride) doc = { ...doc, faxNumber: recipientOverride };
     if (!doc.faxNumber) {
       failed += 1;
       results.push({ billIssueId, status: "no_fax_number" });

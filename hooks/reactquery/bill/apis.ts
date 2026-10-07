@@ -170,6 +170,8 @@ export interface SendBillFaxesPayload {
   buildingId: number;
   period: string;
   unitIds: number[];
+  /** 사용자가 수신번호를 직접 고친 경우에만. 지정하면 선택 세대 전부 이 번호로 보낸다. */
+  recipientOverride?: string;
 }
 
 /**
@@ -191,7 +193,7 @@ export async function sendBillFaxes(
   const res = await fetch("/api/bill/fax/send", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ billIssueIds }),
+    body: JSON.stringify({ billIssueIds, recipientOverride: p.recipientOverride }),
   });
   const result = (await res.json().catch(() => null)) as
     | { queued?: number; failed?: number; error?: string; message?: string }

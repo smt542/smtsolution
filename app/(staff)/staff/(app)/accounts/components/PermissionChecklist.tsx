@@ -17,6 +17,7 @@ const PERMISSION_GROUPS: {
       { label: "협력업체 관리", keys: ["vendors"] },
       { label: "장기수선비 관리", keys: ["long_term_repair"] },
       { label: "문자·알림톡 관리", keys: ["messaging"] },
+      { label: "공지 관리", keys: ["notices"] },
     ],
   },
   { title: "공과금 관리", chips: [{ label: "공과금 관리 전체", keys: ["utilities"] }] },

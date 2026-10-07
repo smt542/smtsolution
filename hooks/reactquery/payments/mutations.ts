@@ -27,14 +27,20 @@ export function useRecordPaymentEdit() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: RecordPaymentEditInput) => recordPaymentEdit(input),
-    onSuccess: () => qc.invalidateQueries({ queryKey: paymentKeys.all }),
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: paymentKeys.all }),
+      qc.invalidateQueries({ queryKey: receiptKeys.all }),
+    ]),
   });
 }
 export function useCancelPayment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (paymentId: number) => cancelPayment(paymentId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: paymentKeys.all }),
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: paymentKeys.all }),
+      qc.invalidateQueries({ queryKey: receiptKeys.all }),
+    ]),
   });
 }
 export function useRecordBankPayments() {

@@ -15,6 +15,7 @@ import { giroDocumentAmount, type BillItem } from "./document";
 import {
   computeLateFee,
   computeLateFeeForPeriod,
+  type LateFeeSettings,
   type OverduePeriodInput,
   type RateTier,
 } from "@/lib/billing/lateFee";
@@ -64,6 +65,8 @@ export interface AdjustmentOverdueInput {
 export interface AdjustmentBuildingInput {
   building: { id: number; code: string; name: string; address: string | null };
   targets: AdjustmentTargetInput[];
+  /** 등록 관리비 항목 전체(sort_order 순). 확정 여부와 무관하게 헤더 컬럼을 구성한다. */
+  feeItems?: { id: number; name: string }[];
   documents: AdjustmentDocumentInput[];
   /** 종목별 검침. 검침 블록은 '등록 항목 순서상 첫 계량 항목'의 종목만 표시한다. */
   metersByUtility: Record<MeterUtility, AdjustmentMeterInput[]>;
@@ -77,6 +80,8 @@ export interface BuildAdjustmentParams {
   companyName: string;
   outputDate: string; // 표시용 문자열 (예: '2026-09-16 13:00')
   tiers: RateTier[];
+  /** 조직 연체료 설정(setup_config). 없으면 기본값(사용·2%). */
+  lateFeeSettings?: LateFeeSettings;
 }
 
 export interface AdjustmentMeterCell {
@@ -134,7 +139,7 @@ function sortByUnitNo(a: string, b: string): number {
 export function buildAdjustmentStatementPages(
   params: BuildAdjustmentParams,
 ): AdjustmentStatementPageModel[] {
-  const { period, companyName, outputDate, tiers } = params;
+  const { period, companyName, outputDate, tiers, lateFeeSettings } = params;
   const [year, month] = period.split("-");
   const asOfYear = Number(year);
   const asOfMonth = Number(month);
@@ -144,6 +149,11 @@ export function buildAdjustmentStatementPages(
     // 부과 항목 컬럼 = 등록 항목 전체(부과 여부 무관). 순서는 sort_order(문서 items가 이미 정렬됨).
     const itemOrder: { id: number; name: string }[] = [];
     const itemSeen = new Set<number>();
+    for (const item of entry.feeItems ?? []) {
+      if (itemSeen.has(item.id)) continue;
+      itemSeen.add(item.id);
+      itemOrder.push(item);
+    }
     for (const document of entry.documents) {
       for (const item of document.items) {
         if (itemSeen.has(item.feeItemId)) continue;
@@ -228,7 +238,7 @@ export function buildAdjustmentStatementPages(
       // 미납액 = 전월까지 미납 원금 합계
       const arrears = priorInputs.reduce((sum, row) => sum + row.unpaidPrincipal, 0);
       // 미납연체료 = 미납 원금에 대한 누적 연체료
-      const arrearsLateFee = computeLateFee(priorInputs, tiers, asOfYear, asOfMonth).totalLateFee;
+      const arrearsLateFee = computeLateFee(priorInputs, tiers, asOfYear, asOfMonth, lateFeeSettings).totalLateFee;
       // 납기후연체 = 당월분을 납기 후 납부 시 가산되는 연체료
       const lateAfterDue = currentRow
         ? computeLateFeeForPeriod(
@@ -236,6 +246,7 @@ export function buildAdjustmentStatementPages(
             tiers,
             asOfYear,
             asOfMonth,
+            lateFeeSettings,
           ).postDueFee
         : 0;
       // 납기후금액 = 당월계 + 납기후연체 (납기 후 당월 청구액)

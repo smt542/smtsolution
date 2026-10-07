@@ -11,7 +11,7 @@ import { billingKeys, getBillingPeriodSetting } from "@/hooks/reactquery/billing
 import { cmsDownloadUrl } from "@/hooks/reactquery/payments";
 import { useSenderDefaults } from "@/hooks/reactquery/senderDefaults";
 import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
-import { formatPhone } from "@/lib/format";
+import { formatPhone, normalizePhone } from "@/lib/format";
 import { resolveDisplaySender } from "@/lib/messaging/senderDisplay";
 import { currentPeriod } from "@/lib/billing/period";
 import { matchesBuildingGroup } from "@/lib/buildings/groupType";
@@ -297,12 +297,11 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
       toast.info("내려받을 세대가 없어요");
       return;
     }
-    groupBuildings.forEach((building) => {
-      const anchor = document.createElement("a");
-      anchor.href = cmsDownloadUrl(building.id, period);
-      anchor.download = "";
-      anchor.click();
-    });
+    // 선택 건물을 한 파일로 합쳐 받는다(건물별 개별 다운로드 X).
+    const anchor = document.createElement("a");
+    anchor.href = cmsDownloadUrl(groupBuildings.map((building) => building.id), period);
+    anchor.download = "";
+    anchor.click();
   };
   const openFaxConfirmation = () => {
     if (selectedFaxTargets.length === 0) { toast.info("발송할 호수를 선택해 주세요"); return; }
@@ -313,6 +312,9 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
   const sendFax = async () => {
     if (selectedFaxTargets.length === 0) { toast.info("팩스번호가 등록된 세대를 선택해 주세요."); return; }
     setFaxError(false);
+    // 자동 입력값(첫 선택 세대 번호)을 그대로 두면 세대별 등록 번호로, 고쳤으면 선택 세대 전부 고친 번호로 보낸다.
+    const defaultRecipient = selectedFaxTargets[0]?.target.faxNumber ?? "";
+    const recipientOverride = normalizePhone(faxRecipient) !== normalizePhone(defaultRecipient) ? faxRecipient : undefined;
     let hasError = false;
     let totalQueued = 0;
     let totalFailed = 0;
@@ -320,7 +322,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
       const unitIds = selectedFaxTargets.filter((entry) => entry.building.id === building.id).map((entry) => entry.target.unitId);
       if (unitIds.length === 0) continue;
       try {
-        const result = await sendFaxes.mutateAsync({ buildingId: building.id, period, unitIds });
+        const result = await sendFaxes.mutateAsync({ buildingId: building.id, period, unitIds, recipientOverride });
         totalQueued += result.queued;
         totalFailed += result.failed;
       } catch { hasError = true; }
@@ -437,7 +439,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
       {type === "giro" && hasPrintableData && <div className="hidden print:block" data-testid="document-output-print-root">{printPreview}</div>}
       {type === "adjustment" && adjustment.hasData && <div className="hidden print:block" data-testid="document-output-print-root"><AdjustmentStatementPreview pages={adjustment.pages} mode="print" /></div>}
       {type === "autoDebit" && <AutoDebitPrintDocument year={year} month={month} group={group} rows={autoDebitRows} />}
-      {faxConfirmOpen && <FaxConfirmationModal building={selectedFaxBuilding} targets={selectedFaxTargetValues} period={period} senderLabel={faxSenderLabel} recipient={faxRecipient} isPending={sendFaxes.isPending} error={faxError} onCancel={() => setFaxConfirmOpen(false)} onSend={() => void sendFax()} />}
+      {faxConfirmOpen && <FaxConfirmationModal building={selectedFaxBuilding} targets={selectedFaxTargetValues} period={period} senderLabel={faxSenderLabel} recipient={faxRecipient} onRecipientChange={(value) => { setFaxError(false); setFaxRecipient(value); }} isPending={sendFaxes.isPending} error={faxError} onCancel={() => setFaxConfirmOpen(false)} onSend={() => void sendFax()} />}
     </>
   );
 }

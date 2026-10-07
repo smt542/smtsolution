@@ -17,7 +17,7 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
   const { id } = await ctx.params;
   const buildingId = Number(id);
   const sb = await createClient();
-  const gate = await requirePersonaApi(sb, "manager_staff");
+  const gate = await requirePersonaApi(sb, "manager_staff", { module: "buildings" });
   if (!gate.ok) return gate.response;
   if (!Number.isSafeInteger(buildingId) || buildingId <= 0) {
     return Response.json({ error: "invalid building id" }, { status: 400 });

@@ -99,10 +99,18 @@ export function buildTemplateRows(schema: EntitySchema): string[][] {
 }
 
 // 오류 행만 모아 사유 열을 붙인 CSV 행 생성.
-export function buildErrorRows(schema: EntitySchema, result: ValidateResult): string[][] {
+// serverErrors: 서버 등록 단계에서 실패한 행(행 번호 → 사유). 사전검증 오류와 합쳐 행 순서대로 낸다.
+export function buildErrorRows(
+  schema: EntitySchema,
+  result: ValidateResult,
+  serverErrors: ReadonlyMap<number, string> = new Map(),
+): string[][] {
   const head = schema.cols.map((c) => c.k).concat(["오류 사유"]);
   const body = result.rows
-    .filter((r) => r.errs.length)
-    .map((r) => schema.cols.map((c) => r.rec[c.k]).concat([r.errs.join(" / ")]));
+    .filter((r) => r.errs.length || serverErrors.has(r.line))
+    .map((r) => {
+      const reasons = r.errs.length ? r.errs : [serverErrors.get(r.line) ?? ""];
+      return schema.cols.map((c) => r.rec[c.k]).concat([reasons.join(" / ")]);
+    });
   return [head, ...body];
 }

@@ -187,7 +187,13 @@ export function SettlementActions({
         onDeleted();
         toast.success("이사정산을 삭제했어요.");
       },
-      onError: () => toast.error("이사정산을 삭제하지 못했어요."),
+      onError: (error) =>
+        toast.error(
+          // 완료·중간퇴실 건은 deleteMovingSettlement 가 상태 가드 메시지를 던진다.
+          error.message.includes("삭제할 수 없습니다")
+            ? error.message
+            : "이사정산을 삭제하지 못했어요.",
+        ),
     });
   };
 

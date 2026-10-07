@@ -31,7 +31,7 @@ export async function GET(request: Request) {
   }
 
   const sb = await createClient();
-  const gate = await requirePersonaApi(sb, "manager_staff");
+  const gate = await requirePersonaApi(sb, "manager_staff", { module: "fee_items" });
   if (!gate.ok) return gate.response;
 
   let query = sb

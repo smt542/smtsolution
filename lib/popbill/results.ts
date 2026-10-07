@@ -39,8 +39,12 @@ export interface ProviderRecipientResult {
   code: string;
 }
 
-function toRecipientResults(raw: PopbillMessageResult[] | null): ProviderRecipientResult[] {
-  return (raw ?? [])
+function toRecipientResults(
+  raw: PopbillMessageResult[] | { msgs?: PopbillMessageResult[] } | null,
+): ProviderRecipientResult[] {
+  // 문자 조회는 배열, 알림톡 조회는 { msgs: [...] } 형태로 온다.
+  const rows = Array.isArray(raw) ? raw : raw?.msgs ?? [];
+  return rows
     .filter((r) => typeof r.interOPRefKey === "string" && r.interOPRefKey.length > 0)
     .map((r) => ({
       providerRefKey: r.interOPRefKey as string,

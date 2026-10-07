@@ -6,7 +6,9 @@ export const dynamic = "force-dynamic";
 
 export default async function PartnerProfilePage() {
   const supabase = await createClient();
-  const { data } = await supabase.rpc("partner_get_profile");
+  const { data, error } = await supabase.rpc("partner_get_profile");
+  // 조회 실패를 빈 프로필로 보여주지 않는다.
+  if (error) throw new Error(error.message);
   const p = (Array.isArray(data) ? data[0] : data) ?? null;
   return (
     <ProfileView

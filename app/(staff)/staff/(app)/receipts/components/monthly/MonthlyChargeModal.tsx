@@ -12,6 +12,7 @@ import {
   type ReceiptStatementData,
 } from "@/hooks/reactquery/receipts";
 import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
+import { useLateFeeSettings } from "@/hooks/reactquery/setupConfig";
 import type { RateTier } from "@/lib/billing/lateFee";
 import { toMonthInput } from "@/lib/billing/period";
 import { matchesBuildingGroup } from "@/lib/buildings/groupType";
@@ -148,6 +149,7 @@ export function MonthlyChargeModal({
   // 연체료는 수납 이력 표와 같은 요율표 계산을 쓴다(기준월 = 화면 기준월).
   const orgId = buildings[0]?.orgId ?? null;
   const { data: lateFeeRateTiers } = useLateFeeRateTiers(open ? orgId : null);
+  const lateFeeSettings = useLateFeeSettings(open ? orgId : null);
   const tiers = useMemo<RateTier[]>(
     () =>
       (lateFeeRateTiers ?? []).map((tier) => ({
@@ -164,9 +166,9 @@ export function MonthlyChargeModal({
         paymentStartDate: paymentStart || null,
         paymentEndDate: paymentEnd || null,
         configuredFeeItems: feeItemsQuery.data,
-        lateFeeOf: (row) => lateFeeForRow(row.period, row, tiers, period),
+        lateFeeOf: (row) => lateFeeForRow(row.period, row, tiers, period, { settings: lateFeeSettings }),
       }),
-    [canLoad, statementData, periods, summaryMeta, paymentStart, paymentEnd, feeItemsQuery.data, tiers, period],
+    [canLoad, statementData, periods, summaryMeta, paymentStart, paymentEnd, feeItemsQuery.data, tiers, period, lateFeeSettings],
   );
 
   if (!open) return null;

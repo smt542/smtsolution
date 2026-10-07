@@ -15,9 +15,9 @@ export async function getMobileTenantData(unitId: number | null): Promise<Mobile
 
   const supabase = await createClient();
   const [
-    { data: occupancyData },
-    { data: paymentData },
-    { data: settlementData },
+    { data: occupancyData, error: occupancyError },
+    { data: paymentData, error: paymentError },
+    { data: settlementData, error: settlementError },
     { data: occupancyIdData },
     { data: settlementPaidData },
   ] = await Promise.all([
@@ -35,6 +35,9 @@ export async function getMobileTenantData(unitId: number | null): Promise<Mobile
     // 따로 읽고, 화면에는 RPC가 돌려준(담당 건물) 정산에만 붙인다.
     supabase.from("moving_settlements").select("id, paid:extra->paid").eq("unit_id", unitId),
   ]);
+  // 조회 실패를 "데이터 없음"으로 보여주지 않는다.
+  const rpcError = occupancyError ?? paymentError ?? settlementError;
+  if (rpcError) throw new Error(rpcError.message);
 
   const occupancy = ((Array.isArray(occupancyData) ? occupancyData[0] : occupancyData)
     ?? null) as OccupancyDetail | null;

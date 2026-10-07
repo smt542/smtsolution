@@ -29,10 +29,18 @@ export interface LateFeeResult {
 }
 
 /**
- * 정본 미납관리 프로토타입 더미가 쓰던 비율이다. 기획 협의 전 임시 고정값이며,
- * 협의 결과가 org별 설정이면 setup UI를 되살린다.
+ * 납기후 가산율 기본값(%). DB `setup_config.late_fee_post_due_rate` 기본값과 같다.
+ * 설정을 아직 불러오지 못했을 때만 쓰고, 불러왔으면 `LateFeeSettings.postDueRatePct`를 쓴다.
  */
 export const POST_DUE_FEE_RATE_PCT = 2;
+
+/** 조직 연체료 설정(setup_config). 생략하면 연체료 사용 + 기본 가산율로 계산한다. */
+export interface LateFeeSettings {
+  /** setup_config.late_fee_enabled — false 면 연체료·납기후 가산금 모두 0. */
+  enabled: boolean;
+  /** setup_config.late_fee_post_due_rate(%). */
+  postDueRatePct: number;
+}
 
 /** 연체 k개월차(k>=1)에 적용할 월요율(%). from < k <= to (to null=무한). 없으면 0. */
 export function rateForMonth(tiers: RateTier[], k: number): number {
@@ -72,15 +80,20 @@ export function computeLateFeeForPeriod(
   tiers: RateTier[],
   asOfYear: number,
   asOfMonth: number,
+  settings?: LateFeeSettings,
 ): LateFeePeriodResult {
   const months = monthsOverdue(input.dueDate, asOfYear, asOfMonth);
+  if (settings && !settings.enabled) {
+    return { period: input.period, months, cumulativeRatePct: 0, lateFee: 0, postDueFee: 0 };
+  }
   const cumulativeRatePct = cumulativeRate(tiers, months);
   const lateFee = Math.round(
     (input.unpaidPrincipal * cumulativeRatePct) / 100,
   );
   // 납기후 가산금("납.후연체"). 월차와 무관한 정률이라 구간 요율과 따로 계산한다.
+  const postDueRatePct = settings?.postDueRatePct ?? POST_DUE_FEE_RATE_PCT;
   const postDueFee = Math.round(
-    (input.unpaidPrincipal * POST_DUE_FEE_RATE_PCT) / 100 / 10,
+    (input.unpaidPrincipal * postDueRatePct) / 100 / 10,
   ) * 10;
 
   return { period: input.period, months, cumulativeRatePct, lateFee, postDueFee };
@@ -91,9 +104,10 @@ export function computeLateFee(
   tiers: RateTier[],
   asOfYear: number,
   asOfMonth: number,
+  settings?: LateFeeSettings,
 ): LateFeeResult {
   const byPeriod = periods.map((period) =>
-    computeLateFeeForPeriod(period, tiers, asOfYear, asOfMonth),
+    computeLateFeeForPeriod(period, tiers, asOfYear, asOfMonth, settings),
   );
   const totalLateFee = byPeriod.reduce((sum, result) => sum + result.lateFee, 0);
   const totalPostDueFee = byPeriod.reduce((sum, result) => sum + result.postDueFee, 0);

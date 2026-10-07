@@ -9,7 +9,8 @@ import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
 import { useCancelPayment, useRecordPayment, useRecordPaymentEdit } from "@/hooks/reactquery/payments";
 import type { PaymentKind, PaymentMethod } from "@/hooks/reactquery/payments";
-import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
+import { useOccupancies } from "@/hooks/reactquery/occupancies";
+import { useLateFeeSettings, useSetupConfig } from "@/hooks/reactquery/setupConfig";
 import {
   receiptKeys,
   type ReceiptPaymentRow,
@@ -180,9 +181,19 @@ export function PaymentHistorySection({
     })),
     [lateFeeRateTiers],
   );
+  // 연체료는 조직 설정(사용 여부·납기후 가산율)과 입주별 연체료 부과 여부를 따른다.
+  const lateFeeSettings = useLateFeeSettings(hasUnit ? orgId : null);
+  const { data: unitOccupancies } = useOccupancies(hasUnit && unitId !== null ? unitId : 0);
+  const lateFeeEnabledByOccupancy = useMemo(
+    () => new Map((unitOccupancies ?? []).map((occupancy) => [occupancy.id, occupancy.lateFeeEnabled])),
+    [unitOccupancies],
+  );
   const historyRows = useMemo(
-    () => buildHistoryRows(payments, historySummaries, summary, period, tiers),
-    [historySummaries, payments, period, summary, tiers],
+    () => buildHistoryRows(payments, historySummaries, summary, period, tiers, {
+      settings: lateFeeSettings,
+      lateFeeEnabledByOccupancy,
+    }),
+    [historySummaries, lateFeeEnabledByOccupancy, lateFeeSettings, payments, period, summary, tiers],
   );
   const visibleRows = isEditing && canEdit ? draftRows : historyRows;
   const isPaymentSavePending = record.isPending || recordEdit.isPending;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useAppToast } from "@/hooks/common/useAppToast";
 import { useIsHydrated } from "@/hooks/common";
 import { Button, CustomDropdown, Panel, PhoneText, Spinner } from "@/components/common";
@@ -191,18 +191,33 @@ export function AsStatusSection({
 
   const selected = complaints.find((complaint) => complaint.id === selectedId) ?? null;
 
-  const closeForm = () => setFormOpen(false);
+  // 민원 등록은 민원 → 처리결과 2단계라, 처리결과만 실패한 뒤 재시도하면 민원이 중복 생성됐다.
+  // 이미 만들어진 민원 id 를 기억해 두고 재시도 때는 그 민원을 갱신한 뒤 처리결과만 다시 만든다.
+  const pendingCreatedComplaintIdRef = useRef<number | null>(null);
+
+  const closeForm = () => {
+    pendingCreatedComplaintIdRef.current = null;
+    setFormOpen(false);
+  };
 
   const createAs = async (input: ComplaintInput, resolution: ResolutionDraft | null) => {
     try {
-      const created = await createComplaint.mutateAsync(input);
+      let complaintId = pendingCreatedComplaintIdRef.current;
+      if (complaintId === null) {
+        const created = await createComplaint.mutateAsync(input);
+        complaintId = created.id;
+        pendingCreatedComplaintIdRef.current = complaintId;
+      } else {
+        await updateComplaint.mutateAsync({ id: complaintId, input });
+      }
       if (resolution) {
         await createResolution.mutateAsync({
-          complaintId: created.id,
+          complaintId,
           resultContent: resolution.resultContent || null,
           resolvedAt: resolution.resolvedAt,
         });
       }
+      pendingCreatedComplaintIdRef.current = null;
       toast.success("A/S 접수를 등록했어요");
     } catch (error) {
       toast.error(error, "A/S 접수를 저장하지 못했어요");
@@ -333,6 +348,7 @@ export function AsStatusSection({
             toast.warning("건물을 선택해 주세요");
             return;
           }
+          pendingCreatedComplaintIdRef.current = null;
           setFormOpen(true);
         }}
         className="ml-auto !flex !h-[26px] items-center gap-[5px] whitespace-nowrap !rounded-[8px] !border !border-line !bg-surface !px-[8px] !text-[11.5px] !leading-[normal] !text-t2 !shadow-none hover:!bg-bg"
