@@ -284,7 +284,8 @@ export async function saveUnitOccupancy(p: SaveUnitOccupancyPayload): Promise<Sa
       transfer_method: p.occupancy.transferMethod, bill_name_display: p.occupancy.billNameDisplay,
       bill_delivery: p.occupancy.billDelivery, bill_auth: p.occupancy.billAuth,
       move_out_scheduled_date: p.occupancy.moveOutScheduledDate ?? null,
-      sms_opt_in: p.occupancy.smsOptIn ?? false, alimtalk_opt_in: p.occupancy.alimtalkOptIn ?? false,
+      // 입력한 값만 보낸다. 값이 없으면 키가 빠져 서버가 기존 값(신규는 기본값=동의)을 유지한다.
+      sms_opt_in: p.occupancy.smsOptIn, alimtalk_opt_in: p.occupancy.alimtalkOptIn,
       expected_move_in_date: p.occupancy.expectedMoveInDate ?? null,
       discount_type: p.occupancy.discountType ?? null, discount_amount: p.occupancy.discountAmount ?? null,
       homepage_password: p.occupancy.homepagePassword ?? null,

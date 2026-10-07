@@ -171,7 +171,7 @@ export default function PointsWorkspace() {
     billingTotals.smsCount * (activeRates.get("sms") ?? 0)
     + billingTotals.lmsCount * (activeRates.get("lms") ?? 0)
   );
-  const faxPoints = billingTotals.faxCount * (settingsQuery.data?.rateKrwFax ?? 0);
+  const faxPoints = billingTotals.faxCount * (activeRates.get("fax") ?? 0);
   const monthUsedPoints = alimtalkPoints + smsPoints + faxPoints;
   const messageCount = billingTotals.smsCount + billingTotals.lmsCount;
   const railTotal = monthUsedPoints > 0 ? monthUsedPoints : 1;
@@ -344,7 +344,7 @@ export default function PointsWorkspace() {
             </div>
 
             <p className="mt-[6px] text-[12px] font-semibold text-t3 tabular-nums">
-              건당 단가 · SMS {formatRate(activeRates.get("sms"))} · LMS {formatRate(activeRates.get("lms"))} · 알림톡 {formatRate(activeRates.get("alimtalk"))}
+              건당 단가 · SMS {formatRate(activeRates.get("sms"))} · LMS {formatRate(activeRates.get("lms"))} · 알림톡 {formatRate(activeRates.get("alimtalk"))} · 팩스(장) {formatRate(activeRates.get("fax"))}
             </p>
 
             <div className="mt-5 border-t border-line2 pt-4 text-[12.5px] font-bold text-t3">

@@ -149,6 +149,12 @@ export async function POST(request: Request): Promise<Response> {
     const created = createRes.data as
       | { ok?: boolean; code?: string; job_id?: number; request_num?: string; provider_ref_key?: string }
       | null;
+    if (created?.code === "INSUFFICIENT_POINTS") {
+      // 팝빌 포인트(본사 단일 풀) 잔액이 팩스 1장 단가보다 적다. 작업을 만들지 않았다.
+      failed += 1;
+      results.push({ billIssueId, status: "insufficient_points" });
+      continue;
+    }
     if (created?.code === "ALREADY_IN_FLIGHT") {
       // 진행 중(submitting/pending/reconcile_required) 작업이 있으면 중복 전송하지 않는다.
       skipped += 1;
