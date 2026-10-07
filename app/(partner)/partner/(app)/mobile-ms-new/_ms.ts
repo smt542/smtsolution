@@ -287,16 +287,27 @@ export function buildSaveData(
     lastPaidDate: state.lastPaidDate,
   };
 
+  // extra.util 없이 저장된 정산(사무실 PC 작성분 등)은 단가가 0으로 시작한다.
+  // 단가를 입력하지 않았으면 저장된 공과금 금액을 그대로 유지한다(0으로 덮어쓰지 않음).
+  const saved = ctx.latestSettlement;
+  const legacyUtil = saved !== null && !saved.extra?.util;
+  const utilCharge = (u: UtilRow | undefined, savedCharge: number | null | undefined) => {
+    if (!u) return null;
+    if (legacyUtil && !u.price) return savedCharge ?? null;
+    return nullableInt(utilAmount(u));
+  };
+
   return {
     move_out_date: state.moveOutDate,
     mgmt_fee_monthly: nullableInt(state.feeItems.reduce((t, f) => t + (f.charged || 0), 0)),
     mgmt_fee_prorated: nullableInt(totals.s2),
-    water_charge: water ? nullableInt(utilAmount(water)) : null,
-    elec_charge: elec ? nullableInt(utilAmount(elec)) : null,
-    gas_charge: gas ? nullableInt(utilAmount(gas)) : null,
+    water_charge: utilCharge(water, saved?.waterCharge),
+    elec_charge: utilCharge(elec, saved?.elecCharge),
+    gas_charge: utilCharge(gas, saved?.gasCharge),
     elec_paid_date: elec ? nullableText(elec.payDate) : null,
     gas_paid_date: gas ? nullableText(gas.payDate) : null,
     repair_amount: nullableInt(totals.s3),
+    // 파트너 화면엔 귀책 입력이 없다. 서버(0236)가 기존 값을 유지하고, 정산 계좌도 기존 값이 있으면 유지한다.
     repair_attribution: null,
     repair_memo: nullableText(etcNames),
     settle_bank: ctx.settleAccount.settleBank,

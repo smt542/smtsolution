@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useId } from "react";
+import { useId } from "react";
+import { useDialogLayer } from "./dialogStack";
 
 export function Modal({
   open,
@@ -19,18 +20,8 @@ export function Modal({
   bodyClassName?: string;
 }) {
   const titleId = useId();
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [open, onClose]);
+  // ESC는 최상단 대화상자만 처리하고, body 스크롤 잠금은 열린 대화상자 수로 관리한다.
+  useDialogLayer(open, onClose);
 
   if (!open) return null;
 

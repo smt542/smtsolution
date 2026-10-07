@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   const meter = p.get("meter") || null;
 
   const sb = await createClient();
-  const gate = await requirePersonaApi(sb, "manager_staff");
+  const gate = await requirePersonaApi(sb, "manager_staff", { module: "buildings" });
   if (!gate.ok) return gate.response;
 
   const { data, error } = await sb.rpc("list_buildings", {

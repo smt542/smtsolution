@@ -11,6 +11,7 @@ import ResidentAsyncState from "@/app/(resident)/_components/ResidentAsyncState"
 import ResidentConfirmDialog from "@/app/(resident)/_components/ResidentConfirmDialog";
 import { showResidentToast } from "@/app/(resident)/_components/residentToast";
 import { useAsyncAction } from "@/hooks/common";
+import { useLogout } from "@/hooks/reactquery/auth";
 import { useMoveOutRequest } from "@/hooks/reactquery/residentMoveOut";
 import {
   useResidentProfile,
@@ -59,6 +60,7 @@ export default function ResidentMeWorkspace() {
   const [moveOutOpen, setMoveOutOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const logoutAction = useAsyncAction();
+  const logoutMutation = useLogout();
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [withdrawError, setWithdrawError] = useState<string | null>(null);
   const isResidentMeRefreshing = [profileQuery, moveOutQuery]
@@ -134,7 +136,8 @@ export default function ResidentMeWorkspace() {
   const confirmLogout = async () => {
     await logoutAction.run(async () => {
       try {
-        await createClient().auth.signOut({ scope: "local" });
+        // 공용 useLogout: signOut(local) 후 React Query 캐시를 비운다.
+        await logoutMutation.mutateAsync();
       } finally {
         resetOnboardingSession();
         router.replace("/resident/login");

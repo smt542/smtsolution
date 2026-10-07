@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 
 import { useMe } from "@/hooks/reactquery/auth";
 import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
+import { useLateFeeSettings } from "@/hooks/reactquery/setupConfig";
 import {
   usePartnerMeterWorkspace,
   useSavePartnerMeterReadings,
@@ -104,6 +105,8 @@ export default function PartnerMeterWorkspace({ buildingId }: { buildingId: numb
   const saveMutation = useSavePartnerMeterReadings();
   const me = useMe();
   const lateFeeTiers = useLateFeeRateTiers(me.data?.orgId ?? null);
+  // 조직 연체료 설정(사용 여부·납기후 가산율). 못 읽으면 기본값으로 계산한다.
+  const lateFeeSettings = useLateFeeSettings(me.data?.orgId ?? null);
   const draftValues = draft.scope === scope ? draft.values : {};
   const units = meterQuery.data?.units ?? [];
   const buildingName = meterQuery.data?.buildingName ?? "";
@@ -159,7 +162,7 @@ export default function PartnerMeterWorkspace({ buildingId }: { buildingId: numb
 
   const duesOf = (unit: PartnerMeterUnit) => {
     const unpaid = unit.overduePeriods.reduce((sum, item) => sum + item.unpaidPrincipal, 0);
-    const fee = computeLateFee(unit.overduePeriods, lateFeeTiers.data ?? [], year, monthNo);
+    const fee = computeLateFee(unit.overduePeriods, lateFeeTiers.data ?? [], year, monthNo, lateFeeSettings);
     return { months: unit.overduePeriods.length, unpaid, late: fee.totalLateFee + fee.totalPostDueFee };
   };
 

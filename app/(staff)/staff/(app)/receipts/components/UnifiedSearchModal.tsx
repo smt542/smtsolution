@@ -9,6 +9,7 @@ import {
   useReceiptPaymentStatusPeriods,
   type ReceiptPaymentRow,
 } from "@/hooks/reactquery/receipts";
+import { useLateFeeSettings } from "@/hooks/reactquery/setupConfig";
 import { computeLateFeeForPeriod } from "@/lib/billing/lateFee";
 import type { Period } from "@/lib/billing/period";
 import { formatCurrency, unitLabel } from "../receiptFormat";
@@ -170,6 +171,7 @@ function UnifiedSearchModalBody({
     return result.length > 12 ? result.slice(-12) : result;
   }, [from, to, validRange]);
 
+  const lateFeeSettings = useLateFeeSettings(orgId);
   const receiptPeriods = useReceiptPaymentStatusPeriods(
     orgId,
     periods,
@@ -214,6 +216,7 @@ function UnifiedSearchModalBody({
           [],
           year,
           month,
+          lateFeeSettings,
         ).postDueFee;
         return {
           key: `charge-${rowPeriod}-${row.buildingId}-${row.unitId}`,
@@ -232,7 +235,7 @@ function UnifiedSearchModalBody({
           ],
         };
       });
-  }, [amountSearch, amountDigits, receiptPeriods.periods, codeByBuilding]);
+  }, [amountSearch, amountDigits, receiptPeriods.periods, codeByBuilding, lateFeeSettings]);
 
   const settlementRows: SearchResultRow[] = useMemo(() => {
     if (amountSearch === null) return [];

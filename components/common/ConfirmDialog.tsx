@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef } from "react";
 import { Button } from "./Button";
+import { useDialogLayer } from "./dialogStack";
 
 export type ConfirmVariant = "default" | "danger";
 export type ConfirmLook = "default" | "check" | "plain" | "split" | "left" | "hq" | "hqCompact";
@@ -46,20 +47,15 @@ export function ConfirmDialog({
   const confirmRef = useRef<HTMLButtonElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
 
+  // ESC는 최상단 대화상자만 처리한다(모달 안 확인창의 ESC가 부모 모달까지 닫지 않도록).
+  // body 스크롤 잠금은 열린 대화상자 수로 관리해 확인창이 닫혀도 부모 모달의 잠금을 유지한다.
+  useDialogLayer(open, onCancel);
+
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
-    };
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
     // 파괴적 확인은 취소 버튼에 포커스(오작동 방지), 그 외 확인 버튼에 포커스
     (hideCancel ? confirmRef : variant === "danger" ? cancelRef : confirmRef).current?.focus();
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [hideCancel, onCancel, open, variant]);
+  }, [hideCancel, open, variant]);
 
   if (!open) return null;
 

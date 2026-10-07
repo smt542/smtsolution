@@ -7,11 +7,17 @@ import {
   scheduleMoveOut,
   type SaveUnitOccupancyPayload,
 } from "./apis";
+import { buildingKeys } from "@/hooks/reactquery/buildings/keys";
 import { occupancyKeys } from "./keys";
 
 function useInvalidateOccupancies() {
   const qc = useQueryClient();
-  return () => qc.invalidateQueries({ queryKey: occupancyKeys.all });
+  // 입주·퇴실·세대 삭제는 건물 목록의 세대수/입주세대수에도 영향을 준다.
+  return () =>
+    Promise.all([
+      qc.invalidateQueries({ queryKey: occupancyKeys.all }),
+      qc.invalidateQueries({ queryKey: buildingKeys.all }),
+    ]);
 }
 
 export function useSaveUnitOccupancy() {

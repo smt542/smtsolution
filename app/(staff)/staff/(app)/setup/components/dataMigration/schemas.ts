@@ -10,6 +10,8 @@ export interface ColDef {
   ym?: boolean; // YYYY-MM
   tel?: boolean; // 연락처
   enm?: string[]; // 허용 값(열거)
+  /** 허용 값을 조직의 협력업체 분류(vendor_categories)에서 가져온다. enm은 분류를 못 불러왔을 때의 기본값. */
+  vendorCategory?: boolean;
   ex?: [string, string]; // 예시 2행
 }
 
@@ -59,7 +61,7 @@ export const VENDOR: EntitySchema = {
   note: "업체명은 거래처 관리에 등록된 업체 중에서 골라 적어 주세요. 전화번호·계좌번호는 거래처 정보에서 자동으로 가져옵니다. 해당 구분에 없는 열은 비워 두세요.",
   cols: [
     { k: "건물 코드", req: true, ex: ["001", "001"] },
-    { k: "업체 구분", req: true, enm: ["청소 업체", "승강기보수업체", "CCTV 업체", "인터넷 업체", "소방검사업체", "정화조 업체", "전기안전업체", "승강기정기검사업체"], ex: ["청소 업체", "정화조 업체"] },
+    { k: "업체 구분", req: true, vendorCategory: true, enm: ["청소 업체", "승강기보수업체", "CCTV 업체", "인터넷 업체", "소방검사업체", "정화조 업체", "전기안전업체", "승강기정기검사업체"], ex: ["청소 업체", "정화조 업체"] },
     { k: "업체명", req: true, ex: ["깨끗한청소", "맑음환경"] },
     { k: "청소 횟수", num: true, ex: ["4", ""] },
     { k: "청소 요일", ex: ["월,목", ""] },
@@ -109,8 +111,8 @@ export const UTIL: EntitySchema = {
     { k: "고객번호", req: true, ex: ["0002-1116", "06-1446-1689"] },
     { k: "성명/계약명", ex: ["박상숙", "유병옥"] },
     { k: "입금", ex: ["", ""] },
-    { k: "월분", enm: ["입금", "보류"], ex: ["입금", "입금"] },
-    { k: "계산", ex: ["전월", ""] },
+    { k: "월분", enm: ["당월", "전월"], ex: ["당월", "당월"] },
+    { k: "계산", enm: ["자동", "수동"], ex: ["자동", ""] },
     { k: "계산법", ex: ["시조례", ""] },
     { k: "계산1", ex: ["", "전월"] },
     { k: "계산2", ex: ["", ""] },
@@ -131,7 +133,7 @@ export const TENANT: EntitySchema = {
     { k: "호실", req: true, ex: ["101", "102"] },
     { k: "입주자명", req: true, ex: ["홍길동", "김수민"] },
     { k: "입금자명", ex: ["홍길동", ""] },
-    { k: "룸", enm: ["1.5룸", "투룸", "쓰리룸", "기타"], ex: ["투룸", "1.5룸"] },
+    { k: "룸", enm: ["원룸", "1.5룸", "투룸", "쓰리룸", "기타"], ex: ["투룸", "1.5룸"] },
     { k: "인원", num: true, ex: ["2", "1"] },
     { k: "평형", ex: ["18평", "12평"] },
     { k: "입주일", date: true, ex: ["2024-03-01", "2025-06-15"] },
@@ -180,7 +182,7 @@ export const TENANT: EntitySchema = {
     { k: "은행/계좌", ex: ["국민 123456-00-7890", ""] },
     { k: "물건명", ex: ["", ""] },
     { k: "물건 주소", ex: ["", ""] },
-    { k: "물건구분", enm: ["1.5룸", "투룸", "쓰리룸", "기타"], ex: ["", ""] },
+    { k: "물건구분", enm: ["원룸", "1.5룸", "투룸", "쓰리룸", "기타"], ex: ["", ""] },
     { k: "거래형태", enm: ["중개거래", "전세", "전·월세"], ex: ["", ""] },
     { k: "부동산 구분", ex: ["", ""] },
     { k: "면적(㎡)", num: true, ex: ["42.5", ""] },
@@ -198,7 +200,7 @@ export const VENDOR_MASTER: EntitySchema = {
   uniqBy: ["구분", "업체명"],
   note: "협력업체 매핑보다 먼저 올려야 해요. 여기 등록된 업체만 건물에 연결할 수 있습니다.",
   cols: [
-    { k: "구분", req: true, enm: ["청소 업체", "승강기보수업체", "CCTV 업체", "인터넷 업체", "소방검사업체", "정화조 업체", "전기안전업체", "승강기정기검사업체"], ex: ["청소 업체", "정화조 업체"] },
+    { k: "구분", req: true, vendorCategory: true, enm: ["청소 업체", "승강기보수업체", "CCTV 업체", "인터넷 업체", "소방검사업체", "정화조 업체", "전기안전업체", "승강기정기검사업체"], ex: ["청소 업체", "정화조 업체"] },
     { k: "업체명", req: true, ex: ["깨끗한청소", "맑음환경"] },
     { k: "담당자", ex: ["", ""] },
     { k: "전화번호", tel: true, ex: ["02-700-1111", "031-222-3333"] },
@@ -302,3 +304,26 @@ export const DEP: Record<string, string[]> = {
   meter: ["tenant"],
   unpaid: ["tenant"],
 };
+
+/** 건물 협력업체 이관(migrate_building_vendor)이 받는 구분 — 건물 등록 폼의 업체 칸과 1:1인 8종. */
+const BUILDING_VENDOR_CATEGORIES = new Set(
+  ["청소 업체", "승강기보수업체", "CCTV 업체", "인터넷 업체", "소방검사업체", "정화조 업체", "전기안전업체", "승강기정기검사업체"]
+    .map((label) => label.replace(/\s+/g, "").toLowerCase()),
+);
+
+/**
+ * 협력업체 분류를 반영한 스키마. vendorCategory 열의 허용 값을 조직 분류 라벨로 바꾼다
+ * (건물 협력업체는 건물 폼에 칸이 있는 8종만). 분류가 없으면 기본 enm을 그대로 쓴다.
+ */
+export function resolveSchema(schema: EntitySchema, vendorCategoryLabels: readonly string[]): EntitySchema {
+  if (vendorCategoryLabels.length === 0 || !schema.cols.some((c) => c.vendorCategory)) return schema;
+  const labels =
+    schema.id === "vendor"
+      ? vendorCategoryLabels.filter((label) => BUILDING_VENDOR_CATEGORIES.has(label.replace(/\s+/g, "").toLowerCase()))
+      : [...vendorCategoryLabels];
+  if (labels.length === 0) return schema;
+  return {
+    ...schema,
+    cols: schema.cols.map((c) => (c.vendorCategory ? { ...c, enm: labels } : c)),
+  };
+}

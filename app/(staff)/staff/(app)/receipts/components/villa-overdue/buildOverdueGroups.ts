@@ -1,4 +1,8 @@
-import { computeLateFeeForPeriod, type RateTier } from "@/lib/billing/lateFee";
+import {
+  computeLateFeeForPeriod,
+  type LateFeeSettings,
+  type RateTier,
+} from "@/lib/billing/lateFee";
 import type { OverdueHousehold, OverduePeriodRow } from "@/hooks/reactquery/overdue";
 
 /**
@@ -66,6 +70,7 @@ export function buildOverdueGroups(
   households: OverdueHousehold[],
   tiers: RateTier[],
   asOf: { year: number; month: number },
+  lateFeeSettings?: LateFeeSettings,
 ): OverdueUnitGroup[] {
   const byOccupancy = new Map<number, OverdueHousehold>();
   for (const household of households) byOccupancy.set(household.occupancyId, household);
@@ -82,6 +87,7 @@ export function buildOverdueGroups(
       tiers,
       asOf.year,
       asOf.month,
+      lateFeeSettings,
     );
     const line: OverdueSeedLine = {
       key: lineKey(period.occupancyId, period.period),

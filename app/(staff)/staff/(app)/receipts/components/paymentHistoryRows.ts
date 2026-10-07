@@ -3,7 +3,11 @@ import {
   type ReceiptPaymentRow,
   type ReceiptStatementPaymentRow,
 } from "@/hooks/reactquery/receipts";
-import { computeLateFeeForPeriod, type RateTier } from "@/lib/billing/lateFee";
+import {
+  computeLateFeeForPeriod,
+  type LateFeeSettings,
+  type RateTier,
+} from "@/lib/billing/lateFee";
 import type { Period } from "@/lib/billing/period";
 
 export interface PaymentFields {
@@ -95,12 +99,22 @@ export function fieldsEqual(left: PaymentFields, right: PaymentFields): boolean 
     && left.memo === right.memo;
 }
 
+export interface LateFeeRowOptions {
+  /** 조직 연체료 설정(setup_config). 없으면 기본값(사용·2%). */
+  settings?: LateFeeSettings;
+  /** 입주(occupancy)별 연체료 부과 여부(occupancies.late_fee_enabled). false 인 입주 건은 연체료 0. */
+  lateFeeEnabledByOccupancy?: ReadonlyMap<number, boolean>;
+}
+
 export function lateFeeForRow(
   rowPeriod: string,
   rowSummary: ReceiptStatementPaymentRow | ReceiptPaymentRow | undefined,
   tiers: RateTier[],
   asOfPeriod: string,
+  options: LateFeeRowOptions = {},
 ): number {
+  const occupancyId = rowSummary?.occupancyId;
+  if (occupancyId != null && options.lateFeeEnabledByOccupancy?.get(occupancyId) === false) return 0;
   const unpaidPrincipal = Math.max(rowSummary?.unpaid ?? 0, 0);
   const dueDate = rowSummary?.dueDate?.slice(0, 10);
   if (!unpaidPrincipal || !dueDate || dueDate >= todayInput()) return 0;
@@ -118,6 +132,7 @@ export function lateFeeForRow(
     tiers,
     asOfYear,
     asOfMonth,
+    options.settings,
   );
   return result.lateFee + result.postDueFee;
 }
@@ -128,6 +143,7 @@ export function buildHistoryRows(
   summary: ReceiptPaymentRow | undefined,
   period: string,
   tiers: RateTier[],
+  lateFeeOptions: LateFeeRowOptions = {},
 ): HistoryDisplayRow[] {
   const sortedSummaries = historySummaries?.length
     ? [...historySummaries].sort((left, right) => right.period.localeCompare(left.period))
@@ -146,7 +162,7 @@ export function buildHistoryRows(
     payment,
     fields: payment ? paymentFields(payment) : emptyFields(),
     originalFields: payment ? paymentFields(payment) : null,
-    lateFee: lateFeeForRow(rowPeriod, rowSummary, tiers, period),
+    lateFee: lateFeeForRow(rowPeriod, rowSummary, tiers, period, lateFeeOptions),
     draftSource: "none",
     lateOnly: false,
     cancelRequested: false,

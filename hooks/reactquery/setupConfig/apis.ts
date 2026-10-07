@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { POST_DUE_FEE_RATE_PCT } from "@/lib/billing/lateFee";
 
 export interface SetupConfig {
   orgId: number;
@@ -6,6 +7,8 @@ export interface SetupConfig {
   unitLabelDefault: "code" | "name";
   lateFeeMerge: boolean;
   lateFeeEnabled: boolean;
+  /** 납기후 가산율(%) — setup_config.late_fee_post_due_rate. */
+  lateFeePostDueRate: number;
   printUtilityCutoff: boolean;
   printWaterUnitPrice: boolean;
   printBillingPeriod: boolean;
@@ -44,7 +47,7 @@ export type SetupConfigPatch = Partial<Omit<SetupConfig, "orgId" | ServerManaged
 
 type SetupConfigRow = {
   org_id: number; customer_notice: string | null; unit_label_default: "code" | "name";
-  late_fee_merge: boolean; late_fee_enabled: boolean;
+  late_fee_merge: boolean; late_fee_enabled: boolean; late_fee_post_due_rate: number | string | null;
   print_utility_cutoff: boolean; print_water_unit_price: boolean;
   print_billing_period: boolean; print_delta: boolean; show_as_on_main: boolean; cutoff_months: number | null;
   mgmt_bank1: string | null; mgmt_acct1: string | null; mgmt_holder1: string | null; mgmt_print1: boolean;
@@ -59,9 +62,16 @@ type SetupConfigRow = {
   notify_move_in: boolean; notify_lease_expiry: boolean; lease_expiry_days: number;
 };
 
+// numeric 컬럼이라 문자열로 올 수 있다. 값이 없거나 숫자가 아니면 DB 기본값(2.0)을 쓴다.
+const postDueRateOf = (value: number | string | null): number => {
+  const rate = Number(value);
+  return value !== null && Number.isFinite(rate) ? rate : POST_DUE_FEE_RATE_PCT;
+};
+
 const rowToConfig = (r: SetupConfigRow): SetupConfig => ({
   orgId: r.org_id, customerNotice: r.customer_notice, unitLabelDefault: r.unit_label_default,
   lateFeeMerge: r.late_fee_merge, lateFeeEnabled: r.late_fee_enabled,
+  lateFeePostDueRate: postDueRateOf(r.late_fee_post_due_rate),
   printUtilityCutoff: r.print_utility_cutoff,
   printWaterUnitPrice: r.print_water_unit_price, printBillingPeriod: r.print_billing_period,
   printDelta: r.print_delta, showAsOnMain: r.show_as_on_main, cutoffMonths: r.cutoff_months,
@@ -81,7 +91,7 @@ const rowToConfig = (r: SetupConfigRow): SetupConfig => ({
 
 const CAMEL_TO_SNAKE: Record<keyof SetupConfigPatch, string> = {
   customerNotice:"customer_notice", unitLabelDefault:"unit_label_default", lateFeeMerge:"late_fee_merge",
-  lateFeeEnabled:"late_fee_enabled",
+  lateFeeEnabled:"late_fee_enabled", lateFeePostDueRate:"late_fee_post_due_rate",
   printUtilityCutoff:"print_utility_cutoff", printWaterUnitPrice:"print_water_unit_price",
   printBillingPeriod:"print_billing_period", printDelta:"print_delta", showAsOnMain:"show_as_on_main",
   cutoffMonths:"cutoff_months", mgmtBank1:"mgmt_bank1", mgmtAcct1:"mgmt_acct1", mgmtHolder1:"mgmt_holder1",

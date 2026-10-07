@@ -32,6 +32,8 @@ const eslintConfig = defineConfig([
     // Runtime tool artifacts (gstack headless-browser cache) — not source, and
     // can be permission-locked (ESLint scandir EPERM). Never lint.
     ".gstack/**",
+    // Supabase Edge Functions run on Deno (npm:/jsr: imports, Deno globals) — not part of the Next build.
+    "supabase/functions/**",
   ]),
 ]);
 

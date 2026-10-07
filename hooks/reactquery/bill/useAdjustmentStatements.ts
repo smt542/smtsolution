@@ -10,6 +10,7 @@ import { billingKeys } from "@/hooks/reactquery/billing/keys";
 import { listLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers/apis";
 import { lateFeeTierKeys } from "@/hooks/reactquery/lateFeeTiers/keys";
 import { listOverduePeriods } from "@/hooks/reactquery/overdue/apis";
+import { useLateFeeSettings } from "@/hooks/reactquery/setupConfig/queries";
 import { overdueKeys } from "@/hooks/reactquery/overdue/keys";
 import { listBuildingPaymentDates } from "@/hooks/reactquery/payments/apis";
 import { paymentKeys } from "@/hooks/reactquery/payments/keys";
@@ -52,6 +53,17 @@ function toDocuments(rows: BillingFlatRow[]): AdjustmentDocumentInput[] {
       items: sorted.map((row) => ({ feeItemId: row.feeItemId, name: row.feeItemName, charged: row.charged, amount: row.amount })),
     };
   });
+}
+
+// 등록 항목 전체(확정 여부 무관). list_billing은 세대 × 항목 전체를 내려주므로 확정 전 월분에도 헤더가 채워진다.
+function toFeeItems(rows: BillingFlatRow[]): { id: number; name: string }[] {
+  const byId = new Map<number, { id: number; name: string; sortOrder: number }>();
+  for (const row of rows) {
+    if (!byId.has(row.feeItemId)) byId.set(row.feeItemId, { id: row.feeItemId, name: row.feeItemName, sortOrder: row.sortOrder });
+  }
+  return [...byId.values()]
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+    .map(({ id, name }) => ({ id, name }));
 }
 
 export interface AdjustmentStatementBuilding {
@@ -135,6 +147,7 @@ export function useAdjustmentStatements(
     queryFn: () => listLateFeeRateTiers(orgId),
     enabled: enabled && orgId > 0,
   });
+  const lateFeeSettings = useLateFeeSettings(enabled && orgId > 0 ? orgId : null);
 
   const buildingInputs: AdjustmentBuildingInput[] = buildings.map((building, index) => {
     const paidDateByUnit = new Map<number, string>();
@@ -151,6 +164,7 @@ export function useAdjustmentStatements(
         tenantName: target.tenantName,
         phone: target.phone,
       })),
+      feeItems: toFeeItems(billingQueries[index]?.data ?? []),
       documents: toDocuments(billingQueries[index]?.data ?? []),
       metersByUtility: {
         water: toMeterInputs(meterQueries[index * 3]?.data ?? []),
@@ -174,6 +188,7 @@ export function useAdjustmentStatements(
         companyName,
         outputDate,
         tiers: tiersQuery.data ?? [],
+        lateFeeSettings,
       })
     : [];
 

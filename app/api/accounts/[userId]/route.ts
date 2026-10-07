@@ -25,12 +25,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ userId
   }
 
   // 대상이 현재 컨텍스트의 org 구성원인지 확인한다.
-  const { count: membershipCount } = await supabase
+  const { data: targetMember } = await supabase
     .from("org_members")
-    .select("user_id", { count: "exact", head: true })
+    .select("user_id, role")
     .eq("org_id", ctx.org_id)
-    .eq("user_id", userId);
-  if (!membershipCount) return NextResponse.json({ error: "대상 계정을 찾을 수 없습니다." }, { status: 404 });
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!targetMember) return NextResponse.json({ error: "대상 계정을 찾을 수 없습니다." }, { status: 404 });
+
+  // 대상이 마스터(org_owner)이면 같은 org의 마스터만 비밀번호를 재설정할 수 있다.
+  if (targetMember.role === "org_owner" && ctx.role !== "org_owner")
+    return NextResponse.json({ error: "마스터 계정은 마스터만 변경할 수 있습니다." }, { status: 403 });
 
   const { password } = await req.json().catch(() => ({}));
   if (typeof password !== "string" || !/^\d{4}$/.test(password))

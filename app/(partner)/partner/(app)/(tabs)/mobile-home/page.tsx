@@ -13,11 +13,13 @@ export default async function PartnerHomePage() {
   const rows: AsRow[] = [];
   for (;;) {
     const last = rows.length > 0 ? rows[rows.length - 1] : null;
-    const { data } = await supabase.rpc("partner_list_complaints", {
+    const { data, error } = await supabase.rpc("partner_list_complaints", {
       p_limit: PAGE_SIZE,
       p_before_received_at: last?.received_at ?? null,
       p_before_id: last?.id ?? null,
     });
+    // 조회 실패를 빈 목록으로 보여주지 않는다.
+    if (error) throw new Error(error.message);
     const page = (Array.isArray(data) ? data : []) as AsRow[];
     rows.push(...page);
     if (page.length < PAGE_SIZE) break;
