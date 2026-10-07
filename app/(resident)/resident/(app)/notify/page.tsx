@@ -1,10 +1,11 @@
-import NotificationSwitch from "./NotificationSwitch";
+import NotificationSwitch, { NotifyChoiceProvider } from "./NotificationSwitch";
 import NotifyNavigationButton from "./NotifyNavigationButton";
+import NotifyStartButton from "./NotifyStartButton";
 import { notifyClasses } from "./notifyClasses";
 
 export default function ResidentNotifyPage() {
   return (
-    <>
+    <NotifyChoiceProvider>
       <div className="flex flex-none items-center px-3 pb-1 pt-[calc(env(safe-area-inset-top)+12px)]">
         <NotifyNavigationButton
           href="/resident/verify"
@@ -62,13 +63,13 @@ export default function ResidentNotifyPage() {
       </div>
 
       <div className="flex flex-none flex-col gap-2.5 px-7 pb-[calc(env(safe-area-inset-bottom)+24px)] pt-3.5">
-        <NotifyNavigationButton
+        <NotifyStartButton
           href="/resident/home"
           className={notifyClasses.primaryButton}
         >
           시작하기
-        </NotifyNavigationButton>
+        </NotifyStartButton>
       </div>
-    </>
+    </NotifyChoiceProvider>
   );
 }

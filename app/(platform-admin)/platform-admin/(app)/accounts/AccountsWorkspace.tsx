@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Badge, Button, EmptyState, Input, Spinner } from "@/components/common";
 import { useDebouncedValue, SEARCH_DEBOUNCE_MS } from "@/hooks/common";
 import {
+  useCanManageHqAccounts,
   usePlatformHqAccounts,
   type PlatformHqAccount,
   type PlatformHqAccountQuery,
@@ -54,6 +55,7 @@ export function AccountsWorkspace() {
     pageSize: PAGE_SIZE,
   }), [debouncedSearch, page]);
   const { data, isPending, isError, isFetching, refetch } = usePlatformHqAccounts(query);
+  const { data: canManage = false } = useCanManageHqAccounts();
   const accounts = data?.rows ?? [];
   const total = data?.totalCount ?? 0;
 
@@ -65,16 +67,18 @@ export function AccountsWorkspace() {
       maxWidthClassName="max-w-none"
       paddingClassName="flex h-[calc(100dvh-62px)] flex-col gap-4 overflow-auto px-5 pb-[22px] pt-[22px] sm:px-6 sm:pb-[30px]"
     >
-      <PlatformTopBarActions>
-        <Button
-          variant="primary"
-          type="button"
-          onClick={() => setModal({ mode: "create" })}
-          className="shrink-0 cursor-pointer border border-transparent transition-colors"
-        >
-          ＋ 본사 계정 추가
-        </Button>
-      </PlatformTopBarActions>
+      {canManage ? (
+        <PlatformTopBarActions>
+          <Button
+            variant="primary"
+            type="button"
+            onClick={() => setModal({ mode: "create" })}
+            className="shrink-0 cursor-pointer border border-transparent transition-colors"
+          >
+            ＋ 본사 계정 추가
+          </Button>
+        </PlatformTopBarActions>
+      ) : null}
 
       <section className="flex min-h-[280px] flex-1 flex-col overflow-hidden rounded-2xl bg-surface shadow-card">
         <div className="flex flex-none items-center gap-2.5 border-b border-line2 px-[18px] py-[15px]">
@@ -174,12 +178,12 @@ export function AccountsWorkspace() {
                   return (
                     <tr
                       key={account.userId}
-                      tabIndex={0}
-                      className="cursor-pointer hover:bg-row-hover"
-                      onClick={() => setModal({ mode: "edit", account })}
-                      onKeyDown={(event) => {
+                      tabIndex={canManage ? 0 : undefined}
+                      className={canManage ? "cursor-pointer hover:bg-row-hover" : undefined}
+                      onClick={canManage ? () => setModal({ mode: "edit", account }) : undefined}
+                      onKeyDown={canManage ? (event) => {
                         if (event.key === "Enter") setModal({ mode: "edit", account });
-                      }}
+                      } : undefined}
                     >
                       <Cell value={name} className="text-[13.5px] font-bold" />
                       <Cell value={role} className="text-[13.5px] font-normal" />

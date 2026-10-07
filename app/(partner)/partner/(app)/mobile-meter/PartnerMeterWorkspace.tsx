@@ -53,7 +53,10 @@ function isNewTenant(moveInDate: string | null, month: string) {
   return days >= 0 && days <= 60;
 }
 
-/** 정본 `checkSpike` 경고: 금월 < 전월이면 역전, 전월의 2배를 넘으면 급증. */
+/** 급증 임계: 금월 지침이 전월의 120% 초과(정책서 현장 관리자_검침 자료 3.4). */
+const SPIKE_RATIO = 1.2;
+
+/** 경고: 금월 < 전월이면 역전, 전월의 120%를 넘으면 급증. */
 function meterWarning(previousText: string, currentText: string) {
   const previous = readingNumber(previousText);
   const current = readingNumber(currentText);
@@ -63,7 +66,7 @@ function meterWarning(previousText: string, currentText: string) {
       text: `금월 지침(${formatNumber(current)})이 전월(${formatNumber(previous)})보다 작아요 · 검침값을 확인해 주세요`,
     };
   }
-  if (!previous || !current || current <= previous * 2) return null;
+  if (!previous || !current || current <= previous * SPIKE_RATIO) return null;
   return { up: true, text: `전월 지침 대비 ${Math.round((current / previous - 1) * 100)}% 상승` };
 }
 
@@ -163,7 +166,7 @@ export default function PartnerMeterWorkspace({ buildingId }: { buildingId: numb
   const checkSpike = (unit: PartnerMeterUnit, kind: PartnerMeterUtility, meter: MeterDraftValue) => {
     const previous = readingNumber(meter.previous);
     const current = readingNumber(meter.current);
-    if (!previous || !current || current <= previous * 2) return;
+    if (!previous || !current || current <= previous * SPIKE_RATIO) return;
     const tag = `${unit.unitId}:${kind}:${current}`;
     if (warned.current.has(tag)) return;
     warned.current.add(tag);
