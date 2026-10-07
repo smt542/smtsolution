@@ -1,4 +1,7 @@
-import type { ReceiptStatementData } from "@/hooks/reactquery/receipts";
+import type {
+  ReceiptStatementData,
+  ReceiptStatementPaymentRow,
+} from "@/hooks/reactquery/receipts";
 import { LATE_FEE_PATTERN, orderFeeItems } from "../chargeReport/feeItemOrder";
 import {
   type CellLine,
@@ -7,7 +10,6 @@ import {
   type MonthlyReportRow,
   type MonthlySummary,
   formatCollectionRate,
-  formatNumber,
   METRIC_COLUMNS,
   moneyLine,
 } from "./monthlyChargeData";
@@ -47,6 +49,8 @@ interface MonthAgg {
   lateFee: number;
   netPaid: number;
   unpaid: number;
+  /** 납기내금액 = 당월분 + 연체료. */
+  dueAmount: number;
   rate: number | null;
   feeItemAmounts: Record<number, number>;
 }
@@ -60,6 +64,11 @@ export interface BuildMonthlyOptions {
   paymentStartDate?: string | null;
   paymentEndDate?: string | null;
   configuredFeeItems?: Array<{ id: number; name: string; sortOrder: number }>;
+  /**
+   * 세대×월분 연체료(연체 요율표 + 납기후 가산, 수납 이력 표와 같은 계산).
+   * 연체료는 부과 항목이 아니라 미납원금 기준 계산값이라 명세 항목에서는 구할 수 없다.
+   */
+  lateFeeOf?: (row: ReceiptStatementPaymentRow) => number;
 }
 
 function inDateRange(dateIso: string, start?: string | null, end?: string | null) {
@@ -95,7 +104,6 @@ function aggregate(
     );
 
     const charged = rows.reduce((total, row) => total + (row.charged ?? 0), 0);
-    const unpaid = rows.reduce((total, row) => total + (row.unpaid ?? 0), 0);
     const households = rows.filter((row) => (row.charged ?? 0) > 0).length;
 
     const scopedPayments = dateFilterActive
@@ -106,15 +114,21 @@ function aggregate(
       ? scopedPayments.reduce((total, payment) => total + payment.amount, 0)
       : rows.reduce((total, row) => total + row.paid, 0);
 
-    let lateFee = 0;
+    const lateFee = options.lateFeeOf
+      ? rows.reduce((total, row) => total + options.lateFeeOf!(row), 0)
+      : 0;
+    // 미납액 = 납기내금액 − 당월수납액(연체료 포함). 수납일 필터 중엔 필터된 수납액 기준.
+    const dueAmount = charged + lateFee;
+    const unpaid = dateFilterActive
+      ? dueAmount - paid
+      : rows.reduce((total, row) => total + (row.unpaid ?? 0), 0) + lateFee;
+
     const feeItemAmounts: Record<number, number> = {};
     for (const doc of docs) {
       for (const item of doc.items) {
         if (!item.charged) continue;
-        if (LATE_FEE_PATTERN.test(item.name)) {
-          lateFee += item.amount;
-          continue;
-        }
+        // 연체 항목은 관리비 항목 열에서 뺀다(연체료는 위에서 계산).
+        if (LATE_FEE_PATTERN.test(item.name)) continue;
         feeItemAmounts[item.feeItemId] = (feeItemAmounts[item.feeItemId] ?? 0) + item.amount;
         if (!feeItemSeen.has(item.feeItemId)) {
           feeItemSeen.add(item.feeItemId);
@@ -130,18 +144,28 @@ function aggregate(
       paid,
       fee,
       lateFee,
-      netPaid: paid - fee,
+      // 실수납액 = 당월수납액 + 연체료 − 수수료
+      netPaid: paid + lateFee - fee,
       unpaid,
+      dueAmount,
       rate: charged > 0 ? (paid / charged) * 100 : null,
       feeItemAmounts,
     };
   }).sort((a, b) => b.period.localeCompare(a.period));
 
-  const feeItems = orderFeeItems(options.configuredFeeItems, feeItemOrder);
+  // 열은 항목등록 관리의 현재 항목만 쓴다(삭제된 과거 항목이 열로 되살아나지 않게).
+  // 설정 조회 전/실패 시에만 고지서 스냅샷 항목으로 대체한다.
+  const hasConfigured = (options.configuredFeeItems?.length ?? 0) > 0;
+  const feeItems = orderFeeItems(options.configuredFeeItems, hasConfigured ? [] : feeItemOrder);
   return { months, feeItems };
 }
 
 const periodLabel = (period: string) => `${period.slice(0, 4)} ${period.slice(5, 7)}`;
+
+/** 수수료는 차감 항목이라 음수(빨강)로 표기한다. 0은 그대로 0. */
+function feeLine(fee: number): CellLine {
+  return moneyLine(fee === 0 ? 0 : -fee);
+}
 
 /** 메트릭 4열(ym/current/paid/unpaid)의 셀 라인. */
 function metricCells(month: MonthAgg | null, isTotal: boolean): CellLine[][] {
@@ -151,15 +175,14 @@ function metricCells(month: MonthAgg | null, isTotal: boolean): CellLine[][] {
     month.rate === null
       ? { text: "" }
       : { text: formatCollectionRate(month.rate), tone: "red" },
-    { text: formatNumber(month.fee), tone: month.fee < 0 ? "red" : "default" },
+    feeLine(month.fee),
   ];
 
   return [
     [{ text: periodLabel(month.period) }, { text: String(month.households) }],
     currentLines,
     [moneyLine(month.paid), moneyLine(month.lateFee), moneyLine(month.netPaid)],
-    // 납기내금액은 당월 부과액(연체료 제외 정상 납부액)으로 표기.
-    [moneyLine(month.unpaid), moneyLine(month.lateFee), moneyLine(month.charged)],
+    [moneyLine(month.unpaid), moneyLine(month.lateFee), moneyLine(month.dueAmount)],
   ];
 }
 
@@ -207,6 +230,7 @@ export function buildMonthlyReport(
   const totalLateFee = sum(months, (m) => m.lateFee);
   const totalNetPaid = sum(months, (m) => m.netPaid);
   const totalUnpaid = sum(months, (m) => m.unpaid);
+  const totalDueAmount = sum(months, (m) => m.dueAmount);
   const totalFeeItemAmounts: Record<number, number> = {};
   for (const month of months) {
     for (const [id, amount] of Object.entries(month.feeItemAmounts)) {
@@ -222,10 +246,10 @@ export function buildMonthlyReport(
       [
         moneyLine(totalCharged),
         { text: "" },
-        { text: formatNumber(totalFee), tone: totalFee < 0 ? "red" : "default" },
+        feeLine(totalFee),
       ],
       [moneyLine(totalPaid), moneyLine(totalLateFee), moneyLine(totalNetPaid)],
-      [moneyLine(totalUnpaid), moneyLine(totalLateFee), moneyLine(totalCharged)],
+      [moneyLine(totalUnpaid), moneyLine(totalLateFee), moneyLine(totalDueAmount)],
       ...feeGroups.map((group) =>
         group.map((item) => moneyLine(totalFeeItemAmounts[item.feeItemId] ?? 0)),
       ),
@@ -237,7 +261,7 @@ export function buildMonthlyReport(
     paymentDate: summaryMeta.paymentDate,
     totalCurrentPaid: totalPaid,
     totalLateFee,
-    totalFee,
+    totalFee: totalFee === 0 ? 0 : -totalFee,
     totalPaid: totalNetPaid,
   };
 
