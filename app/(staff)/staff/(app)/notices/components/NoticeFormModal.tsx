@@ -195,7 +195,7 @@ function NoticeFormContent({
               unstyled
               id="notice-title"
               {...register("title")}
-              maxLength={200}
+              maxLength={40}
               placeholder="예) 저수조 청소로 오전 단수 예정"
               aria-invalid={errors.title ? true : undefined}
               aria-describedby={errors.title ? "notice-title-error" : undefined}

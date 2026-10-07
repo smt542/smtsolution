@@ -117,6 +117,38 @@ function NumberField({
   );
 }
 
+// 단가는 소수점(예: 125.5)을 받는다. 입력 중 "125."처럼 숫자로 못 되돌리는 문자열은 draft로 들고 있다.
+function DecimalField({
+  value,
+  onChange,
+  className,
+  ariaLabel,
+}: {
+  value: number;
+  onChange: (n: number) => void;
+  className: string;
+  ariaLabel?: string;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  return (
+    <Input
+      unstyled
+      className={className}
+      inputMode="decimal"
+      value={draft ?? (value ? value.toLocaleString(undefined, { maximumFractionDigits: 4 }) : "")}
+      onChange={(e) => {
+        const [int = "", ...frac] = e.target.value.replace(/[^0-9.]/g, "").split(".");
+        const text = frac.length ? `${int}.${frac.join("")}` : int;
+        setDraft(text);
+        onChange(Number(text) || 0);
+      }}
+      onBlur={() => setDraft(null)}
+      placeholder="0"
+      aria-label={ariaLabel}
+    />
+  );
+}
+
 function statementDate(value: string): string {
   return value ? value.replaceAll("-", ".") : "—";
 }
@@ -432,7 +464,7 @@ export default function PartnerMsNewWorkspace({
                 </div>
                 <div className={styles.fld}>
                   <span className={styles.fldLabel}>단가</span>
-                  <NumberField className={styles.fldNum} value={u.price} onChange={(n) => patchUtil(i, { price: n })} />
+                  <DecimalField className={styles.fldNum} value={u.price} onChange={(n) => patchUtil(i, { price: n })} />
                 </div>
                 <div className={styles.fld}>
                   <span className={styles.fldLabel}>입금계좌</span>
@@ -714,7 +746,14 @@ export default function PartnerMsNewWorkspace({
             취소
           </PartnerButton>
         )}
-        <PartnerButton variant="primary" type="button" className="flex-1" onClick={() => setConfirmKind("save")} disabled={isSettlementMutating}>
+        <PartnerButton variant="primary" type="button" className="flex-1" onClick={() => {
+          // 퇴실일자가 없으면 저장 확인창을 띄우지 않고 바로 안내한다.
+          if (!state?.moveOutDate) {
+            showToast("퇴실일자를 선택해 주세요");
+            return;
+          }
+          setConfirmKind("save");
+        }} disabled={isSettlementMutating}>
           저장
         </PartnerButton>
       </PartnerBottomActionBar>

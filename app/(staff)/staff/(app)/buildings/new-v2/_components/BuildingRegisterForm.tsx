@@ -11,7 +11,14 @@ import {
   useUploadAttachments,
   type Attachment,
 } from "@/hooks/reactquery/attachments";
-import { useDeleteBuilding, useSaveBuilding, useStaffOptions, useBuildingFull } from "@/hooks/reactquery/buildings";
+import {
+  isBuildingCodeTaken,
+  useBuildingCodeTaken,
+  useDeleteBuilding,
+  useSaveBuilding,
+  useStaffOptions,
+  useBuildingFull,
+} from "@/hooks/reactquery/buildings";
 import { useBuildingTypes } from "@/hooks/reactquery/buildingTypes";
 import { RegisterHeader } from "./RegisterHeader";
 import { BasicInfoSection } from "./sections/BasicInfoSection";
@@ -89,10 +96,20 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
     setDirty(true);
   };
 
+  // 코드 3자리를 다 입력하는 즉시 중복을 확인해 입력칸 아래에 알린다(수정 모드는 자기 자신 제외).
+  const codeTaken = useBuildingCodeTaken(state.code, persistedBuildingId ?? undefined);
+  const codeError = codeTaken.data ? "이미 사용 중인 건물 코드예요. 다른 코드를 입력해 주세요." : undefined;
+
   const onSave = async () => {
     if (isSavingBuilding) return;
     if (!/^\d{3}$/.test(state.code)) {
       appToast.warning("건물 코드를 숫자 3자리로 입력해 주세요.");
+      return;
+    }
+    // 입력 뒤 다른 사용자가 같은 코드를 등록했을 수 있어 저장 직전에 한 번 더 확인한다.
+    if (await isBuildingCodeTaken(state.code, persistedBuildingId ?? undefined)) {
+      await codeTaken.refetch();
+      appToast.warning("이미 사용 중인 건물 코드예요. 다른 코드를 입력해 주세요.");
       return;
     }
     if (!state.name.trim()) {
@@ -252,7 +269,7 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
         </div>
       ) : (
         <div className="flex flex-1 flex-col gap-[16px] overflow-y-auto px-[24px] pb-[30px] pt-[22px]">
-          <BasicInfoSection value={state} patch={patch} buildingTypeOptions={resolvers.typeLabels} />
+          <BasicInfoSection value={state} patch={patch} buildingTypeOptions={resolvers.typeLabels} codeError={codeError} />
           <VendorAssignmentSection
             value={state}
             patch={patch}

@@ -388,7 +388,7 @@ export default function ElectricityUtilitiesWorkspace() {
         </select>
       </label>
 
-      <div className="mx-auto grid min-h-[803px] max-w-[1632px] grid-cols-1 items-stretch gap-4 min-[1101px]:h-[calc(100vh-110px)] min-[1101px]:grid-cols-[minmax(0,322px)_minmax(0,1fr)]">
+      <div className="grid min-h-[803px] w-full grid-cols-1 items-stretch gap-4 min-[1101px]:h-[calc(100vh-110px)] min-[1101px]:grid-cols-[minmax(0,322px)_minmax(0,1fr)]">
         <UtilityBuildingRail
           buildings={buildings}
           selectedBuildingId={buildingId}

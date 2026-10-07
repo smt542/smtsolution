@@ -6,4 +6,5 @@ export const buildingKeys = {
   full: (id: number) => ["buildings", "full", id] as const,
   staffOptions: () => ["buildings", "staffOptions"] as const,
   directory: () => ["buildings", "directory"] as const,
+  codeTaken: (code: string, excludeId?: number) => ["buildings", "codeTaken", code, excludeId ?? 0] as const,
 };

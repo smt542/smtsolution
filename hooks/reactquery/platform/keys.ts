@@ -29,6 +29,7 @@ export const platformKeys = {
         opts.pageSize ?? 10,
       ] as const
     : [...platformKeys.all, "hq-accounts"] as const,
+  canManageHqAccounts: () => [...platformKeys.all, "can-manage-hq-accounts"] as const,
   settings: () => [...platformKeys.all, "settings"] as const,
   billing: (month: string) => [...platformKeys.all, "billing", month] as const,
   monthlySendCost: (year: number) =>

@@ -18,10 +18,13 @@ export function BasicInfoSection({
   value,
   patch,
   buildingTypeOptions,
+  codeError,
 }: {
   value: RegisterFormState;
   patch: (p: Partial<RegisterFormState>) => void;
   buildingTypeOptions: string[];
+  /** 건물 코드 입력칸 아래에 보여 줄 오류(중복 등). */
+  codeError?: string;
 }) {
   const typeOptions = Array.from(new Set([...PROTOTYPE_BUILDING_TYPES, ...buildingTypeOptions]));
 
@@ -29,8 +32,8 @@ export function BasicInfoSection({
     <CollapsibleFormSection index={1} title="기본 정보">
       <FormGrid>
         {/* 정본 #bldCode: 숫자만 3자리(글자는 입력하는 즉시 지운다). */}
-        <TextField label="건물 코드" required placeholder="숫자 3자리" inputMode="numeric" maxLength={3} value={value.code} onChange={(v) => patch({ code: v.replace(/\D/g, "").slice(0, 3) })} />
-        <TextField label="건물명" placeholder="건물명 입력" value={value.name} onChange={(v) => patch({ name: v })} />
+        <TextField label="건물 코드" required placeholder="숫자 3자리" inputMode="numeric" maxLength={3} value={value.code} error={codeError} onChange={(v) => patch({ code: v.replace(/\D/g, "").slice(0, 3) })} />
+        <TextField label="건물명" required placeholder="건물명 입력" value={value.name} onChange={(v) => patch({ name: v })} />
         <SelectField label="건물 유형" placeholder="선택" options={typeOptions} value={value.buildingType} onChange={(v) => patch({ buildingType: v })} />
         <TextField label="공동현관" placeholder="공동현관 비밀번호" value={value.gate} onChange={(v) => patch({ gate: v })} />
         <AddressField label="주소" required value={value.address} detail={value.addressDetail} onChange={(v) => patch({ address: v })} onDetailChange={(v) => patch({ addressDetail: v })} />

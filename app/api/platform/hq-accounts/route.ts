@@ -22,9 +22,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
   }
 
-  const { data: isPlatformAdmin } = await supabase.rpc("current_user_is_platform_admin");
-  if (!isPlatformAdmin) {
-    return NextResponse.json({ error: "통합관리자 권한이 필요합니다." }, { status: 403 });
+  // 계정 추가·수정·삭제는 마스터·운영만(지원·영업은 조회 전용).
+  const { data: canManage } = await supabase.rpc("current_user_can_manage_hq_accounts");
+  if (!canManage) {
+    return NextResponse.json({ error: "본사 계정 관리 권한이 필요합니다." }, { status: 403 });
   }
 
   const body = await req.json().catch(() => null) as Record<string, unknown> | null;

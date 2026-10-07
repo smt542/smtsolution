@@ -8,7 +8,7 @@ export function createNoticeFormSchema(now = new Date()) {
   return z.object({
     buildingIds: z.array(z.number().int().positive()).default([]),
     noticeType: z.enum(NOTICE_TYPES),
-    title: z.string().trim().min(1, "제목을 입력해 주세요").max(200, "제목은 200자 이하로 입력해 주세요"),
+    title: z.string().trim().min(1, "제목을 입력해 주세요").max(40, "제목은 40자 이하로 입력해 주세요"),
     content: z.string().trim().min(1, "내용을 입력해 주세요").max(10_000, "내용은 10,000자 이하로 입력해 주세요"),
     publishMode: z.enum(NOTICE_PUBLISH_MODES),
     scheduledAt: nullableDateTime("예약 게시 일시를 확인해 주세요"),

@@ -41,14 +41,18 @@ export function InquiryView({ buildings, tenants }: { buildings: BuildingRow[]; 
     () => buildings.filter((b) => !kw || `${b.name} ${b.address ?? ""}`.toLowerCase().includes(kw)),
     [buildings, kw],
   );
+  const kwDigits = kw.replace(/\D/g, "");
   const tList = useMemo(
     () =>
       tenants.filter(
-        // 연락처는 서버(partner_search_tenants)가 원문으로 검색한다. 여기서 t.phone은
-        // 이미 마스킹된 값이라 다시 걸면 서버가 찾아온 행을 오히려 버리게 된다.
-        (t) => !kw || `${t.tenant_name ?? ""} ${t.building_name}`.toLowerCase().includes(kw),
+        // 서버(partner_search_tenants)는 검색어 없이 전체를 내려주므로 이름·건물명·전화번호를 여기서 거른다.
+        // 전화번호는 하이픈 유무와 관계없이 숫자만 비교한다.
+        (t) =>
+          !kw ||
+          `${t.tenant_name ?? ""} ${t.building_name}`.toLowerCase().includes(kw) ||
+          (kwDigits !== "" && (t.phone ?? "").replace(/\D/g, "").includes(kwDigits)),
       ),
-    [tenants, kw],
+    [tenants, kw, kwDigits],
   );
 
   const empty = tab === "bld" ? bList.length === 0 : tList.length === 0;

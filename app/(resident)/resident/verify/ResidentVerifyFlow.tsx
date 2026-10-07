@@ -6,6 +6,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import OnboardingPageScaffold from "@/app/(resident)/_components/OnboardingPageScaffold";
 import ResidentBottomSheet from "@/app/(resident)/_components/ResidentBottomSheet";
+import { showResidentToast } from "@/app/(resident)/_components/residentToast";
 import { Input } from "@/components/common";
 import {
   automatch,
@@ -116,18 +117,34 @@ export default function ResidentVerifyFlow() {
   const confirmHousehold = async () => {
     if (!candidate) return;
 
-    await confirm(candidate.occupancyId);
+    try {
+      await confirm(candidate.occupancyId);
+    } catch (error) {
+      // 이미 다른 계정이 연결된 세대(res_claims_one_linked_per_occupancy) 등 — 무반응으로 두지 않는다.
+      const linkedElsewhere = error instanceof Error && error.message.includes("res_claims_one_linked_per_occupancy");
+      showResidentToast(
+        linkedElsewhere
+          ? "이미 다른 계정이 연결된 세대예요. 관리사무소에 문의해 주세요"
+          : "세대 연결에 실패했어요. 잠시 후 다시 시도해 주세요",
+      );
+      return;
+    }
     router.push("/resident/notify");
   };
 
   const requestUnitClaim = async () => {
     if (!selectedBuilding || !unitValue) return;
 
-    await requestClaim({
-      buildingId: selectedBuilding.id,
-      unitText: unitValue,
-      buildingName: selectedBuilding.name,
-    });
+    try {
+      await requestClaim({
+        buildingId: selectedBuilding.id,
+        unitText: unitValue,
+        buildingName: selectedBuilding.name,
+      });
+    } catch {
+      showResidentToast("세대 확인 요청에 실패했어요. 잠시 후 다시 시도해 주세요");
+      return;
+    }
     router.push("/resident/pending");
   };
 

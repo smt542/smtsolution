@@ -190,7 +190,7 @@ export function NoticeDetailModal({
                 id="notice-detail-title"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                maxLength={200}
+                maxLength={40}
                 placeholder="공지 제목"
                 className="h-[42px] w-full rounded-[11px] border border-[#e8ebee] bg-white px-[14px] text-[14px] font-medium text-[#191f28] outline-none placeholder:text-[#b0b8c1] focus:border-[#14a497]"
               />

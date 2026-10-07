@@ -17,6 +17,7 @@ import {
   listPointReservations,
   type PointReservationQuery,
 } from "./pointBilling";
+import { createClient } from "@/lib/supabase/client";
 import { platformKeys } from "./keys";
 import { SIGNED_URL_GC_TIME_MS, SIGNED_URL_STALE_TIME_MS } from "@/lib/attachments/signedUrl";
 
@@ -59,6 +60,18 @@ export function usePlatformHqAccounts(opts: PlatformHqAccountQuery = {}) {
     queryKey: platformKeys.hqAccounts(opts),
     queryFn: () => listPlatformHqAccounts(opts),
     placeholderData: keepPreviousData,
+  });
+}
+
+/** 본사 계정 추가·수정·삭제 권한(마스터·운영). 지원·영업은 false. */
+export function useCanManageHqAccounts() {
+  return useQuery({
+    queryKey: platformKeys.canManageHqAccounts(),
+    queryFn: async () => {
+      const { data, error } = await createClient().rpc("current_user_can_manage_hq_accounts");
+      if (error) throw error;
+      return data === true;
+    },
   });
 }
 
