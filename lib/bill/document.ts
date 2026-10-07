@@ -1,7 +1,6 @@
 // lib/bill/document.ts
 import { formatWon } from "@/lib/format";
 
-export const BILL_QR_PLACEHOLDER_BASE = "https://bill.example.com/apply";
 export const PROGRAM_COMPANY_NAME = "관리비서";
 
 export type BillNameDisplay = "none" | "name" | "code";
@@ -24,19 +23,35 @@ export function unitLabel(
   return payerName?.trim() || tenantName?.trim() || unitNo;
 }
 
-export function buildQrPayload(unitId: number, period: string, base?: string | null): string {
-  const b = base && base.trim() ? base : BILL_QR_PLACEHOLDER_BASE;
-  return `${b}?unit=${unitId}&period=${period}`;
+/**
+ * 서명 무로그인 고지서 상세 경로 `/share/bill/{building}/{unit}/{YYYY-MM}?s={sig}`.
+ * period는 "YYYY-MM" 또는 "YYYY-MM-01" 모두 허용(앞 7자만 사용).
+ * sig는 base64url(URL-safe)이라 별도 인코딩 불필요, unit_no만 인코딩한다.
+ */
+export function signedBillPath(link: {
+  buildingId: number;
+  unitNo: string;
+  period: string;
+  sig: string;
+  issuedDay?: number | null;
+}): string {
+  // issued_day를 반환하지 않는 DB(마이그 0175 미적용)에서는 d를 붙이지 않는다. 그러면
+  // 검증기가 4-arg 레거시 경로를 타서, 코드가 마이그레이션보다 먼저 배포돼도 현행
+  // 동작을 그대로 유지한다(Amplify 배포와 DB 적용은 원자적이지 않다).
+  const issuedDayQuery =
+    typeof link.issuedDay === "number" && Number.isFinite(link.issuedDay)
+      ? `&d=${link.issuedDay}`
+      : "";
+  return `/share/bill/${link.buildingId}/${encodeURIComponent(link.unitNo)}/${link.period.slice(0, 7)}?s=${link.sig}${issuedDayQuery}`;
 }
 
-export function buildOutputQrPayload(
-  kind: "giro" | "adjustment",
-  referenceId: number,
-  period: string,
-  base?: string | null,
-): string {
-  const b = base && base.trim() ? base : BILL_QR_PLACEHOLDER_BASE;
-  return `${b}?document=${kind}&ref=${referenceId}&period=${period}`;
+/**
+ * 종이 고지서 QR에 넣는 공개 고지서 전체 URL(`NEXT_PUBLIC_BASE_URL` + 서명 경로).
+ * 기준 주소가 없으면 빈 문자열을 돌려 QR을 그리지 않게 한다(임의 도메인을 인쇄하지 않는다).
+ */
+export function publicBillUrl(link: Parameters<typeof signedBillPath>[0]): string {
+  const base = (process.env.NEXT_PUBLIC_BASE_URL ?? "").trim().replace(/\/+$/, "");
+  return base ? `${base}${signedBillPath(link)}` : "";
 }
 
 export interface PrintableAccount { bank: string; acct: string; holder: string; }
@@ -122,6 +137,7 @@ export interface FaxDocumentData {
   customerNotice: string | null;
   unitNotice: string | null;
   dueDate: string | null;
+  /** 공개 고지서 URL. 서명 링크를 발급하지 못했거나 기준 주소가 없으면 빈 문자열(QR 생략). */
   qrPayload: string;
 }
 
@@ -151,7 +167,7 @@ export function buildFaxDocument(row: FaxDocumentRow): FaxDocumentData {
     customerNotice: row.customer_notice,
     unitNotice: row.unit_notice,
     dueDate: row.due_date,
-    qrPayload: buildOutputQrPayload("giro", row.unit_id, row.period),
+    qrPayload: "",
   };
 }
 

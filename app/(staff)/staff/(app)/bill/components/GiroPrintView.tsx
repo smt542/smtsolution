@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import type { BillDocument, BillTarget } from "@/hooks/reactquery/bill";
 import {
-  buildOutputQrPayload,
   formatBillAmount,
   giroDocumentAmount,
   displayUnitNo,
@@ -34,6 +33,8 @@ export interface GiroPrintViewProps {
   accounts: PrintableAccount[];
   customerNotice: string | null;
   stamps: GiroStampOptions;
+  /** 세대(unitId)별 공개 고지서 URL. 없는 세대는 QR을 그리지 않는다(임의 주소 인쇄 금지). */
+  qrUrls?: Record<number, string>;
   onReady?: () => void;
 }
 
@@ -48,6 +49,7 @@ export function GiroPrintView({
   accounts,
   customerNotice,
   stamps,
+  qrUrls,
   onReady,
 }: GiroPrintViewProps) {
   useEffect(() => {
@@ -93,10 +95,12 @@ export function GiroPrintView({
                   <p className="mt-1 text-sm font-bold">{building.name} · {periodLabel(period)}</p>
                   <p className="mt-1 text-xs text-slate-600">{building.address ?? "주소 미등록"}</p>
                 </div>
-                <div className="text-center">
-                  <QrCode value={buildOutputQrPayload("giro", document.unitId, period)} size={78} />
-                  <p className="mt-1 text-[9px]">고지서 확인 QR</p>
-                </div>
+                {qrUrls?.[document.unitId] ? (
+                  <div className="text-center">
+                    <QrCode value={qrUrls[document.unitId]} size={78} />
+                    <p className="mt-1 text-[9px]">고지서 확인 QR</p>
+                  </div>
+                ) : null}
               </header>
 
               <div className="mt-4 grid grid-cols-[1fr_1fr] border-y border-black text-sm">

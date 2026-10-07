@@ -126,6 +126,30 @@ export async function cancelPayment(paymentId: number): Promise<PaymentBalance> 
   return { charged: r.charged, paid: r.paid, unpaid: r.unpaid };
 }
 
+export type PaymentHistoryOp =
+  | { op: "cancel"; paymentId: number }
+  | ({ op: "record" } & RecordPaymentInput)
+  | ({ op: "edit" } & RecordPaymentEditInput);
+
+export interface SavePaymentHistoryResult { canceled: number; recorded: number; edited: number; }
+
+/** 수납 이력 일괄 저장: 취소·추가·수정을 한 트랜잭션(save_payment_history)으로 처리. 하나라도 실패하면 전부 롤백. */
+export async function savePaymentHistory(ops: PaymentHistoryOp[]): Promise<SavePaymentHistoryResult> {
+  const payload = ops.map((op) => {
+    if (op.op === "cancel") return { op: "cancel", payment_id: op.paymentId };
+    return {
+      op: op.op,
+      ...(op.op === "edit" ? { old_payment_id: op.oldPaymentId } : {}),
+      unit_id: op.unitId, period: op.period, amount: op.amount, fee: op.fee ?? 0,
+      method: op.method, kind: op.kind, memo: op.memo ?? null, paid_at: op.paidAt ?? null,
+    };
+  });
+  const { data, error } = await createClient().rpc("save_payment_history", { p_ops: payload });
+  if (error) throw new Error(error.message);
+  const r = data as SavePaymentHistoryResult;
+  return { canceled: r.canceled, recorded: r.recorded, edited: r.edited };
+}
+
 export async function listUnitPayments(unitId: number, period: string): Promise<UnitPayment[]> {
   const { data, error } = await createClient().rpc("list_unit_payments", { p_unit_id: unitId, p_period: period });
   if (error) throw new Error(error.message);

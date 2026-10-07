@@ -6,7 +6,9 @@ import {
   recordGiroPayments,
   recordPayment,
   recordPaymentEdit,
+  savePaymentHistory,
   type BankPaymentEntry,
+  type PaymentHistoryOp,
   type GiroPaymentEntry,
   type RecordPaymentEditInput,
   type RecordPaymentInput,
@@ -37,6 +39,16 @@ export function useCancelPayment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (paymentId: number) => cancelPayment(paymentId),
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: paymentKeys.all }),
+      qc.invalidateQueries({ queryKey: receiptKeys.all }),
+    ]),
+  });
+}
+export function useSavePaymentHistory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ops: PaymentHistoryOp[]) => savePaymentHistory(ops),
     onSuccess: () => Promise.all([
       qc.invalidateQueries({ queryKey: paymentKeys.all }),
       qc.invalidateQueries({ queryKey: receiptKeys.all }),

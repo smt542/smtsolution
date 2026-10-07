@@ -60,7 +60,7 @@ function periodLabel(period: string): string {
   return `${year}년 ${Number(month)}월분`;
 }
 
-function FaxDocument({ doc, qrDataUrl }: { doc: FaxDocumentData; qrDataUrl: string }) {
+function FaxDocument({ doc, qrDataUrl }: { doc: FaxDocumentData; qrDataUrl: string | null }) {
   const notice = [doc.customerNotice, doc.unitNotice].filter(Boolean).join("\n");
   return (
     <Document>
@@ -73,12 +73,14 @@ function FaxDocument({ doc, qrDataUrl }: { doc: FaxDocumentData; qrDataUrl: stri
             </Text>
             <Text style={styles.addr}>{doc.building.address ?? "주소 미등록"}</Text>
           </View>
-          <View>
-            {/* @react-pdf/renderer Image는 HTML img가 아니며 alt를 지원하지 않는다. */}
-            {/* eslint-disable-next-line jsx-a11y/alt-text */}
-            <Image src={qrDataUrl} style={{ width: 60, height: 60 }} />
-            <Text style={styles.qrCaption}>고지서 확인 QR</Text>
-          </View>
+          {qrDataUrl ? (
+            <View>
+              {/* @react-pdf/renderer Image는 HTML img가 아니며 alt를 지원하지 않는다. */}
+              {/* eslint-disable-next-line jsx-a11y/alt-text */}
+              <Image src={qrDataUrl} style={{ width: 60, height: 60 }} />
+              <Text style={styles.qrCaption}>고지서 확인 QR</Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.infoRow}>
@@ -148,6 +150,7 @@ export async function renderFaxPdf(doc: FaxDocumentData): Promise<Buffer> {
     throw new Error("fax document is missing required fields");
   }
   ensureFont();
-  const qrDataUrl = await QRCode.toDataURL(doc.qrPayload, { margin: 0, width: 120 });
+  // 공개 고지서 URL이 없으면(서명 미발급·기준 주소 없음) QR을 생략한다.
+  const qrDataUrl = doc.qrPayload ? await QRCode.toDataURL(doc.qrPayload, { margin: 0, width: 120 }) : null;
   return renderToBuffer(<FaxDocument doc={doc} qrDataUrl={qrDataUrl} />);
 }

@@ -73,6 +73,8 @@ const rowToBillDetail = (row: ResidentBillDetailRow): ResidentBillDetail => ({
   mgmtBank: row.mgmt_bank,
   mgmtAcct: row.mgmt_acct,
   mgmtHolder: row.mgmt_holder,
+  carryoverUnpaid: row.carryover_unpaid ?? 0,
+  carryoverLateFee: row.carryover_late_fee ?? 0,
 });
 
 export async function getResidentBillPageData(): Promise<{

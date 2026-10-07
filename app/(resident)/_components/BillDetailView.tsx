@@ -115,17 +115,22 @@ export default function BillDetailView(props: BillDetailViewProps) {
   const charge = perSum + comSum;
 
   const totalAmount = detail.totalAmount ?? 0;
+  // 당월 미수납 원금(납부 상태·납부할 금액 판정용).
   const unpaidAmount = detail.unpaidAmount ?? 0;
-  const lateFee = detail.lateFee ?? 0;
-  const grandTotal = totalAmount + lateFee;
-  const isDue = unpaidAmount > 0;
+  // 정산의 미납액·연체료 = 전월까지 이월된 미납과 그 연체료(정책: 세입자_관리비 상세고지서 3.4).
+  const carryoverUnpaid = detail.carryoverUnpaid ?? 0;
+  const lateFee = detail.carryoverLateFee ?? 0;
+  // 총 관리비 = 당월 부과액 + 미납액(이월) + 연체료
+  const grandTotal = totalAmount + carryoverUnpaid + lateFee;
+  const outstanding = unpaidAmount + carryoverUnpaid;
+  const isDue = outstanding > 0;
 
   const account =
     detail.mgmtBank && detail.mgmtAcct
       ? `${detail.mgmtBank} ${detail.mgmtAcct}`
       : "";
-  // 계좌·금액 복사 = 실제 납부할 금액(미납 원금 + 연체료). 완납 월은 참고용 총액.
-  const payableAmount = unpaidAmount > 0 ? unpaidAmount + lateFee : totalAmount;
+  // 계좌·금액 복사 = 실제 납부할 금액(당월 미납 + 이월 미납 + 연체료). 완납이면 참고용 당월 부과액.
+  const payableAmount = isDue ? outstanding + lateFee : totalAmount;
   const accountWithAmount = account
     ? `${account} ${formatWon(payableAmount)}`
     : "";
@@ -213,7 +218,7 @@ export default function BillDetailView(props: BillDetailViewProps) {
         </div>
         <div className={styles.it}>
           <div className={styles.finNm}>미납액</div>
-          <div className={styles.vv}>{formatWon(unpaidAmount)}</div>
+          <div className={styles.vv}>{formatWon(carryoverUnpaid)}</div>
         </div>
         <div className={styles.it}>
           <div className={styles.finNm}>연체료</div>

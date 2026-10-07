@@ -7,8 +7,8 @@ import { DpDatePicker } from "@/components/common/DpDatePicker";
 import { CloseIcon, UnitCardIcon } from "@/components/icons";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
-import { useCancelPayment, useRecordPayment, useRecordPaymentEdit } from "@/hooks/reactquery/payments";
-import type { PaymentKind, PaymentMethod } from "@/hooks/reactquery/payments";
+import { useSavePaymentHistory } from "@/hooks/reactquery/payments";
+import type { PaymentHistoryOp, PaymentKind, PaymentMethod } from "@/hooks/reactquery/payments";
 import { useOccupancies } from "@/hooks/reactquery/occupancies";
 import { useLateFeeSettings, useSetupConfig } from "@/hooks/reactquery/setupConfig";
 import {
@@ -163,9 +163,7 @@ export function PaymentHistorySection({
   canSendMessages: boolean;
 }) {
   const queryClient = useQueryClient();
-  const record = useRecordPayment();
-  const recordEdit = useRecordPaymentEdit();
-  const cancel = useCancelPayment();
+  const saveHistory = useSavePaymentHistory();
   const { data: lateFeeRateTiers = [] } = useLateFeeRateTiers(hasUnit ? orgId : null);
   const { data: setupConfig } = useSetupConfig(hasUnit ? orgId : undefined);
   const draftId = useRef(0);
@@ -196,8 +194,7 @@ export function PaymentHistorySection({
     [historySummaries, lateFeeEnabledByOccupancy, lateFeeSettings, payments, period, summary, tiers],
   );
   const visibleRows = isEditing && canEdit ? draftRows : historyRows;
-  const isPaymentSavePending = record.isPending || recordEdit.isPending;
-  const isPaymentMutationPending = isPaymentSavePending || cancel.isPending;
+  const isPaymentMutationPending = saveHistory.isPending;
 
   const refreshSummary = async () => {
     const invalidations = [
@@ -389,83 +386,55 @@ export function PaymentHistorySection({
       }
     }
 
-    const successfulKeys = new Set<string>();
-    let addedCount = 0;
-    try {
-      for (const row of draftRows) {
-        if (
-          row.cancelRequested
-          && row.payment?.status === "active"
-          && !row.cancelCompleted
-        ) {
-          await cancel.mutateAsync(row.payment.id);
-          successfulKeys.add(row.key);
-          continue;
-        }
-
-        const amount = normalizeAmount(row.fields.amount);
-        if (isNewDraft(row) && !row.saved) {
-          if (amount <= 0) continue;
-          await record.mutateAsync({
-            unitId,
-            period: row.rowPeriod,
-            amount,
-            fee: normalizeAmount(row.fields.fee),
-            method: row.fields.method,
-            kind: row.fields.kind,
-            paidAt: row.fields.paidAt || null,
-            memo: row.fields.memo || null,
-          });
-          addedCount += 1;
-          successfulKeys.add(row.key);
-          continue;
-        }
-
-        const needsEdit = Boolean(
-          row.payment
-          && row.payment.status === "active"
-          && !row.cancelRequested
-          && !row.cancelCompleted
-          && !row.saved
-          && row.originalFields
-          && !fieldsEqual(row.fields, row.originalFields),
-        );
-        if (needsEdit && row.payment) {
-          await recordEdit.mutateAsync({
-            oldPaymentId: row.payment.id,
-            unitId,
-            period: row.rowPeriod,
-            amount,
-            fee: normalizeAmount(row.fields.fee),
-            method: row.fields.method,
-            kind: row.fields.kind,
-            paidAt: row.fields.paidAt || null,
-            memo: row.fields.memo || null,
-          });
-          successfulKeys.add(row.key);
-        }
+    const ops: PaymentHistoryOp[] = [];
+    for (const row of draftRows) {
+      if (
+        row.cancelRequested
+        && row.payment?.status === "active"
+        && !row.cancelCompleted
+      ) {
+        ops.push({ op: "cancel", paymentId: row.payment.id });
+        continue;
       }
 
-      if (successfulKeys.size > 0) await refreshSummary();
+      const amount = normalizeAmount(row.fields.amount);
+      const input = {
+        unitId,
+        period: row.rowPeriod,
+        amount,
+        fee: normalizeAmount(row.fields.fee),
+        method: row.fields.method,
+        kind: row.fields.kind,
+        paidAt: row.fields.paidAt || null,
+        memo: row.fields.memo || null,
+      };
+      if (isNewDraft(row) && !row.saved) {
+        if (amount > 0) ops.push({ op: "record", ...input });
+        continue;
+      }
+
+      const needsEdit = Boolean(
+        row.payment
+        && row.payment.status === "active"
+        && !row.cancelRequested
+        && !row.cancelCompleted
+        && !row.saved
+        && row.originalFields
+        && !fieldsEqual(row.fields, row.originalFields),
+      );
+      if (needsEdit && row.payment) ops.push({ op: "edit", oldPaymentId: row.payment.id, ...input });
+    }
+
+    // 취소·추가·수정을 한 트랜잭션으로 저장한다. 하나라도 실패하면 전부 롤백되므로 초안은 그대로 둔다.
+    try {
+      const result = ops.length > 0 ? await saveHistory.mutateAsync(ops) : null;
+      if (result) await refreshSummary();
       setIsEditing(false);
       setDraftRows([]);
       setFocusRowKey(null);
+      const addedCount = result?.recorded ?? 0;
       toast.success(addedCount > 0 ? `${addedCount}건이 추가되었어요` : "수납 이력을 저장했어요");
     } catch (error) {
-      setDraftRows((current) => current.map((row) => {
-        if (!successfulKeys.has(row.key)) return row;
-        if (row.cancelRequested && row.payment) {
-          return { ...row, cancelRequested: false, cancelCompleted: true, saved: true };
-        }
-        return { ...row, saved: true };
-      }));
-      if (successfulKeys.size > 0) {
-        try {
-          await refreshSummary();
-        } catch {
-          // 성공한 변동은 이미 서버에 반영됐으므로 실패 토스트는 원래 저장 실패만 알린다.
-        }
-      }
       toast.error(error, "저장하지 못했어요");
     }
   };

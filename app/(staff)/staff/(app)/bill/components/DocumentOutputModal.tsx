@@ -9,13 +9,14 @@ import { CloseIcon, PrinterIcon } from "@/components/icons";
 import { billKeys, getBillDocuments, listBillTargets, useAdjustmentStatements, useIssueBills, useSendBillFaxes, type BillDocument, type BillTarget } from "@/hooks/reactquery/bill";
 import { billingKeys, getBillingPeriodSetting } from "@/hooks/reactquery/billing";
 import { cmsDownloadUrl } from "@/hooks/reactquery/payments";
+import { useStaffSignedBillLinks } from "@/hooks/reactquery/residentBilling";
 import { useSenderDefaults } from "@/hooks/reactquery/senderDefaults";
 import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
 import { formatPhone, normalizePhone } from "@/lib/format";
 import { resolveDisplaySender } from "@/lib/messaging/senderDisplay";
 import { currentPeriod } from "@/lib/billing/period";
 import { matchesBuildingGroup } from "@/lib/buildings/groupType";
-import { displayUnitNo, type PrintableAccount } from "@/lib/bill/document";
+import { displayUnitNo, publicBillUrl, type PrintableAccount } from "@/lib/bill/document";
 import type { BillBuilding, OutputDocumentType } from "../types";
 import type { GiroOutputDocument, GiroPrintViewProps } from "./GiroPrintView";
 import { AutoDebitTable, filterAutoDebitRowsByGroup, isBuildingInAutoDebitGroup } from "./output-modal/AutoDebitTable";
@@ -117,6 +118,11 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
     ? previewUnitId
     : validSelectedUnitIds[0] ?? null;
   const giroDocuments = allGiroDocuments.filter(({ document }) => validSelectedUnitIds.includes(document.unitId));
+  // 지로 QR = 세대별 공개 고지서 서명 URL(발급일 기준 30일 유효). 부과 미확정 세대는 링크가 없어 QR을 생략한다.
+  const signedLinksQuery = useStaffSignedBillLinks(period, validSelectedUnitIds, type === "giro");
+  const giroQrUrls: Record<number, string> = Object.fromEntries((signedLinksQuery.data ?? [])
+    .map((link) => [link.unitId, publicBillUrl({ ...link, period })] as const)
+    .filter(([, url]) => Boolean(url)));
   const allTargets = currentTargetsByBuilding.flatMap(({ building, targets }) => targets.map((target) => ({ building, target })));
   const autoDebitRows = allTargets.filter(({ target }) => target.autoDebit);
   const autoDebitPrintRows = filterAutoDebitRowsByGroup(autoDebitRows, group);
@@ -336,7 +342,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
     }
   };
 
-  const printPreview = type === "giro" ? <GiroPrintView companyName={companyName} period={period} documents={giroDocuments} accounts={accounts} customerNotice={customerNotice} stamps={outputStamps} onReady={handlePreviewReady} /> : null;
+  const printPreview = type === "giro" ? <GiroPrintView companyName={companyName} period={period} documents={giroDocuments} accounts={accounts} customerNotice={customerNotice} stamps={outputStamps} qrUrls={giroQrUrls} onReady={handlePreviewReady} /> : null;
   const selectedUnitCount = selectedUnitIds.length;
   const hasStampBar = type === "giro" || type === "fax";
   // 정본 `#giroFoc`: 스탬프를 찍을 고지서(개별) 또는 전체 건수.
@@ -347,7 +353,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
     : null;
   // 정본 `.lg-print`는 건물만 고르면 켜진다(`pb.disabled=!sel.size`). 호수가 없으면 누를 때 안내한다.
   const printDisabled = type === "giro"
-    ? selectedBuildingIds.length === 0 || isPreviewBusy || isError || issueBills.isPending || (hasPrintableData && !previewReady)
+    ? selectedBuildingIds.length === 0 || isPreviewBusy || isError || issueBills.isPending || (hasPrintableData && !previewReady) || signedLinksQuery.isLoading
     : !hasPrintableData || isPreviewBusy;
   // 정본 빈 상태 문구(`adjPreview`): 13px/500 t3, 줄 간격 1.6.
   const previewMessage = "relative flex min-h-0 flex-1 items-center justify-center text-center text-[13px] font-medium leading-[1.6]";

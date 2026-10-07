@@ -71,6 +71,8 @@ export interface ResidentBillDetailRow {
   mgmt_bank: string | null;
   mgmt_acct: string | null;
   mgmt_holder: string | null;
+  carryover_unpaid: number | null;
+  carryover_late_fee: number | null;
 }
 
 export interface ResidentBillDetail {
@@ -89,6 +91,10 @@ export interface ResidentBillDetail {
   mgmtBank: string | null;
   mgmtAcct: string | null;
   mgmtHolder: string | null;
+  /** 전월까지 이월된 미납 원금(원). 같은 입주의 이전 월 확정 부과 기준. */
+  carryoverUnpaid: number;
+  /** 이월 미납에 대한 연체료(원). 기준월 = 고지서 월. */
+  carryoverLateFee: number;
 }
 
 export type ResidentBillDetailResult = ResidentBillDetail | null;
@@ -160,6 +166,8 @@ export interface PublicBillDetailRow {
   mgmt_holder: string | null;
   expires_at: string;
   is_expired: boolean;
+  carryover_unpaid: number | null;
+  carryover_late_fee: number | null;
 }
 
 export interface PublicBillDetail {
@@ -178,6 +186,10 @@ export interface PublicBillDetail {
   mgmtHolder: string | null;
   expiresAt: string;
   isExpired: boolean;
+  /** 전월까지 이월된 미납 원금(원). 만료 링크면 null 마스킹. */
+  carryoverUnpaid: number | null;
+  /** 이월 미납에 대한 연체료(원). 만료 링크면 null 마스킹. */
+  carryoverLateFee: number | null;
 }
 
 export type PublicBillBySignedResult = PublicBillDetail | null;
@@ -219,6 +231,8 @@ const rowToBillDetail = (row: ResidentBillDetailRow): ResidentBillDetail => ({
   mgmtBank: row.mgmt_bank,
   mgmtAcct: row.mgmt_acct,
   mgmtHolder: row.mgmt_holder,
+  carryoverUnpaid: row.carryover_unpaid ?? 0,
+  carryoverLateFee: row.carryover_late_fee ?? 0,
 });
 
 export async function residentBillMonths(): Promise<ResidentBillMonthsResult> {
@@ -238,27 +252,8 @@ export async function residentBillDetail(
   return row ? rowToBillDetail(row) : null;
 }
 
-/**
- * 서명 무로그인 상세 경로 `/share/bill/{building}/{unit}/{YYYY-MM}?s={sig}`.
- * period는 "YYYY-MM" 또는 "YYYY-MM-01" 모두 허용(앞 7자만 사용).
- * sig는 base64url(URL-safe)이라 별도 인코딩 불필요, unit_no만 인코딩한다.
- */
-export function signedBillPath(link: {
-  buildingId: number;
-  unitNo: string;
-  period: string;
-  sig: string;
-  issuedDay?: number | null;
-}): string {
-  // issued_day를 반환하지 않는 DB(마이그 0175 미적용)에서는 d를 붙이지 않는다. 그러면
-  // 검증기가 4-arg 레거시 경로를 타서, 코드가 마이그레이션보다 먼저 배포돼도 현행
-  // 동작을 그대로 유지한다(Amplify 배포와 DB 적용은 원자적이지 않다).
-  const issuedDayQuery =
-    typeof link.issuedDay === "number" && Number.isFinite(link.issuedDay)
-      ? `&d=${link.issuedDay}`
-      : "";
-  return `/share/bill/${link.buildingId}/${encodeURIComponent(link.unitNo)}/${link.period.slice(0, 7)}?s=${link.sig}${issuedDayQuery}`;
-}
+// 서명 경로 생성은 서버(팩스 PDF)와 공유하도록 lib/bill/document.ts에 둔다.
+export { signedBillPath } from "@/lib/bill/document";
 
 /** 세입자 본인 세대의 무로그인 서명 링크(building_id·unit_no·sig)를 자동 발급한다. */
 export async function residentSignBillUrl(

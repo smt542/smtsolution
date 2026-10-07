@@ -1,4 +1,4 @@
-import { buildFaxDocument, type FaxDocumentData, type FaxDocumentRow } from "./document";
+import { buildFaxDocument, publicBillUrl, type FaxDocumentData, type FaxDocumentRow } from "./document";
 
 /**
  * 팩스 문서 서버 데이터 로더 — **서버 전용**.
@@ -35,5 +35,19 @@ export async function loadFaxDocumentData(
   if (!row?.ok) {
     throw new FaxDocumentError(row?.code ?? "BILL_ISSUE_NOT_FOUND", "고지서 정보를 찾지 못했습니다.");
   }
-  return buildFaxDocument(row);
+  const doc = buildFaxDocument(row);
+  return { ...doc, qrPayload: await signedBillUrl(sb, doc.unitId, doc.period) };
+}
+
+/**
+ * 고지서 QR용 공개 고지서 URL(staff_sign_bill_urls 서명, 발급일 기준 30일 유효).
+ * 서명을 발급하지 못하면(부과 미확정·권한 없음 등) 빈 문자열을 돌려 QR을 생략한다 — 팩스 발송은 막지 않는다.
+ */
+async function signedBillUrl(sb: SupabaseRpcLike, unitId: number, period: string): Promise<string> {
+  const { data, error } = await sb.rpc("staff_sign_bill_urls", { p_unit_ids: [unitId], p_period: period });
+  if (error) return "";
+  const link = ((data ?? []) as Array<{ building_id: number; unit_no: string; sig: string; issued_day: number | null }>)[0];
+  return link
+    ? publicBillUrl({ buildingId: link.building_id, unitNo: link.unit_no, period, sig: link.sig, issuedDay: link.issued_day })
+    : "";
 }

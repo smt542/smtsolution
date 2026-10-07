@@ -32,6 +32,8 @@ const rowToPublicBillDetail = (
   mgmtHolder: row.mgmt_holder,
   expiresAt: row.expires_at,
   isExpired: row.is_expired,
+  carryoverUnpaid: row.carryover_unpaid,
+  carryoverLateFee: row.carryover_late_fee,
 });
 
 export async function getPublicBillBySigned(
