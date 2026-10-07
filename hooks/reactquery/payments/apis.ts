@@ -311,7 +311,8 @@ export async function listBankPayments(buildingId: number | null, period: string
     .map((r) => ({ unitId: r.unit_id, amount: r.amount, paidAt: r.paid_at }));
 }
 
-export function cmsDownloadUrl(buildingId: number, period: string): string {
-  const params = new URLSearchParams({ buildingId: String(buildingId), period });
+/** 선택 건물 전체를 한 엑셀 파일로 합쳐 받는 URL. */
+export function cmsDownloadUrl(buildingIds: number[], period: string): string {
+  const params = new URLSearchParams({ buildingIds: buildingIds.join(","), period });
   return `/api/payment/cms?${params.toString()}`;
 }

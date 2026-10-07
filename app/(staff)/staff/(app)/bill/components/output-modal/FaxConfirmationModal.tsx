@@ -12,13 +12,14 @@ interface FaxConfirmationModalProps {
   period: string;
   senderLabel: string;
   recipient: string;
+  onRecipientChange: (value: string) => void;
   isPending: boolean;
   error: boolean;
   onCancel: () => void;
   onSend: () => void;
 }
 
-export function FaxConfirmationModal({ building, targets, period, senderLabel, recipient, isPending, error, onCancel, onSend }: FaxConfirmationModalProps) {
+export function FaxConfirmationModal({ building, targets, period, senderLabel, recipient, onRecipientChange, isPending, error, onCancel, onSend }: FaxConfirmationModalProps) {
   const [year, month] = period.split("-");
   const validRecipient = /\d{2,4}-?\d{3,4}-?\d{4}/.test(recipient);
 
@@ -49,7 +50,8 @@ export function FaxConfirmationModal({ building, targets, period, senderLabel, r
             unstyled
             id="fax-recipient"
             value={recipient}
-            readOnly
+            onChange={(event) => onRecipientChange(event.target.value)}
+            inputMode="tel"
             placeholder="02-1234-5678"
             className="h-[36px] w-full rounded-[10px] border border-[#e8ebee] bg-white px-[11px] text-[13.5px] font-medium text-[#757575] outline-none placeholder:text-[#757575]"
           />
