@@ -63,7 +63,7 @@ export function fetchMessageResults(
   return new Promise((resolve, reject) => {
     const onSuccess = (raw: PopbillMessageResult[]) => resolve(toRecipientResults(raw));
     const onError = (e: { code: number; message: string }) =>
-      reject(new Error(`provider result lookup failed (code ${e?.code ?? "?"})`));
+      reject(new Error(`provider result lookup failed (code ${e?.code ?? "?"}: ${e?.message ?? ""})`));
     if (product === "alimtalk") {
       getKakaoService(config).getMessages(config.corpNum, receiptNum, userId, onSuccess, onError);
     } else {
@@ -82,7 +82,7 @@ export function fetchMessageResultsByRequestNum(
   return new Promise((resolve, reject) => {
     const onSuccess = (raw: PopbillMessageResult[]) => resolve(toRecipientResults(raw));
     const onError = (e: { code: number; message: string }) =>
-      reject(new Error(`provider request lookup failed (code ${e?.code ?? "?"})`));
+      reject(new Error(`provider request lookup failed (code ${e?.code ?? "?"}: ${e?.message ?? ""})`));
     if (product === "alimtalk") {
       getKakaoService(config).getMessagesRN(config.corpNum, requestNum, userId, onSuccess, onError);
     } else {
@@ -157,7 +157,7 @@ export function fetchFaxResult(config: PopbillConfig, receiptNum: string): Promi
       receiptNum,
       userId,
       (raw) => resolve(normalizeFaxResult(raw)),
-      (e) => reject(new Error(`provider fax result lookup failed (code ${e?.code ?? "?"})`)),
+      (e) => reject(new Error(`provider fax result lookup failed (code ${e?.code ?? "?"}: ${e?.message ?? ""})`)),
     );
   });
 }
