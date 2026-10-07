@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
 import type { PaginatedResult } from "./apis";
 
-export type MessagePointChannel = "sms" | "lms" | "alimtalk";
+export type MessagePointChannel = "sms" | "lms" | "alimtalk" | "fax";
 export type PointReservationStatus =
   | "reserved"
   | "provider_pending"
@@ -25,6 +25,8 @@ export interface SetMessagePointRatesInput {
   alimtalkPoints: number;
   /** LMS 단가. 미설정(null)이면 LMS 단가를 변경하지 않는다. */
   lmsPoints?: number | null;
+  /** 팩스 단가(장당). 미설정(null)이면 팩스 단가를 변경하지 않는다. */
+  faxPoints?: number | null;
 }
 
 export interface PointReservation {
@@ -118,6 +120,12 @@ export async function setMessagePointRates(
   ) {
     throw new Error("LMS 단가는 1 이상의 정수여야 합니다.");
   }
+  if (
+    input.faxPoints != null &&
+    (!Number.isInteger(input.faxPoints) || input.faxPoints <= 0)
+  ) {
+    throw new Error("팩스 단가는 1 이상의 정수여야 합니다.");
+  }
 
   const { data, error } = await createClient().rpc(
     "platform_set_message_point_rates",
@@ -125,6 +133,7 @@ export async function setMessagePointRates(
       p_sms_points: input.smsPoints,
       p_alimtalk_points: input.alimtalkPoints,
       p_lms_points: input.lmsPoints ?? null,
+      p_fax_points: input.faxPoints ?? null,
     },
   );
   if (error) throw new Error(error.message);

@@ -24,6 +24,7 @@ const CHANNELS: Array<{ channel: MessagePointChannel; label: string; hint: strin
   { channel: "sms", label: "SMS", hint: "90byte 이하 단문" },
   { channel: "lms", label: "LMS", hint: "91byte 이상 장문·제목 포함" },
   { channel: "alimtalk", label: "알림톡", hint: "카카오 알림톡" },
+  { channel: "fax", label: "팩스", hint: "성공 페이지당 차감" },
 ];
 
 const digitsOf = (text: string) => text.replace(/[^0-9]/g, "");
@@ -34,6 +35,7 @@ export function PointRateModal({ open, onClose, currentRates, onSubmit, isPendin
     sms: currentRates.has("sms") ? formatNumber(currentRates.get("sms") ?? 0) : "",
     lms: currentRates.has("lms") ? formatNumber(currentRates.get("lms") ?? 0) : "",
     alimtalk: currentRates.has("alimtalk") ? formatNumber(currentRates.get("alimtalk") ?? 0) : "",
+    fax: currentRates.has("fax") ? formatNumber(currentRates.get("fax") ?? 0) : "",
   }));
   const [submitting, setSubmitting] = useState(false);
   const busy = isPending || submitting;
@@ -64,7 +66,7 @@ export function PointRateModal({ open, onClose, currentRates, onSubmit, isPendin
     }
     setSubmitting(true);
     try {
-      await onSubmit({ smsPoints: parsed.sms, lmsPoints: parsed.lms, alimtalkPoints: parsed.alimtalk });
+      await onSubmit({ smsPoints: parsed.sms, lmsPoints: parsed.lms, alimtalkPoints: parsed.alimtalk, faxPoints: parsed.fax });
       onClose();
     } catch {
       // 실패 토스트는 호출부가 띄운다 — 입력값을 남긴 채 모달을 둔다
@@ -76,7 +78,7 @@ export function PointRateModal({ open, onClose, currentRates, onSubmit, isPendin
     <Modal open={open} onClose={closeSafely} title="메시지 단가 설정" className={MODAL_CLASS} bodyClassName="">
       <form onSubmit={submit} noValidate>
         <p className="mt-[7px] text-[13px] font-semibold leading-[1.55] text-t3">
-          발송 1건당 차감할 포인트예요. 1P = 1원이며, 팝빌 원가 이상으로 설정해 주세요.
+          발송 1건(팩스는 1장)당 차감할 포인트예요. 1P = 1원이며, 팝빌 원가에 맞춰 설정해 주세요.
           변경한 단가는 이후 발송부터 적용됩니다.
         </p>
 
