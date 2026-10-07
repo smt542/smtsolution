@@ -94,7 +94,8 @@ export async function reconcilePendingDeliveries(deps: ReconcileDeps): Promise<R
       if (job.receipt_num) {
         try {
           fax = await fetchFax({ receiptNum: job.receipt_num });
-        } catch {
+        } catch (error) {
+          console.error("[reconcile] fax result lookup failed", { jobId: job.id, error: (error as Error)?.message });
           fax = null;
         }
       }
@@ -134,8 +135,9 @@ export async function reconcilePendingDeliveries(deps: ReconcileDeps): Promise<R
               requestNum: job.request_num,
               kind: job.kind,
             });
-      } catch {
-        // 조회 실패 → 빈 결과로 진행(재스케줄, 24시간 초과 시 reconcile_required).
+      } catch (error) {
+        // 조회 실패 → 빈 결과로 진행(재스케줄, 24시간 초과 시 reconcile_required). 원인은 로그로 남긴다.
+        console.error("[reconcile] message result lookup failed", { jobId: job.id, error: (error as Error)?.message });
         results = [];
       }
     }

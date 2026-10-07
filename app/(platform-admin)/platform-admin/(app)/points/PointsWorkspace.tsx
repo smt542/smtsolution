@@ -13,11 +13,13 @@ import {
   useMessagePointRates,
   usePlatformOrgBilling,
   usePlatformSettings,
+  useSetMessagePointRates,
   useUpdatePointCharge,
   type PlatformOrganizationQuery,
   type PointTransaction,
   type PointTransactionCursor,
   type PointTransactionQuery,
+  type SetMessagePointRatesInput,
 } from "@/hooks/reactquery/platform";
 import { formatNumber } from "@/lib/format";
 import { appToast as toast } from "@/hooks/common/useAppToast";
@@ -28,6 +30,9 @@ import { useFitPageSize } from "../../../_components/useFitPageSize";
 const PointChargeModal = dynamic(() =>
   import("./components/PointChargeModal").then((module) => module.PointChargeModal),
 );
+const PointRateModal = dynamic(() =>
+  import("./components/PointRateModal").then((module) => module.PointRateModal),
+);
 
 const ALL_ORGANIZATIONS_QUERY = { pageSize: 200 } satisfies PlatformOrganizationQuery;
 const CHARGE_HISTORY_QUERY = { type: "charge", pageSize: 100 } satisfies Omit<PointTransactionQuery, "cursor">;
@@ -37,6 +42,7 @@ const dateFmt = new Intl.DateTimeFormat("ko-KR", {
   day: "2-digit",
 });
 const num = (value: number) => formatNumber(value);
+const formatRate = (points: number | undefined) => (points == null ? "미설정" : `${num(points)}P`);
 
 // 정본 충전 이력 날짜 2026.08.01 — 기록 시각(timestamptz)을 브라우저 현지 날짜로
 function formatChargeDate(value: string): string {
@@ -85,6 +91,7 @@ async function listAllChargeTransactions() {
 
 export default function PointsWorkspace() {
   const [chargeModalOpen, setChargeModalOpen] = useState(false);
+  const [rateModalOpen, setRateModalOpen] = useState(false);
   const [selectedCharge, setSelectedCharge] = useState<PointTransaction | null>(null);
   const [historyPage, setHistoryPage] = useState(1);
   const historyScrollerRef = useRef<HTMLDivElement>(null);
@@ -103,6 +110,7 @@ export default function PointsWorkspace() {
   const charge = useChargePoints();
   const updateCharge = useUpdatePointCharge();
   const deleteCharge = useDeletePointCharge();
+  const setRates = useSetMessagePointRates();
 
   const modalOrganizations = useMemo(
     () => (modalOrgsQuery.data?.rows ?? []).filter((organization) => !organization.deletedAt),
@@ -217,6 +225,16 @@ export default function PointsWorkspace() {
     }
   };
 
+  const handleSetRates = async (input: SetMessagePointRatesInput) => {
+    try {
+      await setRates.mutateAsync(input);
+      toast.success("메시지 단가를 변경했어요");
+    } catch (error) {
+      toast.error(error, "메시지 단가를 변경하지 못했습니다.");
+      throw error;
+    }
+  };
+
   const handleUpdateCharge = async (amount: number) => {
     if (!selectedCharge) return;
     try {
@@ -278,6 +296,15 @@ export default function PointsWorkspace() {
             <Spinner label="팝빌 포인트 요약 갱신 중" size="small" showLabel className="px-2 py-1" />
           ) : null}
           <Button
+            variant="ghost"
+            type="button"
+            onClick={() => setRateModalOpen(true)}
+            disabled={ratesQuery.isPending || ratesQuery.isError}
+            className="shrink-0 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            단가 설정
+          </Button>
+          <Button
             variant="primary"
             type="button"
             onClick={() => setChargeModalOpen(true)}
@@ -315,6 +342,10 @@ export default function PointsWorkspace() {
                 이번 달 사용 <b className="font-extrabold text-t2 tabular-nums">{num(monthUsedPoints)}P</b>
               </p>
             </div>
+
+            <p className="mt-[6px] text-[12px] font-semibold text-t3 tabular-nums">
+              건당 단가 · SMS {formatRate(activeRates.get("sms"))} · LMS {formatRate(activeRates.get("lms"))} · 알림톡 {formatRate(activeRates.get("alimtalk"))}
+            </p>
 
             <div className="mt-5 border-t border-line2 pt-4 text-[12.5px] font-bold text-t3">
               이번 달 채널별 소진
@@ -436,6 +467,16 @@ export default function PointsWorkspace() {
             isPending={charge.isPending}
           />
         )
+      )}
+
+      {rateModalOpen && (
+        <PointRateModal
+          open
+          currentRates={activeRates}
+          onClose={() => setRateModalOpen(false)}
+          onSubmit={handleSetRates}
+          isPending={setRates.isPending}
+        />
       )}
 
       {selectedCharge && (
