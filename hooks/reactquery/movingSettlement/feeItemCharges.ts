@@ -60,7 +60,10 @@ export function useManagementFeeRows(
   // 일할 분모는 그 달 일수와 무관하게 고정 30일이다(계산규칙 1.1).
   const chargeDays = Number(moveOutDate.slice(8, 10)) || 0;
   const charges = chargesQuery.data ?? {};
-  const rows = [...(feeItemsQuery.data ?? [])]
+  // 필수 항목(전기·가스·수도료)은 공과금 정산(이사 검침)에서 따로 합산하므로
+  // 관리비 항목에서 뺀다. 넣으면 공과금이 두 번 잡힌다(이사정산 입력 정책 3.6).
+  const rows = (feeItemsQuery.data ?? [])
+    .filter((item) => !item.isRequired)
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((item) => {
       const charge = charges[item.id] ?? 0;
