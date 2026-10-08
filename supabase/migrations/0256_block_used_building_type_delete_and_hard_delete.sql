@@ -10,6 +10,10 @@ security definer
 set search_path = public
 as $$
 begin
+  -- 테넌트 완전삭제(platform_purge_organization)는 허용된 예외
+  if current_setting('app.purge_org_id', true) = old.org_id::text then
+    return old;
+  end if;
   if exists (select 1 from buildings where type_id = old.id)
      or exists (
        select 1 from fee_item_charges fic
