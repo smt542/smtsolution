@@ -35,10 +35,17 @@ as $function$
             where pbc.unit_id = u.id
               and pbc.period = (p_period - make_interval(months => k))::date
               and pbc.confirmed_at is not null
+              -- 연체 함수와 동일: 현재 입주(occupancy) 귀속분만, 삭제된 occupancy 제외 (이전 입주자 미납 제외)
+              and pbc.occupancy_id = bc.occupancy_id
+              and exists (
+                select 1 from occupancies po
+                where po.id = pbc.occupancy_id and po.unit_id = pbc.unit_id and po.deleted_at is null
+              )
               and pbc.total_amount - coalesce((
                 select sum(pay.amount)
                 from payments pay
-                where pay.unit_id = u.id and pay.period = pbc.period and pay.status = 'active'
+                where pay.occupancy_id = pbc.occupancy_id and pay.unit_id = pbc.unit_id
+                  and pay.period = pbc.period and pay.status = 'active'
               ), 0) > 0
           )
         )
