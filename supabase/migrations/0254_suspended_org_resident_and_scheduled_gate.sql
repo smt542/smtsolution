@@ -8,7 +8,7 @@
 --  - resident_automatch: 운영 중인 조직만 매칭.
 --  - resident_confirm / resident_request_claim / resident_search_buildings: 비운영 조직 건물은 연결·신청·검색 불가.
 --  - reserve_message_points: deleted_at 확인 추가.
---  - reserve_scheduled_message: 예약 발송 cron 경로에 조직 운영 확인 추가(ORG_NOT_ACTIVE → 스케줄 failed 마감).
+--  - reserve_scheduled_message: 예약 발송 cron 경로에 조직 운영 확인 추가(기존 예약이 없는 신규 예약만 거절)(ORG_NOT_ACTIVE → 스케줄 failed 마감).
 -- 변경하지 않은 것: resident_withdraw(해지 조직의 세입자도 탈퇴할 수 있어야 함), public_* 공개 링크(범위 밖).
 -- create or replace는 기존 ACL을 유지한다.
 
@@ -435,11 +435,6 @@ begin
     return jsonb_build_object('ok', false, 'code', 'SCHEDULE_NOT_CLAIMED');
   end if;
 
-  -- 정지·해지된 테넌트의 예약 발송은 접수하지 않는다(스케줄은 호출부가 failed로 마감).
-  if not public.org_is_operational(v_row.org_id) then
-    return jsonb_build_object('ok', false, 'code', 'ORG_NOT_ACTIVE');
-  end if;
-
   v_idem := md5('scheduled-message:' || p_schedule_id::text)::uuid;
 
   v_quote := public.resolve_message_point_quote(v_row.org_id, v_row.channel, v_row.recipients, v_row.template_id, v_row.body);
@@ -473,6 +468,12 @@ begin
       'recipient_costs', v_quote->'recipient_costs',
       'alimtalk_template_code', v_tpl_code, 'buttons', v_buttons
     );
+  end if;
+
+  -- 정지·해지된 테넌트의 신규 예약은 접수하지 않는다(스케줄은 호출부가 failed로 마감).
+  -- 이미 예약이 있는(진행 중·정산 대기) 스케줄은 위의 기존 경로를 따르도록 이 확인을 그 아래에 둔다.
+  if not public.org_is_operational(v_row.org_id) then
+    return jsonb_build_object('ok', false, 'code', 'ORG_NOT_ACTIVE');
   end if;
 
   -- 잔액 하드스톱(provider_pending 포함)
