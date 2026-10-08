@@ -1,4 +1,4 @@
--- provision_member: p_role 화이트리스트(org_owner·staff)
+-- provision_member: p_role 화이트리스트(org_owner·staff·field)
 -- 마스터(org_owner)가 p_role='platform_admin'으로 본사 계정을 만들 수 있던 권한 상승을 DB에서 차단한다.
 -- 본사 계정은 platform_provision_hq_account 로만 만든다. 본문은 실 DB 현재 정의 기준, v_org 결정 직후 검사만 추가.
 create or replace function public.provision_member(p_user_id uuid, p_username text, p_full_name text, p_phone text, p_phone_sub text, p_role org_member_role, p_staff_type staff_type, p_permissions jsonb, p_affiliation text, p_role_ids bigint[], p_target_org_id bigint DEFAULT NULL::bigint, p_staff_capabilities jsonb DEFAULT NULL::jsonb)
@@ -15,7 +15,7 @@ begin
     v_org := current_user_org();
   end if;
   if v_org is null then raise exception 'no org for caller'; end if;
-  if p_role not in ('org_owner','staff') then
+  if p_role not in ('org_owner','staff','field') then
     raise exception 'forbidden: role % not allowed', p_role using errcode = '42501';
   end if;
   if not current_user_has_module('accounts') then raise exception 'forbidden: accounts required'; end if;
