@@ -93,7 +93,13 @@ export function SettlementForm({
   // 단가 반영 ON 인 공과금 금액도 계산값이다. 관리비 소계와 **한 이펙트에서** 되돌려 넣는다 —
   // 이펙트를 둘로 나누면 각자 stale 한 value 를 펼쳐 서로의 결과를 덮어쓴다.
   const reflectedCharges = reflectedUtilityCharges(meters, settings);
-  const derivedKey = JSON.stringify([managementTotal, reflectedCharges]);
+  // 퇴실일·월정액 변경이 mgmtFeeProrated 를 덮어써도 계산값이 그대로면 이펙트가 다시 돌지 않으므로
+  // 현재 draft 값도 키에 넣어, 계산값과 어긋나면 항상 되돌려 맞춘다(일할 없는 항목만 남은 경우).
+  const derivedKey = JSON.stringify([
+    managementTotal,
+    reflectedCharges,
+    value.mgmtFeeProrated ?? 0,
+  ]);
   useEffect(() => {
     const patch: Partial<SettlementDraft> = {};
     if ((value.mgmtFeeProrated ?? 0) !== managementTotal) {
