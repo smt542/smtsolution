@@ -9,6 +9,7 @@ import {
   useOverduePeriods,
 } from "@/hooks/reactquery/overdue";
 import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
+import { useLateFeeDisabledOccupancies } from "@/hooks/reactquery/occupancies";
 import { useLateFeeSettings } from "@/hooks/reactquery/setupConfig";
 import { AsyncContentState } from "../AsyncContentState";
 import {
@@ -68,6 +69,7 @@ export function VillaOverdueModal({
   const householdsQuery = useOverdueHouseholds(open ? building.id : null, { year, month, scope });
   const tiersQuery = useLateFeeRateTiers(open ? orgId : null);
   const lateFeeSettings = useLateFeeSettings(open ? orgId : null);
+  const lateFeeDisabledOccupancies = useLateFeeDisabledOccupancies(open ? orgId : null);
 
   const seedGroups = useMemo(
     () =>
@@ -77,8 +79,9 @@ export function VillaOverdueModal({
         tiersQuery.data ?? [],
         { year, month },
         lateFeeSettings,
+        lateFeeDisabledOccupancies,
       ),
-    [periodsQuery.data, householdsQuery.data, tiersQuery.data, year, month, lateFeeSettings],
+    [periodsQuery.data, householdsQuery.data, tiersQuery.data, year, month, lateFeeSettings, lateFeeDisabledOccupancies],
   );
 
   const filteredSeeds = useMemo(() => {

@@ -10,6 +10,8 @@ export interface OverduePeriodInput {
   period: Period;
   unpaidPrincipal: number;
   dueDate: string;
+  /** 입주(세대)별 연체료 부과 여부(occupancies.late_fee_enabled). false 면 연체료·납기후 가산금 모두 0. 생략 시 부과. */
+  lateFeeEnabled?: boolean;
 }
 
 export interface LateFeePeriodResult {
@@ -83,7 +85,7 @@ export function computeLateFeeForPeriod(
   settings?: LateFeeSettings,
 ): LateFeePeriodResult {
   const months = monthsOverdue(input.dueDate, asOfYear, asOfMonth);
-  if (settings && !settings.enabled) {
+  if ((settings && !settings.enabled) || input.lateFeeEnabled === false) {
     return { period: input.period, months, cumulativeRatePct: 0, lateFee: 0, postDueFee: 0 };
   }
   const cumulativeRatePct = cumulativeRate(tiers, months);

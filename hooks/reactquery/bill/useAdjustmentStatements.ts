@@ -10,6 +10,7 @@ import { billingKeys } from "@/hooks/reactquery/billing/keys";
 import { listLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers/apis";
 import { lateFeeTierKeys } from "@/hooks/reactquery/lateFeeTiers/keys";
 import { listOverduePeriods } from "@/hooks/reactquery/overdue/apis";
+import { useLateFeeDisabledOccupancies } from "@/hooks/reactquery/occupancies/queries";
 import { useLateFeeSettings } from "@/hooks/reactquery/setupConfig/queries";
 import { overdueKeys } from "@/hooks/reactquery/overdue/keys";
 import { listBuildingPaymentDates } from "@/hooks/reactquery/payments/apis";
@@ -148,6 +149,7 @@ export function useAdjustmentStatements(
     enabled: enabled && orgId > 0,
   });
   const lateFeeSettings = useLateFeeSettings(enabled && orgId > 0 ? orgId : null);
+  const lateFeeDisabledOccupancies = useLateFeeDisabledOccupancies(enabled && orgId > 0 ? orgId : null);
 
   const buildingInputs: AdjustmentBuildingInput[] = buildings.map((building, index) => {
     const paidDateByUnit = new Map<number, string>();
@@ -176,6 +178,7 @@ export function useAdjustmentStatements(
         period: row.period,
         unpaidPrincipal: row.unpaidPrincipal,
         dueDate: row.dueDate,
+        lateFeeEnabled: !lateFeeDisabledOccupancies.has(row.occupancyId),
       })),
       paidDateByUnit,
     };

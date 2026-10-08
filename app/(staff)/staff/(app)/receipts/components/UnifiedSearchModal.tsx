@@ -9,6 +9,7 @@ import {
   useReceiptPaymentStatusPeriods,
   type ReceiptPaymentRow,
 } from "@/hooks/reactquery/receipts";
+import { useLateFeeDisabledOccupancies } from "@/hooks/reactquery/occupancies";
 import { useLateFeeSettings } from "@/hooks/reactquery/setupConfig";
 import { computeLateFeeForPeriod } from "@/lib/billing/lateFee";
 import type { Period } from "@/lib/billing/period";
@@ -172,6 +173,7 @@ function UnifiedSearchModalBody({
   }, [from, to, validRange]);
 
   const lateFeeSettings = useLateFeeSettings(orgId);
+  const lateFeeDisabledOccupancies = useLateFeeDisabledOccupancies(orgId);
   const receiptPeriods = useReceiptPaymentStatusPeriods(
     orgId,
     periods,
@@ -212,6 +214,7 @@ function UnifiedSearchModalBody({
             period: rowPeriod,
             unpaidPrincipal: Math.max(row.unpaid ?? 0, 0),
             dueDate: (row.dueDate ?? rowPeriod).slice(0, 10),
+            lateFeeEnabled: row.occupancyId == null || !lateFeeDisabledOccupancies.has(row.occupancyId),
           },
           [],
           year,
@@ -235,7 +238,7 @@ function UnifiedSearchModalBody({
           ],
         };
       });
-  }, [amountSearch, amountDigits, receiptPeriods.periods, codeByBuilding, lateFeeSettings]);
+  }, [amountSearch, amountDigits, receiptPeriods.periods, codeByBuilding, lateFeeSettings, lateFeeDisabledOccupancies]);
 
   const settlementRows: SearchResultRow[] = useMemo(() => {
     if (amountSearch === null) return [];

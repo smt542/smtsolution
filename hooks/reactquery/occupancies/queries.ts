@@ -1,9 +1,11 @@
+import { useMemo } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import {
   listTenants,
   getTenantCardPrintData,
   getUnitOccupancyFull,
   listOccupancies,
+  listLateFeeDisabledOccupancyIds,
   type TenantListRow,
 } from "./apis";
 import { occupancyKeys } from "./keys";
@@ -45,4 +47,19 @@ export function useUnitOccupancyFull(unitId: number) {
 }
 export function useOccupancies(unitId: number) {
   return useQuery({ queryKey: occupancyKeys.byUnit(unitId), queryFn: () => listOccupancies(unitId), enabled: !!unitId });
+}
+
+const EMPTY_OCCUPANCY_IDS: ReadonlySet<number> = new Set();
+
+/**
+ * 연체료 부과 여부가 X인 입주 id 집합. 연체료 계산 지점이 공통으로 쓴다(정책: 세대별 연체료 부과 여부 O/X).
+ * 불러오기 전에는 빈 집합(전원 부과)이다.
+ */
+export function useLateFeeDisabledOccupancies(orgId?: number | null): ReadonlySet<number> {
+  const { data } = useQuery({
+    queryKey: occupancyKeys.lateFeeDisabled(orgId ?? 0),
+    queryFn: listLateFeeDisabledOccupancyIds,
+    enabled: !!orgId,
+  });
+  return useMemo(() => (data ? new Set(data) : EMPTY_OCCUPANCY_IDS), [data]);
 }

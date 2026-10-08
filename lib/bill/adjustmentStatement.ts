@@ -60,6 +60,8 @@ export interface AdjustmentOverdueInput {
   period: string; // 'YYYY-MM-01'
   unpaidPrincipal: number;
   dueDate: string;
+  /** 입주(세대)별 연체료 부과 여부. false 면 연체료·납기후 가산금 0. */
+  lateFeeEnabled?: boolean;
 }
 
 export interface AdjustmentBuildingInput {
@@ -232,7 +234,7 @@ export function buildAdjustmentStatementPages(
       // ── 미납·연체 매핑 (정본 /overdue 엔진) ───────────────────────────────
       const priorInputs: OverduePeriodInput[] = overdue
         .filter((row) => row.period < period)
-        .map((row) => ({ period: row.period, unpaidPrincipal: row.unpaidPrincipal, dueDate: row.dueDate }));
+        .map((row) => ({ period: row.period, unpaidPrincipal: row.unpaidPrincipal, dueDate: row.dueDate, lateFeeEnabled: row.lateFeeEnabled }));
       const currentRow = overdue.find((row) => row.period === period);
 
       // 미납액 = 전월까지 미납 원금 합계
@@ -242,7 +244,12 @@ export function buildAdjustmentStatementPages(
       // 납기후연체 = 당월분을 납기 후 납부 시 가산되는 연체료
       const lateAfterDue = currentRow
         ? computeLateFeeForPeriod(
-            { period: currentRow.period, unpaidPrincipal: currentRow.unpaidPrincipal, dueDate: currentRow.dueDate },
+            {
+              period: currentRow.period,
+              unpaidPrincipal: currentRow.unpaidPrincipal,
+              dueDate: currentRow.dueDate,
+              lateFeeEnabled: currentRow.lateFeeEnabled,
+            },
             tiers,
             asOfYear,
             asOfMonth,

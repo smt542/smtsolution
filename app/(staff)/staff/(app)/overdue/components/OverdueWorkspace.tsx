@@ -5,6 +5,7 @@ import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Spinner } from "@/components/common";
 import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
 import { signedBillPath, useStaffSignBillUrls } from "@/hooks/reactquery/residentBilling";
+import { useLateFeeDisabledOccupancies } from "@/hooks/reactquery/occupancies";
 import { useLateFeeSettings } from "@/hooks/reactquery/setupConfig";
 import {
   useOverdueHouseholds,
@@ -90,6 +91,7 @@ export function OverdueWorkspace({
   const { data: overduePeriods = [] } = useOverduePeriods(null, overdueQuery, hasPeriod);
   const { data: lateFeeRateTiers = [] } = useLateFeeRateTiers(orgId);
   const lateFeeSettings = useLateFeeSettings(orgId);
+  const lateFeeDisabledOccupancies = useLateFeeDisabledOccupancies(orgId);
   const { data: orgContact } = useOverdueOrgContact(orgId);
   const signBillUrls = useStaffSignBillUrls();
 
@@ -107,6 +109,7 @@ export function OverdueWorkspace({
           period: period.period as OverduePeriodInput["period"],
           unpaidPrincipal: period.unpaidPrincipal,
           dueDate: period.dueDate,
+          lateFeeEnabled: !lateFeeDisabledOccupancies.has(period.occupancyId),
         },
       ]);
     }
@@ -126,7 +129,7 @@ export function OverdueWorkspace({
         lateFeeByPeriod: result.byPeriod,
       };
     });
-  }, [households, lateFeeRateTiers, lateFeeSettings, overduePeriods, targetPeriod.month, targetPeriod.year]);
+  }, [households, lateFeeDisabledOccupancies, lateFeeRateTiers, lateFeeSettings, overduePeriods, targetPeriod.month, targetPeriod.year]);
 
   // 정본은 미납이 있는 세대만 표에 넣는다(`build()` 가 미납 세대만 만든다).
   // 앱은 점유 세대를 전부 조회하므로 잔액 0 인 세대를 여기서 걸러낸다 —

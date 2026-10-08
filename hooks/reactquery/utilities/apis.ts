@@ -627,6 +627,8 @@ export interface PartnerMeterOverduePeriod {
   period: string;
   unpaidPrincipal: number;
   dueDate: string;
+  /** 입주의 연체료 부과 여부(occupancies.late_fee_enabled). false 면 연체료 0. */
+  lateFeeEnabled: boolean;
 }
 
 export interface PartnerMeterUnit {
@@ -670,7 +672,7 @@ interface PartnerMeterCardRpcRow {
   phone: string | null;
   notes: Partial<Record<PartnerMeterUtility, string>> | null;
   usage_history: Partial<Record<PartnerMeterUtility, (number | null)[]>> | null;
-  overdue_periods: { period: string; unpaid_principal: number; due_date: string }[] | null;
+  overdue_periods: { period: string; unpaid_principal: number; due_date: string; late_fee_enabled?: boolean }[] | null;
 }
 
 function groupPartnerMeterRows(
@@ -696,6 +698,7 @@ function groupPartnerMeterRows(
         period: item.period,
         unpaidPrincipal: Number(item.unpaid_principal),
         dueDate: item.due_date,
+        lateFeeEnabled: item.late_fee_enabled ?? true,
       })),
     };
     unit.meters[row.utility] = {

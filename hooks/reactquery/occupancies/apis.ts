@@ -343,3 +343,14 @@ export async function deleteUnit(unitId: number): Promise<void> {
   const { error } = await createClient().rpc("delete_unit", { p_unit_id: unitId });
   if (error) throw new Error(error.message);
 }
+
+/** 연체료 부과 여부가 X(occupancies.late_fee_enabled=false)인 입주 id. 조직 범위는 RLS가 제한한다. */
+export async function listLateFeeDisabledOccupancyIds(): Promise<number[]> {
+  const { data, error } = await createClient()
+    .from("occupancies")
+    .select("id")
+    .eq("late_fee_enabled", false)
+    .is("deleted_at", null);
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as { id: number }[]).map((row) => row.id);
+}

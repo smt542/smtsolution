@@ -104,6 +104,8 @@ export interface LateFeeRowOptions {
   settings?: LateFeeSettings;
   /** 입주(occupancy)별 연체료 부과 여부(occupancies.late_fee_enabled). false 인 입주 건은 연체료 0. */
   lateFeeEnabledByOccupancy?: ReadonlyMap<number, boolean>;
+  /** 연체료 부과 여부가 X인 입주 id(useLateFeeDisabledOccupancies). 들어 있으면 연체료 0. */
+  lateFeeDisabledOccupancies?: ReadonlySet<number>;
 }
 
 export function lateFeeForRow(
@@ -115,6 +117,7 @@ export function lateFeeForRow(
 ): number {
   const occupancyId = rowSummary?.occupancyId;
   if (occupancyId != null && options.lateFeeEnabledByOccupancy?.get(occupancyId) === false) return 0;
+  if (occupancyId != null && options.lateFeeDisabledOccupancies?.has(occupancyId)) return 0;
   const unpaidPrincipal = Math.max(rowSummary?.unpaid ?? 0, 0);
   const dueDate = rowSummary?.dueDate?.slice(0, 10);
   if (!unpaidPrincipal || !dueDate || dueDate >= todayInput()) return 0;

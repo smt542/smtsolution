@@ -71,6 +71,8 @@ export function buildOverdueGroups(
   tiers: RateTier[],
   asOf: { year: number; month: number },
   lateFeeSettings?: LateFeeSettings,
+  /** 연체료 부과 여부가 X인 입주 id. 해당 입주의 연체료·납기후 가산금은 0. */
+  lateFeeDisabledOccupancies?: ReadonlySet<number>,
 ): OverdueUnitGroup[] {
   const byOccupancy = new Map<number, OverdueHousehold>();
   for (const household of households) byOccupancy.set(household.occupancyId, household);
@@ -83,6 +85,7 @@ export function buildOverdueGroups(
         period: period.period,
         unpaidPrincipal: period.unpaidPrincipal,
         dueDate: period.dueDate,
+        lateFeeEnabled: !lateFeeDisabledOccupancies?.has(period.occupancyId),
       },
       tiers,
       asOf.year,

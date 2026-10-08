@@ -214,6 +214,47 @@ export function ManagementFeeWorkspace() {
     await saveAndConfirm();
   };
 
+  // 정책 3.6 공과금 계산: 수도·전기·가스가 모두 확정되고 재산정 필요가 아닐 때만 세대별 관리비에 반영한다.
+  const calculateUtilities = () => {
+    if (!buildingId) return;
+    const allReady = (["water", "electricity", "gas"] as const).every((type) => {
+      const confirmation = utilityConfirmations[type];
+      return confirmation !== null && !confirmation.isDirty;
+    });
+    if (!allReady) {
+      setDialog("utility-missing");
+      return;
+    }
+    // 공과금 항목은 필수 항목(수도료·전기·가스)이다. 같은 이름의 항목이 없으면 그 공과금은 반영하지 않는다.
+    const columnByType = {
+      water: columns.find((column) => column.isRequired && column.name === "수도료"),
+      electricity: columns.find((column) => column.isRequired && column.name === "전기"),
+      gas: columns.find((column) => column.isRequired && column.name === "가스"),
+    };
+    setChargeDrafts((current) => {
+      const next = { ...current };
+      (["water", "electricity", "gas"] as const).forEach((type) => {
+        const column = columnByType[type];
+        if (!column) return;
+        utilityRows[type].forEach((row) => {
+          const unit = unitsById.get(row.unitId);
+          if (!unit) return;
+          next[row.unitId] = {
+            ...next[row.unitId],
+            [column.feeItemId]: {
+              charged: !unit.isVacant,
+              // 세대별 수동 부과액 우선, 없으면 자동 계산 부과액.
+              amount: row.manualCharge ?? row.automaticCharge ?? 0,
+            },
+          };
+        });
+      });
+      return next;
+    });
+    if (!editing) setBuildingNoteDraft(selectedBuilding?.billingNote ?? "");
+    setEditing(true);
+  };
+
   const openCarryBuilding = () => {
     if (!selectedBuilding) {
       setDialog("no-building");
@@ -357,6 +398,8 @@ export function ManagementFeeWorkspace() {
               pending={isManagementFeeMutationPending}
               onCarryBuilding={openCarryBuilding}
               onCarryAll={() => setDialog("carry-all")}
+              buildingSelected={buildingId !== null}
+              onCalculateUtilities={calculateUtilities}
             />
 
             <div className="min-h-0 flex-1">

@@ -12,6 +12,7 @@ import {
   type ReceiptStatementData,
 } from "@/hooks/reactquery/receipts";
 import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
+import { useLateFeeDisabledOccupancies } from "@/hooks/reactquery/occupancies";
 import { useLateFeeSettings } from "@/hooks/reactquery/setupConfig";
 import type { RateTier } from "@/lib/billing/lateFee";
 import { toMonthInput } from "@/lib/billing/period";
@@ -150,6 +151,7 @@ export function MonthlyChargeModal({
   const orgId = buildings[0]?.orgId ?? null;
   const { data: lateFeeRateTiers } = useLateFeeRateTiers(open ? orgId : null);
   const lateFeeSettings = useLateFeeSettings(open ? orgId : null);
+  const lateFeeDisabledOccupancies = useLateFeeDisabledOccupancies(open ? orgId : null);
   const tiers = useMemo<RateTier[]>(
     () =>
       (lateFeeRateTiers ?? []).map((tier) => ({
@@ -166,9 +168,12 @@ export function MonthlyChargeModal({
         paymentStartDate: paymentStart || null,
         paymentEndDate: paymentEnd || null,
         configuredFeeItems: feeItemsQuery.data,
-        lateFeeOf: (row) => lateFeeForRow(row.period, row, tiers, period, { settings: lateFeeSettings }),
+        lateFeeOf: (row) => lateFeeForRow(row.period, row, tiers, period, {
+          settings: lateFeeSettings,
+          lateFeeDisabledOccupancies,
+        }),
       }),
-    [canLoad, statementData, periods, summaryMeta, paymentStart, paymentEnd, feeItemsQuery.data, tiers, period, lateFeeSettings],
+    [canLoad, statementData, periods, summaryMeta, paymentStart, paymentEnd, feeItemsQuery.data, tiers, period, lateFeeSettings, lateFeeDisabledOccupancies],
   );
 
   if (!open) return null;
