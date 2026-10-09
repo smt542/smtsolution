@@ -8,6 +8,8 @@ export const utilityKeys = {
     [...utilityKeys.rowsScope(buildingId, utilityType), period] as const,
   history: (unitId: number | null, utilityType: UtilityType, period: string) =>
     ["utilities", "history", unitId, utilityType, period] as const,
+  customerBills: (buildingId: number | null, utilityType: UtilityType, period: string) =>
+    ["utilities", "customer-bills", buildingId, utilityType, period] as const,
   prices: (buildingId: number | null, utilityType: UtilityType) =>
     ["utilities", "prices", buildingId, utilityType] as const,
   scopedPrices: (buildingId: number | null, utilityType: UtilityType) =>

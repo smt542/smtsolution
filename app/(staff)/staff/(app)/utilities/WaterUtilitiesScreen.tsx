@@ -15,8 +15,11 @@ import {
   useFixedValues,
   useSaveFixedValues,
   useSaveMeterReadings,
+  useSaveUtilityCustomerBills,
+  useUtilityCustomerBills,
   useUtilityRows,
   type FixedValueEntry,
+  type UtilityAllocationResult,
   type UtilityType,
   type UtilityUnitRow,
 } from "@/hooks/reactquery/utilities";
@@ -36,6 +39,7 @@ import { UtilityPeriodBarPlaceholder } from "./components/UtilityPeriodBarPlaceh
 import { UtilityWorkspaceHeader } from "./components/UtilityWorkspaceHeader";
 import { UtilityTable, type UtilityDraft } from "./components/UtilityTable";
 import { UtilityWorkspaceBar } from "./components/UtilityWorkspaceBar";
+import { customerBillChanges, notifyAllocationMismatch } from "./components/utilityAllocation";
 import {
   fixedChangesFor,
   groupFixedValues,
@@ -106,6 +110,8 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
   const [carryOpen, setCarryOpen] = useState(false);
   const [priceModalOpen, setPriceModalOpen] = useState(false);
   const [discountRow, setDiscountRow] = useState<UtilityUnitRow | null>(null);
+  /** 고객번호 요약 부과액(고객번호×월 청구총액) 직접 입력값. key = `${scopeKey}:${customerNo}`. */
+  const [billDrafts, setBillDrafts] = useState<Record<string, string>>({});
 
   const year = Number(referenceDate.slice(0, 4));
   const month = Number(referenceDate.slice(5, 7));
@@ -117,6 +123,8 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
   const billingPeriodQuery = useBillingPeriod(buildingId, period);
   const saveMeter = useSaveMeterReadings();
   const saveFixedValues = useSaveFixedValues();
+  const customerBillsQuery = useUtilityCustomerBills(buildingId, utilityType, period);
+  const saveCustomerBills = useSaveUtilityCustomerBills();
   const customerNumberQueries = useQueries({
     queries: buildings.map((building) => ({
       queryKey: customerNumberKeys.byBuilding(building.id),
@@ -143,6 +151,15 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
     [drafts, fixedByUnit, period, rows, scopeKey],
   );
   const activeRows = useMemo(() => rows.filter((row) => !isVacant(row)), [rows]);
+  const scopedBillDrafts = useMemo<Record<string, string>>(
+    () => Object.fromEntries(Object.entries(billDrafts)
+      .filter(([key]) => key.startsWith(`${scopeKey}:`))
+      .map(([key, value]) => [key.slice(scopeKey.length + 1), value])),
+    [billDrafts, scopeKey],
+  );
+  const clearBillDrafts = () => setBillDrafts((current) => Object.fromEntries(
+    Object.entries(current).filter(([key]) => !key.startsWith(`${scopeKey}:`)),
+  ));
   const effectiveSelectedRow = rows.find((row) => row.unitId === selectedRow?.unitId) ?? rows[0] ?? null;
   const isWaterWorkspaceLoading =
     rowsQuery.isLoading ||
@@ -232,9 +249,22 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
       fixedByUnit.get(row.unitId),
       period,
     ));
-    if (payloadRows.length === 0 && fixedChanges.length === 0) {
+    let bills: { customer_number_id: number; amount: number | null }[];
+    try {
+      // 요약표 부과액 → 고객번호×월 청구총액(옵트인: 직접 고친 고객번호만).
+      bills = utilityType === "gas" ? [] : customerBillChanges((customerBillsQuery.data ?? []).map((bill) => ({
+        customerNumberId: bill.customerNumberId,
+        savedAmount: bill.amount,
+        draft: scopedBillDrafts[bill.customerNo],
+      })));
+    } catch (error) {
+      toast.error(error, "부과액을 확인해 주세요.");
+      return;
+    }
+    if (payloadRows.length === 0 && fixedChanges.length === 0 && bills.length === 0) {
       if (finishEditing) {
         setEditing(false);
+        clearBillDrafts();
         return;
       }
       toast.error("입력된 검침 정보가 없습니다.");
@@ -245,13 +275,23 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
       if (fixedChanges.length > 0) {
         await saveFixedValues.mutateAsync({ buildingId, utilityType, period, changes: fixedChanges });
       }
+      let allocation: UtilityAllocationResult[] = [];
+      let message = "고정값을 저장했습니다.";
       if (payloadRows.length > 0) {
         const result = await saveMeter.mutateAsync({ buildingId, utilityType, period, rows: payloadRows });
-        toast.success(`${result.saved}개 호실의 검침을 저장했습니다.`);
-      } else {
-        toast.success("고정값을 저장했습니다.");
+        allocation = result.allocation;
+        message = `${result.saved}개 호실의 검침을 저장했습니다.`;
       }
-      if (finishEditing) setEditing(false);
+      // 청구총액은 지침 저장 뒤에 써야 그 달 호실 전체를 총액 기준으로 배분한다(0274).
+      if (bills.length > 0) {
+        allocation = (await saveCustomerBills.mutateAsync({ buildingId, utilityType, period, bills })).allocation;
+        if (payloadRows.length === 0) message = "고객번호 부과액을 저장하고 호실별로 배분했습니다.";
+      }
+      if (!notifyAllocationMismatch(allocation)) toast.success(message);
+      if (finishEditing) {
+        setEditing(false);
+        clearBillDrafts();
+      }
     } catch {
       toast.error("검침 저장에 실패했습니다.");
     }
@@ -323,8 +363,11 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
                 period={period}
                 editing={editing}
                 canEdit
-                saving={saveMeter.isPending}
-                onEditingChange={setEditing}
+                saving={saveMeter.isPending || saveCustomerBills.isPending}
+                onEditingChange={(next) => {
+                  setEditing(next);
+                  if (!next) clearBillDrafts();
+                }}
                 onCalculate={() => void saveReadings(false)}
                 onSave={() => void saveReadings(true)}
               />
@@ -336,7 +379,18 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
               <section role="alert" className="grid min-h-[360px] flex-1 place-items-center rounded-xl border border-red/20 bg-red-t text-center"><div><p className="text-[13px] font-bold text-red">호실 정보를 불러오지 못했습니다.</p><button type="button" onClick={() => { rowsQuery.refetch(); fixedValuesQuery.refetch(); billingPeriodQuery.refetch(); }} className="mt-3 h-8 rounded-lg border border-line bg-white px-3 text-[11px] font-bold text-t2">다시 시도</button></div></section>
             ) : (
               <>
-                <UtilityAccountSummary rows={rows} selectedRow={effectiveSelectedRow} editing={editing} onSelect={setSelectedRow} />
+                <UtilityAccountSummary
+                  rows={rows}
+                  selectedRow={effectiveSelectedRow}
+                  editing={editing}
+                  onSelect={setSelectedRow}
+                  customerBills={customerBillsQuery.data}
+                  chargeDrafts={scopedBillDrafts}
+                  onChargeDraftChange={(customerNo, value) => setBillDrafts((current) => ({
+                    ...current,
+                    [`${scopeKey}:${customerNo}`]: value,
+                  }))}
+                />
                 <section className="flex min-h-[360px] flex-1 flex-col overflow-hidden rounded-[16px] bg-white shadow-card min-[1101px]:min-h-0">
                   <div className="flex h-[49px] shrink-0 items-center border-b border-line2 px-[18px]">
                     <h2 className="text-[15px] font-extrabold text-t1">호실별 {TYPE_LABELS[utilityType]} 지침</h2>

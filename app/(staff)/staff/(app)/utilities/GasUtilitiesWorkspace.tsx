@@ -168,7 +168,51 @@ export default function GasUtilitiesWorkspace() {
     ));
   };
 
-  const calculate = () => {
+  /** 고정한 호실은 지침이 비어도 저장해야 이 달 부과에 고정값이 들어간다. */
+  const buildPayloadRows = () => rows
+    .filter((row) => {
+      const draft = scopedDrafts[row.unitId];
+      return draft.usageLocked
+        || draft.manualLocked
+        || draft.previousReading.trim() !== (row.previousReading === null ? "" : String(row.previousReading))
+        || draft.currentReading.trim() !== ""
+        || draft.usageEdited
+        || draft.manualCharge.trim() !== ""
+        || draft.note.trim() !== ""
+        // 저장된 수동입력을 지운 경우도 보내야 서버에서 수동값이 해제된다.
+        || (row.manualCharge !== null && draft.manualCharge.trim() === "");
+    })
+    .map((row) => ({
+      unit_id: row.unitId,
+      ...(scopedDrafts[row.unitId].previousReading.trim() === "" ? {} : { previous_reading: scopedDrafts[row.unitId].previousReading.trim() }),
+      current_reading: scopedDrafts[row.unitId].currentReading.trim(),
+      ...(scopedDrafts[row.unitId].usageLocked || !scopedDrafts[row.unitId].usageEdited || scopedDrafts[row.unitId].usage.trim() === ""
+        ? {}
+        : { usage: scopedDrafts[row.unitId].usage.trim() }),
+      manual_charge: scopedDrafts[row.unitId].manualCharge.trim(),
+      note: scopedDrafts[row.unitId].note.trim(),
+    }));
+
+  /** 고정값 → 지침 순으로 저장해 서버(save_meter_readings)가 요금을 다시 계산하게 한다. */
+  const persistGasReadings = async () => {
+    if (buildingId === null) return null;
+    const payloadRows = buildPayloadRows();
+    const fixedChanges = rows.flatMap((row) => fixedChangesFor(
+      row.unitId,
+      scopedDrafts[row.unitId],
+      fixedByUnit.get(row.unitId),
+      period,
+    ));
+    // 고정값을 먼저 써야 save_meter_readings 가 바뀐 고정 사용량으로 량을 계산한다.
+    if (fixedChanges.length > 0) {
+      await saveFixedValues.mutateAsync({ buildingId, utilityType: "gas", period, changes: fixedChanges });
+    }
+    return payloadRows.length > 0
+      ? saveMeter.mutateAsync({ buildingId, utilityType: "gas", period, rows: payloadRows })
+      : null;
+  };
+
+  const calculate = async () => {
     if (!hasBillingBasis(chargeStartDate, chargeEndDate)) {
       toast.error("부과기준일을 먼저 설정해 주세요.");
       return;
@@ -177,7 +221,13 @@ export default function GasUtilitiesWorkspace() {
       toast.error("입력된 당월 지침이 없습니다.");
       return;
     }
-    toast.success("가스 요금을 계산했습니다.");
+    try {
+      // 편집 상태·초안은 유지하고 서버 계산 요금만 다시 불러온다(수도 「계산」과 같은 방식).
+      await persistGasReadings();
+      toast.success("가스 요금을 계산했습니다.");
+    } catch {
+      toast.error("가스 요금을 계산하지 못했습니다.");
+    }
   };
 
   const startEditing = () => {
@@ -192,40 +242,8 @@ export default function GasUtilitiesWorkspace() {
       toast.error("부과 시작일과 종료일을 확인해 주세요.");
       return;
     }
-    // 고정한 호실은 지침이 비어도 저장해야 이 달 부과에 고정값이 들어간다.
-    const payloadRows = rows
-      .filter((row) => {
-        const draft = scopedDrafts[row.unitId];
-        return draft.usageLocked
-          || draft.manualLocked
-          || draft.previousReading.trim() !== (row.previousReading === null ? "" : String(row.previousReading))
-          || draft.currentReading.trim() !== ""
-          || draft.usageEdited
-          || draft.manualCharge.trim() !== ""
-          || draft.note.trim() !== "";
-      })
-      .map((row) => ({
-        unit_id: row.unitId,
-        ...(scopedDrafts[row.unitId].previousReading.trim() === "" ? {} : { previous_reading: scopedDrafts[row.unitId].previousReading.trim() }),
-        current_reading: scopedDrafts[row.unitId].currentReading.trim(),
-        ...(scopedDrafts[row.unitId].usageLocked || !scopedDrafts[row.unitId].usageEdited || scopedDrafts[row.unitId].usage.trim() === ""
-          ? {}
-          : { usage: scopedDrafts[row.unitId].usage.trim() }),
-        manual_charge: scopedDrafts[row.unitId].manualCharge.trim(),
-        note: scopedDrafts[row.unitId].note.trim(),
-      }));
-    const fixedChanges = rows.flatMap((row) => fixedChangesFor(
-      row.unitId,
-      scopedDrafts[row.unitId],
-      fixedByUnit.get(row.unitId),
-      period,
-    ));
 
     try {
-      // 고정값을 먼저 써야 save_meter_readings 가 바뀐 고정 사용량으로 량을 계산한다.
-      if (fixedChanges.length > 0) {
-        await saveFixedValues.mutateAsync({ buildingId, utilityType: "gas", period, changes: fixedChanges });
-      }
       const [, meterResult] = await Promise.all([
         saveBillingPeriod.mutateAsync({
           buildingId,
@@ -233,9 +251,7 @@ export default function GasUtilitiesWorkspace() {
           chargeStartDate,
           chargeEndDate,
         }),
-        payloadRows.length > 0
-          ? saveMeter.mutateAsync({ buildingId, utilityType: "gas", period, rows: payloadRows })
-          : Promise.resolve(null),
+        persistGasReadings(),
       ]);
       toast.success(meterResult
         ? `${meterResult.saved}개 호실의 가스 지침과 부과기준을 저장했습니다.`
@@ -321,7 +337,7 @@ export default function GasUtilitiesWorkspace() {
                 onChargeStartDateChange={setEditStartDate}
                 onChargeEndDateChange={setEditEndDate}
                 onEdit={startEditing}
-                onCalculate={calculate}
+                onCalculate={() => void calculate()}
                 onSave={() => void save()}
                 onCancel={() => {
                   resetScopeDrafts();

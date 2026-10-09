@@ -19,6 +19,8 @@ export interface ElectricityCustomerSummaryRow {
 export interface ElectricityCustomerSummaryDraft {
   customerNumber: string;
   chargeAmount: string;
+  /** 부과액(고객번호×월 청구총액)을 직접 고쳤는지. 고친 값만 청구총액으로 저장한다(옵트인). */
+  chargeAmountEdited?: boolean;
 }
 
 interface ElectricityCustomerSummaryProps {

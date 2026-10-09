@@ -217,10 +217,45 @@ export interface SaveMeterReadingsInput {
     note: string;
   }[];
 }
+/** 고객번호×월 청구총액 배분 검산 결과(0274 utility_allocate_period). */
+export interface UtilityAllocationResult {
+  customerNumberId: number;
+  customerNo: string;
+  amount: number;
+  allocated: number;
+  matched: boolean;
+  /** ok | over_pinned | needs_review | no_rows | no_pool_usage */
+  status: string;
+  rate: number | null;
+}
+
+interface UtilityAllocationRpc {
+  customer_number_id: number;
+  customer_no: string;
+  amount: number;
+  allocated: number;
+  matched: boolean;
+  status: string;
+  rate: number | null;
+}
+
+function rpcToAllocation(rows: UtilityAllocationRpc[] | undefined): UtilityAllocationResult[] {
+  return (rows ?? []).map((row) => ({
+    customerNumberId: row.customer_number_id,
+    customerNo: row.customer_no,
+    amount: row.amount,
+    allocated: row.allocated,
+    matched: row.matched,
+    status: row.status,
+    rate: row.rate,
+  }));
+}
+
 export interface SaveMeterReadingsResult {
   saved: number;
   period: string;
   totalCalc?: number;
+  allocation: UtilityAllocationResult[];
 }
 
 export async function saveMeterReadings(
@@ -233,12 +268,72 @@ export async function saveMeterReadings(
     p_rows: input.rows,
   });
   if (error) throw new Error(error.message);
-  const d = data as { saved: number; period: string; total_calc?: number };
+  const d = data as {
+    saved: number;
+    period: string;
+    total_calc?: number;
+    allocation?: UtilityAllocationRpc[];
+  };
   return {
     saved: d.saved,
     period: d.period,
     ...(d.total_calc === undefined ? {} : { totalCalc: d.total_calc }),
+    allocation: rpcToAllocation(d.allocation),
   };
+}
+
+export interface UtilityCustomerBillRow {
+  customerNumberId: number;
+  customerNo: string;
+  /** 관공서 청구총액(부과액). null 이면 총액 미입력 → 기존 단가×량 계산 유지. */
+  amount: number | null;
+}
+
+/** 전기·수도 고객번호×월 청구총액. 가스는 배분 보류(정책 ❓)라 조회하지 않는다. */
+export async function listUtilityCustomerBills(
+  buildingId: number,
+  utilityType: UtilityType,
+  period: string,
+): Promise<UtilityCustomerBillRow[]> {
+  const { data, error } = await createClient().rpc("list_utility_customer_bills", {
+    p_building_id: buildingId,
+    p_utility: dbUtility(utilityType),
+    p_period: period,
+  });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as { customer_number_id: number; customer_no: string; amount: number | null }[])
+    .map((row) => ({
+      customerNumberId: row.customer_number_id,
+      customerNo: row.customer_no,
+      amount: row.amount,
+    }));
+}
+
+export interface SaveUtilityCustomerBillsInput {
+  buildingId: number;
+  utilityType: UtilityType;
+  period: string;
+  /** amount=null 은 그 고객번호·월 총액 삭제(기존 계산으로 복귀). */
+  bills: { customer_number_id: number; amount: number | null }[];
+}
+
+export interface SaveUtilityCustomerBillsResult {
+  saved: number;
+  allocation: UtilityAllocationResult[];
+}
+
+export async function saveUtilityCustomerBills(
+  input: SaveUtilityCustomerBillsInput,
+): Promise<SaveUtilityCustomerBillsResult> {
+  const { data, error } = await createClient().rpc("save_utility_customer_bills", {
+    p_building_id: input.buildingId,
+    p_utility: dbUtility(input.utilityType),
+    p_period: input.period,
+    p_bills: input.bills,
+  });
+  if (error) throw new Error(error.message);
+  const d = data as { saved: number; allocation?: UtilityAllocationRpc[] };
+  return { saved: d.saved, allocation: rpcToAllocation(d.allocation) };
 }
 
 interface UtilityPriceRpc {

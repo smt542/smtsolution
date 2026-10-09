@@ -1,5 +1,5 @@
 import { Input } from "@/components/common";
-import type { UtilityUnitRow } from "@/hooks/reactquery/utilities";
+import type { UtilityCustomerBillRow, UtilityUnitRow } from "@/hooks/reactquery/utilities";
 import { formatNumber } from "@/lib/format";
 import { GridEmptyValue } from "./GridEmptyValue";
 import { UtilityGrid, type UtilityGridColumn } from "./UtilityGrid";
@@ -9,6 +9,11 @@ interface UtilityAccountSummaryProps {
   selectedRow: UtilityUnitRow | null;
   editing: boolean;
   onSelect: (row: UtilityUnitRow) => void;
+  /** 고객번호×월 청구총액(0274). 등록된 고객번호만 부과액을 직접 입력할 수 있다. */
+  customerBills?: UtilityCustomerBillRow[];
+  /** 고객번호별 부과액 입력 초안(customerNo → 값). */
+  chargeDrafts?: Record<string, string>;
+  onChargeDraftChange?: (customerNo: string, value: string) => void;
 }
 
 const inputClass = "h-[26px] rounded-[7px] border border-teal bg-white px-[7px] text-[11.5px] font-bold text-t1 outline-none focus:ring-1 focus:ring-teal/20";
@@ -66,8 +71,14 @@ export function UtilityAccountSummary({
   selectedRow,
   editing,
   onSelect,
+  customerBills,
+  chargeDrafts,
+  onChargeDraftChange,
 }: UtilityAccountSummaryProps) {
   const accounts = groupByCustomer(rows);
+  const billFor = (customerNumber: string) => customerBills?.find((bill) => bill.customerNo === customerNumber);
+  /** 청구총액을 입력했으면 그 총액(호실은 서버가 배분), 아니면 기존 호실 합계. */
+  const chargeOf = (row: AccountRow) => billFor(row.customerNumber)?.amount ?? (row.manual || row.charge);
 
   const columns: UtilityGridColumn<AccountRow>[] = [
     { key: "no", label: "L", minWidth: 34, align: "right", cellClassName: "num", render: (_row, index) => index + 1 },
@@ -105,9 +116,21 @@ export function UtilityAccountSummary({
       minWidth: 76,
       align: "right",
       cellClassName: "num font-bold",
-      render: (row) => editing
-        ? <Input unstyled aria-label={`${row.customerNumber} 부과액`} value={row.manual || row.charge || ""} readOnly className={`${inputClass} w-[64px] text-right`} />
-        : formatNumber(row.manual || row.charge),
+      render: (row) => {
+        if (!editing) return formatNumber(chargeOf(row));
+        const editable = Boolean(onChargeDraftChange && billFor(row.customerNumber));
+        return (
+          <Input
+            unstyled
+            aria-label={`${row.customerNumber} 부과액`}
+            inputMode="numeric"
+            value={chargeDrafts?.[row.customerNumber] ?? (chargeOf(row) || "")}
+            readOnly={!editable}
+            onChange={editable ? (event) => onChargeDraftChange?.(row.customerNumber, event.target.value) : undefined}
+            className={`${inputClass} w-[64px] text-right`}
+          />
+        );
+      },
     },
     { key: "previousUnitPrice", label: "전단가", minWidth: 62, align: "right", cellClassName: DASH, render: () => "-" },
     {

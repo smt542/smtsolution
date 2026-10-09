@@ -7,6 +7,7 @@ import {
   listFixedValues,
   listMeterHistory,
   listScopedPrices,
+  listUtilityCustomerBills,
   listUtilityPrices,
   listUtilityRows,
   type UtilityType,
@@ -22,6 +23,19 @@ export function useUtilityRows(
     queryKey: utilityKeys.rows(buildingId, utilityType, period),
     queryFn: () => listUtilityRows(buildingId as number, utilityType, period),
     enabled: buildingId !== null,
+  });
+}
+
+/** 고객번호×월 청구총액(전기·수도). 가스는 배분 보류라 조회하지 않는다. */
+export function useUtilityCustomerBills(
+  buildingId: number | null,
+  utilityType: UtilityType,
+  period: string,
+) {
+  return useQuery({
+    queryKey: utilityKeys.customerBills(buildingId, utilityType, period),
+    queryFn: () => listUtilityCustomerBills(buildingId as number, utilityType, period),
+    enabled: buildingId !== null && utilityType !== "gas",
   });
 }
 

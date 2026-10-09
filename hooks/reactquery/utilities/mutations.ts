@@ -5,6 +5,7 @@ import {
   saveFixedValues,
   saveScopedPrices,
   saveMeterReadings,
+  saveUtilityCustomerBills,
   savePartnerMeterReadings,
   saveUtilityUnitPrices,
   saveUtilitySupplier,
@@ -15,6 +16,7 @@ import {
   type SaveFixedValuesInput,
   type SaveScopedPricesInput,
   type SaveMeterReadingsInput,
+  type SaveUtilityCustomerBillsInput,
   type SavePartnerMeterReadingsInput,
   type SaveUtilityUnitPricesInput,
   type SaveUtilitySupplierInput,
@@ -48,6 +50,25 @@ export function useSaveMeterReadings() {
         qc.invalidateQueries({
           queryKey: utilityKeys.history(row.unit_id, input.utilityType, input.period),
         });
+      });
+    },
+  });
+}
+
+/** 고객번호×월 청구총액 저장 → 서버가 호실 부과액을 배분(0274)하므로 지침·확정 캐시도 갱신한다. */
+export function useSaveUtilityCustomerBills() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: SaveUtilityCustomerBillsInput) => saveUtilityCustomerBills(input),
+    onSuccess: (_result, input) => {
+      qc.invalidateQueries({
+        queryKey: utilityKeys.customerBills(input.buildingId, input.utilityType, input.period),
+      });
+      qc.invalidateQueries({
+        queryKey: utilityKeys.rows(input.buildingId, input.utilityType, input.period),
+      });
+      qc.invalidateQueries({
+        queryKey: utilityKeys.confirmation(input.buildingId, input.utilityType, input.period),
       });
     },
   });

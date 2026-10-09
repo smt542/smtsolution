@@ -401,22 +401,21 @@ begin
 
   -- 총액을 지운 고객번호: 기존 계산(단가×량−할인)으로 되돌린다.
   if array_length(v_removed, 1) > 0 then
-    select coalesce(jsonb_agg(jsonb_strip_nulls(jsonb_build_object(
+    -- 저장값을 그대로 다시 넣는다. previous_reading 키는 null 이어도 유지해 전월을 다시 찾지 않게 하고,
+    -- needs_review 행은 usage 를 비워 지침 차이로 다시 판정되게 한다(JSON null → 미지정).
+    select coalesce(jsonb_agg(jsonb_build_object(
       'unit_id', mr.unit_id,
       'previous_reading', mr.previous_reading,
       'current_reading', mr.current_reading,
       'usage', case when mr.needs_review then null else mr.usage end,
       'manual_charge', mr.manual_charge,
       'note', mr.note
-    ))), '[]'::jsonb)
+    )), '[]'::jsonb)
     into v_rows
     from units u
     join unit_meters um on um.unit_id = u.id and um.utility = p_utility and um.customer_no = any(v_removed)
     join meter_readings mr on mr.unit_id = u.id and mr.utility = p_utility and mr.period = p_period
     where u.building_id = p_building_id and u.deleted_at is null;
-    -- previous_reading 키가 없으면 save_meter_readings 가 전월을 다시 찾으므로 null 이어도 키를 유지한다.
-    select coalesce(jsonb_agg(r || jsonb_build_object('previous_reading', coalesce(r->'previous_reading', 'null'::jsonb))), '[]'::jsonb)
-      into v_rows from jsonb_array_elements(v_rows) r;
     if jsonb_array_length(v_rows) > 0 then
       perform save_meter_readings(p_building_id, p_utility, p_period, v_rows);
     end if;

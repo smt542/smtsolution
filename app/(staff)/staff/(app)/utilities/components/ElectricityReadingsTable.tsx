@@ -97,7 +97,10 @@ export function ElectricityReadingsTable({
     const vacant = row.occupancyStatus === "vacant" || row.occupancyId === null;
     const moving = row.occupancyStatus === "moving_out";
     const recent = !vacant && isNewOccupancy(row.moveInDate, referenceDate);
-    const charge = optionalNumber(draft.manualCharge) ?? row.manualCharge ?? row.automaticCharge;
+    // 편집 중에는 초안의 수동입력이 기준이다(지우면 저장된 수동값이 아니라 서버 자동 계산값). 「계산」이 서버 값을 다시 불러온다.
+    const charge = editing
+      ? optionalNumber(draft.manualCharge) ?? row.automaticCharge
+      : optionalNumber(draft.manualCharge) ?? row.manualCharge ?? row.automaticCharge;
     const marker = moving
       ? "shadow-[inset_3px_0_0_#3182F6]"
       : vacant && (usage ?? 0) > 0

@@ -12,10 +12,13 @@ import {
   useSaveBillingPeriod,
   useSaveFixedValues,
   useSaveMeterReadings,
+  useSaveUtilityCustomerBills,
   useSaveUtilityUnitPrices,
+  useUtilityCustomerBills,
   useUtilityPrices,
   useUtilityRows,
   type FixedValueEntry,
+  type UtilityAllocationResult,
   type UtilityType,
   type UtilityUnitRow,
 } from "@/hooks/reactquery/utilities";
@@ -40,6 +43,11 @@ import {
 } from "./components/ElectricityReadingsTable";
 import { MeterLedgerModal } from "./components/MeterLedgerModal";
 import { UtilityWorkspaceHeader } from "./components/UtilityWorkspaceHeader";
+import {
+  customerBillChanges,
+  electricityNoticeAmount,
+  notifyAllocationMismatch,
+} from "./components/utilityAllocation";
 import {
   fixedChangesFor,
   groupFixedValues,
@@ -80,12 +88,14 @@ export default function ElectricityUtilitiesWorkspace() {
   const rowsQuery = useUtilityRows(buildingId, utilityType, period);
   const fixedValuesQuery = useFixedValues(buildingId, utilityType);
   const pricesQuery = useUtilityPrices(buildingId, utilityType);
+  const customerBillsQuery = useUtilityCustomerBills(buildingId, utilityType, period);
   const customerNumbersQuery = useCustomerNumberLookup({ kind: "common_elec", pageSize: 100 });
   const billingPeriodQuery = useBillingPeriod(buildingId, period);
   const saveMeterReadings = useSaveMeterReadings();
   const saveBillingPeriod = useSaveBillingPeriod();
   const saveUtilityPrices = useSaveUtilityUnitPrices();
   const saveFixedValues = useSaveFixedValues();
+  const saveCustomerBills = useSaveUtilityCustomerBills();
 
   const buildings = useMemo(() => buildingsQuery.data ?? [], [buildingsQuery.data]);
   const rows = useMemo(() => rowsQuery.data ?? [], [rowsQuery.data]);
@@ -126,6 +136,7 @@ export default function ElectricityUtilitiesWorkspace() {
 
   const customerSummaryRows = useMemo<ElectricityCustomerSummaryRow[]>(() => {
     const prices = pricesQuery.data ?? [];
+    const bills = customerBillsQuery.data ?? [];
     const groups = new Map<string, UtilityUnitRow[]>();
     rows.forEach((row) => {
       const key = row.customerNumber ?? "미등록";
@@ -134,10 +145,16 @@ export default function ElectricityUtilitiesWorkspace() {
     prices.forEach((price) => {
       if (!groups.has(price.customerNo)) groups.set(price.customerNo, []);
     });
+    bills.forEach((bill) => {
+      if (!groups.has(bill.customerNo)) groups.set(bill.customerNo, []);
+    });
 
     return [...groups.entries()].map(([customerNumber, groupRows], index) => {
       const price = prices.find((item) => item.customerNo === customerNumber);
-      const chargeAmount = groupRows.reduce((total, row) => total + (row.manualCharge ?? row.automaticCharge ?? 0), 0);
+      const bill = bills.find((item) => item.customerNo === customerNumber);
+      // 부과액: 고객번호×월 청구총액을 입력했으면 그 총액(호실은 서버가 배분), 아니면 Σ호실.
+      const chargeAmount = bill?.amount
+        ?? groupRows.reduce((total, row) => total + (row.manualCharge ?? row.automaticCharge ?? 0), 0);
       const usage = groupRows.reduce((total, row) => total + (row.usage ?? 0), 0);
       const currentReading = groupRows.reduce((total, row) => total + (row.currentReading ?? 0), 0);
       const previousReading = groupRows.reduce((total, row) => total + (row.previousReading ?? 0), 0);
@@ -145,11 +162,11 @@ export default function ElectricityUtilitiesWorkspace() {
       const baseUnitPrice = price?.unitPrice ?? groupRows.find((row) => row.unitPrice !== null)?.unitPrice ?? null;
       const draftedPrice = price ? parseDraftNumber(priceDrafts[price.customerNumberId] ?? "") : null;
       return {
-        id: price?.customerNumberId ?? -(index + 1),
+        id: price?.customerNumberId ?? bill?.customerNumberId ?? -(index + 1),
         customerNumber,
         chargeAmount,
-        // 고지금액: 실제 청구액 저장 필드가 없어 현재는 부과액과 동일값으로 파생(후속: 스태프 입력 배선)
-        billedAmount: chargeAmount,
+        // 고지금액(전기) = round(부과액 × 1.11 / 10) × 10 (정책 2.3). 수도·가스는 가산하지 않는다.
+        billedAmount: utilityType === "electricity" ? electricityNoticeAmount(chargeAmount) : chargeAmount,
         usage,
         unitPrice: draftedPrice ?? baseUnitPrice,
         currentReading,
@@ -158,16 +175,19 @@ export default function ElectricityUtilitiesWorkspace() {
         movingCharge: 0,
       };
     });
-  }, [priceDrafts, pricesQuery.data, rows]);
+  }, [customerBillsQuery.data, priceDrafts, pricesQuery.data, rows, utilityType]);
 
   const scopedSummaryDrafts = useMemo<Record<number, ElectricityCustomerSummaryDraft>>(
-    () => Object.fromEntries(customerSummaryRows.map((row) => [
-      row.id,
-      summaryDrafts[`${draftScope}:summary:${row.id}`] ?? {
-        customerNumber: row.customerNumber,
-        chargeAmount: String(row.chargeAmount),
-      },
-    ])),
+    () => Object.fromEntries(customerSummaryRows.map((row) => {
+      const draft = summaryDrafts[`${draftScope}:summary:${row.id}`];
+      return [
+        row.id,
+        draft
+          // 직접 고치지 않은 부과액은 「계산」 후 다시 불러온 서버 값(총액 또는 Σ호실)을 따른다.
+          ? { ...draft, chargeAmount: draft.chargeAmountEdited ? draft.chargeAmount : String(row.chargeAmount) }
+          : { customerNumber: row.customerNumber, chargeAmount: String(row.chargeAmount) },
+      ];
+    })),
     [customerSummaryRows, draftScope, summaryDrafts],
   );
 
@@ -193,6 +213,7 @@ export default function ElectricityUtilitiesWorkspace() {
           chargeAmount: String(row.chargeAmount),
         }),
         ...patch,
+        ...(patch.chargeAmount === undefined ? {} : { chargeAmountEdited: true }),
       },
     }));
   }, [customerSummaryRows, draftScope]);
@@ -269,17 +290,12 @@ export default function ElectricityUtilitiesWorkspace() {
     setPriceDrafts({});
   };
 
-  const calculate = () => {
-    toast.info("입력값으로 사용량과 부과액을 계산했습니다.");
-  };
-
-  const save = async () => {
-    if (buildingId === null) return;
-    if (!editStartDate || !editEndDate || editStartDate > editEndDate) {
-      toast.error("부과 시작일과 종료일을 확인해 주세요.");
-      return;
-    }
-
+  /**
+   * 「계산」·「저장」 공통: 고정값 → 단가 → 지침(save_meter_readings, 서버 계산) → 고객번호 청구총액(배분) 순으로 저장한다.
+   * 단가를 지침보다 먼저 써야 서버가 바뀐 단가로 계산하고, 청구총액은 마지막에 써야 그 달 호실 전체를 배분한다.
+   */
+  const persistReadings = async (): Promise<{ saved: number; allocation: UtilityAllocationResult[] } | null> => {
+    if (buildingId === null) return null;
     // 고정한 호실은 지침이 비어도 저장해야 이 달 부과에 고정값이 들어간다.
     const meterRows = rows
       .map((row) => ({ row, draft: scopedDrafts[row.unitId] }))
@@ -289,7 +305,9 @@ export default function ElectricityUtilitiesWorkspace() {
         || draft.currentReading.trim() !== ""
         || draft.usageEdited
         || draft.manualCharge.trim() !== ""
-        || draft.note.trim() !== "")
+        || draft.note.trim() !== ""
+        // 저장된 수동입력을 지운 경우도 보내야 서버에서 수동값이 해제된다.
+        || (row.manualCharge !== null && draft.manualCharge.trim() === ""))
       .map(({ row, draft }) => ({
         unit_id: row.unitId,
         ...(draft.previousReading.trim() === "" ? {} : { previous_reading: draft.previousReading.trim() }),
@@ -310,24 +328,74 @@ export default function ElectricityUtilitiesWorkspace() {
         unit_price: parseDraftNumber(priceDrafts[price.customerNumberId] ?? "") ?? price.unitPrice,
       }))
       .filter((price): price is { customer_number_id: number; unit_price: number } => price.unit_price !== null);
+    // 요약표 부과액 입력 → 고객번호×월 청구총액(전기·수도). 직접 바꾼 행만 보낸다(옵트인).
+    const bills = utilityType === "gas" ? [] : customerBillChanges(
+      (customerBillsQuery.data ?? []).flatMap((bill) => {
+        const summaryRow = customerSummaryRows.find((row) => row.customerNumber === bill.customerNo);
+        if (!summaryRow) return [];
+        const draft = summaryDrafts[`${draftScope}:summary:${summaryRow.id}`];
+        return [{
+          customerNumberId: bill.customerNumberId,
+          savedAmount: bill.amount,
+          draft: draft?.chargeAmountEdited ? draft.chargeAmount : undefined,
+        }];
+      }),
+    );
+
+    // 고정값을 먼저 써야 save_meter_readings 가 바뀐 고정 사용량으로 량을 계산한다.
+    if (fixedChanges.length > 0) {
+      await saveFixedValues.mutateAsync({ buildingId, utilityType, period, changes: fixedChanges });
+    }
+    if (prices.length > 0) {
+      await saveUtilityPrices.mutateAsync({ buildingId, utilityType, prices });
+    }
+    let saved = 0;
+    let allocation: UtilityAllocationResult[] = [];
+    if (meterRows.length > 0) {
+      const result = await saveMeterReadings.mutateAsync({ buildingId, utilityType, period, rows: meterRows });
+      saved = result.saved;
+      allocation = result.allocation;
+    }
+    if (bills.length > 0) {
+      allocation = (await saveCustomerBills.mutateAsync({ buildingId, utilityType, period, bills })).allocation;
+    }
+    return { saved, allocation };
+  };
+
+  const calculate = async () => {
+    if (buildingId === null) return;
+    try {
+      const result = await persistReadings();
+      if (!result) return;
+      // 편집 상태·초안은 유지하고 서버 계산값(부과액·파생 단가)만 다시 불러온다.
+      if (!notifyAllocationMismatch(result.allocation)) {
+        toast.success("입력값으로 사용량과 부과액을 계산했습니다.");
+      }
+    } catch (error) {
+      toast.error(error, "부과액을 계산하지 못했습니다.");
+    }
+  };
+
+  const save = async () => {
+    if (buildingId === null) return;
+    if (!editStartDate || !editEndDate || editStartDate > editEndDate) {
+      toast.error("부과 시작일과 종료일을 확인해 주세요.");
+      return;
+    }
 
     try {
-      // 고정값을 먼저 써야 save_meter_readings 가 바뀐 고정 사용량으로 량을 계산한다.
-      if (fixedChanges.length > 0) {
-        await saveFixedValues.mutateAsync({ buildingId, utilityType, period, changes: fixedChanges });
-      }
-      await Promise.all([
+      const [, result] = await Promise.all([
         saveBillingPeriod.mutateAsync({
           buildingId,
           period,
           chargeStartDate: editStartDate,
           chargeEndDate: editEndDate,
         }),
-        ...(meterRows.length > 0 ? [saveMeterReadings.mutateAsync({ buildingId, utilityType, period, rows: meterRows })] : []),
-        ...(prices.length > 0 ? [saveUtilityPrices.mutateAsync({ buildingId, utilityType, prices })] : []),
+        persistReadings(),
       ]);
       const label = utilityType === "water" ? "수도" : utilityType === "gas" ? "가스" : "전기";
       toast.success(`${label} 지침과 부과기준을 저장했습니다.`);
+      if (result) notifyAllocationMismatch(result.allocation);
       setEditing(false);
       setSummaryDrafts({});
     } catch (error) {
@@ -361,7 +429,8 @@ export default function ElectricityUtilitiesWorkspace() {
     fixedValuesQuery.isLoading ||
     (buildingId !== null && billingPeriodQuery.isLoading);
   const isElectricitySavePending =
-    saveFixedValues.isPending || saveMeterReadings.isPending || saveBillingPeriod.isPending || saveUtilityPrices.isPending;
+    saveFixedValues.isPending || saveMeterReadings.isPending || saveBillingPeriod.isPending
+    || saveUtilityPrices.isPending || saveCustomerBills.isPending;
   const needsBasis = buildingId !== null
     && !billingPeriodQuery.isLoading
     && isPrototypeFuturePeriod(period)
@@ -416,7 +485,7 @@ export default function ElectricityUtilitiesWorkspace() {
             onStartDateChange={setEditStartDate}
             onEndDateChange={setEditEndDate}
             onEdit={startEditing}
-            onCalculate={calculate}
+            onCalculate={() => void calculate()}
             onSave={() => void save()}
             onCancel={cancelEditing}
           />
