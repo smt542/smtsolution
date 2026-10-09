@@ -36,7 +36,7 @@ function requiredPlaceholder(keyPrefix: string, name: string, index: number): Fe
     key: `${keyPrefix}-required-${index}`,
     name,
     rounding: "round",
-    dailyProration: true,
+    dailyProration: false,
     carryOver: true,
     isRequired: true,
     sortOrder: index,
@@ -284,6 +284,8 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
       ...value,
       // 필수 항목 명칭은 잠겨 있으므로 폼 값이 아니라 원래 이름을 그대로 보낸다.
       name: item?.isRequired ? item.name : value.name,
+      // 필수 공과금은 일수 안분 없음(정책) — 폼에서 바꿔도 false로 고정한다.
+      dailyProration: item?.isRequired ? false : value.dailyProration,
       orgId,
       typeId: activeType.id,
       isRequired: item?.isRequired ?? false,

@@ -2,7 +2,7 @@ export type Rounding = "up" | "round" | "down" | "raw";
 
 export function roundCharge(value: number, r: Rounding): number {
   // 계산규칙 1.2: 절상·4사5입·절하는 10원 단위, 그대로(raw)는 반올림 미적용
-  if (r === "raw") return value;
+  if (r === "raw") return Math.round(value);
   if (r === "up") return Math.ceil(value / 10) * 10;
   if (r === "down") return Math.floor(value / 10) * 10;
   return Math.round(value / 10) * 10; // 4사5입(10원 단위)

@@ -98,9 +98,18 @@ function toDraft(row: LongTermRepairLedgerEntry): DraftLedgerRow {
   };
 }
 
+// 서버 list_long_term_repair_ledger와 같은 규칙: 번호의 숫자부 우선(숫자 없으면 뒤), 그다음 원문, id.
+function entryNoNumber(entryNo: string) {
+  const digits = entryNo.replace(/\D/g, "");
+  return digits ? Number(digits) : Number.POSITIVE_INFINITY;
+}
+
 function compareRows(a: DraftLedgerRow, b: DraftLedgerRow) {
+  const numA = entryNoNumber(a.entryNo);
+  const numB = entryNoNumber(b.entryNo);
   return a.entryDate.localeCompare(b.entryDate)
-    || a.entryNo.localeCompare(b.entryNo, "ko-KR", { numeric: true })
+    || (numA === numB ? 0 : numA < numB ? -1 : 1)
+    || (a.entryNo < b.entryNo ? -1 : a.entryNo > b.entryNo ? 1 : 0)
     || (a.id ?? Number.MAX_SAFE_INTEGER) - (b.id ?? Number.MAX_SAFE_INTEGER)
     || a.clientKey.localeCompare(b.clientKey);
 }
