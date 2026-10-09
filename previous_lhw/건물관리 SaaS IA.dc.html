@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#f4f5f7;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#1f2937}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:#cbd0d8;border-radius:8px;border:2px solid #f4f5f7}
+  ::-webkit-scrollbar-thumb:hover{background:#aeb4bf}
+</style>
+</helmet>
+<div style="min-height:100vh;padding:28px 24px 60px">
+  <div style="max-width:1200px;margin:0 auto">
+
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:22px">
+      <div>
+        <div style="display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.08em;color:#9ca3af;text-transform:uppercase;margin-bottom:8px">
+          <span style="width:6px;height:6px;border-radius:50%;background:#2563eb"></span>INTERNAL · INFORMATION ARCHITECTURE
+        </div>
+        <h1 style="margin:0;font-size:27px;font-weight:800;letter-spacing:-.02em;color:#111827">건물관리 SaaS · 정보 구조(IA)</h1>
+        <p style="margin:7px 0 0;font-size:14px;color:#6b7280">4개 플랫폼 · <b style="color:#374151">{{ totalNodes }}</b>개 노드 · 클릭하여 하위 메뉴를 펼치고 상세를 확인하세요</p>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px;background:#fff;border:1px solid #e8eaed;border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.04);margin-bottom:18px">
+      <div style="position:relative;flex:1 1 240px;min-width:200px">
+        <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:14px;color:#9ca3af">⌕</span>
+        <input value="{{ query }}" onInput="{{ onSearch }}" placeholder="메뉴 검색…" style="width:100%;height:40px;padding:0 34px 0 32px;border:1px solid #e2e5e9;border-radius:10px;font-size:14px;outline:none;background:#fafbfc;color:#111827" />
+        <sc-if value="{{ hasQuery }}"><span onClick="{{ onClear }}" style="position:absolute;right:11px;top:50%;transform:translateY(-50%);font-size:16px;color:#9ca3af;cursor:pointer;line-height:1">×</span></sc-if>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <sc-for list="{{ chips }}" as="c" hint-placeholder-count="4">
+          <div onClick="{{ c.onToggle }}" style="{{ c.style }}">
+            <span style="{{ c.dotStyle }}"></span>{{ c.label }}<span style="{{ c.countStyle }}">{{ c.count }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;gap:7px;margin-left:auto">
+        <div onClick="{{ onExpandAll }}" style="display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 14px;border:1px solid #e2e5e9;border-radius:10px;font-size:13px;font-weight:600;color:#374151;cursor:pointer;background:#fff" style-hover="background:#f3f4f6">전체 펼치기</div>
+        <div onClick="{{ onCollapseAll }}" style="display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 14px;border:1px solid #e2e5e9;border-radius:10px;font-size:13px;font-weight:600;color:#374151;cursor:pointer;background:#fff" style-hover="background:#f3f4f6">전체 접기</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap">
+
+      <div style="flex:3 1 480px;min-width:320px;background:#fff;border:1px solid #e8eaed;border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.04);padding:12px 12px 8px">
+        <sc-if value="{{ hasRows }}" hint-placeholder-val="{{ true }}">
+          <div>
+            <sc-for list="{{ rows }}" as="row" hint-placeholder-count="10">
+              <div onClick="{{ row.onSelect }}" style="{{ row.rowStyle }}" style-hover="box-shadow:0 2px 10px rgba(16,24,40,.09)">
+                <div onClick="{{ row.onToggle }}" style="{{ row.chevStyle }}">{{ row.chevron }}</div>
+                <div style="{{ row.barStyle }}"></div>
+                <div style="{{ row.labelWrap }}"><span style="{{ row.labelSpan }}">{{ row.name }}</span></div>
+                <sc-if value="{{ row.hasChildren }}"><span style="{{ row.countStyle }}">{{ row.countText }}</span></sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ noRows }}">
+          <div style="padding:52px 20px;text-align:center;color:#9ca3af">
+            <div style="font-size:30px;margin-bottom:8px">⌕</div>
+            <div style="font-size:14px">'<b style="color:#6b7280">{{ query }}</b>' 검색 결과가 없습니다</div>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="flex:1 1 300px;min-width:280px;position:sticky;top:16px;align-self:flex-start">
+
+        <sc-if value="{{ hasSelection }}" hint-placeholder-val="{{ true }}">
+          <div style="{{ detail.cardStyle }}">
+            <div style="{{ detail.headStyle }}">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+                <span style="{{ detail.levelBadge }}">{{ detail.levelLabel }}</span>
+                <span style="{{ detail.platBadge }}">{{ detail.platLabel }}</span>
+              </div>
+              <div style="font-size:19px;font-weight:800;letter-spacing:-.01em;color:#111827;line-height:1.3">{{ detail.name }}</div>
+              <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:12px;font-size:12px;color:#9ca3af">
+                <sc-for list="{{ detail.crumbs }}" as="cr" hint-placeholder-count="2">
+                  <span>{{ cr.sep }}<span style="{{ cr.style }}" onClick="{{ cr.onClick }}">{{ cr.name }}</span></span>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;padding:14px 18px;border-bottom:1px solid #eef0f2">
+              <div style="flex:1;background:#f7f8fa;border-radius:10px;padding:10px 12px">
+                <div style="font-size:22px;font-weight:800;color:#111827;font-family:ui-monospace,Menlo,monospace">{{ detail.directCount }}</div>
+                <div style="font-size:11px;color:#9ca3af;margin-top:2px">직속 하위</div>
+              </div>
+              <div style="flex:1;background:#f7f8fa;border-radius:10px;padding:10px 12px">
+                <div style="font-size:22px;font-weight:800;color:#111827;font-family:ui-monospace,Menlo,monospace">{{ detail.descCount }}</div>
+                <div style="font-size:11px;color:#9ca3af;margin-top:2px">전체 하위</div>
+              </div>
+            </div>
+            <sc-if value="{{ detail.hasChildren }}">
+              <div style="padding:14px 18px 18px">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:#9ca3af;text-transform:uppercase;margin-bottom:10px">하위 항목</div>
+                <div style="display:flex;flex-direction:column;gap:5px">
+                  <sc-for list="{{ detail.children }}" as="ch" hint-placeholder-count="4">
+                    <div onClick="{{ ch.onClick }}" style="{{ ch.style }}" style-hover="background:#f3f4f6">
+                      <span style="{{ ch.dot }}"></span><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ ch.name }}</span><span style="color:#c3c8d0;font-size:13px">›</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ detail.isLeaf }}">
+              <div style="padding:16px 18px 20px;font-size:13px;color:#9ca3af">최하위 노드입니다 · 하위 항목 없음</div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ noSelection }}" hint-placeholder-val="{{ true }}">
+          <div style="background:#fff;border:1px solid #e8eaed;border-radius:16px;box-shadow:0 1px 2px rgba(16,24,40,.04);padding:20px">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.06em;color:#9ca3af;text-transform:uppercase;margin-bottom:4px">플랫폼별 규모</div>
+            <div style="font-size:13px;color:#9ca3af;margin-bottom:16px">노드를 클릭하면 상세가 여기에 표시됩니다</div>
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <sc-for list="{{ platformStats }}" as="s" hint-placeholder-count="4">
+                <div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px">
+                    <div style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:700;color:#374151"><span style="{{ s.dot }}"></span>{{ s.label }}</div>
+                    <div style="font-size:13px;font-weight:700;color:#111827;font-family:ui-monospace,Menlo,monospace">{{ s.total }}</div>
+                  </div>
+                  <div style="height:8px;background:#f0f1f3;border-radius:6px;overflow:hidden"><div style="{{ s.barStyle }}"></div></div>
+                  <div style="font-size:11.5px;color:#9ca3af;margin-top:5px">그룹 {{ s.groups }} · 세부 {{ s.items }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { expanded: { p0:true, p1:true, p2:true, p3:true }, selectedId: null, query: "", pf: { pc:true, mobile:true, tenant:true, common:true } };
+
+  getData() {
+    if (this._data) return this._data;
+    const raw = [
+      { key:"pc", name:"사무실 PC · 관리업체", color:"#2563eb", soft:"#eef4ff", groups:[
+        ["건물·입주자 관리", ["건물 등록·상세정보 관리","입주자 정보 등록","세대별 부과·출력·공실·연체료 설정","협력업체 계약서 사진 저장","담당자 지정·필터링·엑셀 다운","공지 알림톡·문자 발송","관리비 항목 등록 관리","임대관리 연동"]],
+        ["전기·수도·가스 지침·부과", ["지침 등록 후 세대별 금액 계산","수도 할인 세대 자동 적용","고객번호별 층별 요금 부과","검침대장 출력","부과기간·검침일 설정","최근 6개월 부과액·단가 조회"]],
+        ["관리비 부과 셋팅", ["항목별 부과 Yes/No 설정","중간입주자 일할 계산","관리비 이월·비이월 설정","카톡 고지서 예약 전송","건물 그룹 지정","신규입주자 당월 부과 팝업"]],
+        ["고지서 발행·출력", ["지로·A4 고지서 출력","카톡·팩스 고지서 발송","QR코드 인쇄","조정명세서 출력","그룹별 문자 발송","자동이체 세대 표시"]],
+        ["수납관리·민원접수", ["수납현황 조회","미납·수납내역 조회·출력","민원접수","AS접수 현황","영수증·명세서 출력","담당 기사 접수 문자"]],
+        ["수납처리·자동이체", ["수동·원금·취소·분할 수납","지로 수납 처리·원장 조회","엑셀 업로드 자동 수납","CMS API 연동"]],
+        ["미납관리", ["미납대장 출력","채권 관리 필터","독촉 문자 발송","단전·단수 예고 고지서"]],
+        ["이사정산", ["정산 내역서 작성·출력","퇴실일 일할 관리비 계산","중도퇴실·정산완료+공실","시설점검 체크리스트","전기·수도·가스 이사 조회","퇴실 이력 날짜별 조회"]],
+        ["셋업·기타 설정", ["고지서 안내문 설정","연체료·단수 출력 옵션","입금 계좌 변경","장기수선비 관리","직원 계정 등록 관리","A/S 구분·청소팀 등록"]]
+      ]},
+      { key:"mobile", name:"모바일 · 현장관리자", color:"#0d9488", soft:"#e9fbf7", groups:[
+        ["지침 등록·검증", ["수도·전기 현장 지침 입력","전월 대비 이상 사용량 경고","최근 3개월 검침 이력 조회","입주일 표시·공실 확인"]],
+        ["AS 접수·처리", ["민원 직접 접수","처리 결과 기록·사진 저장","건물별 AS 접수 현황 조회"]],
+        ["수납현황 조회", []],
+        ["퇴실정산 작성", []],
+        ["세입자 이름·전화번호 검색", []],
+        ["건물 기본정보 조회", []],
+        ["입주자 정보 조회", []]
+      ]},
+      { key:"tenant", name:"세입자 앱 · 카카오", color:"#ea580c", soft:"#fff3ec", groups:[
+        ["카카오 로그인", []],
+        ["관리비 확인", []],
+        ["공지사항 확인", []],
+        ["퇴실 신청", []],
+        ["찬반 투표", []]
+      ]},
+      { key:"common", name:"공통 · 시스템", color:"#7c3aed", soft:"#f4efff", groups:[
+        ["멀티테넌트 (데이터 완전 분리)", []],
+        ["사용자 권한 관리", []],
+        ["감사 로그", []],
+        ["엑셀 업로드 (일괄 등록)", []],
+        ["알림·문자 연동", []],
+        ["건물 자동 완성", []],
+        ["날짜 입력 달력 통일", []],
+        ["출력물 회사명 워터마크", []]
+      ]}
+    ];
+    const map = {}, parent = {};
+    this._data = raw.map((p, pi) => {
+      const pid = "p" + pi;
+      const pnode = { id:pid, level:0, name:p.name, platKey:p.key, platName:p.name, color:p.color, soft:p.soft, children: p.groups.map((g, gi) => {
+        const gid = pid + "-g" + gi;
+        const gnode = { id:gid, level:1, name:g[0], platKey:p.key, platName:p.name, color:p.color, soft:p.soft, children:(g[1]||[]).map((it, ii) => {
+          const inode = { id:gid+"-i"+ii, level:2, name:it, platKey:p.key, platName:p.name, color:p.color, soft:p.soft, children:[] };
+          map[inode.id]=inode; parent[inode.id]=gid; return inode;
+        })};
+        map[gid]=gnode; parent[gid]=pid; return gnode;
+      })};
+      map[pid]=pnode; parent[pid]=null; return pnode;
+    });
+    this._map = map; this._parent = parent;
+    return this._data;
+  }
+
+  descCount(n){ let c=0; (n.children||[]).forEach(ch=>{ c += 1 + this.descCount(ch); }); return c; }
+
+  renderVals() {
+    const data = this.getData();
+    const map = this._map, parent = this._parent;
+    const { expanded, selectedId, query, pf } = this.state;
+    const q = (query||"").trim().toLowerCase();
+    const hit = n => n.name.toLowerCase().includes(q);
+    const subHit = n => !q ? true : (hit(n) || (n.children||[]).some(subHit));
+
+    const levelLabels = ["플랫폼","기능 그룹","세부 기능"];
+    const mk = (n, depth) => {
+      const hasChildren = (n.children||[]).length > 0;
+      const isExp = q ? true : !!expanded[n.id];
+      const sel = n.id === selectedId;
+      const matched = q && hit(n);
+      const h = depth===0 ? "50px" : depth===1 ? "40px" : "34px";
+      return {
+        id:n.id, name:n.name, hasChildren,
+        chevron: hasChildren ? (isExp ? "▾" : "▸") : "",
+        countText: hasChildren ? String(n.children.length) : "",
+        onSelect: () => this.setState({ selectedId:n.id }),
+        onToggle: (e) => { if(e&&e.stopPropagation)e.stopPropagation(); if(!hasChildren){ this.setState({selectedId:n.id}); return; } this.setState(s=>({ expanded:{...s.expanded, [n.id]:!s.expanded[n.id]} })); },
+        rowStyle: { display:"flex", alignItems:"center", gap:"9px", paddingLeft:(12+depth*22)+"px", paddingRight:"12px", height:h, borderRadius:"10px", cursor:"pointer", marginBottom:"3px", boxSizing:"border-box", background: sel ? n.color+"1f" : (depth===0 ? n.soft : "transparent"), border:"1px solid "+(sel ? n.color : (depth===0 ? n.color+"33" : "transparent")), transition:"background .12s" },
+        chevStyle: { width:"18px", height:"18px", flex:"none", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"11px", color:"#8b93a1", borderRadius:"5px", cursor: hasChildren ? "pointer" : "default" },
+        barStyle: { width:"3.5px", height: depth===0?"22px":depth===1?"16px":"10px", flex:"none", borderRadius:"3px", background:n.color, opacity: depth===0?1:depth===1?0.7:0.42 },
+        labelWrap: { flex:"1", minWidth:0, overflow:"hidden" },
+        labelSpan: { display:"inline-block", maxWidth:"100%", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", fontSize: depth===0?"15px":depth===1?"14px":"13px", fontWeight: depth===0?700:depth===1?600:500, letterSpacing: depth===0?"-.01em":"0", color: matched ? "#78350f" : (depth===2?"#4b5563":"#1f2937"), background: matched?"#fde68a":"transparent", padding: matched?"2px 6px":"0", borderRadius:"5px" },
+        countStyle: { flex:"none", fontFamily:"ui-monospace,Menlo,monospace", fontSize:"11px", fontWeight:700, color:n.color, background:n.color+"14", padding:"2px 8px", borderRadius:"999px" }
+      };
+    };
+
+    const rows = [];
+    data.forEach(p => {
+      if (!pf[p.platKey]) return;
+      if (q && !subHit(p)) return;
+      rows.push(mk(p, 0));
+      const pExp = q ? true : !!expanded[p.id];
+      if (!pExp) return;
+      p.children.forEach(g => {
+        if (q && !(subHit(g) || hit(p))) return;
+        rows.push(mk(g, 1));
+        const gExp = q ? (g.children.length>0 && (hit(g)||g.children.some(hit)||hit(p))) : !!expanded[g.id];
+        if (!gExp) return;
+        g.children.forEach(it => {
+          if (q && !(hit(it) || hit(g) || hit(p))) return;
+          rows.push(mk(it, 2));
+        });
+      });
+    });
+
+    // platform filter chips
+    const chips = data.map(p => {
+      const active = !!pf[p.platKey];
+      const total = this.descCount(p);
+      return {
+        key:p.platKey, label:p.name.split(" · ")[0], count:total,
+        onToggle: () => this.setState(s=>({ pf:{...s.pf, [p.platKey]:!s.pf[p.platKey]} })),
+        style: { display:"inline-flex", alignItems:"center", gap:"7px", padding:"7px 12px", borderRadius:"999px", border:"1.5px solid "+(active?p.color:"#e5e7eb"), background: active?p.color+"12":"#fff", color: active?p.color:"#aab0ba", fontSize:"12.5px", fontWeight:700, cursor:"pointer", transition:"all .12s", userSelect:"none" },
+        dotStyle: { width:"9px", height:"9px", borderRadius:"50%", background: active?p.color:"#d1d5db", flex:"none" },
+        countStyle: { fontFamily:"ui-monospace,Menlo,monospace", fontSize:"10.5px", fontWeight:700, opacity:0.75 }
+      };
+    });
+
+    // platform stats overview
+    const maxTotal = Math.max(...data.map(p=>this.descCount(p)));
+    const platformStats = data.map(p => {
+      const total = this.descCount(p);
+      let items=0; p.children.forEach(g=>items+=g.children.length);
+      return {
+        label:p.name, total, groups:p.children.length, items,
+        dot: { width:"10px", height:"10px", borderRadius:"3px", background:p.color, flex:"none" },
+        barStyle: { height:"100%", width:(total/maxTotal*100)+"%", background:p.color, borderRadius:"6px" }
+      };
+    });
+
+    // detail panel
+    let detail = null;
+    if (selectedId && map[selectedId]) {
+      const n = map[selectedId];
+      const platColor = n.color;
+      // breadcrumb path
+      const chain = [];
+      let cur = n.id;
+      while (cur) { chain.unshift(map[cur]); cur = parent[cur]; }
+      const crumbs = chain.map((node, idx) => ({
+        name: node.level===0 ? node.name.split(" · ")[0] : node.name,
+        sep: idx===0 ? "" : "› ",
+        onClick: () => this.setState({ selectedId:node.id }),
+        style: { cursor:"pointer", color: node.id===n.id ? "#374151" : "#9ca3af", fontWeight: node.id===n.id?700:500 }
+      }));
+      detail = {
+        name:n.name, levelLabel:levelLabels[n.level], platLabel:n.platName.split(" · ")[0],
+        directCount:(n.children||[]).length, descCount:this.descCount(n),
+        hasChildren:(n.children||[]).length>0, isLeaf:(n.children||[]).length===0,
+        crumbs,
+        children:(n.children||[]).map(ch => ({
+          name:ch.name,
+          onClick: () => this.setState({ selectedId:ch.id }),
+          style: { display:"flex", alignItems:"center", gap:"9px", padding:"9px 11px", borderRadius:"9px", background:"#f7f8fa", cursor:"pointer", fontSize:"13px", color:"#374151", fontWeight:500, transition:"background .12s" },
+          dot: { width:"6px", height:"6px", borderRadius:"50%", background:platColor, flex:"none" }
+        })),
+        cardStyle: { background:"#fff", border:"1px solid #e8eaed", borderRadius:"16px", boxShadow:"0 4px 20px rgba(16,24,40,.06)", overflow:"hidden" },
+        headStyle: { padding:"18px 18px 16px", borderTop:"4px solid "+platColor, borderBottom:"1px solid #eef0f2", background: platColor+"08" },
+        levelBadge: { fontSize:"11px", fontWeight:700, color:"#6b7280", background:"#f0f1f3", padding:"3px 9px", borderRadius:"6px" },
+        platBadge: { fontSize:"11px", fontWeight:700, color:platColor, background:platColor+"16", padding:"3px 9px", borderRadius:"6px" }
+      };
+    }
+
+    return {
+      rows, hasRows: rows.length>0, noRows: rows.length===0,
+      chips, platformStats,
+      totalNodes: data.reduce((a,p)=>a+this.descCount(p),0),
+      query, hasQuery: q.length>0,
+      onSearch: (e) => this.setState({ query:e.target.value }),
+      onClear: () => this.setState({ query:"" }),
+      onExpandAll: () => { const e={}; Object.values(this._map).forEach(node=>{ if((node.children||[]).length) e[node.id]=true; }); this.setState({ expanded:e }); },
+      onCollapseAll: () => this.setState({ expanded:{} }),
+      detail, hasSelection: !!detail, noSelection: !detail
+    };
+  }
+}
+</script>
+</body>
+</html>

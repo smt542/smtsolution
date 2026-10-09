@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<style>  :root{--blue:#14A497;--blue-d:#0E8677;--blue-t:#E2F5F1;--blue-t2:#EFFBF8;--bg:#F2F4F6;--line:#E8EBEE;--line2:#F1F3F5;--t1:#191F28;--t2:#4E5968;--t3:#8B95A1;--t4:#B0B8C1;--red:#F04452;--red-t:#FDECEE;--kk:#FEE500}
+  *{box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  body{margin:0;max-width:100%;background:#e7eaee;font-family:'Pretendard',-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--t1)}
+  a{color:var(--blue);text-decoration:none}a:hover{color:var(--blue-d)}
+  .num{font-variant-numeric:tabular-nums}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  .screen{background:#F7F8FA;overflow:hidden;position:relative;height:100dvh;max-height:100dvh;width:100%;max-width:440px;margin:0 auto;display:flex;flex-direction:column}
+  .hdr{flex:none;background:#fff;padding:calc(env(safe-area-inset-top) + 16px) 20px 18px}
+  .h1{font-size:23px;font-weight:800;letter-spacing:-.03em}
+  .prof{display:flex;align-items:center;gap:13px;margin-top:16px}
+  .av{flex:none;width:52px;height:52px;border-radius:16px;background:var(--blue-t);color:var(--blue-d);display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:800;letter-spacing:-.02em}
+  .pi{flex:1;min-width:0}
+  .pn{display:flex;align-items:center;gap:7px}
+  .pn b{font-size:18px;font-weight:800;letter-spacing:-.02em}
+  .pn span.kbadge{color:#3C1E1E}
+  .pt{font-size:13px;font-weight:600;color:var(--t3);margin-top:7px;font-variant-numeric:tabular-nums}
+  .pt b{font-size:17px;font-weight:800;letter-spacing:-.02em;color:var(--t1);margin-right:5px}
+  .kbadge{display:inline-flex;align-items:center;gap:5px;background:var(--kk);color:#3C1E1E;font-size:11.5px;font-weight:800;padding:5px 9px 5px 7px;border-radius:8px}
+  .kbadge svg{width:13px;height:13px}
+  .scroll{flex:1;min-height:0;overflow:auto;padding:14px 20px calc(env(safe-area-inset-bottom) + 24px)}
+  .lbl{font-size:13px;font-weight:700;color:var(--t3);margin:22px 4px 9px}
+  .lbl:first-child{margin-top:2px}
+  .card{background:#fff;border-radius:18px;padding:2px 18px;box-shadow:0 1px 2px rgba(23,31,40,.06);animation:rise .45s cubic-bezier(.22,.61,.36,1) both}
+  .r{display:flex;align-items:center;gap:12px;padding:15px 0;border-bottom:1px solid var(--line2)}
+  .r:last-child{border-bottom:0}
+  .rk{flex:none;font-size:13.5px;font-weight:600;color:var(--t3)}
+  .rv{flex:1;min-width:0;text-align:right;font-size:14px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+  .rt{flex:1;min-width:0}
+  .rt b{display:block;font-size:14.5px;font-weight:700;letter-spacing:-.01em}
+  .rt span{display:block;font-size:12px;font-weight:600;color:var(--t3);margin-top:4px;line-height:1.5;text-wrap:pretty}
+  .note{margin:9px 6px 0;font-size:12px;font-weight:600;color:var(--t4);line-height:1.5}
+  .go{cursor:pointer}
+  .go:hover .rt b,.go:hover .rv{color:var(--blue-d)}
+  .chev{flex:none;width:17px;height:17px;color:var(--t4)}
+  .go:hover .chev{color:var(--t2)}
+  .sw{flex:none;position:relative;width:50px;height:30px;border-radius:999px;background:var(--line);border:0;padding:0;cursor:pointer;transition:background .18s}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:999px;background:#fff;box-shadow:0 1px 3px rgba(23,31,40,.22);transition:transform .18s cubic-bezier(.22,.61,.36,1)}
+  .sw.on{background:var(--blue)}
+  .sw.on::after{transform:translateX(20px)}
+  .r.nb{border-bottom:0;padding-top:0}
+  .klist{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;width:100%}
+  .klist li{position:relative;padding-left:20px;font-size:12.5px;font-weight:600;color:var(--t3);line-height:1.5}
+  .klist li::before{content:"";position:absolute;left:2px;top:6px;width:6px;height:6px;border-radius:50%;background:var(--blue)}
+  .klist li b{font-weight:700;color:var(--t1)}
+  .note{font-size:12px;font-weight:600;color:var(--t4);margin:10px 6px 0;line-height:1.6;text-wrap:pretty}
+  .foot{display:flex;justify-content:center;gap:18px;margin-top:26px}
+  .foot button{border:0;background:none;font:inherit;font-size:13px;font-weight:700;color:var(--t3);cursor:pointer;padding:6px 2px}
+  .foot button:hover{color:var(--t2)}
+  .foot .del{color:var(--t4)}
+  .foot .del:hover{color:var(--red)}
+  .ver{text-align:center;font-size:11.5px;font-weight:600;color:var(--t4);margin-top:14px;font-variant-numeric:tabular-nums}
+  .nav{flex:none;background:#fff;border-top:1px solid var(--line);display:flex;padding:9px 0 calc(env(safe-area-inset-bottom) + 10px)}
+  .nav .it{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11.5px;font-weight:700;color:var(--t4);cursor:pointer}
+  .nav .it.on{color:var(--blue)}
+  .nav .it svg{width:25px;height:25px;stroke-width:1.9}
+  .cf{position:fixed;left:0;right:0;top:0;height:100dvh;background:rgba(23,31,40,.45);display:none;align-items:center;justify-content:center;z-index:130;padding:26px}
+  .cf.show{display:flex}
+  .cf-b{background:#fff;border-radius:20px;width:100%;max-width:340px;padding:26px 22px 20px;text-align:center}
+  .cf-t{font-size:17.5px;font-weight:800;letter-spacing:-.02em;line-height:1.45}
+  .cf-d{font-size:13.5px;font-weight:600;color:var(--t3);margin-top:9px;line-height:1.65;text-wrap:pretty}
+  .cf-a{display:flex;gap:9px;margin-top:22px}
+  .cf-btn{flex:1;height:50px;border:0;border-radius:14px;font:inherit;font-size:15px;font-weight:700;cursor:pointer;background:var(--bg);color:var(--t2)}
+  .cf-btn:hover{background:var(--line)}
+  .cf-btn.pri{background:var(--blue);color:#fff}
+  .cf-btn.pri:hover{background:var(--blue-d)}
+  .cf-btn.danger{background:var(--red);color:#fff}
+  .cf-btn.danger:hover{filter:brightness(.94)}
+  .toast{display:none;position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:#191F28;color:#fff;font-size:14px;font-weight:700;padding:13px 20px;border-radius:13px;z-index:140;white-space:nowrap}
+</style>
+</helmet>
+<div class="screen">
+  <div class="hdr">
+    <div class="h1">내 정보</div>
+    <div class="prof">
+      <div class="av" id="rmAv">박</div>
+      <div class="pi">
+        <div class="pn"><span class="kbadge"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C7 3 3 6.2 3 10.1c0 2.5 1.7 4.7 4.2 6l-.9 3.4c-.1.4.3.6.6.4l4-2.6c.4 0 .7.1 1.1.1 5 0 9-3.2 9-7.3S17 3 12 3z"></path></svg>카카오 간편 로그인</span></div>
+        <div class="pt"><b id="rmName">박정호</b> <span id="rmTel">010-3921-4482</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="scroll">
+    <div class="lbl">세대 정보</div>
+    <div class="card">
+      <div class="r"><span class="rk">건물 · 호수</span><span class="rv" id="rmU2">그린빌라 201호</span></div>
+      <div class="r"><span class="rk">입주일</span><span class="rv">2024.03.12</span></div>
+      <div class="r"><span class="rk">관리주체</span><span class="rv">스마일종합관리</span></div>
+      <a class="r go" href="../resident-home/resident-home.dc.html?moveout=1"><div class="rt"><b>퇴실 신청</b><span id="rmMoSt">희망 퇴실일을 알려주세요</span></div><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg></a>
+    </div>
+
+    <div class="lbl">알림 설정</div>
+    <div class="card">
+      <div class="r"><div class="rt"><b>알림톡</b><span>관리비 확정 안내와 서비스 공지를 카카오톡으로 받아요</span></div><button type="button" class="sw on" id="rmSwAll" aria-label="알림톡"></button></div>
+    </div>
+    <div class="note">끄면 관리비가 확정돼도 알려드리지 않아요</div>
+
+    <div class="lbl">이용 정보</div>
+    <div class="card">
+      <a class="r go" href="../resident-terms/resident-terms.dc.html?from=me"><div class="rt"><b>이용약관</b></div><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg></a>
+      <a class="r go" href="../resident-privacy/resident-privacy.dc.html?from=me"><div class="rt"><b>개인정보 처리방침</b></div><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg></a>
+    </div>
+
+    <div class="foot">
+      <button type="button" id="rmOut">로그아웃</button>
+      <button type="button" class="del" id="rmDel">회원탈퇴</button>
+    </div>
+    <div class="ver" id="rmTest" style="cursor:pointer;text-decoration:underline">테스트: 정산 처리 완료로 전환</div>
+  </div>
+  <div class="nav">
+    <a class="it" href="../resident-home/resident-home.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-6 8 6"></path><path d="M6 10v9h12v-9"></path></svg>홈</a>
+    <a class="it" href="../resident-bill/resident-bill.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"></path><path d="M9 12h8M9 16h5"></path></svg>관리비</a>
+    <div class="it on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"></circle><path d="M5 20c1.4-3.6 4-5.4 7-5.4s5.6 1.8 7 5.4"></path></svg>내 정보</div>
+  </div>
+</div>
+<div class="cf" id="rmCf"><div class="cf-b">
+  <div class="cf-t" id="rmCfT">로그아웃할까요?</div>
+  <div class="cf-d" id="rmCfD">다시 카카오로 로그인하면 바로 이용할 수 있어요.</div>
+  <div class="cf-a">
+    <button type="button" class="cf-btn" id="rmCfNo">닫기</button>
+    <button type="button" class="cf-btn pri" id="rmCfYes">로그아웃</button>
+  </div>
+</div></div>
+<div class="toast" id="rmToast"></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:440,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  componentDidMount(){ setTimeout(()=>this.boot(),40); }
+  boot(){
+    const $=(id)=>document.getElementById(id);
+    if(!$('rmCf')||document.body.__rmW)return; document.body.__rmW=1;
+
+    let unit='그린빌라 201호';
+    try{ const u=JSON.parse(localStorage.getItem('res_unit')||'null'); if(u)unit=u.b+' '+u.h; }catch(_){}
+    $('rmU2').textContent=unit;
+
+    try{ const r=JSON.parse(localStorage.getItem('res_moveout')||'null');
+      if(r){ const q=String(r.date).split('-'); $('rmMoSt').textContent=q[0]+'.'+q[1]+'.'+q[2]+' 신청 · 확인 중'; } }catch(_){}
+
+    const el=$('rmToast');
+    const toast=(m)=>{ el.textContent=m; el.style.display='block';
+      clearTimeout(el.__t); el.__t=setTimeout(()=>{ el.style.display='none'; },1600); };
+
+    const KEYS={rmSwAll:'res_noti_bill'};
+    const LABEL={rmSwAll:'알림톡'};
+    Object.keys(KEYS).forEach(id=>{
+      const b=$(id), k=KEYS[id];
+      let v=null; try{ v=localStorage.getItem(k); }catch(_){}
+      if(v!==null)b.classList.toggle('on',v==='1');
+      const apply=(on)=>{ b.classList.toggle('on',on);
+        try{ localStorage.setItem(k,on?'1':'0'); localStorage.setItem('res_noti_notice',on?'1':'0'); }catch(_){}
+        toast(LABEL[id]+' '+(on?'받기로 했어요':'끄기 완료')); };
+      b.addEventListener('click',()=>{ const on=!b.classList.contains('on');
+        if(!on){ openCf({ t:'알림톡을 끌까요?',
+          d:'관리비가 확정돼도<br><b style="color:#191F28">금액 · 납부 계좌 · 기한</b>을 알려드릴 수 없어요.',
+          ok:'그래도 끄기', danger:true, act:()=>apply(false) }); return; }
+        apply(true); });
+    });
+
+    const cf=$('rmCf');
+    const openCf=(cfg)=>{ $('rmCfT').textContent=cfg.t; $('rmCfD').innerHTML=cfg.d;
+      const y=$('rmCfYes'); y.textContent=cfg.ok; y.className='cf-btn '+(cfg.danger?'danger':'pri');
+      $('rmCfNo').style.display=cfg.only?'none':'';
+      cf.__act=cfg.act; cf.classList.add('show'); };
+    const closeCf=()=>cf.classList.remove('show');
+    $('rmCfNo').addEventListener('click',closeCf);
+    cf.addEventListener('click',(e)=>{ if(e.target===cf)closeCf(); });
+    $('rmCfYes').addEventListener('click',()=>{ const a=cf.__act; closeCf(); if(a)a(); });
+    document.addEventListener('keydown',(e)=>{ if(e.key==='Escape')closeCf(); });
+
+    $('rmOut').addEventListener('click',()=>openCf({
+      t:'로그아웃할까요?', d:'다시 카카오로 로그인하면 바로 이용할 수 있어요.', ok:'로그아웃',
+      act:()=>{ location.href='../resident-login/resident-login.dc.html'; } }));
+
+    const mo=()=>{ try{ return JSON.parse(localStorage.getItem('res_moveout')||'null'); }catch(_){ return null; } };
+    const fmtD=(v)=>{ const p=String(v).split('-'); return p[0]+'.'+p[1]+'.'+p[2]; };
+
+    $('rmTest').addEventListener('click',()=>{ const m=mo();
+      if(!m){ toast('먼저 홈에서 퇴실 신청을 해주세요'); return; }
+      m.status='done'; try{ localStorage.setItem('res_moveout',JSON.stringify(m)); }catch(_){}
+      toast('정산 처리 완료로 전환했어요'); });
+
+    const doQuit=()=>{ try{ ['res_unit','res_moveout','res_noti_bill','res_noti_notice','res_noti_ad'].forEach(k=>localStorage.removeItem(k)); }catch(_){}
+      location.href='../resident-login/resident-login.dc.html'; };
+
+    $('rmDel').addEventListener('click',()=>{ const m=mo();
+      if(!m || m.status!=='done') return openCf({
+        t:'퇴실 정산이 완료되지 않았어요',
+        d:(m?'<b style="color:#191F28">'+fmtD(m.date)+' 퇴실</b> 신청이 접수됐지만 정산이 끝나지 않았어요.<br>':'')+'탈퇴하면 관리비 정산이 어려울 수 있어요.<br>그래도 탈퇴하시겠어요?',
+        ok:'그래도 탈퇴', danger:true, act:doQuit });
+      return openCf({
+      t:'정말 탈퇴할까요?',
+      d:'세대 연결과 알림 설정이 모두 삭제돼요.<br>부과·납부 내역은 관리사무소에 보관됩니다.',
+      ok:'탈퇴하기', danger:true,
+      act:doQuit }); });
+
+    document.querySelector('.nav').addEventListener('click',(e)=>{ const g=e.target.closest('[data-go]'); if(!g)return;
+      toast('준비 중이에요'); });
+  }
+}
+</script>
+</body>
+</html>

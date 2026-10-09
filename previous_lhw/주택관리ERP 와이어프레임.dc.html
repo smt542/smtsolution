@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#ece5d6;font-family:'Gaegu',system-ui,sans-serif;color:#2b2b2b;-webkit-font-smoothing:antialiased}
+  .wrap{padding:38px 44px 90px}
+  /* header */
+  .board-h{margin-bottom:8px}
+  .board-eyebrow{font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.16em;color:#948a76;font-weight:700}
+  .board-title{font-size:40px;font-weight:700;letter-spacing:-.01em;margin:2px 0 0}
+  .board-sub{font-size:18px;color:#6f6656;margin:2px 0 0}
+  .legend{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;margin:18px 0 4px;padding:14px 18px;background:#fbf8f1;border:2px solid #2b2b2b;border-radius:10px;box-shadow:3px 4px 0 rgba(43,43,43,.1)}
+  .lg-item{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700}
+  .lg-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(0,0,0,.25)}
+  .lg-sep{width:1px;height:20px;background:#d8cfbc}
+  .lg-note{font-family:'Nanum Pen Script',cursive;font-size:18px;color:#c0563a}
+  .idx{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0 2px}
+  .idx a{font-size:13px;text-decoration:none;color:#4a4436;border:1.5px solid #c3b9a3;border-radius:20px;padding:3px 10px;background:#fbf8f1}
+  .idx a:hover{background:#2b2b2b;color:#fff;border-color:#2b2b2b}
+  /* lanes */
+  .lane{margin-top:46px;scroll-margin-top:16px}
+  .lane-hd{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+  .lane-num{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px;flex:none}
+  .lane-tag{font-weight:700;font-size:26px;letter-spacing:-.01em}
+  .lane-cnt{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:#948a76;font-weight:700}
+  .lane-bar{height:5px;border-radius:6px;flex:1;min-width:40px;opacity:.5}
+  .grid{display:flex;flex-wrap:wrap;gap:30px;align-items:flex-start}
+  /* card */
+  .card{background:#fff;border:2.5px solid #2b2b2b;border-radius:10px;box-shadow:5px 6px 0 rgba(43,43,43,.13);overflow:hidden;scroll-margin-top:16px}
+  .strip{display:flex;align-items:center;gap:9px;padding:9px 13px;border-bottom:2.5px solid #2b2b2b;background:#fbf8f1}
+  .dot{width:13px;height:13px;border-radius:50%;flex:none;border:2px solid rgba(0,0,0,.2)}
+  .card-t{font-weight:700;font-size:18px;line-height:1.1}
+  .route{margin-left:auto;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#877c64;border:1.5px dashed #b9ad92;padding:2px 8px;border-radius:20px;white-space:nowrap}
+  .win{padding:14px 15px}
+  /* app chrome bits */
+  .topbar{display:flex;align-items:center;gap:9px;margin-bottom:13px;flex-wrap:wrap}
+  .h{font-size:19px;font-weight:700}
+  .sp{flex:1}
+  .btn{border:2px solid #2b2b2b;border-radius:7px;padding:4px 11px;font-size:13.5px;font-weight:700;background:#fff;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+  .btn.pri{background:#2b2b2b;color:#fff}
+  .btn.sm{font-size:12.5px;padding:3px 9px}
+  .field{border:1.8px solid #a49a86;border-radius:6px;background:#faf7f0;padding:5px 10px;font-size:13.5px;color:#948a78;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+  .field .cap{color:#5f5848}
+  .dd{justify-content:space-between;min-width:120px}
+  .dd::after{content:'▾';color:#948a78;font-size:11px}
+  .row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+  .tabs{display:flex;gap:16px;border-bottom:2.5px solid #2b2b2b;margin:2px 0 12px}
+  .tab{padding:6px 3px;font-size:15px;font-weight:700;color:#9a907c}
+  .tab.on{color:#2b2b2b;box-shadow:inset 0 -3px 0 #2b2b2b}
+  /* table */
+  .tbl{border:2px solid #2b2b2b;border-radius:7px;overflow:hidden;font-family:system-ui,sans-serif;font-size:11.5px}
+  .tr{display:grid;border-bottom:1.5px solid #e3dbc9}
+  .tr:last-child{border-bottom:none}
+  .tr.th{background:#efe7d5;font-weight:700;color:#4a4436}
+  .td{padding:5px 8px;border-right:1.5px solid #ece4d2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .td:last-child{border-right:none}
+  .muted{color:#a89e88}
+  .gray{background:#f2ece0;color:#a89e88}
+  /* form */
+  .sec{border:2px solid #2b2b2b;border-radius:8px;margin-bottom:11px;overflow:hidden}
+  .sec-h{background:#efe7d5;padding:5px 11px;font-weight:700;font-size:14px;border-bottom:2px solid #2b2b2b;display:flex;align-items:center;gap:7px}
+  .sec-b{padding:11px}
+  .fgrid{display:grid;gap:9px 12px}
+  .fl{font-size:13px;font-weight:700;color:#5f5848;margin-bottom:3px;display:flex;align-items:center;gap:4px}
+  .req{color:#c0563a;font-size:12px}
+  .inp{border:1.8px solid #a49a86;border-radius:6px;background:#faf7f0;height:28px;display:flex;align-items:center;padding:0 9px;font-size:12.5px;color:#a89e88}
+  .inp.ta{height:52px;align-items:flex-start;padding-top:6px}
+  .cbx{display:flex;align-items:center;gap:7px;font-size:13px;color:#5f5848}
+  .box{width:15px;height:15px;border:2px solid #2b2b2b;border-radius:4px;flex:none}
+  .box.on{background:#2b2b2b;position:relative}
+  .box.on::after{content:'✓';color:#fff;font-size:11px;position:absolute;left:1px;top:-3px}
+  .seg{display:inline-flex;border:2px solid #2b2b2b;border-radius:6px;overflow:hidden;font-size:12px;font-weight:700}
+  .seg span{padding:3px 9px;color:#948a78}
+  .seg span.on{background:#2b2b2b;color:#fff}
+  /* misc */
+  .xbox{background:linear-gradient(to top right,transparent calc(50% - 1px),#c3b8a2,transparent calc(50% + 1px)),linear-gradient(to top left,transparent calc(50% - 1px),#c3b8a2,transparent calc(50% + 1px)),#ece4d3;border:1.8px solid #c3b8a2;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#a89e88;font-size:12px;font-weight:700}
+  .chip{border:1.6px solid #a49a86;border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700;color:#6f6656;background:#faf7f0}
+  .badge{border-radius:5px;padding:1px 7px;font-size:11px;font-weight:700}
+  .note{font-family:'Nanum Pen Script',cursive;font-size:17px;line-height:1.15;color:#c0563a;display:flex;gap:5px;margin-top:9px}
+  .note::before{content:'✎';font-size:14px;opacity:.7}
+  .empty{border:2px dashed #b9ad92;border-radius:8px;padding:22px;text-align:center;color:#a2977f;font-size:15px;font-weight:700;background:#faf7f0}
+  .toast{display:inline-flex;align-items:center;gap:6px;background:#2b2b2b;color:#fff;border-radius:8px;padding:5px 12px;font-size:13px;font-weight:700}
+  .modal{border:2.5px solid #2b2b2b;border-radius:10px;background:#fff;box-shadow:4px 5px 0 rgba(43,43,43,.15)}
+  /* phone */
+  .phone{width:286px;border:3px solid #2b2b2b;border-radius:34px;padding:9px;background:#fbf8f1;box-shadow:5px 6px 0 rgba(43,43,43,.13);flex:none}
+  .notch{width:90px;height:6px;background:#2b2b2b;border-radius:6px;margin:2px auto 8px}
+  .scr{border:1.5px solid #ded5c1;border-radius:24px;overflow:hidden;background:#fff}
+  .scr-top{padding:12px 14px 10px;border-bottom:1.5px solid #ece4d2;display:flex;align-items:center;gap:8px}
+  .scr-b{padding:14px}
+  .mcard{border:2px solid #2b2b2b;border-radius:10px;padding:12px;margin-bottom:10px}
+  .tabbar{display:flex;border-top:1.5px solid #ece4d2}
+  .tabbar div{flex:1;text-align:center;padding:8px 0;font-size:11px;font-weight:700;color:#a89e88}
+  .mlabel{font-family:'Nanum Pen Script',cursive;font-size:16px;color:#c0563a;text-align:center;margin-top:7px}
+  .cardcap{font-family:'Nanum Pen Script',cursive;font-size:17px;color:#a06a4e;text-align:center;margin:-4px 0 12px}
+</style>
+</helmet>
+<div class="wrap">
+
+  <div class="board-h">
+    <div class="board-eyebrow">WIREFRAMES · LOW-FIDELITY · v1</div>
+    <h1 class="board-title">주택관리 ERP · 와이어프레임</h1>
+    <p class="board-sub">정책서 18종 기반 화면 설계 · 관리업체 PC / 현장관리자 모바일 / 세입자 카카오 앱</p>
+  </div>
+
+  <div class="legend">
+    <div class="lg-item"><span class="lg-dot" style="background:#2f6fd6"></span>사무실 PC (관리업체)</div>
+    <div class="lg-item"><span class="lg-dot" style="background:#12a08e"></span>모바일 (현장관리자)</div>
+    <div class="lg-item"><span class="lg-dot" style="background:#e8603c"></span>세입자 앱 (카카오)</div>
+    <div class="lg-sep"></div>
+    <div class="lg-item" style="font-weight:400"><span class="chip">필드</span> 입력·드롭다운</div>
+    <div class="lg-item" style="font-weight:400"><span class="lg-note">✎ 손글씨</span> 동작 규칙 주석</div>
+    <div class="lg-item" style="font-weight:400"><span style="width:22px;height:16px;display:inline-block" class="xbox"></span> 이미지/사진 자리</div>
+  </div>
+
+  <div class="idx">
+    <a href="#lane-pc">◆ PC 12화면</a>
+    <a href="#s-building-list">건물 목록</a>
+    <a href="#s-building-detail">건물 상세</a>
+    <a href="#s-tenant-list">입주자 목록</a>
+    <a href="#s-tenant-detail">입주자 상세</a>
+    <a href="#s-utility">지침·부과</a>
+    <a href="#s-mgmt">관리비 셋팅</a>
+    <a href="#s-bill">고지서 발행</a>
+    <a href="#s-receipt">수납·민원</a>
+    <a href="#s-payment">수납처리</a>
+    <a href="#s-overdue">미납관리</a>
+    <a href="#s-moving">이사정산</a>
+    <a href="#s-setup">셋업 설정</a>
+    <a href="#lane-mo">◆ 모바일 7화면</a>
+    <a href="#lane-tn">◆ 세입자 6화면</a>
+  </div>
+
+  <div class="lane" id="lane-pc">
+    <div class="lane-hd">
+      <span class="lane-num" style="background:#2f6fd6">1</span>
+      <span class="lane-tag">사무실 PC · 관리업체</span>
+      <span class="lane-cnt">12 SCREENS</span>
+      <span class="lane-bar" style="background:#2f6fd6"></span>
+    </div>
+    <div class="grid"><div class="card" id="s-building-list" style="width:560px">
+  <div class="strip"><span class="dot" style="background:#2f6fd6"></span><span class="card-t">건물 목록</span><span class="route">/buildings</span></div>
+  <div class="win">
+    <div class="topbar"><span class="h">건물 목록</span><span class="sp"></span><span class="btn sm">⤓ 엑셀 다운</span><span class="btn pri sm">＋ 건물 등록</span></div>
+    <div class="row" style="margin-bottom:11px">
+      <span class="field dd">관리담당자</span><span class="field dd">검침담당자</span><span class="field dd">청소담당자</span><span class="btn sm">초기화</span>
+    </div>
+    <div class="tbl">
+      <div class="tr th" style="grid-template-columns:1.5fr 1.9fr .9fr .9fr .9fr .7fr .7fr"><span class="td">건물명</span><span class="td">주소</span><span class="td">관리</span><span class="td">검침</span><span class="td">청소</span><span class="td">총세대</span><span class="td">입주</span></div>
+      <div class="tr" style="grid-template-columns:1.5fr 1.9fr .9fr .9fr .9fr .7fr .7fr"><span class="td">그린빌라</span><span class="td muted">서울 강서구 …</span><span class="td">김관리</span><span class="td">박검침</span><span class="td">이청소</span><span class="td">24</span><span class="td">21</span></div>
+      <div class="tr" style="grid-template-columns:1.5fr 1.9fr .9fr .9fr .9fr .7fr .7fr"><span class="td">햇살하이츠</span><span class="td muted">서울 관악구 …</span><span class="td">김관리</span><span class="td">최검침</span><span class="td">이청소</span><span class="td">36</span><span class="td">33</span></div>
+      <div class="tr" style="grid-template-columns:1.5fr 1.9fr .9fr .9fr .9fr .7fr .7fr"><span class="td">중앙타워</span><span class="td muted">경기 부천시 …</span><span class="td">정관리</span><span class="td">박검침</span><span class="td">한청소</span><span class="td">48</span><span class="td">40</span></div>
+    </div>
+    <div class="row" style="margin-top:10px;justify-content:space-between">
+      <span class="field dd" style="min-width:96px">20건</span>
+      <span class="row"><span class="chip">‹</span><span class="chip" style="background:#2b2b2b;color:#fff;border-color:#2b2b2b">1</span><span class="chip">2</span><span class="chip">3</span><span class="chip">›</span></span>
+    </div>
+    <div class="note">행 더블클릭 → 건물 상세(/buildings/:id) 이동 · 기본 정렬 등록일 최신순 · 필터는 목록·엑셀 동시 적용</div>
+  </div>
+</div>
+<div class="card" id="s-building-detail" style="width:600px">
+  <div class="strip"><span class="dot" style="background:#2f6fd6"></span><span class="card-t">건물 상세·등록</span><span class="route">/buildings/:id</span></div>
+  <div class="win">
+    <div class="topbar"><span class="h">건물 상세 — 그린빌라</span><span class="badge" style="background:#e7edfa;color:#2f6fd6">수정 모드</span><span class="sp"></span><span class="btn sm">← 목록으로</span><span class="btn pri sm">저장</span></div>
+    <div class="sec">
+      <div class="sec-h">① 기본 정보</div>
+      <div class="sec-b">
+        <div class="fgrid" style="grid-template-columns:1fr 1fr">
+          <div><div class="fl">건물명 <span class="req">*</span></div><div class="inp">그린빌라</div></div>
+          <div><div class="fl">주소 <span class="req">*</span></div><div class="inp">서울 강서구 …</div></div>
+          <div><div class="fl">관리담당자</div><div class="inp" style="justify-content:space-between">김관리 ▾</div></div>
+          <div><div class="fl">검침담당자</div><div class="inp" style="justify-content:space-between">박검침 ▾</div></div>
+          <div><div class="fl">청소담당자</div><div class="inp" style="justify-content:space-between">이청소 ▾</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-h">② 시설 정보 <span class="note" style="margin:0;font-size:14px">체크 시 메모 활성화</span></div>
+      <div class="sec-b">
+        <div class="fgrid" style="grid-template-columns:1fr 1fr 1fr">
+          <span class="cbx"><span class="box on"></span>CCTV</span><span class="cbx"><span class="box on"></span>승강기</span><span class="cbx"><span class="box"></span>정화조</span>
+          <span class="cbx"><span class="box"></span>인터넷</span><span class="cbx"><span class="box on"></span>전기안전</span><span class="cbx"><span class="box on"></span>소방안전</span>
+        </div>
+        <div class="inp" style="margin-top:9px;height:24px">메모 — 승강기 정기점검 매월 15일</div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-h">③ 고객번호 <span class="sp"></span><span class="btn sm" style="font-size:11px;padding:2px 7px">＋ 추가</span></div>
+      <div class="sec-b">
+        <div class="tbl">
+          <div class="tr th" style="grid-template-columns:1.3fr .9fr .7fr .8fr .7fr"><span class="td">고객번호</span><span class="td">유형</span><span class="td">검침일</span><span class="td">기간</span><span class="td">출력</span></div>
+          <div class="tr" style="grid-template-columns:1.3fr .9fr .7fr .8fr .7fr"><span class="td">0123-456</span><span class="td">수도</span><span class="td">15일</span><span class="td">전월</span><span class="td">Y</span></div>
+          <div class="tr" style="grid-template-columns:1.3fr .9fr .7fr .8fr .7fr"><span class="td">0123-789</span><span class="td">전기</span><span class="td">20일</span><span class="td">당월</span><span class="td">Y</span></div>
+        </div>
+        <div class="note" style="margin-top:7px">유형별 복수 등록 가능 (예: 상가용·주택용 수도 각각)</div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-h">④ 협력업체 <span class="sp"></span><span class="btn sm" style="font-size:11px;padding:2px 7px">＋ 추가</span></div>
+      <div class="sec-b">
+        <div class="row">
+          <span class="field" style="flex:1">삼성엘리베이터 · 승강기</span>
+          <span class="xbox" style="width:52px;height:36px">계약서</span>
+          <span class="xbox" style="width:52px;height:36px">PDF</span>
+        </div>
+        <div class="note" style="margin-top:7px">계약서 사진·PDF 업로드 (파일 수 제한 없음) · 클릭 시 원본 보기</div>
+      </div>
+    </div>
+    <div class="sec" style="margin-bottom:0">
+      <div class="sec-h">⑤ 참고사항</div>
+      <div class="sec-b">
+        <div class="inp ta">자유 메모 입력…</div>
+        <div style="text-align:right;font-size:12px;color:#a89e88;margin-top:3px">0 / 1,000자</div>
+      </div>
+    </div>
+    <div class="note">저장 = 전체 섹션 통합 저장 · 변경 후 목록 이동 시 "저장하지 않고 나가시겠습니까?" 팝업</div>
+  </div>
+</div>
+<div class="card" id="s-tenant-list" style="width:560px">
+  <div class="strip"><span class="dot" style="background:#2f6fd6"></span><span class="card-t">입주자 목록</span><span class="route">/buildings/:id · 탭</span></div>
+  <div class="win">
+    <div class="tabs"><span class="tab">기본 정보</span><span class="tab on">입주자 관리</span><span class="tab">고객번호</span><span class="tab">협력업체</span></div>
+    <div class="topbar"><span class="h">그린빌라 — 세대 목록</span><span class="sp"></span><span class="btn pri sm">＋ 입주자 등록</span></div>
+    <div class="tbl">
+      <div class="tr th" style="grid-template-columns:.8fr 1fr 1fr .6fr 1fr .7fr .7fr"><span class="td">호실</span><span class="td">입주자명</span><span class="td">룸타입</span><span class="td">인원</span><span class="td">입주일</span><span class="td">공실</span><span class="td">연체</span></div>
+      <div class="tr" style="grid-template-columns:.8fr 1fr 1fr .6fr 1fr .7fr .7fr"><span class="td">101</span><span class="td">홍길동</span><span class="td">투룸</span><span class="td">2</span><span class="td muted">24.03.01</span><span class="td">-</span><span class="td">-</span></div>
+      <div class="tr" style="grid-template-columns:.8fr 1fr 1fr .6fr 1fr .7fr .7fr"><span class="td">102</span><span class="td muted">공실</span><span class="td">원룸</span><span class="td">-</span><span class="td">-</span><span class="td"><span class="badge" style="background:#eee;color:#888">공실</span></span><span class="td">-</span></div>
+      <div class="tr" style="grid-template-columns:.8fr 1fr 1fr .6fr 1fr .7fr .7fr"><span class="td">201</span><span class="td">김영희</span><span class="td">쓰리룸</span><span class="td">3</span><span class="td muted">23.11.10</span><span class="td">-</span><span class="td"><span class="badge" style="background:#fbe4dd;color:#c0563a">연체</span></span></div>
+    </div>
+    <div class="note">행 더블클릭 → 입주자 상세(/tenants/:tenantId) · 공실은 "공실" 표시 · 기본 정렬 호실명 오름차순</div>
+  </div>
+</div>
+<div class="card" id="s-tenant-detail" style="width:600px">
+  <div class="strip"><span class="dot" style="background:#2f6fd6"></span><span class="card-t">입주자 상세·등록</span><span class="route">/tenants/:tenantId</span></div>
+  <div class="win">
+    <div class="topbar"><span class="h">그린빌라 — 101 · 홍길동</span><span class="badge" style="background:#e7edfa;color:#2f6fd6">수정 모드</span><span class="sp"></span><span class="btn sm">← 목록으로</span><span class="btn pri sm">저장</span></div>
+    <div class="sec">
+      <div class="sec-h">① 기본 정보</div>
+      <div class="sec-b"><div class="fgrid" style="grid-template-columns:1fr 1fr 1fr">
+        <div><div class="fl">호실명 <span class="req">*</span></div><div class="inp">101</div></div>
+        <div><div class="fl">이름 <span class="req">*</span></div><div class="inp">홍길동</div></div>
+        <div><div class="fl">입금자명 <span class="req">*</span></div><div class="inp">홍길동</div></div>
+        <div><div class="fl">룸타입 <span class="req">*</span></div><div class="inp" style="justify-content:space-between">투룸 ▾</div></div>
+        <div><div class="fl">인원</div><div class="inp">2</div></div>
+        <div><div class="fl">입주일 <span class="req">*</span></div><div class="inp" style="justify-content:space-between">24.03.01 📅</div></div>
+        <div><div class="fl">연락처1 <span class="req">*</span></div><div class="inp">010-…</div></div>
+        <div><div class="fl">연락처2·3</div><div class="inp muted">선택</div></div>
+        <div><div class="fl">차량번호</div><div class="inp muted">선택</div></div>
+      </div></div>
+    </div>
+    <div class="sec">
+      <div class="sec-h">② 부과·출력 설정</div>
+      <div class="sec-b"><div class="fgrid" style="grid-template-columns:1fr 1fr 1fr">
+        <div><div class="fl">부과 설정</div><span class="seg"><span class="on">Y</span><span>N</span></span></div>
+        <div><div class="fl">출력 설정</div><span class="seg"><span class="on">Y</span><span>N</span></span></div>
+        <div><div class="fl">공실 처리</div><span class="seg"><span>Y</span><span class="on">N</span></span></div>
+        <div><div class="fl">연체료 부과</div><span class="seg"><span class="on">Y</span><span>N</span></span></div>
+        <div><div class="fl">단수 출력</div><span class="seg"><span>Y</span><span class="on">N</span></span></div>
+        <div><div class="fl">퇴실일자</div><div class="inp muted" style="justify-content:space-between">선택 📅</div></div>
+      </div>
+      <div class="note" style="margin-top:8px">적요 · 이사정산 시 적요 → 이사정산 화면과 연동</div></div>
+    </div>
+    <div class="sec">
+      <div class="sec-h">③ 계량기·계좌</div>
+      <div class="sec-b">
+        <div class="row"><span class="chip">수도 계량기/고객번호</span><span class="chip">전기 계량기/고객번호</span><span class="chip">가스 계량기/고객번호</span></div>
+        <div class="note" style="margin-top:8px">납부 계좌 — 수도·전기·가스·관리비 각각 별도 (은행·계좌·예금주)</div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-h">④ 임대차 정보</div>
+      <div class="sec-b"><div class="fgrid" style="grid-template-columns:1fr 1fr 1fr">
+        <div><div class="fl">보증금</div><div class="inp muted">₩</div></div>
+        <div><div class="fl">월세</div><div class="inp muted">₩</div></div>
+        <div><div class="fl">만료 알림</div><span class="seg"><span class="on">Y</span><span>N</span></span></div>
+      </div>
+      <div class="tbl" style="margin-top:9px">
+        <div class="tr th" style="grid-template-columns:1fr 1fr 1fr 1fr"><span class="td">이전 전출자</span><span class="td">입주일</span><span class="td">퇴실일</span><span class="td">룸타입</span></div>
+        <div class="tr" style="grid-template-columns:1fr 1fr 1fr 1fr"><span class="td muted">이전세입자</span><span class="td muted">22.01</span><span class="td muted">23.10</span><span class="td muted">투룸</span></div>
+      </div>
+      <div class="note" style="margin-top:6px">퇴실 처리 시 자동 누적 (읽기 전용) · 퇴실일 내림차순</div></div>
+    </div>
+    <div class="sec" style="margin-bottom:0">
+      <div class="sec-h">⑤ 시설 정보</div>
+      <div class="sec-b"><div class="inp ta">시설 항목 자유 기재…</div></div>
+    </div>
+    <div class="note">필수: 호실·이름·입금자명·룸타입·연락처1·입주일 · 통합 저장 버튼 1개</div>
+  </div>
+</div>
+<div class="card" id="s-utility" style="width:640px">
+  <div class="strip"><span class="dot" style="background:#2f6fd6"></span><span class="card-t">전기·수도·가스 지침·부과</span><span class="route">/utilities</span></div>
+  <div class="win">
+    <div class="topbar"><span class="field dd" style="min-width:150px">그린빌라</span><span class="sp"></span><span class="btn sm">6개월 이력</span><span class="btn sm">⤓ 검침대장</span><span class="btn pri sm">부과 계산</span></div>
+    <div class="tabs"><span class="tab on">수도</span><span class="tab">전기</span><span class="tab">가스</span><span class="sp"></span><span class="field sm" style="font-size:12px">신규입주 기준일 📅</span></div>
+    <div class="tbl">
+      <div class="tr th" style="grid-template-columns:.7fr 1fr .8fr .8fr .7fr 1fr 1fr 1fr"><span class="td">호실</span><span class="td">입주자</span><span class="td">전월</span><span class="td">당월</span><span class="td">사용량</span><span class="td">자동요금</span><span class="td">수동요금</span><span class="td">적요</span></div>
+      <div class="tr" style="grid-template-columns:.7fr 1fr .8fr .8fr .7fr 1fr 1fr 1fr"><span class="td">101</span><span class="td">홍길동</span><span class="td muted">340</span><span class="td" style="background:#faf7f0">▮</span><span class="td muted">-</span><span class="td muted">-</span><span class="td muted">-</span><span class="td muted"></span></div>
+      <div class="tr" style="grid-template-columns:.7fr 1fr .8fr .8fr .7fr 1fr 1fr 1fr"><span class="td">102</span><span class="td muted gray">공실</span><span class="td gray">-</span><span class="td gray">-</span><span class="td gray">-</span><span class="td gray">-</span><span class="td gray">-</span><span class="td gray"></span></div>
+      <div class="tr" style="grid-template-columns:.7fr 1fr .8fr .8fr .7fr 1fr 1fr 1fr"><span class="td">201</span><span class="td">김영희 <span class="badge" style="background:#e2f5f0;color:#12a08e">할인</span></span><span class="td muted">512</span><span class="td" style="background:#faf7f0">▮</span><span class="td muted">-</span><span class="td muted">-</span><span class="td muted">-</span><span class="td muted"></span></div>
+      <div class="tr" style="grid-template-columns:.7fr 1fr .8fr .8fr .7fr 1fr 1fr 1fr;background:#eaf1fc"><span class="td">301</span><span class="td" style="color:#2f6fd6;font-weight:700">신규 입주</span><span class="td muted">0</span><span class="td" style="background:#faf7f0">▮</span><span class="td muted">-</span><span class="td muted">-</span><span class="td muted">-</span><span class="td muted"></span></div>
+    </div>
+    <div class="note">전월값 자동표시(읽기전용) · 수동요금 입력 시 우선 적용 · 공실=비활성 · 할인(수급자·다자녀) 자동 · 신규입주 파란 강조</div>
+    <div class="modal" style="width:240px;padding:10px;margin-top:11px">
+      <div class="row" style="justify-content:space-between;margin-bottom:6px"><b style="font-size:14px">6개월 이력 · 101호</b><span class="chip" style="padding:0 7px">✕</span></div>
+      <div class="tbl" style="font-size:11px"><div class="tr th" style="grid-template-columns:1fr 1fr 1fr"><span class="td">월</span><span class="td">부과액</span><span class="td">증감</span></div><div class="tr" style="grid-template-columns:1fr 1fr 1fr"><span class="td muted">6월</span><span class="td muted">32,400</span><span class="td" style="color:#c0563a">▲</span></div><div class="tr" style="grid-template-columns:1fr 1fr 1fr"><span class="td muted">5월</span><span class="td muted">28,100</span><span class="td" style="color:#12a08e">▼</span></div></div>
+    </div>
+  </div>
+</div>
+<div class="card" id="s-mgmt" style="width:640px">
+  <div class="strip"><span class="dot" style="background:#2f6fd6"></span><span class="card-t">관리비 부과 셋팅</span><span class="route">/management-fee</span></div>
+  <div class="win">
+    <div class="topbar"><span class="field dd" style="min-width:150px">그린빌라</span><span class="sp"></span><span class="btn sm">관리비 항목 관리</span><span class="btn pri sm">부과 확정</span></div>
+    <div class="tbl">
+      <div class="tr th" style="grid-template-columns:.7fr .9fr .9fr 1fr 1fr 1fr 1fr"><span class="td">호실</span><span class="td">룸타입</span><span class="td">입주일</span><span class="td" style="background:#e2ecfb;color:#2f6fd6">합계관리비</span><span class="td">일반관리비</span><span class="td">승강기</span><span class="td">정화조</span></div>
+      <div class="tr" style="grid-template-columns:.7fr .9fr .9fr 1fr 1fr 1fr 1fr"><span class="td">101</span><span class="td muted">투룸</span><span class="td muted">24.03</span><span class="td" style="font-weight:700">85,000</span><span class="td">50,000</span><span class="td">15,000</span><span class="td">20,000</span></div>
+      <div class="tr" style="grid-template-columns:.7fr .9fr .9fr 1fr 1fr 1fr 1fr;background:#eaf1fc"><span class="td">301</span><span class="td muted">원룸</span><span class="td" style="color:#2f6fd6">24.06(중간)</span><span class="td" style="font-weight:700">42,500</span><span class="td muted">25,000</span><span class="td muted">7,500</span><span class="td muted">10,000</span></div>
+      <div class="tr" style="grid-template-columns:.7fr .9fr .9fr 1fr 1fr 1fr 1fr"><span class="td">201</span><span class="td muted">쓰리룸</span><span class="td muted">23.11</span><span class="td" style="font-weight:700">95,000</span><span class="td">55,000</span><span class="td">15,000</span><span class="td">25,000</span></div>
+    </div>
+    <div class="note">합계관리비 맨 앞 표시(전화 응대용) · 항목별 Y/N 세대 개별 · 중간입주 일할 자동 · 이월 항목 전월금액 자동</div>
+    <div class="row" style="margin-top:11px;gap:14px;align-items:flex-start">
+      <div class="modal" style="width:220px;padding:10px">
+        <b style="font-size:14px">관리비 항목 관리</b>
+        <div class="tbl" style="margin-top:7px;font-size:11px"><div class="tr th" style="grid-template-columns:2fr 1fr"><span class="td">항목명</span><span class="td">이월</span></div><div class="tr" style="grid-template-columns:2fr 1fr"><span class="td muted">일반관리비</span><span class="td">Y</span></div><div class="tr" style="grid-template-columns:2fr 1fr"><span class="td muted">수리비</span><span class="td">N</span></div></div>
+        <div class="btn sm" style="margin-top:7px;font-size:11px;padding:2px 7px">＋ 항목 추가</div>
+      </div>
+      <div class="modal" style="width:220px;padding:12px;text-align:center">
+        <b style="font-size:14px">신규 입주자 팝업</b>
+        <div style="font-size:13px;color:#6f6656;margin:8px 0">"이번 달 관리비를<br>부과하시겠습니까?"</div>
+        <div class="row" style="justify-content:center"><span class="btn sm">취소</span><span class="btn pri sm">확인</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="card" id="s-bill" style="width:620px">
+  <div class="strip"><span class="dot" style="background:#2f6fd6"></span><span class="card-t">고지서 발행·출력</span><span class="route">/bill</span></div>
+  <div class="win">
+    <div class="topbar"><span class="field dd" style="min-width:140px">그린빌라</span><span class="field dd" style="min-width:110px">그룹 A</span><span class="sp"></span><span class="btn sm">조정명세서</span><span class="btn sm">자동이체 출력</span></div>
+    <div class="row" style="margin-bottom:11px"><span style="font-weight:700;font-size:13px">발행유형</span><span class="cbx"><span class="box on"></span>지로</span><span class="cbx"><span class="box on"></span>A4</span><span class="cbx"><span class="box"></span>카톡</span><span class="cbx"><span class="box"></span>팩스</span><span class="note" style="margin:0;font-size:14px">복수 선택</span></div>
+    <div class="tbl">
+      <div class="tr th" style="grid-template-columns:.5fr .7fr 1fr .9fr .7fr .8fr .9fr"><span class="td"><span class="box" style="width:12px;height:12px"></span></span><span class="td">호실</span><span class="td">입주자</span><span class="td">유형</span><span class="td">그룹</span><span class="td">자동이체</span><span class="td">발송상태</span></div>
+      <div class="tr" style="grid-template-columns:.5fr .7fr 1fr .9fr .7fr .8fr .9fr"><span class="td"><span class="box on" style="width:12px;height:12px"></span></span><span class="td">101</span><span class="td">홍길동</span><span class="td muted">지로</span><span class="td muted">A</span><span class="td"><span class="badge" style="background:#e7edfa;color:#2f6fd6">자동</span></span><span class="td muted">대기</span></div>
+      <div class="tr" style="grid-template-columns:.5fr .7fr 1fr .9fr .7fr .8fr .9fr"><span class="td"><span class="box on" style="width:12px;height:12px"></span></span><span class="td">201</span><span class="td">김영희</span><span class="td muted">카톡</span><span class="td muted">A</span><span class="td muted">-</span><span class="td" style="color:#12a08e">완료</span></div>
+    </div>
+    <div class="row" style="margin-top:11px;align-items:flex-start;gap:14px">
+      <div class="row" style="flex:1;gap:8px"><span class="btn sm">개별 발행</span><span class="btn pri sm">일괄 발행</span></div>
+      <div class="modal" style="width:210px;padding:10px;text-align:center"><b style="font-size:14px">카톡 예약 발송</b><div class="row" style="justify-content:center;margin-top:7px"><span class="field sm">날짜 📅</span><span class="field sm">시간 ⏱</span></div><div class="btn pri sm" style="margin-top:7px">예약 등록</div></div>
+    </div>
+    <div class="note">지로·A4에 QR코드·회사명·자동이체 자동 포함 · 카톡 그룹별/개별 발송 · 주번호·부번호 모두 발송 (NCP)</div>
+  </div>
+</div>
+<div class="card" id="s-receipt" style="width:680px">
+  <div class="strip"><span class="dot" style="background:#2f6fd6"></span><span class="card-t">수납관리·민원접수</span><span class="route">/receipts</span></div>
+  <div class="win">
+    <div class="topbar"><span class="field" style="flex:1">🔍 금액 · 이름 · 건물명 검색</span><span class="btn sm">AS접수현황 ↗</span></div>
+    <div class="sec">
+      <div class="sec-h">수납현황 <span class="sp"></span><span style="font-weight:400;font-size:12px;color:#948a78">빌라별 총부과·수납 요약</span></div>
+      <div class="sec-b">
+        <div class="tbl">
+          <div class="tr th" style="grid-template-columns:1fr .6fr 1fr .9fr .9fr .9fr .7fr .7fr"><span class="td">건물</span><span class="td">호실</span><span class="td">입주자</span><span class="td">부과</span><span class="td">수납</span><span class="td">미납</span><span class="td">납기</span><span class="td">상태</span></div>
+          <div class="tr" style="grid-template-columns:1fr .6fr 1fr .9fr .9fr .9fr .7fr .7fr"><span class="td muted">그린빌라</span><span class="td">101</span><span class="td">홍길동</span><span class="td muted">85,000</span><span class="td muted">85,000</span><span class="td">0</span><span class="td muted">25일</span><span class="td" style="color:#12a08e">완납</span></div>
+          <div class="tr" style="grid-template-columns:1fr .6fr 1fr .9fr .9fr .9fr .7fr .7fr"><span class="td muted">그린빌라</span><span class="td">201</span><span class="td">김영희</span><span class="td muted">95,000</span><span class="td muted">0</span><span class="td" style="color:#c0563a">95,000</span><span class="td muted">25일</span><span class="td" style="color:#c0563a">미납</span></div>
+        </div>
+        <div class="row" style="margin-top:8px"><span class="btn sm">고지서 문자 전송</span><span class="btn sm">미납·수납내역 출력</span><span class="btn sm">명세서·영수증 출력</span></div>
+      </div>
+    </div>
+    <div class="sec" style="margin-bottom:0">
+      <div class="sec-h">민원접수 <span class="sp"></span><span class="btn sm" style="font-size:11px;padding:2px 7px">＋ 신규 접수</span></div>
+      <div class="sec-b">
+        <div class="row" style="margin-bottom:9px"><span class="chip" style="background:#fbe4dd;color:#c0563a;border-color:#e8b6a9">미결</span><span class="chip">완결</span><span class="chip">보류</span><span class="chip">반복</span><span class="note" style="margin:0;font-size:14px">복수 필터</span></div>
+        <div class="tbl">
+          <div class="tr th" style="grid-template-columns:.9fr 1fr .6fr 1fr 1.4fr .7fr"><span class="td">접수일</span><span class="td">건물</span><span class="td">호실</span><span class="td">입주자</span><span class="td">접수내용</span><span class="td">상태</span></div>
+          <div class="tr" style="grid-template-columns:.9fr 1fr .6fr 1fr 1.4fr .7fr"><span class="td muted">07.02</span><span class="td muted">그린빌라</span><span class="td">201</span><span class="td">김영희</span><span class="td muted">누수 발생</span><span class="td" style="color:#c0563a">미결</span></div>
+        </div>
+        <div class="btn sm" style="margin-top:8px">담당 기사 문자 전송</div>
+      </div>
+    </div>
+    <div class="note">상단 수납 + 하단 민원 한 화면 · AS팝업 호실 더블클릭 → 해당 세대 자동 검색</div>
+  </div>
+</div>
+<div class="card" id="s-payment" style="width:640px">
+  <div class="strip"><span class="dot" style="background:#2f6fd6"></span><span class="card-t">수납처리·자동이체</span><span class="route">/payment</span></div>
+  <div class="win">
+    <div class="topbar"><span class="field dd" style="min-width:130px">그린빌라</span><span class="field" style="flex:1">🔍 이름 · 호실 검색</span><span class="btn sm">⤒ 엑셀 업로드</span><span class="btn sm">자동이체 다운</span></div>
+    <div class="tbl">
+      <div class="tr th" style="grid-template-columns:.7fr 1fr .9fr .9fr .9fr .7fr 1fr .8fr"><span class="td">호실</span><span class="td">입주자</span><span class="td">부과</span><span class="td">수납</span><span class="td">미납</span><span class="td">납기</span><span class="td">비고</span><span class="td">상태</span></div>
+      <div class="tr" style="grid-template-columns:.7fr 1fr .9fr .9fr .9fr .7fr 1fr .8fr"><span class="td">101</span><span class="td">홍길동</span><span class="td muted">85,000</span><span class="td muted">85,000</span><span class="td">0</span><span class="td muted">25일</span><span class="td muted"></span><span class="td" style="color:#12a08e">완납</span></div>
+      <div class="tr" style="grid-template-columns:.7fr 1fr .9fr .9fr .9fr .7fr 1fr .8fr"><span class="td">201</span><span class="td">김영희</span><span class="td muted">95,000</span><span class="td muted">50,000</span><span class="td" style="color:#c0563a">45,000</span><span class="td muted">25일</span><span class="td muted">분할</span><span class="td" style="color:#c0563a">부분</span></div>
+    </div>
+    <div class="row" style="margin-top:10px"><span style="font-weight:700;font-size:13px">처리</span><span class="btn sm">수납</span><span class="btn sm">원금</span><span class="btn sm">취소</span><span class="btn sm">분할</span></div>
+    <div class="row" style="margin-top:10px;gap:14px;align-items:flex-start">
+      <div class="sec" style="flex:1;margin:0"><div class="sec-h" style="font-size:13px">지로 수납</div><div class="sec-b"><div class="row"><span class="btn sm">지로 수납 처리</span><span class="btn sm">원장 보기</span></div></div></div>
+      <div class="sec" style="flex:1.3;margin:0"><div class="sec-h" style="font-size:13px">엑셀 자동 매칭</div><div class="sec-b"><div class="note" style="margin:0">① 고객번호 → ② 이름 → ③ 금액 순 매칭 · 미매칭 건 수동 처리 대기</div></div></div>
+    </div>
+  </div>
+</div>
+<div class="card" id="s-overdue" style="width:580px">
+  <div class="strip"><span class="dot" style="background:#2f6fd6"></span><span class="card-t">미납관리</span><span class="route">/overdue</span></div>
+  <div class="win">
+    <div class="topbar"><span class="field dd" style="min-width:140px">그린빌라</span><span class="sp"></span><span class="btn sm">미납대장 출력</span><span class="btn pri sm">독촉 문자 발송</span></div>
+    <div class="row" style="margin-bottom:11px"><span class="chip" style="background:#fbe4dd;color:#c0563a;border-color:#e8b6a9">채권 관리 필터</span><span class="note" style="margin:0;font-size:14px">연체 3개월↑ AND 10만원↑ (고정)</span></div>
+    <div class="tbl">
+      <div class="tr th" style="grid-template-columns:.5fr .7fr 1fr 1.1fr .8fr 1fr .9fr"><span class="td"><span class="box" style="width:12px;height:12px"></span></span><span class="td">호실</span><span class="td">입주자</span><span class="td">연락처</span><span class="td">연체</span><span class="td">미납금액</span><span class="td">최근납부</span></div>
+      <div class="tr" style="grid-template-columns:.5fr .7fr 1fr 1.1fr .8fr 1fr .9fr"><span class="td"><span class="box on" style="width:12px;height:12px"></span></span><span class="td">201</span><span class="td">김영희</span><span class="td muted">010-…</span><span class="td" style="color:#c0563a">4개월</span><span class="td" style="color:#c0563a">380,000</span><span class="td muted">03.25</span></div>
+      <div class="tr" style="grid-template-columns:.5fr .7fr 1fr 1.1fr .8fr 1fr .9fr"><span class="td"><span class="box on" style="width:12px;height:12px"></span></span><span class="td">305</span><span class="td">박철수</span><span class="td muted">010-…</span><span class="td" style="color:#c0563a">3개월</span><span class="td" style="color:#c0563a">255,000</span><span class="td muted">04.25</span></div>
+    </div>
+    <div class="note">연체 2개월↑ 세대 3개월째 고지서에 "단전·단수 예고" 자동 인쇄 · 발송 시 "N개 세대 발송?" 확인 팝업 → 결과 표시</div>
+  </div>
+</div>
+<div class="card" id="s-moving" style="width:680px">
+  <div class="strip"><span class="dot" style="background:#2f6fd6"></span><span class="card-t">이사정산</span><span class="route">/moving-settlement</span></div>
+  <div class="win">
+    <div class="topbar"><span class="field dd" style="min-width:120px">그린빌라</span><span class="field dd" style="min-width:90px">201호</span><span class="field sm">날짜범위 📅</span><span class="sp"></span><span class="btn sm">수도·전기·가스 이사조회</span></div>
+    <div class="row" style="gap:12px;align-items:flex-start">
+      <div class="sec" style="width:170px;margin:0;flex:none">
+        <div class="sec-h" style="font-size:13px">검침정보 <span style="font-weight:400;font-size:11px">(고정·읽기)</span></div>
+        <div class="sec-b" style="font-size:12px;color:#6f6656">
+          <div class="row" style="justify-content:space-between"><span>수도 전/당</span><span class="muted">512 / 530</span></div>
+          <div class="row" style="justify-content:space-between"><span>전기 전/당</span><span class="muted">8,120 / 8,340</span></div>
+          <div class="row" style="justify-content:space-between"><span>가스 전/당</span><span class="muted">220 / 235</span></div>
+          <div class="row" style="justify-content:space-between;margin-top:5px;font-weight:700"><span>사용량</span><span>18 / 220 / 15</span></div>
+        </div>
+      </div>
+      <div style="flex:1">
+        <div class="sec"><div class="sec-h" style="font-size:13px">정산 입력</div><div class="sec-b"><div class="fgrid" style="grid-template-columns:1fr 1fr">
+          <div><div class="fl">퇴실일자 <span class="req">*</span></div><div class="inp" style="justify-content:space-between">07.15 📅</div></div>
+          <div><div class="fl">관리비 (일할 자동)</div><div class="inp muted">42,000</div></div>
+          <div><div class="fl">수리비</div><div class="inp muted">₩</div></div>
+          <div><div class="fl">수리비 귀속</div><div class="inp" style="justify-content:space-between">건물주 입금 ▾</div></div>
+          <div><div class="fl">전기·가스 입금일</div><div class="inp muted" style="justify-content:space-between">📅 달력만</div></div>
+          <div><div class="fl">정산금 계좌 (셋업)</div><div class="inp muted">국민 123-…</div></div>
+        </div><div class="inp ta" style="margin-top:9px">하단 비고 · 이사정산 시 적요 (연동)</div></div></div>
+        <div class="sec" style="margin:0"><div class="sec-h" style="font-size:13px">내부 시설점검 체크리스트</div><div class="sec-b"><div class="row"><span class="cbx"><span class="box on"></span>도배</span><span class="cbx"><span class="box on"></span>배관</span><span class="cbx"><span class="box"></span>가스밸브</span><span class="cbx"><span class="box"></span>열쇠</span></div></div></div>
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px;gap:7px"><span class="btn sm">정산금 계산</span><span class="btn pri sm">계산+저장</span><span class="btn sm">중도퇴실</span><span class="btn sm">정산완료+공실</span><span class="btn sm">출력</span><span class="btn sm">빈양식</span></div>
+    <div class="note">정산완료+공실 → "미납 N건 수납?" 팝업 후 퇴실·수납·적요 리셋·이력 저장 · 현장직원은 계산+저장만</div>
+  </div>
+</div>
+<div class="card" id="s-setup" style="width:600px">
+  <div class="strip"><span class="dot" style="background:#2f6fd6"></span><span class="card-t">셋업·기타 설정</span><span class="route">/setup</span></div>
+  <div class="win">
+    <div class="tabs"><span class="tab on">고지서 설정</span><span class="tab">계좌 설정</span><span class="tab">이사정산 설정</span><span class="tab">시스템 설정</span><span class="tab">장기수선비</span></div>
+    <div class="sec"><div class="sec-h">고지서 설정</div><div class="sec-b">
+      <div class="fl">고객 안내사항 (고지서 인쇄 문구)</div><div class="inp ta">안내문 입력…</div>
+      <div class="fgrid" style="grid-template-columns:1fr 1fr;margin-top:10px">
+        <div class="row" style="justify-content:space-between"><span class="fl" style="margin:0">단전·단수 출력</span><span class="seg"><span class="on">Y</span><span>N</span></span></div>
+        <div class="row" style="justify-content:space-between"><span class="fl" style="margin:0">수도 단가 출력</span><span class="seg"><span class="on">Y</span><span>N</span></span></div>
+        <div class="row" style="justify-content:space-between"><span class="fl" style="margin:0">관리비 기간 출력</span><span class="seg"><span class="on">Y</span><span>N</span></span></div>
+        <div class="row" style="justify-content:space-between"><span class="fl" style="margin:0">증감량 표시</span><span class="seg"><span>Y</span><span class="on">N</span></span></div>
+        <div class="row" style="justify-content:space-between"><span class="fl" style="margin:0">AS현황 메인 표시</span><span class="seg"><span class="on">Y</span><span>N</span></span></div>
+        <div class="row" style="justify-content:space-between"><span class="fl" style="margin:0">단수 개월 수</span><span class="inp" style="width:60px">3</span></div>
+      </div>
+    </div></div>
+    <div class="row" style="margin-bottom:0"><span class="chip">계좌: 관리비·이사정산 (은행·계좌·예금주)</span><span class="chip">시스템: 룸타입·담당자·직원계정·협력업체·청소팀·A/S구분</span></div>
+    <div class="topbar" style="margin:11px 0 0"><span class="sp"></span><span class="btn pri sm">저장 (탭별 전체 저장)</span></div>
+    <div class="note">시스템 설정 변경 → 전체 화면 드롭다운·목록 즉시 반영 · 장기수선비는 건물별 공사 이력+영수증·사진</div>
+  </div>
+</div>
+<!--PC--></div>
+  </div>
+
+  <div class="lane" id="lane-mo">
+    <div class="lane-hd">
+      <span class="lane-num" style="background:#12a08e">2</span>
+      <span class="lane-tag">모바일 · 현장관리자</span>
+      <span class="lane-cnt">7 SCREENS</span>
+      <span class="lane-bar" style="background:#12a08e"></span>
+    </div>
+    <div class="grid"><div class="phone" id="s-m-home">
+  <div class="notch"></div>
+  <div class="scr">
+    <div class="scr-top"><div><div style="font-weight:700;font-size:15px">김현장 님</div><div style="font-size:12px;color:#948a78">한빛관리(주)</div></div><span class="sp"></span><span class="chip" style="padding:1px 8px">로그아웃</span></div>
+    <div class="scr-b">
+      <div class="row" style="gap:8px;margin-bottom:12px">
+        <div class="mcard" style="flex:1;margin:0;text-align:center;padding:10px 4px"><div style="font-size:22px;font-weight:700;color:#c0563a">3</div><div style="font-size:11px;color:#6f6656">AS 미결</div></div>
+        <div class="mcard" style="flex:1;margin:0;text-align:center;padding:10px 4px"><div style="font-size:22px;font-weight:700;color:#12a08e">8</div><div style="font-size:11px;color:#6f6656">AS 완결</div></div>
+        <div class="mcard" style="flex:1;margin:0;text-align:center;padding:10px 4px"><div style="font-size:22px;font-weight:700">5</div><div style="font-size:11px;color:#6f6656">담당 건물</div></div>
+      </div>
+      <div style="font-family:'Nanum Pen Script',cursive;font-size:16px;color:#a06a4e;margin-bottom:6px">바로가기</div>
+      <div class="mcard" style="padding:11px;display:flex;align-items:center;gap:9px">📋 지침 등록</div>
+      <div class="mcard" style="padding:11px;display:flex;align-items:center;gap:9px">🛠 AS 접수·처리</div>
+      <div class="mcard" style="padding:11px;display:flex;align-items:center;gap:9px">💳 수납 조회</div>
+      <div class="mcard" style="padding:11px;display:flex;align-items:center;gap:9px">🔍 세입자 검색</div>
+      <div class="mcard" style="padding:11px;margin-bottom:0;display:flex;align-items:center;gap:9px">📦 이사정산</div>
+    </div>
+  </div>
+  <div class="mlabel">모바일 홈 · /m</div>
+</div>
+<div class="phone" id="s-m-utility">
+  <div class="notch"></div>
+  <div class="scr">
+    <div class="scr-top"><span style="font-weight:700;font-size:15px">지침 등록·검증</span></div>
+    <div class="scr-b">
+      <div class="field dd" style="width:100%;margin-bottom:9px">그린빌라</div>
+      <div class="tabs" style="margin:0 0 10px"><span class="tab on" style="font-size:14px">수도</span><span class="tab" style="font-size:14px">전기</span><span class="tab" style="font-size:14px">가스</span></div>
+      <div class="mcard" style="padding:10px">
+        <div class="row" style="justify-content:space-between"><b>101 · 홍길동</b><span class="chip" style="font-size:10px;padding:1px 6px">3개월 이력</span></div>
+        <div style="font-size:11px;color:#948a78;margin:4px 0">입주일 24.03.01 · 전월 340</div>
+        <div class="inp">당월 지침값 입력</div>
+      </div>
+      <div class="mcard" style="padding:10px;margin-bottom:10px">
+        <div class="row" style="justify-content:space-between"><b>301 · <span style="color:#12a08e">신규</span></b><span class="chip" style="font-size:10px;padding:1px 6px">3개월 이력</span></div>
+        <div style="font-size:11px;color:#948a78;margin:4px 0">입주일 24.06.20 · 전월 0</div>
+        <div class="inp">당월 지침값 입력</div>
+      </div>
+      <div class="modal" style="padding:10px;border-color:#c0563a;text-align:center;margin-bottom:9px"><b style="color:#c0563a;font-size:13px">⚠ 이상 사용량 감지</b><div style="font-size:12px;color:#6f6656;margin-top:4px">다시 확인해 주세요<br>(저장 불가)</div></div>
+      <div class="btn pri sm" style="width:100%;justify-content:center">저장</div>
+    </div>
+  </div>
+  <div class="mlabel">지침 등록·검증 · /m/utility-charge</div>
+</div>
+<div class="phone" id="s-m-as">
+  <div class="notch"></div>
+  <div class="scr">
+    <div class="scr-top"><span style="font-weight:700;font-size:15px">AS 접수·처리</span><span class="sp"></span><span class="chip" style="padding:1px 8px">＋ 신규</span></div>
+    <div class="scr-b">
+      <div class="field dd" style="width:100%;margin-bottom:9px">전체 건물</div>
+      <div class="mcard" style="padding:10px"><div class="row" style="justify-content:space-between"><b>그린빌라 201</b><span class="badge" style="background:#fbe4dd;color:#c0563a">미결</span></div><div style="font-size:12px;color:#6f6656;margin-top:3px">누수 발생 · 07.02</div></div>
+      <div class="mcard" style="padding:10px;margin-bottom:10px"><div class="row" style="justify-content:space-between"><b>중앙타워 305</b><span class="badge" style="background:#e2f5f0;color:#12a08e">완결</span></div><div style="font-size:12px;color:#6f6656;margin-top:3px">전등 교체 · 07.01</div></div>
+      <div class="sec" style="margin:0"><div class="sec-h" style="font-size:12px">처리 결과 기록</div><div class="sec-b"><div class="inp ta" style="height:38px">처리 결과 입력…</div><div class="row" style="margin-top:8px"><span class="xbox" style="width:46px;height:38px">📷</span><span class="xbox" style="width:46px;height:38px">＋</span><span class="note" style="margin:0;font-size:13px">자동 압축</span></div><div class="row" style="margin-top:8px"><span class="seg"><span>미결</span><span class="on">완결</span><span>보류</span></span></div></div></div>
+    </div>
+  </div>
+  <div class="mlabel">AS 접수·처리 · /m/as</div>
+</div>
+<div class="phone" id="s-m-receipts">
+  <div class="notch"></div>
+  <div class="scr">
+    <div class="scr-top"><span style="font-weight:700;font-size:15px">수납 조회</span><span class="sp"></span><span class="badge" style="background:#eee;color:#888">읽기전용</span></div>
+    <div class="scr-b">
+      <div class="field dd" style="width:100%;margin-bottom:9px">그린빌라</div>
+      <div class="mcard" style="padding:10px"><div class="row" style="justify-content:space-between"><b>101 홍길동</b><span style="color:#12a08e;font-weight:700">완납</span></div><div style="font-size:12px;color:#6f6656;margin-top:3px">부과 85,000 · 미납 0</div></div>
+      <div class="mcard" style="padding:10px;margin-bottom:0"><div class="row" style="justify-content:space-between"><b>201 김영희</b><span style="color:#c0563a;font-weight:700">미납</span></div><div style="font-size:12px;color:#6f6656;margin-top:3px">부과 95,000 · 미납 95,000</div></div>
+    </div>
+  </div>
+  <div class="mlabel">수납 조회 · /m/receipts</div>
+</div>
+<div class="phone" id="s-m-search">
+  <div class="notch"></div>
+  <div class="scr">
+    <div class="scr-top"><span style="font-weight:700;font-size:15px">세입자 검색</span></div>
+    <div class="scr-b">
+      <div class="field" style="width:100%;margin-bottom:10px">🔍 이름 · 전화번호</div>
+      <div class="mcard" style="padding:11px">
+        <b style="font-size:15px">홍길동</b>
+        <div style="font-size:12px;color:#6f6656;margin-top:5px;line-height:1.6">그린빌라 101호<br>입주일 24.03.01<br>주번호 010-1234-…<br>부번호 010-5678-…</div>
+      </div>
+      <div class="note" style="margin:0">결과 탭 시 기본정보 상세 (주번호·부번호 포함)</div>
+    </div>
+  </div>
+  <div class="mlabel">세입자 검색 · /m/tenant-search</div>
+</div>
+<div class="phone" id="s-m-building">
+  <div class="notch"></div>
+  <div class="scr">
+    <div class="scr-top"><span style="font-weight:700;font-size:15px">건물 기본정보</span><span class="sp"></span><span class="badge" style="background:#eee;color:#888">읽기전용</span></div>
+    <div class="scr-b">
+      <div class="field dd" style="width:100%;margin-bottom:10px">그린빌라</div>
+      <div class="mcard" style="padding:11px;font-size:13px;line-height:1.9;color:#5f5848">
+        <b style="font-size:14px">기본</b> 그린빌라 · 강서구<br>관리 김관리 / 검침 박검침<br>
+        <b style="font-size:14px">소방안전</b> 세이프소방<br>
+        <b style="font-size:14px">전기안전</b> 파워전기<br>
+        <b style="font-size:14px">임대인 부번호</b> 010-…
+      </div>
+    </div>
+  </div>
+  <div class="mlabel">건물 기본정보 · /m/building-info</div>
+</div>
+<div class="phone" id="s-m-moving">
+  <div class="notch"></div>
+  <div class="scr">
+    <div class="scr-top"><span style="font-weight:700;font-size:15px">이사정산</span></div>
+    <div class="scr-b">
+      <div class="row" style="gap:7px;margin-bottom:10px"><span class="field dd" style="flex:1;min-width:0">그린빌라</span><span class="field dd" style="width:80px">201호</span></div>
+      <div class="sec" style="margin:0 0 9px"><div class="sec-h" style="font-size:12px">정산 입력 (PC와 동일)</div><div class="sec-b" style="font-size:12px;color:#6f6656">
+        <div class="row" style="justify-content:space-between;margin-bottom:6px"><span>퇴실일자</span><span class="field sm">07.15 📅</span></div>
+        <div class="row" style="justify-content:space-between;margin-bottom:6px"><span>지침값 / 수리비</span><span class="muted">입력</span></div>
+        <div class="row" style="justify-content:space-between"><span>정산금 계좌</span><span class="muted">국민 123-…</span></div>
+      </div></div>
+      <div class="btn pri sm" style="width:100%;justify-content:center;margin-bottom:7px">계산 + 저장</div>
+      <div class="row" style="gap:6px;opacity:.4"><span class="btn sm" style="flex:1;justify-content:center;font-size:11px">중도퇴실</span><span class="btn sm" style="flex:1;justify-content:center;font-size:11px">정산완료</span><span class="btn sm" style="flex:1;justify-content:center;font-size:11px">출력</span></div>
+      <div class="btn sm" style="width:100%;justify-content:center;margin-top:8px">정산내역서 문자 전송</div>
+      <div class="note" style="margin-top:8px">현장직원 = 계산+저장만 (나머지 비활성)</div>
+    </div>
+  </div>
+  <div class="mlabel">이사정산 · /m/moving-settlement</div>
+</div>
+<!--MO--></div>
+  </div>
+
+  <div class="lane" id="lane-tn">
+    <div class="lane-hd">
+      <span class="lane-num" style="background:#e8603c">3</span>
+      <span class="lane-tag">세입자 앱 · 카카오 기반</span>
+      <span class="lane-cnt">6 SCREENS</span>
+      <span class="lane-bar" style="background:#e8603c"></span>
+    </div>
+    <div class="grid"><div class="phone" id="s-t-login">
+  <div class="notch"></div>
+  <div class="scr" style="min-height:440px;display:flex;flex-direction:column">
+    <div class="scr-b" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px">
+      <div class="xbox" style="width:64px;height:64px;border-radius:16px">로고</div>
+      <div><div style="font-weight:700;font-size:18px">우리집 관리비</div><div style="font-size:13px;color:#948a78">세입자 앱</div></div>
+      <div class="btn" style="background:#FEE500;border-color:#e0ca00;width:180px;justify-content:center;padding:9px">💬 카카오 로그인</div>
+      <div class="note" style="justify-content:center;font-size:14px">미등록 계정 → "등록된 세대 정보가<br>없습니다. 관리사무소 문의"</div>
+    </div>
+  </div>
+  <div class="mlabel">카카오 로그인 · /tenant-app/login</div>
+</div>
+<div class="phone" id="s-t-home">
+  <div class="notch"></div>
+  <div class="scr">
+    <div class="scr-top" style="background:#fdefe9"><div><div style="font-weight:700;font-size:15px">그린빌라 101호</div><div style="font-size:12px;color:#a06a4e">홍길동 님</div></div></div>
+    <div class="scr-b">
+      <div class="row" style="gap:10px;flex-wrap:wrap">
+        <div class="mcard" style="width:calc(50% - 5px);margin:0;text-align:center;padding:20px 6px">💰<div style="font-weight:700;margin-top:6px">관리비 확인</div></div>
+        <div class="mcard" style="width:calc(50% - 5px);margin:0;text-align:center;padding:20px 6px">📢<div style="font-weight:700;margin-top:6px">공지사항</div></div>
+        <div class="mcard" style="width:calc(50% - 5px);margin:0;text-align:center;padding:20px 6px">📦<div style="font-weight:700;margin-top:6px">퇴실 신청</div></div>
+        <div class="mcard" style="width:calc(50% - 5px);margin:0;text-align:center;padding:20px 6px">🗳<div style="font-weight:700;margin-top:6px">찬반 투표</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="mlabel">홈 · /tenant-app/home</div>
+</div>
+<div class="phone" id="s-t-bill">
+  <div class="notch"></div>
+  <div class="scr">
+    <div class="scr-top"><span style="font-weight:700;font-size:15px">관리비 확인</span><span class="sp"></span><span class="field dd" style="padding:2px 8px;font-size:12px">7월</span></div>
+    <div class="scr-b">
+      <div class="mcard" style="padding:12px">
+        <div class="row" style="justify-content:space-between;font-size:13px;color:#5f5848;margin-bottom:5px"><span>일반관리비</span><span>50,000</span></div>
+        <div class="row" style="justify-content:space-between;font-size:13px;color:#5f5848;margin-bottom:5px"><span>승강기유지비</span><span>15,000</span></div>
+        <div class="row" style="justify-content:space-between;font-size:13px;color:#5f5848;margin-bottom:5px"><span>정화조</span><span>20,000</span></div>
+        <div class="row" style="justify-content:space-between;border-top:1.5px solid #ece4d2;padding-top:7px;font-weight:700"><span>합계 부과</span><span>85,000</span></div>
+        <div class="row" style="justify-content:space-between;margin-top:5px"><span style="font-weight:700;color:#12a08e">수납 완료</span><span class="badge" style="background:#e2f5f0;color:#12a08e">납부완료</span></div>
+      </div>
+      <div class="note" style="margin:0">읽기 전용 · 자동이체 세대는 "자동이체 세대입니다" 안내</div>
+    </div>
+  </div>
+  <div class="mlabel">관리비 확인 · /tenant-app/bill</div>
+</div>
+<div class="phone" id="s-t-notice">
+  <div class="notch"></div>
+  <div class="scr">
+    <div class="scr-top"><span style="font-weight:700;font-size:15px">공지사항</span></div>
+    <div class="scr-b">
+      <div class="mcard" style="padding:11px"><b style="font-size:14px">단수 안내 (07.10)</b><div style="font-size:12px;color:#948a78;margin-top:3px">2026.07.05</div></div>
+      <div class="mcard" style="padding:11px"><b style="font-size:14px">엘리베이터 점검</b><div style="font-size:12px;color:#948a78;margin-top:3px">2026.07.01</div></div>
+      <div class="mcard" style="padding:11px;margin-bottom:0"><b style="font-size:14px">분리수거 협조</b><div style="font-size:12px;color:#948a78;margin-top:3px">2026.06.28</div></div>
+      <div class="note" style="margin-top:9px">탭 시 상세 내용 · 읽기 전용</div>
+    </div>
+  </div>
+  <div class="mlabel">공지사항 · /tenant-app/notice</div>
+</div>
+<div class="phone" id="s-t-moveout">
+  <div class="notch"></div>
+  <div class="scr">
+    <div class="scr-top"><span style="font-weight:700;font-size:15px">퇴실 신청</span></div>
+    <div class="scr-b">
+      <div class="fl">희망 퇴실일 <span class="req">*</span></div><div class="inp" style="justify-content:space-between">날짜 선택 📅</div>
+      <div class="fl" style="margin-top:11px">퇴실 사유</div><div class="inp ta">자유 입력 (선택)…</div>
+      <div class="btn" style="background:#e8603c;color:#fff;border-color:#c94e2d;width:100%;justify-content:center;margin-top:12px;padding:9px">신청</div>
+      <div class="note" style="margin-top:10px">접수 후 "관리사무소 확인 후 연락" 안내 · 중복 신청 방지 (내역 표시)</div>
+    </div>
+  </div>
+  <div class="mlabel">퇴실 신청 · /tenant-app/move-out</div>
+</div>
+<div class="phone" id="s-t-vote">
+  <div class="notch"></div>
+  <div class="scr">
+    <div class="scr-top"><span style="font-weight:700;font-size:15px">찬반 투표</span></div>
+    <div class="scr-b">
+      <div class="mcard" style="padding:12px">
+        <b style="font-size:14px">주차장 도색 공사 안건</b>
+        <div style="font-size:12px;color:#948a78;margin:3px 0 10px">마감 07.20</div>
+        <div class="row" style="gap:8px"><span class="btn" style="flex:1;justify-content:center;border-color:#e8603c;color:#e8603c">찬성</span><span class="btn" style="flex:1;justify-content:center">반대</span></div>
+        <div style="margin-top:11px">
+          <div class="row" style="justify-content:space-between;font-size:12px;margin-bottom:3px"><span>찬성</span><span style="font-weight:700">68%</span></div>
+          <div style="height:8px;background:#f0e6d8;border-radius:6px;overflow:hidden"><div style="width:68%;height:100%;background:#e8603c"></div></div>
+        </div>
+      </div>
+      <div class="note" style="margin:0">설문 형태 · 1인 1회 (재투표 불가, 결과만) · 마감 시 결과만</div>
+    </div>
+  </div>
+  <div class="mlabel">찬반 투표 · /tenant-app/vote</div>
+</div>
+<!--TN--></div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

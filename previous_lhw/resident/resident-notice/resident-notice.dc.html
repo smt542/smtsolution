@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<style>  :root{--blue:#14A497;--blue-d:#0E8677;--blue-t:#E2F5F1;--blue-t2:#EFFBF8;--bg:#F2F4F6;--line:#E8EBEE;--line2:#F1F3F5;--t1:#191F28;--t2:#4E5968;--t3:#8B95A1;--t4:#B0B8C1;--red:#F04452;--amber:#FF922B;--amber-t:#FFF3E6}
+  *{box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  body{margin:0;max-width:100%;background:#e7eaee;font-family:'Pretendard',-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--t1)}
+  a{color:var(--blue);text-decoration:none}a:hover{color:var(--blue-d)}
+  .num{font-variant-numeric:tabular-nums}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  .screen{background:#F7F8FA;overflow:hidden;position:relative;height:100dvh;max-height:100dvh;width:100%;max-width:440px;margin:0 auto;display:flex;flex-direction:column}
+  .hdr{flex:none;background:#fff;display:flex;align-items:center;gap:6px;padding:calc(env(safe-area-inset-top) + 12px) 12px 12px}
+  .bk{width:38px;height:38px;flex:none;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--t2)}
+  .bk:hover{background:var(--bg);color:var(--t2)}
+  .bk svg{width:22px;height:22px}
+  .tt{font-size:18px;font-weight:800;letter-spacing:-.02em}
+  .scroll{flex:1;min-height:0;overflow:auto;padding:14px 20px calc(env(safe-area-inset-bottom) + 24px)}
+  .list{background:#fff;border-radius:18px;padding:2px 16px;box-shadow:0 1px 2px rgba(23,31,40,.06);animation:rise .45s cubic-bezier(.22,.61,.36,1) both}
+  .row{display:flex;align-items:flex-start;gap:11px;padding:16px 0;border-bottom:1px solid var(--line2);cursor:pointer}
+  .row:last-child{border-bottom:0}
+  .ic{width:36px;height:36px;flex:none;border-radius:12px;background:var(--blue-t2);color:var(--blue-d);display:flex;align-items:center;justify-content:center}
+  .ic.warn{background:var(--amber-t);color:var(--amber)}
+  .ic svg{width:18px;height:18px}
+  .tx{flex:1;min-width:0}
+  .tx .top{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+  .tx .k{font-size:11px;font-weight:800;padding:3px 7px;border-radius:6px}
+  .tx .k.k-n{color:var(--t3);background:var(--bg)}
+  .tx .k.k-i{color:var(--amber);background:var(--amber-t)}
+  .tx .k.k-u{color:#fff;background:var(--red)}
+  .tx .unread{width:6px;height:6px;border-radius:50%;background:var(--red);display:inline-block}
+  .tx b{display:block;font-size:14.5px;font-weight:700;letter-spacing:-.01em}
+  .tx .p{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;font-size:12.5px;font-weight:600;color:var(--t3);line-height:1.6;margin-top:4px}
+  .tx .d{font-size:11.5px;font-weight:600;color:var(--t4);margin-top:6px}
+  .empty{text-align:center;padding:48px 20px;font-size:13.5px;font-weight:600;color:var(--t3)}
+</style>
+</helmet>
+<div class="screen">
+  <div class="hdr">
+    <a class="bk" href="../resident-home/resident-home.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></a>
+    <div class="tt">공지</div>
+  </div>
+  <div class="scroll"><div class="list" id="rnList"></div></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount(){ setTimeout(()=>this.boot(),40); }
+  boot(){
+    const $=(id)=>document.getElementById(id);
+    if(!$('rnList')||document.body.__rnW)return; document.body.__rnW=1;
+    const N=[
+      {id:'n1',t:'저수조 청소로 오전 단수 예정',p:'8월 12일 오전 9시부터 12시까지 저수조 청소로 단수 예정입니다. 미리 물을 받아 두세요.',d:'2026.08.05',kind:'urgent',unread:true},
+      {id:'n2',t:'8월분 관리비 부과 안내',p:'8월분 관리비가 확정되었습니다. 앱에서 항목별 내역을 확인하실 수 있습니다.',d:'2026.08.01',kind:'important',unread:true},
+      {id:'n3',t:'승강기 정기 점검 안내',p:'7월 28일 오후 2시부터 4시까지 승강기 운행이 일시 중단됩니다.',d:'2026.07.24',kind:'normal'},
+      {id:'n4',t:'재활용 분리배출 요일 변경',p:'8월부터 재활용 배출은 매주 화요일과 금요일로 변경됩니다.',d:'2026.07.18',kind:'normal'},
+      {id:'n5',t:'소방 시설 정기 검사 결과',p:'전 세대 소방 시설 점검이 완료되었습니다. 이상 항목은 순차적으로 보수합니다.',d:'2026.07.02',kind:'normal'}
+    ];
+    const KIND={normal:{l:'일반',c:'k-n'},important:{l:'중요',c:'k-i'},urgent:{l:'긴급',c:'k-u'}};
+    const esc=(v)=>String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    const IC='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h9l5-3v14l-5-3H4z"></path></svg>';
+    $('rnList').innerHTML=N.map(n=>{ const k=KIND[n.kind]||KIND.normal;
+      return '<div class="row" data-id="'+n.id+'">'
+      +'<div class="ic'+(n.kind!=='normal'?' warn':'')+'">'+IC+'</div>'
+      +'<div class="tx"><div class="top"><span class="k '+k.c+'">'+k.l+'</span>'
+      +(n.unread?'<i class="unread"></i>':'')+'</div>'
+      +'<b>'+esc(n.t)+'</b>'
+      +'<div class="p">'+esc(n.p)+'</div><div class="d num">'+n.d+'</div></div></div>'; }).join('');
+    $('rnList').addEventListener('click',(e)=>{ const r=e.target.closest('.row'); if(!r)return;
+      try{ localStorage.setItem('res_notice_sel',r.dataset.id); localStorage.setItem('res_notice_mode','app'); }catch(_){}
+      location.href='../resident-notice-detail/resident-notice-detail.dc.html'; });
+  }
+}
+</script>
+</body>
+</html>

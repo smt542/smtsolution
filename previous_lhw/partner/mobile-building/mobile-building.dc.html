@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<style>  :root{--blue:#14A497;--blue-d:#0E8677;--blue-t:#E2F5F1;--blue-t2:#EFFBF8;--bg:#F2F4F6;--line:#E8EBEE;--line2:#F1F3F5;--t1:#191F28;--t2:#4E5968;--t3:#8B95A1;--t4:#B0B8C1;--green:#12B886;--red:#F04452}
+  *{box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  body{margin:0;max-width:100%;background:#e7eaee;font-family:'Pretendard',-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--t1)}
+  a{color:var(--blue);text-decoration:none}a:hover{color:var(--blue-d)}
+  .num{font-variant-numeric:tabular-nums}
+  .screen{background:#fff;overflow:hidden;position:relative;height:100dvh;max-height:100dvh;width:100%;max-width:440px;margin:0 auto;display:flex;flex-direction:column}
+  .mscroll{flex:1;overflow:auto}
+  .hdr{display:flex;align-items:center;gap:8px;padding:14px 16px 12px}
+  .hdr .bk{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--t2);cursor:pointer}
+  .hdr .bk:hover{background:var(--bg)}
+  .hdr .bk svg{width:22px;height:22px}
+  .hdr .tt{font-size:21px;font-weight:800;letter-spacing:-.02em}
+  .hbtn{flex:none;height:36px;padding:0 13px;border-radius:11px;background:var(--blue);color:#fff;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+  .hbtn:hover{background:var(--blue-d);color:#fff}
+  .hbtn svg{width:15px;height:15px}
+  .ihd{font-size:15px;font-weight:600;color:var(--t1);margin:16px 2px 8px}
+  .ihd:first-child{margin-top:0}
+  .ivend{padding:12px 0;border-bottom:1px solid var(--line2)}
+  .ivend:last-child{border-bottom:0}
+  .ivt{font-size:12.5px;font-weight:500;color:var(--t1)}
+  .ivb{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px}
+  .ivb span{font-size:14.5px;font-weight:700;color:var(--t1)}
+  .ivd{font-size:12.5px;font-weight:600;color:var(--t2);margin-top:6px}
+  .ucard{border:1px solid var(--line);border-radius:16px;padding:15px 16px;margin-bottom:10px}
+  .ucard:last-child{margin-bottom:0}
+  .utop{display:flex;align-items:center;gap:9px}
+  .uho{font-size:17px;font-weight:800;letter-spacing:-.01em;color:var(--blue-d)}
+  .unm{font-size:15px;font-weight:700;color:var(--t2)}
+  .uvac{font-size:12px;font-weight:800;color:var(--t4);background:var(--bg);border-radius:7px;padding:3px 9px}
+  .brow{display:flex;align-items:center;gap:8px;margin-top:11px}
+  .brow+.brow{margin-top:6px}
+  .blb{flex:none;font-size:12px;font-weight:700;color:var(--t3);width:52px}
+  .bval{flex:1;min-width:0;font-size:14px;font-weight:600;color:var(--t1)}
+  .btel{flex:none;display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 11px;border:1px solid var(--line);border-radius:10px;font-size:13px;font-weight:700;color:var(--t2);background:#fff}
+  .btel svg{width:14px;height:14px;color:var(--blue)}
+  .tabs{display:flex;border-bottom:1px solid var(--line);margin:0 20px}
+  .tab{flex:1;text-align:center;padding:12px 0 11px;font-size:15px;font-weight:700;color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tab.on{color:var(--blue);border-bottom-color:var(--blue)}
+  .ucell{border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:16px 2px;cursor:pointer}
+  .ucell:last-child{border-bottom:0}
+  .uchev{flex:none;width:20px;height:20px;color:var(--t4)}
+  .ucell:hover .uchev{color:var(--t2)}
+  .isec{border:1px solid var(--line);border-radius:16px;padding:4px 16px;margin-bottom:10px}
+  .irow{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line2)}
+  .irow:last-child{border-bottom:0}
+  .irow>span{flex:none;width:84px;font-size:13px;font-weight:500;color:var(--t1)}
+  .irow>b{flex:1;min-width:0;font-size:14.5px;font-weight:700;text-align:right}
+</style>
+</helmet>
+<div class="screen">
+<div class="hdr">
+  <a class="bk" href="../mobile-inquiry/mobile-inquiry.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></a>
+  <div style="flex:1;min-width:0"><div class="tt" id="bdT">건물</div></div>
+  <a class="hbtn" href="../mobile-meter/mobile-meter.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18a8 8 0 1 1 16 0"></path><path d="M12 14l3-3"></path></svg>검침 자료</a>
+</div>
+<div class="tabs" id="bdTabs"><span class="tab on" data-v="info">건물 정보</span><span class="tab" data-v="ten">입주자 정보</span></div>
+<div style="padding:12px 20px 8px;font-size:13.5px;font-weight:600;color:var(--t3)" id="bdSub"></div>
+<div class="mscroll">
+  <div style="padding:16px 20px 22px" id="bdInfo"></div>
+  <div style="padding:16px 20px 22px;display:none" id="bdList"></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount(){ setTimeout(()=>this.boot(),40); }
+  boot(){
+    const list=document.getElementById('bdList'); if(!list||list.__w)return; list.__w=1;
+    let name='그린빌라';
+    try{ name=localStorage.getItem('erp_bld_sel')||name; }catch(_){}
+    document.getElementById('bdT').textContent=name;
+    const SEED={
+      '그린빌라':[
+        {h:'101호',n:'한지우',tels:['010-3311-2280'],in:'2023.05.12'},
+        {h:'102호',n:'',tels:[],in:''},
+        {h:'201호',n:'박정호',tels:['010-2251-7788','042-822-4410'],in:'2024.03.02'},
+        {h:'202호',n:'서동현',tels:['010-7788-1120'],in:'2024.10.19'},
+        {h:'301호',n:'윤가은',tels:['010-4455-6677','010-2233-8890'],in:'2022.12.01'},
+        {h:'302호',n:'정민수',tels:['010-5521-8890','010-2200-4471','042-533-9080'],in:'2022.09.30'},
+        {h:'401호',n:'문세준',tels:['010-7788-4455'],in:'2025.02.14'}
+      ],
+      '중앙타워':[
+        {h:'303호',n:'강태오',tels:['010-9080-1120'],in:'2024.01.05'},
+        {h:'505호',n:'이수민',tels:['010-7781-2245','042-822-1180'],in:'2023.11.15'},
+        {h:'604호',n:'조하린',tels:['010-3030-7070'],in:'2025.03.22'},
+        {h:'1201호',n:'배준영',tels:['010-6620-3311'],in:'2021.08.09'}
+      ],
+      '라온아파트':[
+        {h:'105호',n:'남기훈',tels:['010-1122-3344'],in:'2024.06.30'},
+        {h:'302호',n:'김하늘',tels:['010-4412-9080','010-3388-1120','042-611-7720'],in:'2025.01.08'},
+        {h:'303호',n:'',tels:[],in:''},
+        {h:'701호',n:'황시연',tels:['010-2277-9911'],in:'2023.02.17'}
+      ],
+      '햇살하이츠':[
+        {h:'802호',n:'유가람',tels:['010-9911-2020'],in:'2022.04.03'},
+        {h:'1104호',n:'오세라',tels:['010-3345-1120'],in:'2024.07.21'}
+      ],
+      '새봄하우스':[
+        {h:'102호',n:'최윤아',tels:['010-6620-3311','010-7742-1050'],in:'2025.04.11'},
+        {h:'203호',n:'임도현',tels:['010-8080-4412'],in:'2023.09.05'}
+      ]
+    };
+    const U=(SEED[name]||[]).slice().sort((a,b)=>parseInt(a.h,10)-parseInt(b.h,10));
+    const esc=(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    const tel=(v)=>'<a class="btel" href="tel:'+v.replace(/-/g,'')+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1.1 1A16 16 0 0 1 4 5.1 1 1 0 0 1 5 4z"></path></svg>'+v+'</a>';
+    const INFO={
+      '그린빌라':{code:'001',type:'빌라',ad:'대전 유성구 봉명동 123-4',door:'*1234#',
+        own:'이정훈',ow1:'010-2251-7788',ow2:'042-822-4410',
+        v:[['청소 업체','해피클린','010-8842-1190','월,목'],['정화조 업체','대전환경','042-621-3300',''],['인터넷 업체','KT 유성지사','080-100-1000',''],['전기안전업체','한국전기안전공사','1588-7500',''],['유선방송정보업체','CMB 대전방송','042-620-3000',''],['승강기보수업체','한신엘리베이터','042-534-8800',''],['승강기정기검사업체','한국승강기안전공단','1566-9722',''],['소방검사업체','충남소방안전','042-472-1190',''],['CCTV업체','세이프뷰','042-322-7788','']]},
+      '중앙타워':{code:'002',type:'빌딩',ad:'대전 서구 둔산동 55-1',door:'#2580*',
+        own:'박서연',ow1:'010-7781-2245',ow2:'',
+        v:[['청소 업체','미소환경','010-3320-7745','화,금'],['정화조 업체','대전환경','042-621-3300',''],['인터넷 업체','SK브로드밴드','106',''],['전기안전업체','한국전기안전공사','1588-7500',''],['유선방송정보업체','CMB 대전방송','042-620-3000',''],['승강기보수업체','오티스서비스','1588-3939',''],['승강기정기검사업체','한국승강기안전공단','1566-9722',''],['소방검사업체','충남소방안전','042-472-1190',''],['CCTV업체','세이프뷰','042-322-7788','']]},
+      '라온아파트':{code:'003',type:'아파트',ad:'대전 중구 대흥동 200',door:'*7788#',
+        own:'김수진',ow1:'010-4412-9080',ow2:'010-9911-3070',
+        v:[['청소 업체','해피클린','010-8842-1190','월,수,금'],['정화조 업체','한밭위생','042-533-2200',''],['인터넷 업체','LG유플러스','101',''],['전기안전업체','한국전기안전공사','1588-7500',''],['유선방송정보업체','CMB 대전방송','042-620-3000',''],['승강기보수업체','한신엘리베이터','042-534-8800',''],['승강기정기검사업체','한국승강기안전공단','1566-9722',''],['소방검사업체','대덕소방설비','042-861-5540',''],['CCTV업체','세이프뷰','042-322-7788','']]},
+      '햇살하이츠':{code:'004',type:'오피스텔',ad:'대전 유성구 봉명동 987-65',door:'*4321#',
+        own:'한도경',ow1:'010-3345-1120',ow2:'',
+        v:[['청소 업체','클린업 대전','010-5567-2280','화,목'],['정화조 업체','한밭위생','042-533-2200',''],['인터넷 업체','KT 유성지사','080-100-1000',''],['전기안전업체','한국전기안전공사','1588-7500',''],['유선방송정보업체','CMB 대전방송','042-620-3000',''],['승강기보수업체','오티스서비스','1588-3939',''],['승강기정기검사업체','한국승강기안전공단','1566-9722',''],['소방검사업체','충남소방안전','042-472-1190',''],['CCTV업체','아이가드','042-489-3300','']]},
+      '새봄하우스':{code:'005',type:'빌라',ad:'대전 중구 괴정동 77-2',door:'#1102*',
+        own:'정민아',ow1:'010-6620-3311',ow2:'042-533-7788',
+        v:[['청소 업체','미소환경','010-3320-7745','수'],['정화조 업체','대전환경','042-621-3300',''],['인터넷 업체','SK브로드밴드','106',''],['전기안전업체','한국전기안전공사','1588-7500',''],['유선방송정보업체','CMB 대전방송','042-620-3000',''],['승강기보수업체','—','',''],['승강기정기검사업체','—','',''],['소방검사업체','대덕소방설비','042-861-5540',''],['CCTV업체','아이가드','042-489-3300','']]}
+    };
+    const I=INFO[name]||INFO['그린빌라'];
+    const tabTen=document.querySelector('#bdTabs .tab[data-v="ten"]');
+    if(tabTen)tabTen.innerHTML='입주자 정보 <span style="color:var(--t3)">'+U.length+'</span>';
+    const sub=document.getElementById('bdSub');
+    const row=(l,v)=>'<div class="irow"><span>'+l+'</span><b>'+v+'</b></div>';
+    const vend=(x)=>'<div class="ivend"><div class="ivt">'+esc(x[0])+'</div>'
+      +'<div class="ivb"><span>'+esc(x[1])+'</span>'+(x[2]?tel(x[2]):'')+'</div>'
+      +(x[3]?'<div class="ivd">청소 요일 · '+esc(x[3])+'</div>':'')+'</div>';
+    document.getElementById('bdInfo').innerHTML=
+      '<div class="ihd">기본 정보</div><div class="isec">'
+      +row('건물 코드','<span class="num">'+I.code+'</span>')
+      +row('건물명',esc(name))
+      +row('건물 유형',esc(I.type))
+      +row('건물주소','<span style="font-weight:600;color:var(--t2)">'+esc(I.ad)+'</span>')
+      +row('공동현관','<span class="num">'+esc(I.door)+'</span>')
+      +'</div>'
+      +'<div class="ihd">업체 정보</div><div class="isec">'+I.v.map(vend).join('')+'</div>'
+      +'<div class="ihd">건물주 정보</div><div class="isec">'
+      +row('건물주명',esc(I.own))
+      +row('전화번호 (주)',tel(I.ow1))
+      +(I.ow2?row('전화번호 (부)',tel(I.ow2)):'')
+      +'</div>';
+    const setTab=(v)=>{ document.getElementById('bdInfo').style.display=v==='info'?'':'none';
+      document.getElementById('bdList').style.display=v==='ten'?'':'none';
+      sub.style.display='none'; };
+    document.getElementById('bdTabs').addEventListener('click',(e)=>{ const s=e.target.closest('.tab'); if(!s)return;
+      [...s.parentElement.children].forEach(x=>x.classList.toggle('on',x===s)); setTab(s.dataset.v); });
+    setTab('info');
+    const chev='<svg class="uchev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg>';
+    list.innerHTML=U.map((x,i)=>'<div class="ucell" data-i="'+i+'">'
+      +'<span class="uho">'+esc(x.h)+'</span>'
+      +(x.n?'<span class="unm">'+esc(x.n)+'</span>':'<span class="uvac">공실</span>')
+      +'<div style="flex:1"></div>'+chev+'</div>').join('');
+    list.addEventListener('click',(e)=>{ const c=e.target.closest('.ucell'); if(!c)return;
+      const x=U[+c.dataset.i]; if(!x)return;
+      try{ localStorage.setItem('erp_ten_sel',JSON.stringify(Object.assign({b:name},x))); }catch(_){}
+      location.href='../mobile-tenant/mobile-tenant.dc.html'; });
+  }
+}
+</script>
+</body>
+</html>

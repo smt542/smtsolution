@@ -1,0 +1,5 @@
+    <div class="hf-panel">
+      <div class="hf-panel-h"><div class="hf-panel-t">팝빌 포인트</div><div style="flex:1"></div><div class="hf-crumb">1원 = 1P · 알림톡·문자·팩스 공통 차감</div></div>
+      <div class="pt-wrap" id="ptWrap"></div>
+    </div>
+

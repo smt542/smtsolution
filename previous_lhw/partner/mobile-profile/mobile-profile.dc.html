@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<style>  :root{--blue:#14A497;--blue-d:#0E8677;--blue-t:#E2F5F1;--blue-t2:#EFFBF8;--bg:#F2F4F6;--line:#E8EBEE;--line2:#F1F3F5;--t1:#191F28;--t2:#4E5968;--t3:#8B95A1;--t4:#B0B8C1;--red:#F04452;--red-t:#FDECEE}
+  *{box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  body{margin:0;max-width:100%;background:#e7eaee;font-family:'Pretendard',-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--t1)}
+  a{color:var(--blue);text-decoration:none}a:hover{color:var(--blue-d)}
+  .num{font-variant-numeric:tabular-nums}
+  .screen{background:#fff;overflow:hidden;position:relative;height:100dvh;max-height:100dvh;width:100%;max-width:440px;margin:0 auto;display:flex;flex-direction:column}
+  .mscroll{flex:1;overflow:auto;padding:2px 20px 24px}
+  .mnav{height:70px;flex:none;background:#fff;border-top:1px solid var(--line);display:flex;padding:8px 0 0}
+  .mnav .it{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;font-weight:600;cursor:pointer}
+  .mnav .it svg{width:28px;height:28px;stroke-width:1.8}
+  .cf{position:fixed;inset:0;background:rgba(23,31,40,.45);display:none;align-items:center;justify-content:center;z-index:95;padding:24px}
+  .cf.show{display:flex}
+  .cf-b{background:#fff;border-radius:20px;width:100%;max-width:330px;padding:22px 20px 16px;text-align:center}
+  .cf-t{font-size:17px;font-weight:800}
+  .cf-d{font-size:13.5px;font-weight:500;color:var(--t3);line-height:1.6;margin-top:8px}
+  .cf-f{display:flex;gap:8px;margin-top:20px}
+  .cf-btn{flex:1;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:700;cursor:pointer}
+  .cf-btn.c{background:var(--bg);color:var(--t2)}
+  .cf-btn.r{background:var(--red);color:#fff}
+</style>
+</helmet>
+<div class="screen">
+<div style="padding:22px 20px 16px"><div style="font-size:22px;font-weight:800;letter-spacing:-.02em">프로필</div></div>
+
+<div class="mscroll">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:14px;border:1px solid var(--line);border-radius:20px;padding:28px 18px;text-align:center">
+    <div style="flex:none;width:72px;height:72px;border-radius:50%;background:var(--blue-t);display:flex;align-items:center;justify-content:center;color:var(--blue-d);font-size:25px;font-weight:800">김</div>
+    <div style="min-width:0">
+      <div style="font-size:19px;font-weight:800;letter-spacing:-.01em">김현장</div>
+      <div class="num" style="font-size:14.5px;font-weight:600;color:var(--t3);margin-top:5px">010-4412-9080</div>
+    </div>
+    <div style="width:100%;border-top:1px solid var(--line2);padding-top:14px;display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><span style="font-size:13.5px;font-weight:600;color:var(--t3)">아이디</span><b class="num" style="font-size:14.5px;font-weight:700">field.kim</b></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><span style="font-size:13.5px;font-weight:600;color:var(--t3)">비밀번호</span><span style="display:flex;align-items:center;gap:6px"><b class="num" id="pfPw" style="font-size:14.5px;font-weight:700">••••</b><span id="pfEye" style="width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--t4);cursor:pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" style="width:18px;height:18px"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"></path><circle cx="12" cy="12" r="2.8"></circle></svg></span></span></div>
+    </div>
+  </div>
+
+  <div id="pfOut" style="margin-top:16px;height:52px;border-radius:15px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:15.5px;font-weight:700;color:var(--t2);cursor:pointer">로그아웃</div>
+</div>
+
+<div class="mnav"><a class="it" href="../mobile-home/mobile-home.dc.html" style="color:var(--t4)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-6 8 6"></path><path d="M6 10v9h12v-9"></path></svg>홈</a><a class="it" href="../mobile-inquiry/mobile-inquiry.dc.html" style="color:var(--t4)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3-3"></path></svg>조회</a><a class="it" href="../mobile-profile/mobile-profile.dc.html" style="color:var(--blue)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"></circle><path d="M5 20c1.4-3.6 4-5.4 7-5.4s5.6 1.8 7 5.4"></path></svg>프로필</a></div>
+</div>
+
+<div class="cf" id="cfScrim"><div class="cf-b">
+  <div class="cf-t">로그아웃할까요?</div>
+  <div class="cf-d">다시 이용하려면 로그인이 필요해요.</div>
+  <div class="cf-f"><div class="cf-btn c" data-x="c">취소</div><div class="cf-btn r" data-x="ok">로그아웃</div></div>
+</div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount(){ setTimeout(()=>this.boot(),40); }
+  boot(){
+    const sc=document.getElementById('cfScrim'), b=document.getElementById('pfOut');
+    if(!b||b.__w)return; b.__w=1;
+    b.addEventListener('click',()=>sc.classList.add('show'));
+    const eye=document.getElementById('pfEye'), pw=document.getElementById('pfPw');
+    if(eye&&pw){ let on=false;
+      eye.addEventListener('click',()=>{ on=!on; pw.textContent=on?'4821':'••••';
+        eye.style.color=on?'var(--blue)':'var(--t4)'; }); }
+    sc.addEventListener('click',(e)=>{ if(e.target===sc){ sc.classList.remove('show'); return; }
+      const x=e.target.closest('[data-x]'); if(!x)return;
+      sc.classList.remove('show');
+      if(x.dataset.x==='ok')location.href='../mobile-login/mobile-login.dc.html'; });
+  }
+}
+</script>
+</body>
+</html>

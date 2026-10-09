@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<style>  :root{--blue:#14A497;--blue-d:#0E8677;--blue-t:#E2F5F1;--blue-t2:#EFFBF8;--bg:#F2F4F6;--line:#E8EBEE;--line2:#F1F3F5;--t1:#191F28;--t2:#4E5968;--t3:#8B95A1;--t4:#B0B8C1;--red:#F04452;--red-t:#FDECEE}
+  *{box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  body{margin:0;max-width:100%;background:#e7eaee;font-family:'Pretendard',-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--t1)}
+  a{color:var(--blue);text-decoration:none}a:hover{color:var(--blue-d)}
+  .num{font-variant-numeric:tabular-nums}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  .screen{background:#F7F8FA;overflow:hidden;position:relative;height:100dvh;max-height:100dvh;width:100%;max-width:440px;margin:0 auto;display:flex;flex-direction:column}
+  .hdr{flex:none;background:#fff;padding:calc(env(safe-area-inset-top) + 16px) 20px 0}
+  .h1{font-size:23px;font-weight:800;letter-spacing:-.03em}
+  .sub{font-size:12.5px;font-weight:600;color:var(--t3);margin-top:4px}
+  .yr{display:flex;gap:6px;padding:16px 0 12px}
+  .yb{height:34px;padding:0 14px;border:0;border-radius:999px;background:var(--bg);font:inherit;font-size:13.5px;font-weight:700;color:var(--t3);cursor:pointer}
+  .yb.on{background:var(--blue);color:#fff}
+  .scroll{flex:1;min-height:0;overflow:auto;padding:14px 20px calc(env(safe-area-inset-bottom) + 20px)}
+  .sum{background:#fff;border-radius:18px;padding:18px 20px;box-shadow:0 1px 2px rgba(23,31,40,.06);animation:rise .45s cubic-bezier(.22,.61,.36,1) both}
+  .sum .sw{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;font-weight:600;color:var(--t3)}
+  .sum .stot{font-size:26px;font-weight:800;letter-spacing:-.04em;margin-top:8px;font-variant-numeric:tabular-nums}
+  .sum .stot i{font-style:normal;font-size:16px;font-weight:700;margin-left:2px}
+  .sum .srow{display:flex;gap:22px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line2)}
+  .sum .srow div{min-width:0}
+  .sum .srow span{display:block;font-size:12px;font-weight:600;color:var(--t3)}
+  .sum .srow b{display:block;font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:4px}
+  .lbl{font-size:13px;font-weight:700;color:var(--t3);margin:24px 4px 9px;display:flex;align-items:center}
+  .lbl span{margin-left:auto;font-weight:600;color:var(--t4)}
+  .list{background:#fff;border-radius:18px;padding:2px 16px;box-shadow:0 1px 2px rgba(23,31,40,.06);animation:rise .45s .06s cubic-bezier(.22,.61,.36,1) both}
+  .row{display:flex;align-items:center;gap:12px;padding:16px 0;border-bottom:1px solid var(--line2);cursor:pointer}
+  .row:last-child{border-bottom:0}
+  .row .m{flex:none;width:52px}
+  .row .m b{display:block;font-size:15.5px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .row .m span{display:block;font-size:11px;font-weight:600;color:var(--t4);margin-top:2px}
+  .row .mid{flex:1;min-width:0}
+  .row .mid .amt{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .row .mid .meta{font-size:12px;font-weight:600;color:var(--t3);margin-top:4px}
+  .row .mid .meta em{font-style:normal;color:var(--t2);font-weight:700}
+  .chip{flex:none;font-size:11.5px;font-weight:800;padding:4px 9px;border-radius:8px;color:var(--t3);background:var(--bg)}
+  .chip.due{color:var(--red);background:var(--red-t)}
+  .chip.paid{color:var(--blue-d);background:var(--blue-t)}
+  .chev{flex:none;width:17px;height:17px;color:var(--t4)}
+  .row:hover .chev{color:var(--t2)}
+  .empty{text-align:center;padding:44px 20px;font-size:13.5px;font-weight:600;color:var(--t3)}
+  .nav{flex:none;background:#fff;border-top:1px solid var(--line);display:flex;padding:9px 0 calc(env(safe-area-inset-bottom) + 10px)}
+  .nav .it{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11.5px;font-weight:700;color:var(--t4);cursor:pointer}
+  .nav .it.on{color:var(--blue)}
+  .nav .it svg{width:25px;height:25px;stroke-width:1.9}
+  .toast{display:none;position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:#191F28;color:#fff;font-size:14px;font-weight:700;padding:13px 20px;border-radius:13px;z-index:90;white-space:nowrap}
+</style>
+</helmet>
+<div class="screen">
+  <div class="hdr">
+    <div class="h1">관리비</div>
+    <div class="sub" id="rbUnit">그린빌라 201호</div>
+    <div class="yr" id="rbYr"></div>
+  </div>
+  <div class="scroll">
+    <div class="sum">
+      <div class="sw"><span id="rbSumL">2026년 합계</span><span id="rbSumN"></span></div>
+      <div class="stot num" id="rbSumT">0<i>원</i></div>
+      <div class="srow">
+        <div><span>월 평균</span><b class="num" id="rbAvg">0원</b></div>
+        <div><span>미납</span><b class="num" id="rbDue">0원</b></div>
+      </div>
+    </div>
+    <div class="lbl">월별 부과 내역<span id="rbCnt"></span></div>
+    <div class="list" id="rbList"></div>
+    <div class="empty" id="rbEmpty" style="display:none">부과 내역이 없어요</div>
+  </div>
+  <div class="nav">
+    <a class="it" href="../resident-home/resident-home.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-6 8 6"></path><path d="M6 10v9h12v-9"></path></svg>홈</a>
+    <div class="it on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"></path><path d="M9 12h8M9 16h5"></path></svg>관리비</div>
+    <a class="it" href="../resident-me/resident-me.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"></circle><path d="M5 20c1.4-3.6 4-5.4 7-5.4s5.6 1.8 7 5.4"></path></svg>내 정보</a>
+  </div>
+</div>
+<div class="toast" id="rbToast"></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount(){ setTimeout(()=>this.boot(),40); }
+  boot(){
+    const $=(id)=>document.getElementById(id);
+    if(!$('rbList')||document.body.__rbW)return; document.body.__rbW=1;
+    const won=(v)=>v.toLocaleString('ko-KR')+'원';
+    try{ const u=JSON.parse(localStorage.getItem('res_unit')||'null');
+      if(u)$('rbUnit').textContent=u.b+' '+u.h; }catch(_){}
+
+    const DATA={
+      2026:[
+        {m:7,amt:121600,late:6800,st:'due',due:'7.25'},
+        {m:6,amt:118200,late:0,st:'paid',paid:'6.22'},
+        {m:5,amt:112400,late:0,st:'paid',paid:'5.24'},
+        {m:4,amt:126900,late:0,st:'paid',paid:'4.23'},
+        {m:3,amt:139500,late:0,st:'paid',paid:'3.21'},
+        {m:2,amt:151300,late:0,st:'paid',paid:'2.24'},
+        {m:1,amt:158700,late:2400,st:'paid',paid:'2.03'}
+      ],
+      2025:[
+        {m:12,amt:147200,late:0,st:'paid',paid:'12.23'},
+        {m:11,amt:132600,late:0,st:'paid',paid:'11.24'},
+        {m:10,amt:119400,late:0,st:'paid',paid:'10.22'},
+        {m:9,amt:114800,late:0,st:'paid',paid:'9.23'},
+        {m:8,amt:127300,late:0,st:'paid',paid:'8.25'},
+        {m:7,amt:124100,late:0,st:'paid',paid:'7.24'}
+      ]
+    };
+    const YEARS=[2026,2025];
+    let year=2026;
+    const CHEV='<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg>';
+
+    $('rbYr').innerHTML=YEARS.map(y=>'<button type="button" class="yb'+(y===year?' on':'')+'" data-y="'+y+'">'+y+'년</button>').join('');
+
+    const draw=()=>{
+      const rows=DATA[year]||[];
+      const total=rows.reduce((a,b)=>a+b.amt+b.late,0);
+      const dueSum=rows.filter(r=>r.st==='due').reduce((a,b)=>a+b.amt+b.late,0);
+      $('rbSumL').textContent=year+'년 합계';
+      $('rbSumN').textContent=rows.length+'개월';
+      $('rbSumT').innerHTML=total.toLocaleString('ko-KR')+'<i>원</i>';
+      $('rbAvg').textContent=rows.length?won(Math.round(total/rows.length)):'0원';
+      $('rbDue').textContent=won(dueSum);
+      $('rbCnt').textContent=rows.length+'건';
+      $('rbList').innerHTML=rows.map(r=>{
+        const tot=r.amt+r.late;
+        const md=(v)=>{ const p=String(v).split('.'); return p[0]+'월 '+p[1]+'일'; };
+        const meta=r.st==='due'
+          ? '납부기한 '+md(r.due)+(r.late?' · 연체료 <em>'+won(r.late)+'</em>':'')
+          : md(r.paid)+' 납부'+(r.late?' · 연체료 '+won(r.late):'');
+        return '<div class="row" data-m="'+r.m+'">'
+          +'<div class="m"><b>'+r.m+'월</b><span>'+year+'</span></div>'
+          +'<div class="mid"><div class="amt">'+won(tot)+'</div><div class="meta">'+meta+'</div></div>'
+          +'<span class="chip '+(r.st==='due'?'due':'paid')+'">'+(r.st==='due'?'미납':'완납')+'</span>'
+          +CHEV+'</div>'; }).join('');
+      $('rbEmpty').style.display=rows.length?'none':'block';
+      $('rbList').style.display=rows.length?'':'none'; };
+    draw();
+
+    const el=$('rbToast');
+    const toast=(m)=>{ el.textContent=m; el.style.display='block';
+      clearTimeout(el.__t); el.__t=setTimeout(()=>{ el.style.display='none'; },1600); };
+
+    $('rbYr').addEventListener('click',(e)=>{ const b=e.target.closest('.yb'); if(!b)return;
+      year=+b.dataset.y;
+      [...$('rbYr').children].forEach(x=>x.classList.toggle('on',x===b)); draw(); });
+    $('rbList').addEventListener('click',(e)=>{ const r=e.target.closest('.row'); if(!r)return;
+      try{ sessionStorage.setItem('res_bill',JSON.stringify({year:year,m:+r.dataset.m})); sessionStorage.setItem('res_bill_from','list'); }catch(_){}
+      location.href='../resident-bill-detail/resident-bill-detail.dc.html'; });
+    document.querySelector('.nav').addEventListener('click',(e)=>{ const g=e.target.closest('[data-go]'); if(!g)return;
+      toast('준비 중이에요'); });
+  }
+}
+</script>
+</body>
+</html>

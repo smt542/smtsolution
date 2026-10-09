@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<style>  :root{--blue:#14A497;--blue-d:#0E8677;--blue-t:#E2F5F1;--blue-t2:#EFFBF8;--bg:#F2F4F6;--line:#E8EBEE;--line2:#F1F3F5;--t1:#191F28;--t2:#4E5968;--t3:#8B95A1;--t4:#B0B8C1;--green:#12B886;--red:#F04452}
+  *{box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  body{margin:0;max-width:100%;background:#e7eaee;font-family:'Pretendard',-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--t1)}
+  a{color:var(--blue);text-decoration:none}a:hover{color:var(--blue-d)}
+  .num{font-variant-numeric:tabular-nums}
+  .screen{background:#fff;overflow:hidden;position:relative;height:100dvh;max-height:100dvh;width:100%;max-width:440px;margin:0 auto;display:flex;flex-direction:column}
+  .mscroll{flex:1;overflow:auto}
+  .hdr{display:flex;align-items:center;gap:8px;padding:14px 16px 12px}
+  .hdr .bk{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--t2);cursor:pointer}
+  .hdr .bk:hover{background:var(--bg)}
+  .hdr .bk svg{width:22px;height:22px}
+  .hdr .tt{font-size:21px;font-weight:800;letter-spacing:-.02em}
+  .hbtn{flex:none;height:36px;padding:0 13px;border-radius:11px;background:var(--blue);color:#fff;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+  .hbtn:hover{background:var(--blue-d);color:#fff}
+  .hbtn svg{width:15px;height:15px}
+  .tabs{display:flex;border-bottom:1px solid var(--line);margin:0 20px}
+  .tab{flex:1;text-align:center;padding:12px 0 11px;font-size:15px;font-weight:700;color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+  .tab.on{color:var(--blue);border-bottom-color:var(--blue)}
+  .ihd{font-size:15px;font-weight:600;color:var(--t1);margin:16px 2px 8px}
+  .ihd:first-child{margin-top:0}
+  .isec{border:1px solid var(--line);border-radius:16px;padding:4px 16px;margin-bottom:10px}
+  .irow{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line2)}
+  .irow:last-child{border-bottom:0}
+  .irow>span{flex:none;width:84px;font-size:13px;font-weight:500;color:var(--t1)}
+  .irow>b{flex:1;min-width:0;font-size:14.5px;font-weight:700;text-align:right}
+  .btel{flex:none;display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 11px;border:1px solid var(--line);border-radius:10px;font-size:13px;font-weight:700;color:var(--t2);background:#fff}
+  .btel svg{width:14px;height:14px;color:var(--blue)}
+  .uvac{font-size:12px;font-weight:800;color:var(--t4);background:var(--bg);border-radius:7px;padding:3px 9px}
+  .pcell{border-bottom:1px solid var(--line)}
+  .pcell:last-child{border-bottom:0}
+  .ptop{display:flex;align-items:center;gap:10px;padding:15px 2px;cursor:pointer}
+  .pm{flex:none;font-size:15px;font-weight:800;letter-spacing:-.01em}
+  .pk{font-size:12.5px;font-weight:600;color:var(--t3);margin-top:4px}
+  .pa{flex:none;font-size:18px;font-weight:800;letter-spacing:-.02em;color:var(--blue-d);font-variant-numeric:tabular-nums}
+  .pchev{flex:none;width:20px;height:20px;color:var(--t4);transition:transform .18s ease}
+  .ptop:hover .pchev{color:var(--t2)}
+  .pcell.open .pchev{transform:rotate(180deg)}
+  .pdet{display:none;padding:2px 0 16px}
+  .pcell.open .pdet{display:block}
+  .pdet .isec{margin-bottom:0}
+  .pdet .irow>b,.pdet .irow>b span{font-weight:500}
+  .chip{flex:none;font-size:11.5px;font-weight:800;padding:4px 8px;border-radius:7px}
+  .chip.ok{color:var(--blue-d);background:var(--blue-t)}
+  .chip.no{color:var(--red);background:#FDECEE}
+  .chip.pv{color:var(--t3);background:var(--bg)}
+  .ucard{border:1px solid var(--line);border-radius:16px;padding:15px 16px;margin-bottom:10px}
+  .ucard:last-child{margin-bottom:0}
+  .ucard[data-i]{cursor:pointer}
+  .uno{flex:none;min-width:22px;height:22px;padding:0 6px;border-radius:7px;background:var(--bg);color:var(--t2);font-size:12px;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
+  .unm2{flex:none;font-size:15px;font-weight:700;color:var(--t1)}
+  .uat{flex:none;font-size:12.5px;font-weight:600;color:var(--t3)}
+  .mchev{flex:none;width:18px;height:18px;color:var(--t4)}
+  .amt2{display:grid;grid-template-columns:1fr 1fr;margin-top:14px}
+  .amt{display:flex;flex-direction:column;gap:5px;padding:0 14px 0 0}
+  .amt+.amt{padding:0 0 0 16px;border-left:1px solid var(--line2)}
+  .amt>span{font-size:12.5px;font-weight:500;color:var(--t3)}
+  .amt>b{font-size:20px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--t1)}
+  .amt>b.neg{color:var(--red)}
+  .amt>b.pri{color:var(--blue-d)}
+  .drow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}
+  .drow>span{font-size:12.5px;font-weight:500;color:var(--t3);display:flex;align-items:center;gap:6px}
+  .drow>span>b{font-size:12.5px;font-weight:500;color:var(--t3)}
+  .ucard[data-i]:hover .mchev{color:var(--t2)}
+  .utop{display:flex;align-items:center;gap:9px}
+  .uho{font-size:17px;font-weight:800;letter-spacing:-.01em;color:var(--blue-d)}
+  .unm{font-size:15px;font-weight:700;color:var(--t2)}
+  .brow{display:flex;align-items:center;gap:8px;margin-top:11px}
+  .brow+.brow{margin-top:6px}
+  .blb{flex:none;font-size:12px;font-weight:700;color:var(--t3);width:52px}
+  .bval{flex:1;min-width:0;font-size:14px;font-weight:600;color:var(--t1)}
+  .none{text-align:center;padding:40px 20px;font-size:14px;font-weight:600;color:var(--t3)}
+</style>
+</helmet>
+<div class="screen">
+<div class="hdr">
+  <a class="bk" href="../mobile-building/mobile-building.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></a>
+  <div style="flex:1;min-width:0"><div class="tt" id="tdT">입주자</div><div style="font-size:13px;font-weight:600;color:var(--t3);margin-top:2px" id="tdSub"></div></div>
+  <a class="hbtn" id="tdNew" href="../mobile-ms-new/mobile-ms-new.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>이사정산 등록</a>
+</div>
+<div class="tabs" id="tdTabs"><span class="tab on" data-v="info">입주자 정보</span><span class="tab" data-v="pay">수납정보</span><span class="tab" data-v="ms">이사정산</span></div>
+<div class="mscroll">
+  <div style="padding:16px 20px 24px" id="tdInfo"></div>
+  <div style="padding:6px 20px 24px;display:none" id="tdPay"></div>
+  <div style="padding:16px 20px 24px;display:none" id="tdMs"></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount(){ setTimeout(()=>this.boot(),40); }
+  boot(){
+    const $=(id)=>document.getElementById(id);
+    const body=$('tdInfo'); if(!body||body.__w)return; body.__w=1;
+    let T={b:'그린빌라',h:'201호',n:'박정호',tels:['010-2251-7788'],in:'2024.03.02'};
+    try{ const r=localStorage.getItem('erp_ten_sel'); if(r)T=JSON.parse(r); }catch(_){}
+    const esc=(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    const won=(n)=>(n<0?'-':'')+Math.abs(n).toLocaleString('ko-KR')+'원';
+    const tel=(v)=>'<a class="btel" href="tel:'+v.replace(/-/g,'')+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 4h4l2 5-2.5 1.5a12 12 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1.1 1A16 16 0 0 1 4 5.1 1 1 0 0 1 5 4z"></path></svg>'+v+'</a>';
+    const row=(l,v)=>'<div class="irow"><span>'+l+'</span><b>'+v+'</b></div>';
+    $('tdT').textContent=T.h+(T.n?' · '+T.n:'');
+    $('tdSub').textContent=T.b;
+
+    const tels=T.tels||[];
+    body.innerHTML='<div class="ihd">입주자 정보</div><div class="isec">'
+      +row('건물명',esc(T.b))
+      +row('호수','<span class="num">'+esc(T.h)+'</span>')
+      +row('입주자명',T.n?esc(T.n):'<span class="uvac">공실</span>')
+      +row('입주일',T.in?'<span class="num">'+esc(T.in)+'</span>':'<span style="color:var(--t3);font-weight:600">—</span>')
+      +'</div>'
+      +'<div class="ihd">연락처</div><div class="isec">'
+      +(tels.length?tels.map((v,i)=>row(i?'전화번호 '+(i+1):'전화번호',tel(v))).join('')
+        :row('전화번호','<span style="color:var(--t3);font-weight:600">등록된 연락처가 없어요</span>'))
+      +'</div>';
+
+    // 수납정보 (최근 6개월)
+    const seed=[...T.h].reduce((a,c)=>a+c.charCodeAt(0),0);
+    const rent=((seed%7)+35)*10000, mgmt=((seed%5)+7)*10000;
+    const BANKS=['국민 123-45-6789 (무통장입금)','신한 110-234-567890 (무통장입금)','농협 302-1122-3344 (무통장입금)'];
+    const PAY=T.n?[0,1,2,3,4,5].map(i=>{ const m=8-i, mm=String(m).padStart(2,'0'), paid=!(i===0&&seed%3===0);
+      const total=rent+mgmt, fee=(seed%4)*500;
+      return {m:'2026.'+mm, total:total, due:'2026.'+mm+'.05', paid:paid,
+        late:paid?0:total, amt:paid?total:0, fee:paid?fee:0,
+        pd:paid?'2026.'+mm+'.'+String(3+(seed%4)).padStart(2,'0'):'',
+        bank:BANKS[(seed+i)%3], kind:(seed+i)%3===0?'지로':'일반',
+        memo:paid?(fee?'이체수수료 차감':'—'):'납부 안내 문자 발송'}; }):[];
+    const pchev='<svg class="pchev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>';
+    $('tdPay').innerHTML=PAY.length?PAY.map(p=>'<div class="pcell">'
+      +'<div class="ptop"><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:7px"><span class="pm num">'+p.m+'</span></div>'
+      +'<div class="pk">기한 '+p.due+'</div></div>'
+      +'<span class="pa">'+won(p.total)+'</span>'+pchev+'</div>'
+      +'<div class="pdet"><div class="isec">'
+      +row('연체',p.late?'<span style="color:var(--red)">'+won(p.late)+'</span>':'<span style="color:var(--t3);font-weight:600">-</span>')
+      +row('수납액','<span class="num">'+won(p.amt)+'</span>')
+      +row('수료','<span class="num">'+won(p.fee)+'</span>')
+      +row('수납일자',p.pd?'<span class="num">'+p.pd+'</span>':'<span style="color:var(--t3);font-weight:600">—</span>')
+      +row('은행','무통장입금')
+      +row('구분',esc(p.kind))
+      +row('비고','<span style="font-weight:600;color:var(--t2)">'+esc(p.memo)+'</span>')
+      +'</div></div></div>').join(''):'<div class="none">수납 내역이 없어요</div>';
+
+    // 이사정산
+    const MSD={'302호':[{out:'2026.08.04',bal:279963,paid:0,at:'2026.08.04'}],
+      '505호':[{out:'2026.08.06',bal:0,paid:412800,at:'2026.08.06'}],
+      '303호':[{out:'2026.07.19',bal:0,paid:120400,at:'2026.07.19'}],
+      '701호':[{out:'2026.05.30',bal:0,paid:233100,at:'2026.05.30'}],
+      '203호':[{out:'2026.07.02',bal:151800,paid:0,at:'2026.07.02'}],
+      '102호':[{out:'2026.06.28',bal:0,paid:184200,at:'2026.06.28'}],
+      '201호':[{out:'2026.08.07',bal:96400,paid:200000,at:'2026.08.07'}]};
+    let SAVED=[];
+    try{ SAVED=(JSON.parse(localStorage.getItem('erp_ms_list')||'[]')||[]).filter(x=>x.b===T.b&&x.h===T.h)
+      .map(x=>({out:x.out,bal:x.bal,paid:x.paid,at:String(x.at||'').slice(0,10).replace(/-/g,'.')})); }catch(_){}
+    const OLD=['서지현','노태경','장세영','한동우','민가영'];
+    const FB=(()=>{ const k=seed%3;
+      const mk=(y,mo,d,bal,paid,n)=>({out:y+'.'+mo+'.'+d,bal:bal,paid:paid,at:y+'.'+mo+'.'+d,n:n,prev:!!n,
+        dTotal:31,dDays:6,
+        m:[{k:'ele',l:'전기',prev:660,cur:688,p:130,acct:''},{k:'wat',l:'수도',prev:196,cur:228,p:1050,acct:''},{k:'gas',l:'가스',prev:264,cur:288,p:980,acct:''}],
+        fee:[[180000,34839],[40000,7742],[15000,15000],[10000,10000],[6000,6000]],
+        etc:[{t:'열쇠 분실 보상',a:20000}], clnBy:'클린업체', cln:'완료', clnAmt:80000, clnAcct:'국민 604102-01-334455',
+        memo:''});
+      const p1=OLD[seed%OLD.length], p2=OLD[(seed+2)%OLD.length];
+      if(k===0)return [mk('2024','03','11',0,204700,p1),mk('2022','09','02',0,167300,p2)];
+      if(k===9)return [];
+      if(k===1)return [mk('2023','11','28',0,281500,p1)];
+      return [mk('2025','06','17',0,265000,p1),mk('2022','02','28',0,178900,p2)]; })();
+    const MS=SAVED.concat(MSD[T.h]||[],FB).filter((x,i,a)=>a.findIndex(y=>y.out===x.out)===i);
+    const msTab=document.querySelector('#tdTabs .tab[data-v="ms"]');
+    if(msTab)msTab.innerHTML='이사정산 <span style="color:var(--t3)">'+MS.length+'</span>';
+    const mchev='<svg class="mchev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg>';
+    $('tdMs').innerHTML=MS.length?MS.map((x,i)=>'<div class="ucard" data-i="'+i+'">'
+      +'<div class="utop"><span class="unm2">No.'+(MS.length-i)+' '+esc(x.n||T.n||'—')+'</span>'
+      +'<span class="chip '+(x.bal>0?'no':'ok')+'">'+(x.bal>0?'미결':'완료')+'</span>'
+      +'<div style="flex:1"></div>'+mchev+'</div>'
+      +'<div class="amt2"><div class="amt"><span>수납액</span><b>'+won(x.paid||0)+'</b></div>'
+      +'<div class="amt"><span>미수금</span><b'+(x.bal?' class="neg"':'')+'>'+won(x.bal||0)+'</b></div></div>'
+      +'<div class="drow"><span>등록일자 <b class="num">'+(x.at||'—')+'</b></span></div>'
+      +'</div>').join(''):'<div class="none">이사정산 내역이 없어요</div>';
+
+    $('tdPay').addEventListener('click',(e)=>{ const t=e.target.closest('.ptop'); if(!t)return;
+      t.parentElement.classList.toggle('open'); });
+
+    $('tdNew').addEventListener('click',()=>{ try{ localStorage.removeItem('erp_ms_cur'); }catch(_){} });
+    $('tdMs').addEventListener('click',(e)=>{ const c=e.target.closest('.ucard[data-i]'); if(!c)return;
+      const rec=Object.assign({
+        dTotal:31,dDays:6,
+        m:[{k:'ele',l:'전기',prev:660,cur:688,p:130,acct:''},{k:'wat',l:'수도',prev:196,cur:228,p:1050,acct:''},{k:'gas',l:'가스',prev:264,cur:288,p:980,acct:''}],
+        fee:[[180000,34839],[40000,7742],[15000,15000],[10000,10000],[6000,6000]],
+        etc:[{t:'열쇠 분실 보상',a:20000}], clnBy:'클린업체', cln:'완료', clnAmt:80000, clnAcct:'국민 604102-01-334455'
+      },MS[+c.dataset.i]||{});
+      const si=SAVED.indexOf(rec);
+      try{ localStorage.setItem('erp_ms_cur',JSON.stringify(Object.assign({},rec,{savedIdx:si,full:si>-1}))); }catch(_){}
+      location.href='../mobile-ms-new/mobile-ms-new.dc.html'; });
+
+    const setTab=(v)=>{ $('tdInfo').style.display=v==='info'?'':'none';
+      $('tdPay').style.display=v==='pay'?'':'none';
+      $('tdMs').style.display=v==='ms'?'':'none'; };
+    $('tdTabs').addEventListener('click',(e)=>{ const s=e.target.closest('.tab'); if(!s)return;
+      [...s.parentElement.children].forEach(x=>x.classList.toggle('on',x===s)); setTab(s.dataset.v); });
+    setTab('info');
+  }
+}
+</script>
+</body>
+</html>

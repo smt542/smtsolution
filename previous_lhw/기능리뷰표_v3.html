@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>관리비서 기능 리뷰 표 v3</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; background: #f5f6f8; padding: 24px; color: #1a1a2e; font-size: 11.5px; }
+  h1 { text-align: center; font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .sub { text-align: center; font-size: 12px; color: #888; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  th { padding: 9px 10px; font-size: 11.5px; font-weight: 700; text-align: center; border: 1px solid #3a5080; white-space: nowrap; }
+  th.h-no { background: #2c3e6b; color: #fff; width: 36px; }
+  th.h-major { background: #2c3e6b; color: #fff; width: 90px; }
+  th.h-mid { background: #2c3e6b; color: #fff; width: 140px; }
+  th.h-req { background: #2c3e6b; color: #fff; }
+  th.h-sec { background: #e8a020; color: #fff; width: 70px; }
+  th.h-res { background: #2e8b6e; color: #fff; }
+  th.h-img { background: #5a4fa0; color: #fff; width: 80px; }
+  td { padding: 6px 10px; border: 1px solid #dde3ed; vertical-align: top; line-height: 1.6; }
+  tr:nth-child(even) td { background: #f8f9fc; }
+  .no { text-align: center; color: #888; font-weight: 600; }
+  .major { font-weight: 600; color: #2c3e6b; }
+  .mid { font-weight: 600; color: #3a5080; font-size: 11px; }
+  .req { }
+  .req.new { color: #c53030; font-weight: 600; }
+  .sec { text-align: center; font-size: 10.5px; font-weight: 700; color: #8a6010; background: #fff8e6; border-radius: 4px; padding: 2px 4px; }
+  .res { color: #1a5c46; font-size: 11px; }
+
+  .badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; white-space: nowrap; margin-bottom: 4px; }
+  .badge-done { background: #d4edda; color: #1a6630; border: 1px solid #a3d9a5; }
+  .badge-change { background: #fff3cd; color: #8a6010; border: 1px solid #ffd77a; }
+  .badge-pending { background: #e9ecef; color: #555; border: 1px solid #ccc; }
+  .badge-exclude { background: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+  .res { color: #1a5c46; font-size: 11px; }
+  .img-cell { text-align: center; color: #bbb; font-size: 10px; }
+
+  /* 섹션 헤더 행 */
+  .row-section td { background: #eef2f9 !important; font-weight: 700; color: #2c3e6b; }
+  .row-mobile td { background: #e8f5f0 !important; font-weight: 700; color: #1a5c46; }
+  .row-tenant td { background: #fdf0ea !important; font-weight: 700; color: #7a3010; }
+  .row-system td { background: #f0eefb !important; font-weight: 700; color: #3b2f80; }
+
+  .legend { display: flex; gap: 16px; justify-content: center; margin-bottom: 16px; font-size: 11px; color: #555; align-items: center; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .dot-new { width: 8px; height: 8px; border-radius: 50%; background: #c53030; }
+  .dot-sec { width: 8px; height: 8px; border-radius: 50%; background: #e8a020; }
+  .dot-res { width: 8px; height: 8px; border-radius: 50%; background: #2e8b6e; }
+</style>
+</head>
+<body>
+<h1>관리비서 — 기능 리뷰 표</h1>
+<p class="sub">기능정의서 v3 원문 기준 · 순서 및 내용 원본 유지</p>
+<div class="legend">
+  <div class="legend-item"><div class="dot-new"></div> v3 추가 항목 (빨간 글씨)</div>
+  <div class="legend-item"><div class="dot-sec"></div> 섹션 번호 (기능정의서 기준)</div>
+  <div class="legend-item"><div class="dot-res"></div> 기획/디자인 대응 내용</div>
+  <div class="legend-item"><span class="badge badge-done">구현완료</span></div>
+  <div class="legend-item"><span class="badge badge-change">변경대응</span></div>
+  <div class="legend-item"><span class="badge badge-pending">미구현</span></div>
+  <div class="legend-item"><span class="badge badge-exclude">제외</span></div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th class="h-no">NO</th>
+      <th class="h-major">대분류</th>
+      <th class="h-mid">중분류</th>
+      <th class="h-req">원문 요구사항</th>
+      
+      <th class="h-res" style="width:60px">상태</th><th class="h-res">기획/디자인 대응 내용</th>
+      
+    </tr>
+  </thead>
+  <tbody>
+
+    <!-- 사무실 PC 헤더 -->
+    <tr class="row-section">
+      <td colspan="7">▶ 관리업체 사무실 PC</td>
+    </tr>
+
+    <!-- 건물·입주자 관리 -->
+    <tr><td class="no">1</td><td class="major" rowspan="16">관리업체<br>사무실PC</td><td class="mid" rowspan="16">관리건물 등록,<br>입주자 명단 등록</td><td class="req">건물등록, 입주자등록(이름,입금자명,룸타입,인원,연락처3개,차량번호,입주일,관리비등등 현재전산과 같게) 입주예정일을 등록해놓으면 해당입주일에 팝업뜨기</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">건물·입주자 등록: 건물·입주자 관리 LNB에서 등록<br>입주예정일 팝업: 입주자 상세 페이지에서 입주예정일 등록 → 수납관리·민원접수(홈 화면) 진입 시 팝업 노출 / 오늘그만보기·닫기 버튼 제공 / 단순 닫기 시 홈 진입마다 반복 노출 / 셋업 설정 알림 설정에서 제어 가능</td></tr>
+    <tr><td class="no">2</td><td class="req">입주자 정보에 각세대별 부과설정,출력설정,공실처리,퇴실일자,연체료부과 설정, 단수출력설정, 적요 기록 코드출력,이름출력 선택가능</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+<b>[입주민 상세 &gt; 3번 관리비·부과 섹션]</b><br>
+· 부과설정 → 부과금 여부 (Y/N)<br>
+· 연체료부과 설정 → 연체료 부과 여부 (X/O)<br>
+· 단수출력설정 → 단수 출력 여부 (X/O)<br><br>
+<b>[입주민 상세 &gt; 4번 고지서 섹션]</b><br>
+· 출력설정 → 고지서 출력 여부 (Y/N)<br>
+· 코드출력·이름출력 선택 → 고지서 이름 출력 유형 (이름 미출력 / 이름 출력 / 코드번호 출력)<br><br>
+<b>[입주민 상세 &gt; 1번 기본정보 섹션]</b><br>
+· 공실처리·퇴실일자 → 퇴실 처리 시 공실처리, 전출 정보로 입주자 정보 이동 및 퇴실일자 스탬핑<br>
+· 적요 기록 → 기타 적요
+</td></tr>
+    <tr><td class="no">3</td><td class="req">해당 건물을 더블클릭하면 건물에 관한 세부정보등록,  입주자카드,관리비부과내역서 출력가능</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-change">변경대응</span></td><td class="res">
+· 더블클릭 → 건물·입주자 관리 페이지의 건물 리스트에서 [상세] 버튼 클릭으로 변경, 건물 세부정보 수정 가능<br>
+· 입주자카드·관리비부과내역서 출력 버튼 → 건물 상세 페이지 우측 상단에 배치
+</td></tr>
+    <tr><td class="no">4</td><td class="req">예) CCTV,승강기,청소담당,검침담당,관리담당,정화조,인터넷,전기안전관리,소방안전관리</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 건물·입주자 관리 &gt; 건물 상세 &gt; 2번 업체 및 담당자 지정 섹션에서 업체 선택 및 등록<br>
+· 해당 업체들은 협력업체 관리 페이지(별도 GNB)에서 등록 및 관리
+</td></tr>
+    <tr><td class="no">5</td><td class="req">건물의 참고사항 등등 기록</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 건물 상세 &gt; 4번 건물주 정보 섹션 &gt; 비고 필드<br>
+· 건물 상세 &gt; 5번 부가 정보 섹션 &gt; 부과시 참조사항 필드<br>
+· 건물 상세 &gt; 6번 건물 메모 섹션 &gt; 건물 메모 필드
+</td></tr>
+    <tr><td class="no">6</td><td class="req">협력업체 계약서 사진저장(승강기,소방안전,전기안전 등등)</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 협력업체 관리 페이지 &gt; 업체 등록 과정에서 계약서 사진 첨부 기능 구비
+</td></tr>
+    <tr><td class="no">7</td><td class="req">건물에 관리자담당자,검침담당자, 청소담당자 지정</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 건물 상세 &gt; 2번 업체 및 담당자 지정 섹션에서 사무 담당자·현장 관리자 선택<br>
+· 청소 담당자 → 청소 업체 필드에서 지정<br>
+· 사무 담당자·현장 관리자: 계정·직원 페이지 등록 데이터에서 지정<br>
+· 청소 업체: 협력업체 관리 페이지 등록 데이터에서 지정
+</td></tr>
+    <tr><td class="no">8</td><td class="req">각 담당자별로 필터링해서 관리건물 리스트 엑셀다운 가능,검침담당자도 담당자별 리스트에 검침일자순으로 엑셀다운</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 건물·입주자 관리 &gt; 검색 필터를 통해 담당자별 건물 리스트업<br>
+· 건물 및 입주민 단위 엑셀 다운 버튼 구비
+</td></tr>
+    <tr><td class="no">9</td><td class="req">입주자호실을 더블클릭하면  기타적요,이사정산시적요, 임대차현황,이전 전출자정보(퇴실처리시 자동저장), 각계량기 번호및 고객번호 계좌번호, 시설정보 기록및 저장</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-change">변경대응</span></td><td class="res">
+· 더블클릭 → 한 번 클릭으로 입주민 상세 진입으로 변경<br>
+· 기타적요·이사정산시적요 → 입주민 상세 &gt; 1번 기본정보 섹션에서 기입<br>
+· 임대차현황 → 입주민 상세 &gt; 7번 임대 정보 섹션에서 관리<br>
+· 이전 전출자정보(퇴실처리 자동저장) → 입주민 상세 &gt; 6번 전출정보 섹션에서 관리, 퇴실 처리 시 해당 섹션으로 데이터 자동 이동<br>
+· 계량기 번호 → 입주민 상세 &gt; 4번 공과금 고객번호 섹션의 계량기 번호 필드에 기입<br>
+· 고객번호·계좌번호 → 건물 상세 &gt; 부가정보 섹션의 고객번호 입금란에 계좌번호 입력, 입주민 상세 &gt; 공과금 고객번호 섹션에서 고객번호 선택으로 휴먼에러 방지<br>
+· 시설정보 기록·저장 → 입주민 상세 &gt; 8번 부동산 정보 섹션의 시설정보에 항목 추가 및 저장
+</td></tr>
+    <tr><td class="no">10</td><td class="req new">입주자들과 건물주들에게 공지 알림톡,단체문자 및 개별문자 발송( 청소 담당자들, 관리실 직원들에게도 단체문자 보내는 기능이 있으면 좋겠습니다</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 문자 플로팅 버튼 구비 (개별 및 단발성 전송 중심)<br>
+· 공지 단체 전송 → 공지 관리에서 처리<br>
+· 고지서 단체·주기성 전송 → 문자·알림톡 관리에서 처리
+</td></tr>
+    <tr><td class="no">11</td><td class="req">입주자들에게 단체 알림톡 보낼 때 입주세대의 주번호,부번호 모두 받을수있게 하기</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 입주자별 등록된 번호 전체에 전송 가능하도록 구비
+</td></tr>
+    <tr><td class="no">12</td><td class="req">관리비 항목등록 관리(예 관리비,승강기유지비,정화조 등등 자유롭게 등록하고 추가할수있게)</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 항목등록 관리에서 건물 유형별로 최대 20개까지 항목 등록 가능<br>
+· 전기·수도료·가스는 고정 항목으로 유지
+</td></tr>
+    <tr><td class="no">13</td><td class="req">관리비 연체료 설정 관리,  a/s구분 명칭 등록관리,   청소팀 등록 관리,  직원계정 등록관리, 협력업체 등록관리,</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 연체료 설정 관리 → 셋업 설정 &gt; 고지서 설정에서 관리<br>
+· A/S 구분 명칭 → 셋업 설정 &gt; A/S 설정에서 접수 유형 최대 6개 등록<br>
+· 청소팀·협력업체 등록 관리 → 협력업체 관리 페이지에서 통합 관리<br>
+· 직원계정 등록·페이지 접근 권한 관리 → 계정·직원 관리 페이지에서 관리
+</td></tr>
+    <tr><td class="no">14</td><td class="req">임대관리페이지 연동: 보증금,월세, 계약기간입력, 만료일전에 알림체크</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 건물·입주자 관리 &gt; 입주민 상세 &gt; 7번 임대 정보 섹션에서 보증금·월세·만료일 등 설정<br>
+· 알림 설정 → 셋업 설정 &gt; 알림 설정에서 만료 N일 전부터 활성화/비활성화 설정 가능
+</td></tr>
+    <tr><td class="no">15</td><td class="req">(정화조,승강기,소방안전,전기안전 업체들 등록관리), 자주보내는 문자내용 등록관리,</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 정화조·승강기·소방안전·전기안전 업체 등록 → 협력업체 관리 페이지에서 등록 가능<br>
+· 자주 보내는 문자 내용 → 문자·알림톡 관리 &gt; 템플릿 관리에서 문자 및 알림톡 템플릿 관리 가능
+</td></tr>
+    <tr><td class="no">16</td><td class="req">건물별 수도고객번호, 공용전기 고객번호, 전기고객번호, 가스고객번호 등록 및 검침일,부과기간출력설정, 명의자 기록</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 건물·입주자 관리 &gt; 건물 상세 &gt; 5번 부가 정보 섹션에서 공과금 정보(수도·공용전기·전기·가스 고객번호) 등록<br>
+· 검침일 및 부과기간 출력설정 → 고지기간 출력 Y/N 설정 가능<br>
+· 명의자 기록 → 메모 필드에 기록
+</td></tr>
+
+    <!-- 전기·수도·가스 -->
+    <tr><td class="no">17</td><td class="major" rowspan="11">관리업체<br>사무실PC</td><td class="mid" rowspan="11">전기,수도,가스<br>지침 등록후<br>세대별 금액<br>계산후 부과</td><td class="req">최근 6개월의 부과액,증감,단가,단가증감 내역 볼수있게 왼쪽아래에 작은창</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">· 공과금 관리 &gt; 수도 페이지 왼쪽 하단에 최근 6개월 이력 확인 가능</td></tr>
+    <tr><td class="no">18</td><td class="req">수도할인적용 세대들(수급자할인,다자녀할인)할인금액 한번 입력해놓으면 자동할인 적용되게하기</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 건물·입주자 관리 &gt; 입주민 상세 &gt; 1번 기본정보 섹션에서 할인 유형 선택 및 금액 입력 시 전기·가스·수도에 자동 적용
+</td></tr>
+    <tr><td class="no">19</td><td class="req">(건물전체 상수도사업소의 금액에서 할인금액 자동으로 플러스되어서 단가계산 되어야함)</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 상수도사업소 부과액 입력 시 할인금액을 더하여 호실별 부과액 자동 계산
+</td></tr>
+    <tr><td class="no">20</td><td class="req">할인받던 세대 퇴실처리하면 리셋되게하기</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 입주민 퇴실 처리 시 할인 유형 자동 초기화
+</td></tr>
+    <tr><td class="no">21</td><td class="req">수도요금을 부과셋팅하는 매월12일경쯤 기준으로 최근 한달전후에 입주등록한 호실만 파랑색으로 식별가능하게하고 그 기준날짜는 언제든 변경 가능하게 하거나 당일날짜 기준으로 한달전후 입주자만 표시되게하기</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-change">변경대응</span></td><td class="res">
+· 공과금 관리 &gt; 전기·수도·가스 호실별 지침에서 조회 당일 기준 한 달 전후 최근 입주자 초록색으로 표시<br>
+· 파란색 → 초록색으로 변경, 기준일 변경 기능 미구현 (당일 기준 고정)
+</td></tr>
+    <tr><td class="no">22</td><td class="req">건물별 수도 검침일자하고 수도부과기간을 지정해놓으면 그 부과기간안에 입주해서 거주하지 않았을때는 부과되지 않거나 수도사용량이 있을때 파란색으로 표시되게하기</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-change">변경대응</span></td><td class="res">
+· 건물 상세에서 검침일자 설정 가능<br>
+· 공과금 관리 &gt; 전기·수도·가스 페이지에서 해당 월분 선택 시 부과기준일 의무 설정<br>
+· 공실임에도 사용량 발생 시 파란색 → 빨간색으로 표시하여 공실 사용량 확인 가능
+</td></tr>
+    <tr><td class="no">23</td><td class="req">상가처럼 수도계량기가 없는 호실은 매월5톤고정 이렇게 지정해 놓으면 매월5톤 자동고정되게하기</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-change">변경대응</span></td><td class="res">
+· 공과금 관리 &gt; 전기·수도·가스 갑 수정 시 사용량 및 수동입력 잠금 기능 구비
+</td></tr>
+    <tr><td class="no">24</td><td class="req">어떤 건물은 수도고객번호가1층상가, 2층부터 주택 이렇게2개인 건물이 있고 전기는 층별로 한전 고객번호가 있어서 요금이 층별로 부과되는 건물이 있다 그래서 고객번호별 요금부과를 할수있는기능(현재도 있는 기능임)</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 공과금 관리 &gt; 전기·수도·가스 갑 수정 시 사용량 및 수동입력 잠금 기능으로 고객번호별 요금 부과 대응 가능
+</td></tr>
+    <tr><td class="no">25</td><td class="req">건물별로 수도,전기 검침일 입력하고 고지기간 기준이 전월인지 당월인지 설정하고 그리고 출력y또는n설정하면 고지서에 수도,전기 부과기간이 출력되어 나온다(현재 있는 기능)</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 건물·입주자 관리 &gt; 건물 상세 &gt; 5번 부가 정보에서 고지 기간(당월·전월·전전월) 및 고지기간 출력(Y/N) 설정 가능<br>
+· 서류 발행·출력 &gt; 고지서 출력 가능, 고지서 양식은 기존과 동일
+</td></tr>
+    <tr><td class="no">26</td><td class="req">세대별 적요칸,  수도요금 수동입력, 수도부과처리일자, 입주자정보</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 공과금 관리 &gt; 호실별 지침에서 수동입력·부과처리일자(수정된 날짜)·입주자 정보 확인 가능
+</td></tr>
+    <tr><td class="no">27</td><td class="req">건물별 수도 검침대장 출력</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 공과금 관리 &gt; 전기·수도·가스 페이지 우측 상단에 검침대장 출력 버튼 구비<br>
+· 건물 및 월분별 조회 가능
+</td></tr>
+
+    <!-- 관리비 부과 셋팅 -->
+    <tr><td class="no">28</td><td class="major" rowspan="9">관리업체<br>사무실PC</td><td class="mid" rowspan="9">▶관리비부과<br>셋팅</td><td class="req">관리비 항목별 부과 yes/no 설정,  1개 호실만 부과셋팅 가능, 룸타입확인가능, 입주일확인, 일반관리비확인 및 수정가능</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">· 관리비 부과 세팅 페이지에서 관리비 항목별 및 호수별 Y/N 설정 가능<br>· 평수·룸타입·입주일 확인 가능<br>· 일반 관리비 → 항목 등록관리에서 등록<br>· 수정 → 각 상세 화면에서 수정 가능</td></tr>
+    <tr><td class="no">29</td><td class="req">관리비 항목별 관리비 입력, 중간입주자는 일자계산부과, 한번입력된 관리비는 다음달에도 똑같이 이월되고,  관리비 항목별로 이월 안되게 설정하는 기능도 필요(예 수리비는 이월안됨)</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 관리비 부과 세팅 페이지에서 관리비 항목별 금액 기입 가능<br>
+· 중간 입주자 → 입주일 기준 일자수에 따라 부과 (입주일 전 부과기준일 입력 시 관리비 입력 불가)<br>
+· 빌라자료추가 및 전체자료추가로 이월 가능<br>
+· 항목등록 관리에서 항목별 이월 유형 선택에 따라 이월 여부 설정
+</td></tr>
+    <tr><td class="no">30</td><td class="req">부과시 참조사항 기록가능, 호실별 공지사항입력</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 건물·입주자 관리 &gt; 건물 상세 &gt; 5번 부가 정보 섹션에서 부과시 참조사항 기입 → 관리비 부과 세팅에서 확인 가능<br>
+· 입주민 상세 &gt; 3번 관리비·부과 섹션에서 호실별 부과시 참조사항 기입 → 관리비 부과 세팅 세대별 관리비 항목 리스트에서 확인 가능<br>
+· 호실별 공지사항 입력 가능
+</td></tr>
+    <tr><td class="no">31</td><td class="req">최근 한달전후로 입주자가 바뀐세대 식별할수있게하기</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 관리비 부과 세팅 &gt; 세대별 관리비 항목에서 최근 입주 세대 초록색으로 표시
+</td></tr>
+    <tr><td class="no">32</td><td class="req">당월 관리비가 셋팅된후 신규입주자를 등록할경우 팝업뜨기(이번달 관리비 부과하시겠습니까)</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 수납관리·민원접수에서 공실 호실의 이름·입금자명·입주일 입력 시 팝업 노출<br>
+· 건물·입주자 관리 &gt; 공실 호실에서 관리비 부과 후 입주자 정보 입력 시 동일 팝업 노출
+</td></tr>
+    <tr><td class="no">33</td><td class="req">카톡고지서 예약전송 가능</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 문자·알림톡 플로팅 버튼에서 예약 전송 지원<br>
+· 문자·알림톡 관리 페이지에서 예약 설정 항목 관리 가능
+</td></tr>
+    <tr><td class="no">34</td><td class="req">현재 전산처럼 셋팅할때 확인 해야하는 건물 체크박스 해놓으면 셋팅할때 팝업창 뜨게하기</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 관리비 부과 세팅 &gt; 좌하단 부과시 참조사항에 중요 건물 체크박스 배치<br>
+· 빌라자료추가 시 중요 건물 팝업 노출
+</td></tr>
+    <tr><td class="no">35</td><td class="req">세대마다 관리비항목 맨앞에 합계관리비가 보일수있게 (관리비 문의 전화가오면 빠른응대가능)</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 관리비 부과 세팅 &gt; 관리비 항목 리스트에서 호수 다음으로 총 관리비 확인 가능
+</td></tr>
+    <tr><td class="no">36</td><td class="req">어떠한 특정 건물들은 관리비 부과기간이 다를수 있다 관리비 부과기간이 다르거나 관리비가 후불제인 건물들도 있으니 건물별 그룹을 지정가능 해야함(현재도 있는 기능)</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 건물·입주자 관리 &gt; 건물 상세에서 고지서 부과 그룹 지정 (1~5)<br>
+· 관리비 부과 세팅에서 그룹별 필터링 가능
+</td></tr>
+
+    <!-- 고지서 발행 -->
+    <tr><td class="no">37</td><td class="major" rowspan="6">관리업체<br>사무실PC</td><td class="mid" rowspan="6">▶고지서 발행<br>및 출력</td><td class="req">건물별 조정명세서 출력, 자동이체 세대들 출력 (그룹별로 출력가능해야함 2그룹은 납기일이 달라서 출금신청일도 달라서)</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">· 서류 발행·출력 화면에서 조정명세서 및 자동이체 세대 출력 가능<br>· 효성 템플릿 준수 및 그룹별 필터 지원</td></tr>
+    <tr><td class="no">38</td><td class="req">현재  지로고지서 발행중 지로납부세대들 있음(현행유지)  고지서 출력 화면에서 단수표기,단수해지 설정가능, 납기일 자유롭게 변경가능</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 서류 발행·출력 &gt; 지로 고지서 출력에서 재발행·단수·자동이체 스탬프 설정 가능<br>
+· 납기일 → 수납관리·민원접수 &gt; 수납 이력의 기한에서 수정 가능
+</td></tr>
+    <tr><td class="no">39</td><td class="req">A4고지서도 출력가능하게 하기</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-exclude">제외</span></td><td class="res">
+· 금번 건 대응 항목에서 제외
+</td></tr>
+    <tr><td class="no">40</td><td class="req">카톡고지서 보내기, 고지서 팩스로 보내기</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 카톡 고지서 → 알림톡으로 고지서 알림 입주자에게 전달, 상세 클릭 시 관리비 부과 항목 확인 가능<br>
+· 팩스 발송 → 서류 발행·출력에서 팩스 발송 구비 (API 사용료 별도 부담 필요)
+</td></tr>
+    <tr><td class="no">41</td><td class="req">현재 문자고지서 보낼때20일에 일괄발송할때 2그룹이 가끔셋팅되어있는곳들도 같이 문자발송이 되어서 그룹별로 보내는 기능이 있었야함</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 문자·알림톡 발송 플로팅 &gt; 건물 선택 시 그룹별 필터 선택 가능하도록 구비
+</td></tr>
+    <tr><td class="no">42</td><td class="req">종이고지서에 큐알코드가 있어서 접속해서 카카오고지서 신청가능하게 하기,  종이고지서에 작게 프로그램 회사명 찍히게</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-exclude">제외</span></td><td class="res">
+· 금번 건 대응 항목에서 제외
+</td></tr>
+
+    <!-- 수납관리·민원 -->
+    <tr><td class="no">43</td><td class="major" rowspan="11">관리업체<br>사무실PC</td><td class="mid" rowspan="11">▶수납관리,<br>민원접수 및<br>업무 현황판</td><td class="req">수납관리 페이지 밑에 민원접수 페이지가 같이 보이게 (현재처럼)</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">· 수납관리·민원접수 페이지에 통합 반영</td></tr>
+    <tr><td class="no">44</td><td class="req">수납관리 페이지에서 바로 세입자에게 관리비 고지서 문자전송, 민원접수후 담당기사에게 접수내용 바로문자전송,</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 문자·알림톡 플로팅 버튼이 전 화면에 항상 표시되어 특정 세입자에게 알림톡 전송 가능<br>
+· A/S 현황 클릭 후 확인 문자 전송 기능으로 담당 기사에게 접수 내용 전송 가능
+</td></tr>
+    <tr><td class="no">45</td><td class="req">수납관리 페이지의 금액,이름 동조회, 건물명조회도 필요함, 빌라미납내역,수납내역 조회출력</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 수납관리·민원접수 &gt; 조회 버튼에서 금액·이름·전화번호·건물코드 조회 가능<br>
+· 빌라 부과금액·미납내역·수납내역 → 빌라 버튼에 구비 (건물 클릭 시 버튼 활성화)
+</td></tr>
+    <tr><td class="no">46</td><td class="req">현재는 수납관리 페이지 하단의 민원접수창에서 반복업무를 찾으려면 이력을 밑으로 내리면서 찾아야 해서 불편함.상단에서 필터링해서 반복,미결,완결,보류 등등 필터링해서 볼수있게하기</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 구현 완료
+</td></tr>
+    <tr><td class="no">47</td><td class="req">접수창에 미결,완결, 보류,반복 있어야함.</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 구현 완료
+</td></tr>
+    <tr><td class="no">48</td><td class="req">아침에 일지출력하는AS접수현황 보기는 건물별현황도 볼수있어야하고 엑셀다운도 가능해야함. a/s현황보기는 팝업으로 새창으로 볼수있게</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-change">변경대응</span></td><td class="res">
+· 첫 진입 시 A/S 현황 팝업 노출, 닫을 경우 특정 페이지 진입 후 확인 가능<br>
+· 상시 확인 필요 판단에 따라 우측 드로어로 변경 — 어느 페이지에서도 상시 확인 및 엑셀 다운 가능
+</td></tr>
+    <tr><td class="no">49</td><td class="req">AS접수현황 페이지에서 해당호실을 더블클릭하면 해당호실의 수납관리 페이지로 이동가능하게, 건물별 월별 a/s현황 출력가능</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-change">변경대응</span></td><td class="res">
+· 더블클릭 → A/S 현황 드로어에서 호실 클릭 시 수납관리 페이지로 이동으로 변경<br>
+· 건물별 조회 구비
+</td></tr>
+    <tr><td class="no">50</td><td class="req">호실별 관리비 수납 명세서 출력, 다운 (날짜지정 확인, 항목별확인, 합계금액 표시), 영수증출력</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 구현 완료
+</td></tr>
+    <tr><td class="no">51</td><td class="req">빌라별 월별 총부과금액, 관리비항목별 부과금액, 수납현황 관리페이지</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 수납관리·민원접수 상단 월별부과금액 버튼으로 확인 가능
+</td></tr>
+    <tr><td class="no">52</td><td class="req">수동수납처리시(수납,원금,취소,분할처리), 수납처리 페이지 옆에 비고란, 납기일표시</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 수납관리·민원접수 &gt; 수납 이력 &gt; 수정 버튼 클릭 시 수납·원금·수.연 처리 및 비고·납기일 수정 가능
+</td></tr>
+    <tr><td class="no">53</td><td class="req">지로 수납처리, 지로수납원장보기, 지로처리일자확인,</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 수납관리·민원접수 &gt; 우측 상단 자동수납 하위에 수납처리·원장보기·처리일자 확인 구비
+</td></tr>
+
+    <!-- 수납처리·자동이체 -->
+    <tr><td class="no">54</td><td class="major" rowspan="5">관리업체<br>사무실PC</td><td class="mid" rowspan="5">▶수납처리,<br>자동이체</td><td class="req">수동수납처리시(수납,원금,취소,분할처리), 수납처리 페이지 옆에 비고란, 납기일표시</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">· 수납관리·민원접수 &gt; 수납 이력 &gt; 수정 버튼 클릭 시 수납·원금·수.연 처리 및 비고·납기일 수정 가능</td></tr>
+    <tr><td class="no">55</td><td class="req">지로 수납처리, 지로수납원장보기, 지로처리일자확인,</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 수납관리·민원접수 &gt; 우측 상단 자동수납 하위에 수납처리·원장보기·처리일자 확인 구비
+</td></tr>
+    <tr><td class="no">56</td><td class="req">은행에서 관리비 입금내역 엑셀다운후 전산에 업로드해서 관리비 수납처리 자동처리(고객번호매칭,이름매칭,금액매칭)미매칭건만 수동처리</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 수납관리·민원접수 &gt; 우측 상단 자동수납 하위에 입금내역 업로드 및 양식 다운 구비
+</td></tr>
+    <tr><td class="no">57</td><td class="req">관리비 자동이체세대들 필터링해서 목록 엑셀다운 또는 효성cms하고api연동(선택) 자동이체 세입자 등록할때 효성cms에서 부여받은 회원번호를 등록해야 대량청구생성 할때 우리전산에서 목록들 엑셀다운받아  회원번호 엑셀로 오름차순으로 정렬해서 청구금액만 붙여넣기 하면됨.</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 서류 발행·출력 &gt; 자동이체 세대 출력 구비
+</td></tr>
+    <tr><td class="no">58</td><td class="req">자동이체세대는 고지서에 자동이체세대라고 찍히고 카톡고지서에도 확인되게</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-change">변경대응</span></td><td class="res">
+· 고지서에 자동이체 스탬프 추가 완료<br>
+· 알림톡 템플릿(일반·자동이체·연체) 반영 예정
+</td></tr>
+
+    <!-- 미납관리 -->
+    <tr><td class="no">59</td><td class="major" rowspan="3">관리업체<br>사무실PC</td><td class="mid" rowspan="3">▶미납관리</td><td class="req">건물별 미납대장 출력,</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">· 수납관리·민원접수 &gt; 우측 상단 빌라 하위에 미납대장 출력 가능</td></tr>
+    <tr><td class="no">60</td><td class="req">(3개월이상연체, 10만원이상 연체자만 필터링해서 채권관리, 채권관리 대상자만 필터링해서 독촉문자발송 가능할수있게</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 미납 관리 페이지에서 독촉 문자 발송 기능 구현
+</td></tr>
+    <tr><td class="no">61</td><td class="req">2개월이상 연체자는3개월째 고지서 발송될 때 단전,단수 예고 찍혀서 나감(개월수는 변경가능하게,현재 있는기능)</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 셋업 설정 &gt; 고지서 설정 &gt; 출력 옵션에서 단전·단수 출력 개월수 및 출력 여부 설정 가능
+</td></tr>
+
+    <!-- 이사정산 -->
+    <tr><td class="no">62</td><td class="major" rowspan="10">관리업체<br>사무실PC</td><td class="mid" rowspan="10">▶이사정산<br>입력화면</td><td class="req">이사정산내역서 작성후 출력, 퇴실일까지 일자계산해서 관리비계산</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">· 이사정산 페이지에서 이사정산 작성·출력·퇴실·중도퇴실·계산 기능 구비</td></tr>
+    <tr><td class="no">63</td><td class="req">이사입력화면 맨아래의 버튼은 정산금계산,계산+저장,중도퇴실,정산완료+공실,출력,빈양식</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-change">변경대응</span></td><td class="res">
+· 버튼 구성 변경: 저장 / 정산완료+중도퇴실 / 정산완료+퇴실 / 출력 / 빈양식 / 삭제
+</td></tr>
+    <tr><td class="no">64</td><td class="req">중도퇴실을 클릭하면 공실처리는 안되고 종이고지서를 받던 세대는 자동으로 카톡고지서로 변경되게하고 수납관리 페이지의 해당호실 적요에 중도퇴실이라고 찍히게하기</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-change">변경대응</span></td><td class="res">
+· 중도 퇴실 시 퇴실일자까지 공실처리 되지 않음<br>
+· 종이고지서 → 카톡고지서 자동 변경 대신 알림톡 수신 동의로 업데이트<br>
+· 수납관리·민원접수 &gt; 입주자 정보 적요에 중도퇴실 자동 기입
+</td></tr>
+    <tr><td class="no">65</td><td class="req">정산완료+공실 클릭하면 퇴실처리되고 해당호실의 미납관리비 전부 수납처리되고 전기요금 가스요금은 옆의 입금일에 달력 버튼만들어서 마우스로만 조작할수있게하기,이사정산시의 수도지침값 자동이월되기,입주자정보의 적요도 리셋되기</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-change">변경대응</span></td><td class="res">
+· 이사정산 &gt; 정산완료+퇴실 버튼 배치, 퇴실 시 입주자 정보 초기화<br>
+· 미수금 금액이 없을 경우에만 퇴실 처리 가능 (휴먼 에러 방지)<br>
+· 공과금 입력 달력 방식 적용<br>
+· 정산완료 시 공과금 지침값 → 공과금 관리 다음 달 전월·전량에 자동 반영
+</td></tr>
+    <tr><td class="no">66</td><td class="req">퇴실수리비항목 옆에 건물주에게입금,관리자(이름)에게 입금,관리실보관 이런식으로 기록할수있게하기 그래야 현장관리자나 사무실에서 이전 퇴실수리비 처리내용을 알수있음.</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 이사정산 입력 &gt; 기타 항목란 최대 15개 입력 가능, 금액 입력 가능
+</td></tr>
+    <tr><td class="no">67</td><td class="req">이사정산내역서에 정산금 입금계좌는 자동으로 찍히고 계좌는 언제든 수정가능,  하단에 비고 입력할수 있는칸</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 셋업 설정 &gt; 이사정산 설정에서 이사정산 출력 입금 계좌 등록 및 수정 가능
+</td></tr>
+    <tr><td class="no">68</td><td class="req">날짜 지정해서 이사정산내역 일괄조회,전기이사조회,수도이사조회,가스이사조회</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 이사정산 입력 &gt; 이사정산 이력 조회에서 날짜별 정산 이력 확인 가능<br>
+· LNB 이사정산 하위에 전체 이사조회·전기 이사조회·수도 이사조회·가스 이사조회 각각 구비
+</td></tr>
+    <tr><td class="no">69</td><td class="req">내부시설점검 체크리스트 화면</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 이사정산 입력 &gt; 정산 체크 섹션에서 사전 등록된 항목에 대한 체크리스트 및 비고란 구비
+</td></tr>
+    <tr><td class="no">70</td><td class="req">이사입력 화면 왼쪽에 검침정보 확인 작은창</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-change">변경대응</span></td><td class="res">
+· 이사정산 입력 &gt; 중간 하단 검침정보 섹션에서 공과금 검침 이력 확인 가능 (왼쪽 소창 → 섹션으로 변경)
+</td></tr>
+    <tr><td class="no">71</td><td class="req">날짜별로 그날짜에 이사정산했던 히스토리 확인가능</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 이사정산 입력 &gt; 이사정산 이력 조회에서 날짜별 정산 이력 확인 가능
+</td></tr>
+
+    <!-- 셋업 설정 -->
+    <tr><td class="no">72</td><td class="major" rowspan="4">관리업체<br>사무실PC</td><td class="mid" rowspan="4">셋업 설정</td><td class="req">고지서에 찍히는 고객안내사항 작성, 연체료 합산구분 설정, 고지서출력시 단전단수 출력선택, 수도단가출력선택, 관리비기간출력선택, a/s현황 메인나옴 선택, 단수개월 선택</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">· 셋업 설정 &gt; 고지서 설정에서 고객안내사항·연체료 합산 설정·고지서 출력 옵션 설정 가능</td></tr>
+    <tr><td class="no">73</td><td class="req">관리비입금계좌 및 이사정산계좌 변경, 이사정산 체크항목 등록 및 변경,  관리비입금계좌가 2개 등록가능 옆에 출력,미출력으로 선택가능</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 셋업 설정 &gt; 고지서 설정에서 관리비 입금계좌 등록 (최대 2개, 단일 선택)<br>
+· 셋업 설정 &gt; 이사정산 설정에서 이사정산 계좌 관리 및 체크항목 관리 (최대 24개)
+</td></tr>
+    <tr><td class="no">74</td><td class="req">이사정산시 수도,전기단가(반영,안함 선택) 공실처리시 관리비수납처리(수동,자동 선택), 고지서에 증감량 나옴 선택,</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-change">변경대응</span></td><td class="res">
+· 셋업 설정 &gt; 이사정산 설정에서 정산 기준 설정 구비<br>
+· 수도·전기 단가 반영 및 공실 수납 수동 처리를 디폴트 값으로 고정 (선택 불가) — 영상 내 언급 기준으로 설계
+</td></tr>
+    <tr><td class="no">75</td><td class="req">건물별 수도고객번호 일괄조회, 공용전기 고객번호 일괄조회</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 공과금 관리 &gt; 고객번호 조회에서 수도·공용전기 고객번호 일괄 조회 가능
+</td></tr>
+
+    <!-- 기타 관리업무 -->
+    <tr><td class="no">76</td><td class="major">관리업체<br>사무실PC</td><td class="mid">기타 관리업무</td><td class="req">장기수선비 관리페이지(공사영수증,공사사진 저장)</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">· 장기수선 관리 페이지에서 영수증 및 사진 첨부 가능</td></tr>
+
+    <!-- 모바일 헤더 -->
+    <tr class="row-mobile"><td colspan="7">▶ 모바일 기반 — 현장관리자 (반응형 모바일웹)</td></tr>
+    <tr><td class="no">77</td><td class="major" rowspan="11">모바일 기반</td><td class="mid" rowspan="11">현장관리자<br>(반응형<br>모바일웹)</td><td class="req">현장직원들은 관리자 모바일웹을 통해 수도,전기 등등 현장에서 지침등록 가능</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">· 조회 페이지 &gt; 특정 건물 상세 페이지 &gt; 우측 상단 검침 자료 버튼을 통해 검침 자료 정보 입력 가능</td></tr>
+    <tr><td class="no">78</td><td class="req">수도,전기 검침할때 지난3개월간의 기록도 볼수있어야 계량기고장인지,누수인지,검침오류인지 알 수 있다</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 조회 &gt; 건물 상세 &gt; 검침 자료에서 호실별 전전월량·전월량 확인 가능
+</td></tr>
+    <tr><td class="no">79</td><td class="req">검침할때 입주날짜도 보여야 공실이였다가 최근입주했는지 확인가능함</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 입주일 표시 및 당일 기준 한 달 전후 입주자는 "신규"로 표시
+</td></tr>
+    <tr><td class="no">80</td><td class="req">현장관리자가 전기나 수도 지침을 모바일로 등록할 때 숫자를 잘못 입력하는 휴먼 에러와 누수세대 누락을 막기 위해 전월 데이터와 비교하여 사용량이 비정상적으로 급증하거나 급감했을 경우 경고 팝업을 띄워주는 자동 검증 로직</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 전월 대비 20% 이상의 값 입력 시 경고 모달 노출
+</td></tr>
+    <tr><td class="no">81</td><td class="req">현장관리자가 본인의as접수 현황도 보고 건물별 접수현황도 볼 수 있고 직접 민원접수도 가능하고 업무처리후 현장에서 처리결과를 기록후 사진저장 가능(사진자동압축기능)</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-change">변경대응</span></td><td class="res">
+· 홈 화면에서 본인의 A/S 현황을 건물별로 확인 및 직접 접수 가능<br>
+· 사진 등록 기능 → 금번 건 대응 제외
+</td></tr>
+    <tr><td class="no">82</td><td class="req">현장직원이 퇴실정산 내역을 모바일로 작성후 퇴실자나 건물주에게 정산내역서 문자전송가능(스마트폰으로 캡쳐해서 보내도됨)</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 조회 &gt; 건물 상세 &gt; 입주자 정보 탭 &gt; 입주자 상세 &gt; 이사정산 탭 &gt; 이사정산 상세에서 내역서 이미지 저장 기능 구비
+</td></tr>
+    <tr><td class="no">83</td><td class="req">현장관리자는 이사정산입력화면에서 정산금계산+저장 이버튼만 사용하능하게하기</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 이사정산 등록 및 등록된 이사정산 건의 값 수정·저장 가능하도록 구비
+</td></tr>
+    <tr><td class="no">84</td><td class="req">수납관리 화면은 조작은 못하고 볼수만 있게하기(현재처럼)</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 조회 &gt; 건물 상세 &gt; 입주자 정보 탭 &gt; 입주자 상세 &gt; 수납정보 탭에서 열람 가능
+</td></tr>
+    <tr><td class="no">85</td><td class="req">모바일전산에서 입주자정보의 부번호까지 볼수있게하기</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 조회 &gt; 건물 상세 &gt; 입주자 정보 탭 &gt; 입주자 상세 &gt; 입주자 정보에서 연락처 정보 확인 가능
+</td></tr>
+    <tr><td class="no">86</td><td class="req">현장관리자가 모바일로 해당건물의 기본정보는 볼수있게(예 현재 간단하게 보이는 정보에서 추가로 소방안전업체,전기안전관리업체,임대인 부번호 등등)</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 조회 &gt; 건물 상세 &gt; 건물 정보 탭에서 기본·업체·건물주 정보 확인 가능
+</td></tr>
+    <tr><td class="no">87</td><td class="req">이름, 전화번호로 세입자 조회 가능 (어떤건물 몇호에 거주중인지)</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 조회 &gt; 입주자 탭에서 이름·전화번호로 조회 가능
+</td></tr>
+
+    <!-- 세입자 헤더 -->
+    <tr class="row-tenant"><td colspan="7">▶ 세입자용 (카카오 기반)</td></tr>
+    <tr><td class="no">88</td><td class="major" rowspan="5">세입자용<br>(카카오기반)</td><td class="mid" rowspan="5">●세입자용<br>(카카오기반)</td><td class="req new">찬반투표,관리비확인, 퇴실신청, 본인거주 건물 공지사항보기 (찬반투표 기능대신에 카카오고지서 또는 스마트고지서신청 이렇게 변경)</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-change">변경대응</span></td><td class="res">· 홈 화면에서 당일 관리비 및 건물 공지 확인 가능<br>· 내 정보에서 퇴실 신청 가능<br>· 찬반투표 기능 삭제</td></tr>
+    <tr><td class="no">89</td><td class="req new">카카오로그인,  (공지사항도 알림톡으로 보내는걸로 생각했습니다  공지문을 관리실에서 등록하고 알림톡을 보내면 아래 [공지확인하기] 버튼을 누르면 세입자웹의 우리건물공지로 바로연결되기   신규공지, 중요공지, 긴급공지 이렇게 구분해서 템플릿 올려드리겠습니다</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">· 로그인 방식 카카오 로그인으로 구비<br>· 공지 유형별(신규·중요·긴급) 공지 관리 → 사무 관리자 공지 관리에서 관리 가능</td></tr>
+    <tr><td class="no">90</td><td class="req">공지문보기 뿐만아니라 관리비상세보기도 로그인 없이 바로볼수 있어야 고령자 뿐만아니라 카톡받아서 허들없이 바로볼수 있어야 할 것 같습니다  링크열람 유효기간은 1년</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-change">변경대응</span></td><td class="res">
+· 공지 및 관리비 로그인 없이 열람 가능하도록 별도 단일 페이지로 구성<br>
+· 링크 유효기간 1년 → 30일로 변경
+</td></tr>
+    <tr><td class="no">91</td><td class="req">카카오로그인이 필요한 기능은  (이전 관리비확인, 퇴실신청, 카카오고지서신청)</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 구현 완료
+</td></tr>
+    <tr><td class="no">92</td><td class="req">세입자웹 관리비 상세보기 페이지에서  관리비입금계좌 복사하기, 계좌번호+금액 복사하기 기능</td><td class="res" style="text-align:center;vertical-align:middle;"><span class="badge badge-done">구현완료</span></td><td class="res">
+· 관리비 상세 화면에서 계좌 복사 및 계좌·금액 복사 버튼 구비
+</td></tr>
+
+    <!-- 공통·시스템 헤더 -->
+    </tbody>
+</table>
+</body>
+</html>

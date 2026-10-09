@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<style>  :root{--blue:#14A497;--blue-d:#0E8677;--blue-t:#E2F5F1;--blue-t2:#EFFBF8;--bg:#F2F4F6;--line:#E8EBEE;--line2:#F1F3F5;--t1:#191F28;--t2:#4E5968;--t3:#8B95A1;--t4:#B0B8C1;--green:#12B886;--green-t:#E6F8F1;--red:#F04452;--red-t:#FDECEE;--amber:#FF922B;--amber-t:#FFF3E6;--violet:#7048E8;--violet-t:#F0EBFF}
+  *{box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  body{margin:0;max-width:100%;background:#e7eaee;font-family:'Pretendard',-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--t1)}
+  a{color:var(--blue);text-decoration:none}a:hover{color:var(--blue-d)}
+  .num{font-variant-numeric:tabular-nums}
+  .screen{background:#fff;overflow:hidden;position:relative;height:100dvh;max-height:100dvh;width:100%;max-width:440px;margin:0 auto;display:flex;flex-direction:column}
+  .sb{height:54px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:0 32px 9px;font-size:15px;font-weight:700}
+  .mscroll{flex:1;overflow:auto}
+  .mnav{height:70px;flex:none;background:#fff;border-top:1px solid var(--line);display:flex;padding:8px 0 0}
+  .mnav .it{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;font-weight:600;cursor:pointer}
+  .mnav .it svg{width:28px;height:28px;stroke-width:1.8}
+  .pill{flex:none;height:34px;padding:0 15px;display:inline-flex;align-items:center;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:13.5px;font-weight:700;color:var(--t3);cursor:pointer;white-space:nowrap}
+  .pill.on{background:var(--blue);border-color:var(--blue);color:#fff}
+  .sheet{position:fixed;inset:0;background:rgba(23,31,40,.42);display:none;align-items:flex-end;justify-content:center;z-index:90}
+  .sheet.show{display:flex}
+  .sheet-b{background:#fff;border-radius:22px 22px 0 0;width:100%;max-width:440px;padding:10px 12px 26px}
+  .sheet-h{text-align:center;font-size:13px;font-weight:800;color:var(--t3);padding:12px 0 6px}
+  .sheet-o{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 14px;border-radius:14px;font-size:16px;font-weight:700;color:var(--t1);cursor:pointer}
+  .sheet-o svg{width:18px;height:18px;color:var(--blue);opacity:0}
+  .sheet-o.on{color:var(--blue-d)}
+  .sheet-o.on svg{opacity:1}
+  .as-card{background:#fff;border-bottom:1px solid var(--line);padding:16px 2px;cursor:pointer}
+  .as-card:last-child{border-bottom:0}
+  .as-top{display:flex;align-items:center;gap:8px}
+  .as-t{font-size:15px;font-weight:800;letter-spacing:-.01em}
+  .as-chip{flex:none;font-size:11.5px;font-weight:800;padding:4px 9px;border-radius:7px}
+  .as-chip.r{background:var(--red-t);color:var(--red)}
+  .as-chip.a{background:var(--amber-t);color:var(--amber)}
+  .as-chip.g{background:var(--green-t);color:var(--green)}
+  .as-chip.v{background:var(--violet-t);color:var(--violet)}
+  .as-d{font-size:14px;font-weight:600;color:var(--t2);margin-top:7px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis}
+  .as-mgr{margin-left:auto;font-size:12px;font-weight:600;color:var(--t4)}
+  .as-mgr.me{color:var(--blue);font-weight:700}
+  .as-m{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;font-weight:600;color:var(--t3)}
+  .as-cat{display:inline-flex;background:#fff;border:1px solid var(--line);border-radius:7px;padding:3px 9px;color:var(--t1);font-size:11.5px;font-weight:700}
+  .as-mine{background:var(--blue-t);color:var(--blue-d);border-radius:6px;padding:3px 8px;font-weight:700}
+</style>
+</helmet>
+<div class="screen">
+
+<div style="display:flex;align-items:center;gap:10px;padding:6px 20px 14px">
+  <div style="flex:1;min-width:0"><div style="font-size:22px;font-weight:800;letter-spacing:-.02em">A/S현황 조회</div></div>
+  <a href="../mobile-as-new/mobile-as-new.dc.html" style="flex:none;height:38px;padding:0 14px;border-radius:12px;background:var(--blue);color:#fff;font-size:13.5px;font-weight:700;display:inline-flex;align-items:center">＋ 신규 접수</a>
+</div>
+
+<div style="padding:0 20px 10px">
+  <div style="position:relative">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="width:18px;height:18px;color:var(--t4);position:absolute;left:14px;top:50%;transform:translateY(-50%)"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3-3"></path></svg>
+    <input id="asQ" placeholder="건물명·호실 검색" style="width:100%;height:46px;border:1px solid var(--line);border-radius:14px;padding:0 14px 0 40px;font:inherit;font-size:15px;font-weight:500;color:var(--t1);background:#fff;outline:none">
+  </div>
+</div>
+<div style="display:flex;align-items:center;gap:8px;padding:0 20px 10px">
+  <div style="display:flex;gap:7px;flex:1;min-width:0;overflow:auto" id="asStF">
+    <span class="pill on" data-v="all">전체</span><span class="pill" data-v="미결">미결</span><span class="pill" data-v="보류">보류</span><span class="pill" data-v="완결">완결</span><span class="pill" data-v="반복">반복</span>
+  </div>
+  <div id="asSortBtn" style="flex:none;display:inline-flex;align-items:center;gap:5px;height:34px;padding:0 12px;border:1px solid var(--line);border-radius:11px;background:#fff;font-size:13px;font-weight:700;color:var(--t2);cursor:pointer">
+    <span id="asSortL">최신순</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" style="width:15px;height:15px"><path d="M6 9l6 6 6-6"></path></svg>
+  </div>
+</div>
+
+<div class="mscroll"><div style="padding:2px 20px 18px" id="asWrap"></div>
+  <div id="asNone" style="display:none;text-align:center;padding:40px 20px;font-size:14px;font-weight:600;color:var(--t3)">해당하는 접수 내역이 없어요</div>
+</div>
+
+<div class="sheet" id="asSheet"><div class="sheet-b">
+  <div class="sheet-h">정렬</div>
+  <div class="sheet-o on" data-v="desc">최신순<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div>
+  <div class="sheet-o" data-v="asc">오래된순<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div>
+</div></div>
+<div class="mnav"><a class="it" href="../mobile-home/mobile-home.dc.html" style="color:var(--blue)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-6 8 6"></path><path d="M6 10v9h12v-9"></path></svg>홈</a><a class="it" href="../mobile-inquiry/mobile-inquiry.dc.html" style="color:var(--t4)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3-3"></path></svg>조회</a><a class="it" href="../mobile-profile/mobile-profile.dc.html" style="color:var(--t4)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"></circle><path d="M5 20c1.4-3.6 4-5.4 7-5.4s5.6 1.8 7 5.4"></path></svg>프로필</a></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount(){ setTimeout(()=>this.boot(),40); }
+  boot(){
+    const wrap=document.getElementById('asWrap'); if(!wrap||wrap.__w)return; wrap.__w=1;
+    const ME='김현장';
+    const SEED=[
+      {b:'그린빌라 201호',d:'화장실 천장에서 물이 계속 떨어져 아래층 세대까지 번지고 있습니다. 배관 상태 확인 후 방수 보수까지 필요할 것 같아 현장 점검 요청드립니다.',cat:'A/S신청',dt:'2026.08.06 09:30',st:'미결',rec:'박사무',mgr:ME,tel:'010-2251-7788',fin:'',ftm:'',res:''},
+      {b:'햇살하이츠 1104호',d:'3층부터 5층까지 복도 센서등이 점멸하거나 아예 켜지지 않습니다. 야간 통행이 어렵다는 민원이 반복 접수되어 전수 교체가 필요합니다.',cat:'A/S신청',dt:'2026.08.06 16:30',st:'미결',rec:ME,mgr:ME,tel:'010-3345-1120',fin:'',ftm:'',res:''},
+      {b:'중앙타워 505호',d:'현관 도어락이 비밀번호 입력 후에도 열리지 않는 증상이 하루 두세 번씩 발생합니다. 배터리 교체 후에도 동일해 본체 점검이 필요합니다.',cat:'A/S신청',dt:'2026.08.05 14:10',st:'미결',rec:'박사무',mgr:ME,tel:'010-7781-2245',fin:'',ftm:'',res:''},
+      {b:'라온아파트 303호',d:'온수를 틀면 미지근한 물만 나오고 5분 이상 지나면 완전히 찬물로 바뀝니다. 보일러 부품 교체가 필요할 것으로 보여 입고 일정 확인 부탁드립니다.',cat:'A/S신청',dt:'2026.08.05 10:20',st:'보류',rec:'박사무',mgr:ME,tel:'010-4412-9080',fin:'2026.08.07',ftm:'10:00',res:'부품 입고 대기 중'},
+      {b:'그린빌라 302호',d:'퇴실 입회 시설 점검',cat:'이사정산',dt:'2026.08.04 13:00',st:'보류',rec:ME,mgr:ME,tel:'010-5521-8890',fin:'2026.08.20',ftm:'14:00',res:'퇴실일에 맞춰 재방문'},
+      {b:'중앙타워 1201호',d:'관리비 수납 확인 요청',cat:'건물주수납',dt:'2026.08.04 09:00',st:'완결',rec:'박사무',mgr:'이청소',tel:'010-6620-3311',fin:'2026.08.04',ftm:'11:30',res:'현장 확인 후 입금 완료 안내'},
+      {b:'햇살하이츠 802호',d:'세대 내 배수 불량',cat:'A/S신청',dt:'2026.08.03 15:40',st:'완결',rec:ME,mgr:ME,tel:'010-9911-2020',fin:'2026.08.03',ftm:'17:20',res:'배수구 이물질 제거 완료'},
+      {b:'라온아파트 105호',d:'단수 안내문 부착 요청',cat:'안내문공지',dt:'2026.08.02 08:30',st:'완결',rec:'박사무',mgr:'박검침',tel:'010-1122-3344',fin:'2026.08.02',ftm:'09:10',res:'1~5층 게시판 부착 완료'},
+      {b:'그린빌라 401호',d:'창호 실리콘 재시공',cat:'건물주요청',dt:'2026.08.01 11:00',st:'반복',rec:'박사무',mgr:'이청소',tel:'010-7788-4455',fin:'2026.08.08',ftm:'10:00',res:'월 1회 상태 확인 필요'},
+      {b:'중앙타워 604호',d:'주차 차단기 오류',cat:'기타',dt:'2026.07.31 18:20',st:'완결',rec:ME,mgr:ME,tel:'010-3030-7070',fin:'2026.07.31',ftm:'19:00',res:'센서 재조정 완료'}
+    ];
+    let DATA=SEED;
+    const VER='v3';
+    try{ if(localStorage.getItem('erp_as_ver')!==VER){ localStorage.setItem('erp_as_ver',VER); localStorage.removeItem('erp_as_list'); } }catch(_){}
+    try{ const s=JSON.parse(localStorage.getItem('erp_as_list')||'null'); if(s&&s.length)DATA=s; }catch(_){}
+    try{ localStorage.setItem('erp_as_list',JSON.stringify(DATA)); }catch(_){}
+    const CH={'미결':'r','보류':'a','완결':'g','반복':'v'};
+    const esc=(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    let stF='all', sort='desc', q='';
+    const draw=()=>{
+      let rows=DATA.map((x,i)=>({x,i}));
+      if(stF!=='all')rows=rows.filter(({x})=>x.st===stF);
+      if(q)rows=rows.filter(({x})=>(x.b+' '+x.d+' '+x.cat).toLowerCase().includes(q));
+      rows.sort((a,b)=>sort==='desc'?(a.x.dt<b.x.dt?1:-1):(a.x.dt>b.x.dt?1:-1));
+      wrap.innerHTML=rows.map(({x,i})=>'<div class="as-card" data-i="'+i+'">'
+        +'<div class="as-top"><span class="as-cat">'+esc(x.cat)+'</span><div style="flex:1"></div><span class="as-chip '+CH[x.st]+'">'+x.st+'</span></div>'
+        +'<div class="as-t" style="margin-top:8px">'+esc(x.b)+'</div>'
+        +'<div class="as-d">'+esc(x.d)+'</div>'
+        +'<div class="as-m"><span class="num">'+String(x.dt).split(' ')[0]+'</span>'
+        +'<span class="as-mgr'+(x.mgr===ME?' me':'')+'">'+(x.mgr===ME?'내 담당':esc(x.mgr||'-'))+'</span>'
+        +'</div></div>').join('');
+      document.getElementById('asNone').style.display=rows.length?'none':'block';
+    };
+    draw();
+    const qi=document.getElementById('asQ');
+    qi.addEventListener('input',()=>{ q=qi.value.trim().toLowerCase(); draw(); });
+    qi.addEventListener('focus',()=>{ qi.style.borderColor='var(--blue)'; qi.style.boxShadow='0 0 0 3px var(--blue-t)'; });
+    qi.addEventListener('blur',()=>{ qi.style.borderColor='var(--line)'; qi.style.boxShadow='none'; });
+    document.getElementById('asStF').addEventListener('click',(e)=>{ const s=e.target.closest('.pill'); if(!s)return;
+      [...s.parentElement.children].forEach(x=>x.classList.toggle('on',x===s)); stF=s.dataset.v; draw(); });
+    const sheet=document.getElementById('asSheet');
+    document.getElementById('asSortBtn').addEventListener('click',()=>sheet.classList.add('show'));
+    sheet.addEventListener('click',(e)=>{ if(e.target===sheet){ sheet.classList.remove('show'); return; }
+      const o=e.target.closest('.sheet-o'); if(!o)return;
+      [...o.parentElement.querySelectorAll('.sheet-o')].forEach(x=>x.classList.toggle('on',x===o));
+      sort=o.dataset.v; document.getElementById('asSortL').textContent=o.textContent.trim();
+      sheet.classList.remove('show'); draw(); });
+    wrap.addEventListener('click',(e)=>{ const c=e.target.closest('.as-card'); if(!c)return;
+      try{ localStorage.setItem('erp_as_sel',c.dataset.i); }catch(_){}
+      location.href='../mobile-as/mobile-as.dc.html'; });
+  }
+}
+</script>
+</body>
+</html>

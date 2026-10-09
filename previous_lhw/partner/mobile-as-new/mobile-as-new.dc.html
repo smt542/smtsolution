@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<style>  :root{--blue:#14A497;--blue-d:#0E8677;--blue-t:#E2F5F1;--blue-t2:#EFFBF8;--bg:#F2F4F6;--line:#E8EBEE;--line2:#F1F3F5;--t1:#191F28;--t2:#4E5968;--t3:#8B95A1;--t4:#B0B8C1;--green:#12B886;--red:#F04452}
+  *{box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  body{margin:0;max-width:100%;background:#e7eaee;font-family:'Pretendard',-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--t1)}
+  a{color:var(--blue);text-decoration:none}a:hover{color:var(--blue-d)}
+  .num{font-variant-numeric:tabular-nums}
+  .screen{background:#fff;overflow:hidden;position:relative;height:100dvh;max-height:100dvh;width:100%;max-width:440px;margin:0 auto;display:flex;flex-direction:column}
+  .sb{height:54px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:0 32px 9px;font-size:15px;font-weight:700}
+  .mscroll{flex:1;overflow:auto;padding:2px 20px 24px}
+  .hdr{display:flex;align-items:center;gap:10px;padding:6px 16px 14px}
+  .hdr .bk{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--t2);cursor:pointer}
+  .hdr .bk:hover{background:#E4E8EC}
+  .hdr .bk svg{width:22px;height:22px}
+  .hdr .tt{font-size:20px;font-weight:800;letter-spacing:-.02em}
+  .sec{background:#fff;border-radius:18px;padding:6px 16px;margin-bottom:12px}
+  .sec-t{font-size:13px;font-weight:800;color:var(--t3);padding:14px 0 6px}
+  .row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line2)}
+  .row:last-child{border-bottom:0}
+  .row>label{flex:none;width:104px;font-size:13.5px;font-weight:600;color:var(--t3)}
+  .row .ro{flex:1;min-width:0;font-size:15px;font-weight:600;color:var(--t1);text-align:right}
+  .row.col{flex-direction:column;align-items:stretch;gap:8px}
+  .row.col>label{width:auto}
+  .fin{width:100%;height:48px;border:1px solid var(--line);border-radius:13px;padding:0 14px;font:inherit;font-size:15px;font-weight:600;color:var(--t1);background:#fff;outline:none}
+  .fin:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-t)}
+  .fin.ta{height:112px;padding:13px 14px;line-height:1.6;resize:vertical}
+  .dd{position:relative;flex:1;min-width:0}
+  .dd-btn{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;height:44px;border:1px solid var(--line);border-radius:12px;padding:0 13px;background:#fff;font:inherit;font-size:15px;font-weight:700;color:var(--t1);cursor:pointer}
+  .dd-btn svg{width:16px;height:16px;color:var(--t3);flex:none;transition:transform .15s}
+  .dd.open .dd-btn{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-t)}
+  .dd.open .dd-btn svg{transform:rotate(180deg)}
+  .dd-menu{display:none;position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:40;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 16px 36px -12px rgba(23,31,40,.3);padding:6px;max-height:260px;overflow:auto}
+  .dd.open .dd-menu{display:block}
+  .opt{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 12px;border-radius:10px;font-size:14.5px;font-weight:700;color:var(--t2);cursor:pointer}
+  .opt svg{width:15px;height:15px;opacity:0;flex:none}
+  .opt.on{background:var(--blue-t2);color:var(--blue-d)}
+  .opt.on svg{opacity:1}
+  .cal{position:fixed;inset:0;background:rgba(23,31,40,.45);display:none;align-items:flex-end;justify-content:center;z-index:90}
+  .cal.show{display:flex}
+  .cal-b{background:#fff;border-radius:22px 22px 0 0;width:100%;max-width:440px;padding:18px 18px 26px}
+  .cal-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .cal-h b{font-size:16px;font-weight:800}
+  .cal-nav{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--t2);cursor:pointer}
+  .cal-nav:hover{background:var(--bg)}
+  .cal-wk{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px}
+  .cal-wk span{text-align:center;font-size:12px;font-weight:700;color:var(--t4);padding:6px 0}
+  .cal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+  .cal-c{height:42px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;border-radius:12px}
+  .cal-d{cursor:pointer;color:var(--t1)}
+  .cal-d.sel{background:var(--blue);color:#fff}
+  .foot{flex:none;background:#fff;border-top:1px solid var(--line);padding:12px 20px 22px;display:flex;gap:9px}
+  .btn{flex:1;height:52px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:15.5px;font-weight:700;cursor:pointer}
+  .btn.sec2{background:var(--bg);color:var(--t2)}
+  .btn.pri{background:var(--blue);color:#fff}
+  .cf{position:fixed;inset:0;background:rgba(23,31,40,.45);display:none;align-items:center;justify-content:center;z-index:120;padding:24px}
+  .cf.show{display:flex}
+  .cf-b{background:#fff;border-radius:20px;width:100%;max-width:360px;padding:24px 22px 18px;text-align:center}
+  .cf-t{font-size:17px;font-weight:800;letter-spacing:-.01em}
+  .cf-d{font-size:14px;font-weight:500;color:var(--t2);line-height:1.6;margin-top:8px}
+  .cf-f{display:flex;gap:8px;margin-top:22px}
+  .cf-btn{flex:1;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;cursor:pointer}
+  .cf-btn.c{background:var(--bg);color:var(--t2)}
+  .cf-btn.k{background:var(--blue);color:#fff}
+  .cf-btn.r{background:var(--red);color:#fff}
+</style>
+</helmet>
+<div class="screen">
+
+<div class="hdr">
+  <a class="bk" href="../mobile-home/mobile-home.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></a>
+  <div style="flex:1;min-width:0"><div class="tt">신규 접수</div></div>
+</div>
+
+<div class="mscroll">
+  <div class="sec">
+    <div class="sec-t">대상 세대</div>
+    <div class="row"><label>건물</label>
+      <div class="dd" id="anBld" data-v="그린빌라"><button type="button" class="dd-btn"><span class="dd-lbl">그린빌라</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+        <div class="dd-menu"><div class="opt on" data-v="그린빌라">그린빌라<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div><div class="opt" data-v="햇살하이츠">햇살하이츠<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div><div class="opt" data-v="중앙타워">중앙타워<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div><div class="opt" data-v="라온아파트">라온아파트<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div><div class="opt" data-v="미래스퀘어">미래스퀘어<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div><div class="opt" data-v="정든빌라">정든빌라<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div><div class="opt" data-v="한빛레지던스">한빛레지던스<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div><div class="opt" data-v="새봄하우스">새봄하우스<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div></div>
+      </div>
+    </div>
+    <div class="row"><label>호수</label>
+      <div class="dd" id="anUnit" data-v="201호"><button type="button" class="dd-btn"><span class="dd-lbl">201호</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+        <div class="dd-menu" id="anUnitMenu"><div class="opt" data-v="건물 전체">건물 전체<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div><div class="opt" data-v="101호">101호<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div><div class="opt" data-v="102호">102호<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div><div class="opt" data-v="103호">103호<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div><div class="opt" data-v="104호">104호<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div><div class="opt on" data-v="201호">201호<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div><div class="opt" data-v="202호">202호<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div><div class="opt" data-v="203호">203호<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div><div class="opt" data-v="204호">204호<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-t">접수 정보</div>
+    <div class="row"><label>접수자</label><div class="ro" id="anRec">김현장</div></div>
+    <div class="row"><label>담당자</label><div class="ro" id="anMgr">김현장</div></div>
+    <div class="row"><label>접수일시</label><div class="ro num" id="anDt">2026.08.06</div></div>
+    <div class="row"><label>유형</label>
+      <div class="dd" id="anCat" data-v="A/S신청"><button type="button" class="dd-btn"><span class="dd-lbl">A/S신청</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+        <div class="dd-menu"><div class="opt on" data-v="A/S신청">A/S신청<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div><div class="opt" data-v="건물주수납">건물주수납<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div><div class="opt" data-v="이사정산">이사정산<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div><div class="opt" data-v="건물주요청">건물주요청<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div><div class="opt" data-v="안내문공지">안내문공지<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div><div class="opt" data-v="기타">기타<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div></div>
+      </div>
+    </div>
+    <div class="row"><label>입주자 전화번호</label><div class="ro num" id="anTel">010-2251-7788</div></div>
+    <div class="row col"><label>접수 내용</label><textarea class="fin ta" id="anDesc" placeholder="접수 내용을 입력해 주세요"></textarea></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-t">처리</div>
+    <div class="row"><label>처리결과</label>
+      <div class="dd" id="anSt" data-v="미결"><button type="button" class="dd-btn"><span class="dd-lbl">미결</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+        <div class="dd-menu"><div class="opt on" data-v="미결">미결<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div><div class="opt" data-v="보류">보류<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div><div class="opt" data-v="완결">완결<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div><div class="opt" data-v="반복">반복<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 12.5l5 5L20 6.5"></path></svg></div></div>
+      </div>
+    </div>
+    <div class="row"><label>시행일자</label>
+      <div style="flex:1"><button type="button" class="dd-btn" id="anFin"><span id="anFinV" style="color:var(--t4)">날짜 선택</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="5" width="16" height="16" rx="2"></rect><path d="M8 3v4M16 3v4M4 11h16"></path></svg></button></div>
+    </div>
+    <div class="row"><label>시간</label><input class="fin" id="anTm" inputmode="numeric" placeholder="00:00" maxlength="5" style="flex:1;text-align:right"></div>
+    <div class="row col"><label>처리결과 내용</label><textarea class="fin ta" id="anRes" placeholder="처리한 내용을 입력해 주세요"></textarea></div>
+  </div>
+</div>
+
+<div class="foot">
+  <div class="btn sec2" id="anCancel">취소</div>
+  <div class="btn pri" id="anSave">접수 등록</div>
+</div>
+</div>
+
+<div class="cal" id="calScrim"><div class="cal-b">
+  <div class="cal-h"><div class="cal-nav" data-nav="-1">‹</div><b id="calT">2026.08</b><div class="cal-nav" data-nav="1">›</div></div>
+  <div class="cal-wk"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+  <div class="cal-g" id="calG"></div>
+</div></div>
+
+<div class="cf" id="cfScrim"><div class="cf-b">
+  <div class="cf-t" id="cfT">확인</div>
+  <div class="cf-d" id="cfD"></div>
+  <div class="cf-f"><div class="cf-btn c" data-x="c">취소</div><div class="cf-btn k" id="cfOk" data-x="ok">확인</div></div>
+</div></div>
+<div id="anToast" style="display:none;position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:#191F28;color:#fff;font-size:14px;font-weight:700;padding:13px 20px;border-radius:13px;z-index:95;white-space:nowrap"></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount(){ setTimeout(()=>this.boot(),40); }
+  boot(){
+    const $=(id)=>document.getElementById(id);
+    const BLDS=["그린빌라","햇살하이츠","중앙타워","라온아파트","미래스퀘어","정든빌라","한빛레지던스","새봄하우스"];
+    if(!$('anSave')||document.body.__anW)return; document.body.__anW=1;
+
+    const cfScrim=$('cfScrim');
+    let cfCb=null;
+    const confirmAsk=(title,desc,ok,cb,tone)=>{ $('cfT').textContent=title; $('cfD').innerHTML=desc;
+      const b=$('cfOk'); b.textContent=ok; b.className='cf-btn '+(tone==='red'?'r':'k');
+      cfCb=cb; cfScrim.classList.add('show'); };
+    cfScrim.addEventListener('click',(e)=>{ if(e.target===cfScrim){ cfScrim.classList.remove('show'); return; }
+      const b=e.target.closest('[data-x]'); if(!b)return;
+      cfScrim.classList.remove('show');
+      if(b.dataset.x==='ok'&&cfCb){ const f=cfCb; cfCb=null; f(); } });
+
+    const toast=(m)=>{ const el=$('anToast'); el.textContent=m; el.style.display='block';
+      clearTimeout(el.__t); el.__t=setTimeout(()=>{ el.style.display='none'; },1700); };
+    const p2=(n)=>String(n).padStart(2,'0');
+    const now=new Date();
+    const nowStr=now.getFullYear()+'.'+p2(now.getMonth()+1)+'.'+p2(now.getDate());
+    $('anDt').textContent=nowStr;
+
+    const wireDD=(id)=>{ const dd=$(id);
+      dd.addEventListener('click',(e)=>{
+        if(e.target.closest('.dd-btn')){ dd.classList.toggle('open'); return; }
+        const o=e.target.closest('.opt'); if(!o)return;
+        dd.dataset.v=o.dataset.v; dd.querySelector('.dd-lbl').textContent=o.dataset.v;
+        [...dd.querySelectorAll('.opt')].forEach(x=>x.classList.toggle('on',x===o));
+        dd.classList.remove('open'); });
+      document.addEventListener('click',(e)=>{ if(!e.target.closest('#'+id))dd.classList.remove('open'); });
+    };
+    wireDD('anCat'); wireDD('anSt'); wireDD('anBld'); wireDD('anUnit');
+
+    const tm=$('anTm');
+    tm.addEventListener('input',()=>{ let v=tm.value.replace(/[^0-9]/g,'').slice(0,4);
+      tm.value=v.length>2?v.slice(0,2)+':'+v.slice(2):v; });
+    tm.addEventListener('blur',()=>{ const v=tm.value.replace(/[^0-9]/g,'');
+      if(!v){ tm.value=''; return; }
+      const p=v.padStart(4,'0').slice(0,4);
+      tm.value=p2(Math.min(23,+p.slice(0,2)))+':'+p2(Math.min(59,+p.slice(2))); });
+
+    const scrim=$('calScrim');
+    let cy=now.getFullYear(), cm=now.getMonth(), cur='';
+    const render=()=>{ $('calT').textContent=cy+'.'+p2(cm+1);
+      const first=new Date(cy,cm,1).getDay(), days=new Date(cy,cm+1,0).getDate();
+      let h=''; for(let i=0;i<first;i++)h+='<div class="cal-c"></div>';
+      for(let d=1;d<=days;d++){ const val=cy+'.'+p2(cm+1)+'.'+p2(d);
+        h+='<div class="cal-c cal-d'+(cur===val?' sel':'')+'" data-d="'+d+'">'+d+'</div>'; }
+      $('calG').innerHTML=h; };
+    $('anFin').addEventListener('click',()=>{ render(); scrim.classList.add('show'); });
+    scrim.addEventListener('click',(e)=>{ if(e.target===scrim){ scrim.classList.remove('show'); return; }
+      const nav=e.target.closest('.cal-nav');
+      if(nav){ cm+=(+nav.dataset.nav); if(cm<0){cm=11;cy--;} if(cm>11){cm=0;cy++;} render(); return; }
+      const d=e.target.closest('.cal-d'); if(!d)return;
+      cur=cy+'.'+p2(cm+1)+'.'+p2(+d.dataset.d);
+      $('anFinV').textContent=cur; $('anFinV').style.color='var(--t1)';
+      scrim.classList.remove('show'); });
+
+    /* 건물 변경 시 호수 목록 재구성 */
+    $('anBld')?.querySelectorAll('.opt').forEach(o=>o.addEventListener('click',()=>{
+      const base=(BL=>1+BL)(BLDS.indexOf(o.dataset.v));
+      const cnt=4+(base%5), list=['건물 전체'];
+      for(let i=0;i<cnt;i++)list.push((1+Math.floor(i/4))*100+(i%4)+1+'호');
+      const m=$('anUnitMenu'), u=$('anUnit');
+      m.innerHTML=list.map(v=>'<div class="opt'+(v==='건물 전체'?' on':'')+'" data-v="'+v+'">'+v+"<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\"><path d=\"M4 12.5l5 5L20 6.5\"></path></svg>"+'</div>').join('');
+      u.dataset.v='건물 전체'; u.querySelector('.dd-lbl').textContent='건물 전체';
+    }));
+    $('anCancel').addEventListener('click',()=>{ confirmAsk('작성을 취소할까요?','입력한 내용은 저장되지 않아요.','나가기',()=>{ location.href='../mobile-home/mobile-home.dc.html'; },'red'); });
+    $('anSave').addEventListener('click',()=>{
+      const desc=$('anDesc').value.trim();
+      if(!desc){ toast('접수 내용을 입력해 주세요'); $('anDesc').focus(); return; }
+      confirmAsk('접수를 등록할까요?','입력한 내용으로 A/S 접수가 등록돼요.','등록',()=>doReg(desc)); });
+    const doReg=(desc)=>{
+      let LIST=[]; try{ LIST=JSON.parse(localStorage.getItem('erp_as_list')||'[]'); }catch(_){}
+      LIST.unshift({ b:($('anBld').dataset.v+' '+$('anUnit').dataset.v).trim(), d:desc, cat:$('anCat').dataset.v, dt:nowStr,
+        st:$('anSt').dataset.v, rec:'김현장', mgr:'김현장', tel:$('anTel').textContent,
+        fin:cur, ftm:tm.value, res:$('anRes').value.trim() });
+      try{ localStorage.setItem('erp_as_list',JSON.stringify(LIST)); }catch(_){}
+      toast('접수를 등록했어요');
+      setTimeout(()=>{ location.href='../mobile-home/mobile-home.dc.html'; },700); };
+  }
+}
+</script>
+</body>
+</html>

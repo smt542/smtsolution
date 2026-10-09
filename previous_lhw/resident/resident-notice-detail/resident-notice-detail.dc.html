@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<style>  :root{--blue:#14A497;--blue-d:#0E8677;--blue-t:#E2F5F1;--blue-t2:#EFFBF8;--bg:#F2F4F6;--line:#E8EBEE;--line2:#F1F3F5;--t1:#191F28;--t2:#4E5968;--t3:#8B95A1;--t4:#B0B8C1;--red:#F04452;--red-t:#FDECEE;--amber:#FF922B;--amber-t:#FFF3E6}
+  *{box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  body{margin:0;max-width:100%;background:#e7eaee;font-family:'Pretendard',-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--t1)}
+  a{color:var(--blue);text-decoration:none}a:hover{color:var(--blue-d)}
+  .num{font-variant-numeric:tabular-nums}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .screen{background:#fff;overflow:hidden;position:relative;height:100dvh;max-height:100dvh;width:100%;max-width:440px;margin:0 auto;display:flex;flex-direction:column}
+  .hdr{flex:none;display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top) + 12px) 12px 12px;border-bottom:1px solid var(--line2)}
+  .bk{width:38px;height:38px;flex:none;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--t2)}
+  .bk:hover{background:var(--bg);color:var(--t2)}
+  .bk svg{width:22px;height:22px}
+  .tt{font-size:17px;font-weight:800;letter-spacing:-.02em}
+  .brand{display:none;align-items:center;gap:7px}
+  .brand img{width:22px;height:22px;object-fit:contain;display:block}
+  .brand b{font-size:15px;font-weight:800;letter-spacing:-.02em;color:#16375a}
+  .brand b em{font-style:normal;color:var(--blue)}
+  .guest .bk,.guest .tt{display:none}
+  .guest .brand{display:flex;padding-left:8px}
+  .doc{flex:1;min-height:0;overflow:auto;padding:22px 24px calc(env(safe-area-inset-bottom) + 78px)}
+  .tag{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:800;padding:5px 10px;border-radius:8px;color:var(--t3);background:var(--bg);animation:rise .45s cubic-bezier(.22,.61,.36,1) both}
+  .tag.important{color:var(--amber);background:var(--amber-t)}
+  .tag.urgent{color:#fff;background:var(--red)}
+  .tag svg{width:12px;height:12px}
+  .h1{font-size:22px;font-weight:800;letter-spacing:-.03em;line-height:1.4;margin:12px 0 0;animation:rise .45s .04s cubic-bezier(.22,.61,.36,1) both}
+  .meta{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--t4);margin-top:10px;padding-bottom:18px;border-bottom:1px solid var(--line2);animation:rise .45s .08s cubic-bezier(.22,.61,.36,1) both}
+  .body{font-size:14.5px;font-weight:500;color:var(--t2);line-height:1.8;white-space:pre-line;padding-top:18px;text-wrap:pretty;animation:rise .45s .12s cubic-bezier(.22,.61,.36,1) both}
+  .cta{display:none;margin-top:24px;padding:18px;border-radius:18px;background:var(--blue-t2)}
+  .guest .cta{display:block}
+  .cta b{display:block;font-size:15px;font-weight:800;letter-spacing:-.02em;color:var(--blue-d)}
+  .cta span{display:block;font-size:13px;font-weight:600;color:var(--t3);line-height:1.6;margin-top:6px}
+  .cta a{display:flex;align-items:center;justify-content:center;height:50px;border-radius:14px;background:var(--blue);color:#fff;font-size:15px;font-weight:700;margin-top:14px}
+  .cta a:hover{background:var(--blue-d);color:#fff}
+  .note{display:none;font-size:11.5px;font-weight:500;color:var(--t4);line-height:1.7;margin-top:16px}
+  .guest .note{display:block}
+  .test{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 14px);background:rgba(25,31,40,.88);color:#fff;border:0;border-radius:999px;padding:9px 15px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;z-index:60}
+</style>
+</helmet>
+<div class="screen" id="ndScreen">
+  <div class="hdr">
+    <a class="bk" href="../resident-notice/resident-notice.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></a>
+    <div class="tt">공지</div>
+    <div class="brand"><img src="logo-mark.png" alt="" width="22" height="22"><b>관리<em>비서</em></b></div>
+  </div>
+  <div class="doc">
+    <span class="tag" id="ndTag">일반</span>
+    <h1 class="h1" id="ndT">공지 제목</h1>
+    <div class="meta"><span class="num" id="ndD">2026.08.05</span><span>·</span><span id="ndWho">그린빌라 관리사무소</span></div>
+    <div class="body" id="ndB"></div>
+    <div class="cta">
+      <b>관리비도 앱에서 확인하세요</b>
+      <span>이번 달 부과 금액과 항목별 내역을 카카오 로그인 한 번으로 볼 수 있어요.</span>
+      <a href="../resident-login/resident-login.dc.html">관리비서 시작하기</a>
+    </div>
+    <div class="note">이 링크는 공지 확인 전용이며 일정 기간이 지나면 만료됩니다.</div>
+  </div>
+</div>
+<button type="button" class="test" id="ndTest">테스트: 비로그인 진입으로 보기</button>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount(){ setTimeout(()=>this.boot(),40); }
+  boot(){
+    const $=(id)=>document.getElementById(id);
+    if(!$('ndT')||document.body.__ndW)return; document.body.__ndW=1;
+    const N={
+      n1:{t:'저수조 청소로 오전 단수 예정',kind:'urgent',d:'2026.08.05',
+        b:'건물 저수조 청소를 진행합니다.\n\n· 일시 2026년 8월 12일(수) 오전 9시 ~ 12시\n· 대상 그린빌라 전 세대\n· 내용 저수조 청소 및 배관 소독\n\n작업 시간 동안 수돗물 사용이 불가합니다. 미리 생활용수를 받아 두시고, 작업 직후에는 물을 1~2분간 흘려보낸 뒤 사용해 주세요.\n\n작업이 지연될 경우 관리사무소에서 별도로 안내드립니다.'},
+      n2:{t:'8월분 관리비 부과 안내',kind:'important',d:'2026.08.01',
+        b:'8월분 관리비가 확정되었습니다.\n\n· 납부기한 2026년 8월 25일\n· 확인 방법 관리비서 앱 > 관리비\n\n기한이 지나면 연체료가 부과됩니다. 항목별 내역은 앱에서 확인하실 수 있습니다.'},
+      n3:{t:'승강기 정기 점검 안내',kind:'normal',d:'2026.07.24',
+        b:'승강기 정기 점검을 실시합니다.\n\n· 일시 2026년 7월 28일(월) 오후 2시 ~ 4시\n· 내용 법정 정기 점검\n\n점검 시간 동안 승강기 운행이 일시 중단됩니다. 계단 이용에 협조해 주세요.'},
+      n4:{t:'재활용 분리배출 요일 변경',kind:'normal',d:'2026.07.18',
+        b:'8월부터 재활용 배출 요일이 변경됩니다.\n\n· 변경 전 매주 수요일\n· 변경 후 매주 화요일, 금요일\n\n배출 시간은 저녁 6시부터 밤 10시까지입니다. 지정 요일 외 배출은 수거되지 않습니다.'},
+      n5:{t:'소방 시설 정기 검사 결과',kind:'normal',d:'2026.07.02',
+        b:'전 세대 소방 시설 점검이 완료되었습니다.\n\n점검 결과 일부 세대의 감지기 교체가 필요해 순차적으로 보수할 예정입니다. 방문 일정은 개별 안내드립니다.'}
+    };
+    const KIND={normal:{l:'일반',c:''},important:{l:'중요',c:'important'},urgent:{l:'긴급',c:'urgent'}};
+    const BELL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.4"></path></svg>';
+    let id='n1', mode='app';
+    try{ id=localStorage.getItem('res_notice_sel')||'n1'; mode=localStorage.getItem('res_notice_mode')||'app'; }catch(_){}
+    const n=N[id]||N.n1;
+    const k=KIND[n.kind]||KIND.normal;
+    const tag=$('ndTag');
+    tag.className='tag '+k.c; tag.innerHTML=(n.kind!=='normal'?BELL:'')+k.l;
+    $('ndT').textContent=n.t; $('ndD').textContent=n.d; $('ndB').textContent=n.b;
+    let bld='그린빌라';
+    try{ const u=JSON.parse(localStorage.getItem('res_unit')||'null'); if(u&&u.b)bld=u.b; }catch(_){}
+    $('ndWho').textContent=bld+' 관리사무소';
+
+    const apply=()=>{ $('ndScreen').classList.toggle('guest',mode==='guest');
+      $('ndTest').textContent=mode==='guest'?'테스트: 앱 진입으로 보기':'테스트: 비로그인 진입으로 보기'; };
+    apply();
+    $('ndTest').addEventListener('click',()=>{ mode=(mode==='guest')?'app':'guest';
+      try{ localStorage.setItem('res_notice_mode',mode); }catch(_){} apply(); });
+  }
+}
+</script>
+</body>
+</html>

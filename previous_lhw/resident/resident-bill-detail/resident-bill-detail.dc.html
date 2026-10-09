@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<style>  :root{--blue:#14A497;--blue-d:#0E8677;--blue-t:#E2F5F1;--blue-t2:#EFFBF8;--bg:#F2F4F6;--line:#E8EBEE;--line2:#F1F3F5;--t1:#191F28;--t2:#4E5968;--t3:#8B95A1;--t4:#B0B8C1;--red:#F04452;--red-t:#FDECEE}
+  *{box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  body{margin:0;max-width:100%;background:#e7eaee;font-family:'Pretendard',-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--t1)}
+  a{color:var(--blue);text-decoration:none}a:hover{color:var(--blue-d)}
+  .num{font-variant-numeric:tabular-nums}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  .screen{background:#F7F8FA;overflow:hidden;position:relative;height:100dvh;max-height:100dvh;width:100%;max-width:440px;margin:0 auto;display:flex;flex-direction:column}
+  .top{flex:none;background:#fff;display:flex;align-items:center;gap:4px;padding:calc(env(safe-area-inset-top) + 8px) 12px 8px;border-bottom:1px solid var(--line2)}
+  .top a,.top .sp{width:38px;height:38px;display:flex;align-items:center;justify-content:center;color:var(--t2);border-radius:12px}
+  .top a:hover{background:var(--bg)}
+  .top a svg{width:21px;height:21px}
+  .top .tt{flex:1;font-size:17px;font-weight:800;letter-spacing:-.02em}
+  .scroll{flex:1;min-height:0;overflow:auto;padding:16px 20px calc(env(safe-area-inset-bottom) + 28px)}
+  .hero{background:#fff;border-radius:18px;padding:20px;box-shadow:0 1px 2px rgba(23,31,40,.06);animation:rise .45s cubic-bezier(.22,.61,.36,1) both}
+  .hero .hw{display:flex;align-items:flex-start;gap:10px}
+  .hero .hw span.u{font-size:13px;font-weight:700;color:var(--t3)}
+  .hero .hw .chip{margin-left:auto}
+  .hero .tot{font-size:31px;font-weight:800;letter-spacing:-.045em;margin-top:8px;font-variant-numeric:tabular-nums}
+  .hero .tot i{font-style:normal;font-size:18px;font-weight:700;margin-left:2px}
+  .hero .hm{font-size:12.5px;font-weight:600;color:var(--t3);margin-top:8px}
+  .hero .hm em{font-style:normal;font-weight:700;color:var(--t2)}
+  .hero .hm em.r{color:var(--red)}
+  .chip{font-size:11.5px;font-weight:800;padding:4px 9px;border-radius:8px;color:var(--t3);background:var(--bg)}
+  .chip.due{color:var(--red);background:var(--red-t)}
+  .chip.paid{color:var(--blue-d);background:var(--blue-t)}
+  .lbl{font-size:13px;font-weight:700;color:var(--t3);margin:24px 4px 9px;display:flex;align-items:center}
+  .lbl span{margin-left:auto;font-weight:600;color:var(--t4)}
+  .card{background:#fff;border-radius:18px;padding:4px 18px;box-shadow:0 1px 2px rgba(23,31,40,.06)}
+  .it{display:flex;align-items:flex-start;gap:12px;padding:13px 0;border-bottom:1px solid var(--line2)}
+  .it:last-child{border-bottom:0}
+  .it .nm{flex:1;min-width:0;font-size:14px;font-weight:700;letter-spacing:-.01em}
+  .it .nm small{display:block;font-size:11.5px;font-weight:600;color:var(--t3);margin-top:3px;letter-spacing:0}
+  .it .vv{flex:none;font-size:14.5px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em;text-align:right}
+  .it .vv.r{color:var(--red)}
+  .sub{display:flex;align-items:center;gap:12px;padding:13px 0;border-top:1px solid var(--line)}
+  .sub .nm{flex:1;font-size:13px;font-weight:700;color:var(--t3)}
+  .sub .vv{font-size:14.5px;font-weight:800;font-variant-numeric:tabular-nums}
+  .fin{background:#fff;border-radius:18px;padding:6px 18px 18px;box-shadow:0 1px 2px rgba(23,31,40,.06)}
+  .fin .it .nm{font-weight:600;color:var(--t2)}
+  .grand{display:flex;align-items:baseline;gap:12px;margin-top:14px;padding-top:15px;border-top:2px solid var(--t1)}
+  .grand .nm{flex:1;font-size:14.5px;font-weight:800}
+  .grand .vv{font-size:22px;font-weight:800;letter-spacing:-.035em;font-variant-numeric:tabular-nums}
+  .acct{margin-top:16px}
+  .aline{flex:1;min-width:0;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+  .aline b{font-size:13.5px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--t2)}
+  .aline em{font-style:normal;font-size:12px;font-weight:600;color:var(--t4)}
+  .abtns{display:flex;gap:6px}
+  .ab{flex:1;height:42px;border:0;border-radius:12px;background:var(--blue-t);font:inherit;font-size:13px;font-weight:700;color:var(--blue-d);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+  .ab:hover{background:#D3EEE8}
+  .ab.pri{background:var(--blue);color:#fff}
+  .ab.pri:hover{background:var(--blue-d)}
+  .ab svg{width:14px;height:14px;stroke-width:2.2}
+  .brand{display:none;align-items:center;gap:7px;padding-left:8px}
+  .brand img{width:22px;height:22px;object-fit:contain;display:block}
+  .brand b{font-size:15px;font-weight:800;letter-spacing:-.02em;color:#16375a}
+  .brand b em{font-style:normal;color:var(--blue)}
+  .guest .top a,.guest .top .tt{display:none}
+  .guest .brand{display:flex}
+  .guest .gt{display:block}
+  .gt{display:none;font-size:12.5px;font-weight:700;color:var(--t3);margin-bottom:10px}
+  .cta{display:none;margin-top:18px;padding:18px;border-radius:18px;background:var(--blue-t2)}
+  .guest .cta{display:block}
+  .cta b{display:block;font-size:15px;font-weight:800;letter-spacing:-.02em;color:var(--blue-d)}
+  .cta span{display:block;font-size:13px;font-weight:600;color:var(--t3);line-height:1.6;margin-top:6px}
+  .cta a{display:flex;align-items:center;justify-content:center;height:50px;border-radius:14px;background:var(--blue);color:#fff;font-size:15px;font-weight:700;margin-top:14px}
+  .cta a:hover{background:var(--blue-d);color:#fff}
+  .gnote{display:none;font-size:11.5px;font-weight:500;color:var(--t4);line-height:1.7;margin-top:14px}
+  .guest .gnote{display:block}
+  .test{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 14px);background:rgba(25,31,40,.88);color:#fff;border:0;border-radius:999px;padding:9px 15px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;z-index:60}
+  .toast{display:none;position:fixed;left:50%;bottom:56px;transform:translateX(-50%);background:#191F28;color:#fff;font-size:14px;font-weight:700;padding:13px 20px;border-radius:13px;z-index:90;white-space:nowrap}
+</style>
+</helmet>
+<div class="screen" id="bdScreen">
+  <div class="top">
+    <a id="bdBack" href="../resident-bill/resident-bill.dc.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></a>
+    <div class="tt" id="bdTitle">관리비 상세</div>
+    <div class="brand"><img src="logo-mark.png" alt="" width="22" height="22"><b>관리<em>비서</em></b></div>
+  </div>
+  <div class="scroll">
+    <div class="gt" id="bdGt">그린빌라 201호 · 2026년 7월 관리비</div>
+    <div class="hero">
+      <div class="hw">
+        <div class="aline"><b><span id="bdBank">농협</span> <span id="bdAcc">352-2224-0507-03</span></b><em id="bdHolder">스마일관리(최서윤)</em></div>
+        <span class="chip" id="bdChip">—</span>
+      </div>
+      <div class="tot num" id="bdTot">0<i>원</i></div>
+      <div class="acct">
+        <div class="abtns">
+          <button type="button" class="ab" id="bdCopyAcc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.5"></rect><path d="M15 5.5A2.5 2.5 0 0012.5 3h-7A2.5 2.5 0 003 5.5v7A2.5 2.5 0 005.5 15"></path></svg>계좌 복사</button>
+          <button type="button" class="ab pri" id="bdCopyBoth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2.5"></rect><path d="M15 5.5A2.5 2.5 0 0012.5 3h-7A2.5 2.5 0 003 5.5v7A2.5 2.5 0 005.5 15"></path></svg>계좌·금액 복사</button>
+        </div>
+      </div>
+    </div>
+    <div class="lbl">개별 사용료<span id="bdPerN"></span></div>
+    <div class="card" id="bdPer"></div>
+    <div class="lbl">공용 · 기타 관리비<span id="bdComN"></span></div>
+    <div class="card" id="bdCom"></div>
+    <div class="lbl">정산</div>
+    <div class="fin" id="bdFin"></div>
+    <div class="cta">
+      <b>지난 달 내역도 앱에서 확인하세요</b>
+      <span>월별 부과 내역과 공지를 카카오 로그인 한 번으로 볼 수 있어요.</span>
+      <a href="../resident-login/resident-login.dc.html">관리비서 시작하기</a>
+    </div>
+    <div class="gnote" id="bdGnote">이 링크는 관리비 확인 전용이며 발송일로부터 30일간 열람할 수 있습니다.</div>
+  </div>
+  <button type="button" class="test" id="bdTest">테스트: 비로그인 진입으로 보기</button>
+</div>
+<div class="toast" id="bdToast"></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  componentDidMount(){ setTimeout(()=>this.boot(),40); }
+  boot(){
+    const $=(id)=>document.getElementById(id);
+    if(!$('bdPer')||document.body.__bdW)return; document.body.__bdW=1;
+    const won=(v)=>(v<0?'-':'')+Math.abs(v).toLocaleString('ko-KR')+'원';
+
+    const MONTHS={
+      2026:{7:{amt:121600,late:6800,unpaid:0,st:'due',due:'7.25'},6:{amt:118200,late:0,unpaid:0,st:'paid',paid:'6.22'},5:{amt:112400,late:0,unpaid:0,st:'paid',paid:'5.24'},4:{amt:126900,late:0,unpaid:0,st:'paid',paid:'4.23'},3:{amt:139500,late:0,unpaid:0,st:'paid',paid:'3.21'},2:{amt:151300,late:0,unpaid:0,st:'paid',paid:'2.24'},1:{amt:158700,late:2400,unpaid:0,st:'paid',paid:'2.03'}},
+      2025:{12:{amt:147200,late:0,unpaid:0,st:'paid',paid:'12.23'},11:{amt:132600,late:0,unpaid:0,st:'paid',paid:'11.24'},10:{amt:119400,late:0,unpaid:0,st:'paid',paid:'10.22'},9:{amt:114800,late:0,unpaid:0,st:'paid',paid:'9.23'},8:{amt:127300,late:0,unpaid:0,st:'paid',paid:'8.25'},7:{amt:124100,late:0,unpaid:0,st:'paid',paid:'7.24'}}
+    };
+    const BASE_PER=[
+      {n:'수도료',v:14200,u:'8.2톤',p:'전월 7.6톤'},
+      {n:'전기료',v:43800,u:'214kWh',p:'전월 198kWh'},
+      {n:'가스료',v:9400,u:'11.8㎥',p:'전월 13.4㎥'}
+    ];
+    const BASE_COM=[
+      {n:'항목 1',v:18000},{n:'항목 2',v:6500},{n:'항목 3',v:9000},{n:'항목 4',v:3200},{n:'항목 5',v:2800},
+      {n:'항목 6',v:4600},{n:'항목 7',v:1900},{n:'항목 8',v:800},{n:'항목 9',v:700},{n:'항목 10',v:600},
+      {n:'항목 11',v:2200},{n:'항목 12',v:500},{n:'항목 13',v:400},{n:'항목 14',v:1300},{n:'항목 15',v:600},
+      {n:'항목 16',v:1500},{n:'항목 17',v:1100}
+    ];
+    const BASE_SUM=BASE_PER.concat(BASE_COM).reduce((a,b)=>a+b.v,0);
+
+    let year=2026,month=7;
+    try{ const s=JSON.parse(sessionStorage.getItem('res_bill')||'null');
+      if(s&&MONTHS[s.year]&&MONTHS[s.year][s.m]){ year=s.year; month=s.m; } }catch(_){}
+
+    try{ const from=sessionStorage.getItem('res_bill_from');
+      if(from==='home')$('bdBack').setAttribute('href','../resident-home/resident-home.dc.html'); }catch(_){}
+
+    const M=MONTHS[year][month];
+    const k=M.amt/BASE_SUM;
+    const scale=(v)=>Math.round(v*k/10)*10;
+    const per=BASE_PER.map(r=>Object.assign({},r,{v:scale(r.v)}));
+    const com=BASE_COM.map(r=>Object.assign({},r,{v:scale(r.v)}));
+    const perSum=per.reduce((a,b)=>a+b.v,0), comSum=com.reduce((a,b)=>a+b.v,0);
+    const charge=perSum+comSum, grand=charge+M.unpaid+M.late;
+    const md=(v)=>{ const p=String(v).split('.'); return p[0]+'월 '+p[1]+'일'; };
+
+    $('bdTitle').textContent=year+'년 '+month+'월 관리비';
+    $('bdChip').textContent=M.st==='due'?'미납':'완납';
+    $('bdChip').className='chip '+(M.st==='due'?'due':'paid');
+    $('bdTot').innerHTML=grand.toLocaleString('ko-KR')+'<i>원</i>';
+
+    const row=(r)=>'<div class="it"><div class="nm">'+r.n+(r.u?'<small>'+r.u+(r.p?' · '+r.p:'')+'</small>':'')+'</div><div class="vv'+(r.v<0?' r':'')+'">'+won(r.v)+'</div></div>';
+    const subtot=(t,v)=>'<div class="sub"><div class="nm">'+t+'</div><div class="vv">'+won(v)+'</div></div>';
+    $('bdPerN').textContent=per.length+'개';
+    $('bdComN').textContent=com.length+'개';
+    $('bdPer').innerHTML=per.map(row).join('')+subtot('개별 사용료 소계',perSum);
+    $('bdCom').innerHTML=com.map(row).join('')+subtot('공용 · 기타 소계',comSum);
+    $('bdFin').innerHTML=[{n:'당월 부과액',v:charge},{n:'미납액',v:M.unpaid},{n:'연체료',v:M.late}].map(row).join('')
+      +'<div class="grand"><div class="nm">총 관리비</div><div class="vv">'+won(grand)+'</div></div>';
+    const tel=$('bdToast');
+    const toast=(m)=>{ tel.textContent=m; tel.style.display='block';
+      clearTimeout(tel.__t); tel.__t=setTimeout(()=>{ tel.style.display='none'; },1600); };
+    const copy=(txt,msg)=>{
+      const done=()=>toast(msg);
+      if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done,()=>fb()); } else fb();
+      function fb(){ const t=document.createElement('textarea'); t.value=txt; t.style.position='fixed'; t.style.opacity='0';
+        document.body.appendChild(t); t.select(); try{ document.execCommand('copy'); }catch(_){}
+        document.body.removeChild(t); done(); } };
+    const accNo=$('bdAcc').textContent.trim();
+    $('bdCopyAcc').addEventListener('click',()=>copy(accNo,'계좌번호를 복사했어요'));
+    $('bdCopyBoth').addEventListener('click',()=>copy(accNo+' '+grand.toLocaleString('ko-KR')+'원','계좌번호와 금액을 복사했어요'));
+
+    let unit='그린빌라 201호';
+    try{ const u=JSON.parse(localStorage.getItem('res_unit')||'null'); if(u)unit=u.b+' '+u.h; }catch(_){}
+    $('bdGt').textContent=unit+' · '+year+'년 '+month+'월 관리비';
+
+    let mode='app';
+    const q=new URLSearchParams(location.search);
+    if(q.get('mode')==='guest'||q.get('share'))mode='guest';
+    try{ const sv=sessionStorage.getItem('res_bill_mode'); if(sv)mode=sv; }catch(_){}
+    const apply=()=>{ $('bdScreen').classList.toggle('guest',mode==='guest');
+      $('bdTest').textContent=mode==='guest'?'테스트: 앱 진입으로 보기':'테스트: 비로그인 진입으로 보기'; };
+    const sent=q.get('sent');
+    if(sent&&/^\d{4}-\d{2}-\d{2}$/.test(sent)){
+      const d=new Date(sent+'T00:00:00'); d.setDate(d.getDate()+30);
+      const f=(x)=>x.getFullYear()+'.'+String(x.getMonth()+1).padStart(2,'0')+'.'+String(x.getDate()).padStart(2,'0');
+      $('bdGnote').textContent='이 링크는 관리비 확인 전용이며 '+f(d)+'까지 열람할 수 있습니다.';
+    }
+    apply();
+    $('bdTest').addEventListener('click',()=>{ mode=(mode==='guest')?'app':'guest';
+      try{ sessionStorage.setItem('res_bill_mode',mode); }catch(_){} apply(); });
+  }
+}
+</script>
+</body>
+</html>
