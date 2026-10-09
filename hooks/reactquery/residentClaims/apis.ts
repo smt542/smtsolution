@@ -280,15 +280,30 @@ export async function listResidentClaims(
   return ((data ?? []) as ResidentClaimRow[]).map(rowToResidentClaim);
 }
 
+export interface ApproveResidentClaimResult {
+  approved: true;
+  /** 「세대 연결 완료」 안내 문자 접수 여부. false여도 승인은 완료된 상태다. */
+  notified: boolean;
+  reason?: string;
+}
+
+/** 서버 라우트가 승인(approve_res_claim)과 안내 발송을 함께 처리한다. */
 export async function approveResidentClaim(input: {
   claimId: number;
   occupancyId: number;
-}): Promise<void> {
-  const { error } = await createClient().rpc("approve_res_claim", {
-    p_claim_id: input.claimId,
-    p_occupancy_id: input.occupancyId,
+}): Promise<ApproveResidentClaimResult> {
+  const res = await fetch("/api/resident-claims/approve", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
   });
-  if (error) throw new Error(error.message);
+  const data = (await res.json().catch(() => null)) as
+    | (Partial<ApproveResidentClaimResult> & { error?: string; message?: string })
+    | null;
+  if (!res.ok || !data?.approved) {
+    throw new Error(data?.message ?? "승인하지 못했습니다.");
+  }
+  return { approved: true, notified: data.notified === true, reason: data.reason };
 }
 
 export async function rejectResidentClaim(claimId: number): Promise<void> {
