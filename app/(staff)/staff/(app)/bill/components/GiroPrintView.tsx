@@ -3,10 +3,15 @@
 import { useEffect } from "react";
 import type { BillDocument, BillTarget } from "@/hooks/reactquery/bill";
 import {
+  chargePeriodLabel,
+  DEFAULT_BILL_PRINT_OPTIONS,
   formatBillAmount,
-  giroDocumentAmount,
+  giroSettlement,
+  giroSettlementRows,
   displayUnitNo,
+  meterSummary,
   unitLabel,
+  type BillPrintOptions,
   type PrintableAccount,
 } from "@/lib/bill/document";
 import type { BillBuilding } from "../types";
@@ -18,6 +23,9 @@ export interface GiroOutputDocument {
   document: BillDocument;
   target: BillTarget;
   dueDate: string | null;
+  /** 관리비 기간(billing_period_settings 부과기간). print_billing_period 가 켜졌을 때만 출력. */
+  chargeStartDate?: string | null;
+  chargeEndDate?: string | null;
 }
 
 export interface GiroStampOptions {
@@ -32,6 +40,8 @@ export interface GiroPrintViewProps {
   documents: GiroOutputDocument[];
   accounts: PrintableAccount[];
   customerNotice: string | null;
+  /** setup_config 고지서 출력 옵션. 생략 시 모두 미출력·연체료 구분. */
+  printOptions?: BillPrintOptions;
   stamps: GiroStampOptions;
   /** 세대(unitId)별 공개 고지서 URL. 없는 세대는 QR을 그리지 않는다(임의 주소 인쇄 금지). */
   qrUrls?: Record<number, string>;
@@ -48,6 +58,7 @@ export function GiroPrintView({
   documents,
   accounts,
   customerNotice,
+  printOptions = DEFAULT_BILL_PRINT_OPTIONS,
   stamps,
   qrUrls,
   onReady,
@@ -58,8 +69,9 @@ export function GiroPrintView({
 
   return (
     <div className="space-y-5 text-black" data-testid="giro-print-view">
-      {documents.map(({ building, document, target, dueDate }) => {
-        const amount = giroDocumentAmount(document);
+      {documents.map(({ building, document, target, dueDate, chargeStartDate, chargeEndDate }) => {
+        const settlement = giroSettlement(document, printOptions.lateFeeMerge);
+        const chargePeriod = printOptions.billingPeriod ? chargePeriodLabel(chargeStartDate, chargeEndDate) : "";
         const autoDebit = document.autoDebit || target.autoDebit;
         const householdName = unitLabel(
           target.billNameDisplay,
@@ -94,6 +106,7 @@ export function GiroPrintView({
                   <h1 className="mt-1 text-2xl font-black">지로 관리비 고지서</h1>
                   <p className="mt-1 text-sm font-bold">{building.name} · {periodLabel(period)}</p>
                   <p className="mt-1 text-xs text-slate-600">{building.address ?? "주소 미등록"}</p>
+                  {chargePeriod && <p className="mt-1 text-xs text-slate-600">관리비 기간 · {chargePeriod}</p>}
                 </div>
                 {qrUrls?.[document.unitId] ? (
                   <div className="text-center">
@@ -119,8 +132,8 @@ export function GiroPrintView({
               </div>
 
               <div className="relative mt-5 rounded-sm border-2 border-black p-5 text-center">
-                <p className="text-xs font-bold tracking-[0.3em] text-slate-600">당월 납부 금액</p>
-                <p className="mt-2 text-4xl font-black tabular-nums">{formatBillAmount(amount)}</p>
+                <p className="text-xs font-bold tracking-[0.3em] text-slate-600">납기내 금액</p>
+                <p className="mt-2 text-4xl font-black tabular-nums">{formatBillAmount(settlement.payInDue)}</p>
                 {autoDebit && (
                   <p className="mt-2 inline-flex rounded-full border border-black px-3 py-1 text-xs font-black">
                     자동이체 신청 세대
@@ -136,13 +149,24 @@ export function GiroPrintView({
                   </tr>
                 </thead>
                 <tbody>
-                  {document.items.filter((item) => item.charged).map((item) => (
-                    <tr key={item.feeItemId} className="border-b border-slate-300">
-                      <td className="p-2">{item.name}</td>
-                      <td className="p-2 text-right tabular-nums">{formatBillAmount(item.amount)}</td>
+                  {document.items.filter((item) => item.charged).map((item) => {
+                    const meter = meterSummary(item.name, document.meters, period, printOptions);
+                    return (
+                      <tr key={item.feeItemId} className="border-b border-slate-300">
+                        <td className="p-2">{item.name}{meter && <span className="ml-2 text-[10px] text-slate-600">({meter})</span>}</td>
+                        <td className="p-2 text-right tabular-nums">{formatBillAmount(item.amount)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  {giroSettlementRows(settlement).map((row) => (
+                    <tr key={row.label} className="border-b border-slate-300 font-bold">
+                      <td className="p-2">{row.label}</td>
+                      <td className="p-2 text-right tabular-nums">{formatBillAmount(row.amount)}</td>
                     </tr>
                   ))}
-                </tbody>
+                </tfoot>
               </table>
 
               <div className="mt-5 grid grid-cols-2 gap-4 border-t border-dashed border-slate-500 pt-4 text-xs">

@@ -1,7 +1,7 @@
 "use client";
 
 import type { BillDocument, BillTarget } from "@/hooks/reactquery/bill";
-import { displayUnitNo, type PrintableAccount } from "@/lib/bill/document";
+import { displayUnitNo, type BillPrintOptions, type PrintableAccount } from "@/lib/bill/document";
 import type { BillBuilding } from "../../types";
 import type { GiroStampOptions } from "../GiroPrintView";
 import { GiroPaper, GIRO_PAPER_HEIGHT, GIRO_PAPER_WIDTH } from "./GiroPaper";
@@ -12,6 +12,8 @@ export interface GiroPreviewPage {
   target: BillTarget;
   document: BillDocument;
   dueDate: string | null;
+  chargeStartDate?: string | null;
+  chargeEndDate?: string | null;
 }
 
 interface CompactDocumentPreviewProps {
@@ -20,6 +22,7 @@ interface CompactDocumentPreviewProps {
   pages: GiroPreviewPage[];
   accounts: PrintableAccount[];
   customerNotice: string | null;
+  printOptions?: BillPrintOptions;
   stamps?: GiroStampOptions;
   /** 도장이 찍히는 호수 = 청록 테두리가 붙는 호수. 개별 범위에서는 클릭한 1건뿐이다. */
   highlightedUnitIds: number[];
@@ -30,7 +33,7 @@ interface CompactDocumentPreviewProps {
 
 const PAGE_GAP = 16;
 
-export function CompactDocumentPreview({ companyName, period, pages, accounts, customerNotice, stamps, highlightedUnitIds, onSelectUnit, zoom, onZoom }: CompactDocumentPreviewProps) {
+export function CompactDocumentPreview({ companyName, period, pages, accounts, customerNotice, printOptions, stamps, highlightedUnitIds, onSelectUnit, zoom, onZoom }: CompactDocumentPreviewProps) {
   const scale = (0.796 * zoom) / 100;
 
   // transform: scale()은 레이아웃 크기를 바꾸지 않으므로, 스크롤 영역이 실제 표시 크기를
@@ -68,6 +71,9 @@ export function CompactDocumentPreview({ companyName, period, pages, accounts, c
                     accounts={accounts}
                     customerNotice={customerNotice}
                     dueDate={page.dueDate}
+                    chargeStartDate={page.chargeStartDate ?? null}
+                    chargeEndDate={page.chargeEndDate ?? null}
+                    printOptions={printOptions}
                     stamps={stamps}
                     highlighted={highlighted}
                   />

@@ -1,5 +1,12 @@
 import { createClient } from "@/lib/supabase/client";
-import type { BillItem, BillNameDisplay } from "@/lib/bill/document";
+import {
+  toBillMeterReadings,
+  type BillArrears,
+  type BillItem,
+  type BillMeterReading,
+  type BillMeterReadingRow,
+  type BillNameDisplay,
+} from "@/lib/bill/document";
 
 export interface BillTarget {
   unitId: number; unitNo: string; dong: string | null; occupancyId: number | null;
@@ -37,20 +44,27 @@ const rowToTarget = (
   kakaoSendStatus: r.kakao_send_status, faxSendStatus: r.fax_send_status,
 });
 
-export interface BillDocument {
+/** 연체료·이월·검침은 get_bill_documents(0264)만 채운다 — 다른 RPC 로 만든 문서(수납 명세서 등)는 비어 있다. */
+export interface BillDocument extends Partial<BillArrears> {
   unitId: number; unitNo: string; dong: string | null; tenantName: string | null;
   totalAmount: number; autoDebit: boolean; items: BillItem[]; billingNote: string | null; unitNotice: string | null;
+  /** meter_readings 당월 포함 최근 6개월(수도 단가·증감 출력용). */
+  meters?: BillMeterReading[];
 }
 type BillDocDbItem = { fee_item_id: number; name: string; charged: boolean; amount: number };
 type BillDocDbRow = {
   unit_id: number; unit_no: string; dong: string | null; tenant_name: string | null;
   total_amount: number; auto_debit: boolean; items: BillDocDbItem[] | null; billing_note: string | null; unit_notice: string | null;
+  late_fee?: number | null; carryover_unpaid?: number | null; carryover_late_fee?: number | null;
+  meters?: BillMeterReadingRow[] | null;
 };
 const rowToDoc = (r: BillDocDbRow): BillDocument => ({
   unitId: r.unit_id, unitNo: r.unit_no, dong: r.dong, tenantName: r.tenant_name,
   totalAmount: r.total_amount, autoDebit: r.auto_debit,
   items: (r.items ?? []).map((i) => ({ feeItemId: i.fee_item_id, name: i.name, charged: i.charged, amount: i.amount })),
   billingNote: r.billing_note, unitNotice: r.unit_notice,
+  lateFee: r.late_fee ?? 0, carryoverUnpaid: r.carryover_unpaid ?? 0, carryoverLateFee: r.carryover_late_fee ?? 0,
+  meters: toBillMeterReadings(r.meters),
 });
 
 export async function listBillTargets(buildingId: number, period: string): Promise<BillTarget[]> {

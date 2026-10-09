@@ -1,7 +1,17 @@
 "use client";
 
 import type { BillDocument, BillTarget } from "@/hooks/reactquery/bill";
-import { displayUnitNo, type PrintableAccount } from "@/lib/bill/document";
+import {
+  chargePeriodLabel,
+  DEFAULT_BILL_PRINT_OPTIONS,
+  displayUnitNo,
+  giroSettlement,
+  meterReadingFor,
+  meterTrend,
+  utilityOfItemName,
+  type BillPrintOptions,
+  type PrintableAccount,
+} from "@/lib/bill/document";
 import type { BillBuilding } from "../../types";
 import type { GiroStampOptions } from "../GiroPrintView";
 import { GiroStampOverlays } from "./GiroStampOverlays";
@@ -19,6 +29,11 @@ export interface GiroPaperProps {
   accounts: PrintableAccount[];
   customerNotice: string | null;
   dueDate: string | null;
+  /** 관리비 기간(billing_period_settings). printOptions.billingPeriod 일 때만 출력. */
+  chargeStartDate?: string | null;
+  chargeEndDate?: string | null;
+  /** setup_config 고지서 출력 옵션. */
+  printOptions?: BillPrintOptions;
   stamps?: GiroStampOptions;
   /** 도장 적용 대상 표시(청록 테두리). 개별 범위에서는 클릭한 1장만 true. */
   highlighted?: boolean;
@@ -37,6 +52,15 @@ const CELL = "flex min-w-0 items-center overflow-clip border-b border-r border-b
 
 function amount(value: number) {
   return value.toLocaleString("ko-KR");
+}
+
+function meterValue(value: number | null | undefined) {
+  return value === null || value === undefined ? "" : value.toLocaleString("ko-KR");
+}
+
+function signedMeterValue(value: number | null | undefined) {
+  if (value === null || value === undefined) return "";
+  return `${value > 0 ? "+" : ""}${value.toLocaleString("ko-KR")}`;
 }
 
 function dueDateParts(dueDate: string | null) {
@@ -61,9 +85,15 @@ function accountLine(accounts: PrintableAccount[], companyName: string) {
     .join(" / ");
 }
 
-export function GiroPaper({ companyName, period, building, target, document, accounts, customerNotice, dueDate, stamps, highlighted = false }: GiroPaperProps) {
+export function GiroPaper({ companyName, period, building, target, document, accounts, customerNotice, dueDate, chargeStartDate = null, chargeEndDate = null, printOptions = DEFAULT_BILL_PRINT_OPTIONS, stamps, highlighted = false }: GiroPaperProps) {
   const [year = "", month = ""] = period.split("-");
-  const total = document?.totalAmount ?? target?.totalAmount ?? 0;
+  // 당월계 + 미납액(이월) + 연체료(late_fee_merge 에 따라 합산/구분) — 세입자 상세고지서와 같은 정의.
+  const settlement = giroSettlement(
+    document ?? { totalAmount: target?.totalAmount ?? 0, items: [] },
+    printOptions.lateFeeMerge,
+  );
+  const total = settlement.payInDue;
+  const chargePeriod = printOptions.billingPeriod ? chargePeriodLabel(chargeStartDate, chargeEndDate) : "";
   const unit = displayUnitNo(target?.unitNo ?? document?.unitNo);
   const unitId = document?.unitId ?? target?.unitId;
   const showReissue = stamps?.reissueUnitIds.includes(unitId ?? -1) ?? false;
@@ -76,41 +106,55 @@ export function GiroPaper({ companyName, period, building, target, document, acc
     ...["항목", "당월", "전월", "량", "", "금 액", "할인액", "부 과 액"].map((value) => ({ value, strong: true, className: "justify-center text-center" })),
     ...Array.from({ length: 5 }, (_, index) => {
       const item = chargedItems[index];
+      const utility = item ? utilityOfItemName(item.name) : null;
+      const meter = utility ? meterReadingFor(document?.meters, utility, period) : null;
+      const unitPrice = utility === "water" && printOptions.waterUnitPrice ? meterValue(meter?.unitPrice) : "";
       return [
         { value: item?.name ?? "", className: "justify-start" },
-        { value: "", className: "justify-end text-right" },
-        { value: "", className: "justify-end text-right" },
-        { value: "", className: "justify-end text-right" },
-        { value: "", className: "justify-end text-right" },
+        { value: meterValue(meter?.currentReading), className: "justify-end text-right" },
+        { value: meterValue(meter?.previousReading), className: "justify-end text-right" },
+        { value: meterValue(meter?.usage), className: "justify-end text-right" },
+        { value: unitPrice, className: "justify-end text-right" },
         { value: "", className: "justify-end text-right" },
         { value: "", className: "justify-end text-right" },
         { value: item ? amount(item.amount) : "", className: "justify-end text-right" },
       ];
     }).flat(),
-    ...["당 월 계", "미 납 액", "납기내금액", "납기후연체", "납기후금액"].map((label, index) => [
+    ...([
+      ["당 월 계", amount(settlement.monthTotal)],
+      ["미 납 액", amount(settlement.unpaid)],
+      ["납기내금액", amount(settlement.payInDue)],
+      // 합산 모드는 연체료가 납기내금액에 이미 들어가 있어 납기후연체를 비운다.
+      ["납기후연체", settlement.merged ? "" : amount(settlement.postDueLateFee)],
+      ["납기후금액", amount(settlement.payAfterDue)],
+    ] as const).map(([label, value]) => [
       { value: "", className: "justify-center text-center" },
       { value: "", className: "justify-center text-center" },
       { value: "", className: "justify-center text-center" },
       { value: "", className: "justify-center text-center" },
       { value: "", className: "justify-center text-center" },
       { value: label, className: "col-span-2 justify-center text-center", strong: true },
-      { value: index === 0 || index === 2 ? amount(total) : "", className: "justify-end text-right", strong: true },
+      { value, className: "justify-end text-right", strong: true },
     ]).flat(),
   ];
 
-  // 사용량 추이는 당월부터 거슬러 5개월. 월 라벨만 period에서 유도하고 수치는 데이터가 없어 비워 둔다.
-  const trendMonths = Array.from({ length: 5 }, (_, index) => {
-    const base = new Date(Number(year), Number(month) - 1 - index, 1);
-    return `${base.getFullYear()}.${String(base.getMonth() + 1).padStart(2, "0")}`;
-  });
+  // 사용량 추이는 당월부터 거슬러 5개월(meter_readings). 헤더 2행 라벨 순서대로
+  // [년 월(공란) · 전기 금량 · 전기 전량 · 수도 증감 · 수도 금량]. 증감은 print_delta 일 때만.
+  const trendRows = meterTrend(document?.meters, period, 5);
   const trendCells = [
     { value: "구분", className: "row-span-2 justify-center text-center" },
     { value: "전   기", className: "col-span-3 justify-center text-center" },
     { value: "수      도", className: "col-span-2 justify-center text-center" },
     ...["년  월", "금량", "전량", "증감", "금량"].map((value) => ({ value, className: "justify-center text-center" })),
-    ...trendMonths.flatMap((label) => [
-      { value: label, className: "justify-center text-center" },
-      ...Array.from({ length: 5 }, () => ({ value: "", className: "justify-end text-right" })),
+    ...trendRows.flatMap((row) => [
+      { value: row.label, className: "justify-center text-center" },
+      ...[
+        "",
+        meterValue(row.elecUsage),
+        meterValue(row.elecPrevUsage),
+        printOptions.delta ? signedMeterValue(row.waterDelta) : "",
+        meterValue(row.waterUsage),
+      ].map((value) => ({ value, className: "justify-end text-right" })),
     ]),
   ];
 
@@ -128,7 +172,7 @@ export function GiroPaper({ companyName, period, building, target, document, acc
       <p className="absolute left-[66.53px] top-[317.02px] whitespace-nowrap text-[12px] leading-[15.6px]">{building?.name ? `${building.name} ${unit}` : unit}</p>
       <p className="absolute left-[345.11px] top-[317.02px] whitespace-nowrap text-[12px] leading-[15.6px]">{target?.payerNo ?? ""}</p>
       <p className="absolute left-[66.44px] top-[331.6px] whitespace-nowrap text-[12px] leading-[15.6px]">{building?.address ?? ""}</p>
-      <p className="absolute left-[66.76px] top-[343.97px] whitespace-pre text-[9px] leading-[11.7px]" />
+      <p className="absolute left-[66.76px] top-[343.97px] whitespace-pre text-[9px] leading-[11.7px]">{chargePeriod}</p>
       <p className="absolute left-[329.32px] top-[345.2px] whitespace-nowrap text-[13px] font-bold leading-[16.9px]">{shortDueDate(dueDate)}</p>
 
       <div className="absolute left-[5.48px] top-[365.43px] grid h-[144px] w-[366px] grid-cols-[58px_44px_44px_33px_33px_58px_47px_48px] grid-rows-[repeat(11,13px)] border-l border-t border-black text-[8.5px] leading-[normal]">
@@ -143,7 +187,10 @@ export function GiroPaper({ companyName, period, building, target, document, acc
         미납내역
       </div>
       <p className="absolute left-[373.72px] top-[385.44px] whitespace-pre text-[9px] leading-[11.7px]">년  월  당월분 연체료</p>
-      <p className="absolute left-[408.31px] top-[412.5px] whitespace-pre text-[10px] leading-[13px]">합계          </p>
+      {settlement.arrearsTotal > 0 && (
+        <p className="absolute left-[373.72px] top-[398.97px] whitespace-pre text-[9px] leading-[11.7px]">{`이월  ${amount(settlement.unpaid)}  ${amount(settlement.lateFee)}`}</p>
+      )}
+      <p className="absolute left-[408.31px] top-[412.5px] whitespace-pre text-[10px] leading-[13px]">{`합계          ${settlement.arrearsTotal > 0 ? amount(settlement.arrearsTotal) : ""}`}</p>
       <p className="absolute left-[373.8px] top-[466.16px] whitespace-nowrap text-[9px] leading-[11.7px]">수도사용기간</p>
       <p className="absolute left-[373.55px] top-[479.61px] whitespace-nowrap text-[9px] leading-[11.7px]" />
 

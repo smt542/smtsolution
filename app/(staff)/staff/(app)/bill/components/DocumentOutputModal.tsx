@@ -7,7 +7,7 @@ import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, IconButton, Spinner } from "@/components/common";
 import { CloseIcon, PrinterIcon } from "@/components/icons";
 import { billKeys, getBillDocuments, listBillTargets, useAdjustmentStatements, useIssueBills, useSendBillFaxes, type BillDocument, type BillTarget } from "@/hooks/reactquery/bill";
-import { billingKeys, getBillingPeriodSetting } from "@/hooks/reactquery/billing";
+import { billingKeys, getBillingPeriodSetting, type BillingPeriodSetting } from "@/hooks/reactquery/billing";
 import { cmsDownloadUrl } from "@/hooks/reactquery/payments";
 import { useStaffSignedBillLinks } from "@/hooks/reactquery/residentBilling";
 import { useSenderDefaults } from "@/hooks/reactquery/senderDefaults";
@@ -16,7 +16,7 @@ import { formatPhone, normalizePhone } from "@/lib/format";
 import { resolveDisplaySender } from "@/lib/messaging/senderDisplay";
 import { currentPeriod } from "@/lib/billing/period";
 import { matchesBuildingGroup } from "@/lib/buildings/groupType";
-import { displayUnitNo, publicBillUrl, type PrintableAccount } from "@/lib/bill/document";
+import { displayUnitNo, publicBillUrl, type BillPrintOptions, type PrintableAccount } from "@/lib/bill/document";
 import type { BillBuilding, OutputDocumentType } from "../types";
 import type { GiroOutputDocument, GiroPrintViewProps } from "./GiroPrintView";
 import { AutoDebitTable, filterAutoDebitRowsByGroup, isBuildingInAutoDebitGroup } from "./output-modal/AutoDebitTable";
@@ -42,6 +42,7 @@ export interface DocumentOutputModalProps {
   companyName: string;
   accounts: PrintableAccount[];
   customerNotice: string | null;
+  printOptions: BillPrintOptions;
   onClose: () => void;
 }
 
@@ -57,14 +58,17 @@ function outputYears(currentYear: number) {
   return Array.from({ length: 8 }, (_, index) => currentYear - index);
 }
 function outputPeriod(year: number, month: number) { return `${year}-${String(month).padStart(2, "0")}-01`; }
-function mergeGiroDocuments(building: BillBuilding, documents: BillDocument[], targets: BillTarget[], dueDate: string | null): GiroOutputDocument[] {
+function mergeGiroDocuments(building: BillBuilding, documents: BillDocument[], targets: BillTarget[], periodSetting: BillingPeriodSetting | undefined): GiroOutputDocument[] {
+  const dueDate = periodSetting?.dueDate ?? null;
+  const chargeStartDate = periodSetting?.chargeStartDate ?? null;
+  const chargeEndDate = periodSetting?.chargeEndDate ?? null;
   return documents.flatMap((document) => {
     const target = targets.find((candidate) => candidate.unitId === document.unitId);
-    return target ? [{ building, document, target, dueDate }] : [];
+    return target ? [{ building, document, target, dueDate, chargeStartDate, chargeEndDate }] : [];
   });
 }
 
-export function DocumentOutputModal({ type, orgId, buildings, companyName, accounts, customerNotice, onClose }: DocumentOutputModalProps) {
+export function DocumentOutputModal({ type, orgId, buildings, companyName, accounts, customerNotice, printOptions, onClose }: DocumentOutputModalProps) {
   const initial = initialYearMonth();
   const [years] = useState(() => outputYears(initial.year));
   const [year, setYear] = useState(initial.year);
@@ -112,7 +116,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
   const faxSender = resolveDisplaySender(setupConfig, senderDefaults.isError ? null : senderDefaults.data, "fax");
   const faxSenderLabel = faxSender === undefined ? "" : faxSender ? formatPhone(faxSender) : "발신번호 미등록";
 
-  const allGiroDocuments = currentTargetsByBuilding.flatMap(({ building, targets }, index) => mergeGiroDocuments(building, currentDocumentQueries[index]?.data ?? [], targets, periodSettingQueries[index]?.data?.dueDate ?? null));
+  const allGiroDocuments = currentTargetsByBuilding.flatMap(({ building, targets }, index) => mergeGiroDocuments(building, currentDocumentQueries[index]?.data ?? [], targets, periodSettingQueries[index]?.data));
   const validSelectedUnitIds = selectedUnitIds.filter((unitId) => allGiroDocuments.some(({ document }) => document.unitId === unitId));
   const effectiveIndividualId = previewUnitId !== null && validSelectedUnitIds.includes(previewUnitId)
     ? previewUnitId
@@ -342,7 +346,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
     }
   };
 
-  const printPreview = type === "giro" ? <GiroPrintView companyName={companyName} period={period} documents={giroDocuments} accounts={accounts} customerNotice={customerNotice} stamps={outputStamps} qrUrls={giroQrUrls} onReady={handlePreviewReady} /> : null;
+  const printPreview = type === "giro" ? <GiroPrintView companyName={companyName} period={period} documents={giroDocuments} accounts={accounts} customerNotice={customerNotice} printOptions={printOptions} stamps={outputStamps} qrUrls={giroQrUrls} onReady={handlePreviewReady} /> : null;
   const selectedUnitCount = selectedUnitIds.length;
   const hasStampBar = type === "giro" || type === "fax";
   // 정본 `#giroFoc`: 스탬프를 찍을 고지서(개별) 또는 전체 건수.
@@ -417,7 +421,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
                       )
                     ) : (
                       <>
-                        <CompactDocumentPreview companyName={companyName} period={period} pages={giroDocuments} accounts={accounts} customerNotice={customerNotice} stamps={outputStamps} highlightedUnitIds={stampTargetIds} onSelectUnit={selectPreviewUnit} zoom={zoom} onZoom={setZoom} />
+                        <CompactDocumentPreview companyName={companyName} period={period} pages={giroDocuments} accounts={accounts} customerNotice={customerNotice} printOptions={printOptions} stamps={outputStamps} highlightedUnitIds={stampTargetIds} onSelectUnit={selectPreviewUnit} zoom={zoom} onZoom={setZoom} />
                         {isPreviewRefreshing ? (
                           <div className="pointer-events-none absolute right-3 top-2 rounded-full bg-surface/95 shadow-card">
                             <Spinner label="출력 미리보기 갱신 중" size="small" showLabel className="px-3 py-2" />

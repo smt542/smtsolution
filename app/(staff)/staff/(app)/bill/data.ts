@@ -1,6 +1,6 @@
 import "server-only";
 
-import { printableAccounts, PROGRAM_COMPANY_NAME } from "@/lib/bill/document";
+import { DEFAULT_BILL_PRINT_OPTIONS, printableAccounts, PROGRAM_COMPANY_NAME } from "@/lib/bill/document";
 import { createClient } from "@/lib/supabase/server";
 import type { BillBuilding, BillPageData } from "./types";
 
@@ -18,6 +18,10 @@ type BillSetupConfigRow = {
   mgmt_acct2: string | null;
   mgmt_holder2: string | null;
   mgmt_print2: boolean;
+  print_water_unit_price: boolean | null;
+  print_billing_period: boolean | null;
+  print_delta: boolean | null;
+  late_fee_merge: boolean | null;
 };
 
 export async function getBillPageData(orgId: number): Promise<BillPageData> {
@@ -36,7 +40,7 @@ export async function getBillPageData(orgId: number): Promise<BillPageData> {
       .maybeSingle(),
     supabase
       .from("setup_config")
-      .select("customer_notice, mgmt_bank1, mgmt_acct1, mgmt_holder1, mgmt_print1, mgmt_bank2, mgmt_acct2, mgmt_holder2, mgmt_print2")
+      .select("customer_notice, mgmt_bank1, mgmt_acct1, mgmt_holder1, mgmt_print1, mgmt_bank2, mgmt_acct2, mgmt_holder2, mgmt_print2, print_water_unit_price, print_billing_period, print_delta, late_fee_merge")
       .eq("org_id", orgId)
       .maybeSingle(),
   ]);
@@ -65,5 +69,11 @@ export async function getBillPageData(orgId: number): Promise<BillPageData> {
       mgmtPrint2: config.mgmt_print2,
     } : null),
     customerNotice: config?.customer_notice ?? null,
+    printOptions: {
+      waterUnitPrice: config?.print_water_unit_price ?? DEFAULT_BILL_PRINT_OPTIONS.waterUnitPrice,
+      billingPeriod: config?.print_billing_period ?? DEFAULT_BILL_PRINT_OPTIONS.billingPeriod,
+      delta: config?.print_delta ?? DEFAULT_BILL_PRINT_OPTIONS.delta,
+      lateFeeMerge: config?.late_fee_merge ?? DEFAULT_BILL_PRINT_OPTIONS.lateFeeMerge,
+    },
   };
 }

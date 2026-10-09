@@ -1,4 +1,4 @@
-import type { PrintableAccount } from "@/lib/bill/document";
+import type { BillPrintOptions, PrintableAccount } from "@/lib/bill/document";
 
 export type OutputDocumentType = "giro" | "adjustment" | "autoDebit" | "fax";
 
@@ -17,4 +17,6 @@ export interface BillPageData {
   companyName: string;
   accounts: PrintableAccount[];
   customerNotice: string | null;
+  /** setup_config 고지서 출력 옵션(수도 단가·관리비 기간·증감량·연체료 합산). */
+  printOptions: BillPrintOptions;
 }

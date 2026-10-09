@@ -9,7 +9,14 @@ import {
   renderToBuffer,
 } from "@react-pdf/renderer";
 import QRCode from "qrcode";
-import { formatBillAmount, PROGRAM_COMPANY_NAME, type FaxDocumentData } from "./document";
+import {
+  chargePeriodLabel,
+  formatBillAmount,
+  giroSettlementRows,
+  meterSummary,
+  PROGRAM_COMPANY_NAME,
+  type FaxDocumentData,
+} from "./document";
 import { NOTO_SANS_KR_WOFF_BASE64 } from "./fonts/notoSansKr";
 
 /**
@@ -72,6 +79,9 @@ function FaxDocument({ doc, qrDataUrl }: { doc: FaxDocumentData; qrDataUrl: stri
               {doc.building.name} · {periodLabel(doc.period)}
             </Text>
             <Text style={styles.addr}>{doc.building.address ?? "주소 미등록"}</Text>
+            {doc.printOptions.billingPeriod && chargePeriodLabel(doc.chargeStartDate, doc.chargeEndDate) ? (
+              <Text style={styles.addr}>관리비 기간 · {chargePeriodLabel(doc.chargeStartDate, doc.chargeEndDate)}</Text>
+            ) : null}
           </View>
           {qrDataUrl ? (
             <View>
@@ -102,18 +112,27 @@ function FaxDocument({ doc, qrDataUrl }: { doc: FaxDocumentData; qrDataUrl: stri
         </View>
 
         <View style={styles.amountBox}>
-          <Text style={styles.amountLabel}>당월 납부 금액</Text>
-          <Text style={styles.amount}>{formatBillAmount(doc.amount)}</Text>
+          <Text style={styles.amountLabel}>납기내 금액</Text>
+          <Text style={styles.amount}>{formatBillAmount(doc.settlement.payInDue)}</Text>
         </View>
 
         <View style={styles.tableHead}>
           <Text style={styles.th}>부과 항목</Text>
           <Text style={styles.thRight}>금액</Text>
         </View>
-        {doc.items.map((item) => (
-          <View style={styles.row} key={item.feeItemId}>
-            <Text style={styles.td}>{item.name}</Text>
-            <Text style={styles.tdRight}>{formatBillAmount(item.amount)}</Text>
+        {doc.items.map((item) => {
+          const meter = meterSummary(item.name, doc.meters, doc.period, doc.printOptions);
+          return (
+            <View style={styles.row} key={item.feeItemId}>
+              <Text style={styles.td}>{meter ? `${item.name} (${meter})` : item.name}</Text>
+              <Text style={styles.tdRight}>{formatBillAmount(item.amount)}</Text>
+            </View>
+          );
+        })}
+        {giroSettlementRows(doc.settlement).map((row) => (
+          <View style={styles.row} key={row.label}>
+            <Text style={[styles.td, { fontWeight: 700 }]}>{row.label}</Text>
+            <Text style={[styles.tdRight, { fontWeight: 700 }]}>{formatBillAmount(row.amount)}</Text>
           </View>
         ))}
 

@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import type { MouseEvent, ReactNode } from "react";
 import { useState } from "react";
 import { Spinner } from "@/components/common";
+import { billKeys } from "@/hooks/reactquery/bill/keys";
 import { fetchBillPageData } from "../pageDataClient";
 import type { OutputDocumentType } from "../types";
 import type { DocumentOutputModalProps } from "./DocumentOutputModal";
@@ -65,7 +66,7 @@ function DataStateModal({ isError, onClose, onRetry }: DataStateModalProps) {
 export function BillWorkspace({ children }: BillWorkspaceProps) {
   const [activeDocument, setActiveDocument] = useState<OutputDocumentType | null>(null);
   const pageData = useQuery({
-    queryKey: ["bill", "page-data", activeDocument] as const,
+    queryKey: billKeys.pageData(activeDocument),
     queryFn: () => fetchBillPageData(activeDocument ?? undefined),
     enabled: activeDocument !== null,
   });
