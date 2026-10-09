@@ -8,6 +8,7 @@ import {
   listPlatformOrganizations,
   listPointTransactions,
   platformKeys,
+  useCanManageHqAccounts,
   useChargePoints,
   useDeletePointCharge,
   useMessagePointRates,
@@ -100,6 +101,7 @@ export default function PointsWorkspace() {
     queryFn: listAllPlatformOrganizations,
   });
   const billingQuery = usePlatformOrgBilling(currentMonthIso());
+  const { data: canManage = false } = useCanManageHqAccounts();
   const ratesQuery = useMessagePointRates();
   const settingsQuery = usePlatformSettings();
   const chargeHistoryQuery = useQuery({
@@ -299,7 +301,7 @@ export default function PointsWorkspace() {
             variant="ghost"
             type="button"
             onClick={() => setRateModalOpen(true)}
-            disabled={ratesQuery.isPending || ratesQuery.isError}
+            disabled={!canManage || ratesQuery.isPending || ratesQuery.isError}
             className="shrink-0 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
           >
             단가 설정
@@ -308,7 +310,7 @@ export default function PointsWorkspace() {
             variant="primary"
             type="button"
             onClick={() => setChargeModalOpen(true)}
-            disabled={pickerUnavailable}
+            disabled={!canManage || pickerUnavailable}
             className="shrink-0 border border-transparent transition-colors disabled:cursor-not-allowed disabled:opacity-60"
           >
             포인트 충전
@@ -422,7 +424,8 @@ export default function PointsWorkspace() {
                   <button
                     type="button"
                     onClick={() => setSelectedCharge(transaction)}
-                    className="flex w-full cursor-pointer items-center gap-3 px-[18px] py-[14px] text-left hover:bg-row-hover"
+                    disabled={!canManage}
+                    className="flex w-full cursor-pointer items-center gap-3 px-[18px] py-[14px] text-left hover:bg-row-hover disabled:cursor-not-allowed disabled:hover:bg-transparent"
                   >
                     <span className="block min-w-0 flex-1 text-[14px] font-bold text-t1">
                       {num(transaction.points)}P

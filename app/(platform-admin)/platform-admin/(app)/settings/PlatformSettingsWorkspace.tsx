@@ -4,6 +4,7 @@ import { useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, Input, Spinner, Textarea } from "@/components/common";
 import {
+  useCanManageHqAccounts,
   usePlatformSettings,
   useUpdatePlatformSettings,
   type PlatformSettings,
@@ -49,6 +50,7 @@ const emptyDraft: SettingsDraft = {
 };
 
 export function PlatformSettingsWorkspace() {
+  const { data: canManage = false } = useCanManageHqAccounts();
   const settingsQuery = usePlatformSettings();
   const updateSettings = useUpdatePlatformSettings();
   const [isEditing, setIsEditing] = useState(false);
@@ -110,7 +112,7 @@ export function PlatformSettingsWorkspace() {
             variant="primary"
             type="button"
             onClick={beginEditing}
-            disabled={!settingsQuery.data}
+            disabled={!canManage || !settingsQuery.data}
             className="shrink-0 transition-colors disabled:cursor-not-allowed"
           >
             수정

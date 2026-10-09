@@ -1,7 +1,7 @@
 "use client";
 import type { ModuleKey } from "@/lib/auth/permissions";
 
-// 수납 처리(payment)·민원(complaints)은 DB 트리거(0194)가 사무실 직원에게 항상 넣으므로 칩이 없다.
+// 수납·민원은 DB 트리거(0267)가 직원 생성(INSERT) 시에만 기본 부여하고, 이후에는 이 칩으로 마스터가 조정한다.
 const PERMISSION_GROUPS: {
   title: string;
   chips: { label: string; keys: readonly ModuleKey[] }[];
@@ -14,6 +14,7 @@ const PERMISSION_GROUPS: {
       { label: "항목등록 관리", keys: ["fee_items"] },
       { label: "서류 발행·출력", keys: ["bill_publish"] },
       { label: "미납 관리", keys: ["overdue"] },
+      { label: "수납관리·민원접수", keys: ["payment", "complaints"] },
       { label: "협력업체 관리", keys: ["vendors"] },
       { label: "장기수선비 관리", keys: ["long_term_repair"] },
       { label: "문자·알림톡 관리", keys: ["messaging"] },
