@@ -548,7 +548,7 @@ export function utilityReadingCharge(
 
 /**
  * 정산요금 = settlement_amount 정의(0266 고정): **수납 차감 전** 금액
- *   ① 공과금(water+elec+gas) + ② 관리비(mgmtFeeProrated) + ③ 미납(unpaidAmount, 정산 occupancy 의 확정 부과 미납 + 연체료, 0268)
+ *   ① 공과금(water+elec+gas) + ② 관리비(mgmtFeeProrated) + ③ 미납(unpaidAmount, 정산 occupancy·입주월 이후 확정 부과 미납 + 연체료, 0268·0275)
  *   + ④ 청소비(cleaningCost)·기타(repairAmount)
  * 서버 save_moving_settlement / partner_save_moving_settlement / 트리거 set_moving_settlement_amount 와 같은 식이다.
  * 미수금 = 정산요금 − 수납액.

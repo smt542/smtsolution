@@ -43,10 +43,14 @@ export function recipientKindLabel(kind: MessageRecipient["kind"]): string {
   return labels[kind];
 }
 
+/** 유형별 수신 가능 건물 수(건물주·청소 담당). 없으면 조직 전체 건물 수로 판정한다. */
+export type EligibleBuildingCounts = Partial<Record<MessageRecipient["kind"], number>>;
+
 export function buildRecipientSummary(
   recipients: MessageRecipient[],
   recipientCount: number,
   buildingNameById: Map<number, string> | ReadonlyMap<number, string>,
+  eligibleBuildingCounts: EligibleBuildingCounts = {},
 ): string {
   if (recipients.length === 0) return `${recipientCount}명`;
 
@@ -62,7 +66,18 @@ export function buildRecipientSummary(
   );
   const buildingId = buildingIds.size === 1 ? [...buildingIds][0] : undefined;
   const buildingName = buildingId === undefined ? undefined : buildingNameById.get(buildingId);
-  const buildingLabel = buildingName ?? "전체";
+  // 정책(문자·알림톡 관리 L51) 범위 = 전체 / 특정 건물: 수신 가능 건물을 모두 고른 경우에만 「전체」.
+  // 건물 참조가 없는 수신자(직원 등)는 건물 범위가 없으므로 기존대로 「전체」.
+  const eligibleCount = kinds.size === 1
+    ? (eligibleBuildingCounts[recipients[0].kind] ?? buildingNameById.size)
+    : buildingNameById.size;
+  const buildingLabel = buildingIds.size === 0
+    ? "전체"
+    : buildingIds.size === 1
+      ? (buildingName ?? "건물 1곳")
+      : eligibleCount > 0 && buildingIds.size >= eligibleCount
+        ? "전체"
+        : `건물 ${buildingIds.size}곳`;
 
   return `${kindLabel} / ${buildingLabel} / ${recipientCount}명`;
 }

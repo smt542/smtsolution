@@ -11,6 +11,7 @@ import {
   validRecipients,
   type MessageRecipient,
 } from "@/lib/messaging/preset";
+import { cleanerByBuildingId as buildCleanerByBuildingId, hasRecipientPhone } from "@/lib/messaging/contactBuildings";
 import type { RecipientCascadePreset } from "@/lib/messaging/messengerHandoff";
 import { messengerClasses as styles } from "./messengerClasses";
 import type { ChannelMode, RecipientType } from "./types";
@@ -45,9 +46,7 @@ interface MenuPosition {
   width: number;
 }
 
-function hasPhone(phone: string | null | undefined): phone is string {
-  return !!phone?.replace(/\D/g, "");
-}
+const hasPhone = hasRecipientPhone;
 
 function toggleValue<T>(values: T[], value: T): T[] {
   return values.includes(value)
@@ -186,17 +185,7 @@ export function RecipientCascade({
     [eligibleTenants, selection.tenantUnitIds],
   );
   const cleanerByBuildingId = useMemo(
-    () =>
-      new Map(
-        buildings.flatMap((building) => {
-          const cleaner = building.cleaningUserId
-            ? accounts.find((account) => account.userId === building.cleaningUserId)
-            : undefined;
-          return cleaner && hasPhone(cleaner.phone)
-            ? ([[building.id, cleaner]] as const)
-            : [];
-        }),
-      ),
+    () => buildCleanerByBuildingId(buildings, accounts),
     [accounts, buildings],
   );
   const eligibleBuildings = useMemo(() => {

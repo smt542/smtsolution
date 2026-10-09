@@ -2,10 +2,12 @@
 
 import { useMemo, useState, type KeyboardEvent } from "react";
 import { useMe } from "@/hooks/reactquery/auth";
+import { useAccounts } from "@/hooks/reactquery/accounts/queries";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useMessageLogs, type MessageLog } from "@/hooks/reactquery/messaging";
 import { useSenderDefaults } from "@/hooks/reactquery/senderDefaults";
 import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
+import { eligibleContactBuildingCounts } from "@/lib/messaging/contactBuildings";
 import { resolveDisplaySender } from "@/lib/messaging/senderDisplay";
 import { MessageDetailModal } from "./MessageDetailModal";
 import { MessageResultBadge } from "./MessageResultBadge";
@@ -43,6 +45,11 @@ export function HistoryTab() {
   const buildingNameById = useMemo(
     () => new Map(buildings.map((building) => [building.id, building.name] as const)),
     [buildings],
+  );
+  const { data: accounts = [] } = useAccounts();
+  const eligibleBuildingCounts = useMemo(
+    () => eligibleContactBuildingCounts(buildings, accounts),
+    [accounts, buildings],
   );
 
   const filteredLogs = useMemo(() => {
@@ -135,7 +142,7 @@ export function HistoryTab() {
                 <td className={TD}>{channelLabel(log.channel)}</td>
                 <td className={TD}>{senderLabel(log.channel, smsSender)}</td>
                 <td className={TD}>
-                  {buildRecipientSummary(log.recipients, log.recipientCount, buildingNameById)}
+                  {buildRecipientSummary(log.recipients, log.recipientCount, buildingNameById, eligibleBuildingCounts)}
                 </td>
                 <td className={`${TD} max-w-[260px]`}>
                   <span className="block truncate" title={log.body}>
@@ -164,6 +171,7 @@ export function HistoryTab() {
                 selected.recipients,
                 selected.recipientCount,
                 buildingNameById,
+                eligibleBuildingCounts,
               ),
             },
             { label: "발송시점", value: formatMessageDateTime(selected.sentAt) },

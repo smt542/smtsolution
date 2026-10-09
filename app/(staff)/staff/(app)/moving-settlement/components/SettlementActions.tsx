@@ -169,7 +169,11 @@ export function SettlementActions({
         setDialog(null);
         toast.success("중도퇴실로 처리 완료했어요.");
       },
-      onError: () => toast.error("중도퇴실 처리에 실패했어요."),
+      onError: (error) =>
+        toast.error(
+          // 재사용된 occupancy 에 새 입주자가 들어온 경우 RPC 가 가드 메시지를 던진다(0275).
+          error.message.includes("새 입주자") ? error.message : "중도퇴실 처리에 실패했어요.",
+        ),
     });
   };
 
@@ -186,7 +190,11 @@ export function SettlementActions({
             : "퇴실로 처리 완료했어요.",
         );
       },
-      onError: () => toast.error("퇴실 처리에 실패했어요."),
+      onError: (error) =>
+        toast.error(
+          // 재사용된 occupancy 에 새 입주자가 들어온 경우 RPC 가 가드 메시지를 던진다(0275).
+          error.message.includes("새 입주자") ? error.message : "퇴실 처리에 실패했어요.",
+        ),
     });
   };
 

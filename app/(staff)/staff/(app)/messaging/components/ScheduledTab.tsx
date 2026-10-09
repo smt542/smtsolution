@@ -4,6 +4,7 @@ import { useMemo, useState, type KeyboardEvent } from "react";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useMe } from "@/hooks/reactquery/auth";
+import { useAccounts } from "@/hooks/reactquery/accounts/queries";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import {
   useScheduledMessages,
@@ -12,6 +13,7 @@ import {
 } from "@/hooks/reactquery/messaging";
 import { useSenderDefaults } from "@/hooks/reactquery/senderDefaults";
 import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
+import { eligibleContactBuildingCounts } from "@/lib/messaging/contactBuildings";
 import { resolveDisplaySender } from "@/lib/messaging/senderDisplay";
 import { MessageDetailModal } from "./MessageDetailModal";
 import { RecurrenceSettingsModal } from "./RecurrenceSettingsModal";
@@ -95,6 +97,11 @@ export function ScheduledTab() {
   const buildingNameById = useMemo(
     () => new Map(buildings.map((building) => [building.id, building.name] as const)),
     [buildings],
+  );
+  const { data: accounts = [] } = useAccounts();
+  const eligibleBuildingCounts = useMemo(
+    () => eligibleContactBuildingCounts(buildings, accounts),
+    [accounts, buildings],
   );
 
   const filtered = useMemo(() => {
@@ -187,7 +194,7 @@ export function ScheduledTab() {
                 <td className={TD}>{channelLabel(msg.channel)}</td>
                 <td className={TD}>{senderLabel(msg.channel, smsSender)}</td>
                 <td className={TD}>
-                  {buildRecipientSummary(msg.recipients, msg.recipientCount, buildingNameById)}
+                  {buildRecipientSummary(msg.recipients, msg.recipientCount, buildingNameById, eligibleBuildingCounts)}
                 </td>
                 <td className={`${TD} max-w-[260px]`}>
                   <span className="block truncate" title={msg.body}>
@@ -236,6 +243,7 @@ export function ScheduledTab() {
                 selected.recipients,
                 selected.recipientCount,
                 buildingNameById,
+                eligibleBuildingCounts,
               ),
             },
             { label: "발송시점", value: formatMessageDateTime(selected.scheduledAt) },

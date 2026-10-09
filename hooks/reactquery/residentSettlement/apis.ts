@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/client";
 
-export type PublicSettlementKind = "환급" | "추가납부";
+/** 공유 링크 정산구분(0275): 미수금(정산요금 − 수납액) <0 환급 / >0 추가납부 / =0 완납. */
+export type PublicSettlementKind = "환급" | "추가납부" | "완납";
 
 export interface PublicSettlementRow {
   move_out_date: string | null;
