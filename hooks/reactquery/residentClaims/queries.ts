@@ -4,6 +4,7 @@ import {
   residentAutomatch,
   residentMyLink,
   residentPendingContact,
+  residentPendingState,
   residentSearchBuildings,
 } from "./apis";
 import type { ResidentClaimStatus } from "./apis";
@@ -16,10 +17,14 @@ export function useResidentAutomatch() {
   });
 }
 
-export function useResidentMyLink() {
+export function useResidentMyLink(options?: {
+  refetchInterval?: number | false;
+  refetchOnWindowFocus?: boolean;
+}) {
   return useQuery({
     queryKey: residentClaimKeys.myLink(),
     queryFn: residentMyLink,
+    ...options,
   });
 }
 
@@ -28,6 +33,17 @@ export function useResidentPendingContact(enabled = true) {
     queryKey: residentClaimKeys.pendingContact(),
     queryFn: residentPendingContact,
     enabled,
+  });
+}
+
+export function useResidentPendingState(options?: {
+  refetchInterval?: number | false;
+  refetchOnWindowFocus?: boolean;
+}) {
+  return useQuery({
+    queryKey: residentClaimKeys.pendingState(),
+    queryFn: residentPendingState,
+    ...options,
   });
 }
 

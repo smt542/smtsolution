@@ -5,6 +5,7 @@ export const residentClaimKeys = {
   automatch: () => ["residentClaims", "automatch"] as const,
   myLink: () => ["residentClaims", "myLink"] as const,
   pendingContact: () => ["residentClaims", "pendingContact"] as const,
+  pendingState: () => ["residentClaims", "pendingState"] as const,
   lists: () => ["residentClaims", "list"] as const,
   list: (status?: ResidentClaimStatus) => [
     "residentClaims",

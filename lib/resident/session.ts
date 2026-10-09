@@ -25,6 +25,7 @@ export type ResidentSessionResult = {
   name: string | null;
   phone: string | null;
   profileImage: string | null;
+  destination: "/resident/home" | "/resident/pending" | "/resident/auth";
   applyTo(response: NextResponse): void;
 };
 
@@ -161,12 +162,25 @@ export async function mintResidentSession(
     throw new Error("Unable to establish the resident session.");
   }
 
+  const [{ data: linkRows }, { data: pendingRows }] = await Promise.all([
+    sessionClient.rpc("resident_my_link"),
+    sessionClient.rpc("resident_pending_state"),
+  ]);
+  const link = Array.isArray(linkRows) ? linkRows[0] : linkRows;
+  const pending = Array.isArray(pendingRows) ? pendingRows[0] : pendingRows;
+  const destination = link
+    ? "/resident/home" as const
+    : pending
+      ? "/resident/pending" as const
+      : "/resident/auth" as const;
+
   return {
     userId: user.id,
     kakaoId,
     name,
     phone,
     profileImage,
+    destination,
     applyTo(response) {
       sessionCookies.forEach(({ name: cookieName, value, options }) => {
         response.cookies.set(cookieName, value, options);

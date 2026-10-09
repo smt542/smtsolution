@@ -145,19 +145,21 @@ export function MobileTenantWorkspace({ data }: { data: MobileTenantData }) {
 
             <div className={styles.sectionTitle}>연락처</div>
             <div className={styles.sec}>
-              <div className={styles.row}>
-                <span className={styles.rowLabel}>전화번호</span>
-                {occ.phone ? (
+              {[occ.phone, ...occ.phones_more].filter((phone): phone is string => Boolean(phone)).map((phone, index) => (
+                <div key={`${phone}-${index}`} className={styles.row}>
+                  <span className={styles.rowLabel}>{index === 0 ? "전화번호" : "부번호"}</span>
                   <PartnerPhoneLink
-                    phone={occ.phone}
+                    phone={phone}
                     pushRight
                   />
-                ) : occ.phone ? (
-                  <span className={styles.muted}>-</span>
-                ) : (
+                </div>
+              ))}
+              {[occ.phone, ...occ.phones_more].every((phone) => !phone) ? (
+                <div className={styles.row}>
+                  <span className={styles.rowLabel}>전화번호</span>
                   <span className={styles.muted}>등록된 연락처가 없어요</span>
-                )}
-              </div>
+                </div>
+              ) : null}
             </div>
           </div>
         )}

@@ -224,7 +224,23 @@ export interface ResidentPendingContact {
   companyPhone: string | null;
 }
 
+export interface ResidentPendingState extends ResidentPendingContact {
+  claimId: number;
+  buildingName: string;
+  unitNo: string;
+  requestedAt: string;
+}
+
 type ResidentPendingContactRow = {
+  company_name: string;
+  company_phone: string | null;
+};
+
+type ResidentPendingStateRow = {
+  claim_id: number;
+  building_name: string;
+  unit_no: string;
+  requested_at: string;
   company_name: string;
   company_phone: string | null;
 };
@@ -235,6 +251,23 @@ export async function residentPendingContact(): Promise<ResidentPendingContact |
   if (error) throw new Error(error.message);
   const row = ((data ?? []) as ResidentPendingContactRow[])[0];
   return row ? { companyName: row.company_name, companyPhone: row.company_phone } : null;
+}
+
+/** 로그인한 세입자의 서버 정본 pending 신청. 새로고침·재실행 뒤에도 복원된다. */
+export async function residentPendingState(): Promise<ResidentPendingState | null> {
+  const { data, error } = await createClient().rpc("resident_pending_state");
+  if (error) throw new Error(error.message);
+  const row = ((data ?? []) as ResidentPendingStateRow[])[0];
+  return row
+    ? {
+        claimId: row.claim_id,
+        buildingName: row.building_name,
+        unitNo: row.unit_no,
+        requestedAt: row.requested_at,
+        companyName: row.company_name,
+        companyPhone: row.company_phone,
+      }
+    : null;
 }
 
 export async function listResidentClaims(

@@ -168,7 +168,12 @@ export function RecipientCascade({
     [accounts],
   );
   const eligibleTenants = useMemo(
-    () => tenants.filter((tenant) => !tenant.isVacant && hasPhone(tenant.phone)),
+    () =>
+      tenants.filter(
+        (tenant) =>
+          !tenant.isVacant &&
+          (hasPhone(tenant.phone) || tenant.phonesMore.some(hasPhone)),
+      ),
     [tenants],
   );
   const selectedTenantUnitIds = useMemo(
@@ -223,16 +228,21 @@ export function RecipientCascade({
     if (type === "tenant") {
       return eligibleTenants
         .filter((tenant) => selection.tenantUnitIds.includes(tenant.unitId))
-        .map((tenant) => ({
-          name: tenant.tenantName,
-          phone: tenant.phone,
-          unitNo: tenant.unitNo,
-          kind: "tenant",
-          ref: {
-            occupancyId: tenant.occupancyId ?? undefined,
-            buildingId: selection.buildingId ?? undefined,
-          },
-        }));
+        .flatMap((tenant) =>
+          [tenant.phone, ...tenant.phonesMore]
+            .filter(hasPhone)
+            .map((phone, index) => ({
+              name: tenant.tenantName,
+              phone,
+              phoneType: index === 0 && phone === tenant.phone ? "primary" as const : "secondary" as const,
+              unitNo: tenant.unitNo,
+              kind: "tenant" as const,
+              ref: {
+                occupancyId: tenant.occupancyId ?? undefined,
+                buildingId: selection.buildingId ?? undefined,
+              },
+            })),
+        );
     }
 
     if (type === "owner" && selectedBuilding) {
@@ -388,7 +398,7 @@ export function RecipientCascade({
     GROUP_OPTIONS.find((option) => option.value === buildingGroup)?.label ?? GROUP_OPTIONS[0].label;
   const normalizedThirdSearch = thirdSearch.trim().toLowerCase();
   const filteredTenants = eligibleTenants.filter((tenant) =>
-    `${tenant.unitNo} ${tenant.tenantName ?? ""} ${tenant.phone}`
+    `${tenant.unitNo} ${tenant.tenantName ?? ""} ${tenant.phone ?? ""} ${tenant.phonesMore.join(" ")}`
       .toLowerCase()
       .includes(normalizedThirdSearch),
   );

@@ -20,10 +20,7 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 /**
- * 접속기록 보존기간(기본 2년) 경과분을 지운다. 외부 스케줄러가 하루 한 번 호출한다.
- *
- * 보존기간은 DB 함수 purge_access_log의 기본값 한 곳에만 있다. 여기서 인수를 넘기지
- * 않는 이유이며, 기간을 바꿀 때 코드 배포 없이 마이그레이션만으로 끝난다.
+ * 개인정보 처리방침의 접속기록 보존기간(3개월=90일) 경과분을 지운다.
  *
  * 감사기록 삭제이므로 세션 폴백을 두지 않는다. CRON_SECRET만 받는다.
  */
@@ -36,7 +33,9 @@ export async function POST(request: Request): Promise<Response> {
     return json({ error: "unauthorized" }, 401);
   }
 
-  const { data, error } = await createAdminClient().rpc("purge_access_log");
+  const { data, error } = await createAdminClient().rpc("purge_access_log", {
+    p_retention_days: 90,
+  });
   if (error) {
     console.error("[cron/purge-access-log] failed", error.message);
     return json({ error: "요청을 처리할 수 없습니다." }, 500);

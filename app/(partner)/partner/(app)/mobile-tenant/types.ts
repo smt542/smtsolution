@@ -8,6 +8,7 @@ export type OccupancyDetail = {
   tenant_name: string | null;
   payer_name: string | null;
   phone: string | null;
+  phones_more: string[];
   resident_count: number | null;
   vehicle_no: string | null;
   move_in_date: string | null;

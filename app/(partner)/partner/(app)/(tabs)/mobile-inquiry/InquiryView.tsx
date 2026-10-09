@@ -25,6 +25,7 @@ export type TenantRow = {
   dong: string | null;
   tenant_name: string | null;
   phone: string | null;
+  phones_more: string[];
   move_in_date: string | null;
 };
 
@@ -50,7 +51,9 @@ export function InquiryView({ buildings, tenants }: { buildings: BuildingRow[]; 
         (t) =>
           !kw ||
           `${t.tenant_name ?? ""} ${t.building_name}`.toLowerCase().includes(kw) ||
-          (kwDigits !== "" && (t.phone ?? "").replace(/\D/g, "").includes(kwDigits)),
+          (kwDigits !== "" && [t.phone, ...t.phones_more].some(
+            (phone) => (phone ?? "").replace(/\D/g, "").includes(kwDigits),
+          )),
       ),
     [tenants, kw, kwDigits],
   );
@@ -107,15 +110,15 @@ export function InquiryView({ buildings, tenants }: { buildings: BuildingRow[]; 
                 <div className={styles.taddr}>
                   {t.building_name} {unitLabel(t.dong, t.unit_no)}
                 </div>
-                {t.phone && (
-                  <div className={styles.trow}>
-                    <span className={styles.trowLabel}>연락처</span>
+                {[t.phone, ...t.phones_more].filter((phone): phone is string => Boolean(phone)).map((phone, index) => (
+                  <div key={`${phone}-${index}`} className={styles.trow}>
+                    <span className={styles.trowLabel}>{index === 0 ? "연락처" : "부번호"}</span>
                     <PartnerPhoneLink
-                      phone={t.phone}
+                      phone={phone}
                       pushRight
                     />
                   </div>
-                )}
+                ))}
               </div>
             ))}
           </div>

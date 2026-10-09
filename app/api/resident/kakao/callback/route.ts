@@ -24,8 +24,14 @@ function clearStateCookie(response: NextResponse) {
   });
 }
 
-function errorResponse(message: string, status: number) {
-  const response = NextResponse.json({ error: message }, { status });
+function errorRedirect(request: NextRequest, code: string) {
+  const configuredRedirect = process.env.KAKAO_REDIRECT_URI;
+  const origin = configuredRedirect
+    ? new URL(configuredRedirect).origin
+    : request.nextUrl.origin;
+  const url = new URL("/resident/login", origin);
+  url.searchParams.set("error", code);
+  const response = NextResponse.redirect(url);
   clearStateCookie(response);
   response.headers.set("Cache-Control", "private, no-store");
   return response;
@@ -39,23 +45,23 @@ export async function GET(request: NextRequest) {
 
   const redirectUri = process.env.KAKAO_REDIRECT_URI;
   if (!redirectUri) {
-    return errorResponse("Kakao OAuth is not configured.", 500);
+    return errorRedirect(request, "provider_unavailable");
   }
 
   const state = request.nextUrl.searchParams.get("state");
   const expectedState = request.cookies.get(STATE_COOKIE)?.value;
   if (!state || !expectedState || state !== expectedState) {
-    return errorResponse("Invalid Kakao OAuth state.", 400);
+    return errorRedirect(request, "invalid_state");
   }
 
   const oauthError = request.nextUrl.searchParams.get("error");
   if (oauthError) {
-    return errorResponse("Kakao login was cancelled.", 400);
+    return errorRedirect(request, "cancelled");
   }
 
   const code = request.nextUrl.searchParams.get("code");
   if (!code) {
-    return errorResponse("Missing Kakao authorization code.", 400);
+    return errorRedirect(request, "missing_code");
   }
 
   const tokenBody = new URLSearchParams({
@@ -77,7 +83,7 @@ export async function GET(request: NextRequest) {
       cache: "no-store",
     });
   } catch {
-    return errorResponse("Unable to contact Kakao OAuth.", 502);
+    return errorRedirect(request, "provider_unavailable");
   }
 
   const tokenPayload: unknown = await tokenResponse.json().catch(() => null);
@@ -85,7 +91,7 @@ export async function GET(request: NextRequest) {
     ? tokenPayload.access_token
     : null;
   if (!tokenResponse.ok || !accessToken) {
-    return errorResponse("Unable to exchange the Kakao authorization code.", 502);
+    return errorRedirect(request, "provider_unavailable");
   }
 
   let userResponse: Response;
@@ -95,17 +101,17 @@ export async function GET(request: NextRequest) {
       cache: "no-store",
     });
   } catch {
-    return errorResponse("Unable to contact the Kakao user API.", 502);
+    return errorRedirect(request, "provider_unavailable");
   }
 
   const userPayload: unknown = await userResponse.json().catch(() => null);
   if (!userResponse.ok || !isRecord(userPayload)) {
-    return errorResponse("Unable to read the Kakao user.", 502);
+    return errorRedirect(request, "provider_unavailable");
   }
 
   const rawId = userPayload.id;
   if ((typeof rawId !== "number" && typeof rawId !== "string") || String(rawId) === "") {
-    return errorResponse("Kakao user response is missing an id.", 502);
+    return errorRedirect(request, "provider_unavailable");
   }
 
   const account = isRecord(userPayload.kakao_account)
@@ -137,9 +143,6 @@ export async function GET(request: NextRequest) {
   // 사용자가 localhost로 튕긴다(ERR_SSL_PROTOCOL_ERROR). 카카오가 방금 브라우저를 보낸
   // redirectUri의 origin이 곧 공개 도메인이므로 이를 기준으로 로그인 후 목적지를 만든다.
   const publicOrigin = new URL(redirectUri).origin;
-  const response = NextResponse.redirect(new URL("/resident/auth", publicOrigin));
-  clearStateCookie(response);
-
   try {
     const session = await mintResidentSession({
       kakaoId: String(rawId),
@@ -147,11 +150,12 @@ export async function GET(request: NextRequest) {
       phone,
       profileImage,
     });
+    const response = NextResponse.redirect(new URL(session.destination, publicOrigin));
+    clearStateCookie(response);
     session.applyTo(response);
+    response.headers.set("Cache-Control", "private, no-store");
+    return response;
   } catch {
-    return errorResponse("Unable to establish the resident session.", 500);
+    return errorRedirect(request, "session_failed");
   }
-
-  response.headers.set("Cache-Control", "private, no-store");
-  return response;
 }

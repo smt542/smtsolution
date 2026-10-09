@@ -15,6 +15,7 @@ import {
   residentAutomatch,
   residentConfirm,
   residentMyLink,
+  residentPendingState,
   residentRequestClaim,
   residentSearchBuildings,
   stubResidentKakaoLogin,
@@ -156,6 +157,16 @@ export async function myLink(): Promise<MyLink | null> {
     buildingName: link.buildingName ?? "",
     unitNo: link.unitNo ?? "",
     tenantName: link.tenantName ?? "",
+  };
+}
+
+export async function pendingState(): Promise<PendingInfo | null> {
+  const state = await residentPendingState();
+  if (!state) return null;
+  return {
+    buildingName: state.buildingName,
+    unitNo: state.unitNo,
+    requestedAt: state.requestedAt,
   };
 }
 

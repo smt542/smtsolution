@@ -1,17 +1,18 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import type { ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import OnboardingPageScaffold from "@/app/(resident)/_components/OnboardingPageScaffold";
 import { PhoneIcon } from "@/components/icons";
-import { useResidentPendingContact } from "@/hooks/reactquery/residentClaims";
-import { formatPhone, normalizePhone } from "@/lib/format";
 import {
-  getPendingInfo,
-  type PendingInfo,
-} from "@/lib/resident/onboardingClient";
+  useResidentMyLink,
+  useResidentPendingState,
+} from "@/hooks/reactquery/residentClaims";
+import { formatPhone, normalizePhone } from "@/lib/format";
+import { logout } from "@/lib/resident/onboardingClient";
 import {
   ResidentButton,
   residentButtonClass,
@@ -39,33 +40,31 @@ export function ResidentPendingClient({
   icon: ReactNode;
 }) {
   const router = useRouter();
-  const [pendingInfo, setPendingInfo] = useState<PendingInfo | null>(null);
-  const { data: contact } = useResidentPendingContact(pendingInfo !== null);
+  const queryClient = useQueryClient();
+  const linkQuery = useResidentMyLink({
+    refetchInterval: 5_000,
+    refetchOnWindowFocus: true,
+  });
+  const pendingQuery = useResidentPendingState({
+    refetchInterval: 5_000,
+    refetchOnWindowFocus: true,
+  });
+  const pendingInfo = pendingQuery.data;
 
   useEffect(() => {
-    let cancelled = false;
-
-    const loadPendingInfo = async () => {
-      const pending = getPendingInfo();
-
-      if (!pending) {
-        router.replace("/resident/login");
-        return;
-      }
-
-      await Promise.resolve();
-
-      if (!cancelled) {
-        setPendingInfo(pending);
-      }
-    };
-
-    void loadPendingInfo();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [router]);
+    if (linkQuery.data) {
+      router.replace("/resident/home");
+      return;
+    }
+    if (
+      !linkQuery.isLoading &&
+      !pendingQuery.isLoading &&
+      linkQuery.data === null &&
+      pendingQuery.data === null
+    ) {
+      router.replace("/resident/auth");
+    }
+  }, [linkQuery.data, linkQuery.isLoading, pendingQuery.data, pendingQuery.isLoading, router]);
 
   if (!pendingInfo) return null;
 
@@ -73,9 +72,15 @@ export function ResidentPendingClient({
     `${pendingInfo.buildingName} ${pendingInfo.unitNo}`.trim() ||
     "건물 확인 요청";
   // 대표 전화가 없으면 걸 번호가 없으니 문의 카드를 숨긴다.
-  const contactDigits = contact?.companyPhone
-    ? normalizePhone(contact.companyPhone)
+  const contactDigits = pendingInfo.companyPhone
+    ? normalizePhone(pendingInfo.companyPhone)
     : "";
+
+  const signOut = async () => {
+    await logout();
+    queryClient.clear();
+    router.replace("/resident/login");
+  };
 
   return (
     <OnboardingPageScaffold
@@ -89,7 +94,7 @@ export function ResidentPendingClient({
           size="xl"
           type="button"
           className="w-full leading-[normal]"
-          onClick={() => router.push("/resident/login")}
+          onClick={() => void signOut()}
         >
           로그인 화면으로
         </ResidentButton>
@@ -107,7 +112,7 @@ export function ResidentPendingClient({
           </b>
         </div>
       </div>
-      {contact && contactDigits ? (
+      {contactDigits ? (
         <div className="mt-3.5 flex w-full items-center gap-3 rounded-2xl border border-line px-4 py-[15px] text-left leading-[normal] animate-[rise_0.5s_280ms_cubic-bezier(0.22,0.61,0.36,1)_both]">
           <div className="flex size-[38px] flex-none items-center justify-center rounded-[13px] bg-bg text-blue">
             <PhoneIcon className="size-[19px]" />
@@ -115,7 +120,7 @@ export function ResidentPendingClient({
           <div className="min-w-0 flex-1">
             <b className="block text-[14.5px] font-bold">급하면 바로 문의하세요</b>
             <span className="mt-[3px] block text-[12.5px] font-semibold text-t3 tabular-nums">
-              {contact.companyName} · {formatPhone(contactDigits)}
+              {pendingInfo.companyName} · {formatPhone(contactDigits)}
             </span>
           </div>
           <a

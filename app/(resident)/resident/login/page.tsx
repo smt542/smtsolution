@@ -1,6 +1,9 @@
 import Image from "next/image";
 import type { Viewport } from "next";
+import { redirect } from "next/navigation";
 
+import { createClient } from "@/lib/supabase/server";
+import { hasEntryPersona } from "@/lib/auth/requirePersona";
 import ResidentLoginAction from "./ResidentLoginAction";
 import { loginClasses as styles } from "./loginClasses";
 
@@ -8,7 +11,31 @@ export const viewport: Viewport = {
   themeColor: "#ffffff",
 };
 
-export default function ResidentLoginPage() {
+export default async function ResidentLoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string | string[] }>;
+}) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user && (await hasEntryPersona(supabase, "resident", user.id))) {
+    const [{ data: linkRows }, { data: pendingRows }] = await Promise.all([
+      supabase.rpc("resident_my_link"),
+      supabase.rpc("resident_pending_state"),
+    ]);
+    const link = Array.isArray(linkRows) ? linkRows[0] : linkRows;
+    const pending = Array.isArray(pendingRows) ? pendingRows[0] : pendingRows;
+    if (link) redirect("/resident/home");
+    if (pending) redirect("/resident/pending");
+    redirect("/resident/auth");
+  }
+
+  const params = await searchParams;
+  const oauthError = Array.isArray(params.error) ? params.error[0] : params.error;
+
   return (
     <div data-resident-login className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-white">
       <div className={styles.glow} />
@@ -60,7 +87,7 @@ export default function ResidentLoginPage() {
           </div>
         </div>
       </div>
-      <ResidentLoginAction />
+      <ResidentLoginAction oauthError={oauthError ?? null} />
     </div>
   );
 }

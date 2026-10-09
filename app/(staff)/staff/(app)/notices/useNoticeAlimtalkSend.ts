@@ -88,21 +88,26 @@ export function useNoticeAlimtalkSend(
       : (organizationTenants.data ?? []);
     const recipients: MessageRecipient[] = rows
       .filter((tenant) => !tenant.isVacant && tenant.occupancyId !== null)
-      .map((tenant) => ({
-        name: tenant.tenantName,
-        phone: tenant.phone,
-        unitNo: tenant.unitNo,
-        kind: "tenant",
-        variables: {
-          공지제목: notice.title,
-          ...(isSingleBuilding ? {} : { 건물명: buildingNames.get(tenant.buildingId) ?? "" }),
-        },
-        ref: {
-          occupancyId: tenant.occupancyId as number,
-          unitId: tenant.unitId,
-          buildingId: tenant.buildingId,
-        },
-      }));
+      .flatMap((tenant) =>
+        [tenant.phone, ...tenant.phonesMore]
+          .filter((phone): phone is string => Boolean(phone?.replace(/\D/g, "")))
+          .map((phone, index) => ({
+            name: tenant.tenantName,
+            phone,
+            phoneType: index === 0 && phone === tenant.phone ? "primary" as const : "secondary" as const,
+            unitNo: tenant.unitNo,
+            kind: "tenant" as const,
+            variables: {
+              공지제목: notice.title,
+              ...(isSingleBuilding ? {} : { 건물명: buildingNames.get(tenant.buildingId) ?? "" }),
+            },
+            ref: {
+              occupancyId: tenant.occupancyId as number,
+              unitId: tenant.unitId,
+              buildingId: tenant.buildingId,
+            },
+          })),
+      );
     return validRecipients(dedupeRecipients(recipients));
   }, [buildings, isSingleBuilding, buildingTenants.data, organizationTenants.data, singleBuildingId, notice.title]);
 

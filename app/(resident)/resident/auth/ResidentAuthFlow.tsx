@@ -4,7 +4,12 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { automatch, loadSession } from "@/lib/resident/onboardingClient";
+import {
+  automatch,
+  loadSession,
+  myLink,
+  pendingState,
+} from "@/lib/resident/onboardingClient";
 
 const STEPS = [
   { title: "카카오 계정으로 확인 중", description: "잠시만 기다려 주세요" },
@@ -32,6 +37,17 @@ export default function ResidentAuthFlow() {
       if (cancelled) return;
       if (!session) {
         router.replace("/resident/login");
+        return;
+      }
+
+      const [link, pending] = await Promise.all([myLink(), pendingState()]);
+      if (cancelled) return;
+      if (link) {
+        router.replace("/resident/home");
+        return;
+      }
+      if (pending) {
+        router.replace("/resident/pending");
         return;
       }
 

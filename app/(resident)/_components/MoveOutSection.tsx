@@ -43,11 +43,11 @@ const withWeekday = (key: string) => {
   return `${formatDate(key)}(${WEEKDAYS[new Date(y, m - 1, d).getDay()]})`;
 };
 
-// 고를 수 있는 날짜 = 내일부터 6개월 뒤 달의 말일까지(원본 달력 MIN·MAX)
+// 정책: 최종 검침 준비를 위해 오늘부터 최소 3일 뒤부터 선택한다.
 function selectableRange() {
   const now = new Date();
   return {
-    min: dateKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)),
+    min: dateKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 3)),
     max: dateKey(new Date(now.getFullYear(), now.getMonth() + 7, 0)),
   };
 }

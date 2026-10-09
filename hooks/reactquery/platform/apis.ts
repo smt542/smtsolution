@@ -191,6 +191,12 @@ interface OrganizationContractKpiRpcRow {
   terminated_last_12_months_count: number | string;
 }
 
+interface PlatformOverviewRpcRow {
+  active_organization_count: number | string;
+  account_count: number | string;
+  building_count: number | string;
+}
+
 interface PointTxRpcRow {
   id: number;
   org_id: number;
@@ -240,33 +246,17 @@ function mapPlatformOrganization(row: OrganizationRpcRow): PlatformOrganization 
   };
 }
 
-/**
- * These queries deliberately use the signed-in Supabase client. The current
- * database's my_org_ids() RLS policy therefore remains the source of truth for
- * which organizations a platform user can see.
- */
 export async function getPlatformOverview(): Promise<PlatformOverview> {
   const supabase = createClient();
-  const [activeOrganizations, accounts, buildings] = await Promise.all([
-    supabase
-      .from("organizations")
-      .select("id", { count: "exact", head: true })
-      .eq("status", "active"),
-    supabase.from("org_members").select("user_id", { count: "exact", head: true }),
-    supabase
-      .from("buildings")
-      .select("id", { count: "exact", head: true })
-      .is("deleted_at", null),
-  ]);
-
-  if (activeOrganizations.error) throw new Error(activeOrganizations.error.message);
-  if (accounts.error) throw new Error(accounts.error.message);
-  if (buildings.error) throw new Error(buildings.error.message);
+  const { data, error } = await supabase.rpc("platform_get_basic_overview");
+  if (error) throw new Error(error.message);
+  const row = (Array.isArray(data) ? data[0] : data) as PlatformOverviewRpcRow | null;
+  if (!row) throw new Error("Platform overview is unavailable.");
 
   return {
-    activeOrganizationCount: activeOrganizations.count ?? 0,
-    accountCount: accounts.count ?? 0,
-    buildingCount: buildings.count ?? 0,
+    activeOrganizationCount: Number(row.active_organization_count),
+    accountCount: Number(row.account_count),
+    buildingCount: Number(row.building_count),
   };
 }
 

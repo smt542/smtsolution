@@ -2,19 +2,34 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import ResidentBottomSheet from "@/app/(resident)/_components/ResidentBottomSheet";
 import { kakaoStubLogin } from "@/lib/resident/onboardingClient";
+import { showResidentToast } from "@/app/(resident)/_components/residentToast";
 
 import { loginClasses as styles } from "./loginClasses";
 import { ResidentButton, residentButtonClass } from "@/app/(resident)/_components/ResidentButton";
 
-export default function ResidentLoginAction() {
+const OAUTH_ERROR_MESSAGE: Record<string, string> = {
+  cancelled: "카카오 로그인이 취소됐어요. 다시 시도해 주세요.",
+  invalid_state: "로그인 요청이 만료됐어요. 다시 시도해 주세요.",
+  missing_code: "카카오 인증 정보를 받지 못했어요. 다시 시도해 주세요.",
+  provider_unavailable: "카카오 로그인에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.",
+  session_failed: "로그인 세션을 만들지 못했어요. 다시 시도해 주세요.",
+};
+
+export default function ResidentLoginAction({ oauthError }: { oauthError: string | null }) {
   const router = useRouter();
   const [sheetOpen, setSheetOpen] = useState(false);
   const realKakaoLoginEnabled =
     process.env.NEXT_PUBLIC_KAKAO_LOGIN_ENABLED === "true";
+
+  useEffect(() => {
+    if (!oauthError) return;
+    showResidentToast(OAUTH_ERROR_MESSAGE[oauthError] ?? "로그인하지 못했어요. 다시 시도해 주세요.");
+    router.replace("/resident/login");
+  }, [oauthError, router]);
 
   const continueWithMatchedIdentity = async () => {
     setSheetOpen(false);
