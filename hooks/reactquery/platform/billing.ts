@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { AppError } from "@/hooks/common/useAppToast";
 import { platformKeys } from "./keys";
 
 export type PlatformOrgBillingStatus = "none" | "unpaid" | "paid";
@@ -22,7 +23,18 @@ export interface PlatformOrgBilling {
   vatKrw: number;
   totalKrw: number;
   prevTotalKrw: number;
+  /** 해지(organizations.deleted_at) 조직 — 그 달 발송량·청구서가 있을 때만 목록에 남는다(개선3차 37) */
+  orgTerminated: boolean;
+  /** 적용 단가 — 저장된 청구서 스냅샷, 없으면 현재 설정 단가(개선3차 41). 구버전 RPC 응답이면 null */
+  rateKrwAlimtalk: number | null;
+  rateKrwSms: number | null;
+  rateKrwLms: number | null;
+  rateKrwFax: number | null;
+  vatRate: number | null;
 }
+
+/** 진행 중인 달 입금 확인 거절(platform_mark_org_billing_paid, hint BILLING_MONTH_IN_PROGRESS) 안내 */
+export const BILLING_MONTH_IN_PROGRESS_MESSAGE = "진행 중인 달은 입금 확인을 할 수 없어요. 달이 끝난 뒤 확인해 주세요";
 
 export interface PlatformOverviewMetrics {
   orgActive: number;
@@ -89,7 +101,16 @@ interface PlatformOrgBillingRow {
   vat_krw: number;
   total_krw: number;
   prev_total_krw: number;
+  org_terminated?: boolean | null;
+  rate_krw_alimtalk?: number | null;
+  rate_krw_sms?: number | null;
+  rate_krw_lms?: number | null;
+  rate_krw_fax?: number | null;
+  vat_rate?: number | string | null;
 }
+
+const toNullableNumber = (value: number | string | null | undefined): number | null =>
+  value == null ? null : Number(value);
 
 interface PlatformOverviewMetricsRow {
   org_active: number;
@@ -150,6 +171,12 @@ function mapOrgBilling(row: PlatformOrgBillingRow): PlatformOrgBilling {
     vatKrw: Number(row.vat_krw),
     totalKrw: Number(row.total_krw),
     prevTotalKrw: Number(row.prev_total_krw),
+    orgTerminated: row.org_terminated === true,
+    rateKrwAlimtalk: toNullableNumber(row.rate_krw_alimtalk),
+    rateKrwSms: toNullableNumber(row.rate_krw_sms),
+    rateKrwLms: toNullableNumber(row.rate_krw_lms),
+    rateKrwFax: toNullableNumber(row.rate_krw_fax),
+    vatRate: toNullableNumber(row.vat_rate),
   };
 }
 
@@ -268,7 +295,12 @@ export async function markOrgBillingPaid(
     p_paid: input.paid,
   });
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (error.hint === "BILLING_MONTH_IN_PROGRESS") {
+      throw Object.assign(new AppError(BILLING_MONTH_IN_PROGRESS_MESSAGE), { code: error.code });
+    }
+    throw new Error(error.message);
+  }
   const row = (Array.isArray(data) ? data[0] : data) as unknown as
     | PlatformBillingInvoiceRow
     | null;

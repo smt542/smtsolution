@@ -124,11 +124,11 @@ export function BillingWorkspace() {
     }
   };
 
-  // "전체 발행": 지금 목록(탭)에서 청구액이 있는 업체마다 PDF 청구서를 차례로 내려받는다. 저장되는 상태 없음.
+  // "전체 발행": 탭과 무관하게 전 테넌트(rows) 중 청구액이 있는 업체마다 PDF 청구서를 차례로 내려받는다(정책 3.2·개선3차 42). 저장되는 상태 없음.
   // 문구는 정본 #bmAll('N곳의 청구서를 만들고 있어요' → 'N곳의 청구서를 저장했어요'). 만드는 동안 다시 눌러도 무시
   const handlePublishAll = async () => {
     if (publishingAll) return;
-    const billable = filtered.filter((row) => row.subtotalKrw > 0);
+    const billable = rows.filter((row) => row.subtotalKrw > 0);
     if (billable.length === 0) {
       toast.warning("발행할 청구서가 없어요");
       return;
@@ -210,7 +210,7 @@ export function BillingWorkspace() {
           <button
             type="button"
             onClick={() => void handlePublishAll()}
-            disabled={filtered.every((row) => row.subtotalKrw <= 0)}
+            disabled={rows.every((row) => row.subtotalKrw <= 0)}
             className="inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[11px] border border-transparent bg-blue px-[14px] text-[12.5px] font-bold whitespace-nowrap text-white shadow-hf-btn hover:bg-blue-d disabled:cursor-not-allowed disabled:opacity-50"
           >
             전체 발행
@@ -246,7 +246,13 @@ export function BillingWorkspace() {
                   const toggling = togglingOrgIds.has(row.orgId);
                   return (
                     <tr key={row.orgId} className="cursor-pointer hover:bg-[#FBFCFD] [&:last-child>td]:border-b-0">
-                      <td className="border-b border-line2 px-4 py-3 text-[13.5px] font-bold whitespace-nowrap text-t1">{row.orgName}</td>
+                      <td className="border-b border-line2 px-4 py-3 text-[13.5px] font-bold whitespace-nowrap text-t1">
+                        {row.orgName}
+                        {/* 해지 조직은 그 달 발송량·청구서가 있을 때만 남는다 — 상태 배지로 구분(개선3차 37) */}
+                        {row.orgTerminated && (
+                          <Badge tone="gray" className="ml-1.5 inline-flex items-center px-[7px] py-[2px] align-middle leading-[1.4]">해지</Badge>
+                        )}
+                      </td>
                       <td className="border-b border-line2 px-4 py-3 text-[12.5px] font-semibold whitespace-nowrap text-t3">{row.orgEmail ?? "-"}</td>
                       <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.alimtalkCount)}</td>
                       <td className="border-b border-line2 px-4 py-3 text-right text-[13.5px] whitespace-nowrap text-t1 num">{num(row.smsCount)}</td>

@@ -63,24 +63,43 @@ export interface LineItem {
   amountKrw: number;
 }
 
+/** 청구서 부가세율 — 저장된 청구서 스냅샷 우선, 없으면 설정값 */
+export function invoiceVatRate(row: PlatformOrgBilling, config: InvoiceConfig): number {
+  return row.vatRate ?? config.vatRate;
+}
+
 export function lineItems(row: PlatformOrgBilling, settings: PlatformSettings | undefined): LineItem[] {
+  // 단가: 입금 확인으로 저장된 청구서의 스냅샷(없으면 현재 설정) — RPC가 고른 값(row.rateKrw*) 우선(개선3차 41)
+  const rateAlimtalk = row.rateKrwAlimtalk ?? settings?.rateKrwAlimtalk ?? 0;
+  const rateSms = row.rateKrwSms ?? settings?.rateKrwSms ?? 0;
+  const rateLms = row.rateKrwLms ?? settings?.rateKrwLms ?? 0;
+  const rateFax = row.rateKrwFax ?? settings?.rateKrwFax ?? 0;
   const items: LineItem[] = [];
   if (row.alimtalkCount > 0) {
     items.push({
       name: "알림톡",
       count: row.alimtalkCount,
-      unitPriceKrw: settings?.rateKrwAlimtalk ?? 0,
+      unitPriceKrw: rateAlimtalk,
       amountKrw: row.alimtalkAmountKrw,
     });
   }
-  // SMS/LMS are billed together on one "문자" line (backend sums them into smsAmountKrw).
-  const messageCount = row.smsCount + row.lmsCount;
-  if (messageCount > 0) {
+  // SMS·LMS는 단가가 달라 행을 나눈다(건수 × 단가 = 금액). 서버는 둘을 smsAmountKrw 하나로 합쳐 주므로
+  // SMS 행 = SMS 건수 × SMS 단가, LMS 행 = 합계 − SMS 행(두 행의 합이 저장 금액과 항상 같다).
+  const smsAmountKrw = row.lmsCount > 0 ? row.smsCount * rateSms : row.smsAmountKrw;
+  if (row.smsCount > 0) {
     items.push({
-      name: "문자",
-      count: messageCount,
-      unitPriceKrw: settings?.rateKrwSms ?? 0,
-      amountKrw: row.smsAmountKrw,
+      name: "문자(SMS)",
+      count: row.smsCount,
+      unitPriceKrw: rateSms,
+      amountKrw: smsAmountKrw,
+    });
+  }
+  if (row.lmsCount > 0) {
+    items.push({
+      name: "장문(LMS)",
+      count: row.lmsCount,
+      unitPriceKrw: rateLms,
+      amountKrw: row.smsAmountKrw - (row.smsCount > 0 ? smsAmountKrw : 0),
     });
   }
   if (row.faxCount > 0) {
@@ -88,7 +107,7 @@ export function lineItems(row: PlatformOrgBilling, settings: PlatformSettings | 
       name: "팩스",
       // Fax is priced per page; show page count to match the per-page unit price.
       count: row.faxPageCount,
-      unitPriceKrw: settings?.rateKrwFax ?? 0,
+      unitPriceKrw: rateFax,
       amountKrw: row.faxAmountKrw,
     });
   }
@@ -182,7 +201,7 @@ export function InvoiceDocument({
           공급가액<span className="ml-auto font-bold text-t2 num">{num(supply)}원</span>
         </div>
         <div className="flex items-center text-[13px] font-semibold text-t3">
-          부가세 ({config.vatRate}%)<span className="ml-auto font-bold text-t2 num">{num(vat)}원</span>
+          부가세 ({invoiceVatRate(row, config)}%)<span className="ml-auto font-bold text-t2 num">{num(vat)}원</span>
         </div>
         <div className="flex items-center border-t-2 border-t1 pt-[11px] text-[15px] font-extrabold text-t1">
           청구 합계<span className="ml-auto text-[18px] font-extrabold text-blue num">{num(total)}원</span>

@@ -23,6 +23,15 @@ function totalCost(cost: PlatformMonthlySendCost): number {
   return cost.alimtalkKrw + cost.smsKrw + cost.faxKrw;
 }
 
+/** 그 해에서 이미 지났거나 진행 중인 달 수 — 이후 달만 미도래(정책 대시보드 4절 「미도래 월」, 개선3차 44) */
+function elapsedMonthCount(year: number): number {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  if (year < currentYear) return 12;
+  if (year > currentYear) return 0;
+  return now.getMonth() + 1;
+}
+
 export function MonthlySendCostChart() {
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
@@ -79,21 +88,20 @@ function MonthlySendCostBars({
 }) {
   const summary = useMemo(() => {
     const totals = costs.map(totalCost);
-    const dataMonths = totals.filter((total) => total > 0).length;
+    // 집계 개월 = 경과한 달 수(0원 달 포함). 정본 overview: null(미도래)만 빼고 평균
+    const elapsedMonths = elapsedMonthCount(year);
     const annualTotal = totals.reduce((sum, total) => sum + total, 0);
 
     return {
       totals,
-      dataMonths,
+      elapsedMonths,
       annualTotal,
-      average: dataMonths > 0 ? Math.round(annualTotal / dataMonths) : 0,
+      average: elapsedMonths > 0 ? Math.round(annualTotal / elapsedMonths) : 0,
       max: Math.max(...totals, 0),
-      latestMonth: costs.reduce(
-        (latest, cost) => totalCost(cost) > 0 ? Math.max(latest, cost.month) : latest,
-        0,
-      ),
+      // 정본 last: 마지막 경과 월
+      latestMonth: elapsedMonths,
     };
-  }, [costs]);
+  }, [costs, year]);
 
   return (
     <>
@@ -115,7 +123,8 @@ function MonthlySendCostBars({
         <div className="flex flex-col gap-[9px] mt-4">
           {costs.map((cost, index) => {
             const total = summary.totals[index] ?? totalCost(cost);
-            const isEmpty = total <= 0;
+            // 미도래(현재 연월 이후)만 빈 막대·「—」. 지난 0원 달은 0원으로 표시
+            const isEmpty = cost.month > summary.elapsedMonths;
             const isLatest = cost.month === summary.latestMonth;
             const stackWidth = summary.max > 0 ? (total / summary.max) * 100 : 0;
 
@@ -152,15 +161,15 @@ function MonthlySendCostBars({
                     >
                       <i
                         className="h-full bg-blue"
-                        style={{ width: `${(cost.alimtalkKrw / total) * 100}%` }}
+                        style={{ width: `${total > 0 ? (cost.alimtalkKrw / total) * 100 : 0}%` }}
                       />
                       <i
                         className="h-full bg-[#7CC7BF]"
-                        style={{ width: `${(cost.smsKrw / total) * 100}%` }}
+                        style={{ width: `${total > 0 ? (cost.smsKrw / total) * 100 : 0}%` }}
                       />
                       <i
                         className="h-full bg-[#C6D3DC]"
-                        style={{ width: `${(cost.faxKrw / total) * 100}%` }}
+                        style={{ width: `${total > 0 ? (cost.faxKrw / total) * 100 : 0}%` }}
                       />
                     </div>
                   )}
@@ -185,7 +194,7 @@ function MonthlySendCostBars({
       <div className="mt-3.5 flex items-center gap-[9px] border-t border-line2 px-5 pb-[18px] pt-3.5 leading-[normal]">
         <div className="text-[13px] font-bold text-t2">{year}년 누계</div>
         <div className="text-[12px] font-semibold text-t3 num">
-          {summary.dataMonths}개월 · 월 평균 {formatNumber(summary.average)}원
+          {summary.elapsedMonths}개월 · 월 평균 {formatNumber(summary.average)}원
         </div>
         <div className="ml-auto text-[18px] font-extrabold tracking-[-0.02em] num">
           {formatNumber(summary.annualTotal)}원

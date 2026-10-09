@@ -7,6 +7,7 @@ import {
   INVOICE_UNSET,
   type InvoiceConfig,
   invoiceNo,
+  invoiceVatRate,
   lineItems,
   periodLabel,
   todayLabel,
@@ -178,7 +179,7 @@ function InvoicePdfDocument({ row, month, config, settings }: InvoicePdfInput) {
             <Text style={styles.srValue}>{formatNumber(row.subtotalKrw)}원</Text>
           </View>
           <View style={styles.sr}>
-            <Text style={styles.srLabel}>부가세 ({config.vatRate}%)</Text>
+            <Text style={styles.srLabel}>부가세 ({invoiceVatRate(row, config)}%)</Text>
             <Text style={styles.srValue}>{formatNumber(row.vatKrw)}원</Text>
           </View>
           <View style={[styles.sr, styles.tot]}>
