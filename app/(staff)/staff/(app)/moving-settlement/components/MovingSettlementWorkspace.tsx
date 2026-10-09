@@ -12,6 +12,7 @@ import {
   useSettlementContext,
   type SaveSettlementInput,
   type SettlementContext,
+  type SettlementUtilRow,
 } from "@/hooks/reactquery/movingSettlement";
 import { useManagementFeeRows } from "@/hooks/reactquery/movingSettlement/feeItemCharges";
 import { useSettlementCheckItems } from "@/hooks/reactquery/settlementCheckItems";
@@ -27,7 +28,39 @@ import {
   printSettlementStatement,
   type SettlementStatementPrintModel,
 } from "./movingSettlementPrint";
-import { reflectedUtilityCharges } from "./settlement-form/UtilitySettlementSection";
+import { UTILITY_ROWS } from "./settlement-form/UtilitySettlementSection";
+
+/**
+ * 이사 지침 기본값(정본 = extra.util, 0266).
+ * - 저장된 extra.util 이 있으면 그 전월·이사 지침·단가(staff·partner 공통).
+ * - 없으면 전월 지침만 검침에서 채운다: 퇴실월 검침이면 그 달 previous_reading, 이전 달 검침이면 그 current_reading.
+ *   이사 지침은 현장에서 읽은 값을 입력한다(빈 값이면 금액을 계산하지 않고 저장 금액을 유지).
+ */
+function readingsFromContext(
+  context: SettlementContext,
+  saved: SettlementContext["latestSettlement"],
+): Partial<MovingSettlementValues> {
+  const savedUtil = saved?.extra?.util;
+  const moveOutPeriod = saved?.moveOutDate ? `${saved.moveOutDate.slice(0, 7)}-01` : null;
+  const next: Partial<MovingSettlementValues> = {};
+  for (const row of UTILITY_ROWS) {
+    const util = savedUtil?.find((item) => item.k === row.utility);
+    if (util) {
+      next[row.prevKey] = util.prev ?? null;
+      next[row.moveKey] = util.cur ?? null;
+      next[row.priceKey] = util.price ?? null;
+      continue;
+    }
+    const meter = context.meterSummary.find((item) => item.utility === row.utility);
+    next[row.prevKey] =
+      meter && meter.period !== null && meter.period === moveOutPeriod
+        ? meter.previousReading
+        : (meter?.currentReading ?? meter?.previousReading ?? null);
+    next[row.moveKey] = null;
+    next[row.priceKey] = null;
+  }
+  return next;
+}
 
 function draftFromContext(
   context: SettlementContext,
@@ -56,6 +89,7 @@ function draftFromContext(
     note: saved?.note ?? "",
     settlementNote:
       saved?.settlementNote ?? context.occupancy?.settlementNote ?? "",
+    ...readingsFromContext(context, saved),
   };
 }
 
@@ -111,28 +145,19 @@ function SettlementEditor({
     draft.moveOutDate,
   );
 
-  const reflectedCharges = reflectedUtilityCharges(
-    context.meterSummary,
-    context.settlementSettings,
-  );
-  const meterRows: SettlementStatementPrintModel["meters"] =
-    (["water", "elec", "gas"] as const).map((utility) => {
-      const meter = context.meterSummary.find((item) => item.utility === utility);
-      const chargeKey =
-        utility === "water"
-          ? "waterCharge"
-          : utility === "elec"
-            ? "elecCharge"
-            : "gasCharge";
-      return {
-        utility,
-        previousReading: meter?.previousReading ?? null,
-        currentReading: meter?.currentReading ?? null,
-        usage: meter?.usage ?? null,
-        unitPrice: meter?.unitPrice ?? null,
-        charge: reflectedCharges[chargeKey] ?? draft[chargeKey] ?? null,
-      };
-    });
+  // 내역서 검침표도 폼과 같은 이사 지침(전월·이사·단가)과 draft 금액을 쓴다(0266).
+  const meterRows: SettlementStatementPrintModel["meters"] = UTILITY_ROWS.map((row) => {
+    const prev = draft[row.prevKey] ?? null;
+    const cur = draft[row.moveKey] ?? null;
+    return {
+      utility: row.utility,
+      previousReading: prev,
+      currentReading: cur,
+      usage: prev !== null && cur !== null ? Math.max(0, cur - prev) : null,
+      unitPrice: draft[row.priceKey] ?? null,
+      charge: draft[row.chargeKey] ?? null,
+    };
+  });
   const utilityTotal = meterRows.reduce(
     (sum, meter) => sum + (meter.charge ?? 0),
     0,
@@ -146,14 +171,32 @@ function SettlementEditor({
     0,
   );
   const repairAmount = draft.repairAmount ?? null;
-  const cleaningCost = context.latestSettlement?.cleaningCost ?? null;
+  const cleaningCost = forceNew ? null : (context.latestSettlement?.cleaningCost ?? null);
   const billingUnpaid = context.billingUnpaid;
+  // 정산요금 = settlement_amount 정의(0266): 수납 차감 전 ①공과금+②관리비+③미납+④청소비·기타.
   const total =
     utilityTotal +
     managementSettlementTotal +
     (repairAmount ?? 0) +
     billingUnpaid +
     (cleaningCost ?? 0);
+  // 저장할 이사 지침(extra.util). 화면에 없는 입금계좌·입금일(수도)은 저장된 값을 지킨다.
+  const savedUtil = forceNew ? undefined : context.latestSettlement?.extra?.util;
+  const utilRows: SettlementUtilRow[] = UTILITY_ROWS.map((row) => {
+    const saved = savedUtil?.find((item) => item.k === row.utility);
+    return {
+      k: row.utility,
+      prev: draft[row.prevKey] ?? null,
+      cur: draft[row.moveKey] ?? null,
+      price: draft[row.priceKey] ?? null,
+      acct: saved?.acct || draft.settleAcct || "",
+      payDate: row.paidDateKey ? (draft[row.paidDateKey] ?? "") : (saved?.payDate ?? ""),
+    };
+  });
+  // 지침을 하나도 입력하지 않은 건(예전 금액만 저장한 건)은 util 을 보내지 않아 extra 를 그대로 둔다.
+  const sendUtil =
+    savedUtil !== undefined ||
+    utilRows.some((row) => row.prev !== null || row.cur !== null || row.price !== null);
   // 정본 표기: `농협 352-1234-5678-91 · (주)스마일종합관리` — 은행·계좌는 공백, 예금주 앞만 구분점.
   const settleAccount = [
     [draft.settleBank, draft.settleAcct]
@@ -220,6 +263,7 @@ function SettlementEditor({
       settleHolder: nullableText(draft.settleHolder),
       note: nullableText(draft.note),
       settlementNote: nullableText(draft.settlementNote),
+      ...(sendUtil ? { util: utilRows } : {}),
     },
     checklist: context.checklist.map((item) => {
       const note = (notes[item.id] ?? "").trim();
@@ -227,7 +271,12 @@ function SettlementEditor({
     }),
   };
 
-  const amount = calculateSettlementAmount(draft);
+  const amount = calculateSettlementAmount({
+    ...draft,
+    cleaningCost,
+    unpaidAmount: billingUnpaid,
+  });
+  const settlementStatus = forceNew ? null : (context.latestSettlement?.status ?? null);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-[12px]">
@@ -253,6 +302,7 @@ function SettlementEditor({
         paymentInputRef={paymentInputRef}
         bodyRef={formBodyRef}
         billingUnpaid={context.billingUnpaid}
+        cleaningCost={cleaningCost}
       />
       <SettlementActions
         building={building}
@@ -265,6 +315,7 @@ function SettlementEditor({
         billingUnpaid={context.billingUnpaid}
         vacancyPaymentMode={context.settlementSettings.vacancyPaymentMode}
         createdAt={context.latestSettlement?.createdAt ?? null}
+        locked={settlementStatus === "completed" || settlementStatus === "mid_moveout"}
         printModel={printModel}
         paymentInputRef={paymentInputRef}
         formBodyRef={formBodyRef}

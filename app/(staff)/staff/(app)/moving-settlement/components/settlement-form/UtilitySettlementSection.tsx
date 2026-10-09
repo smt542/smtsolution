@@ -2,22 +2,32 @@ import { Input } from "@/components/common";
 import { DpDatePicker } from "@/components/common/DpDatePicker";
 import { CalendarIcon } from "@/components/icons";
 import type { MovingSettlementValues } from "@/components/forms/schema/movingSettlement";
-import type {
-  MeterSummary,
-  SettlementSettings,
-  SettlementUtility,
+import {
+  utilityReadingCharge,
+  type MeterSummary,
+  type SettlementSettings,
+  type SettlementUtility,
 } from "@/hooks/reactquery/movingSettlement";
 import { formatNumber } from "@/lib/format";
 
-const UTILITY_ROWS: Array<{
+type ChargeKey = "waterCharge" | "elecCharge" | "gasCharge";
+type ReadingKey =
+  | "waterPrevReading" | "waterMoveReading" | "waterUnitPrice"
+  | "elecPrevReading" | "elecMoveReading" | "elecUnitPrice"
+  | "gasPrevReading" | "gasMoveReading" | "gasUnitPrice";
+
+export const UTILITY_ROWS: Array<{
   utility: SettlementUtility;
   label: string;
-  chargeKey: "waterCharge" | "elecCharge" | "gasCharge";
+  chargeKey: ChargeKey;
   paidDateKey: "elecPaidDate" | "gasPaidDate" | null;
+  prevKey: ReadingKey;
+  moveKey: ReadingKey;
+  priceKey: ReadingKey;
 }> = [
-  { utility: "water", label: "수도", chargeKey: "waterCharge", paidDateKey: null },
-  { utility: "elec", label: "전기", chargeKey: "elecCharge", paidDateKey: "elecPaidDate" },
-  { utility: "gas", label: "가스", chargeKey: "gasCharge", paidDateKey: "gasPaidDate" },
+  { utility: "water", label: "수도", chargeKey: "waterCharge", paidDateKey: null, prevKey: "waterPrevReading", moveKey: "waterMoveReading", priceKey: "waterUnitPrice" },
+  { utility: "elec", label: "전기", chargeKey: "elecCharge", paidDateKey: "elecPaidDate", prevKey: "elecPrevReading", moveKey: "elecMoveReading", priceKey: "elecUnitPrice" },
+  { utility: "gas", label: "가스", chargeKey: "gasCharge", paidDateKey: "gasPaidDate", prevKey: "gasPrevReading", moveKey: "gasMoveReading", priceKey: "gasUnitPrice" },
 ];
 
 function numericValue(raw: string): number | null {
@@ -40,29 +50,63 @@ function reflectsUnitPrice(
 }
 
 /**
- * 단가 반영 ON 인 유틸의 금액을 **그 달 검침의 실효 요금**으로 잡는다(0169).
- *
- * `meter.charge` = `coalesce(manual_charge, calc_charge)` 이고 `calc_charge` 자체가
- * `usage x unit_price - 할인` 이다. 여기서 단가를 다시 곱하면 수도 할인(water_discounts)과
- * 담당자 수동 보정(manual_charge)이 빠져 /staff/utilities 의 그 달 요금과 어긋난다.
- * 그 달 검침이 없어 charge 가 null 이면 제외하고 수동 입력을 지킨다.
- *
- * SettlementForm 이 이 결과를 draft 로 되돌려 넣어 표시값·소계·요약바·저장값의 출처를 하나로 유지한다.
+ * 단가 반영 ON 인 유틸은 **단가만** 검침 단가(meter.unitPrice)로 채운다(정책 3.5, 개선3차 7).
+ * 금액은 월 부과액으로 덮어쓰지 않고 항상 `max(0, 이사 − 전월) × 단가` 로 계산한다.
+ * 검침 단가가 없으면 null → 단가를 직접 입력한다.
  */
-export function reflectedUtilityCharges(
+function reflectedUnitPrice(
+  utility: SettlementUtility,
   meters: MeterSummary[],
   settings: SettlementSettings,
-): Partial<Record<"waterCharge" | "elecCharge" | "gasCharge", number>> {
-  const byUtility = new Map(meters.map((meter) => [meter.utility, meter]));
-  const next: Partial<Record<"waterCharge" | "elecCharge" | "gasCharge", number>> = {};
+): number | null {
+  if (!reflectsUnitPrice(utility, settings)) return null;
+  return meters.find((meter) => meter.utility === utility)?.unitPrice ?? null;
+}
 
+/** 구분 한 행의 계산값: 단가(반영 ON 이면 검침 단가)·량·금액. 금액은 지침·단가가 다 있어야 계산된다. */
+function utilityRowValues(
+  row: (typeof UTILITY_ROWS)[number],
+  value: MovingSettlementValues,
+  meters: MeterSummary[],
+  settings: SettlementSettings,
+) {
+  const reflectedPrice = reflectedUnitPrice(row.utility, meters, settings);
+  const prev = value[row.prevKey] ?? null;
+  const cur = value[row.moveKey] ?? null;
+  const price = reflectedPrice ?? value[row.priceKey] ?? null;
+  const usage = prev !== null && cur !== null ? Math.max(0, cur - prev) : null;
+  return {
+    prev,
+    cur,
+    price,
+    usage,
+    isReflected: reflectedPrice !== null,
+    computedCharge: utilityReadingCharge(prev, cur, price),
+  };
+}
+
+/**
+ * 공과금 행의 계산값을 draft 에 되돌려 넣을 patch. SettlementForm 이 관리비 소계와 한 이펙트에서 적용해
+ * 표시값·소계·요약바·저장값의 출처를 하나로 유지한다.
+ * - 단가 반영 ON: 단가 = 검침 단가
+ * - 금액: 지침·단가가 다 있으면 계산값(0이면 파트너 저장과 같이 null). 하나라도 비면 저장된 금액을 그대로 둔다.
+ */
+export function derivedUtilityPatch(
+  value: MovingSettlementValues,
+  meters: MeterSummary[],
+  settings: SettlementSettings,
+): Partial<MovingSettlementValues> {
+  const patch: Partial<MovingSettlementValues> = {};
   for (const row of UTILITY_ROWS) {
-    if (!reflectsUnitPrice(row.utility, settings)) continue;
-    const meter = byUtility.get(row.utility);
-    if (!meter || meter.charge === null) continue;
-    next[row.chargeKey] = meter.charge;
+    const derived = utilityRowValues(row, value, meters, settings);
+    if (derived.isReflected && (value[row.priceKey] ?? null) !== derived.price) {
+      patch[row.priceKey] = derived.price;
+    }
+    if (derived.computedCharge === null) continue;
+    const nextCharge = derived.computedCharge === 0 ? null : derived.computedCharge;
+    if ((value[row.chargeKey] ?? null) !== nextCharge) patch[row.chargeKey] = nextCharge;
   }
-  return next;
+  return patch;
 }
 
 export function UtilitySettlementSection({
@@ -76,13 +120,14 @@ export function UtilitySettlementSection({
   settings: SettlementSettings;
   onChange: (next: MovingSettlementValues) => void;
 }) {
-  const byUtility = new Map(meters.map((meter) => [meter.utility, meter]));
-  const reflected = reflectedUtilityCharges(meters, settings);
   // 소계는 계산값을 즉시 반영한다(draft 되돌려넣기의 한 프레임 지연을 타지 않도록).
-  const utilityTotal = UTILITY_ROWS.reduce(
-    (total, row) => total + (reflected[row.chargeKey] ?? value[row.chargeKey] ?? 0),
-    0,
-  );
+  const rows = UTILITY_ROWS.map((row) => {
+    const derived = utilityRowValues(row, value, meters, settings);
+    return { row, ...derived, shownCharge: derived.computedCharge ?? value[row.chargeKey] ?? 0 };
+  });
+  const utilityTotal = rows.reduce((total, item) => total + item.shownCharge, 0);
+  const inputClassName =
+    "h-[34px] w-full rounded-[9px] border border-[#dee3e8] px-[8px] text-right text-[12.5px] font-semibold text-t1 outline-none focus:border-teal";
 
   return (
     <section className="rounded-[14px] border border-[#dce1e7] bg-white px-[16px] pb-[16px] pt-[15px]">
@@ -101,32 +146,35 @@ export function UtilitySettlementSection({
             <span className="px-[7px] pb-[7px] text-left">입금계좌</span>
             <span className="pb-[7px] pl-[7px] text-left">입금일</span>
           </div>
-        {UTILITY_ROWS.map((row) => {
-          const meter = byUtility.get(row.utility);
-          const usage = meter?.usage ?? 0;
-          const rawCharge = value[row.chargeKey];
-          const charge = rawCharge ?? 0;
-          // 정본은 단가가 입력이고 금액은 단가 x 량 계산값이다. 저장 필드는 금액(charge)이므로
-          // 단가는 charge/량 으로 되짚어 보여주고, 편집하면 charge 를 다시 계산해 넣는다.
-          // 량이 0이면 단가로 금액을 만들 수 없어 입력을 막고 저장된 금액을 그대로 지킨다.
-          const unitPrice = usage > 0 && rawCharge !== null ? Math.round(rawCharge / usage) : null;
-          // 단가 반영 ON: 단가는 검침값(읽기전용)이고 금액은 단가 x 량 계산값이다.
-          const reflectedCharge = reflected[row.chargeKey];
-          const isReflected = reflectedCharge !== undefined;
-          const shownUnitPrice = isReflected ? (meter?.unitPrice ?? null) : unitPrice;
-          const shownCharge = isReflected ? reflectedCharge : charge;
+        {rows.map(({ row, prev, cur, price, usage, isReflected, shownCharge }) => {
+          // 정본(정책 3.5): 전월 지침 · 이사 지침 · 단가는 입력, 량=이사−전월, 금액=량×단가(자동).
+          // 단가 반영 ON 이면 단가만 검침 단가(읽기전용)로 채운다.
           return (
             <div key={row.utility} className="col-span-8 grid h-[42px] grid-cols-subgrid items-center">
               <span className="py-[4px] pr-[4px] text-left text-[12.5px] font-bold text-t1">{row.label}</span>
               <div className="p-[4px]">
-                <span className="flex h-[34px] w-full items-center justify-end rounded-[9px] border border-[#dee3e8] px-[8px] text-right text-[12.5px] font-semibold text-t1">
-                  {formatNumber(meter?.previousReading ?? null, { nullText: "-" })}
-                </span>
+                <Input
+                  unstyled
+                  aria-label={`${row.label} 전월 지침`}
+                  type="number"
+                  min={0}
+                  step="any"
+                  value={prev ?? ""}
+                  onChange={(event) => onChange({ ...value, [row.prevKey]: numericValue(event.target.value) })}
+                  className={inputClassName}
+                />
               </div>
               <div className="p-[4px]">
-                <span className="flex h-[34px] w-full items-center justify-end rounded-[9px] border border-[#dee3e8] px-[8px] text-right text-[12.5px] font-semibold text-t1">
-                  {formatNumber(meter?.currentReading ?? null, { nullText: "-" })}
-                </span>
+                <Input
+                  unstyled
+                  aria-label={`${row.label} 이사 지침`}
+                  type="number"
+                  min={0}
+                  step="any"
+                  value={cur ?? ""}
+                  onChange={(event) => onChange({ ...value, [row.moveKey]: numericValue(event.target.value) })}
+                  className={inputClassName}
+                />
               </div>
               <div className="p-[4px]">
                 {isReflected ? (
@@ -134,7 +182,7 @@ export function UtilitySettlementSection({
                     aria-label={`${row.label} 단가`}
                     className="flex h-[34px] w-full items-center justify-end rounded-[9px] border border-line2 bg-[#f7f9fa] px-[8px] text-right text-[12.5px] font-semibold text-t2"
                   >
-                    {formatNumber(shownUnitPrice, { nullText: "-" })}
+                    {formatNumber(price, { nullText: "-" })}
                   </span>
                 ) : (
                   <Input
@@ -142,23 +190,16 @@ export function UtilitySettlementSection({
                     aria-label={`${row.label} 단가`}
                     type="number"
                     min={0}
-                    readOnly={usage === 0}
-                    value={shownUnitPrice ?? ""}
-                    onChange={(event) => {
-                      if (usage === 0) return;
-                      const next = numericValue(event.target.value);
-                      onChange({
-                        ...value,
-                        [row.chargeKey]: next === null ? null : next * usage,
-                      });
-                    }}
-                    className="h-[34px] w-full rounded-[9px] border border-[#dee3e8] px-[8px] text-right text-[12.5px] font-semibold text-t1 outline-none focus:border-teal"
+                    step="any"
+                    value={price ?? ""}
+                    onChange={(event) => onChange({ ...value, [row.priceKey]: numericValue(event.target.value) })}
+                    className={inputClassName}
                   />
                 )}
               </div>
               <div className="p-[4px]">
                 <span className="flex h-[34px] items-center justify-end text-right text-[12.5px] font-bold text-t1">
-                  {formatNumber(usage)}
+                  {formatNumber(usage ?? 0)}
                 </span>
               </div>
               <div className="p-[4px]">

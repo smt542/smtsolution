@@ -14,7 +14,7 @@ import { SettlementBasicSection } from "./settlement-form/SettlementBasicSection
 import { SettlementExtrasSection } from "./settlement-form/SettlementExtrasSection";
 import { SettlementSummaryBar } from "./settlement-form/SettlementSummaryBar";
 import {
-  reflectedUtilityCharges,
+  derivedUtilityPatch,
   UtilitySettlementSection,
 } from "./settlement-form/UtilitySettlementSection";
 
@@ -58,6 +58,7 @@ export function SettlementForm({
   paymentInputRef = EMPTY_INPUT_REF,
   bodyRef,
   billingUnpaid = 0,
+  cleaningCost = null,
 }: {
   buildingName?: string;
   buildingTypeId?: number | null;
@@ -81,6 +82,8 @@ export function SettlementForm({
   bodyRef?: RefObject<HTMLDivElement | null>;
   /** 확정 부과분 미납(0171). 하단 요약바의 미납 소계·미수금에 쓴다. */
   billingUnpaid?: number;
+  /** 청소비(조회 화면 입력값). 정산요금 ④ 에 포함된다. */
+  cleaningCost?: number | null;
 }) {
   // 관리비 소계는 관리비 항목(fee_items)x당월 부과액에서 계산된다. 섹션 표시값과
   // 하단 요약바/미수금/저장값이 어긋나지 않도록 계산 결과를 draft 에 되돌려 넣어
@@ -90,24 +93,20 @@ export function SettlementForm({
     unitId,
     value.moveOutDate,
   );
-  // 단가 반영 ON 인 공과금 금액도 계산값이다. 관리비 소계와 **한 이펙트에서** 되돌려 넣는다 —
-  // 이펙트를 둘로 나누면 각자 stale 한 value 를 펼쳐 서로의 결과를 덮어쓴다.
-  const reflectedCharges = reflectedUtilityCharges(meters, settings);
+  // 공과금 금액(이사−전월)×단가와 단가 반영 ON 의 검침 단가도 계산값이다. 관리비 소계와 **한 이펙트에서**
+  // 되돌려 넣는다 — 이펙트를 둘로 나누면 각자 stale 한 value 를 펼쳐 서로의 결과를 덮어쓴다.
+  const utilityPatch = derivedUtilityPatch(value, meters, settings);
   // 퇴실일·월정액 변경이 mgmtFeeProrated 를 덮어써도 계산값이 그대로면 이펙트가 다시 돌지 않으므로
   // 현재 draft 값도 키에 넣어, 계산값과 어긋나면 항상 되돌려 맞춘다(일할 없는 항목만 남은 경우).
   const derivedKey = JSON.stringify([
     managementTotal,
-    reflectedCharges,
+    utilityPatch,
     value.mgmtFeeProrated ?? 0,
   ]);
   useEffect(() => {
-    const patch: Partial<SettlementDraft> = {};
+    const patch: Partial<SettlementDraft> = { ...utilityPatch };
     if ((value.mgmtFeeProrated ?? 0) !== managementTotal) {
       patch.mgmtFeeProrated = managementTotal;
-    }
-    for (const [key, amount] of Object.entries(reflectedCharges)) {
-      const chargeKey = key as "waterCharge" | "elecCharge" | "gasCharge";
-      if ((value[chargeKey] ?? null) !== amount) patch[chargeKey] = amount;
     }
     if (Object.keys(patch).length === 0) return;
     onChange({ ...value, ...patch });
@@ -119,7 +118,12 @@ export function SettlementForm({
     key: K,
     next: SettlementDraft[K],
   ) => onChange({ ...value, [key]: next });
-  const amount = calculateSettlementAmount(value);
+  // 정산요금 = 수납 차감 전 ①+②+③미납+④청소비·기타 (settlement_amount 정의, 0266).
+  const amount = calculateSettlementAmount({
+    ...value,
+    cleaningCost,
+    unpaidAmount: billingUnpaid,
+  });
 
   const setMoveOutDate = (moveOutDate: string) =>
     onChange({
@@ -190,6 +194,7 @@ export function SettlementForm({
         utilityTotal={(value.waterCharge ?? 0) + (value.elecCharge ?? 0) + (value.gasCharge ?? 0)}
         managementTotal={value.mgmtFeeProrated ?? 0}
         otherTotal={value.repairAmount ?? 0}
+        cleaningTotal={cleaningCost ?? 0}
         receivedAmount={receivedAmount}
         total={amount}
         billingUnpaid={billingUnpaid}

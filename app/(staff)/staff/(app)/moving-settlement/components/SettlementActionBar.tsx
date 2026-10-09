@@ -9,6 +9,7 @@ export function SettlementActionBar({
   onDelete,
   pending = false,
   pendingAction = null,
+  locked = false,
 }: {
   onSave: () => void;
   onMidMoveout: () => void;
@@ -18,6 +19,8 @@ export function SettlementActionBar({
   onDelete: () => void;
   pending?: boolean;
   pendingAction?: "save" | "mid" | "moveout" | "delete" | null;
+  /** 완료(중도퇴실·퇴실완료) 건: 저장·완료·삭제 잠금, 출력·빈양식만 허용(정책 3.12). */
+  locked?: boolean;
 }) {
   const neutral =
     "flex h-[40px] items-center justify-center gap-[6px] rounded-[11px] border border-line bg-white px-[10px] text-[13.5px] font-bold text-t2 hover:bg-bg disabled:cursor-wait disabled:opacity-60";
@@ -30,15 +33,15 @@ export function SettlementActionBar({
       <button
         type="button"
         onClick={onSave}
-        disabled={pending}
+        disabled={pending || locked}
         className="flex-[1_1_auto] min-w-max justify-center h-[40px] rounded-[11px] border border-transparent bg-teal px-[10px] text-[13.5px] font-bold text-white shadow-pri hover:bg-teal-d disabled:cursor-wait disabled:opacity-60"
       >
         저장
       </button>
-      <button type="button" onClick={onMidMoveout} disabled={pending} className={`${outlined} flex-[1_1_auto] min-w-max justify-center`}>
+      <button type="button" onClick={onMidMoveout} disabled={pending || locked} className={`${outlined} flex-[1_1_auto] min-w-max justify-center`}>
         {pendingAction === "mid" ? "중도퇴실 처리 중…" : "정산완료+중도퇴실"}
       </button>
-      <button type="button" onClick={onMoveout} disabled={pending} className={`${outlined} flex-[1_1_auto] min-w-max justify-center`}>
+      <button type="button" onClick={onMoveout} disabled={pending || locked} className={`${outlined} flex-[1_1_auto] min-w-max justify-center`}>
         {pendingAction === "moveout" ? "퇴실 처리 중…" : "정산완료+퇴실"}
       </button>
       <button type="button" onClick={onPrint} disabled={pending} className={`${neutral} flex-[1_1_auto] min-w-max justify-center`}>
@@ -50,7 +53,7 @@ export function SettlementActionBar({
       <button
         type="button"
         onClick={onDelete}
-        disabled={pending}
+        disabled={pending || locked}
         className="flex-[1_1_auto] min-w-max justify-center h-[40px] rounded-[11px] border border-red bg-white px-[10px] text-[13.5px] font-bold text-red hover:bg-red-t disabled:cursor-wait disabled:opacity-60"
       >
         {pendingAction === "delete" ? "삭제 중…" : "삭제"}
