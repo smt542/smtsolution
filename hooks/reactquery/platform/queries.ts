@@ -1,6 +1,7 @@
 import { keepPreviousData, useInfiniteQuery, useQueries, useQuery } from "@tanstack/react-query";
 import {
   getPlatformOverview,
+  getPointPoolBalance,
   getPlatformOrganizationContractKpis,
   getOrganizationContractFilePreview,
   getPlatformOrganizationOwner,
@@ -20,6 +21,13 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { platformKeys } from "./keys";
 import { SIGNED_URL_GC_TIME_MS, SIGNED_URL_STALE_TIME_MS } from "@/lib/attachments/signedUrl";
+
+export function usePointPoolBalance() {
+  return useQuery({
+    queryKey: platformKeys.pointPoolBalance(),
+    queryFn: getPointPoolBalance,
+  });
+}
 
 export function usePlatformOverview() {
   return useQuery({

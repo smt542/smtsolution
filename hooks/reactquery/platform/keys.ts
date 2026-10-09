@@ -43,6 +43,7 @@ export const platformKeys = {
       opts?.type ?? "all",
       opts?.pageSize ?? 50,
     ] as const,
+  pointPoolBalance: () => [...platformKeys.all, "point-pool-balance"] as const,
   messagePointRates: (includeHistory = false) =>
     [...platformKeys.all, "message-point-rates", includeHistory] as const,
   pointReservations: (opts?: PointReservationQuery) =>

@@ -3,20 +3,19 @@
 import dynamic from "next/dynamic";
 import { useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Badge, Button, Modal, Spinner } from "@/components/common";
+import { Badge, Button, Spinner } from "@/components/common";
 import {
-  listPlatformOrganizations,
   listPointTransactions,
-  platformKeys,
   useCanManageHqAccounts,
   useChargePoints,
   useDeletePointCharge,
+  platformKeys,
   useMessagePointRates,
+  usePointPoolBalance,
   usePlatformOrgBilling,
   usePlatformSettings,
   useSetMessagePointRates,
   useUpdatePointCharge,
-  type PlatformOrganizationQuery,
   type PointTransaction,
   type PointTransactionCursor,
   type PointTransactionQuery,
@@ -35,7 +34,6 @@ const PointRateModal = dynamic(() =>
   import("./components/PointRateModal").then((module) => module.PointRateModal),
 );
 
-const ALL_ORGANIZATIONS_QUERY = { pageSize: 200 } satisfies PlatformOrganizationQuery;
 const CHARGE_HISTORY_QUERY = { type: "charge", pageSize: 100 } satisfies Omit<PointTransactionQuery, "cursor">;
 const dateFmt = new Intl.DateTimeFormat("ko-KR", {
   year: "numeric",
@@ -54,27 +52,6 @@ function formatChargeDate(value: string): string {
 function currentMonthIso(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-}
-
-async function listAllPlatformOrganizations() {
-  const firstPage = await listPlatformOrganizations(ALL_ORGANIZATIONS_QUERY);
-  const pageCount = Math.ceil(firstPage.totalCount / firstPage.pageSize);
-
-  if (pageCount <= 1) return firstPage;
-
-  const remainingPages = await Promise.all(
-    Array.from({ length: pageCount - 1 }, (_, index) =>
-      listPlatformOrganizations({
-        ...ALL_ORGANIZATIONS_QUERY,
-        page: index + 2,
-      }),
-    ),
-  );
-
-  return {
-    ...firstPage,
-    rows: [firstPage, ...remainingPages].flatMap((page) => page.rows),
-  };
 }
 
 async function listAllChargeTransactions() {
@@ -96,10 +73,7 @@ export default function PointsWorkspace() {
   const [selectedCharge, setSelectedCharge] = useState<PointTransaction | null>(null);
   const [historyPage, setHistoryPage] = useState(1);
   const historyScrollerRef = useRef<HTMLDivElement>(null);
-  const modalOrgsQuery = useQuery({
-    queryKey: platformKeys.organizations(ALL_ORGANIZATIONS_QUERY),
-    queryFn: listAllPlatformOrganizations,
-  });
+  const poolBalanceQuery = usePointPoolBalance();
   const billingQuery = usePlatformOrgBilling(currentMonthIso());
   const { data: canManage = false } = useCanManageHqAccounts();
   const ratesQuery = useMessagePointRates();
@@ -114,14 +88,8 @@ export default function PointsWorkspace() {
   const deleteCharge = useDeletePointCharge();
   const setRates = useSetMessagePointRates();
 
-  const modalOrganizations = useMemo(
-    () => (modalOrgsQuery.data?.rows ?? []).filter((organization) => !organization.deletedAt),
-    [modalOrgsQuery.data],
-  );
-  const poolBalance = useMemo(
-    () => modalOrganizations.reduce((total, organization) => total + organization.availablePoints, 0),
-    [modalOrganizations],
-  );
+  // 본사 단일 풀 잔액(발송 허용 판정과 같은 point_pool_balance) — 조직별 합산이 아니다
+  const poolBalance = poolBalanceQuery.data?.availablePoints ?? 0;
   const billingTotals = useMemo(
     () => (billingQuery.data ?? []).reduce(
       (total, row) => ({
@@ -129,6 +97,7 @@ export default function PointsWorkspace() {
         smsCount: total.smsCount + row.smsCount,
         lmsCount: total.lmsCount + row.lmsCount,
         faxCount: total.faxCount + row.faxCount,
+        faxPageCount: total.faxPageCount + row.faxPageCount,
         subtotalKrw: total.subtotalKrw + row.subtotalKrw,
       }),
       {
@@ -136,6 +105,7 @@ export default function PointsWorkspace() {
         smsCount: 0,
         lmsCount: 0,
         faxCount: 0,
+        faxPageCount: 0,
         subtotalKrw: 0,
       },
     ),
@@ -173,18 +143,19 @@ export default function PointsWorkspace() {
     billingTotals.smsCount * (activeRates.get("sms") ?? 0)
     + billingTotals.lmsCount * (activeRates.get("lms") ?? 0)
   );
-  const faxPoints = billingTotals.faxCount * (activeRates.get("fax") ?? 0);
+  // 실제 차감은 성공 페이지 수 × 단가(건수 표기는 그대로)
+  const faxPoints = billingTotals.faxPageCount * (activeRates.get("fax") ?? 0);
   const monthUsedPoints = alimtalkPoints + smsPoints + faxPoints;
   const messageCount = billingTotals.smsCount + billingTotals.lmsCount;
   const railTotal = monthUsedPoints > 0 ? monthUsedPoints : 1;
   const lowBalanceThreshold = settingsQuery.data?.lowBalanceThreshold ?? 0;
-  const isPointSummaryInitialLoading = modalOrgsQuery.isPending
+  const isPointSummaryInitialLoading = poolBalanceQuery.isPending
     || billingQuery.isPending
     || ratesQuery.isPending
     || settingsQuery.isPending;
-  const isPointSummaryRefreshing = [modalOrgsQuery, billingQuery, ratesQuery, settingsQuery]
+  const isPointSummaryRefreshing = [poolBalanceQuery, billingQuery, ratesQuery, settingsQuery]
     .some((query) => query.isFetching && !query.isPending);
-  const summaryError = modalOrgsQuery.isError
+  const summaryError = poolBalanceQuery.isError
     || billingQuery.isError
     || ratesQuery.isError
     || settingsQuery.isError;
@@ -193,32 +164,21 @@ export default function PointsWorkspace() {
   const chargeNeeded = summaryReady
     && poolBalance > 0
     && poolBalance <= lowBalanceThreshold;
-  const pickerUnavailable = modalOrgsQuery.data
-    ? modalOrganizations.length === 0
-    : modalOrgsQuery.isPending;
   const chargeTotalCount = chargeHistoryQuery.data?.totalCount ?? 0;
 
   const retrySummary = () => {
     void Promise.all([
-      modalOrgsQuery.refetch(),
+      poolBalanceQuery.refetch(),
       billingQuery.refetch(),
       ratesQuery.refetch(),
       settingsQuery.refetch(),
     ]);
   };
 
-  // 팝빌 포인트 충전 = 본사의 팝빌 결제 기록(대상 조직 없음). 포인트 원장은 아직 조직별이라
-  // 단일 풀로 바뀌기 전까지 가장 먼저 만든 운영 중 조직에 기록한다.
-  const chargeTargetOrgId = useMemo(() => {
-    const byOldest = [...modalOrganizations].sort((a, b) => a.id - b.id);
-    return (byOldest.find((organization) => organization.status === "active") ?? byOldest[0])?.id;
-  }, [modalOrganizations]);
-
   const handleCharge = async (amount: number) => {
     try {
-      if (chargeTargetOrgId == null) throw new Error("충전을 기록할 조직이 없습니다.");
-      // 1원 = 1P
-      await charge.mutateAsync({ orgId: chargeTargetOrgId, points: amount, amountKrw: amount });
+      // 팝빌 포인트 충전 = 본사의 팝빌 결제 기록 — 조직에 귀속시키지 않는다(org_id null). 1원 = 1P
+      await charge.mutateAsync({ orgId: null, points: amount, amountKrw: amount });
       toast.success(`${num(amount)}P를 충전했어요`);
       setHistoryPage(1);
     } catch (error) {
@@ -310,7 +270,7 @@ export default function PointsWorkspace() {
             variant="primary"
             type="button"
             onClick={() => setChargeModalOpen(true)}
-            disabled={!canManage || pickerUnavailable}
+            disabled={!canManage}
             className="shrink-0 border border-transparent transition-colors disabled:cursor-not-allowed disabled:opacity-60"
           >
             포인트 충전
@@ -456,20 +416,12 @@ export default function PointsWorkspace() {
       </section>
 
       {chargeModalOpen && (
-        modalOrgsQuery.isPending || modalOrgsQuery.isError ? (
-          <OrganizationPickerQueryModal
-            isError={modalOrgsQuery.isError}
-            onClose={() => setChargeModalOpen(false)}
-            onRetry={() => void modalOrgsQuery.refetch()}
-          />
-        ) : (
-          <PointChargeModal
-            open
-            onClose={() => setChargeModalOpen(false)}
-            onSubmit={handleCharge}
-            isPending={charge.isPending}
-          />
-        )
+        <PointChargeModal
+          open
+          onClose={() => setChargeModalOpen(false)}
+          onSubmit={handleCharge}
+          isPending={charge.isPending}
+        />
       )}
 
       {rateModalOpen && (
@@ -515,26 +467,5 @@ function ChannelLegend({
       {label}
       <span className="font-semibold text-t3 tabular-nums">{num(points)}P · {num(count)}건</span>
     </div>
-  );
-}
-
-function OrganizationPickerQueryModal({
-  isError,
-  onClose,
-  onRetry,
-}: {
-  isError: boolean;
-  onClose: () => void;
-  onRetry: () => void;
-}) {
-  return (
-    <Modal
-      open
-      onClose={onClose}
-      title="팝빌 포인트 충전"
-      className="max-w-[440px] rounded-[20px] shadow-hf-modal [&>h2]:text-[17px] [&>h2]:tracking-[-0.02em] [&>h2]:text-t1"
-    >
-      {isError ? <QueryError onRetry={onRetry} /> : <Spinner />}
-    </Modal>
   );
 }

@@ -18,8 +18,8 @@ export type PointAdjustmentKind = "correction" | "deduction" | "refund";
 
 export interface PointTransaction {
   id: number;
-  orgId: number;
-  organizationName: string;
+  orgId: number | null; // null = 본사 충전(조직 귀속 없음)
+  organizationName: string | null;
   type: PointTxType;
   points: number;
   amountKrw: number | null;
@@ -30,7 +30,7 @@ export interface PointTransaction {
 }
 
 export interface ChargePointsInput {
-  orgId: number;
+  orgId?: number | null; // 생략/null = 본사 충전
   points: number;   // > 0
   amountKrw: number; // >= 0
   memo?: string | null;
@@ -199,8 +199,8 @@ interface PlatformOverviewRpcRow {
 
 interface PointTxRpcRow {
   id: number;
-  org_id: number;
-  organization_name: string;
+  org_id: number | null;
+  organization_name: string | null;
   type: PointTxType;
   points: number;
   amount_krw: number | null;
@@ -359,6 +359,28 @@ export async function listPointTransactions(
   };
 }
 
+export interface PointPoolBalance {
+  ledgerBalance: number;
+  reservedPoints: number;
+  availablePoints: number;
+}
+
+// 본사 단일 풀 잔액(실제 발송 허용 판정과 동일한 point_pool_balance())
+export async function getPointPoolBalance(): Promise<PointPoolBalance> {
+  const { data, error } = await createClient().rpc("platform_get_point_pool_balance");
+  if (error) throw new Error(error.message);
+  const row = (Array.isArray(data) ? data[0] : data) as {
+    ledger_balance: number | string;
+    reserved_points: number | string;
+    available_points: number | string;
+  } | null;
+  return {
+    ledgerBalance: Number(row?.ledger_balance ?? 0),
+    reservedPoints: Number(row?.reserved_points ?? 0),
+    availablePoints: Number(row?.available_points ?? 0),
+  };
+}
+
 export async function chargePoints(input: ChargePointsInput): Promise<void> {
   if (!Number.isInteger(input.points) || input.points <= 0) {
     throw new Error("충전 포인트는 1 이상의 정수여야 합니다.");
@@ -368,7 +390,7 @@ export async function chargePoints(input: ChargePointsInput): Promise<void> {
   }
   const supabase = createClient();
   const { data, error } = await supabase.rpc("platform_record_point_charge", {
-    p_org_id: input.orgId,
+    p_org_id: input.orgId ?? null,
     p_points: input.points,
     p_amount_krw: input.amountKrw,
     p_memo: input.memo?.trim() || null,

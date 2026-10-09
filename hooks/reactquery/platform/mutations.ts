@@ -38,6 +38,7 @@ export function useChargePoints() {
     onSuccess: () => Promise.all([
       queryClient.invalidateQueries({ queryKey: platformKeys.organizations() }),
       queryClient.invalidateQueries({ queryKey: [...platformKeys.all, "transactions"] }),
+      queryClient.invalidateQueries({ queryKey: platformKeys.pointPoolBalance() }),
     ]),
   });
 }
@@ -49,6 +50,7 @@ export function useUpdatePointCharge() {
     onSuccess: () => Promise.all([
       queryClient.invalidateQueries({ queryKey: platformKeys.organizations() }),
       queryClient.invalidateQueries({ queryKey: [...platformKeys.all, "transactions"] }),
+      queryClient.invalidateQueries({ queryKey: platformKeys.pointPoolBalance() }),
     ]),
   });
 }
@@ -60,6 +62,7 @@ export function useDeletePointCharge() {
     onSuccess: () => Promise.all([
       queryClient.invalidateQueries({ queryKey: platformKeys.organizations() }),
       queryClient.invalidateQueries({ queryKey: [...platformKeys.all, "transactions"] }),
+      queryClient.invalidateQueries({ queryKey: platformKeys.pointPoolBalance() }),
     ]),
   });
 }
@@ -84,6 +87,7 @@ export function useAdjustPoints() {
     onSuccess: () => Promise.all([
       queryClient.invalidateQueries({ queryKey: platformKeys.organizations() }),
       queryClient.invalidateQueries({ queryKey: [...platformKeys.all, "transactions"] }),
+      queryClient.invalidateQueries({ queryKey: platformKeys.pointPoolBalance() }),
     ]),
   });
 }
