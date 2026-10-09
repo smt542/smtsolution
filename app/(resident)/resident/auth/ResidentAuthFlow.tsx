@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import ResidentAsyncState from "@/app/(resident)/_components/ResidentAsyncState";
 import {
   automatch,
   loadSession,
@@ -23,6 +24,8 @@ const STEPS = [
 export default function ResidentAuthFlow() {
   const router = useRouter();
   const [stepIndex, setStepIndex] = useState(0);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -33,6 +36,7 @@ export default function ResidentAuthFlow() {
       });
 
     const run = async () => {
+      setStepIndex(0);
       const session = await loadSession();
       if (cancelled) return;
       if (!session) {
@@ -70,15 +74,33 @@ export default function ResidentAuthFlow() {
       );
     };
 
-    void run();
+    // 조회 실패 시 스피너에 멈추지 않고 재시도 안내를 보여준다(정책: 본인인증·세대 매칭 "조회 실패(서버)").
+    void run().catch(() => {
+      if (!cancelled) setFailed(true);
+    });
 
     return () => {
       cancelled = true;
       timers.forEach((timer) => window.clearTimeout(timer));
     };
-  }, [router]);
+  }, [router, attempt]);
 
   const step = STEPS[stepIndex];
+
+  if (failed) {
+    return (
+      <ResidentAsyncState
+        variant="compact"
+        role="alert"
+        message={<b>세대 정보를 불러오지 못했어요.</b>}
+        retryLabel="다시 시도"
+        onRetry={() => {
+          setFailed(false);
+          setAttempt((value) => value + 1);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-[22px] px-8">

@@ -273,7 +273,7 @@ export default function ResidentHomeWorkspace() {
                 </div>
               ) : null}
               <div className={styles.cta}>
-                <Link href="/resident/bill" className={styles.ctaPrimary}>
+                <Link href={`/resident/bill/${currentMonth.period.slice(0, 7)}`} className={styles.ctaPrimary}>
                   상세 내역 보기
                 </Link>
               </div>

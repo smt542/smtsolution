@@ -115,7 +115,7 @@ export default function ResidentMeWorkspace() {
 
   const saveNotifyPrefs = (alimtalk: boolean) => {
     notifyMutation.mutate(
-      { alimtalk, sms: alimtalk },
+      { alimtalk },
       {
         onSuccess: () => {
           showResidentToast(

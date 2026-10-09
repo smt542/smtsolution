@@ -117,9 +117,9 @@ export default function BillDetailView(props: BillDetailViewProps) {
   const totalAmount = detail.totalAmount ?? 0;
   // 당월 미수납 원금(납부 상태·납부할 금액 판정용).
   const unpaidAmount = detail.unpaidAmount ?? 0;
-  // 정산의 미납액·연체료 = 전월까지 이월된 미납과 그 연체료(정책: 세입자_관리비 상세고지서 3.4).
+  // 정산의 미납액 = 전월까지 이월된 미납. 연체료 = 이월분 연체료 + 당월분 연체료(정책: 세입자_관리비 상세고지서 3.4).
   const carryoverUnpaid = detail.carryoverUnpaid ?? 0;
-  const lateFee = detail.carryoverLateFee ?? 0;
+  const lateFee = (detail.carryoverLateFee ?? 0) + (detail.lateFee ?? 0);
   // 총 관리비 = 당월 부과액 + 미납액(이월) + 연체료
   const grandTotal = totalAmount + carryoverUnpaid + lateFee;
   const outstanding = unpaidAmount + carryoverUnpaid;

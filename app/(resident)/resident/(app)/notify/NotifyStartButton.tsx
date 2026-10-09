@@ -24,7 +24,7 @@ export default function NotifyStartButton({
 
   const start = async () => {
     try {
-      await setNotifyPrefs.mutateAsync({ alimtalk: enabled, sms: enabled });
+      await setNotifyPrefs.mutateAsync({ alimtalk: enabled });
       router.push(href);
     } catch {
       showResidentToast("알림 설정을 저장하지 못했어요. 다시 시도해 주세요");
