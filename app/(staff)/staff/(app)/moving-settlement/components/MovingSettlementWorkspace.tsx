@@ -193,10 +193,11 @@ function SettlementEditor({
       payDate: row.paidDateKey ? (draft[row.paidDateKey] ?? "") : (saved?.payDate ?? ""),
     };
   });
-  // 지침을 하나도 입력하지 않은 건(예전 금액만 저장한 건)은 util 을 보내지 않아 extra 를 그대로 둔다.
+  // 이사 지침(cur)을 하나도 입력하지 않은 건(예전 금액만 저장한 건)은 util 을 보내지 않아 extra 를 그대로 둔다.
+  // 전월 지침(prev)은 검침에서, 단가(price)는 단가 반영 ON 이면 검침 단가로 자동으로 채워지므로 기준에서 뺀다 —
+  // 자동값만으로 util 을 쓰면 파트너 저장(_ms.ts)이 레거시가 아닌 건으로 보고 금액을 비울 수 있다.
   const sendUtil =
-    savedUtil !== undefined ||
-    utilRows.some((row) => row.prev !== null || row.cur !== null || row.price !== null);
+    savedUtil !== undefined || utilRows.some((row) => row.cur !== null);
   // 정본 표기: `농협 352-1234-5678-91 · (주)스마일종합관리` — 은행·계좌는 공백, 예금주 앞만 구분점.
   const settleAccount = [
     [draft.settleBank, draft.settleAcct]

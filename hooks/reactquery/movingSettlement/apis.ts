@@ -122,7 +122,7 @@ export interface SettlementContext {
   };
   settlementSettings: SettlementSettings;
   /**
-   * billing 미납액 = 확정 부과된 period 의 (부과액 - 유효수납) 합(0171).
+   * billing 미납액 = 정산 occupancy 로 확정 부과된 period 의 (부과액 - 유효수납) + 연체료 합(0171 → 0268).
    * 정산건 미수금(정산금액 - 수납액)과는 **다른 숫자**다. 완료 가드는 둘 다 본다.
    */
   billingUnpaid: number;
@@ -548,7 +548,7 @@ export function utilityReadingCharge(
 
 /**
  * 정산요금 = settlement_amount 정의(0266 고정): **수납 차감 전** 금액
- *   ① 공과금(water+elec+gas) + ② 관리비(mgmtFeeProrated) + ③ 미납(unpaidAmount, 확정 부과 미납)
+ *   ① 공과금(water+elec+gas) + ② 관리비(mgmtFeeProrated) + ③ 미납(unpaidAmount, 정산 occupancy 의 확정 부과 미납 + 연체료, 0268)
  *   + ④ 청소비(cleaningCost)·기타(repairAmount)
  * 서버 save_moving_settlement / partner_save_moving_settlement / 트리거 set_moving_settlement_amount 와 같은 식이다.
  * 미수금 = 정산요금 − 수납액.

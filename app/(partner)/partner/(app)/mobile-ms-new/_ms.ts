@@ -287,13 +287,12 @@ export function buildSaveData(
     lastPaidDate: state.lastPaidDate,
   };
 
-  // extra.util 없이 저장된 정산(사무실 PC 작성분 등)은 단가가 0으로 시작한다.
-  // 단가를 입력하지 않았으면 저장된 공과금 금액을 그대로 유지한다(0으로 덮어쓰지 않음).
+  // 단가 또는 이사 지침이 비어 있는 행(사무실 PC 작성분·지침 미입력 등)은 금액을 계산할 수 없으므로
+  // 저장된 공과금 금액을 그대로 유지한다(0/null 로 덮어쓰지 않음). 금액 = max(0, 이사−전월) × 단가(0266).
   const saved = ctx.latestSettlement;
-  const legacyUtil = saved !== null && !saved.extra?.util;
   const utilCharge = (u: UtilRow | undefined, savedCharge: number | null | undefined) => {
     if (!u) return null;
-    if (legacyUtil && !u.price) return savedCharge ?? null;
+    if (!u.price || !u.cur) return savedCharge ?? null;
     return nullableInt(utilAmount(u));
   };
 
