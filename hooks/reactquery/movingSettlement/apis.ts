@@ -8,6 +8,27 @@ export type SettlementInquirySort = "code" | "date";
 export type OccupancyStatus = "occupied" | "vacant" | "moving_out";
 export type SettlementUtility = "water" | "elec" | "gas";
 
+/**
+ * 이사 지침 정본 = moving_settlements.extra.util (0266). staff·partner(mobile-ms-new/_ms.ts) 공통 키.
+ * 금액 = round(max(0, cur - prev) x price). cur(이사 지침)이 0보다 클 때만 공과금 관리의 「전월」 기본값·조회 검침으로 쓰인다.
+ */
+export interface SettlementUtilRow {
+  k: SettlementUtility;
+  /** 전월 지침 */
+  prev: number | null;
+  /** 이사 지침 */
+  cur: number | null;
+  /** 단가 */
+  price: number | null;
+  acct: string;
+  payDate: string;
+}
+
+export interface SettlementExtra {
+  util?: SettlementUtilRow[];
+  [key: string]: unknown;
+}
+
 export interface MovingSettlement {
   id: number;
   unitId: number;
@@ -27,17 +48,24 @@ export interface MovingSettlement {
   settleBank: string | null;
   settleAcct: string | null;
   settleHolder: string | null;
+  /** 수납 차감 전 정산요금(①+②+③미납+④). calculateSettlementAmount 주석 참고. */
   settlementAmount: number | null;
+  /** 저장 시점 확정 부과 미납 스냅샷(③, 0266). */
+  unpaidAmount: number | null;
   note: string | null;
   settlementNote: string | null;
   status: SettlementStatus;
   processedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** 부가 항목 jsonb. util = 이사 지침 정본(0266). */
+  extra: SettlementExtra | null;
 }
 
 export interface MeterSummary {
   utility: SettlementUtility;
+  /** 검침월(YYYY-MM-01, 0266). 퇴실월 검침이면 previousReading 이, 그 이전 달이면 currentReading 이 「전월 지침」이다. */
+  period: string | null;
   previousReading: number | null;
   currentReading: number | null;
   /** 그 달 검침에 적용된 단가(표시용). 할인·수동보정이 있으면 unitPrice x usage != charge 다. */
@@ -121,6 +149,8 @@ export interface SaveSettlementData {
   settleHolder: string | null;
   note: string | null;
   settlementNote: string | null;
+  /** 이사 지침(extra.util). 보내면 서버가 extra.util 만 교체하고 나머지 extra 키는 보존한다(0266). */
+  util?: SettlementUtilRow[];
 }
 
 export interface SaveSettlementInput {
@@ -231,12 +261,14 @@ interface MovingSettlementRpc {
   settle_acct: string | null;
   settle_holder: string | null;
   settlement_amount: number | null;
+  unpaid_amount?: number | null;
   note: string | null;
   settlement_note: string | null;
   status: SettlementStatus;
   processed_at: string | null;
   created_at: string;
   updated_at: string;
+  extra?: SettlementExtra | null;
 }
 
 interface SettlementContextRpc {
@@ -272,6 +304,7 @@ interface SettlementContextRpc {
   checklist: { id: number; label: string; checked: boolean; note: string | null }[];
   meter_summary: {
     utility: SettlementUtility;
+    period?: string | null;
     previous_reading: number | null;
     current_reading: number | null;
     unit_price: number | null;
@@ -356,12 +389,14 @@ function rpcToMovingSettlement(r: MovingSettlementRpc): MovingSettlement {
     settleAcct: r.settle_acct,
     settleHolder: r.settle_holder,
     settlementAmount: r.settlement_amount,
+    unpaidAmount: r.unpaid_amount ?? null,
     note: r.note,
     settlementNote: r.settlement_note,
     status: r.status,
     processedAt: r.processed_at,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
+    extra: r.extra ?? null,
   };
 }
 
@@ -410,6 +445,7 @@ function rpcToSettlementContext(r: SettlementContextRpc): SettlementContext {
     })),
     meterSummary: r.meter_summary.map((meter) => ({
       utility: meter.utility,
+      period: meter.period ?? null,
       previousReading: meter.previous_reading,
       currentReading: meter.current_reading,
       unitPrice: meter.unit_price ?? null,
@@ -439,6 +475,7 @@ function settlementDataToRpc(data: SaveSettlementData) {
     settle_holder: data.settleHolder,
     note: data.note,
     settlement_note: data.settlementNote,
+    ...(data.util ? { util: data.util } : {}),
   };
 }
 
@@ -499,16 +536,38 @@ function rpcToSettlementInquiryRow(r: SettlementInquiryRpc): SettlementInquiryRo
   };
 }
 
+/** 이사 지침 금액 = round(max(0, 이사 - 전월) x 단가). 셋 중 하나라도 비면 null(계산 불가 → 저장 금액 유지). */
+export function utilityReadingCharge(
+  prev: number | null | undefined,
+  cur: number | null | undefined,
+  price: number | null | undefined,
+): number | null {
+  if (prev == null || cur == null || price == null) return null;
+  return Math.round(Math.max(0, cur - prev) * price);
+}
+
+/**
+ * 정산요금 = settlement_amount 정의(0266 고정): **수납 차감 전** 금액
+ *   ① 공과금(water+elec+gas) + ② 관리비(mgmtFeeProrated) + ③ 미납(unpaidAmount, 확정 부과 미납)
+ *   + ④ 청소비(cleaningCost)·기타(repairAmount)
+ * 서버 save_moving_settlement / partner_save_moving_settlement / 트리거 set_moving_settlement_amount 와 같은 식이다.
+ * 미수금 = 정산요금 − 수납액.
+ */
 export function calculateSettlementAmount(values: Pick<
   SaveSettlementData,
   "mgmtFeeProrated" | "waterCharge" | "elecCharge" | "gasCharge" | "repairAmount"
->): number {
+> & {
+  cleaningCost?: number | null;
+  unpaidAmount?: number | null;
+}): number {
   return (
     (values.mgmtFeeProrated ?? 0) +
     (values.waterCharge ?? 0) +
     (values.elecCharge ?? 0) +
     (values.gasCharge ?? 0) +
-    (values.repairAmount ?? 0)
+    (values.repairAmount ?? 0) +
+    (values.cleaningCost ?? 0) +
+    (values.unpaidAmount ?? 0)
   );
 }
 
