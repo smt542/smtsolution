@@ -133,6 +133,10 @@ function NumericField({
   );
 }
 
+// 연체료 수납분을 원금과 구분 저장하는 모델이 없어, 연체료 이전 행 수납은 원금 수납으로 처리된다(개선3차 14).
+const LATE_ONLY_BLOCK_MESSAGE =
+  "연체료 이전 행은 아직 수납 저장할 수 없어요. 연체료 수납 저장 방식이 정해질 때까지 원 행에서 처리해 주세요";
+
 export function PaymentHistorySection({
   orgId,
   buildingId,
@@ -283,6 +287,11 @@ export function PaymentHistorySection({
     const row = draftRows.find((candidate) => candidate.key === key);
     if (!row || row.cancelRequested || row.cancelCompleted || row.payment?.status === "canceled") return;
 
+    if (row.lateOnly && action !== "split") {
+      toast.warning(LATE_ONLY_BLOCK_MESSAGE);
+      return;
+    }
+
     const unpaidPrincipal = Math.max(row.rowSummary?.unpaid ?? 0, 0);
     const balance = unpaidPrincipal + row.lateFee;
     if (action === "split") {
@@ -380,6 +389,10 @@ export function PaymentHistorySection({
         && !fieldsEqual(row.fields, row.originalFields),
       );
       if (isCanceled || (!needsNewRecord && !needsEdit)) continue;
+      if (row.lateOnly && normalizeAmount(row.fields.amount) > 0) {
+        toast.warning(LATE_ONLY_BLOCK_MESSAGE);
+        return;
+      }
       if (needsEdit && normalizeAmount(row.fields.amount) <= 0) {
         toast.warning("수납액을 올바르게 입력해 주세요");
         return;
