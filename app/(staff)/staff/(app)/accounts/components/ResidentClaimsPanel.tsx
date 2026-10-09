@@ -180,6 +180,11 @@ export function ResidentClaimsPanel() {
         claimId: selectedClaim.claimId,
         occupancyId: selectedOccupancy.occupancyId,
       });
+      if (!result.approved) {
+        toast.info("이미 연결된 입주자 또는 세대라 연결하지 않았어요");
+        closeLinkModal();
+        return;
+      }
       toast.success(`${selectedOccupancy.buildingName} ${selectedOccupancy.unitNo}호와 연결했어요`);
       // 승인은 확정 — 안내 문자 미발송은 비차단 경고만 띄운다.
       if (!result.notified) toast.info("연결은 완료됐지만 안내 문자를 보내지 못했어요");

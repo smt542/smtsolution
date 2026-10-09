@@ -12,6 +12,7 @@ function json(data: Record<string, unknown>, status = 200): Response {
 
 type ClaimRow = {
   claim_id: number;
+  org_id: number | null;
   claimed_name: string | null;
   claimed_phone: string | null;
   resident_phone: string | null;
@@ -52,15 +53,22 @@ export async function POST(request: Request): Promise<Response> {
   if (approveErr) return json({ error: "APPROVE_FAILED", message: approveErr.message }, 400);
 
   // ---- 여기부터는 승인 확정 이후. 어떤 실패도 approved:true 응답을 바꾸지 않는다. ----
-  const done = (notified: boolean, reason?: string) => json({ approved: true, notified, ...(reason ? { reason } : {}) });
+  const done = (notified: boolean, reason?: string, approved = true) =>
+    json({ approved, notified, ...(reason ? { reason } : {}) });
   try {
     const { data: ctxData } = await sb.rpc("get_my_context");
     const ctx = (Array.isArray(ctxData) ? ctxData[0] : ctxData) as { org_id?: number } | null;
-    const orgId = ctx?.org_id;
-    if (!orgId) return done(false, "NO_ORG");
+    const ctxOrgId = ctx?.org_id;
+    if (!ctxOrgId) return done(false, "NO_ORG");
 
     const { data: claims } = await sb.rpc("list_res_claims", { p_status: null });
     const claim = ((claims ?? []) as ClaimRow[]).find((row) => row.claim_id === claimId);
+    // approve_res_claim은 이미 연결된 입주자/세대면 예외 없이 claim을 'rejected'로 돌린다(CLAIM_LINK_REDUNDANT).
+    // 실제로 연결된 경우에만 완료 안내를 보낸다.
+    if (!claim || claim.status !== "linked") return done(false, "NOT_LINKED", false);
+    // 과금·발송 org는 claim 자신의 org여야 하며, 다중 org 사용자의 컨텍스트와 불일치하면 보내지 않는다.
+    const orgId = claim.org_id;
+    if (!orgId || orgId !== ctxOrgId) return done(false, "ORG_MISMATCH");
     const phone = (claim?.claimed_phone ?? claim?.resident_phone ?? "").replace(/\D/g, "");
     if (!claim || !phone) return done(false, "NO_PHONE");
 

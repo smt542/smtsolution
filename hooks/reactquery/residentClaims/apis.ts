@@ -281,7 +281,8 @@ export async function listResidentClaims(
 }
 
 export interface ApproveResidentClaimResult {
-  approved: true;
+  /** false면 이미 연결된 입주자/세대라 연결이 이뤄지지 않은 것(reason NOT_LINKED). */
+  approved: boolean;
   /** 「세대 연결 완료」 안내 문자 접수 여부. false여도 승인은 완료된 상태다. */
   notified: boolean;
   reason?: string;
@@ -300,10 +301,10 @@ export async function approveResidentClaim(input: {
   const data = (await res.json().catch(() => null)) as
     | (Partial<ApproveResidentClaimResult> & { error?: string; message?: string })
     | null;
-  if (!res.ok || !data?.approved) {
+  if (!res.ok || !data || typeof data.approved !== "boolean") {
     throw new Error(data?.message ?? "승인하지 못했습니다.");
   }
-  return { approved: true, notified: data.notified === true, reason: data.reason };
+  return { approved: data.approved, notified: data.notified === true, reason: data.reason };
 }
 
 export async function rejectResidentClaim(claimId: number): Promise<void> {
