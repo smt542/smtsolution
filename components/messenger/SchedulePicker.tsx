@@ -1,14 +1,36 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { DpDatePicker } from "@/components/common/DpDatePicker";
 import { DpTimePicker } from "@/components/common/DpTimePicker";
+import { Input, Radio } from "@/components/common";
 import { CalendarIcon, CheckIcon, ClockIcon } from "@/components/icons";
+import type { RecurrenceMode } from "@/hooks/reactquery/messaging/apis";
 
 export interface ScheduleValue {
   scheduledAt: string | null;
-  recurrenceMode: "monthly" | null;
+  recurrenceMode: RecurrenceMode | null;
+  /** 반복 종료 횟수(이 예약 포함 총 발송 횟수). null = 계속 반복. */
+  recurrenceEndCount: number | null;
+}
+
+/** 정본 repScrim 「횟수 지정」 기본값. */
+export const DEFAULT_RECURRENCE_END_COUNT = 12;
+export const MAX_RECURRENCE_END_COUNT = 999;
+
+const RECURRENCE_LABEL: Record<RecurrenceMode, string> = { monthly: "매월", weekly: "매주" };
+
+/** 반복 표기: "매월 반복" / "매주 반복 · 12회". */
+export function formatRecurrence(mode: RecurrenceMode, endCount: number | null): string {
+  return `${RECURRENCE_LABEL[mode]} 반복${endCount ? ` · ${endCount}회` : ""}`;
+}
+
+/** 횟수 입력값 정규화: 숫자만, 1~999. */
+export function parseRecurrenceEndCount(raw: string): number {
+  const digits = raw.replace(/\D/g, "");
+  const value = digits ? Number(digits) : 1;
+  return Math.min(MAX_RECURRENCE_END_COUNT, Math.max(1, value));
 }
 
 interface SchedulePickerProps {
@@ -81,6 +103,7 @@ export function SchedulePicker({ value, onChange }: SchedulePickerProps) {
   const [repeatMenuPosition, setRepeatMenuPosition] = useState<RepeatMenuPosition | null>(null);
   const repeatTriggerRef = useRef<HTMLButtonElement>(null);
   const repeatMenuRef = useRef<HTMLDivElement>(null);
+  const endGroupName = useId();
   const enabled = value.scheduledAt !== null;
   const parts = scheduledParts(value.scheduledAt);
 
@@ -124,13 +147,14 @@ export function SchedulePicker({ value, onChange }: SchedulePickerProps) {
   const toggle = () => {
     if (enabled) {
       setRepeatOpen(false);
-      onChange({ scheduledAt: null, recurrenceMode: null });
+      onChange({ scheduledAt: null, recurrenceMode: null, recurrenceEndCount: null });
       return;
     }
     const next = defaultKstParts();
     onChange({
       scheduledAt: toKstIso(next.date, next.time),
       recurrenceMode: null,
+      recurrenceEndCount: null,
     });
   };
 
@@ -183,6 +207,7 @@ export function SchedulePicker({ value, onChange }: SchedulePickerProps) {
               onChange({
                 scheduledAt: toKstIso(date, parts.time),
                 recurrenceMode: value.recurrenceMode,
+                recurrenceEndCount: value.recurrenceEndCount,
               })
             }
             minDate={minimumDate}
@@ -200,6 +225,7 @@ export function SchedulePicker({ value, onChange }: SchedulePickerProps) {
               onChange({
                 scheduledAt: toKstIso(parts.date, time),
                 recurrenceMode: value.recurrenceMode,
+                recurrenceEndCount: value.recurrenceEndCount,
               })
             }
           />
@@ -213,8 +239,8 @@ export function SchedulePicker({ value, onChange }: SchedulePickerProps) {
             onClick={toggleRepeat}
           >
             <CalendarIcon variant="messenger-repeat" className="size-[16px] shrink-0 text-t3" />
-            <span className={value.recurrenceMode === "monthly" ? "text-[13.5px] font-bold text-t1" : "text-[13.5px] font-semibold text-t4"}>
-              {value.recurrenceMode === "monthly" ? "매월" : "반복 없음"}
+            <span className={value.recurrenceMode ? "text-[13.5px] font-bold text-t1" : "text-[13.5px] font-semibold text-t4"}>
+              {value.recurrenceMode ? RECURRENCE_LABEL[value.recurrenceMode] : "반복 없음"}
             </span>
           </button>
 
@@ -230,6 +256,7 @@ export function SchedulePicker({ value, onChange }: SchedulePickerProps) {
                 {([
                   [null, "반복 없음"],
                   ["monthly", "매월"],
+                  ["weekly", "매주"],
                 ] as const).map(([mode, label]) => {
                   const selected = value.recurrenceMode === mode;
                   return (
@@ -242,7 +269,11 @@ export function SchedulePicker({ value, onChange }: SchedulePickerProps) {
                         selected ? "bg-blue-t2 text-blue-d" : ""
                       }`}
                       onClick={() => {
-                        onChange({ scheduledAt: value.scheduledAt, recurrenceMode: mode });
+                        onChange({
+                          scheduledAt: value.scheduledAt,
+                          recurrenceMode: mode,
+                          recurrenceEndCount: mode ? value.recurrenceEndCount : null,
+                        });
                         setRepeatOpen(false);
                       }}
                     >
@@ -254,6 +285,38 @@ export function SchedulePicker({ value, onChange }: SchedulePickerProps) {
               </div>,
               document.body,
             )}
+        </div>
+      )}
+
+      {/* 정책: 종료(계속 반복/횟수 지정) — 반복을 고른 경우에만 */}
+      {enabled && value.recurrenceMode && (
+        <div className="-mt-[6px] mb-[16px] flex min-h-[36px] flex-wrap items-center gap-[18px]">
+          <span className="text-[13px] font-bold text-t2">종료</span>
+          <Radio
+            name={endGroupName}
+            label="계속 반복"
+            checked={value.recurrenceEndCount === null}
+            onChange={() => onChange({ ...value, recurrenceEndCount: null })}
+          />
+          <Radio
+            name={endGroupName}
+            label="횟수 지정"
+            checked={value.recurrenceEndCount !== null}
+            onChange={() => onChange({ ...value, recurrenceEndCount: value.recurrenceEndCount ?? DEFAULT_RECURRENCE_END_COUNT })}
+          />
+          {value.recurrenceEndCount !== null && (
+            <span className="inline-flex items-center gap-[8px]">
+              <Input
+                unstyled
+                inputMode="numeric"
+                aria-label="반복 횟수"
+                value={String(value.recurrenceEndCount)}
+                onChange={(event) => onChange({ ...value, recurrenceEndCount: parseRecurrenceEndCount(event.target.value) })}
+                className="h-[36px] w-[72px] rounded-[11px] border border-line bg-white px-[12px] text-right text-[13.5px] font-bold text-t1 outline-none focus:border-blue"
+              />
+              <span className="text-[13px] font-semibold text-t2">회 후 종료</span>
+            </span>
+          )}
         </div>
       )}
     </>

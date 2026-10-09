@@ -2,7 +2,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { FormField } from "@/components/common/FormField";
 import { setSubmissionError } from "@/components/forms/formErrors";
@@ -12,7 +12,7 @@ import {
   type LoginFormValues,
 } from "@/components/forms/schema/auth";
 import { useLogin } from "@/hooks/reactquery/auth";
-import { AUTO_LOGIN_KEY } from "@/lib/auth/sessionPersistence";
+import { persistRememberedId, readRememberedId } from "@/lib/auth/sessionPersistence";
 import { Button, Input } from "@/components/common";
 
 const fieldBase =
@@ -21,18 +21,24 @@ export function LoginForm() {
   const router = useRouter();
   const login = useLogin();
   const [showPw, setShowPw] = useState(false);
-  const { register, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<LoginFormInput, unknown, LoginFormValues>({
+  const { register, handleSubmit, setError, reset, formState: { errors, isSubmitting } } = useForm<LoginFormInput, unknown, LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { username: "", password: "", autoLogin: false },
     shouldFocusError: true,
   });
   const submitting = login.isPending || isSubmitting;
 
+  // 자동 로그인 = 아이디 기억(정책 2026-08-12): 저장된 아이디가 있으면 채우고 체크 상태로 둔다.
+  useEffect(() => {
+    const remembered = readRememberedId("staff");
+    if (remembered) reset({ username: remembered, password: "", autoLogin: true });
+  }, [reset]);
+
   const onSubmit = handleSubmit(async (values) => {
     try {
       const ctx = await login.mutateAsync({ username: values.username, password: values.password, autoLogin: values.autoLogin ?? false });
-      if (values.autoLogin) localStorage.setItem(AUTO_LOGIN_KEY, "1");
-      else localStorage.removeItem(AUTO_LOGIN_KEY);
+      persistRememberedId("staff", values.autoLogin ?? false, values.username);
+      toast.success("로그인되었습니다");
       if (ctx?.mustChangePassword) toast.info("비밀번호 변경이 필요합니다. 관리자 안내에 따라 변경해 주세요.");
       router.push(ctx.role === "platform_admin" ? "/platform-admin" : "/staff/receipts");
     } catch (e) {

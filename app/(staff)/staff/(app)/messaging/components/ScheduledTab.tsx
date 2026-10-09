@@ -14,6 +14,7 @@ import { useSenderDefaults } from "@/hooks/reactquery/senderDefaults";
 import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
 import { resolveDisplaySender } from "@/lib/messaging/senderDisplay";
 import { MessageDetailModal } from "./MessageDetailModal";
+import { RecurrenceSettingsModal } from "./RecurrenceSettingsModal";
 import { MessagingListCard } from "./MessagingListCard";
 import {
   buildRecipientSummary,
@@ -24,11 +25,16 @@ import {
 } from "./messageFormat";
 import { SegmentedFilter } from "./SegmentedFilter";
 
-type RecurrenceFilter = "all" | "monthly" | "once";
+type RecurrenceFilter = "all" | "monthly" | "weekly" | "once";
 type SortOrder = "newest" | "oldest";
 
 function scheduleType(msg: ScheduledMessage): string {
-  return msg.recurrenceMode === "monthly" ? "예약(매월)" : "예약";
+  const base =
+    msg.recurrenceMode === "monthly" ? "예약(매월)" : msg.recurrenceMode === "weekly" ? "예약(매주)" : "예약";
+  // 횟수 지정 반복: 현재 회차/종료 회차.
+  return msg.recurrenceMode && msg.recurrenceEndCount != null
+    ? `${base} · ${msg.recurrenceSeq ?? 1}/${msg.recurrenceEndCount}회`
+    : base;
 }
 
 const TH =
@@ -84,6 +90,7 @@ export function ScheduledTab() {
   const [filter, setFilter] = useState<RecurrenceFilter>("all");
   const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
   const [selected, setSelected] = useState<ScheduledMessage | null>(null);
+  const [recurrenceTarget, setRecurrenceTarget] = useState<ScheduledMessage | null>(null);
 
   const buildingNameById = useMemo(
     () => new Map(buildings.map((building) => [building.id, building.name] as const)),
@@ -93,6 +100,7 @@ export function ScheduledTab() {
   const filtered = useMemo(() => {
     let result = messages.filter((m) => {
       if (filter === "monthly") return m.recurrenceMode === "monthly";
+      if (filter === "weekly") return m.recurrenceMode === "weekly";
       if (filter === "once") return m.recurrenceMode === null;
       return true;
     });
@@ -132,6 +140,7 @@ export function ScheduledTab() {
             options={[
               { value: "all", label: "전체" },
               { value: "monthly", label: "예약(매월)" },
+              { value: "weekly", label: "예약(매주)" },
               { value: "once", label: "예약" },
             ]}
             value={filter}
@@ -158,7 +167,7 @@ export function ScheduledTab() {
             <th className={TH}>내용</th>
             <th className={`${TH} w-[164px]`}>유형</th>
             <th className={`${TH} w-[272px]`}>예약 일시</th>
-            <th className="w-[96px]" />
+            <th className="w-[170px]" />
           </tr>
         </thead>
         <tbody>
@@ -188,13 +197,33 @@ export function ScheduledTab() {
                 <td className={TD}>{scheduleType(msg)}</td>
                 <td className={TD}>{scheduledAt}</td>
                 <td className={TD}>
-                  <CancelButton message={msg} />
+                  <div className="flex items-center justify-end gap-[12px]">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setRecurrenceTarget(msg);
+                      }}
+                      className="whitespace-nowrap text-[12.5px] font-bold text-blue"
+                    >
+                      반복 설정
+                    </button>
+                    <CancelButton message={msg} />
+                  </div>
                 </td>
               </tr>
             );
           })}
         </tbody>
       </table>
+
+      {recurrenceTarget && (
+        <RecurrenceSettingsModal
+          key={recurrenceTarget.id}
+          message={recurrenceTarget}
+          onClose={() => setRecurrenceTarget(null)}
+        />
+      )}
 
       {selected && (
         <MessageDetailModal

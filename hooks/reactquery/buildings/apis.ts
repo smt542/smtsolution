@@ -102,9 +102,13 @@ const rowToDirectory = (r: BuildingDirectoryDbRow): BuildingDirectoryRow => ({
   commonEntrance: r.entrance_password ?? null, createdAt: r.created_at ?? null,
 });
 
+/** 서버(list_buildings) 정렬 키. 검침일 정렬은 meterKind(수도·전기·가스·공용전기) 항목의 검침일 기준. */
+export type BuildingListSort = "created_desc" | "created_asc" | "meter_day_asc" | "meter_day_desc";
 export interface BuildingListParams {
   search?: string; managerUserId?: string; meterUserId?: string; cleaningUserId?: string;
   page?: number; pageSize?: number;
+  sort?: BuildingListSort;
+  meterKind?: "water" | "elec" | "gas" | "common_elec";
 }
 export interface BuildingListResult { rows: BuildingDirectoryRow[]; total: number; }
 
@@ -118,6 +122,8 @@ export async function listBuildings(params: BuildingListParams = {}): Promise<Bu
     p_cleaning: params.cleaningUserId ?? null,
     p_limit: pageSize,
     p_offset: (page - 1) * pageSize,
+    p_sort: params.sort ?? "created_desc",
+    p_meter_kind: params.meterKind ?? null,
   });
   if (error) throw new Error(error.message);
   const rows = (data ?? []).map(rowToDirectory);

@@ -6,7 +6,8 @@ import { formatPhone } from "@/lib/format";
 import type { MessageRecipient } from "@/lib/messaging/preset";
 import { byteLen, smsProduct } from "@/lib/messenger/bytes";
 import { AUTO_VARS, extractAlimtalkVariables } from "./AlimtalkForm";
-import { formatScheduledAt } from "./SchedulePicker";
+import { formatRecurrence, formatScheduledAt } from "./SchedulePicker";
+import type { RecurrenceMode } from "@/hooks/reactquery/messaging/apis";
 import { messengerClasses as styles } from "./messengerClasses";
 import type { ChannelMode } from "./types";
 
@@ -16,7 +17,9 @@ interface SendSummaryDialogProps {
   body: string;
   templateId: number | null;
   scheduledAt: string | null;
-  recurrenceMode: "monthly" | null;
+  recurrenceMode: RecurrenceMode | null;
+  /** 반복 종료 횟수(null = 계속 반복). */
+  recurrenceEndCount?: number | null;
   onCancel: () => void;
   onConfirm: () => void | Promise<void>;
   sender?: string;
@@ -67,6 +70,7 @@ export function SendSummaryDialog({
   templateId,
   scheduledAt,
   recurrenceMode,
+  recurrenceEndCount = null,
   onCancel,
   onConfirm,
   sender,
@@ -142,8 +146,8 @@ export function SendSummaryDialog({
             <span className={styles.rl}>발송시점</span>
             <span className={styles.rv}>
               {formatScheduledAt(scheduledAt)}
-              {recurrenceMode === "monthly" && (
-                <> · <span className={styles["ch-pill"]}>매월 반복</span></>
+              {recurrenceMode && (
+                <> · <span className={styles["ch-pill"]}>{formatRecurrence(recurrenceMode, recurrenceEndCount)}</span></>
               )}
             </span>
           </div>

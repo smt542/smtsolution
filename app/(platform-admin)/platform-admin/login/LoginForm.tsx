@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -12,7 +12,7 @@ import {
   type LoginFormInput,
   type LoginFormValues,
 } from "@/components/forms/schema/auth";
-import { AUTO_LOGIN_KEY } from "@/lib/auth/sessionPersistence";
+import { persistRememberedId, readRememberedId } from "@/lib/auth/sessionPersistence";
 import { Button, Input } from "@/components/common";
 
 const fieldClass =
@@ -25,12 +25,19 @@ export function LoginForm() {
     register,
     handleSubmit,
     setError,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormInput, unknown, LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { username: "", password: "", autoLogin: false },
     shouldFocusError: true,
   });
+
+  // 자동 로그인 = 아이디 유지(정책 2026-08-14): 저장된 아이디가 있으면 채우고 체크 상태로 둔다.
+  useEffect(() => {
+    const remembered = readRememberedId("platform");
+    if (remembered) reset({ username: remembered, password: "", autoLogin: true });
+  }, [reset]);
 
   const submit = async (values: LoginFormValues) => {
     try {
@@ -44,8 +51,7 @@ export function LoginForm() {
         throw new Error(data.error ?? "로그인에 실패했습니다.");
       }
 
-      if (values.autoLogin) localStorage.setItem(AUTO_LOGIN_KEY, "1");
-      else localStorage.removeItem(AUTO_LOGIN_KEY);
+      persistRememberedId("platform", values.autoLogin ?? false, values.username);
 
       toast.success("로그인되었습니다");
       router.push("/platform-admin");

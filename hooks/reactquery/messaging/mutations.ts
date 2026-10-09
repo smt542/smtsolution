@@ -3,6 +3,7 @@ import {
   cancelScheduledMessage,
   drainScheduledMessages,
   sendMessages,
+  setMessageScheduleRecurrence,
   type SendMessagesInput,
 } from "./apis";
 import { messagingKeys } from "./keys";
@@ -20,6 +21,15 @@ export function useCancelScheduledMessage() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (scheduleId: number) => cancelScheduledMessage(scheduleId),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: messagingKeys.all }),
+  });
+}
+
+export function useSetMessageScheduleRecurrence() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: setMessageScheduleRecurrence,
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: messagingKeys.all }),
   });

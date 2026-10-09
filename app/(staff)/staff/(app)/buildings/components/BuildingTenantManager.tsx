@@ -7,6 +7,7 @@ import {
   useBuildingList,
   useStaffOptions,
   type BuildingListResult,
+  type BuildingListSort,
 } from "@/hooks/reactquery/buildings";
 import { useTenantList } from "@/hooks/reactquery/occupancies";
 import { useBuildingMeterDays, type CustomerNumberKind } from "@/hooks/reactquery/buildingCustomerNumbers";
@@ -52,7 +53,12 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
     return Number.isSafeInteger(id) && id > 0 ? id : null;
   }, [searchParams]);
 
-  // 담당자(사무/현장/청소) 필터는 서버 재조회, 등록일/검침일 정렬은 현재 페이지 클라이언트 정렬.
+  // 담당자(사무/현장/청소) 필터와 등록일/검침일 정렬은 모두 서버(list_buildings)에서 처리한 뒤 페이지네이션한다.
+  const meterActive = filter.meterKind !== "";
+  const meterKind = meterActive ? METER_KIND_MAP[filter.meterKind as Exclude<MeterKind, "">] : null;
+  const sort: BuildingListSort = meterKind
+    ? (filter.meterDir === "asc" ? "meter_day_asc" : "meter_day_desc")
+    : (filter.regSort === "asc" ? "created_asc" : "created_desc");
   const params = {
     search: search || undefined,
     managerUserId: filter.managerUserId ?? undefined,
@@ -60,11 +66,14 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
     cleaningUserId: filter.cleaningUserId ?? undefined,
     page,
     pageSize,
+    sort,
+    meterKind: meterKind ?? undefined,
   };
   const isInitialQuery =
     !search &&
     page === 1 &&
     pageSize === 20 &&
+    sort === "created_desc" &&
     !filter.managerUserId &&
     !filter.meterUserId &&
     !filter.cleaningUserId;
@@ -87,11 +96,9 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
     return out;
   }, [staff]);
 
-  // 검침일 필터: 현재 페이지 건물들의 항목별 검침일 조회 → 컬럼/정렬.
-  const meterActive = filter.meterKind !== "";
+  // 검침일 필터: 정렬은 서버가 하고, 표시할 항목별 검침일만 현재 페이지 건물들로 조회한다.
   const rowIds = useMemo(() => rawRows.map((r) => r.id), [rawRows]);
   const { data: meterDayMap } = useBuildingMeterDays(rowIds, meterActive);
-  const meterKind = meterActive ? METER_KIND_MAP[filter.meterKind as Exclude<MeterKind, "">] : null;
   const meterDayByBuilding = useMemo(() => {
     const out: Record<number, number | undefined> = {};
     if (!meterKind || !meterDayMap) return out;
@@ -99,21 +106,7 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
     return out;
   }, [meterKind, meterDayMap, rowIds]);
 
-  const rows = useMemo(() => {
-    const list = [...rawRows];
-    if (meterActive) {
-      list.sort((a, b) => {
-        const x = meterDayByBuilding[a.id] ?? Number.POSITIVE_INFINITY;
-        const y = meterDayByBuilding[b.id] ?? Number.POSITIVE_INFINITY;
-        if (x !== y) return filter.meterDir === "asc" ? x - y : y - x;
-        return a.code.localeCompare(b.code);
-      });
-    } else if (filter.regSort === "asc") {
-      // 서버 기본 정렬(등록일 최신순)을 현재 페이지 한정 뒤집어 오래된 순으로.
-      list.reverse();
-    }
-    return list;
-  }, [rawRows, meterActive, meterDayByBuilding, filter.meterDir, filter.regSort]);
+  const rows = rawRows;
 
   const selectedBuildingName = useMemo(
     () => rows.find((building) => building.id === selectedBuildingId)?.name,
@@ -170,7 +163,10 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
     if (
       next.managerUserId !== filter.managerUserId ||
       next.meterUserId !== filter.meterUserId ||
-      next.cleaningUserId !== filter.cleaningUserId
+      next.cleaningUserId !== filter.cleaningUserId ||
+      next.regSort !== filter.regSort ||
+      next.meterKind !== filter.meterKind ||
+      next.meterDir !== filter.meterDir
     ) {
       setPage(1);
     }

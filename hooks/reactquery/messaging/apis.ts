@@ -29,6 +29,9 @@ export interface MessageLog {
     | "reconcile_required";
 }
 
+/** 예약 반복 주기(정책: 예약 · 예약(매월) · 예약(매주)). */
+export type RecurrenceMode = "monthly" | "weekly";
+
 export interface SendMessagesInput {
   mode: SendMode;
   body: string;
@@ -36,8 +39,10 @@ export interface SendMessagesInput {
   templateId: number | null;
   recipients: ResolvedRecipient[];
   scheduledAt?: string | null;
-  recurrenceMode?: "monthly" | null;
+  recurrenceMode?: RecurrenceMode | null;
   recurrenceAnchorDay?: number | null;
+  /** 반복 종료 횟수(이 예약 포함 총 발송 횟수). null = 계속 반복. */
+  recurrenceEndCount?: number | null;
   /** 한 논리적 즉시발송 시도의 멱등 키(UUID). Idempotency-Key 헤더로 전달한다. */
   idempotencyKey?: string;
 }
@@ -209,6 +214,7 @@ export async function sendMessages(
       p_scheduled_at: input.scheduledAt,
       p_recurrence_mode: input.recurrenceMode ?? null,
       p_recurrence_anchor_day: input.recurrenceAnchorDay ?? null,
+      p_recurrence_end_count: input.recurrenceMode ? (input.recurrenceEndCount ?? null) : null,
     });
     if (error) throw new Error(error.message);
     const result = data as { schedule_id: number; count: number; scheduled_at: string };
@@ -271,6 +277,20 @@ export async function cancelScheduledMessage(scheduleId: number): Promise<void> 
   if (error) throw new Error(error.message);
 }
 
+/** 예약 탭 「반복 설정」: 대기 중 예약의 반복 주기·종료 횟수를 바꾼다(mode null = 반복 해제). */
+export async function setMessageScheduleRecurrence(input: {
+  scheduleId: number;
+  mode: RecurrenceMode | null;
+  endCount: number | null;
+}): Promise<void> {
+  const { error } = await createClient().rpc("set_message_schedule_recurrence", {
+    p_schedule_id: input.scheduleId,
+    p_mode: input.mode,
+    p_end_count: input.mode ? input.endCount : null,
+  });
+  if (error) throw new Error(error.message);
+}
+
 export interface TenantConsent { occupancyId: number; alimtalkOptIn: boolean; smsOptIn: boolean; }
 type TenantConsentRow = { occupancy_id: number; alimtalk_opt_in: boolean; sms_opt_in: boolean };
 
@@ -298,7 +318,11 @@ export interface ScheduledMessage {
   recipientCount: number;
   recipients: MessageRecipient[];
   scheduledAt: string;
-  recurrenceMode: "monthly" | null;
+  recurrenceMode: RecurrenceMode | null;
+  /** 반복 종료 회차(null = 계속 반복). */
+  recurrenceEndCount: number | null;
+  /** 반복 시리즈 내 회차(1부터). */
+  recurrenceSeq: number | null;
 }
 
 type ScheduledMessageRow = {
@@ -309,13 +333,15 @@ type ScheduledMessageRow = {
   recipient_count: number;
   recipients: MessageRecipient[] | null;
   scheduled_at: string;
-  recurrence_mode: "monthly" | null;
+  recurrence_mode: RecurrenceMode | null;
+  recurrence_end_count: number | null;
+  recurrence_seq: number | null;
 };
 
 export async function listScheduledMessages(): Promise<ScheduledMessage[]> {
   const { data, error } = await createClient()
     .from("message_schedules")
-    .select("id, channel, body, context, recipient_count, recipients, scheduled_at, recurrence_mode")
+    .select("id, channel, body, context, recipient_count, recipients, scheduled_at, recurrence_mode, recurrence_end_count, recurrence_seq")
     .eq("status", "scheduled")
     .order("scheduled_at", { ascending: false });
   if (error) throw new Error(error.message);
@@ -328,6 +354,8 @@ export async function listScheduledMessages(): Promise<ScheduledMessage[]> {
     recipients: r.recipients ?? [],
     scheduledAt: r.scheduled_at,
     recurrenceMode: r.recurrence_mode,
+    recurrenceEndCount: r.recurrence_end_count,
+    recurrenceSeq: r.recurrence_seq,
   }));
 }
 

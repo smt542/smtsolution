@@ -10,7 +10,7 @@ import {
   useMessagePointQuote,
   useTenantAlimtalkConsent,
 } from "@/hooks/reactquery/messaging/queries";
-import { MessageSendError } from "@/hooks/reactquery/messaging/apis";
+import { MessageSendError, type RecurrenceMode } from "@/hooks/reactquery/messaging/apis";
 import {
   buildRecipientRenderVariables,
   dedupeRecipients,
@@ -36,7 +36,7 @@ import { MessageComposer } from "./MessageComposer";
 import { MessengerPanel } from "./MessengerPanel";
 import { PhonePreview } from "./PhonePreview";
 import { RecipientCascade } from "./RecipientCascade";
-import { SchedulePicker } from "./SchedulePicker";
+import { SchedulePicker, type ScheduleValue } from "./SchedulePicker";
 import { SenderSelect } from "./SenderSelect";
 import {
   CloseConfirmDialog,
@@ -88,7 +88,8 @@ function MessengerFabContent() {
   const [templateId, setTemplateId] = useState<number | null>(null);
   const [alimtalkVars, setAlimtalkVars] = useState<Record<string, string>>({});
   const [scheduledAt, setScheduledAt] = useState<string | null>(null);
-  const [recurrenceMode, setRecurrenceMode] = useState<"monthly" | null>(null);
+  const [recurrenceMode, setRecurrenceMode] = useState<RecurrenceMode | null>(null);
+  const [recurrenceEndCount, setRecurrenceEndCount] = useState<number | null>(null);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
   const [sendFeedback, setSendFeedback] = useState<SendFeedback | null>(null);
@@ -113,6 +114,7 @@ function MessengerFabContent() {
     setAlimtalkVars({});
     setScheduledAt(null);
     setRecurrenceMode(null);
+    setRecurrenceEndCount(null);
     setSummaryOpen(false);
     setSendFeedback(null);
     idempotencyRef.current = null;
@@ -352,12 +354,10 @@ function MessengerFabContent() {
     clearTransientFeedback();
   };
 
-  const changeSchedule = (next: {
-    scheduledAt: string | null;
-    recurrenceMode: "monthly" | null;
-  }) => {
+  const changeSchedule = (next: ScheduleValue) => {
     setScheduledAt(next.scheduledAt);
     setRecurrenceMode(next.recurrenceMode);
+    setRecurrenceEndCount(next.recurrenceEndCount);
     clearTransientFeedback();
   };
 
@@ -422,6 +422,7 @@ function MessengerFabContent() {
         scheduledAt,
         recurrenceMode,
         recurrenceAnchorDay,
+        recurrenceEndCount,
         idempotencyKey: idempotency.key,
       });
       idempotencyRef.current = null;
@@ -528,7 +529,7 @@ function MessengerFabContent() {
 
           {/* 정본: 예약전송은 수신자 아래·메시지 영역 위(full-width) */}
           <SchedulePicker
-            value={{ scheduledAt, recurrenceMode }}
+            value={{ scheduledAt, recurrenceMode, recurrenceEndCount }}
             onChange={changeSchedule}
           />
 
@@ -576,6 +577,7 @@ function MessengerFabContent() {
           templateId={ui.channel === "alim" ? templateId : null}
           scheduledAt={scheduledAt}
           recurrenceMode={recurrenceMode}
+          recurrenceEndCount={recurrenceEndCount}
           sender={sender}
           template={ui.channel === "alim" ? selectedTemplate : null}
           vars={alimtalkVars}
