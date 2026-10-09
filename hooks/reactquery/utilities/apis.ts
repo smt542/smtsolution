@@ -642,10 +642,14 @@ export interface PartnerMeterUnit {
   moveInDate: string | null;
   /** 서버에서 마스킹한 연락처. */
   phone: string | null;
+  /** 입주민 연락처 전체(주번호 + 부번호, 빈 값 제외·등록 순서). */
+  phones: string[];
   /** 그 달 공과금별 적요(빈 값 제외). */
   notes: Partial<Record<PartnerMeterUtility, string>>;
   /** 공과금별 사용량 [1개월 전, 2개월 전, 3개월 전]. */
   usageHistory: Partial<Record<PartnerMeterUtility, (number | null)[]>>;
+  /** 그 달 검침에 저장한 전.량(전월 사용량) 수정값. 없으면 직전 달 사용량을 상속한다(0273). */
+  prevUsageOverrides: Partial<Record<PartnerMeterUtility, number>>;
   /** 선택한 달까지 부과확정 고지서 중 덜 낸 달(미납관리와 같은 식, 0214). */
   overduePeriods: PartnerMeterOverduePeriod[];
 }
@@ -670,8 +674,10 @@ interface PartnerMeterCardRpcRow {
   occupancy_id: number | null;
   move_in_date: string | null;
   phone: string | null;
+  phones_more?: string[] | null;
   notes: Partial<Record<PartnerMeterUtility, string>> | null;
   usage_history: Partial<Record<PartnerMeterUtility, (number | null)[]>> | null;
+  prev_usage_overrides?: Partial<Record<PartnerMeterUtility, number>> | null;
   overdue_periods: { period: string; unpaid_principal: number; due_date: string; late_fee_enabled?: boolean }[] | null;
 }
 
@@ -692,8 +698,12 @@ function groupPartnerMeterRows(
       occupancyId: card?.occupancy_id ?? null,
       moveInDate: card?.move_in_date ?? null,
       phone: card?.phone ?? null,
+      phones: [card?.phone ?? null, ...(card?.phones_more ?? [])].filter(
+        (phone): phone is string => Boolean(phone && phone.trim()),
+      ),
       notes: card?.notes ?? {},
       usageHistory: card?.usage_history ?? {},
+      prevUsageOverrides: card?.prev_usage_overrides ?? {},
       overduePeriods: (card?.overdue_periods ?? []).map((item) => ({
         period: item.period,
         unpaidPrincipal: Number(item.unpaid_principal),
@@ -754,6 +764,8 @@ export interface SavePartnerMeterReadingsInput {
     utility: string;
     previous_reading: string;
     current_reading: string;
+    /** 전.량 수정값. 빈 문자열이면 수정값을 지우고 직전 달 사용량을 상속한다. */
+    prev_usage: string;
   }[];
 }
 

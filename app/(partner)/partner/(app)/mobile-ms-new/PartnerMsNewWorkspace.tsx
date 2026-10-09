@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { type ReactNode, useMemo, useRef, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 
 import { applyMask, Input, phoneMask, PHONE_INPUT_ATTRS, Textarea } from "@/components/common";
 import {
@@ -35,7 +35,7 @@ import { PartnerButton } from "../../../_components/PartnerButton";
 import { PartnerConfirmDialog } from "../../../_components/PartnerConfirmDialog";
 
 type SectionKey = "basic" | "util" | "fee" | "etc" | "cleaning" | "settle" | "check";
-type ConfirmKind = "save" | "cancel" | "delete" | "statementNegative";
+type ConfirmKind = "save" | "cancel" | "delete" | "statementNegative" | "saveNegative";
 
 const CLEANING_STATUS_OPTIONS = [
   { value: "미결", label: "미결" },
@@ -224,7 +224,11 @@ export default function PartnerMsNewWorkspace({
     check: true,
   });
 
-  const totals = useMemo(() => (state ? computeTotals(state) : null), [state]);
+  // 저장·합계에 쓰는 컨텍스트. 새 등록이면 조회 RPC가 함께 준 직전 정산(공과금 저장 금액 등)을 쓰지 않는다.
+  const saveCtx: PartnerSettlementContext | null =
+    ctx && editId === null ? { ...ctx, latestSettlement: null } : ctx;
+  // 미수금 = 서버 settlement_amount(①+②+③미납+④) − 수납액. 저장 RPC와 같은 식(개선3차 31).
+  const totals = state && saveCtx ? computeTotals(state, saveCtx) : null;
   const saveMutation = useSavePartnerSettlement();
   const deleteMutation = useDeletePartnerSettlement();
   const isSettlementMutating = saveMutation.isPending || deleteMutation.isPending;
@@ -330,14 +334,19 @@ export default function PartnerMsNewWorkspace({
     setState((s) => (s ? { ...s, notes: { ...s.notes, [id]: note } } : s));
 
   const doSave = async () => {
-    if (!state || !ctx || isSettlementMutating) return;
+    if (!state || !ctx || !saveCtx || !totals || isSettlementMutating) return;
     if (!state.moveOutDate) {
       showToast("퇴실일자를 선택해 주세요");
       return;
     }
+    // 정책: 미수금 < 0이면 저장 차단(확인만, 저장 안 됨).
+    if (totals.balance < 0) {
+      setConfirmKind("saveNegative");
+      return;
+    }
     setErr("");
     try {
-      const data = buildSaveData(state, ctx);
+      const data = buildSaveData(state, saveCtx);
       // 사무실 화면과 같은 규칙: 메모가 있으면 체크된 것으로 저장한다(0172).
       const checklist = ctx.checklist.map((c) => {
         const note = (state.notes[c.id] ?? "").trim();
@@ -353,8 +362,14 @@ export default function PartnerMsNewWorkspace({
       setActiveId(res.settlementId);
       showToast("이사정산을 저장했어요");
       setTimeout(goBack, 700);
-    } catch {
-      setErr("저장에 실패했어요. 다시 시도해 주세요.");
+    } catch (e) {
+      // 서버 가드(미수금 < 0 · 음수 금액)는 안내 문구를 그대로 보여준다.
+      const message = e instanceof Error ? e.message : "";
+      setErr(
+        message.startsWith("입력값을 다시 확인해 주세요")
+          ? message
+          : "저장에 실패했어요. 다시 시도해 주세요.",
+      );
     }
   };
 
@@ -719,6 +734,12 @@ export default function PartnerMsNewWorkspace({
             <span>④ 청소</span>
             <b className={styles.srowValue}>{won(totals.cleaning)}</b>
           </div>
+          {totals.billingUnpaid !== 0 ? (
+            <div className={styles.srow}>
+              <span>미납 관리비</span>
+              <b className={styles.srowValue}>{won(totals.billingUnpaid)}</b>
+            </div>
+          ) : null}
           <div className={styles.srow}>
             <span>미납 소계</span>
             <b className={styles.srowValue}>{won(totals.unpaidSubtotal)}</b>
@@ -750,6 +771,11 @@ export default function PartnerMsNewWorkspace({
           // 퇴실일자가 없으면 저장 확인창을 띄우지 않고 바로 안내한다.
           if (!state?.moveOutDate) {
             showToast("퇴실일자를 선택해 주세요");
+            return;
+          }
+          // 미수금 < 0이면 저장 확인 대신 확인 전용 안내만 띄운다(저장 차단).
+          if (totals.balance < 0) {
+            setConfirmKind("saveNegative");
             return;
           }
           setConfirmKind("save");
@@ -854,6 +880,12 @@ export default function PartnerMsNewWorkspace({
                   ) : null}
 
                   <div className={styles.statementGroup}>정산</div>
+                  {totals.billingUnpaid !== 0 ? (
+                    <div className={styles.statementRow}>
+                      <span className={styles.statementRowLabel}>미납 관리비</span>
+                      <b className={styles.statementRowValue}>{won(totals.billingUnpaid)}</b>
+                    </div>
+                  ) : null}
                   <div className={styles.statementRow}>
                     <span className={styles.statementRowLabel}>미납 소계</span>
                     <b className={styles.statementRowValue}>{won(totals.unpaidSubtotal)}</b>
@@ -931,6 +963,15 @@ export default function PartnerMsNewWorkspace({
             setConfirmKind(null);
             void doDelete();
           }}
+        />
+      ) : null}
+      {confirmKind === "saveNegative" ? (
+        <PartnerConfirmDialog
+          title="입력값을 다시 확인해 주세요"
+          description={`수납액이 미납 소계보다 많아 미수금이 ${won(totals.balance)}으로 계산됐어요. 저장할 수 없어요.`}
+          confirmLabel="확인"
+          onCancel={() => setConfirmKind(null)}
+          onConfirm={() => setConfirmKind(null)}
         />
       ) : null}
       {confirmKind === "statementNegative" ? (

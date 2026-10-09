@@ -152,11 +152,14 @@ export function MeterUnitCard({
           <div className={styles.row}>
             <span className={styles.rowLabel}>입주민 전화번호</span>
             <div className={styles.tels}>
-              {unit.phone ? (
-                <PartnerPhoneLink
-                  phone={unit.phone}
-                  size="lg"
-                />
+              {unit.phones.length > 0 ? (
+                unit.phones.map((phone, index) => (
+                  <PartnerPhoneLink
+                    key={`${phone}-${index}`}
+                    phone={phone}
+                    size="lg"
+                  />
+                ))
               ) : (
                 <span className={styles.telNone}>등록된 번호가 없어요</span>
               )}

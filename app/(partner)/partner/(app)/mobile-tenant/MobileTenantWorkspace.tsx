@@ -59,7 +59,7 @@ function Row({
 }
 
 // 이사정산 카드 금액(정본 .amt2 수납액 | 미수금). 수납액 = 파트너 이사정산 등록 화면이 저장한 값(extra.paid),
-// 미수금 = 정산 금액(공과금·관리비·기타·청소 합계) − 수납액 — 등록 화면 하단 미수금과 같은 식이다.
+// 미수금 = 정산 금액(①공과금+②관리비+③미납+④청소·기타, 수납 차감 전) − 수납액 — 등록 화면 하단 미수금과 같은 식이다.
 function settlementAmounts(s: MovingSettlement) {
   return { paid: s.paid_amount, due: (s.settlement_amount ?? 0) - s.paid_amount };
 }
@@ -221,8 +221,10 @@ export function MobileTenantWorkspace({ data }: { data: MobileTenantData }) {
               <div className={styles.none}>이사정산 내역이 없어요</div>
             ) : (
               settlements.map((s, i) => {
-                const done = s.status === "completed";
                 const { paid, due } = settlementAmounts(s);
+                // 미결 = 미수금 > 0(정책 상태·코드 정의). 사무실 완료 건은 수납액(extra.paid) 미저장(#14 보류)으로
+                // 미수금이 양수로 계산될 수 있어 당분간 completed 도 완료로 본다(개선3차 32).
+                const done = s.status === "completed" || due <= 0;
                 return (
                   <Link
                     key={s.id}

@@ -94,6 +94,11 @@ export type PartnerSettlementContext = {
   };
   checklist: PartnerChecklistItem[];
   meterSummary: PartnerMeter[];
+  /**
+   * ③ 미납 = 현재 occupancy 의 확정 부과 미납관리비 + 연체료(서버 settlement_billing_unpaid, 0268).
+   * 저장 RPC 가 같은 occupancy 로 계산해 settlement_amount 에 더하므로 화면 미수금도 이 값을 포함한다.
+   */
+  billingUnpaid: number;
 };
 
 export type MSExtra = {
@@ -120,8 +125,9 @@ export const DEFAULT_FEE_ITEMS: FeeItem[] = [
 export const MAX_ETC_ITEMS = 15;
 
 // ===== 숫자/통화 =====
+// 금액 입력은 0 이상만 받는다(정본 n0 와 같이 숫자 외 문자 — '-' 포함 — 를 모두 제거, 개선3차 35).
 export function toNumber(value: unknown): number {
-  const n = Number(String(value ?? "").replace(/[^0-9-]/g, ""));
+  const n = Number(String(value ?? "").replace(/[^0-9]/g, ""));
   return Number.isFinite(n) ? n : 0;
 }
 
@@ -149,12 +155,36 @@ export type MSTotals = {
   s2: number; // 관리비 소계 (관리비 정산 + 가수금)
   s3: number; // 기타 소계
   cleaning: number;
-  unpaidSubtotal: number; // 미납 소계
-  balance: number; // 미수금
+  billingUnpaid: number; // 미납 관리비(연체료 포함, 서버 ③)
+  unpaidSubtotal: number; // 미납 소계 = 서버 settlement_amount(수납 차감 전)
+  balance: number; // 미수금 = 미납 소계 − 수납액
 };
 
-export function computeTotals(state: MSState): MSTotals {
-  const s1 = state.util.reduce((t, u) => t + utilAmount(u), 0);
+/** 저장 시 쓰는 공과금 금액. 단가·이사 지침이 비어 있으면 계산할 수 없으므로 저장된 금액을 유지한다. */
+function utilCharge(u: UtilRow | undefined, savedCharge: number | null | undefined): number | null {
+  if (!u) return null;
+  if (!u.price || !u.cur) return savedCharge ?? null;
+  return nullableInt(utilAmount(u));
+}
+
+function savedUtilCharge(k: Utility, saved: PartnerSettlement | null): number | null {
+  if (!saved) return null;
+  return k === "water" ? saved.waterCharge : k === "elec" ? saved.elecCharge : saved.gasCharge;
+}
+
+/**
+ * 합계·미수금. 저장 RPC(partner_save_moving_settlement)의 settlement_amount 와 같은 식이다:
+ * ①공과금(저장 매핑과 같은 금액) + ②관리비 + 기타 + 청소 + 미납 관리비(③, 서버 값) − 수납액.
+ * ctx 는 저장에 쓰는 컨텍스트(신규 등록이면 latestSettlement 없음)를 넘긴다.
+ */
+export function computeTotals(
+  state: MSState,
+  ctx: Pick<PartnerSettlementContext, "latestSettlement" | "billingUnpaid">,
+): MSTotals {
+  const s1 = state.util.reduce(
+    (t, u) => t + (utilCharge(u, savedUtilCharge(u.k, ctx.latestSettlement)) ?? 0),
+    0,
+  );
   const feeSum = state.feeItems.reduce(
     (t, f) => t + feeProrated(f, state.dTotal, state.dDays),
     0,
@@ -162,9 +192,10 @@ export function computeTotals(state: MSState): MSTotals {
   const s2 = feeSum + (state.adv || 0);
   const s3 = state.etcItems.reduce((t, x) => t + (x.amount || 0), 0);
   const cleaning = state.clnAmt || 0;
-  const unpaidSubtotal = s1 + s2 + s3 + cleaning;
+  const billingUnpaid = ctx.billingUnpaid || 0;
+  const unpaidSubtotal = s1 + s2 + s3 + cleaning + billingUnpaid;
   const balance = unpaidSubtotal - (state.paid || 0);
-  return { s1, s2, s3, cleaning, unpaidSubtotal, balance };
+  return { s1, s2, s3, cleaning, billingUnpaid, unpaidSubtotal, balance };
 }
 
 // ===== 초기 상태 =====
@@ -252,7 +283,7 @@ export function buildSaveData(
   state: MSState,
   ctx: PartnerSettlementContext,
 ): Record<string, unknown> {
-  const totals = computeTotals(state);
+  const totals = computeTotals(state, ctx);
   const water = state.util.find((u) => u.k === "water");
   const elec = state.util.find((u) => u.k === "elec");
   const gas = state.util.find((u) => u.k === "gas");
@@ -290,11 +321,6 @@ export function buildSaveData(
   // 단가 또는 이사 지침이 비어 있는 행(사무실 PC 작성분·지침 미입력 등)은 금액을 계산할 수 없으므로
   // 저장된 공과금 금액을 그대로 유지한다(0/null 로 덮어쓰지 않음). 금액 = max(0, 이사−전월) × 단가(0266).
   const saved = ctx.latestSettlement;
-  const utilCharge = (u: UtilRow | undefined, savedCharge: number | null | undefined) => {
-    if (!u) return null;
-    if (!u.price || !u.cur) return savedCharge ?? null;
-    return nullableInt(utilAmount(u));
-  };
 
   return {
     move_out_date: state.moveOutDate,
@@ -353,6 +379,7 @@ export type ContextJson = {
     current_reading: number | null;
     usage: number | null;
   }[];
+  billing_unpaid?: number | null;
 };
 
 export function mapContext(r: ContextJson): PartnerSettlementContext {
@@ -402,5 +429,6 @@ export function mapContext(r: ContextJson): PartnerSettlementContext {
       currentReading: m.current_reading,
       usage: m.usage,
     })),
+    billingUnpaid: Number(r.billing_unpaid ?? 0) || 0,
   };
 }

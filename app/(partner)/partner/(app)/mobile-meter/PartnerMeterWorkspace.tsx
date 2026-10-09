@@ -71,7 +71,10 @@ function meterWarning(previousText: string, currentText: string) {
   return { up: true, text: `전월 지침 대비 ${Math.round((current / previous - 1) * 100)}% 상승` };
 }
 
-/** 세대·공과금별 입력 중인 값. usage가 null이면 량은 금월 − 전월로 계산한다. 전.량은 저장하지 않는다. */
+/**
+ * 세대·공과금별 입력 중인 값. usage가 null이면 량은 금월 − 전월로 계산한다.
+ * 전.량은 직전 달 사용량을 상속하고, 고친 값은 meter_readings.prev_usage_override 로 저장한다(0273).
+ */
 type MeterDraftValue = {
   previous: string;
   current: string;
@@ -114,15 +117,21 @@ export default function PartnerMeterWorkspace({ buildingId }: { buildingId: numb
   const isSavingMeterData = saveMutation.isPending;
   const [year, monthNo] = month.split("-").map(Number);
 
+  /** 상속 전.량 = 직전 달 사용량. */
+  const inheritedPrevUsage = (unit: PartnerMeterUnit, kind: PartnerMeterUtility) => {
+    const lastUsage = unit.usageHistory[kind]?.[0];
+    return lastUsage == null ? "" : readingText(lastUsage);
+  };
+
   const meterOf = (unit: PartnerMeterUnit, kind: PartnerMeterUtility): MeterDraftValue => {
     const edited = draftValues[meterKey(unit.unitId, kind)];
     if (edited) return edited;
     const saved = unit.meters[kind];
-    const lastUsage = unit.usageHistory[kind]?.[0];
+    const override = unit.prevUsageOverrides[kind];
     return {
       previous: saved?.previous ?? "",
       current: saved?.current ?? "",
-      prevUsage: lastUsage == null ? "" : readingText(lastUsage),
+      prevUsage: override != null ? readingText(override) : inheritedPrevUsage(unit, kind),
       usage: null,
     };
   };
@@ -240,6 +249,8 @@ export default function PartnerMeterWorkspace({ buildingId }: { buildingId: numb
           utility: k,
           previous_reading: meter.previous,
           current_reading: meter.current,
+          // 상속값과 같으면 수정값을 남기지 않는다(빈 값 = 수정값 삭제).
+          prev_usage: meter.prevUsage === inheritedPrevUsage(unit, k) ? "" : meter.prevUsage,
         };
       }),
     );
