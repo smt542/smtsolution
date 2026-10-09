@@ -12,6 +12,7 @@ import {
 } from "@/components/common";
 import {
   useApproveResidentClaim,
+  useNotifyClaimLinked,
   useRejectResidentClaim,
   useResidentClaims,
   type ResidentClaim,
@@ -124,6 +125,7 @@ function OccupancyButton({
 export function ResidentClaimsPanel() {
   const { data: claims = [], isLoading, isError } = useResidentClaims();
   const approveClaim = useApproveResidentClaim();
+  const notifyLinked = useNotifyClaimLinked();
   const rejectClaim = useRejectResidentClaim();
   const [building, setBuilding] = useState("");
   const [status, setStatus] = useState<LinkFilter>("all");
@@ -181,7 +183,23 @@ export function ResidentClaimsPanel() {
         occupancyId: selectedOccupancy.occupancyId,
       });
       toast.success(`${selectedOccupancy.buildingName} ${selectedOccupancy.unitNo}호와 연결했어요`);
+      const approved = selectedClaim;
+      const target = selectedOccupancy;
       closeLinkModal();
+      // 승인은 이미 확정 — 안내 발송 실패는 되돌리지 않고 비차단 경고만 띄운다.
+      notifyLinked
+        .mutateAsync({
+          claimedName: approved.claimedName ?? approved.kakaoName,
+          phone: approved.claimedPhone ?? approved.residentPhone,
+          buildingName: target.buildingName,
+          unitNo: target.unitNo,
+        })
+        .then((result) => {
+          if (result === null) toast.info("연락처가 없어 연결 완료 안내를 보내지 못했어요");
+        })
+        .catch(() => {
+          toast.info("연결은 완료됐지만 안내 문자를 보내지 못했어요");
+        });
     } catch (error) {
       toast.error(error, "오류가 발생했습니다");
     }
