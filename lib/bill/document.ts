@@ -164,7 +164,8 @@ export const DEFAULT_BILL_PRINT_OPTIONS: BillPrintOptions = {
   waterUnitPrice: false,
   billingPeriod: false,
   delta: false,
-  lateFeeMerge: false,
+  // 회의록(2026-08-14) 기본값 = 연체료 합산. setup_config.late_fee_merge 기본값(0265)과 같다.
+  lateFeeMerge: true,
 };
 
 export type MeterUtility = "elec" | "water" | "gas";
@@ -278,14 +279,14 @@ export function formatMeterNumber(value: number | null | undefined): string {
   return value === null || value === undefined ? "" : value.toLocaleString("ko-KR");
 }
 
-/** 지로 서식 하단 행(당월계·미납액·납기내금액·납기후연체·납기후금액). 합산 모드면 연체료 상세 행을 덧붙인다. */
-export function giroSettlementRows(settlement: GiroSettlement): { label: string; amount: number }[] {
+/** 지로 서식 하단 행(당월계·미납액·납기내금액·납기후연체·납기후금액). 합산 모드면 납기후연체는 null(공란). */
+export function giroSettlementRows(settlement: GiroSettlement): { label: string; amount: number | null }[] {
   return [
     { label: "당월계", amount: settlement.monthTotal },
     { label: "미납액", amount: settlement.unpaid },
-    ...(settlement.merged && settlement.lateFee > 0 ? [{ label: "연체료(합산)", amount: settlement.lateFee }] : []),
     { label: "납기내금액", amount: settlement.payInDue },
-    { label: "납기후연체", amount: settlement.postDueLateFee },
+    // 합산 모드는 연체료가 납기내금액에 이미 들어가 있어 납기후연체를 비운다(지로 서식과 동일 규칙).
+    { label: "납기후연체", amount: settlement.merged ? null : settlement.postDueLateFee },
     { label: "납기후금액", amount: settlement.payAfterDue },
   ];
 }
@@ -301,8 +302,10 @@ export function meterSummary(
   if (!utility) return "";
   const current = meterReadingFor(meters, utility, period);
   if (!current) return "";
-  const parts = [`사용량 ${formatMeterNumber(current.usage)}`];
+  const parts: string[] = [];
+  // 사용량·전월·증감은 증감량 표시(print_delta), 단가는 수도 단가 출력(print_water_unit_price)일 때만.
   if (options.delta) {
+    parts.push(`사용량 ${formatMeterNumber(current.usage)}`);
     const previous = meterReadingFor(meters, utility, shiftBillPeriod(period, -1));
     if (current.usage !== null && previous?.usage !== null && previous?.usage !== undefined) {
       const delta = current.usage - previous.usage;
@@ -395,7 +398,7 @@ export function buildFaxDocument(row: FaxDocumentRow): FaxDocumentData {
     waterUnitPrice: row.print_water_unit_price ?? false,
     billingPeriod: row.print_billing_period ?? false,
     delta: row.print_delta ?? false,
-    lateFeeMerge: row.late_fee_merge ?? false,
+    lateFeeMerge: row.late_fee_merge ?? DEFAULT_BILL_PRINT_OPTIONS.lateFeeMerge,
   };
   const defaultCharge = defaultChargePeriod(`${row.period.slice(0, 7)}-01`);
   return {

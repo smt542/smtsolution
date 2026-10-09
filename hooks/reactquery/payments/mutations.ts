@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { billKeys } from "@/hooks/reactquery/bill/keys";
 import { receiptKeys } from "@/hooks/reactquery/receipts/queries";
 import {
   cancelPayment,
@@ -22,6 +23,8 @@ export function useRecordPayment() {
     onSuccess: () => Promise.all([
       qc.invalidateQueries({ queryKey: paymentKeys.all }),
       qc.invalidateQueries({ queryKey: receiptKeys.all }),
+      // 고지서 이월 미납·연체료(get_bill_documents)는 수납에 따라 바뀐다.
+      qc.invalidateQueries({ queryKey: billKeys.all }),
     ]),
   });
 }
@@ -32,6 +35,8 @@ export function useRecordPaymentEdit() {
     onSuccess: () => Promise.all([
       qc.invalidateQueries({ queryKey: paymentKeys.all }),
       qc.invalidateQueries({ queryKey: receiptKeys.all }),
+      // 고지서 이월 미납·연체료(get_bill_documents)는 수납에 따라 바뀐다.
+      qc.invalidateQueries({ queryKey: billKeys.all }),
     ]),
   });
 }
@@ -42,6 +47,8 @@ export function useCancelPayment() {
     onSuccess: () => Promise.all([
       qc.invalidateQueries({ queryKey: paymentKeys.all }),
       qc.invalidateQueries({ queryKey: receiptKeys.all }),
+      // 고지서 이월 미납·연체료(get_bill_documents)는 수납에 따라 바뀐다.
+      qc.invalidateQueries({ queryKey: billKeys.all }),
     ]),
   });
 }
@@ -52,6 +59,8 @@ export function useSavePaymentHistory() {
     onSuccess: () => Promise.all([
       qc.invalidateQueries({ queryKey: paymentKeys.all }),
       qc.invalidateQueries({ queryKey: receiptKeys.all }),
+      // 고지서 이월 미납·연체료(get_bill_documents)는 수납에 따라 바뀐다.
+      qc.invalidateQueries({ queryKey: billKeys.all }),
     ]),
   });
 }
@@ -63,6 +72,8 @@ export function useRecordBankPayments() {
     onSuccess: () => Promise.all([
       qc.invalidateQueries({ queryKey: paymentKeys.all }),
       qc.invalidateQueries({ queryKey: receiptKeys.all }),
+      // 고지서 이월 미납·연체료(get_bill_documents)는 수납에 따라 바뀐다.
+      qc.invalidateQueries({ queryKey: billKeys.all }),
     ]),
   });
 }
@@ -73,6 +84,8 @@ export function useRecordGiroPayments() {
     onSuccess: () => Promise.all([
       qc.invalidateQueries({ queryKey: paymentKeys.all }),
       qc.invalidateQueries({ queryKey: receiptKeys.all }),
+      // 고지서 이월 미납·연체료(get_bill_documents)는 수납에 따라 바뀐다.
+      qc.invalidateQueries({ queryKey: billKeys.all }),
     ]),
   });
 }

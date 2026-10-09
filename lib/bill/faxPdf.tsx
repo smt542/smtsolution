@@ -132,7 +132,7 @@ function FaxDocument({ doc, qrDataUrl }: { doc: FaxDocumentData; qrDataUrl: stri
         {giroSettlementRows(doc.settlement).map((row) => (
           <View style={styles.row} key={row.label}>
             <Text style={[styles.td, { fontWeight: 700 }]}>{row.label}</Text>
-            <Text style={[styles.tdRight, { fontWeight: 700 }]}>{formatBillAmount(row.amount)}</Text>
+            <Text style={[styles.tdRight, { fontWeight: 700 }]}>{row.amount === null ? "" : formatBillAmount(row.amount)}</Text>
           </View>
         ))}
 

@@ -163,7 +163,7 @@ export function GiroPrintView({
                   {giroSettlementRows(settlement).map((row) => (
                     <tr key={row.label} className="border-b border-slate-300 font-bold">
                       <td className="p-2">{row.label}</td>
-                      <td className="p-2 text-right tabular-nums">{formatBillAmount(row.amount)}</td>
+                      <td className="p-2 text-right tabular-nums">{row.amount === null ? "" : formatBillAmount(row.amount)}</td>
                     </tr>
                   ))}
                 </tfoot>
