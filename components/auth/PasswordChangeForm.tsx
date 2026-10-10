@@ -55,16 +55,22 @@ export function PasswordChangeForm({
 }) {
   const change = useChangeMyPassword();
   const [show, setShow] = useState(false);
-  const { register, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<
+  const { register, handleSubmit, setError, getValues, trigger, formState: { errors, isSubmitting, isValid } } = useForm<
     PasswordChangeInput,
     unknown,
     PasswordChangeValues
   >({
     resolver: zodResolver(passwordChangeSchema),
     defaultValues: { newPassword: "", confirmPassword: "" },
+    // 입력할 때마다 검증 — 불일치는 바로 붉은 글씨로, 규칙·일치를 모두 만족해야 제출 버튼이 켜진다.
+    mode: "onChange",
     shouldFocusError: true,
   });
   const submitting = change.isPending || isSubmitting;
+  // 확인 칸을 채운 뒤 새 비밀번호를 고치면 일치 여부를 다시 본다(비어 있을 땐 재촉하지 않는다).
+  const revalidateConfirm = () => {
+    if (getValues("confirmPassword")) void trigger("confirmPassword");
+  };
   const field = FIELD_CLASS[variant];
 
   const onSubmit = handleSubmit(async (values) => {
@@ -87,7 +93,7 @@ export function PasswordChangeForm({
         placeholder={placeholder}
         className={`${field} w-full pl-3.5 ${withToggle ? "pr-12" : "pr-3.5"}`}
         aria-invalid={Boolean(errors[name])}
-        {...register(name)}
+        {...register(name, name === "newPassword" ? { onChange: revalidateConfirm } : undefined)}
       />
       {withToggle && (
         <button
@@ -123,7 +129,7 @@ export function PasswordChangeForm({
           variant="primary"
           size={variant === "modal" ? "std" : "login"}
           type="submit"
-          disabled={submitting}
+          disabled={submitting || !isValid}
           className="border border-transparent shadow-none transition disabled:opacity-70"
         >
           {submitting ? "변경 중…" : submitLabel}
