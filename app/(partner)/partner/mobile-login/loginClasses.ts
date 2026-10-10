@@ -11,12 +11,8 @@ export const partnerLoginClasses = {
   eyeOff: "text-t4",
   eyeOn: "text-blue",
   err: "rounded-[11px] bg-red-t px-[13px] py-[11px] text-[13px] font-semibold leading-[1.5] text-red",
-  auto: "flex cursor-pointer select-none items-center gap-[9px] px-0.5 py-1",
-  // 정본 #mlAutoBox: 켜면 배경·테두리 청록 + 흰 체크(켬/끔 클래스는 하나만 붙인다)
-  autoBox: "flex size-[22px] flex-none items-center justify-center rounded-[7px] border-[1.6px] [&_svg]:size-[13px]",
-  autoBoxOff: "border-line bg-white [&_svg]:opacity-0",
-  autoBoxOn: "border-blue bg-blue [&_svg]:opacity-100",
-  autoLabel: "text-sm font-semibold text-t2",
+  // 정본 #mlAutoBox 모양은 공용 PartnerCheckbox 가 그린다. 여기선 여백만 준다.
+  auto: "px-0.5 py-1",
   spacer: "min-h-6 flex-1",
   foot: "flex flex-col gap-3.5 px-6 pb-[30px] pt-[18px]",
   help: "text-center text-[12.5px] font-medium leading-[1.7] text-t4",

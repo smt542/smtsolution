@@ -7,6 +7,7 @@ import { useAsyncAction } from "@/hooks/common";
 
 import { partnerLoginClasses as styles } from "./loginClasses";
 import { PartnerButton } from "../../_components/PartnerButton";
+import { PartnerCheckbox } from "../../_components/PartnerCheckbox";
 
 const AUTO_KEY = "erp_partner_login_auto";
 
