@@ -92,6 +92,7 @@ const CREATE_DEFAULTS: CreateInput = {
   operatingHours: "",
   ownerUsername: "",
   ownerPassword: "",
+  ownerPasswordConfirm: "",
 };
 
 const STATUS_OPTIONS = [
@@ -297,7 +298,7 @@ function OrganizationFormFields({
 
       <div className="col-span-2 my-[3px] h-px bg-line2" />
 
-      <HqField id="organization-owner-username" label="관리자 아이디" required>
+      <HqField id="organization-owner-username" label="관리자 아이디" required full>
         {mode === "create" ? (
           <Input id="organization-owner-username" placeholder="smile_admin" className={inputClass(error("ownerUsername"))} {...registerField("ownerUsername")} />
         ) : (
@@ -321,6 +322,24 @@ function OrganizationFormFields({
           {...registerField("ownerPassword")}
         />
       </HqField>
+      <HqField
+        id="organization-owner-password-confirm"
+        label={mode === "create" ? "초기 비밀번호 확인" : "비밀번호 확인"}
+        required={mode === "create"}
+      >
+        <HqPasswordInput
+          id="organization-owner-password-confirm"
+          autoComplete="new-password"
+          maxLength={PASSWORD_MAX_LENGTH}
+          placeholder="비밀번호를 한 번 더 입력"
+          disabled={disabled || (mode === "edit" && !ownerAvailable)}
+          className={inputClass(error("ownerPasswordConfirm"))}
+          {...registerField("ownerPasswordConfirm")}
+        />
+        {error("ownerPasswordConfirm") ? (
+          <p className="mt-1.5 text-[12px] font-semibold text-red">{fieldMessage(errors, "ownerPasswordConfirm")}</p>
+        ) : null}
+      </HqField>
     </div>
   );
 }
@@ -338,7 +357,9 @@ function buildValidationMessage<T extends FieldValues>(
     ["fax", "팩스 번호"],
     ["email", "이메일"],
     ["address", "주소"],
-    ...(mode === "create" ? [["ownerUsername", "관리자 아이디"], ["ownerPassword", "비밀번호"]] : []),
+    ...(mode === "create"
+      ? [["ownerUsername", "관리자 아이디"], ["ownerPassword", "비밀번호"], ["ownerPasswordConfirm", "비밀번호 확인"]]
+      : []),
     ["contractStartDate", "계약 시작일"],
     ["contractEndDate", "계약 만료일"],
   ] as const;
@@ -355,7 +376,8 @@ function buildValidationMessage<T extends FieldValues>(
     const message = fieldMessage(errors, name);
     if (message) return message;
   }
-  const passwordMessage = fieldMessage(errors, "ownerPassword");
+  const passwordMessage = fieldMessage(errors, "ownerPassword")
+    ?? fieldMessage(errors, "ownerPasswordConfirm");
   return passwordMessage ?? "";
 }
 
@@ -498,6 +520,7 @@ function EditModal({ organization, onClose }: Omit<EditProps, "mode">) {
     address: organization.address ?? "",
     operatingHours: organization.operatingHours ?? "",
     ownerPassword: "",
+    ownerPasswordConfirm: "",
   }), [organization]);
   const {
     register,
