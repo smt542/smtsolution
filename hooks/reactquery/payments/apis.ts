@@ -29,6 +29,8 @@ export interface UnitPayment {
   memo: string | null; paidAt: string; status: "active" | "canceled"; createdAt: string;
   /** 수정으로 대체된 취소 건이면 대체한 새 수납 id (되살리기 불가) */
   replacedBy?: number | null;
+  /** 수.연 행(연체료 미수금)에서 받은 연체료 수납이면 그 미수금 id (0292) */
+  lateFeeSplitId?: number | null;
 }
 export interface GiroPayment {
   id: number; unitId: number; buildingId: number; buildingName: string;
@@ -145,8 +147,11 @@ export type PaymentHistoryOp =
   | { op: "cancel"; paymentId: number }
   | { op: "restore"; paymentId: number }
   | { op: "bill"; unitId: number; period: string; charged: number | null; setCharged: boolean; lateFee: number | null; setLateFee: boolean }
-  | ({ op: "record" } & RecordPaymentInput)
-  | ({ op: "edit" } & RecordPaymentEditInput);
+  | ({ op: "record"; lateFeeSplitId?: number | null } & RecordPaymentInput)
+  | ({ op: "edit" } & RecordPaymentEditInput)
+  /** 수.연: 연체료를 미수금으로 나누고, amount > 0 이면 그 연체료 수납도 함께 기록·연결 (0292) */
+  | ({ op: "split"; splitAmount: number; splitMemo: string | null } & RecordPaymentInput)
+  | { op: "cancel_split"; splitId: number };
 
 export interface SavePaymentHistoryResult { canceled: number; recorded: number; edited: number; restored: number; }
 
@@ -154,6 +159,7 @@ export interface SavePaymentHistoryResult { canceled: number; recorded: number; 
 export async function savePaymentHistory(ops: PaymentHistoryOp[]): Promise<SavePaymentHistoryResult> {
   const payload = ops.map((op) => {
     if (op.op === "cancel" || op.op === "restore") return { op: op.op, payment_id: op.paymentId };
+    if (op.op === "cancel_split") return { op: "cancel_split", split_id: op.splitId };
     if (op.op === "bill") {
       return {
         op: "bill", unit_id: op.unitId, period: op.period,
@@ -163,6 +169,8 @@ export async function savePaymentHistory(ops: PaymentHistoryOp[]): Promise<SaveP
     return {
       op: op.op,
       ...(op.op === "edit" ? { old_payment_id: op.oldPaymentId } : {}),
+      ...(op.op === "record" && op.lateFeeSplitId ? { late_fee_split_id: op.lateFeeSplitId } : {}),
+      ...(op.op === "split" ? { split_amount: op.splitAmount, split_memo: op.splitMemo } : {}),
       unit_id: op.unitId, period: op.period, amount: op.amount, fee: op.fee ?? 0,
       method: op.method, kind: op.kind, memo: op.memo ?? null, paid_at: op.paidAt ?? null,
       deposit_type: op.depositType ?? null,

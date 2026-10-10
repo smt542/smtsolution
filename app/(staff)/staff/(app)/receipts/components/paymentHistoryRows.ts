@@ -1,5 +1,6 @@
 import type { DepositType, PaymentKind, PaymentMethod, UnitPayment } from "@/hooks/reactquery/payments";
 import {
+  type ReceiptLateFeeSplit,
   type ReceiptPaymentRow,
   type ReceiptStatementPaymentRow,
 } from "@/hooks/reactquery/receipts";
@@ -37,7 +38,10 @@ export interface HistoryDisplayRow {
   /** 이미 수납된 연체료 = 그 달 수납 합계가 당월계를 넘은 금액. 연체 열·영수증 표시에만 더한다. */
   collectedLateFee: number;
   draftSource: DraftSource;
+  /** 연체료 이전(수.연) 행. 저장 전 초안(draftSource "split")과 저장된 미수금(split) 모두 true. */
   lateOnly: boolean;
+  /** 저장된 수.연 미수금(0292). 이 행에서 받은 수납은 이 미수금에 연결된다. */
+  split?: ReceiptLateFeeSplit;
   cancelRequested: boolean;
   cancelCompleted: boolean;
   /** 삭제(취소)된 수납을 저장 시 되살리도록 예약 */
@@ -120,6 +124,8 @@ export interface LateFeeRowOptions {
   lateFeeEnabledByOccupancy?: ReadonlyMap<number, boolean>;
   /** 연체료 부과 여부가 X인 입주 id(useLateFeeDisabledOccupancies). 들어 있으면 연체료 0. */
   lateFeeDisabledOccupancies?: ReadonlySet<number>;
+  /** 이 호실의 수.연 미수금(get_payment_statement_data.late_fee_splits). 연체료 이전 행으로 그린다. */
+  lateFeeSplits?: ReceiptLateFeeSplit[];
 }
 
 export function lateFeeForRow(
@@ -174,6 +180,19 @@ export function displayLateFee(row: Pick<HistoryDisplayRow, "lateFee" | "collect
   return row.lateFee + row.collectedLateFee;
 }
 
+/** 그 달 원금 계산에서 수.연 연체료 수납분을 뺀다(연체료를 낸 것이지 원금을 낸 게 아니므로). */
+function withoutSplitPaid<T extends ReceiptStatementPaymentRow | ReceiptPaymentRow>(
+  rowSummary: T | undefined,
+  splitPaid: number,
+): T | undefined {
+  if (!rowSummary || splitPaid <= 0) return rowSummary;
+  return {
+    ...rowSummary,
+    paid: rowSummary.paid - splitPaid,
+    unpaid: rowSummary.unpaid == null ? null : rowSummary.unpaid + splitPaid,
+  };
+}
+
 export function buildHistoryRows(
   payments: HistoryPayment[],
   historySummaries: ReceiptStatementPaymentRow[] | undefined,
@@ -182,6 +201,13 @@ export function buildHistoryRows(
   tiers: RateTier[],
   lateFeeOptions: LateFeeRowOptions = {},
 ): HistoryDisplayRow[] {
+  const splits = lateFeeOptions.lateFeeSplits ?? [];
+  const splitById = new Map(splits.map((split) => [split.id, split]));
+  const isSplitPayment = (payment: HistoryPayment) =>
+    payment.lateFeeSplitId != null && splitById.has(payment.lateFeeSplitId);
+  const sumBy = <T,>(items: T[], value: (item: T) => number) =>
+    items.reduce((total, item) => total + value(item), 0);
+
   // 서버는 조회 기간의 모든 달을 한 줄씩 준다. 부과(확정)도 수납도 없는 달은 0원 행으로 보여 데이터 오류처럼
   // 보이므로 뺀다. 지금 보고 있는 달은 고지 확정 전이어도 수납을 입력할 수 있게 남긴다.
   const sortedSummaries = historySummaries?.length
@@ -189,7 +215,8 @@ export function buildHistoryRows(
         .filter((row) =>
           row.charged != null
           || row.period === period
-          || payments.some((payment) => (payment.period ?? period) === row.period))
+          || payments.some((payment) => (payment.period ?? period) === row.period)
+          || splits.some((split) => split.period === row.period))
         .sort((left, right) => right.period.localeCompare(left.period))
     : [];
 
@@ -198,6 +225,8 @@ export function buildHistoryRows(
     rowPeriod: string,
     rowSummary: ReceiptStatementPaymentRow | ReceiptPaymentRow | undefined,
     payment: HistoryPayment | null,
+    /** 그 달 수.연으로 이미 나눈 연체료. 원 행의 연체료에서 뺀다. */
+    splitLateFee = 0,
   ): HistoryDisplayRow => ({
     key,
     rowPeriod,
@@ -206,7 +235,7 @@ export function buildHistoryRows(
     payment,
     fields: payment ? paymentFields(payment) : emptyFields(),
     originalFields: payment ? paymentFields(payment) : null,
-    lateFee: lateFeeForRow(rowPeriod, rowSummary, tiers, period, lateFeeOptions),
+    lateFee: Math.max(lateFeeForRow(rowPeriod, rowSummary, tiers, period, lateFeeOptions) - splitLateFee, 0),
     collectedLateFee: collectedLateFeeForRow(rowSummary),
     draftSource: "none",
     lateOnly: false,
@@ -215,6 +244,32 @@ export function buildHistoryRows(
     restoreRequested: false,
     saved: false,
   });
+
+  /** 수.연 미수금 행: 연결된 수납마다 한 줄, 첫 줄에 남은·받은 연체료를 싣는다. 수납이 없으면 빈 수납 한 줄. */
+  const makeSplitRows = (split: ReceiptLateFeeSplit, dueDate: string | null): HistoryDisplayRow[] => {
+    const linked = payments.filter((payment) => payment.lateFeeSplitId === split.id);
+    const paid = sumBy(linked.filter((payment) => payment.status === "active"), (payment) => payment.amount);
+    const base = (key: string, payment: HistoryPayment | null, first: boolean): HistoryDisplayRow => ({
+      key,
+      rowPeriod: split.period,
+      rowSummary: undefined,
+      dueDate,
+      payment,
+      fields: payment ? paymentFields(payment) : { ...emptyFields(), memo: split.memo ?? "" },
+      originalFields: payment ? paymentFields(payment) : null,
+      lateFee: first ? Math.max(split.amount - paid, 0) : 0,
+      collectedLateFee: first ? Math.min(paid, split.amount) : 0,
+      draftSource: "none",
+      lateOnly: true,
+      split,
+      cancelRequested: false,
+      cancelCompleted: false,
+      restoreRequested: false,
+      saved: false,
+    });
+    if (linked.length === 0) return [base(`split-${split.id}`, null, true)];
+    return linked.map((payment, index) => base(`payment-${payment.id}`, payment, index === 0));
+  };
 
   if (sortedSummaries.length === 0) {
     if (payments.length === 0) {
@@ -229,20 +284,34 @@ export function buildHistoryRows(
   }
 
   const rows: HistoryDisplayRow[] = [];
-  for (const rowSummary of sortedSummaries) {
+  for (const rawSummary of sortedSummaries) {
+    const periodSplits = splits.filter((split) => split.period === rawSummary.period);
+    const splitPaid = sumBy(
+      payments.filter((payment) =>
+        payment.status === "active"
+        && isSplitPayment(payment)
+        && (payment.period ?? period) === rawSummary.period),
+      (payment) => payment.amount,
+    );
+    const splitLateFee = sumBy(periodSplits, (split) => split.amount);
+    const rowSummary = withoutSplitPaid(rawSummary, splitPaid);
+    // 정본처럼 나눈 연체료 행을 원 행 위에 둔다.
+    for (const split of periodSplits) rows.push(...makeSplitRows(split, rawSummary.dueDate ?? null));
+
     const periodPayments = payments.filter(
-      (payment) => (payment.period ?? period) === rowSummary.period,
+      (payment) => (payment.period ?? period) === rawSummary.period && !isSplitPayment(payment),
     );
     if (periodPayments.length === 0) {
-      rows.push(makeRow(`summary-${rowSummary.period}`, rowSummary.period, rowSummary, null));
+      rows.push(makeRow(`summary-${rawSummary.period}`, rawSummary.period, rowSummary, null, splitLateFee));
       continue;
     }
     periodPayments.forEach((payment, index) => {
       rows.push(makeRow(
         `payment-${payment.id}`,
-        rowSummary.period,
+        rawSummary.period,
         index === 0 ? rowSummary : undefined,
         payment,
+        splitLateFee,
       ));
     });
   }

@@ -282,6 +282,10 @@ export function ReceiptWorkspace({
     () => historyQuery.data?.paymentRows.filter((row) => row.unitId === selectedUnitId),
     [historyQuery.data, selectedUnitId],
   );
+  const lateFeeSplits = useMemo(
+    () => historyQuery.data?.lateFeeSplits.filter((split) => split.unitId === selectedUnitId),
+    [historyQuery.data, selectedUnitId],
+  );
   const historyRows = useMemo(
     () => buildHistoryRows(
       historyQuery.data?.payments ?? unitPayments,
@@ -289,8 +293,9 @@ export function ReceiptWorkspace({
       selectedSummary,
       period,
       tiers,
+      { lateFeeSplits },
     ),
-    [historyQuery.data?.payments, historySummaries, period, selectedSummary, tiers, unitPayments],
+    [historyQuery.data?.payments, historySummaries, lateFeeSplits, period, selectedSummary, tiers, unitPayments],
   );
 
   const selectBuilding = (id: number) => {
@@ -446,6 +451,7 @@ export function ReceiptWorkspace({
             isLoading={isPaymentHistoryLoading}
             payments={historyQuery.data?.payments ?? unitPayments}
             historySummaries={historySummaries}
+            lateFeeSplits={lateFeeSplits}
             summary={selectedSummary}
             period={period}
             unitId={selectedUnitId}

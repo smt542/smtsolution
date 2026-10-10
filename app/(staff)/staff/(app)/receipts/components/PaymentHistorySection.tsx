@@ -13,6 +13,7 @@ import { useOccupancies } from "@/hooks/reactquery/occupancies";
 import { useLateFeeSettings, useSetupConfig } from "@/hooks/reactquery/setupConfig";
 import {
   receiptKeys,
+  type ReceiptLateFeeSplit,
   type ReceiptPaymentRow,
   type ReceiptStatementPaymentRow,
 } from "@/hooks/reactquery/receipts";
@@ -137,9 +138,8 @@ function NumericField({
   );
 }
 
-// 연체료 수납분을 원금과 구분 저장하는 모델이 없어, 연체료 이전 행 수납은 원금 수납으로 처리된다(개선3차 14).
-const LATE_ONLY_BLOCK_MESSAGE =
-  "연체료 이전 행은 아직 수납 저장할 수 없어요. 연체료 수납 저장 방식이 정해질 때까지 원 행에서 처리해 주세요";
+// 연체료 이전(수.연) 행은 연체료만 있어 원금 수납이 없다. 저장은 연체료 미수금(0292)으로 한다.
+const LATE_ONLY_PRINCIPAL_MESSAGE = "연체료 이전 행은 원금이 없어요. 수납으로 처리해 주세요";
 
 export function PaymentHistorySection({
   orgId,
@@ -150,6 +150,7 @@ export function PaymentHistorySection({
   isLoading,
   payments,
   historySummaries,
+  lateFeeSplits,
   summary,
   period,
   unitId,
@@ -164,6 +165,7 @@ export function PaymentHistorySection({
   isLoading: boolean;
   payments: HistoryPayment[];
   historySummaries?: ReceiptStatementPaymentRow[];
+  lateFeeSplits?: ReceiptLateFeeSplit[];
   summary: ReceiptPaymentRow | undefined;
   period: string;
   unitId: number | null;
@@ -198,8 +200,9 @@ export function PaymentHistorySection({
     () => buildHistoryRows(payments, historySummaries, summary, period, tiers, {
       settings: lateFeeSettings,
       lateFeeEnabledByOccupancy,
+      lateFeeSplits,
     }),
-    [historySummaries, lateFeeEnabledByOccupancy, lateFeeSettings, payments, period, summary, tiers],
+    [historySummaries, lateFeeEnabledByOccupancy, lateFeeSettings, lateFeeSplits, payments, period, summary, tiers],
   );
   const visibleRows = isEditing && canEdit ? draftRows : historyRows;
   const isPaymentMutationPending = saveHistory.isPending;
@@ -298,8 +301,9 @@ export function PaymentHistorySection({
     const row = draftRows.find((candidate) => candidate.key === key);
     if (!row || row.cancelRequested || row.cancelCompleted || row.payment?.status === "canceled") return;
 
-    if (row.lateOnly && action !== "split") {
-      toast.warning(LATE_ONLY_BLOCK_MESSAGE);
+    if (row.lateOnly && action === "split") return;
+    if (row.lateOnly && action === "principal") {
+      toast.warning(LATE_ONLY_PRINCIPAL_MESSAGE);
       return;
     }
 
@@ -369,10 +373,15 @@ export function PaymentHistorySection({
     if (row.draftSource === "summary") {
       updateRow(key, (current) => ({
         ...current,
-        fields: emptyFields(),
+        fields: current.split ? { ...emptyFields(), memo: current.split.memo ?? "" } : emptyFields(),
         draftSource: "none",
         saved: false,
       }));
+      return;
+    }
+    // 저장된 연체료 이전 행(수납 없음)은 저장 시 미수금을 취소하도록 예약한다.
+    if (row.split && !row.payment) {
+      updateRow(key, (current) => ({ ...current, cancelRequested: !current.cancelRequested }));
       return;
     }
     if (row.payment?.status === "active") {
@@ -413,10 +422,6 @@ export function PaymentHistorySection({
         && !fieldsEqual(row.fields, row.originalFields),
       );
       if (isCanceled || (!needsNewRecord && !needsEdit)) continue;
-      if (row.lateOnly && normalizeAmount(row.fields.amount) > 0) {
-        toast.warning(LATE_ONLY_BLOCK_MESSAGE);
-        return;
-      }
       if (needsEdit && normalizeAmount(row.fields.amount) <= 0) {
         toast.warning("수납액을 올바르게 입력해 주세요");
         return;
@@ -437,6 +442,10 @@ export function PaymentHistorySection({
         ops.push({ op: "cancel", paymentId: row.payment.id });
         continue;
       }
+      if (row.cancelRequested && row.split && !row.payment) {
+        ops.push({ op: "cancel_split", splitId: row.split.id });
+        continue;
+      }
 
       const amount = normalizeAmount(row.fields.amount);
       const input = {
@@ -450,8 +459,13 @@ export function PaymentHistorySection({
         paidAt: row.fields.paidAt || null,
         memo: row.fields.memo || null,
       };
+      // 수.연 초안: 나눈 연체료를 미수금으로 저장하고, 수납액이 있으면 그 수납도 함께 연결한다.
+      if (row.draftSource === "split" && !row.saved) {
+        ops.push({ op: "split", splitAmount: row.lateFee, splitMemo: row.fields.memo || null, ...input });
+        continue;
+      }
       if (isNewDraft(row) && !row.saved) {
-        if (amount > 0) ops.push({ op: "record", ...input });
+        if (amount > 0) ops.push({ op: "record", lateFeeSplitId: row.split?.id ?? null, ...input });
         continue;
       }
 
@@ -612,7 +626,7 @@ export function PaymentHistorySection({
           >
             삭제
           </button>
-        ) : row.payment?.status === "active" ? (
+        ) : row.payment?.status === "active" || (row.split && !row.payment) ? (
           <button
             type="button"
             onClick={() => removeOrReserve(row.key)}

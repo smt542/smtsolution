@@ -127,6 +127,7 @@ export function MonthlyChargeModal({
     () => ({
       paymentRows: queries.flatMap((query) => query.data?.paymentRows ?? []),
       payments: queries.flatMap((query) => query.data?.payments ?? []),
+      lateFeeSplits: queries.flatMap((query) => query.data?.lateFeeSplits ?? []),
       documents: queries.flatMap((query) => query.data?.documents ?? []),
       utilities: {
         electricity: queries.flatMap((query) => query.data?.utilities.electricity ?? []),

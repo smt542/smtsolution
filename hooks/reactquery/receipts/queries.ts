@@ -210,6 +210,16 @@ interface StatementPaymentDb {
   created_at: string;
   replaced_by?: number | null;
   deposit_type?: "bankbook" | "giro" | null;
+  late_fee_split_id?: number | null;
+}
+
+interface StatementLateFeeSplitDb {
+  id: number;
+  unit_id: number;
+  period: string;
+  amount: number | string;
+  memo: string | null;
+  created_at: string;
 }
 
 interface StatementDocumentDb {
@@ -257,6 +267,7 @@ interface StatementUtilityDb {
 interface StatementRpcResponse {
   payment_rows?: StatementPaymentRowDb[];
   payments?: StatementPaymentDb[];
+  late_fee_splits?: StatementLateFeeSplitDb[];
   documents?: StatementDocumentDb[];
   utilities?: Partial<Record<UtilityType, StatementUtilityDb[]>>;
 }
@@ -270,6 +281,16 @@ export interface ReceiptStatementPayment extends UnitPayment {
   period: string;
 }
 
+/** 수.연으로 나눈 연체료 미수금(나눈 시점 금액 고정, 0292) */
+export interface ReceiptLateFeeSplit {
+  id: number;
+  unitId: number;
+  period: string;
+  amount: number;
+  memo: string | null;
+  createdAt: string;
+}
+
 export interface ReceiptStatementDocument extends BillDocument {
   period: string;
 }
@@ -281,6 +302,7 @@ export interface ReceiptStatementUtilityRow extends UtilityUnitRow {
 export interface ReceiptStatementData {
   paymentRows: ReceiptStatementPaymentRow[];
   payments: ReceiptStatementPayment[];
+  lateFeeSplits: ReceiptLateFeeSplit[];
   documents: ReceiptStatementDocument[];
   utilities: Record<UtilityType, ReceiptStatementUtilityRow[]>;
 }
@@ -325,6 +347,15 @@ function mapStatementData(response: StatementRpcResponse): ReceiptStatementData 
     createdAt: row.created_at,
     replacedBy: row.replaced_by ?? null,
     depositType: row.deposit_type ?? null,
+    lateFeeSplitId: row.late_fee_split_id ?? null,
+  }));
+  const lateFeeSplits = (response.late_fee_splits ?? []).map((row) => ({
+    id: row.id,
+    unitId: row.unit_id,
+    period: row.period,
+    amount: Number(row.amount),
+    memo: row.memo,
+    createdAt: row.created_at,
   }));
   const documents = (response.documents ?? []).map((row) => ({
     period: row.period,
@@ -372,7 +403,7 @@ function mapStatementData(response: StatementRpcResponse): ReceiptStatementData 
     ]),
   ) as Record<UtilityType, ReceiptStatementUtilityRow[]>;
 
-  return { paymentRows, payments, documents, utilities };
+  return { paymentRows, payments, lateFeeSplits, documents, utilities };
 }
 
 export async function getReceiptStatementData(
