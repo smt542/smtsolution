@@ -4,7 +4,7 @@ import { useEffect, type ReactNode } from "react";
 
 type ResidentBottomSheetProps = {
   id?: string;
-  variant: "compact" | "stepped" | "moveOut";
+  variant: "compact" | "stepped" | "moveOut" | "notice";
   open: boolean;
   onDismiss: () => void;
   children: ReactNode;
@@ -17,12 +17,15 @@ const panelClassByVariant = {
   // 가운데만 스크롤한다(3차 QA, Figma 1091:4533). 그렇게 나누지 않은 내용은 넘치면 시트째 스크롤한다.
   // 아래 여백은 내용이 정한다(버튼 고정 영역 = Figma modal_foot 15px, 나머지 = 원본 18px).
   moveOut: "flex max-h-[calc(100dvh-32px)] w-full max-w-[440px] animate-[resident-sheet-up_0.3s_cubic-bezier(.22,.61,.36,1)_both] flex-col overflow-auto overscroll-contain rounded-t-[22px] bg-white px-[22px] pb-[env(safe-area-inset-bottom)] pt-2",
+  // 공지 보기: 퇴실 신청 시트와 같은 모양(열릴 때 up .3s · 넘치면 시트째 스크롤).
+  notice: "flex max-h-[calc(100dvh-32px)] w-full max-w-[440px] animate-[resident-sheet-up_0.3s_cubic-bezier(.22,.61,.36,1)_both] flex-col overflow-auto overscroll-contain rounded-t-[22px] bg-white px-[22px] pb-[env(safe-area-inset-bottom)] pt-2",
 } as const;
 
 const grabClassByVariant = {
   compact: "mx-auto mb-4 h-1 w-9 rounded-sm bg-line",
   stepped: "mx-auto mb-4 h-1 w-9 flex-none rounded-sm bg-line",
   moveOut: "mx-auto mb-4 h-1 w-[38px] shrink-0 rounded-full bg-line",
+  notice: "mx-auto mb-4 h-1 w-[38px] shrink-0 rounded-full bg-line",
 } as const;
 
 export default function ResidentBottomSheet({
@@ -46,7 +49,7 @@ export default function ResidentBottomSheet({
   return (
     <div
       id={id}
-      className={`fixed inset-0 ${variant === "moveOut" ? "z-[115]" : "z-[90]"} items-end justify-center overflow-hidden bg-scrim ${open ? "flex" : "hidden"}`}
+      className={`fixed inset-0 ${variant === "moveOut" || variant === "notice" ? "z-[115]" : "z-[90]"} items-end justify-center overflow-hidden bg-scrim ${open ? "flex" : "hidden"}`}
       onClick={(event) => {
         if (event.target === event.currentTarget) {
           onDismiss();
