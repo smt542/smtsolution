@@ -8,10 +8,12 @@ import {
   useReplaceLateFeeRateTiers,
 } from "@/hooks/reactquery/lateFeeTiers";
 import { useSetupConfig, useUpsertSetupConfig } from "@/hooks/reactquery/setupConfig";
+import { useBillingDueSetting, useSaveBillingDueSetting } from "@/hooks/reactquery/billingDueSetting";
 import { useRegisterSetupSave } from "../SetupSaveContext";
 import { AccountDepositCard, type BillingAccount } from "./billing/AccountDepositCard";
 import { BillingOutputOptionsCard } from "./billing/BillingOutputOptionsCard";
 import { CustomerNoticeCard } from "./billing/CustomerNoticeCard";
+import { DueDateSettingsCard, type DueDayValue, type DueMonthOffset } from "./billing/DueDateSettingsCard";
 import { LateFeeSettingsCard } from "./billing/LateFeeSettingsCard";
 import {
   lateFeeTiersToMonthlyRates,
@@ -29,6 +31,8 @@ export function BillingSettingsTab() {
   const { data: config, isLoading: configLoading } = useSetupConfig(me?.orgId);
   const { data: lateFeeTiers, isLoading: lateFeeTiersLoading } = useLateFeeRateTiers(orgId);
   const upsert = useUpsertSetupConfig();
+  const { data: dueSetting, isLoading: dueSettingLoading } = useBillingDueSetting(orgId);
+  const saveDueSetting = useSaveBillingDueSetting();
   const replaceLateFeeTiers = useReplaceLateFeeRateTiers();
 
   const [accounts, setAccounts] = useState<BillingAccount[]>(EMPTY_ACCOUNTS);
@@ -39,6 +43,9 @@ export function BillingSettingsTab() {
   const [printDelta, setPrintDelta] = useState(false);
   const [cutoffMonths, setCutoffMonths] = useState("");
   const [lateFeeEnabled, setLateFeeEnabled] = useState(true);
+  // 납부기한: 「설정 안 함」("") 이면 서버가 그 달 말일로 처리한다.
+  const [dueMonthOffset, setDueMonthOffset] = useState<DueMonthOffset>("0");
+  const [dueDay, setDueDay] = useState<DueDayValue>("");
   const [lateFeeRates, setLateFeeRates] = useState<string[]>(() =>
     Array.from({ length: 12 }, () => "0"),
   );
@@ -67,6 +74,12 @@ export function BillingSettingsTab() {
     setCutoffMonths.call(undefined, config.cutoffMonths != null ? String(config.cutoffMonths) : "");
     setLateFeeEnabled.call(undefined, config.lateFeeEnabled);
   }, [config]);
+
+  useEffect(() => {
+    if (dueSetting === undefined) return;
+    setDueMonthOffset.call(undefined, dueSetting?.monthOffset === 1 ? "1" : "0");
+    setDueDay.call(undefined, dueSetting ? String(dueSetting.dueDay) : "");
+  }, [dueSetting]);
 
   useEffect(() => {
     if (!lateFeeTiers) return;
@@ -127,6 +140,10 @@ export function BillingSettingsTab() {
           orgId,
           tiers: monthlyRatesToLateFeeTiers(monthlyRates),
         }),
+        saveDueSetting.mutateAsync({
+          orgId,
+          setting: dueDay === "" ? null : { monthOffset: dueMonthOffset === "1" ? 1 : 0, dueDay: Number(dueDay) },
+        }),
       ]);
       toast.success("저장되었습니다");
     } catch (error) {
@@ -136,7 +153,8 @@ export function BillingSettingsTab() {
 
   useRegisterSetupSave(
     save,
-    configLoading || lateFeeTiersLoading || upsert.isPending || replaceLateFeeTiers.isPending,
+    configLoading || lateFeeTiersLoading || dueSettingLoading
+      || upsert.isPending || replaceLateFeeTiers.isPending || saveDueSetting.isPending,
   );
 
   return (
@@ -163,6 +181,14 @@ export function BillingSettingsTab() {
         }}
         onCutoffMonthsChange={setCutoffMonths}
       />
+      <div className="col-span-2">
+        <DueDateSettingsCard
+          monthOffset={dueMonthOffset}
+          dueDay={dueDay}
+          onMonthOffsetChange={setDueMonthOffset}
+          onDueDayChange={setDueDay}
+        />
+      </div>
       <div className="col-span-2">
         <LateFeeSettingsCard
           enabled={lateFeeEnabled}
