@@ -282,11 +282,14 @@ export async function setMessageScheduleRecurrence(input: {
   scheduleId: number;
   mode: RecurrenceMode | null;
   endCount: number | null;
+  /** 발송 시각 "HH:MM"(KST). 이 예약과 이후 회차의 시각이 된다. 비우면 기존 시각 유지. */
+  sendTime?: string | null;
 }): Promise<void> {
   const { error } = await createClient().rpc("set_message_schedule_recurrence", {
     p_schedule_id: input.scheduleId,
     p_mode: input.mode,
     p_end_count: input.mode ? input.endCount : null,
+    p_send_time: input.mode && input.sendTime ? input.sendTime : null,
   });
   if (error) throw new Error(error.message);
 }

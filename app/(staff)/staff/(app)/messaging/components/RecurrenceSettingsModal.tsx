@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button, Input, Modal, SegmentedControl, Switch } from "@/components/common";
+import { TimeInput } from "@/components/common/DateInput";
 import {
   DEFAULT_RECURRENCE_END_COUNT,
   parseRecurrenceEndCount,
@@ -21,9 +22,20 @@ function remainingCount(message: ScheduledMessage): number | null {
   return Math.max(1, message.recurrenceEndCount - (message.recurrenceSeq ?? 1) + 1);
 }
 
+/** 예약 일시의 KST 시:분("HH:MM"). */
+function kstTime(iso: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Seoul",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(iso));
+}
+
 /**
  * 정본 repScrim(반복 발송 설정): 대기 중 예약을 정기 발송으로 전환·해제한다.
- * 정책: 주기(매월/매주) · 종료(계속 반복/횟수 지정). 발송일·시각은 이 예약의 예약 일시를 따른다.
+ * 정책: 주기(매월/매주) · 발송 시각 · 종료(계속 반복/횟수 지정). 발송일은 이 예약의 예약일을 따르고,
+ * 발송 시각을 바꾸면 이 예약과 이후 모든 회차가 그 시각에 발송된다.
  */
 export function RecurrenceSettingsModal({
   message,
@@ -36,10 +48,18 @@ export function RecurrenceSettingsModal({
   const [enabled, setEnabled] = useState(message.recurrenceMode !== null);
   const [mode, setMode] = useState<RecurrenceMode>(message.recurrenceMode ?? "monthly");
   const [endCount, setEndCount] = useState<number | null>(remainingCount(message));
+  const originalTime = kstTime(message.scheduledAt);
+  const [sendTime, setSendTime] = useState(originalTime);
 
   const apply = () => {
     mutate(
-      { scheduleId: message.id, mode: enabled ? mode : null, endCount: enabled ? endCount : null },
+      {
+        scheduleId: message.id,
+        mode: enabled ? mode : null,
+        endCount: enabled ? endCount : null,
+        // 시각을 바꿨을 때만 보낸다(그대로면 기존 예약 시각 유지).
+        sendTime: enabled && sendTime !== originalTime ? sendTime : null,
+      },
       {
         onSuccess: () => {
           toast.success(enabled ? "반복 발송으로 전환했어요" : "반복을 해제했어요");
@@ -71,6 +91,15 @@ export function RecurrenceSettingsModal({
                 ]}
                 value={mode}
                 onChange={(value) => setMode(value as RecurrenceMode)}
+              />
+            </div>
+            <div>
+              <div className={LABEL}>발송 시각</div>
+              <TimeInput
+                ariaLabel="반복 발송 시각"
+                value={sendTime}
+                onChange={setSendTime}
+                size="38-13"
               />
             </div>
             <div>
