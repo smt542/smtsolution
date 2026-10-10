@@ -128,9 +128,15 @@ export default function BillDetailView(props: BillDetailViewProps) {
   const unpaidAmount = detail.unpaidAmount ?? 0;
   // 정산의 미납액 = 전월까지 이월된 미납. 연체료 = 이월분 연체료 + 당월분 연체료(정책: 세입자_관리비 상세고지서 3.4).
   const carryoverUnpaid = detail.carryoverUnpaid ?? 0;
-  const lateFee = (detail.carryoverLateFee ?? 0) + (detail.lateFee ?? 0);
+  // 당월분 연체료 = 이 달 미납 원금에 붙은 연체료 + 수.연으로 나눠 아직 받지 못한 연체료(원금을 다 냈어도 남는다).
+  const currentLateFee = detail.lateFee ?? 0;
+  // 이월 연체료 = 전월까지 미납(이월분)에 붙은 연체료 — 이 고지서 달 기준.
+  const carryoverLateFee = detail.carryoverLateFee ?? 0;
+  const lateFee = carryoverLateFee + currentLateFee;
   // 총 관리비 = 당월 부과액 + 미납액(이월) + 연체료
   const grandTotal = totalAmount + carryoverUnpaid + lateFee;
+  // 이 달 부과액에 대해 낸 금액(연체료 수납 제외). 넘게 낸 금액은 부과액까지만 셈해 남은 금액과 맞춘다.
+  const paidForMonth = Math.max(totalAmount - unpaidAmount, 0);
   const outstanding = unpaidAmount + carryoverUnpaid;
   // 원금을 다 냈어도 연체료(수.연 연체료 미수금 포함)가 남으면 아직 낼 금액이 있다.
   const isDue = outstanding + lateFee > 0;
@@ -221,16 +227,28 @@ export default function BillDetailView(props: BillDetailViewProps) {
           <div className={styles.vv}>{formatWon(charge)}</div>
         </div>
         <div className={styles.it}>
-          <div className={styles.finNm}>미납액</div>
+          <div className={styles.finNm}>당월 연체료</div>
+          <div className={styles.vv}>{formatWon(currentLateFee)}</div>
+        </div>
+        <div className={styles.it}>
+          <div className={styles.finNm}>이월 미납액(전월까지)</div>
           <div className={styles.vv}>{formatWon(carryoverUnpaid)}</div>
         </div>
         <div className={styles.it}>
-          <div className={styles.finNm}>연체료</div>
-          <div className={styles.vv}>{formatWon(lateFee)}</div>
+          <div className={styles.finNm}>이월 연체료(전월까지)</div>
+          <div className={styles.vv}>{formatWon(carryoverLateFee)}</div>
         </div>
         <div className={styles.grand}>
           <div className={styles.grandNm}>총 관리비</div>
           <div className={styles.grandVv}>{formatWon(grandTotal)}</div>
+        </div>
+        <div className={styles.it}>
+          <div className={styles.finNm}>납부한 금액</div>
+          <div className={styles.vv}>{paidForMonth > 0 ? `−${formatWon(paidForMonth)}` : formatWon(0)}</div>
+        </div>
+        <div className={styles.it}>
+          <div className={styles.finNm}>남은 금액</div>
+          <div className={`${styles.vv}${isDue ? ` ${styles.r}` : ""}`}>{formatWon(isDue ? outstanding + lateFee : 0)}</div>
         </div>
       </section>
 
