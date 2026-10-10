@@ -19,6 +19,7 @@ import {
   buildSaveData,
   computeTotals,
   chargeDaysFromMoveOut,
+  formatSettleAccount,
   feeProrated,
   initialState,
   mapContext,
@@ -175,11 +176,7 @@ function safeFilePart(value: string): string {
 }
 
 function settlementAccountLabel(ctx: PartnerSettlementContext): string {
-  const account = [ctx.settleAccount.settleBank, ctx.settleAccount.settleAcct]
-    .map((value) => value?.trim() ?? "")
-    .filter(Boolean)
-    .join(" ");
-  return [account, ctx.settleAccount.settleHolder?.trim() ?? ""].filter(Boolean).join(" · ") || "등록된 정산 계좌가 없습니다.";
+  return formatSettleAccount(ctx.settleAccount) || "등록된 정산 계좌가 없습니다.";
 }
 
 type PartnerMsNewWorkspaceProps = {
@@ -337,6 +334,15 @@ export default function PartnerMsNewWorkspace({
     } finally {
       captureBox?.remove();
       setStatementSavePending(false);
+    }
+  };
+
+  const copyAccount = async (account: string) => {
+    try {
+      await navigator.clipboard.writeText(account.trim());
+      showToast("입금계좌를 복사했어요");
+    } catch {
+      showToast("복사하지 못했어요. 길게 눌러 직접 복사해 주세요");
     }
   };
 
@@ -515,13 +521,25 @@ export default function PartnerMsNewWorkspace({
                 </div>
                 <div className={styles.fld}>
                   <span className={styles.fldLabel}>입금계좌</span>
-                  <Input
-                    unstyled
-                    className={styles.fldInput}
-                    value={u.acct}
-                    onChange={(e) => patchUtil(i, { acct: e.target.value })}
-                    placeholder="입금계좌"
-                  />
+                  <div className={styles.fldAcctWrap}>
+                    <Input
+                      unstyled
+                      className={styles.fldAcctInput}
+                      value={u.acct}
+                      onChange={(e) => patchUtil(i, { acct: e.target.value })}
+                      placeholder="입금계좌"
+                      aria-label={`${UTILITY_LABEL[u.k]} 입금계좌`}
+                    />
+                    <button
+                      type="button"
+                      className={styles.fldCopy}
+                      disabled={!u.acct.trim()}
+                      onClick={() => void copyAccount(u.acct)}
+                      aria-label={`${UTILITY_LABEL[u.k]} 입금계좌 복사`}
+                    >
+                      복사
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className={styles.fldPayDate}>

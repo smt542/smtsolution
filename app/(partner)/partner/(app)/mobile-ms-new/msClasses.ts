@@ -44,6 +44,11 @@ export const msClasses = {
   fldPayDate: "mt-2 flex min-w-0 flex-col gap-1.5",
   fldLabel: "text-[12px] font-bold text-t3",
   fldInput: `${FIN} h-12 w-full flex-none text-[16px]`,
+  // 입금계좌: 은행·계좌번호·예금주가 한 줄에 다 보이게 글자를 조금 줄이고, 오른쪽에 복사 버튼 자리를 둔다.
+  fldAcctWrap: "relative",
+  fldAcctInput: `${FIN} h-12 w-full flex-none pr-[64px] text-[14.5px] tabular-nums`,
+  fldCopy:
+    "absolute right-1.5 top-1/2 h-9 -translate-y-1/2 rounded-[9px] bg-blue-t px-3 text-[13px] font-bold text-blue-d disabled:opacity-40",
   fldNum: `${FIN} h-12 w-full flex-none text-[16px] ${NUM}`,
   calc: "mt-2.5 flex items-center justify-between gap-2.5 border-t border-line px-px pb-0.5 pt-[11px] text-[13px] font-bold text-t2",
   calcValue: "text-[14.5px] font-extrabold tabular-nums text-t1",

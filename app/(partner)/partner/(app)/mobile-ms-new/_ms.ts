@@ -213,6 +213,22 @@ export function computeTotals(
 }
 
 // ===== 초기 상태 =====
+/**
+ * 셋업 「이사정산 입금 계좌」 표시 문자열: "은행 계좌번호 · 예금주"(내역서 정산금 입금계좌와 같은 형식).
+ * 비어 있는 값은 빼고, 셋 다 없으면 빈 문자열.
+ */
+export function formatSettleAccount(account: {
+  settleBank: string | null;
+  settleAcct: string | null;
+  settleHolder: string | null;
+}): string {
+  const bankAcct = [account.settleBank, account.settleAcct]
+    .map((value) => value?.trim() ?? "")
+    .filter(Boolean)
+    .join(" ");
+  return [bankAcct, account.settleHolder?.trim() ?? ""].filter(Boolean).join(" · ");
+}
+
 /** 셋업 정책 3.3 「단가 반영」 고정(수도·전기=반영). 가스는 외부 검침이라 단가를 직접 입력한다. */
 const UNIT_PRICE_REFLECTED: ReadonlySet<Utility> = new Set<Utility>(["water", "elec"]);
 
@@ -221,19 +237,19 @@ const UNIT_PRICE_REFLECTED: ReadonlySet<Utility> = new Set<Utility>(["water", "e
  * - 전월 지침: 퇴실월 검침이면 그 달 previous_reading, 이전 달 검침이면 그 current_reading.
  * - 이사 지침: 현장에서 읽은 값을 입력한다(비워 둠).
  * - 단가: 수도·전기는 그 달 검침 단가(없으면 직접 입력), 가스는 직접 입력.
- * - 입금계좌: 셋업 「이사정산 입금 계좌」. 입금일은 실제 입금한 날이라 직접 입력한다.
+ * - 입금계좌: 셋업 「이사정산 입금 계좌」(은행 계좌번호 · 예금주). 입금일은 실제 입금한 날이라 직접 입력한다.
  * 저장된 행이 있으면 저장값을 쓰되, 비어 있는 단가·입금계좌만 위 기본값으로 채운다.
  */
 function seededUtil(
   meters: PartnerMeter[],
   saved: MSExtra["util"] | undefined,
   moveOutDate: string | null | undefined,
-  settleAcct: string | null,
+  settleAccount: PartnerSettlementContext["settleAccount"],
 ): UtilRow[] {
   // 정본 카드 순서: 전기 · 수도 · 가스
   const order: Utility[] = ["elec", "water", "gas"];
   const moveOutPeriod = moveOutDate ? `${moveOutDate.slice(0, 7)}-01` : null;
-  const defaultAcct = settleAcct?.trim() ?? "";
+  const defaultAcct = formatSettleAccount(settleAccount);
   return order.map((k) => {
     const meter = meters.find((m) => m.utility === k);
     const meterPrice = UNIT_PRICE_REFLECTED.has(k) ? (meter?.unitPrice ?? 0) : 0;
@@ -270,7 +286,7 @@ export function initialState(ctx: PartnerSettlementContext): MSState {
   const notes: Record<number, string> = {};
   for (const item of ctx.checklist) notes[item.id] = item.note ?? (item.checked ? "확인" : "");
 
-  const util = seededUtil(ctx.meterSummary, extra?.util, saved?.moveOutDate, ctx.settleAccount.settleAcct);
+  const util = seededUtil(ctx.meterSummary, extra?.util, saved?.moveOutDate, ctx.settleAccount);
   // 저장된 정산의 입금일이 있으면 util 행에 반영(extra가 없던 레거시 대비).
   if (saved && !extra?.util) {
     const elec = util.find((u) => u.k === "elec");
