@@ -51,6 +51,7 @@ import {
 import { formatNumber } from "@/lib/format";
 import { MAX_ATTACHMENT_FILES } from "@/lib/attachments/policy";
 import { useConfirm } from "@/components/common/ConfirmProvider";
+import { getKoreaToday } from "@/hooks/reactquery/dashboard";
 import { HqPasswordInput } from "../../../../_components/HqPasswordInput";
 
 type CreateInput = z.input<typeof orgCreateSchema>;
@@ -566,12 +567,40 @@ function EditModal({ organization, onClose }: Omit<EditProps, "mode">) {
   }));
 
   const onValid = async (values: OrgEditFormValues) => {
-    const statusChangedToRestricted = editStatus !== statusFromOrganization(organization)
-      && (editStatus === "suspended" || editStatus === "terminated");
+    // 계약 만료로 정지된 테넌트의 만료일을 오늘(KST) 이후로 연장하면 운영 전환 여부를 묻는다.
+    // 만료일 당일까지는 유효(0279 org_contract_expired: 만료일 < 오늘).
+    const today = getKoreaToday();
+    let nextEditStatus = editStatus;
+    const wasExpired = Boolean(organization.contractEndDate && organization.contractEndDate < today);
+    const extended = Boolean(values.contractEndDate && values.contractEndDate >= today);
+    if (
+      !organization.deletedAt
+      && organization.status === "suspended"
+      && editStatus === "suspended"
+      && wasExpired
+      && extended
+    ) {
+      const reactivate = await confirm({
+        title: "운영 상태로 변경할까요?",
+        description: (
+          <>계약 만료일이 <b className="font-bold text-t1">{values.contractEndDate}</b>로 연장됐어요. 지금 <b className="font-bold">운영</b>으로 바꾸면 해당 업체의 사무·현장 관리자와 세입자 앱 접속이 다시 열립니다.</>
+        ),
+        confirmLabel: "운영으로 변경",
+        cancelLabel: "정지 유지",
+        look: "hq",
+      });
+      if (reactivate) {
+        nextEditStatus = "operating";
+        setEditStatus("operating");
+      }
+    }
+
+    const statusChangedToRestricted = nextEditStatus !== statusFromOrganization(organization)
+      && (nextEditStatus === "suspended" || nextEditStatus === "terminated");
     const accepted = await confirm({
       title: `${values.name} 정보를 저장할까요?`,
       description: statusChangedToRestricted ? (
-        <>상태가 <b className="font-bold text-red">{editStatus === "suspended" ? "정지" : "해지"}</b>로 바뀌면 해당 업체의 사무·현장 관리자와 세입자 앱 접속이 제한됩니다.</>
+        <>상태가 <b className="font-bold text-red">{nextEditStatus === "suspended" ? "정지" : "해지"}</b>로 바뀌면 해당 업체의 사무·현장 관리자와 세입자 앱 접속이 제한됩니다.</>
       ) : "변경한 업체 정보와 계약 기간이 저장됩니다.",
       confirmLabel: "저장",
       look: "hq",
@@ -603,13 +632,13 @@ function EditModal({ organization, onClose }: Omit<EditProps, "mode">) {
       });
       organizationUpdated = true;
 
-      if (editStatus === "terminated" && !organization.deletedAt) {
+      if (nextEditStatus === "terminated" && !organization.deletedAt) {
         await setDeleted.mutateAsync({ id: organization.id, deleted: true });
-      } else if (editStatus !== "terminated" && organization.deletedAt) {
+      } else if (nextEditStatus !== "terminated" && organization.deletedAt) {
         await setDeleted.mutateAsync({ id: organization.id, deleted: false });
       }
-      if (editStatus !== "terminated") {
-        const nextStatus: OrganizationStatus = editStatus === "suspended" ? "suspended" : "active";
+      if (nextEditStatus !== "terminated") {
+        const nextStatus: OrganizationStatus = nextEditStatus === "suspended" ? "suspended" : "active";
         if (nextStatus !== organization.status) {
           await updateStatus.mutateAsync({ id: organization.id, status: nextStatus });
         }
