@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useDismissOnEscape } from "@/hooks/common";
 import { Button, Input, Modal, Textarea } from "@/components/common";
@@ -25,6 +25,7 @@ import {
 } from "../utils";
 import { NoticeAlimtalkConfirmModal } from "./NoticeAlimtalkConfirmModal";
 import { NoticeTargetBuildings } from "./NoticeTargetBuildings";
+import { RecipientCheckSelect } from "@/components/messenger/RecipientCheckSelect";
 
 const TYPE_ORDER: NoticeType[] = ["normal", "important", "urgent"];
 
@@ -73,10 +74,34 @@ export function NoticeDetailModal({
     toNoticeTargetSelection(notice.buildingIds),
   );
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // 「대상자」에서 체크를 푼 입주(occupancyId). 기본은 대상 건물 입주자 전원 선택.
+  // 건물을 껐다 켜도 직접 푼 체크는 기억하고, 새로 켠 건물의 입주자는 선택된 채로 들어온다.
+  const [excludedOccupancyIds, setExcludedOccupancyIds] = useState<ReadonlySet<number>>(() => new Set());
 
   const updateNotice = useUpdateNotice();
   const deleteNotice = useDeleteNotice();
-  const alimtalk = useNoticeAlimtalkSend(notice, buildings, canSendMessages);
+  const sendTarget = useMemo(
+    () => ({ buildingIds: toNoticeBuildingIds(targets, buildings), excludedOccupancyIds }),
+    [targets, buildings, excludedOccupancyIds],
+  );
+  const alimtalk = useNoticeAlimtalkSend(notice, buildings, canSendMessages, sendTarget);
+  const selectedRecipientKeys = useMemo(
+    () => new Set(
+      alimtalk.tenantOptions
+        .map((option) => option.key)
+        .filter((key) => !excludedOccupancyIds.has(key)),
+    ),
+    [alimtalk.tenantOptions, excludedOccupancyIds],
+  );
+  const changeRecipients = (next: Set<number>) => {
+    setExcludedOccupancyIds((current) => {
+      const visible = new Set(alimtalk.tenantOptions.map((option) => option.key));
+      // 지금 보이는 입주자는 체크 상태를 그대로 반영하고, 안 보이는(끈 건물) 입주자의 해제 기록은 유지한다.
+      const kept = [...current].filter((key) => !visible.has(key));
+      const unchecked = [...visible].filter((key) => !next.has(key));
+      return new Set([...kept, ...unchecked]);
+    });
+  };
   const [confirmSendOpen, setConfirmSendOpen] = useState(false);
   const sendSummaryQuery = useNoticeSendSummary(notice.id);
   const sendSummary = sendSummaryQuery.data ?? null;
@@ -212,6 +237,21 @@ export function NoticeDetailModal({
             {/* 대상 건물 */}
             <NoticeTargetBuildings buildings={buildings} value={targets} onChange={setTargets} />
 
+            {/* 대상자: 대상 건물의 입주자 — 체크한 입주자에게만 알림톡을 보낸다(메신저 수신자 선택과 같은 UI). */}
+            <div className="flex flex-col gap-[9px]">
+              <span className="text-[12.5px] font-bold leading-[normal] text-[#8b95a1]">
+                대상자{alimtalk.recipientsLoading ? "" : ` · ${selectedRecipientKeys.size}/${alimtalk.tenantOptions.length}명`}
+              </span>
+              <RecipientCheckSelect
+                options={alimtalk.tenantOptions}
+                selectedKeys={selectedRecipientKeys}
+                onChange={changeRecipients}
+                loading={alimtalk.recipientsLoading}
+                disabled={sendTarget.buildingIds === null}
+                placeholder={sendTarget.buildingIds === null ? "대상 건물을 먼저 선택해 주세요" : "입주자 선택"}
+              />
+            </div>
+
             {/* 알림톡 발송 상태 + 재전송/발송 (실 발송 이력 기반) */}
             <div className="flex w-full items-center gap-[12px] rounded-[12px] bg-[#f2f4f6] px-[14px] py-[12px]">
               <div className="min-w-0 flex-1">
@@ -293,7 +333,8 @@ export function NoticeDetailModal({
           noticeTitle={notice.title}
           buildingLabel={alimtalk.buildingLabel}
           templateLabel={alimtalk.templateLabel}
-          recipientCount={alimtalk.recipientCount}
+          // 대상자 선택과 같은 기준(입주 1건=1명). 전화가 여럿인 입주자는 번호마다 발송된다.
+          recipientCount={selectedRecipientKeys.size}
           loading={alimtalk.recipientsLoading}
           sending={alimtalk.isSending}
           onCancel={() => { if (!alimtalk.isSending) setConfirmSendOpen(false); }}

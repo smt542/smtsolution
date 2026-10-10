@@ -317,6 +317,7 @@ function SettlementEditor({
         vacancyPaymentMode={context.settlementSettings.vacancyPaymentMode}
         createdAt={context.latestSettlement?.createdAt ?? null}
         locked={settlementStatus === "completed" || settlementStatus === "mid_moveout"}
+        completedLocked={settlementStatus === "completed"}
         printModel={printModel}
         paymentInputRef={paymentInputRef}
         formBodyRef={formBodyRef}

@@ -62,6 +62,7 @@ export function SettlementActions({
   vacancyPaymentMode = "manual",
   createdAt = null,
   locked = false,
+  completedLocked = false,
   printModel,
   paymentInputRef = EMPTY_INPUT_REF,
   formBodyRef = EMPTY_BODY_REF,
@@ -80,8 +81,13 @@ export function SettlementActions({
   /** 셋업 > 이사정산 설정. auto 면 퇴실 처리 때 확정 부과분 미납이 자동수납되고, manual 이면 미수금으로 남는다. */
   vacancyPaymentMode?: "manual" | "auto";
   createdAt?: string | null;
-  /** 중도퇴실·퇴실완료 건(정책 3.12 "완료 후 폼·액션 잠금"). 저장·완료·삭제를 막고 출력만 허용한다. */
+  /** 중도퇴실·퇴실완료 건(정책 3.12 "완료 후 폼·액션 잠금"). 중도퇴실·삭제를 막는다. */
   locked?: boolean;
+  /**
+   * 퇴실완료 건만 true — 저장·퇴실까지 막는다. 중도퇴실 건은 나중에(다음 세입자 입주·만기) 값을 고쳐 저장하고
+   * 「정산완료+퇴실」로 완전 퇴실해야 하므로 두 버튼을 열어 둔다(2026-08-11 회의, 0296).
+   */
+  completedLocked?: boolean;
   printModel: SettlementStatementPrintModel;
   paymentInputRef?: RefObject<HTMLInputElement | null>;
   /** 폼 본문 스크롤 영역(정본 #msBody). [수납액 입력]이 이 영역을 수납액 칸까지 부드럽게 올린다. */
@@ -97,8 +103,9 @@ export function SettlementActions({
   // 미수금 경고가 어느 완료(중도퇴실·퇴실) 앞에서 떴는지 — 제목에 쓴다.
   const [pendingCompletion, setPendingCompletion] = useState<"mid" | "moveout" | null>(null);
   // 이 화면에서 방금 완료 처리한 건도 컨텍스트 재조회 전까지 잠근다.
-  const [finalized, setFinalized] = useState(false);
-  const isLocked = locked || finalized;
+  const [finalized, setFinalized] = useState<"mid" | "moveout" | null>(null);
+  const isLocked = locked || finalized !== null;
+  const isCompletedLocked = completedLocked || finalized === "moveout";
   const isSettlementMutationPending =
     save.isPending || complete.isPending || mid.isPending || remove.isPending;
   const pendingAction = save.isPending
@@ -114,8 +121,9 @@ export function SettlementActions({
   // amount 는 settlement_amount 정의(수납 차감 전 ①+②+③미납+④, 0266)라 미납이 이미 들어 있다.
   const outstanding = amount - receivedAmount;
 
-  const rejectLocked = () => {
-    if (!isLocked) return false;
+  /** scope "completed" = 퇴실완료 건만 막는 동작(저장·퇴실), "all" = 중도퇴실 건도 막는 동작(중도퇴실·삭제). */
+  const rejectLocked = (scope: "all" | "completed" = "all") => {
+    if (!(scope === "completed" ? isCompletedLocked : isLocked)) return false;
     toast.info("완료된 이사정산은 수정할 수 없어요.");
     return true;
   };
@@ -133,7 +141,7 @@ export function SettlementActions({
   };
 
   const saveNow = () => {
-    if (rejectLocked() || !validate()) return;
+    if (rejectLocked("completed") || !validate()) return;
     save.mutate(input, {
       onSuccess: (result) => {
         onSaved(result.settlementId);
@@ -152,7 +160,7 @@ export function SettlementActions({
     kind === "mid" ? ("mid-confirm" as const) : ("moveout-confirm" as const);
 
   const requestCompletion = (kind: "mid" | "moveout") => {
-    if (rejectLocked() || !validate() || !requireSaved()) return;
+    if (rejectLocked(kind === "moveout" ? "completed" : "all") || !validate() || !requireSaved()) return;
     if (outstanding > 0) {
       setPendingCompletion(kind);
       setDialog("outstanding");
@@ -165,7 +173,7 @@ export function SettlementActions({
     if (settlementId === null) return;
     mid.mutate(settlementId, {
       onSuccess: () => {
-        setFinalized(true);
+        setFinalized("mid");
         setDialog(null);
         toast.success("중도퇴실로 처리 완료했어요.");
       },
@@ -181,7 +189,7 @@ export function SettlementActions({
     if (settlementId === null) return;
     complete.mutate(settlementId, {
       onSuccess: (result) => {
-        setFinalized(true);
+        setFinalized("moveout");
         setDialog(null);
         const collected = result.collected_count ?? 0;
         toast.success(
@@ -265,6 +273,7 @@ export function SettlementActions({
         }}
         pending={isSettlementMutationPending}
         locked={isLocked}
+        completedLocked={isCompletedLocked}
         pendingAction={pendingAction}
       />
 

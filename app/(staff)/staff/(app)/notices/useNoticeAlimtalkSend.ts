@@ -6,14 +6,12 @@ import type { Building } from "@/hooks/reactquery/buildings";
 import { useAttachNoticeSendLog, type Notice } from "@/hooks/reactquery/notices";
 import {
   useSendMessages,
-  useTenantAlimtalkConsent,
+  useTenantAlimtalkConsents,
   MessageSendError,
 } from "@/hooks/reactquery/messaging";
 import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates";
-import {
-  useOrganizationTenantList,
-  useTenantList,
-} from "@/hooks/reactquery/occupancies";
+import { useOrganizationTenantList } from "@/hooks/reactquery/occupancies";
+import type { RecipientCheckOption } from "@/components/messenger/RecipientCheckSelect";
 import { useOrgContact } from "@/hooks/reactquery/org/useOrgContact";
 import { useMintNoticeShareToken } from "@/hooks/reactquery/residentNotice";
 import { renderTemplate } from "@/lib/messaging/render";
@@ -36,11 +34,15 @@ import { getNoticeTemplateTitle, NOTICE_TYPE_LABELS } from "./utils";
  * 접수 payload는 작성기와 동일한 헬퍼/훅을 재사용해 동작을 일치시킨다. 포인트 충분 여부는
  * 서버(접수 라우트)가 예약 시 강제하므로(INSUFFICIENT_POINTS) 클라이언트 사전 견적은 생략한다.
  * 채널 라우팅: auto 모드 — 알림톡 동의 세대는 alimtalk, 그 외는 sms(어느 쪽이든 발송은 됨).
+ *
+ * 수신 대상은 저장된 공지 대상이 아니라 **화면에서 지금 고른 대상 건물**(target.buildingIds, 빈 배열=전체·null=선택 없음)과
+ * 「대상자」에서 체크를 푼 입주(target.excludedOccupancyIds)를 따른다.
  */
 export function useNoticeAlimtalkSend(
   notice: Notice,
   buildings: Building[],
   canSendMessages: boolean,
+  target: { buildingIds: number[] | null; excludedOccupancyIds: ReadonlySet<number> },
 ) {
   const mintShareToken = useMintNoticeShareToken();
   const attachSendLog = useAttachNoticeSendLog();
@@ -48,26 +50,45 @@ export function useNoticeAlimtalkSend(
   const { data: orgContact } = useOrgContact();
   const { data: templates = [] } = useMessageTemplates();
 
-  const isSingleBuilding = notice.buildingIds.length === 1;
-  const singleBuildingId = isSingleBuilding ? notice.buildingIds[0] : null;
+  const selectedBuildingIds = target.buildingIds;
+  const isSingleBuilding = selectedBuildingIds?.length === 1;
+  const singleBuildingId = isSingleBuilding ? selectedBuildingIds[0] : null;
   const singleBuildingName = singleBuildingId !== null
     ? (buildings.find((building) => building.id === singleBuildingId)?.name ?? "삭제된 건물")
     : null;
-  // 빈 배열 = 전체 → org 전 건물, 다중 = 지정 건물들.
-  const targetBuildingIds = notice.buildingIds.length > 0
-    ? notice.buildingIds
-    : buildings.map((building) => building.id);
-  // 동의 조회 기준 건물(작성기와 동일하게 대표 1개 건물). 이 건물의 동의 세대만 알림톡, 나머지는 SMS.
-  const consentBuildingId = notice.buildingIds[0] ?? buildings[0]?.id ?? 0;
+  // 빈 배열 = 전체 → org 전 건물, 다중 = 지정 건물들, null = 선택 없음(수신자 없음).
+  const targetBuildingIds = selectedBuildingIds === null
+    ? []
+    : selectedBuildingIds.length > 0
+      ? selectedBuildingIds
+      : buildings.map((building) => building.id);
 
-  const buildingTenants = useTenantList(singleBuildingId ?? 0);
-  const organizationTenants = useOrganizationTenantList(
-    isSingleBuilding ? [] : targetBuildingIds,
-  );
-  const consentQuery = useTenantAlimtalkConsent(consentBuildingId);
-  const recipientsLoading = isSingleBuilding
-    ? buildingTenants.isLoading
-    : organizationTenants.isLoading;
+  const organizationTenants = useOrganizationTenantList(targetBuildingIds);
+  // 동의는 대상 건물 전부에서 조회한다(대표 1개 건물만 보면 다른 건물 동의 세대가 SMS 로 나갔다).
+  const consentQuery = useTenantAlimtalkConsents(targetBuildingIds);
+  const recipientsLoading = organizationTenants.isLoading;
+  const tenantRows = organizationTenants.data;
+
+  // 「대상자」 선택지: 입주 중이고 전화번호가 있는 입주 1건 = 1명(전화가 여럿이어도 한 줄).
+  const tenantOptions = useMemo<RecipientCheckOption[]>(() => {
+    const buildingNames = new Map(buildings.map((building) => [building.id, building.name]));
+    const seen = new Set<number>();
+    const options: RecipientCheckOption[] = [];
+    for (const tenant of tenantRows) {
+      if (tenant.isVacant || tenant.occupancyId === null || seen.has(tenant.occupancyId)) continue;
+      const hasPhone = [tenant.phone, ...tenant.phonesMore].some((phone) => Boolean(phone?.replace(/\D/g, "")));
+      if (!hasPhone) continue;
+      seen.add(tenant.occupancyId);
+      options.push({
+        key: tenant.occupancyId,
+        name: tenant.tenantName,
+        sub: isSingleBuilding
+          ? tenant.unitNo
+          : `${buildingNames.get(tenant.buildingId) ?? ""} ${tenant.unitNo}`.trim(),
+      });
+    }
+    return options;
+  }, [buildings, isSingleBuilding, tenantRows]);
 
   const commonVariables = useMemo(
     () => ({
@@ -80,14 +101,11 @@ export function useNoticeAlimtalkSend(
   // 수신처(상세링크 제외). 개수 표시·발송 공용. 상세링크는 발송 시 토큰 발급 후 주입한다.
   const baseRecipients = useMemo<MessageRecipient[]>(() => {
     const buildingNames = new Map(buildings.map((building) => [building.id, building.name]));
-    const rows = isSingleBuilding
-      ? (buildingTenants.data ?? []).map((tenant) => ({
-          ...tenant,
-          buildingId: singleBuildingId as number,
-        }))
-      : (organizationTenants.data ?? []);
-    const recipients: MessageRecipient[] = rows
-      .filter((tenant) => !tenant.isVacant && tenant.occupancyId !== null)
+    const recipients: MessageRecipient[] = tenantRows
+      .filter((tenant) =>
+        !tenant.isVacant
+        && tenant.occupancyId !== null
+        && !target.excludedOccupancyIds.has(tenant.occupancyId))
       .flatMap((tenant) =>
         [tenant.phone, ...tenant.phonesMore]
           .filter((phone): phone is string => Boolean(phone?.replace(/\D/g, "")))
@@ -109,7 +127,7 @@ export function useNoticeAlimtalkSend(
           })),
       );
     return validRecipients(dedupeRecipients(recipients));
-  }, [buildings, isSingleBuilding, buildingTenants.data, organizationTenants.data, singleBuildingId, notice.title]);
+  }, [buildings, isSingleBuilding, tenantRows, target.excludedOccupancyIds, notice.title]);
 
   const template = useMemo(
     () => templates.find((item) => item.title === getNoticeTemplateTitle(notice.noticeType)),
@@ -117,9 +135,15 @@ export function useNoticeAlimtalkSend(
   );
 
   const recipientCount = baseRecipients.length;
-  const buildingLabel = singleBuildingName ?? "전체 건물";
+  const firstBuildingName = buildings.find((building) => building.id === targetBuildingIds[0])?.name ?? "";
+  const buildingLabel = singleBuildingName
+    ?? (selectedBuildingIds === null
+      ? "대상 건물 없음"
+      : selectedBuildingIds.length === 0
+        ? "전체 건물"
+        : `${firstBuildingName} 외 ${targetBuildingIds.length - 1}곳`);
   const templateLabel = `${NOTICE_TYPE_LABELS[notice.noticeType]} 템플릿`;
-  const disabled = !canSendMessages || recipientsLoading;
+  const disabled = !canSendMessages || recipientsLoading || recipientCount === 0;
 
   const [isSending, setIsSending] = useState(false);
   // 멱등 키: 같은 다이얼로그의 중복 클릭·재시도는 같은 키(이중 접수 방지), 성공 후 회전.
@@ -135,7 +159,7 @@ export function useNoticeAlimtalkSend(
       return false;
     }
     if (baseRecipients.length === 0) {
-      toast.info("공지를 받을 입주자가 없습니다.");
+      toast.info("공지를 받을 입주자가 없습니다. 대상자를 선택해 주세요.");
       return false;
     }
     if (!template) {
@@ -221,6 +245,7 @@ export function useNoticeAlimtalkSend(
     disabled,
     recipientsLoading,
     recipientCount,
+    tenantOptions,
     buildingLabel,
     templateLabel,
     isSending,
