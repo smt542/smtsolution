@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { useRouter } from "next/navigation";
 import { Input } from "@/components/common";
 import { useAsyncAction } from "@/hooks/common";
 
@@ -12,7 +11,6 @@ import { PartnerButton } from "../../_components/PartnerButton";
 const AUTO_KEY = "erp_partner_login_auto";
 
 export function PartnerLoginForm({ children }: { children: ReactNode }) {
-  const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -65,7 +63,8 @@ export function PartnerLoginForm({ children }: { children: ReactNode }) {
         } catch {
           /* localStorage 접근 불가 시 무시 */
         }
-        router.replace("/partner/mobile-home");
+        // 전체 이동 — 로그인 전 리다이렉트 결과가 클라이언트 라우터 캐시에 남아 화면이 안 바뀌는 것을 막는다.
+        window.location.replace("/partner/mobile-home");
       });
     } catch {
       setErr("네트워크 오류가 발생했습니다. 다시 시도해 주세요.");

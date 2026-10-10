@@ -1,7 +1,6 @@
 "use client";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { FormField } from "@/components/common/FormField";
@@ -18,7 +17,6 @@ import { Button, Input } from "@/components/common";
 const fieldBase =
   "h-12 rounded-[13px] border border-line bg-white text-[14.5px] font-medium text-t1 placeholder:text-[#757575] outline-none transition focus:border-[#14A497] focus:ring-[3px] focus:ring-blue-t";
 export function LoginForm() {
-  const router = useRouter();
   const login = useLogin();
   const [showPw, setShowPw] = useState(false);
   const { register, handleSubmit, setError, reset, formState: { errors, isSubmitting } } = useForm<LoginFormInput, unknown, LoginFormValues>({
@@ -40,7 +38,9 @@ export function LoginForm() {
       persistRememberedId("staff", values.autoLogin ?? false, values.username);
       toast.success("로그인되었습니다");
       // 임시 비밀번호 계정은 변경 화면으로 보낸다(업무 화면 게이트도 같은 곳으로 돌려보낸다).
-      router.push(ctx?.mustChangePassword
+      // 전체 이동으로 들어간다 — 클라이언트 라우터는 로그인 전 '로그인 화면으로 리다이렉트'된 결과를
+      // 캐시해 두었다가 서버에 묻지 않고 재사용해, 토스트만 뜨고 화면이 그대로인 문제가 있었다.
+      window.location.replace(ctx?.mustChangePassword
         ? "/staff/change-password"
         : ctx.role === "platform_admin" ? "/platform-admin" : "/staff/receipts");
     } catch (e) {

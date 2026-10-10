@@ -60,6 +60,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "비밀번호는 변경되었지만 상태 저장에 실패했습니다. 다시 시도해 주세요." }, { status: 500 });
   }
 
+  // 관리자 API로 비밀번호를 바꾸면 Auth가 기존 세션을 끊는다(이후 /user = session_not_found).
+  // 새 비밀번호로 이 브라우저 세션을 다시 발급해, 변경 직후 서비스로 바로 들어가게 한다.
+  if (user.email) {
+    const { error: reauthError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: toAuthPassword(newPassword),
+    });
+    if (reauthError) console.error("[auth/change-password] re-sign-in failed", reauthError.message);
+  }
+
   const { data: member } = await admin
     .from("org_members")
     .select("org_id")

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { FormField } from "@/components/common/FormField";
@@ -20,7 +19,6 @@ const fieldClass =
   "h-12 w-full rounded-[13px] border border-line bg-white px-3.5 text-[14.5px] font-medium text-t1 outline-none transition placeholder:text-t4 focus:border-blue focus:ring-[3px] focus:ring-blue-t";
 
 export function LoginForm() {
-  const router = useRouter();
   const queryClient = useQueryClient();
   const [showPassword, setShowPassword] = useState(false);
   const {
@@ -59,8 +57,8 @@ export function LoginForm() {
       queryClient.clear();
 
       toast.success("로그인되었습니다");
-      router.push("/platform-admin");
-      router.refresh();
+      // 전체 이동 — 로그인 전 리다이렉트 결과가 클라이언트 라우터 캐시에 남아 화면이 안 바뀌는 것을 막는다.
+      window.location.replace("/platform-admin");
     } catch (error) {
       setSubmissionError(error, setError, "잠시 후 다시 시도해 주세요.");
     }

@@ -43,8 +43,8 @@ export function PasswordChangeScreen({
           submitLabel="변경하고 시작하기"
           onSuccess={() => {
             toast.success("비밀번호를 변경했어요");
-            router.replace(homePath);
-            router.refresh();
+            // 서버가 새 세션 쿠키를 발급했으므로 전체 이동으로 들어간다(이전 리다이렉트 캐시 무시).
+            window.location.replace(homePath);
           }}
         />
         <button
