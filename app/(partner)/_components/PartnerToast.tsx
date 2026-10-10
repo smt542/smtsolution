@@ -28,13 +28,14 @@ export function usePartnerToast() {
 /**
  * 정본 `#adToast`·`#anToast`: 화면 아래 96px 가운데 검은 알약, 14px/700.
  * 알림 영역은 늘 두고 문구만 바꾼다 — 스크린리더가 새 문구를 읽게 하려는 것이다.
+ * z-[200]: 파트너 화면의 전체 화면 모달(이사정산 내역서 z-[140] 등)보다 위에 떠야 모달 안 동작 결과가 보인다.
  */
 export function PartnerToast({ message }: { message: string }) {
   return (
     <div
       role="status"
       aria-live="polite"
-      className={`${message ? "" : "hidden"} fixed bottom-24 left-1/2 z-[95] -translate-x-1/2 whitespace-nowrap rounded-[13px] bg-[#191F28] px-5 py-[13px] text-[14px] font-bold leading-[normal] text-white`}
+      className={`${message ? "" : "hidden"} fixed bottom-24 left-1/2 z-[200] -translate-x-1/2 whitespace-nowrap rounded-[13px] bg-[#191F28] px-5 py-[13px] text-[14px] font-bold leading-[normal] text-white`}
     >
       {message}
     </div>
