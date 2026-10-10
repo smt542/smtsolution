@@ -1,7 +1,10 @@
 import { createClient } from "@/lib/supabase/client";
 import { computeUnpaid, derivePayStatus, type PayStatus } from "@/lib/payments/status";
 
-export type PaymentMethod = "cash" | "transfer" | "auto_debit" | "giro" | "card" | "other";
+/** 수납 구분(정책 상태·코드 3절): general 일반 · giro 지로 · transfer 이체 · deposit 무통. 나머지는 과거·연동 데이터 호환용. */
+export type PaymentMethod = "general" | "giro" | "transfer" | "deposit" | "cash" | "auto_debit" | "card" | "other";
+/** 입금 은행(수납): bankbook 무통장입금 · giro 지로입금 */
+export type DepositType = "bankbook" | "giro";
 export type PaymentKind = "full" | "principal" | "partial";
 export type { PayStatus };
 
@@ -16,9 +19,11 @@ export interface PaymentBalance { charged: number | null; paid: number; unpaid: 
 export interface RecordPaymentInput {
   unitId: number; period: string; amount: number; fee?: number;
   method: PaymentMethod; kind: PaymentKind; memo?: string | null; paidAt?: string | null;
+  depositType?: DepositType | null;
 }
 export interface UnitPayment {
   id: number; amount: number; fee: number; method: PaymentMethod; kind: PaymentKind;
+  depositType?: DepositType | null;
   memo: string | null; paidAt: string; status: "active" | "canceled"; createdAt: string;
   /** 수정으로 대체된 취소 건이면 대체한 새 수납 id (되살리기 불가) */
   replacedBy?: number | null;
@@ -64,6 +69,7 @@ type UnitPaymentDb = {
   id: number; amount: number; fee: number; method: PaymentMethod; kind: PaymentKind;
   memo: string | null; paid_at: string; status: "active" | "canceled"; created_at: string;
   replaced_by: number | null;
+  deposit_type?: DepositType | null;
 };
 type GiroPaymentDb = {
   id: number; unit_id: number; unit_no: string; dong: string | null;
@@ -99,6 +105,7 @@ export async function recordPayment(input: RecordPaymentInput): Promise<PaymentB
     p_unit_id: input.unitId, p_period: input.period, p_amount: input.amount,
     p_method: input.method, p_kind: input.kind,
     p_memo: input.memo ?? null, p_paid_at: input.paidAt ?? null, p_fee: input.fee ?? 0,
+    p_deposit_type: input.depositType ?? null,
   });
   if (error) throw new Error(error.message);
   const r = data as BalanceDb;
@@ -116,6 +123,7 @@ export async function recordPaymentEdit(input: RecordPaymentEditInput): Promise<
     p_unit_id: input.unitId, p_period: input.period, p_amount: input.amount,
     p_method: input.method, p_kind: input.kind,
     p_memo: input.memo ?? null, p_paid_at: input.paidAt ?? null, p_fee: input.fee ?? 0,
+    p_deposit_type: input.depositType ?? null,
   });
   if (error) throw new Error(error.message);
   const r = data as BalanceDb;
@@ -146,6 +154,7 @@ export async function savePaymentHistory(ops: PaymentHistoryOp[]): Promise<SaveP
       ...(op.op === "edit" ? { old_payment_id: op.oldPaymentId } : {}),
       unit_id: op.unitId, period: op.period, amount: op.amount, fee: op.fee ?? 0,
       method: op.method, kind: op.kind, memo: op.memo ?? null, paid_at: op.paidAt ?? null,
+      deposit_type: op.depositType ?? null,
     };
   });
   const { data, error } = await createClient().rpc("save_payment_history", { p_ops: payload });
@@ -161,6 +170,7 @@ export async function listUnitPayments(unitId: number, period: string): Promise<
     id: r.id, amount: r.amount, fee: r.fee ?? 0, method: r.method, kind: r.kind,
     memo: r.memo, paidAt: r.paid_at, status: r.status, createdAt: r.created_at,
     replacedBy: r.replaced_by ?? null,
+    depositType: r.deposit_type ?? null,
   }));
 }
 export interface BuildingPaymentDate {

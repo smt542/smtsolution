@@ -1,4 +1,4 @@
-import type { PaymentKind, PaymentMethod, UnitPayment } from "@/hooks/reactquery/payments";
+import type { DepositType, PaymentKind, PaymentMethod, UnitPayment } from "@/hooks/reactquery/payments";
 import {
   type ReceiptPaymentRow,
   type ReceiptStatementPaymentRow,
@@ -15,6 +15,8 @@ export interface PaymentFields {
   fee: string;
   method: PaymentMethod;
   kind: PaymentKind;
+  /** 입금 은행(수납): 무통장입금·지로입금, 선택 안 함 = "" */
+  depositType: DepositType | "";
   paidAt: string;
   memo: string;
 }
@@ -62,7 +64,7 @@ export function normalizeAmount(value: string): number {
 }
 
 export function emptyFields(method: PaymentMethod = "transfer", kind: PaymentKind = "full"): PaymentFields {
-  return { amount: "", fee: "0", method, kind, paidAt: "", memo: "" };
+  return { amount: "", fee: "0", method, kind, depositType: "", paidAt: "", memo: "" };
 }
 
 function paymentFields(payment: HistoryPayment): PaymentFields {
@@ -71,6 +73,7 @@ function paymentFields(payment: HistoryPayment): PaymentFields {
     fee: formatInputNumber(payment.fee),
     method: payment.method,
     kind: payment.kind,
+    depositType: payment.depositType ?? "",
     paidAt: payment.paidAt.slice(0, 10),
     memo: payment.memo ?? "",
   };
@@ -97,6 +100,7 @@ export function fieldsEqual(left: PaymentFields, right: PaymentFields): boolean 
     && normalizeAmount(left.fee) === normalizeAmount(right.fee)
     && left.method === right.method
     && left.kind === right.kind
+    && left.depositType === right.depositType
     && left.paidAt.slice(0, 10) === right.paidAt.slice(0, 10)
     && left.memo === right.memo;
 }

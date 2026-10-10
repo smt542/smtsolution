@@ -208,6 +208,7 @@ interface StatementPaymentDb {
   status: "active" | "canceled";
   created_at: string;
   replaced_by?: number | null;
+  deposit_type?: "bankbook" | "giro" | null;
 }
 
 interface StatementDocumentDb {
@@ -321,6 +322,7 @@ function mapStatementData(response: StatementRpcResponse): ReceiptStatementData 
     status: row.status,
     createdAt: row.created_at,
     replacedBy: row.replaced_by ?? null,
+    depositType: row.deposit_type ?? null,
   }));
   const documents = (response.documents ?? []).map((row) => ({
     period: row.period,

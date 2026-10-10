@@ -13,8 +13,10 @@ import type { MobileTenantData, MovingSettlement } from "./types";
 type Tab = "info" | "pay" | "ms";
 
 const METHOD_LABEL: Record<string, string> = {
+  general: "일반",
+  deposit: "무통",
   cash: "현금",
-  transfer: "계좌이체",
+  transfer: "이체",
   auto_debit: "자동이체",
   giro: "지로",
   card: "카드",

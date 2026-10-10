@@ -21,6 +21,8 @@ export const PAY_STATUS_STYLE: Record<PayStatus, string> = {
 };
 
 export const METHOD_LABEL: Record<PaymentMethod, string> = {
+  general: "일반",
+  deposit: "무통",
   cash: "현금",
   transfer: "계좌이체",
   auto_debit: "자동이체",

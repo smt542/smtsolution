@@ -43,13 +43,25 @@ export const PAY_STATUS_STYLE: Record<PayStatus, string> = {
   over: "bg-blue-t text-blue",
 };
 
+/** 수납 구분(정책): 일반·지로·이체·무통. 그 외 값은 과거·연동 데이터 표시용. */
 export const PAYMENT_METHOD_LABEL: Record<string, string> = {
+  general: "일반",
+  deposit: "무통",
   cash: "현금",
-  transfer: "계좌이체",
+  transfer: "이체",
   auto_debit: "자동이체",
   giro: "지로",
   card: "카드",
   other: "기타",
+};
+
+/** 수납 이력 「구분」에서 고를 수 있는 값(정책 순서). */
+export const POLICY_PAYMENT_METHODS = ["general", "giro", "transfer", "deposit"] as const;
+
+/** 입금 은행(수납): 수납 이력 「은행」 */
+export const DEPOSIT_TYPE_LABEL: Record<string, string> = {
+  bankbook: "무통장입금",
+  giro: "지로입금",
 };
 
 export const PAYMENT_KIND_LABEL: Record<string, string> = {

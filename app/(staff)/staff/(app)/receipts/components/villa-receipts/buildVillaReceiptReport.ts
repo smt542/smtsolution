@@ -25,6 +25,8 @@ export interface VillaReceiptReportModel {
 }
 
 const METHOD_LABEL: Record<ReceiptStatementPayment["method"], string> = {
+  general: "일반",
+  deposit: "무통장입금",
   cash: "현금",
   transfer: "무통장입금",
   auto_debit: "자동이체",

@@ -8,7 +8,7 @@ import { CloseIcon, UnitCardIcon } from "@/components/icons";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
 import { useSavePaymentHistory } from "@/hooks/reactquery/payments";
-import type { PaymentHistoryOp, PaymentKind, PaymentMethod } from "@/hooks/reactquery/payments";
+import type { DepositType, PaymentHistoryOp, PaymentMethod } from "@/hooks/reactquery/payments";
 import { useOccupancies } from "@/hooks/reactquery/occupancies";
 import { useLateFeeSettings, useSetupConfig } from "@/hooks/reactquery/setupConfig";
 import {
@@ -20,8 +20,9 @@ import type { RateTier } from "@/lib/billing/lateFee";
 import { toMonthInput } from "@/lib/billing/period";
 import { openMessengerWith } from "@/lib/messaging/messengerHandoff";
 import {
-  PAYMENT_KIND_LABEL,
+  DEPOSIT_TYPE_LABEL,
   PAYMENT_METHOD_LABEL,
+  POLICY_PAYMENT_METHODS,
   formatCurrency,
   unitLabel,
 } from "../receiptFormat";
@@ -57,14 +58,16 @@ const COLUMNS = [
   { key: "dueDate", label: "기한", minWidth: 80, editWidth: "9.1%" },
 ] as const;
 
-const METHOD_OPTIONS = (Object.keys(PAYMENT_METHOD_LABEL) as PaymentMethod[]).map((value) => ({
+// 구분 = 수납 구분(정책: 일반·지로·이체·무통), 은행 = 입금 은행(수납: 무통장입금·지로입금).
+// 처리 유형(완납·원금·분할)은 처리 버튼이 정해 저장만 한다.
+const METHOD_OPTIONS = POLICY_PAYMENT_METHODS.map((value) => ({
   value,
   label: PAYMENT_METHOD_LABEL[value],
 }));
-const KIND_OPTIONS = (Object.keys(PAYMENT_KIND_LABEL) as PaymentKind[]).map((value) => ({
-  value,
-  label: PAYMENT_KIND_LABEL[value],
-}));
+const DEPOSIT_TYPE_OPTIONS = [
+  { value: "", label: "선택 안 함" },
+  ...Object.entries(DEPOSIT_TYPE_LABEL).map(([value, label]) => ({ value, label })),
+];
 
 const TH_BASE =
   "sticky top-0 z-[2] whitespace-nowrap border-b border-line bg-[#FBFCFD] py-[11px] text-[12px] font-bold text-t3";
@@ -431,6 +434,7 @@ export function PaymentHistorySection({
         fee: normalizeAmount(row.fields.fee),
         method: row.fields.method,
         kind: row.fields.kind,
+        depositType: row.fields.depositType || null,
         paidAt: row.fields.paidAt || null,
         memo: row.fields.memo || null,
       };
@@ -692,17 +696,17 @@ export function PaymentHistorySection({
             <CustomDropdown
               chevron="accent"
               menuTransition
-              ariaLabel="은행/방법"
+              ariaLabel="은행"
               size="cell"
               position="fixed"
               menuMinWidth={112}
-              value={row.fields.method}
-              options={METHOD_OPTIONS}
+              value={row.fields.depositType}
+              options={DEPOSIT_TYPE_OPTIONS}
               disabled={fieldsDisabled}
-              onChange={(method) => updateFields(row.key, { method: method as PaymentMethod })}
+              onChange={(depositType) => updateFields(row.key, { depositType: depositType as DepositType | "" })}
             />
           ) : (
-            row.payment ? PAYMENT_METHOD_LABEL[row.payment.method] ?? row.payment.method : "-"
+            row.payment?.depositType ? DEPOSIT_TYPE_LABEL[row.payment.depositType] ?? "-" : "-"
           )}
         </td>
         <td className={`${td} text-t1`}>
@@ -714,13 +718,13 @@ export function PaymentHistorySection({
               size="cell"
               position="fixed"
               menuMinWidth={112}
-              value={row.fields.kind}
-              options={KIND_OPTIONS}
+              value={row.fields.method}
+              options={METHOD_OPTIONS}
               disabled={fieldsDisabled}
-              onChange={(kind) => updateFields(row.key, { kind: kind as PaymentKind })}
+              onChange={(method) => updateFields(row.key, { method: method as PaymentMethod })}
             />
           ) : (
-            row.payment ? PAYMENT_KIND_LABEL[row.payment.kind] ?? row.payment.kind : "-"
+            row.payment ? PAYMENT_METHOD_LABEL[row.payment.method] ?? row.payment.method : "-"
           )}
         </td>
         <td className={`${td} text-t1`}>
