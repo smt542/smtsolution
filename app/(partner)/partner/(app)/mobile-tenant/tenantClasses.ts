@@ -19,6 +19,8 @@ export const tenantClasses = {
   tabActive: "border-blue text-blue",
   count: "font-bold text-t3",
   padTight: "px-5 pb-6 pt-1.5",
+  // 수납 탭 상단: 오른쪽 정렬 '미납만 보기' 체크
+  payBar: "flex justify-end pb-1 pt-2.5",
   none: "px-5 py-10 text-center text-[14px] font-semibold text-t3",
   pcell: "border-b border-line last:border-b-0",
   pcellOpen: "[&_svg]:rotate-180",

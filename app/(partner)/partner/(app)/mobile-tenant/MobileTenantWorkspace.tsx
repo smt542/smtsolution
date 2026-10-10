@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { type ReactNode, useState } from "react";
 
+import { Checkbox } from "@/components/common";
 import { formatDate, formatMonth, formatWon } from "@/lib/format";
 import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
 import { PartnerPhoneLink } from "../../../_components/PartnerPhoneLink";
@@ -67,6 +68,9 @@ function settlementAmounts(s: MovingSettlement) {
 export function MobileTenantWorkspace({ data }: { data: MobileTenantData }) {
   const { occupancy: occ, payments: pay, settlements } = data;
   const [tab, setTab] = useState<Tab>("info");
+  // 수납 탭: 미납(미납액 > 0) 월만 보기
+  const [onlyUnpaid, setOnlyUnpaid] = useState(false);
+  const visiblePay = onlyUnpaid ? pay.filter((p) => p.unpaid > 0) : pay;
   const [openPeriods, setOpenPeriods] = useState<Set<string>>(new Set());
 
   const togglePeriod = (period: string) =>
@@ -166,11 +170,22 @@ export function MobileTenantWorkspace({ data }: { data: MobileTenantData }) {
 
         {tab === "pay" && (
           <div className={styles.padTight}>
-            {pay.length === 0 ? (
-              <div className={styles.none}>수납 내역이 없어요</div>
+            {pay.length > 0 ? (
+              <div className={styles.payBar}>
+                <Checkbox
+                  label="미납만 보기"
+                  checked={onlyUnpaid}
+                  onChange={(event) => setOnlyUnpaid(event.target.checked)}
+                />
+              </div>
+            ) : null}
+            {visiblePay.length === 0 ? (
+              <div className={styles.none}>{onlyUnpaid ? "미납 내역이 없어요" : "수납 내역이 없어요"}</div>
             ) : (
-              pay.map((p) => {
+              visiblePay.map((p) => {
                 const open = openPeriods.has(p.period);
+                // 월 상태: 미납액이 남아 있으면 미납, 아니면 완료(수납 완료 또는 부과 없음).
+                const unpaid = p.unpaid > 0;
                 return (
                   <div key={p.period} className={`${styles.pcell} ${open ? styles.pcellOpen : ""}`}>
                     <button type="button" className={styles.ptop} onClick={() => togglePeriod(p.period)}>
@@ -178,6 +193,7 @@ export function MobileTenantWorkspace({ data }: { data: MobileTenantData }) {
                         <span className={styles.pmonth}>{fmtMonth(p.period)}</span>
                         <span className={styles.pdue}>기한 {p.due_date ? fmtDate(p.due_date) : "-"}</span>
                       </div>
+                      <span className={`${styles.chip} ${unpaid ? styles.chipNo : styles.chipOk}`}>{unpaid ? "미납" : "완료"}</span>
                       <span className={styles.pamt}>{won(p.charged)}</span>
                       <svg className={styles.pchev} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                         <path d="M6 9l6 6 6-6" />
