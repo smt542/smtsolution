@@ -397,7 +397,11 @@ export default function PartnerMsNewWorkspace({
       });
       setActiveId(res.settlementId);
       showToast("이사정산을 저장했어요");
-      setTimeout(goBack, 700);
+      // 저장 후에는 이 화면에 머문다(삭제만 이전 화면으로 돌아간다). 새 정산을 처음 저장했으면
+      // 주소에 정산 id 를 붙여 새로고침해도 방금 저장한 정산이 열리게 한다.
+      if (activeId === null) {
+        router.replace(`/partner/mobile-ms-new?unitId=${unitId}&settlementId=${res.settlementId}`, { scroll: false });
+      }
     } catch (e) {
       // 서버 가드(미수금 < 0 · 음수 금액)는 안내 문구를 그대로 보여준다.
       const message = e instanceof Error ? e.message : "";
