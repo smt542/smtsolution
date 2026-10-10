@@ -13,6 +13,7 @@ import {
   type PointTransactionCursor,
   type PointTransactionQuery,
 } from "./apis";
+import { listPlatformAuditLogs, type PlatformAuditLogQuery } from "./auditLogs";
 import {
   listMessagePointRates,
   listPointReservations,
@@ -60,6 +61,14 @@ export function useOrganizationContractFilePreviews(paths: readonly string[]) {
       gcTime: SIGNED_URL_GC_TIME_MS,
       retry: 1,
     })),
+  });
+}
+
+export function usePlatformAuditLogs(opts: PlatformAuditLogQuery = {}) {
+  return useQuery({
+    queryKey: platformKeys.auditLogs(opts),
+    queryFn: () => listPlatformAuditLogs(opts),
+    placeholderData: keepPreviousData,
   });
 }
 

@@ -38,6 +38,12 @@ export const PLATFORM_NAV_ITEMS: PlatformNavItem[] = [
     icon: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/>',
   },
   {
+    label: "감사 로그",
+    href: "/platform-admin/audit-logs",
+    description: "주요 데이터 변경·로그인 이력 조회",
+    icon: '<path d="M7 3h7l5 5v11.5A1.5 1.5 0 0 1 17.5 21h-11A1.5 1.5 0 0 1 5 19.5v-15A1.5 1.5 0 0 1 6.5 3z"/><path d="M14 3v5h5"/><path d="M8.5 12.5h7M8.5 16h5"/>',
+  },
+  {
     label: "설정",
     href: "/platform-admin/settings",
     description: "HQ 발송단가·청구계좌·부가세",

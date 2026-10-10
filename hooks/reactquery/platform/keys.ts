@@ -3,6 +3,7 @@ import type {
   PlatformOrganizationQuery,
   PointTransactionQuery,
 } from "./apis";
+import type { PlatformAuditLogQuery } from "./auditLogs";
 import type { PointReservationQuery } from "./pointBilling";
 
 export const platformKeys = {
@@ -29,6 +30,18 @@ export const platformKeys = {
         opts.pageSize ?? 10,
       ] as const
     : [...platformKeys.all, "hq-accounts"] as const,
+  auditLogs: (opts?: PlatformAuditLogQuery) => opts
+    ? [
+        ...platformKeys.all,
+        "audit-logs",
+        opts.search?.trim() ?? "",
+        opts.category ?? "all",
+        opts.from ?? "",
+        opts.to ?? "",
+        opts.page ?? 1,
+        opts.pageSize ?? 20,
+      ] as const
+    : [...platformKeys.all, "audit-logs"] as const,
   canManageHqAccounts: () => [...platformKeys.all, "can-manage-hq-accounts"] as const,
   settings: () => [...platformKeys.all, "settings"] as const,
   billing: (month: string) => [...platformKeys.all, "billing", month] as const,
