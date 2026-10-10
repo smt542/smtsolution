@@ -56,7 +56,7 @@ const FIELD_LABELS: Record<InvalidField, string> = {
   password: `비밀번호(${PASSWORD_RULE_TEXT})`,
   passwordConfirm: "비밀번호 확인",
 };
-/** 기본 본사 관리자 계정 — 정지할 수 없다(DB 트리거 0280도 막는다). */
+/** 기본 본사 관리자 계정 — 정지·삭제할 수 없다(DB 0280·0281도 막는다). */
 const PROTECTED_USERNAME = "hqadmin";
 const isMaskedPhone = (value: string | null | undefined) => Boolean(value && value.includes("*"));
 const MASKED_PHONE_ERROR = "전화번호가 가려진 상태라 저장할 수 없습니다. 잠시 후 다시 시도해 주세요.";
@@ -291,7 +291,7 @@ export function HqAccountModal({ mode, account, onClose }: HqAccountModalProps) 
                 />
                 {isProtectedAccount ? (
                   <p className="mt-1.5 text-[12px] font-medium leading-[normal] text-t3">
-                    기본 본사 관리자 계정은 정지할 수 없어요.
+                    기본 본사 관리자 계정은 정지·삭제할 수 없어요.
                   </p>
                 ) : null}
               </div>
@@ -411,7 +411,7 @@ export function HqAccountModal({ mode, account, onClose }: HqAccountModalProps) 
 
         <div className="flex items-center gap-2 border-t border-line2 px-6 pb-5 pt-4">
           {mode === "edit" ? (
-            <Button type="button" size="std" variant="danger" className="border border-transparent shadow-none" onClick={() => void handleDelete()} disabled={requestPending}>
+            <Button type="button" size="std" variant="danger" className="border border-transparent shadow-none" onClick={() => void handleDelete()} disabled={requestPending || isProtectedAccount} title={isProtectedAccount ? "기본 본사 관리자 계정은 삭제할 수 없어요" : undefined}>
               삭제
             </Button>
           ) : null}

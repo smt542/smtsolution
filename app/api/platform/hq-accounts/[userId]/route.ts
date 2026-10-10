@@ -24,6 +24,9 @@ export async function DELETE(
     p_user_id: userId,
   });
   if (prepareError) {
+    if (prepareError.hint === "PROTECTED") {
+      return NextResponse.json({ error: "기본 본사 관리자 계정은 삭제할 수 없어요." }, { status: 409 });
+    }
     if (prepareError.hint === "SELF") {
       return NextResponse.json({ error: "본인 계정은 삭제할 수 없어요." }, { status: 409 });
     }
