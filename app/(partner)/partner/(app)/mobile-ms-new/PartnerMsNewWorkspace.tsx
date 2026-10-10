@@ -17,6 +17,7 @@ import { PartnerToast, usePartnerToast } from "../../../_components/PartnerToast
 import {
   buildSaveData,
   computeTotals,
+  chargeDaysFromMoveOut,
   feeProrated,
   initialState,
   mapContext,
@@ -462,7 +463,8 @@ export default function PartnerMsNewWorkspace({
             <PartnerDateSheet
               look="settlement"
               value={state.moveOutDate}
-              onChange={(value) => patch({ moveOutDate: value })}
+              // 퇴실일을 고르면 계산일수 · 부과를 그 날짜의 실거주 일수로 다시 채운다(이후 직접 수정 가능).
+              onChange={(value) => patch({ moveOutDate: value, dDays: chargeDaysFromMoveOut(value) })}
               ariaLabel="퇴실일자"
             />
           </div>

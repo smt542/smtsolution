@@ -145,6 +145,14 @@ export function utilUsage(u: UtilRow): number {
   return Math.max(0, (u.cur || 0) - (u.prev || 0));
 }
 
+/**
+ * 계산일수 · 부과 기본값 = 퇴실 달의 실거주 일수(퇴실일의 '일'). 계산 규칙 1.1·6절,
+ * 사무실 이사정산 화면과 같은 값. 퇴실일이 없으면 0.
+ */
+export function chargeDaysFromMoveOut(moveOutDate: string | null | undefined): number {
+  return Number(moveOutDate?.slice(8, 10)) || 0;
+}
+
 export function feeProrated(f: FeeItem, dTotal: number, dDays: number): number {
   if (f.daily && dTotal > 0) return Math.round((f.charged || 0) * dDays / dTotal);
   return f.charged || 0;
@@ -245,7 +253,8 @@ export function initialState(ctx: PartnerSettlementContext): MSState {
   return {
     moveOutDate: saved?.moveOutDate ?? "",
     dTotal: extra?.dTotal ?? 30,
-    dDays: extra?.dDays ?? 0,
+    // 저장값이 없거나 0이면(예전 저장분 포함) 퇴실일 기준 실거주 일수로 채운다. 화면에서 직접 고칠 수 있다.
+    dDays: extra?.dDays || chargeDaysFromMoveOut(saved?.moveOutDate),
     util,
     feeItems:
       extra?.feeItems && extra.feeItems.length > 0
