@@ -85,6 +85,7 @@ export function AccountFormModal({
             username: editing.username,
             // 비밀번호 원문은 보관하지 않는다 — 비워 두면 그대로, 입력하면 임시 비밀번호로 재설정.
             password: "",
+            passwordConfirm: "",
             fullName: editing.fullName,
             phone: editing.phone ?? "",
             staffType: editing.staffType,
@@ -104,6 +105,7 @@ export function AccountFormModal({
         : {
             username: "",
             password: "",
+            passwordConfirm: "",
             fullName: "",
             phone: "",
             staffType: createStaffType,
@@ -122,6 +124,8 @@ export function AccountFormModal({
     handleSubmit,
     reset,
     setError,
+    getValues,
+    trigger,
     formState: { errors, isSubmitting },
   } = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(isEdit ? accountEditSchema : accountCreateSchema) as unknown as Resolver<FormInput, unknown, FormValues>,
@@ -138,7 +142,12 @@ export function AccountFormModal({
   }, [makeDefaults, open, reset]);
 
   const selectedMaster = useWatch({ control, name: "isMaster" });
-  const passwordField = register("password");
+  // 확인 칸을 채운 뒤부터는 입력할 때마다 일치 여부를 다시 본다(저장 전에도 붉은 안내).
+  const revalidatePassword = () => {
+    if (getValues("passwordConfirm")) void trigger(["password", "passwordConfirm"]);
+  };
+  const passwordField = register("password", { onChange: revalidatePassword });
+  const passwordConfirmField = register("passwordConfirm", { onChange: revalidatePassword });
 
   const onValid = async (values: FormValues) => {
     if (isEdit && editing && (isMaskedPhone(values.phone) || isMaskedPhone(editing.phoneSub))) {
@@ -273,25 +282,6 @@ export function AccountFormModal({
               </FormField>
 
               <FormField
-                htmlFor="password"
-                label={<>비밀번호 {!isEdit && <RequiredMark />}</>}
-                error={errors.password && <>{errors.password.message}</>}
-                className="[&>label]:mb-[6px] [&>label]:text-[12.5px] [&>label]:font-bold [&>label]:leading-[normal] [&>label]:text-t2 [&>p]:leading-[normal]"
-              >
-                <Input
-                  id="password"
-                  aria-label="비밀번호"
-                  type="text"
-                  maxLength={PASSWORD_MAX_LENGTH}
-                  autoComplete="new-password"
-                  required={!isEdit}
-                  {...passwordField}
-                  placeholder={isEdit ? `변경할 때만 입력 (${PASSWORD_RULE_TEXT})` : `임시 비밀번호 (${PASSWORD_RULE_TEXT})`}
-                  className={`h-[40px] w-full rounded-[11px]! border border-line bg-surface px-[12px] text-[14px] font-medium leading-[normal] text-t1 outline-none placeholder:text-[#757575]! focus:border-brand focus:shadow-[0_0_0_3px_var(--color-brand-tint)] ${errors.password ? "border-danger" : ""}`}
-                />
-              </FormField>
-
-              <FormField
                 htmlFor="fullName"
                 label={<>이름 <RequiredMark /></>}
                 error={errors.fullName && <>{errors.fullName.message}</>}
@@ -303,6 +293,44 @@ export function AccountFormModal({
                   {...register("fullName")}
                   placeholder="이름 입력"
                   className={`h-[40px] w-full rounded-[11px]! border border-line bg-surface px-[12px] text-[14px] font-medium leading-[normal] text-t1 outline-none placeholder:text-[#757575]! focus:border-brand focus:shadow-[0_0_0_3px_var(--color-brand-tint)] ${errors.fullName ? "border-danger" : ""}`}
+                />
+              </FormField>
+
+              <FormField
+                htmlFor="password"
+                label={<>{isEdit ? "비밀번호 변경" : "비밀번호"} {!isEdit && <RequiredMark />}</>}
+                error={errors.password && <>{errors.password.message}</>}
+                className="[&>label]:mb-[6px] [&>label]:text-[12.5px] [&>label]:font-bold [&>label]:leading-[normal] [&>label]:text-t2 [&>p]:leading-[normal]"
+              >
+                <Input
+                  id="password"
+                  aria-label={isEdit ? "비밀번호 변경" : "비밀번호"}
+                  type="text"
+                  maxLength={PASSWORD_MAX_LENGTH}
+                  autoComplete="new-password"
+                  required={!isEdit}
+                  {...passwordField}
+                  placeholder={isEdit ? `변경할 때만 입력 (${PASSWORD_RULE_TEXT})` : `임시 비밀번호 (${PASSWORD_RULE_TEXT})`}
+                  className={`h-[40px] w-full rounded-[11px]! border border-line bg-surface px-[12px] text-[14px] font-medium leading-[normal] text-t1 outline-none placeholder:text-[#757575]! focus:border-brand focus:shadow-[0_0_0_3px_var(--color-brand-tint)] ${errors.password ? "border-danger" : ""}`}
+                />
+              </FormField>
+
+              <FormField
+                htmlFor="passwordConfirm"
+                label={<>{isEdit ? "비밀번호 변경 확인" : "비밀번호 확인"} {!isEdit && <RequiredMark />}</>}
+                error={errors.passwordConfirm && <>{errors.passwordConfirm.message}</>}
+                className="[&>label]:mb-[6px] [&>label]:text-[12.5px] [&>label]:font-bold [&>label]:leading-[normal] [&>label]:text-t2 [&>p]:leading-[normal]"
+              >
+                <Input
+                  id="passwordConfirm"
+                  aria-label={isEdit ? "비밀번호 변경 확인" : "비밀번호 확인"}
+                  type="text"
+                  maxLength={PASSWORD_MAX_LENGTH}
+                  autoComplete="new-password"
+                  required={!isEdit}
+                  {...passwordConfirmField}
+                  placeholder="비밀번호를 한 번 더 입력"
+                  className={`h-[40px] w-full rounded-[11px]! border border-line bg-surface px-[12px] text-[14px] font-medium leading-[normal] text-t1 outline-none placeholder:text-[#757575]! focus:border-brand focus:shadow-[0_0_0_3px_var(--color-brand-tint)] ${errors.passwordConfirm ? "border-danger" : ""}`}
                 />
               </FormField>
 

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { passwordSchema } from "./password";
+import { checkPasswordConfirm } from "./password";
 import { nullableTrimmedString, requiredDate } from "./common";
 
 const contractFields = {
@@ -43,26 +43,14 @@ function ownerPasswordFields(required: boolean, confirmRequiredMessage: string) 
     ownerPassword: z.string(),
     ownerPasswordConfirm: z.string(),
   }).superRefine((values, ctx) => {
-    const { ownerPassword, ownerPasswordConfirm } = values;
-    if (!required && !ownerPassword && !ownerPasswordConfirm) return;
-
-    const rule = passwordSchema.safeParse(ownerPassword);
-    if (!rule.success) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["ownerPassword"],
-        message: rule.error.issues[0]?.message ?? "비밀번호를 확인해 주세요",
-      });
-    }
-    if (!ownerPasswordConfirm) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["ownerPasswordConfirm"], message: confirmRequiredMessage });
-    } else if (ownerPassword !== ownerPasswordConfirm) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["ownerPasswordConfirm"],
-        message: "비밀번호가 일치하지 않습니다",
-      });
-    }
+    checkPasswordConfirm(ctx, {
+      password: values.ownerPassword,
+      confirm: values.ownerPasswordConfirm,
+      passwordPath: "ownerPassword",
+      confirmPath: "ownerPasswordConfirm",
+      required,
+      confirmRequiredMessage,
+    });
   });
 }
 

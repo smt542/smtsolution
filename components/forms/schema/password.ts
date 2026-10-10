@@ -11,6 +11,47 @@ export const passwordSchema = z
   .min(PASSWORD_MIN_LENGTH, PASSWORD_RULE_MESSAGE)
   .max(PASSWORD_MAX_LENGTH, `비밀번호는 ${PASSWORD_MAX_LENGTH}자 이하로 입력해 주세요.`);
 
+/**
+ * 비밀번호 + 확인 칸 검사(superRefine 안에서 호출). 객체 refine은 다른 칸이 틀리면 건너뛰므로(zod 3)
+ * 두 칸을 원문 문자열로 받는 별도 객체에서 부르고 `.and()`로 합친다 — 6자 미만·다른 칸 오류가
+ * 있어도 불일치는 항상 표시된다. required=false(수정)면 둘 다 비울 때 그대로 둔다.
+ */
+export function checkPasswordConfirm(
+  ctx: z.RefinementCtx,
+  {
+    password,
+    confirm,
+    passwordPath,
+    confirmPath,
+    required,
+    confirmRequiredMessage,
+    mismatchMessage = "비밀번호가 일치하지 않습니다",
+  }: {
+    password: string;
+    confirm: string;
+    passwordPath: string;
+    confirmPath: string;
+    required: boolean;
+    confirmRequiredMessage: string;
+    mismatchMessage?: string;
+  },
+) {
+  if (!required && !password && !confirm) return;
+  const rule = passwordSchema.safeParse(password);
+  if (!rule.success) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [passwordPath],
+      message: rule.error.issues[0]?.message ?? PASSWORD_RULE_MESSAGE,
+    });
+  }
+  if (!confirm) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: [confirmPath], message: confirmRequiredMessage });
+  } else if (password !== confirm) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: [confirmPath], message: mismatchMessage });
+  }
+}
+
 /** 비우면 그대로 두는 비밀번호 변경 칸 */
 export const optionalPasswordSchema = z.union([z.literal(""), passwordSchema]);
 
@@ -24,19 +65,15 @@ export const passwordChangeSchema = z
     confirmPassword: z.string(),
   })
   .superRefine((values, ctx) => {
-    const rule = passwordSchema.safeParse(values.newPassword);
-    if (!rule.success) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["newPassword"],
-        message: rule.error.issues[0]?.message ?? PASSWORD_RULE_MESSAGE,
-      });
-    }
-    if (!values.confirmPassword) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["confirmPassword"], message: "새 비밀번호를 한 번 더 입력해 주세요." });
-    } else if (values.newPassword !== values.confirmPassword) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["confirmPassword"], message: "새 비밀번호가 일치하지 않습니다." });
-    }
+    checkPasswordConfirm(ctx, {
+      password: values.newPassword,
+      confirm: values.confirmPassword,
+      passwordPath: "newPassword",
+      confirmPath: "confirmPassword",
+      required: true,
+      confirmRequiredMessage: "새 비밀번호를 한 번 더 입력해 주세요.",
+      mismatchMessage: "새 비밀번호가 일치하지 않습니다.",
+    });
   });
 
 export type PasswordChangeInput = z.input<typeof passwordChangeSchema>;
