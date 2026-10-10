@@ -56,6 +56,8 @@ const FIELD_LABELS: Record<InvalidField, string> = {
   password: `비밀번호(${PASSWORD_RULE_TEXT})`,
   passwordConfirm: "비밀번호 확인",
 };
+/** 기본 본사 관리자 계정 — 정지할 수 없다(DB 트리거 0280도 막는다). */
+const PROTECTED_USERNAME = "hqadmin";
 const isMaskedPhone = (value: string | null | undefined) => Boolean(value && value.includes("*"));
 const MASKED_PHONE_ERROR = "전화번호가 가려진 상태라 저장할 수 없습니다. 잠시 후 다시 시도해 주세요.";
 
@@ -108,6 +110,7 @@ export function HqAccountModal({ mode, account, onClose }: HqAccountModalProps) 
   const [invalid, setInvalid] = useState<Partial<Record<InvalidField, boolean>>>({});
   const [error, setError] = useState<string | null>(null);
   const [passwordConfirmError, setPasswordConfirmError] = useState<string | null>(null);
+  const isProtectedAccount = mode === "edit" && account?.username.toLowerCase() === PROTECTED_USERNAME;
   const [confirmPending, setConfirmPending] = useState(false);
 
   const requestPending = createAccount.isPending
@@ -284,7 +287,13 @@ export function HqAccountModal({ mode, account, onClose }: HqAccountModalProps) 
                   ]}
                   value={values.isActive ? "active" : "inactive"}
                   onChange={(value) => setField("isActive", value === "active")}
+                  disabled={isProtectedAccount && values.isActive}
                 />
+                {isProtectedAccount ? (
+                  <p className="mt-1.5 text-[12px] font-medium leading-[normal] text-t3">
+                    기본 본사 관리자 계정은 정지할 수 없어요.
+                  </p>
+                ) : null}
               </div>
             )}
 
