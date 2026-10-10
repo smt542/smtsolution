@@ -124,7 +124,7 @@ export function BillingWorkspace() {
     }
   };
 
-  // "전체 발행": 탭과 무관하게 전 테넌트(rows) 중 청구액이 있는 업체마다 PDF 청구서를 차례로 내려받는다(정책 3.2·개선3차 42). 저장되는 상태 없음.
+  // "전체 발행": 탭과 무관하게 전 테넌트(rows) 중 청구액이 있는 업체마다 PDF 청구서를 만들어 ZIP 하나로 내려받는다(정책 3.2·개선3차 42). 저장되는 상태 없음.
   // 문구는 정본 #bmAll('N곳의 청구서를 만들고 있어요' → 'N곳의 청구서를 저장했어요'). 만드는 동안 다시 눌러도 무시
   const handlePublishAll = async () => {
     if (publishingAll) return;

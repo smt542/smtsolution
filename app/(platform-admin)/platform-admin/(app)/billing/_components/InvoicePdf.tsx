@@ -225,14 +225,33 @@ export async function downloadInvoicePdf(input: InvoicePdfInput): Promise<void> 
   saveBlob(blob, invoiceFileName(input.month, input.row.orgName));
 }
 
-/** 전체 발행: 업체마다 PDF 한 개씩 차례로 내려받는다(정본도 업체별 파일) */
+/** 묶음 파일 이름: {YYYY}_{MM}월분_청구서_전체.zip */
+export function invoiceZipFileName(month: string): string {
+  const [year, mon] = month.split("-");
+  return `${year}_${mon}월분_청구서_전체.zip`;
+}
+
+/**
+ * 전체 발행: 업체마다 PDF 청구서를 만들어 ZIP 하나로 묶어 내려받는다.
+ * 업체별 파일 이름은 개별 발행과 같고, 이름이 겹치면 (2)·(3)을 붙인다.
+ */
 export async function downloadInvoicePdfs(
   rows: PlatformOrgBilling[],
   month: string,
   config: InvoiceConfig,
   settings: PlatformSettings | undefined,
 ): Promise<void> {
+  ensureFont();
+  const files: Record<string, Uint8Array> = {};
   for (const row of rows) {
-    await downloadInvoicePdf({ row, month, config, settings });
+    const blob = await pdf(<InvoicePdfDocument row={row} month={month} config={config} settings={settings} />).toBlob();
+    const base = invoiceFileName(month, row.orgName);
+    let name = base;
+    for (let index = 2; files[name]; index += 1) name = base.replace(/\.pdf$/, ` (${index}).pdf`);
+    files[name] = new Uint8Array(await blob.arrayBuffer());
   }
+  // PDF는 이미 압축돼 있어 다시 압축하지 않고 담기만 한다(level 0).
+  const { zipSync } = await import("fflate");
+  const zipped = zipSync(files, { level: 0 });
+  saveBlob(new Blob([zipped], { type: "application/zip" }), invoiceZipFileName(month));
 }
