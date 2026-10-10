@@ -14,7 +14,7 @@ import {
   type OverduePeriodRow,
   type OverdueScope,
 } from "@/hooks/reactquery/overdue";
-import { computeLateFee, type OverduePeriodInput } from "@/lib/billing/lateFee";
+import { computeLateFee, monthsOverdue, type OverduePeriodInput } from "@/lib/billing/lateFee";
 import type { MessageRecipient } from "@/lib/messaging/preset";
 import { openMessengerWith } from "@/lib/messaging/messengerHandoff";
 import { residentOrigin } from "@/lib/messaging/residentOrigin";
@@ -57,6 +57,19 @@ function latestOverduePeriod(
     }
     return !latest || period.period > latest.period ? period : latest;
   }, undefined);
+}
+
+/** 오늘(KST)의 년·월. 당계의 경과 개월 기준일이다. */
+function kstTodayYearMonth(): { year: number; month: number } {
+  const [year, month] = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+  })
+    .format(new Date())
+    .split("-")
+    .map(Number);
+  return { year, month };
 }
 
 export function OverdueWorkspace({
@@ -122,14 +135,28 @@ export function OverdueWorkspace({
         targetPeriod.month as number,
         lateFeeSettings,
       );
+      // 당계는 대상월 행만 있어 대상월 기준 경과 개월이 항상 0 이다. 연체 열·독촉 판정의
+      // 경과 개월은 정본처럼 오늘(KST) 기준으로 센다. 연체료 금액은 그대로 둔다.
+      const dueDates = new Map(
+        (periodsByHousehold.get(`${household.occupancyId}:${household.unitId}`) ?? [])
+          .map((item) => [item.period, item.dueDate]),
+      );
+      const byPeriod = scope === "current"
+        ? result.byPeriod.map((item) => {
+            const dueDate = dueDates.get(item.period);
+            if (!dueDate) return item;
+            const today = kstTodayYearMonth();
+            return { ...item, months: monthsOverdue(dueDate, today.year, today.month) };
+          })
+        : result.byPeriod;
       return {
         ...household,
         lateFeeAmount: result.totalLateFee,
         postDueFeeAmount: result.totalPostDueFee,
-        lateFeeByPeriod: result.byPeriod,
+        lateFeeByPeriod: byPeriod,
       };
     });
-  }, [households, lateFeeDisabledOccupancies, lateFeeRateTiers, lateFeeSettings, overduePeriods, targetPeriod.month, targetPeriod.year]);
+  }, [households, scope, lateFeeDisabledOccupancies, lateFeeRateTiers, lateFeeSettings, overduePeriods, targetPeriod.month, targetPeriod.year]);
 
   // 정본은 미납이 있는 세대만 표에 넣는다(`build()` 가 미납 세대만 만든다).
   // 앱은 점유 세대를 전부 조회하므로 잔액 0 인 세대를 여기서 걸러낸다 —
