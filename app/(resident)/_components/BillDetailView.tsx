@@ -108,7 +108,16 @@ export default function BillDetailView(props: BillDetailViewProps) {
     usage: item.usage,
     prevUsage: item.prevUsage,
   }));
-  const perItems = items.filter((item) => item.utility != null);
+  // 항목이 비어도 섹션을 숨기지 않는다(빈 화면은 오류처럼 보인다). 개별 사용료가 하나도 없으면 0원 행으로 채운다.
+  const utilityItems = items.filter((item) => item.utility != null);
+  const perItems: ViewItem[] =
+    utilityItems.length > 0
+      ? utilityItems
+      : [
+          { name: "수도료", amount: 0, utility: null, usage: null, prevUsage: null },
+          { name: "전기료", amount: 0, utility: null, usage: null, prevUsage: null },
+          { name: "가스료", amount: 0, utility: null, usage: null, prevUsage: null },
+        ];
   const comItems = items.filter((item) => item.utility == null);
   const perSum = perItems.reduce((sum, item) => sum + item.amount, 0);
   const comSum = comItems.reduce((sum, item) => sum + item.amount, 0);
@@ -182,33 +191,25 @@ export default function BillDetailView(props: BillDetailViewProps) {
         ) : null}
       </section>
 
-      {perItems.length > 0 ? (
-        <>
-          <div className={styles.lbl}>
-            개별 사용료<span>{perItems.length}개</span>
-          </div>
-          <section className={styles.card} aria-label="개별 사용료">
-            {perItems.map((item, index) => (
-              <ItemRow key={`per-${item.name}-${index}`} item={item} />
-            ))}
-            <Subtotal label="개별 사용료 소계" amount={perSum} />
-          </section>
-        </>
-      ) : null}
+      <div className={styles.lbl}>
+        개별 사용료<span>{perItems.length}개</span>
+      </div>
+      <section className={styles.card} aria-label="개별 사용료">
+        {perItems.map((item, index) => (
+          <ItemRow key={`per-${item.name}-${index}`} item={item} />
+        ))}
+        <Subtotal label="개별 사용료 소계" amount={perSum} />
+      </section>
 
-      {comItems.length > 0 ? (
-        <>
-          <div className={styles.lbl}>
-            공용 · 기타 관리비<span>{comItems.length}개</span>
-          </div>
-          <section className={styles.card} aria-label="공용 · 기타 관리비">
-            {comItems.map((item, index) => (
-              <ItemRow key={`com-${item.name}-${index}`} item={item} />
-            ))}
-            <Subtotal label="공용 · 기타 소계" amount={comSum} />
-          </section>
-        </>
-      ) : null}
+      <div className={styles.lbl}>
+        공용 · 기타 관리비<span>{comItems.length}개</span>
+      </div>
+      <section className={styles.card} aria-label="공용 · 기타 관리비">
+        {comItems.map((item, index) => (
+          <ItemRow key={`com-${item.name}-${index}`} item={item} />
+        ))}
+        <Subtotal label="공용 · 기타 소계" amount={comSum} />
+      </section>
 
       <div className={styles.lbl}>정산</div>
       <section className={styles.fin} aria-label="정산">
