@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import BottomNav from "@/app/(resident)/_components/BottomNav";
 import MoveOutSection from "@/app/(resident)/_components/MoveOutSection";
@@ -18,6 +18,7 @@ import { useResidentProfile } from "@/hooks/reactquery/residentProfile";
 import { formatWon } from "@/lib/format";
 
 import { residentHomeClasses as styles } from "./homeClasses";
+import ResidentBottomSheet from "@/app/(resident)/_components/ResidentBottomSheet";
 import { ResidentButton } from "@/app/(resident)/_components/ResidentButton";
 
 const formatAmount = (amount: number) => formatWon(amount);
@@ -97,19 +98,6 @@ export default function ResidentHomeWorkspace() {
   const [noticeOpen, setNoticeOpen] = useState(false);
   const [moveOutOpen, setMoveOutOpen] = useState(false);
 
-  useEffect(() => {
-    if (!noticeOpen) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setNoticeOpen(false);
-    };
-    document.addEventListener("keydown", onKey);
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [noticeOpen]);
 
   const isHomeInitialLoading =
     profileQuery.isPending ||
@@ -401,38 +389,20 @@ export default function ResidentHomeWorkspace() {
         onClose={() => setMoveOutOpen(false)}
       />
 
-      {noticeOpen && buildingNotice ? (
-        <div
-          className={styles.modalBackdrop}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="notice-modal-title"
-          onClick={(event) => {
-            if (event.target === event.currentTarget) setNoticeOpen(false);
-          }}
-        >
-          <div className={styles.modalCard}>
-            <div className={styles.modalHead}>
-              <h2 className={styles.modalTitle} id="notice-modal-title">
-                건물 공지
-              </h2>
-            </div>
-            <div className={styles.modalBody}>
-              {buildingNotice}
-            </div>
-            <div className={styles.modalFoot}>
-              <ResidentButton
-                variant="primary"
-                type="button"
-                className="w-full"
-                onClick={() => setNoticeOpen(false)}
-              >
-                확인
-              </ResidentButton>
-            </div>
+      {/* 건물 공지: 공지 목록·퇴실 신청과 같은 바텀시트(배경·Esc·확인으로 닫기) */}
+      <ResidentBottomSheet variant="notice" open={noticeOpen && !!buildingNotice} onDismiss={() => setNoticeOpen(false)}>
+        <div role="dialog" aria-modal="true" aria-labelledby="notice-sheet-title" className="flex flex-col">
+          <h2 className={styles.sheetTitle} id="notice-sheet-title">
+            건물 공지
+          </h2>
+          <div className={styles.sheetBody}>{buildingNotice}</div>
+          <div className={styles.sheetFoot}>
+            <ResidentButton variant="primary" size="moveOut" type="button" className="w-full" onClick={() => setNoticeOpen(false)}>
+              확인
+            </ResidentButton>
           </div>
         </div>
-      ) : null}
+      </ResidentBottomSheet>
     </div>
   );
 }

@@ -53,11 +53,8 @@ export const residentHomeClasses = {
   moveOutTitle: "block text-[14px] font-bold tracking-[-0.01em]",
   moveOutDate: "mt-1 block text-[12px] font-semibold tabular-nums text-t3",
   moveOutDday: "flex-none rounded-lg bg-blue-t px-[9px] py-[5px] text-[12px] font-extrabold tabular-nums text-blue-d",
-  modalBackdrop: "fixed inset-0 z-[110] flex h-dvh items-center justify-center bg-scrim p-[26px]",
-  modalCard: "flex max-h-[calc(100dvh-120px)] w-full max-w-[380px] flex-col overflow-hidden rounded-[20px] bg-white",
-  modalHead: "flex-none px-[22px] pb-3.5 pt-[22px]",
-  modalTitle: "m-0 text-[18px] font-extrabold leading-[1.4] tracking-[-0.02em]",
-  // 정본 .nm-body의 text-wrap: pretty는 뺐다. 사파리 26은 문단 전체 줄 길이를 고르게 맞춰서 줄이 짧아지고 한글이 단어 중간에서 끊긴다.
-  modalBody: "min-h-0 flex-1 overflow-auto px-[22px] pb-[18px] pt-1 text-[14px] font-medium leading-[1.75] text-t2 whitespace-pre-line",
-  modalFoot: "flex-none px-[22px] pb-5",
+  // 건물 공지 바텀시트(ResidentBottomSheet variant="notice") 안쪽
+  sheetTitle: "m-0 text-[18px] font-extrabold leading-[1.4] tracking-[-0.02em]",
+  sheetBody: "pb-1 pt-3 text-[14px] font-medium leading-[1.75] text-t2 whitespace-pre-line",
+  sheetFoot: "sticky bottom-0 shrink-0 bg-white pb-[15px] pt-[18px]",
 } as const;
