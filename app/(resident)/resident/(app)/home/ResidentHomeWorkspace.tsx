@@ -5,11 +5,11 @@ import { useState } from "react";
 
 import BottomNav from "@/app/(resident)/_components/BottomNav";
 import MoveOutSection from "@/app/(resident)/_components/MoveOutSection";
+import { HomeNoticeCarousel } from "./HomeNoticeCarousel";
 import ResidentAsyncState from "@/app/(resident)/_components/ResidentAsyncState";
 import ResidentStatusChip from "@/app/(resident)/_components/ResidentStatusChip";
 import { useResidentBillMonths } from "@/hooks/reactquery/residentBilling";
 import {
-  useResidentBuildingNotice,
   useResidentNoticeReadIds,
   useResidentNotices,
 } from "@/hooks/reactquery/residentNotices";
@@ -91,7 +91,6 @@ export default function ResidentHomeWorkspace() {
   const monthsQuery = useResidentBillMonths();
   const noticesQuery = useResidentNotices();
   const noticeReadIdsQuery = useResidentNoticeReadIds();
-  const buildingNoticeQuery = useResidentBuildingNotice();
   const moveOutQuery = useMoveOutRequest();
   const [moveOutOpen, setMoveOutOpen] = useState(false);
 
@@ -100,13 +99,11 @@ export default function ResidentHomeWorkspace() {
     profileQuery.isPending ||
     monthsQuery.isPending ||
     noticesQuery.isPending ||
-    buildingNoticeQuery.isPending ||
     moveOutQuery.isPending;
   const isHomeRefreshing = [
     profileQuery,
     monthsQuery,
     noticesQuery,
-    buildingNoticeQuery,
     moveOutQuery,
   ].some((query) => query.isFetching && !query.isPending);
   // 읽음 기록(noticeReadIdsQuery)은 새 공지 점에만 쓴다 — 로딩·오류 판정에 넣지 않는다(0221 적용 전에도 홈이 떠야 함).
@@ -176,7 +173,6 @@ export default function ResidentHomeWorkspace() {
   const hasNotice = noticeReadIdsQuery.isSuccess && (noticesQuery.data ?? []).some(
     (notice) => !readNoticeIds.has(notice.id),
   );
-  const buildingNotice = buildingNoticeQuery.data;
   // 정본 .mocard: 신청이 살아 있으면(확인 중·확정) 보인다. 취소·반려되면 숨긴다.
   const moveOut = moveOutQuery.data;
   const activeMoveOut =
@@ -209,18 +205,8 @@ export default function ResidentHomeWorkspace() {
       </header>
 
       <main className={styles.scroll}>
-        {buildingNotice ? (
-          // 건물 공지 전문은 공지 상세와 같은 화면(/resident/building-notice)에서 본다.
-          <Link href="/resident/building-notice" className={styles.notice}>
-            <span className={styles.noticeIcon}>
-              <NoticeIcon />
-            </span>
-            <span className={styles.noticeText}>
-              <b className={styles.noticeTitle}>건물 공지</b>
-              <span className={styles.noticePreview}>{buildingNotice}</span>
-            </span>
-          </Link>
-        ) : null}
+        {/* 최근 공지 5개 캐러셀(5초마다 왼쪽으로 넘김 · 하단 점 내비). 누르면 해당 공지 상세. */}
+        <HomeNoticeCarousel notices={(noticesQuery.data ?? []).slice(0, 5)} icon={<NoticeIcon />} />
 
         <section className={styles.bill} aria-labelledby="current-bill-title">
           {currentMonth ? (
