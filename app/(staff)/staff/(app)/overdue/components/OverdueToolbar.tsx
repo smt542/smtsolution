@@ -100,9 +100,10 @@ export function OverdueToolbar({
   return (
     <section
       aria-label="미납 조회 조건"
-      // 정본 `.ov-bar`. `overflow:visible` + `z-20` 은 드롭다운 메뉴가 패널에 잘리지
-      // 않게 하려는 것이라 임의로 `overflow-hidden` 으로 바꾸면 메뉴가 사라진다.
-      className="relative z-20 flex flex-wrap items-center gap-[8px] overflow-visible rounded-t-[16px] border-b border-line2 bg-white px-[16px] py-[13px]"
+      // 정본 `.ov-bar`. `overflow:visible` 은 드롭다운 메뉴가 패널에 잘리지 않게 하려는 것이라
+      // 임의로 `overflow-hidden` 으로 바꾸면 메뉴가 사라진다. z-30 은 표의 sticky 헤더·합계행(z-20)보다
+      // 위에 메뉴를 띄우기 위함 — 같은 z-20 이면 DOM 뒤쪽인 표 헤더가 메뉴를 덮는다.
+      className="relative z-30 flex flex-wrap items-center gap-[8px] overflow-visible rounded-t-[16px] border-b border-line2 bg-white px-[16px] py-[13px]"
     >
       {/* 정본 `#ovYear .uc-dd-menu{min-width:104px}` — 기본값(96px)보다 넓다. */}
       <div className={`${DD_MENU_PADDING} [&_.uc-dd-menu]:min-w-[104px]`}>
