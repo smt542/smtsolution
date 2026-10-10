@@ -35,6 +35,9 @@ import { PartnerButton } from "../../../_components/PartnerButton";
 import { PartnerConfirmDialog } from "../../../_components/PartnerConfirmDialog";
 
 type SectionKey = "basic" | "util" | "fee" | "etc" | "cleaning" | "settle" | "check";
+const EDITABLE_SETTLEMENT_STATUSES = ["draft", "saved"];
+const LOCKED_SETTLEMENT_MESSAGE = "정산이 완료되어 수정할 수 없어요. 내역서 확인·이미지 저장만 가능해요.";
+
 type ConfirmKind = "save" | "cancel" | "delete" | "statementNegative" | "saveNegative";
 
 const CLEANING_STATUS_OPTIONS = [
@@ -65,6 +68,7 @@ function Section({
   action,
   folded,
   onToggle,
+  locked = false,
   children,
 }: {
   title: string;
@@ -73,6 +77,8 @@ function Section({
   action?: ReactNode;
   folded: boolean;
   onToggle: () => void;
+  /** 완료된 정산: 접기·펼치기만 되고 안의 입력·버튼은 모두 막는다(레이아웃 영향 없는 fieldset). */
+  locked?: boolean;
   children: ReactNode;
 }) {
   // 정본 `.sec-t`: 머리 어디를 눌러도 접고 펼친다. 제목 버튼의 클릭도 여기로 올라와 한 번만 바뀐다(키보드 포함).
@@ -83,10 +89,10 @@ function Section({
           <span>{title}</span>
           {hint ? <span className={styles.secHint}>{hint}</span> : null}
         </button>
-        {action}
+        {action ? <fieldset disabled={locked} className="contents">{action}</fieldset> : null}
         <ChevronDown folded={folded} />
       </div>
-      {folded ? null : children}
+      {folded ? null : <fieldset disabled={locked} className="contents">{children}</fieldset>}
     </div>
   );
 }
@@ -236,6 +242,11 @@ export default function PartnerMsNewWorkspace({
   const backHref = Number.isFinite(unitId) ? `/partner/mobile-tenant?id=${unitId}` : "/partner/mobile-inquiry";
   const goBack = () => router.push(backHref);
   const isEdit = activeId !== null;
+  // 정산완료(중도퇴실·퇴실) 등 작성중·저장이 아닌 정산은 서버가 수정·삭제를 받지 않는다 — 읽기 전용으로 연다.
+  const isLocked =
+    editId !== null &&
+    ctx?.latestSettlement?.id === editId &&
+    !EDITABLE_SETTLEMENT_STATUSES.includes(ctx.latestSettlement.status);
 
   const openStatement = () => {
     if (!isEdit || !state || !totals) return;
@@ -368,7 +379,9 @@ export default function PartnerMsNewWorkspace({
       setErr(
         message.startsWith("입력값을 다시 확인해 주세요")
           ? message
-          : "저장에 실패했어요. 다시 시도해 주세요.",
+          : message.includes("editable settlement not in unit")
+            ? LOCKED_SETTLEMENT_MESSAGE
+            : "저장에 실패했어요. 다시 시도해 주세요.",
       );
     }
   };
@@ -387,7 +400,7 @@ export default function PartnerMsNewWorkspace({
 
   const header = (
     <div className={styles.header}>
-      <button type="button" className={styles.back} onClick={() => setConfirmKind("cancel")} aria-label="뒤로">
+      <button type="button" className={styles.back} onClick={() => (isLocked ? goBack() : setConfirmKind("cancel"))} aria-label="뒤로">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round">
           <path d="M15 5l-7 7 7 7" />
         </svg>
@@ -443,7 +456,7 @@ export default function PartnerMsNewWorkspace({
 
       <div className={styles.scroll}>
         {/* ===== 기본 ===== */}
-        <Section title="기본" folded={fold.basic} onToggle={() => toggleFold("basic")}>
+        <Section locked={isLocked} title="기본" folded={fold.basic} onToggle={() => toggleFold("basic")}>
           <div className={styles.row}>
             <label className={styles.rowLabel}>퇴실일자</label>
             <PartnerDateSheet
@@ -464,7 +477,7 @@ export default function PartnerMsNewWorkspace({
         </Section>
 
         {/* ===== 공과금 정산 ===== */}
-        <Section title="공과금 정산" folded={fold.util} onToggle={() => toggleFold("util")}>
+        <Section locked={isLocked} title="공과금 정산" folded={fold.util} onToggle={() => toggleFold("util")}>
           {state.util.map((u, i) => (
             <div key={u.k} className={styles.ucard}>
               <div className={styles.ucardTitle}>{UTILITY_LABEL[u.k]}</div>
@@ -516,7 +529,7 @@ export default function PartnerMsNewWorkspace({
         </Section>
 
         {/* ===== 관리비 항목 ===== */}
-        <Section title="관리비 항목" hint="부과액 / 정산액" folded={fold.fee} onToggle={() => toggleFold("fee")}>
+        <Section locked={isLocked} title="관리비 항목" hint="부과액 / 정산액" folded={fold.fee} onToggle={() => toggleFold("fee")}>
           {/* 정본 #mnFee: 마지막 항목 아래 줄이 없도록 항목만 묶는다(last:border-b-0) */}
           <div>
             {state.feeItems.map((f, i) => (
@@ -560,7 +573,7 @@ export default function PartnerMsNewWorkspace({
         </Section>
 
         {/* ===== 기타 ===== */}
-        <Section
+        <Section locked={isLocked}
           title="기타"
           hint={`${state.etcItems.length} / ${MAX_ETC_ITEMS}`}
           action={
@@ -608,7 +621,7 @@ export default function PartnerMsNewWorkspace({
         </Section>
 
         {/* ===== 청소 ===== */}
-        <Section title="청소" folded={fold.cleaning} onToggle={() => toggleFold("cleaning")}>
+        <Section locked={isLocked} title="청소" folded={fold.cleaning} onToggle={() => toggleFold("cleaning")}>
           <div className={styles.row}>
             <label className={styles.rowLabel}>청소담당</label>
             <Input
@@ -665,7 +678,7 @@ export default function PartnerMsNewWorkspace({
         </Section>
 
         {/* ===== 정산 ===== */}
-        <Section title="정산" folded={fold.settle} onToggle={() => toggleFold("settle")}>
+        <Section locked={isLocked} title="정산" folded={fold.settle} onToggle={() => toggleFold("settle")}>
           <div className={styles.row}>
             <label className={styles.rowLabel}>수납액</label>
             <NumberField className={styles.rowNum} value={state.paid} onChange={(n) => patch({ paid: n })} />
@@ -692,7 +705,7 @@ export default function PartnerMsNewWorkspace({
         </Section>
 
         {/* ===== 정산 체크 — 항목별 메모(정본 `.c-in`) ===== */}
-        <Section title="정산 체크" folded={fold.check} onToggle={() => toggleFold("check")}>
+        <Section locked={isLocked} title="정산 체크" folded={fold.check} onToggle={() => toggleFold("check")}>
           {ctx.checklist.length === 0 ? (
             <div className={styles.emptyHint}>등록된 점검 항목이 없어요</div>
           ) : (
@@ -754,9 +767,16 @@ export default function PartnerMsNewWorkspace({
           </div>
         </div>
 
-        {err ? <PartnerInlineError message={err} /> : null}
+        {isLocked ? <PartnerInlineError message={LOCKED_SETTLEMENT_MESSAGE} /> : err ? <PartnerInlineError message={err} /> : null}
       </div>
 
+      {isLocked ? (
+        <PartnerBottomActionBar>
+          <PartnerButton variant="secondary" type="button" className="flex-1" onClick={goBack}>
+            목록으로
+          </PartnerButton>
+        </PartnerBottomActionBar>
+      ) : (
       <PartnerBottomActionBar>
         {isEdit ? (
           <PartnerButton variant="danger" type="button" className="flex-1" onClick={() => setConfirmKind("delete")} disabled={isSettlementMutating}>
@@ -783,6 +803,7 @@ export default function PartnerMsNewWorkspace({
           저장
         </PartnerButton>
       </PartnerBottomActionBar>
+      )}
 
       {statementOpen ? (
         <div className={styles.statementScrim} role="dialog" aria-modal="true" aria-label="이사정산 내역서">
