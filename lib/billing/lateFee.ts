@@ -12,6 +12,8 @@ export interface OverduePeriodInput {
   dueDate: string;
   /** 입주(세대)별 연체료 부과 여부(occupancies.late_fee_enabled). false 면 연체료·납기후 가산금 모두 0. 생략 시 부과. */
   lateFeeEnabled?: boolean;
+  /** 수납 이력에서 직접 지정한 그 달 연체료(billing_confirmations.late_fee_override). 있으면 자동 계산 대신 이 금액(미납 원금이 남은 달만). */
+  lateFeeOverride?: number | null;
 }
 
 export interface LateFeePeriodResult {
@@ -85,6 +87,10 @@ export function computeLateFeeForPeriod(
   settings?: LateFeeSettings,
 ): LateFeePeriodResult {
   const months = monthsOverdue(input.dueDate, asOfYear, asOfMonth);
+  if (input.lateFeeOverride != null) {
+    const lateFee = input.unpaidPrincipal > 0 ? input.lateFeeOverride : 0;
+    return { period: input.period, months, cumulativeRatePct: 0, lateFee, postDueFee: 0 };
+  }
   if ((settings && !settings.enabled) || input.lateFeeEnabled === false) {
     return { period: input.period, months, cumulativeRatePct: 0, lateFee: 0, postDueFee: 0 };
   }

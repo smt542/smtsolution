@@ -123,6 +123,7 @@ export function OverdueWorkspace({
           unpaidPrincipal: period.unpaidPrincipal,
           dueDate: period.dueDate,
           lateFeeEnabled: !lateFeeDisabledOccupancies.has(period.occupancyId),
+          lateFeeOverride: period.lateFeeOverride,
         },
       ]);
     }

@@ -116,6 +116,8 @@ export interface OverduePeriodRow {
   period: string;
   unpaidPrincipal: number;
   dueDate: string;
+  /** 수동 연체료(null=자동 계산) */
+  lateFeeOverride: number | null;
 }
 
 interface OverduePeriodRpcRow {
@@ -124,6 +126,7 @@ interface OverduePeriodRpcRow {
   period: string;
   unpaid_principal: number;
   due_date: string;
+  late_fee_override?: number | null;
 }
 
 function firstRelation<T>(value: T | T[] | null): T | null {
@@ -172,6 +175,7 @@ export function rowToOverduePeriod(
     period: row.period,
     unpaidPrincipal: Number(row.unpaid_principal),
     dueDate: row.due_date,
+    lateFeeOverride: row.late_fee_override ?? null,
   };
 }
 

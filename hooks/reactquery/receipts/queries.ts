@@ -193,6 +193,7 @@ interface StatementPaymentRowDb {
   paid: number | string;
   payer_no: string | null;
   payer_name: string | null;
+  late_fee_override?: number | null;
 }
 
 interface StatementPaymentDb {
@@ -307,6 +308,7 @@ function mapStatementData(response: StatementRpcResponse): ReceiptStatementData 
       paid,
       unpaid: computeUnpaid(charged, paid),
       payStatus: derivePayStatus(charged, paid),
+      lateFeeOverride: row.late_fee_override ?? null,
     };
   });
   const payments = (response.payments ?? []).map((row) => ({

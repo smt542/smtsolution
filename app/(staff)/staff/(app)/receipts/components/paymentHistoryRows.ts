@@ -32,7 +32,10 @@ export interface HistoryDisplayRow {
   payment: HistoryPayment | null;
   fields: PaymentFields;
   originalFields: PaymentFields | null;
+  /** 아직 내지 않은 연체료(미납 원금 기준). 하단 미납 합계·수납 버튼 잔액에 쓴다. */
   lateFee: number;
+  /** 이미 수납된 연체료 = 그 달 수납 합계가 당월계를 넘은 금액. 연체 열·영수증 표시에만 더한다. */
+  collectedLateFee: number;
   draftSource: DraftSource;
   lateOnly: boolean;
   cancelRequested: boolean;
@@ -40,6 +43,11 @@ export interface HistoryDisplayRow {
   /** 삭제(취소)된 수납을 저장 시 되살리도록 예약 */
   restoreRequested: boolean;
   saved: boolean;
+  /**
+   * 「추가」 행에서 직접 입력하는 그 달 당월계·연체(실제 부과·연체로 반영, 0291).
+   * 처음 값(initial)과 달라진 칸만 저장한다 — 손대지 않은 자동 연체료가 수동 값으로 굳지 않게.
+   */
+  billDraft?: { charged: string; lateFee: string; chargedInitial: string; lateFeeInitial: string };
 }
 
 export function todayInput(): string {
@@ -125,6 +133,9 @@ export function lateFeeForRow(
   if (occupancyId != null && options.lateFeeEnabledByOccupancy?.get(occupancyId) === false) return 0;
   if (occupancyId != null && options.lateFeeDisabledOccupancies?.has(occupancyId)) return 0;
   const unpaidPrincipal = Math.max(rowSummary?.unpaid ?? 0, 0);
+  // 수납 이력에서 직접 지정한 연체료가 있으면 그 금액(미납 원금이 남은 달만).
+  const override = rowSummary?.lateFeeOverride;
+  if (override != null) return unpaidPrincipal > 0 ? override : 0;
   const dueDate = rowSummary?.dueDate?.slice(0, 10);
   if (!unpaidPrincipal || !dueDate || dueDate >= todayInput()) return 0;
 
@@ -144,6 +155,23 @@ export function lateFeeForRow(
     options.settings,
   );
   return result.lateFee + result.postDueFee;
+}
+
+/**
+ * 수납(연체료 포함)으로 이미 낸 연체료. 연체료는 별도 저장 없이 수납액에 합쳐 기록되므로, 그 달 수납 합계가
+ * 당월계를 넘은 금액(unpaid < 0)을 수납된 연체료로 본다. 이게 없으면 전액 수납 후 미납 원금이 0이 되어
+ * 연체 열이 비고 `당월계 ≠ 수납액`으로 보인다.
+ */
+export function collectedLateFeeForRow(
+  rowSummary: ReceiptStatementPaymentRow | ReceiptPaymentRow | undefined,
+): number {
+  if (rowSummary?.charged == null || rowSummary.unpaid == null) return 0;
+  return Math.max(-rowSummary.unpaid, 0);
+}
+
+/** 연체 열·영수증에 보이는 연체료 = 남은 연체료 + 이미 수납된 연체료. */
+export function displayLateFee(row: Pick<HistoryDisplayRow, "lateFee" | "collectedLateFee">): number {
+  return row.lateFee + row.collectedLateFee;
 }
 
 export function buildHistoryRows(
@@ -179,6 +207,7 @@ export function buildHistoryRows(
     fields: payment ? paymentFields(payment) : emptyFields(),
     originalFields: payment ? paymentFields(payment) : null,
     lateFee: lateFeeForRow(rowPeriod, rowSummary, tiers, period, lateFeeOptions),
+    collectedLateFee: collectedLateFeeForRow(rowSummary),
     draftSource: "none",
     lateOnly: false,
     cancelRequested: false,

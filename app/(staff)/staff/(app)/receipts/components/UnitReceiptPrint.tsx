@@ -5,7 +5,7 @@ import { PrintSheet } from "@/components/common/PrintSheet";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
 import { PAYMENT_METHOD_LABEL } from "../receiptFormat";
-import type { HistoryDisplayRow } from "./paymentHistoryRows";
+import { displayLateFee, type HistoryDisplayRow } from "./paymentHistoryRows";
 
 const PRINT_CSS = "@page { size: A4 portrait; margin: 16mm; }";
 
@@ -72,7 +72,7 @@ export function UnitReceiptPrint({
   const totals = printableRows.reduce(
     (sum, row) => ({
       charged: sum.charged + (row.rowSummary?.charged ?? 0),
-      lateFee: sum.lateFee + row.lateFee,
+      lateFee: sum.lateFee + displayLateFee(row),
       amount: sum.amount + (row.payment?.amount ?? 0),
     }),
     { charged: 0, lateFee: 0, amount: 0 },
@@ -135,7 +135,7 @@ export function UnitReceiptPrint({
                 <tr key={row.key}>
                   <td style={{ ...receiptBodyStyle, textAlign: "center" }}>{formatPeriod(row.rowPeriod)}</td>
                   <td style={{ ...receiptBodyStyle, textAlign: "right" }}>{formatAmount(row.rowSummary?.charged)}</td>
-                  <td style={{ ...receiptBodyStyle, textAlign: "right" }}>{formatAmount(row.lateFee)}</td>
+                  <td style={{ ...receiptBodyStyle, textAlign: "right" }}>{formatAmount(displayLateFee(row))}</td>
                   <td style={{ ...receiptBodyStyle, textAlign: "right" }}>{formatAmount(payment.amount)}</td>
                   <td style={{ ...receiptBodyStyle, textAlign: "center" }}>{formatDate(payment.paidAt)}</td>
                   <td style={{ ...receiptBodyStyle, textAlign: "center" }}>

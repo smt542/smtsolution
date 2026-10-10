@@ -29,6 +29,7 @@ import {
 import {
   buildHistoryRows,
   cloneRows,
+  displayLateFee,
   emptyFields,
   fieldsEqual,
   formatInputNumber,
@@ -237,6 +238,10 @@ export function PaymentHistorySection({
 
   const createAddedRow = (): HistoryDisplayRow => {
     draftId.current += 1;
+    // 그 달 당월계·연체의 지금 값(수정 전 기준). 연체는 그 달 요약 행의 남은 연체료.
+    const chargedInitial = summary?.charged != null ? formatInputNumber(summary.charged) : "";
+    const monthLateFee = historyRows.find((candidate) => candidate.rowPeriod === period && candidate.rowSummary)?.lateFee ?? 0;
+    const lateFeeInitial = monthLateFee > 0 ? formatInputNumber(monthLateFee) : "";
     return {
       key: `draft-${draftId.current}`,
       rowPeriod: period,
@@ -246,7 +251,9 @@ export function PaymentHistorySection({
       fields: emptyFields(),
       originalFields: null,
       lateFee: 0,
+      collectedLateFee: 0,
       draftSource: "added",
+      billDraft: { charged: chargedInitial, lateFee: lateFeeInitial, chargedInitial, lateFeeInitial },
       lateOnly: false,
       cancelRequested: false,
       cancelCompleted: false,
@@ -314,6 +321,7 @@ export function PaymentHistorySection({
         },
         originalFields: null,
         lateFee: row.lateFee,
+        collectedLateFee: 0,
         draftSource: "split",
         lateOnly: true,
         cancelRequested: false,
@@ -377,6 +385,10 @@ export function PaymentHistorySection({
     const row = draftRows.find((candidate) => candidate.key === key);
     if (!row || row.payment?.status !== "canceled" || row.payment.replacedBy) return;
     updateRow(key, (current) => ({ ...current, restoreRequested: !current.restoreRequested }));
+  };
+
+  const updateBillDraft = (key: string, patch: Partial<{ charged: string; lateFee: string }>) => {
+    updateRow(key, (row) => (row.billDraft ? { ...row, billDraft: { ...row.billDraft, ...patch }, saved: false } : row));
   };
 
   const updateFields = (key: string, patch: Partial<PaymentFields>) => {
@@ -454,6 +466,27 @@ export function PaymentHistorySection({
       );
       if (needsEdit && row.payment) ops.push({ op: "edit", oldPaymentId: row.payment.id, ...input });
     }
+
+    // 추가 행의 당월계·연체는 같은 달 수납보다 먼저 반영한다(고지 확정이 있어야 미납·연체가 계산됨).
+    const billOps: PaymentHistoryOp[] = [];
+    for (const row of draftRows) {
+      if (!row.billDraft || row.saved || row.draftSource !== "added") continue;
+      const { charged, lateFee, chargedInitial, lateFeeInitial } = row.billDraft;
+      const setCharged = charged.trim() !== "" && charged !== chargedInitial;
+      const setLateFee = lateFee !== lateFeeInitial;
+      if (!setCharged && !setLateFee) continue;
+      billOps.push({
+        op: "bill",
+        unitId,
+        period: row.rowPeriod,
+        charged: setCharged ? normalizeAmount(charged) : null,
+        setCharged,
+        // 연체 칸을 비우면 수동 값을 지우고 자동 계산으로 되돌린다.
+        lateFee: setLateFee && lateFee.trim() !== "" ? normalizeAmount(lateFee) : null,
+        setLateFee,
+      });
+    }
+    ops.unshift(...billOps);
 
     // 취소·추가·수정을 한 트랜잭션으로 저장한다. 하나라도 실패하면 전부 롤백되므로 초안은 그대로 둔다.
     try {
@@ -647,10 +680,24 @@ export function PaymentHistorySection({
           {toMonthInput(row.rowPeriod)}
         </td>
         <td className={`${td} text-right text-t1 num`} title={isEditing ? formatCurrency(row.rowSummary?.charged ?? null) : undefined}>
-          {formatCurrency(row.rowSummary?.charged ?? null)}
+          {isEditing && row.billDraft && !row.saved ? (
+            <NumericField
+              value={row.billDraft.charged}
+              ariaLabel="당월계"
+              disabled={fieldsDisabled}
+              onChange={(charged) => updateBillDraft(row.key, { charged })}
+            />
+          ) : formatCurrency(row.rowSummary?.charged ?? null)}
         </td>
         <td className={`${td} text-right num ${row.lateFee > 0 ? "text-red" : "text-t1"}`}>
-          {formatCurrency(row.lateFee > 0 ? row.lateFee : null)}
+          {isEditing && row.billDraft && !row.saved ? (
+            <NumericField
+              value={row.billDraft.lateFee}
+              ariaLabel="연체"
+              disabled={fieldsDisabled}
+              onChange={(lateFee) => updateBillDraft(row.key, { lateFee })}
+            />
+          ) : formatCurrency(displayLateFee(row) > 0 ? displayLateFee(row) : null)}
         </td>
         <td className={`${td} text-right text-t1 num`}>
           {isEditing && row.draftSource !== "none" ? (

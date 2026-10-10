@@ -14,6 +14,8 @@ export interface PaymentRow {
   isAutoDebit: boolean; dueDate: string | null;
   payerNo: string | null; payerName: string | null;
   charged: number | null; paid: number; unpaid: number | null; payStatus: PayStatus;
+  /** 수동 연체료(null=자동 계산) */
+  lateFeeOverride?: number | null;
 }
 export interface PaymentBalance { charged: number | null; paid: number; unpaid: number | null; }
 export interface RecordPaymentInput {
@@ -63,6 +65,7 @@ type PaymentRowDb = {
   tenant_name: string | null; is_vacant: boolean; is_auto_debit: boolean;
   due_date: string | null; charged: number | null; paid: number;
   payer_no: string | null; payer_name: string | null;
+  late_fee_override?: number | null;
 };
 type BalanceDb = { charged: number | null; paid: number; unpaid: number | null };
 type UnitPaymentDb = {
@@ -97,6 +100,7 @@ export async function listPaymentRows(buildingId: number, period: string): Promi
     payerNo: r.payer_no, payerName: r.payer_name,
     charged: r.charged, paid: r.paid,
     unpaid: computeUnpaid(r.charged, r.paid), payStatus: derivePayStatus(r.charged, r.paid),
+    lateFeeOverride: r.late_fee_override ?? null,
   }));
 }
 
@@ -140,6 +144,7 @@ export async function cancelPayment(paymentId: number): Promise<PaymentBalance> 
 export type PaymentHistoryOp =
   | { op: "cancel"; paymentId: number }
   | { op: "restore"; paymentId: number }
+  | { op: "bill"; unitId: number; period: string; charged: number | null; setCharged: boolean; lateFee: number | null; setLateFee: boolean }
   | ({ op: "record" } & RecordPaymentInput)
   | ({ op: "edit" } & RecordPaymentEditInput);
 
@@ -149,6 +154,12 @@ export interface SavePaymentHistoryResult { canceled: number; recorded: number; 
 export async function savePaymentHistory(ops: PaymentHistoryOp[]): Promise<SavePaymentHistoryResult> {
   const payload = ops.map((op) => {
     if (op.op === "cancel" || op.op === "restore") return { op: op.op, payment_id: op.paymentId };
+    if (op.op === "bill") {
+      return {
+        op: "bill", unit_id: op.unitId, period: op.period,
+        charged: op.charged, set_charged: op.setCharged, late_fee: op.lateFee, set_late_fee: op.setLateFee,
+      };
+    }
     return {
       op: op.op,
       ...(op.op === "edit" ? { old_payment_id: op.oldPaymentId } : {}),
