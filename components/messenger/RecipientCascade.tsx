@@ -102,10 +102,17 @@ function SearchField({
 export function RecipientCascade({
   channel,
   preset,
+  handed,
   onChange,
 }: {
   channel: ChannelMode;
   preset?: RecipientCascadePreset | null;
+  /**
+   * 화면이 openMessengerWith 로 직접 넘긴 수신자(예: 미납 독촉 — 건물 여러 곳·세대별 변수).
+   * 캐스케이드 선택으로는 다시 만들 수 없으므로 수신자 자체는 그대로 두고, 사용자가 유형을
+   * 다시 고르기 전까지 유형·건물·입주자 칸에 이 수신자를 요약해 보여준다.
+   */
+  handed?: MessageRecipient[];
   onChange: (r: MessageRecipient[]) => void;
 }) {
   const types: RecipientType[] =
@@ -222,6 +229,34 @@ export function RecipientCascade({
   const singleCleaner = singleContactBuilding
     ? cleanerByBuildingId.get(singleContactBuilding.id)
     : undefined;
+
+  // 넘겨받은 입주자 수신자 요약. 사용자가 유형을 고르면(selection.type) 더 이상 보여주지 않는다.
+  const handedSummary = useMemo(() => {
+    if (selection.type || !handed?.length) return null;
+    if (!handed.every((recipient) => recipient.kind === "tenant")) return null;
+    const buildingIds = [...new Set(
+      handed.map((recipient) => recipient.ref?.buildingId).filter((id): id is number => id != null),
+    )];
+    // 한 세대에 번호가 여럿이면 수신자가 여러 줄이라 세대(입주) 기준으로 센다.
+    const households = new Map<string, MessageRecipient>();
+    handed.forEach((recipient) => {
+      const key = recipient.ref?.occupancyId != null
+        ? `o${recipient.ref.occupancyId}`
+        : `${recipient.ref?.buildingId ?? ""}:${recipient.unitNo ?? recipient.phone}`;
+      if (!households.has(key)) households.set(key, recipient);
+    });
+    const firstHousehold = [...households.values()][0];
+    const firstBuilding = buildings.find((building) => building.id === buildingIds[0]);
+    return {
+      singleBuilding: buildingIds.length === 1 ? firstBuilding : undefined,
+      buildingLabel: buildingIds.length <= 1
+        ? (firstBuilding?.name ?? "건물")
+        : `${firstBuilding?.name ?? "건물"} 외 ${buildingIds.length - 1}곳`,
+      tenantLabel: households.size === 1
+        ? `${firstHousehold.unitNo ?? ""} ${firstHousehold.name ?? ""}`.trim() || "입주자 1명"
+        : `${firstHousehold.name ?? "입주자"} 외 ${households.size - 1}명`,
+    };
+  }, [buildings, handed, selection.type]);
 
   const selectedRecipients = useMemo<MessageRecipient[]>(() => {
     if (type === "staff") {
@@ -352,6 +387,12 @@ export function RecipientCascade({
   };
 
   const chooseType = (nextType: RecipientType) => {
+    // 넘겨받은 수신자를 보여주던 중이면 새로 고르는 것이므로 그 수신자를 비운다
+    // (빈 선택은 서명이 ""로 같아 아래 통지 effect 가 보내지 않는다).
+    if (handedSummary) {
+      lastEmittedSignatureRef.current = "";
+      onChangeRef.current([]);
+    }
     setSelection({ ...EMPTY_SELECTION, type: nextType });
     setSecondSearch("");
     setThirdSearch("");
@@ -484,7 +525,8 @@ export function RecipientCascade({
   // 정본(Messenger.dc.html L534·995): 기본(미선택) 상태와 staff/owner/cleaner는 2열(.two, flex:1 1 0),
   // tenant+건물/자동수신(3요소)일 때만 .two 해제(각 1/3). 미선택 기본상태 누락 시 좌측 1/3 폭으로 쏠린다.
   const useTwoColumns =
-    !type || type === "staff" || ((type === "owner" || type === "cleaner") && !autoRecipient);
+    !handedSummary &&
+    (!type || type === "staff" || ((type === "owner" || type === "cleaner") && !autoRecipient));
 
   return (
     <div
@@ -497,7 +539,9 @@ export function RecipientCascade({
         onClick={() => toggleMenu("type", typeRef)}
         aria-expanded={openMenu === "type"}
       >
-        <span className={`v ${styles.v}`}>{type ? TYPE_LABEL[type] : "유형 선택"}</span>
+        <span className={`v ${styles.v}`}>
+          {type ? TYPE_LABEL[type] : handedSummary ? TYPE_LABEL.tenant : "유형 선택"}
+        </span>
         <Chevron />
         <div
           className="menu"
@@ -518,12 +562,21 @@ export function RecipientCascade({
 
       <div
         ref={secondRef}
-        className={`fmp-dd2 ${styles["fmp-dd2"]} ${type ? styles["dd2-on"] : styles["dd2-off"]} ${type && ((type === "staff" && selection.staffIds.length === 0) || (isContactType && selectedContactBuildings.length === 0) || (type === "tenant" && !selectedBuilding)) ? styles.ph : ""} ${openMenu === "second" ? styles.open : ""}`}
+        className={`fmp-dd2 ${styles["fmp-dd2"]} ${type || handedSummary ? styles["dd2-on"] : styles["dd2-off"]} ${type && ((type === "staff" && selection.staffIds.length === 0) || (isContactType && selectedContactBuildings.length === 0) || (type === "tenant" && !selectedBuilding)) ? styles.ph : ""} ${openMenu === "second" ? styles.open : ""}`}
         onClick={() => type && toggleMenu("second", secondRef)}
         aria-expanded={openMenu === "second"}
       >
         <span className={`v ${styles.v}`}>
-          {!type ? (
+          {!type && handedSummary ? (
+            handedSummary.singleBuilding ? (
+              <>
+                <span className={styles.ocv}>{handedSummary.singleBuilding.code}</span>
+                {handedSummary.singleBuilding.name}
+              </>
+            ) : (
+              handedSummary.buildingLabel
+            )
+          ) : !type ? (
             "유형을 먼저 선택"
           ) : type === "staff" ? (
             staffSelectionLabel
@@ -703,6 +756,13 @@ export function RecipientCascade({
           )}
         </div>
       </div>
+
+      {handedSummary && (
+        // 넘겨받은 수신자 요약(읽기 전용). 바꾸려면 유형부터 다시 고른다.
+        <div className={`fmp-dd2 ${styles["fmp-dd2"]} ${styles["dd2-on"]}`} title="미리 담긴 수신자">
+          <span className={`v ${styles.v}`}>{handedSummary.tenantLabel}</span>
+        </div>
+      )}
 
       {type === "tenant" && selectedBuilding && (
         <div

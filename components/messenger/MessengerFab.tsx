@@ -82,7 +82,9 @@ function MessengerFabContent() {
   const [cascadeSeed, setCascadeSeed] = useState<{
     seq: number;
     preset: RecipientCascadePreset | null;
-  }>({ seq: 0, preset: null });
+    /** 화면이 직접 넘긴 수신자 — 캐스케이드가 유형·건물·입주자 칸에 요약으로 보여준다. */
+    handed: MessageRecipient[];
+  }>({ seq: 0, preset: null, handed: [] });
   const [sender, setSender] = useState("");
   const [body, setBody] = useState("");
   const [templateId, setTemplateId] = useState<number | null>(null);
@@ -107,7 +109,7 @@ function MessengerFabContent() {
     // 닫히는 도중 다시 열면 패널이 내려가지 않으므로 key 를 바꿔 새 작성으로 다시 마운트한다.
     setDraftSeq((seq) => seq + 1);
     setRecipients([]);
-    setCascadeSeed((current) => ({ ...current, preset: null }));
+    setCascadeSeed((current) => ({ ...current, preset: null, handed: [] }));
     setSender("");
     setBody("");
     setTemplateId(null);
@@ -131,6 +133,7 @@ function MessengerFabContent() {
         setCascadeSeed((current) => ({
           seq: current.seq + 1,
           preset: handoff.cascade ?? null,
+          handed: handoff.cascade ? [] : (handoff.recipients ?? []),
         }));
         if (handoff.body !== undefined) {
           setBody(handoff.body);
@@ -522,6 +525,7 @@ function MessengerFabContent() {
                 key={cascadeSeed.seq}
                 channel={ui.channel}
                 preset={cascadeSeed.preset}
+                handed={cascadeSeed.handed}
                 onChange={changeRecipients}
               />
             </div>
