@@ -124,6 +124,8 @@ export function OverdueWorkspace({
           dueDate: period.dueDate,
           lateFeeEnabled: !lateFeeDisabledOccupancies.has(period.occupancyId),
           lateFeeOverride: period.lateFeeOverride,
+          lateFeeSplitTotal: period.lateFeeSplitTotal,
+          lateFeeSplitUnpaid: period.lateFeeSplitUnpaid,
         },
       ]);
     }
@@ -166,7 +168,8 @@ export function OverdueWorkspace({
   const overdueHouseholds = useMemo(() => {
     const keyword = search.trim().toLocaleLowerCase("ko-KR");
     return rowsWithLateFee.filter((household) => {
-      if (household.overdueAmount <= 0) return false;
+      // 원금을 다 냈어도 수.연 연체료 미수금이 남은 세대는 미납으로 본다.
+      if (household.overdueAmount <= 0 && (household.lateFeeAmount ?? 0) <= 0) return false;
       if (!keyword) return true;
       const haystack = `${household.buildingName}${household.dong ?? ""}${household.unitNo}`
         .toLocaleLowerCase("ko-KR");

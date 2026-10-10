@@ -14,6 +14,10 @@ export interface OverduePeriodInput {
   lateFeeEnabled?: boolean;
   /** 수납 이력에서 직접 지정한 그 달 연체료(billing_confirmations.late_fee_override). 있으면 자동 계산 대신 이 금액(미납 원금이 남은 달만). */
   lateFeeOverride?: number | null;
+  /** 수.연으로 나눈 그 달 연체료 합계(payment_late_fee_splits). 자동 계산 연체료에서 뺀다 — 이미 미수금으로 옮겨졌다. */
+  lateFeeSplitTotal?: number;
+  /** 수.연 연체료 미수금 중 아직 받지 못한 금액. 원금을 다 냈어도 연체료로 남는다. */
+  lateFeeSplitUnpaid?: number;
 }
 
 export interface LateFeePeriodResult {
@@ -80,6 +84,23 @@ export function monthsOverdue(
 }
 
 export function computeLateFeeForPeriod(
+  input: OverduePeriodInput,
+  tiers: RateTier[],
+  asOfYear: number,
+  asOfMonth: number,
+  settings?: LateFeeSettings,
+): LateFeePeriodResult {
+  const base = computeBaseLateFeeForPeriod(input, tiers, asOfYear, asOfMonth, settings);
+  const splitTotal = input.lateFeeSplitTotal ?? 0;
+  const splitUnpaid = input.lateFeeSplitUnpaid ?? 0;
+  if (splitTotal <= 0 && splitUnpaid <= 0) return base;
+  // 수납 이력과 같은 규칙: 나눈 연체료만큼 자동 연체료(가산금 포함)를 줄이고, 못 받은 미수금을 연체료로 더한다.
+  const lateFeeAfterSplit = Math.max(base.lateFee - splitTotal, 0);
+  const postDueFee = Math.max(base.postDueFee - Math.max(splitTotal - base.lateFee, 0), 0);
+  return { ...base, lateFee: lateFeeAfterSplit + splitUnpaid, postDueFee };
+}
+
+function computeBaseLateFeeForPeriod(
   input: OverduePeriodInput,
   tiers: RateTier[],
   asOfYear: number,

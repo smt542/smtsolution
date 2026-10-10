@@ -118,6 +118,9 @@ export interface OverduePeriodRow {
   dueDate: string;
   /** 수동 연체료(null=자동 계산) */
   lateFeeOverride: number | null;
+  /** 수.연으로 나눈 연체료 합계 · 그중 미수금 */
+  lateFeeSplitTotal: number;
+  lateFeeSplitUnpaid: number;
 }
 
 interface OverduePeriodRpcRow {
@@ -127,6 +130,8 @@ interface OverduePeriodRpcRow {
   unpaid_principal: number;
   due_date: string;
   late_fee_override?: number | null;
+  late_fee_split_total?: number | null;
+  late_fee_split_unpaid?: number | null;
 }
 
 function firstRelation<T>(value: T | T[] | null): T | null {
@@ -176,6 +181,8 @@ export function rowToOverduePeriod(
     unpaidPrincipal: Number(row.unpaid_principal),
     dueDate: row.due_date,
     lateFeeOverride: row.late_fee_override ?? null,
+    lateFeeSplitTotal: Number(row.late_fee_split_total ?? 0),
+    lateFeeSplitUnpaid: Number(row.late_fee_split_unpaid ?? 0),
   };
 }
 
