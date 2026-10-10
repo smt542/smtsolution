@@ -196,17 +196,8 @@ export function ManagementFeeWorkspace() {
   };
 
   const requestSaveAndConfirm = async () => {
-    // 원본 missModal 대응: 공과금(수도·전기·가스)이 전혀 산정되지 않았으면 부과확정을 차단한다.
-    if (
-      buildingId
-      && units.length > 0
-      && !utilityConfirmations.water
-      && !utilityConfirmations.electricity
-      && !utilityConfirmations.gas
-    ) {
-      setDialog("utility-missing");
-      return;
-    }
+    // 공과금 확정 여부로 저장을 막지 않는다(정책: 확정 누락 안내는 '공과금 계산' 때만).
+    // 직접 입력한 전기·수도·가스 금액도 그대로 저장하고, 0원 부과 항목은 아래 경고로 확인받는다.
     if (zeroAmountSummary.itemCount > 0) {
       setDialog("zero-amount");
       return;
