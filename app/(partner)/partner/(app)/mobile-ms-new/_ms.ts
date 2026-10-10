@@ -147,6 +147,14 @@ export function utilAmount(u: UtilRow): number {
   return Math.round(usage * (u.price || 0));
 }
 
+/**
+ * 이사 지침을 넣었는데 전월 지침보다 작음(역전). 누적 계량기라 정상이면 생기지 않는다 — 검침 오기·계량기 교체·한 바퀴.
+ * 사용량은 0으로 계산하되(음수 요금 방지) 화면에서 경고한다. 저장은 막지 않는다(계산 규칙 6절 ②).
+ */
+export function isReadingReversed(u: UtilRow): boolean {
+  return (u.cur || 0) > 0 && (u.cur || 0) < (u.prev || 0);
+}
+
 export function utilUsage(u: UtilRow): number {
   return Math.max(0, (u.cur || 0) - (u.prev || 0));
 }

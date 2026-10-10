@@ -19,6 +19,7 @@ import {
   buildSaveData,
   computeTotals,
   chargeDaysFromMoveOut,
+  isReadingReversed,
   formatSettleAccount,
   feeProrated,
   initialState,
@@ -551,6 +552,12 @@ export default function PartnerMsNewWorkspace({
                   ariaLabel={`${UTILITY_LABEL[u.k]} 입금일`}
                 />
               </div>
+              {isReadingReversed(u) ? (
+                <p className={styles.utilWarn} role="alert">
+                  이사 지침이 전월 지침({u.prev.toLocaleString()})보다 작아 사용량을 0으로 계산했어요. 검침값을 확인해 주세요.
+                  계량기를 교체했거나 한 바퀴 돌았다면 전월 지침을 고쳐 실제 사용량이 나오게 해 주세요.
+                </p>
+              ) : null}
               <div className={styles.calc}>
                 <span>
                   사용량 <b className={styles.calcValue}>{utilUsage(u).toLocaleString()}</b>

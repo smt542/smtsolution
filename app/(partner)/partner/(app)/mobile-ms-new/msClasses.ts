@@ -42,6 +42,8 @@ export const msClasses = {
   ucardFields: "mt-2 grid grid-cols-1 gap-2.5",
   fld: "flex min-w-0 flex-col gap-1.5",
   fldPayDate: "mt-2 flex min-w-0 flex-col gap-1.5",
+  // 이사 지침 < 전월 지침 경고(저장은 막지 않음)
+  utilWarn: "mt-2 rounded-[10px] bg-red-t px-3 py-2.5 text-[12.5px] font-semibold leading-[1.5] text-red",
   fldLabel: "text-[12px] font-bold text-t3",
   fldInput: `${FIN} h-12 w-full flex-none text-[16px]`,
   // 입금계좌: 은행·계좌번호·예금주가 한 줄에 다 보이게 글자를 조금 줄이고, 오른쪽에 복사 버튼 자리를 둔다.

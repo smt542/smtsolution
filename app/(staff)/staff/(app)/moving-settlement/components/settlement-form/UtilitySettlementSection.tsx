@@ -129,6 +129,10 @@ export function UtilitySettlementSection({
   const inputClassName =
     "h-[34px] w-full rounded-[9px] border border-[#dee3e8] px-[8px] text-right text-[12.5px] font-semibold text-t1 outline-none focus:border-teal";
 
+  const reversedLabels = rows
+    .filter(({ prev, cur }) => prev !== null && cur !== null && cur > 0 && cur < prev)
+    .map(({ row }) => row.label);
+
   return (
     <section className="rounded-[14px] border border-[#dce1e7] bg-white px-[16px] pb-[16px] pt-[15px]">
       <div className="flex h-[18px] items-center pb-px">
@@ -238,6 +242,12 @@ export function UtilitySettlementSection({
         })}
         </div>
       </div>
+      {/* 이사 지침 < 전월 지침(역전): 누적 계량기라 정상이면 없다. 량은 0으로 계산하고 경고만 한다(저장은 막지 않음, 계산 규칙 6절 ②). */}
+      {reversedLabels.length > 0 ? (
+        <p role="alert" className="mt-[8px] rounded-[9px] bg-red-t px-[10px] py-[7px] text-[12px] font-semibold leading-[1.5] text-red">
+          {reversedLabels.join("·")} 이사 지침이 전월 지침보다 작아 량을 0으로 계산했어요. 검침값을 확인해 주세요. 계량기를 교체했거나 한 바퀴 돌았다면 전월 지침을 고쳐 실제 사용량이 나오게 해 주세요.
+        </p>
+      ) : null}
       <div className="mt-[10px] flex h-[32px] items-baseline justify-center border-t border-line pt-[11px]">
         {/* items-baseline 기준선은 가장 큰 금액(17/21)이 잡는다. 라벨 leading 을 정본 박스값(17)로
             내리면 오히려 기준선이 1.6px 밀리므로 20 을 유지한다(정본 글리프 위치와 일치). */}
