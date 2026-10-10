@@ -1,4 +1,5 @@
 import { formatWon } from "@/lib/format";
+import { roundCharge, type Rounding } from "@/lib/billing/proration";
 
 // 현장 파트너 모바일 이사정산 폼의 상태 모델 · 계산 · 저장 매핑.
 // 표준 컬럼으로 표현되지 않는 부가 항목(단가·입금계좌·관리비 항목별 내역·가수금·기타 항목·
@@ -21,7 +22,8 @@ export type UtilRow = {
   payDate: string; // YYYY-MM-DD
 };
 
-export type FeeItem = { name: string; daily: boolean; charged: number };
+/** rounding: 관리비 항목 반올림 설정(계산 규칙 1.2). 예전 저장분·기본 목록엔 없어서 없으면 원 단위 반올림. */
+export type FeeItem = { name: string; daily: boolean; charged: number; rounding?: Rounding };
 export type EtcItem = { name: string; amount: number };
 export type CleaningStatus = "미결" | "완료";
 
@@ -154,7 +156,7 @@ export function chargeDaysFromMoveOut(moveOutDate: string | null | undefined): n
 }
 
 export function feeProrated(f: FeeItem, dTotal: number, dDays: number): number {
-  if (f.daily && dTotal > 0) return Math.round((f.charged || 0) * dDays / dTotal);
+  if (f.daily && dTotal > 0) return roundCharge((f.charged || 0) * dDays / dTotal, f.rounding ?? "raw");
   return f.charged || 0;
 }
 
@@ -258,7 +260,12 @@ export function initialState(ctx: PartnerSettlementContext): MSState {
     util,
     feeItems:
       extra?.feeItems && extra.feeItems.length > 0
-        ? extra.feeItems.map((f) => ({ name: f.name, daily: !!f.daily, charged: f.charged || 0 }))
+        ? extra.feeItems.map((f) => ({
+            name: f.name,
+            daily: !!f.daily,
+            charged: f.charged || 0,
+            ...(f.rounding ? { rounding: f.rounding } : {}),
+          }))
         : DEFAULT_FEE_ITEMS.map((f) => ({ ...f })),
     adv: extra?.adv ?? 0,
     advTel: extra?.advTel ?? "",

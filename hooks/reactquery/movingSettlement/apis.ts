@@ -745,3 +745,35 @@ export async function updateSettlementInquiryRows(
   if (error) throw new Error(error.message);
   return data as { count: number };
 }
+
+/** 파트너 이사정산 관리비 항목 1행 — 건물 유형 관리비 항목(공과금 제외) + 그 세대의 퇴실월 부과액. */
+export interface PartnerSettlementFeeItem {
+  name: string;
+  daily: boolean;
+  charged: number;
+  rounding: "up" | "round" | "down" | "raw";
+}
+
+/** 사무실 이사정산(useManagementFeeRows)과 같은 원천. period = 퇴실월 1일(YYYY-MM-01). */
+export async function getPartnerSettlementFeeItems(
+  unitId: number,
+  period: string,
+): Promise<PartnerSettlementFeeItem[]> {
+  const { data, error } = await createClient().rpc("partner_get_settlement_fee_items", {
+    p_unit_id: unitId,
+    p_period: period,
+  });
+  if (error) throw new Error(error.message);
+  const rows = (Array.isArray(data) ? data : []) as Array<{
+    name: string;
+    daily: boolean;
+    charged: number | null;
+    rounding: PartnerSettlementFeeItem["rounding"] | null;
+  }>;
+  return rows.map((row) => ({
+    name: row.name,
+    daily: !!row.daily,
+    charged: Number(row.charged) || 0,
+    rounding: row.rounding ?? "round",
+  }));
+}

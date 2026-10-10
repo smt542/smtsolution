@@ -7,6 +7,7 @@ import { type ReactNode, useRef, useState } from "react";
 import { applyMask, Input, phoneMask, PHONE_INPUT_ATTRS, Textarea } from "@/components/common";
 import {
   useDeletePartnerSettlement,
+  usePartnerSettlementFeeItems,
   useSavePartnerSettlement,
 } from "@/hooks/reactquery/movingSettlement";
 import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
@@ -248,6 +249,22 @@ export default function PartnerMsNewWorkspace({
     editId !== null &&
     ctx?.latestSettlement?.id === editId &&
     !EDITABLE_SETTLEMENT_STATUSES.includes(ctx.latestSettlement.status);
+
+  // 관리비 항목 = 건물 유형의 실제 관리비 항목 + 그 세대의 퇴실월 부과액(사무실 이사정산과 같은 원천).
+  // 사람이 손대지 않은 항목(전부 0이거나 직전에 자동으로 채운 그대로)일 때만 채우고, 직접 입력한 값은 덮어쓰지 않는다.
+  const feePeriod = state?.moveOutDate ? `${state.moveOutDate.slice(0, 7)}-01` : null;
+  const feeItemsQuery = usePartnerSettlementFeeItems(isLocked ? null : unitId, feePeriod);
+  const [feeSeed, setFeeSeed] = useState<{ period: string; json: string } | null>(null);
+  const fetchedFeeItems = feeItemsQuery.data;
+  if (state && feePeriod && fetchedFeeItems && feeSeed?.period !== feePeriod) {
+    const currentJson = JSON.stringify(state.feeItems);
+    const untouched =
+      state.feeItems.every((fee) => !fee.charged) || (feeSeed !== null && feeSeed.json === currentJson);
+    const nextItems = fetchedFeeItems.map((fee) => ({ ...fee }));
+    const fill = untouched && fetchedFeeItems.length > 0;
+    setFeeSeed({ period: feePeriod, json: fill ? JSON.stringify(nextItems) : currentJson });
+    if (fill) setState((current) => (current ? { ...current, feeItems: nextItems } : current));
+  }
 
   const openStatement = () => {
     if (!isEdit || !state || !totals) return;
