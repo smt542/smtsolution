@@ -1,5 +1,6 @@
 "use client";
 
+import { PASSWORD_MAX_LENGTH, PASSWORD_RULE_TEXT } from "@/lib/auth/passwordPolicy";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMemo, useState } from "react";
 import {
@@ -313,9 +314,8 @@ function OrganizationFormFields({
         <HqPasswordInput
           id="organization-owner-password"
           autoComplete="new-password"
-          maxLength={4}
-          inputMode="numeric"
-          placeholder={mode === "create" ? "숫자 4자리" : "숫자 4자리 (변경할 때만)"}
+          maxLength={PASSWORD_MAX_LENGTH}
+          placeholder={mode === "create" ? `임시 비밀번호 (${PASSWORD_RULE_TEXT})` : `변경할 때만 (${PASSWORD_RULE_TEXT})`}
           disabled={disabled || (mode === "edit" && !ownerAvailable)}
           className={inputClass(error("ownerPassword"))}
           {...registerField("ownerPassword")}
@@ -348,7 +348,7 @@ function buildValidationMessage<T extends FieldValues>(
   const passwordInvalid = Boolean(String((values as Record<string, unknown>).ownerPassword ?? "").trim())
     && Boolean(fieldMessage(errors, "ownerPassword"));
   if (missing.length > 0) {
-    return `입력이 필요해요: ${missing.join(", ")}${passwordInvalid ? ", 비밀번호 4자리" : ""}`;
+    return `입력이 필요해요: ${missing.join(", ")}${passwordInvalid ? `, 비밀번호 ${PASSWORD_RULE_TEXT}` : ""}`;
   }
 
   for (const [name] of required) {

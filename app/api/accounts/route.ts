@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { storeAccountLoginPin } from "@/lib/auth/loginPin";
+import { isValidPassword, PASSWORD_RULE_MESSAGE } from "@/lib/auth/passwordPolicy";
 import { loginEmail } from "@/lib/auth/email";
 import { toAuthPassword } from "@/lib/auth/password";
 
@@ -35,8 +35,8 @@ export async function POST(req: Request) {
   // 본사(platform_admin) 등 허용 외 역할은 createUser 전에 차단(고아 Auth 계정 방지). DB도 이중 검증.
   if (role !== undefined && role !== "org_owner" && role !== "staff" && role !== "field")
     return NextResponse.json({ error: "허용되지 않는 역할입니다." }, { status: 422 });
-  if (typeof password !== "string" || !/^\d{4}$/.test(password))
-    return NextResponse.json({ error: "비밀번호는 숫자 4자리를 입력해 주세요." }, { status: 422 });
+  if (!isValidPassword(password))
+    return NextResponse.json({ error: PASSWORD_RULE_MESSAGE }, { status: 422 });
 
   // 4) 회사코드(slug)
   const { data: org } = await supabase.from("organizations").select("slug").eq("id", ctx.org_id).single();
@@ -71,6 +71,6 @@ export async function POST(req: Request) {
     await admin.auth.admin.deleteUser(created.user.id); // 롤백(고아 방지)
     return NextResponse.json({ error: "계정 정보 저장에 실패했습니다." }, { status: 500 });
   }
-  await storeAccountLoginPin(admin, created.user.id, password, "[accounts]");
+  // 발급 비밀번호는 임시 비밀번호 — provision_member 가 must_change_password=true 로 만든다(원문은 저장하지 않음).
   return NextResponse.json({ userId: created.user.id }, { status: 201 });
 }

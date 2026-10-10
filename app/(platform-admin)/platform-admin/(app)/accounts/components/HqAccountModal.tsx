@@ -1,5 +1,6 @@
 "use client";
 
+import { isValidPassword, PASSWORD_MAX_LENGTH, PASSWORD_RULE_TEXT } from "@/lib/auth/passwordPolicy";
 import { useState, type FormEvent } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import {
@@ -45,7 +46,6 @@ type FormValues = {
 type InvalidField = "fullName" | "hqRole" | "phone" | "username" | "password";
 
 const PHONE_PATTERN = /^01\d-\d{3,4}-\d{4}$/;
-const PASSWORD_PATTERN = /^\d{4}$/;
 const isMaskedPhone = (value: string | null | undefined) => Boolean(value && value.includes("*"));
 const MASKED_PHONE_ERROR = "전화번호가 가려진 상태라 저장할 수 없습니다. 잠시 후 다시 시도해 주세요.";
 
@@ -138,9 +138,9 @@ export function HqAccountModal({ mode, account, onClose }: HqAccountModalProps) 
       nextInvalid.username = true;
       missing.push("아이디");
     }
-    if ((mode === "create" && !PASSWORD_PATTERN.test(values.password)) || (mode === "edit" && values.password && !PASSWORD_PATTERN.test(values.password))) {
+    if ((mode === "create" && !isValidPassword(values.password)) || (mode === "edit" && values.password && !isValidPassword(values.password))) {
       nextInvalid.password = true;
-      missing.push("비밀번호(4자리)");
+      missing.push(`비밀번호(${PASSWORD_RULE_TEXT})`);
     }
 
     if (missing.length > 0) {
@@ -347,12 +347,11 @@ export function HqAccountModal({ mode, account, onClose }: HqAccountModalProps) 
                 size="42"
                 variant="plain"
                 value={values.password}
-                placeholder="4자리"
-                maxLength={4}
-                inputMode="numeric"
+                placeholder={mode === "create" ? PASSWORD_RULE_TEXT : `변경할 때만 (${PASSWORD_RULE_TEXT})`}
+                maxLength={PASSWORD_MAX_LENGTH}
                 autoComplete="new-password"
-                className={invalid.password ? "num border-red!" : "num"}
-                onChange={(event) => setField("password", event.currentTarget.value.replace(/\D/g, "").slice(0, 4))}
+                className={invalid.password ? "border-red!" : ""}
+                onChange={(event) => setField("password", event.currentTarget.value)}
               />
             </div>
 

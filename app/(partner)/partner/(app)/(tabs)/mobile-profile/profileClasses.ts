@@ -11,7 +11,4 @@ export const profileClasses = {
   rowLabel: "text-[13.5px] font-semibold text-t3",
   rowValue: "text-[14.5px] font-bold tabular-nums",
   pw: "flex items-center gap-1.5",
-  eye: "flex size-[30px] cursor-pointer items-center justify-center rounded-[9px] [&_svg]:size-[18px]",
-  eyeOn: "text-blue",
-  eyeOff: "text-t4",
 } as const;

@@ -13,7 +13,7 @@ interface AppShellProps {
 
 /** Paths that render bare (no shell). */
 function isBare(pathname: string): boolean {
-  return pathname === "/" || pathname.startsWith("/staff/login");
+  return pathname === "/" || pathname.startsWith("/staff/login") || pathname === "/staff/change-password";
 }
 
 /** Figma 자체 62px 헤더를 렌더하는 화면. */

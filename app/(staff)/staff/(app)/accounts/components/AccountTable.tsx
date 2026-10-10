@@ -20,28 +20,27 @@ const AC_ROW = "cursor-pointer hover:[&>td]:bg-row-hover-accent";
 // (연락처가 빈 계정이면 289px → 142px 로 줄고 그만큼 다른 열이 벌어졌다).
 // 비율은 뷰포트 1340과 1920에서 동일하게 측정됐다. 유형 열이 빠지는 현장 탭은
 // auto 가 남는 폭을 재분배하므로 세트가 따로 필요하다.
+// 비밀번호 열은 원문 미보관 원칙(2026-10-10)으로 뺐다 — 그 폭은 아이디·연락처에 나눴다.
 const WIDTHS_OFFICE: Record<string, string> = {
-  name: "13.52%", username: "18.54%", password: "14.34%",
-  phone: "27.43%", type: "12.64%", status: "13.52%",
+  name: "13.52%", username: "25.71%",
+  phone: "34.6%", type: "12.64%", status: "13.52%",
 };
 const WIDTHS_FIELD: Record<string, string> = {
-  name: "15.79%", username: "19.65%", password: "16.75%",
-  phone: "32.03%", status: "15.79%",
+  name: "15.79%", username: "28.02%",
+  phone: "40.4%", status: "15.79%",
 };
 
 interface Props {
   accounts: Account[];
-  pinByUserId: ReadonlyMap<string, string>;
   onRowClick: (a: Account) => void;
   hideType?: boolean;
 }
 
-export function AccountTable({ accounts, pinByUserId, onRowClick, hideType = false }: Props) {
+export function AccountTable({ accounts, onRowClick, hideType = false }: Props) {
   const widths = hideType ? WIDTHS_FIELD : WIDTHS_OFFICE;
   const columns = [
     { key: "name", label: "이름" },
     { key: "username", label: "아이디" },
-    { key: "password", label: "비밀번호", cellClassName: "num" },
     { key: "phone", label: "연락처", cellClassName: "num" },
     ...(!hideType ? [{ key: "type", label: "유형" }] : []),
     { key: "status", label: "상태" },
@@ -51,7 +50,6 @@ export function AccountTable({ accounts, pinByUserId, onRowClick, hideType = fal
     return {
       name: a.fullName,
       username: a.username,
-      password: pinByUserId.get(a.userId) ?? "-",
       phone: a.phone ? (
         <PhoneText value={a.phone} />
       ) : "-",

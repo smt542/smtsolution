@@ -7,6 +7,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { IconButton } from "@/components/common";
+import { PasswordChangeModal } from "@/components/auth/PasswordChangeModal";
 import { useLogout, useMe } from "@/hooks/reactquery/auth";
 import {
   PLATFORM_NAV_ITEMS,
@@ -78,6 +79,7 @@ function PlatformSidebar({ pathname, onNavigate }: { pathname: string; onNavigat
   const router = useRouter();
   const logout = useLogout();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
 
   const handleLogout = async () => {
     if (logout.isPending) return;
@@ -146,6 +148,17 @@ function PlatformSidebar({ pathname, onNavigate }: { pathname: string; onNavigat
             </div>
           </summary>
           <div className="absolute bottom-full left-0 right-0 z-20 mb-2 rounded-xl border border-line bg-white p-1.5 shadow-[0_16px_40px_-12px_rgba(16,24,40,0.4)]">
+            {/* 내 정보: 비밀번호 변경(현재 비밀번호는 표시하지 않음) */}
+            <button
+              type="button"
+              onClick={(event) => {
+                event.currentTarget.closest("details")?.removeAttribute("open");
+                setPasswordModalOpen(true);
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[13.5px] font-semibold leading-[normal] text-t2 transition-colors hover:bg-bg"
+            >
+              비밀번호 변경
+            </button>
             <button
               type="button"
               onClick={() => void handleLogout()}
@@ -157,6 +170,7 @@ function PlatformSidebar({ pathname, onNavigate }: { pathname: string; onNavigat
           </div>
         </details>
       )}
+      <PasswordChangeModal open={passwordModalOpen} onClose={() => setPasswordModalOpen(false)} />
     </aside>
   );
 }

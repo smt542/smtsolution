@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { storeAccountLoginPin } from "@/lib/auth/loginPin";
+import { isValidPassword, PASSWORD_RULE_MESSAGE } from "@/lib/auth/passwordPolicy";
+import { setMustChangePassword } from "@/lib/auth/passwordState";
 import { toAuthPassword } from "@/lib/auth/password";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ userId: string }> }) {
@@ -38,8 +39,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ userId
     return NextResponse.json({ error: "마스터 계정은 마스터만 변경할 수 있습니다." }, { status: 403 });
 
   const { password } = await req.json().catch(() => ({}));
-  if (typeof password !== "string" || !/^\d{4}$/.test(password))
-    return NextResponse.json({ error: "비밀번호는 숫자 4자리를 입력해 주세요." }, { status: 422 });
+  if (!isValidPassword(password))
+    return NextResponse.json({ error: PASSWORD_RULE_MESSAGE }, { status: 422 });
 
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.updateUserById(userId, { password: toAuthPassword(password) });
@@ -51,8 +52,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ userId
   // 비밀번호 변경 후 대상 계정의 기존 세션을 폐기한다(리셋 후 구세션 잔존 방지). 폐기 실패가 변경을 막지 않는다.
   const { error: revokeError } = await admin.rpc("revoke_user_sessions", { p_user_id: userId });
   if (revokeError) console.error("[accounts] revoke_user_sessions failed", revokeError.message);
-  // 실제로 입력한 새 PIN을 저장한다. 저장 실패는 비밀번호 변경을 막지 않는다.
-  await storeAccountLoginPin(admin, userId, password, "[accounts]");
+  // 관리자가 재설정한 비밀번호는 임시 비밀번호 — 다음 로그인 때 본인 변경을 강제한다(본인 재설정은 제외).
+  if (userId !== userData.user.id) await setMustChangePassword(admin, userId, true, "[accounts]");
 
   return NextResponse.json({ ok: true }, { status: 200 });
 }

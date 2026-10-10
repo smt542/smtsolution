@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { optionalPasswordSchema, passwordSchema } from "./password";
 import { nullableTrimmedString, requiredDate } from "./common";
 
 const contractFields = {
@@ -16,8 +17,7 @@ const contractFields = {
   operatingHours: nullableTrimmedString(100, "운영 시간은 100자 이하로 입력해 주세요"),
 };
 
-// 정본 신규 테넌트·상세 모달: 관리자 비밀번호 = 숫자 4자리(Auth 저장은 서버 toAuthPassword).
-const OWNER_PIN = /^\d{4}$/;
+// 관리자 비밀번호 = 형식 자유·6자 이상(2026-10-10). 발급 비밀번호는 임시라 첫 로그인 때 변경을 강제한다.
 
 function validateContractDates(
   values: { contractStartDate: string; contractEndDate: string },
@@ -37,7 +37,7 @@ export const orgCreateSchema = z.object({
   name: z.string().trim().min(1, "회사명을 입력해 주세요").max(100),
   ...contractFields,
   ownerUsername: z.string().trim().min(1, "관리자 아이디를 입력해 주세요").max(50),
-  ownerPassword: z.string().trim().regex(OWNER_PIN, "비밀번호는 숫자 4자리입니다"),
+  ownerPassword: passwordSchema,
 }).superRefine(validateContractDates);
 export type OrgCreateFormInput = z.input<typeof orgCreateSchema>;
 export type OrgCreateFormValues = z.output<typeof orgCreateSchema>;
@@ -45,11 +45,8 @@ export type OrgCreateFormValues = z.output<typeof orgCreateSchema>;
 export const orgEditSchema = z.object({
   name: z.string().trim().min(1, "회사명을 입력해 주세요").max(100),
   ...contractFields,
-  /** 비우면 그대로, 숫자 4자리를 넣으면 관리자 비밀번호 변경 */
-  ownerPassword: z
-    .string()
-    .trim()
-    .refine((value) => value === "" || OWNER_PIN.test(value), "비밀번호는 숫자 4자리입니다"),
+  /** 비우면 그대로, 입력하면 관리자 비밀번호를 임시 비밀번호로 재설정 */
+  ownerPassword: optionalPasswordSchema,
 }).superRefine(validateContractDates);
 export type OrgEditFormInput = z.input<typeof orgEditSchema>;
 export type OrgEditFormValues = z.output<typeof orgEditSchema>;

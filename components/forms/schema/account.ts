@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { optionalTrimmedString } from "./common";
+import { optionalPasswordSchema, passwordSchema } from "./password";
 
 export const STAFF_TYPES = ["manager_staff", "field_staff", "support_staff", "tenant"] as const;
 
@@ -16,16 +17,14 @@ const base = {
   alsoCrossApp: z.boolean().default(false),
 };
 
-const pinSchema = z.string().regex(/^\d{4}$/, "비밀번호는 숫자 4자리를 입력해 주세요");
-
 export const accountCreateSchema = z.object({
   username: z.string().trim().min(1, "아이디를 입력해 주세요").max(50, "아이디는 50자 이하로 입력해 주세요"),
-  password: pinSchema,
+  password: passwordSchema,
   ...base,
 });
 export const accountEditSchema = z.object({
   username: z.string().trim().max(50, "아이디는 50자 이하로 입력해 주세요").optional(),
-  password: z.union([z.literal(""), pinSchema]).optional(),
+  password: optionalPasswordSchema.optional(),
   ...base,
 });
 

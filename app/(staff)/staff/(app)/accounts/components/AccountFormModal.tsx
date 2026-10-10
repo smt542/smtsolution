@@ -1,4 +1,5 @@
 "use client";
+import { PASSWORD_MAX_LENGTH, PASSWORD_RULE_TEXT } from "@/lib/auth/passwordPolicy";
 
 import React from "react";
 import { Controller, useForm, useWatch, type Resolver } from "react-hook-form";
@@ -32,7 +33,6 @@ interface Props {
   open: boolean;
   onClose: () => void;
   editing: Account | null;
-  storedPin?: string;
   createStaffType: StaffType;
   canEditPermissions: boolean;
   onCreate: (input: AccountCreateInput) => Promise<{ userId: string }>;
@@ -64,7 +64,6 @@ export function AccountFormModal({
   open,
   onClose,
   editing,
-  storedPin,
   createStaffType,
   canEditPermissions,
   onCreate,
@@ -84,7 +83,8 @@ export function AccountFormModal({
       editing
         ? {
             username: editing.username,
-            password: storedPin ?? "",
+            // 비밀번호 원문은 보관하지 않는다 — 비워 두면 그대로, 입력하면 임시 비밀번호로 재설정.
+            password: "",
             fullName: editing.fullName,
             phone: editing.phone ?? "",
             staffType: editing.staffType,
@@ -113,7 +113,7 @@ export function AccountFormModal({
             roleIds: [],
             alsoCrossApp: false,
           },
-    [createStaffType, editing, storedPin],
+    [createStaffType, editing],
   );
 
   const {
@@ -194,7 +194,7 @@ export function AccountFormModal({
             roleIds: null,
           });
         }
-        if (values.password && values.password !== storedPin) {
+        if (values.password) {
           await onResetPassword(editing.userId, values.password);
         }
         if (values.isActive !== editing.isActive) {
@@ -282,18 +282,12 @@ export function AccountFormModal({
                   id="password"
                   aria-label="비밀번호"
                   type="text"
-                  inputMode="numeric"
-                  maxLength={4}
-                  pattern="[0-9]{4}"
+                  maxLength={PASSWORD_MAX_LENGTH}
                   autoComplete="new-password"
                   required={!isEdit}
                   {...passwordField}
-                  onChange={(event) => {
-                    event.target.value = event.target.value.replace(/\D/g, "").slice(0, 4);
-                    void passwordField.onChange(event);
-                  }}
-                  placeholder="숫자 4자리"
-                  className={`h-[40px] w-full rounded-[11px]! border border-line bg-surface px-[12px] text-[14px] font-medium leading-[normal] text-t1 outline-none placeholder:text-[#757575]! focus:border-brand focus:shadow-[0_0_0_3px_var(--color-brand-tint)] num tabular-nums ${errors.password ? "border-danger" : ""}`}
+                  placeholder={isEdit ? `변경할 때만 입력 (${PASSWORD_RULE_TEXT})` : `임시 비밀번호 (${PASSWORD_RULE_TEXT})`}
+                  className={`h-[40px] w-full rounded-[11px]! border border-line bg-surface px-[12px] text-[14px] font-medium leading-[normal] text-t1 outline-none placeholder:text-[#757575]! focus:border-brand focus:shadow-[0_0_0_3px_var(--color-brand-tint)] ${errors.password ? "border-danger" : ""}`}
                 />
               </FormField>
 

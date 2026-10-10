@@ -36,6 +36,17 @@ export async function login(input: LoginInput): Promise<MyContext> {
   return data as MyContext;
 }
 
+/** 본인 비밀번호 변경(새 비밀번호만 전송). 성공 시 서버가 must_change_password 를 해제한다. */
+export async function changeMyPassword(newPassword: string): Promise<void> {
+  const response = await fetch("/api/auth/change-password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ newPassword }),
+  });
+  const data = (await response.json().catch(() => ({}))) as { error?: string };
+  if (!response.ok) throw new Error(data.error ?? "비밀번호를 변경하지 못했습니다.");
+}
+
 export async function logout(): Promise<void> {
   const supabase = createClient();
   await supabase.auth.signOut({ scope: "local" });

@@ -39,8 +39,10 @@ export function LoginForm() {
       const ctx = await login.mutateAsync({ username: values.username, password: values.password, autoLogin: values.autoLogin ?? false });
       persistRememberedId("staff", values.autoLogin ?? false, values.username);
       toast.success("로그인되었습니다");
-      if (ctx?.mustChangePassword) toast.info("비밀번호 변경이 필요합니다. 관리자 안내에 따라 변경해 주세요.");
-      router.push(ctx.role === "platform_admin" ? "/platform-admin" : "/staff/receipts");
+      // 임시 비밀번호 계정은 변경 화면으로 보낸다(업무 화면 게이트도 같은 곳으로 돌려보낸다).
+      router.push(ctx?.mustChangePassword
+        ? "/staff/change-password"
+        : ctx.role === "platform_admin" ? "/platform-admin" : "/staff/receipts");
     } catch (e) {
       setSubmissionError(e, setError, "잠시 후 다시 시도해 주세요.");
     }

@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useLogout, useMe } from "@/hooks/reactquery/auth";
 import { hasModule } from "@/lib/auth/permissions";
+import { PasswordChangeModal } from "@/components/auth/PasswordChangeModal";
 import { OFFICE_NAV_ITEMS, type NavItem } from "./navItems";
 
 const PLATFORM_ADMIN_ITEM: NavItem = {
@@ -235,6 +236,7 @@ export function Sidebar() {
   const logout = useLogout();
   const [activeUtilityType, setActiveUtilityType] = useState<"electricity" | "water" | "gas">("gas");
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const isUtilitiesPage = pathname.startsWith("/staff/utilities");
   const isCustomerNumbersPage = pathname.startsWith("/staff/customer-numbers");
@@ -387,6 +389,15 @@ export function Sidebar() {
                   <div className="mx-1 my-1.5 h-px bg-line2" />
                 </>
               )}
+              {/* 내 정보: 비밀번호 변경(현재 비밀번호는 표시하지 않음) */}
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => { setProfileMenuOpen(false); setPasswordModalOpen(true); }}
+                className="block w-full rounded-[9px] px-3 py-2.5 text-left text-[13.5px] font-semibold text-t2 transition-colors hover:bg-bg"
+              >
+                비밀번호 변경
+              </button>
               <button
                 type="button"
                 role="menuitem"
@@ -420,6 +431,7 @@ export function Sidebar() {
           </button>
         </div>
       )}
+      <PasswordChangeModal open={passwordModalOpen} onClose={() => setPasswordModalOpen(false)} />
     </aside>
   );
 }

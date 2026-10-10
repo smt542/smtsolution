@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 
 import { useAsyncAction } from "@/hooks/common";
 import { useLogout } from "@/hooks/reactquery/auth";
-import { usePartnerMyPin } from "@/hooks/reactquery/partnerProfile";
+import { appToast as toast } from "@/hooks/common/useAppToast";
+import { PasswordChangeForm } from "@/components/auth/PasswordChangeForm";
 
 import { profileClasses as styles } from "./profileClasses";
 import { PartnerButton } from "../../../../_components/PartnerButton";
@@ -22,8 +23,7 @@ export function ProfileView({
 }) {
   const router = useRouter();
   const [confirm, setConfirm] = useState(false);
-  const [pinShown, setPinShown] = useState(false);
-  const myPin = usePartnerMyPin(pinShown);
+  const [changingPassword, setChangingPassword] = useState(false);
   const logoutAction = useAsyncAction();
   const logoutMutation = useLogout();
 
@@ -40,14 +40,6 @@ export function ProfileView({
   };
 
   const initial = fullName.trim().charAt(0) || "·";
-  // 정본 #pfPw: 끄면 ••••, 켜면 본인 비밀번호. 저장된 값이 없거나 불러오지 못하면 '-'.
-  const pinText = !pinShown
-    ? "••••"
-    : myPin.isSuccess
-      ? (myPin.data ?? "-")
-      : myPin.isError
-        ? "-"
-        : "••••";
 
   return (
     <div className={styles.root}>
@@ -66,24 +58,33 @@ export function ProfileView({
             </div>
             <div className={styles.row}>
               <span className={styles.rowLabel}>비밀번호</span>
+              {/* 비밀번호 원문은 저장하지 않으므로 보여주지 않는다 — 변경만 가능 */}
               <span className={styles.pw}>
-                <b className={styles.rowValue}>{pinText}</b>
+                <b className={styles.rowValue}>••••••</b>
                 <button
                   type="button"
-                  className={`${styles.eye} ${pinShown ? styles.eyeOn : styles.eyeOff}`}
-                  onClick={() => setPinShown((v) => !v)}
-                  aria-label={pinShown ? "비밀번호 숨기기" : "비밀번호 보기"}
-                  aria-pressed={pinShown}
+                  className="text-[13px] font-bold text-blue"
+                  onClick={() => setChangingPassword((v) => !v)}
+                  aria-expanded={changingPassword}
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" aria-hidden="true">
-                    <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" />
-                    <circle cx="12" cy="12" r="2.8" />
-                  </svg>
+                  {changingPassword ? "닫기" : "변경"}
                 </button>
               </span>
             </div>
           </div>
         </div>
+
+        {changingPassword && (
+          <div className="mt-4 rounded-[20px] border border-line px-[18px] py-6 text-left">
+            <PasswordChangeForm
+              submitLabel="비밀번호 변경"
+              onSuccess={() => {
+                toast.success("비밀번호를 변경했어요");
+                setChangingPassword(false);
+              }}
+            />
+          </div>
+        )}
 
         <PartnerButton variant="ghost" type="button" className="mt-4 w-full" onClick={() => setConfirm(true)}>
           로그아웃

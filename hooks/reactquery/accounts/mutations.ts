@@ -9,10 +9,7 @@ export function useCreateAccount() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (i: AccountCreateInput) => createAccount(i),
-    onSuccess: () => Promise.all([
-      qc.invalidateQueries({ queryKey: accountKeys.all }),
-      qc.invalidateQueries({ queryKey: accountKeys.loginPins() }),
-    ]),
+    onSuccess: () => qc.invalidateQueries({ queryKey: accountKeys.all }),
   });
 }
 export function useUpdateAccountBasic() {
@@ -40,6 +37,6 @@ export function useResetPassword() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ userId, password }: { userId: string; password: string }) => resetPassword(userId, password),
-    onSuccess: () => qc.invalidateQueries({ queryKey: accountKeys.loginPins() }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: accountKeys.all }),
   });
 }

@@ -3,11 +3,9 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loginEmail } from "@/lib/auth/email";
-import { storeAccountLoginPin } from "@/lib/auth/loginPin";
+import { isValidPassword, PASSWORD_RULE_MESSAGE } from "@/lib/auth/passwordPolicy";
 import { toAuthPassword } from "@/lib/auth/password";
 
-// 정본 신규 테넌트: 관리자 초기 비밀번호 = 숫자 4자리(Auth 저장은 toAuthPassword).
-const OWNER_PIN = /^\d{4}$/;
 
 // 정본 생성 모달엔 회사코드 칸이 없어 서버가 만든다. 관리자 로그인 이메일 {회사코드}.{아이디}@… 에만 쓰이고
 // 화면엔 보이지 않는다(로그인은 아이디 단독).
@@ -57,8 +55,9 @@ export async function POST(req: Request) {
     || !owner?.password
   )
     return NextResponse.json({ error: "필수 항목이 누락되었습니다." }, { status: 422 });
-  if (!OWNER_PIN.test(String(owner.password)))
-    return NextResponse.json({ error: "관리자 비밀번호는 숫자 4자리입니다." }, { status: 422 });
+  // 관리자 초기 비밀번호 = 형식 자유·6자 이상. 임시 비밀번호라 첫 로그인 때 변경을 강제한다(provision_member).
+  if (!isValidPassword(owner.password))
+    return NextResponse.json({ error: PASSWORD_RULE_MESSAGE }, { status: 422 });
 
   const contractPaths: string[] = Array.isArray(contractFilePaths)
     ? contractFilePaths.filter((path: unknown): path is string => typeof path === "string" && path.trim() !== "")
@@ -136,7 +135,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "관리자 계정 저장에 실패했습니다." }, { status: 500 });
   }
 
-  await storeAccountLoginPin(admin, created.user.id, String(owner.password), "[platform/organizations]");
   return NextResponse.json(
     { organization: { id: orgRow.id, name: orgRow.name, slug: orgRow.slug },
       owner: { username: owner.username } },

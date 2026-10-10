@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { loginEmail } from "@/lib/auth/email";
-import { storeAccountLoginPin } from "@/lib/auth/loginPin";
+import { isValidPassword } from "@/lib/auth/passwordPolicy";
 import { toAuthPassword } from "@/lib/auth/password";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
 
   if (
     !username
-    || !/^\d{4}$/.test(password)
+    || !isValidPassword(password)
     || fullName.length < 1
     || fullName.length > 100
     || !PHONE_PATTERN.test(phone)
@@ -115,6 +115,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "계정 정보 저장에 실패했습니다." }, { status: 500 });
   }
 
-  await storeAccountLoginPin(admin, created.user.id, password, "[platform/hq-accounts]");
   return NextResponse.json({ userId: created.user.id }, { status: 201 });
 }
