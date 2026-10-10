@@ -495,7 +495,7 @@ export interface CreateOrgInput {
   region: string;
   operatingHours?: string | null;
   contractFilePaths?: string[];
-  /** 정본 신규 테넌트: 관리자 아이디 + 초기 비밀번호(숫자 4자리). 관리자 이름은 서버가 대표자명으로 채운다. */
+  /** 정본 신규 테넌트: 관리자 아이디 + 초기 비밀번호(6자 이상). 관리자 이름은 서버가 대표자명으로 채운다. */
   owner: { username: string; password: string };
 }
 

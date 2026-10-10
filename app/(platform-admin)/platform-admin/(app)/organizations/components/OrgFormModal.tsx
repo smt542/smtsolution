@@ -311,7 +311,7 @@ function OrganizationFormFields({
           />
         )}
       </HqField>
-      <HqField id="organization-owner-password" label={mode === "create" ? "초기 비밀번호" : "비밀번호"} required={mode === "create"}>
+      <HqField id="organization-owner-password" label={mode === "create" ? "초기 비밀번호" : "비밀번호 변경"} required={mode === "create"}>
         <HqPasswordInput
           id="organization-owner-password"
           autoComplete="new-password"
@@ -324,7 +324,7 @@ function OrganizationFormFields({
       </HqField>
       <HqField
         id="organization-owner-password-confirm"
-        label={mode === "create" ? "초기 비밀번호 확인" : "비밀번호 확인"}
+        label={mode === "create" ? "초기 비밀번호 확인" : "비밀번호 변경 확인"}
         required={mode === "create"}
       >
         <HqPasswordInput
@@ -358,7 +358,7 @@ function buildValidationMessage<T extends FieldValues>(
     ["email", "이메일"],
     ["address", "주소"],
     ...(mode === "create"
-      ? [["ownerUsername", "관리자 아이디"], ["ownerPassword", "비밀번호"], ["ownerPasswordConfirm", "비밀번호 확인"]]
+      ? [["ownerUsername", "관리자 아이디"], ["ownerPassword", "초기 비밀번호"], ["ownerPasswordConfirm", "초기 비밀번호 확인"]]
       : []),
     ["contractStartDate", "계약 시작일"],
     ["contractEndDate", "계약 만료일"],
