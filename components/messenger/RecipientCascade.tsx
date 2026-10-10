@@ -5,7 +5,7 @@ import { Input } from "@/components/common";
 import { BUILDING_GROUP_TYPES, matchesBuildingGroup } from "@/lib/buildings/groupType";
 import { useAccounts } from "@/hooks/reactquery/accounts/queries";
 import { useBuildings } from "@/hooks/reactquery/buildings/queries";
-import { useTenantList } from "@/hooks/reactquery/occupancies/queries";
+import { useOrganizationTenantList } from "@/hooks/reactquery/occupancies/queries";
 import {
   dedupeRecipients,
   validRecipients,
@@ -31,8 +31,9 @@ const GROUP_OPTIONS = [
 
 const EMPTY_SELECTION = {
   type: "" as RecipientType | "",
-  buildingId: null as number | null,
   staffIds: [] as string[],
+  /** 입주자: 건물 다중 선택(정책 "범위 = 전체 / 특정 건물") — 미납 독촉처럼 여러 건물 세대를 한 번에 담는다. */
+  tenantBuildingIds: [] as number[],
   tenantUnitIds: [] as number[],
   /** 건물주·청소 담당자: 전 건물 다중 선택(정책 "범위 = 전체 / 특정 건물"). */
   contactBuildingIds: [] as number[],
@@ -52,6 +53,50 @@ function toggleValue<T>(values: T[], value: T): T[] {
   return values.includes(value)
     ? values.filter((candidate) => candidate !== value)
     : [...values, value];
+}
+
+/** 입주자 선택지(입주자 목록 행 또는 화면이 넘긴 수신자로 만든 행). unitId 가 선택 키다. */
+interface TenantOption {
+  unitId: number;
+  buildingId: number;
+  occupancyId: number | null;
+  unitNo: string;
+  tenantName: string | null;
+  phones: string[];
+}
+
+/**
+ * 첫 선택값. 프리셋(건물 1곳 + 호수)이 있으면 그것을, 없고 화면이 입주자 수신자를 넘겼으면
+ * (예: 미납 독촉) 그 수신자의 건물·호수를 실제 선택값으로 고른다.
+ */
+function initialSelection(
+  types: RecipientType[],
+  preset: RecipientCascadePreset | null | undefined,
+  handed: MessageRecipient[] | undefined,
+): typeof EMPTY_SELECTION {
+  if (preset && types.includes(preset.type)) {
+    return {
+      ...EMPTY_SELECTION,
+      type: preset.type,
+      tenantBuildingIds: [preset.buildingId],
+      tenantUnitIds: preset.unitIds,
+    };
+  }
+  if (
+    types.includes("tenant") &&
+    handed?.length &&
+    handed.every((recipient) => recipient.kind === "tenant" && recipient.ref?.unitId != null)
+  ) {
+    return {
+      ...EMPTY_SELECTION,
+      type: "tenant",
+      tenantBuildingIds: [...new Set(
+        handed.map((recipient) => recipient.ref?.buildingId).filter((id): id is number => id != null),
+      )],
+      tenantUnitIds: [...new Set(handed.map((recipient) => recipient.ref?.unitId as number))],
+    };
+  }
+  return EMPTY_SELECTION;
 }
 
 function Chevron() {
@@ -109,8 +154,8 @@ export function RecipientCascade({
   preset?: RecipientCascadePreset | null;
   /**
    * 화면이 openMessengerWith 로 직접 넘긴 수신자(예: 미납 독촉 — 건물 여러 곳·세대별 변수).
-   * 캐스케이드 선택으로는 다시 만들 수 없으므로 수신자 자체는 그대로 두고, 사용자가 유형을
-   * 다시 고르기 전까지 유형·건물·입주자 칸에 이 수신자를 요약해 보여준다.
+   * 그 건물·호수를 실제 선택값으로 고르고, 선택된 세대는 넘겨받은 수신자(세대별 변수 포함)를
+   * 그대로 내보낸다. 사용자가 세대를 빼거나 더하면 그대로 반영된다.
    */
   handed?: MessageRecipient[];
   onChange: (r: MessageRecipient[]) => void;
@@ -119,16 +164,7 @@ export function RecipientCascade({
     channel === "alim"
       ? ["tenant", "owner"]
       : ["staff", "tenant", "owner", "cleaner"];
-  const [selection, setSelection] = useState(() =>
-    preset && types.includes(preset.type)
-      ? {
-          ...EMPTY_SELECTION,
-          type: preset.type,
-          buildingId: preset.buildingId,
-          tenantUnitIds: preset.unitIds,
-        }
-      : EMPTY_SELECTION,
-  );
+  const [selection, setSelection] = useState(() => initialSelection(types, preset, handed));
   const [openMenu, setOpenMenu] = useState<OpenMenu>(null);
   const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
   const [secondSearch, setSecondSearch] = useState("");
@@ -167,23 +203,53 @@ export function RecipientCascade({
 
   const { data: buildings = [] } = useBuildings();
   const { data: accounts = [] } = useAccounts();
-  const { data: tenants = [] } = useTenantList(
-    type === "tenant" && selection.buildingId ? selection.buildingId : 0,
+  const { data: tenants } = useOrganizationTenantList(
+    type === "tenant" ? selection.tenantBuildingIds : [],
   );
+  // 넘겨받은 수신자를 세대(unitId)별로 묶는다 — 선택된 세대는 이 수신자를 그대로 내보낸다.
+  const handedByUnitId = useMemo(() => {
+    const map = new Map<number, MessageRecipient[]>();
+    (handed ?? []).forEach((recipient) => {
+      const unitId = recipient.ref?.unitId;
+      if (recipient.kind !== "tenant" || unitId == null) return;
+      map.set(unitId, [...(map.get(unitId) ?? []), recipient]);
+    });
+    return map;
+  }, [handed]);
 
   const activeStaff = useMemo(
     () => accounts.filter((account) => account.isActive && hasPhone(account.phone)),
     [accounts],
   );
-  const eligibleTenants = useMemo(
-    () =>
-      tenants.filter(
-        (tenant) =>
-          !tenant.isVacant &&
-          (hasPhone(tenant.phone) || tenant.phonesMore.some(hasPhone)),
-      ),
-    [tenants],
-  );
+  const eligibleTenants = useMemo<TenantOption[]>(() => {
+    const options = new Map<number, TenantOption>();
+    tenants
+      .filter((tenant) => !tenant.isVacant && (hasPhone(tenant.phone) || tenant.phonesMore.some(hasPhone)))
+      .forEach((tenant) => options.set(tenant.unitId, {
+        unitId: tenant.unitId,
+        buildingId: tenant.buildingId,
+        occupancyId: tenant.occupancyId,
+        unitNo: tenant.unitNo,
+        tenantName: tenant.tenantName,
+        phones: [tenant.phone, ...tenant.phonesMore].filter(hasPhone),
+      }));
+    // 넘겨받은 세대는 지금 입주자 목록에 없어도(퇴실·공실 미납 등) 선택지로 보이게 하고,
+    // 같은 호수라도 넘겨받은 입주(미납 당사자)를 우선한다.
+    handedByUnitId.forEach((recipients, unitId) => {
+      const first = recipients[0];
+      const buildingId = first.ref?.buildingId;
+      if (buildingId == null || !selection.tenantBuildingIds.includes(buildingId)) return;
+      options.set(unitId, {
+        unitId,
+        buildingId,
+        occupancyId: first.ref?.occupancyId ?? null,
+        unitNo: first.unitNo ?? options.get(unitId)?.unitNo ?? "",
+        tenantName: first.name ?? null,
+        phones: recipients.map((recipient) => recipient.phone).filter(hasPhone),
+      });
+    });
+    return [...options.values()];
+  }, [handedByUnitId, selection.tenantBuildingIds, tenants]);
   const selectedTenantUnitIds = useMemo(
     () =>
       selection.tenantUnitIds.filter((unitId) =>
@@ -204,8 +270,16 @@ export function RecipientCascade({
     }
     return buildings;
   }, [buildings, cleanerByBuildingId, type]);
-  const selectedBuilding = buildings.find(
-    (building) => building.id === selection.buildingId,
+  // 입주자: 고른 건물들(목록 순서 유지).
+  const selectedTenantBuildings = useMemo(
+    () => buildings.filter((building) => selection.tenantBuildingIds.includes(building.id)),
+    [buildings, selection.tenantBuildingIds],
+  );
+  const singleTenantBuilding =
+    selectedTenantBuildings.length === 1 ? selectedTenantBuildings[0] : undefined;
+  const buildingNameById = useMemo(
+    () => new Map(buildings.map((building) => [building.id, building.name])),
+    [buildings],
   );
   const isContactType = type === "owner" || type === "cleaner";
   // 건물주·청소 담당자: 연락처·배정이 있는 건물 중 선택된 건물들(목록 순서 유지).
@@ -230,34 +304,6 @@ export function RecipientCascade({
     ? cleanerByBuildingId.get(singleContactBuilding.id)
     : undefined;
 
-  // 넘겨받은 입주자 수신자 요약. 사용자가 유형을 고르면(selection.type) 더 이상 보여주지 않는다.
-  const handedSummary = useMemo(() => {
-    if (selection.type || !handed?.length) return null;
-    if (!handed.every((recipient) => recipient.kind === "tenant")) return null;
-    const buildingIds = [...new Set(
-      handed.map((recipient) => recipient.ref?.buildingId).filter((id): id is number => id != null),
-    )];
-    // 한 세대에 번호가 여럿이면 수신자가 여러 줄이라 세대(입주) 기준으로 센다.
-    const households = new Map<string, MessageRecipient>();
-    handed.forEach((recipient) => {
-      const key = recipient.ref?.occupancyId != null
-        ? `o${recipient.ref.occupancyId}`
-        : `${recipient.ref?.buildingId ?? ""}:${recipient.unitNo ?? recipient.phone}`;
-      if (!households.has(key)) households.set(key, recipient);
-    });
-    const firstHousehold = [...households.values()][0];
-    const firstBuilding = buildings.find((building) => building.id === buildingIds[0]);
-    return {
-      singleBuilding: buildingIds.length === 1 ? firstBuilding : undefined,
-      buildingLabel: buildingIds.length <= 1
-        ? (firstBuilding?.name ?? "건물")
-        : `${firstBuilding?.name ?? "건물"} 외 ${buildingIds.length - 1}곳`,
-      tenantLabel: households.size === 1
-        ? `${firstHousehold.unitNo ?? ""} ${firstHousehold.name ?? ""}`.trim() || "입주자 1명"
-        : `${firstHousehold.name ?? "입주자"} 외 ${households.size - 1}명`,
-    };
-  }, [buildings, handed, selection.type]);
-
   const selectedRecipients = useMemo<MessageRecipient[]>(() => {
     if (type === "staff") {
       return activeStaff
@@ -273,21 +319,23 @@ export function RecipientCascade({
     if (type === "tenant") {
       return eligibleTenants
         .filter((tenant) => selection.tenantUnitIds.includes(tenant.unitId))
-        .flatMap((tenant) =>
-          [tenant.phone, ...tenant.phonesMore]
-            .filter(hasPhone)
-            .map((phone, index) => ({
-              name: tenant.tenantName,
-              phone,
-              phoneType: index === 0 && phone === tenant.phone ? "primary" as const : "secondary" as const,
-              unitNo: tenant.unitNo,
-              kind: "tenant" as const,
-              ref: {
-                occupancyId: tenant.occupancyId ?? undefined,
-                buildingId: selection.buildingId ?? undefined,
-              },
-            })),
-        );
+        .flatMap((tenant): MessageRecipient[] => {
+          // 넘겨받은 세대는 그 수신자(세대별 변수·번호) 그대로 내보낸다.
+          const handedRecipients = handedByUnitId.get(tenant.unitId);
+          if (handedRecipients) return handedRecipients;
+          return tenant.phones.map((phone, index) => ({
+            name: tenant.tenantName,
+            phone,
+            phoneType: index === 0 ? "primary" as const : "secondary" as const,
+            unitNo: tenant.unitNo,
+            kind: "tenant" as const,
+            ref: {
+              occupancyId: tenant.occupancyId ?? undefined,
+              unitId: tenant.unitId,
+              buildingId: tenant.buildingId,
+            },
+          }));
+        });
     }
 
     if (type === "owner") {
@@ -318,8 +366,8 @@ export function RecipientCascade({
     activeStaff,
     cleanerByBuildingId,
     eligibleTenants,
+    handedByUnitId,
     selectedContactBuildings,
-    selection.buildingId,
     selection.staffIds,
     selection.tenantUnitIds,
     type,
@@ -387,27 +435,41 @@ export function RecipientCascade({
   };
 
   const chooseType = (nextType: RecipientType) => {
-    // 넘겨받은 수신자를 보여주던 중이면 새로 고르는 것이므로 그 수신자를 비운다
-    // (빈 선택은 서명이 ""로 같아 아래 통지 effect 가 보내지 않는다).
-    if (handedSummary) {
-      lastEmittedSignatureRef.current = "";
-      onChangeRef.current([]);
-    }
+    // 유형을 새로 고르면 이전 수신자(넘겨받은 수신자 포함)를 비운다. 아직 입주자 목록을
+    // 불러오는 중이면 선택 서명이 ""로 같아 통지 effect 가 보내지 않으므로 직접 비운다.
+    lastEmittedSignatureRef.current = "";
+    onChangeRef.current([]);
     setSelection({ ...EMPTY_SELECTION, type: nextType });
     setSecondSearch("");
     setThirdSearch("");
     setOpenMenu(null);
   };
 
-  const chooseBuilding = (buildingId: number) => {
+  // 입주자 건물 다중 선택. 건물을 빼면 그 건물에서 고른 세대도 함께 뺀다.
+  const toggleTenantBuilding = (buildingId: number) => {
+    setSelection((current) => {
+      const removing = current.tenantBuildingIds.includes(buildingId);
+      return {
+        ...current,
+        tenantBuildingIds: toggleValue(current.tenantBuildingIds, buildingId),
+        tenantUnitIds: removing
+          ? current.tenantUnitIds.filter((unitId) =>
+              eligibleTenants.find((tenant) => tenant.unitId === unitId)?.buildingId !== buildingId)
+          : current.tenantUnitIds,
+      };
+    });
+    setThirdSearch("");
+  };
+
+  const allTenantBuildingsSelected =
+    eligibleBuildings.length > 0 && selection.tenantBuildingIds.length === eligibleBuildings.length;
+  const toggleAllTenantBuildings = () => {
     setSelection((current) => ({
       ...current,
-      buildingId,
-      tenantUnitIds: [],
+      tenantBuildingIds: allTenantBuildingsSelected ? [] : eligibleBuildings.map((building) => building.id),
+      tenantUnitIds: allTenantBuildingsSelected ? [] : current.tenantUnitIds,
     }));
     setThirdSearch("");
-    setGroupMenuOpen(false);
-    setOpenMenu(null);
   };
 
   const toggleContactBuilding = (buildingId: number) => {
@@ -463,7 +525,7 @@ export function RecipientCascade({
     GROUP_OPTIONS.find((option) => option.value === buildingGroup)?.label ?? GROUP_OPTIONS[0].label;
   const normalizedThirdSearch = thirdSearch.trim().toLowerCase();
   const filteredTenants = eligibleTenants.filter((tenant) =>
-    `${tenant.unitNo} ${tenant.tenantName ?? ""} ${tenant.phone ?? ""} ${tenant.phonesMore.join(" ")}`
+    `${buildingNameById.get(tenant.buildingId) ?? ""} ${tenant.unitNo} ${tenant.tenantName ?? ""} ${tenant.phones.join(" ")}`
       .toLowerCase()
       .includes(normalizedThirdSearch),
   );
@@ -493,6 +555,14 @@ export function RecipientCascade({
                 : "입주자 1명";
             })()
           : `${eligibleTenants.find((tenant) => selectedTenantUnitIds.includes(tenant.unitId))?.tenantName ?? "입주자"} 외 ${selectedTenantUnitIds.length - 1}명`;
+  const tenantBuildingLabel =
+    selectedTenantBuildings.length === 0
+      ? "건물 선택"
+      : allTenantBuildingsSelected
+        ? `전체 (${eligibleBuildings.length}곳)`
+        : selectedTenantBuildings.length === 1
+          ? null
+          : `${selectedTenantBuildings[0].name} 외 ${selectedTenantBuildings.length - 1}곳`;
   const contactSelectionLabel =
     selectedContactBuildings.length === 0
       ? "건물 선택"
@@ -525,8 +595,7 @@ export function RecipientCascade({
   // 정본(Messenger.dc.html L534·995): 기본(미선택) 상태와 staff/owner/cleaner는 2열(.two, flex:1 1 0),
   // tenant+건물/자동수신(3요소)일 때만 .two 해제(각 1/3). 미선택 기본상태 누락 시 좌측 1/3 폭으로 쏠린다.
   const useTwoColumns =
-    !handedSummary &&
-    (!type || type === "staff" || ((type === "owner" || type === "cleaner") && !autoRecipient));
+    !type || type === "staff" || ((type === "owner" || type === "cleaner") && !autoRecipient);
 
   return (
     <div
@@ -540,7 +609,7 @@ export function RecipientCascade({
         aria-expanded={openMenu === "type"}
       >
         <span className={`v ${styles.v}`}>
-          {type ? TYPE_LABEL[type] : handedSummary ? TYPE_LABEL.tenant : "유형 선택"}
+          {type ? TYPE_LABEL[type] : "유형 선택"}
         </span>
         <Chevron />
         <div
@@ -562,21 +631,12 @@ export function RecipientCascade({
 
       <div
         ref={secondRef}
-        className={`fmp-dd2 ${styles["fmp-dd2"]} ${type || handedSummary ? styles["dd2-on"] : styles["dd2-off"]} ${type && ((type === "staff" && selection.staffIds.length === 0) || (isContactType && selectedContactBuildings.length === 0) || (type === "tenant" && !selectedBuilding)) ? styles.ph : ""} ${openMenu === "second" ? styles.open : ""}`}
+        className={`fmp-dd2 ${styles["fmp-dd2"]} ${type ? styles["dd2-on"] : styles["dd2-off"]} ${type && ((type === "staff" && selection.staffIds.length === 0) || (isContactType && selectedContactBuildings.length === 0) || (type === "tenant" && selectedTenantBuildings.length === 0)) ? styles.ph : ""} ${openMenu === "second" ? styles.open : ""}`}
         onClick={() => type && toggleMenu("second", secondRef)}
         aria-expanded={openMenu === "second"}
       >
         <span className={`v ${styles.v}`}>
-          {!type && handedSummary ? (
-            handedSummary.singleBuilding ? (
-              <>
-                <span className={styles.ocv}>{handedSummary.singleBuilding.code}</span>
-                {handedSummary.singleBuilding.name}
-              </>
-            ) : (
-              handedSummary.buildingLabel
-            )
-          ) : !type ? (
+          {!type ? (
             "유형을 먼저 선택"
           ) : type === "staff" ? (
             staffSelectionLabel
@@ -589,13 +649,13 @@ export function RecipientCascade({
             ) : (
               contactSelectionLabel
             )
-          ) : selectedBuilding ? (
+          ) : singleTenantBuilding && tenantBuildingLabel === null ? (
             <>
-              <span className={styles.ocv}>{selectedBuilding.code}</span>
-              {selectedBuilding.name}
+              <span className={styles.ocv}>{singleTenantBuilding.code}</span>
+              {singleTenantBuilding.name}
             </>
           ) : (
-            "건물 선택"
+            tenantBuildingLabel
           )}
         </span>
         <Chevron />
@@ -709,6 +769,14 @@ export function RecipientCascade({
                   )}
                 </div>
               </div>
+              {type === "tenant" && eligibleBuildings.length > 0 && (
+                <div
+                  className={`${styles.opt} ${styles.chk} ${allTenantBuildingsSelected ? styles["chk-on"] : styles["chk-off"]}`}
+                  onClick={toggleAllTenantBuildings}
+                >
+                  전체 ({eligibleBuildings.length}곳)
+                </div>
+              )}
               {isContactType && eligibleBuildings.length > 0 && (
                 <div
                   className={`${styles.opt} ${styles.chk} ${allContactsSelected ? styles["chk-on"] : styles["chk-off"]}`}
@@ -718,14 +786,15 @@ export function RecipientCascade({
                 </div>
               )}
               <div className={styles.ddopts}>
-                {filteredBuildings.map((building) => isContactType ? (
+                {filteredBuildings.map((building) => isContactType || type === "tenant" ? (
                   <div
                     key={building.id}
-                    className={`${styles.opt} ${styles.bld} ${selection.contactBuildingIds.includes(building.id) ? styles.on : ""}`}
-                    onClick={() => toggleContactBuilding(building.id)}
+                    className={`${styles.opt} ${styles.bld} ${(type === "tenant" ? selection.tenantBuildingIds : selection.contactBuildingIds).includes(building.id) ? styles.on : ""}`}
+                    onClick={() =>
+                      type === "tenant" ? toggleTenantBuilding(building.id) : toggleContactBuilding(building.id)}
                   >
                     <span
-                      className={`${styles.cbx} ${selection.contactBuildingIds.includes(building.id) ? styles["cbx-on"] : styles["cbx-off"]}`}
+                      className={`${styles.cbx} ${(type === "tenant" ? selection.tenantBuildingIds : selection.contactBuildingIds).includes(building.id) ? styles["cbx-on"] : styles["cbx-off"]}`}
                     />
                     <span className={styles.oc}>{building.code}</span>
                     <div className={styles.btxt}>
@@ -733,19 +802,7 @@ export function RecipientCascade({
                       <div className={styles.badr}>{building.address ?? "주소 미등록"}</div>
                     </div>
                   </div>
-                ) : (
-                  <div
-                    key={building.id}
-                    className={`${styles.opt} ${styles["opt-plain"]} ${styles.bld} ${building.id === selection.buildingId ? `${styles.on} ${styles["opt-ck"]}` : ""}`}
-                    onClick={() => chooseBuilding(building.id)}
-                  >
-                    <span className={styles.oc}>{building.code}</span>
-                    <div className={styles.btxt}>
-                      <div className={styles.bnm}>{building.name}</div>
-                      <div className={styles.badr}>{building.address ?? "주소 미등록"}</div>
-                    </div>
-                  </div>
-                ))}
+                ) : null)}
                 {filteredBuildings.length === 0 && (
                   <div className={styles["fmp-pempty"]}>
                     전화번호가 등록된 대상이 없습니다.
@@ -757,14 +814,7 @@ export function RecipientCascade({
         </div>
       </div>
 
-      {handedSummary && (
-        // 넘겨받은 수신자 요약(읽기 전용). 바꾸려면 유형부터 다시 고른다.
-        <div className={`fmp-dd2 ${styles["fmp-dd2"]} ${styles["dd2-on"]}`} title="미리 담긴 수신자">
-          <span className={`v ${styles.v}`}>{handedSummary.tenantLabel}</span>
-        </div>
-      )}
-
-      {type === "tenant" && selectedBuilding && (
+      {type === "tenant" && selectedTenantBuildings.length > 0 && (
         <div
           ref={thirdRef}
           className={`fmp-dd2 ${styles["fmp-dd2"]} ${styles["dd2-on"]} ${selectedTenantUnitIds.length === 0 ? styles.ph : ""} ${openMenu === "third" ? styles.open : ""}`}
@@ -815,7 +865,11 @@ export function RecipientCascade({
                   <span className={styles["tnl-nm"]}>
                     {tenant.tenantName ?? "이름 미등록"}
                   </span>
-                  <span className={styles["tnl-ho"]}>{tenant.unitNo}</span>
+                  <span className={styles["tnl-ho"]}>
+                    {selectedTenantBuildings.length > 1
+                      ? `${buildingNameById.get(tenant.buildingId) ?? ""} ${tenant.unitNo}`.trim()
+                      : tenant.unitNo}
+                  </span>
                 </div>
               ))}
               {filteredTenants.length === 0 && (
