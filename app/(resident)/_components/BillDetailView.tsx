@@ -132,7 +132,10 @@ export default function BillDetailView(props: BillDetailViewProps) {
   // 총 관리비 = 당월 부과액 + 미납액(이월) + 연체료
   const grandTotal = totalAmount + carryoverUnpaid + lateFee;
   const outstanding = unpaidAmount + carryoverUnpaid;
-  const isDue = outstanding > 0;
+  // 원금을 다 냈어도 연체료(수.연 연체료 미수금 포함)가 남으면 아직 낼 금액이 있다.
+  const isDue = outstanding + lateFee > 0;
+  // 이 달 고지서에서 일부라도 냈으면 부분납부로 구분한다.
+  const chipStatus = !isDue ? "paid" : (detail.paidAmount ?? 0) > 0 ? "partial" : "unpaid";
 
   const account =
     detail.mgmtBank && detail.mgmtAcct
@@ -163,7 +166,7 @@ export default function BillDetailView(props: BillDetailViewProps) {
             <b>{account || "계좌 미등록"}</b>
             {detail.mgmtHolder ? <em>{detail.mgmtHolder}</em> : null}
           </div>
-          <ResidentStatusChip paid={!isDue} />
+          <ResidentStatusChip paid={!isDue} status={chipStatus} />
         </div>
         <div className={styles.tot}>
           {plainWon(grandTotal)}

@@ -5,7 +5,7 @@ import { useState } from "react";
 
 import type { ResidentBillMonth } from "@/hooks/reactquery/residentBilling/apis";
 import { formatWon } from "@/lib/format";
-import ResidentStatusChip from "@/app/(resident)/_components/ResidentStatusChip";
+import ResidentStatusChip, { residentChipStatus } from "@/app/(resident)/_components/ResidentStatusChip";
 
 import { billClasses as styles } from "./billClasses";
 
@@ -25,6 +25,9 @@ const yearOf = (period: string) => period.slice(0, 4);
 
 const isPaid = (month: ResidentBillMonth) =>
   month.payStatus === "paid" || month.payStatus === "none";
+
+/** 아직 내야 할 금액 = 남은 원금 + 연체료(수.연 연체료 미수금 포함). */
+const remainingOf = (month: ResidentBillMonth) => month.unpaidAmount + month.lateFee;
 
 function ChevronIcon() {
   return (
@@ -132,6 +135,7 @@ export default function ResidentBillHistory({
             <section className={styles.list} aria-label="월별 부과 내역">
               {visibleMonths.map((month) => {
                 const paid = isPaid(month);
+                const chipStatus = residentChipStatus(month.payStatus);
                 const gross = month.totalAmount + month.lateFee;
                 return (
                   <Link
@@ -152,6 +156,19 @@ export default function ResidentBillHistory({
                           ) : (
                             "완납"
                           )
+                        ) : chipStatus === "partial" ? (
+                          // 일부만 낸 달: 낸 금액과 남은 금액을 나눠 보여 준다(원금을 다 냈으면 연체료만 남음).
+                          month.unpaidAmount === 0 ? (
+                            <>
+                              관리비 납부 · 연체료{" "}
+                              <em>{formatAmount(month.lateFee)}</em> 미납
+                            </>
+                          ) : (
+                            <>
+                              {formatAmount(month.paidAmount)} 납부 · 남은 금액{" "}
+                              <em>{formatAmount(remainingOf(month))}</em>
+                            </>
+                          )
                         ) : (
                           <>
                             납부기한{" "}
@@ -166,7 +183,7 @@ export default function ResidentBillHistory({
                         )}
                       </div>
                     </div>
-                    <ResidentStatusChip paid={paid} />
+                    <ResidentStatusChip paid={paid} status={chipStatus} />
                     <ChevronIcon />
                   </Link>
                 );

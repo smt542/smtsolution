@@ -7,7 +7,7 @@ import BottomNav from "@/app/(resident)/_components/BottomNav";
 import MoveOutSection from "@/app/(resident)/_components/MoveOutSection";
 import { HomeNoticeCarousel } from "./HomeNoticeCarousel";
 import ResidentAsyncState from "@/app/(resident)/_components/ResidentAsyncState";
-import ResidentStatusChip from "@/app/(resident)/_components/ResidentStatusChip";
+import ResidentStatusChip, { residentChipStatus } from "@/app/(resident)/_components/ResidentStatusChip";
 import { useResidentBillMonths } from "@/hooks/reactquery/residentBilling";
 import {
   useResidentNoticeReadIds,
@@ -220,6 +220,7 @@ export default function ResidentHomeWorkspace() {
                     currentMonth.payStatus === "paid" ||
                     currentMonth.payStatus === "none"
                   }
+                  status={residentChipStatus(currentMonth.payStatus)}
                 />
               </div>
               <div className={styles.amount}>
