@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { type ReactNode, useState } from "react";
 
-import { Checkbox } from "@/components/common";
 import { formatDate, formatMonth, formatWon } from "@/lib/format";
+import { PartnerCheckbox } from "../../../_components/PartnerCheckbox";
 import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
 import { PartnerPhoneLink } from "../../../_components/PartnerPhoneLink";
 import { tenantClasses as styles } from "./tenantClasses";
@@ -172,11 +172,7 @@ export function MobileTenantWorkspace({ data }: { data: MobileTenantData }) {
           <div className={styles.padTight}>
             {pay.length > 0 ? (
               <div className={styles.payBar}>
-                <Checkbox
-                  label="미납만 보기"
-                  checked={onlyUnpaid}
-                  onChange={(event) => setOnlyUnpaid(event.target.checked)}
-                />
+                <PartnerCheckbox size="sm" label="미납만 보기" checked={onlyUnpaid} onChange={setOnlyUnpaid} />
               </div>
             ) : null}
             {visiblePay.length === 0 ? (
