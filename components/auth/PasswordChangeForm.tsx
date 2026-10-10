@@ -17,6 +17,8 @@ import { PASSWORD_MAX_LENGTH, PASSWORD_RULE_TEXT } from "@/lib/auth/passwordPoli
 const FIELD_CLASS = {
   // 로그인 화면 입력칸(.h-12)과 같은 규격
   page: "h-12 rounded-[13px] border border-line bg-white text-[14.5px] font-medium text-t1 placeholder:text-[#757575] outline-none transition focus:border-[#14A497] focus:ring-[3px] focus:ring-blue-t",
+  // 파트너 모바일 입력칸(이사정산 등 파트너 입력과 같은 규격 · 파랑 포커스)
+  partner: "h-12 rounded-[12px] border border-line bg-white text-[16px] font-semibold text-t1 placeholder:font-medium placeholder:text-t4 outline-none transition focus:border-blue focus:ring-[3px] focus:ring-blue-t",
   // 모달 폼 입력칸(42px)
   modal: "h-[42px] rounded-[10px] border border-line bg-white text-[13.5px] font-semibold text-t1 placeholder:font-medium placeholder:text-t4 outline-none transition focus:border-[#14A497] focus:ring-[3px] focus:ring-blue-t",
 } as const;
@@ -46,13 +48,21 @@ export function PasswordChangeForm({
   submitLabel = "비밀번호 변경",
   onSuccess,
   secondaryAction,
+  labels,
+  renderSubmit,
 }: {
   variant?: keyof typeof FIELD_CLASS;
   submitLabel?: string;
   onSuccess: () => void;
   /** 제출 버튼 왼쪽(모달의 취소 등) */
   secondaryAction?: ReactNode;
+  /** 입력칸 라벨(기본: 새 비밀번호 / 새 비밀번호 확인). 확인 칸 안내 문구도 이 라벨을 따른다. */
+  labels?: { password: string; confirm: string };
+  /** 제출 버튼을 화면 앱의 버튼으로 그릴 때(파트너 등). 넘기지 않으면 공용 Button. */
+  renderSubmit?: (state: { disabled: boolean; label: string }) => ReactNode;
 }) {
+  const passwordLabel = labels?.password ?? "새 비밀번호";
+  const confirmLabel = labels?.confirm ?? "새 비밀번호 확인";
   const change = useChangeMyPassword();
   const [show, setShow] = useState(false);
   const { register, handleSubmit, setError, getValues, trigger, formState: { errors, isSubmitting, isValid } } = useForm<
@@ -110,11 +120,11 @@ export function PasswordChangeForm({
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-3.5" noValidate>
-      <FormField htmlFor="newPassword" label="새 비밀번호" error={errors.newPassword?.message} className="flex flex-col gap-[7px]">
+      <FormField htmlFor="newPassword" label={passwordLabel} error={errors.newPassword?.message} className="flex flex-col gap-[7px]">
         {passwordInput("newPassword", `${PASSWORD_RULE_TEXT} 입력해 주세요`, true)}
       </FormField>
-      <FormField htmlFor="confirmPassword" label="새 비밀번호 확인" error={errors.confirmPassword?.message} className="flex flex-col gap-[7px]">
-        {passwordInput("confirmPassword", "새 비밀번호를 한 번 더 입력해 주세요", false)}
+      <FormField htmlFor="confirmPassword" label={confirmLabel} error={errors.confirmPassword?.message} className="flex flex-col gap-[7px]">
+        {passwordInput("confirmPassword", `${passwordLabel === "새 비밀번호" ? "새 비밀번호" : "변경할 비밀번호"}를 한 번 더 입력해 주세요`, false)}
       </FormField>
       <p className="text-[12.5px] font-medium leading-[1.6] text-t3">
         영문·숫자·특수문자 등 자유롭게 {PASSWORD_RULE_TEXT}로 정해 주세요.
@@ -125,15 +135,19 @@ export function PasswordChangeForm({
       <div className={variant === "modal" ? "mt-1 flex items-center gap-2" : "mt-1.5 flex flex-col gap-2"}>
         {variant === "modal" && <div className="flex-1" />}
         {secondaryAction}
-        <Button
-          variant="primary"
-          size={variant === "modal" ? "std" : "login"}
-          type="submit"
-          disabled={submitting || !isValid}
-          className="border border-transparent shadow-none transition disabled:opacity-70"
-        >
-          {submitting ? "변경 중…" : submitLabel}
-        </Button>
+        {renderSubmit ? (
+          renderSubmit({ disabled: submitting || !isValid, label: submitting ? "변경 중…" : submitLabel })
+        ) : (
+          <Button
+            variant="primary"
+            size={variant === "modal" ? "std" : "login"}
+            type="submit"
+            disabled={submitting || !isValid}
+            className="border border-transparent shadow-none transition disabled:opacity-70"
+          >
+            {submitting ? "변경 중…" : submitLabel}
+          </Button>
+        )}
       </div>
     </form>
   );

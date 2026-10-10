@@ -10,5 +10,4 @@ export const profileClasses = {
   row: "flex items-center justify-between gap-3",
   rowLabel: "text-[13.5px] font-semibold text-t3",
   rowValue: "text-[14.5px] font-bold tabular-nums",
-  pw: "flex items-center gap-1.5",
 } as const;

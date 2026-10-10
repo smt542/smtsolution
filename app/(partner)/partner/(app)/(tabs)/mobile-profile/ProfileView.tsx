@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 
 import { useAsyncAction } from "@/hooks/common";
 import { useLogout } from "@/hooks/reactquery/auth";
-import { appToast as toast } from "@/hooks/common/useAppToast";
-import { PasswordChangeForm } from "@/components/auth/PasswordChangeForm";
 
 import { profileClasses as styles } from "./profileClasses";
 import { PartnerButton } from "../../../../_components/PartnerButton";
@@ -23,7 +21,6 @@ export function ProfileView({
 }) {
   const router = useRouter();
   const [confirm, setConfirm] = useState(false);
-  const [changingPassword, setChangingPassword] = useState(false);
   const logoutAction = useAsyncAction();
   const logoutMutation = useLogout();
 
@@ -56,37 +53,14 @@ export function ProfileView({
               <span className={styles.rowLabel}>아이디</span>
               <b className={styles.rowValue}>{username || "-"}</b>
             </div>
-            <div className={styles.row}>
-              <span className={styles.rowLabel}>비밀번호</span>
-              {/* 비밀번호 원문은 저장하지 않으므로 보여주지 않는다 — 변경만 가능 */}
-              <span className={styles.pw}>
-                <b className={styles.rowValue}>••••••</b>
-                <button
-                  type="button"
-                  className="text-[13px] font-bold text-blue"
-                  onClick={() => setChangingPassword((v) => !v)}
-                  aria-expanded={changingPassword}
-                >
-                  {changingPassword ? "닫기" : "변경"}
-                </button>
-              </span>
-            </div>
           </div>
         </div>
 
-        {changingPassword && (
-          <div className="mt-4 rounded-[20px] border border-line px-[18px] py-6 text-left">
-            <PasswordChangeForm
-              submitLabel="비밀번호 변경"
-              onSuccess={() => {
-                toast.success("비밀번호를 변경했어요");
-                setChangingPassword(false);
-              }}
-            />
-          </div>
-        )}
-
-        <PartnerButton variant="ghost" type="button" className="mt-4 w-full" onClick={() => setConfirm(true)}>
+        {/* 비밀번호 원문은 저장하지 않아 보여주지 않는다 — 한 단계 안쪽 화면에서 변경만 한다. */}
+        <PartnerButton variant="secondary" type="button" className="mt-4 w-full" onClick={() => router.push("/partner/mobile-password")}>
+          비밀번호 변경
+        </PartnerButton>
+        <PartnerButton variant="ghost" type="button" className="mt-2.5 w-full" onClick={() => setConfirm(true)}>
           로그아웃
         </PartnerButton>
       </div>
