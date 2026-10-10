@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { optionalPasswordSchema, passwordSchema } from "./password";
+import { passwordSchema } from "./password";
 import { nullableTrimmedString, requiredDate } from "./common";
 
 const contractFields = {
@@ -33,50 +33,54 @@ function validateContractDates(
   }
 }
 
-function validatePasswordConfirm(
-  values: { ownerPassword: string; ownerPasswordConfirm: string },
-  ctx: z.RefinementCtx,
-) {
-  if (values.ownerPasswordConfirm && values.ownerPassword !== values.ownerPasswordConfirm) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["ownerPasswordConfirm"],
-      message: "비밀번호가 일치하지 않습니다",
-    });
-  } else if (!values.ownerPasswordConfirm && values.ownerPassword) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["ownerPasswordConfirm"],
-      message: "비밀번호를 한 번 더 입력해 주세요",
-    });
-  }
+/**
+ * 관리자 비밀번호 + 확인. 업체 정보 객체와 분리해 `.and()`로 합친다 — zod 3의 객체 superRefine은
+ * 다른 칸이 하나라도 틀리면 건너뛰어, 확인 불일치가 안 뜨던 문제를 막는다.
+ * required=false(수정)면 둘 다 비울 때 그대로 둔다.
+ */
+function ownerPasswordFields(required: boolean, confirmRequiredMessage: string) {
+  return z.object({
+    ownerPassword: z.string(),
+    ownerPasswordConfirm: z.string(),
+  }).superRefine((values, ctx) => {
+    const { ownerPassword, ownerPasswordConfirm } = values;
+    if (!required && !ownerPassword && !ownerPasswordConfirm) return;
+
+    const rule = passwordSchema.safeParse(ownerPassword);
+    if (!rule.success) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["ownerPassword"],
+        message: rule.error.issues[0]?.message ?? "비밀번호를 확인해 주세요",
+      });
+    }
+    if (!ownerPasswordConfirm) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["ownerPasswordConfirm"], message: confirmRequiredMessage });
+    } else if (ownerPassword !== ownerPasswordConfirm) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["ownerPasswordConfirm"],
+        message: "비밀번호가 일치하지 않습니다",
+      });
+    }
+  });
 }
 
 export const orgCreateSchema = z.object({
   name: z.string().trim().min(1, "회사명을 입력해 주세요").max(100),
   ...contractFields,
   ownerUsername: z.string().trim().min(1, "관리자 아이디를 입력해 주세요").max(50),
-  ownerPassword: passwordSchema,
-  ownerPasswordConfirm: z.string().min(1, "초기 비밀번호를 한 번 더 입력해 주세요"),
-}).superRefine((values, ctx) => {
-  validateContractDates(values, ctx);
-  validatePasswordConfirm(values, ctx);
-});
+}).superRefine(validateContractDates)
+  .and(ownerPasswordFields(true, "초기 비밀번호를 한 번 더 입력해 주세요"));
 export type OrgCreateFormInput = z.input<typeof orgCreateSchema>;
 export type OrgCreateFormValues = z.output<typeof orgCreateSchema>;
 
 export const orgEditSchema = z.object({
   name: z.string().trim().min(1, "회사명을 입력해 주세요").max(100),
   ...contractFields,
+}).superRefine(validateContractDates)
   /** 비우면 그대로, 입력하면 관리자 비밀번호를 임시 비밀번호로 재설정 */
-  ownerPassword: optionalPasswordSchema,
-  ownerPasswordConfirm: z.string(),
-}).superRefine((values, ctx) => {
-  validateContractDates(values, ctx);
-  // 비밀번호를 바꿀 때만 확인 칸을 맞춘다.
-  if (values.ownerPassword) validatePasswordConfirm(values, ctx);
-});
-export type OrgEditFormInput = z.input<typeof orgEditSchema>;
+  .and(ownerPasswordFields(false, "비밀번호를 한 번 더 입력해 주세요"));
 export type OrgEditFormValues = z.output<typeof orgEditSchema>;
 
 /**

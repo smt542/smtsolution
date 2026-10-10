@@ -180,6 +180,7 @@ function OrganizationFormFields({
   ownerUsername,
   ownerLoading,
   ownerAvailable,
+  onPasswordInput,
 }: {
   mode: "create" | "edit";
   register: UseFormRegister<OrganizationFormValues>;
@@ -196,9 +197,13 @@ function OrganizationFormFields({
   ownerUsername?: string;
   ownerLoading?: boolean;
   ownerAvailable?: boolean;
+  /** 비밀번호·확인 칸 입력 시 호출 — 확인 불일치를 저장 전에 바로 표시한다 */
+  onPasswordInput: () => void;
 }) {
   const placeholders = datePlaceholders();
   const registerField = (name: string) => register(name as Path<OrganizationFormValues>);
+  const registerPassword = (name: string) =>
+    register(name as Path<OrganizationFormValues>, { onChange: onPasswordInput });
   const error = (name: string) => fieldError(errors, name);
   const dateClass = (name: string) => [DATE_TRIGGER_CLASS, error(name) ? ERROR_CLASS : ""].filter(Boolean).join(" ");
 
@@ -319,7 +324,7 @@ function OrganizationFormFields({
           placeholder={mode === "create" ? `임시 비밀번호 (${PASSWORD_RULE_TEXT})` : `변경할 때만 (${PASSWORD_RULE_TEXT})`}
           disabled={disabled || (mode === "edit" && !ownerAvailable)}
           className={inputClass(error("ownerPassword"))}
-          {...registerField("ownerPassword")}
+          {...registerPassword("ownerPassword")}
         />
       </HqField>
       <HqField
@@ -334,7 +339,7 @@ function OrganizationFormFields({
           placeholder="비밀번호를 한 번 더 입력"
           disabled={disabled || (mode === "edit" && !ownerAvailable)}
           className={inputClass(error("ownerPasswordConfirm"))}
-          {...registerField("ownerPasswordConfirm")}
+          {...registerPassword("ownerPasswordConfirm")}
         />
         {error("ownerPasswordConfirm") ? (
           <p className="mt-1.5 text-[12px] font-semibold text-red">{fieldMessage(errors, "ownerPasswordConfirm")}</p>
@@ -395,6 +400,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
     handleSubmit,
     setError,
     clearErrors,
+    trigger,
     formState: { errors, isSubmitting },
     getValues,
   } = useForm<CreateInput, unknown, OrgCreateFormValues>({
@@ -403,6 +409,11 @@ function CreateModal({ onClose }: { onClose: () => void }) {
     shouldFocusError: false,
   });
   const submitting = isSubmitting || createOrg.isPending;
+  // 확인 칸을 채운 뒤부터는 입력할 때마다 일치 여부를 다시 본다.
+  const revalidatePassword = () => {
+    if (getValues("ownerPasswordConfirm")) void trigger(["ownerPassword", "ownerPasswordConfirm"]);
+    else clearErrors("ownerPasswordConfirm");
+  };
 
   const onValid = async (values: OrgCreateFormValues) => {
     const accepted = await confirm({
@@ -477,6 +488,7 @@ function CreateModal({ onClose }: { onClose: () => void }) {
             maxNewFiles={MAX_ATTACHMENT_FILES}
             existing={[]}
             disabled={submitting}
+            onPasswordInput={revalidatePassword}
           />
           {(errors.root?.validation?.message || errors.root?.server?.message) && (
             <div className="mt-3 rounded-[11px] border border-[rgba(233,79,79,0.22)] bg-[rgba(233,79,79,0.07)] px-[14px] py-[11px] text-[12.5px] font-bold leading-[1.5] text-red" role="alert">
@@ -528,6 +540,7 @@ function EditModal({ organization, onClose }: Omit<EditProps, "mode">) {
     handleSubmit,
     setError,
     clearErrors,
+    trigger,
     formState: { errors, isSubmitting },
     getValues,
   } = useForm<EditInput, unknown, OrgEditFormValues>({
@@ -536,6 +549,11 @@ function EditModal({ organization, onClose }: Omit<EditProps, "mode">) {
     shouldFocusError: false,
   });
   const submitting = isSubmitting || deleting || updateOrg.isPending || updateStatus.isPending || setDeleted.isPending || resetPassword.isPending || deleteOrg.isPending;
+  // 확인 칸을 채운 뒤부터는 입력할 때마다 일치 여부를 다시 본다.
+  const revalidatePassword = () => {
+    if (getValues("ownerPasswordConfirm")) void trigger(["ownerPassword", "ownerPasswordConfirm"]);
+    else clearErrors("ownerPasswordConfirm");
+  };
   const savedPaths = organization.contractFilePaths;
   const keptPaths = savedPaths.filter((path) => !removedPaths.includes(path));
   const previews = useOrganizationContractFilePreviews(keptPaths);
@@ -678,6 +696,7 @@ function EditModal({ organization, onClose }: Omit<EditProps, "mode">) {
             ownerUsername={ownerQuery.data?.username ?? undefined}
             ownerLoading={ownerQuery.isPending}
             ownerAvailable={Boolean(ownerQuery.data)}
+            onPasswordInput={revalidatePassword}
           />
           {(errors.root?.validation?.message || errors.root?.server?.message) && (
             <div className="mt-3 rounded-[11px] border border-[rgba(233,79,79,0.22)] bg-[rgba(233,79,79,0.07)] px-[14px] py-[11px] text-[12.5px] font-bold leading-[1.5] text-red" role="alert">
