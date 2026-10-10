@@ -102,7 +102,8 @@ export function HomeNoticeCarousel({
           {notices.map((notice, i) => (
             <Link
               key={notice.id}
-              href={`/resident/notice/${notice.id}`}
+              // 유입경로 표시: 공지 상세의 뒤로가기가 홈으로 돌아오게 한다.
+              href={`/resident/notice/${notice.id}?from=home`}
               className={styles.noticeSlide}
               aria-roledescription="slide"
               aria-label={`${i + 1} / ${count}: ${notice.title}`}

@@ -8,20 +8,27 @@ import { getResidentNoticeDetailPageData } from "../data";
 import ResidentNoticeRetryState from "../ResidentNoticeRetryState";
 import ResidentNoticeReadTracker from "./ResidentNoticeReadTracker";
 
+/**
+ * 공지 상세 유입경로 2가지: 홈 상단 공지 캐러셀(?from=home) · 벨 → 공지 목록.
+ * 뒤로가기는 들어온 곳으로 돌아간다(경로 표시가 없으면 공지 목록).
+ */
 export default async function ResidentNoticeDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string | string[] }>;
 }) {
-  const { id: idSegment } = await params;
+  const [{ id: idSegment }, query] = await Promise.all([params, searchParams]);
+  const fromHome = (Array.isArray(query.from) ? query.from[0] : query.from) === "home";
   const parsedId = Number(idSegment);
   const id = Number.isInteger(parsedId) && parsedId > 0 ? parsedId : 0;
 
   const header = (
     <MobileBackHeader
       variant="detail"
-      href="/resident/notice"
-      label="공지 목록으로 돌아가기"
+      href={fromHome ? "/resident/home" : "/resident/notice"}
+      label={fromHome ? "홈으로 돌아가기" : "공지 목록으로 돌아가기"}
       title="공지"
     />
   );
