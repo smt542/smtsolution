@@ -51,8 +51,12 @@ export type MSState = {
 
 export type PartnerMeter = {
   utility: Utility;
+  /** 검침월(YYYY-MM-01). 퇴실월 검침인지 판단해 「전월 지침」을 고른다(0285). */
+  period: string | null;
   previousReading: number | null;
   currentReading: number | null;
+  /** 그 달 검침 단가. 아직 계산 전이면 null. */
+  unitPrice: number | null;
   usage: number | null;
 };
 
@@ -209,28 +213,51 @@ export function computeTotals(
 }
 
 // ===== 초기 상태 =====
-function seededUtil(meters: PartnerMeter[], saved?: MSExtra["util"]): UtilRow[] {
+/** 셋업 정책 3.3 「단가 반영」 고정(수도·전기=반영). 가스는 외부 검침이라 단가를 직접 입력한다. */
+const UNIT_PRICE_REFLECTED: ReadonlySet<Utility> = new Set<Utility>(["water", "elec"]);
+
+/**
+ * 공과금 정산 행 기본값 — 사무실 이사정산(readingsFromContext, 0266)과 같은 규칙.
+ * - 전월 지침: 퇴실월 검침이면 그 달 previous_reading, 이전 달 검침이면 그 current_reading.
+ * - 이사 지침: 현장에서 읽은 값을 입력한다(비워 둠).
+ * - 단가: 수도·전기는 그 달 검침 단가(없으면 직접 입력), 가스는 직접 입력.
+ * - 입금계좌: 셋업 「이사정산 입금 계좌」. 입금일은 실제 입금한 날이라 직접 입력한다.
+ * 저장된 행이 있으면 저장값을 쓰되, 비어 있는 단가·입금계좌만 위 기본값으로 채운다.
+ */
+function seededUtil(
+  meters: PartnerMeter[],
+  saved: MSExtra["util"] | undefined,
+  moveOutDate: string | null | undefined,
+  settleAcct: string | null,
+): UtilRow[] {
   // 정본 카드 순서: 전기 · 수도 · 가스
   const order: Utility[] = ["elec", "water", "gas"];
+  const moveOutPeriod = moveOutDate ? `${moveOutDate.slice(0, 7)}-01` : null;
+  const defaultAcct = settleAcct?.trim() ?? "";
   return order.map((k) => {
+    const meter = meters.find((m) => m.utility === k);
+    const meterPrice = UNIT_PRICE_REFLECTED.has(k) ? (meter?.unitPrice ?? 0) : 0;
     const savedRow = saved?.find((r) => r.k === k);
     if (savedRow) {
       return {
         k,
         prev: savedRow.prev ?? 0,
         cur: savedRow.cur ?? 0,
-        price: savedRow.price ?? 0,
-        acct: savedRow.acct ?? "",
+        price: savedRow.price || meterPrice,
+        acct: savedRow.acct || defaultAcct,
         payDate: savedRow.payDate ?? "",
       };
     }
-    const meter = meters.find((m) => m.utility === k);
+    const prev =
+      meter && meter.period !== null && meter.period === moveOutPeriod
+        ? meter.previousReading
+        : (meter?.currentReading ?? meter?.previousReading ?? null);
     return {
       k,
-      prev: meter?.previousReading ?? 0,
-      cur: meter?.currentReading ?? 0,
-      price: 0,
-      acct: "",
+      prev: prev ?? 0,
+      cur: 0,
+      price: meterPrice,
+      acct: defaultAcct,
       payDate: "",
     };
   });
@@ -243,7 +270,7 @@ export function initialState(ctx: PartnerSettlementContext): MSState {
   const notes: Record<number, string> = {};
   for (const item of ctx.checklist) notes[item.id] = item.note ?? (item.checked ? "확인" : "");
 
-  const util = seededUtil(ctx.meterSummary, extra?.util);
+  const util = seededUtil(ctx.meterSummary, extra?.util, saved?.moveOutDate, ctx.settleAccount.settleAcct);
   // 저장된 정산의 입금일이 있으면 util 행에 반영(extra가 없던 레거시 대비).
   if (saved && !extra?.util) {
     const elec = util.find((u) => u.k === "elec");
@@ -391,8 +418,10 @@ export type ContextJson = {
   checklist: { id: number; label: string; checked: boolean; note?: string | null }[];
   meter_summary: {
     utility: Utility;
+    period?: string | null;
     previous_reading: number | null;
     current_reading: number | null;
+    unit_price?: number | null;
     usage: number | null;
   }[];
   billing_unpaid?: number | null;
@@ -441,8 +470,10 @@ export function mapContext(r: ContextJson): PartnerSettlementContext {
     checklist: r.checklist.map((c) => ({ id: c.id, label: c.label, checked: c.checked, note: c.note ?? null })),
     meterSummary: r.meter_summary.map((m) => ({
       utility: m.utility,
+      period: m.period ?? null,
       previousReading: m.previous_reading,
       currentReading: m.current_reading,
+      unitPrice: m.unit_price == null ? null : Number(m.unit_price),
       usage: m.usage,
     })),
     billingUnpaid: Number(r.billing_unpaid ?? 0) || 0,
