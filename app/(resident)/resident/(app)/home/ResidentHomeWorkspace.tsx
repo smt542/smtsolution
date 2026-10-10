@@ -18,8 +18,6 @@ import { useResidentProfile } from "@/hooks/reactquery/residentProfile";
 import { formatWon } from "@/lib/format";
 
 import { residentHomeClasses as styles } from "./homeClasses";
-import ResidentBottomSheet from "@/app/(resident)/_components/ResidentBottomSheet";
-import { ResidentButton } from "@/app/(resident)/_components/ResidentButton";
 
 const formatAmount = (amount: number) => formatWon(amount);
 const formatPlain = (amount: number) =>
@@ -95,7 +93,6 @@ export default function ResidentHomeWorkspace() {
   const noticeReadIdsQuery = useResidentNoticeReadIds();
   const buildingNoticeQuery = useResidentBuildingNotice();
   const moveOutQuery = useMoveOutRequest();
-  const [noticeOpen, setNoticeOpen] = useState(false);
   const [moveOutOpen, setMoveOutOpen] = useState(false);
 
 
@@ -213,11 +210,8 @@ export default function ResidentHomeWorkspace() {
 
       <main className={styles.scroll}>
         {buildingNotice ? (
-          <button
-            type="button"
-            className={styles.notice}
-            onClick={() => setNoticeOpen(true)}
-          >
+          // 건물 공지 전문은 공지 상세와 같은 화면(/resident/building-notice)에서 본다.
+          <Link href="/resident/building-notice" className={styles.notice}>
             <span className={styles.noticeIcon}>
               <NoticeIcon />
             </span>
@@ -225,7 +219,7 @@ export default function ResidentHomeWorkspace() {
               <b className={styles.noticeTitle}>건물 공지</b>
               <span className={styles.noticePreview}>{buildingNotice}</span>
             </span>
-          </button>
+          </Link>
         ) : null}
 
         <section className={styles.bill} aria-labelledby="current-bill-title">
@@ -389,20 +383,6 @@ export default function ResidentHomeWorkspace() {
         onClose={() => setMoveOutOpen(false)}
       />
 
-      {/* 건물 공지: 공지 목록·퇴실 신청과 같은 바텀시트(배경·Esc·확인으로 닫기) */}
-      <ResidentBottomSheet variant="notice" open={noticeOpen && !!buildingNotice} onDismiss={() => setNoticeOpen(false)}>
-        <div role="dialog" aria-modal="true" aria-labelledby="notice-sheet-title" className="flex flex-col">
-          <h2 className={styles.sheetTitle} id="notice-sheet-title">
-            건물 공지
-          </h2>
-          <div className={styles.sheetBody}>{buildingNotice}</div>
-          <div className={styles.sheetFoot}>
-            <ResidentButton variant="primary" size="moveOut" type="button" className="w-full" onClick={() => setNoticeOpen(false)}>
-              확인
-            </ResidentButton>
-          </div>
-        </div>
-      </ResidentBottomSheet>
     </div>
   );
 }
