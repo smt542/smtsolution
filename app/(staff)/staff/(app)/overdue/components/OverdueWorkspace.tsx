@@ -83,7 +83,7 @@ export function OverdueWorkspace({
   const [targetPeriod, setTargetPeriod] = useState<{
     year: number | null;
     month: number | null;
-  }>({ year: null, month: null });
+  }>(() => kstTodayYearMonth()); // 기본 = 올해·당월(KST)
   const [scope, setScope] = useState<OverdueScope>("all");
   const [debtFilterEnabled, setDebtFilterEnabled] = useState(false);
 
