@@ -13,8 +13,8 @@ import { useDailyDismiss } from "./useDailyDismiss";
 
 const MOVE_IN_DISMISS_PREFIX = "home-erp:receipts:move-in-dismissed";
 const LEASE_EXPIRY_DISMISS_PREFIX = "home-erp:receipts:lease-expiry-dismissed";
-/** "알림 설정 ›" 이동 대상 (전용 알림설정 화면 부재 → 셋업 설정) */
-const ALERT_SETTINGS_HREF = "/staff/setup";
+/** "알림 설정 ›" 이동 대상 — 정본 `setup.dc.html#alarm`처럼 셋업 설정의 알림 설정 탭을 연다 */
+const ALERT_SETTINGS_HREF = "/staff/setup?tab=notifications";
 
 /**
  * 수납관리 진입 알림 오케스트레이터.
