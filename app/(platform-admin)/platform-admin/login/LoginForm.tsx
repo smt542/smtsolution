@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { FormField } from "@/components/common/FormField";
 import { setSubmissionError } from "@/components/forms/formErrors";
@@ -20,6 +21,7 @@ const fieldClass =
 
 export function LoginForm() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [showPassword, setShowPassword] = useState(false);
   const {
     register,
@@ -52,6 +54,9 @@ export function LoginForm() {
       }
 
       persistRememberedId("platform", values.autoLogin ?? false, values.username);
+      // 로그인 전 캐시(이전 세션의 '로그인 정보 없음' 등)를 비운다. 남겨 두면 권한 가드가
+      // 새 세션을 다시 조회하지 않고 '로그인이 필요합니다'를 띄운다.
+      queryClient.clear();
 
       toast.success("로그인되었습니다");
       router.push("/platform-admin");

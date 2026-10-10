@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Spinner } from "@/components/common";
 import { useAsyncAction } from "@/hooks/common";
 import { useMe } from "@/hooks/reactquery/auth";
@@ -74,6 +75,7 @@ function GuardLink({ href, children }: { href: string; children: React.ReactNode
  */
 function SignOutLoginButton() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const signOutAction = useAsyncAction();
   const goLogin = async () => {
     await signOutAction.run(async () => {
@@ -82,6 +84,8 @@ function SignOutLoginButton() {
       } catch {
         // 세션 정리에 실패해도 로그인 화면으로는 진행한다.
       }
+      // 이 세션의 '로그인 정보 없음' 캐시를 지운다(남기면 다시 로그인해도 이 화면으로 돌아온다).
+      queryClient.clear();
       // signOut으로 세션 쿠키가 지워진 뒤 이동하므로 proxy가 로그인 화면을 그대로 내보낸다.
       router.replace("/platform-admin/login");
     });
