@@ -1,6 +1,7 @@
 "use client";
 
-import { isValidPassword, PASSWORD_MAX_LENGTH, PASSWORD_RULE_TEXT } from "@/lib/auth/passwordPolicy";
+import { PASSWORD_MAX_LENGTH, PASSWORD_RULE_TEXT } from "@/lib/auth/passwordPolicy";
+import { hqAccountCreateSchema, hqAccountEditSchema } from "@/components/forms/schema/hqAccount";
 import { useState, type FormEvent } from "react";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import {
@@ -39,13 +40,22 @@ type FormValues = {
   phone: string;
   username: string;
   password: string;
+  passwordConfirm: string;
   memo: string;
   isActive: boolean;
 };
 
-type InvalidField = "fullName" | "hqRole" | "phone" | "username" | "password";
+type InvalidField = "fullName" | "hqRole" | "phone" | "username" | "password" | "passwordConfirm";
 
-const PHONE_PATTERN = /^01\d-\d{3,4}-\d{4}$/;
+const INVALID_FIELDS: readonly InvalidField[] = ["fullName", "hqRole", "phone", "username", "password", "passwordConfirm"];
+const FIELD_LABELS: Record<InvalidField, string> = {
+  fullName: "이름",
+  hqRole: "역할",
+  phone: "전화번호",
+  username: "아이디",
+  password: `비밀번호(${PASSWORD_RULE_TEXT})`,
+  passwordConfirm: "비밀번호 확인",
+};
 const isMaskedPhone = (value: string | null | undefined) => Boolean(value && value.includes("*"));
 const MASKED_PHONE_ERROR = "전화번호가 가려진 상태라 저장할 수 없습니다. 잠시 후 다시 시도해 주세요.";
 
@@ -57,6 +67,7 @@ function initialValues(mode: HqAccountModalProps["mode"], account?: PlatformHqAc
       phone: account.phone,
       username: account.username,
       password: "",
+      passwordConfirm: "",
       memo: account.memo ?? "",
       isActive: account.isActive,
     };
@@ -68,6 +79,7 @@ function initialValues(mode: HqAccountModalProps["mode"], account?: PlatformHqAc
     phone: "",
     username: "",
     password: "",
+    passwordConfirm: "",
     memo: "",
     isActive: true,
   };
@@ -95,6 +107,7 @@ export function HqAccountModal({ mode, account, onClose }: HqAccountModalProps) 
   const [values, setValues] = useState<FormValues>(() => initialValues(mode, account));
   const [invalid, setInvalid] = useState<Partial<Record<InvalidField, boolean>>>({});
   const [error, setError] = useState<string | null>(null);
+  const [passwordConfirmError, setPasswordConfirmError] = useState<string | null>(null);
   const [confirmPending, setConfirmPending] = useState(false);
 
   const requestPending = createAccount.isPending
@@ -104,61 +117,54 @@ export function HqAccountModal({ mode, account, onClose }: HqAccountModalProps) 
 
   const setField = <K extends keyof FormValues>(field: K, value: FormValues[K]) => {
     setValues((current) => ({ ...current, [field]: value }));
-    if (field === "fullName" || field === "hqRole" || field === "phone" || field === "username" || field === "password") {
-      const invalidField = field as InvalidField;
+    if ((INVALID_FIELDS as readonly string[]).includes(field)) {
+      // 비밀번호를 고치면 확인 칸 불일치 표시도 다시 판단하게 함께 지운다.
+      const cleared: InvalidField[] = field === "password" ? ["password", "passwordConfirm"] : [field as InvalidField];
       setInvalid((current) => {
-        if (!current[invalidField]) return current;
+        if (!cleared.some((name) => current[name])) return current;
         const next = { ...current };
-        delete next[invalidField];
+        for (const name of cleared) delete next[name];
         return next;
       });
+      setPasswordConfirmError(null);
     }
   };
 
+  // zod 스키마(hqAccountCreateSchema·hqAccountEditSchema)로 검증하고, 틀린 칸을 빨갛게 표시한다.
   const validate = () => {
-    const nextInvalid: Partial<Record<InvalidField, boolean>> = {};
-    const missing: string[] = [];
-    const fullName = values.fullName.trim();
-    const username = values.username.trim();
-    const phone = values.phone.trim();
-
-    if (!fullName) {
-      nextInvalid.fullName = true;
-      missing.push("이름");
-    }
-    if (!values.hqRole) {
-      nextInvalid.hqRole = true;
-      missing.push("역할");
-    }
-    if (!PHONE_PATTERN.test(phone)) {
-      nextInvalid.phone = true;
-      missing.push("전화번호");
-    }
-    if (mode === "create" && !username) {
-      nextInvalid.username = true;
-      missing.push("아이디");
-    }
-    if ((mode === "create" && !isValidPassword(values.password)) || (mode === "edit" && values.password && !isValidPassword(values.password))) {
-      nextInvalid.password = true;
-      missing.push(`비밀번호(${PASSWORD_RULE_TEXT})`);
-    }
-
-    if (missing.length > 0) {
+    const schema = mode === "create" ? hqAccountCreateSchema : hqAccountEditSchema;
+    const result = schema.safeParse(values);
+    if (!result.success) {
+      const nextInvalid: Partial<Record<InvalidField, boolean>> = {};
+      let confirmMessage: string | null = null;
+      for (const issue of result.error.issues) {
+        const field = issue.path[0];
+        if (typeof field === "string" && (INVALID_FIELDS as readonly string[]).includes(field)) {
+          nextInvalid[field as InvalidField] = true;
+          if (field === "passwordConfirm") confirmMessage ??= issue.message;
+        }
+      }
       setInvalid(nextInvalid);
-      setError(`${missing.join(", ")}을(를) 확인해 주세요`);
+      setPasswordConfirmError(confirmMessage);
+      const otherInvalid = INVALID_FIELDS.filter((name) => name !== "passwordConfirm" && nextInvalid[name]);
+      setError(otherInvalid.length > 0
+        ? `${otherInvalid.map((name) => FIELD_LABELS[name]).join(", ")}을(를) 확인해 주세요`
+        : confirmMessage);
       return null;
     }
 
     setInvalid({});
     setError(null);
+    setPasswordConfirmError(null);
+    const data = result.data;
     return {
-      fullName,
-      username,
-      phone,
-      hqRole: values.hqRole as HqRole,
-      password: values.password,
-      memo: values.memo.trim(),
-      isActive: values.isActive,
+      fullName: data.fullName,
+      username: data.username.trim(),
+      phone: data.phone,
+      hqRole: data.hqRole,
+      password: data.password,
+      memo: data.memo,
+      isActive: data.isActive,
     };
   };
 
@@ -327,7 +333,7 @@ export function HqAccountModal({ mode, account, onClose }: HqAccountModalProps) 
 
             <div className="col-span-2 my-[3px] h-px bg-line2" />
 
-            <div>
+            <div className="col-span-2">
               <FieldLabel required>아이디</FieldLabel>
               <Input
                 id="aId"
@@ -353,6 +359,25 @@ export function HqAccountModal({ mode, account, onClose }: HqAccountModalProps) 
                 className={invalid.password ? "border-red!" : ""}
                 onChange={(event) => setField("password", event.currentTarget.value)}
               />
+            </div>
+            <div>
+              <FieldLabel required={mode === "create"}>{mode === "create" ? "비밀번호 확인" : "비밀번호 변경 확인"}</FieldLabel>
+              <HqPasswordInput
+                key={`${mode}:${account?.userId ?? "create"}:confirm`}
+                id="aPwConfirm"
+                size="42"
+                variant="plain"
+                value={values.passwordConfirm}
+                placeholder="비밀번호를 한 번 더 입력"
+                maxLength={PASSWORD_MAX_LENGTH}
+                autoComplete="new-password"
+                className={invalid.passwordConfirm ? "border-red!" : ""}
+                aria-invalid={invalid.passwordConfirm || undefined}
+                onChange={(event) => setField("passwordConfirm", event.currentTarget.value)}
+              />
+              {passwordConfirmError ? (
+                <p className="mt-1.5 text-[12px] font-semibold leading-[normal] text-red">{passwordConfirmError}</p>
+              ) : null}
             </div>
 
             <div className="col-span-2">
