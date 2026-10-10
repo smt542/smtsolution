@@ -62,6 +62,11 @@ export interface AdjustmentOverdueInput {
   dueDate: string;
   /** 입주(세대)별 연체료 부과 여부. false 면 연체료·납기후 가산금 0. */
   lateFeeEnabled?: boolean;
+  /** 수동 연체료(null=자동 계산, 0291) */
+  lateFeeOverride?: number | null;
+  /** 수.연으로 나눈 연체료 합계 · 그중 미수금(0292). 원금을 다 냈어도 미수금은 미납연체료로 남는다. */
+  lateFeeSplitTotal?: number;
+  lateFeeSplitUnpaid?: number;
 }
 
 export interface AdjustmentBuildingInput {
@@ -234,7 +239,15 @@ export function buildAdjustmentStatementPages(
       // ── 미납·연체 매핑 (정본 /overdue 엔진) ───────────────────────────────
       const priorInputs: OverduePeriodInput[] = overdue
         .filter((row) => row.period < period)
-        .map((row) => ({ period: row.period, unpaidPrincipal: row.unpaidPrincipal, dueDate: row.dueDate, lateFeeEnabled: row.lateFeeEnabled }));
+        .map((row) => ({
+          period: row.period,
+          unpaidPrincipal: row.unpaidPrincipal,
+          dueDate: row.dueDate,
+          lateFeeEnabled: row.lateFeeEnabled,
+          lateFeeOverride: row.lateFeeOverride,
+          lateFeeSplitTotal: row.lateFeeSplitTotal,
+          lateFeeSplitUnpaid: row.lateFeeSplitUnpaid,
+        }));
       const currentRow = overdue.find((row) => row.period === period);
 
       // 미납액 = 전월까지 미납 원금 합계
@@ -249,6 +262,9 @@ export function buildAdjustmentStatementPages(
               unpaidPrincipal: currentRow.unpaidPrincipal,
               dueDate: currentRow.dueDate,
               lateFeeEnabled: currentRow.lateFeeEnabled,
+              lateFeeOverride: currentRow.lateFeeOverride,
+              lateFeeSplitTotal: currentRow.lateFeeSplitTotal,
+              lateFeeSplitUnpaid: currentRow.lateFeeSplitUnpaid,
             },
             tiers,
             asOfYear,

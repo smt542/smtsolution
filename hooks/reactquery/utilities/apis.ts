@@ -724,6 +724,11 @@ export interface PartnerMeterOverduePeriod {
   dueDate: string;
   /** 입주의 연체료 부과 여부(occupancies.late_fee_enabled). false 면 연체료 0. */
   lateFeeEnabled: boolean;
+  /** 수동 연체료(null=자동 계산, 0291) */
+  lateFeeOverride: number | null;
+  /** 수.연으로 나눈 연체료 합계 · 그중 미수금(0292) */
+  lateFeeSplitTotal: number;
+  lateFeeSplitUnpaid: number;
 }
 
 export interface PartnerMeterUnit {
@@ -773,7 +778,15 @@ interface PartnerMeterCardRpcRow {
   notes: Partial<Record<PartnerMeterUtility, string>> | null;
   usage_history: Partial<Record<PartnerMeterUtility, (number | null)[]>> | null;
   prev_usage_overrides?: Partial<Record<PartnerMeterUtility, number>> | null;
-  overdue_periods: { period: string; unpaid_principal: number; due_date: string; late_fee_enabled?: boolean }[] | null;
+  overdue_periods: {
+    period: string;
+    unpaid_principal: number;
+    due_date: string;
+    late_fee_enabled?: boolean;
+    late_fee_override?: number | null;
+    late_fee_split_total?: number | null;
+    late_fee_split_unpaid?: number | null;
+  }[] | null;
 }
 
 function groupPartnerMeterRows(
@@ -804,6 +817,9 @@ function groupPartnerMeterRows(
         unpaidPrincipal: Number(item.unpaid_principal),
         dueDate: item.due_date,
         lateFeeEnabled: item.late_fee_enabled ?? true,
+        lateFeeOverride: item.late_fee_override ?? null,
+        lateFeeSplitTotal: Number(item.late_fee_split_total ?? 0),
+        lateFeeSplitUnpaid: Number(item.late_fee_split_unpaid ?? 0),
       })),
     };
     unit.meters[row.utility] = {

@@ -179,6 +179,9 @@ export function useAdjustmentStatements(
         unpaidPrincipal: row.unpaidPrincipal,
         dueDate: row.dueDate,
         lateFeeEnabled: !lateFeeDisabledOccupancies.has(row.occupancyId),
+        lateFeeOverride: row.lateFeeOverride,
+        lateFeeSplitTotal: row.lateFeeSplitTotal,
+        lateFeeSplitUnpaid: row.lateFeeSplitUnpaid,
       })),
       paidDateByUnit,
     };
