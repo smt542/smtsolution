@@ -7,8 +7,11 @@ export const residentHomeClasses = {
   scroll: "min-h-0 flex-1 overflow-auto px-5 pb-[calc(env(safe-area-inset-bottom)+20px)] pt-3.5",
   // 최근 공지 캐러셀: 장(slide)은 배너 카드와 같은 모양, 5초마다 왼쪽으로 넘어간다.
   noticeCarousel: "mb-3 animate-[rise_0.5s_0.2s_cubic-bezier(0.22,0.61,0.36,1)_both]",
-  noticeViewport: "overflow-hidden rounded-[18px] shadow-[0_1px_2px_rgba(23,31,40,0.06)]",
+  // touch-action pan-y: 세로 스크롤은 브라우저에 맡기고 가로 끌기만 캐러셀이 받는다.
+  noticeViewport: "touch-pan-y select-none overflow-hidden rounded-[18px] shadow-[0_1px_2px_rgba(23,31,40,0.06)]",
   noticeTrack: "flex transition-transform duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] motion-reduce:transition-none",
+  // 끄는 동안: 손가락을 바로 따라오게 전환 효과를 끈다.
+  noticeTrackDragging: "!transition-none",
   noticeSlide: "flex w-full flex-none items-start gap-3 bg-white p-4 text-left text-inherit",
   noticeDots: "mt-2.5 flex items-center justify-center gap-1.5",
   noticeDotOff: "size-1.5 rounded-full bg-line transition-colors",
