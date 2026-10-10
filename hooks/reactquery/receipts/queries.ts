@@ -207,6 +207,7 @@ interface StatementPaymentDb {
   paid_at: string;
   status: "active" | "canceled";
   created_at: string;
+  replaced_by?: number | null;
 }
 
 interface StatementDocumentDb {
@@ -319,6 +320,7 @@ function mapStatementData(response: StatementRpcResponse): ReceiptStatementData 
     paidAt: row.paid_at,
     status: row.status,
     createdAt: row.created_at,
+    replacedBy: row.replaced_by ?? null,
   }));
   const documents = (response.documents ?? []).map((row) => ({
     period: row.period,

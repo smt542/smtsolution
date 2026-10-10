@@ -35,6 +35,8 @@ export interface HistoryDisplayRow {
   lateOnly: boolean;
   cancelRequested: boolean;
   cancelCompleted: boolean;
+  /** 삭제(취소)된 수납을 저장 시 되살리도록 예약 */
+  restoreRequested: boolean;
   saved: boolean;
 }
 
@@ -170,6 +172,7 @@ export function buildHistoryRows(
     lateOnly: false,
     cancelRequested: false,
     cancelCompleted: false,
+    restoreRequested: false,
     saved: false,
   });
 

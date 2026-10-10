@@ -20,6 +20,8 @@ export interface RecordPaymentInput {
 export interface UnitPayment {
   id: number; amount: number; fee: number; method: PaymentMethod; kind: PaymentKind;
   memo: string | null; paidAt: string; status: "active" | "canceled"; createdAt: string;
+  /** 수정으로 대체된 취소 건이면 대체한 새 수납 id (되살리기 불가) */
+  replacedBy?: number | null;
 }
 export interface GiroPayment {
   id: number; unitId: number; buildingId: number; buildingName: string;
@@ -61,6 +63,7 @@ type BalanceDb = { charged: number | null; paid: number; unpaid: number | null }
 type UnitPaymentDb = {
   id: number; amount: number; fee: number; method: PaymentMethod; kind: PaymentKind;
   memo: string | null; paid_at: string; status: "active" | "canceled"; created_at: string;
+  replaced_by: number | null;
 };
 type GiroPaymentDb = {
   id: number; unit_id: number; unit_no: string; dong: string | null;
@@ -128,15 +131,16 @@ export async function cancelPayment(paymentId: number): Promise<PaymentBalance> 
 
 export type PaymentHistoryOp =
   | { op: "cancel"; paymentId: number }
+  | { op: "restore"; paymentId: number }
   | ({ op: "record" } & RecordPaymentInput)
   | ({ op: "edit" } & RecordPaymentEditInput);
 
-export interface SavePaymentHistoryResult { canceled: number; recorded: number; edited: number; }
+export interface SavePaymentHistoryResult { canceled: number; recorded: number; edited: number; restored: number; }
 
-/** 수납 이력 일괄 저장: 취소·추가·수정을 한 트랜잭션(save_payment_history)으로 처리. 하나라도 실패하면 전부 롤백. */
+/** 수납 이력 일괄 저장: 취소·되살리기·추가·수정을 한 트랜잭션(save_payment_history)으로 처리. 하나라도 실패하면 전부 롤백. */
 export async function savePaymentHistory(ops: PaymentHistoryOp[]): Promise<SavePaymentHistoryResult> {
   const payload = ops.map((op) => {
-    if (op.op === "cancel") return { op: "cancel", payment_id: op.paymentId };
+    if (op.op === "cancel" || op.op === "restore") return { op: op.op, payment_id: op.paymentId };
     return {
       op: op.op,
       ...(op.op === "edit" ? { old_payment_id: op.oldPaymentId } : {}),
@@ -147,7 +151,7 @@ export async function savePaymentHistory(ops: PaymentHistoryOp[]): Promise<SaveP
   const { data, error } = await createClient().rpc("save_payment_history", { p_ops: payload });
   if (error) throw new Error(error.message);
   const r = data as SavePaymentHistoryResult;
-  return { canceled: r.canceled, recorded: r.recorded, edited: r.edited };
+  return { canceled: r.canceled, recorded: r.recorded, edited: r.edited, restored: r.restored ?? 0 };
 }
 
 export async function listUnitPayments(unitId: number, period: string): Promise<UnitPayment[]> {
@@ -156,6 +160,7 @@ export async function listUnitPayments(unitId: number, period: string): Promise<
   return ((data ?? []) as UnitPaymentDb[]).map((r) => ({
     id: r.id, amount: r.amount, fee: r.fee ?? 0, method: r.method, kind: r.kind,
     memo: r.memo, paidAt: r.paid_at, status: r.status, createdAt: r.created_at,
+    replacedBy: r.replaced_by ?? null,
   }));
 }
 export interface BuildingPaymentDate {

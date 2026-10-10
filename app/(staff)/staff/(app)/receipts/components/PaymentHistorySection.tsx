@@ -247,6 +247,7 @@ export function PaymentHistorySection({
       lateOnly: false,
       cancelRequested: false,
       cancelCompleted: false,
+      restoreRequested: false,
       saved: false,
     };
   };
@@ -314,6 +315,7 @@ export function PaymentHistorySection({
         lateOnly: true,
         cancelRequested: false,
         cancelCompleted: false,
+        restoreRequested: false,
         saved: false,
       };
       setDraftRows((current) => {
@@ -367,6 +369,13 @@ export function PaymentHistorySection({
     }
   };
 
+  /** 삭제(취소)된 수납 되살리기 예약 토글 — 수정으로 대체된 취소 건은 대상이 아니다. */
+  const toggleRestore = (key: string) => {
+    const row = draftRows.find((candidate) => candidate.key === key);
+    if (!row || row.payment?.status !== "canceled" || row.payment.replacedBy) return;
+    updateRow(key, (current) => ({ ...current, restoreRequested: !current.restoreRequested }));
+  };
+
   const updateFields = (key: string, patch: Partial<PaymentFields>) => {
     updateRow(key, (row) => ({ ...row, fields: { ...row.fields, ...patch }, saved: false }));
   };
@@ -401,6 +410,10 @@ export function PaymentHistorySection({
 
     const ops: PaymentHistoryOp[] = [];
     for (const row of draftRows) {
+      if (row.restoreRequested && row.payment?.status === "canceled") {
+        ops.push({ op: "restore", paymentId: row.payment.id });
+        continue;
+      }
       if (
         row.cancelRequested
         && row.payment?.status === "active"
@@ -446,7 +459,14 @@ export function PaymentHistorySection({
       setDraftRows([]);
       setFocusRowKey(null);
       const addedCount = result?.recorded ?? 0;
-      toast.success(addedCount > 0 ? `${addedCount}건이 추가되었어요` : "수납 이력을 저장했어요");
+      const restoredCount = result?.restored ?? 0;
+      toast.success(
+        addedCount > 0
+          ? `${addedCount}건이 추가되었어요`
+          : restoredCount > 0
+            ? `${restoredCount}건을 되살렸어요`
+            : "수납 이력을 저장했어요",
+      );
     } catch (error) {
       toast.error(error, "저장하지 못했어요");
     }
@@ -528,7 +548,22 @@ export function PaymentHistorySection({
   const renderActionCell = (row: HistoryDisplayRow) => {
     const canceled = row.payment?.status === "canceled" || row.cancelCompleted;
     const disabled = isPaymentMutationPending || row.saved;
-    if (canceled) return null;
+    if (canceled) {
+      // 삭제한 수납은 되살릴 수 있다(수정으로 대체된 취소 건 제외).
+      if (row.payment?.status !== "canceled" || row.payment.replacedBy) return null;
+      return (
+        <div className="whitespace-nowrap">
+          <button
+            type="button"
+            onClick={() => toggleRestore(row.key)}
+            disabled={disabled}
+            className={row.restoreRequested ? ACT_CLASS : ACT_PRI_CLASS}
+          >
+            {row.restoreRequested ? "되돌리기" : "되살리기"}
+          </button>
+        </div>
+      );
+    }
     return (
       <div className="whitespace-nowrap">
         {(row.draftSource === "added" || row.draftSource === "split" || row.draftSource === "summary") && !row.saved ? (
@@ -586,6 +621,8 @@ export function PaymentHistorySection({
     const canceled = row.payment?.status === "canceled" || row.cancelCompleted;
     const reserved = row.cancelRequested;
     const fieldsDisabled = canceled || reserved || row.saved || isPaymentMutationPending;
+    // 되살리기 예약한 취소 건은 음영을 걷어 저장 후 모습을 미리 보여준다.
+    const dimmed = (canceled && !row.restoreRequested) || reserved;
     const unpaid = Math.max(row.rowSummary?.unpaid ?? 0, 0);
     const isUnpaid = row.rowSummary ? unpaid + row.lateFee > 0 : row.lateOnly && row.lateFee > 0;
     const td = `${TD_BASE} ${isEditing ? TD_EDIT_PAD : TD_VIEW_PAD}`;
@@ -594,7 +631,7 @@ export function PaymentHistorySection({
     return (
       <tr
         key={row.key}
-        className={`leading-[normal] [&:hover>td]:bg-row-hover ${canceled || reserved ? "opacity-50" : ""}`}
+        className={`leading-[normal] [&:hover>td]:bg-row-hover ${dimmed ? "opacity-50" : ""}`}
       >
         {/* 정본 `tr.unpaid>td:first-child` — 편집 모드에선 처리 칸이 첫 칸이다. */}
         {isEditing && (
