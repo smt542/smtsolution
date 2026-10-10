@@ -150,8 +150,15 @@ export function buildHistoryRows(
   tiers: RateTier[],
   lateFeeOptions: LateFeeRowOptions = {},
 ): HistoryDisplayRow[] {
+  // 서버는 조회 기간의 모든 달을 한 줄씩 준다. 부과(확정)도 수납도 없는 달은 0원 행으로 보여 데이터 오류처럼
+  // 보이므로 뺀다. 지금 보고 있는 달은 고지 확정 전이어도 수납을 입력할 수 있게 남긴다.
   const sortedSummaries = historySummaries?.length
-    ? [...historySummaries].sort((left, right) => right.period.localeCompare(left.period))
+    ? [...historySummaries]
+        .filter((row) =>
+          row.charged != null
+          || row.period === period
+          || payments.some((payment) => (payment.period ?? period) === row.period))
+        .sort((left, right) => right.period.localeCompare(left.period))
     : [];
 
   const makeRow = (
