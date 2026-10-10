@@ -205,14 +205,17 @@ export function ManagementFeeWorkspace() {
     await saveAndConfirm();
   };
 
-  // 정책 3.6 공과금 계산: 수도·전기·가스가 모두 확정되고 재산정 필요가 아닐 때만 세대별 관리비에 반영한다.
+  // 세대 부과액(수동 우선, 없으면 자동 계산). 공과금 관리에서 아직 입력하지 않은 세대는 null.
+  const utilityCharge = (row: { manualCharge: number | null; automaticCharge: number | null }) =>
+    row.manualCharge ?? row.automaticCharge;
+
+  // 정책 3.6 공과금 계산(2026-10-10 변경): 별도 확정 없이, 공과금 관리에 이번 달 부과액이 있는
+  // 공과금만 세대별 관리비에 반영한다. 셋 다 값이 없을 때만 안내 모달을 띄운다.
   const calculateUtilities = () => {
     if (!buildingId) return;
-    const allReady = (["water", "electricity", "gas"] as const).every((type) => {
-      const confirmation = utilityConfirmations[type];
-      return confirmation !== null && !confirmation.isDirty;
-    });
-    if (!allReady) {
+    const readyTypes = (["water", "electricity", "gas"] as const).filter((type) =>
+      utilityRows[type].some((row) => utilityCharge(row) != null));
+    if (readyTypes.length === 0) {
       setDialog("utility-missing");
       return;
     }
@@ -224,18 +227,20 @@ export function ManagementFeeWorkspace() {
     };
     setChargeDrafts((current) => {
       const next = { ...current };
-      (["water", "electricity", "gas"] as const).forEach((type) => {
+      readyTypes.forEach((type) => {
         const column = columnByType[type];
         if (!column) return;
         utilityRows[type].forEach((row) => {
           const unit = unitsById.get(row.unitId);
-          if (!unit) return;
+          const amount = utilityCharge(row);
+          // 부과액이 없는 세대는 기존 입력값을 덮어쓰지 않는다.
+          if (!unit || amount == null) return;
           next[row.unitId] = {
             ...next[row.unitId],
             [column.feeItemId]: {
               charged: !unit.isVacant,
               // 세대별 수동 부과액 우선, 없으면 자동 계산 부과액.
-              amount: row.manualCharge ?? row.automaticCharge ?? 0,
+              amount,
             },
           };
         });
