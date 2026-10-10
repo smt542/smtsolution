@@ -111,8 +111,9 @@ export function InquiryView({ buildings, tenants }: { buildings: BuildingRow[]; 
                   {t.building_name} {unitLabel(t.dong, t.unit_no)}
                 </div>
                 {[t.phone, ...t.phones_more].filter((phone): phone is string => Boolean(phone)).map((phone, index) => (
-                  <div key={`${phone}-${index}`} className={styles.trow}>
-                    <span className={styles.trowLabel}>{index === 0 ? "연락처" : "부번호"}</span>
+                  // 첫 번호만 「연락처」 라벨, 나머지 번호는 라벨 없이 바로 아래 오른쪽에 붙인다.
+                  <div key={`${phone}-${index}`} className={index === 0 ? styles.trow : styles.trowMore}>
+                    {index === 0 ? <span className={styles.trowLabel}>연락처</span> : null}
                     <PartnerPhoneLink
                       phone={phone}
                       pushRight

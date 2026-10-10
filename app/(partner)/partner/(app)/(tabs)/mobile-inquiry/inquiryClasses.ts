@@ -19,5 +19,6 @@ export const inquiryClasses = {
   tname: "text-[16px] font-extrabold tracking-[-0.01em]",
   taddr: "mt-[5px] text-[13.5px] font-medium text-t3",
   trow: "mt-[11px] flex items-center gap-2",
+  trowMore: "mt-1.5 flex items-center gap-2",
   trowLabel: "w-16 flex-none text-[12px] font-bold text-t3",
 } as const;
