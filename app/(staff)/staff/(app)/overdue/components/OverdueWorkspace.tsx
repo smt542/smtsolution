@@ -230,11 +230,9 @@ export function OverdueWorkspace({
       ]);
     }
 
-    // 상세링크는 정본 본문에 없는 앱 전용 변수다. 만들지 못해도(예: 세입자 앱 origin 미설정)
-    // 발송 자체를 막지 않는다 — 링크만 비우고 진행한다. 예전에는 여기서 던져
-    // "미납 고지서 상세 링크를 만들지 못했습니다" 토스트만 뜨고 패널이 아예 안 열렸다.
-    let signedByUnitId = new Map<number, Awaited<ReturnType<typeof signBillUrls.mutateAsync>>[number]>();
-    let origin = "";
+    // 정책: 토큰 발급 실패 시 작업창을 열거나 성공 처리하지 않고 오류를 표시한다.
+    let signedByUnitId: Map<number, Awaited<ReturnType<typeof signBillUrls.mutateAsync>>[number]>;
+    let origin: string;
     try {
       const signedGroups = await Promise.all(
         [...unitIdsByPeriod].map(([period, unitIds]) =>
@@ -244,7 +242,9 @@ export function OverdueWorkspace({
       signedByUnitId = new Map(signedGroups.flat().map((link) => [link.unitId, link]));
       origin = residentOrigin();
     } catch (error) {
-      console.error("미납 고지서 상세 링크 생성 실패 — 링크 없이 진행합니다", error);
+      console.error("미납 고지서 상세 링크 생성 실패", error);
+      toast.error("미납 고지서 상세 링크를 만들지 못했습니다.");
+      return;
     }
 
     {

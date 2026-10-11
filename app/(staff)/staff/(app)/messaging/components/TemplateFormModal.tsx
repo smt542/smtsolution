@@ -148,7 +148,7 @@ function TemplateForm({
         ]
       : [];
     const extra = {
-      category: channelType === "alimtalk" ? category : null,
+      category,
       channelType,
       alimtalkTemplateCode:
         channelType === "alimtalk" ? alimtalkTemplateCode.trim() || null : null,
@@ -213,15 +213,13 @@ function TemplateForm({
                 options={CHANNEL_OPTIONS}
                 onChange={(value) => setChannelType(value)}
               />
-              {channelType === "alimtalk" && (
-                <SelectMenu
-                  ariaLabel="발송 구분"
-                  className="flex-1"
-                  value={category}
-                  options={CATEGORY_OPTIONS}
-                  onChange={(value) => setCategory(value)}
-                />
-              )}
+              <SelectMenu
+                ariaLabel="발송 구분"
+                className="flex-1"
+                value={category}
+                options={CATEGORY_OPTIONS}
+                onChange={(value) => setCategory(value)}
+              />
             </div>
           </div>
 

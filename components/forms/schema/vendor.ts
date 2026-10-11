@@ -13,5 +13,14 @@ export const vendorSchema = z.object({
   ]).refine((value): value is number => value !== null, "구분을 선택해 주세요"),
 });
 
+// 정책: 사용자 추가 구분은 담당자 필수(기본 9종은 담당자 입력 없음).
+export function createVendorSchema(isCustomCategory: boolean) {
+  return vendorSchema.superRefine((value, ctx) => {
+    if (isCustomCategory && !value.manager) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["manager"], message: "담당자를 입력해 주세요" });
+    }
+  });
+}
+
 export type VendorFormInput = z.input<typeof vendorSchema>;
 export type VendorFormValues = z.output<typeof vendorSchema>;

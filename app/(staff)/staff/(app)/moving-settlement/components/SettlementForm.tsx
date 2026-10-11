@@ -58,7 +58,6 @@ export function SettlementForm({
   paymentInputRef = EMPTY_INPUT_REF,
   bodyRef,
   billingUnpaid = 0,
-  cleaningCost = null,
 }: {
   buildingName?: string;
   buildingTypeId?: number | null;
@@ -82,8 +81,6 @@ export function SettlementForm({
   bodyRef?: RefObject<HTMLDivElement | null>;
   /** 확정 부과분 미납(0171). 하단 요약바의 미납 소계·미수금에 쓴다. */
   billingUnpaid?: number;
-  /** 청소비(조회 화면 입력값). 정산요금 ④ 에 포함된다. */
-  cleaningCost?: number | null;
 }) {
   // 관리비 소계는 관리비 항목(fee_items)x당월 부과액에서 계산된다. 섹션 표시값과
   // 하단 요약바/미수금/저장값이 어긋나지 않도록 계산 결과를 draft 에 되돌려 넣어
@@ -118,9 +115,16 @@ export function SettlementForm({
     key: K,
     next: SettlementDraft[K],
   ) => onChange({ ...value, [key]: next });
+  // ③ 기타 소계 = 기타 항목 금액 합계(0302). ④ 청소비 = 청소금액(cleaning_cost, 전체 이사조회 청소비와 같은 값).
+  const otherTotal = value.etcItems.reduce((sum, item) => sum + (item.amount ?? 0), 0);
+  const cleaningCost = value.cleaningCost ?? null;
+  // ② 관리비 소계 = 정산액 합 + 가수금(현장 관리자 정책 3.3, partner 와 같은 정의).
+  const managementSubtotal = (value.mgmtFeeProrated ?? 0) + (value.advance ?? 0);
   // 정산요금 = 수납 차감 전 ①+②+③미납+④청소비·기타 (settlement_amount 정의, 0266).
   const amount = calculateSettlementAmount({
     ...value,
+    mgmtFeeProrated: managementSubtotal,
+    repairAmount: otherTotal,
     cleaningCost,
     unpaidAmount: billingUnpaid,
   });
@@ -172,6 +176,8 @@ export function SettlementForm({
             monthly={value.mgmtFeeMonthly}
             prorated={value.mgmtFeeProrated}
             contactPhone={contactPhone}
+            advance={value.advance}
+            onAdvanceChange={(next) => set("advance", next)}
             onMonthlyChange={setMonthly}
             onProratedChange={(next) => set("mgmtFeeProrated", next)}
           />
@@ -192,8 +198,8 @@ export function SettlementForm({
 
       <SettlementSummaryBar
         utilityTotal={(value.waterCharge ?? 0) + (value.elecCharge ?? 0) + (value.gasCharge ?? 0)}
-        managementTotal={value.mgmtFeeProrated ?? 0}
-        otherTotal={value.repairAmount ?? 0}
+        managementTotal={managementSubtotal}
+        otherTotal={otherTotal}
         cleaningTotal={cleaningCost ?? 0}
         receivedAmount={receivedAmount}
         total={amount}

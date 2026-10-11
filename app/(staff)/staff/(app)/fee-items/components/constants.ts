@@ -12,10 +12,15 @@ export const ROUNDING_OPTIONS: { value: RoundingRule; label: string }[] = [
 
 export const REQUIRED_ITEM_NAMES = ["전기", "수도료", "가스"] as const;
 
-// 정본: 새 항목은 반올림·일자계산·이월을 비워 두고('선택') 셋 다 골라야 추가된다.
-export const DEFAULT_FORM_VALUE = {
+// 정책: 새 항목 기본값은 일반형(4사5입·적용·안함). 수정 시에는 기존 값을 그대로 쓴다.
+export const DEFAULT_FORM_VALUE: {
+  name: string;
+  rounding: RoundingRule;
+  dailyProration: boolean;
+  carryOver: boolean;
+} = {
   name: "",
-  rounding: undefined,
-  dailyProration: undefined,
-  carryOver: undefined,
+  rounding: "round",
+  dailyProration: true,
+  carryOver: false,
 };

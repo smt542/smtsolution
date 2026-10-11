@@ -2,7 +2,11 @@
 
 import { useMemo } from "react";
 import type { Building } from "@/hooks/reactquery/buildings";
-import type { NoticeSummary, NoticeType } from "@/hooks/reactquery/notices";
+import {
+  useNoticeSendSummaries,
+  type NoticeSummary,
+  type NoticeType,
+} from "@/hooks/reactquery/notices";
 import { getNoticeCreatorLabel } from "../utils";
 
 const TYPE_TABS: Array<{ value: NoticeType | "all"; label: string }> = [
@@ -26,6 +30,12 @@ function formatPublishDate(value: string | null | undefined): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}.${m}.${day}`;
+}
+
+/** 알림톡 셀: 발송 이력이 있으면 "발송 완료 · N명"(실패면 "발송 실패 · N명"), 없으면 "발송 대기". */
+function formatAlimtalkCell(summary: { count: number; result: string } | undefined): string {
+  if (!summary) return "발송 대기";
+  return `${summary.result === "failed" ? "발송 실패" : "발송 완료"} · ${summary.count}명`;
 }
 
 export function NoticeList({
@@ -55,6 +65,10 @@ export function NoticeList({
     () => new Map(buildings.map((b) => [b.id, b.name])),
     [buildings],
   );
+  // 알림톡 열: 현재 페이지 공지들의 최근 발송 요약을 한 번에 조회한다.
+  const noticeIds = useMemo(() => notices.map((n) => n.id), [notices]);
+  const sendSummariesQuery = useNoticeSendSummaries(noticeIds);
+  const sendSummaries = sendSummariesQuery.data;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
@@ -150,7 +164,7 @@ export function NoticeList({
                       {formatPublishDate(notice.publishedAt)}
                     </td>
                     <td className="px-[16px] py-[10px] text-[13.5px] text-[#191f28] whitespace-nowrap">
-                      -
+                      {sendSummaries ? formatAlimtalkCell(sendSummaries[notice.id]) : "-"}
                     </td>
                     <td className="px-[16px] py-[10px] text-[13.5px] text-[#191f28] whitespace-nowrap">
                       {getNoticeCreatorLabel(notice)}

@@ -8,8 +8,6 @@ interface BuildingPickerListProps {
   onSearch: (value: string) => void;
   selectedIds: ReadonlySet<number>;
   onToggle: (id: number) => void;
-  /** 정본 `.pm-all` — 검색과 무관하게 목록 전체를 선택/해제한다. */
-  onToggleAll: () => void;
 }
 
 /** 정본 `.pm-ck` — 17px 체크박스(선택 시 청록 + 흰 체크). */
@@ -29,8 +27,8 @@ function PickerCheck({ on }: { on: boolean }) {
   );
 }
 
-/** 좌측 건물 선택 패널(정본 `.pm-left`) — 코드·건물명·주소 검색 + 다중 선택. */
-export function BuildingPickerList({ buildings, search, onSearch, selectedIds, onToggle, onToggleAll }: BuildingPickerListProps) {
+/** 좌측 건물 선택 패널(정본 `.pm-left`) — 코드·건물명·주소 검색 + 단일 선택. */
+export function BuildingPickerList({ buildings, search, onSearch, selectedIds, onToggle }: BuildingPickerListProps) {
   const keyword = search.trim().toLocaleLowerCase("ko-KR");
   const visible = keyword
     ? buildings.filter((building) =>
@@ -39,8 +37,6 @@ export function BuildingPickerList({ buildings, search, onSearch, selectedIds, o
           .includes(keyword),
       )
     : buildings;
-  const selectedCount = buildings.filter((building) => selectedIds.has(building.id)).length;
-  const allSelected = buildings.length > 0 && selectedCount === buildings.length;
 
   return (
     <div className="flex w-[340px] shrink-0 flex-col border-r border-line bg-[#fbfcfd] leading-[normal]">
@@ -62,18 +58,6 @@ export function BuildingPickerList({ buildings, search, onSearch, selectedIds, o
           className="absolute left-[16px] top-[14px] h-[40px] w-[307px] rounded-[11px] border border-line bg-white pl-[34px] pr-[12px] text-[13.5px] font-semibold text-t1 placeholder:text-[#757575] focus:border-brand focus:outline-none"
         />
       </div>
-      <button
-        type="button"
-        onClick={onToggleAll}
-        aria-pressed={allSelected}
-        className="group mb-[4px] flex shrink-0 items-center gap-[9px] border-b border-line2 px-[14px] py-[9px] text-left"
-      >
-        <PickerCheck on={allSelected} />
-        <b className={`text-[13.5px] font-bold ${allSelected ? "text-t1" : "text-t2 group-hover:text-t1"}`}>건물 전체</b>
-        <i className="ml-auto text-[12px] font-bold not-italic tabular-nums text-t3">
-          {selectedCount > 0 ? `${selectedCount}곳 선택` : ""}
-        </i>
-      </button>
       <div role="group" aria-label="출력할 건물" className="flex min-h-0 flex-1 flex-col gap-[2px] overflow-y-auto p-[8px]">
         {visible.length === 0 ? (
           <p className="px-[14px] py-[28px] text-center text-[13px] font-semibold text-t3">검색 결과가 없어요</p>

@@ -73,6 +73,9 @@ export type PartnerSettlement = {
   gasCharge: number | null;
   elecPaidDate: string | null;
   gasPaidDate: string | null;
+  /** 기타 소계·항목명(0302 이전 사무실 저장 건은 extra.etcItems 없이 이 두 값만 있다). */
+  repairAmount: number | null;
+  repairMemo: string | null;
   extra: MSExtra | null;
 };
 
@@ -323,7 +326,10 @@ export function initialState(ctx: PartnerSettlementContext): MSState {
     etcItems:
       extra?.etcItems && extra.etcItems.length > 0
         ? extra.etcItems.map((x) => ({ name: x.name, amount: x.amount || 0 }))
-        : [{ name: "", amount: 0 }],
+        : // 기타 목록이 없는 예전 사무실 저장 건은 단일 기타(repair_memo/repair_amount)를 1행으로 연다 — 비워 두면 저장 때 기타가 사라진다.
+          saved && (saved.repairMemo || saved.repairAmount)
+          ? [{ name: saved.repairMemo ?? "", amount: saved.repairAmount || 0 }]
+          : [{ name: "", amount: 0 }],
     clnBy: extra?.cleaning?.by ?? "",
     clnStatus: extra?.cleaning?.status ?? "미결",
     clnDone: extra?.cleaning?.doneDate ?? "",
@@ -424,6 +430,8 @@ type SettlementJson = {
   gas_charge: number | null;
   elec_paid_date: string | null;
   gas_paid_date: string | null;
+  repair_amount?: number | null;
+  repair_memo?: string | null;
   extra: MSExtra | null;
 };
 
@@ -483,6 +491,8 @@ export function mapContext(r: ContextJson): PartnerSettlementContext {
           gasCharge: s.gas_charge,
           elecPaidDate: s.elec_paid_date,
           gasPaidDate: s.gas_paid_date,
+          repairAmount: s.repair_amount ?? null,
+          repairMemo: s.repair_memo ?? null,
           extra: s.extra ?? null,
         }
       : null,

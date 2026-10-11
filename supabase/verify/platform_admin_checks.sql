@@ -139,3 +139,45 @@ begin
 
   raise notice 'Popbill platform billing checks passed';
 end $$;
+
+-- ===== 0297 정책 위배 반영: 권한·감사 로그 =====
+do $$
+begin
+  -- 4-1: platform_settings 직접 쓰기 차단(쓰기는 platform_update_settings RPC 만)
+  if exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'platform_settings'
+             and policyname = 'platform_settings_platform_all') then
+    raise exception 'platform_settings_platform_all policy must be dropped';
+  end if;
+  if exists (select 1 from information_schema.role_table_grants
+             where table_schema = 'public' and table_name = 'platform_settings' and grantee = 'authenticated'
+               and privilege_type in ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE')) then
+    raise exception 'authenticated must not have write grants on platform_settings';
+  end if;
+
+  -- 1-22: billing_period_settings 쓰기는 utilities 또는 billing
+  if not exists (select 1 from pg_policies where tablename = 'billing_period_settings' and policyname = 'bps_write'
+                 and qual like '%''utilities''%' and qual like '%''billing''%') then
+    raise exception 'bps_write must allow utilities or billing';
+  end if;
+
+  -- 1-28: late_fee_rate_tiers 쓰기는 settings + 교체 RPC
+  if not exists (select 1 from pg_policies where tablename = 'late_fee_rate_tiers' and policyname = 'lfrt_write'
+                 and qual like '%''settings''%' and qual not like '%''billing''%') then
+    raise exception 'lfrt_write must require settings module';
+  end if;
+  if to_regprocedure('public.replace_late_fee_rate_tiers(bigint,jsonb)') is null then
+    raise exception 'replace_late_fee_rate_tiers rpc is missing';
+  end if;
+
+  -- 3-2: 현장 A/S 등록·삭제 감사 로그
+  if pg_get_functiondef('public.partner_create_complaint(bigint,bigint,bigint,text,text,timestamptz,text,text)'::regprocedure)
+     not like '%COMPLAINT_PARTNER_CREATE%' then
+    raise exception 'partner_create_complaint must write audit_log';
+  end if;
+  if pg_get_functiondef('public.partner_delete_complaint(bigint)'::regprocedure)
+     not like '%COMPLAINT_PARTNER_DELETE%' then
+    raise exception 'partner_delete_complaint must write audit_log';
+  end if;
+
+  raise notice '0297 permission/audit checks passed';
+end $$;

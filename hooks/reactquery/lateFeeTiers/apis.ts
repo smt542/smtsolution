@@ -51,28 +51,20 @@ export async function listLateFeeRateTiers(
   return (data ?? []).map(rowToLateFeeRateTier);
 }
 
-/** org 요율표 전체 교체: 기존 삭제 후 신규 삽입. */
+/** org 요율표 전체 교체: 서버 RPC 한 트랜잭션(삭제+삽입, settings 권한 검사). */
 export async function replaceLateFeeRateTiers(
   orgId: number,
   tiers: LateFeeRateTierInput[],
 ): Promise<void> {
-  const client = createClient();
-  const deletion = await client
-    .from("late_fee_rate_tiers")
-    .delete()
-    .eq("org_id", orgId);
+  const { error } = await createClient().rpc("replace_late_fee_rate_tiers", {
+    p_org_id: orgId,
+    p_tiers: tiers.map((tier) => ({
+      tierOrder: tier.tierOrder,
+      fromMonth: tier.fromMonth,
+      toMonth: tier.toMonth,
+      monthlyRate: tier.monthlyRate,
+    })),
+  });
 
-  if (deletion.error) throw new Error(deletion.error.message);
-  if (tiers.length === 0) return;
-
-  const rows = tiers.map((tier) => ({
-    org_id: orgId,
-    tier_order: tier.tierOrder,
-    from_month: tier.fromMonth,
-    to_month: tier.toMonth,
-    monthly_rate: tier.monthlyRate,
-  }));
-  const insertion = await client.from("late_fee_rate_tiers").insert(rows);
-
-  if (insertion.error) throw new Error(insertion.error.message);
+  if (error) throw new Error(error.message);
 }

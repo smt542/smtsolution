@@ -47,7 +47,7 @@ function isNewOccupancy(moveInDate: string | null, referenceDate: string): boole
 }
 
 function inputClass(): string {
-  return "num h-[26px] rounded-[7px] border border-teal bg-white px-[7px] text-right text-[11.5px] font-semibold text-t1 outline-none placeholder:font-medium placeholder:text-t3";
+  return "num h-[26px] rounded-[7px] border border-teal bg-white px-[7px] text-right text-[11.5px] font-semibold text-t1 outline-none placeholder:font-medium placeholder:text-t3 disabled:border-line disabled:bg-bg disabled:text-t4";
 }
 
 interface ElectricityReadingsGridRow {
@@ -179,6 +179,7 @@ export function ElectricityReadingsTable({
           min="0"
           step="0.01"
           value={item.draft.currentReading}
+          disabled={item.vacant || item.draft.usageLocked}
           placeholder="-"
           onChange={(event) => onDraftChange(item.row.unitId, { currentReading: event.target.value, ...(!item.draft.usageEdited ? { usage: usageTextFromReadings(item.draft.previousReading, event.target.value) } : {}) })}
           className={`${inputClass()} w-full`}

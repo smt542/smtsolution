@@ -12,6 +12,7 @@ export function DateField({
   value,
   onChange,
   full,
+  error,
 }: {
   label: string;
   required?: boolean;
@@ -19,6 +20,8 @@ export function DateField({
   value?: string;
   onChange?: (v: string) => void;
   full?: boolean;
+  /** 필드 아래에 보여 줄 검증 오류. */
+  error?: string;
 }) {
   return (
     <div className={`flex flex-col ${full ? "col-span-2" : ""}`}>
@@ -30,10 +33,15 @@ export function DateField({
           placeholder={placeholder}
           ariaLabel={label}
           className="w-full"
-          triggerClassName="flex h-[42px] w-full items-center justify-between gap-[8px] rounded-[10px] border border-line bg-surface px-[13px] text-[13.5px] font-semibold leading-[normal] text-t1 outline-none"
+          triggerClassName={`flex h-[42px] w-full items-center justify-between gap-[8px] rounded-[10px] border bg-surface px-[13px] text-[13.5px] font-semibold leading-[normal] text-t1 outline-none ${error ? "border-red" : "border-line"}`}
           triggerOpenClassName="border-teal shadow-[0_0_0_3px_var(--color-teal-t)]"
           endAdornment={<CalendarIcon variant="building-register" className="size-[16px] shrink-0 text-t3" />}
         />
+        {error && (
+          <p role="alert" className="pt-[6px] text-[12px] font-semibold leading-[normal] text-red">
+            {error}
+          </p>
+        )}
       </div>
     </div>
   );

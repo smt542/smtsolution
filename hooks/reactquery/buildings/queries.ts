@@ -4,6 +4,7 @@ import {
   listBuildings,
   listAllBuildings,
   getBuildingFull,
+  getBuildingDeleteImpact,
   isBuildingCodeTaken,
   type BuildingListParams,
   type BuildingListResult,
@@ -40,4 +41,13 @@ export function useStaffOptions() {
     queryKey: buildingKeys.staffOptions(),
     queryFn: () => listAccounts(),
   });
+}
+
+/** 삭제 확인창을 열 때 조회한다(fetchQuery) — 이력이 바뀌었을 수 있어 항상 새로 받는다. */
+export function buildingDeleteImpactQuery(id: number) {
+  return {
+    queryKey: buildingKeys.deleteImpact(id),
+    queryFn: () => getBuildingDeleteImpact(id),
+    staleTime: 0,
+  };
 }

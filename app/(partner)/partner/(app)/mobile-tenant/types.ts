@@ -21,6 +21,8 @@ export type PaymentRow = {
   charged: number;
   paid: number;
   unpaid: number;
+  /** 이 달 수.연 연체료 미수금. 원금을 다 냈어도 이 값이 남으면 미납 달. */
+  late_fee_split_unpaid: number;
   last_paid_at: string | null;
   methods: string | null;
   memo: string | null;

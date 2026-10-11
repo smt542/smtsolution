@@ -7,7 +7,14 @@ import { VendorCategorySidebar } from "./VendorCategorySidebar";
 import { VendorList } from "./VendorList";
 import { VendorFormModal } from "./VendorFormModal";
 import { vendorClasses } from "./vendorClasses";
-import { useVendorCategories } from "@/hooks/reactquery/vendorCategories";
+import {
+  useVendorCategories,
+  useCreateVendorCategory,
+  useRenameVendorCategory,
+  useDeleteVendorCategory,
+  type VendorCategory,
+} from "@/hooks/reactquery/vendorCategories";
+import { useConfirm } from "@/components/common/ConfirmProvider";
 import {
   useVendors,
   useCreateVendor,
@@ -75,6 +82,55 @@ export function VendorManagementSection() {
     debouncedSearch || undefined
   );
   const { data: vendors = [] } = vendorsQuery;
+
+  const confirm = useConfirm();
+  const createCategory = useCreateVendorCategory();
+  const renameCategory = useRenameVendorCategory();
+  const deleteCategory = useDeleteVendorCategory();
+
+  const handleCreateCategory = async (label: string) => {
+    if (!orgId) {
+      appToast.error("인증 정보가 없습니다.");
+      throw new Error("인증 정보가 없습니다.");
+    }
+    const nextSort = categories.reduce((max, c) => Math.max(max, c.sortOrder), 0) + 1;
+    try {
+      await createCategory.mutateAsync({ orgId, label, sortOrder: nextSort });
+    } catch (e) {
+      appToast.error(e, "구분을 추가하지 못했습니다.");
+      throw e;
+    }
+  };
+
+  const handleRenameCategory = async (id: number, label: string) => {
+    try {
+      await renameCategory.mutateAsync({ id, label });
+    } catch (e) {
+      appToast.error(e, "구분 이름을 바꾸지 못했습니다.");
+      throw e;
+    }
+  };
+
+  const handleDeleteCategory = async (category: VendorCategory) => {
+    const vendorCount = allVendors.filter((v) => v.categoryId === category.id).length;
+    if (vendorCount > 0) {
+      appToast.error(`‘${category.label}’ 구분에 등록된 업체가 ${vendorCount}곳 있어 삭제할 수 없습니다. 업체를 다른 구분으로 옮기거나 삭제한 뒤 다시 시도해 주세요.`);
+      return;
+    }
+    const accepted = await confirm({
+      title: "구분 삭제",
+      description: <>‘<b>{category.label}</b>’ 구분을 삭제합니다.</>,
+      confirmLabel: "삭제",
+      variant: "danger",
+    });
+    if (!accepted) return;
+    try {
+      await deleteCategory.mutateAsync(category.id);
+      if (selectedCategoryId === category.id) setSelectedCategoryId(null);
+    } catch (e) {
+      appToast.error(e, "구분을 삭제하지 못했습니다.");
+    }
+  };
 
   const createVendor = useCreateVendor();
   const updateVendor = useUpdateVendor();
@@ -163,6 +219,10 @@ export function VendorManagementSection() {
         allVendors={allVendors}
         selectedId={selectedCategoryId}
         onSelect={setSelectedCategoryId}
+        onCreate={handleCreateCategory}
+        onRename={handleRenameCategory}
+        onDelete={handleDeleteCategory}
+        isSaving={createCategory.isPending || renameCategory.isPending || deleteCategory.isPending}
       />
 
       {/* Right content */}

@@ -21,6 +21,27 @@ begin
     raise exception 'moving settlement total must treat omitted values as zero';
   end if;
 
+  -- 0302: 기타 소계는 extra.etcItems 합계가 우선, 목록이 없으면 기존 repair_amount.
+  if calculate_moving_settlement_amount(
+    jsonb_build_object(
+      'repair_amount', 1,
+      'extra', jsonb_build_object('etcItems', jsonb_build_array(
+        jsonb_build_object('name', 'a', 'amount', 1200),
+        jsonb_build_object('name', '', 'amount', 300)
+      ))
+    )
+  ) <> 1500 then
+    raise exception 'moving settlement total must use extra.etcItems subtotal';
+  end if;
+
+  if settlement_etc_memo(jsonb_build_object('etcItems', jsonb_build_array(
+       jsonb_build_object('name', '도배', 'amount', 1),
+       jsonb_build_object('name', ' ', 'amount', 2),
+       jsonb_build_object('name', '열쇠', 'amount', 3)
+     ))) is distinct from '도배, 열쇠' then
+    raise exception 'settlement_etc_memo must join non-empty item names';
+  end if;
+
   if (
     select count(*)
     from pg_proc p

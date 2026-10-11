@@ -36,7 +36,9 @@ export interface SettlementStatementPrintModel {
   managementRows: SettlementStatementManagementRow[];
   managementMonthlyTotal: number | null;
   managementSettlementTotal: number | null;
-  repairMemo: string | null;
+  /** ③ 기타 항목(extra.etcItems, 최대 15). 표는 8행×2열(16칸)이라 왼쪽 열부터 채운다. */
+  etcItems: { name: string; amount: number }[];
+  /** ③ 기타합계(etcItems 합계). */
   repairAmount: number | null;
   billingUnpaid: number | null;
   cleaningCost: number | null;
@@ -77,7 +79,7 @@ export function emptyStatementPrintModel(params: {
     managementRows: [],
     managementMonthlyTotal: null,
     managementSettlementTotal: null,
-    repairMemo: null,
+    etcItems: [],
     repairAmount: null,
     billingUnpaid: null,
     cleaningCost: null,
@@ -270,16 +272,18 @@ function appendManagementFeeTable(
 
 function appendOtherFeeTable(
   parent: HTMLElement,
-  repairMemo: string | null,
-  repairAmount: number | null,
+  items: SettlementStatementPrintModel["etcItems"],
 ): void {
   const { table, body } = createTable("tb", false);
-  for (let index = 0; index < 8; index += 1) {
+  const rowCount = 8;
+  for (let index = 0; index < rowCount; index += 1) {
     const row = createElement("tr");
-    appendCell(row, "th", index === 0 ? formatText(repairMemo) : "", undefined, "22%");
-    appendCell(row, "td", index === 0 ? formatNumber(repairAmount) : "", "r", "28%");
-    appendCell(row, "th", "", undefined, "22%");
-    appendCell(row, "td", "", "r", "28%");
+    const left = items[index];
+    const right = items[index + rowCount];
+    appendCell(row, "th", left ? formatText(left.name) : "", undefined, "22%");
+    appendCell(row, "td", left ? formatNumber(left.amount) : "", "r", "28%");
+    appendCell(row, "th", right ? formatText(right.name) : "", undefined, "22%");
+    appendCell(row, "td", right ? formatNumber(right.amount) : "", "r", "28%");
     body.appendChild(row);
   }
   parent.appendChild(table);
@@ -361,7 +365,7 @@ function appendLeftColumn(parent: HTMLElement, model: SettlementStatementPrintMo
   const heading = createElement("div", "hd");
   heading.textContent = "관리비외 정산비용";
   parent.appendChild(heading);
-  appendOtherFeeTable(parent, model.repairMemo, model.repairAmount);
+  appendOtherFeeTable(parent, model.etcItems);
   appendBand(parent, [["③ 기타합계:", formatNumber(model.repairAmount)]], "r");
   appendSummaryTable(parent, model);
 
@@ -426,7 +430,7 @@ function blankModel(model: SettlementStatementPrintModel): SettlementStatementPr
     })),
     managementMonthlyTotal: null,
     managementSettlementTotal: null,
-    repairMemo: null,
+    etcItems: [],
     repairAmount: null,
     billingUnpaid: null,
     cleaningCost: null,

@@ -17,6 +17,8 @@ import {
   useUploadAttachments,
   type Attachment,
 } from "@/hooks/reactquery/attachments";
+import { useMe } from "@/hooks/reactquery/auth";
+import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
 import { formatNumber } from "@/lib/format";
 import { AttachmentViewer } from "./AttachmentViewer";
 import { CustomDropdown } from "./CustomDropdown";
@@ -218,6 +220,9 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
   const depositTotal = displayRows.reduce((sum, row) => sum + row.deposit, 0);
   const withdrawalTotal = displayRows.reduce((sum, row) => sum + row.withdrawal, 0);
   const currentBalance = displayRows.at(-1)?.balance ?? openingBalance;
+  const { data: setupConfig } = useSetupConfig(orgId);
+  const { data: me } = useMe();
+  const companyName = setupConfig?.companyName?.trim() || me?.orgName?.trim() || "";
 
   const yearOptions = useMemo(() => Array.from({ length: 12 }, (_, index) => {
     const value = String(currentYear + 1 - index);
@@ -750,6 +755,8 @@ export function LongTermRepairLedger({ orgId, buildings }: LongTermRepairLedgerP
           startMonth={startMonth}
           endMonth={endMonth}
           rows={printableRows}
+          currentBalance={currentBalance}
+          companyName={companyName}
         />
       )}
 

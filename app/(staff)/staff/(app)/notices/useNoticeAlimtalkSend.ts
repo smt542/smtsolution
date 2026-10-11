@@ -10,8 +10,6 @@ import {
   MessageSendError,
 } from "@/hooks/reactquery/messaging";
 import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates";
-import { useOrganizationTenantList } from "@/hooks/reactquery/occupancies";
-import type { RecipientCheckOption } from "@/components/messenger/RecipientCheckSelect";
 import { useOrgContact } from "@/hooks/reactquery/org/useOrgContact";
 import { useMintNoticeShareToken } from "@/hooks/reactquery/residentNotice";
 import { renderTemplate } from "@/lib/messaging/render";
@@ -25,6 +23,7 @@ import {
   type ResolvedRecipient,
 } from "@/lib/messaging/preset";
 import { residentOrigin } from "@/lib/messaging/residentOrigin";
+import { useNoticeTargetTenants } from "./useNoticeTargetTenants";
 import { getNoticeTemplateTitle, NOTICE_TYPE_LABELS } from "./utils";
 
 /**
@@ -51,44 +50,20 @@ export function useNoticeAlimtalkSend(
   const { data: templates = [] } = useMessageTemplates();
 
   const selectedBuildingIds = target.buildingIds;
-  const isSingleBuilding = selectedBuildingIds?.length === 1;
-  const singleBuildingId = isSingleBuilding ? selectedBuildingIds[0] : null;
+  const singleBuildingId = selectedBuildingIds?.length === 1 ? selectedBuildingIds[0] : null;
   const singleBuildingName = singleBuildingId !== null
     ? (buildings.find((building) => building.id === singleBuildingId)?.name ?? "삭제된 건물")
     : null;
-  // 빈 배열 = 전체 → org 전 건물, 다중 = 지정 건물들, null = 선택 없음(수신자 없음).
-  const targetBuildingIds = selectedBuildingIds === null
-    ? []
-    : selectedBuildingIds.length > 0
-      ? selectedBuildingIds
-      : buildings.map((building) => building.id);
-
-  const organizationTenants = useOrganizationTenantList(targetBuildingIds);
+  // 대상 입주자 산출은 등록 모달의 수신자 수 미리보기와 공유한다.
+  const {
+    isSingleBuilding,
+    targetBuildingIds,
+    tenantRows,
+    tenantOptions,
+    isLoading: recipientsLoading,
+  } = useNoticeTargetTenants(buildings, selectedBuildingIds);
   // 동의는 대상 건물 전부에서 조회한다(대표 1개 건물만 보면 다른 건물 동의 세대가 SMS 로 나갔다).
   const consentQuery = useTenantAlimtalkConsents(targetBuildingIds);
-  const recipientsLoading = organizationTenants.isLoading;
-  const tenantRows = organizationTenants.data;
-
-  // 「대상자」 선택지: 입주 중이고 전화번호가 있는 입주 1건 = 1명(전화가 여럿이어도 한 줄).
-  const tenantOptions = useMemo<RecipientCheckOption[]>(() => {
-    const buildingNames = new Map(buildings.map((building) => [building.id, building.name]));
-    const seen = new Set<number>();
-    const options: RecipientCheckOption[] = [];
-    for (const tenant of tenantRows) {
-      if (tenant.isVacant || tenant.occupancyId === null || seen.has(tenant.occupancyId)) continue;
-      const hasPhone = [tenant.phone, ...tenant.phonesMore].some((phone) => Boolean(phone?.replace(/\D/g, "")));
-      if (!hasPhone) continue;
-      seen.add(tenant.occupancyId);
-      options.push({
-        key: tenant.occupancyId,
-        name: tenant.tenantName,
-        sub: isSingleBuilding
-          ? tenant.unitNo
-          : `${buildingNames.get(tenant.buildingId) ?? ""} ${tenant.unitNo}`.trim(),
-      });
-    }
-    return options;
-  }, [buildings, isSingleBuilding, tenantRows]);
 
   const commonVariables = useMemo(
     () => ({

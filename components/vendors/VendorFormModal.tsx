@@ -6,7 +6,7 @@ import { z } from "zod";
 import { applyMask, phoneMask, IconButton, Input, Modal, PHONE_INPUT_ATTRS, PhotoUpload, Textarea } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { setSubmissionError } from "@/components/forms/formErrors";
-import { vendorSchema } from "@/components/forms/schema/vendor";
+import { createVendorSchema, type vendorSchema } from "@/components/forms/schema/vendor";
 import type { Vendor } from "@/hooks/reactquery/vendors";
 import { useAttachmentSignedUrls, type Attachment } from "@/hooks/reactquery/attachments";
 import type { VendorCategory } from "@/hooks/reactquery/vendorCategories";
@@ -51,6 +51,8 @@ export function VendorFormModal({
   const categoryMenuId = React.useId();
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [pendingPhotos, setPendingPhotos] = useState<File[]>([]);
+  // 사용자 추가 구분이면 담당자 필수 — 선택된 구분에 맞춰 검증 스키마를 고른다.
+  const customCategoryRef = useRef(false);
   const attachmentPreviews = useAttachmentSignedUrls(attachments, "thumbnail");
 
   const {
@@ -61,7 +63,7 @@ export function VendorFormModal({
     setError,
     formState: { errors, isSubmitting },
   } = useForm<VendorFormInput, unknown, VendorFormOutput>({
-    resolver: zodResolver(vendorSchema),
+    resolver: (values, context, options) => zodResolver(createVendorSchema(customCategoryRef.current))(values, context, options),
     defaultValues: editing
       ? {
           name: editing.name,
@@ -108,6 +110,11 @@ export function VendorFormModal({
 
   const selectedCategoryId = useWatch({ control, name: "categoryId" });
   const selectedCategory = categories.find((category) => category.id === selectedCategoryId);
+  // 기본 구분(9종)=담당자 숨김·전화번호·계좌번호 / 추가 구분=계좌번호 숨김·담당자 필수·연락처.
+  const isCustomCategory = selectedCategory ? !selectedCategory.isDefault : false;
+  React.useEffect(() => {
+    customCategoryRef.current = isCustomCategory;
+  }, [isCustomCategory]);
 
   const closeModal = (force = false) => {
     if (!force && (isPending || isSubmitting)) return;
@@ -132,7 +139,13 @@ export function VendorFormModal({
 
   const onValid = async (values: VendorFormOutput) => {
     try {
-      const result = await onSubmit(values, pendingPhotos);
+      // 숨긴 입력은 저장하지 않는다. 같은 구분의 기존 업체는 값을 그대로 두고(undefined), 구분이 바뀌었거나 새 업체면 비운다.
+      const unchangedCategory = editing != null && editing.categoryId === values.categoryId;
+      const hiddenValue = unchangedCategory ? undefined : null;
+      const payload = (isCustomCategory
+        ? { ...values, bankAccount: hiddenValue }
+        : { ...values, manager: hiddenValue }) as VendorFormOutput;
+      const result = await onSubmit(payload, pendingPhotos);
       if (result?.failedFiles.length) {
         setPendingPhotos(result.failedFiles);
         return;
@@ -254,22 +267,24 @@ export function VendorFormModal({
                   )}
                 </div>
 
-                {/* 담당자 */}
+                {/* 담당자 — 사용자 추가 구분만(필수) */}
+                {isCustomCategory ? (
                 <div>
                   <label htmlFor="vendor-manager" className={vendorClasses.fieldLabel}>담당자</label>
                   <Input unstyled id="vendor-manager" {...register("manager")} placeholder="담당자" className={vendorClasses.fieldInput} aria-invalid={Boolean(errors.manager)} aria-describedby={errors.manager ? "vendor-manager-error" : undefined} />
                   {errors.manager?.message && <p id="vendor-manager-error" className={vendorClasses.fieldError}>{errors.manager.message}</p>}
                 </div>
+                ) : null}
 
                 {/* 전화 */}
                 <div>
-                  <label htmlFor="vendor-phone" className={vendorClasses.fieldLabel}>전화번호</label>
+                  <label htmlFor="vendor-phone" className={vendorClasses.fieldLabel}>{isCustomCategory ? "연락처" : "전화번호"}</label>
                   <Input
                     unstyled
                     {...PHONE_INPUT_ATTRS}
                     id="vendor-phone"
                     {...phoneRegister}
-                    placeholder="전화번호"
+                    placeholder={isCustomCategory ? "연락처" : "전화번호"}
                     className={`${vendorClasses.fieldInput} num`}
                     aria-invalid={Boolean(errors.phone)}
                     aria-describedby={errors.phone ? "vendor-phone-error" : undefined}
@@ -281,12 +296,14 @@ export function VendorFormModal({
                   {errors.phone?.message && <p id="vendor-phone-error" className={vendorClasses.fieldError}>{errors.phone.message}</p>}
                 </div>
 
-                {/* 계좌번호 */}
+                {/* 계좌번호 — 기본 구분만 */}
+                {isCustomCategory ? null : (
                 <div>
                   <label htmlFor="vendor-bank-account" className={vendorClasses.fieldLabel}>계좌번호</label>
                   <Input unstyled id="vendor-bank-account" {...register("bankAccount")} placeholder="계좌번호" className={vendorClasses.fieldInput} aria-invalid={Boolean(errors.bankAccount)} aria-describedby={errors.bankAccount ? "vendor-bank-account-error" : undefined} />
                   {errors.bankAccount?.message && <p id="vendor-bank-account-error" className={vendorClasses.fieldError}>{errors.bankAccount.message}</p>}
                 </div>
+                )}
 
                 {/* 계약서 사진 */}
                 <div className={vendorClasses.fullField}>

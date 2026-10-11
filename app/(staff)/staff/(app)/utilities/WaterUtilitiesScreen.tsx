@@ -238,7 +238,8 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
       .map(({ row, draft }) => ({
         unit_id: row.unitId,
         ...(draft.previousReading.trim() === "" ? {} : { previous_reading: draft.previousReading.trim() }),
-        ...(draft.currentReading.trim() === "" ? {} : { current_reading: draft.currentReading.trim() }),
+        // 비운 지침은 명시적 null 로 보내 저장된 값을 지운다(키 생략은 서버에서 "기존 값 유지").
+        current_reading: draft.currentReading.trim() === "" ? null : draft.currentReading.trim(),
         ...(draft.usageLocked || !draft.usageEdited || draft.usage.trim() === "" ? {} : { usage: draft.usage.trim() }),
         manual_charge: draft.manualCharge.trim(),
         note: draft.note.trim(),

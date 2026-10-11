@@ -241,3 +241,13 @@ export async function deleteBuilding(id: number): Promise<void> {
   const { error } = await createClient().rpc("soft_delete_building", { p_id: id });
   if (error) throw new Error(error.message);
 }
+
+/** 건물 삭제 전 점검: 확정 부과·수납 이력 건수(삭제를 막지는 않고 경고에만 쓴다). */
+export interface DeleteImpact { confirmationCount: number; paymentCount: number }
+
+export async function getBuildingDeleteImpact(id: number): Promise<DeleteImpact> {
+  const { data, error } = await createClient().rpc("building_delete_impact", { p_id: id });
+  if (error) throw new Error(error.message);
+  const row = (data ?? {}) as { confirmationCount?: number; paymentCount?: number };
+  return { confirmationCount: Number(row.confirmationCount ?? 0), paymentCount: Number(row.paymentCount ?? 0) };
+}

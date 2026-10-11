@@ -5,6 +5,7 @@ import {
   getTenantCardPrintData,
   getUnitOccupancyFull,
   listOccupancies,
+  getUnitDeleteImpact,
   listLateFeeDisabledOccupancyIds,
   type TenantListRow,
 } from "./apis";
@@ -62,4 +63,13 @@ export function useLateFeeDisabledOccupancies(orgId?: number | null): ReadonlySe
     enabled: !!orgId,
   });
   return useMemo(() => (data ? new Set(data) : EMPTY_OCCUPANCY_IDS), [data]);
+}
+
+/** 삭제 확인창을 열 때 조회한다(fetchQuery) — 이력이 바뀌었을 수 있어 항상 새로 받는다. */
+export function unitDeleteImpactQuery(unitId: number) {
+  return {
+    queryKey: occupancyKeys.deleteImpact(unitId),
+    queryFn: () => getUnitDeleteImpact(unitId),
+    staleTime: 0,
+  };
 }

@@ -1,5 +1,6 @@
 "use client";
-import { DataTable, PhoneText } from "@/components/common";
+import { Badge, DataTable, PhoneText } from "@/components/common";
+import { isDualCapability } from "@/lib/auth/staffCapabilities";
 import { isMaster } from "@/lib/auth/permissions";
 import type { Account } from "@/hooks/reactquery/accounts";
 
@@ -48,7 +49,12 @@ export function AccountTable({ accounts, onRowClick, hideType = false }: Props) 
 
   const rows = accounts.map((a) => {
     return {
-      name: a.fullName,
+      name: isDualCapability(a.staffCapabilities) ? (
+        <span className="inline-flex items-center gap-[6px]">
+          {a.fullName}
+          <Badge tone="blue" className="px-[6px] py-[1px] text-[11px]">겸직</Badge>
+        </span>
+      ) : a.fullName,
       username: a.username,
       phone: a.phone ? (
         <PhoneText value={a.phone} />

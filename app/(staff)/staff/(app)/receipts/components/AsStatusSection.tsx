@@ -21,8 +21,11 @@ import {
   type ComplaintStatus,
 } from "@/hooks/reactquery/complaints";
 import { listUnits, unitKeys } from "@/hooks/reactquery/units";
+import { listOccupancies, occupancyKeys, type Occupancy } from "@/hooks/reactquery/occupancies";
+import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates";
+import { useOrgContact } from "@/hooks/reactquery/org/useOrgContact";
 import { openMessengerWith } from "@/lib/messaging/messengerHandoff";
-import type { MessageRecipient } from "@/lib/messaging/preset";
+import { dedupeRecipients, validRecipients, type MessageRecipient } from "@/lib/messaging/preset";
 import {
   COMPLAINT_STATUS_LABEL,
   COMPLAINT_STATUS_OPTIONS,
@@ -31,6 +34,9 @@ import {
 import type { ComplaintMessageDraft, ResolutionDraft } from "./AsComplaintForm";
 import { ComplaintDetailModal } from "./ComplaintDetailModal";
 import { ComplaintFormModal } from "./ComplaintFormModal";
+
+/** 정책: 확인문자는 이 프리셋(템플릿 제목)으로 입주자에게 보낸다. */
+const COMPLAINT_NOTICE_TEMPLATE_TITLE = "민원·AS 처리 안내";
 
 interface AsColumn {
   key: string;
@@ -157,6 +163,8 @@ export function AsStatusSection({
   const { data: categories = [] } = useAsCategories();
   const { data: assignees = [] } = useAccounts({ type: "field_staff" });
   const { data: accounts = [] } = useAccounts();
+  const { data: messageTemplates = [] } = useMessageTemplates();
+  const { data: orgContact } = useOrgContact();
   const { data: complaints = [], isLoading } = useComplaints({
     buildingId: buildingId ?? undefined,
   });
@@ -262,51 +270,92 @@ export function AsStatusSection({
     }
   };
 
+  /**
+   * 확인문자: 접수 건 세대의 현재 입주자(주·부 번호)에게 「민원·AS 처리 안내」 프리셋으로 보낸다.
+   * 채널은 입주자의 알림톡 동의 여부로 자동 결정한다(동의 → 알림톡, 미동의 → SMS).
+   */
   const sendComplaintMessage = async (complaint: Complaint, draft: ComplaintMessageDraft) => {
     if (!canSendMessages) {
       toast.warning("문자 발송 권한이 필요해요");
       return;
     }
-    setSelectedId(null);
+    const template = messageTemplates.find((item) => item.title === COMPLAINT_NOTICE_TEMPLATE_TITLE);
+    if (!template) {
+      toast.error(`「${COMPLAINT_NOTICE_TEMPLATE_TITLE}」 템플릿을 찾을 수 없어요. 문자·알림톡 관리에서 확인해 주세요.`);
+      return;
+    }
 
     const draftBuildingId = Number(draft.buildingId);
-    const building = buildings.find((item) => item.id === draftBuildingId);
-    let unitLabel = "";
     const draftUnitId = Number(draft.unitId);
-    if (draft.unitId !== "all" && draftUnitId > 0) {
-      try {
-        const units = await queryClient.ensureQueryData({
-          queryKey: unitKeys.byBuilding(draftBuildingId),
-          queryFn: () => listUnits(draftBuildingId),
-        });
-        const unit = units.find((item) => item.id === draftUnitId);
-        unitLabel = unit ? formatUnitLabel(unit) : "";
-      } catch {
-        if (complaint.unitId === draftUnitId && complaint.unitNo) {
-          unitLabel = formatUnitLabel({ unitNo: complaint.unitNo, dong: complaint.unitDong });
-        }
+    if (draft.unitId === "all" || !(draftUnitId > 0)) {
+      toast.warning("세대가 지정되지 않은 접수 건은 입주자에게 확인문자를 보낼 수 없어요");
+      return;
+    }
+
+    let occupancies: Occupancy[];
+    try {
+      occupancies = await queryClient.ensureQueryData({
+        queryKey: occupancyKeys.byUnit(draftUnitId),
+        queryFn: () => listOccupancies(draftUnitId),
+      });
+    } catch (error) {
+      toast.error(error, "입주자 정보를 불러오지 못했어요");
+      return;
+    }
+    const occupancy = occupancies.find((item) => item.status === "occupied")
+      ?? occupancies.find((item) => item.status === "moving_out");
+    if (!occupancy) {
+      toast.warning("현재 입주자가 없는 세대라 확인문자를 보낼 수 없어요");
+      return;
+    }
+
+    let unitLabel = "";
+    try {
+      const units = await queryClient.ensureQueryData({
+        queryKey: unitKeys.byBuilding(draftBuildingId),
+        queryFn: () => listUnits(draftBuildingId),
+      });
+      const unit = units.find((item) => item.id === draftUnitId);
+      unitLabel = unit ? formatUnitLabel(unit) : "";
+    } catch {
+      if (complaint.unitId === draftUnitId && complaint.unitNo) {
+        unitLabel = formatUnitLabel({ unitNo: complaint.unitNo, dong: complaint.unitDong });
       }
     }
 
     const assignee = assignees.find((account) => account.userId === draft.assignedTo);
-    const recipients: MessageRecipient[] = assignee?.phone
-      ? [{
-          name: assignee.fullName,
-          phone: assignee.phone,
-          kind: "staff",
-          ref: { userId: assignee.userId, buildingId: draftBuildingId },
-        }]
-      : [];
-    const firstLine = [building?.name ?? "", unitLabel, building?.address ?? ""]
-      .filter(Boolean)
-      .join(" ");
-    const body = [
-      firstLine,
-      `접수 내용 : ${draft.content}`,
-      `입주자 전화번호 : ${draft.reporterPhone}`,
-    ].join("\n");
+    const variables: Record<string, string> = {
+      세대: unitLabel || "-",
+      접수내용: draft.content.trim() || "-",
+      처리상태: COMPLAINT_STATUS_LABEL[complaint.status] ?? "-",
+      담당자: assignee?.fullName || "-",
+      관리사무소연락처: orgContact?.phone || "-",
+    };
+    const phones = [occupancy.phone, occupancy.phone2, occupancy.phone3, ...occupancy.phonesExtra];
+    const recipients = validRecipients(dedupeRecipients(
+      phones.map<MessageRecipient>((phone, index) => ({
+        name: occupancy.tenantName,
+        phone: phone?.trim() || null,
+        phoneType: index === 0 ? "primary" : "secondary",
+        unitNo: unitLabel || null,
+        kind: "tenant",
+        alimtalkOptIn: occupancy.alimtalkOptIn,
+        variables,
+        ref: { occupancyId: occupancy.id, unitId: draftUnitId, buildingId: draftBuildingId },
+      })),
+    ));
+    if (recipients.length === 0) {
+      toast.warning("등록된 입주자 연락처가 없어요");
+      return;
+    }
 
-    openMessengerWith({ recipients, body, channel: "sms" });
+    setSelectedId(null);
+    openMessengerWith({
+      recipients,
+      body: template.body,
+      templateId: template.id,
+      channel: occupancy.alimtalkOptIn ? "alim" : "sms",
+    });
   };
 
   const action = (

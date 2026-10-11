@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   getNotice,
+  getNoticeSendSummaries,
   getNoticeSendSummary,
   listNotices,
   NOTICE_PAGE_SIZE,
@@ -32,5 +33,14 @@ export function useNoticeSendSummary(noticeId: number) {
     queryKey: noticeKeys.sendSummary(noticeId),
     queryFn: () => getNoticeSendSummary(noticeId),
     enabled: noticeId > 0,
+  });
+}
+
+/** 공지 목록의 알림톡 열용 일괄 발송 요약(공지 id → 최근 발송 1건). */
+export function useNoticeSendSummaries(noticeIds: readonly number[]) {
+  return useQuery({
+    queryKey: noticeKeys.sendSummariesOf(noticeIds),
+    queryFn: () => getNoticeSendSummaries(noticeIds),
+    enabled: noticeIds.length > 0,
   });
 }

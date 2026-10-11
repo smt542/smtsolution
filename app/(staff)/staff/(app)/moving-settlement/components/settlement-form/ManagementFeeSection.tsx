@@ -72,6 +72,9 @@ type ManagementFeeSectionProps = {
   monthly?: number | null;
   prorated?: number | null;
   contactPhone?: string;
+  /** 가수금(extra.adv, 0302). */
+  advance?: number | null;
+  onAdvanceChange?: (amount: number | null) => void;
   onMonthlyChange?: (amount: number | null) => void;
   onProratedChange?: (amount: number | null) => void;
 };
@@ -81,6 +84,8 @@ export function ManagementFeeSection({
   unitId,
   moveOutDate,
   contactPhone,
+  advance = null,
+  onAdvanceChange = () => undefined,
 }: ManagementFeeSectionProps) {
   const { rows, subtotal, isLoading } = useManagementFeeRows(
     buildingTypeId,
@@ -122,7 +127,12 @@ export function ManagementFeeSection({
             aria-label="가수금"
             type="number"
             min={0}
-            defaultValue={0}
+            value={advance ?? 0}
+            onChange={(event) => {
+              const raw = event.target.value;
+              const parsed = Number(raw);
+              onAdvanceChange(raw === "" || !Number.isFinite(parsed) ? null : parsed);
+            }}
             className="h-[38px] w-full rounded-[10px] border border-[#dee3e8] bg-white px-[11px] text-right text-[13.5px] font-semibold text-t1 outline-none focus:border-teal"
           />
         </label>
@@ -140,7 +150,7 @@ export function ManagementFeeSection({
       </div>
       <div className="mt-[10px] flex h-[32px] items-baseline justify-center border-t border-line pt-[11px]">
         <span className="text-[14px] font-medium leading-[20px] text-t1">② 관리비 소계</span>
-        <strong className="ml-[10px] text-[17px] font-extrabold leading-[21px] tracking-[-0.17px] text-teal-d">{formatNumber(subtotal)}</strong>
+        <strong className="ml-[10px] text-[17px] font-extrabold leading-[21px] tracking-[-0.17px] text-teal-d">{formatNumber(subtotal + (advance ?? 0))}</strong>
         <span className="ml-[3px] text-[12px] font-bold leading-[15px] text-teal-d opacity-[0.62]">원</span>
       </div>
     </section>

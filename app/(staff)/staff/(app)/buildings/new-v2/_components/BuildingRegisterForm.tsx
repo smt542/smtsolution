@@ -1,6 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { useAppToast } from "@/hooks/common";
@@ -11,7 +12,9 @@ import {
   useUploadAttachments,
   type Attachment,
 } from "@/hooks/reactquery/attachments";
+import { deleteImpactWarning } from "@/lib/buildings/deleteImpact";
 import {
+  buildingDeleteImpactQuery,
   isBuildingCodeTaken,
   useBuildingCodeTaken,
   useDeleteBuilding,
@@ -40,6 +43,7 @@ import {
  */
 export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
   const confirm = useConfirm();
+  const queryClient = useQueryClient();
   const appToast = useAppToast();
   const router = useRouter();
   const save = useSaveBuilding();
@@ -54,6 +58,7 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
 
   const [state, setState] = useState<RegisterFormState>(initialFormState);
   const [dirty, setDirty] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{ officeManager?: string; siteManager?: string; terminationDate?: string }>({});
   const [hydratedFor, setHydratedFor] = useState<number | null>(null);
   const [persistedBuildingId, setPersistedBuildingId] = useState<number | null>(buildingId ?? null);
   const vendorIds = (full?.vendors ?? []).map((vendor) => vendor.id);
@@ -93,6 +98,12 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
 
   const patch = (p: Partial<RegisterFormState>) => {
     setState((s) => ({ ...s, ...p }));
+    // 고친 필드의 오류 표시는 바로 지운다.
+    setFieldErrors((e) => ({
+      officeManager: "officeManager" in p ? undefined : e.officeManager,
+      siteManager: "siteManager" in p ? undefined : e.siteManager,
+      terminationDate: "terminationDate" in p || "contractDate" in p ? undefined : e.terminationDate,
+    }));
     setDirty(true);
   };
 
@@ -122,6 +133,22 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
       }
       if (!me?.orgId) {
         appToast.error("인증 정보를 확인하지 못했습니다.");
+        return;
+      }
+      // 사무 담당자·현장 관리자 필수(목록에서 고른 활성 직원이어야 한다), 해지일은 계약일 이후.
+      const nextErrors: typeof fieldErrors = {};
+      if (!state.officeManager || !resolvers.resolveStaffId(state.officeManager)) {
+        nextErrors.officeManager = "사무 담당자를 선택해 주세요.";
+      }
+      if (!state.siteManager || !resolvers.resolveStaffId(state.siteManager)) {
+        nextErrors.siteManager = "현장 관리자를 선택해 주세요.";
+      }
+      if (state.contractDate && state.terminationDate && state.terminationDate < state.contractDate) {
+        nextErrors.terminationDate = "해지일은 계약일보다 빠를 수 없어요.";
+      }
+      setFieldErrors(nextErrors);
+      if (Object.keys(nextErrors).length > 0) {
+        appToast.warning(Object.values(nextErrors)[0]!);
         return;
       }
       const unnamedPhotoVendor = Object.values(state.vendors).find(
@@ -225,11 +252,13 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
   // 확인창 = Figma 공통 삭제 확인창(917:42014, '정말 이 {대상}을(를) 삭제하시겠습니까?') 대상만 건물로.
   const onDeleteBuilding = async () => {
     if (!buildingId || deleteBuilding.isPending) return;
+    // 확인창을 열 때 부과·수납 이력을 조회한다. 실패해도 삭제는 막지 않는다.
+    const impact = await queryClient.fetchQuery(buildingDeleteImpactQuery(buildingId)).catch(() => null);
     const accepted = await confirm({
       look: "plain",
       title: "건물 삭제",
       variant: "danger",
-      description: "정말 이 건물을 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.",
+      description: `${deleteImpactWarning(impact, "건물")}정말 이 건물을 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.`,
       cancelLabel: "취소",
       confirmLabel: "삭제",
     });
@@ -269,12 +298,13 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
         </div>
       ) : (
         <div className="flex flex-1 flex-col gap-[16px] overflow-y-auto px-[24px] pb-[30px] pt-[22px]">
-          <BasicInfoSection value={state} patch={patch} buildingTypeOptions={resolvers.typeLabels} codeError={codeError} />
+          <BasicInfoSection value={state} patch={patch} buildingTypeOptions={resolvers.typeLabels} codeError={codeError} terminationError={fieldErrors.terminationDate} />
           <VendorAssignmentSection
             value={state}
             patch={patch}
             staffOptions={resolvers.staffNames}
-            showAllVendors={Boolean(buildingId)}
+            officeManagerError={fieldErrors.officeManager}
+            siteManagerError={fieldErrors.siteManager}
             attachments={vendorAttachments}
             onDeleteAttachment={onDeleteAttachment}
             disabled={isSavingBuilding}

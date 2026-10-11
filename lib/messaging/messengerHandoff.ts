@@ -23,6 +23,8 @@ export interface MessengerHandoff {
   /** 본문 초안. `#{키}` 변수는 수신자별로 렌더된다. */
   body?: string;
   channel?: "sms" | "alim";
+  /** 알림톡 템플릿을 미리 고른 채 연다(본문은 `body` 로 함께 넘긴다). 문자 채널에서는 쓰지 않는다. */
+  templateId?: number;
   /** 수신자 칸을 이 값으로 고른 채 연다. */
   cascade?: RecipientCascadePreset;
 }

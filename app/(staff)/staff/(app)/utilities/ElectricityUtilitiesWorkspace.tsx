@@ -5,7 +5,11 @@ import { appToast as toast } from "@/hooks/common/useAppToast";
 import { EmptyState, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
 import { useBuildings } from "@/hooks/reactquery/buildings";
-import { useCustomerNumberLookup } from "@/hooks/reactquery/buildingCustomerNumbers";
+import { useQueries } from "@tanstack/react-query";
+import {
+  customerNumberKeys,
+  listCustomerNumbersByBuilding,
+} from "@/hooks/reactquery/buildingCustomerNumbers";
 import {
   useBillingPeriod,
   useFixedValues,
@@ -58,6 +62,11 @@ import {
 
 const INITIAL_PERIOD = "2026-07-01";
 
+/** 공실 호실(전기 정책: 당월 지침 입력 비활성) — ElectricityReadingsTable 의 vacant 와 같은 기준. */
+function isVacantRow(row: UtilityUnitRow): boolean {
+  return row.occupancyStatus === "vacant" || row.occupancyId === null;
+}
+
 function draftFor(row: UtilityUnitRow, fixed: FixedValueEntry[] | undefined, period: string): ElectricityDraft {
   return {
     previousReading: row.previousReading === null ? "" : String(row.previousReading),
@@ -89,7 +98,6 @@ export default function ElectricityUtilitiesWorkspace() {
   const fixedValuesQuery = useFixedValues(buildingId, utilityType);
   const pricesQuery = useUtilityPrices(buildingId, utilityType);
   const customerBillsQuery = useUtilityCustomerBills(buildingId, utilityType, period);
-  const customerNumbersQuery = useCustomerNumberLookup({ kind: "common_elec", pageSize: 100 });
   const billingPeriodQuery = useBillingPeriod(buildingId, period);
   const saveMeterReadings = useSaveMeterReadings();
   const saveBillingPeriod = useSaveBillingPeriod();
@@ -107,14 +115,17 @@ export default function ElectricityUtilitiesWorkspace() {
     () => buildings.find((building) => building.id === buildingId) ?? null,
     [buildingId, buildings],
   );
-  const customerNumberCounts = useMemo(() => {
-    const counts: Record<number, number> = {};
-    const numberRows = customerNumbersQuery.data?.rows ?? [];
-    numberRows.forEach((row) => {
-      counts[row.buildingId] = (counts[row.buildingId] ?? 0) + 1;
-    });
-    return counts;
-  }, [customerNumbersQuery.data?.rows]);
+  // 건물별 전기 고객번호 수 = 삭제되지 않은 elec + common_elec (수도·가스와 같은 건물별 전수 조회).
+  const customerNumberQueries = useQueries({
+    queries: buildings.map((building) => ({
+      queryKey: customerNumberKeys.byBuilding(building.id),
+      queryFn: () => listCustomerNumbersByBuilding(building.id),
+    })),
+  });
+  const customerNumberCounts = Object.fromEntries(buildings.map((building, index) => [
+    building.id,
+    (customerNumberQueries[index]?.data ?? []).filter((item) => item.kind === "elec" || item.kind === "common_elec").length,
+  ])) as Record<number, number>;
   const draftScope = `${buildingId ?? "none"}:${utilityType}:${period}`;
   const scopedDrafts = useMemo<Record<number, ElectricityDraft>>(
     () => Object.fromEntries(rows.map((row) => [
@@ -311,7 +322,8 @@ export default function ElectricityUtilitiesWorkspace() {
       .map(({ row, draft }) => ({
         unit_id: row.unitId,
         ...(draft.previousReading.trim() === "" ? {} : { previous_reading: draft.previousReading.trim() }),
-        current_reading: draft.currentReading.trim(),
+        // 고정 사용량·공실 호실은 지침을 보내지 않는다(서버는 키가 없으면 저장된 지침을 유지한다).
+        ...(draft.usageLocked || isVacantRow(row) ? {} : { current_reading: draft.currentReading.trim() }),
         ...(draft.usageLocked || !draft.usageEdited || draft.usage.trim() === "" ? {} : { usage: draft.usage.trim() }),
         manual_charge: draft.manualCharge.trim(),
         note: draft.note.trim(),

@@ -16,6 +16,9 @@ interface LongTermRepairPrintViewProps {
   startMonth: string;
   endMonth: string;
   rows: LongTermRepairPrintRow[];
+  /** 화면 하단 현잔액(기초잔액 포함 마지막 차인잔액) */
+  currentBalance: number;
+  companyName: string;
 }
 
 /**
@@ -56,17 +59,23 @@ export function LongTermRepairPrintView({
   startMonth,
   endMonth,
   rows,
+  currentBalance,
+  companyName,
 }: LongTermRepairPrintViewProps) {
   const depositTotal = rows.reduce((sum, row) => sum + row.deposit, 0);
-  const withdrawalTotal = rows.reduce((sum, row) => sum + row.withdrawal, 0);
 
   // 원본은 줄높이가 normal 기준이다. 앱 기본 1.5를 그대로 두면 행이 세로로 늘어난다.
   return (
     <article
-      className="hidden bg-white text-black leading-[normal] print:block"
+      className="relative hidden bg-white text-black leading-[normal] print:block"
       data-testid="long-term-repair-print"
     >
       <style>{PRINT_CSS}</style>
+      {companyName && (
+        <div className="pointer-events-none absolute inset-0 flex rotate-[-28deg] items-center justify-center text-6xl font-black text-slate-100">
+          {companyName}
+        </div>
+      )}
 
       <h1 className="mb-[7mm] text-center text-[15pt] font-bold tracking-[0.2em]">[ 적 립 금 현 황 ]</h1>
       <div className="mb-[2mm] flex justify-between text-[9pt] font-bold">
@@ -117,7 +126,7 @@ export function LongTermRepairPrintView({
               <div className={CAPTION}>현잔액</div>
             </td>
             <td className={`${CELL} ${RULE} text-right font-bold`}>
-              {formatNumber(depositTotal - withdrawalTotal)}
+              {formatNumber(currentBalance)}
             </td>
             <td className={`${CELL} ${RULE}`} />
           </tr>

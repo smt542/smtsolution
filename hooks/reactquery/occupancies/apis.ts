@@ -100,7 +100,7 @@ export interface TenantListRow {
   roomTypeLabel: string | null; residentCount: number | null; moveInDate: string | null;
   isVacant: boolean; isOverdue: boolean;
   payerName?: string | null; vehicleNo?: string | null; areaPyeong?: number | null;
-  mgmtFeeAmount?: number | null;
+  mgmtFeeAmount?: number | null; moveCleaningFee?: number | null;
   expectedMoveInDate?: string | null; increaseAmount?: number | null; billingDay?: string | null;
   billingEnabled?: boolean | null; printEnabled?: boolean | null; billNameDisplay?: BillNameDisplay | null;
   moveOutDate?: string | null; lateFeeEnabled?: boolean | null; singlePrint?: boolean | null;
@@ -132,7 +132,7 @@ type TenantRow = {
   room_type_label: string | null; resident_count: number | null; move_in_date: string | null;
   is_vacant: boolean; is_overdue: boolean;
   payer_name?: string | null; vehicle_no?: string | null; area_pyeong?: number | null;
-  mgmt_fee_amount?: number | null;
+  mgmt_fee_amount?: number | null; move_cleaning_fee?: number | null;
   expected_move_in_date?: string | null; increase_amount?: number | null; billing_day?: string | null;
   billing_enabled?: boolean | null; print_enabled?: boolean | null; bill_name_display?: BillNameDisplay | null;
   move_out_date?: string | null; late_fee_enabled?: boolean | null; single_print?: boolean | null;
@@ -152,7 +152,7 @@ const rowToTenant = (r: TenantRow): TenantListRow => ({
   roomTypeLabel: r.room_type_label, residentCount: r.resident_count, moveInDate: r.move_in_date,
   isVacant: r.is_vacant, isOverdue: r.is_overdue,
   payerName: r.payer_name ?? null, vehicleNo: r.vehicle_no ?? null, areaPyeong: r.area_pyeong ?? null,
-  mgmtFeeAmount: r.mgmt_fee_amount ?? null,
+  mgmtFeeAmount: r.mgmt_fee_amount ?? null, moveCleaningFee: r.move_cleaning_fee ?? null,
   expectedMoveInDate: r.expected_move_in_date ?? null, increaseAmount: r.increase_amount ?? null,
   billingDay: r.billing_day ?? null,
   billingEnabled: r.billing_enabled ?? null, printEnabled: r.print_enabled ?? null,
@@ -353,4 +353,14 @@ export async function listLateFeeDisabledOccupancyIds(): Promise<number[]> {
     .is("deleted_at", null);
   if (error) throw new Error(error.message);
   return ((data ?? []) as { id: number }[]).map((row) => row.id);
+}
+
+/** 호수 삭제 전 점검: 확정 부과·수납 이력 건수(삭제를 막지는 않고 경고에만 쓴다). */
+export interface UnitDeleteImpact { confirmationCount: number; paymentCount: number }
+
+export async function getUnitDeleteImpact(unitId: number): Promise<UnitDeleteImpact> {
+  const { data, error } = await createClient().rpc("unit_delete_impact", { p_unit_id: unitId });
+  if (error) throw new Error(error.message);
+  const row = (data ?? {}) as { confirmationCount?: number; paymentCount?: number };
+  return { confirmationCount: Number(row.confirmationCount ?? 0), paymentCount: Number(row.paymentCount ?? 0) };
 }

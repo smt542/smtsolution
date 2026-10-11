@@ -19,12 +19,15 @@ export function BasicInfoSection({
   patch,
   buildingTypeOptions,
   codeError,
+  terminationError,
 }: {
   value: RegisterFormState;
   patch: (p: Partial<RegisterFormState>) => void;
   buildingTypeOptions: string[];
   /** 건물 코드 입력칸 아래에 보여 줄 오류(중복 등). */
   codeError?: string;
+  /** 해지일 입력칸 아래에 보여 줄 오류(계약일보다 빠름). */
+  terminationError?: string;
 }) {
   const typeOptions = Array.from(new Set([...PROTOTYPE_BUILDING_TYPES, ...buildingTypeOptions]));
 
@@ -40,7 +43,7 @@ export function BasicInfoSection({
         <SelectField label="고지서 부과 그룹 유형" options={GROUP_TYPES} value={value.groupType} onChange={(v) => patch({ groupType: v })} />
         <SelectField label="수도 고객번호 보유" options={WATER_COUNTS} value={value.waterCount} onChange={(v) => patch({ waterCount: v })} />
         <DateField label="계약일" value={value.contractDate} onChange={(v) => patch({ contractDate: v })} />
-        <DateField label="해지일" value={value.terminationDate} onChange={(v) => patch({ terminationDate: v })} />
+        <DateField label="해지일" error={terminationError} value={value.terminationDate} onChange={(v) => patch({ terminationDate: v })} />
         <TextAreaField
           label="건물 상시 공지문"
           hint=" · 세입자 앱 홈의 건물 공지에 표시돼요"

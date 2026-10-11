@@ -19,6 +19,7 @@ export function SelectField({
   options,
   full,
   variant = "default",
+  error,
 }: {
   label: string;
   required?: boolean;
@@ -29,6 +30,8 @@ export function SelectField({
   options: SelectOption[];
   full?: boolean;
   variant?: "default" | "staff";
+  /** 필드 아래에 보여 줄 검증 오류. */
+  error?: string;
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -59,7 +62,7 @@ export function SelectField({
             staff
               ? "h-[40px] rounded-[11px] px-[12px] text-[14px]"
               : "h-[42px] rounded-[10px] px-[13px] text-[13.5px]"
-          }`}
+          }${error ? " !border-red" : ""}`}
         >
           <span className={`font-semibold leading-[normal] ${value ? "text-t1" : "font-medium text-t4"}`}>
             {selected ? optionLabel(selected) : value || placeholder}
@@ -115,6 +118,11 @@ export function SelectField({
               );
             })}
           </div>
+        )}
+        {error && (
+          <p role="alert" className="pt-[6px] text-[12px] font-semibold leading-[normal] text-red">
+            {error}
+          </p>
         )}
       </div>
     </div>

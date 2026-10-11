@@ -9,6 +9,7 @@ import { useMe } from "@/hooks/reactquery/auth";
 import { useBillOrganizationName } from "@/hooks/reactquery/bill";
 import {
   calculateSettlementAmount,
+  settlementEtcItemsOf,
   useSettlementContext,
   type SaveSettlementInput,
   type SettlementContext,
@@ -79,9 +80,17 @@ function draftFromContext(
     gasCharge: saved?.gasCharge ?? null,
     elecPaidDate: saved?.elecPaidDate ?? "",
     gasPaidDate: saved?.gasPaidDate ?? "",
-    repairAmount: saved?.repairAmount ?? null,
     repairAttribution: saved?.repairAttribution ?? null,
-    repairMemo: saved?.repairMemo ?? "",
+    // 0302: 기타 목록(extra.etcItems). 이전 저장 건(단일 repair_memo/repair_amount)은 1행으로 연다.
+    etcItems: settlementEtcItemsOf(saved),
+    // 청소금액 = cleaning_cost(전체 이사조회 청소비 인라인 편집과 같은 값), 나머지는 extra.cleaning.
+    cleaningBy: saved?.extra?.cleaning?.by ?? "",
+    cleaningStatus: saved?.extra?.cleaning?.status === "완료" ? "완료" : "미결",
+    cleaningDoneDate: saved?.extra?.cleaning?.doneDate ?? "",
+    cleaningCost: saved?.cleaningCost ?? null,
+    cleaningAcct: saved?.extra?.cleaning?.acct ?? "",
+    cleaningNote: saved?.extra?.cleaning?.note ?? "",
+    advance: savedNumber(saved?.extra?.adv),
     settleBank: saved?.settleBank ?? context.settleAccount.settleBank ?? "",
     settleAcct: saved?.settleAcct ?? context.settleAccount.settleAcct ?? "",
     settleHolder:
@@ -91,6 +100,12 @@ function draftFromContext(
       saved?.settlementNote ?? context.occupancy?.settlementNote ?? "",
     ...readingsFromContext(context, saved),
   };
+}
+
+/** extra 의 숫자 값(수납액·가수금). 0·빈 값은 null. */
+function savedNumber(value: unknown): number | null {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed !== 0 ? parsed : null;
 }
 
 function nullableText(value: string | undefined): string | null {
@@ -130,8 +145,15 @@ function SettlementEditor({
       ]),
     ),
   );
-  const [receivedAmount, setReceivedAmount] = useState(0);
-  const [finalPaidDate, setFinalPaidDate] = useState("");
+  // 수납액·최종 수납일(extra.paid·lastPaidDate, 0302): 저장된 값으로 시작하고, 저장 전에는 이 화면에서 고친 값이 우선한다.
+  // 미수금 가드(SettlementActions)도 이 값으로 계산한다.
+  const savedExtra = forceNew ? null : (context.latestSettlement?.extra ?? null);
+  const [receivedAmount, setReceivedAmount] = useState(
+    () => savedNumber(savedExtra?.paid) ?? 0,
+  );
+  const [finalPaidDate, setFinalPaidDate] = useState(
+    () => savedExtra?.lastPaidDate ?? "",
+  );
   const [activeSettlementId, setActiveSettlementId] = useState<number | null>(
     forceNew ? null : (context.latestSettlement?.id ?? null),
   );
@@ -166,12 +188,23 @@ function SettlementEditor({
     (sum, row) => sum + row.charge,
     0,
   );
-  const managementSettlementTotal = managementFeeRows.rows.reduce(
-    (sum, row) => sum + row.settlement,
-    0,
-  );
-  const repairAmount = draft.repairAmount ?? null;
-  const cleaningCost = forceNew ? null : (context.latestSettlement?.cleaningCost ?? null);
+  // ② 관리비 소계 = 정산액 합 + 가수금(현장 관리자 정책 3.3 · partner _ms.ts computeTotals s2 와 같은 정의).
+  // draft.mgmtFeeProrated 는 정산액 합(관리비 항목 일할)만 들고, 저장하는 mgmt_fee_prorated 에는 가수금을 더한다.
+  const advance = draft.advance ?? 0;
+  const managementSettlementTotal =
+    managementFeeRows.rows.reduce((sum, row) => sum + row.settlement, 0) + advance;
+  const mgmtFeeSubtotal =
+    draft.mgmtFeeProrated === null && advance === 0
+      ? null
+      : (draft.mgmtFeeProrated ?? 0) + advance;
+  // ③ 기타 소계 = 기타 항목 금액 합계(서버 settlement_etc_total 과 같은 값, 0302).
+  const etcTotal = draft.etcItems.reduce((sum, item) => sum + (item.amount ?? 0), 0);
+  const savedEtcItems = draft.etcItems
+    .map((item) => ({ name: item.name.trim(), amount: item.amount ?? 0 }))
+    .filter((item) => item.name !== "" || item.amount !== 0);
+  const repairAmount = savedEtcItems.length > 0 ? etcTotal : null;
+  const repairMemo = savedEtcItems.map((item) => item.name).filter(Boolean).join(", ");
+  const cleaningCost = draft.cleaningCost ?? null;
   const billingUnpaid = context.billingUnpaid;
   // 정산요금 = settlement_amount 정의(0266): 수납 차감 전 ①공과금+②관리비+③미납+④청소비·기타.
   const total =
@@ -221,14 +254,18 @@ function SettlementEditor({
       : null,
     monthDays: draft.moveOutDate ? 30 : null,
     utilityTotal,
-    managementRows: managementFeeRows.rows.map((row) => ({
-      name: row.item.name,
-      charge: row.charge,
-      settlement: row.settlement,
-    })),
+    managementRows: [
+      ...managementFeeRows.rows.map((row) => ({
+        name: row.item.name,
+        charge: row.charge,
+        settlement: row.settlement,
+      })),
+      // partner 내역서처럼 가수금이 있으면 한 줄로 보인다(② 합계에 포함).
+      ...(advance !== 0 ? [{ name: "가수금", charge: 0, settlement: advance }] : []),
+    ],
     managementMonthlyTotal,
     managementSettlementTotal,
-    repairMemo: draft.repairMemo || null,
+    etcItems: savedEtcItems,
     repairAmount,
     billingUnpaid,
     cleaningCost,
@@ -249,22 +286,36 @@ function SettlementEditor({
     data: {
       moveOutDate: draft.moveOutDate,
       mgmtFeeMonthly: draft.mgmtFeeMonthly,
-      mgmtFeeProrated: draft.mgmtFeeProrated,
+      mgmtFeeProrated: mgmtFeeSubtotal,
       waterCharge: draft.waterCharge,
       elecCharge: draft.elecCharge,
       gasCharge: draft.gasCharge,
       cleaningCost,
       elecPaidDate: nullableText(draft.elecPaidDate),
       gasPaidDate: nullableText(draft.gasPaidDate),
-      repairAmount: draft.repairAmount,
+      repairAmount,
       repairAttribution: draft.repairAttribution,
-      repairMemo: nullableText(draft.repairMemo),
+      repairMemo: nullableText(repairMemo),
       settleBank: nullableText(draft.settleBank),
       settleAcct: nullableText(draft.settleAcct),
       settleHolder: nullableText(draft.settleHolder),
       note: nullableText(draft.note),
       settlementNote: nullableText(draft.settlementNote),
       ...(sendUtil ? { util: utilRows } : {}),
+      // 0302: partner(_ms.ts)와 같은 extra 키. 서버가 기존 extra 에 병합한다.
+      extra: {
+        etcItems: savedEtcItems,
+        cleaning: {
+          by: draft.cleaningBy?.trim() ?? "",
+          status: draft.cleaningStatus,
+          doneDate: draft.cleaningDoneDate ?? "",
+          acct: draft.cleaningAcct?.trim() ?? "",
+          note: draft.cleaningNote?.trim() ?? "",
+        },
+        paid: receivedAmount,
+        lastPaidDate: finalPaidDate,
+        adv: draft.advance ?? 0,
+      },
     },
     checklist: context.checklist.map((item) => {
       const note = (notes[item.id] ?? "").trim();
@@ -274,6 +325,8 @@ function SettlementEditor({
 
   const amount = calculateSettlementAmount({
     ...draft,
+    mgmtFeeProrated: mgmtFeeSubtotal,
+    repairAmount,
     cleaningCost,
     unpaidAmount: billingUnpaid,
   });
@@ -303,7 +356,6 @@ function SettlementEditor({
         paymentInputRef={paymentInputRef}
         bodyRef={formBodyRef}
         billingUnpaid={context.billingUnpaid}
-        cleaningCost={cleaningCost}
       />
       <SettlementActions
         building={building}

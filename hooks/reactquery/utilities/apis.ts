@@ -211,7 +211,8 @@ export interface SaveMeterReadingsInput {
   rows: {
     unit_id: number;
     previous_reading?: string;
-    current_reading?: string;
+    /** 키 생략 = 저장된 지침 유지, null/"" = 지움 */
+    current_reading?: string | null;
     usage?: string;
     manual_charge: string;
     note: string;

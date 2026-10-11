@@ -267,7 +267,7 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
       </div>
 
       {outputOpen && (
-        <TenantOutputModal onClose={() => setOutputOpen(false)} />
+        <TenantOutputModal onClose={() => setOutputOpen(false)} initialBuildingId={selected?.id ?? null} />
       )}
 
     </div>

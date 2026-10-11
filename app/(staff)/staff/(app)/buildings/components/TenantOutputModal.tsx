@@ -17,6 +17,7 @@ import { PreviewPane } from "./tenant-output/PreviewPane";
 import { TenantCardSheet } from "./tenant-output/TenantCardSheet";
 import { buildOutputPages, outputHint, printSequence, type PrintScope } from "./tenant-output/outputPages";
 
+const FIRST_OUTPUT_YEAR = 2019;
 const MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) => ({ value: String(index + 1), label: `${index + 1}월` }));
 
 // 정본 `.pm-dd` 드롭다운. 트리거는 hover 효과 없이 열렸을 때만 청록 테두리, 옵션은 hover 시 --bg·선택 시
@@ -35,22 +36,24 @@ const PERIOD_DROPDOWN = [
 const PRINT_CSS =
   "@media print { @page { size: A4 portrait; margin: 11mm; } html, body { background: #fff !important; height: auto !important; overflow: visible !important; } body > *:not([data-print-sheet]) { display: none !important; } }";
 
-/** 입주자카드 및 부과내역 출력 모달(정본 building-list `#printModal`) — 건물 다중 선택 → 좌우 미리보기 → 개별/일괄 인쇄. */
-export function TenantOutputModal({ onClose }: { onClose: () => void }) {
+/** 입주자카드 및 부과내역 출력 모달(정본 building-list `#printModal`) — 건물 단일 선택 → 좌우 미리보기 → 개별/일괄 인쇄. */
+export function TenantOutputModal({ onClose, initialBuildingId = null }: { onClose: () => void; initialBuildingId?: number | null }) {
   const [initYear, initMonth] = useMemo(() => {
     const [rawYear, rawMonth] = currentPeriod().split("-").map(Number);
     return [rawYear, rawMonth] as const;
   }, []);
-  // 정본 `#pmYear`: 올해부터 4개 연도 내림차순(2026년 기준 2026·2025·2024·2023).
-  const yearOptions = useMemo(
-    () => Array.from({ length: 4 }, (_, index) => ({ value: String(initYear - index), label: `${initYear - index}년` })),
-    [initYear],
-  );
+  // 정책: 출력 연도는 2019년부터 현재 연도까지(최신 연도 먼저).
+  const yearOptions = useMemo(() => {
+    const count = Math.max(1, initYear - FIRST_OUTPUT_YEAR + 1);
+    return Array.from({ length: count }, (_, index) => ({ value: String(initYear - index), label: `${initYear - index}년` }));
+  }, [initYear]);
   const [year, setYear] = useState(initYear);
   const [month, setMonth] = useState(initMonth);
   const [search, setSearch] = useState("");
-  // 정본 openModal: 선택 없이 연다.
-  const [selectedIds, setSelectedIds] = useState<ReadonlySet<number>>(() => new Set<number>());
+  // 정책: 단일 선택. 본 화면에서 고른 건물이 있으면 초기 선택값으로 쓰고, 없으면 선택 없이 연다.
+  const [selectedIds, setSelectedIds] = useState<ReadonlySet<number>>(
+    () => new Set<number>(initialBuildingId != null ? [initialBuildingId] : []),
+  );
   const [cardPage, setCardPage] = useState(0);
   const [statementPage, setStatementPage] = useState(0);
   const [printScope, setPrintScope] = useState<PrintScope | null>(null);
@@ -114,22 +117,8 @@ export function TenantOutputModal({ onClose }: { onClose: () => void }) {
     setCardPage(0);
     setStatementPage(0);
   };
-  const toggleBuilding = (id: number) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-    resetPages();
-  };
-  // 정본 pmAll: 목록 전체가 이미 선택돼 있으면 모두 해제, 아니면 전체 선택(검색으로 좁힌 목록과 무관).
-  const toggleAll = () => {
-    setSelectedIds((prev) =>
-      buildings.length > 0 && buildings.every((building) => prev.has(building.id))
-        ? new Set<number>()
-        : new Set(buildings.map((building) => building.id)),
-    );
+  const selectBuilding = (id: number) => {
+    setSelectedIds(new Set([id]));
     resetPages();
   };
 
@@ -175,8 +164,7 @@ export function TenantOutputModal({ onClose }: { onClose: () => void }) {
               search={search}
               onSearch={setSearch}
               selectedIds={selectedIds}
-              onToggle={toggleBuilding}
-              onToggleAll={toggleAll}
+              onToggle={selectBuilding}
             />
 
             <div className="flex min-w-0 flex-1 flex-col bg-bg">

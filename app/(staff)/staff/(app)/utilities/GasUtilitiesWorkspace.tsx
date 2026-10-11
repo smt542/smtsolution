@@ -82,8 +82,15 @@ export default function GasUtilitiesWorkspace() {
   const { data: me } = useMe();
   const buildingsQuery = useBuildings();
   const [buildingId, setBuildingId] = useState<number | null>(null);
-  const [year, setYear] = useState(2026);
-  const [month, setMonth] = useState(7);
+  // 최초 월분은 현재 날짜 기준 직전 달(1월이면 전년 12월).
+  const [initialPeriod] = useState(() => {
+    const now = new Date();
+    return now.getMonth() === 0
+      ? { year: now.getFullYear() - 1, month: 12 }
+      : { year: now.getFullYear(), month: now.getMonth() };
+  });
+  const [year, setYear] = useState(initialPeriod.year);
+  const [month, setMonth] = useState(initialPeriod.month);
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState(false);
   const [editStartDate, setEditStartDate] = useState("");
@@ -185,7 +192,8 @@ export default function GasUtilitiesWorkspace() {
     .map((row) => ({
       unit_id: row.unitId,
       ...(scopedDrafts[row.unitId].previousReading.trim() === "" ? {} : { previous_reading: scopedDrafts[row.unitId].previousReading.trim() }),
-      current_reading: scopedDrafts[row.unitId].currentReading.trim(),
+      // 고정 사용량 호실은 지침을 보내지 않는다(서버는 키가 없으면 저장된 지침을 유지한다).
+      ...(scopedDrafts[row.unitId].usageLocked ? {} : { current_reading: scopedDrafts[row.unitId].currentReading.trim() }),
       ...(scopedDrafts[row.unitId].usageLocked || !scopedDrafts[row.unitId].usageEdited || scopedDrafts[row.unitId].usage.trim() === ""
         ? {}
         : { usage: scopedDrafts[row.unitId].usage.trim() }),

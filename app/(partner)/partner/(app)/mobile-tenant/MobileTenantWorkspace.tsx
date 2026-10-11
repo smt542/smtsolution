@@ -8,7 +8,7 @@ import { PartnerCheckbox } from "../../../_components/PartnerCheckbox";
 import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
 import { PartnerPhoneLink } from "../../../_components/PartnerPhoneLink";
 import { tenantClasses as styles } from "./tenantClasses";
-import type { MobileTenantData, MovingSettlement } from "./types";
+import type { MobileTenantData, MovingSettlement, PaymentRow } from "./types";
 
 type Tab = "info" | "pay" | "ms";
 
@@ -23,6 +23,10 @@ const METHOD_LABEL: Record<string, string> = {
   other: "기타",
 };
 
+/** 미납 금액 = 원금 미납 + 연체료 미수금(원금을 다 냈어도 연체료 미수금이 남은 달은 미납 달). */
+function totalUnpaid(p: PaymentRow) {
+  return p.unpaid + (p.late_fee_split_unpaid ?? 0);
+}
 function unitLabel(dong: string | null, unitNo: string) {
   return `${dong ? `${dong} ` : ""}${unitNo}`;
 }
@@ -72,7 +76,7 @@ export function MobileTenantWorkspace({ data }: { data: MobileTenantData }) {
   const [tab, setTab] = useState<Tab>("info");
   // 수납 탭: 미납(미납액 > 0) 월만 보기
   const [onlyUnpaid, setOnlyUnpaid] = useState(false);
-  const visiblePay = onlyUnpaid ? pay.filter((p) => p.unpaid > 0) : pay;
+  const visiblePay = onlyUnpaid ? pay.filter((p) => totalUnpaid(p) > 0) : pay;
   const [openPeriods, setOpenPeriods] = useState<Set<string>>(new Set());
 
   const togglePeriod = (period: string) =>
@@ -183,7 +187,8 @@ export function MobileTenantWorkspace({ data }: { data: MobileTenantData }) {
               visiblePay.map((p) => {
                 const open = openPeriods.has(p.period);
                 // 월 상태: 미납액이 남아 있으면 미납, 아니면 완료(수납 완료 또는 부과 없음).
-                const unpaid = p.unpaid > 0;
+                const unpaidAmount = totalUnpaid(p);
+                const unpaid = unpaidAmount > 0;
                 return (
                   <div key={p.period} className={`${styles.pcell} ${open ? styles.pcellOpen : ""}`}>
                     <button type="button" className={styles.ptop} onClick={() => togglePeriod(p.period)}>
@@ -201,7 +206,7 @@ export function MobileTenantWorkspace({ data }: { data: MobileTenantData }) {
                       <div className={styles.pdet}>
                         <div className={styles.pdetSec}>
                           <Row label="연체" valueClassName={styles.pdetValue}>
-                            {p.unpaid > 0 ? <span className={styles.neg}>{won(p.unpaid)}</span> : <span className={styles.empty}>-</span>}
+                            {unpaidAmount > 0 ? <span className={styles.neg}>{won(unpaidAmount)}</span> : <span className={styles.empty}>-</span>}
                           </Row>
                           <Row label="수납액" valueClassName={styles.pdetValue}>
                             <span className={styles.num}>{won(p.paid)}</span>

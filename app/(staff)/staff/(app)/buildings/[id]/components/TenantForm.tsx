@@ -3,15 +3,18 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { Button, EmptyState, Spinner } from "@/components/common";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { occupancyBasicSchema } from "@/components/forms/schema/occupancy";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { displayUnitNo } from "@/lib/bill/document";
+import { deleteImpactWarning } from "@/lib/buildings/deleteImpact";
 import { useCustomerNumbers, type CustomerNumberKind } from "@/hooks/reactquery/buildingCustomerNumbers";
 import { useBuildingFull } from "@/hooks/reactquery/buildings";
 import {
+  unitDeleteImpactQuery,
   useDeleteUnit,
   useSaveUnitOccupancy,
   useUnitOccupancyFull,
@@ -144,6 +147,7 @@ export function TenantForm({
   unitId?: number;
 }) {
   const confirm = useConfirm();
+  const queryClient = useQueryClient();
   const router = useRouter();
   const save = useSaveUnitOccupancy();
   const del = useDeleteUnit();
@@ -582,11 +586,13 @@ export function TenantForm({
           <button
             type="button"
             onClick={async () => {
+              // 확인창을 열 때 부과·수납 이력을 조회한다. 실패해도 삭제는 막지 않는다.
+              const impact = await queryClient.fetchQuery(unitDeleteImpactQuery(unitId)).catch(() => null);
               const ok = await confirm({
                 look: "plain",
                 title: "호수 삭제",
                 variant: "danger",
-                description: "정말 이 호수를 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.",
+                description: `${deleteImpactWarning(impact, "호수")}정말 이 호수를 삭제하시겠습니까?\n삭제 후에는 복구할 수 없습니다.`,
                 cancelLabel: "취소",
                 confirmLabel: "삭제",
               });

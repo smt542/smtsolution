@@ -34,7 +34,9 @@ export async function getMobileTenantData(unitId: number | null): Promise<Mobile
 
   return {
     occupancy,
-    payments: Array.isArray(paymentData) ? paymentData as PaymentRow[] : [],
+    payments: Array.isArray(paymentData)
+      ? (paymentData as PaymentRow[]).map((p) => ({ ...p, late_fee_split_unpaid: p.late_fee_split_unpaid ?? 0 }))
+      : [],
     settlements: Array.isArray(settlementData)
       ? (settlementData as MovingSettlement[]).map((s) => ({
           ...s,

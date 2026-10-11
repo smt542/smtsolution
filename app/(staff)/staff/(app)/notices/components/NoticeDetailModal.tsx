@@ -103,6 +103,8 @@ export function NoticeDetailModal({
     });
   };
   const [confirmSendOpen, setConfirmSendOpen] = useState(false);
+  // 저장 직전 확인 모달(정책: 저장 시 확인 모달).
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
   const sendSummaryQuery = useNoticeSendSummary(notice.id);
   const sendSummary = sendSummaryQuery.data ?? null;
   const isSaving = updateNotice.isPending;
@@ -110,9 +112,21 @@ export function NoticeDetailModal({
   useDismissOnEscape({
     enabled: true,
     onDismiss: onClose,
-    disabled: confirmOpen || confirmSendOpen,
+    disabled: confirmOpen || confirmSendOpen || confirmSaveOpen,
     lockBodyScroll: true,
   });
+
+  const requestSave = () => {
+    if (!title.trim()) {
+      toast.error("제목을 입력해 주세요.");
+      return;
+    }
+    if (!toNoticeBuildingIds(targets, buildings)) {
+      toast.warning("대상 건물을 선택해 주세요");
+      return;
+    }
+    setConfirmSaveOpen(true);
+  };
 
   const handleSave = async () => {
     const trimmed = title.trim();
@@ -139,10 +153,12 @@ export function NoticeDetailModal({
     try {
       const saved = await updateNotice.mutateAsync({ id: notice.id, input });
       toast.success("공지가 수정되었습니다.");
+      setConfirmSaveOpen(false);
       onSaved?.(saved);
       onClose();
     } catch (error) {
       toast.error(error, "공지를 저장하지 못했습니다.");
+      setConfirmSaveOpen(false);
     }
   };
 
@@ -304,7 +320,7 @@ export function NoticeDetailModal({
             </button>
             <button
               type="button"
-              onClick={() => void handleSave()}
+              onClick={requestSave}
               disabled={isSaving}
               className="flex h-[40px] w-[132px] items-center justify-center rounded-[11px] bg-[#14a497] px-[18px] text-[13.5px] font-bold tracking-[-0.135px] text-white disabled:opacity-60"
             >
@@ -323,6 +339,14 @@ export function NoticeDetailModal({
           <Button type="button" variant="danger" onClick={handleDelete} disabled={deleteNotice.isPending}>
             삭제
           </Button>
+        </div>
+      </Modal>
+
+      <Modal open={confirmSaveOpen} onClose={() => { if (!isSaving) setConfirmSaveOpen(false); }} title="공지 수정">
+        <p className="text-sm leading-6 text-t1">“{title.trim()}” 공지를 수정할까요?</p>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={() => setConfirmSaveOpen(false)} disabled={isSaving}>취소</Button>
+          <Button type="button" onClick={() => void handleSave()} disabled={isSaving}>수정</Button>
         </div>
       </Modal>
 

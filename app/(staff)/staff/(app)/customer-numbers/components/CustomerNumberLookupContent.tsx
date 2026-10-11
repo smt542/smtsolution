@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Button, Pagination, Spinner } from "@/components/common";
+import { SEARCH_DEBOUNCE_MS, useDebouncedValue } from "@/hooks/common";
 import {
   useCustomerNumberLookup,
   type CustomerNumberFilters,
@@ -43,10 +44,17 @@ function CustomerNumberLookupEmptyState() {
 export function CustomerNumberLookupContent() {
   const [kind, setKind] = useState<CustomerNumberLookupKind>("water");
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState("");
+  const q = useDebouncedValue(searchInput.trim(), SEARCH_DEBOUNCE_MS);
   const filters = useMemo<CustomerNumberFilters>(
-    () => ({ kind, page, pageSize: PAGE_SIZE }),
-    [kind, page],
+    () => ({ kind, q: q || undefined, page, pageSize: PAGE_SIZE }),
+    [kind, q, page],
   );
+  const exportHref = useMemo(() => {
+    const params = new URLSearchParams({ kind });
+    if (q) params.set("q", q);
+    return `/api/customer-numbers/export?${params.toString()}`;
+  }, [kind, q]);
   const lookupQuery = useCustomerNumberLookup(filters);
   const rows = lookupQuery.data?.rows ?? [];
   const total = lookupQuery.data?.total ?? 0;
@@ -57,13 +65,21 @@ export function CustomerNumberLookupContent() {
     setPage(1);
   };
 
+  const changeSearch = (value: string) => {
+    setSearchInput(value);
+    setPage(1);
+  };
+
   return (
     <div className="flex h-[calc(100dvh-62px)] min-h-[420px] flex-col overflow-hidden bg-bg px-6 pb-6 pt-[22px]">
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[16px] bg-surface shadow-card">
         <CustomerNumberLookupHeader
           kind={kind}
           total={total}
+          search={searchInput}
+          exportHref={exportHref}
           onKindChange={changeKind}
+          onSearchChange={changeSearch}
         />
 
         {lookupQuery.isError ? (

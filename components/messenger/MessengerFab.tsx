@@ -137,7 +137,7 @@ function MessengerFabContent() {
         }));
         if (handoff.body !== undefined) {
           setBody(handoff.body);
-          setTemplateId(null);
+          setTemplateId(handoff.channel === "alim" ? (handoff.templateId ?? null) : null);
         }
         if (handoff.channel) setChannel(handoff.channel);
         openPanel();

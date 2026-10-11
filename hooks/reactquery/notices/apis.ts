@@ -334,6 +334,26 @@ export async function getNoticeSendSummary(noticeId: number): Promise<NoticeSend
   return { count: row.recipient_count, sentAt: row.sent_at, result: row.result };
 }
 
+interface NoticeSendSummariesRow extends NoticeSendSummaryRow {
+  notice_id: number;
+}
+
+/** 공지 목록용: 공지별 최근 발송 1건 요약을 한 번에 조회한다(발송 이력 없는 공지는 맵에 없음). */
+export async function getNoticeSendSummaries(
+  noticeIds: readonly number[],
+): Promise<Record<number, NoticeSendSummary>> {
+  if (noticeIds.length === 0) return {};
+  const { data, error } = await createClient().rpc("notice_send_summaries", {
+    p_notice_ids: [...noticeIds],
+  });
+  if (error) throw new Error(error.message);
+  const summaries: Record<number, NoticeSendSummary> = {};
+  for (const row of (data ?? []) as NoticeSendSummariesRow[]) {
+    summaries[row.notice_id] = { count: row.recipient_count, sentAt: row.sent_at, result: row.result };
+  }
+  return summaries;
+}
+
 /** 발송 로그(log_id)를 공지에 귀속시킨다(발송 완료 후 호출). */
 export async function attachNoticeSendLog(logId: number, noticeId: number): Promise<void> {
   const { error } = await createClient().rpc("attach_notice_to_message_log", {

@@ -42,6 +42,9 @@ export function useAttachNoticeSendLog() {
     mutationFn: ({ logId, noticeId }: { logId: number; noticeId: number }) =>
       attachNoticeSendLog(logId, noticeId),
     onSuccess: (_data, { noticeId }) =>
-      queryClient.invalidateQueries({ queryKey: noticeKeys.sendSummary(noticeId) }),
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: noticeKeys.sendSummary(noticeId) }),
+        queryClient.invalidateQueries({ queryKey: noticeKeys.sendSummaries() }),
+      ]),
   });
 }

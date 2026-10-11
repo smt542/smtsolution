@@ -35,14 +35,14 @@ const DELIVERY_LABELS: Record<string, string> = { post: "우편", alimtalk: "알
 const enumLabel = (value: string | null | undefined, labels: Record<string, string>) => value ? (labels[value] ?? value) : "";
 
 /**
- * prototype building-list 입주민 표 — 32 컬럼(가로 스크롤).
+ * prototype building-list 입주민 표 — 33 컬럼(가로 스크롤).
  *
  * 수도·전기·공용 전기·가스는 건물 고객번호 순번 문맥을 받아 표시한다. 원천 필드가 없는
  * 홈피 비번만 보안상 빈 셀로 유지하고, 비밀번호는 전체 세대 목록에 노출하지 않는다.
  */
 export const TENANT_COLUMNS: TenantColumn[] = [
   { key: "unitNo", label: "호실", minWidth: 56.89, get: (t) => unitNoLabel(t.unitNo) },
-  { key: "tenantName", label: "입주자명", minWidth: 73.48, get: (t) => (t.isVacant ? "" : (t.tenantName ?? "")) },
+  { key: "tenantName", label: "입주자명", minWidth: 73.48, get: (t) => (t.isVacant ? "공실" : (t.tenantName ?? "")) },
   { key: "payerName", label: "입금자명", minWidth: 73.48, get: (t) => t.payerName ?? "" },
   { key: "roomType", label: "룸", minWidth: 67.02, get: (t) => t.roomTypeLabel ?? "" },
   { key: "residentCount", label: "인원", minWidth: 52.75, get: (t) => (t.residentCount != null ? `${t.residentCount}명` : "") },
@@ -50,6 +50,7 @@ export const TENANT_COLUMNS: TenantColumn[] = [
   { key: "vehicleNo", label: "차량번호", minWidth: 111.59, get: (t) => t.vehicleNo ?? "" },
   { key: "moveInDate", label: "입주일", minWidth: 102.58, get: (t) => displayDate(t.moveInDate) },
   { key: "managementFee", label: "관리비", minWidth: 81.33, get: (t) => formatNumber(t.mgmtFeeAmount, { nullText: "" }) },
+  { key: "moveCleaningFee", label: "이사청소", minWidth: 81.33, get: (t) => formatNumber(t.moveCleaningFee, { nullText: "" }) },
   { key: "moveOutDate", label: "퇴실일자", minWidth: 102.44, get: (t) => dateOrDash(t.moveOutDate) },
   { key: "moveInScheduled", label: "입주예정일", minWidth: 102.13, get: (t) => dateOrDash(t.expectedMoveInDate) },
   { key: "increaseAmount", label: "인상액", minWidth: 66.98, get: (t) => formatNumber(t.increaseAmount, { nullText: "" }) },

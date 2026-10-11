@@ -7,5 +7,7 @@ export const noticeKeys = {
     [...noticeKeys.lists(), filters, page, pageSize] as const,
   details: () => [...noticeKeys.all, "detail"] as const,
   detail: (id: number) => [...noticeKeys.details(), id] as const,
+  sendSummaries: () => [...noticeKeys.all, "send-summaries"] as const,
+  sendSummariesOf: (ids: readonly number[]) => [...noticeKeys.sendSummaries(), ids] as const,
   sendSummary: (id: number) => [...noticeKeys.all, "send-summary", id] as const,
 };

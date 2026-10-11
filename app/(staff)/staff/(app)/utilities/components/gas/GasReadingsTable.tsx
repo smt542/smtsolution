@@ -199,6 +199,7 @@ export function GasReadingsTable({
         <ReadingInput
           label={`${item.row.unitNo} 당월 지침값`}
           value={item.draft.currentReading}
+          disabled={item.draft.usageLocked}
           onChange={(value) => onDraftChange(item.row.unitId, {
             currentReading: value,
             ...(!item.draft.usageEdited ? { usage: usageTextFromReadings(item.draft.previousReading, value, true) } : {}),

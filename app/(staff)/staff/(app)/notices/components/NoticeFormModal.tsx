@@ -5,9 +5,10 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useDismissOnEscape } from "@/hooks/common";
-import { Input, Textarea } from "@/components/common";
+import { Button, Input, Modal, Textarea } from "@/components/common";
 import { setSubmissionError } from "@/components/forms/formErrors";
 import { NoticeTargetBuildings } from "./NoticeTargetBuildings";
+import { useNoticeTargetTenants } from "../useNoticeTargetTenants";
 import { plainTextToNoticeDoc } from "@/lib/notice/richText";
 import {
   createNoticeFormSchema,
@@ -67,6 +68,11 @@ function NoticeFormContent({
   const [targets, setTargets] = useState<NoticeTargetSelection>(() =>
     toNoticeTargetSelection(editing?.buildingIds ?? []),
   );
+  // 저장 직전 확인 모달(정책: 저장 시 확인 모달). 검증을 통과한 값만 보관한다.
+  const [pendingValues, setPendingValues] = useState<NoticeFormValues | null>(null);
+  // 수신자 수 미리보기: 공지 상세의 발송 대상 계산(입주 1건 = 1명)을 그대로 쓴다.
+  const previewBuildingIds = useMemo(() => toNoticeBuildingIds(targets, buildings), [targets, buildings]);
+  const targetTenants = useNoticeTargetTenants(buildings, previewBuildingIds);
   const {
     register,
     handleSubmit,
@@ -96,9 +102,18 @@ function NoticeFormContent({
   useDismissOnEscape({
     enabled: true,
     onDismiss: onClose,
-    disabled: isPending,
+    disabled: isPending || pendingValues !== null,
     lockBodyScroll: true,
   });
+
+  // 검증 통과 후 저장 확인 모달을 연다. 건물 미선택은 확인 전에 막는다.
+  const requestSave = (values: NoticeFormValues) => {
+    if (!toNoticeBuildingIds(targets, buildings)) {
+      toast.warning("대상 건물을 선택해 주세요");
+      return;
+    }
+    setPendingValues(values);
+  };
 
   const submit = async (values: NoticeFormValues) => {
     const buildingIds = toNoticeBuildingIds(targets, buildings);
@@ -130,10 +145,13 @@ function NoticeFormContent({
     } catch (saveError) {
       toast.error(saveError, "공지를 저장하지 못했습니다.");
       setSubmissionError(saveError, setError, "공지를 저장하지 못했습니다.");
+    } finally {
+      setPendingValues(null);
     }
   };
 
   return (
+    <>
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-4"
       onClick={closeSafely}
@@ -153,7 +171,7 @@ function NoticeFormContent({
         </div>
 
         {/* 본문: 시안 20px 리듬(헤더→본문 20 / 항목 간 20 / 본문→푸터 20). 높이는 내용에 맞춰 늘고 카드가 90vh에서 스크롤. */}
-        <form onSubmit={handleSubmit(submit)} noValidate className="flex flex-col gap-[20px] pt-[20px]">
+        <form onSubmit={handleSubmit(requestSave)} noValidate className="flex flex-col gap-[20px] pt-[20px]">
           {/* 유형 */}
           <Controller
             control={control}
@@ -226,6 +244,13 @@ function NoticeFormContent({
 
           {/* 대상 건물 */}
           <NoticeTargetBuildings buildings={buildings} value={targets} onChange={setTargets} />
+          {previewBuildingIds !== null && (
+            <p className="-mt-[10px] text-[12px] font-semibold leading-[normal] text-[#8b95a1]">
+              {targetTenants.isLoading
+                ? "수신 세대를 확인하는 중이에요."
+                : `연결된 세대 ${targetTenants.tenantOptions.length}명에게 발송`}
+            </p>
+          )}
 
           {errors.root?.server?.message && (
             <p role="alert" className="rounded-[11px] bg-[#fff1f1] px-[13px] py-[10px] text-[13px] font-semibold text-[#f04452]">
@@ -254,5 +279,26 @@ function NoticeFormContent({
         </form>
       </div>
     </div>
+
+      <Modal
+        open={pendingValues !== null}
+        onClose={() => { if (!isPending) setPendingValues(null); }}
+        title={editing ? "공지 수정" : "공지 등록"}
+      >
+        <p className="text-sm leading-6 text-t1">
+          “{pendingValues?.title}” 공지를 {editing ? "수정" : "등록"}할까요?
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button type="button" variant="ghost" onClick={() => setPendingValues(null)} disabled={isPending}>취소</Button>
+          <Button
+            type="button"
+            onClick={() => { if (pendingValues) void submit(pendingValues); }}
+            disabled={isPending}
+          >
+            {editing ? "수정" : "등록"}
+          </Button>
+        </div>
+      </Modal>
+    </>
   );
 }

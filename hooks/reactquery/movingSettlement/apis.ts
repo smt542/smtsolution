@@ -24,9 +24,61 @@ export interface SettlementUtilRow {
   payDate: string;
 }
 
+/** 기타 항목 1행(extra.etcItems). partner(_ms.ts EtcItem)와 같은 키. */
+export interface SettlementEtcItem {
+  name: string;
+  amount: number;
+}
+
+export type SettlementCleaningStatus = "완료" | "미결";
+
+/** 청소 상세(extra.cleaning). 금액은 cleaning_cost 컬럼. partner(_ms.ts)와 같은 키. */
+export interface SettlementCleaning {
+  by?: string;
+  status?: SettlementCleaningStatus;
+  doneDate?: string;
+  acct?: string;
+  note?: string;
+}
+
+export const MAX_SETTLEMENT_ETC_ITEMS = 15;
+
 export interface SettlementExtra {
   util?: SettlementUtilRow[];
+  etcItems?: SettlementEtcItem[];
+  cleaning?: SettlementCleaning;
+  /** 수납액 — 미수금 = settlement_amount − paid (public_settlement_by_token 도 같은 값). */
+  paid?: number;
+  /** 최종 수납일(YYYY-MM-DD). */
+  lastPaidDate?: string;
+  /** 가수금. */
+  adv?: number;
   [key: string]: unknown;
+}
+
+/** 저장 때 보내는 extra 키(0302). 서버가 기존 extra 에 병합한다(보내지 않은 키는 유지). */
+export type SaveSettlementExtra = Pick<
+  SettlementExtra,
+  "etcItems" | "cleaning" | "paid" | "lastPaidDate" | "adv"
+>;
+
+/**
+ * 화면에 펼칠 기타 항목. extra.etcItems 가 있으면 그 목록, 없으면(0302 이전 저장 건) 단일 repair_memo/repair_amount 를 1행으로.
+ * 둘 다 없으면 빈 1행.
+ */
+export function settlementEtcItemsOf(
+  saved: Pick<MovingSettlement, "extra" | "repairMemo" | "repairAmount"> | null,
+): { name: string; amount: number | null }[] {
+  const items = saved?.extra?.etcItems;
+  if (Array.isArray(items) && items.length > 0) {
+    return items
+      .slice(0, MAX_SETTLEMENT_ETC_ITEMS)
+      .map((item) => ({ name: item.name ?? "", amount: Number(item.amount) || null }));
+  }
+  if (saved && (saved.repairMemo || saved.repairAmount)) {
+    return [{ name: saved.repairMemo ?? "", amount: saved.repairAmount ?? null }];
+  }
+  return [{ name: "", amount: null }];
 }
 
 export interface MovingSettlement {
@@ -151,6 +203,11 @@ export interface SaveSettlementData {
   settlementNote: string | null;
   /** 이사 지침(extra.util). 보내면 서버가 extra.util 만 교체하고 나머지 extra 키는 보존한다(0266). */
   util?: SettlementUtilRow[];
+  /**
+   * 기타 목록·청소 상세·수납액·최종 수납일·가수금(0302). 서버가 보낸 키만 기존 extra 에 병합하고,
+   * etcItems 가 오면 repair_amount·repair_memo 를 그 합계·항목명으로 맞춘다.
+   */
+  extra?: SaveSettlementExtra;
 }
 
 export interface SaveSettlementInput {
@@ -476,6 +533,7 @@ function settlementDataToRpc(data: SaveSettlementData) {
     note: data.note,
     settlement_note: data.settlementNote,
     ...(data.util ? { util: data.util } : {}),
+    ...(data.extra ? { extra: data.extra } : {}),
   };
 }
 
