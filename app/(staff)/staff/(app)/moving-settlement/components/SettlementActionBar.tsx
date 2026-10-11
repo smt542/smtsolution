@@ -20,9 +20,9 @@ export function SettlementActionBar({
   onDelete: () => void;
   pending?: boolean;
   pendingAction?: "save" | "mid" | "moveout" | "delete" | null;
-  /** 완료(중도퇴실·퇴실완료) 건: 중도퇴실·삭제 잠금(정책 3.12). */
+  /** 완료(중도퇴실·퇴실완료) 건: 중도퇴실 잠금(정책 3.12). 삭제는 퇴실완료만 잠근다(completedLocked, 0306). */
   locked?: boolean;
-  /** 퇴실완료 건만 잠금(저장·퇴실). 중도퇴실 건은 값을 고쳐 저장하고 「정산완료+퇴실」로 완전 퇴실할 수 있어야 한다. */
+  /** 퇴실완료 건만 잠금(저장·퇴실·삭제). 중도퇴실 건은 값을 고쳐 저장하고 「정산완료+퇴실」로 완전 퇴실하거나 삭제할 수 있다. */
   completedLocked?: boolean;
 }) {
   // 처리 중일 때만 대기 커서. 잠긴(완료) 버튼에 대기 커서가 뜨면 계속 처리 중인 것처럼 보인다.
@@ -58,7 +58,7 @@ export function SettlementActionBar({
       <button
         type="button"
         onClick={onDelete}
-        disabled={pending || locked}
+        disabled={pending || completedLocked}
         className={`flex-[1_1_auto] min-w-max justify-center h-[40px] rounded-[11px] border border-red bg-white px-[10px] text-[13.5px] font-bold text-red hover:bg-red-t ${disabledCursor} disabled:opacity-60`}
       >
         {pendingAction === "delete" ? "삭제 중…" : "삭제"}

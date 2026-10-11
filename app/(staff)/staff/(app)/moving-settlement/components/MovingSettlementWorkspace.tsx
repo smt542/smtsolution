@@ -29,12 +29,13 @@ import {
   printSettlementStatement,
   type SettlementStatementPrintModel,
 } from "./movingSettlementPrint";
-import { UTILITY_ROWS } from "./settlement-form/UtilitySettlementSection";
+import { UTILITY_ROWS, defaultUnitPrice } from "./settlement-form/UtilitySettlementSection";
 
 /**
  * 이사 지침 기본값(정본 = extra.util, 0266).
- * - 저장된 extra.util 이 있으면 그 전월·이사 지침·단가(staff·partner 공통).
- * - 없으면 전월 지침만 검침에서 채운다: 퇴실월 검침이면 그 달 previous_reading, 이전 달 검침이면 그 current_reading.
+ * - 저장된 extra.util 이 있으면 그 전월·이사 지침·단가(staff·partner 공통). 저장 단가가 비어 있으면 검침 단가 기본값.
+ * - 없으면 전월 지침은 검침에서 채운다: 퇴실월 검침이면 그 달 previous_reading, 이전 달 검침이면 그 current_reading.
+ *   단가는 검침 단가 기본값(수도·전기, 단가 반영 ON)으로 채우고 직원이 고칠 수 있다(2026-10-11).
  *   이사 지침은 현장에서 읽은 값을 입력한다(빈 값이면 금액을 계산하지 않고 저장 금액을 유지).
  */
 function readingsFromContext(
@@ -49,7 +50,8 @@ function readingsFromContext(
     if (util) {
       next[row.prevKey] = util.prev ?? null;
       next[row.moveKey] = util.cur ?? null;
-      next[row.priceKey] = util.price ?? null;
+      next[row.priceKey] =
+        util.price ?? defaultUnitPrice(row.utility, context.meterSummary, context.settlementSettings);
       continue;
     }
     const meter = context.meterSummary.find((item) => item.utility === row.utility);
@@ -58,7 +60,7 @@ function readingsFromContext(
         ? meter.previousReading
         : (meter?.currentReading ?? meter?.previousReading ?? null);
     next[row.moveKey] = null;
-    next[row.priceKey] = null;
+    next[row.priceKey] = defaultUnitPrice(row.utility, context.meterSummary, context.settlementSettings);
   }
   return next;
 }
@@ -229,8 +231,12 @@ function SettlementEditor({
   // 이사 지침(cur)을 하나도 입력하지 않은 건(예전 금액만 저장한 건)은 util 을 보내지 않아 extra 를 그대로 둔다.
   // 전월 지침(prev)은 검침에서, 단가(price)는 단가 반영 ON 이면 검침 단가로 자동으로 채워지므로 기준에서 뺀다 —
   // 자동값만으로 util 을 쓰면 파트너 저장(_ms.ts)이 레거시가 아닌 건으로 보고 금액을 비울 수 있다.
+  // 단가를 검침 기본값과 다르게 고친 경우도 저장해야 하므로(그 달 단가 변경, 2026-10-11) 함께 기준에 넣는다.
   const sendUtil =
-    savedUtil !== undefined || utilRows.some((row) => row.cur !== null);
+    savedUtil !== undefined
+    || utilRows.some((row) => row.cur !== null)
+    || UTILITY_ROWS.some((row, index) =>
+      utilRows[index].price !== defaultUnitPrice(row.utility, context.meterSummary, context.settlementSettings));
   // 정본 표기: `농협 352-1234-5678-91 · (주)스마일종합관리` — 은행·계좌는 공백, 예금주 앞만 구분점.
   const settleAccount = [
     [draft.settleBank, draft.settleAcct]

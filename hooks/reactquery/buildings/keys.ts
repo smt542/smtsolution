@@ -8,4 +8,5 @@ export const buildingKeys = {
   deleteImpact: (id: number) => ["buildings", "deleteImpact", id] as const,
   directory: () => ["buildings", "directory"] as const,
   codeTaken: (code: string, excludeId?: number) => ["buildings", "codeTaken", code, excludeId ?? 0] as const,
+  nextCode: () => ["buildings", "nextCode"] as const,
 };

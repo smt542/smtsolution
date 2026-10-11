@@ -723,19 +723,16 @@ export async function midMoveoutSettlement(
 }
 
 /** 저장(save_moving_settlement)·협력사 삭제 RPC와 동일하게 draft/saved 상태만 삭제할 수 있다. */
-const DELETABLE_SETTLEMENT_STATUSES: SettlementStatus[] = ["draft", "saved"];
 
+/**
+ * 이사정산 삭제(0306 delete_moving_settlement). 작성중·저장·중도퇴실 건을 지운다.
+ * 중도퇴실 건은 적요에 덧붙였던 '중도퇴실'을 걷어 내고 지운다. 퇴실완료 건은 서버가 막는다.
+ */
 export async function deleteMovingSettlement(settlementId: number): Promise<void> {
-  const { data, error } = await createClient()
-    .from("moving_settlements")
-    .delete()
-    .eq("id", settlementId)
-    .in("status", DELETABLE_SETTLEMENT_STATUSES)
-    .select("id");
+  const { error } = await createClient().rpc("delete_moving_settlement", {
+    p_settlement_id: settlementId,
+  });
   if (error) throw new Error(error.message);
-  if (!data || data.length === 0) {
-    throw new Error("중간퇴실·완료된 이사정산은 삭제할 수 없습니다.");
-  }
 }
 
 export async function listSettlements(

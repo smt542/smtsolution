@@ -34,7 +34,8 @@ export function BasicInfoSection({
   return (
     <CollapsibleFormSection index={1} title="기본 정보">
       <FormGrid>
-        {/* 정본 #bldCode: 숫자만 3자리(글자는 입력하는 즉시 지운다). */}
+        {/* 정본 #bldCode: 숫자만 3자리(글자는 입력하는 즉시 지운다). 지로 고객조회번호의 건물 코드 자리가 3자리다.
+            등록 모드는 다음 번호가 미리 채워지고(순차 자동 채번, 2026-10-11) 직원이 고칠 수 있다. */}
         <TextField label="건물 코드" required placeholder="숫자 3자리" inputMode="numeric" maxLength={3} value={value.code} error={codeError} onChange={(v) => patch({ code: v.replace(/\D/g, "").slice(0, 3) })} />
         <TextField label="건물명" required placeholder="건물명 입력" value={value.name} onChange={(v) => patch({ name: v })} />
         <SelectField label="건물 유형" placeholder="선택" options={typeOptions} value={value.buildingType} onChange={(v) => patch({ buildingType: v })} />

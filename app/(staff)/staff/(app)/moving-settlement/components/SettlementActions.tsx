@@ -106,6 +106,8 @@ export function SettlementActions({
   const [finalized, setFinalized] = useState<"mid" | "moveout" | null>(null);
   const isLocked = locked || finalized !== null;
   const isCompletedLocked = completedLocked || finalized === "moveout";
+  // 중도퇴실 건(완료 잠금은 걸렸지만 퇴실완료는 아님) — 삭제는 허용하고 확인창에 영향 안내를 붙인다(0306).
+  const isMidMoveout = isLocked && !isCompletedLocked;
   const isSettlementMutationPending =
     save.isPending || complete.isPending || mid.isPending || remove.isPending;
   const pendingAction = save.isPending
@@ -235,7 +237,7 @@ export function SettlementActions({
       },
       onError: (error) =>
         toast.error(
-          // 완료·중간퇴실 건은 deleteMovingSettlement 가 상태 가드 메시지를 던진다.
+          // 퇴실완료 건은 delete_moving_settlement 가 상태 가드 메시지를 던진다(0306).
           error.message.includes("삭제할 수 없습니다")
             ? error.message
             : "이사정산을 삭제하지 못했어요.",
@@ -284,7 +286,7 @@ export function SettlementActions({
         onPrint={print}
         onBlankPrint={() => printSettlementStatement(printModel, { blank: true })}
         onDelete={() => {
-          if (!rejectLocked()) setDialog("delete");
+          if (!rejectLocked("completed")) setDialog("delete");
         }}
         pending={isSettlementMutationPending}
         locked={isLocked}
@@ -364,6 +366,11 @@ export function SettlementActions({
       >
         <p>해당 이사정산을 삭제하시겠습니까?</p>
         <p className="text-t3">{formatCreatedAt(createdAt)}이며, 삭제하면 되돌릴 수 없어요.</p>
+        {isMidMoveout ? (
+          <p className="text-t3">
+            중도퇴실 건이라 부과시 참조사항의 &quot;중도퇴실&quot;은 지워지고, 알림톡 수신·고지서 출력 설정은 그대로 남아요.
+          </p>
+        ) : null}
       </SettlementDecisionDialog>
     </>
   );

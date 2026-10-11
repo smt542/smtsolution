@@ -50,11 +50,12 @@ function reflectsUnitPrice(
 }
 
 /**
- * 단가 반영 ON 인 유틸은 **단가만** 검침 단가(meter.unitPrice)로 채운다(정책 3.5, 개선3차 7).
+ * 단가 **기본값**: 단가 반영 ON 인 유틸(수도·전기)은 검침 단가(meter.unitPrice), 아니면 null.
+ * 기본값일 뿐이다 — 그 달 단가가 바뀔 수 있어 직원이 고칠 수 있고, 고친 값은 extra.util.price 로 저장된다
+ * (2026-10-11, 현장 이사정산과 같은 규칙: 저장값 우선, 비어 있을 때만 기본값).
  * 금액은 월 부과액으로 덮어쓰지 않고 항상 `max(0, 이사 − 전월) × 단가` 로 계산한다.
- * 검침 단가가 없으면 null → 단가를 직접 입력한다.
  */
-function reflectedUnitPrice(
+export function defaultUnitPrice(
   utility: SettlementUtility,
   meters: MeterSummary[],
   settings: SettlementSettings,
@@ -63,24 +64,25 @@ function reflectedUnitPrice(
   return meters.find((meter) => meter.utility === utility)?.unitPrice ?? null;
 }
 
-/** 구분 한 행의 계산값: 단가(반영 ON 이면 검침 단가)·량·금액. 금액은 지침·단가가 다 있어야 계산된다. */
+/** 구분 한 행의 계산값: 단가(입력값, 기본값은 검침 단가)·량·금액. 금액은 지침·단가가 다 있어야 계산된다. */
 function utilityRowValues(
   row: (typeof UTILITY_ROWS)[number],
   value: MovingSettlementValues,
   meters: MeterSummary[],
   settings: SettlementSettings,
 ) {
-  const reflectedPrice = reflectedUnitPrice(row.utility, meters, settings);
+  const defaultPrice = defaultUnitPrice(row.utility, meters, settings);
   const prev = value[row.prevKey] ?? null;
   const cur = value[row.moveKey] ?? null;
-  const price = reflectedPrice ?? value[row.priceKey] ?? null;
+  const price = value[row.priceKey] ?? null;
   const usage = prev !== null && cur !== null ? Math.max(0, cur - prev) : null;
   return {
     prev,
     cur,
     price,
     usage,
-    isReflected: reflectedPrice !== null,
+    /** 단가가 검침 단가 기본값과 다르면(직원이 고침) 표시용 */
+    isEdited: defaultPrice !== null && price !== null && price !== defaultPrice,
     computedCharge: utilityReadingCharge(prev, cur, price),
   };
 }
@@ -88,7 +90,7 @@ function utilityRowValues(
 /**
  * 공과금 행의 계산값을 draft 에 되돌려 넣을 patch. SettlementForm 이 관리비 소계와 한 이펙트에서 적용해
  * 표시값·소계·요약바·저장값의 출처를 하나로 유지한다.
- * - 단가 반영 ON: 단가 = 검침 단가
+ * - 단가: 덮어쓰지 않는다(기본값은 불러올 때 readingsFromContext 가 채운다)
  * - 금액: 지침·단가가 다 있으면 계산값(0이면 파트너 저장과 같이 null). 하나라도 비면 저장된 금액을 그대로 둔다.
  */
 export function derivedUtilityPatch(
@@ -99,9 +101,6 @@ export function derivedUtilityPatch(
   const patch: Partial<MovingSettlementValues> = {};
   for (const row of UTILITY_ROWS) {
     const derived = utilityRowValues(row, value, meters, settings);
-    if (derived.isReflected && (value[row.priceKey] ?? null) !== derived.price) {
-      patch[row.priceKey] = derived.price;
-    }
     if (derived.computedCharge === null) continue;
     const nextCharge = derived.computedCharge === 0 ? null : derived.computedCharge;
     if ((value[row.chargeKey] ?? null) !== nextCharge) patch[row.chargeKey] = nextCharge;
@@ -150,7 +149,7 @@ export function UtilitySettlementSection({
             <span className="px-[7px] pb-[7px] text-left">입금계좌</span>
             <span className="pb-[7px] pl-[7px] text-left">입금일</span>
           </div>
-        {rows.map(({ row, prev, cur, price, usage, isReflected, shownCharge }) => {
+        {rows.map(({ row, prev, cur, price, usage, isEdited, shownCharge }) => {
           // 정본(정책 3.5): 전월 지침 · 이사 지침 · 단가는 입력, 량=이사−전월, 금액=량×단가(자동).
           // 단가 반영 ON 이면 단가만 검침 단가(읽기전용)로 채운다.
           return (
@@ -181,25 +180,17 @@ export function UtilitySettlementSection({
                 />
               </div>
               <div className="p-[4px]">
-                {isReflected ? (
-                  <span
-                    aria-label={`${row.label} 단가`}
-                    className="flex h-[34px] w-full items-center justify-end rounded-[9px] border border-line2 bg-[#f7f9fa] px-[8px] text-right text-[12.5px] font-semibold text-t2"
-                  >
-                    {formatNumber(price, { nullText: "-" })}
-                  </span>
-                ) : (
-                  <Input
-                    unstyled
-                    aria-label={`${row.label} 단가`}
-                    type="number"
-                    min={0}
-                    step="any"
-                    value={price ?? ""}
-                    onChange={(event) => onChange({ ...value, [row.priceKey]: numericValue(event.target.value) })}
-                    className={inputClassName}
-                  />
-                )}
+                <Input
+                  unstyled
+                  aria-label={`${row.label} 단가`}
+                  title={isEdited ? "검침 단가와 다른 값으로 고쳤어요" : undefined}
+                  type="number"
+                  min={0}
+                  step="any"
+                  value={price ?? ""}
+                  onChange={(event) => onChange({ ...value, [row.priceKey]: numericValue(event.target.value) })}
+                  className={inputClassName}
+                />
               </div>
               <div className="p-[4px]">
                 <span className="flex h-[34px] items-center justify-end text-right text-[12.5px] font-bold text-t1">

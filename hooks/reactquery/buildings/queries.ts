@@ -6,6 +6,8 @@ import {
   getBuildingFull,
   getBuildingDeleteImpact,
   isBuildingCodeTaken,
+  getNextBuildingCode,
+  BUILDING_CODE_PATTERN,
   type BuildingListParams,
   type BuildingListResult,
 } from "./apis";
@@ -28,7 +30,16 @@ export function useBuildingCodeTaken(code: string, excludeId?: number) {
   return useQuery({
     queryKey: buildingKeys.codeTaken(code, excludeId),
     queryFn: () => isBuildingCodeTaken(code, excludeId),
-    enabled: /^\d{3}$/.test(code),
+    enabled: BUILDING_CODE_PATTERN.test(code),
+    staleTime: 0,
+  });
+}
+/** 등록 화면 건물 코드 기본값(순차 자동 채번, 숫자 3자리). 등록 모드에서만 조회한다. */
+export function useNextBuildingCode(enabled: boolean) {
+  return useQuery({
+    queryKey: buildingKeys.nextCode(),
+    queryFn: getNextBuildingCode,
+    enabled,
     staleTime: 0,
   });
 }

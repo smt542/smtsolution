@@ -15,8 +15,10 @@ import {
 import { deleteImpactWarning } from "@/lib/buildings/deleteImpact";
 import {
   buildingDeleteImpactQuery,
+  BUILDING_CODE_PATTERN,
   isBuildingCodeTaken,
   useBuildingCodeTaken,
+  useNextBuildingCode,
   useDeleteBuilding,
   useSaveBuilding,
   useStaffOptions,
@@ -61,6 +63,9 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
   const [fieldErrors, setFieldErrors] = useState<{ officeManager?: string; siteManager?: string; terminationDate?: string }>({});
   const [hydratedFor, setHydratedFor] = useState<number | null>(null);
   const [persistedBuildingId, setPersistedBuildingId] = useState<number | null>(buildingId ?? null);
+  // 등록 모드: 건물 코드 기본값(순차 자동 채번·숫자 3자리, 수정 가능 — 정책 2026-10-11). 한 번만 채우고, 지운 값은 다시 채우지 않는다.
+  const nextCode = useNextBuildingCode(!buildingId);
+  const [codePrefilled, setCodePrefilled] = useState(false);
   const vendorIds = (full?.vendors ?? []).map((vendor) => vendor.id);
   const { data: vendorAttachments = [] } = useAttachmentsByEntities("building_vendor", vendorIds);
 
@@ -95,6 +100,11 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
     setState(buildingToFormState(full, resolvers.resolveStaffName, resolvers.resolveTypeLabel));
     setHydratedFor(buildingId);
   }
+  // 등록 모드 코드 기본값도 같은 render-phase 1회 조정 패턴으로 채운다(dirty 로 보지 않음).
+  if (!buildingId && !codePrefilled && nextCode.data) {
+    setState((s) => (s.code ? s : { ...s, code: nextCode.data }));
+    setCodePrefilled(true);
+  }
 
   const patch = (p: Partial<RegisterFormState>) => {
     setState((s) => ({ ...s, ...p }));
@@ -113,7 +123,7 @@ export function BuildingRegisterForm({ buildingId }: { buildingId?: number }) {
 
   const onSave = async () => {
     if (isSavingBuilding) return;
-    if (!/^\d{3}$/.test(state.code)) {
+    if (!BUILDING_CODE_PATTERN.test(state.code)) {
       appToast.warning("건물 코드를 숫자 3자리로 입력해 주세요.");
       return;
     }

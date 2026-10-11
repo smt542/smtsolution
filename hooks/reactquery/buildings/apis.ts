@@ -142,6 +142,19 @@ export async function listAllBuildings(): Promise<Building[]> {
  * 건물 코드가 이미 쓰이고 있는지 확인한다. `buildings_org_id_code_key`가 삭제된 건물까지 포함한 (org, code) 유니크라
  * soft delete된 건물도 센다. RLS가 조직을 걸러 주므로 코드만 비교한다. 수정 모드는 자기 자신(excludeId)을 뺀다.
  */
+/** 등록 화면의 건물 코드 기본값(0308 next_building_code: 3자리 최댓값 + 1, 999 다음은 비어 있는 가장 작은 3자리). */
+export async function getNextBuildingCode(): Promise<string> {
+  const { data, error } = await createClient().rpc("next_building_code");
+  if (error) throw new Error(error.message);
+  return String(data ?? "");
+}
+
+/**
+ * 건물 코드 형식: 숫자 3자리. 지로수납처리가 은행 지로 고객조회번호 7~9번째 3자리를 건물 코드로 보고 세대를 찾기 때문이다
+ * (lib/payments/giroFile.ts). 서버 save_building(0200)도 같은 검사를 한다.
+ */
+export const BUILDING_CODE_PATTERN = /^\d{3}$/;
+
 export async function isBuildingCodeTaken(code: string, excludeId?: number): Promise<boolean> {
   let query = createClient().from("buildings").select("id").eq("code", code).limit(1);
   if (excludeId) query = query.neq("id", excludeId);

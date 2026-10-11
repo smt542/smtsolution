@@ -180,6 +180,8 @@ export function VendorManagementSection() {
       appToast.error("인증 정보가 없습니다.");
       throw new Error("인증 정보가 없습니다.");
     }
+    // 사진 업로드 재시도(createdVendorIdForRetry)도 처음 등록의 연장이라 "등록" 문구를 쓴다.
+    const successMessage = editingVendor ? "업체 정보를 저장했어요" : "업체를 등록했어요";
     try {
       let vendorId = editingVendor?.id ?? createdVendorIdForRetry;
       if (vendorId) {
@@ -190,7 +192,10 @@ export function VendorManagementSection() {
         setCreatedVendorIdForRetry(createdVendor.id);
       }
 
-      if (pendingFiles.length === 0) return { failedFiles: [] };
+      if (pendingFiles.length === 0) {
+        appToast.success(successMessage);
+        return { failedFiles: [] };
+      }
       const uploadResult = await uploadVendorAttachments.mutateAsync({
         entityType: "vendor",
         entityId: vendorId,
@@ -204,6 +209,8 @@ export function VendorManagementSection() {
         appToast.warning(
           `업체는 저장됐지만 사진 ${failedFiles.length}장을 올리지 못했습니다. 실패한 사진만 다시 시도해 주세요.`,
         );
+      } else {
+        appToast.success(successMessage);
       }
       return { failedFiles };
     } catch (e) {
