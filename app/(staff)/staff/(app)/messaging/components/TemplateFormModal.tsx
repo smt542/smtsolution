@@ -31,6 +31,15 @@ const CATEGORY_OPTIONS: { value: CategoryType; label: string }[] = [
   { value: "공지", label: "공지" },
 ];
 
+/**
+ * DB category(기본 템플릿은 notice/bill/overdue/settlement/complaint 영문값, 화면 저장분은 공지/정기)를
+ * 폼의 공지/정기로 맞춘다. notice·공지 → 공지, 나머지 값 → 정기, 없음 → null.
+ */
+export function toCategoryType(category: string | null | undefined): CategoryType | null {
+  if (!category) return null;
+  return category === "공지" || category === "notice" ? "공지" : "정기";
+}
+
 // 템플릿 내용에 삽입할 수 있는 변수(Figma 28-21455).
 const CONTENT_VARIABLES = [
   "건물명",
@@ -91,9 +100,8 @@ function TemplateForm({
   const [channelType, setChannelType] = useState<ChannelType>(
     template?.channelType === "alimtalk" ? "alimtalk" : "sms",
   );
-  const [category, setCategory] = useState<CategoryType>(
-    template?.category === "공지" ? "공지" : "정기",
-  );
+  const initialCategory: CategoryType = toCategoryType(template?.category) ?? "정기";
+  const [category, setCategory] = useState<CategoryType>(initialCategory);
   const [alimtalkTemplateCode, setAlimtalkTemplateCode] = useState(
     template?.alimtalkTemplateCode ?? "",
   );
@@ -148,7 +156,8 @@ function TemplateForm({
         ]
       : [];
     const extra = {
-      category,
+      // 구분을 바꾸지 않았으면 원래 DB 값(영문 category 포함)을 그대로 둔다.
+      category: template && category === initialCategory ? template.category : category,
       channelType,
       alimtalkTemplateCode:
         channelType === "alimtalk" ? alimtalkTemplateCode.trim() || null : null,

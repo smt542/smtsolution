@@ -349,12 +349,16 @@ export function AsStatusSection({
       return;
     }
 
+    // 알림톡은 동의 + 알림톡 유형 + 승인 템플릿 코드가 모두 있을 때만 — 하나라도 없으면 SMS 로 자동 전환한다.
+    const useAlimtalk = occupancy.alimtalkOptIn
+      && template.channelType === "alimtalk"
+      && Boolean(template.alimtalkTemplateCode);
     setSelectedId(null);
     openMessengerWith({
       recipients,
       body: template.body,
       templateId: template.id,
-      channel: occupancy.alimtalkOptIn ? "alim" : "sms",
+      channel: useAlimtalk ? "alim" : "sms",
     });
   };
 

@@ -134,10 +134,19 @@ export function SettlementActions({
     return result.success;
   };
 
-  const requireSaved = () => {
-    if (settlementId !== null) return true;
-    toast.error("먼저 저장을 실행해 주세요.");
-    return false;
+  /**
+   * 완료(중도퇴실·퇴실) 직전에 화면의 현재 입력을 먼저 저장한다 — 완료 후에는 저장이 막히므로(완료 건),
+   * 저장하지 않은 수납액(extra.paid)이 공유 링크·partner 화면에 남지 않게 한다. 실패하면 null(완료 중단).
+   */
+  const saveBeforeCompletion = async (): Promise<number | null> => {
+    try {
+      const result = await save.mutateAsync(input);
+      onSaved(result.settlementId);
+      return result.settlementId;
+    } catch {
+      toast.error("이사정산 저장에 실패해 완료 처리를 중단했어요.");
+      return null;
+    }
   };
 
   const saveNow = () => {
@@ -160,7 +169,9 @@ export function SettlementActions({
     kind === "mid" ? ("mid-confirm" as const) : ("moveout-confirm" as const);
 
   const requestCompletion = (kind: "mid" | "moveout") => {
-    if (rejectLocked(kind === "moveout" ? "completed" : "all") || !validate() || !requireSaved()) return;
+    // 저장 안 된 건도 완료 직전에 저장(saveBeforeCompletion)하므로 settlementId 를 미리 요구하지 않는다.
+    // 미수금 가드는 저장할 값(화면 값) 기준이다.
+    if (rejectLocked(kind === "moveout" ? "completed" : "all") || !validate()) return;
     if (outstanding > 0) {
       setPendingCompletion(kind);
       setDialog("outstanding");
@@ -169,9 +180,11 @@ export function SettlementActions({
     setDialog(confirmDialogOf(kind));
   };
 
-  const completeMidMoveout = () => {
-    if (settlementId === null) return;
-    mid.mutate(settlementId, {
+  const completeMidMoveout = async () => {
+    if (isSettlementMutationPending) return;
+    const savedId = await saveBeforeCompletion();
+    if (savedId === null) return;
+    mid.mutate(savedId, {
       onSuccess: () => {
         setFinalized("mid");
         setDialog(null);
@@ -185,9 +198,11 @@ export function SettlementActions({
     });
   };
 
-  const completeMoveout = () => {
-    if (settlementId === null) return;
-    complete.mutate(settlementId, {
+  const completeMoveout = async () => {
+    if (isSettlementMutationPending) return;
+    const savedId = await saveBeforeCompletion();
+    if (savedId === null) return;
+    complete.mutate(savedId, {
       onSuccess: (result) => {
         setFinalized("moveout");
         setDialog(null);
@@ -298,8 +313,8 @@ export function SettlementActions({
         open={dialog === "mid-confirm"}
         title="중도퇴실 처리"
         confirmLabel="정산완료+중도퇴실"
-        pending={mid.isPending}
-        pendingLabel="중도퇴실 처리 중…"
+        pending={save.isPending || mid.isPending}
+        pendingLabel={save.isPending ? "저장 중…" : "중도퇴실 처리 중…"}
         onCancel={() => setDialog(null)}
         onConfirm={completeMidMoveout}
       >
@@ -319,8 +334,8 @@ export function SettlementActions({
         open={dialog === "moveout-confirm"}
         title="퇴실 처리"
         confirmLabel="정산완료+퇴실"
-        pending={complete.isPending}
-        pendingLabel="퇴실 처리 중…"
+        pending={save.isPending || complete.isPending}
+        pendingLabel={save.isPending ? "저장 중…" : "퇴실 처리 중…"}
         onCancel={() => setDialog(null)}
         onConfirm={completeMoveout}
       >

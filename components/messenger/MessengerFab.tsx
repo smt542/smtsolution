@@ -138,6 +138,8 @@ function MessengerFabContent() {
         if (handoff.body !== undefined) {
           setBody(handoff.body);
           setTemplateId(handoff.channel === "alim" ? (handoff.templateId ?? null) : null);
+          // 템플릿을 지정해 열면 이전 수동 알림톡 변수를 비워 수신자별 변수를 덮어쓰지 않게 한다.
+          if (handoff.templateId !== undefined) setAlimtalkVars({});
         }
         if (handoff.channel) setChannel(handoff.channel);
         openPanel();

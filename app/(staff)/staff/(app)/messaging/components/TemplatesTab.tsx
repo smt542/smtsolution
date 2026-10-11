@@ -15,7 +15,7 @@ import {
 } from "@/hooks/reactquery/messageTemplates/popbillSync";
 import { MessagingListCard } from "./MessagingListCard";
 import { SegmentedFilter } from "./SegmentedFilter";
-import { TemplateFormModal } from "./TemplateFormModal";
+import { TemplateFormModal, toCategoryType } from "./TemplateFormModal";
 
 type FilterType = "all" | "sms" | "alimtalk";
 
@@ -194,7 +194,7 @@ export function TemplatesTab() {
                     {getChannelLabel(template.channelType)}
                   </td>
                   <td className="whitespace-nowrap h-[49px] px-[16px] py-[12px] text-[13px] font-medium text-[#191f28]">
-                    {template.category ?? "-"}
+                    {toCategoryType(template.category) ?? "-"}
                   </td>
                   <td className="h-[49px] px-[16px] py-[12px]">
                     <div className="flex items-center gap-[6px]">
