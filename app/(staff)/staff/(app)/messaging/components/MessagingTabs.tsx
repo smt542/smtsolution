@@ -6,16 +6,18 @@ import { useIsHydrated } from "@/hooks/common";
 import { useMessageLogs } from "@/hooks/reactquery/messaging";
 import { useScheduledMessages } from "@/hooks/reactquery/messaging";
 import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates";
+import { BillNoticeTab } from "./BillNoticeTab";
 import { HistoryTab } from "./HistoryTab";
 import { ScheduledTab } from "./ScheduledTab";
 import { TemplatesTab } from "./TemplatesTab";
 
-export type MessagingTab = "scheduled" | "history" | "templates";
+export type MessagingTab = "scheduled" | "history" | "templates" | "bill";
 
 const loadingLabels: Record<MessagingTab, string> = {
   scheduled: "예약 발송 목록 불러오는 중",
   history: "발송 내역 불러오는 중",
   templates: "템플릿 목록 불러오는 중",
+  bill: "관리비 고지서 불러오는 중",
 };
 
 function MessagingTabLoading({ tab }: { tab: MessagingTab }) {
@@ -33,10 +35,12 @@ export function MessagingTabs({ initialTab }: { initialTab: MessagingTab }) {
   const { data: templates = [] } = useMessageTemplates();
   const isHydrated = useIsHydrated();
 
-  const tabs: { id: MessagingTab; label: string; count: number }[] = [
+  const tabs: { id: MessagingTab; label: string; count?: number }[] = [
     { id: "scheduled", label: "예약 발송", count: isHydrated ? scheduled.length : 0 },
     { id: "history", label: "발송 내역", count: isHydrated ? logs.length : 0 },
     { id: "templates", label: "템플릿 관리", count: isHydrated ? templates.length : 0 },
+    // 카카오 관리비 고지서(알림톡) 발송(결정 2026-10-12). 건수는 건물·월 선택 후 카드에 표시한다.
+    { id: "bill", label: "관리비 고지서" },
   ];
 
   return (
@@ -60,7 +64,9 @@ export function MessagingTabs({ initialTab }: { initialTab: MessagingTab }) {
               }`}
             >
               {item.label}
-              <span className="ml-[4px] text-[#b0b8c1]">{item.count}</span>
+              {item.count === undefined ? null : (
+                <span className="ml-[4px] text-[#b0b8c1]">{item.count}</span>
+              )}
             </button>
           ))}
         </div>
@@ -76,6 +82,7 @@ export function MessagingTabs({ initialTab }: { initialTab: MessagingTab }) {
         {isHydrated && tab === "scheduled" ? <ScheduledTab /> : null}
         {isHydrated && tab === "history" ? <HistoryTab /> : null}
         {isHydrated && tab === "templates" ? <TemplatesTab /> : null}
+        {isHydrated && tab === "bill" ? <BillNoticeTab /> : null}
       </div>
     </div>
   );

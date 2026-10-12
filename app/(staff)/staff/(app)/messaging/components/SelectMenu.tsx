@@ -13,6 +13,8 @@ interface SelectMenuProps<T extends string> {
   onChange: (value: T) => void;
   ariaLabel: string;
   className?: string;
+  /** 선택 변경 불가(예: 팝빌 승인 템플릿의 유형). */
+  disabled?: boolean;
 }
 
 /**
@@ -25,6 +27,7 @@ export function SelectMenu<T extends string>({
   onChange,
   ariaLabel,
   className,
+  disabled = false,
 }: SelectMenuProps<T>) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -55,6 +58,7 @@ export function SelectMenu<T extends string>({
         aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={open}
+        disabled={disabled}
         onClick={() => setOpen((current) => !current)}
         className={`flex h-[42px] w-full items-center justify-between gap-[8px] rounded-[11px] border bg-white px-[12px] text-[14px] font-semibold leading-[normal] text-t1 outline-none ${
           open ? "border-blue shadow-[0_0_0_3px_var(--color-blue-t)]" : "border-line"

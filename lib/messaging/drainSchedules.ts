@@ -64,6 +64,7 @@ interface ReserveResult {
   recipient_costs?: Array<Record<string, unknown>>;
   alimtalk_template_code?: string | null;
   buttons?: unknown;
+  emphasize_title?: string | null;
 }
 
 async function rpc(
@@ -143,6 +144,7 @@ async function processRow(
       loadAlimtalkTemplate: async () => ({
         templateCode: reserve.alimtalk_template_code ?? null,
         buttons: toPopbillButtons(reserve.buttons),
+        emphasizeTitle: reserve.emphasize_title?.trim() || null,
       }),
       config,
     },

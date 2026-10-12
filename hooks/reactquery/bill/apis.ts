@@ -123,6 +123,16 @@ export async function listBillTargets(buildingId: number, period: string): Promi
   });
 }
 
+export interface BillDueDate { unitId: number; dueDate: string | null; }
+
+/** 세대별 그 달 납부 마감일. 발행 고지서 → 건물·월 → 회사 기본 납부일 → 말일 순(billing_effective_due_date). */
+export async function listBillDueDates(unitIds: number[], period: string): Promise<BillDueDate[]> {
+  const { data, error } = await createClient().rpc("staff_bill_due_dates", { p_unit_ids: unitIds, p_period: period });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as { unit_id: number; due_date: string | null }[])
+    .map((row) => ({ unitId: row.unit_id, dueDate: row.due_date }));
+}
+
 export async function getBillDocuments(buildingId: number, period: string, unitIds: number[]): Promise<BillDocument[]> {
   const { data, error } = await createClient().rpc("get_bill_documents", { p_building_id: buildingId, p_period: period, p_unit_ids: unitIds });
   if (error) throw new Error(error.message);

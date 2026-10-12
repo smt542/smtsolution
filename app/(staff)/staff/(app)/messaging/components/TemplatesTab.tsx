@@ -32,8 +32,9 @@ function getLinkContent(
   buttons: TemplateButton[] | undefined,
 ): { name: string; url: string } | null {
   const btn = buttons?.[0];
-  if (!btn?.url) return null;
-  return { name: btn.name, url: btn.url };
+  const url = btn?.url ?? btn?.u1;
+  if (!url) return null;
+  return { name: btn?.name ?? btn?.n ?? "", url };
 }
 
 function summarizeBody(body: string): string {

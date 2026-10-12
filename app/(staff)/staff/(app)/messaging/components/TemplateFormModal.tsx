@@ -105,8 +105,11 @@ function TemplateForm({
   const [alimtalkTemplateCode, setAlimtalkTemplateCode] = useState(
     template?.alimtalkTemplateCode ?? "",
   );
-  const [buttonName, setButtonName] = useState(template?.buttons?.[0]?.name ?? "");
-  const [buttonUrl, setButtonUrl] = useState(template?.buttons?.[0]?.url ?? "");
+  const [buttonName, setButtonName] = useState(template?.buttons?.[0]?.name ?? template?.buttons?.[0]?.n ?? "");
+  const [buttonUrl, setButtonUrl] = useState(template?.buttons?.[0]?.url ?? template?.buttons?.[0]?.u1 ?? "");
+  // 팝빌 승인 템플릿(템플릿 코드 보유): 본문·버튼·강조표기·유형·코드·이름은 승인 원문과 같아야 하므로 잠근다.
+  // 팝빌에서 수정 후 「동기화」로만 바뀐다(DB 트리거 trg_message_templates_lock_approved 도 같은 규칙). 구분만 수정 가능.
+  const isApproved = Boolean(template?.alimtalkTemplateCode?.trim());
 
   const isPending = createTemplate.isPending || updateTemplate.isPending;
 
@@ -140,6 +143,20 @@ function TemplateForm({
   };
 
   const save = async () => {
+    if (template && isApproved) {
+      // 승인 템플릿은 구분(우리 쪽 분류 라벨)만 저장한다.
+      try {
+        await updateTemplate.mutateAsync({
+          id: template.id,
+          input: { category: category === initialCategory ? template.category : category },
+        });
+        toast.success("저장했습니다.");
+        onSaved();
+      } catch (error) {
+        toast.error(error, "저장 실패");
+      }
+      return;
+    }
     const trimmedTitle = title.trim();
     const trimmedBody = body.trim();
     if (!trimmedTitle || !trimmedBody) {
@@ -218,6 +235,7 @@ function TemplateForm({
               <SelectMenu
                 ariaLabel="채널 유형"
                 className="flex-1"
+                disabled={isApproved}
                 value={channelType}
                 options={CHANNEL_OPTIONS}
                 onChange={(value) => setChannelType(value)}
@@ -232,12 +250,19 @@ function TemplateForm({
             </div>
           </div>
 
+          {isApproved ? (
+            <p role="note" className="shrink-0 text-[12.5px] font-semibold text-[#f04452]">
+              팝빌 승인 템플릿은 팝빌에서 수정 후 동기화해 주세요. (구분만 수정할 수 있어요)
+            </p>
+          ) : null}
+
           {/* 템플릿명 */}
           <div className="flex shrink-0 flex-col gap-[9px]">
             <span className={LABEL}>템플릿명</span>
             <Input
               unstyled
               aria-label="템플릿명"
+              readOnly={isApproved}
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               placeholder="예) 관리비 고지 안내"
@@ -252,6 +277,7 @@ function TemplateForm({
               unstyled
               ref={bodyRef}
               aria-label="템플릿 내용"
+              readOnly={isApproved}
               value={body}
               onChange={(event) => setBody(event.target.value)}
               placeholder="메시지 내용을 입력해 주세요"
@@ -262,6 +288,7 @@ function TemplateForm({
                 <button
                   key={name}
                   type="button"
+                  disabled={isApproved}
                   onClick={() => insertContentVariable(name)}
                   className={VAR_CHIP}
                 >
@@ -279,6 +306,7 @@ function TemplateForm({
                 <Input
                   unstyled
                   aria-label="알림톡 템플릿코드"
+                  readOnly={isApproved}
                   value={alimtalkTemplateCode}
                   onChange={(event) => setAlimtalkTemplateCode(event.target.value)}
                   placeholder="카카오 승인 템플릿 코드"
@@ -294,6 +322,7 @@ function TemplateForm({
                   <Input
                     unstyled
                     aria-label="버튼명"
+                    readOnly={isApproved}
                     value={buttonName}
                     onChange={(event) => setButtonName(event.target.value)}
                     placeholder="버튼명 (예: 자세히 보기)"
@@ -302,6 +331,7 @@ function TemplateForm({
                   <Input
                     unstyled
                     aria-label="연결 URL"
+                    readOnly={isApproved}
                     value={buttonUrl}
                     onChange={(event) => setButtonUrl(event.target.value)}
                     placeholder="연결 URL (https://)"
@@ -314,6 +344,7 @@ function TemplateForm({
                     <button
                       key={name}
                       type="button"
+                      disabled={isApproved}
                       onClick={() => setButtonUrl((prev) => `${prev}#{${name}}`)}
                       className={VAR_CHIP}
                     >

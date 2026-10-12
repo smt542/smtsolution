@@ -114,6 +114,8 @@ declare module "popbill" {
     altmsg?: string;
     interOPRefKey?: string;
     btns?: PopbillKakaoButton[];
+    /** 강조표기 타이틀(강조표기형 템플릿만 적용, 최대 50자). */
+    emphasizeTitle?: string;
   }
 
   /** 알림톡 템플릿(ListATSTemplate) 응답 항목. 팝빌 필드가 유동적이라 방어적으로 다룬다. */

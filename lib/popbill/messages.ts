@@ -142,6 +142,9 @@ async function submitAlimtalk(
     altmsg: "",
     interOPRefKey: r.providerRefKey,
     btns: r.buttons ?? content.buttons,
+    // 강조표기형 템플릿만 타이틀을 싣는다(아래 sendATS_multi 가 내부에서 sendATS_same 을 호출하며 msgs[].emphasizeTitle 을
+    // 그대로 직렬화 — popbill KakaoService.js). 그 외 발송은 필드 자체를 넣지 않는다.
+    ...(content.emphasizeTitle ? { emphasizeTitle: content.emphasizeTitle } : {}),
   }));
   // 렌더 후에도 본문이나 버튼 URL에 남은 #{변수}가 있으면 접수 전에 거절한다.
   if (

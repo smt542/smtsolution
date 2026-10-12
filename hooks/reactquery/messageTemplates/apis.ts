@@ -1,6 +1,10 @@
 import { createClient } from "@/lib/supabase/client";
 
-export interface TemplateButton { name: string; type: string; url?: string }
+/**
+ * 템플릿 버튼. 화면 등록분은 {name,type,url}, 팝빌 승인 템플릿(동기화·기본 제공)은 팝빌 원문 {t,n,u1,u2} 형식이다.
+ * 발송은 두 형식 모두 toPopbillButtons 로 받는다.
+ */
+export interface TemplateButton { name?: string; type?: string; url?: string; t?: string; n?: string; u1?: string; u2?: string }
 export interface MessageTemplate {
   id: number; orgId: number; title: string; body: string; sortOrder: number;
   category: string | null; channelType: string; alimtalkTemplateCode: string | null; buttons: TemplateButton[];

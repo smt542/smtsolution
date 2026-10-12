@@ -14,7 +14,10 @@ export interface AlimtalkTemplate {
   templateCode: string;
   name: string;
   body: string;
-  buttons: Array<{ name: string; type: string; url?: string; u2?: string }>;
+  /** 팝빌 원문 형식({t,n,u1,u2}) 그대로 — message_templates.buttons 에 이 형식으로 저장한다(toPopbillButtons 가 그대로 받는다). */
+  buttons: Array<{ t: string; n: string; u1?: string; u2?: string }>;
+  /** 강조표기 타이틀(강조표기형 템플릿만). 없으면 null. */
+  emphasizeTitle: string | null;
   approved: boolean;
   stateName: string;
 }
@@ -23,13 +26,13 @@ function str(value: unknown): string {
   return typeof value === "string" ? value : value == null ? "" : String(value);
 }
 
-function normalizeButton(raw: Record<string, unknown>): { name: string; type: string; url?: string; u2?: string } {
-  const name = str(raw.n ?? raw.name);
-  const type = str(raw.t ?? raw.type) || "WL";
-  const url = str(raw.u1 ?? raw.url) || undefined;
+function normalizeButton(raw: Record<string, unknown>): { t: string; n: string; u1?: string; u2?: string } {
+  const n = str(raw.n ?? raw.name);
+  const t = str(raw.t ?? raw.type) || "WL";
+  const u1 = str(raw.u1 ?? raw.url) || undefined;
   // 웹링크(WL)·앱링크(AL)는 u1·u2 가 모두 필요하다(팝빌 SendATS). 승인본의 u2 를 그대로 보존한다.
   const u2 = str(raw.u2) || undefined;
-  return { name, type, ...(url ? { url } : {}), ...(u2 ? { u2 } : {}) };
+  return { t, n, ...(u1 ? { u1 } : {}), ...(u2 ? { u2 } : {}) };
 }
 
 function normalize(raw: PopbillATSTemplate): AlimtalkTemplate {
@@ -44,6 +47,7 @@ function normalize(raw: PopbillATSTemplate): AlimtalkTemplate {
     name: str(raw.templateName).trim(),
     body: str(raw.template),
     buttons: rawButtons.map((b) => normalizeButton(b as unknown as Record<string, unknown>)),
+    emphasizeTitle: str(record.emphasizeTitle).trim() || null,
     approved: state === "3" || (/승인/.test(stateName) && !/미승인|반려/.test(stateName)),
     stateName,
   };

@@ -42,6 +42,8 @@ export interface SupabaseClientLike {
 export interface AlimtalkTemplateContent {
   templateCode: string | null;
   buttons: PopbillKakaoButton[];
+  /** 강조표기형 템플릿의 강조표기 타이틀(message_templates.emphasize_title). 없으면 null. */
+  emphasizeTitle?: string | null;
 }
 
 export interface DispatchMessagesInput {
@@ -732,7 +734,12 @@ export async function submitReservationBatches(
 
     const content: MessageContent =
       batch.product === "alimtalk"
-        ? { body: params.body, templateCode: alimtalk.templateCode, buttons: alimtalk.buttons }
+        ? {
+            body: params.body,
+            templateCode: alimtalk.templateCode,
+            buttons: alimtalk.buttons,
+            emphasizeTitle: alimtalk.emphasizeTitle ?? null,
+          }
         : { body: params.body };
     try {
       const submission = await submitBatchWithRetry(

@@ -27,6 +27,8 @@ export interface MessageContent {
   subject?: string | null;
   templateCode?: string | null;
   buttons?: PopbillKakaoButton[];
+  /** 알림톡 강조표기 타이틀. 강조표기형 템플릿만 값이 있고, 없으면 메시지에 싣지 않는다. */
+  emphasizeTitle?: string | null;
 }
 
 /** 접수 성공 결과. receiptNum은 "접수됨"을 의미하며 성공 결과가 아니다. */

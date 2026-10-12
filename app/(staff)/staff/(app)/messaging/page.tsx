@@ -12,7 +12,7 @@ type MessagingSearchParams = {
 
 function parseTab(value: string | string[] | undefined): MessagingTab {
   const tab = Array.isArray(value) ? value[0] : value;
-  if (tab === "history" || tab === "templates") return tab;
+  if (tab === "history" || tab === "templates" || tab === "bill") return tab;
   return "scheduled";
 }
 

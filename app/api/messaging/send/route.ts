@@ -84,13 +84,18 @@ export async function POST(request: Request): Promise<Response> {
   const loadAlimtalkTemplate = async (id: number): Promise<AlimtalkTemplateContent> => {
     const { data } = await sb
       .from("message_templates")
-      .select("alimtalk_template_code, buttons")
+      .select("alimtalk_template_code, buttons, emphasize_title")
       .eq("id", id)
       .maybeSingle();
-    const tpl = data as { alimtalk_template_code?: string | null; buttons?: unknown } | null;
+    const tpl = data as {
+      alimtalk_template_code?: string | null;
+      buttons?: unknown;
+      emphasize_title?: string | null;
+    } | null;
     return {
       templateCode: tpl?.alimtalk_template_code ?? null,
       buttons: toPopbillButtons(tpl?.buttons),
+      emphasizeTitle: tpl?.emphasize_title?.trim() || null,
     };
   };
 
