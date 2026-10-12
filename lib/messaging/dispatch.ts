@@ -306,6 +306,9 @@ export async function dispatchMessages(
     // 이 값은 실제 발송에 그대로 실려 나가므로 읽는 쪽에서도 보장한다.
     // (이 파일에 이미 있는 로컬 normalizePhone — 숫자만 남긴다)
     smsSender: normalizePhone(orgSmsSender) || envConfig.smsSender,
+    // 알림톡 발신번호(snd)는 팝빌상 대체문자 전송 때만 필수다(대체문자는 쓰지 않음). 전용 설정이 없으면
+    // 등록된 문자 발신번호를 쓴다 — 접수 전 등록 여부 확인(checkSenderRegistered)은 그대로 거친다.
+    kakaoSender: envConfig.kakaoSender || normalizePhone(orgSmsSender) || envConfig.smsSender,
   };
 
   // 1) 서버 견적(인증 컨텍스트) — 최종 본문으로 sms/lms/alimtalk 판정

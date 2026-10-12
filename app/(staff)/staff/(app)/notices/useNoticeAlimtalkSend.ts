@@ -152,7 +152,8 @@ export function useNoticeAlimtalkSend(
         (consentQuery.data ?? []).map((consent) => [consent.occupancyId, consent.alimtalkOptIn]),
       );
       const recipients: ResolvedRecipient[] = baseRecipients.map((recipient) => {
-        const variables = { ...recipient.variables, 상세링크: detailLink };
+        // 승인 템플릿 버튼은 `https://www.smtsolution.kr/#{버튼1}` 형태라 도메인 뒤 경로만 넣는다(2026-10-12).
+        const variables = { ...recipient.variables, 상세링크: detailLink, 버튼1: `share/notice/${token}` };
         const occupancyId = recipient.ref?.occupancyId;
         const hasConsent = occupancyId !== undefined && consentByOccupancy.get(occupancyId) === true;
         const channel: MessageChannel = hasConsent ? "alimtalk" : "sms";

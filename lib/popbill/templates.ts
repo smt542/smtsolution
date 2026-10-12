@@ -14,7 +14,7 @@ export interface AlimtalkTemplate {
   templateCode: string;
   name: string;
   body: string;
-  buttons: Array<{ name: string; type: string; url?: string }>;
+  buttons: Array<{ name: string; type: string; url?: string; u2?: string }>;
   approved: boolean;
   stateName: string;
 }
@@ -23,23 +23,28 @@ function str(value: unknown): string {
   return typeof value === "string" ? value : value == null ? "" : String(value);
 }
 
-function normalizeButton(raw: Record<string, unknown>): { name: string; type: string; url?: string } {
+function normalizeButton(raw: Record<string, unknown>): { name: string; type: string; url?: string; u2?: string } {
   const name = str(raw.n ?? raw.name);
   const type = str(raw.t ?? raw.type) || "WL";
   const url = str(raw.u1 ?? raw.url) || undefined;
-  return url ? { name, type, url } : { name, type };
+  // 웹링크(WL)·앱링크(AL)는 u1·u2 가 모두 필요하다(팝빌 SendATS). 승인본의 u2 를 그대로 보존한다.
+  const u2 = str(raw.u2) || undefined;
+  return { name, type, ...(url ? { url } : {}), ...(u2 ? { u2 } : {}) };
 }
 
 function normalize(raw: PopbillATSTemplate): AlimtalkTemplate {
-  const stateName = str(raw.stateName);
+  const record = raw as unknown as Record<string, unknown>;
+  // 팝빌 ListATSTemplate 응답은 상태를 `state`("3" = 승인), 버튼을 `btns` 로 준다(문서 기준).
+  // 예전 필드명(stateName·buttons)도 받아 둔다.
+  const state = str(record.state);
+  const stateName = str(raw.stateName) || (state === "3" ? "승인" : state);
+  const rawButtons = Array.isArray(record.btns) ? record.btns : Array.isArray(raw.buttons) ? raw.buttons : [];
   return {
     templateCode: str(raw.templateCode).trim(),
     name: str(raw.templateName).trim(),
     body: str(raw.template),
-    buttons: Array.isArray(raw.buttons)
-      ? raw.buttons.map((b) => normalizeButton(b as unknown as Record<string, unknown>))
-      : [],
-    approved: /승인/.test(stateName) && !/미승인|반려/.test(stateName),
+    buttons: rawButtons.map((b) => normalizeButton(b as unknown as Record<string, unknown>)),
+    approved: state === "3" || (/승인/.test(stateName) && !/미승인|반려/.test(stateName)),
     stateName,
   };
 }
