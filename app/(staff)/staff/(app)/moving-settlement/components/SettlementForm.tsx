@@ -16,6 +16,7 @@ import { SettlementSummaryBar } from "./settlement-form/SettlementSummaryBar";
 import {
   derivedUtilityPatch,
   UtilitySettlementSection,
+  type LegacyUtilityCharges,
 } from "./settlement-form/UtilitySettlementSection";
 
 export type SettlementDraft = MovingSettlementValues;
@@ -48,6 +49,7 @@ export function SettlementForm({
   onChange,
   meters = [],
   settings = DEFAULT_SETTINGS,
+  legacyUtilityCharges = {},
   checklist = [],
   notes = {},
   onChecklistNoteChange = () => undefined,
@@ -68,6 +70,8 @@ export function SettlementForm({
   onChange: (next: SettlementDraft) => void;
   meters?: MeterSummary[];
   settings?: SettlementSettings;
+  /** 지침 없이 금액만 저장된 구분의 저장 금액. 지침이 비어도 이 금액만 유지하고, 나머지는 0으로 계산한다. */
+  legacyUtilityCharges?: LegacyUtilityCharges;
   checklist?: ChecklistItem[];
   /** 정산 체크 항목별 메모(0172). checked 는 이 값이 비어있지 않은지로 파생된다. */
   notes?: Record<number, string>;
@@ -92,7 +96,7 @@ export function SettlementForm({
   );
   // 공과금 금액(이사−전월)×단가와 단가 반영 ON 의 검침 단가도 계산값이다. 관리비 소계와 **한 이펙트에서**
   // 되돌려 넣는다 — 이펙트를 둘로 나누면 각자 stale 한 value 를 펼쳐 서로의 결과를 덮어쓴다.
-  const utilityPatch = derivedUtilityPatch(value, meters, settings);
+  const utilityPatch = derivedUtilityPatch(value, meters, settings, legacyUtilityCharges);
   // 퇴실일·월정액 변경이 mgmtFeeProrated 를 덮어써도 계산값이 그대로면 이펙트가 다시 돌지 않으므로
   // 현재 draft 값도 키에 넣어, 계산값과 어긋나면 항상 되돌려 맞춘다(일할 없는 항목만 남은 경우).
   const derivedKey = JSON.stringify([
@@ -167,6 +171,7 @@ export function SettlementForm({
             value={value}
             meters={meters}
             settings={settings}
+            legacyCharges={legacyUtilityCharges}
             onChange={onChange}
           />
           <ManagementFeeSection

@@ -5,17 +5,7 @@ export const residentHomeClasses = {
   bell: "relative flex size-[38px] flex-none items-center justify-center rounded-xl text-t2 hover:bg-bg [&_svg]:size-[22px]",
   dot: "absolute right-[9px] top-2 size-[7px] rounded-full border-2 border-white bg-red",
   scroll: "min-h-0 flex-1 overflow-auto px-5 pb-[calc(env(safe-area-inset-bottom)+20px)] pt-3.5",
-  // 최근 공지 캐러셀: 장(slide)은 배너 카드와 같은 모양, 5초마다 왼쪽으로 넘어간다.
-  noticeCarousel: "mb-3 animate-[rise_0.5s_0.2s_cubic-bezier(0.22,0.61,0.36,1)_both]",
-  // touch-action pan-y: 세로 스크롤은 브라우저에 맡기고 가로 끌기만 캐러셀이 받는다.
-  noticeViewport: "touch-pan-y select-none overflow-hidden rounded-[18px] shadow-[0_1px_2px_rgba(23,31,40,0.06)]",
-  noticeTrack: "flex transition-transform duration-500 ease-[cubic-bezier(0.22,0.61,0.36,1)] motion-reduce:transition-none",
-  // 끄는 동안: 손가락을 바로 따라오게 전환 효과를 끈다.
-  noticeTrackDragging: "!transition-none",
-  noticeSlide: "flex w-full flex-none items-start gap-3 bg-white p-4 text-left text-inherit",
-  noticeDots: "mt-2.5 flex items-center justify-center gap-1.5",
-  noticeDotOff: "size-1.5 rounded-full bg-line transition-colors",
-  noticeDotOn: "size-1.5 rounded-full bg-blue transition-colors",
+  notice: "mb-3 flex w-full cursor-pointer items-start gap-3 rounded-[18px] border-0 bg-white p-4 text-left font-inherit text-inherit shadow-[0_1px_2px_rgba(23,31,40,0.06)] animate-[rise_0.5s_0.2s_cubic-bezier(0.22,0.61,0.36,1)_both]",
   noticeIcon: "flex size-[38px] flex-none items-center justify-center rounded-xl bg-amber-t text-amber [&_svg]:size-[19px]",
   noticeText: "min-w-0 flex-1",
   noticeTitle: "block text-[14.5px] font-bold text-t1",
@@ -63,4 +53,8 @@ export const residentHomeClasses = {
   moveOutTitle: "block text-[14px] font-bold tracking-[-0.01em]",
   moveOutDate: "mt-1 block text-[12px] font-semibold tabular-nums text-t3",
   moveOutDday: "flex-none rounded-lg bg-blue-t px-[9px] py-[5px] text-[12px] font-extrabold tabular-nums text-blue-d",
+  // 건물 공지 바텀시트(ResidentBottomSheet variant="notice") 안쪽
+  sheetTitle: "m-0 text-[18px] font-extrabold leading-[1.4] tracking-[-0.02em]",
+  sheetBody: "pb-1 pt-3 text-[14px] font-medium leading-[1.75] text-t2 whitespace-pre-line",
+  sheetFoot: "sticky bottom-0 shrink-0 bg-white pb-[15px] pt-[18px]",
 } as const;

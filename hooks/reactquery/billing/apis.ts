@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import type { BillingFlatRow } from "@/lib/billing/pivot";
-import { defaultChargePeriod, prevPeriod } from "@/lib/billing/period";
+import { defaultChargePeriod } from "@/lib/billing/period";
 
 type BillingFlatDbRow = {
   unit_id: number; unit_no: string; dong: string | null; room_type_label: string | null;
@@ -72,55 +72,133 @@ export interface CopyPreviousBillingResult {
   chargeCount: number;
 }
 
-/** 현재 월에 존재하는 세대·항목을 기준으로 전월 금액과 메모를 덮어쓴다. */
+/**
+ * 빌라자료추가·전체자료추가: 이 건물의 지난 자료 중 가장 최근 값을 이번 달로 가져온다.
+ * - 금액: 이번 달에 있는 세대·이월 항목마다 저장된 값이 있는 가장 최근 달의 값(billing_latest_charges).
+ * - 부과기준일·납기일: 설정해 둔 가장 최근 달(이번 달 이전, 없으면 이후 포함)을 이번 달로 옮긴다.
+ * 가져올 값이 없는 칸·설정은 이번 달 값을 그대로 둔다(0이나 기본값으로 덮어쓰지 않는다).
+ */
 export async function copyPreviousBilling(
   buildingId: number,
   period: string,
 ): Promise<CopyPreviousBillingResult> {
-  const [previousRows, currentRows] = await Promise.all([
-    listBilling(buildingId, prevPeriod(period)),
+  const [latestCharges, currentRows] = await Promise.all([
+    listLatestCharges(buildingId, period),
     listBilling(buildingId, period),
   ]);
+  const latestByCell = new Map(latestCharges.map((row) => [`${row.unitId}:${row.feeItemId}`, row]));
   // 필수 공과금 항목(전기·수도료·가스)은 저장값이 없으면 그 달 산정값이 기본값이라(마이그 0193)
-  // 전월 금액을 저장해 고정하지 않는다.
-  const previousByCell = new Map(
-    previousRows
-      .filter((row) => row.carryOver && !row.isRequired)
-      .map((row) => [`${row.unitId}:${row.feeItemId}`, row]),
-  );
-  const charges = currentRows.flatMap((current) => {
-    const previous = previousByCell.get(`${current.unitId}:${current.feeItemId}`);
-    return previous
-      ? [{
-          unitId: current.unitId,
-          feeItemId: current.feeItemId,
-          charged: previous.charged,
-          amount: previous.amount,
-          occupancyId: current.occupancyId,
-        }]
-      : [];
-  });
+  // 지난 금액을 저장해 고정하지 않는다.
+  const charges = currentRows
+    .filter((current) => current.carryOver && !current.isRequired)
+    .flatMap((current) => {
+      const latest = latestByCell.get(`${current.unitId}:${current.feeItemId}`);
+      return latest
+        ? [{
+            unitId: current.unitId,
+            feeItemId: current.feeItemId,
+            charged: latest.charged,
+            amount: latest.amount,
+            occupancyId: current.occupancyId,
+          }]
+        : [];
+    });
   const unitIds = [...new Set(charges.map((charge) => charge.unitId))];
   if (charges.length > 0) {
     await saveBillingCharges({ buildingId, period, charges, notes: [] });
   }
-  const previousSetting = await getBillingPeriodSetting(buildingId, prevPeriod(period));
-  await saveBillingPeriodSetting({
-    buildingId,
-    period,
-    chargeStartDate: shiftMonth(previousSetting.chargeStartDate),
-    chargeEndDate: shiftMonth(previousSetting.chargeEndDate),
-    dueDate: previousSetting.dueDate ? shiftMonth(previousSetting.dueDate) : null,
-  });
+
+  const [currentSetting, chargeSource, dueSource] = await Promise.all([
+    getBillingPeriodSetting(buildingId, period),
+    latestPeriodSetting(buildingId, period, "charge_start_date"),
+    latestPeriodSetting(buildingId, period, "due_date"),
+  ]);
+  if (chargeSource || dueSource) {
+    const chargeMonths = chargeSource ? monthsBetween(chargeSource.period, period) : 0;
+    await saveBillingPeriodSetting({
+      buildingId,
+      period,
+      chargeStartDate: chargeSource ? carryDate(chargeSource.chargeStartDate, chargeMonths) : currentSetting.chargeStartDate,
+      chargeEndDate: chargeSource ? carryDate(chargeSource.chargeEndDate, chargeMonths) : currentSetting.chargeEndDate,
+      dueDate: dueSource?.dueDate
+        ? carryDate(dueSource.dueDate, monthsBetween(dueSource.period, period))
+        : currentSetting.dueDate,
+    });
+  }
   return { unitCount: unitIds.length, chargeCount: charges.length };
 }
 
-function shiftMonth(value: string): string {
+interface LatestCharge { unitId: number; feeItemId: number; charged: boolean; amount: number; }
+
+/** 세대·항목별 「저장된 값이 있는 가장 최근 달」의 값(이번 달 이전). */
+async function listLatestCharges(buildingId: number, period: string): Promise<LatestCharge[]> {
+  const { data, error } = await createClient().rpc("billing_latest_charges", {
+    p_building_id: buildingId,
+    p_period: period,
+  });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as { unit_id: number; fee_item_id: number; charged: boolean; amount: number }[])
+    .map((row) => ({ unitId: row.unit_id, feeItemId: row.fee_item_id, charged: row.charged, amount: row.amount }));
+}
+
+interface PeriodSettingSource {
+  period: string;
+  chargeStartDate: string;
+  chargeEndDate: string;
+  dueDate: string | null;
+}
+
+/**
+ * 이월 기준 달: column 값이 있는 이번 달 이전의 가장 최근 달(보통 전월).
+ * 이전 달에 하나도 없으면 가장 최신 달(이번 달 이후 포함, 이번 달 제외).
+ */
+async function latestPeriodSetting(
+  buildingId: number,
+  period: string,
+  column: "charge_start_date" | "due_date",
+): Promise<PeriodSettingSource | null> {
+  const query = () => createClient()
+    .from("billing_period_settings")
+    .select("period, charge_start_date, charge_end_date, due_date")
+    .eq("building_id", buildingId)
+    .neq("period", period)
+    .not(column, "is", null)
+    .order("period", { ascending: false })
+    .limit(1);
+  let result = await query().lt("period", period).maybeSingle();
+  if (!result.error && !result.data) result = await query().maybeSingle();
+  if (result.error) throw new Error(result.error.message);
+  const row = result.data as BillingPeriodSettingDbRow | null;
+  return row
+    ? { period: row.period, chargeStartDate: row.charge_start_date, chargeEndDate: row.charge_end_date, dueDate: row.due_date }
+    : null;
+}
+
+function monthsBetween(from: string, to: string): number {
+  const [fromYear, fromMonth] = from.split("-").map(Number);
+  const [toYear, toMonth] = to.split("-").map(Number);
+  return (toYear - fromYear) * 12 + (toMonth - fromMonth);
+}
+
+function lastDayOfMonth(year: number, month: number): number {
+  return new Date(year, month, 0).getDate();
+}
+
+function addMonths(year: number, month: number, months: number): [number, number] {
+  const index = year * 12 + (month - 1) + months;
+  return [Math.floor(index / 12), (index % 12) + 1];
+}
+
+/**
+ * 날짜 이월: 기준 달과 같은 날짜를 months 개월 옮긴다(짧은 달은 말일로 맞춤).
+ * 기준 날짜가 그 달 말일이었으면 옮긴 달도 말일(2/28 → 3/31).
+ */
+function carryDate(value: string, months: number): string {
   const [year, month, day] = value.split("-").map(Number);
-  const nextMonth = month === 12 ? 1 : month + 1;
-  const nextYear = month === 12 ? year + 1 : year;
-  const lastDay = new Date(nextYear, nextMonth, 0).getDate();
-  return `${nextYear}-${String(nextMonth).padStart(2, "0")}-${String(Math.min(day, lastDay)).padStart(2, "0")}`;
+  const [nextYear, nextMonth] = addMonths(year, month, months);
+  const lastDay = lastDayOfMonth(nextYear, nextMonth);
+  const nextDay = day === lastDayOfMonth(year, month) ? lastDay : Math.min(day, lastDay);
+  return `${nextYear}-${String(nextMonth).padStart(2, "0")}-${String(nextDay).padStart(2, "0")}`;
 }
 
 export interface ConfirmBillingResult { unitCount: number; total: number; }

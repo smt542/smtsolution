@@ -8,6 +8,7 @@ import {
   type SaveBillingChargesPayload,
   type SaveBillingPeriodSettingPayload,
 } from "./apis";
+import { billKeys } from "../bill/keys";
 import { billingKeys } from "./keys";
 
 export function useSaveBillingCharges() {
@@ -78,6 +79,8 @@ export function useCopyPreviousBilling() {
         void qc.invalidateQueries({ queryKey: billingKeys.list(buildingId, input.period) });
         void qc.invalidateQueries({ queryKey: billingKeys.periodSetting(buildingId, input.period) });
       });
+      // 이월한 납부일이 세대별 납부 마감일(발행·미납 화면)에도 반영되게 한다.
+      void qc.invalidateQueries({ queryKey: [...billKeys.all, "due-dates", input.period] });
     },
   });
 }

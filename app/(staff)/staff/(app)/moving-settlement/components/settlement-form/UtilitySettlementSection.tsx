@@ -5,12 +5,15 @@ import type { MovingSettlementValues } from "@/components/forms/schema/movingSet
 import {
   utilityReadingCharge,
   type MeterSummary,
+  type SettlementContext,
   type SettlementSettings,
   type SettlementUtility,
 } from "@/hooks/reactquery/movingSettlement";
 import { formatNumber } from "@/lib/format";
 
 type ChargeKey = "waterCharge" | "elecCharge" | "gasCharge";
+/** 지침 없이 금액만 저장된(예전 저장분·수기 금액) 구분의 저장 금액. 지침이 비어도 이 금액은 지킨다. */
+export type LegacyUtilityCharges = Partial<Record<ChargeKey, number | null>>;
 type ReadingKey =
   | "waterPrevReading" | "waterMoveReading" | "waterUnitPrice"
   | "elecPrevReading" | "elecMoveReading" | "elecUnitPrice"
@@ -64,18 +67,40 @@ export function defaultUnitPrice(
   return meters.find((meter) => meter.utility === utility)?.unitPrice ?? null;
 }
 
-/** 구분 한 행의 계산값: 단가(입력값, 기본값은 검침 단가)·량·금액. 금액은 지침·단가가 다 있어야 계산된다. */
+/**
+ * 저장된 정산에서 "지침 없이 금액만 있는" 구분의 금액. 저장된 extra.util 에 그 구분의 이사 지침(cur > 0)이 있으면
+ * 금액은 지침에서 나온 값이므로 제외한다(서버 settlement_util_row 와 같은 기준). 새 정산이면 빈 객체.
+ */
+export function legacyUtilityCharges(
+  saved: SettlementContext["latestSettlement"] | null | undefined,
+): LegacyUtilityCharges {
+  if (!saved) return {};
+  const charges: LegacyUtilityCharges = {};
+  for (const row of UTILITY_ROWS) {
+    const util = saved.extra?.util?.find((item) => item.k === row.utility);
+    const hasReading = util?.cur != null && util.cur > 0;
+    if (!hasReading) charges[row.chargeKey] = saved[row.chargeKey] ?? null;
+  }
+  return charges;
+}
+
+/**
+ * 구분 한 행의 계산값: 단가(입력값, 기본값은 검침 단가)·량·금액.
+ * 금액은 지침·단가가 다 있어야 계산되고, 하나라도 비면 0이다 — 단, 지침 없이 금액만 저장된 구분은 그 금액을 지킨다.
+ */
 function utilityRowValues(
   row: (typeof UTILITY_ROWS)[number],
   value: MovingSettlementValues,
   meters: MeterSummary[],
   settings: SettlementSettings,
+  legacyCharges: LegacyUtilityCharges,
 ) {
   const defaultPrice = defaultUnitPrice(row.utility, meters, settings);
   const prev = value[row.prevKey] ?? null;
   const cur = value[row.moveKey] ?? null;
   const price = value[row.priceKey] ?? null;
   const usage = prev !== null && cur !== null ? Math.max(0, cur - prev) : null;
+  const computedCharge = utilityReadingCharge(prev, cur, price);
   return {
     prev,
     cur,
@@ -83,7 +108,7 @@ function utilityRowValues(
     usage,
     /** 단가가 검침 단가 기본값과 다르면(직원이 고침) 표시용 */
     isEdited: defaultPrice !== null && price !== null && price !== defaultPrice,
-    computedCharge: utilityReadingCharge(prev, cur, price),
+    charge: computedCharge ?? legacyCharges[row.chargeKey] ?? null,
   };
 }
 
@@ -91,18 +116,19 @@ function utilityRowValues(
  * 공과금 행의 계산값을 draft 에 되돌려 넣을 patch. SettlementForm 이 관리비 소계와 한 이펙트에서 적용해
  * 표시값·소계·요약바·저장값의 출처를 하나로 유지한다.
  * - 단가: 덮어쓰지 않는다(기본값은 불러올 때 readingsFromContext 가 채운다)
- * - 금액: 지침·단가가 다 있으면 계산값(0이면 파트너 저장과 같이 null). 하나라도 비면 저장된 금액을 그대로 둔다.
+ * - 금액: 지침·단가가 다 있으면 계산값(0이면 파트너 저장과 같이 null). 하나라도 비면 null(0원) —
+ *   지운 지침의 이전 계산 금액이 남지 않게 한다. 지침 없이 금액만 저장된 구분만 저장 금액을 유지한다.
  */
 export function derivedUtilityPatch(
   value: MovingSettlementValues,
   meters: MeterSummary[],
   settings: SettlementSettings,
+  legacyCharges: LegacyUtilityCharges = {},
 ): Partial<MovingSettlementValues> {
   const patch: Partial<MovingSettlementValues> = {};
   for (const row of UTILITY_ROWS) {
-    const derived = utilityRowValues(row, value, meters, settings);
-    if (derived.computedCharge === null) continue;
-    const nextCharge = derived.computedCharge === 0 ? null : derived.computedCharge;
+    const derived = utilityRowValues(row, value, meters, settings, legacyCharges);
+    const nextCharge = derived.charge === 0 ? null : derived.charge;
     if ((value[row.chargeKey] ?? null) !== nextCharge) patch[row.chargeKey] = nextCharge;
   }
   return patch;
@@ -112,17 +138,19 @@ export function UtilitySettlementSection({
   value,
   meters,
   settings,
+  legacyCharges = {},
   onChange,
 }: {
   value: MovingSettlementValues;
   meters: MeterSummary[];
   settings: SettlementSettings;
+  legacyCharges?: LegacyUtilityCharges;
   onChange: (next: MovingSettlementValues) => void;
 }) {
   // 소계는 계산값을 즉시 반영한다(draft 되돌려넣기의 한 프레임 지연을 타지 않도록).
   const rows = UTILITY_ROWS.map((row) => {
-    const derived = utilityRowValues(row, value, meters, settings);
-    return { row, ...derived, shownCharge: derived.computedCharge ?? value[row.chargeKey] ?? 0 };
+    const derived = utilityRowValues(row, value, meters, settings, legacyCharges);
+    return { row, ...derived, shownCharge: derived.charge ?? 0 };
   });
   const utilityTotal = rows.reduce((total, item) => total + item.shownCharge, 0);
   const inputClassName =

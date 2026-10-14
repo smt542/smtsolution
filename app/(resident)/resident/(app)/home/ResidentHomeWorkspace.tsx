@@ -5,11 +5,13 @@ import { useState } from "react";
 
 import BottomNav from "@/app/(resident)/_components/BottomNav";
 import MoveOutSection from "@/app/(resident)/_components/MoveOutSection";
-import { HomeNoticeCarousel } from "./HomeNoticeCarousel";
 import ResidentAsyncState from "@/app/(resident)/_components/ResidentAsyncState";
+import ResidentBottomSheet from "@/app/(resident)/_components/ResidentBottomSheet";
+import { ResidentButton } from "@/app/(resident)/_components/ResidentButton";
 import ResidentStatusChip, { residentChipStatus } from "@/app/(resident)/_components/ResidentStatusChip";
 import { useResidentBillMonths } from "@/hooks/reactquery/residentBilling";
 import {
+  useResidentBuildingNotice,
   useResidentNoticeReadIds,
   useResidentNotices,
 } from "@/hooks/reactquery/residentNotices";
@@ -91,19 +93,22 @@ export default function ResidentHomeWorkspace() {
   const monthsQuery = useResidentBillMonths();
   const noticesQuery = useResidentNotices();
   const noticeReadIdsQuery = useResidentNoticeReadIds();
+  const buildingNoticeQuery = useResidentBuildingNotice();
   const moveOutQuery = useMoveOutRequest();
   const [moveOutOpen, setMoveOutOpen] = useState(false);
-
+  const [noticeOpen, setNoticeOpen] = useState(false);
 
   const isHomeInitialLoading =
     profileQuery.isPending ||
     monthsQuery.isPending ||
     noticesQuery.isPending ||
+    buildingNoticeQuery.isPending ||
     moveOutQuery.isPending;
   const isHomeRefreshing = [
     profileQuery,
     monthsQuery,
     noticesQuery,
+    buildingNoticeQuery,
     moveOutQuery,
   ].some((query) => query.isFetching && !query.isPending);
   // 읽음 기록(noticeReadIdsQuery)은 새 공지 점에만 쓴다 — 로딩·오류 판정에 넣지 않는다(0221 적용 전에도 홈이 떠야 함).
@@ -173,6 +178,8 @@ export default function ResidentHomeWorkspace() {
   const hasNotice = noticeReadIdsQuery.isSuccess && (noticesQuery.data ?? []).some(
     (notice) => !readNoticeIds.has(notice.id),
   );
+  // 건물 공지 = 직원이 건물 기본정보에 입력한 「건물 상시 공지문」. 비어 있으면 카드를 그리지 않는다.
+  const buildingNotice = buildingNoticeQuery.data;
   // 정본 .mocard: 신청이 살아 있으면(확인 중·확정) 보인다. 취소·반려되면 숨긴다.
   const moveOut = moveOutQuery.data;
   const activeMoveOut =
@@ -205,8 +212,21 @@ export default function ResidentHomeWorkspace() {
       </header>
 
       <main className={styles.scroll}>
-        {/* 최근 공지 5개 캐러셀(5초마다 왼쪽으로 넘김 · 하단 점 내비). 누르면 해당 공지 상세. */}
-        <HomeNoticeCarousel notices={(noticesQuery.data ?? []).slice(0, 5)} icon={<NoticeIcon />} />
+        {buildingNotice ? (
+          <button
+            type="button"
+            className={styles.notice}
+            onClick={() => setNoticeOpen(true)}
+          >
+            <span className={styles.noticeIcon}>
+              <NoticeIcon />
+            </span>
+            <span className={styles.noticeText}>
+              <b className={styles.noticeTitle}>건물 공지</b>
+              <span className={styles.noticePreview}>{buildingNotice}</span>
+            </span>
+          </button>
+        ) : null}
 
         <section className={styles.bill} aria-labelledby="current-bill-title">
           {currentMonth ? (
@@ -370,6 +390,20 @@ export default function ResidentHomeWorkspace() {
         onClose={() => setMoveOutOpen(false)}
       />
 
+      {/* 건물 공지: 공지 목록·퇴실 신청과 같은 바텀시트(배경·Esc·확인으로 닫기) */}
+      <ResidentBottomSheet variant="notice" open={noticeOpen && !!buildingNotice} onDismiss={() => setNoticeOpen(false)}>
+        <div role="dialog" aria-modal="true" aria-labelledby="notice-sheet-title" className="flex flex-col">
+          <h2 className={styles.sheetTitle} id="notice-sheet-title">
+            건물 공지
+          </h2>
+          <div className={styles.sheetBody}>{buildingNotice}</div>
+          <div className={styles.sheetFoot}>
+            <ResidentButton variant="primary" size="moveOut" type="button" className="w-full" onClick={() => setNoticeOpen(false)}>
+              확인
+            </ResidentButton>
+          </div>
+        </div>
+      </ResidentBottomSheet>
     </div>
   );
 }

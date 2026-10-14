@@ -29,7 +29,11 @@ import {
   printSettlementStatement,
   type SettlementStatementPrintModel,
 } from "./movingSettlementPrint";
-import { UTILITY_ROWS, defaultUnitPrice } from "./settlement-form/UtilitySettlementSection";
+import {
+  UTILITY_ROWS,
+  defaultUnitPrice,
+  legacyUtilityCharges,
+} from "./settlement-form/UtilitySettlementSection";
 
 /**
  * 이사 지침 기본값(정본 = extra.util, 0266).
@@ -217,6 +221,11 @@ function SettlementEditor({
     (cleaningCost ?? 0);
   // 저장할 이사 지침(extra.util). 화면에 없는 입금계좌·입금일(수도)은 저장된 값을 지킨다.
   const savedUtil = forceNew ? undefined : context.latestSettlement?.extra?.util;
+  // 입금계좌 표기: `신한은행 110-482-917365 테스트관리(이사정산)` — 은행·계좌번호·예금주를 공백으로만 구분한다.
+  const settleAccount = [draft.settleBank, draft.settleAcct, draft.settleHolder]
+    .map((value) => value?.trim() ?? "")
+    .filter(Boolean)
+    .join(" ");
   const utilRows: SettlementUtilRow[] = UTILITY_ROWS.map((row) => {
     const saved = savedUtil?.find((item) => item.k === row.utility);
     return {
@@ -224,7 +233,7 @@ function SettlementEditor({
       prev: draft[row.prevKey] ?? null,
       cur: draft[row.moveKey] ?? null,
       price: draft[row.priceKey] ?? null,
-      acct: saved?.acct || draft.settleAcct || "",
+      acct: saved?.acct || settleAccount,
       payDate: row.paidDateKey ? (draft[row.paidDateKey] ?? "") : (saved?.payDate ?? ""),
     };
   });
@@ -237,16 +246,6 @@ function SettlementEditor({
     || utilRows.some((row) => row.cur !== null)
     || UTILITY_ROWS.some((row, index) =>
       utilRows[index].price !== defaultUnitPrice(row.utility, context.meterSummary, context.settlementSettings));
-  // 정본 표기: `농협 352-1234-5678-91 · (주)스마일종합관리` — 은행·계좌는 공백, 예금주 앞만 구분점.
-  const settleAccount = [
-    [draft.settleBank, draft.settleAcct]
-      .map((value) => value?.trim() ?? "")
-      .filter(Boolean)
-      .join(" "),
-    draft.settleHolder?.trim() ?? "",
-  ]
-    .filter(Boolean)
-    .join(" · ");
   const printModel: SettlementStatementPrintModel = {
     moveOutDate: draft.moveOutDate,
     buildingName: context.unit.buildingName,
@@ -350,6 +349,7 @@ function SettlementEditor({
         onChange={setDraft}
         meters={context.meterSummary}
         settings={context.settlementSettings}
+        legacyUtilityCharges={forceNew ? {} : legacyUtilityCharges(context.latestSettlement)}
         checklist={context.checklist}
         notes={notes}
         onChecklistNoteChange={(id, next) =>

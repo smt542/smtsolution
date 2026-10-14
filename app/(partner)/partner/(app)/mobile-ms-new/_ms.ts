@@ -185,15 +185,24 @@ export type MSTotals = {
   balance: number; // 미수금 = 미납 소계 − 수납액
 };
 
-/** 저장 시 쓰는 공과금 금액. 단가·이사 지침이 비어 있으면 계산할 수 없으므로 저장된 금액을 유지한다. */
-function utilCharge(u: UtilRow | undefined, savedCharge: number | null | undefined): number | null {
+/**
+ * 저장 시 쓰는 공과금 금액. 단가·이사 지침이 비어 있으면 0(null)이다 — 지운 지침의 이전 금액이 남지 않게 한다.
+ * 지침 없이 금액만 저장된 구분(legacyCharge, 사무실 예전 저장분)만 그 금액을 유지한다.
+ */
+function utilCharge(u: UtilRow | undefined, legacyCharge: number | null | undefined): number | null {
   if (!u) return null;
-  if (!u.price || !u.cur) return savedCharge ?? null;
+  if (!u.price || !u.cur) return legacyCharge ?? null;
   return nullableInt(utilAmount(u));
 }
 
+/**
+ * 지침 없이 금액만 저장된 구분의 저장 금액. 저장된 extra.util 에 그 구분의 이사 지침(cur > 0)이 있으면
+ * 금액은 지침에서 나온 값이므로 null(서버 settlement_util_row · 사무실 legacyUtilityCharges 와 같은 기준).
+ */
 function savedUtilCharge(k: Utility, saved: PartnerSettlement | null): number | null {
   if (!saved) return null;
+  const savedRow = saved.extra?.util?.find((r) => r.k === k);
+  if (savedRow && (savedRow.cur || 0) > 0) return null;
   return k === "water" ? saved.waterCharge : k === "elec" ? saved.elecCharge : saved.gasCharge;
 }
 
@@ -225,7 +234,7 @@ export function computeTotals(
 
 // ===== 초기 상태 =====
 /**
- * 셋업 「이사정산 입금 계좌」 표시 문자열: "은행 계좌번호 · 예금주"(내역서 정산금 입금계좌와 같은 형식).
+ * 셋업 「이사정산 입금 계좌」 표시 문자열: "은행 계좌번호 예금주"(공백으로만 구분, 내역서 정산금 입금계좌와 같은 형식).
  * 비어 있는 값은 빼고, 셋 다 없으면 빈 문자열.
  */
 export function formatSettleAccount(account: {
@@ -233,11 +242,10 @@ export function formatSettleAccount(account: {
   settleAcct: string | null;
   settleHolder: string | null;
 }): string {
-  const bankAcct = [account.settleBank, account.settleAcct]
+  return [account.settleBank, account.settleAcct, account.settleHolder]
     .map((value) => value?.trim() ?? "")
     .filter(Boolean)
     .join(" ");
-  return [bankAcct, account.settleHolder?.trim() ?? ""].filter(Boolean).join(" · ");
 }
 
 /** 셋업 정책 3.3 「단가 반영」 고정(수도·전기=반영). 가스는 외부 검침이라 단가를 직접 입력한다. */
@@ -248,7 +256,7 @@ const UNIT_PRICE_REFLECTED: ReadonlySet<Utility> = new Set<Utility>(["water", "e
  * - 전월 지침: 퇴실월 검침이면 그 달 previous_reading, 이전 달 검침이면 그 current_reading.
  * - 이사 지침: 현장에서 읽은 값을 입력한다(비워 둠).
  * - 단가: 수도·전기는 그 달 검침 단가(없으면 직접 입력), 가스는 직접 입력.
- * - 입금계좌: 셋업 「이사정산 입금 계좌」(은행 계좌번호 · 예금주). 입금일은 실제 입금한 날이라 직접 입력한다.
+ * - 입금계좌: 셋업 「이사정산 입금 계좌」(은행 계좌번호 예금주). 입금일은 실제 입금한 날이라 직접 입력한다.
  * 저장된 행이 있으면 저장값을 쓰되, 비어 있는 단가·입금계좌만 위 기본값으로 채운다.
  */
 function seededUtil(
@@ -391,17 +399,17 @@ export function buildSaveData(
     lastPaidDate: state.lastPaidDate,
   };
 
-  // 단가 또는 이사 지침이 비어 있는 행(사무실 PC 작성분·지침 미입력 등)은 금액을 계산할 수 없으므로
-  // 저장된 공과금 금액을 그대로 유지한다(0/null 로 덮어쓰지 않음). 금액 = max(0, 이사−전월) × 단가(0266).
+  // 단가 또는 이사 지침이 비어 있는 행은 금액 0(null)으로 저장한다. 지침 없이 금액만 저장된 구분(사무실 예전
+  // 저장분)만 그 금액을 유지한다(savedUtilCharge). 금액 = max(0, 이사−전월) × 단가(0266).
   const saved = ctx.latestSettlement;
 
   return {
     move_out_date: state.moveOutDate,
     mgmt_fee_monthly: nullableInt(state.feeItems.reduce((t, f) => t + (f.charged || 0), 0)),
     mgmt_fee_prorated: nullableInt(totals.s2),
-    water_charge: utilCharge(water, saved?.waterCharge),
-    elec_charge: utilCharge(elec, saved?.elecCharge),
-    gas_charge: utilCharge(gas, saved?.gasCharge),
+    water_charge: utilCharge(water, savedUtilCharge("water", saved)),
+    elec_charge: utilCharge(elec, savedUtilCharge("elec", saved)),
+    gas_charge: utilCharge(gas, savedUtilCharge("gas", saved)),
     elec_paid_date: elec ? nullableText(elec.payDate) : null,
     gas_paid_date: gas ? nullableText(gas.payDate) : null,
     repair_amount: nullableInt(totals.s3),
