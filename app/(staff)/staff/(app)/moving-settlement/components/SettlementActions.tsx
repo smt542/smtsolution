@@ -8,6 +8,7 @@ import {
   type MovingSettlementValues,
 } from "@/components/forms/schema/movingSettlement";
 import {
+  useCancelMoveout,
   useCompleteSettlement,
   useDeleteSettlement,
   useMidMoveout,
@@ -28,6 +29,7 @@ type DialogState =
   | "mid-confirm"
   | "moveout-confirm"
   | "delete"
+  | "cancel-moveout"
   | null;
 
 const EMPTY_INPUT_REF: RefObject<HTMLInputElement | null> = { current: null };
@@ -99,6 +101,7 @@ export function SettlementActions({
   const complete = useCompleteSettlement();
   const mid = useMidMoveout();
   const remove = useDeleteSettlement();
+  const cancelMoveout = useCancelMoveout();
   const [dialog, setDialog] = useState<DialogState>(null);
   // 미수금 경고가 어느 완료(중도퇴실·퇴실) 앞에서 떴는지 — 제목에 쓴다.
   const [pendingCompletion, setPendingCompletion] = useState<"mid" | "moveout" | null>(null);
@@ -109,7 +112,7 @@ export function SettlementActions({
   // 중도퇴실 건(완료 잠금은 걸렸지만 퇴실완료는 아님) — 삭제는 허용하고 확인창에 영향 안내를 붙인다(0306).
   const isMidMoveout = isLocked && !isCompletedLocked;
   const isSettlementMutationPending =
-    save.isPending || complete.isPending || mid.isPending || remove.isPending;
+    save.isPending || complete.isPending || mid.isPending || remove.isPending || cancelMoveout.isPending;
   const pendingAction = save.isPending
     ? "save"
     : mid.isPending
@@ -118,7 +121,9 @@ export function SettlementActions({
         ? "moveout"
         : remove.isPending
           ? "delete"
-          : null;
+          : cancelMoveout.isPending
+            ? "cancel-moveout"
+            : null;
   // 정본 msCalc `due = (공과금+관리비+기타+미납 소계) − 수납액` — 하단 요약바 미수금과 같은 식이다.
   // amount 는 settlement_amount 정의(수납 차감 전 ①+②+③미납+④, 0266)라 미납이 이미 들어 있다.
   const outstanding = amount - receivedAmount;
@@ -245,6 +250,29 @@ export function SettlementActions({
     });
   };
 
+  // 퇴실 취소(0312): 공실 처리된 세대를 퇴실 전 입주 정보로 되돌린다. 성공하면 컨텍스트 재조회로 잠금이 풀린다.
+  const cancelMoveoutNow = () => {
+    if (settlementId === null || isSettlementMutationPending) return;
+    cancelMoveout.mutate(settlementId, {
+      onSuccess: (result) => {
+        setFinalized(result.status === "mid_moveout" ? "mid" : null);
+        setDialog(null);
+        const notes = [
+          result.claims_restored > 0 ? "세입자 앱 세대 연결" : null,
+          result.payments_canceled > 0 ? `자동수납 ${result.payments_canceled}건 취소` : null,
+        ].filter(Boolean);
+        toast.success(
+          notes.length > 0 ? `퇴실을 취소했어요. (${notes.join(" · ")})` : "퇴실을 취소했어요.",
+        );
+      },
+      onError: (error) =>
+        toast.error(
+          // 새 입주자·퇴실 당시 기록 없음 가드는 RPC 메시지를 그대로 보여 준다(0312).
+          error.message.includes("취소할 수 없습니다") ? error.message : "퇴실을 취소하지 못했어요.",
+        ),
+    });
+  };
+
   // 정본 msConfirm [수납액 입력]: 모달을 닫고 폼 본문을 수납액 칸이 가운데보다 40px 위에 오도록 부드럽게 올린 뒤
   // 0.32초 뒤에 포커스하고 값을 전체 선택한다(스크롤과 같이 focus 하면 브라우저가 스크롤을 곧바로 점프시킨다).
   const focusPayment = () => {
@@ -288,6 +316,7 @@ export function SettlementActions({
         onDelete={() => {
           if (!rejectLocked("completed")) setDialog("delete");
         }}
+        onCancelMoveout={settlementId !== null ? () => setDialog("cancel-moveout") : undefined}
         pending={isSettlementMutationPending}
         locked={isLocked}
         completedLocked={isCompletedLocked}
@@ -351,6 +380,22 @@ export function SettlementActions({
                 ? ` 확정 부과분 미납 ${formatWon(billingUnpaid)}은 자동으로 수납 처리돼요.`
                 : ` 공실 수납 방식이 수동이라 확정 부과분 미납 ${formatWon(billingUnpaid)}은 미수금으로 남아요.`)}
           </span>
+        </p>
+      </SettlementDecisionDialog>
+
+      <SettlementDecisionDialog
+        open={dialog === "cancel-moveout"}
+        title="퇴실 취소"
+        confirmLabel="퇴실 취소"
+        pending={cancelMoveout.isPending}
+        pendingLabel="퇴실 취소 중…"
+        onCancel={() => setDialog(null)}
+        onConfirm={cancelMoveoutNow}
+      >
+        <p>{building.name} {unit.unitNo} 세대의 퇴실 처리를 취소하시겠습니까?</p>
+        <p className="text-t3">
+          퇴실 전 입주자 정보(연락처·고지서 설정 등)로 되돌리고 전출 이력을 지워요. 퇴실 때 자동 수납된 미납은 취소되고,
+          정산 건은 퇴실 전 상태로 돌아가요. 수도 감면 설정은 되돌려지지 않아요.
         </p>
       </SettlementDecisionDialog>
 

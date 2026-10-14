@@ -3,9 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { appToast as toast } from "@/hooks/common/useAppToast";
+import { useAccounts } from "@/hooks/reactquery/accounts/queries";
 import { useBuildings } from "@/hooks/reactquery/buildings/queries";
 import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates/queries";
 import { useSendMessages } from "@/hooks/reactquery/messaging/mutations";
+import { useRecordBillDelivery } from "@/hooks/reactquery/bill";
+import { useAttachNoticeSendLog } from "@/hooks/reactquery/notices";
 import {
   useMessagePointQuote,
   useTenantAlimtalkConsent,
@@ -19,7 +22,8 @@ import {
   type ResolvedRecipient,
   type SendMode,
 } from "@/lib/messaging/preset";
-import { renderTemplate } from "@/lib/messaging/render";
+import { hasUnresolvedVariables, renderTemplate } from "@/lib/messaging/render";
+import { currentPeriod } from "@/lib/billing/period";
 import {
   subscribeMessengerHandoff,
   type RecipientCascadePreset,
@@ -31,6 +35,7 @@ import {
   type IdempotencyState,
 } from "@/lib/messaging/idempotencyKey";
 import { canonicalSendPayload } from "@/lib/messaging/sendSignature";
+import { smsBuildingVariables, smsPreviewBody, type SmsVariableBuilding } from "@/lib/messenger/smsVariables";
 import { AlimtalkForm, AUTO_VARS, extractAlimtalkVariables } from "./AlimtalkForm";
 import { MessageComposer } from "./MessageComposer";
 import { MessengerPanel } from "./MessengerPanel";
@@ -45,6 +50,7 @@ import {
 import { messengerClasses as styles } from "./messengerClasses";
 import type { ChannelMode } from "./types";
 import { useMessengerState } from "./useMessengerState";
+import { DYNAMIC_VARIABLE_NAMES, useAlimtalkDynamicVariables } from "./useAlimtalkDynamicVariables";
 import { useDebouncedValue } from "@/hooks/common";
 
 function formatPoints(value: number): string {
@@ -89,6 +95,9 @@ function MessengerFabContent() {
   const [body, setBody] = useState("");
   const [templateId, setTemplateId] = useState<number | null>(null);
   const [alimtalkVars, setAlimtalkVars] = useState<Record<string, string>>({});
+  // 승인 템플릿 자동 채움(관리비 고지 부과월·공지 선택, useAlimtalkDynamicVariables).
+  const [billPeriod, setBillPeriod] = useState(() => currentPeriod());
+  const [noticeId, setNoticeId] = useState<number | null>(null);
   const [scheduledAt, setScheduledAt] = useState<string | null>(null);
   const [recurrenceMode, setRecurrenceMode] = useState<RecurrenceMode | null>(null);
   const [recurrenceEndCount, setRecurrenceEndCount] = useState<number | null>(null);
@@ -114,6 +123,8 @@ function MessengerFabContent() {
     setBody("");
     setTemplateId(null);
     setAlimtalkVars({});
+    setBillPeriod(currentPeriod());
+    setNoticeId(null);
     setScheduledAt(null);
     setRecurrenceMode(null);
     setRecurrenceEndCount(null);
@@ -150,6 +161,8 @@ function MessengerFabContent() {
   const { data: templates = [] } = useMessageTemplates();
   const { data: buildings = [] } = useBuildings();
   const sendMessages = useSendMessages();
+  const recordBillDelivery = useRecordBillDelivery();
+  const attachNoticeSendLog = useAttachNoticeSendLog();
   const selectedTemplate =
     templates.find((template) => template.id === templateId) ?? null;
   const sendMode: SendMode = ui.channel === "alim" ? "alimtalk" : "sms";
@@ -164,30 +177,64 @@ function MessengerFabContent() {
     );
   };
 
-  const buildingNames = useMemo(
-    () => new Map(buildings.map((building) => [building.id, building.name])),
-    [buildings],
+  const { data: accounts = [] } = useAccounts();
+  // 문자 템플릿 변수(건물명·건물주명·청소담당자명)를 수신자 건물 기준으로 채우기 위한 건물 정보.
+  const smsBuildings = useMemo(
+    () => new Map<number, SmsVariableBuilding>(buildings.map((building) => [building.id, {
+      name: building.name,
+      ownerName: building.ownerName,
+      cleanerName: building.cleaningUserId
+        ? (accounts.find((account) => account.userId === building.cleaningUserId)?.fullName ?? null)
+        : null,
+    }])),
+    [accounts, buildings],
   );
   const normalizedRecipients = useMemo(
     () => validRecipients(dedupeRecipients(recipients)),
     [recipients],
   );
+  const dynamicBuildingNames = useMemo(
+    () => new Map([...smsBuildings].map(([id, building]) => [id, building.name])),
+    [smsBuildings],
+  );
+  const dynamic = useAlimtalkDynamicVariables({
+    template: ui.channel === "alim" ? selectedTemplate : null,
+    recipients: normalizedRecipients,
+    buildingNames: dynamicBuildingNames,
+    period: billPeriod,
+    noticeId,
+  });
+  const dynamicActive = ui.channel === "alim" && dynamic.kind !== null;
   const enrichedRecipients = useMemo<MessageRecipient[]>(
     () =>
       normalizedRecipients.map((recipient) => {
-        const buildingName = recipient.ref?.buildingId
-          ? buildingNames.get(recipient.ref.buildingId)
+        const building = recipient.ref?.buildingId
+          ? smsBuildings.get(recipient.ref.buildingId)
           : undefined;
         return {
           ...recipient,
           variables: {
+            // 화면이 넘긴 수신자별 변수가 건물 기준 값보다 우선한다.
+            ...smsBuildingVariables(recipient, building),
             ...(recipient.variables ?? {}),
-            ...(buildingName ? { 건물명: buildingName } : {}),
+            ...(building ? { 건물명: building.name } : {}),
             ...(ui.channel === "alim" ? alimtalkVars : {}),
+            ...(dynamicActive ? dynamic.commonVariables : {}),
+            ...(dynamicActive && recipient.ref?.unitId !== undefined
+              ? (dynamic.variablesByUnit.get(recipient.ref.unitId) ?? {})
+              : {}),
           },
         };
       }),
-    [alimtalkVars, buildingNames, normalizedRecipients, ui.channel],
+    [
+      alimtalkVars,
+      dynamic.commonVariables,
+      dynamic.variablesByUnit,
+      dynamicActive,
+      normalizedRecipients,
+      smsBuildings,
+      ui.channel,
+    ],
   );
 
   const tenantsNeedingConsent = enrichedRecipients.filter(
@@ -216,7 +263,7 @@ function MessengerFabContent() {
     tenantsNeedingConsent.length > 0 &&
     consentQuery.data === undefined &&
     !consentQuery.error;
-  const eligibleRecipients = useMemo(
+  const consentedRecipients = useMemo(
     () =>
       enrichedRecipients.filter((recipient) => {
         if (ui.channel !== "alim" || recipient.kind !== "tenant") return true;
@@ -226,10 +273,40 @@ function MessengerFabContent() {
       }),
     [consentByOccupancy, enrichedRecipients, ui.channel],
   );
+  // 관리비 고지 템플릿은 고른 부과월 고지 정보가 있는 입주 세대에만 보낸다(유형이 다르거나 부과 확정이 없으면 제외).
+  const dynamicExcluded = useMemo(
+    () =>
+      dynamicActive && dynamic.kind?.type === "bill"
+        ? consentedRecipients.filter((recipient) => {
+            const unitId = recipient.ref?.unitId;
+            return unitId === undefined || !dynamic.variablesByUnit.has(unitId);
+          })
+        : [],
+    [consentedRecipients, dynamic.kind, dynamic.variablesByUnit, dynamicActive],
+  );
+  const eligibleRecipients = useMemo(
+    () => consentedRecipients.filter((recipient) => !dynamicExcluded.includes(recipient)),
+    [consentedRecipients, dynamicExcluded],
+  );
   const excludedCount =
     ui.channel === "alim" && !consentLoading
-      ? enrichedRecipients.length - eligibleRecipients.length
+      ? enrichedRecipients.length - consentedRecipients.length
       : 0;
+  // 자동 채움 제외 사유 요약(예: 「이 달 부과 확정 내역 없음 2명 · 고지 유형이 자동이체 세대 1명」).
+  const dynamicHint = useMemo(() => {
+    if (!dynamicActive) return null;
+    if (dynamic.loading) return "수신자별 값을 불러오는 중이에요.";
+    if (dynamicExcluded.length === 0) return null;
+    const counts = new Map<string, number>();
+    for (const recipient of dynamicExcluded) {
+      const unitId = recipient.ref?.unitId;
+      const reason = (unitId !== undefined ? dynamic.excludedByUnit.get(unitId) : undefined) ?? "입주 세대가 아님";
+      counts.set(reason, (counts.get(reason) ?? 0) + 1);
+    }
+    return `보낼 수 없는 수신자 ${dynamicExcluded.length}명 제외 — ${[...counts]
+      .map(([reason, count]) => `${reason} ${count}명`)
+      .join(" · ")}`;
+  }, [dynamic.excludedByUnit, dynamic.loading, dynamicActive, dynamicExcluded]);
 
   const quotedBody = useDebouncedValue(body, 350);
   const quotedRecipients = useMemo(
@@ -281,6 +358,11 @@ function MessengerFabContent() {
 
   let confirmationBlocker: string | null = null;
   if (providerGated) confirmationBlocker = "발송 설정 준비 중";
+  else if (dynamicActive && dynamic.blocker) confirmationBlocker = dynamic.blocker;
+  else if (dynamicActive && dynamic.loading) confirmationBlocker = "수신자별 값을 불러오는 중이에요.";
+  else if (dynamicActive && consentedRecipients.length > 0 && eligibleRecipients.length === 0) {
+    confirmationBlocker = "선택한 부과월 고지 정보가 있는 수신자가 없어요.";
+  }
   else if (senderGated) confirmationBlocker = "알림톡 발신 설정 준비 중";
   else if (sendFeedback?.code === "INVALID_SCHEDULE") {
     confirmationBlocker = sendFeedback.message;
@@ -356,6 +438,7 @@ function MessengerFabContent() {
     setTemplateId(nextTemplateId);
     setBody(template?.body ?? "");
     setAlimtalkVars({});
+    setNoticeId(null);
     clearTransientFeedback();
   };
 
@@ -369,6 +452,7 @@ function MessengerFabContent() {
   const manualUnresolved = extractAlimtalkVariables(body).filter(
     (name) =>
       !AUTO_VARS.has(name) &&
+      !(dynamicActive && DYNAMIC_VARIABLE_NAMES.has(name)) &&
       !alimtalkVars[name]?.trim() &&
       !eligibleRecipients.some((recipient) => recipient.variables?.[name]?.trim()),
   );
@@ -395,12 +479,44 @@ function MessengerFabContent() {
     }
 
     const effectiveTemplateId = ui.channel === "alim" ? templateId : null;
+    // 승인 템플릿 자동 채움: 발송 직전에 링크(고지서 상세·공지 버튼)를 발급해 수신자 변수에 넣는다.
+    let finalRecipients = sendRecipients;
+    if (dynamicActive) {
+      try {
+        const unitIds = [...new Set(eligibleRecipients
+          .map((recipient) => recipient.ref?.unitId)
+          .filter((unitId): unitId is number => unitId !== undefined))];
+        const links = await dynamic.resolveLinks(unitIds);
+        finalRecipients = resolveRecipients(
+          eligibleRecipients.map((recipient) => ({
+            ...recipient,
+            variables: {
+              ...(recipient.variables ?? {}),
+              ...links.common,
+              ...(recipient.ref?.unitId !== undefined ? (links.byUnit.get(recipient.ref.unitId) ?? {}) : {}),
+            },
+          })),
+          ui.channel,
+          body,
+        );
+      } catch {
+        toast.error(dynamic.kind?.type === "bill" ? "고지서 상세 링크를 발급하지 못했어요." : "공지 링크를 발급하지 못했어요.");
+        return;
+      }
+      if (finalRecipients.some((recipient) =>
+        hasUnresolvedVariables(recipient.renderedBody)
+        || (dynamic.kind?.type === "bill" && !recipient.variables?.상세경로)
+        || (dynamic.kind?.type === "notice" && !recipient.variables?.버튼1))) {
+        toast.error("템플릿 변수를 모두 채우지 못해 발송하지 않았어요.");
+        return;
+      }
+    }
     const signature = canonicalSendPayload({
       mode: sendMode,
       body,
       context: "빠른발송",
       templateId: effectiveTemplateId,
-      recipients: sendRecipients,
+      recipients: finalRecipients,
     });
     const idempotency = resolveIdempotencyKey(
       idempotencyRef.current,
@@ -423,7 +539,7 @@ function MessengerFabContent() {
         body,
         context: "빠른발송",
         templateId: effectiveTemplateId,
-        recipients: sendRecipients,
+        recipients: finalRecipients,
         scheduledAt,
         recurrenceMode,
         recurrenceAnchorDay,
@@ -431,6 +547,33 @@ function MessengerFabContent() {
         idempotencyKey: idempotency.key,
       });
       idempotencyRef.current = null;
+      // 발송 기록(비핵심 — 실패해도 발송은 접수됨): 공지는 발송 로그를 공지에 귀속, 관리비 고지는 세대별 카카오 고지 기록.
+      if (result.logId && dynamicActive) {
+        try {
+          if (dynamic.kind?.type === "notice" && noticeId !== null) {
+            await attachNoticeSendLog.mutateAsync({ logId: result.logId, noticeId });
+          } else if (dynamic.kind?.type === "bill" && result.status !== "scheduled") {
+            const unitsByBuilding = new Map<number, Set<number>>();
+            for (const recipient of finalRecipients) {
+              const { buildingId, unitId } = recipient.ref ?? {};
+              if (buildingId === undefined || unitId === undefined) continue;
+              unitsByBuilding.set(buildingId, (unitsByBuilding.get(buildingId) ?? new Set<number>()).add(unitId));
+            }
+            for (const [buildingId, unitIds] of unitsByBuilding) {
+              await recordBillDelivery.mutateAsync({
+                buildingId,
+                period: billPeriod,
+                unitIds: [...unitIds],
+                issueType: "kakao",
+                sendStatus: "queued",
+                messageLogId: result.logId,
+              });
+            }
+          }
+        } catch {
+          toast.info("발송은 접수됐지만 발송 기록 일부를 남기지 못했어요.");
+        }
+      }
       setSummaryOpen(false);
       setSendFeedback(null);
       const blocked = result.status === "scheduled" ? 0 : (result.blockedCount ?? 0);
@@ -553,6 +696,21 @@ function MessengerFabContent() {
                   templateId={templateId}
                   onTemplate={changeAlimtalkTemplate}
                   vars={alimtalkVars}
+                  dynamic={dynamic.kind ? {
+                    kind: dynamic.kind,
+                    period: billPeriod,
+                    onPeriod: (next) => {
+                      setBillPeriod(next);
+                      clearTransientFeedback();
+                    },
+                    noticeId,
+                    onNotice: (next) => {
+                      setNoticeId(next);
+                      clearTransientFeedback();
+                    },
+                    notices: dynamic.notices,
+                    hint: dynamicHint,
+                  } : null}
                   onVars={(next) => {
                     setAlimtalkVars(next);
                     clearTransientFeedback();
@@ -562,7 +720,8 @@ function MessengerFabContent() {
             </div>
             <PhonePreview
               channel={ui.channel}
-              body={body}
+              // 문자: 첫 수신자 값으로 변수를 치환해 보여 준다(값이 없으면 예시 값).
+              body={ui.channel === "sms" ? smsPreviewBody(body, eligibleRecipients[0] ?? enrichedRecipients[0]) : body}
               template={ui.channel === "alim" ? selectedTemplate : null}
               sender={sender}
             />

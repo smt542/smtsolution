@@ -1,5 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { occupancyKeys } from "@/hooks/reactquery/occupancies/keys";
 import {
+  cancelMovingSettlementMoveout,
   completeMovingSettlement,
   deletePartnerMovingSettlement,
   deleteMovingSettlement,
@@ -26,6 +28,18 @@ export function useCompleteSettlement() {
   return useMutation({
     mutationFn: (settlementId: number) => completeMovingSettlement(settlementId),
     onSuccess: () => qc.invalidateQueries({ queryKey: movingSettlementKeys.all }),
+  });
+}
+
+/** 퇴실 취소 — 입주 정보가 되살아나므로 입주자 목록(수신자 선택 등)도 다시 읽는다. */
+export function useCancelMoveout() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (settlementId: number) => cancelMovingSettlementMoveout(settlementId),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: movingSettlementKeys.all });
+      void qc.invalidateQueries({ queryKey: occupancyKeys.all });
+    },
   });
 }
 

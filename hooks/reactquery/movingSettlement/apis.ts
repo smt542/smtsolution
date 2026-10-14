@@ -735,6 +735,27 @@ export async function deleteMovingSettlement(settlementId: number): Promise<void
   if (error) throw new Error(error.message);
 }
 
+export interface CancelMoveoutResult {
+  ok: boolean;
+  /** 취소 후 정산 상태 — 적요에 '중도퇴실'이 있던 건은 mid_moveout, 아니면 saved. */
+  status: "saved" | "mid_moveout";
+  claims_restored: number;
+  lease_restored: boolean;
+  payments_canceled: number;
+}
+
+/**
+ * 퇴실 취소(0312 cancel_moving_settlement_moveout). 「정산완료+퇴실」로 공실 처리된 세대를 퇴실 전 입주 정보로
+ * 되돌리고(전출 이력 삭제·임대 정보·세대 연결 복원·자동수납 취소), 정산 건을 퇴실 전 상태로 돌린다.
+ */
+export async function cancelMovingSettlementMoveout(settlementId: number): Promise<CancelMoveoutResult> {
+  const { data, error } = await createClient().rpc("cancel_moving_settlement_moveout", {
+    p_settlement_id: settlementId,
+  });
+  if (error) throw new Error(error.message);
+  return data as CancelMoveoutResult;
+}
+
 export async function listSettlements(
   buildingId: number,
   from: string,

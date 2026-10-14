@@ -5,6 +5,7 @@ import { Input } from "@/components/common";
 import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates/queries";
 import type { MessageTemplate } from "@/hooks/reactquery/messageTemplates/apis";
 import { messengerClasses as styles } from "./messengerClasses";
+import { DYNAMIC_VARIABLE_NAMES, type AlimtalkDynamicKind } from "./useAlimtalkDynamicVariables";
 
 export const AUTO_VARS = new Set([
   "링크토큰",
@@ -51,11 +52,25 @@ interface TemplateWithStatus extends MessageTemplate {
   alimtalkStatus?: string | null;
 }
 
+/** 승인 템플릿 자동 채움(관리비 고지 부과월·공지 선택) — MessengerFab 이 useAlimtalkDynamicVariables 로 만든다. */
+export interface AlimtalkDynamicControls {
+  kind: NonNullable<AlimtalkDynamicKind>;
+  /** 'YYYY-MM-01' */
+  period: string;
+  onPeriod: (period: string) => void;
+  noticeId: number | null;
+  onNotice: (noticeId: number | null) => void;
+  notices: { id: number; title: string }[];
+  /** 제외 수신자 등 안내(없으면 null). */
+  hint: string | null;
+}
+
 interface AlimtalkFormProps {
   templateId: number | null;
   onTemplate: (templateId: number | null) => void;
   vars: Record<string, string>;
   onVars: (vars: Record<string, string>) => void;
+  dynamic?: AlimtalkDynamicControls | null;
 }
 
 export function extractAlimtalkVariables(body: string): string[] {
@@ -106,6 +121,7 @@ export function AlimtalkForm({
   onTemplate,
   vars,
   onVars,
+  dynamic = null,
 }: AlimtalkFormProps) {
   const { data: allTemplates = [], isLoading, isFetching, isError } = useMessageTemplates();
   const isTemplateListRefreshing = isFetching && !isLoading;
@@ -124,8 +140,11 @@ export function AlimtalkForm({
     [allTemplates],
   );
   const selected = templates.find((template) => template.id === templateId) ?? null;
+  // 자동 채움 템플릿은 그 변수들을 입력받지 않는다(수신자별 고지 정보·선택한 공지로 채움).
   const manualVariables = selected
-    ? extractAlimtalkVariables(selected.body).filter((name) => !AUTO_VARS.has(name))
+    ? extractAlimtalkVariables(selected.body).filter(
+        (name) => !AUTO_VARS.has(name) && !(dynamic && DYNAMIC_VARIABLE_NAMES.has(name)),
+      )
     : [];
 
   useEffect(() => {
@@ -282,6 +301,39 @@ export function AlimtalkForm({
                 <TokenizedBody body={selected.body} />
               </div>
             </div>
+            {dynamic && (
+              <div className={styles["ak-vars"]}>
+                {dynamic.kind.type === "bill" ? (
+                  <div className={styles["ak-vrow"]}>
+                    <label htmlFor="messenger-alim-period">부과월</label>
+                    <Input
+                      unstyled
+                      id="messenger-alim-period"
+                      type="month"
+                      value={dynamic.period.slice(0, 7)}
+                      onChange={(event) => {
+                        if (/^\d{4}-\d{2}$/.test(event.target.value)) dynamic.onPeriod(`${event.target.value}-01`);
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div className={styles["ak-vrow"]}>
+                    <label htmlFor="messenger-alim-notice">공지</label>
+                    <select
+                      id="messenger-alim-notice"
+                      className="h-9 min-w-0 flex-1 rounded-[9px] border border-line bg-white px-[11px] text-[13px] outline-none focus:border-blue"
+                      value={dynamic.noticeId ?? ""}
+                      onChange={(event) => dynamic.onNotice(event.target.value ? Number(event.target.value) : null)}
+                    >
+                      <option value="">보낼 공지를 선택해 주세요</option>
+                      {dynamic.notices.map((notice) => (
+                        <option key={notice.id} value={notice.id}>{notice.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
             {manualVariables.length > 0 && (
               <div className={styles["ak-vars"]}>
                 {manualVariables.map((name) => (
@@ -301,7 +353,12 @@ export function AlimtalkForm({
               </div>
             )}
             <div className={styles["fmp-akhint"]}>
-              수신자 정보 변수는 각 대상의 데이터로 자동 입력됩니다.
+              {dynamic?.kind.type === "bill"
+                ? "고른 부과월의 부과 확정 내역으로 세대별 금액·납부 마감일·고객번호·고지서 상세 링크가 자동 입력됩니다."
+                : dynamic?.kind.type === "notice"
+                  ? "선택한 공지의 제목과 공지 확인 링크가 자동 입력됩니다."
+                  : "수신자 정보 변수는 각 대상의 데이터로 자동 입력됩니다."}
+              {dynamic?.hint ? <><br />{dynamic.hint}</> : null}
             </div>
             {selected.buttons[0] && (
               <div className={styles["ak-btnbox"]}>

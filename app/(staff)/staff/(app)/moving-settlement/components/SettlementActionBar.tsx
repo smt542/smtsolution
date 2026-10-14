@@ -7,6 +7,7 @@ export function SettlementActionBar({
   onPrint,
   onBlankPrint,
   onDelete,
+  onCancelMoveout,
   pending = false,
   pendingAction = null,
   locked = false,
@@ -18,8 +19,10 @@ export function SettlementActionBar({
   onPrint: () => void;
   onBlankPrint: () => void;
   onDelete: () => void;
+  /** 퇴실완료 건만 — 「퇴실 취소」 버튼(0312). 넘기지 않으면 버튼을 그리지 않는다. */
+  onCancelMoveout?: () => void;
   pending?: boolean;
-  pendingAction?: "save" | "mid" | "moveout" | "delete" | null;
+  pendingAction?: "save" | "mid" | "moveout" | "delete" | "cancel-moveout" | null;
   /** 완료(중도퇴실·퇴실완료) 건: 중도퇴실 잠금(정책 3.12). 삭제는 퇴실완료만 잠근다(completedLocked, 0306). */
   locked?: boolean;
   /** 퇴실완료 건만 잠금(저장·퇴실·삭제). 중도퇴실 건은 값을 고쳐 저장하고 「정산완료+퇴실」로 완전 퇴실하거나 삭제할 수 있다. */
@@ -63,6 +66,16 @@ export function SettlementActionBar({
       >
         {pendingAction === "delete" ? "삭제 중…" : "삭제"}
       </button>
+      {completedLocked && onCancelMoveout ? (
+        <button
+          type="button"
+          onClick={onCancelMoveout}
+          disabled={pending}
+          className={`${outlined} flex-[1_1_auto] min-w-max justify-center`}
+        >
+          {pendingAction === "cancel-moveout" ? "퇴실 취소 중…" : "퇴실 취소"}
+        </button>
+      ) : null}
     </div>
   );
 }
