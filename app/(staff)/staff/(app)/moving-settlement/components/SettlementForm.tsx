@@ -15,6 +15,8 @@ import { SettlementExtrasSection } from "./settlement-form/SettlementExtrasSecti
 import { SettlementSummaryBar } from "./settlement-form/SettlementSummaryBar";
 import {
   derivedUtilityPatch,
+  defaultPrevReading,
+  UTILITY_ROWS,
   UtilitySettlementSection,
   type LegacyUtilityCharges,
 } from "./settlement-form/UtilitySettlementSection";
@@ -133,15 +135,25 @@ export function SettlementForm({
     unpaidAmount: billingUnpaid,
   });
 
-  const setMoveOutDate = (moveOutDate: string) =>
-    onChange({
-      ...value,
+  const setMoveOutDate = (moveOutDate: string) => {
+    const patch: Partial<SettlementDraft> = {
       moveOutDate,
       mgmtFeeProrated: calculateProratedMgmtFee(
         value.mgmtFeeMonthly,
         moveOutDate,
       ),
-    });
+    };
+    // 전월 지침 기본값을 그대로 둔(= 이전 퇴실월 기준 기본값과 같은) 행만 새 퇴실월 기준(정책 3.5)으로 다시 채운다.
+    // 직접 고친 값·저장값은 유지한다(기본값과 같을 때만 갱신). 량·금액은 derivedUtilityPatch 가 바뀐 전월 지침으로 다시 맞춘다.
+    for (const row of UTILITY_ROWS) {
+      const oldDefault = defaultPrevReading(row.utility, meters, value.moveOutDate);
+      const newDefault = defaultPrevReading(row.utility, meters, moveOutDate);
+      if ((value[row.prevKey] ?? null) === oldDefault && newDefault !== oldDefault) {
+        patch[row.prevKey] = newDefault;
+      }
+    }
+    onChange({ ...value, ...patch });
+  };
 
   const setMonthly = (mgmtFeeMonthly: number | null) =>
     onChange({

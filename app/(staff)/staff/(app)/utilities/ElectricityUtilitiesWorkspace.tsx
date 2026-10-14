@@ -307,11 +307,20 @@ export default function ElectricityUtilitiesWorkspace() {
    */
   const persistReadings = async (): Promise<{ saved: number; allocation: UtilityAllocationResult[] } | null> => {
     if (buildingId === null) return null;
+    const fixedChanges = rows.flatMap((row) => fixedChangesFor(
+      row.unitId,
+      scopedDrafts[row.unitId],
+      fixedByUnit.get(row.unitId),
+      period,
+    ));
+    // 이 달 고정 설정이 바뀐(해제 포함) 호실은 지침 입력이 없어도 반드시 보내 재계산한다(OM2-064).
+    const fixedChangedUnitIds = new Set(fixedChanges.map((change) => change.unitId));
     // 고정한 호실은 지침이 비어도 저장해야 이 달 부과에 고정값이 들어간다.
     const meterRows = rows
       .map((row) => ({ row, draft: scopedDrafts[row.unitId] }))
       .filter(({ row, draft }) => draft.usageLocked
         || draft.manualLocked
+        || fixedChangedUnitIds.has(row.unitId)
         || draft.previousReading.trim() !== (row.previousReading === null ? "" : String(row.previousReading))
         || draft.currentReading.trim() !== ""
         || draft.usageEdited
@@ -328,12 +337,6 @@ export default function ElectricityUtilitiesWorkspace() {
         manual_charge: draft.manualCharge.trim(),
         note: draft.note.trim(),
       }));
-    const fixedChanges = rows.flatMap((row) => fixedChangesFor(
-      row.unitId,
-      scopedDrafts[row.unitId],
-      fixedByUnit.get(row.unitId),
-      period,
-    ));
     const prices = (pricesQuery.data ?? [])
       .map((price) => ({
         customer_number_id: price.customerNumberId,

@@ -25,6 +25,7 @@ import {
   initialState,
   mapContext,
   MAX_ETC_ITEMS,
+  reseedUtilPrevOnMoveOut,
   type ContextJson,
   type MSState,
   type PartnerSettlementContext,
@@ -492,7 +493,19 @@ export default function PartnerMsNewWorkspace({
               look="settlement"
               value={state.moveOutDate}
               // 퇴실일을 고르면 계산일수 · 부과를 그 날짜의 실거주 일수로 다시 채운다(이후 직접 수정 가능).
-              onChange={(value) => patch({ moveOutDate: value, dDays: chargeDaysFromMoveOut(value) })}
+              // 전월 지침 기본값도 새 퇴실월 기준(정책 3.5)으로 다시 채운다 — 직접 고친 행은 유지한다.
+              onChange={(value) =>
+                patch({
+                  moveOutDate: value,
+                  dDays: chargeDaysFromMoveOut(value),
+                  util: reseedUtilPrevOnMoveOut(
+                    state.util,
+                    ctx?.meterSummary ?? [],
+                    state.moveOutDate,
+                    value,
+                  ),
+                })
+              }
               ariaLabel="퇴실일자"
             />
           </div>

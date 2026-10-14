@@ -11,6 +11,8 @@ import { occupancyBasicSchema } from "@/components/forms/schema/occupancy";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { displayUnitNo } from "@/lib/bill/document";
 import { deleteImpactWarning } from "@/lib/buildings/deleteImpact";
+import { currentPeriod } from "@/lib/billing/period";
+import { billingKeys, listBilling, useChargeNewOccupancies } from "@/hooks/reactquery/billing";
 import { useCustomerNumbers, type CustomerNumberKind } from "@/hooks/reactquery/buildingCustomerNumbers";
 import { useBuildingFull } from "@/hooks/reactquery/buildings";
 import {
@@ -73,8 +75,8 @@ const emptyBilling = (): BillingValue => ({
   transferMethod: "giro",
   cmsMemberNo: "",
   cmsContractNo: "",
-  lateFeeEnabled: true,
-  singlePrint: true,
+  lateFeeEnabled: false,
+  singlePrint: false,
   billingNote: "",
 });
 
@@ -88,7 +90,7 @@ const emptyUtility = (): UtilityValue => ({
 });
 
 const emptyBill = (): BillStatementValue => ({
-  printEnabled: false,
+  printEnabled: true,
   billNameDisplay: "none",
   billDelivery: "alimtalk",
   billAuthInfo: "",
@@ -150,6 +152,7 @@ export function TenantForm({
   const queryClient = useQueryClient();
   const router = useRouter();
   const save = useSaveUnitOccupancy();
+  const chargeNew = useChargeNewOccupancies();
   const del = useDeleteUnit();
   const { data: roomTypes } = useRoomTypes();
   const { data: building } = useBuildingFull(buildingId);
@@ -317,7 +320,6 @@ export function TenantForm({
     setBill((current) => ({
       ...current,
       billDelivery: value.alimtalkOptIn ? "alimtalk" : "post",
-      ...(!unitId ? { printEnabled: !value.alimtalkOptIn } : {}),
     }));
   };
 
@@ -481,9 +483,48 @@ export function TenantForm({
       },
     };
 
+    // §3.9 당월 부과가 확정된 건물이면 저장 직전 "이번달 부과?"를 묻는다.
+    // 확정 여부·이 세대의 당월 부과 여부는 당월 부과표(list_billing)의 확정일로 판단한다.
+    const chargePeriod = currentPeriod();
+    const billingRows = await queryClient
+      .fetchQuery({
+        queryKey: billingKeys.list(buildingId, chargePeriod),
+        queryFn: () => listBilling(buildingId, chargePeriod),
+      })
+      .catch(() => []); // 확정 조회 실패 시 모달 없이 일반 저장
+    const buildingConfirmed = billingRows.some((row) => row.confirmedAt);
+    const unitAlreadyCharged =
+      unitId != null && billingRows.some((row) => row.unitId === unitId && row.confirmedAt);
+    const askChargeThisMonth = buildingConfirmed && status === "occupied" && !unitAlreadyCharged;
+
+    let chargeThisMonth = false;
+    if (askChargeThisMonth) {
+      const year = Number(chargePeriod.slice(0, 4));
+      const month = Number(chargePeriod.slice(5, 7));
+      chargeThisMonth = await confirm({
+        title: "이번달 관리비 부과",
+        description: (
+          <>
+            {"이번달 관리비 부과를 하시겠습니까?\n"}
+            {year}년 {month}월분 부과가 이미 확정된 건물입니다. 부과하면{" "}
+            <b>입주일 기준 일할 계산</b>되어 반영됩니다.
+          </>
+        ),
+        confirmLabel: "이번 달 부과",
+        cancelLabel: "다음달부터",
+      });
+    }
+
     try {
-      await save.mutateAsync(payload);
-      toast.success("저장되었습니다.");
+      const result = await save.mutateAsync(payload);
+      if (askChargeThisMonth && chargeThisMonth) {
+        await chargeNew.mutateAsync({ buildingId, period: chargePeriod, unitIds: [result.unitId] });
+        toast.success("이번 달 관리비가 부과되었습니다.");
+      } else if (askChargeThisMonth) {
+        toast.success("다음달부터 부과됩니다.");
+      } else {
+        toast.success("저장되었습니다.");
+      }
       setDirty(false);
       if (!unitId) router.replace(`/staff/buildings?building=${buildingId}`);
     } catch (error) {

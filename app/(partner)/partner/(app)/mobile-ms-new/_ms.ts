@@ -252,6 +252,46 @@ export function formatSettleAccount(account: {
 const UNIT_PRICE_REFLECTED: ReadonlySet<Utility> = new Set<Utility>(["water", "elec"]);
 
 /**
+ * 「전월 지침」 기본값(정책 3.5, 사무실 defaultPrevReading 과 같은 규칙): 기준 검침(meter.period)이 퇴실월이면
+ * 그 달 previous_reading, 퇴실월보다 이전 달(또는 퇴실일 미입력이라 비교 불가)이면 그 달 current_reading.
+ * 검침이 없으면 0(파트너 UtilRow.prev 는 number). 퇴실일이 바뀌면 이 값으로 다시 채운다(0266·0285·0307).
+ */
+export function defaultPrevReading(
+  meter: PartnerMeter | undefined,
+  moveOutDate: string | null | undefined,
+): number {
+  if (!meter) return 0;
+  const moveOutPeriod = moveOutDate ? `${moveOutDate.slice(0, 7)}-01` : null;
+  const prev =
+    meter.period !== null && moveOutPeriod !== null && meter.period === moveOutPeriod
+      ? meter.previousReading
+      : (meter.currentReading ?? meter.previousReading ?? null);
+  return prev ?? 0;
+}
+
+/**
+ * 퇴실일 변경 시 「전월 지침」 기본값 재계산(정책 3.5). 전월 지침을 그대로 둔(= 이전 퇴실월 기준 기본값과 같은)
+ * 행만 새 퇴실월 기준 기본값으로 바꾼다. 직접 고친 값·저장값은 유지한다(기본값과 같을 때만 갱신).
+ * 이사 지침은 그대로 두고, 량·금액은 computeTotals 가 바뀐 전월 지침으로 다시 계산한다.
+ */
+export function reseedUtilPrevOnMoveOut(
+  util: UtilRow[],
+  meters: PartnerMeter[],
+  prevMoveOutDate: string | null | undefined,
+  nextMoveOutDate: string | null | undefined,
+): UtilRow[] {
+  return util.map((u) => {
+    const meter = meters.find((m) => m.utility === u.k);
+    const oldDefault = defaultPrevReading(meter, prevMoveOutDate);
+    const newDefault = defaultPrevReading(meter, nextMoveOutDate);
+    if (u.prev === oldDefault && newDefault !== oldDefault) {
+      return { ...u, prev: newDefault };
+    }
+    return u;
+  });
+}
+
+/**
  * 공과금 정산 행 기본값 — 사무실 이사정산(readingsFromContext, 0266)과 같은 규칙.
  * - 전월 지침: 퇴실월 검침이면 그 달 previous_reading, 이전 달 검침이면 그 current_reading.
  * - 이사 지침: 현장에서 읽은 값을 입력한다(비워 둠).
@@ -267,7 +307,6 @@ function seededUtil(
 ): UtilRow[] {
   // 정본 카드 순서: 전기 · 수도 · 가스
   const order: Utility[] = ["elec", "water", "gas"];
-  const moveOutPeriod = moveOutDate ? `${moveOutDate.slice(0, 7)}-01` : null;
   const defaultAcct = formatSettleAccount(settleAccount);
   return order.map((k) => {
     const meter = meters.find((m) => m.utility === k);
@@ -283,13 +322,9 @@ function seededUtil(
         payDate: savedRow.payDate ?? "",
       };
     }
-    const prev =
-      meter && meter.period !== null && meter.period === moveOutPeriod
-        ? meter.previousReading
-        : (meter?.currentReading ?? meter?.previousReading ?? null);
     return {
       k,
-      prev: prev ?? 0,
+      prev: defaultPrevReading(meter, moveOutDate),
       cur: 0,
       price: meterPrice,
       acct: defaultAcct,

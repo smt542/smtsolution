@@ -51,8 +51,10 @@ export function buildRecipientRenderVariables(
   return {
     이름: recipient.name ?? "",
     입주자명: recipient.name ?? "",
-    건물주명: recipient.name ?? "",
-    청소담당자명: recipient.name ?? "",
+    // 건물주명·청소담당자명 기본값은 해당 수신자 본인일 때만 본인 이름으로 채운다.
+    // 그 외 수신자(입주자 등)는 건물 값(recipient.variables)으로 덮어쓰며, 건물 값이 없으면 빈 문자열로 둔다.
+    건물주명: recipient.kind === "owner" ? (recipient.name ?? "") : "",
+    청소담당자명: recipient.kind === "cleaner" ? (recipient.name ?? "") : "",
     호수: recipient.unitNo ?? "",
     호실: recipient.unitNo ?? "",
     건물명: buildingName ?? "",

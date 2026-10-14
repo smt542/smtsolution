@@ -68,6 +68,24 @@ export function defaultUnitPrice(
 }
 
 /**
+ * 「전월 지침」 기본값(정책 3.5): 기준 검침(meter.period)이 퇴실월이면 그 달 previous_reading,
+ * 퇴실월보다 이전 달(또는 퇴실일 미입력이라 비교 불가)이면 그 달 current_reading.
+ * 검침이 없으면 null(직접 입력). 퇴실일이 바뀌면 이 값으로 다시 채운다(0266·0285·0307).
+ */
+export function defaultPrevReading(
+  utility: SettlementUtility,
+  meters: MeterSummary[],
+  moveOutDate: string | null | undefined,
+): number | null {
+  const meter = meters.find((item) => item.utility === utility);
+  if (!meter) return null;
+  const moveOutPeriod = moveOutDate ? `${moveOutDate.slice(0, 7)}-01` : null;
+  return meter.period !== null && moveOutPeriod !== null && meter.period === moveOutPeriod
+    ? meter.previousReading
+    : (meter.currentReading ?? meter.previousReading ?? null);
+}
+
+/**
  * 저장된 정산에서 "지침 없이 금액만 있는" 구분의 금액. 저장된 extra.util 에 그 구분의 이사 지침(cur > 0)이 있으면
  * 금액은 지침에서 나온 값이므로 제외한다(서버 settlement_util_row 와 같은 기준). 새 정산이면 빈 객체.
  */

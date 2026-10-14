@@ -223,11 +223,20 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
     if (buildingId === null) return;
     // 고정한 호실은 지침이 비어도 저장해야 이 달 부과에 고정값이 들어간다.
     // 고정 사용량은 이력값으로 서버가 계산하므로 usage 를 보내지 않는다.
+    const fixedChanges = activeRows.flatMap((row) => fixedChangesFor(
+      row.unitId,
+      scopedDrafts[row.unitId],
+      fixedByUnit.get(row.unitId),
+      period,
+    ));
+    // 이 달 고정 설정이 바뀐(해제 포함) 호실은 지침 입력이 없어도 반드시 보내 재계산한다(OM2-064).
+    const fixedChangedUnitIds = new Set(fixedChanges.map((change) => change.unitId));
     const payloadRows = activeRows
       .map((row) => ({ row, draft: scopedDrafts[row.unitId] }))
       .filter(({ row, draft }) => (
         draft.usageLocked
         || draft.manualLocked
+        || fixedChangedUnitIds.has(row.unitId)
         || draft.previousReading.trim() !== (row.previousReading === null ? "" : String(row.previousReading))
         || draft.currentReading.trim() !== ""
         || draft.usage.trim() !== ""
@@ -244,12 +253,6 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
         manual_charge: draft.manualCharge.trim(),
         note: draft.note.trim(),
       }));
-    const fixedChanges = activeRows.flatMap((row) => fixedChangesFor(
-      row.unitId,
-      scopedDrafts[row.unitId],
-      fixedByUnit.get(row.unitId),
-      period,
-    ));
     let bills: { customer_number_id: number; amount: number | null }[];
     try {
       // 요약표 부과액 → 고객번호×월 청구총액(옵트인: 직접 고친 고객번호만).

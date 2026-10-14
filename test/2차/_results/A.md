@@ -1,8 +1,8 @@
 ## 케이스별 결과
 | ID | 케이스 | 유형 | 우선순위 | 결과 | 중요도 | 확인 내용 | 개선 방안 | 캡처 |
 |---|---|---|---|:---:|:---:|---|---|---|
-| OM2-001 | IP 기준 로그인 실패 일시 잠금 | 예외 | P1 | **보류** | - | IP 잠금 영향으로 마지막에 별도 실행 예정. 코드/DB 분석만 함: `lib/auth/loginRateLimit.ts:11` IP 버킷 10분 10회 → 15분 잠금, `app/api/staff/login/route.ts:46-51` 잠금 시 429 + `Retry-After` 응답, 폼은 `errors.root` 영역에 사유 표시(`LoginForm.tsx:84`). DB 함수 `login_rate_limit_hit` 배포 확인. 계정 영구 잠금 로직은 없음 | - | |
-| OM2-002 | 아이디 기준 실패 20회 경계 | 경계값 | P1 | **보류** | - | IP 잠금 영향으로 마지막에 별도 실행 예정. 코드 분석: `loginRateLimit.ts:13` 아이디 버킷 15분 20회 → 15분 잠금, 인증 전에 check 하므로 19회 상태에서는 정답 로그인 허용, 성공 시 버킷 reset(`recordLoginSuccess`) | - | |
+| OM2-001 | IP 기준 로그인 실패 일시 잠금 | 예외 | P1 | **O** | - | [배포본 실측] 동일 IP 10회 실패 후 올바른 비밀번호도 429+Retry-After:900으로 차단, 다른 IP는 200 정상. 코드: `lib/auth/loginRateLimit.ts:11` IP 버킷 10분 10회 → 15분 잠금, `app/api/staff/login/route.ts:46-51` 잠금 시 429 + `Retry-After` 응답, 폼은 `errors.root` 영역에 사유 표시(`LoginForm.tsx:84`). DB 함수 `login_rate_limit_hit` 배포 확인. 계정 영구 잠금 로직은 없음 | - | |
+| OM2-002 | 아이디 기준 실패 20회 경계 | 경계값 | P1 | **O** | - | [배포본 실측] 19회 실패 상태에서 올바른 비밀번호 200 성공, 20회 도달 후 다른 IP에서도 아이디 기준 429+Retry-After:900 차단. 코드: `loginRateLimit.ts:13` 아이디 버킷 15분 20회 → 15분 잠금, 인증 전에 check 하므로 19회 상태에서는 정답 로그인 허용, 성공 시 버킷 reset(`recordLoginSuccess`) | - | |
 | OM2-003 | 자동 로그인(아이디 기억) 저장·해제 | 상태전이 | P3 | **O** | - | 기본 type=password → 눈 아이콘 후 type=text. 자동 로그인 체크 로그인→로그아웃 시 아이디 `tc2a_office1` 자동 입력·체크 유지, 비밀번호 공란. 체크 해제 로그인→로그아웃 시 아이디 공란, localStorage `erp_login_remembered_id` 제거됨 | - | [img](captures/OM2-003_remembered_id.png) |
 | OM2-004 | 임시 비밀번호 계정의 첫 로그인 강제 변경 | 상태전이 | P1 | **O** | - | 테스트 계정 tc2a_office1(임시 1234) 로그인 시 `/staff/change-password` 진입. 주소창 `/staff/buildings` 접근 시 다시 change-password로 돌아옴. `다른 계정으로 로그인`(로그아웃) 시 로그인 화면 이동. 변경 완료(5678) 후 `/staff/receipts` 진입, 재로그인 시 변경 화면 없이 바로 업무 화면 | - | [img](captures/OM2-004_change_password_screen.png) |
 | OM2-005 | 회원가입·비밀번호 찾기 부재와 계정 문의 안내 | 정상 | P3 | **O** | - | LNB 없음, 좌측 브랜드 패널 "관리비서" + 우측 폼 2단. 회원가입·비밀번호 찾기 없음. "계정 문의는 마스터 관리자에게 요청해 주세요. / 문의 : 042-632-8770" 표시 | - | [img](captures/OM2-005_login_layout.png) |

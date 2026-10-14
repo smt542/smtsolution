@@ -176,11 +176,13 @@ export default function GasUtilitiesWorkspace() {
   };
 
   /** 고정한 호실은 지침이 비어도 저장해야 이 달 부과에 고정값이 들어간다. */
-  const buildPayloadRows = () => rows
+  const buildPayloadRows = (fixedChangedUnitIds: Set<number> = new Set()) => rows
     .filter((row) => {
       const draft = scopedDrafts[row.unitId];
       return draft.usageLocked
         || draft.manualLocked
+        // 이 달 고정 설정이 바뀐(해제 포함) 호실은 지침 입력이 없어도 반드시 보내 재계산한다(OM2-064).
+        || fixedChangedUnitIds.has(row.unitId)
         || draft.previousReading.trim() !== (row.previousReading === null ? "" : String(row.previousReading))
         || draft.currentReading.trim() !== ""
         || draft.usageEdited
@@ -204,13 +206,13 @@ export default function GasUtilitiesWorkspace() {
   /** 고정값 → 지침 순으로 저장해 서버(save_meter_readings)가 요금을 다시 계산하게 한다. */
   const persistGasReadings = async () => {
     if (buildingId === null) return null;
-    const payloadRows = buildPayloadRows();
     const fixedChanges = rows.flatMap((row) => fixedChangesFor(
       row.unitId,
       scopedDrafts[row.unitId],
       fixedByUnit.get(row.unitId),
       period,
     ));
+    const payloadRows = buildPayloadRows(new Set(fixedChanges.map((change) => change.unitId)));
     // 고정값을 먼저 써야 save_meter_readings 가 바뀐 고정 사용량으로 량을 계산한다.
     if (fixedChanges.length > 0) {
       await saveFixedValues.mutateAsync({ buildingId, utilityType: "gas", period, changes: fixedChanges });

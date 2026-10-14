@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { CustomDropdown } from "@/components/common";
+import type { DropdownOption } from "@/components/common/CustomDropdown";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { useAsyncAction } from "@/hooks/common";
 import { appToast as toast } from "@/hooks/common/useAppToast";
@@ -11,7 +13,8 @@ import {
   guessColumns,
   parseDepositFile,
   toDeposits,
-  type Deposit,
+  type ColumnMapping,
+  type ParsedSheet,
 } from "@/lib/payments/bankParse";
 import {
   buildDepositPreview,
@@ -99,7 +102,29 @@ function PreviewCell({
   );
 }
 
-function BankPreviewTable({ rows, period }: { rows: DepositPreviewRow[]; period: string }) {
+// 미매칭(세대 없음·세대 중복) 행에서 세대를 수동 지정할 수 있도록 해석한 미리보기 행.
+type ResolvedPreviewRow = DepositPreviewRow & { manual: boolean };
+
+const MAPPING_FIELDS: { key: keyof ColumnMapping; label: string }[] = [
+  { key: "customerNo", label: "고객번호" },
+  { key: "name", label: "입금자" },
+  { key: "amount", label: "금액" },
+  { key: "paidAt", label: "일자" },
+];
+
+function BankPreviewTable({
+  rows,
+  period,
+  unitOptions,
+  manualUnits,
+  onAssign,
+}: {
+  rows: ResolvedPreviewRow[];
+  period: string;
+  unitOptions: DropdownOption[];
+  manualUnits: Record<number, number>;
+  onAssign: (rowIndex: number, unitId: number | null) => void;
+}) {
   return (
     <div className={giroWrapClass}>
       <table className="w-full min-w-0 table-fixed border-collapse whitespace-nowrap [&_tbody_tr:last-child_td]:border-b-0">
@@ -142,7 +167,19 @@ function BankPreviewTable({ rows, period }: { rows: DepositPreviewRow[]; period:
                 <PreviewCell value={location.month} className="num" />
                 <PreviewCell value={amountText(row.deposit.amount)} className="num text-right" />
                 <PreviewCell value={row.error}>
-                  {row.error === "정상" ? row.error : <span className="text-red">{row.error}</span>}
+                  {row.manual ? (
+                    <CustomDropdown
+                      chevron="accent"
+                      ariaLabel="세대 지정"
+                      size="cell"
+                      position="fixed"
+                      menuMinWidth={220}
+                      placeholder="세대 선택"
+                      value={manualUnits[row.deposit.rowIndex] != null ? String(manualUnits[row.deposit.rowIndex]) : ""}
+                      options={unitOptions}
+                      onChange={(value) => onAssign(row.deposit.rowIndex, value === "" ? null : Number(value))}
+                    />
+                  ) : row.error === "정상" ? row.error : <span className="text-red">{row.error}</span>}
                 </PreviewCell>
               </tr>
             );
@@ -161,18 +198,67 @@ export function BankImportModal({
   onClose,
 }: BankImportModalProps) {
   const [file, setFile] = useState<File | null>(null);
-  const [deposits, setDeposits] = useState<Deposit[]>([]);
+  // 파싱한 원본 시트와 열 매핑을 따로 둬 사용자가 머리글→필드 매핑을 고칠 수 있게 한다(자동 인식은 기본값).
+  const [parsed, setParsed] = useState<ParsedSheet | null>(null);
+  const [mapping, setMapping] = useState<ColumnMapping | null>(null);
+  // 미매칭 행 수동 지정: deposit.rowIndex → 세대 unitId.
+  const [manualUnits, setManualUnits] = useState<Record<number, number>>({});
   const parseFileAction = useAsyncAction();
   const confirm = useConfirm();
   const recordBankPayments = useRecordBankPayments();
   const { data: bankPayments = [] } = useBankPayments(buildingId, period);
+
+  const deposits = useMemo(
+    () => (parsed && mapping ? toDeposits(parsed.rows, mapping) : []),
+    [mapping, parsed],
+  );
+  const mappingReady =
+    mapping != null && mapping.amount != null && (mapping.customerNo != null || mapping.name != null);
+  const headerOptions = useMemo<DropdownOption[]>(
+    () => [
+      { value: "", label: "선택 안 함" },
+      ...(parsed?.headers ?? []).map((header, index) => ({
+        value: String(index),
+        label: header?.trim() ? header : `${index + 1}번째 열`,
+      })),
+    ],
+    [parsed],
+  );
+  const unitById = useMemo(
+    () => new Map(toPreviewUnits(rows).map((unit) => [unit.unitId, unit])),
+    [rows],
+  );
+  const unitOptions = useMemo<DropdownOption[]>(
+    () => [
+      { value: "", label: "세대 선택" },
+      ...rows.map((row) => ({
+        value: String(row.unitId),
+        label: `${row.buildingName ? `${row.buildingName} ` : ""}${row.dong ? `${row.dong} ` : ""}${row.unitNo}${
+          row.payerName || row.tenantName ? ` (${row.payerName ?? row.tenantName})` : ""
+        }`,
+      })),
+    ],
+    [rows],
+  );
   const previewRows = useMemo(
     () => buildDepositPreview(deposits, toPreviewUnits(rows), bankPayments),
     [bankPayments, deposits, rows],
   );
+  // 미매칭 행에 수동 지정한 세대를 입혀 정상으로 승격한다(미리보기엔 세대 선택 드롭다운이 계속 뜬다).
+  const resolvedRows = useMemo<ResolvedPreviewRow[]>(
+    () => previewRows.map((row) => {
+      const manual = row.error === "세대 없음" || row.error === "세대 중복";
+      if (!manual) return { ...row, manual: false };
+      const assignedId = manualUnits[row.deposit.rowIndex];
+      const assignedUnit = assignedId != null ? unitById.get(assignedId) ?? null : null;
+      if (!assignedUnit || row.deposit.amount <= 0) return { ...row, manual: true };
+      return { ...row, unit: assignedUnit, error: "정상", manual: true };
+    }),
+    [manualUnits, previewRows, unitById],
+  );
   const normalRows = useMemo(
-    () => previewRows.filter((row) => row.error === "정상"),
-    [previewRows],
+    () => resolvedRows.filter((row) => row.error === "정상"),
+    [resolvedRows],
   );
   const total = useMemo(
     () => normalRows.reduce((sum, row) => sum + row.deposit.amount, 0),
@@ -183,22 +269,35 @@ export function BankImportModal({
   const resetFile = () => {
     if (busy) return;
     setFile(null);
-    setDeposits([]);
+    setParsed(null);
+    setMapping(null);
+    setManualUnits({});
+  };
+
+  const updateMapping = (key: keyof ColumnMapping, value: string) => {
+    setMapping((current) => (current ? { ...current, [key]: value === "" ? null : Number(value) } : current));
+  };
+
+  const assignUnit = (rowIndex: number, unitId: number | null) => {
+    setManualUnits((current) => {
+      if (unitId === null) {
+        const next = { ...current };
+        delete next[rowIndex];
+        return next;
+      }
+      return { ...current, [rowIndex]: unitId };
+    });
   };
 
   const parseFile = async (nextFile: File) => {
     setFile(nextFile);
+    setManualUnits({});
     await parseFileAction.run(async () => {
       try {
-        const parsed = await parseDepositFile(nextFile);
-        const mapping = guessColumns(parsed.headers);
-        if (mapping.amount == null || (mapping.customerNo == null && mapping.name == null)) {
-          toast.warning("입금내역 머리글을 읽지 못했어요");
-          setFile(null);
-          setDeposits([]);
-          return;
-        }
-        setDeposits(toDeposits(parsed.rows, mapping));
+        // 자동 인식(guessColumns)은 기본 매핑으로만 쓰고, 사용자가 매핑 단계에서 바로잡을 수 있게 둔다.
+        const sheet = await parseDepositFile(nextFile);
+        setParsed(sheet);
+        setMapping(guessColumns(sheet.headers));
       } catch (error) {
         toast.warning(
           error instanceof DepositFileError && error.code === "unsupported-xls"
@@ -206,7 +305,8 @@ export function BankImportModal({
             : "입금내역 파일을 읽지 못했어요",
         );
         setFile(null);
-        setDeposits([]);
+        setParsed(null);
+        setMapping(null);
       }
     });
   };
@@ -277,7 +377,39 @@ export function BankImportModal({
               파일을 읽고 있어요…
             </p>
           ) : (
-            <BankPreviewTable rows={previewRows} period={period} />
+            <>
+              {parsed && (
+                <div className="mt-[12px] flex flex-wrap items-center gap-x-[14px] gap-y-[8px]">
+                  {MAPPING_FIELDS.map((field) => (
+                    <label key={field.key} className="flex items-center gap-[6px] text-[12px] font-bold text-t3">
+                      {field.label}
+                      <CustomDropdown
+                        chevron="accent"
+                        menuTransition
+                        ariaLabel={`${field.label} 열`}
+                        size="compact"
+                        position="fixed"
+                        menuMinWidth={160}
+                        placeholder="선택 안 함"
+                        value={mapping?.[field.key] == null ? "" : String(mapping[field.key])}
+                        options={headerOptions}
+                        onChange={(value) => updateMapping(field.key, value)}
+                      />
+                    </label>
+                  ))}
+                  {!mappingReady && (
+                    <span className="text-[12px] font-medium text-red">금액과 고객번호(또는 입금자) 열을 지정해 주세요</span>
+                  )}
+                </div>
+              )}
+              <BankPreviewTable
+                rows={resolvedRows}
+                period={period}
+                unitOptions={unitOptions}
+                manualUnits={manualUnits}
+                onAssign={assignUnit}
+              />
+            </>
           )}
         </>
       ) : (

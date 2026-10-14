@@ -12,7 +12,8 @@ import { useUnitPayments } from "@/hooks/reactquery/payments";
 import { useReceiptPaymentStatus, useReceiptStatementData } from "@/hooks/reactquery/receipts";
 import { useUnits } from "@/hooks/reactquery/units";
 import type { RateTier } from "@/lib/billing/lateFee";
-import { currentPeriod, prevPeriod } from "@/lib/billing/period";
+import { currentPeriod, fromMonthInput, prevPeriod, toMonthInput } from "@/lib/billing/period";
+import { ReportDateField } from "./components/report-controls/ReportDateField";
 import { AsStatusSection } from "./components/AsStatusSection";
 import { BuildingUnitRail } from "./components/BuildingUnitRail";
 import { PaymentHistorySection } from "./components/PaymentHistorySection";
@@ -178,7 +179,19 @@ export function ReceiptWorkspace({
   initialBuildingId: number | null;
   initialUnitId: number | null;
 }) {
-  const [period] = useState(() => initialPeriod ?? currentPeriod());
+  const [period, setPeriod] = useState(() => initialPeriod ?? currentPeriod());
+  // 조회 월 변경 — 과거 이관분 입력을 위해 당월 외의 달도 고를 수 있다(정책 3.2, 2026-10-10).
+  // URL 쿼리(period=YYYY-MM-01)와 동기화해 새로고침·링크 공유 시 같은 달로 진입한다.
+  const changePeriod = useCallback((month: string) => {
+    if (!month) return;
+    const nextPeriod = fromMonthInput(month);
+    setPeriod(nextPeriod);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("period", nextPeriod);
+      window.history.replaceState(window.history.state, "", url);
+    }
+  }, []);
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | null>(initialBuildingId);
   const [selectedUnitId, setSelectedUnitId] = useState<number | null>(initialUnitId);
   // 정본 `setView`: 레일이 건물 목록/호실 목록 중 무엇을 보이는지는 선택과 따로 논다.
@@ -357,6 +370,12 @@ export function ReceiptWorkspace({
       ) : null}
 
       <div className="fixed right-[24px] top-[10.5px] z-[30] hidden items-center gap-[8px] md:flex print:hidden">
+          <ReportDateField
+            type="month"
+            ariaLabel="조회 월"
+            value={toMonthInput(period)}
+            onValueChange={changePeriod}
+          />
           <Button
             variant="ghost"
             type="button"

@@ -31,6 +31,7 @@ import {
 } from "./movingSettlementPrint";
 import {
   UTILITY_ROWS,
+  defaultPrevReading,
   defaultUnitPrice,
   legacyUtilityCharges,
 } from "./settlement-form/UtilitySettlementSection";
@@ -47,7 +48,6 @@ function readingsFromContext(
   saved: SettlementContext["latestSettlement"],
 ): Partial<MovingSettlementValues> {
   const savedUtil = saved?.extra?.util;
-  const moveOutPeriod = saved?.moveOutDate ? `${saved.moveOutDate.slice(0, 7)}-01` : null;
   const next: Partial<MovingSettlementValues> = {};
   for (const row of UTILITY_ROWS) {
     const util = savedUtil?.find((item) => item.k === row.utility);
@@ -58,11 +58,7 @@ function readingsFromContext(
         util.price ?? defaultUnitPrice(row.utility, context.meterSummary, context.settlementSettings);
       continue;
     }
-    const meter = context.meterSummary.find((item) => item.utility === row.utility);
-    next[row.prevKey] =
-      meter && meter.period !== null && meter.period === moveOutPeriod
-        ? meter.previousReading
-        : (meter?.currentReading ?? meter?.previousReading ?? null);
+    next[row.prevKey] = defaultPrevReading(row.utility, context.meterSummary, saved?.moveOutDate);
     next[row.moveKey] = null;
     next[row.priceKey] = defaultUnitPrice(row.utility, context.meterSummary, context.settlementSettings);
   }

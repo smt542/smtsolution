@@ -399,7 +399,9 @@ function MessengerFabContent() {
         : enrichedRecipients.length === 0
           ? "수신자를 선택해 주세요"
           : !consentLoading && eligibleRecipients.length === 0
-            ? "알림톡 수신 동의 대상 없음"
+            ? dynamicActive && consentedRecipients.length > 0
+              ? "자동 채움 대상 없음"
+              : "알림톡 수신 동의 대상 없음"
             : `${eligibleRecipients.length}명에게 ${scheduledAt ? "예약 발송" : "발송"}`;
 
   const changeChannel = (channel: ChannelMode) => {
