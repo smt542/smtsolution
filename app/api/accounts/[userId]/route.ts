@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isValidPassword, PASSWORD_RULE_MESSAGE } from "@/lib/auth/passwordPolicy";
-import { setMustChangePassword } from "@/lib/auth/passwordState";
+import { isValidPasswordFor, passwordRuleMessage } from "@/lib/auth/passwordPolicy";
+import { passwordRuleForUser, setMustChangePassword } from "@/lib/auth/passwordState";
 import { toAuthPassword } from "@/lib/auth/password";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ userId: string }> }) {
@@ -39,10 +39,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ userId
     return NextResponse.json({ error: "마스터 계정은 마스터만 변경할 수 있습니다." }, { status: 403 });
 
   const { password } = await req.json().catch(() => ({}));
-  if (!isValidPassword(password))
-    return NextResponse.json({ error: PASSWORD_RULE_MESSAGE }, { status: 422 });
-
   const admin = createAdminClient();
+  // 사무실 관리자(manager_staff) 계정은 숫자 4자리 비밀번호.
+  const passwordRule = await passwordRuleForUser(admin, userId);
+  if (!isValidPasswordFor(passwordRule, password))
+    return NextResponse.json({ error: passwordRuleMessage(passwordRule) }, { status: 422 });
+
   const { error } = await admin.auth.admin.updateUserById(userId, { password: toAuthPassword(password) });
   if (error) {
     console.error("[accounts] updateUserById failed", error.message);

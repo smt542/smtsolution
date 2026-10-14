@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loginEmail } from "@/lib/auth/email";
-import { isValidPassword, PASSWORD_RULE_MESSAGE } from "@/lib/auth/passwordPolicy";
+import { isValidOfficePin, OFFICE_PIN_RULE_MESSAGE } from "@/lib/auth/passwordPolicy";
 import { toAuthPassword } from "@/lib/auth/password";
 
 
@@ -55,9 +55,9 @@ export async function POST(req: Request) {
     || !owner?.password
   )
     return NextResponse.json({ error: "필수 항목이 누락되었습니다." }, { status: 422 });
-  // 관리자 초기 비밀번호 = 형식 자유·6자 이상. 임시 비밀번호라 첫 로그인 때 변경을 강제한다(provision_member).
-  if (!isValidPassword(owner.password))
-    return NextResponse.json({ error: PASSWORD_RULE_MESSAGE }, { status: 422 });
+  // 관리자(org_owner·manager_staff) 초기 비밀번호 = 숫자 4자리. 임시 비밀번호라 첫 로그인 때 변경을 강제한다(provision_member).
+  if (!isValidOfficePin(owner.password))
+    return NextResponse.json({ error: OFFICE_PIN_RULE_MESSAGE }, { status: 422 });
 
   const contractPaths: string[] = Array.isArray(contractFilePaths)
     ? contractFilePaths.filter((path: unknown): path is string => typeof path === "string" && path.trim() !== "")

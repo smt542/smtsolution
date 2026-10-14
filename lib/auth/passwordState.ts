@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isOfficeManagerAccount, type PasswordRule } from "@/lib/auth/passwordPolicy";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
@@ -24,4 +25,22 @@ export async function setMustChangePassword(
     return false;
   }
   return true;
+}
+
+/**
+ * 계정에 적용할 비밀번호 규칙. 소속(org_members) 중 사무실 관리자(manager_staff, platform_admin 제외)가
+ * 하나라도 있으면 숫자 4자리, 아니면 기본 규칙. 조회에 실패하면 기본 규칙으로 둔다.
+ */
+export async function passwordRuleForUser(admin: AdminClient, userId: string): Promise<PasswordRule> {
+  const { data, error } = await admin
+    .from("org_members")
+    .select("role, staff_type")
+    .eq("user_id", userId);
+  if (error) {
+    console.error("[passwordRuleForUser] org_members lookup failed", error.message);
+    return "default";
+  }
+  return (data ?? []).some((row) => isOfficeManagerAccount({ role: row.role, staffType: row.staff_type }))
+    ? "officePin"
+    : "default";
 }

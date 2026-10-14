@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { optionalTrimmedString } from "./common";
+import { passwordRuleFor } from "@/lib/auth/passwordPolicy";
 import { checkPasswordConfirm } from "./password";
 
 export const STAFF_TYPES = ["manager_staff", "field_staff", "support_staff", "tenant"] as const;
@@ -22,6 +23,8 @@ function passwordFields(required: boolean, confirmRequiredMessage: string) {
   return z.object({
     password: z.string(),
     passwordConfirm: z.string(),
+    // 사무실 관리자(manager_staff) 계정은 숫자 4자리 — 유형에 따라 규칙을 고른다.
+    staffType: z.enum(STAFF_TYPES),
   }).superRefine((values, ctx) => {
     checkPasswordConfirm(ctx, {
       password: values.password,
@@ -30,6 +33,7 @@ function passwordFields(required: boolean, confirmRequiredMessage: string) {
       confirmPath: "passwordConfirm",
       required,
       confirmRequiredMessage,
+      rule: passwordRuleFor({ staffType: values.staffType }),
     });
   });
 }

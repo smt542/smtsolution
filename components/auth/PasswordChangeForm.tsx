@@ -1,18 +1,18 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, Input } from "@/components/common";
 import { FormField } from "@/components/common/FormField";
 import { setSubmissionError } from "@/components/forms/formErrors";
 import {
-  passwordChangeSchema,
+  passwordChangeSchemaFor,
   type PasswordChangeInput,
   type PasswordChangeValues,
 } from "@/components/forms/schema/password";
-import { useChangeMyPassword } from "@/hooks/reactquery/auth";
-import { PASSWORD_MAX_LENGTH, PASSWORD_RULE_TEXT } from "@/lib/auth/passwordPolicy";
+import { useChangeMyPassword, useMe } from "@/hooks/reactquery/auth";
+import { passwordMaxLength, passwordRuleFor, passwordRuleText } from "@/lib/auth/passwordPolicy";
 
 const FIELD_CLASS = {
   // 로그인 화면 입력칸(.h-12)과 같은 규격
@@ -64,13 +64,27 @@ export function PasswordChangeForm({
   const passwordLabel = labels?.password ?? "새 비밀번호";
   const confirmLabel = labels?.confirm ?? "새 비밀번호 확인";
   const change = useChangeMyPassword();
+  // 사무실 관리자(manager_staff) 계정은 숫자 4자리 — 서버(/api/auth/change-password)도 같은 규칙으로 검사한다.
+  const { data: me } = useMe();
+  const rule = passwordRuleFor({ role: me?.role, staffType: me?.staffType });
+  const ruleText = passwordRuleText(rule);
+  const ruleRef = useRef(rule);
+  useEffect(() => {
+    ruleRef.current = rule;
+  }, [rule]);
   const [show, setShow] = useState(false);
   const { register, handleSubmit, setError, getValues, trigger, formState: { errors, isSubmitting, isValid } } = useForm<
     PasswordChangeInput,
     unknown,
     PasswordChangeValues
   >({
-    resolver: zodResolver(passwordChangeSchema),
+    // 내 계정 정보(useMe)가 늦게 와도 그때의 규칙으로 검사한다.
+    resolver: ((values, context, options) =>
+      zodResolver(passwordChangeSchemaFor(ruleRef.current))(values, context, options)) as Resolver<
+      PasswordChangeInput,
+      unknown,
+      PasswordChangeValues
+    >,
     defaultValues: { newPassword: "", confirmPassword: "" },
     // 입력할 때마다 검증 — 불일치는 바로 붉은 글씨로, 규칙·일치를 모두 만족해야 제출 버튼이 켜진다.
     mode: "onChange",
@@ -99,7 +113,8 @@ export function PasswordChangeForm({
         id={name}
         type={show ? "text" : "password"}
         autoComplete="new-password"
-        maxLength={PASSWORD_MAX_LENGTH}
+        maxLength={passwordMaxLength(rule)}
+        inputMode={rule === "officePin" ? "numeric" : undefined}
         placeholder={placeholder}
         className={`${field} w-full pl-3.5 ${withToggle ? "pr-12" : "pr-3.5"}`}
         aria-invalid={Boolean(errors[name])}
@@ -121,13 +136,15 @@ export function PasswordChangeForm({
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-3.5" noValidate>
       <FormField htmlFor="newPassword" label={passwordLabel} error={errors.newPassword?.message} className="flex flex-col gap-[7px]">
-        {passwordInput("newPassword", `${PASSWORD_RULE_TEXT} 입력해 주세요`, true)}
+        {passwordInput("newPassword", `${ruleText} 입력해 주세요`, true)}
       </FormField>
       <FormField htmlFor="confirmPassword" label={confirmLabel} error={errors.confirmPassword?.message} className="flex flex-col gap-[7px]">
         {passwordInput("confirmPassword", `${passwordLabel === "새 비밀번호" ? "새 비밀번호" : "변경할 비밀번호"}를 한 번 더 입력해 주세요`, false)}
       </FormField>
       <p className="text-[12.5px] font-medium leading-[1.6] text-t3">
-        영문·숫자·특수문자 등 자유롭게 {PASSWORD_RULE_TEXT}로 정해 주세요.
+        {rule === "officePin"
+          ? `비밀번호는 ${ruleText}로 정해 주세요.`
+          : `영문·숫자·특수문자 등 자유롭게 ${ruleText}로 정해 주세요.`}
       </p>
       {errors.root?.server?.message && (
         <div role="alert" className="rounded-[11px] bg-red-t px-3 py-2.5 text-sm font-bold text-red">{errors.root.server.message}</div>

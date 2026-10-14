@@ -46,6 +46,8 @@ export function ManagementFeeWorkspace() {
   const [historyUnit, setHistoryUnit] = useState<{ id: number; no: string } | null>(null);
   const [dialog, setDialog] = useState<ManagementFeeDialogKind | null>(null);
   const [carriedBuildingCount, setCarriedBuildingCount] = useState(0);
+  // 공과금 계산 때 부과액이 빠진 공과금(수도·전기·가스) 이름 — 안내 모달 문구에 쓴다.
+  const [missingUtilityLabels, setMissingUtilityLabels] = useState<string[]>([]);
 
   const billingQuery = useBilling(buildingId, period);
   const saveCharges = useSaveBillingCharges();
@@ -69,25 +71,6 @@ export function ManagementFeeWorkspace() {
   const selectedBuilding = buildings.find((building) => building.id === buildingId) ?? null;
   const { units, columns } = useMemo(() => pivotBillingRows(billingQuery.data ?? []), [billingQuery.data]);
   const unitsById = useMemo(() => new Map(units.map((unit) => [unit.unitId, unit])), [units]);
-  const zeroAmountSummary = useMemo(() => {
-    let unitCount = 0;
-    let itemCount = 0;
-
-    units.forEach((unit) => {
-      if (unit.isVacant) return;
-      let unitItemCount = 0;
-      columns.forEach((column) => {
-        const charge = chargeDrafts[unit.unitId]?.[column.feeItemId]
-          ?? unit.charges[column.feeItemId]
-          ?? { charged: true, amount: 0 };
-        if (charge.charged && charge.amount === 0) unitItemCount += 1;
-      });
-      if (unitItemCount > 0) unitCount += 1;
-      itemCount += unitItemCount;
-    });
-
-    return { unitCount, itemCount };
-  }, [chargeDrafts, columns, units]);
   const utilityRows = useMemo(() => ({
     water: waterRows.data ?? [],
     electricity: electricityRows.data ?? [],
@@ -195,30 +178,40 @@ export function ManagementFeeWorkspace() {
     }
   };
 
-  const requestSaveAndConfirm = async () => {
-    // 공과금 확정 여부로 저장을 막지 않는다(정책: 확정 누락 안내는 '공과금 계산' 때만).
-    // 직접 입력한 전기·수도·가스 금액도 그대로 저장하고, 0원 부과 항목은 아래 경고로 확인받는다.
-    if (zeroAmountSummary.itemCount > 0) {
-      setDialog("zero-amount");
-      return;
-    }
-    await saveAndConfirm();
-  };
+  // 공과금 확정 여부·0원 부과 항목으로 저장을 막거나 확인받지 않는다(2026-10-14 결정: 0원 경고 모달 제거).
+  // 공과금 부과액 누락 안내는 '공과금 계산' 때만 한다.
+  const requestSaveAndConfirm = saveAndConfirm;
 
   // 세대 부과액(수동 우선, 없으면 자동 계산). 공과금 관리에서 아직 입력하지 않은 세대는 null.
   const utilityCharge = (row: { manualCharge: number | null; automaticCharge: number | null }) =>
     row.manualCharge ?? row.automaticCharge;
 
-  // 정책 3.6 공과금 계산(2026-10-10 변경): 별도 확정 없이, 공과금 관리에 이번 달 부과액이 있는
-  // 공과금만 세대별 관리비에 반영한다. 셋 다 값이 없을 때만 안내 모달을 띄운다.
+  // 정책 3.6 공과금 계산(2026-10-14 변경): 공과금 관리의 이번 달 부과액을 세대별 관리비에 반영한다.
+  // 대상 공과금(고객번호가 등록됐거나 부과액이 하나라도 입력된 공과금) 중 입주 세대의 부과액이
+  // 하나라도 비어 있으면 반영하지 않고 「공과금 부과액이 아직 없어요」 모달로 누락된 공과금을 알린다.
   const calculateUtilities = () => {
     if (!buildingId) return;
-    const readyTypes = (["water", "electricity", "gas"] as const).filter((type) =>
-      utilityRows[type].some((row) => utilityCharge(row) != null));
-    if (readyTypes.length === 0) {
+    const utilityTypes = ["water", "electricity", "gas"] as const;
+    const utilityLabels = { water: "수도", electricity: "전기", gas: "가스" } as const;
+    const customerNumberKinds = { water: "water", electricity: "elec", gas: "gas" } as const;
+    const registeredKinds = new Set((customerNumbersQuery.data ?? []).map((customer) => customer.kind));
+    const targetTypes = utilityTypes.filter((type) =>
+      registeredKinds.has(customerNumberKinds[type])
+      || utilityRows[type].some((row) => utilityCharge(row) != null));
+    const isOccupiedRow = (row: (typeof utilityRows)["water"][number]) =>
+      row.occupancyId != null
+      && row.occupancyStatus !== "vacant"
+      && !(unitsById.get(row.unitId)?.isVacant ?? false);
+    const missingTypes = targetTypes.length === 0
+      ? [...utilityTypes]
+      : targetTypes.filter((type) =>
+        utilityRows[type].some((row) => isOccupiedRow(row) && utilityCharge(row) == null));
+    if (missingTypes.length > 0) {
+      setMissingUtilityLabels(missingTypes.map((type) => utilityLabels[type]));
       setDialog("utility-missing");
       return;
     }
+    const readyTypes = targetTypes;
     // 공과금 항목은 필수 항목(수도료·전기·가스)이다. 같은 이름의 항목이 없으면 그 공과금은 반영하지 않는다.
     const columnByType = {
       water: columns.find((column) => column.isRequired && column.name === "수도료"),
@@ -270,15 +263,6 @@ export function ManagementFeeWorkspace() {
     }
     if (dialog === "important-building") {
       setDialog("carry-building");
-      return;
-    }
-    if (dialog === "zero-amount") {
-      try {
-        await saveAndConfirm();
-        setDialog(null);
-      } catch {
-        // saveAndConfirm에서 오류를 안내하고, 재시도를 위해 경고 모달을 유지한다.
-      }
       return;
     }
     const buildingIds = dialog === "carry-all"
@@ -455,9 +439,8 @@ export function ManagementFeeWorkspace() {
         kind={dialog}
         buildingName={selectedBuilding?.name ?? "선택한 건물"}
         period={period}
-        pending={dialog === "zero-amount" ? isManagementFeeMutationPending : copyPrevious.isPending}
-        zeroAmountUnitCount={zeroAmountSummary.unitCount}
-        zeroAmountItemCount={zeroAmountSummary.itemCount}
+        pending={copyPrevious.isPending}
+        missingUtilityLabels={missingUtilityLabels}
         carriedBuildingCount={carriedBuildingCount}
         onClose={() => setDialog(null)}
         onConfirm={() => void confirmDialog()}

@@ -3,8 +3,8 @@ import { createClient as createStatelessClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { toAuthPassword } from "@/lib/auth/password";
-import { isValidPassword, PASSWORD_RULE_MESSAGE } from "@/lib/auth/passwordPolicy";
-import { setMustChangePassword } from "@/lib/auth/passwordState";
+import { isValidPasswordFor, passwordRuleMessage } from "@/lib/auth/passwordPolicy";
+import { passwordRuleForUser, setMustChangePassword } from "@/lib/auth/passwordState";
 
 /** 지금 비밀번호와 같은지 — 쿠키를 건드리지 않는 별도 클라이언트로 로그인을 시도해 본다. */
 async function isCurrentPassword(email: string, password: string): Promise<boolean> {
@@ -32,11 +32,13 @@ export async function POST(req: Request) {
 
   const body = await req.json().catch(() => null);
   const newPassword = body?.newPassword;
-  if (!isValidPassword(newPassword)) {
-    return NextResponse.json({ error: PASSWORD_RULE_MESSAGE }, { status: 422 });
+  const admin = createAdminClient();
+  // 사무실 관리자 계정은 숫자 4자리, 그 외 계정은 기본 규칙.
+  const rule = await passwordRuleForUser(admin, user.id);
+  if (!isValidPasswordFor(rule, newPassword)) {
+    return NextResponse.json({ error: passwordRuleMessage(rule) }, { status: 422 });
   }
 
-  const admin = createAdminClient();
   const { data: profile } = await admin
     .from("profiles")
     .select("must_change_password")

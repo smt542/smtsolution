@@ -1,5 +1,5 @@
 "use client";
-import { PASSWORD_MAX_LENGTH, PASSWORD_RULE_TEXT } from "@/lib/auth/passwordPolicy";
+import { passwordMaxLength, passwordRuleFor, passwordRuleText } from "@/lib/auth/passwordPolicy";
 
 import React from "react";
 import { Controller, useForm, useWatch, type Resolver } from "react-hook-form";
@@ -143,6 +143,10 @@ export function AccountFormModal({
   }, [makeDefaults, open, reset]);
 
   const selectedMaster = useWatch({ control, name: "isMaster" });
+  // 사무실 관리자(manager_staff) 계정은 숫자 4자리 비밀번호.
+  const selectedStaffType = useWatch({ control, name: "staffType" });
+  const passwordRule = passwordRuleFor({ staffType: selectedStaffType });
+  const passwordRuleLabel = passwordRuleText(passwordRule);
   // 확인 칸을 채운 뒤부터는 입력할 때마다 일치 여부를 다시 본다(저장 전에도 붉은 안내).
   const revalidatePassword = () => {
     if (getValues("passwordConfirm")) void trigger(["password", "passwordConfirm"]);
@@ -306,11 +310,11 @@ export function AccountFormModal({
                   id="password"
                   aria-label={isEdit ? "비밀번호 변경" : "비밀번호"}
                   type="text"
-                  maxLength={PASSWORD_MAX_LENGTH}
+                  maxLength={passwordMaxLength(passwordRule)}
                   autoComplete="new-password"
                   required={!isEdit}
                   {...passwordField}
-                  placeholder={isEdit ? `변경할 때만 입력 (${PASSWORD_RULE_TEXT})` : `임시 비밀번호 (${PASSWORD_RULE_TEXT})`}
+                  placeholder={isEdit ? `변경할 때만 입력 (${passwordRuleLabel})` : `임시 비밀번호 (${passwordRuleLabel})`}
                   className={`h-[40px] w-full rounded-[11px]! border border-line bg-surface px-[12px] text-[14px] font-medium leading-[normal] text-t1 outline-none placeholder:text-[#757575]! focus:border-brand focus:shadow-[0_0_0_3px_var(--color-brand-tint)] ${errors.password ? "border-danger" : ""}`}
                 />
               </FormField>
@@ -325,7 +329,7 @@ export function AccountFormModal({
                   id="passwordConfirm"
                   aria-label={isEdit ? "비밀번호 변경 확인" : "비밀번호 확인"}
                   type="text"
-                  maxLength={PASSWORD_MAX_LENGTH}
+                  maxLength={passwordMaxLength(passwordRule)}
                   autoComplete="new-password"
                   required={!isEdit}
                   {...passwordConfirmField}

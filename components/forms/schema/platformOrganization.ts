@@ -17,7 +17,7 @@ const contractFields = {
   operatingHours: nullableTrimmedString(100, "운영 시간은 100자 이하로 입력해 주세요"),
 };
 
-// 관리자 비밀번호 = 형식 자유·6자 이상(2026-10-10). 발급 비밀번호는 임시라 첫 로그인 때 변경을 강제한다.
+// 관리자(사무실 관리자 마스터) 비밀번호 = 숫자 4자리(2026-10-13). 발급 비밀번호는 임시라 첫 로그인 때 변경을 강제한다.
 
 function validateContractDates(
   values: { contractStartDate: string; contractEndDate: string },
@@ -50,6 +50,7 @@ function ownerPasswordFields(required: boolean, confirmRequiredMessage: string) 
       confirmPath: "ownerPasswordConfirm",
       required,
       confirmRequiredMessage,
+      rule: "officePin",
     });
   });
 }

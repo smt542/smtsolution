@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isValidPassword, PASSWORD_RULE_MESSAGE } from "@/lib/auth/passwordPolicy";
+import { isValidPasswordFor, passwordRuleFor, passwordRuleMessage } from "@/lib/auth/passwordPolicy";
 import { loginEmail } from "@/lib/auth/email";
 import { toAuthPassword } from "@/lib/auth/password";
 
@@ -35,8 +35,10 @@ export async function POST(req: Request) {
   // 본사(platform_admin) 등 허용 외 역할은 createUser 전에 차단(고아 Auth 계정 방지). DB도 이중 검증.
   if (role !== undefined && role !== "org_owner" && role !== "staff" && role !== "field")
     return NextResponse.json({ error: "허용되지 않는 역할입니다." }, { status: 422 });
-  if (!isValidPassword(password))
-    return NextResponse.json({ error: PASSWORD_RULE_MESSAGE }, { status: 422 });
+  // 사무실 관리자(manager_staff) 계정은 숫자 4자리 비밀번호.
+  const passwordRule = passwordRuleFor({ role: role ?? "staff", staffType });
+  if (!isValidPasswordFor(passwordRule, password))
+    return NextResponse.json({ error: passwordRuleMessage(passwordRule) }, { status: 422 });
 
   // 4) 회사코드(slug)
   const { data: org } = await supabase.from("organizations").select("slug").eq("id", ctx.org_id).single();

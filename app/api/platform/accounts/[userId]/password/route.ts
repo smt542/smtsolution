@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isValidPassword, PASSWORD_RULE_MESSAGE } from "@/lib/auth/passwordPolicy";
-import { setMustChangePassword } from "@/lib/auth/passwordState";
+import { isValidPasswordFor, passwordRuleMessage } from "@/lib/auth/passwordPolicy";
+import { passwordRuleForUser, setMustChangePassword } from "@/lib/auth/passwordState";
 import { toAuthPassword } from "@/lib/auth/password";
 
 export async function PATCH(
@@ -23,9 +23,6 @@ export async function PATCH(
   }
 
   const { password } = await req.json().catch(() => ({}));
-  if (!isValidPassword(password)) {
-    return NextResponse.json({ error: PASSWORD_RULE_MESSAGE }, { status: 422 });
-  }
 
   const admin = createAdminClient();
   const { data: targetMembers } = await admin
@@ -36,6 +33,11 @@ export async function PATCH(
   const targetOrgId = targetMembers?.[0]?.org_id ?? null;
   if (!targetMembers?.length) {
     return NextResponse.json({ error: "대상 계정을 찾을 수 없습니다." }, { status: 404 });
+  }
+  // 사무실 관리자(관리회사 관리자 등 manager_staff) 계정은 숫자 4자리, 본사 계정은 기본 규칙.
+  const passwordRule = await passwordRuleForUser(admin, userId);
+  if (!isValidPasswordFor(passwordRule, password)) {
+    return NextResponse.json({ error: passwordRuleMessage(passwordRule) }, { status: 422 });
   }
 
   // 기존 4자리 PIN 계정과 같은 변환 규칙을 쓴다(로그인 검증도 toAuthPassword).
