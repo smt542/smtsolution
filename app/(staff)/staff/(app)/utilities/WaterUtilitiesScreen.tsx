@@ -79,8 +79,7 @@ function initialDraft(row: UtilityUnitRow, fixed: FixedValueEntry[] | undefined,
     previousReading: row.previousReading === null ? "" : String(row.previousReading),
     currentReading: row.currentReading === null ? "" : String(row.currentReading),
     usage: row.usage === null ? "" : String(row.usage),
-    // 수도는 전월이 비어 있으면 0으로 간주해 량을 계산하므로 직접 입력 판정도 0 기준으로 한다.
-    usageEdited: usageEditedForRow(row.previousReading ?? 0, row.currentReading, row.usage),
+    usageEdited: usageEditedForRow(row.previousReading, row.currentReading, row.usage),
     note: row.note ?? "",
     ...initialLockDraft(fixed, period, row.manualCharge),
   };

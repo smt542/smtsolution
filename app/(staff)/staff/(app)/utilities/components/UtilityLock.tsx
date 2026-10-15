@@ -31,15 +31,15 @@ export function round3(value: number): number {
   return Number(value.toFixed(3));
 }
 
-/** 전월·금월 지침으로 계산한 량. 가스는 음수가 되지 않도록 보정한다. */
+/** 전월·금월 지침으로 계산한 량(금월 − 전월). 전월이 비어 있으면 0으로 간주한다. 가스는 음수가 되지 않도록 보정한다. */
 export function usageFromReadings(
   previousReading: string,
   currentReading: string,
   clampNonNegative = false,
 ): number | null {
-  const previous = parseDraftNumber(previousReading);
   const current = parseDraftNumber(currentReading);
-  if (previous === null || current === null) return null;
+  if (current === null) return null;
+  const previous = parseDraftNumber(previousReading) ?? 0;
   const usage = current - previous;
   return round3(clampNonNegative ? Math.max(0, usage) : usage);
 }
@@ -64,8 +64,9 @@ export function usageEditedForRow(
   usage: number | null,
 ): boolean {
   if (usage === null) return false;
-  if (previousReading === null || currentReading === null) return true;
-  return round3(currentReading - previousReading) !== round3(usage);
+  if (currentReading === null) return true;
+  // 전월이 비어 있으면 0으로 간주해 계산한 량과 비교한다(서버도 같다).
+  return round3(currentReading - (previousReading ?? 0)) !== round3(usage);
 }
 
 export function groupFixedValues(entries: FixedValueEntry[]): Map<number, FixedValueEntry[]> {

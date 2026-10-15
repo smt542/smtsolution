@@ -44,7 +44,9 @@ export function BillingTable({
   onRowClick,
   onNoteChange,
 }: BillingTableProps) {
-  const trios = useMemo(() => chunkTrios(columns), [columns]);
+  // 필수 공과금 항목(전기·수도료·가스)은 화면에서 숨긴다. 금액은 수도/전기/가스금액 칸으로 보고,
+  // 항목 데이터는 그대로 두어 총 관리비 합산·공과금 계산·저장에는 계속 포함된다.
+  const trios = useMemo(() => chunkTrios(columns.filter((column) => !column.isRequired)), [columns]);
 
   return (
     <div className="h-full overflow-auto">

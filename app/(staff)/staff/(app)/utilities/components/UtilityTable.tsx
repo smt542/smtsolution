@@ -99,20 +99,11 @@ function ReadingValue({ value }: { value: number | null }) {
 }
 
 // 고정한 량은 지침과 무관하게 그 값으로, 직접 넣은 량은 지침 차이보다 우선해 부과된다(서버 save_meter_readings 도 같다).
-/** 수도 량 = 금월 − 전월. 전월 지침이 비어 있으면 0으로 간주한다(금월이 없으면 계산하지 않는다). */
-export function waterUsageFromReadings(previousReading: string, currentReading: string): number | null {
-  return usageFromReadings(previousReading.trim() === "" ? "0" : previousReading, currentReading);
-}
-
-export function waterUsageTextFromReadings(previousReading: string, currentReading: string): string {
-  return usageTextFromReadings(previousReading.trim() === "" ? "0" : previousReading, currentReading);
-}
-
 /** 초안 기준 부과 량(고정 > 직접 입력 > 금월 − 전월). */
 export function usageFor(draft: UtilityDraft): number | null {
   if (draft.usageLocked) return parseNumber(draft.lockedUsage);
   if (draft.usageEdited) return parseNumber(draft.usage);
-  return waterUsageFromReadings(draft.previousReading, draft.currentReading);
+  return usageFromReadings(draft.previousReading, draft.currentReading);
 }
 
 function isVacant(row: UtilityUnitRow): boolean {
@@ -149,7 +140,7 @@ function getUtilityRowState(
   const vacant = isVacant(row);
   const movingOut = row.occupancyStatus === "moving_out";
   const recent = !vacant && isNewOccupancy(row.moveInDate, referenceDate);
-  const computedUsage = waterUsageFromReadings(draft.previousReading, draft.currentReading);
+  const computedUsage = usageFromReadings(draft.previousReading, draft.currentReading);
   const usage = usageFor(draft);
   const previousUsage = row.previousUsage ?? null;
   const change = usage === null || previousUsage === null ? null : usage - previousUsage;
@@ -272,7 +263,7 @@ export function UtilityTable({
       align: "right",
       cellClassName: "tabular-nums",
       stopRowClick: true,
-      render: (item) => editing ? <ReadingInput label={`${item.row.unitNo} 전월 지침값`} value={item.draft.previousReading} disabled={item.state.vacant} step="0.01" onChange={(value) => onDraftChange(item.row.unitId, { previousReading: value, ...(!item.draft.usageEdited ? { usage: waterUsageTextFromReadings(value, item.draft.currentReading) } : {}) })} /> : <span className="font-medium"><ReadingValue value={item.row.previousReading} /></span>,
+      render: (item) => editing ? <ReadingInput label={`${item.row.unitNo} 전월 지침값`} value={item.draft.previousReading} disabled={item.state.vacant} step="0.01" onChange={(value) => onDraftChange(item.row.unitId, { previousReading: value, ...(!item.draft.usageEdited ? { usage: usageTextFromReadings(value, item.draft.currentReading) } : {}) })} /> : <span className="font-medium"><ReadingValue value={item.row.previousReading} /></span>,
     },
     {
       key: "currentReading",
@@ -281,7 +272,7 @@ export function UtilityTable({
       align: "right",
       cellClassName: "tabular-nums",
       stopRowClick: true,
-      render: (item) => editing ? <ReadingInput label={`${item.row.unitNo} 금월 지침값`} value={item.draft.currentReading} disabled={item.state.vacant} step="0.01" onChange={(value) => onDraftChange(item.row.unitId, { currentReading: value, ...(!item.draft.usageEdited ? { usage: waterUsageTextFromReadings(item.draft.previousReading, value) } : {}) })} /> : <span className="font-bold"><ReadingValue value={item.row.currentReading} /></span>,
+      render: (item) => editing ? <ReadingInput label={`${item.row.unitNo} 금월 지침값`} value={item.draft.currentReading} disabled={item.state.vacant} step="0.01" onChange={(value) => onDraftChange(item.row.unitId, { currentReading: value, ...(!item.draft.usageEdited ? { usage: usageTextFromReadings(item.draft.previousReading, value) } : {}) })} /> : <span className="font-bold"><ReadingValue value={item.row.currentReading} /></span>,
     },
     {
       key: "usage",
@@ -311,7 +302,7 @@ export function UtilityTable({
                 ...usageLockPatch(item.draft.usageLocked, item.state.usage),
                 ...(item.draft.usageLocked ? {
                   usageEdited: false,
-                  usage: waterUsageTextFromReadings(item.draft.previousReading, item.draft.currentReading),
+                  usage: usageTextFromReadings(item.draft.previousReading, item.draft.currentReading),
                 } : {}),
               })}
             />
