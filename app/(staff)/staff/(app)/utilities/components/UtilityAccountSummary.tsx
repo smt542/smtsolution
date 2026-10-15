@@ -15,6 +15,16 @@ interface UtilityAccountSummaryProps {
   /** 고객번호별 부과액 입력 초안(customerNo → 값). */
   chargeDrafts?: Record<string, string>;
   onChargeDraftChange?: (customerNo: string, value: string) => void;
+  /** 수정 중 초안으로 다시 계산한 고객번호별 량·수동입력·단가(customerNo → 값). 없으면 저장값. */
+  preview?: Map<string, UtilityAccountPreview>;
+}
+
+export interface UtilityAccountPreview {
+  usage: number;
+  /** 수동입력 합계. 수동입력 호실이 없으면 null. */
+  manual: number | null;
+  /** 배분 단가. 고객번호 부과액이 없거나 계산할 수 없으면 null(저장된 단가 유지). */
+  rate: number | null;
 }
 
 const inputClass = "h-[26px] rounded-[7px] border border-teal bg-white px-[7px] text-[11.5px] font-bold text-t1 outline-none focus:ring-1 focus:ring-teal/20";
@@ -73,8 +83,19 @@ export function UtilityAccountSummary({
   customerBills,
   chargeDrafts,
   onChargeDraftChange,
+  preview,
 }: UtilityAccountSummaryProps) {
-  const accounts = groupByCustomer(rows, (customerBills ?? []).map((bill) => bill.customerNo));
+  const accounts = groupByCustomer(rows, (customerBills ?? []).map((bill) => bill.customerNo)).map((account) => {
+    const live = preview?.get(account.customerNumber);
+    if (!live) return account;
+    return {
+      ...account,
+      usage: live.usage,
+      manual: live.manual ?? 0,
+      manualText: display(live.manual ?? 0, live.manual !== null),
+      unitPrice: live.rate === null ? account.unitPrice : Math.round(live.rate * 10000) / 10000,
+    };
+  });
   const billFor = (customerNumber: string) => customerBills?.find((bill) => bill.customerNo === customerNumber);
   /** 청구총액을 입력했으면 그 총액(호실은 서버가 배분), 아니면 기존 호실 합계. */
   const chargeOf = (row: AccountRow) => billFor(row.customerNumber)?.amount ?? (row.manual || row.charge);

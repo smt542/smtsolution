@@ -21,3 +21,18 @@ export function groupRowsByRegisteredCustomer<T extends { customerNumber: string
   });
   return groups;
 }
+
+/**
+ * 호실 → 라인 번호. 라인은 고객번호 집계표의 L(등록 고객번호 정렬순 1부터)과 같아서
+ * 같은 고객번호에 묶인 호실은 같은 라인 번호를 갖는다. 어느 등록 번호에도 묶이지 않은 호실은 빠진다.
+ */
+export function lineNumbersByUnit<T extends { unitId: number; customerNumber: string | null }>(
+  rows: T[],
+  registered: string[],
+): Map<number, number> {
+  const lines = new Map<number, number>();
+  [...groupRowsByRegisteredCustomer(rows, registered).values()].forEach((group, index) => {
+    group.forEach((row) => lines.set(row.unitId, index + 1));
+  });
+  return lines;
+}

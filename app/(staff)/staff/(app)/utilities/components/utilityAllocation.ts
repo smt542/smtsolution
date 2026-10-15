@@ -45,3 +45,96 @@ export function customerBillChanges(
     return [{ customer_number_id: customerNumberId, amount: rounded }];
   });
 }
+
+export interface UtilityAllocationPreview {
+  status: "ok" | "over_pinned" | "no_pool_usage" | "no_input";
+  /** gross-up 단가(원/량). 계산 불가면 null. */
+  rate: number | null;
+  /** 입력 순서별 호실 부과액. 계산 불가면 빈 배열. */
+  fees: number[];
+}
+
+/** Postgres round(numeric) — 0.5 는 0에서 먼 쪽으로. */
+function pgRound(value: number): number {
+  return Math.sign(value) * Math.round(Math.abs(value));
+}
+
+/**
+ * 고객번호 부과액을 호실에 배분한다(정책 2.1·2.2, 서버 utility_allocation_compute 와 같은 계산).
+ *   단가        = (잔여부과액 + 잔여호실 할인합계) ÷ 잔여량   (할인은 호실 gross 를 넘지 않게 수렴)
+ *   호실 부과액 = max(0, 량 × 단가 − 그 호실 할인)          (수동입력 호실은 그 금액 고정)
+ *   검산        : Σ 호실 부과액 = 고객번호 부과액           (차액은 비수동 호실에 호수 순으로 1원씩 흡수)
+ * 입력 배열은 호수 순(잔액 흡수 순서)이어야 한다.
+ */
+export function computeUtilityAllocation(
+  total: number | null,
+  usage: (number | null)[],
+  discount: number[],
+  manual: (number | null)[],
+): UtilityAllocationPreview {
+  const n = usage.length;
+  if (total === null || n === 0) return { status: "no_input", rate: null, fees: [] };
+
+  let pinned = 0;
+  let pooledUsage = 0;
+  let pooledDiscount = 0;
+  const pool: number[] = [];
+  for (let i = 0; i < n; i += 1) {
+    const pin = manual[i];
+    if (pin !== null && pin !== undefined) {
+      pinned += pin;
+    } else {
+      pooledUsage += usage[i] ?? 0;
+      pooledDiscount += discount[i] ?? 0;
+      pool.push(i);
+    }
+  }
+  if (pooledUsage <= 0) return { status: "no_pool_usage", rate: null, fees: [] };
+
+  const rest = total - pinned;
+  let rate = (rest + pooledDiscount) / pooledUsage;
+  for (let k = 0; k < 24; k += 1) {
+    const capped = pool.reduce((sum, i) => sum + Math.min(discount[i] ?? 0, pgRound((usage[i] ?? 0) * rate)), 0);
+    if (capped === pooledDiscount) break;
+    pooledDiscount = capped;
+    rate = (rest + pooledDiscount) / pooledUsage;
+  }
+
+  let status: UtilityAllocationPreview["status"] = "ok";
+  if (rate < 0) {
+    rate = 0;
+    status = "over_pinned";
+  }
+
+  const fees = usage.map((value, i) => {
+    const pin = manual[i];
+    if (pin !== null && pin !== undefined) return Math.trunc(pin);
+    const gross = pgRound((value ?? 0) * rate);
+    return Math.max(0, gross - Math.min(discount[i] ?? 0, gross));
+  });
+
+  let diff = Math.round(total - fees.reduce((sum, fee) => sum + fee, 0));
+  if (diff > 0) {
+    const base = Math.trunc(diff / pool.length);
+    if (base > 0) {
+      pool.forEach((i) => { fees[i] += base; });
+      diff -= base * pool.length;
+    }
+    for (let k = 0; diff > 0; k += 1) {
+      fees[pool[k]] += 1;
+      diff -= 1;
+    }
+  } else if (diff < 0) {
+    for (let guard = 0; diff < 0 && guard < 2000; guard += 1) {
+      const positive = pool.filter((i) => fees[i] > 0);
+      if (positive.length === 0) break;
+      const take = Math.min(-diff, positive.length);
+      for (let k = 0; k < take; k += 1) {
+        fees[positive[k]] -= 1;
+        diff += 1;
+      }
+    }
+  }
+
+  return { status, rate, fees };
+}

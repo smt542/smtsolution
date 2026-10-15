@@ -37,9 +37,11 @@ import { UtilityAccountSummary } from "./components/UtilityAccountSummary";
 import { defaultBillingDates } from "./components/BillingPeriodBar";
 import { UtilityPeriodBarPlaceholder } from "./components/UtilityPeriodBarPlaceholder";
 import { UtilityWorkspaceHeader } from "./components/UtilityWorkspaceHeader";
-import { UtilityTable, type UtilityDraft } from "./components/UtilityTable";
+import { UtilityTable, usageFor, type UtilityDraft } from "./components/UtilityTable";
 import { UtilityWorkspaceBar } from "./components/UtilityWorkspaceBar";
-import { customerBillChanges, notifyAllocationMismatch } from "./components/utilityAllocation";
+import { computeUtilityAllocation, customerBillChanges, notifyAllocationMismatch } from "./components/utilityAllocation";
+import { groupRowsByRegisteredCustomer, lineNumbersByUnit } from "./components/customerNumberGroups";
+import type { UtilityAccountPreview } from "./components/UtilityAccountSummary";
 import {
   fixedChangesFor,
   groupFixedValues,
@@ -77,7 +79,8 @@ function initialDraft(row: UtilityUnitRow, fixed: FixedValueEntry[] | undefined,
     previousReading: row.previousReading === null ? "" : String(row.previousReading),
     currentReading: row.currentReading === null ? "" : String(row.currentReading),
     usage: row.usage === null ? "" : String(row.usage),
-    usageEdited: usageEditedForRow(row.previousReading, row.currentReading, row.usage),
+    // 수도는 전월이 비어 있으면 0으로 간주해 량을 계산하므로 직접 입력 판정도 0 기준으로 한다.
+    usageEdited: usageEditedForRow(row.previousReading ?? 0, row.currentReading, row.usage),
     note: row.note ?? "",
     ...initialLockDraft(fixed, period, row.manualCharge),
   };
@@ -151,6 +154,11 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
     [drafts, fixedByUnit, period, rows, scopeKey],
   );
   const activeRows = useMemo(() => rows.filter((row) => !isVacant(row)), [rows]);
+  // 호실표 라인 = 고객번호 집계표 L — 같은 고객번호(예: 수도A)에 묶인 호실은 같은 라인.
+  const lineByUnitId = useMemo(
+    () => lineNumbersByUnit(rows, (customerBillsQuery.data ?? []).map((bill) => bill.customerNo)),
+    [customerBillsQuery.data, rows],
+  );
   const scopedBillDrafts = useMemo<Record<string, string>>(
     () => Object.fromEntries(Object.entries(billDrafts)
       .filter(([key]) => key.startsWith(`${scopeKey}:`))
@@ -160,6 +168,48 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
   const clearBillDrafts = () => setBillDrafts((current) => Object.fromEntries(
     Object.entries(current).filter(([key]) => !key.startsWith(`${scopeKey}:`)),
   ));
+  // 수정 중에는 초안(량·수동입력·고객번호 부과액)으로 부과액을 즉시 다시 배분해 보여준다(정책 2.1·2.2).
+  // 저장하면 서버(utility_allocate_period)가 같은 계산으로 확정한다.
+  const allocationPreview = useMemo(() => {
+    if (!editing) return null;
+    const bills = customerBillsQuery.data ?? [];
+    const groups = groupRowsByRegisteredCustomer(rows, bills.map((bill) => bill.customerNo));
+    const charges = new Map<number, number>();
+    const accounts = new Map<string, UtilityAccountPreview>();
+    bills.forEach((bill) => {
+      const entries = (groups.get(bill.customerNo) ?? []).map((row) => {
+        const draft = scopedDrafts[row.unitId];
+        const usage = usageFor(draft);
+        const manualText = draft.manualCharge.trim();
+        const manual = manualText === "" || !Number.isFinite(Number(manualText)) ? null : Number(manualText);
+        // 지침 차이로 나온 음수 량은 확인 필요 — 서버처럼 그 고객번호는 배분하지 않는다.
+        const needsReview = manual === null && !draft.usageLocked && !draft.usageEdited && usage !== null && usage < 0;
+        return { row, usage, manual, needsReview };
+      });
+      const manualEntries = entries.filter((entry) => entry.manual !== null);
+      const draftAmount = scopedBillDrafts[bill.customerNo];
+      const amountText = draftAmount === undefined ? null : draftAmount.replace(/,/g, "").trim();
+      const total = amountText === null ? bill.amount : amountText === "" ? null : Number(amountText);
+      const account: UtilityAccountPreview = {
+        usage: entries.reduce((sum, entry) => sum + (entry.usage ?? 0), 0),
+        manual: manualEntries.length > 0 ? manualEntries.reduce((sum, entry) => sum + (entry.manual ?? 0), 0) : null,
+        rate: null,
+      };
+      accounts.set(bill.customerNo, account);
+      if (total === null || !Number.isFinite(total) || total < 0 || entries.some((entry) => entry.needsReview)) return;
+      const pool = entries.filter((entry) => entry.manual !== null || entry.usage !== null);
+      const result = computeUtilityAllocation(
+        Math.round(total),
+        pool.map((entry) => entry.usage),
+        pool.map((entry) => entry.row.discountAmount ?? 0),
+        pool.map((entry) => entry.manual),
+      );
+      if (result.status !== "ok" && result.status !== "over_pinned") return;
+      account.rate = result.rate;
+      pool.forEach((entry, index) => charges.set(entry.row.unitId, result.fees[index]));
+    });
+    return { charges, accounts };
+  }, [customerBillsQuery.data, editing, rows, scopedBillDrafts, scopedDrafts]);
   const effectiveSelectedRow = rows.find((row) => row.unitId === selectedRow?.unitId) ?? rows[0] ?? null;
   const isWaterWorkspaceLoading =
     rowsQuery.isLoading ||
@@ -390,6 +440,7 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
                   onSelect={setSelectedRow}
                   customerBills={customerBillsQuery.data}
                   chargeDrafts={scopedBillDrafts}
+                  preview={allocationPreview?.accounts}
                   onChargeDraftChange={(customerNo, value) => setBillDrafts((current) => ({
                     ...current,
                     [`${scopeKey}:${customerNo}`]: value,
@@ -419,6 +470,8 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
                       onDraftChange={updateDraft}
                       onRowClick={setSelectedRow}
                       onDiscountClick={utilityType === "water" ? setDiscountRow : undefined}
+                      lineByUnitId={lineByUnitId}
+                      chargeByUnitId={allocationPreview?.charges}
                     />
                   )}
                 </section>
