@@ -1,6 +1,7 @@
 import { Input } from "@/components/common";
 import type { UtilityCustomerBillRow, UtilityUnitRow } from "@/hooks/reactquery/utilities";
 import { formatNumber } from "@/lib/format";
+import { groupRowsByRegisteredCustomer } from "./customerNumberGroups";
 import { GridEmptyValue } from "./GridEmptyValue";
 import { UtilityGrid, type UtilityGridColumn } from "./UtilityGrid";
 
@@ -22,7 +23,8 @@ const DASH = "num text-t3";
 
 interface AccountRow {
   customerNumber: string;
-  anchor: UtilityUnitRow;
+  /** 연결된 호실이 없는 등록 고객번호면 null. */
+  anchor: UtilityUnitRow | null;
   unitIds: number[];
   charge: number;
   manual: number;
@@ -41,15 +43,12 @@ function display(value: number, hasValue = true): string {
   return hasValue && value !== 0 ? formatNumber(value) : "-";
 }
 
-function groupByCustomer(rows: UtilityUnitRow[]): AccountRow[] {
-  const groups = new Map<string, UtilityUnitRow[]>();
-  rows.forEach((row) => {
-    const key = row.customerNumber ?? "미등록";
-    groups.set(key, [...(groups.get(key) ?? []), row]);
-  });
+/** 건물 부가정보에 등록된 고객번호(정렬순)별로 호실 지침을 합산한다. */
+function groupByCustomer(rows: UtilityUnitRow[], registered: string[]): AccountRow[] {
+  const groups = groupRowsByRegisteredCustomer(rows, registered);
 
   return [...groups.entries()].map(([customerNumber, group]) => {
-    const anchor = group[0];
+    const anchor = group[0] ?? null;
     const manual = sum(group, "manualCharge");
     return {
       customerNumber,
@@ -61,7 +60,7 @@ function groupByCustomer(rows: UtilityUnitRow[]): AccountRow[] {
       usage: sum(group, "usage"),
       previousUsage: sum(group, "previousUsage"),
       manualText: display(manual, group.some((row) => row.manualCharge !== null)),
-      unitPrice: anchor.unitPrice ?? anchor.resolvedUnitPrice,
+      unitPrice: anchor ? anchor.unitPrice ?? anchor.resolvedUnitPrice : null,
     };
   });
 }
@@ -75,7 +74,7 @@ export function UtilityAccountSummary({
   chargeDrafts,
   onChargeDraftChange,
 }: UtilityAccountSummaryProps) {
-  const accounts = groupByCustomer(rows);
+  const accounts = groupByCustomer(rows, (customerBills ?? []).map((bill) => bill.customerNo));
   const billFor = (customerNumber: string) => customerBills?.find((bill) => bill.customerNo === customerNumber);
   /** 청구총액을 입력했으면 그 총액(호실은 서버가 배분), 아니면 기존 호실 합계. */
   const chargeOf = (row: AccountRow) => billFor(row.customerNumber)?.amount ?? (row.manual || row.charge);
@@ -158,7 +157,7 @@ export function UtilityAccountSummary({
         rowClassName={(row) => selectedRow && row.unitIds.includes(selectedRow.unitId)
           ? "bg-blue-t"
           : "bg-white hover:bg-row-hover"}
-        onRowClick={(row) => onSelect(row.anchor)}
+        onRowClick={(row) => { if (row.anchor) onSelect(row.anchor); }}
         empty={<div className="grid h-[96px] place-items-center text-[13px] text-t3">등록된 고객번호가 없어요.</div>}
         className="h-full"
       />

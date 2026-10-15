@@ -1,5 +1,6 @@
 import { Input } from "@/components/common";
 import type { GasTableRow, GasUtilityDraft } from "./types";
+import { groupRowsByRegisteredCustomer } from "../customerNumberGroups";
 import { GridEmptyValue } from "../GridEmptyValue";
 import { UtilityGrid, type UtilityGridColumn } from "../UtilityGrid";
 import { usageFromReadings } from "../UtilityLock";
@@ -8,6 +9,8 @@ interface GasAccountSummaryProps {
   rows: GasTableRow[];
   drafts: Record<number, GasUtilityDraft>;
   editing: boolean;
+  /** 건물 부가정보에 등록된 가스 고객번호(정렬순). 연결 호실이 없어도 요약에 표시한다. */
+  customerNumbers?: string[];
 }
 
 interface GasAccountLine {
@@ -33,12 +36,12 @@ function display(value: number | null, suffix = ""): string {
   return value === null ? "-" : `${value.toLocaleString("ko-KR", { maximumFractionDigits: 3 })}${suffix}`;
 }
 
-function summarize(rows: GasTableRow[], drafts: Record<number, GasUtilityDraft>): GasAccountLine[] {
-  const groups = new Map<string, GasTableRow[]>();
-  rows.forEach((row) => {
-    const key = row.customerNumber ?? "미지정";
-    groups.set(key, [...(groups.get(key) ?? []), row]);
-  });
+function summarize(
+  rows: GasTableRow[],
+  drafts: Record<number, GasUtilityDraft>,
+  registered: string[],
+): GasAccountLine[] {
+  const groups = groupRowsByRegisteredCustomer(rows, registered);
 
   return Array.from(groups, ([customerNumber, groupRows]) => groupRows.reduce<GasAccountLine>(
     (line, row) => {
@@ -78,8 +81,8 @@ function summarize(rows: GasTableRow[], drafts: Record<number, GasUtilityDraft>)
   ));
 }
 
-export function GasAccountSummary({ rows, drafts, editing }: GasAccountSummaryProps) {
-  const lines = summarize(rows, drafts);
+export function GasAccountSummary({ rows, drafts, editing, customerNumbers = [] }: GasAccountSummaryProps) {
+  const lines = summarize(rows, drafts, customerNumbers);
   const columns: UtilityGridColumn<GasAccountLine>[] = [
     {
       key: "line",

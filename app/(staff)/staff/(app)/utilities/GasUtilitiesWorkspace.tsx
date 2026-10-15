@@ -119,6 +119,10 @@ export default function GasUtilitiesWorkspace() {
     (customerNumberQueries[index]?.data ?? []).filter((item) => item.kind === "gas").length,
   ]));
   const selectedBuilding = buildings.find((building) => building.id === buildingId) ?? null;
+  const selectedBuildingIndex = buildings.findIndex((building) => building.id === buildingId);
+  const gasCustomerNumbers = (customerNumberQueries[selectedBuildingIndex]?.data ?? [])
+    .filter((item) => item.kind === "gas")
+    .map((item) => item.customerNo);
   const scopeKey = `${buildingId ?? "none"}:gas:${period}`;
 
   const rows = useMemo(() => rowsQuery.data ?? [], [rowsQuery.data]);
@@ -385,7 +389,7 @@ export default function GasUtilitiesWorkspace() {
               </section>
             ) : (
               <>
-                <GasAccountSummary rows={rows} drafts={scopedDrafts} editing={editing} />
+                <GasAccountSummary rows={rows} drafts={scopedDrafts} editing={editing} customerNumbers={gasCustomerNumbers} />
                 {needsBasis ? (
                   <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[16px] bg-white shadow-card">
                     <div className="flex h-[49px] shrink-0 items-center border-b border-line2 px-[18px]">

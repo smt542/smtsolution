@@ -29,6 +29,7 @@ import {
 import { hasModule } from "@/lib/auth/permissions";
 import { defaultBillingDates } from "./components/BillingPeriodBar";
 import { CarryOverDialog } from "./components/CarryOverDialog";
+import { groupRowsByRegisteredCustomer } from "./components/customerNumberGroups";
 import {
   BillingBasisRequiredState,
   hasBillingBasis,
@@ -148,17 +149,11 @@ export default function ElectricityUtilitiesWorkspace() {
   const customerSummaryRows = useMemo<ElectricityCustomerSummaryRow[]>(() => {
     const prices = pricesQuery.data ?? [];
     const bills = customerBillsQuery.data ?? [];
-    const groups = new Map<string, UtilityUnitRow[]>();
-    rows.forEach((row) => {
-      const key = row.customerNumber ?? "미등록";
-      groups.set(key, [...(groups.get(key) ?? []), row]);
-    });
-    prices.forEach((price) => {
-      if (!groups.has(price.customerNo)) groups.set(price.customerNo, []);
-    });
-    bills.forEach((bill) => {
-      if (!groups.has(bill.customerNo)) groups.set(bill.customerNo, []);
-    });
+    // 건물 부가정보에 등록된 전기 고객번호(정렬순)만 집계 행으로 쓴다.
+    const groups = groupRowsByRegisteredCustomer(rows, [
+      ...prices.map((price) => price.customerNo),
+      ...bills.map((bill) => bill.customerNo),
+    ]);
 
     return [...groups.entries()].map(([customerNumber, groupRows], index) => {
       const price = prices.find((item) => item.customerNo === customerNumber);

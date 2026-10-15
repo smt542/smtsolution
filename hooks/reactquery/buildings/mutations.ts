@@ -2,12 +2,19 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { saveBuilding, deleteBuilding, setBuildingSetupConfirm, type SaveBuildingPayload } from "./apis";
 import { buildingKeys } from "./keys";
+import { customerNumberKeys } from "../buildingCustomerNumbers/keys";
+import { utilityKeys } from "../utilities/keys";
 
 export function useSaveBuilding() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (p: SaveBuildingPayload) => saveBuilding(p),
-    onSuccess: () => qc.invalidateQueries({ queryKey: buildingKeys.all }),
+    // 부가정보 고객번호가 바뀌면 전기/수도/가스 고객번호 요약에도 바로 반영되도록 함께 무효화한다.
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: buildingKeys.all }),
+      qc.invalidateQueries({ queryKey: customerNumberKeys.all }),
+      qc.invalidateQueries({ queryKey: utilityKeys.all }),
+    ]),
   });
 }
 export function useSetBuildingSetupConfirm() {
