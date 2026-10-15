@@ -22,7 +22,7 @@ import {
   type ResolvedRecipient,
   type SendMode,
 } from "@/lib/messaging/preset";
-import { hasUnresolvedVariables, renderTemplate } from "@/lib/messaging/render";
+import { extractVariables, renderTemplate } from "@/lib/messaging/render";
 import { currentPeriod } from "@/lib/billing/period";
 import {
   subscribeMessengerHandoff,
@@ -36,7 +36,7 @@ import {
 } from "@/lib/messaging/idempotencyKey";
 import { canonicalSendPayload } from "@/lib/messaging/sendSignature";
 import { smsBuildingVariables, smsPreviewBody, type SmsVariableBuilding } from "@/lib/messenger/smsVariables";
-import { AlimtalkForm, AUTO_VARS, extractAlimtalkVariables } from "./AlimtalkForm";
+import { AlimtalkForm } from "./AlimtalkForm";
 import { MessageComposer } from "./MessageComposer";
 import { MessengerPanel } from "./MessengerPanel";
 import { PhonePreview } from "./PhonePreview";
@@ -50,7 +50,7 @@ import {
 import { messengerClasses as styles } from "./messengerClasses";
 import type { ChannelMode } from "./types";
 import { useMessengerState } from "./useMessengerState";
-import { DYNAMIC_VARIABLE_NAMES, useAlimtalkDynamicVariables } from "./useAlimtalkDynamicVariables";
+import { useAlimtalkDynamicVariables } from "./useAlimtalkDynamicVariables";
 import { useDebouncedValue } from "@/hooks/common";
 
 function formatPoints(value: number): string {
@@ -74,6 +74,27 @@ function resolveRecipients(
       ),
     ),
   }));
+}
+
+/**
+ * 알림톡: 값이 없는 #{변수}는 빈 값으로 채워 보낸다(2026-10-15 결정 — 값 유무와 관계없이 발송).
+ * 본문은 렌더 결과에 남은 #{}를 지우고, 버튼 URL 변수는 서버가 수신자 변수로 렌더하므로 빈 값을 넣어 둔다.
+ */
+function fillMissingVariables(
+  recipients: ResolvedRecipient[],
+  buttonVariableNames: string[],
+): ResolvedRecipient[] {
+  return recipients.map((recipient) => {
+    const variables = { ...(recipient.variables ?? {}) };
+    for (const name of buttonVariableNames) {
+      if (!Object.prototype.hasOwnProperty.call(variables, name)) variables[name] = "";
+    }
+    return {
+      ...recipient,
+      variables,
+      renderedBody: recipient.renderedBody?.replace(/#\{[^}]+\}/g, "") ?? recipient.renderedBody,
+    };
+  });
 }
 
 interface SendFeedback {
@@ -284,10 +305,8 @@ function MessengerFabContent() {
         : [],
     [consentedRecipients, dynamic.kind, dynamic.variablesByUnit, dynamicActive],
   );
-  const eligibleRecipients = useMemo(
-    () => consentedRecipients.filter((recipient) => !dynamicExcluded.includes(recipient)),
-    [consentedRecipients, dynamicExcluded],
-  );
+  // 고지 정보가 없는 수신자도 제외하지 않고 빈 값으로 보낸다(2026-10-15 결정).
+  const eligibleRecipients = consentedRecipients;
   const excludedCount =
     ui.channel === "alim" && !consentLoading
       ? enrichedRecipients.length - consentedRecipients.length
@@ -303,7 +322,7 @@ function MessengerFabContent() {
       const reason = (unitId !== undefined ? dynamic.excludedByUnit.get(unitId) : undefined) ?? "입주 세대가 아님";
       counts.set(reason, (counts.get(reason) ?? 0) + 1);
     }
-    return `보낼 수 없는 수신자 ${dynamicExcluded.length}명 제외 — ${[...counts]
+    return `값이 없는 수신자 ${dynamicExcluded.length}명은 빈 값으로 보내요 — ${[...counts]
       .map(([reason, count]) => `${reason} ${count}명`)
       .join(" · ")}`;
   }, [dynamic.excludedByUnit, dynamic.loading, dynamicActive, dynamicExcluded]);
@@ -358,11 +377,7 @@ function MessengerFabContent() {
 
   let confirmationBlocker: string | null = null;
   if (providerGated) confirmationBlocker = "발송 설정 준비 중";
-  else if (dynamicActive && dynamic.blocker) confirmationBlocker = dynamic.blocker;
   else if (dynamicActive && dynamic.loading) confirmationBlocker = "수신자별 값을 불러오는 중이에요.";
-  else if (dynamicActive && consentedRecipients.length > 0 && eligibleRecipients.length === 0) {
-    confirmationBlocker = "선택한 부과월 고지 정보가 있는 수신자가 없어요.";
-  }
   else if (senderGated) confirmationBlocker = "알림톡 발신 설정 준비 중";
   else if (sendFeedback?.code === "INVALID_SCHEDULE") {
     confirmationBlocker = sendFeedback.message;
@@ -399,9 +414,7 @@ function MessengerFabContent() {
         : enrichedRecipients.length === 0
           ? "수신자를 선택해 주세요"
           : !consentLoading && eligibleRecipients.length === 0
-            ? dynamicActive && consentedRecipients.length > 0
-              ? "자동 채움 대상 없음"
-              : "알림톡 수신 동의 대상 없음"
+            ? "알림톡 수신 동의 대상 없음"
             : `${eligibleRecipients.length}명에게 ${scheduledAt ? "예약 발송" : "발송"}`;
 
   const changeChannel = (channel: ChannelMode) => {
@@ -451,14 +464,6 @@ function MessengerFabContent() {
     clearTransientFeedback();
   };
 
-  const manualUnresolved = extractAlimtalkVariables(body).filter(
-    (name) =>
-      !AUTO_VARS.has(name) &&
-      !(dynamicActive && DYNAMIC_VARIABLE_NAMES.has(name)) &&
-      !alimtalkVars[name]?.trim() &&
-      !eligibleRecipients.some((recipient) => recipient.variables?.[name]?.trim()),
-  );
-
   const confirmSend = async () => {
     if (
       scheduledAt &&
@@ -474,7 +479,6 @@ function MessengerFabContent() {
       !body.trim() ||
       eligibleRecipients.length === 0 ||
       (ui.channel === "alim" && templateId === null) ||
-      manualUnresolved.length > 0 ||
       !pointQuote.data
     ) {
       return;
@@ -485,10 +489,16 @@ function MessengerFabContent() {
     let finalRecipients = sendRecipients;
     if (dynamicActive) {
       try {
+        // 고지서 링크는 고지 정보가 있는 세대만 발급한다(없는 세대는 빈 값으로 보낸다).
         const unitIds = [...new Set(eligibleRecipients
           .map((recipient) => recipient.ref?.unitId)
-          .filter((unitId): unitId is number => unitId !== undefined))];
-        const links = await dynamic.resolveLinks(unitIds);
+          .filter((unitId): unitId is number => unitId !== undefined)
+          .filter((unitId) => dynamic.kind?.type !== "bill" || dynamic.variablesByUnit.has(unitId)))];
+        const links = await dynamic.resolveLinks(unitIds).catch(() => {
+          // 링크를 발급하지 못해도 빈 값으로 보낸다.
+          toast.info(dynamic.kind?.type === "bill" ? "고지서 상세 링크 없이 보내요." : "공지 링크 없이 보내요.");
+          return { common: {}, byUnit: new Map<number, Record<string, string>>() };
+        });
         finalRecipients = resolveRecipients(
           eligibleRecipients.map((recipient) => ({
             ...recipient,
@@ -505,13 +515,11 @@ function MessengerFabContent() {
         toast.error(dynamic.kind?.type === "bill" ? "고지서 상세 링크를 발급하지 못했어요." : "공지 링크를 발급하지 못했어요.");
         return;
       }
-      if (finalRecipients.some((recipient) =>
-        hasUnresolvedVariables(recipient.renderedBody)
-        || (dynamic.kind?.type === "bill" && !recipient.variables?.상세경로)
-        || (dynamic.kind?.type === "notice" && !recipient.variables?.버튼1))) {
-        toast.error("템플릿 변수를 모두 채우지 못해 발송하지 않았어요.");
-        return;
-      }
+    }
+    if (ui.channel === "alim") {
+      const buttonVariableNames = [...new Set((selectedTemplate?.buttons ?? []).flatMap((button) =>
+        [button.u1, button.u2].flatMap((url) => (typeof url === "string" ? extractVariables(url) : []))))];
+      finalRecipients = fillMissingVariables(finalRecipients, buttonVariableNames);
     }
     const signature = canonicalSendPayload({
       mode: sendMode,

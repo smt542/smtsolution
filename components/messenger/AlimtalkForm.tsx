@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/common";
+import { DpMonthPicker } from "@/components/common/DpMonthPicker";
+import { CalendarIcon } from "@/components/icons";
 import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates/queries";
 import type { MessageTemplate } from "@/hooks/reactquery/messageTemplates/apis";
 import { messengerClasses as styles } from "./messengerClasses";
@@ -306,14 +308,17 @@ export function AlimtalkForm({
                 {dynamic.kind.type === "bill" ? (
                   <div className={styles["ak-vrow"]}>
                     <label htmlFor="messenger-alim-period">부과월</label>
-                    <Input
-                      unstyled
+                    <DpMonthPicker
                       id="messenger-alim-period"
-                      type="month"
                       value={dynamic.period.slice(0, 7)}
-                      onChange={(event) => {
-                        if (/^\d{4}-\d{2}$/.test(event.target.value)) dynamic.onPeriod(`${event.target.value}-01`);
+                      onChange={(value) => {
+                        if (/^\d{4}-\d{2}$/.test(value)) dynamic.onPeriod(`${value}-01`);
                       }}
+                      placeholder="부과월"
+                      className="min-w-0 flex-1"
+                      triggerClassName="flex h-9 w-full min-w-0 cursor-pointer items-center rounded-[9px] border border-line bg-white px-[11px] text-[13px] text-t1 outline-none"
+                      triggerOpenClassName="border-blue"
+                      endAdornment={<CalendarIcon className="ml-auto size-[15px] shrink-0 text-t3" aria-hidden="true" />}
                     />
                   </div>
                 ) : (
