@@ -30,6 +30,8 @@ interface ElectricityReadingsTableProps {
   utilityLabel?: string;
   editing: boolean;
   onDraftChange: (unitId: number, patch: Partial<ElectricityDraft>) => void;
+  /** 수정 중 초안·할인으로 다시 배분한 호실 부과액(고객번호 부과액이 있는 호실만). */
+  chargeByUnitId?: Map<number, number>;
 }
 
 function optionalNumber(value: string): number | null {
@@ -72,6 +74,7 @@ export function ElectricityReadingsTable({
   utilityLabel = "전기",
   editing,
   onDraftChange,
+  chargeByUnitId,
 }: ElectricityReadingsTableProps) {
   const preparedRows: ElectricityReadingsGridRow[] = rows.map((row) => {
     const draft = drafts[row.unitId] ?? {
@@ -99,7 +102,7 @@ export function ElectricityReadingsTable({
     const recent = !vacant && isNewOccupancy(row.moveInDate, referenceDate);
     // 편집 중에는 초안의 수동입력이 기준이다(지우면 저장된 수동값이 아니라 서버 자동 계산값). 「계산」이 서버 값을 다시 불러온다.
     const charge = editing
-      ? optionalNumber(draft.manualCharge) ?? row.automaticCharge
+      ? optionalNumber(draft.manualCharge) ?? chargeByUnitId?.get(row.unitId) ?? row.automaticCharge
       : optionalNumber(draft.manualCharge) ?? row.manualCharge ?? row.automaticCharge;
     const marker = moving
       ? "shadow-[inset_3px_0_0_#3182F6]"

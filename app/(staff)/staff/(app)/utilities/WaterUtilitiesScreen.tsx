@@ -39,13 +39,19 @@ import { UtilityPeriodBarPlaceholder } from "./components/UtilityPeriodBarPlaceh
 import { UtilityWorkspaceHeader } from "./components/UtilityWorkspaceHeader";
 import { UtilityTable, usageFor, type UtilityDraft } from "./components/UtilityTable";
 import { UtilityWorkspaceBar } from "./components/UtilityWorkspaceBar";
-import { computeUtilityAllocation, customerBillChanges, notifyAllocationMismatch } from "./components/utilityAllocation";
+import {
+  customerBillChanges,
+  draftBillTotal,
+  notifyAllocationMismatch,
+  previewCustomerAllocation,
+} from "./components/utilityAllocation";
 import { groupRowsByRegisteredCustomer, lineNumbersByUnit } from "./components/customerNumberGroups";
 import type { UtilityAccountPreview } from "./components/UtilityAccountSummary";
 import {
   fixedChangesFor,
   groupFixedValues,
   initialLockDraft,
+  parseDraftNumber,
   usageEditedForRow,
 } from "./components/UtilityLock";
 import { WaterDiscountModal } from "./components/WaterDiscountModal";
@@ -179,33 +185,24 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
       const entries = (groups.get(bill.customerNo) ?? []).map((row) => {
         const draft = scopedDrafts[row.unitId];
         const usage = usageFor(draft);
-        const manualText = draft.manualCharge.trim();
-        const manual = manualText === "" || !Number.isFinite(Number(manualText)) ? null : Number(manualText);
-        // 지침 차이로 나온 음수 량은 확인 필요 — 서버처럼 그 고객번호는 배분하지 않는다.
-        const needsReview = manual === null && !draft.usageLocked && !draft.usageEdited && usage !== null && usage < 0;
-        return { row, usage, manual, needsReview };
+        const manual = parseDraftNumber(draft.manualCharge);
+        return {
+          unitId: row.unitId,
+          usage,
+          manual,
+          discount: row.discountAmount ?? 0,
+          // 지침 차이로 나온 음수 량은 확인 필요 — 서버처럼 그 고객번호는 배분하지 않는다.
+          needsReview: !draft.usageLocked && !draft.usageEdited && usage !== null && usage < 0,
+        };
       });
       const manualEntries = entries.filter((entry) => entry.manual !== null);
-      const draftAmount = scopedBillDrafts[bill.customerNo];
-      const amountText = draftAmount === undefined ? null : draftAmount.replace(/,/g, "").trim();
-      const total = amountText === null ? bill.amount : amountText === "" ? null : Number(amountText);
-      const account: UtilityAccountPreview = {
+      const allocation = previewCustomerAllocation(draftBillTotal(scopedBillDrafts[bill.customerNo], bill.amount), entries);
+      accounts.set(bill.customerNo, {
         usage: entries.reduce((sum, entry) => sum + (entry.usage ?? 0), 0),
         manual: manualEntries.length > 0 ? manualEntries.reduce((sum, entry) => sum + (entry.manual ?? 0), 0) : null,
-        rate: null,
-      };
-      accounts.set(bill.customerNo, account);
-      if (total === null || !Number.isFinite(total) || total < 0 || entries.some((entry) => entry.needsReview)) return;
-      const pool = entries.filter((entry) => entry.manual !== null || entry.usage !== null);
-      const result = computeUtilityAllocation(
-        Math.round(total),
-        pool.map((entry) => entry.usage),
-        pool.map((entry) => entry.row.discountAmount ?? 0),
-        pool.map((entry) => entry.manual),
-      );
-      if (result.status !== "ok" && result.status !== "over_pinned") return;
-      account.rate = result.rate;
-      pool.forEach((entry, index) => charges.set(entry.row.unitId, result.fees[index]));
+        rate: allocation?.rate ?? null,
+      });
+      allocation?.charges.forEach((charge, unitId) => charges.set(unitId, charge));
     });
     return { charges, accounts };
   }, [customerBillsQuery.data, editing, rows, scopedBillDrafts, scopedDrafts]);

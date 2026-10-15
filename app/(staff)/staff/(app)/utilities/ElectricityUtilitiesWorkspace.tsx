@@ -50,8 +50,9 @@ import { MeterLedgerModal } from "./components/MeterLedgerModal";
 import { UtilityWorkspaceHeader } from "./components/UtilityWorkspaceHeader";
 import {
   customerBillChanges,
-  electricityNoticeAmount,
+  draftBillTotal,
   notifyAllocationMismatch,
+  previewCustomerAllocation,
 } from "./components/utilityAllocation";
 import {
   fixedChangesFor,
@@ -59,6 +60,7 @@ import {
   initialLockDraft,
   parseDraftNumber,
   usageEditedForRow,
+  usageFromReadings,
 } from "./components/UtilityLock";
 
 const INITIAL_PERIOD = "2026-07-01";
@@ -165,23 +167,23 @@ export default function ElectricityUtilitiesWorkspace() {
       const currentReading = groupRows.reduce((total, row) => total + (row.currentReading ?? 0), 0);
       const previousReading = groupRows.reduce((total, row) => total + (row.previousReading ?? 0), 0);
       const discountAmount = groupRows.reduce((total, row) => total + (row.discountAmount ?? 0), 0);
-      const baseUnitPrice = price?.unitPrice ?? groupRows.find((row) => row.unitPrice !== null)?.unitPrice ?? null;
+      const allocatedUnitPrice = groupRows.find((row) => row.unitPrice !== null)?.unitPrice ?? null;
+      const baseUnitPrice = price?.unitPrice ?? allocatedUnitPrice;
       const draftedPrice = price ? parseDraftNumber(priceDrafts[price.customerNumberId] ?? "") : null;
       return {
         id: price?.customerNumberId ?? bill?.customerNumberId ?? -(index + 1),
         customerNumber,
         chargeAmount,
-        // 고지금액(전기) = round(부과액 × 1.11 / 10) × 10 (정책 2.3). 수도·가스는 가산하지 않는다.
-        billedAmount: utilityType === "electricity" ? electricityNoticeAmount(chargeAmount) : chargeAmount,
         usage,
-        unitPrice: draftedPrice ?? baseUnitPrice,
+        // 고객번호 부과액이 있으면 배분 단가((부과액 + 할인합계) ÷ 량, 수도와 같다), 없으면 단가 설정값.
+        unitPrice: bill?.amount != null ? allocatedUnitPrice : draftedPrice ?? baseUnitPrice,
         currentReading,
         previousReading,
         meterDifference: discountAmount === 0 ? 0 : -discountAmount,
         movingCharge: 0,
       };
     });
-  }, [customerBillsQuery.data, priceDrafts, pricesQuery.data, rows, utilityType]);
+  }, [customerBillsQuery.data, priceDrafts, pricesQuery.data, rows]);
 
   const scopedSummaryDrafts = useMemo<Record<number, ElectricityCustomerSummaryDraft>>(
     () => Object.fromEntries(customerSummaryRows.map((row) => {
@@ -195,6 +197,47 @@ export default function ElectricityUtilitiesWorkspace() {
       ];
     })),
     [customerSummaryRows, draftScope, summaryDrafts],
+  );
+
+  // 수정 중에는 초안(량·수동입력·고객번호 부과액)과 호실 할인으로 부과액을 즉시 다시 배분해 보여준다(수도와 같은 계산).
+  // 저장하면 서버(utility_allocate_period)가 같은 계산으로 확정한다.
+  const allocationPreview = useMemo(() => {
+    if (!editing) return undefined;
+    const bills = customerBillsQuery.data ?? [];
+    const groups = groupRowsByRegisteredCustomer(rows, bills.map((bill) => bill.customerNo));
+    const charges = new Map<number, number>();
+    const rates = new Map<string, number>();
+    bills.forEach((bill) => {
+      const summaryDraft = scopedSummaryDrafts[bill.customerNumberId];
+      const total = draftBillTotal(summaryDraft?.chargeAmountEdited ? summaryDraft.chargeAmount : undefined, bill.amount);
+      const entries = (groups.get(bill.customerNo) ?? []).map((row) => {
+        const draft = scopedDrafts[row.unitId];
+        const computed = usageFromReadings(draft.previousReading, draft.currentReading);
+        const usage = draft.usageLocked
+          ? parseDraftNumber(draft.lockedUsage)
+          : draft.usageEdited ? parseDraftNumber(draft.usage) : computed;
+        return {
+          unitId: row.unitId,
+          usage,
+          manual: parseDraftNumber(draft.manualCharge),
+          discount: row.discountAmount ?? 0,
+          needsReview: !draft.usageLocked && !draft.usageEdited && computed !== null && computed < 0,
+        };
+      });
+      const allocation = previewCustomerAllocation(total, entries);
+      if (!allocation) return;
+      rates.set(bill.customerNo, Math.round(allocation.rate * 10000) / 10000);
+      allocation.charges.forEach((charge, unitId) => charges.set(unitId, charge));
+    });
+    return { charges, rates };
+  }, [customerBillsQuery.data, editing, rows, scopedDrafts, scopedSummaryDrafts]);
+  // 수정 중 요약표 단가는 초안으로 다시 배분한 단가를 보여준다.
+  const displayedSummaryRows = useMemo(
+    () => customerSummaryRows.map((row) => {
+      const rate = allocationPreview?.rates.get(row.customerNumber);
+      return rate === undefined ? row : { ...row, unitPrice: rate };
+    }),
+    [allocationPreview, customerSummaryRows],
   );
 
   const updateDraft = useCallback((unitId: number, patch: Partial<ElectricityDraft>) => {
@@ -501,7 +544,7 @@ export default function ElectricityUtilitiesWorkspace() {
           />
 
           <ElectricityCustomerSummary
-            rows={buildingId === null ? [] : customerSummaryRows}
+            rows={buildingId === null ? [] : displayedSummaryRows}
             drafts={scopedSummaryDrafts}
             editing={editing}
             onDraftChange={updateSummaryDraft}
@@ -531,6 +574,7 @@ export default function ElectricityUtilitiesWorkspace() {
               utilityLabel={utilityLabel}
               editing={editing}
               onDraftChange={updateDraft}
+              chargeByUnitId={allocationPreview?.charges}
             />
           )}
         </main>

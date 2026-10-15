@@ -2,11 +2,6 @@ import { AppError, appToast as toast } from "@/hooks/common/useAppToast";
 import type { UtilityAllocationResult } from "@/hooks/reactquery/utilities";
 import { formatNumber } from "@/lib/format";
 
-/** 정책 2.3 / 배포본 utility-electric.dc.html:827 — 고지금액(전기) = round(부과액 × 1.11 / 10) × 10. */
-export function electricityNoticeAmount(chargeAmount: number): number {
-  return Math.round((chargeAmount * 1.11) / 10) * 10;
-}
-
 const STATUS_REASON: Record<string, string> = {
   needs_review: "확인 필요(음수 사용량) 호실이 있어 배분하지 않았습니다",
   no_rows: "배분할 호실 지침이 없습니다",
@@ -137,4 +132,52 @@ export function computeUtilityAllocation(
   }
 
   return { status, rate, fees };
+}
+
+export interface AllocationDraftEntry {
+  unitId: number;
+  /** 초안 기준 부과 량(고정 > 직접 입력 > 금월 − 전월). */
+  usage: number | null;
+  /** 수동입력 부과액. 없으면 null. */
+  manual: number | null;
+  /** 호실 정액 할인(수급자·다자녀 등 — 수도·전기·가스 공통). */
+  discount: number;
+  /** 지침 차이로 나온 음수 량(확인 필요). */
+  needsReview: boolean;
+}
+
+/**
+ * 수정 중 초안으로 고객번호 하나의 부과액을 다시 배분한다(서버 utility_allocate_period 와 같은 대상·순서).
+ * 총액이 없거나, 확인 필요 호실이 있거나, 배분할 수 없으면 null — 화면은 저장된 값을 그대로 보여준다.
+ */
+export function previewCustomerAllocation(
+  total: number | null,
+  entries: AllocationDraftEntry[],
+): { rate: number; charges: Map<number, number> } | null {
+  if (total === null || !Number.isFinite(total) || total < 0) return null;
+  if (entries.some((entry) => entry.manual === null && entry.needsReview)) return null;
+  const pool = entries.filter((entry) => entry.manual !== null || entry.usage !== null);
+  const result = computeUtilityAllocation(
+    Math.round(total),
+    pool.map((entry) => entry.usage),
+    pool.map((entry) => entry.discount),
+    pool.map((entry) => entry.manual),
+  );
+  if ((result.status !== "ok" && result.status !== "over_pinned") || result.rate === null) return null;
+  return { rate: result.rate, charges: new Map(pool.map((entry, index) => [entry.unitId, result.fees[index]])) };
+}
+
+/** 수정 중 입력한 고객번호 부과액 초안 → 총액. 손대지 않았으면 저장된 총액, 비우면 null(배분 안 함). */
+export function draftBillTotal(draft: string | undefined, saved: number | null): number | null {
+  if (draft === undefined) return saved;
+  const text = draft.replace(/,/g, "").trim();
+  return text === "" ? null : Number(text);
+}
+
+/**
+ * 고객번호 총액 배분이 없는 호실 부과액(가스 등) — 서버 save_meter_readings 와 같다:
+ *   max(0, round_charge(량 × 단가, 4사5입 10원) − 호실 할인)
+ */
+export function unitChargeWithDiscount(usage: number, unitPrice: number, discount: number): number {
+  return Math.max(0, pgRound((usage * unitPrice) / 10) * 10 - discount);
 }

@@ -6,7 +6,6 @@ import { UtilityGrid, type UtilityGridColumn } from "./UtilityGrid";
 export interface ElectricityCustomerSummaryRow {
   id: number;
   customerNumber: string;
-  billedAmount: number;
   chargeAmount: number;
   usage: number;
   unitPrice: number | null;
@@ -79,7 +78,8 @@ export function ElectricityCustomerSummary({
       width: 136,
       align: "right",
       cellClassName: "num",
-      render: (row) => formatNumber(row.billedAmount),
+      // 고지금액은 쓰지 않는다 — 빈 칸으로 둔다.
+      render: () => null,
     },
     {
       key: "chargeAmount",

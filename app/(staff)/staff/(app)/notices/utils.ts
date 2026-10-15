@@ -7,10 +7,12 @@ export const NOTICE_TYPE_LABELS: Record<NoticeType, string> = {
   urgent: "긴급",
 };
 
+// 중요·긴급 알림톡 템플릿은 카카오 심사에서 반려돼 승인 코드가 없다(2026-10-15).
+// 승인된 「신규 공지」(026100000523) 템플릿으로 모든 공지 유형을 보낸다.
 export const NOTICE_TEMPLATE_TITLES: Record<NoticeType, string> = {
   normal: "공지 안내(신규)",
-  important: "공지 안내(중요)",
-  urgent: "공지 안내(긴급)",
+  important: "공지 안내(신규)",
+  urgent: "공지 안내(신규)",
 };
 
 export function getNoticeTemplateTitle(noticeType: NoticeType): string {

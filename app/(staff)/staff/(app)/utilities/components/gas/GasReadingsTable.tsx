@@ -1,6 +1,7 @@
 import { Input } from "@/components/common";
 import type { GasTableRow, GasUtilityDraft } from "./types";
 import { GridEmptyValue } from "../GridEmptyValue";
+import { unitChargeWithDiscount } from "../utilityAllocation";
 import { UtilityGrid, type UtilityGridColumn } from "../UtilityGrid";
 import {
   FIXED_LOCK_CELL,
@@ -123,7 +124,11 @@ export function GasReadingsTable({
     const previousUsage = row.usage;
     const change = usage === null || previousUsage === null ? null : usage - previousUsage;
     const manual = numberFrom(draft.manualCharge);
-    const charge = manual ?? row.automaticCharge ?? (usage === null ? null : usage * (row.resolvedUnitPrice ?? 0));
+    // 부과액 = max(0, 량 × 단가 − 호실 할인)(수도·전기와 같은 할인). 수정 중에는 초안으로 즉시 다시 계산한다.
+    const liveCharge = usage === null || row.resolvedUnitPrice === null
+      ? null
+      : unitChargeWithDiscount(usage, row.resolvedUnitPrice, row.discountAmount ?? 0);
+    const charge = manual ?? (editing ? liveCharge ?? row.automaticCharge : row.automaticCharge ?? liveCharge);
     const vacant = row.occupancyStatus === "vacant" || row.occupancyId === null;
     const vacantUsage = vacant && (usage ?? 0) > 0;
     const movingOut = row.occupancyStatus === "moving_out";

@@ -4,6 +4,7 @@ import { groupRowsByRegisteredCustomer } from "../customerNumberGroups";
 import { GridEmptyValue } from "../GridEmptyValue";
 import { UtilityGrid, type UtilityGridColumn } from "../UtilityGrid";
 import { usageFromReadings } from "../UtilityLock";
+import { unitChargeWithDiscount } from "../utilityAllocation";
 
 interface GasAccountSummaryProps {
   rows: GasTableRow[];
@@ -40,6 +41,7 @@ function summarize(
   rows: GasTableRow[],
   drafts: Record<number, GasUtilityDraft>,
   registered: string[],
+  editing: boolean,
 ): GasAccountLine[] {
   const groups = groupRowsByRegisteredCustomer(rows, registered);
 
@@ -63,7 +65,11 @@ function summarize(
       line.currentReading += current;
       line.previousReading += previous;
       line.discountAmount += row.discountAmount ?? 0;
-      line.charge += manual ?? row.automaticCharge ?? usage * (row.resolvedUnitPrice ?? 0);
+      // 호실표와 같은 부과액(할인 반영). 수정 중에는 초안으로 다시 계산한 값.
+      const liveCharge = row.resolvedUnitPrice === null
+        ? null
+        : unitChargeWithDiscount(usage, row.resolvedUnitPrice, row.discountAmount ?? 0);
+      line.charge += manual ?? (editing ? liveCharge ?? row.automaticCharge ?? 0 : row.automaticCharge ?? liveCharge ?? 0);
       if (manual !== null) line.manualCharge = (line.manualCharge ?? 0) + manual;
       if (line.unitPrice === null) line.unitPrice = row.resolvedUnitPrice;
       return line;
@@ -82,7 +88,7 @@ function summarize(
 }
 
 export function GasAccountSummary({ rows, drafts, editing, customerNumbers = [] }: GasAccountSummaryProps) {
-  const lines = summarize(rows, drafts, customerNumbers);
+  const lines = summarize(rows, drafts, customerNumbers, editing);
   const columns: UtilityGridColumn<GasAccountLine>[] = [
     {
       key: "line",
