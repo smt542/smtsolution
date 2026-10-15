@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Input } from "@/components/common";
+import { CustomDropdown, Input } from "@/components/common";
 import { DpMonthPicker } from "@/components/common/DpMonthPicker";
 import { CalendarIcon } from "@/components/icons";
 import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates/queries";
@@ -324,17 +324,19 @@ export function AlimtalkForm({
                 ) : (
                   <div className={styles["ak-vrow"]}>
                     <label htmlFor="messenger-alim-notice">공지</label>
-                    <select
-                      id="messenger-alim-notice"
-                      className="h-9 min-w-0 flex-1 rounded-[9px] border border-line bg-white px-[11px] text-[13px] outline-none focus:border-blue"
-                      value={dynamic.noticeId ?? ""}
-                      onChange={(event) => dynamic.onNotice(event.target.value ? Number(event.target.value) : null)}
-                    >
-                      <option value="">보낼 공지를 선택해 주세요</option>
-                      {dynamic.notices.map((notice) => (
-                        <option key={notice.id} value={notice.id}>{notice.title}</option>
-                      ))}
-                    </select>
+                    <div className="min-w-0 flex-1 [&_.uc-dd]:w-full">
+                      <CustomDropdown
+                        id="messenger-alim-notice"
+                        ariaLabel="공지"
+                        value={dynamic.noticeId === null ? "" : String(dynamic.noticeId)}
+                        options={dynamic.notices.map((notice) => ({ value: String(notice.id), label: notice.title }))}
+                        placeholder="보낼 공지를 선택해 주세요"
+                        onChange={(value) => dynamic.onNotice(value ? Number(value) : null)}
+                        size="form"
+                        variant="field"
+                        position="fixed"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
