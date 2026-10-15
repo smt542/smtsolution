@@ -77,9 +77,9 @@ export function OutputSelectionPane({
   onToggleAllUnits,
 }: OutputSelectionPaneProps) {
   const hasUnitTable = type === "giro" || type === "fax";
-  const isSelectable = (target: BillTarget) => type !== "fax" || Boolean(target.faxNumber);
+  // 팩스도 세대 팩스번호와 무관하게 모든 세대를 고를 수 있다(수신번호는 발송 확인 창에서 입력).
   const groups = targetsByBuilding.filter(({ targets }) => targets.length > 0);
-  const selectableTargets = groups.flatMap(({ targets }) => targets.filter(isSelectable));
+  const selectableTargets = groups.flatMap(({ targets }) => targets);
   const allBuildingsSelected = buildings.length > 0 && buildings.every((building) => selectedBuildingIds.includes(building.id));
   const allUnitsSelected = selectableTargets.length > 0 && selectableTargets.every((target) => selectedUnitIds.includes(target.unitId));
   // 정본 drawUnits: 호수가 있는 건물이 둘 이상이면 건물마다 묶음 머리(건물 단위 선택·선택 수)를 단다.
@@ -170,7 +170,7 @@ export function OutputSelectionPane({
               </thead>
               <tbody>
                 {groups.flatMap(({ building, targets }) => {
-                  const groupIds = targets.filter(isSelectable).map((target) => target.unitId);
+                  const groupIds = targets.map((target) => target.unitId);
                   const groupSelected = targets.filter((target) => selectedUnitIds.includes(target.unitId)).length;
                   const groupChecked = groupIds.length > 0 && groupIds.every((unitId) => selectedUnitIds.includes(unitId));
                   const groupRow = showGroupRows ? (
@@ -188,16 +188,15 @@ export function OutputSelectionPane({
                   ) : null;
                   const unitRows = targets.map((target) => {
                     const selected = selectedUnitIds.includes(target.unitId);
-                    const disabled = !isSelectable(target);
                     return (
                       <tr
                         key={target.unitId}
                         aria-selected={selected}
-                        onClick={() => { if (!disabled) onToggleUnit(target.unitId); }}
-                        className={`${ROW} ${disabled ? "cursor-not-allowed opacity-45" : ""}`}
+                        onClick={() => onToggleUnit(target.unitId)}
+                        className={ROW}
                       >
                         <td className={`${TD} overflow-hidden px-4`}>
-                          <SelectionCheck ariaLabel={`${building.name} · ${displayUnitNo(target.unitNo)} · ${displayName(target)}`} checked={selected} disabled={disabled} onChange={() => onToggleUnit(target.unitId)} />
+                          <SelectionCheck ariaLabel={`${building.name} · ${displayUnitNo(target.unitNo)} · ${displayName(target)}`} checked={selected} onChange={() => onToggleUnit(target.unitId)} />
                         </td>
                         <td className={`${TD} overflow-hidden px-4 font-bold`}>{displayUnitNo(target.unitNo)}</td>
                         <td className={`${TD} overflow-hidden px-4`}>{displayName(target)}</td>

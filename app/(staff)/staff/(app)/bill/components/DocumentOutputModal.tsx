@@ -12,7 +12,7 @@ import { cmsDownloadUrl } from "@/hooks/reactquery/payments";
 import { useStaffSignedBillLinks } from "@/hooks/reactquery/residentBilling";
 import { useSenderDefaults } from "@/hooks/reactquery/senderDefaults";
 import { useSetupConfig } from "@/hooks/reactquery/setupConfig";
-import { formatPhone, normalizePhone } from "@/lib/format";
+import { formatPhone } from "@/lib/format";
 import { resolveDisplaySender } from "@/lib/messaging/senderDisplay";
 import { currentPeriod } from "@/lib/billing/period";
 import { matchesBuildingGroup } from "@/lib/buildings/groupType";
@@ -130,7 +130,8 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
   const allTargets = currentTargetsByBuilding.flatMap(({ building, targets }) => targets.map((target) => ({ building, target })));
   const autoDebitRows = allTargets.filter(({ target }) => target.autoDebit);
   const autoDebitPrintRows = filterAutoDebitRowsByGroup(autoDebitRows, group);
-  const faxReadyTargets = allTargets.filter(({ target }) => Boolean(target.faxNumber));
+  // 팩스는 세대 팩스번호와 무관하게 모든 세대를 보낼 수 있다. 수신번호는 확인 창에서 직접 입력한다(2026-10-15).
+  const faxReadyTargets = allTargets;
   const selectedFaxTargets = faxReadyTargets.filter(({ target }) => selectedUnitIds.includes(target.unitId));
   const selectedFaxBuilding = selectedFaxTargets[0]?.building;
   const selectedFaxTargetValues = selectedFaxTargets.map(({ target }) => target);
@@ -164,7 +165,6 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
     faxSelectionInitialized.current = true;
     setSelectedUnitIds([first.unitId]);
     setPreviewUnitId(first.unitId);
-    setFaxRecipient(first.faxNumber ?? "");
   }, [faxReadyTargets, type]);
 
   const allQueries = [...currentTargetQueries, ...(needsDocuments ? currentDocumentQueries : []), ...(type === "giro" || type === "fax" ? periodSettingQueries : [])];
@@ -203,11 +203,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
       setPreviewUnitId(unitId);
       return [...current, unitId];
     });
-    if (type === "fax") {
-      const target = faxReadyTargets.find((entry) => entry.target.unitId === unitId)?.target;
-      if (target?.faxNumber) setFaxRecipient(target.faxNumber);
-      faxSelectionInitialized.current = true;
-    }
+    if (type === "fax") faxSelectionInitialized.current = true;
   };
   const toggleAllBuildings = () => {
     const visibleIds = visibleBuildings.map((building) => building.id);
@@ -227,10 +223,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
     const allSelected = availableIds.every((id) => selectedIds.includes(id));
     setSelectedUnitIds(allSelected ? [] : availableIds);
     setPreviewUnitId(allSelected ? null : availableIds[0] ?? null);
-    if (type === "fax") {
-      setFaxRecipient(allSelected ? "" : faxReadyTargets[0]?.target.faxNumber ?? "");
-      faxSelectionInitialized.current = true;
-    }
+    if (type === "fax") faxSelectionInitialized.current = true;
   };
   // 정본 `#adjUnits tr.ugrp`: 건물 묶음 머리를 누르면 그 건물 호수를 모두 켜거나 끈다.
   const toggleUnits = (unitIds: number[]) => {
@@ -242,11 +235,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
       : [...new Set([...selectedUnitIds, ...unitIds])];
     setSelectedUnitIds(next);
     setPreviewUnitId((preview) => preview !== null && next.includes(preview) ? preview : next[0] ?? null);
-    if (type === "fax") {
-      const first = faxReadyTargets.find(({ target }) => next.includes(target.unitId))?.target;
-      setFaxRecipient(first?.faxNumber ?? "");
-      faxSelectionInitialized.current = true;
-    }
+    if (type === "fax") faxSelectionInitialized.current = true;
   };
   const changeStampScope = (scope: GiroStampScope) => { setStampHint(null); setStampScope(scope); };
   const selectPreviewUnit = (unitId: number) => { setStampHint(null); setPreviewUnitId(unitId); };
@@ -315,16 +304,16 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
   };
   const openFaxConfirmation = () => {
     if (selectedFaxTargets.length === 0) { toast.info("발송할 호수를 선택해 주세요"); return; }
-    setFaxRecipient(selectedFaxTargets[0]?.target.faxNumber ?? "");
+    // 수신 팩스번호는 비워 두고 직접 입력받는다.
+    setFaxRecipient("");
     setFaxError(false);
     setFaxConfirmOpen(true);
   };
   const sendFax = async () => {
-    if (selectedFaxTargets.length === 0) { toast.info("팩스번호가 등록된 세대를 선택해 주세요."); return; }
+    if (selectedFaxTargets.length === 0) { toast.info("발송할 호수를 선택해 주세요"); return; }
     setFaxError(false);
-    // 자동 입력값(첫 선택 세대 번호)을 그대로 두면 세대별 등록 번호로, 고쳤으면 선택 세대 전부 고친 번호로 보낸다.
-    const defaultRecipient = selectedFaxTargets[0]?.target.faxNumber ?? "";
-    const recipientOverride = normalizePhone(faxRecipient) !== normalizePhone(defaultRecipient) ? faxRecipient : undefined;
+    // 입력한 수신 팩스번호로 선택 세대 전부를 보낸다.
+    const recipientOverride = faxRecipient;
     let hasError = false;
     let totalQueued = 0;
     let totalFailed = 0;
