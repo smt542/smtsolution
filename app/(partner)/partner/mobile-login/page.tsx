@@ -3,6 +3,7 @@ import type { Viewport } from "next";
 import { PartnerLoginForm } from "./PartnerLoginForm";
 import { partnerLoginClasses as styles } from "./loginClasses";
 import { ORG_SUSPENDED_ERROR, ORG_SUSPENDED_MESSAGE } from "@/lib/auth/orgSuspended";
+import { SESSION_SWITCHED_ERROR, SESSION_SWITCHED_MESSAGE } from "@/lib/auth/sessionSwitched";
 
 export const viewport: Viewport = {
   themeColor: "#ffffff",
@@ -15,8 +16,12 @@ export default async function PartnerLoginPage({
 }) {
   const params = await searchParams;
   const error = Array.isArray(params.error) ? params.error[0] : params.error;
-  // 앱 게이트가 정지 테넌트 세션을 끊고 보낸 경우 안내 문구를 띄운다.
-  const initialError = error === ORG_SUSPENDED_ERROR ? ORG_SUSPENDED_MESSAGE : undefined;
+  // 앱 게이트가 세션을 끊고 보낸 경우(정지 테넌트·다른 역할 로그인) 안내 문구를 띄운다.
+  const initialError = error === ORG_SUSPENDED_ERROR
+    ? ORG_SUSPENDED_MESSAGE
+    : error === SESSION_SWITCHED_ERROR
+      ? SESSION_SWITCHED_MESSAGE
+      : undefined;
 
   return (
     <div data-partner-login className={styles.wrap}>

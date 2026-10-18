@@ -170,10 +170,11 @@ export function AccountFormModal({
           ? "field"
           : "staff";
 
+      // 현장 관리자는 겸직(사무실 관리자 업무)을 두지 않는다(2026-10-18) — 항상 겸직 없이 저장한다.
       const staffCapabilities = buildStaffCapabilities(
         values.staffType,
         isEdit && editing ? editing.staffCapabilities : null,
-        values.alsoCrossApp,
+        isField ? false : values.alsoCrossApp,
       );
 
       if (!isEdit) {
@@ -400,13 +401,12 @@ export function AccountFormModal({
               </FormField>
             </div>
 
+            {!isField && (
             <div className="mt-[16px] flex items-center justify-between gap-[12px] rounded-[11px] border border-line bg-surface px-[12px] py-[10px]">
               <div className="min-w-0">
                 <p className="text-[13px] font-extrabold leading-[normal] text-t2">겸직</p>
                 <p className="mt-[2px] text-[12px] leading-[normal] text-t4">
-                  {isField
-                    ? "사무실 관리자 업무도 함께 수행합니다"
-                    : "현장 업무도 함께 수행합니다"}
+                  현장 업무도 함께 수행합니다
                 </p>
               </div>
               <Controller
@@ -422,6 +422,7 @@ export function AccountFormModal({
                 )}
               />
             </div>
+            )}
 
             {!isField && (
               <div>

@@ -220,12 +220,16 @@ function MessengerFabContent() {
   );
   const dynamic = useAlimtalkDynamicVariables({
     template: ui.channel === "alim" ? selectedTemplate : null,
+    body,
     recipients: normalizedRecipients,
     buildingNames: dynamicBuildingNames,
     period: billPeriod,
     noticeId,
   });
-  const dynamicActive = ui.channel === "alim" && dynamic.kind !== null;
+  // 문자(수기 작성)도 본문에 관리비 변수(#{청구금액} 등)가 있으면 세대별 금액을 채운다(2026-10-18).
+  const dynamicActive = dynamic.kind !== null && (ui.channel === "alim" || dynamic.kind.type === "bill");
+  /** 승인 관리비 고지 템플릿(카카오 고지 기록 대상). 수기 작성·일반 템플릿은 고지 기록을 남기지 않는다. */
+  const billNoticeTemplate = dynamic.kind?.type === "bill" && dynamic.kind.billKind !== null;
   const enrichedRecipients = useMemo<MessageRecipient[]>(
     () =>
       normalizedRecipients.map((recipient) => {
@@ -562,7 +566,7 @@ function MessengerFabContent() {
         try {
           if (dynamic.kind?.type === "notice" && noticeId !== null) {
             await attachNoticeSendLog.mutateAsync({ logId: result.logId, noticeId });
-          } else if (dynamic.kind?.type === "bill" && result.status !== "scheduled") {
+          } else if (billNoticeTemplate && result.status !== "scheduled") {
             const unitsByBuilding = new Map<number, Set<number>>();
             for (const recipient of finalRecipients) {
               const { buildingId, unitId } = recipient.ref ?? {};

@@ -33,7 +33,9 @@ export function LoginForm({ initialError }: { initialError?: string }) {
   }, [reset]);
 
   useEffect(() => {
-    if (initialError) setError("root.server", { message: initialError });
+    if (!initialError) return;
+    setError("root.server", { message: initialError });
+    toast.info(initialError);
   }, [initialError, setError]);
 
   const onSubmit = handleSubmit(async (values) => {

@@ -1,12 +1,21 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { LoginForm } from "./LoginForm";
+import { SESSION_SWITCHED_ERROR, SESSION_SWITCHED_MESSAGE } from "@/lib/auth/sessionSwitched";
 
 export const metadata: Metadata = {
   title: "HQ 로그인 · 관리비서",
 };
 
-export default function PlatformAdminLoginPage() {
+export default async function PlatformAdminLoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string | string[] }>;
+}) {
+  const params = await searchParams;
+  const error = Array.isArray(params.error) ? params.error[0] : params.error;
+  // 다른 역할 로그인으로 세션을 끊고 보낸 경우 안내 문구를 띄운다.
+  const initialError = error === SESSION_SWITCHED_ERROR ? SESSION_SWITCHED_MESSAGE : undefined;
   return (
     <main className="flex min-h-screen flex-col bg-white lg:flex-row">
       <section className="relative flex min-h-[300px] flex-col justify-between overflow-hidden bg-[linear-gradient(160deg,#0E1E33_0%,#16375A_58%,#1F4E7A_100%)] px-8 py-9 text-white sm:px-12 sm:py-11 lg:min-h-screen lg:flex-1 lg:px-16 lg:py-14">
@@ -44,7 +53,7 @@ export default function PlatformAdminLoginPage() {
             <p className="mt-1.5 text-[13.5px] font-medium text-t3">본사 계정으로 로그인해 주세요.</p>
           </header>
 
-          <LoginForm />
+          <LoginForm initialError={initialError} />
 
           <p className="mt-5 text-center text-xs font-medium leading-5 text-t4">
             본사 관리자만 접근할 수 있는 콘솔입니다.<br />모든 로그인과 대리 접속은 감사 로그에 기록됩니다.

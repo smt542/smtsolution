@@ -18,7 +18,7 @@ import { Button, Input } from "@/components/common";
 const fieldClass =
   "h-12 w-full rounded-[13px] border border-line bg-white px-3.5 text-[14.5px] font-medium text-t1 outline-none transition placeholder:text-t4 focus:border-blue focus:ring-[3px] focus:ring-blue-t";
 
-export function LoginForm() {
+export function LoginForm({ initialError }: { initialError?: string }) {
   const queryClient = useQueryClient();
   const [showPassword, setShowPassword] = useState(false);
   const {
@@ -38,6 +38,12 @@ export function LoginForm() {
     const remembered = readRememberedId("platform");
     if (remembered) reset({ username: remembered, password: "", autoLogin: true });
   }, [reset]);
+
+  useEffect(() => {
+    if (!initialError) return;
+    setError("root.server", { message: initialError });
+    toast.info(initialError);
+  }, [initialError, setError]);
 
   const submit = async (values: LoginFormValues) => {
     try {

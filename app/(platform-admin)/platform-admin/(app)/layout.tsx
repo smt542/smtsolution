@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { requirePersona } from "@/lib/auth/requirePersona";
 import { requirePasswordChanged } from "@/lib/auth/requirePasswordChanged";
 import { AccountActiveGuard } from "@/components/AccountActiveGuard";
+import { EntryPersonaWatcher } from "@/components/EntryPersonaWatcher";
 import { ConfirmProvider } from "@/components/common/ConfirmProvider";
 import { PlatformAdminGuard } from "../../_components/PlatformAdminGuard";
 import { PlatformShell } from "../../_components/PlatformShell";
@@ -15,6 +16,7 @@ export default async function PlatformAdminGuardedLayout({ children }: { childre
   return (
     <>
       <AccountActiveGuard />
+      <EntryPersonaWatcher persona="platform_admin" />
       <PlatformAdminGuard>
         <PlatformShell>
           <ConfirmProvider>{children}</ConfirmProvider>

@@ -2,6 +2,7 @@ import type { SetAllCookies } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 
 import { ORG_SUSPENDED_ERROR } from "@/lib/auth/orgSuspended";
+import { SESSION_SWITCHED_ERROR } from "@/lib/auth/sessionSwitched";
 import { ENTRY_PATHS, hasEntryPersona, isEntryPersona, isOrgSuspended } from "@/lib/auth/requirePersona";
 import { createClient } from "@/lib/supabase/server";
 
@@ -26,11 +27,15 @@ export async function GET(request: Request) {
     Object.entries(cacheHeaders).forEach(([key, value]) => headers.set(key, value));
   });
   const respond = (path: string) => redirectTo(path, cookies, headers);
+  // 열려 있던 화면에서 세션이 바뀌어 보낸 경우(EntryPersonaWatcher) 로그인 화면에 재로그인 안내를 띄운다.
+  const loginPath = reason === SESSION_SWITCHED_ERROR
+    ? `${paths.login}?error=${SESSION_SWITCHED_ERROR}`
+    : paths.login;
 
   const {
     data: { user },
   } = await sb.auth.getUser();
-  if (!user) return respond(paths.login);
+  if (!user) return respond(loginPath);
 
   // 정지(계약 만료 포함) 테넌트 세션: 서버에서 다시 확인한 뒤에만 끊는다(쿼리만으로 로그아웃시키지 않음).
   if (reason === ORG_SUSPENDED_ERROR && (await isOrgSuspended(sb, to)) === true) {
@@ -48,7 +53,7 @@ export async function GET(request: Request) {
   const { error } = await sb.auth.signOut({ scope: "local" });
   // 실패하면 세션이 남는다. 그대로 로그인 화면으로 가면 proxy가 앱 안으로 되돌려 루프가 생기므로 중립 '/'.
   if (error) return respond("/");
-  return respond(paths.login);
+  return respond(loginPath);
 }
 
 // Amplify(SSR)에서 request.url은 내부 호스트라 절대 주소를 만들지 않고 상대 Location을 쓴다.

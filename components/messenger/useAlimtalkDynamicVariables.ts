@@ -27,6 +27,9 @@ import {
   type BillNoticeKind,
 } from "@/lib/messaging/billNotice";
 import type { MessageRecipient } from "@/lib/messaging/preset";
+import { extractVariables } from "@/lib/messaging/render";
+import { formatAccount, formatKrw, formatPeriodMonth, formatUnit } from "@/lib/messaging/vars";
+import { formatWon } from "@/lib/format/number";
 
 /**
  * 플로팅 메신저(빠른발송) 알림톡 — 팝빌 승인 템플릿별 수신자 변수 자동 채움(2026-10-14).
@@ -35,7 +38,8 @@ import type { MessageRecipient } from "@/lib/messaging/preset";
  *  · 신규 공지(공지 안내(신규)): 고른 공지의 제목(#{공지제목})을 넣고, 발송 직전에 공유 토큰으로 버튼 링크(#{버튼1})를 만든다.
  */
 export type AlimtalkDynamicKind =
-  | { type: "bill"; billKind: BillNoticeKind }
+  /** billKind null = 수기 작성·일반 템플릿 본문의 관리비 변수(세대별 고지 유형 그대로, 유형으로 제외하지 않음). */
+  | { type: "bill"; billKind: BillNoticeKind | null }
   | { type: "notice" }
   | null;
 
@@ -55,6 +59,21 @@ export function alimtalkDynamicKind(template: MessageTemplate | null): AlimtalkD
   if (billKind) return { type: "bill", billKind };
   if (/#\{\s*공지제목\s*\}/.test(template.body)) return { type: "notice" };
   return null;
+}
+
+/**
+ * 본문에 있으면 관리비 자동 채움을 켜는 변수(수기 작성·「관리비 고지서」 같은 일반 템플릿 — 2026-10-18).
+ * 승인 고지 템플릿 3종이 아니어도 고른 부과월의 부과 확정 내역으로 세대별 금액을 채운다.
+ */
+const BILL_BODY_VARIABLES = new Set([
+  "청구금액", "청구월", "당월관리비", "당월 총 관리비", "미납관리비", "미납금액", "이전 미납 관리비 총액",
+  "총납부금액", "총 납부해야할 금액", "납기일", "관리비 납부 기한일", "납부마감일", "출금예정일",
+  "관리비기간", "관리비 정산 기간", "고객번호", "납부계좌",
+]);
+
+/** 본문(수기·일반 템플릿)이 관리비 변수를 쓰는지. */
+export function bodyUsesBillVariables(body: string): boolean {
+  return extractVariables(body).some((name) => BILL_BODY_VARIABLES.has(name));
 }
 
 /** 자동 채움 변수 이름(입력칸을 띄우지 않는다). */
@@ -81,20 +100,30 @@ export interface AlimtalkDynamicResult {
 
 export function useAlimtalkDynamicVariables({
   template,
+  body = "",
   recipients,
   buildingNames,
   period,
   noticeId,
 }: {
   template: MessageTemplate | null;
+  /** 작성 중인 본문 — 승인 고지 템플릿이 아니어도 관리비 변수가 있으면 세대별 금액을 채운다. */
+  body?: string;
   recipients: MessageRecipient[];
   buildingNames: Map<number, string>;
   /** 관리비 고지 부과월 'YYYY-MM-01' */
   period: string;
   noticeId: number | null;
 }): AlimtalkDynamicResult {
-  const kind = alimtalkDynamicKind(template);
+  const manualBill = bodyUsesBillVariables(body);
+  const kind = useMemo<AlimtalkDynamicKind>(
+    () => alimtalkDynamicKind(template) ?? (manualBill ? { type: "bill", billKind: null } : null),
+    [manualBill, template],
+  );
   const isBill = kind?.type === "bill";
+  /** 수기 작성·일반 템플릿의 관리비 변수(승인 고지 템플릿 아님). */
+  const isManualBill = kind?.type === "bill" && kind.billKind === null;
+  const usesDetailLink = !isManualBill || extractVariables(body).includes("상세경로");
   const isNotice = kind?.type === "notice";
   const { data: me } = useMe();
   const { data: orgContact, isLoading: orgContactLoading } = useOrgContact();
@@ -160,6 +189,7 @@ export function useAlimtalkDynamicVariables({
 
   const officePhone = orgContact?.phone?.trim() ?? "";
   const lateFeeMerge = setupConfigQuery.data?.lateFeeMerge ?? DEFAULT_BILL_PRINT_OPTIONS.lateFeeMerge;
+  const payAccount = formatAccount(setupConfigQuery.data?.mgmtBank1, setupConfigQuery.data?.mgmtAcct1);
   const notices = useMemo(
     () => (noticesQuery.data?.items ?? []).map((notice) => ({ id: notice.id, title: notice.title })),
     [noticesQuery.data],
@@ -193,11 +223,12 @@ export function useAlimtalkDynamicVariables({
         const customerNo = billNoticeCustomerNo(target?.payerNo);
         const dueDate = billNoticeDate(dueDates.get(unitId));
         const unitKind = target ? billNoticeKind(target) : null;
+        // 수기 작성은 세대 고지 유형으로 제외하지 않고, 고객번호가 없으면 그 칸만 비운다.
         const reason = !target || target.occupancyId === null || target.occupancyId !== recipient.ref?.occupancyId
           ? "이 달 부과 확정 내역 없음"
-          : unitKind !== kind.billKind
+          : kind.billKind !== null && unitKind !== kind.billKind
             ? `고지 유형이 ${BILL_NOTICE_KIND_LABELS[unitKind as BillNoticeKind]} 세대`
-            : !customerNo
+            : kind.billKind !== null && !customerNo
               ? "납부자번호 없음"
               : !document || !dueDate
                 ? "고지서 금액·납부 마감일 없음"
@@ -206,19 +237,39 @@ export function useAlimtalkDynamicVariables({
           excluded.set(unitId, reason);
           continue;
         }
-        variables.set(unitId, billNoticeVariables({
-          kind: kind.billKind,
+        const amounts = billNoticeAmounts(document!, lateFeeMerge);
+        const base = billNoticeVariables({
+          kind: kind.billKind ?? (unitKind as BillNoticeKind),
           buildingName: buildingNames.get(buildingId) ?? "",
           unitNo: target!.unitNo,
           dong: target!.dong,
           chargePeriod,
           dueDate: dueDate as string,
-          customerNo: customerNo as string,
-          amounts: billNoticeAmounts(document!, lateFeeMerge),
+          customerNo: customerNo ?? "",
+          amounts,
           officePhone,
           // 상세경로는 발송 직전에 서명 발급한다(resolveLinks).
           detailPath: "",
-        }));
+        });
+        variables.set(unitId, kind.billKind !== null ? base : {
+          ...base,
+          // 기본 문자·알림톡 템플릿 변수명(AUTO_VARS). 템플릿이 「#{청구금액}원」처럼 단위를 붙여 쓰는 값은 숫자만 넣는다.
+          세대: formatUnit(target!.dong, target!.unitNo),
+          청구월: formatPeriodMonth(period),
+          "관리비 정산 기간": chargePeriod,
+          납기일: dueDate as string,
+          "관리비 납부 기한일": dueDate as string,
+          납부마감일: dueDate as string,
+          출금예정일: dueDate as string,
+          "당월 총 관리비": formatWon(amounts.month),
+          청구금액: formatKrw(amounts.total),
+          미납금액: formatKrw(amounts.unpaid),
+          "이전 미납 관리비 총액": formatWon(amounts.unpaid),
+          "총 납부해야할 금액": formatWon(amounts.total),
+          납부계좌: payAccount,
+          관리사무소연락처: officePhone,
+          "관리실 번호": officePhone,
+        });
       }
     });
     // 입주자 외 수신자(건물주·청소 등)는 고지 대상이 아니다.
@@ -231,14 +282,15 @@ export function useAlimtalkDynamicVariables({
     return { variablesByUnit: variables, excludedByUnit: excluded };
   }, [
     buildingIds, buildingNames, documentQueries.data, dueDatesQuery.data, isBill, kind,
-    lateFeeMerge, officePhone, period, periodSettingQueries.data, recipients, targetQueries.data, tenantRecipients,
+    lateFeeMerge, officePhone, payAccount, period, periodSettingQueries.data, recipients, targetQueries.data, tenantRecipients,
   ]);
   const commonVariables = useMemo<Record<string, string>>(
     (): Record<string, string> => (isNotice && selectedNotice ? { 공지제목: selectedNotice.title } : {}),
     [isNotice, selectedNotice],
   );
 
-  const blocker = isBill
+  // 관리실 연락처 없음은 승인 고지 템플릿만 막는다(수기 작성은 그 칸만 빈 값).
+  const blocker = isBill && !isManualBill
     ? (!orgContactLoading && !officePhone
       ? "관리실 연락처(회사 대표 전화)가 없어 보낼 수 없어요. 회사 정보에 대표 전화를 등록해 주세요."
       : null)
@@ -249,7 +301,7 @@ export function useAlimtalkDynamicVariables({
   const resolveLinks = useCallback(async (unitIds: number[]) => {
     const links = new Map<number, Record<string, string>>();
     let common: Record<string, string> = {};
-    if (isBill && unitIds.length > 0) {
+    if (isBill && usesDetailLink && unitIds.length > 0) {
       const signed = await signBillUrls.mutateAsync({ unitIds, period });
       for (const link of signed) {
         links.set(link.unitId, {
@@ -269,7 +321,7 @@ export function useAlimtalkDynamicVariables({
       common = { 버튼1: `share/notice/${token}` };
     }
     return { common, byUnit: links };
-  }, [isBill, isNotice, mintShareToken, noticeId, period, signBillUrls]);
+  }, [isBill, isNotice, mintShareToken, noticeId, period, signBillUrls, usesDetailLink]);
 
   return {
     kind,

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { LoginForm } from "./components/LoginForm";
 import { ORG_SUSPENDED_ERROR, ORG_SUSPENDED_MESSAGE } from "@/lib/auth/orgSuspended";
+import { SESSION_SWITCHED_ERROR, SESSION_SWITCHED_MESSAGE } from "@/lib/auth/sessionSwitched";
 
 export default async function LoginPage({
   searchParams,
@@ -9,8 +10,12 @@ export default async function LoginPage({
 }) {
   const params = await searchParams;
   const error = Array.isArray(params.error) ? params.error[0] : params.error;
-  // 앱 게이트가 정지 테넌트 세션을 끊고 보낸 경우 안내 문구를 띄운다.
-  const initialError = error === ORG_SUSPENDED_ERROR ? ORG_SUSPENDED_MESSAGE : undefined;
+  // 앱 게이트가 세션을 끊고 보낸 경우(정지 테넌트·다른 역할 로그인) 안내 문구를 띄운다.
+  const initialError = error === ORG_SUSPENDED_ERROR
+    ? ORG_SUSPENDED_MESSAGE
+    : error === SESSION_SWITCHED_ERROR
+      ? SESSION_SWITCHED_MESSAGE
+      : undefined;
 
   return (
     <div className="flex min-h-screen bg-white">

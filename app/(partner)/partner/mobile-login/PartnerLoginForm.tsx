@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { Input } from "@/components/common";
 import { useAsyncAction } from "@/hooks/common";
+import { appToast as toast } from "@/hooks/common/useAppToast";
 
 import { partnerLoginClasses as styles } from "./loginClasses";
 import { PartnerButton } from "../../_components/PartnerButton";
@@ -18,6 +19,10 @@ export function PartnerLoginForm({ children, initialError }: { children: ReactNo
   const [auto, setAuto] = useState(false);
   const [err, setErr] = useState(initialError ?? "");
   const loginAction = useAsyncAction();
+
+  useEffect(() => {
+    if (initialError) toast.info(initialError);
+  }, [initialError]);
 
   useEffect(() => {
     try {
