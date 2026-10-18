@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import ElectricityUtilitiesWorkspace from "./ElectricityUtilitiesWorkspace";
 import GasUtilitiesWorkspace from "./GasUtilitiesWorkspace";
 import { WaterUtilitiesScreen } from "./WaterUtilitiesScreen";
@@ -15,5 +16,9 @@ export default async function UtilitiesPage({
   if (utilityType === "water") {
     return <WaterUtilitiesScreen initialType="water" />;
   }
-  return <GasUtilitiesWorkspace />;
+  if (utilityType === "gas") {
+    return <GasUtilitiesWorkspace />;
+  }
+  // type 없이(공과금 관리 메뉴·예전 주소) 들어오면 기본 화면인 가스로 보내 주소와 화면을 맞춘다.
+  redirect("/staff/utilities?type=gas");
 }

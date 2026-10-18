@@ -21,6 +21,8 @@ interface GasReadingsTableProps {
   chargeStartDate: string;
   chargeEndDate: string;
   onDraftChange: (unitId: number, patch: Partial<GasUtilityDraft>) => void;
+  /** 수정 중 고객번호 부과액을 초안으로 다시 배분한 호실 부과액(unitId → 원). 수동입력이 우선한다. */
+  chargeByUnitId?: Map<number, number>;
 }
 
 const TABLE_WIDTH = 1922;
@@ -102,6 +104,7 @@ export function GasReadingsTable({
   chargeStartDate,
   chargeEndDate,
   onDraftChange,
+  chargeByUnitId,
 }: GasReadingsTableProps) {
   const chargeBasis = `${chargeStartDate.replaceAll("-", ".")} ~ ${chargeEndDate.replaceAll("-", ".")}`;
   const preparedRows: GasReadingsGridRow[] = rows.map((row) => {
@@ -128,7 +131,8 @@ export function GasReadingsTable({
     const liveCharge = usage === null || row.resolvedUnitPrice === null
       ? null
       : unitChargeWithDiscount(usage, row.resolvedUnitPrice, row.discountAmount ?? 0);
-    const charge = manual ?? (editing ? liveCharge ?? row.automaticCharge : row.automaticCharge ?? liveCharge);
+    const allocated = chargeByUnitId?.get(row.unitId);
+    const charge = manual ?? allocated ?? (editing ? liveCharge ?? row.automaticCharge : row.automaticCharge ?? liveCharge);
     const vacant = row.occupancyStatus === "vacant" || row.occupancyId === null;
     const vacantUsage = vacant && (usage ?? 0) > 0;
     const movingOut = row.occupancyStatus === "moving_out";

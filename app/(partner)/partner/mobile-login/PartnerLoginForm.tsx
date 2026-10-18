@@ -11,12 +11,12 @@ import { PartnerCheckbox } from "../../_components/PartnerCheckbox";
 
 const AUTO_KEY = "erp_partner_login_auto";
 
-export function PartnerLoginForm({ children }: { children: ReactNode }) {
+export function PartnerLoginForm({ children, initialError }: { children: ReactNode; initialError?: string }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [auto, setAuto] = useState(false);
-  const [err, setErr] = useState("");
+  const [err, setErr] = useState(initialError ?? "");
   const loginAction = useAsyncAction();
 
   useEffect(() => {

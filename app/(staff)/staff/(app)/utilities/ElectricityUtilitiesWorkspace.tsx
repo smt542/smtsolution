@@ -27,6 +27,7 @@ import {
   type UtilityUnitRow,
 } from "@/hooks/reactquery/utilities";
 import { hasModule } from "@/lib/auth/permissions";
+import { currentPeriod } from "@/lib/billing/period";
 import { defaultBillingDates } from "./components/BillingPeriodBar";
 import { CarryOverDialog } from "./components/CarryOverDialog";
 import { groupRowsByRegisteredCustomer } from "./components/customerNumberGroups";
@@ -63,8 +64,6 @@ import {
   usageFromReadings,
 } from "./components/UtilityLock";
 
-const INITIAL_PERIOD = "2026-07-01";
-
 /** 공실 호실(전기 정책: 당월 지침 입력 비활성) — ElectricityReadingsTable 의 vacant 와 같은 기준. */
 function isVacantRow(row: UtilityUnitRow): boolean {
   return row.occupancyStatus === "vacant" || row.occupancyId === null;
@@ -85,7 +84,8 @@ export default function ElectricityUtilitiesWorkspace() {
   const { data: me } = useMe();
   const buildingsQuery = useBuildings();
   const [buildingId, setBuildingId] = useState<number | null>(null);
-  const [period, setPeriod] = useState(INITIAL_PERIOD);
+  // 최초 월분은 이번 달.
+  const [period, setPeriod] = useState(() => currentPeriod());
   const [utilityType, setUtilityType] = useState<UtilityType>("electricity");
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState(false);

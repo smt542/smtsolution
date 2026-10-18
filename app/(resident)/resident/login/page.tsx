@@ -3,7 +3,8 @@ import type { Viewport } from "next";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { hasEntryPersona } from "@/lib/auth/requirePersona";
+import { hasEntryPersona, isOrgSuspended } from "@/lib/auth/requirePersona";
+import { ORG_SUSPENDED_ERROR } from "@/lib/auth/orgSuspended";
 import ResidentLoginAction from "./ResidentLoginAction";
 import { loginClasses as styles } from "./loginClasses";
 
@@ -30,6 +31,10 @@ export default async function ResidentLoginPage({
     const pending = Array.isArray(pendingRows) ? pendingRows[0] : pendingRows;
     if (link) redirect("/resident/home");
     if (pending) redirect("/resident/pending");
+    // 정지(계약 만료 포함) 테넌트 세입자는 본인인증으로 보내지 않고 세션을 끊어 안내한다.
+    if ((await isOrgSuspended(supabase, "resident")) === true) {
+      redirect(`/api/auth/switch-entry?to=resident&reason=${ORG_SUSPENDED_ERROR}`);
+    }
     redirect("/resident/auth");
   }
 

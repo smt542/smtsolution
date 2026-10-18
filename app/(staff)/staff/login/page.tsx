@@ -1,7 +1,17 @@
 import Image from "next/image";
 import { LoginForm } from "./components/LoginForm";
+import { ORG_SUSPENDED_ERROR, ORG_SUSPENDED_MESSAGE } from "@/lib/auth/orgSuspended";
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string | string[] }>;
+}) {
+  const params = await searchParams;
+  const error = Array.isArray(params.error) ? params.error[0] : params.error;
+  // 앱 게이트가 정지 테넌트 세션을 끊고 보낸 경우 안내 문구를 띄운다.
+  const initialError = error === ORG_SUSPENDED_ERROR ? ORG_SUSPENDED_MESSAGE : undefined;
+
   return (
     <div className="flex min-h-screen bg-white">
       {/* 좌측 브랜드 히어로 (데스크톱 전용) */}
@@ -31,7 +41,7 @@ export default function LoginPage() {
             <h1 className="text-2xl font-extrabold tracking-[-0.02em]">로그인</h1>
             <p className="mt-1.5 text-[13.5px] font-medium text-t3">발급받은 계정으로 로그인해 주세요.</p>
           </div>
-          <LoginForm />
+          <LoginForm initialError={initialError} />
           <p className="mt-5 text-center text-xs font-medium leading-[1.7] text-t4">
             계정 문의는 마스터 관리자에게 요청해 주세요.<br />문의 : 042-632-8770
           </p>

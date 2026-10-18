@@ -2,6 +2,7 @@
 // 서버 컴포넌트 게이트와 app/api/auth/switch-entry가 같이 쓴다.
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { ORG_SUSPENDED_ERROR } from "@/lib/auth/orgSuspended";
 
 const PREDICATE = {
   manager_staff: "current_user_is_manager_staff",
@@ -45,9 +46,33 @@ export async function hasEntryPersona(
   return error ? null : data === true;
 }
 
+/**
+ * 이 세션의 테넌트가 정지(계약 만료 포함)·해지됐나. 직원=get_my_context의 org_status,
+ * 입주민=resident_org_suspended(운영 조직 세대가 없고 정지 조직에만 묶임). 조회 실패는 null.
+ */
+export async function isOrgSuspended(
+  sb: ServerClient,
+  persona: EntryPersona,
+): Promise<boolean | null> {
+  if (persona === "platform_admin") return false;
+  if (persona === "resident") {
+    const { data, error } = await sb.rpc("resident_org_suspended");
+    return error ? null : data === true;
+  }
+  const { data, error } = await sb.rpc("get_my_context");
+  if (error) return null;
+  const row = Array.isArray(data) ? data[0] : data;
+  return row ? row.org_status !== "active" : false;
+}
+
 /** 역할이 안 맞는 세션을 이 브라우저에서 끊고 그 영역 로그인 화면으로 보내는 경로. */
 function switchEntryPath(persona: EntryPersona): string {
   return `/api/auth/switch-entry?to=${persona}`;
+}
+
+/** 정지 테넌트 세션을 끊고 그 영역 로그인 화면(안내 문구 포함)으로 보내는 경로. */
+function orgSuspendedPath(persona: EntryPersona): string {
+  return `/api/auth/switch-entry?to=${persona}&reason=${ORG_SUSPENDED_ERROR}`;
 }
 
 /**
@@ -61,9 +86,10 @@ export async function requirePersona(persona: WorkforcePersona, loginPath: strin
   } = await sb.auth.getUser();
   if (!user) redirect(loginPath);
   const allowed = await hasEntryPersona(sb, persona, user.id);
-  if (allowed) return;
   if (allowed === null) redirect("/");
-  redirect(switchEntryPath(persona));
+  if (!allowed) redirect(switchEntryPath(persona));
+  // 로그인 후 테넌트가 정지(매일 KST 0시 계약 만료 정지 포함)되면 다음 화면 진입에서 세션을 끊는다.
+  if ((await isOrgSuspended(sb, persona)) === true) redirect(orgSuspendedPath(persona));
 }
 
 /**
@@ -83,5 +109,7 @@ export async function requireResidentLink(): Promise<void> {
   if ((await hasEntryPersona(sb, "resident", user.id)) === false) {
     redirect(switchEntryPath("resident"));
   }
+  // 세대가 정지 테넌트에만 묶였으면 본인인증으로 보내지 않고 세션을 끊는다.
+  if ((await isOrgSuspended(sb, "resident")) === true) redirect(orgSuspendedPath("resident"));
   redirect("/resident/verify");
 }

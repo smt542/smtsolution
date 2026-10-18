@@ -2,6 +2,7 @@ import type { CookieOptions, SetAllCookies } from "@supabase/ssr";
 import type { User } from "@supabase/supabase-js";
 import type { NextResponse } from "next/server";
 
+import { RESIDENT_ORG_SUSPENDED_MESSAGE } from "@/lib/auth/orgSuspended";
 import { normalizePhone } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -28,6 +29,14 @@ export type ResidentSessionResult = {
   destination: "/resident/home" | "/resident/pending" | "/resident/auth";
   applyTo(response: NextResponse): void;
 };
+
+/** 세입자 세대가 정지·해지 테넌트에만 묶여 로그인을 막을 때 던진다. */
+export class ResidentOrgSuspendedError extends Error {
+  constructor() {
+    super(RESIDENT_ORG_SUSPENDED_MESSAGE);
+    this.name = "ResidentOrgSuspendedError";
+  }
+}
 
 function mockPhone() {
   return `010${Math.floor(Math.random() * 100_000_000).toString().padStart(8, "0")}`;
@@ -168,6 +177,18 @@ export async function mintResidentSession(
   ]);
   const link = Array.isArray(linkRows) ? linkRows[0] : linkRows;
   const pending = Array.isArray(pendingRows) ? pendingRows[0] : pendingRows;
+
+  // 세대가 정지(계약 만료 포함)·해지 테넌트에만 묶였으면 세션을 끊고 로그인을 막는다.
+  if (!link && !pending) {
+    const { data: suspended, error: suspendedError } = await sessionClient.rpc("resident_org_suspended");
+    if (suspendedError) {
+      throw new Error("Unable to check the resident organization.");
+    }
+    if (suspended === true) {
+      await sessionClient.auth.signOut().catch(() => undefined);
+      throw new ResidentOrgSuspendedError();
+    }
+  }
   const destination = link
     ? "/resident/home" as const
     : pending

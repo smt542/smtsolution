@@ -16,8 +16,11 @@ import {
   useSaveBillingPeriod,
   useSaveFixedValues,
   useSaveMeterReadings,
+  useSaveUtilityCustomerBills,
+  useUtilityCustomerBills,
   useUtilityRows,
   type FixedValueEntry,
+  type UtilityAllocationResult,
   type UtilityUnitRow,
 } from "@/hooks/reactquery/utilities";
 import { hasModule } from "@/lib/auth/permissions";
@@ -36,11 +39,20 @@ import { GasWorkspaceHeader } from "./components/gas/GasWorkspaceHeader";
 import type { GasUtilityDraft } from "./components/gas/types";
 import { MeterLedgerModal } from "./components/MeterLedgerModal";
 import { UtilityPeriodBarPlaceholder } from "./components/UtilityPeriodBarPlaceholder";
+import { groupRowsByRegisteredCustomer } from "./components/customerNumberGroups";
+import {
+  customerBillChanges,
+  draftBillTotal,
+  notifyAllocationMismatch,
+  previewCustomerAllocation,
+} from "./components/utilityAllocation";
 import {
   fixedChangesFor,
   groupFixedValues,
   initialLockDraft,
+  parseDraftNumber,
   usageEditedForRow,
+  usageFromReadings,
   usageTextFromReadings,
 } from "./components/UtilityLock";
 
@@ -67,6 +79,13 @@ function initialDraft(row: UtilityUnitRow, fixed: FixedValueEntry[] | undefined,
   };
 }
 
+/** 초안 기준 부과 량(고정 > 직접 입력 > 금월 − 전월, 가스는 음수 0 보정) — 호실표·요약표와 같은 계산. */
+function draftUsage(draft: GasUtilityDraft): number | null {
+  if (draft.usageLocked) return parseDraftNumber(draft.lockedUsage);
+  if (draft.usageEdited) return parseDraftNumber(draft.usage);
+  return usageFromReadings(draft.previousReading, draft.currentReading, true);
+}
+
 function SelectionPlaceholder({ compact = false }: { compact?: boolean }) {
   return (
     <div className={`flex items-center justify-center text-center ${compact ? "h-[150px]" : "min-h-0 flex-1"}`}>
@@ -82,12 +101,10 @@ export default function GasUtilitiesWorkspace() {
   const { data: me } = useMe();
   const buildingsQuery = useBuildings();
   const [buildingId, setBuildingId] = useState<number | null>(null);
-  // 최초 월분은 현재 날짜 기준 직전 달(1월이면 전년 12월).
+  // 최초 월분은 이번 달(수도·전기와 같음).
   const [initialPeriod] = useState(() => {
     const now = new Date();
-    return now.getMonth() === 0
-      ? { year: now.getFullYear() - 1, month: 12 }
-      : { year: now.getFullYear(), month: now.getMonth() };
+    return { year: now.getFullYear(), month: now.getMonth() + 1 };
   });
   const [year, setYear] = useState(initialPeriod.year);
   const [month, setMonth] = useState(initialPeriod.month);
@@ -98,6 +115,8 @@ export default function GasUtilitiesWorkspace() {
   const [drafts, setDrafts] = useState<Record<string, GasUtilityDraft>>({});
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const [carryOverOpen, setCarryOverOpen] = useState(false);
+  /** 고객번호 요약 부과액(고객번호×월 청구총액) 직접 입력값. key = `${scopeKey}:${customerNo}`. */
+  const [billDrafts, setBillDrafts] = useState<Record<string, string>>({});
 
   const period = `${year}-${pad(month)}-01`;
   const referenceDate = monthEnd(year, month);
@@ -107,6 +126,8 @@ export default function GasUtilitiesWorkspace() {
   const saveMeter = useSaveMeterReadings();
   const saveBillingPeriod = useSaveBillingPeriod();
   const saveFixedValues = useSaveFixedValues();
+  const customerBillsQuery = useUtilityCustomerBills(buildingId, "gas", period);
+  const saveCustomerBills = useSaveUtilityCustomerBills();
   const buildings = useMemo(() => buildingsQuery.data ?? [], [buildingsQuery.data]);
   const customerNumberQueries = useQueries({
     queries: buildings.map((building) => ({
@@ -139,9 +160,43 @@ export default function GasUtilitiesWorkspace() {
     ])),
     [drafts, fixedByUnit, period, rows, scopeKey],
   );
+  const scopedBillDrafts = useMemo<Record<string, string>>(
+    () => Object.fromEntries(Object.entries(billDrafts)
+      .filter(([key]) => key.startsWith(`${scopeKey}:`))
+      .map(([key, value]) => [key.slice(scopeKey.length + 1), value])),
+    [billDrafts, scopeKey],
+  );
+  // 수정 중에는 초안(량·수동입력·고객번호 부과액)으로 부과액을 즉시 다시 배분해 보여준다(수도·전기와 같음).
+  // 저장하면 서버(utility_allocate_period)가 같은 계산으로 확정한다.
+  const allocationPreview = useMemo(() => {
+    if (!editing) return null;
+    const bills = customerBillsQuery.data ?? [];
+    const groups = groupRowsByRegisteredCustomer(rows, bills.map((bill) => bill.customerNo));
+    const charges = new Map<number, number>();
+    const rates = new Map<string, number>();
+    bills.forEach((bill) => {
+      const entries = (groups.get(bill.customerNo) ?? []).map((row) => {
+        const draft = scopedDrafts[row.unitId];
+        return {
+          unitId: row.unitId,
+          usage: draftUsage(draft),
+          manual: parseDraftNumber(draft.manualCharge),
+          discount: row.discountAmount ?? 0,
+          // 가스 량은 음수를 0으로 보정하므로 확인 필요 행이 생기지 않는다.
+          needsReview: false,
+        };
+      });
+      const allocation = previewCustomerAllocation(draftBillTotal(scopedBillDrafts[bill.customerNo], bill.amount), entries);
+      if (!allocation) return;
+      rates.set(bill.customerNo, allocation.rate);
+      allocation.charges.forEach((charge, unitId) => charges.set(unitId, charge));
+    });
+    return { charges, rates };
+  }, [customerBillsQuery.data, editing, rows, scopedBillDrafts, scopedDrafts]);
   const isGasWorkspaceLoading =
     rowsQuery.isLoading || fixedValuesQuery.isLoading || billingPeriodQuery.isLoading;
-  const isGasSavePending = saveFixedValues.isPending || saveMeter.isPending || saveBillingPeriod.isPending;
+  const isGasSavePending = saveFixedValues.isPending || saveMeter.isPending || saveBillingPeriod.isPending
+    || saveCustomerBills.isPending;
   const rowsError = rowsQuery.error ?? fixedValuesQuery.error;
   const defaults = useMemo(() => defaultBillingDates(period), [period]);
   const useDefaultBasis = !isPrototypeFuturePeriod(period);
@@ -177,6 +232,9 @@ export default function GasUtilitiesWorkspace() {
     setDrafts((current) => Object.fromEntries(
       Object.entries(current).filter(([key]) => !key.startsWith(`${scopeKey}:`)),
     ));
+    setBillDrafts((current) => Object.fromEntries(
+      Object.entries(current).filter(([key]) => !key.startsWith(`${scopeKey}:`)),
+    ));
   };
 
   /** 고정한 호실은 지침이 비어도 저장해야 이 달 부과에 고정값이 들어간다. */
@@ -207,9 +265,18 @@ export default function GasUtilitiesWorkspace() {
       note: scopedDrafts[row.unitId].note.trim(),
     }));
 
-  /** 고정값 → 지침 순으로 저장해 서버(save_meter_readings)가 요금을 다시 계산하게 한다. */
-  const persistGasReadings = async () => {
+  /**
+   * 고정값 → 지침 → 고객번호 부과액 순으로 저장해 서버가 요금을 다시 계산·배분하게 한다.
+   * 청구총액은 지침 저장 뒤에 써야 그 달 호실 전체를 총액 기준으로 배분한다(수도·전기와 같음).
+   */
+  const persistGasReadings = async (): Promise<{ saved: number; allocation: UtilityAllocationResult[] } | null> => {
     if (buildingId === null) return null;
+    // 요약표 부과액 → 고객번호×월 청구총액(옵트인: 직접 고친 고객번호만). 잘못된 값이면 아무것도 저장하지 않는다.
+    const bills = customerBillChanges((customerBillsQuery.data ?? []).map((bill) => ({
+      customerNumberId: bill.customerNumberId,
+      savedAmount: bill.amount,
+      draft: scopedBillDrafts[bill.customerNo],
+    })));
     const fixedChanges = rows.flatMap((row) => fixedChangesFor(
       row.unitId,
       scopedDrafts[row.unitId],
@@ -221,9 +288,16 @@ export default function GasUtilitiesWorkspace() {
     if (fixedChanges.length > 0) {
       await saveFixedValues.mutateAsync({ buildingId, utilityType: "gas", period, changes: fixedChanges });
     }
-    return payloadRows.length > 0
-      ? saveMeter.mutateAsync({ buildingId, utilityType: "gas", period, rows: payloadRows })
-      : null;
+    let result: { saved: number; allocation: UtilityAllocationResult[] } | null = null;
+    if (payloadRows.length > 0) {
+      const meter = await saveMeter.mutateAsync({ buildingId, utilityType: "gas", period, rows: payloadRows });
+      result = { saved: meter.saved, allocation: meter.allocation };
+    }
+    if (bills.length > 0) {
+      const billResult = await saveCustomerBills.mutateAsync({ buildingId, utilityType: "gas", period, bills });
+      result = { saved: result?.saved ?? 0, allocation: billResult.allocation };
+    }
+    return result;
   };
 
   const calculate = async () => {
@@ -231,16 +305,19 @@ export default function GasUtilitiesWorkspace() {
       toast.error("부과기준일을 먼저 설정해 주세요.");
       return;
     }
-    if (rows.every((row) => !scopedDrafts[row.unitId].usageLocked && scopedDrafts[row.unitId].currentReading.trim() === "")) {
+    if (
+      Object.keys(scopedBillDrafts).length === 0
+      && rows.every((row) => !scopedDrafts[row.unitId].usageLocked && scopedDrafts[row.unitId].currentReading.trim() === "")
+    ) {
       toast.error("입력된 당월 지침이 없습니다.");
       return;
     }
     try {
       // 편집 상태·초안은 유지하고 서버 계산 요금만 다시 불러온다(수도 「계산」과 같은 방식).
-      await persistGasReadings();
-      toast.success("가스 요금을 계산했습니다.");
-    } catch {
-      toast.error("가스 요금을 계산하지 못했습니다.");
+      const result = await persistGasReadings();
+      if (!result || !notifyAllocationMismatch(result.allocation)) toast.success("가스 요금을 계산했습니다.");
+    } catch (error) {
+      toast.error(error, "가스 요금을 계산하지 못했습니다.");
     }
   };
 
@@ -267,12 +344,17 @@ export default function GasUtilitiesWorkspace() {
         }),
         persistGasReadings(),
       ]);
-      toast.success(meterResult
-        ? `${meterResult.saved}개 호실의 가스 지침과 부과기준을 저장했습니다.`
-        : "부과기준일을 저장했습니다.");
+      if (!meterResult || !notifyAllocationMismatch(meterResult.allocation)) {
+        toast.success(meterResult
+          ? meterResult.saved > 0
+            ? `${meterResult.saved}개 호실의 가스 지침과 부과기준을 저장했습니다.`
+            : "고객번호 부과액을 저장하고 호실별로 배분했습니다."
+          : "부과기준일을 저장했습니다.");
+      }
+      resetScopeDrafts();
       setEditing(false);
-    } catch {
-      toast.error("가스 지침과 부과기준을 저장하지 못했습니다.");
+    } catch (error) {
+      toast.error(error, "가스 지침과 부과기준을 저장하지 못했습니다.");
     }
   };
 
@@ -389,7 +471,19 @@ export default function GasUtilitiesWorkspace() {
               </section>
             ) : (
               <>
-                <GasAccountSummary rows={rows} drafts={scopedDrafts} editing={editing} customerNumbers={gasCustomerNumbers} />
+                <GasAccountSummary
+                  rows={rows}
+                  drafts={scopedDrafts}
+                  editing={editing}
+                  customerNumbers={gasCustomerNumbers}
+                  customerBills={customerBillsQuery.data}
+                  chargeDrafts={scopedBillDrafts}
+                  previewRates={allocationPreview?.rates}
+                  onChargeDraftChange={(customerNo, value) => setBillDrafts((current) => ({
+                    ...current,
+                    [`${scopeKey}:${customerNo}`]: value,
+                  }))}
+                />
                 {needsBasis ? (
                   <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[16px] bg-white shadow-card">
                     <div className="flex h-[49px] shrink-0 items-center border-b border-line2 px-[18px]">
@@ -411,6 +505,7 @@ export default function GasUtilitiesWorkspace() {
                     chargeStartDate={chargeStartDate}
                     chargeEndDate={chargeEndDate}
                     onDraftChange={updateDraft}
+                    chargeByUnitId={allocationPreview?.charges}
                   />
                 )}
               </>

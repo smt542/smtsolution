@@ -24,6 +24,7 @@ import {
   type UtilityUnitRow,
 } from "@/hooks/reactquery/utilities";
 import { hasModule } from "@/lib/auth/permissions";
+import { currentPeriod } from "@/lib/billing/period";
 import { BuildingSelectionRail } from "./components/BuildingSelectionRail";
 import {
   BillingBasisRequiredState,
@@ -110,7 +111,8 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
   const buildingsQuery = useBuildings();
   const [buildingId, setBuildingId] = useState<number | null>(null);
   const [utilityType, setUtilityType] = useState<UtilityType>(initialType);
-  const [referenceDate, setReferenceDate] = useState("2026-07-01");
+  // 최초 월분은 이번 달.
+  const [referenceDate, setReferenceDate] = useState(() => currentPeriod());
   const [drafts, setDrafts] = useState<Record<string, UtilityDraft>>({});
   const [selectedRow, setSelectedRow] = useState<UtilityUnitRow | null>(null);
   const [editing, setEditing] = useState(false);

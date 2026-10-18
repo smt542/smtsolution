@@ -10,12 +10,12 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { toAuthPassword } from "@/lib/auth/password";
+import { ORG_SUSPENDED_MESSAGE } from "@/lib/auth/orgSuspended";
 
 const INVALID = "아이디 또는 비밀번호가 올바르지 않습니다.";
 const RATE_LIMITED = "너무 많은 로그인 시도가 있었습니다. 잠시 후 다시 시도해 주세요.";
 const NO_ACCESS = "접근 권한이 없는 계정입니다.";
 const INACTIVE = "비활성화된 계정입니다. 관리자에게 문의해 주세요.";
-const SUSPENDED = "정지되었거나 사용할 수 없는 조직입니다.";
 const SERVER_ERROR = "로그인 처리 중 오류가 발생했습니다.";
 
 export async function POST(req: Request) {
@@ -115,7 +115,7 @@ async function handlePost(req: Request) {
     const caps = Array.isArray(row?.staff_capabilities) ? (row.staff_capabilities as string[]) : [];
     if (!row || !caps.includes("manager_staff")) return rejectAccess(NO_ACCESS);
     if (!row.is_active) return rejectAccess(INACTIVE);
-    if (row.org_status !== "active") return rejectAccess(SUSPENDED);
+    if (row.org_status !== "active") return rejectAccess(ORG_SUSPENDED_MESSAGE);
 
     const context = {
       orgId: row.org_id,

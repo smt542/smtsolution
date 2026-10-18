@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { BuildingCustomerNumber } from "@/hooks/reactquery/buildingCustomerNumbers";
 import type { UtilityConfirmation, UtilityUnitRow } from "@/hooks/reactquery/utilities";
 import { formatNumber } from "@/lib/format";
+import { groupRowsByRegisteredCustomer } from "../../utilities/components/customerNumberGroups";
 
 type UtilityTab = "water" | "electricity" | "common-electricity" | "gas";
 type SourceType = "water" | "electricity" | "gas";
@@ -154,20 +155,42 @@ const COMMON_COLUMNS: UtilityColumn<CommonElectricityRow>[] = [
   { key: "month", label: "월분", minW: 56, render: (row) => ({ text: row.billingBasis === "prev" ? "전월" : "당월" }) },
 ];
 
-function settingKindFor(tab: Exclude<UtilityTab, "common-electricity" | "electricity">): UtilitySettingKind {
-  return tab === "water" ? "water" : "gas";
+const SETTING_KIND: Record<SourceType, UtilitySettingKind> = { water: "water", electricity: "elec", gas: "gas" };
+
+function sumOrNull(rows: UtilityUnitRow[], value: (row: UtilityUnitRow) => number | null | undefined): number | null {
+  const values = rows.map(value).filter((item): item is number => item != null);
+  return values.length > 0 ? values.reduce((total, item) => total + item, 0) : null;
 }
 
-function settingForRow(
-  row: UtilityUnitRow,
-  kind: UtilitySettingKind,
-  customerNumbers: BuildingCustomerNumber[],
-): BuildingCustomerNumber | null {
-  const candidates = customerNumbers.filter((number) => number.kind === kind);
-  const direct = row.customerNumber
-    ? candidates.find((number) => number.customerNo === row.customerNumber)
-    : undefined;
-  return direct ?? (candidates.length === 1 ? candidates[0] : null);
+/**
+ * 고객번호 1개 행 = 그 번호에 묶인 호실 합계(공과금 화면 고객번호 집계와 같은 묶음 — 정책 3.3).
+ * 부과액은 호실별 수동 우선 부과액의 합이라 수동입력·자동부과를 함께 담는다.
+ */
+function aggregateRow(customerNumber: string, group: UtilityUnitRow[]): UtilityUnitRow {
+  const anchor = group[0];
+  return {
+    unitId: anchor?.unitId ?? -1,
+    unitNo: anchor?.unitNo ?? "",
+    dong: null,
+    occupancyId: null,
+    tenantName: null,
+    occupancyStatus: group.some((row) => row.occupancyStatus === "moving_out") ? "moving_out" : null,
+    moveInDate: null,
+    customerNumber,
+    meterNumber: null,
+    previousReading: sumOrNull(group, (row) => row.previousReading),
+    currentReading: sumOrNull(group, (row) => row.currentReading),
+    usage: sumOrNull(group, (row) => row.usage),
+    previousUsage: sumOrNull(group, (row) => row.previousUsage),
+    unitPrice: anchor?.unitPrice ?? null,
+    resolvedUnitPrice: anchor?.resolvedUnitPrice ?? null,
+    automaticCharge: sumOrNull(group, (row) => row.manualCharge ?? row.automaticCharge),
+    manualCharge: sumOrNull(group, (row) => row.manualCharge),
+    note: null,
+    processedAt: null,
+    discountType: null,
+    discountAmount: sumOrNull(group, (row) => row.discountAmount),
+  };
 }
 
 export function UtilitySummaryPanel({
@@ -181,18 +204,24 @@ export function UtilitySummaryPanel({
 }: UtilitySummaryPanelProps) {
   const [activeTab, setActiveTab] = useState<UtilityTab>("water");
   const normalTab = activeTab === "common-electricity" ? null : activeTab;
-  const previousByUnit = useMemo(
-    () => new Map((normalTab ? previousRows[normalTab] : []).map((row) => [row.unitId, row])),
-    [normalTab, previousRows],
-  );
-  const displayRows = useMemo(() => {
-    const kind = normalTab === "water" || normalTab === "gas" ? settingKindFor(normalTab) : null;
-    return (normalTab ? rows[normalTab] : []).map((row) => ({
-      current: row,
-      previous: previousByUnit.get(row.unitId),
-      billingBasis: kind ? settingForRow(row, kind, customerNumbers)?.billingBasis ?? null : null,
-    }));
-  }, [customerNumbers, normalTab, previousByUnit, rows]);
+  // 행 = 건물 부가정보에 등록된 고객번호(정렬순). 호실 계량기 고객번호는 등록 번호에 묶을 때만 쓴다.
+  const displayRows = useMemo<UtilityDisplayRow[]>(() => {
+    if (!normalTab) return [];
+    const settings = customerNumbers
+      .filter((number) => number.kind === SETTING_KIND[normalTab])
+      .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
+    const registered = settings.map((number) => number.customerNo);
+    const current = groupRowsByRegisteredCustomer(rows[normalTab], registered);
+    const previous = groupRowsByRegisteredCustomer(previousRows[normalTab], registered);
+    return settings.map((setting) => {
+      const previousGroup = previous.get(setting.customerNo) ?? [];
+      return {
+        current: aggregateRow(setting.customerNo, current.get(setting.customerNo) ?? []),
+        previous: previousGroup.length > 0 ? aggregateRow(setting.customerNo, previousGroup) : undefined,
+        billingBasis: setting.billingBasis,
+      };
+    });
+  }, [customerNumbers, normalTab, previousRows, rows]);
   const commonRows = useMemo<CommonElectricityRow[]>(
     () => customerNumbers
       .filter((number) => number.kind === "common_elec")
@@ -203,7 +232,7 @@ export function UtilitySummaryPanel({
   const confirmation = normalTab ? confirmations[normalTab] : null;
   const isActiveUtilityLoading = activeTab === "common-electricity"
     ? customerNumbersLoading
-    : loading[activeTab];
+    : loading[activeTab] || customerNumbersLoading;
   const normalColumns = activeTab === "common-electricity" ? null : COLUMNS[activeTab];
   const columns = normalColumns ?? COMMON_COLUMNS;
   const hasRows = activeTab === "common-electricity" ? commonRows.length > 0 : displayRows.length > 0;
@@ -297,7 +326,7 @@ export function UtilitySummaryPanel({
               ))
             ) : (
               displayRows.map((row, index) => (
-                <tr key={row.current.unitId} className="cursor-pointer text-t1 hover:bg-row-hover">
+                <tr key={row.current.customerNumber ?? index} className="cursor-pointer text-t1 hover:bg-row-hover">
                   {normalColumns!.map((col) => (
                     <td
                       key={col.key}

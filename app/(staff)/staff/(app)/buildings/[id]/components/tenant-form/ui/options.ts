@@ -6,7 +6,7 @@ export const ynOptions: Opt[] = [
   { value: "Y", label: "Y" },
   { value: "N", label: "N" },
 ];
-// 연체료·단수 출력 여부 (원본: X / O, 기본 X) — 값 의미는 Y=on/N=off로 동일
+// 연체료·단수 출력 여부 (원본: X / O, 기본 O) — 값 의미는 Y=on/N=off로 동일
 export const oxOptions: Opt[] = [
   { value: "N", label: "X" },
   { value: "Y", label: "O" },

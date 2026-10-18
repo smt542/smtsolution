@@ -1,7 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 import { normalizePhone } from "@/lib/format";
-import { mintResidentSession } from "@/lib/resident/session";
+import { ORG_SUSPENDED_ERROR } from "@/lib/auth/orgSuspended";
+import { mintResidentSession, ResidentOrgSuspendedError } from "@/lib/resident/session";
 
 const KAKAO_TOKEN_URL = "https://kauth.kakao.com/oauth/token";
 const KAKAO_USER_URL = "https://kapi.kakao.com/v2/user/me";
@@ -155,7 +156,10 @@ export async function GET(request: NextRequest) {
     session.applyTo(response);
     response.headers.set("Cache-Control", "private, no-store");
     return response;
-  } catch {
+  } catch (error) {
+    if (error instanceof ResidentOrgSuspendedError) {
+      return errorRedirect(request, ORG_SUSPENDED_ERROR);
+    }
     return errorRedirect(request, "session_failed");
   }
 }

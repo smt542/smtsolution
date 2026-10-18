@@ -10,6 +10,7 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { toAuthPassword } from "@/lib/auth/password";
+import { ORG_SUSPENDED_MESSAGE } from "@/lib/auth/orgSuspended";
 
 // 현장(field) 계정 유형. 이 유형만 파트너 모바일 앱에 로그인할 수 있다.
 const FIELD_TYPES = ["field_staff", "support_staff"];
@@ -23,8 +24,8 @@ const RATE_LIMITED = "너무 많은 로그인 시도가 있었습니다. 잠시 
 export async function POST(req: Request) {
   const startedAt = Date.now();
   const res = await handlePost(req);
-  // 실패(401) 응답만 타이밍 평탄화 — 아이디 존재 여부 오라클 완화
-  if (res.status === 401) await equalizeLoginTiming(startedAt);
+  // 인증 실패(401)·정지 테넌트(403) 응답 타이밍 평탄화 — 아이디 존재·비밀번호 유효 여부 오라클 완화
+  if (res.status === 401 || res.status === 403) await equalizeLoginTiming(startedAt);
   return res;
 }
 
@@ -98,6 +99,15 @@ async function handlePost(req: Request) {
       password: toAuthPassword(password),
     });
     if (!signErr && sess.session) {
+      // 정지(계약 만료 포함)·해지 테넌트의 현장 관리자는 사무실 관리자와 함께 차단한다.
+      const { data: ctxData, error: ctxErr } = await sessionClient.rpc("get_my_context");
+      const ctx = Array.isArray(ctxData) ? ctxData[0] : ctxData;
+      if (ctxErr || !ctx || ctx.org_status !== "active") {
+        await sessionClient.auth.signOut().catch(() => undefined);
+        return ctxErr
+          ? NextResponse.json({ error: "로그인 처리 중 오류가 발생했습니다." }, { status: 500 })
+          : NextResponse.json({ error: ORG_SUSPENDED_MESSAGE }, { status: 403 });
+      }
       await recordLoginSuccess(admin, { ip, username, userId: uid });
       return NextResponse.json({ userId: uid });
     }

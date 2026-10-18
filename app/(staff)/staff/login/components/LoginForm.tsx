@@ -16,7 +16,7 @@ import { Button, Input } from "@/components/common";
 
 const fieldBase =
   "h-12 rounded-[13px] border border-line bg-white text-[14.5px] font-medium text-t1 placeholder:text-[#757575] outline-none transition focus:border-[#14A497] focus:ring-[3px] focus:ring-blue-t";
-export function LoginForm() {
+export function LoginForm({ initialError }: { initialError?: string }) {
   const login = useLogin();
   const [showPw, setShowPw] = useState(false);
   const { register, handleSubmit, setError, reset, formState: { errors, isSubmitting } } = useForm<LoginFormInput, unknown, LoginFormValues>({
@@ -31,6 +31,10 @@ export function LoginForm() {
     const remembered = readRememberedId("staff");
     if (remembered) reset({ username: remembered, password: "", autoLogin: true });
   }, [reset]);
+
+  useEffect(() => {
+    if (initialError) setError("root.server", { message: initialError });
+  }, [initialError, setError]);
 
   const onSubmit = handleSubmit(async (values) => {
     try {

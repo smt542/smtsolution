@@ -75,8 +75,9 @@ const emptyBilling = (): BillingValue => ({
   transferMethod: "giro",
   cmsMemberNo: "",
   cmsContractNo: "",
-  lateFeeEnabled: false,
-  singlePrint: false,
+  // 연체료 부과·단수 출력 기본 O(DB 기본값·공실 초기화와 동일).
+  lateFeeEnabled: true,
+  singlePrint: true,
   billingNote: "",
 });
 
@@ -260,8 +261,8 @@ export function TenantForm({
       transferMethod: occupancy?.transferMethod ?? "giro",
       cmsMemberNo: occupancy?.cmsMemberNo ?? "",
       cmsContractNo: occupancy?.cmsContractNo ?? "",
-      lateFeeEnabled: occupancy?.lateFeeEnabled ?? false,
-      singlePrint: occupancy?.singlePrint ?? false,
+      lateFeeEnabled: occupancy?.lateFeeEnabled ?? true,
+      singlePrint: occupancy?.singlePrint ?? true,
       billingNote: occupancy?.billingNote ?? "",
     });
     setUtility({

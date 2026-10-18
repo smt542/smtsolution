@@ -1,4 +1,5 @@
 import { Input } from "@/components/common";
+import type { UtilityCustomerBillRow } from "@/hooks/reactquery/utilities";
 import type { GasTableRow, GasUtilityDraft } from "./types";
 import { groupRowsByRegisteredCustomer } from "../customerNumberGroups";
 import { GridEmptyValue } from "../GridEmptyValue";
@@ -12,6 +13,13 @@ interface GasAccountSummaryProps {
   editing: boolean;
   /** 건물 부가정보에 등록된 가스 고객번호(정렬순). 연결 호실이 없어도 요약에 표시한다. */
   customerNumbers?: string[];
+  /** 고객번호×월 청구총액(0325). 등록된 고객번호만 부과액을 직접 입력할 수 있다(수도·전기와 같음). */
+  customerBills?: UtilityCustomerBillRow[];
+  /** 고객번호별 부과액 입력 초안(customerNo → 값). */
+  chargeDrafts?: Record<string, string>;
+  onChargeDraftChange?: (customerNo: string, value: string) => void;
+  /** 수정 중 초안으로 다시 배분한 단가(customerNo → 원/량). 없으면 호실 단가. */
+  previewRates?: Map<string, number>;
 }
 
 interface GasAccountLine {
@@ -87,8 +95,23 @@ function summarize(
   ));
 }
 
-export function GasAccountSummary({ rows, drafts, editing, customerNumbers = [] }: GasAccountSummaryProps) {
-  const lines = summarize(rows, drafts, customerNumbers, editing);
+export function GasAccountSummary({
+  rows,
+  drafts,
+  editing,
+  customerNumbers = [],
+  customerBills,
+  chargeDrafts,
+  onChargeDraftChange,
+  previewRates,
+}: GasAccountSummaryProps) {
+  const lines = summarize(rows, drafts, customerNumbers, editing).map((line) => {
+    const rate = previewRates?.get(line.customerNumber);
+    return rate === undefined ? line : { ...line, unitPrice: Math.round(rate * 10000) / 10000 };
+  });
+  const billFor = (customerNumber: string) => customerBills?.find((bill) => bill.customerNo === customerNumber);
+  /** 청구총액을 입력했으면 그 총액(호실은 서버가 배분), 아니면 호실 합계. */
+  const chargeOf = (line: GasAccountLine) => billFor(line.customerNumber)?.amount ?? line.charge;
   const columns: UtilityGridColumn<GasAccountLine>[] = [
     {
       key: "line",
@@ -160,15 +183,21 @@ export function GasAccountSummary({ rows, drafts, editing, customerNumbers = [] 
       width: 224,
       align: "right",
       cellClassName: "tabular-nums",
-      render: (line) => editing ? (
-        <Input
-          unstyled
-          aria-label={`${line.customerNumber} 부과액`}
-          readOnly
-          value={line.charge.toLocaleString("ko-KR")}
-          className="h-[26px] w-full rounded-[7px] border border-teal bg-white px-2 text-right text-[11.5px] font-semibold tabular-nums text-t2 outline-none"
-        />
-      ) : display(line.charge),
+      render: (line) => {
+        if (!editing) return display(chargeOf(line));
+        const editable = Boolean(onChargeDraftChange && billFor(line.customerNumber));
+        return (
+          <Input
+            unstyled
+            aria-label={`${line.customerNumber} 부과액`}
+            inputMode="numeric"
+            readOnly={!editable}
+            value={chargeDrafts?.[line.customerNumber] ?? chargeOf(line).toLocaleString("ko-KR")}
+            onChange={editable ? (event) => onChargeDraftChange?.(line.customerNumber, event.target.value) : undefined}
+            className="h-[26px] w-full rounded-[7px] border border-teal bg-white px-2 text-right text-[11.5px] font-semibold tabular-nums text-t2 outline-none"
+          />
+        );
+      },
     },
     {
       key: "previousUnitPrice",

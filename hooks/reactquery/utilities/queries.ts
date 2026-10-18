@@ -35,7 +35,7 @@ export function useUtilityCustomerBills(
   return useQuery({
     queryKey: utilityKeys.customerBills(buildingId, utilityType, period),
     queryFn: () => listUtilityCustomerBills(buildingId as number, utilityType, period),
-    enabled: buildingId !== null && utilityType !== "gas",
+    enabled: buildingId !== null,
   });
 }
 

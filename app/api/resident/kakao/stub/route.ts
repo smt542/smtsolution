@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { mintResidentSession } from "@/lib/resident/session";
+import { mintResidentSession, ResidentOrgSuspendedError } from "@/lib/resident/session";
 
 type StubBody = {
   kakaoId?: string;
@@ -52,6 +52,9 @@ export async function POST(req: Request) {
     session.applyTo(response);
     return response;
   } catch (error) {
+    if (error instanceof ResidentOrgSuspendedError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     const message = error instanceof Error
       ? error.message
       : "Unable to establish the resident session.";
