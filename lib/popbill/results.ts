@@ -27,6 +27,8 @@ const HOUR = 3_600_000;
  */
 export function computeNextPollAt(submittedAt: Date, now: Date): Date | null {
   const age = now.getTime() - submittedAt.getTime();
+  // 0327: 접수 2분 안에는 10초 뒤 재확인(DB apply_provider_dispatch_results 도 같은 규칙으로 보정한다).
+  if (age < 2 * MINUTE) return new Date(now.getTime() + 10_000);
   if (age < 10 * MINUTE) return new Date(now.getTime() + MINUTE);
   if (age < 2 * HOUR) return new Date(now.getTime() + 5 * MINUTE);
   if (age < 24 * HOUR) return new Date(now.getTime() + 30 * MINUTE);

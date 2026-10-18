@@ -220,7 +220,9 @@ export function TenantForm({
   if (full && full !== previousFull) {
     setPreviousFull(full);
     const occupancy = full.occupancy;
-    const alimtalkOptIn = occupancy?.alimtalkOptIn ?? true;
+    // 공실 세대에 새 입주자를 등록할 때는 문자·알림톡 수신 기본 = 동의(2026-10-18, 저장된 공실 값과 무관).
+    const registering = !occupancy || occupancy.status === "vacant";
+    const alimtalkOptIn = registering ? true : (occupancy?.alimtalkOptIn ?? true);
     const meterLine = (kind: "water" | "elec" | "elec_shared" | "gas" | "kepco") => {
       const meter = full.meters.find((row) => row.utility === kind);
       return { customerNo: meter?.customerNo ?? "", meterNo: meter?.meterNo ?? "" };
@@ -248,7 +250,7 @@ export function TenantForm({
         ...(occupancy?.phonesExtra ?? []),
       ]),
       vehicles: withInputSlot([occupancy?.vehicleNo ?? "", ...(occupancy?.vehiclesExtra ?? [])]),
-      smsOptIn: occupancy?.smsOptIn ?? true,
+      smsOptIn: registering ? true : (occupancy?.smsOptIn ?? true),
       alimtalkOptIn,
       homepagePassword: occupancy?.homepagePassword ?? "",
     });
@@ -358,12 +360,15 @@ export function TenantForm({
         : occupancy?.status === "occupied"
           ? "occupied"
           : "vacant";
-    // 공실로 저장되는 호수만 전화번호 없이 저장한다. 나머지는 첫 칸(전화번호(주))이 있어야 한다.
-    const phoneMissing = status !== "vacant" && !phones[0];
+    // 전화번호는 입력하지 않아도 저장한다(2026-10-18).
+    // 호실은 숫자 3자리. 이미 저장된 호실(예: 「101호」)을 그대로 두면 검사하지 않는다 —
+    // 호실명은 고지서 공유 링크 서명에 쓰여 자동으로 바꾸면 발송된 링크가 깨진다.
+    const unitNoChanged = !full || basic.unitNo !== full.unit.unitNo;
+    const unitNoInvalid = parsed.success && unitNoChanged && !/^\d{3}$/.test(basic.unitNo);
 
-    if (!parsed.success || phoneMissing) {
-      const nextBasicErrors: BasicErrors = {};
-      let nextPhoneError = phoneMissing ? "전화번호를 입력해 주세요" : undefined;
+    if (!parsed.success || unitNoInvalid) {
+      const nextBasicErrors: BasicErrors = unitNoInvalid ? { unitNo: "호실은 숫자 3자리로 입력해 주세요" } : {};
+      let nextPhoneError: string | undefined;
       for (const issue of parsed.error?.issues ?? []) {
         const key = String(issue.path[0]);
         if (key === "phone") nextPhoneError ??= issue.message;

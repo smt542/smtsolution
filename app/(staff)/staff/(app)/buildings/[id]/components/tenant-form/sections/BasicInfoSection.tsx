@@ -1,8 +1,12 @@
 "use client";
 import React from "react";
+import type { InputMask } from "@/components/common";
 import { FormSection } from "../ui/FormSection";
 import { FieldGrid, Field, TextField, SelectField, DateField, TextAreaField } from "../ui/Fields";
 import { discountTypeOptions } from "../ui/options";
+
+/** 호실은 숫자 3자리(2026-10-18) — 숫자 외 문자는 지우고 3자리까지만 받는다. */
+const unitNoMask: InputMask = (raw) => raw.replace(/\D/g, "").slice(0, 3);
 
 export interface BasicValue {
   unitNo: string;
@@ -37,7 +41,7 @@ export function BasicInfoSection({
     <FormSection index={1} title="기본 정보">
       <FieldGrid>
         <Field label="호실" required error={errors?.unitNo}>
-          <TextField value={value.unitNo} onChange={(v) => onChange({ unitNo: v })} placeholder="예: 101" />
+          <TextField value={value.unitNo} onChange={(v) => onChange({ unitNo: v })} placeholder="예: 101" mask={unitNoMask} />
         </Field>
         <Field label="입주자명" error={errors?.tenantName}>
           <TextField value={value.tenantName} onChange={(v) => onChange({ tenantName: v })} placeholder="입주자 이름" />

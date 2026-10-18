@@ -307,10 +307,23 @@ export async function markOrgBillingPaid(
   return row ? mapBillingInvoice(row) : null;
 }
 
+/**
+ * 발송량·청구액은 업체들이 보내는 대로 계속 쌓이는 실시간 집계다. 화면을 띄워 둔 동안에도 새 발송이 보이도록
+ * 캐시 없이(staleTime 0) 10초마다, 창으로 돌아오거나 다시 들어올 때마다 다시 불러온다
+ * (기본 30초 stale + 포커스 재조회만으로는 띄워 둔 화면이 멈춰 보였다).
+ */
+const LIVE_USAGE_QUERY = {
+  staleTime: 0,
+  refetchInterval: 10_000,
+  refetchOnMount: "always",
+  refetchOnWindowFocus: "always",
+} as const;
+
 export function usePlatformOrgBilling(month: string) {
   return useQuery({
     queryKey: platformKeys.billing(month),
     queryFn: () => getPlatformOrgBilling(month),
+    ...LIVE_USAGE_QUERY,
   });
 }
 
@@ -318,6 +331,7 @@ export function usePlatformOverviewMetrics(month: string) {
   return useQuery({
     queryKey: platformKeys.overviewMetrics(month),
     queryFn: () => getPlatformOverviewMetrics(month),
+    ...LIVE_USAGE_QUERY,
   });
 }
 
@@ -325,6 +339,7 @@ export function usePlatformMonthlySendCost(year: number) {
   return useQuery({
     queryKey: platformKeys.monthlySendCost(year),
     queryFn: () => getPlatformMonthlySendCost(year),
+    ...LIVE_USAGE_QUERY,
   });
 }
 

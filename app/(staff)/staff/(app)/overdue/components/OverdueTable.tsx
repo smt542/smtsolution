@@ -46,9 +46,11 @@ export function OverdueTable({ rows, periods = [] }: OverdueTableProps) {
 
   return (
     <div className="min-h-0 flex-1 overflow-auto rounded-b-[16px] bg-white">
-      <table className="w-full whitespace-nowrap border-separate border-spacing-0 text-[13.5px] text-t1">
+      {/* 표를 칸 높이만큼 채워 합계행(항목 N / M건)을 행이 적어도 바닥에 둔다. 남는 높이는 아래 빈 채움 행이
+          가져가도록 다른 행은 모두 높이를 고정한다. 행이 많으면 채움 행은 0이 되고 sticky 합계행이 바닥에 붙는다. */}
+      <table className="h-full w-full whitespace-nowrap border-separate border-spacing-0 text-[13.5px] text-t1">
         <thead className="sticky top-0 z-20 bg-[#f7f9fa] text-[11.5px] font-medium text-t3">
-          <tr>
+          <tr className="h-[36.5px]">
             {COLUMNS.map(({ label, align, width }) => (
               <th
                 key={label}
@@ -105,6 +107,9 @@ export function OverdueTable({ rows, periods = [] }: OverdueTableProps) {
               </tr>,
             ];
           })}
+          <tr aria-hidden="true">
+            <td colSpan={COLUMNS.length} className="p-0" />
+          </tr>
         </tbody>
         <tfoot className="sticky bottom-0 z-20 bg-[#f7f9fa] font-bold text-t1">
           <tr className="h-[38.5px]">
