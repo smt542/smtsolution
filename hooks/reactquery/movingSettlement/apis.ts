@@ -53,13 +53,23 @@ export interface SettlementExtra {
   lastPaidDate?: string;
   /** 가수금. */
   adv?: number;
+  /** 관리비 항목(이름·일할·부과액·반올림). partner(_ms.ts FeeItem)와 같은 키·모양. */
+  feeItems?: SettlementFeeItem[];
   [key: string]: unknown;
+}
+
+/** 관리비 항목 1행(extra.feeItems). partner(_ms.ts FeeItem)와 같은 키. */
+export interface SettlementFeeItem {
+  name: string;
+  daily: boolean;
+  charged: number;
+  rounding?: "round" | "up" | "down" | "raw";
 }
 
 /** 저장 때 보내는 extra 키(0302). 서버가 기존 extra 에 병합한다(보내지 않은 키는 유지). */
 export type SaveSettlementExtra = Pick<
   SettlementExtra,
-  "etcItems" | "cleaning" | "paid" | "lastPaidDate" | "adv"
+  "etcItems" | "cleaning" | "paid" | "lastPaidDate" | "adv" | "feeItems"
 >;
 
 /**
@@ -100,6 +110,7 @@ export interface MovingSettlement {
   settleBank: string | null;
   settleAcct: string | null;
   settleHolder: string | null;
+  waterPaidDate: string | null;
   /** 수납 차감 전 정산요금(①+②+③미납+④). calculateSettlementAmount 주석 참고. */
   settlementAmount: number | null;
   /** 저장 시점 확정 부과 미납 스냅샷(③, 0266). */
@@ -193,6 +204,7 @@ export interface SaveSettlementData {
   cleaningCost: number | null;
   elecPaidDate: string | null;
   gasPaidDate: string | null;
+  waterPaidDate: string | null;
   repairAmount: number | null;
   repairAttribution: RepairAttribution | null;
   repairMemo: string | null;
@@ -311,6 +323,7 @@ interface MovingSettlementRpc {
   cleaning_cost: number | null;
   elec_paid_date: string | null;
   gas_paid_date: string | null;
+  water_paid_date?: string | null;
   repair_amount: number | null;
   repair_attribution: RepairAttribution | null;
   repair_memo: string | null;
@@ -439,6 +452,7 @@ function rpcToMovingSettlement(r: MovingSettlementRpc): MovingSettlement {
     cleaningCost: r.cleaning_cost,
     elecPaidDate: r.elec_paid_date,
     gasPaidDate: r.gas_paid_date,
+    waterPaidDate: r.water_paid_date ?? null,
     repairAmount: r.repair_amount,
     repairAttribution: r.repair_attribution,
     repairMemo: r.repair_memo,
@@ -523,6 +537,7 @@ function settlementDataToRpc(data: SaveSettlementData) {
     gas_charge: data.gasCharge,
     cleaning_cost: data.cleaningCost,
     elec_paid_date: data.elecPaidDate,
+    water_paid_date: data.waterPaidDate,
     gas_paid_date: data.gasPaidDate,
     repair_amount: data.repairAmount,
     repair_attribution: data.repairAttribution,

@@ -44,10 +44,12 @@ function FeeItemRow({
   item,
   charge,
   settlement,
+  onChargeChange,
 }: {
   item: FeeItem;
   charge: number;
   settlement: number;
+  onChargeChange: (name: string, amount: number) => void;
 }) {
   return (
     <div className="grid h-[34px] grid-cols-[1fr_88px_88px] items-center gap-[7px]">
@@ -55,9 +57,20 @@ function FeeItemRow({
         <span className="truncate text-[12.5px] font-semibold text-t1">{item.name}</span>
         <Badges item={item} />
       </span>
-      <span className="flex h-[34px] items-center justify-end rounded-[9px] border border-[#dee3e8] px-[9px] text-right text-[12.5px] font-semibold text-t1">
-        {formatNumber(charge)}
-      </span>
+      {/* 부과액은 공과금 지침처럼 직접 고칠 수 있다(2026-10-18). 정산액은 고친 부과액으로 일할 다시 계산. */}
+      <Input
+        unstyled
+        aria-label={`${item.name} 부과액`}
+        type="number"
+        min={0}
+        step={1}
+        value={charge}
+        onChange={(event) => {
+          const parsed = Number(event.target.value);
+          onChargeChange(item.name, event.target.value === "" || !Number.isFinite(parsed) ? 0 : Math.max(0, Math.round(parsed)));
+        }}
+        className="h-[34px] w-full rounded-[9px] border border-[#dee3e8] px-[9px] text-right text-[12.5px] font-semibold text-t1 outline-none focus:border-teal"
+      />
       <span className="flex h-[34px] items-center justify-end rounded-[9px] border border-line2 bg-[#f7f9fa] px-[9px] text-right text-[12.5px] font-semibold text-t2">
         {formatNumber(settlement)}
       </span>
@@ -74,6 +87,9 @@ type ManagementFeeSectionProps = {
   contactPhone?: string;
   /** 가수금(extra.adv, 0302). */
   advance?: number | null;
+  /** 항목명 → 직접 입력한 부과액. */
+  feeCharges?: Record<string, number>;
+  onFeeChargeChange?: (name: string, amount: number) => void;
   onAdvanceChange?: (amount: number | null) => void;
   onMonthlyChange?: (amount: number | null) => void;
   onProratedChange?: (amount: number | null) => void;
@@ -86,11 +102,14 @@ export function ManagementFeeSection({
   contactPhone,
   advance = null,
   onAdvanceChange = () => undefined,
+  feeCharges,
+  onFeeChargeChange = () => undefined,
 }: ManagementFeeSectionProps) {
   const { rows, subtotal, isLoading } = useManagementFeeRows(
     buildingTypeId,
     unitId,
     moveOutDate,
+    feeCharges,
   );
   const leftRows = rows.filter((_, index) => index % 2 === 0);
   const rightRows = rows.filter((_, index) => index % 2 === 1);
@@ -109,12 +128,12 @@ export function ManagementFeeSection({
         <div className="mt-[10px] grid grid-cols-2 gap-x-[16px]">
           <div className="grid gap-y-[7px]">
             {leftRows.map((row) => (
-              <FeeItemRow key={row.item.id} {...row} />
+              <FeeItemRow key={row.item.id} {...row} onChargeChange={onFeeChargeChange} />
             ))}
           </div>
           <div className="grid content-start gap-y-[7px]">
             {rightRows.map((row) => (
-              <FeeItemRow key={row.item.id} {...row} />
+              <FeeItemRow key={row.item.id} {...row} onChargeChange={onFeeChargeChange} />
             ))}
           </div>
         </div>

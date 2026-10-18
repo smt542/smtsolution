@@ -52,6 +52,8 @@ export function useManagementFeeRows(
   buildingTypeId: number | null,
   unitId: number | null,
   moveOutDate: string,
+  /** 항목명 → 직접 입력한 부과액(2026-10-18). 있으면 그 달 부과액 대신 쓴다. */
+  overrides?: Record<string, number> | null,
 ): { rows: ManagementFeeRow[]; subtotal: number; isLoading: boolean } {
   const feeItemsQuery = useFeeItems(buildingTypeId ?? 0);
   const period = moveOutDate ? `${moveOutDate.slice(0, 7)}-01` : null;
@@ -66,7 +68,7 @@ export function useManagementFeeRows(
     .filter((item) => !item.isRequired)
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((item) => {
-      const charge = charges[item.id] ?? 0;
+      const charge = overrides?.[item.name] ?? charges[item.id] ?? 0;
       const settlement = item.dailyProration
         ? roundCharge((charge * chargeDays) / 30, item.rounding as Rounding)
         : charge;

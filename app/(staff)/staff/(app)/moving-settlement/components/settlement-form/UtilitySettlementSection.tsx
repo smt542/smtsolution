@@ -23,12 +23,12 @@ export const UTILITY_ROWS: Array<{
   utility: SettlementUtility;
   label: string;
   chargeKey: ChargeKey;
-  paidDateKey: "elecPaidDate" | "gasPaidDate" | null;
+  paidDateKey: "waterPaidDate" | "elecPaidDate" | "gasPaidDate" | null;
   prevKey: ReadingKey;
   moveKey: ReadingKey;
   priceKey: ReadingKey;
 }> = [
-  { utility: "water", label: "수도", chargeKey: "waterCharge", paidDateKey: null, prevKey: "waterPrevReading", moveKey: "waterMoveReading", priceKey: "waterUnitPrice" },
+  { utility: "water", label: "수도", chargeKey: "waterCharge", paidDateKey: "waterPaidDate", prevKey: "waterPrevReading", moveKey: "waterMoveReading", priceKey: "waterUnitPrice" },
   { utility: "elec", label: "전기", chargeKey: "elecCharge", paidDateKey: "elecPaidDate", prevKey: "elecPrevReading", moveKey: "elecMoveReading", priceKey: "elecUnitPrice" },
   { utility: "gas", label: "가스", chargeKey: "gasCharge", paidDateKey: "gasPaidDate", prevKey: "gasPrevReading", moveKey: "gasMoveReading", priceKey: "gasUnitPrice" },
 ];

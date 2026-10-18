@@ -23,6 +23,12 @@ export const movingSettlementSchema = z.object({
   gasCharge: amountSchema,
   elecPaidDate: z.string().optional(),
   gasPaidDate: z.string().optional(),
+  waterPaidDate: z.string().optional(),
+  /**
+   * 관리비 항목별 부과액 직접 입력(항목명 → 원, 2026-10-18). 없으면 그 달 부과액(fee_item_charges).
+   * 저장은 extra.feeItems(partner _ms.ts 와 같은 키·모양)로 한다.
+   */
+  feeCharges: z.record(z.string(), z.number().int().min(0)).optional(),
   repairAttribution: z.enum(["owner", "manager", "office"]).nullable(),
   // ③ 기타(extra.etcItems, 0302): 항목명·금액, 최대 15개. 기타 소계 = 금액 합계(repair_amount 로 저장).
   etcItems: z

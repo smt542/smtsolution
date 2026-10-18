@@ -82,6 +82,11 @@ function draftFromContext(
     gasCharge: saved?.gasCharge ?? null,
     elecPaidDate: saved?.elecPaidDate ?? "",
     gasPaidDate: saved?.gasPaidDate ?? "",
+    waterPaidDate: saved?.waterPaidDate ?? "",
+    // 저장된 관리비 항목(extra.feeItems, partner 와 같은 키)이 있으면 그 부과액으로 연다. 없으면 그 달 부과액.
+    feeCharges: Array.isArray(saved?.extra?.feeItems) && saved.extra.feeItems.length > 0
+      ? Object.fromEntries(saved.extra.feeItems.map((fee) => [fee.name, Math.max(0, Math.round(Number(fee.charged) || 0))]))
+      : undefined,
     repairAttribution: saved?.repairAttribution ?? null,
     // 0302: 기타 목록(extra.etcItems). 이전 저장 건(단일 repair_memo/repair_amount)은 1행으로 연다.
     etcItems: settlementEtcItemsOf(saved),
@@ -167,6 +172,7 @@ function SettlementEditor({
     building.typeId,
     context.unit.id,
     draft.moveOutDate,
+    draft.feeCharges,
   );
 
   // 내역서 검침표도 폼과 같은 이사 지침(전월·이사·단가)과 draft 금액을 쓴다(0266).
@@ -294,6 +300,7 @@ function SettlementEditor({
       cleaningCost,
       elecPaidDate: nullableText(draft.elecPaidDate),
       gasPaidDate: nullableText(draft.gasPaidDate),
+      waterPaidDate: nullableText(draft.waterPaidDate),
       repairAmount,
       repairAttribution: draft.repairAttribution,
       repairMemo: nullableText(repairMemo),
@@ -316,6 +323,13 @@ function SettlementEditor({
         paid: receivedAmount,
         lastPaidDate: finalPaidDate,
         adv: draft.advance ?? 0,
+        // 관리비 항목별 부과액(직접 입력 포함) — partner(_ms.ts)와 같은 extra.feeItems 모양.
+        feeItems: managementFeeRows.rows.map((row) => ({
+          name: row.item.name,
+          daily: row.item.dailyProration === true,
+          charged: row.charge,
+          rounding: row.item.rounding as "round" | "up" | "down" | "raw",
+        })),
       },
     },
     checklist: context.checklist.map((item) => {

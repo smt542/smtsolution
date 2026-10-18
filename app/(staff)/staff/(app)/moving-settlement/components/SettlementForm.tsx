@@ -95,6 +95,7 @@ export function SettlementForm({
     buildingTypeId,
     unitId,
     value.moveOutDate,
+    value.feeCharges,
   );
   // 공과금 금액(이사−전월)×단가와 단가 반영 ON 의 검침 단가도 계산값이다. 관리비 소계와 **한 이펙트에서**
   // 되돌려 넣는다 — 이펙트를 둘로 나누면 각자 stale 한 value 를 펼쳐 서로의 결과를 덮어쓴다.
@@ -195,6 +196,8 @@ export function SettlementForm({
             contactPhone={contactPhone}
             advance={value.advance}
             onAdvanceChange={(next) => set("advance", next)}
+            feeCharges={value.feeCharges}
+            onFeeChargeChange={(name, amount) => set("feeCharges", { ...(value.feeCharges ?? {}), [name]: amount })}
             onMonthlyChange={setMonthly}
             onProratedChange={(next) => set("mgmtFeeProrated", next)}
           />
