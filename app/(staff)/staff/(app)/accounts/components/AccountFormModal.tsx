@@ -4,7 +4,7 @@ import { passwordMaxLength, passwordRuleFor, passwordRuleText } from "@/lib/auth
 import React from "react";
 import { Controller, useForm, useWatch, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, CustomDropdown, Input, Modal, PhoneInput, Switch } from "@/components/common";
+import { Button, CustomDropdown, Input, Modal, PhoneInput } from "@/components/common";
 import { buildStaffCapabilities } from "@/lib/auth/staffCapabilities";
 import { useConfirm } from "@/components/common/ConfirmProvider";
 import { FormField } from '@/components/common/FormField';
@@ -400,29 +400,6 @@ export function AccountFormModal({
                 />
               </FormField>
             </div>
-
-            {!isField && (
-            <div className="mt-[16px] flex items-center justify-between gap-[12px] rounded-[11px] border border-line bg-surface px-[12px] py-[10px]">
-              <div className="min-w-0">
-                <p className="text-[13px] font-extrabold leading-[normal] text-t2">겸직</p>
-                <p className="mt-[2px] text-[12px] leading-[normal] text-t4">
-                  현장 업무도 함께 수행합니다
-                </p>
-              </div>
-              <Controller
-                control={control}
-                name="alsoCrossApp"
-                render={({ field }) => (
-                  <Switch
-                    ariaLabel="겸직"
-                    checked={!!field.value}
-                    onChange={field.onChange}
-                    disabled={submitting}
-                  />
-                )}
-              />
-            </div>
-            )}
 
             {!isField && (
               <div>

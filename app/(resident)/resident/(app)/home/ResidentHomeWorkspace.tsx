@@ -390,7 +390,7 @@ export default function ResidentHomeWorkspace() {
         onClose={() => setMoveOutOpen(false)}
       />
 
-      {/* 건물 공지: 공지 목록·퇴실 신청과 같은 바텀시트(배경·Esc·확인으로 닫기) */}
+      {/* 건물 공지: 화면 가운데 모달(배경·Esc·확인으로 닫기) */}
       <ResidentBottomSheet variant="notice" open={noticeOpen && !!buildingNotice} onDismiss={() => setNoticeOpen(false)}>
         <div role="dialog" aria-modal="true" aria-labelledby="notice-sheet-title" className="flex flex-col">
           <h2 className={styles.sheetTitle} id="notice-sheet-title">

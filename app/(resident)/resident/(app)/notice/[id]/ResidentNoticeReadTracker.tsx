@@ -5,20 +5,14 @@ import { useRouter } from "next/navigation";
 
 import { useResidentMarkNoticeRead } from "@/hooks/reactquery/residentNotices";
 
-export default function ResidentNoticeReadTracker({
-  noticeId,
-  refreshOnRead = false,
-}: {
-  noticeId: number;
-  /** 목록 위 시트로 열었을 때: 읽음 처리 후 서버 목록(읽지 않음 점)을 다시 그린다. */
-  refreshOnRead?: boolean;
-}) {
+export default function ResidentNoticeReadTracker({ noticeId }: { noticeId: number }) {
   const { mutate } = useResidentMarkNoticeRead();
   const router = useRouter();
 
   useEffect(() => {
-    mutate(noticeId, refreshOnRead ? { onSuccess: () => router.refresh() } : undefined);
-  }, [mutate, noticeId, refreshOnRead, router]);
+    // 읽음 처리 후 라우터 캐시를 비워, 목록으로 돌아가면 읽지 않음 점이 갱신되게 한다.
+    mutate(noticeId, { onSuccess: () => router.refresh() });
+  }, [mutate, noticeId, router]);
 
   return null;
 }
