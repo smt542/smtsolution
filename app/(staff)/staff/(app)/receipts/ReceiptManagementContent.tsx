@@ -4,18 +4,12 @@ import { getStaffContext } from "../_staffContext";
 import { ReceiptWorkspace } from "./ReceiptWorkspace";
 
 export type ReceiptSearchParams = {
-  period?: string | string[];
   buildingId?: string | string[];
   unitId?: string | string[];
 };
 
 function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
-}
-
-function parsePeriod(value: string | string[] | undefined): string | null {
-  const period = first(value);
-  return period && /^\d{4}-\d{2}-01$/.test(period) ? period : null;
 }
 
 function parseId(value: string | string[] | undefined): number | null {
@@ -44,7 +38,6 @@ export async function ReceiptManagementContent({
       orgId={me.orgId}
       canSendMessages={hasModule(me, "messaging")}
       canEditPayment={hasModule(me, "payment")}
-      initialPeriod={parsePeriod(query.period)}
       initialBuildingId={parseId(query.buildingId)}
       initialUnitId={parseId(query.unitId)}
     />

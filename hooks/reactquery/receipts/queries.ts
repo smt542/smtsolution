@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/client";
 
 export const receiptKeys = {
   all: ["receipts"] as const,
+  earliestPeriod: (unitId: number) => ["receipts", "earliest-period", unitId] as const,
   workspace: (orgId: number, period: string) =>
     ["receipts", "workspace", orgId, period] as const,
   statement: (
@@ -420,6 +421,33 @@ export async function getReceiptStatementData(
   });
   if (error) throw new Error(error.message);
   return mapStatementData((data ?? {}) as StatementRpcResponse);
+}
+
+/**
+ * 호실의 가장 이른 부과(확정)·수납 월(YYYY-MM-01). 수납 이력을 처음부터 다 보이도록 조회 시작월로 쓴다.
+ * 범위를 2000년부터 잡으면 명세 RPC 가 수 초 걸려(달마다 집계) 데이터가 있는 첫 달부터만 조회한다.
+ */
+export async function getUnitEarliestPeriod(unitId: number): Promise<string | null> {
+  const sb = createClient();
+  const [bills, payments] = await Promise.all([
+    sb.from("billing_confirmations").select("period").eq("unit_id", unitId).order("period", { ascending: true }).limit(1),
+    sb.from("payments").select("period").eq("unit_id", unitId).order("period", { ascending: true }).limit(1),
+  ]);
+  if (bills.error) throw new Error(bills.error.message);
+  if (payments.error) throw new Error(payments.error.message);
+  const periods = [bills.data?.[0]?.period, payments.data?.[0]?.period]
+    .filter((value): value is string => typeof value === "string" && value.length >= 7)
+    .map((value) => `${value.slice(0, 7)}-01`)
+    .sort();
+  return periods[0] ?? null;
+}
+
+export function useUnitEarliestPeriod(unitId: number | null) {
+  return useQuery({
+    queryKey: receiptKeys.earliestPeriod(unitId ?? 0),
+    queryFn: () => getUnitEarliestPeriod(unitId as number),
+    enabled: unitId !== null && unitId > 0,
+  });
 }
 
 export function useReceiptStatementData(

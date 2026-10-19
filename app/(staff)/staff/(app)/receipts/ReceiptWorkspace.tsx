@@ -9,11 +9,10 @@ import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
 import { useUnitOccupancyFull } from "@/hooks/reactquery/occupancies";
 import { useUnitPayments } from "@/hooks/reactquery/payments";
-import { useReceiptPaymentStatus, useReceiptStatementData } from "@/hooks/reactquery/receipts";
+import { useReceiptPaymentStatus, useReceiptStatementData, useUnitEarliestPeriod } from "@/hooks/reactquery/receipts";
 import { useUnits } from "@/hooks/reactquery/units";
 import type { RateTier } from "@/lib/billing/lateFee";
-import { currentPeriod, fromMonthInput, prevPeriod, toMonthInput } from "@/lib/billing/period";
-import { ReportDateField } from "./components/report-controls/ReportDateField";
+import { currentPeriod, prevPeriod } from "@/lib/billing/period";
 import { AsStatusSection } from "./components/AsStatusSection";
 import { BuildingUnitRail } from "./components/BuildingUnitRail";
 import { PaymentHistorySection } from "./components/PaymentHistorySection";
@@ -168,30 +167,17 @@ export function ReceiptWorkspace({
   orgId,
   canSendMessages,
   canEditPayment,
-  initialPeriod,
   initialBuildingId,
   initialUnitId,
 }: {
   orgId: number;
   canSendMessages: boolean;
   canEditPayment: boolean;
-  initialPeriod: string | null;
   initialBuildingId: number | null;
   initialUnitId: number | null;
 }) {
-  const [period, setPeriod] = useState(() => initialPeriod ?? currentPeriod());
-  // 조회 월 변경 — 과거 이관분 입력을 위해 당월 외의 달도 고를 수 있다(정책 3.2, 2026-10-10).
-  // URL 쿼리(period=YYYY-MM-01)와 동기화해 새로고침·링크 공유 시 같은 달로 진입한다.
-  const changePeriod = useCallback((month: string) => {
-    if (!month) return;
-    const nextPeriod = fromMonthInput(month);
-    setPeriod(nextPeriod);
-    if (typeof window !== "undefined") {
-      const url = new URL(window.location.href);
-      url.searchParams.set("period", nextPeriod);
-      window.history.replaceState(window.history.state, "", url);
-    }
-  }, []);
+  // 조회 월 선택(캘린더)은 없앴다(2026-10-19) — 기준 월은 이번 달이고, 수납 이력은 처음부터 모두 보인다.
+  const [period] = useState(() => currentPeriod());
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | null>(initialBuildingId);
   const [selectedUnitId, setSelectedUnitId] = useState<number | null>(initialUnitId);
   // 정본 `setView`: 레일이 건물 목록/호실 목록 중 무엇을 보이는지는 선택과 따로 논다.
@@ -248,12 +234,15 @@ export function ReceiptWorkspace({
     period,
   );
   const { data: unitPayments = [], isLoading: isPaymentsLoading } = paymentsQuery;
-  // 정본 `drawHist` 는 당월 포함 7개월을 보인다.
+  // 수납 이력은 이 호실의 첫 부과·수납 월부터 이번 달까지 모두 보인다(2026-10-19, 이전엔 당월 포함 7개월).
+  // 첫 달을 아직 모르면(조회 중·자료 없음) 당월 포함 7개월로 시작한다.
+  const earliestQuery = useUnitEarliestPeriod(selectedUnitId);
   const historyStartPeriod = useMemo(() => {
-    let start = period;
-    for (let index = 0; index < 6; index += 1) start = prevPeriod(start);
-    return start;
-  }, [period]);
+    let fallback = period;
+    for (let index = 0; index < 6; index += 1) fallback = prevPeriod(fallback);
+    const earliest = earliestQuery.data;
+    return earliest && earliest < fallback ? earliest : fallback;
+  }, [earliestQuery.data, period]);
   const historyQuery = useReceiptStatementData(
     selectedBuildingId ?? 0,
     selectedUnitId,
@@ -370,12 +359,6 @@ export function ReceiptWorkspace({
       ) : null}
 
       <div className="fixed right-[24px] top-[10.5px] z-[30] hidden items-center gap-[8px] md:flex print:hidden">
-          <ReportDateField
-            type="month"
-            ariaLabel="조회 월"
-            value={toMonthInput(period)}
-            onValueChange={changePeriod}
-          />
           <Button
             variant="ghost"
             type="button"
