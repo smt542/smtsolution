@@ -82,6 +82,13 @@ const emptyBilling = (): BillingValue => ({
 });
 
 const emptyLine = (): UtilityLine => ({ customerNo: "", meterNo: "" });
+
+/** 자동 코드번호(납부자번호) = 건물코드 3자리 + 호실 3자리(서버 default_payer_no 와 같은 규칙). */
+function defaultPayerNo(buildingCode: string | null | undefined, unitNo: string): string | null {
+  const code = (buildingCode ?? "").replace(/\D/g, "");
+  const unit = unitNo.replace(/\D/g, "");
+  return code && unit ? `${code.padStart(3, "0")}${unit.padStart(3, "0")}` : null;
+}
 const emptyUtility = (): UtilityValue => ({
   water: emptyLine(),
   elec: emptyLine(),
@@ -95,6 +102,7 @@ const emptyBill = (): BillStatementValue => ({
   billNameDisplay: "none",
   billDelivery: "alimtalk",
   billAuthInfo: "",
+  payerNo: "",
 });
 
 const emptyLease = (): LeaseValue => ({
@@ -279,6 +287,7 @@ export function TenantForm({
       billNameDisplay: occupancy?.billNameDisplay ?? "none",
       billDelivery: alimtalkOptIn ? "alimtalk" : "post",
       billAuthInfo: occupancy?.billAuthInfo ?? "",
+      payerNo: full.accounts.find((account) => account.kind === "mgmt")?.payerNo ?? "",
     });
     setLease({
       leaseType: full.lease?.leaseType ?? "month",
@@ -452,14 +461,20 @@ export function TenantForm({
         { utility: "gas", ...utility.gas },
         { utility: "kepco", ...utility.kepco },
       ],
-      accounts: (full?.accounts ?? []).map((account) => ({
-        kind: account.kind,
-        bank: account.bank,
-        account: account.account,
-        holder: account.holder,
-        cmsMemberNo: account.cmsMemberNo,
-        payerNo: account.payerNo,
-      })),
+      // 관리비 계좌 납부자번호(코드번호)는 고지서 섹션 입력값. 비우면 서버가 건물코드 3자리 + 호실 3자리로 채운다(0330).
+      accounts: [
+        ...(full?.accounts ?? []).map((account) => ({
+          kind: account.kind,
+          bank: account.bank,
+          account: account.account,
+          holder: account.holder,
+          cmsMemberNo: account.cmsMemberNo,
+          payerNo: account.kind === "mgmt" ? (bill.payerNo.trim() || null) : account.payerNo,
+        })),
+        ...((full?.accounts ?? []).some((account) => account.kind === "mgmt")
+          ? []
+          : [{ kind: "mgmt", payerNo: bill.payerNo.trim() || null }]),
+      ],
       lease: {
         deposit: optionalNumber(lease.deposit),
         monthlyRent: optionalNumber(lease.monthlyRent),
@@ -618,7 +633,12 @@ export function TenantForm({
       <ContactSection value={contact} onChange={onContactChange} errors={{ phones: phoneError }} />
       <BillingSection value={billing} onChange={patch(setBilling)} />
       <UtilityCustomerSection value={utility} onChange={patch(setUtility)} customerOptions={customerOptions} />
-      <BillStatementSection value={bill} alimtalkOptIn={contact.alimtalkOptIn} onChange={patch(setBill)} />
+      <BillStatementSection
+        value={bill}
+        alimtalkOptIn={contact.alimtalkOptIn}
+        defaultPayerNo={defaultPayerNo(building?.code, basic.unitNo)}
+        onChange={patch(setBill)}
+      />
       <div
         ref={moveOutHistoryRef}
         className={`rounded-[14px] transition-shadow duration-300 ${moveOutHistoryHighlighted ? "shadow-[0_0_0_2px_var(--color-blue)]" : ""}`}

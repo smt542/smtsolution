@@ -109,7 +109,7 @@ export function BillTargetTable({
                   onChange={() => onToggle(row.unitId)}
                 />
               </td>
-              <td className="p-2">{unitLabel(unitLabelMode, row.unitNo, row.tenantName)}</td>
+              <td className="p-2">{unitLabel(unitLabelMode, row.unitNo, row.tenantName, row.payerName, row.payerNo)}</td>
               <td className="p-2">{row.tenantName ?? "-"}</td>
               <td className="p-2 text-right">{formatWon(row.totalAmount)}</td>
               <td className="p-2 text-center">{row.autoDebit ? "자동이체" : "-"}</td>

@@ -9,15 +9,20 @@ export interface BillStatementValue {
   billNameDisplay: string;
   billDelivery: string;
   billAuthInfo: string;
+  /** 납부자번호(관리비 계좌 payer_no) = 고지서 「코드번호」. 비우면 건물코드 3자리 + 호실 3자리로 저장된다. */
+  payerNo: string;
 }
 
 export function BillStatementSection({
   value,
   alimtalkOptIn,
+  defaultPayerNo,
   onChange,
 }: {
   value: BillStatementValue;
   alimtalkOptIn: boolean;
+  /** 비워 두면 저장될 자동 코드번호(건물코드 3자리 + 호실 3자리). */
+  defaultPayerNo?: string | null;
   onChange: (patch: Partial<BillStatementValue>) => void;
 }) {
   return (
@@ -28,6 +33,15 @@ export function BillStatementSection({
         </Field>
         <Field label="고지서 이름 출력 유형">
           <SelectField value={value.billNameDisplay} onChange={(v) => onChange({ billNameDisplay: v })} options={billNameDisplayOptions} />
+        </Field>
+        {/* 「코드번호 출력」이 고지서에 찍는 번호. 지로 납부자번호·입금 매칭·카카오 고지 고객번호(뒤 6자리)에도 쓴다. */}
+        <Field label="코드번호(납부자번호)">
+          <TextField
+            value={value.payerNo}
+            onChange={(v) => onChange({ payerNo: v.replace(/\D/g, "") })}
+            placeholder={defaultPayerNo ? `비우면 ${defaultPayerNo}` : "건물코드+호실 자동"}
+            inputMode="numeric"
+          />
         </Field>
         <Field label="발송">
           <div className="pointer-events-none opacity-60">

@@ -155,8 +155,17 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
   }, [billing.data, billingPeriod, tenant.data]);
 
   const runSearch = () => {
-    setSearch(searchInput);
+    setSearch(searchInput.trim());
     setPage(1);
+  };
+  // 검색어를 지우면(입력칸 x·백스페이스) 적용된 검색도 바로 해제한다 — 검색 버튼을 다시 누르지 않아도
+  // 전체 목록(필터만 적용)으로 돌아간다. 입력 중인 다른 검색어는 [검색]/Enter 로 적용한다.
+  const changeSearchInput = (value: string) => {
+    setSearchInput(value);
+    if (value.trim() === "" && search !== "") {
+      setSearch("");
+      setPage(1);
+    }
   };
 
   const handleFilterChange = (next: BuildingFilterState) => {
@@ -231,7 +240,7 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
       <div className="flex min-h-0 flex-1 flex-col gap-[16px] overflow-hidden px-[24px] pb-[24px] pt-[22px]">
         <BuildingSearchCard
           value={searchInput}
-          onChange={setSearchInput}
+          onChange={changeSearchInput}
           onSearch={runSearch}
           filter={filter}
           onFilterChange={handleFilterChange}

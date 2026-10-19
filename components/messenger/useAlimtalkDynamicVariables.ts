@@ -91,6 +91,10 @@ export interface AlimtalkDynamicResult {
   variablesByUnit: Map<number, Record<string, string>>;
   /** 보낼 수 없는 수신자 사유(unitId → 사유). */
   excludedByUnit: Map<number, string>;
+  /** 고른 승인 고지 템플릿과 고지 유형이 다른 세대(unitId → 그 세대의 실제 고지 유형). */
+  kindMismatchByUnit: Map<number, BillNoticeKind>;
+  /** 납부자번호가 없어 고객번호만 빈 값으로 보내는 세대(나머지 값은 채운다). */
+  missingCustomerNoUnits: Set<number>;
   /** 템플릿 전체를 막는 사유(관리실 연락처 없음·공지 미선택 등). */
   blocker: string | null;
   notices: { id: number; title: string }[];
@@ -205,10 +209,14 @@ export function useAlimtalkDynamicVariables({
     || orgContactLoading
   );
 
-  const { variablesByUnit, excludedByUnit } = useMemo(() => {
+  const { variablesByUnit, excludedByUnit, kindMismatchByUnit, missingCustomerNoUnits } = useMemo(() => {
     const variables = new Map<number, Record<string, string>>();
     const excluded = new Map<number, string>();
-    if (!isBill || kind?.type !== "bill") return { variablesByUnit: variables, excludedByUnit: excluded };
+    const mismatch = new Map<number, BillNoticeKind>();
+    const missingCustomerNo = new Set<number>();
+    if (!isBill || kind?.type !== "bill") {
+      return { variablesByUnit: variables, excludedByUnit: excluded, kindMismatchByUnit: mismatch, missingCustomerNoUnits: missingCustomerNo };
+    }
 
     const dueDates = new Map((dueDatesQuery.data ?? []).map((item) => [item.unitId, item.dueDate]));
     buildingIds.forEach((buildingId, index) => {
@@ -223,20 +231,21 @@ export function useAlimtalkDynamicVariables({
         const customerNo = billNoticeCustomerNo(target?.payerNo);
         const dueDate = billNoticeDate(dueDates.get(unitId));
         const unitKind = target ? billNoticeKind(target) : null;
-        // 수기 작성은 세대 고지 유형으로 제외하지 않고, 고객번호가 없으면 그 칸만 비운다.
+        // 수기 작성은 세대 고지 유형으로 제외하지 않는다. 납부자번호가 없으면 고객번호 칸만 비우고
+        // 나머지(기간·마감일·금액 등)는 채운다(2026-10-19 — 예전엔 세대를 통째로 빼 모든 값이 빈 알림톡이 나갔다).
         const reason = !target || target.occupancyId === null || target.occupancyId !== recipient.ref?.occupancyId
           ? "이 달 부과 확정 내역 없음"
           : kind.billKind !== null && unitKind !== kind.billKind
             ? `고지 유형이 ${BILL_NOTICE_KIND_LABELS[unitKind as BillNoticeKind]} 세대`
-            : kind.billKind !== null && !customerNo
-              ? "납부자번호 없음"
-              : !document || !dueDate
-                ? "고지서 금액·납부 마감일 없음"
-                : null;
+            : !document || !dueDate
+              ? "고지서 금액·납부 마감일 없음"
+              : null;
         if (reason) {
           excluded.set(unitId, reason);
+          if (kind.billKind !== null && unitKind !== null && unitKind !== kind.billKind) mismatch.set(unitId, unitKind);
           continue;
         }
+        if (!customerNo) missingCustomerNo.add(unitId);
         const amounts = billNoticeAmounts(document!, lateFeeMerge);
         const base = billNoticeVariables({
           kind: kind.billKind ?? (unitKind as BillNoticeKind),
@@ -279,7 +288,7 @@ export function useAlimtalkDynamicVariables({
         excluded.set(unitId, "입주자가 아님");
       }
     }
-    return { variablesByUnit: variables, excludedByUnit: excluded };
+    return { variablesByUnit: variables, excludedByUnit: excluded, kindMismatchByUnit: mismatch, missingCustomerNoUnits: missingCustomerNo };
   }, [
     buildingIds, buildingNames, documentQueries.data, dueDatesQuery.data, isBill, kind,
     lateFeeMerge, officePhone, payAccount, period, periodSettingQueries.data, recipients, targetQueries.data, tenantRecipients,
@@ -329,6 +338,8 @@ export function useAlimtalkDynamicVariables({
     loading: billLoading || (isNotice && noticesQuery.isLoading),
     variablesByUnit,
     excludedByUnit,
+    kindMismatchByUnit,
+    missingCustomerNoUnits,
     blocker,
     notices,
     resolveLinks,

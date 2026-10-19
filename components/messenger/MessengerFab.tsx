@@ -25,6 +25,11 @@ import {
 import { extractVariables, renderTemplate } from "@/lib/messaging/render";
 import { currentPeriod } from "@/lib/billing/period";
 import {
+  BILL_NOTICE_KIND_LABELS,
+  BILL_NOTICE_TEMPLATE_TITLES,
+  type BillNoticeKind,
+} from "@/lib/messaging/billNotice";
+import {
   subscribeMessengerHandoff,
   type RecipientCascadePreset,
 } from "@/lib/messaging/messengerHandoff";
@@ -50,7 +55,7 @@ import {
 import { messengerClasses as styles } from "./messengerClasses";
 import type { ChannelMode } from "./types";
 import { useMessengerState } from "./useMessengerState";
-import { useAlimtalkDynamicVariables } from "./useAlimtalkDynamicVariables";
+import { DYNAMIC_VARIABLE_NAMES, useAlimtalkDynamicVariables } from "./useAlimtalkDynamicVariables";
 import { useDebouncedValue } from "@/hooks/common";
 
 function formatPoints(value: number): string {
@@ -311,6 +316,27 @@ function MessengerFabContent() {
   );
   // 고지 정보가 없는 수신자도 제외하지 않고 빈 값으로 보낸다(2026-10-15 결정).
   const eligibleRecipients = consentedRecipients;
+  // 승인 관리비 고지 템플릿과 고지 유형이 다른 세대(예: 자동이체 세대에 일반 고지)는 보내지 않고
+  // 맞는 템플릿으로 보내도록 안내한다(2026-10-19 결정). 예: 「자동이체 세대 1곳(902호)은 「관리비 고지(자동이체)」 템플릿으로 보내 주세요.」
+  const kindMismatchMessage = useMemo(() => {
+    if (!dynamicActive || !billNoticeTemplate || dynamic.loading) return null;
+    // 고지 유형 → (세대 → 호실 표기). 같은 세대의 주·부 번호는 한 세대로 센다.
+    const unitsByKind = new Map<BillNoticeKind, Map<number, string>>();
+    for (const recipient of eligibleRecipients) {
+      const unitId = recipient.ref?.unitId;
+      const unitKind = unitId !== undefined ? dynamic.kindMismatchByUnit.get(unitId) : undefined;
+      if (unitId === undefined || !unitKind) continue;
+      const units = unitsByKind.get(unitKind) ?? new Map<number, string>();
+      units.set(unitId, recipient.unitNo ?? "");
+      unitsByKind.set(unitKind, units);
+    }
+    if (unitsByKind.size === 0) return null;
+    return [...unitsByKind].map(([unitKind, units]) => {
+      const labels = [...units.values()].filter(Boolean);
+      const shown = labels.slice(0, 3).join(", ") + (labels.length > 3 ? ` 외 ${labels.length - 3}곳` : "");
+      return `${BILL_NOTICE_KIND_LABELS[unitKind]} 세대 ${units.size}곳${shown ? `(${shown})` : ""}은 「${BILL_NOTICE_TEMPLATE_TITLES[unitKind]}」 템플릿으로 보내 주세요.`;
+    }).join(" ");
+  }, [billNoticeTemplate, dynamic.kindMismatchByUnit, dynamic.loading, dynamicActive, eligibleRecipients]);
   const excludedCount =
     ui.channel === "alim" && !consentLoading
       ? enrichedRecipients.length - consentedRecipients.length
@@ -319,17 +345,27 @@ function MessengerFabContent() {
   const dynamicHint = useMemo(() => {
     if (!dynamicActive) return null;
     if (dynamic.loading) return "수신자별 값을 불러오는 중이에요.";
-    if (dynamicExcluded.length === 0) return null;
+    // 고지 유형이 다른 세대는 빈 값으로 보내지 않고 맞는 템플릿을 안내한다.
+    if (kindMismatchMessage) return kindMismatchMessage;
+    const noCustomerNo = [...new Set(eligibleRecipients
+      .map((recipient) => recipient.ref?.unitId)
+      .filter((unitId): unitId is number => unitId !== undefined && dynamic.missingCustomerNoUnits.has(unitId)))].length;
+    const customerNoNote = noCustomerNo > 0 ? `납부자번호가 없는 ${noCustomerNo}세대는 고객번호 없이 보내요.` : null;
+    if (dynamicExcluded.length === 0) return customerNoNote;
     const counts = new Map<string, number>();
     for (const recipient of dynamicExcluded) {
       const unitId = recipient.ref?.unitId;
       const reason = (unitId !== undefined ? dynamic.excludedByUnit.get(unitId) : undefined) ?? "입주 세대가 아님";
       counts.set(reason, (counts.get(reason) ?? 0) + 1);
     }
-    return `값이 없는 수신자 ${dynamicExcluded.length}명은 빈 값으로 보내요 — ${[...counts]
+    const excludedNote = `값이 없는 수신자 ${dynamicExcluded.length}명은 빈 값으로 보내요 — ${[...counts]
       .map(([reason, count]) => `${reason} ${count}명`)
       .join(" · ")}`;
-  }, [dynamic.excludedByUnit, dynamic.loading, dynamicActive, dynamicExcluded]);
+    return customerNoNote ? `${excludedNote} · ${customerNoNote}` : excludedNote;
+  }, [
+    dynamic.excludedByUnit, dynamic.loading, dynamic.missingCustomerNoUnits, dynamicActive, dynamicExcluded,
+    eligibleRecipients, kindMismatchMessage,
+  ]);
 
   const quotedBody = useDebouncedValue(body, 350);
   const quotedRecipients = useMemo(
@@ -381,6 +417,7 @@ function MessengerFabContent() {
 
   let confirmationBlocker: string | null = null;
   if (providerGated) confirmationBlocker = "발송 설정 준비 중";
+  else if (kindMismatchMessage) confirmationBlocker = kindMismatchMessage;
   else if (dynamicActive && dynamic.loading) confirmationBlocker = "수신자별 값을 불러오는 중이에요.";
   else if (senderGated) confirmationBlocker = "알림톡 발신 설정 준비 중";
   else if (sendFeedback?.code === "INVALID_SCHEDULE") {
@@ -666,7 +703,14 @@ function MessengerFabContent() {
           onMin={toggleMin}
           onClose={() => setCloseConfirmOpen(true)}
           onPos={setPos}
-          onSend={() => setSummaryOpen(true)}
+          onSend={() => {
+            // 고지 유형이 다른 세대가 섞여 있으면 발송 확인으로 넘기지 않고 맞는 템플릿을 안내한다.
+            if (kindMismatchMessage) {
+              toast.error(kindMismatchMessage);
+              return;
+            }
+            setSummaryOpen(true);
+          }}
           sendLabel={footerLabel}
           sendDisabled={footerDisabled}
           sending={sendMessages.isPending}
@@ -764,6 +808,7 @@ function MessengerFabContent() {
           excludedCount={excludedCount}
           disabledReason={confirmationBlocker}
           isSending={sendMessages.isPending}
+          autoFilledVariables={dynamicActive ? DYNAMIC_VARIABLE_NAMES : undefined}
           onCancel={() => setSummaryOpen(false)}
           onConfirm={confirmSend}
         />

@@ -29,6 +29,11 @@ interface SendSummaryDialogProps {
   excludedCount?: number;
   disabledReason?: string | null;
   isSending?: boolean;
+  /**
+   * 수신자별로 자동 채우는 변수(관리비 고지·공지 자동 채움). 입력칸이 없으므로 값이 없는 수신자는
+   * 빈 값으로 보낸다(2026-10-15 결정) — 「값을 입력해 주세요」로 막지 않는다.
+   */
+  autoFilledVariables?: ReadonlySet<string>;
 }
 
 function formatPoints(points: number): string {
@@ -39,9 +44,11 @@ function unresolvedVariables(
   body: string,
   recipients: MessageRecipient[],
   vars: Record<string, string>,
+  autoFilled?: ReadonlySet<string>,
 ): string[] {
   return extractAlimtalkVariables(body).filter((name) => {
     if (AUTO_VARS.has(name)) return false;
+    if (autoFilled?.has(name)) return false;
     if (vars[name]?.trim()) return false;
     return !recipients.some((recipient) => recipient.variables?.[name]?.trim());
   });
@@ -80,12 +87,13 @@ export function SendSummaryDialog({
   excludedCount = 0,
   disabledReason,
   isSending = false,
+  autoFilledVariables,
 }: SendSummaryDialogProps) {
   const senderDefaults = useSenderDefaults();
   const defaultSms = senderDefaults.data?.smsSender ?? null;
   const bytes = byteLen(body);
   const product = smsProduct(bytes);
-  const unresolved = unresolvedVariables(body, recipients, vars);
+  const unresolved = unresolvedVariables(body, recipients, vars, autoFilledVariables);
   const warning =
     disabledReason ||
     (!body.trim()
