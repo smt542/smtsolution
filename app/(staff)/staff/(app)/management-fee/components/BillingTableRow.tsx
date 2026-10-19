@@ -6,7 +6,6 @@ import type { BillingColumn, BillingUnitRow } from "@/lib/billing/pivot";
 import { formatNumber } from "@/lib/format";
 import {
   billingFixedItemsTotal,
-  billingItemsTotal,
   effectiveChargeAmount,
   isRecentMoveIn,
   unitAreaPyeong,
@@ -46,15 +45,11 @@ export const BillingTableRow = memo(function BillingTableRow({
   const recent = isRecentMoveIn(unit.moveInDate, period);
   const util = unitUtilityAmounts(unit.unitId, utilities);
   const anomaly = unit.isVacant && util.sum > 0;
-  // 총 관리비 = 청구액(항목 합계). 공과금도 항목(전기·수도료·가스)이라 공과금 칸 금액을 또 더하지 않는다.
-  // 확정·비수정 상태면 확정 스냅샷 totalAmount가 곧 청구액이다.
-  const itemsTotal = unit.confirmedAt && !unit.isDirty && unit.totalAmount != null
-    ? unit.totalAmount
-    : billingItemsTotal(unit, columns, period, chargeDrafts);
-  const displayTotal = unit.isVacant ? 0 : itemsTotal;
-  // 건물 관리비 = 입주자 계약 관리비(occupancies.mgmt_fee_amount). 총 관리비에 합산하지 않는 참고값이며 공실은 원본처럼 0.
+  // 건물 관리비 = 입주자 계약 관리비(occupancies.mgmt_fee_amount). 공실은 원본처럼 0.
   const buildingTotal = unit.isVacant ? 0 : unit.mgmtFeeAmount ?? 0;
   const fixedTotal = unit.isVacant ? 0 : billingFixedItemsTotal(unit, columns, period, chargeDrafts);
+  // 총 관리비(표시) = 건물 관리비 + 고정 관리비(2026-10-19). 청구액(항목 합계·확정 스냅샷)과는 별개인 표시값이다.
+  const displayTotal = buildingTotal + fixedTotal;
   const billingNote = noteDraft?.billingNote ?? unit.billingNote ?? "";
   const unitNotice = noteDraft?.unitNotice ?? unit.unitNotice ?? "";
   const areaPyeong = unitAreaPyeong(unit);
