@@ -3,6 +3,7 @@ import type { UtilityCustomerBillRow, UtilityUnitRow } from "@/hooks/reactquery/
 import { formatNumber } from "@/lib/format";
 import { groupRowsByRegisteredCustomer } from "./customerNumberGroups";
 import { GridEmptyValue } from "./GridEmptyValue";
+import { previousValuesByCustomer } from "./utilityCarryOver";
 import { UtilityGrid, type UtilityGridColumn } from "./UtilityGrid";
 
 interface UtilityAccountSummaryProps {
@@ -17,6 +18,8 @@ interface UtilityAccountSummaryProps {
   onChargeDraftChange?: (customerNo: string, value: string) => void;
   /** 수정 중 초안으로 다시 계산한 고객번호별 량·수동입력·단가(customerNo → 값). 없으면 저장값. */
   preview?: Map<string, UtilityAccountPreview>;
+  /** 전월 호실 행. 전월금액·전단가 표시에 쓴다. */
+  previousRows?: UtilityUnitRow[];
 }
 
 export interface UtilityAccountPreview {
@@ -84,6 +87,7 @@ export function UtilityAccountSummary({
   chargeDrafts,
   onChargeDraftChange,
   preview,
+  previousRows,
 }: UtilityAccountSummaryProps) {
   const accounts = groupByCustomer(rows, (customerBills ?? []).map((bill) => bill.customerNo)).map((account) => {
     const live = preview?.get(account.customerNumber);
@@ -96,6 +100,7 @@ export function UtilityAccountSummary({
       unitPrice: live.rate === null ? account.unitPrice : Math.round(live.rate * 10000) / 10000,
     };
   });
+  const previousByCustomer = previousValuesByCustomer(previousRows ?? [], (customerBills ?? []).map((bill) => bill.customerNo));
   const billFor = (customerNumber: string) => customerBills?.find((bill) => bill.customerNo === customerNumber);
   /** 청구총액을 입력했으면 그 총액(호실은 서버가 배분), 아니면 기존 호실 합계. */
   const chargeOf = (row: AccountRow) => billFor(row.customerNumber)?.amount ?? (row.manual || row.charge);
@@ -129,7 +134,17 @@ export function UtilityAccountSummary({
       cellClassName: (row) => row.discount ? "num font-semibold text-red" : DASH,
       render: (row) => row.discount ? `-${formatNumber(row.discount)}` : "-",
     },
-    { key: "previousCharge", label: "전월금액", minWidth: 76, align: "right", cellClassName: DASH, render: () => "-" },
+    {
+      key: "previousCharge",
+      label: "전월금액",
+      minWidth: 76,
+      align: "right",
+      cellClassName: (row) => previousByCustomer.get(row.customerNumber)?.charge ? "num" : DASH,
+      render: (row) => {
+        const charge = previousByCustomer.get(row.customerNumber)?.charge;
+        return charge ? formatNumber(charge) : "-";
+      },
+    },
     {
       key: "charge",
       label: "부과액",
@@ -152,7 +167,17 @@ export function UtilityAccountSummary({
         );
       },
     },
-    { key: "previousUnitPrice", label: "전단가", minWidth: 62, align: "right", cellClassName: DASH, render: () => "-" },
+    {
+      key: "previousUnitPrice",
+      label: "전단가",
+      minWidth: 62,
+      align: "right",
+      cellClassName: (row) => previousByCustomer.get(row.customerNumber)?.unitPrice ? "num" : DASH,
+      render: (row) => {
+        const unitPrice = previousByCustomer.get(row.customerNumber)?.unitPrice;
+        return unitPrice ? formatNumber(unitPrice) : "-";
+      },
+    },
     {
       key: "unitPrice",
       label: "단가",

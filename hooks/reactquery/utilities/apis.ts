@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { carryDate, defaultChargePeriod, isFuturePeriod, monthsBetween } from "@/lib/billing/period";
 
 export const UTILITY_TYPES = ["water", "electricity", "gas"] as const;
 export type UtilityType = (typeof UTILITY_TYPES)[number];
@@ -504,6 +505,39 @@ export async function saveBillingPeriod(input: SaveBillingPeriodInput): Promise<
       { onConflict: "building_id,period" },
     );
   if (error) throw new Error(error.message);
+}
+
+export type CarryBillingPeriodOutcome = "carried" | "kept" | "no-source" | "invalid-source";
+
+/**
+ * 공과금 전체 이월: 건물의 `period`월 부과기준일을 다음 달로 +1개월 옮긴다(건물 자기 기준일 그대로라 그룹별 기준일이 유지됨).
+ * - 기준: 저장된 기준일, 없으면 이번 달 이전 월의 기본 기준일(전월16~당월15).
+ * - 다음 달 기준일이 이미 있으면 덮어쓰지 않는다. 기준이 비정상(시작일>종료일)이면 건너뛴다.
+ * 금액은 이월하지 않는다(DB 가 미래 월 저장을 막고, 전월값은 전월 행을 조회해 보여준다).
+ */
+export async function carryBillingPeriod(
+  buildingId: number,
+  period: string,
+): Promise<CarryBillingPeriodOutcome> {
+  const nextPeriod = carryDate(period, 1);
+  const [source, existing] = await Promise.all([
+    getBillingPeriod(buildingId, period),
+    getBillingPeriod(buildingId, nextPeriod),
+  ]);
+  if (existing?.chargeStartDate && existing.chargeEndDate) return "kept";
+  const base = source ?? (isFuturePeriod(period) ? null : defaultChargePeriod(period));
+  if (!base) return "no-source";
+  if (!base.chargeStartDate || !base.chargeEndDate || base.chargeStartDate > base.chargeEndDate) {
+    return "invalid-source";
+  }
+  const months = monthsBetween(period, nextPeriod);
+  await saveBillingPeriod({
+    buildingId,
+    period: nextPeriod,
+    chargeStartDate: carryDate(base.chargeStartDate, months),
+    chargeEndDate: carryDate(base.chargeEndDate, months),
+  });
+  return "carried";
 }
 
 /** 호실별 지침 자물쇠는 unit_fixed_values 의 달별 이력으로 저장한다. */

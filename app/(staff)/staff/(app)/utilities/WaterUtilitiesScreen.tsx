@@ -12,6 +12,7 @@ import {
 } from "@/hooks/reactquery/buildingCustomerNumbers";
 import {
   useBillingPeriod,
+  useCarryUtilityPeriod,
   useFixedValues,
   useSaveFixedValues,
   useSaveMeterReadings,
@@ -24,13 +25,14 @@ import {
   type UtilityUnitRow,
 } from "@/hooks/reactquery/utilities";
 import { hasModule } from "@/lib/auth/permissions";
-import { currentPeriod } from "@/lib/billing/period";
+import { carryDate, currentPeriod, prevPeriod } from "@/lib/billing/period";
 import { BuildingSelectionRail } from "./components/BuildingSelectionRail";
 import {
   BillingBasisRequiredState,
   hasBillingBasis,
   isPrototypeFuturePeriod,
 } from "./components/BillingBasisRequiredState";
+import { carryOverMessage } from "./components/utilityCarryOver";
 import { CarryOverConfirmModal } from "./components/CarryOverConfirmModal";
 import { MeterLedgerModal } from "./components/MeterLedgerModal";
 import { UnitPriceModal } from "./components/UnitPriceModal";
@@ -129,6 +131,8 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
   const buildings = useMemo(() => buildingsQuery.data ?? [], [buildingsQuery.data]);
   const selectedBuilding = buildings.find((building) => building.id === buildingId) ?? null;
   const rowsQuery = useUtilityRows(buildingId, utilityType, period);
+  const previousRowsQuery = useUtilityRows(buildingId, utilityType, prevPeriod(period));
+  const carryPeriod = useCarryUtilityPeriod();
   const fixedValuesQuery = useFixedValues(buildingId, utilityType);
   const billingPeriodQuery = useBillingPeriod(buildingId, period);
   const saveMeter = useSaveMeterReadings();
@@ -349,32 +353,19 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
     }
   };
 
-  const carryOver = () => {
-    if (buildingId !== null) {
-      const target = new Date(year, month, 1);
-      const nextPeriod = periodDate(target.getFullYear(), target.getMonth() + 1);
-      const nextScope = `${buildingId}:${utilityType}:${nextPeriod}`;
-      setDrafts((current) => {
-        const next = { ...current };
-        activeRows.forEach((row) => {
-          const source = scopedDrafts[row.unitId];
-          const carried = source.currentReading.trim() || (row.previousReading === null ? "" : String(row.previousReading));
-          next[`${nextScope}:${row.unitId}`] = {
-            ...initialLockDraft(fixedByUnit.get(row.unitId), nextPeriod, null),
-            previousReading: carried,
-            currentReading: carried,
-            usage: "0",
-            usageEdited: false,
-            note: "",
-          };
-        });
-        return next;
-      });
-      setReferenceDate(nextPeriod);
-    }
+  const carryOver = async () => {
     setCarryOpen(false);
-    setEditing(false);
-    toast.success(`${year}년 ${month}월분을 다음 달로 이월했습니다.`);
+    try {
+      // 모든 건물의 부과기준일을 건물별 전월 기준일 +1개월로 옮긴다. 전월량·전월금액·전단가는 전월 행을 조회해 보여준다.
+      const summary = await carryPeriod.mutateAsync({ buildingIds: buildings.map((building) => building.id), period });
+      setReferenceDate(carryDate(period, 1));
+      setEditing(false);
+      const message = carryOverMessage(`${year}년 ${month}월분 이월`, summary);
+      if (summary.failedCount > 0) toast.error(message);
+      else toast.success(message);
+    } catch (error) {
+      toast.error(error, "이월하지 못했습니다.");
+    }
   };
 
   return (
@@ -439,6 +430,7 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
                   customerBills={customerBillsQuery.data}
                   chargeDrafts={scopedBillDrafts}
                   preview={allocationPreview?.accounts}
+                  previousRows={previousRowsQuery.data}
                   onChargeDraftChange={(customerNo, value) => setBillDrafts((current) => ({
                     ...current,
                     [`${scopeKey}:${customerNo}`]: value,

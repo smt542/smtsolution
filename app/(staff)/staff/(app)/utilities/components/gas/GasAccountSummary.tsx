@@ -6,6 +6,7 @@ import { GridEmptyValue } from "../GridEmptyValue";
 import { UtilityGrid, type UtilityGridColumn } from "../UtilityGrid";
 import { usageFromReadings } from "../UtilityLock";
 import { unitChargeWithDiscount } from "../utilityAllocation";
+import { previousValuesByCustomer } from "../utilityCarryOver";
 
 interface GasAccountSummaryProps {
   rows: GasTableRow[];
@@ -20,6 +21,8 @@ interface GasAccountSummaryProps {
   onChargeDraftChange?: (customerNo: string, value: string) => void;
   /** 수정 중 초안으로 다시 배분한 단가(customerNo → 원/량). 없으면 호실 단가. */
   previewRates?: Map<string, number>;
+  /** 전월 호실 행. 전월금액·전단가 표시에 쓴다. */
+  previousRows?: GasTableRow[];
 }
 
 interface GasAccountLine {
@@ -104,11 +107,13 @@ export function GasAccountSummary({
   chargeDrafts,
   onChargeDraftChange,
   previewRates,
+  previousRows,
 }: GasAccountSummaryProps) {
   const lines = summarize(rows, drafts, customerNumbers, editing).map((line) => {
     const rate = previewRates?.get(line.customerNumber);
     return rate === undefined ? line : { ...line, unitPrice: Math.round(rate * 10000) / 10000 };
   });
+  const previousByCustomer = previousValuesByCustomer(previousRows ?? [], customerNumbers);
   const billFor = (customerNumber: string) => customerBills?.find((bill) => bill.customerNo === customerNumber);
   /** 청구총액을 입력했으면 그 총액(호실은 서버가 배분), 아니면 호실 합계. */
   const chargeOf = (line: GasAccountLine) => billFor(line.customerNumber)?.amount ?? line.charge;
@@ -174,8 +179,11 @@ export function GasAccountSummary({
       label: "전월금액",
       width: 83,
       align: "right",
-      cellClassName: "text-t3",
-      render: () => "-",
+      cellClassName: (line) => previousByCustomer.get(line.customerNumber)?.charge ? "tabular-nums" : "text-t3",
+      render: (line) => {
+        const charge = previousByCustomer.get(line.customerNumber)?.charge;
+        return charge ? display(charge) : "-";
+      },
     },
     {
       key: "charge",
@@ -204,8 +212,11 @@ export function GasAccountSummary({
       label: "전단가",
       width: 74,
       align: "right",
-      cellClassName: "text-t3",
-      render: () => "-",
+      cellClassName: (line) => previousByCustomer.get(line.customerNumber)?.unitPrice ? "tabular-nums" : "text-t3",
+      render: (line) => {
+        const unitPrice = previousByCustomer.get(line.customerNumber)?.unitPrice;
+        return unitPrice ? display(unitPrice) : "-";
+      },
     },
     {
       key: "unitPrice",

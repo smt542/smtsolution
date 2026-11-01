@@ -12,6 +12,7 @@ import {
 } from "@/hooks/reactquery/buildingCustomerNumbers";
 import {
   useBillingPeriod,
+  useCarryUtilityPeriod,
   useFixedValues,
   useSaveBillingPeriod,
   useSaveFixedValues,
@@ -27,8 +28,9 @@ import {
   type UtilityUnitRow,
 } from "@/hooks/reactquery/utilities";
 import { hasModule } from "@/lib/auth/permissions";
-import { currentPeriod } from "@/lib/billing/period";
+import { carryDate, currentPeriod } from "@/lib/billing/period";
 import { defaultBillingDates } from "./components/BillingPeriodBar";
+import { carryOverMessage } from "./components/utilityCarryOver";
 import { CarryOverDialog } from "./components/CarryOverDialog";
 import { groupRowsByRegisteredCustomer } from "./components/customerNumberGroups";
 import {
@@ -102,6 +104,7 @@ export default function ElectricityUtilitiesWorkspace() {
   const pricesQuery = useUtilityPrices(buildingId, utilityType);
   const customerBillsQuery = useUtilityCustomerBills(buildingId, utilityType, period);
   const billingPeriodQuery = useBillingPeriod(buildingId, period);
+  const carryPeriod = useCarryUtilityPeriod();
   const saveMeterReadings = useSaveMeterReadings();
   const saveBillingPeriod = useSaveBillingPeriod();
   const saveUtilityPrices = useSaveUtilityUnitPrices();
@@ -456,23 +459,19 @@ export default function ElectricityUtilitiesWorkspace() {
     }
   };
 
-  const carryOver = () => {
-    if (buildingId === null) {
-      setCarryOverOpen(false);
-      toast.error("이월할 건물을 먼저 선택해 주세요.");
-      return;
-    }
-    const targets = rows.filter((row) => (
-      row.occupancyId !== null
-      && row.occupancyStatus !== "vacant"
-      && !scopedDrafts[row.unitId].usageLocked
-      && scopedDrafts[row.unitId].currentReading.trim() === ""
-      && row.previousReading !== null
-    ));
-    targets.forEach((row) => updateDraft(row.unitId, { currentReading: String(row.previousReading) }));
+  const carryOver = async () => {
     setCarryOverOpen(false);
-    if (targets.length > 0) setEditing(true);
-    toast.success(`${targets.length}개 호실의 이월값을 준비했습니다.`);
+    try {
+      // 모든 건물의 부과기준일을 건물별 전월 기준일 +1개월로 옮기고 다음 달로 이동한다(전월 지침은 전월 행에서 조회).
+      const summary = await carryPeriod.mutateAsync({ buildingIds: buildings.map((building) => building.id), period });
+      setPeriod(carryDate(period, 1));
+      setEditing(false);
+      const message = carryOverMessage(`${Number(period.slice(0, 4))}년 ${Number(period.slice(5, 7))}월분 이월`, summary);
+      if (summary.failedCount > 0) toast.error(message);
+      else toast.success(message);
+    } catch (error) {
+      toast.error(error, "이월하지 못했습니다.");
+    }
   };
 
   const referenceDate = `${period.slice(0, 7)}-15`;

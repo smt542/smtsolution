@@ -12,6 +12,7 @@ import {
 } from "@/hooks/reactquery/buildingCustomerNumbers";
 import {
   useBillingPeriod,
+  useCarryUtilityPeriod,
   useFixedValues,
   useSaveBillingPeriod,
   useSaveFixedValues,
@@ -24,6 +25,8 @@ import {
   type UtilityUnitRow,
 } from "@/hooks/reactquery/utilities";
 import { hasModule } from "@/lib/auth/permissions";
+import { carryDate, prevPeriod } from "@/lib/billing/period";
+import { carryOverMessage } from "./components/utilityCarryOver";
 import { CarryOverDialog } from "./components/gas/CarryOverDialog";
 import {
   BillingBasisRequiredState,
@@ -121,6 +124,8 @@ export default function GasUtilitiesWorkspace() {
   const period = `${year}-${pad(month)}-01`;
   const referenceDate = monthEnd(year, month);
   const rowsQuery = useUtilityRows(buildingId, "gas", period);
+  const previousRowsQuery = useUtilityRows(buildingId, "gas", prevPeriod(period));
+  const carryPeriod = useCarryUtilityPeriod();
   const fixedValuesQuery = useFixedValues(buildingId, "gas");
   const billingPeriodQuery = useBillingPeriod(buildingId, period);
   const saveMeter = useSaveMeterReadings();
@@ -358,31 +363,21 @@ export default function GasUtilitiesWorkspace() {
     }
   };
 
-  const confirmCarryOver = () => {
-    if (buildingId === null) {
-      toast.info("이월할 건물을 먼저 선택해 주세요.");
-      setCarryOverOpen(false);
-      return;
-    }
-    const carryRows = rows.filter((row) => (
-      !scopedDrafts[row.unitId].usageLocked
-      && row.previousReading !== null
-      && scopedDrafts[row.unitId].currentReading.trim() === ""
-    ));
-    setDrafts((current) => {
-      const next = { ...current };
-      carryRows.forEach((row) => {
-        const key = `${scopeKey}:${row.unitId}`;
-        next[key] = {
-          ...(current[key] ?? initialDraft(row, fixedByUnit.get(row.unitId), period)),
-          currentReading: String(row.previousReading),
-        };
-      });
-      return next;
-    });
-    startEditing();
+  const confirmCarryOver = async () => {
     setCarryOverOpen(false);
-    toast.success(`${carryRows.length}개 호실을 이월했습니다.`);
+    try {
+      // 모든 건물의 부과기준일을 건물별 전월 기준일 +1개월로 옮기고 다음 달로 이동한다(전월값은 전월 행에서 조회).
+      const summary = await carryPeriod.mutateAsync({ buildingIds: buildings.map((building) => building.id), period });
+      const next = carryDate(period, 1);
+      setYear(Number(next.slice(0, 4)));
+      setMonth(Number(next.slice(5, 7)));
+      setEditing(false);
+      const message = carryOverMessage(`${year}년 ${month}월분 이월`, summary);
+      if (summary.failedCount > 0) toast.error(message);
+      else toast.success(message);
+    } catch (error) {
+      toast.error(error, "이월하지 못했습니다.");
+    }
   };
 
   return (
@@ -479,6 +474,7 @@ export default function GasUtilitiesWorkspace() {
                   customerBills={customerBillsQuery.data}
                   chargeDrafts={scopedBillDrafts}
                   previewRates={allocationPreview?.rates}
+                  previousRows={previousRowsQuery.data}
                   onChargeDraftChange={(customerNo, value) => setBillDrafts((current) => ({
                     ...current,
                     [`${scopeKey}:${customerNo}`]: value,

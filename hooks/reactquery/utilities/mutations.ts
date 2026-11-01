@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+  carryBillingPeriod,
   confirmUtilities,
   saveBillingPeriod,
   saveFixedValues,
@@ -22,6 +23,8 @@ import {
   type SaveUtilitySupplierInput,
   type SaveWaterDiscountInput,
 } from "./apis";
+import { billingKeys } from "../billing/keys";
+import { carryDate } from "@/lib/billing/period";
 import { utilityKeys } from "./keys";
 
 export interface SaveWaterDiscountMutationInput extends SaveWaterDiscountInput {
@@ -199,6 +202,47 @@ export function useSavePartnerMeterReadings() {
           }),
         ),
       ]);
+    },
+  });
+}
+
+export type CarryUtilityPeriodSummary = {
+  carried: number;
+  kept: number;
+  skipped: number;
+  failedCount: number;
+  firstError: unknown;
+};
+
+/** 공과금 전체 이월: 모든 건물의 부과기준일을 다음 달로 옮긴다(공과금·관리비 부과 세팅 공용 테이블). */
+export function useCarryUtilityPeriod() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ buildingIds, period }: { buildingIds: number[]; period: string }) => {
+      const settled = await Promise.allSettled(
+        buildingIds.map((buildingId) => carryBillingPeriod(buildingId, period)),
+      );
+      const summary: CarryUtilityPeriodSummary = {
+        carried: 0, kept: 0, skipped: 0, failedCount: 0, firstError: null,
+      };
+      for (const item of settled) {
+        if (item.status === "rejected") {
+          summary.failedCount += 1;
+          summary.firstError ??= item.reason;
+        } else if (item.value === "carried") summary.carried += 1;
+        else if (item.value === "kept") summary.kept += 1;
+        else summary.skipped += 1;
+      }
+      // 전부 실패했을 때만 오류로 던지고, 일부 실패는 호출부가 failedCount 로 안내한다.
+      if (settled.length > 0 && summary.failedCount === settled.length) throw summary.firstError;
+      return summary;
+    },
+    onSettled: (_result, _error, input) => {
+      const nextPeriod = carryDate(input.period, 1);
+      input.buildingIds.forEach((buildingId) => {
+        void qc.invalidateQueries({ queryKey: utilityKeys.billingPeriod(buildingId, nextPeriod) });
+        void qc.invalidateQueries({ queryKey: billingKeys.periodSetting(buildingId, nextPeriod) });
+      });
     },
   });
 }
