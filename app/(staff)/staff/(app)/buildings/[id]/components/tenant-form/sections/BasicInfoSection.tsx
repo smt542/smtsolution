@@ -76,7 +76,7 @@ export function BasicInfoSection({
             inputMode="numeric"
           />
         </Field>
-        <Field label="기타적요" full>
+        <Field label="기타 메모" full>
           <TextAreaField value={value.etcNote} onChange={(v) => onChange({ etcNote: v })} placeholder="기타 메모를 입력하세요…" />
         </Field>
         <Field label="이사정산시적요" full>

@@ -355,7 +355,7 @@ export function SettlementActions({
           {building.name} {unit.unitNo} 세대를 중도퇴실로 처리 완료 하시겠습니까?
           <br />
           <span className="text-[12.5px] text-t3">
-            공실 처리 없이 고지서 출력 여부가 N으로, 부과시 참조사항이 &quot;중도퇴실&quot;로 바뀌어요.
+            공실 처리 없이 고지서 출력 여부가 N으로, 적요가 &quot;중도퇴실&quot;로 바뀌어요.
             {outstanding > 0 && ` 미수금 ${formatWon(outstanding)}은 남은 채로 처리되고, 퇴실 정산 때 정리해요.`}
           </span>
         </p>
@@ -415,7 +415,7 @@ export function SettlementActions({
         <p className="text-t3">{formatCreatedAt(createdAt)}이며, 삭제하면 되돌릴 수 없어요.</p>
         {isMidMoveout ? (
           <p className="text-t3">
-            중도퇴실 건이라 부과시 참조사항의 &quot;중도퇴실&quot;은 지워지고, 알림톡 수신·고지서 출력 설정은 그대로 남아요.
+            중도퇴실 건이라 적요의 &quot;중도퇴실&quot;은 지워지고, 알림톡 수신·고지서 출력 설정은 그대로 남아요.
           </p>
         ) : null}
       </SettlementDecisionDialog>

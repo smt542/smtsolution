@@ -72,7 +72,7 @@ export function BillingSection({
         <Field label="단수 출력 여부">
           <SelectField value={value.singlePrint ? "Y" : "N"} onChange={(v) => onChange({ singlePrint: v === "Y" })} options={oxOptions} />
         </Field>
-        <Field label="부과시 참조사항" full>
+        <Field label="적요" full>
           <TextAreaField value={value.billingNote} onChange={(v) => onChange({ billingNote: v })} placeholder="관리비 부과 시 참고할 내용을 입력하세요…" />
         </Field>
       </FieldGrid>
