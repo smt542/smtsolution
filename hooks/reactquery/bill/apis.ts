@@ -16,6 +16,8 @@ export interface BillTarget {
   issueType: string | null; dueDate: string | null; sendStatus: string | null; issuedAt: string | null;
   singlePrint: boolean; waterCutoff: boolean; scheduledAt: string | null; messageScheduleId: number | null;
   kakaoSendStatus: string | null; faxSendStatus: string | null;
+  /** occupancies.print_enabled(고지서 출력 여부). 입주자 없음은 true. 지로 출력 대상에서만 N 제외. */
+  printEnabled: boolean;
 }
 type BillTargetDbRow = {
   unit_id: number; unit_no: string; dong: string | null; occupancy_id: number | null;
@@ -25,11 +27,12 @@ type BillTargetDbRow = {
   single_print: boolean; water_cutoff: boolean; scheduled_at: string | null; message_schedule_id: number | null;
   kakao_send_status: string | null; fax_send_status: string | null;
 };
-type BillTargetEnrichment = Pick<BillTarget, "payerName" | "payerNo" | "billNameDisplay">;
+type BillTargetEnrichment = Pick<BillTarget, "payerName" | "payerNo" | "billNameDisplay" | "printEnabled">;
 const defaultTargetEnrichment: BillTargetEnrichment = {
   payerName: null,
   payerNo: null,
   billNameDisplay: "name",
+  printEnabled: true,
 };
 const rowToTarget = (
   r: BillTargetDbRow,
@@ -83,13 +86,14 @@ export async function listBillTargets(buildingId: number, period: string): Promi
     id: number;
     payer_name: string | null;
     bill_name_display: BillNameDisplay | null;
+    print_enabled: boolean | null;
   };
   // Keep occupancy-owned print fields as a separate enrichment so the bill RPC
   // remains compatible with already-deployed versions.
   const occupancyQuery = occupancyIds.length > 0
     ? supabase
       .from("occupancies")
-      .select("id, payer_name, bill_name_display")
+      .select("id, payer_name, bill_name_display, print_enabled")
       .in("id", occupancyIds)
     : null;
   const [occupancyResult, accountResult] = await Promise.all([
@@ -119,6 +123,7 @@ export async function listBillTargets(buildingId: number, period: string): Promi
       payerName: occupancy?.payer_name ?? null,
       billNameDisplay: occupancy?.bill_name_display ?? "name",
       payerNo: payerNumbers.get(row.unit_id) ?? null,
+      printEnabled: occupancy?.print_enabled ?? true,
     });
   });
 }

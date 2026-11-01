@@ -68,6 +68,11 @@ function mergeGiroDocuments(building: BillBuilding, documents: BillDocument[], t
   });
 }
 
+// 지로 고지서는 입주자 「고지서 출력 여부」가 N 인 세대를 제외한다. 팩스는 수신번호를 직접 입력하므로 필터하지 않는다.
+function filterByPrintEnabled<T extends { printEnabled: boolean }>(targets: T[], type: string): T[] {
+  return type === "giro" ? targets.filter((target) => target.printEnabled) : targets;
+}
+
 export function DocumentOutputModal({ type, orgId, buildings, companyName, accounts, customerNotice, printOptions, onClose }: DocumentOutputModalProps) {
   const initial = initialYearMonth();
   const [years] = useState(() => outputYears(initial.year));
@@ -107,7 +112,7 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
 
   const currentTargetQueries = useQueries({ queries: selectedBuildings.map((building) => ({ queryKey: billKeys.targets(building.id, period), queryFn: () => listBillTargets(building.id, period) })) });
   const periodSettingQueries = useQueries({ queries: selectedBuildings.map((building) => ({ queryKey: billingKeys.periodSetting(building.id, period), queryFn: () => getBillingPeriodSetting(building.id, period), enabled: type === "giro" || type === "fax" })) });
-  const currentTargetsByBuilding = selectedBuildings.map((building, index) => ({ building, targets: currentTargetQueries[index]?.data ?? [] }));
+  const currentTargetsByBuilding = selectedBuildings.map((building, index) => ({ building, targets: filterByPrintEnabled(currentTargetQueries[index]?.data ?? [], type) }));
   const currentDocumentQueries = useQueries({ queries: currentTargetsByBuilding.map(({ building, targets }) => ({ queryKey: billKeys.documents(building.id, period, targets.map((target) => target.unitId)), queryFn: () => getBillDocuments(building.id, period, targets.map((target) => target.unitId)), enabled: needsDocuments && targets.length > 0 })) });
 
   const adjustment = useAdjustmentStatements({ buildings: selectedBuildings, period, orgId, companyName, outputDate, enabled: type === "adjustment" });

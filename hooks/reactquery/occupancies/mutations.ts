@@ -8,6 +8,7 @@ import {
   type SaveUnitOccupancyPayload,
 } from "./apis";
 import { billingKeys } from "@/hooks/reactquery/billing/keys";
+import { billKeys } from "@/hooks/reactquery/bill/keys";
 import { buildingKeys } from "@/hooks/reactquery/buildings/keys";
 import { occupancyKeys } from "./keys";
 
@@ -20,6 +21,7 @@ function useInvalidateOccupancies() {
       qc.invalidateQueries({ queryKey: occupancyKeys.all }),
       qc.invalidateQueries({ queryKey: buildingKeys.all }),
       qc.invalidateQueries({ queryKey: billingKeys.all }),
+      qc.invalidateQueries({ queryKey: billKeys.all }),
     ]);
 }
 
