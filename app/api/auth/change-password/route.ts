@@ -28,7 +28,9 @@ async function isCurrentPassword(email: string, password: string): Promise<boole
 export async function POST(req: Request) {
   // 여러 영역(사무실·현장·통합관리자)이 같이 쓰는 API 라 호출부가 영역을 명시해야 한다(QA #59).
   const scope = parseAuthScope(req.headers.get(AUTH_SCOPE_HEADER));
-  if (!scope) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+  if (!scope) {
+    return NextResponse.json({ error: "요청 영역(x-auth-scope)이 없거나 올바르지 않습니다." }, { status: 400 });
+  }
   const supabase = await createClient(undefined, scope);
   const { data: userData } = await supabase.auth.getUser();
   const user = userData?.user;

@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 export default function PlatformAdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <AuthBoot />
+      <AuthBoot scope="platform" />
       {children}
     </>
   );

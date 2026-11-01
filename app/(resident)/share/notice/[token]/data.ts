@@ -27,7 +27,7 @@ export interface PublicNoticePageData {
 }
 
 export async function getPublicNoticeByToken(token: string): Promise<PublicNoticePageData> {
-  const supabase = await createClient();
+  const supabase = await createClient(undefined, "resident");
   const { data, error } = await supabase.rpc("public_notice_by_token", {
     p_token: token,
   });

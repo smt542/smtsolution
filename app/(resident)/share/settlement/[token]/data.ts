@@ -23,7 +23,7 @@ const rowToPublicSettlement = (
 export async function getPublicSettlementByToken(
   token: string,
 ): Promise<PublicSettlementByTokenResult> {
-  const supabase = await createClient();
+  const supabase = await createClient(undefined, "resident");
   const { data, error } = await supabase.rpc("public_settlement_by_token", {
     p_token: token,
   });

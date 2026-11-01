@@ -1,6 +1,16 @@
+import type { AuthScope } from "@/lib/supabase/authScope";
+
 /** 과거 「자동 로그인 = 영구 세션」 플래그. 정책(2026-08-12/14) 「자동 로그인 = 아이디 기억」으로 더 이상 설정하지 않고, 남은 값은 제거만 한다. */
 export const LEGACY_AUTO_LOGIN_KEY = "erp_login_auto";
 export const SESSION_ALIVE_KEY = "erp_session_alive";  // 만료일 없는 쿠키 marker: 모든 탭이 공유하고 브라우저를 닫으면 사라진다
+
+/**
+ * 영역별 세션 표식(QA #59 영역별 세션 분리). 영역마다 따로 두어 한 영역의 브라우저 재시작 판정이
+ * 다른 영역(먼저 로그인한 현장 세션 등)을 끊지 않게 한다. 만료일 없는 쿠키라 탭끼리 공유되고 브라우저를 닫으면 사라진다.
+ */
+export function sessionAliveKey(scope: AuthScope): string {
+  return `${SESSION_ALIVE_KEY}_${scope}`;
+}
 
 /** 자동 로그인(아이디 기억) 저장 키 — 직원·통합관리자 로그인은 같은 origin이라 키를 나눈다. */
 export const REMEMBERED_ID_KEYS = {

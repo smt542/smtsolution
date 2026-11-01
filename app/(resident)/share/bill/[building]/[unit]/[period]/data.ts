@@ -43,7 +43,7 @@ export async function getPublicBillBySigned(
   sig: string,
   issuedDay?: number,
 ): Promise<PublicBillBySignedResult> {
-  const supabase = await createClient();
+  const supabase = await createClient(undefined, "resident");
   const rpcParams = {
     p_building_id: buildingId,
     p_unit_no: unitNo,
