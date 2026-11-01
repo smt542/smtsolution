@@ -6,7 +6,7 @@ export type MeterKind = "" | "수도" | "전기" | "가스" | "공용전기";
 
 /** 건물 목록 필터 상태(프로토타입 building-list 필터 패널). */
 export interface BuildingFilterState {
-  regSort: "desc" | "asc"; // 등록일 최신순/오래된 순
+  regSort: "code" | "desc" | "asc"; // 기본 코드순(QA #15) / 등록일 최신순 / 오래된 순
   managerUserId: string | null; // 사무 담당자
   meterUserId: string | null; // 현장 관리자
   cleaningUserId: string | null; // 청소 담당자
@@ -15,7 +15,7 @@ export interface BuildingFilterState {
 }
 
 export const initialBuildingFilter: BuildingFilterState = {
-  regSort: "desc",
+  regSort: "code",
   managerUserId: null,
   meterUserId: null,
   cleaningUserId: null,
@@ -25,7 +25,7 @@ export const initialBuildingFilter: BuildingFilterState = {
 
 export function isFilterActive(f: BuildingFilterState): boolean {
   return (
-    f.regSort !== "desc" ||
+    f.regSort !== "code" ||
     f.managerUserId !== null ||
     f.meterUserId !== null ||
     f.cleaningUserId !== null ||
@@ -166,7 +166,10 @@ export function BuildingSearchCard({
           open ? "mt-[13px] max-h-[400px] border-line2 pt-[13px] opacity-100" : "mt-0 max-h-0 border-transparent pt-0 opacity-0"
         }`}
       >
-        <ChipGroup label="등록일">
+        <ChipGroup label="정렬">
+          <Chip active={filter.regSort === "code"} onClick={() => patch({ regSort: "code" })}>
+            코드순
+          </Chip>
           <Chip active={filter.regSort === "desc"} onClick={() => patch({ regSort: "desc" })}>
             최신순
           </Chip>

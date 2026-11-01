@@ -103,7 +103,7 @@ const rowToDirectory = (r: BuildingDirectoryDbRow): BuildingDirectoryRow => ({
 });
 
 /** 서버(list_buildings) 정렬 키. 검침일 정렬은 meterKind(수도·전기·가스·공용전기) 항목의 검침일 기준. */
-export type BuildingListSort = "created_desc" | "created_asc" | "meter_day_asc" | "meter_day_desc";
+export type BuildingListSort = "code_asc" | "created_desc" | "created_asc" | "meter_day_asc" | "meter_day_desc";
 export interface BuildingListParams {
   search?: string; managerUserId?: string; meterUserId?: string; cleaningUserId?: string;
   page?: number; pageSize?: number;
@@ -122,7 +122,7 @@ export async function listBuildings(params: BuildingListParams = {}): Promise<Bu
     p_cleaning: params.cleaningUserId ?? null,
     p_limit: pageSize,
     p_offset: (page - 1) * pageSize,
-    p_sort: params.sort ?? "created_desc",
+    p_sort: params.sort ?? "code_asc",
     p_meter_kind: params.meterKind ?? null,
   });
   if (error) throw new Error(error.message);
@@ -131,9 +131,10 @@ export async function listBuildings(params: BuildingListParams = {}): Promise<Bu
   return { rows, total };
 }
 
-// 전체 건물 목록(드롭다운용) — org 범위는 RLS로 격리
+// 전체 건물 목록(드롭다운용) — org 범위는 RLS로 격리.
+// 건물 목록 정렬 단일 기준: 건물 코드 → id 오름차순(QA #15). 새 건물 목록 조회는 useBuildings()/이 함수를 재사용한다.
 export async function listAllBuildings(): Promise<Building[]> {
-  const { data, error } = await createClient().from("buildings").select("*").is("deleted_at", null).order("name");
+  const { data, error } = await createClient().from("buildings").select("*").is("deleted_at", null).order("code").order("id");
   if (error) throw new Error(error.message);
   return (data ?? []).map(rowToBuilding);
 }

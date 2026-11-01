@@ -2,11 +2,13 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
+import { compareBuildingCode } from "@/lib/buildings/sort";
 
 export interface OrgOccupancyOption {
   occupancyId: number;
   buildingId: number;
   buildingName: string;
+  buildingCode: string;
   unitId: number;
   unitNo: string;
   tenantName: string | null;
@@ -24,6 +26,7 @@ type OccupancyLookupRow = {
     unit_no: string;
     buildings: Relation<{
       id: number;
+      code: string;
       name: string;
     }>;
   }>;
@@ -45,6 +48,7 @@ export async function listOrgOccupancyOptions(): Promise<OrgOccupancyOption[]> {
         unit_no,
         buildings!inner (
           id,
+          code,
           name
         )
       )
@@ -66,6 +70,7 @@ export async function listOrgOccupancyOptions(): Promise<OrgOccupancyOption[]> {
         occupancyId: row.id,
         buildingId: building.id,
         buildingName: building.name,
+        buildingCode: building.code,
         unitId: unit.id,
         unitNo: unit.unit_no,
         tenantName: row.tenant_name,
@@ -73,7 +78,10 @@ export async function listOrgOccupancyOptions(): Promise<OrgOccupancyOption[]> {
       }];
     })
     .sort((a, b) => (
-      a.buildingName.localeCompare(b.buildingName, "ko")
+      compareBuildingCode(
+        { code: a.buildingCode, id: a.buildingId },
+        { code: b.buildingCode, id: b.buildingId },
+      )
       || a.unitNo.localeCompare(b.unitNo, "ko", { numeric: true })
     ));
 }

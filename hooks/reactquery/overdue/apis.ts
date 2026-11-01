@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import type { LateFeePeriodResult } from "@/lib/billing/lateFee";
+import { compareBuildingCode } from "@/lib/buildings/sort";
 
 export interface OverdueBuilding {
   id: number;
@@ -26,6 +27,7 @@ export interface OverdueHousehold {
   occupancyId: number;
   buildingId: number;
   buildingName: string;
+  buildingCode?: string | null;
   buildingAddress?: string | null;
   unitId: number;
   unitNo: string;
@@ -62,6 +64,7 @@ interface BuildingRow {
 
 interface EmbeddedBuildingRow {
   id: number;
+  code?: string | null;
   name: string;
   address?: string | null;
 }
@@ -198,6 +201,7 @@ function rowToHousehold(
     occupancyId: row.id,
     buildingId: unit.building_id,
     buildingName: building.name,
+    buildingCode: building.code ?? null,
     buildingAddress: building.address,
     unitId: unit.id,
     unitNo: unit.unit_no,
@@ -248,7 +252,11 @@ function unitSortKey(value?: string | null): [number, string] {
 }
 
 function compareHouseholds(a: OverdueHousehold, b: OverdueHousehold): number {
-  const byBuilding = a.buildingName.localeCompare(b.buildingName, "ko");
+  // 건물 코드순(QA #15). 코드가 같거나 없으면 건물명 → 동 → 호수.
+  const byBuilding = compareBuildingCode(
+    { code: a.buildingCode, id: a.buildingId },
+    { code: b.buildingCode, id: b.buildingId },
+  );
   if (byBuilding !== 0) return byBuilding;
   const byDong = (a.dong ?? "").localeCompare(b.dong ?? "", "ko");
   if (byDong !== 0) return byDong;
@@ -288,6 +296,7 @@ export async function listOverdueHouseholds(
         memo,
         buildings!inner (
           id,
+          code,
           name,
           address
         )
@@ -334,7 +343,7 @@ export async function listOverdueHouseholds(
       return rowToHousehold(row, aggregate);
     })
     .filter((row): row is OverdueHousehold => row !== null)
-    // 전체 조회에서는 건물이 섞이므로 건물 → 동 → 호수 순으로 정렬한다(정본 출력물 순서).
+    // 전체 조회에서는 건물이 섞이므로 건물(코드순) → 동 → 호수 순으로 정렬한다(정본 출력물 순서).
     .sort(compareHouseholds);
 }
 

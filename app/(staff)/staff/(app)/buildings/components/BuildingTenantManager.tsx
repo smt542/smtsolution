@@ -53,12 +53,12 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
     return Number.isSafeInteger(id) && id > 0 ? id : null;
   }, [searchParams]);
 
-  // 담당자(사무/현장/청소) 필터와 등록일/검침일 정렬은 모두 서버(list_buildings)에서 처리한 뒤 페이지네이션한다.
+  // 담당자(사무/현장/청소) 필터와 코드순(기본)/등록일/검침일 정렬은 모두 서버(list_buildings)에서 처리한 뒤 페이지네이션한다.
   const meterActive = filter.meterKind !== "";
   const meterKind = meterActive ? METER_KIND_MAP[filter.meterKind as Exclude<MeterKind, "">] : null;
   const sort: BuildingListSort = meterKind
     ? (filter.meterDir === "asc" ? "meter_day_asc" : "meter_day_desc")
-    : (filter.regSort === "asc" ? "created_asc" : "created_desc");
+    : (filter.regSort === "asc" ? "created_asc" : filter.regSort === "desc" ? "created_desc" : "code_asc");
   const params = {
     search: search || undefined,
     managerUserId: filter.managerUserId ?? undefined,
@@ -73,7 +73,7 @@ export function BuildingTenantManager({ initialData }: { initialData: BuildingLi
     !search &&
     page === 1 &&
     pageSize === 20 &&
-    sort === "created_desc" &&
+    sort === "code_asc" &&
     !filter.managerUserId &&
     !filter.meterUserId &&
     !filter.cleaningUserId;

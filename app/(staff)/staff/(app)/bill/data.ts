@@ -32,7 +32,8 @@ export async function getBillPageData(orgId: number): Promise<BillPageData> {
       .select("id, code, name, address, basic_extra")
       .eq("org_id", orgId)
       .is("deleted_at", null)
-      .order("name"),
+      .order("code")
+      .order("id"),
     supabase
       .from("organizations")
       .select("name")
