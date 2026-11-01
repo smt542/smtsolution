@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useDismissOnEscape } from "@/hooks/common";
+import { isFuturePeriod } from "@/lib/billing/period";
 
 export type ManagementFeeDialogKind =
   | "no-building"
@@ -127,7 +128,9 @@ export function ManagementFeeDialog({
           {carryAllDone && (
             <p>
               {carriedBuildingCount > 0
-                ? `${carriedBuildingCount}개 건물의 ${current}에 전월 자료를 반영했습니다.`
+                ? isFuturePeriod(period)
+                  ? `${carriedBuildingCount}개 건물의 ${current} 부과기준일·납기일만 반영했습니다. 금액은 해당 월이 시작된 뒤 다시 반영해 주세요.`
+                  : `${carriedBuildingCount}개 건물의 ${current}에 전월 자료를 반영했습니다.`
                 : `${previous}에 저장된 자료가 없습니다.`}
             </p>
           )}

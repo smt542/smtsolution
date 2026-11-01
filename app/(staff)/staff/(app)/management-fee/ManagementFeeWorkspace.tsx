@@ -284,7 +284,11 @@ export function ManagementFeeWorkspace() {
       } else {
         setDialog(null);
         // 세대·항목마다 저장된 가장 최근 달의 값을 가져오므로(전월에 없으면 그 이전) 특정 월을 적지 않는다.
-        toast.success(result.unitCount > 0 ? "지난 자료를 반영했어요" : "가져올 지난 자료가 없어요");
+        if (isFuturePeriod(period) && result.buildingCount > 0) {
+          toast.success("부과기준일·납기일만 반영했어요. 금액은 해당 월이 시작된 뒤 반영해 주세요");
+        } else {
+          toast.success(result.buildingCount > 0 ? "지난 자료를 반영했어요" : "가져올 지난 자료가 없어요");
+        }
       }
     } catch (error) {
       toast.error(error, "전월 자료를 반영하지 못했습니다.");
