@@ -29,11 +29,11 @@ export function GiroStampOverlays({ reissue = false, waterCutoff = false, autoDe
           data-testid="giro-stamp-water-cutoff"
           className="pointer-events-none absolute left-[52%] top-[35.5%] z-20 w-[33%] -translate-x-1/2 rounded-[50%] border-[3px] border-[#E03131] px-[8px] py-[14px] text-center text-[#E03131] opacity-[0.92]"
         >
-          <div className="text-[19px] font-extrabold tracking-[0.02em]">단수·단수·예고</div>
+          <div className="text-[19px] font-extrabold tracking-[0.02em]">단전·단수·예고</div>
           <div className="mt-[3px] text-[9.5px] font-bold leading-[1.35]">
             납기일이 지나면 예고없이
             <br />
-            단수 목수 있습니다
+            단전·단수될 수 있습니다
           </div>
         </div>
       )}
