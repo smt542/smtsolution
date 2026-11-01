@@ -1,7 +1,7 @@
 // 입주자 등록 폼 공용 셀렉트 옵션 (프로토타입 tenant-detail 정합)
 export type Opt = { value: string; label: string };
 
-// 부과금·고지서 출력 여부 (원본: Y / N, 기본 Y)
+// 부과금·고지서 출력 여부 (원본: Y / N, 부과금 기본 Y · 고지서 출력 기본 N)
 export const ynOptions: Opt[] = [
   { value: "Y", label: "Y" },
   { value: "N", label: "N" },

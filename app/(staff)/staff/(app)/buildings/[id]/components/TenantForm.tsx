@@ -98,8 +98,8 @@ const emptyUtility = (): UtilityValue => ({
 });
 
 const emptyBill = (): BillStatementValue => ({
-  printEnabled: true,
-  billNameDisplay: "none",
+  printEnabled: false,
+  billNameDisplay: "code",
   billDelivery: "alimtalk",
   billAuthInfo: "",
   payerNo: "",
@@ -283,8 +283,8 @@ export function TenantForm({
       kepco: meterLine("kepco"),
     });
     setBill({
-      printEnabled: occupancy?.printEnabled ?? true,
-      billNameDisplay: occupancy?.billNameDisplay ?? "none",
+      printEnabled: registering ? !alimtalkOptIn : (occupancy?.printEnabled ?? !alimtalkOptIn),
+      billNameDisplay: registering ? "code" : (occupancy?.billNameDisplay ?? "code"),
       billDelivery: alimtalkOptIn ? "alimtalk" : "post",
       billAuthInfo: occupancy?.billAuthInfo ?? "",
       payerNo: full.accounts.find((account) => account.kind === "mgmt")?.payerNo ?? "",
@@ -332,6 +332,8 @@ export function TenantForm({
     setBill((current) => ({
       ...current,
       billDelivery: value.alimtalkOptIn ? "alimtalk" : "post",
+      // 알림톡 수신 동의 → 출력 N, 거부 → 출력 Y (서버 트리거와 동일 규칙, 이후 직접 변경 가능)
+      printEnabled: !value.alimtalkOptIn,
     }));
   };
 
