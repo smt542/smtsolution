@@ -448,6 +448,7 @@ export function ManagementFeeWorkspace() {
         pending={copyPrevious.isPending}
         missingUtilityLabels={missingUtilityLabels}
         carriedBuildingCount={carriedBuildingCount}
+        carryGroupType={groupType}
         onClose={() => setDialog(null)}
         onConfirm={() => void confirmDialog()}
       />

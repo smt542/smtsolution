@@ -20,6 +20,8 @@ interface ManagementFeeDialogProps {
   missingUtilityLabels?: string[];
   /** carry-all-done: 전월 자료가 있어 반영된 건물 수 */
   carriedBuildingCount?: number;
+  /** carry-all: 선택한 건물 그룹(비어 있으면 전체 건물) */
+  carryGroupType?: string;
   onClose: () => void;
   onConfirm: () => void;
 }
@@ -42,6 +44,7 @@ export function ManagementFeeDialog({
   pending = false,
   missingUtilityLabels = [],
   carriedBuildingCount = 0,
+  carryGroupType = "",
   onClose,
   onConfirm,
 }: ManagementFeeDialogProps) {
@@ -65,11 +68,13 @@ export function ManagementFeeDialog({
     infoTone || utilityMissing || kind === "important-building"
       ? "확인"
       : "반영";
+  const carryTarget = carryGroupType ? `그룹 ${carryGroupType} 건물` : "전체 건물";
+  const carryTargetOf = carryGroupType ? `그룹 ${carryGroupType} 건물의` : "모든 건물의";
   const title = {
     "no-building": "건물을 먼저 선택해 주세요",
     "carry-all-done": carriedBuildingCount > 0 ? "전월 자료를 반영했어요" : "반영할 자료가 없어요",
     "utility-missing": "공과금 부과액이 아직 없어요",
-    "carry-all": "전체 건물에 전월 자료를 반영할까요?",
+    "carry-all": `${carryTarget}에 전월 자료를 반영할까요?`,
     "carry-building": "이 건물에 전월 자료를 반영할까요?",
     "important-building": "중요 건물로 지정된 건물이에요",
   }[kind];
@@ -137,7 +142,7 @@ export function ManagementFeeDialog({
           {kind === "carry-all" && (
             <>
               <p>
-                {previous} 자료를 모든 건물의 <strong className="font-bold text-t1">{current}</strong>에 반영합니다.
+                {previous} 자료를 {carryTargetOf} <strong className="font-bold text-t1">{current}</strong>에 반영합니다.
               </p>
               <p>기존에 입력한 값은 덮어써요.</p>
             </>
