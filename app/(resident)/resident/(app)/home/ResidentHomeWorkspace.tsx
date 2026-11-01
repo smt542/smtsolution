@@ -9,7 +9,7 @@ import ResidentAsyncState from "@/app/(resident)/_components/ResidentAsyncState"
 import ResidentBottomSheet from "@/app/(resident)/_components/ResidentBottomSheet";
 import { ResidentButton } from "@/app/(resident)/_components/ResidentButton";
 import ResidentStatusChip, { residentChipStatus } from "@/app/(resident)/_components/ResidentStatusChip";
-import { useResidentBillMonths } from "@/hooks/reactquery/residentBilling";
+import { useResidentBillCarryover, useResidentBillMonths } from "@/hooks/reactquery/residentBilling";
 import {
   useResidentBuildingNotice,
   useResidentNoticeReadIds,
@@ -91,6 +91,7 @@ function NoticeIcon() {
 export default function ResidentHomeWorkspace() {
   const profileQuery = useResidentProfile();
   const monthsQuery = useResidentBillMonths();
+  const carryoverQuery = useResidentBillCarryover();
   const noticesQuery = useResidentNotices();
   const noticeReadIdsQuery = useResidentNoticeReadIds();
   const buildingNoticeQuery = useResidentBuildingNotice();
@@ -155,7 +156,13 @@ export default function ResidentHomeWorkspace() {
   const months = monthsQuery.data ?? [];
   const currentMonth = months[0];
   const lateFee = currentMonth?.lateFee ?? 0;
-  const totalBilled = currentMonth ? currentMonth.totalAmount + lateFee : 0;
+  // 2026-11-01 QA #22: 대표 금액 = 당월 부과액 + 당월 연체료 + 이월 미납(+이월 연체료). 이월은 서버 RPC(본인 occupancy 범위).
+  const carryoverUnpaid = carryoverQuery.data?.carryoverUnpaid ?? 0;
+  const carryoverLateFee = carryoverQuery.data?.carryoverLateFee ?? 0;
+  const hasCarryover = carryoverUnpaid + carryoverLateFee > 0;
+  const totalBilled = currentMonth
+    ? currentMonth.totalAmount + lateFee + carryoverUnpaid + carryoverLateFee
+    : 0;
 
   const trend = months.slice(0, 3).reverse();
   const trendValues = trend.map((month) => month.totalAmount);
@@ -237,10 +244,16 @@ export default function ResidentHomeWorkspace() {
                 </span>
                 <ResidentStatusChip
                   paid={
-                    currentMonth.payStatus === "paid" ||
-                    currentMonth.payStatus === "none"
+                    (currentMonth.payStatus === "paid" ||
+                      currentMonth.payStatus === "none") &&
+                    !hasCarryover
                   }
-                  status={residentChipStatus(currentMonth.payStatus)}
+                  status={
+                    hasCarryover &&
+                    (currentMonth.payStatus === "paid" || currentMonth.payStatus === "none")
+                      ? "unpaid"
+                      : residentChipStatus(currentMonth.payStatus)
+                  }
                 />
               </div>
               <div className={styles.amount}>
@@ -255,10 +268,16 @@ export default function ResidentHomeWorkspace() {
                 <span>당월 부과액</span>
                 <b className={styles.liValue}>{formatAmount(currentMonth.totalAmount)}</b>
               </div>
-              {lateFee > 0 ? (
+              {carryoverUnpaid > 0 ? (
+                <div className={`${styles.li} ${styles.liSub}`}>
+                  <span>이월 미납액</span>
+                  <b className={styles.liSubValue}>{formatAmount(carryoverUnpaid)}</b>
+                </div>
+              ) : null}
+              {lateFee + carryoverLateFee > 0 ? (
                 <div className={`${styles.li} ${styles.liSub}`}>
                   <span>연체료</span>
-                  <b className={styles.liSubValue}>{formatAmount(lateFee)}</b>
+                  <b className={styles.liSubValue}>{formatAmount(lateFee + carryoverLateFee)}</b>
                 </div>
               ) : null}
               <div className={styles.cta}>

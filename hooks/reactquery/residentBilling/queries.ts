@@ -2,13 +2,20 @@
 
 import { useQuery } from "@tanstack/react-query";
 
-import { residentBillDetail, residentBillMonths, staffSignBillUrls } from "./apis";
+import { residentBillCarryover, residentBillDetail, residentBillMonths, staffSignBillUrls } from "./apis";
 import { residentBillingKeys } from "./keys";
 
 export function useResidentBillMonths() {
   return useQuery({
     queryKey: residentBillingKeys.months(),
     queryFn: residentBillMonths,
+  });
+}
+
+export function useResidentBillCarryover() {
+  return useQuery({
+    queryKey: residentBillingKeys.carryover(),
+    queryFn: residentBillCarryover,
   });
 }
 

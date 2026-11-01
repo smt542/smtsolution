@@ -126,15 +126,20 @@ export default function BillDetailView(props: BillDetailViewProps) {
   const totalAmount = detail.totalAmount ?? 0;
   // 당월 미수납 원금(납부 상태·납부할 금액 판정용).
   const unpaidAmount = detail.unpaidAmount ?? 0;
-  // 이 달 연체료 = 이 달 미납 원금에 붙은 연체료 + 수.연으로 나눠 아직 받지 못한 연체료(원금을 다 냈어도 남는다).
-  // 상세는 그 달 고지서만 정산한다 — 다른 달 미납·연체료는 그 달 상세(관리비 내역)에서 본다.
-  const lateFee = detail.lateFee ?? 0;
-  // 총 관리비 = 당월 부과액 + 연체료
-  const grandTotal = totalAmount + lateFee;
+  // 정산의 미납액 = 전월까지 이월된 미납. 연체료 = 이월분 연체료 + 당월분 연체료(정책: 세입자_관리비 상세고지서 3.4).
+  // 2026-11-01 QA #22: 2026-10-10 "당월만" 결정을 철회하고 이월 미납 합산을 복구했다(알림톡·지로 금액과 동일).
+  const carryoverUnpaid = detail.carryoverUnpaid ?? 0;
+  // 당월분 연체료 = 이 달 미납 원금에 붙은 연체료 + 수.연으로 나눠 아직 받지 못한 연체료(원금을 다 냈어도 남는다).
+  const currentLateFee = detail.lateFee ?? 0;
+  // 이월 연체료 = 전월까지 미납(이월분)에 붙은 연체료 — 이 고지서 달 기준.
+  const carryoverLateFee = detail.carryoverLateFee ?? 0;
+  const lateFee = carryoverLateFee + currentLateFee;
+  // 총 관리비 = 당월 부과액 + 미납액(이월) + 연체료
+  const grandTotal = totalAmount + carryoverUnpaid + lateFee;
   // 이 달 부과액에 대해 낸 금액(연체료 수납 제외). 넘게 낸 금액은 부과액까지만 셈해 남은 금액과 맞춘다.
   const paidForMonth = Math.max(totalAmount - unpaidAmount, 0);
-  // 남은 금액 = 총 관리비 − 납부한 금액 = 남은 원금 + 연체료
-  const remaining = unpaidAmount + lateFee;
+  // 남은 금액 = 당월 남은 원금 + 이월 미납 + 연체료(수.연 연체료 미수금 포함)
+  const remaining = unpaidAmount + carryoverUnpaid + lateFee;
   const isDue = remaining > 0;
   // 이 달 고지서에서 일부라도 냈으면 부분납부로 구분한다.
   const chipStatus = !isDue ? "paid" : (detail.paidAmount ?? 0) > 0 ? "partial" : "unpaid";
@@ -143,7 +148,7 @@ export default function BillDetailView(props: BillDetailViewProps) {
     detail.mgmtBank && detail.mgmtAcct
       ? `${detail.mgmtBank} ${detail.mgmtAcct}`
       : "";
-  // 계좌·금액 복사 = 이 달 남은 금액(남은 원금 + 연체료). 완납이면 참고용 당월 부과액.
+  // 계좌·금액 복사 = 실제 납부할 금액(당월 미납 + 이월 미납 + 연체료). 완납이면 참고용 당월 부과액.
   const payableAmount = isDue ? remaining : totalAmount;
   const accountWithAmount = account
     ? `${account} ${formatWon(payableAmount)}`
@@ -223,8 +228,16 @@ export default function BillDetailView(props: BillDetailViewProps) {
           <div className={styles.vv}>{formatWon(charge)}</div>
         </div>
         <div className={styles.it}>
-          <div className={styles.finNm}>연체료</div>
-          <div className={styles.vv}>{formatWon(lateFee)}</div>
+          <div className={styles.finNm}>당월 연체료</div>
+          <div className={styles.vv}>{formatWon(currentLateFee)}</div>
+        </div>
+        <div className={styles.it}>
+          <div className={styles.finNm}>이월 미납액(전월까지)</div>
+          <div className={styles.vv}>{formatWon(carryoverUnpaid)}</div>
+        </div>
+        <div className={styles.it}>
+          <div className={styles.finNm}>이월 연체료(전월까지)</div>
+          <div className={styles.vv}>{formatWon(carryoverLateFee)}</div>
         </div>
         <div className={styles.grand}>
           <div className={styles.grandNm}>총 관리비</div>

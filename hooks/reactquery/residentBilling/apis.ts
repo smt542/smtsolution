@@ -241,6 +241,19 @@ export async function residentBillMonths(): Promise<ResidentBillMonthsResult> {
   return ((data ?? []) as ResidentBillMonthRow[]).map(rowToBillMonth);
 }
 
+/** 본인 occupancy 범위의 이월 미납(원금·연체료). 기준월 = 가장 최근 확정 월(수납관리 미납합계와 같은 0 클램프 기준). */
+export interface ResidentBillCarryover {
+  carryoverUnpaid: number;
+  carryoverLateFee: number;
+}
+
+export async function residentBillCarryover(): Promise<ResidentBillCarryover> {
+  const { data, error } = await createClient().rpc("resident_bill_carryover");
+  if (error) throw new Error(error.message);
+  const row = ((data ?? []) as { carryover_unpaid: number | null; carryover_late_fee: number | null }[])[0];
+  return { carryoverUnpaid: row?.carryover_unpaid ?? 0, carryoverLateFee: row?.carryover_late_fee ?? 0 };
+}
+
 export async function residentBillDetail(
   period: string,
 ): Promise<ResidentBillDetailResult> {
