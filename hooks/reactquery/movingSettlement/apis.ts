@@ -55,7 +55,38 @@ export interface SettlementExtra {
   adv?: number;
   /** 관리비 항목(이름·일할·부과액·반올림). partner(_ms.ts FeeItem)와 같은 키·모양. */
   feeItems?: SettlementFeeItem[];
+  /** 소계 수기 수정(0336, QA #49). 구분별 null/없음 = 자동 계산값. */
+  subtotalOverride?: SettlementSubtotalOverride;
   [key: string]: unknown;
+}
+
+/**
+ * 소계 수기 수정(extra.subtotalOverride, 0336). 사무실 이사정산에서 ①공과금·②관리비·③기타·미납 소계를 직접 고친 값.
+ * null/없음 = 자동 계산값. 서버 calculate_moving_settlement_amount·save_moving_settlement 가 같은 규칙으로 override 를 우선한다.
+ */
+export interface SettlementSubtotalOverride {
+  utility?: number | null;
+  management?: number | null;
+  etc?: number | null;
+  unpaid?: number | null;
+}
+
+const SUBTOTAL_OVERRIDE_KEYS = ["utility", "management", "etc", "unpaid"] as const;
+
+/** 저장된 extra.subtotalOverride 를 0 이상 정수/ null 로 정리한다. */
+export function settlementSubtotalOverrideOf(
+  extra: SettlementExtra | null | undefined,
+): Required<SettlementSubtotalOverride> {
+  const raw = extra?.subtotalOverride;
+  const result = { utility: null, management: null, etc: null, unpaid: null } as Required<SettlementSubtotalOverride>;
+  if (!raw || typeof raw !== "object") return result;
+  for (const key of SUBTOTAL_OVERRIDE_KEYS) {
+    const value = raw[key];
+    if (value === null || value === undefined || (value as unknown) === "") continue;
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed >= 0) result[key] = Math.round(parsed);
+  }
+  return result;
 }
 
 /** 관리비 항목 1행(extra.feeItems). partner(_ms.ts FeeItem)와 같은 키. */
@@ -69,7 +100,7 @@ export interface SettlementFeeItem {
 /** 저장 때 보내는 extra 키(0302). 서버가 기존 extra 에 병합한다(보내지 않은 키는 유지). */
 export type SaveSettlementExtra = Pick<
   SettlementExtra,
-  "etcItems" | "cleaning" | "paid" | "lastPaidDate" | "adv" | "feeItems"
+  "etcItems" | "cleaning" | "paid" | "lastPaidDate" | "adv" | "feeItems" | "subtotalOverride"
 >;
 
 /**
@@ -632,15 +663,17 @@ export function calculateSettlementAmount(values: Pick<
 > & {
   cleaningCost?: number | null;
   unpaidAmount?: number | null;
+  /** 소계 수기 수정(0336). 구분별 값이 있으면 자동 계산값 대신 쓴다(서버 calculate_moving_settlement_amount 와 같은 규칙). */
+  subtotalOverride?: SettlementSubtotalOverride | null;
 }): number {
+  const override = values.subtotalOverride ?? {};
   return (
-    (values.mgmtFeeProrated ?? 0) +
-    (values.waterCharge ?? 0) +
-    (values.elecCharge ?? 0) +
-    (values.gasCharge ?? 0) +
-    (values.repairAmount ?? 0) +
+    (override.management ?? values.mgmtFeeProrated ?? 0) +
+    (override.utility ??
+      (values.waterCharge ?? 0) + (values.elecCharge ?? 0) + (values.gasCharge ?? 0)) +
+    (override.etc ?? values.repairAmount ?? 0) +
     (values.cleaningCost ?? 0) +
-    (values.unpaidAmount ?? 0)
+    (override.unpaid ?? values.unpaidAmount ?? 0)
   );
 }
 

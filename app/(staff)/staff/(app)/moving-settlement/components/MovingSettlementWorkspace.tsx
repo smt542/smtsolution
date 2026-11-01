@@ -10,6 +10,7 @@ import { useBillOrganizationName } from "@/hooks/reactquery/bill";
 import {
   calculateSettlementAmount,
   settlementEtcItemsOf,
+  settlementSubtotalOverrideOf,
   useSettlementBillingUnpaid,
   useSettlementContext,
   type SaveSettlementInput,
@@ -106,6 +107,8 @@ function draftFromContext(
     note: saved?.note ?? "",
     settlementNote:
       saved?.settlementNote ?? context.occupancy?.settlementNote ?? "",
+    // QA #49: 소계 직접 수정값(extra.subtotalOverride). 새 정산은 자동값으로 시작한다.
+    subtotalOverride: settlementSubtotalOverrideOf(saved?.extra),
     ...readingsFromContext(context, saved),
   };
 }
@@ -221,12 +224,18 @@ function SettlementEditor({
     draft.moveOutDate || null,
   );
   const billingUnpaid = unpaidQuery.data ?? context.billingUnpaid;
+  // QA #49: 소계 직접 수정값이 있으면 자동값 대신 쓴다(합계·내역서·저장 모두 같은 값, 서버 0336 과 같은 규칙).
+  const subtotalOverride = settlementSubtotalOverrideOf({ subtotalOverride: draft.subtotalOverride });
+  const effectiveUtilityTotal = subtotalOverride.utility ?? utilityTotal;
+  const effectiveManagementTotal = subtotalOverride.management ?? managementSettlementTotal;
+  const effectiveRepairAmount = subtotalOverride.etc ?? repairAmount;
+  const effectiveUnpaid = subtotalOverride.unpaid ?? billingUnpaid;
   // 정산요금 = settlement_amount 정의(0266): 수납 차감 전 ①공과금+②관리비+③미납+④청소비·기타.
   const total =
-    utilityTotal +
-    managementSettlementTotal +
-    (repairAmount ?? 0) +
-    billingUnpaid +
+    effectiveUtilityTotal +
+    effectiveManagementTotal +
+    (effectiveRepairAmount ?? 0) +
+    effectiveUnpaid +
     (cleaningCost ?? 0);
   // 저장할 이사 지침(extra.util). 화면에 없는 입금계좌·입금일(수도)은 저장된 값을 지킨다.
   const savedUtil = forceNew ? undefined : context.latestSettlement?.extra?.util;
@@ -267,7 +276,7 @@ function SettlementEditor({
       ? Number(draft.moveOutDate.slice(8, 10)) || 0
       : null,
     monthDays: draft.moveOutDate ? 30 : null,
-    utilityTotal,
+    utilityTotal: effectiveUtilityTotal,
     managementRows: [
       ...managementFeeRows.rows.map((row) => ({
         name: row.item.name,
@@ -278,10 +287,10 @@ function SettlementEditor({
       ...(advance !== 0 ? [{ name: "가수금", charge: 0, settlement: advance }] : []),
     ],
     managementMonthlyTotal,
-    managementSettlementTotal,
+    managementSettlementTotal: effectiveManagementTotal,
     etcItems: savedEtcItems,
-    repairAmount,
-    billingUnpaid,
+    repairAmount: effectiveRepairAmount,
+    billingUnpaid: effectiveUnpaid,
     cleaningCost,
     total,
     settleAccount: settleAccount || null,
@@ -337,6 +346,8 @@ function SettlementEditor({
           charged: row.charge,
           rounding: row.item.rounding as "round" | "up" | "down" | "raw",
         })),
+        // QA #49: 소계 직접 수정값. 항상 네 키를 보내 해제(null)도 저장되게 한다(서버가 extra 키 단위로 병합).
+        subtotalOverride,
       },
     },
     checklist: context.checklist.map((item) => {
@@ -351,6 +362,7 @@ function SettlementEditor({
     repairAmount,
     cleaningCost,
     unpaidAmount: billingUnpaid,
+    subtotalOverride,
   });
   const settlementStatus = forceNew ? null : (context.latestSettlement?.status ?? null);
 

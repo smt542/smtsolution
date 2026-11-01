@@ -11,6 +11,7 @@ import {
 } from "@/hooks/reactquery/movingSettlement";
 import { useVendorCategories } from "@/hooks/reactquery/vendorCategories";
 import { useVendors } from "@/hooks/reactquery/vendors";
+import { SECTION_SUBTOTAL_INPUT_CLASS, SubtotalInput } from "./SubtotalInput";
 
 function numericValue(raw: string): number | null {
   if (raw === "") return null;
@@ -165,9 +166,16 @@ export function SettlementExtrasSection({
         ))}
         <div className="mt-[10px] flex h-[32px] items-baseline justify-center border-t border-line pt-[11px]">
           <span className="text-[14px] font-medium leading-[20px] text-t1">③ 기타 소계</span>
-          <strong className="ml-[10px] text-[17px] font-extrabold leading-[21px] tracking-[-0.17px] text-teal-d">
-            {new Intl.NumberFormat("ko-KR").format(etcTotal)}
-          </strong>
+          {/* QA #49: 소계 직접 수정(extra.subtotalOverride.etc). 비우면 기타 항목 합계. */}
+          <SubtotalInput
+            label="③ 기타 소계"
+            autoValue={etcTotal}
+            override={value.subtotalOverride?.etc}
+            onOverrideChange={(etc) =>
+              onChange({ ...value, subtotalOverride: { ...value.subtotalOverride, etc } })
+            }
+            className={SECTION_SUBTOTAL_INPUT_CLASS}
+          />
           <span className="ml-[3px] text-[12px] font-bold leading-[15px] text-teal-d opacity-[0.62]">원</span>
         </div>
       </section>

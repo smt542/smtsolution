@@ -49,6 +49,18 @@ export const movingSettlementSchema = z.object({
   settleHolder: z.string().optional(),
   note: z.string().optional(),
   settlementNote: z.string().optional(),
+  /**
+   * 소계 수기 수정(extra.subtotalOverride, 0336, QA #49). 구분별 null/없음 = 자동 계산값.
+   * 값이 있으면 화면 합계·미수금·저장(settlement_amount)·내역서가 이 값을 쓴다.
+   */
+  subtotalOverride: z
+    .object({
+      utility: amountSchema.optional(),
+      management: amountSchema.optional(),
+      etc: amountSchema.optional(),
+      unpaid: amountSchema.optional(),
+    })
+    .optional(),
 });
 
 export type MovingSettlementValues = z.infer<typeof movingSettlementSchema>;

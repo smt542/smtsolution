@@ -3,6 +3,7 @@ import { formatNumber } from "@/lib/format";
 import { type FeeItem } from "@/hooks/reactquery/feeItems";
 import { useManagementFeeRows } from "@/hooks/reactquery/movingSettlement/feeItemCharges";
 import { type Rounding } from "@/lib/billing/proration";
+import { SECTION_SUBTOTAL_INPUT_CLASS, SubtotalInput } from "./SubtotalInput";
 
 const ROUNDING_LABELS: Record<Rounding, string> = {
   round: "4사5입",
@@ -93,6 +94,9 @@ type ManagementFeeSectionProps = {
   onAdvanceChange?: (amount: number | null) => void;
   onMonthlyChange?: (amount: number | null) => void;
   onProratedChange?: (amount: number | null) => void;
+  /** ② 관리비 소계 직접 수정값(extra.subtotalOverride.management, QA #49). null = 자동(정산액 합 + 가수금). */
+  subtotalOverride?: number | null;
+  onSubtotalOverrideChange?: (amount: number | null) => void;
 };
 
 export function ManagementFeeSection({
@@ -104,6 +108,8 @@ export function ManagementFeeSection({
   onAdvanceChange = () => undefined,
   feeCharges,
   onFeeChargeChange = () => undefined,
+  subtotalOverride = null,
+  onSubtotalOverrideChange = () => undefined,
 }: ManagementFeeSectionProps) {
   const { rows, subtotal, isLoading } = useManagementFeeRows(
     buildingTypeId,
@@ -169,7 +175,13 @@ export function ManagementFeeSection({
       </div>
       <div className="mt-[10px] flex h-[32px] items-baseline justify-center border-t border-line pt-[11px]">
         <span className="text-[14px] font-medium leading-[20px] text-t1">② 관리비 소계</span>
-        <strong className="ml-[10px] text-[17px] font-extrabold leading-[21px] tracking-[-0.17px] text-teal-d">{formatNumber(subtotal + (advance ?? 0))}</strong>
+        <SubtotalInput
+          label="② 관리비 소계"
+          autoValue={subtotal + (advance ?? 0)}
+          override={subtotalOverride}
+          onOverrideChange={onSubtotalOverrideChange}
+          className={SECTION_SUBTOTAL_INPUT_CLASS}
+        />
         <span className="ml-[3px] text-[12px] font-bold leading-[15px] text-teal-d opacity-[0.62]">원</span>
       </div>
     </section>

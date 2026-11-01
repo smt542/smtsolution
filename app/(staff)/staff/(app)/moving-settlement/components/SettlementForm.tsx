@@ -127,6 +127,10 @@ export function SettlementForm({
   const cleaningCost = value.cleaningCost ?? null;
   // ② 관리비 소계 = 정산액 합 + 가수금(현장 관리자 정책 3.3, partner 와 같은 정의).
   const managementSubtotal = (value.mgmtFeeProrated ?? 0) + (value.advance ?? 0);
+  // QA #49: 소계 직접 수정값(subtotalOverride)이 있으면 그 값이 요약바·미수금·저장 합계에 쓰인다.
+  // 위 이펙트는 자동값(mgmtFeeProrated·구분별 금액)만 갱신하므로 override 를 덮어쓰지 않는다.
+  const override = value.subtotalOverride;
+  const autoUtilityTotal = (value.waterCharge ?? 0) + (value.elecCharge ?? 0) + (value.gasCharge ?? 0);
   // 정산요금 = 수납 차감 전 ①+②+③미납+④청소비·기타 (settlement_amount 정의, 0266).
   const amount = calculateSettlementAmount({
     ...value,
@@ -134,7 +138,10 @@ export function SettlementForm({
     repairAmount: otherTotal,
     cleaningCost,
     unpaidAmount: billingUnpaid,
+    subtotalOverride: override,
   });
+  const setOverride = (key: "management" | "unpaid", next: number | null) =>
+    onChange({ ...value, subtotalOverride: { ...value.subtotalOverride, [key]: next } });
 
   const setMoveOutDate = (moveOutDate: string) => {
     const patch: Partial<SettlementDraft> = {
@@ -200,6 +207,8 @@ export function SettlementForm({
             onFeeChargeChange={(name, amount) => set("feeCharges", { ...(value.feeCharges ?? {}), [name]: amount })}
             onMonthlyChange={setMonthly}
             onProratedChange={(next) => set("mgmtFeeProrated", next)}
+            subtotalOverride={override?.management ?? null}
+            onSubtotalOverrideChange={(next) => setOverride("management", next)}
           />
           <SettlementExtrasSection
             value={value}
@@ -217,13 +226,15 @@ export function SettlementForm({
       </div>
 
       <SettlementSummaryBar
-        utilityTotal={(value.waterCharge ?? 0) + (value.elecCharge ?? 0) + (value.gasCharge ?? 0)}
-        managementTotal={managementSubtotal}
-        otherTotal={otherTotal}
+        utilityTotal={override?.utility ?? autoUtilityTotal}
+        managementTotal={override?.management ?? managementSubtotal}
+        otherTotal={override?.etc ?? otherTotal}
         cleaningTotal={cleaningCost ?? 0}
         receivedAmount={receivedAmount}
         total={amount}
         billingUnpaid={billingUnpaid}
+        unpaidOverride={override?.unpaid ?? null}
+        onUnpaidOverrideChange={(next) => setOverride("unpaid", next)}
       />
     </section>
   );

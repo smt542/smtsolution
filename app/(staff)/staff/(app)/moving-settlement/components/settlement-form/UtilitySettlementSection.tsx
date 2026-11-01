@@ -10,6 +10,7 @@ import {
   type SettlementUtility,
 } from "@/hooks/reactquery/movingSettlement";
 import { formatNumber } from "@/lib/format";
+import { SECTION_SUBTOTAL_INPUT_CLASS, SubtotalInput } from "./SubtotalInput";
 
 type ChargeKey = "waterCharge" | "elecCharge" | "gasCharge";
 /** 지침 없이 금액만 저장된(예전 저장분·수기 금액) 구분의 저장 금액. 지침이 비어도 이 금액은 지킨다. */
@@ -289,7 +290,16 @@ export function UtilitySettlementSection({
         {/* items-baseline 기준선은 가장 큰 금액(17/21)이 잡는다. 라벨 leading 을 정본 박스값(17)로
             내리면 오히려 기준선이 1.6px 밀리므로 20 을 유지한다(정본 글리프 위치와 일치). */}
         <span className="text-[14px] font-medium leading-[20px] text-t1">① 공과금 소계</span>
-        <strong className="ml-[10px] text-[17px] font-extrabold leading-[21px] tracking-[-0.17px] text-teal-d">{formatNumber(utilityTotal)}</strong>
+        {/* QA #49: 소계 직접 수정(extra.subtotalOverride.utility). 비우면 자동 계산값. */}
+        <SubtotalInput
+          label="① 공과금 소계"
+          autoValue={utilityTotal}
+          override={value.subtotalOverride?.utility}
+          onOverrideChange={(utility) =>
+            onChange({ ...value, subtotalOverride: { ...value.subtotalOverride, utility } })
+          }
+          className={SECTION_SUBTOTAL_INPUT_CLASS}
+        />
         <span className="ml-[3px] text-[12px] font-bold leading-[15px] text-teal-d opacity-[0.62]">원</span>
       </div>
     </section>

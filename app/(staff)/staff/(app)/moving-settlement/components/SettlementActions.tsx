@@ -179,7 +179,9 @@ export function SettlementActions({
     // 저장 안 된 건도 완료 직전에 저장(saveBeforeCompletion)하므로 settlementId 를 미리 요구하지 않는다.
     // 미수금 가드는 저장할 값(화면 값) 기준이다.
     if (rejectLocked(kind === "moveout" ? "completed" : "all") || !validate()) return;
-    if (outstanding > 0) {
+    // QA #49(2026-11-01): 중도퇴실은 미수금(수납액 미입력)이 있어도 처리한다 — 미수금은 만기 퇴실 정산 때 정리.
+    // 퇴실(만기) 처리의 미수금 차단은 유지한다.
+    if (kind === "moveout" && outstanding > 0) {
       setPendingCompletion(kind);
       setDialog("outstanding");
       return;
@@ -354,7 +356,7 @@ export function SettlementActions({
           <br />
           <span className="text-[12.5px] text-t3">
             공실 처리 없이 고지서 출력 여부가 N으로, 부과시 참조사항이 &quot;중도퇴실&quot;로 바뀌어요.
-            {billingUnpaid > 0 && ` 확정 부과분 미납 ${formatWon(billingUnpaid)}은 미수금으로 남아요.`}
+            {outstanding > 0 && ` 미수금 ${formatWon(outstanding)}은 남은 채로 처리되고, 퇴실 정산 때 정리해요.`}
           </span>
         </p>
       </SettlementDecisionDialog>
