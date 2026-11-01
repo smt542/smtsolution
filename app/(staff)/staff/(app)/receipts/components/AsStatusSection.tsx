@@ -383,7 +383,7 @@ export function AsStatusSection({
       관리사무소연락처: orgContact?.phone || "-",
     };
 
-    const managerRecipients: MessageRecipient[] = assigneePhone
+    const managerRecipients: MessageRecipient[] = validRecipients(dedupeRecipients(assigneePhone
       ? [{
         name: assignee?.fullName ?? null,
         phone: assigneePhone,
@@ -394,7 +394,7 @@ export function AsStatusSection({
         variables,
         ref: { userId: assignee?.userId, unitId: hasUnit ? draftUnitId : undefined, buildingId: draftBuildingId },
       }]
-      : [];
+      : []));
     const tenantRecipients: MessageRecipient[] = occupancy
       ? validRecipients(dedupeRecipients(
         tenantPhones.map<MessageRecipient>((phone, index) => ({

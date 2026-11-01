@@ -292,13 +292,18 @@ export function AsComplaintForm({
                 ariaLabel="건물"
                 value={String(field.value ?? "")}
                 onChange={(value) => {
+                  const previousBuilding = buildings.find((item) => item.id === Number(field.value));
                   field.onChange(value);
                   setValue("unitId", "all", { shouldDirty: true });
                   const building = buildings.find((item) => item.id === Number(value));
                   const siteManagerId = building?.meterUserId && assignees.some(
                     (account) => account.userId === building.meterUserId,
                   ) ? building.meterUserId : "";
-                  setValue("assignedTo", siteManagerId, { shouldDirty: true });
+                  // 직원이 직접 고른 담당자는 덮어쓰지 않는다 — 비어 있거나 이전 건물의 기본값 그대로일 때만 다시 채운다.
+                  const currentAssignee = String(getValues("assignedTo") ?? "");
+                  if (!currentAssignee || currentAssignee === (previousBuilding?.meterUserId ?? "")) {
+                    setValue("assignedTo", siteManagerId, { shouldDirty: true });
+                  }
                   resetField("reporterPhone", { defaultValue: "" });
                 }}
                 options={buildings.map((building) => ({ value: String(building.id), label: building.name }))}
