@@ -20,6 +20,8 @@ export interface MessageLog {
   templateId: number | null;
   estimatedPoints: number;
   chargedPoints: number;
+  /** 알림톡이 실패해 대체문자(SMS/LMS)로 발송된 수신자 수. */
+  altCount: number;
   pointStatus:
     | "none"
     | "quoted"
@@ -114,6 +116,7 @@ type MessageLogRow = {
   template_id: number | null;
   estimated_points?: number;
   charged_points?: number;
+  alt_count?: number;
   point_status?: MessageLog["pointStatus"];
 };
 
@@ -132,6 +135,7 @@ const rowToMessageLog = (row: MessageLogRow): MessageLog => ({
   templateId: row.template_id,
   estimatedPoints: row.estimated_points ?? 0,
   chargedPoints: row.charged_points ?? 0,
+  altCount: row.alt_count ?? 0,
   pointStatus: row.point_status ?? "none",
 });
 

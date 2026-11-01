@@ -151,7 +151,7 @@ export function HistoryTab() {
                 </td>
                 <td className={TD}>{log.isScheduled ? "예약" : "즉시"}</td>
                 <td className={TD}>
-                  <MessageResultBadge result={log.result} />
+                  <MessageResultBadge result={log.result} altCount={log.altCount} />
                 </td>
                 <td className={TD}>{sentAt}</td>
               </tr>
@@ -176,7 +176,13 @@ export function HistoryTab() {
             },
             { label: "발송시점", value: formatMessageDateTime(selected.sentAt) },
             { label: "유형", value: selected.isScheduled ? "예약" : "즉시" },
-            { label: "상태", value: messageResultMeta(selected.result).label },
+            {
+              label: "상태",
+              value:
+                selected.altCount > 0
+                  ? `${messageResultMeta(selected.result).label} (대체문자 발송 ${selected.altCount}명)`
+                  : messageResultMeta(selected.result).label,
+            },
           ]}
           recipients={selected.recipients}
           recipientCount={selected.recipientCount}

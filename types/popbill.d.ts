@@ -46,6 +46,10 @@ declare module "popbill" {
     tranNet?: string;
     sendDT?: string;
     resultDT?: string;
+    /** 알림톡 대체문자: 통신사 결과코드(100=성공), 전송타입(4 단문/6 장문), 전송일시. */
+    altResult?: string | number;
+    altContentType?: string | number;
+    altSendDT?: string;
   }
 
   export interface MessageService {

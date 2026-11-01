@@ -190,7 +190,12 @@ export async function reconcilePendingDeliveries(deps: ReconcileDeps): Promise<R
       p_job_id: job.id,
       p_results: results
         .filter((r) => r.status !== "pending")
-        .map((r) => ({ provider_ref_key: r.providerRefKey, status: r.status, code: r.code })),
+        .map((r) => ({
+          provider_ref_key: r.providerRefKey,
+          status: r.status,
+          code: r.code,
+          alt_product: r.altProduct ?? null,
+        })),
       p_next_poll_at: nextPollAt ? nextPollAt.toISOString() : null,
     })) as { job_status?: string } | null;
 

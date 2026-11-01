@@ -38,7 +38,61 @@ export function computeNextPollAt(submittedAt: Date, now: Date): Date | null {
 export interface ProviderRecipientResult {
   providerRefKey: string;
   status: NormalizedStatus;
+  /** 카카오 결과코드. 대체문자로 나간 건은 "680/alt:100"처럼 통신사 결과코드를 함께 남긴다. */
   code: string;
+  /** 알림톡이 실패해 대체문자(SMS/LMS)로 실제 발송된 건의 문자 종류. 아니면 null. */
+  altProduct: "sms" | "lms" | null;
+}
+
+/** 알림톡 실패 직후 대체문자 결과(altResult)가 아직 안 온 것으로 보고 기다리는 유예(ms). */
+const ALT_RESULT_GRACE_MS = 3 * MINUTE;
+
+function parseDt(value: unknown): number | null {
+  const m = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/.exec(String(value ?? ""));
+  if (!m) return null;
+  // 팝빌 시각은 KST.
+  return Date.parse(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}+09:00`);
+}
+
+/**
+ * 알림톡 한 건의 결과 정규화(대체문자 포함).
+ *  - result=100 → 알림톡 성공.
+ *  - result≠100 이고 altResult=100 → 대체문자(SMS/LMS) 성공. altContentType 4=단문, 6=장문.
+ *  - result≠100, 대체문자 설정(altSendType)이 있고 altResult 미수신 → 대체문자가 진행 중이면 pending.
+ *    (altSendDT/altContentType이 있거나 카카오 결과 수신 직후 유예 안이면 대기, 아니면 실패)
+ *  - 그 밖은 실패.
+ */
+export function normalizeAlimtalkResult(
+  row: {
+    state?: unknown;
+    result?: unknown;
+    altResult?: unknown;
+    altContentType?: unknown;
+    altSendDT?: unknown;
+    resultDT?: unknown;
+  },
+  altSendType: string | null | undefined,
+  now: Date = new Date(),
+): { status: NormalizedStatus; code: string; altProduct: "sms" | "lms" | null } {
+  const state = Number(row.state);
+  const result = Number(row.result);
+  const base = normalizeMessageResult(state, result);
+  const code = String(row.result);
+  if (base !== "failed" || state !== 3) return { status: base, code, altProduct: null };
+  const altResultRaw = String(row.altResult ?? "").trim();
+  if (altResultRaw === "") {
+    if (!altSendType) return { status: "failed", code, altProduct: null };
+    const resultAt = parseDt(row.resultDT);
+    const inGrace = resultAt !== null && now.getTime() - resultAt < ALT_RESULT_GRACE_MS;
+    const altStarted = String(row.altSendDT ?? "").trim() !== "" || String(row.altContentType ?? "").trim() !== "";
+    return { status: altStarted || inGrace ? "pending" : "failed", code, altProduct: null };
+  }
+  const altCode = Number(altResultRaw);
+  const altProduct = Number(row.altContentType) === 6 ? "lms" : "sms";
+  const combined = `${code}/alt:${altResultRaw}`;
+  return altCode === 100
+    ? { status: "success", code: combined, altProduct }
+    : { status: "failed", code: combined, altProduct: null };
 }
 
 function toRecipientResults(
@@ -46,13 +100,22 @@ function toRecipientResults(
 ): ProviderRecipientResult[] {
   // 문자 조회는 배열, 알림톡 조회는 { msgs: [...] } 형태로 온다.
   const rows = Array.isArray(raw) ? raw : raw?.msgs ?? [];
+  // 알림톡 조회만 { altSendType, msgs } 래퍼로 오고, 문자 조회는 배열이다.
+  const isAlimtalk = !Array.isArray(raw);
+  const altSendType = Array.isArray(raw) ? null : (raw as { altSendType?: string | null } | null)?.altSendType ?? null;
   return rows
     .filter((r) => typeof r.interOPRefKey === "string" && r.interOPRefKey.length > 0)
-    .map((r) => ({
-      providerRefKey: r.interOPRefKey as string,
-      status: normalizeMessageResult(Number(r.state), Number(r.result)),
-      code: String(r.result),
-    }));
+    .map((r) => {
+      if (isAlimtalk) {
+        return { providerRefKey: r.interOPRefKey as string, ...normalizeAlimtalkResult(r, altSendType) };
+      }
+      return {
+        providerRefKey: r.interOPRefKey as string,
+        status: normalizeMessageResult(Number(r.state), Number(r.result)),
+        code: String(r.result),
+        altProduct: null,
+      };
+    });
 }
 
 /** 접수번호로 문자/알림톡 결과를 조회해 수신자별 정규화 결과로 반환한다. */

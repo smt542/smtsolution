@@ -1,5 +1,5 @@
 import { hasUnresolvedVariables } from "@/lib/messaging/render";
-import type { PopbillError } from "popbill";
+import type { PopbillError, PopbillKakaoButton } from "popbill";
 import { assertLiveRecipientsAllowed } from "./allowlist";
 import { readPopbillConfig, requirePopbillSender, type PopbillConfig } from "./config";
 import { getKakaoService, getMessageService } from "./sdk";
@@ -120,6 +120,22 @@ function submitLms(
   }, options.timeoutMs);
 }
 
+/** 대체문자 LMS 제목 기본값(알림톡 제목이 없을 때). 90byte 초과 대체문자에만 적용된다. */
+const ALT_DEFAULT_SUBJECT = "안내";
+
+/**
+ * 대체문자 본문: 알림톡 본문 + 버튼 링크(URL). 팝빌은 대체문자에 버튼 링크를 싣지 않으므로
+ * (altSendType "A"에서만 링크를 직접 작성 가능) 웹링크 버튼의 URL을 본문 끝에 텍스트로 붙인다.
+ */
+export function buildAltMessage(body: string, buttons?: PopbillKakaoButton[] | null): string {
+  const urls: string[] = [];
+  for (const b of buttons ?? []) {
+    const url = (b.u1 || b.u2 || "").trim();
+    if (url && !body.includes(url) && !urls.includes(url)) urls.push(url);
+  }
+  return urls.length > 0 ? `${body}\n\n${urls.join("\n")}` : body;
+}
+
 async function submitAlimtalk(
   batch: MessageBatchInput,
   content: MessageContent,
@@ -138,8 +154,10 @@ async function submitAlimtalk(
     rcv: r.phone,
     rcvnm: r.name ?? undefined,
     msg: r.renderedBody ?? content.body,
-    // 대체문자(altSendType/altmsg)는 비활성화한다. 실패 시 ERP가 임의로 SMS를 보내지 않는다.
-    altmsg: "",
+    // 대체문자(altSendType "A"): 알림톡이 실패하면 같은 내용(+버튼 링크 URL)을 팝빌이 문자로 대신 보낸다.
+    // 문자 발신번호가 팝빌에 등록되어 있지 않으면 아래에서 altSendType을 비워 기존처럼 알림톡만 접수한다.
+    altmsg: buildAltMessage(r.renderedBody ?? content.body, r.buttons ?? content.buttons),
+    altsjt: content.subject?.trim() || ALT_DEFAULT_SUBJECT,
     interOPRefKey: r.providerRefKey,
     btns: r.buttons ?? content.buttons,
     // 강조표기형 템플릿만 타이틀을 싣는다(아래 sendATS_multi 가 내부에서 sendATS_same 을 호출하며 msgs[].emphasizeTitle 을
@@ -168,12 +186,20 @@ async function submitAlimtalk(
   if (!(await checkSenderRegistered("alimtalk", sender, config))) {
     throw new PopbillSubmitError("SENDER_NOT_REGISTERED", "알림톡 발신번호가 등록되어 있지 않습니다.");
   }
+  // 대체문자는 알림톡 발신번호가 문자 발신번호로도 등록돼 있어야 나간다. 미등록이면 대체문자 없이 접수한다.
+  const altSendType = (await checkSenderRegistered("sms", sender, config)) ? "A" : "";
+  if (altSendType === "") {
+    for (const m of msgs) {
+      m.altmsg = "";
+      m.altsjt = "";
+    }
+  }
   return submitWithTimeout<string>((resolve, reject) => {
     service.sendATS_multi(
       config.corpNum,
       templateCode,
       sender,
-      "",
+      altSendType,
       null,
       msgs,
       config.userId ?? "",
