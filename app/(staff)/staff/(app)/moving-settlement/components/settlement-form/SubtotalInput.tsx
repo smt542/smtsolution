@@ -1,8 +1,12 @@
+"use client";
+
+import { useState } from "react";
 import { Input } from "@/components/common";
 
 /**
  * 소계 수기 수정 입력(QA #49, extra.subtotalOverride). 표시값 = override ?? 자동값.
- * 비우거나 자동값과 같은 값을 넣으면 override 를 해제(null)해 자동 계산값으로 돌아간다.
+ * - 입력 중에는 친 글자를 그대로 둔다(지우고 0 을 치는 흐름이 자연스럽게 되도록). 숫자를 치면 그 값이 override(0 포함).
+ * - 칸을 비운 채로 벗어나면(blur) override 를 해제(null)해 자동 계산값으로 돌아간다.
  */
 export function SubtotalInput({
   label,
@@ -17,24 +21,31 @@ export function SubtotalInput({
   onOverrideChange: (next: number | null) => void;
   className: string;
 }) {
+  // 포커스 중 편집 텍스트(화면 표시용 로컬 상태). null = 편집 중 아님 → 현재 값 표시.
+  const [editingText, setEditingText] = useState<string | null>(null);
+  const shown = override ?? autoValue;
+
   return (
     <Input
       unstyled
       aria-label={label}
-      title={override != null ? `직접 수정한 값 (자동 계산 ${autoValue.toLocaleString("ko-KR")}원) — 비우면 자동 계산값으로 돌아가요` : undefined}
+      title={override != null ? `직접 수정한 값 (자동 계산 ${autoValue.toLocaleString("ko-KR")}원) — 비우고 나가면 자동 계산값으로 돌아가요` : undefined}
       type="number"
       min={0}
       step={1}
-      value={override ?? autoValue}
+      value={editingText ?? String(shown)}
+      onFocus={() => setEditingText(String(shown))}
       onChange={(event) => {
         const raw = event.target.value;
+        setEditingText(raw);
+        if (raw.trim() === "") return;
         const parsed = Number(raw);
-        if (raw === "" || !Number.isFinite(parsed)) {
-          onOverrideChange(null);
-          return;
-        }
-        const next = Math.max(0, Math.round(parsed));
-        onOverrideChange(next === autoValue ? null : next);
+        if (!Number.isFinite(parsed)) return;
+        onOverrideChange(Math.max(0, Math.round(parsed)));
+      }}
+      onBlur={() => {
+        if (editingText !== null && editingText.trim() === "") onOverrideChange(null);
+        setEditingText(null);
       }}
       className={className}
     />
