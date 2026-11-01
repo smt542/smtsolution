@@ -656,6 +656,21 @@ export async function getSettlementContext(
   return rpcToSettlementContext(data as SettlementContextRpc);
 }
 
+/** 입력 중인 퇴실일 기준 ③ 미납 소계(납기 경과분·퇴실월 제외). staff / partner 공용. */
+export async function getSettlementBillingUnpaid(
+  unitId: number,
+  occupancyId: number,
+  moveOut: string | null,
+  partner = false,
+): Promise<number> {
+  const { data, error } = await createClient().rpc(
+    partner ? "partner_get_settlement_billing_unpaid" : "get_settlement_billing_unpaid",
+    { p_unit_id: unitId, p_occupancy_id: occupancyId, p_move_out: moveOut },
+  );
+  if (error) throw new Error(error.message);
+  return Number(data ?? 0);
+}
+
 export async function saveMovingSettlement(
   input: SaveSettlementInput,
 ): Promise<{ settlementId: number; settlementAmount: number }> {

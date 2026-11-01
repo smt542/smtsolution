@@ -4,6 +4,12 @@ export const movingSettlementKeys = {
   all: ["movingSettlement"] as const,
   context: (unitId: number | null, settlementId: number | null = null) =>
     ["movingSettlement", "context", unitId, settlementId] as const,
+  billingUnpaid: (
+    unitId: number | null,
+    occupancyId: number | null,
+    moveOut: string | null,
+    partner: boolean,
+  ) => ["movingSettlement", "billingUnpaid", unitId, occupancyId, moveOut, partner] as const,
   partnerFeeItems: (unitId: number | null, period: string | null) =>
     ["movingSettlement", "partnerFeeItems", unitId, period] as const,
   list: (buildingId: number | null, from: string, to: string) =>

@@ -1,6 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   getPartnerSettlementFeeItems,
+  getSettlementBillingUnpaid,
   getSettlementContext,
   listSettlementInquiries,
   listSettlements,
@@ -45,5 +46,25 @@ export function useSettlementInquiry(params: SettlementInquiryParams) {
     queryKey: movingSettlementKeys.inquiry(params),
     queryFn: () => listSettlementInquiries(params),
     enabled: params.from !== "" && params.to !== "" && params.from <= params.to,
+  });
+}
+
+/**
+ * 입력 중인 퇴실일 기준 미납 소계. 퇴실일·세대·입주 정보가 없으면 조회하지 않는다(컨텍스트 값 사용).
+ * 퇴실일이 바뀌면 키가 달라져 다시 조회한다.
+ */
+export function useSettlementBillingUnpaid(
+  unitId: number | null,
+  occupancyId: number | null,
+  moveOut: string | null,
+  partner = false,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: movingSettlementKeys.billingUnpaid(unitId, occupancyId, moveOut, partner),
+    queryFn: () =>
+      getSettlementBillingUnpaid(unitId as number, occupancyId as number, moveOut, partner),
+    enabled: enabled && unitId !== null && occupancyId !== null && Boolean(moveOut),
+    placeholderData: keepPreviousData,
   });
 }

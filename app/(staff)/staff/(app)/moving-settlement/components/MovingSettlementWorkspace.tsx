@@ -10,6 +10,7 @@ import { useBillOrganizationName } from "@/hooks/reactquery/bill";
 import {
   calculateSettlementAmount,
   settlementEtcItemsOf,
+  useSettlementBillingUnpaid,
   useSettlementContext,
   type SaveSettlementInput,
   type SettlementContext,
@@ -213,7 +214,13 @@ function SettlementEditor({
   const repairAmount = savedEtcItems.length > 0 ? etcTotal : null;
   const repairMemo = savedEtcItems.map((item) => item.name).filter(Boolean).join(", ");
   const cleaningCost = draft.cleaningCost ?? null;
-  const billingUnpaid = context.billingUnpaid;
+  // 미납 소계는 입력 중인 퇴실일 기준(납기 경과분·퇴실월 제외)이라 퇴실일이 바뀌면 다시 조회한다.
+  const unpaidQuery = useSettlementBillingUnpaid(
+    context.unit.id,
+    context.latestSettlement?.occupancyId ?? occupancy.id,
+    draft.moveOutDate || null,
+  );
+  const billingUnpaid = unpaidQuery.data ?? context.billingUnpaid;
   // 정산요금 = settlement_amount 정의(0266): 수납 차감 전 ①공과금+②관리비+③미납+④청소비·기타.
   const total =
     utilityTotal +
@@ -371,7 +378,7 @@ function SettlementEditor({
         onFinalPaidDateChange={setFinalPaidDate}
         paymentInputRef={paymentInputRef}
         bodyRef={formBodyRef}
-        billingUnpaid={context.billingUnpaid}
+        billingUnpaid={billingUnpaid}
       />
       <SettlementActions
         building={building}
@@ -381,7 +388,7 @@ function SettlementEditor({
         settlementId={activeSettlementId}
         amount={amount}
         receivedAmount={receivedAmount}
-        billingUnpaid={context.billingUnpaid}
+        billingUnpaid={billingUnpaid}
         vacancyPaymentMode={context.settlementSettings.vacancyPaymentMode}
         createdAt={context.latestSettlement?.createdAt ?? null}
         locked={settlementStatus === "completed" || settlementStatus === "mid_moveout"}

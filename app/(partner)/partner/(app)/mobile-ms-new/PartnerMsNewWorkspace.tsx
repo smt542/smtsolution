@@ -8,6 +8,7 @@ import { applyMask, Input, phoneMask, PHONE_INPUT_ATTRS, Textarea } from "@/comp
 import {
   useDeletePartnerSettlement,
   usePartnerSettlementFeeItems,
+  useSettlementBillingUnpaid,
   useSavePartnerSettlement,
 } from "@/hooks/reactquery/movingSettlement";
 import { PartnerBottomActionBar } from "../../../_components/PartnerBottomActionBar";
@@ -235,7 +236,18 @@ export default function PartnerMsNewWorkspace({
   const saveCtx: PartnerSettlementContext | null =
     ctx && editId === null ? { ...ctx, latestSettlement: null } : ctx;
   // 미수금 = 서버 settlement_amount(①+②+③미납+④) − 수납액. 저장 RPC와 같은 식(개선3차 31).
-  const totals = state && saveCtx ? computeTotals(state, saveCtx) : null;
+  // 미납 소계는 입력 중인 퇴실일 기준(납기 경과분·퇴실월 제외)이라 퇴실일이 바뀌면 다시 조회한다.
+  const unpaidQuery = useSettlementBillingUnpaid(
+    Number.isFinite(unitId) ? unitId : null,
+    ctx?.occupancy?.id ?? null,
+    state?.moveOutDate || null,
+    true,
+  );
+  const liveCtx: PartnerSettlementContext | null =
+    saveCtx && unpaidQuery.data !== undefined
+      ? { ...saveCtx, billingUnpaid: unpaidQuery.data }
+      : saveCtx;
+  const totals = state && liveCtx ? computeTotals(state, liveCtx) : null;
   const saveMutation = useSavePartnerSettlement();
   const deleteMutation = useDeletePartnerSettlement();
   const isSettlementMutating = saveMutation.isPending || deleteMutation.isPending;
