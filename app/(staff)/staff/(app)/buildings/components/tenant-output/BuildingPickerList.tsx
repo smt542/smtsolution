@@ -8,6 +8,8 @@ interface BuildingPickerListProps {
   onSearch: (value: string) => void;
   selectedIds: ReadonlySet<number>;
   onToggle: (id: number) => void;
+  /** 검색 결과로 보이는 건물 전체를 선택/해제한다. */
+  onToggleVisible: (ids: number[]) => void;
 }
 
 /** 정본 `.pm-ck` — 17px 체크박스(선택 시 청록 + 흰 체크). */
@@ -27,8 +29,8 @@ function PickerCheck({ on }: { on: boolean }) {
   );
 }
 
-/** 좌측 건물 선택 패널(정본 `.pm-left`) — 코드·건물명·주소 검색 + 단일 선택. */
-export function BuildingPickerList({ buildings, search, onSearch, selectedIds, onToggle }: BuildingPickerListProps) {
+/** 좌측 건물 선택 패널(정본 `.pm-left`) — 코드·건물명·주소 검색 + 다중 선택(전체 선택). */
+export function BuildingPickerList({ buildings, search, onSearch, selectedIds, onToggle, onToggleVisible }: BuildingPickerListProps) {
   const keyword = search.trim().toLocaleLowerCase("ko-KR");
   const visible = keyword
     ? buildings.filter((building) =>
@@ -37,6 +39,7 @@ export function BuildingPickerList({ buildings, search, onSearch, selectedIds, o
           .includes(keyword),
       )
     : buildings;
+  const allVisibleSelected = visible.length > 0 && visible.every((building) => selectedIds.has(building.id));
 
   return (
     <div className="flex w-[340px] shrink-0 flex-col border-r border-line bg-[#fbfcfd] leading-[normal]">
@@ -62,7 +65,17 @@ export function BuildingPickerList({ buildings, search, onSearch, selectedIds, o
         {visible.length === 0 ? (
           <p className="px-[14px] py-[28px] text-center text-[13px] font-semibold text-t3">검색 결과가 없어요</p>
         ) : (
-          visible.map((building) => {
+          <>
+            <button
+              type="button"
+              onClick={() => onToggleVisible(visible.map((building) => building.id))}
+              aria-pressed={allVisibleSelected}
+              className="flex w-full items-center gap-[8px] rounded-[12px] border border-transparent px-[14px] py-[10px] text-left transition duration-100 hover:border-line hover:bg-white"
+            >
+              <PickerCheck on={allVisibleSelected} />
+              <span className="text-[13px] font-extrabold text-t1">전체 선택</span>
+            </button>
+          {visible.map((building) => {
             const active = selectedIds.has(building.id);
             return (
               <button
@@ -92,7 +105,8 @@ export function BuildingPickerList({ buildings, search, onSearch, selectedIds, o
                 </span>
               </button>
             );
-          })
+          })}
+          </>
         )}
       </div>
     </div>

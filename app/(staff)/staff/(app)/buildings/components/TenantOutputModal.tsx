@@ -36,7 +36,7 @@ const PERIOD_DROPDOWN = [
 const PRINT_CSS =
   "@media print { @page { size: A4 portrait; margin: 11mm; } html, body { background: #fff !important; height: auto !important; overflow: visible !important; } body > *:not([data-print-sheet]) { display: none !important; } }";
 
-/** 입주자카드 및 부과내역 출력 모달(정본 building-list `#printModal`) — 건물 단일 선택 → 좌우 미리보기 → 개별/일괄 인쇄. */
+/** 입주자카드 및 부과내역 출력 모달(정본 building-list `#printModal`) — 건물 다중 선택(전체 선택 포함, 코드순 연속 인쇄) → 좌우 미리보기 → 개별/일괄 인쇄. */
 export function TenantOutputModal({ onClose, initialBuildingId = null }: { onClose: () => void; initialBuildingId?: number | null }) {
   const [initYear, initMonth] = useMemo(() => {
     const [rawYear, rawMonth] = currentPeriod().split("-").map(Number);
@@ -50,7 +50,7 @@ export function TenantOutputModal({ onClose, initialBuildingId = null }: { onClo
   const [year, setYear] = useState(initYear);
   const [month, setMonth] = useState(initMonth);
   const [search, setSearch] = useState("");
-  // 정책: 단일 선택. 본 화면에서 고른 건물이 있으면 초기 선택값으로 쓰고, 없으면 선택 없이 연다.
+  // 정책: 다중 선택. 본 화면에서 고른 건물이 있으면 초기 선택값으로 쓰고, 없으면 선택 없이 연다.
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<number>>(
     () => new Set<number>(initialBuildingId != null ? [initialBuildingId] : []),
   );
@@ -61,7 +61,17 @@ export function TenantOutputModal({ onClose, initialBuildingId = null }: { onClo
   const { data: me } = useMe();
   const orgId = me?.orgId;
   const { data: allBuildings = [] } = useBuildings();
-  const buildings = useMemo(() => allBuildings.filter((building) => building.orgId === orgId), [allBuildings, orgId]);
+  // 정책: 선택 건물은 건물 코드 오름차순(코드 3자리 0패딩 → 같으면 id)으로 이어서 출력한다.
+  const buildings = useMemo(
+    () =>
+      allBuildings
+        .filter((building) => building.orgId === orgId)
+        .sort(
+          (a, b) =>
+            String(a.code ?? "").localeCompare(String(b.code ?? ""), "en", { numeric: true }) || a.id - b.id,
+        ),
+    [allBuildings, orgId],
+  );
   const { data: orgName } = useBillOrganizationName(orgId);
   const { data: setup } = useSetupConfig(orgId);
   const { data: orgContact } = useOrgContact();
@@ -117,8 +127,26 @@ export function TenantOutputModal({ onClose, initialBuildingId = null }: { onClo
     setCardPage(0);
     setStatementPage(0);
   };
-  const selectBuilding = (id: number) => {
-    setSelectedIds(new Set([id]));
+  const toggleBuilding = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    resetPages();
+  };
+  // 전체 선택은 검색 결과로 보이는 건물만 대상으로 한다(모두 선택돼 있으면 해제).
+  const toggleVisible = (ids: number[]) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      const all = ids.length > 0 && ids.every((id) => next.has(id));
+      for (const id of ids) {
+        if (all) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
     resetPages();
   };
 
@@ -164,7 +192,8 @@ export function TenantOutputModal({ onClose, initialBuildingId = null }: { onClo
               search={search}
               onSearch={setSearch}
               selectedIds={selectedIds}
-              onToggle={selectBuilding}
+              onToggle={toggleBuilding}
+              onToggleVisible={toggleVisible}
             />
 
             <div className="flex min-w-0 flex-1 flex-col bg-bg">
