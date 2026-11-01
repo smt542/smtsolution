@@ -37,41 +37,65 @@ function ensureFont(): void {
   fontRegistered = true;
 }
 
-const styles = StyleSheet.create({
-  page: { fontFamily: "NotoSansKR", fontSize: 10, padding: 28, color: "#111" },
-  header: { flexDirection: "row", justifyContent: "space-between", borderBottomWidth: 2, borderColor: "#000", paddingBottom: 8 },
-  title: { fontSize: 18, fontWeight: 700 },
-  sub: { fontSize: 10, marginTop: 3 },
-  addr: { fontSize: 8, color: "#555", marginTop: 2 },
-  qrCaption: { fontSize: 7, textAlign: "center", marginTop: 2 },
-  infoRow: { flexDirection: "row", marginTop: 12, borderWidth: 1, borderColor: "#000" },
-  infoCell: { flex: 1, padding: 6, borderRightWidth: 1, borderColor: "#999" },
-  infoLabel: { fontSize: 8, color: "#555" },
-  infoValue: { fontSize: 11, marginTop: 2 },
-  amountBox: { marginTop: 16, borderWidth: 2, borderColor: "#000", padding: 14, alignItems: "center" },
-  amountLabel: { fontSize: 8, color: "#555" },
-  amount: { fontSize: 22, fontWeight: 700, marginTop: 4 },
-  tableHead: { flexDirection: "row", borderTopWidth: 1, borderBottomWidth: 1, borderColor: "#000", backgroundColor: "#f1f1f1", marginTop: 16 },
-  th: { flex: 1, padding: 5, fontSize: 9 },
-  thRight: { flex: 1, padding: 5, fontSize: 9, textAlign: "right" },
-  row: { flexDirection: "row", borderBottomWidth: 1, borderColor: "#ddd" },
-  td: { flex: 1, padding: 5 },
-  tdRight: { flex: 1, padding: 5, textAlign: "right" },
-  section: { marginTop: 14, flexDirection: "row", justifyContent: "space-between" },
-  notice: { marginTop: 12, borderWidth: 1, borderColor: "#ccc", padding: 8, fontSize: 8 },
-  footer: { marginTop: 16, borderTopWidth: 1, borderColor: "#000", paddingTop: 6, fontSize: 8, color: "#555" },
-});
+/**
+ * A4 한 장 고정(2026-11-01 QA #25): 팩스는 페이지 수만큼 과금되고(50원/장) 미리보기도 한 장이라,
+ * 크기를 배율(k)로 묶어 두고 내용이 넘치면 배율을 단계적으로 줄여 다시 렌더한다(renderFaxPdf).
+ * Noto Sans KR 기본 줄 간격이 커서 lineHeight를 명시한다.
+ */
+function createStyles(k: number) {
+  const px = (value: number) => Math.round(value * k * 100) / 100;
+  return StyleSheet.create({
+    page: { fontFamily: "NotoSansKR", fontSize: px(9), lineHeight: 1.25, paddingVertical: px(24), paddingHorizontal: 28, color: "#111" },
+    header: { flexDirection: "row", justifyContent: "space-between", borderBottomWidth: 2, borderColor: "#000", paddingBottom: px(6) },
+    title: { fontSize: px(16), lineHeight: 1.25, fontWeight: 700 },
+    sub: { fontSize: px(9), marginTop: px(2) },
+    addr: { fontSize: px(7.5), color: "#555", marginTop: px(1) },
+    qr: { width: px(56), height: px(56) },
+    qrCaption: { fontSize: px(6.5), textAlign: "center", marginTop: px(1) },
+    infoRow: { flexDirection: "row", marginTop: px(8), borderWidth: 1, borderColor: "#000" },
+    infoCell: { flex: 1, paddingVertical: px(4), paddingHorizontal: 6, borderRightWidth: 1, borderColor: "#999" },
+    infoLabel: { fontSize: px(7.5), color: "#555" },
+    infoValue: { fontSize: px(10), lineHeight: 1.25, marginTop: px(1) },
+    amountBox: { marginTop: px(8), borderWidth: 2, borderColor: "#000", paddingVertical: px(6), alignItems: "center" },
+    amountLabel: { fontSize: px(7.5), color: "#555" },
+    amount: { fontSize: px(18), lineHeight: 1.25, fontWeight: 700, marginTop: px(2) },
+    tableHead: { flexDirection: "row", borderTopWidth: 1, borderBottomWidth: 1, borderColor: "#000", backgroundColor: "#f1f1f1", marginTop: px(8) },
+    th: { flex: 1, paddingVertical: px(2.5), paddingHorizontal: 5, fontSize: px(8.5) },
+    thRight: { flex: 1, paddingVertical: px(2.5), paddingHorizontal: 5, fontSize: px(8.5), textAlign: "right" },
+    row: { flexDirection: "row", borderBottomWidth: 0.5, borderColor: "#ccc" },
+    td: { flex: 1, paddingVertical: px(1.5), paddingHorizontal: 5 },
+    tdRight: { flex: 1, paddingVertical: px(1.5), paddingHorizontal: 5, textAlign: "right" },
+    section: { marginTop: px(8), flexDirection: "row", justifyContent: "space-between" },
+    lineGap: { marginTop: px(1.5) },
+    notice: { marginTop: px(8), borderWidth: 1, borderColor: "#ccc", padding: px(6), fontSize: px(7.5) },
+    footer: { marginTop: px(8), borderTopWidth: 1, borderColor: "#000", paddingTop: px(4), fontSize: px(7.5), color: "#555" },
+  });
+}
+type FaxStyles = ReturnType<typeof createStyles>;
+
+/** 배율 단계. 앞에서부터 렌더해 1페이지에 들어오는 첫 단계를 쓴다(마지막 단계는 넘치면 잘라서라도 1페이지). */
+const FAX_SCALES = [1, 0.88, 0.76, 0.66, 0.58, 0.5] as const;
 
 function periodLabel(period: string): string {
   const [year, month] = period.split("-");
   return `${year}년 ${Number(month)}월분`;
 }
 
-function FaxDocument({ doc, qrDataUrl }: { doc: FaxDocumentData; qrDataUrl: string | null }) {
+function FaxDocument({
+  doc,
+  qrDataUrl,
+  styles,
+  wrap,
+}: {
+  doc: FaxDocumentData;
+  qrDataUrl: string | null;
+  styles: FaxStyles;
+  wrap: boolean;
+}) {
   const notice = [doc.customerNotice, doc.unitNotice].filter(Boolean).join("\n");
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" style={styles.page} wrap={wrap}>
         <View style={styles.header}>
           <View>
             <Text style={styles.title}>관리비 고지서</Text>
@@ -87,7 +111,7 @@ function FaxDocument({ doc, qrDataUrl }: { doc: FaxDocumentData; qrDataUrl: stri
             <View>
               {/* @react-pdf/renderer Image는 HTML img가 아니며 alt를 지원하지 않는다. */}
               {/* eslint-disable-next-line jsx-a11y/alt-text */}
-              <Image src={qrDataUrl} style={{ width: 60, height: 60 }} />
+              <Image src={qrDataUrl} style={styles.qr} />
               <Text style={styles.qrCaption}>고지서 확인 QR</Text>
             </View>
           ) : null}
@@ -140,10 +164,10 @@ function FaxDocument({ doc, qrDataUrl }: { doc: FaxDocumentData; qrDataUrl: stri
           <View>
             <Text style={{ fontWeight: 700 }}>납부 계좌</Text>
             {doc.accounts.length === 0 ? (
-              <Text style={{ marginTop: 3, color: "#777" }}>등록된 출력 계좌 없음</Text>
+              <Text style={[styles.lineGap, { color: "#777" }]}>등록된 출력 계좌 없음</Text>
             ) : (
               doc.accounts.map((account, index) => (
-                <Text style={{ marginTop: 3 }} key={`${account.bank}-${index}`}>
+                <Text style={styles.lineGap} key={`${account.bank}-${index}`}>
                   {account.bank} {account.acct} ({account.holder})
                 </Text>
               ))
@@ -151,7 +175,7 @@ function FaxDocument({ doc, qrDataUrl }: { doc: FaxDocumentData; qrDataUrl: stri
           </View>
           <View>
             <Text style={{ fontWeight: 700 }}>납기일</Text>
-            <Text style={{ marginTop: 3 }}>{doc.dueDate ?? "________________"}</Text>
+            <Text style={styles.lineGap}>{doc.dueDate ?? "________________"}</Text>
           </View>
         </View>
 
@@ -163,7 +187,26 @@ function FaxDocument({ doc, qrDataUrl }: { doc: FaxDocumentData; qrDataUrl: stri
   );
 }
 
-/** 팩스 문서 데이터를 단일 A4 페이지 PDF 버퍼로 렌더링한다. 디스크에 저장하지 않는다. */
+/** PDF 버퍼의 페이지 객체 수(`/Type /Page`, `/Pages` 제외). */
+export function countPdfPages(pdf: Buffer): number {
+  return (pdf.toString("latin1").match(/\/Type\s*\/Page(?![s\w])/g) ?? []).length;
+}
+
+/** 내용 분량으로 시작 배율을 고른다(불필요한 재렌더를 줄이는 추정치일 뿐, 최종 판단은 페이지 수 확인). */
+function initialScaleIndex(doc: FaxDocumentData): number {
+  const notice = [doc.customerNotice, doc.unitNotice].filter(Boolean).join("\n");
+  const noticeLines = notice.length === 0 ? 0 : notice.split("\n").reduce((sum, line) => sum + Math.max(1, Math.ceil(line.length / 70)), 0);
+  const load = doc.items.length + noticeLines * 0.7 + Math.max(0, doc.accounts.length - 1);
+  if (load <= 26) return 0;
+  if (load <= 32) return 1;
+  if (load <= 40) return 2;
+  return 3;
+}
+
+/**
+ * 팩스 문서 데이터를 **A4 한 장** PDF 버퍼로 렌더링한다. 디스크에 저장하지 않는다.
+ * 넘치면 배율을 줄여 다시 렌더하고, 마지막 배율에서도 넘치면 페이지 분할을 끄고(wrap=false) 한 장으로 고정한다.
+ */
 export async function renderFaxPdf(doc: FaxDocumentData): Promise<Buffer> {
   if (!doc.unitNo || !doc.period || !doc.building?.name) {
     throw new Error("fax document is missing required fields");
@@ -171,5 +214,12 @@ export async function renderFaxPdf(doc: FaxDocumentData): Promise<Buffer> {
   ensureFont();
   // 공개 고지서 URL이 없으면(서명 미발급·기준 주소 없음) QR을 생략한다.
   const qrDataUrl = doc.qrPayload ? await QRCode.toDataURL(doc.qrPayload, { margin: 0, width: 120 }) : null;
-  return renderToBuffer(<FaxDocument doc={doc} qrDataUrl={qrDataUrl} />);
+  for (let index = initialScaleIndex(doc); index < FAX_SCALES.length; index += 1) {
+    const pdf = await renderToBuffer(
+      <FaxDocument doc={doc} qrDataUrl={qrDataUrl} styles={createStyles(FAX_SCALES[index])} wrap />,
+    );
+    if (countPdfPages(pdf) <= 1) return pdf;
+  }
+  const smallest = createStyles(FAX_SCALES[FAX_SCALES.length - 1]);
+  return renderToBuffer(<FaxDocument doc={doc} qrDataUrl={qrDataUrl} styles={smallest} wrap={false} />);
 }

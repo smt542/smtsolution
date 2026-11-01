@@ -2,8 +2,11 @@ import { isPopbillConfigured, readPopbillConfig, type PopbillConfig } from "@/li
 import {
   computeNextPollAt,
   defaultFetchFax,
+  defaultFetchFaxByRequestNum,
   defaultFetchResults,
   defaultFetchResultsByRequestNum,
+  FAX_REQUEST_NOT_FOUND,
+  PopbillLookupError,
   type FaxResultSummary,
   type ProviderRecipientResult,
 } from "@/lib/popbill/results";
@@ -44,7 +47,14 @@ export interface ReconcileDeps {
     kind: string;
   }) => Promise<ProviderRecipientResult[]>;
   fetchFax?: (job: { receiptNum: string }) => Promise<FaxResultSummary>;
+  fetchFaxByRequestNum?: (job: { requestNum: string }) => Promise<FaxResultSummary>;
 }
+
+/**
+ * 접수 응답 없이 끝난(타임아웃) 팩스 작업을 "접수 안 됨"으로 마감하기 전 유예 시간.
+ * 팝빌은 접수 시점에 요청번호를 등록하므로, 작업 생성 5분 뒤에도 요청번호가 없으면 접수되지 않은 것이다.
+ */
+const FAX_NOT_ACCEPTED_GRACE_MS = 5 * 60_000;
 
 export interface ReconcileResult {
   processed: number;
@@ -70,6 +80,8 @@ export async function reconcilePendingDeliveries(deps: ReconcileDeps): Promise<R
   const fetchResults =
     deps.fetchResults ?? ((job) => defaultFetchResults(job, config ?? readPopbillConfig()));
   const fetchFax = deps.fetchFax ?? ((job) => defaultFetchFax(job, config ?? readPopbillConfig()));
+  const fetchFaxByRequestNum =
+    deps.fetchFaxByRequestNum ?? ((job) => defaultFetchFaxByRequestNum(job, config ?? readPopbillConfig()));
   const fetchResultsByRequestNum =
     deps.fetchResultsByRequestNum ??
     ((job) => defaultFetchResultsByRequestNum(job, config ?? readPopbillConfig()));
@@ -91,6 +103,7 @@ export async function reconcilePendingDeliveries(deps: ReconcileDeps): Promise<R
 
     if (job.kind === "fax") {
       let fax: FaxResultSummary | null = null;
+      let requestNotFound = false;
       if (job.receipt_num) {
         try {
           fax = await fetchFax({ receiptNum: job.receipt_num });
@@ -98,10 +111,36 @@ export async function reconcilePendingDeliveries(deps: ReconcileDeps): Promise<R
           console.error("[reconcile] fax result lookup failed", { jobId: job.id, error: (error as Error)?.message });
           fax = null;
         }
+      } else if (job.request_num) {
+        // 접수 응답(receipt) 전에 타임아웃된 작업: 요청번호로 접수 여부·결과를 확인한다.
+        try {
+          fax = await fetchFaxByRequestNum({ requestNum: job.request_num });
+        } catch (error) {
+          requestNotFound =
+            error instanceof PopbillLookupError && error.providerCode === FAX_REQUEST_NOT_FOUND;
+          if (!requestNotFound) {
+            console.error("[reconcile] fax request lookup failed", { jobId: job.id, error: (error as Error)?.message });
+          }
+          fax = null;
+        }
       }
       const faxNext = computeNextPollAt(submittedAtBase, now);
       // 성공(success)→sent로 매핑. 미조회/조회실패는 pending으로 두어 재스케줄한다.
-      const faxStatus = fax ? (fax.status === "success" ? "sent" : fax.status) : "pending";
+      let faxStatus: string = fax ? (fax.status === "success" ? "sent" : fax.status) : "pending";
+      // 실패 사유(통신사 결과코드)를 남긴다. 성공은 코드를 남기지 않는다.
+      let faxErrorCode: string | null =
+        fax && (fax.status === "failed" || fax.status === "partial") ? fax.code || null : null;
+      if (!job.receipt_num && !fax?.receiptNum && (!fax || fax.status === "pending")) {
+        // 접수번호를 끝내 모르는 작업이 "진행 중"으로 영구히 남아 재발송을 막지 않게 마감한다.
+        const age = now.getTime() - new Date(job.created_at).getTime();
+        if (requestNotFound && age >= FAX_NOT_ACCEPTED_GRACE_MS) {
+          faxStatus = "failed";
+          faxErrorCode = "NOT_ACCEPTED";
+        } else if (!faxNext) {
+          faxStatus = "failed";
+          faxErrorCode = "RESULT_UNCONFIRMED";
+        }
+      }
       const faxApplied = (await rpcData(deps.admin, "apply_fax_dispatch_result", {
         p_job_id: job.id,
         p_status: faxStatus,
@@ -111,6 +150,8 @@ export async function reconcilePendingDeliveries(deps: ReconcileDeps): Promise<R
         p_charge_pages: fax?.chargePages ?? 0,
         p_refund_pages: fax?.refundPages ?? 0,
         p_next_poll_at: faxNext ? faxNext.toISOString() : null,
+        p_error_code: faxErrorCode,
+        p_receipt_num: job.receipt_num ? null : fax?.receiptNum ?? null,
       })) as { job_status?: string } | null;
       const fs = faxApplied?.job_status;
       if (fs === "sent" || fs === "partial" || fs === "failed") result.finalized += 1;

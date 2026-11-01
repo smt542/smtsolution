@@ -17,6 +17,7 @@ import { resolveDisplaySender } from "@/lib/messaging/senderDisplay";
 import { currentPeriod } from "@/lib/billing/period";
 import { matchesBuildingGroup } from "@/lib/buildings/groupType";
 import { displayUnitNo, publicBillUrl, type BillPrintOptions, type PrintableAccount } from "@/lib/bill/document";
+import { EMPTY_FAX_SEND_RESULT, mergeFaxSendResults, summarizeFaxSend } from "@/lib/bill/faxSendSummary";
 import type { BillBuilding, OutputDocumentType } from "../types";
 import type { GiroOutputDocument, GiroPrintViewProps } from "./GiroPrintView";
 import { AutoDebitTable, filterAutoDebitRowsByGroup, isBuildingInAutoDebitGroup } from "./output-modal/AutoDebitTable";
@@ -320,23 +321,25 @@ export function DocumentOutputModal({ type, orgId, buildings, companyName, accou
     // 입력한 수신 팩스번호로 선택 세대 전부를 보낸다.
     const recipientOverride = faxRecipient;
     let hasError = false;
-    let totalQueued = 0;
-    let totalFailed = 0;
+    let total = EMPTY_FAX_SEND_RESULT;
     for (const building of selectedBuildings) {
       const unitIds = selectedFaxTargets.filter((entry) => entry.building.id === building.id).map((entry) => entry.target.unitId);
       if (unitIds.length === 0) continue;
       try {
         const result = await sendFaxes.mutateAsync({ buildingId: building.id, period, unitIds, recipientOverride });
-        totalQueued += result.queued;
-        totalFailed += result.failed;
+        total = mergeFaxSendResults(total, result);
       } catch { hasError = true; }
     }
-    if (hasError || totalFailed > 0) {
-      setFaxError(true);
-      toast.error(totalQueued > 0 ? `일부만 접수되었습니다 · 접수 ${totalQueued} · 실패 ${totalFailed}` : "발송에 실패했습니다. 실패 세대를 다시 선택해 재발송해 주세요.");
-    } else {
-      toast.success("발송을 접수했습니다. 결과 확인 중입니다.");
+    // 정책 3.5: 접수되지 않은 건(실패·이미 처리 중·접수 확인 필요)이 있으면 성공 안내를 띄우지 않고 모달을 유지한다.
+    const notice = summarizeFaxSend(total, hasError);
+    if (notice.tone === "success") {
+      toast.success(notice.message);
       setFaxConfirmOpen(false);
+    } else if (notice.tone === "warning") {
+      toast.warning(notice.message);
+    } else {
+      setFaxError(true);
+      toast.error(notice.message);
     }
   };
 

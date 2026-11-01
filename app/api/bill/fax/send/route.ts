@@ -109,7 +109,7 @@ export async function POST(request: Request): Promise<Response> {
   let failed = 0;
   let skipped = 0;
   let reconcileRequired = 0;
-  const results: Array<{ billIssueId: number; status: string }> = [];
+  const results: Array<{ billIssueId: number; status: string; code?: string }> = [];
 
   for (const billIssueId of billIssueIds) {
     // 1) 서버 권위 문서 로드(접수 전, job 생성 없음).
@@ -240,7 +240,8 @@ export async function POST(request: Request): Promise<Response> {
         results.push({ billIssueId, status: "mark_failed" });
       } else if (classified.outcome === "failed") {
         failed += 1;
-        results.push({ billIssueId, status: "failed" });
+        // 실패 사유를 화면에 안내할 수 있게 오류 코드(예: SENDER_NOT_REGISTERED)를 함께 돌려준다.
+        results.push({ billIssueId, status: "failed", code: classified.code });
       } else {
         // receipt 없음 → queued로 보고하지 않는다(결과 확인 필요).
         reconcileRequired += 1;

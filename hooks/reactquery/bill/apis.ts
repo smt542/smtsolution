@@ -7,6 +7,7 @@ import {
   type BillMeterReadingRow,
   type BillNameDisplay,
 } from "@/lib/bill/document";
+import { EMPTY_FAX_SEND_RESULT, type FaxSendResult } from "@/lib/bill/faxSendSummary";
 
 export interface BillTarget {
   unitId: number; unitNo: string; dong: string | null; occupancyId: number | null;
@@ -205,11 +206,10 @@ export interface SendBillFaxesPayload {
 
 /**
  * 고지서 팩스 발송: 대상 fax bill_issue를 확보한 뒤 서버 라우트로 접수한다.
- * 접수 결과({queued, failed})만 반환하며 성공 확정은 재조회 정산이 담당한다(가짜 sent 기록 없음).
+ * 접수 결과 전체(queued/failed/skipped/reconcileRequired/results)를 반환한다 — 접수되지 않은 건
+ * (이미 처리 중·접수 확인 필요)을 버리면 화면이 성공으로 오인한다. 성공 확정은 재조회 정산이 담당한다.
  */
-export async function sendBillFaxes(
-  p: SendBillFaxesPayload,
-): Promise<{ queued: number; failed: number }> {
+export async function sendBillFaxes(p: SendBillFaxesPayload): Promise<FaxSendResult> {
   const { data, error } = await createClient().rpc("resolve_fax_bill_issues", {
     p_building_id: p.buildingId,
     p_period: p.period,
@@ -217,7 +217,7 @@ export async function sendBillFaxes(
   });
   if (error) throw new Error(error.message);
   const billIssueIds = ((data ?? []) as { bill_issue_id: number }[]).map((row) => row.bill_issue_id);
-  if (billIssueIds.length === 0) return { queued: 0, failed: 0 };
+  if (billIssueIds.length === 0) return EMPTY_FAX_SEND_RESULT;
 
   const res = await fetch("/api/bill/fax/send", {
     method: "POST",
@@ -225,12 +225,18 @@ export async function sendBillFaxes(
     body: JSON.stringify({ billIssueIds, recipientOverride: p.recipientOverride }),
   });
   const result = (await res.json().catch(() => null)) as
-    | { queued?: number; failed?: number; error?: string; message?: string }
+    | (Partial<FaxSendResult> & { error?: string; message?: string })
     | null;
   if (!res.ok) {
     throw new Error(result?.message ?? result?.error ?? "팩스 발송에 실패했습니다.");
   }
-  return { queued: result?.queued ?? 0, failed: result?.failed ?? 0 };
+  return {
+    queued: result?.queued ?? 0,
+    failed: result?.failed ?? 0,
+    skipped: result?.skipped ?? 0,
+    reconcileRequired: result?.reconcileRequired ?? 0,
+    results: Array.isArray(result?.results) ? result.results : [],
+  };
 }
 
 export async function getOrganizationName(orgId: number): Promise<string | null> {

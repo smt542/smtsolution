@@ -123,7 +123,29 @@ export interface FaxResultSummary {
   failPages: number;
   chargePages: number;
   refundPages: number;
+  /** 통신사 결과코드. 실패/부분 실패면 실패 행의 코드(첫 행이 아니라). */
   code: string;
+  /** 팝빌 접수번호. 요청번호(RN)로 조회해 접수번호를 회수할 때 쓴다. */
+  receiptNum: string | null;
+}
+
+/** 팩스 요청번호가 팝빌에 없다(-16000011) = 접수되지 않았다. */
+export const FAX_REQUEST_NOT_FOUND = -16000011;
+
+/** 결과 조회 오류. 팝빌 오류코드(code)를 보존해 "접수 안 됨"과 일시 조회 실패를 구분한다. */
+export class PopbillLookupError extends Error {
+  constructor(
+    public readonly providerCode: number | null,
+    message: string,
+  ) {
+    super(message);
+    this.name = "PopbillLookupError";
+  }
+}
+
+function toLookupError(label: string, e: { code?: number; message?: string } | null | undefined): PopbillLookupError {
+  const code = typeof e?.code === "number" ? e.code : null;
+  return new PopbillLookupError(code, `${label} (code ${code ?? "?"}: ${e?.message ?? ""})`);
 }
 
 /**
@@ -132,7 +154,9 @@ export interface FaxResultSummary {
  */
 export function normalizeFaxResult(results: PopbillFaxResult[] | null): FaxResultSummary {
   const rows = results ?? [];
-  const sum = (field: keyof PopbillFaxResult) =>
+  // 완료(state=3)인데 성공(100)이 아닌 행이 실패 사유를 담는다.
+  const failedRow = rows.find((row) => Number(row.state) === 3 && Number(row.result) !== 100);
+  const sum = (field: "sendPageCnt" | "successPageCnt" | "failPageCnt" | "chargePageCnt" | "refundPageCnt") =>
     rows.reduce((total, row) => total + Number(row[field] ?? 0), 0);
   const summary = {
     sendPages: sum("sendPageCnt"),
@@ -140,7 +164,8 @@ export function normalizeFaxResult(results: PopbillFaxResult[] | null): FaxResul
     failPages: sum("failPageCnt"),
     chargePages: sum("chargePageCnt"),
     refundPages: sum("refundPageCnt"),
-    code: rows.length > 0 ? String(rows[0].result ?? "") : "",
+    code: rows.length > 0 ? String((failedRow ?? rows[0]).result ?? "") : "",
+    receiptNum: rows.find((row) => typeof row.receiptNum === "string" && row.receiptNum.length > 0)?.receiptNum ?? null,
   };
   if (rows.length === 0 || rows.some((row) => Number(row.state) < 3)) {
     return { status: "pending", ...summary };
@@ -159,9 +184,33 @@ export function fetchFaxResult(config: PopbillConfig, receiptNum: string): Promi
       receiptNum,
       userId,
       (raw) => resolve(normalizeFaxResult(raw)),
-      (e) => reject(new Error(`provider fax result lookup failed (code ${e?.code ?? "?"}: ${e?.message ?? ""})`)),
+      (e) => reject(toLookupError("provider fax result lookup failed", e)),
     );
   });
+}
+
+/**
+ * 요청번호(requestNum)로 팩스 결과를 조회한다. 접수 응답(receipt)을 받기 전에 타임아웃된 작업의
+ * 접수 여부를 확인하는 데 쓴다. 팝빌에 요청번호가 없으면 PopbillLookupError(-16000011)로 거절한다.
+ */
+export function fetchFaxResultByRequestNum(config: PopbillConfig, requestNum: string): Promise<FaxResultSummary> {
+  const userId = config.userId ?? "";
+  return new Promise((resolve, reject) => {
+    getFaxService(config).getFaxResultRN(
+      config.corpNum,
+      requestNum,
+      userId,
+      (raw) => resolve(normalizeFaxResult(raw)),
+      (e) => reject(toLookupError("provider fax request lookup failed", e)),
+    );
+  });
+}
+
+export function defaultFetchFaxByRequestNum(
+  job: { requestNum: string },
+  config?: PopbillConfig,
+): Promise<FaxResultSummary> {
+  return fetchFaxResultByRequestNum(config ?? readPopbillConfig(), job.requestNum);
 }
 
 export function defaultFetchFax(

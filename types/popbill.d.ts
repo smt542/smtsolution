@@ -218,6 +218,8 @@ declare module "popbill" {
     interOPRefKey?: string;
     sendDT?: string;
     resultDT?: string;
+    receiptNum?: string;
+    requestNum?: string;
   }
   export interface FaxService {
     checkSenderNumber(
