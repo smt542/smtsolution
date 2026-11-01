@@ -37,7 +37,7 @@ export async function GET(request: Request) {
   }
 
   const query = params.get("q")?.trim();
-  const sb = await createClient();
+  const sb = await createClient(undefined, "staff");
   const gate = await requirePersonaApi(sb, "manager_staff", { module: "utilities" });
   if (!gate.ok) return gate.response;
 

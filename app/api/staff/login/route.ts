@@ -91,7 +91,7 @@ async function handlePost(req: Request) {
     return NextResponse.json({ error: INVALID }, { status: 401 });
   }
 
-  const sessionClient = await createClient();
+  const sessionClient = await createClient(undefined, "staff");
 
   for (const userId of officeUserIds) {
     const { data, error } = await admin.auth.admin.getUserById(userId);

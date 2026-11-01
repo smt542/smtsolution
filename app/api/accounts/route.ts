@@ -6,7 +6,7 @@ import { loginEmail } from "@/lib/auth/email";
 import { toAuthPassword } from "@/lib/auth/password";
 
 export async function POST(req: Request) {
-  const supabase = await createClient();
+  const supabase = await createClient(undefined, "staff");
 
   // 1) 인증
   const { data: userData } = await supabase.auth.getUser();

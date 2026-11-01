@@ -1,9 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
+import { DEFAULT_AUTH_SCOPE, scopeFromPath } from "@/lib/supabase/authScope";
 
 export async function proxy(request: NextRequest) {
-  const { response, user } = await updateSession(request);
   const { pathname } = request.nextUrl;
+  // 영역별 인증 쿠키(QA #59): 이 경로 영역의 세션만 보고 갱신한다. 아래 user 도 이 영역 계정이다.
+  const { response, user } = await updateSession(request, scopeFromPath(pathname) ?? DEFAULT_AUTH_SCOPE);
   const isLogin = pathname === "/staff/login";
   const isStaff = pathname.startsWith("/staff");
   const isPlatformAdmin = pathname.startsWith("/platform-admin");

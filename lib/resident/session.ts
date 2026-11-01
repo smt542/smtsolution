@@ -162,7 +162,7 @@ export async function mintResidentSession(
     sessionCookies.push(...cookiesToSet);
     Object.entries(headers).forEach(([key, value]) => sessionHeaders.set(key, value));
   };
-  const sessionClient = await createClient(collectSessionCookies);
+  const sessionClient = await createClient(collectSessionCookies, "resident");
   const { data: sessionData, error: sessionError } = await sessionClient.auth.signInWithPassword({
     email,
     password,

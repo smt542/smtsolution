@@ -14,7 +14,7 @@ function generateSlug(): string {
 }
 
 export async function POST(req: Request) {
-  const supabase = await createClient();
+  const supabase = await createClient(undefined, "platform");
 
   // 1) 인증 + platform_admin 인가
   const { data: userData } = await supabase.auth.getUser();

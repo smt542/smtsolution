@@ -1,8 +1,10 @@
 "use client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { DEFAULT_AUTH_SCOPE, scopeFromPath } from "@/lib/supabase/authScope";
 
 const LONG_STALE_TIME = 15 * 60_000;
 const TRANSACTION_STALE_TIME = 15_000;
@@ -60,17 +62,20 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
 
   // 로그인 사용자가 바뀌면(로그아웃·계정 전환) 이전 사용자의 캐시를 비운다.
   // 같은 사용자의 TOKEN_REFRESHED·USER_UPDATED 등은 user id가 같으므로 비우지 않는다.
+  // 인증 세션은 화면 영역별로 나뉜다(QA #59). 지금 화면 영역의 세션을 구독하고, 영역을 옮겨 사용자가
+  // 달라진 경우에도 비우도록 마지막 사용자 id 는 영역 전환을 넘어 유지한다.
+  const scope = scopeFromPath(usePathname() ?? "") ?? DEFAULT_AUTH_SCOPE;
+  const lastUserId = useRef<string | null | undefined>(undefined);
   useEffect(() => {
-    let lastUserId: string | null | undefined;
-    const { data } = createClient().auth.onAuthStateChange((_event, session) => {
+    const { data } = createClient(scope).auth.onAuthStateChange((_event, session) => {
       const nextUserId = session?.user?.id ?? null;
-      if (lastUserId !== undefined && lastUserId !== nextUserId) {
+      if (lastUserId.current !== undefined && lastUserId.current !== nextUserId) {
         queryClient.clear();
       }
-      lastUserId = nextUserId;
+      lastUserId.current = nextUserId;
     });
     return () => data.subscription.unsubscribe();
-  }, [queryClient]);
+  }, [queryClient, scope]);
 
   return (
     <QueryClientProvider client={queryClient}>

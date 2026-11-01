@@ -15,7 +15,7 @@ function isHqRole(value: unknown): value is HqRole {
 }
 
 export async function POST(req: Request) {
-  const supabase = await createClient();
+  const supabase = await createClient(undefined, "platform");
   const { data: userData } = await supabase.auth.getUser();
   const callerId = userData?.user?.id;
   if (!callerId) {

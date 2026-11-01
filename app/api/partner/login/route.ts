@@ -89,7 +89,7 @@ async function handlePost(req: Request) {
   }
 
   // 3) 후보 이메일로 세션 수립 시도(비밀번호 검증이 후보를 자연스럽게 판별)
-  const sessionClient = await createClient();
+  const sessionClient = await createClient(undefined, "partner");
   for (const uid of fieldIds) {
     const { data: got, error: getErr } = await admin.auth.admin.getUserById(uid);
     const email = got?.user?.email;

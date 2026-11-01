@@ -5,6 +5,7 @@ import { ORG_SUSPENDED_ERROR } from "@/lib/auth/orgSuspended";
 import { SESSION_SWITCHED_ERROR } from "@/lib/auth/sessionSwitched";
 import { ENTRY_PATHS, hasEntryPersona, isEntryPersona, isOrgSuspended } from "@/lib/auth/requirePersona";
 import { createClient } from "@/lib/supabase/server";
+import { PERSONA_SCOPE } from "@/lib/supabase/authScope";
 
 type SessionCookie = Parameters<SetAllCookies>[0][number];
 
@@ -22,10 +23,11 @@ export async function GET(request: Request) {
   // getUser가 토큰을 갱신하면 새 쿠키가 온다. 어느 응답이든 실어 보내야 갱신된 세션이 끊기지 않는다.
   const cookies: SessionCookie[] = [];
   const headers = new Headers();
+  // 영역별 세션(QA #59): 끊을 세션은 `to` 영역 쿠키다. 다른 영역 세션은 건드리지 않는다.
   const sb = await createClient((cookiesToSet, cacheHeaders) => {
     cookies.push(...cookiesToSet);
     Object.entries(cacheHeaders).forEach(([key, value]) => headers.set(key, value));
-  });
+  }, PERSONA_SCOPE[to]);
   const respond = (path: string) => redirectTo(path, cookies, headers);
   // 열려 있던 화면에서 세션이 바뀌어 보낸 경우(EntryPersonaWatcher) 로그인 화면에 재로그인 안내를 띄운다.
   const loginPath = reason === SESSION_SWITCHED_ERROR

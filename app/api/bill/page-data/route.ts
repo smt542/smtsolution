@@ -18,7 +18,7 @@ function json(data: unknown, status = 200): Response {
 }
 
 export async function GET(request: Request): Promise<Response> {
-  const supabase = await createClient();
+  const supabase = await createClient(undefined, "staff");
   const { data: userData } = await supabase.auth.getUser();
   if (!userData?.user) return json({ error: "로그인이 필요합니다." }, 401);
 

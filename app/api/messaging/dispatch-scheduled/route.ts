@@ -30,7 +30,7 @@ export async function POST(request: Request): Promise<Response> {
   if (secret && bearer && safeEqual(bearer, secret)) {
     orgId = null;
   } else {
-    const supabase = await createClient();
+    const supabase = await createClient(undefined, "staff");
     const { data: userData } = await supabase.auth.getUser();
     if (!userData?.user) return json({ error: "unauthorized" }, 401);
 

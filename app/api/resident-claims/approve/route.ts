@@ -42,7 +42,7 @@ export async function POST(request: Request): Promise<Response> {
     return json({ error: "invalid input" }, 400);
   }
 
-  const sb = await createClient();
+  const sb = await createClient(undefined, "staff");
   const { data: userData } = await sb.auth.getUser();
   if (!userData?.user) return json({ error: "unauthenticated" }, 401);
 

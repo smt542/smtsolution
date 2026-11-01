@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 // [res_claims·resident_identities·move_out_requests] + 기존 세션/refresh token 정리).
 // 로직감사 L5: 탈퇴 시 auth.users가 보존돼 잔여 PII가 남고 재가입 시 조용히 재사용되던 갭 해소.
 export async function POST() {
-  const supabase = await createClient();
+  const supabase = await createClient(undefined, "resident");
 
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData?.user?.id;

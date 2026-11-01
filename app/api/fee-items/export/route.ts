@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     return Response.json({ error: "invalid fee-item export parameters" }, { status: 400 });
   }
 
-  const sb = await createClient();
+  const sb = await createClient(undefined, "staff");
   const gate = await requirePersonaApi(sb, "manager_staff", { module: "fee_items" });
   if (!gate.ok) return gate.response;
 

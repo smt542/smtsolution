@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import { authScopeHeaders } from "@/lib/supabase/authScope";
 
 export type OrgMemberRole =
   | "platform_admin" | "org_owner" | "manager" | "staff" | "field" | "tenant";
@@ -40,7 +41,8 @@ export async function login(input: LoginInput): Promise<MyContext> {
 export async function changeMyPassword(newPassword: string): Promise<void> {
   const response = await fetch("/api/auth/change-password", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    // 공용 API 라 지금 화면 영역을 실어 보낸다(QA #59 영역별 세션).
+    headers: { "Content-Type": "application/json", ...authScopeHeaders() },
     body: JSON.stringify({ newPassword }),
   });
   const data = (await response.json().catch(() => ({}))) as { error?: string };

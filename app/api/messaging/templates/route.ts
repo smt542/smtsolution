@@ -22,7 +22,7 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 async function guard(): Promise<
   { denied: Response } | { supabase: SupabaseServerClient }
 > {
-  const supabase = await createClient();
+  const supabase = await createClient(undefined, "staff");
   const { data: userData } = await supabase.auth.getUser();
   if (!userData?.user) return { denied: json({ error: "unauthorized" }, 401) };
 

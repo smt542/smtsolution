@@ -33,7 +33,7 @@ export async function POST(request: Request): Promise<Response> {
   }
   const number = input.number.replace(/\D/g, "");
 
-  const sb = await createClient();
+  const sb = await createClient(undefined, "staff");
   const { data: userData } = await sb.auth.getUser();
   if (!userData?.user) return json({ error: "unauthenticated" }, 401);
 

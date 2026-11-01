@@ -7,7 +7,7 @@ import { toAuthPassword } from "@/lib/auth/password";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ userId: string }> }) {
   const { userId } = await params;
-  const supabase = await createClient();
+  const supabase = await createClient(undefined, "staff");
 
   const { data: userData } = await supabase.auth.getUser();
   if (!userData?.user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });

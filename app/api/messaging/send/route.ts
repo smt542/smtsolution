@@ -53,7 +53,7 @@ export async function POST(request: Request): Promise<Response> {
     return json({ error: "IDEMPOTENCY_KEY_INVALID", message: "Idempotency-Key는 UUID여야 합니다." }, 400);
   }
 
-  const sb = await createClient();
+  const sb = await createClient(undefined, "staff");
   const { data: userData } = await sb.auth.getUser();
   if (!userData?.user) return json({ error: "unauthenticated" }, 401);
   const userId = userData.user.id;

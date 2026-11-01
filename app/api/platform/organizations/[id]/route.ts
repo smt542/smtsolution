@@ -28,7 +28,7 @@ export async function DELETE(
     return NextResponse.json({ error: "잘못된 테넌트입니다." }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  const supabase = await createClient(undefined, "platform");
   const { data: userData } = await supabase.auth.getUser();
   if (!userData?.user) {
     return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });

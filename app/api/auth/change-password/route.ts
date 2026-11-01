@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient as createStatelessClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { AUTH_SCOPE_HEADER, parseAuthScope } from "@/lib/supabase/authScope";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { toAuthPassword } from "@/lib/auth/password";
 import { isValidPasswordFor, passwordRuleMessage } from "@/lib/auth/passwordPolicy";
@@ -25,7 +26,10 @@ async function isCurrentPassword(email: string, password: string): Promise<boole
  * 성공하면 must_change_password 를 해제해 서비스 진입을 허용한다.
  */
 export async function POST(req: Request) {
-  const supabase = await createClient();
+  // 여러 영역(사무실·현장·통합관리자)이 같이 쓰는 API 라 호출부가 영역을 명시해야 한다(QA #59).
+  const scope = parseAuthScope(req.headers.get(AUTH_SCOPE_HEADER));
+  if (!scope) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });
+  const supabase = await createClient(undefined, scope);
   const { data: userData } = await supabase.auth.getUser();
   const user = userData?.user;
   if (!user) return NextResponse.json({ error: "로그인이 필요합니다." }, { status: 401 });

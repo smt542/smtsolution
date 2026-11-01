@@ -2,6 +2,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { PERSONA_SCOPE } from "@/lib/supabase/authScope";
 import { SESSION_SWITCHED_ERROR } from "@/lib/auth/sessionSwitched";
 
 type WorkforcePersona = "manager_staff" | "field_partner" | "platform_admin";
@@ -27,7 +28,8 @@ export function EntryPersonaWatcher({ persona }: { persona: WorkforcePersona }) 
     let cancelled = false;
     const check = async () => {
       if (redirecting.current) return;
-      const sb = createClient();
+      // 이 영역 쿠키 세션만 본다(QA #59). 다른 영역(예: 같은 브라우저의 현장 로그인)은 영향 없다.
+      const sb = createClient(PERSONA_SCOPE[persona]);
       const { data: { user }, error: userError } = await sb.auth.getUser();
       if (cancelled || userError) return;
       let allowed = false;
