@@ -11,16 +11,19 @@ export interface BuildingVendor {
   phone: string | null;
   memo: string | null;
   sortOrder: number;
+  vendorRole: string | null;
 }
 
 type BuildingVendorRow = {
   id: number; building_id: number; vendor_type: VendorType;
   name: string; phone: string | null; memo: string | null; sort_order: number;
+  vendor_role?: string | null;
 };
 
 export const toBuildingVendor = (r: BuildingVendorRow): BuildingVendor => ({
   id: r.id, buildingId: r.building_id, vendorType: r.vendor_type,
   name: r.name, phone: r.phone, memo: r.memo, sortOrder: r.sort_order,
+  vendorRole: r.vendor_role ?? null,
 });
 
 export async function listBuildingVendorsByBuilding(buildingId: number): Promise<BuildingVendor[]> {

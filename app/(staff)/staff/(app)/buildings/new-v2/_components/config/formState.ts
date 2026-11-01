@@ -10,6 +10,7 @@ import { emptyFacilities } from "@/hooks/reactquery/buildings";
 import type { BuildingCustomerNumber } from "@/hooks/reactquery/buildingCustomerNumbers";
 import type { BuildingVendor, VendorType } from "@/hooks/reactquery/buildingVendors";
 import { DEFAULT_BUILDING_GROUP_TYPE } from "@/lib/buildings/groupType";
+import { VENDOR_ROLES } from "@/lib/vendors/vendorRoles";
 import { VENDORS } from "./vendors";
 import { UTILITIES } from "./utilities";
 
@@ -67,17 +68,9 @@ export interface RegisterFormState {
   memo: string;
 }
 
-const VENDOR_TYPES: Record<string, VendorType> = {
-  cleaning: "etc",
-  septic: "septic",
-  internet: "etc",
-  elec_safety: "electric",
-  cable: "etc",
-  elevator_maint: "elevator",
-  elevator_insp: "elevator",
-  fire: "fire",
-  cctv: "etc",
-};
+const VENDOR_TYPES: Record<string, VendorType> = Object.fromEntries(
+  VENDOR_ROLES.map((r) => [r.key, r.vendorType]),
+);
 
 const NORMALIZED_UTILITY_FIELDS = new Set([
   "고객번호", "성명", "계약명", "계약자", "월분", "계산", "계산1", "조회",
@@ -186,7 +179,10 @@ export function mergeVendors(
     const exact = candidates.find((key) => saved?.[key]?.fields?.["업체명"] === row.name);
     const marked = candidates.find((key) => saved?.[key]?.assigned === true)
       ?? candidates.find((key) => saved?.[key]?.fields?.["업체명"] !== undefined);
-    const key = exact ?? marked ?? candidates[0];
+    // vendor_role(QA #50 #51)이 있으면 역할 키로 정확히 매칭한다. 없는 기존 행만 유형·업체명 추정.
+    const byRole = row.vendorRole && !assigned.has(row.vendorRole) && VENDORS.some((vendor) => vendor.key === row.vendorRole)
+      ? row.vendorRole : undefined;
+    const key = byRole ?? exact ?? marked ?? candidates[0];
     if (!key) continue;
     assigned.add(key);
     base[key] = {
@@ -317,6 +313,7 @@ function vendorsFromState(s: RegisterFormState): SaveBuildingPayload["vendors"] 
         rows.push({
           id: entry.persistedId ?? entry.normalized.id,
           vendorType: VENDOR_TYPES[vendor.key],
+          vendorRole: vendor.key,
           name: "",
           sortOrder,
           _deleted: true,
@@ -328,6 +325,7 @@ function vendorsFromState(s: RegisterFormState): SaveBuildingPayload["vendors"] 
       id: entry.persistedId ?? entry.normalized?.id,
       clientKey: entry.persistedId || entry.normalized?.id ? undefined : `register-${vendor.key}`,
       vendorType: VENDOR_TYPES[vendor.key],
+      vendorRole: vendor.key,
       name,
       phone: entry.fields["전화번호"]?.trim() || null,
       memo: entry.memo.trim() || null,

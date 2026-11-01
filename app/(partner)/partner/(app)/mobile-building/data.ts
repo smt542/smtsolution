@@ -30,6 +30,7 @@ export type Vendor = {
   name: string;
   phone: string | null;
   memo: string | null;
+  vendor_role?: string | null;
 };
 
 export type PartnerBuildingPageData = {

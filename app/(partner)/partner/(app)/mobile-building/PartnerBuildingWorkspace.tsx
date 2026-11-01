@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { type ReactNode, useState } from "react";
 
+import { vendorRoleTitle } from "@/lib/vendors/vendorRoles";
 import { PartnerListRow } from "../../../_components/PartnerListRow";
 import { PartnerMobileHeader } from "../../../_components/PartnerMobileHeader";
 import { PartnerPhoneLink } from "../../../_components/PartnerPhoneLink";
@@ -105,7 +106,7 @@ export default function PartnerBuildingWorkspace({
               ) : (
                 vendors.map((v) => (
                   <div key={v.id} className={styles.vend}>
-                    <div className={styles.vendType}>{VENDOR_LABEL[v.vendor_type] ?? v.vendor_type}</div>
+                    <div className={styles.vendType}>{vendorRoleTitle(v.vendor_role) ?? VENDOR_LABEL[v.vendor_type] ?? v.vendor_type}</div>
                     <div className={styles.vendBody}>
                       <span className={styles.vendName}>{v.name}</span>
                       {v.phone && (

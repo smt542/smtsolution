@@ -187,7 +187,7 @@ export interface CustomerNumberPayload {
   sortOrder?: number; _deleted?: boolean;
 }
 export interface VendorPayload {
-  id?: number; clientKey?: string; vendorType: string; name: string;
+  id?: number; clientKey?: string; vendorType: string; vendorRole?: string | null; name: string;
   phone?: string | null; memo?: string | null; sortOrder?: number; _deleted?: boolean;
 }
 export interface SaveBuildingPayload {
@@ -225,7 +225,7 @@ export async function saveBuilding(p: SaveBuildingPayload): Promise<SaveBuilding
       sort_order: c.sortOrder ?? 0, _deleted: c._deleted ?? false,
     })),
     p_vendors: p.vendors.map((v) => ({
-      id: v.id, client_key: v.clientKey, vendor_type: v.vendorType, name: v.name,
+      id: v.id, client_key: v.clientKey, vendor_type: v.vendorType, vendor_role: v.vendorRole ?? null, name: v.name,
       phone: v.phone ?? null, memo: v.memo ?? null, sort_order: v.sortOrder ?? 0, _deleted: v._deleted ?? false,
     })),
     p_type_id: p.typeId ?? null,
