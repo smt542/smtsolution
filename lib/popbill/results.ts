@@ -88,6 +88,7 @@ export function normalizeAlimtalkResult(
     return { status: altStarted || inGrace ? "pending" : "failed", code, altProduct: null };
   }
   const altCode = Number(altResultRaw);
+  // altContentType 이 없으면 단문(SMS) 단가로 처리한다(고객에게 유리한 쪽).
   const altProduct = Number(row.altContentType) === 6 ? "lms" : "sms";
   const combined = `${code}/alt:${altResultRaw}`;
   return altCode === 100

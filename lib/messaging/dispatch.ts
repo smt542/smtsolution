@@ -705,6 +705,7 @@ export async function submitReservationBatches(
             provider_ref_key: result.providerRefKey,
             status: result.status,
             code: result.code,
+            alt_product: result.altProduct ?? null,
           })),
         p_next_poll_at: nextPollAt?.toISOString() ?? null,
       });

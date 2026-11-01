@@ -123,6 +123,28 @@ function submitLms(
 /** 대체문자 LMS 제목 기본값(알림톡 제목이 없을 때). 90byte 초과 대체문자에만 적용된다. */
 const ALT_DEFAULT_SUBJECT = "안내";
 
+/** 팝빌 대체문자 한도(byte). 문자 규격(EUC-KR)처럼 한글 등 비ASCII는 2byte로 센다. */
+const ALT_CONTENT_MAX_BYTES = 2000;
+const ALT_SUBJECT_MAX_BYTES = 64;
+
+export function altByteLength(text: string): number {
+  let n = 0;
+  for (const ch of text) n += ch.codePointAt(0)! > 0x7f ? 2 : 1;
+  return n;
+}
+
+export function truncateAltBytes(text: string, max: number): string {
+  let n = 0;
+  let out = "";
+  for (const ch of text) {
+    const w = ch.codePointAt(0)! > 0x7f ? 2 : 1;
+    if (n + w > max) break;
+    n += w;
+    out += ch;
+  }
+  return out;
+}
+
 /**
  * 대체문자 본문: 알림톡 본문 + 버튼 링크(URL). 팝빌은 대체문자에 버튼 링크를 싣지 않으므로
  * (altSendType "A"에서만 링크를 직접 작성 가능) 웹링크 버튼의 URL을 본문 끝에 텍스트로 붙인다.
@@ -157,7 +179,7 @@ async function submitAlimtalk(
     // 대체문자(altSendType "A"): 알림톡이 실패하면 같은 내용(+버튼 링크 URL)을 팝빌이 문자로 대신 보낸다.
     // 문자 발신번호가 팝빌에 등록되어 있지 않으면 아래에서 altSendType을 비워 기존처럼 알림톡만 접수한다.
     altmsg: buildAltMessage(r.renderedBody ?? content.body, r.buttons ?? content.buttons),
-    altsjt: content.subject?.trim() || ALT_DEFAULT_SUBJECT,
+    altsjt: truncateAltBytes(content.subject?.trim() || ALT_DEFAULT_SUBJECT, ALT_SUBJECT_MAX_BYTES),
     interOPRefKey: r.providerRefKey,
     btns: r.buttons ?? content.buttons,
     // 강조표기형 템플릿만 타이틀을 싣는다(아래 sendATS_multi 가 내부에서 sendATS_same 을 호출하며 msgs[].emphasizeTitle 을
@@ -189,7 +211,15 @@ async function submitAlimtalk(
   // 대체문자는 알림톡 발신번호가 문자 발신번호로도 등록돼 있어야 나간다. 미등록이면 대체문자 없이 접수한다.
   const altSendType = (await checkSenderRegistered("sms", sender, config)) ? "A" : "";
   if (altSendType === "") {
+    console.warn("[popbill] 알림톡 발신번호가 문자 발신번호로 등록되어 있지 않아 대체문자 없이 접수합니다.");
     for (const m of msgs) {
+      m.altmsg = "";
+      m.altsjt = "";
+    }
+  }
+  // 2000byte를 넘는 대체문자는 팝빌이 거절하므로 그 수신자만 대체문자를 끈다(알림톡 접수는 유지).
+  for (const m of msgs) {
+    if (altByteLength(m.altmsg) > ALT_CONTENT_MAX_BYTES) {
       m.altmsg = "";
       m.altsjt = "";
     }
