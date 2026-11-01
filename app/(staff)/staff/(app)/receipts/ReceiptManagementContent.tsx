@@ -6,6 +6,7 @@ import { ReceiptWorkspace } from "./ReceiptWorkspace";
 export type ReceiptSearchParams = {
   buildingId?: string | string[];
   unitId?: string | string[];
+  complaintId?: string | string[];
 };
 
 function first(value: string | string[] | undefined): string | undefined {
@@ -40,6 +41,7 @@ export async function ReceiptManagementContent({
       canEditPayment={hasModule(me, "payment")}
       initialBuildingId={parseId(query.buildingId)}
       initialUnitId={parseId(query.unitId)}
+      initialComplaintId={parseId(query.complaintId)}
     />
   );
 }

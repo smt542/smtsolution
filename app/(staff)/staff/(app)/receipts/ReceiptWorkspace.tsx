@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useIsHydrated } from "@/hooks/common";
 import { Button, Spinner } from "@/components/common";
@@ -169,13 +170,16 @@ export function ReceiptWorkspace({
   canEditPayment,
   initialBuildingId,
   initialUnitId,
+  initialComplaintId,
 }: {
   orgId: number;
   canSendMessages: boolean;
   canEditPayment: boolean;
   initialBuildingId: number | null;
   initialUnitId: number | null;
+  initialComplaintId: number | null;
 }) {
+  const router = useRouter();
   // 조회 월 선택(캘린더)은 없앴다(2026-10-19) — 기준 월은 이번 달이고, 수납 이력은 처음부터 모두 보인다.
   const [period] = useState(() => currentPeriod());
   const [selectedBuildingId, setSelectedBuildingId] = useState<number | null>(initialBuildingId);
@@ -190,6 +194,38 @@ export function ReceiptWorkspace({
   const changeRailView = (next: "building" | "unit") => {
     setRailView(next);
     setRailViewSeq((seq) => seq + 1);
+  };
+  // 우측 A/S 카드 등으로 같은 화면에 다시 들어오면 query 만 바뀌고 state 는 유지되므로, 대상이 바뀌면 선택을 맞춘다.
+  const [appliedTarget, setAppliedTarget] = useState({
+    buildingId: initialBuildingId,
+    unitId: initialUnitId,
+    complaintId: initialComplaintId,
+  });
+  const [focusComplaintId, setFocusComplaintId] = useState<number | null>(initialComplaintId);
+  if (
+    appliedTarget.buildingId !== initialBuildingId ||
+    appliedTarget.unitId !== initialUnitId ||
+    appliedTarget.complaintId !== initialComplaintId
+  ) {
+    setAppliedTarget({
+      buildingId: initialBuildingId,
+      unitId: initialUnitId,
+      complaintId: initialComplaintId,
+    });
+    if (initialBuildingId !== null) {
+      setSelectedBuildingId(initialBuildingId);
+      setSelectedUnitId(initialUnitId);
+      changeRailView("unit");
+    }
+    if (initialComplaintId !== null) setFocusComplaintId(initialComplaintId);
+  }
+  // 포커스를 적용한 뒤 complaintId 를 URL 에서 지워, 새로고침·같은 카드 재클릭에도 상세가 다시 열린다.
+  const handleFocusHandled = () => {
+    setFocusComplaintId(null);
+    if (initialBuildingId === null) return;
+    const params = new URLSearchParams({ buildingId: String(initialBuildingId) });
+    if (initialUnitId !== null) params.set("unitId", String(initialUnitId));
+    router.replace(`/staff/receipts?${params.toString()}`);
   };
   const [searchOpen, setSearchOpen] = useState(false);
   const [monthlyOpen, setMonthlyOpen] = useState(false);
@@ -475,6 +511,8 @@ export function ReceiptWorkspace({
             buildingId={selectedBuildingId}
             unitId={selectedUnitId}
             canSendMessages={canSendMessages}
+            focusComplaintId={focusComplaintId}
+            onFocusHandled={handleFocusHandled}
           />
         </div>
       </div>

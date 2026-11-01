@@ -11,6 +11,7 @@ import {
   type ComplaintStatus,
 } from "@/hooks/reactquery/complaints";
 
+import { compareComplaintsByExecution } from "@/lib/complaints/executionDate";
 import { AsReceptionCard } from "./AsReceptionCard";
 import {
   FilterDropdown,
@@ -120,7 +121,7 @@ export function AsReceptionList({ refreshing = false }: AsReceptionListProps = {
             (!receiverId || complaint.createdBy === receiverId),
         )
         .sort((left, right) => {
-          const compared = left.receivedAt.localeCompare(right.receivedAt);
+          const compared = compareComplaintsByExecution(left, right);
           return sort === "asc" ? compared : -compared;
         }),
     [complaintsQuery.data, managerId, receiverId, sort],

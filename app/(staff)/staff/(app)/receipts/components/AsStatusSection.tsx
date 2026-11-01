@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppToast } from "@/hooks/common/useAppToast";
 import { useIsHydrated } from "@/hooks/common";
 import { Button, CustomDropdown, Panel, PhoneText, Spinner } from "@/components/common";
@@ -24,6 +24,7 @@ import { listUnits, unitKeys } from "@/hooks/reactquery/units";
 import { listOccupancies, occupancyKeys, type Occupancy } from "@/hooks/reactquery/occupancies";
 import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates";
 import { useOrgContact } from "@/hooks/reactquery/org/useOrgContact";
+import { complaintExecutionAt } from "@/lib/complaints/executionDate";
 import { openMessengerWith } from "@/lib/messaging/messengerHandoff";
 import { dedupeRecipients, validRecipients, type MessageRecipient } from "@/lib/messaging/preset";
 import {
@@ -144,11 +145,16 @@ export function AsStatusSection({
   buildingId,
   unitId,
   canSendMessages,
+  focusComplaintId = null,
+  onFocusHandled,
 }: {
   orgId: number;
   buildingId: number | null;
   unitId: number | null;
   canSendMessages: boolean;
+  /** 우측 A/S 카드에서 넘어온 접수 건 — 범위를 맞추고 상세 모달을 자동으로 연다. */
+  focusComplaintId?: number | null;
+  onFocusHandled?: () => void;
 }) {
   const toast = useAppToast();
   const queryClient = useQueryClient();
@@ -165,7 +171,7 @@ export function AsStatusSection({
   const { data: accounts = [] } = useAccounts();
   const { data: messageTemplates = [] } = useMessageTemplates();
   const { data: orgContact } = useOrgContact();
-  const { data: complaints = [], isLoading } = useComplaints({
+  const { data: complaints = [], isLoading, isFetching } = useComplaints({
     buildingId: buildingId ?? undefined,
   });
 
@@ -198,6 +204,31 @@ export function AsStatusSection({
   );
 
   const selected = complaints.find((complaint) => complaint.id === selectedId) ?? null;
+
+  // 카드에서 넘어온 접수 건: 대상 건물의 목록이 로드되면 범위·필터를 맞추고 상세를 연다(1회).
+  const [handledFocusId, setHandledFocusId] = useState<number | null>(null);
+  const [prevFocusId, setPrevFocusId] = useState<number | null>(focusComplaintId);
+  if (prevFocusId !== focusComplaintId) {
+    setPrevFocusId(focusComplaintId);
+    if (focusComplaintId === null) setHandledFocusId(null);
+  }
+  const focusTarget =
+    focusComplaintId !== null && handledFocusId !== focusComplaintId
+      ? complaints.find((complaint) => complaint.id === focusComplaintId) ?? null
+      : null;
+  const isFocusPending = focusComplaintId !== null && handledFocusId !== focusComplaintId;
+  if (isFocusPending && focusTarget) {
+    setHandledFocusId(focusComplaintId);
+    setScope(unitId === null ? "building" : "unit");
+    setResultFilter("");
+    setSelectedId(focusTarget.id);
+  }
+  const focusMissing = isFocusPending && !focusTarget && !isLoading && !isFetching;
+  useEffect(() => {
+    if (focusComplaintId === null) return;
+    if (focusMissing) toast.warning("해당 접수 건을 찾을 수 없어요");
+    if (focusMissing || handledFocusId === focusComplaintId) onFocusHandled?.();
+  }, [focusComplaintId, focusMissing, handledFocusId, onFocusHandled, toast]);
 
   // 민원 등록은 민원 → 처리결과 2단계라, 처리결과만 실패한 뒤 재시도하면 민원이 중복 생성됐다.
   // 이미 만들어진 민원 id 를 기억해 두고 재시도 때는 그 민원을 갱신한 뒤 처리결과만 다시 만든다.
@@ -475,7 +506,7 @@ export function AsStatusSection({
                     </td>
                     <td className={AS_MEMO_TD_CLASS}>{latest?.resultContent || "-"}</td>
                     <td className={`${AS_TD_CLASS} num`}>
-                      {asDate(latest?.resolvedAt ?? complaint.completedAt)}
+                      {asDate(complaintExecutionAt(complaint))}
                     </td>
                     <td className={`${AS_TD_CLASS} num`}>{asTime(complaint.receivedAt)}</td>
                     <td className={AS_TD_CLASS}>

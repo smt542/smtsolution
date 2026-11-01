@@ -14,6 +14,11 @@ import { DpDatePicker } from "@/components/common/DpDatePicker";
 import { useAccounts } from "@/hooks/reactquery/accounts";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useComplaints } from "@/hooks/reactquery/complaints";
+import {
+  compareByExecution,
+  complaintExecutionAt,
+  type ExecutionSortKey,
+} from "@/lib/complaints/executionDate";
 import { formatPhone } from "@/lib/format";
 
 import { hhmm, ymd } from "./constants";
@@ -68,6 +73,7 @@ function DatePicker({ ariaLabel, value, onChange }: DatePickerProps) {
 
 interface ReportRow {
   id: number;
+  sortKey: ExecutionSortKey;
   receivedDate: string;
   receivedDateKey: string;
   completedDate: string;
@@ -144,13 +150,17 @@ export function AsReportModal({
     () =>
       (complaintsQuery.data ?? []).map((complaint) => {
         const building = buildingById.get(complaint.buildingId);
-        const completedAt =
-          complaint.completedAt ?? complaint.resolutions[0]?.resolvedAt;
+        const completedAt = complaintExecutionAt(complaint);
         const receivedDateKey = toDateKey(complaint.receivedAt);
         const completedDateKey = toDateKey(completedAt);
         const unit = `${complaint.unitDong ?? ""}${complaint.unitNo ?? ""}`;
         return {
           id: complaint.id,
+          sortKey: {
+            id: complaint.id,
+            receivedAt: complaint.receivedAt,
+            executionAt: completedAt,
+          },
           receivedDate: ymd(complaint.receivedAt),
           receivedDateKey,
           completedDate: ymd(completedAt),
@@ -189,16 +199,7 @@ export function AsReportModal({
           (!to || row.rangeDateKey <= to)
         );
       })
-      .sort((left, right) => {
-        const dateCompared = right.rangeDateKey.localeCompare(
-          left.rangeDateKey,
-        );
-        if (dateCompared !== 0) return dateCompared;
-        const receivedCompared = right.receivedDateKey.localeCompare(
-          left.receivedDateKey,
-        );
-        return receivedCompared !== 0 ? receivedCompared : right.id - left.id;
-      });
+      .sort((left, right) => compareByExecution(right.sortKey, left.sortKey));
   }, [from, rows, search, to]);
 
   const meta = `[시행일 : ${dotted(from)}] 부터 ${dotted(to)}`;

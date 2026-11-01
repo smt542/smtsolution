@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { PhoneText } from "@/components/common";
 
 import type { Complaint } from "@/hooks/reactquery/complaints";
+import { complaintExecutionAt } from "@/lib/complaints/executionDate";
 
 import { AS_STATUS_COLOR, AS_STATUS_LABEL, hhmm, mmdd } from "./constants";
 
@@ -25,16 +26,22 @@ export function AsReceptionCard({ complaint, nameOf }: AsReceptionCardProps) {
   const location = [complaint.buildingName ?? "-", unitLabel]
     .filter(Boolean)
     .join(" ");
+  const params = new URLSearchParams({
+    buildingId: String(complaint.buildingId),
+    complaintId: String(complaint.id),
+  });
+  if (complaint.unitId) params.set("unitId", String(complaint.unitId));
+  const targetUrl = `/staff/receipts?${params.toString()}`;
   const statusBadgeClass =
     STATUS_BADGE_CLASS[AS_STATUS_COLOR[complaint.status]] ?? "";
 
   return (
     <a
       className="block bg-white border border-line rounded-[12px] py-[14px] px-4 no-underline text-inherit cursor-pointer transition-all duration-[120ms] hover:border-blue hover:shadow-[0_6px_16px_-8px_rgba(20,164,151,0.25)]"
-      href="/staff/receipts"
+      href={targetUrl}
       onClick={(event) => {
         event.preventDefault();
-        router.push("/staff/receipts");
+        router.push(targetUrl);
       }}
     >
       <div className="flex items-center justify-between">
@@ -66,7 +73,7 @@ export function AsReceptionCard({ complaint, nameOf }: AsReceptionCardProps) {
         <span className="text-t3 font-semibold">접수일 / 시행일</span>
         <span className="font-bold text-t2 num">
           {mmdd(complaint.receivedAt)} /{" "}
-          {mmdd(complaint.completedAt ?? resolution?.resolvedAt)}
+          {mmdd(complaintExecutionAt(complaint))}
         </span>
       </div>
       <div className="flex justify-between gap-2 text-[12px] mt-[5px]">
