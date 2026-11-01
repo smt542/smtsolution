@@ -21,6 +21,7 @@ import { useUtilityConfirmation, useUtilityRows } from "@/hooks/reactquery/utili
 import { currentPeriod, isFuturePeriod, prevPeriod } from "@/lib/billing/period";
 import { pivotBillingRows } from "@/lib/billing/pivot";
 import { formatWon } from "@/lib/format";
+import { matchesBuildingGroup } from "@/lib/buildings/groupType";
 import { BillingHistoryModal } from "./components/BillingHistoryModal";
 import { BillingPeriodSettingsBar } from "./components/BillingPeriodSettingsBar";
 import { BillingSectionToolbar } from "./components/BillingSectionToolbar";
@@ -39,6 +40,7 @@ export function ManagementFeeWorkspace() {
 
   const [buildingId, setBuildingId] = useState<number | null>(null);
   const [period, setPeriod] = useState(() => currentPeriod());
+  const [groupType, setGroupType] = useState("");
   const [editing, setEditing] = useState(false);
   const [buildingNoteDraft, setBuildingNoteDraft] = useState("");
   const [chargeDrafts, setChargeDrafts] = useState<Record<number, Record<number, BillingChargeDraft>>>({});
@@ -266,12 +268,15 @@ export function ManagementFeeWorkspace() {
       return;
     }
     const buildingIds = dialog === "carry-all"
-      ? buildings.map((building) => building.id)
+      ? buildings.filter((building) => matchesBuildingGroup(building, groupType)).map((building) => building.id)
       : buildingId ? [buildingId] : [];
     if (buildingIds.length === 0) return;
     try {
       const result = await copyPrevious.mutateAsync({ buildingIds, period });
       setEditing(true);
+      if (result.failedCount > 0) {
+        toast.error(result.firstError, `${result.failedCount}개 건물의 전월 자료를 반영하지 못했습니다.`);
+      }
       if (dialog === "carry-all") {
         // 원본 runFillAll: 결과를 토스트가 아니라 안내창으로 알린다.
         setCarriedBuildingCount(result.buildingCount);
@@ -330,6 +335,8 @@ export function ManagementFeeWorkspace() {
           buildingTypes={buildingTypes}
           selectedBuildingId={buildingId}
           period={period}
+          groupType={groupType}
+          onGroupTypeChange={setGroupType}
           loading={buildingsQuery.isLoading}
           editing={editing}
           note={buildingNoteDraft}

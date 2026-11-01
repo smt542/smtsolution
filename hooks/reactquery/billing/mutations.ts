@@ -10,6 +10,7 @@ import {
 } from "./apis";
 import { billKeys } from "../bill/keys";
 import { billingKeys } from "./keys";
+import { utilityKeys } from "../utilities/keys";
 
 export function useSaveBillingCharges() {
   const qc = useQueryClient();
@@ -58,26 +59,44 @@ export function useSaveBillingPeriodSetting() {
   });
 }
 
+export interface CopyPreviousBillingSummary {
+  buildingCount: number;
+  unitCount: number;
+  chargeCount: number;
+  failedCount: number;
+  firstError: unknown;
+}
+
 export function useCopyPreviousBilling() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ buildingIds, period }: { buildingIds: number[]; period: string }) => {
-      const results = await Promise.all(
+      const settled = await Promise.allSettled(
         buildingIds.map((buildingId) => copyPreviousBilling(buildingId, period)),
       );
-      return results.reduce<{ buildingCount: number; unitCount: number; chargeCount: number }>(
-        (total, result) => ({
-          buildingCount: total.buildingCount + (result.unitCount > 0 ? 1 : 0),
-          unitCount: total.unitCount + result.unitCount,
-          chargeCount: total.chargeCount + result.chargeCount,
-        }),
-        { buildingCount: 0, unitCount: 0, chargeCount: 0 },
-      );
+      const summary: CopyPreviousBillingSummary = {
+        buildingCount: 0, unitCount: 0, chargeCount: 0, failedCount: 0, firstError: null,
+      };
+      for (const item of settled) {
+        if (item.status === "rejected") {
+          summary.failedCount += 1;
+          summary.firstError ??= item.reason;
+          continue;
+        }
+        // 금액이 아니라 기준일만 이월된 건물도 반영 건물로 센다.
+        if (item.value.unitCount > 0 || item.value.settingCarried) summary.buildingCount += 1;
+        summary.unitCount += item.value.unitCount;
+        summary.chargeCount += item.value.chargeCount;
+      }
+      // 전부 실패했을 때만 오류로 던지고, 일부 실패는 호출부가 failedCount 로 안내한다.
+      if (settled.length > 0 && summary.failedCount === settled.length) throw summary.firstError;
+      return summary;
     },
-    onSuccess: (_result, input) => {
+    onSettled: (_result, _error, input) => {
       input.buildingIds.forEach((buildingId) => {
         void qc.invalidateQueries({ queryKey: billingKeys.list(buildingId, input.period) });
         void qc.invalidateQueries({ queryKey: billingKeys.periodSetting(buildingId, input.period) });
+        void qc.invalidateQueries({ queryKey: utilityKeys.billingPeriod(buildingId, input.period) });
       });
       // 이월한 납부일이 세대별 납부 마감일(발행·미납 화면)에도 반영되게 한다.
       void qc.invalidateQueries({ queryKey: [...billKeys.all, "due-dates", input.period] });

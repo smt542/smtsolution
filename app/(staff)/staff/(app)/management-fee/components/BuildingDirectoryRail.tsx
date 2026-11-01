@@ -27,6 +27,8 @@ interface BuildingDirectoryRailProps {
   buildingTypes: BuildingType[];
   selectedBuildingId: number | null;
   period: string;
+  groupType: string;
+  onGroupTypeChange: (value: string) => void;
   loading: boolean;
   editing: boolean;
   note: string;
@@ -40,6 +42,8 @@ export function BuildingDirectoryRail({
   buildingTypes,
   selectedBuildingId,
   period,
+  groupType,
+  onGroupTypeChange,
   loading,
   editing,
   note,
@@ -48,7 +52,6 @@ export function BuildingDirectoryRail({
   onPeriodChange,
 }: BuildingDirectoryRailProps) {
   const [search, setSearch] = useState("");
-  const [groupType, setGroupType] = useState("");
   const [year, month] = period.split("-").map(Number);
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 7 }, (_, index) => currentYear - 5 + index);
@@ -126,7 +129,7 @@ export function BuildingDirectoryRail({
                 value={groupType}
                 options={BUILDING_GROUP_FILTER_OPTIONS}
                 compact
-                onChange={setGroupType}
+                onChange={onGroupTypeChange}
               />
             </div>
           </div>
