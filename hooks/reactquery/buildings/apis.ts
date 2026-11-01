@@ -138,11 +138,7 @@ export async function listAllBuildings(): Promise<Building[]> {
   return (data ?? []).map(rowToBuilding);
 }
 
-/**
- * 건물 코드가 이미 쓰이고 있는지 확인한다. `buildings_org_id_code_key`가 삭제된 건물까지 포함한 (org, code) 유니크라
- * soft delete된 건물도 센다. RLS가 조직을 걸러 주므로 코드만 비교한다. 수정 모드는 자기 자신(excludeId)을 뺀다.
- */
-/** 등록 화면의 건물 코드 기본값(0308 next_building_code: 3자리 최댓값 + 1, 999 다음은 비어 있는 가장 작은 3자리). */
+/** 등록 화면의 건물 코드 기본값(0308 next_building_code: 삭제 건 포함 3자리 최댓값 + 1 — 지로 납부자번호가 과거 고지서와 섞이지 않게 옛 코드는 건너뜀, 999 다음은 비어 있는 가장 작은 3자리). */
 export async function getNextBuildingCode(): Promise<string> {
   const { data, error } = await createClient().rpc("next_building_code");
   if (error) throw new Error(error.message);
@@ -155,8 +151,13 @@ export async function getNextBuildingCode(): Promise<string> {
  */
 export const BUILDING_CODE_PATTERN = /^\d{3}$/;
 
+/**
+ * 건물 코드가 이미 쓰이고 있는지 확인한다. 0342 부분 유니크(buildings_org_id_code_active_key)와 같은 기준으로
+ * 삭제되지 않은 건물만 센다(삭제된 건물 코드는 직접 입력으로 재사용 가능). RLS가 조직을 걸러 주므로 코드만 비교한다.
+ * 수정 모드는 자기 자신(excludeId)을 뺀다.
+ */
 export async function isBuildingCodeTaken(code: string, excludeId?: number): Promise<boolean> {
-  let query = createClient().from("buildings").select("id").eq("code", code).limit(1);
+  let query = createClient().from("buildings").select("id").eq("code", code).is("deleted_at", null).limit(1);
   if (excludeId) query = query.neq("id", excludeId);
   const { data, error } = await query;
   if (error) throw new Error(error.message);
