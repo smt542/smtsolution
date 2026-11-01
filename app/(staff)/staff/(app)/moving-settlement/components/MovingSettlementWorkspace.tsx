@@ -220,7 +220,7 @@ function SettlementEditor({
   // 미납 소계는 입력 중인 퇴실일 기준(납기 경과분·퇴실월 제외)이라 퇴실일이 바뀌면 다시 조회한다.
   const unpaidQuery = useSettlementBillingUnpaid(
     context.unit.id,
-    context.latestSettlement?.occupancyId ?? occupancy.id,
+    forceNew ? occupancy.id : (context.latestSettlement?.occupancyId ?? occupancy.id),
     draft.moveOutDate || null,
   );
   const billingUnpaid = unpaidQuery.data ?? context.billingUnpaid;

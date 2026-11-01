@@ -17,7 +17,7 @@
 
 ## 1. 목적
 
-현장관리자(partner)가 로그인 후 **담당 건물의 A/S 목록(전체)**을 조회·검색·필터·정렬하되 **본인 담당 건은 "내 담당" 뱃지로 구분**하고, 개별 건 상세(`mobile-as`) 또는 신규 접수(`mobile-as-new`)로 진입하는 모바일 메인 화면. 하단 탭의 **홈** 자리이며 partner 표면의 기본 진입점이다.
+현장관리자(partner)가 로그인 후 **조직 전체 건물의 A/S 목록(전체)**(2026-11-01 QA 반영: 담당 건물 → 조직 전체 건물, 0332)을 조회·검색·필터·정렬하되 **본인 담당 건은 "내 담당" 뱃지로 구분**하고, 개별 건 상세(`mobile-as`) 또는 신규 접수(`mobile-as-new`)로 진입하는 모바일 메인 화면. 하단 탭의 **홈** 자리이며 partner 표면의 기본 진입점이다.
 
 ---
 
@@ -25,10 +25,10 @@
 
 | 사용자 | 접근 |
 |---|---|
-| partner (현장관리자) | O — **담당 건물 A/S 전체 조회 + 본인 담당 '내 담당' 표시 + 신규 접수 진입**(쓰기) |
+| partner (현장관리자) | O — **조직 전체 건물 A/S 전체 조회(2026-11-01 QA 반영) + 본인 담당 '내 담당' 표시 + 신규 접수 진입**(쓰기) |
 | staff / resident | — (별도 표면) |
 
-- partner는 **고정 기능 세트**이며, A/S는 **담당 건물 전체**를 대상으로 조회하되 **본인 담당 건은 '내 담당'으로 표시**한다([_permission-matrix.md](../../_permission-matrix.md) 3절, [_service-policy.md](../../_service-policy.md) 2.3).
+- partner는 **고정 기능 세트**이며, A/S는 **조직 전체 건물**(2026-11-01 QA 반영)을 대상으로 조회하되 **본인 담당 건은 '내 담당'으로 표시**한다([_permission-matrix.md](../../_permission-matrix.md) 3절, [_service-policy.md](../../_service-policy.md) 2.3).
 - 이 화면 자체는 목록 **조회**이나, A/S는 partner의 쓰기 가능 영역이므로 신규 접수 진입 버튼을 노출한다.
 - **발송 없음**(문자·알림톡 트리거 없음, [_notification-policy.md](../../_notification-policy.md) 3절).
 
@@ -76,7 +76,7 @@
 
 | 항목 | 출처 / 연동 | 트리거 · 비고 |
 |---|---|---|
-| A/S 목록 | 민원·A/S 데이터([_data-dictionary.md](../../_data-dictionary.md) H절) · 프로토타입은 localStorage | 진입 시 조회, **담당 건물 전체(본인 담당은 '내 담당' 표시)** |
+| A/S 목록 | 민원·A/S 데이터([_data-dictionary.md](../../_data-dictionary.md) H절) · 프로토타입은 localStorage | 진입 시 조회, **조직 전체 건물(2026-11-01 QA 반영, 본인 담당은 '내 담당' 표시)** |
 | 선택 A/S | 카드 탭 시 상세로 전달 | `mobile-as` 진입 키 |
 
 - 발송 트리거 **없음**. staff `receipt-management`·RNB의 A/S 데이터와 동일 소스(현장 입력분 반영).

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { buildingKeys } from "@/hooks/reactquery/buildings/keys";
+import { billKeys } from "@/hooks/reactquery/bill/keys";
 import { occupancyKeys } from "@/hooks/reactquery/occupancies/keys";
 import { receiptKeys } from "./queries";
 
@@ -72,6 +73,7 @@ export function useSaveOccupancyFields() {
     onSuccess: (_data, input) => {
       void qc.invalidateQueries({ queryKey: occupancyKeys.full(input.unitId), exact: true });
       void qc.invalidateQueries({ queryKey: occupancyKeys.byUnit(input.unitId), exact: true });
+      void qc.invalidateQueries({ queryKey: billKeys.all });
       void qc.invalidateQueries({
         queryKey: occupancyKeys.tenantList(input.buildingId),
         exact: true,

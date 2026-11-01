@@ -4,8 +4,8 @@
 --                        + coalesce(기타 override, etcItems 합계/repair_amount) + cleaning_cost + unpaid_amount
 --  - save_moving_settlement: unpaid_amount = coalesce(미납 override, settlement_billing_unpaid(...)), override 음수 차단.
 --  - 트리거는 extra 변경에도 다시 계산한다(override 만 고친 저장도 반영).
---  컬럼(구분별 금액·mgmt_fee_prorated·repair_amount)은 자동 계산값 그대로 둔다. partner 저장은 extra 를 통째로 쓰므로
---  partner 가 다시 저장하면 override 가 없어지고 자동값으로 돌아간다(partner 편집은 범위 밖).
+--  컬럼(구분별 금액·mgmt_fee_prorated·repair_amount)은 자동 계산값 그대로 둔다. partner 저장은 extra 를 통째로 쓰지만
+--  0337 에서 사무실 override 를 재병합하도록 고쳤다(partner 는 override 를 쓸 수 없고 0341 에서 주입도 차단).
 begin;
 
 create or replace function public.settlement_subtotal_override(p_extra jsonb, p_key text)

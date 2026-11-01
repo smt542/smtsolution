@@ -59,7 +59,7 @@ function failureReasons(results: FaxSendItemResult[]): string[] {
   for (const item of results) {
     let reason: string | null = null;
     if (item.status === "failed") {
-      reason = (item.code && FAILURE_CODE_REASONS[item.code]) ?? (item.code ? `접수 실패(${item.code})` : "접수 실패");
+      reason = item.code ? (FAILURE_CODE_REASONS[item.code] ?? `접수 실패(${item.code})`) : "접수 실패";
     } else if (STATUS_REASONS[item.status]) {
       reason = STATUS_REASONS[item.status];
     }
@@ -107,6 +107,6 @@ export function summarizeFaxSend(result: FaxSendResult, requestError = false): F
     ? "일부만 접수되었습니다"
     : onlyUnconfirmed ? "접수 결과를 아직 확인하지 못했습니다" : "발송이 접수되지 않았습니다";
   const counts = parts.length > 0 ? ` · ${parts.join(" · ")}` : "";
-  const tone = failed + otherSkipped > 0 || requestError || queued === 0 ? "error" : "warning";
+  const tone = failed + otherSkipped > 0 || requestError || (queued === 0 && !onlyUnconfirmed) ? "error" : "warning";
   return { tone, message: `${head}${counts}${hints.length > 0 ? ` — ${hints.join(" · ")}` : ""}` };
 }
