@@ -102,18 +102,20 @@ export default function ResidentHomeWorkspace() {
   const isHomeInitialLoading =
     profileQuery.isPending ||
     monthsQuery.isPending ||
+    carryoverQuery.isPending ||
     noticesQuery.isPending ||
     buildingNoticeQuery.isPending ||
     moveOutQuery.isPending;
   const isHomeRefreshing = [
     profileQuery,
     monthsQuery,
+    carryoverQuery,
     noticesQuery,
     buildingNoticeQuery,
     moveOutQuery,
   ].some((query) => query.isFetching && !query.isPending);
   // 읽음 기록(noticeReadIdsQuery)은 새 공지 점에만 쓴다 — 로딩·오류 판정에 넣지 않는다(0221 적용 전에도 홈이 떠야 함).
-  const error = profileQuery.error || monthsQuery.error || noticesQuery.error;
+  const error = profileQuery.error || monthsQuery.error || carryoverQuery.error || noticesQuery.error;
 
   if (isHomeInitialLoading) {
     return (
@@ -136,6 +138,7 @@ export default function ResidentHomeWorkspace() {
         onRetry={() => {
           void profileQuery.refetch();
           void monthsQuery.refetch();
+          void carryoverQuery.refetch();
           void noticesQuery.refetch();
         }}
       />
