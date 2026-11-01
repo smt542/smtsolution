@@ -24,7 +24,7 @@ import { listUnits, unitKeys } from "@/hooks/reactquery/units";
 import { listOccupancies, occupancyKeys, type Occupancy } from "@/hooks/reactquery/occupancies";
 import { useMessageTemplates } from "@/hooks/reactquery/messageTemplates";
 import { useOrgContact } from "@/hooks/reactquery/org/useOrgContact";
-import { complaintExecutionAt } from "@/lib/complaints/executionDate";
+import { compareComplaintsByExecution, complaintExecutionAt } from "@/lib/complaints/executionDate";
 import { openMessengerWith } from "@/lib/messaging/messengerHandoff";
 import { dedupeRecipients, validRecipients, type MessageRecipient } from "@/lib/messaging/preset";
 import {
@@ -193,11 +193,12 @@ export function AsStatusSection({
     [accounts],
   );
 
-  // 정본 drawAs: No 는 범위(호실/건물 전체) 목록에서 매긴 번호이고, 결과 필터(asFilter)는 그 번호를 유지한 채 거른다.
+  // 정본 drawAs: No 는 범위(호실/건물 전체) 목록에서 매긴 번호이고, 결과 필터(asFilter)는 그 번호를 유지한 채 거른다. 정렬은 시행일 최신순(공용 비교 함수).
   const rows = useMemo(
     () =>
       complaints
         .filter((complaint) => !(scope === "unit" && unitId !== null && complaint.unitId !== unitId))
+        .sort((left, right) => compareComplaintsByExecution(right, left))
         .map((complaint, index) => ({ complaint, no: index + 1 }))
         .filter(({ complaint }) => !resultFilter || complaint.status === resultFilter),
     [complaints, resultFilter, scope, unitId],

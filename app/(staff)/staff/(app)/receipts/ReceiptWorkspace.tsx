@@ -212,7 +212,12 @@ export function ReceiptWorkspace({
       unitId: initialUnitId,
       complaintId: initialComplaintId,
     });
-    if (initialBuildingId !== null) {
+    // complaintId 가 지워지기만 한 변경(정리용 replace)은 선택을 건드리지 않는다.
+    const targetChanged =
+      appliedTarget.buildingId !== initialBuildingId ||
+      appliedTarget.unitId !== initialUnitId ||
+      (initialComplaintId !== null && appliedTarget.complaintId !== initialComplaintId);
+    if (targetChanged && initialBuildingId !== null) {
       setSelectedBuildingId(initialBuildingId);
       setSelectedUnitId(initialUnitId);
       changeRailView("unit");
@@ -222,10 +227,11 @@ export function ReceiptWorkspace({
   // 포커스를 적용한 뒤 complaintId 를 URL 에서 지워, 새로고침·같은 카드 재클릭에도 상세가 다시 열린다.
   const handleFocusHandled = () => {
     setFocusComplaintId(null);
-    if (initialBuildingId === null) return;
-    const params = new URLSearchParams({ buildingId: String(initialBuildingId) });
+    const params = new URLSearchParams();
+    if (initialBuildingId !== null) params.set("buildingId", String(initialBuildingId));
     if (initialUnitId !== null) params.set("unitId", String(initialUnitId));
-    router.replace(`/staff/receipts?${params.toString()}`);
+    const query = params.toString();
+    router.replace(query ? `/staff/receipts?${query}` : "/staff/receipts");
   };
   const [searchOpen, setSearchOpen] = useState(false);
   const [monthlyOpen, setMonthlyOpen] = useState(false);
