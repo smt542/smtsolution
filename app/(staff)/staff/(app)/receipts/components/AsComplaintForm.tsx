@@ -128,8 +128,8 @@ export function AsComplaintForm({
   const defaultAssignedTo = useMemo(() => {
     if (mode !== "create") return "";
     const building = buildings.find((item) => item.id === createDefaultBuildingId);
-    return building?.managerUserId && assignees.some((account) => account.userId === building.managerUserId)
-      ? building.managerUserId
+    return building?.meterUserId && assignees.some((account) => account.userId === building.meterUserId)
+      ? building.meterUserId
       : "";
   }, [assignees, buildings, createDefaultBuildingId, mode]);
   const defaults = useMemo(
@@ -295,10 +295,10 @@ export function AsComplaintForm({
                   field.onChange(value);
                   setValue("unitId", "all", { shouldDirty: true });
                   const building = buildings.find((item) => item.id === Number(value));
-                  const managerUserId = building?.managerUserId && assignees.some(
-                    (account) => account.userId === building.managerUserId,
-                  ) ? building.managerUserId : "";
-                  setValue("assignedTo", managerUserId, { shouldDirty: true });
+                  const siteManagerId = building?.meterUserId && assignees.some(
+                    (account) => account.userId === building.meterUserId,
+                  ) ? building.meterUserId : "";
+                  setValue("assignedTo", siteManagerId, { shouldDirty: true });
                   resetField("reporterPhone", { defaultValue: "" });
                 }}
                 options={buildings.map((building) => ({ value: String(building.id), label: building.name }))}

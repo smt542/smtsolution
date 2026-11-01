@@ -3,6 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppToast } from "@/hooks/common/useAppToast";
+import { useConfirm } from "@/components/common/ConfirmProvider";
 import { useIsHydrated } from "@/hooks/common";
 import { Button, CustomDropdown, Panel, PhoneText, Spinner } from "@/components/common";
 import { useMe } from "@/hooks/reactquery/auth";
@@ -157,6 +158,7 @@ export function AsStatusSection({
   onFocusHandled?: () => void;
 }) {
   const toast = useAppToast();
+  const confirm = useConfirm();
   const queryClient = useQueryClient();
   const [scope, setScope] = useState<"unit" | "building">("unit");
   const [resultFilter, setResultFilter] = useState<"" | ComplaintStatus>("");
@@ -167,7 +169,6 @@ export function AsStatusSection({
   const { data: me } = useMe();
   const { data: buildings = [] } = useBuildings();
   const { data: categories = [] } = useAsCategories();
-  const { data: assignees = [] } = useAccounts({ type: "field_staff" });
   const { data: accounts = [] } = useAccounts();
   const { data: messageTemplates = [] } = useMessageTemplates();
   const { data: orgContact } = useOrgContact();
@@ -205,6 +206,16 @@ export function AsStatusSection({
   );
 
   const selected = complaints.find((complaint) => complaint.id === selectedId) ?? null;
+  // 담당자 후보: 현장·사무 직원 계정(활성) + 건물에 현장관리자로 지정된 계정 + 편집 중인 건의 기존 담당자.
+  const assignees = useMemo(() => {
+    const siteManagerIds = new Set(buildings.map((building) => building.meterUserId).filter(Boolean));
+    return accounts.filter((account) =>
+      (account.isActive
+        && (account.staffType === "field_staff" || account.staffType === "manager_staff"))
+      || siteManagerIds.has(account.userId)
+      || account.userId === selected?.assignedTo,
+    );
+  }, [accounts, buildings, selected?.assignedTo]);
 
   // 카드에서 넘어온 접수 건: 대상 건물의 목록이 로드되면 범위·필터를 맞추고 상세를 연다(1회).
   const [handledFocusId, setHandledFocusId] = useState<number | null>(null);
@@ -303,8 +314,9 @@ export function AsStatusSection({
   };
 
   /**
-   * 확인문자: 접수 건 세대의 현재 입주자(주·부 번호)에게 「민원·AS 처리 안내」 프리셋으로 보낸다.
-   * 채널은 입주자의 알림톡 동의 여부로 자동 결정한다(동의 → 알림톡, 미동의 → SMS).
+   * 확인문자: 기본 수신자는 담당 현장관리자이고, 입주자(주·부 번호)는 선택해 함께 보낸다.
+   * 「민원·AS 처리 안내」 프리셋을 쓰며, 입주자에게만 보낼 때만 알림톡 동의 여부로 채널을 정한다(그 외 SMS).
+   * 발신번호는 메신저 패널 기본(조직 대표번호)을 쓴다.
    */
   const sendComplaintMessage = async (complaint: Complaint, draft: ComplaintMessageDraft) => {
     if (!canSendMessages) {
@@ -319,43 +331,50 @@ export function AsStatusSection({
 
     const draftBuildingId = Number(draft.buildingId);
     const draftUnitId = Number(draft.unitId);
-    if (draft.unitId === "all" || !(draftUnitId > 0)) {
-      toast.warning("세대가 지정되지 않은 접수 건은 입주자에게 확인문자를 보낼 수 없어요");
-      return;
-    }
+    const hasUnit = draft.unitId !== "all" && draftUnitId > 0;
 
-    let occupancies: Occupancy[];
-    try {
-      occupancies = await queryClient.ensureQueryData({
-        queryKey: occupancyKeys.byUnit(draftUnitId),
-        queryFn: () => listOccupancies(draftUnitId),
-      });
-    } catch (error) {
-      toast.error(error, "입주자 정보를 불러오지 못했어요");
-      return;
+    // 기본 수신자 = 담당 현장관리자(담당자 미지정이면 건물의 현장관리자).
+    const siteManagerId = draft.assignedTo
+      || buildings.find((building) => building.id === draftBuildingId)?.meterUserId
+      || "";
+    const assignee = accounts.find((account) => account.userId === siteManagerId);
+    const assigneePhone = assignee?.phone?.trim() || assignee?.phoneSub?.trim() || "";
+
+    let occupancy: Occupancy | undefined;
+    if (hasUnit) {
+      try {
+        const occupancies = await queryClient.ensureQueryData({
+          queryKey: occupancyKeys.byUnit(draftUnitId),
+          queryFn: () => listOccupancies(draftUnitId),
+        });
+        occupancy = occupancies.find((item) => item.status === "occupied")
+          ?? occupancies.find((item) => item.status === "moving_out");
+      } catch (error) {
+        toast.error(error, "입주자 정보를 불러오지 못했어요");
+        return;
+      }
     }
-    const occupancy = occupancies.find((item) => item.status === "occupied")
-      ?? occupancies.find((item) => item.status === "moving_out");
-    if (!occupancy) {
-      toast.warning("현재 입주자가 없는 세대라 확인문자를 보낼 수 없어요");
-      return;
-    }
+    const tenantPhones = occupancy
+      ? [occupancy.phone, occupancy.phone2, occupancy.phone3, ...occupancy.phonesExtra]
+      : [];
+    const hasTenantPhone = tenantPhones.some((phone) => phone?.trim());
 
     let unitLabel = "";
-    try {
-      const units = await queryClient.ensureQueryData({
-        queryKey: unitKeys.byBuilding(draftBuildingId),
-        queryFn: () => listUnits(draftBuildingId),
-      });
-      const unit = units.find((item) => item.id === draftUnitId);
-      unitLabel = unit ? formatUnitLabel(unit) : "";
-    } catch {
-      if (complaint.unitId === draftUnitId && complaint.unitNo) {
-        unitLabel = formatUnitLabel({ unitNo: complaint.unitNo, dong: complaint.unitDong });
+    if (hasUnit) {
+      try {
+        const units = await queryClient.ensureQueryData({
+          queryKey: unitKeys.byBuilding(draftBuildingId),
+          queryFn: () => listUnits(draftBuildingId),
+        });
+        const unit = units.find((item) => item.id === draftUnitId);
+        unitLabel = unit ? formatUnitLabel(unit) : "";
+      } catch {
+        if (complaint.unitId === draftUnitId && complaint.unitNo) {
+          unitLabel = formatUnitLabel({ unitNo: complaint.unitNo, dong: complaint.unitDong });
+        }
       }
     }
 
-    const assignee = assignees.find((account) => account.userId === draft.assignedTo);
     const variables: Record<string, string> = {
       세대: unitLabel || "-",
       접수내용: draft.content.trim() || "-",
@@ -363,26 +382,59 @@ export function AsStatusSection({
       담당자: assignee?.fullName || "-",
       관리사무소연락처: orgContact?.phone || "-",
     };
-    const phones = [occupancy.phone, occupancy.phone2, occupancy.phone3, ...occupancy.phonesExtra];
-    const recipients = validRecipients(dedupeRecipients(
-      phones.map<MessageRecipient>((phone, index) => ({
-        name: occupancy.tenantName,
-        phone: phone?.trim() || null,
-        phoneType: index === 0 ? "primary" : "secondary",
+
+    const managerRecipients: MessageRecipient[] = assigneePhone
+      ? [{
+        name: assignee?.fullName ?? null,
+        phone: assigneePhone,
+        phoneType: "primary",
         unitNo: unitLabel || null,
-        kind: "tenant",
-        alimtalkOptIn: occupancy.alimtalkOptIn,
+        kind: "staff",
+        alimtalkOptIn: false,
         variables,
-        ref: { occupancyId: occupancy.id, unitId: draftUnitId, buildingId: draftBuildingId },
-      })),
-    ));
-    if (recipients.length === 0) {
-      toast.warning("등록된 입주자 연락처가 없어요");
-      return;
+        ref: { userId: assignee?.userId, unitId: hasUnit ? draftUnitId : undefined, buildingId: draftBuildingId },
+      }]
+      : [];
+    const tenantRecipients: MessageRecipient[] = occupancy
+      ? validRecipients(dedupeRecipients(
+        tenantPhones.map<MessageRecipient>((phone, index) => ({
+          name: occupancy.tenantName,
+          phone: phone?.trim() || null,
+          phoneType: index === 0 ? "primary" : "secondary",
+          unitNo: unitLabel || null,
+          kind: "tenant",
+          alimtalkOptIn: occupancy.alimtalkOptIn,
+          variables,
+          ref: { occupancyId: occupancy.id, unitId: draftUnitId, buildingId: draftBuildingId },
+        })),
+      ))
+      : [];
+
+    let recipients: MessageRecipient[];
+    let includesTenant = false;
+    if (managerRecipients.length > 0) {
+      // 세입자 포함은 선택 — 기본은 담당 현장관리자만.
+      includesTenant = hasTenantPhone && tenantRecipients.length > 0 && await confirm({
+        title: "입주자에게도 함께 보낼까요?",
+        description: `담당 현장관리자(${assignee?.fullName ?? "-"})에게 발송합니다. 입주자(${occupancy?.tenantName ?? "-"})에게도 같은 내용을 보낼 수 있어요.`,
+        confirmLabel: "함께 보내기",
+        cancelLabel: "담당자만",
+      });
+      recipients = includesTenant ? [...managerRecipients, ...tenantRecipients] : managerRecipients;
+    } else {
+      toast.warning(
+        siteManagerId
+          ? "담당자 연락처가 없어요. 수신자를 직접 선택해 주세요"
+          : "담당 현장관리자가 지정되지 않았어요. 수신자를 직접 선택해 주세요",
+      );
+      recipients = tenantRecipients;
+      includesTenant = tenantRecipients.length > 0;
     }
 
-    // 알림톡은 동의 + 알림톡 유형 + 승인 템플릿 코드가 모두 있을 때만 — 하나라도 없으면 SMS 로 자동 전환한다.
-    const useAlimtalk = occupancy.alimtalkOptIn
+    // 알림톡은 입주자만 받는 경우에 한해 동의 + 알림톡 유형 + 승인 템플릿 코드가 모두 있을 때 사용 — 아니면 SMS.
+    const useAlimtalk = includesTenant
+      && recipients.every((recipient) => recipient.kind === "tenant")
+      && Boolean(occupancy?.alimtalkOptIn)
       && template.channelType === "alimtalk"
       && Boolean(template.alimtalkTemplateCode);
     setSelectedId(null);
