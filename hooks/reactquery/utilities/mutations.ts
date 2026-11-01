@@ -12,6 +12,7 @@ import {
   saveUtilitySupplier,
   saveWaterDiscount,
   deleteWaterDiscount,
+  type CarryBillingPeriodOutcome,
   type ConfirmUtilitiesInput,
   type SaveBillingPeriodInput,
   type SaveFixedValuesInput,
@@ -206,6 +207,8 @@ export function useSavePartnerMeterReadings() {
   });
 }
 
+const CARRY_BATCH_SIZE = 10;
+
 export type CarryUtilityPeriodSummary = {
   carried: number;
   kept: number;
@@ -219,9 +222,13 @@ export function useCarryUtilityPeriod() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ buildingIds, period }: { buildingIds: number[]; period: string }) => {
-      const settled = await Promise.allSettled(
-        buildingIds.map((buildingId) => carryBillingPeriod(buildingId, period)),
-      );
+      // 건물이 많아도 동시 요청이 몰리지 않게 10개씩 나눠 처리한다.
+      const settled: PromiseSettledResult<CarryBillingPeriodOutcome>[] = [];
+      for (let index = 0; index < buildingIds.length; index += CARRY_BATCH_SIZE) {
+        settled.push(...await Promise.allSettled(
+          buildingIds.slice(index, index + CARRY_BATCH_SIZE).map((buildingId) => carryBillingPeriod(buildingId, period)),
+        ));
+      }
       const summary: CarryUtilityPeriodSummary = {
         carried: 0, kept: 0, skipped: 0, failedCount: 0, firstError: null,
       };

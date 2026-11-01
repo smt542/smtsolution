@@ -20,6 +20,8 @@ interface UtilityAccountSummaryProps {
   preview?: Map<string, UtilityAccountPreview>;
   /** 전월 호실 행. 전월금액·전단가 표시에 쓴다. */
   previousRows?: UtilityUnitRow[];
+  /** 전월 고객번호 청구총액. 전월금액은 이 값을 우선한다. */
+  previousCustomerBills?: UtilityCustomerBillRow[];
 }
 
 export interface UtilityAccountPreview {
@@ -88,6 +90,7 @@ export function UtilityAccountSummary({
   onChargeDraftChange,
   preview,
   previousRows,
+  previousCustomerBills,
 }: UtilityAccountSummaryProps) {
   const accounts = groupByCustomer(rows, (customerBills ?? []).map((bill) => bill.customerNo)).map((account) => {
     const live = preview?.get(account.customerNumber);
@@ -100,7 +103,7 @@ export function UtilityAccountSummary({
       unitPrice: live.rate === null ? account.unitPrice : Math.round(live.rate * 10000) / 10000,
     };
   });
-  const previousByCustomer = previousValuesByCustomer(previousRows ?? [], (customerBills ?? []).map((bill) => bill.customerNo));
+  const previousByCustomer = previousValuesByCustomer(previousRows ?? [], (customerBills ?? []).map((bill) => bill.customerNo), previousCustomerBills);
   const billFor = (customerNumber: string) => customerBills?.find((bill) => bill.customerNo === customerNumber);
   /** 청구총액을 입력했으면 그 총액(호실은 서버가 배분), 아니면 기존 호실 합계. */
   const chargeOf = (row: AccountRow) => billFor(row.customerNumber)?.amount ?? (row.manual || row.charge);

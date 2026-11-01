@@ -125,6 +125,7 @@ export default function GasUtilitiesWorkspace() {
   const referenceDate = monthEnd(year, month);
   const rowsQuery = useUtilityRows(buildingId, "gas", period);
   const previousRowsQuery = useUtilityRows(buildingId, "gas", prevPeriod(period));
+  const previousBillsQuery = useUtilityCustomerBills(buildingId, "gas", prevPeriod(period));
   const carryPeriod = useCarryUtilityPeriod();
   const fixedValuesQuery = useFixedValues(buildingId, "gas");
   const billingPeriodQuery = useBillingPeriod(buildingId, period);
@@ -365,6 +366,10 @@ export default function GasUtilitiesWorkspace() {
 
   const confirmCarryOver = async () => {
     setCarryOverOpen(false);
+    if (buildings.length === 0) {
+      toast.info("이월할 건물이 없습니다.");
+      return;
+    }
     try {
       // 모든 건물의 부과기준일을 건물별 전월 기준일 +1개월로 옮기고 다음 달로 이동한다(전월값은 전월 행에서 조회).
       const summary = await carryPeriod.mutateAsync({ buildingIds: buildings.map((building) => building.id), period });
@@ -475,6 +480,7 @@ export default function GasUtilitiesWorkspace() {
                   chargeDrafts={scopedBillDrafts}
                   previewRates={allocationPreview?.rates}
                   previousRows={previousRowsQuery.data}
+                  previousCustomerBills={previousBillsQuery.data}
                   onChargeDraftChange={(customerNo, value) => setBillDrafts((current) => ({
                     ...current,
                     [`${scopeKey}:${customerNo}`]: value,

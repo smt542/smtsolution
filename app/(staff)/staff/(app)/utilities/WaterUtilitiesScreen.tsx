@@ -132,6 +132,7 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
   const selectedBuilding = buildings.find((building) => building.id === buildingId) ?? null;
   const rowsQuery = useUtilityRows(buildingId, utilityType, period);
   const previousRowsQuery = useUtilityRows(buildingId, utilityType, prevPeriod(period));
+  const previousBillsQuery = useUtilityCustomerBills(buildingId, utilityType, prevPeriod(period));
   const carryPeriod = useCarryUtilityPeriod();
   const fixedValuesQuery = useFixedValues(buildingId, utilityType);
   const billingPeriodQuery = useBillingPeriod(buildingId, period);
@@ -355,6 +356,10 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
 
   const carryOver = async () => {
     setCarryOpen(false);
+    if (buildings.length === 0) {
+      toast.info("이월할 건물이 없습니다.");
+      return;
+    }
     try {
       // 모든 건물의 부과기준일을 건물별 전월 기준일 +1개월로 옮긴다. 전월량·전월금액·전단가는 전월 행을 조회해 보여준다.
       const summary = await carryPeriod.mutateAsync({ buildingIds: buildings.map((building) => building.id), period });
@@ -431,6 +436,7 @@ export function WaterUtilitiesScreen({ initialType = "water" }: { initialType?: 
                   chargeDrafts={scopedBillDrafts}
                   preview={allocationPreview?.accounts}
                   previousRows={previousRowsQuery.data}
+                  previousCustomerBills={previousBillsQuery.data}
                   onChargeDraftChange={(customerNo, value) => setBillDrafts((current) => ({
                     ...current,
                     [`${scopeKey}:${customerNo}`]: value,
