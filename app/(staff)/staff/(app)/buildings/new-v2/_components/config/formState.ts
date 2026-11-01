@@ -96,7 +96,7 @@ export function initialFormState(): RegisterFormState {
     code: "", name: "", buildingType: "빌라", gate: "", address: "", addressDetail: "",
     groupType: DEFAULT_BUILDING_GROUP_TYPE, waterCount: "1", contractDate: "", terminationDate: "", standingNotice: "",
     officeManager: "", siteManager: "", vendors: emptyVendors(),
-    reserveFundType: "적립금", reserveFundMemo: "",
+    reserveFundType: "없음", reserveFundMemo: "",
     ownerName: "", ownerPhone: "", ownerPhoneSub: "", ownerAddress: "", ownerAddressDetail: "", ownerMemo: "",
     utilities: emptyUtilities(), refNote: "",
     memo: "",
@@ -228,7 +228,7 @@ export function buildingToFormState(
     officeManager: resolveStaffName(b.managerUserId),
     siteManager: resolveStaffName(b.meterUserId),
     vendors: mergeVendors(b.vendorDetails?.vendors, b.vendors),
-    reserveFundType: rf?.type ?? "적립금",
+    reserveFundType: rf?.type ?? "없음",
     reserveFundMemo: rf?.memo ?? "",
     ownerName: b.ownerName ?? "",
     ownerPhone: b.ownerPhone ?? "",
@@ -275,7 +275,9 @@ function customerNumbersFromState(s: RegisterFormState): SaveBuildingPayload["cu
         customerNo,
         meterDay: parseMeterDay(card.fields[meterDayLabel(utility.key)]),
         billingBasis: card.fields["월분"] === "전월" ? "prev" : "current",
-        printOnBill: printValue ? printValue !== "N" : card.normalized?.printOnBill ?? true,
+        printOnBill: printValue
+          ? printValue !== "N"
+          : card.normalized?.printOnBill ?? utility.key === "common_elec",
         holderName: card.fields[holderLabel(utility.key)]?.trim() || null,
         lineName: card.fields["조회"]?.trim() || null,
         calculationMethod: utility.key === "common_elec"
