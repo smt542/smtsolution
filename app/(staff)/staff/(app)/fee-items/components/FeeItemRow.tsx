@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { isLockedFeeItem } from "@/hooks/reactquery/feeItems";
 import { ROUNDING_OPTIONS } from "./constants";
 import type { FeeItemDraft } from "./types";
 
@@ -31,7 +32,8 @@ export function FeeItemRow({
 }: FeeItemRowProps) {
   const rounding = ROUNDING_OPTIONS.find((option) => option.value === item.rounding)?.label;
   const editable = item.id != null;
-  const interactive = !item.isRequired && item.id != null && !isReorderPending;
+  const locked = isLockedFeeItem(item);
+  const interactive = !locked && item.id != null && !isReorderPending;
   const indicatorClass = dropPosition === "before"
     ? "[&>*]:shadow-[inset_0_2px_0_0_var(--color-teal)]"
     : dropPosition === "after"
@@ -41,7 +43,7 @@ export function FeeItemRow({
   return (
     <tr
       draggable={interactive}
-      className={`${item.isRequired ? "h-[47px] bg-[#fbfcfd]" : "h-[51px]"} border-t border-line2 text-[13.5px] text-t2 transition-opacity duration-150 ease-out [&>*]:transition-shadow [&>*]:duration-150 [&>*]:ease-out ${interactive ? "cursor-pointer hover:bg-row-hover" : ""} ${dragged ? "opacity-40" : "opacity-100"} ${indicatorClass}`}
+      className={`${locked ? "h-[47px] bg-[#fbfcfd]" : "h-[51px]"} border-t border-line2 text-[13.5px] text-t2 transition-opacity duration-150 ease-out [&>*]:transition-shadow [&>*]:duration-150 [&>*]:ease-out ${interactive ? "cursor-pointer hover:bg-row-hover" : ""} ${dragged ? "opacity-40" : "opacity-100"} ${indicatorClass}`}
       onClick={() => editable && onEdit(item)}
       onDragStart={(event) => {
         if (!interactive) return;
@@ -75,16 +77,16 @@ export function FeeItemRow({
     >
       <td className="w-11 pl-4">
         <Image
-          src={item.isRequired ? "/icons/fee-items/lock.svg" : "/icons/fee-items/grip.svg"}
-          alt={item.isRequired ? "필수 항목" : "순서 이동"}
+          src={locked ? "/icons/fee-items/lock.svg" : "/icons/fee-items/grip.svg"}
+          alt={item.isRequired ? "필수 항목" : locked ? "자동 항목" : "순서 이동"}
           width={16}
           height={16}
         />
       </td>
       <th scope="row" className="w-[24%] py-0 px-4 text-left font-bold text-t1">
         <span>{item.name}</span>
-        {item.isRequired && (
-          <span className="ml-2 rounded-md bg-bg px-1.5 py-0.5 text-[10px] font-bold text-t3">필수</span>
+        {locked && (
+          <span className="ml-2 rounded-md bg-bg px-1.5 py-0.5 text-[10px] font-bold text-t3">{item.isRequired ? "필수" : "자동"}</span>
         )}
       </th>
       <td className="px-4 font-semibold">{rounding}</td>

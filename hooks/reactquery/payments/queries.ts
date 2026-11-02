@@ -6,7 +6,9 @@ import {
   listGiroPayments,
   listPaymentsByPaidDate,
   listPaymentRows,
+  listUnitOverpayments,
   listUnitPayments,
+  type UnitOverpayment,
 } from "./apis";
 import { paymentKeys } from "./keys";
 
@@ -23,6 +25,35 @@ export function useUnitPayments(unitId: number | null, period: string) {
     queryFn: () => listUnitPayments(unitId as number, period),
     enabled: unitId !== null && Boolean(period),
   });
+}
+/** 세대 과수납 원장(QA #31). 수납 이력에서 그 달 초과분을 연체료와 나눠 보여 줄 때 쓴다. */
+export function useUnitOverpayments(unitId: number | null) {
+  return useQuery({
+    queryKey: paymentKeys.overpayments(unitId ?? 0),
+    queryFn: () => listUnitOverpayments(unitId as number),
+    enabled: unitId !== null,
+  });
+}
+
+const EMPTY_OVERPAID = new Map<string, number>();
+
+function toOverpaidByMonth(rows: UnitOverpayment[]): ReadonlyMap<string, number> {
+  return new Map(
+    rows
+      .filter((row) => row.status !== "canceled" && row.amount > 0)
+      .map((row) => [row.sourcePeriod.slice(0, 7), row.amount]),
+  );
+}
+
+/** 달(YYYY-MM) → 과수납액. 같은 원장 쿼리를 공유한다(수납 이력 표·영수증). */
+export function useUnitOverpaidByMonth(unitId: number | null): ReadonlyMap<string, number> {
+  const { data } = useQuery({
+    queryKey: paymentKeys.overpayments(unitId ?? 0),
+    queryFn: () => listUnitOverpayments(unitId as number),
+    enabled: unitId !== null,
+    select: toOverpaidByMonth,
+  });
+  return data ?? EMPTY_OVERPAID;
 }
 export function usePaymentReceiver(paymentId: number | null) {
   return useQuery({

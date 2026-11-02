@@ -10,11 +10,15 @@ export interface BillingFlatRow {
   charged: boolean; amount: number;
   confirmedAt: string | null; confirmedByName: string | null; totalAmount: number | null;
   billingNote: string | null; unitNotice: string | null; isDirty: boolean;
+  /** 시스템 항목 코드(prev_overpay=전월과수납). 금액은 서버가 과수납 원장으로 채우는 읽기 전용 값(음수). */
+  systemCode: string | null;
 }
 
 export interface BillingColumn {
   feeItemId: number; name: string; carryOver: boolean; dailyProration: boolean;
   rounding: Rounding; isRequired: boolean; sortOrder: number;
+  /** 시스템 항목 코드. 있으면 편집·부과 토글·저장·이월·공과금 계산 대상이 아니다. */
+  systemCode: string | null;
 }
 
 export interface BillingUnitRow {
@@ -36,6 +40,7 @@ export function pivotBillingRows(rows: BillingFlatRow[]): { units: BillingUnitRo
       colMap.set(r.feeItemId, {
         feeItemId: r.feeItemId, name: r.feeItemName, carryOver: r.carryOver,
         dailyProration: r.dailyProration, rounding: r.rounding, isRequired: r.isRequired, sortOrder: r.sortOrder,
+        systemCode: r.systemCode,
       });
     }
     if (!unitMap.has(r.unitId)) {

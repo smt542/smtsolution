@@ -85,7 +85,9 @@ export function FeeItemFormDialog({
   });
   const submitting = isPending || isSubmitting;
   // 필수 항목(전기·수도료·가스)은 공과금 계산식에 물려 있어 명칭만 잠근다. 계산 설정은 수정 가능.
-  const nameLocked = Boolean(item?.isRequired);
+  // 전월과수납(시스템 항목)은 과수납 원장에서 자동 산입되므로 명칭·삭제를 잠그고 일자계산·이월은 안함으로 고정한다.
+  const isSystemItem = item?.systemCode != null;
+  const nameLocked = Boolean(item?.isRequired) || isSystemItem;
   const submittingRef = useRef(submitting);
   useEffect(() => {
     submittingRef.current = submitting;
@@ -163,7 +165,9 @@ export function FeeItemFormDialog({
             />
             {nameLocked && (
               <span id="fee-item-dialog-name-lock" className="mt-[7px] block text-[12px] font-semibold leading-[1.5] text-t3">
-                공과금 관리 계산식에 연결된 필수 항목이라 명칭 변경·삭제가 불가해요
+                {isSystemItem
+                  ? "과수납을 다음 고지서에서 자동 차감하는 항목이라 명칭 변경·삭제가 불가해요(일자계산·이월 안함 고정)"
+                  : "공과금 관리 계산식에 연결된 필수 항목이라 명칭 변경·삭제가 불가해요"}
               </span>
             )}
             {!nameLocked && errors.name?.message && <span id="fee-item-dialog-name-error" className="mt-1.5 block text-[11px] text-red">{errors.name.message}</span>}
@@ -194,7 +198,7 @@ export function FeeItemFormDialog({
           {item ? (
             <>
               {/* 정본 .fmpc-btn.danger는 뒤에 오는 공용 규칙이 덮어 솔리드 빨강(hover #D63A46)으로 그려진다 */}
-              {!item.isRequired && (
+              {!nameLocked && (
                 <button type="button" disabled={submitting} className="h-10 rounded-[11px] bg-red px-5 text-[13.5px] font-bold tracking-[-0.01em] text-white hover:bg-[#d63a46] disabled:opacity-70" onClick={onDelete}>삭제</button>
               )}
               <button type="submit" disabled={submitting} className="h-10 flex-1 rounded-[11px] bg-teal text-[13.5px] font-bold tracking-[-0.01em] text-white hover:bg-teal-d disabled:opacity-70">수정</button>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { isLockedFeeItem } from "@/hooks/reactquery/feeItems";
 import type { FeeItemDraft } from "./types";
 import { FeeItemRow, type FeeItemDropPosition } from "./FeeItemRow";
 
@@ -22,7 +23,7 @@ export function FeeItemTable({ items, isReorderPending, onEdit, onReorder }: Fee
     if (!draggedKey || isReorderPending) return null;
 
     const optionalKeys = items
-      .filter((item) => !item.isRequired && item.id != null)
+      .filter((item) => !isLockedFeeItem(item) && item.id != null)
       .map((item) => item.key);
     const draggedIndex = optionalKeys.indexOf(draggedKey);
     const targetIndex = optionalKeys.indexOf(targetKey);

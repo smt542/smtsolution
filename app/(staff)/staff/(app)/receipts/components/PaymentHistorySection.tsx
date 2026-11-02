@@ -7,7 +7,7 @@ import { DpDatePicker } from "@/components/common/DpDatePicker";
 import { CloseIcon, UnitCardIcon } from "@/components/icons";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
-import { useSavePaymentHistory } from "@/hooks/reactquery/payments";
+import { useSavePaymentHistory, useUnitOverpaidByMonth } from "@/hooks/reactquery/payments";
 import type { DepositType, PaymentHistoryOp, PaymentMethod } from "@/hooks/reactquery/payments";
 import { useOccupancies } from "@/hooks/reactquery/occupancies";
 import { useLateFeeSettings, useSetupConfig } from "@/hooks/reactquery/setupConfig";
@@ -196,13 +196,16 @@ export function PaymentHistorySection({
     () => new Map((unitOccupancies ?? []).map((occupancy) => [occupancy.id, occupancy.lateFeeEnabled])),
     [unitOccupancies],
   );
+  // 그 달 연체료 한도를 넘은 초과 수납은 과수납(다음 고지서 「전월과수납」 차감, QA #31).
+  const overpaidByMonth = useUnitOverpaidByMonth(hasUnit ? unitId : null);
   const historyRows = useMemo(
     () => buildHistoryRows(payments, historySummaries, summary, period, tiers, {
       settings: lateFeeSettings,
       lateFeeEnabledByOccupancy,
       lateFeeSplits,
+      overpaidByMonth,
     }),
-    [historySummaries, lateFeeEnabledByOccupancy, lateFeeSettings, lateFeeSplits, payments, period, summary, tiers],
+    [historySummaries, lateFeeEnabledByOccupancy, lateFeeSettings, lateFeeSplits, overpaidByMonth, payments, period, summary, tiers],
   );
   const visibleRows = isEditing && canEdit ? draftRows : historyRows;
   const isPaymentMutationPending = saveHistory.isPending;
@@ -511,12 +514,16 @@ export function PaymentHistorySection({
       setFocusRowKey(null);
       const addedCount = result?.recorded ?? 0;
       const restoredCount = result?.restored ?? 0;
+      const allocated = result?.allocated ?? 0;
       toast.success(
-        addedCount > 0
-          ? `${addedCount}건이 추가되었어요`
-          : restoredCount > 0
-            ? `${restoredCount}건을 되살렸어요`
-            : "수납 이력을 저장했어요",
+        allocated > 0
+          // 선택한 달 미납을 넘는 금액은 이전 미납 달부터 나눠 수납했다(QA #31). 남은 초과분은 과수납으로 남는다.
+          ? `${addedCount}건이 추가되었어요. 초과 금액 ${formatCurrency(allocated)}원은 이전 미납 달부터 나눠 수납했어요`
+          : addedCount > 0
+            ? `${addedCount}건이 추가되었어요`
+            : restoredCount > 0
+              ? `${restoredCount}건을 되살렸어요`
+              : "수납 이력을 저장했어요",
       );
     } catch (error) {
       toast.error(error, "저장하지 못했어요");
@@ -798,7 +805,10 @@ export function PaymentHistorySection({
               onChange={(event) => updateFields(row.key, { memo: event.target.value })}
             />
           ) : (
-            row.payment?.memo || "-"
+            // 그 달 과수납은 비고에 함께 적는다(다음 확정 고지서에서 전월과수납으로 차감, QA #31).
+            [row.payment?.memo, row.overpaid ? `과수납 ${formatCurrency(row.overpaid)}` : null]
+              .filter(Boolean)
+              .join(" · ") || "-"
           )}
         </td>
         <td className={`${td} text-t1 num`}>{dotDate(row.dueDate)}</td>

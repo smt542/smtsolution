@@ -61,21 +61,42 @@ export function billingItemsTotal(
   drafts?: Record<number, BillingChargeDraft>,
 ): number {
   if (unit.isVacant) return 0;
-  const lines: ChargeLine[] = columns.map((column) => {
+  const lines: ChargeLine[] = columns.filter((column) => column.systemCode == null).map((column) => {
     const cell = drafts?.[column.feeItemId] ?? unit.charges[column.feeItemId] ?? { charged: true, amount: 0 };
     return { charged: cell.charged, amount: cell.amount, dailyProration: column.dailyProration, rounding: column.rounding };
   });
-  return unitTotal(lines, unit.moveInDate, period);
+  const total = unitTotal(lines, unit.moveInDate, period);
+  return total + billingCreditAmount(unit, columns, total);
 }
 
-/** 고정 관리비 = 필수 공과금 항목(is_required: 전기·수도료·가스)을 뺀 항목 합계. 원본 rowFixed(공과금 제외 항목합) 대응. */
+/**
+ * 전월과수납(시스템 항목) 차감액(0 이하). 서버(list_billing)가 확정 달은 적용액, 미확정 달은 남은 과수납 잔액을
+ * 음수로 준다. confirm_billing 과 같이 그 달 다른 항목 합계(othersTotal)를 넘게 빼지 않는다(QA #31).
+ */
+export function billingCreditAmount(unit: BillingUnitRow, columns: BillingColumn[], othersTotal: number): number {
+  if (unit.isVacant) return 0;
+  const credit = columns
+    .filter((column) => column.systemCode != null)
+    .reduce((sum, column) => sum + Math.min(unit.charges[column.feeItemId]?.amount ?? 0, 0), 0);
+  return Math.max(credit, -Math.max(othersTotal, 0));
+}
+
+/**
+ * 고정 관리비 = 필수 공과금 항목(is_required: 전기·수도료·가스)과 전월과수납(시스템 항목)을 뺀 항목 합계.
+ * 원본 rowFixed(공과금 제외 항목합) 대응.
+ */
 export function billingFixedItemsTotal(
   unit: BillingUnitRow,
   columns: BillingColumn[],
   period: string,
   drafts?: Record<number, BillingChargeDraft>,
 ): number {
-  return billingItemsTotal(unit, columns.filter((column) => !column.isRequired), period, drafts);
+  return billingItemsTotal(
+    unit,
+    columns.filter((column) => !column.isRequired && column.systemCode == null),
+    period,
+    drafts,
+  );
 }
 
 /** 항목 셀의 화면 표시 금액(일할·반올림 반영값). 원본 proRate 대응. */

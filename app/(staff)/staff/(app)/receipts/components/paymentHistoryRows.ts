@@ -35,8 +35,16 @@ export interface HistoryDisplayRow {
   originalFields: PaymentFields | null;
   /** 아직 내지 않은 연체료(미납 원금 기준). 하단 미납 합계·수납 버튼 잔액에 쓴다. */
   lateFee: number;
-  /** 이미 수납된 연체료 = 그 달 수납 합계가 당월계를 넘은 금액. 연체 열·영수증 표시에만 더한다. */
+  /**
+   * 이미 수납된 연체료 = 그 달 수납 합계가 당월계를 넘은 금액 중 과수납(overpaid)을 뺀 나머지.
+   * 연체 열·영수증 표시에만 더한다.
+   */
   collectedLateFee: number;
+  /**
+   * 그 달 과수납(unit_overpayments.amount, QA #31). 서버가 「수납 − 당월계 − 그 달 연체료」로 계산해 다음 확정
+   * 고지서에서 「전월과수납」으로 차감한다. 그 달 요약이 실린 첫 행에만 둔다.
+   */
+  overpaid?: number;
   draftSource: DraftSource;
   /** 연체료 이전(수.연) 행. 저장 전 초안(draftSource "split")과 저장된 미수금(split) 모두 true. */
   lateOnly: boolean;
@@ -126,6 +134,8 @@ export interface LateFeeRowOptions {
   lateFeeDisabledOccupancies?: ReadonlySet<number>;
   /** 이 호실의 수.연 미수금(get_payment_statement_data.late_fee_splits). 연체료 이전 행으로 그린다. */
   lateFeeSplits?: ReceiptLateFeeSplit[];
+  /** 달(YYYY-MM)별 과수납액(unit_overpayments, QA #31). 초과 수납 중 이 금액은 연체료가 아니라 과수납이다. */
+  overpaidByMonth?: ReadonlyMap<string, number>;
 }
 
 export function lateFeeForRow(
@@ -167,12 +177,15 @@ export function lateFeeForRow(
  * 수납(연체료 포함)으로 이미 낸 연체료. 연체료는 별도 저장 없이 수납액에 합쳐 기록되므로, 그 달 수납 합계가
  * 당월계를 넘은 금액(unpaid < 0)을 수납된 연체료로 본다. 이게 없으면 전액 수납 후 미납 원금이 0이 되어
  * 연체 열이 비고 `당월계 ≠ 수납액`으로 보인다.
+ * 단, 그 달 연체료 한도를 넘은 초과분은 서버가 과수납(overpaid)으로 따로 기록하므로 빼서
+ * `min(-unpaid, 그 달 연체료)` 가 되게 한다(QA #31).
  */
 export function collectedLateFeeForRow(
   rowSummary: ReceiptStatementPaymentRow | ReceiptPaymentRow | undefined,
+  overpaid = 0,
 ): number {
   if (rowSummary?.charged == null || rowSummary.unpaid == null) return 0;
-  return Math.max(-rowSummary.unpaid, 0);
+  return Math.max(-rowSummary.unpaid - Math.max(overpaid, 0), 0);
 }
 
 /** 연체 열·영수증에 보이는 연체료 = 남은 연체료 + 이미 수납된 연체료. */
@@ -227,23 +240,27 @@ export function buildHistoryRows(
     payment: HistoryPayment | null,
     /** 그 달 수.연으로 이미 나눈 연체료. 원 행의 연체료에서 뺀다. */
     splitLateFee = 0,
-  ): HistoryDisplayRow => ({
-    key,
-    rowPeriod,
-    rowSummary,
-    dueDate: rowSummary?.dueDate ?? null,
-    payment,
-    fields: payment ? paymentFields(payment) : emptyFields(),
-    originalFields: payment ? paymentFields(payment) : null,
-    lateFee: Math.max(lateFeeForRow(rowPeriod, rowSummary, tiers, period, lateFeeOptions) - splitLateFee, 0),
-    collectedLateFee: collectedLateFeeForRow(rowSummary),
-    draftSource: "none",
-    lateOnly: false,
-    cancelRequested: false,
-    cancelCompleted: false,
-    restoreRequested: false,
-    saved: false,
-  });
+  ): HistoryDisplayRow => {
+    const overpaid = rowSummary ? lateFeeOptions.overpaidByMonth?.get(rowPeriod.slice(0, 7)) ?? 0 : 0;
+    return {
+      key,
+      rowPeriod,
+      rowSummary,
+      dueDate: rowSummary?.dueDate ?? null,
+      payment,
+      fields: payment ? paymentFields(payment) : emptyFields(),
+      originalFields: payment ? paymentFields(payment) : null,
+      lateFee: Math.max(lateFeeForRow(rowPeriod, rowSummary, tiers, period, lateFeeOptions) - splitLateFee, 0),
+      collectedLateFee: collectedLateFeeForRow(rowSummary, overpaid),
+      overpaid,
+      draftSource: "none",
+      lateOnly: false,
+      cancelRequested: false,
+      cancelCompleted: false,
+      restoreRequested: false,
+      saved: false,
+    };
+  };
 
   /** 수.연 미수금 행: 연결된 수납마다 한 줄, 첫 줄에 남은·받은 연체료를 싣는다. 수납이 없으면 빈 수납 한 줄. */
   const makeSplitRows = (split: ReceiptLateFeeSplit, dueDate: string | null): HistoryDisplayRow[] => {

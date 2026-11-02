@@ -18,6 +18,7 @@ import {
   useDeleteFeeItem,
   useReorderFeeItems,
   useUpdateFeeItem,
+  isLockedFeeItem,
   type FeeItem,
 } from "@/hooks/reactquery/feeItems";
 import { BuildingTypeTabs } from "./BuildingTypeTabs";
@@ -74,6 +75,7 @@ function toTypeViews(types: BuildingType[], items: FeeItem[]): BuildingTypeDraft
         dailyProration: item.dailyProration,
         carryOver: item.carryOver,
         isRequired: item.isRequired,
+        systemCode: item.systemCode,
         sortOrder: required.length + itemIndex,
       } satisfies FeeItemDraft));
 
@@ -269,7 +271,8 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
 
   const openAddItem = () => {
     if (!activeType) return;
-    if (activeType.items.length >= MAX_FEE_ITEMS) {
+    // 전월과수납(시스템 항목)은 자동 생성 항목이라 등록 한도에 세지 않는다.
+    if (activeType.items.filter((candidate) => candidate.systemCode == null).length >= MAX_FEE_ITEMS) {
       toast.error(`관리 항목은 최대 ${MAX_FEE_ITEMS}개까지 등록할 수 있어요`);
       return;
     }
@@ -280,16 +283,20 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
   const submitItem = async (value: FeeItemFormValue) => {
     if (!activeType || isItemMutationPending) return;
     const item = editingItem;
+    const isSystem = item?.systemCode != null;
     const input = {
       ...value,
-      // 필수 항목 명칭은 잠겨 있으므로 폼 값이 아니라 원래 이름을 그대로 보낸다.
-      name: item?.isRequired ? item.name : value.name,
+      // 필수·시스템 항목 명칭은 잠겨 있으므로 폼 값이 아니라 원래 이름을 그대로 보낸다.
+      name: item && isLockedFeeItem(item) ? item.name : value.name,
       // 필수 공과금은 일수 안분 없음(정책) — 폼에서 바꿔도 false로 고정한다.
-      dailyProration: item?.isRequired ? false : value.dailyProration,
+      dailyProration: item?.isRequired || isSystem ? false : value.dailyProration,
+      // 전월과수납은 이월하지 않는다(DB 체크 제약 fee_items_system_item_locked).
+      carryOver: isSystem ? false : value.carryOver,
       orgId,
       typeId: activeType.id,
       isRequired: item?.isRequired ?? false,
-      sortOrder: item?.sortOrder ?? activeType.items.length,
+      // 시스템 항목은 항상 마지막 순서(999)를 유지한다.
+      sortOrder: isSystem ? undefined : item?.sortOrder ?? activeType.items.filter((candidate) => candidate.systemCode == null).length,
     };
 
     try {
@@ -309,7 +316,7 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
   };
 
   const deleteItem = async () => {
-    if (!editingItem?.id || editingItem.isRequired || deleteFeeItemMutation.isPending) return;
+    if (!editingItem?.id || isLockedFeeItem(editingItem) || deleteFeeItemMutation.isPending) return;
     const ok = await confirm({
       title: "관리 항목 삭제",
       description: <>‘<b>{editingItem.name}</b>’ 항목을 삭제합니다. 삭제하면 되돌릴 수 없어요.</>,
@@ -330,7 +337,7 @@ export function FeeItemManagement({ orgId }: FeeItemManagementProps) {
 
   const reorderItems = async (draggedKey: string, targetKey: string, position: FeeItemDropPosition) => {
     if (!activeType || reorderFeeItemsMutation.isPending) return;
-    const optional = activeType.items.filter((item) => !item.isRequired && item.id != null);
+    const optional = activeType.items.filter((item) => !isLockedFeeItem(item) && item.id != null);
     const draggedItem = optional.find((item) => item.key === draggedKey);
     if (!draggedItem) return;
     const rest = optional.filter((item) => item.key !== draggedKey);

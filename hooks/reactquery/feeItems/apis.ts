@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/client";
 export interface FeeItem {
   id: number; orgId: number; typeId: number; name: string; rounding: string;
   dailyProration: boolean; carryOver: boolean; isRequired: boolean; sortOrder: number;
+  /** 시스템 항목 코드(0350: prev_overpay=전월과수납). 명칭·삭제·설정 잠금, 금액은 고지 확정 때 자동 산입. */
+  systemCode: string | null;
 }
 export interface FeeItemInput {
   orgId: number; typeId: number; name: string; rounding: string;
@@ -37,6 +39,7 @@ export interface FeeItemLookupRow {
 type FeeItemRow = {
   id: number; org_id: number; type_id: number; name: string; rounding: string;
   daily_proration: boolean; carry_over: boolean; is_required: boolean; sort_order: number;
+  system_code?: string | null;
 };
 
 type FeeItemLookupDbRow = {
@@ -54,7 +57,13 @@ type FeeItemLookupDbRow = {
 const rowToFeeItem = (r: FeeItemRow): FeeItem => ({
   id: r.id, orgId: r.org_id, typeId: r.type_id, name: r.name, rounding: r.rounding,
   dailyProration: r.daily_proration, carryOver: r.carry_over, isRequired: r.is_required, sortOrder: r.sort_order,
+  systemCode: r.system_code ?? null,
 });
+
+/** 명칭·삭제·순서가 잠긴 항목: 필수 공과금(전기·수도료·가스) 또는 시스템 항목(전월과수납). */
+export function isLockedFeeItem(item: { isRequired: boolean; systemCode?: string | null }): boolean {
+  return item.isRequired || item.systemCode != null;
+}
 
 function inputToRow(i: Partial<FeeItemInput>): Record<string, unknown> {
   const r: Record<string, unknown> = {};
@@ -133,7 +142,7 @@ export async function updateFeeItem(id: number, input: Partial<FeeItemInput>): P
   return rowToFeeItem(data);
 }
 
-// 소프트삭제: 필수 항목은 거부, 그 외엔 deleted_at 세팅(부과 이력 보존)
+// 소프트삭제: 필수·시스템 항목은 거부, 그 외엔 deleted_at 세팅(부과 이력 보존)
 export async function deleteFeeItem({ id, isRequired }: { id: number; isRequired: boolean }): Promise<void> {
   if (isRequired) throw new Error("필수 항목은 삭제할 수 없습니다");
   const { error } = await createClient().from("fee_items").update({ deleted_at: new Date().toISOString() }).eq("id", id);

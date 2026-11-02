@@ -5,6 +5,7 @@ import { applyMask, Input, NUMERIC_INPUT_ATTRS, type InputMask } from "@/compone
 import type { BillingColumn, BillingUnitRow } from "@/lib/billing/pivot";
 import { formatNumber } from "@/lib/format";
 import {
+  billingCreditAmount,
   billingFixedItemsTotal,
   effectiveChargeAmount,
   isRecentMoveIn,
@@ -49,7 +50,9 @@ export const BillingTableRow = memo(function BillingTableRow({
   const buildingTotal = unit.isVacant ? 0 : unit.mgmtFeeAmount ?? 0;
   const fixedTotal = unit.isVacant ? 0 : billingFixedItemsTotal(unit, columns, period, chargeDrafts);
   // 총 관리비(표시) = 건물 관리비 + 고정 관리비 + 수도·전기·가스(2026-11-01 QA #41). 공과금은 같은 행 수도/전기/가스 열 값(util)을 그대로 쓴다. 공실은 0.
-  const displayTotal = buildingTotal + fixedTotal + (unit.isVacant ? 0 : util.sum);
+  // 전월과수납(QA #31)은 확정과 같이 그 달 항목 합계 한도로 뺀다.
+  const credit = unit.isVacant ? 0 : billingCreditAmount(unit, columns, fixedTotal + util.sum);
+  const displayTotal = buildingTotal + fixedTotal + (unit.isVacant ? 0 : util.sum) + credit;
   const billingNote = noteDraft?.billingNote ?? unit.billingNote ?? "";
   const unitNotice = noteDraft?.unitNotice ?? unit.unitNotice ?? "";
   const areaPyeong = unitAreaPyeong(unit);
@@ -96,12 +99,14 @@ export const BillingTableRow = memo(function BillingTableRow({
       {trios.map((group, groupIndex) => (
         <td key={group[0]?.feeItemId ?? `trio-${groupIndex}`} className={`min-w-[104px] px-[8px] py-[7px] ${cellBorder}`}>
           {group.map((column) => {
-            const cell = chargeDrafts?.[column.feeItemId] ?? unit.charges[column.feeItemId] ?? { charged: true, amount: 0 };
-            const shown = cell.charged ? effectiveChargeAmount(column, cell.amount, unit.moveInDate, period) : cell.amount;
+            // 전월과수납(시스템 항목)은 서버가 과수납 원장으로 채우는 읽기 전용 음수 금액이다(QA #31).
+            const system = column.systemCode != null;
+            const cell = (system ? undefined : chargeDrafts?.[column.feeItemId]) ?? unit.charges[column.feeItemId] ?? { charged: true, amount: 0 };
+            const shown = cell.charged && !system ? effectiveChargeAmount(column, cell.amount, unit.moveInDate, period) : cell.amount;
             const prorated = shown !== cell.amount;
             return (
               <div key={column.feeItemId} className="flex items-center justify-start gap-[4px] leading-[1.5]">
-                {editing ? (
+                {editing && !system ? (
                   <Input
                     unstyled
                     type="text"
@@ -127,8 +132,8 @@ export const BillingTableRow = memo(function BillingTableRow({
                   type="button"
                   aria-label={`${unitNo} ${column.name} 부과`}
                   aria-pressed={cell.charged}
-                  disabled={unit.isVacant}
-                  onClick={() => onChargeChange(unit.unitId, column.feeItemId, { charged: !cell.charged })}
+                  disabled={unit.isVacant || system}
+                  onClick={() => !system && onChargeChange(unit.unitId, column.feeItemId, { charged: !cell.charged })}
                   className={`inline-flex h-[18px] w-[18px] flex-none items-center justify-center rounded-[6px] text-[10px] font-extrabold disabled:opacity-40 ${cell.charged ? "bg-blue-t text-blue-d" : "bg-red-t text-red"}`}
                 >
                   {cell.charged ? "Y" : "N"}

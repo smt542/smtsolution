@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { billKeys } from "@/hooks/reactquery/bill/keys";
+import { billingKeys } from "@/hooks/reactquery/billing/keys";
 import { receiptKeys } from "@/hooks/reactquery/receipts/queries";
 import {
   cancelPayment,
@@ -25,6 +26,8 @@ export function useRecordPayment() {
       qc.invalidateQueries({ queryKey: receiptKeys.all }),
       // 고지서 이월 미납·연체료(get_bill_documents)는 수납에 따라 바뀐다.
       qc.invalidateQueries({ queryKey: billKeys.all }),
+      // 관리비 부과 세팅의 전월과수납 미리보기(list_billing)는 과수납 원장에 따라 바뀐다(QA #31).
+      qc.invalidateQueries({ queryKey: billingKeys.all }),
     ]),
   });
 }
@@ -37,6 +40,8 @@ export function useRecordPaymentEdit() {
       qc.invalidateQueries({ queryKey: receiptKeys.all }),
       // 고지서 이월 미납·연체료(get_bill_documents)는 수납에 따라 바뀐다.
       qc.invalidateQueries({ queryKey: billKeys.all }),
+      // 관리비 부과 세팅의 전월과수납 미리보기(list_billing)는 과수납 원장에 따라 바뀐다(QA #31).
+      qc.invalidateQueries({ queryKey: billingKeys.all }),
     ]),
   });
 }
@@ -49,6 +54,8 @@ export function useCancelPayment() {
       qc.invalidateQueries({ queryKey: receiptKeys.all }),
       // 고지서 이월 미납·연체료(get_bill_documents)는 수납에 따라 바뀐다.
       qc.invalidateQueries({ queryKey: billKeys.all }),
+      // 관리비 부과 세팅의 전월과수납 미리보기(list_billing)는 과수납 원장에 따라 바뀐다(QA #31).
+      qc.invalidateQueries({ queryKey: billingKeys.all }),
     ]),
   });
 }
@@ -61,6 +68,8 @@ export function useSavePaymentHistory() {
       qc.invalidateQueries({ queryKey: receiptKeys.all }),
       // 고지서 이월 미납·연체료(get_bill_documents)는 수납에 따라 바뀐다.
       qc.invalidateQueries({ queryKey: billKeys.all }),
+      // 관리비 부과 세팅의 전월과수납 미리보기(list_billing)는 과수납 원장에 따라 바뀐다(QA #31).
+      qc.invalidateQueries({ queryKey: billingKeys.all }),
     ]),
   });
 }
@@ -74,6 +83,8 @@ export function useRecordBankPayments() {
       qc.invalidateQueries({ queryKey: receiptKeys.all }),
       // 고지서 이월 미납·연체료(get_bill_documents)는 수납에 따라 바뀐다.
       qc.invalidateQueries({ queryKey: billKeys.all }),
+      // 관리비 부과 세팅의 전월과수납 미리보기(list_billing)는 과수납 원장에 따라 바뀐다(QA #31).
+      qc.invalidateQueries({ queryKey: billingKeys.all }),
     ]),
   });
 }
@@ -86,6 +97,8 @@ export function useRecordGiroPayments() {
       qc.invalidateQueries({ queryKey: receiptKeys.all }),
       // 고지서 이월 미납·연체료(get_bill_documents)는 수납에 따라 바뀐다.
       qc.invalidateQueries({ queryKey: billKeys.all }),
+      // 관리비 부과 세팅의 전월과수납 미리보기(list_billing)는 과수납 원장에 따라 바뀐다(QA #31).
+      qc.invalidateQueries({ queryKey: billingKeys.all }),
     ]),
   });
 }

@@ -12,6 +12,8 @@ type BillingFlatDbRow = {
   charged: boolean; amount: number;
   confirmed_at: string | null; confirmed_by_name: string | null; total_amount: number | null;
   billing_note: string | null; unit_notice: string | null; is_dirty: boolean;
+  /** 0350: 시스템 항목 코드(prev_overpay=전월과수납). */
+  system_code?: string | null;
 };
 
 const rowToFlat = (r: BillingFlatDbRow): BillingFlatRow => ({
@@ -24,6 +26,7 @@ const rowToFlat = (r: BillingFlatDbRow): BillingFlatRow => ({
   charged: r.charged, amount: r.amount,
   confirmedAt: r.confirmed_at, confirmedByName: r.confirmed_by_name, totalAmount: r.total_amount,
   billingNote: r.billing_note, unitNotice: r.unit_notice, isDirty: r.is_dirty,
+  systemCode: r.system_code ?? null,
 });
 
 export interface BillingHistoryItem { feeItemId: number; name: string; charged: boolean; amount: number; }
@@ -114,7 +117,7 @@ export async function copyPreviousBilling(
   // 필수 공과금 항목(전기·수도료·가스)은 저장값이 없으면 그 달 산정값이 기본값이라(마이그 0193)
   // 지난 금액을 저장해 고정하지 않는다.
   const charges = currentRows
-    .filter((current) => current.carryOver && !current.isRequired)
+    .filter((current) => current.carryOver && !current.isRequired && current.systemCode == null)
     .flatMap((current) => {
       const latest = latestByCell.get(`${current.unitId}:${current.feeItemId}`);
       return latest

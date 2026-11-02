@@ -8,6 +8,8 @@ export interface FeeItemDraft {
   dailyProration: boolean;
   carryOver: boolean;
   isRequired: boolean;
+  /** 시스템 항목 코드(전월과수납=prev_overpay). 필수 항목처럼 명칭·삭제·순서가 잠긴다. */
+  systemCode?: string | null;
   sortOrder: number;
 }
 

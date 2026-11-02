@@ -9,7 +9,7 @@ import { PrinterIcon } from "@/components/icons";
 import { useBuildings } from "@/hooks/reactquery/buildings";
 import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
 import { useUnitOccupancyFull } from "@/hooks/reactquery/occupancies";
-import { useUnitPayments } from "@/hooks/reactquery/payments";
+import { useUnitOverpaidByMonth, useUnitPayments } from "@/hooks/reactquery/payments";
 import { useReceiptPaymentStatus, useReceiptStatementData, useUnitEarliestPeriod } from "@/hooks/reactquery/receipts";
 import { useUnits } from "@/hooks/reactquery/units";
 import type { RateTier } from "@/lib/billing/lateFee";
@@ -330,6 +330,7 @@ export function ReceiptWorkspace({
     () => historyQuery.data?.lateFeeSplits.filter((split) => split.unitId === selectedUnitId),
     [historyQuery.data, selectedUnitId],
   );
+  const overpaidByMonth = useUnitOverpaidByMonth(selectedUnitId);
   const historyRows = useMemo(
     () => buildHistoryRows(
       historyQuery.data?.payments ?? unitPayments,
@@ -337,9 +338,9 @@ export function ReceiptWorkspace({
       selectedSummary,
       period,
       tiers,
-      { lateFeeSplits },
+      { lateFeeSplits, overpaidByMonth },
     ),
-    [historyQuery.data?.payments, historySummaries, lateFeeSplits, period, selectedSummary, tiers, unitPayments],
+    [historyQuery.data?.payments, historySummaries, lateFeeSplits, overpaidByMonth, period, selectedSummary, tiers, unitPayments],
   );
 
   const selectBuilding = (id: number) => {

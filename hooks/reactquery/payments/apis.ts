@@ -153,7 +153,11 @@ export type PaymentHistoryOp =
   | ({ op: "split"; splitAmount: number; splitMemo: string | null } & RecordPaymentInput)
   | { op: "cancel_split"; splitId: number };
 
-export interface SavePaymentHistoryResult { canceled: number; recorded: number; edited: number; restored: number; }
+export interface SavePaymentHistoryResult {
+  canceled: number; recorded: number; edited: number; restored: number;
+  /** 선택한 달 미납을 넘어 이전 미납 달로 나눠 기록한 금액(0350). */
+  allocated: number;
+}
 
 /** 수납 이력 일괄 저장: 취소·되살리기·추가·수정을 한 트랜잭션(save_payment_history)으로 처리. 하나라도 실패하면 전부 롤백. */
 export async function savePaymentHistory(ops: PaymentHistoryOp[]): Promise<SavePaymentHistoryResult> {
@@ -179,7 +183,43 @@ export async function savePaymentHistory(ops: PaymentHistoryOp[]): Promise<SaveP
   const { data, error } = await createClient().rpc("save_payment_history", { p_ops: payload });
   if (error) throw new Error(error.message);
   const r = data as SavePaymentHistoryResult;
-  return { canceled: r.canceled, recorded: r.recorded, edited: r.edited, restored: r.restored ?? 0 };
+  return {
+    canceled: r.canceled, recorded: r.recorded, edited: r.edited, restored: r.restored ?? 0,
+    allocated: r.allocated ?? 0,
+  };
+}
+
+export type OverpaymentStatus = "open" | "applied" | "canceled" | "refunded";
+
+/** 과수납 원장 한 건: 그 달(sourcePeriod) 초과 수납액과 다음 고지서 차감 현황(QA #31). */
+export interface UnitOverpayment {
+  sourcePeriod: string;
+  amount: number;
+  status: OverpaymentStatus;
+  appliedPeriod: string | null;
+  /** 지금까지 고지서에서 차감된 금액 합계 */
+  appliedAmount: number;
+}
+
+type UnitOverpaymentDbRow = {
+  source_period: string; amount: number; status: OverpaymentStatus; applied_period: string | null;
+  unit_overpayment_applications: { amount: number }[] | null;
+};
+
+export async function listUnitOverpayments(unitId: number): Promise<UnitOverpayment[]> {
+  const { data, error } = await createClient()
+    .from("unit_overpayments")
+    .select("source_period, amount, status, applied_period, unit_overpayment_applications(amount)")
+    .eq("unit_id", unitId)
+    .order("source_period", { ascending: false });
+  if (error) throw new Error(error.message);
+  return ((data ?? []) as UnitOverpaymentDbRow[]).map((row) => ({
+    sourcePeriod: row.source_period,
+    amount: row.amount,
+    status: row.status,
+    appliedPeriod: row.applied_period,
+    appliedAmount: (row.unit_overpayment_applications ?? []).reduce((sum, item) => sum + item.amount, 0),
+  }));
 }
 
 export async function listUnitPayments(unitId: number, period: string): Promise<UnitPayment[]> {

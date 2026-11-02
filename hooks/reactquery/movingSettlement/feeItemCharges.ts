@@ -64,8 +64,9 @@ export function useManagementFeeRows(
   const charges = chargesQuery.data ?? {};
   // 필수 항목(전기·가스·수도료)은 공과금 정산(이사 검침)에서 따로 합산하므로
   // 관리비 항목에서 뺀다. 넣으면 공과금이 두 번 잡힌다(이사정산 입력 정책 3.6).
+  // 전월과수납(시스템 항목)은 일할 정산 대상이 아니다 — 남은 과수납은 미납 소계에서 환급으로 빠진다(QA #31).
   const rows = (feeItemsQuery.data ?? [])
-    .filter((item) => !item.isRequired)
+    .filter((item) => !item.isRequired && item.systemCode == null)
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((item) => {
       const charge = overrides?.[item.name] ?? charges[item.id] ?? 0;
