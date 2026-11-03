@@ -119,11 +119,9 @@ function computeBaseLateFeeForPeriod(
   const lateFee = Math.round(
     (input.unpaidPrincipal * cumulativeRatePct) / 100,
   );
-  // 납기후 가산금("납.후연체"). 월차와 무관한 정률이라 구간 요율과 따로 계산한다.
-  const postDueRatePct = settings?.postDueRatePct ?? POST_DUE_FEE_RATE_PCT;
-  const postDueFee = Math.round(
-    (input.unpaidPrincipal * postDueRatePct) / 100 / 10,
-  ) * 10;
+  // 납기후 가산금("납.후연체")은 산식 확정 전까지 0 (미납 관리 정책 6절, 2026-11-03).
+  // 고지서·알림톡·세입자 앱·이사정산(DB 함수)과 같은 연체료가 되도록 사무실 화면도 가산금을 더하지 않는다.
+  const postDueFee = 0;
 
   return { period: input.period, months, cumulativeRatePct, lateFee, postDueFee };
 }

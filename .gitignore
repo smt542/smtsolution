@@ -72,3 +72,9 @@ supabase/.temp/
 
 # Edge Function용 앱 코드 묶음(scripts/build-edge-app.mjs 생성물)
 supabase/functions/_shared/app/
+
+# 루트 작업 문서(.md) — 프로젝트 지침 3개만 추적
+/*.md
+!/AGENTS.md
+!/CLAUDE.md
+!/README.md
