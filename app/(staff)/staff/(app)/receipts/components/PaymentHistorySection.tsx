@@ -8,7 +8,7 @@ import { CloseIcon, UnitCardIcon } from "@/components/icons";
 import { appToast as toast } from "@/hooks/common/useAppToast";
 import { useLateFeeRateTiers } from "@/hooks/reactquery/lateFeeTiers";
 import { useSavePaymentHistory, useUnitOverpaidByMonth } from "@/hooks/reactquery/payments";
-import type { DepositType, PaymentHistoryOp, PaymentMethod } from "@/hooks/reactquery/payments";
+import type { DepositType, PaymentMethod } from "@/hooks/reactquery/payments";
 import { useOccupancies } from "@/hooks/reactquery/occupancies";
 import { useLateFeeSettings, useSetupConfig } from "@/hooks/reactquery/setupConfig";
 import {
@@ -25,22 +25,30 @@ import {
   PAYMENT_METHOD_LABEL,
   POLICY_PAYMENT_METHODS,
   formatCurrency,
-  unitLabel,
 } from "../receiptFormat";
 import {
   buildHistoryRows,
   cloneRows,
   displayLateFee,
   emptyFields,
-  fieldsEqual,
-  formatInputNumber,
-  isNewDraft,
   normalizeAmount,
   type HistoryDisplayRow,
   type HistoryPayment,
   type PaymentFields,
-  todayInput,
 } from "./paymentHistoryRows";
+import {
+  buildAddedRow,
+  buildFooterRows,
+  buildPaymentHistoryOps,
+  buildUnpaidSmsBody,
+  fillPaymentForAction,
+  isActionableRow,
+  mgmtAccountLine,
+  saveSuccessMessage,
+  splitLateFeeRows,
+  sumFooterRows,
+  validateDraftRows,
+} from "./paymentHistoryOps";
 
 // 정본 `#rcHistWrap thead th` — 보기 모드는 auto layout + th min-width(Figma 고정 전체 폭 없음).
 // 편집 모드는 사용자 결정(2026-09-23 "편집해도 표 폭 유지")으로 정본과 달리 패널 폭에 고정한다:
@@ -91,13 +99,6 @@ const ACT_BASE = `${MINI_BASE} mr-[3px] px-[6px] font-normal`;
 const ACT_CLASS = `${ACT_BASE} border-line bg-surface text-t2 hover:border-[#C9D0D8] hover:bg-[#F7F9FA] disabled:opacity-50`;
 const ACT_PRI_CLASS = `${ACT_BASE} border-teal bg-teal text-white hover:bg-teal-d disabled:opacity-50`;
 const ACT_DEL_CLASS = `${ACT_BASE} border-red-t bg-surface text-red hover:border-[#C9D0D8] hover:bg-[#F7F9FA] disabled:opacity-50`;
-
-interface FooterPeriodRow {
-  period: string;
-  unpaidPrincipal: number;
-  lateFee: number;
-  total: number;
-}
 
 function slashDate(value: string | null | undefined): string {
   return value ? value.slice(0, 10).replaceAll("-", "/") : "-";
@@ -244,28 +245,7 @@ export function PaymentHistorySection({
 
   const createAddedRow = (): HistoryDisplayRow => {
     draftId.current += 1;
-    // 그 달 당월계·연체의 지금 값(수정 전 기준). 연체는 그 달 요약 행의 남은 연체료.
-    const chargedInitial = summary?.charged != null ? formatInputNumber(summary.charged) : "";
-    const monthLateFee = historyRows.find((candidate) => candidate.rowPeriod === period && candidate.rowSummary)?.lateFee ?? 0;
-    const lateFeeInitial = monthLateFee > 0 ? formatInputNumber(monthLateFee) : "";
-    return {
-      key: `draft-${draftId.current}`,
-      rowPeriod: period,
-      rowSummary: undefined,
-      dueDate: summary?.dueDate ?? null,
-      payment: null,
-      fields: emptyFields(),
-      originalFields: null,
-      lateFee: 0,
-      collectedLateFee: 0,
-      draftSource: "added",
-      billDraft: { charged: chargedInitial, lateFee: lateFeeInitial, chargedInitial, lateFeeInitial },
-      lateOnly: false,
-      cancelRequested: false,
-      cancelCompleted: false,
-      restoreRequested: false,
-      saved: false,
-    };
+    return buildAddedRow(`draft-${draftId.current}`, period, summary, historyRows);
   };
 
   const openAdd = () => {
@@ -302,7 +282,7 @@ export function PaymentHistorySection({
 
   const applyAction = (key: string, action: "full" | "principal" | "split") => {
     const row = draftRows.find((candidate) => candidate.key === key);
-    if (!row || row.cancelRequested || row.cancelCompleted || row.payment?.status === "canceled") return;
+    if (!row || !isActionableRow(row)) return;
 
     if (row.lateOnly && action === "split") return;
     if (row.lateOnly && action === "principal") {
@@ -310,59 +290,16 @@ export function PaymentHistorySection({
       return;
     }
 
-    const unpaidPrincipal = Math.max(row.rowSummary?.unpaid ?? 0, 0);
-    const balance = unpaidPrincipal + row.lateFee;
     if (action === "split") {
       if (row.lateFee <= 0) return;
       draftId.current += 1;
-      const splitRow: HistoryDisplayRow = {
-        key: `draft-${draftId.current}`,
-        rowPeriod: row.rowPeriod,
-        rowSummary: undefined,
-        dueDate: row.dueDate,
-        payment: null,
-        fields: {
-          ...emptyFields(row.fields.method, row.fields.kind),
-          fee: row.fields.fee,
-          memo: "연체료 이전",
-        },
-        originalFields: null,
-        lateFee: row.lateFee,
-        collectedLateFee: 0,
-        draftSource: "split",
-        lateOnly: true,
-        cancelRequested: false,
-        cancelCompleted: false,
-        restoreRequested: false,
-        saved: false,
-      };
-      setDraftRows((current) => {
-        const index = current.findIndex((candidate) => candidate.key === key);
-        if (index < 0) return current;
-        const next = [...current];
-        next[index] = { ...next[index], lateFee: 0 };
-        next.splice(index, 0, splitRow);
-        return next;
-      });
+      const splitKey = `draft-${draftId.current}`;
+      setDraftRows((current) => splitLateFeeRows(current, key, splitKey));
       toast.success("연체료를 새 행으로 이전했어요");
       return;
     }
 
-    // 기존 수납 행이면 그 수납액에 남은 금액을 더한다(record_payment_edit 가 이 행을 새 금액으로
-    // 다시 기록하므로, 잔액만 넣으면 이미 낸 금액이 사라진다). 요약 행은 기존 금액이 0 이다.
-    const existingAmount = row.payment?.status === "active" ? row.payment.amount : 0;
-    updateRow(key, (current) => ({
-      ...current,
-      fields: {
-        ...current.fields,
-        amount: formatInputNumber(existingAmount + (action === "full" ? balance : unpaidPrincipal)),
-        paidAt: todayInput(),
-        kind: current.lateOnly ? "partial" : action === "full" ? "full" : "principal",
-        memo: current.lateOnly ? "연체료 이전" : action === "full" ? "" : "연체료 미수납",
-      },
-      draftSource: current.payment ? current.draftSource : current.draftSource === "none" ? "summary" : current.draftSource,
-      saved: false,
-    }));
+    updateRow(key, (current) => fillPaymentForAction(current, action));
     toast.success(action === "full" ? "전액 수납 처리했어요" : "당월계를 수납 처리했어요");
   };
 
@@ -410,100 +347,12 @@ export function PaymentHistorySection({
   const save = async () => {
     if (unitId === null) return;
 
-    for (const row of draftRows) {
-      const isCanceled = row.cancelRequested
-        || row.cancelCompleted
-        || row.payment?.status === "canceled";
-      const needsNewRecord = isNewDraft(row) && !row.saved;
-      const needsEdit = Boolean(
-        row.payment
-        && row.payment.status === "active"
-        && !row.cancelRequested
-        && !row.cancelCompleted
-        && !row.saved
-        && row.originalFields
-        && !fieldsEqual(row.fields, row.originalFields),
-      );
-      if (isCanceled || (!needsNewRecord && !needsEdit)) continue;
-      if (needsEdit && normalizeAmount(row.fields.amount) <= 0) {
-        toast.warning("수납액을 올바르게 입력해 주세요");
-        return;
-      }
+    const invalidMessage = validateDraftRows(draftRows);
+    if (invalidMessage) {
+      toast.warning(invalidMessage);
+      return;
     }
-
-    const ops: PaymentHistoryOp[] = [];
-    for (const row of draftRows) {
-      if (row.restoreRequested && row.payment?.status === "canceled") {
-        ops.push({ op: "restore", paymentId: row.payment.id });
-        continue;
-      }
-      if (
-        row.cancelRequested
-        && row.payment?.status === "active"
-        && !row.cancelCompleted
-      ) {
-        ops.push({ op: "cancel", paymentId: row.payment.id });
-        continue;
-      }
-      if (row.cancelRequested && row.split && !row.payment) {
-        ops.push({ op: "cancel_split", splitId: row.split.id });
-        continue;
-      }
-
-      const amount = normalizeAmount(row.fields.amount);
-      const input = {
-        unitId,
-        period: row.rowPeriod,
-        amount,
-        fee: normalizeAmount(row.fields.fee),
-        method: row.fields.method,
-        kind: row.fields.kind,
-        depositType: row.fields.depositType || null,
-        paidAt: row.fields.paidAt || null,
-        memo: row.fields.memo || null,
-      };
-      // 수.연 초안: 나눈 연체료를 미수금으로 저장하고, 수납액이 있으면 그 수납도 함께 연결한다.
-      if (row.draftSource === "split" && !row.saved) {
-        ops.push({ op: "split", splitAmount: row.lateFee, splitMemo: row.fields.memo || null, ...input });
-        continue;
-      }
-      if (isNewDraft(row) && !row.saved) {
-        if (amount > 0) ops.push({ op: "record", lateFeeSplitId: row.split?.id ?? null, ...input });
-        continue;
-      }
-
-      const needsEdit = Boolean(
-        row.payment
-        && row.payment.status === "active"
-        && !row.cancelRequested
-        && !row.cancelCompleted
-        && !row.saved
-        && row.originalFields
-        && !fieldsEqual(row.fields, row.originalFields),
-      );
-      if (needsEdit && row.payment) ops.push({ op: "edit", oldPaymentId: row.payment.id, ...input });
-    }
-
-    // 추가 행의 당월계·연체는 같은 달 수납보다 먼저 반영한다(고지 확정이 있어야 미납·연체가 계산됨).
-    const billOps: PaymentHistoryOp[] = [];
-    for (const row of draftRows) {
-      if (!row.billDraft || row.saved || row.draftSource !== "added") continue;
-      const { charged, lateFee, chargedInitial, lateFeeInitial } = row.billDraft;
-      const setCharged = charged.trim() !== "" && charged !== chargedInitial;
-      const setLateFee = lateFee !== lateFeeInitial;
-      if (!setCharged && !setLateFee) continue;
-      billOps.push({
-        op: "bill",
-        unitId,
-        period: row.rowPeriod,
-        charged: setCharged ? normalizeAmount(charged) : null,
-        setCharged,
-        // 연체 칸을 비우면 수동 값을 지우고 자동 계산으로 되돌린다.
-        lateFee: setLateFee && lateFee.trim() !== "" ? normalizeAmount(lateFee) : null,
-        setLateFee,
-      });
-    }
-    ops.unshift(...billOps);
+    const ops = buildPaymentHistoryOps(draftRows, unitId);
 
     // 취소·추가·수정을 한 트랜잭션으로 저장한다. 하나라도 실패하면 전부 롤백되므로 초안은 그대로 둔다.
     try {
@@ -512,51 +361,14 @@ export function PaymentHistorySection({
       setIsEditing(false);
       setDraftRows([]);
       setFocusRowKey(null);
-      const addedCount = result?.recorded ?? 0;
-      const restoredCount = result?.restored ?? 0;
-      const allocated = result?.allocated ?? 0;
-      toast.success(
-        allocated > 0
-          // 선택한 달 미납을 넘는 금액은 이전 미납 달부터 나눠 수납했다(QA #31). 남은 초과분은 과수납으로 남는다.
-          ? `${addedCount}건이 추가되었어요. 초과 금액 ${formatCurrency(allocated)}원은 이전 미납 달부터 나눠 수납했어요`
-          : addedCount > 0
-            ? `${addedCount}건이 추가되었어요`
-            : restoredCount > 0
-              ? `${restoredCount}건을 되살렸어요`
-              : "수납 이력을 저장했어요",
-      );
+      toast.success(saveSuccessMessage(result));
     } catch (error) {
       toast.error(error, "저장하지 못했어요");
     }
   };
 
-  const footerRows = useMemo<FooterPeriodRow[]>(() => {
-    const byPeriod = new Map<string, FooterPeriodRow>();
-    for (const row of visibleRows) {
-      const current = byPeriod.get(row.rowPeriod) ?? {
-        period: row.rowPeriod,
-        unpaidPrincipal: 0,
-        lateFee: 0,
-        total: 0,
-      };
-      if (row.rowSummary) {
-        current.unpaidPrincipal = Math.max(row.rowSummary.unpaid ?? 0, 0);
-      }
-      if (row.rowSummary || row.lateOnly) current.lateFee += row.lateFee;
-      byPeriod.set(row.rowPeriod, current);
-    }
-    return [...byPeriod.values()]
-      .map((row) => ({ ...row, total: row.unpaidPrincipal + row.lateFee }))
-      .filter((row) => row.total > 0);
-  }, [visibleRows]);
-  const footerTotals = footerRows.reduce(
-    (totals, row) => ({
-      unpaid: totals.unpaid + row.unpaidPrincipal,
-      lateFee: totals.lateFee + row.lateFee,
-      total: totals.total + row.total,
-    }),
-    { unpaid: 0, lateFee: 0, total: 0 },
-  );
+  const footerRows = useMemo(() => buildFooterRows(visibleRows), [visibleRows]);
+  const footerTotals = sumFooterRows(footerRows);
 
   const sendUnpaidSms = () => {
     if (!summary) return;
@@ -569,36 +381,20 @@ export function PaymentHistorySection({
       return;
     }
 
-    const lines = [
-      [buildingName, unitLabel(summary)].filter(Boolean).join(" "),
-      buildingAddress ?? "",
-      "",
-      ...footerRows.map((row) => `${toMonthInput(row.period)}분  ${formatCurrency(row.total)}원`),
-      "",
-      `합계  ${formatCurrency(footerTotals.total)}원`,
-      "",
-      "입금 부탁드립니다.",
-    ];
-    // 입금 계좌 = 고지서에 인쇄되는 관리비 계좌(고지서 설정과 같은 규칙: 계좌 2에 출력을 고른 경우만 계좌 2).
-    // 정본 문구 `국민 123-45-6789 (스마일종합관리)` 형식이며, 예금주가 없으면 괄호를 뺀다.
-    const mgmtAccount = setupConfig
-      ? !setupConfig.mgmtPrint1 && setupConfig.mgmtPrint2
-        ? { bank: setupConfig.mgmtBank2, acct: setupConfig.mgmtAcct2, holder: setupConfig.mgmtHolder2 }
-        : { bank: setupConfig.mgmtBank1, acct: setupConfig.mgmtAcct1, holder: setupConfig.mgmtHolder1 }
-      : null;
-    if (mgmtAccount?.bank && mgmtAccount.acct) {
-      lines.push(
-        `${mgmtAccount.bank} ${mgmtAccount.acct}${mgmtAccount.holder ? ` (${mgmtAccount.holder})` : ""}`,
-      );
-    }
-
     openMessengerWith({
       cascade: {
         type: "tenant",
         buildingId: summary.buildingId,
         unitIds: [summary.unitId],
       },
-      body: lines.join("\n"),
+      body: buildUnpaidSmsBody({
+        buildingName,
+        buildingAddress,
+        summary,
+        footerRows,
+        total: footerTotals.total,
+        accountLine: mgmtAccountLine(setupConfig),
+      }),
       channel: "sms",
     });
   };

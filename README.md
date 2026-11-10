@@ -46,9 +46,9 @@
   - tiptap: 공지 에디터
   - exceljs: Excel export
   - qrcode
-- **테스트**
-  - vitest + Testing Library
-  - playwright 기반 픽셀 정합 하네스
+- **검증**
+  - playwright 기반 픽셀 정합 하네스(별도 npm 스크립트 없음)
+  - DB 검증 SQL: `supabase/verify/`, `supabase/tests/`
 - **언어 / 린트**: TypeScript 5 · ESLint 9
 
 ---
@@ -136,8 +136,6 @@ http://localhost:3000
 | `npm run build`      | 프로덕션 빌드         |
 | `npm run start`      | 프로덕션 서버 실행      |
 | `npm run lint`       | ESLint 실행       |
-| `npm test`           | vitest 전체 실행    |
-| `npm run test:watch` | vitest watch 모드 |
 
 
 ---
@@ -156,11 +154,19 @@ http://localhost:3000
 
 Supabase 공개 연결 정보.
 
+- `NEXT_PUBLIC_SUPABASE_IMAGE_TRANSFORMATIONS_ENABLED`
+
+Supabase Storage 이미지 변환(리사이즈) 사용 여부. 플랜에서 지원하지 않으면 `false`.
+
 - `SUPABASE_SERVICE_ROLE_KEY`
 
 서버 전용 Service Role Key.
 
 계정 발급 스크립트, 관리자성 작업, Route Handler 등 서버 환경에서만 사용한다.
+
+- `SUPABASE_ACCESS_TOKEN`
+
+Supabase CLI(마이그레이션·타입 생성)용 개인 액세스 토큰. 로컬 환경에만 둔다.
 
 ### Staff
 
@@ -173,6 +179,14 @@ Supabase 공개 연결 정보.
 - `NEXT_PUBLIC_RESIDENT_WEB_ORIGIN`
 
 알림톡 등 외부 발송 메시지의 세입자 상세 링크 생성에 사용한다.
+
+- `NEXT_PUBLIC_BASE_URL`
+
+종이 고지서 QR 코드에 넣는 공개 고지서 링크의 기준 origin(끝 `/` 없이). 비어 있으면 QR이 상대 경로가 된다.
+
+- `RESIDENT_STUB_ENABLED`
+
+운영(`NODE_ENV=production`)에서 세입자 카카오 로그인 스텁(`/api/resident/kakao/stub`)을 허용할지 여부. 데모 환경에서만 `true`.
 
 ### Kakao
 
